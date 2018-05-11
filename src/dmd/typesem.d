@@ -240,12 +240,11 @@ extern (C++) Expression typeToExpression(Type t)
 extern (C++) Expression typeToExpressionHelper(TypeQualified t, Expression e, size_t i = 0)
 {
     //printf("toExpressionHelper(e = %s %s)\n", Token.toChars(e.op), e.toChars());
-    for (; i < t.idents.dim; i++)
+    foreach (id; t.idents[i .. t.idents.dim])
     {
-        RootObject id = t.idents[i];
         //printf("\t[%d] e: '%s', id: '%s'\n", i, e.toChars(), id.toChars());
 
-        switch (id.dyncast())
+        final switch (id.dyncast())
         {
             // ... '. ident'
             case DYNCAST.identifier:
@@ -269,7 +268,11 @@ extern (C++) Expression typeToExpressionHelper(TypeQualified t, Expression e, si
                 e = new ArrayExp(t.loc, e, cast(Expression)id);
                 break;
 
-            default:
+            case DYNCAST.object:
+            case DYNCAST.tuple:
+            case DYNCAST.parameter:
+            case DYNCAST.statement:
+            case DYNCAST.condition:
                 assert(0);
         }
     }
@@ -289,13 +292,17 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         this.sc = sc;
     }
 
+    void error()
+    {
+        result = Type.terror;
+    }
+
     override void visit(Type t)
     {
         if (t.ty == Tint128 || t.ty == Tuns128)
         {
             t.error(loc, "`cent` and `ucent` types not implemented");
-            result = Type.terror;
-            return;
+            return error();
         }
 
         result = t.merge();
@@ -306,48 +313,41 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         uint errors = global.errors;
         mtype.basetype = mtype.basetype.typeSemantic(loc, sc);
         if (errors != global.errors)
-        {
-            result = Type.terror;
-            return;
-        }
+            return error();
         mtype.basetype = mtype.basetype.toBasetype().mutableOf();
         if (mtype.basetype.ty != Tsarray)
         {
             mtype.error(loc, "T in __vector(T) must be a static array, not `%s`", mtype.basetype.toChars());
-            result = Type.terror;
-            return;
+            return error();
         }
         TypeSArray t = cast(TypeSArray)mtype.basetype;
-        int sz = cast(int)t.size(loc);
-        switch (Target.isVectorTypeSupported(sz, t.nextOf()))
+        const sz = cast(int)t.size(loc);
+        final switch (Target.isVectorTypeSupported(sz, t.nextOf()))
         {
         case 0:
             // valid
             break;
+
         case 1:
             // no support at all
             mtype.error(loc, "SIMD vector types not supported on this platform");
-            result = Type.terror;
-            return;
+            return error();
+
         case 2:
             // invalid base type
             mtype.error(loc, "vector type `%s` is not supported on this platform", mtype.toChars());
-            result = Type.terror;
-            return;
+            return error();
+
         case 3:
             // invalid size
             if (sz == 32)
-            {
                 deprecation(loc, "%d byte vector types are only supported with -mcpu=avx", sz, mtype.toChars());
-                result = merge(mtype);
-                return;
-            }
             else
+            {
                 mtype.error(loc, "%d byte vector type `%s` is not supported on this platform", sz, mtype.toChars());
-            result = Type.terror;
-            return;
-        default:
-            assert(0);
+                return error();
+            }
+            break;
         }
         result = merge(mtype);
     }
@@ -355,12 +355,6 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
     override void visit(TypeSArray mtype)
     {
         //printf("TypeSArray::semantic() %s\n", toChars());
-
-        static Type errorReturn()
-        {
-            return Type.terror;
-        }
-
         Type t;
         Expression e;
         Dsymbol s;
@@ -371,92 +365,70 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             mtype.dim = semanticLength(sc, tup, mtype.dim);
             mtype.dim = mtype.dim.ctfeInterpret();
             if (mtype.dim.op == TOK.error)
-            {
-                result = errorReturn();
-                return;
-            }
+                return error();
+
             uinteger_t d = mtype.dim.toUInteger();
             if (d >= tup.objects.dim)
             {
                 mtype.error(loc, "tuple index %llu exceeds %llu", cast(ulong)d, cast(ulong)tup.objects.dim);
-                result = errorReturn();
-                return;
+                return error();
             }
 
             RootObject o = (*tup.objects)[cast(size_t)d];
             if (o.dyncast() != DYNCAST.type)
             {
                 mtype.error(loc, "`%s` is not a type", mtype.toChars());
-                result = errorReturn();
-                return;
+                return error();
             }
-            t = (cast(Type)o).addMod(mtype.mod);
-            result = t;
+            result = (cast(Type)o).addMod(mtype.mod);
             return;
         }
 
         Type tn = mtype.next.typeSemantic(loc, sc);
         if (tn.ty == Terror)
-        {
-            result = errorReturn();
-            return;
-        }
+            return error();
 
         Type tbn = tn.toBasetype();
         if (mtype.dim)
         {
-            uint errors = global.errors;
+            auto errors = global.errors;
             mtype.dim = semanticLength(sc, tbn, mtype.dim);
             if (errors != global.errors)
-            {
-                result = errorReturn();
-                return;
-            }
+                return error();
 
             mtype.dim = mtype.dim.optimize(WANTvalue);
             mtype.dim = mtype.dim.ctfeInterpret();
             if (mtype.dim.op == TOK.error)
-            {
-                result = errorReturn();
-                return;
-            }
+                return error();
+
             errors = global.errors;
             dinteger_t d1 = mtype.dim.toInteger();
             if (errors != global.errors)
-            {
-                result = errorReturn();
-                return;
-            }
+                return error();
 
             mtype.dim = mtype.dim.implicitCastTo(sc, Type.tsize_t);
             mtype.dim = mtype.dim.optimize(WANTvalue);
             if (mtype.dim.op == TOK.error)
-            {
-                result = errorReturn();
-                return;
-            }
+                return error();
+
             errors = global.errors;
             dinteger_t d2 = mtype.dim.toInteger();
             if (errors != global.errors)
-            {
-                result = errorReturn();
-                return;
-            }
+                return error();
 
             if (mtype.dim.op == TOK.error)
+                return error();
+
+            void overflowError()
             {
-                result = errorReturn();
-                return;
+                mtype.error(loc, "`%s` size %llu * %llu exceeds 0x%llx size limit for static array",
+                        mtype.toChars(), cast(ulong)tbn.size(loc), cast(ulong)d1, Target.maxStaticDataSize);
+                return error();
             }
 
             if (d1 != d2)
-            {
-            Loverflow:
-                mtype.error(loc, "`%s` size %llu * %llu exceeds 0x%llx size limit for static array",
-                        mtype.toChars(), cast(ulong)tbn.size(loc), cast(ulong)d1, Target.maxStaticDataSize);
-                result = errorReturn();
-                return;
-            }
+                return overflowError();
+
             Type tbx = tbn.baseElemOf();
             if (tbx.ty == Tstruct && !(cast(TypeStruct)tbx).sym.members || tbx.ty == Tenum && !(cast(TypeEnum)tbx).sym.members)
             {
@@ -471,7 +443,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                  */
                 bool overflow = false;
                 if (mulu(tbn.size(loc), d2, overflow) >= Target.maxStaticDataSize || overflow)
-                    goto Loverflow;
+                    return overflowError();
             }
         }
         switch (tbn.ty)
@@ -485,26 +457,25 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                 if (d >= tt.arguments.dim)
                 {
                     mtype.error(loc, "tuple index %llu exceeds %llu", cast(ulong)d, cast(ulong)tt.arguments.dim);
-                    result = errorReturn();
-                    return;
+                    return error();
                 }
                 Type telem = (*tt.arguments)[cast(size_t)d].type;
                 result = telem.addMod(mtype.mod);
                 return;
             }
+
         case Tfunction:
         case Tnone:
             mtype.error(loc, "cannot have array of `%s`", tbn.toChars());
-            result = errorReturn();
-            return;
+            return error();
+
         default:
             break;
         }
         if (tbn.isscope())
         {
             mtype.error(loc, "cannot have array of scope `%s`", tbn.toChars());
-            result = errorReturn();
-            return;
+            return error();
         }
 
         /* Ensure things like const(immutable(T)[3]) become immutable(T[3])
@@ -512,9 +483,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
          */
         mtype.next = tn;
         mtype.transitive();
-        t = mtype.addMod(tn.mod);
-
-        result = t.merge();
+        result = mtype.addMod(tn.mod).merge();
     }
 
     override void visit(TypeDArray mtype)
@@ -526,22 +495,22 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         case Ttuple:
             result = tbn;
             return;
+
         case Tfunction:
         case Tnone:
             mtype.error(loc, "cannot have array of `%s`", tbn.toChars());
-            result = Type.terror;
-            return;
+            return error();
+
         case Terror:
-            result = Type.terror;
-            return;
+            return error();
+
         default:
             break;
         }
         if (tn.isscope())
         {
             mtype.error(loc, "cannot have array of scope `%s`", tn.toChars());
-            result = Type.terror;
-            return;
+            return error();
         }
         mtype.next = tn;
         mtype.transitive();
@@ -550,7 +519,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
 
     override void visit(TypeAArray mtype)
     {
-        //printf("TypeAArray::semantic() %s index.ty = %d\n", toChars(), index.ty);
+        //printf("TypeAArray::semantic() %s index.ty = %d\n", mtype.toChars(), mtype.index.ty);
         if (mtype.deco)
         {
             result = mtype;
@@ -583,8 +552,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             else
             {
                 mtype.index.error(loc, "index is not a type or an expression");
-                result = Type.terror;
-                return;
+                return error();
             }
         }
         else
@@ -617,8 +585,8 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             mtype.error(loc, "cannot have associative array key of `%s`", mtype.index.toBasetype().toChars());
             goto case Terror;
         case Terror:
-            result = Type.terror;
-            return;
+            return error();
+
         default:
             break;
         }
@@ -663,8 +631,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                 {
                     mtype.error(loc, "%sAA key type `%s` does not support const equality", s, sd.toChars());
                 }
-                result = Type.terror;
-                return;
+                return error();
             }
             else if (!sd.xhash)
             {
@@ -676,8 +643,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                 {
                     mtype.error(loc, "%sAA key type `%s` supports const equality but doesn't support const hashing", s, sd.toChars());
                 }
-                result = Type.terror;
-                return;
+                return error();
             }
             else
             {
@@ -739,16 +705,14 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             mtype.error(loc, "cannot have associative array of `%s`", mtype.next.toChars());
             goto case Terror;
         case Terror:
-            result = Type.terror;
-            return;
+            return error();
         default:
             break;
         }
         if (mtype.next.isscope())
         {
             mtype.error(loc, "cannot have array of scope `%s`", mtype.next.toChars());
-            result = Type.terror;
-            return;
+            return error();
         }
         result = merge(mtype);
     }
@@ -768,8 +732,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             mtype.error(loc, "cannot have pointer to `%s`", n.toChars());
             goto case Terror;
         case Terror:
-            result = Type.terror;
-            return;
+            return error();
         default:
             break;
         }
@@ -805,8 +768,8 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
     {
         //printf("TypeReference::semantic()\n");
         Type n = mtype.next.typeSemantic(loc, sc);
-        if (n !=mtype. next)
-           mtype. deco = null;
+        if (n != mtype.next)
+           mtype.deco = null;
         mtype.next = n;
         mtype.transitive();
         result = merge(mtype);
@@ -1195,10 +1158,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         }
 
         if (errors)
-        {
-            result = Type.terror;
-            return;
-        }
+            return error();
 
         if (tf.next)
             tf.deco = tf.merge().deco;
@@ -1221,10 +1181,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         }
         mtype.next = mtype.next.typeSemantic(loc, sc);
         if (mtype.next.ty != Tfunction)
-        {
-            result = Type.terror;
-            return;
-        }
+            return error();
 
         /* In order to deal with https://issues.dlang.org/show_bug.cgi?id=4028
          * perhaps default arguments should
@@ -1256,7 +1213,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         if (t)
         {
             //printf("\tit's a type %d, %s, %s\n", t.ty, t.toChars(), t.deco);
-            t = t.addMod(mtype.mod);
+            result = t.addMod(mtype.mod);
         }
         else
         {
@@ -1273,10 +1230,8 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             }
             else
                 mtype.error(loc, "`%s` is used as a type", mtype.toChars());
-            t = Type.terror;
+            return error();
         }
-        //t.print();
-        result = t;
     }
 
     override void visit(TypeInstance mtype)
@@ -1287,7 +1242,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
 
         //printf("TypeInstance::semantic(%p, %s)\n", this, toChars());
         {
-            uint errors = global.errors;
+            const errors = global.errors;
             mtype.resolve(loc, sc, &e, &t, &s);
             // if we had an error evaluating the symbol, suppress further errors
             if (!t && errors != global.errors)
@@ -1307,7 +1262,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             }
             else
                mtype.error(loc, "`%s` is used as a type", mtype.toChars());
-            t = Type.terror;
+            return error();
         }
         result = t;
     }
@@ -1324,7 +1279,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         if (!t)
         {
             mtype.error(loc, "`%s` is used as a type", mtype.toChars());
-            t = Type.terror;
+            return error();
         }
         result = t;
     }
@@ -1341,7 +1296,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         if (!t)
         {
             mtype.error(loc, "`%s` is used as a type", mtype.toChars());
-            t = Type.terror;
+            return error();
         }
         result = t;
     }
@@ -1369,10 +1324,8 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         assert(mtype.sym.parent);
 
         if (mtype.sym.type.ty == Terror)
-        {
-            result = Type.terror;
-            return;
-        }
+            return error();
+
         if (sc)
             mtype.cppmangle = sc.cppmangle;
         result = merge(mtype);
@@ -1381,12 +1334,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
     override void visit(TypeEnum mtype)
     {
         //printf("TypeEnum::semantic() %s\n", toChars());
-        if (mtype.deco)
-        {
-            result = mtype;
-            return;
-        }
-        result = merge(mtype);
+        result = mtype.deco ? mtype : merge(mtype);
     }
 
     override void visit(TypeClass mtype)
@@ -1412,10 +1360,8 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         assert(mtype.sym.parent);
 
         if (mtype.sym.type.ty == Terror)
-        {
-            result = Type.terror;
-            return;
-        }
+            return error();
+
         if (sc)
             mtype.cppmangle = sc.cppmangle;
         result = merge(mtype);
@@ -1444,8 +1390,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         if (tbn.ty != Ttuple)
         {
             mtype.error(loc, "can only slice tuple types, not `%s`", tbn.toChars());
-            result = Type.terror;
-            return;
+            return error();
         }
         TypeTuple tt = cast(TypeTuple)tbn;
 
@@ -1454,10 +1399,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         mtype.lwr = mtype.lwr.ctfeInterpret();
         mtype.upr = mtype.upr.ctfeInterpret();
         if (mtype.lwr.op == TOK.error || mtype.upr.op == TOK.error)
-        {
-            result = Type.terror;
-            return;
-        }
+            return error();
 
         uinteger_t i1 = mtype.lwr.toUInteger();
         uinteger_t i2 = mtype.upr.toUInteger();
@@ -1465,8 +1407,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         {
             mtype.error(loc, "slice `[%llu..%llu]` is out of range of `[0..%llu]`",
                 cast(ulong)i1, cast(ulong)i2, cast(ulong)tt.arguments.dim);
-            result = Type.terror;
-            return;
+            return error();
         }
 
         mtype.next = tn;
@@ -1474,9 +1415,8 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
 
         auto args = new Parameters();
         args.reserve(cast(size_t)(i2 - i1));
-        for (size_t i = cast(size_t)i1; i < cast(size_t)i2; i++)
+        foreach (arg; (*tt.arguments)[cast(size_t)i1 .. cast(size_t)i2])
         {
-            Parameter arg = (*tt.arguments)[i];
             args.push(arg);
         }
         Type t = new TypeTuple(args);
