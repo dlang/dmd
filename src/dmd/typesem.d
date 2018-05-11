@@ -1464,25 +1464,39 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
 }
 
 /************************************
+ * If an identical type to `type` is in `type.stringtable`, return
+ * the latter one. Otherwise, add it to `type.stringtable`.
+ * Some types don't get merged and are returned as-is.
+ * Params:
+ *      type = Type to check against existing types
+ * Returns:
+ *      the type that was merged
  */
-static Type merge(Type type)
+Type merge(Type type)
 {
-    if (type.ty == Terror)
-        return type;
-    if (type.ty == Ttypeof)
-        return type;
-    if (type.ty == Tident)
-        return type;
-    if (type.ty == Tinstance)
-        return type;
-    if (type.ty == Taarray && !(cast(TypeAArray)type).index.merge().deco)
-        return type;
-    if (type.ty != Tenum && type.nextOf() && !type.nextOf().deco)
-        return type;
+    switch (type.ty)
+    {
+        case Terror:
+        case Ttypeof:
+        case Tident:
+        case Tinstance:
+            return type;
+
+        case Tenum:
+            break;
+
+        case Taarray:
+            if (!(cast(TypeAArray)type).index.merge().deco)
+                return type;
+            goto default;
+
+        default:
+            if (type.nextOf() && !type.nextOf().deco)
+                return type;
+            break;
+    }
 
     //printf("merge(%s)\n", toChars());
-    Type t = type;
-    assert(t);
     if (!type.deco)
     {
         OutBuffer buf;
@@ -1493,7 +1507,7 @@ static Type merge(Type type)
         StringValue* sv = type.stringtable.update(cast(char*)buf.data, buf.offset);
         if (sv.ptrvalue)
         {
-            t = cast(Type)sv.ptrvalue;
+            Type t = cast(Type)sv.ptrvalue;
             debug
             {
                 import core.stdc.stdio;
@@ -1502,15 +1516,18 @@ static Type merge(Type type)
             }
             assert(t.deco);
             //printf("old value, deco = '%s' %p\n", t.deco, t.deco);
+            return t;
         }
         else
         {
-            sv.ptrvalue = cast(char*)(t = stripDefaultArgs(t));
+            Type t = stripDefaultArgs(type);
+            sv.ptrvalue = cast(char*)t;
             type.deco = t.deco = cast(char*)sv.toDchars();
             //printf("new value, deco = '%s' %p\n", t.deco, t.deco);
+            return t;
         }
     }
-    return t;
+    return type;
 }
 
 /***************************************
