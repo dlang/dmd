@@ -56,35 +56,58 @@ import dmd.tokens;
 import dmd.typesem;
 
 /************************************
- * Strip all parameter's idenfiers and their default arguments for merging types.
- * If some of parameter types or return type are function pointer, delegate, or
- * the types which contains either, then strip also from them.
+ * Transitively search a type for all function types.
+ * If any function types with parameters are found that have parameter identifiers
+ * or default arguments, remove those and create a new type stripped of those.
+ * This is used to determine the "canonical" version of a type which is useful for
+ * comparisons.
+ * Params:
+ *      t = type to scan
+ * Returns:
+ *      `t` if no parameter identifiers or default arguments found, otherwise a new type that is
+ *      the same as t but with no parameter identifiers or default arguments.
  */
 private Type stripDefaultArgs(Type t)
 {
     static Parameters* stripParams(Parameters* parameters)
     {
-        Parameters* params = parameters;
-        if (params && params.dim > 0)
+        static Parameter stripParameter(Parameter p)
         {
-            foreach (i; 0 .. params.dim)
+            Type t = stripDefaultArgs(p.type);
+            return (t != p.type || p.defaultArg || p.ident)
+                ? new Parameter(p.storageClass, t, null, null)
+                : null;
+        }
+
+        if (parameters)
+        {
+            foreach (i, p; *parameters)
             {
-                Parameter p = (*params)[i];
-                Type ta = stripDefaultArgs(p.type);
-                if (ta != p.type || p.defaultArg || p.ident)
+                Parameter ps = stripParameter(p);
+                if (ps)
                 {
-                    if (params == parameters)
+                    // Replace params with a copy we can modify
+                    Parameters* nparams = new Parameters();
+                    nparams.setDim(parameters.dim);
+
+                    foreach (j, ref np; *nparams)
                     {
-                        params = new Parameters();
-                        params.setDim(parameters.dim);
-                        foreach (j; 0 .. params.dim)
-                            (*params)[j] = (*parameters)[j];
+                        Parameter pj = (*parameters)[j];
+                        if (j < i)
+                            np = pj;
+                        else if (j == i)
+                            np = ps;
+                        else
+                        {
+                            Parameter nps = stripParameter(pj);
+                            np = nps ? nps : pj;
+                        }
                     }
-                    (*params)[i] = new Parameter(p.storageClass, ta, null, null);
+                    return nparams;
                 }
             }
         }
-        return params;
+        return parameters;
     }
 
     if (t is null)
@@ -96,39 +119,38 @@ private Type stripDefaultArgs(Type t)
         Type tret = stripDefaultArgs(tf.next);
         Parameters* params = stripParams(tf.parameters);
         if (tret == tf.next && params == tf.parameters)
-            goto Lnot;
-        tf = cast(TypeFunction)tf.copy();
-        tf.parameters = params;
-        tf.next = tret;
-        //printf("strip %s\n   <- %s\n", tf.toChars(), t.toChars());
-        t = tf;
+            return t;
+        TypeFunction tr = cast(TypeFunction)tf.copy();
+        tr.parameters = params;
+        tr.next = tret;
+        //printf("strip %s\n   <- %s\n", tr.toChars(), t.toChars());
+        return tr;
     }
     else if (t.ty == Ttuple)
     {
         TypeTuple tt = cast(TypeTuple)t;
         Parameters* args = stripParams(tt.arguments);
         if (args == tt.arguments)
-            goto Lnot;
-        t = t.copy();
-        (cast(TypeTuple)t).arguments = args;
+            return t;
+        TypeTuple tr = cast(TypeTuple)t.copy();
+        tr.arguments = args;
+        return tr;
     }
     else if (t.ty == Tenum)
     {
         // TypeEnum::nextOf() may be != NULL, but it's not necessary here.
-        goto Lnot;
+        return t;
     }
     else
     {
         Type tn = t.nextOf();
         Type n = stripDefaultArgs(tn);
         if (n == tn)
-            goto Lnot;
-        t = t.copy();
-        (cast(TypeNext)t).next = n;
+            return t;
+        TypeNext tr = cast(TypeNext)t.copy();
+        tr.next = n;
+        return tr;
     }
-    //printf("strip %s\n", t.toChars());
-Lnot:
-    return t;
 }
 
 /******************************************
