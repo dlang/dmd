@@ -1836,6 +1836,20 @@ else version( CRuntime_Musl )
         sa_family_t sa_family;
         byte[14]    sa_data;
     }
+
+    private enum : size_t
+    {
+        _SS_SIZE    = 128,
+        _SS_PADSIZE = _SS_SIZE - c_ulong.sizeof - sa_family_t.sizeof
+    }
+
+    struct sockaddr_storage
+    {
+        sa_family_t ss_family;
+        byte[_SS_PADSIZE] __ss_padding;
+        c_ulong     __ss_align;
+    }
+
     enum {
         SOCK_STREAM = 1,
         SOCK_DGRAM = 2,
