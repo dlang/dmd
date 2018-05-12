@@ -68,7 +68,7 @@ enum BUILTIN : int
  */
 extern (C++) final class NrvoWalker : StatementRewriteWalker
 {
-    alias visit = super.visit;
+    alias visit = typeof(super).visit;
 public:
     FuncDeclaration fd;
     Scope* sc;
@@ -3174,7 +3174,7 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
 
         extern (C++) final class RetWalker : StatementRewriteWalker
         {
-            alias visit = super.visit;
+            alias visit = typeof(super).visit;
         public:
             Scope* sc;
             Type tret;

@@ -15,14 +15,14 @@ extern (C++) class Y : Base {
     override void blah(){}
 }
 class Z : Base {
-    alias blah = super.blah;
+    alias blah = typeof(super).blah;
     override void blah(){}//Error
 }
 class O : Base {
     extern (C++) override void blah(){}
 }
 extern (C++) class OK : Base {
-    alias blah = super.blah;
+    alias blah = typeof(super).blah;
     override void blah(){}
 }
 

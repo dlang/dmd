@@ -2,8 +2,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail18228.d(12): Deprecation: `this` cannot be used as a parameter type. Use `typeof(this)` instead
-fail_compilation/fail18228.d(13): Deprecation: `this` cannot be used as a parameter type. Use `typeof(this)` instead
+fail_compilation/fail18228.d(12): Deprecation: Using `this` as a type is deprecated. Use `typeof(this)` instead
+fail_compilation/fail18228.d(13): Deprecation: Using `this` as a type is deprecated. Use `typeof(this)` instead
 ---
 */
 

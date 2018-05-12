@@ -1510,7 +1510,7 @@ extern(C++) Expression getProperty(Type t, const ref Loc loc, Identifier ident, 
 
 private extern (C++) final class GetPropertyVisitor : Visitor
 {
-    alias visit = super.visit;
+    alias visit = typeof(super).visit;
     Loc loc;
     Identifier ident;
     int flag;
@@ -2056,7 +2056,7 @@ extern(C++) void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, 
 
 private extern(C++) final class ResolveVisitor : Visitor
 {
-    alias visit = super.visit;
+    alias visit = typeof(super).visit;
     Loc loc;
     Scope* sc;
     Expression* pe;
@@ -2238,6 +2238,16 @@ private extern(C++) final class ResolveVisitor : Visitor
         //printf("TypeIdentifier::resolve(sc = %p, idents = '%s')\n", sc, mt.toChars());
         if ((mt.ident.equals(Id._super) || mt.ident.equals(Id.This)) && !hasThis(sc))
         {
+            // @@@DEPRECATED_v2.086@@@.
+            if (mt.ident.equals(Id._super))
+            {
+                deprecation(mt.loc, "Using `super` as a type is deprecated. Use `typeof(super)` instead");
+            }
+            // @@@DEPRECATED_v2.086@@@.
+            if (mt.ident.equals(Id.This))
+            {
+                deprecation(mt.loc, "Using `this` as a type is deprecated. Use `typeof(this)` instead");
+            }
             AggregateDeclaration ad = sc.getStructClassScope();
             if (ad)
             {
@@ -2549,7 +2559,7 @@ extern(C++) Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident
 
 private extern(C++) final class DotExpVisitor : Visitor
 {
-    alias visit = super.visit;
+    alias visit = typeof(super).visit;
     Scope *sc;
     Expression e;
     Identifier ident;

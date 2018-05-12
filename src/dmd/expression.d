@@ -7061,7 +7061,7 @@ extern (C++) final class CondExp : BinExp
     {
         extern (C++) final class DtorVisitor : StoppableVisitor
         {
-            alias visit = super.visit;
+            alias visit = typeof(super).visit;
         public:
             Scope* sc;
             CondExp ce;

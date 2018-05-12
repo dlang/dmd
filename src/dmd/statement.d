@@ -176,7 +176,7 @@ extern (C++) abstract class Statement : RootObject
     {
         extern (C++) final class UsesEH : StoppableVisitor
         {
-            alias visit = super.visit;
+            alias visit = typeof(super).visit;
         public:
             override void visit(Statement s)
             {
@@ -215,7 +215,7 @@ extern (C++) abstract class Statement : RootObject
     {
         extern (C++) final class ComeFrom : StoppableVisitor
         {
-            alias visit = super.visit;
+            alias visit = typeof(super).visit;
         public:
             override void visit(Statement s)
             {
@@ -254,7 +254,7 @@ extern (C++) abstract class Statement : RootObject
     {
         extern (C++) final class HasCode : StoppableVisitor
         {
-            alias visit = super.visit;
+            alias visit = typeof(super).visit;
         public:
             override void visit(Statement s)
             {

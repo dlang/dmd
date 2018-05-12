@@ -2872,11 +2872,6 @@ final class Parser(AST) : Lexer
                     }
                 default:
                     {
-                        // Deprecated in 2018-04.
-                        // Change to error in 2019-04.
-                        // @@@DEPRECATED_2019-04@@@.
-                        if (token.value == TOK.this_)
-                            deprecation("`this` cannot be used as a parameter type. Use `typeof(this)` instead");
                         stc = storageClass & (AST.STC.in_ | AST.STC.out_ | AST.STC.ref_ | AST.STC.lazy_);
                         // if stc is not a power of 2
                         if (stc & (stc - 1) && !(stc == (AST.STC.in_ | AST.STC.ref_)))

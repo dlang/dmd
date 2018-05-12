@@ -287,7 +287,7 @@ public:
         {
             extern (C++) final class LambdaInlineCost : StoppableVisitor
             {
-                alias visit = super.visit;
+                alias visit = typeof(super).visit;
                 InlineCostVisitor icv;
 
             public:
