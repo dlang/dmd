@@ -154,7 +154,7 @@ void test_visitors()
     Loc loc;
     Identifier *ident = Identifier::idPool("test");
 
-    IntegerExp *ie = IntegerExp::create(loc, 42, Type::tint32);
+    IntegerExp *ie = IntegerExp::createi(loc, 42, Type::tint32);
     ie->accept(&tv);
     assert(tv.expr == true);
 
