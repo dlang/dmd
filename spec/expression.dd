@@ -165,6 +165,28 @@ $(GNAME ConditionalExpression):
         the result type of the conditional expression.
     )
 
+    $(P $(B Note:)
+        When a conditional expression is the left operand of
+        an $(RELATIVE_LINK2 assign_expressions, assign expression), they would be
+        parsed as an assignment to $(I the result) of the conditional. This
+        has now been deprecated. To preserve the existing behaviour, add
+        parentheses for the conditional without including the assignment:
+    )
+    ---
+    bool test;
+    int a, b, c;
+    ...
+    test ? a = b : c = 2;   // Deprecated
+    (test ? a = b : c) = 2; // Equivalent
+    ---
+
+    $(P This makes the intent clearer, because the first statement can
+        easily be misread as the following code:
+    )
+    ---
+    test ? a = b : (c = 2);
+    ---
+
 $(H2 $(LNAME2 oror_expressions, OrOr Expressions))
 
 $(GRAMMAR
