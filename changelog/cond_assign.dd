@@ -1,0 +1,15 @@
+Deprecate conditional expression followed by an assign expression
+
+If a conditional expression is the left operand of an assign expression,
+then one of them should be parenthesized:
+
+---
+bool test;
+int a, b, c;
+...
+test ? a = b : c = 2;   // Deprecated
+(test ? a = b : c) = 2; // OK
+test ? a = b : (c = 2); // OK
+---
+
+This makes the intent clearer.

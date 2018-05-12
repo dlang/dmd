@@ -8490,6 +8490,9 @@ final class Parser(AST) : Lexer
     {
         auto e = parseCondExp();
             // require parens for e.g. `t ? a = 1 : b = 2`
+            // Deprecated in 2018-05.
+            // Change to error in 2019-05.
+            // @@@DEPRECATED_2019-05@@@.
             if (e.op == TOK.question && !e.parens && precedence[token.value] == PREC.assign)
                 dmd.errors.deprecation(e.loc, "`%s` must be parenthesized when next to operator `%s`",
                     e.toChars(), Token.toChars(token.value));
