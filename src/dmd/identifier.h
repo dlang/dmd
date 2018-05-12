@@ -16,6 +16,7 @@
 #endif /* __DMC__ */
 
 #include "root.h"
+#include "rmem.h"
 #include "stringtable.h"
 
 class Identifier : public RootObject
