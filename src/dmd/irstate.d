@@ -56,6 +56,7 @@ struct IRState
     Symbol* startaddress;
     Array!(elem*)* varsInScope;     // variables that are in scope that will need destruction later
     Label*[void*]* labels;          // table of labels used/declared in function
+    const Param* params;            // command line parameters
     bool mayThrow;                  // the expression being evaluated may throw
 
     block* breakBlock;
@@ -78,17 +79,20 @@ struct IRState
             deferToObj = irs.deferToObj;
             varsInScope = irs.varsInScope;
             labels = irs.labels;
+            params = irs.params;
             mayThrow = irs.mayThrow;
         }
     }
 
-    this(Module m, FuncDeclaration fd, Array!(elem*)* varsInScope, Dsymbols* deferToObj, Label*[void*]* labels)
+    this(Module m, FuncDeclaration fd, Array!(elem*)* varsInScope, Dsymbols* deferToObj, Label*[void*]* labels,
+        const Param* params)
     {
         this.m = m;
         this.symbol = fd;
         this.varsInScope = varsInScope;
         this.deferToObj = deferToObj;
         this.labels = labels;
+        this.params = params;
         mayThrow = global.params.useExceptions
             && ClassDeclaration.throwable
             && !(fd && fd.eh_none);
