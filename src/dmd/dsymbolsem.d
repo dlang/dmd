@@ -3978,7 +3978,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         //printf("NewDeclaration::semantic()\n");
 
         // `@disable new();` should not be deprecated
-        if (!nd.isDisabled())
+        if (!nd.isDisabled() && !nd.isDeprecated())
         {
             // @@@DEPRECATED_2.084@@@
             // Should be changed to an error in 2.084
@@ -4034,7 +4034,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         // @@@DEPRECATED_2.084@@@
         // Should be changed to an error in 2.084
-        deprecation(deld.loc, "class deallocators have been deprecated, consider moving the deallocation strategy outside of the class");
+        if (!deld.isDeprecated())
+            deprecation(deld.loc, "class deallocators have been deprecated, consider moving the deallocation strategy outside of the class");
 
         if (deld.semanticRun >= PASS.semanticdone)
             return;
