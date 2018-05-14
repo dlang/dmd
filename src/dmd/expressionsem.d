@@ -7301,6 +7301,24 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             // Remains valid array assignments
             //  d = d[], d = [1,2,3], etc
+
+            if (exp.e2.op == TOK.arrayLiteral && !exp.e1.type.isImmutable() && exp.e2.type.ty != Tsarray && !(sc.flags & SCOPE.ctfe))
+            {
+                ArrayLiteralExp ale = cast(ArrayLiteralExp)exp.e2;
+
+                auto id = Identifier.idPool("__arrayLiteral");
+                auto tiargs = new Objects();
+                tiargs.push(ale.type.nextOf());
+                auto ti = new TemplateInstance(ale.loc, id, tiargs);
+                Expression __arrayLiteral = new ScopeExp(ale.loc, ti);
+
+                size_t dim = ale.elements ? ale.elements.dim : 0;
+                auto arguments = new Expressions();
+                arguments.push(new IntegerExp(dim));
+
+                __arrayLiteral = new CallExp(ale.loc, __arrayLiteral, arguments);
+                exp.e2 = expressionSemantic(__arrayLiteral, sc);
+            }
         }
 
         /* Don't allow assignment to classes that were allocated on the stack with:
