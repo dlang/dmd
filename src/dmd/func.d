@@ -2197,7 +2197,7 @@ extern (C++) class FuncDeclaration : Declaration
      */
     static FuncDeclaration genCfunc(Parameters* fparams, Type treturn, const(char)* name, StorageClass stc = 0)
     {
-        return genCfunc(fparams, treturn, Identifier.idPool(name, strlen(name)), stc);
+        return genCfunc(fparams, treturn, Identifier.idPool(name, cast(uint)strlen(name)), stc);
     }
 
     static FuncDeclaration genCfunc(Parameters* fparams, Type treturn, Identifier id, StorageClass stc = 0)

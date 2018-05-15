@@ -143,10 +143,10 @@ nothrow:
      */
     extern (D) static Identifier idPool(const(char)[] s)
     {
-        return idPool(s.ptr, s.length);
+        return idPool(s.ptr, cast(uint)s.length);
     }
 
-    static Identifier idPool(const(char)* s, size_t len)
+    static Identifier idPool(const(char)* s, uint len)
     {
         StringValue* sv = stringtable.update(s, len);
         Identifier id = cast(Identifier)sv.ptrvalue;

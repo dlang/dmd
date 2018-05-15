@@ -5629,7 +5629,7 @@ extern (C++) abstract class TypeQualified : Type
             /* Look for what user might have intended
              */
             const p = mutableOf().unSharedOf().toChars();
-            auto id = Identifier.idPool(p, strlen(p));
+            auto id = Identifier.idPool(p, cast(uint)strlen(p));
             if (const n = importHint(p))
                 error(loc, "`%s` is not defined, perhaps `import %s;` ?", p, n);
             else if (auto s2 = sc.search_correct(id))
