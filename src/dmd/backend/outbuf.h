@@ -15,11 +15,15 @@
 
 #include <stddef.h>     // for size_t
 
-#if __APPLE__ && __i386__
+#if __APPLE__
     /* size_t is 'unsigned long', which makes it mangle differently
      * than D's 'uint'
      */
+#if __i386__
     typedef unsigned d_size_t;
+#else
+    typedef unsigned long long d_size_t;
+#endif
 #else
     typedef size_t d_size_t;
 #endif

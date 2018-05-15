@@ -23,6 +23,17 @@ import dmd.root.stringtable;
 import dmd.tokens;
 import dmd.utf;
 
+version (OSX)
+{
+    // size_t is unsigned long on OSX, which results in name mangling issues
+    version (D_LP64)
+        alias d_size_t = ulong;
+    else
+        alias d_size_t = uint;
+}
+else
+    alias d_size_t = size_t;
+
 /***********************************************************
  */
 extern (C++) final class Identifier : RootObject
@@ -146,7 +157,7 @@ nothrow:
         return idPool(s.ptr, s.length);
     }
 
-    static Identifier idPool(const(char)* s, size_t len)
+    static Identifier idPool(const(char)* s, d_size_t len)
     {
         StringValue* sv = stringtable.update(s, len);
         Identifier id = cast(Identifier)sv.ptrvalue;
