@@ -15,17 +15,35 @@ module core.stdc.config;
 
 version (StdDdoc)
 {
+    private
+    {
+        version (Posix)
+            enum isPosix = true;
+        else
+            enum isPosix = false;
+        static if (isPosix && (void*).sizeof > int.sizeof)
+        {
+            alias ddoc_long = long;
+            alias ddoc_ulong = ulong;
+        }
+        else
+        {
+            alias ddoc_long = int;
+            alias ddoc_ulong = uint;
+        }
+    }
+
     /***
      * Used for a signed integer type that corresponds in size to the associated
      * C compiler's `long` type.
      */
-    alias c_long = int;
+    alias c_long = ddoc_long;
 
     /***
      * Used for an unsigned integer type that corresponds in size to the associated
      * C compiler's `unsigned long` type.
      */
-    alias c_ulong = uint;
+    alias c_ulong = ddoc_ulong;
 
     /***
      * Used for a signed integer type that corresponds in size and mangling to the associated
