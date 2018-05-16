@@ -138,6 +138,40 @@ nothrow:
         return idPool(buf.peekSlice());
     }
 
+    /***************************************
+     * Generate deterministic named identifier based on a source location,
+     * such that the name is consistent across multiple compilations.
+     * A new unique name is generated. If the prefix+location is already in
+     * the stringtable, an extra suffix is added (starting the count at "_1").
+     *
+     * Params:
+     *      prefix      = first part of the identifier name.
+     *      loc         = source location to use in the identifier name.
+     * Returns:
+     *      Identifier (inside Identifier.idPool) with deterministic name based
+     *      on the source location.
+     */
+    extern (D) static Identifier generateIdWithLoc(string prefix, const ref Loc loc)
+    {
+        OutBuffer buf;
+        buf.writestring(prefix);
+        buf.writestring("_L");
+        buf.print(loc.linnum);
+        buf.writestring("_C");
+        buf.print(loc.charnum);
+        auto basesize = buf.peekSlice().length;
+        uint counter = 1;
+        while (stringtable.lookup(buf.peekSlice().ptr, buf.peekSlice().length) !is null)
+        {
+            // Strip the extra suffix
+            buf.setsize(basesize);
+            // Add new suffix with increased counter
+            buf.writestring("_");
+            buf.print(counter++);
+        }
+        return idPool(buf.peekSlice());
+    }
+
     /********************************************
      * Create an identifier in the string table.
      */
