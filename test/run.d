@@ -310,7 +310,7 @@ string[string] getEnvironment()
 
         version(OSX)
             version(X86_64)
-                env["D_OBJC"] = 1;
+                env["D_OBJC"] = "1";
     }
     return env;
 }
