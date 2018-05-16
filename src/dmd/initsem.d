@@ -12,6 +12,7 @@
 
 module dmd.initsem;
 
+import core.stdc.stdio;
 import core.checkedint;
 
 import dmd.aggregate;
@@ -192,7 +193,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                 {
                     if ((t.alignment() < Target.ptrsize ||
                          (vd.offset & (Target.ptrsize - 1))) &&
-                        sc.func.setUnsafe())
+                        sc.func && sc.func.setUnsafe())
                     {
                         error(i.loc, "field `%s.%s` cannot assign to misaligned pointers in `@safe` code",
                             sd.toChars(), vd.toChars());
