@@ -8,10 +8,10 @@ struct D
 {
     static struct V
     {
-        ~this() { }
+        ~this() nothrow { }
     }
 
-    V get()
+    V get() nothrow
     {
         V v;
         return v;

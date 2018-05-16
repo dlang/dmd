@@ -1,0 +1,14 @@
+`nothrow` required when compiling in an environment that doesn't support exceptions (e.g. -betterC)
+
+Prior to this release, when compiling in an environment that does not support exceptions
+(e.g. -betterC or a minimal runtime with `Throwable` support), the compiler permitted
+non-nothrow functions despite the fact that such functions could never throw, nor handle
+exceptions thrown by called functions.
+
+Starting with this release , when compiling in an environment that does not support
+exceptions, the compiler will emit an error for any function not attributed with `nothrow`.
+This has been done to enforce the principle that compiler flags should not change language.
+
+This will break existing code, but the fix is simple:  Add a `nothrow:` attribution to the top
+of all modules.  Users should already be doing this anyway when compiling in a no-exceptions
+environment.

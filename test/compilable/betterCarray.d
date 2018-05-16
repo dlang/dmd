@@ -4,6 +4,8 @@
 
 import core.stdc.stdio;
 
+nothrow:
+
 extern (C) int main(char** argv, int argc) {
     printf("hello world\n");
     int[3] a;

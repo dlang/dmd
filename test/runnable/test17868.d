@@ -3,6 +3,7 @@
 import core.stdc.stdio;
 
 extern(C):
+nothrow:
 
 pragma(crt_constructor)
 void init()

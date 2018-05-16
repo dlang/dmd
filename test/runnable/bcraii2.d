@@ -4,6 +4,8 @@
 
 import core.stdc.stdio;
 
+nothrow:
+
 extern (C) int main()
 {
     auto j = test(1);

@@ -7,6 +7,8 @@
 // This should compile, but will not link and run properly without
 // a thread-local storage (TLS) implementation.
 
+nothrow:
+
 interface I
 {
     static int i;
