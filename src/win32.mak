@@ -60,6 +60,8 @@ OS=windows
 
 ##### Directories
 
+# DMC directory
+DMCROOT=$(DM_HOME)\dm
 # DMD source directories
 D=dmd
 C=$D\backend
@@ -198,7 +200,7 @@ GBACKOBJ= $G/go.obj $G/gdag.obj $G/gother.obj $G/gflow.obj $G/gloop.obj $G/var.o
 	$G/bcomplex.obj $G/ptrntab.obj $G/aa.obj $G/ti_achar.obj $G/md5.obj \
 	$G/ti_pvoid.obj $G/mscoffobj.obj $G/pdata.obj $G/cv8.obj $G/backconfig.obj \
 	$G/divcoeff.obj $G/dwarf.obj $G/compress.obj $G/varstats.obj \
-	$G/ph2.obj $G/util2.obj $G/tk.obj $G/gsroa.obj \
+	$G/ph2.obj $G/util2.obj $G/tk.obj $G/gsroa.obj $G/dvec.obj \
 
 # Root package
 ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/ctfloat.d $(ROOT)/file.d \
@@ -241,10 +243,10 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\md5.h $C\md5.c $C\ti_pvoid.c $C\xmm.h $C\ph2.c $C\util2.c \
 	$C\mscoffobj.c $C\obj.h $C\pdata.c $C\cv8.c $C\backconfig.c \
 	$C\divcoeff.d $C\dwarfeh.c $C\varstats.c $C\varstats.h \
-	$C\backend.txt
+	$C\dvec.d $C\backend.txt
 
 # Toolkit
-TKSRCC=	$(TK)\filespec.c $(TK)\mem.c $(TK)\vec.c $(TK)\list.c
+TKSRCC=	$(TK)\filespec.c $(TK)\mem.c $(TK)\list.c
 TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h \
 	$(TKSRCC)
 
@@ -519,6 +521,9 @@ $G/divcoeff.obj : $C\divcoeff.d
 
 $G/dt.obj : $C\dt.h $C\dt.c
 	$(CC) -c -o$@ $(MFLAGS) $C\dt
+
+$G/dvec.obj : $C\dvec.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC $C\dvec
 
 $G/dwarf.obj : $C\dwarf.h $C\dwarf.c
 	$(CC) -c -o$@ $(MFLAGS) $C\dwarf

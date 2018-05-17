@@ -31,4 +31,3 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 #endif
 #include        "mem.c"
 #include        "list.c"
-#include        "vec.c"
