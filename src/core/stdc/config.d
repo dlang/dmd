@@ -201,7 +201,10 @@ static assert(is(c_long_double), "c_long_double needs to be declared for this pl
 version (Darwin)
 {
     alias cpp_size_t = cpp_ulong;
-    alias cpp_ptrdiff_t = cpp_long;
+    version (D_LP64)
+        alias cpp_ptrdiff_t = cpp_long;
+    else
+        alias cpp_ptrdiff_t = ptrdiff_t;
 }
 else
 {
