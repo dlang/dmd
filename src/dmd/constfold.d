@@ -1339,8 +1339,11 @@ extern (C++) UnionExp Slice(Type type, Expression e1, Expression lwr, Expression
         uinteger_t iupr = upr.toInteger();
         if (iupr > es1.len || ilwr > iupr)
         {
-            e1.error("string slice `[%llu .. %llu]` is out of bounds", ilwr, iupr);
-            emplaceExp!(ErrorExp)(&ue);
+            // https://issues.dlang.org/show_bug.cgi?id=18115
+            emplaceExp!(CTFEExp)(&ue, TOK.cantExpression);
+            return ue;
+            //e1.error("string slice `[%llu .. %llu]` is out of bounds", ilwr, iupr);
+            //emplaceExp!(ErrorExp)(&ue);
         }
         else
         {
