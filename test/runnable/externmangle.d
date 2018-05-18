@@ -124,6 +124,11 @@ interface Module
 
 ulong testlongmangle(int a, uint b, long c, ulong d);
 
+import core.stdc.config;
+cpp_ulong testCppLongMangle(cpp_long a, cpp_ulong b);
+//cpp_ulonglong testCppLongLongMangle(cpp_longlong a, cpp_ulonglong b);
+cpp_size_t testCppSizeTMangle(cpp_ptrdiff_t a, cpp_size_t b);
+
 __gshared extern int[2][2][2] test31;
 __gshared extern int* test32;
 
@@ -280,6 +285,9 @@ void main()
     assert(Module.dim(&arr2) == 20);
 
     assert(testlongmangle(1, 2, 3, 4) == 10);
+    assert(testCppLongMangle(1, 2) == 3);
+    //assert(testCppLongLongMangle(3, 4) == 7);
+    //assert(testCppSizeTMangle(3, 4) == 7);
     assert(test31 == [[[1, 1], [1, 1]], [[1, 1], [1, 1]]]);
     assert(test32 == null);
 

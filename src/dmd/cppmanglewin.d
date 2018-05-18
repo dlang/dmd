@@ -417,16 +417,18 @@ public:
     {
         //printf("visit(TypeEnum); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
         const id = type.sym.ident;
-        char c;
+        string c;
         if (id == Id.__c_long_double)
-            c = 'O'; // VC++ long double
+            c = "O"; // VC++ long double
         else if (id == Id.__c_long)
-            c = 'J'; // VC++ long
+            c = "J"; // VC++ long
         else if (id == Id.__c_ulong)
-            c = 'K'; // VC++ unsigned long
-        else
-            c = 0;
-        if (c)
+            c = "K"; // VC++ unsigned long
+        else if (id == Id.__c_longlong)
+            c = "_J"; // VC++ long long
+        else if (id == Id.__c_ulonglong)
+            c = "_K"; // VC++ unsigned long long
+        if (c.length)
         {
             if (type.isImmutable() || type.isShared())
             {
@@ -439,7 +441,7 @@ public:
                     return;
             }
             mangleModifier(type);
-            buf.writeByte(c);
+            buf.writestring(c);
         }
         else
         {
@@ -1052,7 +1054,8 @@ private:
             if (rettype.ty == Tstruct || rettype.ty == Tenum)
             {
                 const id = rettype.toDsymbol(null).ident;
-                if (id != Id.__c_long_double && id != Id.__c_long && id != Id.__c_ulong)
+                if (id != Id.__c_long_double && id != Id.__c_long && id != Id.__c_ulong &&
+                    id != Id.__c_longlong && id != Id.__c_ulonglong)
                 {
                     tmp.buf.writeByte('?');
                     tmp.buf.writeByte('A');

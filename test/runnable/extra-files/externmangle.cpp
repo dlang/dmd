@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include <stdint.h>
 
 template<class X>
@@ -197,6 +198,21 @@ int Module::dim(Array<Module*>* arr)
 uint64_t testlongmangle(int a, unsigned int b, int64_t c, uint64_t d)
 {
     return a + b + c + d;
+}
+
+unsigned long testCppLongMangle(long a, unsigned long b)
+{
+    return a + b;
+}
+
+unsigned long long testCppLongLongMangle(long long a, unsigned long long b)
+{
+    return a + b;
+}
+
+size_t testCppSizeTMangle(ptrdiff_t a, size_t b)
+{
+    return a + b;
 }
 
 int test31[2][2][2] = {1, 1, 1, 1, 1, 1, 1, 1};
