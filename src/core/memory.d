@@ -956,14 +956,14 @@ $(UL
     )
 )
 
-Note: Users should prefer $(REF destroy, object)` to explicitly finalize objects,
+Note: Users should prefer $(REF1 destroy, object) to explicitly finalize objects,
 and only resort to $(REF __delete, core,memory) when $(REF destroy, object)
 wouldn't be a feasible option.
 
 Params:
     x = aggregate object that should be destroyed
 
-See_Also: $(REF destroy, object), $(REF free, core,GC)
+See_Also: $(REF1 destroy, object), $(REF free, core,GC)
 
 History:
 
