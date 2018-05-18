@@ -6774,6 +6774,31 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                          * Rewrite as:
                          *  e1 = init, e1.ctor(e2)
                          */
+
+                        /* Fix Issue 5153 : https://issues.dlang.org/show_bug.cgi?id=5153
+                         * Using `new` to initialize a struct object is a common mistake, but
+                         * the error message from the compiler is not very helpful in that
+                         * case. If exp.e2 is a NewExp and the type of new is the same as
+                         * the type as exp.e1 (struct in this case), then we know for sure
+                         * that the user wants to instantiate a struct. This is done to avoid
+                         * issuing an error when the user actually wants to call a constructor
+                         * which receives a class object.
+                         *
+                         * Foo f = new Foo2(0); is a valid expression if Foo has a constructor
+                         * which receives an instance of a Foo2 class
+                         */
+                        if (exp.e2.op == TOK.new_)
+                        {
+                            auto newExp = cast(NewExp)(exp.e2);
+                            if (newExp.newtype && newExp.newtype == t1)
+                            {
+                                error(exp.loc, "cannot implicitly convert expression `%s` of type `%s` to `%s`",
+                                      newExp.toChars(), newExp.type.toChars(), t1.toChars());
+                                errorSupplemental(exp.loc, "Perhaps remove the `new` keyword?");
+                                return setError();
+                            }
+                        }
+
                         Expression einit;
                         einit = new BlitExp(exp.loc, e1x, e1x.type.defaultInit(exp.loc));
                         einit.type = e1x.type;
