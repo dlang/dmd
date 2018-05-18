@@ -2330,6 +2330,7 @@ extern (C++) final class TypeDeduced : Type
 /*************************************************
  * Given function arguments, figure out which template function
  * to expand, and return matching result.
+ *
  * Params:
  *      m           = matching result
  *      dstart      = the root of overloaded function templates
@@ -2338,10 +2339,10 @@ extern (C++) final class TypeDeduced : Type
  *      tiargs      = initial list of template arguments
  *      tthis       = if !NULL, the 'this' pointer argument
  *      fargs       = arguments to function
- *      pMessage    = address to store error message, or null
+ *      failedIndex = address to store argument index of first type mismatch
  */
 void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiargs,
-    Type tthis, Expressions* fargs, const(char)** pMessage = null)
+    Type tthis, Expressions* fargs, size_t* failedIndex = null)
 {
     version (none)
     {
@@ -2446,7 +2447,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
             else if (shared_this && !shared_dtor && tthis_fd !is null)
                 tf.mod = tthis_fd.mod;
         }
-        MATCH mfa = tf.callMatch(tthis_fd, fargs, 0, pMessage);
+        MATCH mfa = tf.callMatch(tthis_fd, fargs, 0, failedIndex);
         //printf("test1: mfa = %d\n", mfa);
         if (mfa > MATCH.nomatch)
         {
