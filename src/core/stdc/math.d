@@ -3578,118 +3578,131 @@ else version(DragonFlyBSD)
 }
 else version(CRuntime_Bionic)
 {
-    // Bionic defines long double as 64 bits, same as double, so several long
-    // double functions are missing.  nexttoward was modified to reflect this.
     ///
     double  acos(double x);
     ///
     float   acosf(float x);
-    //real    acosl(real x);
+    /// Added since Lollipop
+    real    acosl(real x);
 
     ///
     double  asin(double x);
     ///
     float   asinf(float x);
-    //real    asinl(real x);
+    /// Added since Lollipop
+    real    asinl(real x);
 
     ///
     pure double  atan(double x);
     ///
     pure float   atanf(float x);
-    //real    atanl(real x);
+    /// Added since Lollipop
+    pure real    atanl(real x);
 
     ///
     double  atan2(double y, double x);
     ///
     float   atan2f(float y, float x);
-    //real    atan2l(real y, real x);
+    /// Added since Lollipop
+    real    atan2l(real y, real x);
 
     ///
     pure double  cos(double x);
     ///
     pure float   cosf(float x);
-    //real    cosl(real x);
+    ///
+    pure real    cosl(real x);
 
     ///
     pure double  sin(double x);
     ///
     pure float   sinf(float x);
-    //real    sinl(real x);
+    /// Added since Lollipop
+    pure real    sinl(real x);
 
     ///
     pure double  tan(double x);
     ///
     pure float   tanf(float x);
-    // Added since Lollipop
+    /// Added since Lollipop
     pure real    tanl(real x);
 
     ///
     double  acosh(double x);
     ///
     float   acoshf(float x);
-    //real    acoshl(real x);
+    /// Added since Lollipop
+    real    acoshl(real x);
 
     ///
     pure double  asinh(double x);
     ///
     pure float   asinhf(float x);
-    //real    asinhl(real x);
+    /// Added since Lollipop
+    pure real    asinhl(real x);
 
     ///
     double  atanh(double x);
     ///
     float   atanhf(float x);
-    //real    atanhl(real x);
+    /// Added since Lollipop
+    real    atanhl(real x);
 
     ///
     double  cosh(double x);
     ///
     float   coshf(float x);
-    //real    coshl(real x);
+    /// Added since Lollipop
+    real    coshl(real x);
 
     ///
     double  sinh(double x);
     ///
     float   sinhf(float x);
-    //real    sinhl(real x);
+    /// Added since Lollipop
+    real    sinhl(real x);
 
     ///
     pure double  tanh(double x);
     ///
     pure float   tanhf(float x);
-    //real    tanhl(real x);
+    /// Added since Lollipop
+    pure real    tanhl(real x);
 
     ///
     double  exp(double x);
     ///
     float   expf(float x);
-    //real    expl(real x);
+    ///
+    real    expl(real x);
 
     ///
     double  exp2(double x);
     ///
     float   exp2f(float x);
-    ///
-    real    exp2l(real x) { return exp2(x); }
+    /// Added since Lollipop
+    real    exp2l(real x);
 
     ///
     double  expm1(double x);
     ///
     float   expm1f(float x);
-    //real    expm1l(real x);
+    /// Added since Lollipop
+    real    expm1l(real x);
 
     ///
     pure double  frexp(double value, int* exp);
     ///
     pure float   frexpf(float value, int* exp);
-    // alias for double: real    frexpl(real value, int* exp);
+    /// Added since Lollipop
+    pure real    frexpl(real value, int* exp);
 
     ///
     int     ilogb(double x);
     ///
     int     ilogbf(float x);
     ///
-    int     ilogbl(real x) { return ilogb(x); }
+    int     ilogbl(real x);
 
     ///
     double  ldexp(double x, int exp);
@@ -3702,38 +3715,43 @@ else version(CRuntime_Bionic)
     double  log(double x);
     ///
     float   logf(float x);
-    //real    logl(real x);
+    /// Added since Lollipop
+    real    logl(real x);
 
     ///
     double  log10(double x);
     ///
     float   log10f(float x);
-    //real    log10l(real x);
+    /// Added since Lollipop
+    real    log10l(real x);
 
     ///
     double  log1p(double x);
     ///
     float   log1pf(float x);
-    //real    log1pl(real x);
+    /// Added since Lollipop
+    real    log1pl(real x);
 
-    // Added since Lollipop
+    ///
     double  log2(double x);
-    //float   log2f(float x);
-    //real    log2l(real x);
+    ///
+    float   log2f(float x);
+    ///
+    real    log2l(real x);
 
     ///
     double  logb(double x);
     ///
     float   logbf(float x);
     ///
-    real    logbl(real x) { return logb(x); }
+    real    logbl(real x);
 
     ///
     pure double  modf(double value, double* iptr);
     ///
     pure float   modff(float value, float* iptr);
-    ///
-    pure real    modfl(real value, real *iptr) { return modf(value, cast(double*)iptr); }
+    /// Added since Lollipop
+    pure real    modfl(real value, real *iptr);
 
     ///
     double  scalbn(double x, int n);
@@ -3746,192 +3764,218 @@ else version(CRuntime_Bionic)
     double  scalbln(double x, c_long n);
     ///
     float   scalblnf(float x, c_long n);
-    // alias for double: real    scalblnl(real x, c_long n);
+    ///
+    real    scalblnl(real x, c_long n);
 
     ///
     pure double  cbrt(double x);
     ///
     pure float   cbrtf(float x);
-    ///
-    pure real    cbrtl(real x) { return cbrt(x); }
+    /// Added since Lollipop
+    pure real    cbrtl(real x);
 
     ///
     pure double  fabs(double x);
     ///
     pure float   fabsf(float x);
-    // alias for double: real    fabsl(real x);
+    ///
+    pure real    fabsl(real x);
 
     ///
     double  hypot(double x, double y);
     ///
     float   hypotf(float x, float y);
-    //real    hypotl(real x, real y);
+    /// Added since Lollipop
+    real    hypotl(real x, real y);
 
     ///
     double  pow(double x, double y);
     ///
     float   powf(float x, float y);
-    //real    powl(real x, real y);
+    /// Added since Lollipop
+    real    powl(real x, real y);
 
     ///
     double  sqrt(double x);
     ///
     float   sqrtf(float x);
-    //real    sqrtl(real x);
+    /// Added since Lollipop
+    real    sqrtl(real x);
 
     ///
     pure double  erf(double x);
     ///
     pure float   erff(float x);
-    //real    erfl(real x);
+    /// Added since Lollipop
+    pure real    erfl(real x);
 
     ///
     double  erfc(double x);
     ///
     float   erfcf(float x);
-    //real    erfcl(real x);
+    /// Added since Lollipop
+    real    erfcl(real x);
 
     ///
     double  lgamma(double x);
     ///
     float   lgammaf(float x);
-    //real    lgammal(real x);
+    /// Added since Lollipop
+    real    lgammal(real x);
 
     ///
     double  tgamma(double x);
-    //float   tgammaf(float x);
-    //real    tgammal(real x);
+    ///
+    float   tgammaf(float x);
+    /// Added since Lollipop
+    real    tgammal(real x);
 
     ///
     pure double  ceil(double x);
     ///
     pure float   ceilf(float x);
-    // alias for double: real    ceill(real x);
+    ///
+    pure real    ceill(real x);
 
     ///
     pure double  floor(double x);
     ///
     pure float   floorf(float x);
-    // alias for double: real    floorl(real x);
+    ///
+    pure real    floorl(real x);
 
     ///
     pure double  nearbyint(double x);
     ///
     pure float   nearbyintf(float x);
-    ///
-    pure real    nearbyintl(real x) { return nearbyint(x); }
+    /// Added since Lollipop
+    pure real    nearbyintl(real x);
 
     ///
     pure double  rint(double x);
     ///
     pure float   rintf(float x);
-    //real    rintl(real x);
+    /// Added since Lollipop
+    pure real    rintl(real x);
 
     ///
     c_long  lrint(double x);
     ///
     c_long  lrintf(float x);
-    //c_long  lrintl(real x);
+    /// Added since Lollipop
+    c_long  lrintl(real x);
 
     ///
     long    llrint(double x);
     ///
     long    llrintf(float x);
-    //long    llrintl(real x);
+    /// Added since Lollipop
+    long    llrintl(real x);
 
     ///
     pure double  round(double x);
     ///
     pure float   roundf(float x);
     ///
-    pure real    roundl(real x) { return round(x); }
+    pure real    roundl(real x);
 
     ///
     c_long  lround(double x);
     ///
     c_long  lroundf(float x);
-    // alias for double: c_long  lroundl(real x);
+    ///
+    c_long  lroundl(real x);
 
     ///
     long    llround(double x);
     ///
     long    llroundf(float x);
     ///
-    long    llroundl(real x) { return llround(x); }
+    long    llroundl(real x);
 
     ///
     pure double  trunc(double x);
     ///
     pure float   truncf(float x);
     ///
-    pure real    truncl(real x) { return trunc(x); }
+    pure real    truncl(real x);
 
     ///
     double  fmod(double x, double y);
     ///
     float   fmodf(float x, float y);
-    ///
-    real    fmodl(real x, real y) { return fmod(x,y); }
+    /// Added since Lollipop
+    real    fmodl(real x, real y);
 
     ///
     double  remainder(double x, double y);
     ///
     float   remainderf(float x, float y);
-    ///
-    real    remainderl(real x, real y) { return remainder(x,y); }
+    /// Added since Lollipop
+    real    remainderl(real x, real y);
 
     ///
     double  remquo(double x, double y, int* quo);
     ///
     float   remquof(float x, float y, int* quo);
-    ///
-    real    remquol(real x, real y, int* quo) { return remquo(x,y,quo); }
+    /// Added since Lollipop
+    real    remquol(real x, real y, int* quo);
 
     ///
     pure double  copysign(double x, double y);
     ///
     pure float   copysignf(float x, float y);
-    // alias for double: pure real    copysignl(real x, real y);
+    ///
+    pure real    copysignl(real x, real y);
 
-    //pure double  nan(char* tagp);
-    //pure float   nanf(char* tagp);
-    //pure real    nanl(char* tagp);
+    ///
+    pure double  nan(char* tagp);
+    ///
+    pure float   nanf(char* tagp);
+    ///
+    pure real    nanl(char* tagp);
 
     ///
     double  nextafter(double x, double y);
     ///
     float   nextafterf(float x, float y);
-    // alias for double: real    nextafterl(real x, real y);
+    /// Added since Lollipop
+    real    nextafterl(real x, real y);
 
     ///
-    double  nexttoward(double x, double y);
+    double  nexttoward(double x, real y);
     ///
-    float   nexttowardf(float x, double y);
-    // alias for double: real    nexttowardl(real x, real y);
+    float   nexttowardf(float x, real y);
+    ///
+    real    nexttowardl(real x, real y);
 
     ///
     double  fdim(double x, double y);
     ///
     float   fdimf(float x, float y);
-    // alias for double: real    fdiml(real x, real y);
+    ///
+    real    fdiml(real x, real y);
 
     ///
     pure double  fmax(double x, double y);
     ///
     pure float   fmaxf(float x, float y);
-    // alias for double: real    fmaxl(real x, real y);
+    ///
+    pure real    fmaxl(real x, real y);
 
     ///
     pure double  fmin(double x, double y);
     ///
     pure float   fminf(float x, float y);
-    // alias for double: real    fminl(real x, real y);
+    ///
+    pure real    fminl(real x, real y);
 
     ///
     pure double  fma(double x, double y, double z);
     ///
     pure float   fmaf(float x, float y, float z);
-    // alias for double: real    fmal(real x, real y, real z);
+    /// Added since Lollipop
+    pure real    fmal(real x, real y, real z);
 }
 else version (CRuntime_UClibc)
 {
