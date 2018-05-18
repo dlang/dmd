@@ -2928,7 +2928,15 @@ any GC memory.
 */
 void destroy(T)(T obj) if (is(T == class))
 {
-    rt_finalize(cast(void*)obj);
+    static if(__traits(getLinkage, T) == "C++")
+    {
+        obj.__dtor();
+
+        enum classSize = __traits(classInstanceSize, T);
+        (cast(void*)obj)[0 .. classSize] = typeid(T).initializer[];
+    }
+    else
+        rt_finalize(cast(void*)obj);
 }
 
 /// ditto
@@ -2956,6 +2964,24 @@ unittest
     destroy(c);
     assert(c.dtorCount == 1); // `c`'s destructor was called
     assert(c.s == "S");       // `c.s` is back to its inital state, `"S"`
+
+    // check C++ classes work too!
+    extern (C++) class CPP
+    {
+        __gshared int dtorCount;
+
+        string s = "S";
+        ~this() { dtorCount++; }
+    }
+
+    CPP cpp = new CPP();
+    assert(cpp.dtorCount == 0); // destructor not yet called
+    assert(cpp.s == "S");      // initial state `c.s` is `"S"`
+    cpp.s = "T";
+    assert(cpp.s == "T");       // `c.s` is `"T"`
+    destroy(cpp);
+    assert(cpp.dtorCount == 1); // `c`'s destructor was called
+    assert(cpp.s == "S");       // `c.s` is back to its inital state, `"S"`
 }
 
 /// Value type demonstration

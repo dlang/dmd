@@ -1,0 +1,3 @@
+`object.destroy()` supports `extern(C++)` classes.
+
+`object.destroy()` was crashing when called with an `extern(C++) class. It now correctly destructs and resets the object to `init`.
