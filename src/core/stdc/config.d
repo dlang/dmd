@@ -58,6 +58,18 @@ version (StdDdoc)
     alias cpp_ulong = c_ulong;
 
     /***
+     * Used for a signed integer type that corresponds in size and mangling to the associated
+     * C++ compiler's `long long` type.
+     */
+    alias cpp_longlong = long;
+
+    /***
+     * Used for an unsigned integer type that corresponds in size and mangling to the associated
+     * C++ compiler's `unsigned long long` type.
+     */
+    alias cpp_ulonglong = ulong;
+
+    /***
      * Used for a floating point type that corresponds in size and mangling to the associated
      * C++ compiler's `long double` type.
      */
@@ -97,6 +109,9 @@ version( Windows )
 
     alias int   c_long;
     alias uint  c_ulong;
+
+    alias long  cpp_longlong;
+    alias ulong cpp_ulonglong;
 }
 else version( Posix )
 {
@@ -105,11 +120,17 @@ else version( Posix )
     enum __c_long  : long;
     enum __c_ulong : ulong;
 
+    enum __c_longlong  : long;
+    enum __c_ulonglong : ulong;
+
     alias __c_long   cpp_long;
     alias __c_ulong  cpp_ulong;
 
     alias long  c_long;
     alias ulong c_ulong;
+
+    alias __c_longlong  cpp_longlong;
+    alias __c_ulonglong cpp_ulonglong;
   }
   else
   {
@@ -121,6 +142,9 @@ else version( Posix )
 
     alias int   c_long;
     alias uint  c_ulong;
+
+    alias long  cpp_longlong;
+    alias ulong cpp_ulonglong;
   }
 }
 
