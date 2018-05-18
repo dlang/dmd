@@ -3,7 +3,7 @@
  *
  * $(C_HEADER_DESCRIPTION pubs.opengroup.org/onlinepubs/009695399/basedefs/_stdint.h.html, _stdint.h)
  *
- * Copyright: Copyright Sean Kelly 2005 - 2009.
+ * Copyright: Copyright Sean Kelly 2005 - 2018
  * License: Distributed under the
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE)
@@ -14,6 +14,7 @@
 
 module core.stdc.stdint;
 
+private import core.stdc.config;
 private import core.stdc.stddef; // for wchar_t
 private import core.stdc.signal; // for sig_atomic_t
 private import core.stdc.wchar_; // for wint_t
@@ -27,85 +28,192 @@ extern (C):
 nothrow:
 @nogc:
 
-///
-alias int8_t  = byte ;
-///
-alias int16_t = short;
-///
-alias int32_t = int  ;
-///
-alias int64_t = long ;
-///
+
 static if (is(ucent))
-    alias int128_t = cent;
-
-///
-alias uint8_t  = ubyte ;
-///
-alias uint16_t = ushort;
-///
-alias uint32_t = uint  ;
-///
-alias uint64_t = ulong ;
-///
-static if (is(ucent))
-    alias uint128_t = ucent;
-
-///
-alias int_least8_t  = byte ;
-///
-alias int_least16_t = short;
-///
-alias int_least32_t = int  ;
-///
-alias int_least64_t = long ;
-
-///
-alias uint_least8_t  = ubyte ;
-///
-alias uint_least16_t = ushort;
-///
-alias uint_least32_t = uint  ;
-///
-alias uint_least64_t = ulong ;
-
-///
-alias int_fast8_t  = byte;
-///
-alias int_fast16_t = int ;
-///
-alias int_fast32_t = int ;
-///
-alias int_fast64_t = long;
-
-///
-alias uint_fast8_t  = ubyte;
-///
-alias uint_fast16_t = uint ;
-///
-alias uint_fast32_t = uint ;
-///
-alias uint_fast64_t = ulong;
-
-version( D_LP64 )
 {
-    ///
-    alias intptr_t  = long ;
-    ///
-    alias uintptr_t = ulong;
+    alias int128_t = cent;   ///
+    alias uint128_t = ucent; ///
+}
+
+version (Win32)
+{
+    alias int8_t   = byte;      ///
+    alias int16_t  = short;     ///
+    alias uint8_t  = ubyte;     ///
+    alias uint16_t = ushort;    ///
+    alias int32_t  = cpp_long;  ///
+    alias uint32_t = cpp_ulong; ///
+    alias int64_t  = long;      ///
+    alias uint64_t = ulong;     ///
+
+    alias int_least8_t   = byte;      ///
+    alias uint_least8_t  = ubyte;     ///
+    alias int_least16_t  = short;     ///
+    alias uint_least16_t = ushort;    ///
+    alias int_least32_t  = cpp_long;  ///
+    alias uint_least32_t = cpp_ulong; ///
+    alias int_least64_t  = long;      ///
+    alias uint_least64_t = ulong;     ///
+
+    alias int_fast8_t   = byte;      ///
+    alias uint_fast8_t  = ubyte;     ///
+    alias int_fast16_t  = int;       ///
+    alias uint_fast16_t = uint;      ///
+    alias int_fast32_t  = cpp_long;  ///
+    alias uint_fast32_t = cpp_ulong; ///
+    alias int_fast64_t  = long;      ///
+    alias uint_fast64_t = ulong;     ///
+
+    alias intptr_t  = int;   ///
+    alias uintptr_t = uint;  ///
+    alias intmax_t  = long;  ///
+    alias uintmax_t = ulong; ///
+}
+else version (Win64)
+{
+    alias int8_t   = byte;   ///
+    alias int16_t  = short;  ///
+    alias uint8_t  = ubyte;  ///
+    alias uint16_t = ushort; ///
+    alias int32_t  = int;    ///
+    alias uint32_t = uint;   ///
+    alias int64_t  = long;   ///
+    alias uint64_t = ulong;  ///
+
+    alias int_least8_t   = byte;   ///
+    alias uint_least8_t  = ubyte;  ///
+    alias int_least16_t  = short;  ///
+    alias uint_least16_t = ushort; ///
+    alias int_least32_t  = int;    ///
+    alias uint_least32_t = uint;   ///
+    alias int_least64_t  = long;   ///
+    alias uint_least64_t = ulong;  ///
+
+    alias int_fast8_t   = char;  ///
+    alias uint_fast8_t  = ubyte; ///
+    alias int_fast16_t  = int;   ///
+    alias uint_fast16_t = uint;  ///
+    alias int_fast32_t  = int;   ///
+    alias uint_fast32_t = uint;  ///
+    alias int_fast64_t  = long;  ///
+    alias uint_fast64_t = ulong; ///
+
+    alias intptr_t  = long;  ///
+    alias uintptr_t = ulong; ///
+    alias intmax_t  = long;  ///
+    alias uintmax_t = ulong; ///
+}
+else version (OSX)
+{
+    alias int8_t   = byte;   ///
+    alias int16_t  = short;  ///
+    alias uint8_t  = ubyte;  ///
+    alias uint16_t = ushort; ///
+    alias int32_t  = int;    ///
+    alias uint32_t = uint;   ///
+    alias int64_t  = long;   ///
+    alias uint64_t = ulong;  ///
+
+    alias int_least8_t   = byte;   ///
+    alias uint_least8_t  = ubyte;  ///
+    alias int_least16_t  = short;  ///
+    alias uint_least16_t = ushort; ///
+    alias int_least32_t  = int;    ///
+    alias uint_least32_t = uint;   ///
+    alias int_least64_t  = long;   ///
+    alias uint_least64_t = ulong;  ///
+
+    alias int_fast8_t   = byte;  ///
+    alias uint_fast8_t  = ubyte; ///
+    alias int_fast16_t  = int;   ///
+    alias uint_fast16_t = uint;  ///
+    alias int_fast32_t  = int;   ///
+    alias uint_fast32_t = uint;  ///
+    alias int_fast64_t  = long;  ///
+    alias uint_fast64_t = ulong; ///
+
+    alias intptr_t  = cpp_long;  ///
+    alias uintptr_t = cpp_ulong; ///
+    alias intmax_t  = cpp_long;  ///
+    alias uintmax_t = cpp_ulong; ///
+}
+else version (Posix)
+{
+    version (D_LP64)
+    {
+        alias int8_t   = byte;      ///
+        alias int16_t  = short;     ///
+        alias uint8_t  = ubyte;     ///
+        alias uint16_t = ushort;    ///
+        alias int32_t  = int;       ///
+        alias uint32_t = uint;      ///
+        alias int64_t  = cpp_long;  ///
+        alias uint64_t = cpp_ulong; ///
+
+        alias int_least8_t   = byte;      ///
+        alias uint_least8_t  = ubyte;     ///
+        alias int_least16_t  = short;     ///
+        alias uint_least16_t = ushort;    ///
+        alias int_least32_t  = int;       ///
+        alias uint_least32_t = uint;      ///
+        alias int_least64_t  = cpp_long;  ///
+        alias uint_least64_t = cpp_ulong; ///
+
+        alias int_fast8_t   = byte;      ///
+        alias uint_fast8_t  = ubyte;     ///
+        alias int_fast16_t  = cpp_long;  ///
+        alias uint_fast16_t = cpp_ulong; ///
+        alias int_fast32_t  = cpp_long;  ///
+        alias uint_fast32_t = cpp_ulong; ///
+        alias int_fast64_t  = cpp_long;  ///
+        alias uint_fast64_t = cpp_ulong; ///
+
+        alias intptr_t  = cpp_long;  ///
+        alias uintptr_t = cpp_ulong; ///
+        alias intmax_t  = cpp_long;  ///
+        alias uintmax_t = cpp_ulong; ///
+    }
+    else
+    {
+        alias int8_t   = byte;   ///
+        alias int16_t  = short;  ///
+        alias uint8_t  = ubyte;  ///
+        alias uint16_t = ushort; ///
+        alias int32_t  = int;    ///
+        alias uint32_t = uint;   ///
+        alias int64_t  = long;   ///
+        alias uint64_t = ulong;  ///
+
+        alias int_least8_t   = byte;   ///
+        alias uint_least8_t  = ubyte;  ///
+        alias int_least16_t  = short;  ///
+        alias uint_least16_t = ushort; ///
+        alias int_least32_t  = int;    ///
+        alias uint_least32_t = uint;   ///
+        alias int_least64_t  = long;   ///
+        alias uint_least64_t = ulong;  ///
+
+        alias int_fast8_t   = byte;  ///
+        alias uint_fast8_t  = ubyte; ///
+        alias int_fast16_t  = int;   ///
+        alias uint_fast16_t = uint;  ///
+        alias int_fast32_t  = int;   ///
+        alias uint_fast32_t = uint;  ///
+        alias int_fast64_t  = long;  ///
+        alias uint_fast64_t = ulong; ///
+
+        alias intptr_t  = int ;  ///
+        alias uintptr_t = uint;  ///
+        alias intmax_t  = long;  ///
+        alias uintmax_t = ulong; ///
+    }
 }
 else
 {
-    ///
-    alias intptr_t  = int ;
-    ///
-    alias uintptr_t = uint;
+    static assert(0);
 }
 
-///
-alias intmax_t  = long ;
-///
-alias uintmax_t = ulong;
+
 
 ///
 enum int8_t   INT8_MIN  = int8_t.min;
