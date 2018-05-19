@@ -74,7 +74,7 @@ void ld_clearfpu()
 {
     version(AsmX86)
     {
-        asm nothrow @nogc pure @trusted
+        asm nothrow @nogc @trusted
         {
             fclex;
         }
@@ -204,6 +204,7 @@ version(D_InlineAsm_X86_64)
 {
     // longdouble_soft passed by reference
     extern(D):
+    private:
     string fld_arg(string arg)()
     {
         return "asm nothrow @nogc pure @trusted { mov RAX, " ~ arg ~ "; " ~ fld_eax!arg ~ " }";
@@ -223,6 +224,7 @@ else version(D_InlineAsm_X86)
 {
     // longdouble_soft passed by value
     extern(D):
+    private:
     string fld_arg(string arg)()
     {
         return "asm nothrow @nogc pure @trusted { lea EAX, " ~ arg ~ "; " ~ fld_eax!arg ~ " }";
