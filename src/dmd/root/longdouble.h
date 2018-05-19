@@ -55,7 +55,7 @@ inline size_t ld_sprint(char* str, int fmt, longdouble x)
 
 struct longdouble_soft;
 
-// implemented in ldfpu.asm for _WIN64
+// implemented in longdouble.d
 double ld_read(const longdouble_soft* const ld);
 long long ld_readll(const longdouble_soft* const ld);
 unsigned long long ld_readull(const longdouble_soft* const ld);

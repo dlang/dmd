@@ -34,7 +34,7 @@ bool initFPU()
     version(D_InlineAsm_X86_64)
     {
         // set precision to 64-bit mantissa and rounding control to nearest
-        asm nothrow @nogc pure
+        asm nothrow @nogc @trusted
         {
             push    RAX;                 // add space on stack
             fstcw   word ptr [RSP];
@@ -49,7 +49,7 @@ bool initFPU()
     else version(D_InlineAsm_X86)
     {
         // set precision to 64-bit mantissa and rounding control to nearest
-        asm nothrow @nogc
+        asm nothrow @nogc @trusted
         {
             push    EAX;                 // add space on stack
             fstcw   word ptr [ESP];
