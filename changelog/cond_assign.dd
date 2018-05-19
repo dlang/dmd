@@ -1,9 +1,9 @@
 Deprecate conditional expression followed by an assign expression
 
-When a conditional expression is the left operand of an assign 
-expression, they would be parsed as an assignment to $(I the result) of 
-the conditional. This has now been deprecated. To preserve the existing 
-behaviour, add parentheses for the conditional without including the 
+When a conditional expression is the left operand of an assign
+expression, they would be parsed as an assignment to $(I the result) of
+the conditional. This has now been deprecated. To preserve the existing
+behaviour, add parentheses for the conditional without including the
 assignment:
 
 ---
@@ -14,7 +14,7 @@ test ? a = b : c = 2;   // Deprecated
 (test ? a = b : c) = 2; // Equivalent
 ---
 
-This makes the intent clearer, because the first statement can easily 
+This makes the intent clearer, because the first statement can easily
 be misread as the following code:
 
 ---
