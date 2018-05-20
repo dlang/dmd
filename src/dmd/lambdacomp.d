@@ -341,9 +341,7 @@ public:
         if (buf.offset == 0)
             return;
 
-        exp.normalize();
-        auto val = exp.value;
-        buf.print(val);
+        buf.print(exp.toInteger());
         buf.writeByte('_');
     }
 

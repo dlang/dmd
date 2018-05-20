@@ -2532,7 +2532,7 @@ extern (C++) abstract class Expression : RootObject
  */
 extern (C++) final class IntegerExp : Expression
 {
-    dinteger_t value;
+    private dinteger_t value;
 
     extern (D) this(const ref Loc loc, dinteger_t value, Type type)
     {
@@ -2547,7 +2547,7 @@ extern (C++) final class IntegerExp : Expression
             type = Type.terror;
         }
         this.type = type;
-        setInteger(value);
+        this.value = normalize(type.toBasetype().ty, value);
     }
 
     extern (D) this(dinteger_t value)
@@ -2584,18 +2584,19 @@ extern (C++) final class IntegerExp : Expression
 
     override dinteger_t toInteger()
     {
-        normalize(); // necessary until we fix all the paints of 'type'
-        return value;
+        // normalize() is necessary until we fix all the paints of 'type'
+        return value = normalize(type.toBasetype().ty, value);
     }
 
     override real_t toReal()
     {
-        normalize(); // necessary until we fix all the paints of 'type'
-        Type t = type.toBasetype();
-        if (t.ty == Tuns64)
-            return real_t(cast(d_uns64)value);
-        else
-            return real_t(cast(d_int64)value);
+        // normalize() is necessary until we fix all the paints of 'type'
+        const ty = type.toBasetype().ty;
+        const val = normalize(ty, value);
+        value = val;
+        return (ty == Tuns64)
+            ? real_t(cast(d_uns64)val)
+            : real_t(cast(d_int64)val);
     }
 
     override real_t toImaginary()
@@ -2636,60 +2637,60 @@ extern (C++) final class IntegerExp : Expression
 
     void setInteger(dinteger_t value)
     {
-        this.value = value;
-        normalize();
+        this.value = normalize(type.toBasetype().ty, value);
     }
 
-    void normalize()
+    static dinteger_t normalize(TY ty, dinteger_t value)
     {
         /* 'Normalize' the value of the integer to be in range of the type
          */
-        switch (type.toBasetype().ty)
+        dinteger_t result;
+        switch (ty)
         {
         case Tbool:
-            value = (value != 0);
+            result = (value != 0);
             break;
 
         case Tint8:
-            value = cast(d_int8)value;
+            result = cast(d_int8)value;
             break;
 
         case Tchar:
         case Tuns8:
-            value = cast(d_uns8)value;
+            result = cast(d_uns8)value;
             break;
 
         case Tint16:
-            value = cast(d_int16)value;
+            result = cast(d_int16)value;
             break;
 
         case Twchar:
         case Tuns16:
-            value = cast(d_uns16)value;
+            result = cast(d_uns16)value;
             break;
 
         case Tint32:
-            value = cast(d_int32)value;
+            result = cast(d_int32)value;
             break;
 
         case Tdchar:
         case Tuns32:
-            value = cast(d_uns32)value;
+            result = cast(d_uns32)value;
             break;
 
         case Tint64:
-            value = cast(d_int64)value;
+            result = cast(d_int64)value;
             break;
 
         case Tuns64:
-            value = cast(d_uns64)value;
+            result = cast(d_uns64)value;
             break;
 
         case Tpointer:
             if (Target.ptrsize == 4)
-                value = cast(d_uns32)value;
+                result = cast(d_uns32)value;
             else if (Target.ptrsize == 8)
-                value = cast(d_uns64)value;
+                result = cast(d_uns64)value;
             else
                 assert(0);
             break;
@@ -2697,6 +2698,7 @@ extern (C++) final class IntegerExp : Expression
         default:
             break;
         }
+        return result;
     }
 }
 

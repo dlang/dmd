@@ -1204,7 +1204,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
 
         assert(e.type.deco);
-        e.normalize();
+        e.setInteger(e.getInteger());
         result = e;
     }
 
