@@ -590,7 +590,9 @@ private final class CppMangleVisitor : Visitor
                 buf.writeByte('N');
                 CV_qualifiers(d.type);
                 prefix_name(p);
-                if (d.isDtorDeclaration())
+                if (d.isCtorDeclaration())
+                    buf.writestring("C1");
+                else if (d.isDtorDeclaration())
                     buf.writestring("D1");
                 else
                     source_name(ti);
@@ -621,7 +623,11 @@ private final class CppMangleVisitor : Visitor
                 prefix_name(p);
                 //printf("p: %s\n", buf.peekString());
 
-                if (d.isDtorDeclaration())
+                if (d.isCtorDeclaration())
+                {
+                    buf.writestring("C1");
+                }
+                else if (d.isDtorDeclaration())
                 {
                     buf.writestring("D1");
                 }

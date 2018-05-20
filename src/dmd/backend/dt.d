@@ -41,7 +41,7 @@ private:
     dt_t** pTail;
 
 public:
-    this()
+    extern (D) this()
     {
         pTail = &head;
     }
