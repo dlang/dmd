@@ -7016,16 +7016,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (exp.op != TOK.assign)
                 {
                     // If multidimensional static array, treat as one large array
-                    dinteger_t dim = (cast(TypeSArray)t1).dim.toInteger();
-                    Type t = t1;
-                    while (1)
-                    {
-                        t = t.nextOf().toBasetype();
-                        if (t.ty != Tsarray)
-                            break;
-                        dim *= (cast(TypeSArray)t).dim.toInteger();
-                        e1x.type = t.nextOf().sarrayOf(dim);
-                    }
+                    const dim = t1.numberOfElems(exp.loc);
+                    e1x.type = t1.baseElemOf().sarrayOf(dim);
                 }
                 auto sle = new SliceExp(e1x.loc, e1x, null, null);
                 sle.arrayop = true;

@@ -2594,6 +2594,33 @@ extern (C++) abstract class Type : RootObject
         return t;
     }
 
+    /*******************************************
+     * Compute number of elements for a (possibly multidimensional) static array,
+     * or 1 for other types.
+     * Params:
+     *  loc = for error message
+     * Returns:
+     *  number of elements, uint.max on overflow
+     */
+    final uint numberOfElems(const ref Loc loc)
+    {
+        //printf("Type::numberOfElems()\n");
+        uinteger_t n = 1;
+        Type tb = this;
+        while ((tb = tb.toBasetype()).ty == Tsarray)
+        {
+            bool overflow = false;
+            n = mulu(n, (cast(TypeSArray)tb).dim.toUInteger(), overflow);
+            if (overflow || n >= uint.max)
+            {
+                error(loc, "static array `%s` size overflowed to %llu", toChars(), cast(ulong)n);
+                return uint.max;
+            }
+            tb = (cast(TypeSArray)tb).next;
+        }
+        return cast(uint)n;
+    }
+
     /****************************************
      * Return the mask that an integral type will
      * fit into.
@@ -3685,23 +3712,17 @@ extern (C++) final class TypeSArray : TypeArray
     override d_uns64 size(const ref Loc loc)
     {
         //printf("TypeSArray::size()\n");
-        dinteger_t sz;
-        if (!dim)
-            return Type.size(loc);
-        sz = dim.toInteger();
+        const n = numberOfElems(loc);
+        const elemsize = baseElemOf().size(loc);
+        bool overflow = false;
+        const sz = mulu(n, elemsize, overflow);
+        if (overflow || sz >= uint.max)
         {
-            bool overflow = false;
-            sz = mulu(next.size(), sz, overflow);
-            if (overflow)
-                goto Loverflow;
+            if (elemsize != SIZE_INVALID && n != uint.max)
+                error(loc, "static array `%s` size overflowed to %lld", toChars(), cast(long)sz);
+            return SIZE_INVALID;
         }
-        if (sz > uint.max)
-            goto Loverflow;
         return sz;
-
-    Loverflow:
-        error(loc, "static array `%s` size overflowed to %lld", toChars(), cast(long)sz);
-        return SIZE_INVALID;
     }
 
     override uint alignsize()
