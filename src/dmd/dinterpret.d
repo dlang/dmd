@@ -1886,8 +1886,7 @@ public:
 
         if (s.wthis.type.ty == Tpointer && s.exp.type.ty != Tpointer)
         {
-            e = new AddrExp(s.loc, e);
-            e.type = s.wthis.type;
+            e = new AddrExp(s.loc, e, s.wthis.type);
         }
         ctfeStack.push(s.wthis);
         setValue(s.wthis, e);
@@ -2092,8 +2091,7 @@ public:
             // It's OK to cast from fixed length to dynamic array, eg &int[3] to int[]*
             if (val.type.ty == Tsarray && pointee.ty == Tarray && elemsize == pointee.nextOf().size())
             {
-                result = new AddrExp(e.loc, val);
-                result.type = e.type;
+                result = new AddrExp(e.loc, val, e.type);
                 return;
             }
 
@@ -2107,8 +2105,7 @@ public:
                 // Create a CTFE pointer &val[ofs..ofs+d]
                 result = new SliceExp(e.loc, val, elwr, eupr);
                 result.type = pointee;
-                result = new AddrExp(e.loc, result);
-                result.type = e.type;
+                result = new AddrExp(e.loc, result, e.type);
                 return;
             }
 
@@ -2120,8 +2117,7 @@ public:
                     // Create a CTFE pointer &var
                     result = new VarExp(e.loc, e.var);
                     result.type = elemtype;
-                    result = new AddrExp(e.loc, result);
-                    result.type = e.type;
+                    result = new AddrExp(e.loc, result, e.type);
                     return;
                 }
                 e.error("reinterpreting cast from `%s` to `%s` is not supported in CTFE", val.type.toChars(), e.type.toChars());
@@ -2149,8 +2145,7 @@ public:
                 auto ofs = new IntegerExp(e.loc, indx, Type.tsize_t);
                 result = new IndexExp(e.loc, aggregate, ofs);
                 result.type = elemtype;
-                result = new AddrExp(e.loc, result);
-                result.type = e.type;
+                result = new AddrExp(e.loc, result, e.type);
                 return;
             }
         }
@@ -2159,8 +2154,7 @@ public:
             // Create a CTFE pointer &var
             auto ve = new VarExp(e.loc, e.var);
             ve.type = e.var.type;
-            result = new AddrExp(e.loc, ve);
-            result.type = e.type;
+            result = new AddrExp(e.loc, ve, e.type);
             return;
         }
 
@@ -2200,8 +2194,7 @@ public:
             return;
 
         // Return a simplified address expression
-        result = new AddrExp(e.loc, result);
-        result.type = e.type;
+        result = new AddrExp(e.loc, result, e.type);
     }
 
     override void visit(DelegateExp e)
@@ -2977,8 +2970,7 @@ public:
             }
             if (exceptionOrCant(result))
                 return;
-            result = new AddrExp(e.loc, result);
-            result.type = e.type;
+            result = new AddrExp(e.loc, result, e.type);
             return;
         }
         if (e.newtype.toBasetype().ty == Tclass)
@@ -3074,8 +3066,7 @@ public:
 
             result = new IndexExp(e.loc, ae, new IntegerExp(Loc.initial, 0, Type.tsize_t));
             result.type = e.newtype;
-            result = new AddrExp(e.loc, result);
-            result.type = e.type;
+            result = new AddrExp(e.loc, result, e.type);
             return;
         }
         e.error("cannot interpret `%s` at compile time", e.toChars());
@@ -5539,8 +5530,7 @@ public:
             // Create a CTFE pointer &aa[index]
             result = new IndexExp(e.loc, e2, e1);
             result.type = e.type.nextOf();
-            result = new AddrExp(e.loc, result);
-            result.type = e.type;
+            result = new AddrExp(e.loc, result, e.type);
         }
     }
 
@@ -5768,8 +5758,7 @@ public:
                 // Create a CTFE pointer &aggregate[1..2]
                 result = new IndexExp(e.loc, (cast(SliceExp)e1).e1, (cast(SliceExp)e1).lwr);
                 result.type = e.type.nextOf();
-                result = new AddrExp(e.loc, result);
-                result.type = e.type;
+                result = new AddrExp(e.loc, result, e.type);
                 return;
             }
             if (e1.op == TOK.arrayLiteral || e1.op == TOK.string_)
@@ -5777,8 +5766,7 @@ public:
                 // Create a CTFE pointer &[1,2,3][0] or &"abc"[0]
                 result = new IndexExp(e.loc, e1, new IntegerExp(e.loc, 0, Type.tsize_t));
                 result.type = e.type.nextOf();
-                result = new AddrExp(e.loc, result);
-                result.type = e.type;
+                result = new AddrExp(e.loc, result, e.type);
                 return;
             }
             if (e1.op == TOK.index && !(cast(IndexExp)e1).e1.type.equals(e1.type))
@@ -5820,8 +5808,7 @@ public:
                 Type origType = (cast(AddrExp)e1).e1.type;
                 if (isSafePointerCast(origType, pointee))
                 {
-                    result = new AddrExp(e.loc, (cast(AddrExp)e1).e1);
-                    result.type = e.type;
+                    result = new AddrExp(e.loc, (cast(AddrExp)e1).e1, e.type);
                     return;
                 }
                 if (castToSarrayPointer && pointee.toBasetype().ty == Tsarray && (cast(AddrExp)e1).e1.op == TOK.index)
@@ -5835,8 +5822,7 @@ public:
                     // Create a CTFE pointer &val[idx..idx+dim]
                     result = new SliceExp(e.loc, ie.e1, lwr, upr);
                     result.type = pointee;
-                    result = new AddrExp(e.loc, result);
-                    result.type = e.type;
+                    result = new AddrExp(e.loc, result, e.type);
                     return;
                 }
             }

@@ -5681,6 +5681,12 @@ extern (C++) final class AddrExp : UnaExp
         super(loc, TOK.address, __traits(classInstanceSize, AddrExp), e);
     }
 
+    extern (D) this(const ref Loc loc, Expression e, Type t)
+    {
+        super(loc, TOK.address, __traits(classInstanceSize, AddrExp), e);
+        type = t;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
