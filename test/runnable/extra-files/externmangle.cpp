@@ -395,3 +395,19 @@ int test39cpp(C2<char>* c2, S2<int>* s2)
         return 2;
     return 0;
 }
+
+class C40
+{
+    int val;
+
+public:
+    C40(int);
+    virtual int getValue();
+};
+
+C40::C40(int value) : val(value) { }
+
+int C40::getValue()
+{
+    return val;
+}

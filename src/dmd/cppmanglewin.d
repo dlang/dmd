@@ -671,6 +671,11 @@ private:
         //printf("mangleName('%s')\n", sym.toChars());
         const(char)* name = null;
         bool is_dmc_template = false;
+        if (sym.isCtorDeclaration())
+        {
+            buf.writestring("?0");
+            return;
+        }
         if (sym.isDtorDeclaration())
         {
             buf.writestring("?1");

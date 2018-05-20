@@ -224,6 +224,19 @@ void test39()
     assert(result == 0);
 }
 
+extern(C++)
+class C40
+{
+    private int val;
+
+    this(int);
+    int getValue();
+}
+
+void test40()
+{
+    assert(new C40(42).getValue == 42);
+}
 
 void main()
 {
@@ -311,4 +324,5 @@ void main()
     assert(t38.test(1, 2, 3) == 1);
     Test38.dispose(t38);
     test39();
+    test40();
 }

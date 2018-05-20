@@ -268,7 +268,11 @@ private final class CppMangleVisitor : Visitor
     void source_name(Dsymbol s)
     {
         //printf("source_name(%s)\n", s.toChars());
-        if (TemplateInstance ti = s.isTemplateInstance())
+        if (s.isCtorDeclaration())
+        {
+            buf.writestring("C1");
+        }
+        else if (TemplateInstance ti = s.isTemplateInstance())
         {
             if (!substitute(ti.tempdecl))
             {
