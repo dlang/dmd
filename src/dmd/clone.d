@@ -949,27 +949,28 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
  */
 extern (C++) FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
 {
-    StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
-    Loc declLoc = ad.loc;
-    Loc loc; // internal code should have no loc to prevent coverage
     switch (ad.invs.dim)
     {
     case 0:
         return null;
+
     case 1:
         // Don't return invs[0] so it has uniquely generated name.
-        /* fall through */
+        goto default;
+
     default:
         Expression e = null;
         StorageClass stcx = 0;
-        for (size_t i = 0; i < ad.invs.dim; i++)
+        StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
+        foreach (i, inv; ad.invs)
         {
-            stc = mergeFuncAttrs(stc, ad.invs[i]);
+            stc = mergeFuncAttrs(stc, inv);
             if (stc & STC.disable)
             {
                 // What should do?
             }
-            StorageClass stcy = (ad.invs[i].storage_class & STC.synchronized_) | (ad.invs[i].type.mod & MODFlags.shared_ ? STC.shared_ : 0);
+            const stcy = (inv.storage_class & STC.synchronized_) |
+                         (inv.type.mod & MODFlags.shared_ ? STC.shared_ : 0);
             if (i == 0)
                 stcx = stcy;
             else if (stcx ^ stcy)
@@ -977,14 +978,15 @@ extern (C++) FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
                 version (all)
                 {
                     // currently rejects
-                    ad.error(ad.invs[i].loc, "mixing invariants with different `shared`/`synchronized` qualifiers is not supported");
+                    ad.error(inv.loc, "mixing invariants with different `shared`/`synchronized` qualifiers is not supported");
                     e = null;
                     break;
                 }
             }
-            e = Expression.combine(e, new CallExp(loc, new VarExp(loc, ad.invs[i], false)));
+            e = Expression.combine(e, new CallExp(Loc.initial, new VarExp(Loc.initial, inv, false)));
         }
-        auto inv = new InvariantDeclaration(declLoc, Loc.initial, stc | stcx, Id.classInvariant, new ExpStatement(loc, e));
+        auto inv = new InvariantDeclaration(ad.loc, Loc.initial, stc | stcx,
+                Id.classInvariant, new ExpStatement(Loc.initial, e));
         ad.members.push(inv);
         inv.dsymbolSemantic(sc);
         return inv;
