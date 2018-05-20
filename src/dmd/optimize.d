@@ -426,8 +426,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (e.e1.op == TOK.comma)
             {
                 CommaExp ce = cast(CommaExp)e.e1;
-                auto ae = new AddrExp(e.loc, ce.e2);
-                ae.type = e.type;
+                auto ae = new AddrExp(e.loc, ce.e2, e.type);
                 ret = new CommaExp(ce.loc, ce.e1, ae);
                 ret.type = e.type;
                 return;
