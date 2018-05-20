@@ -125,8 +125,8 @@ else version (OSX)
 
     alias int_fast8_t   = byte;  ///
     alias uint_fast8_t  = ubyte; ///
-    alias int_fast16_t  = short;   ///
-    alias uint_fast16_t = ushort;  ///
+    alias int_fast16_t  = short;  ///
+    alias uint_fast16_t = ushort; ///
     alias int_fast32_t  = int;   ///
     alias uint_fast32_t = uint;  ///
     alias int_fast64_t  = long;  ///
@@ -134,8 +134,16 @@ else version (OSX)
 
     alias intptr_t  = cpp_long;  ///
     alias uintptr_t = cpp_ulong; ///
-    alias intmax_t  = cpp_long;  ///
-    alias uintmax_t = cpp_ulong; ///
+    version (D_LP64)
+    {
+        alias intmax_t  = cpp_long;  ///
+        alias uintmax_t = cpp_ulong; ///
+    }
+    else
+    {
+        alias intmax_t  = long;  ///
+        alias uintmax_t = ulong; ///
+    }
 }
 else version (Posix)
 {
