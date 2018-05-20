@@ -182,7 +182,8 @@ extern (C++) final class ThrownExceptionExp : Expression
     // Generate an error message when this exception is not caught
     void generateUncaughtError()
     {
-        Expression e = resolveSlice((*thrown.value.elements)[0]);
+        UnionExp ue = void;
+        Expression e = resolveSlice((*thrown.value.elements)[0], &ue);
         StringExp se = e.toStringExp();
         thrown.error("uncaught CTFE exception `%s(%s)`", thrown.type.toChars(), se ? se.toChars() : e.toChars());
         /* Also give the line where the throw statement was. We won't have it
@@ -530,14 +531,28 @@ private UnionExp paintTypeOntoLiteralCopy(Type type, Expression lit)
     return ue;
 }
 
-extern (C++) Expression resolveSlice(Expression e)
+/*************************************
+ * If e is a SliceExp, constant fold it.
+ * Params:
+ *      e = expression to resolve
+ *      pue = if not null, store resulting expression here
+ * Returns:
+ *      resulting expression
+ */
+extern (C++) Expression resolveSlice(Expression e, UnionExp* pue = null)
 {
     if (e.op != TOK.slice)
         return e;
     SliceExp se = cast(SliceExp)e;
     if (se.e1.op == TOK.null_)
         return se.e1;
-    return Slice(e.type, se.e1, se.lwr, se.upr).copy();
+    if (pue)
+    {
+        *pue = Slice(e.type, se.e1, se.lwr, se.upr);
+        return pue.exp();
+    }
+    else
+        return Slice(e.type, se.e1, se.lwr, se.upr).copy();
 }
 
 /* Determine the array length, without interpreting it.

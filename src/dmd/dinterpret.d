@@ -3495,7 +3495,8 @@ public:
                     Expression ekey = interpret(xe.e2, istate);
                     if (exceptionOrCant(ekey))
                         return;
-                    ekey = resolveSlice(ekey); // only happens with AA assignment
+                    UnionExp ekeyTmp = void;
+                    ekey = resolveSlice(ekey, &ekeyTmp); // only happens with AA assignment
 
                     // Look up this index in it up in the existing AA, to get the next level of AA.
                     AssocArrayLiteralExp newAA = cast(AssocArrayLiteralExp)findKeyInAA(e.loc, existingAA, ekey);
@@ -5287,7 +5288,8 @@ public:
             }
 
             assert(e1.op == TOK.assocArrayLiteral);
-            e2 = resolveSlice(e2);
+            UnionExp e2tmp = void;
+            e2 = resolveSlice(e2, &e2tmp);
             result = findKeyInAA(e.loc, cast(AssocArrayLiteralExp)e1, e2);
             if (!result)
             {
@@ -5540,6 +5542,7 @@ public:
         {
             printf("%s CatExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
+        {
         Expression e1 = interpret(e.e1, istate);
         if (exceptionOrCant(e1))
             return;
@@ -5547,9 +5550,12 @@ public:
         if (exceptionOrCant(e2))
             return;
 
-        e1 = resolveSlice(e1);
-        e2 = resolveSlice(e2);
+        UnionExp e1tmp = void;
+        e1 = resolveSlice(e1, &e1tmp);
+        UnionExp e2tmp = void;
+        e2 = resolveSlice(e2, &e2tmp);
         result = ctfeCat(e.loc, e.type, e1, e2).copy();
+        }
         if (CTFEExp.isCantExp(result))
         {
             e.error("`%s` cannot be interpreted at compile time", e.toChars());
