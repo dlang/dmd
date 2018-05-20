@@ -43,6 +43,121 @@ import dmd.tokens;
 import dmd.utf;
 import dmd.visitor;
 
+/*************************************
+ * Entry point for CTFE.
+ * A compile-time result is required. Give an error if not possible.
+ *
+ * `e` must be semantically valid expression. In other words, it should not
+ * contain any `ErrorExp`s in it. But, CTFE interpretation will cross over
+ * functions and may invoke a function that contains `ErrorStatement` in its body.
+ * If that, the "CTFE failed because of previous errors" error is raised.
+ */
+public extern (C++) Expression ctfeInterpret(Expression e)
+{
+    if (e.op == TOK.error)
+        return e;
+    assert(e.type); // https://issues.dlang.org/show_bug.cgi?id=14642
+    //assert(e.type.ty != Terror);    // FIXME
+    if (e.type.ty == Terror)
+        return new ErrorExp();
+
+    // This code is outside a function, but still needs to be compiled
+    // (there are compiler-generated temporary variables such as __dollar).
+    // However, this will only be run once and can then be discarded.
+    auto ctfeCodeGlobal = CompiledCtfeFunction(null);
+    ctfeCodeGlobal.callingloc = e.loc;
+    ctfeCodeGlobal.onExpression(e);
+
+    Expression result = interpret(e, null);
+
+    if (!CTFEExp.isCantExp(result))
+        result = scrubReturnValue(e.loc, result);
+    if (CTFEExp.isCantExp(result))
+        result = new ErrorExp();
+
+    return result;
+}
+
+/* Run CTFE on the expression, but allow the expression to be a TypeExp
+ *  or a tuple containing a TypeExp. (This is required by pragma(msg)).
+ */
+public extern (C++) Expression ctfeInterpretForPragmaMsg(Expression e)
+{
+    if (e.op == TOK.error || e.op == TOK.type)
+        return e;
+
+    // It's also OK for it to be a function declaration (happens only with
+    // __traits(getOverloads))
+    if (e.op == TOK.variable && (cast(VarExp)e).var.isFuncDeclaration())
+    {
+        return e;
+    }
+
+    if (e.op != TOK.tuple)
+        return e.ctfeInterpret();
+
+    // Tuples need to be treated separately, since they are
+    // allowed to contain a TypeExp in this case.
+
+    TupleExp tup = cast(TupleExp)e;
+    Expressions* expsx = null;
+    for (size_t i = 0; i < tup.exps.dim; ++i)
+    {
+        Expression g = (*tup.exps)[i];
+        Expression h = g;
+        h = ctfeInterpretForPragmaMsg(g);
+        if (h != g)
+        {
+            if (!expsx)
+            {
+                expsx = new Expressions();
+                expsx.setDim(tup.exps.dim);
+                for (size_t j = 0; j < tup.exps.dim; j++)
+                    (*expsx)[j] = (*tup.exps)[j];
+            }
+            (*expsx)[i] = h;
+        }
+    }
+    if (expsx)
+    {
+        auto te = new TupleExp(e.loc, expsx);
+        expandTuples(te.exps);
+        te.type = new TypeTuple(te.exps);
+        return te;
+    }
+    return e;
+}
+
+public extern (C++) Expression getValue(VarDeclaration vd)
+{
+    return ctfeStack.getValue(vd);
+}
+
+
+// CTFE diagnostic information
+public extern (C++) void printCtfePerformanceStats()
+{
+    debug (SHOWPERFORMANCE)
+    {
+        printf("        ---- CTFE Performance ----\n");
+        printf("max call depth = %d\tmax stack = %d\n", CtfeStatus.maxCallDepth, ctfeStack.maxStackUsage());
+        printf("array allocs = %d\tassignments = %d\n\n", CtfeStatus.numArrayAllocs, CtfeStatus.numAssignments);
+    }
+}
+
+/*********
+ * Typesafe PIMPL idiom so we can keep CompiledCtfeFunction private.
+ */
+struct CompiledCtfeFunctionPimpl
+{
+    private CompiledCtfeFunction* pimpl;
+    private alias pimpl this;
+}
+
+/* ================================================ Implementation ======================================= */
+
+private:
+
 enum CtfeGoal : int
 {
     ctfeNeedRvalue,     // Must return an Rvalue (== CTFE value)
@@ -223,17 +338,6 @@ private struct InterState
 }
 
 extern (C++) __gshared CtfeStack ctfeStack;
-
-// CTFE diagnostic information
-extern (C++) void printCtfePerformanceStats()
-{
-    debug (SHOWPERFORMANCE)
-    {
-        printf("        ---- CTFE Performance ----\n");
-        printf("max call depth = %d\tmax stack = %d\n", CtfeStatus.maxCallDepth, ctfeStack.maxStackUsage());
-        printf("array allocs = %d\tassignments = %d\n\n", CtfeStatus.numArrayAllocs, CtfeStatus.numAssignments);
-    }
-}
 
 /***********************************************************
  * CTFE-object code for a single function
@@ -633,91 +737,6 @@ private void ctfeCompile(FuncDeclaration fd)
         fd.ctfeCode.onDeclaration(fd.vresult);
     scope CtfeCompiler v = new CtfeCompiler(fd.ctfeCode);
     v.ctfeCompile(fd.fbody);
-}
-
-/*************************************
- * Entry point for CTFE.
- * A compile-time result is required. Give an error if not possible.
- *
- * `e` must be semantically valid expression. In other words, it should not
- * contain any `ErrorExp`s in it. But, CTFE interpretation will cross over
- * functions and may invoke a function that contains `ErrorStatement` in its body.
- * If that, the "CTFE failed because of previous errors" error is raised.
- */
-extern (C++) Expression ctfeInterpret(Expression e)
-{
-    if (e.op == TOK.error)
-        return e;
-    assert(e.type); // https://issues.dlang.org/show_bug.cgi?id=14642
-    //assert(e.type.ty != Terror);    // FIXME
-    if (e.type.ty == Terror)
-        return new ErrorExp();
-
-    // This code is outside a function, but still needs to be compiled
-    // (there are compiler-generated temporary variables such as __dollar).
-    // However, this will only be run once and can then be discarded.
-    auto ctfeCodeGlobal = CompiledCtfeFunction(null);
-    ctfeCodeGlobal.callingloc = e.loc;
-    ctfeCodeGlobal.onExpression(e);
-
-    Expression result = interpret(e, null);
-
-    if (!CTFEExp.isCantExp(result))
-        result = scrubReturnValue(e.loc, result);
-    if (CTFEExp.isCantExp(result))
-        result = new ErrorExp();
-
-    return result;
-}
-
-/* Run CTFE on the expression, but allow the expression to be a TypeExp
- *  or a tuple containing a TypeExp. (This is required by pragma(msg)).
- */
-extern (C++) Expression ctfeInterpretForPragmaMsg(Expression e)
-{
-    if (e.op == TOK.error || e.op == TOK.type)
-        return e;
-
-    // It's also OK for it to be a function declaration (happens only with
-    // __traits(getOverloads))
-    if (e.op == TOK.variable && (cast(VarExp)e).var.isFuncDeclaration())
-    {
-        return e;
-    }
-
-    if (e.op != TOK.tuple)
-        return e.ctfeInterpret();
-
-    // Tuples need to be treated separately, since they are
-    // allowed to contain a TypeExp in this case.
-
-    TupleExp tup = cast(TupleExp)e;
-    Expressions* expsx = null;
-    for (size_t i = 0; i < tup.exps.dim; ++i)
-    {
-        Expression g = (*tup.exps)[i];
-        Expression h = g;
-        h = ctfeInterpretForPragmaMsg(g);
-        if (h != g)
-        {
-            if (!expsx)
-            {
-                expsx = new Expressions();
-                expsx.setDim(tup.exps.dim);
-                for (size_t j = 0; j < tup.exps.dim; j++)
-                    (*expsx)[j] = (*tup.exps)[j];
-            }
-            (*expsx)[i] = h;
-        }
-    }
-    if (expsx)
-    {
-        auto te = new TupleExp(e.loc, expsx);
-        expandTuples(te.exps);
-        te.type = new TypeTuple(te.exps);
-        return te;
-    }
-    return e;
 }
 
 /*************************************
@@ -6980,11 +6999,6 @@ private bool hasValue(VarDeclaration vd)
     if (vd.ctfeAdrOnStack == cast(size_t)-1)
         return false;
     return null !is getValue(vd);
-}
-
-extern (C++) Expression getValue(VarDeclaration vd)
-{
-    return ctfeStack.getValue(vd);
 }
 
 // Don't check for validity
