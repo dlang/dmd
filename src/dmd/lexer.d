@@ -494,7 +494,7 @@ class Lexer : ErrorHandler
                         }
                         break;
                     }
-                    Identifier id = Identifier.idPool(cast(char*)t.ptr, p - t.ptr);
+                    Identifier id = Identifier.idPool(cast(char*)t.ptr, cast(uint)(p - t.ptr));
                     t.ident = id;
                     t.value = cast(TOK)id.getValue();
                     anyToken = 1;
