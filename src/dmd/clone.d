@@ -847,12 +847,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         {
             // _ArrayDtor((cast(S*)this.v.ptr)[0 .. n])
 
-            uinteger_t n = 1;
-            while (tv.ty == Tsarray)
-            {
-                n *= (cast(TypeSArray)tv).dim.toUInteger();
-                tv = tv.nextOf().toBasetype();
-            }
+            const n = tv.numberOfElems(loc);
             if (n == 0)
                 continue;
 
