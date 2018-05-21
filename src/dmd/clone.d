@@ -802,87 +802,92 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
     Loc declLoc = ad.dtors.dim ? ad.dtors[0].loc : ad.loc;
     Loc loc; // internal code should have no loc to prevent coverage
 
-    Expression e = null;
-    for (size_t i = 0; i < ad.fields.dim; i++)
+    // if the dtor is an extern(C++) prototype, then we expect it performs a full-destruction; we don't need to build a full-dtor
+    const bool dtorIsCppPrototype = ad.dtors.dim == 1 && ad.dtors[0].linkage == LINK.cpp && !ad.dtors[0].fbody;
+    if (!dtorIsCppPrototype)
     {
-        auto v = ad.fields[i];
-        if (v.storage_class & STC.ref_)
-            continue;
-        if (v.overlapped)
-            continue;
-        auto tv = v.type.baseElemOf();
-        if (tv.ty != Tstruct)
-            continue;
-        auto sdv = (cast(TypeStruct)tv).sym;
-        if (!sdv.dtor)
-            continue;
-        sdv.dtor.functionSemantic();
-
-        stc = mergeFuncAttrs(stc, sdv.dtor);
-        if (stc & STC.disable)
+        Expression e = null;
+        for (size_t i = 0; i < ad.fields.dim; i++)
         {
-            e = null;
-            break;
-        }
-
-        Expression ex;
-        tv = v.type.toBasetype();
-        if (tv.ty == Tstruct)
-        {
-            // this.v.__xdtor()
-
-            ex = new ThisExp(loc);
-            ex = new DotVarExp(loc, ex, v);
-
-            // This is a hack so we can call destructors on const/immutable objects.
-            // Do it as a type 'paint'.
-            ex = new CastExp(loc, ex, v.type.mutableOf());
-            if (stc & STC.safe)
-                stc = (stc & ~STC.safe) | STC.trusted;
-
-            ex = new DotVarExp(loc, ex, sdv.dtor, false);
-            ex = new CallExp(loc, ex);
-        }
-        else
-        {
-            // _ArrayDtor((cast(S*)this.v.ptr)[0 .. n])
-
-            const n = tv.numberOfElems(loc);
-            if (n == 0)
+            auto v = ad.fields[i];
+            if (v.storage_class & STC.ref_)
                 continue;
+            if (v.overlapped)
+                continue;
+            auto tv = v.type.baseElemOf();
+            if (tv.ty != Tstruct)
+                continue;
+            auto sdv = (cast(TypeStruct)tv).sym;
+            if (!sdv.dtor)
+                continue;
+            sdv.dtor.functionSemantic();
 
-            ex = new ThisExp(loc);
-            ex = new DotVarExp(loc, ex, v);
+            stc = mergeFuncAttrs(stc, sdv.dtor);
+            if (stc & STC.disable)
+            {
+                e = null;
+                break;
+            }
 
-            // This is a hack so we can call destructors on const/immutable objects.
-            ex = new DotIdExp(loc, ex, Id.ptr);
-            ex = new CastExp(loc, ex, sdv.type.pointerTo());
-            if (stc & STC.safe)
-                stc = (stc & ~STC.safe) | STC.trusted;
+            Expression ex;
+            tv = v.type.toBasetype();
+            if (tv.ty == Tstruct)
+            {
+                // this.v.__xdtor()
 
-            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
-                                       new IntegerExp(loc, n, Type.tsize_t));
-            // Prevent redundant bounds check
-            (cast(SliceExp)ex).upperIsInBounds = true;
-            (cast(SliceExp)ex).lowerIsLessThanUpper = true;
+                ex = new ThisExp(loc);
+                ex = new DotVarExp(loc, ex, v);
 
-            ex = new CallExp(loc, new IdentifierExp(loc, Id._ArrayDtor), ex);
+                // This is a hack so we can call destructors on const/immutable objects.
+                // Do it as a type 'paint'.
+                ex = new CastExp(loc, ex, v.type.mutableOf());
+                if (stc & STC.safe)
+                    stc = (stc & ~STC.safe) | STC.trusted;
+
+                ex = new DotVarExp(loc, ex, sdv.dtor, false);
+                ex = new CallExp(loc, ex);
+            }
+            else
+            {
+                // _ArrayDtor((cast(S*)this.v.ptr)[0 .. n])
+
+                const n = tv.numberOfElems(loc);
+                if (n == 0)
+                    continue;
+
+                ex = new ThisExp(loc);
+                ex = new DotVarExp(loc, ex, v);
+
+                // This is a hack so we can call destructors on const/immutable objects.
+                ex = new DotIdExp(loc, ex, Id.ptr);
+                ex = new CastExp(loc, ex, sdv.type.pointerTo());
+                if (stc & STC.safe)
+                    stc = (stc & ~STC.safe) | STC.trusted;
+
+                ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
+                                           new IntegerExp(loc, n, Type.tsize_t));
+                // Prevent redundant bounds check
+                (cast(SliceExp)ex).upperIsInBounds = true;
+                (cast(SliceExp)ex).lowerIsLessThanUpper = true;
+
+                ex = new CallExp(loc, new IdentifierExp(loc, Id._ArrayDtor), ex);
+            }
+            e = Expression.combine(ex, e); // combine in reverse order
         }
-        e = Expression.combine(ex, e); // combine in reverse order
-    }
 
-    /* Build our own "destructor" which executes e
-     */
-    if (e || (stc & STC.disable))
-    {
-        //printf("Building __fieldDtor(), %s\n", e.toChars());
-        auto dd = new DtorDeclaration(declLoc, Loc.initial, stc, Id.__fieldDtor);
-        dd.generated = true;
-        dd.storage_class |= STC.inference;
-        dd.fbody = new ExpStatement(loc, e);
-        ad.dtors.shift(dd);
-        ad.members.push(dd);
-        dd.dsymbolSemantic(sc);
+        /* Build our own "destructor" which executes e
+         */
+        if (e || (stc & STC.disable))
+        {
+            //printf("Building __fieldDtor(), %s\n", e.toChars());
+            auto dd = new DtorDeclaration(declLoc, Loc.initial, stc, Id.__fieldDtor);
+            dd.generated = true;
+            dd.storage_class |= STC.inference;
+            dd.fbody = new ExpStatement(loc, e);
+            ad.dtors.shift(dd);
+            ad.members.push(dd);
+            dd.dsymbolSemantic(sc);
+        }
     }
 
     FuncDeclaration xdtor = null;
@@ -896,6 +901,8 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         break;
 
     default:
+        assert(!dtorIsCppPrototype);
+        Expression e = null;
         e = null;
         stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
         for (size_t i = 0; i < ad.dtors.dim; i++)
