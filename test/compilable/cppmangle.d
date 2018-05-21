@@ -534,3 +534,32 @@ version(Win64)
 {
     static assert(S18888!().I.fun.mangleof == "?fun@?$T18888@U?$T18888@H@@@@QEAAXXZ");
 }
+
+/**************************************/
+// https://issues.dlang.org/show_bug.cgi?id=18891
+
+extern (C++) class C18891
+{
+    ~this();
+    extern (C++) struct Agg
+    {
+        ~this() {}
+    }
+    Agg s;
+}
+
+version (Posix)
+{
+    static assert(C18891.__dtor.mangleof == "_ZN6C18891D1Ev");
+    static assert(C18891.__xdtor.mangleof == "_ZN6C18891D1Ev");
+}
+version (Win32)
+{
+    static assert(C18891.__dtor.mangleof == "??1C18891@@UAE@XZ");
+    static assert(C18891.__xdtor.mangleof == "??1C18891@@UAE@XZ");
+}
+version (Win64)
+{
+    static assert(C18891.__dtor.mangleof == "??1C18891@@UEAA@XZ");
+    static assert(C18891.__xdtor.mangleof == "??1C18891@@UEAA@XZ");
+}
