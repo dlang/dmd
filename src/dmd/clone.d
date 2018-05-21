@@ -37,12 +37,19 @@ import dmd.tokens;
 
 /*******************************************
  * Merge function attributes pure, nothrow, @safe, @nogc, and @disable
+ * from f into s1.
+ * Params:
+ *      s1 = storage class to merge into
+ *      f = function
+ * Returns:
+ *      merged storage class
  */
-extern (C++) StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration f)
+extern (C++) StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) pure
 {
     if (!f)
         return s1;
     StorageClass s2 = (f.storage_class & STC.disable);
+
     TypeFunction tf = cast(TypeFunction)f.type;
     if (tf.trust == TRUST.safe)
         s2 |= STC.safe;
@@ -50,15 +57,19 @@ extern (C++) StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration f)
         s2 |= STC.system;
     else if (tf.trust == TRUST.trusted)
         s2 |= STC.trusted;
+
     if (tf.purity != PURE.impure)
         s2 |= STC.pure_;
     if (tf.isnothrow)
         s2 |= STC.nothrow_;
     if (tf.isnogc)
         s2 |= STC.nogc;
-    StorageClass stc = 0;
-    StorageClass sa = s1 & s2;
-    StorageClass so = s1 | s2;
+
+    const sa = s1 & s2;
+    const so = s1 | s2;
+
+    StorageClass stc = (sa & (STC.pure_ | STC.nothrow_ | STC.nogc)) | (so & STC.disable);
+
     if (so & STC.system)
         stc |= STC.system;
     else if (sa & STC.trusted)
@@ -67,14 +78,7 @@ extern (C++) StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration f)
         stc |= STC.trusted;
     else if (sa & STC.safe)
         stc |= STC.safe;
-    if (sa & STC.pure_)
-        stc |= STC.pure_;
-    if (sa & STC.nothrow_)
-        stc |= STC.nothrow_;
-    if (sa & STC.nogc)
-        stc |= STC.nogc;
-    if (so & STC.disable)
-        stc |= STC.disable;
+
     return stc;
 }
 
@@ -141,20 +145,32 @@ extern (C++) FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope*
 private bool needOpAssign(StructDeclaration sd)
 {
     //printf("StructDeclaration::needOpAssign() %s\n", sd.toChars());
-    if (sd.isUnionDeclaration())
+
+    static bool need()
+    {
+        //printf("\tneed\n");
+        return true;
+    }
+
+    static bool dontneed()
+    {
+        //printf("\tdontneed\n");
         return false;
+    }
 
-    if (sd.hasIdentityAssign)
-        goto Lneed; // because has identity==elaborate opAssign
+    if (sd.isUnionDeclaration())
+        return dontneed();
 
-    if (sd.dtor || sd.postblit)
-        goto Lneed;
+    if (sd.hasIdentityAssign || // because has identity==elaborate opAssign
+        sd.dtor ||
+        sd.postblit)
+        return need();
+
     /* If any of the fields need an opAssign, then we
      * need it too.
      */
-    for (size_t i = 0; i < sd.fields.dim; i++)
+    foreach (v; sd.fields)
     {
-        VarDeclaration v = sd.fields[i];
         if (v.storage_class & STC.ref_)
             continue;
         if (v.overlapped)               // if field of a union
@@ -166,14 +182,10 @@ private bool needOpAssign(StructDeclaration sd)
             if (ts.sym.isUnionDeclaration())
                 continue;
             if (needOpAssign(ts.sym))
-                goto Lneed;
+                return need();
         }
     }
-    //printf("\tdontneed\n");
-    return false;
-Lneed:
-    //printf("\tneed\n");
-    return true;
+    return dontneed();
 }
 
 /******************************************
@@ -224,9 +236,8 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     // check for it.
     // In this event, it will be reflected by having `stc` (opAssign's
     // storage class) include `STC.disabled`.
-    for (size_t i = 0; i < sd.fields.dim; i++)
+    foreach (v; sd.fields)
     {
-        VarDeclaration v = sd.fields[i];
         if (v.storage_class & STC.ref_)
             continue;
         if (v.overlapped)
@@ -253,9 +264,10 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     auto fop = new FuncDeclaration(declLoc, Loc.initial, Id.assign, stc, tf);
     fop.storage_class |= STC.inference;
     fop.generated = true;
-    Expression e = null;
+    Expression e;
     if (stc & STC.disable)
     {
+        e = null;
     }
     else if (sd.dtor || sd.postblit)
     {
@@ -263,32 +275,30 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
          *    __swap = this; this = s; __swap.dtor();
          */
         //printf("\tswap copy\n");
-        Identifier idtmp = Identifier.generateId("__swap");
-        VarDeclaration tmp = null;
-        AssignExp ec = null;
         if (sd.dtor)
         {
             TypeFunction tdtor = cast(TypeFunction)sd.dtor.type;
             assert(tdtor.ty == Tfunction);
-            tmp = new VarDeclaration(loc, sd.type, idtmp, new VoidInitializer(loc));
-            tmp.storage_class |= STC.nodtor | STC.temp | STC.ctfe;
+
+            auto idswap = Identifier.generateId("__swap");
+            auto swap = new VarDeclaration(loc, sd.type, idswap, new VoidInitializer(loc));
+            swap.storage_class |= STC.nodtor | STC.temp | STC.ctfe;
             if (tdtor.isscope)
-                tmp.storage_class |= STC.scope_;
-            e = new DeclarationExp(loc, tmp);
-            ec = new BlitExp(loc, new VarExp(loc, tmp), new ThisExp(loc));
-            e = Expression.combine(e, ec);
-        }
-        ec = new BlitExp(loc, new ThisExp(loc), new IdentifierExp(loc, Id.p));
-        e = Expression.combine(e, ec);
-        if (sd.dtor)
-        {
+                swap.storage_class |= STC.scope_;
+            auto e1 = new DeclarationExp(loc, swap);
+
+            auto e2 = new BlitExp(loc, new VarExp(loc, swap), new ThisExp(loc));
+            auto e3 = new BlitExp(loc, new ThisExp(loc), new IdentifierExp(loc, Id.p));
+
             /* Instead of running the destructor on s, run it
-             * on tmp. This avoids needing to copy tmp back in to s.
+             * on swap. This avoids needing to copy swap back in to s.
              */
-            Expression ec2 = new DotVarExp(loc, new VarExp(loc, tmp), sd.dtor, false);
-            ec2 = new CallExp(loc, ec2);
-            e = Expression.combine(e, ec2);
+            auto e4 = new CallExp(loc, new DotVarExp(loc, new VarExp(loc, swap), sd.dtor, false));
+
+            e = Expression.combine(e1, e2, e3, e4);
         }
+        else
+            e = new BlitExp(loc, new ThisExp(loc), new IdentifierExp(loc, Id.p));
     }
     else
     {
@@ -300,9 +310,9 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
          * In both cases, it will change the parent context.
          */
         //printf("\tmemberwise copy\n");
-        for (size_t i = 0; i < sd.fields.dim; i++)
+        e = null;
+        foreach (v; sd.fields)
         {
-            VarDeclaration v = sd.fields[i];
             // this.v = s.v;
             auto ec = new AssignExp(loc,
                 new DotVarExp(loc, new ThisExp(loc), v),
@@ -316,15 +326,15 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
         /* Add:
          *   return this;
          */
-        e = new ThisExp(loc);
-        Statement s2 = new ReturnStatement(loc, e);
+        auto er = new ThisExp(loc);
+        Statement s2 = new ReturnStatement(loc, er);
         fop.fbody = new CompoundStatement(loc, s1, s2);
         tf.isreturn = true;
     }
     sd.members.push(fop);
     fop.addMember(sc, sd);
     sd.hasIdentityAssign = true; // temporary mark identity assignable
-    uint errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it.
+    const errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it.
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINK.d;
