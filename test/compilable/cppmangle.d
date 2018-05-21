@@ -506,3 +506,31 @@ version(Win64)
     static assert(Test14086_S.__ctor.mangleof == "??0Test14086_S@@QEAA@H@Z");
     static assert(Test14086_S.__dtor.mangleof == "??1Test14086_S@@QEAA@XZ");
 }
+
+/**************************************/
+// https://issues.dlang.org/show_bug.cgi?id=18888
+
+extern (C++)
+struct T18888(T)
+{
+	void fun();
+}
+
+extern (C++)
+struct S18888(alias arg = T18888)
+{
+	alias I = T18888!(arg!int);
+}
+
+version(Posix)
+{
+    static assert(S18888!().I.fun.mangleof == "_ZN6T18888IS_IiEE3funEv");
+}
+version(Win32)
+{
+    static assert(S18888!().I.fun.mangleof == "?fun@?$T18888@U?$T18888@H@@@@QAEXXZ");
+}
+version(Win64)
+{
+    static assert(S18888!().I.fun.mangleof == "?fun@?$T18888@U?$T18888@H@@@@QEAAXXZ");
+}
