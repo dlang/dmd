@@ -686,8 +686,9 @@ private:
             scope VisualCPPMangler tmp = new VisualCPPMangler((flags & IS_DMC) ? true : false);
             tmp.buf.writeByte('?');
             tmp.buf.writeByte('$');
-            tmp.buf.writestring(ti.name.toChars());
-            tmp.saved_idents[0] = ti.name.toChars();
+            auto id = ti.tempdecl.ident;
+            tmp.buf.writestring(id.toChars());
+            tmp.saved_idents[0] = id.toChars();
             tmp.buf.writeByte('@');
             if (flags & IS_DMC)
             {
