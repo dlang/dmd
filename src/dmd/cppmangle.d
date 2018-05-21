@@ -64,6 +64,19 @@ const(char)* cppTypeInfoMangleItanium(Dsymbol s)
     return buf.extractString();
 }
 
+/******************************
+* Determine if a symbol is the 'primary' destructor, that is, the most-aggregate destructor (the one that is defined as __xdtor)
+*/
+package bool isPrimaryDtor(Dsymbol sym)
+{
+    DtorDeclaration d = sym.isDtorDeclaration();
+    if (!d)
+        return false;
+    auto ad = sym.parent.isAggregateDeclaration();
+    assert(ad);
+    return d == ad.dtor;
+}
+
 private final class CppMangleVisitor : Visitor
 {
     alias visit = Visitor.visit;
@@ -592,7 +605,7 @@ private final class CppMangleVisitor : Visitor
                 prefix_name(p);
                 if (d.isCtorDeclaration())
                     buf.writestring("C1");
-                else if (d.isDtorDeclaration())
+                else if (d.isPrimaryDtor())
                     buf.writestring("D1");
                 else
                     source_name(ti);
@@ -627,7 +640,7 @@ private final class CppMangleVisitor : Visitor
                 {
                     buf.writestring("C1");
                 }
-                else if (d.isDtorDeclaration())
+                else if (d.isPrimaryDtor())
                 {
                     buf.writestring("D1");
                 }

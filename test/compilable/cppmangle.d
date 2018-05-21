@@ -536,6 +536,45 @@ version(Win64)
 }
 
 /**************************************/
+// https://issues.dlang.org/show_bug.cgi?id=18890
+
+extern (C++) class C18890
+{
+    ~this() {}
+}
+extern (C++) class C18890_2
+{
+    ~this() {}
+    extern (C++) struct Agg
+    {
+        ~this() {}
+    }
+    Agg s;
+}
+
+version (Posix)
+{
+    static assert(C18890.__dtor.mangleof == "_ZN6C18890D1Ev");
+    static assert(C18890.__xdtor.mangleof == "_ZN6C18890D1Ev");
+    static assert(C18890_2.__dtor.mangleof == "_ZN8C18890_26__dtorEv");
+    static assert(C18890_2.__xdtor.mangleof == "_ZN8C18890_2D1Ev");
+}
+version (Win32)
+{
+    static assert(C18890.__dtor.mangleof == "??1C18890@@UAE@XZ");
+    static assert(C18890.__xdtor.mangleof == "??1C18890@@UAE@XZ");
+    static assert(C18890_2.__dtor.mangleof == "?__dtor@C18890_2@@UAE@XZ");
+    static assert(C18890_2.__xdtor.mangleof == "??1C18890_2@@UAE@XZ");
+}
+version (Win64)
+{
+    static assert(C18890.__dtor.mangleof == "??1C18890@@UEAA@XZ");
+    static assert(C18890.__xdtor.mangleof == "??1C18890@@UEAA@XZ");
+    static assert(C18890_2.__dtor.mangleof == "?__dtor@C18890_2@@UEAA@XZ");
+    static assert(C18890_2.__xdtor.mangleof == "??1C18890_2@@UEAA@XZ");
+}
+
+/**************************************/
 // https://issues.dlang.org/show_bug.cgi?id=18891
 
 extern (C++) class C18891
