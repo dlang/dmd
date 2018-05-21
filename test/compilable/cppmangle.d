@@ -463,3 +463,46 @@ version (Windows)
 {
     static assert(test15388.mangleof == "?test15388@@YAX$$T@Z");
 }
+
+/**************************************/
+// https://issues.dlang.org/show_bug.cgi?id=14086
+
+extern (C++) class Test14086
+{
+    this();
+    ~this();
+}
+extern (C++) class Test14086_2
+{
+    final ~this();
+}
+extern (C++) struct Test14086_S
+{
+    this(int);
+    ~this();
+}
+
+version(Posix)
+{
+    static assert(Test14086.__ctor.mangleof == "_ZN9Test14086C1Ev");
+    static assert(Test14086.__dtor.mangleof == "_ZN9Test14086D1Ev");
+    static assert(Test14086_2.__dtor.mangleof == "_ZN11Test14086_2D1Ev");
+    static assert(Test14086_S.__ctor.mangleof == "_ZN11Test14086_SC1Ei");
+    static assert(Test14086_S.__dtor.mangleof == "_ZN11Test14086_SD1Ev");
+}
+version(Win32)
+{
+    static assert(Test14086.__ctor.mangleof == "??0Test14086@@QAE@XZ");
+    static assert(Test14086.__dtor.mangleof == "??1Test14086@@UAE@XZ");
+    static assert(Test14086_2.__dtor.mangleof == "??1Test14086_2@@QAE@XZ");
+    static assert(Test14086_S.__ctor.mangleof == "??0Test14086_S@@QAE@H@Z");
+    static assert(Test14086_S.__dtor.mangleof == "??1Test14086_S@@QAE@XZ");
+}
+version(Win64)
+{
+    static assert(Test14086.__ctor.mangleof == "??0Test14086@@QEAA@XZ");
+    static assert(Test14086.__dtor.mangleof == "??1Test14086@@UEAA@XZ");
+    static assert(Test14086_2.__dtor.mangleof == "??1Test14086_2@@QEAA@XZ");
+    static assert(Test14086_S.__ctor.mangleof == "??0Test14086_S@@QEAA@H@Z");
+    static assert(Test14086_S.__dtor.mangleof == "??1Test14086_S@@QEAA@XZ");
+}

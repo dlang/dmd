@@ -538,7 +538,7 @@ private:
             // Pivate methods always non-virtual in D and it should be mangled as non-virtual in C++
             //printf("%s: isVirtualMethod = %d, isVirtual = %d, vtblIndex = %d, interfaceVirtual = %p\n",
                 //d.toChars(), d.isVirtualMethod(), d.isVirtual(), cast(int)d.vtblIndex, d.interfaceVirtual);
-            if (d.isVirtual() && (d.vtblIndex != -1 || d.interfaceVirtual || d.overrideInterface()))
+            if ((d.isVirtual() && (d.vtblIndex != -1 || d.interfaceVirtual || d.overrideInterface())) || (d.isDtorDeclaration() && d.parent.isClassDeclaration() && !d.isFinal()))
             {
                 switch (d.protection.kind)
                 {
@@ -671,7 +671,12 @@ private:
         //printf("mangleName('%s')\n", sym.toChars());
         const(char)* name = null;
         bool is_dmc_template = false;
-        if (sym.isDtorDeclaration())
+        if (sym.isCtorDeclaration())
+        {
+            buf.writestring("?0");
+            return;
+        }
+        else if (sym.isDtorDeclaration())
         {
             buf.writestring("?1");
             return;
