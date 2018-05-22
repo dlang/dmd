@@ -2930,7 +2930,7 @@ void destroy(T)(T obj) if (is(T == class))
 {
     static if(__traits(getLinkage, T) == "C++")
     {
-        obj.__dtor();
+        obj.__xdtor();
 
         enum classSize = __traits(classInstanceSize, T);
         (cast(void*)obj)[0 .. classSize] = typeid(T).initializer[];
@@ -2950,38 +2950,66 @@ unittest
 {
     class C
     {
+        struct Agg
+        {
+            static int dtorCount;
+
+            int x = 10;
+            ~this() { dtorCount++; }
+        }
+
         static int dtorCount;
 
         string s = "S";
+        Agg a;
         ~this() { dtorCount++; }
     }
 
     C c = new C();
-    assert(c.dtorCount == 0); // destructor not yet called
-    assert(c.s == "S");       // initial state `c.s` is `"S"`
+    assert(c.dtorCount == 0);   // destructor not yet called
+    assert(c.s == "S");         // initial state `c.s` is `"S"`
+    assert(c.a.dtorCount == 0); // destructor not yet called
+    assert(c.a.x == 10);        // initial state `c.a.x` is `10`
     c.s = "T";
-    assert(c.s == "T");       // `c.s` is `"T"`
+    c.a.x = 30;
+    assert(c.s == "T");         // `c.s` is `"T"`
     destroy(c);
-    assert(c.dtorCount == 1); // `c`'s destructor was called
-    assert(c.s == "S");       // `c.s` is back to its inital state, `"S"`
+    assert(c.dtorCount == 1);   // `c`'s destructor was called
+    assert(c.s == "S");         // `c.s` is back to its inital state, `"S"`
+    assert(c.a.dtorCount == 1); // `c.a`'s destructor was called
+    assert(c.a.x == 10);        // `c.a.x` is back to its inital state, `10`
 
     // check C++ classes work too!
     extern (C++) class CPP
     {
+        struct Agg
+        {
+            __gshared int dtorCount;
+
+            int x = 10;
+            ~this() { dtorCount++; }
+        }
+
         __gshared int dtorCount;
 
         string s = "S";
+        Agg a;
         ~this() { dtorCount++; }
     }
 
     CPP cpp = new CPP();
-    assert(cpp.dtorCount == 0); // destructor not yet called
-    assert(cpp.s == "S");      // initial state `c.s` is `"S"`
+    assert(cpp.dtorCount == 0);   // destructor not yet called
+    assert(cpp.s == "S");         // initial state `cpp.s` is `"S"`
+    assert(cpp.a.dtorCount == 0); // destructor not yet called
+    assert(cpp.a.x == 10);        // initial state `cpp.a.x` is `10`
     cpp.s = "T";
-    assert(cpp.s == "T");       // `c.s` is `"T"`
+    cpp.a.x = 30;
+    assert(cpp.s == "T");         // `cpp.s` is `"T"`
     destroy(cpp);
-    assert(cpp.dtorCount == 1); // `c`'s destructor was called
-    assert(cpp.s == "S");       // `c.s` is back to its inital state, `"S"`
+    assert(cpp.dtorCount == 1);   // `cpp`'s destructor was called
+    assert(cpp.s == "S");         // `cpp.s` is back to its inital state, `"S"`
+    assert(cpp.a.dtorCount == 1); // `cpp.a`'s destructor was called
+    assert(cpp.a.x == 10);        // `cpp.a.x` is back to its inital state, `10`
 }
 
 /// Value type demonstration
