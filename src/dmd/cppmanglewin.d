@@ -15,6 +15,7 @@ import core.stdc.string;
 import core.stdc.stdio;
 
 import dmd.arraytypes;
+import dmd.cppmangle : isPrimaryDtor;
 import dmd.declaration;
 import dmd.dsymbol;
 import dmd.dtemplate;
@@ -676,7 +677,7 @@ private:
             buf.writestring("?0");
             return;
         }
-        else if (sym.isDtorDeclaration())
+        else if (sym.isPrimaryDtor())
         {
             buf.writestring("?1");
             return;
