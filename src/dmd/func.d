@@ -3372,8 +3372,9 @@ extern (C++) final class DtorDeclaration : FuncDeclaration
 
     override bool isVirtual() const
     {
-        // false so that dtor's don't get put into the vtbl[]
-        return false;
+        // D dtor's don't get put into the vtbl[]
+        // this is a hack so that extern(C++) destructors report as virtual, which are manually added to the vtable
+        return vtblIndex != -1;
     }
 
     override bool addPreInvariant()

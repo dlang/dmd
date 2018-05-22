@@ -4767,6 +4767,25 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             auto s = (*cldec.members)[i];
             s.dsymbolSemantic(sc2);
+
+            if (cldec.classKind == ClassKind.cpp)
+            {
+                const DtorDeclaration dtor = s.isDtorDeclaration();
+                if (dtor && cldec.cppDtorVtblIndex == -1)
+                {
+                    if (cldec.baseClass && cldec.baseClass.cppDtorVtblIndex != -1)
+                    {
+                        // override the base virtual
+                        cldec.cppDtorVtblIndex = cldec.baseClass.cppDtorVtblIndex;
+                    }
+                    else if (!dtor.isFinal())
+                    {
+                        // reserve the dtor slot for the destructor (which we'll create later)
+                        cldec.cppDtorVtblIndex = cast(int)cldec.vtbl.dim;
+                        cldec.vtbl.push(s);
+                    }
+                }
+            }
         }
 
         if (!cldec.determineFields())
@@ -4853,6 +4872,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         cldec.dtor = buildDtor(cldec, sc2);
+
+        if (cldec.classKind == ClassKind.cpp && cldec.cppDtorVtblIndex != -1)
+        {
+            // now we've built the aggregate destructor, we'll make it virtual and assign it to the reserved vtable slot
+            cldec.dtor.vtblIndex = cldec.cppDtorVtblIndex;
+            cldec.vtbl[cldec.cppDtorVtblIndex] = cldec.dtor;
+        }
 
         if (auto f = hasIdentityOpAssign(cldec, sc2))
         {
