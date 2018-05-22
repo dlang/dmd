@@ -285,6 +285,7 @@ public:
     TypeInfoClassDeclaration *vclassinfo;       // the ClassInfo object for this ClassDeclaration
     bool com;                           // true if this is a COM class (meaning it derives from IUnknown)
     bool stack;                         // true if this is a scope class
+    int cppDtorVtblIndex;               // slot reserved for the virtual destructor [extern(C++)]
     bool inuse;                         // to prevent recursive attempts
     bool isActuallyAnonymous;           // true if this class has an identifier, but was originally declared anonymous
                                         // used in support of https://issues.dlang.org/show_bug.cgi?id=17371

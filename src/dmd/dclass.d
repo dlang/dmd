@@ -214,6 +214,9 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     /// true if this is a scope class
     bool stack;
 
+    /// if this is a C++ class, this is the slot reserved for the virtual destructor
+    int cppDtorVtblIndex = -1;
+
     /// to prevent recursive attempts
     private bool inuse;
 
