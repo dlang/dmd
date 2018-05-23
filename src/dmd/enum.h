@@ -58,6 +58,7 @@ public:
     bool isDeprecated();                // is Dsymbol deprecated?
     Prot prot();
     Expression *getMaxMinValue(const Loc &loc, Identifier *id);
+    bool isSpecial() const;
     Expression *getDefaultValue(const Loc &loc);
     Type *getMemtype(const Loc &loc);
 

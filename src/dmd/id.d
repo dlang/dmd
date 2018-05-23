@@ -110,6 +110,8 @@ immutable Msgtable[] msgtable =
     { "gate", "__gate" },
     { "__c_long" },
     { "__c_ulong" },
+    { "__c_longlong" },
+    { "__c_ulonglong" },
     { "__c_long_double" },
     { "cpp_type_info_ptr", "__cpp_type_info_ptr" },
     { "_assert", "assert" },
