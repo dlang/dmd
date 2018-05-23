@@ -4811,10 +4811,9 @@ extern (C++) final class TypeFunction : TypeNext
         OutBuffer buf;
         // only mention rvalue if it's relevant
         const rv = !arg.isLvalue() && par.storageClass & (STC.ref_ | STC.out_);
-        const char* fmt = rv ?
-            "cannot pass rvalue argument `%s` of type `%s` to parameter `%s`" :
-            "cannot pass argument `%s` of type `%s` to parameter `%s`";
-        buf.printf(fmt, arg.toChars(), at, parameterToChars(par, this, qual));
+        buf.printf("cannot pass %sargument `%s` of type `%s` to parameter `%s`",
+            rv ? "rvalue ".ptr : "".ptr, arg.toChars(), at,
+            parameterToChars(par, this, qual));
         return buf.extractString();
     }
 
