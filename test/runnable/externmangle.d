@@ -128,7 +128,13 @@ interface Module
 uint64_t testlongmangle(int a, uint b, int64_t c, uint64_t d);
 cpp_ulong testCppLongMangle(cpp_long a, cpp_ulong b);
 cpp_ulonglong testCppLongLongMangle(cpp_longlong a, cpp_ulonglong b);
-cpp_size_t testCppSizeTMangle(cpp_ptrdiff_t a, cpp_size_t b);
+
+// direct size_t/ptrdiff_t interop is fine except on 32-bit OS X
+version (OSX) { version (D_LP64) {} else version = OSX_32; }
+version (OSX_32)
+    cpp_size_t testCppSizeTMangle(cpp_ptrdiff_t a, cpp_size_t b);
+else
+    size_t testCppSizeTMangle(ptrdiff_t a, size_t b);
 
 __gshared extern int[2][2][2] test31;
 __gshared extern int* test32;
