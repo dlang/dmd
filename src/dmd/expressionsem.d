@@ -9508,8 +9508,19 @@ Expression semanticX(DotIdExp exp, Scope* sc)
     return exp;
 }
 
-// Resolve e1.ident without seeing UFCS.
-// If flag == 1, stop "not a property" error and return NULL.
+/* Resolve e1.ident without seeing UFCS.
+ *
+ * Params:
+ *  exp = the DotIdExp to resolve
+ *  sc = the scope that contains `exp`
+ *  flag = information about error surpressing;
+ *         0 - print errors normally
+ *         1 - stop "not a property" error and return null
+ *         3 - called for an aliasThis
+ *
+ * Returns:
+ *  The resolved expression or null
+ */
 Expression semanticY(DotIdExp exp, Scope* sc, int flag)
 {
     //printf("DotIdExp::semanticY(this = %p, '%s')\n", exp, exp.toChars());
@@ -9788,8 +9799,11 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
     }
     else
     {
-        if (exp.e1.op == TOK.type || exp.e1.op == TOK.template_)
+        if (flag & Type.DotExpFlag.aliasThis_)
+            flag = 1;
+        else if (exp.e1.op == TOK.type || exp.e1.op == TOK.template_)
             flag = 0;
+
         e = exp.e1.type.dotExp(sc, exp.e1, exp.ident, flag | (exp.noderef ? Type.DotExpFlag.noDeref : 0));
         if (e)
             e = e.expressionSemantic(sc);

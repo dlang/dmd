@@ -2972,7 +2972,7 @@ private extern(C++) final class DotExpVisitor : Visitor
      *
      * If flag & 1, don't report "not a property" error and just return NULL.
      */
-    final Expression noMember(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
+    private final Expression noMember(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
     {
         //printf("Type.noMember(e: %s ident: %s flag: %d)\n", e.toChars(), ident.toChars(), flag);
 
@@ -3066,7 +3066,7 @@ private extern(C++) final class DotExpVisitor : Visitor
                     return returnExp(null);
 
                 auto die = new DotIdExp(e.loc, alias_e, ident);
-                auto exp = die.semanticY(sc, gagError);
+                auto exp = die.semanticY(sc, gagError | Type.DotExpFlag.aliasThis_);
 
                 if (exp && gagError)
                     // now that we know that the alias this leads somewhere useful,

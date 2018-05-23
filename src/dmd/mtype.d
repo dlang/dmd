@@ -2414,6 +2414,7 @@ extern (C++) abstract class Type : RootObject
     {
         gag     = 1,    // don't report "not a property" error and just return null
         noDeref = 2,    // the use of the expression will not attempt a dereference
+        aliasThis_ = 4  // the expression contains an identifier forwarded by aliasThis
     }
 
     /************************************
