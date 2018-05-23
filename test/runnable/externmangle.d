@@ -1,5 +1,8 @@
 // EXTRA_CPP_SOURCES: externmangle.cpp
 
+import core.stdc.config;
+import core.stdc.stdint;
+
 extern(C++):
 
 struct Foo(X)
@@ -122,9 +125,7 @@ interface Module
     public static int dim(Array!Module*);
 };
 
-ulong testlongmangle(int a, uint b, long c, ulong d);
-
-import core.stdc.config;
+uint64_t testlongmangle(int a, uint b, int64_t c, uint64_t d);
 cpp_ulong testCppLongMangle(cpp_long a, cpp_ulong b);
 cpp_ulonglong testCppLongLongMangle(cpp_longlong a, cpp_ulonglong b);
 cpp_size_t testCppSizeTMangle(cpp_ptrdiff_t a, cpp_size_t b);
