@@ -103,7 +103,7 @@ public:
         pools = null;
     }
 
-    extern (C++) StringValue* lookup(const(char)* s, size_t length) nothrow pure
+    extern (C++) inout(StringValue)* lookup(const(char)* s, size_t length) inout nothrow pure
     {
         const(hash_t) hash = calcHash(s, length);
         const(size_t) i = findSlot(hash, s, length);
@@ -194,16 +194,16 @@ nothrow:
         return vptr;
     }
 
-    StringValue* getValue(uint vptr) pure
+    inout(StringValue)* getValue(uint vptr) inout pure
     {
         if (!vptr)
             return null;
         const(size_t) idx = (vptr >> POOL_BITS) - 1;
         const(size_t) off = vptr & POOL_SIZE - 1;
-        return cast(StringValue*)&pools[idx][off];
+        return cast(inout(StringValue)*)&pools[idx][off];
     }
 
-    size_t findSlot(hash_t hash, const(char)* s, size_t length) pure
+    size_t findSlot(hash_t hash, const(char)* s, size_t length) const pure
     {
         // quadratic probing using triangular numbers
         // http://stackoverflow.com/questions/2348187/moving-from-linear-probing-to-quadratic-probing-hash-collisons/2349774#2349774
