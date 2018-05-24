@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -unittest
+// REQUIRED_ARGS: -unittest -Irunnable/imports
 // COMPILE_SEPARATELY
 // EXTRA_SOURCES: imports/module_with_tests.d
 

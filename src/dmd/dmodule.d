@@ -31,6 +31,7 @@ import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.parse;
+import dmd.root.array;
 import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.outbuffer;
@@ -212,7 +213,7 @@ extern (C++) class Package : ScopeDsymbol
                 {
                     // Return the module so that a nice error message can be generated
                     if (ppkg)
-                        *ppkg = cast(Package)p;
+                        *ppkg = pkg;
                     break;
                 }
             }
@@ -280,6 +281,78 @@ extern (C++) class Package : ScopeDsymbol
     }
 }
 
+/**
+Represents a qualified ID, which is an array of
+package identifiers and a single identifier.
+*/
+extern (C++) struct QualifiedID
+{
+    Identifiers* packages;
+    Identifier ident;
+
+    /**
+    Compares this id with the given id for equality.
+
+    Params:
+        right = the id to compare `this` with
+
+    Returns:
+        true if `right` equals `this`, false otherwise.
+    */
+    extern(D) bool opEquals(const QualifiedID right) const
+    {
+        return this.ident == right.ident &&
+            packages.opEquals(right.packages);
+    }
+
+    /**
+    Converts the fully qualified id to a string with each id separated
+    by periods '.', i.e. foo.bar.baz.
+
+    Returns:
+        `this` as a string
+    */
+    extern (C++) const(char)* toChars() const
+    {
+        if (!ident || ident.toChars() == null)
+            return "<no-name>".ptr;
+
+        OutBuffer buf;
+        if (packages && packages.dim)
+        {
+            foreach(pid; *packages)
+            {
+                buf.writestring(pid.toString());
+                buf.writeByte('.');
+            }
+        }
+        buf.writestring(ident.toString());
+        return buf.extractString();
+    }
+}
+
+/**
+Take the module and create a new class that points to the same module
+but with a different id.
+
+Params:
+    mod = the module to wrap
+    ident = the identifier of the package to create
+
+Returns:
+    a new package pointing to `mod` named `ident`
+*/
+private Package createModuleWithDifferentID(Module mod, Identifier ident)
+{
+    auto pkg = new Package(ident);
+    pkg.parent = mod.parent;
+    pkg.isPkgMod = PKG.module_;
+    pkg.mod = mod;
+    pkg.tag = mod.tag;
+    pkg.symtab = mod.symtab;
+    return pkg;
+}
+
 /***********************************************************
  */
 extern (C++) final class Module : Package
@@ -306,6 +379,7 @@ extern (C++) final class Module : Package
     extern (C++) static __gshared AggregateDeclaration moduleinfo;
 
     const(char)* arg;           // original argument name
+    Array!QualifiedID importNames; // an array of names that can be used to import this module
     ModuleDeclaration* md;      // if !=null, the contents of the ModuleDeclaration declaration
     File* srcfile;              // input source file
     File* objfile;              // output .obj file
@@ -427,49 +501,60 @@ extern (C++) final class Module : Package
         return new Module(filename, ident, doDocComment, doHdrGen);
     }
 
-    static Module load(Loc loc, Identifiers* packages, Identifier ident)
+    /**
+    Creates a filename from the given `importName`.
+
+    Params:
+        importName = the import name to convert
+
+    Returns:
+        the importName as a filename
+    */
+    static const(char)* importToFilename(QualifiedID importName)
     {
-        //printf("Module::load(ident = '%s')\n", ident.toChars());
         // Build module filename by turning:
         //  foo.bar.baz
         // into:
         //  foo\bar\baz
-        auto filename = ident.toChars();
-        if (packages && packages.dim)
+        auto filename = importName.ident.toChars();
+
+        if (!importName.packages || importName.packages.dim == 0)
+            return filename;
+
+        OutBuffer buf;
+        OutBuffer dotmods;
+        auto ms = global.params.modFileAliasStrings;
+        const msdim = ms ? ms.dim : 0;
+
+        void checkModFileAlias(const(char)* p)
         {
-            OutBuffer buf;
-            OutBuffer dotmods;
-            auto ms = global.params.modFileAliasStrings;
-            const msdim = ms ? ms.dim : 0;
-
-            void checkModFileAlias(const(char)* p)
+            /* Check and replace the contents of buf[] with
+             * an alias string from global.params.modFileAliasStrings[]
+             */
+            dotmods.writestring(p);
+        Lmain:
+            for (size_t j = msdim; j--;)
             {
-                /* Check and replace the contents of buf[] with
-                 * an alias string from global.params.modFileAliasStrings[]
-                 */
-                dotmods.writestring(p);
-            Lmain:
-                for (size_t j = msdim; j--;)
+                const m = (*ms)[j];
+                const q = strchr(m, '=');
+                assert(q);
+                if (dotmods.offset == q - m && memcmp(dotmods.peekString(), m, q - m) == 0)
                 {
-                    const m = (*ms)[j];
-                    const q = strchr(m, '=');
-                    assert(q);
-                    if (dotmods.offset == q - m && memcmp(dotmods.peekString(), m, q - m) == 0)
-                    {
-                        buf.reset();
-                        auto qlen = strlen(q + 1);
-                        if (qlen && (q[qlen] == '/' || q[qlen] == '\\'))
-                            --qlen;             // remove trailing separator
-                        buf.writestring(q[1 .. qlen + 1]);
-                        break Lmain;            // last matching entry in ms[] wins
-                    }
+                    buf.reset();
+                    auto qlen = strlen(q + 1);
+                    if (qlen && (q[qlen] == '/' || q[qlen] == '\\'))
+                        --qlen;             // remove trailing separator
+                    buf.writestring(q[1 .. qlen + 1]);
+                    break Lmain;            // last matching entry in ms[] wins
                 }
-                dotmods.writeByte('.');
-            }
+             }
+             dotmods.writeByte('.');
+        }
 
-            for (size_t i = 0; i < packages.dim; i++)
+        if (importName.packages)
+        {
+            foreach(pid; *importName.packages)
             {
-                Identifier pid = (*packages)[i];
                 const p = pid.toChars();
                 buf.writestring(p);
                 if (msdim)
@@ -483,37 +568,70 @@ extern (C++) final class Module : Package
                     buf.writeByte('/');
                 }
             }
-            buf.writestring(filename);
-            if (msdim)
-                checkModFileAlias(filename);
-            buf.writeByte(0);
-            filename = buf.extractData();
         }
-        auto m = new Module(filename, ident, 0, 0);
-        m.loc = loc;
-        /* Look for the source file
-         */
-        const(char)* result = lookForSourceFile(filename);
-        if (result)
-            m.srcfile = new File(result);
+        buf.writestring(filename);
+        if (msdim)
+            checkModFileAlias(filename);
+        buf.writeByte(0);
+        return buf.extractData();
+    }
 
+    /**
+    Lookup a module using the given filename.
+
+    Params:
+        filename = the filename to find the module for
+
+    Returns:
+        the module backed by the given filename, null otherwise
+    */
+    private static Module lookupFromFile(const(char)* filename)
+    {
+        foreach (m; amodules)
+        {
+            if (!FileName.compare(filename, m.srcfile.name.toChars()))
+                return m;
+        }
+        return null;
+    }
+
+    /**
+    Load and return the module matching the given `importName`.
+
+    Params:
+        loc = the location the module is being imported from
+        importName = the fully qualified name of the module to load
+
+    Returns:
+        the loaded module
+    */
+    static Module load(Loc loc, QualifiedID importName)
+    {
+        //printf("Module::load(ident = '%s')\n", ident.toChars());
+        auto filename = importToFilename(importName);
+
+        const foundDifferentFilename = lookForSourceFile(filename);
+
+        // check if this module file has already been loaded
+        {
+            auto m = lookupFromFile(foundDifferentFilename ? foundDifferentFilename : filename);
+            if (m)
+            {
+                m.importedWithNewName(loc, importName);
+                return m;
+            }
+        }
+
+        auto m = new Module(filename, importName.ident, 0, 0);
+        if (foundDifferentFilename)
+            m.srcfile = new File(foundDifferentFilename);
+        m.importNames.push(importName); // this import name is already valid
+        m.loc = loc;
         if (!m.read(loc))
             return null;
         if (global.params.verbose)
-        {
-            OutBuffer buf;
-            if (packages)
-            {
-                for (size_t i = 0; i < packages.dim; i++)
-                {
-                    Identifier pid = (*packages)[i];
-                    buf.writestring(pid.toChars());
-                    buf.writeByte('.');
-                }
-            }
-            buf.printf("%s\t(%s)", ident.toChars(), m.srcfile.toChars());
-            message("import    %s", buf.peekString());
-        }
+            message("import    %s\t(%s)", importName.toChars(), m.srcfile.toChars());
+
         m = m.parse();
 
         // Call onImport here because if the module is going to be compiled then we
@@ -872,9 +990,7 @@ extern (C++) final class Module : Package
             .free(srcfile.buffer);
         srcfile.buffer = null;
         srcfile.len = 0;
-        /* The symbol table into which the module is to be inserted.
-         */
-        DsymbolTable dst;
+
         if (md)
         {
             /* A ModuleDeclaration, md, was provided.
@@ -882,27 +998,20 @@ extern (C++) final class Module : Package
              * the name of this module.
              */
             this.ident = md.id;
-            Package ppack = null;
-            dst = Package.resolve(md.packages, &this.parent, &ppack);
-            assert(dst);
-            Module m = ppack ? ppack.isModule() : null;
-            if (m && (strcmp(m.srcfile.name.name(), "package.d") != 0 &&
-                      strcmp(m.srcfile.name.name(), "package.di") != 0))
-            {
-                .error(md.loc, "package name '%s' conflicts with usage as a module name in file %s", ppack.toPrettyChars(), m.srcfile.toChars());
-            }
         }
         else
         {
-            /* The name of the module is set to the source file name.
-             * There are no packages.
-             */
-            dst = modules; // and so this module goes into global module symbol table
-            /* Check to see if module name is a valid identifier
-             */
+            // Make sure the module name is a valid identifier
             if (!Identifier.isValidIdentifier(this.ident.toChars()))
                 error("has non-identifier characters in filename, use module declaration instead");
         }
+
+        {
+            auto existing = insertAs(loc, fullID(), false);
+            if (existing)
+                return existing;
+        }
+
         // Add internal used functions in 'object' module members.
         if (!parent && ident == Id.object)
         {
@@ -935,9 +1044,61 @@ extern (C++) final class Module : Package
                 members.append(p.parseDeclDefs(0));
             }
         }
-        // Insert module into the symbol table
+
+        // All command-line root modules are parsed before any imports are processed.
+        // This means that their module name is determined before any import is processed.
+        // So their module name is always a valid import name, because using it does not
+        // change depending on what modules have been loaded by previous imports.
+        if (isRoot())
+        {
+            assert(importNames.dim == 0);
+            importNames.push(fullID());
+        }
+
+        amodules.push(this); // Add to global array of all modules
+        return this;
+    }
+
+    private QualifiedID fullID()
+    {
+        return md ? QualifiedID(md.packages, md.id) : QualifiedID(null, ident);
+    }
+
+    /**
+    Inserts this module into the global module symbol table with the given `insertName`.
+
+    Params:
+        importLoc = the location of the import that is causing this module to be inserted into the symbol table
+        insertName = the fully qualified name to insert the module into the symbol table with
+        isImport = true if this insertion is the result of an import name, false if it's not (i.e. it's just the name of the module)
+
+    Returns:
+        null if the module is successfully added, otherwise, returns the module that has a name conflict
+    */
+    private Module insertAs(Loc importLoc, QualifiedID insertName, bool isImport)
+    {
+        //printf("Module.insertAs(module=%s, insertName=%s, isImport=%d)\n", toChars(), insertName.toChars(), isImport);
+        Package ppack = null;
+        auto dst = Package.resolve(insertName.packages, isImport ? null : &this.parent, &ppack);
+        assert(dst);
+        Module m = ppack ? ppack.isModule() : null;
+        if (m && (strcmp(m.srcfile.name.name(), "package.d") != 0 &&
+                  strcmp(m.srcfile.name.name(), "package.di") != 0))
+        {
+            auto packageName = ppack ? ppack.toPrettyChars() : "???".ptr;
+            //printf("C (module=%s, md=%p, package name '%s')\n", m.toChars(), md, packageName);
+            if (md)
+                .error(md.loc, "package name '%s' conflicts with usage as a module name in file %s", packageName, m.srcfile.toChars());
+            else
+                error("package name '%s' conflicts with usage as a module name in file %s", ppack.toPrettyChars(), m.srcfile.toChars());
+        }
+
         Dsymbol s = this;
-        if (isPackageFile)
+        if (!insertName.ident.equals(ident))
+        {
+            s = createModuleWithDifferentID(this, insertName.ident);
+        }
+        else if (isPackageFile)
         {
             /* If the source tree is as follows:
              *     pkg/
@@ -973,14 +1134,16 @@ extern (C++) final class Module : Package
             assert(prev);
             if (Module mprev = prev.isModule())
             {
-                if (FileName.compare(srcname, mprev.srcfile.toChars()) != 0)
-                    error(loc, "from file %s conflicts with another module %s from file %s", srcname, mprev.toChars(), mprev.srcfile.toChars());
+                if (FileName.compare(srcfile.name.toChars(), mprev.srcfile.name.toChars()))
+                    error(loc, "from file %s conflicts with another module %s from file %s",
+                        srcfile.name.toChars(), mprev.toChars(), mprev.srcfile.name.toChars());
                 else if (isRoot() && mprev.isRoot())
-                    error(loc, "from file %s is specified twice on the command line", srcname);
+                    error(loc, "from file %s is specified twice on the command line", srcfile.name.toChars());
                 else
-                    error(loc, "from file %s must be imported with 'import %s;'", srcname, toPrettyChars());
-                // https://issues.dlang.org/show_bug.cgi?id=14446
+                // https://issues.dlang/org/show_bug.cgi?id=14446
                 // Return previously parsed module to avoid AST duplication ICE.
+                    error(importLoc, "from file %s must be imported with 'import %s;'", srcfile.name.toChars(), toPrettyChars());
+
                 return mprev;
             }
             else if (Package pkg = prev.isPackage())
@@ -993,20 +1156,36 @@ extern (C++) final class Module : Package
                     pkg.isPkgMod = PKG.module_;
                     pkg.mod = this;
                     pkg.tag = this.tag; // reuse the same package tag
-                    amodules.push(this); // Add to global array of all modules
                 }
                 else
-                    error(md ? md.loc : loc, "from file %s conflicts with package name %s", srcname, pkg.toChars());
+                    error(md ? md.loc : loc, "from file %s conflicts with package name %s", srcfile.name.toChars(), pkg.toChars());
             }
             else
                 assert(global.errors);
         }
-        else
+        return null;
+    }
+
+    /**
+    Adds the new importName to the list of valid importNames, and then
+    adds the module to the symbol table in the new import location.
+
+    Params:
+        importLoc = the location of the import
+        importName = the name of the import
+    */
+    private void importedWithNewName(Loc importLoc, QualifiedID importName)
+    {
+        foreach (ref existing; importNames)
         {
-            // Add to global array of all modules
-            amodules.push(this);
+            if (existing.opEquals(importName))
+            {
+                return; // this import has already been added
+            }
         }
-        return this;
+        importNames.push(importName);
+        if (!importName.opEquals(fullID()))
+            insertAs(importLoc, importName, true);
     }
 
     override void importAll(Scope* prevsc)
@@ -1368,6 +1547,20 @@ struct ModuleDeclaration
         this.isdeprecated = isdeprecated;
     }
 
+    /**
+    Compares this module declaration with the given id for equality.
+
+    Params:
+        otherID = the id to compare `this` with
+
+    Returns:
+        true if `right` equals `this`, false otherwise.
+    */
+    bool opEquals(ref const(QualifiedID) otherID) const
+    {
+        return this.id == otherID.ident &&
+            packages.opEquals(otherID.packages);
+    }
     extern (C++) const(char)* toChars()
     {
         OutBuffer buf;

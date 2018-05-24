@@ -53,6 +53,13 @@ public:
     Module *isPackageMod();
 };
 
+struct QualifiedID
+{
+    Identifiers *packages;
+    Identifier *ident;
+    const char *toChars() const;
+};
+
 class Module : public Package
 {
 public:
@@ -75,6 +82,7 @@ public:
 
 
     const char *arg;    // original argument name
+    Array<QualifiedID> importNames; // an array of names that can be used to import this module
     ModuleDeclaration *md; // if !NULL, the contents of the ModuleDeclaration declaration
     File *srcfile;      // input source file
     File *objfile;      // output .obj file

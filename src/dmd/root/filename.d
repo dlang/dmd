@@ -68,7 +68,25 @@ nothrow:
     {
         version (Windows)
         {
-            return stricmp(name1, name2);
+            static char normalizeWinPathChar(char c) pure nothrow
+            {
+                if (c >= 'a' && c <= 'z') return cast(char)(c - ('a' - 'A'));
+                if (c == '/') return '\\';
+                return c;
+            }
+
+            for (size_t i = 0;; i++)
+            {
+                if (name1[i] == '\0')
+                    return name2[i] == '\0' ? 0 : -1;
+
+                const left = normalizeWinPathChar(name1[i]);
+                const right = normalizeWinPathChar(name2[i]);
+                if (left != right)
+                {
+                    return left > right ? 1 : -1;
+                }
+            }
         }
         else
         {
