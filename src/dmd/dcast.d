@@ -1440,6 +1440,13 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 if (v && v.storage_class & STC.manifest)
                 {
                     result = e.ctfeInterpret();
+                    /* https://issues.dlang.org/show_bug.cgi?id=18236
+                     *
+                     * The expression returned by ctfeInterpret points
+                     * to the line where the manifest constant was declared
+                     * so we need to update the location before trying to cast
+                     */
+                    result.loc = e.loc;
                     result = result.castTo(sc, t);
                     return;
                 }
