@@ -749,7 +749,7 @@ private void ctfeCompile(FuncDeclaration fd)
  * Return result expression if successful, TOK.cantExpression if not,
  * or CTFEExp if function returned void.
  */
-private Expression interpret(FuncDeclaration fd, InterState* istate, Expressions* arguments, Expression thisarg)
+private Expression interpretFunction(FuncDeclaration fd, InterState* istate, Expressions* arguments, Expression thisarg)
 {
     debug (LOG)
     {
@@ -1008,9 +1008,11 @@ public:
     InterState* istate;
     CtfeGoal goal;
     Expression result;
+    UnionExp* pue;              // storage for `result`
 
-    extern (D) this(InterState* istate, CtfeGoal goal)
+    extern (D) this(UnionExp* pue, InterState* istate, CtfeGoal goal)
     {
+        this.pue = pue;
         this.istate = istate;
         this.goal = goal;
     }
@@ -1021,7 +1023,8 @@ public:
     {
         if (exceptionOrCantInterpret(e))
         {
-            result = e;
+            // Make sure e is not pointing to a stack temporary
+            result = (e.op == TOK.cantExpression) ? CTFEExp.cantexp : e;
             return true;
         }
         return false;
@@ -2958,7 +2961,7 @@ public:
                 se = interpret(se, istate);
                 if (exceptionOrCant(se))
                     return;
-                result = interpret(e.member, istate, e.arguments, se);
+                result = interpretFunction(e.member, istate, e.arguments, se);
 
                 // Repaint as same as CallExp::interpret() does.
                 result.loc = e.loc;
@@ -3050,7 +3053,7 @@ public:
                     result = CTFEExp.cantexp;
                     return;
                 }
-                Expression ctorfail = interpret(e.member, istate, e.arguments, eref);
+                Expression ctorfail = interpretFunction(e.member, istate, e.arguments, eref);
                 if (exceptionOrCant(ctorfail))
                     return;
 
@@ -3098,22 +3101,22 @@ public:
         {
             printf("%s UnaExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
-        Expression e1 = interpret(e.e1, istate);
+        UnionExp ue = void;
+        Expression e1 = interpret(&ue, e.e1, istate);
         if (exceptionOrCant(e1))
             return;
-        UnionExp ue;
         switch (e.op)
         {
         case TOK.negate:
-            ue = Neg(e.type, e1);
+            *pue = Neg(e.type, e1);
             break;
 
         case TOK.tilde:
-            ue = Com(e.type, e1);
+            *pue = Com(e.type, e1);
             break;
 
         case TOK.not:
-            ue = Not(e.type, e1);
+            *pue = Not(e.type, e1);
             break;
 
         case TOK.vector:
@@ -3123,7 +3126,7 @@ public:
         default:
             assert(0);
         }
-        result = ue.copy();
+        result = (*pue).exp();
     }
 
     override void visit(DotTypeExp e)
@@ -3152,35 +3155,44 @@ public:
         }
         if (e.e1.type.ty == Tpointer && e.e2.type.ty == Tpointer && e.op == TOK.min)
         {
-            Expression e1 = interpret(e.e1, istate);
+            UnionExp ue1 = void;
+            Expression e1 = interpret(&ue1, e.e1, istate);
             if (exceptionOrCant(e1))
                 return;
-            Expression e2 = interpret(e.e2, istate);
+            UnionExp ue2 = void;
+            Expression e2 = interpret(&ue2, e.e2, istate);
             if (exceptionOrCant(e2))
                 return;
-            result = pointerDifference(e.loc, e.type, e1, e2).copy();
+            *pue = pointerDifference(e.loc, e.type, e1, e2);
+            result = (*pue).exp();
             return;
         }
         if (e.e1.type.ty == Tpointer && e.e2.type.isintegral())
         {
-            Expression e1 = interpret(e.e1, istate);
+            UnionExp ue1 = void;
+            Expression e1 = interpret(&ue1, e.e1, istate);
             if (exceptionOrCant(e1))
                 return;
-            Expression e2 = interpret(e.e2, istate);
+            UnionExp ue2 = void;
+            Expression e2 = interpret(&ue2, e.e2, istate);
             if (exceptionOrCant(e2))
                 return;
-            result = pointerArithmetic(e.loc, e.op, e.type, e1, e2).copy();
+            *pue = pointerArithmetic(e.loc, e.op, e.type, e1, e2);
+            result = (*pue).exp();
             return;
         }
         if (e.e2.type.ty == Tpointer && e.e1.type.isintegral() && e.op == TOK.add)
         {
-            Expression e1 = interpret(e.e1, istate);
+            UnionExp ue1 = void;
+            Expression e1 = interpret(&ue1, e.e1, istate);
             if (exceptionOrCant(e1))
                 return;
-            Expression e2 = interpret(e.e2, istate);
+            UnionExp ue2 = void;
+            Expression e2 = interpret(&ue2, e.e2, istate);
             if (exceptionOrCant(e2))
                 return;
-            result = pointerArithmetic(e.loc, e.op, e.type, e2, e1).copy();
+            *pue = pointerArithmetic(e.loc, e.op, e.type, e2, e1);
+            result = (*pue).exp();
             return;
         }
         if (e.e1.type.ty == Tpointer || e.e2.type.ty == Tpointer)
@@ -3190,9 +3202,9 @@ public:
             return;
         }
 
-        bool evalOperand(Expression ex, out Expression er)
+        bool evalOperand(UnionExp* pue, Expression ex, out Expression er)
         {
-            er = interpret(ex, istate);
+            er = interpret(pue, ex, istate);
             if (exceptionOrCant(er))
                 return false;
             if (er.isConst() != 1)
@@ -3208,18 +3220,20 @@ public:
             return true;
         }
 
+        UnionExp ue1 = void;
         Expression e1;
-        if (!evalOperand(e.e1, e1))
+        if (!evalOperand(&ue1, e.e1, e1))
             return;
 
+        UnionExp ue2 = void;
         Expression e2;
-        if (!evalOperand(e.e2, e2))
+        if (!evalOperand(&ue2, e.e2, e2))
             return;
 
         if (e.op == TOK.rightShift || e.op == TOK.leftShift || e.op == TOK.unsignedRightShift)
         {
-            sinteger_t i2 = e2.toInteger();
-            d_uns64 sz = e1.type.size() * 8;
+            const sinteger_t i2 = e2.toInteger();
+            const d_uns64 sz = e1.type.size() * 8;
             if (i2 < 0 || i2 >= sz)
             {
                 e.error("shift by %lld is outside the range 0..%llu", i2, cast(ulong)sz - 1);
@@ -3227,7 +3241,8 @@ public:
                 return;
             }
         }
-        result = (*fp)(e.loc, e.type, e1, e2).copy();
+        *pue = (*fp)(e.loc, e.type, e1, e2);
+        result = (*pue).exp();
         if (CTFEExp.isCantExp(result))
             e.error("`%s` cannot be interpreted at compile time", e.toChars());
     }
@@ -3238,12 +3253,14 @@ public:
         {
             printf("%s BinExp::interpretCompareCommon() %s\n", e.loc.toChars(), e.toChars());
         }
+        UnionExp ue1 = void;
+        UnionExp ue2 = void;
         if (e.e1.type.ty == Tpointer && e.e2.type.ty == Tpointer)
         {
-            Expression e1 = interpret(e.e1, istate);
+            Expression e1 = interpret(&ue1, e.e1, istate);
             if (exceptionOrCant(e1))
                 return;
-            Expression e2 = interpret(e.e2, istate);
+            Expression e2 = interpret(&ue2, e.e2, istate);
             if (exceptionOrCant(e2))
                 return;
             //printf("e1 = %s %s, e2 = %s %s\n", e1.type.toChars(), e1.toChars(), e2.type.toChars(), e2.toChars());
@@ -3251,7 +3268,7 @@ public:
             Expression agg1 = getAggregateFromPointer(e1, &ofs1);
             Expression agg2 = getAggregateFromPointer(e2, &ofs2);
             //printf("agg1 = %p %s, agg2 = %p %s\n", agg1, agg1.toChars(), agg2, agg2.toChars());
-            int cmp = comparePointers(e.op, agg1, ofs1, agg2, ofs2);
+            const cmp = comparePointers(e.op, agg1, ofs1, agg2, ofs2);
             if (cmp == -1)
             {
                 char dir = (e.op == TOK.greaterThan || e.op == TOK.greaterOrEqual) ? '<' : '>';
@@ -3259,10 +3276,11 @@ public:
                 result = CTFEExp.cantexp;
                 return;
             }
-            result = new IntegerExp(e.loc, cmp, e.type);
+            emplaceExp!(IntegerExp)(pue, e.loc, cmp, e.type);
+            result = (*pue).exp();
             return;
         }
-        Expression e1 = interpret(e.e1, istate);
+        Expression e1 = interpret(&ue1, e.e1, istate);
         if (exceptionOrCant(e1))
             return;
         if (!isCtfeComparable(e1))
@@ -3271,7 +3289,7 @@ public:
             result = CTFEExp.cantexp;
             return;
         }
-        Expression e2 = interpret(e.e2, istate);
+        Expression e2 = interpret(&ue2, e.e2, istate);
         if (exceptionOrCant(e2))
             return;
         if (!isCtfeComparable(e2))
@@ -3280,8 +3298,9 @@ public:
             result = CTFEExp.cantexp;
             return;
         }
-        int cmp = (*fp)(e.loc, e.op, e1, e2);
-        result = new IntegerExp(e.loc, cmp, e.type);
+        const cmp = (*fp)(e.loc, e.op, e1, e2);
+        emplaceExp!(IntegerExp)(pue, e.loc, cmp, e.type);
+        result = (*pue).exp();
     }
 
     override void visit(BinExp e)
@@ -4955,7 +4974,7 @@ public:
             return;
         }
 
-        result = interpret(fd, istate, e.arguments, pthis);
+        result = interpretFunction(fd, istate, e.arguments, pthis);
         if (result.op == TOK.voidExpression)
             return;
         if (!exceptionOrCantInterpret(result))
@@ -5636,7 +5655,7 @@ public:
 
             if (cd.dtor)
             {
-                result = interpret(cd.dtor, istate, null, cre);
+                result = interpretFunction(cd.dtor, istate, null, cre);
                 if (exceptionOrCant(result))
                     return;
             }
@@ -5665,7 +5684,7 @@ public:
 
                 if (sd.dtor)
                 {
-                    result = interpret(sd.dtor, istate, null, sle);
+                    result = interpretFunction(sd.dtor, istate, null, sle);
                     if (exceptionOrCant(result))
                         return;
                 }
@@ -5696,7 +5715,7 @@ public:
                     auto ale = cast(ArrayLiteralExp)result;
                     foreach (el; *ale.elements)
                     {
-                        result = interpret(sd.dtor, istate, null, el);
+                        result = interpretFunction(sd.dtor, istate, null, el);
                         if (exceptionOrCant(result))
                             return;
                     }
@@ -6230,31 +6249,66 @@ public:
     }
 }
 
-private Expression interpret(Expression e, InterState* istate, CtfeGoal goal = ctfeNeedRvalue)
+/********************************************
+ * Interpret the expression.
+ * Params:
+ *    pue = non-null pointer to temporary storage that can be used to store the return value
+ *    e = Expression to interpret
+ *    istate = context
+ *    goal = what the result will be used for
+ * Returns:
+ *    resulting expression
+ */
+
+Expression interpret(UnionExp* pue, Expression e, InterState* istate, CtfeGoal goal = ctfeNeedRvalue)
 {
     if (!e)
         return null;
-    scope Interpreter v = new Interpreter(istate, goal);
+    scope Interpreter v = new Interpreter(pue, istate, goal);
     e.accept(v);
     Expression ex = v.result;
     assert(goal == ctfeNeedNothing || ex !is null);
     return ex;
 }
 
+///
+Expression interpret(Expression e, InterState* istate, CtfeGoal goal = ctfeNeedRvalue)
+{
+    UnionExp ue = void;
+    auto result = interpret(&ue, e, istate, goal);
+    if (result == ue.exp())
+        result = ue.copy();
+    return result;
+}
+
 /***********************************
  * Interpret the statement.
+ * Params:
+ *    pue = non-null pointer to temporary storage that can be used to store the return value
+ *    s = Statement to interpret
+ *    istate = context
  * Returns:
  *      NULL    continue to next statement
  *      TOK.cantExpression      cannot interpret statement at compile time
  *      !NULL   expression from return statement, or thrown exception
  */
-private Expression interpret(Statement s, InterState* istate)
+Expression interpret(UnionExp* pue, Statement s, InterState* istate)
 {
     if (!s)
         return null;
-    scope Interpreter v = new Interpreter(istate, ctfeNeedNothing);
+    scope Interpreter v = new Interpreter(pue, istate, ctfeNeedNothing);
     s.accept(v);
     return v.result;
+}
+
+///
+Expression interpret(Statement s, InterState* istate)
+{
+    UnionExp ue = void;
+    auto result = interpret(&ue, s, istate);
+    if (result == ue.exp())
+        result = ue.copy();
+    return result;
 }
 
 /* All results destined for use outside of CTFE need to have their CTFE-specific
@@ -6564,7 +6618,7 @@ private Expression interpret_aaApply(InterState* istate, Expression aa, Expressi
         if (numParams == 2)
             args[0] = ekey;
 
-        eresult = interpret(fd, istate, &args, pthis);
+        eresult = interpretFunction(fd, istate, &args, pthis);
         if (exceptionOrCantInterpret(eresult))
             return eresult;
 
@@ -6821,7 +6875,7 @@ private Expression foreachApplyUtf(InterState* istate, Expression str, Expressio
 
             args[numParams - 1] = val;
 
-            eresult = interpret(fd, istate, &args, pthis);
+            eresult = interpretFunction(fd, istate, &args, pthis);
             if (exceptionOrCantInterpret(eresult))
                 return eresult;
             assert(eresult.op == TOK.int64);
@@ -6955,7 +7009,7 @@ private Expression evaluatePostblit(InterState* istate, Expression e)
     if (e.op == TOK.structLiteral)
     {
         // e.__postblit()
-        e = interpret(sd.postblit, istate, null, e);
+        e = interpretFunction(sd.postblit, istate, null, e);
         if (exceptionOrCantInterpret(e))
             return e;
         return null;
@@ -6981,7 +7035,7 @@ private Expression evaluateDtor(InterState* istate, Expression e)
     else if (e.op == TOK.structLiteral)
     {
         // e.__dtor()
-        e = interpret(sd.dtor, istate, null, e);
+        e = interpretFunction(sd.dtor, istate, null, e);
     }
     else
         assert(0);
