@@ -1447,6 +1447,21 @@ struct ASTBase
             srcfile = new File(srcfilename);
         }
 
+        /**
+        A root module is one that will be compiled to object code.
+        */
+        final bool isRoot() const
+        {
+            return true;
+        }
+
+        /**
+        Called by the parser after the module declaration has been determined.
+        */
+        final void afterModuleDeclaration(ModuleDeclaration* md)
+        {
+        }
+
         override void accept(Visitor v)
         {
             v.visit(this);
