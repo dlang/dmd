@@ -377,6 +377,8 @@ final class Parser(AST) : Lexer
             }
         }
 
+        mod.afterModuleDeclaration(md);
+
         decldefs = parseDeclDefs(0, &lastDecl);
         if (token.value != TOK.endOfFile)
         {
@@ -548,7 +550,7 @@ final class Parser(AST) : Lexer
                     break;
                 }
             case TOK.unittest_:
-                if (global.params.useUnitTests || global.params.doDocComments || global.params.doHdrGeneration)
+                if ( (global.params.useUnitTests || global.params.doDocComments || global.params.doHdrGeneration) && mod.isRoot)
                 {
                     s = parseUnitTest(pAttrs);
                     if (*pLastDecl)

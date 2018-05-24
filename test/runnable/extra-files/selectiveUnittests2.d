@@ -1,0 +1,4 @@
+import printVersionUnittest;
+void main()
+{
+}
