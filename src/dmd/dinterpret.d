@@ -2902,7 +2902,8 @@ public:
                 result = CTFEExp.cantexp;
                 return;
             }
-            auto sle = new StructLiteralExp(e.loc, e.sd, expsx);
+            emplaceExp!(StructLiteralExp)(pue, e.loc, e.sd, expsx);
+            auto sle = cast(StructLiteralExp)pue.exp();
             sle.type = e.type;
             sle.ownedByCtfe = OwnedBy.ctfe;
             result = sle;
@@ -3010,7 +3011,8 @@ public:
             }
             if (exceptionOrCant(result))
                 return;
-            result = new AddrExp(e.loc, result, e.type);
+            emplaceExp!(AddrExp)(pue, e.loc, result, e.type);
+            result = pue.exp();
             return;
         }
         if (e.newtype.toBasetype().ty == Tclass)
@@ -3104,9 +3106,10 @@ public:
             ae.type = e.newtype.arrayOf();
             ae.ownedByCtfe = OwnedBy.ctfe;
 
-            result = new IndexExp(e.loc, ae, new IntegerExp(Loc.initial, 0, Type.tsize_t));
-            result.type = e.newtype;
-            result = new AddrExp(e.loc, result, e.type);
+            auto ei = new IndexExp(e.loc, ae, new IntegerExp(Loc.initial, 0, Type.tsize_t));
+            ei.type = e.newtype;
+            emplaceExp!(AddrExp)(pue, e.loc, ei, e.type);
+            result = pue.exp();
             return;
         }
         e.error("cannot interpret `%s` at compile time", e.toChars());
@@ -3153,15 +3156,17 @@ public:
         {
             printf("%s DotTypeExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
-        Expression e1 = interpret(e.e1, istate);
+        UnionExp ue = void;
+        Expression e1 = interpret(&ue, e.e1, istate);
         if (exceptionOrCant(e1))
             return;
         if (e1 == e.e1)
             result = e; // optimize: reuse this CTFE reference
         else
         {
-            result = e.copy();
-            (cast(DotTypeExp)result).e1 = e1;
+            auto edt = cast(DotTypeExp)e.copy();
+            edt.e1 = (e1 == ue.exp()) ? e1.copy() : e1; // don't return pointer to ue
+            result = edt;
         }
     }
 
@@ -4761,7 +4766,8 @@ public:
             res = !andand;
         else if (andand ? isTrueBool(result) : result.isBool(false))
         {
-            result = interpret(e.e2, istate);
+            UnionExp ue2;
+            result = interpret(&ue2, e.e2, istate);
             if (exceptionOrCant(result))
                 return;
             if (result.op == TOK.voidExpression)
@@ -4788,7 +4794,10 @@ public:
             return;
         }
         if (goal != ctfeNeedNothing)
-            result = new IntegerExp(e.loc, res, e.type);
+        {
+            emplaceExp!(IntegerExp)(pue, e.loc, res, e.type);
+            result = pue.exp();
+        }
     }
 
 
