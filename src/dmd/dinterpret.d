@@ -5827,17 +5827,19 @@ public:
                     return;
                 }
                 // Create a CTFE pointer &aggregate[1..2]
-                result = new IndexExp(e.loc, (cast(SliceExp)e1).e1, (cast(SliceExp)e1).lwr);
-                result.type = e.type.nextOf();
-                result = new AddrExp(e.loc, result, e.type);
+                auto ei = new IndexExp(e.loc, (cast(SliceExp)e1).e1, (cast(SliceExp)e1).lwr);
+                ei.type = e.type.nextOf();
+                emplaceExp!(AddrExp)(pue, e.loc, ei, e.type);
+                result = pue.exp();
                 return;
             }
             if (e1.op == TOK.arrayLiteral || e1.op == TOK.string_)
             {
                 // Create a CTFE pointer &[1,2,3][0] or &"abc"[0]
-                result = new IndexExp(e.loc, e1, new IntegerExp(e.loc, 0, Type.tsize_t));
-                result.type = e.type.nextOf();
-                result = new AddrExp(e.loc, result, e.type);
+                auto ei = new IndexExp(e.loc, e1, new IntegerExp(e.loc, 0, Type.tsize_t));
+                ei.type = e.type.nextOf();
+                emplaceExp!(AddrExp)(pue, e.loc, ei, e.type);
+                result = pue.exp();
                 return;
             }
             if (e1.op == TOK.index && !(cast(IndexExp)e1).e1.type.equals(e1.type))
@@ -5850,20 +5852,23 @@ public:
                     // get the original type. For strings, it's just the type...
                     Type origType = ie.e1.type.nextOf();
                     // ..but for arrays of type void*, it's the type of the element
-                    Expression xx = null;
                     if (ie.e1.op == TOK.arrayLiteral && ie.e2.op == TOK.int64)
                     {
                         ArrayLiteralExp ale = cast(ArrayLiteralExp)ie.e1;
                         size_t indx = cast(size_t)ie.e2.toInteger();
                         if (indx < ale.elements.dim)
-                            xx = (*ale.elements)[indx];
+                        {
+                            if (Expression xx = (*ale.elements)[indx])
+                            {
+                                if (xx.op == TOK.index)
+                                    origType = (cast(IndexExp)xx).e1.type.nextOf();
+                                else if (xx.op == TOK.address)
+                                    origType = (cast(AddrExp)xx).e1.type;
+                                else if (xx.op == TOK.variable)
+                                    origType = (cast(VarExp)xx).var.type;
+                            }
+                        }
                     }
-                    if (xx && xx.op == TOK.index)
-                        origType = (cast(IndexExp)xx).e1.type.nextOf();
-                    else if (xx && xx.op == TOK.address)
-                        origType = (cast(AddrExp)xx).e1.type;
-                    else if (xx && xx.op == TOK.variable)
-                        origType = (cast(VarExp)xx).var.type;
                     if (!isSafePointerCast(origType, pointee))
                     {
                         e.error("using `void*` to reinterpret cast from `%s*` to `%s*` is not supported in CTFE", origType.toChars(), pointee.toChars());
@@ -5879,7 +5884,8 @@ public:
                 Type origType = (cast(AddrExp)e1).e1.type;
                 if (isSafePointerCast(origType, pointee))
                 {
-                    result = new AddrExp(e.loc, (cast(AddrExp)e1).e1, e.type);
+                    emplaceExp!(AddrExp)(pue, e.loc, (cast(AddrExp)e1).e1, e.type);
+                    result = pue.exp();
                     return;
                 }
                 if (castToSarrayPointer && pointee.toBasetype().ty == Tsarray && (cast(AddrExp)e1).e1.op == TOK.index)
@@ -5891,9 +5897,10 @@ public:
                     Expression upr = new IntegerExp(ie.e2.loc, ie.e2.toInteger() + dim, Type.tsize_t);
 
                     // Create a CTFE pointer &val[idx..idx+dim]
-                    result = new SliceExp(e.loc, ie.e1, lwr, upr);
-                    result.type = pointee;
-                    result = new AddrExp(e.loc, result, e.type);
+                    auto er = new SliceExp(e.loc, ie.e1, lwr, upr);
+                    er.type = pointee;
+                    emplaceExp!(AddrExp)(pue, e.loc, er, e.type);
+                    result = pue.exp();
                     return;
                 }
             }
@@ -5908,9 +5915,10 @@ public:
                     return;
                 }
                 if (e1.op == TOK.variable)
-                    result = new VarExp(e.loc, (cast(VarExp)e1).var);
+                    emplaceExp!(VarExp)(pue, e.loc, (cast(VarExp)e1).var);
                 else
-                    result = new SymOffExp(e.loc, (cast(SymOffExp)e1).var, (cast(SymOffExp)e1).offset);
+                    emplaceExp!(SymOffExp)(pue, e.loc, (cast(SymOffExp)e1).var, (cast(SymOffExp)e1).offset);
+                result = pue.exp();
                 result.type = e.to;
                 return;
             }
@@ -5944,9 +5952,9 @@ public:
                 result = CTFEExp.cantexp;
                 return;
             }
-            e1 = new SliceExp(e1.loc, se.e1, se.lwr, se.upr);
-            e1.type = e.to;
-            result = e1;
+            emplaceExp!(SliceExp)(pue, e1.loc, se.e1, se.lwr, se.upr);
+            result = pue.exp();
+            result.type = e.to;
             return;
         }
         // Disallow array type painting, except for conversions between built-in
@@ -5961,7 +5969,8 @@ public:
             e1 = resolveSlice(e1);
         if (e.to.toBasetype().ty == Tbool && e1.type.ty == Tpointer)
         {
-            result = new IntegerExp(e.loc, e1.op != TOK.null_, e.to);
+            emplaceExp!(IntegerExp)(pue, e.loc, e1.op != TOK.null_, e.to);
+            result = pue.exp();
             return;
         }
         result = ctfeCast(e.loc, e.type, e.to, e1);
@@ -5973,7 +5982,7 @@ public:
         {
             printf("%s AssertExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
-        Expression e1 = interpret(e.e1, istate);
+        Expression e1 = interpret(pue, e.e1, istate);
         if (exceptionOrCant(e1))
             return;
         if (isTrueBool(e1))
@@ -5983,7 +5992,8 @@ public:
         {
             if (e.msg)
             {
-                result = interpret(e.msg, istate);
+                UnionExp ue = void;
+                result = interpret(&ue, e.msg, istate);
                 if (exceptionOrCant(result))
                     return;
                 e.error("`%s`", result.toChars());
@@ -6114,7 +6124,8 @@ public:
                 result = e; // optimize: reuse this CTFE reference
             else
             {
-                result = new DotVarExp(e.loc, ex, f, false);
+                emplaceExp!(DotVarExp)(pue, e.loc, ex, f, false);
+                result = pue.exp();
                 result.type = e.type;
             }
             return;
@@ -6175,7 +6186,8 @@ public:
                 result = e;
             else
             {
-                result = new DotVarExp(e.loc, ex, v);
+                emplaceExp!(DotVarExp)(pue, e.loc, ex, v);
+                result = pue.exp();
                 result.type = e.type;
             }
             return;
@@ -6255,7 +6267,8 @@ public:
         }
         valuesx.dim = valuesx.dim - removed;
         keysx.dim = keysx.dim - removed;
-        result = new IntegerExp(e.loc, removed ? 1 : 0, Type.tbool);
+        emplaceExp!(IntegerExp)(pue, e.loc, removed ? 1 : 0, Type.tbool);
+        result = pue.exp();
     }
 
     override void visit(ClassReferenceExp e)
