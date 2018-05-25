@@ -2120,7 +2120,7 @@ extern (C++) abstract class Expression : RootObject
 
         if (v.type.ty == Tstruct)
         {
-            StructDeclaration sd = (cast(TypeStruct)type).sym;
+            StructDeclaration sd = (cast(TypeStruct)v.type).sym;
             if (sd.hasNoFields)
                 return false;
         }
