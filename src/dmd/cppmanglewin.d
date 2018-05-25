@@ -684,22 +684,138 @@ private:
             buf.writestring("?1");
             return;
         }
+        else if (sym.ident)
+        {
+            switch (sym.ident.toString)
+            {
+                case "opAssign":    buf.writestring("?4");  return;
+                case "opEquals":    buf.writestring("?8");  return;
+                case "opIndex":     buf.writestring("?A");  return;
+                case "opCall":      buf.writestring("?R");  return;
+                default:            break;
+            }
+        }
         if (TemplateInstance ti = sym.isTemplateInstance())
         {
+            auto id = ti.tempdecl.ident;
+            const(char)* ident = id.toChars;
+
+            // test for special symbols
+            int firstTemplateArg = 0;
+            int whichOp = -1;
+            switch (ti.name.toString)
+            {
+                case "opCast":
+                    buf.writestring("?B");
+                    return;
+                case "opUnary":     whichOp = 0;    break;
+                case "opBinary":    whichOp = 1;    break;
+                case "opOpAssign":  whichOp = 2;    break;
+                case "opAssign":    whichOp = 3;    break;
+                case "opEquals":    whichOp = 4;    break;
+                case "opIndex":     whichOp = 5;    break;
+                case "opCall":      whichOp = 6;    break;
+                default:            break;
+            }
+            if (whichOp != -1)
+            {
+                TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
+                assert(td);
+                TemplateParameter tp = (*td.parameters)[0];
+                TemplateValueParameter tv = tp.isTemplateValueParameter();
+                if (tv)
+                {
+                    if (tv.valType.isString())
+                    {
+                        Expression exp = (*ti.tiargs)[0].isExpression();
+                        StringExp str = exp.toStringExp();
+                        switch (whichOp)
+                        {
+                            case 0: // opUnary
+                                switch (str.peekSlice)
+                                {
+                                    case "*":   ident = "?D";   goto continue_template;
+                                    case "++":  ident = "?E";   goto continue_template;
+                                    case "--":  ident = "?F";   goto continue_template;
+                                    case "-":   ident = "?G";   goto continue_template;
+                                    case "+":   ident = "?H";   goto continue_template;
+                                    case "~":   ident = "?S";   goto continue_template;
+                                    default:    break;
+                                }
+                                break;
+                            case 1: // opBinary
+                                switch (str.peekSlice)
+                                {
+                                    case ">>":  ident = "?5";   goto continue_template;
+                                    case "<<":  ident = "?6";   goto continue_template;
+                                    case "*":   ident = "?D";   goto continue_template;
+                                    case "-":   ident = "?G";   goto continue_template;
+                                    case "+":   ident = "?H";   goto continue_template;
+                                    case "&":   ident = "?I";   goto continue_template;
+                                    case "/":   ident = "?K";   goto continue_template;
+                                    case "%":   ident = "?L";   goto continue_template;
+                                    case "^":   ident = "?T";   goto continue_template;
+                                    case "|":   ident = "?U";   goto continue_template;
+                                    default:    break;
+                                }
+                                break;
+                            case 2: // opOpAssign
+                                switch (str.peekSlice)
+                                {
+                                    case "/=":  ident = "?_0";  goto continue_template;
+                                    case "%=":  ident = "?_1";  goto continue_template;
+                                    case ">>=": ident = "?_2";  goto continue_template;
+                                    case "<<=": ident = "?_3";  goto continue_template;
+                                    case "&=":  ident = "?_4";  goto continue_template;
+                                    case "|=":  ident = "?_5";  goto continue_template;
+                                    case "^=":  ident = "?_6";  goto continue_template;
+                                    case "*=":  ident = "?X";   goto continue_template;
+                                    case "+=":  ident = "?Y";   goto continue_template;
+                                    case "-=":  ident = "?Z";   goto continue_template;
+                                    default:    break;
+                                }
+                                break;
+                            case 3: // opAssign
+                                ident = "?4";
+                                break;
+                            case 4: // opEquals
+                                ident = "?8";
+                                break;
+                            case 5: // opIndex
+                                ident = "?A";
+                                break;
+                            case 6: // opCall
+                                ident = "?R";
+                                break;
+                            default:
+                                break;
+                            continue_template:
+                                if (ti.tiargs.dim == 1)
+                                {
+                                    buf.writestring(ident);
+                                    return;
+                                }
+                                firstTemplateArg = 1;
+                                break;
+                        }
+                    }
+                }
+            }
+
             scope VisualCPPMangler tmp = new VisualCPPMangler((flags & IS_DMC) ? true : false);
             tmp.buf.writeByte('?');
             tmp.buf.writeByte('$');
-            auto id = ti.tempdecl.ident;
-            tmp.buf.writestring(id.toChars());
-            tmp.saved_idents[0] = id.toChars();
-            tmp.buf.writeByte('@');
+            tmp.buf.writestring(ident);
+            tmp.saved_idents[0] = ident;
+            if (ident == id.toChars)
+                tmp.buf.writeByte('@');
             if (flags & IS_DMC)
             {
                 tmp.mangleIdent(sym.parent, true);
                 is_dmc_template = true;
             }
             bool is_var_arg = false;
-            for (size_t i = 0; i < ti.tiargs.dim; i++)
+            for (size_t i = firstTemplateArg; i < ti.tiargs.dim; i++)
             {
                 RootObject o = (*ti.tiargs)[i];
                 TemplateParameter tp = null;
