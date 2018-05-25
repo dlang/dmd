@@ -78,6 +78,43 @@ void emplaceExp(T : UnionExp)(T* p, Expression e)
     memcpy(p, cast(void*)e, e.size);
 }
 
+
+/****************************************
+ * Find the first non-comma expression.
+ * Params:
+ *      e = Expressions connected by commas
+ * Returns:
+ *      left-most non-comma expression
+ */
+
+inout(Expression) firstComma(inout Expression e)
+{
+    Expression ex = cast()e;
+    while (ex.op == TOK.comma)
+        ex = (cast(CommaExp)ex).e1;
+    return cast(inout)ex;
+
+}
+
+
+/****************************************
+ * Find the last non-comma expression.
+ * Params:
+ *      e = Expressions connected by commas
+ * Returns:
+ *      right-most non-comma expression
+ */
+
+inout(Expression) lastComma(inout Expression e)
+{
+    Expression ex = cast()e;
+    while (ex.op == TOK.comma)
+        ex = (cast(CommaExp)ex).e2;
+    return cast(inout)ex;
+
+}
+
+
 /*************************************************************
  * Given var, get the
  * right `this` pointer if var is in an outer class, but our
@@ -482,8 +519,7 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
  */
 private bool checkPropertyCall(Expression e)
 {
-    while (e.op == TOK.comma)
-        e = (cast(CommaExp)e).e2;
+    e = lastComma(e);
 
     if (e.op == TOK.call)
     {
@@ -1097,9 +1133,7 @@ extern (C++) TemplateDeclaration getFuncTemplateDecl(Dsymbol s)
  */
 extern (C++) Expression valueNoDtor(Expression e)
 {
-    auto ex = e;
-    while (ex.op == TOK.comma)
-        ex = (cast(CommaExp)ex).e2;
+    auto ex = lastComma(e);
 
     if (ex.op == TOK.call)
     {

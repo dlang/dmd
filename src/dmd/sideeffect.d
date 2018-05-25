@@ -329,10 +329,8 @@ extern (C++) bool discardValue(Expression e)
              * no side effect).
              * See https://issues.dlang.org/show_bug.cgi?id=4231 for discussion
              */
-            CommaExp firstComma = ce;
-            while (firstComma.e1.op == TOK.comma)
-                firstComma = cast(CommaExp)firstComma.e1;
-            if (firstComma.e1.op == TOK.declaration && ce.e2.op == TOK.variable && (cast(DeclarationExp)firstComma.e1).declaration == (cast(VarExp)ce.e2).var)
+            auto fc = firstComma(ce);
+            if (fc.op == TOK.declaration && ce.e2.op == TOK.variable && (cast(DeclarationExp)fc).declaration == (cast(VarExp)ce.e2).var)
             {
                 return false;
             }

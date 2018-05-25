@@ -5024,14 +5024,11 @@ public:
         {
             printf("%s CommaExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
-        CommaExp firstComma = e;
-        while (firstComma.e1.op == TOK.comma)
-            firstComma = cast(CommaExp)firstComma.e1;
 
         // If it creates a variable, and there's no context for
         // the variable to be created in, we need to create one now.
         InterState istateComma;
-        if (!istate && firstComma.e1.op == TOK.declaration)
+        if (!istate && firstComma(e.e1).op == TOK.declaration)
         {
             ctfeStack.startFrame(null);
             istate = &istateComma;
