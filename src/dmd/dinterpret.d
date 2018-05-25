@@ -1075,7 +1075,7 @@ public:
             istate.start = null;
         }
 
-        Expression e = interpret(s.exp, istate, ctfeNeedNothing);
+        Expression e = interpret(pue, s.exp, istate, ctfeNeedNothing);
         if (exceptionOrCant(e))
             return;
     }
@@ -1089,11 +1089,11 @@ public:
         if (istate.start == s)
             istate.start = null;
 
-        size_t dim = s.statements ? s.statements.dim : 0;
-        for (size_t i = 0; i < dim; i++)
+        const dim = s.statements ? s.statements.dim : 0;
+        foreach (i; 0 .. dim)
         {
             Statement sx = (*s.statements)[i];
-            result = interpret(sx, istate);
+            result = interpret(pue, sx, istate);
             if (result)
                 break;
         }
@@ -1112,11 +1112,11 @@ public:
         if (istate.start == s)
             istate.start = null;
 
-        size_t dim = s.statements ? s.statements.dim : 0;
-        for (size_t i = 0; i < dim; i++)
+        const dim = s.statements ? s.statements.dim : 0;
+        foreach (i; 0 .. dim)
         {
             Statement sx = (*s.statements)[i];
-            Expression e = interpret(sx, istate);
+            Expression e = interpret(pue, sx, istate);
             if (!e) // succeeds to interpret, or goto target was not found
                 continue;
             if (exceptionOrCant(e))
@@ -1167,15 +1167,16 @@ public:
             return;
         }
 
-        Expression e = interpret(s.condition, istate);
+        UnionExp ue = void;
+        Expression e = interpret(&ue, s.condition, istate);
         assert(e);
         if (exceptionOrCant(e))
             return;
 
         if (isTrueBool(e))
-            result = interpret(s.ifbody, istate);
+            result = interpret(pue, s.ifbody, istate);
         else if (e.isBool(false))
-            result = interpret(s.elsebody, istate);
+            result = interpret(pue, s.elsebody, istate);
         else
         {
             // no error, or assert(0)?
@@ -1192,17 +1193,18 @@ public:
         if (istate.start == s)
             istate.start = null;
 
-        result = interpret(s.statement, istate);
+        result = interpret(pue, s.statement, istate);
     }
 
     /**
      Given an expression e which is about to be returned from the current
      function, generate an error if it contains pointers to local variables.
-     Return true if it is safe to return, false if an error was generated.
 
      Only checks expressions passed by value (pointers to local variables
      may already be stored in members of classes, arrays, or AAs which
      were passed as mutable function parameters).
+     Returns:
+        true if it is safe to return, false if an error was generated.
      */
     static bool stopPointersEscaping(const ref Loc loc, Expression e)
     {
@@ -1294,7 +1296,7 @@ public:
          */
         if (tf.isref)
         {
-            result = interpret(s.exp, istate, ctfeNeedLvalue);
+            result = interpret(pue, s.exp, istate, ctfeNeedLvalue);
             return;
         }
         if (tf.next && tf.next.ty == Tdelegate && istate.fd.closureVars.dim > 0)
@@ -1308,7 +1310,7 @@ public:
 
         // We need to treat pointers specially, because TOK.symbolOffset can be used to
         // return a value OR a pointer
-        Expression e = interpret(s.exp, istate);
+        Expression e = interpret(pue, s.exp, istate);
         if (exceptionOrCant(e))
             return;
 
@@ -1429,7 +1431,8 @@ public:
                 return;
             }
 
-            e = interpret(s.condition, istate);
+            UnionExp ue = void;
+            e = interpret(&ue, s.condition, istate);
             if (exceptionOrCant(e))
                 return;
             if (!e.isConst())
@@ -1453,7 +1456,8 @@ public:
         if (istate.start == s)
             istate.start = null;
 
-        Expression ei = interpret(s._init, istate);
+        UnionExp ueinit = void;
+        Expression ei = interpret(&ueinit, s._init, istate);
         if (exceptionOrCant(ei))
             return;
         assert(!ei); // s.init never returns from function, or jumps out from it
@@ -1462,7 +1466,8 @@ public:
         {
             if (s.condition && !istate.start)
             {
-                Expression e = interpret(s.condition, istate);
+                UnionExp ue = void;
+                Expression e = interpret(&ue, s.condition, istate);
                 if (exceptionOrCant(e))
                     return;
                 if (e.isBool(false))
@@ -1470,7 +1475,7 @@ public:
                 assert(isTrueBool(e));
             }
 
-            Expression e = interpret(s._body, istate);
+            Expression e = interpret(pue, s._body, istate);
             if (!e && istate.start) // goto target was not found
                 return;
             assert(!istate.start);
@@ -1503,7 +1508,8 @@ public:
                 return;
             }
 
-            e = interpret(s.increment, istate, ctfeNeedNothing);
+            UnionExp uei = void;
+            e = interpret(&uei, s.increment, istate, ctfeNeedNothing);
             if (exceptionOrCant(e))
                 return;
         }
@@ -1549,7 +1555,8 @@ public:
             return;
         }
 
-        Expression econdition = interpret(s.condition, istate);
+        UnionExp uecond = void;
+        Expression econdition = interpret(&uecond, s.condition, istate);
         if (exceptionOrCant(econdition))
             return;
 
@@ -1558,7 +1565,8 @@ public:
         for (size_t i = 0; i < dim; i++)
         {
             CaseStatement cs = (*s.cases)[i];
-            Expression ecase = interpret(cs.exp, istate);
+            UnionExp uecase = void;
+            Expression ecase = interpret(&uecase, cs.exp, istate);
             if (exceptionOrCant(ecase))
                 return;
             if (ctfeEqual(cs.exp.loc, TOK.equal, econdition, ecase))
@@ -1579,7 +1587,7 @@ public:
         /* Jump to scase
          */
         istate.start = scase;
-        Expression e = interpret(s._body, istate);
+        Expression e = interpret(pue, s._body, istate);
         assert(!istate.start); // jump must not fail
         if (e && e.op == TOK.break_)
         {
@@ -1603,7 +1611,7 @@ public:
         if (istate.start == s)
             istate.start = null;
 
-        result = interpret(s.statement, istate);
+        result = interpret(pue, s.statement, istate);
     }
 
     override void visit(DefaultStatement s)
@@ -1615,7 +1623,7 @@ public:
         if (istate.start == s)
             istate.start = null;
 
-        result = interpret(s.statement, istate);
+        result = interpret(pue, s.statement, istate);
     }
 
     override void visit(GotoStatement s)
@@ -1681,7 +1689,7 @@ public:
         if (istate.start == s)
             istate.start = null;
 
-        result = interpret(s.statement, istate);
+        result = interpret(pue, s.statement, istate);
     }
 
     override void visit(TryCatchStatement s)
@@ -1695,13 +1703,13 @@ public:
         if (istate.start)
         {
             Expression e = null;
-            e = interpret(s._body, istate);
+            e = interpret(pue, s._body, istate);
             for (size_t i = 0; i < s.catches.dim; i++)
             {
                 if (e || !istate.start) // goto target was found
                     break;
                 Catch ca = (*s.catches)[i];
-                e = interpret(ca.handler, istate);
+                e = interpret(pue, ca.handler, istate);
             }
             result = e;
             return;
@@ -1802,7 +1810,7 @@ public:
         if (istate.start)
         {
             Expression e = null;
-            e = interpret(s._body, istate);
+            e = interpret(pue, s._body, istate);
             // Jump into/out from finalbody is disabled in semantic analysis.
             // and jump inside will be handled by the ScopeStatement == finalbody.
             result = e;
@@ -1898,7 +1906,7 @@ public:
         // If it is with(Enum) {...}, just execute the body.
         if (s.exp.op == TOK.scope_ || s.exp.op == TOK.type)
         {
-            result = interpret(s._body, istate);
+            result = interpret(pue, s._body, istate);
             return;
         }
 
@@ -2113,7 +2121,8 @@ public:
             // It's OK to cast from fixed length to dynamic array, eg &int[3] to int[]*
             if (val.type.ty == Tsarray && pointee.ty == Tarray && elemsize == pointee.nextOf().size())
             {
-                result = new AddrExp(e.loc, val, e.type);
+                emplaceExp!(AddrExp)(pue, e.loc, val, e.type);
+                result = pue.exp();
                 return;
             }
 
@@ -2125,9 +2134,10 @@ public:
                 Expression eupr = new IntegerExp(e.loc, e.offset / elemsize + d, Type.tsize_t);
 
                 // Create a CTFE pointer &val[ofs..ofs+d]
-                result = new SliceExp(e.loc, val, elwr, eupr);
-                result.type = pointee;
-                result = new AddrExp(e.loc, result, e.type);
+                auto se = new SliceExp(e.loc, val, elwr, eupr);
+                se.type = pointee;
+                emplaceExp!(AddrExp)(pue, e.loc, se, e.type);
+                result = pue.exp();
                 return;
             }
 
@@ -2137,9 +2147,10 @@ public:
                 if (e.offset == 0 && isSafePointerCast(e.var.type, pointee))
                 {
                     // Create a CTFE pointer &var
-                    result = new VarExp(e.loc, e.var);
-                    result.type = elemtype;
-                    result = new AddrExp(e.loc, result, e.type);
+                    auto ve = new VarExp(e.loc, e.var);
+                    ve.type = elemtype;
+                    emplaceExp!(AddrExp)(pue, e.loc, ve, e.type);
+                    result = pue.exp();
                     return;
                 }
                 e.error("reinterpreting cast from `%s` to `%s` is not supported in CTFE", val.type.toChars(), e.type.toChars());
@@ -2147,7 +2158,7 @@ public:
                 return;
             }
 
-            dinteger_t sz = pointee.size();
+            const dinteger_t sz = pointee.size();
             dinteger_t indx = e.offset / sz;
             assert(sz * indx == e.offset);
             Expression aggregate = null;
@@ -2158,16 +2169,18 @@ public:
             else if (val.op == TOK.slice)
             {
                 aggregate = (cast(SliceExp)val).e1;
-                Expression lwr = interpret((cast(SliceExp)val).lwr, istate);
+                UnionExp uelwr = void;
+                Expression lwr = interpret(&uelwr, (cast(SliceExp)val).lwr, istate);
                 indx += lwr.toInteger();
             }
             if (aggregate)
             {
                 // Create a CTFE pointer &aggregate[ofs]
                 auto ofs = new IntegerExp(e.loc, indx, Type.tsize_t);
-                result = new IndexExp(e.loc, aggregate, ofs);
-                result.type = elemtype;
-                result = new AddrExp(e.loc, result, e.type);
+                auto ei = new IndexExp(e.loc, aggregate, ofs);
+                ei.type = elemtype;
+                emplaceExp!(AddrExp)(pue, e.loc, ei, e.type);
+                result = pue.exp();
                 return;
             }
         }
@@ -2176,7 +2189,8 @@ public:
             // Create a CTFE pointer &var
             auto ve = new VarExp(e.loc, e.var);
             ve.type = e.var.type;
-            result = new AddrExp(e.loc, ve, e.type);
+            emplaceExp!(AddrExp)(pue, e.loc, ve, e.type);
+            result = pue.exp();
             return;
         }
 
