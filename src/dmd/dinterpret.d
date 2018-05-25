@@ -2223,14 +2223,15 @@ public:
                 return;
             }
         }
-        result = interpret(e.e1, istate, ctfeNeedLvalue);
-        if (result.op == TOK.variable && (cast(VarExp)result).var == istate.fd.vthis)
-            result = interpret(result, istate);
-        if (exceptionOrCant(result))
+        auto er = interpret(e.e1, istate, ctfeNeedLvalue);
+        if (er.op == TOK.variable && (cast(VarExp)er).var == istate.fd.vthis)
+            er = interpret(er, istate);
+        if (exceptionOrCant(er))
             return;
 
         // Return a simplified address expression
-        result = new AddrExp(e.loc, result, e.type);
+        emplaceExp!(AddrExp)(pue, e.loc, er, e.type);
+        result = pue.exp();
     }
 
     override void visit(DelegateExp e)
@@ -2250,17 +2251,18 @@ public:
             return;
         }
 
-        result = interpret(e.e1, istate);
-        if (exceptionOrCant(result))
+        auto er = interpret(e.e1, istate);
+        if (exceptionOrCant(er))
             return;
-        if (result == e.e1)
+        if (er == e.e1)
         {
             // If it has already been CTFE'd, just return it
             result = e;
         }
         else
         {
-            result = new DelegateExp(e.loc, result, e.func, false);
+            emplaceExp!(DelegateExp)(pue, e.loc, er, e.func, false);
+            result = pue.exp();
             result.type = e.type;
         }
     }
@@ -2433,7 +2435,7 @@ public:
                 Expression ev = getValue(v);
                 if (ev.op == TOK.variable || ev.op == TOK.index || ev.op == TOK.dotVariable)
                 {
-                    result = interpret(ev, istate, goal);
+                    result = interpret(pue, ev, istate, goal);
                     return;
                 }
             }
@@ -2609,7 +2611,8 @@ public:
             ClassDeclaration cd = (cast(ClassReferenceExp)result).originalClass();
             assert(cd);
 
-            result = new TypeidExp(e.loc, cd.type);
+            emplaceExp!(TypeidExp)(pue, e.loc, cd.type);
+            result = pue.exp();
             result.type = e.type;
             return;
         }
@@ -2654,9 +2657,9 @@ public:
         if (expsx !is e.exps)
         {
             expandTuples(expsx);
-            auto te = new TupleExp(e.loc, expsx);
-            te.type = new TypeTuple(te.exps);
-            result = te;
+            emplaceExp!(TupleExp)(pue, e.loc, expsx);
+            result = pue.exp();
+            result.type = new TypeTuple(expsx);
         }
         else
             result = e;
@@ -2727,7 +2730,8 @@ public:
                 result = CTFEExp.cantexp;
                 return;
             }
-            auto ale = new ArrayLiteralExp(e.loc, basis, expsx);
+            emplaceExp!(ArrayLiteralExp)(pue, e.loc, basis, expsx);
+            auto ale = cast(ArrayLiteralExp)pue.exp();
             ale.type = e.type;
             ale.ownedByCtfe = OwnedBy.ctfe;
             result = ale;
