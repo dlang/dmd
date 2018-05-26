@@ -5037,6 +5037,13 @@ public:
             istate = &istateComma;
         }
 
+        void endTempStackFrame()
+        {
+            // If we created a temporary stack frame, end it now.
+            if (istate == &istateComma)
+                ctfeStack.endFrame();
+        }
+
         result = CTFEExp.cantexp;
 
         // If the comma returns a temporary variable, it needs to be an lvalue
@@ -5061,26 +5068,23 @@ public:
                 // through a reference parameter instead).
                 newval = interpret(newval, istate);
                 if (exceptionOrCant(newval))
-                    goto Lfin;
+                    return endTempStackFrame();
                 if (newval.op != TOK.voidExpression)
                 {
                     // v isn't necessarily null.
                     setValueWithoutChecking(v, copyLiteral(newval).copy());
                 }
             }
-            result = interpret(e.e2, istate, goal);
         }
         else
         {
-            result = interpret(e.e1, istate, ctfeNeedNothing);
-            if (exceptionOrCant(result))
-                goto Lfin;
-            result = interpret(e.e2, istate, goal);
+            UnionExp ue = void;
+            auto e1 = interpret(&ue, e.e1, istate, ctfeNeedNothing);
+            if (exceptionOrCant(e1))
+                return endTempStackFrame();
         }
-    Lfin:
-        // If we created a temporary stack frame, end it now.
-        if (istate == &istateComma)
-            ctfeStack.endFrame();
+        result = interpret(pue, e.e2, istate, goal);
+        return endTempStackFrame();
     }
 
     override void visit(CondExp e)
@@ -5089,22 +5093,25 @@ public:
         {
             printf("%s CondExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
+        UnionExp uecond = void;
+        Expression econd;
+        econd = interpret(&uecond, e.econd, istate);
+        if (exceptionOrCant(econd))
+            return;
+
         if (isPointer(e.econd.type))
         {
-            result = interpret(e.econd, istate);
-            if (exceptionOrCant(result))
-                return;
-            if (result.op != TOK.null_)
-                result = new IntegerExp(e.loc, 1, Type.tbool);
+            if (econd.op != TOK.null_)
+            {
+                emplaceExp!(IntegerExp)(&uecond, e.loc, 1, Type.tbool);
+                econd = uecond.exp();
+            }
         }
-        else
-            result = interpret(e.econd, istate);
-        if (exceptionOrCant(result))
-            return;
-        if (isTrueBool(result))
-            result = interpret(e.e1, istate, goal);
-        else if (result.isBool(false))
-            result = interpret(e.e2, istate, goal);
+
+        if (isTrueBool(econd))
+            result = interpret(pue, e.e1, istate, goal);
+        else if (econd.isBool(false))
+            result = interpret(pue, e.e2, istate, goal);
         else
         {
             e.error("`%s` does not evaluate to boolean result at compile time", e.econd.toChars());
@@ -5118,7 +5125,8 @@ public:
         {
             printf("%s ArrayLengthExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
-        Expression e1 = interpret(e.e1, istate);
+        UnionExp ue1;
+        Expression e1 = interpret(&ue1, e.e1, istate);
         assert(e1);
         if (exceptionOrCant(e1))
             return;
@@ -5128,7 +5136,8 @@ public:
             result = CTFEExp.cantexp;
             return;
         }
-        result = new IntegerExp(e.loc, resolveArrayLength(e1), e.type);
+        emplaceExp!(IntegerExp)(pue, e.loc, resolveArrayLength(e1), e.type);
+        result = pue.exp();
     }
 
     override void visit(DelegatePtrExp e)
@@ -5137,7 +5146,7 @@ public:
         {
             printf("%s DelegatePtrExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
-        Expression e1 = interpret(e.e1, istate);
+        Expression e1 = interpret(pue, e.e1, istate);
         assert(e1);
         if (exceptionOrCant(e1))
             return;
@@ -5151,7 +5160,7 @@ public:
         {
             printf("%s DelegateFuncptrExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
-        Expression e1 = interpret(e.e1, istate);
+        Expression e1 = interpret(pue, e.e1, istate);
         assert(e1);
         if (exceptionOrCant(e1))
             return;
@@ -5302,7 +5311,8 @@ public:
                 {
                     // if we need a reference, IndexExp shouldn't be interpreting
                     // the expression to a value, it should stay as a reference
-                    result = new IndexExp(e.loc, agg, new IntegerExp(e.e2.loc, indexToAccess, e.e2.type));
+                    emplaceExp!(IndexExp)(pue, e.loc, agg, new IntegerExp(e.e2.loc, indexToAccess, e.e2.type));
+                    result = pue.exp();
                     result.type = e.type;
                     return;
                 }
@@ -5346,7 +5356,8 @@ public:
                     result = e;
                 else
                 {
-                    result = new IndexExp(e.loc, e1, e2);
+                    emplaceExp!(IndexExp)(pue, e.loc, e1, e2);
+                    result = pue.exp();
                     result.type = e.type;
                 }
                 return;
@@ -5375,7 +5386,8 @@ public:
         if (goal == ctfeNeedLvalue)
         {
             Expression e2 = new IntegerExp(e.e2.loc, indexToAccess, Type.tsize_t);
-            result = new IndexExp(e.loc, agg, e2);
+            emplaceExp!(IndexExp)(pue, e.loc, agg, e2);
+            result = pue.exp();
             result.type = e.type;
             return;
         }
@@ -5465,7 +5477,8 @@ public:
                 lwr = new IntegerExp(e.loc, ilwr, lwr.type);
                 upr = new IntegerExp(e.loc, iupr, upr.type);
             }
-            result = new SliceExp(e.loc, agg, lwr, upr);
+            emplaceExp!(SliceExp)(pue, e.loc, agg, lwr, upr);
+            result = pue.exp();
             result.type = e.type;
             return;
         }
@@ -5543,7 +5556,8 @@ public:
             }
             ilwr += lo1;
             iupr += lo1;
-            result = new SliceExp(e.loc, se.e1, new IntegerExp(e.loc, ilwr, lwr.type), new IntegerExp(e.loc, iupr, upr.type));
+            emplaceExp!(SliceExp)(pue, e.loc, se.e1, new IntegerExp(e.loc, ilwr, lwr.type), new IntegerExp(e.loc, iupr, upr.type));
+            result = pue.exp();
             result.type = e.type;
             return;
         }
@@ -5556,7 +5570,8 @@ public:
                 return;
             }
         }
-        result = new SliceExp(e.loc, e1, lwr, upr);
+        emplaceExp!(SliceExp)(pue, e.loc, e1, lwr, upr);
+        result = pue.exp();
         result.type = e.type;
     }
 
@@ -5574,7 +5589,8 @@ public:
             return;
         if (e2.op == TOK.null_)
         {
-            result = new NullExp(e.loc, e.type);
+            emplaceExp!(NullExp)(pue, e.loc, e.type);
+            result = pue.exp();
             return;
         }
         if (e2.op != TOK.assocArrayLiteral)
@@ -5590,14 +5606,16 @@ public:
             return;
         if (!result)
         {
-            result = new NullExp(e.loc, e.type);
+            emplaceExp!(NullExp)(pue, e.loc, e.type);
+            result = pue.exp();
         }
         else
         {
             // Create a CTFE pointer &aa[index]
             result = new IndexExp(e.loc, e2, e1);
             result.type = e.type.nextOf();
-            result = new AddrExp(e.loc, result, e.type);
+            emplaceExp!(AddrExp)(pue, e.loc, result, e.type);
+            result = pue.exp();
         }
     }
 
