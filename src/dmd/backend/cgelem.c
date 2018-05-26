@@ -1567,7 +1567,7 @@ STATIC elem *elor(elem *e, goal_t goal)
         if (fillinops(ops, &opsi, 4, OPor, e) && opsi == 4)
         {
             elem *ex = NULL;
-            unsigned mask = 0;
+            unsigned bmask = 0;
             for (int i = 0; i < 4; i++)
             {   elem *eo = ops[i];
                 elem *eo2;
@@ -1616,16 +1616,16 @@ STATIC elem *elor(elem *e, goal_t goal)
                 switch ((off << 5) | shift)
                 {
                     // BSWAP
-                    case (0 << 5) | 24: mask |= 1; break;
-                    case (1 << 5) | 16: mask |= 2; break;
-                    case (2 << 5) |  8: mask |= 4; break;
-                    case (3 << 5) |  0: mask |= 8; break;
+                    case (0 << 5) | 24: bmask |= 1; break;
+                    case (1 << 5) | 16: bmask |= 2; break;
+                    case (2 << 5) |  8: bmask |= 4; break;
+                    case (3 << 5) |  0: bmask |= 8; break;
 
                     // No swap
-                    case (0 << 5) |  0: mask |= 0x10; break;
-                    case (1 << 5) |  8: mask |= 0x20; break;
-                    case (2 << 5) | 16: mask |= 0x40; break;
-                    case (3 << 5) | 24: mask |= 0x80; break;
+                    case (0 << 5) |  0: bmask |= 0x10; break;
+                    case (1 << 5) |  8: bmask |= 0x20; break;
+                    case (2 << 5) | 16: bmask |= 0x40; break;
+                    case (3 << 5) | 24: bmask |= 0x80; break;
 
                         break;
                     default:
@@ -1645,9 +1645,9 @@ STATIC elem *elor(elem *e, goal_t goal)
             /* Got a match, build:
              *   BSWAP(*ex)
              */
-            if (mask == 0x0F)
+            if (bmask == 0x0F)
                 e = el_una(OPbswap, e->Ety, el_una(OPind, e->Ety, ex));
-            else if (mask == 0xF0)
+            else if (bmask == 0xF0)
                 e = el_una(OPind, e->Ety, ex);
             else
                 goto L1;

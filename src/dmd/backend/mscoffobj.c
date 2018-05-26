@@ -2247,13 +2247,13 @@ void MsCoffObj::reftocodeseg(segidx_t seg,targ_size_t offset,targ_size_t val)
 int MsCoffObj::reftoident(segidx_t seg, targ_size_t offset, Symbol *s, targ_size_t val,
         int flags)
 {
-    int retsize = (flags & CFoffset64) ? 8 : 4;
+    int refsize = (flags & CFoffset64) ? 8 : 4;
     if (flags & CFseg)
-        retsize += 2;
+        refsize += 2;
 #if 0
     printf("\nMsCoffObj::reftoident('%s' seg %d, offset x%llx, val x%llx, flags x%x)\n",
         s->Sident,seg,(unsigned long long)offset,(unsigned long long)val,flags);
-    //printf("retsize = %d\n", retsize);
+    //printf("refsize = %d\n", refsize);
     //dbg_printf("Sseg = %d, Sxtrnnum = %d\n",s->Sseg,s->Sxtrnnum);
     //symbol_print(s);
 #endif
@@ -2261,7 +2261,7 @@ int MsCoffObj::reftoident(segidx_t seg, targ_size_t offset, Symbol *s, targ_size
     if (s->Sclass != SClocstat && !s->Sxtrnnum)
     {   // It may get defined later as public or local, so defer
         size_t numbyteswritten = addtofixlist(s, offset, seg, val, flags);
-        assert(numbyteswritten == retsize);
+        assert(numbyteswritten == refsize);
     }
     else
     {
@@ -2283,7 +2283,7 @@ int MsCoffObj::reftoident(segidx_t seg, targ_size_t offset, Symbol *s, targ_size
             {
                 MsCoffObj::addrel(seg, offset,     s, 0, RELaddr32, v);
                 MsCoffObj::addrel(seg, offset + 4, s, 0, RELseg, v);
-                retsize = 6;    // 4 bytes for offset, 2 for section
+                refsize = 6;    // 4 bytes for offset, 2 for section
             }
             else
             {
@@ -2344,21 +2344,21 @@ int MsCoffObj::reftoident(segidx_t seg, targ_size_t offset, Symbol *s, targ_size
         int save = buf->size();
         buf->setsize(offset);
         //printf("offset = x%llx, val = x%llx\n", offset, val);
-        if (retsize == 8)
+        if (refsize == 8)
             buf->write64(val);
-        else if (retsize == 4)
+        else if (refsize == 4)
             buf->write32(val);
-        else if (retsize == 6)
+        else if (refsize == 6)
         {
             buf->write32(val);
             buf->writeWord(0);
         }
         else
             assert(0);
-        if (save > offset + retsize)
+        if (save > offset + refsize)
             buf->setsize(save);
     }
-    return retsize;
+    return refsize;
 }
 
 /*****************************************
