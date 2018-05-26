@@ -6648,9 +6648,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                     // https://issues.dlang.org/show_bug.cgi?id=15661
                     // Look for the form from last of comma chain.
-                    auto e2y = e2x;
-                    while (e2y.op == TOK.comma)
-                        e2y = (cast(CommaExp)e2y).e2;
+                    auto e2y = lastComma(e2x);
 
                     CallExp ce = (e2y.op == TOK.call) ? cast(CallExp)e2y : null;
                     DotVarExp dve = (ce && ce.e1.op == TOK.dotVariable)

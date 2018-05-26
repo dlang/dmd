@@ -109,9 +109,7 @@ private LabelStatement checkLabeledLoop(Scope* sc, Statement statement)
  */
 private Expression checkAssignmentAsCondition(Expression e)
 {
-    auto ec = e;
-    while (ec.op == TOK.comma)
-        ec = (cast(CommaExp)ec).e2;
+    auto ec = lastComma(e);
     if (ec.op == TOK.assign)
     {
         ec.error("assignment cannot be used as a condition, perhaps `==` was meant?");
