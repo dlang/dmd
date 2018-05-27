@@ -609,7 +609,9 @@ void patch(seg_data *pseg, targ_size_t offset, int seg, targ_size_t value)
     //printf("patch(offset = x%04x, seg = %d, value = x%llx)\n", (unsigned)offset, seg, value);
     if (I64)
     {
-        int32_t *p = (int32_t *)(fobjbuf->buf + SecHdrTab64[pseg->SDshtidx].offset + offset);
+        targ_size_t off = SecHdrTab64[pseg->SDshtidx].offset + offset;
+        assert(fobjbuf->buf + off + 4 <= fobjbuf->pend);
+        int32_t *p = (int32_t *)(fobjbuf->buf + off);
 #if 0
         printf("\taddr1 = x%llx\n\taddr2 = x%llx\n\t*p = x%llx\n\tdelta = x%llx\n",
             SecHdrTab64[pseg->SDshtidx].addr,
