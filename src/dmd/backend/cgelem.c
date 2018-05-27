@@ -3451,25 +3451,40 @@ STATIC elem * eleq(elem *e, goal_t goal)
         if (OTop(op2) && !el_sideeffect(e1)
             && op2 != OPdiv && op2 != OPmod
            )
-        {   tym_t ty;
+        {
+            elem *lhs, *rhs;
+
+            // Turn the expression into x = (x op e) if possible
+            if (el_match(e1, e2->E1))
+            {
+                lhs = e2->E1;
+                rhs = e2->E2;
+            }
+            else if (OTcommut(op2) && el_match(e1, e2->E2))
+            {
+                lhs = e2->E2;
+                rhs = e2->E1;
+            }
+            else
+            {
+                // We can't do much here
+                goto L2;
+            }
+
+#if 0
+            printf("E1\n");elem_print(lhs);printf("\n");
+            printf("E2\n");elem_print(rhs);printf("\n");
+#endif
 
             // Replace (e1 = e1 op e) with (e1 op= e)
-            if (el_match(e1,e2->E1))
-            {   ty = e2->E2->Ety;
+            // Do this iff we're sure the second operand doesn't depend on e1
+            if (!el_depends(lhs, rhs))
+            {
+                tym_t ty = e2->E2->Ety;
                 e->E2 = el_selecte2(e2);
-            L2:
                 e->E2->Ety = ty;
                 e->Eoper = optoopeq(op2);
                 goto L1;
-            }
-            if (OTcommut(op2))
-            {
-                /* Replace (e1 = e op e1) with (e1 op= e)       */
-                if (el_match(e1,e2->E2))
-                {   ty = e2->E1->Ety;
-                    e->E2 = el_selecte1(e2);
-                    goto L2;
-                }
             }
 
 #if 0
@@ -3492,6 +3507,7 @@ STATIC elem * eleq(elem *e, goal_t goal)
 #endif
         }
 
+L2:
         if (op2 == OPneg && el_match(e1,e2->E1) && !el_sideeffect(e1))
         {
         Ldef:
