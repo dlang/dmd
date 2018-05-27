@@ -223,20 +223,20 @@ void REGSAVE::save(CodeBuilder& cdb, int reg, unsigned *pidx)
     *pidx = i;
 }
 
-void REGSAVE::restore(CodeBuilder& cdb, int reg, unsigned idx)
+void REGSAVE::restore(CodeBuilder& cdb, int reg, unsigned index)
 {
     if (reg >= XMM0)
     {
         assert(alignment == 16);
-        // MOVD xmm,idx[RBP]
+        // MOVD xmm,index[RBP]
         unsigned op = LODAPD;
         if (0)
             op = LODUPD;
-        cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FLregsave,(targ_uns) idx);
+        cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FLregsave,(targ_uns) index);
     }
     else
-    {   // MOV reg,idx[RBP]
-        cdb.genc1(0x8B,modregxrm(2, reg, BPRM),FLregsave,(targ_uns) idx);
+    {   // MOV reg,index[RBP]
+        cdb.genc1(0x8B,modregxrm(2, reg, BPRM),FLregsave,(targ_uns) index);
         if (I64)
             code_orrex(cdb.last(), REX_W);
     }
