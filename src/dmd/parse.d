@@ -8000,112 +8000,31 @@ final class Parser(AST) : Lexer
                     if (isDeclaration(tk, NeedDeclaratorId.no, TOK.rightParentheses, &tk))
                     {
                         tk = peek(tk); // skip over right parenthesis
-                        switch (tk.value)
-                        {
-                        case TOK.not:
-                            tk = peek(tk);
-                            if (tk.value == TOK.is_ || tk.value == TOK.in_) // !is or !in
-                                break;
-                            goto case;
+                        if (tk.value == TOK.dot) {
+                            // (type) una_exp
+                            nextToken();
+                            auto t = parseType();
+                            check(TOK.rightParentheses);
 
-                        case TOK.dot:
-                        case TOK.plusPlus:
-                        case TOK.minusMinus:
-                        case TOK.delete_:
-                        case TOK.new_:
-                        case TOK.leftParentheses:
-                        case TOK.identifier:
-                        case TOK.this_:
-                        case TOK.super_:
-                        case TOK.int32Literal:
-                        case TOK.uns32Literal:
-                        case TOK.int64Literal:
-                        case TOK.uns64Literal:
-                        case TOK.int128Literal:
-                        case TOK.uns128Literal:
-                        case TOK.float32Literal:
-                        case TOK.float64Literal:
-                        case TOK.float80Literal:
-                        case TOK.imaginary32Literal:
-                        case TOK.imaginary64Literal:
-                        case TOK.imaginary80Literal:
-                        case TOK.null_:
-                        case TOK.true_:
-                        case TOK.false_:
-                        case TOK.charLiteral:
-                        case TOK.wcharLiteral:
-                        case TOK.dcharLiteral:
-                        case TOK.string_:
-                            version (none)
+                            // if .identifier
+                            // or .identifier!( ... )
+                            if (token.value == TOK.dot)
                             {
-                            case TOK.tilde:
-                            case TOK.and:
-                            case TOK.mul:
-                            case TOK.min:
-                            case TOK.add:
+                                if (peekNext() != TOK.identifier && peekNext() != TOK.new_)
+                                {
+                                    error("identifier or new keyword expected following `(...)`.");
+                                    return null;
+                                }
+                                e = new AST.TypeExp(loc, t);
+                                e = parsePostExp(e);
                             }
-                        case TOK.function_:
-                        case TOK.delegate_:
-                        case TOK.typeof_:
-                        case TOK.vector:
-                        case TOK.file:
-                        case TOK.fileFullPath:
-                        case TOK.line:
-                        case TOK.moduleString:
-                        case TOK.functionString:
-                        case TOK.prettyFunction:
-                        case TOK.wchar_:
-                        case TOK.dchar_:
-                        case TOK.bool_:
-                        case TOK.char_:
-                        case TOK.int8:
-                        case TOK.uns8:
-                        case TOK.int16:
-                        case TOK.uns16:
-                        case TOK.int32:
-                        case TOK.uns32:
-                        case TOK.int64:
-                        case TOK.uns64:
-                        case TOK.int128:
-                        case TOK.uns128:
-                        case TOK.float32:
-                        case TOK.float64:
-                        case TOK.float80:
-                        case TOK.imaginary32:
-                        case TOK.imaginary64:
-                        case TOK.imaginary80:
-                        case TOK.complex32:
-                        case TOK.complex64:
-                        case TOK.complex80:
-                        case TOK.void_:
+                            else
                             {
-                                // (type) una_exp
-                                nextToken();
-                                auto t = parseType();
-                                check(TOK.rightParentheses);
-
-                                // if .identifier
-                                // or .identifier!( ... )
-                                if (token.value == TOK.dot)
-                                {
-                                    if (peekNext() != TOK.identifier && peekNext() != TOK.new_)
-                                    {
-                                        error("identifier or new keyword expected following `(...)`.");
-                                        return null;
-                                    }
-                                    e = new AST.TypeExp(loc, t);
-                                    e = parsePostExp(e);
-                                }
-                                else
-                                {
-                                    e = parseUnaryExp();
-                                    e = new AST.CastExp(loc, e, t);
-                                    error("C style cast illegal, use `%s`", e.toChars());
-                                }
-                                return e;
+                                e = parseUnaryExp();
+                                e = new AST.CastExp(loc, e, t);
+                                error("C style cast illegal, use `%s`", e.toChars());
                             }
-                        default:
-                            break;
+                            return e;
                         }
                     }
                 }
