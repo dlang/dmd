@@ -618,12 +618,8 @@ $G/tk.obj : $C\tk.c
 $G\newdelete.obj : $(ROOT)\newdelete.c
 	$(CC) -c -o$@ $(CFLAGS) $(ROOT)\newdelete.c
 
-# Win64
-$G\longdouble.obj : $(ROOT)\longdouble.c
-	$(CC) -c -o$@ $(CFLAGS) $(ROOT)\longdouble.c
-
-$G\ldfpu.obj : vcbuild\ldfpu.asm
-	$(ML) -c -o$@ -Zi -Fo$G\ldfpu.obj vcbuild\ldfpu.asm
+$G/longdouble.obj : $(ROOT)\longdouble.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) $(ROOT)\longdouble.d
 
 ############################## Generated Rules ###############################
 
