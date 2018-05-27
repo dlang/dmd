@@ -479,6 +479,15 @@ enum
 #define TOOFFSET(a,b)   (I32 ? TOLONG(a,b) : TOWORD(a,b))
 
 /***************************
+ * D basic types, to ease translating remaining C code to D
+ */
+
+typedef unsigned char   ubyte;
+typedef signed char     byte;
+typedef unsigned short  ushort;
+typedef unsigned        uint;
+
+/***************************
  * Target machine data types as they appear on the host.
  */
 
