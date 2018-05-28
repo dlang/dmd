@@ -14,6 +14,7 @@ module dmd.typesem;
 
 import core.checkedint;
 import core.stdc.string;
+import core.stdc.stdio;
 
 import dmd.access;
 import dmd.aggregate;
@@ -3066,7 +3067,15 @@ private extern(C++) final class DotExpVisitor : Visitor
                     return returnExp(null);
 
                 auto die = new DotIdExp(e.loc, alias_e, ident);
+
+                auto errors = gagError ? 0 : global.startGagging();
                 auto exp = die.semanticY(sc, gagError);
+                if (!gagError)
+                {
+                    global.endGagging(errors);
+                    if (exp && exp.op == TOK.error)
+                        exp = null;
+                }
 
                 if (exp && gagError)
                     // now that we know that the alias this leads somewhere useful,
