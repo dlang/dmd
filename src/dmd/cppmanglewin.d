@@ -684,22 +684,154 @@ private:
             buf.writestring("?1");
             return;
         }
+        else if (sym.ident)
+        {
+            if (sym.ident == Id.assign)
+            {
+                buf.writestring("?4");
+                return;
+            }
+            else if (sym.ident == Id.eq)
+            {
+                buf.writestring("?8");
+                return;
+            }
+            else if (sym.ident == Id.index)
+            {
+                buf.writestring("?A");
+                return;
+            }
+            else if (sym.ident == Id.call)
+            {
+                buf.writestring("?R");
+                return;
+            }
+        }
         if (TemplateInstance ti = sym.isTemplateInstance())
         {
+            auto id = ti.tempdecl.ident;
+            const(char)* symName = id.toChars();
+
+            int firstTemplateArg = 0;
+
+            // test for special symbols
+            sizediff_t whichOp = -1;
+            foreach (i, op; [Id._cast, Id.assign, Id.eq, Id.index, Id.call, Id.opUnary, Id.opBinary, Id.opOpAssign])
+            {
+                if (op == ti.name)
+                {
+                    whichOp = i;
+                    break;
+                }
+            }
+            switch (whichOp)
+            {
+                case -1:
+                    break;
+                case 0: // opCast
+                    buf.writestring("?B");
+                    return;
+                case 1: // opAssign
+                    symName = "?4";
+                    break;
+                case 2: // opEquals
+                    symName = "?8";
+                    break;
+                case 3: // opIndex
+                    symName = "?A";
+                    break;
+                case 4: // opCall
+                    symName = "?R";
+                    break;
+                case 5:
+                ..
+                case 7: // opUnary, opBinary, opOpAssign
+                    if (ti.tiargs.dim < 1)
+                        break; // perhaps this is assert? those operators shouldn't have 0 args!
+                    TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
+                    assert(td);
+                    TemplateParameter tp = (*td.parameters)[0];
+                    TemplateValueParameter tv = tp.isTemplateValueParameter();
+                    if (!tv || !tv.valType.isString())
+                        break; // expecting a string argument to operators!
+                    Expression exp = (*ti.tiargs)[0].isExpression();
+                    StringExp str = exp.toStringExp();
+                    switch (whichOp)
+                    {
+                        case 5: // opUnary
+                            switch (str.peekSlice)
+                            {
+                                case "*":   symName = "?D";     goto continue_template;
+                                case "++":  symName = "?E";     goto continue_template;
+                                case "--":  symName = "?F";     goto continue_template;
+                                case "-":   symName = "?G";     goto continue_template;
+                                case "+":   symName = "?H";     goto continue_template;
+                                case "~":   symName = "?S";     goto continue_template;
+                                default:    break;
+                            }
+                            break;
+                        case 6: // opBinary
+                            switch (str.peekSlice)
+                            {
+                                case ">>":  symName = "?5";     goto continue_template;
+                                case "<<":  symName = "?6";     goto continue_template;
+                                case "*":   symName = "?D";     goto continue_template;
+                                case "-":   symName = "?G";     goto continue_template;
+                                case "+":   symName = "?H";     goto continue_template;
+                                case "&":   symName = "?I";     goto continue_template;
+                                case "/":   symName = "?K";     goto continue_template;
+                                case "%":   symName = "?L";     goto continue_template;
+                                case "^":   symName = "?T";     goto continue_template;
+                                case "|":   symName = "?U";     goto continue_template;
+                                default:    break;
+                            }
+                            break;
+                        case 7: // opOpAssign
+                            switch (str.peekSlice)
+                            {
+                                case "*":   symName = "?X";     goto continue_template;
+                                case "+":   symName = "?Y";     goto continue_template;
+                                case "-":   symName = "?Z";     goto continue_template;
+                                case "/":   symName = "?_0";    goto continue_template;
+                                case "%":   symName = "?_1";    goto continue_template;
+                                case ">>":  symName = "?_2";    goto continue_template;
+                                case "<<":  symName = "?_3";    goto continue_template;
+                                case "&":   symName = "?_4";    goto continue_template;
+                                case "|":   symName = "?_5";    goto continue_template;
+                                case "^":   symName = "?_6";    goto continue_template;
+                                default:    break;
+                            }
+                            break;
+                        default:
+                            assert(0);
+                        continue_template:
+                            if (ti.tiargs.dim == 1)
+                            {
+                                buf.writestring(symName);
+                                return;
+                            }
+                            firstTemplateArg = 1;
+                            break;
+                    }
+                    break;
+                default:
+                    assert(0);
+            }
+
             scope VisualCPPMangler tmp = new VisualCPPMangler((flags & IS_DMC) ? true : false);
             tmp.buf.writeByte('?');
             tmp.buf.writeByte('$');
-            auto id = ti.tempdecl.ident;
-            tmp.buf.writestring(id.toChars());
-            tmp.saved_idents[0] = id.toChars();
-            tmp.buf.writeByte('@');
+            tmp.buf.writestring(symName);
+            tmp.saved_idents[0] = symName;
+            if (symName == id.toChars())
+                tmp.buf.writeByte('@');
             if (flags & IS_DMC)
             {
                 tmp.mangleIdent(sym.parent, true);
                 is_dmc_template = true;
             }
             bool is_var_arg = false;
-            for (size_t i = 0; i < ti.tiargs.dim; i++)
+            for (size_t i = firstTemplateArg; i < ti.tiargs.dim; i++)
             {
                 RootObject o = (*ti.tiargs)[i];
                 TemplateParameter tp = null;

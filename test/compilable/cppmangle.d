@@ -602,3 +602,90 @@ version (Win64)
     static assert(C18891.__dtor.mangleof == "??1C18891@@UEAA@XZ");
     static assert(C18891.__xdtor.mangleof == "??1C18891@@UEAA@XZ");
 }
+
+/**************************************/
+// Test C++ operator mangling
+
+extern (C++) struct TestOperators
+{
+    int opCast(T)();
+    int opBinary(string op)(int x);
+    int opUnary(string op)();
+    int opOpAssign(string op)(int x);
+    int opIndex(size_t x);
+    bool opEquals(int x);
+    int opCall(int, float);
+    int opAssign(int);
+}
+
+version (Posix)
+{
+}
+version (Win32)
+{
+    static assert(TestOperators.opUnary!"*".mangleof     == "??DTestOperators@@QAEHXZ");
+    static assert(TestOperators.opUnary!"++".mangleof    == "??ETestOperators@@QAEHXZ");
+    static assert(TestOperators.opUnary!"--".mangleof    == "??FTestOperators@@QAEHXZ");
+    static assert(TestOperators.opUnary!"-".mangleof     == "??GTestOperators@@QAEHXZ");
+    static assert(TestOperators.opUnary!"+".mangleof     == "??HTestOperators@@QAEHXZ");
+    static assert(TestOperators.opUnary!"~".mangleof     == "??STestOperators@@QAEHXZ");
+    static assert(TestOperators.opBinary!">>".mangleof   == "??5TestOperators@@QAEHH@Z");
+    static assert(TestOperators.opBinary!"<<".mangleof   == "??6TestOperators@@QAEHH@Z");
+    static assert(TestOperators.opBinary!"*".mangleof    == "??DTestOperators@@QAEHH@Z");
+    static assert(TestOperators.opBinary!"-".mangleof    == "??GTestOperators@@QAEHH@Z");
+    static assert(TestOperators.opBinary!"+".mangleof    == "??HTestOperators@@QAEHH@Z");
+    static assert(TestOperators.opBinary!"&".mangleof    == "??ITestOperators@@QAEHH@Z");
+    static assert(TestOperators.opBinary!"/".mangleof    == "??KTestOperators@@QAEHH@Z");
+    static assert(TestOperators.opBinary!"%".mangleof    == "??LTestOperators@@QAEHH@Z");
+    static assert(TestOperators.opBinary!"^".mangleof    == "??TTestOperators@@QAEHH@Z");
+    static assert(TestOperators.opBinary!"|".mangleof    == "??UTestOperators@@QAEHH@Z");
+    static assert(TestOperators.opOpAssign!"*".mangleof  == "??XTestOperators@@QAEHH@Z");
+    static assert(TestOperators.opOpAssign!"+".mangleof  == "??YTestOperators@@QAEHH@Z");
+    static assert(TestOperators.opOpAssign!"-".mangleof  == "??ZTestOperators@@QAEHH@Z");
+    static assert(TestOperators.opOpAssign!"/".mangleof  == "??_0TestOperators@@QAEHH@Z");
+    static assert(TestOperators.opOpAssign!"%".mangleof  == "??_1TestOperators@@QAEHH@Z");
+    static assert(TestOperators.opOpAssign!">>".mangleof == "??_2TestOperators@@QAEHH@Z");
+    static assert(TestOperators.opOpAssign!"<<".mangleof == "??_3TestOperators@@QAEHH@Z");
+    static assert(TestOperators.opOpAssign!"&".mangleof  == "??_4TestOperators@@QAEHH@Z");
+    static assert(TestOperators.opOpAssign!"|".mangleof  == "??_5TestOperators@@QAEHH@Z");
+    static assert(TestOperators.opOpAssign!"^".mangleof  == "??_6TestOperators@@QAEHH@Z");
+    static assert(TestOperators.opCast!int.mangleof      == "??BTestOperators@@QAEHXZ");
+    static assert(TestOperators.opAssign.mangleof        == "??4TestOperators@@QAEHH@Z");
+    static assert(TestOperators.opEquals.mangleof        == "??8TestOperators@@QAE_NH@Z");
+    static assert(TestOperators.opIndex.mangleof         == "??ATestOperators@@QAEHI@Z");
+    static assert(TestOperators.opCall.mangleof          == "??RTestOperators@@QAEHHM@Z");
+}
+version (Win64)
+{
+    static assert(TestOperators.opUnary!"*".mangleof     == "??DTestOperators@@QEAAHXZ");
+    static assert(TestOperators.opUnary!"++".mangleof    == "??ETestOperators@@QEAAHXZ");
+    static assert(TestOperators.opUnary!"--".mangleof    == "??FTestOperators@@QEAAHXZ");
+    static assert(TestOperators.opUnary!"-".mangleof     == "??GTestOperators@@QEAAHXZ");
+    static assert(TestOperators.opUnary!"+".mangleof     == "??HTestOperators@@QEAAHXZ");
+    static assert(TestOperators.opUnary!"~".mangleof     == "??STestOperators@@QEAAHXZ");
+    static assert(TestOperators.opBinary!">>".mangleof   == "??5TestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opBinary!"<<".mangleof   == "??6TestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opBinary!"*".mangleof    == "??DTestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opBinary!"-".mangleof    == "??GTestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opBinary!"+".mangleof    == "??HTestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opBinary!"&".mangleof    == "??ITestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opBinary!"/".mangleof    == "??KTestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opBinary!"%".mangleof    == "??LTestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opBinary!"^".mangleof    == "??TTestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opBinary!"|".mangleof    == "??UTestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opOpAssign!"*".mangleof  == "??XTestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opOpAssign!"+".mangleof  == "??YTestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opOpAssign!"-".mangleof  == "??ZTestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opOpAssign!"/".mangleof  == "??_0TestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opOpAssign!"%".mangleof  == "??_1TestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opOpAssign!">>".mangleof == "??_2TestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opOpAssign!"<<".mangleof == "??_3TestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opOpAssign!"&".mangleof  == "??_4TestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opOpAssign!"|".mangleof  == "??_5TestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opOpAssign!"^".mangleof  == "??_6TestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opCast!int.mangleof      == "??BTestOperators@@QEAAHXZ");
+    static assert(TestOperators.opAssign.mangleof        == "??4TestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opEquals.mangleof        == "??8TestOperators@@QEAA_NH@Z");
+    static assert(TestOperators.opIndex.mangleof         == "??ATestOperators@@QEAAH_K@Z");
+    static assert(TestOperators.opCall.mangleof          == "??RTestOperators@@QEAAHHM@Z");
+}
