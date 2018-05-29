@@ -275,7 +275,7 @@ void main()
     try
     {
     }
-    catch
+    catch(.object.Throwable)
     {
     }
 }

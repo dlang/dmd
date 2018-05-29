@@ -675,7 +675,7 @@ void test45()
    assert(foo45(0)==2);
    try{
       foo45(1);
-   }catch{
+   }catch(Throwable){
       return cast(void)0;
    }
    assert(0);
