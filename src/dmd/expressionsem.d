@@ -9453,7 +9453,7 @@ Expression semanticX(DotIdExp exp, Scope* sc)
     if (exp.e1.op == TOK.variable && exp.e1.type.toBasetype().ty == Tsarray && exp.ident == Id.length)
     {
         // bypass checkPurity
-        return exp.e1.type.dotExp(sc, exp.e1, exp.ident, exp.noderef ? Type.DotExpFlag.noDeref : 0);
+        return exp.e1.type.dotExp(sc, exp.e1, exp.ident, exp.noderef ? DotExpFlag.noDeref : 0);
     }
 
     if (exp.e1.op == TOK.dot)
@@ -9782,13 +9782,13 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
             return null;
         e = new PtrExp(exp.loc, exp.e1);
         e = e.expressionSemantic(sc);
-        return e.type.dotExp(sc, e, exp.ident, flag | (exp.noderef ? Type.DotExpFlag.noDeref : 0));
+        return e.type.dotExp(sc, e, exp.ident, flag | (exp.noderef ? DotExpFlag.noDeref : 0));
     }
     else
     {
         if (exp.e1.op == TOK.type || exp.e1.op == TOK.template_)
             flag = 0;
-        e = exp.e1.type.dotExp(sc, exp.e1, exp.ident, flag | (exp.noderef ? Type.DotExpFlag.noDeref : 0));
+        e = exp.e1.type.dotExp(sc, exp.e1, exp.ident, flag | (exp.noderef ? DotExpFlag.noDeref : 0));
         if (e)
             e = e.expressionSemantic(sc);
         return e;

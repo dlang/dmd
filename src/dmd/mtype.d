@@ -397,6 +397,15 @@ enum MODFlags : int
 
 alias MOD = ubyte;
 
+/****************
+ * dotExp() bit flags
+ */
+enum DotExpFlag
+{
+    gag     = 1,    // don't report "not a property" error and just return null
+    noDeref = 2,    // the use of the expression will not attempt a dereference
+}
+
 /***********************************************************
  */
 extern (C++) abstract class Type : RootObject
@@ -2405,15 +2414,6 @@ extern (C++) abstract class Type : RootObject
     ClassDeclaration isClassHandle()
     {
         return null;
-    }
-
-    /****************
-     * dotExp() bit flags
-     */
-    enum DotExpFlag
-    {
-        gag     = 1,    // don't report "not a property" error and just return null
-        noDeref = 2,    // the use of the expression will not attempt a dereference
     }
 
     /************************************
