@@ -657,11 +657,11 @@ void main()
 $(H2 $(GNAME getOverloads))
 
         $(P The first argument is an aggregate (e.g. struct/class/module).
-        The second argument is a string that matches the name of
-        one of the members in that aggregate.
-        The third argument is a bool, and is optional.
-        The result is a tuple of all the overloads of that function.
-        If the third member evaluates to true, the result will include all members that matches the supplied name.
+        The second argument is a `string` that matches the name of
+        the member(s) to return.
+        The third argument is a `bool`, and is optional.  If `true`, the
+        result will include template overloads.
+        The result is a tuple of all the overloads of the supplied name.
         )
 
 ---
