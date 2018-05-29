@@ -2625,7 +2625,7 @@ private extern(C++) final class DotExpVisitor : Visitor
             e = new StringExp(e.loc, cast(char*)s);
         }
         else
-            e = mt.getProperty(e.loc, ident, flag & mt.DotExpFlag.gag);
+            e = mt.getProperty(e.loc, ident, flag & DotExpFlag.gag);
 
     Lreturn:
         if (e)
@@ -2823,7 +2823,7 @@ private extern(C++) final class DotExpVisitor : Visitor
                 result = new ErrorExp();
                 return;
             }
-            else if (!(flag & mt.DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe())
+            else if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe())
             {
                 e.error("`%s.ptr` cannot be used in `@safe` code, use `&%s[0]` instead", e.toChars(), e.toChars());
                 result = new ErrorExp();
@@ -2878,7 +2878,7 @@ private extern(C++) final class DotExpVisitor : Visitor
         }
         else if (ident == Id.ptr)
         {
-            if (!(flag & mt.DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe())
+            if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe())
             {
                 e.error("`%s.ptr` cannot be used in `@safe` code, use `&%s[0]` instead", e.toChars(), e.toChars());
                     result = new ErrorExp();
@@ -2950,7 +2950,7 @@ private extern(C++) final class DotExpVisitor : Visitor
         }
         else if (ident == Id.funcptr)
         {
-            if (!(flag & mt.DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe())
+            if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe())
             {
                 e.error("`%s.funcptr` cannot be used in `@safe` code", e.toChars());
                 result = new ErrorExp();
