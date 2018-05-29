@@ -1756,6 +1756,16 @@ extern (C++) abstract class Expression : RootObject
         return e1;
     }
 
+    static Expression combine(Expression e1, Expression e2, Expression e3)
+    {
+        return combine(combine(e1, e2), e3);
+    }
+
+    static Expression combine(Expression e1, Expression e2, Expression e3, Expression e4)
+    {
+        return combine(combine(e1, e2), combine(e3, e4));
+    }
+
     /**********************************
      * If 'e' is a tree of commas, returns the leftmost expression
      * by stripping off it from the tree. The remained part of the tree
