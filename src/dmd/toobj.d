@@ -358,10 +358,14 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 return;
             }
 
+            const bool gentypeinfo = global.params.useTypeInfo && Type.dtypeinfo;
+            const bool genclassinfo = gentypeinfo || !(cd.isCPPclass || cd.isCOMclass);
+
             // Generate C symbols
-            toSymbol(cd);
-            toVtblSymbol(cd);
-            Symbol *sinit = toInitializer(cd);
+            if (genclassinfo)
+                toSymbol(cd);                           // __ClassZ symbol
+            toVtblSymbol(cd);                           // __vtblZ symbol
+            Symbol *sinit = toInitializer(cd);          // __initZ symbol
 
             //////////////////////////////////////////////
 
@@ -376,16 +380,18 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 outdata(sinit);
             }
 
+            if (genclassinfo)
+            {
             //////////////////////////////////////////////
 
             // Put out the TypeInfo
-            if (global.params.useTypeInfo && Type.dtypeinfo)
+            if (gentypeinfo)
                 genTypeInfo(cd.loc, cd.type, null);
             //toObjFile(cd.type.vtinfo, multiobj);
 
             //////////////////////////////////////////////
 
-            // Put out the ClassInfo
+            // Put out the ClassInfo, which will be the __ClassZ symbol in the object file
             cd.csym.Sclass = scclass;
             cd.csym.Sfl = FLdata;
 
@@ -494,6 +500,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
             }
             if (cd.isAbstract())
                 flags |= ClassFlags.isAbstract;
+
+            flags |= ClassFlags.noPointers;     // initially assume no pointers
+        Louter:
             for (ClassDeclaration pc = cd; pc; pc = pc.baseClass)
             {
                 if (pc.members)
@@ -503,12 +512,13 @@ void toObjFile(Dsymbol ds, bool multiobj)
                         Dsymbol sm = (*pc.members)[i];
                         //printf("sm = %s %s\n", sm.kind(), sm.toChars());
                         if (sm.hasPointers())
-                            goto L2;
+                        {
+                            flags &= ~ClassFlags.noPointers;  // not no-how, not no-way
+                            break Louter;
+                        }
                     }
                 }
             }
-            flags |= ClassFlags.noPointers;
-          L2:
             dtb.size(flags);
 
             // deallocator
@@ -609,6 +619,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             outdata(cd.csym);
             if (cd.isExport())
                 objmod.export_symbol(cd.csym, 0);
+            }
 
             //////////////////////////////////////////////
 
