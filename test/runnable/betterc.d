@@ -25,6 +25,7 @@ extern (C) void main()
 {
     test(1);
     test18472();
+    testRuntimeLowerings();
 }
 
 /*******************************************/
@@ -68,4 +69,82 @@ struct S18493_2
 {
     S18493 s1;
     S18493 s2;
+}
+
+/******************************************************
+ * tests to ensure there is sufficient runtime support
+ * in imported object.d
+ */
+mixin template initArray()
+{
+    static if (is(T == bool))
+    {
+        T[6] a1 = [true, false, true, true, false, true];
+    }
+    else
+    {
+        T[6] a1 = [1,2,3,1,2,3];
+    }
+}
+
+void testRuntimeLowerings()
+{
+    // test call to `object.__equals`
+    void test__equals(T)()
+    {
+        mixin initArray;
+
+        assert(a1[0..3] == a1[3..$]);
+    }
+    
+    test__equals!int;
+    test__equals!uint;
+    test__equals!long;
+    test__equals!ulong;
+    test__equals!short;
+    test__equals!ushort;
+    test__equals!byte;
+    test__equals!dchar;
+    test__equals!wchar;
+    test__equals!ubyte;
+    test__equals!char;
+    test__equals!(const char);
+    test__equals!bool;
+
+    // test call to `object.__cmp`
+    void test__cmp(T)()
+    {
+        mixin initArray;
+
+        assert(a1[0..3] >= a1[3..$]);
+        assert(a1[0..3] <= a1[3..$]);
+    }
+
+    test__cmp!int;
+    test__cmp!uint;
+    test__cmp!long;
+    test__cmp!ulong;
+    test__cmp!short;
+    test__cmp!ushort;
+    test__cmp!byte;
+    test__cmp!dchar;
+    test__cmp!wchar;
+    
+
+    // __cmp currently requires runtime support from `core.internal.string : dstrcmp`.
+    // If that runtime dependency can be removed, the following code might work.
+    //---------------------------------------------------------------------------------
+    // test__cmp!ubyte;
+    // test__cmp!char;
+    // test__cmp!(const char);
+    // test__cmp!bool;
+
+    // auto s = "abc";
+    // switch(s)                      // _switch
+    // {
+    //     case "abc":
+    //         break;
+    //     default:
+    //         break;
+    // }
 }
