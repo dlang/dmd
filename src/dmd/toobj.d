@@ -380,8 +380,6 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 outdata(sinit);
             }
 
-            if (genclassinfo)
-            {
             //////////////////////////////////////////////
 
             // Put out the TypeInfo
@@ -389,236 +387,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 genTypeInfo(cd.loc, cd.type, null);
             //toObjFile(cd.type.vtinfo, multiobj);
 
-            //////////////////////////////////////////////
-
-            // Put out the ClassInfo, which will be the __ClassZ symbol in the object file
-            cd.csym.Sclass = scclass;
-            cd.csym.Sfl = FLdata;
-
-            /* The layout is:
-               {
-                    void **vptr;
-                    monitor_t monitor;
-                    byte[] m_init;              // static initialization data
-                    string name;                // class name
-                    void*[] vtbl;
-                    Interface[] interfaces;
-                    ClassInfo base;             // base class
-                    void* destructor;
-                    void function(Object) classInvariant;   // class invariant
-                    ClassFlags m_flags;
-                    void* deallocator;
-                    OffsetTypeInfo[] offTi;
-                    void function(Object) defaultConstructor;
-                    //const(MemberInfo[]) function(string) xgetMembers;   // module getMembers() function
-                    immutable(void)* m_RTInfo;
-                    //TypeInfo typeinfo;
-               }
-             */
-            uint offset = Target.classinfosize;    // must be ClassInfo.size
-            if (Type.typeinfoclass)
+            if (genclassinfo)
             {
-                if (Type.typeinfoclass.structsize != Target.classinfosize)
-                {
-                    debug printf("Target.classinfosize = x%x, Type.typeinfoclass.structsize = x%x\n", offset, Type.typeinfoclass.structsize);
-                    cd.error("mismatch between dmd and object.d or object.di found. Check installation and import paths with -v compiler switch.");
-                    fatal();
-                }
-            }
-
-            scope dtb = new DtBuilder();
-
-            if (Type.typeinfoclass)            // vtbl for TypeInfo_Class : ClassInfo
-                dtb.xoff(toVtblSymbol(Type.typeinfoclass), 0, TYnptr);
-            else
-                dtb.size(0);                    // BUG: should be an assert()
-            dtb.size(0);                        // monitor
-
-            // m_init[]
-            assert(cd.structsize >= 8 || (cd.classKind == ClassKind.cpp && cd.structsize >= 4));
-            dtb.size(cd.structsize);           // size
-            dtb.xoff(sinit, 0, TYnptr);         // initializer
-
-            // name[]
-            const(char) *name = cd.ident.toChars();
-            size_t namelen = strlen(name);
-            if (!(namelen > 9 && memcmp(name, "TypeInfo_".ptr, 9) == 0))
-            {
-                name = cd.toPrettyChars();
-                namelen = strlen(name);
-            }
-            dtb.size(namelen);
-            dt_t *pdtname = dtb.xoffpatch(cd.csym, 0, TYnptr);
-
-            // vtbl[]
-            dtb.size(cd.vtbl.dim);
-            if (cd.vtbl.dim)
-                dtb.xoff(cd.vtblsym, 0, TYnptr);
-            else
-                dtb.size(0);
-
-            // interfaces[]
-            dtb.size(cd.vtblInterfaces.dim);
-            if (cd.vtblInterfaces.dim)
-                dtb.xoff(cd.csym, offset, TYnptr);      // (*)
-            else
-                dtb.size(0);
-
-            // base
-            if (cd.baseClass)
-                dtb.xoff(toSymbol(cd.baseClass), 0, TYnptr);
-            else
-                dtb.size(0);
-
-            // destructor
-            if (cd.dtor)
-                dtb.xoff(toSymbol(cd.dtor), 0, TYnptr);
-            else
-                dtb.size(0);
-
-            // classInvariant
-            if (cd.inv)
-                dtb.xoff(toSymbol(cd.inv), 0, TYnptr);
-            else
-                dtb.size(0);
-
-            // flags
-            ClassFlags.Type flags = ClassFlags.hasOffTi;
-            if (cd.isCOMclass()) flags |= ClassFlags.isCOMclass;
-            if (cd.isCPPclass()) flags |= ClassFlags.isCPPclass;
-            flags |= ClassFlags.hasGetMembers;
-            flags |= ClassFlags.hasTypeInfo;
-            if (cd.ctor)
-                flags |= ClassFlags.hasCtor;
-            for (ClassDeclaration pc = cd; pc; pc = pc.baseClass)
-            {
-                if (pc.dtor)
-                {
-                    flags |= ClassFlags.hasDtor;
-                    break;
-                }
-            }
-            if (cd.isAbstract())
-                flags |= ClassFlags.isAbstract;
-
-            flags |= ClassFlags.noPointers;     // initially assume no pointers
-        Louter:
-            for (ClassDeclaration pc = cd; pc; pc = pc.baseClass)
-            {
-                if (pc.members)
-                {
-                    for (size_t i = 0; i < pc.members.dim; i++)
-                    {
-                        Dsymbol sm = (*pc.members)[i];
-                        //printf("sm = %s %s\n", sm.kind(), sm.toChars());
-                        if (sm.hasPointers())
-                        {
-                            flags &= ~ClassFlags.noPointers;  // not no-how, not no-way
-                            break Louter;
-                        }
-                    }
-                }
-            }
-            dtb.size(flags);
-
-            // deallocator
-            if (cd.aggDelete)
-                dtb.xoff(toSymbol(cd.aggDelete), 0, TYnptr);
-            else
-                dtb.size(0);
-
-            // offTi[]
-            dtb.size(0);
-            dtb.size(0);            // null for now, fix later
-
-            // defaultConstructor
-            if (cd.defaultCtor && !(cd.defaultCtor.storage_class & STC.disable))
-                dtb.xoff(toSymbol(cd.defaultCtor), 0, TYnptr);
-            else
-                dtb.size(0);
-
-            // m_RTInfo
-            if (cd.getRTInfo)
-                Expression_toDt(cd.getRTInfo, dtb);
-            else if (flags & ClassFlags.noPointers)
-                dtb.size(0);
-            else
-                dtb.size(1);
-
-            //dtb.xoff(toSymbol(cd.type.vtinfo), 0, TYnptr); // typeinfo
-
-            //////////////////////////////////////////////
-
-            // Put out (*vtblInterfaces)[]. Must immediately follow csym, because
-            // of the fixup (*)
-
-            offset += cd.vtblInterfaces.dim * (4 * Target.ptrsize);
-            for (size_t i = 0; i < cd.vtblInterfaces.dim; i++)
-            {
-                BaseClass *b = (*cd.vtblInterfaces)[i];
-                ClassDeclaration id = b.sym;
-
-                /* The layout is:
-                 *  struct Interface
-                 *  {
-                 *      ClassInfo classinfo;
-                 *      void*[] vtbl;
-                 *      size_t offset;
-                 *  }
-                 */
-
-                // Fill in vtbl[]
-                b.fillVtbl(cd, &b.vtbl, 1);
-
-                // classinfo
-                dtb.xoff(toSymbol(id), 0, TYnptr);
-
-                // vtbl[]
-                dtb.size(id.vtbl.dim);
-                dtb.xoff(cd.csym, offset, TYnptr);
-
-                // offset
-                dtb.size(b.offset);
-            }
-
-            // Put out the (*vtblInterfaces)[].vtbl[]
-            // This must be mirrored with ClassDeclaration.baseVtblOffset()
-            //printf("putting out %d interface vtbl[]s for '%s'\n", vtblInterfaces.dim, toChars());
-            foreach (i; 0 .. cd.vtblInterfaces.dim)
-            {
-                BaseClass *b = (*cd.vtblInterfaces)[i];
-                offset += emitVtbl(dtb, b, b.vtbl, cd, i);
-            }
-
-            // Put out the overriding interface vtbl[]s.
-            // This must be mirrored with ClassDeclaration.baseVtblOffset()
-            //printf("putting out overriding interface vtbl[]s for '%s' at offset x%x\n", toChars(), offset);
-            for (ClassDeclaration pc = cd.baseClass; pc; pc = pc.baseClass)
-            {
-                foreach (i; 0 .. pc.vtblInterfaces.dim)
-                {
-                    BaseClass *b = (*pc.vtblInterfaces)[i];
-                    FuncDeclarations bvtbl;
-                    if (b.fillVtbl(cd, &bvtbl, 0))
-                    {
-                        offset += emitVtbl(dtb, b, bvtbl, pc, i);
-                    }
-                }
-            }
-
-            //////////////////////////////////////////////
-
-            dtpatchoffset(pdtname, offset);
-
-            dtb.nbytes(cast(uint)(namelen + 1), name);
-            const size_t namepad = -(namelen + 1) & (Target.ptrsize - 1); // align
-            dtb.nzeros(cast(uint)namepad);
-
-            cd.csym.Sdt = dtb.finish();
-            // ClassInfo cannot be const data, because we use the monitor on it
-            outdata(cd.csym);
-            if (cd.isExport())
-                objmod.export_symbol(cd.csym, 0);
+                genClassInfoForClass(cd, sinit);
             }
 
             //////////////////////////////////////////////
@@ -1419,6 +1190,247 @@ private size_t emitVtbl(ref DtBuilder dtb, BaseClass *b, ref FuncDeclarations bv
     return id_vtbl_dim * Target.ptrsize;
 }
 
+
+/******************************************************
+ * Generate the ClassInfo for a Class (__classZ) symbol.
+ * Write it to the object file.
+ * Similar to genClassInfoForInterface().
+ * Params:
+ *      cd = the class
+ *      sinit = the Initializer (__initZ) symbol for the class
+ */
+private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
+{
+    // Put out the ClassInfo, which will be the __ClassZ symbol in the object file
+    enum_SC scclass = SCcomdat;
+    cd.csym.Sclass = scclass;
+    cd.csym.Sfl = FLdata;
+
+    /* The layout is:
+       {
+            void **vptr;
+            monitor_t monitor;
+            byte[] m_init;              // static initialization data
+            string name;                // class name
+            void*[] vtbl;
+            Interface[] interfaces;
+            ClassInfo base;             // base class
+            void* destructor;
+            void function(Object) classInvariant;   // class invariant
+            ClassFlags m_flags;
+            void* deallocator;
+            OffsetTypeInfo[] offTi;
+            void function(Object) defaultConstructor;
+            //const(MemberInfo[]) function(string) xgetMembers;   // module getMembers() function
+            immutable(void)* m_RTInfo;
+            //TypeInfo typeinfo;
+       }
+     */
+    uint offset = Target.classinfosize;    // must be ClassInfo.size
+    if (Type.typeinfoclass)
+    {
+        if (Type.typeinfoclass.structsize != Target.classinfosize)
+        {
+            debug printf("Target.classinfosize = x%x, Type.typeinfoclass.structsize = x%x\n", offset, Type.typeinfoclass.structsize);
+            cd.error("mismatch between dmd and object.d or object.di found. Check installation and import paths with -v compiler switch.");
+            fatal();
+        }
+    }
+
+    scope dtb = new DtBuilder();
+
+    if (Type.typeinfoclass)            // vtbl for TypeInfo_Class : ClassInfo
+        dtb.xoff(toVtblSymbol(Type.typeinfoclass), 0, TYnptr);
+    else
+        dtb.size(0);                    // BUG: should be an assert()
+    dtb.size(0);                        // monitor
+
+    // m_init[]
+    assert(cd.structsize >= 8 || (cd.classKind == ClassKind.cpp && cd.structsize >= 4));
+    dtb.size(cd.structsize);           // size
+    dtb.xoff(sinit, 0, TYnptr);         // initializer
+
+    // name[]
+    const(char) *name = cd.ident.toChars();
+    size_t namelen = strlen(name);
+    if (!(namelen > 9 && memcmp(name, "TypeInfo_".ptr, 9) == 0))
+    {
+        name = cd.toPrettyChars();
+        namelen = strlen(name);
+    }
+    dtb.size(namelen);
+    dt_t *pdtname = dtb.xoffpatch(cd.csym, 0, TYnptr);
+
+    // vtbl[]
+    dtb.size(cd.vtbl.dim);
+    if (cd.vtbl.dim)
+        dtb.xoff(cd.vtblsym, 0, TYnptr);
+    else
+        dtb.size(0);
+
+    // interfaces[]
+    dtb.size(cd.vtblInterfaces.dim);
+    if (cd.vtblInterfaces.dim)
+        dtb.xoff(cd.csym, offset, TYnptr);      // (*)
+    else
+        dtb.size(0);
+
+    // base
+    if (cd.baseClass)
+        dtb.xoff(toSymbol(cd.baseClass), 0, TYnptr);
+    else
+        dtb.size(0);
+
+    // destructor
+    if (cd.dtor)
+        dtb.xoff(toSymbol(cd.dtor), 0, TYnptr);
+    else
+        dtb.size(0);
+
+    // classInvariant
+    if (cd.inv)
+        dtb.xoff(toSymbol(cd.inv), 0, TYnptr);
+    else
+        dtb.size(0);
+
+    // flags
+    ClassFlags.Type flags = ClassFlags.hasOffTi;
+    if (cd.isCOMclass()) flags |= ClassFlags.isCOMclass;
+    if (cd.isCPPclass()) flags |= ClassFlags.isCPPclass;
+    flags |= ClassFlags.hasGetMembers;
+    flags |= ClassFlags.hasTypeInfo;
+    if (cd.ctor)
+        flags |= ClassFlags.hasCtor;
+    for (ClassDeclaration pc = cd; pc; pc = pc.baseClass)
+    {
+        if (pc.dtor)
+        {
+            flags |= ClassFlags.hasDtor;
+            break;
+        }
+    }
+    if (cd.isAbstract())
+        flags |= ClassFlags.isAbstract;
+
+    flags |= ClassFlags.noPointers;     // initially assume no pointers
+Louter:
+    for (ClassDeclaration pc = cd; pc; pc = pc.baseClass)
+    {
+        if (pc.members)
+        {
+            for (size_t i = 0; i < pc.members.dim; i++)
+            {
+                Dsymbol sm = (*pc.members)[i];
+                //printf("sm = %s %s\n", sm.kind(), sm.toChars());
+                if (sm.hasPointers())
+                {
+                    flags &= ~ClassFlags.noPointers;  // not no-how, not no-way
+                    break Louter;
+                }
+            }
+        }
+    }
+    dtb.size(flags);
+
+    // deallocator
+    if (cd.aggDelete)
+        dtb.xoff(toSymbol(cd.aggDelete), 0, TYnptr);
+    else
+        dtb.size(0);
+
+    // offTi[]
+    dtb.size(0);
+    dtb.size(0);            // null for now, fix later
+
+    // defaultConstructor
+    if (cd.defaultCtor && !(cd.defaultCtor.storage_class & STC.disable))
+        dtb.xoff(toSymbol(cd.defaultCtor), 0, TYnptr);
+    else
+        dtb.size(0);
+
+    // m_RTInfo
+    if (cd.getRTInfo)
+        Expression_toDt(cd.getRTInfo, dtb);
+    else if (flags & ClassFlags.noPointers)
+        dtb.size(0);
+    else
+        dtb.size(1);
+
+    //dtb.xoff(toSymbol(cd.type.vtinfo), 0, TYnptr); // typeinfo
+
+    //////////////////////////////////////////////
+
+    // Put out (*vtblInterfaces)[]. Must immediately follow csym, because
+    // of the fixup (*)
+
+    offset += cd.vtblInterfaces.dim * (4 * Target.ptrsize);
+    for (size_t i = 0; i < cd.vtblInterfaces.dim; i++)
+    {
+        BaseClass *b = (*cd.vtblInterfaces)[i];
+        ClassDeclaration id = b.sym;
+
+        /* The layout is:
+         *  struct Interface
+         *  {
+         *      ClassInfo classinfo;
+         *      void*[] vtbl;
+         *      size_t offset;
+         *  }
+         */
+
+        // Fill in vtbl[]
+        b.fillVtbl(cd, &b.vtbl, 1);
+
+        // classinfo
+        dtb.xoff(toSymbol(id), 0, TYnptr);
+
+        // vtbl[]
+        dtb.size(id.vtbl.dim);
+        dtb.xoff(cd.csym, offset, TYnptr);
+
+        // offset
+        dtb.size(b.offset);
+    }
+
+    // Put out the (*vtblInterfaces)[].vtbl[]
+    // This must be mirrored with ClassDeclaration.baseVtblOffset()
+    //printf("putting out %d interface vtbl[]s for '%s'\n", vtblInterfaces.dim, toChars());
+    foreach (i; 0 .. cd.vtblInterfaces.dim)
+    {
+        BaseClass *b = (*cd.vtblInterfaces)[i];
+        offset += emitVtbl(dtb, b, b.vtbl, cd, i);
+    }
+
+    // Put out the overriding interface vtbl[]s.
+    // This must be mirrored with ClassDeclaration.baseVtblOffset()
+    //printf("putting out overriding interface vtbl[]s for '%s' at offset x%x\n", toChars(), offset);
+    for (ClassDeclaration pc = cd.baseClass; pc; pc = pc.baseClass)
+    {
+        foreach (i; 0 .. pc.vtblInterfaces.dim)
+        {
+            BaseClass *b = (*pc.vtblInterfaces)[i];
+            FuncDeclarations bvtbl;
+            if (b.fillVtbl(cd, &bvtbl, 0))
+            {
+                offset += emitVtbl(dtb, b, bvtbl, pc, i);
+            }
+        }
+    }
+
+    //////////////////////////////////////////////
+
+    dtpatchoffset(pdtname, offset);
+
+    dtb.nbytes(cast(uint)(namelen + 1), name);
+    const size_t namepad = -(namelen + 1) & (Target.ptrsize - 1); // align
+    dtb.nzeros(cast(uint)namepad);
+
+    cd.csym.Sdt = dtb.finish();
+    // ClassInfo cannot be const data, because we use the monitor on it
+    outdata(cd.csym);
+    if (cd.isExport())
+        objmod.export_symbol(cd.csym, 0);
+}
 
 /******************************************************
  * Generate the ClassInfo for an Interface (classZ symbol).
