@@ -3,7 +3,8 @@ Support for iterating template overloads
 `__traits(getOverloads)` has been extended to return template overloads when passed an optional parameter with a true value.
 
 ---
-struct S {
+struct S
+{
     static int foo()() { return 0; }
     static int foo()(int n) { return 1; }
     static int foo(string s) { return 2; }
