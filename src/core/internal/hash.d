@@ -11,6 +11,25 @@ module core.internal.hash;
 
 import core.internal.convert;
 
+// If true ensure that positive zero and negative zero have the same hash.
+// typeid(float).getHash does this but historically hashOf(float) did not.
+private enum floatCoalesceZeroes = false;
+// If true ensure that all NaNs of the same floating point type have the same hash.
+// typeid(float).getHash does not do this but historically hashOf(float) did.
+private enum floatCoalesceNaNs = true;
+
+// BUG: if either of the above are true then no struct or array that contains the
+// representation of a floating point number should be hashed with `bytesHash`,
+// but this is currently disregarded.
+
+@nogc nothrow pure @safe unittest
+{
+    static if (floatCoalesceZeroes)
+        assert(hashOf(+0.0) == hashOf(-0.0)); // Same hash for +0.0 and -0.0.
+    static if (floatCoalesceNaNs)
+        assert(hashOf(double.nan) == hashOf(-double.nan)); // Same hash for different NaN.
+}
+
 //enum hash. CTFE depends on base type
 size_t hashOf(T)(auto ref T val, size_t seed = 0) if (is(T == enum))
 {
@@ -86,12 +105,66 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && __traits
 {
     static if(__traits(isFloating, val))
     {
-        T data = (val != val) ? T.nan : val;
-        return bytesHashAlignedBy!T(toUbyte(data), seed);
+        static if (floatCoalesceZeroes || floatCoalesceNaNs)
+        {
+            auto data = val;
+            // Zero coalescing not supported for deprecated complex types.
+            static if (floatCoalesceZeroes && is(typeof(data = 0)))
+                if (data == 0) data = 0; // +0.0 and -0.0 become the same.
+            static if (floatCoalesceNaNs)
+                if (data != data) data = T.nan; // All NaN patterns become the same.
+        }
+        else
+        {
+            alias data = val;
+        }
+
+        static if (T.mant_dig == float.mant_dig && T.sizeof == uint.sizeof)
+            return hashOf(*cast(const uint*) &data, seed);
+        else static if (T.mant_dig == double.mant_dig && T.sizeof == ulong.sizeof)
+            return hashOf(*cast(const ulong*) &data, seed);
+        else
+            return bytesHashAlignedBy!T(toUbyte(data), seed);
     }
     else
     {
-        return bytesHashAlignedBy!T(toUbyte(val), seed);
+        static if (T.sizeof <= size_t.sizeof && __traits(isIntegral, T))
+        {
+            static if (size_t.sizeof < ulong.sizeof)
+            {
+                //MurmurHash3 32-bit single round
+                enum uint c1 = 0xcc9e2d51;
+                enum uint c2 = 0x1b873593;
+                enum uint c3 = 0xe6546b64;
+                enum uint r1 = 15;
+                enum uint r2 = 13;
+            }
+            else
+            {
+                //Half of MurmurHash3 64-bit single round
+                //(omits second interleaved update)
+                enum ulong c1 = 0x87c37b91114253d5;
+                enum ulong c2 = 0x4cf5ad432745937f;
+                enum ulong c3 = 0x52dce729;
+                enum uint r1 = 31;
+                enum uint r2 = 27;
+            }
+            auto h = c1 * val;
+            h = (h << r1) | (h >>> (typeof(h).sizeof * 8 - r1));
+            h = (h * c2) ^ seed;
+            h = (h << r2) | (h >>> (typeof(h).sizeof * 8 - r2));
+            return h * 5 + c3;
+        }
+        else static if (T.sizeof > size_t.sizeof && __traits(isIntegral, T))
+        {
+            static foreach (i; 0 .. T.sizeof / size_t.sizeof)
+                seed = hashOf(cast(size_t) (val >>> (size_t.sizeof * 8 * i)), seed);
+            return seed;
+        }
+        else
+        {
+            return bytesHashAlignedBy!T(toUbyte(val), seed);
+        }
     }
 }
 
