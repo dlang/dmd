@@ -657,9 +657,11 @@ void main()
 $(H2 $(GNAME getOverloads))
 
         $(P The first argument is an aggregate (e.g. struct/class/module).
-        The second argument is a string that matches the name of
-        one of the functions in that aggregate.
-        The result is a tuple of all the overloads of that function.
+        The second argument is a `string` that matches the name of
+        the member(s) to return.
+        The third argument is a `bool`, and is optional.  If `true`, the
+        result will also include template overloads.
+        The result is a tuple of all the overloads of the supplied name.
         )
 
 ---
@@ -671,6 +673,8 @@ class D
     ~this() { }
     void foo() { }
     int foo(int) { return 2; }
+    void bar(T)() { return T.init; }
+    class bar(int n) {}
 }
 
 void main()
@@ -686,6 +690,9 @@ void main()
 
     auto i = __traits(getOverloads, d, "foo")[1](1);
     writeln(i);
+
+    foreach (t; __traits(getOverloads, D, "bar", true))
+        writeln(t.stringof);
 }
 ---
 
@@ -697,6 +704,8 @@ int()
 void()
 int()
 2
+bar(T)()
+bar(int n)
 )
 
 $(H2 $(GNAME getParameterStorageClasses))
