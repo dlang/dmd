@@ -146,25 +146,19 @@ private bool needOpAssign(StructDeclaration sd)
 {
     //printf("StructDeclaration::needOpAssign() %s\n", sd.toChars());
 
-    static bool need()
+    static bool isNeeded()
     {
         //printf("\tneed\n");
         return true;
     }
 
-    static bool dontneed()
-    {
-        //printf("\tdontneed\n");
-        return false;
-    }
-
     if (sd.isUnionDeclaration())
-        return dontneed();
+        return !isNeeded();
 
     if (sd.hasIdentityAssign || // because has identity==elaborate opAssign
         sd.dtor ||
         sd.postblit)
-        return need();
+        return isNeeded();
 
     /* If any of the fields need an opAssign, then we
      * need it too.
@@ -182,10 +176,10 @@ private bool needOpAssign(StructDeclaration sd)
             if (ts.sym.isUnionDeclaration())
                 continue;
             if (needOpAssign(ts.sym))
-                return need();
+                return isNeeded();
         }
     }
-    return dontneed();
+    return !isNeeded();
 }
 
 /******************************************
