@@ -660,7 +660,7 @@ $(H2 $(GNAME getOverloads))
         The second argument is a `string` that matches the name of
         the member(s) to return.
         The third argument is a `bool`, and is optional.  If `true`, the
-        result will include template overloads.
+        result will also include template overloads.
         The result is a tuple of all the overloads of the supplied name.
         )
 
