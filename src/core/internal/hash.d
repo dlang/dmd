@@ -43,9 +43,11 @@ if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStati
 {
     alias ElementType = typeof(val[0]);
     static if (is(ElementType == interface) || is(ElementType == class) ||
+                   (is(ElementType == struct) && !isNonReference!ElementType) ||
                    ((is(ElementType == struct) || is(ElementType == union))
                        && is(typeof(val[0].toHash()) == size_t)))
     //class or interface array or struct array with toHash(); CTFE depend on toHash() method
+    //also do this for arrays of structs whose hashes would be calculated in a memberwise fashion
     {
         size_t hash = seed;
         foreach (o; val)
@@ -135,7 +137,15 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && (is(T ==
             pragma(msg, "Warning: struct "~__traits(identifier, T)~" has method toHash, however it cannot be called with "~T.stringof~" this.");
         }
 
-        static if (is(typeof(toUbyte(val)) == const(ubyte)[]))//CTFE ready for structs without reference fields
+        static if (is(T == struct) && !isNonReference!T) // Memberwise hashing.
+        {
+            static foreach (i, F; typeof(val.tupleof))
+            {
+                seed = hashOf(val.tupleof[i], seed);
+            }
+            return seed;
+        }
+        else static if (is(typeof(toUbyte(val)) == const(ubyte)[]))//CTFE ready for structs without reference fields
         {
             return bytesHash(toUbyte(val), seed);
         }
@@ -444,6 +454,16 @@ unittest // issue 15111
     testAlias!(void delegate());
     testAlias!(string[string]);
     testAlias!(int[8]);
+}
+
+nothrow pure @system unittest // issue 18918
+{
+    static struct S { string array; }
+    auto s1 = S("abc");
+    auto s2 = S(s1.array.idup);
+    assert(hashOf(s1) == hashOf(s2));
+    enum e = hashOf(S("abc"));
+    assert(hashOf(s1) == e);
 }
 
 // MurmurHash3 was written by Austin Appleby, and is placed in the public
