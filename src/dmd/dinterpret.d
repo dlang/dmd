@@ -4880,7 +4880,7 @@ public:
             fd = (cast(VarExp)ecall).var.isFuncDeclaration();
             assert(fd);
 
-            if (fd.ident == Id._ArrayPostblit || fd.ident == Id._ArrayDtor)
+            if (fd.ident == Id.__ArrayPostblit || fd.ident == Id.__ArrayDtor)
             {
                 assert(e.arguments.dim == 1);
                 Expression ea = (*e.arguments)[0];
@@ -4900,7 +4900,7 @@ public:
                 if (CTFEExp.isCantExp(result))
                     return;
 
-                if (fd.ident == Id._ArrayPostblit)
+                if (fd.ident == Id.__ArrayPostblit)
                     result = evaluatePostblit(istate, result);
                 else
                     result = evaluateDtor(istate, result);

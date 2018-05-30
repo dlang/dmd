@@ -177,7 +177,7 @@ private extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* 
                     (cast(SliceExp)ex).upperIsInBounds = true;
                     (cast(SliceExp)ex).lowerIsLessThanUpper = true;
 
-                    ex = new CallExp(loc, new IdentifierExp(loc, Id._ArrayDtor), ex);
+                    ex = new CallExp(loc, new IdentifierExp(loc, Id.__ArrayDtor), ex);
 
                     dtorCalls ~= ex;
                 }
@@ -258,7 +258,7 @@ private extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* 
             // Prevent redundant bounds check
             (cast(SliceExp)ex).upperIsInBounds = true;
             (cast(SliceExp)ex).lowerIsLessThanUpper = true;
-            ex = new CallExp(loc, new IdentifierExp(loc, Id._ArrayPostblit), ex);
+            ex = new CallExp(loc, new IdentifierExp(loc, Id.__ArrayPostblit), ex);
         }
         postblitCalls.push(new ExpStatement(loc, ex)); // combine in forward order
 
