@@ -76,7 +76,7 @@ extern (C++) bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, 
  * Mark variable v as modified if it is inside a constructor that var
  * is a field in.
  */
-private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
+bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
 {
     //printf("modifyFieldVar(var = %s)\n", var.toChars());
     Dsymbol s = sc.func;

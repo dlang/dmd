@@ -824,7 +824,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         e.ident == Id.getVirtualMethods ||
         e.ident == Id.getVirtualFunctions)
     {
-        if (dim != 2)
+        if (dim != 2 && !(dim == 3 && e.ident == Id.getOverloads))
             return dimError(2);
 
         auto o = (*e.args)[0];
@@ -835,6 +835,19 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             return new ErrorExp();
         }
         ex = ex.ctfeInterpret();
+
+        bool includeTemplates = false;
+        if (dim == 3 && e.ident == Id.getOverloads)
+        {
+            auto b = isExpression((*e.args)[2]);
+            b = b.ctfeInterpret();
+            if (!b.type.equals(Type.tbool))
+            {
+                e.error("`bool` expected as third argument of `__traits(getOverloads)`, not `%s` of type `%s`", b.toChars(), b.type.toChars());
+                return new ErrorExp();
+            }
+            includeTemplates = b.isBool(true);
+        }
 
         StringExp se = ex.toStringExp();
         if (!se || se.len == 0)
@@ -908,7 +921,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             /* Create tuple of functions of ex
              */
             auto exps = new Expressions();
-            FuncDeclaration f;
+            Dsymbol f;
             if (ex.op == TOK.variable)
             {
                 VarExp ve = cast(VarExp)ex;
@@ -923,6 +936,15 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                     ex = null;
                 else
                     ex = dve.e1;
+            }
+            else if (ex.op == TOK.template_)
+            {
+                VarExp ve = cast(VarExp)ex;
+                auto td = ve.var.isTemplateDeclaration();
+                f = td;
+                if (td && td.funcroot)
+                    f = td.funcroot;
+                ex = null;
             }
 
             bool[string] funcTypeHash;
@@ -953,6 +975,11 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
 
             int dg(Dsymbol s)
             {
+                if (includeTemplates)
+                {
+                    exps.push(new DsymbolExp(Loc.initial, s, false));
+                    return 0;
+                }
                 auto fd = s.isFuncDeclaration();
                 if (!fd)
                     return 0;
@@ -1284,12 +1311,26 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             auto s = getDsymbol(o);
             Declaration d;
-            if (!s || (d = s.isDeclaration()) is null)
+            ClassDeclaration c;
+            if (!s || ((d = s.isDeclaration()) is null && (c = s.isClassDeclaration()) is null))
             {
                 e.error("argument to `__traits(getLinkage, %s)` is not a declaration", o.toChars());
                 return new ErrorExp();
             }
-            link = d.linkage;
+            if (d !is null)
+                link = d.linkage;
+            else final switch (c.classKind)
+            {
+                case ClassKind.d:
+                    link = LINK.d;
+                    break;
+                case ClassKind.cpp:
+                    link = LINK.cpp;
+                    break;
+                case ClassKind.objc:
+                    link = LINK.objc;
+                    break;
+            }
         }
         auto linkage = linkageToChars(link);
         auto se = new StringExp(e.loc, cast(char*)linkage);

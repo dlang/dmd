@@ -16,6 +16,7 @@
 #endif /* __DMC__ */
 
 #include "root.h"
+#include "rmem.h"
 #include "stringtable.h"
 
 class Identifier : public RootObject
@@ -38,7 +39,7 @@ public:
     static StringTable stringtable;
     static Identifier *generateId(const char *prefix);
     static Identifier *generateId(const char *prefix, size_t i);
-    static Identifier *idPool(const char *s, size_t len);
+    static Identifier *idPool(const char *s, unsigned len);
 
     static inline Identifier *idPool(const char *s)
     {

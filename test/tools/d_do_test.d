@@ -16,6 +16,8 @@ import std.stdio;
 import std.string;
 import core.sys.posix.sys.wait;
 
+const scriptDir = __FILE_FULL_PATH__.dirName.dirName;
+
 version(Win32)
 {
     extern(C) int putenv(const char*);
@@ -744,9 +746,9 @@ int tryMain(string[] args)
                 }
             }
 
-            compile_output = std.regex.replace(compile_output, regex(`^DMD v2\.[0-9]+.* DEBUG$`, "m"), "");
-            compile_output = std.string.strip(compile_output);
             compile_output = compile_output.unifyNewLine();
+            compile_output = std.regex.replace(compile_output, regex(`^DMD v2\.[0-9]+.*\n DEBUG$`, "m"), "");
+            compile_output = std.string.strip(compile_output);
 
             auto m = std.regex.match(compile_output, `Internal error: .*$`);
             enforce(!m, m.hit);
@@ -837,7 +839,6 @@ int tryMain(string[] args)
                 }
                 return Result.return0;
             }
-
             f.writeln();
             f.writeln("==============================");
             f.writef("Test %s failed: ", input_file);
@@ -845,8 +846,21 @@ int tryMain(string[] args)
             f.close();
 
             writefln("Test %s failed.  The logged output:", input_file);
-            writeln(output_file.readText);
+            auto outputText = output_file.readText;
+            writeln(outputText);
             output_file.remove();
+
+            // auto-update if a diff is found and can be updated
+            if (envData.autoUpdate &&
+                outputText.canFind("diff ") && outputText.canFind("--- ") && outputText.canFind("+++ "))
+            {
+                import std.range : dropOne;
+                auto newFile = outputText.findSplitAfter("+++ ")[1].until("\t");
+                auto baseFile = outputText.findSplitAfter("--- ")[1].until("\t");
+                writefln("===> Updating %s with %s", baseFile, newFile);
+                newFile.copy(baseFile);
+                return Result.return0;
+            }
 
             // automatically rerun a segfaulting test and print its stack trace
             version(linux)
@@ -895,11 +909,11 @@ int runBashTest(string input_dir, string test_name)
     version(Windows)
     {
         auto process = spawnShell(format("bash %s %s %s",
-            buildPath("tools", "sh_do_test.sh"), input_dir, test_name));
+            buildPath(scriptDir, "tools", "sh_do_test.sh"), input_dir, test_name));
     }
     else
     {
-        auto process = spawnProcess(["./tools/sh_do_test.sh", input_dir, test_name]);
+        auto process = spawnProcess([scriptDir.buildPath("tools", "sh_do_test.sh"), input_dir, test_name]);
     }
     return process.wait();
 }

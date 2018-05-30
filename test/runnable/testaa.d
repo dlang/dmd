@@ -511,7 +511,7 @@ int foo17()
         }catch(Error e){
             assert(e);
             return 0;
-        }catch{
+        }catch(Throwable){
             assert(0);
         }
         assert(0);

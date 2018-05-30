@@ -5,6 +5,6 @@
 echo ${OUTPUT_BASE}.out.trim
 grep -v 'runnable\|DEBUG' $1 > ${OUTPUT_BASE}.out.trim
 
-diff --strip-trailing-cr ${EXTRA_FILES}/test17868.d.out ${OUTPUT_BASE}.out.trim
+diff -pu --strip-trailing-cr ${EXTRA_FILES}/test17868.d.out ${OUTPUT_BASE}.out.trim
 
 rm -f ${OUTPUT_BASE}.out.trim

@@ -37,12 +37,19 @@ import dmd.tokens;
 
 /*******************************************
  * Merge function attributes pure, nothrow, @safe, @nogc, and @disable
+ * from f into s1.
+ * Params:
+ *      s1 = storage class to merge into
+ *      f = function
+ * Returns:
+ *      merged storage class
  */
-extern (C++) StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration f)
+extern (C++) StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) pure
 {
     if (!f)
         return s1;
     StorageClass s2 = (f.storage_class & STC.disable);
+
     TypeFunction tf = cast(TypeFunction)f.type;
     if (tf.trust == TRUST.safe)
         s2 |= STC.safe;
@@ -50,15 +57,19 @@ extern (C++) StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration f)
         s2 |= STC.system;
     else if (tf.trust == TRUST.trusted)
         s2 |= STC.trusted;
+
     if (tf.purity != PURE.impure)
         s2 |= STC.pure_;
     if (tf.isnothrow)
         s2 |= STC.nothrow_;
     if (tf.isnogc)
         s2 |= STC.nogc;
-    StorageClass stc = 0;
-    StorageClass sa = s1 & s2;
-    StorageClass so = s1 | s2;
+
+    const sa = s1 & s2;
+    const so = s1 | s2;
+
+    StorageClass stc = (sa & (STC.pure_ | STC.nothrow_ | STC.nogc)) | (so & STC.disable);
+
     if (so & STC.system)
         stc |= STC.system;
     else if (sa & STC.trusted)
@@ -67,14 +78,7 @@ extern (C++) StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration f)
         stc |= STC.trusted;
     else if (sa & STC.safe)
         stc |= STC.safe;
-    if (sa & STC.pure_)
-        stc |= STC.pure_;
-    if (sa & STC.nothrow_)
-        stc |= STC.nothrow_;
-    if (sa & STC.nogc)
-        stc |= STC.nogc;
-    if (so & STC.disable)
-        stc |= STC.disable;
+
     return stc;
 }
 
@@ -141,20 +145,26 @@ extern (C++) FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope*
 private bool needOpAssign(StructDeclaration sd)
 {
     //printf("StructDeclaration::needOpAssign() %s\n", sd.toChars());
+
+    static bool isNeeded()
+    {
+        //printf("\tneed\n");
+        return true;
+    }
+
     if (sd.isUnionDeclaration())
-        return false;
+        return !isNeeded();
 
-    if (sd.hasIdentityAssign)
-        goto Lneed; // because has identity==elaborate opAssign
+    if (sd.hasIdentityAssign || // because has identity==elaborate opAssign
+        sd.dtor ||
+        sd.postblit)
+        return isNeeded();
 
-    if (sd.dtor || sd.postblit)
-        goto Lneed;
     /* If any of the fields need an opAssign, then we
      * need it too.
      */
-    for (size_t i = 0; i < sd.fields.dim; i++)
+    foreach (v; sd.fields)
     {
-        VarDeclaration v = sd.fields[i];
         if (v.storage_class & STC.ref_)
             continue;
         if (v.overlapped)               // if field of a union
@@ -166,14 +176,10 @@ private bool needOpAssign(StructDeclaration sd)
             if (ts.sym.isUnionDeclaration())
                 continue;
             if (needOpAssign(ts.sym))
-                goto Lneed;
+                return isNeeded();
         }
     }
-    //printf("\tdontneed\n");
-    return false;
-Lneed:
-    //printf("\tneed\n");
-    return true;
+    return !isNeeded();
 }
 
 /******************************************
@@ -224,9 +230,8 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     // check for it.
     // In this event, it will be reflected by having `stc` (opAssign's
     // storage class) include `STC.disabled`.
-    for (size_t i = 0; i < sd.fields.dim; i++)
+    foreach (v; sd.fields)
     {
-        VarDeclaration v = sd.fields[i];
         if (v.storage_class & STC.ref_)
             continue;
         if (v.overlapped)
@@ -253,9 +258,10 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     auto fop = new FuncDeclaration(declLoc, Loc.initial, Id.assign, stc, tf);
     fop.storage_class |= STC.inference;
     fop.generated = true;
-    Expression e = null;
+    Expression e;
     if (stc & STC.disable)
     {
+        e = null;
     }
     else if (sd.dtor || sd.postblit)
     {
@@ -263,32 +269,30 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
          *    __swap = this; this = s; __swap.dtor();
          */
         //printf("\tswap copy\n");
-        Identifier idtmp = Identifier.generateId("__swap");
-        VarDeclaration tmp = null;
-        AssignExp ec = null;
         if (sd.dtor)
         {
             TypeFunction tdtor = cast(TypeFunction)sd.dtor.type;
             assert(tdtor.ty == Tfunction);
-            tmp = new VarDeclaration(loc, sd.type, idtmp, new VoidInitializer(loc));
-            tmp.storage_class |= STC.nodtor | STC.temp | STC.ctfe;
+
+            auto idswap = Identifier.generateId("__swap");
+            auto swap = new VarDeclaration(loc, sd.type, idswap, new VoidInitializer(loc));
+            swap.storage_class |= STC.nodtor | STC.temp | STC.ctfe;
             if (tdtor.isscope)
-                tmp.storage_class |= STC.scope_;
-            e = new DeclarationExp(loc, tmp);
-            ec = new BlitExp(loc, new VarExp(loc, tmp), new ThisExp(loc));
-            e = Expression.combine(e, ec);
-        }
-        ec = new BlitExp(loc, new ThisExp(loc), new IdentifierExp(loc, Id.p));
-        e = Expression.combine(e, ec);
-        if (sd.dtor)
-        {
+                swap.storage_class |= STC.scope_;
+            auto e1 = new DeclarationExp(loc, swap);
+
+            auto e2 = new BlitExp(loc, new VarExp(loc, swap), new ThisExp(loc));
+            auto e3 = new BlitExp(loc, new ThisExp(loc), new IdentifierExp(loc, Id.p));
+
             /* Instead of running the destructor on s, run it
-             * on tmp. This avoids needing to copy tmp back in to s.
+             * on swap. This avoids needing to copy swap back in to s.
              */
-            Expression ec2 = new DotVarExp(loc, new VarExp(loc, tmp), sd.dtor, false);
-            ec2 = new CallExp(loc, ec2);
-            e = Expression.combine(e, ec2);
+            auto e4 = new CallExp(loc, new DotVarExp(loc, new VarExp(loc, swap), sd.dtor, false));
+
+            e = Expression.combine(e1, e2, e3, e4);
         }
+        else
+            e = new BlitExp(loc, new ThisExp(loc), new IdentifierExp(loc, Id.p));
     }
     else
     {
@@ -300,9 +304,9 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
          * In both cases, it will change the parent context.
          */
         //printf("\tmemberwise copy\n");
-        for (size_t i = 0; i < sd.fields.dim; i++)
+        e = null;
+        foreach (v; sd.fields)
         {
-            VarDeclaration v = sd.fields[i];
             // this.v = s.v;
             auto ec = new AssignExp(loc,
                 new DotVarExp(loc, new ThisExp(loc), v),
@@ -316,15 +320,15 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
         /* Add:
          *   return this;
          */
-        e = new ThisExp(loc);
-        Statement s2 = new ReturnStatement(loc, e);
+        auto er = new ThisExp(loc);
+        Statement s2 = new ReturnStatement(loc, er);
         fop.fbody = new CompoundStatement(loc, s1, s2);
         tf.isreturn = true;
     }
     sd.members.push(fop);
     fop.addMember(sc, sd);
     sd.hasIdentityAssign = true; // temporary mark identity assignable
-    uint errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it.
+    const errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it.
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINK.d;
@@ -802,92 +806,92 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
     Loc declLoc = ad.dtors.dim ? ad.dtors[0].loc : ad.loc;
     Loc loc; // internal code should have no loc to prevent coverage
 
-    Expression e = null;
-    for (size_t i = 0; i < ad.fields.dim; i++)
+    // if the dtor is an extern(C++) prototype, then we expect it performs a full-destruction; we don't need to build a full-dtor
+    const bool dtorIsCppPrototype = ad.dtors.dim == 1 && ad.dtors[0].linkage == LINK.cpp && !ad.dtors[0].fbody;
+    if (!dtorIsCppPrototype)
     {
-        auto v = ad.fields[i];
-        if (v.storage_class & STC.ref_)
-            continue;
-        if (v.overlapped)
-            continue;
-        auto tv = v.type.baseElemOf();
-        if (tv.ty != Tstruct)
-            continue;
-        auto sdv = (cast(TypeStruct)tv).sym;
-        if (!sdv.dtor)
-            continue;
-        sdv.dtor.functionSemantic();
-
-        stc = mergeFuncAttrs(stc, sdv.dtor);
-        if (stc & STC.disable)
+        Expression e = null;
+        for (size_t i = 0; i < ad.fields.dim; i++)
         {
-            e = null;
-            break;
-        }
-
-        Expression ex;
-        tv = v.type.toBasetype();
-        if (tv.ty == Tstruct)
-        {
-            // this.v.__xdtor()
-
-            ex = new ThisExp(loc);
-            ex = new DotVarExp(loc, ex, v);
-
-            // This is a hack so we can call destructors on const/immutable objects.
-            // Do it as a type 'paint'.
-            ex = new CastExp(loc, ex, v.type.mutableOf());
-            if (stc & STC.safe)
-                stc = (stc & ~STC.safe) | STC.trusted;
-
-            ex = new DotVarExp(loc, ex, sdv.dtor, false);
-            ex = new CallExp(loc, ex);
-        }
-        else
-        {
-            // __ArrayDtor((cast(S*)this.v.ptr)[0 .. n])
-
-            uinteger_t n = 1;
-            while (tv.ty == Tsarray)
-            {
-                n *= (cast(TypeSArray)tv).dim.toUInteger();
-                tv = tv.nextOf().toBasetype();
-            }
-            if (n == 0)
+            auto v = ad.fields[i];
+            if (v.storage_class & STC.ref_)
                 continue;
+            if (v.overlapped)
+                continue;
+            auto tv = v.type.baseElemOf();
+            if (tv.ty != Tstruct)
+                continue;
+            auto sdv = (cast(TypeStruct)tv).sym;
+            if (!sdv.dtor)
+                continue;
+            sdv.dtor.functionSemantic();
 
-            ex = new ThisExp(loc);
-            ex = new DotVarExp(loc, ex, v);
+            stc = mergeFuncAttrs(stc, sdv.dtor);
+            if (stc & STC.disable)
+            {
+                e = null;
+                break;
+            }
 
-            // This is a hack so we can call destructors on const/immutable objects.
-            ex = new DotIdExp(loc, ex, Id.ptr);
-            ex = new CastExp(loc, ex, sdv.type.pointerTo());
-            if (stc & STC.safe)
-                stc = (stc & ~STC.safe) | STC.trusted;
+            Expression ex;
+            tv = v.type.toBasetype();
+            if (tv.ty == Tstruct)
+            {
+                // this.v.__xdtor()
 
-            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
-                                       new IntegerExp(loc, n, Type.tsize_t));
-            // Prevent redundant bounds check
-            (cast(SliceExp)ex).upperIsInBounds = true;
-            (cast(SliceExp)ex).lowerIsLessThanUpper = true;
+                ex = new ThisExp(loc);
+                ex = new DotVarExp(loc, ex, v);
 
-            ex = new CallExp(loc, new IdentifierExp(loc, Id.__ArrayDtor), ex);
+                // This is a hack so we can call destructors on const/immutable objects.
+                // Do it as a type 'paint'.
+                ex = new CastExp(loc, ex, v.type.mutableOf());
+                if (stc & STC.safe)
+                    stc = (stc & ~STC.safe) | STC.trusted;
+
+                ex = new DotVarExp(loc, ex, sdv.dtor, false);
+                ex = new CallExp(loc, ex);
+            }
+            else
+            {
+                // __ArrayDtor((cast(S*)this.v.ptr)[0 .. n])
+
+                const n = tv.numberOfElems(loc);
+                if (n == 0)
+                    continue;
+
+                ex = new ThisExp(loc);
+                ex = new DotVarExp(loc, ex, v);
+
+                // This is a hack so we can call destructors on const/immutable objects.
+                ex = new DotIdExp(loc, ex, Id.ptr);
+                ex = new CastExp(loc, ex, sdv.type.pointerTo());
+                if (stc & STC.safe)
+                    stc = (stc & ~STC.safe) | STC.trusted;
+
+                ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
+                                           new IntegerExp(loc, n, Type.tsize_t));
+                // Prevent redundant bounds check
+                (cast(SliceExp)ex).upperIsInBounds = true;
+                (cast(SliceExp)ex).lowerIsLessThanUpper = true;
+
+                ex = new CallExp(loc, new IdentifierExp(loc, Id.__ArrayDtor), ex);
+            }
+            e = Expression.combine(ex, e); // combine in reverse order
         }
-        e = Expression.combine(ex, e); // combine in reverse order
-    }
 
-    /* Build our own "destructor" which executes e
-     */
-    if (e || (stc & STC.disable))
-    {
-        //printf("Building __fieldDtor(), %s\n", e.toChars());
-        auto dd = new DtorDeclaration(declLoc, Loc.initial, stc, Id.__fieldDtor);
-        dd.generated = true;
-        dd.storage_class |= STC.inference;
-        dd.fbody = new ExpStatement(loc, e);
-        ad.dtors.shift(dd);
-        ad.members.push(dd);
-        dd.dsymbolSemantic(sc);
+        /* Build our own "destructor" which executes e
+         */
+        if (e || (stc & STC.disable))
+        {
+            //printf("Building __fieldDtor(), %s\n", e.toChars());
+            auto dd = new DtorDeclaration(declLoc, Loc.initial, stc, Id.__fieldDtor);
+            dd.generated = true;
+            dd.storage_class |= STC.inference;
+            dd.fbody = new ExpStatement(loc, e);
+            ad.dtors.shift(dd);
+            ad.members.push(dd);
+            dd.dsymbolSemantic(sc);
+        }
     }
 
     FuncDeclaration xdtor = null;
@@ -901,6 +905,8 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         break;
 
     default:
+        assert(!dtorIsCppPrototype);
+        Expression e = null;
         e = null;
         stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
         for (size_t i = 0; i < ad.dtors.dim; i++)
@@ -949,27 +955,28 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
  */
 extern (C++) FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
 {
-    StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
-    Loc declLoc = ad.loc;
-    Loc loc; // internal code should have no loc to prevent coverage
     switch (ad.invs.dim)
     {
     case 0:
         return null;
+
     case 1:
         // Don't return invs[0] so it has uniquely generated name.
-        /* fall through */
+        goto default;
+
     default:
         Expression e = null;
         StorageClass stcx = 0;
-        for (size_t i = 0; i < ad.invs.dim; i++)
+        StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
+        foreach (i, inv; ad.invs)
         {
-            stc = mergeFuncAttrs(stc, ad.invs[i]);
+            stc = mergeFuncAttrs(stc, inv);
             if (stc & STC.disable)
             {
                 // What should do?
             }
-            StorageClass stcy = (ad.invs[i].storage_class & STC.synchronized_) | (ad.invs[i].type.mod & MODFlags.shared_ ? STC.shared_ : 0);
+            const stcy = (inv.storage_class & STC.synchronized_) |
+                         (inv.type.mod & MODFlags.shared_ ? STC.shared_ : 0);
             if (i == 0)
                 stcx = stcy;
             else if (stcx ^ stcy)
@@ -977,14 +984,15 @@ extern (C++) FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
                 version (all)
                 {
                     // currently rejects
-                    ad.error(ad.invs[i].loc, "mixing invariants with different `shared`/`synchronized` qualifiers is not supported");
+                    ad.error(inv.loc, "mixing invariants with different `shared`/`synchronized` qualifiers is not supported");
                     e = null;
                     break;
                 }
             }
-            e = Expression.combine(e, new CallExp(loc, new VarExp(loc, ad.invs[i], false)));
+            e = Expression.combine(e, new CallExp(Loc.initial, new VarExp(Loc.initial, inv, false)));
         }
-        auto inv = new InvariantDeclaration(declLoc, Loc.initial, stc | stcx, Id.classInvariant, new ExpStatement(loc, e));
+        auto inv = new InvariantDeclaration(ad.loc, Loc.initial, stc | stcx,
+                Id.classInvariant, new ExpStatement(Loc.initial, e));
         ad.members.push(inv);
         inv.dsymbolSemantic(sc);
         return inv;

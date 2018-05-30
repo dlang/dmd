@@ -85,6 +85,23 @@ extern (C++) abstract class Statement : RootObject
         assert(0);
     }
 
+    /*************************************
+     * Do syntax copy of an array of Statement's.
+     */
+    static Statements* arraySyntaxCopy(Statements* a)
+    {
+        Statements* b = null;
+        if (a)
+        {
+            b = a.copy();
+            foreach (i, s; *a)
+            {
+                (*b)[i] = s ? s.syntaxCopy() : null;
+            }
+        }
+        return b;
+    }
+
     override final void print()
     {
         fprintf(stderr, "%s\n", toChars());
@@ -853,13 +870,7 @@ extern (C++) class CompoundStatement : Statement
 
     override Statement syntaxCopy()
     {
-        auto a = new Statements();
-        a.setDim(statements.dim);
-        foreach (i, s; *statements)
-        {
-            (*a)[i] = s ? s.syntaxCopy() : null;
-        }
-        return new CompoundStatement(loc, a);
+        return new CompoundStatement(loc, Statement.arraySyntaxCopy(statements));
     }
 
     override Statements* flatten(Scope* sc)
@@ -1576,44 +1587,31 @@ extern (C++) final class SwitchStatement : Statement
         return true;
     }
 
+    /************************************
+     * Returns:
+     *  true if error
+     */
     final bool checkLabel()
     {
         /*
-        * Checks the scope of a label for existing variable declaration.
-        * Params:
-        *   vd = variable declaration to check
-        * Returns: `true` if the variables declared in this label would be skipped.
-        */
+         * Checks the scope of a label for existing variable declaration.
+         * Params:
+         *   vd = last variable declared before this case/default label
+         * Returns: `true` if the variables declared in this label would be skipped.
+         */
         bool checkVar(VarDeclaration vd)
         {
-            if (!vd || vd.isDataseg() || (vd.storage_class & STC.manifest))
-                return false;
-
-            VarDeclaration last = lastVar;
-            while (last && last != vd)
-                last = last.lastVar;
-            if (last == vd)
+            for (auto v = vd; v && v != lastVar; v = v.lastVar)
             {
-                // All good, the label's scope has no variables
-                return false;
-            }
-            else if (vd.storage_class & STC.temp)
-            {
-                // Lifetime ends at end of expression, so no issue with skipping the statement
-                return false;
-            }
-            else if (vd.ident == Id.withSym)
-            {
-                error("`switch` skips declaration of `with` temporary at %s", vd.loc.toChars());
+                if (v.isDataseg() || (v.storage_class & (STC.manifest | STC.temp)) || v._init.isVoidInitializer())
+                    continue;
+                if (vd.ident == Id.withSym)
+                    error("`switch` skips declaration of `with` temporary at %s", v.loc.toChars());
+                else
+                    error("`switch` skips declaration of variable `%s` at %s", v.toPrettyChars(), v.loc.toChars());
                 return true;
             }
-            else
-            {
-                if (!vd._init.isVoidInitializer)
-                error("`switch` skips declaration of variable `%s` at %s", vd.toPrettyChars(), vd.loc.toChars());
-
-                return true;
-            }
+            return false;
         }
 
         enum error = true;

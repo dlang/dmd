@@ -397,6 +397,15 @@ enum MODFlags : int
 
 alias MOD = ubyte;
 
+/****************
+ * dotExp() bit flags
+ */
+enum DotExpFlag
+{
+    gag     = 1,    // don't report "not a property" error and just return null
+    noDeref = 2,    // the use of the expression will not attempt a dereference
+}
+
 /***********************************************************
  */
 extern (C++) abstract class Type : RootObject
@@ -2407,15 +2416,6 @@ extern (C++) abstract class Type : RootObject
         return null;
     }
 
-    /****************
-     * dotExp() bit flags
-     */
-    enum DotExpFlag
-    {
-        gag     = 1,    // don't report "not a property" error and just return null
-        noDeref = 2,    // the use of the expression will not attempt a dereference
-    }
-
     /************************************
      * Return alignment to use for this type.
      */
@@ -2592,6 +2592,33 @@ extern (C++) abstract class Type : RootObject
         while (t.ty == Tsarray)
             t = (cast(TypeSArray)t).next.toBasetype();
         return t;
+    }
+
+    /*******************************************
+     * Compute number of elements for a (possibly multidimensional) static array,
+     * or 1 for other types.
+     * Params:
+     *  loc = for error message
+     * Returns:
+     *  number of elements, uint.max on overflow
+     */
+    final uint numberOfElems(const ref Loc loc)
+    {
+        //printf("Type::numberOfElems()\n");
+        uinteger_t n = 1;
+        Type tb = this;
+        while ((tb = tb.toBasetype()).ty == Tsarray)
+        {
+            bool overflow = false;
+            n = mulu(n, (cast(TypeSArray)tb).dim.toUInteger(), overflow);
+            if (overflow || n >= uint.max)
+            {
+                error(loc, "static array `%s` size overflowed to %llu", toChars(), cast(ulong)n);
+                return uint.max;
+            }
+            tb = (cast(TypeSArray)tb).next;
+        }
+        return cast(uint)n;
     }
 
     /****************************************
@@ -3685,23 +3712,17 @@ extern (C++) final class TypeSArray : TypeArray
     override d_uns64 size(const ref Loc loc)
     {
         //printf("TypeSArray::size()\n");
-        dinteger_t sz;
-        if (!dim)
-            return Type.size(loc);
-        sz = dim.toInteger();
+        const n = numberOfElems(loc);
+        const elemsize = baseElemOf().size(loc);
+        bool overflow = false;
+        const sz = mulu(n, elemsize, overflow);
+        if (overflow || sz >= uint.max)
         {
-            bool overflow = false;
-            sz = mulu(next.size(), sz, overflow);
-            if (overflow)
-                goto Loverflow;
+            if (elemsize != SIZE_INVALID && n != uint.max)
+                error(loc, "static array `%s` size overflowed to %lld", toChars(), cast(long)sz);
+            return SIZE_INVALID;
         }
-        if (sz > uint.max)
-            goto Loverflow;
         return sz;
-
-    Loverflow:
-        error(loc, "static array `%s` size overflowed to %lld", toChars(), cast(long)sz);
-        return SIZE_INVALID;
     }
 
     override uint alignsize()
@@ -4780,19 +4801,19 @@ extern (C++) final class TypeFunction : TypeNext
     }
 
     // arguments get specially formatted
-    private const(char)* getParamError(const(char)* format, Expression arg, Parameter par)
+    private const(char)* getParamError(Expression arg, Parameter par)
     {
         // show qualification when toChars() is the same but types are different
         auto at = arg.type.toChars();
         bool qual = !arg.type.equals(par.type) && strcmp(at, par.type.toChars()) == 0;
         if (qual)
             at = arg.type.toPrettyChars(true);
-        OutBuffer as;
-        as.printf("`%s` of type `%s`", arg.toChars(), at);
-        OutBuffer ps;
-        ps.printf("`%s`", parameterToChars(par, this, qual));
         OutBuffer buf;
-        buf.printf(format, as.peekString(), ps.peekString());
+        // only mention rvalue if it's relevant
+        const rv = !arg.isLvalue() && par.storageClass & (STC.ref_ | STC.out_);
+        buf.printf("cannot pass %sargument `%s` of type `%s` to parameter `%s`",
+            rv ? "rvalue ".ptr : "".ptr, arg.toChars(), at,
+            parameterToChars(par, this, qual));
         return buf.extractString();
     }
 
@@ -4935,7 +4956,7 @@ extern (C++) final class TypeFunction : TypeNext
                     {
                         if (p.storageClass & STC.out_)
                         {
-                            if (pMessage) *pMessage = getParamError("cannot pass rvalue argument %s to parameter %s", arg, p);
+                            if (pMessage) *pMessage = getParamError(arg, p);
                             goto Nomatch;
                         }
 
@@ -4960,7 +4981,7 @@ extern (C++) final class TypeFunction : TypeNext
                         }
                         else
                         {
-                            if (pMessage) *pMessage = getParamError("cannot pass rvalue argument %s to parameter %s", arg, p);
+                            if (pMessage) *pMessage = getParamError(arg, p);
                             goto Nomatch;
                         }
                     }
@@ -4987,9 +5008,7 @@ extern (C++) final class TypeFunction : TypeNext
                      */
                     if (!ta.constConv(tp))
                     {
-                        if (pMessage) *pMessage = getParamError(
-                            arg.isLvalue() ? "cannot pass argument %s to parameter %s" :
-                                "cannot pass rvalue argument %s to parameter %s", arg, p);
+                        if (pMessage) *pMessage = getParamError(arg, p);
                         goto Nomatch;
                     }
                 }
@@ -5049,7 +5068,7 @@ extern (C++) final class TypeFunction : TypeNext
 
                                 if (m == MATCH.nomatch)
                                 {
-                                    if (pMessage) *pMessage = getParamError("cannot pass argument %s to parameter %s", arg, p);
+                                    if (pMessage) *pMessage = getParamError(arg, p);
                                     goto Nomatch;
                                 }
                                 if (m < match)
@@ -5067,7 +5086,7 @@ extern (C++) final class TypeFunction : TypeNext
                     }
                 }
                 if (pMessage && u < nargs)
-                    *pMessage = getParamError("cannot pass argument %s to parameter %s", (*args)[u], p);
+                    *pMessage = getParamError((*args)[u], p);
                 goto Nomatch;
             }
             if (m < match)
@@ -5627,7 +5646,7 @@ extern (C++) abstract class TypeQualified : Type
             /* Look for what user might have intended
              */
             const p = mutableOf().unSharedOf().toChars();
-            auto id = Identifier.idPool(p, strlen(p));
+            auto id = Identifier.idPool(p, cast(uint)strlen(p));
             if (const n = importHint(p))
                 error(loc, "`%s` is not defined, perhaps `import %s;` ?", p, n);
             else if (auto s2 = sc.search_correct(id))

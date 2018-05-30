@@ -1,7 +1,7 @@
 /* REQUIRED_ARGS: -dip25
    TEST_OUTPUT:
 ---
-fail_compilation/test16228.d(22): Error: function type `return int()` has `return` but does not return any indirections
+fail_compilation/test16228.d(22): Error: function type `int() return` has `return` but does not return any indirections
 fail_compilation/test16228.d(23): Error: function `test16228.S.bar` `static` member has no `this` to which `return` can apply
 ---
 */

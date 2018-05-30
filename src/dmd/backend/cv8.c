@@ -179,8 +179,8 @@ void cv8_termfile(const char *objfilename)
 
     int seg = MsCoffObj::seg_debugS();
 
-    unsigned v = 4;
-    objmod->bytes(seg,0,4,&v);
+    unsigned value = 4;
+    objmod->bytes(seg,0,4,&value);
 
     /* Start with starting symbol in separate "F1" section
      */
@@ -223,7 +223,7 @@ void cv8_termfile(const char *objfilename)
         if (symbol_iscomdat(fd->sfunc))
         {
             f2seg = MsCoffObj::seg_debugS_comdat(fd->sfunc);
-            objmod->bytes(f2seg,0,4,&v);
+            objmod->bytes(f2seg,0,4,&value);
         }
 
         unsigned offset = SegData[f2seg]->SDoffset + 8;

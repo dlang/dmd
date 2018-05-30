@@ -155,7 +155,6 @@
     <ClCompile Include="..\dmd\tk\vec.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\dmd\root\longdouble.c" />
     <ClCompile Include="..\dmd\root\newdelete.c" />
     <CustomBuild Include="..\dmd\backend\optabgen.c">
       <Message>Building and running $(IntDir)%(Filename).exe</Message>
@@ -242,14 +241,6 @@ popd</Command>
     <ClInclude Include="..\vcbuild\fenv.h" />
     <ClInclude Include="..\vcbuild\stdint.h" />
     <ClInclude Include="..\vcbuild\warnings.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="..\vcbuild\ldfpu.asm">
-      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
-      <Message>Assembling $(IntDir)%(Filename)%(Extension)</Message>
-      <Command>ml64 -c -Zi "-Fl$(IntDir)%(Filename).lst" "-Fo$(IntDir)%(Filename).obj" "%(FullPath)"</Command>
-      <Outputs>$(IntDir)%(Filename).obj;%(Outputs)</Outputs>
-    </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

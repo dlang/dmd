@@ -450,3 +450,242 @@ version (Posix) // all non-Windows machines
     static assert(test37!int.mangleof == "_ZN5SPACE6test37IiEEiv");
 }
 
+/**************************************/
+// https://issues.dlang.org/show_bug.cgi?id=15388
+
+extern (C++) void test15388(typeof(null));
+
+version (Posix)
+{
+    static assert(test15388.mangleof == "_Z9test15388Dn");
+}
+version (Windows)
+{
+    static assert(test15388.mangleof == "?test15388@@YAX$$T@Z");
+}
+
+/**************************************/
+// https://issues.dlang.org/show_bug.cgi?id=14086
+
+extern (C++) class Test14086
+{
+    this();
+    ~this();
+}
+extern (C++) class Test14086_2
+{
+    final ~this();
+}
+extern (C++) struct Test14086_S
+{
+    this(int);
+    ~this();
+}
+
+version(Posix)
+{
+    static assert(Test14086.__ctor.mangleof == "_ZN9Test14086C1Ev");
+    static assert(Test14086.__dtor.mangleof == "_ZN9Test14086D1Ev");
+    static assert(Test14086_2.__dtor.mangleof == "_ZN11Test14086_2D1Ev");
+    static assert(Test14086_S.__ctor.mangleof == "_ZN11Test14086_SC1Ei");
+    static assert(Test14086_S.__dtor.mangleof == "_ZN11Test14086_SD1Ev");
+}
+version(Win32)
+{
+    static assert(Test14086.__ctor.mangleof == "??0Test14086@@QAE@XZ");
+    static assert(Test14086.__dtor.mangleof == "??1Test14086@@UAE@XZ");
+    static assert(Test14086_2.__dtor.mangleof == "??1Test14086_2@@QAE@XZ");
+    static assert(Test14086_S.__ctor.mangleof == "??0Test14086_S@@QAE@H@Z");
+    static assert(Test14086_S.__dtor.mangleof == "??1Test14086_S@@QAE@XZ");
+}
+version(Win64)
+{
+    static assert(Test14086.__ctor.mangleof == "??0Test14086@@QEAA@XZ");
+    static assert(Test14086.__dtor.mangleof == "??1Test14086@@UEAA@XZ");
+    static assert(Test14086_2.__dtor.mangleof == "??1Test14086_2@@QEAA@XZ");
+    static assert(Test14086_S.__ctor.mangleof == "??0Test14086_S@@QEAA@H@Z");
+    static assert(Test14086_S.__dtor.mangleof == "??1Test14086_S@@QEAA@XZ");
+}
+
+/**************************************/
+// https://issues.dlang.org/show_bug.cgi?id=18888
+
+extern (C++)
+struct T18888(T)
+{
+	void fun();
+}
+
+extern (C++)
+struct S18888(alias arg = T18888)
+{
+	alias I = T18888!(arg!int);
+}
+
+version(Posix)
+{
+    static assert(S18888!().I.fun.mangleof == "_ZN6T18888IS_IiEE3funEv");
+}
+version(Win32)
+{
+    static assert(S18888!().I.fun.mangleof == "?fun@?$T18888@U?$T18888@H@@@@QAEXXZ");
+}
+version(Win64)
+{
+    static assert(S18888!().I.fun.mangleof == "?fun@?$T18888@U?$T18888@H@@@@QEAAXXZ");
+}
+
+/**************************************/
+// https://issues.dlang.org/show_bug.cgi?id=18890
+
+extern (C++) class C18890
+{
+    ~this() {}
+}
+extern (C++) class C18890_2
+{
+    ~this() {}
+    extern (C++) struct Agg
+    {
+        ~this() {}
+    }
+    Agg s;
+}
+
+version (Posix)
+{
+    static assert(C18890.__dtor.mangleof == "_ZN6C18890D1Ev");
+    static assert(C18890.__xdtor.mangleof == "_ZN6C18890D1Ev");
+    static assert(C18890_2.__dtor.mangleof == "_ZN8C18890_26__dtorEv");
+    static assert(C18890_2.__xdtor.mangleof == "_ZN8C18890_2D1Ev");
+}
+version (Win32)
+{
+    static assert(C18890.__dtor.mangleof == "??1C18890@@UAE@XZ");
+    static assert(C18890.__xdtor.mangleof == "??1C18890@@UAE@XZ");
+    static assert(C18890_2.__dtor.mangleof == "?__dtor@C18890_2@@UAE@XZ");
+    static assert(C18890_2.__xdtor.mangleof == "??1C18890_2@@UAE@XZ");
+}
+version (Win64)
+{
+    static assert(C18890.__dtor.mangleof == "??1C18890@@UEAA@XZ");
+    static assert(C18890.__xdtor.mangleof == "??1C18890@@UEAA@XZ");
+    static assert(C18890_2.__dtor.mangleof == "?__dtor@C18890_2@@UEAA@XZ");
+    static assert(C18890_2.__xdtor.mangleof == "??1C18890_2@@UEAA@XZ");
+}
+
+/**************************************/
+// https://issues.dlang.org/show_bug.cgi?id=18891
+
+extern (C++) class C18891
+{
+    ~this();
+    extern (C++) struct Agg
+    {
+        ~this() {}
+    }
+    Agg s;
+}
+
+version (Posix)
+{
+    static assert(C18891.__dtor.mangleof == "_ZN6C18891D1Ev");
+    static assert(C18891.__xdtor.mangleof == "_ZN6C18891D1Ev");
+}
+version (Win32)
+{
+    static assert(C18891.__dtor.mangleof == "??1C18891@@UAE@XZ");
+    static assert(C18891.__xdtor.mangleof == "??1C18891@@UAE@XZ");
+}
+version (Win64)
+{
+    static assert(C18891.__dtor.mangleof == "??1C18891@@UEAA@XZ");
+    static assert(C18891.__xdtor.mangleof == "??1C18891@@UEAA@XZ");
+}
+
+/**************************************/
+// Test C++ operator mangling
+
+extern (C++) struct TestOperators
+{
+    int opCast(T)();
+    int opBinary(string op)(int x);
+    int opUnary(string op)();
+    int opOpAssign(string op)(int x);
+    int opIndex(size_t x);
+    bool opEquals(int x);
+    int opCall(int, float);
+    int opAssign(int);
+}
+
+version (Posix)
+{
+}
+version (Win32)
+{
+    static assert(TestOperators.opUnary!"*".mangleof     == "??DTestOperators@@QAEHXZ");
+    static assert(TestOperators.opUnary!"++".mangleof    == "??ETestOperators@@QAEHXZ");
+    static assert(TestOperators.opUnary!"--".mangleof    == "??FTestOperators@@QAEHXZ");
+    static assert(TestOperators.opUnary!"-".mangleof     == "??GTestOperators@@QAEHXZ");
+    static assert(TestOperators.opUnary!"+".mangleof     == "??HTestOperators@@QAEHXZ");
+    static assert(TestOperators.opUnary!"~".mangleof     == "??STestOperators@@QAEHXZ");
+    static assert(TestOperators.opBinary!">>".mangleof   == "??5TestOperators@@QAEHH@Z");
+    static assert(TestOperators.opBinary!"<<".mangleof   == "??6TestOperators@@QAEHH@Z");
+    static assert(TestOperators.opBinary!"*".mangleof    == "??DTestOperators@@QAEHH@Z");
+    static assert(TestOperators.opBinary!"-".mangleof    == "??GTestOperators@@QAEHH@Z");
+    static assert(TestOperators.opBinary!"+".mangleof    == "??HTestOperators@@QAEHH@Z");
+    static assert(TestOperators.opBinary!"&".mangleof    == "??ITestOperators@@QAEHH@Z");
+    static assert(TestOperators.opBinary!"/".mangleof    == "??KTestOperators@@QAEHH@Z");
+    static assert(TestOperators.opBinary!"%".mangleof    == "??LTestOperators@@QAEHH@Z");
+    static assert(TestOperators.opBinary!"^".mangleof    == "??TTestOperators@@QAEHH@Z");
+    static assert(TestOperators.opBinary!"|".mangleof    == "??UTestOperators@@QAEHH@Z");
+    static assert(TestOperators.opOpAssign!"*".mangleof  == "??XTestOperators@@QAEHH@Z");
+    static assert(TestOperators.opOpAssign!"+".mangleof  == "??YTestOperators@@QAEHH@Z");
+    static assert(TestOperators.opOpAssign!"-".mangleof  == "??ZTestOperators@@QAEHH@Z");
+    static assert(TestOperators.opOpAssign!"/".mangleof  == "??_0TestOperators@@QAEHH@Z");
+    static assert(TestOperators.opOpAssign!"%".mangleof  == "??_1TestOperators@@QAEHH@Z");
+    static assert(TestOperators.opOpAssign!">>".mangleof == "??_2TestOperators@@QAEHH@Z");
+    static assert(TestOperators.opOpAssign!"<<".mangleof == "??_3TestOperators@@QAEHH@Z");
+    static assert(TestOperators.opOpAssign!"&".mangleof  == "??_4TestOperators@@QAEHH@Z");
+    static assert(TestOperators.opOpAssign!"|".mangleof  == "??_5TestOperators@@QAEHH@Z");
+    static assert(TestOperators.opOpAssign!"^".mangleof  == "??_6TestOperators@@QAEHH@Z");
+    static assert(TestOperators.opCast!int.mangleof      == "??BTestOperators@@QAEHXZ");
+    static assert(TestOperators.opAssign.mangleof        == "??4TestOperators@@QAEHH@Z");
+    static assert(TestOperators.opEquals.mangleof        == "??8TestOperators@@QAE_NH@Z");
+    static assert(TestOperators.opIndex.mangleof         == "??ATestOperators@@QAEHI@Z");
+    static assert(TestOperators.opCall.mangleof          == "??RTestOperators@@QAEHHM@Z");
+}
+version (Win64)
+{
+    static assert(TestOperators.opUnary!"*".mangleof     == "??DTestOperators@@QEAAHXZ");
+    static assert(TestOperators.opUnary!"++".mangleof    == "??ETestOperators@@QEAAHXZ");
+    static assert(TestOperators.opUnary!"--".mangleof    == "??FTestOperators@@QEAAHXZ");
+    static assert(TestOperators.opUnary!"-".mangleof     == "??GTestOperators@@QEAAHXZ");
+    static assert(TestOperators.opUnary!"+".mangleof     == "??HTestOperators@@QEAAHXZ");
+    static assert(TestOperators.opUnary!"~".mangleof     == "??STestOperators@@QEAAHXZ");
+    static assert(TestOperators.opBinary!">>".mangleof   == "??5TestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opBinary!"<<".mangleof   == "??6TestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opBinary!"*".mangleof    == "??DTestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opBinary!"-".mangleof    == "??GTestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opBinary!"+".mangleof    == "??HTestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opBinary!"&".mangleof    == "??ITestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opBinary!"/".mangleof    == "??KTestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opBinary!"%".mangleof    == "??LTestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opBinary!"^".mangleof    == "??TTestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opBinary!"|".mangleof    == "??UTestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opOpAssign!"*".mangleof  == "??XTestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opOpAssign!"+".mangleof  == "??YTestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opOpAssign!"-".mangleof  == "??ZTestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opOpAssign!"/".mangleof  == "??_0TestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opOpAssign!"%".mangleof  == "??_1TestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opOpAssign!">>".mangleof == "??_2TestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opOpAssign!"<<".mangleof == "??_3TestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opOpAssign!"&".mangleof  == "??_4TestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opOpAssign!"|".mangleof  == "??_5TestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opOpAssign!"^".mangleof  == "??_6TestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opCast!int.mangleof      == "??BTestOperators@@QEAAHXZ");
+    static assert(TestOperators.opAssign.mangleof        == "??4TestOperators@@QEAAHH@Z");
+    static assert(TestOperators.opEquals.mangleof        == "??8TestOperators@@QEAA_NH@Z");
+    static assert(TestOperators.opIndex.mangleof         == "??ATestOperators@@QEAAH_K@Z");
+    static assert(TestOperators.opCall.mangleof          == "??RTestOperators@@QEAAHHM@Z");
+}

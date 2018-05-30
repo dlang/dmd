@@ -157,7 +157,7 @@ private block *labelToBlock(IRState *irs, const ref Loc loc, Blockx *blx, LabelD
 private void incUsage(IRState *irs, const ref Loc loc)
 {
 
-    if (global.params.cov && loc.linnum)
+    if (irs.params.cov && loc.linnum)
     {
         block_appendexp(irs.blx.curblock, incUsageElem(irs, loc));
     }
@@ -1389,7 +1389,7 @@ private extern (C++) class S2irVisitor : Visitor
             }
             else
             {
-                if (!global.params.optimize)
+                if (!irs.params.optimize)
                 {
                     /* If this is reached at runtime, there's a bug
                      * in the computation of s.bodyFallsThru. Inserting a HALT

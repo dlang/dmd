@@ -1440,6 +1440,13 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 if (v && v.storage_class & STC.manifest)
                 {
                     result = e.ctfeInterpret();
+                    /* https://issues.dlang.org/show_bug.cgi?id=18236
+                     *
+                     * The expression returned by ctfeInterpret points
+                     * to the line where the manifest constant was declared
+                     * so we need to update the location before trying to cast
+                     */
+                    result.loc = e.loc;
                     result = result.castTo(sc, t);
                     return;
                 }
@@ -1555,8 +1562,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 {
                     // T[n] sa;
                     // cast(U*)sa; // ==> cast(U*)sa.ptr;
-                    result = new AddrExp(e.loc, e);
-                    result.type = t;
+                    result = new AddrExp(e.loc, e, t);
                     return;
                 }
                 if (tob.ty == Tarray && t1b.ty == Tsarray)
@@ -2022,8 +2028,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     {
                         result = new VarExp(e.loc, f, false);
                         result.type = f.type;
-                        result = new AddrExp(e.loc, result);
-                        result.type = t;
+                        result = new AddrExp(e.loc, result, t);
                         return;
                     }
                 }

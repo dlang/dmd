@@ -37,6 +37,7 @@ struct ASTCodegen
     alias initializerToExpression   = dmd.initsem.initializerToExpression;
     alias typeToExpression          = dmd.typesem.typeToExpression;
     alias UserAttributeDeclaration  = dmd.attrib.UserAttributeDeclaration;
+    alias Ensure                    = dmd.func.Ensure; // workaround for bug in older DMD frontends
 
     alias MODFlags                  = dmd.mtype.MODFlags;
     alias Type                      = dmd.mtype.Type;

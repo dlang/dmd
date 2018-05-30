@@ -64,6 +64,24 @@ const(char)* cppTypeInfoMangleItanium(Dsymbol s)
     return buf.extractString();
 }
 
+/******************************
+ * Determine if sym is the 'primary' destructor, that is,
+ * the most-aggregate destructor (the one that is defined as __xdtor)
+ * Params:
+ *      sym = Dsymbol
+ * Returns:
+ *      true if sym is the primary destructor for an aggregate
+ */
+bool isPrimaryDtor(const Dsymbol sym)
+{
+    const dtor = sym.isDtorDeclaration();
+    if (!dtor)
+        return false;
+    const ad = dtor.isMember();
+    assert(ad);
+    return dtor == ad.dtor;
+}
+
 private final class CppMangleVisitor : Visitor
 {
     alias visit = Visitor.visit;
@@ -590,7 +608,9 @@ private final class CppMangleVisitor : Visitor
                 buf.writeByte('N');
                 CV_qualifiers(d.type);
                 prefix_name(p);
-                if (d.isDtorDeclaration())
+                if (d.isCtorDeclaration())
+                    buf.writestring("C1");
+                else if (d.isPrimaryDtor())
                     buf.writestring("D1");
                 else
                     source_name(ti);
@@ -621,7 +641,11 @@ private final class CppMangleVisitor : Visitor
                 prefix_name(p);
                 //printf("p: %s\n", buf.peekString());
 
-                if (d.isDtorDeclaration())
+                if (d.isCtorDeclaration())
+                {
+                    buf.writestring("C1");
+                }
+                else if (d.isPrimaryDtor())
                 {
                     buf.writestring("D1");
                 }
@@ -759,6 +783,14 @@ public:
         if (p)
             buf.writeByte(p);
         buf.writeByte(c);
+    }
+
+    override void visit(TypeNull t)
+    {
+        if (t.isImmutable() || t.isShared())
+            return error(t);
+
+        writeBasicType(t, 'D', 'n');
     }
 
     override void visit(TypeBasic t)
@@ -974,14 +1006,18 @@ public:
         if (t.isImmutable() || t.isShared())
             return error(t);
 
-        /* __c_long and __c_ulong get special mangling
+        /* __c_(u)long(long) get special mangling
          */
         const id = t.sym.ident;
-        //printf("struct id = '%s'\n", id.toChars());
+        //printf("enum id = '%s'\n", id.toChars());
         if (id == Id.__c_long)
             return writeBasicType(t, 0, 'l');
         else if (id == Id.__c_ulong)
             return writeBasicType(t, 0, 'm');
+        else if (id == Id.__c_longlong)
+            return writeBasicType(t, 0, 'x');
+        else if (id == Id.__c_ulonglong)
+            return writeBasicType(t, 0, 'y');
 
         doSymbol(t);
     }

@@ -144,13 +144,16 @@ extern (C++) final class VoidInitExp : Expression
     }
 }
 
-// Return index of the field, or -1 if not found
-// Same as getFieldIndex, but checks for a direct match with the VarDeclaration
-extern (C++) int findFieldIndexByName(StructDeclaration sd, VarDeclaration v)
+/*************************
+ * Same as getFieldIndex, but checks for a direct match with the VarDeclaration
+ * Returns:
+ *    index of the field, or -1 if not found
+ */
+extern (C++) int findFieldIndexByName(const StructDeclaration sd, const VarDeclaration v) pure
 {
-    for (size_t i = 0; i < sd.fields.dim; ++i)
+    foreach (i, field; sd.fields)
     {
-        if (sd.fields[i] == v)
+        if (field == v)
             return cast(int)i;
     }
     return -1;
@@ -179,7 +182,8 @@ extern (C++) final class ThrownExceptionExp : Expression
     // Generate an error message when this exception is not caught
     void generateUncaughtError()
     {
-        Expression e = resolveSlice((*thrown.value.elements)[0]);
+        UnionExp ue = void;
+        Expression e = resolveSlice((*thrown.value.elements)[0], &ue);
         StringExp se = e.toStringExp();
         thrown.error("uncaught CTFE exception `%s(%s)`", thrown.type.toChars(), se ? se.toChars() : e.toChars());
         /* Also give the line where the throw statement was. We won't have it
@@ -232,19 +236,19 @@ extern (C++) final class CTFEExp : Expression
     extern (C++) static __gshared CTFEExp continueexp;
     extern (C++) static __gshared CTFEExp gotoexp;
 
-    static bool isCantExp(Expression e)
+    static bool isCantExp(const Expression e)
     {
         return e && e.op == TOK.cantExpression;
     }
 
-    static bool isGotoExp(Expression e)
+    static bool isGotoExp(const Expression e)
     {
         return e && e.op == TOK.goto_;
     }
 }
 
 // True if 'e' is CTFEExp::cantexp, or an exception
-extern (C++) bool exceptionOrCantInterpret(Expression e)
+extern (C++) bool exceptionOrCantInterpret(const Expression e)
 {
     return e && (e.op == TOK.cantExpression || e.op == TOK.thrownException);
 }
@@ -252,18 +256,19 @@ extern (C++) bool exceptionOrCantInterpret(Expression e)
 /************** Aggregate literals (AA/string/array/struct) ******************/
 // Given expr, which evaluates to an array/AA/string literal,
 // return true if it needs to be copied
-extern (C++) bool needToCopyLiteral(Expression expr)
+extern (C++) bool needToCopyLiteral(const Expression expr)
 {
+    Expression e = cast()expr;
     for (;;)
     {
-        switch (expr.op)
+        switch (e.op)
         {
         case TOK.arrayLiteral:
-            return (cast(ArrayLiteralExp)expr).ownedByCtfe == OwnedBy.code;
+            return (cast(ArrayLiteralExp)e).ownedByCtfe == OwnedBy.code;
         case TOK.assocArrayLiteral:
-            return (cast(AssocArrayLiteralExp)expr).ownedByCtfe == OwnedBy.code;
+            return (cast(AssocArrayLiteralExp)e).ownedByCtfe == OwnedBy.code;
         case TOK.structLiteral:
-            return (cast(StructLiteralExp)expr).ownedByCtfe == OwnedBy.code;
+            return (cast(StructLiteralExp)e).ownedByCtfe == OwnedBy.code;
         case TOK.string_:
         case TOK.this_:
         case TOK.variable:
@@ -274,14 +279,14 @@ extern (C++) bool needToCopyLiteral(Expression expr)
         case TOK.dotVariable:
         case TOK.slice:
         case TOK.cast_:
-            expr = (cast(UnaExp)expr).e1;
+            e = (cast(UnaExp)e).e1;
             continue;
         case TOK.concatenate:
-            return needToCopyLiteral((cast(BinExp)expr).e1) || needToCopyLiteral((cast(BinExp)expr).e2);
+            return needToCopyLiteral((cast(BinExp)e).e1) || needToCopyLiteral((cast(BinExp)e).e2);
         case TOK.concatenateAssign:
         case TOK.concatenateElemAssign:
         case TOK.concatenateDcharAssign:
-            expr = (cast(BinExp)expr).e2;
+            e = (cast(BinExp)e).e2;
             continue;
         default:
             return false;
@@ -296,12 +301,9 @@ private Expressions* copyLiteralArray(Expressions* oldelems, Expression basis = 
     CtfeStatus.numArrayAllocs++;
     auto newelems = new Expressions();
     newelems.setDim(oldelems.dim);
-    for (size_t i = 0; i < oldelems.dim; i++)
+    foreach (i, el; *oldelems)
     {
-        auto el = (*oldelems)[i];
-        if (!el)
-            el = basis;
-        (*newelems)[i] = copyLiteral(el).copy();
+        (*newelems)[i] = copyLiteral(el ? el : basis).copy();
     }
     return newelems;
 }
@@ -529,14 +531,28 @@ private UnionExp paintTypeOntoLiteralCopy(Type type, Expression lit)
     return ue;
 }
 
-extern (C++) Expression resolveSlice(Expression e)
+/*************************************
+ * If e is a SliceExp, constant fold it.
+ * Params:
+ *      e = expression to resolve
+ *      pue = if not null, store resulting expression here
+ * Returns:
+ *      resulting expression
+ */
+extern (C++) Expression resolveSlice(Expression e, UnionExp* pue = null)
 {
     if (e.op != TOK.slice)
         return e;
     SliceExp se = cast(SliceExp)e;
     if (se.e1.op == TOK.null_)
         return se.e1;
-    return Slice(e.type, se.e1, se.lwr, se.upr).copy();
+    if (pue)
+    {
+        *pue = Slice(e.type, se.e1, se.lwr, se.upr);
+        return pue.exp();
+    }
+    else
+        return Slice(e.type, se.e1, se.lwr, se.upr).copy();
 }
 
 /* Determine the array length, without interpreting it.
@@ -544,33 +560,41 @@ extern (C++) Expression resolveSlice(Expression e)
  * It's very wasteful to resolve the slice when we only
  * need the length.
  */
-extern (C++) uinteger_t resolveArrayLength(Expression e)
+extern (C++) uinteger_t resolveArrayLength(const Expression e)
 {
-    if (e.op == TOK.vector)
-        e = (cast(VectorExp)e).e1;
-    if (e.op == TOK.null_)
-        return 0;
-    if (e.op == TOK.slice)
+    switch (e.op)
     {
-        uinteger_t ilo = (cast(SliceExp)e).lwr.toInteger();
-        uinteger_t iup = (cast(SliceExp)e).upr.toInteger();
-        return iup - ilo;
+        case TOK.vector:
+            return resolveArrayLength((cast(VectorExp)e).e1);
+
+        case TOK.null_:
+            return 0;
+
+        case TOK.slice:
+        {
+            const ilo = (cast(SliceExp)e).lwr.toInteger();
+            const iup = (cast(SliceExp)e).upr.toInteger();
+            return iup - ilo;
+        }
+
+        case TOK.string_:
+            return (cast(StringExp)e).len;
+
+        case TOK.arrayLiteral:
+        {
+            const ale = cast(ArrayLiteralExp)e;
+            return ale.elements ? ale.elements.dim : 0;
+        }
+
+        case TOK.assocArrayLiteral:
+        {
+            const ale = cast(AssocArrayLiteralExp)e;
+            return ale.keys.dim;
+        }
+
+        default:
+            assert(0);
     }
-    if (e.op == TOK.string_)
-    {
-        return (cast(StringExp)e).len;
-    }
-    if (e.op == TOK.arrayLiteral)
-    {
-        ArrayLiteralExp ale = cast(ArrayLiteralExp)e;
-        return ale.elements ? ale.elements.dim : 0;
-    }
-    if (e.op == TOK.assocArrayLiteral)
-    {
-        AssocArrayLiteralExp ale = cast(AssocArrayLiteralExp)e;
-        return ale.keys.dim;
-    }
-    assert(0);
 }
 
 /******************************
@@ -590,12 +614,12 @@ extern (C++) ArrayLiteralExp createBlockDuplicatedArrayLiteral(const ref Loc loc
     {
         // If it is a multidimensional array literal, do it recursively
         auto tsa = cast(TypeSArray)type.nextOf();
-        auto len = cast(size_t)tsa.dim.toInteger();
+        const len = cast(size_t)tsa.dim.toInteger();
         elem = createBlockDuplicatedArrayLiteral(loc, type.nextOf(), elem, len);
     }
 
     // Buzilla 15681
-    auto tb = elem.type.toBasetype();
+    const tb = elem.type.toBasetype();
     const mustCopy = tb.ty == Tstruct || tb.ty == Tsarray;
 
     auto elements = new Expressions();
@@ -662,7 +686,7 @@ extern (C++) TypeAArray toBuiltinAAType(Type t)
 
 /************** TypeInfo operations ************************************/
 // Return true if type is TypeInfo_Class
-extern (C++) bool isTypeInfo_Class(Type type)
+extern (C++) bool isTypeInfo_Class(const Type type)
 {
     return type.ty == Tclass && (Type.dtypeinfo == (cast(TypeClass)type).sym || Type.dtypeinfo.isBaseOf((cast(TypeClass)type).sym, null));
 }
@@ -727,16 +751,17 @@ extern (C++) Expression getAggregateFromPointer(Expression e, dinteger_t* ofs)
         *ofs = (cast(SymOffExp)e).offset;
     if (e.op == TOK.dotVariable)
     {
-        Expression ex = (cast(DotVarExp)e).e1;
-        VarDeclaration v = (cast(DotVarExp)e).var.isVarDeclaration();
+        const ex = (cast(DotVarExp)e).e1;
+        const v = (cast(DotVarExp)e).var.isVarDeclaration();
         assert(v);
-        StructLiteralExp se = ex.op == TOK.classReference ? (cast(ClassReferenceExp)ex).value : cast(StructLiteralExp)ex;
+        StructLiteralExp se = (ex.op == TOK.classReference)
+            ? (cast(ClassReferenceExp)ex).value
+            : cast(StructLiteralExp)ex;
+
         // We can't use getField, because it makes a copy
-        uint i;
-        if (ex.op == TOK.classReference)
-            i = (cast(ClassReferenceExp)ex).getFieldIndex(e.type, v.offset);
-        else
-            i = se.getFieldIndex(e.type, v.offset);
+        const i = (ex.op == TOK.classReference)
+            ? (cast(ClassReferenceExp)ex).getFieldIndex(e.type, v.offset)
+            : se.getFieldIndex(e.type, v.offset);
         e = (*se.elements)[i];
     }
     if (e.op == TOK.index)
@@ -789,26 +814,25 @@ extern (C++) bool pointToSameMemoryBlock(Expression agg1, Expression agg2)
 // return e1 - e2 as an integer, or error if not possible
 extern (C++) UnionExp pointerDifference(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
-    UnionExp ue;
+    UnionExp ue = void;
     dinteger_t ofs1, ofs2;
     Expression agg1 = getAggregateFromPointer(e1, &ofs1);
     Expression agg2 = getAggregateFromPointer(e2, &ofs2);
     if (agg1 == agg2)
     {
         Type pointee = (cast(TypePointer)agg1.type).next;
-        dinteger_t sz = pointee.size();
+        const sz = pointee.size();
         emplaceExp!(IntegerExp)(&ue, loc, (ofs1 - ofs2) * sz, type);
     }
-    else if (agg1.op == TOK.string_ && agg2.op == TOK.string_)
+    else if (agg1.op == TOK.string_ && agg2.op == TOK.string_ &&
+             (cast(StringExp)agg1).string == (cast(StringExp)agg2).string)
     {
-        if ((cast(StringExp)agg1).string == (cast(StringExp)agg2).string)
-        {
-            Type pointee = (cast(TypePointer)agg1.type).next;
-            dinteger_t sz = pointee.size();
-            emplaceExp!(IntegerExp)(&ue, loc, (ofs1 - ofs2) * sz, type);
-        }
+        Type pointee = (cast(TypePointer)agg1.type).next;
+        const sz = pointee.size();
+        emplaceExp!(IntegerExp)(&ue, loc, (ofs1 - ofs2) * sz, type);
     }
-    else if (agg1.op == TOK.symbolOffset && agg2.op == TOK.symbolOffset && (cast(SymOffExp)agg1).var == (cast(SymOffExp)agg2).var)
+    else if (agg1.op == TOK.symbolOffset && agg2.op == TOK.symbolOffset &&
+             (cast(SymOffExp)agg1).var == (cast(SymOffExp)agg2).var)
     {
         emplaceExp!(IntegerExp)(&ue, loc, ofs1 - ofs2, type);
     }
@@ -832,9 +856,9 @@ extern (C++) UnionExp pointerArithmetic(const ref Loc loc, TOK op, Type type, Ex
         emplaceExp!(CTFEExp)(&ue, TOK.cantExpression);
         return ue;
     }
-    dinteger_t ofs1;
     if (eptr.op == TOK.address)
         eptr = (cast(AddrExp)eptr).e1;
+    dinteger_t ofs1;
     Expression agg1 = getAggregateFromPointer(eptr, &ofs1);
     if (agg1.op == TOK.symbolOffset)
     {
@@ -945,8 +969,8 @@ extern (C++) int comparePointers(TOK op, Expression agg1, dinteger_t ofs1, Expre
         }
         return n;
     }
-    bool null1 = (agg1.op == TOK.null_);
-    bool null2 = (agg2.op == TOK.null_);
+    const null1 = (agg1.op == TOK.null_);
+    const null2 = (agg2.op == TOK.null_);
     int cmp;
     if (null1 || null2)
     {
@@ -1129,14 +1153,14 @@ private int ctfeCmpArrays(const ref Loc loc, Expression e1, Expression e2, uinte
     // Comparing two array literals. This case is potentially recursive.
     // If they aren't strings, we just need an equality check rather than
     // a full cmp.
-    bool needCmp = ae1.type.nextOf().isintegral();
-    for (size_t i = 0; i < cast(size_t)len; i++)
+    const bool needCmp = ae1.type.nextOf().isintegral();
+    foreach (size_t i; 0 .. cast(size_t)len)
     {
         Expression ee1 = (*ae1.elements)[cast(size_t)(lo1 + i)];
         Expression ee2 = (*ae2.elements)[cast(size_t)(lo2 + i)];
         if (needCmp)
         {
-            sinteger_t c = ee1.toInteger() - ee2.toInteger();
+            const sinteger_t c = ee1.toInteger() - ee2.toInteger();
             if (c > 0)
                 return 1;
             if (c < 0)
@@ -1165,7 +1189,7 @@ private FuncDeclaration funcptrOf(Expression e)
     return null;
 }
 
-private bool isArray(Expression e)
+private bool isArray(const Expression e)
 {
     return e.op == TOK.arrayLiteral || e.op == TOK.string_ || e.op == TOK.slice || e.op == TOK.null_;
 }
@@ -1232,15 +1256,15 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2)
     }
     if (isArray(e1) && isArray(e2))
     {
-        uinteger_t len1 = resolveArrayLength(e1);
-        uinteger_t len2 = resolveArrayLength(e2);
+        const uinteger_t len1 = resolveArrayLength(e1);
+        const uinteger_t len2 = resolveArrayLength(e2);
         // workaround for dmc optimizer bug calculating wrong len for
         // uinteger_t len = (len1 < len2 ? len1 : len2);
         // if (len == 0) ...
         if (len1 > 0 && len2 > 0)
         {
-            uinteger_t len = (len1 < len2 ? len1 : len2);
-            int res = ctfeCmpArrays(loc, e1, e2, len);
+            const uinteger_t len = (len1 < len2 ? len1 : len2);
+            const int res = ctfeCmpArrays(loc, e1, e2, len);
             if (res != 0)
                 return res;
         }
@@ -1282,7 +1306,7 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2)
             return 1;
         else
         {
-            for (size_t i = 0; i < es1.elements.dim; i++)
+            foreach (size_t i; 0 .. es1.elements.dim)
             {
                 Expression ee1 = (*es1.elements)[i];
                 Expression ee2 = (*es2.elements)[i];
@@ -1290,7 +1314,7 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2)
                     continue;
                 if (!ee1 || !ee2)
                     return 1;
-                int cmp = ctfeRawCmp(loc, ee1, ee2);
+                const int cmp = ctfeRawCmp(loc, ee1, ee2);
                 if (cmp)
                     return 1;
             }
@@ -1306,12 +1330,12 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2)
             return 1;
         bool* used = cast(bool*)mem.xmalloc(bool.sizeof * dim);
         memset(used, 0, bool.sizeof * dim);
-        for (size_t i = 0; i < dim; ++i)
+        foreach (size_t i; 0 .. dim)
         {
             Expression k1 = (*es1.keys)[i];
             Expression v1 = (*es1.values)[i];
             Expression v2 = null;
-            for (size_t j = 0; j < dim; ++j)
+            foreach (size_t j; 0 .. dim)
             {
                 if (used[j])
                     continue;
@@ -1338,10 +1362,7 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2)
 /// Evaluate ==, !=.  Resolves slices before comparing. Returns 0 or 1
 extern (C++) int ctfeEqual(const ref Loc loc, TOK op, Expression e1, Expression e2)
 {
-    int cmp = !ctfeRawCmp(loc, e1, e2);
-    if (op == TOK.notEqual)
-        cmp ^= 1;
-    return cmp;
+    return !ctfeRawCmp(loc, e1, e2) ^ (op == TOK.notEqual);
 }
 
 /// Evaluate is, !is.  Resolves slices before comparing. Returns 0 or 1
@@ -1409,11 +1430,11 @@ extern (C++) UnionExp ctfeCat(const ref Loc loc, Type type, Expression e1, Expre
         // [chars] ~ string => string (only valid for CTFE)
         StringExp es1 = cast(StringExp)e2;
         ArrayLiteralExp es2 = cast(ArrayLiteralExp)e1;
-        size_t len = es1.len + es2.elements.dim;
-        ubyte sz = es1.sz;
+        const len = es1.len + es2.elements.dim;
+        const sz = es1.sz;
         void* s = mem.xmalloc((len + 1) * sz);
         memcpy(cast(char*)s + sz * es2.elements.dim, es1.string, es1.len * sz);
-        for (size_t i = 0; i < es2.elements.dim; i++)
+        foreach (size_t i; 0 .. es2.elements.dim)
         {
             Expression es2e = (*es2.elements)[i];
             if (es2e.op != TOK.int64)
@@ -1439,11 +1460,11 @@ extern (C++) UnionExp ctfeCat(const ref Loc loc, Type type, Expression e1, Expre
         // Concatenate the strings
         StringExp es1 = cast(StringExp)e1;
         ArrayLiteralExp es2 = cast(ArrayLiteralExp)e2;
-        size_t len = es1.len + es2.elements.dim;
-        ubyte sz = es1.sz;
+        const len = es1.len + es2.elements.dim;
+        const sz = es1.sz;
         void* s = mem.xmalloc((len + 1) * sz);
         memcpy(s, es1.string, es1.len * sz);
-        for (size_t i = 0; i < es2.elements.dim; i++)
+        foreach (size_t i; 0 .. es2.elements.dim)
         {
             Expression es2e = (*es2.elements)[i];
             if (es2e.op != TOK.int64)
@@ -1451,7 +1472,7 @@ extern (C++) UnionExp ctfeCat(const ref Loc loc, Type type, Expression e1, Expre
                 emplaceExp!(CTFEExp)(&ue, TOK.cantExpression);
                 return ue;
             }
-            dinteger_t v = es2e.toInteger();
+            const v = es2e.toInteger();
             Port.valcpy(cast(char*)s + (es1.len + i) * sz, v, sz);
         }
         // Add terminating 0
@@ -1499,9 +1520,9 @@ extern (C++) Expression findKeyInAA(const ref Loc loc, AssocArrayLiteralExp ae, 
      */
     for (size_t i = ae.keys.dim; i;)
     {
-        i--;
+        --i;
         Expression ekey = (*ae.keys)[i];
-        int eq = ctfeEqual(loc, TOK.equal, ekey, e2);
+        const int eq = ctfeEqual(loc, TOK.equal, ekey, e2);
         if (eq)
         {
             return (*ae.values)[i];
@@ -1631,7 +1652,7 @@ extern (C++) void assignInPlace(Expression dest, Expression src)
     else
         assert(0);
     assert(oldelems.dim == newelems.dim);
-    for (size_t i = 0; i < oldelems.dim; ++i)
+    foreach (size_t i; 0 .. oldelems.dim)
     {
         Expression e = (*newelems)[i];
         Expression o = (*oldelems)[i];
@@ -1703,8 +1724,8 @@ extern (C++) UnionExp changeArrayLiteralLength(const ref Loc loc, TypeArray arra
         StringExp oldse = cast(StringExp)oldval;
         void* s = mem.xcalloc(newlen + 1, oldse.sz);
         memcpy(s, oldse.string, copylen * oldse.sz);
-        uint defaultValue = cast(uint)defaultElem.toInteger();
-        for (size_t elemi = copylen; elemi < newlen; ++elemi)
+        const defaultValue = cast(uint)defaultElem.toInteger();
+        foreach (size_t elemi; copylen .. newlen)
         {
             switch (oldse.sz)
             {
@@ -1734,7 +1755,7 @@ extern (C++) UnionExp changeArrayLiteralLength(const ref Loc loc, TypeArray arra
         {
             assert(oldval.op == TOK.arrayLiteral);
             ArrayLiteralExp ae = cast(ArrayLiteralExp)oldval;
-            for (size_t i = 0; i < copylen; i++)
+            foreach (size_t i; 0 .. copylen)
                 (*elements)[i] = (*ae.elements)[indxlo + i];
         }
         if (elemType.ty == Tstruct || elemType.ty == Tsarray)
@@ -1742,12 +1763,12 @@ extern (C++) UnionExp changeArrayLiteralLength(const ref Loc loc, TypeArray arra
             /* If it is an aggregate literal representing a value type,
              * we need to create a unique copy for each element
              */
-            for (size_t i = copylen; i < newlen; i++)
+            foreach (size_t i; copylen .. newlen)
                 (*elements)[i] = copyLiteral(defaultElem).copy();
         }
         else
         {
-            for (size_t i = copylen; i < newlen; i++)
+            foreach (size_t i; copylen .. newlen)
                 (*elements)[i] = defaultElem;
         }
         emplaceExp!(ArrayLiteralExp)(&ue, loc, elements);
@@ -1811,7 +1832,7 @@ extern (C++) bool isCtfeValueValid(Expression newval)
     if (newval.op == TOK.slice)
     {
         // e1 should be an array aggregate
-        SliceExp se = cast(SliceExp)newval;
+        const SliceExp se = cast(SliceExp)newval;
         assert(se.lwr && se.lwr.op == TOK.int64);
         assert(se.upr && se.upr.op == TOK.int64);
         return (tb.ty == Tarray || tb.ty == Tsarray) && (se.e1.op == TOK.string_ || se.e1.op == TOK.arrayLiteral);
@@ -1828,14 +1849,14 @@ extern (C++) bool isCtfeReferenceValid(Expression newval)
         return true;
     if (newval.op == TOK.variable)
     {
-        VarDeclaration v = (cast(VarExp)newval).var.isVarDeclaration();
+        const VarDeclaration v = (cast(VarExp)newval).var.isVarDeclaration();
         assert(v);
         // Must not be a reference to a reference
         return true;
     }
     if (newval.op == TOK.index)
     {
-        Expression eagg = (cast(IndexExp)newval).e1;
+        const Expression eagg = (cast(IndexExp)newval).e1;
         return eagg.op == TOK.string_ || eagg.op == TOK.arrayLiteral || eagg.op == TOK.assocArrayLiteral;
     }
     if (newval.op == TOK.dotVariable)
@@ -1967,11 +1988,11 @@ extern (C++) UnionExp voidInitLiteral(Type t, VarDeclaration var)
         Expression elem = voidInitLiteral(tsa.next, var).copy();
         // For aggregate value types (structs, static arrays) we must
         // create an a separate copy for each element.
-        bool mustCopy = (elem.op == TOK.arrayLiteral || elem.op == TOK.structLiteral);
+        const mustCopy = (elem.op == TOK.arrayLiteral || elem.op == TOK.structLiteral);
         auto elements = new Expressions();
-        size_t d = cast(size_t)tsa.dim.toInteger();
+        const d = cast(size_t)tsa.dim.toInteger();
         elements.setDim(d);
-        for (size_t i = 0; i < d; i++)
+        foreach (i; 0 .. d)
         {
             if (mustCopy && i > 0)
                 elem = copyLiteral(elem).copy();
@@ -1987,7 +2008,7 @@ extern (C++) UnionExp voidInitLiteral(Type t, VarDeclaration var)
         TypeStruct ts = cast(TypeStruct)t;
         auto exps = new Expressions();
         exps.setDim(ts.sym.fields.dim);
-        for (size_t i = 0; i < ts.sym.fields.dim; i++)
+        foreach (size_t i;  0 .. ts.sym.fields.dim)
         {
             (*exps)[i] = voidInitLiteral(ts.sym.fields[i].type, ts.sym.fields[i]).copy();
         }

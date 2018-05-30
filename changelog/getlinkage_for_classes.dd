@@ -1,0 +1,12 @@
+__traits(getLinkage, ...) now works on classes and interfaces.
+
+It is now possible to detect the language ABI specified for a class or interface.
+
+---
+class MyClass {}
+extern (C++) class MyCPPClass {}
+extern (C++) interface MyCPPInterface {}
+static assert(__traits(getLinkage, MyClass) == "D");
+static assert(__traits(getLinkage, MyCPPClass) == "C++");
+static assert(__traits(getLinkage, MyCPPInterface) == "C++");
+---

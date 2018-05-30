@@ -811,7 +811,7 @@ void test13840() nothrow
             func13840();        // throwable function call
         }
     }
-    catch
+    catch(Throwable)
     {}
 }
 
