@@ -58,13 +58,19 @@ if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStati
     //ubyteble array (arithmetic types and structs without toHash) CTFE ready for arithmetic types and structs without reference fields
     {
         auto bytes = toUbyte(val);
-        return bytesHash(bytes.ptr, bytes.length, seed);
+        return (() @trusted => bytesHash(bytes.ptr, bytes.length, seed))();
     }
     else //Other types. CTFE unsupported
     {
         assert(!__ctfe, "unable to compute hash of "~T.stringof);
         return bytesHash(val.ptr, ElementType.sizeof*val.length, seed);
     }
+}
+
+@nogc nothrow pure @safe unittest // issue 18918
+{
+    // Check hashOf dynamic array of scalars is usable in @safe code.
+    const _ = hashOf("abc");
 }
 
 //arithmetic type hash
