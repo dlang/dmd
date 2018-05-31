@@ -12,7 +12,7 @@ import imports.test15785;
 
 class Derived : Base, IBase2
 {
-    super.T t;
+    typeof(super).T t;
     Base.T t2;
     IBase2.T t3;
 }
