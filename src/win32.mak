@@ -192,7 +192,7 @@ GLUEOBJ=
 
 # D back end
 GBACKOBJ= $G/go.obj $G/gdag.obj $G/gother.obj $G/gflow.obj $G/gloop.obj $G/var.obj $G/el.obj \
-	$G/newman.obj $G/glocal.obj $G/os.obj $G/nteh.obj $G/evalu8.obj $G/cgcs.obj \
+	$G/newman.obj $G/glocal.obj $G/os.obj $G/nteh.obj $G/evalu8.obj $G/fp.obj $G/cgcs.obj \
 	$G/rtlsym.obj $G/cgelem.obj $G/cgen.obj $G/cgreg.obj $G/out.obj \
 	$G/blockopt.obj $G/cgobj.obj $G/cg.obj $G/cgcv.obj $G/type.obj $G/dt.obj \
 	$G/debug.obj $G/code.obj $G/cg87.obj $G/cgxmm.obj $G/cgsched.obj $G/ee.obj $G/csymbol.obj \
@@ -232,7 +232,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\compress.c $C\cgreg.c $C\var.c \
 	$C\cgsched.c $C\cod1.c $C\cod2.c $C\cod3.c $C\cod4.c $C\cod5.c \
 	$C\code.c $C\symbol.c $C\debug.c $C\dt.c $C\ee.c $C\el.c \
-	$C\evalu8.c $C\go.c $C\gflow.c $C\gdag.c \
+	$C\evalu8.c $C\fp.c $C\go.c $C\gflow.c $C\gdag.c \
 	$C\gother.c $C\glocal.c $C\gloop.c $C\gsroa.c $C\newman.c \
 	$C\nteh.c $C\os.c $C\out.c $C\outbuf.c $C\ptrntab.c $C\rtlsym.c \
 	$C\type.c $C\melf.h $C\mach.h $C\mscoff.h $C\bcomplex.h \
@@ -536,6 +536,9 @@ $G/el.obj : $C\rtlsym.h $C\el.h $C\el.c
 
 $G/evalu8.obj : $C\evalu8.c
 	$(CC) -c -o$@ $(MFLAGS) $C\evalu8
+
+$G/fp.obj : $C\fp.c
+	$(CC) -c -o$@ $(MFLAGS) $C\fp
 
 $G/go.obj : $C\go.c
 	$(CC) -c -o$@ $(MFLAGS) $C\go
