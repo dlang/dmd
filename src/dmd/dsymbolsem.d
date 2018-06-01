@@ -2169,6 +2169,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return errorReturn();
         }
         assert(em.ed);
+
         em.ed.dsymbolSemantic(sc);
         if (em.ed.errors)
             return errorReturn();
@@ -2184,8 +2185,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         em.protection = em.ed.isAnonymous() ? em.ed.protection : Prot(Prot.Kind.public_);
         em.linkage = LINK.d;
-        em.storage_class = STC.manifest;
-        em.userAttribDecl = em.ed.isAnonymous() ? em.ed.userAttribDecl : null;
+        em.storage_class |= STC.manifest;
+
+        // https://issues.dlang.org/show_bug.cgi?id=9701
+        if (em.ed.isAnonymous())
+        {
+            if (em.userAttribDecl)
+                em.userAttribDecl.userAttribDecl = em.ed.userAttribDecl;
+            else
+                em.userAttribDecl = em.ed.userAttribDecl;
+        }
 
         // The first enum member is special
         bool first = (em == (*em.ed.members)[0]);

@@ -1,0 +1,24 @@
+D now supports deprecated, @disable and user-defined attributes on enum members
+
+Example
+---
+template AliasSeq(TList...)
+{
+    alias AliasSeq = TList;
+}
+
+enum MyEnum
+{
+    @("uda0") value0,
+    @disable value1,
+    deprecated value2  // Deprecation: enum member `main.MyEnum.value2` is deprecated
+}
+
+static assert(__traits(getAttributes, MyEnum.value0) == AliasSeq!("uda0"));
+
+void main()
+{
+    auto v1 = MyEnum.value1;  // Error: enum member `main.MyEnum.value1` cannot be used because it is annotated with `@disable`
+}
+---
+
