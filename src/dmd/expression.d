@@ -5770,7 +5770,7 @@ extern (C++) final class AddrExp : UnaExp
 
     extern (D) this(const ref Loc loc, Expression e, Type t)
     {
-        super(loc, TOK.address, __traits(classInstanceSize, AddrExp), e);
+        this(loc, e);
         type = t;
     }
 
