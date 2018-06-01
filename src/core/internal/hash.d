@@ -94,7 +94,7 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && __traits
 @trusted nothrow pure
 size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && is(T : typeof(null)))
 {
-    return hashOf(cast(void*)null);
+    return hashOf(cast(void*)null, seed);
 }
 
 //Pointers hash. CTFE unsupported if not null
@@ -107,7 +107,7 @@ if (!is(T == enum) && is(T V : V*) && !is(T : typeof(null))
     {
         if(val is null)
         {
-            return hashOf(cast(size_t)0);
+            return hashOf(cast(size_t)0, seed);
         }
         else
         {
@@ -115,7 +115,7 @@ if (!is(T == enum) && is(T V : V*) && !is(T : typeof(null))
         }
 
     }
-    return hashOf(cast(size_t)val);
+    return hashOf(cast(size_t)val, seed);
 }
 
 //struct or union hash
@@ -394,6 +394,8 @@ unittest
     assert(h28 == rth28);
     assert(h29 == rth29);*/
     assert(h30 == rth30);
+
+    assert(hashOf(null, 0) != hashOf(null, 123456789)); // issue 18932
 }
 
 
