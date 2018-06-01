@@ -348,7 +348,7 @@ else
 endif
 
 BACK_OBJS = go.o gdag.o gother.o gflow.o gloop.o gsroa.o var.o el.o \
-	glocal.o os.o nteh.o evalu8.o cgcs.o \
+	glocal.o os.o nteh.o evalu8.o fp.o cgcs.o \
 	rtlsym.o cgelem.o cgen.o cgreg.o out.o \
 	blockopt.o cg.o type.o dt.o \
 	debug.o code.o ee.o symbol.o \
@@ -393,7 +393,7 @@ BACK_SRC = \
 	$C/compress.c $C/cgreg.c $C/var.c $C/strtold.c \
 	$C/cgsched.c $C/cod1.c $C/cod2.c $C/cod3.c $C/cod4.c $C/cod5.c \
 	$C/code.c $C/symbol.c $C/debug.c $C/dt.c $C/ee.c $C/el.c \
-	$C/evalu8.c $C/go.c $C/gflow.c $C/gdag.c \
+	$C/evalu8.c $C/fp.c $C/go.c $C/gflow.c $C/gdag.c \
 	$C/gother.c $C/glocal.c $C/gloop.c $C/gsroa.c $C/newman.c \
 	$C/nteh.c $C/os.c $C/out.c $C/outbuf.c $C/ptrntab.c $C/rtlsym.c \
 	$C/type.c $C/melf.h $C/mach.h $C/mscoff.h $C/bcomplex.h \

@@ -15,33 +15,6 @@
 #include        <stdlib.h>
 #include        <stdio.h>
 #include        <string.h>
-#include        <float.h>
-#include        <time.h>
-
-#if defined __OpenBSD__
-    #include <sys/param.h>
-    #if OpenBSD < 201111 // 5.0
-        #define HAVE_FENV_H 0
-    #else
-        #define HAVE_FENV_H 1
-    #endif
-#elif _MSC_VER
-    #define HAVE_FENV_H 0
-#else
-    #define HAVE_FENV_H 1
-#endif
-
-#if HAVE_FENV_H
-#include        <fenv.h>
-#endif
-
-#if __DMC__
-#include        <fp.h>
-#endif
-
-#if __FreeBSD__ || __OpenBSD__ || __DragonFly__
-#define fmodl fmod
-#endif
 
 #if _MSC_VER
 #define isnan _isnan
@@ -63,76 +36,15 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 extern void error(const char *filename, unsigned linnum, unsigned charnum, const char *format, ...);
 
-#if __DMC__
-    #define HAVE_FLOAT_EXCEPT 1
-
-    static int testFE()
-    {
-        return _status87() & 0x3F;
-    }
-
-    static void clearFE()
-    {
-        _clear87();
-    }
-#elif HAVE_FENV_H
-    #define HAVE_FLOAT_EXCEPT 1
-
-    static int testFE()
-    {
-        return fetestexcept(FE_ALL_EXCEPT);
-    }
-
-    static void clearFE()
-    {
-        feclearexcept(FE_ALL_EXCEPT);
-    }
-#elif defined _MSC_VER && TX86
-    #define HAVE_FLOAT_EXCEPT 1
-
-    static int testFE()
-    {
-        return (ld_statusfpu() | _statusfp()) & 0x3F;
-    }
-
-    static void clearFE()
-    {
-        _clearfp();
-        ld_clearfpu();
-    }
-#else
-    #define HAVE_FLOAT_EXCEPT 0
-    static int  testFE() { return 1; }
-    static void clearFE() { }
-#endif
+// fp.c
+int testFE();
+void clearFE();
+int statusFE();
+bool have_float_except();
+targ_ldouble _modulo(targ_ldouble x, targ_ldouble y);
 
 
 elem * evalu8(elem *, goal_t);
-
-/************************************
- * Helper to do % for long doubles.
- */
-
-#if __DMC__
-longdouble _modulo(longdouble x, longdouble y)
-{   short sw;
-
-    __asm
-    {
-        fld     tbyte ptr y
-        fld     tbyte ptr x             // ST = x, ST1 = y
-FM1:    // We don't use fprem1 because for some inexplicable
-        // reason we get -5 when we do _modulo(15, 10)
-        fprem                           // ST = ST % ST1
-        fstsw   word ptr sw
-        fwait
-        mov     AH,byte ptr sw+1        // get msb of status word in AH
-        sahf                            // transfer to flags
-        jp      FM1                     // continue till ST < ST1
-        fstp    ST(1)                   // leave remainder on stack
-    }
-}
-#endif
 
 /**********************
  * Return boolean result of constant elem.
@@ -144,7 +56,7 @@ int boolres(elem *e)
     //printf("boolres()\n");
     //elem_print(e);
     elem_debug(e);
-//    assert((_status87() & 0x3800) == 0);
+    assert((statusFE() & 0x3800) == 0);
     switch (e->Eoper)
     {
         case OPrelconst:
@@ -371,7 +283,7 @@ elem * evalu8(elem *e, goal_t goal)
     targ_ldouble d1,d2;
     elem esave;
 
-//    assert((_status87() & 0x3800) == 0);
+    assert((statusFE() & 0x3800) == 0);
     assert(e && EOP(e));
     op = e->Eoper;
     elem_debug(e);
@@ -1187,11 +1099,7 @@ elem * evalu8(elem *e, goal_t goal)
                     break;
                 case TYldouble:
                 case TYildouble:
-#if __DMC__
                     e->EV.Vldouble = _modulo(d1, d2);
-#else
-                    e->EV.Vldouble = fmodl(d1, d2);
-#endif
                     break;
                 case TYcfloat:
                     switch (tym2)
@@ -1222,13 +1130,8 @@ elem * evalu8(elem *e, goal_t goal)
                     {
                         case TYldouble:
                         case TYildouble:
-#if __DMC__
                             e->EV.Vcldouble.re = _modulo(e1->EV.Vcldouble.re, d2);
                             e->EV.Vcldouble.im = _modulo(e1->EV.Vcldouble.im, d2);
-#else
-                            e->EV.Vcldouble.re = fmodl(e1->EV.Vcldouble.re, d2);
-                            e->EV.Vcldouble.im = fmodl(e1->EV.Vcldouble.im, d2);
-#endif
                             break;
                         default:
                             assert(0);
@@ -1693,11 +1596,11 @@ elem * evalu8(elem *e, goal_t goal)
         e->EV.Vdouble = (targ_ullong) l1;
         break;
     case OPd_f:
-        //assert((_status87() & 0x3800) == 0);
+        assert((statusFE() & 0x3800) == 0);
         e->EV.Vfloat = e1->EV.Vdouble;
         if (tycomplex(tym))
             e->EV.Vcfloat.im = e1->EV.Vcdouble.im;
-        //assert((_status87() & 0x3800) == 0);
+        assert((statusFE() & 0x3800) == 0);
         break;
     case OPf_d:
         e->EV.Vdouble = e1->EV.Vfloat;
@@ -1943,7 +1846,7 @@ elem * evalu8(elem *e, goal_t goal)
 
     if (!(goal & GOALignore_exceptions) &&
         (config.flags4 & CFG4fastfloat) == 0 && testFE() &&
-        (HAVE_FLOAT_EXCEPT || tyfloating(tym) || tyfloating(tybasic(typemask(e))))
+        (have_float_except() || tyfloating(tym) || tyfloating(tybasic(typemask(e))))
        )
     {
         // Exceptions happened. Do not fold the constants.
@@ -1951,7 +1854,7 @@ elem * evalu8(elem *e, goal_t goal)
         return e;
     }
 #if SCPP
-    else if ((flags = _status87()) & 0x3F)
+    else if ((flags = statusFE()) & 0x3F)
     {   // Should also give diagnostic warning for:
         // overflow, underflow, denormal, invalid
         if (flags & 0x04)
@@ -1967,10 +1870,8 @@ elem * evalu8(elem *e, goal_t goal)
   el_free(e1);
   if (e2)
         el_free(e2);
-#if !__GNUC__
-  //printf("2: %x\n", _status87());
-  assert((_status87() & 0x3800) == 0);
-#endif
+  //printf("2: %x\n", statusFE());
+  assert((statusFE() & 0x3800) == 0);
   //printf("evalu8() returns: "); elem_print(e);
   return e;
 }
