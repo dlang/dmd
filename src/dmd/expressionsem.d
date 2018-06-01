@@ -880,6 +880,10 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
                 }
                 if (tf.varargs == 1)
                 {
+                    // string literal -> implicit .ptr
+                    if (arg.toStringExp)
+                        arg = arg.castTo(sc, Type.tstring).castTo(sc, Type.tvoidptr);
+
                     const(char)* p = tf.linkage == LINK.c ? "extern(C)" : "extern(C++)";
                     if (arg.type.ty == Tarray)
                     {
