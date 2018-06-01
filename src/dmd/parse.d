@@ -392,6 +392,23 @@ final class Parser(AST) : Lexer
         return new AST.Dsymbols();
     }
 
+    private StorageClass parseDeprecatedAttribute(ref AST.Expression msg)
+    {
+        if (peek(&token).value != TOK.leftParentheses)
+            return AST.STC.deprecated_;
+
+        nextToken();
+        check(TOK.leftParentheses);
+        AST.Expression e = parseAssignExp();
+        check(TOK.rightParentheses);
+        if (msg)
+        {
+            error("conflicting storage class `deprecated(%s)` and `deprecated(%s)`", msg.toChars(), e.toChars());
+        }
+        msg = e;
+        return AST.STC.undefined_;
+    }
+
     AST.Dsymbols* parseDeclDefs(int once, AST.Dsymbol* pLastDecl = null, PrefixAttributes!AST* pAttrs = null)
     {
         AST.Dsymbol lastDecl = null; // used to link unittest to its previous declaration
@@ -811,20 +828,12 @@ final class Parser(AST) : Lexer
 
             case TOK.deprecated_:
                 {
-                    if (peek(&token).value != TOK.leftParentheses)
+                    AST.Expression e;
+                    if (StorageClass _stc = parseDeprecatedAttribute(pAttrs.depmsg))
                     {
-                        stc = AST.STC.deprecated_;
+                        stc = _stc;
                         goto Lstc;
                     }
-                    nextToken();
-                    check(TOK.leftParentheses);
-                    AST.Expression e = parseAssignExp();
-                    check(TOK.rightParentheses);
-                    if (pAttrs.depmsg)
-                    {
-                        error("conflicting storage class `deprecated(%s)` and `deprecated(%s)`", pAttrs.depmsg.toChars(), e.toChars());
-                    }
-                    pAttrs.depmsg = e;
                     a = parseBlock(pLastDecl, pAttrs);
                     if (pAttrs.depmsg)
                     {
@@ -2955,7 +2964,7 @@ final class Parser(AST) : Lexer
         AST.Type memtype;
         auto loc = token.loc;
 
-        //printf("Parser::parseEnum()\n");
+        // printf("Parser::parseEnum()\n");
         nextToken();
         if (token.value == TOK.identifier)
         {
@@ -2982,34 +2991,93 @@ final class Parser(AST) : Lexer
             nextToken();
         else if (token.value == TOK.leftCurly)
         {
+            bool isAnonymousEnum = !id;
+
             //printf("enum definition\n");
             e.members = new AST.Dsymbols();
             nextToken();
             const(char)* comment = token.blockComment;
             while (token.value != TOK.rightCurly)
             {
-                /* Can take the following forms:
+                /* Can take the following forms...
                  *  1. ident
                  *  2. ident = value
                  *  3. type ident = value
+                 *  ... prefixed by valid attributes
                  */
                 loc = token.loc;
 
                 AST.Type type = null;
                 Identifier ident = null;
-                Token* tp = peek(&token);
-                if (token.value == TOK.identifier && (tp.value == TOK.assign || tp.value == TOK.comma || tp.value == TOK.rightCurly))
+
+                AST.Expressions* udas;
+                StorageClass stc;
+                AST.Expression deprecationMessage;
+                enum attributeErrorMessage = "`%s` is not a valid attribute for enum members";
+                while(token.value != TOK.rightCurly
+                    && token.value != TOK.comma
+                    && token.value != TOK.assign)
                 {
-                    ident = token.ident;
-                    type = null;
-                    nextToken();
+                    switch(token.value)
+                    {
+                        case TOK.at:
+                            if (StorageClass _stc = parseAttribute(&udas))
+                            {
+                                if (_stc == AST.STC.disable)
+                                    stc |= _stc;
+                                else
+                                {
+                                    OutBuffer buf;
+                                    AST.stcToBuffer(&buf, _stc);
+                                    error(attributeErrorMessage, buf.peekString());
+                                }
+                                nextToken();
+                            }
+                            break;
+                        case TOK.deprecated_:
+                            if (StorageClass _stc = parseDeprecatedAttribute(deprecationMessage))
+                            {
+                                stc |= _stc;
+                                nextToken();
+                            }
+                            break;
+                        case TOK.identifier:
+                            Token* tp = peek(&token);
+                            if (tp.value == TOK.assign || tp.value == TOK.comma || tp.value == TOK.rightCurly)
+                            {
+                                ident = token.ident;
+                                type = null;
+                                nextToken();
+                            }
+                            else
+                            {
+                                goto default;
+                            }
+                            break;
+                        default:
+                            if (isAnonymousEnum)
+                            {
+                                type = parseType(&ident, null);
+                                if (type == AST.Type.terror)
+                                {
+                                    type = null;
+                                    nextToken();
+                                }
+                            }
+                            else
+                            {
+                                error(attributeErrorMessage, token.toChars());
+                                nextToken();
+                            }
+                            break;
+                    }
                 }
-                else
+
+                if (type && type != AST.Type.terror)
                 {
-                    type = parseType(&ident, null);
                     if (!ident)
                         error("no identifier for declarator `%s`", type.toChars());
-                    if (id || memtype)
+                    if (!isAnonymousEnum)
                         error("type only allowed if anonymous enum and no enum type");
                 }
 
@@ -3022,11 +3090,19 @@ final class Parser(AST) : Lexer
                 else
                 {
                     value = null;
-                    if (type)
+                    if (type && type != AST.Type.terror && isAnonymousEnum)
                         error("if type, there must be an initializer");
                 }
 
-                auto em = new AST.EnumMember(loc, ident, value, type);
+                AST.UserAttributeDeclaration uad;
+                if (udas)
+                    uad = new AST.UserAttributeDeclaration(udas, null);
+
+                AST.DeprecatedDeclaration dd;
+                if (deprecationMessage)
+                    dd = new AST.DeprecatedDeclaration(deprecationMessage, null);
+
+                auto em = new AST.EnumMember(loc, ident, value, type, stc, uad, dd);
                 e.members.push(em);
 
                 if (token.value == TOK.rightCurly)

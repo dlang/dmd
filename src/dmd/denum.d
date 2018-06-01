@@ -14,6 +14,7 @@ module dmd.denum;
 
 import core.stdc.stdio;
 
+import dmd.attrib;
 import dmd.gluelayer;
 import dmd.declaration;
 import dmd.dscope;
@@ -374,12 +375,22 @@ extern (C++) final class EnumMember : VarDeclaration
     Type origType;
 
     EnumDeclaration ed;
+    bool isdeprecated;
 
     extern (D) this(const ref Loc loc, Identifier id, Expression value, Type origType)
     {
         super(loc, null, id ? id : Id.empty, new ExpInitializer(loc, value));
         this.origValue = value;
         this.origType = origType;
+    }
+
+    extern(D) this(Loc loc, Identifier id, Expression value, Type memtype,
+        StorageClass stc, UserAttributeDeclaration uad, DeprecatedDeclaration dd)
+    {
+        this(loc, id, value, memtype);
+        storage_class = stc;
+        userAttribDecl = uad;
+        depdecl = dd;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
@@ -396,6 +407,9 @@ extern (C++) final class EnumMember : VarDeclaration
     Expression getVarExp(const ref Loc loc, Scope* sc)
     {
         dsymbolSemantic(this, sc);
+        if (errors)
+            return new ErrorExp();
+        checkDisabled(loc, sc);
         if (errors)
             return new ErrorExp();
         Expression e = new VarExp(loc, this);

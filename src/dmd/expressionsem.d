@@ -2494,12 +2494,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             printf("VarExp::semantic(%s)\n", e.toChars());
         }
-        if (auto fd = e.var.isFuncDeclaration())
-        {
-            //printf("L%d fd = %s\n", __LINE__, f.toChars());
-            if (!fd.functionSemantic())
-                return setError();
-        }
 
         if (!e.type)
             e.type = e.var.type;
@@ -2511,6 +2505,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          * variables as alias template parameters.
          */
         //checkAccess(loc, sc, NULL, var);
+
+        e.checkDeprecated(sc, e.var);
 
         if (auto vd = e.var.isVarDeclaration())
         {
@@ -2524,6 +2520,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else if (auto fd = e.var.isFuncDeclaration())
         {
+            //printf("L%d fd = %s\n", __LINE__, f.toChars());
+            if (!fd.functionSemantic())
+                return setError();
+
             // TODO: If fd isn't yet resolved its overload, the checkNestedReference
             // call would cause incorrect validation.
             // Maybe here should be moved in CallExp, or AddrExp for functions.
