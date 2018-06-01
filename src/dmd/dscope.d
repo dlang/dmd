@@ -597,7 +597,7 @@ struct Scope
     }
 
     /********************************************
-     * Search enclosing scopes for ClassDeclaration.
+     * Search enclosing scopes for Struct/ClassDeclaration.
      */
     extern (C++) AggregateDeclaration getStructClassScope()
     {
