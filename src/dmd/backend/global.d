@@ -24,12 +24,11 @@ import dmd.backend.cc;
 import dmd.backend.cc : Symbol, block, Classsym, Blockx;
 import dmd.backend.code_x86 : code;
 import dmd.backend.code;
+import dmd.backend.dlist;
 import dmd.backend.el;
 import dmd.backend.el : elem;
 import dmd.backend.type;
 //import dmd.backend.obj;
-
-import dmd.tk.dlist;
 
 extern __gshared
 {

@@ -174,13 +174,7 @@
     <ClCompile Include="..\dmd\tk\filespec.c">
       <Filter>dmd\tk</Filter>
     </ClCompile>
-    <ClCompile Include="..\dmd\tk\list.c">
-      <Filter>dmd\tk</Filter>
-    </ClCompile>
     <ClCompile Include="..\dmd\tk\mem.c">
-      <Filter>dmd\tk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dmd\tk\vec.c">
       <Filter>dmd\tk</Filter>
     </ClCompile>
     <ClCompile Include="..\dmd\root\newdelete.c">
