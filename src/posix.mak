@@ -359,7 +359,7 @@ BACK_OBJS = go.o gdag.o gother.o gflow.o gloop.o gsroa.o var.o el.o \
 	ph2.o util2.o tk.o strtold.o md5.o \
 	$(TARGET_OBJS)
 
-BACK_DOBJS = divcoeff.o
+BACK_DOBJS = divcoeff.o dvec.o
 
 G_OBJS  = $(addprefix $G/, $(BACK_OBJS))
 G_DOBJS = $(addprefix $G/, $(BACK_DOBJS))
@@ -403,7 +403,7 @@ BACK_SRC = \
 	$C/ti_pvoid.c $C/platform_stub.c $C/code_x86.h $C/code_stub.h \
 	$C/machobj.c $C/mscoffobj.c \
 	$C/xmm.h $C/obj.h $C/pdata.c $C/cv8.c $C/backconfig.c $C/divcoeff.d \
-	$C/varstats.c $C/varstats.h \
+	$C/varstats.c $C/varstats.h $C/dvec.d \
 	$C/md5.c $C/md5.h \
 	$C/ph2.c $C/util2.c $C/dwarfeh.c \
 	$(TARGET_CH)

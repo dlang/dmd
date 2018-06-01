@@ -9,6 +9,9 @@
 
 #include <stdio.h>   // for size_t
 
+extern "C"
+{
+
 typedef size_t vec_base_t;                     /* base type of vector  */
 typedef vec_base_t *vec_t;
 
@@ -69,6 +72,8 @@ void vec_println (vec_t v);
 #define vec_clearbit(b, v)      _inline_btr(v, b)
 #define vec_testbit(b, v)       (v && _inline_bt(v, b))
 #endif
+
+}
 
 #endif /* VEC_H */
 
