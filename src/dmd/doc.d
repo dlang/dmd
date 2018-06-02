@@ -2333,7 +2333,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf,
                     codebuf.write(buf.peekSlice().ptr + iCodeStart + 1, i - (iCodeStart + 1));
                     // escape the contents, but do not perform highlighting except for DDOC_PSYMBOL
                     highlightCode(sc, a, &codebuf, 0);
-                    escapeStrayParenthesis(s ? s.loc : Loc.initial, &codebuf, 0);
+                    escapeStrayParenthesis(s ? s.loc : Loc.initial, &codebuf, 0, false);
                     buf.remove(iCodeStart, i - iCodeStart + 1); // also trimming off the current `
                     immutable pre = "$(DDOC_BACKQUOTED ";
                     i = buf.insert(iCodeStart, pre);
@@ -2431,7 +2431,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf,
                         ++p;
                     }
                     highlightCode2(sc, a, &codebuf, 0);
-                    escapeStrayParenthesis(s ? s.loc : Loc.initial, &codebuf, 0);
+                    escapeStrayParenthesis(s ? s.loc : Loc.initial, &codebuf, 0, false);
                     buf.remove(iCodeStart, i - iCodeStart);
                     i = buf.insert(iCodeStart, codebuf.peekSlice());
                     i = buf.insert(i, ")\n");
