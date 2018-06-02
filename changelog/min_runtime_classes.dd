@@ -1,14 +1,14 @@
-Interfaces and classes can be used without the runtime if only static fields are utilized
+Interfaces and classes can be used without the runtime or in -betterC if only `static` members are utilized
 
-Prior to this release any attempt to use interfaces and/or classes without the runtime would result
+Prior to this release any attempt to use interfaces and/or classes without the runtime or in -betterC would result
 in compile-time errors due to the lack of `TypeInfo`.  However, as long as classes are not instantiated
 there is no need for `TypeInfo`.
 
 Beginning with this release the compiler will no longer emit errors about missing `TypeInfo` when
-using interfaces and/or classes as long as they are not instantiated and only `shared static` members are
+using interfaces and/or classes as long as they are not instantiated and only `static` members are
 utilized.
 
-$(B Example 1)
+$(B Example 1 - Minimal Runtime)
 ---
 module object
 
@@ -48,12 +48,42 @@ size main
    1867    1208      32    3107     c23 main
 )
 
+$(B Example 2 - -betterC)
+---
+interface I
+{
+    shared static int i;
+}
+
+class A : I
+{
+    shared static int a;
+}
+
+class B : A
+{
+    shared static int b;
+}
+
+extern(C) void main()
+{
+    B.b = B.a + B.i;
+}
+---
+
+$(CONSOLE
+dmd -betterC main.d
+size main
+   text	   data	    bss	    dec	    hex	filename
+   2738	   1200	     32	   3970	    f82	main
+)
+
 Non-shared static members can also be used, but will require a thread-local storage (TLS) implementation.
 For example, on Linux the TLS implementation is already supplied by the C runtime and C
 standard library, so, since dmd automatically calls gcc to link the final executable, it will automatically
 bring in the TLS implementation.
 
-$(B Example 2)
+$(B Example 3 - Minimal Runtime)
 ---
 module object
 
@@ -93,8 +123,45 @@ size main
    2123    1296      28    3447     d77 main
 )
 
+$(B Example 4 - -betterC)
+---
+interface I
+{
+    static int i;
+}
+
+class A : I
+{
+    static int a;
+}
+
+class B : A
+{
+    static int b;
+}
+
+void main()
+{
+    B.b = B.a + B.i;
+}
+---
+
+$(CONSOLE
+dmd -conf= -defaultlib= main.d object.d -of=main
+size main
+   text    data     bss     dec     hex filename
+   2123    1296      28    3447     d77 main
+)
+
+$(CONSOLE
+dmd -betterC main.d
+size main
+   text	   data	    bss	    dec	    hex	filename
+   3063	   1312	     28	   4403	   1133	main
+)
+
 Some platforms may require some TLS implementation code or some specialized build procedures to link
 in a TLS implementation.
 
-This will hopefully reduce friction for those using D without the runtime, porting D to new platforms,
-or using D from other langauges, while enabling more features and idioms of D to be used in those use cases.
+This will hopefully reduce friction for those using D in -betterC or without the runtime, porting D to new platforms,
+or using D from other languages, and enable more features and idioms of D to be used in those use cases.

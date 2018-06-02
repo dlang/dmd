@@ -1953,7 +1953,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         for (size_t i = 0; i < m.members.dim; i++)
         {
             Dsymbol s = (*m.members)[i];
-            //printf("\tModule('%s'): '%s'.dsymbolSemantic()\n", toChars(), s.toChars());
+            // printf("\tModule('%s'): '%s'.dsymbolSemantic()\n", m.toChars(), s.toChars());
             s.dsymbolSemantic(sc);
             m.runDeferredSemantic();
         }
@@ -4313,6 +4313,104 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (cldec.semanticRun >= PASS.semanticdone)
             return;
         int errors = global.errors;
+
+        if (cldec.ident)
+        {
+            // BUG: What if this is the wrong TypeInfo, i.e. it is nested?
+            if (cldec.ident.toChars()[0] == 'T')
+            {
+                if (cldec.ident == Id.TypeInfo)
+                {
+                    Type.dtypeinfo = cldec;
+                }
+                if (cldec.ident == Id.TypeInfo_Class)
+                {
+                    Type.typeinfoclass = cldec;
+                }
+                if (cldec.ident == Id.TypeInfo_Interface)
+                {
+                    Type.typeinfointerface = cldec;
+                }
+                if (cldec.ident == Id.TypeInfo_Struct)
+                {
+                    Type.typeinfostruct = cldec;
+                }
+                if (cldec.ident == Id.TypeInfo_Pointer)
+                {
+                    Type.typeinfopointer = cldec;
+                }
+                if (cldec.ident == Id.TypeInfo_Array)
+                {
+                    Type.typeinfoarray = cldec;
+                }
+                if (cldec.ident == Id.TypeInfo_StaticArray)
+                {
+                    Type.typeinfostaticarray = cldec;
+                }
+                if (cldec.ident == Id.TypeInfo_AssociativeArray)
+                {
+                    Type.typeinfoassociativearray = cldec;
+                }
+                if (cldec.ident == Id.TypeInfo_Enum)
+                {
+                    Type.typeinfoenum = cldec;
+                }
+                if (cldec.ident == Id.TypeInfo_Function)
+                {
+                    Type.typeinfofunction = cldec;
+                }
+                if (cldec.ident == Id.TypeInfo_Delegate)
+                {
+                    Type.typeinfodelegate = cldec;
+                }
+                if (cldec.ident == Id.TypeInfo_Tuple)
+                {
+                    Type.typeinfotypelist = cldec;
+                }
+                if (cldec.ident == Id.TypeInfo_Const)
+                {
+                    Type.typeinfoconst = cldec;
+                }
+                if (cldec.ident == Id.TypeInfo_Invariant)
+                {
+                    Type.typeinfoinvariant = cldec;
+                }
+                if (cldec.ident == Id.TypeInfo_Shared)
+                {
+                    Type.typeinfoshared = cldec;
+                }
+                if (cldec.ident == Id.TypeInfo_Wild)
+                {
+                    Type.typeinfowild = cldec;
+                }
+                if (cldec.ident == Id.TypeInfo_Vector)
+                {
+                    Type.typeinfovector = cldec;
+                }
+            }
+
+            if (cldec.ident == Id.Object)
+            {
+                cldec.object = cldec;
+            }
+
+            if (cldec.ident == Id.Throwable)
+            {
+                cldec.throwable = cldec;
+            }
+            if (cldec.ident == Id.Exception)
+            {
+                cldec.exception = cldec;
+            }
+            if (cldec.ident == Id.Error)
+            {
+                cldec.errorException = cldec;
+            }
+            if (cldec.ident == Id.cpp_type_info_ptr)
+            {
+                cldec.cpp_type_info_ptr = cldec;
+            }
+        }
 
         //printf("+ClassDeclaration.dsymbolSemantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
 

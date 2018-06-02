@@ -26,6 +26,7 @@ extern (C) void main()
     test(1);
     test18472();
     testRuntimeLowerings();
+    testInterfacesAndClasses();
 }
 
 /*******************************************/
@@ -96,7 +97,7 @@ void testRuntimeLowerings()
 
         assert(a1[0..3] == a1[3..$]);
     }
-    
+
     test__equals!int;
     test__equals!uint;
     test__equals!long;
@@ -129,7 +130,7 @@ void testRuntimeLowerings()
     test__cmp!byte;
     test__cmp!dchar;
     test__cmp!wchar;
-    
+
 
     // __cmp currently requires runtime support from `core.internal.string : dstrcmp`.
     // If that runtime dependency can be removed, the following code might work.
@@ -147,4 +148,38 @@ void testRuntimeLowerings()
     //     default:
     //         break;
     // }
+}
+
+/******************************************************
+ * tests to ensure -betterC supports interface sand classes
+ * that contain only `shared` and `static`` members
+ */
+interface I
+{
+    shared static int i;
+}
+
+class A : I
+{
+    shared static int a;
+}
+
+class B : A
+{
+    shared static int b;
+
+    static int sumAll()
+    {
+        return b + a + i;
+    }
+}
+
+void testInterfacesAndClasses()
+{
+    B.i = 32;
+    B.a = 42;
+    B.b = 52;
+
+    assert(B.i == 32 || B.a == 42 || B.b == 52);
+    assert(B.sumAll() == (32 + 42 + 52));
 }

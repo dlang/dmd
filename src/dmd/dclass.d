@@ -294,103 +294,81 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 {
                     if (!inObject)
                         error("%s", msg);
-                    Type.dtypeinfo = this;
                 }
                 if (id == Id.TypeInfo_Class)
                 {
                     if (!inObject)
                         error("%s", msg);
-                    Type.typeinfoclass = this;
                 }
                 if (id == Id.TypeInfo_Interface)
                 {
                     if (!inObject)
                         error("%s", msg);
-                    Type.typeinfointerface = this;
                 }
                 if (id == Id.TypeInfo_Struct)
                 {
                     if (!inObject)
                         error("%s", msg);
-                    Type.typeinfostruct = this;
                 }
                 if (id == Id.TypeInfo_Pointer)
                 {
                     if (!inObject)
                         error("%s", msg);
-                    Type.typeinfopointer = this;
                 }
                 if (id == Id.TypeInfo_Array)
                 {
                     if (!inObject)
                         error("%s", msg);
-                    Type.typeinfoarray = this;
-                }
-                if (id == Id.TypeInfo_StaticArray)
-                {
-                    //if (!inObject)
-                    //    Type.typeinfostaticarray.error("%s", msg);
-                    Type.typeinfostaticarray = this;
                 }
                 if (id == Id.TypeInfo_AssociativeArray)
                 {
                     if (!inObject)
                         error("%s", msg);
-                    Type.typeinfoassociativearray = this;
                 }
                 if (id == Id.TypeInfo_Enum)
                 {
                     if (!inObject)
                         error("%s", msg);
-                    Type.typeinfoenum = this;
                 }
                 if (id == Id.TypeInfo_Function)
                 {
                     if (!inObject)
                         error("%s", msg);
-                    Type.typeinfofunction = this;
                 }
                 if (id == Id.TypeInfo_Delegate)
                 {
                     if (!inObject)
                         error("%s", msg);
-                    Type.typeinfodelegate = this;
                 }
                 if (id == Id.TypeInfo_Tuple)
                 {
                     if (!inObject)
                         error("%s", msg);
-                    Type.typeinfotypelist = this;
                 }
                 if (id == Id.TypeInfo_Const)
                 {
                     if (!inObject)
                         error("%s", msg);
-                    Type.typeinfoconst = this;
                 }
                 if (id == Id.TypeInfo_Invariant)
                 {
                     if (!inObject)
                         error("%s", msg);
-                    Type.typeinfoinvariant = this;
                 }
                 if (id == Id.TypeInfo_Shared)
                 {
                     if (!inObject)
                         error("%s", msg);
-                    Type.typeinfoshared = this;
                 }
                 if (id == Id.TypeInfo_Wild)
                 {
                     if (!inObject)
                         error("%s", msg);
-                    Type.typeinfowild = this;
                 }
                 if (id == Id.TypeInfo_Vector)
                 {
                     if (!inObject)
                         error("%s", msg);
-                    Type.typeinfovector = this;
                 }
             }
 
@@ -398,32 +376,27 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             {
                 if (!inObject)
                     error("%s", msg);
-                object = this;
             }
 
             if (id == Id.Throwable)
             {
                 if (!inObject)
                     error("%s", msg);
-                throwable = this;
             }
             if (id == Id.Exception)
             {
                 if (!inObject)
                     error("%s", msg);
-                exception = this;
             }
             if (id == Id.Error)
             {
                 if (!inObject)
                     error("%s", msg);
-                errorException = this;
             }
             if (id == Id.cpp_type_info_ptr)
             {
                 if (!inObject)
                     error("%s", msg);
-                cpp_type_info_ptr = this;
             }
         }
         baseok = Baseok.none;
