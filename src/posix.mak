@@ -348,18 +348,18 @@ else
 endif
 
 BACK_OBJS = go.o gdag.o gother.o gflow.o gloop.o gsroa.o var.o el.o \
-	glocal.o os.o nteh.o evalu8.o fp.o cgcs.o \
+	glocal.o os.o nteh.o fp.o cgcs.o \
 	rtlsym.o cgelem.o cgen.o cgreg.o out.o \
 	blockopt.o cg.o type.o dt.o \
 	debug.o code.o ee.o symbol.o \
 	cgcod.o cod5.o outbuf.o compress.o \
-	bcomplex.o aa.o ti_achar.o \
+	aa.o ti_achar.o \
 	ti_pvoid.o pdata.o cv8.o backconfig.o \
 	dwarf.o dwarfeh.o varstats.o \
 	ph2.o util2.o tk.o strtold.o md5.o \
 	$(TARGET_OBJS)
 
-BACK_DOBJS = divcoeff.o dvec.o
+BACK_DOBJS = bcomplex.o evalu8.o divcoeff.o dvec.o
 
 G_OBJS  = $(addprefix $G/, $(BACK_OBJS))
 G_DOBJS = $(addprefix $G/, $(BACK_DOBJS))
@@ -378,7 +378,7 @@ GLUE_SRC = \
 	libelf.d scanelf.d libmach.d scanmach.d \
 	objc_glue.d)
 
-BACK_HDRS=$C/bcomplex.d $C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
+BACK_HDRS=$C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
 	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d $C/iasm.d \
 	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/md5.d $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d
 
@@ -388,12 +388,12 @@ BACK_SRC = \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h \
-	$C/bcomplex.c $C/blockopt.c $C/cg.c $C/cg87.c $C/cgxmm.c \
+	$C/bcomplex.d $C/blockopt.c $C/cg.c $C/cg87.c $C/cgxmm.c \
 	$C/cgcod.c $C/cgcs.c $C/cgcv.c $C/cgelem.c $C/cgen.c $C/cgobj.c \
 	$C/compress.c $C/cgreg.c $C/var.c $C/strtold.c \
 	$C/cgsched.c $C/cod1.c $C/cod2.c $C/cod3.c $C/cod4.c $C/cod5.c \
 	$C/code.c $C/symbol.c $C/debug.c $C/dt.c $C/ee.c $C/el.c \
-	$C/evalu8.c $C/fp.c $C/go.c $C/gflow.c $C/gdag.c \
+	$C/evalu8.d $C/fp.c $C/go.c $C/gflow.c $C/gdag.c \
 	$C/gother.c $C/glocal.c $C/gloop.c $C/gsroa.c $C/newman.c \
 	$C/nteh.c $C/os.c $C/out.c $C/outbuf.c $C/ptrntab.c $C/rtlsym.c \
 	$C/type.c $C/melf.h $C/mach.h $C/mscoff.h $C/bcomplex.h \

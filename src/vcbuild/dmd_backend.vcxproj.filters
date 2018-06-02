@@ -27,9 +27,6 @@
     <ClCompile Include="..\dmd\backend\aa.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
-    <ClCompile Include="..\dmd\backend\bcomplex.c">
-      <Filter>dmd\backend</Filter>
-    </ClCompile>
     <ClCompile Include="..\dmd\backend\blockopt.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
@@ -100,9 +97,6 @@
       <Filter>dmd\backend</Filter>
     </ClCompile>
     <ClCompile Include="..\dmd\backend\elfobj.c">
-      <Filter>dmd\backend</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dmd\backend\evalu8.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
     <ClCompile Include="..\dmd\backend\fp.c">
