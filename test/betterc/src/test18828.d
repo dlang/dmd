@@ -3,7 +3,7 @@
 
 struct S18828 { }
 
-void test18828()
+extern(C) void main()
 {
     S18828 s;
     destroy(s);
