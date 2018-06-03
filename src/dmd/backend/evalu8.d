@@ -115,7 +115,7 @@ version (SCPP)
                 case TYldouble:
                 {   targ_ldouble ld = el_toldoubled(e);
 
-                    if (isnan(cast(double)ld))
+                    if (isnan(ld))
                         b = 1;
                     else
                         b = (ld != 0);
@@ -289,11 +289,10 @@ elem * evalu8(elem *e, goal_t goal)
     uint op;
     targ_int i1,i2;
     targ_llong l1,l2;
-    //targ_ldouble d1,d2;
-    real d1,d2;
+    targ_ldouble d1,d2;
     elem esave = void;
 
-    static bool unordered(real d1, real d2) { return isnan(d1) || isnan(d2); }
+    static bool unordered(T)(T d1, T d2) { return isnan(d1) || isnan(d2); }
 
     assert((statusFE() & 0x3800) == 0);
     assert(e && !OTleaf(e.Eoper));
@@ -921,7 +920,7 @@ static if (0)
                             e.EV.Vfloat = -e1.EV.Vfloat / e2.EV.Vfloat;
                             break;
                         case TYcfloat:
-                            e.EV.Vcfloat.re = d1;
+                            e.EV.Vcfloat.re = cast(float)d1;
                             e.EV.Vcfloat.im = 0;
                             e.EV.Vcfloat = Complex_f.div(e.EV.Vcfloat, e2.EV.Vcfloat);
                             break;
@@ -941,7 +940,7 @@ static if (0)
                             e.EV.Vdouble = -e1.EV.Vdouble / e2.EV.Vdouble;
                             break;
                         case TYcdouble:
-                            e.EV.Vcdouble.re = d1;
+                            e.EV.Vcdouble.re = cast(double)d1;
                             e.EV.Vcdouble.im = 0;
                             e.EV.Vcdouble = Complex_d.div(e.EV.Vcdouble, e2.EV.Vcdouble);
                             break;
@@ -1149,8 +1148,8 @@ else
                     {
                         case TYldouble:
                         case TYildouble:
-                            e.EV.Vcldouble.re = _modulo(cast(real)e1.EV.Vcldouble.re, d2);
-                            e.EV.Vcldouble.im = _modulo(cast(real)e1.EV.Vcldouble.im, d2);
+                            e.EV.Vcldouble.re = _modulo(e1.EV.Vcldouble.re, d2);
+                            e.EV.Vcldouble.im = _modulo(e1.EV.Vcldouble.im, d2);
                             break;
                         default:
                             assert(0);
@@ -1272,8 +1271,8 @@ version (MARS)
             case 4:
                 if (tyfloating(tym))
                 {
-                    e.EV.Vcfloat.re = d1;
-                    e.EV.Vcfloat.im = d2;
+                    e.EV.Vcfloat.re = cast(float)d1;
+                    e.EV.Vcfloat.im = cast(float)d2;
                 }
                 else
                     e.EV.Vllong = (l2 << 32) | (l1 & 0xFFFFFFFF);
@@ -1281,8 +1280,8 @@ version (MARS)
             case 8:
                 if (tyfloating(tym))
                 {
-                    e.EV.Vcdouble.re = d1;
-                    e.EV.Vcdouble.im = d2;
+                    e.EV.Vcdouble.re = cast(double)d1;
+                    e.EV.Vcdouble.im = cast(double)d2;
                 }
                 else
                 {
@@ -1314,8 +1313,8 @@ version (MARS)
                 e.EV.Vllong = (l1 << 32) | (l2 & 0xFFFFFFFF);
                 if (tyfloating(tym))
                 {
-                    e.EV.Vcfloat.re = d2;
-                    e.EV.Vcfloat.im = d1;
+                    e.EV.Vcfloat.re = cast(float)d2;
+                    e.EV.Vcfloat.im = cast(float)d1;
                 }
                 else
                     e.EV.Vllong = (l1 << 32) | (l2 & 0xFFFFFFFF);
@@ -1323,8 +1322,8 @@ version (MARS)
             case 8:
                 if (tyfloating(tym))
                 {
-                    e.EV.Vcdouble.re = d2;
-                    e.EV.Vcdouble.im = d1;
+                    e.EV.Vcdouble.re = cast(double)d2;
+                    e.EV.Vcdouble.im = cast(double)d1;
                 }
                 else
                 {
@@ -1401,10 +1400,10 @@ else
                 e.EV.Vldouble = fabsl(d1);
                 break;
             case TYcfloat:
-                e.EV.Vfloat = Complex_f.abs(e1.EV.Vcfloat);
+                e.EV.Vfloat = cast(float)Complex_f.abs(e1.EV.Vcfloat);
                 break;
             case TYcdouble:
-                e.EV.Vdouble = Complex_d.abs(e1.EV.Vcdouble);
+                e.EV.Vdouble = cast(double)Complex_d.abs(e1.EV.Vcdouble);
                 break;
             case TYcldouble:
                 e.EV.Vldouble = Complex_ld.abs(e1.EV.Vcldouble);
@@ -1633,7 +1632,7 @@ else
     case OPld_d:
         e.EV.Vdouble = cast(double)e1.EV.Vldouble;
         if (tycomplex(tym))
-            e.EV.Vcdouble.im = e1.EV.Vcldouble.im;
+            e.EV.Vcdouble.im = cast(double)e1.EV.Vcldouble.im;
         break;
     case OPc_r:
         e.EV = e1.EV;
@@ -1940,6 +1939,13 @@ version (CRuntime_Microsoft)
     {
         return cast(targ_ldouble)fmodl(cast(real)x, cast(real)y);
     }
+    import core.stdc.math : isnan;
+    extern (D) private int isnan(targ_ldouble x)
+    {
+        return isnan(cast(real)x);
+    }
+    import core.stdc.math : fabsl;
+    import dmd.root.longdouble : fabsl; // needed if longdouble is longdouble_soft
 }
 else
 {

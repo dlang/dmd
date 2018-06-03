@@ -9,11 +9,10 @@
 
 module dmd.backend.bcomplex;
 
-//import dmd.backend.cdef : targ_ldouble;
-public import dmd.root.longdouble;
-alias targ_ldouble = longdouble;
-
-import core.stdc.math;
+public import dmd.root.longdouble : targ_ldouble = longdouble;
+import core.stdc.math : fabs, fabsl, sqrt;
+version(CRuntime_Microsoft)
+    private import dmd.root.longdouble : fabsl, sqrt; // needed if longdouble is longdouble_soft
 
 extern (C++):
 @nogc:
@@ -29,22 +28,22 @@ struct Complex_f
     static Complex_f div(ref Complex_f x, ref Complex_f y)
     {
         Complex_f q;
-        real r;
-        real den;
+        targ_ldouble r;
+        targ_ldouble den;
 
         if (fabs(y.re) < fabs(y.im))
         {
             r = y.re / y.im;
             den = y.im + r * y.re;
-            q.re = (x.re * r + x.im) / den;
-            q.im = (x.im * r - x.re) / den;
+            q.re = cast(float)((x.re * r + x.im) / den);
+            q.im = cast(float)((x.im * r - x.re) / den);
         }
         else
         {
             r = y.im / y.re;
             den = y.re + r * y.im;
-            q.re = (x.re + r * x.im) / den;
-            q.im = (x.im - r * x.re) / den;
+            q.re = cast(float)((x.re + r * x.im) / den);
+            q.im = cast(float)((x.im - r * x.re) / den);
         }
         return q;
     }
@@ -58,9 +57,9 @@ struct Complex_f
         return p;
     }
 
-    static real abs(ref Complex_f z)
+    static targ_ldouble abs(ref Complex_f z)
     {
-        real x,y,ans,temp;
+        targ_ldouble x,y,ans,temp;
 
         x = fabs(z.re);
         y = fabs(z.im);
@@ -84,7 +83,7 @@ struct Complex_f
     static Complex_f sqrtc(ref Complex_f z)
     {
         Complex_f c;
-        real x,y,w,r;
+        targ_ldouble x,y,w,r;
 
         if (z.re == 0 && z.im == 0)
         {
@@ -107,12 +106,12 @@ struct Complex_f
             }
             if (z.re >= 0)
             {
-                c.re = w;
-                c.im = z.im / (w + w);
+                c.re = cast(float)w;
+                c.im = cast(float)(targ_ldouble(z.im) / (w + w));
             }
             else
             {
-                c.im = (z.im >= 0) ? w : -w;
+                c.im = cast(float)((z.im >= 0) ? w : -w);
                 c.re = z.im / (c.im + c.im);
             }
         }
@@ -127,22 +126,22 @@ struct Complex_d
     static Complex_d div(ref Complex_d x, ref Complex_d y)
     {
         Complex_d q;
-        real r;
-        real den;
+        targ_ldouble r;
+        targ_ldouble den;
 
         if (fabs(y.re) < fabs(y.im))
         {
             r = y.re / y.im;
             den = y.im + r * y.re;
-            q.re = (x.re * r + x.im) / den;
-            q.im = (x.im * r - x.re) / den;
+            q.re = cast(double)((x.re * r + x.im) / den);
+            q.im = cast(double)((x.im * r - x.re) / den);
         }
         else
         {
             r = y.im / y.re;
             den = y.re + r * y.im;
-            q.re = (x.re + r * x.im) / den;
-            q.im = (x.im - r * x.re) / den;
+            q.re = cast(double)((x.re + r * x.im) / den);
+            q.im = cast(double)((x.im - r * x.re) / den);
         }
         return q;
     }
@@ -155,9 +154,9 @@ struct Complex_d
         return p;
     }
 
-    static real abs(ref Complex_d z)
+    static targ_ldouble abs(ref Complex_d z)
     {
-        real x,y,ans,temp;
+        targ_ldouble x,y,ans,temp;
         x = fabs(z.re);
         y = fabs(z.im);
         if (x == 0)
@@ -180,7 +179,7 @@ struct Complex_d
     static Complex_d sqrtc(ref Complex_d z)
     {
         Complex_d c;
-        real x,y,w,r;
+        targ_ldouble x,y,w,r;
 
         if (z.re == 0 && z.im == 0)
         {
@@ -203,12 +202,12 @@ struct Complex_d
             }
             if (z.re >= 0)
             {
-                c.re = w;
-                c.im = z.im / (w + w);
+                c.re = cast(double)w;
+                c.im = cast(double)(targ_ldouble(z.im) / (w + w));
             }
             else
             {
-                c.im = (z.im >= 0) ? w : -w;
+                c.im = cast(double)((z.im >= 0) ? w : -w);
                 c.re = z.im / (2 * c.im);
             }
         }
