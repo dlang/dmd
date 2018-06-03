@@ -173,7 +173,7 @@ size_t hashOf(T)(auto ref T aa, size_t seed = 0) if (!is(T == enum) && __traits(
         size_t[2] hpair;
         hpair[0] = key.hashOf();
         hpair[1] = val.hashOf();
-        h ^= hpair.hashOf();
+        h += hpair.hashOf();
     }
     return h.hashOf(seed);
 }

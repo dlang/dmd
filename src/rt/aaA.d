@@ -663,8 +663,8 @@ extern (C) hash_t _aaGetHash(in AA* aa, in TypeInfo tiRaw) nothrow
         if (!b.filled)
             continue;
         size_t[2] h2 = [b.hash, valHash(b.entry + off)];
-        // use XOR here, so that hash is independent of element order
-        h ^= hashOf(h2);
+        // use addition here, so that hash is independent of element order
+        h += hashOf(h2);
     }
     return h;
 }
