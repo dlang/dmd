@@ -879,6 +879,11 @@ private int tryMain(size_t argc, const(char)** argv)
     Library library = null;
     if (global.params.lib)
     {
+        if (global.params.objfiles.dim == 0)
+        {
+            error(Loc.initial, "no input files");
+            return EXIT_FAILURE;
+        }
         library = Library.factory();
         library.setFilename(global.params.objdir, global.params.libname);
         // Add input object and input library files to output library

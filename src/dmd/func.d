@@ -2662,9 +2662,8 @@ extern (C++) FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymb
 
     Match m;
     m.last = MATCH.nomatch;
-
-    const(char)* failMessage;
-    functionResolve(&m, s, loc, sc, tiargs, tthis, fargs, &failMessage);
+    functionResolve(&m, s, loc, sc, tiargs, tthis, fargs, null);
+    auto orig_s = s;
 
     if (m.last > MATCH.nomatch && m.lastf)
     {
@@ -2791,6 +2790,9 @@ extern (C++) FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymb
                     .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
                         fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameters, tf.varargs),
                         tf.modToChars(), fargsBuf.peekString());
+                    // re-resolve to check for supplemental message
+                    const(char)* failMessage;
+                    functionResolve(&m, orig_s, loc, sc, tiargs, tthis, fargs, &failMessage);
                     if (failMessage)
                         errorSupplemental(loc, failMessage);
                 }

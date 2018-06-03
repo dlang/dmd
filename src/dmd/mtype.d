@@ -4803,6 +4803,8 @@ extern (C++) final class TypeFunction : TypeNext
     // arguments get specially formatted
     private const(char)* getParamError(Expression arg, Parameter par)
     {
+        if (global.gag && !global.params.showGaggedErrors)
+            return null;
         // show qualification when toChars() is the same but types are different
         auto at = arg.type.toChars();
         bool qual = !arg.type.equals(par.type) && strcmp(at, par.type.toChars()) == 0;

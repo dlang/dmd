@@ -4884,17 +4884,23 @@ public:
             {
                 assert(e.arguments.dim == 1);
                 Expression ea = (*e.arguments)[0];
-                //printf("1 ea = %s %s\n", ea.type.toChars(), ea.toChars());
+                // printf("1 ea = %s %s\n", ea.type.toChars(), ea.toChars());
                 if (ea.op == TOK.slice)
                     ea = (cast(SliceExp)ea).e1;
                 if (ea.op == TOK.cast_)
                     ea = (cast(CastExp)ea).e1;
 
-                //printf("2 ea = %s, %s %s\n", ea.type.toChars(), Token::toChars(ea.op), ea.toChars());
+                // printf("2 ea = %s, %s %s\n", ea.type.toChars(), Token.toChars(ea.op), ea.toChars());
                 if (ea.op == TOK.variable || ea.op == TOK.symbolOffset)
                     result = getVarExp(e.loc, istate, (cast(SymbolExp)ea).var, ctfeNeedRvalue);
                 else if (ea.op == TOK.address)
                     result = interpret((cast(AddrExp)ea).e1, istate);
+
+                // https://issues.dlang.org/show_bug.cgi?id=18871
+                // https://issues.dlang.org/show_bug.cgi?id=18819
+                else if (ea.op == TOK.arrayLiteral)
+                    result = interpret(cast(ArrayLiteralExp)ea, istate);
+
                 else
                     assert(0);
                 if (CTFEExp.isCantExp(result))
