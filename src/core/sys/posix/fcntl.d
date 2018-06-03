@@ -98,6 +98,12 @@ version( CRuntime_Glibc )
     enum F_SETLK        = 6;
     enum F_SETLKW       = 7;
   }
+  else version(AArch64)
+  {
+    enum F_GETLK        = 5;
+    enum F_SETLK        = 6;
+    enum F_SETLKW       = 7;
+  }
   else
   static if( __USE_FILE_OFFSET64 )
   {
@@ -759,6 +765,17 @@ else version( CRuntime_Bionic )
         enum O_APPEND       = 0x400;    // octal    02000
         enum O_NONBLOCK     = 0x800;    // octal    04000
         enum O_SYNC         = 0x1000;   // octal   010000
+    }
+    else version (AArch64)
+    {
+        enum O_CREAT        = 0x40;     // octal     0100
+        enum O_EXCL         = 0x80;     // octal     0200
+        enum O_NOCTTY       = 0x100;    // octal     0400
+        enum O_TRUNC        = 0x200;    // octal    01000
+
+        enum O_APPEND       = 0x400;    // octal    02000
+        enum O_NONBLOCK     = 0x800;    // octal    04000
+        enum O_SYNC         = 0x101000; // octal 04010000
     }
     else
     {
