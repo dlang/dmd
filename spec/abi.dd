@@ -414,9 +414,9 @@ $(GNAME TypeBackRef):
 $(GNAME IdentifierBackRef):
     $(B Q) $(GLINK NumberBackRef)
 
-$(GNAME NumberTypeRef):
+$(GNAME NumberBackRef):
     $(I lower-case-letter)
-    $(I upper-case-letter) $(GLINK NumberTypeRef)
+    $(I upper-case-letter) $(GLINK NumberBackRef)
 )
 
     $(P To distinguish between the type of the back reference a look-up of the back referenced character is necessary:
