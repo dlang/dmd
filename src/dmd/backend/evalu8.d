@@ -1440,7 +1440,7 @@ else
         else
         {
             if (tyfloating(tym))
-                b = cast(int)(d1 <= d2);
+                b = cast(int)(!unordered(d1, d2) && d1 <= d2);
             else
                 b = cast(int)(l1 <= l2);
         }
@@ -1452,7 +1452,7 @@ else
     case OPge:
         if (!tyfloating(tym))
             goto Lnlt;
-        e.EV.Vint = (op == OPnge) ^ (d1 >= d2);
+        e.EV.Vint = (op == OPnge) ^ (!unordered(d1, d2) && d1 >= d2);
         break;
 
     case OPnlt:
@@ -1467,7 +1467,7 @@ else
         else
         {
             if (tyfloating(tym))
-                b = cast(int)(d1 < d2);
+                b = cast(int)(!unordered(d1, d2) && d1 < d2);
             else
                 b = cast(int)(l1 < l2);
         }
