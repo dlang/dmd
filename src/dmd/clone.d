@@ -769,7 +769,11 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
     const(char)* code =
         "size_t h = 0;" ~
         "foreach (i, T; typeof(p.tupleof))" ~
-        "    h = h * 33 + typeid(T).getHash(cast(const void*)&p.tupleof[i]);" ~
+        // workaround https://issues.dlang.org/show_bug.cgi?id=17968
+        "    static if(is(T* : const(Object)*)) " ~
+        "        h = h * 33 + typeid(const(Object)).getHash(cast(const void*)&p.tupleof[i]);" ~
+        "    else " ~
+        "        h = h * 33 + typeid(T).getHash(cast(const void*)&p.tupleof[i]);" ~
         "return h;";
     fop.fbody = new CompileStatement(loc, new StringExp(loc, cast(char*)code));
     Scope* sc2 = sc.push();

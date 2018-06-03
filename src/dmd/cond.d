@@ -416,7 +416,7 @@ extern (C++) final class StaticForeach : RootObject
      */
     final extern(D) bool ready()
     {
-        return aggrfe && aggrfe.aggr && aggrfe.aggr.type.toBasetype().ty == Ttuple;
+        return aggrfe && aggrfe.aggr && aggrfe.aggr.type && aggrfe.aggr.type.toBasetype().ty == Ttuple;
     }
 }
 
@@ -816,7 +816,6 @@ extern (C++) final class VersionCondition : DVCondition
 extern (C++) final class StaticIfCondition : Condition
 {
     Expression exp;
-    int nest;           // limit circular dependencies
 
     extern (D) this(const ref Loc loc, Expression exp)
     {
@@ -842,11 +841,6 @@ extern (C++) final class StaticIfCondition : Condition
 
         if (inc == 0)
         {
-            if (exp.op == TOK.error || nest > 100)
-            {
-                error(loc, (nest > 1000) ? "unresolvable circular `static if` expression" : "error evaluating `static if` expression");
-                return errorReturn();
-            }
             if (!sc)
             {
                 error(loc, "`static if` conditional cannot be at global scope");
@@ -854,14 +848,12 @@ extern (C++) final class StaticIfCondition : Condition
                 return 0;
             }
 
-            ++nest;
             sc = sc.push(sc.scopesym);
 
             import dmd.staticcond;
             bool errors;
             bool result = evalStaticCondition(sc, exp, exp, errors);
             sc.pop();
-            --nest;
             // Prevent repeated condition evaluation.
             // See: fail_compilation/fail7815.d
             if (inc != 0)
