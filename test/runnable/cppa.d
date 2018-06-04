@@ -1265,6 +1265,49 @@ void test16536()
 }
 
 /****************************************/
+// 15589 - extern(C++) virtual destructors are not put in vtbl[]
+
+extern(C++)
+{
+    class A15589
+    {
+        extern(D) static int[] dtorSeq;
+        struct S
+        {
+            this(int x) { this.x = x; }
+            ~this() { dtorSeq ~= x; }
+            int x;
+        }
+        int foo() { return 100; } // shift dtor to slot 1
+        ~this() { dtorSeq ~= 10; }
+        S s1 = S(1);
+        S s2 = S(2);
+    }
+    class B15589 : A15589
+    {
+        int bar() { return 200;} // add an additional function AFTER the dtor at slot 2
+        ~this() { dtorSeq ~= 20; }
+        S s3 = S(3);
+    }
+
+    void test15589b(A15589 p);
+}
+
+void test15589()
+{
+    A15589 c = new B15589;
+    assert(A15589.dtorSeq == null);
+    assert(c.foo() == 100);
+    assert((cast(B15589)c).bar() == 200);
+    c.__xdtor(); // virtual dtor call
+    assert(A15589.dtorSeq[] == [ 20, 3, 10, 2, 1 ]); // destroyed full hierarchy!
+
+    A15589.dtorSeq = null;
+    test15589b(c);
+    assert(A15589.dtorSeq[] == [ 20, 3, 10, 2, 1 ]); // destroyed full hierarchy!
+}
+
+/****************************************/
 
 void main()
 {
@@ -1308,6 +1351,7 @@ void main()
     test15372();
     test15802();
     test16536();
+    test15589();
 
     printf("Success\n");
 }
