@@ -4783,6 +4783,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         // reserve the dtor slot for the destructor (which we'll create later)
                         cldec.cppDtorVtblIndex = cast(int)cldec.vtbl.dim;
                         cldec.vtbl.push(s);
+                        if (Target.cppDeletingDestructor)
+                            cldec.vtbl.push(s); // deleting destructor uses a second slot
                     }
                 }
             }
@@ -4878,6 +4880,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             // now we've built the aggregate destructor, we'll make it virtual and assign it to the reserved vtable slot
             cldec.dtor.vtblIndex = cldec.cppDtorVtblIndex;
             cldec.vtbl[cldec.cppDtorVtblIndex] = cldec.dtor;
+
+            if (Target.cppDeletingDestructor)
+            {
+                // TODO: create a C++ compatible deleting destructor (call out to `operator delete`)
+                //       for the mooment, we'll call the non-deleting destructor and leak
+                cldec.vtbl[cldec.cppDtorVtblIndex + 1] = cldec.dtor;
+            }
         }
 
         if (auto f = hasIdentityOpAssign(cldec, sc2))
