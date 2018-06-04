@@ -45,6 +45,7 @@ struct Target
     static bool cppExceptions;          // set if catching C++ exceptions is supported
     static char int64Mangle;            // mangling character for C++ int64_t
     static char uint64Mangle;           // mangling character for C++ uint64_t
+    static bool cppDeletingDestructor;  // target C++ ABI uses deleting destructor
 
     template <typename T>
     struct FPTypeProperties
