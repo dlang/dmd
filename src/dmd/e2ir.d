@@ -267,7 +267,7 @@ private elem *callfunc(const ref Loc loc,
     objc.setupMethodSelector(fd, &esel);
     objc.setupEp(esel, &ep, left_to_right);
 
-    const retmethod = retStyle(tf);
+    const retmethod = retStyle(tf, fd && fd.needThis());
     if (retmethod == RET.stack)
     {
         if (!ehidden)
@@ -2890,7 +2890,7 @@ elem *toElem(Expression e, IRState *irs)
             {
                 CallExp ce = cast(CallExp)ae.e2;
                 TypeFunction tf = cast(TypeFunction)ce.e1.type.toBasetype();
-                if (tf.ty == Tfunction && retStyle(tf) == RET.stack)
+                if (tf.ty == Tfunction && retStyle(tf, ce.f && ce.f.needThis()) == RET.stack)
                 {
                     elem *ehidden = e1;
                     ehidden = el_una(OPaddr, TYnptr, ehidden);

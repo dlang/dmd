@@ -908,7 +908,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
     assert(fd.type.ty == Tfunction);
     TypeFunction tf = cast(TypeFunction)fd.type;
-    RET retmethod = retStyle(tf);
+    RET retmethod = retStyle(tf, fd.needThis());
     if (retmethod == RET.stack)
     {
         // If function returns a struct, put a pointer to that
@@ -1507,7 +1507,7 @@ uint totym(Type tx)
                     if (global.params.isWindows)
                     {
                     }
-                    else if (!global.params.is64bit && retStyle(tf) == RET.stack)
+                    else if (!global.params.is64bit && retStyle(tf, false) == RET.stack)
                         t = TYhfunc;
                     break;
 

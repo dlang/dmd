@@ -21,6 +21,7 @@ import dmd.dmodule;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.expression;
+import dmd.func;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
@@ -589,12 +590,15 @@ struct Target
     }
 
     /**
+     * Determine return style of function - whether in registers or
+     * through a hidden pointer to the caller's stack.
      * Params:
      *   tf = function type to check
+     *   needsThis = true if the function type is for a non-static member function
      * Returns:
      *   true if return value from function is on the stack
      */
-    extern (C++) static bool isReturnOnStack(TypeFunction tf)
+    extern (C++) static bool isReturnOnStack(TypeFunction tf, bool needsThis)
     {
         if (tf.isref)
         {
@@ -621,6 +625,8 @@ struct Target
                 StructDeclaration sd = (cast(TypeStruct)tns).sym;
                 if (sd.ident == Id.__c_long_double)
                     return false;
+                if (tf.linkage == LINK.cpp && needsThis)
+                    return true;
                 if (!sd.isPOD() || sz > 8)
                     return true;
                 if (sd.fields.dim == 0)
@@ -638,6 +644,8 @@ struct Target
                 StructDeclaration sd = (cast(TypeStruct)tb).sym;
                 if (sd.ident == Id.__c_long_double)
                     return false;
+                if (tf.linkage == LINK.cpp && needsThis)
+                    return true;
             }
         }
 

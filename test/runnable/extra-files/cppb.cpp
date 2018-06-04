@@ -837,3 +837,28 @@ void test15589b(A15589 *p)
     assert(((B15589*)p)->bar() == 200);
     p->~A15589();
 }
+
+/****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=18928
+
+struct Small18928
+{
+    int x;
+};
+
+class CC18928
+{
+public:
+    virtual Small18928 getVirtual();
+    Small18928 getFinal();
+    static Small18928 getStatic();
+};
+
+Small18928 CC18928::getVirtual() { Small18928 s = {3}; return s; }
+Small18928 CC18928::getFinal()   { Small18928 s = {4}; return s; }
+Small18928 CC18928::getStatic()  { Small18928 s = {5}; return s; }
+
+CC18928* newCC18928()
+{
+    return new CC18928();
+}

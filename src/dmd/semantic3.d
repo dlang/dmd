@@ -573,7 +573,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     }
                 }
 
-                if (!funcdecl.inferRetType && !Target.isReturnOnStack(f))
+                if (!funcdecl.inferRetType && !Target.isReturnOnStack(f, funcdecl.needThis()))
                     funcdecl.nrvo_can = 0;
 
                 bool inferRef = (f.isref && (funcdecl.storage_class & STC.auto_));
@@ -627,7 +627,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     if (funcdecl.storage_class & STC.auto_)
                         funcdecl.storage_class &= ~STC.auto_;
                 }
-                if (!Target.isReturnOnStack(f))
+                if (!Target.isReturnOnStack(f, funcdecl.needThis()))
                     funcdecl.nrvo_can = 0;
 
                 if (funcdecl.fbody.isErrorStatement())
