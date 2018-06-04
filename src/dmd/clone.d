@@ -15,6 +15,7 @@ module dmd.clone;
 import core.stdc.stdio;
 import dmd.aggregate;
 import dmd.arraytypes;
+import dmd.dclass;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.dstruct;
@@ -881,6 +882,34 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
                 ex = new CallExp(loc, new IdentifierExp(loc, Id.__ArrayDtor), ex);
             }
             e = Expression.combine(ex, e); // combine in reverse order
+        }
+
+        /* extern(C++) destructors call into super to destruct the full hierarchy
+        */
+        ClassDeclaration cldec = ad.isClassDeclaration();
+        if (cldec && cldec.classKind == ClassKind.cpp && cldec.baseClass && cldec.baseClass.dtor)
+        {
+            // WAIT BUT: do I need to run `cldec.baseClass.dtor` semantic? would it have been run before?
+            cldec.baseClass.dtor.functionSemantic();
+
+            stc = mergeFuncAttrs(stc, cldec.baseClass.dtor);
+            if (!(stc & STC.disable))
+            {
+                // super.__xdtor()
+
+                Expression ex = new SuperExp(loc);
+
+                // This is a hack so we can call destructors on const/immutable objects.
+                // Do it as a type 'paint'.
+                ex = new CastExp(loc, ex, cldec.baseClass.type.mutableOf());
+                if (stc & STC.safe)
+                    stc = (stc & ~STC.safe) | STC.trusted;
+
+                ex = new DotVarExp(loc, ex, cldec.baseClass.dtor, false);
+                ex = new CallExp(loc, ex);
+
+                e = Expression.combine(e, ex); // super dtor last
+            }
         }
 
         /* Build our own "destructor" which executes e
