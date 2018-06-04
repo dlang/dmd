@@ -45,6 +45,21 @@ import dmd.visitor;
 
 extern (C++):
 
+// helper to check if an identifier is a C++ operator
+enum CppOperator { Cast, Assign, Eq, Index, Call, Unary, Binary, OpAssign, Unknown }
+package CppOperator isCppOperator(Identifier id)
+{
+    __gshared const(Identifier)[] operators = null;
+    if (!operators)
+        operators = [Id._cast, Id.assign, Id.eq, Id.index, Id.call, Id.opUnary, Id.opBinary, Id.opOpAssign];
+    foreach (i, op; operators)
+    {
+        if (op == id)
+            return cast(CppOperator)i;
+    }
+    return CppOperator.Unknown;
+}
+
 const(char)* toCppMangleItanium(Dsymbol s)
 {
     //printf("toCppMangleItanium(%s)\n", s.toChars());
@@ -163,18 +178,111 @@ private final class CppMangleVisitor : Visitor
     }
 
     /******************************
+     * Write the mangled representation of a template argument.
+     * Params:
+     *  ti  = the template instance
+     *  arg = the template argument index
+     */
+    void template_arg(TemplateInstance ti, size_t arg)
+    {
+        TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
+        assert(td);
+        TemplateParameter tp = (*td.parameters)[arg];
+        RootObject o = (*ti.tiargs)[arg];
+
+        if (tp.isTemplateTypeParameter())
+        {
+            Type t = isType(o);
+            assert(t);
+            t.accept(this);
+        }
+        else if (TemplateValueParameter tv = tp.isTemplateValueParameter())
+        {
+            // <expr-primary> ::= L <type> <value number> E  # integer literal
+            if (tv.valType.isintegral())
+            {
+                Expression e = isExpression(o);
+                assert(e);
+                buf.writeByte('L');
+                tv.valType.accept(this);
+                auto val = e.toUInteger();
+                if (!tv.valType.isunsigned() && cast(sinteger_t)val < 0)
+                {
+                    val = -val;
+                    buf.writeByte('n');
+                }
+                buf.print(val);
+                buf.writeByte('E');
+            }
+            else
+            {
+                ti.error("Internal Compiler Error: C++ `%s` template value parameter is not supported", tv.valType.toChars());
+                fatal();
+            }
+        }
+        else if (tp.isTemplateAliasParameter())
+        {
+            Dsymbol d = isDsymbol(o);
+            Expression e = isExpression(o);
+            if (d && d.isFuncDeclaration())
+            {
+                bool is_nested = d.toParent() &&
+                    !d.toParent().isModule() &&
+                    (cast(TypeFunction)d.isFuncDeclaration().type).linkage == LINK.cpp;
+                if (is_nested)
+                    buf.writeByte('X');
+                buf.writeByte('L');
+                mangle_function(d.isFuncDeclaration());
+                buf.writeByte('E');
+                if (is_nested)
+                    buf.writeByte('E');
+            }
+            else if (e && e.op == TOK.variable && (cast(VarExp)e).var.isVarDeclaration())
+            {
+                VarDeclaration vd = (cast(VarExp)e).var.isVarDeclaration();
+                buf.writeByte('L');
+                mangle_variable(vd, true);
+                buf.writeByte('E');
+            }
+            else if (d && d.isTemplateDeclaration() && d.isTemplateDeclaration().onemember)
+            {
+                if (!substitute(d))
+                {
+                    cpp_mangle_name(d, false);
+                }
+            }
+            else
+            {
+                ti.error("Internal Compiler Error: C++ `%s` template alias parameter is not supported", o.toChars());
+                fatal();
+            }
+        }
+        else if (tp.isTemplateThisParameter())
+        {
+            ti.error("Internal Compiler Error: C++ `%s` template this parameter is not supported", o.toChars());
+            fatal();
+        }
+        else
+        {
+            assert(0);
+        }
+    }
+
+    /******************************
      * Write the mangled representation of the template arguments.
      * Params:
      *  ti = the template instance
+     * Returns:
+     *  true if any arguments were written
      */
-    void template_args(TemplateInstance ti)
+    bool template_args(TemplateInstance ti, int firstArg = 0)
     {
         /* <template-args> ::= I <template-arg>+ E
          */
-        if (!ti)                // could happen if std::basic_string is not a template
-            return;
+        if (!ti || ti.tiargs.dim <= firstArg)   // could happen if std::basic_string is not a template
+            return false;
         buf.writeByte('I');
-        foreach (i, o; *ti.tiargs)
+        foreach (i; firstArg .. ti.tiargs.dim)
         {
             TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
             assert(td);
@@ -202,84 +310,10 @@ private final class CppMangleVisitor : Visitor
                 break;
             }
 
-            if (tp.isTemplateTypeParameter())
-            {
-                Type t = isType(o);
-                assert(t);
-                t.accept(this);
-            }
-            else if (TemplateValueParameter tv = tp.isTemplateValueParameter())
-            {
-                // <expr-primary> ::= L <type> <value number> E  # integer literal
-                if (tv.valType.isintegral())
-                {
-                    Expression e = isExpression(o);
-                    assert(e);
-                    buf.writeByte('L');
-                    tv.valType.accept(this);
-                    auto val = e.toUInteger();
-                    if (!tv.valType.isunsigned() && cast(sinteger_t)val < 0)
-                    {
-                        val = -val;
-                        buf.writeByte('n');
-                    }
-                    buf.print(val);
-                    buf.writeByte('E');
-                }
-                else
-                {
-                    ti.error("Internal Compiler Error: C++ `%s` template value parameter is not supported", tv.valType.toChars());
-                    fatal();
-                }
-            }
-            else if (tp.isTemplateAliasParameter())
-            {
-                Dsymbol d = isDsymbol(o);
-                Expression e = isExpression(o);
-                if (d && d.isFuncDeclaration())
-                {
-                    bool is_nested = d.toParent() &&
-                        !d.toParent().isModule() &&
-                        (cast(TypeFunction)d.isFuncDeclaration().type).linkage == LINK.cpp;
-                    if (is_nested)
-                        buf.writeByte('X');
-                    buf.writeByte('L');
-                    mangle_function(d.isFuncDeclaration());
-                    buf.writeByte('E');
-                    if (is_nested)
-                        buf.writeByte('E');
-                }
-                else if (e && e.op == TOK.variable && (cast(VarExp)e).var.isVarDeclaration())
-                {
-                    VarDeclaration vd = (cast(VarExp)e).var.isVarDeclaration();
-                    buf.writeByte('L');
-                    mangle_variable(vd, true);
-                    buf.writeByte('E');
-                }
-                else if (d && d.isTemplateDeclaration() && d.isTemplateDeclaration().onemember)
-                {
-                    if (!substitute(d))
-                    {
-                        cpp_mangle_name(d, false);
-                    }
-                }
-                else
-                {
-                    ti.error("Internal Compiler Error: C++ `%s` template alias parameter is not supported", o.toChars());
-                    fatal();
-                }
-            }
-            else if (tp.isTemplateThisParameter())
-            {
-                ti.error("Internal Compiler Error: C++ `%s` template this parameter is not supported", o.toChars());
-                fatal();
-            }
-            else
-            {
-                assert(0);
-            }
+            template_arg(ti, i);
         }
         buf.writeByte('E');
+        return true;
     }
 
 
@@ -602,6 +636,7 @@ private final class CppMangleVisitor : Visitor
              */
             TemplateInstance ti = d.parent.isTemplateInstance();
             assert(ti);
+            bool appendReturnType = true;
             Dsymbol p = ti.toParent();
             if (p && !p.isModule() && tf.linkage == LINK.cpp)
             {
@@ -609,16 +644,127 @@ private final class CppMangleVisitor : Visitor
                 CV_qualifiers(d.type);
                 prefix_name(p);
                 if (d.isCtorDeclaration())
+                {
                     buf.writestring("C1");
+                    appendReturnType = false;
+                }
                 else if (d.isPrimaryDtor())
+                {
                     buf.writestring("D1");
+                    appendReturnType = false;
+                }
                 else
-                    source_name(ti);
+                {
+                    int firstTemplateArg = 0;
+                    bool isConvertFunc = false;
+                    string symName;
+
+                    // test for special symbols
+                    CppOperator whichOp = isCppOperator(ti.name);
+                    final switch (whichOp)
+                    {
+                        case CppOperator.Unknown:
+                            break;
+                        case CppOperator.Cast:
+                            symName = "cv";
+                            firstTemplateArg = 1;
+                            isConvertFunc = true;
+                            appendReturnType = false;
+                            break;
+                        case CppOperator.Assign:
+                            symName = "aS";
+                            break;
+                        case CppOperator.Eq:
+                            symName = "eq";
+                            break;
+                        case CppOperator.Index:
+                            symName = "ix";
+                            break;
+                        case CppOperator.Call:
+                            symName = "cl";
+                            break;
+                        case CppOperator.Unary:
+                        case CppOperator.Binary:
+                        case CppOperator.OpAssign:
+                            TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
+                            assert(td);
+                            assert(ti.tiargs.dim >= 1);
+                            TemplateParameter tp = (*td.parameters)[0];
+                            TemplateValueParameter tv = tp.isTemplateValueParameter();
+                            if (!tv || !tv.valType.isString())
+                                break; // expecting a string argument to operators!
+                            Expression exp = (*ti.tiargs)[0].isExpression();
+                            StringExp str = exp.toStringExp();
+                            switch (whichOp)
+                            {
+                                case CppOperator.Unary:
+                                    switch (str.peekSlice())
+                                    {
+                                        case "*":   symName = "de"; goto continue_template;
+                                        case "++":  symName = "pp"; goto continue_template;
+                                        case "--":  symName = "mm"; goto continue_template;
+                                        case "-":   symName = "ng"; goto continue_template;
+                                        case "+":   symName = "ps"; goto continue_template;
+                                        case "~":   symName = "co"; goto continue_template;
+                                        default:    break;
+                                    }
+                                    break;
+                                case CppOperator.Binary:
+                                    switch (str.peekSlice())
+                                    {
+                                        case ">>":  symName = "rs"; goto continue_template;
+                                        case "<<":  symName = "ls"; goto continue_template;
+                                        case "*":   symName = "ml"; goto continue_template;
+                                        case "-":   symName = "mi"; goto continue_template;
+                                        case "+":   symName = "pl"; goto continue_template;
+                                        case "&":   symName = "an"; goto continue_template;
+                                        case "/":   symName = "dv"; goto continue_template;
+                                        case "%":   symName = "rm"; goto continue_template;
+                                        case "^":   symName = "eo"; goto continue_template;
+                                        case "|":   symName = "or"; goto continue_template;
+                                        default:    break;
+                                    }
+                                    break;
+                                case CppOperator.OpAssign:
+                                    switch (str.peekSlice())
+                                    {
+                                        case "*":   symName = "mL"; goto continue_template;
+                                        case "+":   symName = "pL"; goto continue_template;
+                                        case "-":   symName = "mI"; goto continue_template;
+                                        case "/":   symName = "dV"; goto continue_template;
+                                        case "%":   symName = "rM"; goto continue_template;
+                                        case ">>":  symName = "rS"; goto continue_template;
+                                        case "<<":  symName = "lS"; goto continue_template;
+                                        case "&":   symName = "aN"; goto continue_template;
+                                        case "|":   symName = "oR"; goto continue_template;
+                                        case "^":   symName = "eO"; goto continue_template;
+                                        default:    break;
+                                    }
+                                    break;
+                                default:
+                                    assert(0);
+                                continue_template:
+                                    firstTemplateArg = 1;
+                                    break;
+                            }
+                            break;
+                    }
+                    if (symName.length == 0)
+                        source_name(ti);
+                    else
+                    {
+                        buf.writestring(symName);
+                        if (isConvertFunc)
+                            template_arg(ti, 0);
+                        appendReturnType = template_args(ti, firstTemplateArg) && appendReturnType;
+                    }
+                }
                 buf.writeByte('E');
             }
             else
                 source_name(ti);
-            headOfType(tf.nextOf());  // mangle return type
+            if (appendReturnType)
+                headOfType(tf.nextOf());  // mangle return type
         }
         else
         {
@@ -642,17 +788,19 @@ private final class CppMangleVisitor : Visitor
                 //printf("p: %s\n", buf.peekString());
 
                 if (d.isCtorDeclaration())
-                {
                     buf.writestring("C1");
-                }
                 else if (d.isPrimaryDtor())
-                {
                     buf.writestring("D1");
-                }
+                else if (d.ident && d.ident == Id.assign)
+                    buf.writestring("aS");
+                else if (d.ident && d.ident == Id.eq)
+                    buf.writestring("eq");
+                else if (d.ident && d.ident == Id.index)
+                    buf.writestring("ix");
+                else if (d.ident && d.ident == Id.call)
+                    buf.writestring("cl");
                 else
-                {
                     source_name(d);
-                }
                 buf.writeByte('E');
             }
             else

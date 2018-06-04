@@ -15,7 +15,7 @@ import core.stdc.string;
 import core.stdc.stdio;
 
 import dmd.arraytypes;
-import dmd.cppmangle : isPrimaryDtor;
+import dmd.cppmangle : isPrimaryDtor, isCppOperator, CppOperator;
 import dmd.declaration;
 import dmd.dsymbol;
 import dmd.dtemplate;
@@ -715,41 +715,32 @@ private:
             int firstTemplateArg = 0;
 
             // test for special symbols
-            sizediff_t whichOp = -1;
-            foreach (i, op; [Id._cast, Id.assign, Id.eq, Id.index, Id.call, Id.opUnary, Id.opBinary, Id.opOpAssign])
+            CppOperator whichOp = isCppOperator(ti.name);
+            final switch (whichOp)
             {
-                if (op == ti.name)
-                {
-                    whichOp = i;
+                case CppOperator.Unknown:
                     break;
-                }
-            }
-            switch (whichOp)
-            {
-                case -1:
-                    break;
-                case 0: // opCast
+                case CppOperator.Cast:
                     buf.writestring("?B");
                     return;
-                case 1: // opAssign
+                case CppOperator.Assign:
                     symName = "?4";
                     break;
-                case 2: // opEquals
+                case CppOperator.Eq:
                     symName = "?8";
                     break;
-                case 3: // opIndex
+                case CppOperator.Index:
                     symName = "?A";
                     break;
-                case 4: // opCall
+                case CppOperator.Call:
                     symName = "?R";
                     break;
-                case 5:
-                ..
-                case 7: // opUnary, opBinary, opOpAssign
-                    if (ti.tiargs.dim < 1)
-                        break; // perhaps this is assert? those operators shouldn't have 0 args!
+                case CppOperator.Unary:
+                case CppOperator.Binary:
+                case CppOperator.OpAssign:
                     TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
                     assert(td);
+                    assert(ti.tiargs.dim >= 1);
                     TemplateParameter tp = (*td.parameters)[0];
                     TemplateValueParameter tv = tp.isTemplateValueParameter();
                     if (!tv || !tv.valType.isString())
@@ -758,8 +749,8 @@ private:
                     StringExp str = exp.toStringExp();
                     switch (whichOp)
                     {
-                        case 5: // opUnary
-                            switch (str.peekSlice)
+                        case CppOperator.Unary:
+                            switch (str.peekSlice())
                             {
                                 case "*":   symName = "?D";     goto continue_template;
                                 case "++":  symName = "?E";     goto continue_template;
@@ -770,8 +761,8 @@ private:
                                 default:    break;
                             }
                             break;
-                        case 6: // opBinary
-                            switch (str.peekSlice)
+                        case CppOperator.Binary:
+                            switch (str.peekSlice())
                             {
                                 case ">>":  symName = "?5";     goto continue_template;
                                 case "<<":  symName = "?6";     goto continue_template;
@@ -786,8 +777,8 @@ private:
                                 default:    break;
                             }
                             break;
-                        case 7: // opOpAssign
-                            switch (str.peekSlice)
+                        case CppOperator.OpAssign:
+                            switch (str.peekSlice())
                             {
                                 case "*":   symName = "?X";     goto continue_template;
                                 case "+":   symName = "?Y";     goto continue_template;
@@ -814,8 +805,6 @@ private:
                             break;
                     }
                     break;
-                default:
-                    assert(0);
             }
 
             scope VisualCPPMangler tmp = new VisualCPPMangler((flags & IS_DMC) ? true : false);
