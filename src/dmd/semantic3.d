@@ -1083,6 +1083,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     ClassDeclaration cd = funcdecl.isThis() ? funcdecl.isThis().isClassDeclaration() : funcdecl.parent.isClassDeclaration();
                     if (cd)
                     {
+                        if (!(cd.storage_class & STC.synchronized_))
+                            funcdecl.deprecation("cannot be marked as `synchronized` because it is a member of the non-`synchronized` class `%s`. The `synchronized` attribute must be applied to the class declaration itself", cd.toPrettyChars());
                         if (!global.params.is64bit && global.params.isWindows && !funcdecl.isStatic() && !sbody.usesEH() && !global.params.trace)
                         {
                             /* The back end uses the "jmonitor" hack for syncing;

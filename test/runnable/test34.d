@@ -580,9 +580,9 @@ void test30()
 
 /************************************************/
 
-class C31
+synchronized class C31
 {
-    synchronized invariant() { int x; }
+    invariant() { int x; }
 }
 
 void test31()
