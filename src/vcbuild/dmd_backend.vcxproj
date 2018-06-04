@@ -95,7 +95,6 @@
     <ClCompile Include="..\dmd\backend\varstats.c" />
     <ClCompile Include="..\dmd\backend\tk.c" />
     <ClCompile Include="..\dmd\backend\aa.c" />
-    <ClCompile Include="..\dmd\backend\bcomplex.c" />
     <ClCompile Include="..\dmd\backend\blockopt.c" />
     <ClCompile Include="..\dmd\backend\cg.c" />
     <ClCompile Include="..\dmd\backend\cg87.c" />
@@ -120,7 +119,6 @@
     <ClCompile Include="..\dmd\backend\ee.c" />
     <ClCompile Include="..\dmd\backend\el.c" />
     <ClCompile Include="..\dmd\backend\elfobj.c" />
-    <ClCompile Include="..\dmd\backend\evalu8.c" />
     <ClCompile Include="..\dmd\backend\fp.c" />
     <ClCompile Include="..\dmd\backend\gdag.c" />
     <ClCompile Include="..\dmd\backend\gflow.c" />
