@@ -728,8 +728,8 @@ nothrow:
                 // Actually get the full path name
                 const fullPathLengthNoTerminator = GetFullPathNameW(&wname[0], cast(uint)fullPath.length, &fullPath[0], null /*filePart*/);
                 // Unfortunately, when the buffer is large enough the return value is the number of characters
-                // _not_ counting the null terminator, so fullPathLength2 should be smaller
-                assert(fullPathLength == fullPathLengthNoTerminator + 1);
+                // _not_ counting the null terminator, so fullPathLengthNoTerminator should be smaller
+                assert(fullPathLength > fullPathLengthNoTerminator);
 
                 // Find out size of the converted string
                 const retLength = WideCharToMultiByte(0 /*codepage*/, 0 /*flags*/, &fullPath[0], fullPathLength, null, 0, null, null);
