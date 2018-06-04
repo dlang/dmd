@@ -519,7 +519,7 @@ void test14200b(float a, int b, double c) {};
 
 namespace std {
     namespace N14956 {
-	struct S14956 { };
+    struct S14956 { };
     }
 }
 
@@ -762,7 +762,7 @@ int foo15372(int value)
 
 void test15372b()
 {
-	int t = foo15372<int>(1);
+    int t = foo15372<int>(1);
 }
 
 /****************************************/
@@ -793,7 +793,7 @@ public:
 
 void test15802b()
 {
-	int t = Foo15802<int>::boo(1);
+    int t = Foo15802<int>::boo(1);
 }
 
 
@@ -806,3 +806,34 @@ uint64_t pass16536(uint64_t a)
     return a;
 }
 #endif
+
+/****************************************/
+// 15589 - extern(C++) virtual destructors are not put in vtbl[]
+
+class A15589
+{
+public:
+    struct S
+    {
+    public:
+        int x;
+    };
+    virtual int foo();
+    virtual ~A15589();
+    S s1;
+    S s2;
+};
+class B15589 : public A15589
+{
+public:
+    virtual int bar();
+    virtual ~B15589();
+    S s3;
+};
+
+void test15589b(A15589 *p)
+{
+    assert(p->foo() == 100);
+    assert(((B15589*)p)->bar() == 200);
+    p->~A15589();
+}
