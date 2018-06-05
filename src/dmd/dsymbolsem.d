@@ -3735,7 +3735,17 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (dd.ident == Id.dtor && dd.semanticRun < PASS.semantic)
             ad.dtors.push(dd);
         if (!dd.type)
-            dd.type = new TypeFunction(null, Type.tvoid, false, LINK.d, dd.storage_class);
+        {
+            Parameters* params = null;
+            if (ad.classKind == ClassKind.cpp && !Target.cppDeletingDestructor)
+            {
+                // Windows doesn't use a deleting destructor, it takes an argument instead!
+                Parameter param = new Parameter(STC.undefined_, Type.tuns32, new Identifier("del"), new IntegerExp(Loc.initial, 0, Type.tuns32));
+                params = new Parameters;
+                (*params).push(param);
+            }
+            dd.type = new TypeFunction(params, Type.tvoid, false, LINK.d, dd.storage_class);
+        }
 
         sc = sc.push();
         sc.stc &= ~STC.static_; // not a static destructor
