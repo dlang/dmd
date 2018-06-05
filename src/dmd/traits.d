@@ -1311,15 +1311,15 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             auto s = getDsymbol(o);
             Declaration d;
-            ClassDeclaration c;
-            if (!s || ((d = s.isDeclaration()) is null && (c = s.isClassDeclaration()) is null))
+            AggregateDeclaration agg;
+            if (!s || ((d = s.isDeclaration()) is null && (agg = s.isAggregateDeclaration()) is null))
             {
                 e.error("argument to `__traits(getLinkage, %s)` is not a declaration", o.toChars());
                 return new ErrorExp();
             }
             if (d !is null)
                 link = d.linkage;
-            else final switch (c.classKind)
+            else final switch (agg.classKind)
             {
                 case ClassKind.d:
                     link = LINK.d;

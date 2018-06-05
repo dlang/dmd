@@ -4129,6 +4129,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 sd.error("structs, unions cannot be `abstract`");
 
             sd.userAttribDecl = sc.userAttribDecl;
+
+            if (sc.linkage == LINK.cpp)
+                sd.classKind = ClassKind.cpp;
         }
         else if (sd.symtab && !scx)
             return;

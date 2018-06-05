@@ -75,6 +75,16 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc);
 FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc);
 FuncDeclaration *buildInv(AggregateDeclaration *ad, Scope *sc);
 
+enum ClassKind
+{
+    /// the aggregate is a d(efault) struct/class/interface
+    d,
+    /// the aggregate is a C++ struct/class/interface
+    cpp,
+    /// the aggregate is an Objective-C class/interface
+    objc
+};
+
 class AggregateDeclaration : public ScopeDsymbol
 {
 public:
@@ -87,6 +97,8 @@ public:
     Sizeok sizeok;              // set when structsize contains valid data
     Dsymbol *deferred;          // any deferred semantic2() or semantic3() symbol
     bool isdeprecated;          // true if deprecated
+
+    ClassKind classKind;        // specifies the linkage type
 
     /* !=NULL if is nested
      * pointing to the dsymbol that directly enclosing it.
@@ -246,16 +258,6 @@ struct ClassFlags
     };
 };
 
-enum ClassKind
-{
-    /// the class is a d(efault) class
-    d,
-    /// the class is a C++ interface
-    cpp,
-    /// the class is an Objective-C class/interface
-    objc
-};
-
 class ClassDeclaration : public AggregateDeclaration
 {
 public:
@@ -283,7 +285,6 @@ public:
     TypeInfoClassDeclaration *vclassinfo;       // the ClassInfo object for this ClassDeclaration
     bool com;                           // true if this is a COM class (meaning it derives from IUnknown)
     bool stack;                         // true if this is a scope class
-    ClassKind classKind;                // specifies the linkage type
     bool inuse;                         // to prevent recursive attempts
     bool isActuallyAnonymous;           // true if this class has an identifier, but was originally declared anonymous
                                         // used in support of https://issues.dlang.org/show_bug.cgi?id=17371
