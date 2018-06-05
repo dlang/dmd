@@ -1,5 +1,7 @@
 // REQUIRED_ARGS: -fPIC -O -release -inline -m64 -betterC
+// DISABLED: win32 win64
 
+// https://issues.dlang.org/show_bug.cgi?id=18936
 // produces assert failure cgxmm.c line 684
 
 import core.stdc.math;

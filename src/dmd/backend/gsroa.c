@@ -63,6 +63,8 @@ static void sliceStructs_Gather(SymInfo *sia, elem *e)
                     {
                         if (!sia[si].accessSlice)
                         {
+                            /* [1] default as pointer type
+                             */
                             sia[si].ty0 = TYnptr;
                             sia[si].ty1 = TYnptr;
                         }
@@ -152,6 +154,27 @@ static void sliceStructs_Replace(SymInfo *sia, elem *e)
                         e->Eoper = OPpair;
                         e->E1 = e1;
                         e->E2 = e2;
+
+                        if (tycomplex(e->Ety))
+                        {
+                            /* Ensure complex OPpair operands are floating point types
+                             * because [1] may have defaulted them to a pointer type.
+                             * https://issues.dlang.org/show_bug.cgi?id=18936
+                             */
+                            tym_t tyop;
+                            switch (tybasic(e->Ety))
+                            {
+                                case TYcfloat:   tyop = TYfloat;   break;
+                                case TYcdouble:  tyop = TYdouble;  break;
+                                case TYcldouble: tyop = TYldouble; break;
+                                default:
+                                    assert(0);
+                            }
+                            if (!tyfloating(e1->Ety))
+                                e1->Ety = tyop;
+                            if (!tyfloating(e2->Ety))
+                                e2->Ety = tyop;
+                        }
                     }
                     else if (e->Eoffset == 0)  // the first slice of the symbol is the same as the original
                     {
