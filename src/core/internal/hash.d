@@ -57,12 +57,12 @@ if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStati
     else static if (is(typeof(toUbyte(val)) == const(ubyte)[]))
     //ubyteble array (arithmetic types and structs without toHash) CTFE ready for arithmetic types and structs without reference fields
     {
-        return bytesHash(toUbyte(val), seed);
+        return bytesHashAlignedBy!ElementType(toUbyte(val), seed);
     }
     else //Other types. CTFE unsupported
     {
         assert(!__ctfe, "unable to compute hash of "~T.stringof);
-        return bytesHash(val.ptr, ElementType.sizeof*val.length, seed);
+        return bytesHashAlignedBy!ElementType((cast(const(ubyte)*) val.ptr)[0 .. ElementType.sizeof*val.length], seed);
     }
 }
 
@@ -85,11 +85,11 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && __traits
     static if(__traits(isFloating, val))
     {
         T data = (val != val) ? T.nan : val;
-        return bytesHash(toUbyte(data), seed);
+        return bytesHashAlignedBy!T(toUbyte(data), seed);
     }
     else
     {
-        return bytesHash(toUbyte(val), seed);
+        return bytesHashAlignedBy!T(toUbyte(val), seed);
     }
 }
 
@@ -137,13 +137,13 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && (is(T ==
 
         static if (is(typeof(toUbyte(val)) == const(ubyte)[]))//CTFE ready for structs without reference fields
         {
-            return bytesHash(toUbyte(val), seed);
+            return bytesHashAlignedBy!T(toUbyte(val), seed);
         }
         else // CTFE unsupported
         {
             assert(!__ctfe, "unable to compute hash of "~T.stringof);
             const(ubyte)[] bytes = (() @trusted => (cast(const(ubyte)*)&val)[0 .. T.sizeof])();
-            return bytesHash(bytes, seed);
+            return bytesHashAlignedBy!T(bytes, seed);
         }
     }
 }
@@ -177,7 +177,7 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && is(T == 
 {
     assert(!__ctfe, "unable to compute hash of "~T.stringof);
     const(ubyte)[] bytes = (cast(const(ubyte)*)&val)[0 .. T.sizeof];
-    return bytesHash(bytes, seed);
+    return bytesHashAlignedBy!T(bytes, seed);
 }
 
 //class or interface hash. CTFE depends on toHash
@@ -453,11 +453,20 @@ unittest // issue 15111
 @system pure nothrow @nogc
 size_t bytesHash(const(void)* buf, size_t len, size_t seed)
 {
-    return bytesHash((cast(const(ubyte)*) buf)[0 .. len], seed);
+    return bytesHashAlignedBy!ubyte((cast(const(ubyte)*) buf)[0 .. len], seed);
 }
 
-private @nogc nothrow pure @trusted
-size_t bytesHash(scope const(ubyte)[] bytes, size_t seed)
+private template bytesHashAlignedBy(AlignType)
+{
+    alias bytesHashAlignedBy = bytesHash!(AlignType.alignof >= uint.alignof);
+}
+
+/+
+Params:
+    dataKnownToBeAligned = whether the data is known at compile time to be uint-aligned.
++/
+@nogc nothrow pure @trusted
+private size_t bytesHash(bool dataKnownToBeAligned)(scope const(ubyte)[] bytes, size_t seed)
 {
     static uint rotl32(uint n)(in uint x) pure nothrow @safe @nogc
     {
@@ -470,6 +479,11 @@ size_t bytesHash(scope const(ubyte)[] bytes, size_t seed)
     static uint get32bits(scope const (ubyte)* x) pure nothrow @nogc
     {
         //Compiler can optimize this code to simple *cast(uint*)x if it possible.
+        static if (dataKnownToBeAligned)
+        {
+            if (!__ctfe)
+                return *cast(uint*)x;
+        }
         version(BigEndian)
         {
             return ((cast(uint) x[0]) << 24) | ((cast(uint) x[1]) << 16) | ((cast(uint) x[2]) << 8) | (cast(uint) x[3]);
