@@ -520,7 +520,7 @@ $(H2 $(LEGACY_LNAME2 Struct-Constructor, struct-constructor, Struct Constructors
         )
 
 
-        $(P A constructor qualifier (`const`, `immutable` or `shared) constructs the object instance
+        $(P A constructor qualifier (`const`, `immutable` or `shared`) constructs the object instance
         with that specific qualifier.
         )
         $(SPEC_RUNNABLE_EXAMPLE_FAIL
