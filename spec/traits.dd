@@ -601,7 +601,7 @@ pragma(msg, __traits(getFunctionAttributes, (int x) @trusted { return x * 2; }))
 $(H2 $(GNAME getLinkage))
 
         $(P Takes one argument, which is a declaration symbol, or the type of a function, delegate,
-        pointer to function, class, or interface.
+        pointer to function, struct, class, or interface.
         Returns a string representing the $(LINK2 attribute.html#LinkageAttribute, LinkageAttribute)
         of the declaration.
         The string is one of:
@@ -624,10 +624,12 @@ alias aliasc = fooc;
 static assert(__traits(getLinkage, fooc) == "C");
 static assert(__traits(getLinkage, aliasc) == "C");
 
-extern (C++) class FooCPP {}
+extern (C++) struct FooCPPStruct {}
+extern (C++) class FooCPPClass {}
 extern (C++) interface FooCPPInterface {}
 
-static assert(__traits(getLinkage, FooCPP) == "C++");
+static assert(__traits(getLinkage, FooCPPStruct) == "C++");
+static assert(__traits(getLinkage, FooCPPClass) == "C++");
 static assert(__traits(getLinkage, FooCPPInterface) == "C++");
 ---
 
