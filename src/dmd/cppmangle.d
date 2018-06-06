@@ -36,6 +36,7 @@ import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
+import dmd.nspace;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
 import dmd.target;
@@ -124,16 +125,62 @@ private final class CppMangleVisitor : Visitor
 
     /******
      * See if `p` exists in components[]
+     *
+     * Note that components can contain `null` entries,
+     * as the index used in mangling is based on the index in the array.
+     *
+     * If called with an object whose dynamic type is `Nspace`,
+     * calls the `find(Nspace)` overload.
+     *
      * Returns:
      *  index if found, -1 if not
      */
     int find(RootObject p)
     {
         //printf("find %p %d %s\n", p, p.dyncast(), p ? p.toChars() : null);
+
+        if (p.dyncast() == DYNCAST.dsymbol)
+            if (auto ns = (cast(Dsymbol)p).isNspace())
+                return find(ns);
+
         foreach (i, component; components)
         {
             if (p == component)
                 return cast(int)i;
+        }
+        return -1;
+    }
+
+    /**
+     * Overload which accepts a Namespace
+     *
+     * It is very common for large C++ projects to have multiple files sharing
+     * the same `namespace`. If any D project adopts the same approach
+     * (e.g. separating data structures from functions), it will lead to two
+     * `Nspace` objects being instantiated, with different addresses.
+     * At the same time, we cannot compare just any Dsymbol via identifier,
+     * because it messes with templates.
+     *
+     * See_Also:
+     *  https://issues.dlang.org/show_bug.cgi?id=18922
+     *
+     * Params:
+     *   ns = C++ namespace to do substitution for
+     *
+     * Returns:
+     *  Index of the entry, if found, or `-1` otherwise
+     */
+    int find(Nspace ns)
+    {
+        foreach (i, component; components)
+        {
+            if (ns == component)
+                return cast(int)i;
+
+            if (component && component.dyncast() == DYNCAST.dsymbol)
+                if (auto ons = (cast(Dsymbol)component).isNspace())
+                    if (ns.equals(ons))
+                        return cast(int)i;
         }
         return -1;
     }

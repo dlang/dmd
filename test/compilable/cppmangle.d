@@ -689,3 +689,14 @@ version (Win64)
     static assert(TestOperators.opIndex.mangleof         == "??ATestOperators@@QEAAH_K@Z");
     static assert(TestOperators.opCall.mangleof          == "??RTestOperators@@QEAAHHM@Z");
 }
+
+extern(C++, Namespace18922)
+{
+    import cppmangle2;
+    void func18922(Struct18922) {}
+
+	version (Posix)
+		static assert(func18922.mangleof == "_ZN14Namespace189229func18922ENS_11Struct18922E");
+	else version(Windows)
+		static assert(func18922.mangleof == "?func18922@Namespace18922@@YAXUStruct18922@1@@Z");
+}
