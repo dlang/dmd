@@ -36,6 +36,7 @@ import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
+import dmd.nspace;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
 import dmd.target;
@@ -124,16 +125,62 @@ private final class CppMangleVisitor : Visitor
 
     /******
      * See if `p` exists in components[]
+     *
+     * Note that components can contain `null` entries,
+     * as the index used in mangling is based on the index in the array.
+     *
+     * If called with an object whose dynamic type is `Nspace`,
+     * calls the `find(Nspace)` overload.
+     *
      * Returns:
      *  index if found, -1 if not
      */
     int find(RootObject p)
     {
         //printf("find %p %d %s\n", p, p.dyncast(), p ? p.toChars() : null);
+
+        if (p.dyncast() == DYNCAST.dsymbol)
+            if (auto ns = (cast(Dsymbol)p).isNspace())
+                return find(ns);
+
         foreach (i, component; components)
         {
             if (p == component)
                 return cast(int)i;
+        }
+        return -1;
+    }
+
+    /**
+     * Overload which accepts a Namespace
+     *
+     * It is very common for large C++ projects to have multiple files sharing
+     * the same `namespace`. If any D project adopts the same approach
+     * (e.g. separating data structures from functions), it will lead to two
+     * `Nspace` objects being instantiated, with different addresses.
+     * At the same time, we cannot compare just any Dsymbol via identifier,
+     * because it messes with templates.
+     *
+     * See_Also:
+     *  https://issues.dlang.org/show_bug.cgi?id=18922
+     *
+     * Params:
+     *   ns = C++ namespace to do substitution for
+     *
+     * Returns:
+     *  Index of the entry, if found, or `-1` otherwise
+     */
+    int find(Nspace ns)
+    {
+        foreach (i, component; components)
+        {
+            if (ns == component)
+                return cast(int)i;
+
+            if (component && component.dyncast() == DYNCAST.dsymbol)
+                if (auto ons = (cast(Dsymbol)component).isNspace())
+                    if (ns.equals(ons))
+                        return cast(int)i;
         }
         return -1;
     }
@@ -400,70 +447,70 @@ private final class CppMangleVisitor : Visitor
     void prefix_name(Dsymbol s)
     {
         //printf("prefix_name(%s)\n", s.toChars());
-        if (!substitute(s))
+        if (substitute(s))
+            return;
+
+        auto si = getInstance(s);
+        Dsymbol p = getQualifier(si);
+        if (p)
         {
-            auto si = getInstance(s);
-            Dsymbol p = getQualifier(si);
-            if (p)
+            if (isStd(p))
             {
-                if (isStd(p))
+                TemplateInstance ti = si.isTemplateInstance();
+                if (ti)
                 {
-                    TemplateInstance ti = si.isTemplateInstance();
-                    if (ti)
+                    if (s.ident == Id.allocator)
                     {
-                        if (s.ident == Id.allocator)
-                        {
-                            buf.writestring("Sa");
-                            template_args(ti);
-                            append(ti);
-                            return;
-                        }
-                        if (s.ident == Id.basic_string)
-                        {
-                            // ::std::basic_string<char, ::std::char_traits<char>, ::std::allocator<char>>
-                            if (ti.tiargs.dim == 3 &&
-                                isChar((*ti.tiargs)[0]) &&
-                                isChar_traits_char((*ti.tiargs)[1]) &&
-                                isAllocator_char((*ti.tiargs)[2]))
-
-                            {
-                                buf.writestring("Ss");
-                                return;
-                            }
-                            buf.writestring("Sb");      // ::std::basic_string
-                            template_args(ti);
-                            append(ti);
-                            return;
-                        }
-
-                        // ::std::basic_istream<char, ::std::char_traits<char>>
-                        if (s.ident == Id.basic_istream &&
-                            char_std_char_traits_char(ti, "Si"))
-                            return;
-
-                        // ::std::basic_ostream<char, ::std::char_traits<char>>
-                        if (s.ident == Id.basic_ostream &&
-                            char_std_char_traits_char(ti, "So"))
-                            return;
-
-                        // ::std::basic_iostream<char, ::std::char_traits<char>>
-                        if (s.ident == Id.basic_iostream &&
-                            char_std_char_traits_char(ti, "Sd"))
-                            return;
+                        buf.writestring("Sa");
+                        template_args(ti);
+                        append(ti);
+                        return;
                     }
-                    buf.writestring("St");
+                    if (s.ident == Id.basic_string)
+                    {
+                        // ::std::basic_string<char, ::std::char_traits<char>, ::std::allocator<char>>
+                        if (ti.tiargs.dim == 3 &&
+                            isChar((*ti.tiargs)[0]) &&
+                            isChar_traits_char((*ti.tiargs)[1]) &&
+                            isAllocator_char((*ti.tiargs)[2]))
+
+                        {
+                            buf.writestring("Ss");
+                            return;
+                        }
+                        buf.writestring("Sb");      // ::std::basic_string
+                        template_args(ti);
+                        append(ti);
+                        return;
+                    }
+
+                    // ::std::basic_istream<char, ::std::char_traits<char>>
+                    if (s.ident == Id.basic_istream &&
+                        char_std_char_traits_char(ti, "Si"))
+                        return;
+
+                    // ::std::basic_ostream<char, ::std::char_traits<char>>
+                    if (s.ident == Id.basic_ostream &&
+                        char_std_char_traits_char(ti, "So"))
+                        return;
+
+                    // ::std::basic_iostream<char, ::std::char_traits<char>>
+                    if (s.ident == Id.basic_iostream &&
+                        char_std_char_traits_char(ti, "Sd"))
+                        return;
                 }
-                else
-                    prefix_name(p);
+                buf.writestring("St");
             }
-            source_name(si);
-            if (!isStd(si))
-                /* Do this after the source_name() call to keep components[]
-                 * in the right order.
-                 * https://issues.dlang.org/show_bug.cgi?id=17947
-                 */
-                append(si);
+            else
+                prefix_name(p);
         }
+        source_name(si);
+        if (!isStd(si))
+            /* Do this after the source_name() call to keep components[]
+             * in the right order.
+             * https://issues.dlang.org/show_bug.cgi?id=17947
+             */
+            append(si);
     }
 
 
