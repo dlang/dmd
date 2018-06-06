@@ -543,7 +543,7 @@ extern (C++) bool checkSymbolAccess(Scope *sc, Dsymbol s)
  * but doesn't recurse nor resolve aliases because protection/visibility is an
  * attribute of the alias not the aliasee.
  */
-public Dsymbol mostVisibleOverload(Dsymbol s)
+public Dsymbol mostVisibleOverload(Dsymbol s, Module mod = null)
 {
     if (!s.isOverloadable())
         return s;
@@ -612,7 +612,24 @@ public Dsymbol mostVisibleOverload(Dsymbol s)
         else
             break;
 
-        if (next && mostVisible.prot().isMoreRestrictiveThan(next.prot()))
+        /**
+        * Return the "effective" protection attribute of a symbol when accessed in a module.
+        * The effective protection attribute is the same as the regular protection attribute,
+        * except package() is "private" if the module is outside the package;
+        * otherwise, "public".
+        */
+        static Prot protectionSeenFromModule(Dsymbol d, Module mod = null)
+        {
+            Prot prot = d.prot();
+            if (mod && prot.kind == Prot.Kind.package_)
+            {
+                return hasPackageAccess(mod, d) ? Prot(Prot.Kind.public_) : Prot(Prot.Kind.private_);
+            }
+            return prot;
+        }
+
+        if (next &&
+            protectionSeenFromModule(mostVisible, mod).isMoreRestrictiveThan(protectionSeenFromModule(next, mod)))
             mostVisible = next;
     }
     return mostVisible;
