@@ -1452,8 +1452,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (e.var.checkNestedReference(sc, e.loc))
             return setError();
 
-        if (!sc.intypeof)
-            sc.ctorflow.callSuper |= CSX.this_;
         result = e;
         return;
 
@@ -1536,8 +1534,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (e.var.checkNestedReference(sc, e.loc))
             return setError();
 
-        if (!sc.intypeof)
-            sc.ctorflow.callSuper |= CSX.super_;
         result = e;
         return;
 
