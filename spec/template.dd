@@ -676,7 +676,7 @@ $(GNAME TemplateAliasParameterDefault):
             enum val = fun(2);
         }
 
-        alias foo = Foo!(x => x * x);
+        alias foo = Foo!((int x) => x * x);
         static assert(foo.val == 4);
         ------
         )
