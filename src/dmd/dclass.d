@@ -175,22 +175,6 @@ struct ClassFlags
     alias hasDtor = Enum.hasDtor;
 }
 
-/**
- * The ClassKind enum is used in ClassDeclaration AST nodes
- * to specify the linkage type of the class or if it is an
- * anonymous class. If the class is anonymous it is also
- * considered to be a D class.
- */
-enum ClassKind : int
-{
-    /// the class is a d(efault) class
-    d,
-    /// the class is a C++ interface
-    cpp,
-    /// the class is an Objective-C class/interface
-    objc,
-}
-
 /***********************************************************
  */
 extern (C++) class ClassDeclaration : AggregateDeclaration
@@ -229,9 +213,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
     /// true if this is a scope class
     bool stack;
-
-    /// specifies whether this is a D, C++, Objective-C or anonymous class/interface
-    ClassKind classKind;
 
     /// to prevent recursive attempts
     private bool inuse;
