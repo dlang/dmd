@@ -20,6 +20,7 @@ import dmd.arraytypes;
 import dmd.canthrow;
 import dmd.dclass;
 import dmd.declaration;
+import dmd.denum;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
@@ -510,6 +511,8 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 auto y = s.isDeclaration();
             static if (is(T == FuncDeclaration))
                 auto y = s.isFuncDeclaration();
+            static if (is(T == EnumMember))
+                auto y = s.isEnumMember();
 
             if (!y || !fp(y))
                 return False();
@@ -521,6 +524,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     alias isDsymX = isX!Dsymbol;
     alias isDeclX = isX!Declaration;
     alias isFuncX = isX!FuncDeclaration;
+    alias isEnumMemX = isX!EnumMember;
 
     if (e.ident == Id.isArithmetic)
     {
@@ -634,7 +638,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (dim != 1)
             return dimError(1);
 
-        return isFuncX(f => f.isDisabled());
+        return isDeclX(f => f.isDisabled());
     }
     if (e.ident == Id.isAbstractFunction)
     {

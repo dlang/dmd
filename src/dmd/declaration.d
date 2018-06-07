@@ -340,7 +340,7 @@ extern (C++) abstract class Declaration : Dsymbol
                                     return false;
                         }
                     }
-                    error(loc, "is not callable because it is annotated with `@disable`");
+                    error(loc, "cannot be used because it is annotated with `@disable`");
                 }
             }
             return true;
