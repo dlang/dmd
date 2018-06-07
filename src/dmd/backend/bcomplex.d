@@ -16,6 +16,7 @@ version(CRuntime_Microsoft)
 
 extern (C++):
 @nogc:
+@safe:
 nothrow:
 
 // Roll our own for reliable bootstrapping
@@ -27,73 +28,59 @@ struct Complex_f
 
     static Complex_f div(ref Complex_f x, ref Complex_f y)
     {
-        Complex_f q;
-        targ_ldouble r;
-        targ_ldouble den;
-
         if (fabs(y.re) < fabs(y.im))
         {
-            r = y.re / y.im;
-            den = y.im + r * y.re;
-            q.re = cast(float)((x.re * r + x.im) / den);
-            q.im = cast(float)((x.im * r - x.re) / den);
+            const r = y.re / y.im;
+            const den = y.im + r * y.re;
+            return Complex_f(cast(float)((x.re * r + x.im) / den),
+                             cast(float)((x.im * r - x.re) / den));
         }
         else
         {
-            r = y.im / y.re;
-            den = y.re + r * y.im;
-            q.re = cast(float)((x.re + r * x.im) / den);
-            q.im = cast(float)((x.im - r * x.re) / den);
+            const r = y.im / y.re;
+            const den = y.re + r * y.im;
+            return Complex_f(cast(float)((x.re + r * x.im) / den),
+                             cast(float)((x.im - r * x.re) / den));
         }
-        return q;
     }
 
-    static Complex_f mul(ref Complex_f x, ref Complex_f y)
+    static Complex_f mul(ref Complex_f x, ref Complex_f y) pure
     {
-        Complex_f p;
-
-        p.re = x.re * y.re - x.im * y.im;
-        p.im = x.im * y.re + x.re * y.im;
-        return p;
+        return Complex_f(x.re * y.re - x.im * y.im,
+                         x.im * y.re + x.re * y.im);
     }
 
     static targ_ldouble abs(ref Complex_f z)
     {
-        targ_ldouble x,y,ans,temp;
-
-        x = fabs(z.re);
-        y = fabs(z.im);
+        const targ_ldouble x = fabs(z.re);
+        const targ_ldouble y = fabs(z.im);
         if (x == 0)
-            ans = y;
+            return y;
         else if (y == 0)
-            ans = x;
+            return x;
         else if (x > y)
         {
-            temp = y / x;
-            ans = x * sqrt(1 + temp * temp);
+            const targ_ldouble temp = y / x;
+            return x * sqrt(1 + temp * temp);
         }
         else
         {
-            temp = x / y;
-            ans = y * sqrt(1 + temp * temp);
+            const targ_ldouble temp = x / y;
+            return y * sqrt(1 + temp * temp);
         }
-        return ans;
     }
 
     static Complex_f sqrtc(ref Complex_f z)
     {
-        Complex_f c;
-        targ_ldouble x,y,w,r;
-
         if (z.re == 0 && z.im == 0)
         {
-            c.re = 0;
-            c.im = 0;
+            return Complex_f(0, 0);
         }
         else
         {
-            x = fabs(z.re);
-            y = fabs(z.im);
+            const targ_ldouble x = fabs(z.re);
+            const targ_ldouble y = fabs(z.im);
+            targ_ldouble r, w;
             if (x >= y)
             {
                 r = y / x;
@@ -104,18 +91,17 @@ struct Complex_f
                 r = x / y;
                 w = sqrt(y) * sqrt(0.5 * (r + sqrt(1 + r * r)));
             }
+
             if (z.re >= 0)
             {
-                c.re = cast(float)w;
-                c.im = cast(float)(targ_ldouble(z.im) / (w + w));
+                return Complex_f(cast(float)w, (z.im / cast(float)(w + w)));
             }
             else
             {
-                c.im = cast(float)((z.im >= 0) ? w : -w);
-                c.re = z.im / (c.im + c.im);
+                const cim = (z.im >= 0) ? w : -w;
+                return Complex_f((z.im / cast(float)(cim + cim)), cast(float)cim);
             }
         }
-        return c;
     }
 }
 
@@ -125,71 +111,59 @@ struct Complex_d
 
     static Complex_d div(ref Complex_d x, ref Complex_d y)
     {
-        Complex_d q;
-        targ_ldouble r;
-        targ_ldouble den;
-
         if (fabs(y.re) < fabs(y.im))
         {
-            r = y.re / y.im;
-            den = y.im + r * y.re;
-            q.re = cast(double)((x.re * r + x.im) / den);
-            q.im = cast(double)((x.im * r - x.re) / den);
+            const targ_ldouble r = y.re / y.im;
+            const targ_ldouble den = y.im + r * y.re;
+            return Complex_d(cast(double)((x.re * r + x.im) / den),
+                             cast(double)((x.im * r - x.re) / den));
         }
         else
         {
-            r = y.im / y.re;
-            den = y.re + r * y.im;
-            q.re = cast(double)((x.re + r * x.im) / den);
-            q.im = cast(double)((x.im - r * x.re) / den);
+            const targ_ldouble r = y.im / y.re;
+            const targ_ldouble den = y.re + r * y.im;
+            return Complex_d(cast(double)((x.re + r * x.im) / den),
+                             cast(double)((x.im - r * x.re) / den));
         }
-        return q;
     }
 
-    static Complex_d mul(ref Complex_d x, ref Complex_d y)
+    static Complex_d mul(ref Complex_d x, ref Complex_d y) pure
     {
-        Complex_d p;
-        p.re = x.re * y.re - x.im * y.im;
-        p.im = x.im * y.re + x.re * y.im;
-        return p;
+        return Complex_d(x.re * y.re - x.im * y.im,
+                         x.im * y.re + x.re * y.im);
     }
 
     static targ_ldouble abs(ref Complex_d z)
     {
-        targ_ldouble x,y,ans,temp;
-        x = fabs(z.re);
-        y = fabs(z.im);
+        const targ_ldouble x = fabs(z.re);
+        const targ_ldouble y = fabs(z.im);
         if (x == 0)
-            ans = y;
+            return y;
         else if (y == 0)
-            ans = x;
+            return x;
         else if (x > y)
         {
-            temp = y / x;
-            ans = x * sqrt(1 + temp * temp);
+            const targ_ldouble temp = y / x;
+            return x * sqrt(1 + temp * temp);
         }
         else
         {
-            temp = x / y;
-            ans = y * sqrt(1 + temp * temp);
+            const targ_ldouble temp = x / y;
+            return y * sqrt(1 + temp * temp);
         }
-        return ans;
     }
 
     static Complex_d sqrtc(ref Complex_d z)
     {
-        Complex_d c;
-        targ_ldouble x,y,w,r;
-
         if (z.re == 0 && z.im == 0)
         {
-            c.re = 0;
-            c.im = 0;
+            return Complex_d(0, 0);
         }
         else
         {
-            x = fabs(z.re);
-            y = fabs(z.im);
+            const targ_ldouble x = fabs(z.re);
+            const targ_ldouble y = fabs(z.im);
+            targ_ldouble r, w;
             if (x >= y)
             {
                 r = y / x;
@@ -200,18 +174,17 @@ struct Complex_d
                 r = x / y;
                 w = sqrt(y) * sqrt(0.5 * (r + sqrt(1 + r * r)));
             }
+
             if (z.re >= 0)
             {
-                c.re = cast(double)w;
-                c.im = cast(double)(targ_ldouble(z.im) / (w + w));
+                return Complex_d(cast(double)w, (z.im / cast(double)(w + w)));
             }
             else
             {
-                c.im = cast(double)((z.im >= 0) ? w : -w);
-                c.re = z.im / (2 * c.im);
+                const cim = (z.im >= 0) ? w : -w;
+                return Complex_d((z.im / cast(double)(cim + cim)), cast(double)cim);
             }
         }
-        return c;
     }
 }
 
@@ -222,73 +195,59 @@ struct Complex_ld
 
     static Complex_ld div(ref Complex_ld x, ref Complex_ld y)
     {
-        Complex_ld q = void;
-        targ_ldouble r;
-        targ_ldouble den;
-
         if (fabsl(y.re) < fabsl(y.im))
         {
-            r = y.re / y.im;
-            den = y.im + r * y.re;
-            q.re = (x.re * r + x.im) / den;
-            q.im = (x.im * r - x.re) / den;
+            const targ_ldouble r = y.re / y.im;
+            const targ_ldouble den = y.im + r * y.re;
+            return Complex_ld((x.re * r + x.im) / den,
+                              (x.im * r - x.re) / den);
         }
         else
         {
-            r = y.im / y.re;
-            den = y.re + r * y.im;
-            q.re = (x.re + r * x.im) / den;
-            q.im = (x.im - r * x.re) / den;
+            const targ_ldouble r = y.im / y.re;
+            const targ_ldouble den = y.re + r * y.im;
+            return Complex_ld((x.re + r * x.im) / den,
+                              (x.im - r * x.re) / den);
         }
-        return q;
     }
 
-    static Complex_ld mul(ref Complex_ld x, ref Complex_ld y)
+    static Complex_ld mul(ref Complex_ld x, ref Complex_ld y) pure
     {
-        Complex_ld p = void;
-
-        p.re = x.re * y.re - x.im * y.im;
-        p.im = x.im * y.re + x.re * y.im;
-        return p;
+        return Complex_ld(x.re * y.re - x.im * y.im,
+                          x.im * y.re + x.re * y.im);
     }
 
     static targ_ldouble abs(ref Complex_ld z)
     {
-        targ_ldouble x,y,ans,temp;
-
-        x = fabsl(z.re);
-        y = fabsl(z.im);
+        const targ_ldouble x = fabsl(z.re);
+        const targ_ldouble y = fabsl(z.im);
         if (x == 0)
-            ans = y;
+            return y;
         else if (y == 0)
-            ans = x;
+            return x;
         else if (x > y)
         {
-            temp = y / x;
-            ans = x * sqrt(1 + temp * temp);
+            const targ_ldouble temp = y / x;
+            return x * sqrt(1 + temp * temp);
         }
         else
         {
-            temp = x / y;
-            ans = y * sqrt(1 + temp * temp);
+            const targ_ldouble temp = x / y;
+            return y * sqrt(1 + temp * temp);
         }
-        return ans;
     }
 
     static Complex_ld sqrtc(ref Complex_ld z)
     {
-        Complex_ld c = void;
-        targ_ldouble x,y,w,r;
-
         if (z.re == 0 && z.im == 0)
         {
-            c.re = 0;
-            c.im = 0;
+            return Complex_ld(targ_ldouble(0), targ_ldouble(0));
         }
         else
         {
-            x = fabsl(z.re);
-            y = fabsl(z.im);
+            const targ_ldouble x = fabsl(z.re);
+            const targ_ldouble y = fabsl(z.im);
+            targ_ldouble r, w;
             if (x >= y)
             {
                 r = y / x;
@@ -299,17 +258,16 @@ struct Complex_ld
                 r = x / y;
                 w = sqrt(y) * sqrt(0.5 * (r + sqrt(1 + r * r)));
             }
+
             if (z.re >= 0)
             {
-                c.re = w;
-                c.im = z.im / (w + w);
+                return Complex_ld(w, z.im / (w + w));
             }
             else
             {
-                c.im = (z.im >= 0) ? w : -w;
-                c.re = z.im / (c.im + c.im);
+                const cim = (z.im >= 0) ? w : -w;
+                return Complex_ld(z.im / (cim + cim), cim);
             }
         }
-        return c;
     }
 }
