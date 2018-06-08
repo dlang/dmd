@@ -2028,12 +2028,14 @@ final class Parser(AST) : Lexer
         case TOK.functionString:
         case TOK.prettyFunction:
         case TOK.this_:
-            {
-                // Template argument is an expression
-                AST.Expression ea = parsePrimaryExp();
-                tiargs.push(ea);
-                break;
-            }
+            // Template argument is an expression
+            AST.Expression ea = parsePrimaryExp();
+            tiargs.push(ea);
+            break;
+        case TOK.typeof_:
+            ta = parseTypeof();
+            tiargs.push(ta);
+            break;
         default:
             error("template argument expected following `!`");
             break;
