@@ -379,38 +379,38 @@ extern (C++, std)
 {
     struct pair(T1, T2)
     {
-	void swap(ref pair other);
+        void swap(ref pair other);
     }
 
     struct allocator(T)
     {
-	uint fooa() const;
-	uint foob();
+        uint fooa() const;
+        uint foob();
     }
 
     struct basic_string(T1, T2, T3)
     {
-	uint fooa();
+        uint fooa();
     }
 
     struct basic_istream(T1, T2)
     {
-	uint fooc();
+        uint fooc();
     }
 
     struct basic_ostream(T1, T2)
     {
-	uint food();
+        uint food();
     }
 
     struct basic_iostream(T1, T2)
     {
-	uint fooe();
+        uint fooe();
     }
 
     struct char_traits(T)
     {
-	uint foof();
+        uint foof();
     }
 }
 
@@ -513,13 +513,13 @@ version(Win64)
 extern (C++)
 struct T18888(T)
 {
-	void fun();
+    void fun();
 }
 
 extern (C++)
 struct S18888(alias arg = T18888)
 {
-	alias I = T18888!(arg!int);
+    alias I = T18888!(arg!int);
 }
 
 version(Posix)
@@ -612,7 +612,7 @@ extern (C++) struct TestOperators
     int opBinary(string op)(int x);
     int opUnary(string op)();
     int opOpAssign(string op)(int x);
-    int opIndex(size_t x);
+    int opIndex(int x);
     bool opEquals(int x);
     int opCall(int, float);
     int opAssign(int);
@@ -620,6 +620,37 @@ extern (C++) struct TestOperators
 
 version (Posix)
 {
+    static assert(TestOperators.opUnary!"*".mangleof     == "_ZN13TestOperatorsdeEv");
+    static assert(TestOperators.opUnary!"++".mangleof    == "_ZN13TestOperatorsppEv");
+    static assert(TestOperators.opUnary!"--".mangleof    == "_ZN13TestOperatorsmmEv");
+    static assert(TestOperators.opUnary!"-".mangleof     == "_ZN13TestOperatorsngEv");
+    static assert(TestOperators.opUnary!"+".mangleof     == "_ZN13TestOperatorspsEv");
+    static assert(TestOperators.opUnary!"~".mangleof     == "_ZN13TestOperatorscoEv");
+    static assert(TestOperators.opBinary!">>".mangleof   == "_ZN13TestOperatorsrsEi");
+    static assert(TestOperators.opBinary!"<<".mangleof   == "_ZN13TestOperatorslsEi");
+    static assert(TestOperators.opBinary!"*".mangleof    == "_ZN13TestOperatorsmlEi");
+    static assert(TestOperators.opBinary!"-".mangleof    == "_ZN13TestOperatorsmiEi");
+    static assert(TestOperators.opBinary!"+".mangleof    == "_ZN13TestOperatorsplEi");
+    static assert(TestOperators.opBinary!"&".mangleof    == "_ZN13TestOperatorsanEi");
+    static assert(TestOperators.opBinary!"/".mangleof    == "_ZN13TestOperatorsdvEi");
+    static assert(TestOperators.opBinary!"%".mangleof    == "_ZN13TestOperatorsrmEi");
+    static assert(TestOperators.opBinary!"^".mangleof    == "_ZN13TestOperatorseoEi");
+    static assert(TestOperators.opBinary!"|".mangleof    == "_ZN13TestOperatorsorEi");
+    static assert(TestOperators.opOpAssign!"*".mangleof  == "_ZN13TestOperatorsmLEi");
+    static assert(TestOperators.opOpAssign!"+".mangleof  == "_ZN13TestOperatorspLEi");
+    static assert(TestOperators.opOpAssign!"-".mangleof  == "_ZN13TestOperatorsmIEi");
+    static assert(TestOperators.opOpAssign!"/".mangleof  == "_ZN13TestOperatorsdVEi");
+    static assert(TestOperators.opOpAssign!"%".mangleof  == "_ZN13TestOperatorsrMEi");
+    static assert(TestOperators.opOpAssign!">>".mangleof == "_ZN13TestOperatorsrSEi");
+    static assert(TestOperators.opOpAssign!"<<".mangleof == "_ZN13TestOperatorslSEi");
+    static assert(TestOperators.opOpAssign!"&".mangleof  == "_ZN13TestOperatorsaNEi");
+    static assert(TestOperators.opOpAssign!"|".mangleof  == "_ZN13TestOperatorsoREi");
+    static assert(TestOperators.opOpAssign!"^".mangleof  == "_ZN13TestOperatorseOEi");
+    static assert(TestOperators.opCast!int.mangleof      == "_ZN13TestOperatorscviEv");
+    static assert(TestOperators.opAssign.mangleof        == "_ZN13TestOperatorsaSEi");
+    static assert(TestOperators.opEquals.mangleof        == "_ZN13TestOperatorseqEi");
+    static assert(TestOperators.opIndex.mangleof         == "_ZN13TestOperatorsixEi");
+    static assert(TestOperators.opCall.mangleof          == "_ZN13TestOperatorsclEif");
 }
 version (Win32)
 {
@@ -652,7 +683,7 @@ version (Win32)
     static assert(TestOperators.opCast!int.mangleof      == "??BTestOperators@@QAEHXZ");
     static assert(TestOperators.opAssign.mangleof        == "??4TestOperators@@QAEHH@Z");
     static assert(TestOperators.opEquals.mangleof        == "??8TestOperators@@QAE_NH@Z");
-    static assert(TestOperators.opIndex.mangleof         == "??ATestOperators@@QAEHI@Z");
+    static assert(TestOperators.opIndex.mangleof         == "??ATestOperators@@QAEHH@Z");
     static assert(TestOperators.opCall.mangleof          == "??RTestOperators@@QAEHHM@Z");
 }
 version (Win64)
@@ -686,7 +717,7 @@ version (Win64)
     static assert(TestOperators.opCast!int.mangleof      == "??BTestOperators@@QEAAHXZ");
     static assert(TestOperators.opAssign.mangleof        == "??4TestOperators@@QEAAHH@Z");
     static assert(TestOperators.opEquals.mangleof        == "??8TestOperators@@QEAA_NH@Z");
-    static assert(TestOperators.opIndex.mangleof         == "??ATestOperators@@QEAAH_K@Z");
+    static assert(TestOperators.opIndex.mangleof         == "??ATestOperators@@QEAAHH@Z");
     static assert(TestOperators.opCall.mangleof          == "??RTestOperators@@QEAAHHM@Z");
 }
 
