@@ -23,13 +23,11 @@ enum CSX : ushort
     none            = 0,
     this_ctor       = 0x01,     /// called this()
     super_ctor      = 0x02,     /// called super()
-    this_           = 0x04,     /// referenced this
-    super_          = 0x08,     /// referenced super
-    label           = 0x10,     /// seen a label
-    return_         = 0x20,     /// seen a return statement
-    any_ctor        = 0x40,     /// either this() or super() was called
-    halt            = 0x80,     /// assert(0)
-    deprecate_18719 = 0x100,    // issue deprecation for Issue 18719 - delete when deprecation period is over
+    label           = 0x04,     /// seen a label
+    return_         = 0x08,     /// seen a return statement
+    any_ctor        = 0x10,     /// either this() or super() was called
+    halt            = 0x20,     /// assert(0)
+    deprecate_18719 = 0x40,    // issue deprecation for Issue 18719 - delete when deprecation period is over
 }
 
 /***********
