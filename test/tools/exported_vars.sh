@@ -12,3 +12,9 @@ if [ "$OS" == "win32" ] || [ "$OS" == "win64" ]; then
 else
     export LIBEXT=.a
 fi
+
+# Default to DigitalMars C++ on Win32
+if [ "$OS" == "win32" ] && [ -z "${CC+set}" ] ; then
+    CC="dmc"
+fi
+export CC="${CC:-c++}" # C++ compiler to use

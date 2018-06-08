@@ -1,8 +1,6 @@
 #! /usr/bin/env bash
 
-
 if [[ $OS = *"win"* ]]; then exit 0; fi
-
 
 if [ $LIBEXT = ".a" ]; then
     LIB_PREFIX=lib
@@ -46,9 +44,7 @@ int main() {
 }
 EOF
 
-if [ -z ${CC+x} ]; then CC=cc; fi
-
-$CC -m${MODEL} -c -o ${C_FILE}${OBJ} $C_FILE
+cc -m${MODEL} -c -o ${C_FILE}${OBJ} $C_FILE
 ar rcs ${C_LIB} ${C_FILE}${OBJ}
 
 ${DMD} -m${MODEL} -lib -of${D_LIB} ${D_FILE}
