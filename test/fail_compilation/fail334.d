@@ -5,8 +5,8 @@ fail_compilation/fail334.d(15): Error: setter property can only have one paramet
 fail_compilation/fail334.d(16): Error: setter property can only have one parameter
 fail_compilation/fail334.d(17): Error: setter property can only have one parameter
 fail_compilation/fail334.d(19): Error: getter properties must not return void
-fail_compilation/fail334.d(26): Error: setter property can only have one or two parameters
-fail_compilation/fail334.d(27): Error: getter properties must not return void
+fail_compilation/fail334.d(27): Error: setter property can only have one or two parameters
+fail_compilation/fail334.d(28): Error: getter properties must not return void
 ---
 */
 
@@ -22,6 +22,7 @@ struct S
 // OK
 @property ufcs_set(Object obj, int val) {}
 @property void set(int) {}
+@property ref void get() {}
 
 @property void set(int[]...) {}
 @property void get() {}

@@ -1150,10 +1150,16 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         {
             const np = Parameter.dim(tf.parameters);
             if (tf.varargs || np > 2 || (np == 2 && sc.getStructClassScope))
+            {
                 mtype.error(loc, "setter property can only have one %s",
-                    sc.getStructClassScope ? "parameter".ptr : "or two parameters".ptr), errors = true;
-            else if (np == 0 && tf.next && tf.next.ty == Tvoid)
-                mtype.error(loc, "getter properties must not return void"), errors = true;
+                    sc.getStructClassScope ? "parameter".ptr : "or two parameters".ptr);
+                errors = true;
+            }
+            else if (np == 0 && tf.next && tf.next.ty == Tvoid && !tf.isref)
+            {
+                mtype.error(loc, "getter properties must not return void");
+                errors = true;
+            }
         }
 
         if (tf.varargs == 1 && tf.linkage != LINK.d && Parameter.dim(tf.parameters) == 0)
