@@ -1148,17 +1148,20 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
 
         if (tf.isproperty)
         {
+            // Deprecated in 2018-06.
+            // Change both to error in 2019-06 and uncomment the `errors =` lines.
+            // @@@DEPRECATED_2019-06@@@.
             const np = Parameter.dim(tf.parameters);
             if (tf.varargs || np > 2 || (np == 2 && sc.getStructClassScope))
             {
-                mtype.error(loc, "setter property can only have one %s",
+                deprecation(loc, "setter property can only have one %s",
                     sc.getStructClassScope ? "parameter".ptr : "or two parameters".ptr);
-                errors = true;
+                //errors = true;
             }
             else if (np == 0 && tf.next && tf.next.ty == Tvoid && !tf.isref)
             {
-                mtype.error(loc, "getter properties must not return void");
-                errors = true;
+                deprecation(loc, "getter properties must not return void");
+                //errors = true;
             }
         }
 

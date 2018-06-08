@@ -1,12 +1,13 @@
+// REQUIRED_ARGS: -de
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail334.d(15): Error: setter property can only have one parameter
-fail_compilation/fail334.d(16): Error: setter property can only have one parameter
-fail_compilation/fail334.d(17): Error: setter property can only have one parameter
-fail_compilation/fail334.d(19): Error: getter properties must not return void
-fail_compilation/fail334.d(27): Error: setter property can only have one or two parameters
-fail_compilation/fail334.d(28): Error: getter properties must not return void
+fail_compilation/fail334.d(16): Deprecation: setter property can only have one parameter
+fail_compilation/fail334.d(17): Deprecation: setter property can only have one parameter
+fail_compilation/fail334.d(18): Deprecation: setter property can only have one parameter
+fail_compilation/fail334.d(20): Deprecation: getter properties must not return void
+fail_compilation/fail334.d(28): Deprecation: setter property can only have one or two parameters
+fail_compilation/fail334.d(29): Deprecation: getter properties must not return void
 ---
 */
 
