@@ -3908,7 +3908,7 @@ private extern(C++) final class DotExpVisitor : Visitor
             if (auto fd = d.isFuncDeclaration())
             {
                 import dmd.access : mostVisibleOverload;
-                d = cast(Declaration)mostVisibleOverload(fd);
+                d = cast(Declaration)mostVisibleOverload(fd, sc._module);
             }
 
             checkAccess(e.loc, sc, e, d);
