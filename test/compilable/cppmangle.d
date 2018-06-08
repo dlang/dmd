@@ -412,6 +412,8 @@ extern (C++, std)
     {
         uint foof();
     }
+
+    struct test18957 {}
 }
 
 version (linux)
@@ -726,8 +728,19 @@ extern(C++, Namespace18922)
     import cppmangle2;
     void func18922(Struct18922) {}
 
-	version (Posix)
-		static assert(func18922.mangleof == "_ZN14Namespace189229func18922ENS_11Struct18922E");
-	else version(Windows)
-		static assert(func18922.mangleof == "?func18922@Namespace18922@@YAXUStruct18922@1@@Z");
+    version (Posix)
+        static assert(func18922.mangleof == "_ZN14Namespace189229func18922ENS_11Struct18922E");
+    else version(Windows)
+        static assert(func18922.mangleof == "?func18922@Namespace18922@@YAXUStruct18922@1@@Z");
+}
+
+/**************************************/
+// https://issues.dlang.org/show_bug.cgi?id=18957
+// extern(C++) doesn't mangle 'std' correctly on posix systems
+
+version (Posix)
+{
+    extern (C++) void test18957(ref const(std.test18957) t) {}
+
+    static assert(test18957.mangleof == "_Z9test18957RKNSt9test18957E");
 }
