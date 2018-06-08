@@ -618,7 +618,12 @@ private final class CppMangleVisitor : Visitor
             {
                 buf.writeByte('N');
                 if (write_prefix)
-                    prefix_name(p);
+                {
+                    if (isStd(p))
+                        buf.writestring("St");
+                    else
+                        prefix_name(p);
+                }
                 source_name(se);
                 buf.writeByte('E');
             }
