@@ -7949,6 +7949,14 @@ final class Parser(AST) : Lexer
                 if (token.value == TOK.leftParentheses)
                 {
                     nextToken();
+                    if (token.value == TOK.identifier && peekNext() == TOK.leftParentheses)
+                    {
+                        error(loc, "unexpected `(` after `%s`, inside `is` expression. Try enclosing the contents of `is` with a `typeof` expression", token.toChars());
+                        nextToken();
+                        Token* tempTok = peekPastParen(&token);
+                        memcpy(&token, tempTok, Token.sizeof);
+                        goto Lerr;
+                    }
                     targ = parseType(&ident);
                     if (token.value == TOK.colon || token.value == TOK.equal)
                     {
