@@ -10,12 +10,6 @@
 
 module object;
 
-version(D_BetterC) { }
-else
-{
-    version = Not_BetterC;
-}
-
 // NOTE: For some reason, this declaration method doesn't work
 //       in this particular file (and this file only).  It must
 //       be a DMD thing.
@@ -101,8 +95,6 @@ int __cmp(T)(const T[] lhs, const T[] rhs) @trusted
     }
 }
 
-version(Not_BetterC)
-{
     // Compare class and interface objects for ordering.
     private int __cmp(Obj)(Obj lhs, Obj rhs)
     if (is(Obj : Object))
@@ -323,7 +315,6 @@ version(Not_BetterC)
         assert(__cmp([c2, c2], [c1, c1]) > 0);
         assert(__cmp([c2, c2], [c2, c1]) > 0);
     }
-}
 
 // `lhs == rhs` lowers to `__equals(lhs, rhs)` for dynamic arrays
 bool __equals(T1, T2)(T1[] lhs, T2[] rhs)
@@ -563,8 +554,7 @@ nothrow @safe @nogc unittest
     }
 }
 
-version(Not_BetterC)
-{
+
     /// ditto
     void destroy(T)(T obj) if (is(T == class))
     {
@@ -851,12 +841,7 @@ version(Not_BetterC)
             assert(isnan(a));
         }
     }
-}
 
-/*============================ NOT -betterC ====================================
-  Anything below this line should not be imported if compiling with -betterC
-*/
-version(Not_BetterC):
 
 private
 {
