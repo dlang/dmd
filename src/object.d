@@ -500,9 +500,10 @@ void destroy(T)(ref T obj) if (is(T == struct))
 
     _destructRecurse(obj);
     () @trusted {
+        import core.stdc.string : memcpy;
         auto dest = (cast(ubyte*) &obj)[0 .. T.sizeof];
         auto src = (cast(ubyte*) &init)[0 .. T.sizeof];
-        dest[] = src[];
+        memcpy(dest.ptr, src.ptr, T.sizeof);
     } ();
 }
 

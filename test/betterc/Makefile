@@ -6,7 +6,7 @@ TESTS:=test18828
 all: $(addprefix $(ROOT)/,$(addsuffix ,$(TESTS)))
 
 $(ROOT)/%: $(SRC)/%.d
-	$(QUIET)$(DMD) -betterC -c -of$@ $<
+	$(QUIET)$(DMD) -betterC -of$@ $<
 
 clean:
 	rm -rf $(ROOT)
