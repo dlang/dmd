@@ -719,7 +719,7 @@ private extern (C++) class S2irVisitor : Visitor
             assert(func.type.ty == Tfunction);
             TypeFunction tf = cast(TypeFunction)(func.type);
 
-            RET retmethod = retStyle(tf);
+            RET retmethod = retStyle(tf, func.needThis());
             if (retmethod == RET.stack)
             {
                 elem *es;
@@ -745,7 +745,7 @@ private extern (C++) class S2irVisitor : Visitor
                         Type t = ce.e1.type.toBasetype();
                         if (t.ty == Tdelegate)
                             t = t.nextOf();
-                        if (t.ty == Tfunction && retStyle(cast(TypeFunction)t) == RET.stack)
+                        if (t.ty == Tfunction && retStyle(cast(TypeFunction)t, ce.f && ce.f.needThis()) == RET.stack)
                         {
                             irs.ehidden = el_var(irs.shidden);
                             e = toElemDtor(s.exp, irs);
@@ -769,7 +769,7 @@ private extern (C++) class S2irVisitor : Visitor
                         Type t = ce.e1.type.toBasetype();
                         if (t.ty == Tdelegate)
                             t = t.nextOf();
-                        if (t.ty == Tfunction && retStyle(cast(TypeFunction)t) == RET.stack)
+                        if (t.ty == Tfunction && retStyle(cast(TypeFunction)t, fd && fd.needThis()) == RET.stack)
                         {
                             irs.ehidden = el_var(irs.shidden);
                             e = toElemDtor(s.exp, irs);

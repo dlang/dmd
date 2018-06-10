@@ -1029,9 +1029,14 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
 /***************************
  * Determine return style of function - whether in registers or
  * through a hidden pointer to the caller's stack.
+ * Params:
+ *   tf = function type to check
+ *   needsThis = true if the function type is for a non-static member function
+ * Returns:
+ *   RET.stack if return value from function is on the stack, RET.regs otherwise
  */
-RET retStyle(TypeFunction tf)
+RET retStyle(TypeFunction tf, bool needsThis)
 {
     //printf("TypeFunction.retStyle() %s\n", toChars());
-    return Target.isReturnOnStack(tf) ? RET.stack : RET.regs;
+    return Target.isReturnOnStack(tf, needsThis) ? RET.stack : RET.regs;
 }

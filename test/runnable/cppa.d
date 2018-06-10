@@ -1309,6 +1309,36 @@ void test15589()
 
 /****************************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=18928
+// Win64: extern(C++) bad codegen, wrong calling convention
+
+extern(C++) struct Small18928
+{
+    int x;
+}
+
+extern(C++) class CC18928
+{
+    Small18928 getVirtual(); // { return S(3); }
+    final Small18928 getFinal(); // { return S(4); }
+    static Small18928 getStatic(); // { return S(5); }
+}
+
+extern(C++) CC18928 newCC18928();
+
+void test18928()
+{
+    auto cc = newCC18928();
+    Small18928 v = cc.getVirtual();
+    assert(v.x == 3);
+    Small18928 f = cc.getFinal();
+    assert(f.x == 4);
+    Small18928 s = cc.getStatic();
+    assert(s.x == 5);
+}
+
+/****************************************/
+
 void main()
 {
     test1();
@@ -1352,6 +1382,7 @@ void main()
     test15802();
     test16536();
     test15589();
+    test18928();
 
     printf("Success\n");
 }
