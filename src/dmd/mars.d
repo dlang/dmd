@@ -276,7 +276,7 @@ private int tryMain(size_t argc, const(char)** argv)
     bool is64bit = arch[0] == '6';
 
     version(Windows) // delete LIB entry in [Environment] (necessary for optlink) to allow inheriting environment for MS-COFF
-        if (is64bit || strcmp(arch, "32mscoff") == 0)
+        if (is64bit || strcmp(arch, "32omf") != 0)
             environment.update("LIB", 3).ptrvalue = null;
 
     // read from DFLAGS in [Environment{arch}] section
@@ -1185,7 +1185,7 @@ private void getenv_setargv(const(char)* envvalue, Strings* args)
  *          Should be "32" or "64"
  *
  * Returns:
- *   "32", "64" or "32mscoff" if the "-m32", "-m64", "-m32mscoff" flags were passed,
+ *   "32", "64" or "32omf" if the "-m32", "-m64", "-m32omf" flags were passed,
  *   respectively. If they weren't, return `arch`.
  */
 private const(char)* parse_arch_arg(Strings* args, const(char)* arch)
@@ -1195,7 +1195,7 @@ private const(char)* parse_arch_arg(Strings* args, const(char)* arch)
         const(char)* p = (*args)[i];
         if (p[0] == '-')
         {
-            if (strcmp(p + 1, "m32") == 0 || strcmp(p + 1, "m32mscoff") == 0 || strcmp(p + 1, "m64") == 0)
+            if (strcmp(p + 1, "m32") == 0 || strcmp(p + 1, "m32omf") == 0 || strcmp(p + 1, "m64") == 0)
                 arch = p + 2;
             else if (strcmp(p + 1, "run") == 0)
                 break;
@@ -1674,7 +1674,10 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                     error("-m32 is not supported on DragonFlyBSD, it is 64-bit only");
                 } else {
                     params.is64bit = false;
-                    params.mscoff = false;
+                    static if (TARGET.Windows)
+                    {
+                        params.mscoff = true;
+                    }
                 }
             }
             else if (arg == "-m64") // https://dlang.org/dmd.html#switch-m64
@@ -1685,16 +1688,16 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                     params.mscoff = true;
                 }
             }
-            else if (arg == "-m32mscoff") // https://dlang.org/dmd.html#switch-m32mscoff
+            else if (arg == "-m32omf") // https://dlang.org/dmd.html#switch-m32omf
             {
                 static if (TARGET.Windows)
                 {
-                    params.is64bit = 0;
-                    params.mscoff = true;
+                    params.is64bit = false;
+                    params.mscoff = false;
                 }
                 else
                 {
-                    error("-m32mscoff can only be used on windows");
+                    error("-m32omf can only be used on windows");
                 }
             }
             else if (strncmp(p + 1, "mscrtlib=", 9) == 0)
