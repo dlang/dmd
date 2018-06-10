@@ -61,7 +61,7 @@ struct Target
         bool cppExceptions;       /// set if catching C++ exceptions is supported
         char int64Mangle;         /// mangling character for C++ int64_t
         char uint64Mangle;        /// mangling character for C++ uint64_t
-        bool cppDeletingDestructor; /// target C++ ABI uses deleting destructor
+        bool twoDtorInVtable;     /// target C++ ABI puts deleting and non-deleting destructor into vtable
     }
 
     /**
@@ -117,9 +117,6 @@ struct Target
         ptrsize = 4;
         classinfosize = 0x4C; // 76
 
-        // all systems but windows use deleting destructors
-        cppDeletingDestructor = true;
-
         /* gcc uses int.max for 32 bit compilations, and long.max for 64 bit ones.
          * Set to int.max for both, because the rest of the compiler cannot handle
          * 2^64-1 without some pervasive rework. The trouble is that much of the
@@ -139,6 +136,7 @@ struct Target
             realpad = 2;
             realalignsize = 4;
             c_longsize = 4;
+            twoDtorInVtable = true;
         }
         else if (global.params.isOSX)
         {
@@ -146,6 +144,7 @@ struct Target
             realpad = 6;
             realalignsize = 16;
             c_longsize = 4;
+            twoDtorInVtable = true;
         }
         else if (global.params.isWindows)
         {
@@ -153,7 +152,7 @@ struct Target
             realpad = 0;
             realalignsize = 2;
             reverseCppOverloads = true;
-            cppDeletingDestructor = false;
+            twoDtorInVtable = false;
             c_longsize = 4;
             if (ptrsize == 4)
             {

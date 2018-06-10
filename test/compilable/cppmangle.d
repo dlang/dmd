@@ -564,16 +564,16 @@ version (Posix)
 version (Win32)
 {
     static assert(C18890.__dtor.mangleof == "??1C18890@@UAE@XZ");
-    static assert(C18890.__xdtor.mangleof == "??1C18890@@UAE@XZ");
-    static assert(C18890_2.__dtor.mangleof == "?__dtor@C18890_2@@UAE@XZ");
-    static assert(C18890_2.__xdtor.mangleof == "??1C18890_2@@UAE@XZ");
+    static assert(C18890.__xdtor.mangleof == "??_GC18890@@UAEPAXI@Z");
+    static assert(C18890_2.__dtor.mangleof == "?__dtor@C18890_2@@UAEXXZ");
+    static assert(C18890_2.__xdtor.mangleof == "??_GC18890_2@@UAEPAXI@Z");
 }
 version (Win64)
 {
     static assert(C18890.__dtor.mangleof == "??1C18890@@UEAA@XZ");
-    static assert(C18890.__xdtor.mangleof == "??1C18890@@UEAA@XZ");
-    static assert(C18890_2.__dtor.mangleof == "?__dtor@C18890_2@@UEAA@XZ");
-    static assert(C18890_2.__xdtor.mangleof == "??1C18890_2@@UEAA@XZ");
+    static assert(C18890.__xdtor.mangleof == "??_GC18890@@UEAAPEAXI@Z");
+    static assert(C18890_2.__dtor.mangleof == "?__dtor@C18890_2@@UEAAXXZ");
+    static assert(C18890_2.__xdtor.mangleof == "??_GC18890_2@@UEAAPEAXI@Z");
 }
 
 /**************************************/
@@ -597,12 +597,12 @@ version (Posix)
 version (Win32)
 {
     static assert(C18891.__dtor.mangleof == "??1C18891@@UAE@XZ");
-    static assert(C18891.__xdtor.mangleof == "??1C18891@@UAE@XZ");
+    static assert(C18891.__xdtor.mangleof == "??_GC18891@@UAEPAXI@Z");
 }
 version (Win64)
 {
     static assert(C18891.__dtor.mangleof == "??1C18891@@UEAA@XZ");
-    static assert(C18891.__xdtor.mangleof == "??1C18891@@UEAA@XZ");
+    static assert(C18891.__xdtor.mangleof == "??_GC18891@@UEAAPEAXI@Z");
 }
 
 /**************************************/

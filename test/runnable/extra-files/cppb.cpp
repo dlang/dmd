@@ -37,6 +37,8 @@ headers.
 #include <exception>
 #include <cstdarg>
 
+#include "cppb.h"
+
 /**************************************/
 
 int foo(int i, int j, int k);
@@ -837,6 +839,59 @@ void test15589b(A15589 *p)
     assert(((B15589*)p)->bar() == 200);
     p->~A15589();
 }
+
+
+/////////////////
+void trace15589(int ch);
+
+Cpp15589Base::~Cpp15589Base()
+{
+    trace15589('b');
+}
+
+Cpp15589Derived::~Cpp15589Derived()
+{
+    trace15589('B');
+}
+
+Cpp15589BaseVirtual::Cpp15589BaseVirtual()
+{
+    c = 2;
+}
+
+Cpp15589BaseVirtual::~Cpp15589BaseVirtual()
+{
+    trace15589('v');
+}
+
+Cpp15589DerivedVirtual::Cpp15589DerivedVirtual()
+{
+    d = 3;
+}
+
+Cpp15589DerivedVirtual::~Cpp15589DerivedVirtual()
+{
+    trace15589('V');
+}
+
+Cpp15589IntroducingVirtual::~Cpp15589IntroducingVirtual()
+{
+    trace15589('I');
+}
+
+Cpp15589Struct::~Cpp15589Struct()
+{
+    trace15589('s');
+}
+
+/*
+void instantiate15589()
+{
+    Cpp15589Struct struc;
+    Cpp15589Derived derived;
+    Cpp15589DerivedVirtual derivedVirtual;
+    Cpp15589IntroducingVirtual introducingVirtual;
+}*/
 
 /****************************************/
 // https://issues.dlang.org/show_bug.cgi?id=18928

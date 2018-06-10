@@ -1307,6 +1307,89 @@ void test15589()
     assert(A15589.dtorSeq[] == [ 20, 3, 10, 2, 1 ]); // destroyed full hierarchy!
 }
 
+extern(C++)
+{
+    class Cpp15589Base
+    {
+    public:
+        final ~this();
+
+        void nonVirtual();
+        int a;
+    }
+
+    class Cpp15589Derived : Cpp15589Base
+    {
+    public:
+        final ~this();
+        int b;
+    }
+
+    class Cpp15589BaseVirtual
+    {
+    public:
+        void beforeDtor();
+        
+        this();
+        ~this();
+
+        void afterDtor();
+        int c = 1;
+    }
+
+    class Cpp15589DerivedVirtual : Cpp15589BaseVirtual
+    {
+    public:
+        this(); // avoid building implicit ctor, see https://issues.dlang.org/show_bug.cgi?id=18966
+        ~this();
+
+        override void afterDtor();
+        
+        int d;
+    }
+
+    class Cpp15589IntroducingVirtual : Cpp15589Base
+    {
+    public:
+        void beforeIntroducedVirtual();
+        ~this();
+        void afterIntroducedVirtual(int);
+        
+        int e;
+    }
+
+    struct Cpp15589Struct
+    {
+        ~this();
+        int s;
+    }
+    
+    void trace15589(int ch)
+    {
+        traceBuf15589 ~= cast(char) ch;
+    }
+}
+
+__gshared char[] traceBuf15589;
+
+void test15589b()
+{
+    traceBuf15589 = null;
+    {
+        Cpp15589Struct struc = Cpp15589Struct();
+        scope Cpp15589Derived derived = new Cpp15589Derived;
+        scope Cpp15589DerivedVirtual derivedVirtual = new Cpp15589DerivedVirtual;
+        scope Cpp15589IntroducingVirtual introducingVirtual = new Cpp15589IntroducingVirtual;
+        
+        introducingVirtual.destroy();
+        derivedVirtual.destroy();
+        derived.destroy();
+    }
+    printf("traceBuf15589 %.*s\n", cast(int)traceBuf15589.length, traceBuf15589.ptr);
+    assert(traceBuf15589 == "IbVvBbs");
+}
+
+
 /****************************************/
 
 // https://issues.dlang.org/show_bug.cgi?id=18928
@@ -1382,6 +1465,7 @@ void main()
     test15802();
     test16536();
     test15589();
+    test15589b();
     test18928();
 
     printf("Success\n");

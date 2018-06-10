@@ -1282,8 +1282,8 @@ private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
         dtb.size(0);
 
     // destructor
-    if (cd.dtor)
-        dtb.xoff(toSymbol(cd.dtor), 0, TYnptr);
+    if (cd.tidtor)
+        dtb.xoff(toSymbol(cd.tidtor), 0, TYnptr);
     else
         dtb.size(0);
 

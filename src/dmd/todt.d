@@ -1345,7 +1345,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         }
 
         // xdtor
-        FuncDeclaration sdtor = sd.dtor;
+        FuncDeclaration sdtor = sd.tidtor;
         if (sdtor)
             dtb.xoff(toSymbol(sdtor), 0);
         else
