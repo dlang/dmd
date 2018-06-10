@@ -424,23 +424,6 @@ unittest // issue 15111
 // MurmurHash3 was written by Austin Appleby, and is placed in the public
 // domain. The author hereby disclaims copyright to this source code.
 
-version(X86)
-    version = AnyX86;
-version(X86_64)
-    version = AnyX86;
-
-version(AnyX86)
-{
-    version(DigitalMars)
-    {
-    }
-    else
-    {
-        version = HasUnalignedOps;
-    }
-}
-
-
 @system pure nothrow @nogc
 size_t bytesHash(const(void)* buf, size_t len, size_t seed)
 {
@@ -455,11 +438,6 @@ size_t bytesHash(const(void)* buf, size_t len, size_t seed)
     static uint get32bits(const (ubyte)* x) pure nothrow @nogc
     {
         //Compiler can optimize this code to simple *cast(uint*)x if it possible.
-        version(HasUnalignedOps)
-        {
-            if (!__ctfe)
-                return *cast(uint*)x; //BUG: Can't be inlined by DMD
-        }
         version(BigEndian)
         {
             return ((cast(uint) x[0]) << 24) | ((cast(uint) x[1]) << 16) | ((cast(uint) x[2]) << 8) | (cast(uint) x[3]);
@@ -539,4 +517,20 @@ pure nothrow @system @nogc unittest
     enum test_str = "Sample string";
     enum size_t hashVal = ctfeHash(test_str);
     assert(hashVal == bytesHash(&test_str[0], test_str.length, 0));
+
+    // Detect unintended changes to bytesHash on unaligned and aligned inputs.
+    version(BigEndian)
+    {
+        const ubyte[7] a = [99, 4, 3, 2, 1, 5, 88];
+        const uint[2] b = [0x01_02_03_04, 0x05_ff_ff_ff];
+    }
+    else
+    {
+        const ubyte[7] a = [99, 1, 2, 3, 4, 5, 88];
+        const uint[2] b = [0x04_03_02_01, 0xff_ff_ff_05];
+    }
+    // It is okay to change the below values if you make a change
+    // that you expect to change the result of bytesHash.
+    assert(bytesHash(&a[1], a.length - 2, 0) == 2727459272);
+    assert(bytesHash(&b, 5, 0) == 2727459272);
 }
