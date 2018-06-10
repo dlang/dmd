@@ -1259,19 +1259,14 @@ final class Parser(AST) : Lexer
 
     /*********************************************
      * Give error on redundant/conflicting storage class.
-     *
-     * TODO: remove deprecation in 2.068 and keep only error
      */
-    StorageClass appendStorageClass(StorageClass storageClass, StorageClass stc, bool deprec = false)
+    StorageClass appendStorageClass(StorageClass storageClass, StorageClass stc)
     {
         if ((storageClass & stc) || (storageClass & AST.STC.in_ && stc & (AST.STC.const_ | AST.STC.scope_)) || (stc & AST.STC.in_ && storageClass & (AST.STC.const_ | AST.STC.scope_)))
         {
             OutBuffer buf;
             AST.stcToBuffer(&buf, stc);
-            if (deprec)
-                deprecation("redundant attribute `%s`", buf.peekString());
-            else
-                error("redundant attribute `%s`", buf.peekString());
+            error("redundant attribute `%s`", buf.peekString());
             return storageClass | stc;
         }
 
@@ -1433,7 +1428,7 @@ final class Parser(AST) : Lexer
             default:
                 return storageClass;
             }
-            storageClass = appendStorageClass(storageClass, stc, true);
+            storageClass = appendStorageClass(storageClass, stc);
             nextToken();
         }
     }
