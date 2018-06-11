@@ -1589,7 +1589,8 @@ do
                     newdata = cast(byte *)__arrayStart(info);
                     newdata[0 .. size] = (*p).ptr[0 .. size];
 
-                    // do postblit processing
+                    // do postblit processing, as we are making a copy and the
+                    // original array may still have references.
                     __doPostblit(newdata, size, tinext);
                 }
              L1:
