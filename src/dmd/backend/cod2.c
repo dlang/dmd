@@ -1362,7 +1362,6 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
                     L4:
                     {
-#if 1
                         regm_t regm = byte ? BYTEREGS : ALLREGS;
                         regm &= ~(mBP | mR13);                  // don't use EBP
                         codelem(cdb,e->E1,&regm,TRUE);
@@ -1393,30 +1392,6 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                         }
                         fixresult(cdb,e,resreg,pretregs);
                         return;
-#else
-
-                        // Don't use EBP
-                        resreg &= ~mBP;
-                        if (!resreg)
-                            resreg = retregs;
-
-                        codelem(cdb,e->E1,&resreg,FALSE);
-                        reg = findreg(resreg);
-                        getregs(cdb,resreg);
-                        cdb.gen2sib(LEA,modregrm(0,reg,4),
-                                    modregrm(ss,reg,reg));
-                        if (ss2)
-                        {
-                            cdb.gen2sib(LEA,modregrm(0,reg,4),
-                                        modregrm(ss2,reg,5));
-                            cdb.last()->IFL1 = FLconst;
-                            cdb.last()->IEV1.Vint = 0;
-                        }
-                        else if (!(e2factor & 1))    // if even factor
-                            genregs(cdb,0x03,reg,reg); // ADD reg,reg
-                        fixresult(cdb,e,resreg,pretregs);
-                        return;
-#endif
                     }
                     case 37:
                     case 74:    shift = 2;
@@ -1871,16 +1846,6 @@ void cdcom(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         retregs = possregs;
     codelem(cdb,e->E1,&retregs,FALSE);
     getregs(cdb,retregs);                // retregs will be destroyed
-#if 0
-    if (sz == 4 * REGSIZE)
-    {
-        cdb.gen2(0xF7,modregrm(3,2,AX));   // NOT AX
-        cdb.gen2(0xF7,modregrm(3,2,BX));   // NOT BX
-        cdb.gen2(0xF7,modregrm(3,2,CX));   // NOT CX
-        cdb.gen2(0xF7,modregrm(3,2,DX));   // NOT DX
-    }
-    else
-#endif
     {
         unsigned reg = (sz <= REGSIZE) ? findreg(retregs) : findregmsw(retregs);
         unsigned op = (sz == 1) ? 0xF6 : 0xF7;
@@ -3380,16 +3345,9 @@ void cdmemcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         default:
             assert(0);
     }
-
-#if 1
     getregs(cdb,mAX);
     cdb.gen2(0x33,modregrm(3,AX,AX));           // XOR AX,AX
     code_orflag(cdb.last(), CFpsw);             // keep flags
-#else
-    if (*pretregs != mPSW)                      // if not flags only
-        regwithvalue(cdb,mAX,0,NULL,0);         // put 0 in AX
-#endif
-
     getregs(cdb,mCX | mSI | mDI);
     cdb.gen1(0xF3);                             // REPE
     cdb.gen1(0xA6);                             // CMPSB
@@ -3799,16 +3757,6 @@ fixres:
     else
     {
         scodelem(cdb,e2->E2,&retregs3,retregs2,FALSE);
-#if 0
-        if (I32)
-        {
-            cdb.gen2(0x8A,modregrm(3,AH,AL));       // MOV AH,AL
-            cdb.genc2(0xC1,modregrm(3,4,AX),8);     // SHL EAX,8
-            cdb.gen2(0x8A,modregrm(3,AL,AH));       // MOV AL,AH
-            cdb.genc2(0xC1,modregrm(3,4,AX),8);     // SHL EAX,8
-            cdb.gen2(0x8A,modregrm(3,AL,AH));       // MOV AL,AH
-        }
-#endif
     }
     freenode(e2);
 
@@ -3984,7 +3932,6 @@ void cdstreq(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     }
     else
     {
-#if 1
         unsigned remainder = numbytes & (REGSIZE - 1);
         numbytes /= REGSIZE;            // number of words
         getregs_imm(cdb,mCX);
@@ -3998,21 +3945,6 @@ void cdstreq(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         {
             cdb.gen1(0xA4);             // MOVSB
         }
-#else
-        unsigned movs;
-        if (numbytes & (REGSIZE - 1))   // if odd
-            movs = 0xA4;                // MOVSB
-        else
-        {
-            movs = 0xA5;                // MOVSW
-            numbytes /= REGSIZE;        // # of words
-        }
-        getregs_imm(cdb,mCX);
-        movregconst(cdb,CX,numbytes,0);   // # of bytes/words
-        cdb.gen1(0xF3);                 // REP
-        cdb.gen1(movs);
-        regimmed_set(CX,0);             // note that CX == 0
-#endif
     }
     if (need_DS)
         cdb.gen1(0x1F);                 // POP  DS
