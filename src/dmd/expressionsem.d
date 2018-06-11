@@ -509,7 +509,11 @@ private Expression resolveUFCS(Scope* sc, CallExp ce)
         }
         else
         {
-            if (Expression ey = die.semanticY(sc, 1))
+            uint oldatlock = t.aliasthislock;
+            t.aliasthislock |= AliasThisRec.RECtracing;
+            Expression ey = die.semanticY(sc, 1);
+            t.aliasthislock = oldatlock;
+            if (ey)
             {
                 if (ey.op == TOK.error)
                     return ey;
@@ -524,6 +528,15 @@ private Expression resolveUFCS(Scope* sc, CallExp ce)
                 }
                 else
                     return null;
+            }
+            if (t.ty == Tclass || t.ty == Tstruct)
+            {
+                Expression[] results;
+                iterateAliasThis(sc, eleft, &UnaAliasThisCtx(ce).atUnaDotId, results, true, true);
+
+                Expression ret = enforceOneResult(results, ce.loc, "unable to unambiguously resolve %s; candidates:", ce.toChars());
+                if (ret)
+                    return ret;
             }
         }
         e = searchUFCS(sc, die, ident);
@@ -2259,16 +2272,19 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (hasThis(sc))
         {
             AggregateDeclaration ad = sc.getStructClassScope();
-            if (ad && ad.aliasthis)
+
+            if (ad)
             {
-                Expression e;
-                e = new IdentifierExp(exp.loc, Id.This);
-                e = new DotIdExp(exp.loc, e, ad.aliasthis.ident);
-                e = new DotIdExp(exp.loc, e, exp.ident);
-                e = e.trySemantic(sc);
-                if (e)
+                Expression e = new IdentifierExp(exp.loc, Id.This);
+                e = e.expressionSemantic(sc);
+
+                Expression[] results;
+                iterateAliasThis(sc, e, &IdentifierAliasThisCtx(exp.ident).findIdent, results);
+
+                Expression ret = enforceOneResult(results, exp.loc, "unable to unambiguously resolve %s.%s candidates:", e.toChars(), exp.ident.toChars());
+                if (ret)
                 {
-                    result = e;
+                    result = ret;
                     return;
                 }
             }
@@ -3965,13 +3981,19 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 // overload of opCall, therefore it's a call
                 if (exp.e1.op != TOK.type)
                 {
-                    if (sd.aliasthis && exp.e1.type != exp.att1)
+                    if (!exp.aliasthislock) //we don't need the recursion. On recursion done in iterateAliasThis
                     {
-                        if (!exp.att1 && exp.e1.type.checkAliasThisRec())
-                            exp.att1 = exp.e1.type;
-                        exp.e1 = resolveAliasThis(sc, exp.e1);
-                        goto Lagain;
+                        exp.aliasthislock = true;
+                        Expression[] results;
+                        iterateAliasThis(sc, exp.e1, &UnaAliasThisCtx(exp).atUna, results);
+                        Expression ret = enforceOneResult(results, exp.loc, "unable to unambiguously resolve %s; candidates:", exp.toChars());
+                        if (ret)
+                        {
+                            result = ret;
+                            return;
+                        }
                     }
+
                     exp.error("%s `%s` does not overload ()", sd.kind(), sd.toChars());
                     return setError();
                 }
@@ -4979,10 +5001,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             if (e.tok == TOK.colon)
             {
-                if (e.targ.implicitConvTo(e.tspec))
+                //ignore alias this while scanning
+                uint oldatlock = e.targ.aliasthislock;
+                e.targ.aliasthislock |= AliasThisRec.RECtracing;
+                MATCH m = e.targ.implicitConvTo(e.tspec);
+                e.targ.aliasthislock = oldatlock;
+                if (m)
                     goto Lyes;
-                else
-                    goto Lno;
+
+                m = implicitConvToWithAliasThis(e.loc, e.targ, e.tspec);
+                if (m)
+                    goto Lyes;
+                goto Lno;
             }
             else /* == */
             {
@@ -5009,7 +5039,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             Objects dedtypes = Objects(e.parameters.dim);
             dedtypes.zero();
 
-            MATCH m = deduceType(e.targ, sc, e.tspec, e.parameters, &dedtypes);
+            MATCH m = deduceType(e.loc, e.targ, sc, e.tspec, e.parameters, &dedtypes);
             //printf("targ: %s\n", targ.toChars());
             //printf("tspec: %s\n", tspec.toChars());
             if (m <= MATCH.nomatch || (m != MATCH.exact && e.tok == TOK.equal))
@@ -6078,10 +6108,26 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
         if (e.e1.op == TOK.type)
-            e.e1 = resolveAliasThis(sc, e.e1);
+        {
+            Expression[] results;
+            iterateAliasThis(sc, e.e1, &EmptyAliasThisCtx().castToBool, results);
+            Expression ret = enforceOneResult(results, e.loc, "unable to represent %s as bool; candidates:", e.e1.toChars());
+            if (ret)
+            {
+                if (ret.op == TOK.error)
+                {
+                    result = ret;
+                    return;
+                }
+                e.e1 = ret;
+            }
+        }
+        else
+        {
+            e.e1 = resolveProperties(sc, e.e1);
+            e.e1 = e.e1.toBoolean(sc);
+        }
 
-        e.e1 = resolveProperties(sc, e.e1);
-        e.e1 = e.e1.toBoolean(sc);
         if (e.e1.type == Type.terror)
         {
             result = e.e1;
@@ -7379,18 +7425,28 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                 // No operator overloading member function found yet, but
                 // there might be an alias this to try.
-                if (ad.aliasthis && t1b != ae.att1)
-                {
-                    if (!ae.att1 && t1b.checkAliasThisRec())
-                        ae.att1 = t1b;
 
-                    /* Rewrite (a[arguments] op e2) as:
-                     *      a.aliasthis[arguments] op e2
-                     */
-                    ae.e1 = resolveAliasThis(sc, ae1save, true);
-                    if (ae.e1)
-                        continue;
+                if (!ae.aliasthislock)
+                {
+                    Expression[] results;
+                    Expression e2old = exp.e2;
+                    exp.e2 = exp.e2.expressionSemantic(sc);
+                    if (exp.e2.op == TOK.error)
+                    {
+                        result = new ErrorExp();
+                        return;
+                    }
+
+                    iterateAliasThis(sc, ae1save, &BinAliasThisCtx(exp).atBinUna, results, true, true);
+                    Expression ret = enforceOneResult(results, exp.loc, "unable to unambiguously resolve %s; candidates:", exp.toChars());
+                    if (ret)
+                    {
+                        result = ret;
+                        return;
+                    }
+                    exp.e2 = e2old;
                 }
+
                 break;
             }
             ae.e1 = ae1old; // recovery
@@ -7467,7 +7523,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             assert(exp.e1.type);
         }
         Type t1 = exp.e1.type.toBasetype();
-
         /* Run this.e2 semantic.
          * Different from other binary expressions, the analysis of e2
          * depends on the result of e1 in assignments.
@@ -7476,12 +7531,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             Expression e2x = inferType(exp.e2, t1.baseElemOf());
             e2x = e2x.expressionSemantic(sc);
             e2x = resolveProperties(sc, e2x);
+            //https://issues.dlang.org/show_bug.cgi?id=17684
             if (e2x.op == TOK.type)
-                e2x = resolveAliasThis(sc, e2x); //https://issues.dlang.org/show_bug.cgi?id=17684
-            if (e2x.op == TOK.error)
             {
-                result = e2x;
-                return;
+                if (!exp.aliasthislock)
+                {
+                    Expression[] results;
+                    iterateAliasThis(sc, e2x, &BinAliasThisCtx(exp).atBinRhs, results);
+                    Expression ret = enforceOneResult(results, exp.loc, "unable to unambiguously resolve %s; candidates:", exp.toChars());
+                    if (ret)
+                    {
+                        result = ret;
+                        return;
+                    }
+                }
             }
             if (e2x.checkValue())
                 return setError();
@@ -7815,16 +7878,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 else // https://issues.dlang.org/show_bug.cgi?id=11355
                 {
                     AggregateDeclaration ad2 = isAggregate(e2x.type);
-                    if (ad2 && ad2.aliasthis && !(exp.att2 && e2x.type == exp.att2))
+                    if (ad2 && !exp.aliasthislock)
                     {
-                        if (!exp.att2 && exp.e2.type.checkAliasThisRec())
-                            exp.att2 = exp.e2.type;
-                        /* Rewrite (e1 op e2) as:
-                         *      (e1 op e2.aliasthis)
-                         */
-                        exp.e2 = new DotIdExp(exp.e2.loc, exp.e2, ad2.aliasthis.ident);
-                        result = exp.expressionSemantic(sc);
-                        return;
+                        exp.e1 = exp.e1.expressionSemantic(sc);
+                        Expression[] results;
+                        iterateAliasThis(sc, exp.e2, &BinAliasThisCtx(exp).atBinRhsConv, results);
+                        Expression ret = enforceOneResult(results, exp.loc, "unable to unambiguously resolve %s; candidates:", exp.toChars());
+                        if (ret)
+                        {
+                            result = ret;
+                            return;
+                        }
                     }
                 }
             }
@@ -9644,10 +9708,25 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
         if (e1x.op == TOK.type)
-            e1x = resolveAliasThis(sc, e1x);
-
-        e1x = resolveProperties(sc, e1x);
-        e1x = e1x.toBoolean(sc);
+        {
+            Expression[] results;
+            iterateAliasThis(sc, e1x, &EmptyAliasThisCtx().castToBool, results);
+            Expression ret = enforceOneResult(results, e1x.loc, "unable to represent %s as bool; candidates:", e1x.toChars());
+            if (ret)
+            {
+                if (ret.op == TOK.error)
+                {
+                    result = ret;
+                    return;
+                }
+                e1x = ret;
+            }
+        }
+        else
+        {
+            e1x = resolveProperties(sc, e1x);
+            e1x = e1x.toBoolean(sc);
+        }
 
         if (sc.flags & SCOPE.condition)
         {
@@ -9668,9 +9747,24 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
         if (e2x.op == TOK.type)
-            e2x = resolveAliasThis(sc, e2x);
-
-        e2x = resolveProperties(sc, e2x);
+        {
+            Expression[] results;
+            iterateAliasThis(sc, e2x, &EmptyAliasThisCtx().castToBool, results);
+            Expression ret = enforceOneResult(results, e2x.loc, "unable to represent %s as bool; candidates:", e2x.toChars());
+            if (ret)
+            {
+                if (ret.op == TOK.error)
+                {
+                    result = ret;
+                    return;
+                }
+                e2x = ret;
+            }
+        }
+        else
+        {
+            e2x = resolveProperties(sc, e2x);
+        }
 
         auto f1 = checkNonAssignmentArrayOp(e1x);
         auto f2 = checkNonAssignmentArrayOp(e2x);
@@ -10342,10 +10436,31 @@ Expression binSemantic(BinExp e, Scope* sc)
     Expression e2x = e.e2.expressionSemantic(sc);
 
     // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
+    bool check_e1x = false;
+    bool check_e2x = false;
     if (e1x.op == TOK.type)
-        e1x = resolveAliasThis(sc, e1x);
+        check_e1x = true;
     if (e2x.op == TOK.type)
-        e2x = resolveAliasThis(sc, e2x);
+        check_e2x = true;
+
+    if (check_e1x || check_e2x)
+    {
+        BinExp be = cast(BinExp)e.copy();
+        be.e1 = e1x;
+        be.e2 = e2x;
+
+        Expression ret = resolveAliasThisForBinExp(sc, be, check_e1x, check_e2x);
+        if (ret)
+        {
+            if (ret.op == TOK.error)
+            {
+                return ret;
+            }
+            be = cast(BinExp)ret;
+            e1x = be.e1;
+            e2x = be.e2;
+        }
+    }
 
     if (e1x.op == TOK.error)
         return e1x;
@@ -10765,7 +10880,7 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
     }
     else
     {
-        if (exp.e1.op == TOK.type || exp.e1.op == TOK.template_)
+        if ((exp.e1.op == TOK.type && !(exp.e1.type.aliasthislock & AliasThisRec.RECtracing)) || exp.e1.op == TOK.template_)
             flag = 0;
         e = exp.e1.type.dotExp(sc, exp.e1, exp.ident, flag | (exp.noderef ? DotExpFlag.noDeref : 0));
         if (e)

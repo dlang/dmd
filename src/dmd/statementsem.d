@@ -2420,13 +2420,21 @@ else
                 break;
 
             auto ad = isAggregate(ss.condition.type);
-            if (ad && ad.aliasthis && ss.condition.type != att)
+
+            if (ad && !ss.condition.aliasthislock)
             {
-                if (!att && ss.condition.type.checkAliasThisRec())
-                    att = ss.condition.type;
-                if (auto e = resolveAliasThis(sc, ss.condition, true))
+                Expression e = ss.condition.copy();
+                Expression[] results;
+                iterateAliasThis(sc, e, &EmptyAliasThisCtx().findSwitch, results);
+                Expression ret = enforceOneResult(results, ss.loc, "unable to represent %s as switch condition; candidates:", e.toChars());
+                if (ret)
                 {
-                    ss.condition = e;
+                    if (ret.op == TOK.error)
+                    {
+                        conditionError = true;
+                        break;
+                    }
+                    ss.condition = ret;
                     continue;
                 }
             }
@@ -2961,7 +2969,7 @@ else
         if (fd.fes)
             fd = fd.fes.func; // fd is now function enclosing foreach
 
-            TypeFunction tf = cast(TypeFunction)fd.type;
+        TypeFunction tf = cast(TypeFunction)fd.type;
         assert(tf.ty == Tfunction);
 
         if (rs.exp && rs.exp.op == TOK.variable && (cast(VarExp)rs.exp).var == fd.vresult)
@@ -3039,7 +3047,24 @@ else
 
             // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
             if (rs.exp.op == TOK.type)
-                rs.exp = resolveAliasThis(sc, rs.exp);
+            {
+                Expression[] results;
+                Expression e = rs.exp.copy();
+                if (!tret)
+                {
+                    iterateAliasThis(sc, e, &EmptyAliasThisCtx().findType, results);
+                }
+                else
+                {
+                    iterateAliasThis(sc, e, &TypeAliasThisCtx(tret).findType, results);
+                }
+
+                Expression ret = enforceOneResult(results, e.loc, "unable to represent %s as return value; candidates:", e.toChars());
+                if (ret)
+                {
+                    rs.exp = ret;
+                }
+            }
 
             rs.exp = resolveProperties(sc, rs.exp);
             if (rs.exp.checkType())

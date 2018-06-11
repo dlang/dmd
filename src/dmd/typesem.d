@@ -3431,33 +3431,24 @@ private extern(C++) final class DotExpVisitor : Visitor
 
             /* See if we should forward to the alias this.
              */
-            if (sym.aliasthis)
+            if (!(mt.aliasthislock & AliasThisRec.RECtracing))
             {
-                /* Rewrite e.ident as:
-                 *  e.aliasthis.ident
-                 */
-                auto alias_e = resolveAliasThis(sc, e, gagError);
+                /* See if we should forward to the alias this.
+                */
+                Expression[] results;
+                iterateAliasThis(sc, e, &FindDotIdAliasThisCtx(ident, gagError).findDotId, results, true, gagError);
 
-                if (!alias_e)
-                    return returnExp(null);
-
-                auto die = new DotIdExp(e.loc, alias_e, ident);
-
-                auto errors = gagError ? 0 : global.startGagging();
-                auto exp = die.semanticY(sc, gagError);
-                if (!gagError)
+                Expression ret = enforceOneResult(results, e.loc, "There are many candidates to %s.%s resolve:", e.toChars(), ident.toChars());
+                if (ret)
                 {
-                    global.endGagging(errors);
-                    if (exp && exp.op == TOK.error)
-                        exp = null;
+                    if (ret.op != TOK.error)
+                    {
+                        // raise possible errors
+                        Expression[] results2;
+                        iterateAliasThis(sc, e, &FindDotIdAliasThisCtx(ident, false).findDotId, results2, true, false);
+                    }
+                    return ret;
                 }
-
-                if (exp && gagError)
-                    // now that we know that the alias this leads somewhere useful,
-                    // go back and print deprecations/warnings that we skipped earlier due to the gag
-                    resolveAliasThis(sc, e, false);
-
-                return returnExp(exp);
             }
         }
         visit(cast(Type)mt);

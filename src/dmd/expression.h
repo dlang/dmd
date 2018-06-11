@@ -69,7 +69,6 @@ bool arrayExpressionSemantic(Expressions *exps, Scope *sc, bool preserveErrors =
 TemplateDeclaration *getFuncTemplateDecl(Dsymbol *s);
 Expression *valueNoDtor(Expression *e);
 int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1);
-Expression *resolveAliasThis(Scope *sc, Expression *e, bool gag = false);
 Expression *doCopyOrMove(Scope *sc, Expression *e);
 Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, Expression **pe0);
 Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, IntervalExp *ie, Expression **pe0);
@@ -129,6 +128,7 @@ public:
     TOK op;                     // to minimize use of dynamic_cast
     unsigned char size;         // # of bytes in Expression so we can copy() it
     unsigned char parens;       // if this is a parenthesized expression
+    bool aliasthislock;         // used to prevent alias this resolving
 
     static void _init();
     Expression *copy();
@@ -683,7 +683,6 @@ class UnaExp : public Expression
 {
 public:
     Expression *e1;
-    Type *att1; // Save alias this type to detect recursion
 
     Expression *syntaxCopy();
     Expression *incompatibleTypes();
@@ -700,9 +699,6 @@ class BinExp : public Expression
 public:
     Expression *e1;
     Expression *e2;
-
-    Type *att1; // Save alias this type to detect recursion
-    Type *att2; // Save alias this type to detect recursion
 
     Expression *syntaxCopy();
     Expression *incompatibleTypes();
@@ -1266,7 +1262,8 @@ public:
 class EqualExp : public BinExp
 {
 public:
-
+    Type *tupleComparingLockL;    // used to prevent struct .tupleof comparing
+    Type *tupleComparingLockR;    // used to prevent struct .tupleof comparing
     void accept(Visitor *v) { v->visit(this); }
 };
 

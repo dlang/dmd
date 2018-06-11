@@ -201,9 +201,12 @@ void test4773()
     }
 
     Rebindable r;
+    Rebindable r2;
     if (r) assert(0);
+    assert(r == r2);
     r.obj = new Object;
     if (!r) assert(0);
+    assert(r != r2);
 }
 
 /**********************************************/
@@ -1970,6 +1973,840 @@ struct S15292
      */
 }
 
+
+/***************************************************/
+
+class Test8Base
+{
+    string b;
+
+    this(string b)
+    {
+        this.b = b;
+    }
+
+    alias b this;
+}
+
+class Test8: Test8Base
+{
+    int a;
+
+    this(int a, string b)
+    {
+        this.a = a;
+        super(b);
+    }
+
+    alias a this;
+    
+}
+
+void test8()
+{
+    Test8 t8 = new Test8(1, "test");
+    int a = t8;
+    string b = t8;
+    assert(a == 1);
+    assert(b == "test");
+    assert(cast(int)t8 == 1);
+    assert(cast(string)t8 == "test");
+}
+
+/***************************************************/
+
+
+interface ITest9aa
+{
+    @property ref short getShort();
+    alias getShort this;
+}
+
+interface ITest9ab
+{
+    @property ref string getString();
+    alias getString this;
+}
+
+interface ITest9ac
+{
+    @property ref double getDouble();
+    alias getDouble this;
+}
+
+class Test9a : ITest9aa, ITest9ab, ITest9ac
+{
+    short a;
+    string b;
+    double d;
+    
+    this(short a, string b, double d)
+    {
+        this.a = a;
+        this.b = b;
+        this.d = d;
+    }
+
+    override @property ref short getShort()
+    {
+        return a;
+    }
+
+    override @property ref string getString()
+    {
+        return b;
+    }
+
+    override @property ref double getDouble()
+    {
+        return d;
+    }
+}
+
+
+interface ITest9ba
+{
+    @property ref int getInt();
+    alias getInt this;
+}
+
+interface ITest9bb
+{
+    @property ref string getString();
+    alias getString this;
+}
+
+
+class Test9b : ITest9ba, ITest9bb
+{
+    int a;
+    string b;
+
+    this(int a, string b)
+    {
+        this.a = a;
+        this.b = b;
+    }
+
+    override @property ref int getInt()
+    {
+        return a;
+    }
+
+    override @property ref string getString()
+    {
+        return b;
+    }
+}
+
+interface ITest9a
+{
+    @property ref Test9a getTest9a();
+    alias getTest9a this;
+}
+
+interface ITest9b
+{
+    @property ref Test9b getTest9b();
+    alias getTest9b this;
+}
+
+interface ITest9c
+{
+    @property ref int getInt();
+    alias getInt this;
+}
+
+class Test9 : ITest9a, ITest9b, ITest9c
+{
+    Test9a a;
+    Test9b b;
+    int c;
+    
+    this(Test9a a, Test9b b, int c)
+    {
+        this.a = a;
+        this.b = b;
+        this.c = c;
+    }
+
+    override @property ref Test9a getTest9a()
+    {
+        return a;
+    }
+
+    override @property ref Test9b getTest9b()
+    {
+        return b;
+    }
+
+    override @property ref int getInt()
+    {
+        return c;
+    }
+}
+
+struct Test9x
+{
+    Test9 t;
+    alias t this;
+}
+
+int test9set1(string v) { return 1; }
+int test9set1(int[] v) { return 2; }
+
+int test9set2(string v) { return 1; }
+int test9set2(long v) { return 2; }
+
+int test9set3(string v) { return 1; }
+int test9set3(int v) { return 2; }
+
+int test9set4(int[] v) { return 1; }
+int test9set4(long v) { return 2; }
+
+int test9set5(ulong v) { return 1; }
+int test9set5(long v) { return 2; }
+
+int test9set6(ulong v) { return 1; }
+int test9set6(long v) { return 2; }
+int test9set6(short v) { return 3; }
+
+void test9()
+{
+    Test9 t9 = new Test9(new Test9a(1, "1", 1.0), new Test9b(2, "2"), 3);
+
+    static assert(!__traits(compiles, (){string s = t9;})); //t9.a.b vs t9.b.b conflict
+
+    static assert(!__traits(compiles, (){int a = t9;}));    //t9.a.a vs t9.b.a vs t9.c conflict
+
+    static assert(!__traits(compiles, (){long b = t9;}));    // Can't be unambiguously resolved, because candidates have a different types
+    static assert(!__traits(compiles, (){double d = t9;}));  // and direct alias this isn't exactly casted tot target type.
+
+    static assert(!__traits(compiles, (){static assert(is(Test9 : int));}));
+    static assert(!__traits(compiles, (){static assert(is(Test9 : string));}));
+
+    static assert(!__traits(compiles, (){long b = t9x;}));    // Can't be unambiguously resolved, because candidates have a different types
+    static assert(!__traits(compiles, (){double d = t9x;}));  // and direct alias this isn't exactly casted tot target type.
+
+    static assert(!__traits(compiles, (){static assert(is(Test9x : int));}));
+    static assert(!__traits(compiles, (){static assert(is(Test9x : string));}));
+
+    assert(test9set1(new Test9b(2, "2")) == 1); // Obviously Test9b.getString()
+    assert(test9set2(new Test9b(2, "2")) == 1); // Test9b.getString(); Test9b.getInt needs to be converted to long
+    static assert(!__traits(compiles, test9set3(new Test9b(2, "2")))); // conflict: Test9b.getString() and Test9b.getInt() are equally good.
+    assert(test9set4(new Test9b(2, "2")) == 2); // Test9b.getInt() is converted to long, int[] definitely does not fit.
+    static assert(!__traits(compiles, test9set5(t9))); // conflict: t9 can be exactly converted to int and short, but test9set5 takes long and ulong
+    assert(test9set6(t9) == 3); // exactly converts to short
+}
+
+/***************************************************/
+
+struct Additive
+{
+    int a;
+    int opBinary(string op)(Additive rvl) if(op == "+")
+    {
+        return a + rvl.a;
+    }
+}
+
+interface ITest10aa
+{
+    @property ref Additive getAdditive();
+    alias getAdditive this;
+}
+
+interface ITest10ai
+{
+    @property ref int getInt();
+    alias getInt this;
+}
+
+class Test10a: ITest10aa, ITest10ai
+{
+    Additive a;
+    int b;
+
+    this (int a, int b)
+    {
+        this.a = Additive(a);
+        this.b = b;
+    }
+
+    override @property ref Additive getAdditive()
+    {
+        return a;
+    }
+
+    override @property ref int getInt()
+    {
+        return b;
+    }
+
+}
+
+interface ITest10bi
+{
+    @property ref int getInt();
+    alias getInt this;
+}
+
+interface ITest10bd
+{
+    @property ref double getDouble();
+    alias getDouble this;
+}
+
+class Test10b: Test10a, ITest10bi, ITest10bd
+{
+    int a;
+    double b;
+
+    this (int a, double b, int c, int d)
+    {
+        this.a = a;
+        this.b = b;
+        super(c, d);
+    }
+
+    override @property ref int getInt()
+    {
+        return a;
+    }
+
+    override @property ref double getDouble()
+    {
+        return b;
+    }
+}
+
+void test10()
+{
+    Test10a a = new Test10a(1, 2);
+    Test10b b = new Test10b(3, 4, 5, 6);
+    static assert(!__traits(compiles, (){auto x = a + b;}));
+}
+
+
+/***************************************************/
+
+
+struct Test11a
+{
+    int foo = 1;
+    int bar = 2;
+}
+
+struct Test11b
+{
+    int bar = 3;
+    int goo = 4;
+}
+
+interface ITest11ca
+{
+    @property Test11a getTest11a();
+    alias getTest11a this;
+}
+
+interface ITest11cb
+{
+    @property Test11b getTest11b();
+    alias getTest11b this;
+}
+
+
+class Test11c: ITest11ca, ITest11cb
+{
+    Test11a a;
+    Test11b b;
+
+    override @property Test11a getTest11a()
+    {
+        return a;
+    }
+
+    override @property Test11b getTest11b()
+    {
+        return b;
+    }
+}
+
+interface ITest11c
+{
+    @property Test11c getTest11c();
+    alias getTest11c this;
+}
+
+interface ITest11a
+{
+    @property Test11a getTest11a();
+    alias getTest11a this;
+}
+
+class Test11: ITest11c, ITest11a
+{
+    Test11c a;
+    Test11a b;
+
+    override @property Test11c getTest11c()
+    {
+        return new Test11c();
+    }
+
+    override @property Test11a getTest11a()
+    {
+        return b;
+    }
+
+
+}
+
+void test11()
+{
+    Test11 a = new Test11();
+    static assert(!__traits(compiles, (){a.foo == 0;})); // a.a.a.foo vs a.b.foo
+    static assert(!__traits(compiles, (){a.bar == 0;})); // a.a.a.bar vs a.a.b.bar vs a.b.bar
+    assert(a.goo == 4);
+
+    with(a)
+    {
+        static assert(!__traits(compiles, (){foo == 0;})); // a.a.a.foo vs a.b.foo
+        static assert(!__traits(compiles, (){bar == 0;})); // a.a.a.bar vs a.a.b.bar vs a.b.bar
+        assert(goo == 4);
+    }
+}
+
+
+/***************************************************/
+
+interface ITest12i
+{
+    @property ref int getInt();
+    alias getInt this;
+}
+
+interface ITest12s
+{
+    @property ref short getShort();
+    alias getShort this;
+}
+
+class Test12: ITest12i, ITest12s
+{
+    int i = 1;
+    short s = 2;
+    
+    override @property ref int getInt()
+    {
+        return i;
+    }
+
+    override @property ref short getShort()
+    {
+        return s;
+    }
+}
+
+void test12()
+{
+    Test12 s = new Test12();
+    static assert(!__traits(compiles, (){int a = s;}));   // conflict: s.s vs s.i
+    short b = s;                                          // OK: only s.s comes into question
+    assert(b == 2);
+}
+
+
+/***************************************************/
+
+struct Test13a
+{
+    char foo(int)
+    {
+        return 'I';
+    }
+
+    double foo(double)
+    {
+        return 'D';
+    }
+}
+
+struct Test13b
+{
+    char foo(string)
+    {
+        return 'S';
+    }
+}
+
+
+interface ITest13a
+{
+    @property ref Test13a getTest13a();
+    alias getTest13a this;
+}
+
+interface ITest13b
+{
+    @property ref Test13b getTest13b();
+    alias getTest13b this;
+}
+
+class Test13: ITest13a, ITest13b
+{
+    Test13a a;
+    Test13b b;
+    
+
+    override @property ref Test13a getTest13a()
+    {
+        return a;
+    }
+
+    override @property ref Test13b getTest13b()
+    {
+        return b;
+    }
+}
+
+void test13()
+{
+    Test13 s = new Test13();
+    assert(s.foo(1) == 'I');
+    assert(s.foo(1.0) == 'D');
+    assert(s.foo("string") == 'S');
+}
+
+
+/***************************************************/
+
+struct Test14a
+{
+    char foo(int)
+    {
+        return 'I';
+    }
+}
+
+struct Test14b
+{
+    char foo(string)
+    {
+        return 'S';
+    }
+
+    double foo(double)
+    {
+        return 'D';
+    }
+}
+
+
+interface ITest14a
+{
+    @property ref Test14a getTest14a();
+    alias getTest14a this;
+}
+
+interface ITest14b
+{
+    @property ref Test14b getTest14b();
+    alias getTest14b this;
+}
+
+class Test14: ITest14a, ITest14b
+{
+    Test14a a;
+    Test14b b;
+    
+
+    override @property ref Test14a getTest14a()
+    {
+        return a;
+    }
+
+    override @property ref Test14b getTest14b()
+    {
+        return b;
+    }
+}
+
+void test14()
+{
+    Test14 s = new Test14();
+    static assert(!__traits(compiles, (){s.foo(1);}));   // conflict: s.a.foo(int) vs s.b.foo(double)
+    assert(s.foo(1.0) == 'D');
+    assert(s.foo("string") == 'S');
+}
+
+
+/***************************************************/
+
+struct Test15a
+{
+    char foo(int)
+    {
+        return 'I';
+    }
+}
+
+struct Test15b
+{
+    char foo(string)
+    {
+        return 'S';
+    }
+
+    double foo(double)
+    {
+        return 'D';
+    }
+}
+
+
+interface ITest15a
+{
+    @property ref Test15a getTest15a();
+    alias getTest15a this;
+}
+
+interface ITest15b
+{
+    @property ref Test15b getTest15b();
+    alias getTest15b this;
+}
+
+class Test15: ITest15a, ITest15b
+{
+    Test15a a;
+    Test15b b;
+    
+
+    override @property ref Test15a getTest15a()
+    {
+        return a;
+    }
+
+    override @property ref Test15b getTest15b()
+    {
+        return b;
+    }
+
+    char foo(string)
+    {
+        return 'X';
+    }
+}
+
+
+
+
+void test15()
+{
+    Test15 s = new Test15();
+    assert(s.foo("string") == 'X');
+    static assert(!__traits(compiles, (){s.foo(1);})); //hidden by S.foo(string)
+    static assert(!__traits(compiles, (){s.foo(1.0);}));
+}
+
+
+
+struct Test16a
+{
+    int a = 1;
+    alias a this;
+}
+
+struct Test16b
+{
+    int foo() { return 1; };
+    alias foo this;
+}
+
+int test16x(ref int x)
+{
+    return 1;
+}
+
+int test16x(int x)
+{
+    return 2;
+}
+
+void test16()
+{
+    Test16a a;
+    Test16b b;
+    assert(test16x(a) == 1);
+    assert(test16x(b) == 2);
+}
+
+struct Test17a
+{
+    int a = 1;
+    alias a this;
+}
+
+
+
+interface ITest16a
+{
+    @property ref Test16a getTest16a();
+    alias getTest16a this;
+}
+
+interface ITest17b
+{
+    @property ref Test17a getTest17a();
+    alias getTest17a this;
+}
+
+class Test17: ITest16a, ITest17b
+{
+    Test16a a;
+    Test17a b;
+
+    override @property ref Test16a getTest16a()
+    {
+        return a;
+    }
+
+    override @property ref Test17a getTest17a()
+    {
+        return b;
+    }
+}
+
+
+int test17x(ref int x)
+{
+    return 1;
+}
+
+void test17()
+{
+    Test17 t = new Test17();
+    static assert(!__traits(compiles, {test17x(t);}));
+}
+
+
+struct Test18
+{
+    void* get()
+    {
+        return null;
+    }
+
+    alias get this;
+}
+
+void test18()
+{
+    Test18 m1;
+    Test18 m2;
+
+    assert(m1 == m2);
+}
+
+
+struct Test19
+{
+    alias name this;
+
+    @property string name() const
+    {
+        return _name;
+    }
+
+    string _name;
+}
+
+
+
+void test19a()(auto ref const Test19 source) @nogc
+{
+}
+
+void test19a()(auto ref const bool) @nogc
+{
+
+    const Test19 de;
+    test19a(de);
+}
+
+void test19()
+{
+    test19a(true);
+}
+
+/***************************************************/
+
+struct MacroType
+{
+    wstring value;
+}
+
+struct ArgumentText
+{
+    wstring value;
+}
+
+struct WorksheetFunction
+{
+    Optional optional;
+    alias optional this;
+}
+
+struct Optional
+{
+    ArgumentText argumentText;
+    MacroType macroType;
+}
+
+Optional test20opt = Optional(ArgumentText("my arg txt"), MacroType(""));
+
+void test20()
+{
+    WorksheetFunction wf1;
+    wf1.optional = test20opt;
+    WorksheetFunction wf2;
+    wf2.argumentText = ArgumentText("my arg txt");
+    assert(wf1 == wf2);
+}
+
+/***************************************************/
+
+struct TaggedAlgebraic2
+{
+    double opBinary(string op)(double d)
+    {
+        return 42;
+    }
+}
+
+struct JSONValue2
+{
+    TaggedAlgebraic2 payload;
+    alias payload this;
+}
+
+
+struct Test21
+{
+    JSONValue2 get()
+    {
+        return JSONValue2();
+    }
+
+    alias get this;
+}
+
+void test21()
+{
+    assert((Test21() + 1.0) == 42);
+}
+
 /***************************************************/
 
 int main()
@@ -2028,7 +2865,19 @@ int main()
     test13490();
     test11355();
     test14806();
-
+    test8();
+    test9();
+    test10();
+    test11();
+    test12();
+    test13();
+    test14();
+    test15();
+    test16();
+    test18();
+    test19();
+    test20();
+    test21();
     printf("Success\n");
     return 0;
 }
