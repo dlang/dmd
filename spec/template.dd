@@ -644,7 +644,7 @@ $(GNAME TemplateAliasParameterDefault):
         )
 
         $(LI Compile-time values
-
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ------
         template Foo(alias x)
         {
@@ -666,10 +666,10 @@ $(GNAME TemplateAliasParameterDefault):
             assert(&bar.i is &foo.i);
         }
         ------
-        )
+        ))
 
         $(LI Lambdas
-
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ------
         template Foo(alias fun)
         {
@@ -679,7 +679,7 @@ $(GNAME TemplateAliasParameterDefault):
         alias foo = Foo!((int x) => x * x);
         static assert(foo.val == 4);
         ------
-        )
+        ))
     )
 
 $(H3 $(LNAME2 typed_alias_op, Typed alias parameters))
