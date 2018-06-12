@@ -634,7 +634,7 @@ extern (C++) class FuncDeclaration : Declaration
         {
             if (overnext)
                 return overnext.overloadInsert(ad);
-            if (!ad.aliassym && ad.type.ty != Tident && ad.type.ty != Tinstance)
+            if (!ad.aliassym && ad.type.ty != Tident && ad.type.ty != Tinstance && ad.type.ty != Ttypeof)
             {
                 //printf("\tad = '%s'\n", ad.type.toChars());
                 return false;
