@@ -6597,7 +6597,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     Dsymbol s2 = s.getType().toDsymbol(sc);
                     if (!s2)
                     {
-                        error("`%s` is not a template declaration, it is a %s", id.toChars(), s.kind());
+                        .error(loc, "`%s` is not a valid template instance, because `%s` is not a template declaration but a type (`%s == %s`)", toChars(), id.toChars(), id.toChars(), s.getType.kind());
                         return false;
                     }
                     s = s2;
