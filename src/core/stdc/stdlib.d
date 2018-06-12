@@ -29,10 +29,14 @@ else version (WatchOS)
 extern (C):
 @system:
 
-/* Placed outside @nogc in order to not constrain what the callback does.
+/* Placed outside `nothrow` and `@nogc` in order to not constrain what the callback does.
  */
 ///
-alias int function(const void*, const void*) _compare_fp_t;
+alias _compare_fp_t = int function(const void*, const void*);
+
+nothrow:
+@nogc:
+
 ///
 inout(void)* bsearch(const void* key, inout(void)* base, size_t nmemb, size_t size, _compare_fp_t compar);
 ///
@@ -50,9 +54,6 @@ void    qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
     int key;
     bsearch(&key, arr.ptr, arr[0].sizeof, arr.length, &S.cmp);
 }
-
-nothrow:
-@nogc:
 
 ///
 struct div_t
