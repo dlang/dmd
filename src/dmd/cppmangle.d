@@ -319,6 +319,8 @@ private final class CppMangleVisitor : Visitor
      * Write the mangled representation of the template arguments.
      * Params:
      *  ti = the template instance
+     *  firstArg = index of the first template argument to mangle
+     *             (used for operator overloading)
      * Returns:
      *  true if any arguments were written
      */
