@@ -1,0 +1,12 @@
+`extern (C++)` now mangles substitution with const pointers correctly for Itanium mangling (Windows mangling was unaffected).
+
+`extern (C++)` mangling of function definitions which contained similar pointer parameters but differed because of a const wouldn't be substituted correctly.
+This has been correctly and now substitutes as expected, generating the correct C++ mangling.
+
+---
+extern(C++, NameSpace) void SubstitueFailure(const(char)*, const(char**));
+
+
+pragma(msg, SubstitueFailure.mangleof) // Before: _ZN9NameSpace16SubstitueFailureEPKcPKPS0_
+pragma(msg, SubstitueFailure.mangleof) // After:  _ZN9NameSpace16SubstitueFailureEPKcPKS1_
+---

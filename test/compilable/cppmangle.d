@@ -744,3 +744,11 @@ version (Posix)
 
     static assert(test18957.mangleof == "_Z9test18957RKNSt9test18957E");
 }
+
+
+extern(C++, NameSpace) void SubstitueFailure(const(char)*, const(char**));
+
+version (Posix)
+{
+    static assert(SubstitueFailure.mangleof == "_ZN9NameSpace16SubstitueFailureEPKcPKS1_");
+}

@@ -109,10 +109,14 @@ private final class CppMangleVisitor : Visitor
     bool substitute(RootObject p)
     {
         //printf("substitute %s\n", p ? p.toChars() : null);
-        auto i = find(p);
+        bool doConst = false;
+        auto i = find(p, &doConst);
         if (i >= 0)
         {
             //printf("\tmatch\n");
+            if(doConst)
+                buf.writeByte('K');
+
             /* Sequence is S_, S0_, .., S9_, SA_, ..., SZ_, S10_, ...
              */
             buf.writeByte('S');
@@ -150,7 +154,7 @@ private final class CppMangleVisitor : Visitor
      * Returns:
      *  index if found, -1 if not
      */
-    int find(RootObject p)
+    int find(RootObject p, bool* isConst = null)
     {
         //printf("find %p %d %s\n", p, p.dyncast(), p ? p.toChars() : null);
 
@@ -158,10 +162,41 @@ private final class CppMangleVisitor : Visitor
             if (auto ns = (cast(Dsymbol)p).isNspace())
                 return find(ns);
 
-        foreach (i, component; components)
+        // printf("****** find %p %d %s\n", p, p.dyncast(), p ? p.toChars() : null);
+        if(isConst && p.dyncast() == DYNCAST.type)
         {
-            if (p == component)
-                return cast(int)i;
+            Type t = cast(Type)p;
+
+            foreach (i, component; components)
+            {
+                if(component.dyncast() == DYNCAST.type)
+                {
+                    Type ct = cast(Type)component;
+
+                    if(t == ct)
+                        return cast(int)i;
+
+                    if(t.ty == Tpointer && ct.ty == Tpointer
+                        && (cast(TypePointer)t).next == (cast(TypePointer)ct).next
+                        && (t.isConst() == ct.isConst() || !ct.isConst()))
+                    {
+                        *isConst = t.isConst() && !ct.isConst();
+                        return cast(int)i;
+                    }
+                }
+                else
+                {
+                    continue;
+                }
+            }
+        }
+        else
+        {
+            foreach (i, component; components)
+            {
+                if (p == component)
+                    return cast(int)i;
+            }
         }
         return -1;
     }
