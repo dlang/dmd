@@ -57,8 +57,7 @@ if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStati
     else static if (is(typeof(toUbyte(val)) == const(ubyte)[]))
     //ubyteble array (arithmetic types and structs without toHash) CTFE ready for arithmetic types and structs without reference fields
     {
-        auto bytes = toUbyte(val);
-        return (() @trusted => bytesHash(bytes.ptr, bytes.length, seed))();
+        return bytesHash(toUbyte(val), seed);
     }
     else //Other types. CTFE unsupported
     {
@@ -73,6 +72,12 @@ if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStati
     const _ = hashOf("abc");
 }
 
+nothrow pure @system unittest
+{
+    void*[] val;
+    const _ = hashOf(val); // Check a PR doesn't break this.
+}
+
 //arithmetic type hash
 @trusted nothrow pure
 size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && __traits(isArithmetic, T))
@@ -80,13 +85,11 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && __traits
     static if(__traits(isFloating, val))
     {
         T data = (val != val) ? T.nan : val;
-        auto bytes = toUbyte(data);
-        return bytesHash(bytes.ptr, bytes.length, seed);
+        return bytesHash(toUbyte(data), seed);
     }
     else
     {
-        auto bytes = toUbyte(val);
-        return bytesHash(bytes.ptr, bytes.length, seed);
+        return bytesHash(toUbyte(val), seed);
     }
 }
 
@@ -134,16 +137,21 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && (is(T ==
 
         static if (is(typeof(toUbyte(val)) == const(ubyte)[]))//CTFE ready for structs without reference fields
         {
-            auto bytes = toUbyte(val);
-            return bytesHash(bytes.ptr, bytes.length, seed);
+            return bytesHash(toUbyte(val), seed);
         }
         else // CTFE unsupproreted for structs with reference fields
         {
             assert(!__ctfe, "unable to compute hash of "~T.stringof);
-            const(ubyte)[] bytes = (cast(const(ubyte)*)&val)[0 .. T.sizeof];
-            return bytesHash(bytes.ptr, bytes.length, seed);
+            return bytesHash(toUbyte(val), seed);
         }
     }
+}
+
+nothrow pure @safe unittest // issue 18925
+{
+    // Check hashOf struct of scalar fields is usable in @safe code.
+    static struct S { int a; int b; }
+    auto h = hashOf(S.init);
 }
 
 //delegate hash. CTFE unsupported
@@ -152,7 +160,7 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && is(T == 
 {
     assert(!__ctfe, "unable to compute hash of "~T.stringof);
     const(ubyte)[] bytes = (cast(const(ubyte)*)&val)[0 .. T.sizeof];
-    return bytesHash(bytes.ptr, bytes.length, seed);
+    return bytesHash(bytes, seed);
 }
 
 //class or interface hash. CTFE depends on toHash
@@ -424,8 +432,15 @@ unittest // issue 15111
 // MurmurHash3 was written by Austin Appleby, and is placed in the public
 // domain. The author hereby disclaims copyright to this source code.
 
+// This overload is for backwards compatibility.
 @system pure nothrow @nogc
 size_t bytesHash(const(void)* buf, size_t len, size_t seed)
+{
+    return bytesHash((cast(const(ubyte)*) buf)[0 .. len], seed);
+}
+
+private @nogc nothrow pure @trusted
+size_t bytesHash(scope const(ubyte)[] bytes, size_t seed)
 {
     static uint rotl32(uint n)(in uint x) pure nothrow @safe @nogc
     {
@@ -461,7 +476,8 @@ size_t bytesHash(const(void)* buf, size_t len, size_t seed)
         return h;
     }
 
-    auto data = cast(const(ubyte)*)buf;
+    auto len = bytes.length;
+    auto data = bytes.ptr;
     auto nblocks = len / 4;
 
     uint h1 = cast(uint)seed;
