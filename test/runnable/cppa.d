@@ -1321,6 +1321,7 @@ extern(C++)
     class Cpp15589Derived : Cpp15589Base
     {
     public:
+        this();
         final ~this();
         int b;
     }
@@ -1329,7 +1330,7 @@ extern(C++)
     {
     public:
         void beforeDtor();
-        
+
         this();
         ~this();
 
@@ -1340,21 +1341,22 @@ extern(C++)
     class Cpp15589DerivedVirtual : Cpp15589BaseVirtual
     {
     public:
-        this(); // avoid building implicit ctor, see https://issues.dlang.org/show_bug.cgi?id=18966
+        this();
         ~this();
 
         override void afterDtor();
-        
+
         int d;
     }
 
     class Cpp15589IntroducingVirtual : Cpp15589Base
     {
     public:
+        this();
         void beforeIntroducedVirtual();
         ~this();
         void afterIntroducedVirtual(int);
-        
+
         int e;
     }
 
@@ -1363,32 +1365,51 @@ extern(C++)
         ~this();
         int s;
     }
-    
+
     void trace15589(int ch)
     {
-        traceBuf15589 ~= cast(char) ch;
+        traceBuf[traceBufPos++] = cast(char) ch;
     }
 }
 
-__gshared char[] traceBuf15589;
+__gshared char[32] traceBuf;
+__gshared size_t traceBufPos;
+
+mixin template scopeAllocCpp(C)
+{
+    // workaround for https://issues.dlang.org/show_bug.cgi?id=18986
+    version(OSX)
+        enum cppCtorReturnsThis = false;
+    else version(FreeBSD)
+        enum cppCtorReturnsThis = false;
+    else
+        enum cppCtorReturnsThis = true;
+    
+    static if (cppCtorReturnsThis)
+        scope C ptr = new C;
+    else
+    {
+        ubyte[C.sizeof] data;
+        C ptr = (){ auto p = cast(C) data.ptr; p.__ctor(); return p; }();
+    }
+}
 
 void test15589b()
 {
-    traceBuf15589 = null;
+    traceBufPos = 0;
     {
         Cpp15589Struct struc = Cpp15589Struct();
-        scope Cpp15589Derived derived = new Cpp15589Derived;
-        scope Cpp15589DerivedVirtual derivedVirtual = new Cpp15589DerivedVirtual;
-        scope Cpp15589IntroducingVirtual introducingVirtual = new Cpp15589IntroducingVirtual;
-        
-        introducingVirtual.destroy();
-        derivedVirtual.destroy();
-        derived.destroy();
-    }
-    printf("traceBuf15589 %.*s\n", cast(int)traceBuf15589.length, traceBuf15589.ptr);
-    assert(traceBuf15589 == "IbVvBbs");
-}
+        mixin scopeAllocCpp!Cpp15589Derived derived;
+        mixin scopeAllocCpp!Cpp15589DerivedVirtual derivedVirtual;
+        mixin scopeAllocCpp!Cpp15589IntroducingVirtual introducingVirtual;
 
+        introducingVirtual.ptr.destroy();
+        derivedVirtual.ptr.destroy();
+        derived.ptr.destroy();
+    }
+    printf("traceBuf15589 %.*s\n", cast(int)traceBufPos, traceBuf.ptr);
+    assert(traceBuf[0..traceBufPos] == "IbVvBbs");
+}
 
 /****************************************/
 

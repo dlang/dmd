@@ -12,6 +12,7 @@ public:
 class Cpp15589Derived : public Cpp15589Base
 {
 public:
+    Cpp15589Derived();
     ~Cpp15589Derived();
     int b;
 };
@@ -42,6 +43,7 @@ public:
 class Cpp15589IntroducingVirtual : public Cpp15589Base
 {
 public:
+    Cpp15589IntroducingVirtual();
     virtual void beforeIntroducedVirtual() {}
     virtual ~Cpp15589IntroducingVirtual();
     virtual void afterIntroducedVirtual(int) {}

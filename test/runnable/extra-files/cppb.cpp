@@ -849,6 +849,11 @@ Cpp15589Base::~Cpp15589Base()
     trace15589('b');
 }
 
+Cpp15589Derived::Cpp15589Derived()
+{
+    b = 1;
+}
+
 Cpp15589Derived::~Cpp15589Derived()
 {
     trace15589('B');
@@ -874,6 +879,11 @@ Cpp15589DerivedVirtual::~Cpp15589DerivedVirtual()
     trace15589('V');
 }
 
+Cpp15589IntroducingVirtual::Cpp15589IntroducingVirtual()
+{
+    e = 4;
+}
+
 Cpp15589IntroducingVirtual::~Cpp15589IntroducingVirtual()
 {
     trace15589('I');
@@ -883,15 +893,6 @@ Cpp15589Struct::~Cpp15589Struct()
 {
     trace15589('s');
 }
-
-/*
-void instantiate15589()
-{
-    Cpp15589Struct struc;
-    Cpp15589Derived derived;
-    Cpp15589DerivedVirtual derivedVirtual;
-    Cpp15589IntroducingVirtual introducingVirtual;
-}*/
 
 /****************************************/
 // https://issues.dlang.org/show_bug.cgi?id=18928
