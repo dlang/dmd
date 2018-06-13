@@ -6076,10 +6076,28 @@ final class Parser(AST) : Lexer
             }
         case TOK.import_:
             {
-                AST.Dsymbols* imports = parseImport();
-                s = new AST.ImportStatement(loc, imports);
-                if (flags & ParseStatementFlags.scope_)
-                    s = new AST.ScopeStatement(loc, s, token.loc);
+                /* https://issues.dlang.org/show_bug.cgi?id=16088
+                 *
+                 * At this point it can either be an
+                 * https://dlang.org/spec/grammar.html#ImportExpression
+                 * or an
+                 * https://dlang.org/spec/grammar.html#ImportDeclaration.
+                 * See if the next token after `import` is a `(`; if so,
+                 * then it is an import expression.
+                 */
+                if (peekNext() == TOK.leftParentheses)
+                {
+                    AST.Expression e = parseExpression();
+                    check(TOK.semicolon);
+                    s = new AST.ExpStatement(loc, e);
+                }
+                else
+                {
+                    AST.Dsymbols* imports = parseImport();
+                    s = new AST.ImportStatement(loc, imports);
+                    if (flags & ParseStatementFlags.scope_)
+                        s = new AST.ScopeStatement(loc, s, token.loc);
+                }
                 break;
             }
         case TOK.template_:
