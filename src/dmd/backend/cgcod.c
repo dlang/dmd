@@ -1661,15 +1661,15 @@ int numbitsset(regm_t regm)
 #undef findreg
 
 unsigned findreg(regm_t regm
-#ifdef DEBUG
+#if FINDREG_DEBUG
         ,int line,const char *file
 #endif
         )
-#ifdef DEBUG
+#if FINDREG_DEBUG
 #define findreg(regm) findreg((regm),__LINE__,__FILE__)
 #endif
 {
-#ifdef DEBUG
+#if FINDREG_DEBUG
     regm_t regmsave = regm;
 #endif
     int i = 0;
@@ -1687,7 +1687,7 @@ unsigned findreg(regm_t regm
         regm >>= 1;
         i++;
     }
-#ifdef DEBUG
+#if FINDREG_DEBUG
   printf("findreg(%s, line=%d, file='%s', function = '%s')\n",regm_str(regmsave),line,file,funcsym_p->Sident);
   fflush(stdout);
 #endif
@@ -1842,11 +1842,11 @@ Lreg:
 #undef allocreg
 
 void allocreg(CodeBuilder& cdb,regm_t *pretregs,unsigned *preg,tym_t tym
-#ifdef DEBUG
+#if FINDREG_DEBUG
         ,int line,const char *file
 #endif
         )
-#ifdef DEBUG
+#if FINDREG_DEBUG
 #define allocreg(a,b,c,d) allocreg((a),(b),(c),(d),__LINE__,__FILE__)
 #endif
 {
@@ -1867,7 +1867,7 @@ void allocreg(CodeBuilder& cdb,regm_t *pretregs,unsigned *preg,tym_t tym
         unsigned size = _tysize[tym];
         *pretregs &= mES | allregs | XMMREGS;
         regm_t retregs = *pretregs;
-#ifdef DEBUG
+#if FINDREG_DEBUG
 if (retregs == 0) printf("allocreg: file %s(%d)\n", file, line);
 #endif
         if ((retregs & regcon.mvar) == retregs) // if exactly in reg vars
@@ -1982,7 +1982,7 @@ L3:
         }
         else if (I16 && (tym == TYdouble || tym == TYdouble_alias))
         {
-#ifdef DEBUG
+#if FINDREG_DEBUG
             if (retregs != DOUBLEREGS)
                 printf("retregs = %s, *pretregs = %s\n", regm_str(retregs), regm_str(*pretregs));
 #endif
@@ -1991,7 +1991,7 @@ L3:
         }
         else
         {
-#ifdef DEBUG
+#if FINDREG_DEBUG
             WRTYxx(tym);
             printf("\nallocreg: fil %s lin %d, regcon.mvar %s msavereg %s *pretregs %s, reg %d, tym x%x\n",
                 file,line,regm_str(regcon.mvar),regm_str(msavereg),regm_str(*pretregs),*preg,tym);
