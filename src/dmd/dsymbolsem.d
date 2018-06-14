@@ -3736,15 +3736,27 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             ad.dtors.push(dd);
         if (!dd.type)
         {
-            Parameters* params = null;
-            if (ad.classKind == ClassKind.cpp && !Target.cppDeletingDestructor)
+            dd.type = new TypeFunction(null, Type.tvoid, false, LINK.d, dd.storage_class);
+            if (ad.classKind == ClassKind.cpp && dd.ident == Id.dtor)
             {
-                // Windows doesn't use a deleting destructor, it takes an argument instead!
-                Parameter param = new Parameter(STC.undefined_, Type.tuns32, new Identifier("del"), new IntegerExp(Loc.initial, 0, Type.tuns32));
-                params = new Parameters;
-                (*params).push(param);
+                if (auto cldec = ad.isClassDeclaration())
+                {
+                    assert (cldec.cppDtorVtblIndex == -1); // double-call check already by dd.type
+                    if (cldec.baseClass && cldec.baseClass.cppDtorVtblIndex != -1)
+                    {
+                        // override the base virtual
+                        cldec.cppDtorVtblIndex = cldec.baseClass.cppDtorVtblIndex;
+                    }
+                    else if (!dd.isFinal())
+                    {
+                        // reserve the dtor slot for the destructor (which we'll create later)
+                        cldec.cppDtorVtblIndex = cast(int)cldec.vtbl.dim;
+                        cldec.vtbl.push(dd);
+                        if (Target.twoDtorInVtable)
+                            cldec.vtbl.push(dd); // deleting destructor uses a second slot
+                    }
+                }
             }
-            dd.type = new TypeFunction(params, Type.tvoid, false, LINK.d, dd.storage_class);
         }
 
         sc = sc.push();
@@ -4237,6 +4249,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         sd.ctor = sd.searchCtor();
 
         sd.dtor = buildDtor(sd, sc2);
+        sd.tidtor = buildExternDDtor(sd, sc2);
         sd.postblit = buildPostBlit(sd, sc2);
 
         buildOpAssign(sd, sc2);
@@ -4777,27 +4790,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             auto s = (*cldec.members)[i];
             s.dsymbolSemantic(sc2);
-
-            if (cldec.classKind == ClassKind.cpp)
-            {
-                const DtorDeclaration dtor = s.isDtorDeclaration();
-                if (dtor && cldec.cppDtorVtblIndex == -1)
-                {
-                    if (cldec.baseClass && cldec.baseClass.cppDtorVtblIndex != -1)
-                    {
-                        // override the base virtual
-                        cldec.cppDtorVtblIndex = cldec.baseClass.cppDtorVtblIndex;
-                    }
-                    else if (!dtor.isFinal())
-                    {
-                        // reserve the dtor slot for the destructor (which we'll create later)
-                        cldec.cppDtorVtblIndex = cast(int)cldec.vtbl.dim;
-                        cldec.vtbl.push(s);
-                        if (Target.cppDeletingDestructor)
-                            cldec.vtbl.push(s); // deleting destructor uses a second slot
-                    }
-                }
-            }
         }
 
         if (!cldec.determineFields())
@@ -4884,6 +4876,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         cldec.dtor = buildDtor(cldec, sc2);
+        cldec.tidtor = buildExternDDtor(cldec, sc2);
 
         if (cldec.classKind == ClassKind.cpp && cldec.cppDtorVtblIndex != -1)
         {
@@ -4891,10 +4884,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             cldec.dtor.vtblIndex = cldec.cppDtorVtblIndex;
             cldec.vtbl[cldec.cppDtorVtblIndex] = cldec.dtor;
 
-            if (Target.cppDeletingDestructor)
+            if (Target.twoDtorInVtable)
             {
                 // TODO: create a C++ compatible deleting destructor (call out to `operator delete`)
-                //       for the mooment, we'll call the non-deleting destructor and leak
+                //       for the moment, we'll call the non-deleting destructor and leak
                 cldec.vtbl[cldec.cppDtorVtblIndex + 1] = cldec.dtor;
             }
         }

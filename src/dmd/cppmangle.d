@@ -95,7 +95,7 @@ bool isPrimaryDtor(const Dsymbol sym)
         return false;
     const ad = dtor.isMember();
     assert(ad);
-    return dtor == ad.dtor;
+    return dtor == ad.primaryDtor;
 }
 
 private final class CppMangleVisitor : Visitor

@@ -33,6 +33,7 @@ import dmd.mtype;
 import dmd.opover;
 import dmd.semantic2;
 import dmd.statement;
+import dmd.target;
 import dmd.typesem;
 import dmd.tokens;
 
@@ -801,7 +802,7 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
  * Close similarity with StructDeclaration::buildPostBlit(),
  * and the ordering changes (runs backward instead of forwards).
  */
-extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
+extern (C++) DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
 {
     //printf("AggregateDeclaration::buildDtor() %s\n", ad.toChars());
     if (ad.isUnionDeclaration())
@@ -887,12 +888,12 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         /* extern(C++) destructors call into super to destruct the full hierarchy
         */
         ClassDeclaration cldec = ad.isClassDeclaration();
-        if (cldec && cldec.classKind == ClassKind.cpp && cldec.baseClass && cldec.baseClass.dtor)
+        if (cldec && cldec.classKind == ClassKind.cpp && cldec.baseClass && cldec.baseClass.primaryDtor)
         {
             // WAIT BUT: do I need to run `cldec.baseClass.dtor` semantic? would it have been run before?
             cldec.baseClass.dtor.functionSemantic();
 
-            stc = mergeFuncAttrs(stc, cldec.baseClass.dtor);
+            stc = mergeFuncAttrs(stc, cldec.baseClass.primaryDtor);
             if (!(stc & STC.disable))
             {
                 // super.__xdtor()
@@ -905,7 +906,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
                 if (stc & STC.safe)
                     stc = (stc & ~STC.safe) | STC.trusted;
 
-                ex = new DotVarExp(loc, ex, cldec.baseClass.dtor, false);
+                ex = new DotVarExp(loc, ex, cldec.baseClass.primaryDtor, false);
                 ex = new CallExp(loc, ex);
 
                 e = Expression.combine(e, ex); // super dtor last
@@ -927,7 +928,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         }
     }
 
-    FuncDeclaration xdtor = null;
+    DtorDeclaration xdtor = null;
     switch (ad.dtors.dim)
     {
     case 0:
@@ -966,6 +967,11 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         break;
     }
 
+    ad.primaryDtor = xdtor;
+
+    if (xdtor && xdtor.linkage == LINK.cpp && !Target.twoDtorInVtable)
+        xdtor = buildWindowsCppDtor(ad, xdtor, sc);
+
     // Add an __xdtor alias to make the inclusive dtor accessible
     if (xdtor)
     {
@@ -976,6 +982,108 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
     }
 
     return xdtor;
+}
+
+/**
+ * build a shim function around the compound dtor that accepts an argument
+ *  that is used to implement the deleting C++ destructor
+ *
+ * Params:
+ *  ad = the aggregate that contains the destructor to wrap
+ *  dtor = the destructor to wrap
+ *  sc = the scope in which to analyze the new function
+ *
+ * Returns:
+ *  the shim destructor, semantically analyzed and added to the class as a member
+ */
+private DtorDeclaration buildWindowsCppDtor(AggregateDeclaration ad, DtorDeclaration dtor, Scope* sc)
+{
+    auto cldec = ad.isClassDeclaration();
+    if (!cldec || cldec.cppDtorVtblIndex == -1) // scalar deleting dtor not built for non-virtual dtors
+        return dtor;
+
+    // generate deleting C++ destructor corresponding to:
+    // void* C::~C(int del)
+    // {
+    //   this->~C();
+    //   // TODO: if (del) delete (char*)this;
+    //   return (void*) this;
+    // }
+    Parameter delparam = new Parameter(STC.undefined_, Type.tuns32, Identifier.idPool("del"), new IntegerExp(dtor.loc, 0, Type.tuns32));
+    Parameters* params = new Parameters;
+    params.push(delparam);
+    auto ftype = new TypeFunction(params, Type.tvoidptr, false, LINK.cpp, dtor.storage_class);
+    auto func = new DtorDeclaration(dtor.loc, dtor.loc, dtor.storage_class, Id.cppdtor);
+    func.type = ftype;
+    if (dtor.fbody)
+    {
+        const loc = dtor.loc;
+        auto stmts = new Statements;
+        auto call = new CallExp(loc, dtor, null);
+        call.directcall = true;
+        stmts.push(new ExpStatement(loc, call));
+        stmts.push(new ReturnStatement(loc, new CastExp(loc, new ThisExp(loc), Type.tvoidptr)));
+        func.fbody = new CompoundStatement(loc, stmts);
+        func.generated = true;
+    }
+
+    auto sc2 = sc.push();
+    sc2.stc &= ~STC.static_; // not a static destructor
+    sc2.linkage = LINK.cpp;
+
+    ad.members.push(func);
+    func.addMember(sc2, ad);
+    func.dsymbolSemantic(sc2);
+
+    sc2.pop();
+    return func;
+}
+
+/**
+ * build a shim function around the compound dtor that translates
+ *  a C++ destructor to a destructor with extern(D) calling convention
+ *
+ * Params:
+ *  ad = the aggregate that contains the destructor to wrap
+ *  sc = the scope in which to analyze the new function
+ *
+ * Returns:
+ *  the shim destructor, semantically analyzed and added to the class as a member
+ */
+DtorDeclaration buildExternDDtor(AggregateDeclaration ad, Scope* sc)
+{
+    auto dtor = ad.primaryDtor;
+    if (!dtor)
+        return null;
+
+    // the only ABI known to be incompatible is Windows/x86
+    if (ad.classKind != ClassKind.cpp || !global.params.isWindows || global.params.is64bit)
+        return dtor;
+
+    // generate member function that adjusts calling convention (EAX used instead of ECX for 'this'):
+    // extern(D) void __ticppdtor()
+    // {
+    //     Class.__dtor();
+    // }
+    auto ftype = new TypeFunction(null, Type.tvoid, false, LINK.d, dtor.storage_class);
+    auto func = new DtorDeclaration(dtor.loc, dtor.loc, dtor.storage_class, Id.ticppdtor);
+    func.type = ftype;
+
+    auto call = new CallExp(dtor.loc, dtor, null);
+    call.directcall = true;                   // non-virtual call Class.__dtor();
+    func.fbody = new ExpStatement(dtor.loc, call);
+    func.generated = true;
+
+    auto sc2 = sc.push();
+    sc2.stc &= ~STC.static_; // not a static destructor
+    sc2.linkage = LINK.d;
+
+    ad.members.push(func);
+    func.addMember(sc2, ad);
+    func.dsymbolSemantic(sc2);
+
+    sc2.pop();
+    return func;
 }
 
 /******************************************

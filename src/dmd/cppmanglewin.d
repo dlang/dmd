@@ -603,7 +603,7 @@ private:
             // <flags> ::= Y <calling convention flag>
             buf.writeByte('Y');
         }
-        const(char)* args = mangleFunctionType(cast(TypeFunction)d.type, d.needThis(), d.isCtorDeclaration() || d.isDtorDeclaration(), d.isDtorDeclaration() !is null);
+        const(char)* args = mangleFunctionType(cast(TypeFunction)d.type, d.needThis(), d.isCtorDeclaration() || isPrimaryDtor(d));
         buf.writestring(args);
     }
 
@@ -704,6 +704,11 @@ private:
             else if (sym.ident == Id.call)
             {
                 buf.writestring("?R");
+                return;
+            }
+            else if (sym.ident == Id.cppdtor)
+            {
+                buf.writestring("?_G");
                 return;
             }
         }
@@ -1133,7 +1138,7 @@ private:
         cur.accept(this);
     }
 
-    const(char)* mangleFunctionType(TypeFunction type, bool needthis = false, bool noreturn = false, bool noargs = false)
+    const(char)* mangleFunctionType(TypeFunction type, bool needthis = false, bool noreturn = false)
     {
         scope VisualCPPMangler tmp = new VisualCPPMangler(this);
         // Calling convention
@@ -1193,7 +1198,7 @@ private:
             rettype.accept(tmp);
             tmp.flags &= ~MANGLE_RETURN_TYPE;
         }
-        if (!type.parameters || !type.parameters.dim || noargs)
+        if (!type.parameters || !type.parameters.dim)
         {
             if (type.varargs == 1)
                 tmp.buf.writeByte('Z');

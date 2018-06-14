@@ -1307,6 +1307,110 @@ void test15589()
     assert(A15589.dtorSeq[] == [ 20, 3, 10, 2, 1 ]); // destroyed full hierarchy!
 }
 
+extern(C++)
+{
+    class Cpp15589Base
+    {
+    public:
+        final ~this();
+
+        void nonVirtual();
+        int a;
+    }
+
+    class Cpp15589Derived : Cpp15589Base
+    {
+    public:
+        this();
+        final ~this();
+        int b;
+    }
+
+    class Cpp15589BaseVirtual
+    {
+    public:
+        void beforeDtor();
+
+        this();
+        ~this();
+
+        void afterDtor();
+        int c = 1;
+    }
+
+    class Cpp15589DerivedVirtual : Cpp15589BaseVirtual
+    {
+    public:
+        this();
+        ~this();
+
+        override void afterDtor();
+
+        int d;
+    }
+
+    class Cpp15589IntroducingVirtual : Cpp15589Base
+    {
+    public:
+        this();
+        void beforeIntroducedVirtual();
+        ~this();
+        void afterIntroducedVirtual(int);
+
+        int e;
+    }
+
+    struct Cpp15589Struct
+    {
+        ~this();
+        int s;
+    }
+
+    void trace15589(int ch)
+    {
+        traceBuf[traceBufPos++] = cast(char) ch;
+    }
+}
+
+__gshared char[32] traceBuf;
+__gshared size_t traceBufPos;
+
+mixin template scopeAllocCpp(C)
+{
+    // workaround for https://issues.dlang.org/show_bug.cgi?id=18986
+    version(OSX)
+        enum cppCtorReturnsThis = false;
+    else version(FreeBSD)
+        enum cppCtorReturnsThis = false;
+    else
+        enum cppCtorReturnsThis = true;
+    
+    static if (cppCtorReturnsThis)
+        scope C ptr = new C;
+    else
+    {
+        ubyte[C.sizeof] data;
+        C ptr = (){ auto p = cast(C) data.ptr; p.__ctor(); return p; }();
+    }
+}
+
+void test15589b()
+{
+    traceBufPos = 0;
+    {
+        Cpp15589Struct struc = Cpp15589Struct();
+        mixin scopeAllocCpp!Cpp15589Derived derived;
+        mixin scopeAllocCpp!Cpp15589DerivedVirtual derivedVirtual;
+        mixin scopeAllocCpp!Cpp15589IntroducingVirtual introducingVirtual;
+
+        introducingVirtual.ptr.destroy();
+        derivedVirtual.ptr.destroy();
+        derived.ptr.destroy();
+    }
+    printf("traceBuf15589 %.*s\n", cast(int)traceBufPos, traceBuf.ptr);
+    assert(traceBuf[0..traceBufPos] == "IbVvBbs");
+}
+
 /****************************************/
 
 // https://issues.dlang.org/show_bug.cgi?id=18928
@@ -1382,6 +1486,7 @@ void main()
     test15802();
     test16536();
     test15589();
+    test15589b();
     test18928();
 
     printf("Success\n");
