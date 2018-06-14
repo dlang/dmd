@@ -875,7 +875,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
 
             if (tf.isreturn && !tf.isref && !tf.next.hasPointers())
             {
-                mtype.error(loc, "function type `%s` has `return` but does not return any indirections", tf.toChars());
+                tf.isreturn = false;
             }
         }
 
@@ -964,9 +964,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                         }
                         else if (tf.next && !tf.next.hasPointers())
                         {
-                            mtype.error(loc, "parameter `%s` is `return` but function does not return any indirections",
-                                fparam.ident ? fparam.ident.toChars() : "");
-                            errors = true;
+                            fparam.storageClass &= ~STC.return_;   // https://issues.dlang.org/show_bug.cgi?id=18963
                         }
                     }
                 }
