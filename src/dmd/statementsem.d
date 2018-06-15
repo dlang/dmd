@@ -1926,6 +1926,8 @@ else
         Expression flde = new FuncExp(fs.loc, fld);
         flde = flde.expressionSemantic(sc);
         fld.tookAddressOf = 0;
+        if (flde.op == TOK.error)
+            return null;
         return cast(FuncExp)flde;
     }
 
