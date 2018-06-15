@@ -82,50 +82,66 @@ else version ( Windows )
 version( Windows )
 {
     enum clock_t CLOCKS_PER_SEC = 1000;
+    clock_t clock();
 }
 else version( OSX )
 {
     enum clock_t CLOCKS_PER_SEC = 100;
+    version (X86)
+        extern (C) pragma(mangle, "clock$UNIX2003") clock_t clock();
+    else
+        clock_t clock();
 }
 else version( Darwin ) // other Darwins (iOS, TVOS, WatchOS)
 {
     enum clock_t CLOCKS_PER_SEC = 1_000_000;
+    clock_t clock();
 }
 else version( FreeBSD )
 {
     enum clock_t CLOCKS_PER_SEC = 128;
+    clock_t clock();
 }
 else version( NetBSD )
 {
     enum clock_t CLOCKS_PER_SEC = 100;
+    clock_t clock();
 }
 else version( OpenBSD )
 {
     enum clock_t CLOCKS_PER_SEC = 100;
+    clock_t clock();
 }
 else version( DragonFlyBSD )
 {
     enum clock_t CLOCKS_PER_SEC = 128;
+    clock_t clock();
 }
 else version (CRuntime_Glibc)
 {
     enum clock_t CLOCKS_PER_SEC = 1_000_000;
+    clock_t clock();
 }
 else version (CRuntime_Musl)
 {
     enum clock_t CLOCKS_PER_SEC = 1_000_000;
+    clock_t clock();
 }
 else version (CRuntime_Bionic)
 {
     enum clock_t CLOCKS_PER_SEC = 1_000_000;
+    clock_t clock();
 }
 else version (CRuntime_UClibc)
 {
     enum clock_t CLOCKS_PER_SEC = 1_000_000;
+    clock_t clock();
+}
+else
+{
+    static assert(0, "unsupported system");
 }
 
-///
-clock_t clock();
 ///
 double  difftime(time_t time1, time_t time0);
 ///
