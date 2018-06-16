@@ -9282,14 +9282,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
  */
 Expression trySemantic(Expression exp, Scope* sc)
 {
-    //printf("+trySemantic(%s)\n", toChars());
+    //printf("+trySemantic(%s)\n", exp.toChars());
     uint errors = global.startGagging();
     Expression e = expressionSemantic(exp, sc);
     if (global.endGagging(errors))
     {
         e = null;
     }
-    //printf("-trySemantic(%s)\n", toChars());
+    //printf("-trySemantic(%s)\n", exp.toChars());
     return e;
 }
 
