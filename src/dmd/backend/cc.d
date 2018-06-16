@@ -672,6 +672,26 @@ enum
     BCMAX
 }
 
+/********************************
+ * Range for blocks.
+ */
+struct BlockRange
+{
+  pure nothrow @nogc @safe:
+
+    this(block* b)
+    {
+        this.b = b;
+    }
+
+    block* front() return  { return b; }
+    void popFront() { b = b.Bnext; }
+    bool empty()    { return !b; }
+
+  private:
+    block* b;
+}
+
 /**********************************
  * Functions
  */
