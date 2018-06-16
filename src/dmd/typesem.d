@@ -2330,6 +2330,12 @@ private extern(C++) final class ResolveVisitor : Visitor
 
         //printf("TypeTypeof::resolve(this = %p, sc = %p, idents = '%s')\n", mt, sc, mt.toChars());
         //static int nest; if (++nest == 50) *(char*)0=0;
+        if (sc is null)
+        {
+            *pt = Type.terror;
+            error(loc, "Invalid scope.");
+            return;
+        }
         if (mt.inuse)
         {
             mt.inuse = 2;
@@ -2349,7 +2355,7 @@ private extern(C++) final class ResolveVisitor : Visitor
          * }
          * void main() {
          *   alias X = typeof(S!int());
-         *   assert(typeid(X).xtoString(null) == "x");
+         *   assert(typeid(X).toString() == "x");
          * }
          */
         Scope* sc2 = sc.push();

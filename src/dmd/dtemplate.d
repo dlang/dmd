@@ -7296,7 +7296,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     if (isstatic)
                     {
                         Dsymbol dparent = sa.toParent2();
-                        if (!enclosing)
+                        if (!dparent)
+                            goto L1;
+                        else if (!enclosing)
                             enclosing = dparent;
                         else if (enclosing != dparent)
                         {
