@@ -29,10 +29,14 @@ else version (WatchOS)
 extern (C):
 @system:
 
-/* Placed outside @nogc in order to not constrain what the callback does.
+/* Placed outside `nothrow` and `@nogc` in order to not constrain what the callback does.
  */
 ///
-alias int function(const void*, const void*) _compare_fp_t;
+alias _compare_fp_t = int function(const void*, const void*);
+
+nothrow:
+@nogc:
+
 ///
 inout(void)* bsearch(const void* key, inout(void)* base, size_t nmemb, size_t size, _compare_fp_t compar);
 ///
@@ -50,9 +54,6 @@ void    qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
     int key;
     bsearch(&key, arr.ptr, arr[0].sizeof, arr.length, &S.cmp);
 }
-
-nothrow:
-@nogc:
 
 ///
 struct div_t
@@ -86,7 +87,7 @@ enum MB_CUR_MAX   = 1;
 version(Windows)      enum RAND_MAX = 0x7fff;
 else version(CRuntime_Glibc)  enum RAND_MAX = 0x7fffffff;
 else version(Darwin)  enum RAND_MAX = 0x7fffffff;
-else version(FreeBSD) enum RAND_MAX = 0x7fffffff;
+else version(FreeBSD) enum RAND_MAX = 0x7ffffffd;
 else version(NetBSD)  enum RAND_MAX = 0x7fffffff;
 else version(OpenBSD) enum RAND_MAX = 0x7fffffff;
 else version(DragonFlyBSD) enum RAND_MAX = 0x7fffffff;
@@ -151,21 +152,10 @@ else
 // No unsafe pointer manipulation.
 @trusted
 {
-    version(CRuntime_Bionic)
-    {
-       import core.sys.posix.stdlib: lrand48, srand48;
-       ///
-       alias core.sys.posix.stdlib.lrand48 rand;
-       ///
-       alias core.sys.posix.stdlib.srand48 srand;
-    }
-    else
-    {
-        ///
-       int     rand();
-       ///
-       void    srand(uint seed);
-    }
+    /// These two were added to Bionic in Lollipop.
+    int     rand();
+    ///
+    void    srand(uint seed);
 }
 
 // We don't mark these @trusted. Given that they return a void*, one has

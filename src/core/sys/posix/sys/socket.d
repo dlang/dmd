@@ -1768,6 +1768,42 @@ else version( CRuntime_Bionic )
             SO_TYPE         = 3
         }
     }
+    else version (AArch64)
+    {
+        alias ulong __kernel_size_t;
+
+        enum
+        {
+            SOCK_DGRAM      = 2,
+            SOCK_SEQPACKET  = 5,
+            SOCK_STREAM     = 1
+        }
+
+        enum
+        {
+            SOL_SOCKET      = 1
+        }
+
+        enum
+        {
+            SO_ACCEPTCONN   = 30,
+            SO_BROADCAST    = 6,
+            SO_DEBUG        = 1,
+            SO_DONTROUTE    = 5,
+            SO_ERROR        = 4,
+            SO_KEEPALIVE    = 9,
+            SO_LINGER       = 13,
+            SO_OOBINLINE    = 10,
+            SO_RCVBUF       = 8,
+            SO_RCVLOWAT     = 18,
+            SO_RCVTIMEO     = 20,
+            SO_REUSEADDR    = 2,
+            SO_SNDBUF       = 7,
+            SO_SNDLOWAT     = 19,
+            SO_SNDTIMEO     = 21,
+            SO_TYPE         = 3
+        }
+    }
     else
     {
         static assert(false, "Architecture not supported.");
@@ -1836,6 +1872,20 @@ else version( CRuntime_Musl )
         sa_family_t sa_family;
         byte[14]    sa_data;
     }
+
+    private enum : size_t
+    {
+        _SS_SIZE    = 128,
+        _SS_PADSIZE = _SS_SIZE - c_ulong.sizeof - sa_family_t.sizeof
+    }
+
+    struct sockaddr_storage
+    {
+        sa_family_t ss_family;
+        byte[_SS_PADSIZE] __ss_padding;
+        c_ulong     __ss_align;
+    }
+
     enum {
         SOCK_STREAM = 1,
         SOCK_DGRAM = 2,

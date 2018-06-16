@@ -156,7 +156,7 @@ private void stack_free(Stack *s)
 //////////////////////////////////////
 // Qsort() comparison routine for array of pointers to SymPair's.
 
-private int sympair_cmp(scope const void* e1, scope const void* e2)
+private int sympair_cmp(scope const void* e1, scope const void* e2) nothrow @nogc
 {
     auto count1 = (*cast(SymPair**)e1).count;
     auto count2 = (*cast(SymPair**)e2).count;
@@ -271,7 +271,7 @@ private void trace_array(Symbol*[] psymbols, Symbol *s, ref uint u)
 //////////////////////////////////////
 // Qsort() comparison routine for array of pointers to Symbol's.
 
-private int symbol_cmp(scope const void* e1, scope const void* e2)
+private int symbol_cmp(scope const void* e1, scope const void* e2) nothrow @nogc
 {
     auto ps1 = cast(Symbol **)e1;
     auto ps2 = cast(Symbol **)e2;

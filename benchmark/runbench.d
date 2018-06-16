@@ -13,7 +13,7 @@ extern(C) __gshared bool rt_cmdline_enabled = false;
 struct Config
 {
     string pattern = r".*\.d", dmd = "dmd", dflags = "-O -release -inline", args;
-    bool help, verbose;
+    bool help, verbose, compile = true;
     uint repeat = 10;
 }
 
@@ -76,14 +76,17 @@ void runTests(Config cfg)
 
     foreach(ref src; sources.parallel(1))
     {
-        writeln("COMPILING ", src);
         version (Windows) enum exe = "exe"; else enum exe = "";
         auto bin = buildPath(bindir, src.relativePath(cwd).setExtension(exe));
         auto obj = buildPath(objdir, src.relativePath(cwd).setExtension(exe));
         auto cmd = std.string.format("%s %s -op -od%s -of%s %s", cfg.dmd, cfg.dflags, obj, bin, src);
         if (auto ex = src in extra_sources)
             cmd ~= " -I" ~ src[0..$-2] ~ ".extra" ~ *ex;
-        runCmd(cmd, cfg.verbose);
+        if (cfg.compile)
+        {
+            writeln("COMPILING ", src);
+            runCmd(cmd, cfg.verbose);
+        }
         src = bin;
     }
 
@@ -180,6 +183,7 @@ Config parseArgs(string[] args)
            config.passThrough,
            "h|help", &cfg.help,
            "v|verbose", &cfg.verbose,
+           "N|no-compile", (string option) { cfg.compile = false; },
            "dflags", &cfg.dflags,
            "r|repeat", &cfg.repeat);
 
@@ -237,7 +241,8 @@ void main()
 
     import std.process : env=environment;
     cfg.dmd = env.get("DMD", "dmd");
-    writeln("compiler: "~cfg.dmd~' '~cfg.dflags);
+    if (cfg.compile)
+        writeln("compiler: "~cfg.dmd~' '~cfg.dflags);
 
     runTests(cfg);
 }

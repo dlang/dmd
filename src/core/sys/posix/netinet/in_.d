@@ -1403,6 +1403,12 @@ else version( CRuntime_Musl )
         uint32_t        sin6_scope_id;
     }
 
+    struct ipv6_mreq
+    {
+        in6_addr    ipv6mr_multiaddr;
+        uint        ipv6mr_interface;
+    }
+
     enum : uint
     {
         IPPROTO_IPV6 = 41,
@@ -1445,7 +1451,7 @@ else version ( CRuntime_UClibc )
     struct ipv6_mreq
     {
         in6_addr    ipv6mr_multiaddr;
-        int         ipv6mr_ifindex;
+        uint        ipv6mr_interface;
     }
 
     enum : uint

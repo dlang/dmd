@@ -20,9 +20,47 @@ version(linux_or_bsd):
 import core.sys.posix.fcntl;
 import core.sys.posix.unistd;
 
-version(linux) public import core.sys.linux.elf;
-version(FreeBSD) public import core.sys.freebsd.sys.elf;
-version(DragonFlyBSD) public import core.sys.dragonflybsd.sys.elf;
+version(linux) import core.sys.linux.elf;
+version(FreeBSD) import core.sys.freebsd.sys.elf;
+version(DragonFlyBSD) import core.sys.dragonflybsd.sys.elf;
+
+struct Image
+{
+    private ElfFile file;
+
+    static Image openSelf()
+    {
+        Image image;
+
+        if (!ElfFile.openSelf(&image.file))
+            image.file = ElfFile.init;
+
+        return image;
+    }
+
+    @property bool isValid()
+    {
+        return file != ElfFile.init;
+    }
+
+    const(ubyte)[] getDebugLineSectionData()
+    {
+        auto stringSectionHeader = ElfSectionHeader(&file, file.ehdr.e_shstrndx);
+        auto stringSection = ElfSection(&file, &stringSectionHeader);
+
+        auto dbgSectionIndex = findSectionByName(&file, &stringSection, ".debug_line");
+        if (dbgSectionIndex != -1)
+        {
+            auto dbgSectionHeader = ElfSectionHeader(&file, dbgSectionIndex);
+            // debug_line section found and loaded
+            return ElfSection(&file, &dbgSectionHeader);
+        }
+
+        return null;
+    }
+}
+
+private:
 
 struct ElfFile
 {

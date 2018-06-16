@@ -116,8 +116,8 @@ else version( CRuntime_Bionic )
 {
     struct iovec
     {
-        void* iov_base;
-        uint  iov_len;
+        void*  iov_base;
+        size_t iov_len;
     }
 
     int readv(int, in iovec*, int);

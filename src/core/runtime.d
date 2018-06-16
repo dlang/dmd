@@ -800,6 +800,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                 version(linux) enum enableDwarf = true;
                 else version(FreeBSD) enum enableDwarf = true;
                 else version(DragonFlyBSD) enum enableDwarf = true;
+                else version(Darwin) enum enableDwarf = true;
                 else enum enableDwarf = false;
 
                 static if (enableDwarf)

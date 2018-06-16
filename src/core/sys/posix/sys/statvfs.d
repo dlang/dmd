@@ -14,6 +14,8 @@ public import core.sys.posix.sys.types;
 
 version (Posix):
 extern (C) :
+nothrow:
+@nogc:
 
 version(CRuntime_Glibc) {
     static if(__WORDSIZE == 32)

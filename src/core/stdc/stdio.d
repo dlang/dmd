@@ -1,5 +1,5 @@
 /**
- * D header file for C99.
+ * D header file for C99 <stdio.h>
  *
  * $(C_HEADER_DESCRIPTION pubs.opengroup.org/onlinepubs/009695399/basedefs/_stdio.h.html, _stdio.h)
  *
@@ -9,7 +9,7 @@
  *    (See accompanying file LICENSE)
  * Authors:   Sean Kelly,
  *            Alex Rønne Petersen
- * Source:    $(DRUNTIMESRC core/stdc/_stdio.d)
+ * Source:    https://github.com/dlang/druntime/blob/master/src/core/stdc/stdio.d
  * Standards: ISO/IEC 9899:1999 (E)
  */
 
@@ -996,9 +996,9 @@ else version( NetBSD )
     }
 
     private extern __gshared FILE[3] __sF;
-    @property auto __stdin() { return &__sF[0]; }
-    @property auto __stdout() { return &__sF[1]; }
-    @property auto __stderr() { return &__sF[2]; }
+    @property auto __stdin()() { return &__sF[0]; }
+    @property auto __stdout()() { return &__sF[1]; }
+    @property auto __stderr()() { return &__sF[2]; }
     ///
     alias __stdin stdin;
     ///
@@ -1284,13 +1284,13 @@ int   puts(scope const char* s);
 extern (D) @trusted
 {
     ///
-    int getchar()                 { return getc(stdin);     }
+    int getchar()()                 { return getc(stdin);     }
     ///
-    int putchar(int c)            { return putc(c,stdout);  }
+    int putchar()(int c)            { return putc(c,stdout);  }
     ///
-    int getc(FILE* stream)        { return fgetc(stream);   }
+    int getc()(FILE* stream)        { return fgetc(stream);   }
     ///
-    int putc(int c, FILE* stream) { return fputc(c,stream); }
+    int putc()(int c, FILE* stream) { return fputc(c,stream); }
 }
 
 ///
@@ -1320,14 +1320,14 @@ version( MinGW )
   // No unsafe pointer manipulation.
   extern (D) @trusted
   {
-      ///
-    void rewind(FILE* stream)   { fseek(stream,0L,SEEK_SET); stream._flag = stream._flag & ~_IOERR; }
     ///
-    pure void clearerr(FILE* stream) { stream._flag = stream._flag & ~(_IOERR|_IOEOF);                 }
+    void rewind()(FILE* stream)   { fseek(stream,0L,SEEK_SET); stream._flag = stream._flag & ~_IOERR; }
     ///
-    pure int  feof(FILE* stream)     { return stream._flag&_IOEOF;                       }
+    pure void clearerr()(FILE* stream) { stream._flag = stream._flag & ~(_IOERR|_IOEOF); }
     ///
-    pure int  ferror(FILE* stream)   { return stream._flag&_IOERR;                       }
+    pure int  feof()(FILE* stream)     { return stream._flag&_IOEOF; }
+    ///
+    pure int  ferror()(FILE* stream)   { return stream._flag&_IOERR; }
   }
   ///
     int   __mingw_snprintf(scope char* s, size_t n, scope const char* fmt, ...);
@@ -1348,16 +1348,16 @@ else version( CRuntime_DigitalMars )
   // No unsafe pointer manipulation.
   extern (D) @trusted
   {
-      ///
-    void rewind(FILE* stream)   { fseek(stream,0L,SEEK_SET); stream._flag= stream._flag & ~_IOERR; }
     ///
-    pure void clearerr(FILE* stream) { stream._flag = stream._flag & ~(_IOERR|_IOEOF);                 }
+    void rewind()(FILE* stream)   { fseek(stream,0L,SEEK_SET); stream._flag= stream._flag & ~_IOERR; }
     ///
-    pure int  feof(FILE* stream)     { return stream._flag&_IOEOF;                       }
+    pure void clearerr()(FILE* stream) { stream._flag = stream._flag & ~(_IOERR|_IOEOF); }
     ///
-    pure int  ferror(FILE* stream)   { return stream._flag&_IOERR;                       }
+    pure int  feof()(FILE* stream)     { return stream._flag&_IOEOF; }
     ///
-    pure int  fileno(FILE* stream)   { return stream._file;                              }
+    pure int  ferror()(FILE* stream)   { return stream._flag&_IOERR; }
+    ///
+    pure int  fileno()(FILE* stream)   { return stream._file; }
   }
   ///
     int   _snprintf(scope char* s, size_t n, scope const char* fmt, ...);
@@ -1374,7 +1374,7 @@ else version( CRuntime_Microsoft )
   // No unsafe pointer manipulation.
   @trusted
   {
-      ///
+    ///
     void rewind(FILE* stream);
     ///
     pure void clearerr(FILE* stream);
@@ -1386,7 +1386,7 @@ else version( CRuntime_Microsoft )
     pure int  fileno(FILE* stream);
   }
 
-  ///
+    ///
     int _snprintf(scope char* s, size_t n, scope const char* format, ...);
     ///
     int  snprintf(scope char* s, size_t n, scope const char* format, ...);
@@ -1416,7 +1416,7 @@ else version( CRuntime_Glibc )
   // No unsafe pointer manipulation.
   @trusted
   {
-      ///
+    ///
     void rewind(FILE* stream);
     ///
     pure void clearerr(FILE* stream);
@@ -1428,7 +1428,7 @@ else version( CRuntime_Glibc )
     int  fileno(FILE *);
   }
 
-  ///
+    ///
     int  snprintf(scope char* s, size_t n, scope const char* format, ...);
     ///
     int  vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
@@ -1438,7 +1438,7 @@ else version( Darwin )
   // No unsafe pointer manipulation.
   @trusted
   {
-      ///
+    ///
     void rewind(FILE*);
     ///
     pure void clearerr(FILE*);
@@ -1450,7 +1450,7 @@ else version( Darwin )
     int  fileno(FILE*);
   }
 
-  ///
+    ///
     int  snprintf(scope char* s, size_t n, scope const char* format, ...);
     ///
     int  vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
@@ -1460,7 +1460,7 @@ else version( FreeBSD )
   // No unsafe pointer manipulation.
   @trusted
   {
-      ///
+    ///
     void rewind(FILE*);
     ///
     pure void clearerr(FILE*);
@@ -1472,7 +1472,7 @@ else version( FreeBSD )
     int  fileno(FILE*);
   }
 
-  ///
+    ///
     int  snprintf(scope char* s, size_t n, scope const char* format, ...);
     ///
     int  vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
@@ -1482,7 +1482,7 @@ else version( NetBSD )
   // No unsafe pointer manipulation.
   @trusted
   {
-      ///
+    ///
     void rewind(FILE*);
     ///
     pure void clearerr(FILE*);
@@ -1494,7 +1494,7 @@ else version( NetBSD )
     int  fileno(FILE*);
   }
 
-  ///
+    ///
     int  snprintf(char* s, size_t n, in char* format, ...);
     ///
     int  vsnprintf(char* s, size_t n, in char* format, va_list arg);
@@ -1544,42 +1544,42 @@ else version( OpenBSD )
 
     extern (D)
     {
-        void __sclearerr(FILE* p)
+        void __sclearerr()(FILE* p)
         {
             p._flags &= ~(__SERR|__SEOF);
         }
 
-        int __sfeof(FILE* p)
+        int __sfeof()(FILE* p)
         {
             return (p._flags & __SEOF) != 0;
         }
 
-        int __sferror(FILE* p)
+        int __sferror()(FILE* p)
         {
             return (p._flags & __SERR) != 0;
         }
 
-        int __sfileno(FILE* p)
+        int __sfileno()(FILE* p)
         {
             return p._file;
         }
 
-        int clearerr(FILE* file)
+        int clearerr()(FILE* file)
         {
             return !__isthreaded ? __sclearerr(file) : __clearerr(file);
         }
 
-        int feof(FILE* file)
+        int feof()(FILE* file)
         {
             return !__isthreaded ? __sfeof(file) : __feof(file);
         }
 
-        int ferror(FILE* file)
+        int ferror()(FILE* file)
         {
             return !__isthreaded ? __sferror(file) : __ferror(file);
         }
 
-        int fileno(FILE* file)
+        int fileno()(FILE* file)
         {
             return !__isthreaded ? __sfileno(file) : __fileno(file);
         }
@@ -1626,7 +1626,7 @@ else version (Solaris)
   // No unsafe pointer manipulation.
   @trusted
   {
-      ///
+    ///
     void rewind(FILE*);
     ///
     pure void clearerr(FILE*);
@@ -1638,7 +1638,7 @@ else version (Solaris)
     int  fileno(FILE*);
   }
 
-  ///
+    ///
     int  snprintf(scope char* s, size_t n, scope const char* format, ...);
     ///
     int  vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
@@ -1648,7 +1648,7 @@ else version( CRuntime_Bionic )
   // No unsafe pointer manipulation.
   @trusted
   {
-      ///
+    ///
     void rewind(FILE*);
     ///
     pure void clearerr(FILE*);
@@ -1750,7 +1750,7 @@ version(CRuntime_DigitalMars)
     private void _ReleaseSemaphore(int iSemaphore);
 
     // this is copied from semlock.h in DMC's runtime.
-    private void LockSemaphore(uint num)
+    private void LockSemaphore()(uint num)
     {
         asm nothrow @nogc
         {
@@ -1767,7 +1767,7 @@ version(CRuntime_DigitalMars)
     }
 
     // this is copied from semlock.h in DMC's runtime.
-    private void UnlockSemaphore(uint num)
+    private void UnlockSemaphore()(uint num)
     {
         asm nothrow @nogc
         {
@@ -1785,7 +1785,7 @@ version(CRuntime_DigitalMars)
 
     // This converts a HANDLE to a file descriptor in DMC's runtime
     ///
-    int _handleToFD(HANDLE h, int flags)
+    int _handleToFD()(HANDLE h, int flags)
     {
         LockSemaphore(_semIO);
         scope(exit) UnlockSemaphore(_semIO);
@@ -1804,7 +1804,7 @@ version(CRuntime_DigitalMars)
     }
 
     ///
-    HANDLE _fdToHandle(int fd)
+    HANDLE _fdToHandle()(int fd)
     {
         // no semaphore is required, once inserted, a file descriptor
         // doesn't change.
