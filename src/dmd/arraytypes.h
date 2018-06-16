@@ -32,6 +32,8 @@ typedef Array<class Dsymbol *> Dsymbols;
 
 typedef Array<class RootObject *> Objects;
 
+typedef Array<class DtorDeclaration *> DtorDeclarations;
+
 typedef Array<class FuncDeclaration *> FuncDeclarations;
 
 typedef Array<class Parameter *> Parameters;
@@ -66,5 +68,7 @@ typedef Array<class ReturnStatement *> ReturnStatements;
 typedef Array<class GotoStatement *> GotoStatements;
 
 typedef Array<class TemplateInstance *> TemplateInstances;
+
+typedef Array<struct Ensure> Ensures;
 
 #endif

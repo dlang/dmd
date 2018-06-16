@@ -109,9 +109,7 @@ private LabelStatement checkLabeledLoop(Scope* sc, Statement statement)
  */
 private Expression checkAssignmentAsCondition(Expression e)
 {
-    auto ec = e;
-    while (ec.op == TOK.comma)
-        ec = (cast(CommaExp)ec).e2;
+    auto ec = lastComma(e);
     if (ec.op == TOK.assign)
     {
         ec.error("assignment cannot be used as a condition, perhaps `==` was meant?");
@@ -3837,6 +3835,7 @@ else
             result = new CompoundStatement(tfs.loc, tfs._body, tfs.finalbody);
             return;
         }
+        tfs.bodyFallsThru = (blockexit & BE.fallthru) != 0;
         result = tfs;
     }
 
@@ -4104,8 +4103,9 @@ void catchSemantic(Catch c, Scope* sc)
 
     if (!c.type)
     {
-        deprecation(c.loc, "`catch` statement without an exception " ~
-            "specification is deprecated; use `catch(Throwable)` for old behavior");
+        error(c.loc, "`catch` statement without an exception specification is deprecated");
+        errorSupplemental(c.loc, "use `catch(Throwable)` for old behavior");
+        c.errors = true;
 
         // reference .object.Throwable
         c.type = getThrowable();

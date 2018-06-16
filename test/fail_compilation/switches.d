@@ -72,3 +72,29 @@ void test3(int i)
 }
 
 
+/************************************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/switches.d(404): Error: `switch` skips declaration of variable `switches.test.z` at fail_compilation/switches.d(406)
+---
+*/
+
+#line 400
+// https://issues.dlang.org/show_bug.cgi?id=18858
+
+int test(int n)
+{
+    final switch(n)
+    {
+        int z = 5;
+        enum e = 6;
+
+        case 1:
+            int y = 2;
+            return y;
+    }
+}
+
+

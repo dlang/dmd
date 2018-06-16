@@ -1204,7 +1204,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
 
         assert(e.type.deco);
-        e.normalize();
+        e.setInteger(e.getInteger());
         result = e;
     }
 
@@ -1452,8 +1452,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (e.var.checkNestedReference(sc, e.loc))
             return setError();
 
-        if (!sc.intypeof)
-            sc.ctorflow.callSuper |= CSX.this_;
         result = e;
         return;
 
@@ -1536,8 +1534,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (e.var.checkNestedReference(sc, e.loc))
             return setError();
 
-        if (!sc.intypeof)
-            sc.ctorflow.callSuper |= CSX.super_;
         result = e;
         return;
 
@@ -6600,7 +6596,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          */
         if (exp.op == TOK.assign && exp.e1.checkModifiable(sc) == 2)
         {
-            //printf("[%s] change to init - %s\n", loc.toChars(), toChars());
+            //printf("[%s] change to init - %s\n", exp.loc.toChars(), exp.toChars());
             exp.op = TOK.construct;
 
             // https://issues.dlang.org/show_bug.cgi?id=13515
@@ -6648,9 +6644,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                     // https://issues.dlang.org/show_bug.cgi?id=15661
                     // Look for the form from last of comma chain.
-                    auto e2y = e2x;
-                    while (e2y.op == TOK.comma)
-                        e2y = (cast(CommaExp)e2y).e2;
+                    auto e2y = lastComma(e2x);
 
                     CallExp ce = (e2y.op == TOK.call) ? cast(CallExp)e2y : null;
                     DotVarExp dve = (ce && ce.e1.op == TOK.dotVariable)
@@ -6774,6 +6768,31 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                          * Rewrite as:
                          *  e1 = init, e1.ctor(e2)
                          */
+
+                        /* Fix Issue 5153 : https://issues.dlang.org/show_bug.cgi?id=5153
+                         * Using `new` to initialize a struct object is a common mistake, but
+                         * the error message from the compiler is not very helpful in that
+                         * case. If exp.e2 is a NewExp and the type of new is the same as
+                         * the type as exp.e1 (struct in this case), then we know for sure
+                         * that the user wants to instantiate a struct. This is done to avoid
+                         * issuing an error when the user actually wants to call a constructor
+                         * which receives a class object.
+                         *
+                         * Foo f = new Foo2(0); is a valid expression if Foo has a constructor
+                         * which receives an instance of a Foo2 class
+                         */
+                        if (exp.e2.op == TOK.new_)
+                        {
+                            auto newExp = cast(NewExp)(exp.e2);
+                            if (newExp.newtype && newExp.newtype == t1)
+                            {
+                                error(exp.loc, "cannot implicitly convert expression `%s` of type `%s` to `%s`",
+                                      newExp.toChars(), newExp.type.toChars(), t1.toChars());
+                                errorSupplemental(exp.loc, "Perhaps remove the `new` keyword?");
+                                return setError();
+                            }
+                        }
+
                         Expression einit;
                         einit = new BlitExp(exp.loc, e1x, e1x.type.defaultInit(exp.loc));
                         einit.type = e1x.type;
@@ -6991,16 +7010,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (exp.op != TOK.assign)
                 {
                     // If multidimensional static array, treat as one large array
-                    dinteger_t dim = (cast(TypeSArray)t1).dim.toInteger();
-                    Type t = t1;
-                    while (1)
-                    {
-                        t = t.nextOf().toBasetype();
-                        if (t.ty != Tsarray)
-                            break;
-                        dim *= (cast(TypeSArray)t).dim.toInteger();
-                        e1x.type = t.nextOf().sarrayOf(dim);
-                    }
+                    const dim = t1.numberOfElems(exp.loc);
+                    e1x.type = t1.baseElemOf().sarrayOf(dim);
                 }
                 auto sle = new SliceExp(e1x.loc, e1x, null, null);
                 sle.arrayop = true;
@@ -7244,7 +7255,30 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.op == TOK.blit)
                 e2x = e2x.castTo(sc, exp.e1.type);
             else
+            {
                 e2x = e2x.implicitCastTo(sc, exp.e1.type);
+
+                // Fix Issue 13435: https://issues.dlang.org/show_bug.cgi?id=13435
+
+                // If the implicit cast has failed and the assign expression is
+                // the initialization of a struct member field
+                if (e2x.op == TOK.error && exp.op == TOK.construct && t1.ty == Tstruct)
+                {
+                    scope sd = (cast(TypeStruct)t1).sym;
+                    Dsymbol opAssign = search_function(sd, Id.assign);
+
+                    // and the struct defines an opAssign
+                    if (opAssign)
+                    {
+                        // offer more information about the cause of the problem
+                        errorSupplemental(exp.loc,
+                                          "`%s` is the first assignment of `%s` therefore it represents its initialization",
+                                          exp.toChars(), exp.e1.toChars());
+                        errorSupplemental(exp.loc,
+                                          "`opAssign` methods are not used for initialization, but for subsequent assignments");
+                    }
+                }
+            }
         }
         if (e2x.op == TOK.error)
         {
@@ -8908,7 +8942,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             auto t1 = exp.e1.type;
             auto t2 = exp.e2.type;
             if (t1.ty == Tenum && t2.ty == Tenum && !t1.equivalent(t2))
-                exp.deprecation("Comparison between different enumeration types `%s` and `%s`; If this behavior is intended consider using `std.conv.asOriginalType`",
+                exp.error("Comparison between different enumeration types `%s` and `%s`; If this behavior is intended consider using `std.conv.asOriginalType`",
                     t1.toChars(), t2.toChars());
         }
 
@@ -9415,7 +9449,7 @@ Expression semanticX(DotIdExp exp, Scope* sc)
     if (exp.e1.op == TOK.variable && exp.e1.type.toBasetype().ty == Tsarray && exp.ident == Id.length)
     {
         // bypass checkPurity
-        return exp.e1.type.dotExp(sc, exp.e1, exp.ident, exp.noderef ? Type.DotExpFlag.noDeref : 0);
+        return exp.e1.type.dotExp(sc, exp.e1, exp.ident, exp.noderef ? DotExpFlag.noDeref : 0);
     }
 
     if (exp.e1.op == TOK.dot)
@@ -9744,13 +9778,13 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
             return null;
         e = new PtrExp(exp.loc, exp.e1);
         e = e.expressionSemantic(sc);
-        return e.type.dotExp(sc, e, exp.ident, flag | (exp.noderef ? Type.DotExpFlag.noDeref : 0));
+        return e.type.dotExp(sc, e, exp.ident, flag | (exp.noderef ? DotExpFlag.noDeref : 0));
     }
     else
     {
         if (exp.e1.op == TOK.type || exp.e1.op == TOK.template_)
             flag = 0;
-        e = exp.e1.type.dotExp(sc, exp.e1, exp.ident, flag | (exp.noderef ? Type.DotExpFlag.noDeref : 0));
+        e = exp.e1.type.dotExp(sc, exp.e1, exp.ident, flag | (exp.noderef ? DotExpFlag.noDeref : 0));
         if (e)
             e = e.expressionSemantic(sc);
         return e;

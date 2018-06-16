@@ -31,7 +31,7 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
-extern void error(const char *filename, unsigned linnum, unsigned charnum, const char *format, ...);
+extern void error(const char *filename, uint linnum, uint charnum, const char *format, ...);
 
 STATIC void rd_free_elem(elem *e);
 STATIC void rd_compute();
@@ -43,11 +43,11 @@ STATIC void eqeqranges(void);
 STATIC void intranges(void);
 STATIC int loopcheck(block *start , block *inc , block *rel);
 STATIC void cpwalk(elem *n , vec_t IN);
-STATIC unsigned numasg(elem *e);
+STATIC uint numasg(elem *e);
 STATIC void accumda(elem *n , vec_t DEAD , vec_t POSS);
-STATIC void dvwalk(elem *n , unsigned i);
-STATIC int killed(unsigned j , block *bp , block *b);
-STATIC int ispath(unsigned j , block *bp , block *b);
+STATIC void dvwalk(elem *n , uint i);
+STATIC int killed(uint j , block *bp , block *b);
+STATIC int ispath(uint j , block *bp , block *b);
 
 /**********************************************************************/
 
@@ -145,7 +145,7 @@ STATIC void rd_compute()
                 return;
         assert(rellist == NULL && inclist == NULL && eqeqlist == NULL);
         block_clearvisit();
-        for (unsigned i = 0; i < dfotop; i++)    // for each block
+        for (uint i = 0; i < dfotop; i++)    // for each block
         {   block *b = dfo[i];
 
             switch (b->BC)
@@ -160,7 +160,7 @@ STATIC void rd_compute()
             }
         }
 
-        for (unsigned i = 0; i < dfotop; i++)    // for each block
+        for (uint i = 0; i < dfotop; i++)    // for each block
         {       block *b;
 
                 b = dfo[i];
@@ -208,7 +208,7 @@ STATIC void rd_compute()
  */
 
 STATIC void conpropwalk(elem *n,vec_t IN)
-{       unsigned op;
+{       uint op;
         Elemdata *pdata;
         vec_t L,R;
         elem *t;
@@ -413,7 +413,7 @@ STATIC void chkrd(elem *n,list_t rdlist)
     }
 
     // If there are any asm blocks, don't print the message
-    for (unsigned i = 0; i < dfotop; i++)
+    for (uint i = 0; i < dfotop; i++)
         if (dfo[i]->BC == BCasm)
             return;
 
@@ -487,7 +487,7 @@ STATIC elem * chkprop(elem *n,list_t rdlist)
     int unambig;
     symbol *sv;
     tym_t nty;
-    unsigned nsize;
+    uint nsize;
     targ_size_t noff;
 
     //printf("checkprop: "); WReqn(n); printf("\n");
@@ -590,10 +590,10 @@ noprop:
 
 list_t listrds(vec_t IN,elem *e,vec_t f)
 {
-    unsigned i;
-    unsigned unambig;
+    uint i;
+    uint unambig;
     Symbol *s;
-    unsigned nsize;
+    uint nsize;
     targ_size_t noff;
     tym_t ty;
 
@@ -613,7 +613,7 @@ list_t listrds(vec_t IN,elem *e,vec_t f)
     {
         elem *d = go.defnod[i].DNelem;
         //dbg_printf("\tlooking at "); WReqn(d); dbg_printf("\n");
-        unsigned op = d->Eoper;
+        uint op = d->Eoper;
         if (op == OPasm)                // assume ASM elems define everything
             goto listit;
         if (OTassign(op))
@@ -719,7 +719,7 @@ STATIC void intranges()
     block *rb,*ib;
     symbol *v;
     elem *rdeq,*rdinc;
-    unsigned incop,relatop;
+    uint incop,relatop;
     targ_llong initial,increment,final;
 
     cmes("intranges()\n");
@@ -927,7 +927,7 @@ bool findloopparameters(elem* erel, elem*& rdeq, elem*& rdinc)
     printf("rel: "); WReqn(rel->pelem); printf("\n");
     printf("inc: "); WReqn(rdinc); printf("\n");
 #endif
-    unsigned incop = rdinc->Eoper;
+    uint incop = rdinc->Eoper;
     if (!OTpost(incop) && incop != OPaddass && incop != OPminass)
     {
         if (log) printf("\tnot += or -=\n");
@@ -1030,14 +1030,14 @@ Lagain:
         if (go.exptop <= 1)
                 return;                 /* none available               */
 #if 0
-        for (unsigned i = 1; i < go.exptop; i++)
+        for (uint i = 1; i < go.exptop; i++)
         {       dbg_printf("go.expnod[%d] = (",i);
                 WReqn(go.expnod[i]);
                 dbg_printf(");\n");
         }
 #endif
         recalc = 0;
-        for (unsigned i = 0; i < dfotop; i++)    // for each block
+        for (uint i = 0; i < dfotop; i++)    // for each block
         {
                 block *b = dfo[i];
                 if (b->Belem)
@@ -1076,7 +1076,7 @@ Lagain:
 
 STATIC void cpwalk(elem *n,vec_t IN)
 {
-        unsigned op;
+        uint op;
         elem *t;
         vec_t L;
 
@@ -1151,7 +1151,7 @@ STATIC void cpwalk(elem *n,vec_t IN)
         {       int ambig;              /* TRUE if ambiguous def        */
 
                 ambig = !OTassign(op) || t->Eoper == OPind;
-                unsigned i;
+                uint i;
                 foreach (i,go.exptop,IN)           /* for each active copy elem */
                 {       symbol *v;
 
@@ -1199,18 +1199,18 @@ STATIC void cpwalk(elem *n,vec_t IN)
                 //printf("Checking copyprop for '%s', ty=x%x\n",v->Sident,n->Ety);
                 symbol_debug(v);
                 ty = n->Ety;
-                unsigned sz = tysize(n->Ety);
+                uint sz = tysize(n->Ety);
                 if (sz == -1 && !tyfunc(n->Ety))
                     sz = type_size(v->Stype);
 
-                unsigned i;
+                uint i;
                 foreach(i,go.exptop,IN)    /* for all active copy elems    */
                 {       elem *c;
 
                         c = go.expnod[i];
                         assert(c);
 
-                        unsigned csz = tysize(c->E1->Ety);
+                        uint csz = tysize(c->E1->Ety);
                         if (c->Eoper == OPstreq)
                             csz = type_size(c->ET);
                         assert((int)csz >= 0);
@@ -1279,7 +1279,7 @@ STATIC void cpwalk(elem *n,vec_t IN)
  * for which there are no subsequent uses of v.
  */
 
-static unsigned asstop,         /* # of assignment elems in assnod[]    */
+static uint asstop,         /* # of assignment elems in assnod[]    */
                 assmax = 0,     /* size of assnod[]                     */
                 assnum;         /* current position in assnod[]         */
 static elem **assnod = NULL;    /* array of pointers to asg elems       */
@@ -1291,7 +1291,7 @@ void rmdeadass()
 {
         cmes("rmdeadass()\n");
         flowlv();                       /* compute live variables       */
-        for (unsigned i = 0; i < dfotop; i++)    // for each block b
+        for (uint i = 0; i < dfotop; i++)    // for each block b
         {       block *b = dfo[i];
 
                 if (!b->Belem)          /* if no elems at all           */
@@ -1315,7 +1315,7 @@ void rmdeadass()
                 assert(assnum == asstop);
                 vec_free(ambigref);
                 vec_orass(POSS,DEAD);   /* POSS |= DEAD                 */
-                unsigned j;
+                uint j;
                 foreach (j,asstop,POSS) /* for each possible dead asg.  */
                 {       symbol *v;      /* v = target of assignment     */
                         elem *n,*nv;
@@ -1422,7 +1422,7 @@ void elimass(elem *n)
  * Some compilers generate better code for ?: than if-then-else.
  */
 
-STATIC unsigned numasg(elem *e)
+STATIC uint numasg(elem *e)
 {
   assert(e);
   if (OTassign(e->Eoper) && e->E1->Eoper == OPvar)
@@ -1449,7 +1449,7 @@ STATIC unsigned numasg(elem *e)
 
 STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
 {       vec_t Pl,Pr,Dl,Dr;
-        unsigned op,vecdim;
+        uint op,vecdim;
 
         /*chkvecdim(asstop,0);*/
         assert(n && DEAD && POSS);
@@ -1468,7 +1468,7 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
                 /* P = P & (Pl & Pr) | ~P & (Pl | Pr)   */
                 /*   = Pl & Pr | ~P & (Pl | Pr)         */
                 vecdim = vec_dim(DEAD);
-                for (unsigned i = 0; i < vecdim; i++)
+                for (uint i = 0; i < vecdim; i++)
                 {       DEAD[i] |= (POSS[i] & Dl[i] & Dr[i]) |
                                    (~POSS[i] & (Dl[i] | Dr[i]));
                         POSS[i] = (Pl[i] & Pr[i]) | (~POSS[i] & (Pl[i] | Pr[i]));
@@ -1494,12 +1494,12 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
             case OPvar:
             {   symbol *v = n->EV.sp.Vsym;
                 targ_size_t voff = n->EV.sp.Voffset;
-                unsigned vsize = tysize(n->Ety);
+                uint vsize = tysize(n->Ety);
 
                 // We have a reference. Clear all bits in POSS that
                 // could be referenced.
 
-                for (unsigned i = 0; i < assnum; i++)
+                for (uint i = 0; i < assnum; i++)
                 {
                     elem *ti = Elvalue(assnod[i]);
                     if (v == ti->EV.sp.Vsym &&
@@ -1517,7 +1517,7 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
             }
 
             case OPasm:         // reference everything
-                for (unsigned i = 0; i < assnum; i++)
+                for (uint i = 0; i < assnum; i++)
                     vec_clearbit(i,POSS);
                 break;
 
@@ -1586,13 +1586,13 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
                     // to DEAD
                     if ((op == OPeq || op == OPstreq) && t->Eoper == OPvar)
                     {
-                        unsigned tsz = tysize(t->Ety);
+                        uint tsz = tysize(t->Ety);
                         if (n->Eoper == OPstreq)
                             tsz = type_size(n->ET);
-                        for (unsigned i = 0; i < assnum; i++)
+                        for (uint i = 0; i < assnum; i++)
                         {   elem *ti = Elvalue(assnod[i]);
 
-                            unsigned tisz = tysize(ti->Ety);
+                            uint tisz = tysize(ti->Ety);
                             if (assnod[i]->Eoper == OPstreq)
                                 tisz = type_size(assnod[i]->ET);
 
@@ -1674,7 +1674,7 @@ void deadvar()
         }
 
         /* Go through trees and "liven" each one we see.        */
-        for (unsigned i = 0; i < dfotop; i++)
+        for (uint i = 0; i < dfotop; i++)
                 if (dfo[i]->Belem)
                         dvwalk(dfo[i]->Belem,i);
 
@@ -1684,7 +1684,7 @@ void deadvar()
         for (SYMIDX i = 0; i < globsym.top; i++)
         {
                 if (globsym.tab[i]->Srange /*&& globsym.tab[i]->Sclass != CLMOS*/)
-                        for (unsigned j = 0; j < dfotop; j++)
+                        for (uint j = 0; j < dfotop; j++)
                                 if (vec_testbit(i,dfo[j]->Binlv))
                                         vec_setbit(j,globsym.tab[i]->Srange);
         }
@@ -1715,7 +1715,7 @@ void deadvar()
  *      i = block index
  */
 
-STATIC void dvwalk(elem *n,unsigned i)
+STATIC void dvwalk(elem *n,uint i)
 {
   for (; TRUE; n = n->E1)
   {     assert(n);
@@ -1743,7 +1743,7 @@ static vec_t blockseen; /* which blocks we have visited         */
 
 void verybusyexp()
 {       elem **pn;
-        unsigned j,l;
+        uint j,l;
 
         cmes("verybusyexp()\n");
         flowvbe();                      /* compute VBEs                 */
@@ -1861,7 +1861,7 @@ void verybusyexp()
 
                 foreach (j,go.exptop,b->Bout)
                 {
-                        unsigned k;
+                        uint k;
                         for (k = j + 1; k < go.exptop; k++)
                         {       if (vec_testbit(k,b->Bout) &&
                                     el_match(go.expnod[j],go.expnod[k]))
@@ -1908,7 +1908,7 @@ void verybusyexp()
  * between b and bp.
  */
 
-STATIC int killed(unsigned j,block *bp,block *b)
+STATIC int killed(uint j,block *bp,block *b)
 {
         if (bp == b || vec_testbit(bp->Bdfoidx,blockseen))
                 return FALSE;
@@ -1930,7 +1930,7 @@ STATIC int killed(unsigned j,block *bp,block *b)
  *      j =     VBE expression elem candidate (index into go.expnod[])
  */
 
-STATIC int ispath(unsigned j,block *bp,block *b)
+STATIC int ispath(uint j,block *bp,block *b)
 {
         /*chkvecdim(go.exptop,0);*/
         if (bp == b) return TRUE;       /* the trivial case             */
@@ -1940,7 +1940,7 @@ STATIC int ispath(unsigned j,block *bp,block *b)
 
         /* FALSE if elem j is used in block bp (and reaches the end     */
         /* of bp, indicated by it being an AE in Bgen)                  */
-        unsigned i;
+        uint i;
         foreach (i,go.exptop,bp->Bgen)     /* look thru used expressions   */
         {       if (i != j && go.expnod[i] && el_match(go.expnod[i],go.expnod[j]))
                         return FALSE;

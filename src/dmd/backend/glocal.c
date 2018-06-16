@@ -50,14 +50,14 @@ struct loc_t
 struct Loctab
 {
     loc_t *data;
-    unsigned allocdim;
-    unsigned dim;
+    uint allocdim;
+    uint dim;
 };
 
 STATIC void local_exp(Loctab& lt, elem *e, int goal);
 STATIC int  local_chkrem(elem *e,elem *eu);
 STATIC void local_ins(Loctab& lt, elem *e);
-STATIC void local_rem(Loctab& lt, unsigned u);
+STATIC void local_rem(Loctab& lt, uint u);
 STATIC int  local_getflags(elem *e,symbol *s);
 STATIC void local_remove(Loctab& lt, int flags);
 STATIC void local_ambigref(Loctab& lt);
@@ -215,7 +215,7 @@ Loop:
                 else if (lt.dim && (op == OPaddass || op == OPxorass))
                 {
                     s = e1->EV.sp.Vsym;
-                    for (unsigned u = 0; u < lt.dim; u++)
+                    for (uint u = 0; u < lt.dim; u++)
                     {   elem *em;
 
                         em = lt.data[u].e;
@@ -340,7 +340,7 @@ Loop:
                 // If potential candidate for replacement
                 if (s->Sflags & SFLunambig)
                 {
-                    for (unsigned u = 0; u < lt.dim; u++)
+                    for (uint u = 0; u < lt.dim; u++)
                     {   elem *em;
 
                         em = lt.data[u].e;
@@ -406,7 +406,7 @@ Loop:
             {   // Since commutative operators may get their leaves
                 // swapped, we eliminate any that may be affected by that.
 
-                for (unsigned u = 0; u < lt.dim;)
+                for (uint u = 0; u < lt.dim;)
                 {
                     int f1,f2,f;
                     elem *eu;
@@ -518,7 +518,7 @@ STATIC void local_ins(Loctab& lt, elem *e)
 // Remove entry i from lt.data[], and then compress the table.
 //
 
-STATIC void local_rem(Loctab& lt, unsigned u)
+STATIC void local_rem(Loctab& lt, uint u)
 {
     //dbg_printf("local_rem(%u)\n",u);
     assert(u < lt.dim);
@@ -659,7 +659,7 @@ STATIC int local_getflags(elem *e,symbol *s)
 
 STATIC void local_remove(Loctab& lt, int flags)
 {
-    for (unsigned u = 0; u < lt.dim;)
+    for (uint u = 0; u < lt.dim;)
     {
         if (lt.data[u].flags & flags)
             local_rem(lt, u);
@@ -674,7 +674,7 @@ STATIC void local_remove(Loctab& lt, int flags)
 
 STATIC void local_ambigref(Loctab& lt)
 {
-    for (unsigned u = 0; u < lt.dim;)
+    for (uint u = 0; u < lt.dim;)
     {
         if (lt.data[u].flags & LFambigdef)
             local_rem(lt, u);
@@ -689,7 +689,7 @@ STATIC void local_ambigref(Loctab& lt)
 
 STATIC void local_ambigdef(Loctab& lt)
 {
-    for (unsigned u = 0; u < lt.dim;)
+    for (uint u = 0; u < lt.dim;)
     {
         if (lt.data[u].flags & (LFambigref | LFambigdef))
             local_rem(lt, u);
@@ -705,7 +705,7 @@ STATIC void local_ambigdef(Loctab& lt)
 STATIC void local_symref(Loctab& lt, symbol *s)
 {
     symbol_debug(s);
-    for (unsigned u = 0; u < lt.dim;)
+    for (uint u = 0; u < lt.dim;)
     {
         if (local_getflags(lt.data[u].e,s) & LFsymdef)
             local_rem(lt, u);
@@ -721,7 +721,7 @@ STATIC void local_symref(Loctab& lt, symbol *s)
 STATIC void local_symdef(Loctab& lt, symbol *s)
 {
     symbol_debug(s);
-    for (unsigned u = 0; u < lt.dim;)
+    for (uint u = 0; u < lt.dim;)
     {
         if (local_getflags(lt.data[u].e,s) & (LFsymref | LFsymdef))
             local_rem(lt, u);

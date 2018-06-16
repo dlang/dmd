@@ -157,7 +157,7 @@ private block *labelToBlock(IRState *irs, const ref Loc loc, Blockx *blx, LabelD
 private void incUsage(IRState *irs, const ref Loc loc)
 {
 
-    if (global.params.cov && loc.linnum)
+    if (irs.params.cov && loc.linnum)
     {
         block_appendexp(irs.blx.curblock, incUsageElem(irs, loc));
     }
@@ -719,7 +719,7 @@ private extern (C++) class S2irVisitor : Visitor
             assert(func.type.ty == Tfunction);
             TypeFunction tf = cast(TypeFunction)(func.type);
 
-            RET retmethod = retStyle(tf);
+            RET retmethod = retStyle(tf, func.needThis());
             if (retmethod == RET.stack)
             {
                 elem *es;
@@ -745,7 +745,7 @@ private extern (C++) class S2irVisitor : Visitor
                         Type t = ce.e1.type.toBasetype();
                         if (t.ty == Tdelegate)
                             t = t.nextOf();
-                        if (t.ty == Tfunction && retStyle(cast(TypeFunction)t) == RET.stack)
+                        if (t.ty == Tfunction && retStyle(cast(TypeFunction)t, ce.f && ce.f.needThis()) == RET.stack)
                         {
                             irs.ehidden = el_var(irs.shidden);
                             e = toElemDtor(s.exp, irs);
@@ -769,7 +769,7 @@ private extern (C++) class S2irVisitor : Visitor
                         Type t = ce.e1.type.toBasetype();
                         if (t.ty == Tdelegate)
                             t = t.nextOf();
-                        if (t.ty == Tfunction && retStyle(cast(TypeFunction)t) == RET.stack)
+                        if (t.ty == Tfunction && retStyle(cast(TypeFunction)t, fd && fd.needThis()) == RET.stack)
                         {
                             irs.ehidden = el_var(irs.shidden);
                             e = toElemDtor(s.exp, irs);
@@ -1381,8 +1381,31 @@ private extern (C++) class S2irVisitor : Visitor
              *  BC_ret
              *  breakblock
              */
-            blx.curblock.appendSucc(breakblock);
-            block_next(blx,BCgoto,finallyblock);
+            if (s.bodyFallsThru)
+            {
+                // BCgoto [breakblock]
+                blx.curblock.appendSucc(breakblock);
+                block_next(blx,BCgoto,finallyblock);
+            }
+            else
+            {
+                if (!irs.params.optimize)
+                {
+                    /* If this is reached at runtime, there's a bug
+                     * in the computation of s.bodyFallsThru. Inserting a HALT
+                     * makes it far easier to track down such failures.
+                     * But it makes for slower code, so only generate it for
+                     * non-optimized code.
+                     */
+                    elem *e = el_calloc();
+                    e.Ety = TYvoid;
+                    e.Eoper = OPhalt;
+                    elem_setLoc(e, s.loc);
+                    block_appendexp(blx.curblock, e);
+                }
+
+                block_next(blx,BCexit,finallyblock);
+            }
 
             block *landingPad = block_goto(blx,BC_finally,null);
             block_goto(blx,BC_lpad,null);               // lpad is [0]

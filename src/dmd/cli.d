@@ -289,7 +289,8 @@ dmd -cov -unittest myprog.d
             "always emit stack frame"
         ),
         Option("gx",
-            "add stack stomp code"
+            "add stack stomp code",
+            `Adds stack stomp code, which overwrites the stack frame memory upon function exit.`,
         ),
         Option("H",
             "generate 'header' file",

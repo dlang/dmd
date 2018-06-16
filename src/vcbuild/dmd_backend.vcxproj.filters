@@ -27,9 +27,6 @@
     <ClCompile Include="..\dmd\backend\aa.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
-    <ClCompile Include="..\dmd\backend\bcomplex.c">
-      <Filter>dmd\backend</Filter>
-    </ClCompile>
     <ClCompile Include="..\dmd\backend\blockopt.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
@@ -102,7 +99,7 @@
     <ClCompile Include="..\dmd\backend\elfobj.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
-    <ClCompile Include="..\dmd\backend\evalu8.c">
+    <ClCompile Include="..\dmd\backend\fp.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
     <ClCompile Include="..\dmd\backend\gdag.c">
@@ -182,9 +179,6 @@
     </ClCompile>
     <ClCompile Include="..\dmd\tk\vec.c">
       <Filter>dmd\tk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dmd\root\longdouble.c">
-      <Filter>dmd\root</Filter>
     </ClCompile>
     <ClCompile Include="..\dmd\root\newdelete.c">
       <Filter>dmd\root</Filter>
@@ -434,12 +428,6 @@
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\dmd\backend\optabgen.c">
-      <Filter>dmd\gen</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\vcbuild\ldfpu.asm">
-      <Filter>vcbuild</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\dmd\idgen.d">
       <Filter>dmd\gen</Filter>
     </CustomBuild>
   </ItemGroup>

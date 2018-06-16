@@ -352,9 +352,8 @@ private:
             printf("LibElf::WriteLibToBuffer()\n");
         }
         /************* Scan Object Modules for Symbols ******************/
-        for (size_t i = 0; i < objmodules.dim; i++)
+        foreach (om; objmodules)
         {
-            ElfObjModule* om = objmodules[i];
             if (om.scan)
             {
                 scanObjModule(om);
@@ -364,9 +363,8 @@ private:
         /* The string section is where we store long file names.
          */
         uint noffset = 0;
-        for (size_t i = 0; i < objmodules.dim; i++)
+        foreach (om; objmodules)
         {
-            ElfObjModule* om = objmodules[i];
             size_t len = om.name.length;
             if (len >= ELF_OBJECT_NAME_SIZE)
             {
@@ -382,9 +380,8 @@ private:
         }
         /************* Determine module offsets ******************/
         uint moffset = 8 + ElfLibHeader.sizeof + 4;
-        for (size_t i = 0; i < objsymbols.dim; i++)
+        foreach (os; objsymbols)
         {
-            ElfObjSymbol* os = objsymbols[i];
             moffset += 4 + os.name.length + 1;
         }
         uint hoffset = moffset;
@@ -395,9 +392,8 @@ private:
         moffset += moffset & 1;
         if (noffset)
             moffset += ElfLibHeader.sizeof + noffset;
-        for (size_t i = 0; i < objmodules.dim; i++)
+        foreach (om; objmodules)
         {
-            ElfObjModule* om = objmodules[i];
             moffset += moffset & 1;
             om.offset = moffset;
             moffset += ElfLibHeader.sizeof + om.length;
@@ -421,15 +417,13 @@ private:
         char[4] buf;
         Port.writelongBE(cast(uint)objsymbols.dim, buf.ptr);
         libbuf.write(buf.ptr, 4);
-        for (size_t i = 0; i < objsymbols.dim; i++)
+        foreach (os; objsymbols)
         {
-            ElfObjSymbol* os = objsymbols[i];
             Port.writelongBE(os.om.offset, buf.ptr);
             libbuf.write(buf.ptr, 4);
         }
-        for (size_t i = 0; i < objsymbols.dim; i++)
+        foreach (os; objsymbols)
         {
-            ElfObjSymbol* os = objsymbols[i];
             libbuf.writestring(os.name);
             libbuf.writeByte(0);
         }
@@ -453,9 +447,8 @@ private:
             h.trailer[0] = '`';
             h.trailer[1] = '\n';
             libbuf.write(&h, h.sizeof);
-            for (size_t i = 0; i < objmodules.dim; i++)
+            foreach (om2; objmodules)
             {
-                ElfObjModule* om2 = objmodules[i];
                 if (om2.name_offset >= 0)
                 {
                     libbuf.writestring(om2.name);
@@ -466,9 +459,8 @@ private:
         }
         /* Write out each of the object modules
          */
-        for (size_t i = 0; i < objmodules.dim; i++)
+        foreach (om2; objmodules)
         {
-            ElfObjModule* om2 = objmodules[i];
             if (libbuf.offset & 1)
                 libbuf.writeByte('\n'); // module alignment
             assert(libbuf.offset == om2.offset);

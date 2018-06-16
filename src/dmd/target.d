@@ -21,6 +21,7 @@ import dmd.dmodule;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.expression;
+import dmd.func;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
@@ -60,6 +61,7 @@ struct Target
         bool cppExceptions;       /// set if catching C++ exceptions is supported
         char int64Mangle;         /// mangling character for C++ int64_t
         char uint64Mangle;        /// mangling character for C++ uint64_t
+        bool twoDtorInVtable;     /// target C++ ABI puts deleting and non-deleting destructor into vtable
     }
 
     /**
@@ -134,6 +136,7 @@ struct Target
             realpad = 2;
             realalignsize = 4;
             c_longsize = 4;
+            twoDtorInVtable = true;
         }
         else if (global.params.isOSX)
         {
@@ -141,6 +144,7 @@ struct Target
             realpad = 6;
             realalignsize = 16;
             c_longsize = 4;
+            twoDtorInVtable = true;
         }
         else if (global.params.isWindows)
         {
@@ -148,6 +152,7 @@ struct Target
             realpad = 0;
             realalignsize = 2;
             reverseCppOverloads = true;
+            twoDtorInVtable = false;
             c_longsize = 4;
             if (ptrsize == 4)
             {
@@ -584,12 +589,15 @@ struct Target
     }
 
     /**
+     * Determine return style of function - whether in registers or
+     * through a hidden pointer to the caller's stack.
      * Params:
      *   tf = function type to check
+     *   needsThis = true if the function type is for a non-static member function
      * Returns:
      *   true if return value from function is on the stack
      */
-    extern (C++) static bool isReturnOnStack(TypeFunction tf)
+    extern (C++) static bool isReturnOnStack(TypeFunction tf, bool needsThis)
     {
         if (tf.isref)
         {
@@ -616,6 +624,8 @@ struct Target
                 StructDeclaration sd = (cast(TypeStruct)tns).sym;
                 if (sd.ident == Id.__c_long_double)
                     return false;
+                if (tf.linkage == LINK.cpp && needsThis)
+                    return true;
                 if (!sd.isPOD() || sz > 8)
                     return true;
                 if (sd.fields.dim == 0)
@@ -633,6 +643,8 @@ struct Target
                 StructDeclaration sd = (cast(TypeStruct)tb).sym;
                 if (sd.ident == Id.__c_long_double)
                     return false;
+                if (tf.linkage == LINK.cpp && needsThis)
+                    return true;
             }
         }
 

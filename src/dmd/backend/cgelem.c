@@ -474,14 +474,14 @@ STATIC elem *fixconvop(elem *e)
         elem *ex = e;
         elem **pe = &e;
         while (OTconv(ed->Eoper))
-        {   unsigned copx = ed->Eoper;
-
-            unsigned icop = invconvtab[convidx(copx)];
+        {
+            const unsigned copx = ed->Eoper;
+            const unsigned icopx = invconvtab[convidx(copx)];
             tym_t tymx = ex->E1->E1->Ety;
             ex->E1 = el_selecte1(ex->E1);       // dump it for now
             e1 = ex->E1;
             e1->Ety = tymx;
-            ex->E2 = el_una(icop,e1->Ety,ex->E2);
+            ex->E2 = el_una(icopx,e1->Ety,ex->E2);
             ex->Ety = tymx;
             tym = tymx;
 
@@ -1392,6 +1392,7 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
             ELCONST(e1->E1,1) &&
             (((e12 = e1->E2)->Eoper == OP64_32 ? (e12 = e12->E1) : e12)->Eoper == OPand) &&
             ELCONST(e12->E2,sz * 8 - 1) &&
+            tysize(e12->Ety) <= sz &&
 
             e2->Eoper == OPind &&
             e2->E1->Eoper == OPadd &&
@@ -1429,7 +1430,7 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
             ELCONST(e1->E1,1) &&
             tysize(e->E1->Ety) <= REGSIZE)
         {
-            int sz = tysize(e->E1->Ety);
+            const int sz1 = tysize(e->E1->Ety);
             e->Eoper = OPbtst;
             e->Ety = TYbool;
             e->E1 = e2;
@@ -1438,11 +1439,11 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
             e1->E2 = NULL;
             el_free(e1);
 
-            if (sz >= 2)
+            if (sz1 >= 2)
                 e = el_una(OPu8_16, TYushort, e);
-            if (sz >= 4)
+            if (sz1 >= 4)
                 e = el_una(OPu16_32, TYulong, e);
-            if (sz >= 8)
+            if (sz1 >= 8)
                 e = el_una(OPu32_64, TYullong, e);
 
             return optelem(e, goal);
@@ -1566,7 +1567,7 @@ STATIC elem *elor(elem *e, goal_t goal)
         if (fillinops(ops, &opsi, 4, OPor, e) && opsi == 4)
         {
             elem *ex = NULL;
-            unsigned mask = 0;
+            unsigned bmask = 0;
             for (int i = 0; i < 4; i++)
             {   elem *eo = ops[i];
                 elem *eo2;
@@ -1615,16 +1616,16 @@ STATIC elem *elor(elem *e, goal_t goal)
                 switch ((off << 5) | shift)
                 {
                     // BSWAP
-                    case (0 << 5) | 24: mask |= 1; break;
-                    case (1 << 5) | 16: mask |= 2; break;
-                    case (2 << 5) |  8: mask |= 4; break;
-                    case (3 << 5) |  0: mask |= 8; break;
+                    case (0 << 5) | 24: bmask |= 1; break;
+                    case (1 << 5) | 16: bmask |= 2; break;
+                    case (2 << 5) |  8: bmask |= 4; break;
+                    case (3 << 5) |  0: bmask |= 8; break;
 
                     // No swap
-                    case (0 << 5) |  0: mask |= 0x10; break;
-                    case (1 << 5) |  8: mask |= 0x20; break;
-                    case (2 << 5) | 16: mask |= 0x40; break;
-                    case (3 << 5) | 24: mask |= 0x80; break;
+                    case (0 << 5) |  0: bmask |= 0x10; break;
+                    case (1 << 5) |  8: bmask |= 0x20; break;
+                    case (2 << 5) | 16: bmask |= 0x40; break;
+                    case (3 << 5) | 24: bmask |= 0x80; break;
 
                         break;
                     default:
@@ -1644,9 +1645,9 @@ STATIC elem *elor(elem *e, goal_t goal)
             /* Got a match, build:
              *   BSWAP(*ex)
              */
-            if (mask == 0x0F)
+            if (bmask == 0x0F)
                 e = el_una(OPbswap, e->Ety, el_una(OPind, e->Ety, ex));
-            else if (mask == 0xF0)
+            else if (bmask == 0xF0)
                 e = el_una(OPind, e->Ety, ex);
             else
                 goto L1;
@@ -3055,9 +3056,9 @@ STATIC elem * eladdr(elem *e, goal_t goal)
             //  & (*p1 = e) => ((*(t = p1) = e), t)
             else if (e1->E1->Eoper == OPind)
             {
-                tym_t tym = e1->E1->E1->Ety;
-                elem *tmp = el_alloctmp(tym);
-                e1->E1->E1 = el_bin(OPeq,tym,tmp,e1->E1->E1);
+                const tym_t tym111 = e1->E1->E1->Ety;
+                elem *tmp = el_alloctmp(tym111);
+                e1->E1->E1 = el_bin(OPeq,tym111,tmp,e1->E1->E1);
                 e->Eoper = OPcomma;
                 e->E2 = el_copytree(tmp);
                 goto L1;

@@ -76,7 +76,7 @@ extern (C++) bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, 
  * Mark variable v as modified if it is inside a constructor that var
  * is a field in.
  */
-private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
+bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
 {
     //printf("modifyFieldVar(var = %s)\n", var.toChars());
     Dsymbol s = sc.func;
@@ -1391,7 +1391,7 @@ extern (C++) class VarDeclaration : Declaration
             }
             else
             {
-                // _ArrayDtor(v[0 .. n])
+                // __ArrayDtor(v[0 .. n])
                 e = new VarExp(loc, this);
 
                 const sdsz = sd.type.size();
@@ -1406,7 +1406,7 @@ extern (C++) class VarDeclaration : Declaration
                 // This is a hack so we can call destructors on const/immutable objects.
                 e.type = sd.type.arrayOf();
 
-                e = new CallExp(loc, new IdentifierExp(loc, Id._ArrayDtor), e);
+                e = new CallExp(loc, new IdentifierExp(loc, Id.__ArrayDtor), e);
             }
             return e;
         }

@@ -413,19 +413,44 @@ int intrinsic_op(FuncDeclaration fd)
         OPyl2xp1,
     ];
 
-    __gshared immutable char*[46] core_namearray =
+    __gshared immutable char*[62] core_namearray =
     [
+        //cos
+        "4math3cosFNaNbNiNfdZd",
         "4math3cosFNaNbNiNfeZe",
+        "4math3cosFNaNbNiNffZf",
+        //sin
+        "4math3sinFNaNbNiNfdZd",
         "4math3sinFNaNbNiNfeZe",
+        "4math3sinFNaNbNiNffZf",
+        //fabs
+        "4math4fabsFNaNbNiNfdZd",
         "4math4fabsFNaNbNiNfeZe",
+        "4math4fabsFNaNbNiNffZf",
+        //rint
+        "4math4rintFNaNbNiNfdZd",
         "4math4rintFNaNbNiNfeZe",
+        "4math4rintFNaNbNiNffZf",
+        //sqrt
         "4math4sqrtFNaNbNiNfdZd",
         "4math4sqrtFNaNbNiNfeZe",
         "4math4sqrtFNaNbNiNffZf",
+        //yl2x
+        "4math4yl2xFNaNbNiNfddZd",
         "4math4yl2xFNaNbNiNfeeZe",
+        "4math4yl2xFNaNbNiNfffZf",
+        //ldexp
+        "4math5ldexpFNaNbNiNfdiZd",
         "4math5ldexpFNaNbNiNfeiZe",
+        "4math5ldexpFNaNbNiNffiZf",
+        //rndtol
+        "4math6rndtolFNaNbNiNfdZl",
         "4math6rndtolFNaNbNiNfeZl",
+        "4math6rndtolFNaNbNiNffZl",
+        //yl2xp1
+        "4math6yl2xp1FNaNbNiNfddZd",
         "4math6yl2xp1FNaNbNiNfeeZe",
+        "4math6yl2xp1FNaNbNiNfffZf",
 
         "4simd10__prefetchFNaNbNiNfxPvhZv",
         "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMNhG16vQgZQj",
@@ -467,19 +492,44 @@ int intrinsic_op(FuncDeclaration fd)
         "5bitop7_popcntFNaNbNiNfmxx", // don't find 64 bit version in 32 bit code
         "5bitop7_popcntFNaNbNiNftZt",
     ];
-    __gshared immutable char*[46] core_namearray64 =
+    __gshared immutable char*[62] core_namearray64 =
     [
+        //cos
+        "4math3cosFNaNbNiNfdZd",
         "4math3cosFNaNbNiNfeZe",
+        "4math3cosFNaNbNiNffZf",
+        //sin
+        "4math3sinFNaNbNiNfdZd",
         "4math3sinFNaNbNiNfeZe",
+        "4math3sinFNaNbNiNffZf",
+        //fabs
+        "4math4fabsFNaNbNiNfdZd",
         "4math4fabsFNaNbNiNfeZe",
+        "4math4fabsFNaNbNiNffZf",
+        //rint
+        "4math4rintFNaNbNiNfdZd",
         "4math4rintFNaNbNiNfeZe",
+        "4math4rintFNaNbNiNffZf",
+        //sqrt
         "4math4sqrtFNaNbNiNfdZd",
         "4math4sqrtFNaNbNiNfeZe",
         "4math4sqrtFNaNbNiNffZf",
+        //yl2x
+        "4math4yl2xFNaNbNiNfddZd",
         "4math4yl2xFNaNbNiNfeeZe",
+        "4math4yl2xFNaNbNiNfffZf",
+        //ldexp
+        "4math5ldexpFNaNbNiNfdiZd",
         "4math5ldexpFNaNbNiNfeiZe",
+        "4math5ldexpFNaNbNiNffiZf",
+        //rndtol
+        "4math6rndtolFNaNbNiNfdZl",
         "4math6rndtolFNaNbNiNfeZl",
+        "4math6rndtolFNaNbNiNffZl",
+        //yl2xp1
+        "4math6yl2xp1FNaNbNiNfddZd",
         "4math6yl2xp1FNaNbNiNfeeZe",
+        "4math6yl2xp1FNaNbNiNfffZf",
 
         "4simd10__prefetchFNaNbNiNfxPvhZv",
         "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMNhG16vQgZQj",
@@ -521,18 +571,42 @@ int intrinsic_op(FuncDeclaration fd)
         "5bitop7_popcntFNaNbNiNfmZi",
         "5bitop7_popcntFNaNbNiNftZt",
     ];
-    __gshared immutable ubyte[46] core_ioptab =
+    __gshared immutable ubyte[62] core_ioptab =
     [
         OPcos,
+        OPcos,
+        OPcos,
+
         OPsin,
+        OPsin,
+        OPsin,
+
         OPabs,
+        OPabs,
+        OPabs,
+
         OPrint,
+        OPrint,
+        OPrint,
+
         OPsqrt,
         OPsqrt,
         OPsqrt,
+
         OPyl2x,
+        OPyl2x,
+        OPyl2x,
+
         OPscale,
+        OPscale,
+        OPscale,
+
         OPrndtol,
+        OPrndtol,
+        OPrndtol,
+
+        OPyl2xp1,
+        OPyl2xp1,
         OPyl2xp1,
 
         OPprefetch,
@@ -955,9 +1029,14 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
 /***************************
  * Determine return style of function - whether in registers or
  * through a hidden pointer to the caller's stack.
+ * Params:
+ *   tf = function type to check
+ *   needsThis = true if the function type is for a non-static member function
+ * Returns:
+ *   RET.stack if return value from function is on the stack, RET.regs otherwise
  */
-RET retStyle(TypeFunction tf)
+RET retStyle(TypeFunction tf, bool needsThis)
 {
     //printf("TypeFunction.retStyle() %s\n", toChars());
-    return Target.isReturnOnStack(tf) ? RET.stack : RET.regs;
+    return Target.isReturnOnStack(tf, needsThis) ? RET.stack : RET.regs;
 }

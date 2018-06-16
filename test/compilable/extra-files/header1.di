@@ -5,12 +5,30 @@ pragma (lib, "test");
 pragma (msg, "Hello World");
 static assert(true, "message");
 alias mydbl = double;
-alias fl = function ()
+alias fl1 = function ()
 in
+{
+}
+in (true)
+out (; true)
+out (r; true)
+out
+{
+}
+out(r)
 {
 }
 do
 {
+	return 2;
+}
+;
+alias fl2 = function ()
+in (true)
+out (; true)
+out (r; true)
+{
+	return 2;
 }
 ;
 int testmain();
@@ -452,7 +470,7 @@ class TestClass
 	{
 		return aa;
 	}
-	ref return retFunc()
+	ref retFunc() return
 	{
 		return aa;
 	}
@@ -491,9 +509,9 @@ struct SafeS
 {
 	@safe 
 	{
-		ref return SafeS foo();
-		return scope SafeS foo2();
-		ref return scope SafeS foo3();
+		ref SafeS foo() return;
+		scope SafeS foo2() return;
+		ref scope SafeS foo3() return;
 		int* p;
 	}
 }

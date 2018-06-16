@@ -44,6 +44,7 @@ struct ASTBase
     alias Catches               = Array!(Catch);
     alias Identifiers           = Array!(Identifier);
     alias Initializers          = Array!(Initializer);
+    alias Ensures               = Array!(Ensure);
 
     enum Sizeok : int
     {
@@ -674,13 +675,18 @@ struct ASTBase
         }
     }
 
+    extern (C++) struct Ensure
+    {
+        Identifier id;
+        Statement ensure;
+    }
+
     extern (C++) class FuncDeclaration : Declaration
     {
         Statement fbody;
-        Statement frequire;
-        Statement fensure;
+        Statements* frequires;
+        Ensures* fensures;
         Loc endloc;
-        Identifier outId;
         StorageClass storage_class;
         Type type;
         bool inferRetType;
@@ -858,9 +864,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, Loc endloc, StorageClass stc, char* codedoc)
         {
-            OutBuffer buf;
-            buf.printf("__unittestL%u_", loc.linnum);
-            super(loc, endloc, Identifier.generateId(buf.peekString()), stc, null);
+            super(loc, endloc, Identifier.generateIdWithLoc("__unittest", loc), stc, null);
             this.codedoc = codedoc;
         }
 
@@ -908,11 +912,11 @@ struct ASTBase
     {
         final extern (D) this(Loc loc, Loc endloc, StorageClass stc)
         {
-            super(loc, endloc, Identifier.generateId("_staticCtor"), STC.static_ | stc, null);
+            super(loc, endloc, Identifier.generateIdWithLoc("_staticCtor", loc), STC.static_ | stc, null);
         }
-        final extern (D) this(Loc loc, Loc endloc, const(char)* name, StorageClass stc)
+        final extern (D) this(Loc loc, Loc endloc, string name, StorageClass stc)
         {
-            super(loc, endloc, Identifier.generateId(name), STC.static_ | stc, null);
+            super(loc, endloc, Identifier.generateIdWithLoc(name, loc), STC.static_ | stc, null);
         }
 
         override void accept(Visitor v)
@@ -925,11 +929,11 @@ struct ASTBase
     {
         final extern (D) this()(Loc loc, Loc endloc, StorageClass stc)
         {
-            super(loc, endloc, Identifier.generateId("__staticDtor"), STC.static_ | stc, null);
+            super(loc, endloc, Identifier.generateIdWithLoc("__staticDtor", loc), STC.static_ | stc, null);
         }
-        final extern (D) this(Loc loc, Loc endloc, const(char)* name, StorageClass stc)
+        final extern (D) this(Loc loc, Loc endloc, string name, StorageClass stc)
         {
-            super(loc, endloc, Identifier.generateId(name), STC.static_ | stc, null);
+            super(loc, endloc, Identifier.generateIdWithLoc(name, loc), STC.static_ | stc, null);
         }
 
         override void accept(Visitor v)

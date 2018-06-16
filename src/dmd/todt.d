@@ -128,12 +128,7 @@ extern (C++) void Initializer_toDt(Initializer init, DtBuilder dtb)
 
             Expression edefault = tb.nextOf().defaultInit(Loc.initial);
 
-            size_t n = 1;
-            for (Type tbn = tn; tbn.ty == Tsarray; tbn = tbn.nextOf().toBasetype())
-            {
-                TypeSArray tsa = cast(TypeSArray)tbn;
-                n *= tsa.dim.toInteger();
-            }
+            const n = tn.numberOfElems(ai.loc);
 
             dt_t* dtdefault = null;
 
@@ -150,8 +145,7 @@ extern (C++) void Initializer_toDt(Initializer init, DtBuilder dtb)
                         Expression_toDt(edefault, dtb);
                         dtdefault = dtb.finish();
                     }
-                    assert(n <= uint.max);
-                    dtbarray.repeat(dtdefault, cast(uint)n);
+                    dtbarray.repeat(dtdefault, n);
                 }
             }
             switch (tb.ty)
@@ -1351,7 +1345,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         }
 
         // xdtor
-        FuncDeclaration sdtor = sd.dtor;
+        FuncDeclaration sdtor = sd.tidtor;
         if (sdtor)
             dtb.xoff(toSymbol(sdtor), 0);
         else

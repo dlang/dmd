@@ -162,7 +162,7 @@ private elem *callfunc(const ref Loc loc,
         tf = cast(TypeFunction)(t.nextOf());
         ethis = ec;
         ec = el_same(&ethis);
-        ethis = el_una(global.params.is64bit ? OP128_64 : OP64_32, TYnptr, ethis); // get this
+        ethis = el_una(irs.params.is64bit ? OP128_64 : OP64_32, TYnptr, ethis); // get this
         ec = array_toPtr(t, ec);                // get funcptr
         ec = el_una(OPind, totym(tf), ec);
     }
@@ -267,7 +267,7 @@ private elem *callfunc(const ref Loc loc,
     objc.setupMethodSelector(fd, &esel);
     objc.setupEp(esel, &ep, left_to_right);
 
-    const retmethod = retStyle(tf);
+    const retmethod = retStyle(tf, fd && fd.needThis());
     if (retmethod == RET.stack)
     {
         if (!ehidden)
@@ -285,11 +285,11 @@ private elem *callfunc(const ref Loc loc,
             ehidden = el_ptr(stmp);
             eresult = ehidden;
         }
-        if ((global.params.isLinux ||
-             global.params.isOSX ||
-             global.params.isFreeBSD ||
-             global.params.isDragonFlyBSD ||
-             global.params.isSolaris) && tf.linkage != LINK.d)
+        if ((irs.params.isLinux ||
+             irs.params.isOSX ||
+             irs.params.isFreeBSD ||
+             irs.params.isDragonFlyBSD ||
+             irs.params.isSolaris) && tf.linkage != LINK.d)
         {
                 // ehidden goes last on Linux/OSX C++
         }
@@ -360,7 +360,7 @@ private elem *callfunc(const ref Loc loc,
             assert(cast(int)vindex >= 0);
 
             // Build *(ev + vindex * 4)
-if (!global.params.is64bit) assert(tysize(TYnptr) == 4);
+if (!irs.params.is64bit) assert(tysize(TYnptr) == 4);
             ec = el_bin(OPadd,TYnptr,ev,el_long(TYsize_t, vindex * tysize(TYnptr)));
             ec = el_una(OPind,TYnptr,ec);
             ec = el_una(OPind,tybasic(sfunc.Stype.Tty),ec);
@@ -434,7 +434,7 @@ if (!global.params.is64bit) assert(tysize(TYnptr) == 4);
         }
         else if (op == OPind)
             e = el_una(op,mTYvolatile | tyret,ep);
-        else if (op == OPva_start && global.params.is64bit)
+        else if (op == OPva_start && irs.params.is64bit)
         {
             // (OPparam &va &arg)
             // call as (OPva_start &va)
@@ -456,14 +456,14 @@ if (!global.params.is64bit) assert(tysize(TYnptr) == 4);
          * is a side effect.
          */
         //printf("1: fd = %p prity = %d, nothrow = %d, retmethod = %d, use-assert = %d\n",
-        //       fd, (fd ? fd.isPure() : tf.purity), tf.isnothrow, retmethod, global.params.useAssert);
+        //       fd, (fd ? fd.isPure() : tf.purity), tf.isnothrow, retmethod, irs.params.useAssert);
         //printf("\tfd = %s, tf = %s\n", fd.toChars(), tf.toChars());
         /* assert() has 'implicit side effect' so disable this optimization.
          */
         int ns = ((fd ? callSideEffectLevel(fd)
                       : callSideEffectLevel(t)) == 2 &&
                   retmethod != RET.stack &&
-                  global.params.useAssert == CHECKENABLE.off && global.params.optimize);
+                  irs.params.useAssert == CHECKENABLE.off && irs.params.optimize);
         if (ep)
             e = el_bin(ns ? OPcallns : OPcall, tyret, ec, ep);
         else
@@ -475,7 +475,7 @@ if (!global.params.is64bit) assert(tysize(TYnptr) == 4);
 
     if (retmethod == RET.stack)
     {
-        if (global.params.isOSX && eresult)
+        if (irs.params.isOSX && eresult)
             /* ABI quirk: hidden pointer is not returned in registers
              */
             e = el_combine(e, el_copytree(eresult));
@@ -886,20 +886,20 @@ Lagain:
             break;
         case Tfloat32:
         case Timaginary32:
-            if (!global.params.is64bit)
+            if (!irs.params.is64bit)
                 goto default;          // legacy binary compatibility
             r = RTLSYM_MEMSETFLOAT;
             break;
         case Tfloat64:
         case Timaginary64:
-            if (!global.params.is64bit)
+            if (!irs.params.is64bit)
                 goto default;          // legacy binary compatibility
             r = RTLSYM_MEMSETDOUBLE;
             break;
 
         case Tstruct:
         {
-            if (!global.params.is64bit)
+            if (!irs.params.is64bit)
                 goto default;
 
             TypeStruct tc = cast(TypeStruct)tb;
@@ -923,7 +923,7 @@ Lagain:
                 case 2:      r = RTLSYM_MEMSET16;   break;
                 case 4:      r = RTLSYM_MEMSET32;   break;
                 case 8:      r = RTLSYM_MEMSET64;   break;
-                case 16:     r = global.params.is64bit ? RTLSYM_MEMSET128ii : RTLSYM_MEMSET128; break;
+                case 16:     r = irs.params.is64bit ? RTLSYM_MEMSET128ii : RTLSYM_MEMSET128; break;
                 default:     r = RTLSYM_MEMSETN;    break;
             }
 
@@ -946,7 +946,7 @@ Lagain:
                 }
             }
 
-            if (global.params.is64bit && tybasic(evalue.Ety) == TYstruct && r != RTLSYM_MEMSETN)
+            if (irs.params.is64bit && tybasic(evalue.Ety) == TYstruct && r != RTLSYM_MEMSETN)
             {
                 /* If this struct is in-memory only, i.e. cannot necessarily be passed as
                  * a gp register parameter.
@@ -1946,9 +1946,9 @@ elem *toElem(Expression e, IRState *irs)
             // https://dlang.org/spec/expression.html#assert_expressions
             //printf("AssertExp.toElem() %s\n", toChars());
             elem *e;
-            if (global.params.useAssert == CHECKENABLE.on)
+            if (irs.params.useAssert == CHECKENABLE.on)
             {
-                if (global.params.checkAction == CHECKACTION.C)
+                if (irs.params.checkAction == CHECKACTION.C)
                 {
                     auto econd = toElem(ae.e1, irs);
                     auto ea = callCAssert(irs, ae.e1.loc, ae.e1, ae.msg, null);
@@ -1966,14 +1966,14 @@ elem *toElem(Expression e, IRState *irs)
                 FuncDeclaration inv;
 
                 // If e1 is a class object, call the class invariant on it
-                if (global.params.useInvariants && t1.ty == Tclass &&
+                if (irs.params.useInvariants && t1.ty == Tclass &&
                     !(cast(TypeClass)t1).sym.isInterfaceDeclaration() &&
                     !(cast(TypeClass)t1).sym.isCPPclass())
                 {
                     ts = symbol_genauto(Type_toCtype(t1));
                     einv = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DINVARIANT)), el_var(ts));
                 }
-                else if (global.params.useInvariants &&
+                else if (irs.params.useInvariants &&
                     t1.ty == Tpointer &&
                     t1.nextOf().ty == Tstruct &&
                     (inv = (cast(TypeStruct)t1.nextOf()).sym.inv) !is null)
@@ -2198,7 +2198,7 @@ elem *toElem(Expression e, IRState *irs)
             /* Do this check during code gen rather than semantic() because concatenation is
              * allowed in CTFE, and cannot distinguish that in semantic().
              */
-            if (global.params.betterC)
+            if (irs.params.betterC)
             {
                 error(ce.loc, "array concatenation of expression `%s` requires the GC which is not available with -betterC", ce.toChars());
                 result = el_long(TYint, 0);
@@ -2396,7 +2396,7 @@ elem *toElem(Expression e, IRState *irs)
 
                     if (t1.ty == Tarray)
                     {
-                        elen1 = el_una(global.params.is64bit ? OP128_64 : OP64_32, TYsize_t, el_same(&earr1));
+                        elen1 = el_una(irs.params.is64bit ? OP128_64 : OP64_32, TYsize_t, el_same(&earr1));
                         esiz1 = el_bin(OPmul, TYsize_t, el_same(&elen1), el_long(TYsize_t, sz));
                         eptr1 = array_toPtr(t1, el_same(&earr1));
                     }
@@ -2410,7 +2410,7 @@ elem *toElem(Expression e, IRState *irs)
 
                     if (t2.ty == Tarray)
                     {
-                        elen2 = el_una(global.params.is64bit ? OP128_64 : OP64_32, TYsize_t, el_same(&earr2));
+                        elen2 = el_una(irs.params.is64bit ? OP128_64 : OP64_32, TYsize_t, el_same(&earr2));
                         esiz2 = el_bin(OPmul, TYsize_t, el_same(&elen2), el_long(TYsize_t, sz));
                         eptr2 = array_toPtr(t2, el_same(&earr2));
                     }
@@ -2497,8 +2497,15 @@ elem *toElem(Expression e, IRState *irs)
 
             //printf("IdentityExp.toElem() %s\n", ie.toChars());
 
+            /* Fix Issue 18746 : https://issues.dlang.org/show_bug.cgi?id=18746
+             * Before skipping the comparison for empty structs
+             * it is necessary to check whether the expressions involved
+             * have any sideeffects
+             */
+
+            const canSkipCompare = isTrivialExp(ie.e1) && isTrivialExp(ie.e2);
             elem *e;
-            if (t1.ty == Tstruct && (cast(TypeStruct)t1).sym.fields.dim == 0)
+            if (t1.ty == Tstruct && (cast(TypeStruct)t1).sym.fields.dim == 0 && canSkipCompare)
             {
                 // we can skip the compare if the structs are empty
                 e = el_long(TYbool, ie.op == TOK.identity);
@@ -2655,7 +2662,7 @@ elem *toElem(Expression e, IRState *irs)
                         einit = resolveLengthVar(are.lengthVar, &n1, ta);
                         enbytes = el_copytree(n1);
                         n1 = array_toPtr(ta, n1);
-                        enbytes = el_una(global.params.is64bit ? OP128_64 : OP64_32, TYsize_t, enbytes);
+                        enbytes = el_una(irs.params.is64bit ? OP128_64 : OP64_32, TYsize_t, enbytes);
                     }
                     else if (ta.ty == Tpointer)
                     {
@@ -2765,7 +2772,7 @@ elem *toElem(Expression e, IRState *irs)
                         else
                         {
                             // It's not a constant, so pull it from the dynamic array
-                            elen = el_una(global.params.is64bit ? OP128_64 : OP64_32, TYsize_t, el_copytree(ex));
+                            elen = el_una(irs.params.is64bit ? OP128_64 : OP64_32, TYsize_t, el_copytree(ex));
                         }
 
                         esize = el_bin(OPmul, TYsize_t, elen, esize);
@@ -2883,7 +2890,7 @@ elem *toElem(Expression e, IRState *irs)
             {
                 CallExp ce = cast(CallExp)ae.e2;
                 TypeFunction tf = cast(TypeFunction)ce.e1.type.toBasetype();
-                if (tf.ty == Tfunction && retStyle(tf) == RET.stack)
+                if (tf.ty == Tfunction && retStyle(tf, ce.f && ce.f.needThis()) == RET.stack)
                 {
                     elem *ehidden = e1;
                     ehidden = el_una(OPaddr, TYnptr, ehidden);
@@ -3217,7 +3224,7 @@ elem *toElem(Expression e, IRState *irs)
                     // *(stmp.ptr + (stmp.length - 1) * szelem) = e2
 
                     elem *eptr = array_toPtr(tb1, el_var(stmp));
-                    elem *elength = el_una(global.params.is64bit ? OP128_64 : OP64_32, TYsize_t, el_var(stmp));
+                    elem *elength = el_una(irs.params.is64bit ? OP128_64 : OP64_32, TYsize_t, el_var(stmp));
                     elength = el_bin(OPmin, TYsize_t, elength, el_long(TYsize_t, 1));
                     elength = el_bin(OPmul, TYsize_t, elength, el_long(TYsize_t, ce.e2.type.size()));
                     eptr = el_bin(OPadd, TYnptr, eptr, elength);
@@ -3343,7 +3350,7 @@ elem *toElem(Expression e, IRState *irs)
 
             elem_setLoc(e, aae.loc);
 
-            if (global.params.cov && aae.e2.loc.linnum)
+            if (irs.params.cov && aae.e2.loc.linnum)
                 e.EV.E2 = el_combine(incUsageElem(irs, aae.e2.loc), e.EV.E2);
             result = e;
         }
@@ -3436,11 +3443,11 @@ elem *toElem(Expression e, IRState *irs)
 
             elem *eleft = toElem(ce.e1, irs);
             tym_t ty = eleft.Ety;
-            if (global.params.cov && ce.e1.loc.linnum)
+            if (irs.params.cov && ce.e1.loc.linnum)
                 eleft = el_combine(incUsageElem(irs, ce.e1.loc), eleft);
 
             elem *eright = toElem(ce.e2, irs);
-            if (global.params.cov && ce.e2.loc.linnum)
+            if (irs.params.cov && ce.e2.loc.linnum)
                 eright = el_combine(incUsageElem(irs, ce.e2.loc), eright);
 
             elem *e = el_bin(OPcond, ty, ec, el_bin(OPcolon, ty, eleft, eright));
@@ -3492,7 +3499,7 @@ elem *toElem(Expression e, IRState *irs)
             assert(txb.ty == tyb.ty);
 
             // https://issues.dlang.org/show_bug.cgi?id=14730
-            if (global.params.useInline && v.offset == 0)
+            if (irs.params.useInline && v.offset == 0)
             {
                 FuncDeclaration fd = v.parent.isFuncDeclaration();
                 if (fd && fd.semanticRun < PASS.obj)
@@ -4042,7 +4049,7 @@ elem *toElem(Expression e, IRState *irs)
                 else
                 {
                     // e1 . (uint)(e1 >> 32)
-                    if (global.params.is64bit)
+                    if (irs.params.is64bit)
                     {
                         e = el_bin(OPshr, TYucent, e, el_long(TYint, 64));
                         e = el_una(OP128_64, totym(t), e);
@@ -4086,7 +4093,7 @@ elem *toElem(Expression e, IRState *irs)
                         elem *es = el_same(&e);
 
                         elem *eptr = el_una(OPmsw, TYnptr, es);
-                        elem *elen = el_una(global.params.is64bit ? OP128_64 : OP64_32, TYsize_t, e);
+                        elem *elen = el_una(irs.params.is64bit ? OP128_64 : OP64_32, TYsize_t, e);
                         elem *elen2 = el_bin(OPmul, TYsize_t, elen, el_long(TYsize_t, fsize / tsize));
                         e = el_pair(totym(ce.type), elen2, eptr);
                     }
@@ -4201,7 +4208,7 @@ elem *toElem(Expression e, IRState *irs)
                 case Tpointer:
                     if (fty == Tdelegate)
                         goto Lpaint;
-                    tty = global.params.is64bit ? Tuns64 : Tuns32;
+                    tty = irs.params.is64bit ? Tuns64 : Tuns32;
                     break;
 
                 case Tchar:     tty = Tuns8;    break;
@@ -4227,7 +4234,7 @@ elem *toElem(Expression e, IRState *irs)
                     // typeof(null) is same with void* in binary level.
                     goto Lzero;
                 }
-                case Tpointer:  fty = global.params.is64bit ? Tuns64 : Tuns32;  break;
+                case Tpointer:  fty = irs.params.is64bit ? Tuns64 : Tuns32;  break;
                 case Tchar:     fty = Tuns8;    break;
                 case Twchar:    fty = Tuns16;   break;
                 case Tdchar:    fty = Tuns32;   break;
@@ -4711,7 +4718,7 @@ elem *toElem(Expression e, IRState *irs)
         override void visit(ArrayLengthExp ale)
         {
             elem *e = toElem(ale.e1, irs);
-            e = el_una(global.params.is64bit ? OP128_64 : OP64_32, totym(ale.type), e);
+            e = el_una(irs.params.is64bit ? OP128_64 : OP64_32, totym(ale.type), e);
             elem_setLoc(e, ale.loc);
             result = e;
         }
@@ -4733,7 +4740,7 @@ elem *toElem(Expression e, IRState *irs)
             elem *e = toElem(dfpe.e1, irs);
             Type tb1 = dfpe.e1.type.toBasetype();
             e = addressElem(e, tb1);
-            e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, global.params.is64bit ? 8 : 4));
+            e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, irs.params.is64bit ? 8 : 4));
             e = el_una(OPind, totym(dfpe.type), e);
             elem_setLoc(e, dfpe.loc);
             result = e;
@@ -4794,7 +4801,7 @@ elem *toElem(Expression e, IRState *irs)
                             {
                                 elen = e;
                                 e = el_same(&elen);
-                                elen = el_una(global.params.is64bit ? OP128_64 : OP64_32, TYsize_t, elen);
+                                elen = el_una(irs.params.is64bit ? OP128_64 : OP64_32, TYsize_t, elen);
                             }
                         }
 
@@ -4952,7 +4959,7 @@ elem *toElem(Expression e, IRState *irs)
                     {
                         elength = n1;
                         n1 = el_same(&elength);
-                        elength = el_una(global.params.is64bit ? OP128_64 : OP64_32, TYsize_t, elength);
+                        elength = el_una(irs.params.is64bit ? OP128_64 : OP64_32, TYsize_t, elength);
                     L1:
                         elem *n2x = n2;
                         n2 = el_same(&n2x);
@@ -5295,7 +5302,7 @@ elem *toElem(Expression e, IRState *irs)
                 else
                 {
                     elem *edim = el_long(TYsize_t, j - i);
-                    eeq = setArray(el, ev, edim, telem, ep, null, TOK.blit);
+                    eeq = setArray(el, ev, edim, telem, ep, irs, TOK.blit);
                 }
                 e = el_combine(e, eeq);
                 i = j;
@@ -5665,7 +5672,7 @@ private elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
 
     if (edtors)
     {
-        if (global.params.isWindows && !global.params.is64bit) // Win32
+        if (irs.params.isWindows && !irs.params.is64bit) // Win32
         {
             Blockx *blx = irs.blx;
             nteh_declarvars(blx);
@@ -5899,7 +5906,7 @@ private elem *filelinefunction(IRState *irs, const ref Loc loc)
  */
 elem *buildArrayBoundsError(IRState *irs, const ref Loc loc)
 {
-    if (global.params.checkAction == CHECKACTION.C)
+    if (irs.params.checkAction == CHECKACTION.C)
     {
         return callCAssert(irs, loc, null, null, "array overflow");
     }
@@ -5954,7 +5961,7 @@ void toTraceGC(IRState *irs, elem *e, const ref Loc loc)
         [ RTLSYM_ALLOCMEMORY, RTLSYM_TRACEALLOCMEMORY ],
     ];
 
-    if (global.params.tracegc && loc.filename)
+    if (irs.params.tracegc && loc.filename)
     {
         assert(e.Eoper == OPcall);
         elem *e1 = e.EV.E1;
@@ -6036,7 +6043,7 @@ elem *callCAssert(IRState *irs, const ref Loc loc, Expression exp, Expression em
     auto eline = el_long(TYint, loc.linnum);
 
     elem *ea;
-    if (global.params.isOSX)
+    if (irs.params.isOSX)
     {
         // __assert_rtn(func, file, line, msg);
         const(char)* id = "";
@@ -6053,7 +6060,7 @@ elem *callCAssert(IRState *irs, const ref Loc loc, Expression exp, Expression em
     else
     {
         // [_]_assert(msg, file, line);
-        const rtlsym = (global.params.isWindows) ? RTLSYM_C_ASSERT : RTLSYM_C__ASSERT;
+        const rtlsym = (irs.params.isWindows) ? RTLSYM_C_ASSERT : RTLSYM_C__ASSERT;
         auto eassert = el_var(getRtlsym(rtlsym));
         ea = el_bin(OPcall, TYvoid, eassert, el_params(eline, efilename, elmsg, null));
     }

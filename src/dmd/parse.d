@@ -533,10 +533,11 @@ final class Parser(AST) : Lexer
             case TOK.invariant_:
                 {
                     Token* t = peek(&token);
-                    if (t.value == TOK.leftParentheses && peek(t).value == TOK.rightParentheses || t.value == TOK.leftCurly)
+                    if (t.value == TOK.leftParentheses || t.value == TOK.leftCurly)
                     {
-                        // invariant {}
-                        // invariant() {}
+                        // invariant { statements... }
+                        // invariant() { statements... }
+                        // invariant (expression);
                         s = parseInvariant(pAttrs);
                     }
                     else
@@ -1258,19 +1259,14 @@ final class Parser(AST) : Lexer
 
     /*********************************************
      * Give error on redundant/conflicting storage class.
-     *
-     * TODO: remove deprecation in 2.068 and keep only error
      */
-    StorageClass appendStorageClass(StorageClass storageClass, StorageClass stc, bool deprec = false)
+    StorageClass appendStorageClass(StorageClass storageClass, StorageClass stc)
     {
         if ((storageClass & stc) || (storageClass & AST.STC.in_ && stc & (AST.STC.const_ | AST.STC.scope_)) || (stc & AST.STC.in_ && storageClass & (AST.STC.const_ | AST.STC.scope_)))
         {
             OutBuffer buf;
             AST.stcToBuffer(&buf, stc);
-            if (deprec)
-                deprecation("redundant attribute `%s`", buf.peekString());
-            else
-                error("redundant attribute `%s`", buf.peekString());
+            error("redundant attribute `%s`", buf.peekString());
             return storageClass | stc;
         }
 
@@ -1432,7 +1428,7 @@ final class Parser(AST) : Lexer
             default:
                 return storageClass;
             }
-            storageClass = appendStorageClass(storageClass, stc, true);
+            storageClass = appendStorageClass(storageClass, stc);
             nextToken();
         }
     }
@@ -2616,7 +2612,9 @@ final class Parser(AST) : Lexer
 
     /*****************************************
      * Parse an invariant definition:
-     *      invariant() { body }
+     *      invariant { statements... }
+     *      invariant() { statements... }
+     *      invariant (expression);
      * Current token is 'invariant'.
      */
     AST.Dsymbol parseInvariant(PrefixAttributes!AST* pAttrs)
@@ -2625,10 +2623,33 @@ final class Parser(AST) : Lexer
         StorageClass stc = getStorageClass!AST(pAttrs);
 
         nextToken();
-        if (token.value == TOK.leftParentheses) // optional ()
+        if (token.value == TOK.leftParentheses) // optional () or invariant (expression);
         {
             nextToken();
-            check(TOK.rightParentheses);
+            if (token.value != TOK.rightParentheses) // invariant (expression);
+            {
+                AST.Expression e = parseAssignExp(), msg = null;
+                if (token.value == TOK.comma)
+                {
+                    nextToken();
+                    if (token.value != TOK.rightParentheses)
+                    {
+                        msg = parseAssignExp();
+                        if (token.value == TOK.comma)
+                            nextToken();
+                    }
+                }
+                check(TOK.rightParentheses);
+                check(TOK.semicolon);
+                e = new AST.AssertExp(loc, e, msg);
+                auto fbody = new AST.ExpStatement(loc, e);
+                auto f = new AST.InvariantDeclaration(loc, token.loc, stc, null, fbody);
+                return f;
+            }
+            else
+            {
+                nextToken();
+            }
         }
 
         auto fbody = parseStatement(ParseStatementFlags.curly);
@@ -4661,11 +4682,12 @@ final class Parser(AST) : Lexer
         // The following is irrelevant, as it is overridden by sc.linkage in
         // TypeFunction::semantic
         linkage = LINK.d; // nested functions have D linkage
+        bool requireDo = false;
     L1:
         switch (token.value)
         {
         case TOK.leftCurly:
-            if (f.frequire || f.fensure)
+            if (requireDo)
                 error("missing `do { ... }` after `in` or `out`");
             f.fbody = parseStatement(ParseStatementFlags.semi);
             f.endloc = endloc;
@@ -4715,27 +4737,86 @@ final class Parser(AST) : Lexer
             }
 
         case TOK.in_:
+            // in { statements... }
+            // in (expression)
+            auto loc = token.loc;
             nextToken();
-            if (f.frequire)
-                error("redundant `in` statement");
-            f.frequire = parseStatement(ParseStatementFlags.curly | ParseStatementFlags.scope_);
+            if (!f.frequires)
+            {
+                f.frequires = new AST.Statements;
+            }
+            if (token.value == TOK.leftParentheses)
+            {
+                nextToken();
+                AST.Expression e = parseAssignExp(), msg = null;
+                if (token.value == TOK.comma)
+                {
+                    nextToken();
+                    if (token.value != TOK.rightParentheses)
+                    {
+                        msg = parseAssignExp();
+                        if (token.value == TOK.comma)
+                            nextToken();
+                    }
+                }
+                check(TOK.rightParentheses);
+                e = new AST.AssertExp(loc, e, msg);
+                f.frequires.push(new AST.ExpStatement(loc, e));
+                requireDo = false;
+            }
+            else
+            {
+                f.frequires.push(parseStatement(ParseStatementFlags.curly | ParseStatementFlags.scope_));
+                requireDo = true;
+            }
             goto L1;
 
         case TOK.out_:
-            // parse: out (identifier) { statement }
+            // out { statements... }
+            // out (; expression)
+            // out (identifier) { statements... }
+            // out (identifier; expression)
+            auto loc = token.loc;
             nextToken();
+            if (!f.fensures)
+            {
+                f.fensures = new AST.Ensures;
+            }
+            Identifier id = null;
             if (token.value != TOK.leftCurly)
             {
                 check(TOK.leftParentheses);
-                if (token.value != TOK.identifier)
-                    error("`(identifier)` following `out` expected, not `%s`", token.toChars());
-                f.outId = token.ident;
-                nextToken();
+                if (token.value != TOK.identifier && token.value != TOK.semicolon)
+                    error("`(identifier) { ... }` or `(identifier; expression)` following `out` expected, not `%s`", token.toChars());
+                if (token.value != TOK.semicolon)
+                {
+                    id = token.ident;
+                    nextToken();
+                }
+                if (token.value == TOK.semicolon)
+                {
+                    nextToken();
+                    AST.Expression e = parseAssignExp(), msg = null;
+                    if (token.value == TOK.comma)
+                    {
+                        nextToken();
+                        if (token.value != TOK.rightParentheses)
+                        {
+                            msg = parseAssignExp();
+                            if (token.value == TOK.comma)
+                                nextToken();
+                        }
+                    }
+                    check(TOK.rightParentheses);
+                    e = new AST.AssertExp(loc, e, msg);
+                    f.fensures.push(AST.Ensure(id, new AST.ExpStatement(loc, e)));
+                    requireDo = false;
+                    goto L1;
+                }
                 check(TOK.rightParentheses);
             }
-            if (f.fensure)
-                error("redundant `out` statement");
-            f.fensure = parseStatement(ParseStatementFlags.curly | ParseStatementFlags.scope_);
+            f.fensures.push(AST.Ensure(id, parseStatement(ParseStatementFlags.curly | ParseStatementFlags.scope_)));
+            requireDo = true;
             goto L1;
 
         case TOK.semicolon:
@@ -4743,8 +4824,8 @@ final class Parser(AST) : Lexer
             {
                 // https://issues.dlang.org/show_bug.cgi?id=15799
                 // Semicolon becomes a part of function declaration
-                // only when neither of contracts exists.
-                if (!f.frequire && !f.fensure)
+                // only when 'do' is not required
+                if (!requireDo)
                     nextToken();
                 break;
             }
@@ -4753,10 +4834,10 @@ final class Parser(AST) : Lexer
         default:
             if (literal)
             {
-                const(char)* sbody = (f.frequire || f.fensure) ? "do " : "";
+                const(char)* sbody = requireDo ? "do " : "";
                 error("missing `%s{ ... }` for function literal", sbody);
             }
-            else if (!f.frequire && !f.fensure) // allow these even with no body
+            else if (!requireDo) // allow contracts even with no body
             {
                 TOK t = token.value;
                 if (t == TOK.const_ || t == TOK.immutable_ || t == TOK.inout_ || t == TOK.return_ ||
@@ -5518,6 +5599,11 @@ final class Parser(AST) : Lexer
                     s = null; // don't propagate parsing errors
                 break;
             }
+
+        case TOK.else_:
+            error("found `else` without a corresponding `if`, `version` or `debug` statement");
+            goto Lerror;
+
         case TOK.scope_:
             if (peek(&token).value != TOK.leftParentheses)
                 goto Ldeclaration; // scope used as storage class
@@ -5990,10 +6076,28 @@ final class Parser(AST) : Lexer
             }
         case TOK.import_:
             {
-                AST.Dsymbols* imports = parseImport();
-                s = new AST.ImportStatement(loc, imports);
-                if (flags & ParseStatementFlags.scope_)
-                    s = new AST.ScopeStatement(loc, s, token.loc);
+                /* https://issues.dlang.org/show_bug.cgi?id=16088
+                 *
+                 * At this point it can either be an
+                 * https://dlang.org/spec/grammar.html#ImportExpression
+                 * or an
+                 * https://dlang.org/spec/grammar.html#ImportDeclaration.
+                 * See if the next token after `import` is a `(`; if so,
+                 * then it is an import expression.
+                 */
+                if (peekNext() == TOK.leftParentheses)
+                {
+                    AST.Expression e = parseExpression();
+                    check(TOK.semicolon);
+                    s = new AST.ExpStatement(loc, e);
+                }
+                else
+                {
+                    AST.Dsymbols* imports = parseImport();
+                    s = new AST.ImportStatement(loc, imports);
+                    if (flags & ParseStatementFlags.scope_)
+                        s = new AST.ScopeStatement(loc, s, token.loc);
+                }
                 break;
             }
         case TOK.template_:
@@ -7375,7 +7479,7 @@ final class Parser(AST) : Lexer
                             postfix = token.postfix;
                         }
 
-                        deprecation("Implicit string concatenation is deprecated, use %s ~ %s instead",
+                        error("Implicit string concatenation is deprecated, use %s ~ %s instead",
                                     prev.toChars(), token.toChars());
 
                         const len1 = len;
@@ -8385,100 +8489,97 @@ final class Parser(AST) : Lexer
     AST.Expression parseAssignExp()
     {
         auto e = parseCondExp();
-        while (1)
+        const loc = token.loc;
+        switch (token.value)
         {
-            const loc = token.loc;
-            switch (token.value)
-            {
-            case TOK.assign:
-                nextToken();
-                auto e2 = parseAssignExp();
-                e = new AST.AssignExp(loc, e, e2);
-                continue;
+        case TOK.assign:
+            nextToken();
+            auto e2 = parseAssignExp();
+            e = new AST.AssignExp(loc, e, e2);
+            break;
 
-            case TOK.addAssign:
-                nextToken();
-                auto e2 = parseAssignExp();
-                e = new AST.AddAssignExp(loc, e, e2);
-                continue;
+        case TOK.addAssign:
+            nextToken();
+            auto e2 = parseAssignExp();
+            e = new AST.AddAssignExp(loc, e, e2);
+            break;
 
-            case TOK.minAssign:
-                nextToken();
-                auto e2 = parseAssignExp();
-                e = new AST.MinAssignExp(loc, e, e2);
-                continue;
+        case TOK.minAssign:
+            nextToken();
+            auto e2 = parseAssignExp();
+            e = new AST.MinAssignExp(loc, e, e2);
+            break;
 
-            case TOK.mulAssign:
-                nextToken();
-                auto e2 = parseAssignExp();
-                e = new AST.MulAssignExp(loc, e, e2);
-                continue;
+        case TOK.mulAssign:
+            nextToken();
+            auto e2 = parseAssignExp();
+            e = new AST.MulAssignExp(loc, e, e2);
+            break;
 
-            case TOK.divAssign:
-                nextToken();
-                auto e2 = parseAssignExp();
-                e = new AST.DivAssignExp(loc, e, e2);
-                continue;
+        case TOK.divAssign:
+            nextToken();
+            auto e2 = parseAssignExp();
+            e = new AST.DivAssignExp(loc, e, e2);
+            break;
 
-            case TOK.modAssign:
-                nextToken();
-                auto e2 = parseAssignExp();
-                e = new AST.ModAssignExp(loc, e, e2);
-                continue;
+        case TOK.modAssign:
+            nextToken();
+            auto e2 = parseAssignExp();
+            e = new AST.ModAssignExp(loc, e, e2);
+            break;
 
-            case TOK.powAssign:
-                nextToken();
-                auto e2 = parseAssignExp();
-                e = new AST.PowAssignExp(loc, e, e2);
-                continue;
+        case TOK.powAssign:
+            nextToken();
+            auto e2 = parseAssignExp();
+            e = new AST.PowAssignExp(loc, e, e2);
+            break;
 
-            case TOK.andAssign:
-                nextToken();
-                auto e2 = parseAssignExp();
-                e = new AST.AndAssignExp(loc, e, e2);
-                continue;
+        case TOK.andAssign:
+            nextToken();
+            auto e2 = parseAssignExp();
+            e = new AST.AndAssignExp(loc, e, e2);
+            break;
 
-            case TOK.orAssign:
-                nextToken();
-                auto e2 = parseAssignExp();
-                e = new AST.OrAssignExp(loc, e, e2);
-                continue;
+        case TOK.orAssign:
+            nextToken();
+            auto e2 = parseAssignExp();
+            e = new AST.OrAssignExp(loc, e, e2);
+            break;
 
-            case TOK.xorAssign:
-                nextToken();
-                auto e2 = parseAssignExp();
-                e = new AST.XorAssignExp(loc, e, e2);
-                continue;
+        case TOK.xorAssign:
+            nextToken();
+            auto e2 = parseAssignExp();
+            e = new AST.XorAssignExp(loc, e, e2);
+            break;
 
-            case TOK.leftShiftAssign:
-                nextToken();
-                auto e2 = parseAssignExp();
-                e = new AST.ShlAssignExp(loc, e, e2);
-                continue;
+        case TOK.leftShiftAssign:
+            nextToken();
+            auto e2 = parseAssignExp();
+            e = new AST.ShlAssignExp(loc, e, e2);
+            break;
 
-            case TOK.rightShiftAssign:
-                nextToken();
-                auto e2 = parseAssignExp();
-                e = new AST.ShrAssignExp(loc, e, e2);
-                continue;
+        case TOK.rightShiftAssign:
+            nextToken();
+            auto e2 = parseAssignExp();
+            e = new AST.ShrAssignExp(loc, e, e2);
+            break;
 
-            case TOK.unsignedRightShiftAssign:
-                nextToken();
-                auto e2 = parseAssignExp();
-                e = new AST.UshrAssignExp(loc, e, e2);
-                continue;
+        case TOK.unsignedRightShiftAssign:
+            nextToken();
+            auto e2 = parseAssignExp();
+            e = new AST.UshrAssignExp(loc, e, e2);
+            break;
 
-            case TOK.concatenateAssign:
-                nextToken();
-                auto e2 = parseAssignExp();
-                e = new AST.CatAssignExp(loc, e, e2);
-                continue;
+        case TOK.concatenateAssign:
+            nextToken();
+            auto e2 = parseAssignExp();
+            e = new AST.CatAssignExp(loc, e, e2);
+            break;
 
-            default:
-                break;
-            }
+        default:
             break;
         }
+
         return e;
     }
 

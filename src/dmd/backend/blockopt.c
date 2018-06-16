@@ -350,7 +350,9 @@ void block_free(block *b)
             break;
 #endif
         case BCasm:
+#if !HTOD
             code_free(b->Bcode);
+#endif
             break;
     }
     b->Bnext = block_freelist;
@@ -396,7 +398,9 @@ void blocklist_hydrate(block **pb)
                 break;
 
             case BCasm:
+#if !HTOD
                 code_hydrate(&b->Bcode);
+#endif
                 break;
         }
         filename_translate(&b->Bsrcpos);
@@ -631,6 +635,7 @@ void blockopt(int iter)
 #ifdef DEBUG
         if (debugb)
         {
+            printf("...................After blockopt().............\n");
             numberBlocks(startblock);
             for (block *b = startblock; b; b = b->Bnext)
                 WRblock(b);
@@ -924,9 +929,9 @@ STATIC void bropt()
                                 continue;
                         assert(tyintegral(n->Ety));
                         targ_llong value = el_tolong(n);
-                        targ_llong* p = b->BS.Bswitch;      // ptr to switch data
-                        assert(p);
-                        unsigned ncases = *p++;          // # of cases
+                        targ_llong* pv = b->BS.Bswitch;      // ptr to switch data
+                        assert(pv);
+                        unsigned ncases = *pv++;          // # of cases
                         unsigned i = 1;                  // first case
                         while (1)
                         {
@@ -934,7 +939,7 @@ STATIC void bropt()
                                 {   i = 0;      /* select default       */
                                     break;
                                 }
-                                if (*p++ == value)
+                                if (*pv++ == value)
                                     break;      /* found it             */
                                 i++;            /* next case            */
                         }
@@ -943,8 +948,8 @@ STATIC void bropt()
                         /* delete predecessors of successors (!)        */
                         for (list_t bl = b->Bsucc; bl; bl = list_next(bl))
                             if (i--)            // if not ith successor
-                            {   void *p;
-                                p = list_subtract(
+                            {
+                                void *p = list_subtract(
                                     &(list_block(bl)->Bpred),b);
                                 assert(p == b);
                             }

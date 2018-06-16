@@ -883,15 +883,16 @@ public:
 
     override void visit(IntegerExp e)
     {
-        if (cast(sinteger_t)e.value < 0)
+        const v = e.toInteger();
+        if (cast(sinteger_t)v < 0)
         {
             buf.writeByte('N');
-            buf.print(-e.value);
+            buf.print(-v);
         }
         else
         {
             buf.writeByte('i');
-            buf.print(e.value);
+            buf.print(v);
         }
     }
 

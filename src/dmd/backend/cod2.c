@@ -10,7 +10,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cod2.c
  */
 
-#if !SPP
+#if (SCPP && !HTOD) || MARS
 
 #include        <stdio.h>
 #include        <string.h>
@@ -363,14 +363,14 @@ void cdorth(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         {
             int inc = e->Ecount != 0;
             nest += inc;
-            code cs;
-            getlvalue(cdb,&cs,e,0);
+            code csx;
+            getlvalue(cdb,&csx,e,0);
             nest -= inc;
-            unsigned reg;
-            allocreg(cdb,pretregs,&reg,ty);
-            cs.Iop = LEA;
-            code_newreg(&cs, reg);
-            cdb.gen(&cs);          // LEA reg,EA
+            unsigned regx;
+            allocreg(cdb,pretregs,&regx,ty);
+            csx.Iop = LEA;
+            code_newreg(&csx, regx);
+            cdb.gen(&csx);          // LEA regx,EA
             if (rex)
                 code_orrex(cdb.last(), rex);
             return;
@@ -893,12 +893,12 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     elem *e2 = e->E2;
     tyml = tybasic(e1->Ety);
     tym_t ty = tybasic(e->Ety);
-    int sz = _tysize[tyml];
+    const int sz = _tysize[tyml];
     unsigned byte = tybyte(e->Ety) != 0;
     tym_t uns = tyuns(tyml) || tyuns(e2->Ety);  // 1 if unsigned operation, 0 if not
     unsigned oper = e->Eoper;
-    unsigned rex = (I64 && sz == 8) ? REX_W : 0;
-    unsigned grex = rex << 16;
+    const unsigned rex = (I64 && sz == 8) ? REX_W : 0;
+    const unsigned grex = rex << 16;
 
     if (tyfloating(tyml))
     {
@@ -1088,8 +1088,6 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
              * R1 = remainder
              */
             assert(sz == 4 || sz == 8);
-            unsigned rex = (I64 && sz == 8) ? REX_W : 0;
-            unsigned grex = rex << 16;                  // 64 bit operands
 
             unsigned r3;
 
@@ -1188,8 +1186,6 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             config.flags4 & CFG4speed && uns)
         {
             assert(sz == 4 || sz == 8);
-            unsigned rex = (I64 && sz == 8) ? REX_W : 0;
-            unsigned grex = rex << 16;                  // 64 bit operands
 
             unsigned r3;
             regm_t regm;
@@ -2364,8 +2360,7 @@ void cdshift(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     int sz = _tysize[tyml];
     assert(!tyfloating(tyml));
     unsigned oper = e->Eoper;
-    unsigned rex = (I64 && sz == 8) ? REX_W : 0;
-    unsigned grex = rex << 16;
+    unsigned grex = ((I64 && sz == 8) ? REX_W : 0) << 16;
 
 #if SCPP
     // Do this until the rest of the compiler does OPshr/OPashr correctly
@@ -2530,7 +2525,7 @@ void cdshift(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                         {
                             case OPshl:
                                 // MOV regH,regL        XOR regL,regL
-                                assert(resreg < 4 && !rex);
+                                assert(resreg < 4 && !grex);
                                 genregs(cdb,0x8A,resreg+4,resreg);
                                 genregs(cdb,0x32,resreg,resreg);
                                 break;
@@ -3717,18 +3712,18 @@ void cdmemset(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             reg = findreg(retregs1);
             if (e2->E2->Eoper == OPconst)
             {
-                unsigned m = buildModregrm(0,0,reg);
+                const unsigned mrm = buildModregrm(0,0,reg);
                 switch (numbytes)
                 {
                     case 4:                     // MOV [reg],imm32
-                        cdb.genc2(0xC7,m,value);
+                        cdb.genc2(0xC7,mrm,value);
                         goto fixres;
                     case 2:                     // MOV [reg],imm16
-                        cdb.genc2(0xC7,m,value);
+                        cdb.genc2(0xC7,mrm,value);
                         cdb.last()->Iflags = CFopsize;
                         goto fixres;
                     case 1:                     // MOV [reg],imm8
-                        cdb.genc2(0xC6,m,value);
+                        cdb.genc2(0xC6,mrm,value);
                         goto fixres;
                 }
             }

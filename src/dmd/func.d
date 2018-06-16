@@ -68,7 +68,7 @@ enum BUILTIN : int
  */
 extern (C++) final class NrvoWalker : StatementRewriteWalker
 {
-    alias visit = super.visit;
+    alias visit = typeof(super).visit;
 public:
     FuncDeclaration fd;
     Scope* sc;
@@ -153,12 +153,47 @@ enum FUNCFLAG : uint
 }
 
 /***********************************************************
+ * Tuple of result identifier (possibly null) and statement.
+ * This is used to store out contracts: out(id){ ensure }
+ */
+extern (C++) struct Ensure
+{
+    Identifier id;
+    Statement ensure;
+
+    Ensure syntaxCopy()
+    {
+        return Ensure(id, ensure.syntaxCopy());
+    }
+
+    /*****************************************
+     * Do syntax copy of an array of Ensure's.
+     */
+    static Ensures* arraySyntaxCopy(Ensures* a)
+    {
+        Ensures* b = null;
+        if (a)
+        {
+            b = a.copy();
+            foreach (i, e; *a)
+            {
+                (*b)[i] = e.syntaxCopy();
+            }
+        }
+        return b;
+    }
+
+}
+
+/***********************************************************
  */
 extern (C++) class FuncDeclaration : Declaration
 {
     Types* fthrows;                     /// Array of Type's of exceptions (not used)
-    Statement frequire;                 /// in contract body
-    Statement fensure;                  /// out contract body
+    Statements* frequires;              /// in contracts
+    Ensures* fensures;                  /// out contracts
+    Statement frequire;                 /// lowered in contract
+    Statement fensure;                  /// lowered out contract
     Statement fbody;                    /// function body
 
     FuncDeclarations foverrides;        /// functions this function overrides
@@ -167,8 +202,7 @@ extern (C++) class FuncDeclaration : Declaration
 
     const(char)* mangleString;          /// mangled symbol created from mangleExact()
 
-    Identifier outId;                   /// identifier for out statement
-    VarDeclaration vresult;             /// variable corresponding to outId
+    VarDeclaration vresult;             /// result variable for out contracts
     LabelDsymbol returnLabel;           /// where the return goes
 
     // used to prevent symbols in different
@@ -192,7 +226,7 @@ extern (C++) class FuncDeclaration : Declaration
     ILS inlineStatusExp = ILS.uninitialized;
     PINLINE inlining = PINLINE.default_;
 
-    CompiledCtfeFunction* ctfeCode;     /// Compiled code for interpreter (not actually)
+    CompiledCtfeFunctionPimpl ctfeCode; /// Local data (i.e. CompileCtfeFunction*) for module dinterpret
     int inlineNest;                     /// !=0 if nested inline
     bool isArrayOp;                     /// true if array operation
     bool eh_none;                       /// true if no exception unwinding is needed
@@ -275,9 +309,8 @@ extern (C++) class FuncDeclaration : Declaration
     {
         //printf("FuncDeclaration::syntaxCopy('%s')\n", toChars());
         FuncDeclaration f = s ? cast(FuncDeclaration)s : new FuncDeclaration(loc, endloc, ident, storage_class, type.syntaxCopy());
-        f.outId = outId;
-        f.frequire = frequire ? frequire.syntaxCopy() : null;
-        f.fensure = fensure ? fensure.syntaxCopy() : null;
+        f.frequires = frequires ? Statement.arraySyntaxCopy(frequires) : null;
+        f.fensures = fensures ? Ensure.arraySyntaxCopy(fensures) : null;
         f.fbody = fbody ? fbody.syntaxCopy() : null;
         assert(!fthrows); // deprecated
         return f;
@@ -1892,6 +1925,18 @@ extern (C++) class FuncDeclaration : Declaration
     }
 
     /****************************************************
+     * Check whether result variable can be built.
+     * Returns:
+     *     `true` if the function has a return type that
+     *     is different from `void`.
+     */
+    extern (D) private bool canBuildResultVar()
+    {
+        auto f = cast(TypeFunction)type;
+        return f && f.nextOf() && f.nextOf().toBasetype().ty != Tvoid;
+    }
+
+    /****************************************************
      * Declare result variable lazily.
      */
     final void buildResultVar(Scope* sc, Type tret)
@@ -1904,11 +1949,8 @@ extern (C++) class FuncDeclaration : Declaration
              * So, in here it may be a temporary type for vresult, and after
              * fbody.dsymbolSemantic() running, vresult.type might be modified.
              */
-            vresult = new VarDeclaration(loc, tret, outId ? outId : Id.result, null);
-            vresult.storage_class |= STC.nodtor;
-
-            if (outId == Id.result)
-                vresult.storage_class |= STC.temp;
+            vresult = new VarDeclaration(loc, tret, Id.result, null);
+            vresult.storage_class |= STC.nodtor | STC.temp;
             if (!isVirtual())
                 vresult.storage_class |= STC.const_;
             vresult.storage_class |= STC.result;
@@ -1976,7 +2018,7 @@ extern (C++) class FuncDeclaration : Declaration
              * be completed before code generation occurs.
              * https://issues.dlang.org/show_bug.cgi?id=3602
              */
-            if (fdv.frequire && fdv.semanticRun != PASS.semantic3done)
+            if (fdv.frequires && fdv.semanticRun != PASS.semantic3done)
             {
                 assert(fdv._scope);
                 Scope* sc = fdv._scope.push();
@@ -2019,7 +2061,7 @@ extern (C++) class FuncDeclaration : Declaration
      */
     static bool needsFensure(FuncDeclaration fd)
     {
-        if (fd.fensure)
+        if (fd.fensures)
             return true;
 
         foreach (fdv; fd.foverrides)
@@ -2031,14 +2073,67 @@ extern (C++) class FuncDeclaration : Declaration
     }
 
     /****************************************************
-     * Rewrite contracts as nested functions, then call them. Doing it as nested
-     * functions means that overriding functions can call them.
+     * Rewrite contracts as statements.
      */
     final void buildEnsureRequire()
     {
+
+        if (frequires)
+        {
+            /*   in { statements1... }
+             *   in { statements2... }
+             *   ...
+             * becomes:
+             *   in { { statements1... } { statements2... } ... }
+             */
+            assert(frequires.dim);
+            auto loc = (*frequires)[0].loc;
+            auto s = new Statements;
+            foreach (r; *frequires)
+            {
+                s.push(new ScopeStatement(r.loc, r, r.loc));
+            }
+            frequire = new CompoundStatement(loc, s);
+        }
+
+        if (fensures)
+        {
+            /*   out(id1) { statements1... }
+             *   out(id2) { statements2... }
+             *   ...
+             * becomes:
+             *   out(__result) { { ref id1 = __result; { statements1... } }
+             *                   { ref id2 = __result; { statements2... } } ... }
+             */
+            assert(fensures.dim);
+            auto loc = (*fensures)[0].ensure.loc;
+            auto s = new Statements;
+            foreach (r; *fensures)
+            {
+                if (r.id && canBuildResultVar())
+                {
+                    auto rloc = r.ensure.loc;
+                    auto resultId = new IdentifierExp(rloc, Id.result);
+                    auto init = new ExpInitializer(rloc, resultId);
+                    auto stc = STC.ref_ | STC.temp | STC.result;
+                    auto decl = new VarDeclaration(rloc, null, r.id, init, stc);
+                    auto sdecl = new ExpStatement(rloc, decl);
+                    s.push(new ScopeStatement(rloc, new CompoundStatement(rloc, sdecl, r.ensure), rloc));
+                }
+                else
+                {
+                    s.push(r.ensure);
+                }
+            }
+            fensure = new CompoundStatement(loc, s);
+        }
+
         if (!isVirtual())
             return;
 
+        /* Rewrite contracts as nested functions, then call them. Doing it as nested
+         * functions means that overriding functions can call them.
+         */
         TypeFunction f = cast(TypeFunction) type;
 
         if (frequire)
@@ -2063,9 +2158,6 @@ extern (C++) class FuncDeclaration : Declaration
             fdrequire = fd;
         }
 
-        if (!outId && f.nextOf() && f.nextOf().toBasetype().ty != Tvoid)
-            outId = Id.result; // provide a default
-
         if (fensure)
         {
             /*   out (result) { ... }
@@ -2076,9 +2168,9 @@ extern (C++) class FuncDeclaration : Declaration
             Loc loc = fensure.loc;
             auto fparams = new Parameters();
             Parameter p = null;
-            if (outId)
+            if (canBuildResultVar())
             {
-                p = new Parameter(STC.ref_ | STC.const_, f.nextOf(), outId, null);
+                p = new Parameter(STC.ref_ | STC.const_, f.nextOf(), Id.result, null);
                 fparams.push(p);
             }
             auto tf = new TypeFunction(fparams, Type.tvoid, 0, LINK.d);
@@ -2090,8 +2182,8 @@ extern (C++) class FuncDeclaration : Declaration
             fd.fbody = fensure;
             Statement s1 = new ExpStatement(loc, fd);
             Expression eresult = null;
-            if (outId)
-                eresult = new IdentifierExp(loc, outId);
+            if (canBuildResultVar())
+                eresult = new IdentifierExp(loc, Id.result);
             Expression e = new CallExp(loc, new VarExp(loc, fd, false), eresult);
             Statement s2 = new ExpStatement(loc, e);
             fensure = new CompoundStatement(loc, s1, s2);
@@ -2136,7 +2228,7 @@ extern (C++) class FuncDeclaration : Declaration
                 //printf("fdv.fensure: %s\n", fdv.fensure.toChars());
                 // Make the call: __ensure(result)
                 Expression eresult = null;
-                if (outId)
+                if (canBuildResultVar())
                 {
                     eresult = new IdentifierExp(loc, oid);
 
@@ -3084,7 +3176,7 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
 
         extern (C++) final class RetWalker : StatementRewriteWalker
         {
-            alias visit = super.visit;
+            alias visit = typeof(super).visit;
         public:
             Scope* sc;
             Type tret;
@@ -3280,8 +3372,9 @@ extern (C++) final class DtorDeclaration : FuncDeclaration
 
     override bool isVirtual() const
     {
-        // false so that dtor's don't get put into the vtbl[]
-        return false;
+        // D dtor's don't get put into the vtbl[]
+        // this is a hack so that extern(C++) destructors report as virtual, which are manually added to the vtable
+        return vtblIndex != -1;
     }
 
     override bool addPreInvariant()
@@ -3316,12 +3409,12 @@ extern (C++) class StaticCtorDeclaration : FuncDeclaration
 {
     extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc)
     {
-        super(loc, endloc, Identifier.generateId("_staticCtor"), STC.static_ | stc, null);
+        super(loc, endloc, Identifier.generateIdWithLoc("_staticCtor", loc), STC.static_ | stc, null);
     }
 
-    extern (D) this(const ref Loc loc, const ref Loc endloc, const(char)* name, StorageClass stc)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, string name, StorageClass stc)
     {
-        super(loc, endloc, Identifier.generateId(name), STC.static_ | stc, null);
+        super(loc, endloc, Identifier.generateIdWithLoc(name, loc), STC.static_ | stc, null);
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
@@ -3402,12 +3495,12 @@ extern (C++) class StaticDtorDeclaration : FuncDeclaration
 
     extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc)
     {
-        super(loc, endloc, Identifier.generateId("_staticDtor"), STC.static_ | stc, null);
+        super(loc, endloc, Identifier.generateIdWithLoc("_staticDtor", loc), STC.static_ | stc, null);
     }
 
-    extern (D) this(const ref Loc loc, const ref Loc endloc, const(char)* name, StorageClass stc)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, string name, StorageClass stc)
     {
-        super(loc, endloc, Identifier.generateId(name), STC.static_ | stc, null);
+        super(loc, endloc, Identifier.generateIdWithLoc(name, loc), STC.static_ | stc, null);
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
@@ -3535,7 +3628,7 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
 
     extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, char* codedoc)
     {
-        super(loc, endloc, createIdentifier(loc), stc, null);
+        super(loc, endloc, Identifier.generateIdWithLoc("__unittest", loc), stc, null);
         this.codedoc = codedoc;
     }
 
@@ -3544,17 +3637,6 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
         assert(!s);
         auto utd = new UnitTestDeclaration(loc, endloc, storage_class, codedoc);
         return FuncDeclaration.syntaxCopy(utd);
-    }
-
-    /***********************************************************
-     * Generate unique unittest function Id so we can have multiple
-     * instances per module.
-     */
-    private static Identifier createIdentifier(const ref Loc loc)
-    {
-        OutBuffer buf;
-        buf.printf("__unittest_L%u_C%u", loc.linnum, loc.charnum);
-        return Identifier.idPool(buf.peekSlice());
     }
 
     override inout(AggregateDeclaration) isThis() inout

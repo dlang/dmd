@@ -267,6 +267,8 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
     {
         return (ident == Id.__c_long ||
                 ident == Id.__c_ulong ||
+                ident == Id.__c_longlong ||
+                ident == Id.__c_ulonglong ||
                 ident == Id.__c_long_double) && memtype;
     }
 

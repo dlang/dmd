@@ -1265,6 +1265,183 @@ void test16536()
 }
 
 /****************************************/
+// 15589 - extern(C++) virtual destructors are not put in vtbl[]
+
+extern(C++)
+{
+    class A15589
+    {
+        extern(D) static int[] dtorSeq;
+        struct S
+        {
+            this(int x) { this.x = x; }
+            ~this() { dtorSeq ~= x; }
+            int x;
+        }
+        int foo() { return 100; } // shift dtor to slot 1
+        ~this() { dtorSeq ~= 10; }
+        S s1 = S(1);
+        S s2 = S(2);
+    }
+    class B15589 : A15589
+    {
+        int bar() { return 200;} // add an additional function AFTER the dtor at slot 2
+        ~this() { dtorSeq ~= 20; }
+        S s3 = S(3);
+    }
+
+    void test15589b(A15589 p);
+}
+
+void test15589()
+{
+    A15589 c = new B15589;
+    assert(A15589.dtorSeq == null);
+    assert(c.foo() == 100);
+    assert((cast(B15589)c).bar() == 200);
+    c.__xdtor(); // virtual dtor call
+    assert(A15589.dtorSeq[] == [ 20, 3, 10, 2, 1 ]); // destroyed full hierarchy!
+
+    A15589.dtorSeq = null;
+    test15589b(c);
+    assert(A15589.dtorSeq[] == [ 20, 3, 10, 2, 1 ]); // destroyed full hierarchy!
+}
+
+extern(C++)
+{
+    class Cpp15589Base
+    {
+    public:
+        final ~this();
+
+        void nonVirtual();
+        int a;
+    }
+
+    class Cpp15589Derived : Cpp15589Base
+    {
+    public:
+        this();
+        final ~this();
+        int b;
+    }
+
+    class Cpp15589BaseVirtual
+    {
+    public:
+        void beforeDtor();
+
+        this();
+        ~this();
+
+        void afterDtor();
+        int c = 1;
+    }
+
+    class Cpp15589DerivedVirtual : Cpp15589BaseVirtual
+    {
+    public:
+        this();
+        ~this();
+
+        override void afterDtor();
+
+        int d;
+    }
+
+    class Cpp15589IntroducingVirtual : Cpp15589Base
+    {
+    public:
+        this();
+        void beforeIntroducedVirtual();
+        ~this();
+        void afterIntroducedVirtual(int);
+
+        int e;
+    }
+
+    struct Cpp15589Struct
+    {
+        ~this();
+        int s;
+    }
+
+    void trace15589(int ch)
+    {
+        traceBuf[traceBufPos++] = cast(char) ch;
+    }
+}
+
+__gshared char[32] traceBuf;
+__gshared size_t traceBufPos;
+
+mixin template scopeAllocCpp(C)
+{
+    // workaround for https://issues.dlang.org/show_bug.cgi?id=18986
+    version(OSX)
+        enum cppCtorReturnsThis = false;
+    else version(FreeBSD)
+        enum cppCtorReturnsThis = false;
+    else
+        enum cppCtorReturnsThis = true;
+    
+    static if (cppCtorReturnsThis)
+        scope C ptr = new C;
+    else
+    {
+        ubyte[C.sizeof] data;
+        C ptr = (){ auto p = cast(C) data.ptr; p.__ctor(); return p; }();
+    }
+}
+
+void test15589b()
+{
+    traceBufPos = 0;
+    {
+        Cpp15589Struct struc = Cpp15589Struct();
+        mixin scopeAllocCpp!Cpp15589Derived derived;
+        mixin scopeAllocCpp!Cpp15589DerivedVirtual derivedVirtual;
+        mixin scopeAllocCpp!Cpp15589IntroducingVirtual introducingVirtual;
+
+        introducingVirtual.ptr.destroy();
+        derivedVirtual.ptr.destroy();
+        derived.ptr.destroy();
+    }
+    printf("traceBuf15589 %.*s\n", cast(int)traceBufPos, traceBuf.ptr);
+    assert(traceBuf[0..traceBufPos] == "IbVvBbs");
+}
+
+/****************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=18928
+// Win64: extern(C++) bad codegen, wrong calling convention
+
+extern(C++) struct Small18928
+{
+    int x;
+}
+
+extern(C++) class CC18928
+{
+    Small18928 getVirtual(); // { return S(3); }
+    final Small18928 getFinal(); // { return S(4); }
+    static Small18928 getStatic(); // { return S(5); }
+}
+
+extern(C++) CC18928 newCC18928();
+
+void test18928()
+{
+    auto cc = newCC18928();
+    Small18928 v = cc.getVirtual();
+    assert(v.x == 3);
+    Small18928 f = cc.getFinal();
+    assert(f.x == 4);
+    Small18928 s = cc.getStatic();
+    assert(s.x == 5);
+}
+
+/****************************************/
 
 void main()
 {
@@ -1308,6 +1485,9 @@ void main()
     test15372();
     test15802();
     test16536();
+    test15589();
+    test15589b();
+    test18928();
 
     printf("Success\n");
 }

@@ -15,6 +15,7 @@ import core.stdc.string;
 import core.stdc.stdio;
 
 import dmd.arraytypes;
+import dmd.cppmangle : isPrimaryDtor, isCppOperator, CppOperator;
 import dmd.declaration;
 import dmd.dsymbol;
 import dmd.dtemplate;
@@ -110,6 +111,18 @@ public:
             type.error(Loc.initial, "Internal Compiler Error: type `%s` can not be mapped to C++\n", type.toChars());
         }
         fatal(); //Fatal, because this error should be handled in frontend
+    }
+
+    override void visit(TypeNull type)
+    {
+        if (type.isImmutable() || type.isShared())
+        {
+            visit(cast(Type)type);
+            return;
+        }
+        buf.writestring("$$T");
+        flags &= ~IS_NOT_TOP_TYPE;
+        flags &= ~IGNORE_CONST;
     }
 
     override void visit(TypeBasic type)
@@ -405,16 +418,18 @@ public:
     {
         //printf("visit(TypeEnum); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
         const id = type.sym.ident;
-        char c;
+        string c;
         if (id == Id.__c_long_double)
-            c = 'O'; // VC++ long double
+            c = "O"; // VC++ long double
         else if (id == Id.__c_long)
-            c = 'J'; // VC++ long
+            c = "J"; // VC++ long
         else if (id == Id.__c_ulong)
-            c = 'K'; // VC++ unsigned long
-        else
-            c = 0;
-        if (c)
+            c = "K"; // VC++ unsigned long
+        else if (id == Id.__c_longlong)
+            c = "_J"; // VC++ long long
+        else if (id == Id.__c_ulonglong)
+            c = "_K"; // VC++ unsigned long long
+        if (c.length)
         {
             if (type.isImmutable() || type.isShared())
             {
@@ -427,7 +442,7 @@ public:
                     return;
             }
             mangleModifier(type);
-            buf.writeByte(c);
+            buf.writestring(c);
         }
         else
         {
@@ -526,7 +541,7 @@ private:
             // Pivate methods always non-virtual in D and it should be mangled as non-virtual in C++
             //printf("%s: isVirtualMethod = %d, isVirtual = %d, vtblIndex = %d, interfaceVirtual = %p\n",
                 //d.toChars(), d.isVirtualMethod(), d.isVirtual(), cast(int)d.vtblIndex, d.interfaceVirtual);
-            if (d.isVirtual() && (d.vtblIndex != -1 || d.interfaceVirtual || d.overrideInterface()))
+            if ((d.isVirtual() && (d.vtblIndex != -1 || d.interfaceVirtual || d.overrideInterface())) || (d.isDtorDeclaration() && d.parent.isClassDeclaration() && !d.isFinal()))
             {
                 switch (d.protection.kind)
                 {
@@ -588,7 +603,7 @@ private:
             // <flags> ::= Y <calling convention flag>
             buf.writeByte('Y');
         }
-        const(char)* args = mangleFunctionType(cast(TypeFunction)d.type, d.needThis(), d.isCtorDeclaration() || d.isDtorDeclaration());
+        const(char)* args = mangleFunctionType(cast(TypeFunction)d.type, d.needThis(), d.isCtorDeclaration() || isPrimaryDtor(d));
         buf.writestring(args);
     }
 
@@ -659,26 +674,158 @@ private:
         //printf("mangleName('%s')\n", sym.toChars());
         const(char)* name = null;
         bool is_dmc_template = false;
-        if (sym.isDtorDeclaration())
+        if (sym.isCtorDeclaration())
+        {
+            buf.writestring("?0");
+            return;
+        }
+        else if (sym.isPrimaryDtor())
         {
             buf.writestring("?1");
             return;
         }
+        else if (sym.ident)
+        {
+            if (sym.ident == Id.assign)
+            {
+                buf.writestring("?4");
+                return;
+            }
+            else if (sym.ident == Id.eq)
+            {
+                buf.writestring("?8");
+                return;
+            }
+            else if (sym.ident == Id.index)
+            {
+                buf.writestring("?A");
+                return;
+            }
+            else if (sym.ident == Id.call)
+            {
+                buf.writestring("?R");
+                return;
+            }
+            else if (sym.ident == Id.cppdtor)
+            {
+                buf.writestring("?_G");
+                return;
+            }
+        }
         if (TemplateInstance ti = sym.isTemplateInstance())
         {
+            auto id = ti.tempdecl.ident;
+            const(char)* symName = id.toChars();
+
+            int firstTemplateArg = 0;
+
+            // test for special symbols
+            CppOperator whichOp = isCppOperator(ti.name);
+            final switch (whichOp)
+            {
+                case CppOperator.Unknown:
+                    break;
+                case CppOperator.Cast:
+                    buf.writestring("?B");
+                    return;
+                case CppOperator.Assign:
+                    symName = "?4";
+                    break;
+                case CppOperator.Eq:
+                    symName = "?8";
+                    break;
+                case CppOperator.Index:
+                    symName = "?A";
+                    break;
+                case CppOperator.Call:
+                    symName = "?R";
+                    break;
+                case CppOperator.Unary:
+                case CppOperator.Binary:
+                case CppOperator.OpAssign:
+                    TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
+                    assert(td);
+                    assert(ti.tiargs.dim >= 1);
+                    TemplateParameter tp = (*td.parameters)[0];
+                    TemplateValueParameter tv = tp.isTemplateValueParameter();
+                    if (!tv || !tv.valType.isString())
+                        break; // expecting a string argument to operators!
+                    Expression exp = (*ti.tiargs)[0].isExpression();
+                    StringExp str = exp.toStringExp();
+                    switch (whichOp)
+                    {
+                        case CppOperator.Unary:
+                            switch (str.peekSlice())
+                            {
+                                case "*":   symName = "?D";     goto continue_template;
+                                case "++":  symName = "?E";     goto continue_template;
+                                case "--":  symName = "?F";     goto continue_template;
+                                case "-":   symName = "?G";     goto continue_template;
+                                case "+":   symName = "?H";     goto continue_template;
+                                case "~":   symName = "?S";     goto continue_template;
+                                default:    break;
+                            }
+                            break;
+                        case CppOperator.Binary:
+                            switch (str.peekSlice())
+                            {
+                                case ">>":  symName = "?5";     goto continue_template;
+                                case "<<":  symName = "?6";     goto continue_template;
+                                case "*":   symName = "?D";     goto continue_template;
+                                case "-":   symName = "?G";     goto continue_template;
+                                case "+":   symName = "?H";     goto continue_template;
+                                case "&":   symName = "?I";     goto continue_template;
+                                case "/":   symName = "?K";     goto continue_template;
+                                case "%":   symName = "?L";     goto continue_template;
+                                case "^":   symName = "?T";     goto continue_template;
+                                case "|":   symName = "?U";     goto continue_template;
+                                default:    break;
+                            }
+                            break;
+                        case CppOperator.OpAssign:
+                            switch (str.peekSlice())
+                            {
+                                case "*":   symName = "?X";     goto continue_template;
+                                case "+":   symName = "?Y";     goto continue_template;
+                                case "-":   symName = "?Z";     goto continue_template;
+                                case "/":   symName = "?_0";    goto continue_template;
+                                case "%":   symName = "?_1";    goto continue_template;
+                                case ">>":  symName = "?_2";    goto continue_template;
+                                case "<<":  symName = "?_3";    goto continue_template;
+                                case "&":   symName = "?_4";    goto continue_template;
+                                case "|":   symName = "?_5";    goto continue_template;
+                                case "^":   symName = "?_6";    goto continue_template;
+                                default:    break;
+                            }
+                            break;
+                        default:
+                            assert(0);
+                        continue_template:
+                            if (ti.tiargs.dim == 1)
+                            {
+                                buf.writestring(symName);
+                                return;
+                            }
+                            firstTemplateArg = 1;
+                            break;
+                    }
+                    break;
+            }
+
             scope VisualCPPMangler tmp = new VisualCPPMangler((flags & IS_DMC) ? true : false);
             tmp.buf.writeByte('?');
             tmp.buf.writeByte('$');
-            tmp.buf.writestring(ti.name.toChars());
-            tmp.saved_idents[0] = ti.name.toChars();
-            tmp.buf.writeByte('@');
+            tmp.buf.writestring(symName);
+            tmp.saved_idents[0] = symName;
+            if (symName == id.toChars())
+                tmp.buf.writeByte('@');
             if (flags & IS_DMC)
             {
                 tmp.mangleIdent(sym.parent, true);
                 is_dmc_template = true;
             }
             bool is_var_arg = false;
-            for (size_t i = 0; i < ti.tiargs.dim; i++)
+            for (size_t i = firstTemplateArg; i < ti.tiargs.dim; i++)
             {
                 RootObject o = (*ti.tiargs)[i];
                 TemplateParameter tp = null;
@@ -1040,7 +1187,8 @@ private:
             if (rettype.ty == Tstruct || rettype.ty == Tenum)
             {
                 const id = rettype.toDsymbol(null).ident;
-                if (id != Id.__c_long_double && id != Id.__c_long && id != Id.__c_ulong)
+                if (id != Id.__c_long_double && id != Id.__c_long && id != Id.__c_ulong &&
+                    id != Id.__c_longlong && id != Id.__c_ulonglong)
                 {
                     tmp.buf.writeByte('?');
                     tmp.buf.writeByte('A');

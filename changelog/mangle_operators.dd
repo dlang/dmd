@@ -1,0 +1,5 @@
+`extern (C++)` operators now mangle correctly.
+
+`extern (C++)` mangling of operators is working for all operators that are semantically equivalent.
+This list includes all instantiations of `opUnary`, `opBinary`, `opAssign`, `opOpAssign`, `opCast`, `opEquals`, `opIndex`, `opCall`.
+Two notable exceptions are `opCmp`, and C++ `operator !`, which don't have compatible implementations.

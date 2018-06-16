@@ -6,133 +6,50 @@
  *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/evalu8.c, backend/evalu8.c)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/evalu8.d, backend/evalu8.d)
  */
 
-#if !SPP
-
-#include        <math.h>
-#include        <stdlib.h>
-#include        <stdio.h>
-#include        <string.h>
-#include        <float.h>
-#include        <time.h>
-
-#if defined __OpenBSD__
-    #include <sys/param.h>
-    #if OpenBSD < 201111 // 5.0
-        #define HAVE_FENV_H 0
-    #else
-        #define HAVE_FENV_H 1
-    #endif
-#elif _MSC_VER
-    #define HAVE_FENV_H 0
-#else
-    #define HAVE_FENV_H 1
-#endif
-
-#if HAVE_FENV_H
-#include        <fenv.h>
-#endif
-
-#if __DMC__
-#include        <fp.h>
-#endif
-
-#if __FreeBSD__ || __OpenBSD__ || __DragonFly__
-#define fmodl fmod
-#endif
-
-#if _MSC_VER
-#define isnan _isnan
-#endif
-
-#include        "cc.h"
-#include        "oper.h"                /* OPxxxx definitions           */
-#include        "global.h"
-#include        "el.h"
-#include        "type.h"
-
-#if SCPP
-#include        "parser.h"
-#include        "cpp.h"
-#endif
-
-static char __file__[] = __FILE__;      /* for tassert.h                */
-#include        "tassert.h"
-
-extern void error(const char *filename, unsigned linnum, unsigned charnum, const char *format, ...);
-
-#if __DMC__
-    #define HAVE_FLOAT_EXCEPT 1
-
-    static int testFE()
-    {
-        return _status87() & 0x3F;
-    }
-
-    static void clearFE()
-    {
-        _clear87();
-    }
-#elif HAVE_FENV_H
-    #define HAVE_FLOAT_EXCEPT 1
-
-    static int testFE()
-    {
-        return fetestexcept(FE_ALL_EXCEPT);
-    }
-
-    static void clearFE()
-    {
-        feclearexcept(FE_ALL_EXCEPT);
-    }
-#elif defined _MSC_VER && TX86
-    #define HAVE_FLOAT_EXCEPT 1
-
-    static int testFE()
-    {
-        return (ld_statusfpu() | _statusfp()) & 0x3F;
-    }
-
-    static void clearFE()
-    {
-        _clearfp();
-        ld_clearfpu();
-    }
-#else
-    #define HAVE_FLOAT_EXCEPT 0
-    static int  testFE() { return 1; }
-    static void clearFE() { }
-#endif
-
-
-elem * evalu8(elem *, goal_t);
-
-/************************************
- * Helper to do % for long doubles.
- */
-
-#if __DMC__
-longdouble _modulo(longdouble x, longdouble y)
-{   short sw;
-
-    __asm
-    {
-        fld     tbyte ptr y
-        fld     tbyte ptr x             // ST = x, ST1 = y
-FM1:    // We don't use fprem1 because for some inexplicable
-        // reason we get -5 when we do _modulo(15, 10)
-        fprem                           // ST = ST % ST1
-        fstsw   word ptr sw
-        fwait
-        mov     AH,byte ptr sw+1        // get msb of status word in AH
-        sahf                            // transfer to flags
-        jp      FM1                     // continue till ST < ST1
-        fstp    ST(1)                   // leave remainder on stack
-    }
+version (SPP)
+{
 }
-#endif
+else
+{
+
+import core.stdc.math;
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
+
+//#if _MSC_VER
+//#define isnan _isnan
+//#endif
+
+import dmd.backend.bcomplex;
+import dmd.backend.cc;
+import dmd.backend.cdef;
+import dmd.backend.oper;
+import dmd.backend.global;
+import dmd.backend.el;
+import dmd.backend.ty;
+import dmd.backend.type;
+
+version (SCPP)
+{
+import msgs2;
+import parser;
+import scopeh;
+}
+
+extern (C++):
+
+extern void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
+
+// fp.c
+int testFE();
+void clearFE();
+int statusFE();
+bool have_float_except();
+
 
 /**********************
  * Return boolean result of constant elem.
@@ -144,19 +61,21 @@ int boolres(elem *e)
     //printf("boolres()\n");
     //elem_print(e);
     elem_debug(e);
-//    assert((_status87() & 0x3800) == 0);
-    switch (e->Eoper)
+    assert((statusFE() & 0x3800) == 0);
+    switch (e.Eoper)
     {
         case OPrelconst:
         case OPstring:
-            return TRUE;
+            return true;
 
-#if SCPP
+version (SCPP)
+{
         case OPvar:
             assert(CPP && PARSER);
             el_toconst(e);
-            assert(e->Eoper == OPconst);
-#endif
+            assert(e.Eoper == OPconst);
+            goto case OPconst;
+}
         case OPconst:
             switch (tybasic(typemask(e)))
             {   case TYchar:
@@ -170,9 +89,7 @@ int boolres(elem *e)
                 case TYbool:
                 case TYwchar_t:
                 case TYenum:
-#if !MARS
                 case TYmemptr:
-#endif
                 case TYlong:
                 case TYulong:
                 case TYdchar:
@@ -188,7 +105,7 @@ int boolres(elem *e)
                     break;
                 case TYnref: // reference can't be converted to bool
                     assert(0);
-                    break;
+
                 case TYfloat:
                 case TYifloat:
                 case TYdouble:
@@ -196,39 +113,43 @@ int boolres(elem *e)
                 case TYdouble_alias:
                 case TYildouble:
                 case TYldouble:
-                {   targ_ldouble ld = el_toldouble(e);
+                {   targ_ldouble ld = el_toldoubled(e);
 
-                    if (isnan((double)ld))
+                    if (isnan(ld))
                         b = 1;
                     else
                         b = (ld != 0);
                     break;
                 }
                 case TYcfloat:
-                    if (isnan(e->EV.Vcfloat.re) || isnan(e->EV.Vcfloat.im))
+                    if (isnan(e.EV.Vcfloat.re) || isnan(e.EV.Vcfloat.im))
                         b = 1;
                     else
-                        b = e->EV.Vcfloat.re != 0 || e->EV.Vcfloat.im != 0;
+                        b = e.EV.Vcfloat.re != 0 || e.EV.Vcfloat.im != 0;
                     break;
                 case TYcdouble:
                 case TYdouble2:
-                    if (isnan(e->EV.Vcdouble.re) || isnan(e->EV.Vcdouble.im))
+                    if (isnan(e.EV.Vcdouble.re) || isnan(e.EV.Vcdouble.im))
                         b = 1;
                     else
-                        b = e->EV.Vcdouble.re != 0 || e->EV.Vcdouble.im != 0;
+                        b = e.EV.Vcdouble.re != 0 || e.EV.Vcdouble.im != 0;
                     break;
                 case TYcldouble:
-                    if (isnan(e->EV.Vcldouble.re) || isnan(e->EV.Vcldouble.im))
+                    if (isnan(e.EV.Vcldouble.re) || isnan(e.EV.Vcldouble.im))
                         b = 1;
                     else
-                        b = e->EV.Vcldouble.re != 0 || e->EV.Vcldouble.im != 0;
+                        b = e.EV.Vcldouble.re != 0 || e.EV.Vcldouble.im != 0;
                     break;
+
                 case TYstruct:  // happens on syntax error of (struct x)0
-#if SCPP
+                version (SCPP)
+                {
                     assert(errcnt);
-#else
+                    goto case TYvoid;
+                }
+                else
                     assert(0);
-#endif
+
                 case TYvoid:    /* happens if we get syntax errors or
                                        on RHS of && || expressions */
                     b = 0;
@@ -244,14 +165,14 @@ int boolres(elem *e)
                 case TYulong4:
                 case TYllong2:
                 case TYullong2:
-                    b = e->EV.Vcent.lsw || e->EV.Vcent.msw;
+                    b = e.EV.Vcent.lsw || e.EV.Vcent.msw;
                     break;
 
                 case TYfloat4:
                 {   b = 0;
                     for (size_t i = 0; i < 4; i++)
                     {
-                        if (isnan(e->EV.Vfloat4[i]) || e->EV.Vfloat4[i] != 0)
+                        if (isnan(e.EV.Vfloat4[i]) || e.EV.Vfloat4[i] != 0)
                         {   b = 1;
                             break;
                         }
@@ -269,14 +190,14 @@ int boolres(elem *e)
                 case TYullong4:
                     b = 0;
                     for (size_t i = 0; i < 8; i++)
-                        b |= e->EV.Vulong8[i] != 0;
+                        b |= e.EV.Vulong8[i] != 0;
                     break;
 
                 case TYfloat8:
                     b = 0;
                     for (size_t i = 0; i < 8; i++)
                     {
-                        if (isnan(e->EV.Vfloat8[i]) || e->EV.Vfloat8[i] != 0)
+                        if (isnan(e.EV.Vfloat8[i]) || e.EV.Vfloat8[i] != 0)
                         {   b = 1;
                             break;
                         }
@@ -287,7 +208,7 @@ int boolres(elem *e)
                     b = 0;
                     for (size_t i = 0; i < 4; i++)
                     {
-                        if (isnan(e->EV.Vdouble4[i]) || e->EV.Vdouble4[i] != 0)
+                        if (isnan(e.EV.Vdouble4[i]) || e.EV.Vdouble4[i] != 0)
                         {   b = 1;
                             break;
                         }
@@ -295,10 +216,7 @@ int boolres(elem *e)
                     break;
 
                 default:
-#ifdef DEBUG
-                    WRTYxx(typemask(e));
-#endif
-                    assert(0);
+                    break;  // can be the result of other errors
             }
             break;
         default:
@@ -307,8 +225,9 @@ int boolres(elem *e)
     return b;
 }
 
+
 /***************************
- * Return TRUE if expression will always evaluate to TRUE.
+ * Return true if expression will always evaluate to true.
  */
 
 int iftrue(elem *e)
@@ -317,23 +236,23 @@ int iftrue(elem *e)
   {
         assert(e);
         elem_debug(e);
-        switch (e->Eoper)
+        switch (e.Eoper)
         {       case OPcomma:
                 case OPinfo:
-                        e = e->E2;
+                        e = e.EV.E2;
                         break;
                 case OPrelconst:
                 case OPconst:
                 case OPstring:
                         return boolres(e);
                 default:
-                        return FALSE;
+                        return false;
         }
   }
 }
 
 /***************************
- * Return TRUE if expression will always evaluate to FALSE.
+ * Return true if expression will always evaluate to false.
  */
 
 int iffalse(elem *e)
@@ -341,17 +260,17 @@ int iffalse(elem *e)
         while (1)
         {       assert(e);
                 elem_debug(e);
-                switch (e->Eoper)
+                switch (e.Eoper)
                 {       case OPcomma:
                         case OPinfo:
-                                e = e->E2;
+                                e = e.EV.E2;
                                 break;
                         case OPconst:
                                 return !boolres(e);
                         //case OPstring:
                         //case OPrelconst:
                         default:
-                                return FALSE;
+                                return false;
                 }
         }
 }
@@ -363,33 +282,37 @@ int iffalse(elem *e)
  */
 
 elem * evalu8(elem *e, goal_t goal)
-{   elem *e1,*e2;
+{
+    elem* e1;
+    elem* e2;
     tym_t tym,tym2,uns;
-    unsigned op;
+    uint op;
     targ_int i1,i2;
     targ_llong l1,l2;
     targ_ldouble d1,d2;
-    elem esave;
+    elem esave = void;
 
-//    assert((_status87() & 0x3800) == 0);
-    assert(e && EOP(e));
-    op = e->Eoper;
+    static bool unordered(T)(T d1, T d2) { return isnan(d1) || isnan(d2); }
+
+    assert((statusFE() & 0x3800) == 0);
+    assert(e && !OTleaf(e.Eoper));
+    op = e.Eoper;
     elem_debug(e);
-    e1 = e->E1;
+    e1 = e.EV.E1;
 
     //printf("evalu8(): "); elem_print(e);
     elem_debug(e1);
-    if (e1->Eoper == OPconst && !tyvector(e1->Ety))
+    if (e1.Eoper == OPconst && !tyvector(e1.Ety))
     {
         tym2 = 0;
-        e2 = NULL;
-        if (EBIN(e))
-        {   e2 = e->E2;
+        e2 = null;
+        if (OTbinary(e.Eoper))
+        {   e2 = e.EV.E2;
             elem_debug(e2);
-            if (e2->Eoper == OPconst && !tyvector(e2->Ety))
+            if (e2.Eoper == OPconst && !tyvector(e2.Ety))
             {
-                i2 = l2 = el_tolong(e2);
-                d2 = el_toldouble(e2);
+                i2 = cast(targ_int)(l2 = el_tolong(e2));
+                d2 = el_toldoubled(e2);
             }
             else
                 return e;
@@ -398,13 +321,13 @@ elem * evalu8(elem *e, goal_t goal)
         else
         {
             tym2 = 0;
-            e2 = NULL;
+            e2 = null;
             i2 = 0;             // not used, but static analyzer complains
             l2 = 0;             // "
             d2 = 0;             // "
         }
-        i1 = l1 = el_tolong(e1);
-        d1 = el_toldouble(e1);
+        i1 = cast(targ_int)(l1 = el_tolong(e1));
+        d1 = el_toldoubled(e1);
         tym = tybasic(typemask(e1));    /* type of op is type of left child */
 
         // Huge pointers are always evaluated at runtime
@@ -422,17 +345,18 @@ elem * evalu8(elem *e, goal_t goal)
 
   /*elem_print(e);*/
   /*dbg_printf("x%lx ",l1); WROP(op); dbg_printf("x%lx = ",l2);*/
-#if 0
+static if (0)
+{
   if (0 && e2)
   {
-      dbg_printf("d1 = %Lg, d2 = %Lg, op = %d, OPne = %d, tym = x%lx\n",d1,d2,op,OPne,tym);
-      dbg_printf("tym1 = x%lx, tym2 = x%lx, e2 = %g\n",tym,tym2,e2->EV.Vdouble);
+      debug printf("d1 = %Lg, d2 = %Lg, op = %d, OPne = %d, tym = x%lx\n",d1,d2,op,OPne,tym);
+      debug printf("tym1 = x%lx, tym2 = x%lx, e2 = %g\n",tym,tym2,e2.EV.Vdouble);
 
-      union eve u;
-      dbg_printf("d1 = x%16llx\n", (u.Vldouble = d1, u.Vullong));
-      dbg_printf("d2 = x%16llx\n", (u.Vldouble = d2, u.Vullong));
+      eve u;
+      debug printf("d1 = x%16llx\n", (u.Vldouble = d1, u.Vullong));
+      debug printf("d2 = x%16llx\n", (u.Vldouble = d2, u.Vullong));
   }
-#endif
+}
   switch (op)
   {
     case OPadd:
@@ -442,15 +366,15 @@ elem * evalu8(elem *e, goal_t goal)
                 switch (tym2)
                 {
                     case TYfloat:
-                        e->EV.Vfloat = e1->EV.Vfloat + e2->EV.Vfloat;
+                        e.EV.Vfloat = e1.EV.Vfloat + e2.EV.Vfloat;
                         break;
                     case TYifloat:
-                        e->EV.Vcfloat.re = e1->EV.Vfloat;
-                        e->EV.Vcfloat.im = e2->EV.Vfloat;
+                        e.EV.Vcfloat.re = e1.EV.Vfloat;
+                        e.EV.Vcfloat.im = e2.EV.Vfloat;
                         break;
                     case TYcfloat:
-                        e->EV.Vcfloat.re = e1->EV.Vfloat + e2->EV.Vcfloat.re;
-                        e->EV.Vcfloat.im = 0             + e2->EV.Vcfloat.im;
+                        e.EV.Vcfloat.re = e1.EV.Vfloat + e2.EV.Vcfloat.re;
+                        e.EV.Vcfloat.im = 0            + e2.EV.Vcfloat.im;
                         break;
                     default:
                         assert(0);
@@ -462,15 +386,15 @@ elem * evalu8(elem *e, goal_t goal)
                 {
                     case TYdouble:
                     case TYdouble_alias:
-                            e->EV.Vdouble = e1->EV.Vdouble + e2->EV.Vdouble;
+                            e.EV.Vdouble = e1.EV.Vdouble + e2.EV.Vdouble;
                         break;
                     case TYidouble:
-                        e->EV.Vcdouble.re = e1->EV.Vdouble;
-                        e->EV.Vcdouble.im = e2->EV.Vdouble;
+                        e.EV.Vcdouble.re = e1.EV.Vdouble;
+                        e.EV.Vcdouble.im = e2.EV.Vdouble;
                         break;
                     case TYcdouble:
-                        e->EV.Vcdouble.re = e1->EV.Vdouble + e2->EV.Vcdouble.re;
-                        e->EV.Vcdouble.im = 0              + e2->EV.Vcdouble.im;
+                        e.EV.Vcdouble.re = e1.EV.Vdouble + e2.EV.Vcdouble.re;
+                        e.EV.Vcdouble.im = 0             + e2.EV.Vcdouble.im;
                         break;
                     default:
                         assert(0);
@@ -480,15 +404,15 @@ elem * evalu8(elem *e, goal_t goal)
                 switch (tym2)
                 {
                     case TYldouble:
-                        e->EV.Vldouble = d1 + d2;
+                        e.EV.Vldouble = d1 + d2;
                         break;
                     case TYildouble:
-                        e->EV.Vcldouble.re = d1;
-                        e->EV.Vcldouble.im = d2;
+                        e.EV.Vcldouble.re = d1;
+                        e.EV.Vcldouble.im = d2;
                         break;
                     case TYcldouble:
-                        e->EV.Vcldouble.re = d1 + e2->EV.Vcldouble.re;
-                        e->EV.Vcldouble.im = 0  + e2->EV.Vcldouble.im;
+                        e.EV.Vcldouble.re = d1 + e2.EV.Vcldouble.re;
+                        e.EV.Vcldouble.im = 0  + e2.EV.Vcldouble.im;
                         break;
                     default:
                         assert(0);
@@ -498,15 +422,15 @@ elem * evalu8(elem *e, goal_t goal)
                 switch (tym2)
                 {
                     case TYfloat:
-                        e->EV.Vcfloat.re = e2->EV.Vfloat;
-                        e->EV.Vcfloat.im = e1->EV.Vfloat;
+                        e.EV.Vcfloat.re = e2.EV.Vfloat;
+                        e.EV.Vcfloat.im = e1.EV.Vfloat;
                         break;
                     case TYifloat:
-                        e->EV.Vfloat = e1->EV.Vfloat + e2->EV.Vfloat;
+                        e.EV.Vfloat = e1.EV.Vfloat + e2.EV.Vfloat;
                         break;
                     case TYcfloat:
-                        e->EV.Vcfloat.re = 0             + e2->EV.Vcfloat.re;
-                        e->EV.Vcfloat.im = e1->EV.Vfloat + e2->EV.Vcfloat.im;
+                        e.EV.Vcfloat.re = 0            + e2.EV.Vcfloat.re;
+                        e.EV.Vcfloat.im = e1.EV.Vfloat + e2.EV.Vcfloat.im;
                         break;
                     default:
                         assert(0);
@@ -516,15 +440,15 @@ elem * evalu8(elem *e, goal_t goal)
                 switch (tym2)
                 {
                     case TYdouble:
-                        e->EV.Vcdouble.re = e2->EV.Vdouble;
-                        e->EV.Vcdouble.im = e1->EV.Vdouble;
+                        e.EV.Vcdouble.re = e2.EV.Vdouble;
+                        e.EV.Vcdouble.im = e1.EV.Vdouble;
                         break;
                     case TYidouble:
-                        e->EV.Vdouble = e1->EV.Vdouble + e2->EV.Vdouble;
+                        e.EV.Vdouble = e1.EV.Vdouble + e2.EV.Vdouble;
                         break;
                     case TYcdouble:
-                        e->EV.Vcdouble.re = 0              + e2->EV.Vcdouble.re;
-                        e->EV.Vcdouble.im = e1->EV.Vdouble + e2->EV.Vcdouble.im;
+                        e.EV.Vcdouble.re = 0             + e2.EV.Vcdouble.re;
+                        e.EV.Vcdouble.im = e1.EV.Vdouble + e2.EV.Vcdouble.im;
                         break;
                     default:
                         assert(0);
@@ -534,15 +458,15 @@ elem * evalu8(elem *e, goal_t goal)
                 switch (tym2)
                 {
                     case TYldouble:
-                        e->EV.Vcldouble.re = d2;
-                        e->EV.Vcldouble.im = d1;
+                        e.EV.Vcldouble.re = d2;
+                        e.EV.Vcldouble.im = d1;
                         break;
                     case TYildouble:
-                        e->EV.Vldouble = d1 + d2;
+                        e.EV.Vldouble = d1 + d2;
                         break;
                     case TYcldouble:
-                        e->EV.Vcldouble.re = 0  + e2->EV.Vcldouble.re;
-                        e->EV.Vcldouble.im = d1 + e2->EV.Vcldouble.im;
+                        e.EV.Vcldouble.re = 0  + e2.EV.Vcldouble.re;
+                        e.EV.Vcldouble.im = d1 + e2.EV.Vcldouble.im;
                         break;
                     default:
                         assert(0);
@@ -552,16 +476,16 @@ elem * evalu8(elem *e, goal_t goal)
                 switch (tym2)
                 {
                     case TYfloat:
-                        e->EV.Vcfloat.re = e1->EV.Vcfloat.re + e2->EV.Vfloat;
-                        e->EV.Vcfloat.im = e1->EV.Vcfloat.im;
+                        e.EV.Vcfloat.re = e1.EV.Vcfloat.re + e2.EV.Vfloat;
+                        e.EV.Vcfloat.im = e1.EV.Vcfloat.im;
                         break;
                     case TYifloat:
-                        e->EV.Vcfloat.re = e1->EV.Vcfloat.re;
-                        e->EV.Vcfloat.im = e1->EV.Vcfloat.im + e2->EV.Vfloat;
+                        e.EV.Vcfloat.re = e1.EV.Vcfloat.re;
+                        e.EV.Vcfloat.im = e1.EV.Vcfloat.im + e2.EV.Vfloat;
                         break;
                     case TYcfloat:
-                        e->EV.Vcfloat.re = e1->EV.Vcfloat.re + e2->EV.Vcfloat.re;
-                        e->EV.Vcfloat.im = e1->EV.Vcfloat.im + e2->EV.Vcfloat.im;
+                        e.EV.Vcfloat.re = e1.EV.Vcfloat.re + e2.EV.Vcfloat.re;
+                        e.EV.Vcfloat.im = e1.EV.Vcfloat.im + e2.EV.Vcfloat.im;
                         break;
                     default:
                         assert(0);
@@ -571,16 +495,16 @@ elem * evalu8(elem *e, goal_t goal)
                 switch (tym2)
                 {
                     case TYdouble:
-                        e->EV.Vcdouble.re = e1->EV.Vcdouble.re + e2->EV.Vdouble;
-                        e->EV.Vcdouble.im = e1->EV.Vcdouble.im;
+                        e.EV.Vcdouble.re = e1.EV.Vcdouble.re + e2.EV.Vdouble;
+                        e.EV.Vcdouble.im = e1.EV.Vcdouble.im;
                         break;
                     case TYidouble:
-                        e->EV.Vcdouble.re = e1->EV.Vcdouble.re;
-                        e->EV.Vcdouble.im = e1->EV.Vcdouble.im + e2->EV.Vdouble;
+                        e.EV.Vcdouble.re = e1.EV.Vcdouble.re;
+                        e.EV.Vcdouble.im = e1.EV.Vcdouble.im + e2.EV.Vdouble;
                         break;
                     case TYcdouble:
-                        e->EV.Vcdouble.re = e1->EV.Vcdouble.re + e2->EV.Vcdouble.re;
-                        e->EV.Vcdouble.im = e1->EV.Vcdouble.im + e2->EV.Vcdouble.im;
+                        e.EV.Vcdouble.re = e1.EV.Vcdouble.re + e2.EV.Vcdouble.re;
+                        e.EV.Vcdouble.im = e1.EV.Vcdouble.im + e2.EV.Vcdouble.im;
                         break;
                     default:
                         assert(0);
@@ -590,16 +514,16 @@ elem * evalu8(elem *e, goal_t goal)
                 switch (tym2)
                 {
                     case TYldouble:
-                        e->EV.Vcldouble.re = e1->EV.Vcldouble.re + d2;
-                        e->EV.Vcldouble.im = e1->EV.Vcldouble.im;
+                        e.EV.Vcldouble.re = e1.EV.Vcldouble.re + d2;
+                        e.EV.Vcldouble.im = e1.EV.Vcldouble.im;
                         break;
                     case TYildouble:
-                        e->EV.Vcldouble.re = e1->EV.Vcldouble.re;
-                        e->EV.Vcldouble.im = e1->EV.Vcldouble.im + d2;
+                        e.EV.Vcldouble.re = e1.EV.Vcldouble.re;
+                        e.EV.Vcldouble.im = e1.EV.Vcldouble.im + d2;
                         break;
                     case TYcldouble:
-                        e->EV.Vcldouble.re = e1->EV.Vcldouble.re + e2->EV.Vcldouble.re;
-                        e->EV.Vcldouble.im = e1->EV.Vcldouble.im + e2->EV.Vcldouble.im;
+                        e.EV.Vcldouble.re = e1.EV.Vcldouble.re + e2.EV.Vcldouble.re;
+                        e.EV.Vcldouble.im = e1.EV.Vcldouble.im + e2.EV.Vcldouble.im;
                         break;
                     default:
                         assert(0);
@@ -607,20 +531,20 @@ elem * evalu8(elem *e, goal_t goal)
                 break;
 
             default:
-                if (intsize == 2)
+                if (_tysize[TYint] == 2)
                 {   if (tyfv(tym))
-                        e->EV.Vlong = (l1 & 0xFFFF0000) |
-                            (targ_ushort) ((targ_ushort) l1 + i2);
+                        e.EV.Vlong = cast(targ_long)((l1 & 0xFFFF0000) |
+                            cast(targ_ushort) (cast(targ_ushort) l1 + i2));
                     else if (tyfv(tym2))
-                        e->EV.Vlong = (l2 & 0xFFFF0000) |
-                            (targ_ushort) (i1 + (targ_ushort) l2);
+                        e.EV.Vlong = cast(targ_long)((l2 & 0xFFFF0000) |
+                            cast(targ_ushort) (i1 + cast(targ_ushort) l2));
                     else if (tyintegral(tym) || typtr(tym))
-                        e->EV.Vllong = l1 + l2;
+                        e.EV.Vllong = l1 + l2;
                     else
                         assert(0);
                 }
                 else if (tyintegral(tym) || typtr(tym))
-                    e->EV.Vllong = l1 + l2;
+                    e.EV.Vllong = l1 + l2;
                 else
                     assert(0);
                 break;
@@ -634,15 +558,15 @@ elem * evalu8(elem *e, goal_t goal)
                 switch (tym2)
                 {
                     case TYfloat:
-                        e->EV.Vfloat = e1->EV.Vfloat - e2->EV.Vfloat;
+                        e.EV.Vfloat = e1.EV.Vfloat - e2.EV.Vfloat;
                         break;
                     case TYifloat:
-                        e->EV.Vcfloat.re =  e1->EV.Vfloat;
-                        e->EV.Vcfloat.im = -e2->EV.Vfloat;
+                        e.EV.Vcfloat.re =  e1.EV.Vfloat;
+                        e.EV.Vcfloat.im = -e2.EV.Vfloat;
                         break;
                     case TYcfloat:
-                        e->EV.Vcfloat.re = e1->EV.Vfloat - e2->EV.Vcfloat.re;
-                        e->EV.Vcfloat.im = 0             - e2->EV.Vcfloat.im;
+                        e.EV.Vcfloat.re = e1.EV.Vfloat - e2.EV.Vcfloat.re;
+                        e.EV.Vcfloat.im = 0            - e2.EV.Vcfloat.im;
                         break;
                     default:
                         assert(0);
@@ -654,15 +578,15 @@ elem * evalu8(elem *e, goal_t goal)
                 {
                     case TYdouble:
                     case TYdouble_alias:
-                        e->EV.Vdouble = e1->EV.Vdouble - e2->EV.Vdouble;
+                        e.EV.Vdouble = e1.EV.Vdouble - e2.EV.Vdouble;
                         break;
                     case TYidouble:
-                        e->EV.Vcdouble.re =  e1->EV.Vdouble;
-                        e->EV.Vcdouble.im = -e2->EV.Vdouble;
+                        e.EV.Vcdouble.re =  e1.EV.Vdouble;
+                        e.EV.Vcdouble.im = -e2.EV.Vdouble;
                         break;
                     case TYcdouble:
-                        e->EV.Vcdouble.re = e1->EV.Vdouble - e2->EV.Vcdouble.re;
-                        e->EV.Vcdouble.im = 0              - e2->EV.Vcdouble.im;
+                        e.EV.Vcdouble.re = e1.EV.Vdouble - e2.EV.Vcdouble.re;
+                        e.EV.Vcdouble.im = 0             - e2.EV.Vcdouble.im;
                         break;
                     default:
                         assert(0);
@@ -672,15 +596,15 @@ elem * evalu8(elem *e, goal_t goal)
                 switch (tym2)
                 {
                     case TYldouble:
-                        e->EV.Vldouble = d1 - d2;
+                        e.EV.Vldouble = d1 - d2;
                         break;
                     case TYildouble:
-                        e->EV.Vcldouble.re =  d1;
-                        e->EV.Vcldouble.im = -d2;
+                        e.EV.Vcldouble.re =  d1;
+                        e.EV.Vcldouble.im = -d2;
                         break;
                     case TYcldouble:
-                        e->EV.Vcldouble.re = d1 - e2->EV.Vcldouble.re;
-                        e->EV.Vcldouble.im = 0  - e2->EV.Vcldouble.im;
+                        e.EV.Vcldouble.re = d1 - e2.EV.Vcldouble.re;
+                        e.EV.Vcldouble.im = 0  - e2.EV.Vcldouble.im;
                         break;
                     default:
                         assert(0);
@@ -690,15 +614,15 @@ elem * evalu8(elem *e, goal_t goal)
                 switch (tym2)
                 {
                     case TYfloat:
-                        e->EV.Vcfloat.re = -e2->EV.Vfloat;
-                        e->EV.Vcfloat.im =  e1->EV.Vfloat;
+                        e.EV.Vcfloat.re = -e2.EV.Vfloat;
+                        e.EV.Vcfloat.im =  e1.EV.Vfloat;
                         break;
                     case TYifloat:
-                        e->EV.Vfloat = e1->EV.Vfloat - e2->EV.Vfloat;
+                        e.EV.Vfloat = e1.EV.Vfloat - e2.EV.Vfloat;
                         break;
                     case TYcfloat:
-                        e->EV.Vcfloat.re = 0             - e2->EV.Vcfloat.re;
-                        e->EV.Vcfloat.im = e1->EV.Vfloat - e2->EV.Vcfloat.im;
+                        e.EV.Vcfloat.re = 0            - e2.EV.Vcfloat.re;
+                        e.EV.Vcfloat.im = e1.EV.Vfloat - e2.EV.Vcfloat.im;
                         break;
                     default:
                         assert(0);
@@ -708,15 +632,15 @@ elem * evalu8(elem *e, goal_t goal)
                 switch (tym2)
                 {
                     case TYdouble:
-                        e->EV.Vcdouble.re = -e2->EV.Vdouble;
-                        e->EV.Vcdouble.im =  e1->EV.Vdouble;
+                        e.EV.Vcdouble.re = -e2.EV.Vdouble;
+                        e.EV.Vcdouble.im =  e1.EV.Vdouble;
                         break;
                     case TYidouble:
-                        e->EV.Vdouble = e1->EV.Vdouble - e2->EV.Vdouble;
+                        e.EV.Vdouble = e1.EV.Vdouble - e2.EV.Vdouble;
                         break;
                     case TYcdouble:
-                        e->EV.Vcdouble.re = 0              - e2->EV.Vcdouble.re;
-                        e->EV.Vcdouble.im = e1->EV.Vdouble - e2->EV.Vcdouble.im;
+                        e.EV.Vcdouble.re = 0             - e2.EV.Vcdouble.re;
+                        e.EV.Vcdouble.im = e1.EV.Vdouble - e2.EV.Vcdouble.im;
                         break;
                     default:
                         assert(0);
@@ -726,15 +650,15 @@ elem * evalu8(elem *e, goal_t goal)
                 switch (tym2)
                 {
                     case TYldouble:
-                        e->EV.Vcldouble.re = -d2;
-                        e->EV.Vcldouble.im =  d1;
+                        e.EV.Vcldouble.re = -d2;
+                        e.EV.Vcldouble.im =  d1;
                         break;
                     case TYildouble:
-                        e->EV.Vldouble = d1 - d2;
+                        e.EV.Vldouble = d1 - d2;
                         break;
                     case TYcldouble:
-                        e->EV.Vcldouble.re = 0  - e2->EV.Vcldouble.re;
-                        e->EV.Vcldouble.im = d1 - e2->EV.Vcldouble.im;
+                        e.EV.Vcldouble.re = 0  - e2.EV.Vcldouble.re;
+                        e.EV.Vcldouble.im = d1 - e2.EV.Vcldouble.im;
                         break;
                     default:
                         assert(0);
@@ -744,16 +668,16 @@ elem * evalu8(elem *e, goal_t goal)
                 switch (tym2)
                 {
                     case TYfloat:
-                        e->EV.Vcfloat.re = e1->EV.Vcfloat.re - e2->EV.Vfloat;
-                        e->EV.Vcfloat.im = e1->EV.Vcfloat.im;
+                        e.EV.Vcfloat.re = e1.EV.Vcfloat.re - e2.EV.Vfloat;
+                        e.EV.Vcfloat.im = e1.EV.Vcfloat.im;
                         break;
                     case TYifloat:
-                        e->EV.Vcfloat.re = e1->EV.Vcfloat.re;
-                        e->EV.Vcfloat.im = e1->EV.Vcfloat.im - e2->EV.Vfloat;
+                        e.EV.Vcfloat.re = e1.EV.Vcfloat.re;
+                        e.EV.Vcfloat.im = e1.EV.Vcfloat.im - e2.EV.Vfloat;
                         break;
                     case TYcfloat:
-                        e->EV.Vcfloat.re = e1->EV.Vcfloat.re - e2->EV.Vcfloat.re;
-                        e->EV.Vcfloat.im = e1->EV.Vcfloat.im - e2->EV.Vcfloat.im;
+                        e.EV.Vcfloat.re = e1.EV.Vcfloat.re - e2.EV.Vcfloat.re;
+                        e.EV.Vcfloat.im = e1.EV.Vcfloat.im - e2.EV.Vcfloat.im;
                         break;
                     default:
                         assert(0);
@@ -763,16 +687,16 @@ elem * evalu8(elem *e, goal_t goal)
                 switch (tym2)
                 {
                     case TYdouble:
-                        e->EV.Vcdouble.re = e1->EV.Vcdouble.re - e2->EV.Vdouble;
-                        e->EV.Vcdouble.im = e1->EV.Vcdouble.im;
+                        e.EV.Vcdouble.re = e1.EV.Vcdouble.re - e2.EV.Vdouble;
+                        e.EV.Vcdouble.im = e1.EV.Vcdouble.im;
                         break;
                     case TYidouble:
-                        e->EV.Vcdouble.re = e1->EV.Vcdouble.re;
-                        e->EV.Vcdouble.im = e1->EV.Vcdouble.im - e2->EV.Vdouble;
+                        e.EV.Vcdouble.re = e1.EV.Vcdouble.re;
+                        e.EV.Vcdouble.im = e1.EV.Vcdouble.im - e2.EV.Vdouble;
                         break;
                     case TYcdouble:
-                        e->EV.Vcdouble.re = e1->EV.Vcdouble.re - e2->EV.Vcdouble.re;
-                        e->EV.Vcdouble.im = e1->EV.Vcdouble.im - e2->EV.Vcdouble.im;
+                        e.EV.Vcdouble.re = e1.EV.Vcdouble.re - e2.EV.Vcdouble.re;
+                        e.EV.Vcdouble.im = e1.EV.Vcdouble.im - e2.EV.Vcdouble.im;
                         break;
                     default:
                         assert(0);
@@ -782,16 +706,16 @@ elem * evalu8(elem *e, goal_t goal)
                 switch (tym2)
                 {
                     case TYldouble:
-                        e->EV.Vcldouble.re = e1->EV.Vcldouble.re - d2;
-                        e->EV.Vcldouble.im = e1->EV.Vcldouble.im;
+                        e.EV.Vcldouble.re = e1.EV.Vcldouble.re - d2;
+                        e.EV.Vcldouble.im = e1.EV.Vcldouble.im;
                         break;
                     case TYildouble:
-                        e->EV.Vcldouble.re = e1->EV.Vcldouble.re;
-                        e->EV.Vcldouble.im = e1->EV.Vcldouble.im - d2;
+                        e.EV.Vcldouble.re = e1.EV.Vcldouble.re;
+                        e.EV.Vcldouble.im = e1.EV.Vcldouble.im - d2;
                         break;
                     case TYcldouble:
-                        e->EV.Vcldouble.re = e1->EV.Vcldouble.re - e2->EV.Vcldouble.re;
-                        e->EV.Vcldouble.im = e1->EV.Vcldouble.im - e2->EV.Vcldouble.im;
+                        e.EV.Vcldouble.re = e1.EV.Vcldouble.re - e2.EV.Vcldouble.re;
+                        e.EV.Vcldouble.im = e1.EV.Vcldouble.im - e2.EV.Vcldouble.im;
                         break;
                     default:
                         assert(0);
@@ -799,12 +723,12 @@ elem * evalu8(elem *e, goal_t goal)
                 break;
 
             default:
-                if (intsize == 2 &&
+                if (_tysize[TYint] == 2 &&
                     tyfv(tym) && _tysize[tym2] == 2)
-                    e->EV.Vllong = (l1 & 0xFFFF0000) |
-                        (targ_ushort) ((targ_ushort) l1 - i2);
+                    e.EV.Vllong = (l1 & 0xFFFF0000) |
+                        cast(targ_ushort) (cast(targ_ushort) l1 - i2);
                 else if (tyintegral(tym) || typtr(tym))
-                    e->EV.Vllong = l1 - l2;
+                    e.EV.Vllong = l1 - l2;
                 else
                     assert(0);
                 break;
@@ -812,7 +736,7 @@ elem * evalu8(elem *e, goal_t goal)
         break;
     case OPmul:
         if (tyintegral(tym) || typtr(tym))
-            e->EV.Vllong = l1 * l2;
+            e.EV.Vllong = l1 * l2;
         else
         {   switch (tym)
             {
@@ -821,11 +745,11 @@ elem * evalu8(elem *e, goal_t goal)
                     {
                         case TYfloat:
                         case TYifloat:
-                            e->EV.Vfloat = e1->EV.Vfloat * e2->EV.Vfloat;
+                            e.EV.Vfloat = e1.EV.Vfloat * e2.EV.Vfloat;
                             break;
                         case TYcfloat:
-                            e->EV.Vcfloat.re = e1->EV.Vfloat * e2->EV.Vcfloat.re;
-                            e->EV.Vcfloat.im = e1->EV.Vfloat * e2->EV.Vcfloat.im;
+                            e.EV.Vcfloat.re = e1.EV.Vfloat * e2.EV.Vcfloat.re;
+                            e.EV.Vcfloat.im = e1.EV.Vfloat * e2.EV.Vcfloat.im;
                             break;
                         default:
                             assert(0);
@@ -838,11 +762,11 @@ elem * evalu8(elem *e, goal_t goal)
                         case TYdouble:
                         case TYdouble_alias:
                         case TYidouble:
-                            e->EV.Vdouble = e1->EV.Vdouble * e2->EV.Vdouble;
+                            e.EV.Vdouble = e1.EV.Vdouble * e2.EV.Vdouble;
                             break;
                         case TYcdouble:
-                            e->EV.Vcdouble.re = e1->EV.Vdouble * e2->EV.Vcdouble.re;
-                            e->EV.Vcdouble.im = e1->EV.Vdouble * e2->EV.Vcdouble.im;
+                            e.EV.Vcdouble.re = e1.EV.Vdouble * e2.EV.Vcdouble.re;
+                            e.EV.Vcdouble.im = e1.EV.Vdouble * e2.EV.Vcdouble.im;
                             break;
                         default:
                             assert(0);
@@ -853,11 +777,11 @@ elem * evalu8(elem *e, goal_t goal)
                     {
                         case TYldouble:
                         case TYildouble:
-                            e->EV.Vldouble = d1 * d2;
+                            e.EV.Vldouble = d1 * d2;
                             break;
                         case TYcldouble:
-                            e->EV.Vcldouble.re = d1 * e2->EV.Vcldouble.re;
-                            e->EV.Vcldouble.im = d1 * e2->EV.Vcldouble.im;
+                            e.EV.Vcldouble.re = d1 * e2.EV.Vcldouble.re;
+                            e.EV.Vcldouble.im = d1 * e2.EV.Vcldouble.im;
                             break;
                         default:
                             assert(0);
@@ -867,14 +791,14 @@ elem * evalu8(elem *e, goal_t goal)
                     switch (tym2)
                     {
                         case TYfloat:
-                            e->EV.Vfloat = e1->EV.Vfloat * e2->EV.Vfloat;
+                            e.EV.Vfloat = e1.EV.Vfloat * e2.EV.Vfloat;
                             break;
                         case TYifloat:
-                            e->EV.Vfloat = -e1->EV.Vfloat * e2->EV.Vfloat;
+                            e.EV.Vfloat = -e1.EV.Vfloat * e2.EV.Vfloat;
                             break;
                         case TYcfloat:
-                            e->EV.Vcfloat.re = -e1->EV.Vfloat * e2->EV.Vcfloat.im;
-                            e->EV.Vcfloat.im =  e1->EV.Vfloat * e2->EV.Vcfloat.re;
+                            e.EV.Vcfloat.re = -e1.EV.Vfloat * e2.EV.Vcfloat.im;
+                            e.EV.Vcfloat.im =  e1.EV.Vfloat * e2.EV.Vcfloat.re;
                             break;
                         default:
                             assert(0);
@@ -884,14 +808,14 @@ elem * evalu8(elem *e, goal_t goal)
                     switch (tym2)
                     {
                         case TYdouble:
-                            e->EV.Vdouble = e1->EV.Vdouble * e2->EV.Vdouble;
+                            e.EV.Vdouble = e1.EV.Vdouble * e2.EV.Vdouble;
                             break;
                         case TYidouble:
-                            e->EV.Vdouble = -e1->EV.Vdouble * e2->EV.Vdouble;
+                            e.EV.Vdouble = -e1.EV.Vdouble * e2.EV.Vdouble;
                             break;
                         case TYcdouble:
-                            e->EV.Vcdouble.re = -e1->EV.Vdouble * e2->EV.Vcdouble.im;
-                            e->EV.Vcdouble.im =  e1->EV.Vdouble * e2->EV.Vcdouble.re;
+                            e.EV.Vcdouble.re = -e1.EV.Vdouble * e2.EV.Vcdouble.im;
+                            e.EV.Vcdouble.im =  e1.EV.Vdouble * e2.EV.Vcdouble.re;
                             break;
                         default:
                             assert(0);
@@ -901,14 +825,14 @@ elem * evalu8(elem *e, goal_t goal)
                     switch (tym2)
                     {
                         case TYldouble:
-                            e->EV.Vldouble = d1 * d2;
+                            e.EV.Vldouble = d1 * d2;
                             break;
                         case TYildouble:
-                            e->EV.Vldouble = -d1 * d2;
+                            e.EV.Vldouble = -d1 * d2;
                             break;
                         case TYcldouble:
-                            e->EV.Vcldouble.re = -d1 * e2->EV.Vcldouble.im;
-                            e->EV.Vcldouble.im =  d1 * e2->EV.Vcldouble.re;
+                            e.EV.Vcldouble.re = -d1 * e2.EV.Vcldouble.im;
+                            e.EV.Vcldouble.im =  d1 * e2.EV.Vcldouble.re;
                             break;
                         default:
                             assert(0);
@@ -918,15 +842,15 @@ elem * evalu8(elem *e, goal_t goal)
                     switch (tym2)
                     {
                         case TYfloat:
-                            e->EV.Vcfloat.re = e1->EV.Vcfloat.re * e2->EV.Vfloat;
-                            e->EV.Vcfloat.im = e1->EV.Vcfloat.im * e2->EV.Vfloat;
+                            e.EV.Vcfloat.re = e1.EV.Vcfloat.re * e2.EV.Vfloat;
+                            e.EV.Vcfloat.im = e1.EV.Vcfloat.im * e2.EV.Vfloat;
                             break;
                         case TYifloat:
-                            e->EV.Vcfloat.re = -e1->EV.Vcfloat.im * e2->EV.Vfloat;
-                            e->EV.Vcfloat.im =  e1->EV.Vcfloat.re * e2->EV.Vfloat;
+                            e.EV.Vcfloat.re = -e1.EV.Vcfloat.im * e2.EV.Vfloat;
+                            e.EV.Vcfloat.im =  e1.EV.Vcfloat.re * e2.EV.Vfloat;
                             break;
                         case TYcfloat:
-                            e->EV.Vcfloat = Complex_f::mul(e1->EV.Vcfloat, e2->EV.Vcfloat);
+                            e.EV.Vcfloat = Complex_f.mul(e1.EV.Vcfloat, e2.EV.Vcfloat);
                             break;
                         default:
                             assert(0);
@@ -936,15 +860,15 @@ elem * evalu8(elem *e, goal_t goal)
                     switch (tym2)
                     {
                         case TYdouble:
-                            e->EV.Vcdouble.re = e1->EV.Vcdouble.re * e2->EV.Vdouble;
-                            e->EV.Vcdouble.im = e1->EV.Vcdouble.im * e2->EV.Vdouble;
+                            e.EV.Vcdouble.re = e1.EV.Vcdouble.re * e2.EV.Vdouble;
+                            e.EV.Vcdouble.im = e1.EV.Vcdouble.im * e2.EV.Vdouble;
                             break;
                         case TYidouble:
-                            e->EV.Vcdouble.re = -e1->EV.Vcdouble.im * e2->EV.Vdouble;
-                            e->EV.Vcdouble.im =  e1->EV.Vcdouble.re * e2->EV.Vdouble;
+                            e.EV.Vcdouble.re = -e1.EV.Vcdouble.im * e2.EV.Vdouble;
+                            e.EV.Vcdouble.im =  e1.EV.Vcdouble.re * e2.EV.Vdouble;
                             break;
                         case TYcdouble:
-                            e->EV.Vcdouble = Complex_d::mul(e1->EV.Vcdouble, e2->EV.Vcdouble);
+                            e.EV.Vcdouble = Complex_d.mul(e1.EV.Vcdouble, e2.EV.Vcdouble);
                             break;
                         default:
                             assert(0);
@@ -954,25 +878,23 @@ elem * evalu8(elem *e, goal_t goal)
                     switch (tym2)
                     {
                         case TYldouble:
-                            e->EV.Vcldouble.re = e1->EV.Vcldouble.re * d2;
-                            e->EV.Vcldouble.im = e1->EV.Vcldouble.im * d2;
+                            e.EV.Vcldouble.re = e1.EV.Vcldouble.re * d2;
+                            e.EV.Vcldouble.im = e1.EV.Vcldouble.im * d2;
                             break;
                         case TYildouble:
-                            e->EV.Vcldouble.re = -e1->EV.Vcldouble.im * d2;
-                            e->EV.Vcldouble.im =  e1->EV.Vcldouble.re * d2;
+                            e.EV.Vcldouble.re = -e1.EV.Vcldouble.im * d2;
+                            e.EV.Vcldouble.im =  e1.EV.Vcldouble.re * d2;
                             break;
                         case TYcldouble:
-                            e->EV.Vcldouble = Complex_ld::mul(e1->EV.Vcldouble, e2->EV.Vcldouble);
+                            e.EV.Vcldouble = Complex_ld.mul(e1.EV.Vcldouble, e2.EV.Vcldouble);
                             break;
                         default:
                             assert(0);
                     }
                     break;
                 default:
-#ifdef DEBUG
-                    dbg_printf("tym = x%x\n",tym);
-                    elem_print(e);
-#endif
+                    debug printf("tym = x%x\n",tym);
+                    debug elem_print(e);
                     assert(0);
             }
         }
@@ -980,13 +902,11 @@ elem * evalu8(elem *e, goal_t goal)
     case OPdiv:
         if (!boolres(e2))                       // divide by 0
         {
-#if SCPP || MARS
             if (!tyfloating(tym))
-#endif
                 goto div0;
         }
         if (uns)
-            e->EV.Vullong = ((targ_ullong) l1) / ((targ_ullong) l2);
+            e.EV.Vullong = (cast(targ_ullong) l1) / (cast(targ_ullong) l2);
         else
         {   switch (tym)
             {
@@ -994,15 +914,15 @@ elem * evalu8(elem *e, goal_t goal)
                     switch (tym2)
                     {
                         case TYfloat:
-                            e->EV.Vfloat = e1->EV.Vfloat / e2->EV.Vfloat;
+                            e.EV.Vfloat = e1.EV.Vfloat / e2.EV.Vfloat;
                             break;
                         case TYifloat:
-                            e->EV.Vfloat = -e1->EV.Vfloat / e2->EV.Vfloat;
+                            e.EV.Vfloat = -e1.EV.Vfloat / e2.EV.Vfloat;
                             break;
                         case TYcfloat:
-                            e->EV.Vcfloat.re = d1;
-                            e->EV.Vcfloat.im = 0;
-                            e->EV.Vcfloat = Complex_f::div(e->EV.Vcfloat, e2->EV.Vcfloat);
+                            e.EV.Vcfloat.re = cast(float)d1;
+                            e.EV.Vcfloat.im = 0;
+                            e.EV.Vcfloat = Complex_f.div(e.EV.Vcfloat, e2.EV.Vcfloat);
                             break;
                         default:
                             assert(0);
@@ -1014,15 +934,15 @@ elem * evalu8(elem *e, goal_t goal)
                     {
                         case TYdouble:
                         case TYdouble_alias:
-                            e->EV.Vdouble = e1->EV.Vdouble / e2->EV.Vdouble;
+                            e.EV.Vdouble = e1.EV.Vdouble / e2.EV.Vdouble;
                             break;
                         case TYidouble:
-                            e->EV.Vdouble = -e1->EV.Vdouble / e2->EV.Vdouble;
+                            e.EV.Vdouble = -e1.EV.Vdouble / e2.EV.Vdouble;
                             break;
                         case TYcdouble:
-                            e->EV.Vcdouble.re = d1;
-                            e->EV.Vcdouble.im = 0;
-                            e->EV.Vcdouble = Complex_d::div(e->EV.Vcdouble, e2->EV.Vcdouble);
+                            e.EV.Vcdouble.re = cast(double)d1;
+                            e.EV.Vcdouble.im = 0;
+                            e.EV.Vcdouble = Complex_d.div(e.EV.Vcdouble, e2.EV.Vcdouble);
                             break;
                         default:
                             assert(0);
@@ -1032,15 +952,15 @@ elem * evalu8(elem *e, goal_t goal)
                     switch (tym2)
                     {
                         case TYldouble:
-                            e->EV.Vldouble = d1 / d2;
+                            e.EV.Vldouble = d1 / d2;
                             break;
                         case TYildouble:
-                            e->EV.Vldouble = -d1 / d2;
+                            e.EV.Vldouble = -d1 / d2;
                             break;
                         case TYcldouble:
-                            e->EV.Vcldouble.re = d1;
-                            e->EV.Vcldouble.im = 0;
-                            e->EV.Vcldouble = Complex_ld::div(e->EV.Vcldouble, e2->EV.Vcldouble);
+                            e.EV.Vcldouble.re = d1;
+                            e.EV.Vcldouble.im = 0;
+                            e.EV.Vcldouble = Complex_ld.div(e.EV.Vcldouble, e2.EV.Vcldouble);
                             break;
                         default:
                             assert(0);
@@ -1051,12 +971,12 @@ elem * evalu8(elem *e, goal_t goal)
                     {
                         case TYfloat:
                         case TYifloat:
-                            e->EV.Vfloat = e1->EV.Vfloat / e2->EV.Vfloat;
+                            e.EV.Vfloat = e1.EV.Vfloat / e2.EV.Vfloat;
                             break;
                         case TYcfloat:
-                            e->EV.Vcfloat.re = 0;
-                            e->EV.Vcfloat.im = e1->EV.Vfloat;
-                            e->EV.Vcfloat = Complex_f::div(e->EV.Vcfloat, e2->EV.Vcfloat);
+                            e.EV.Vcfloat.re = 0;
+                            e.EV.Vcfloat.im = e1.EV.Vfloat;
+                            e.EV.Vcfloat = Complex_f.div(e.EV.Vcfloat, e2.EV.Vcfloat);
                             break;
                         default:
                             assert(0);
@@ -1067,12 +987,12 @@ elem * evalu8(elem *e, goal_t goal)
                     {
                         case TYdouble:
                         case TYidouble:
-                            e->EV.Vdouble = e1->EV.Vdouble / e2->EV.Vdouble;
+                            e.EV.Vdouble = e1.EV.Vdouble / e2.EV.Vdouble;
                             break;
                         case TYcdouble:
-                            e->EV.Vcdouble.re = 0;
-                            e->EV.Vcdouble.im = e1->EV.Vdouble;
-                            e->EV.Vcdouble = Complex_d::div(e->EV.Vcdouble, e2->EV.Vcdouble);
+                            e.EV.Vcdouble.re = 0;
+                            e.EV.Vcdouble.im = e1.EV.Vdouble;
+                            e.EV.Vcdouble = Complex_d.div(e.EV.Vcdouble, e2.EV.Vcdouble);
                             break;
                         default:
                             assert(0);
@@ -1083,12 +1003,12 @@ elem * evalu8(elem *e, goal_t goal)
                     {
                         case TYldouble:
                         case TYildouble:
-                            e->EV.Vldouble = d1 / d2;
+                            e.EV.Vldouble = d1 / d2;
                             break;
                         case TYcldouble:
-                            e->EV.Vcldouble.re = 0;
-                            e->EV.Vcldouble.im = d1;
-                            e->EV.Vcldouble = Complex_ld::div(e->EV.Vcldouble, e2->EV.Vcldouble);
+                            e.EV.Vcldouble.re = 0;
+                            e.EV.Vcldouble.im = d1;
+                            e.EV.Vcldouble = Complex_ld.div(e.EV.Vcldouble, e2.EV.Vcldouble);
                             break;
                         default:
                             assert(0);
@@ -1098,15 +1018,15 @@ elem * evalu8(elem *e, goal_t goal)
                     switch (tym2)
                     {
                         case TYfloat:
-                            e->EV.Vcfloat.re = e1->EV.Vcfloat.re / e2->EV.Vfloat;
-                            e->EV.Vcfloat.im = e1->EV.Vcfloat.im / e2->EV.Vfloat;
+                            e.EV.Vcfloat.re = e1.EV.Vcfloat.re / e2.EV.Vfloat;
+                            e.EV.Vcfloat.im = e1.EV.Vcfloat.im / e2.EV.Vfloat;
                             break;
                         case TYifloat:
-                            e->EV.Vcfloat.re =  e1->EV.Vcfloat.im / e2->EV.Vfloat;
-                            e->EV.Vcfloat.im = -e1->EV.Vcfloat.re / e2->EV.Vfloat;
+                            e.EV.Vcfloat.re =  e1.EV.Vcfloat.im / e2.EV.Vfloat;
+                            e.EV.Vcfloat.im = -e1.EV.Vcfloat.re / e2.EV.Vfloat;
                             break;
                         case TYcfloat:
-                            e->EV.Vcfloat = Complex_f::div(e1->EV.Vcfloat, e2->EV.Vcfloat);
+                            e.EV.Vcfloat = Complex_f.div(e1.EV.Vcfloat, e2.EV.Vcfloat);
                             break;
                         default:
                             assert(0);
@@ -1116,15 +1036,15 @@ elem * evalu8(elem *e, goal_t goal)
                     switch (tym2)
                     {
                         case TYdouble:
-                            e->EV.Vcdouble.re = e1->EV.Vcdouble.re / e2->EV.Vdouble;
-                            e->EV.Vcdouble.im = e1->EV.Vcdouble.im / e2->EV.Vdouble;
+                            e.EV.Vcdouble.re = e1.EV.Vcdouble.re / e2.EV.Vdouble;
+                            e.EV.Vcdouble.im = e1.EV.Vcdouble.im / e2.EV.Vdouble;
                             break;
                         case TYidouble:
-                            e->EV.Vcdouble.re =  e1->EV.Vcdouble.im / e2->EV.Vdouble;
-                            e->EV.Vcdouble.im = -e1->EV.Vcdouble.re / e2->EV.Vdouble;
+                            e.EV.Vcdouble.re =  e1.EV.Vcdouble.im / e2.EV.Vdouble;
+                            e.EV.Vcdouble.im = -e1.EV.Vcdouble.re / e2.EV.Vdouble;
                             break;
                         case TYcdouble:
-                            e->EV.Vcdouble = Complex_d::div(e1->EV.Vcdouble, e2->EV.Vcdouble);
+                            e.EV.Vcdouble = Complex_d.div(e1.EV.Vcdouble, e2.EV.Vcdouble);
                             break;
                         default:
                             assert(0);
@@ -1134,44 +1054,54 @@ elem * evalu8(elem *e, goal_t goal)
                     switch (tym2)
                     {
                         case TYldouble:
-                            e->EV.Vcldouble.re = e1->EV.Vcldouble.re / d2;
-                            e->EV.Vcldouble.im = e1->EV.Vcldouble.im / d2;
+                            e.EV.Vcldouble.re = e1.EV.Vcldouble.re / d2;
+                            e.EV.Vcldouble.im = e1.EV.Vcldouble.im / d2;
                             break;
                         case TYildouble:
-                            e->EV.Vcldouble.re =  e1->EV.Vcldouble.im / d2;
-                            e->EV.Vcldouble.im = -e1->EV.Vcldouble.re / d2;
+                            e.EV.Vcldouble.re =  e1.EV.Vcldouble.im / d2;
+                            e.EV.Vcldouble.im = -e1.EV.Vcldouble.re / d2;
                             break;
                         case TYcldouble:
-                            e->EV.Vcldouble = Complex_ld::div(e1->EV.Vcldouble, e2->EV.Vcldouble);
+                            e.EV.Vcldouble = Complex_ld.div(e1.EV.Vcldouble, e2.EV.Vcldouble);
                             break;
                         default:
                             assert(0);
                     }
                     break;
                 default:
-                    e->EV.Vllong = l1 / l2;
+                    e.EV.Vllong = l1 / l2;
                     break;
             }
         }
         break;
     case OPmod:
-#if MARS
+version (MARS)
+{
         if (!tyfloating(tym))
-#endif
         {
             if (!boolres(e2))
             {
                 div0:
-#if SCPP
-                    synerr(EM_divby0);
-#elif MARS
-                    error(e->Esrcpos.Sfilename, e->Esrcpos.Slinnum, e->Esrcpos.Scharnum, "divide by zero");
-#endif
+                    error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum, "divide by zero");
                     break;
             }
         }
+}
+else
+{
+        if (1)
+        {
+            if (!boolres(e2))
+            {
+                div0:
+                    version (SCPP)
+                        synerr(EM_divby0);
+                    break;
+            }
+        }
+}
         if (uns)
-            e->EV.Vullong = ((targ_ullong) l1) % ((targ_ullong) l2);
+            e.EV.Vullong = (cast(targ_ullong) l1) % (cast(targ_ullong) l2);
         else
         {
             // BUG: what do we do for imaginary, complex?
@@ -1179,27 +1109,23 @@ elem * evalu8(elem *e, goal_t goal)
             {   case TYdouble:
                 case TYidouble:
                 case TYdouble_alias:
-                    e->EV.Vdouble = fmod(e1->EV.Vdouble,e2->EV.Vdouble);
+                    e.EV.Vdouble = fmod(e1.EV.Vdouble,e2.EV.Vdouble);
                     break;
                 case TYfloat:
                 case TYifloat:
-                    e->EV.Vfloat = fmodf(e1->EV.Vfloat,e2->EV.Vfloat);
+                    e.EV.Vfloat = fmodf(e1.EV.Vfloat,e2.EV.Vfloat);
                     break;
                 case TYldouble:
                 case TYildouble:
-#if __DMC__
-                    e->EV.Vldouble = _modulo(d1, d2);
-#else
-                    e->EV.Vldouble = fmodl(d1, d2);
-#endif
+                    e.EV.Vldouble = _modulo(d1, d2);
                     break;
                 case TYcfloat:
                     switch (tym2)
                     {
                         case TYfloat:
                         case TYifloat:
-                            e->EV.Vcfloat.re = fmodf(e1->EV.Vcfloat.re, e2->EV.Vfloat);
-                            e->EV.Vcfloat.im = fmodf(e1->EV.Vcfloat.im, e2->EV.Vfloat);
+                            e.EV.Vcfloat.re = fmodf(e1.EV.Vcfloat.re, e2.EV.Vfloat);
+                            e.EV.Vcfloat.im = fmodf(e1.EV.Vcfloat.im, e2.EV.Vfloat);
                             break;
                         default:
                             assert(0);
@@ -1210,8 +1136,8 @@ elem * evalu8(elem *e, goal_t goal)
                     {
                         case TYdouble:
                         case TYidouble:
-                            e->EV.Vcdouble.re = fmod(e1->EV.Vcdouble.re, e2->EV.Vdouble);
-                            e->EV.Vcdouble.im = fmod(e1->EV.Vcdouble.im, e2->EV.Vdouble);
+                            e.EV.Vcdouble.re = fmod(e1.EV.Vcdouble.re, e2.EV.Vdouble);
+                            e.EV.Vcdouble.im = fmod(e1.EV.Vcdouble.im, e2.EV.Vdouble);
                             break;
                         default:
                             assert(0);
@@ -1222,20 +1148,15 @@ elem * evalu8(elem *e, goal_t goal)
                     {
                         case TYldouble:
                         case TYildouble:
-#if __DMC__
-                            e->EV.Vcldouble.re = _modulo(e1->EV.Vcldouble.re, d2);
-                            e->EV.Vcldouble.im = _modulo(e1->EV.Vcldouble.im, d2);
-#else
-                            e->EV.Vcldouble.re = fmodl(e1->EV.Vcldouble.re, d2);
-                            e->EV.Vcldouble.im = fmodl(e1->EV.Vcldouble.im, d2);
-#endif
+                            e.EV.Vcldouble.re = _modulo(e1.EV.Vcldouble.re, d2);
+                            e.EV.Vcldouble.im = _modulo(e1.EV.Vcldouble.im, d2);
                             break;
                         default:
                             assert(0);
                     }
                     break;
                 default:
-                    e->EV.Vllong = l1 % l2;
+                    e.EV.Vllong = l1 % l2;
                     break;
             }
         }
@@ -1249,8 +1170,8 @@ elem * evalu8(elem *e, goal_t goal)
             goto div0;
         if (uns)
         {
-            rem = ((targ_ullong) l1) % ((targ_ullong) l2);
-            quo = ((targ_ullong) l1) / ((targ_ullong) l2);
+            rem = (cast(targ_ullong) l1) % (cast(targ_ullong) l2);
+            quo = (cast(targ_ullong) l1) / (cast(targ_ullong) l2);
         }
         else
         {
@@ -1260,117 +1181,119 @@ elem * evalu8(elem *e, goal_t goal)
         switch (tysize(tym))
         {
             case 2:
-                e->EV.Vllong = (rem << 16) | (quo & 0xFFFF);
+                e.EV.Vllong = (rem << 16) | (quo & 0xFFFF);
                 break;
             case 4:
-                e->EV.Vllong = (rem << 32) | (quo & 0xFFFFFFFF);
+                e.EV.Vllong = (rem << 32) | (quo & 0xFFFFFFFF);
                 break;
             case 8:
-                e->EV.Vcent.lsw = quo;
-                e->EV.Vcent.msw = rem;
+                e.EV.Vcent.lsw = quo;
+                e.EV.Vcent.msw = rem;
                 break;
             default:
                 assert(0);
-                break;
         }
         break;
     }
     case OPand:
-        e->EV.Vllong = l1 & l2;
+        e.EV.Vllong = l1 & l2;
         break;
     case OPor:
-        e->EV.Vllong = l1 | l2;
+        e.EV.Vllong = l1 | l2;
         break;
     case OPxor:
-        e->EV.Vllong = l1 ^ l2;
+        e.EV.Vllong = l1 ^ l2;
         break;
     case OPnot:
-        e->EV.Vint = boolres(e1) ^ TRUE;
+        e.EV.Vint = boolres(e1) ^ true;
         break;
     case OPcom:
-        e->EV.Vllong = ~l1;
+        e.EV.Vllong = ~l1;
         break;
     case OPcomma:
-        e->EV = e2->EV;
+        e.EV = e2.EV;
         break;
     case OPoror:
-        e->EV.Vint = boolres(e1) || boolres(e2);
+        e.EV.Vint = boolres(e1) || boolres(e2);
         break;
     case OPandand:
-        e->EV.Vint = boolres(e1) && boolres(e2);
+        e.EV.Vint = boolres(e1) && boolres(e2);
         break;
     case OPshl:
-        if ((targ_ullong) i2 < sizeof(targ_ullong) * 8)
-            e->EV.Vllong = l1 << i2;
+        if (cast(targ_ullong) i2 < targ_ullong.sizeof * 8)
+            e.EV.Vllong = l1 << i2;
         else
-            e->EV.Vllong = 0;
+            e.EV.Vllong = 0;
         break;
     case OPshr:
-        if ((targ_ullong) i2 > sizeof(targ_ullong) * 8)
-            i2 = sizeof(targ_ullong) * 8;
-#if SCPP
+        if (cast(targ_ullong) i2 > targ_ullong.sizeof * 8)
+            i2 = targ_ullong.sizeof * 8;
+version (SCPP)
+{
         if (tyuns(tym))
         {   //printf("unsigned\n");
-            e->EV.Vullong = ((targ_ullong) l1) >> i2;
+            e.EV.Vullong = (cast(targ_ullong) l1) >> i2;
         }
         else
         {   //printf("signed\n");
-            e->EV.Vllong = l1 >> i2;
+            e.EV.Vllong = l1 >> i2;
         }
-#endif
-#if MARS
+}
+version (MARS)
+{
         // Always unsigned
-        e->EV.Vullong = ((targ_ullong) l1) >> i2;
-#endif
+        e.EV.Vullong = (cast(targ_ullong) l1) >> i2;
+}
         break;
 
     case OPbtst:
-        if ((targ_ullong) i2 > sizeof(targ_ullong) * 8)
-            i2 = sizeof(targ_ullong) * 8;
-        e->EV.Vullong = (((targ_ullong) l1) >> i2) & 1;
+        if (cast(targ_ullong) i2 > targ_ullong.sizeof * 8)
+            i2 = targ_ullong.sizeof * 8;
+        e.EV.Vullong = ((cast(targ_ullong) l1) >> i2) & 1;
         break;
 
-#if MARS
+version (MARS)
+{
     case OPashr:
-        if ((targ_ullong) i2 > sizeof(targ_ullong) * 8)
-            i2 = sizeof(targ_ullong) * 8;
+        if (cast(targ_ullong) i2 > targ_ullong.sizeof * 8)
+            i2 = targ_ullong.sizeof * 8;
         // Always signed
-        e->EV.Vllong = l1 >> i2;
+        e.EV.Vllong = l1 >> i2;
         break;
-#endif
+}
 
     case OPpair:
         switch (_tysize[tym])
         {
             case 2:
-                e->EV.Vlong = (i2 << 16) | (i1 & 0xFFFF);
+                e.EV.Vlong = (i2 << 16) | (i1 & 0xFFFF);
                 break;
             case 4:
                 if (tyfloating(tym))
                 {
-                    e->EV.Vcfloat.re = d1;
-                    e->EV.Vcfloat.im = d2;
+                    e.EV.Vcfloat.re = cast(float)d1;
+                    e.EV.Vcfloat.im = cast(float)d2;
                 }
                 else
-                    e->EV.Vllong = (l2 << 32) | (l1 & 0xFFFFFFFF);
+                    e.EV.Vllong = (l2 << 32) | (l1 & 0xFFFFFFFF);
                 break;
             case 8:
                 if (tyfloating(tym))
                 {
-                    e->EV.Vcdouble.re = d1;
-                    e->EV.Vcdouble.im = d2;
+                    e.EV.Vcdouble.re = cast(double)d1;
+                    e.EV.Vcdouble.im = cast(double)d2;
                 }
                 else
                 {
-                    e->EV.Vcent.lsw = l1;
-                    e->EV.Vcent.msw = l2;
+                    e.EV.Vcent.lsw = l1;
+                    e.EV.Vcent.msw = l2;
                 }
                 break;
             default:
                 if (tyfloating(tym))
                 {
-                    e->EV.Vcldouble.re = d1;
-                    e->EV.Vcldouble.im = d2;
+                    e.EV.Vcldouble.re = d1;
+                    e.EV.Vcldouble.im = d2;
                 }
                 else
                 {
@@ -1384,35 +1307,35 @@ elem * evalu8(elem *e, goal_t goal)
         switch (_tysize[tym])
         {
             case 2:
-                e->EV.Vlong = (i1 << 16) | (i2 & 0xFFFF);
+                e.EV.Vlong = (i1 << 16) | (i2 & 0xFFFF);
                 break;
             case 4:
-                e->EV.Vllong = (l1 << 32) | (l2 & 0xFFFFFFFF);
+                e.EV.Vllong = (l1 << 32) | (l2 & 0xFFFFFFFF);
                 if (tyfloating(tym))
                 {
-                    e->EV.Vcfloat.re = d2;
-                    e->EV.Vcfloat.im = d1;
+                    e.EV.Vcfloat.re = cast(float)d2;
+                    e.EV.Vcfloat.im = cast(float)d1;
                 }
                 else
-                    e->EV.Vllong = (l1 << 32) | (l2 & 0xFFFFFFFF);
+                    e.EV.Vllong = (l1 << 32) | (l2 & 0xFFFFFFFF);
                 break;
             case 8:
                 if (tyfloating(tym))
                 {
-                    e->EV.Vcdouble.re = d2;
-                    e->EV.Vcdouble.im = d1;
+                    e.EV.Vcdouble.re = cast(double)d2;
+                    e.EV.Vcdouble.im = cast(double)d1;
                 }
                 else
                 {
-                    e->EV.Vcent.lsw = l2;
-                    e->EV.Vcent.msw = l1;
+                    e.EV.Vcent.lsw = l2;
+                    e.EV.Vcent.msw = l1;
                 }
                 break;
             default:
                 if (tyfloating(tym))
                 {
-                    e->EV.Vcldouble.re = d2;
-                    e->EV.Vcldouble.im = d1;
+                    e.EV.Vcldouble.re = d2;
+                    e.EV.Vcldouble.im = d1;
                 }
                 else
                 {
@@ -1424,35 +1347,35 @@ elem * evalu8(elem *e, goal_t goal)
 
     case OPneg:
         // Avoid converting NANS to NAN
-        memcpy(&e->EV.Vcldouble,&e1->EV.Vcldouble,sizeof(e->EV.Vcldouble));
+        memcpy(&e.EV.Vcldouble,&e1.EV.Vcldouble,e.EV.Vcldouble.sizeof);
         switch (tym)
         {   case TYdouble:
             case TYidouble:
             case TYdouble_alias:
-                e->EV.Vdouble = -e->EV.Vdouble;
+                e.EV.Vdouble = -e.EV.Vdouble;
                 break;
             case TYfloat:
             case TYifloat:
-                e->EV.Vfloat = -e->EV.Vfloat;
+                e.EV.Vfloat = -e.EV.Vfloat;
                 break;
             case TYldouble:
             case TYildouble:
-                e->EV.Vldouble = -e->EV.Vldouble;
+                e.EV.Vldouble = -e.EV.Vldouble;
                 break;
             case TYcfloat:
-                e->EV.Vcfloat.re = -e->EV.Vcfloat.re;
-                e->EV.Vcfloat.im = -e->EV.Vcfloat.im;
+                e.EV.Vcfloat.re = -e.EV.Vcfloat.re;
+                e.EV.Vcfloat.im = -e.EV.Vcfloat.im;
                 break;
             case TYcdouble:
-                e->EV.Vcdouble.re = -e->EV.Vcdouble.re;
-                e->EV.Vcdouble.im = -e->EV.Vcdouble.im;
+                e.EV.Vcdouble.re = -e.EV.Vcdouble.re;
+                e.EV.Vcdouble.im = -e.EV.Vcdouble.im;
                 break;
             case TYcldouble:
-                e->EV.Vcldouble.re = -e->EV.Vcldouble.re;
-                e->EV.Vcldouble.im = -e->EV.Vcldouble.im;
+                e.EV.Vcldouble.re = -e.EV.Vcldouble.re;
+                e.EV.Vcldouble.im = -e.EV.Vcldouble.im;
                 break;
             default:
-                e->EV.Vllong = -l1;
+                e.EV.Vllong = -l1;
                 break;
         }
         break;
@@ -1462,39 +1385,38 @@ elem * evalu8(elem *e, goal_t goal)
             case TYdouble:
             case TYidouble:
             case TYdouble_alias:
-                e->EV.Vdouble = fabs(e1->EV.Vdouble);
+                e.EV.Vdouble = fabs(e1.EV.Vdouble);
                 break;
             case TYfloat:
             case TYifloat:
-#if __DMC__
-                e->EV.Vfloat = fabsf(e1->EV.Vfloat);
-#else
-                e->EV.Vfloat = fabs(e1->EV.Vfloat);
-#endif
+version (DigitalMars)
+                e.EV.Vfloat = fabsf(e1.EV.Vfloat);
+else
+                e.EV.Vfloat = fabs(e1.EV.Vfloat);
+
                 break;
             case TYldouble:
             case TYildouble:
-                e->EV.Vldouble = fabsl(d1);
+                e.EV.Vldouble = fabsl(d1);
                 break;
             case TYcfloat:
-                e->EV.Vfloat = Complex_f::abs(e1->EV.Vcfloat);
+                e.EV.Vfloat = cast(float)Complex_f.abs(e1.EV.Vcfloat);
                 break;
             case TYcdouble:
-                e->EV.Vdouble = Complex_d::abs(e1->EV.Vcdouble);
+                e.EV.Vdouble = cast(double)Complex_d.abs(e1.EV.Vcdouble);
                 break;
             case TYcldouble:
-                e->EV.Vldouble = Complex_ld::abs(e1->EV.Vcldouble);
+                e.EV.Vldouble = Complex_ld.abs(e1.EV.Vcldouble);
                 break;
             default:
-                e->EV.Vllong = l1 < 0 ? -l1 : l1;
+                e.EV.Vllong = l1 < 0 ? -l1 : l1;
                 break;
         }
         break;
-#if TX86
+
     case OPsqrt:
     case OPsin:
     case OPcos:
-#endif
     case OPrndtol:
     case OPrint:
         return e;
@@ -1503,7 +1425,7 @@ elem * evalu8(elem *e, goal_t goal)
     case OPgt:
         if (!tyfloating(tym))
             goto Lnle;
-        e->EV.Vint = (op == OPngt) ^ (d1 > d2);
+        e.EV.Vint = (op == OPngt) ^ (d1 > d2);
         break;
 
     case OPnle:
@@ -1513,16 +1435,16 @@ elem * evalu8(elem *e, goal_t goal)
         int b;
         if (uns)
         {
-            b = (int)(((targ_ullong) l1) <= ((targ_ullong) l2));
+            b = cast(int)((cast(targ_ullong) l1) <= (cast(targ_ullong) l2));
         }
         else
         {
             if (tyfloating(tym))
-                b = (int)(d1 <= d2);
+                b = cast(int)(!unordered(d1, d2) && d1 <= d2);
             else
-                b = (int)(l1 <= l2);
+                b = cast(int)(l1 <= l2);
         }
-        e->EV.Vint = (op != OPle) ^ b;
+        e.EV.Vint = (op != OPle) ^ b;
         break;
     }
 
@@ -1530,7 +1452,7 @@ elem * evalu8(elem *e, goal_t goal)
     case OPge:
         if (!tyfloating(tym))
             goto Lnlt;
-        e->EV.Vint = (op == OPnge) ^ (d1 >= d2);
+        e.EV.Vint = (op == OPnge) ^ (!unordered(d1, d2) && d1 >= d2);
         break;
 
     case OPnlt:
@@ -1540,16 +1462,16 @@ elem * evalu8(elem *e, goal_t goal)
         int b;
         if (uns)
         {
-            b = (int)(((targ_ullong) l1) < ((targ_ullong) l2));
+            b = cast(int)((cast(targ_ullong) l1) < (cast(targ_ullong) l2));
         }
         else
         {
             if (tyfloating(tym))
-                b = (int)(d1 < d2);
+                b = cast(int)(!unordered(d1, d2) && d1 < d2);
             else
-                b = (int)(l1 < l2);
+                b = cast(int)(l1 < l2);
         }
-        e->EV.Vint = (op != OPlt) ^ b;
+        e.EV.Vint = (op != OPlt) ^ b;
         break;
     }
 
@@ -1562,242 +1484,240 @@ elem * evalu8(elem *e, goal_t goal)
             switch (tybasic(tym))
             {
                 case TYcfloat:
-                    if (isnan(e1->EV.Vcfloat.re) || isnan(e1->EV.Vcfloat.im) ||
-                        isnan(e2->EV.Vcfloat.re) || isnan(e2->EV.Vcfloat.im))
+                    if (isnan(e1.EV.Vcfloat.re) || isnan(e1.EV.Vcfloat.im) ||
+                        isnan(e2.EV.Vcfloat.re) || isnan(e2.EV.Vcfloat.im))
                         b = 0;
                     else
-                        b = (int)((e1->EV.Vcfloat.re == e2->EV.Vcfloat.re) &&
-                                  (e1->EV.Vcfloat.im == e2->EV.Vcfloat.im));
+                        b = cast(int)((e1.EV.Vcfloat.re == e2.EV.Vcfloat.re) &&
+                                      (e1.EV.Vcfloat.im == e2.EV.Vcfloat.im));
                     break;
                 case TYcdouble:
-                    if (isnan(e1->EV.Vcdouble.re) || isnan(e1->EV.Vcdouble.im) ||
-                        isnan(e2->EV.Vcdouble.re) || isnan(e2->EV.Vcdouble.im))
+                    if (isnan(e1.EV.Vcdouble.re) || isnan(e1.EV.Vcdouble.im) ||
+                        isnan(e2.EV.Vcdouble.re) || isnan(e2.EV.Vcdouble.im))
                         b = 0;
                     else
-                        b = (int)((e1->EV.Vcdouble.re == e2->EV.Vcdouble.re) &&
-                                  (e1->EV.Vcdouble.im == e2->EV.Vcdouble.im));
+                        b = cast(int)((e1.EV.Vcdouble.re == e2.EV.Vcdouble.re) &&
+                                      (e1.EV.Vcdouble.im == e2.EV.Vcdouble.im));
                     break;
                 case TYcldouble:
-                    if (isnan(e1->EV.Vcldouble.re) || isnan(e1->EV.Vcldouble.im) ||
-                        isnan(e2->EV.Vcldouble.re) || isnan(e2->EV.Vcldouble.im))
+                    if (isnan(e1.EV.Vcldouble.re) || isnan(e1.EV.Vcldouble.im) ||
+                        isnan(e2.EV.Vcldouble.re) || isnan(e2.EV.Vcldouble.im))
                         b = 0;
                     else
-                        b = (int)((e1->EV.Vcldouble.re == e2->EV.Vcldouble.re) &&
-                                  (e1->EV.Vcldouble.im == e2->EV.Vcldouble.im));
+                        b = cast(int)((e1.EV.Vcldouble.re == e2.EV.Vcldouble.re) &&
+                                      (e1.EV.Vcldouble.im == e2.EV.Vcldouble.im));
                     break;
                 default:
-                    b = (int)(d1 == d2);
+                    b = cast(int)(d1 == d2);
                     break;
             }
-            //printf("%Lg + %Lgi, %Lg + %Lgi\n", e1->EV.Vcldouble.re, e1->EV.Vcldouble.im, e2->EV.Vcldouble.re, e2->EV.Vcldouble.im);
+            //printf("%Lg + %Lgi, %Lg + %Lgi\n", e1.EV.Vcldouble.re, e1.EV.Vcldouble.im, e2.EV.Vcldouble.re, e2.EV.Vcldouble.im);
         }
         else
-            b = (int)(l1 == l2);
-        e->EV.Vint = (op == OPne) ^ b;
+            b = cast(int)(l1 == l2);
+        e.EV.Vint = (op == OPne) ^ b;
         break;
     }
 
-#if __DMC__
     case OPord:
     case OPunord:
         // BUG: complex numbers
-        e->EV.Vint = (op == OPord) ^ (d1 !<>= d2);
+        e.EV.Vint = (op == OPord) ^ (unordered(d1, d2)); // !<>=
         break;
 
     case OPnlg:
     case OPlg:
         // BUG: complex numbers
-        e->EV.Vint = (op == OPnlg) ^ (d1 <> d2);
+        e.EV.Vint = (op == OPnlg) ^ (!unordered(d1, d2) && d1 != d2); // <>
         break;
 
     case OPnleg:
     case OPleg:
         // BUG: complex numbers
-        e->EV.Vint = (op == OPnleg) ^ (d1 <>= d2);
+        e.EV.Vint = (op == OPnleg) ^ (!unordered(d1, d2)); // <>=
         break;
 
     case OPnule:
     case OPule:
         // BUG: complex numbers
-        e->EV.Vint = (op == OPnule) ^ (d1 !> d2);
+        e.EV.Vint = (op == OPnule) ^ (unordered(d1, d2) || d1 <= d2); // !>
         break;
 
     case OPnul:
     case OPul:
         // BUG: complex numbers
-        e->EV.Vint = (op == OPnul) ^ (d1 !>= d2);
+        e.EV.Vint = (op == OPnul) ^ (unordered(d1, d2) || d1 < d2); // !>=
         break;
 
     case OPnuge:
     case OPuge:
         // BUG: complex numbers
-        e->EV.Vint = (op == OPnuge) ^ (d1 !< d2);
+        e.EV.Vint = (op == OPnuge) ^ (unordered(d1, d2) || d1 >= d2); // !<
         break;
 
     case OPnug:
     case OPug:
         // BUG: complex numbers
-        e->EV.Vint = (op == OPnug) ^ (d1 !<= d2);
+        e.EV.Vint = (op == OPnug) ^ (unordered(d1, d2) || d1 > d2); // !<=
         break;
 
     case OPnue:
     case OPue:
         // BUG: complex numbers
-        e->EV.Vint = (op == OPnue) ^ (d1 !<> d2);
+        e.EV.Vint = (op == OPnue) ^ (unordered(d1, d2) || d1 == d2); // !<>
         break;
 
-#endif
     case OPs16_32:
-        e->EV.Vlong = (targ_short) i1;
+        e.EV.Vlong = cast(targ_short) i1;
         break;
     case OPnp_fp:
     case OPu16_32:
-        e->EV.Vulong = (targ_ushort) i1;
+        e.EV.Vulong = cast(targ_ushort) i1;
         break;
     case OPd_u32:
-        e->EV.Vulong = (targ_ulong)d1;
-        //printf("OPd_u32: dbl = %g, ulng = x%lx\n",d1,e->EV.Vulong);
+        e.EV.Vulong = cast(targ_ulong)d1;
+        //printf("OPd_u32: dbl = %g, ulng = x%lx\n",d1,e.EV.Vulong);
         break;
     case OPd_s32:
-        e->EV.Vlong = (targ_long)d1;
+        e.EV.Vlong = cast(targ_long)d1;
         break;
     case OPu32_d:
-        e->EV.Vdouble = (unsigned) l1;
+        e.EV.Vdouble = cast(uint) l1;
         break;
     case OPs32_d:
-        e->EV.Vdouble = (int) l1;
+        e.EV.Vdouble = cast(int) l1;
         break;
     case OPd_s16:
-        e->EV.Vint = (targ_int)d1;
+        e.EV.Vint = cast(targ_int)d1;
         break;
     case OPs16_d:
-        e->EV.Vdouble = (targ_short) i1;
+        e.EV.Vdouble = cast(targ_short) i1;
         break;
     case OPd_u16:
-        e->EV.Vushort = (targ_ushort)d1;
+        e.EV.Vushort = cast(targ_ushort)d1;
         break;
     case OPu16_d:
-        e->EV.Vdouble = (targ_ushort) i1;
+        e.EV.Vdouble = cast(targ_ushort) i1;
         break;
     case OPd_s64:
-        e->EV.Vllong = (targ_llong)d1;
+        e.EV.Vllong = cast(targ_llong)d1;
         break;
     case OPd_u64:
     case OPld_u64:
-        e->EV.Vullong = (targ_ullong)d1;
+        e.EV.Vullong = cast(targ_ullong)d1;
         break;
     case OPs64_d:
-        e->EV.Vdouble = l1;
+        e.EV.Vdouble = l1;
         break;
     case OPu64_d:
-        e->EV.Vdouble = (targ_ullong) l1;
+        e.EV.Vdouble = cast(targ_ullong) l1;
         break;
     case OPd_f:
-        //assert((_status87() & 0x3800) == 0);
-        e->EV.Vfloat = e1->EV.Vdouble;
+        assert((statusFE() & 0x3800) == 0);
+        e.EV.Vfloat = e1.EV.Vdouble;
         if (tycomplex(tym))
-            e->EV.Vcfloat.im = e1->EV.Vcdouble.im;
-        //assert((_status87() & 0x3800) == 0);
+            e.EV.Vcfloat.im = e1.EV.Vcdouble.im;
+        assert((statusFE() & 0x3800) == 0);
         break;
     case OPf_d:
-        e->EV.Vdouble = e1->EV.Vfloat;
+        e.EV.Vdouble = e1.EV.Vfloat;
         if (tycomplex(tym))
-            e->EV.Vcdouble.im = e1->EV.Vcfloat.im;
+            e.EV.Vcdouble.im = e1.EV.Vcfloat.im;
         break;
     case OPd_ld:
-        e->EV.Vldouble = e1->EV.Vdouble;
+        e.EV.Vldouble = e1.EV.Vdouble;
         if (tycomplex(tym))
-            e->EV.Vcldouble.im = e1->EV.Vcdouble.im;
+            e.EV.Vcldouble.im = e1.EV.Vcdouble.im;
         break;
     case OPld_d:
-        e->EV.Vdouble = e1->EV.Vldouble;
+        e.EV.Vdouble = cast(double)e1.EV.Vldouble;
         if (tycomplex(tym))
-            e->EV.Vcdouble.im = e1->EV.Vcldouble.im;
+            e.EV.Vcdouble.im = cast(double)e1.EV.Vcldouble.im;
         break;
     case OPc_r:
-        e->EV = e1->EV;
+        e.EV = e1.EV;
         break;
     case OPc_i:
         switch (tym)
         {
             case TYcfloat:
-                e->EV.Vfloat = e1->EV.Vcfloat.im;
+                e.EV.Vfloat = e1.EV.Vcfloat.im;
                 break;
             case TYcdouble:
-                e->EV.Vdouble = e1->EV.Vcdouble.im;
+                e.EV.Vdouble = e1.EV.Vcdouble.im;
                 break;
             case TYcldouble:
-                e->EV.Vldouble = e1->EV.Vcldouble.im;
+                e.EV.Vldouble = e1.EV.Vcldouble.im;
                 break;
             default:
                 assert(0);
         }
         break;
     case OPs8_16:
-        e->EV.Vint = (targ_schar) i1;
+        e.EV.Vint = cast(targ_schar) i1;
         break;
     case OPu8_16:
-        e->EV.Vint = i1 & 0xFF;
+        e.EV.Vint = i1 & 0xFF;
         break;
     case OP16_8:
-        e->EV.Vint = i1;
+        e.EV.Vint = i1;
         break;
     case OPbool:
-        e->EV.Vint = boolres(e1);
+        e.EV.Vint = boolres(e1);
         break;
     case OP32_16:
     case OPoffset:
-        e->EV.Vint = l1;
+        e.EV.Vint = cast(targ_int)l1;
         break;
 
     case OP64_32:
-        e->EV.Vlong = l1;
+        e.EV.Vlong = cast(targ_long)l1;
         break;
     case OPs32_64:
-        e->EV.Vllong = (targ_long) l1;
+        e.EV.Vllong = cast(targ_long) l1;
         break;
     case OPu32_64:
-        e->EV.Vllong = (targ_ulong) l1;
+        e.EV.Vllong = cast(targ_ulong) l1;
         break;
 
     case OP128_64:
-        e->EV.Vllong = e1->EV.Vcent.lsw;
+        e.EV.Vllong = e1.EV.Vcent.lsw;
         break;
     case OPs64_128:
-        e->EV.Vcent.lsw = e1->EV.Vllong;
-        e->EV.Vcent.msw = 0;
-        if ((targ_llong)e->EV.Vcent.lsw < 0)
-            e->EV.Vcent.msw = ~(targ_ullong)0;
+        e.EV.Vcent.lsw = e1.EV.Vllong;
+        e.EV.Vcent.msw = 0;
+        if (cast(targ_llong)e.EV.Vcent.lsw < 0)
+            e.EV.Vcent.msw = ~cast(targ_ullong)0;
         break;
     case OPu64_128:
-        e->EV.Vcent.lsw = e1->EV.Vullong;
-        e->EV.Vcent.msw = 0;
+        e.EV.Vcent.lsw = e1.EV.Vullong;
+        e.EV.Vcent.msw = 0;
         break;
 
     case OPmsw:
         switch (tysize(tym))
         {
             case 4:
-                e->EV.Vllong = (l1 >> 16) & 0xFFFF;
+                e.EV.Vllong = (l1 >> 16) & 0xFFFF;
                 break;
             case 8:
-                e->EV.Vllong = (l1 >> 32) & 0xFFFFFFFF;
+                e.EV.Vllong = (l1 >> 32) & 0xFFFFFFFF;
                 break;
             case 16:
-                e->EV.Vllong = e1->EV.Vcent.msw;
+                e.EV.Vllong = e1.EV.Vcent.msw;
                 break;
             default:
                 assert(0);
         }
         break;
     case OPb_8:
-        e->EV.Vlong = i1 & 1;
+        e.EV.Vlong = i1 & 1;
         break;
     case OPbswap:
-        e->EV.Vint = ((i1 >> 24) & 0x000000FF) |
-                     ((i1 >>  8) & 0x0000FF00) |
-                     ((i1 <<  8) & 0x00FF0000) |
-                     ((i1 << 24) & 0xFF000000);
+        e.EV.Vint = ((i1 >> 24) & 0x000000FF) |
+                    ((i1 >>  8) & 0x0000FF00) |
+                    ((i1 <<  8) & 0x00FF0000) |
+                    ((i1 << 24) & 0xFF000000);
         break;
 
     case OPpopcnt:
@@ -1816,34 +1736,34 @@ elem * evalu8(elem *e, goal_t goal)
         while (l1)
         {   // Not efficient, but don't need efficiency here
             popcnt += (l1 & 1);
-            l1 = (targ_ullong)l1 >> 1;  // shift is unsigned
+            l1 = cast(targ_ullong)l1 >> 1;  // shift is unsigned
         }
-        e->EV.Vllong = popcnt;
+        e.EV.Vllong = popcnt;
         break;
     }
 
     case OProl:
     case OPror:
-    {   unsigned n = i2;
+    {   uint n = i2;
         if (op == OPror)
             n = -n;
         switch (tysize(tym))
         {
             case 1:
                 n &= 7;
-                e->EV.Vuchar = (unsigned char)((i1 << n) | ((i1 & 0xFF) >> (8 - n)));
+                e.EV.Vuchar = cast(ubyte)((i1 << n) | ((i1 & 0xFF) >> (8 - n)));
                 break;
             case 2:
                 n &= 0xF;
-                e->EV.Vushort = (targ_ushort)((i1 << n) | ((i1 & 0xFFFF) >> (16 - n)));
+                e.EV.Vushort = cast(targ_ushort)((i1 << n) | ((i1 & 0xFFFF) >> (16 - n)));
                 break;
             case 4:
                 n &= 0x1F;
-                e->EV.Vulong = (targ_ulong)((i1 << n) | ((i1 & 0xFFFFFFFF) >> (32 - n)));
+                e.EV.Vulong = cast(targ_ulong)((i1 << n) | ((i1 & 0xFFFFFFFF) >> (32 - n)));
                 break;
             case 8:
                 n &= 0x3F;
-                e->EV.Vullong = (targ_ullong)((l1 << n) | ((l1 & 0xFFFFFFFFFFFFFFFFLL) >> (64 - n)));
+                e.EV.Vullong = cast(targ_ullong)((l1 << n) | ((l1 & 0xFFFFFFFFFFFFFFFFL) >> (64 - n)));
                 break;
             //case 16:
             default:
@@ -1852,7 +1772,8 @@ elem * evalu8(elem *e, goal_t goal)
         break;
     }
     case OPind:
-#if 0 && MARS
+static if (0) // && MARS
+{
         /* The problem with this is that although the only reaching definition
          * of the variable is null, it still may never get executed, as in:
          *   int* p = null; if (p) *p = 3;
@@ -1860,74 +1781,74 @@ elem * evalu8(elem *e, goal_t goal)
          */
         if (l1 >= 0 && l1 < 4096)
         {
-            error(e->Esrcpos.Sfilename, e->Esrcpos.Slinnum, e->Esrcpos.Scharnum,
+            error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum,
                 "dereference of null pointer");
-            e->E1->EV.Vlong = 4096;     // suppress redundant messages
+            e.EV.E1.EV.Vlong = 4096;     // suppress redundant messages
         }
-#endif
+}
         return e;
 
     case OPvecfill:
-        switch (tybasic(e->Ety))
+        switch (tybasic(e.Ety))
         {
             // 16 byte vectors
             case TYfloat4:
                 for (int i = 0; i < 4; ++i)
-                    e->EV.Vfloat4[i] = e1->EV.Vfloat;
+                    e.EV.Vfloat4[i] = e1.EV.Vfloat;
                 break;
             case TYdouble2:
                 for (int i = 0; i < 2; ++i)
-                    e->EV.Vdouble2[i] = e1->EV.Vdouble;
+                    e.EV.Vdouble2[i] = e1.EV.Vdouble;
                 break;
             case TYschar16:
             case TYuchar16:
                 for (int i = 0; i < 16; ++i)
-                    e->EV.Vuchar16[i] = (targ_uchar)i1;
+                    e.EV.Vuchar16[i] = cast(targ_uchar)i1;
                 break;
             case TYshort8:
             case TYushort8:
                 for (int i = 0; i < 8; ++i)
-                    e->EV.Vushort8[i] = (targ_ushort)i1;
+                    e.EV.Vushort8[i] = cast(targ_ushort)i1;
                 break;
             case TYlong4:
             case TYulong4:
                 for (int i = 0; i < 4; ++i)
-                    e->EV.Vulong4[i] = (targ_ulong)i1;
+                    e.EV.Vulong4[i] = cast(targ_ulong)i1;
                 break;
             case TYllong2:
             case TYullong2:
                 for (int i = 0; i < 2; ++i)
-                    e->EV.Vullong2[i] = (targ_ullong)l1;
+                    e.EV.Vullong2[i] = cast(targ_ullong)l1;
                 break;
 
             // 32 byte vectors
             case TYfloat8:
                 for (int i = 0; i < 8; ++i)
-                    e->EV.Vfloat8[i] = e1->EV.Vfloat;
+                    e.EV.Vfloat8[i] = e1.EV.Vfloat;
                 break;
             case TYdouble4:
                 for (int i = 0; i < 4; ++i)
-                    e->EV.Vdouble4[i] = e1->EV.Vdouble;
+                    e.EV.Vdouble4[i] = e1.EV.Vdouble;
                 break;
             case TYschar32:
             case TYuchar32:
                 for (int i = 0; i < 32; ++i)
-                    e->EV.Vuchar32[i] = (targ_uchar)i1;
+                    e.EV.Vuchar32[i] = cast(targ_uchar)i1;
                 break;
             case TYshort16:
             case TYushort16:
                 for (int i = 0; i < 16; ++i)
-                    e->EV.Vushort16[i] = (targ_ushort)i1;
+                    e.EV.Vushort16[i] = cast(targ_ushort)i1;
                 break;
             case TYlong8:
             case TYulong8:
                 for (int i = 0; i < 8; ++i)
-                    e->EV.Vulong8[i] = (targ_ulong)i1;
+                    e.EV.Vulong8[i] = cast(targ_ulong)i1;
                 break;
             case TYllong4:
             case TYullong4:
                 for (int i = 0; i < 4; ++i)
-                    e->EV.Vullong4[i] = (targ_ullong)l1;
+                    e.EV.Vullong4[i] = cast(targ_ullong)l1;
                 break;
 
             default:
@@ -1938,41 +1859,96 @@ elem * evalu8(elem *e, goal_t goal)
     default:
         return e;
   }
-#if TX86
+
     int flags;
 
     if (!(goal & GOALignore_exceptions) &&
         (config.flags4 & CFG4fastfloat) == 0 && testFE() &&
-        (HAVE_FLOAT_EXCEPT || tyfloating(tym) || tyfloating(tybasic(typemask(e))))
+        (have_float_except() || tyfloating(tym) || tyfloating(tybasic(typemask(e))))
        )
     {
         // Exceptions happened. Do not fold the constants.
         *e = esave;
         return e;
     }
-#if SCPP
-    else if ((flags = _status87()) & 0x3F)
-    {   // Should also give diagnostic warning for:
-        // overflow, underflow, denormal, invalid
-        if (flags & 0x04)
-            warerr(WM_divby0);
-//      else if (flags & 0x08)          // overflow
-//          warerr(WM_badnumber);
+    else
+    {
+version (SCPP)
+{
+        if ((flags = statusFE()) & 0x3F)
+        {   // Should also give diagnostic warning for:
+            // overflow, underflow, denormal, invalid
+            if (flags & 0x04)
+                warerr(WM.WM_divby0);
+    //      else if (flags & 0x08)          // overflow
+    //          warerr(WM.WM_badnumber);
+        }
+}
     }
-#endif
-#endif
 
-  /*dbg_printf("result = x%lx\n",e->EV.Vlong);*/
-  e->Eoper = OPconst;
+  /*debug printf("result = x%lx\n",e.EV.Vlong);*/
+  e.Eoper = OPconst;
   el_free(e1);
   if (e2)
         el_free(e2);
-#if !__GNUC__
-  //printf("2: %x\n", _status87());
-  assert((_status87() & 0x3800) == 0);
-#endif
+  //printf("2: %x\n", statusFE());
+  assert((statusFE() & 0x3800) == 0);
   //printf("evalu8() returns: "); elem_print(e);
   return e;
 }
 
-#endif /* !SPP */
+/******************************
+ * This is the same as the one in el.c, but uses native D reals
+ * instead of the soft long double ones.
+ */
+
+extern (D) targ_ldouble el_toldoubled(elem *e)
+{
+    targ_ldouble result;
+
+    elem_debug(e);
+    assert(e.Eoper == OPconst);
+    switch (tybasic(typemask(e)))
+    {
+        case TYfloat:
+        case TYifloat:
+            result = e.EV.Vfloat;
+            break;
+        case TYdouble:
+        case TYidouble:
+        case TYdouble_alias:
+            result = e.EV.Vdouble;
+            break;
+        case TYldouble:
+        case TYildouble:
+            result = e.EV.Vldouble;
+            break;
+        default:
+            result = 0;
+            break;
+    }
+    return result;
+}
+
+/***************************************
+ * Copy of _modulo from fp.c. Here to help with linking problems.
+ */
+version (CRuntime_Microsoft)
+{
+    extern (D) private targ_ldouble _modulo(targ_ldouble x, targ_ldouble y)
+    {
+        return cast(targ_ldouble)fmodl(cast(real)x, cast(real)y);
+    }
+    import core.stdc.math : isnan;
+    extern (D) private int isnan(targ_ldouble x)
+    {
+        return isnan(cast(real)x);
+    }
+    import core.stdc.math : fabsl;
+    import dmd.root.longdouble : fabsl; // needed if longdouble is longdouble_soft
+}
+else
+{
+    targ_ldouble _modulo(targ_ldouble x, targ_ldouble y);
+}
+}

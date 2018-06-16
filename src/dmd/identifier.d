@@ -29,54 +29,54 @@ extern (C++) final class Identifier : RootObject
 {
 private:
     const int value;
-    const char* string;
+    const char* name;
     const size_t len;
 
 public:
 
-    extern (D) this(const(char)* string, size_t length, int value) nothrow
+    extern (D) this(const(char)* name, size_t length, int value) nothrow
     {
-        //printf("Identifier('%s', %d)\n", string, value);
-        this.string = string;
+        //printf("Identifier('%s', %d)\n", name, value);
+        this.name = name;
         this.value = value;
         this.len = length;
     }
 
-    extern (D) this(const(char)* string) nothrow
+    extern (D) this(const(char)* name) nothrow
     {
-        //printf("Identifier('%s', %d)\n", string, value);
-        this(string, strlen(string), TOK.identifier);
+        //printf("Identifier('%s', %d)\n", name, value);
+        this(name, strlen(name), TOK.identifier);
     }
 
-    static Identifier create(const(char)* string) nothrow
+    static Identifier create(const(char)* name) nothrow
     {
-        return new Identifier(string);
+        return new Identifier(name);
     }
 
     override bool equals(RootObject o) const
     {
-        return this == o || strncmp(string, o.toChars(), len + 1) == 0;
+        return this == o || strncmp(name, o.toChars(), len + 1) == 0;
     }
 
     override int compare(RootObject o) const
     {
-        return strncmp(string, o.toChars(), len + 1);
+        return strncmp(name, o.toChars(), len + 1);
     }
 
 nothrow:
     override void print() const
     {
-        fprintf(stderr, "%s", string);
+        fprintf(stderr, "%s", name);
     }
 
     override const(char)* toChars() const pure
     {
-        return string;
+        return name;
     }
 
     extern (D) final const(char)[] toString() const pure
     {
-        return string[0 .. len];
+        return name[0 .. len];
     }
 
     final int getValue() const pure
@@ -135,6 +135,40 @@ nothrow:
         OutBuffer buf;
         buf.writestring(prefix);
         buf.print(i);
+        return idPool(buf.peekSlice());
+    }
+
+    /***************************************
+     * Generate deterministic named identifier based on a source location,
+     * such that the name is consistent across multiple compilations.
+     * A new unique name is generated. If the prefix+location is already in
+     * the stringtable, an extra suffix is added (starting the count at "_1").
+     *
+     * Params:
+     *      prefix      = first part of the identifier name.
+     *      loc         = source location to use in the identifier name.
+     * Returns:
+     *      Identifier (inside Identifier.idPool) with deterministic name based
+     *      on the source location.
+     */
+    extern (D) static Identifier generateIdWithLoc(string prefix, const ref Loc loc)
+    {
+        OutBuffer buf;
+        buf.writestring(prefix);
+        buf.writestring("_L");
+        buf.print(loc.linnum);
+        buf.writestring("_C");
+        buf.print(loc.charnum);
+        auto basesize = buf.peekSlice().length;
+        uint counter = 1;
+        while (stringtable.lookup(buf.peekSlice().ptr, buf.peekSlice().length) !is null)
+        {
+            // Strip the extra suffix
+            buf.setsize(basesize);
+            // Add new suffix with increased counter
+            buf.writestring("_");
+            buf.print(counter++);
+        }
         return idPool(buf.peekSlice());
     }
 
