@@ -918,3 +918,12 @@ CC18928* newCC18928()
 {
     return new CC18928();
 }
+
+/****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=18966
+Base18966::Base18966() { x = 10; }
+Base18966::~Base18966() {}
+void Base18966::vf()
+{
+    x = 100;
+}
