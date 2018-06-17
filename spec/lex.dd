@@ -258,9 +258,10 @@ $(GNAME IdentifierChar):
 
 $(P Identifiers start with a letter, $(D _), or universal alpha, and are
 followed by any number of letters, $(D _), digits, or universal alphas.
-Universal alphas are as defined in ISO/IEC 9899:1999(E) Appendix D. (This is the
-C99 Standard.) Identifiers can be arbitrarily long, and are case sensitive.
-Identifiers starting with $(D __) (two underscores) are reserved.)
+Universal alphas are as defined in ISO/IEC 9899:1999(E) Appendix D of the C99 Standard.
+Identifiers can be arbitrarily long, and are case sensitive.)
+
+$(IMPLEMENTATION_DEFINED Identifiers starting with $(D __) (two underscores) are reserved.)
 
 $(H2 $(LNAME2 string_literals, String Literals))
 
@@ -354,7 +355,9 @@ $(GNAME TokenString):
         $(P In all string literal forms, an $(GLINK EndOfLine) is regarded as a single
         $(D \n) character.)
 
-        $(P String literals are read only. Writes to string literals
+        $(P String literals are read only.)
+
+        $(UNDEFINED_BEHAVIOR Writes to string literals
         cannot always be detected, but cause undefined behavior.)
 
 $(H3 $(LNAME2 wysiwyg, Wysiwyg Strings))
