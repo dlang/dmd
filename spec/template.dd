@@ -505,13 +505,13 @@ $(GNAME TemplateAliasParameterDefault):
 )
 
     $(P Alias parameters enable templates to be parameterized with
-        almost any kind of D symbol, including user-defined type names,
+        symbol names or values computed at compile-time.
+        Almost any kind of D symbol can be used, including user-defined type names,
         global names, local names, module names, template names, and
         template instance names.
-        Literals can also be used as arguments to alias parameters.
     )
 
-    $(P $(B Examples:))
+    $(P $(B Symbol examples:))
 
     $(UL
         $(LI User-defined type names
@@ -620,14 +620,19 @@ $(GNAME TemplateAliasParameterDefault):
         }
         ------
         )
+    )
+
+    $(P $(B Value examples:))
+
+    $(UL
 
         $(LI Literals
 
         ------
-        template Foo(alias X, alias Y)
+        template Foo(alias x, alias y)
         {
-            static int i = X;
-            static string s = Y;
+            static int i = x;
+            static string s = y;
         }
 
         void main()
@@ -637,6 +642,44 @@ $(GNAME TemplateAliasParameterDefault):
         }
         ------
         )
+
+        $(LI Compile-time values
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        ------
+        template Foo(alias x)
+        {
+            static int i = x;
+        }
+
+        void main()
+        {
+            // compile-time argument evaluation
+            enum two = 1 + 1;
+            alias foo = Foo!(5 * two);
+            assert(foo.i == 10);
+            static assert(foo.stringof == "Foo!10");
+
+            // compile-time function evaluation
+            int get10() { return 10; }
+            alias bar = Foo!(get10());
+            // bar is the same template instance as foo
+            assert(&bar.i is &foo.i);
+        }
+        ------
+        ))
+
+        $(LI Lambdas
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ------
+        template Foo(alias fun)
+        {
+            enum val = fun(2);
+        }
+
+        alias foo = Foo!((int x) => x * x);
+        static assert(foo.val == 4);
+        ------
+        ))
     )
 
 $(H3 $(LNAME2 typed_alias_op, Typed alias parameters))
