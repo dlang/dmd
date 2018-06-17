@@ -3,10 +3,13 @@
 Many improvements have been made to the `extern(C++)` experience in this release cycle.
 
 Mangling improvements include:
-* Constructor/destructor mangling matches C++
-* Compatible D style operators now mangle as C++ operators
-* `nullptr_t` mangles correctly
-* Also various mangling bugs have been fixed
+
+$(UL
+  $(LI  Constructor/destructor mangling matches C++)
+  $(LI  Compatible D style operators now mangle as C++ operators)
+  $(LI  `nullptr_t` mangles correctly)
+  $(LI  Various mangling bugs have been fixed)
+)
 
 `extern(C++)` APIs that use `nullptr_t` can use `typeof(null)` on the D side:
 ---
