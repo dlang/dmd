@@ -1,0 +1,24 @@
+`extern (C++)` construction, destruction, operators and other mangling improvements
+
+Many improvements have been made to the `extern(C++)` experience in this release cycle.
+
+Mangling improvements include:
+* Constructor/destructor mangling matches C++
+* Compatible D style operators now mangle as C++ operators
+* `nullptr_t` mangles correctly
+* Also various mangling bugs have been fixed
+
+`extern(C++)` APIs that use `nullptr_t` can use `typeof(null)` on the D side:
+---
+alias nullptr_t = typeof(null);
+extern (C++) void fun(nullptr_t);
+---
+
+`extern (C++)` mangling of operators is working for all operators that are semantically equivalent.
+This list includes all instantiations of `opUnary`, `opBinary`, `opAssign`, `opOpAssign`, `opCast`, `opEquals`, `opIndex`, `opCall`.
+Two notable exceptions are `opCmp`, and C++ `operator !`, which don't have compatible implementations.
+
+Mangling of `extern (C++) class` constructors and destructor are working.
+
+This release also includes ABI fixes where destructors are now correctly added to the virtual table, and constructor/destructor calling semantics now match C++.
+With this, mixed-language class hierarchies are working, with construction/destruction being supported in either language.
