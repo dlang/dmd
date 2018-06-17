@@ -815,6 +815,16 @@ Lfail:
 }
 
 /***********************************
+ * Returns:
+ *   result of C library clock()
+ */
+
+int os_clock()
+{
+    return clock();
+}
+
+/***********************************
  * Return size of OS critical section.
  * NOTE: can't use the sizeof() calls directly since cross compiling is
  * supported and would end up using the host sizes rather than the target

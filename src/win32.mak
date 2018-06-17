@@ -524,7 +524,7 @@ $G/dt.obj : $C\dt.h $C\dt.c
 	$(CC) -c -o$@ $(MFLAGS) $C\dt
 
 $G/dvec.obj : $C\dvec.d
-	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC $C\dvec
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\dvec
 
 $G/dwarf.obj : $C\dwarf.h $C\dwarf.c
 	$(CC) -c -o$@ $(MFLAGS) $C\dwarf
