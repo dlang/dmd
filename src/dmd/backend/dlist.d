@@ -563,7 +563,7 @@ list_t list_build(void *p,...)
             pe = &list.next;
         }
     }
-    //va_end(ap);
+    va_end(ap);
     return alist;
 }
 
