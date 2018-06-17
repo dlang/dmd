@@ -1907,10 +1907,10 @@ else
             LcopyArg:
                 id = Identifier.generateId("__applyArg", cast(int)i);
 
-                Initializer ie = new ExpInitializer(Loc.initial, new IdentifierExp(Loc.initial, id));
-                auto v = new VarDeclaration(Loc.initial, p.type, p.ident, ie);
+                Initializer ie = new ExpInitializer(fs.loc, new IdentifierExp(fs.loc, id));
+                auto v = new VarDeclaration(fs.loc, p.type, p.ident, ie);
                 v.storage_class |= STC.temp;
-                Statement s = new ExpStatement(Loc.initial, v);
+                Statement s = new ExpStatement(fs.loc, v);
                 fs._body = new CompoundStatement(fs.loc, s, fs._body);
             }
             params.push(new Parameter(stc, p.type, id, null));
@@ -1921,11 +1921,13 @@ else
         auto tf = new TypeFunction(params, Type.tint32, 0, LINK.d, stc);
         fs.cases = new Statements();
         fs.gotos = new ScopeStatements();
-        auto fld = new FuncLiteralDeclaration(fs.loc, Loc.initial, tf, TOK.delegate_, fs);
+        auto fld = new FuncLiteralDeclaration(fs.loc, fs.endloc, tf, TOK.delegate_, fs);
         fld.fbody = fs._body;
         Expression flde = new FuncExp(fs.loc, fld);
         flde = flde.expressionSemantic(sc);
         fld.tookAddressOf = 0;
+        if (flde.op == TOK.error)
+            return null;
         return cast(FuncExp)flde;
     }
 
