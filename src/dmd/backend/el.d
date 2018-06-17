@@ -15,11 +15,10 @@ module dmd.backend.el;
 
 import dmd.backend.cdef;
 import dmd.backend.cc;
+import dmd.backend.dlist;
 import dmd.backend.type;
 
 import dmd.backend.cc : Symbol;
-
-import dmd.tk.dlist;
 
 extern (C++):
 @nogc:

@@ -30,4 +30,3 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 #define MEM_NONEW       1
 #endif
 #include        "mem.c"
-#include        "list.c"

@@ -48,14 +48,13 @@ import dmd.toir;
 import dmd.tokens;
 import dmd.visitor;
 
-import dmd.tk.dlist;
-
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
 import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.cv4;
+import dmd.backend.dlist;
 import dmd.backend.dt;
 import dmd.backend.el;
 import dmd.backend.global;
