@@ -419,13 +419,13 @@ void toObjFile(Dsymbol ds, bool multiobj)
                  */
                 dtbv.size(0);
             }
-            cd.vtblsym.Sdt = dtbv.finish();
-            cd.vtblsym.Sclass = scclass;
-            cd.vtblsym.Sfl = FLdata;
-            out_readonly(cd.vtblsym);
-            outdata(cd.vtblsym);
+            cd.vtblsym.csym.Sdt = dtbv.finish();
+            cd.vtblsym.csym.Sclass = scclass;
+            cd.vtblsym.csym.Sfl = FLdata;
+            out_readonly(cd.vtblsym.csym);
+            outdata(cd.vtblsym.csym);
             if (cd.isExport())
-                objmod.export_symbol(cd.vtblsym,0);
+                objmod.export_symbol(cd.vtblsym.csym,0);
         }
 
         override void visit(InterfaceDeclaration id)
@@ -1264,7 +1264,7 @@ private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
     // vtbl[]
     dtb.size(cd.vtbl.dim);
     if (cd.vtbl.dim)
-        dtb.xoff(cd.vtblsym, 0, TYnptr);
+        dtb.xoff(cd.vtblsym.csym, 0, TYnptr);
     else
         dtb.size(0);
 

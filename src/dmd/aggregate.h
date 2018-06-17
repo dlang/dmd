@@ -324,7 +324,7 @@ public:
     void addLocalClass(ClassDeclarations *);
 
     // Back end
-    Symbol *vtblsym;
+    Dsymbol *vtblsym;
 
     ClassDeclaration *isClassDeclaration() { return (ClassDeclaration *)this; }
     void accept(Visitor *v) { v->visit(this); }

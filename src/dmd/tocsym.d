@@ -549,7 +549,7 @@ Classsym *fake_classsym(Identifier id)
 
 Symbol *toVtblSymbol(ClassDeclaration cd)
 {
-    if (!cd.vtblsym)
+    if (!cd.vtblsym || !cd.vtblsym.csym)
     {
         if (!cd.csym)
             toSymbol(cd);
@@ -559,9 +559,11 @@ Symbol *toVtblSymbol(ClassDeclaration cd)
         auto s = toSymbolX(cd, "__vtbl", SCextern, t, "Z");
         s.Sflags |= SFLnodebug;
         s.Sfl = FLextern;
-        cd.vtblsym = s;
+
+        auto vtbl = cd.vtblSymbol();
+        vtbl.csym = s;
     }
-    return cd.vtblsym;
+    return cd.vtblsym.csym;
 }
 
 /**********************************
