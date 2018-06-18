@@ -177,7 +177,6 @@ class ProtoGC : GC
                 return;
             }
         }
-        assert(false);
     }
 
     @property RootIterator rootIter() return @nogc
@@ -211,7 +210,6 @@ class ProtoGC : GC
                 return;
             }
         }
-        assert(false);
     }
 
     @property RangeIterator rangeIter() return @nogc
