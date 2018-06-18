@@ -3661,7 +3661,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                      s.isEnumDeclaration() ||
                      v && v.isDataseg()) && !sc.func.localsymtab.insert(s))
                 {
-                    e.error("declaration `%s` is already defined in another scope in `%s`", s.toPrettyChars(), sc.func.toChars());
+                    // https://issues.dlang.org/show_bug.cgi?id=18266
+                    // set parent so that type semantic does not assert
+                    s.parent = sc.parent;
+                    Dsymbol originalSymbol = sc.func.localsymtab.lookup(s.ident);
+                    assert(originalSymbol);
+                    e.error("declaration `%s` is already defined in another scope in `%s` at line `%d`", s.toPrettyChars(), sc.func.toChars(), originalSymbol.loc.linnum);
                     return setError();
                 }
                 else
