@@ -474,6 +474,19 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 // Flag variable as error to avoid invalid error messages due to unknown size
                 dsym.type = Type.terror;
             }
+
+            /* Infer `scope` for local variables if struct itself is `scope`.
+             * https://issues.dlang.org/show_bug.cgi?id=17934
+             */
+            if (ts.sym.storage_class & STC.scope_ &&
+                global.params.useDIP1000 == FeatureState.enabled &&
+                !(dsym.storage_class & (STC.parameter | STC.temp | STC.field | STC.in_ | STC.foreach_ | STC.result | STC.manifest)) &&
+                !dsym.isDataseg() &&
+                !dsym.doNotInferScope &&
+                dsym.type.hasPointers())
+            {
+                dsym.storage_class |= STC.scope_;
+            }
         }
         if ((dsym.storage_class & STC.auto_) && !inferred)
             dsym.error("storage class `auto` has no effect if type is not inferred, did you mean `scope`?");
@@ -1092,23 +1105,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         dsym.edtor = dsym.callScopeDtor(sc);
         if (dsym.edtor)
         {
-            /* If dsym is a local variable, who's type is a struct with a scope destructor,
-             * then make dsym scope, too.
-             */
-            if (global.params.useDIP1000 == FeatureState.enabled &&
-                !(dsym.storage_class & (STC.parameter | STC.temp | STC.field | STC.in_ | STC.foreach_ | STC.result | STC.manifest)) &&
-                !dsym.isDataseg() &&
-                !dsym.doNotInferScope &&
-                dsym.type.hasPointers())
-            {
-                auto tv = dsym.type.baseElemOf();
-                if (tv.ty == Tstruct &&
-                    (cast(TypeStruct)tv).sym.dtor.storage_class & STC.scope_)
-                {
-                    dsym.storage_class |= STC.scope_;
-                }
-            }
-
             if (sc.func && dsym.storage_class & (STC.static_ | STC.gshared))
                 dsym.edtor = dsym.edtor.expressionSemantic(sc._module._scope);
             else

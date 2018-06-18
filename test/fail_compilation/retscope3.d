@@ -59,7 +59,7 @@ fail_compilation/retscope3.d(3027): Error: scope variable `l` assigned to `elem`
 
 #line 3000
 
-struct List
+scope struct List
 {
     Elem front() @safe return scope;
 
