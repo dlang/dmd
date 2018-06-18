@@ -917,8 +917,15 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         char[5+4+1] hiddenparam = void;
         __gshared int hiddenparami;    // how many we've generated so far
 
-        sprintf(hiddenparam.ptr,"__HID%d",++hiddenparami);
-        shidden = symbol_name(hiddenparam.ptr,SCparameter,thidden);
+        const(char)* name;
+        if (fd.nrvo_can && fd.nrvo_var)
+            name = fd.nrvo_var.ident.toChars();
+        else
+        {
+            sprintf(hiddenparam.ptr, "__HID%d", ++hiddenparami);
+            name = hiddenparam.ptr;
+        }
+        shidden = symbol_name(name, SCparameter, thidden);
         shidden.Sflags |= SFLtrue | SFLfree;
         if (fd.nrvo_can && fd.nrvo_var && fd.nrvo_var.nestedrefs.dim)
             type_setcv(&shidden.Stype, shidden.Stype.Tty | mTYvolatile);
