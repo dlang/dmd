@@ -101,9 +101,10 @@ Foo var;
 
 $(H2 $(LNAME2 access_control, Access Control))
 
-        $(P Access to class members is controlled using $(GLINK2 attribute, ProtectionAttribute)s.
-        The default protection attribute is $(D public).
-        Access control does not affect visibility.
+        $(P Access to class members is controlled using
+        $(DDSUBLINK spec/attribute, visibility_attributes,
+        visibility attributes).
+        The default visibility attribute is $(D public).
         )
 
 $(H2 $(LNAME2 fields, Fields))

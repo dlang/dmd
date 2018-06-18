@@ -946,7 +946,7 @@ $(MULTICOLS 4,
 
     $(LINK2 statement.html#IfStatement, $(D else))
     $(LINK2 enum.html, $(D enum))
-    $(LINK2 attribute.html#ProtectionAttribute, $(D export))
+    $(LINK2 attribute.html#visibility_attributes, $(D export))
     $(LINK2 attribute.html#linkage, $(D extern))
 
     $(LINK2 type.html, $(D false))
@@ -987,11 +987,11 @@ $(MULTICOLS 4,
     $(LINK2 function.html#OutStatement, $(D out))
     $(LINK2 attribute.html#override, $(D override))
 
-    $(LINK2 attribute.html#ProtectionAttribute, $(D package))
+    $(LINK2 attribute.html#visibility_attributes, $(D package))
     $(LINK2 pragma.html, $(D pragma))
-    $(LINK2 attribute.html#ProtectionAttribute, $(D private))
-    $(LINK2 attribute.html#ProtectionAttribute, $(D protected))
-    $(LINK2 attribute.html#ProtectionAttribute, $(D public))
+    $(LINK2 attribute.html#visibility_attributes, $(D private))
+    $(LINK2 attribute.html#visibility_attributes, $(D protected))
+    $(LINK2 attribute.html#visibility_attributes, $(D public))
     $(LINK2 function.html#pure-functions, $(D pure))
 
     $(LINK2 type.html, $(D real))
