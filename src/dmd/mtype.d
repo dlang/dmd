@@ -54,7 +54,6 @@ import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
 
-enum LOGDOTEXP = 0;         // log ::dotExp()
 enum LOGDEFAULTINIT = 0;    // log ::defaultInit()
 
 extern (C++) __gshared int Tsize_t = Tuns32;
