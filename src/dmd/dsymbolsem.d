@@ -1370,9 +1370,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         bool loadErrored = false;
         if (!imp.mod)
         {
-            const errors = global.errors;
-            imp.load(sc);
-            loadErrored = global.errors != errors;
+            loadErrored = imp.load(sc);
             if (imp.mod)
                 imp.mod.importAll(null);
         }
