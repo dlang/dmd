@@ -314,6 +314,7 @@ enum SHF_LINK_ORDER =       (1 << 7);
 enum SHF_OS_NONCONFORMING = (1 << 8);
 enum SHF_GROUP =            (1 << 9);
 enum SHF_TLS =              (1 << 10);
+enum SHF_COMPRESSED =       (1 << 11);
 enum SHF_MASKOS =           0x0ff00000;
 enum SHF_MASKPROC =         0xf0000000;
 enum SHF_ORDERED =          (1 << 30);
