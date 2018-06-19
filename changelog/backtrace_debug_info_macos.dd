@@ -32,7 +32,6 @@ When running the application it will produce an output similar to:
 
 $(CONSOLE
 object.Exception@main.d(3): bar
-
 main.d:3 void main.bar() [0x71afdfb]
 main.d:8 void main.foo() [0x71afe0c]
 main.d:13 _Dmain [0x71afd78]
