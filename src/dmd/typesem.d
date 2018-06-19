@@ -3940,3 +3940,233 @@ private extern(C++) final class DotExpVisitor : Visitor
         result = e;
     }
 }
+
+
+/************************
+ * Get the the default initialization expression for a type.
+ * Params:
+ *  mt = the type for which the init expression is returned
+ *  loc = the location where the expression needs to be evaluated
+ *
+ * Returns:
+ *  The initialization expression for the type.
+ */
+extern(C++) Expression defaultInit(Type mt, const ref Loc loc)
+{
+    scope v = new DefaultInitVisitor(loc);
+    mt.accept(v);
+    return v.result;
+}
+
+private extern(C++) final class DefaultInitVisitor : Visitor
+{
+    alias visit = typeof(super).visit;
+    const Loc loc;
+    Expression result;
+
+    this(const ref Loc loc)
+    {
+        this.loc = loc;
+    }
+
+    override void visit(Type mt)
+    {
+        static if (LOGDEFAULTINIT)
+        {
+            printf("Type::defaultInit() '%s'\n", mt.toChars());
+        }
+        result = null;
+    }
+
+    override void visit(TypeError mt)
+    {
+        result = new ErrorExp();
+    }
+
+    override void visit(TypeBasic mt)
+    {
+        static if (LOGDEFAULTINIT)
+        {
+            printf("TypeBasic::defaultInit() '%s'\n", mt.toChars());
+        }
+        dinteger_t value = 0;
+
+        switch (mt.ty)
+        {
+        case Tchar:
+            value = 0xFF;
+            break;
+
+        case Twchar:
+        case Tdchar:
+            value = 0xFFFF;
+            break;
+
+        case Timaginary32:
+        case Timaginary64:
+        case Timaginary80:
+        case Tfloat32:
+        case Tfloat64:
+        case Tfloat80:
+            result = new RealExp(loc, Target.RealProperties.snan, mt);
+            return;
+
+        case Tcomplex32:
+        case Tcomplex64:
+        case Tcomplex80:
+            {
+                // Can't use fvalue + I*fvalue (the im part becomes a quiet NaN).
+                const cvalue = complex_t(Target.RealProperties.snan, Target.RealProperties.snan);
+                result = new ComplexExp(loc, cvalue, mt);
+                return;
+            }
+
+        case Tvoid:
+            error(loc, "`void` does not have a default initializer");
+            result = new ErrorExp();
+            return;
+
+        default:
+            break;
+        }
+        result = new IntegerExp(loc, value, mt);
+    }
+
+    override void visit(TypeVector mt)
+    {
+        //printf("TypeVector::defaultInit()\n");
+        assert(mt.basetype.ty == Tsarray);
+        Expression e = mt.basetype.defaultInit(loc);
+        auto ve = new VectorExp(loc, e, mt);
+        ve.type = mt;
+        ve.dim = cast(int)(mt.basetype.size(loc) / mt.elementType().size(loc));
+        result = ve;
+    }
+
+    override void visit(TypeSArray mt)
+    {
+        static if (LOGDEFAULTINIT)
+        {
+            printf("TypeSArray::defaultInit() '%s'\n", mt.toChars());
+        }
+        if (mt.next.ty == Tvoid)
+            result = mt.tuns8.defaultInit(loc);
+        else
+            result = mt.next.defaultInit(loc);
+    }
+
+    override void visit(TypeDArray mt)
+    {
+        static if (LOGDEFAULTINIT)
+        {
+            printf("TypeDArray::defaultInit() '%s'\n", mt.toChars());
+        }
+        result = new NullExp(loc, mt);
+    }
+
+    override void visit(TypeAArray mt)
+    {
+        static if (LOGDEFAULTINIT)
+        {
+            printf("TypeAArray::defaultInit() '%s'\n", mt.toChars());
+        }
+        result = new NullExp(loc, mt);
+    }
+
+    override void visit(TypePointer mt)
+    {
+        static if (LOGDEFAULTINIT)
+        {
+            printf("TypePointer::defaultInit() '%s'\n", mt.toChars());
+        }
+        result = new NullExp(loc, mt);
+    }
+
+    override void visit(TypeReference mt)
+    {
+        static if (LOGDEFAULTINIT)
+        {
+            printf("TypeReference::defaultInit() '%s'\n", mt.toChars());
+        }
+        result = new NullExp(loc, mt);
+    }
+
+    override void visit(TypeFunction mt)
+    {
+        error(loc, "`function` does not have a default initializer");
+        result = new ErrorExp();
+    }
+
+    override void visit(TypeDelegate mt)
+    {
+        static if (LOGDEFAULTINIT)
+        {
+            printf("TypeDelegate::defaultInit() '%s'\n", mt.toChars());
+        }
+        result = new NullExp(loc, mt);
+    }
+
+    override void visit(TypeStruct mt)
+    {
+        static if (LOGDEFAULTINIT)
+        {
+            printf("TypeStruct::defaultInit() '%s'\n", mt.toChars());
+        }
+        Declaration d = new SymbolDeclaration(mt.sym.loc, mt.sym);
+        assert(d);
+        d.type = mt;
+        d.storage_class |= STC.rvalue; // https://issues.dlang.org/show_bug.cgi?id=14398
+        result = new VarExp(mt.sym.loc, d);
+    }
+
+    override void visit(TypeEnum mt)
+    {
+        static if (LOGDEFAULTINIT)
+        {
+            printf("TypeEnum::defaultInit() '%s'\n", mt.toChars());
+        }
+        // Initialize to first member of enum
+        Expression e = mt.sym.getDefaultValue(loc);
+        e = e.copy();
+        e.loc = loc;
+        e.type = mt; // to deal with const, immutable, etc., variants
+        result = e;
+    }
+
+    override void visit(TypeClass mt)
+    {
+        static if (LOGDEFAULTINIT)
+        {
+            printf("TypeClass::defaultInit() '%s'\n", mt.toChars());
+        }
+        result = new NullExp(loc, mt);
+    }
+
+    override void visit(TypeTuple mt)
+    {
+        static if (LOGDEFAULTINIT)
+        {
+            printf("TypeTuple::defaultInit() '%s'\n", mt.toChars());
+        }
+        auto exps = new Expressions();
+        exps.setDim(mt.arguments.dim);
+        for (size_t i = 0; i < mt.arguments.dim; i++)
+        {
+            Parameter p = (*mt.arguments)[i];
+            assert(p.type);
+            Expression e = p.type.defaultInitLiteral(loc);
+            if (e.op == TOK.error)
+            {
+                result = e;
+                return;
+            }
+            (*exps)[i] = e;
+        }
+        result = new TupleExp(loc, exps);
+    }
+
+    override void visit(TypeNull mt)
+    {
+        result = new NullExp(Loc.initial, Type.tnull);
+    }
+}

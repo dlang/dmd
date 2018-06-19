@@ -22,7 +22,6 @@ import dmd.access;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.gluelayer;
-import dmd.complex;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
@@ -2424,15 +2423,6 @@ extern (C++) abstract class Type : RootObject
         return STRUCTALIGN_DEFAULT;
     }
 
-    Expression defaultInit(const ref Loc loc)
-    {
-        static if (LOGDEFAULTINIT)
-        {
-            printf("Type::defaultInit() '%s'\n", toChars());
-        }
-        return null;
-    }
-
     /***************************************
      * Use when we prefer the default initializer to be a literal,
      * rather than a global immutable variable.
@@ -2443,7 +2433,7 @@ extern (C++) abstract class Type : RootObject
         {
             printf("Type::defaultInitLiteral() '%s'\n", toChars());
         }
-        return defaultInit(loc);
+        return defaultInit(this, loc);
     }
 
     // if initializer is 0
@@ -2788,11 +2778,6 @@ extern (C++) final class TypeError : Type
     override d_uns64 size(const ref Loc loc)
     {
         return SIZE_INVALID;
-    }
-
-    override Expression defaultInit(const ref Loc loc)
-    {
-        return new ErrorExp();
     }
 
     override Expression defaultInitLiteral(const ref Loc loc)
@@ -3467,52 +3452,6 @@ extern (C++) final class TypeBasic : Type
         return MATCH.convert;
     }
 
-    override Expression defaultInit(const ref Loc loc)
-    {
-        static if (LOGDEFAULTINIT)
-        {
-            printf("TypeBasic::defaultInit() '%s'\n", toChars());
-        }
-        dinteger_t value = 0;
-
-        switch (ty)
-        {
-        case Tchar:
-            value = 0xFF;
-            break;
-
-        case Twchar:
-        case Tdchar:
-            value = 0xFFFF;
-            break;
-
-        case Timaginary32:
-        case Timaginary64:
-        case Timaginary80:
-        case Tfloat32:
-        case Tfloat64:
-        case Tfloat80:
-            return new RealExp(loc, Target.RealProperties.snan, this);
-
-        case Tcomplex32:
-        case Tcomplex64:
-        case Tcomplex80:
-            {
-                // Can't use fvalue + I*fvalue (the im part becomes a quiet NaN).
-                const cvalue = complex_t(Target.RealProperties.snan, Target.RealProperties.snan);
-                return new ComplexExp(loc, cvalue, this);
-            }
-
-        case Tvoid:
-            error(loc, "`void` does not have a default initializer");
-            return new ErrorExp();
-
-        default:
-            break;
-        }
-        return new IntegerExp(loc, value, this);
-    }
-
     override bool isZeroInit(const ref Loc loc) const
     {
         switch (ty)
@@ -3622,17 +3561,6 @@ extern (C++) final class TypeVector : Type
         if (ty == to.ty)
             return MATCH.convert;
         return MATCH.nomatch;
-    }
-
-    override Expression defaultInit(const ref Loc loc)
-    {
-        //printf("TypeVector::defaultInit()\n");
-        assert(basetype.ty == Tsarray);
-        Expression e = basetype.defaultInit(loc);
-        auto ve = new VectorExp(loc, e, this);
-        ve.type = this;
-        ve.dim = cast(int)(basetype.size(loc) / elementType().size(loc));
-        return ve;
     }
 
     override Expression defaultInitLiteral(const ref Loc loc)
@@ -3805,18 +3733,6 @@ extern (C++) final class TypeSArray : TypeArray
         return MATCH.nomatch;
     }
 
-    override Expression defaultInit(const ref Loc loc)
-    {
-        static if (LOGDEFAULTINIT)
-        {
-            printf("TypeSArray::defaultInit() '%s'\n", toChars());
-        }
-        if (next.ty == Tvoid)
-            return tuns8.defaultInit(loc);
-        else
-            return next.defaultInit(loc);
-    }
-
     override Expression defaultInitLiteral(const ref Loc loc)
     {
         static if (LOGDEFAULTINIT)
@@ -3964,15 +3880,6 @@ extern (C++) final class TypeDArray : TypeArray
         return Type.implicitConvTo(to);
     }
 
-    override Expression defaultInit(const ref Loc loc)
-    {
-        static if (LOGDEFAULTINIT)
-        {
-            printf("TypeDArray::defaultInit() '%s'\n", toChars());
-        }
-        return new NullExp(loc, this);
-    }
-
     override bool hasPointers() const
     {
         return true;
@@ -4025,15 +3932,6 @@ extern (C++) final class TypeAArray : TypeArray
     override d_uns64 size(const ref Loc loc)
     {
         return Target.ptrsize;
-    }
-
-    override Expression defaultInit(const ref Loc loc)
-    {
-        static if (LOGDEFAULTINIT)
-        {
-            printf("TypeAArray::defaultInit() '%s'\n", toChars());
-        }
-        return new NullExp(loc, this);
     }
 
     override bool isZeroInit(const ref Loc loc) const
@@ -4219,15 +4117,6 @@ extern (C++) final class TypePointer : TypeNext
         return true;
     }
 
-    override Expression defaultInit(const ref Loc loc)
-    {
-        static if (LOGDEFAULTINIT)
-        {
-            printf("TypePointer::defaultInit() '%s'\n", toChars());
-        }
-        return new NullExp(loc, this);
-    }
-
     override bool isZeroInit(const ref Loc loc) const
     {
         return true;
@@ -4275,15 +4164,6 @@ extern (C++) final class TypeReference : TypeNext
     override d_uns64 size(const ref Loc loc) const
     {
         return Target.ptrsize;
-    }
-
-    override Expression defaultInit(const ref Loc loc)
-    {
-        static if (LOGDEFAULTINIT)
-        {
-            printf("TypeReference::defaultInit() '%s'\n", toChars());
-        }
-        return new NullExp(loc, this);
     }
 
     override bool isZeroInit(const ref Loc loc) const
@@ -5131,12 +5011,6 @@ extern (C++) final class TypeFunction : TypeNext
         return false;
     }
 
-    override Expression defaultInit(const ref Loc loc) const
-    {
-        error(loc, "`function` does not have a default initializer");
-        return new ErrorExp();
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -5242,15 +5116,6 @@ extern (C++) final class TypeDelegate : TypeNext
         }
 
         return MATCH.nomatch;
-    }
-
-    override Expression defaultInit(const ref Loc loc)
-    {
-        static if (LOGDEFAULTINIT)
-        {
-            printf("TypeDelegate::defaultInit() '%s'\n", toChars());
-        }
-        return new NullExp(loc, this);
     }
 
     override bool isZeroInit(const ref Loc loc) const
@@ -5920,19 +5785,6 @@ extern (C++) final class TypeStruct : Type
         return sym.alignment;
     }
 
-    override Expression defaultInit(const ref Loc loc)
-    {
-        static if (LOGDEFAULTINIT)
-        {
-            printf("TypeStruct::defaultInit() '%s'\n", toChars());
-        }
-        Declaration d = new SymbolDeclaration(sym.loc, sym);
-        assert(d);
-        d.type = this;
-        d.storage_class |= STC.rvalue; // https://issues.dlang.org/show_bug.cgi?id=14398
-        return new VarExp(sym.loc, d);
-    }
-
     /***************************************
      * Use when we prefer the default initializer to be a literal,
      * rather than a global immutable variable.
@@ -6326,20 +6178,6 @@ extern (C++) final class TypeEnum : Type
         return tb.castMod(mod);         // retain modifier bits from 'this'
     }
 
-    override Expression defaultInit(const ref Loc loc)
-    {
-        static if (LOGDEFAULTINIT)
-        {
-            printf("TypeEnum::defaultInit() '%s'\n", toChars());
-        }
-        // Initialize to first member of enum
-        Expression e = sym.getDefaultValue(loc);
-        e = e.copy();
-        e.loc = loc;
-        e.type = this; // to deal with const, immutable, etc., variants
-        return e;
-    }
-
     override bool isZeroInit(const ref Loc loc)
     {
         return sym.getDefaultValue(loc).isBool(false);
@@ -6500,15 +6338,6 @@ extern (C++) final class TypeClass : Type
         return this;
     }
 
-    override Expression defaultInit(const ref Loc loc)
-    {
-        static if (LOGDEFAULTINIT)
-        {
-            printf("TypeClass::defaultInit() '%s'\n", toChars());
-        }
-        return new NullExp(loc, this);
-    }
-
     override bool isZeroInit(const ref Loc loc) const
     {
         return true;
@@ -6650,22 +6479,6 @@ extern (C++) final class TypeTuple : Type
         return false;
     }
 
-    override Expression defaultInit(const ref Loc loc)
-    {
-        auto exps = new Expressions();
-        exps.setDim(arguments.dim);
-        for (size_t i = 0; i < arguments.dim; i++)
-        {
-            Parameter p = (*arguments)[i];
-            assert(p.type);
-            Expression e = p.type.defaultInitLiteral(loc);
-            if (e.op == TOK.error)
-                return e;
-            (*exps)[i] = e;
-        }
-        return new TupleExp(loc, exps);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -6755,11 +6568,6 @@ extern (C++) final class TypeNull : Type
     override d_uns64 size(const ref Loc loc) const
     {
         return tvoidptr.size(loc);
-    }
-
-    override Expression defaultInit(const ref Loc loc) const
-    {
-        return new NullExp(Loc.initial, Type.tnull);
     }
 
     override void accept(Visitor v)

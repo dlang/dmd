@@ -36,6 +36,7 @@ import dmd.mtype;
 import dmd.statement;
 import dmd.target;
 import dmd.tokens;
+import dmd.typesem;
 import dmd.visitor;
 
 /***********************
