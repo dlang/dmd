@@ -1040,7 +1040,7 @@ public:
 
     override void visit(TypeEnum t)
     {
-        buf.writestring(t.sym.toChars());
+        buf.writestring(hgs.fullQual ? t.sym.toPrettyChars() : t.sym.toChars());
     }
 
     override void visit(TypeStruct t)
