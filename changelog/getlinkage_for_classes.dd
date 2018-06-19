@@ -6,7 +6,9 @@ It is now possible to detect the language ABI specified for a struct, class, or 
 class MyClass {}
 extern (C++) struct MyCPPStruct {}
 extern (C++) interface MyCPPInterface {}
+extern (Objective-C) interface MyObjcInterface {}
 static assert(__traits(getLinkage, MyClass) == "D");
 static assert(__traits(getLinkage, MyCPPStruct) == "C++");
 static assert(__traits(getLinkage, MyCPPInterface) == "C++");
+static assert(__traits(getLinkage, MyObjcInterface) == "Objective-C");
 ---
