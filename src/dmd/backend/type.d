@@ -20,7 +20,6 @@ import dmd.backend.dlist;
 import dmd.backend.el : elem;
 import dmd.backend.ty;
 
-
 extern (C++):
 @nogc:
 nothrow:

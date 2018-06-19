@@ -139,7 +139,8 @@ void util_set32();
 void util_set64();
 int ispow2(uint64_t);
 
-//#if __GNUC__
+version (Posix)
+{
 //#define util_malloc(n,size) mem_malloc((n)*(size))
 //#define util_calloc(n,size) mem_calloc((n)*(size))
 //#define util_free       mem_free
@@ -149,7 +150,9 @@ int ispow2(uint64_t);
 //#define parc_realloc    mem_realloc
 //#define parc_strdup     mem_strdup
 //#define parc_free       mem_free
-//#else
+}
+else
+{
 void *util_malloc(uint n,uint size);
 void *util_calloc(uint n,uint size);
 void util_free(void *p);
@@ -159,7 +162,7 @@ void *parc_calloc(size_t len);
 void *parc_realloc(void *oldp,size_t len);
 char *parc_strdup(const(char)* s);
 void parc_free(void *p);
-//#endif
+}
 
 void swap(int *, int *);
 //void crlf(FILE *);

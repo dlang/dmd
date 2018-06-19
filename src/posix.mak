@@ -300,7 +300,7 @@ endif
 
 ifneq (gdc, $(HOST_DMD_KIND))
  ifeq (,$(findstring 2.068,$(HOST_DMD_VERSION)))
-  BACK_BETTERC = -betterC
+  BACK_BETTERC = -mv=dmd.backend=$C -betterC
  endif
 endif
 
