@@ -317,7 +317,7 @@ struct Loc
     Loc(const char *filename, unsigned linnum, unsigned charnum);
 
     const char *toChars() const;
-    bool equals(const Loc& loc);
+    bool equals(const Loc& loc) const;
 };
 
 enum LINK
