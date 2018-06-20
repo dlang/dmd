@@ -592,6 +592,10 @@ $(H2 $(LNAME2 optional-parenthesis, Optional Parentheses))
 
 $(H2 $(LNAME2 property-functions, Property Functions))
 
+    $(P WARNING: The definition and usefulness of property functions is being reviewed, and the implementation
+    is currently incomplete.  Using property functions is not recommended until the definition is
+    more certain and implementation more mature.)
+
     $(P Properties are functions that can be syntactically treated
     as if they were fields or variables. Properties can be read from or written to.
     A property is read by calling a method or function with no arguments;
