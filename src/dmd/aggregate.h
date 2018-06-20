@@ -168,9 +168,9 @@ public:
 
 struct StructFlags
 {
-    typedef unsigned Type;
-    enum Enum
+    enum Type
     {
+        none = 0x0,
         hasPointers = 0x1, // NB: should use noPointers as in ClassFlags
     };
 };
@@ -248,9 +248,9 @@ struct BaseClass
 
 struct ClassFlags
 {
-    typedef unsigned Type;
-    enum Enum
+    enum Type
     {
+        none = 0x0,
         isCOMclass = 0x1,
         noPointers = 0x2,
         hasOffTi = 0x4,
