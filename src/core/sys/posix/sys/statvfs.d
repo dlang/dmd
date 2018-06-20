@@ -14,6 +14,8 @@ public import core.sys.posix.sys.types;
 
 version (Posix):
 extern (C) :
+nothrow:
+@nogc:
 
 version(CRuntime_Glibc) {
     static if(__WORDSIZE == 32)
@@ -130,6 +132,67 @@ else version(NetBSD)
 
     int statvfs (const char * file, statvfs_t* buf);
     int fstatvfs (int fildes, statvfs_t *buf) @trusted;
+}
+else version (FreeBSD)
+{
+    enum MFSNAMELEN = 16;
+    enum MNAMELEN = 88;
+
+    struct fsid_t
+    {
+       int[2] __fsid_val;
+    }
+
+    struct statfs_t
+    {
+        uint  f_version;               /* structure version number */
+        uint  f_type;                  /* type of filesystem */
+        ulong f_flags;                 /* copy of mount exported flags */
+        ulong f_bsize;                 /* filesystem fragment size */
+        ulong f_iosize;                /* optimal transfer block size */
+        ulong f_blocks;                /* total data blocks in filesystem */
+        ulong f_bfree;                 /* free blocks in filesystem */
+        long  f_bavail;                /* free blocks avail to non-superuser */
+        ulong f_files;                 /* total file nodes in filesystem */
+        long  f_ffree;                 /* free nodes avail to non-superuser */
+        ulong f_syncwrites;            /* count of sync writes since mount */
+        ulong f_asyncwrites;           /* count of async writes since mount */
+        ulong f_syncreads;             /* count of sync reads since mount */
+        ulong f_asyncreads;            /* count of async reads since mount */
+        ulong[10] f_spare;             /* unused spare */
+        uint f_namemax;                /* maximum filename length */
+        uint f_owner;                  /* user that mounted the filesystem */
+        fsid_t f_fsid;                 /* filesystem id */
+        char[80] f_charspare;          /* spare string space */
+        char[MFSNAMELEN] f_fstypename; /* filesystem type name */
+        char[MNAMELEN] f_mntfromname;  /* mounted filesystem */
+        char[MNAMELEN] f_mntonname;    /* directory on which mounted */
+    }
+
+    enum FFlag
+    {
+        MNT_RDONLY = 1,          /* read only filesystem */
+        MNT_SYNCHRONOUS = 2,     /* fs written synchronously */
+        MNT_NOEXEC = 4,          /* can't exec from filesystem */
+        MNT_NOSUID  = 8,         /* don't honor setuid fs bits */
+        MNT_NFS4ACLS = 16,       /* enable NFS version 4 ACLs */
+        MNT_UNION = 32,          /* union with underlying fs */
+        MNT_ASYNC = 64,          /* fs written asynchronously */
+        MNT_SUIDDIR = 128,       /* special SUID dir handling */
+        MNT_SOFTDEP = 256,       /* using soft updates */
+        MNT_NOSYMFOLLOW = 512,   /* do not follow symlinks */
+        MNT_GJOURNAL = 1024,     /* GEOM journal support enabled */
+        MNT_MULTILABEL = 2048,   /* MAC support for objects */
+        MNT_ACLS = 4096,         /* ACL support enabled */
+        MNT_NOATIME = 8192,      /* dont update file access time */
+        MNT_NOCLUSTERR = 16384,  /* disable cluster read */
+        MNT_NOCLUSTERW = 32768,  /* disable cluster write */
+        MNT_SUJ = 65536,         /* using journaled soft updates */
+        MNT_AUTOMOUNTED = 131072 /* mounted by automountd(8) */
+    }
+
+    int statfs(const char* file, statfs_t* buf);
+    int fstatfs(int fildes, statfs_t* buf) @trusted;
 }
 else
 {

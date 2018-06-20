@@ -1039,29 +1039,70 @@ else version( CRuntime_UClibc )
     }
     else version(MIPS32)
     {
-        struct sigcontext
+        alias greg_t    = ulong;
+        enum NGREG      = 32;
+        enum NFPREG     = 32;
+        alias gregset_t = greg_t[NGREG];
+
+        struct fpregset_t
         {
-            uint           sc_regmask;     /* Unused */
-            uint           sc_status;      /* Unused */
-            ulong          sc_pc;
-            ulong[32]      sc_regs;
-            ulong[32]      sc_fpregs;
-            uint           sc_acx;         /* Only MIPS32; was sc_ownedfp */
-            uint           sc_fpc_csr;
-            uint           sc_fpc_eir;     /* Unused */
-            uint           sc_used_math;
-            uint           sc_dsp;         /* dsp status, was sc_ssflags */
-            ulong          sc_mdhi;
-            ulong          sc_mdlo;
-            uint           sc_hi1;         /* Was sc_cause */
-            uint           sc_lo1;         /* Was sc_badvaddr */
-            uint           sc_hi2;         /* Was sc_sigset[4] */
-            uint           sc_lo2;
-            uint           sc_hi3;
-            uint           sc_lo3;
+            union fp_r
+            {
+                double[NFPREG]  fp_dregs;
+                struct _fp_fregs
+                {
+                    float   _fp_fregs;
+                    uint    _fp_pad;
+                }
+                _fp_fregs[NFPREG] fp_fregs;
+            }
         }
 
-        alias sigcontext mcontext_t;
+        version (MIPS_O32)
+        {
+            struct mcontext_t
+            {
+                uint regmask;
+                uint status;
+                greg_t pc;
+                gregset_t gregs;
+                fpregset_t fpregs;
+                uint fp_owned;
+                uint fpc_csr;
+                uint fpc_eir;
+                uint used_math;
+                uint dsp;
+                greg_t mdhi;
+                greg_t mdlo;
+                c_ulong hi1;
+                c_ulong lo1;
+                c_ulong hi2;
+                c_ulong lo2;
+                c_ulong hi3;
+                c_ulong lo3;
+            }
+        }
+        else
+        {
+            struct mcontext_t
+            {
+                gregset_t gregs;
+                fpregset_t fpregs;
+                greg_t mdhi;
+                greg_t hi1;
+                greg_t hi2;
+                greg_t hi3;
+                greg_t mdlo;
+                greg_t lo1;
+                greg_t lo2;
+                greg_t lo3;
+                greg_t pc;
+                uint fpc_csr;
+                uint used_math;
+                uint dsp;
+                uint reserved;
+            }
+        }
 
         struct ucontext_t
         {
@@ -1070,7 +1111,6 @@ else version( CRuntime_UClibc )
             stack_t uc_stack;
             mcontext_t uc_mcontext;
             sigset_t uc_sigmask;
-            c_ulong[0] uc_extcontext;
         }
     }
     else version(ARM)

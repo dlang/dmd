@@ -175,15 +175,28 @@ else version(NetBSD)
 }
 else version (CRuntime_Bionic)
 {
-    enum SIGRTMIN = 32;
-    version(ARM)
-        enum SIGRTMAX = 64;
-    else version(X86)
-        enum SIGRTMAX = 64;
-    else version(MIPS32)
-        enum SIGRTMAX = 128;
-    else
-        static assert(false, "Architecture not supported.");
+    // Switched to calling these functions since Lollipop
+    private extern (C) nothrow @nogc
+    {
+        int __libc_current_sigrtmin();
+        int __libc_current_sigrtmax();
+    }
+
+    @property int SIGRTMIN() nothrow @nogc {
+        __gshared static int sig = -1;
+        if (sig == -1) {
+            sig = __libc_current_sigrtmin();
+        }
+        return sig;
+    }
+
+    @property int SIGRTMAX() nothrow @nogc {
+        __gshared static int sig = -1;
+        if (sig == -1) {
+            sig = __libc_current_sigrtmax();
+        }
+        return sig;
+    }
 }
 else version( CRuntime_UClibc )
 {
@@ -710,26 +723,57 @@ else version (Solaris)
 }
 else version( CRuntime_UClibc )
 {
-    struct sigaction_t
+    version (ARM)           version = sigaction_common;
+    else version (X86_64)   version = sigaction_common;
+
+    version (sigaction_common)
     {
-        static if( true /* __USE_POSIX199309 */ )
+        struct sigaction_t
         {
-            union
+            static if( true /* __USE_POSIX199309 */ )
+            {
+                union
+                {
+                    sigfn_t     sa_handler;
+                    sigactfn_t  sa_sigaction;
+                }
+            }
+            else
             {
                 sigfn_t     sa_handler;
-                sigactfn_t  sa_sigaction;
             }
+            c_ulong     sa_flags;
+            void function() sa_restorer;
+            sigset_t    sa_mask;
         }
-        else
+    }
+    else version (MIPS32)
+    {
+        struct sigaction_t
         {
-            sigfn_t     sa_handler;
+            uint     sa_flags;
+            static if( true /* __USE_POSIX199309 */ )
+            {
+                union
+                {
+                    sigfn_t     sa_handler;
+                    sigactfn_t  sa_sigaction;
+                }
+            }
+            else
+            {
+                sigfn_t     sa_handler;
+            }
+            sigset_t    sa_mask;
+            void function() sa_restorer;
         }
-        c_ulong         sa_flags;
-        void function() sa_restorer;
-        sigset_t        sa_mask;
+    }
+    else
+    {
+        static assert(false, "Architecture not supported.");
     }
 }
-else version (linux)
+else version (CRuntime_Bionic)
 {
     version (X86)
     {
@@ -742,7 +786,7 @@ else version (linux)
             }
 
             sigset_t        sa_mask;
-            c_ulong         sa_flags;
+            int             sa_flags;
             void function() sa_restorer;
         }
     }
@@ -757,7 +801,22 @@ else version (linux)
             }
 
             sigset_t        sa_mask;
-            c_ulong         sa_flags;
+            int             sa_flags;
+            void function() sa_restorer;
+        }
+    }
+    else version (AArch64)
+    {
+        struct sigaction_t
+        {
+            int            sa_flags;
+            union
+            {
+                sigfn_t    sa_handler;
+                sigactfn_t sa_sigaction;
+            }
+
+            sigset_t        sa_mask;
             void function() sa_restorer;
         }
     }
@@ -1456,6 +1515,11 @@ else version( CRuntime_Bionic )
         alias c_ulong sigset_t;
         enum int LONG_BIT = 32;
     }
+    else version (AArch64)
+    {
+        struct sigset_t { ulong[1] sig; }
+        enum int LONG_BIT = 64;
+    }
     else
     {
         static assert(false, "Architecture not supported.");
@@ -1574,6 +1638,11 @@ else version( CRuntime_Musl )
     struct sigset_t {
         ulong[128/long.sizeof] __bits;
     }
+
+    enum SIG_BLOCK      = 0;
+    enum SIG_UNBLOCK    = 1;
+    enum SIG_SETMASK    = 2;
+
     struct siginfo_t {
         int si_signo, si_errno, si_code;
         union __si_fields_t {
@@ -1680,90 +1749,191 @@ else version( CRuntime_UClibc )
         private enum __SI_PAD_SIZE = ((__SI_MAX_SIZE / int.sizeof) - 3);
     }
 
-    struct siginfo_t
+    version (ARM)           version = siginfo_common;
+    else version (X86_64)   version = siginfo_common;
+
+    version (siginfo_common)
     {
-        int si_signo;       // Signal number
-        int si_errno;       // If non-zero, an errno value associated with
-                            // this signal, as defined in <errno.h>
-        int si_code;        // Signal code
-
-        union _sifields_t
+        struct siginfo_t
         {
-            int[__SI_PAD_SIZE] _pad;
+            int si_signo;       // Signal number
+            int si_errno;       // If non-zero, an errno value associated with
+                                // this signal, as defined in <errno.h>
+            int si_code;        // Signal code
 
-            // kill()
-            struct _kill_t
+            union _sifields_t
             {
-                pid_t si_pid; // Sending process ID
-                uid_t si_uid; // Real user ID of sending process
-            } _kill_t _kill;
+                int[__SI_PAD_SIZE] _pad;
 
-            // POSIX.1b timers.
-            struct _timer_t
+                // kill()
+                struct _kill_t
+                {
+                    pid_t si_pid; // Sending process ID
+                    uid_t si_uid; // Real user ID of sending process
+                } _kill_t _kill;
+
+                // POSIX.1b timers.
+                struct _timer_t
+                {
+                    int    si_tid;     // Timer ID
+                    int    si_overrun; // Overrun count
+                    sigval si_sigval;  // Signal value
+                } _timer_t _timer;
+
+                // POSIX.1b signals
+                struct _rt_t
+                {
+                    pid_t  si_pid;    // Sending process ID
+                    uid_t  si_uid;    // Real user ID of sending process
+                    sigval si_sigval; // Signal value
+                } _rt_t _rt;
+
+                // SIGCHLD
+                struct _sigchild_t
+                {
+                    pid_t   si_pid;    // Which child
+                    uid_t   si_uid;    // Real user ID of sending process
+                    int     si_status; // Exit value or signal
+                    clock_t si_utime;
+                    clock_t si_stime;
+                } _sigchild_t _sigchld;
+
+                // SIGILL, SIGFPE, SIGSEGV, SIGBUS
+                struct _sigfault_t
+                {
+                    void*     si_addr;  // Faulting insn/memory ref
+                } _sigfault_t _sigfault;
+
+                // SIGPOLL
+                struct _sigpoll_t
+                {
+                    c_long si_band; // Band event for SIGPOLL;
+                    int      si_fd;
+                } _sigpoll_t _sigpoll;
+
+                // SIGSYS
+                struct _sigsys_t
+                {
+                    void*   _call_addr;   // Calling user insn.
+                    int     _syscall;     // Triggering system call number.
+                    uint    _arch;        // AUDIT_ARCH_* of syscall.
+                } _sigsys_t _sigsys;
+
+            } _sifields_t _sifields;
+
+        nothrow @nogc:
+            @property ref pid_t si_pid()() { return _sifields._kill.si_pid; }
+            @property ref uid_t si_uid()() { return _sifields._kill.si_uid; }
+            @property ref int si_timerid()() { return _sifields._timer.si_tid;}
+            @property ref int si_overrun()() { return _sifields._timer.si_overrun; }
+            @property ref int si_status()() { return _sifields._sigchld.si_status; }
+            @property ref clock_t si_utime()() { return _sifields._sigchld.si_utime; }
+            @property ref clock_t si_stime()() { return _sifields._sigchld.si_stime; }
+            @property ref sigval si_value()() { return _sifields._rt.si_sigval; }
+            @property ref int si_int()() { return _sifields._rt.si_sigval.sival_int; }
+            @property ref void* si_ptr()() { return _sifields._rt.si_sigval.sival_ptr; }
+            @property ref void* si_addr()() { return _sifields._sigfault.si_addr; }
+            @property ref c_long si_band()() { return _sifields._sigpoll.si_band; }
+            @property ref int  si_fd()() { return _sifields._sigpoll.si_fd; }
+            @property ref void*  si_call_addr()() { return _sifields._sigsys._call_addr; }
+            @property ref int  si_syscall()() { return _sifields._sigsys._syscall; }
+            @property ref uint  si_arch()() { return _sifields._sigsys._arch; }
+        }
+    }
+    else version (MIPS32)
+    {
+        struct siginfo_t
+        {
+            int si_signo;       // Signal number
+            int si_errno;       // If non-zero, an errno value associated with
+                                // this signal, as defined in <errno.h>
+            int si_code;        // Signal code
+
+            int[__SI_MAX_SIZE / int.sizeof - __SI_PAD_SIZE - 3] __pad0;
+
+            union _sifields_t
             {
-                int    si_tid;     // Timer ID
-                int    si_overrun; // Overrun count
-                sigval si_sigval;  // Signal value
-            } _timer_t _timer;
+                int[__SI_PAD_SIZE] _pad;
 
-            // POSIX.1b signals
-            struct _rt_t
-            {
-                pid_t  si_pid;    // Sending process ID
-                uid_t  si_uid;    // Real user ID of sending process
-                sigval si_sigval; // Signal value
-            } _rt_t _rt;
+                // kill()
+                struct _kill_t
+                {
+                    pid_t si_pid; // Sending process ID
+                    uid_t si_uid; // Real user ID of sending process
+                } _kill_t _kill;
 
-            // SIGCHLD
-            struct _sigchild_t
-            {
-                pid_t   si_pid;    // Which child
-                uid_t   si_uid;    // Real user ID of sending process
-                int     si_status; // Exit value or signal
-                clock_t si_utime;
-                clock_t si_stime;
-            } _sigchild_t _sigchld;
+                // POSIX.1b timers.
+                struct _timer_t
+                {
+                    int    si_tid;     // Timer ID
+                    int    si_overrun; // Overrun count
+                    sigval si_sigval;  // Signal value
+                } _timer_t _timer;
 
-            // SIGILL, SIGFPE, SIGSEGV, SIGBUS
-            struct _sigfault_t
-            {
-                void*     si_addr;  // Faulting insn/memory ref
-            } _sigfault_t _sigfault;
+                // POSIX.1b signals
+                struct _rt_t
+                {
+                    pid_t  si_pid;    // Sending process ID
+                    uid_t  si_uid;    // Real user ID of sending process
+                    sigval si_sigval; // Signal value
+                } _rt_t _rt;
 
-            // SIGPOLL
-            struct _sigpoll_t
-            {
-                c_long   si_band;   // Band event for SIGPOLL
-                int      si_fd;
-            } _sigpoll_t _sigpoll;
+                // SIGCHLD
+                struct _sigchild_t
+                {
+                    pid_t   si_pid;    // Which child
+                    uid_t   si_uid;    // Real user ID of sending process
+                    int     si_status; // Exit value or signal
+                    clock_t si_utime;
+                    clock_t si_stime;
+                } _sigchild_t _sigchld;
 
-            // SIGSYS
-            struct _sigsys_t
-            {
-                void*   _call_addr;   // Calling user insn.
-                int     _syscall;     // Triggering system call number.
-                uint    _arch;        // AUDIT_ARCH_* of syscall.
-            } _sigsys_t _sigsys;
+                // SIGILL, SIGFPE, SIGSEGV, SIGBUS
+                struct _sigfault_t
+                {
+                    void*   si_addr;  // Faulting insn/memory ref
+                    short   si_addr_lsb;
+                } _sigfault_t _sigfault;
 
-        } _sifields_t _sifields;
+                // SIGPOLL
+                struct _sigpoll_t
+                {
+                    c_long si_band; // Band event for SIGPOLL;
+                    int      si_fd;
+                } _sigpoll_t _sigpoll;
 
-    nothrow @nogc:
-        @property ref pid_t si_pid() return { return _sifields._kill.si_pid; }
-        @property ref uid_t si_uid() return { return _sifields._kill.si_uid; }
-        @property ref int si_timerid() return { return _sifields._timer.si_tid;}
-        @property ref int si_overrun() return { return _sifields._timer.si_overrun; }
-        @property ref int si_status() return { return _sifields._sigchld.si_status; }
-        @property ref clock_t si_utime() return { return _sifields._sigchld.si_utime; }
-        @property ref clock_t si_stime() return { return _sifields._sigchld.si_stime; }
-        @property ref sigval si_value() return { return _sifields._rt.si_sigval; }
-        @property ref int si_int() return { return _sifields._rt.si_sigval.sival_int; }
-        @property ref void* si_ptr() return { return _sifields._rt.si_sigval.sival_ptr; }
-        @property ref void* si_addr() return { return _sifields._sigfault.si_addr; }
-        @property ref c_long si_band() return { return _sifields._sigpoll.si_band; }
-        @property ref int  si_fd() return { return _sifields._sigpoll.si_fd; }
-        @property ref void*  si_call_addr() return { return _sifields._sigsys._call_addr; }
-        @property ref int  si_syscall() return { return _sifields._sigsys._syscall; }
-        @property ref uint  si_arch() return { return _sifields._sigsys._arch; }
+                // SIGSYS
+                struct _sigsys_t
+                {
+                    void*   _call_addr;   // Calling user insn.
+                    int     _syscall;     // Triggering system call number.
+                    uint    _arch;        // AUDIT_ARCH_* of syscall.
+                } _sigsys_t _sigsys;
+
+            } _sifields_t _sifields;
+
+        nothrow @nogc:
+            @property ref pid_t si_pid()() { return _sifields._kill.si_pid; }
+            @property ref uid_t si_uid()() { return _sifields._kill.si_uid; }
+            @property ref int si_timerid()() { return _sifields._timer.si_tid;}
+            @property ref int si_overrun()() { return _sifields._timer.si_overrun; }
+            @property ref int si_status()() { return _sifields._sigchld.si_status; }
+            @property ref clock_t si_utime()() { return _sifields._sigchld.si_utime; }
+            @property ref clock_t si_stime()() { return _sifields._sigchld.si_stime; }
+            @property ref sigval si_value()() { return _sifields._rt.si_sigval; }
+            @property ref int si_int()() { return _sifields._rt.si_sigval.sival_int; }
+            @property ref void* si_ptr()() { return _sifields._rt.si_sigval.sival_ptr; }
+            @property ref void* si_addr()() { return _sifields._sigfault.si_addr; }
+            @property ref c_long si_band()() { return _sifields._sigpoll.si_band; }
+            @property ref int  si_fd()() { return _sifields._sigpoll.si_fd; }
+            @property ref void*  si_call_addr()() { return _sifields._sigsys._call_addr; }
+            @property ref int  si_syscall()() { return _sifields._sigsys._syscall; }
+            @property ref uint  si_arch()() { return _sifields._sigsys._arch; }
+        }
+    }
+    else
+    {
+        static assert(false, "Architecture not supported.");
     }
 
     enum
@@ -2881,6 +3051,34 @@ else version (CRuntime_Bionic)
             size_t  ss_size;
         }
     }
+    else version (AArch64)
+    {
+        enum SIGPOLL   = 29;
+        enum SIGPROF   = 27;
+        enum SIGSYS    = 31;
+        enum SIGTRAP   = 5;
+        enum SIGVTALRM = 26;
+        enum SIGXCPU   = 24;
+        enum SIGXFSZ   = 25;
+
+        enum SA_ONSTACK     = 0x08000000;
+        enum SA_RESETHAND   = 0x80000000;
+        enum SA_RESTART     = 0x10000000;
+        enum SA_SIGINFO     = 4;
+        enum SA_NOCLDWAIT   = 2;
+        enum SA_NODEFER     = 0x40000000;
+        enum SS_ONSTACK     = 1;
+        enum SS_DISABLE     = 2;
+        enum MINSIGSTKSZ    = 2048;
+        enum SIGSTKSZ       = 8192;
+
+        struct stack_t
+        {
+            void*   ss_sp;
+            int     ss_flags;
+            size_t  ss_size;
+        }
+    }
     else
     {
         static assert(false, "Architecture not supported.");
@@ -2961,6 +3159,7 @@ else version (CRuntime_Bionic)
 }
 else version( CRuntime_Musl )
 {
+    enum SA_RESTART     = 0x10000000;
 }
 else version( CRuntime_UClibc )
 {

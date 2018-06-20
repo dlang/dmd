@@ -1,0 +1,39 @@
+Filenames and line numbers have been added to stacktraces on macOS
+
+When an exception is throw and not caught, a stacktrace is printed. On Linux,
+FreeBSD and DragonFlyBSD this stacktrace includes the filenames and line numbers,
+if the application was built with debug info enabled. This feature has now been
+added to macOS.
+
+This requires support from the compiler since debug info is stripped by the
+linker on macOS.
+
+Example:
+
+---
+void bar()
+{
+    throw new Exception("bar");
+}
+
+void foo()
+{
+    bar();
+}
+
+void main()
+{
+    foo();
+}
+---
+
+Compiling the above code, with debug info enabled, by running: `dmd -g main.d`.
+When running the application it will produce an output similar to:
+
+$(CONSOLE
+object.Exception@main.d(3): bar
+
+main.d:3 void main.bar() [0x71afdfb]
+main.d:8 void main.foo() [0x71afe0c]
+main.d:13 _Dmain [0x71afd78]
+)

@@ -17,7 +17,7 @@ src/checkedint.d @redstar @andralex @JackStouffer
 
 src/core/atomic.d @WalterBright @ibuclaw
 src/core/attribute.d @jacob-carlborg
-src/core/bitop.d @schveiguy @tsbockman @mathias-lang-sociomantic @Geod24
+src/core/bitop.d @schveiguy @tsbockman @Geod24
 src/core/cpuid.d @WalterBright @ibuclaw @JackStouffer
 src/core/demangle.d @WalterBright @MartinNowak @rainers @ibuclaw
 src/core/exception.d @MartinNowak @WalterBright @jmdavis @CyberShadow
@@ -27,7 +27,7 @@ src/core/runtime.d @MartinNowak @Abscissa
 src/core/simd.d @WalterBright @MartinNowak
 src/core/stdc/* @schveiguy @ibuclaw
 src/core/stdcpp/* @WalterBright @Darredevil
-src/core/sync/* @MartinNowak @mathias-lang-sociomantic @Geod24 @WalterBright @ZombineDev
+src/core/sync/* @MartinNowak @Geod24 @WalterBright @ZombineDev
 src/core/sys/bionic/* @joakim-noah
 src/core/sys/darwin/* @jacob-carlborg @klickverbot @etcimon @MartinNowak
 src/core/sys/freebsd/* @redstar @MartinNowak @Calrama @jmdavis
@@ -57,7 +57,7 @@ src/rt/sections_win* @rainers @CyberShadow
 src/rt/sections_osx* @jacob-carlborg @klickverbot
 src/rt/osx_tls.c @jacob-carlborg @klickverbot
 src/rt/sections_elf_shared* @Burgos
-src/rt/typeinfo/* @mathias-lang-sociomantic @Geod24 @WalterBright @redstar
+src/rt/typeinfo/* @Geod24 @WalterBright @redstar
 src/rt/util/* @MartinNowak @WalterBright @klickverbot
 
 src/test_runner.d @atilaneves @wilzbach @MartinNowak @andralex

@@ -318,7 +318,7 @@ unittest
         void useResource() shared @safe nothrow @nogc
         {
             mtx.lock_nothrow();
-            *(cast()&cargo) += 1;
+            (cast() cargo) += 1;
             mtx.unlock_nothrow();
         }
     }

@@ -24,7 +24,7 @@ class TypeInfo_w : TypeInfo
 
     override string toString() const pure nothrow @safe { return "dchar"; }
 
-    override size_t getHash(in void* p)
+    override size_t getHash(scope const void* p)
     {
         return *cast(dchar *)p;
     }

@@ -17,6 +17,10 @@ alias UnsignedStringBuf = char[20];
 
 char[] unsignedToTempString(ulong value, return scope char[] buf, uint radix = 10) @safe
 {
+    if (radix < 2)
+        // not a valid radix, just return an empty string
+        return buf[$ .. $];
+
     size_t i = buf.length;
     do
     {
@@ -74,6 +78,10 @@ unittest
     assert(long.sizeof.unsignedToTempString == "8");
     assert(uint.max.unsignedToTempString == "4294967295");
     assert(ulong.max.unsignedToTempString == "18446744073709551615");
+
+    // test bad radices
+    assert(100.unsignedToTempString(buf, 1) == "");
+    assert(100.unsignedToTempString(buf, 0) == "");
 }
 
 alias SignedStringBuf = char[20];
@@ -151,7 +159,7 @@ unittest
  * Returns:
  *      number of digits
  */
-int numDigits(uint radix = 10)(ulong value) @safe
+int numDigits(uint radix = 10)(ulong value) @safe if (radix >= 2 && radix <= 36)
 {
      int n = 1;
      while (1)
@@ -197,6 +205,11 @@ unittest
     assert(1.numDigits!2 == 1);
     assert(2.numDigits!2 == 2);
     assert(3.numDigits!2 == 2);
+
+    // test bad radices
+    static assert(!__traits(compiles, 100.numDigits!1()));
+    static assert(!__traits(compiles, 100.numDigits!0()));
+    static assert(!__traits(compiles, 100.numDigits!37()));
 }
 
 int dstrcmp( scope const char[] s1, scope const char[] s2 ) @trusted

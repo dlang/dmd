@@ -380,8 +380,8 @@ else version( CRuntime_Bionic )
     enum CLOCK_REALTIME_HR = 4;
     enum TIMER_ABSTIME     = 0x01;
 
-    alias int clockid_t;
-    alias int timer_t;
+    alias int   clockid_t;
+    alias void* timer_t; // Updated since Lollipop
 
     int clock_getres(int, timespec*);
     int clock_gettime(int, timespec*);

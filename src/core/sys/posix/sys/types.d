@@ -238,12 +238,12 @@ else version( CRuntime_Bionic )
 {
     alias c_ulong   blkcnt_t;
     alias c_ulong   blksize_t;
-    alias uint      dev_t;
+    alias size_t    dev_t;
     alias uint      gid_t;
     alias c_ulong   ino_t;
     alias c_long    off_t;
     alias int       pid_t;
-    alias int       ssize_t;
+    alias c_long    ssize_t;
     alias c_long    time_t;
     alias uint      uid_t;
 
@@ -261,6 +261,11 @@ else version( CRuntime_Bionic )
     {
         alias ushort    mode_t;
         alias ushort    nlink_t;
+    }
+    else version(AArch64)
+    {
+        alias uint      mode_t;
+        alias uint      nlink_t;
     }
     else version(MIPS32)
     {
@@ -418,7 +423,7 @@ else version( CRuntime_Bionic )
     alias uint     id_t;
     alias int      key_t;
     alias c_long   suseconds_t;
-    alias c_long   useconds_t;
+    alias uint     useconds_t; // Updated in Lollipop
 }
 else version( CRuntime_Musl )
 {
@@ -1051,6 +1056,7 @@ else version( CRuntime_Bionic )
         size_t  guard_size;
         int     sched_policy;
         int     sched_priority;
+        version(AArch64) char[16] __reserved;
     }
 
     struct pthread_cond_t

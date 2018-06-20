@@ -26,7 +26,7 @@ class TypeInfo_D : TypeInfo
     pure:
     nothrow:
 
-    override size_t getHash(in void* p)
+    override size_t getHash(scope const void* p)
     {
         return rt.util.hash.hashOf(p[0 .. dg.sizeof], 0);
     }

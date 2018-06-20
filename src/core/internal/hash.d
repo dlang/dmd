@@ -57,14 +57,25 @@ if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStati
     else static if (is(typeof(toUbyte(val)) == const(ubyte)[]))
     //ubyteble array (arithmetic types and structs without toHash) CTFE ready for arithmetic types and structs without reference fields
     {
-        auto bytes = toUbyte(val);
-        return bytesHash(bytes.ptr, bytes.length, seed);
+        return bytesHash(toUbyte(val), seed);
     }
     else //Other types. CTFE unsupported
     {
         assert(!__ctfe, "unable to compute hash of "~T.stringof);
         return bytesHash(val.ptr, ElementType.sizeof*val.length, seed);
     }
+}
+
+@nogc nothrow pure @safe unittest // issue 18918
+{
+    // Check hashOf dynamic array of scalars is usable in @safe code.
+    const _ = hashOf("abc");
+}
+
+nothrow pure @system unittest
+{
+    void*[] val;
+    const _ = hashOf(val); // Check a PR doesn't break this.
 }
 
 //arithmetic type hash
@@ -74,13 +85,11 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && __traits
     static if(__traits(isFloating, val))
     {
         T data = (val != val) ? T.nan : val;
-        auto bytes = toUbyte(data);
-        return bytesHash(bytes.ptr, bytes.length, seed);
+        return bytesHash(toUbyte(data), seed);
     }
     else
     {
-        auto bytes = toUbyte(val);
-        return bytesHash(bytes.ptr, bytes.length, seed);
+        return bytesHash(toUbyte(val), seed);
     }
 }
 
@@ -88,7 +97,7 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && __traits
 @trusted nothrow pure
 size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && is(T : typeof(null)))
 {
-    return hashOf(cast(void*)null);
+    return hashOf(cast(void*)null, seed);
 }
 
 //Pointers hash. CTFE unsupported if not null
@@ -101,7 +110,7 @@ if (!is(T == enum) && is(T V : V*) && !is(T : typeof(null))
     {
         if(val is null)
         {
-            return hashOf(cast(size_t)0);
+            return hashOf(cast(size_t)0, seed);
         }
         else
         {
@@ -109,7 +118,7 @@ if (!is(T == enum) && is(T V : V*) && !is(T : typeof(null))
         }
 
     }
-    return hashOf(cast(size_t)val);
+    return hashOf(cast(size_t)val, seed);
 }
 
 //struct or union hash
@@ -128,16 +137,21 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && (is(T ==
 
         static if (is(typeof(toUbyte(val)) == const(ubyte)[]))//CTFE ready for structs without reference fields
         {
-            auto bytes = toUbyte(val);
-            return bytesHash(bytes.ptr, bytes.length, seed);
+            return bytesHash(toUbyte(val), seed);
         }
         else // CTFE unsupproreted for structs with reference fields
         {
             assert(!__ctfe, "unable to compute hash of "~T.stringof);
-            const(ubyte)[] bytes = (cast(const(ubyte)*)&val)[0 .. T.sizeof];
-            return bytesHash(bytes.ptr, bytes.length, seed);
+            return bytesHash(toUbyte(val), seed);
         }
     }
+}
+
+nothrow pure @safe unittest // issue 18925
+{
+    // Check hashOf struct of scalar fields is usable in @safe code.
+    static struct S { int a; int b; }
+    auto h = hashOf(S.init);
 }
 
 //delegate hash. CTFE unsupported
@@ -146,7 +160,7 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && is(T == 
 {
     assert(!__ctfe, "unable to compute hash of "~T.stringof);
     const(ubyte)[] bytes = (cast(const(ubyte)*)&val)[0 .. T.sizeof];
-    return bytesHash(bytes.ptr, bytes.length, seed);
+    return bytesHash(bytes, seed);
 }
 
 //class or interface hash. CTFE depends on toHash
@@ -167,7 +181,7 @@ size_t hashOf(T)(auto ref T aa, size_t seed = 0) if (!is(T == enum) && __traits(
         size_t[2] hpair;
         hpair[0] = key.hashOf();
         hpair[1] = val.hashOf();
-        h ^= hpair.hashOf();
+        h += hpair.hashOf();
     }
     return h.hashOf(seed);
 }
@@ -388,6 +402,8 @@ unittest
     assert(h28 == rth28);
     assert(h29 == rth29);*/
     assert(h30 == rth30);
+
+    assert(hashOf(null, 0) != hashOf(null, 123456789)); // issue 18932
 }
 
 
@@ -416,25 +432,15 @@ unittest // issue 15111
 // MurmurHash3 was written by Austin Appleby, and is placed in the public
 // domain. The author hereby disclaims copyright to this source code.
 
-version(X86)
-    version = AnyX86;
-version(X86_64)
-    version = AnyX86;
-
-version(AnyX86)
+// This overload is for backwards compatibility.
+@system pure nothrow @nogc
+size_t bytesHash(const(void)* buf, size_t len, size_t seed)
 {
-    version(DigitalMars)
-    {
-    }
-    else
-    {
-        version = HasUnalignedOps;
-    }
+    return bytesHash((cast(const(ubyte)*) buf)[0 .. len], seed);
 }
 
-
-@system pure nothrow @nogc
-size_t bytesHash(scope const(void)* buf, size_t len, size_t seed)
+private @nogc nothrow pure @trusted
+size_t bytesHash(scope const(ubyte)[] bytes, size_t seed)
 {
     static uint rotl32(uint n)(in uint x) pure nothrow @safe @nogc
     {
@@ -447,11 +453,6 @@ size_t bytesHash(scope const(void)* buf, size_t len, size_t seed)
     static uint get32bits(scope const (ubyte)* x) pure nothrow @nogc
     {
         //Compiler can optimize this code to simple *cast(uint*)x if it possible.
-        version(HasUnalignedOps)
-        {
-            if (!__ctfe)
-                return *cast(uint*)x; //BUG: Can't be inlined by DMD
-        }
         version(BigEndian)
         {
             return ((cast(uint) x[0]) << 24) | ((cast(uint) x[1]) << 16) | ((cast(uint) x[2]) << 8) | (cast(uint) x[3]);
@@ -475,7 +476,8 @@ size_t bytesHash(scope const(void)* buf, size_t len, size_t seed)
         return h;
     }
 
-    auto data = cast(const(ubyte)*)buf;
+    auto len = bytes.length;
+    auto data = bytes.ptr;
     auto nblocks = len / 4;
 
     uint h1 = cast(uint)seed;
@@ -531,4 +533,20 @@ pure nothrow @system @nogc unittest
     enum test_str = "Sample string";
     enum size_t hashVal = ctfeHash(test_str);
     assert(hashVal == bytesHash(&test_str[0], test_str.length, 0));
+
+    // Detect unintended changes to bytesHash on unaligned and aligned inputs.
+    version(BigEndian)
+    {
+        const ubyte[7] a = [99, 4, 3, 2, 1, 5, 88];
+        const uint[2] b = [0x01_02_03_04, 0x05_ff_ff_ff];
+    }
+    else
+    {
+        const ubyte[7] a = [99, 1, 2, 3, 4, 5, 88];
+        const uint[2] b = [0x04_03_02_01, 0xff_ff_ff_05];
+    }
+    // It is okay to change the below values if you make a change
+    // that you expect to change the result of bytesHash.
+    assert(bytesHash(&a[1], a.length - 2, 0) == 2727459272);
+    assert(bytesHash(&b, 5, 0) == 2727459272);
 }

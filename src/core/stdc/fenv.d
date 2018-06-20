@@ -302,6 +302,16 @@ else version( CRuntime_Bionic )
         alias uint fenv_t;
         alias uint fexcept_t;
     }
+    else version(AArch64)
+    {
+        struct fenv_t
+        {
+            uint   __control;
+            uint   __status;
+        }
+
+        alias uint fexcept_t;
+    }
     else
     {
         static assert(false, "Architecture not supported.");
@@ -397,7 +407,16 @@ else version( CRuntime_UClibc )
 
         alias fexcept_t = ushort;
     }
-    else version(ARM)
+    else version (MIPS32)
+    {
+        struct fenv_t
+        {
+            uint __fp_control_register;
+        }
+
+        alias fexcept_t = ushort;
+    }
+    else version (ARM)
     {
         struct fenv_t
         {

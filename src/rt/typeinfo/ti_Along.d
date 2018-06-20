@@ -24,7 +24,7 @@ class TypeInfo_Al : TypeInfo_Array
 
     override string toString() const { return "long[]"; }
 
-    override size_t getHash(in void* p) @trusted const
+    override size_t getHash(scope const void* p) @trusted const
     {
         const s = *cast(const long[]*)p;
         return rt.util.hash.hashOf(s, 0);

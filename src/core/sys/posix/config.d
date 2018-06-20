@@ -79,12 +79,28 @@ else version (CRuntime_Musl)
 }
 else version (CRuntime_UClibc)
 {
+    enum _GNU_SOURCE         = false;
+    enum _DEFAULT_SOURCE     = false;
+    enum _ATFILE_SOURCE      = false;
+
     enum _FILE_OFFSET_BITS   = 64;
     enum __REDIRECT          = false;
+
+    enum _REENTRANT          = true;
 
     enum __USE_FILE_OFFSET64 = _FILE_OFFSET_BITS == 64;
     enum __USE_LARGEFILE     = __USE_FILE_OFFSET64 && !__REDIRECT;
     enum __USE_LARGEFILE64   = __USE_FILE_OFFSET64 && !__REDIRECT;
+
+    enum __USE_XOPEN2K       = _XOPEN_SOURCE >= 600;
+    enum __USE_XOPEN2KXSI    = _XOPEN_SOURCE >= 600;
+    enum __USE_XOPEN2K8      = _XOPEN_SOURCE >= 700;
+    enum __USE_XOPEN2K8XSI   = _XOPEN_SOURCE >= 700;
+
+    enum __USE_MISC          = _DEFAULT_SOURCE;
+    enum __USE_ATFILE        = _ATFILE_SOURCE;
+    enum __USE_GNU           = _GNU_SOURCE;
+    enum __USE_REENTRANT     = _REENTRANT;
 
     version(D_LP64)
         enum __WORDSIZE=64;

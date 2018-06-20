@@ -19,6 +19,9 @@ extern (C):
 nothrow:
 @nogc:
 
+///
+alias nullptr_t = typeof(null);
+
 // size_t and ptrdiff_t are defined in the object module.
 
 version( Windows )

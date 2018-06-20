@@ -86,6 +86,7 @@ int     rmdir(in char*);
 int     setegid(gid_t) @trusted;
 int     seteuid(uid_t) @trusted;
 int     setgid(gid_t) @trusted;
+int     setgroups(size_t, in gid_t*) @trusted;
 int     setpgid(pid_t, pid_t) @trusted;
 pid_t   setsid() @trusted;
 int     setuid(uid_t) @trusted;
