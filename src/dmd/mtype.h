@@ -623,11 +623,6 @@ public:
     void addIndex(RootObject *expr);
     d_uns64 size(const Loc &loc);
 
-    void resolveTupleIndex(const Loc &loc, Scope *sc, Dsymbol *s,
-        Expression **pe, Type **pt, Dsymbol **ps, RootObject *oindex);
-    void resolveHelper(const Loc &loc, Scope *sc, Dsymbol *s, Dsymbol *scopesym,
-        Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
