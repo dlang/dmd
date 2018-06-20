@@ -200,7 +200,7 @@ public:
     // For those, today TypeInfo_Struct is generated in COMDAT.
     bool requestTypeInfo;
 
-    static StructDeclaration *create(Loc loc, Identifier *id);
+    static StructDeclaration *create(Loc loc, Identifier *id, bool inObject);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semanticTypeInfoMembers();
     Dsymbol *search(Loc, Identifier *ident, int flags = SearchLocalsOnly);
