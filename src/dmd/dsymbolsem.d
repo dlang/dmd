@@ -2163,7 +2163,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (em.errors || em.semanticRun >= PASS.semanticdone)
             return;
-        if (em.semanticRun == PASS.semantic)
+        if (em.semanticRun == PASS.semantic && sc == em._scope)
         {
             em.error("circular reference to `enum` member");
             return errorReturn();

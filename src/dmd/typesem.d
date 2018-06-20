@@ -56,6 +56,8 @@ import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 
+enum LOGDOTEXP = 0;         // log ::dotExp()
+
 /************************************
  * Transitively search a type for all function types.
  * If any function types with parameters are found that have parameter identifiers
