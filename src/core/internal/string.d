@@ -15,7 +15,7 @@ nothrow:
 
 alias UnsignedStringBuf = char[20];
 
-char[] unsignedToTempString(ulong value, return char[] buf, uint radix = 10) @safe
+char[] unsignedToTempString(ulong value, return scope char[] buf, uint radix = 10) @safe
 {
     if (radix < 2)
         // not a valid radix, just return an empty string
@@ -86,7 +86,7 @@ unittest
 
 alias SignedStringBuf = char[20];
 
-char[] signedToTempString(long value, return char[] buf, uint radix = 10) @safe
+char[] signedToTempString(long value, return scope char[] buf, uint radix = 10) @safe
 {
     bool neg = value < 0;
     if(neg)

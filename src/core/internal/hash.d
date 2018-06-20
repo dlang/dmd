@@ -450,7 +450,7 @@ size_t bytesHash(scope const(ubyte)[] bytes, size_t seed)
     //-----------------------------------------------------------------------------
     // Block read - if your platform needs to do endian-swapping or can only
     // handle aligned reads, do the conversion here
-    static uint get32bits(const (ubyte)* x) pure nothrow @nogc
+    static uint get32bits(scope const (ubyte)* x) pure nothrow @nogc
     {
         //Compiler can optimize this code to simple *cast(uint*)x if it possible.
         version(BigEndian)
