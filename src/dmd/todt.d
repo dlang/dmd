@@ -1330,7 +1330,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
             dtb.size(0);
 
         // StructFlags m_flags;
-        StructFlags.Type m_flags = 0;
+        StructFlags.Type m_flags = StructFlags.none;
         if (tc.hasPointers()) m_flags |= StructFlags.hasPointers;
         dtb.size(m_flags);
 

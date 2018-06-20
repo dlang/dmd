@@ -208,9 +208,11 @@ struct StructFlags
 
     enum Enum : int
     {
+        none = 0x0,
         hasPointers = 0x1, // NB: should use noPointers as in ClassFlags
     }
 
+    alias none = Enum.none;
     alias hasPointers = Enum.hasPointers;
 }
 

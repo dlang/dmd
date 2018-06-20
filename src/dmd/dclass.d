@@ -153,6 +153,7 @@ struct ClassFlags
 
     enum Enum : int
     {
+        none = 0x0,
         isCOMclass = 0x1,
         noPointers = 0x2,
         hasOffTi = 0x4,
