@@ -547,7 +547,7 @@ extern (C++) abstract class Type : RootObject
         assert(0);
     }
 
-    override bool equals(RootObject o)
+    override bool equals(RootObject o) const
     {
         Type t = cast(Type)o;
         //printf("Type::equals(%s, %s)\n", toChars(), t.toChars());
@@ -2410,7 +2410,7 @@ extern (C++) abstract class Type : RootObject
         return mutableOf();
     }
 
-    ClassDeclaration isClassHandle()
+    inout(ClassDeclaration) isClassHandle() inout
     {
         return null;
     }
@@ -6238,7 +6238,7 @@ extern (C++) final class TypeClass : Type
         return sym;
     }
 
-    override ClassDeclaration isClassHandle()
+    override inout(ClassDeclaration) isClassHandle() inout
     {
         return sym;
     }
@@ -6455,7 +6455,7 @@ extern (C++) final class TypeTuple : Type
         return t;
     }
 
-    override bool equals(RootObject o)
+    override bool equals(RootObject o) const
     {
         Type t = cast(Type)o;
         //printf("TypeTuple::equals(%s, %s)\n", toChars(), t.toChars());
@@ -6468,7 +6468,7 @@ extern (C++) final class TypeTuple : Type
             {
                 for (size_t i = 0; i < tt.arguments.dim; i++)
                 {
-                    Parameter arg1 = (*arguments)[i];
+                    const Parameter arg1 = (*arguments)[i];
                     Parameter arg2 = (*tt.arguments)[i];
                     if (!arg1.type.equals(arg2.type))
                         return false;
