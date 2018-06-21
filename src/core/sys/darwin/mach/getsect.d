@@ -440,7 +440,7 @@ const(section)* getsectbynamefromheader(
     in char* sectname
 );
 
-const(section)* getsectbynamefromheaderwithswap_64(
+const(section)* getsectbynamefromheaderwithswap(
     in mach_header* mhp,
     in char* segname,
     in char* section,
