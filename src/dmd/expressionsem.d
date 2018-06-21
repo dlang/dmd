@@ -604,6 +604,14 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
                 arguments.push(arg);
                 nargs++;
             }
+            else
+            {
+                if (arg.op == TOK.default_)
+                {
+                    arg = arg.resolveLoc(loc, sc);
+                    (*arguments)[i] = arg;
+                }
+            }
 
             if (tf.varargs == 2 && i + 1 == nparams) // https://dlang.org/spec/function.html#variadic
             {
