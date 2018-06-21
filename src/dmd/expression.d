@@ -2303,8 +2303,12 @@ extern (C++) abstract class Expression : RootObject
             {
                 if (!loc.isValid()) // e.g. implicitly generated dtor
                     loc = sc.func.loc;
-                error("`@safe` %s `%s` cannot call `@system` %s `%s` declared at %s",
-                    sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars(), f.loc.toChars());
+
+                const prettyChars = f.toPrettyChars();
+                error("`@safe` %s `%s` cannot call `@system` %s `%s`",
+                    sc.func.kind(), sc.func.toPrettyChars(), f.kind(),
+                    prettyChars);
+                errorSupplemental(f.loc, "`%s` is declared here", prettyChars);
                 return true;
             }
         }
