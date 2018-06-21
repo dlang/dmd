@@ -82,12 +82,13 @@ void ld_clearfpu()
 }
 
 pure:
-@safe:
+@trusted: // LDC: LLVM __asm is @system AND requires taking the address of variables
 
-align(2) struct longdouble_soft
+struct longdouble_soft
 {
 nothrow @nogc pure:
-    ulong mantissa = 0xC000000000000001UL; // default to snan
+    // DMD's x87 `real` on Windows is packed (alignof = 2 -> sizeof = 10).
+    align(2) ulong mantissa = 0xC000000000000001UL; // default to snan
     ushort exp_sign = 0x7fff; // sign is highest bit
 
     this(ulong m, ushort es) { mantissa = m; exp_sign = es; }
@@ -184,41 +185,35 @@ nothrow @nogc pure:
     static uint min_10_exp() { return -4932; }
 };
 
+static assert(longdouble_soft.alignof == longdouble.alignof);
+static assert(longdouble_soft.sizeof == longdouble.sizeof);
+
 version(LDC)
 {
-    enum fld_eax(string arg) = "jmp L_" ~ arg ~ "+2; L_" ~ arg ~ ": mov DX, 0x28db;"; // jump to 0xdb,0x28 (fld real ptr[EAX])
-    enum fstp_eax            = "jmp L_stp+2; L_stp: mov DX, 0x38db;"; // jump to 0xdb,0x38 (fstp real ptr[EAX])
+    import ldc.llvmasm;
+
+    extern(D):
+    private:
+    string fld_arg  (string arg)() { return `__asm("fldt $0",  "*m,~{st}",  &` ~ arg ~ `);`; }
+    string fstp_arg (string arg)() { return `__asm("fstpt $0", "=*m,~{st}", &` ~ arg ~ `);`; }
+    string fld_parg (string arg)() { return `__asm("fldt $0",  "*m,~{st}",   ` ~ arg ~ `);`; }
+    string fstp_parg(string arg)() { return `__asm("fstpt $0", "=*m,~{st}",  ` ~ arg ~ `);`; }
 }
 else version(D_InlineAsm_X86_64)
-{
-    enum fld_eax(string arg) = "fld real ptr [RAX];";
-    enum fstp_eax            = "fstp real ptr [RAX];";
-}
-else version(D_InlineAsm_X86)
-{
-    enum fld_eax(string arg) = "fld real ptr [EAX];";
-    enum fstp_eax            = "fstp real ptr [EAX];";
-}
-
-version(D_InlineAsm_X86_64)
 {
     // longdouble_soft passed by reference
     extern(D):
     private:
     string fld_arg(string arg)()
     {
-        return "asm nothrow @nogc pure @trusted { mov RAX, " ~ arg ~ "; " ~ fld_eax!arg ~ " }";
+        return "asm nothrow @nogc pure @trusted { mov RAX, " ~ arg ~ "; fld real ptr [RAX]; }";
     }
     string fstp_arg(string arg)()
     {
-        return "asm nothrow @nogc pure @trusted { mov RAX, " ~ arg ~ "; " ~ fstp_eax ~ " }";
+        return "asm nothrow @nogc pure @trusted { mov RAX, " ~ arg ~ "; fstp real ptr [RAX]; }";
     }
     alias fld_parg = fld_arg;
     alias fstp_parg = fstp_arg;
-    string fld_local(string arg)()
-    {
-        return "asm nothrow @nogc pure @trusted { lea RAX, " ~ arg ~ "; " ~ fld_eax!arg ~ " }";
-    }
 }
 else version(D_InlineAsm_X86)
 {
@@ -227,21 +222,20 @@ else version(D_InlineAsm_X86)
     private:
     string fld_arg(string arg)()
     {
-        return "asm nothrow @nogc pure @trusted { lea EAX, " ~ arg ~ "; " ~ fld_eax!arg ~ " }";
+        return "asm nothrow @nogc pure @trusted { lea EAX, " ~ arg ~ "; fld real ptr [EAX]; }";
     }
     string fstp_arg(string arg)()
     {
-        return "asm nothrow @nogc pure @trusted { lea EAX, " ~ arg ~ "; " ~ fstp_eax ~ " }";
+        return "asm nothrow @nogc pure @trusted { lea EAX, " ~ arg ~ "; fstp real ptr [EAX]; }";
     }
     string fld_parg(string arg)()
     {
-        return "asm nothrow @nogc pure @trusted { mov EAX, " ~ arg ~ "; " ~ fld_eax!arg ~ " }";
+        return "asm nothrow @nogc pure @trusted { mov EAX, " ~ arg ~ "; fld real ptr [EAX]; }";
     }
     string fstp_parg(string arg)()
     {
-        return "asm nothrow @nogc pure @trusted { mov EAX, " ~ arg ~ "; " ~ fstp_eax ~ " }";
+        return "asm nothrow @nogc pure @trusted { mov EAX, " ~ arg ~ "; fstp real ptr [EAX]; }";
     }
-    alias fld_local = fld_arg;
 }
 
 double ld_read(const longdouble_soft* pthis)
@@ -324,7 +318,8 @@ void ld_setull(longdouble_soft* pthis, ulong d)
     d ^= (1L << 63);
     version(AsmX86)
     {
-        mixin(fld_local!("twoPow63"));
+        auto pTwoPow63 = &twoPow63;
+        mixin(fld_parg!("pTwoPow63"));
         asm nothrow @nogc pure @trusted
         {
             fild qword ptr d;
@@ -666,23 +661,28 @@ longdouble_soft ld_mod(longdouble_soft x, longdouble_soft y)
 
 //////////////////////////////////////////////////////////////
 
-__gshared longdouble_soft ld_qnan = longdouble_soft(0xC000000000000000UL, 0x7fff);
-__gshared longdouble_soft ld_snan = longdouble_soft(0xC000000000000001UL, 0x7fff);
-__gshared longdouble_soft ld_inf  = longdouble_soft(0x8000000000000000UL, 0x7fff);
+@safe:
 
-__gshared longdouble_soft ld_zero  = longdouble_soft(0, 0);
-__gshared longdouble_soft ld_one   = longdouble_soft(0x8000000000000000UL, 0x3fff);
-__gshared longdouble_soft ld_pi    = longdouble_soft(0xc90fdaa22168c235UL, 0x4000);
-__gshared longdouble_soft ld_log2t = longdouble_soft(0xd49a784bcd1b8afeUL, 0x4000);
-__gshared longdouble_soft ld_log2e = longdouble_soft(0xb8aa3b295c17f0bcUL, 0x3fff);
-__gshared longdouble_soft ld_log2  = longdouble_soft(0x9a209a84fbcff799UL, 0x3ffd);
-__gshared longdouble_soft ld_ln2   = longdouble_soft(0xb17217f7d1cf79acUL, 0x3ffe);
+__gshared const
+{
+    longdouble_soft ld_qnan = longdouble_soft(0xC000000000000000UL, 0x7fff);
+    longdouble_soft ld_snan = longdouble_soft(0xC000000000000001UL, 0x7fff);
+    longdouble_soft ld_inf  = longdouble_soft(0x8000000000000000UL, 0x7fff);
 
-__gshared longdouble_soft ld_pi2     = longdouble_soft(0xc90fdaa22168c235UL, 0x4001);
-__gshared longdouble_soft ld_piOver2 = longdouble_soft(0xc90fdaa22168c235UL, 0x3fff);
-__gshared longdouble_soft ld_piOver4 = longdouble_soft(0xc90fdaa22168c235UL, 0x3ffe);
+    longdouble_soft ld_zero  = longdouble_soft(0, 0);
+    longdouble_soft ld_one   = longdouble_soft(0x8000000000000000UL, 0x3fff);
+    longdouble_soft ld_pi    = longdouble_soft(0xc90fdaa22168c235UL, 0x4000);
+    longdouble_soft ld_log2t = longdouble_soft(0xd49a784bcd1b8afeUL, 0x4000);
+    longdouble_soft ld_log2e = longdouble_soft(0xb8aa3b295c17f0bcUL, 0x3fff);
+    longdouble_soft ld_log2  = longdouble_soft(0x9a209a84fbcff799UL, 0x3ffd);
+    longdouble_soft ld_ln2   = longdouble_soft(0xb17217f7d1cf79acUL, 0x3ffe);
 
-__gshared longdouble_soft twoPow63 = longdouble_soft(1UL << 63, 0x3fff + 63);
+    longdouble_soft ld_pi2     = longdouble_soft(0xc90fdaa22168c235UL, 0x4001);
+    longdouble_soft ld_piOver2 = longdouble_soft(0xc90fdaa22168c235UL, 0x3fff);
+    longdouble_soft ld_piOver4 = longdouble_soft(0xc90fdaa22168c235UL, 0x3ffe);
+
+    longdouble_soft twoPow63 = longdouble_soft(1UL << 63, 0x3fff + 63);
+}
 
 //////////////////////////////////////////////////////////////
 
@@ -781,7 +781,7 @@ size_t ld_sprint(char* str, int fmt, longdouble_soft x) @system
 
 //////////////////////////////////////////////////////////////
 
-unittest
+@system unittest
 {
     import core.stdc.string;
     import core.stdc.stdio;
