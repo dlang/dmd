@@ -49,15 +49,15 @@ fail_compilation/fail14486.d(68): Deprecation: The `delete` keyword has been dep
 fail_compilation/fail14486.d(68): Error: `delete c0` is not `@safe` but is used in `@safe` function `test1a`
 fail_compilation/fail14486.d(69): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 fail_compilation/fail14486.d(69): Error: `pure` function `fail14486.test1a` cannot call impure destructor `fail14486.C1a.~this`
-fail_compilation/fail14486.d(69): Error: `@safe` function `fail14486.test1a` cannot call `@system` destructor `fail14486.C1a.~this`
+fail_compilation/fail14486.d(69): Error: `@safe` function `fail14486.test1a` cannot call `@system` destructor `fail14486.C1a.~this` declared at fail_compilation/fail14486.d(22)
 fail_compilation/fail14486.d(69): Error: `@nogc` function `fail14486.test1a` cannot call non-@nogc destructor `fail14486.C1a.~this`
 fail_compilation/fail14486.d(70): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 fail_compilation/fail14486.d(70): Error: `pure` function `fail14486.test1a` cannot call impure destructor `fail14486.C2a.~this`
-fail_compilation/fail14486.d(70): Error: `@safe` function `fail14486.test1a` cannot call `@system` destructor `fail14486.C2a.~this`
+fail_compilation/fail14486.d(70): Error: `@safe` function `fail14486.test1a` cannot call `@system` destructor `fail14486.C2a.~this` declared at fail_compilation/fail14486.d(23)
 fail_compilation/fail14486.d(70): Error: `@nogc` function `fail14486.test1a` cannot call non-@nogc destructor `fail14486.C2a.~this`
 fail_compilation/fail14486.d(71): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 fail_compilation/fail14486.d(71): Error: `pure` function `fail14486.test1a` cannot call impure deallocator `fail14486.C3a.delete`
-fail_compilation/fail14486.d(71): Error: `@safe` function `fail14486.test1a` cannot call `@system` deallocator `fail14486.C3a.delete`
+fail_compilation/fail14486.d(71): Error: `@safe` function `fail14486.test1a` cannot call `@system` deallocator `fail14486.C3a.delete` declared at fail_compilation/fail14486.d(24)
 fail_compilation/fail14486.d(71): Error: `@nogc` function `fail14486.test1a` cannot call non-@nogc deallocator `fail14486.C3a.delete`
 fail_compilation/fail14486.d(72): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 fail_compilation/fail14486.d(72): Error: `delete c4` is not `@safe` but is used in `@safe` function `test1a`
@@ -102,15 +102,15 @@ fail_compilation/fail14486.d(120): Deprecation: The `delete` keyword has been de
 fail_compilation/fail14486.d(120): Error: `delete s0` is not `@safe` but is used in `@safe` function `test2a`
 fail_compilation/fail14486.d(121): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 fail_compilation/fail14486.d(121): Error: `pure` function `fail14486.test2a` cannot call impure destructor `fail14486.S1a.~this`
-fail_compilation/fail14486.d(121): Error: `@safe` function `fail14486.test2a` cannot call `@system` destructor `fail14486.S1a.~this`
+fail_compilation/fail14486.d(121): Error: `@safe` function `fail14486.test2a` cannot call `@system` destructor `fail14486.S1a.~this` declared at fail_compilation/fail14486.d(34)
 fail_compilation/fail14486.d(121): Error: `@nogc` function `fail14486.test2a` cannot call non-@nogc destructor `fail14486.S1a.~this`
 fail_compilation/fail14486.d(122): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 fail_compilation/fail14486.d(122): Error: `pure` function `fail14486.test2a` cannot call impure destructor `fail14486.S2a.~this`
-fail_compilation/fail14486.d(122): Error: `@safe` function `fail14486.test2a` cannot call `@system` destructor `fail14486.S2a.~this`
+fail_compilation/fail14486.d(122): Error: `@safe` function `fail14486.test2a` cannot call `@system` destructor `fail14486.S2a.~this` declared at fail_compilation/fail14486.d(35)
 fail_compilation/fail14486.d(122): Error: `@nogc` function `fail14486.test2a` cannot call non-@nogc destructor `fail14486.S2a.~this`
 fail_compilation/fail14486.d(123): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 fail_compilation/fail14486.d(123): Error: `pure` function `fail14486.test2a` cannot call impure deallocator `fail14486.S3a.delete`
-fail_compilation/fail14486.d(123): Error: `@safe` function `fail14486.test2a` cannot call `@system` deallocator `fail14486.S3a.delete`
+fail_compilation/fail14486.d(123): Error: `@safe` function `fail14486.test2a` cannot call `@system` deallocator `fail14486.S3a.delete` declared at fail_compilation/fail14486.d(36)
 fail_compilation/fail14486.d(123): Error: `@nogc` function `fail14486.test2a` cannot call non-@nogc deallocator `fail14486.S3a.delete`
 fail_compilation/fail14486.d(124): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 ---
@@ -154,11 +154,11 @@ fail_compilation/fail14486.d(171): Deprecation: The `delete` keyword has been de
 fail_compilation/fail14486.d(171): Error: `delete a0` is not `@safe` but is used in `@safe` function `test3a`
 fail_compilation/fail14486.d(172): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 fail_compilation/fail14486.d(172): Error: `pure` function `fail14486.test3a` cannot call impure destructor `fail14486.S1a.~this`
-fail_compilation/fail14486.d(172): Error: `@safe` function `fail14486.test3a` cannot call `@system` destructor `fail14486.S1a.~this`
+fail_compilation/fail14486.d(172): Error: `@safe` function `fail14486.test3a` cannot call `@system` destructor `fail14486.S1a.~this` declared at fail_compilation/fail14486.d(34)
 fail_compilation/fail14486.d(172): Error: `@nogc` function `fail14486.test3a` cannot call non-@nogc destructor `fail14486.S1a.~this`
 fail_compilation/fail14486.d(173): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 fail_compilation/fail14486.d(173): Error: `pure` function `fail14486.test3a` cannot call impure destructor `fail14486.S2a.~this`
-fail_compilation/fail14486.d(173): Error: `@safe` function `fail14486.test3a` cannot call `@system` destructor `fail14486.S2a.~this`
+fail_compilation/fail14486.d(173): Error: `@safe` function `fail14486.test3a` cannot call `@system` destructor `fail14486.S2a.~this` declared at fail_compilation/fail14486.d(35)
 fail_compilation/fail14486.d(173): Error: `@nogc` function `fail14486.test3a` cannot call non-@nogc destructor `fail14486.S2a.~this`
 fail_compilation/fail14486.d(174): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 fail_compilation/fail14486.d(174): Error: `delete a3` is not `@safe` but is used in `@safe` function `test3a`
