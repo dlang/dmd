@@ -263,6 +263,78 @@ $(H2 $(LNAME2 construction_assignment_entries, Construction or Assignment on Set
         aa["a"] = 20;   // call aa["a"].opAssign(20)
         ---------
 
+$(H2 $(LNAME2 inserting_if_not_present, Inserting if not present))
+
+    $(P When AA access requires that there must be a value corresponding to the
+        key, a value must be constructed and inserted if not present. The
+        $(D require) function provides a means to construct a new value via a
+        lazy argument. The lazy argument is evaluated when the key is not
+        present. The $(D require) operation avoids the need to perform multiple
+        key lookups.)
+
+        ---------
+        class C{}
+        C[string] aa;
+
+        auto a = aa.require("a", new C);   // lookup "a", construct if not present
+        ---------
+
+    $(P Sometimes it is necessary to know whether the value was constructed or
+        already exists. The $(D require) function doesn't provide a boolean
+        parameter to indicate whether the value was constructed but instead
+        allows the construction via a function or delegate. This allows the use
+        of any mechanism as demonstrated below.)
+
+        ---------
+        class C{}
+        C[string] aa;
+
+        bool constructed;
+        auto a = aa.require("a", { constructed=true; return new C;}());
+        assert(constructed == true);
+
+        C newc;
+        auto b = aa.require("b", { newc = new C; return newc;}());
+        assert(b is newc);
+        ---------
+
+$(H2 $(LNAME2 advanced_updating, Advanced updating))
+
+    $(P Typically updating a value in an associative array is simply done with
+        an assign statement.)
+
+        ---------
+        int[string] aa;
+
+        aa["a"] = 3;  // set value associated with key "a" to 3
+        ---------
+
+    $(P Sometimes it is necessary to perform different operations depending on
+        whether a value already exists or needs to be constructed. The
+        $(D update) function provides a means to construct a new value via the
+        $(D create) delegate or update an existing value via the $(D update)
+        delegate. The $(D update) operation avoids the need to perform multiple
+        key lookups.)
+
+        ---------
+        class C{}
+        C[string] aa;
+
+        C older;
+        C newer;
+        aa.update("a",
+        {
+            newer = new C;
+            return newer;
+        },
+        (ref C c)
+        {
+            older = c;
+            newer = new C;
+            return newer;
+        });
+        ---------
+
 $(H2 $(LNAME2 static_initialization, Static Initialization of AAs))
 
         ---------
@@ -373,6 +445,12 @@ $(P Properties for associative arrays are:)
         $(TROW $(D .get(Key key, lazy Value defVal)),
         $(ARGS Looks up $(D key); if it exists returns corresponding value
         else evaluates and returns $(D defVal).))
+        $(TROW $(D .require(Key key, lazy Value value)),
+        $(ARGS Looks up $(D key); if it exists returns corresponding value
+        else evaluates $(D value), adds it to the associative array and returns it.))
+        $(TROW $(D .update(Key key, Value delegate() create, Value delegate(Value) update)),
+        $(ARGS Looks up $(D key); if it exists applies the $(D update) delegate
+        else evaluates the $(D create) delegate and adds it to the associative array))
     )
 
 $(HR)
