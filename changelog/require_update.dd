@@ -1,0 +1,36 @@
+Additional functions for associative arrays
+
+The $(D require) function provides a means to construct a new value when the key
+is not present.
+
+---------
+class C{}
+C[string] aa;
+
+auto a = aa.require("a", new C);    // lookup "a", construct if not present
+---------
+
+The $(D update) function allows different operations to be performed depending
+on whether a value already exists or needs to be constructed.
+
+---------
+class C{}
+C[string] aa;
+
+C older;
+C newer;
+aa.update("a",
+{
+    newer = new C;
+    return newer;
+},
+(ref C c)
+{
+    older = c;
+    newer = new C;
+    return newer;
+});
+---------
+
+The functions avoid the need to perform multiple key lookups. Further details
+are available in the $(LINK2 $(ROOT_DIR)spec/hash-map.html, spec.)

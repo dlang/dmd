@@ -365,8 +365,29 @@ extern (C) size_t _aaLen(in AA aa) pure nothrow @nogc
  *      If key was not in the aa, a mutable pointer to newly inserted value which
  *      is set to all zeros
  */
-extern (C) void* _aaGetY(AA* aa, const TypeInfo_AssociativeArray ti, in size_t valsz,
-    in void* pkey)
+extern (C) void* _aaGetY(AA* aa, const TypeInfo_AssociativeArray ti,
+    in size_t valsz, in void* pkey)
+{
+    bool found;
+    return _aaGetX(aa, ti, valsz, pkey, found);
+}
+
+/******************************
+ * Lookup *pkey in aa.
+ * Called only from implementation of require
+ * Params:
+ *      aa = associative array opaque pointer
+ *      ti = TypeInfo for the associative array
+ *      valsz = ignored
+ *      pkey = pointer to the key value
+ *      found = true if the value was found
+ * Returns:
+ *      if key was in the aa, a mutable pointer to the existing value.
+ *      If key was not in the aa, a mutable pointer to newly inserted value which
+ *      is set to all zeros
+ */
+extern (C) void* _aaGetX(AA* aa, const TypeInfo_AssociativeArray ti,
+    in size_t valsz, in void* pkey, out bool found)
 {
     // lazily alloc implementation
     if (aa.impl is null)
@@ -377,7 +398,10 @@ extern (C) void* _aaGetY(AA* aa, const TypeInfo_AssociativeArray ti, in size_t v
 
     // found a value => return it
     if (auto p = aa.findSlotLookup(hash, pkey, ti.key))
+    {
+        found = true;
         return p.entry + aa.valoff;
+    }
 
     auto p = aa.findSlotInsert(hash);
     if (p.deleted)
