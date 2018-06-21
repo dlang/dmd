@@ -72,14 +72,14 @@ if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStati
     const _ = hashOf("abc");
 }
 
-nothrow pure @system unittest
+@nogc nothrow pure @system unittest
 {
     void*[] val;
     const _ = hashOf(val); // Check a PR doesn't break this.
 }
 
 //arithmetic type hash
-@trusted nothrow pure
+@trusted @nogc nothrow pure
 size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && __traits(isArithmetic, T))
 {
     static if(__traits(isFloating, val))
@@ -94,14 +94,14 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && __traits
 }
 
 //typeof(null) hash. CTFE supported
-@trusted nothrow pure
+@trusted @nogc nothrow pure
 size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && is(T : typeof(null)))
 {
     return hashOf(cast(void*)null, seed);
 }
 
 //Pointers hash. CTFE unsupported if not null
-@trusted nothrow pure
+@trusted @nogc nothrow pure
 size_t hashOf(T)(auto ref T val, size_t seed = 0)
 if (!is(T == enum) && is(T V : V*) && !is(T : typeof(null))
     && !is(T == struct) && !is(T == class) && !is(T == union))
@@ -155,7 +155,7 @@ nothrow pure @safe unittest // issue 18925
 }
 
 //delegate hash. CTFE unsupported
-@trusted nothrow pure
+@trusted @nogc nothrow pure
 size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && is(T == delegate))
 {
     assert(!__ctfe, "unable to compute hash of "~T.stringof);
