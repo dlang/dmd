@@ -747,7 +747,7 @@ int tryMain(string[] args)
             }
 
             compile_output = compile_output.unifyNewLine();
-            compile_output = std.regex.replace(compile_output, regex(`^DMD v2\.[0-9]+.*\n DEBUG$`, "m"), "");
+            compile_output = std.regex.replace(compile_output, regex(`^DMD v2\.[0-9]+.*\n? DEBUG$`, "m"), "");
             compile_output = std.string.strip(compile_output);
 
             auto m = std.regex.match(compile_output, `Internal error: .*$`);
