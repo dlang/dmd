@@ -60,7 +60,7 @@ else version (FreeBSD)
         sigevent aio_sigevent;
     }
 
-    version = bsd_posix;
+    version = BSD_Posix;
 }
 else version (NetBSD)
 {
@@ -78,7 +78,7 @@ else version (NetBSD)
         private ssize_t _retval;
     }
 
-    version = bsd_posix;
+    version = BSD_Posix;
 }
 else version (DragonFlyBSD)
 {
@@ -95,7 +95,7 @@ else version (DragonFlyBSD)
         private int _aio_err;
     }
 
-    version = bsd_posix;
+    version = BSD_Posix;
 }
 else
     static assert(false, "Unsupported platform");
@@ -118,7 +118,7 @@ version (CRuntime_Glibc)
         LIO_NOP
     }
 }
-else version (bsd_posix)
+else version (BSD_Posix)
 {
     enum
     {
@@ -137,7 +137,7 @@ version (CRuntime_Glibc)
         LIO_NOWAIT
     }
 }
-else version (bsd_posix)
+else version (BSD_Posix)
 {
     enum
     {
