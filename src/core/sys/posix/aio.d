@@ -9,6 +9,7 @@
 module core.sys.posix.aio;
 
 private import core.sys.posix.signal;
+private import core.sys.posix.sys.types;
 
 version (Posix):
 
@@ -19,9 +20,30 @@ nothrow:
 
 version (CRuntime_Glibc)
 {
-    version (X86_64)
+    import core.sys.posix.config;
+
+    struct aiocb
     {
-        struct aiocb
+        int aio_fildes;
+        int aio_lio_opcode;
+        int aio_reqprio;
+        void* aio_buf;   //volatile
+        size_t aio_nbytes;
+        sigevent aio_sigevent;
+
+        aiocb* __next_prio;
+        int __abs_prio;
+        int __policy;
+        int __error_code;
+        ssize_t __return_value;
+
+        off_t aio_offset;
+        ubyte[32] __glibc_reserved;
+    }
+
+    static if (__USE_LARGEFILE64)
+    {
+        struct aiocb64
         {
             int aio_fildes;
             int aio_lio_opcode;
@@ -30,12 +52,16 @@ version (CRuntime_Glibc)
             size_t aio_nbytes;
             sigevent aio_sigevent;
 
-            ubyte[24] internal_members_padding;
+            aiocb* __next_prio;
+            int __abs_prio;
+            int __policy;
+            int __error_code;
+            ssize_t __return_value;
+
             off_t aio_offset;
             ubyte[32] __glibc_reserved;
         }
-    } else
-        static assert(false, "Unsupported CPU Type");
+    }
 }
 else version (FreeBSD)
 {
@@ -146,14 +172,52 @@ else version (BSD_Posix)
     }
 }
 
-int aio_read(aiocb* aiocbp);
-int aio_write(aiocb* aiocbp);
-int aio_fsync(int op, aiocb* aiocbp);
-int aio_error(const(aiocb)* aiocbp);
-ssize_t aio_return(aiocb* aiocbp);
-int aio_suspend(const(aiocb*)* aiocb_list, int nitems, const(timespec)* timeout);
-int aio_cancel(int fd, aiocb* aiocbp);
-int lio_listio(int mode, const(aiocb*)* aiocb_list, int nitems, sigevent* sevp);
+/* Functions implementing POSIX AIO.  */
+version (CRuntime_Glibc)
+{
+    static if (__USE_LARGEFILE64)
+    {
+        int aio_read64(aiocb64* aiocbp);
+        int aio_write64(aiocb64* aiocbp);
+        int aio_fsync64(int op, aiocb64* aiocbp);
+        int aio_error64(const(aiocb64)* aiocbp);
+        ssize_t aio_return64(aiocb64* aiocbp);
+        int aio_suspend64(const(aiocb64*)* aiocb_list, int nitems, const(timespec)* timeout);
+        int aio_cancel64(int fd, aiocb64* aiocbp);
+        int lio_listio64(int mode, const(aiocb64*)* aiocb_list, int nitems, sigevent* sevp);
+
+        alias aio_read = aio_read64;
+        alias aio_write = aio_write64;
+        alias aio_fsync = aio_fsync64;
+        alias aio_error = aio_error64;
+        alias aio_return = aio_return64;
+        alias aio_suspend = aio_suspend64;
+        alias aio_cancel = aio_cancel64;
+        alias lio_listio = lio_listio64;
+    }
+    else
+    {
+        int aio_read(aiocb* aiocbp);
+        int aio_write(aiocb* aiocbp);
+        int aio_fsync(int op, aiocb* aiocbp);
+        int aio_error(const(aiocb)* aiocbp);
+        ssize_t aio_return(aiocb* aiocbp);
+        int aio_suspend(const(aiocb*)* aiocb_list, int nitems, const(timespec)* timeout);
+        int aio_cancel(int fd, aiocb* aiocbp);
+        int lio_listio(int mode, const(aiocb*)* aiocb_list, int nitems, sigevent* sevp);
+    }
+}
+else
+{
+    int aio_read(aiocb* aiocbp);
+    int aio_write(aiocb* aiocbp);
+    int aio_fsync(int op, aiocb* aiocbp);
+    int aio_error(const(aiocb)* aiocbp);
+    ssize_t aio_return(aiocb* aiocbp);
+    int aio_suspend(const(aiocb*)* aiocb_list, int nitems, const(timespec)* timeout);
+    int aio_cancel(int fd, aiocb* aiocbp);
+    int lio_listio(int mode, const(aiocb*)* aiocb_list, int nitems, sigevent* sevp);
+}
 
 /* functions outside/extending posix requirement */
 version (FreeBSD)
