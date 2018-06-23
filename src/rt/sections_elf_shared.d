@@ -906,17 +906,17 @@ extern(C) void* __tls_get_addr(tls_index* ti) nothrow @nogc;
  *      https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/mips/dl-tls.h;h=93a6dc050cb144b9f68b96fb3199c60f5b1fcd18;hb=HEAD#l32
  */
 version(X86)
-    enum TLS_DTV_OFFSET = 0x;
+    enum TLS_DTV_OFFSET = 0x0;
 else version(X86_64)
-    enum TLS_DTV_OFFSET = 0x;
+    enum TLS_DTV_OFFSET = 0x0;
 else version(ARM)
-    enum TLS_DTV_OFFSET = 0x;
+    enum TLS_DTV_OFFSET = 0x0;
 else version(AArch64)
-    enum TLS_DTV_OFFSET = 0x;
+    enum TLS_DTV_OFFSET = 0x0;
 else version(SPARC)
-    enum TLS_DTV_OFFSET = 0x;
+    enum TLS_DTV_OFFSET = 0x0;
 else version(SPARC64)
-    enum TLS_DTV_OFFSET = 0x;
+    enum TLS_DTV_OFFSET = 0x0;
 else version(PPC)
     enum TLS_DTV_OFFSET = 0x8000;
 else version(PPC64)
