@@ -219,8 +219,28 @@ else
     int lio_listio(int mode, const(aiocb*)* aiocb_list, int nitems, sigevent* sevp);
 }
 
-/* functions outside/extending posix requirement */
-version (FreeBSD)
+/* Functions outside/extending POSIX requirement.  */
+version (CRuntime_Glibc)
+{
+    static if (__USE_GNU)
+    {
+        /* To customize the implementation one can use the following struct.  */
+        struct aioinit
+        {
+            int aio_threads;
+            int aio_num;
+            int aio_locks;
+            int aio_usedba;
+            int aio_debug;
+            int aio_numusers;
+            int aio_idle_time;
+            int aio_reserved;
+        }
+
+        void aio_init(const(aioinit)* init);
+    }
+}
+else version (FreeBSD)
 {
     int aio_waitcomplete(aiocb** aiocb_list, const(timespec)* timeout);
     int aio_mlock(aiocb* aiocbp);
