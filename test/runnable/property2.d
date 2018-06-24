@@ -1,21 +1,10 @@
-// PERMUTE_ARGS: -property
-
 extern (C) int printf(const char* fmt, ...);
-
-// Is -property option specified?
-enum enforceProperty = !__traits(compiles, {
-    int prop(){ return 1; }
-    int n = prop;
-});
 
 /*******************************************/
 
 template select(alias v1, alias v2)
 {
-    static if (enforceProperty)
-        enum select = v1;
-    else
-        enum select = v2;
+    enum select = v2;
 }
 
 struct Test(int N)
@@ -28,32 +17,28 @@ struct Test(int N)
         ref foo(){ getset = 1; return value; }
 
         enum result = select!(0, 1);
-        // -property    test.d(xx): Error: not a property foo
-        // (no option)  prints "getter"
+        // prints "getter"
     }
     static if (N == 1)
     {
         ref foo(int x){ getset = 2; value = x; return value; }
 
         enum result = select!(0, 2);
-        // -property    test.d(xx): Error: not a property foo
-        // (no option)  prints "setter"
+        // prints "setter"
     }
     static if (N == 2)
     {
         @property ref foo(){ getset = 1; return value; }
 
         enum result = select!(1, 1);
-        // -property    prints "getter"
-        // (no option)  prints "getter"
+        // prints "getter"
     }
     static if (N == 3)
     {
         @property ref foo(int x){ getset = 2; value = x; return value; }
 
         enum result = select!(2, 2);
-        // -property    prints "setter"
-        // (no option)  prints "setter"
+        // prints "setter"
     }
 
 
@@ -63,8 +48,7 @@ struct Test(int N)
         ref foo(int x){ getset = 2; value = x; return value; }
 
         enum result = select!(0, 2);
-        // -property    test.d(xx): Error: not a property foo
-        // (no option)  prints "setter"
+        // prints "setter"
     }
     static if (N == 5)
     {
@@ -72,8 +56,7 @@ struct Test(int N)
                   ref foo(int x){ getset = 2; value = x; return value; }
 
         enum result = select!(0, 0);
-        // -property    test.d(xx): Error: cannot overload both property and non-property functions
-        // (no option)  test.d(xx): Error: cannot overload both property and non-property functions
+        // test.d(xx): Error: cannot overload both property and non-property functions
     }
     static if (N == 6)
     {
@@ -81,8 +64,7 @@ struct Test(int N)
         @property ref foo(int x){ getset = 2; value = x; return value; }
 
         enum result = select!(0, 0);
-        // -property    test.d(xx): Error: cannot overload both property and non-property functions
-        // (no option)  test.d(xx): Error: cannot overload both property and non-property functions
+        // test.d(xx): Error: cannot overload both property and non-property functions
     }
     static if (N == 7)
     {
@@ -90,8 +72,7 @@ struct Test(int N)
         @property ref foo(int x){ getset = 2; value = x; return value; }
 
         enum result = select!(2, 2);
-        // -property    prints "setter"
-        // (no option)  prints "setter"
+        // prints "setter"
     }
 }
 
@@ -141,10 +122,7 @@ void spam7722(Foo7722 f) {}
 void test7722()
 {
     auto f = new Foo7722;
-    static if (enforceProperty)
-        static assert(!__traits(compiles, f.spam7722));
-    else
-        f.spam7722;
+    f.spam7722;
 }
 
 /*******************************************/
@@ -159,10 +137,7 @@ void test7722()
             assert(dg(0) == v);
     }
 
-    static if (enforceProperty)
-        checkImpl!(v1)();
-    else
-        checkImpl!(v2)();
+    checkImpl!(v2)();
 }
 
 struct S {}
