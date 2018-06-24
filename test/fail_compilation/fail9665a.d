@@ -1,15 +1,41 @@
 // REQUIRED_ARGS:
 // PERMUTE_ARGS:
+/+
+TEST_OUTPUT:
+---
+fail_compilation/fail9665a.d(45): Error: immutable field `v` initialized multiple times
+fail_compilation/fail9665a.d(44):        Previous initialization is here.
+fail_compilation/fail9665a.d(55): Error: immutable field `v` initialized multiple times
+fail_compilation/fail9665a.d(54):        Previous initialization is here.
+fail_compilation/fail9665a.d(60): Error: immutable field `v` initialized multiple times
+fail_compilation/fail9665a.d(59):        Previous initialization is here.
+fail_compilation/fail9665a.d(65): Error: immutable field `v` initialized multiple times
+fail_compilation/fail9665a.d(64):        Previous initialization is here.
+fail_compilation/fail9665a.d(75): Error: immutable field `v` initialized multiple times
+fail_compilation/fail9665a.d(74):        Previous initialization is here.
+fail_compilation/fail9665a.d(80): Error: immutable field `v` initialized multiple times
+fail_compilation/fail9665a.d(79):        Previous initialization is here.
+fail_compilation/fail9665a.d(85): Error: immutable field `v` initialized multiple times
+fail_compilation/fail9665a.d(84):        Previous initialization is here.
+fail_compilation/fail9665a.d(98): Error: immutable field `v` initialization is not allowed in loops or after labels
+fail_compilation/fail9665a.d(103): Error: immutable field `v` initialization is not allowed in loops or after labels
+fail_compilation/fail9665a.d(108): Error: immutable field `v` initialized multiple times
+fail_compilation/fail9665a.d(107):        Previous initialization is here.
+fail_compilation/fail9665a.d(113): Error: immutable field `v` initialized multiple times
+fail_compilation/fail9665a.d(112):        Previous initialization is here.
+fail_compilation/fail9665a.d(118): Error: immutable field `v` initialized multiple times
+fail_compilation/fail9665a.d(117):        Previous initialization is here.
+fail_compilation/fail9665a.d(132): Error: immutable field `v` initialized multiple times
+fail_compilation/fail9665a.d(131):        Previous initialization is here.
+fail_compilation/fail9665a.d(136): Error: immutable field `w` initialized multiple times
+fail_compilation/fail9665a.d(135):        Previous initialization is here.
+fail_compilation/fail9665a.d(150): Error: static assert:  `__traits(compiles, this.v = 1)` is false
+---
++/
 
 /***************************************************/
 // immutable field
 
-/+
-TEST_OUTPUT:
----
-fail_compilation/fail9665a.d(19): Error: immutable field `v` initialized multiple times
----
-+/
 struct S1A
 {
     immutable int v;
@@ -20,14 +46,6 @@ struct S1A
     }
 }
 
-/+
-TEST_OUTPUT:
----
-fail_compilation/fail9665a.d(37): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(42): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(47): Error: immutable field `v` initialized multiple times
----
-+/
 struct S1B
 {
     immutable int v;
@@ -48,14 +66,6 @@ struct S1B
     }
 }
 
-/+
-TEST_OUTPUT:
----
-fail_compilation/fail9665a.d(65): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(70): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(75): Error: immutable field `v` initialized multiple times
----
-+/
 struct S1C
 {
     immutable int v;
@@ -79,16 +89,6 @@ struct S1C
 /***************************************************/
 // with control flow
 
-/+
-TEST_OUTPUT:
----
-fail_compilation/fail9665a.d(98): Error: immutable field `v` initialization is not allowed in loops or after labels
-fail_compilation/fail9665a.d(103): Error: immutable field `v` initialization is not allowed in loops or after labels
-fail_compilation/fail9665a.d(108): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(113): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(118): Error: immutable field `v` initialized multiple times
----
-+/
 struct S2
 {
     immutable int v;
@@ -122,13 +122,6 @@ struct S2
 /***************************************************/
 // with immutable constructor
 
-/+
-TEST_OUTPUT:
----
-fail_compilation/fail9665a.d(139): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(143): Error: immutable field `w` initialized multiple times
----
-+/
 struct S3
 {
     int v;
@@ -147,12 +140,6 @@ struct S3
 /***************************************************/
 // in __traits(compiles)
 
-/+
-TEST_OUTPUT:
----
-fail_compilation/fail9665a.d(163): Error: static assert:  `__traits(compiles, this.v = 1)` is false
----
-+/
 struct S4
 {
     immutable int v;

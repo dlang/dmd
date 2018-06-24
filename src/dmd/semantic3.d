@@ -673,7 +673,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             else
                             {
                                 bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
-                                if (mustInit && !(sc2.ctorflow.fieldinit[i] & CSX.this_ctor))
+                                if (mustInit && !(sc2.ctorflow.fieldinit[i].csx & CSX.this_ctor))
                                 {
                                     funcdecl.error("field `%s` must be initialized but skipped", v.toChars());
                                 }

@@ -4,7 +4,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail18719.d(29): Deprecation: immutable field `x` initialized multiple times
+fail_compilation/fail18719.d(29): Deprecation: immutable field `x` was initialized in a previous constructor call
 ---
 */
 

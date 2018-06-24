@@ -5429,7 +5429,7 @@ extern (C++) final class DotVarExp : UnaExp
                     {
                         if (f == vd)
                         {
-                            if (!(sc.ctorflow.fieldinit[i] & CSX.this_ctor))
+                            if (!(sc.ctorflow.fieldinit[i].csx & CSX.this_ctor))
                             {
                                 /* If the address of vd is taken, assume it is thereby initialized
                                  * https://issues.dlang.org/show_bug.cgi?id=15869
