@@ -1527,6 +1527,7 @@ extern (C++) abstract class Type : RootObject
             break;
 
         case MODFlags.immutable_:
+            ito = mto;
             t.ito = this;
             if (t.cto)
                 t.cto.ito = this;
