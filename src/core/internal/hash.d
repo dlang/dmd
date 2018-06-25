@@ -139,10 +139,11 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && (is(T ==
         {
             return bytesHash(toUbyte(val), seed);
         }
-        else // CTFE unsupproreted for structs with reference fields
+        else // CTFE unsupported
         {
             assert(!__ctfe, "unable to compute hash of "~T.stringof);
-            return bytesHash(toUbyte(val), seed);
+            const(ubyte)[] bytes = (() @trusted => (cast(const(ubyte)*)&val)[0 .. T.sizeof])();
+            return bytesHash(bytes, seed);
         }
     }
 }
@@ -152,6 +153,22 @@ nothrow pure @safe unittest // issue 18925
     // Check hashOf struct of scalar fields is usable in @safe code.
     static struct S { int a; int b; }
     auto h = hashOf(S.init);
+}
+
+nothrow pure @safe unittest // issue 19005
+{
+    enum Month : ubyte
+    {
+        jan = 1
+    }
+    static struct Date
+    {
+        short _year;
+        Month _month;
+        ubyte _day;
+    }
+    Date date;
+    auto hash = date.hashOf;
 }
 
 //delegate hash. CTFE unsupported
