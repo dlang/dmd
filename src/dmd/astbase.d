@@ -1213,9 +1213,10 @@ struct ASTBase
     {
         Expressions* atts;
 
-        extern (D) this(Expressions* atts, Dsymbols* decl)
+        extern (D) this(const ref Loc loc, Expressions* atts, Dsymbols* decl)
         {
             super(decl);
+            this.loc = loc;
             this.atts = atts;
         }
 

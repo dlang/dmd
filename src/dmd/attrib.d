@@ -1169,9 +1169,10 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
 {
     Expressions* atts;
 
-    extern (D) this(Expressions* atts, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, Expressions* atts, Dsymbols* decl)
     {
         super(decl);
+        this.loc = loc;
         //printf("UserAttributeDeclaration()\n");
         this.atts = atts;
     }
@@ -1180,7 +1181,7 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
     {
         //printf("UserAttributeDeclaration::syntaxCopy('%s')\n", toChars());
         assert(!s);
-        return new UserAttributeDeclaration(Expression.arraySyntaxCopy(this.atts), Dsymbol.arraySyntaxCopy(decl));
+        return new UserAttributeDeclaration(loc, Expression.arraySyntaxCopy(this.atts), Dsymbol.arraySyntaxCopy(decl));
     }
 
     override Scope* newScope(Scope* sc)

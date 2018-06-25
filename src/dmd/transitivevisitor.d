@@ -478,6 +478,8 @@ package mixin template ParseVisitMethods(AST)
     override void visit(AST.EnumMember em)
     {
         //printf("Visiting EnumMember\n");
+        if (em.userAttribDecl)
+            em.userAttribDecl.accept(this);
         if (em.type)
             visitType(em.type);
         if (em.value)
@@ -1142,6 +1144,8 @@ package mixin template ParseVisitMethods(AST)
     override void visit(AST.Parameter p)
     {
         //printf("Visiting Parameter\n");
+        if (p.userAttribDecl)
+            p.userAttribDecl.accept(this);
         visitType(p.type);
         if (p.defaultArg)
             p.defaultArg.accept(this);

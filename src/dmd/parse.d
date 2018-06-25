@@ -204,6 +204,7 @@ struct PrefixAttributes(AST)
     AST.Expression ealign;
     AST.Expressions* udas;
     const(char)* comment;
+    Loc loc;
 }
 
 /*****************************
@@ -322,6 +323,7 @@ final class Parser(AST) : Lexer
         AST.Expressions* udas = null;
         AST.Dsymbols* decldefs;
         AST.Dsymbol lastDecl = mod; // for attaching ddoc unittests to module decl
+        Loc udaLoc = void;
 
         Token* tk;
         if (skipAttributes(&token, &tk) && tk.value == TOK.module_)
@@ -352,6 +354,7 @@ final class Parser(AST) : Lexer
                     }
                 case TOK.at:
                     {
+                        const atLoc = token.loc;
                         AST.Expressions* exps = null;
                         const stc = parseAttribute(&exps);
                         if (stc == AST.STC.property || stc == AST.STC.nogc
@@ -362,6 +365,7 @@ final class Parser(AST) : Lexer
                         }
                         else
                         {
+                            udaLoc = atLoc;
                             udas = AST.UserAttributeDeclaration.concat(udas, exps);
                         }
                         if (stc)
@@ -381,7 +385,8 @@ final class Parser(AST) : Lexer
         if (udas)
         {
             auto a = new AST.Dsymbols();
-            auto udad = new AST.UserAttributeDeclaration(udas, a);
+            // @(3) module m;
+            auto udad = new AST.UserAttributeDeclaration(udaLoc, udas, a);
             mod.userAttribDecl = udad;
         }
 
@@ -471,6 +476,7 @@ final class Parser(AST) : Lexer
             // parse result
             AST.Dsymbol s = null;
             AST.Dsymbols* a = null;
+            Loc udaLoc = void;
 
             PrefixAttributes!AST attrs;
             if (!once || !pAttrs)
@@ -805,10 +811,13 @@ final class Parser(AST) : Lexer
             case TOK.at:
                 {
                     AST.Expressions* exps = null;
+                    pAttrs.loc = token.loc;
+                    const atLoc = token.loc;
                     stc = parseAttribute(&exps);
                     if (stc)
                         goto Lstc; // it's a predefined attribute
                     // no redundant/conflicting check for UDAs
+                    udaLoc = atLoc;
                     pAttrs.udas = AST.UserAttributeDeclaration.concat(pAttrs.udas, exps);
                     goto Lautodecl;
                 }
@@ -830,7 +839,8 @@ final class Parser(AST) : Lexer
                         *pLastDecl = (*a)[a.dim - 1];
                     if (pAttrs.udas)
                     {
-                        s = new AST.UserAttributeDeclaration(pAttrs.udas, a);
+                        // @(3) a = 3;
+                        s = new AST.UserAttributeDeclaration(udaLoc, pAttrs.udas, a);
                         pAttrs.udas = null;
                     }
                     break;
@@ -848,7 +858,8 @@ final class Parser(AST) : Lexer
                         *pLastDecl = (*a)[a.dim - 1];
                     if (pAttrs.udas)
                     {
-                        s = new AST.UserAttributeDeclaration(pAttrs.udas, a);
+                        // @(3) auto foo () { return 3; }
+                        s = new AST.UserAttributeDeclaration(pAttrs.loc, pAttrs.udas, a);
                         pAttrs.udas = null;
                     }
                     break;
@@ -867,7 +878,8 @@ final class Parser(AST) : Lexer
                         a = new AST.Dsymbols();
                         a.push(s);
                     }
-                    s = new AST.UserAttributeDeclaration(pAttrs.udas, a);
+                    // @(3) struct foo {}
+                    s = new AST.UserAttributeDeclaration(udaLoc, pAttrs.udas, a);
                     pAttrs.udas = null;
                 }
                 break;
@@ -890,6 +902,8 @@ final class Parser(AST) : Lexer
                 }
             case TOK.leftBracket:
                 {
+                    udaLoc = token.loc;
+
                     if (peekNext() == TOK.rightBracket)
                         error("empty attribute list is not allowed");
                     error("use `@(attributes)` instead of `[attributes]`");
@@ -900,7 +914,8 @@ final class Parser(AST) : Lexer
                     a = parseBlock(pLastDecl, pAttrs);
                     if (pAttrs.udas)
                     {
-                        s = new AST.UserAttributeDeclaration(pAttrs.udas, a);
+                        // [3] int a = 3;
+                        s = new AST.UserAttributeDeclaration(udaLoc, pAttrs.udas, a);
                         pAttrs.udas = null;
                     }
                     break;
@@ -1440,7 +1455,7 @@ final class Parser(AST) : Lexer
     /***********************************************
      * Parse const/immutable/shared/inout/nothrow/pure postfix
      */
-    StorageClass parsePostfix(StorageClass storageClass, AST.Expressions** pudas)
+    StorageClass parsePostfix(StorageClass storageClass, AST.Expressions** pudas, Loc* udaLoc)
     {
         while (1)
         {
@@ -1481,6 +1496,9 @@ final class Parser(AST) : Lexer
 
             case TOK.at:
                 {
+                    if (udaLoc)
+                        *udaLoc = token.loc;
+
                     AST.Expressions* udas = null;
                     stc = parseAttribute(&udas);
                     if (udas)
@@ -2439,7 +2457,8 @@ final class Parser(AST) : Lexer
             nextToken();
             check(TOK.rightParentheses);
 
-            stc = parsePostfix(stc, &udas);
+            Loc udaLoc = void;
+            stc = parsePostfix(stc, &udas, &udaLoc);
             if (stc & AST.STC.immutable_)
                 deprecation("`immutable` postblit is deprecated. Please use an unqualified postblit.");
             if (stc & AST.STC.shared_)
@@ -2455,7 +2474,8 @@ final class Parser(AST) : Lexer
             {
                 auto a = new AST.Dsymbols();
                 a.push(f);
-                s = new AST.UserAttributeDeclaration(udas, a);
+                // this(this) @(3) {}
+                s = new AST.UserAttributeDeclaration(udaLoc, udas, a);
             }
             return s;
         }
@@ -2474,7 +2494,8 @@ final class Parser(AST) : Lexer
          */
         AST.VarArg varargs;
         AST.Parameters* parameters = parseParameters(&varargs);
-        stc = parsePostfix(stc, &udas);
+        Loc udaLoc = void;
+        stc = parsePostfix(stc, &udas, &udaLoc);
         if (varargs != AST.VarArg.none || AST.Parameter.dim(parameters) != 0)
         {
             if (stc & AST.STC.static_)
@@ -2499,7 +2520,8 @@ final class Parser(AST) : Lexer
         {
             auto a = new AST.Dsymbols();
             a.push(f);
-            s = new AST.UserAttributeDeclaration(udas, a);
+            // this() @(3) {}
+            s = new AST.UserAttributeDeclaration(udaLoc, udas, a);
         }
 
         if (tpl)
@@ -2529,7 +2551,8 @@ final class Parser(AST) : Lexer
         check(TOK.leftParentheses);
         check(TOK.rightParentheses);
 
-        stc = parsePostfix(stc, &udas);
+        Loc udaLoc = void;
+        stc = parsePostfix(stc, &udas, &udaLoc);
         if (StorageClass ss = stc & (AST.STC.shared_ | AST.STC.static_))
         {
             if (ss == AST.STC.static_)
@@ -2544,7 +2567,8 @@ final class Parser(AST) : Lexer
         {
             auto a = new AST.Dsymbols();
             a.push(f);
-            s = new AST.UserAttributeDeclaration(udas, a);
+            // ~this() @(3) {}
+            s = new AST.UserAttributeDeclaration(udaLoc, udas, a);
         }
         return s;
     }
@@ -2565,7 +2589,7 @@ final class Parser(AST) : Lexer
         check(TOK.leftParentheses);
         check(TOK.rightParentheses);
 
-        stc = parsePostfix(stc & ~AST.STC.TYPECTOR, null) | stc;
+        stc = parsePostfix(stc & ~AST.STC.TYPECTOR, null, null) | stc;
         if (stc & AST.STC.shared_)
             error(loc, "use `shared static this()` to declare a shared static constructor");
         else if (stc & AST.STC.static_)
@@ -2600,7 +2624,8 @@ final class Parser(AST) : Lexer
         check(TOK.leftParentheses);
         check(TOK.rightParentheses);
 
-        stc = parsePostfix(stc & ~AST.STC.TYPECTOR, &udas) | stc;
+        Loc udaLoc = void;
+        stc = parsePostfix(stc & ~AST.STC.TYPECTOR, &udas, &udaLoc) | stc;
         if (stc & AST.STC.shared_)
             error(loc, "use `shared static ~this()` to declare a shared static destructor");
         else if (stc & AST.STC.static_)
@@ -2619,7 +2644,8 @@ final class Parser(AST) : Lexer
         {
             auto a = new AST.Dsymbols();
             a.push(f);
-            s = new AST.UserAttributeDeclaration(udas, a);
+            // static ~this() @(3) {}
+            s = new AST.UserAttributeDeclaration(udaLoc, udas, a);
         }
         return s;
     }
@@ -2641,7 +2667,7 @@ final class Parser(AST) : Lexer
         check(TOK.leftParentheses);
         check(TOK.rightParentheses);
 
-        stc = parsePostfix(stc & ~AST.STC.TYPECTOR, null) | stc;
+        stc = parsePostfix(stc & ~AST.STC.TYPECTOR, null, null) | stc;
         if (StorageClass ss = stc & (AST.STC.shared_ | AST.STC.static_))
             appendStorageClass(stc, ss); // complaint for the redundancy
         else if (StorageClass modStc = stc & AST.STC.TYPECTOR)
@@ -2675,7 +2701,8 @@ final class Parser(AST) : Lexer
         check(TOK.leftParentheses);
         check(TOK.rightParentheses);
 
-        stc = parsePostfix(stc & ~AST.STC.TYPECTOR, &udas) | stc;
+        Loc udaLoc = void;
+        stc = parsePostfix(stc & ~AST.STC.TYPECTOR, &udas, &udaLoc) | stc;
         if (StorageClass ss = stc & (AST.STC.shared_ | AST.STC.static_))
             appendStorageClass(stc, ss); // complaint for the redundancy
         else if (StorageClass modStc = stc & AST.STC.TYPECTOR)
@@ -2692,7 +2719,8 @@ final class Parser(AST) : Lexer
         {
             auto a = new AST.Dsymbols();
             a.push(f);
-            s = new AST.UserAttributeDeclaration(udas, a);
+            // shared static ~this() @(3) {}
+            s = new AST.UserAttributeDeclaration(udaLoc, udas, a);
         }
         return s;
     }
@@ -2844,6 +2872,8 @@ final class Parser(AST) : Lexer
             StorageClass stc;
             AST.Expression ae;
             AST.Expressions* udas = null;
+            Loc udaLoc = void;
+
             for (; 1; nextToken())
             {
             L3:
@@ -2882,6 +2912,7 @@ final class Parser(AST) : Lexer
                     goto L2;
                 case TOK.at:
                     {
+                        udaLoc = token.loc;
                         AST.Expressions* exps = null;
                         StorageClass stc2 = parseAttribute(&exps);
                         if (stc2 == AST.STC.property || stc2 == AST.STC.nogc ||
@@ -3021,7 +3052,8 @@ final class Parser(AST) : Lexer
                         if (udas)
                         {
                             auto a = new AST.Dsymbols();
-                            auto udad = new AST.UserAttributeDeclaration(udas, a);
+                            // void foo(@(3) int a) {}
+                            auto udad = new AST.UserAttributeDeclaration(udaLoc, udas, a);
                             param.userAttribDecl = udad;
                         }
                         if (token.value == TOK.at)
@@ -3128,6 +3160,7 @@ final class Parser(AST) : Lexer
                 AST.Type type = null;
                 Identifier ident = null;
 
+                Loc udaLoc = void;
                 AST.Expressions* udas;
                 StorageClass stc;
                 AST.Expression deprecationMessage;
@@ -3139,6 +3172,7 @@ final class Parser(AST) : Lexer
                     switch(token.value)
                     {
                         case TOK.at:
+                            const atLoc = token.loc;
                             if (StorageClass _stc = parseAttribute(&udas))
                             {
                                 if (_stc == AST.STC.disable)
@@ -3151,6 +3185,9 @@ final class Parser(AST) : Lexer
                                 }
                                 nextToken();
                             }
+                            else if (udas)
+                                udaLoc = atLoc;
+
                             break;
                         case TOK.deprecated_:
                             if (StorageClass _stc = parseDeprecatedAttribute(deprecationMessage))
@@ -3214,7 +3251,10 @@ final class Parser(AST) : Lexer
 
                 AST.UserAttributeDeclaration uad;
                 if (udas)
-                    uad = new AST.UserAttributeDeclaration(udas, null);
+                {
+                    // enum { @(3) a }
+                    uad = new AST.UserAttributeDeclaration(udaLoc, udas, null);
+                }
 
                 AST.DeprecatedDeclaration dd;
                 if (deprecationMessage)
@@ -3988,7 +4028,7 @@ final class Parser(AST) : Lexer
                     AST.VarArg varargs;
                     AST.Parameters* parameters = parseParameters(&varargs);
 
-                    StorageClass stc = parsePostfix(AST.STC.undefined_, null);
+                    StorageClass stc = parsePostfix(AST.STC.undefined_, null, null);
                     auto tf = new AST.TypeFunction(AST.ParameterList(parameters, varargs), t, linkage, stc);
                     if (stc & (AST.STC.const_ | AST.STC.immutable_ | AST.STC.shared_ | AST.STC.wild | AST.STC.return_))
                     {
@@ -4012,7 +4052,12 @@ final class Parser(AST) : Lexer
         assert(0);
     }
 
-    AST.Type parseDeclarator(AST.Type t, int* palt, Identifier* pident, AST.TemplateParameters** tpl = null, StorageClass storageClass = 0, int* pdisable = null, AST.Expressions** pudas = null)
+    AST.Type parseDeclarator(AST.Type t, int* palt, Identifier* pident,
+        AST.TemplateParameters** tpl = null,
+        StorageClass storageClass = 0,
+        int* pdisable = null,
+        AST.Expressions** pudas = null,
+        Loc* udaLoc = null)
     {
         //printf("parseDeclarator(tpl = %p)\n", tpl);
         t = parseBasicType2(t);
@@ -4153,7 +4198,7 @@ final class Parser(AST) : Lexer
                     /* Parse const/immutable/shared/inout/nothrow/pure/return postfix
                      */
                     // merge prefix storage classes
-                    StorageClass stc = parsePostfix(storageClass, pudas);
+                    StorageClass stc = parsePostfix(storageClass, pudas, udaLoc);
 
                     AST.Type tf = new AST.TypeFunction(AST.ParameterList(parameters, varargs), t, linkage, stc);
                     tf = tf.addSTC(stc);
@@ -4181,7 +4226,7 @@ final class Parser(AST) : Lexer
     }
 
     void parseStorageClasses(ref StorageClass storage_class, ref LINK link,
-        ref bool setAlignment, ref AST.Expression ealign, ref AST.Expressions* udas)
+        ref bool setAlignment, ref AST.Expression ealign, ref AST.Expressions* udas, out Loc udaLoc)
     {
         StorageClass stc;
         bool sawLinkage = false; // seen a linkage declaration
@@ -4279,6 +4324,7 @@ final class Parser(AST) : Lexer
 
             case TOK.at:
                 {
+                    udaLoc = token.loc;
                     stc = parseAttribute(&udas);
                     if (stc)
                         goto L1;
@@ -4355,6 +4401,7 @@ final class Parser(AST) : Lexer
         auto loc = token.loc;
         AST.Expressions* udas = null;
         Token* tk;
+        Loc udaLoc = void;
 
         //printf("parseDeclarations() %s\n", token.toChars());
         if (!comment)
@@ -4430,7 +4477,7 @@ final class Parser(AST) : Lexer
                         link = linkage;
                         setAlignment = false;
                         ealign = null;
-                        parseStorageClasses(storage_class, link, setAlignment, ealign, udas);
+                        parseStorageClasses(storage_class, link, setAlignment, ealign, udas, udaLoc);
                     }
 
                     if (token.value == TOK.at)
@@ -4467,7 +4514,8 @@ final class Parser(AST) : Lexer
                             auto tf = cast(AST.TypeFunction) fd.type;
                             assert(tf.parameterList.parameters.dim > 0);
                             auto as = new AST.Dsymbols();
-                            (*tf.parameterList.parameters)[0].userAttribDecl = new AST.UserAttributeDeclaration(udas, as);
+                            // alias a = @(3) b => 4;
+                            (*tf.parameterList.parameters)[0].userAttribDecl = new AST.UserAttributeDeclaration(udaLoc, udas, as);
                         }
 
                         v = new AST.AliasDeclaration(loc, ident, s);
@@ -4535,7 +4583,7 @@ final class Parser(AST) : Lexer
             // alias StorageClasses type ident;
         }
 
-        parseStorageClasses(storage_class, link, setAlignment, ealign, udas);
+        parseStorageClasses(storage_class, link, setAlignment, ealign, udas, udaLoc);
 
         if (token.value == TOK.enum_)
         {
@@ -4545,7 +4593,8 @@ final class Parser(AST) : Lexer
 
             if (udas)
             {
-                d = new AST.UserAttributeDeclaration(udas, a);
+                // void foo() { @(3) enum a { b } }
+                d = new AST.UserAttributeDeclaration(udaLoc, udas, a);
                 a = new AST.Dsymbols();
                 a.push(d);
             }
@@ -4582,7 +4631,8 @@ final class Parser(AST) : Lexer
             }
             if (udas)
             {
-                s = new AST.UserAttributeDeclaration(udas, a);
+                // void foo() { @(3) struct Bar {} }
+                s = new AST.UserAttributeDeclaration(udaLoc, udas, a);
                 a = new AST.Dsymbols();
                 a.push(s);
             }
@@ -4600,7 +4650,8 @@ final class Parser(AST) : Lexer
             AST.Dsymbols* a = parseAutoDeclarations(storage_class, comment);
             if (udas)
             {
-                AST.Dsymbol s = new AST.UserAttributeDeclaration(udas, a);
+                // void foo() { @(3) a = 3; }
+                AST.Dsymbol s = new AST.UserAttributeDeclaration(udaLoc, udas, a);
                 a = new AST.Dsymbols();
                 a.push(s);
             }
@@ -4640,7 +4691,7 @@ final class Parser(AST) : Lexer
 
             loc = token.loc;
             ident = null;
-            t = parseDeclarator(ts, &alt, &ident, &tpl, storage_class, &disable, &udas);
+            t = parseDeclarator(ts, &alt, &ident, &tpl, storage_class, &disable, &udas, &udaLoc);
             assert(t);
             if (!tfirst)
                 tfirst = t;
@@ -4741,7 +4792,8 @@ final class Parser(AST) : Lexer
                 {
                     auto ax = new AST.Dsymbols();
                     ax.push(s);
-                    s = new AST.UserAttributeDeclaration(udas, ax);
+                    // void foo() @(4) {}
+                    s = new AST.UserAttributeDeclaration(udaLoc, udas, ax);
                 }
 
                 /* A template parameter list means it's a function template
@@ -4805,7 +4857,8 @@ final class Parser(AST) : Lexer
                 {
                     auto ax = new AST.Dsymbols();
                     ax.push(s);
-                    s = new AST.UserAttributeDeclaration(udas, ax);
+                    // void foo() { @(3) int a = 4; }
+                    s = new AST.UserAttributeDeclaration(udaLoc, udas, ax);
                 }
                 a.push(s);
                 switch (token.value)
@@ -4872,7 +4925,7 @@ final class Parser(AST) : Lexer
                 // (parameters) => expression
                 // (parameters) { statements... }
                 parameters = parseParameters(&varargs, &tpl);
-                stc = parsePostfix(AST.STC.undefined_, null);
+                stc = parsePostfix(AST.STC.undefined_, null, null);
                 if (StorageClass modStc = stc & AST.STC.TYPECTOR)
                 {
                     if (save == TOK.function_)
@@ -6251,7 +6304,7 @@ final class Parser(AST) : Lexer
                 Loc labelloc;
 
                 nextToken();
-                StorageClass stc = parsePostfix(AST.STC.undefined_, null);
+                StorageClass stc = parsePostfix(AST.STC.undefined_, null, null);
                 if (stc & (AST.STC.const_ | AST.STC.immutable_ | AST.STC.shared_ | AST.STC.wild))
                     error("`const`/`immutable`/`shared`/`inout` attributes are not allowed on `asm` blocks");
 
