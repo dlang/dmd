@@ -1056,11 +1056,12 @@ DtorDeclaration buildExternDDtor(AggregateDeclaration ad, Scope* sc)
     if (!dtor)
         return null;
 
-    // the only ABI known to be incompatible is Windows/x86
-    if (ad.classKind != ClassKind.cpp || !global.params.isWindows || global.params.is64bit)
+    // ABI incompatible on all (?) x86 32-bit platforms
+    if (ad.classKind != ClassKind.cpp || global.params.is64bit)
         return dtor;
 
-    // generate member function that adjusts calling convention (EAX used instead of ECX for 'this'):
+    // generate member function that adjusts calling convention
+    // (EAX used for 'this' instead of ECX on Windows/stack on others):
     // extern(D) void __ticppdtor()
     // {
     //     Class.__dtor();
@@ -1073,6 +1074,7 @@ DtorDeclaration buildExternDDtor(AggregateDeclaration ad, Scope* sc)
     call.directcall = true;                   // non-virtual call Class.__dtor();
     func.fbody = new ExpStatement(dtor.loc, call);
     func.generated = true;
+    func.storage_class |= STC.inference;
 
     auto sc2 = sc.push();
     sc2.stc &= ~STC.static_; // not a static destructor
@@ -1081,6 +1083,7 @@ DtorDeclaration buildExternDDtor(AggregateDeclaration ad, Scope* sc)
     ad.members.push(func);
     func.addMember(sc2, ad);
     func.dsymbolSemantic(sc2);
+    func.functionSemantic(); // to infer attributes
 
     sc2.pop();
     return func;
