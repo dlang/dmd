@@ -1442,6 +1442,77 @@ void test18928()
 }
 
 /****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=18953
+// Win32: extern(C++) struct destructor not called correctly through runtime
+
+extern(C++) 
+struct S18953
+{
+    char x;
+    ~this() nothrow @nogc { traceBuf[traceBufPos++] = x; }
+}
+
+void test18953()
+{
+    traceBufPos = 0;
+    S18953[] arr = new S18953[3];
+    arr[1].x = '1';
+    arr[2].x = '2';
+    arr.length = 1;
+    assumeSafeAppend(arr); // destroys arr[1] and arr[2]
+    printf("traceBuf18953 %.*s\n", cast(int)traceBufPos, traceBuf.ptr);
+    assert(traceBuf[0..traceBufPos] == "21");
+}
+
+/****************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=18966
+
+extern(C++):
+class Base18966
+{
+    this() @safe nothrow;
+    ~this();
+    void vf();
+    int x;
+}
+
+class Derived18966 : Base18966
+{
+    override void vf() { x = 200; }
+}
+
+class Explicit18966 : Base18966
+{
+    this() @safe { super(); }
+    override void vf() { x = 250; }
+}
+
+class Implicit18966 : Base18966
+{
+    this() nothrow {}
+    override void vf() { x = 300; }
+}
+
+void test18966()
+{
+    Derived18966 d = new Derived18966;
+    assert(d.x == 10);
+    d.vf();
+    assert(d.x == 200);
+
+    Explicit18966 e = new Explicit18966;
+    assert(e.x == 10);
+    e.vf();
+    assert(e.x == 250);
+
+    Implicit18966 i = new Implicit18966;
+    assert(i.x == 10);
+    i.vf();
+    assert(i.x == 300);
+}
+
+/****************************************/
 
 void main()
 {
@@ -1488,6 +1559,8 @@ void main()
     test15589();
     test15589b();
     test18928();
+    test18953();
+    test18966();
 
     printf("Success\n");
 }

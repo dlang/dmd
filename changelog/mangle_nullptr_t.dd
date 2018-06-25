@@ -1,6 +1,0 @@
-`extern (C++)` is now able to mangle `typeof(null)` (aka: `nullptr_t`) which often appears in C++ API's.
-
----
-alias nullptr_t = typeof(null);
-extern (C++) void fun(nullptr_t);
----

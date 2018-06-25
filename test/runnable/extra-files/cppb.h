@@ -56,3 +56,12 @@ struct Cpp15589Struct
     ~Cpp15589Struct();
     int s;
 };
+
+class Base18966
+{
+public:
+    Base18966();
+    virtual ~Base18966();
+    virtual void vf();
+    int x;
+};

@@ -1,4 +1,0 @@
-`extern (C++)` now mangles class constructor's correctly.
-
-`extern (C++)` mangling of class constructor is working, also virtual and non-virtual destructors mangle correctly too.
-C++ semantics are not yet perfectly matching, but some simple cases are working.
