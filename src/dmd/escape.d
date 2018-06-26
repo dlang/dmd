@@ -96,7 +96,7 @@ bool checkAssocArrayLiteralEscape(Scope *sc, AssocArrayLiteralExp ae, bool gag)
 bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier par, Expression arg, bool gag)
 {
     enum log = false;
-    if (log) printf("checkParamArgumentEscape(arg: %s par: %s)\n", arg.toChars(), par.toChars());
+    if (log) printf("checkParamArgumentEscape(arg: %s par: %s)\n", arg ? arg.toChars() : "null", par ? par.toChars() : "null");
     //printf("type = %s, %d\n", arg.type.toChars(), arg.type.hasPointers());
 
     if (!arg.type.hasPointers())
@@ -153,14 +153,15 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier par, Ex
             /* v is not 'scope', and is assigned to a parameter that may escape.
              * Therefore, v can never be 'scope'.
              */
-            if (log) printf("no infer for %s in %s, fdc %s, %d\n",
-                v.toChars(), sc.func.ident.toChars(), fdc.ident.toChars(),  __LINE__);
+            if (log) printf("no infer for %s in %s loc %s, fdc %s, %d\n",
+                v.toChars(), sc.func.ident.toChars(), sc.func.loc.toChars(), fdc.ident.toChars(),  __LINE__);
             v.doNotInferScope = true;
         }
     }
 
     foreach (VarDeclaration v; er.byref)
     {
+        if (log) printf("byref %s\n", v.toChars());
         if (v.isDataseg())
             continue;
 
@@ -367,6 +368,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
              * It may escape via that assignment, therefore, v can never be 'scope'.
              */
             //printf("no infer for %s in %s, %d\n", v.toChars(), sc.func.ident.toChars(), __LINE__);
+            notMaybeScope(v);
             v.doNotInferScope = true;
         }
     }
@@ -565,6 +567,7 @@ bool checkThrowEscape(Scope* sc, Expression e, bool gag)
         else
         {
             //printf("no infer for %s in %s, %d\n", v.toChars(), sc.func.ident.toChars(), __LINE__);
+            notMaybeScope(v);
             v.doNotInferScope = true;
         }
     }
@@ -640,6 +643,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
         else
         {
             //printf("no infer for %s in %s, %d\n", v.toChars(), sc.func.ident.toChars(), __LINE__);
+            notMaybeScope(v);
             v.doNotInferScope = true;
         }
     }
@@ -844,6 +848,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         else
         {
             //printf("no infer for %s in %s, %d\n", v.toChars(), sc.func.ident.toChars(), __LINE__);
+            notMaybeScope(v);
             v.doNotInferScope = true;
         }
     }
