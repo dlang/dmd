@@ -2,7 +2,7 @@
 
 set -uexo pipefail
 
-HOST_DMD_VER=2.074.1 # same as in dmd/src/posix.mak
+HOST_DMD_VER=2.079.1 # same as in dmd/src/posix.mak
 CURL_USER_AGENT="CirleCI $(curl --version | head -n 1)"
 N=4
 CIRCLE_NODE_INDEX=${CIRCLE_NODE_INDEX:-0}
@@ -171,6 +171,25 @@ check_run_individual()
 	"${build_path}/dmd"  -i -run ./test/run.d test/runnable/template2962.d ./test/compilable/test14275.d
 }
 
+# Checks the D build.d script
+check_d_builder()
+{
+    echo "Testing D build"
+    # load environment for bootstrap compiler
+    if [ -f ~/dlang/install.sh ] ; then
+        source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
+    fi
+    ./src/build.d clean
+    rm -rf generated # just to be sure
+    # TODO: add support for 32-bit builds
+    ./src/build.d MODEL=64
+    ./generated/linux/release/64/dmd --version | grep -v "dirty"
+    ./src/build.d clean
+    if [ -f ~/dlang/install.sh ] ; then
+        deactivate
+    fi
+}
+
 codecov()
 {
     # CodeCov gets confused by lst files which it can't matched
@@ -183,13 +202,8 @@ codecov()
 case $1 in
     install-deps) install_deps ;;
     setup-repos) setup_repos ;;
-    coverage) echo "removed" ;;
-    check-clean-git) echo "removed" ;;
-    codecov)
-        echo "removed - use 'all'"
-        # Fall-through is used to maintain compatibility with the existing PRs
-        ;&
     all)
+        check_d_builder;
         coverage;
         check_clean_git;
         check_run_individual;
