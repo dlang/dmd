@@ -1,4 +1,5 @@
 MAKE=make
+JOBS=$(NUMBER_OF_PROCESSORS)
 
 defaulttarget:
 	cd src
@@ -12,7 +13,7 @@ auto-tester-build:
 
 auto-tester-test:
 	cd test
-	$(MAKE)
+	$(MAKE) -j$(JOBS)
 	cd ..
 	cd samples
 	gmake -f win32.mak DMD=..\src\dmd.exe MODEL=$(MODEL) "LIB=..\..\phobos;$(LIB)" \

@@ -2,6 +2,15 @@ INSTALL_DIR=$(PWD)/../install
 ECTAGS_LANGS = Make,C,C++,D,Sh
 ECTAGS_FILES = src/*.[chd] src/backend/*.[chd] src/root/*.[chd] src/tk/*.[chd]
 
+UNAME:= $(shell uname -s)
+JOBS=1
+ifeq ($(UNAME), Darwin)
+	JOBS=$(shell sysctl -n hw.ncpu)
+endif
+ifeq ($(UNAME), Linux)
+	JOBS=$(shell nproc)
+endif
+
 .PHONY: all clean test install auto-tester-build auto-tester-test toolchain-info
 
 all:
@@ -23,7 +32,7 @@ clean:
 test:
 	$(QUIET)$(MAKE) -C src -f posix.mak build-examples
 	$(QUIET)$(MAKE) -C src -f posix.mak unittest
-	$(QUIET)$(MAKE) -C test -f Makefile
+	$(QUIET)$(MAKE) -C test -f Makefile -j$(JOBS)
 
 html:
 	$(QUIET)$(MAKE) -C src -f posix.mak html
