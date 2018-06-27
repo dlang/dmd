@@ -6,7 +6,7 @@
 *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
 *    (See accompanying file LICENSE)
 * Authors:   Rainer Schuetze
-* Source: $(DRUNTIMESRC src/rt/_config.d)
+* Source: $(DRUNTIMESRC rt/_config.d)
 */
 
 module rt.config;

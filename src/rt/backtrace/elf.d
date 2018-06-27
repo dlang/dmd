@@ -6,7 +6,7 @@
  * Copyright: Copyright Digital Mars 2015 - 2015.
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Yazan Dabain
- * Source: $(DRUNTIMESRC src/rt/backtrace/elf.d)
+ * Source: $(DRUNTIMESRC rt/backtrace/elf.d)
  */
 
 module rt.backtrace.elf;

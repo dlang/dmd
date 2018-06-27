@@ -5,7 +5,7 @@
  * License:   Distributed under the
  *            $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  * Authors:   Walter Bright, Sean Kelly
- * Source:    $(DRUNTIMESRC src/rt/_arraycat.d)
+ * Source:    $(DRUNTIMESRC rt/_arraycat.d)
  */
 
 module rt.arraycat;
