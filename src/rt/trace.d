@@ -6,7 +6,7 @@
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE)
  * Authors:   Walter Bright, Sean Kelly, the LDC team
- * Source: $(DRUNTIMESRC src/rt/_trace.d)
+ * Source: $(DRUNTIMESRC rt/_trace.d)
  */
 
 module rt.trace;

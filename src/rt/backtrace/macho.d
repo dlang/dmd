@@ -4,7 +4,7 @@
  * Copyright: Copyright Jacob Carlborg 2018.
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Authors:   Jacob Carlborg
- * Source:    $(DRUNTIMESRC src/rt/backtrace/macho.d)
+ * Source:    $(DRUNTIMESRC rt/backtrace/macho.d)
  */
 module rt.backtrace.macho;
 
