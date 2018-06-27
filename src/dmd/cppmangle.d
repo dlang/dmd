@@ -106,6 +106,36 @@ private final class CppMangleVisitor : Visitor
     Loc loc;                    // location for use in error messages
 
   final:
+    /**
+     * Write a seq-id from an index number, excluding the terminating '_'
+     *
+     * Params:
+     *   idx = the index in a substitution list.
+     *         Note that index 0 has no value, and `S0_` would be the
+     *         substitution at index 1 in the list.
+     *
+     * See-Also:
+     *  https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangle.seq-id
+     */
+    private void writeSequenceFromIndex(size_t idx)
+    {
+        if (idx)
+        {
+            void write_seq_id(size_t i)
+            {
+                if (i >= 36)
+                {
+                    write_seq_id(i / 36);
+                    i %= 36;
+                }
+                i += (i < 10) ? '0' : 'A' - 10;
+                buf.writeByte(cast(char)i);
+            }
+
+            write_seq_id(idx - 1);
+        }
+    }
+
     bool substitute(RootObject p)
     {
         //printf("substitute %s\n", p ? p.toChars() : null);
@@ -116,22 +146,7 @@ private final class CppMangleVisitor : Visitor
             /* Sequence is S_, S0_, .., S9_, SA_, ..., SZ_, S10_, ...
              */
             buf.writeByte('S');
-            if (i)
-            {
-                // Write <seq-id> to buf
-                void write_seq_id(size_t i)
-                {
-                    if (i >= 36)
-                    {
-                        write_seq_id(i / 36);
-                        i %= 36;
-                    }
-                    i += (i < 10) ? '0' : 'A' - 10;
-                    buf.writeByte(cast(char)i);
-                }
-
-                write_seq_id(i - 1);
-            }
+            writeSequenceFromIndex(i);
             buf.writeByte('_');
             return true;
         }
