@@ -4,7 +4,7 @@ OPTS.update(
     category = 'devel',
     url = 'https://github.com/dlang/dmd',
     maintainer = 'Sociomantic Tsunami <tsunami@sociomantic.com>',
-    vendor = 'Sociomantic Labs GmbH',
+    vendor = 'dunnhumby Germany GmbH',
     license = 'Boost Software License 1.0',
     depends = ['gcc'] + FUN.autodeps('src/dmd'),
     deb_recommends = 'dmd1-rt',
