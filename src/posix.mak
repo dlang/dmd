@@ -54,11 +54,12 @@ ifeq (,$(BUILD))
 BUILD=release
 endif
 
-ifneq ($(BUILD),release)
-    ifneq ($(BUILD),debug)
-        $(error Unrecognized BUILD=$(BUILD), must be 'debug' or 'release')
-    endif
+ifeq ($(BUILD),release)
+    ENABLE_RELEASE := 1
+else ifeq ($(BUILD),debug)
     ENABLE_DEBUG := 1
+else
+    $(error Unrecognized BUILD=$(BUILD), must be 'debug' or 'release')
 endif
 
 # default to PIC on x86_64, use PIC=1/0 to en-/disable PIC.
