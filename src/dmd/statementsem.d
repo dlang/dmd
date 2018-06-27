@@ -3236,7 +3236,7 @@ else
             foreach (i, v; ad.fields)
             {
                 bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
-                if (mustInit && !(sc.ctorflow.fieldinit[i] & CSX.this_ctor))
+                if (mustInit && !(sc.ctorflow.fieldinit[i].csx & CSX.this_ctor))
                 {
                     rs.error("an earlier `return` statement skips field `%s` initialization", v.toChars());
                     errors = true;

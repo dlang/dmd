@@ -12,6 +12,7 @@
 
 module dmd.declaration;
 
+import core.stdc.stdio;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.ctorflow;
@@ -112,7 +113,8 @@ bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
                         break;
                 }
                 assert(i < dim);
-                const fi = sc.ctorflow.fieldinit[i];
+                auto fieldInit = &sc.ctorflow.fieldinit[i];
+                const fi = fieldInit.csx;
 
                 if (fi & CSX.this_ctor)
                 {
@@ -127,9 +129,14 @@ bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
                         // dmd.ctorflow.CSX enum.
                         // @@@DEPRECATED_2019-01@@@.
                         if (fi & CSX.deprecate_18719)
-                            .deprecation(loc, "%s field `%s` initialized multiple times", modStr, var.toChars());
+                        {
+                            .deprecation(loc, "%s field `%s` was initialized in a previous constructor call", modStr, var.toChars());
+                        }
                         else
+                        {
                             .error(loc, "%s field `%s` initialized multiple times", modStr, var.toChars());
+                            .errorSupplemental(fieldInit.loc, "Previous initialization is here.");
+                        }
                     }
                 }
                 else if (sc.inLoop || (fi & CSX.label))
@@ -143,7 +150,8 @@ bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
                     }
                 }
 
-                sc.ctorflow.fieldinit[i] |= CSX.this_ctor;
+                fieldInit.csx |= CSX.this_ctor;
+                fieldInit.loc = e1.loc;
                 if (var.overlapped) // https://issues.dlang.org/show_bug.cgi?id=15258
                 {
                     foreach (j, v; ad.fields)
@@ -151,7 +159,7 @@ bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
                         if (v is var || !var.isOverlappedWith(v))
                             continue;
                         v.ctorinit = true;
-                        sc.ctorflow.fieldinit[j] = CSX.this_ctor;
+                        sc.ctorflow.fieldinit[j].csx = CSX.this_ctor;
                     }
                 }
             }
