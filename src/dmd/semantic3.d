@@ -1178,6 +1178,37 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
         funcdecl.flags &= ~FUNCFLAG.inferScope;
 
+        // Eliminate maybescope's
+        {
+            // Create and fill array[] with maybe candidates from the `this` and the parameters
+            VarDeclaration[] array = void;
+
+            VarDeclaration[10] tmp = void;
+            size_t dim = (funcdecl.vthis !is null) + (funcdecl.parameters ? funcdecl.parameters.dim : 0);
+            if (dim <= tmp.length)
+                array = tmp[0 .. dim];
+            else
+            {
+                auto ptr = cast(VarDeclaration*)mem.xmalloc(dim * VarDeclaration.sizeof);
+                array = ptr[0 .. dim];
+            }
+            size_t n = 0;
+            if (funcdecl.vthis)
+                array[n++] = funcdecl.vthis;
+            if (funcdecl.parameters)
+            {
+                foreach (v; *funcdecl.parameters)
+                {
+                    array[n++] = v;
+                }
+            }
+
+            eliminateMaybeScopes(array[0 .. n]);
+
+            if (dim > tmp.length)
+                mem.xfree(array.ptr);
+        }
+
         // Infer STC.scope_
         if (funcdecl.parameters && !funcdecl.errors)
         {
