@@ -2515,6 +2515,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          * variables as alias template parameters.
          */
         //checkAccess(loc, sc, NULL, var);
+        if (!e.hasCheckedAttrs && e.var.isEnumMember())
+        {
+            e.hasCheckedAttrs = true;
+            if (e.var.depdecl && !e.var.depdecl._scope)
+            {
+                e.var.depdecl._scope = sc;
+            }
+            e.checkDeprecated(sc, e.var);
+
+        }
 
         if (auto vd = e.var.isVarDeclaration())
         {

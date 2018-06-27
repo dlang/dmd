@@ -1424,6 +1424,15 @@ struct ASTBase
             this.origType = origType;
         }
 
+        extern(D) this(Loc loc, Identifier id, Expression value, Type memtype,
+            StorageClass stc, UserAttributeDeclaration uad, DeprecatedDeclaration dd)
+        {
+            this(loc, id, value, memtype);
+            storage_class = stc;
+            userAttribDecl = uad;
+            // just ignore `dd`
+        }
+
         override void accept(Visitor v)
         {
             v.visit(this);
