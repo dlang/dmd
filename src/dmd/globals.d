@@ -78,11 +78,13 @@ class CompilerInvocation
     import dmd.mtype : Type;
     import dmd.id : Id;
     import dmd.dmodule : Module;
+    import dmd.target : Target;
 
     Global global;
     Type.SharedState typeState;
     Id.SharedState idState;
     Module.SharedState moduleState;
+    Target.SharedState targetState;
 
     extern (D) this()
     {
@@ -93,6 +95,7 @@ class CompilerInvocation
         typeState = Type.SharedState.initialize();
         idState = Id.SharedState.initialize();
         moduleState = Module.SharedState.initialize();
+        targetState = Target.SharedState.initialize();
     }
 }
 

@@ -42,25 +42,114 @@ import dmd.root.outbuffer;
  */
 struct Target
 {
-    extern (C++) __gshared
+    extern (D) package static struct SharedState
     {
-        // D ABI
-        uint ptrsize;             /// size of a pointer in bytes
-        uint realsize;            /// size a real consumes in memory
-        uint realpad;             /// padding added to the CPU real size to bring it up to realsize
-        uint realalignsize;       /// alignment for reals
-        uint classinfosize;       /// size of `ClassInfo`
-        ulong maxStaticDataSize;  /// maximum size of static data
+        @generateForwarder
+        {
+            // D ABI
+            uint ptrsize;             /// size of a pointer in bytes
+            uint realsize;            /// size a real consumes in memory
+            uint realpad;             /// padding added to the CPU real size to bring it up to realsize
+            uint realalignsize;       /// alignment for reals
+            uint classinfosize;       /// size of `ClassInfo`
+            ulong maxStaticDataSize;  /// maximum size of static data
 
-        // C ABI
-        uint c_longsize;          /// size of a C `long` or `unsigned long` type
-        uint c_long_doublesize;   /// size of a C `long double`
+            // C ABI
+            uint c_longsize;          /// size of a C `long` or `unsigned long` type
+            uint c_long_doublesize;   /// size of a C `long double`
 
-        // C++ ABI
-        bool reverseCppOverloads; /// set if overloaded functions are grouped and in reverse order (such as in dmc and cl)
-        bool cppExceptions;       /// set if catching C++ exceptions is supported
-        bool twoDtorInVtable;     /// target C++ ABI puts deleting and non-deleting destructor into vtable
+            // C++ ABI
+            bool reverseCppOverloads; /// set if overloaded functions are grouped and in reverse order (such as in dmc and cl)
+            bool cppExceptions;       /// set if catching C++ exceptions is supported
+            bool twoDtorInVtable;     /// target C++ ABI puts deleting and non-deleting destructor into vtable
+        }
+
+        static SharedState initialize()
+        {
+            FloatProperties._init();
+            DoubleProperties._init();
+            RealProperties._init();
+
+            auto state = SharedState.init;
+
+            // These have default values for 32 bit code, they get
+            // adjusted for 64 bit code.
+            state.ptrsize = 4;
+            state.classinfosize = 0x4C; // 76
+
+            /* gcc uses int.max for 32 bit compilations, and long.max for 64 bit ones.
+             * Set to int.max for both, because the rest of the compiler cannot handle
+             * 2^64-1 without some pervasive rework. The trouble is that much of the
+             * front and back end uses 32 bit ints for sizes and offsets. Since C++
+             * silently truncates 64 bit ints to 32, finding all these dependencies will be a problem.
+             */
+            state.maxStaticDataSize = int.max;
+
+            if (global.params.isLP64)
+            {
+                state.ptrsize = 8;
+                state.classinfosize = 0x98; // 152
+            }
+            if (global.params.isLinux || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isDragonFlyBSD || global.params.isSolaris)
+            {
+                state.realsize = 12;
+                state.realpad = 2;
+                state.realalignsize = 4;
+                state.c_longsize = 4;
+                state.twoDtorInVtable = true;
+            }
+            else if (global.params.isOSX)
+            {
+                state.realsize = 16;
+                state.realpad = 6;
+                state.realalignsize = 16;
+                state.c_longsize = 4;
+                state.twoDtorInVtable = true;
+            }
+            else if (global.params.isWindows)
+            {
+                state.realsize = 10;
+                state.realpad = 0;
+                state.realalignsize = 2;
+                state.reverseCppOverloads = true;
+                state.twoDtorInVtable = false;
+                state.c_longsize = 4;
+                if (state.ptrsize == 4)
+                {
+                    /* Optlink cannot deal with individual data chunks
+                     * larger than 16Mb
+                     */
+                    state.maxStaticDataSize = 0x100_0000;  // 16Mb
+                }
+            }
+            else
+                assert(0);
+            if (global.params.is64bit)
+            {
+                if (global.params.isLinux || global.params.isFreeBSD || global.params.isDragonFlyBSD || global.params.isSolaris)
+                {
+                    state.realsize = 16;
+                    state.realpad = 6;
+                    state.realalignsize = 16;
+                    state.c_longsize = 8;
+                }
+                else if (global.params.isOSX)
+                {
+                    state.c_longsize = 8;
+                }
+            }
+            state.c_long_doublesize = state.realsize;
+            if (global.params.is64bit && global.params.isWindows)
+                state.c_long_doublesize = 8;
+
+            state.cppExceptions = global.params.isLinux || global.params.isFreeBSD ||
+                global.params.isDragonFlyBSD || global.params.isOSX;
+
+            return state;
+        }
     }
+
+    mixin(generateForwarders!(SharedState, "targetState"));
 
     /**
      * Values representing all properties for floating point types
@@ -100,89 +189,6 @@ struct Target
     alias DoubleProperties = FPTypeProperties!double;
     ///
     alias RealProperties = FPTypeProperties!real_t;
-
-    /**
-     * Initialize the Target
-     */
-    extern (C++) static void _init()
-    {
-        FloatProperties._init();
-        DoubleProperties._init();
-        RealProperties._init();
-
-        // These have default values for 32 bit code, they get
-        // adjusted for 64 bit code.
-        ptrsize = 4;
-        classinfosize = 0x4C; // 76
-
-        /* gcc uses int.max for 32 bit compilations, and long.max for 64 bit ones.
-         * Set to int.max for both, because the rest of the compiler cannot handle
-         * 2^64-1 without some pervasive rework. The trouble is that much of the
-         * front and back end uses 32 bit ints for sizes and offsets. Since C++
-         * silently truncates 64 bit ints to 32, finding all these dependencies will be a problem.
-         */
-        maxStaticDataSize = int.max;
-
-        if (global.params.isLP64)
-        {
-            ptrsize = 8;
-            classinfosize = 0x98; // 152
-        }
-        if (global.params.isLinux || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isDragonFlyBSD || global.params.isSolaris)
-        {
-            realsize = 12;
-            realpad = 2;
-            realalignsize = 4;
-            c_longsize = 4;
-            twoDtorInVtable = true;
-        }
-        else if (global.params.isOSX)
-        {
-            realsize = 16;
-            realpad = 6;
-            realalignsize = 16;
-            c_longsize = 4;
-            twoDtorInVtable = true;
-        }
-        else if (global.params.isWindows)
-        {
-            realsize = 10;
-            realpad = 0;
-            realalignsize = 2;
-            reverseCppOverloads = true;
-            twoDtorInVtable = false;
-            c_longsize = 4;
-            if (ptrsize == 4)
-            {
-                /* Optlink cannot deal with individual data chunks
-                 * larger than 16Mb
-                 */
-                maxStaticDataSize = 0x100_0000;  // 16Mb
-            }
-        }
-        else
-            assert(0);
-        if (global.params.is64bit)
-        {
-            if (global.params.isLinux || global.params.isFreeBSD || global.params.isDragonFlyBSD || global.params.isSolaris)
-            {
-                realsize = 16;
-                realpad = 6;
-                realalignsize = 16;
-                c_longsize = 8;
-            }
-            else if (global.params.isOSX)
-            {
-                c_longsize = 8;
-            }
-        }
-        c_long_doublesize = realsize;
-        if (global.params.is64bit && global.params.isWindows)
-            c_long_doublesize = 8;
-
-        cppExceptions = global.params.isLinux || global.params.isFreeBSD ||
-            global.params.isDragonFlyBSD || global.params.isOSX;
-    }
 
     /**
      * Requested target memory alignment size of the given type.
