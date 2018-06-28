@@ -788,135 +788,138 @@ private final class CppMangleVisitor : Visitor
     void mangleTemplatedFunction(FuncDeclaration d, TypeFunction tf,
                                  TemplateDeclaration ftd, TemplateInstance ti)
     {
-        bool appendReturnType = true;
         Dsymbol p = ti.toParent();
-        if (p && !p.isModule() && tf.linkage == LINK.cpp)
+        // Check if this function is *not* nested
+        if (!p || p.isModule() || tf.linkage != LINK.cpp)
         {
-            this.mangleNestedFuncPrefix(tf, p);
+            source_name(ti);
+            headOfType(tf.nextOf());  // mangle return type
+            return;
+        }
 
-            if (d.isCtorDeclaration())
-            {
-                buf.writestring("C1");
-                appendReturnType = false;
-            }
-            else if (d.isPrimaryDtor())
-            {
-                buf.writestring("D1");
-                appendReturnType = false;
-            }
-            else
-            {
-                int firstTemplateArg = 0;
-                bool isConvertFunc = false;
-                string symName;
+        // It's a nested function (e.g. a member of an aggregate)
+        this.mangleNestedFuncPrefix(tf, p);
 
-                // test for special symbols
-                CppOperator whichOp = isCppOperator(ti.name);
-                final switch (whichOp)
-                {
-                case CppOperator.Unknown:
-                    break;
-                case CppOperator.Cast:
-                    symName = "cv";
-                    firstTemplateArg = 1;
-                    isConvertFunc = true;
-                    appendReturnType = false;
-                    break;
-                case CppOperator.Assign:
-                    symName = "aS";
-                    break;
-                case CppOperator.Eq:
-                    symName = "eq";
-                    break;
-                case CppOperator.Index:
-                    symName = "ix";
-                    break;
-                case CppOperator.Call:
-                    symName = "cl";
-                    break;
-                case CppOperator.Unary:
-                case CppOperator.Binary:
-                case CppOperator.OpAssign:
-                    TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
-                    assert(td);
-                    assert(ti.tiargs.dim >= 1);
-                    TemplateParameter tp = (*td.parameters)[0];
-                    TemplateValueParameter tv = tp.isTemplateValueParameter();
-                    if (!tv || !tv.valType.isString())
-                        break; // expecting a string argument to operators!
-                    Expression exp = (*ti.tiargs)[0].isExpression();
-                    StringExp str = exp.toStringExp();
-                    switch (whichOp)
-                    {
-                    case CppOperator.Unary:
-                        switch (str.peekSlice())
-                        {
-                        case "*":   symName = "de"; goto continue_template;
-                        case "++":  symName = "pp"; goto continue_template;
-                        case "--":  symName = "mm"; goto continue_template;
-                        case "-":   symName = "ng"; goto continue_template;
-                        case "+":   symName = "ps"; goto continue_template;
-                        case "~":   symName = "co"; goto continue_template;
-                        default:    break;
-                        }
-                        break;
-                    case CppOperator.Binary:
-                        switch (str.peekSlice())
-                        {
-                        case ">>":  symName = "rs"; goto continue_template;
-                        case "<<":  symName = "ls"; goto continue_template;
-                        case "*":   symName = "ml"; goto continue_template;
-                        case "-":   symName = "mi"; goto continue_template;
-                        case "+":   symName = "pl"; goto continue_template;
-                        case "&":   symName = "an"; goto continue_template;
-                        case "/":   symName = "dv"; goto continue_template;
-                        case "%":   symName = "rm"; goto continue_template;
-                        case "^":   symName = "eo"; goto continue_template;
-                        case "|":   symName = "or"; goto continue_template;
-                        default:    break;
-                        }
-                        break;
-                    case CppOperator.OpAssign:
-                        switch (str.peekSlice())
-                        {
-                        case "*":   symName = "mL"; goto continue_template;
-                        case "+":   symName = "pL"; goto continue_template;
-                        case "-":   symName = "mI"; goto continue_template;
-                        case "/":   symName = "dV"; goto continue_template;
-                        case "%":   symName = "rM"; goto continue_template;
-                        case ">>":  symName = "rS"; goto continue_template;
-                        case "<<":  symName = "lS"; goto continue_template;
-                        case "&":   symName = "aN"; goto continue_template;
-                        case "|":   symName = "oR"; goto continue_template;
-                        case "^":   symName = "eO"; goto continue_template;
-                        default:    break;
-                        }
-                        break;
-                    default:
-                        assert(0);
-                    continue_template:
-                        firstTemplateArg = 1;
-                        break;
-                    }
-                    break;
-                }
-                if (symName.length == 0)
-                    source_name(ti);
-                else
-                {
-                    buf.writestring(symName);
-                    if (isConvertFunc)
-                        template_arg(ti, 0);
-                    appendReturnType = template_args(ti, firstTemplateArg) && appendReturnType;
-                }
-            }
-            buf.writeByte('E');
+        if (d.isCtorDeclaration())
+        {
+            buf.writestring("C1");
+        }
+        else if (d.isPrimaryDtor())
+        {
+            buf.writestring("D1");
         }
         else
-            source_name(ti);
-        if (appendReturnType)
-            headOfType(tf.nextOf());  // mangle return type
+        {
+            int firstTemplateArg = 0;
+            bool appendReturnType = true;
+            bool isConvertFunc = false;
+            string symName;
+
+            // test for special symbols
+            CppOperator whichOp = isCppOperator(ti.name);
+            final switch (whichOp)
+            {
+            case CppOperator.Unknown:
+                break;
+            case CppOperator.Cast:
+                symName = "cv";
+                firstTemplateArg = 1;
+                isConvertFunc = true;
+                appendReturnType = false;
+                break;
+            case CppOperator.Assign:
+                symName = "aS";
+                break;
+            case CppOperator.Eq:
+                symName = "eq";
+                break;
+            case CppOperator.Index:
+                symName = "ix";
+                break;
+            case CppOperator.Call:
+                symName = "cl";
+                break;
+            case CppOperator.Unary:
+            case CppOperator.Binary:
+            case CppOperator.OpAssign:
+                TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
+                assert(td);
+                assert(ti.tiargs.dim >= 1);
+                TemplateParameter tp = (*td.parameters)[0];
+                TemplateValueParameter tv = tp.isTemplateValueParameter();
+                if (!tv || !tv.valType.isString())
+                    break; // expecting a string argument to operators!
+                Expression exp = (*ti.tiargs)[0].isExpression();
+                StringExp str = exp.toStringExp();
+                switch (whichOp)
+                {
+                case CppOperator.Unary:
+                    switch (str.peekSlice())
+                    {
+                    case "*":   symName = "de"; goto continue_template;
+                    case "++":  symName = "pp"; goto continue_template;
+                    case "--":  symName = "mm"; goto continue_template;
+                    case "-":   symName = "ng"; goto continue_template;
+                    case "+":   symName = "ps"; goto continue_template;
+                    case "~":   symName = "co"; goto continue_template;
+                    default:    break;
+                    }
+                    break;
+                case CppOperator.Binary:
+                    switch (str.peekSlice())
+                    {
+                    case ">>":  symName = "rs"; goto continue_template;
+                    case "<<":  symName = "ls"; goto continue_template;
+                    case "*":   symName = "ml"; goto continue_template;
+                    case "-":   symName = "mi"; goto continue_template;
+                    case "+":   symName = "pl"; goto continue_template;
+                    case "&":   symName = "an"; goto continue_template;
+                    case "/":   symName = "dv"; goto continue_template;
+                    case "%":   symName = "rm"; goto continue_template;
+                    case "^":   symName = "eo"; goto continue_template;
+                    case "|":   symName = "or"; goto continue_template;
+                    default:    break;
+                    }
+                    break;
+                case CppOperator.OpAssign:
+                    switch (str.peekSlice())
+                    {
+                    case "*":   symName = "mL"; goto continue_template;
+                    case "+":   symName = "pL"; goto continue_template;
+                    case "-":   symName = "mI"; goto continue_template;
+                    case "/":   symName = "dV"; goto continue_template;
+                    case "%":   symName = "rM"; goto continue_template;
+                    case ">>":  symName = "rS"; goto continue_template;
+                    case "<<":  symName = "lS"; goto continue_template;
+                    case "&":   symName = "aN"; goto continue_template;
+                    case "|":   symName = "oR"; goto continue_template;
+                    case "^":   symName = "eO"; goto continue_template;
+                    default:    break;
+                    }
+                    break;
+                default:
+                    assert(0);
+                continue_template:
+                    firstTemplateArg = 1;
+                    break;
+                }
+                break;
+            }
+            if (symName.length == 0)
+                source_name(ti);
+            else
+            {
+                buf.writestring(symName);
+                if (isConvertFunc)
+                    template_arg(ti, 0);
+                appendReturnType = template_args(ti, firstTemplateArg) && appendReturnType;
+            }
+            buf.writeByte('E');
+            if (appendReturnType)
+                headOfType(tf.nextOf());  // mangle return type
+        }
     }
+
 
     void mangleFunctionParameters(Parameters* parameters, int varargs)
     {
