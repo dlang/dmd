@@ -745,21 +745,7 @@ private final class CppMangleVisitor : Visitor
             Dsymbol p = d.toParent();
             if (p && !p.isModule() && tf.linkage == LINK.cpp)
             {
-                /* <nested-name> ::= N [<CV-qualifiers>] <prefix> <unqualified-name> E
-                 *               ::= N [<CV-qualifiers>] <template-prefix> <template-args> E
-                 */
-                buf.writeByte('N');
-                CV_qualifiers(tf);
-
-                /* <prefix> ::= <prefix> <unqualified-name>
-                 *          ::= <template-prefix> <template-args>
-                 *          ::= <template-param>
-                 *          ::= # empty
-                 *          ::= <substitution>
-                 *          ::= <prefix> <data-member-prefix>
-                 */
-                prefix_name(p);
-                //printf("p: %s\n", buf.peekString());
+                this.mangleNestedFuncPrefix(tf, p);
 
                 if (d.isCtorDeclaration())
                     buf.writestring("C1");
@@ -806,9 +792,8 @@ private final class CppMangleVisitor : Visitor
         Dsymbol p = ti.toParent();
         if (p && !p.isModule() && tf.linkage == LINK.cpp)
         {
-            buf.writeByte('N');
-            CV_qualifiers(tf);
-            prefix_name(p);
+            this.mangleNestedFuncPrefix(tf, p);
+
             if (d.isCtorDeclaration())
             {
                 buf.writestring("C1");
@@ -1099,6 +1084,31 @@ private final class CppMangleVisitor : Visitor
         if (t.isConst())
             append(null);  // C++ would have an extra type here
         append(t);
+    }
+
+    /**
+     * Mangle the prefix of a nested (e.g. member) function
+     *
+     * Params:
+     *   tf = Type of the nested function
+     *   parent = Parent in which the function is nested
+     */
+    void mangleNestedFuncPrefix(TypeFunction tf, Dsymbol parent)
+    {
+        /* <nested-name> ::= N [<CV-qualifiers>] <prefix> <unqualified-name> E
+         *               ::= N [<CV-qualifiers>] <template-prefix> <template-args> E
+         */
+        buf.writeByte('N');
+        CV_qualifiers(tf);
+
+        /* <prefix> ::= <prefix> <unqualified-name>
+         *          ::= <template-prefix> <template-args>
+         *          ::= <template-param>
+         *          ::= # empty
+         *          ::= <substitution>
+         *          ::= <prefix> <data-member-prefix>
+         */
+        prefix_name(parent);
     }
 
 extern(C++):
