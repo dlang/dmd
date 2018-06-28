@@ -488,7 +488,6 @@ private int tryMain(size_t argc, const(char)** argv)
 
     // Initialization
     compilerInvocation.moduleState.onImport = &marsOnImport;
-    builtin_init();
 
     if (global.params.verbose)
     {

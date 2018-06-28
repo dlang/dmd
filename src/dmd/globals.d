@@ -81,6 +81,8 @@ class CompilerInvocation
     import dmd.target : Target;
     import dmd.ctfeexpr : CTFEExp;
     import dmd.objc : Objc;
+    import dmd.root.stringtable : StringTable;
+    import dmd.builtin : initializeBuiltins;
 
     Global global;
     Type.SharedState typeState;
@@ -90,6 +92,7 @@ class CompilerInvocation
     CTFEExp.SharedState ctfeExpressionState;
 
     Objc objc;
+    StringTable builtins;
 
     extern (D) this()
     {
@@ -105,6 +108,7 @@ class CompilerInvocation
         ctfeExpressionState = CTFEExp.SharedState.initialize();
 
         objc = Objc.initialize();
+        builtins = initializeBuiltins();
     }
 }
 
