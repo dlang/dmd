@@ -749,7 +749,7 @@ private final class CppMangleVisitor : Visitor
                  *               ::= N [<CV-qualifiers>] <template-prefix> <template-args> E
                  */
                 buf.writeByte('N');
-                CV_qualifiers(d.type);
+                CV_qualifiers(tf);
 
                 /* <prefix> ::= <prefix> <unqualified-name>
                  *          ::= <template-prefix> <template-args>
@@ -807,7 +807,7 @@ private final class CppMangleVisitor : Visitor
         if (p && !p.isModule() && tf.linkage == LINK.cpp)
         {
             buf.writeByte('N');
-            CV_qualifiers(d.type);
+            CV_qualifiers(tf);
             prefix_name(p);
             if (d.isCtorDeclaration())
             {
