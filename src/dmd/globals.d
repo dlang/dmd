@@ -80,6 +80,7 @@ class CompilerInvocation
     import dmd.dmodule : Module;
     import dmd.target : Target;
     import dmd.ctfeexpr : CTFEExp;
+    import dmd.objc : Objc;
 
     Global global;
     Type.SharedState typeState;
@@ -87,6 +88,8 @@ class CompilerInvocation
     Module.SharedState moduleState;
     Target.SharedState targetState;
     CTFEExp.SharedState ctfeExpressionState;
+
+    Objc objc;
 
     extern (D) this()
     {
@@ -100,6 +103,8 @@ class CompilerInvocation
         moduleState = Module.SharedState.initialize();
         targetState = Target.SharedState.initialize();
         ctfeExpressionState = CTFEExp.SharedState.initialize();
+
+        objc = Objc.initialize();
     }
 }
 
