@@ -39,7 +39,7 @@ package string generateForwarders(Type, string compilerInvocationFieldName)()
 
     static string generateGetter(string name)
     {
-        return q{extern (D) @property static auto } ~ name ~ "() " ~
+        return q{extern (D) @property static ref auto } ~ name ~ "() " ~
                "{ " ~
                        accessField(name) ~ "; " ~
                '}';
@@ -47,7 +47,7 @@ package string generateForwarders(Type, string compilerInvocationFieldName)()
 
     static string generateSetter(string type, string name)
     {
-        return q{extern (D) @property static auto } ~ name ~ '(' ~ type ~ ' ' ~ name ~ ") " ~
+        return q{extern (D) @property static auto } ~ name ~ "()(auto ref " ~ type ~ ' ' ~ name ~ ") " ~
               "{ " ~
                         accessField(name) ~ " = " ~ name ~ ';' ~
               '}';
@@ -77,10 +77,12 @@ class CompilerInvocation
 {
     import dmd.mtype : Type;
     import dmd.id : Id;
+    import dmd.dmodule : Module;
 
     Global global;
     Type.SharedState typeState;
     Id.SharedState idState;
+    Module.SharedState moduleState;
 
     extern (D) this()
     {
@@ -90,6 +92,7 @@ class CompilerInvocation
         addDefaultVersionIdentifiers();
         typeState = Type.SharedState.initialize();
         idState = Id.SharedState.initialize();
+        moduleState = Module.SharedState.initialize();
     }
 }
 

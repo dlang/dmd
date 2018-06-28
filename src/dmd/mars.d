@@ -487,8 +487,7 @@ private int tryMain(size_t argc, const(char)** argv)
     setDefaultLibrary();
 
     // Initialization
-    Module._init();
-    Module.onImport = &marsOnImport;
+    compilerInvocation.moduleState.onImport = &marsOnImport;
     Target._init();
     Expression._init();
     Objc._init();
