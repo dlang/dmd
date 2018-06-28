@@ -19,6 +19,80 @@ import dmd.root.outbuffer;
 import dmd.compiler;
 import dmd.identifier;
 
+package enum generateForwarder;
+
+package string generateForwarders(Type, string compilerInvocationFieldName)()
+{
+    alias Tuple(T...) = T;
+
+    static bool isForwardable(alias field)()
+    {
+        alias attributes = Tuple!(__traits(getAttributes, field));
+        return attributes.length > 0 && is(attributes[0] == generateForwarder);
+    }
+
+    static string accessField(string name)
+    {
+        return "return compilerInvocation." ~ compilerInvocationFieldName ~
+            '.' ~ name;
+    }
+
+    static string generateGetter(string name)
+    {
+        return q{extern (D) @property static auto } ~ name ~ "() " ~
+               "{ " ~
+                       accessField(name) ~ "; " ~
+               '}';
+    }
+
+    static string generateSetter(string type, string name)
+    {
+        return q{extern (D) @property static auto } ~ name ~ '(' ~ type ~ ' ' ~ name ~ ") " ~
+              "{ " ~
+                        accessField(name) ~ " = " ~ name ~ ';' ~
+              '}';
+    }
+
+    alias Fields = typeof(Type.tupleof);
+    string code;
+
+    foreach (i, _; Fields)
+    {
+        if (!isForwardable!(Type.tupleof[i]))
+            continue;
+
+        enum name = __traits(identifier, Type.tupleof[i]);
+        enum type = Fields[i].stringof;
+
+        code ~= generateGetter(name) ~ '\n' ~ generateSetter(type, name);
+
+        if (i != Fields.length - 1)
+            code ~= '\n';
+    }
+
+    return code;
+}
+
+class CompilerInvocation
+{
+    import dmd.mtype : Type;
+    import dmd.id : Id;
+
+    Global global;
+    Type.SharedState typeState;
+    Id.SharedState idState;
+
+    extern (D) this()
+    {
+        import dmd.mars : addDefaultVersionIdentifiers;
+
+        global._init();
+        addDefaultVersionIdentifiers();
+        typeState = Type.SharedState.initialize();
+        idState = Id.SharedState.initialize();
+    }
+}
+
 template xversion(string s)
 {
     enum xversion = mixin(`{ version (` ~ s ~ `) return true; else return false; }`)();
@@ -514,3 +588,4 @@ enum PINLINE : int
 alias StorageClass = uinteger_t;
 
 extern (C++) __gshared Global global;
+extern (C++) __gshared CompilerInvocation compilerInvocation;

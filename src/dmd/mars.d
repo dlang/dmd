@@ -192,7 +192,8 @@ private int tryMain(size_t argc, const(char)** argv)
 {
     Strings files;
     Strings libmodules;
-    global._init();
+
+    compilerInvocation = new CompilerInvocation();
     debug
     {
         printf("DMD %s DEBUG\n", global._version);
@@ -483,14 +484,9 @@ private int tryMain(size_t argc, const(char)** argv)
         foreach (charz; *global.params.debugids)
             DebugCondition.addGlobalIdent(charz[0 .. strlen(charz)]);
 
-    // Predefined version identifiers
-    addDefaultVersionIdentifiers();
-
     setDefaultLibrary();
 
     // Initialization
-    Type._init();
-    Id.initialize();
     Module._init();
     Module.onImport = &marsOnImport;
     Target._init();
