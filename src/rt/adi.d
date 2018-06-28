@@ -6,7 +6,7 @@
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE)
  * Authors:   Walter Bright
- * Source: $(DRUNTIMESRC src/rt/_adi.d)
+ * Source: $(DRUNTIMESRC rt/_adi.d)
  */
 
 module rt.adi;

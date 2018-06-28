@@ -7,7 +7,7 @@
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE)
  * Authors: Walter Bright, Sean Kelly, Martin Nowak, Jacob Carlborg
- * Source: $(DRUNTIMESRC src/rt/_sections_osx_x86.d)
+ * Source: $(DRUNTIMESRC rt/_sections_osx_x86.d)
  */
 module rt.sections_osx_x86;
 

@@ -8,7 +8,7 @@
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE)
  * Authors:   Andrei Alexandrescu and Walter Bright
- * Source: $(DRUNTIMESRC src/rt/_profilegc.d)
+ * Source: $(DRUNTIMESRC rt/_profilegc.d)
  */
 
 module rt.profilegc;

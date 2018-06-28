@@ -4,7 +4,7 @@
  *
  * See_Also:
  *      Itanium C++ ABI: Exception Handling ($Revision: 1.22 $)
- * Source: $(DRUNTIMESRC src/rt/_unwind.d)
+ * Source: $(DRUNTIMESRC rt/_unwind.d)
  */
 
 module rt.unwind;

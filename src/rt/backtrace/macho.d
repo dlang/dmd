@@ -4,7 +4,7 @@
  * Copyright: Copyright Jacob Carlborg 2018.
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Authors:   Jacob Carlborg
- * Source:    $(DRUNTIMESRC src/rt/backtrace/macho.d)
+ * Source:    $(DRUNTIMESRC rt/backtrace/macho.d)
  */
 module rt.backtrace.macho;
 
@@ -66,5 +66,10 @@ struct Image
         c_ulong size;
         auto data = getsectiondata(self, "__DWARF", "__debug_line", &size);
         return data[0 .. size];
+    }
+
+    @property size_t baseAddress()
+    {
+        return 0;
     }
 }

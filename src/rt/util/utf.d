@@ -16,7 +16,7 @@
  * Copyright: Copyright Digital Mars 2003 - 2016.
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright, Sean Kelly
- * Source:    $(DRUNTIMESRC src/rt/util/_utf.d)
+ * Source:    $(DRUNTIMESRC rt/util/_utf.d)
  */
 
 module rt.util.utf;
