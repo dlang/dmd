@@ -79,12 +79,14 @@ class CompilerInvocation
     import dmd.id : Id;
     import dmd.dmodule : Module;
     import dmd.target : Target;
+    import dmd.ctfeexpr : CTFEExp;
 
     Global global;
     Type.SharedState typeState;
     Id.SharedState idState;
     Module.SharedState moduleState;
     Target.SharedState targetState;
+    CTFEExp.SharedState ctfeExpressionState;
 
     extern (D) this()
     {
@@ -92,10 +94,12 @@ class CompilerInvocation
 
         global._init();
         addDefaultVersionIdentifiers();
+
         typeState = Type.SharedState.initialize();
         idState = Id.SharedState.initialize();
         moduleState = Module.SharedState.initialize();
         targetState = Target.SharedState.initialize();
+        ctfeExpressionState = CTFEExp.SharedState.initialize();
     }
 }
 
