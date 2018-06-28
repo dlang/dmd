@@ -2,6 +2,8 @@
  * Compiler implementation of the $(LINK2 http://www.dlang.org, D programming language)
  *
  * Do mangling for C++ linkage.
+ * This is the POSIX side of the implementation.
+ * It is not exposed directly to C++, but called from target.
  *
  * Copyright: Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, http://www.digitalmars.com
@@ -44,7 +46,6 @@ import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
 
-extern (C++):
 
 // helper to check if an identifier is a C++ operator
 enum CppOperator { Cast, Assign, Eq, Index, Call, Unary, Binary, OpAssign, Unknown }
@@ -100,12 +101,44 @@ bool isPrimaryDtor(const Dsymbol sym)
 
 private final class CppMangleVisitor : Visitor
 {
-    alias visit = Visitor.visit;
     Objects components;         // array of components available for substitution
     OutBuffer* buf;             // append the mangling to buf[]
     Loc loc;                    // location for use in error messages
 
-  final:
+    /**
+     * Constructor
+     *
+     * Params:
+     *   buf = `OutBuffer` to write the mangling to
+     *   loc = `Loc` of the symbol being mangled
+     */
+    this(OutBuffer* buf, Loc loc)
+    {
+        this.buf = buf;
+        this.loc = loc;
+    }
+
+    /*****
+     * Entry point. Append mangling to buf[]
+     * Params:
+     *  s = symbol to mangle
+     */
+    void mangleOf(Dsymbol s)
+    {
+        if (VarDeclaration vd = s.isVarDeclaration())
+        {
+            mangle_variable(vd, false);
+        }
+        else if (FuncDeclaration fd = s.isFuncDeclaration())
+        {
+            mangle_function(fd);
+        }
+        else
+        {
+            assert(0);
+        }
+    }
+
     /**
      * Write a seq-id from an index number, excluding the terminating '_'
      *
@@ -482,7 +515,7 @@ private final class CppMangleVisitor : Visitor
      * Returns:
      *  true if found
      */
-    extern (D) bool char_std_char_traits_char(TemplateInstance ti, string st)
+    bool char_std_char_traits_char(TemplateInstance ti, string st)
     {
         if (ti.tiargs.dim == 2 &&
             isChar((*ti.tiargs)[0]) &&
@@ -912,34 +945,6 @@ private final class CppMangleVisitor : Visitor
             buf.writeByte('v'); // encode (void) parameters
     }
 
-public:
-    extern (D) this(OutBuffer* buf, Loc loc)
-    {
-        this.buf = buf;
-        this.loc = loc;
-    }
-
-    /*****
-     * Entry point. Append mangling to buf[]
-     * Params:
-     *  s = symbol to mangle
-     */
-    void mangleOf(Dsymbol s)
-    {
-        if (VarDeclaration vd = s.isVarDeclaration())
-        {
-            mangle_variable(vd, false);
-        }
-        else if (FuncDeclaration fd = s.isFuncDeclaration())
-        {
-            mangle_function(fd);
-        }
-        else
-        {
-            assert(0);
-        }
-    }
-
     /****** The rest is type mangling ************/
 
     void error(Type t)
@@ -974,11 +979,6 @@ public:
         }
     }
 
-    override void visit(Type t)
-    {
-        error(t);
-    }
-
     /******
      * Write out 1 or 2 character basic type mangling.
      * Handle const and substitutions.
@@ -1000,6 +1000,99 @@ public:
         if (p)
             buf.writeByte(p);
         buf.writeByte(c);
+    }
+
+
+    /****************
+     * Write structs and enums.
+     * Params:
+     *  t = TypeStruct or TypeEnum
+     */
+    final void doSymbol(Type t)
+    {
+        if (substitute(t))
+            return;
+        CV_qualifiers(t);
+
+        // Handle any target-specific struct types.
+        if (auto tm = Target.cppTypeMangle(t))
+        {
+            buf.writestring(tm);
+        }
+        else
+        {
+            Dsymbol s = t.toDsymbol(null);
+            Dsymbol p = s.toParent();
+            if (p && p.isTemplateInstance())
+            {
+                 /* https://issues.dlang.org/show_bug.cgi?id=17947
+                  * Substitute the template instance symbol, not the struct/enum symbol
+                  */
+                if (substitute(p))
+                    return;
+            }
+            if (!substitute(s))
+            {
+                cpp_mangle_name(s, t.isConst());
+            }
+        }
+        if (t.isConst())
+            append(t);
+    }
+
+
+
+    /************************
+     * Mangle a class type.
+     * If it's the head, treat the initial pointer as a value type.
+     * Params:
+     *  t = class type
+     *  head = true for head of a type
+     */
+    void mangleTypeClass(TypeClass t, bool head)
+    {
+        if (t.isImmutable() || t.isShared())
+            return error(t);
+
+        /* Mangle as a <pointer to><struct>
+         */
+        if (substitute(t))
+            return;
+        if (!head)
+            CV_qualifiers(t);
+        buf.writeByte('P');
+
+        CV_qualifiers(t);
+
+        {
+            Dsymbol s = t.toDsymbol(null);
+            Dsymbol p = s.toParent();
+            if (p && p.isTemplateInstance())
+            {
+                 /* https://issues.dlang.org/show_bug.cgi?id=17947
+                  * Substitute the template instance symbol, not the class symbol
+                  */
+                if (substitute(p))
+                    return;
+            }
+        }
+
+        if (!substitute(t.sym))
+        {
+            cpp_mangle_name(t.sym, t.isConst());
+        }
+        if (t.isConst())
+            append(null);  // C++ would have an extra type here
+        append(t);
+    }
+
+extern(C++):
+
+    alias visit = Visitor.visit;
+
+    override void visit(Type t)
+    {
+        error(t);
     }
 
     override void visit(TypeNull t)
@@ -1239,89 +1332,8 @@ public:
         doSymbol(t);
     }
 
-    /****************
-     * Write structs and enums.
-     * Params:
-     *  t = TypeStruct or TypeEnum
-     */
-    final void doSymbol(Type t)
-    {
-        if (substitute(t))
-            return;
-        CV_qualifiers(t);
-
-        // Handle any target-specific struct types.
-        if (auto tm = Target.cppTypeMangle(t))
-        {
-            buf.writestring(tm);
-        }
-        else
-        {
-            Dsymbol s = t.toDsymbol(null);
-            Dsymbol p = s.toParent();
-            if (p && p.isTemplateInstance())
-            {
-                 /* https://issues.dlang.org/show_bug.cgi?id=17947
-                  * Substitute the template instance symbol, not the struct/enum symbol
-                  */
-                if (substitute(p))
-                    return;
-            }
-            if (!substitute(s))
-            {
-                cpp_mangle_name(s, t.isConst());
-            }
-        }
-        if (t.isConst())
-            append(t);
-    }
-
     override void visit(TypeClass t)
     {
         mangleTypeClass(t, false);
-    }
-
-    /************************
-     * Mangle a class type.
-     * If it's the head, treat the initial pointer as a value type.
-     * Params:
-     *  t = class type
-     *  head = true for head of a type
-     */
-    void mangleTypeClass(TypeClass t, bool head)
-    {
-        if (t.isImmutable() || t.isShared())
-            return error(t);
-
-        /* Mangle as a <pointer to><struct>
-         */
-        if (substitute(t))
-            return;
-        if (!head)
-            CV_qualifiers(t);
-        buf.writeByte('P');
-
-        CV_qualifiers(t);
-
-        {
-            Dsymbol s = t.toDsymbol(null);
-            Dsymbol p = s.toParent();
-            if (p && p.isTemplateInstance())
-            {
-                 /* https://issues.dlang.org/show_bug.cgi?id=17947
-                  * Substitute the template instance symbol, not the class symbol
-                  */
-                if (substitute(p))
-                    return;
-            }
-        }
-
-        if (!substitute(t.sym))
-        {
-            cpp_mangle_name(t.sym, t.isConst());
-        }
-        if (t.isConst())
-            append(null);  // C++ would have an extra type here
-        append(t);
     }
 }
