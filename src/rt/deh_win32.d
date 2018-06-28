@@ -6,7 +6,7 @@
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE)
  * Authors:   Walter Bright
- * Source: $(DRUNTIMESRC src/rt/deh_win32.d)
+ * Source: $(DRUNTIMESRC rt/deh_win32.d)
  */
 
 module rt.deh_win32;

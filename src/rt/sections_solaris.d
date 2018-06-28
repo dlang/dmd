@@ -5,7 +5,7 @@
  * Copyright: Copyright Martin Nowak 2012-2013.
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Martin Nowak
- * Source: $(DRUNTIMESRC src/rt/_sections_solaris.d)
+ * Source: $(DRUNTIMESRC rt/_sections_solaris.d)
  */
 
 module rt.sections_solaris;

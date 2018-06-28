@@ -7,7 +7,7 @@
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE)
  * Authors:   Walter Bright, Sean Kelly, Steven Schveighoffer
- * Source: $(DRUNTIMESRC src/rt/_lifetime.d)
+ * Source: $(DRUNTIMESRC rt/_lifetime.d)
  */
 
 module rt.lifetime;

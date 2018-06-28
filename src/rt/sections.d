@@ -5,7 +5,7 @@
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE)
  * Authors:   Walter Bright, Sean Kelly, Martin Nowak
- * Source: $(DRUNTIMESRC src/rt/_sections.d)
+ * Source: $(DRUNTIMESRC rt/_sections.d)
  */
 
 module rt.sections;

@@ -7,7 +7,7 @@
  * Copyright: Copyright Digital Mars 2015 - 2015.
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Yazan Dabain, Sean Kelly
- * Source: $(DRUNTIMESRC src/rt/backtrace/dwarf.d)
+ * Source: $(DRUNTIMESRC rt/backtrace/dwarf.d)
  */
 
 module rt.backtrace.dwarf;
@@ -72,7 +72,7 @@ int traceHandlerOpApplyImpl(const void*[] callstack, scope int delegate(ref size
             foreach(size_t i; 0 .. callstack.length)
                 locations[i].address = cast(size_t) callstack[i];
 
-            resolveAddresses(debugLineSectionData, locations[]);
+            resolveAddresses(debugLineSectionData, locations[], image.baseAddress);
         }
     }
 
@@ -108,7 +108,7 @@ int traceHandlerOpApplyImpl(const void*[] callstack, scope int delegate(ref size
 private:
 
 // the lifetime of the Location data is the lifetime of the mmapped ElfSection
-void resolveAddresses(const(ubyte)[] debugLineSectionData, Location[] locations) @nogc nothrow
+void resolveAddresses(const(ubyte)[] debugLineSectionData, Location[] locations, size_t baseAddress) @nogc nothrow
 {
     debug(DwarfDebugMachine) import core.stdc.stdio;
 
@@ -202,6 +202,9 @@ void resolveAddresses(const(ubyte)[] debugLineSectionData, Location[] locations)
         runStateMachine(lph, program, standardOpcodeLengths,
             (size_t address, LocationInfo locInfo, bool isEndSequence)
             {
+                // adjust to ASLR offset
+                address += baseAddress;
+                debug(DwarfDebugMachine) printf("-- offsetting 0x%x to 0x%x\n", address - baseAddress, address);
                 // If loc.line != -1, then it has been set previously.
                 // Some implementations (eg. dmd) write an address to
                 // the debug data multiple times, but so far I have found
