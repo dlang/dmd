@@ -1389,7 +1389,7 @@ mixin template scopeAllocCpp(C)
         scope C ptr = new C;
     else
     {
-        ubyte[C.sizeof] data;
+        ubyte[__traits(classInstanceSize, C)] data;
         C ptr = (){ auto p = cast(C) data.ptr; p.__ctor(); return p; }();
     }
 }
