@@ -121,7 +121,6 @@
     <ClCompile Include="..\dmd\backend\fp.c" />
     <ClCompile Include="..\dmd\backend\gdag.c" />
     <ClCompile Include="..\dmd\backend\gflow.c" />
-    <ClCompile Include="..\dmd\backend\glocal.c" />
     <ClCompile Include="..\dmd\backend\gloop.c" />
     <ClCompile Include="..\dmd\backend\go.c" />
     <ClCompile Include="..\dmd\backend\gother.c" />
