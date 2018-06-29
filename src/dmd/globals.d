@@ -48,9 +48,9 @@ package string generateForwarders(Type, string compilerInvocationFieldName)()
     static string generateSetter(string type, string name)
     {
         return q{extern (D) @property static auto } ~ name ~ "()(auto ref " ~ type ~ ' ' ~ name ~ ") " ~
-              "{ " ~
+               "{ " ~
                         accessField(name) ~ " = " ~ name ~ ';' ~
-              '}';
+               '}';
     }
 
     alias Fields = typeof(Type.tupleof);
@@ -75,14 +75,14 @@ package string generateForwarders(Type, string compilerInvocationFieldName)()
 
 class CompilerInvocation
 {
-    import dmd.mtype : Type;
-    import dmd.id : Id;
-    import dmd.dmodule : Module;
-    import dmd.target : Target;
     import dmd.ctfeexpr : CTFEExp;
+    import dmd.dmodule : Module;
+    import dmd.id : Id;
+    import dmd.mtype : Type;
     import dmd.objc : Objc;
     import dmd.root.stringtable : StringTable;
-    import dmd.builtin : initializeBuiltins;
+    import dmd.target : Target;
+    import dmd.traits : initializeTraits;
 
     Global global;
     Type.SharedState typeState;
@@ -94,8 +94,11 @@ class CompilerInvocation
     Objc objc;
     StringTable builtins;
 
+    StringTable traitsStringTable;
+
     extern (D) this()
     {
+        import dmd.builtin : initializeBuiltins;
         import dmd.mars : addDefaultVersionIdentifiers;
 
         global._init();
@@ -109,6 +112,13 @@ class CompilerInvocation
 
         objc = Objc.initialize();
         builtins = initializeBuiltins();
+
+        traitsStringTable = initializeTraits();
+    }
+
+    static void initialize()
+    {
+        compilerInvocation = new CompilerInvocation();
     }
 }
 

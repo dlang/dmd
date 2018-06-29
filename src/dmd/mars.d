@@ -487,6 +487,7 @@ private int tryMain(size_t argc, const(char)** argv)
     setDefaultLibrary();
 
     // Initialization
+    CompilerInvocation.initialize();
     compilerInvocation.moduleState.onImport = &marsOnImport;
 
     if (global.params.verbose)
