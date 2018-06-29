@@ -3397,6 +3397,8 @@ private extern(C++) final class DotExpVisitor : Visitor
                  *  e.opDot().ident
                  */
                 e = build_overload(e.loc, sc, e, null, fd);
+                // @@@DEPRECATED_2.087@@@.
+                e.deprecation("`opDot` is deprecated. Use `alias this`");
                 e = new DotIdExp(e.loc, e, ident);
                 return returnExp(e.expressionSemantic(sc));
             }
