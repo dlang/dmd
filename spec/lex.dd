@@ -349,7 +349,7 @@ $(GNAME TokenString):
 
         $(P
         A string literal is either a double quoted string, a wysiwyg quoted
-        string, a delimited string, a token string,     or a hex string.
+        string, a delimited string, a token string, or a hex string.
         )
 
         $(P In all string literal forms, an $(GLINK EndOfLine) is regarded as a single

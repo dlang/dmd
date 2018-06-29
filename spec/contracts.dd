@@ -40,8 +40,7 @@ assert(expression);
         $(P As a contract, an $(D assert) represents a guarantee that the code
         $(I must) uphold. Any failure of this expression represents a logic
         error in the code that must be fixed in the source code.  A program for
-        which the assert contract is false is, by definition, invalid, and
-        therefore has undefined behaviour.)
+        which the assert contract is false is, by definition, invalid.)
 
         $(P As a debugging aid, the compiler may insert a runtime check to
         verify that the expression is indeed true.  If it is false, an
@@ -52,6 +51,9 @@ assert(expression);
 
         $(P The compiler is free to assume the assert expression is true and
         optimize subsequent code accordingly.)
+
+        $(UNDEFINED_BEHAVIOR The subsequent execution of the program after an
+        assert contract is false.)
 
 $(H2 $(LNAME2 pre_post_contracts, Pre and Post Contracts))
 
