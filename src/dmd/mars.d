@@ -193,7 +193,7 @@ private int tryMain(size_t argc, const(char)** argv)
     Strings files;
     Strings libmodules;
 
-    compilerInvocation = new CompilerInvocation();
+    CompilerInvocation.initialize();
     debug
     {
         printf("DMD %s DEBUG\n", global._version);
