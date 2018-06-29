@@ -485,12 +485,10 @@ extern (C++) abstract class Type : RootObject
             }();
         }
 
-        @disable this();
+        @disable this(this);
 
-        static SharedState initialize()
+        static void initialize(ref SharedState state)
         {
-            SharedState state = void;
-
             state.stringtable._init(14000);
 
             // Set basic types
@@ -585,8 +583,6 @@ extern (C++) abstract class Type : RootObject
             state.tsize_t = state.basic[Tsize_t];
             state.tptrdiff_t = state.basic[Tptrdiff_t];
             state.thash_t = state.tsize_t;
-
-            return state;
         }
     }
 

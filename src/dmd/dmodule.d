@@ -301,6 +301,8 @@ extern (C++) final class Module : Package
             AggregateDeclaration moduleinfo;
         }
 
+        @disable this(this);
+
         /**
          * A callback function that is called once an imported module is
          * parsed. If the callback returns true, then it tells the
@@ -308,13 +310,9 @@ extern (C++) final class Module : Package
          */
         extern (C++) bool function(Module mod) onImport;
 
-        static SharedState initialize()
+        static void initialize(ref SharedState state)
         {
-            auto state = SharedState.init;
-
             state.modules = new DsymbolTable();
-
-            return state;
         }
     }
 

@@ -216,17 +216,15 @@ extern (C++) final class CTFEExp : Expression
             CTFEExp gotoexp;
         }
 
-        static SharedState initialize()
-        {
-            auto state = SharedState.init;
+        @disable this(this);
 
+        static void initialize(ref SharedState state)
+        {
             state.cantexp = new CTFEExp(TOK.cantExpression);
             state.voidexp = new CTFEExp(TOK.voidExpression);
             state.breakexp = new CTFEExp(TOK.break_);
             state.continueexp = new CTFEExp(TOK.continue_);
             state.gotoexp = new CTFEExp(TOK.goto_);
-
-            return state;
         }
     }
 

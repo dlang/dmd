@@ -96,7 +96,7 @@ class CompilerInvocation
 
     StringTable traitsStringTable;
 
-    extern (D) this()
+    private void _init()
     {
         import dmd.builtin : initializeBuiltins;
         import dmd.mars : addDefaultVersionIdentifiers;
@@ -104,21 +104,22 @@ class CompilerInvocation
         global._init();
         addDefaultVersionIdentifiers();
 
-        typeState = Type.SharedState.initialize();
-        idState = Id.SharedState.initialize();
-        moduleState = Module.SharedState.initialize();
-        targetState = Target.SharedState.initialize();
-        ctfeExpressionState = CTFEExp.SharedState.initialize();
+        Type.SharedState.initialize(typeState);
+        Id.SharedState.initialize(idState);
+        Module.SharedState.initialize(moduleState);
+        Target.SharedState.initialize(targetState);
+        CTFEExp.SharedState.initialize(ctfeExpressionState);
 
         objc = Objc.initialize();
-        builtins = initializeBuiltins();
+        initializeBuiltins(builtins);
 
-        traitsStringTable = initializeTraits();
+        initializeTraits(traitsStringTable);
     }
 
     static void initialize()
     {
         compilerInvocation = new CompilerInvocation();
+        compilerInvocation._init();
     }
 }
 
@@ -616,5 +617,9 @@ enum PINLINE : int
 
 alias StorageClass = uinteger_t;
 
-extern (C++) __gshared Global global;
+extern (C++) ref Global global() nothrow
+{
+    return compilerInvocation.global;
+}
+
 extern (C++) __gshared CompilerInvocation compilerInvocation;

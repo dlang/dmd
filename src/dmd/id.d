@@ -40,13 +40,9 @@ struct Id
          * An identifier that corresponds to each static field in this struct will
          * be placed in the identifier pool.
          */
-        static SharedState initialize()
+        static void initialize(ref SharedState state)
         {
-            SharedState state = void;
-
             mixin(msgtable.generate(&initializer));
-
-            return state;
         }
     }
 
@@ -54,7 +50,6 @@ struct Id
 }
 
 private:
-
 
 /**
  * Each element in this array will generate one static field in the `Id` struct

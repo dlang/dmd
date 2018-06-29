@@ -64,13 +64,13 @@ struct Target
             bool twoDtorInVtable;     /// target C++ ABI puts deleting and non-deleting destructor into vtable
         }
 
-        static SharedState initialize()
+        @disable this(this);
+
+        static void initialize(ref SharedState state)
         {
             FloatProperties._init();
             DoubleProperties._init();
             RealProperties._init();
-
-            auto state = SharedState.init;
 
             // These have default values for 32 bit code, they get
             // adjusted for 64 bit code.
@@ -144,6 +144,9 @@ struct Target
 
             state.cppExceptions = global.params.isLinux || global.params.isFreeBSD ||
                 global.params.isDragonFlyBSD || global.params.isOSX;
+
+            state.int64Mangle  = global.params.isOSX ? 'x' : 'l';
+            state.uint64Mangle = global.params.isOSX ? 'y' : 'm';
 
             return state;
         }

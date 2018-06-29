@@ -319,9 +319,8 @@ extern (C++) Expression eval_yl2xp1(Loc loc, FuncDeclaration fd, Expressions* ar
     return new RealExp(loc, result, arg0.type);
 }
 
-package StringTable initializeBuiltins()
+package void initializeBuiltins(ref StringTable builtins)
 {
-    StringTable builtins;
     builtins._init(47);
 
     void add_builtin(const(char)* mangle, builtin_fp fp)
@@ -473,8 +472,6 @@ package StringTable initializeBuiltins()
     // @safe @nogc pure nothrow int function(ulong)
     if (global.params.is64bit)
         add_builtin("_D4core5bitop7_popcntFNaNbNiNfmZi", &eval_popcnt);
-
-    return builtins;
 }
 
 /**********************************

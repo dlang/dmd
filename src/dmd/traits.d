@@ -94,12 +94,12 @@ private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
     return getDsymbol(oarg);
 }
 
-extern (C++) StringTable traitsStringTable()
+extern (C++) ref StringTable traitsStringTable()
 {
     return compilerInvocation.traitsStringTable;
 }
 
-package StringTable initializeTraits()
+package void initializeTraits(ref StringTable traitsStringTable)
 {
     static immutable string[] names =
     [
@@ -152,8 +152,6 @@ package StringTable initializeTraits()
         "getPointerBitmap",
     ];
 
-    StringTable traitsStringTable;
-
     traitsStringTable._init(40);
 
     foreach (s; names)
@@ -161,8 +159,6 @@ package StringTable initializeTraits()
         auto sv = traitsStringTable.insert(s.ptr, s.length, cast(void*)s.ptr);
         assert(sv);
     }
-
-    return traitsStringTable;
 }
 
 /**
