@@ -3302,6 +3302,21 @@ LmodCompare:
             e2 = tmp;
         }
     }
+    // constness1(T)[][] op constness2(T)[][]: maybe we can make them both const?
+    else if (t1.ty == Tarray && t2.ty == Tarray // two dynamic arrays
+        && t1.constOf().equals(t2.constOf()) // and they're unifiable as const
+        && (!t1.equals(t1.constOf()) || !t2.equals(t2.constOf())) // but they're not both const yet
+        && e1.implicitConvTo(t1.constOf()) >= MATCH.constant // but we can make them const
+        && e2.implicitConvTo(t2.constOf()) >= MATCH.constant)
+    {
+        e1 = e1.castTo(sc, t1.constOf());
+        e2 = e2.castTo(sc, t2.constOf());
+        t1 = e1.type;
+        t2 = e2.type;
+        t = t1;
+
+        goto Lagain;
+    }
     else
     {
     Lincompatible:
