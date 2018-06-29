@@ -231,15 +231,6 @@ override DFLAGS += -version=MARS $(PIC)
 # Enable D warnings
 override DFLAGS += -w -de
 
-ifneq (,$(DEBUG))
-ENABLE_DEBUG := 1
-$(error 'DEBUG=1 has been removed. Please use ENABLE_DEBUG=1')
-endif
-ifneq (,$(RELEASE))
-ENABLE_RELEASE := 1
-$(error 'RELEASE=1 has been removed. Please use ENABLE_RELEASE=1')
-endif
-
 # Append different flags for debugging, profiling and release.
 ifdef ENABLE_DEBUG
 CXXFLAGS += -g -g3 -DDEBUG=1 -DUNITTEST
