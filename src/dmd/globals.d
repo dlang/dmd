@@ -342,7 +342,27 @@ enum STRUCTALIGN_DEFAULT = (cast(structalign_t)~0);
 
 struct Global
 {
-    const(char)* inifilename;
+    import core.stdc.stdio;
+    const(char)* inifilename_;
+
+    // invariant
+    // {
+    //     assert(inifilename_);
+    // }
+
+    const(char)* inifilename()
+    {
+        printf("************** inifilename-getter %s\n", inifilename_);
+        return inifilename_;
+    }
+
+    const(char)* inifilename(const(char)* inifilename)
+    {
+        assert(inifilename);
+        printf("************** inifilename-setter %s\n", inifilename);
+        return inifilename_ = inifilename;
+    }
+
     const(char)* mars_ext = "d";
     const(char)* obj_ext;
     const(char)* lib_ext;
