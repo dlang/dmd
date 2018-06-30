@@ -233,7 +233,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\compress.c $C\cgreg.c $C\var.c \
 	$C\cgsched.c $C\cod1.c $C\cod2.c $C\cod3.c $C\cod4.c $C\cod5.c \
 	$C\code.c $C\symbol.c $C\debug.c $C\dt.c $C\ee.c $C\el.c \
-	$C\evalu8.d $C\fp.c $C\go.c $C\gflow.c $C\gdag.c \
+	$C\evalu8.d $C\fp.c $C\go.c $C\gflow.c $C\gdag.d \
 	$C\gother.c $C\glocal.d $C\gloop.c $C\gsroa.d $C\newman.c \
 	$C\nteh.c $C\os.c $C\out.c $C\outbuf.c $C\ptrntab.c $C\rtlsym.c \
 	$C\type.c $C\melf.h $C\mach.h $C\mscoff.h $C\bcomplex.h \
@@ -547,8 +547,8 @@ $G/go.obj : $C\go.c
 $G/gflow.obj : $C\gflow.c
 	$(CC) -c -o$@ $(MFLAGS) $C\gflow
 
-$G/gdag.obj : $C\gdag.c
-	$(CC) -c -o$@ $(MFLAGS) $C\gdag
+$G/gdag.obj : $C\gdag.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\gdag
 
 $G/gother.obj : $C\gother.c
 	$(CC) -c -o$@ $(MFLAGS) $C\gother
