@@ -10,7 +10,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/gdag.d
  */
 
-module dmd.backend.glocal;
+module dmd.backend.gdag;
 
 version (SCPP)
     version = COMPILE;
