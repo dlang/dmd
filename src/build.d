@@ -640,7 +640,7 @@ auto sourceFiles()
             // all backend files
             dirEntries(env["C"], "*.{c,d,h}", SpanMode.shallow)
                 .map!(e => e.name)
-                .filter!(e => !e.canFind("stub"))
+                .filter!(e => !e.canFind("stub", "optabgen.c"))
                 .chain(targetCH.only)
                 .array,
         tkC:
@@ -650,7 +650,7 @@ auto sourceFiles()
         backendObjects:
             dirEntries(env["C"], "*.c", SpanMode.shallow)
                 .map!(e => e.baseName.stripExtension)
-                .filter!(e => !e.canFind("stub") && !e.canFind("cgcv", "cgobj", "newman"))
+                .filter!(e => !e.canFind("stub", "optabgen", "cgcv", "cgobj", "newman"))
                 .chain(targetObjs)
                 .map!(a => env["G"].buildPath(a).objName)
                 .array,
