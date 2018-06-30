@@ -210,7 +210,7 @@ private void aewalk(elem **pn,vec_t ae)
             assert(go.expnod[n.Eexp] == n);
             if (aetype == Aetype.cse)
             {
-                for (i = 0; (i = vec_index(i, ae)) < go.exptop; ++i)
+                for (i = 0; (i = cast(uint) vec_index(i, ae)) < go.exptop; ++i)
                 {   elem *e = go.expnod[i];
 
                     // Attempt to replace n with e
@@ -310,7 +310,7 @@ private void aewalk(elem **pn,vec_t ae)
                         s = t.EV.Vsym;
                         if (!(s.Sflags & SFLunambig))
                                 vec_subass(ae,go.starkill);
-                        for (i = 0; (i = vec_index(i, ae)) < go.exptop; ++i) // for each ae elem
+                        for (i = 0; (i = cast(uint) vec_index(i, ae)) < go.exptop; ++i) // for each ae elem
                         {       elem *e = go.expnod[i];
 
                                 if (!e) continue;
@@ -775,7 +775,7 @@ private void abewalk(elem *n,vec_t ae,vec_t aeval)
                 s = t.EV.Vsym;
                 if (!(s.Sflags & SFLunambig))
                         vec_subass(ae,go.starkill);
-                for (uint i = 0; (i = vec_index(i, ae)) < go.exptop; ++i) // for each ae elem
+                for (uint i = 0; (i = cast(uint) vec_index(i, ae)) < go.exptop; ++i) // for each ae elem
                 {       elem *e = go.expnod[i];
 
                         if (!e) continue;
@@ -828,7 +828,7 @@ private void abeboolres(elem *n,vec_t ae,vec_t aeval)
     {   /* Try to find an equivalent AE, and point to it instead */
         assert(go.expnod[n.Eexp] == n);
         uint i;
-        for (i = 0; (i = vec_index(i, ae)) < go.exptop; ++i) // for each ae elem
+        for (i = 0; (i = cast(uint) vec_index(i, ae)) < go.exptop; ++i) // for each ae elem
         {   elem *e = go.expnod[i];
 
             // Attempt to replace n with the boolean result of e
