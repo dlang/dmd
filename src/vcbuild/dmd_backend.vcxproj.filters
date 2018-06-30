@@ -123,9 +123,6 @@
     <ClCompile Include="..\dmd\backend\type.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
-    <ClCompile Include="..\dmd\backend\var.c">
-      <Filter>dmd\backend</Filter>
-    </ClCompile>
     <ClCompile Include="..\dmd\tk\filespec.c">
       <Filter>dmd\tk</Filter>
     </ClCompile>

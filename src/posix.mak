@@ -338,7 +338,7 @@ else
     endif
 endif
 
-BACK_OBJS = var.o el.o \
+BACK_OBJS = el.o \
 	os.o fp.o \
 	rtlsym.o cgen.o out.o \
 	type.o dt.o \
@@ -351,7 +351,7 @@ BACK_OBJS = var.o el.o \
 	$(TARGET_OBJS)
 
 BACK_DOBJS = bcomplex.o evalu8.o divcoeff.o dvec.o go.o gsroa.o glocal.o gdag.o gother.o gflow.o \
-	gloop.o compress.o cgelem.o cgcs.o ee.o cod5.o nteh.o blockopt.o memh.o cg.o cgreg.o
+	gloop.o compress.o cgelem.o cgcs.o ee.o cod5.o nteh.o blockopt.o memh.o cg.o cgreg.o var.o
 
 G_OBJS  = $(addprefix $G/, $(BACK_OBJS))
 G_DOBJS = $(addprefix $G/, $(BACK_DOBJS))
@@ -383,7 +383,7 @@ BACK_SRC = \
 	$C/el.h $C/iasm.h $C/rtlsym.h \
 	$C/bcomplex.d $C/blockopt.d $C/cg.d $C/cg87.c $C/cgxmm.c \
 	$C/cgcod.c $C/cgcs.d $C/cgcv.c $C/cgelem.d $C/cgen.c $C/cgobj.c \
-	$C/compress.d $C/cgreg.d $C/var.c $C/strtold.c \
+	$C/compress.d $C/cgreg.d $C/var.d $C/strtold.c \
 	$C/cgsched.c $C/cod1.c $C/cod2.c $C/cod3.c $C/cod4.c $C/cod5.d \
 	$C/code.c $C/symbol.c $C/debug.c $C/dt.c $C/ee.d $C/el.c \
 	$C/evalu8.d $C/fp.c $C/go.d $C/gflow.d $C/gdag.d \
@@ -398,7 +398,7 @@ BACK_SRC = \
 	$C/xmm.h $C/obj.h $C/pdata.c $C/cv8.c $C/backconfig.c $C/divcoeff.d \
 	$C/varstats.c $C/varstats.h $C/dvec.d \
 	$C/md5.c $C/md5.h \
-	$C/ph2.c $C/util2.c $C/dwarfeh.c $C/goh.d $C/memh.d \
+	$C/ph2.c $C/util2.c $C/dwarfeh.c $C/goh.d $C/memh.d $C/varstats.d \
 	$(TARGET_CH)
 
 TK_SRC = \
