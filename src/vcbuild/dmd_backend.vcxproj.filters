@@ -102,9 +102,6 @@
     <ClCompile Include="..\dmd\backend\fp.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
-    <ClCompile Include="..\dmd\backend\gdag.c">
-      <Filter>dmd\backend</Filter>
-    </ClCompile>
     <ClCompile Include="..\dmd\backend\gflow.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
