@@ -626,8 +626,19 @@ void test18()
 // Lambdas with parentheses:
 void test19()
 {
-    alias test19a = (@(3) c, @(4) d) => 1 + 2;
-    auto test19b = (@(3) int c, @(4) int d) => 1 + 2;
+    // lambdas without parentheses
+    alias test19a = @(3) b => 1 + 2;
+    alias test19b = @(3) @(4) b => 1 + 2;
+
+    alias test19c = (@(3) c, @(5) d) => 1 + 2;
+    alias test19d = (@(3) @(4) c, @(5) d) => 1 + 2;
+    auto test19e = (@(3) int c, @(5) int d) => 1 + 2;
+
+    // still allow alias function declarations
+    alias FuncType = @safe void function();
+    alias FuncType2 = @safe nothrow void function();
+    alias FuncType3 = nothrow void function();
+    alias FuncType4 = nothrow @safe void function();
 }
 
 void test20()

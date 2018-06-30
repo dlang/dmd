@@ -4316,6 +4316,23 @@ final class Parser(AST) : Lexer
                         tpl = parseTemplateParameterList();
                     check(TOK.assign);
 
+                    bool hasParsedAttributes;
+                    void parseAttributes()
+                    {
+                        if (hasParsedAttributes) // only parse once
+                            return;
+                        hasParsedAttributes = true;
+                        udas = null;
+                        storage_class = AST.STC.undefined_;
+                        link = linkage;
+                        setAlignment = false;
+                        ealign = null;
+                        parseStorageClasses(storage_class, link, setAlignment, ealign, udas);
+                    }
+
+                    if (token.value == TOK.at)
+                        parseAttributes;
+
                     AST.Declaration v;
                     if (token.value == TOK.function_ ||
                         token.value == TOK.delegate_ ||
@@ -4334,19 +4351,28 @@ final class Parser(AST) : Lexer
                         // identifier => expression
 
                         AST.Dsymbol s = parseFunctionLiteral();
+
+                        if (udas !is null)
+                        {
+                            if (storage_class != 0)
+                                error("Cannot put a storage-class in an alias declaration.");
+                            // parseAttributes shouldn't have set these variables
+                            assert(link == linkage && !setAlignment && ealign is null);
+                            auto tpl_ = cast(AST.TemplateDeclaration) s;
+                            assert(tpl_ !is null && tpl_.members.dim == 1);
+                            auto fd = cast(AST.FuncLiteralDeclaration) (*tpl_.members)[0];
+                            auto tf = cast(AST.TypeFunction) fd.type;
+                            assert(tf.parameters.dim > 0);
+                            auto as = new AST.Dsymbols();
+                            (*tf.parameters)[0].userAttribDecl = new AST.UserAttributeDeclaration(udas, as);
+                        }
+
                         v = new AST.AliasDeclaration(loc, ident, s);
                     }
                     else
                     {
+                        parseAttributes();
                         // StorageClasses type
-
-                        storage_class = AST.STC.undefined_;
-                        link = linkage;
-                        setAlignment = false;
-                        ealign = null;
-                        udas = null;
-                        parseStorageClasses(storage_class, link, setAlignment, ealign, udas);
-
                         if (udas)
                             error("user-defined attributes not allowed for `%s` declarations", Token.toChars(tok));
 
