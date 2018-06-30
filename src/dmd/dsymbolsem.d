@@ -3581,6 +3581,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             genCmain(sc);
 
         assert(funcdecl.type.ty != Terror || funcdecl.errors);
+
+        // semantic for parameters' UDAs
+        foreach (i; 0 .. Parameter.dim(f.parameters))
+        {
+            Parameter param = Parameter.getNth(f.parameters, i);
+            if (param && param.userAttribDecl)
+                param.userAttribDecl.dsymbolSemantic(sc);
+        }
     }
 
      /// Do the semantic analysis on the external interface to the function.

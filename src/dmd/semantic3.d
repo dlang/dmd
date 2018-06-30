@@ -466,6 +466,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         funcdecl.parameters.push(v);
                     funcdecl.localsymtab.insert(v);
                     v.parent = funcdecl;
+                    if (fparam.userAttribDecl)
+                        v.userAttribDecl = fparam.userAttribDecl;
                 }
             }
 

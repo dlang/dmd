@@ -1,0 +1,10 @@
+UDAs on function arguments are now supported
+
+User-defined attributes on function arguments behave analogous to existing UDAs:
+
+---
+void test(A)(@(22) A a)
+{
+    static assert([__traits(getAttributes, a)] == [22]);
+}
+---

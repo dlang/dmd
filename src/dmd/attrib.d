@@ -1263,6 +1263,7 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
 
 /***********************************************************
  * User defined attributes look like:
+ *      @foo(args, ...)
  *      @(args, ...)
  */
 extern (C++) final class UserAttributeDeclaration : AttribDeclaration
