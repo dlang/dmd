@@ -11,105 +11,106 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/gother.c
  */
 
-#if (SCPP || MARS) && !HTOD
+module dmd.backend.gother;
 
-#include        <stdio.h>
-#include        <time.h>
+version (SCPP)
+    version = COMPILE;
+version (MARS)
+    version = COMPILE;
 
-#include        "cc.h"
-#include        "global.h"
-#include        "el.h"
-#include        "go.h"
-#include        "oper.h"
-#include        "list.h"
-#include        "type.h"
+version (COMPILE)
+{
 
-#if SCPP
-#include        "parser.h"
-#endif
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.time;
 
-static char __file__[] = __FILE__;      /* for tassert.h                */
-#include        "tassert.h"
+import dmd.backend.cc;
+import dmd.backend.cdef;
+import dmd.backend.code_x86;
+import dmd.backend.oper;
+import dmd.backend.global;
+import dmd.backend.goh;
+import dmd.backend.el;
+import dmd.backend.outbuf;
+import dmd.backend.ty;
+import dmd.backend.type;
 
-extern void error(const char *filename, uint linnum, uint charnum, const char *format, ...);
+import dmd.backend.dlist;
+import dmd.backend.dvec;
 
-STATIC void rd_free_elem(elem *e);
-STATIC void rd_compute();
-STATIC void conpropwalk(elem *n , vec_t IN);
-STATIC void chkrd(elem *n , list_t rdlist);
-STATIC elem * chkprop(elem *n , list_t rdlist);
-STATIC void arrayboundsrds(void);
-STATIC void eqeqranges(void);
-STATIC void intranges(void);
-STATIC int loopcheck(block *start , block *inc , block *rel);
-STATIC void cpwalk(elem *n , vec_t IN);
-STATIC uint numasg(elem *e);
-STATIC void accumda(elem *n , vec_t DEAD , vec_t POSS);
-STATIC void dvwalk(elem *n , uint i);
-STATIC int killed(uint j , block *bp , block *b);
-STATIC int ispath(uint j , block *bp , block *b);
+char symbol_isintab(Symbol *s) { return sytab[s.Sclass] & SCSS; }
+
+extern (C++):
+
+version (SCPP)
+    import parser;
+
+extern void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
+
 
 /**********************************************************************/
 
 // Lists to help identify ranges of variables
 struct Elemdata
-{       Elemdata *next;         // linked list
-        elem *pelem;            // the elem in question
-        block *pblock;          // which block it's in
-        list_t  rdlist;         // list of definition elems for *pelem
-
-        static Elemdata *ctor(elem *e,block *b,list_t rd);
-        Elemdata* find(elem *e);
-};
-
-Elemdata *Elemdata::ctor(elem *e,block *b,list_t rd)
-{   Elemdata *ed;
-
-    ed = (Elemdata *) MEM_BEF_CALLOC(sizeof(Elemdata));
-    ed->pelem = e;
-    ed->pblock = b;
-    ed->rdlist = rd;
-    return ed;
-}
-
-/********************************
- * Find `e` in Elemdata list.
- * Params:
- *      e = elem to find
- * Returns:
- *      Elemdata entry if found,
- *      null if not
- */
-Elemdata* Elemdata::find(elem *e)
 {
-    Elemdata* edl = this;
-    for (; edl; edl = edl->next)
+    Elemdata *next;         // linked list
+    elem *pelem;            // the elem in question
+    block *pblock;          // which block it's in
+    list_t  rdlist;         // list of definition elems for *pelem
+
+    static Elemdata *ctor(elem *e,block *b,list_t rd)
     {
-        if (edl->pelem == e)
-            break;
+        Elemdata* ed = cast(Elemdata *) calloc(1, Elemdata.sizeof);
+        assert(ed);
+        ed.pelem = e;
+        ed.pblock = b;
+        ed.rdlist = rd;
+        return ed;
     }
-    return edl;
+
+    /********************************
+     * Find `e` in Elemdata list.
+     * Params:
+     *      e = elem to find
+     * Returns:
+     *      Elemdata entry if found,
+     *      null if not
+     */
+    Elemdata* find(elem *e)
+    {
+        Elemdata* edl = &this;
+        for (; edl; edl = edl.next)
+        {
+            if (edl.pelem == e)
+                break;
+        }
+        return edl;
+    }
 }
 
 /*****************
  * Free list of Elemdata's.
  */
 
-STATIC void elemdatafree(Elemdata **plist)
+private void elemdatafree(Elemdata **plist)
 {
     Elemdata *eln;
 
     for (Elemdata *el = *plist; el; el = eln)
-    {   eln = el->next;
-        list_free(&el->rdlist);
-        MEM_BEF_FREE(el);
+    {   eln = el.next;
+        list_free(&el.rdlist);
+        free(el);
     }
-    *plist = NULL;
+    *plist = null;
 }
 
-static Elemdata *eqeqlist = NULL;       // list of Elemdata's of OPeqeq & OPne elems
-static Elemdata *rellist = NULL;        // list of Elemdata's of relop elems
-static Elemdata *inclist = NULL;        // list of Elemdata's of increment elems
+private __gshared
+{
+    Elemdata *eqeqlist = null;       // list of Elemdata's of OPeqeq & OPne elems
+    Elemdata *rellist = null;        // list of Elemdata's of relop elems
+    Elemdata *inclist = null;        // list of Elemdata's of increment elems
+}
 
 /*************************** Constant Propagation ***************************/
 
@@ -134,21 +135,21 @@ void constprop()
  * Note: RD vectors are destroyed by this.
  */
 
-static block *thisblock;
+private __gshared block *thisblock;
 
-STATIC void rd_compute()
+private void rd_compute()
 {
-        cmes("constprop()\n");
+        if (debugc) printf("constprop()\n");
         assert(dfo);
         flowrd();               /* compute reaching definitions (rd)    */
         if (go.deftop == 0)        /* if no reaching defs                  */
                 return;
-        assert(rellist == NULL && inclist == NULL && eqeqlist == NULL);
+        assert(rellist == null && inclist == null && eqeqlist == null);
         block_clearvisit();
         for (uint i = 0; i < dfotop; i++)    // for each block
         {   block *b = dfo[i];
 
-            switch (b->BC)
+            switch (b.BC)
             {
                 case BCjcatch:
                 case BC_finally:
@@ -156,6 +157,9 @@ STATIC void rd_compute()
                 case BCasm:
                 case BCcatch:
                     block_visit(b);
+                    break;
+
+                default:
                     break;
             }
         }
@@ -165,30 +169,31 @@ STATIC void rd_compute()
 
                 b = dfo[i];
                 thisblock = b;
-#if 0
-                dbg_printf("block %d Bin ",i); vec_println(b->Binrd);
-                dbg_printf("       Bout "); vec_println(b->Boutrd);
-#endif
-                if (b->Bflags & BFLvisited)
+
+                //printf("block %d Bin ",i); vec_println(b.Binrd);
+                //printf("       Bout "); vec_println(b.Boutrd);
+
+                if (b.Bflags & BFLvisited)
                     continue;                   // not reliable for this block
-                if (b->Belem)
+                if (b.Belem)
                 {
-                        conpropwalk(b->Belem,b->Binrd);
-#ifdef DEBUG
-                        if (!(vec_equal(b->Binrd,b->Boutrd)))
+                        conpropwalk(b.Belem,b.Binrd);
+
+                        debug
+                        if (!(vec_equal(b.Binrd,b.Boutrd)))
                         {       int j;
 
-                                dbg_printf("block %d Binrd ",i); vec_println(b->Binrd);
-                                dbg_printf("       Boutrd "); vec_println(b->Boutrd);
-                                WReqn(b->Belem);
-                                dbg_printf("\n");
-                                vec_xorass(b->Binrd,b->Boutrd);
-                                j = vec_index(0,b->Binrd);
+                                printf("block %d Binrd ",i); vec_println(b.Binrd);
+                                printf("       Boutrd "); vec_println(b.Boutrd);
+                                WReqn(b.Belem);
+                                printf("\n");
+                                vec_xorass(b.Binrd,b.Boutrd);
+                                j = cast(int)vec_index(0,b.Binrd);
                                 WReqn(go.defnod[j].DNelem);
-                                dbg_printf("\n");
+                                printf("\n");
                         }
-#endif
-                        assert(vec_equal(b->Binrd,b->Boutrd));
+
+                        assert(vec_equal(b.Binrd,b.Boutrd));
                 }
         }
 }
@@ -207,7 +212,7 @@ STATIC void rd_compute()
  *                      Modify vector of reaching defs.
  */
 
-STATIC void conpropwalk(elem *n,vec_t IN)
+private void conpropwalk(elem *n,vec_t IN)
 {       uint op;
         Elemdata *pdata;
         vec_t L,R;
@@ -216,57 +221,60 @@ STATIC void conpropwalk(elem *n,vec_t IN)
         assert(n && IN);
         /*chkvecdim(go.deftop,0);*/
         //printf("conpropwalk()\n"),elem_print(n);
-        op = n->Eoper;
+        op = n.Eoper;
         if (op == OPcolon || op == OPcolon2)
         {
                 L = vec_clone(IN);
-                switch (el_returns(n->E1) * 2 | el_returns(n->E2))
+                switch (el_returns(n.EV.E1) * 2 | el_returns(n.EV.E2))
                 {
                     case 3: // E1 and E2 return
-                        conpropwalk(n->E1,L);
-                        conpropwalk(n->E2,IN);
+                        conpropwalk(n.EV.E1,L);
+                        conpropwalk(n.EV.E2,IN);
                         vec_orass(IN,L);                // IN = L | R
                         break;
                     case 2: // E1 returns
-                        conpropwalk(n->E1,IN);
-                        conpropwalk(n->E2,L);
+                        conpropwalk(n.EV.E1,IN);
+                        conpropwalk(n.EV.E2,L);
                         break;
                     case 1: // E2 returns
-                        conpropwalk(n->E1,L);
-                        conpropwalk(n->E2,IN);
+                        conpropwalk(n.EV.E1,L);
+                        conpropwalk(n.EV.E2,IN);
                         break;
                     case 0: // neither returns
-                        conpropwalk(n->E1,L);
+                        conpropwalk(n.EV.E1,L);
                         vec_copy(L,IN);
-                        conpropwalk(n->E2,L);
+                        conpropwalk(n.EV.E2,L);
+                        break;
+
+                    default:
                         break;
                 }
                 vec_free(L);
         }
         else if (op == OPandand || op == OPoror)
-        {       conpropwalk(n->E1,IN);
+        {       conpropwalk(n.EV.E1,IN);
                 R = vec_clone(IN);
-                conpropwalk(n->E2,R);
-                if (el_returns(n->E2))
+                conpropwalk(n.EV.E2,R);
+                if (el_returns(n.EV.E2))
                     vec_orass(IN,R);                // IN |= R
                 vec_free(R);
         }
         else if (OTunary(op))
                 goto L3;
         else if (ERTOL(n))
-        {       conpropwalk(n->E2,IN);
+        {       conpropwalk(n.EV.E2,IN);
             L3:
-                t = n->E1;
+                t = n.EV.E1;
                 if (OTassign(op))
                 {
-                    if (t->Eoper == OPvar)
+                    if (t.Eoper == OPvar)
                     {
                         // Note that the following ignores OPnegass
-                        if (OTopeq(op) && sytab[t->EV.sp.Vsym->Sclass] & SCRD)
+                        if (OTopeq(op) && sytab[t.EV.Vsym.Sclass] & SCRD)
                         {   elem *e;
                             list_t rdl;
 
-                            rdl = listrds(IN,t,NULL);
+                            rdl = listrds(IN,t,null);
                             if (!(config.flags & CFGnowarning)) // if warnings are enabled
                                 chkrd(t,rdl);
                             e = chkprop(t,rdl);
@@ -274,9 +282,9 @@ STATIC void conpropwalk(elem *n,vec_t IN)
                             {   // Replace (t op= exp) with (t = e op exp)
 
                                 e = el_copytree(e);
-                                e->Ety = t->Ety;
-                                n->E2 = el_bin(opeqtoop(op),n->Ety,e,n->E2);
-                                n->Eoper = OPeq;
+                                e.Ety = t.Ety;
+                                n.EV.E2 = el_bin(opeqtoop(op),n.Ety,e,n.EV.E2);
+                                n.Eoper = OPeq;
                             }
                             list_free(&rdl);
                         }
@@ -290,17 +298,17 @@ STATIC void conpropwalk(elem *n,vec_t IN)
         else if (OTbinary(op))
         {
             if (OTassign(op))
-            {   t = Elvalue(n);
-                if (t->Eoper != OPvar)
+            {   t = n.EV.E1;
+                if (t.Eoper != OPvar)
                     conpropwalk(t,IN);
             }
             else
-                conpropwalk(n->E1,IN);
-            conpropwalk(n->E2,IN);
+                conpropwalk(n.EV.E1,IN);
+            conpropwalk(n.EV.E2,IN);
         }
 
         // Collect data for subsequent optimizations
-        if (OTbinary(op) && n->E1->Eoper == OPvar && n->E2->Eoper == OPconst)
+        if (OTbinary(op) && n.EV.E1.Eoper == OPvar && n.EV.E2.Eoper == OPconst)
         {
             switch (op)
             {
@@ -309,14 +317,14 @@ STATIC void conpropwalk(elem *n,vec_t IN)
                 case OPle:
                 case OPge:
                     // Collect compare elems and their rd's in the rellist list
-                    if (tyintegral(n->E1->Ety) &&
-                        tyintegral(n->E2->Ety)
+                    if (tyintegral(n.EV.E1.Ety) &&
+                        tyintegral(n.EV.E2.Ety)
                        )
                     {
                         //printf("appending to rellist\n"); elem_print(n);
                         //printf("\trellist IN: "); vec_print(IN); printf("\n");
-                        pdata = Elemdata::ctor(n,thisblock,listrds(IN,n->E1,NULL));
-                        pdata->next = rellist;
+                        pdata = Elemdata.ctor(n,thisblock,listrds(IN,n.EV.E1,null));
+                        pdata.next = rellist;
                         rellist = pdata;
                     }
                     break;
@@ -326,12 +334,12 @@ STATIC void conpropwalk(elem *n,vec_t IN)
                 case OPpostinc:
                 case OPpostdec:
                     // Collect increment elems and their rd's in the inclist list
-                    if (tyintegral(n->E1->Ety))
+                    if (tyintegral(n.EV.E1.Ety))
                     {
-                        //dbg_printf("appending to inclist\n"); elem_print(n);
+                        //printf("appending to inclist\n"); elem_print(n);
                         //printf("\tinclist IN: "); vec_print(IN); printf("\n");
-                        pdata = Elemdata::ctor(n,thisblock,listrds(IN,n->E1,NULL));
-                        pdata->next = inclist;
+                        pdata = Elemdata.ctor(n,thisblock,listrds(IN,n.EV.E1,null));
+                        pdata.next = inclist;
                         inclist = pdata;
                     }
                     break;
@@ -339,27 +347,30 @@ STATIC void conpropwalk(elem *n,vec_t IN)
                 case OPne:
                 case OPeqeq:
                     // Collect compare elems and their rd's in the rellist list
-                    if (tyintegral(n->E1->Ety))
-                    {   //dbg_printf("appending to eqeqlist\n"); elem_print(n);
-                        pdata = Elemdata::ctor(n,thisblock,listrds(IN,n->E1,NULL));
-                        pdata->next = eqeqlist;
+                    if (tyintegral(n.EV.E1.Ety))
+                    {   //printf("appending to eqeqlist\n"); elem_print(n);
+                        pdata = Elemdata.ctor(n,thisblock,listrds(IN,n.EV.E1,null));
+                        pdata.next = eqeqlist;
                         eqeqlist = pdata;
                     }
+                    break;
+
+                default:
                     break;
             }
         }
 
 
         if (OTdef(op))                  /* if definition elem           */
-            updaterd(n,IN,NULL);        /* then update IN vector        */
+            updaterd(n,IN,null);        /* then update IN vector        */
 
         /* now we get to the part that checks to see if we can  */
         /* propagate a constant.                                */
-        if (op == OPvar && sytab[n->EV.sp.Vsym->Sclass] & SCRD)
+        if (op == OPvar && sytab[n.EV.Vsym.Sclass] & SCRD)
         {   list_t rdl;
 
-            //printf("const prop: %s\n", n->EV.sp.Vsym->Sident);
-            rdl = listrds(IN,n,NULL);
+            //printf("const prop: %s\n", n.EV.Vsym.Sident);
+            rdl = listrds(IN,n,null);
 
             if (!(config.flags & CFGnowarning))     // if warnings are enabled
                 chkrd(n,rdl);
@@ -367,9 +378,9 @@ STATIC void conpropwalk(elem *n,vec_t IN)
             if (e)
             {   tym_t nty;
 
-                nty = n->Ety;
+                nty = n.Ety;
                 el_copy(n,e);
-                n->Ety = nty;                       // retain original type
+                n.Ety = nty;                       // retain original type
             }
             list_free(&rdl);
         }
@@ -379,28 +390,28 @@ STATIC void conpropwalk(elem *n,vec_t IN)
  * Give error if there are no reaching defs for variable v.
  */
 
-STATIC void chkrd(elem *n,list_t rdlist)
+private void chkrd(elem *n,list_t rdlist)
 {
-    symbol *sv;
+    Symbol *sv;
     int unambig;
 
-    sv = n->EV.sp.Vsym;
-    assert(sytab[sv->Sclass] & SCRD);
-    if (sv->Sflags & SFLnord)           // if already printed a warning
+    sv = n.EV.Vsym;
+    assert(sytab[sv.Sclass] & SCRD);
+    if (sv.Sflags & SFLnord)           // if already printed a warning
         return;
-    if (sv->ty() & mTYvolatile)
+    if (sv.ty() & mTYvolatile)
         return;
-    unambig = sv->Sflags & SFLunambig;
+    unambig = sv.Sflags & SFLunambig;
     for (list_t l = rdlist; l; l = list_next(l))
-    {   elem *d = (elem *) list_ptr(l);
+    {   elem *d = cast(elem *) list_ptr(l);
 
         elem_debug(d);
-        if (d->Eoper == OPasm)          /* OPasm elems ruin everything  */
+        if (d.Eoper == OPasm)          /* OPasm elems ruin everything  */
             return;
-        if (OTassign(d->Eoper))
+        if (OTassign(d.Eoper))
         {
-                if (d->E1->Eoper == OPvar)
-                {       if (d->E1->EV.sp.Vsym == sv)
+                if (d.EV.E1.Eoper == OPvar)
+                {       if (d.EV.E1.EV.Vsym == sv)
                                 return;
                 }
                 else if (!unambig)
@@ -414,39 +425,42 @@ STATIC void chkrd(elem *n,list_t rdlist)
 
     // If there are any asm blocks, don't print the message
     for (uint i = 0; i < dfotop; i++)
-        if (dfo[i]->BC == BCasm)
+        if (dfo[i].BC == BCasm)
             return;
 
     // If variable contains bit fields, don't print message (because if
     // bit field is the first set, then we get a spurious warning).
     // STL uses 0 sized structs to transmit type information, so
     // don't complain about them being used before set.
-    if (type_struct(sv->Stype))
+    if (type_struct(sv.Stype))
     {
-        if (sv->Stype->Ttag->Sstruct->Sflags & (STRbitfields | STR0size))
+        if (sv.Stype.Ttag.Sstruct.Sflags & (STRbitfields | STR0size))
             return;
     }
-#if 0
+static if (0)
+{
     // If variable is zero length static array, don't print message.
     // BUG: Suppress error even if variable is initialized with void.
-    if (sv->Stype->Tty == TYarray && sv->Stype->Tdim == 0)
+    if (sv.Stype.Tty == TYarray && sv.Stype.Tdim == 0)
     {
-        printf("sv->Sident = %s\n", sv->Sident);
+        printf("sv.Sident = %s\n", sv.Sident);
         return;
     }
-#endif
-#if SCPP
+}
+version (SCPP)
+{
     {   Outbuffer buf;
         char *p2;
 
-        type_tostring(&buf, sv->Stype);
+        type_tostring(&buf, sv.Stype);
         buf.writeByte(' ');
-        buf.write(sv->Sident);
+        buf.write(sv.Sident.ptr);
         p2 = buf.toString();
-        warerr(WM_used_b4_set, p2);     // variable used before set
+        warerr(WM.WM_used_b4_set, p2);     // variable used before set
     }
-#endif
-#if MARS
+}
+version (MARS)
+{
     /* Watch out for:
         void test()
         {
@@ -454,14 +468,14 @@ STATIC void chkrd(elem *n,list_t rdlist)
             auto y = x;
         }
      */
-    if (type_size(sv->Stype) != 0)
+    if (type_size(sv.Stype) != 0)
     {
-        error(n->Esrcpos.Sfilename, n->Esrcpos.Slinnum, n->Esrcpos.Scharnum,
-            "variable %s used before set", sv->Sident);
+        error(n.Esrcpos.Sfilename, n.Esrcpos.Slinnum, n.Esrcpos.Scharnum,
+            "variable %s used before set", sv.Sident.ptr);
     }
-#endif
+}
 
-    sv->Sflags |= SFLnord;              // no redundant messages
+    sv.Sflags |= SFLnord;              // no redundant messages
     //elem_print(n);
 }
 
@@ -477,61 +491,61 @@ STATIC void chkrd(elem *n,list_t rdlist)
  * them before startblock, but we just kludge it and don't propagate
  * stuff for them.
  * Returns:
- *      NULL    do not propagate constant
+ *      null    do not propagate constant
  *      e       constant elem that we should replace n with
  */
 
-STATIC elem * chkprop(elem *n,list_t rdlist)
+private elem * chkprop(elem *n,list_t rdlist)
 {
-    elem *foundelem = NULL;
+    elem *foundelem = null;
     int unambig;
-    symbol *sv;
+    Symbol *sv;
     tym_t nty;
     uint nsize;
     targ_size_t noff;
 
     //printf("checkprop: "); WReqn(n); printf("\n");
-    assert(n && n->Eoper == OPvar);
+    assert(n && n.Eoper == OPvar);
     elem_debug(n);
-    sv = n->EV.sp.Vsym;
-    assert(sytab[sv->Sclass] & SCRD);
-    nty = n->Ety;
+    sv = n.EV.Vsym;
+    assert(sytab[sv.Sclass] & SCRD);
+    nty = n.Ety;
     if (!tyscalar(nty))
         goto noprop;
-    nsize = size(nty);
-    noff = n->EV.sp.Voffset;
-    unambig = sv->Sflags & SFLunambig;
+    nsize = cast(uint)size(nty);
+    noff = n.EV.Voffset;
+    unambig = sv.Sflags & SFLunambig;
     for (list_t l = rdlist; l; l = list_next(l))
-    {   elem *d = (elem *) list_ptr(l);
+    {   elem *d = cast(elem *) list_ptr(l);
 
         elem_debug(d);
 
         //printf("\trd: "); WReqn(d); printf("\n");
-        if (d->Eoper == OPasm)          /* OPasm elems ruin everything  */
+        if (d.Eoper == OPasm)          /* OPasm elems ruin everything  */
             goto noprop;
 
         // Runs afoul of Buzilla 4506
-        /*if (OTassign(d->Eoper) && EBIN(d))*/      // if assignment elem
+        /*if (OTassign(d.Eoper) && EBIN(d))*/      // if assignment elem
 
-        if (OTassign(d->Eoper))      // if assignment elem
-        {   elem *t = Elvalue(d);
+        if (OTassign(d.Eoper))      // if assignment elem
+        {   elem *t = d.EV.E1;
 
-            if (t->Eoper == OPvar)
-            {   assert(t->EV.sp.Vsym == sv);
+            if (t.Eoper == OPvar)
+            {   assert(t.EV.Vsym == sv);
 
-                if (d->Eoper == OPstreq ||
-                    !tyscalar(t->Ety))
+                if (d.Eoper == OPstreq ||
+                    !tyscalar(t.Ety))
                     goto noprop;        // not worth bothering with these cases
 
-                if (d->Eoper == OPnegass)
+                if (d.Eoper == OPnegass)
                     goto noprop;        // don't bother with this case, either
 
                 /* Everything must match or we must skip this variable  */
                 /* (in case of assigning to overlapping unions, etc.)   */
-                if (t->EV.sp.Voffset != noff ||
+                if (t.EV.Voffset != noff ||
                     /* If sizes match, we are ok        */
-                    size(t->Ety) != nsize &&
-                        !(d->E2->Eoper == OPconst && size(t->Ety) > nsize && !tyfloating(d->E2->Ety)))
+                    size(t.Ety) != nsize &&
+                        !(d.EV.E2.Eoper == OPconst && size(t.Ety) > nsize && !tyfloating(d.EV.E2.Ety)))
                     goto noprop;
             }
             else
@@ -539,7 +553,7 @@ STATIC elem * chkprop(elem *n,list_t rdlist)
                     continue;
                 goto noprop;
             }
-            if (d->Eoper != OPeq)
+            if (d.Eoper != OPeq)
                 goto noprop;
         }
         else                            /* must be a call elem          */
@@ -550,15 +564,15 @@ STATIC elem * chkprop(elem *n,list_t rdlist)
                 goto noprop;            /* could be affected            */
         }
 
-        if (d->E2->Eoper == OPconst || d->E2->Eoper == OPrelconst)
+        if (d.EV.E2.Eoper == OPconst || d.EV.E2.Eoper == OPrelconst)
         {
             if (foundelem)              /* already found one            */
             {                           /* then they must be the same   */
-                if (!el_match(foundelem,d->E2))
+                if (!el_match(foundelem,d.EV.E2))
                     goto noprop;
             }
             else                        /* else this is it              */
-                foundelem = d->E2;
+                foundelem = d.EV.E2;
         }
         else
             goto noprop;
@@ -566,20 +580,18 @@ STATIC elem * chkprop(elem *n,list_t rdlist)
 
     if (foundelem)                      /* if we got one                 */
     {                                   /* replace n with foundelem      */
-#ifdef DEBUG
-        if (debugc)
-        {       dbg_printf("const prop (");
+        debug if (debugc)
+        {       printf("const prop (");
                 WReqn(n);
-                dbg_printf(" replaced by ");
+                printf(" replaced by ");
                 WReqn(foundelem);
-                dbg_printf("), %p to %p\n",foundelem,n);
+                printf("), %p to %p\n",foundelem,n);
         }
-#endif
         go.changes++;
         return foundelem;
     }
 noprop:
-    return NULL;
+    return null;
 }
 
 /***********************************
@@ -588,7 +600,7 @@ noprop:
  *
  */
 
-list_t listrds(vec_t IN,elem *e,vec_t f)
+extern (C) list_t listrds(vec_t IN,elem *e,vec_t f)
 {
     uint i;
     uint unambig;
@@ -599,37 +611,37 @@ list_t listrds(vec_t IN,elem *e,vec_t f)
 
     //printf("listrds: "); WReqn(e); printf("\n");
     assert(IN);
-    list_t rdlist = NULL;
-    assert(e->Eoper == OPvar);
-    s = e->EV.sp.Vsym;
-    ty = e->Ety;
+    list_t rdlist = null;
+    assert(e.Eoper == OPvar);
+    s = e.EV.Vsym;
+    ty = e.Ety;
     if (tyscalar(ty))
-        nsize = size(ty);
-    noff = e->EV.sp.Voffset;
-    unambig = s->Sflags & SFLunambig;
+        nsize = cast(uint)size(ty);
+    noff = e.EV.Voffset;
+    unambig = s.Sflags & SFLunambig;
     if (f)
         vec_clear(f);
-    foreach (i, go.deftop, IN)
+    for (i = 0; (i = cast(uint) vec_index(i, IN)) < go.deftop; ++i)
     {
         elem *d = go.defnod[i].DNelem;
-        //dbg_printf("\tlooking at "); WReqn(d); dbg_printf("\n");
-        uint op = d->Eoper;
+        //printf("\tlooking at "); WReqn(d); printf("\n");
+        uint op = d.Eoper;
         if (op == OPasm)                // assume ASM elems define everything
             goto listit;
         if (OTassign(op))
-        {   elem *t = Elvalue(d);
+        {   elem *t = d.EV.E1;
 
-            if (t->Eoper == OPvar && t->EV.sp.Vsym == s)
+            if (t.Eoper == OPvar && t.EV.Vsym == s)
             {   if (op == OPstreq)
                     goto listit;
-                if (!tyscalar(ty) || !tyscalar(t->Ety))
+                if (!tyscalar(ty) || !tyscalar(t.Ety))
                     goto listit;
                 // If t does not overlap e, then it doesn't affect things
-                if (noff + nsize > t->EV.sp.Voffset &&
-                    t->EV.sp.Voffset + size(t->Ety) > noff)
+                if (noff + nsize > t.EV.Voffset &&
+                    t.EV.Voffset + size(t.Ety) > noff)
                     goto listit;                // it's an assignment to s
             }
-            else if (t->Eoper != OPvar && !unambig)
+            else if (t.Eoper != OPvar && !unambig)
                 goto listit;            /* assignment through pointer   */
         }
         else if (!unambig)
@@ -637,7 +649,7 @@ list_t listrds(vec_t IN,elem *e,vec_t f)
         continue;
 
     listit:
-        //dbg_printf("\tlisting "); WReqn(d); dbg_printf("\n");
+        //printf("\tlisting "); WReqn(d); printf("\n");
         if (f)
             vec_setbit(i,f);
         else
@@ -652,7 +664,7 @@ list_t listrds(vec_t IN,elem *e,vec_t f)
  * expression with 1 or 0.
  */
 
-STATIC void eqeqranges()
+private void eqeqranges()
 {
     Symbol *v;
     int sz;
@@ -660,36 +672,36 @@ STATIC void eqeqranges()
     targ_llong c;
     int result;
 
-    for (Elemdata *rel = eqeqlist; rel; rel = rel->next)
+    for (Elemdata *rel = eqeqlist; rel; rel = rel.next)
     {
-        e = rel->pelem;
-        v = e->E1->EV.sp.Vsym;
-        if (!(sytab[v->Sclass] & SCRD))
+        e = rel.pelem;
+        v = e.EV.E1.EV.Vsym;
+        if (!(sytab[v.Sclass] & SCRD))
             continue;
-        sz = tysize(e->E1->Ety);
-        c = el_tolong(e->E2);
+        sz = tysize(e.EV.E1.Ety);
+        c = el_tolong(e.EV.E2);
 
         result = -1;                    // result not known yet
-        for (list_t rdl = rel->rdlist; rdl; rdl = list_next(rdl))
-        {   elem *erd = (elem *) list_ptr(rdl);
+        for (list_t rdl = rel.rdlist; rdl; rdl = list_next(rdl))
+        {   elem *erd = cast(elem *) list_ptr(rdl);
             elem *erd1;
             int szrd;
             int tmp;
 
             elem_debug(erd);
-            if (erd->Eoper != OPeq ||
-                (erd1 = erd->E1)->Eoper != OPvar ||
-                erd->E2->Eoper != OPconst
+            if (erd.Eoper != OPeq ||
+                (erd1 = erd.EV.E1).Eoper != OPvar ||
+                erd.EV.E2.Eoper != OPconst
                )
                 goto L1;
-            szrd = tysize(erd1->Ety);
-            if (erd1->EV.sp.Voffset + szrd <= e->E1->EV.sp.Voffset ||
-                e->E1->EV.sp.Voffset + sz <= erd1->EV.sp.Voffset)
+            szrd = tysize(erd1.Ety);
+            if (erd1.EV.Voffset + szrd <= e.EV.E1.EV.Voffset ||
+                e.EV.E1.EV.Voffset + sz <= erd1.EV.Voffset)
                 continue;               // doesn't affect us, skip it
-            if (szrd != sz || e->E1->EV.sp.Voffset != erd1->EV.sp.Voffset)
+            if (szrd != sz || e.EV.E1.EV.Voffset != erd1.EV.Voffset)
                 goto L1;                // overlapping - forget it
 
-            tmp = (c == el_tolong(erd->E2));
+            tmp = (c == el_tolong(erd.EV.E2));
             if (result == -1)
                 result = tmp;
             else if (result != tmp)
@@ -698,10 +710,10 @@ STATIC void eqeqranges()
         if (result >= 0)
         {
             //printf("replacing with %d\n",result);
-            el_free(e->E1);
-            el_free(e->E2);
-            e->EV.Vint = (e->Eoper == OPeqeq) ? result : result ^ 1;
-            e->Eoper = OPconst;
+            el_free(e.EV.E1);
+            el_free(e.EV.E2);
+            e.EV.Vint = (e.Eoper == OPeqeq) ? result : result ^ 1;
+            e.Eoper = OPconst;
         }
     L1: ;
     }
@@ -714,70 +726,74 @@ STATIC void eqeqranges()
  * inclist is list of increment elems in function.
  */
 
-STATIC void intranges()
+private void intranges()
 {
-    block *rb,*ib;
-    symbol *v;
-    elem *rdeq,*rdinc;
+    block *rb;
+    block *ib;
+    Symbol *v;
+    elem *rdeq;
+    elem *rdinc;
     uint incop,relatop;
-    targ_llong initial,increment,final;
+    targ_llong initial,increment,final_;
 
-    cmes("intranges()\n");
-    for (Elemdata *rel = rellist; rel; rel = rel->next)
+    if (debugc) printf("intranges()\n");
+    for (Elemdata *rel = rellist; rel; rel = rel.next)
     {
-        rb = rel->pblock;
-        //dbg_printf("rel->pelem: "); WReqn(rel->pelem); dbg_printf("\n");
-        assert(rel->pelem->E1->Eoper == OPvar);
-        v = rel->pelem->E1->EV.sp.Vsym;
+        rb = rel.pblock;
+        //printf("rel.pelem: "); WReqn(rel.pelem); printf("\n");
+        assert(rel.pelem.EV.E1.Eoper == OPvar);
+        v = rel.pelem.EV.E1.EV.Vsym;
 
         // RD info is only reliable for registers and autos
-        if (!(sytab[v->Sclass] & SCRD))
+        if (!(sytab[v.Sclass] & SCRD))
             continue;
 
         /* Look for two rd's: an = and an increment     */
-        if (list_nitems(rel->rdlist) != 2)
+        if (list_nitems(rel.rdlist) != 2)
             continue;
-        rdeq = list_elem(list_next(rel->rdlist));
-        if (rdeq->Eoper != OPeq)
+        rdeq = list_elem(list_next(rel.rdlist));
+        if (rdeq.Eoper != OPeq)
         {   rdinc = rdeq;
-            rdeq = list_elem(rel->rdlist);
-            if (rdeq->Eoper != OPeq)
+            rdeq = list_elem(rel.rdlist);
+            if (rdeq.Eoper != OPeq)
                 continue;
         }
         else
-            rdinc = list_elem(rel->rdlist);
-#if 0
+            rdinc = list_elem(rel.rdlist);
+static if (0)
+{
         printf("\neq:  "); WReqn(rdeq); printf("\n");
-        printf("rel: "); WReqn(rel->pelem); printf("\n");
+        printf("rel: "); WReqn(rel.pelem); printf("\n");
         printf("inc: "); WReqn(rdinc); printf("\n");
-#endif
-        incop = rdinc->Eoper;
+}
+        incop = rdinc.Eoper;
         if (!OTpost(incop) && incop != OPaddass && incop != OPminass)
             continue;
 
         /* lvalues should be unambiguous defs   */
-        if (rdeq->E1->Eoper != OPvar || rdinc->E1->Eoper != OPvar)
+        if (rdeq.EV.E1.Eoper != OPvar || rdinc.EV.E1.Eoper != OPvar)
             continue;
         /* rvalues should be constants          */
-        if (rdeq->E2->Eoper != OPconst || rdinc->E2->Eoper != OPconst)
+        if (rdeq.EV.E2.Eoper != OPconst || rdinc.EV.E2.Eoper != OPconst)
             continue;
 
         /* Ensure that the only defs reaching the increment elem (rdinc) */
         /* are rdeq and rdinc.                                          */
-        for (Elemdata *iel = inclist; TRUE; iel = iel->next)
-        {   elem *rd1,*rd2;
+        for (Elemdata *iel = inclist; true; iel = iel.next)
+        {   elem *rd1;
+            elem *rd2;
 
             if (!iel)
                 goto nextrel;
-            ib = iel->pblock;
-            if (iel->pelem != rdinc)
+            ib = iel.pblock;
+            if (iel.pelem != rdinc)
                 continue;               /* not our increment elem       */
-            if (list_nitems(iel->rdlist) != 2)
+            if (list_nitems(iel.rdlist) != 2)
             {   //printf("!= 2\n");
                 goto nextrel;
             }
-            rd1 = list_elem(iel->rdlist);
-            rd2 = list_elem(list_next(iel->rdlist));
+            rd1 = list_elem(iel.rdlist);
+            rd2 = list_elem(list_next(iel.rdlist));
             /* The rd's for the relational elem (rdeq,rdinc) must be    */
             /* the same as the rd's for tne increment elem (rd1,rd2).   */
             if (rd1 == rdeq && rd2 == rdinc || rd1 == rdinc && rd2 == rdeq)
@@ -796,66 +812,68 @@ STATIC void intranges()
         }
 
         /* Gather initial, increment, and final values for loop */
-        initial = el_tolong(rdeq->E2);
-        increment = el_tolong(rdinc->E2);
+        initial = el_tolong(rdeq.EV.E2);
+        increment = el_tolong(rdinc.EV.E2);
         if (incop == OPpostdec || incop == OPminass)
             increment = -increment;
-        relatop = rel->pelem->Eoper;
-        final = el_tolong(rel->pelem->E2);
-        //printf("initial = %d, increment = %d, final = %d\n",initial,increment,final);
+        relatop = rel.pelem.Eoper;
+        final_ = el_tolong(rel.pelem.EV.E2);
+        //printf("initial = %d, increment = %d, final_ = %d\n",initial,increment,final_);
 
         /* Determine if we can make the relational an unsigned  */
         if (initial >= 0)
-        {   if (final >= initial)
-            {   if (increment > 0 && ((final - initial) % increment) == 0)
+        {   if (final_ >= initial)
+            {   if (increment > 0 && ((final_ - initial) % increment) == 0)
                     goto makeuns;
             }
-            else if (final >= 0)
-            {   /* 0 <= final < initial */
-                if (increment < 0 && ((final - initial) % increment) == 0 &&
-                    !(final + increment < 0 &&
+            else if (final_ >= 0)
+            {   /* 0 <= final_ < initial */
+                if (increment < 0 && ((final_ - initial) % increment) == 0 &&
+                    !(final_ + increment < 0 &&
                         (relatop == OPge || relatop == OPlt)
                      )
                    )
                 {
                 makeuns:
-                    if (!tyuns(rel->pelem->E2->Ety))
+                    if (!tyuns(rel.pelem.EV.E2.Ety))
                     {
-                        rel->pelem->E2->Ety = touns(rel->pelem->E2->Ety);
-                        rel->pelem->Nflags |= NFLtouns;
-#ifdef DEBUG
+                        rel.pelem.EV.E2.Ety = touns(rel.pelem.EV.E2.Ety);
+                        rel.pelem.Nflags |= NFLtouns;
+
+                        debug
                         if (debugc)
-                        {   WReqn(rel->pelem);
-                            printf(" made unsigned, initial = %ld, increment = %ld,\
- final = %ld\n",(long int)initial,(long int)increment,(long int)final);
+                        {   WReqn(rel.pelem);
+                            printf(" made unsigned, initial = %lld, increment = %lld," ~
+                                   " final_ = %lld\n",cast(long)initial,cast(long)increment,cast(long)final_);
                         }
-#endif
                         go.changes++;
                     }
-#if 0
+static if (0)
+{
                     // Eliminate loop if it is empty
                     if (relatop == OPlt &&
-                        rb->BC == BCiftrue &&
-                        list_block(rb->Bsucc) == rb &&
-                        rb->Belem->Eoper == OPcomma &&
-                        rb->Belem->E1 == rdinc &&
-                        rb->Belem->E2 == rel->pelem
+                        rb.BC == BCiftrue &&
+                        list_block(rb.Bsucc) == rb &&
+                        rb.Belem.Eoper == OPcomma &&
+                        rb.Belem.EV.E1 == rdinc &&
+                        rb.Belem.EV.E2 == rel.pelem
                        )
                      {
-                        rel->pelem->Eoper = OPeq;
-                        rel->pelem->Ety = rel->pelem->E1->Ety;
-                        rb->BC = BCgoto;
-                        list_subtract(&rb->Bsucc,rb);
-                        list_subtract(&rb->Bpred,rb);
-#ifdef DEBUG
+                        rel.pelem.Eoper = OPeq;
+                        rel.pelem.Ety = rel.pelem.EV.E1.Ety;
+                        rb.BC = BCgoto;
+                        list_subtract(&rb.Bsucc,rb);
+                        list_subtract(&rb.Bpred,rb);
+
+                        debug
                         if (debugc)
-                        {   WReqn(rel->pelem);
-                            dbg_printf(" eliminated loop\n");
+                        {   WReqn(rel.pelem);
+                            printf(" eliminated loop\n");
                         }
-#endif
+
                         go.changes++;
                      }
-#endif
+}
                 }
             }
         }
@@ -878,7 +896,7 @@ STATIC void intranges()
  *   false if cannot find rdeq or rdinc
  */
 
-static bool returnResult(bool result)
+private bool returnResult(bool result)
 {
     elemdatafree(&eqeqlist);
     elemdatafree(&rellist);
@@ -886,55 +904,56 @@ static bool returnResult(bool result)
     return result;
 }
 
-bool findloopparameters(elem* erel, elem*& rdeq, elem*& rdinc)
+bool findloopparameters(elem* erel, ref elem* rdeq, ref elem* rdinc)
 {
-    cmes("findloopparameters()\n");
+    if (debugc) printf("findloopparameters()\n");
     const bool log = false;
 
-    assert(erel->E1->Eoper == OPvar);
-    Symbol* v = erel->E1->EV.sp.Vsym;
+    assert(erel.EV.E1.Eoper == OPvar);
+    Symbol* v = erel.EV.E1.EV.Vsym;
 
     // RD info is only reliable for registers and autos
-    if (!(sytab[v->Sclass] & SCRD))
+    if (!(sytab[v.Sclass] & SCRD))
         return false;
 
     rd_compute();       // compute rellist, inclist, eqeqlist
 
     /* Find `erel` in `rellist`
      */
-    Elemdata* rel = rellist->find(erel);
+    Elemdata* rel = rellist.find(erel);
     if (!rel)
     {
         if (log) printf("\trel not found\n");
         return returnResult(false);
     }
 
-    block* rb = rel->pblock;
-    //dbg_printf("rel->pelem: "); WReqn(rel->pelem); dbg_printf("\n");
+    block* rb = rel.pblock;
+    //printf("rel.pelem: "); WReqn(rel.pelem); printf("\n");
 
 
     // Look for one reaching definition: an increment
-    if (list_nitems(rel->rdlist) != 1)
+    if (list_nitems(rel.rdlist) != 1)
     {
-        if (log) printf("\tnitems = %d\n", list_nitems(rel->rdlist));
+        if (log) printf("\tnitems = %d\n", list_nitems(rel.rdlist));
         return returnResult(false);
     }
 
-    rdinc = list_elem(rel->rdlist);
+    rdinc = list_elem(rel.rdlist);
 
-#if 0
+static if (0)
+{
     printf("\neq:  "); WReqn(rdeq); printf("\n");
-    printf("rel: "); WReqn(rel->pelem); printf("\n");
+    printf("rel: "); WReqn(rel.pelem); printf("\n");
     printf("inc: "); WReqn(rdinc); printf("\n");
-#endif
-    uint incop = rdinc->Eoper;
+}
+    uint incop = rdinc.Eoper;
     if (!OTpost(incop) && incop != OPaddass && incop != OPminass)
     {
         if (log) printf("\tnot += or -=\n");
         return returnResult(false);
     }
 
-    Elemdata* iel = inclist->find(rdinc);
+    Elemdata* iel = inclist.find(rdinc);
     if (!iel)
     {
         if (log) printf("\trdinc not found\n");
@@ -946,13 +965,13 @@ bool findloopparameters(elem* erel, elem*& rdeq, elem*& rdinc)
      *   the increment itself
      * We already have the increment (as rdinc), but need the initialization (rdeq)
      */
-    if (list_nitems(iel->rdlist) != 2)
+    if (list_nitems(iel.rdlist) != 2)
     {
         if (log) printf("nitems != 2\n");
         return returnResult(false);
     }
-    elem *rd1 = list_elem(iel->rdlist);
-    elem *rd2 = list_elem(list_next(iel->rdlist));
+    elem *rd1 = list_elem(iel.rdlist);
+    elem *rd2 = list_elem(list_next(iel.rdlist));
     if (rd1 == rdinc)
         rdeq = rd2;
     else if (rd2 == rdinc)
@@ -964,24 +983,24 @@ bool findloopparameters(elem* erel, elem*& rdeq, elem*& rdinc)
     }
 
     // lvalues should be unambiguous defs
-    if (rdeq->Eoper != OPeq || rdeq->E1->Eoper != OPvar || rdinc->E1->Eoper != OPvar)
+    if (rdeq.Eoper != OPeq || rdeq.EV.E1.Eoper != OPvar || rdinc.EV.E1.Eoper != OPvar)
     {
         if (log) printf("\tnot OPvar\n");
         return returnResult(false);
     }
 
     // rvalues should be constants
-    if (rdeq->E2->Eoper != OPconst || rdinc->E2->Eoper != OPconst)
+    if (rdeq.EV.E2.Eoper != OPconst || rdinc.EV.E2.Eoper != OPconst)
     {
         if (log) printf("\tnot OPconst\n");
         return returnResult(false);
     }
 
     /* Check that all paths from rdinc to rdinc must pass through rdrel
-     * iel->pblock = block of increment
-     * rel->pblock = block of relational
+     * iel.pblock = block of increment
+     * rel.pblock = block of relational
      */
-    int i = loopcheck(iel->pblock,iel->pblock,rel->pblock);
+    int i = loopcheck(iel.pblock,iel.pblock,rel.pblock);
     block_clearvisit();
     if (i)
     {
@@ -993,22 +1012,22 @@ bool findloopparameters(elem* erel, elem*& rdeq, elem*& rdinc)
 }
 
 /***********************
- * Return TRUE if there is a path from start to inc without
+ * Return true if there is a path from start to inc without
  * passing through rel.
  */
 
-STATIC int loopcheck(block *start,block *inc,block *rel)
+private int loopcheck(block *start,block *inc,block *rel)
 {
-    if (!(start->Bflags & BFLvisited))
-    {   start->Bflags |= BFLvisited;    /* guarantee eventual termination */
-        for (list_t list = start->Bsucc; list; list = list_next(list))
+    if (!(start.Bflags & BFLvisited))
+    {   start.Bflags |= BFLvisited;    /* guarantee eventual termination */
+        for (list_t list = start.Bsucc; list; list = list_next(list))
         {
-            block *b = (block *) list_ptr(list);
+            block *b = cast(block *) list_ptr(list);
             if (b != rel && (b == inc || loopcheck(b,inc,rel)))
-                return TRUE;
+                return true;
         }
     }
-    return FALSE;
+    return false;
 }
 
 /****************************
@@ -1017,44 +1036,48 @@ STATIC int loopcheck(block *start,block *inc,block *rel)
  * in go.expnod[].
  */
 
-static int recalc;
+__gshared int recalc;
 
 void copyprop()
 {
 
         out_regcand(&globsym);
-        cmes("copyprop()\n");
+        if (debugc) printf("copyprop()\n");
         assert(dfo);
 Lagain:
         flowcp();               /* compute available copy statements    */
         if (go.exptop <= 1)
                 return;                 /* none available               */
-#if 0
+static if (0)
+{
         for (uint i = 1; i < go.exptop; i++)
-        {       dbg_printf("go.expnod[%d] = (",i);
+        {       printf("go.expnod[%d] = (",i);
                 WReqn(go.expnod[i]);
-                dbg_printf(");\n");
+                printf(");\n");
         }
-#endif
+}
         recalc = 0;
         for (uint i = 0; i < dfotop; i++)    // for each block
         {
                 block *b = dfo[i];
-                if (b->Belem)
+                if (b.Belem)
                 {
-#if 0
-                        dbg_printf("B%d, elem (",i);
-                        WReqn(b->Belem); dbg_printf(")\nBin  ");
-                        vec_println(b->Bin);
-                        cpwalk(b->Belem,b->Bin);
-                        dbg_printf("Bino ");
-                        vec_println(b->Bin);
-                        dbg_printf("Bout ");
-                        vec_println(b->Bout);
-#else
-                        cpwalk(b->Belem,b->Bin);
-#endif
-                        /*assert(vec_equal(b->Bin,b->Bout));            */
+static if (0)
+{
+                        printf("B%d, elem (",i);
+                        WReqn(b.Belem); printf(")\nBin  ");
+                        vec_println(b.Bin);
+                        cpwalk(b.Belem,b.Bin);
+                        printf("Bino ");
+                        vec_println(b.Bin);
+                        printf("Bout ");
+                        vec_println(b.Bout);
+}
+else
+{
+                        cpwalk(b.Belem,b.Bin);
+}
+                        /*assert(vec_equal(b.Bin,b.Bout));            */
                         /* The previous assert() is correct except      */
                         /* for the following case:                      */
                         /*      a=b; d=a; a=b;                          */
@@ -1074,40 +1097,40 @@ Lagain:
  * Keep IN up to date.
  */
 
-STATIC void cpwalk(elem *n,vec_t IN)
+private void cpwalk(elem *n,vec_t IN)
 {
         uint op;
         elem *t;
         vec_t L;
 
-        static int nocp;
+        __gshared int nocp;
 
         assert(n && IN);
         /*chkvecdim(go.exptop,0);*/
         if (recalc)
             return;
-        op = n->Eoper;
+        op = n.Eoper;
         if (op == OPcolon || op == OPcolon2)
         {
                 L = vec_clone(IN);
-                cpwalk(n->E1,L);
-                cpwalk(n->E2,IN);
+                cpwalk(n.EV.E1,L);
+                cpwalk(n.EV.E2,IN);
                 vec_andass(IN,L);               // IN = L & R
                 vec_free(L);
         }
         else if (op == OPandand || op == OPoror)
-        {       cpwalk(n->E1,IN);
+        {       cpwalk(n.EV.E1,IN);
                 L = vec_clone(IN);
-                cpwalk(n->E2,L);
+                cpwalk(n.EV.E2,L);
                 vec_andass(IN,L);               // IN = L & R
                 vec_free(L);
         }
         else if (OTunary(op))
         {
-                t = n->E1;
+                t = n.EV.E1;
                 if (OTassign(op))
-                {   if (t->Eoper == OPind)
-                        cpwalk(t->E1,IN);
+                {   if (t.Eoper == OPind)
+                        cpwalk(t.EV.E1,IN);
                 }
                 else if (op == OPctor || op == OPdtor)
                 {
@@ -1125,57 +1148,55 @@ STATIC void cpwalk(elem *n,vec_t IN)
                     cpwalk(t,IN);
         }
         else if (OTassign(op))
-        {       cpwalk(n->E2,IN);
-                t = Elvalue(n);
-                if (t->Eoper == OPind)
+        {       cpwalk(n.EV.E2,IN);
+                t = n.EV.E1;
+                if (t.Eoper == OPind)
                         cpwalk(t,IN);
                 else
                 {
-#ifdef DEBUG
-                        if (t->Eoper != OPvar) elem_print(n);
-#endif
-                        assert(t->Eoper == OPvar);
+                        debug if (t.Eoper != OPvar) elem_print(n);
+                        assert(t.Eoper == OPvar);
                 }
         }
         else if (ERTOL(n))
-        {       cpwalk(n->E2,IN);
-                cpwalk(n->E1,IN);
+        {       cpwalk(n.EV.E2,IN);
+                cpwalk(n.EV.E1,IN);
         }
         else if (OTbinary(op))
         {
-                cpwalk(n->E1,IN);
-                cpwalk(n->E2,IN);
+                cpwalk(n.EV.E1,IN);
+                cpwalk(n.EV.E2,IN);
         }
 
         if (OTdef(op))                  // if definition elem
-        {       int ambig;              /* TRUE if ambiguous def        */
+        {       int ambig;              /* true if ambiguous def        */
 
-                ambig = !OTassign(op) || t->Eoper == OPind;
+                ambig = !OTassign(op) || t.Eoper == OPind;
                 uint i;
-                foreach (i,go.exptop,IN)           /* for each active copy elem */
-                {       symbol *v;
+                for (i = 0; (i = cast(uint) vec_index(i, IN)) < go.exptop; ++i) // for each active copy elem
+                {       Symbol *v;
 
                         if (op == OPasm)
                                 goto clr;
 
                         /* If this elem could kill the lvalue or the rvalue, */
                         /*      Clear bit in IN.                        */
-                        v = go.expnod[i]->E1->EV.sp.Vsym;
+                        v = go.expnod[i].EV.E1.EV.Vsym;
                         if (ambig)
-                        {       if (!(v->Sflags & SFLunambig))
+                        {       if (!(v.Sflags & SFLunambig))
                                         goto clr;
                         }
                         else
-                        {       if (v == t->EV.sp.Vsym)
+                        {       if (v == t.EV.Vsym)
                                         goto clr;
                         }
-                        v = go.expnod[i]->E2->EV.sp.Vsym;
+                        v = go.expnod[i].EV.E2.EV.Vsym;
                         if (ambig)
-                        {       if (!(v->Sflags & SFLunambig))
+                        {       if (!(v.Sflags & SFLunambig))
                                         goto clr;
                         }
                         else
-                        {       if (v == t->EV.sp.Vsym)
+                        {       if (v == t.EV.Vsym)
                                         goto clr;
                         }
                         continue;
@@ -1186,68 +1207,67 @@ STATIC void cpwalk(elem *n,vec_t IN)
 
                 /* If this is a copy elem in go.expnod[]   */
                 /*      Set bit in IN.                  */
-                if ((op == OPeq || op == OPstreq) && n->E1->Eoper == OPvar &&
-                    n->E2->Eoper == OPvar && n->Eexp)
-                        vec_setbit(n->Eexp,IN);
+                if ((op == OPeq || op == OPstreq) && n.EV.E1.Eoper == OPvar &&
+                    n.EV.E2.Eoper == OPvar && n.Eexp)
+                        vec_setbit(n.Eexp,IN);
         }
         else if (op == OPvar && !nocp)  // if reference to variable v
-        {       symbol *v = n->EV.sp.Vsym;
-                symbol *f;
-                elem *foundelem = NULL;
+        {       Symbol *v = n.EV.Vsym;
+                Symbol *f;
+                elem *foundelem = null;
                 tym_t ty;
 
-                //printf("Checking copyprop for '%s', ty=x%x\n",v->Sident,n->Ety);
+                //printf("Checking copyprop for '%s', ty=x%x\n",v.Sident,n.Ety);
                 symbol_debug(v);
-                ty = n->Ety;
-                uint sz = tysize(n->Ety);
-                if (sz == -1 && !tyfunc(n->Ety))
-                    sz = type_size(v->Stype);
+                ty = n.Ety;
+                uint sz = tysize(n.Ety);
+                if (sz == -1 && !tyfunc(n.Ety))
+                    sz = cast(uint)type_size(v.Stype);
 
                 uint i;
-                foreach(i,go.exptop,IN)    /* for all active copy elems    */
+                for (i = 0; (i = cast(uint) vec_index(i, IN)) < go.exptop; ++i) // for all active copy elems
                 {       elem *c;
 
                         c = go.expnod[i];
                         assert(c);
 
-                        uint csz = tysize(c->E1->Ety);
-                        if (c->Eoper == OPstreq)
-                            csz = type_size(c->ET);
-                        assert((int)csz >= 0);
+                        uint csz = tysize(c.EV.E1.Ety);
+                        if (c.Eoper == OPstreq)
+                            csz = cast(uint)type_size(c.ET);
+                        assert(cast(int)csz >= 0);
 
-                        //printf("looking at: ("); WReqn(c); dbg_printf("), ty=x%x\n",c->E1->Ety);
+                        //printf("looking at: ("); WReqn(c); printf("), ty=x%x\n",c.EV.E1.Ety);
                         /* Not only must symbol numbers match, but      */
                         /* offsets too (in case of arrays) and sizes    */
                         /* (in case of unions).                         */
-                        if (v == c->E1->EV.sp.Vsym &&
-                            n->EV.sp.Voffset >= c->E1->EV.sp.Voffset &&
-                            n->EV.sp.Voffset + sz <= c->E1->EV.sp.Voffset + csz)
+                        if (v == c.EV.E1.EV.Vsym &&
+                            n.EV.Voffset >= c.EV.E1.EV.Voffset &&
+                            n.EV.Voffset + sz <= c.EV.E1.EV.Voffset + csz)
                         {       if (foundelem)
-                                {       if (c->E2->EV.sp.Vsym != f)
+                                {       if (c.EV.E2.EV.Vsym != f)
                                                 goto noprop;
                                 }
                                 else
                                 {       foundelem = c;
-                                        f = foundelem->E2->EV.sp.Vsym;
+                                        f = foundelem.EV.E2.EV.Vsym;
                                 }
                         }
                 }
                 if (foundelem)          /* if we can do the copy prop   */
                 {
-#ifdef DEBUG
-                        if (debugc)
+                        debug if (debugc)
                         {
                             printf("Copyprop, from '%s'(%d) to '%s'(%d)\n",
-                                (v->Sident[0]) ? (char *)v->Sident : "temp", v->Ssymnum,
-                                (f->Sident[0]) ? (char *)f->Sident : "temp", f->Ssymnum);
+                                (v.Sident[0]) ? cast(char *)v.Sident.ptr : "temp".ptr, v.Ssymnum,
+                                (f.Sident[0]) ? cast(char *)f.Sident.ptr : "temp".ptr, f.Ssymnum);
                         }
-#endif
-                        type *nt = n->ET;
-                        targ_size_t noffset = n->EV.sp.Voffset;
-                        el_copy(n,foundelem->E2);
-                        n->Ety = ty;    // retain original type
-                        n->ET = nt;
-                        n->EV.sp.Voffset += noffset - foundelem->E1->EV.sp.Voffset;
+
+                        type *nt = n.ET;
+                        targ_size_t noffset = n.EV.Voffset;
+                        el_copy(n,foundelem.EV.E2);
+                        n.Ety = ty;    // retain original type
+                        n.ET = nt;
+                        n.EV.Voffset += noffset - foundelem.EV.E1.EV.Voffset;
 
                         /* original => rewrite
                          *  v = f
@@ -1259,7 +1279,7 @@ STATIC void cpwalk(elem *n,vec_t IN)
                         for (size_t j = 1; j < go.exptop; ++j)
                         {
                             //printf("go.expnod[%d]: ", j); elem_print(go.expnod[j]);
-                            if (go.expnod[j]->E2 == n)
+                            if (go.expnod[j].EV.E2 == n)
                             {
                                 ++recalc;
                                 break;
@@ -1268,7 +1288,7 @@ STATIC void cpwalk(elem *n,vec_t IN)
 
                         go.changes++;
                 }
-                //else dbg_printf("not found\n");
+                //else printf("not found\n");
             noprop:
                 ;
         }
@@ -1279,31 +1299,35 @@ STATIC void cpwalk(elem *n,vec_t IN)
  * for which there are no subsequent uses of v.
  */
 
-static uint asstop,         /* # of assignment elems in assnod[]    */
+private __gshared
+{
+    uint asstop,                /* # of assignment elems in assnod[]    */
                 assmax = 0,     /* size of assnod[]                     */
                 assnum;         /* current position in assnod[]         */
-static elem **assnod = NULL;    /* array of pointers to asg elems       */
-static vec_t ambigref;          /* vector of assignment elems that      */
+    elem **assnod = null;       /* array of pointers to asg elems       */
+    vec_t ambigref;             /* vector of assignment elems that      */
                                 /* are referenced when an ambiguous     */
                                 /* reference is done (as in *p or call) */
+}
 
 void rmdeadass()
 {
-        cmes("rmdeadass()\n");
+        if (debugc) printf("rmdeadass()\n");
         flowlv();                       /* compute live variables       */
         for (uint i = 0; i < dfotop; i++)    // for each block b
         {       block *b = dfo[i];
 
-                if (!b->Belem)          /* if no elems at all           */
+                if (!b.Belem)          /* if no elems at all           */
                         continue;
-                if (b->Btry)            // if in try-block guarded body
+                if (b.Btry)            // if in try-block guarded body
                         continue;
-                asstop = numasg(b->Belem);      /* # of assignment elems */
+                asstop = numasg(b.Belem);      /* # of assignment elems */
                 if (asstop == 0)        /* if no assignment elems       */
                         continue;
                 if (asstop > assmax)    /* if we need to reallocate     */
-                {       assnod = (elem **)
-                        util_realloc(assnod,sizeof(elem *),asstop);
+                {       assnod = cast(elem **)
+                        realloc(assnod,(elem *).sizeof * asstop);
+                        assert(assnod);
                         assmax = asstop;
                 }
                 /*setvecdim(asstop);*/
@@ -1311,48 +1335,47 @@ void rmdeadass()
                 vec_t POSS = vec_calloc(asstop);
                 ambigref = vec_calloc(asstop);
                 assnum = 0;
-                accumda(b->Belem,DEAD,POSS);    /* compute DEAD and POSS */
+                accumda(b.Belem,DEAD,POSS);    /* compute DEAD and POSS */
                 assert(assnum == asstop);
                 vec_free(ambigref);
                 vec_orass(POSS,DEAD);   /* POSS |= DEAD                 */
                 uint j;
-                foreach (j,asstop,POSS) /* for each possible dead asg.  */
-                {       symbol *v;      /* v = target of assignment     */
-                        elem *n,*nv;
+                for (j = 0; (j = cast(uint) vec_index(j, POSS)) < asstop; ++j) // for each possible dead asg.
+                {       Symbol *v;      /* v = target of assignment     */
+                        elem *n;
+                        elem *nv;
 
                         n = assnod[j];
-                        nv = Elvalue(n);
-                        v = nv->EV.sp.Vsym;
+                        nv = n.EV.E1;
+                        v = nv.EV.Vsym;
                         if (!symbol_isintab(v)) // not considered
                             continue;
                         //printf("assnod[%d]: ",j); WReqn(n); printf("\n");
                         //printf("\tPOSS\n");
                         /* If not positively dead but v is live on a    */
                         /* successor to b, then v is live.              */
-                        //printf("\tDEAD=%d, live=%d\n",vec_testbit(j,DEAD),vec_testbit(v->Ssymnum,b->Boutlv));
-                        if (!vec_testbit(j,DEAD) && vec_testbit(v->Ssymnum,b->Boutlv))
+                        //printf("\tDEAD=%d, live=%d\n",vec_testbit(j,DEAD),vec_testbit(v.Ssymnum,b.Boutlv));
+                        if (!vec_testbit(j,DEAD) && vec_testbit(v.Ssymnum,b.Boutlv))
                                 continue;
                         /* volatile variables are not dead              */
-                        if ((v->ty() | nv->Ety) & mTYvolatile)
+                        if ((v.ty() | nv.Ety) & mTYvolatile)
                             continue;
-#ifdef DEBUG
-                        if (debugc)
-                        {       dbg_printf("dead assignment (");
+                        debug if (debugc)
+                        {       printf("dead assignment (");
                                 WReqn(n);
                                 if (vec_testbit(j,DEAD))
-                                        dbg_printf(") DEAD\n");
+                                        printf(") DEAD\n");
                                 else
-                                        dbg_printf(") Boutlv\n");
+                                        printf(") Boutlv\n");
                         }
-#endif
                         elimass(n);
                         go.changes++;
                 } /* foreach */
                 vec_free(DEAD);
                 vec_free(POSS);
         } /* for */
-        util_free(assnod);
-        assnod = NULL;
+        free(assnod);
+        assnod = null;
         assmax = 0;
 }
 
@@ -1363,20 +1386,22 @@ void rmdeadass()
 void elimass(elem *n)
 {   elem *e1;
 
-    switch (n->Eoper)
+    switch (n.Eoper)
     {
         case OPvecsto:
-            n->E2->Eoper = OPcomma;
+            n.EV.E2.Eoper = OPcomma;
+            goto case OPeq;
+
         case OPeq:
         case OPstreq:
             /* (V=e) => (random constant,e)     */
             /* Watch out for (a=b=c) stuff!     */
             /* Don't screw up assnod[]. */
-            n->Eoper = OPcomma;
-            n->Ety |= n->E2->Ety & (mTYconst | mTYvolatile | mTYimmutable | mTYshared
+            n.Eoper = OPcomma;
+            n.Ety |= n.EV.E2.Ety & (mTYconst | mTYvolatile | mTYimmutable | mTYshared
                  | mTYfar
                 );
-            n->E1->Eoper = OPconst;
+            n.EV.E1.Eoper = OPconst;
             break;
         /* Convert (V op= e) to (V op e)        */
         case OPaddass:
@@ -1390,26 +1415,26 @@ void elimass(elem *n)
         case OPshlass:
         case OPshrass:
         case OPashrass:
-            n->Eoper = opeqtoop(n->Eoper);
+            n.Eoper = cast(ubyte)opeqtoop(n.Eoper);
             break;
         case OPpostinc: /* (V i++ c) => V       */
         case OPpostdec: /* (V i-- c) => V       */
-            e1 = n->E1;
-            el_free(n->E2);
+            e1 = n.EV.E1;
+            el_free(n.EV.E2);
             el_copy(n,e1);
             el_free(e1);
             break;
         case OPnegass:
-            n->Eoper = OPneg;
+            n.Eoper = OPneg;
             break;
         case OPbtc:
         case OPbtr:
         case OPbts:
-            n->Eoper = OPbt;
+            n.Eoper = OPbt;
             break;
         case OPcmpxchg:
-            n->Eoper = OPcomma;
-            n->E2->Eoper = OPcomma;
+            n.Eoper = OPcomma;
+            n.EV.E2.Eoper = OPcomma;
             break;
         default:
             assert(0);
@@ -1422,16 +1447,16 @@ void elimass(elem *n)
  * Some compilers generate better code for ?: than if-then-else.
  */
 
-STATIC uint numasg(elem *e)
+private uint numasg(elem *e)
 {
   assert(e);
-  if (OTassign(e->Eoper) && e->E1->Eoper == OPvar)
-  {     e->Nflags |= NFLassign;
-        return 1 + numasg(e->E1) + (OTbinary(e->Eoper) ? numasg(e->E2) : 0);
+  if (OTassign(e.Eoper) && e.EV.E1.Eoper == OPvar)
+  {     e.Nflags |= NFLassign;
+        return 1 + numasg(e.EV.E1) + (OTbinary(e.Eoper) ? numasg(e.EV.E2) : 0);
   }
-  e->Nflags &= ~NFLassign;
-  return OTunary(e->Eoper) ? numasg(e->E1) :
-        OTbinary(e->Eoper) ? numasg(e->E1) + numasg(e->E2) : 0;
+  e.Nflags &= ~NFLassign;
+  return OTunary(e.Eoper) ? numasg(e.EV.E1) :
+        OTbinary(e.Eoper) ? numasg(e.EV.E1) + numasg(e.EV.E2) : 0;
 }
 
 /******************************
@@ -1447,13 +1472,13 @@ STATIC uint numasg(elem *e)
  *              clear all bits in POSS that are refs of v
  */
 
-STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
+private void accumda(elem *n,vec_t DEAD, vec_t POSS)
 {       vec_t Pl,Pr,Dl,Dr;
         uint op,vecdim;
 
         /*chkvecdim(asstop,0);*/
         assert(n && DEAD && POSS);
-        op = n->Eoper;
+        op = n.Eoper;
         switch (op)
         {   case OPcolon:
             case OPcolon2:
@@ -1461,13 +1486,13 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
                 Pr = vec_clone(POSS);
                 Dl = vec_calloc(asstop);
                 Dr = vec_calloc(asstop);
-                accumda(n->E1,Dl,Pl);
-                accumda(n->E2,Dr,Pr);
+                accumda(n.EV.E1,Dl,Pl);
+                accumda(n.EV.E2,Dr,Pr);
 
                 /* D |= P & (Dl & Dr) | ~P & (Dl | Dr)  */
                 /* P = P & (Pl & Pr) | ~P & (Pl | Pr)   */
                 /*   = Pl & Pr | ~P & (Pl | Pr)         */
-                vecdim = vec_dim(DEAD);
+                vecdim = cast(uint)vec_dim(DEAD);
                 for (uint i = 0; i < vecdim; i++)
                 {       DEAD[i] |= (POSS[i] & Dl[i] & Dr[i]) |
                                    (~POSS[i] & (Dl[i] | Dr[i]));
@@ -1478,13 +1503,13 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
 
             case OPandand:
             case OPoror:
-                accumda(n->E1,DEAD,POSS);
+                accumda(n.EV.E1,DEAD,POSS);
                 // Substituting into the above equations Pl=P and Dl=0:
                 // D |= Dr - P
                 // P = Pr
                 Pr = vec_clone(POSS);
                 Dr = vec_calloc(asstop);
-                accumda(n->E2,Dr,Pr);
+                accumda(n.EV.E2,Dr,Pr);
                 vec_subass(Dr,POSS);
                 vec_orass(DEAD,Dr);
                 vec_copy(POSS,Pr);
@@ -1492,21 +1517,21 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
                 break;
 
             case OPvar:
-            {   symbol *v = n->EV.sp.Vsym;
-                targ_size_t voff = n->EV.sp.Voffset;
-                uint vsize = tysize(n->Ety);
+            {   Symbol *v = n.EV.Vsym;
+                targ_size_t voff = n.EV.Voffset;
+                uint vsize = tysize(n.Ety);
 
                 // We have a reference. Clear all bits in POSS that
                 // could be referenced.
 
                 for (uint i = 0; i < assnum; i++)
                 {
-                    elem *ti = Elvalue(assnod[i]);
-                    if (v == ti->EV.sp.Vsym &&
-                        ((vsize == -1 || tysize(ti->Ety) == -1) ||
+                    elem *ti = assnod[i].EV.E1;
+                    if (v == ti.EV.Vsym &&
+                        ((vsize == -1 || tysize(ti.Ety) == -1) ||
                          // If symbol references overlap
-                         (voff + vsize > ti->EV.sp.Voffset &&
-                          ti->EV.sp.Voffset + tysize(ti->Ety) > voff)
+                         (voff + vsize > ti.EV.Voffset &&
+                          ti.EV.Voffset + tysize(ti.Ety) > voff)
                         )
                        )
                     {
@@ -1522,8 +1547,8 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
                 break;
 
             case OPbt:
-                accumda(n->E1,DEAD,POSS);
-                accumda(n->E2,DEAD,POSS);
+                accumda(n.EV.E1,DEAD,POSS);
+                accumda(n.EV.E2,DEAD,POSS);
                 vec_subass(POSS,ambigref);      // remove possibly refed
                 break;
 
@@ -1531,7 +1556,7 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
             case OPucall:
             case OPucallns:
             case OPvp_fp:
-                accumda(n->E1,DEAD,POSS);
+                accumda(n.EV.E1,DEAD,POSS);
                 vec_subass(POSS,ambigref);      // remove possibly refed
                                                 // assignments from list
                                                 // of possibly dead ones
@@ -1545,9 +1570,11 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
             case OPmemcpy:
             case OPstrcpy:
             case OPmemset:
-                accumda(n->E2,DEAD,POSS);
+                accumda(n.EV.E2,DEAD,POSS);
+                goto case OPstrlen;
+
             case OPstrlen:
-                accumda(n->E1,DEAD,POSS);
+                accumda(n.EV.E1,DEAD,POSS);
                 vec_subass(POSS,ambigref);      // remove possibly refed
                                                 // assignments from list
                                                 // of possibly dead ones
@@ -1556,8 +1583,8 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
             case OPstrcat:
             case OPstrcmp:
             case OPmemcmp:
-                accumda(n->E1,DEAD,POSS);
-                accumda(n->E2,DEAD,POSS);
+                accumda(n.EV.E1,DEAD,POSS);
+                accumda(n.EV.E2,DEAD,POSS);
                 vec_subass(POSS,ambigref);      // remove possibly refed
                                                 // assignments from list
                                                 // of possibly dead ones
@@ -1568,41 +1595,41 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
                 {   elem *t;
 
                     if (ERTOL(n))
-                        accumda(n->E2,DEAD,POSS);
-                    t = Elvalue(n);
+                        accumda(n.EV.E2,DEAD,POSS);
+                    t = n.EV.E1;
                     // if not (v = expression) then gen refs of left tree
                     if (op != OPeq && op != OPstreq)
-                        accumda(n->E1,DEAD,POSS);
-                    else if (OTunary(t->Eoper))         // if (*e = expression)
-                        accumda(t->E1,DEAD,POSS);
-                    else if (OTbinary(t->Eoper))
-                    {   accumda(t->E1,DEAD,POSS);
-                        accumda(t->E2,DEAD,POSS);
+                        accumda(n.EV.E1,DEAD,POSS);
+                    else if (OTunary(t.Eoper))         // if (*e = expression)
+                        accumda(t.EV.E1,DEAD,POSS);
+                    else if (OTbinary(t.Eoper))
+                    {   accumda(t.EV.E1,DEAD,POSS);
+                        accumda(t.EV.E2,DEAD,POSS);
                     }
                     if (!ERTOL(n) && op != OPnegass)
-                        accumda(n->E2,DEAD,POSS);
+                        accumda(n.EV.E2,DEAD,POSS);
 
                     // if unambiguous assignment, post all possibilities
                     // to DEAD
-                    if ((op == OPeq || op == OPstreq) && t->Eoper == OPvar)
+                    if ((op == OPeq || op == OPstreq) && t.Eoper == OPvar)
                     {
-                        uint tsz = tysize(t->Ety);
-                        if (n->Eoper == OPstreq)
-                            tsz = type_size(n->ET);
+                        uint tsz = tysize(t.Ety);
+                        if (n.Eoper == OPstreq)
+                            tsz = cast(uint)type_size(n.ET);
                         for (uint i = 0; i < assnum; i++)
-                        {   elem *ti = Elvalue(assnod[i]);
+                        {   elem *ti = assnod[i].EV.E1;
 
-                            uint tisz = tysize(ti->Ety);
-                            if (assnod[i]->Eoper == OPstreq)
-                                tisz = type_size(assnod[i]->ET);
+                            uint tisz = tysize(ti.Ety);
+                            if (assnod[i].Eoper == OPstreq)
+                                tisz = cast(uint)type_size(assnod[i].ET);
 
                             // There may be some problem with this next
                             // statement with unions.
-                            if (ti->EV.sp.Vsym == t->EV.sp.Vsym &&
-                                ti->EV.sp.Voffset == t->EV.sp.Voffset &&
+                            if (ti.EV.Vsym == t.EV.Vsym &&
+                                ti.EV.Voffset == t.EV.Voffset &&
                                 tisz == tsz &&
-                                !(t->Ety & mTYvolatile) &&
-                                //t->EV.sp.Vsym->Sflags & SFLunambig &&
+                                !(t.Ety & mTYvolatile) &&
+                                //t.EV.Vsym.Sflags & SFLunambig &&
                                 vec_testbit(i,POSS))
                             {
                                     vec_setbit(i,DEAD);
@@ -1611,37 +1638,36 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
                     }
 
                     // if assignment operator, post this def to POSS
-                    if (n->Nflags & NFLassign)
+                    if (n.Nflags & NFLassign)
                     {   assnod[assnum] = n;
                         vec_setbit(assnum,POSS);
 
                         // if variable could be referenced by a pointer
                         // or a function call, mark the assignment in
                         // ambigref
-                        if (!(t->EV.sp.Vsym->Sflags & SFLunambig))
+                        if (!(t.EV.Vsym.Sflags & SFLunambig))
                         {       vec_setbit(assnum,ambigref);
-#if DEBUG
-                                if (debugc)
-                                {       dbg_printf("ambiguous lvalue: ");
+
+                                debug if (debugc)
+                                {       printf("ambiguous lvalue: ");
                                         WReqn(n);
-                                        dbg_printf("\n");
+                                        printf("\n");
                                 }
-#endif
                         }
 
                         assnum++;
                     }
                 }
                 else if (OTrtol(op))
-                {   accumda(n->E2,DEAD,POSS);
-                    accumda(n->E1,DEAD,POSS);
+                {   accumda(n.EV.E2,DEAD,POSS);
+                    accumda(n.EV.E1,DEAD,POSS);
                 }
                 else if (OTbinary(op))
-                {   accumda(n->E1,DEAD,POSS);
-                    accumda(n->E2,DEAD,POSS);
+                {   accumda(n.EV.E1,DEAD,POSS);
+                    accumda(n.EV.E2,DEAD,POSS);
                 }
                 else if (OTunary(op))
-                    accumda(n->E1,DEAD,POSS);
+                    accumda(n.EV.E1,DEAD,POSS);
                 break;
         }
 }
@@ -1660,51 +1686,52 @@ void deadvar()
         /* Initialize vectors for live ranges.  */
         /*setvecdim(dfotop);*/
         for (SYMIDX i = 0; i < globsym.top; i++)
-        {   symbol *s = globsym.tab[i];
+        {   Symbol *s = globsym.tab[i];
 
-            if (s->Sflags & SFLunambig)
+            if (s.Sflags & SFLunambig)
             {
-                s->Sflags |= SFLdead;
-                if (s->Sflags & GTregcand)
+                s.Sflags |= SFLdead;
+                if (s.Sflags & GTregcand)
                 {
-                    s->Srange = vec_realloc(s->Srange, maxblks);
-                    vec_clear(s->Srange);
+                    s.Srange = vec_realloc(s.Srange, maxblks);
+                    vec_clear(s.Srange);
                 }
             }
         }
 
         /* Go through trees and "liven" each one we see.        */
         for (uint i = 0; i < dfotop; i++)
-                if (dfo[i]->Belem)
-                        dvwalk(dfo[i]->Belem,i);
+                if (dfo[i].Belem)
+                        dvwalk(dfo[i].Belem,i);
 
         /* Compute live variables. Set bit for block in live range      */
         /* if variable is in the IN set for that block.                 */
         flowlv();                       /* compute live variables       */
         for (SYMIDX i = 0; i < globsym.top; i++)
         {
-                if (globsym.tab[i]->Srange /*&& globsym.tab[i]->Sclass != CLMOS*/)
+                if (globsym.tab[i].Srange /*&& globsym.tab[i].Sclass != CLMOS*/)
                         for (uint j = 0; j < dfotop; j++)
-                                if (vec_testbit(i,dfo[j]->Binlv))
-                                        vec_setbit(j,globsym.tab[i]->Srange);
+                                if (vec_testbit(i,dfo[j].Binlv))
+                                        vec_setbit(j,globsym.tab[i].Srange);
         }
 
         /* Print results        */
         for (SYMIDX i = 0; i < globsym.top; i++)
         {       char *p;
-                symbol *s = globsym.tab[i];
+                Symbol *s = globsym.tab[i];
 
-                if (s->Sflags & SFLdead && s->Sclass != SCparameter && s->Sclass != SCregpar)
-                    s->Sflags &= ~GTregcand;    // do not put dead variables in registers
-#ifdef DEBUG
-                p = (char *) s->Sident ;
-                if (s->Sflags & SFLdead)
-                    cmes3("Symbol %d '%s' is dead\n",i,p);
-                if (debugc && s->Srange /*&& s->Sclass != CLMOS*/)
-                {       dbg_printf("Live range for %d '%s': ",i,p);
-                        vec_println(s->Srange);
+                if (s.Sflags & SFLdead && s.Sclass != SCparameter && s.Sclass != SCregpar)
+                    s.Sflags &= ~GTregcand;    // do not put dead variables in registers
+debug
+{
+                p = cast(char *) s.Sident.ptr ;
+                if (s.Sflags & SFLdead)
+                    if (debugc) printf("Symbol %d '%s' is dead\n",i,p);
+                if (debugc && s.Srange /*&& s.Sclass != CLMOS*/)
+                {       printf("Live range for %d '%s': ",i,p);
+                        vec_println(s.Srange);
                 }
-#endif
+}
         }
 }
 
@@ -1715,20 +1742,20 @@ void deadvar()
  *      i = block index
  */
 
-STATIC void dvwalk(elem *n,uint i)
+private void dvwalk(elem *n,uint i)
 {
-  for (; TRUE; n = n->E1)
+  for (; true; n = n.EV.E1)
   {     assert(n);
-        if (n->Eoper == OPvar || n->Eoper == OPrelconst)
-        {       symbol *s = n->EV.sp.Vsym;
+        if (n.Eoper == OPvar || n.Eoper == OPrelconst)
+        {       Symbol *s = n.EV.Vsym;
 
-                s->Sflags &= ~SFLdead;
-                if (s->Srange)
-                        vec_setbit(i,s->Srange);
+                s.Sflags &= ~SFLdead;
+                if (s.Srange)
+                        vec_setbit(i,s.Srange);
         }
-        else if (!OTleaf(n->Eoper))
-        {       if (OTbinary(n->Eoper))
-                        dvwalk(n->E2,i);
+        else if (!OTleaf(n.Eoper))
+        {       if (OTbinary(n.Eoper))
+                        dvwalk(n.EV.E2,i);
                 continue;
         }
         break;
@@ -1739,13 +1766,13 @@ STATIC void dvwalk(elem *n,uint i)
  * Optimize very busy expressions (VBEs).
  */
 
-static vec_t blockseen; /* which blocks we have visited         */
+private __gshared vec_t blockseen; /* which blocks we have visited         */
 
 void verybusyexp()
 {       elem **pn;
         uint j,l;
 
-        cmes("verybusyexp()\n");
+        if (debugc) printf("verybusyexp()\n");
         flowvbe();                      /* compute VBEs                 */
         if (go.exptop <= 1) return;        /* if no VBEs                   */
         assert(go.expblk);
@@ -1767,7 +1794,7 @@ void verybusyexp()
                 /* Do not hoist things to blocks that do not            */
                 /* divide the flow of control.                          */
 
-                switch (b->BC)
+                switch (b.BC)
                 {       case BCiftrue:
                         case BCswitch:
                                 break;
@@ -1776,10 +1803,10 @@ void verybusyexp()
                 }
 
                 /* Find pointer to last statement in current elem */
-                pn = &(b->Belem);
+                pn = &(b.Belem);
                 if (*pn)
-                {       while ((*pn)->Eoper == OPcomma)
-                                pn = &((*pn)->E2);
+                {       while ((*pn).Eoper == OPcomma)
+                                pn = &((*pn).EV.E2);
                         /* If last statement has side effects,  */
                         /* don't do these VBEs. Potentially we  */
                         /* could by assigning the result to     */
@@ -1789,7 +1816,7 @@ void verybusyexp()
                         /* may not buy us very much, so we will */
                         /* just skip it for now.                */
                         /*if (sideeffect(*pn))*/
-                        if (!(*pn)->Eexp)
+                        if (!(*pn).Eexp)
                                 continue;
                 }
 
@@ -1798,34 +1825,35 @@ void verybusyexp()
                 /* Constants are not useful as VBEs.                    */
                 /* Eliminate all elems from Bout that are not in blocks */
                 /* that are dominated by b.                             */
-#if 0
-                dbg_printf("block %d Bout = ",i);
-                vec_println(b->Bout);
-#endif
-                done = TRUE;
-                foreach (j,go.exptop,b->Bout)
-                {       if (go.expnod[j] == 0 ||
-                            !!OTleaf(go.expnod[j]->Eoper) ||
+static if (0)
+{
+                printf("block %d Bout = ",i);
+                vec_println(b.Bout);
+}
+                done = true;
+                for (j = 0; (j = cast(uint) vec_index(j, b.Bout)) < go.exptop; ++j)
+                {       if (go.expnod[j] == null ||
+                            !!OTleaf(go.expnod[j].Eoper) ||
                             !dom(b,go.expblk[j]))
-                                vec_clearbit(j,b->Bout);
+                                vec_clearbit(j,b.Bout);
                         else
-                                done = FALSE;
+                                done = false;
                 }
                 if (done) continue;
 
                 /* Eliminate from Bout all elems that are killed by     */
                 /* a block between b and that elem.                     */
-#if 0
-                dbg_printf("block %d Bout = ",i);
-                vec_println(b->Bout);
-#endif
-
-                foreach (j,go.exptop,b->Bout)
+static if (0)
+{
+                printf("block %d Bout = ",i);
+                vec_println(b.Bout);
+}
+                for (j = 0; (j = cast(uint) vec_index(j, b.Bout)) < go.exptop; ++j)
                 {
                         vec_clear(blockseen);
-                        for (list_t bl = go.expblk[j]->Bpred; bl; bl = list_next(bl))
+                        for (list_t bl = go.expblk[j].Bpred; bl; bl = list_next(bl))
                         {       if (killed(j,list_block(bl),b))
-                                {       vec_clearbit(j,b->Bout);
+                                {       vec_clearbit(j,b.Bout);
                                         break;
                                 }
                         }
@@ -1835,49 +1863,52 @@ void verybusyexp()
                 /* exists a path from b to j along which there is       */
                 /* no other use of j (else it would be a CSE, and       */
                 /* it would be a waste of time to hoist it).            */
-#if 0
-                dbg_printf("block %d Bout = ",i);
-                vec_println(b->Bout);
-#endif
+static if (0)
+{
+                printf("block %d Bout = ",i);
+                vec_println(b.Bout);
+}
 
-                foreach (j,go.exptop,b->Bout)
+                for (j = 0; (j = cast(uint) vec_index(j, b.Bout)) < go.exptop; ++j)
                 {
                         vec_clear(blockseen);
-                        for (list_t bl = go.expblk[j]->Bpred; bl; bl = list_next(bl))
+                        for (list_t bl = go.expblk[j].Bpred; bl; bl = list_next(bl))
                         {       if (ispath(j,list_block(bl),b))
                                         goto L2;
                         }
-                        vec_clearbit(j,b->Bout);        /* thar ain't no path   */
+                        vec_clearbit(j,b.Bout);        /* thar ain't no path   */
                     L2: ;
                 }
 
 
                 /* For each elem that appears more than once in Bout    */
                 /*      We have a VBE.                                  */
-#if 0
-                dbg_printf("block %d Bout = ",i);
-                vec_println(b->Bout);
-#endif
+static if (0)
+{
+                printf("block %d Bout = ",i);
+                vec_println(b.Bout);
+}
 
-                foreach (j,go.exptop,b->Bout)
+                for (j = 0; (j = cast(uint) vec_index(j, b.Bout)) < go.exptop; ++j)
                 {
                         uint k;
                         for (k = j + 1; k < go.exptop; k++)
-                        {       if (vec_testbit(k,b->Bout) &&
+                        {       if (vec_testbit(k,b.Bout) &&
                                     el_match(go.expnod[j],go.expnod[k]))
                                         goto foundvbe;
                         }
                         continue;               /* no VBE here          */
 
                     foundvbe:                   /* we got one           */
-#ifdef DEBUG
+debug
+{
                         if (debugc)
-                        {   dbg_printf("VBE %d,%d, block %d (",j,k,i);
+                        {   printf("VBE %d,%d, block %d (",j,k,i);
                             WReqn(go.expnod[j]);
-                            dbg_printf(");\n");
+                            printf(");\n");
                         }
-#endif
-                        *pn = el_bin(OPcomma,(*pn)->Ety,
+}
+                        *pn = el_bin(OPcomma,(*pn).Ety,
                                 el_copytree(go.expnod[j]),*pn);
 
                         /* Mark all the vbe elems found but one (the    */
@@ -1888,13 +1919,13 @@ void verybusyexp()
                         /* el_copytree() expression does not appear in go.expnod[]. */
                         l = k;
                         do
-                        {       if ( k == l || (vec_testbit(k,b->Bout) &&
+                        {       if ( k == l || (vec_testbit(k,b.Bout) &&
                                     el_match(go.expnod[j],go.expnod[k])))
                                 {
                                         /* Fix so nobody else will      */
                                         /* vbe this elem                */
-                                        go.expnod[k] = NULL;
-                                        vec_clearbit(k,b->Bout);
+                                        go.expnod[k] = null;
+                                        vec_clearbit(k,b.Bout);
                                 }
                         } while (++k < go.exptop);
                         go.changes++;
@@ -1904,55 +1935,55 @@ void verybusyexp()
 }
 
 /****************************
- * Return TRUE if elem j is killed somewhere
+ * Return true if elem j is killed somewhere
  * between b and bp.
  */
 
-STATIC int killed(uint j,block *bp,block *b)
+private int killed(uint j,block *bp,block *b)
 {
-        if (bp == b || vec_testbit(bp->Bdfoidx,blockseen))
-                return FALSE;
-        if (vec_testbit(j,bp->Bkill))
-                return TRUE;
-        vec_setbit(bp->Bdfoidx,blockseen);      /* mark as visited              */
-        for (list_t bl = bp->Bpred; bl; bl = list_next(bl))
+        if (bp == b || vec_testbit(bp.Bdfoidx,blockseen))
+                return false;
+        if (vec_testbit(j,bp.Bkill))
+                return true;
+        vec_setbit(bp.Bdfoidx,blockseen);      /* mark as visited              */
+        for (list_t bl = bp.Bpred; bl; bl = list_next(bl))
                 if (killed(j,list_block(bl),b))
-                        return TRUE;
-        return FALSE;
+                        return true;
+        return false;
 }
 
 /***************************
- * Return TRUE if there is a path from b to bp along which
+ * Return true if there is a path from b to bp along which
  * elem j is not used.
  * Input:
- *      b ->    block where we want to put the VBE
- *      bp ->   block somewhere between b and block containing j
+ *      b .    block where we want to put the VBE
+ *      bp .   block somewhere between b and block containing j
  *      j =     VBE expression elem candidate (index into go.expnod[])
  */
 
-STATIC int ispath(uint j,block *bp,block *b)
+private int ispath(uint j,block *bp,block *b)
 {
         /*chkvecdim(go.exptop,0);*/
-        if (bp == b) return TRUE;       /* the trivial case             */
-        if (vec_testbit(bp->Bdfoidx,blockseen))
-                return FALSE;           /* already seen this block      */
-        vec_setbit(bp->Bdfoidx,blockseen);      /* we've visited this block     */
+        if (bp == b) return true;       /* the trivial case             */
+        if (vec_testbit(bp.Bdfoidx,blockseen))
+                return false;           /* already seen this block      */
+        vec_setbit(bp.Bdfoidx,blockseen);      /* we've visited this block     */
 
-        /* FALSE if elem j is used in block bp (and reaches the end     */
+        /* false if elem j is used in block bp (and reaches the end     */
         /* of bp, indicated by it being an AE in Bgen)                  */
         uint i;
-        foreach (i,go.exptop,bp->Bgen)     /* look thru used expressions   */
+        for (i = 0; (i = cast(uint) vec_index(i, bp.Bgen)) < go.exptop; ++i) // look thru used expressions
         {       if (i != j && go.expnod[i] && el_match(go.expnod[i],go.expnod[j]))
-                        return FALSE;
+                        return false;
         }
 
         /* Not used in bp, see if there is a path through a predecessor */
         /* of bp                                                        */
-        for (list_t bl = bp->Bpred; bl; bl = list_next(bl))
+        for (list_t bl = bp.Bpred; bl; bl = list_next(bl))
                 if (ispath(j,list_block(bl),b))
-                        return TRUE;
+                        return true;
 
-        return FALSE;           /* j is used along all paths            */
+        return false;           /* j is used along all paths            */
 }
 
-#endif
+}
