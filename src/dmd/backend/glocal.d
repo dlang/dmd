@@ -30,6 +30,7 @@ import dmd.backend.cdef;
 import dmd.backend.code_x86;
 import dmd.backend.oper;
 import dmd.backend.global;
+import dmd.backend.goh;
 import dmd.backend.el;
 import dmd.backend.ty;
 import dmd.backend.type;
@@ -38,46 +39,6 @@ import dmd.backend.dlist;
 import dmd.backend.dvec;
 
 extern (C++):
-
-alias mftype = uint;
-
-/**********************************
- * Definition elem vector, used for reaching definitions.
- */
-
-struct DefNode
-{
-    elem    *DNelem;        // pointer to definition elem
-    block   *DNblock;       // pointer to block that the elem is in
-    vec_t    DNunambig;     // vector of unambiguous definitions
-}
-
-/* Global Optimizer variables
- */
-struct GlobalOptimizer
-{
-    mftype mfoptim;
-    uint changes;       // # of optimizations performed
-
-    DefNode *defnod;    // array of definition elems
-    uint deftop;        // # of entries in defnod[]
-    uint defmax;        // capacity of defnod[]
-    uint unambigtop;    // number of unambiguous defininitions ( <= deftop )
-
-    vec_base_t *dnunambig;  // pool to allocate DNunambig vectors from
-    uint    dnunambigmax;   // capacity of dnunambig[]
-
-    elem **expnod;      // array of expression elems
-    uint exptop;        // top of expnod[]
-    block **expblk;     // parallel array of block pointers
-
-    vec_t defkill;      // vector of AEs killed by an ambiguous definition
-    vec_t starkill;     // vector of AEs killed by a definition of something that somebody could be
-                        // pointing to
-    vec_t vptrkill;     // vector of AEs killed by an access
-}
-
-extern __gshared GlobalOptimizer go;
 
 int REGSIZE();
 
