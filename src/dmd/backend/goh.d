@@ -104,9 +104,9 @@ void opt_arraybounds();
 /* gflow.c */
 void flowrd();
 void flowlv();
-void flowae();
 void flowvbe();
 void flowcp();
+void flowae();
 void genkillae();
 void flowarraybounds();
 int ae_field_affect(elem *lvalue,elem *e);
@@ -119,7 +119,7 @@ int blockinit();
 void compdom();
 void loopopt();
 void fillInDNunambig(vec_t v, elem *e);
-void updaterd(elem *n,vec_t GEN,vec_t KILL);
+extern (C) void updaterd(elem *n,vec_t GEN,vec_t KILL);
 
 /* gother.c */
 void rd_arraybounds();
@@ -130,7 +130,7 @@ void rmdeadass();
 void elimass(elem *);
 void deadvar();
 void verybusyexp();
-list_t listrds(vec_t, elem *, vec_t);
+extern (C) list_t listrds(vec_t, elem *, vec_t);
 
 /* gslice.c */
 void sliceStructs();

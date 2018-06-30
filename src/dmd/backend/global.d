@@ -68,7 +68,7 @@ extern __gshared
     symtab_t globsym;
 
 //    Config config;                  // precompiled part of configuration
-//    char[SCMAX] sytab;
+    char[SCMAX] sytab;
 
     extern (C) /*volatile*/ int controlc_saw;    // a control C was seen
     uint maxblks;                   // array max for all block stuff

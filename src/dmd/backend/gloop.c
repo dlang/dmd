@@ -1318,6 +1318,7 @@ void fillInDNunambig(vec_t v, elem *e)
  *      vecdim  go.deftop
  */
 
+extern "C" {
 void updaterd(elem *n,vec_t GEN,vec_t KILL)
 {
     uint op = n->Eoper;
@@ -1366,6 +1367,7 @@ void updaterd(elem *n,vec_t GEN,vec_t KILL)
 #endif
 
     vec_setbit(ni,GEN);                 // set bit in GEN for this def
+}
 }
 
 /***************************
