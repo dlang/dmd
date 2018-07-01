@@ -50,6 +50,26 @@ const(char)* cppTypeInfoMangleMSVC(Dsymbol s)
     assert(0);
 }
 
+/**
+ * Issues an ICE and returns true if `type` is shared or immutable
+ *
+ * Params:
+ *      type = type to check
+ *
+ * Returns:
+ *      true if type is shared or immutable
+ *      false otherwise
+ */
+private bool checkImmutableShared(Type type)
+{
+    if (type.isImmutable() || type.isShared())
+    {
+        type.error(Loc.initial, "Internal Compiler Error: `shared` or `immutable` types can not be mapped to C++ (%s)", type.toChars());
+        fatal();
+        return true;
+    }
+    return false;
+}
 private final class VisualCPPMangler : Visitor
 {
     enum VC_SAVED_TYPE_CNT = 10u;
@@ -102,24 +122,18 @@ public:
 
     override void visit(Type type)
     {
-        if (type.isImmutable() || type.isShared())
-        {
-            type.error(Loc.initial, "Internal Compiler Error: `shared` or `immutable` types can not be mapped to C++ (%s)", type.toChars());
-        }
-        else
-        {
-            type.error(Loc.initial, "Internal Compiler Error: type `%s` can not be mapped to C++\n", type.toChars());
-        }
+        if (checkImmutableShared(type))
+            return;
+
+        type.error(Loc.initial, "Internal Compiler Error: type `%s` can not be mapped to C++\n", type.toChars());
         fatal(); //Fatal, because this error should be handled in frontend
     }
 
     override void visit(TypeNull type)
     {
-        if (type.isImmutable() || type.isShared())
-        {
-            visit(cast(Type)type);
+        if (checkImmutableShared(type))
             return;
-        }
+
         buf.writestring("$$T");
         flags &= ~IS_NOT_TOP_TYPE;
         flags &= ~IGNORE_CONST;
@@ -128,11 +142,9 @@ public:
     override void visit(TypeBasic type)
     {
         //printf("visit(TypeBasic); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
-        if (type.isImmutable() || type.isShared())
-        {
-            visit(cast(Type)type);
+        if (checkImmutableShared(type))
             return;
-        }
+
         if (type.isConst() && ((flags & IS_NOT_TOP_TYPE) || (flags & IS_DMC)))
         {
             if (checkTypeSaved(type))
@@ -270,11 +282,9 @@ public:
     override void visit(TypePointer type)
     {
         //printf("visit(TypePointer); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
-        if (type.isImmutable() || type.isShared())
-        {
-            visit(cast(Type)type);
+        if (checkImmutableShared(type))
             return;
-        }
+
         assert(type.next);
         if (type.next.ty == Tfunction)
         {
@@ -335,11 +345,10 @@ public:
         //printf("visit(TypeReference); type = %s\n", type.toChars());
         if (checkTypeSaved(type))
             return;
-        if (type.isImmutable() || type.isShared())
-        {
-            visit(cast(Type)type);
+
+        if (checkImmutableShared(type))
             return;
-        }
+
         buf.writeByte('A'); // mutable
         if (global.params.is64bit)
             buf.writeByte('E');
@@ -385,11 +394,9 @@ public:
             c = 0;
         if (c)
         {
-            if (type.isImmutable() || type.isShared())
-            {
-                visit(cast(Type)type);
+            if (checkImmutableShared(type))
                 return;
-            }
+
             if (type.isConst() && ((flags & IS_NOT_TOP_TYPE) || (flags & IS_DMC)))
             {
                 if (checkTypeSaved(type))
@@ -431,11 +438,9 @@ public:
             c = "_K"; // VC++ unsigned long long
         if (c.length)
         {
-            if (type.isImmutable() || type.isShared())
-            {
-                visit(cast(Type)type);
+            if (checkImmutableShared(type))
                 return;
-            }
+
             if (type.isConst() && ((flags & IS_NOT_TOP_TYPE) || (flags & IS_DMC)))
             {
                 if (checkTypeSaved(type))
@@ -646,11 +651,10 @@ private:
         }
         char cv_mod = 0;
         Type t = d.type;
-        if (t.isImmutable() || t.isShared())
-        {
-            visit(t);
+
+        if (checkImmutableShared(t))
             return;
-        }
+
         if (t.isConst())
         {
             cv_mod = 'B'; // const
@@ -1099,11 +1103,9 @@ private:
     {
         if (flags & IGNORE_CONST)
             return;
-        if (type.isImmutable() || type.isShared())
-        {
-            visit(type);
+        if (checkImmutableShared(type))
             return;
-        }
+
         if (type.isConst())
         {
             if (flags & IS_NOT_TOP_TYPE)
