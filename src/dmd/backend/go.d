@@ -61,7 +61,6 @@ void flowlv();
 void flowae();
 void flowvbe();
 void flowcp();
-void flowae();
 void genkillae();
 void flowarraybounds();
 int ae_field_affect(elem *lvalue,elem *e);
