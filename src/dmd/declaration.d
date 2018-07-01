@@ -1096,6 +1096,8 @@ extern (C++) class VarDeclaration : Declaration
     Expression edtor;               // if !=null, does the destruction of the variable
     IntRange* range;                // if !=null, the variable is known to be within the range
 
+    VarDeclarations* maybes;        // STC.maybescope variables that are assigned to this STC.maybescope variable
+
     final extern (D) this(Loc loc, Type type, Identifier id, Initializer _init, StorageClass storage_class = STC.undefined_)
     {
         super(id);
@@ -1639,6 +1641,23 @@ extern (C++) class VarDeclaration : Declaration
     final bool enclosesLifetimeOf(VarDeclaration v) const pure
     {
         return sequenceNumber < v.sequenceNumber;
+    }
+
+    /***************************************
+     * Add variable to maybes[].
+     * When a maybescope variable `v` is assigned to a maybescope variable `this`,
+     * we cannot determine if `this` is actually scope until the semantic
+     * analysis for the function is completed. Thus, we save the data
+     * until then.
+     * Params:
+     *  v = an STC.maybescope variable that was assigned to `this`
+     */
+    final void addMaybe(VarDeclaration v)
+    {
+        //printf("add %s to %s's list of dependencies\n", v.toChars(), toChars());
+        if (!maybes)
+            maybes = new VarDeclarations();
+        maybes.push(v);
     }
 }
 
