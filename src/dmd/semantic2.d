@@ -359,9 +359,6 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
         //printf("FuncDeclaration::semantic2 [%s] fd0 = %s %s\n", loc.toChars(), toChars(), type.toChars());
 
-        // https://issues.dlang.org/show_bug.cgi?id=18385
-        // Disable for 2.079, s.t. a deprecation cycle can be started with 2.080
-        if (0)
         if (fd.overnext && !fd.errors)
         {
             OutBuffer buf1;
@@ -414,7 +411,8 @@ private extern(C++) final class Semantic2Visitor : Visitor
                         return 0;
 
                     auto tf2 = cast(TypeFunction)f2.type;
-                    error(f2.loc, "%s `%s%s` cannot be overloaded with %s`extern(%s)` function at %s",
+                    // @@@DEPRECATED_2.092@@@
+                    f2.deprecation("%s `%s%s` cannot be overloaded with %s`extern(%s)` function at %s",
                             f2.kind(),
                             f2.toPrettyChars(),
                             parametersTypeToChars(tf2.parameterList),
@@ -435,7 +433,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 if (strcmp(s1, s2) == 0)
                 {
                     auto tf2 = cast(TypeFunction)f2.type;
-                    error(f2.loc, "%s `%s%s` conflicts with previous declaration at %s",
+                    f2.error("%s `%s%s` conflicts with previous declaration at %s",
                             f2.kind(),
                             f2.toPrettyChars(),
                             parametersTypeToChars(tf2.parameterList),

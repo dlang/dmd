@@ -46,7 +46,7 @@ S2000 bar2()
 }
 
 
-void bar2()
+void bar3()
 {
     int i;
     char c;
