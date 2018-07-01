@@ -228,7 +228,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\global.h $C\code.h $C\code_x86.h $C/code_stub.h $C/platform_stub.c \
 	$C\type.h $C\dt.h $C\cgcv.h \
 	$C\el.h $C\iasm.h $C\rtlsym.h \
-	$C\bcomplex.d $C\blockopt.c $C\cg.c $C\cg87.c $C\cgxmm.c \
+	$C\bcomplex.d $C\blockopt.d $C\cg.c $C\cg87.c $C\cgxmm.c \
 	$C\cgcod.c $C\cgcs.d $C\cgcv.c $C\cgelem.d $C\cgen.c $C\cgobj.c \
 	$C\compress.d $C\cgreg.c $C\var.c \
 	$C\cgsched.c $C\cod1.c $C\cod2.c $C\cod3.c $C\cod4.c $C\cod5.c \
@@ -451,10 +451,10 @@ $G/backconfig.obj : $C\backconfig.c
 	$(CC) -c -o$@ $(MFLAGS) $C\backconfig
 
 $G/bcomplex.obj : $C\bcomplex.d
-	$(HOST_DC) -c -of$@ $(DFLAGS) -mv=dmd.backend=$C $C\bcomplex
+	$(HOST_DC) -c -betterC -of$@ $(DFLAGS) -mv=dmd.backend=$C $C\bcomplex
 
-$G/blockopt.obj : $C\blockopt.c
-	$(CC) -c -o$@ $(MFLAGS) $C\blockopt
+$G/blockopt.obj : $C\blockopt.d
+	$(HOST_DC) -c -betterC -of$@ $(DFLAGS) -mv=dmd.backend=$C $C\blockopt
 
 $G/cg.obj : $C\cg.c
 	$(CC) -c -o$@ $(MFLAGS) -I$D -I$G $C\cg

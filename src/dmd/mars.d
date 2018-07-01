@@ -497,6 +497,14 @@ private int tryMain(size_t argc, const(char)** argv)
     Objc._init();
     builtin_init();
 
+    version(CRuntime_Microsoft)
+    {
+        import dmd.root.longdouble;
+        initFPU();
+    }
+    import dmd.root.ctfloat : CTFloat;
+    CTFloat.initialize();
+
     if (global.params.verbose)
     {
         stdout.printPredefinedVersions();

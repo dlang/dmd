@@ -65,11 +65,6 @@ bool initFPU()
     return true;
 }
 
-shared static this()
-{
-    initFPU();
-}
-
 void ld_clearfpu()
 {
     version(AsmX86)

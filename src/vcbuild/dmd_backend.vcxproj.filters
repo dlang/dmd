@@ -27,9 +27,6 @@
     <ClCompile Include="..\dmd\backend\aa.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
-    <ClCompile Include="..\dmd\backend\blockopt.c">
-      <Filter>dmd\backend</Filter>
-    </ClCompile>
     <ClCompile Include="..\dmd\backend\cg.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>

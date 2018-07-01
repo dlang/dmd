@@ -551,6 +551,8 @@ struct block
             block *b_ret;               // EH_DWARF: associated BC_ret block
         }                               // finally
 
+        // add member at least as large as the other elements of this union
+        void[jcatchvar.sizeof + Bscope_index.sizeof + Blast_index.sizeof] cover_BS;
     }
     Srcpos      Bsrcpos;        // line number (0 if not known)
     ubyte       BC;             // exit condition (enum BC)
