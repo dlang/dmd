@@ -1268,6 +1268,8 @@ STATIC void markinvar(elem *n,vec_t rd)
  *      e = defnod[] entry that is an assignment to a variable
  */
 
+extern "C"
+{
 void fillInDNunambig(vec_t v, elem *e)
 {
     assert(OTassign(e->Eoper));
@@ -1306,6 +1308,7 @@ void fillInDNunambig(vec_t v, elem *e)
             vec_setbit(i, v);
         }
     }
+}
 }
 
 /********************
