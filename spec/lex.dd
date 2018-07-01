@@ -544,7 +544,7 @@ $(H2 $(LNAME2 escape_sequences, Escape Sequences))
         or $(D 255) in decimal))
     $(TROW $(D \u)$(I nnnn), Unicode character U+$(I nnnn)$(COMMA) where
         $(I nnnn) are four hexadecimal digits.$(BR)For example$(COMMA)
-        $(D \u042F) represents the Unicode character Я (U+42F).)
+        $(D \u03B3) represents the Unicode character $(GAMMA) (U+03B3 - GREEK SMALL LETTER GAMMA).)
     $(TROW $(D \U)$(I nnnnnnnn), Unicode character U+$(I nnnnnnnn)$(COMMA)
         where $(I nnnnnnnn) are 8 hexadecimal digits.$(BR)For example$(COMMA)
         $(D \U0001F603) represents the Unicode character U+1F603 (SMILING FACE
