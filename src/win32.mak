@@ -233,7 +233,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\compress.c $C\cgreg.c $C\var.c \
 	$C\cgsched.c $C\cod1.c $C\cod2.c $C\cod3.c $C\cod4.c $C\cod5.c \
 	$C\code.c $C\symbol.c $C\debug.c $C\dt.c $C\ee.c $C\el.c \
-	$C\evalu8.d $C\fp.c $C\go.c $C\gflow.c $C\gdag.d \
+	$C\evalu8.d $C\fp.c $C\go.c $C\gflow.d $C\gdag.d \
 	$C\gother.d $C\glocal.d $C\gloop.c $C\gsroa.d $C\newman.c \
 	$C\nteh.c $C\os.c $C\out.c $C\outbuf.c $C\ptrntab.c $C\rtlsym.c \
 	$C\type.c $C\melf.h $C\mach.h $C\mscoff.h $C\bcomplex.h \
@@ -323,25 +323,25 @@ $G\backend.lib: $(GBACKOBJ) $(OBJ_MSVC)
 	$(LIB) -p512 -n -c $@ $(GBACKOBJ) $(OBJ_MSVC)
 
 $G\lexer.lib: $(LEXER_SRCS) $(ROOT_SRCS) $(STRING_IMPORT_FILES) $G
-	$(HOST_DC) -of$@ -vtls -lib -J$G $(DFLAGS) $(LEXER_SRCS) $(ROOT_SRCS)
+	$(HOST_DC) -of$@ -lib -J$G $(DFLAGS) $(LEXER_SRCS) $(ROOT_SRCS)
 
 $G\parser.lib: $(PARSER_SRCS) $G\lexer.lib $G
-	$(HOST_DC) -of$@ -vtls -lib $(DFLAGS) $(PARSER_SRCS) $G\lexer.lib
+	$(HOST_DC) -of$@ -lib $(DFLAGS) $(PARSER_SRCS) $G\lexer.lib
 
 parser_test: $G\parser.lib examples\test_parser.d
-	$(HOST_DC) -of$@ -vtls $(DFLAGS) $G\parser.lib examples\test_parser.d examples\impvisitor.d
+	$(HOST_DC) -of$@ $(DFLAGS) $G\parser.lib examples\test_parser.d examples\impvisitor.d
 
 example_avg: $G\libparser.lib examples\avg.d
-	$(HOST_DC) -of$@ -vtls $(DFLAGS) $G\libparser.lib examples\avg.d
+	$(HOST_DC) -of$@ $(DFLAGS) $G\libparser.lib examples\avg.d
 
 DMDFRONTENDEXE = $G\dmd_frontend.exe
 
 $(DMDFRONTENDEXE): $(FRONT_SRCS) $D\gluelayer.d $(ROOT_SRCS) $G\newdelete.obj $G\lexer.lib $(STRING_IMPORT_FILES)
-	$(HOST_DC) $(DSRC) -of$@ -vtls -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(LFLAGS) $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) newdelete.obj -version=NoBackend
+	$(HOST_DC) $(DSRC) -of$@ -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(LFLAGS) $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) newdelete.obj -version=NoBackend
 	copy $(DMDFRONTENDEXE) .
 
 $(TARGETEXE): $(DMD_SRCS) $(ROOT_SRCS) $G\newdelete.obj $(LIBS) $(STRING_IMPORT_FILES)
-	$(HOST_DC) $(DSRC) -of$@ -vtls -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(LFLAGS) $(DMD_SRCS) $(ROOT_SRCS) $G\newdelete.obj $(LIBS)
+	$(HOST_DC) $(DSRC) -of$@ -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(LFLAGS) $(DMD_SRCS) $(ROOT_SRCS) $G\newdelete.obj $(LIBS)
 	copy $(TARGETEXE) .
 
 ############################ Maintenance Targets #############################
@@ -544,8 +544,8 @@ $G/fp.obj : $C\fp.c
 $G/go.obj : $C\go.c
 	$(CC) -c -o$@ $(MFLAGS) $C\go
 
-$G/gflow.obj : $C\gflow.c
-	$(CC) -c -o$@ $(MFLAGS) $C\gflow
+$G/gflow.obj : $C\gflow.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\gflow
 
 $G/gdag.obj : $C\gdag.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\gdag

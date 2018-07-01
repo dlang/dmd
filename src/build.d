@@ -312,7 +312,6 @@ auto buildDMD()
         command: [
             env["HOST_DMD_RUN"],
             "-of$@",
-            "-vtls",
             "-J"~env["G"],
             "-J../res",
             "-L-lstdc++",
