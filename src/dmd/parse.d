@@ -8494,7 +8494,7 @@ final class Parser(AST) : Lexer
             // Change to error in 2019-05.
             // @@@DEPRECATED_2019-05@@@.
             if (e.op == TOK.question && !e.parens && precedence[token.value] == PREC.assign)
-                dmd.errors.deprecation(e.loc, "`%s` must be parenthesized when next to operator `%s`",
+                dmd.errors.deprecation(e.loc, "`%s` must be surrounded by parentheses when next to operator `%s`",
                     e.toChars(), Token.toChars(token.value));
 
         const loc = token.loc;
