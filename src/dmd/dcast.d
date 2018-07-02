@@ -3056,8 +3056,6 @@ Lagain:
     {
         if (t1.mod != t2.mod)
         {
-            if (!t1.isImmutable() && !t2.isImmutable() && t1.isShared() != t2.isShared())
-                goto Lincompatible;
             ubyte mod = MODmerge(t1.mod, t2.mod);
             t1 = t1.castMod(mod);
             t2 = t2.castMod(mod);
