@@ -85,6 +85,7 @@ private final class VisualCPPMangler : Visitor
     // This flag is set up by the visit(NextType, ) function  and should be reset when the arg type output is finished.
     // MANGLE_RETURN_TYPE: return type shouldn't be saved and substituted in arguments
     // IGNORE_CONST: in some cases we should ignore CV-modifiers.
+    // ESCAPE: toplevel const non-pointer types need a '$$C' escape in addition to a cv qualifier.
 
     enum Flags : int
     {
@@ -92,12 +93,14 @@ private final class VisualCPPMangler : Visitor
         MANGLE_RETURN_TYPE = 0x2,
         IGNORE_CONST = 0x4,
         IS_DMC = 0x8,
+        ESCAPE = 0x10,
     }
 
     alias IS_NOT_TOP_TYPE = Flags.IS_NOT_TOP_TYPE;
     alias MANGLE_RETURN_TYPE = Flags.MANGLE_RETURN_TYPE;
     alias IGNORE_CONST = Flags.IGNORE_CONST;
     alias IS_DMC = Flags.IS_DMC;
+    alias ESCAPE = Flags.ESCAPE;
 
     int flags;
     OutBuffer buf;
@@ -923,13 +926,11 @@ private:
      */
     void mangleTemplateType(RootObject o)
     {
-        //FIXME: issue 10943: does not escape type
-        //      char -> 'D' good, but
-        //      const char -> 'D' instead of '$$CBD'
-        //      ('$$C' escape, 'B' const, 'D' == char)
+        flags |= ESCAPE;
         Type t = isType(o);
         assert(t);
         t.accept(this);
+        flags &= ~ESCAPE;
     }
 
     /**
@@ -1164,13 +1165,19 @@ private:
 
         if (type.isConst())
         {
-            if (flags & IS_NOT_TOP_TYPE)
+            // Template parameters that are not pointers and are const need an $$C escape
+            // in addition to 'B' (const).
+            if ((flags & ESCAPE) && type.ty != Tpointer)
+                buf.writestring("$$CB");
+            else if (flags & IS_NOT_TOP_TYPE)
                 buf.writeByte('B'); // const
             else if ((flags & IS_DMC) && type.ty != Tpointer)
                 buf.writestring("_O");
         }
         else if (flags & IS_NOT_TOP_TYPE)
             buf.writeByte('A'); // mutable
+
+        flags &= ~ESCAPE;
     }
 
     void mangleArray(TypeSArray type)
