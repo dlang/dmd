@@ -603,7 +603,7 @@ nothrow pure @safe unittest
     enum ctfe_works = (() => { Month x = Month.jan; return toUbyte(x).length > 0; })();
 }
 
-private bool isNonReference(T)()
+package(core.internal) bool isNonReference(T)()
 {
     static if (is(T == struct) || is(T == union))
     {
@@ -611,7 +611,10 @@ private bool isNonReference(T)()
     }
     else static if (__traits(isStaticArray, T))
     {
-      return isNonReference!(typeof(T.init[0]))();
+        static if (T.length > 0)
+            return isNonReference!(typeof(T.init[0]))();
+        else
+            return true;
     }
     else static if (is(T E == enum))
     {
@@ -637,9 +640,9 @@ private bool isNonReference(T)()
 
 private bool isNonReferenceStruct(T)() if (is(T == struct) || is(T == union))
 {
-    foreach (cur; T.init.tupleof)
+    static foreach (cur; T.tupleof)
     {
-        static if (!isNonReference!(typeof(cur))()) return false;
+        if (!isNonReference!(typeof(cur))()) return false;
     }
 
     return true;
