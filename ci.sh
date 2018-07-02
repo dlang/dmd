@@ -96,7 +96,7 @@ test_dmd() {
 test_dub_package() {
     source ~/dlang/*/activate # activate host compiler
     # GDC's standard library is too old for some example scripts
-    if [ "${DMD:-dmd}" == "gdmd" ] ; then
+    if [[ "${DMD:-dmd}" =~ "gdmd" ]] ; then
         echo "Skipping DUB examples on GDC."
     else
         local abs_build_path="$PWD/$build_path"
@@ -157,14 +157,22 @@ download_install_sh() {
 }
 
 install_d() {
-  local install_sh="install.sh"
-  download_install_sh "$install_sh"
-  # DUB isn't needed for gdc
-  if [ "${DMD:-dmd}" == "gdc" ] ; then
-      mkdir -p $HOME/dlang/dub
-      # Remove the check of the lastest DUB version
-      # shellcheck disable=2016
-      sed 's/dub="dub-$(fetch $url)"/dub=dub/' -i "$install_sh"
+  if [ "${DMD:-dmd}" == "gdc" ] || [ "${DMD:-dmd}" == "gdmd" ] ; then
+    export DMD=gdmd-8
+    if [ ! -e ~/dlang/gdc-8/activate ] ; then
+        sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+        sudo apt-get update
+        sudo apt-get install -y gdc-8
+        # fetch the dmd-like wrapper
+        sudo wget https://raw.githubusercontent.com/D-Programming-GDC/GDMD/master/dmd-script -O /usr/bin/gdmd-8
+        sudo chmod +x /usr/bin/gdmd-8
+        # fake install script and create a fake 'activate' script
+        mkdir -p ~/dlang/gdc-8
+        echo "deactivate(){ echo;}" > ~/dlang/gdc-8/activate
+    fi
+  else
+    local install_sh="install.sh"
+    download_install_sh "$install_sh"
+    CURL_USER_AGENT="$CURL_USER_AGENT" bash "$install_sh" "$1"
   fi
-  CURL_USER_AGENT="$CURL_USER_AGENT" bash "$install_sh" "$1"
 }
