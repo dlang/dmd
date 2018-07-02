@@ -4236,10 +4236,18 @@ Params:
 
 Return: calculated hash value of $(D arg)
 */
-size_t hashOf(T)(auto ref T arg, size_t seed = 0)
+version (D_Ddoc)
 {
-    import core.internal.hash;
-    return core.internal.hash.hashOf(arg, seed);
+    // This lets DDoc produce better documentation.
+    size_t hashOf(T)(auto ref T arg, size_t seed = 0)
+    {
+        static import core.internal.hash;
+        return core.internal.hash.hashOf(arg, seed);
+    }
+}
+else
+{
+    public import core.internal.hash : hashOf;
 }
 
 ///
