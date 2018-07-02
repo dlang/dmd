@@ -1,4 +1,4 @@
-allow to disable only specific run-time checks
+Allow to disable only specific run-time checks
 
-The $(LINK2 $(TT -release), https://dlang.org/dmd-linux.html#switch-release) switch now accepts optional arguments to only disable some run-time checks, e.g. $(TT -release=in,out,invariant) disables in-/out-contracts and invariants, but still leaves assertions enabled.
+The $(LINK2 $(TT -release), https://dlang.org/dmd.html#switch-release) switch now accepts optional arguments to only disable some run-time checks, e.g. $(TT -release=in,out,invariant) disables in-/out-contracts and invariants, but still leaves assertions enabled.
 Also see $(LINK2 DIP1006, https://github.com/dlang/DIPs/blob/master/DIPs/DIP1006.md).
