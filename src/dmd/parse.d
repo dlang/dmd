@@ -6444,7 +6444,7 @@ final class Parser(AST) : Lexer
     void checkParens(TOK value, AST.Expression e)
     {
         if (precedence[e.op] == PREC.rel && !e.parens)
-            error(e.loc, "`%s` must be parenthesized when next to operator `%s`", e.toChars(), Token.toChars(value));
+            error(e.loc, "`%s` must be surrounded by parentheses when next to operator `%s`", e.toChars(), Token.toChars(value));
     }
 
     ///
