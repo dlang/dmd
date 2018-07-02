@@ -4291,6 +4291,18 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
+        if (sd.type.ty == Tstruct && (cast(TypeStruct)sd.type).sym != sd)
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=19024
+            StructDeclaration sym = (cast(TypeStruct)sd.type).sym;
+            version (none)
+            {
+                printf("this = %p %s\n", sd, sd.toChars());
+                printf("type = %d sym = %p, %s\n", sd.type.ty, sym, sym.toPrettyChars());
+            }
+            sd.error("already exists at %s. Perhaps in another function with the same name?", sym.loc.toChars());
+        }
+
         if (global.errors != errors)
         {
             // The type is no good.
@@ -4305,16 +4317,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sd.deferred.semantic2(sc);
             sd.deferred.semantic3(sc);
         }
-
-        version (none)
-        {
-            if (sd.type.ty == Tstruct && (cast(TypeStruct)sd.type).sym != sd)
-            {
-                printf("this = %p %s\n", sd, sd.toChars());
-                printf("type = %d sym = %p\n", sd.type.ty, (cast(TypeStruct)sd.type).sym);
-            }
-        }
-        assert(sd.type.ty != Tstruct || (cast(TypeStruct)sd.type).sym == sd);
     }
 
     final void interfaceSemantic(ClassDeclaration cd)
