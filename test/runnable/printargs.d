@@ -3,7 +3,7 @@
 
 extern(C) int printf(const char*, ...);
 
-int main(char args[][])
+int main(char[][] args)
 {
     int i;
 
