@@ -100,7 +100,7 @@ void localize()
         assert(lt.data);
     }
 
-    for (block *b = startblock; b; b = b.Bnext)       // for each block
+    foreach (b; BlockRange(startblock))       // for each block
     {
         lt.dim = 0;                     // start over for each block
         if (b.Belem &&
@@ -124,15 +124,17 @@ void localize()
 //
 
 private void local_exp(ref Loctab lt, elem *e, int goal)
-{   Symbol *s;
+{
+    Symbol *s;
     elem *e1;
     int op1;
 
 Loop:
     elem_debug(e);
-    int op = e.Eoper;
+    const op = e.Eoper;
     switch (op)
-    {   case OPcomma:
+    {
+        case OPcomma:
             local_exp(lt,e.EV.E1,0);
             e = e.EV.E2;
             goto Loop;
@@ -283,6 +285,7 @@ Loop:
                 local_remove(lt, LFambigdef | LFambigref);
             }
             break;
+
         case OPstrlen:
         case OPind:
             local_exp(lt,e.EV.E1,1);
@@ -318,6 +321,7 @@ Loop:
             local_exp(lt,e.EV.E1,1);
             local_exp(lt,e.EV.E2,1);
             goto Lrd;
+
         case OPasm:
         Lrd:
             local_remove(lt, LFfloat | LFambigref | LFambigdef);
@@ -348,10 +352,9 @@ Loop:
                 // If potential candidate for replacement
                 if (s.Sflags & SFLunambig)
                 {
-                    for (uint u = 0; u < lt.dim; u++)
-                    {   elem *em;
-
-                        em = lt.data[u].e;
+                    foreach (const u; 0 .. lt.dim)
+                    {
+                        auto em = lt.data[u].e;
                         if (em.EV.E1.EV.Vsym == s &&
                             (em.Eoper == OPeq || em.Eoper == OPstreq))
                         {
@@ -416,14 +419,11 @@ Loop:
 
                 for (uint u = 0; u < lt.dim;)
                 {
-                    int f1,f2,f;
-                    elem *eu;
-
-                    f = lt.data[u].flags;
-                    eu = lt.data[u].e;
+                    const f = lt.data[u].flags;
+                    elem* eu = lt.data[u].e;
                     s = eu.EV.E1.EV.Vsym;
-                    f1 = local_getflags(e.EV.E1,s);
-                    f2 = local_getflags(e.EV.E2,s);
+                    const f1 = local_getflags(e.EV.E1,s);
+                    const f2 = local_getflags(e.EV.E2,s);
                     if (f1 & f2 & LFsymref ||   // if both reference or
                         (f1 | f2) & LFsymdef || // either define
                         f & LFambigref && (f1 | f2) & LFambigdef ||
@@ -457,36 +457,32 @@ Loop:
 // that e refs or defs.
 // Note that e is a binary operator.
 // Returns:
-//      !=0 if it does
+//      true if it does
 
-private int local_chkrem(elem *e,elem *eu)
+private bool local_chkrem(elem *e,elem *eu)
 {
-    int result = 0;
-
     while (1)
-    {   elem_debug(eu);
-        int op = eu.Eoper;
+    {
+        elem_debug(eu);
+        const op = eu.Eoper;
         if (OTassign(op) && eu.EV.E1.Eoper == OPvar)
         {
-            Symbol *s = eu.EV.E1.EV.Vsym;
-            int f1 = local_getflags(e.EV.E1,s);
-            int f2 = local_getflags(e.EV.E2,s);
+            auto s = eu.EV.E1.EV.Vsym;
+            const f1 = local_getflags(e.EV.E1,s);
+            const f2 = local_getflags(e.EV.E2,s);
             if ((f1 | f2) & (LFsymref | LFsymdef))      // if either reference or define
-            {   result = 1;
-                break;
-            }
+                return true;
         }
         if (OTbinary(op))
-        {   if (local_chkrem(e,eu.EV.E2))
-            {   result = 1;
-                break;
-            }
+        {
+            if (local_chkrem(e,eu.EV.E2))
+                return true;
         }
         else if (!OTunary(op))
             break;                      // leaf node
         eu = eu.EV.E1;
     }
-    return result;
+    return false;
 }
 
 //////////////////////////////////////
@@ -496,14 +492,12 @@ private void local_ins(ref Loctab lt, elem *e)
 {
     elem_debug(e);
     if (e.EV.E1.Eoper == OPvar)
-    {   Symbol *s;
-
-        s = e.EV.E1.EV.Vsym;
+    {
+        auto s = e.EV.E1.EV.Vsym;
         symbol_debug(s);
         if (s.Sflags & SFLunambig)     // if can only be referenced directly
-        {   int flags;
-
-            flags = local_getflags(e.EV.E2,null);
+        {
+            const flags = local_getflags(e.EV.E2,null);
             if (!(flags & (LFvolatile | LFinp | LFoutp)) &&
                 !(e.EV.E1.Ety & mTYvolatile))
             {
@@ -527,7 +521,8 @@ private void local_rem(ref Loctab lt, uint u)
     //printf("local_rem(%u)\n",u);
     assert(u < lt.dim);
     if (u + 1 != lt.dim)
-    {   assert(u < lt.dim);
+    {
+        assert(u < lt.dim);
         lt.data[u] = lt.data[lt.dim - 1];
     }
     --lt.dim;
@@ -537,12 +532,11 @@ private void local_rem(ref Loctab lt, uint u)
 // Analyze and gather LFxxxx flags about expression e and symbol s.
 
 private int local_getflags(elem *e,Symbol *s)
-{   int flags;
-
+{
     elem_debug(e);
     if (s)
         symbol_debug(s);
-    flags = 0;
+    int flags = 0;
     while (1)
     {
         if (e.Ety & mTYvolatile)
@@ -552,9 +546,8 @@ private int local_getflags(elem *e,Symbol *s)
             case OPeq:
             case OPstreq:
                 if (e.EV.E1.Eoper == OPvar)
-                {   Symbol *s1;
-
-                    s1 = e.EV.E1.EV.Vsym;
+                {
+                    auto s1 = e.EV.E1.EV.Vsym;
                     if (s1.Sflags & SFLunambig)
                         flags |= (s1 == s) ? LFsymdef : LFunambigdef;
                     else
@@ -579,9 +572,8 @@ private int local_getflags(elem *e,Symbol *s)
             case OPorass:
             case OPcmpxchg:
                 if (e.EV.E1.Eoper == OPvar)
-                {   Symbol *s1;
-
-                    s1 = e.EV.E1.EV.Vsym;
+                {
+                    auto s1 = e.EV.E1.EV.Vsym;
                     if (s1.Sflags & SFLunambig)
                         flags |= (s1 == s) ? LFsymdef | LFsymref
                                            : LFunambigdef | LFunambigref;
