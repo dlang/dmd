@@ -785,7 +785,7 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
 enum Color { red, blue, green };
 
-int value[Color.max + 1] =
+int[Color.max + 1] value =
   [ Color.blue :6,
     Color.green:2,
     Color.red  :5 ];
