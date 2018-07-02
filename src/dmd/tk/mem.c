@@ -29,6 +29,9 @@
 #endif
 #endif
 
+extern "C"
+{
+
 #ifndef MEM_H
 #include        "mem.h"
 #endif
@@ -896,3 +899,5 @@ void mem_term()
 }
 
 #endif /* !MEM_NONE */
+
+}
