@@ -561,7 +561,7 @@ extern (C++) final class TupleDeclaration : Declaration
     bool isexp;             // true: expression tuple
     TypeTuple tupletype;    // !=null if this is a type tuple
 
-    extern (D) this(Loc loc, Identifier id, Objects* objects)
+    extern (D) this(const ref Loc loc, Identifier id, Objects* objects)
     {
         super(id);
         this.loc = loc;
@@ -692,7 +692,7 @@ extern (C++) final class AliasDeclaration : Declaration
     Dsymbol overnext;   // next in overload list
     Dsymbol _import;    // !=null if unresolved internal alias for selective import
 
-    extern (D) this(Loc loc, Identifier id, Type type)
+    extern (D) this(const ref Loc loc, Identifier id, Type type)
     {
         super(id);
         //printf("AliasDeclaration(id = '%s', type = %p)\n", id.toChars(), type);
@@ -702,7 +702,7 @@ extern (C++) final class AliasDeclaration : Declaration
         assert(type);
     }
 
-    extern (D) this(Loc loc, Identifier id, Dsymbol s)
+    extern (D) this(const ref Loc loc, Identifier id, Dsymbol s)
     {
         super(id);
         //printf("AliasDeclaration(id = '%s', s = %p)\n", id.toChars(), s);
@@ -1098,7 +1098,7 @@ extern (C++) class VarDeclaration : Declaration
 
     VarDeclarations* maybes;        // STC.maybescope variables that are assigned to this STC.maybescope variable
 
-    final extern (D) this(Loc loc, Type type, Identifier id, Initializer _init, StorageClass storage_class = STC.undefined_)
+    final extern (D) this(const ref Loc loc, Type type, Identifier id, Initializer _init, StorageClass storage_class = STC.undefined_)
     {
         super(id);
         //printf("VarDeclaration('%s')\n", id.toChars());
@@ -1668,7 +1668,7 @@ extern (C++) final class SymbolDeclaration : Declaration
 {
     StructDeclaration dsym;
 
-    extern (D) this(Loc loc, StructDeclaration dsym)
+    extern (D) this(const ref Loc loc, StructDeclaration dsym)
     {
         super(dsym.ident);
         this.loc = loc;
@@ -2140,7 +2140,7 @@ extern (C++) final class TypeInfoVectorDeclaration : TypeInfoDeclaration
  */
 extern (C++) final class ThisDeclaration : VarDeclaration
 {
-    extern (D) this(Loc loc, Type t)
+    extern (D) this(const ref Loc loc, Type t)
     {
         super(loc, t, Id.This, null);
         storage_class |= STC.nodtor;

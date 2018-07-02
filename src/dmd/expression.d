@@ -7451,7 +7451,7 @@ extern (C++) final class ObjcClassReferenceExp : Expression
 {
     ClassDeclaration classDeclaration;
 
-    extern (D) this(Loc loc, ClassDeclaration classDeclaration)
+    extern (D) this(const ref Loc loc, ClassDeclaration classDeclaration)
     {
         super(loc, TOK.objcClassReference,
             __traits(classInstanceSize, ObjcClassReferenceExp));
