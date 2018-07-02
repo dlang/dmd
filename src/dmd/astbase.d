@@ -6161,6 +6161,22 @@ struct ASTBase
         }
     }
 
+    extern (C++) final class StructLiteralExp2 : Expression
+    {
+        StructInitializer _init;
+
+        extern (D) this(Loc loc, StructInitializer _init)
+        {
+            super(loc, TOK.structLiteral2, __traits(classInstanceSize, StructLiteralExp2));
+            this._init = _init;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
     extern (C++) final class ArrayInitializer : Initializer
     {
         Expressions index;

@@ -8461,7 +8461,25 @@ final class Parser(AST) : Lexer
                 break;
 
             case TOK.leftParentheses:
-                e = new AST.CallExp(loc, e, parseArguments());
+                auto nextTok = peek(&token);
+                auto nextTok2 = peek(nextTok);
+                auto nextTok3 = peek(nextTok2);
+                // TODO: choose which struct initialization format to pick
+                if (nextTok.value == TOK.leftCurly &&
+                    nextTok2.value == TOK.identifier &&
+                    nextTok3.value == TOK.colon
+                    )
+                 {
+                    nextToken();
+                    auto _init = cast(AST.StructInitializer) parseInitializer();
+                    auto sl = new AST.StructLiteralExp2(loc, _init);
+                    e = new AST.CallExp(loc, e, sl);
+                    nextToken();
+                }
+                else
+                {
+                    e = new AST.CallExp(loc, e, parseArguments());
+                }
                 continue;
 
             case TOK.leftBracket:

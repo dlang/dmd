@@ -2915,6 +2915,34 @@ enum stageApply             = 0x8;  /// apply is running
 enum stageInlineScan        = 0x10; /// inlineScan is running
 enum stageToCBuffer         = 0x20; /// toCBuffer is running
 
+
+extern (C++) final class StructLiteralExp2 : Expression
+{
+    import dmd.init : StructInitializer;
+    StructInitializer _init;
+
+    extern (D) this(const ref Loc loc, StructInitializer _init)
+    {
+        super(loc, TOK.structLiteral2, __traits(classInstanceSize, StructLiteralExp2));
+        this._init = _init;
+    }
+
+    override bool equals(RootObject o)
+    {
+        return false; // TODO
+    }
+
+    override Expression syntaxCopy()
+    {
+        return new StructLiteralExp2(loc, cast(StructInitializer) _init.syntaxCopy());
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
 /***********************************************************
  * sd( e1, e2, e3, ... )
  */
@@ -2949,6 +2977,7 @@ extern (C++) final class StructLiteralExp : Expression
     extern (D) this(const ref Loc loc, StructDeclaration sd, Expressions* elements, Type stype = null)
     {
         super(loc, TOK.structLiteral, __traits(classInstanceSize, StructLiteralExp));
+
         this.sd = sd;
         if (!elements)
             elements = new Expressions();

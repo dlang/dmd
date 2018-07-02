@@ -4165,7 +4165,25 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 /* It's a struct literal
                  */
             Lx:
-                Expression e = new StructLiteralExp(exp.loc, sd, exp.arguments, exp.e1.type);
+                Expression e;
+                if (exp.arguments !is null &&
+                    exp.arguments.dim > 0 &&
+                    (*exp.arguments)[0].op == TOK.structLiteral2)
+                {
+                    import dmd.init, dmd.initsem;
+                    auto exp2 = cast(StructLiteralExp2) (*exp.arguments)[0];
+                    auto ie = buildStruct(sd, exp2._init, exp.e1.type, NeedInterpret.INITinterpret, sd._scope, false);
+                    if (ie.isErrorInitializer())
+                    {
+                        result = e = new ErrorExp();
+                        return;
+                    }
+                    e = (cast(ExpInitializer) ie).exp;
+                }
+                else
+                {
+                    e = new StructLiteralExp(exp.loc, sd, exp.arguments, exp.e1.type);
+                }
                 e = e.expressionSemantic(sc);
                 result = e;
                 return;

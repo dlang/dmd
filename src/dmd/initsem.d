@@ -111,109 +111,8 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
         if (t.ty == Tstruct)
         {
             StructDeclaration sd = (cast(TypeStruct)t).sym;
-            if (sd.ctor)
-            {
-                error(i.loc, "%s `%s` has constructors, cannot use `{ initializers }`, use `%s( initializers )` instead", sd.kind(), sd.toChars(), sd.toChars());
-                return new ErrorInitializer();
-            }
-            sd.size(i.loc);
-            if (sd.sizeok != Sizeok.done)
-            {
-                return new ErrorInitializer();
-            }
-            size_t nfields = sd.fields.dim - sd.isNested();
-            //expandTuples for non-identity arguments?
-            auto elements = new Expressions(nfields);
-            for (size_t j = 0; j < elements.dim; j++)
-                (*elements)[j] = null;
-            // Run semantic for explicitly given initializers
-            // TODO: this part is slightly different from StructLiteralExp::semantic.
-            bool errors = false;
-            for (size_t fieldi = 0, j = 0; j < i.field.dim; j++)
-            {
-                if (Identifier id = i.field[j])
-                {
-                    Dsymbol s = sd.search(i.loc, id);
-                    if (!s)
-                    {
-                        s = sd.search_correct(id);
-                        Loc initLoc = i.value[j].loc;
-                        if (s)
-                            error(initLoc, "`%s` is not a member of `%s`, did you mean %s `%s`?", id.toChars(), sd.toChars(), s.kind(), s.toChars());
-                        else
-                            error(initLoc, "`%s` is not a member of `%s`", id.toChars(), sd.toChars());
-                        return new ErrorInitializer();
-                    }
-                    s = s.toAlias();
-                    // Find out which field index it is
-                    for (fieldi = 0; 1; fieldi++)
-                    {
-                        if (fieldi >= nfields)
-                        {
-                            error(i.loc, "`%s.%s` is not a per-instance initializable field", sd.toChars(), s.toChars());
-                            return new ErrorInitializer();
-                        }
-                        if (s == sd.fields[fieldi])
-                            break;
-                    }
-                }
-                else if (fieldi >= nfields)
-                {
-                    error(i.loc, "too many initializers for `%s`", sd.toChars());
-                    return new ErrorInitializer();
-                }
-                VarDeclaration vd = sd.fields[fieldi];
-                if ((*elements)[fieldi])
-                {
-                    error(i.loc, "duplicate initializer for field `%s`", vd.toChars());
-                    errors = true;
-                    continue;
-                }
-                if (vd.type.hasPointers)
-                {
-                    if ((t.alignment() < target.ptrsize ||
-                         (vd.offset & (target.ptrsize - 1))) &&
-                        sc.func && sc.func.setUnsafe())
-                    {
-                        error(i.loc, "field `%s.%s` cannot assign to misaligned pointers in `@safe` code",
-                            sd.toChars(), vd.toChars());
-                        errors = true;
-                    }
-                }
-                for (size_t k = 0; k < nfields; k++)
-                {
-                    VarDeclaration v2 = sd.fields[k];
-                    if (vd.isOverlappedWith(v2) && (*elements)[k])
-                    {
-                        error(i.loc, "overlapping initialization for field `%s` and `%s`", v2.toChars(), vd.toChars());
-                        errors = true;
-                        continue;
-                    }
-                }
-                assert(sc);
-                Initializer iz = i.value[j];
-                iz = iz.initializerSemantic(sc, vd.type.addMod(t.mod), needInterpret);
-                Expression ex = iz.initializerToExpression();
-                if (ex.op == TOK.error)
-                {
-                    errors = true;
-                    continue;
-                }
-                i.value[j] = iz;
-                (*elements)[fieldi] = doCopyOrMove(sc, ex);
-                ++fieldi;
-            }
-            if (errors)
-            {
-                return new ErrorInitializer();
-            }
-            auto sle = new StructLiteralExp(i.loc, sd, elements, t);
-            if (!sd.fill(i.loc, elements, false))
-            {
-                return new ErrorInitializer();
-            }
-            sle.type = t;
-            auto ie = new ExpInitializer(i.loc, sle);
+
+            auto ie = buildStruct(sd, i, t, needInterpret, sc, true);
             return ie.initializerSemantic(sc, t, needInterpret);
         }
         else if ((t.ty == Tdelegate || t.ty == Tpointer && t.nextOf().ty == Tfunction) && i.value.dim == 0)
@@ -513,15 +412,119 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
         //printf("-ExpInitializer::semantic(): "); i.exp.print();
         return i;
     }
+}
 
-    final switch (init.kind)
+package Initializer buildStruct(StructDeclaration sd, StructInitializer i,
+                 Type t, NeedInterpret needInterpret, Scope* sc, bool withInitializerSemantic)
+{
+    Expressions* elements;
+
+    if (sd.ctor)
     {
-        case InitKind.void_:   return visitVoid  (cast(  VoidInitializer)init);
-        case InitKind.error:   return visitError (cast( ErrorInitializer)init);
-        case InitKind.struct_: return visitStruct(cast(StructInitializer)init);
-        case InitKind.array:   return visitArray (cast( ArrayInitializer)init);
-        case InitKind.exp:     return visitExp   (cast(   ExpInitializer)init);
+        error(i.loc, "%s `%s` has constructors, cannot use `{ initializers }`, use `%s( initializers )` instead", sd.kind(), sd.toChars(), sd.toChars());
+        return new ErrorInitializer();
     }
+    sd.size(i.loc);
+    if (sd.sizeok != Sizeok.done)
+    {
+        return new ErrorInitializer();
+    }
+    size_t nfields = sd.fields.dim - sd.isNested();
+    //expandTuples for non-identity arguments?
+    elements = new Expressions(nfields);
+    for (size_t j = 0; j < elements.dim; j++)
+        (*elements)[j] = null;
+    // Run semantic for explicitly given initializers
+    // TODO: this part is slightly different from StructLiteralExp::semantic.
+    bool errors = false;
+    for (size_t fieldi = 0, j = 0; j < i.field.dim; j++)
+    {
+        if (Identifier id = i.field[j])
+        {
+            Dsymbol s = sd.search(i.loc, id);
+            if (!s)
+            {
+                s = sd.search_correct(id);
+                Loc initLoc = i.value[j].loc;
+                if (s)
+                    error(initLoc, "`%s` is not a member of `%s`, did you mean %s `%s`?", id.toChars(), sd.toChars(), s.kind(), s.toChars());
+                else
+                    error(initLoc, "`%s` is not a member of `%s`", id.toChars(), sd.toChars());
+                return new ErrorInitializer();
+            }
+            s = s.toAlias();
+            // Find out which field index it is
+            for (fieldi = 0; 1; fieldi++)
+            {
+                if (fieldi >= nfields)
+                {
+                    error(i.loc, "`%s.%s` is not a per-instance initializable field", sd.toChars(), s.toChars());
+                    return new ErrorInitializer();
+                }
+                if (s == sd.fields[fieldi])
+                    break;
+            }
+        }
+        else if (fieldi >= nfields)
+        {
+            error(i.loc, "too many initializers for `%s`", sd.toChars());
+            return new ErrorInitializer();
+        }
+        VarDeclaration vd = sd.fields[fieldi];
+        if ((*elements)[fieldi])
+        {
+            error(i.loc, "duplicate initializer for field `%s`", vd.toChars());
+            errors = true;
+            continue;
+        }
+        if (vd.type.hasPointers)
+        {
+            if ((t.alignment() < target.ptrsize ||
+                 (vd.offset & (target.ptrsize - 1))) &&
+                sc.func && sc.func.setUnsafe())
+            {
+                error(i.loc, "field `%s.%s` cannot assign to misaligned pointers in `@safe` code",
+                    sd.toChars(), vd.toChars());
+                errors = true;
+            }
+        }
+        for (size_t k = 0; k < nfields; k++)
+        {
+            VarDeclaration v2 = sd.fields[k];
+            if (vd.isOverlappedWith(v2) && (*elements)[k])
+            {
+                error(i.loc, "overlapping initialization for field `%s` and `%s`", v2.toChars(), vd.toChars());
+                errors = true;
+                continue;
+            }
+        }
+        Initializer iz = i.value[j];
+        if (withInitializerSemantic)
+        {
+            assert(sc);
+            iz = iz.initializerSemantic(sc, vd.type.addMod(t.mod), needInterpret);
+        }
+        Expression ex = iz.initializerToExpression();
+        if (ex.op == TOK.error)
+        {
+            errors = true;
+            continue;
+        }
+        i.value[j] = iz;
+        (*elements)[fieldi] = doCopyOrMove(sc, ex);
+        ++fieldi;
+    }
+    if (errors)
+        return new ErrorInitializer();
+
+    auto sle = new StructLiteralExp(i.loc, sd, elements, t);
+    if (!sd.fill(i.loc, elements, false))
+    {
+        return new ErrorInitializer();
+    }
+
+    sle.type = t;
+    return new ExpInitializer(i.loc, sle);
 }
 
 /***********************

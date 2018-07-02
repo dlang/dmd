@@ -1474,6 +1474,25 @@ void test17622()
     s.fun();
 }
 
+
+void testStructLiteral()
+{
+    struct StructFoo
+    {
+        int a;
+    }
+
+    void bar(StructFoo foo)
+    {
+        assert(foo.a == 3);
+    }
+
+    StructFoo f = {a: 1};
+    f = StructFoo({a: 2});
+    assert(f.a == 2);
+    bar(StructFoo({a: 3}));
+}
+
 /********************************************/
 
 int main()
@@ -1522,6 +1541,7 @@ int main()
     test13021();
     test14556();
     test17622();
+    testStructLiteral();
 
     printf("Success\n");
     return 0;
