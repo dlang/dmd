@@ -353,13 +353,13 @@ BACK_OBJS = \
 	aa.o ti_achar.o \
 	ti_pvoid.o backconfig.o \
 	dwarf.o dwarfeh.o varstats.o \
-	ph2.o tk.o strtold.o md5.o \
+	ph2.o tk.o strtold.o \
 	$(TARGET_OBJS)
 
 BACK_DOBJS = bcomplex.o evalu8.o divcoeff.o dvec.o go.o gsroa.o glocal.o gdag.o gother.o gflow.o \
 	gloop.o compress.o cgelem.o cgcs.o ee.o cod4.o cod5.o nteh.o blockopt.o memh.o cg.o cgreg.o \
 	dtype.o debugprint.o symbol.o elem.o dcode.o cgsched.o cg87.o cgxmm.o cgcod.o cod1.o cod2.o \
-	cod3.o cv8.o dcgcv.o pdata.o util2.o var.o
+	cod3.o cv8.o dcgcv.o pdata.o util2.o var.o md5.o
 
 G_OBJS  = $(addprefix $G/, $(BACK_OBJS))
 G_DOBJS = $(addprefix $G/, $(BACK_DOBJS))
@@ -380,7 +380,7 @@ GLUE_SRC = \
 
 BACK_HDRS=$C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
 	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d $C/iasm.d \
-	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/md5.di $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d \
+	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d \
 	$C/dlist.d $C/melf.d $C/varstats.d
 
 TK_HDRS=
@@ -405,7 +405,7 @@ BACK_SRC = \
 	$C/machobj.c $C/mscoffobj.c \
 	$C/xmm.h $C/obj.h $C/pdata.d $C/cv8.d $C/backconfig.c $C/divcoeff.d \
 	$C/varstats.c $C/varstats.h $C/dvec.d \
-	$C/md5.c $C/md5.h \
+	$C/md5.d $C/md5.h \
 	$C/ph2.c $C/util2.d $C/dwarfeh.c $C/goh.d $C/memh.d \
 	$(TARGET_CH)
 

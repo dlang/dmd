@@ -5798,7 +5798,7 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
             if (buf.offset >= 32 + 2)
             {   // Replace long string with hash of that string
                 import dmd.backend.md5;
-                MD5_CTX mdContext;
+                MD5_CTX mdContext = void;
                 MD5Init(&mdContext);
                 MD5Update(&mdContext, cast(ubyte*)buf.peekString(), cast(uint)buf.offset);
                 MD5Final(&mdContext);
