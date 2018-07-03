@@ -832,9 +832,9 @@ void test11()
 /****************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=17481
 
-class C17481
+synchronized class C17481
 {
-    synchronized void trigger(){ new ubyte[1]; }
+    void trigger(){ new ubyte[1]; }
 }
 
 void test17481()

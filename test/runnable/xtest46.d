@@ -1081,9 +1081,9 @@ void test54()
 
 /***************************************************/
 
-class Foo55
+synchronized class Foo55
 {
-    synchronized void noop1() { }
+    void noop1() { }
     void noop2() shared { }
 }
 

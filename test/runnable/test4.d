@@ -446,10 +446,10 @@ int testx14(int x)
     }
 }
 
-class bar
+synchronized class bar
 {
-    int y;
-    synchronized int sync(int x)
+    private int y;
+    int sync(int x)
     {
         printf("in sync(%d) = %d\n", x, y + 3);
         return y + 3;
@@ -865,9 +865,9 @@ void test34()
 
 /* ================================ */
 
-class X35
+synchronized class X35
 {
-    final synchronized void foo()
+    final void foo()
     {
         for(;;)
         {

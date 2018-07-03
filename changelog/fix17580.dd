@@ -1,0 +1,28 @@
+Deprecate marking class methods as `synchronized` while class is not synchronized
+
+The D language specification states that member functions of non-`synchronized` classes cannot be marked as `synchronized`, however the compiler does not reject such declarations. The following code compiled before this release:
+
+---
+class S
+{
+    synchronized void fun() { }
+}
+---
+
+To fix the deprecation message, make the class synchronized:
+
+---
+synchronized class S
+{
+    void fun() { }
+}
+---
+
+or mark the methods as `shared`:
+
+---
+class S
+{
+    shared void fun() { }
+}
+---

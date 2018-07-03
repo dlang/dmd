@@ -98,11 +98,11 @@ void test6453()
         nothrow shared invariant() {}
         @safe   shared invariant() {}
     }
-    static class C6453c
+    static synchronized class C6453c
     {
-        pure    synchronized invariant() {}
-        nothrow synchronized invariant() {}
-        @safe   synchronized invariant() {}
+        pure    invariant() {}
+        nothrow invariant() {}
+        @safe   invariant() {}
     }
 }
 
