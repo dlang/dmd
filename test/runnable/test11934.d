@@ -1,7 +1,5 @@
 void main()
 {
-    import core.memory : GC;
-
     struct Struct11934
     {
         this(int i) { instances++; }
