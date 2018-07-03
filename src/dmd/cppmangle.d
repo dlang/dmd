@@ -257,6 +257,19 @@ private final class CppMangleVisitor : Visitor
         components.push(p);
     }
 
+    /**
+     * Write an identifier preceded by its length
+     *
+     * Params:
+     *   ident = `Identifier` to write to `this.buf`
+     */
+    void writeIdentifier(const ref Identifier ident)
+    {
+        const name = ident.toString();
+        this.buf.print(name.length);
+        this.buf.writestring(name);
+    }
+
     /************************
      * Determine if symbol is indeed the global ::std namespace.
      * Params:
@@ -422,18 +435,12 @@ private final class CppMangleVisitor : Visitor
             if (!substitute(ti.tempdecl))
             {
                 append(ti.tempdecl);
-                const name = ti.tempdecl.toAlias().ident.toString();
-                buf.print(name.length);
-                buf.writestring(name);
+                this.writeIdentifier(ti.tempdecl.toAlias().ident);
             }
             template_args(ti);
         }
         else
-        {
-            const name = s.ident.toString();
-            buf.print(name.length);
-            buf.writestring(name);
-        }
+            this.writeIdentifier(s.ident);
     }
 
     /********
