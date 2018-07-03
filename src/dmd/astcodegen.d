@@ -32,33 +32,4 @@ struct ASTCodegen
     public import dmd.staticassert;
     public import dmd.typesem;
     public import dmd.ctfeexpr;
-
-
-    alias initializerToExpression   = dmd.initsem.initializerToExpression;
-    alias typeToExpression          = dmd.typesem.typeToExpression;
-    alias UserAttributeDeclaration  = dmd.attrib.UserAttributeDeclaration;
-    alias Ensure                    = dmd.func.Ensure; // workaround for bug in older DMD frontends
-
-    alias MODFlags                  = dmd.mtype.MODFlags;
-    alias Type                      = dmd.mtype.Type;
-    alias Tident                    = dmd.mtype.Tident;
-    alias Tfunction                 = dmd.mtype.Tfunction;
-    alias Parameter                 = dmd.mtype.Parameter;
-    alias Taarray                   = dmd.mtype.Taarray;
-    alias Tsarray                   = dmd.mtype.Tsarray;
-    alias Terror                    = dmd.mtype.Terror;
-
-    alias STC                       = dmd.declaration.STC;
-    alias Dsymbol                   = dmd.dsymbol.Dsymbol;
-    alias Dsymbols                  = dmd.dsymbol.Dsymbols;
-    alias Prot                      = dmd.dsymbol.Prot;
-
-    alias stcToBuffer               = dmd.hdrgen.stcToBuffer;
-    alias linkageToChars            = dmd.hdrgen.linkageToChars;
-    alias protectionToChars         = dmd.hdrgen.protectionToChars;
-
-    alias isType                    = dmd.dtemplate.isType;
-    alias isExpression              = dmd.dtemplate.isExpression;
-    alias isTuple                   = dmd.dtemplate.isTuple;
-
 }
