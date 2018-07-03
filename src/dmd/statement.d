@@ -1436,7 +1436,10 @@ extern (C++) final class ConditionalStatement : Statement
         {
             DebugCondition dc = condition.isDebugCondition();
             if (dc)
+            {
                 s = new DebugStatement(loc, ifbody);
+                debugThrowWalker(ifbody);
+            }
             else
                 s = ifbody;
         }
@@ -1452,6 +1455,37 @@ extern (C++) final class ConditionalStatement : Statement
     {
         v.visit(this);
     }
+}
+
+/**
+Marks all occurring ThrowStatements as internalThrows.
+This is intended to be called from a DebugStatement as it allows
+to mark all its nodes as nothrow.
+
+Params:
+    s = AST Node to traverse
+*/
+private void debugThrowWalker(Statement s)
+{
+
+    extern(C++) final class DebugWalker : SemanticTimeTransitiveVisitor
+    {
+        alias visit = SemanticTimeTransitiveVisitor.visit;
+    public:
+
+        override void visit(ThrowStatement s)
+        {
+            s.internalThrow = true;
+        }
+
+        override void visit(CallExp s)
+        {
+            s.inDebugStatement = true;
+        }
+    }
+
+    scope walker = new DebugWalker();
+    s.accept(walker);
 }
 
 /***********************************************************

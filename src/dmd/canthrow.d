@@ -76,6 +76,9 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
 
         override void visit(CallExp ce)
         {
+            if (ce.inDebugStatement)
+                return;
+
             if (global.errors && !ce.e1.type)
                 return; // error recovery
             /* If calling a function or delegate that is typed as nothrow,
