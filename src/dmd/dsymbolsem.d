@@ -1029,6 +1029,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 dsym.error("globals, statics, fields, manifest constants, ref and out parameters cannot be `scope`");
             }
+
+            // @@@DEPRECATED_v2.087_REMOVAL@@@.
+            // https://dlang.org/deprecate.html#scope%20as%20a%20type%20constraint
             if (!(dsym.storage_class & STC.scope_))
             {
                 if (!(dsym.storage_class & STC.parameter) && dsym.ident != Id.withSym)
@@ -4330,6 +4333,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
         assert(sd.type.ty != Tstruct || (cast(TypeStruct)sd.type).sym == sd);
+
+        // @@@DEPRECATED_v2.087_REMOVAL@@@.
+        // https://dlang.org/deprecate.html#scope%20as%20a%20type%20constraint
+        // Don't forget to remove code at https://github.com/dlang/dmd/blob/b2f8274ba76358607fc3297a1e9f361480f9bcf9/src/dmd/dsymbolsem.d#L1032-L1036
+        if (sd.storage_class & STC.scope_)
+            deprecation(sd.loc, "`scope` as a type constraint is deprecated.  Use `scope` at the usage site.");
     }
 
     final void interfaceSemantic(ClassDeclaration cd)
@@ -4977,6 +4986,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             cldec.deferred.semantic3(sc);
         }
         //printf("-ClassDeclaration.dsymbolSemantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
+
+        // @@@DEPRECATED_v2.087_REMOVAL@@@.
+        // https://dlang.org/deprecate.html#scope%20as%20a%20type%20constraint
+        // Don't forget to remove code at https://github.com/dlang/dmd/blob/b2f8274ba76358607fc3297a1e9f361480f9bcf9/src/dmd/dsymbolsem.d#L1032-L1036
+        if (cldec.storage_class & STC.scope_)
+            deprecation(cldec.loc, "`scope` as a type constraint is deprecated.  Use `scope` at the usage site.");
     }
 
     override void visit(InterfaceDeclaration idec)
@@ -5295,6 +5310,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
         assert(idec.type.ty != Tclass || (cast(TypeClass)idec.type).sym == idec);
+
+        // @@@DEPRECATED_v2.087_REMOVAL@@@.
+        // https://dlang.org/deprecate.html#scope%20as%20a%20type%20constraint
+        // Don't forget to remove code at https://github.com/dlang/dmd/blob/b2f8274ba76358607fc3297a1e9f361480f9bcf9/src/dmd/dsymbolsem.d#L1032-L1036
+        if (idec.storage_class & STC.scope_)
+            deprecation(idec.loc, "`scope` as a type constraint is deprecated.  Use `scope` at the usage site.");
     }
 }
 
