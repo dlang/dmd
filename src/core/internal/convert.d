@@ -34,7 +34,7 @@ private ubyte[] ctfe_alloc()(size_t n)
 }
 
 @trusted pure nothrow @nogc
-const(ubyte)[] toUbyte(T)(ref T val) if(is(Unqual!T == float) || is(Unqual!T == double) || is(Unqual!T == real) ||
+const(ubyte)[] toUbyte(T)(const ref T val) if(is(Unqual!T == float) || is(Unqual!T == double) || is(Unqual!T == real) ||
                                         is(Unqual!T == ifloat) || is(Unqual!T == idouble) || is(Unqual!T == ireal))
 {
     static const(ubyte)[] reverse_(const(ubyte)[] arr)
@@ -286,7 +286,7 @@ private ulong shiftrRound(ulong x)
 }
 
 @safe pure nothrow @nogc
-private uint binLog2(T)(T x)
+private uint binLog2(T)(const T x)
 {
     assert(x > 0);
     int max = 2 ^^ (FloatTraits!T.EXPONENT-1)-1;
@@ -499,13 +499,13 @@ template floatFormat(T) if(is(T:real) || is(T:ireal))
 
 //  all toUbyte functions must be evaluable at compile time
 @trusted pure nothrow @nogc
-const(ubyte)[] toUbyte(T)(T[] arr) if (T.sizeof == 1)
+const(ubyte)[] toUbyte(T)(const T[] arr) if (T.sizeof == 1)
 {
     return cast(const(ubyte)[])arr;
 }
 
 @trusted pure nothrow @nogc
-const(ubyte)[] toUbyte(T)(T[] arr) if ((is(typeof(toUbyte(arr[0])) == const(ubyte)[])) && (T.sizeof > 1))
+const(ubyte)[] toUbyte(T)(const T[] arr) if ((is(typeof(toUbyte(arr[0])) == const(ubyte)[])) && (T.sizeof > 1))
 {
     if (__ctfe)
     {
@@ -525,7 +525,7 @@ const(ubyte)[] toUbyte(T)(T[] arr) if ((is(typeof(toUbyte(arr[0])) == const(ubyt
 }
 
 @trusted pure nothrow @nogc
-const(ubyte)[] toUbyte(T)(ref T val) if (__traits(isIntegral, T) && !is(T == enum))
+const(ubyte)[] toUbyte(T)(const ref T val) if (__traits(isIntegral, T) && !is(T == enum))
 {
     static if (T.sizeof == 1)
     {
@@ -561,7 +561,7 @@ const(ubyte)[] toUbyte(T)(ref T val) if (__traits(isIntegral, T) && !is(T == enu
 }
 
 @trusted pure nothrow @nogc
-const(ubyte)[] toUbyte(T)(ref T val) if (is(Unqual!T == cfloat) || is(Unqual!T == cdouble) ||is(Unqual!T == creal))
+const(ubyte)[] toUbyte(T)(const ref T val) if (is(Unqual!T == cfloat) || is(Unqual!T == cdouble) ||is(Unqual!T == creal))
 {
     if (__ctfe)
     {
@@ -581,12 +581,12 @@ const(ubyte)[] toUbyte(T)(ref T val) if (is(Unqual!T == cfloat) || is(Unqual!T =
 }
 
 @trusted pure nothrow @nogc
-const(ubyte)[] toUbyte(T)(ref T val) if (is(T V == enum) && is(typeof(toUbyte(cast(V)val)) == const(ubyte)[]))
+const(ubyte)[] toUbyte(T)(const ref T val) if (is(T V == enum) && is(typeof(toUbyte(cast(const V)val)) == const(ubyte)[]))
 {
     if (__ctfe)
     {
         static if (is(T V == enum)){}
-        return toUbyte(cast(V) val);
+        return toUbyte(cast(const V) val);
     }
     else
     {
@@ -649,7 +649,7 @@ private bool isNonReferenceStruct(T)() if (is(T == struct) || is(T == union))
 }
 
 @trusted pure nothrow @nogc
-const(ubyte)[] toUbyte(T)(ref T val) if (is(T == struct) || is(T == union))
+const(ubyte)[] toUbyte(T)(const ref T val) if (is(T == struct) || is(T == union))
 {
     if (__ctfe)
     {

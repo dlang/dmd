@@ -56,7 +56,7 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && __traits
 }
 
 //dynamic array hash
-size_t hashOf(T)(auto ref T val, size_t seed = 0)
+size_t hashOf(T)(T val, size_t seed = 0)
 if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStaticArray, T)
     && !is(T == struct) && !is(T == class) && !is(T == union))
 {
@@ -101,13 +101,14 @@ if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStati
 
 //arithmetic type hash
 @trusted @nogc nothrow pure
-size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && __traits(isArithmetic, T))
+size_t hashOf(T)(scope const T val, size_t seed = 0) if (!is(T == enum) && __traits(isArithmetic, T))
 {
     static if(__traits(isFloating, val))
     {
         static if (floatCoalesceZeroes || floatCoalesceNaNs)
         {
-            auto data = val;
+            import core.internal.traits : Unqual;
+            Unqual!T data = val;
             // Zero coalescing not supported for deprecated complex types.
             static if (floatCoalesceZeroes && is(typeof(data = 0)))
                 if (data == 0) data = 0; // +0.0 and -0.0 become the same.
@@ -170,14 +171,14 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && __traits
 
 //typeof(null) hash. CTFE supported
 @trusted @nogc nothrow pure
-size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && is(T : typeof(null)))
+size_t hashOf(T)(scope const T val, size_t seed = 0) if (!is(T == enum) && is(T : typeof(null)))
 {
     return hashOf(cast(void*)null, seed);
 }
 
 //Pointers hash. CTFE unsupported if not null
 @trusted @nogc nothrow pure
-size_t hashOf(T)(auto ref T val, size_t seed = 0)
+size_t hashOf(T)(scope const T val, size_t seed = 0)
 if (!is(T == enum) && is(T V : V*) && !is(T : typeof(null))
     && !is(T == struct) && !is(T == class) && !is(T == union))
 {
@@ -256,7 +257,7 @@ nothrow pure @safe unittest // issue 19005
 
 //delegate hash. CTFE unsupported
 @trusted @nogc nothrow pure
-size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && is(T == delegate))
+size_t hashOf(T)(scope const T val, size_t seed = 0) if (!is(T == enum) && is(T == delegate))
 {
     assert(!__ctfe, "unable to compute hash of "~T.stringof);
     const(ubyte)[] bytes = (cast(const(ubyte)*)&val)[0 .. T.sizeof];
@@ -264,13 +265,13 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && is(T == 
 }
 
 //class or interface hash. CTFE depends on toHash
-size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && is(T == interface) || is(T == class))
+size_t hashOf(T)(T val, size_t seed = 0) if (!is(T == enum) && is(T == interface) || is(T == class))
 {
     return hashOf(val ? (cast(Object)val).toHash() : 0, seed);
 }
 
 //associative array hash. CTFE depends on base types
-size_t hashOf(T)(auto ref T aa, size_t seed = 0) if (!is(T == enum) && __traits(isAssociativeArray, T))
+size_t hashOf(T)(T aa, size_t seed = 0) if (!is(T == enum) && __traits(isAssociativeArray, T))
 {
     if (!aa.length) return hashOf(0, seed);
     size_t h = 0;
@@ -544,7 +545,7 @@ nothrow pure @system unittest // issue 18918
 
 // This overload is for backwards compatibility.
 @system pure nothrow @nogc
-size_t bytesHash(const(void)* buf, size_t len, size_t seed)
+size_t bytesHash(scope const(void)* buf, size_t len, size_t seed)
 {
     return bytesHashAlignedBy!ubyte((cast(const(ubyte)*) buf)[0 .. len], seed);
 }
