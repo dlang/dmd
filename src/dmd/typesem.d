@@ -636,6 +636,7 @@ extern (C++) Expression typeToExpressionHelper(TypeQualified t, Expression e, si
             case DYNCAST.parameter:
             case DYNCAST.statement:
             case DYNCAST.condition:
+            case DYNCAST.templateparameter:
                 assert(0);
         }
     }

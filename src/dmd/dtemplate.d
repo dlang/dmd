@@ -99,6 +99,13 @@ extern (C++) inout(Parameter) isParameter(inout RootObject o)
     return cast(inout(Parameter))o;
 }
 
+extern (C++) inout(TemplateParameter) isTemplateParameter(inout RootObject o)
+    {
+        if (!o || o.dyncast() != DYNCAST.templateparameter)
+            return null;
+        return cast(inout(TemplateParameter))o;
+    }
+
 /**************************************
  * Is this Object an error?
  */
@@ -5036,7 +5043,7 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
 
 /***********************************************************
  */
-extern (C++) class TemplateParameter
+extern (C++) class TemplateParameter : RootObject
 {
     Loc loc;
     Identifier ident;
@@ -5094,6 +5101,12 @@ extern (C++) class TemplateParameter
     abstract RootObject defaultArg(Loc instLoc, Scope* sc);
 
     abstract bool hasDefaultArg();
+
+    override const(char)* toChars() { return this.ident.toChars(); }
+    override DYNCAST dyncast() const pure @nogc nothrow @safe
+    {
+        return DYNCAST.templateparameter;
+    }
 
     /*******************************************
      * Match to a particular TemplateParameter.

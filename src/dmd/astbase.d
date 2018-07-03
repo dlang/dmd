@@ -6174,6 +6174,12 @@ struct ASTBase
         return cast(Expression)o;
     }
 
+    static extern (C++) TemplateParameter isTemplateParameter(RootObject o)
+    {
+        if (!o || o.dyncast() != DYNCAST.templateparameter)
+            return null;
+        return cast(TemplateParameter)o;
+    }
 
 
     extern (C++) static const(char)* protectionToChars(Prot.Kind kind)
