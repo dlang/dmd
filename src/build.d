@@ -6,7 +6,6 @@ Usage:
   ./build.d dmd
 
 TODO:
-- add different ENABLE modes
 - add all posix.mak Makefile targets
 - support 32-bit builds
 - test on OSX
@@ -38,50 +37,93 @@ void main(string[] args)
         "v", "Verbose command output", (cast(bool*) &verbose),
         "f", "Force run (ignore timestamps and always run all tests)", (cast(bool*) &force),
     );
-    if (res.helpWanted)
+    void showHelp()
     {
         defaultGetoptPrinter(`./build.d <targets>...
 
-Examples:
+Examples
+--------
 
-    ./build.d dmd                                                  # build DMD
-    ./build.d unittest                                             # runs internal unittests
-    ./build.d clean                                                # remove all generated files
+    ./build.d dmd           # build DMD
+    ./build.d unittest      # runs internal unittests
+    ./build.d clean         # remove all generated files
 
-Options:
+Important variables:
+--------------------
+
+HOST_CXX:             Host C++ compiler to use (g++,clang++)
+HOST_DMD:             Host D compiler to use for bootstrapping
+AUTO_BOOTSTRAP:       Enable auto-boostrapping by downloading a stable DMD binary
+MODEL:                Target architecture to build for (32,64) - defaults to the host architecture
+
+Build modes:
+------------
+BUILD: release (default) | debug (enabled a build with debug instructions)
+
+Opt-in build features:
+
+ENABLE_RELEASE:       Optimized release built
+ENABLE_DEBUG:         Add debug instructions and symbols (set if ENABLE_RELEASE isn't set)
+ENABLE_WARNINGS:      Enable C++ build warnings
+ENABLE_PROFILING:     Build dmd with a profiling recorder (C++)
+ENABLE_PGO_USE:       Build dmd with existing profiling information (C++)
+  PGO_DIR:            Directory for profile-guided optimization (PGO) logs
+ENABLE_LTO:           Enable link-time optimizations
+ENABLE_UNITTEST:      Build dmd with unittests (sets ENABLE_COVERAGE=1)
+ENABLE_PROFILE:       Build dmd with a profiling recorder (D)
+ENABLE_COVERAGE       Build dmd with coverage counting
+ENABLE_SANITIZERS     Build dmd with sanitizer (e.g. ENABLE_SANITIZERS=address,undefined)
+
+Targets
+-------
+
+all                   Build dmd
+unittest              Run all unittest blocks
+clean                 Remove all generated files
+
+The generated files will be in generated/$(OS)/$(BUILD)/$(MODEL)
+
+Command-line parameters
+-----------------------
 `, res.options);
-        "\nSee the README.md for a more in-depth explanation of the build script.".writeln;
         return;
     }
+
+    if (res.helpWanted)
+        return showHelp;
 
     // parse arguments
     args.popFront;
     args2Environment(args);
 
-    // bootstrap all needed environment variables
-    env = getEnvironment;
-
-    // get all sources
-    sources = sourceFiles;
-
     // default target
     if (!args.length)
         args = ["all"];
+
+    // bootstrap all needed environment variables
+    parseEnvironment;
 
     auto targets = args
         .predefinedTargets // preprocess
         .array;
 
-    if (targets.length > 0)
+    processEnvironment;
+
+    // get all sources
+    sources = sourceFiles;
+
+    if (targets.length == 0)
+        return showHelp;
+
+    if (verbose)
     {
-        if (verbose)
-        {
-            log("================================================================================");
-            foreach (key, value; env)
-                log("%s=%s", key, value);
-            log("================================================================================");
-        }
+        log("================================================================================");
+        foreach (key, value; env)
+            log("%s=%s", key, value);
+        log("================================================================================");
     }
+    foreach (target; targets)
+        target();
 }
 
 /**
@@ -307,7 +349,7 @@ auto buildDMD()
     Dependency dependency = {
         // newdelete.o + lexer.a + backend.a
         sources: sources.dmd.chain(sources.root, dependencys[0].targets, dependencys[1].targets, backend.targets).array,
-        target: env["G"].buildPath("dmd").exeName,
+        target: env["DMD_PATH"],
         name: "(CC) MAIN_DMD_BUILD",
         command: [
             env["HOST_DMD_RUN"],
@@ -328,7 +370,8 @@ Special targets:
 */
 auto predefinedTargets(string[] targets)
 {
-    Appender!(string[]) newTargets;
+    import std.functional : toDelegate;
+    Appender!(void delegate()[]) newTargets;
     foreach (t; targets)
     {
         t = t.buildNormalizedPath; // remove trailing slashes
@@ -343,7 +386,13 @@ auto predefinedTargets(string[] targets)
                 break;
 
             case "unittest":
-                "TODO: unittest".writeln; // TODO
+                flags["DFLAGS"] ~= "-version=NoMain";
+                flags["DFLAGS"] ~= "-main";
+                flags["DFLAGS"] ~= "-unittest";
+                newTargets.put((){
+                    buildDMD();
+                    spawnProcess(env["DMD_PATH"]); // run the unittests
+                }.toDelegate);
                 break;
 
             case "cxx-unittest":
@@ -376,7 +425,7 @@ auto predefinedTargets(string[] targets)
 
             dmd:
             case "dmd":
-                buildDMD();
+                newTargets.put({buildDMD();}.toDelegate);
                 break;
 
             case "clean":
@@ -385,9 +434,11 @@ auto predefinedTargets(string[] targets)
                 exit(0);
                 break;
 
-            default:
             case "all":
                 goto dmd;
+            default:
+                writefln("ERROR: Target `%s` is unknown.", t);
+                writeln;
                 break;
         }
     }
@@ -395,10 +446,8 @@ auto predefinedTargets(string[] targets)
 }
 
 // Sets the environment variables
-string[string] getEnvironment()
+void parseEnvironment()
 {
-    string[string] env;
-
     env.getDefault("TARGET_CPU", "X86");
     auto os = env.getDefault("OS", detectOS);
     auto build = env.getDefault("BUILD", "release");
@@ -448,7 +497,13 @@ string[string] getEnvironment()
     env.getDefault("CXX_KIND", !cxxVersion.find("gcc", "Free Software")[0].empty ? "g++" : "clang++");
 
     env.getDefault("HOST_DMD", "dmd");
+}
 
+// Checks the environment variables and flags
+void processEnvironment()
+{
+    auto model = env["MODEL"];
+    auto os = env["OS"];
     // Auto-bootstrapping of a specific host compiler
     if (env.getDefault("AUTO_BOOTSTRAP", "0") != "0")
     {
@@ -471,8 +526,8 @@ string[string] getEnvironment()
     }
     else
     {
-        env["HOST_DMD_PATH"] = ["which", env["HOST_DMD"]].execute.output.strip;
-        env["HOST_DMD_RUN"] = env["HOST_DMD"];
+        env["HOST_DMD_PATH"] = ["which", env["HOST_DMD"]].execute.output.strip.absolutePath;
+        env["HOST_DMD_RUN"] = env["HOST_DMD_PATH"];
     }
 
     if (!env["HOST_DMD_PATH"].exists)
@@ -490,6 +545,8 @@ string[string] getEnvironment()
         env["HOST_DMD_KIND"] = "gdc";
     else
         enforce(0, "Invalid Host DMD found: " ~ hostDMDVersion);
+
+    env["DMD_PATH"] = env["G"].buildPath("dmd").exeName;
 
     env.getDefault("ENABLE_WARNINGS", "0");
     string[] warnings;
@@ -550,12 +607,8 @@ string[string] getEnvironment()
     if (env["CXX_KIND"] == "clang++")
         cxxFlags ~= ["-xc++"];
 
-    flags["CXXFLAGS"] = cxxFlags;
-
     // TODO: allow adding new flags from the environment
-    string[] dflags;
-    flags["DFLAGS"] ~= ["-version=MARS", "-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"]];
-    // TODO: add different ENABLE modes
+    string[] dflags = ["-version=MARS", "-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"]];
 
     flags["BACK_FLAGS"] = ["-I"~env["ROOT"], "-I"~env["TK"], "-I"~env["C"], "-I"~env["G"], "-I"~env["D"], "-DDMDV2=1"];
 
@@ -564,7 +617,59 @@ string[string] getEnvironment()
     version(OSX) version(X86_64)
         dObjc = true;
 
-    return env;
+    if (env.getDefault("ENABLE_DEBUG", "0") != "0")
+    {
+        cxxFlags ~= ["-g", "-g3", "-DDEBUG=1", "-DUNITTEST"];
+        dflags ~= ["-g", "-debug"];
+    }
+    if (env.getDefault("ENABLE_RELEASE", "0") != "0")
+    {
+        cxxFlags ~= ["-O2"];
+        dflags ~= ["-O", "-release", "-inline"];
+    }
+    else
+    {
+        // add debug symbols for all non-release builds
+        if (!dflags.canFind("-g"))
+            dflags ~= ["-g"];
+    }
+    if (env.getDefault("ENABLE_PROFILING", "0") != "0")
+    {
+        cxxFlags ~= ["-pg", "-fprofile-arcs", "-ftest-coverage"];
+    }
+    if (env.getDefault("ENABLE_PGO_GENERATE", "0") != "0")
+    {
+        enforce("PGO_DIR" in env, "No PGO_DIR variable set.");
+        cxxFlags ~= ["-fprofile-generate="~env["PGO_DIR"]];
+    }
+    if (env.getDefault("ENABLE_PGO_USE", "0") != "0")
+    {
+        enforce("PGO_DIR" in env, "No PGO_DIR variable set.");
+        cxxFlags ~= ["-fprofile-use="~env["PGO_DIR"], "-freorder-blocks-and-partition"];
+    }
+    if (env.getDefault("ENABLE_LTO", "0") != "0")
+    {
+        cxxFlags ~= ["-flto"];
+    }
+    if (env.getDefault("ENABLE_UNITTEST", "0") != "0")
+    {
+        dflags ~= ["-unittest", "-cov"];
+    }
+    if (env.getDefault("ENABLE_PROFILE", "0") != "0")
+    {
+        dflags ~= ["-profile"];
+    }
+    if (env.getDefault("ENABLE_COVERAGE", "0") != "0")
+    {
+        cxxFlags ~= ["--coverage"];
+        dflags ~= ["-cov", "-L-lgcov"];
+    }
+    if (env.getDefault("ENABLE_SANITIZERS", "0") != "0")
+    {
+        cxxFlags ~= ["-fsanitize="~env["ENABLE_SANITIZERS"]];
+    }
+    flags["DFLAGS"] ~= dflags;
+    flags["CXXFLAGS"] ~= cxxFlags;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -598,7 +703,7 @@ auto sourceFiles()
         frontend:
             dirEntries(env["D"], "*.d", SpanMode.shallow)
                 .map!(e => e.name)
-                .filter!(e => !e.canFind("frontend.d"))
+                .filter!(e => !e.canFind("asttypename.d", "frontend.d"))
                 .array,
         lexer: [
             "console",

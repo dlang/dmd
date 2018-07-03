@@ -4,18 +4,19 @@
 #
 # HOST_CXX:             Host C++ compiler to use (g++,clang++)
 # HOST_DMD:             Host D compiler to use for bootstrapping
-# AUTO_BOOTSTRAP:       Enable auto-boostrapping by download a stable DMD binary
+# AUTO_BOOTSTRAP:       Enable auto-boostrapping by downloading a stable DMD binary
 # INSTALL_DIR:          Installation folder to use
+# MODEL:                Target architecture to build for (32,64) - defaults to the host architecture
 #
 ################################################################################
 # Build modes:
 # ------------
-# BUILD: release (default) | debug (enabled a build with debug symbols)
+# BUILD: release (default) | debug (enabled a build with debug instructions)
 #
 # Opt-in build features:
 #
-# ENABLE_RELEASE:       Optimized release built (set by BUILD=release)
-# ENABLE_DEBUG:         Add debug instructions and symbols (set by BUILD=debug)
+# ENABLE_RELEASE:       Optimized release built
+# ENABLE_DEBUG:         Add debug instructions and symbols (set if ENABLE_RELEASE isn't set)
 # ENABLE_WARNINGS:      Enable C++ build warnings
 # ENABLE_PROFILING:     Build dmd with a profiling recorder (C++)
 # ENABLE_PGO_USE:       Build dmd with existing profiling information (C++)
@@ -230,15 +231,6 @@ DFLAGS=
 override DFLAGS += -version=MARS $(PIC)
 # Enable D warnings
 override DFLAGS += -w -de
-
-ifneq (,$(DEBUG))
-ENABLE_DEBUG := 1
-$(error 'DEBUG=1 has been removed. Please use ENABLE_DEBUG=1')
-endif
-ifneq (,$(RELEASE))
-ENABLE_RELEASE := 1
-$(error 'RELEASE=1 has been removed. Please use ENABLE_RELEASE=1')
-endif
 
 # Append different flags for debugging, profiling and release.
 ifdef ENABLE_DEBUG

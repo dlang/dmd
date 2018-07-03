@@ -113,9 +113,14 @@ coverage()
     if [ -f ~/dlang/install.sh ] ; then
         source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
     fi
+    RDMD="$(type -p rdmd)"
 
     # build dmd, druntime, and phobos
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD BUILD=$BUILD ENABLE_WARNINGS=1 PIC="$PIC" all
+    if [ "$MODEL" == "64" ] ; then
+        "$RDMD" ./src/build.d MODEL=$MODEL HOST_DMD=$DMD BUILD=$BUILD ENABLE_WARNINGS=1 PIC="$PIC" all
+    else
+        make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD BUILD=$BUILD ENABLE_WARNINGS=1 PIC="$PIC" all
+    fi
     make -j$N -C ../druntime -f posix.mak MODEL=$MODEL PIC="$PIC"
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL PIC="$PIC"
 
