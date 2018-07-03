@@ -1,3 +1,0 @@
-Add missing declarations to `core.sys.darwin.mach.getsect`
-
-Declarations that were missing from $(LINK2 https://opensource.apple.com/source/cctools/cctools-895/include/mach-o/getsect.h.auto.html, mach-o/getsect.h) has been added to `core.sys.darwin.mach.getsect`.
