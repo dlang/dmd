@@ -257,19 +257,13 @@ $(H2 $(LNAME2 synchronized-classes, Synchronized Classes))
         }
         ---
 
-        $(P Member functions of non-synchronized classes cannot be individually marked as synchronized.
-        The synchronized attribute must be applied to the class declaration itself:
+        $(P Member functions of non-synchronized classes can be individually marked as synchronized.
         )
 
         ---
         class Foo
         {
-            synchronized void foo() { }  // disallowed!
-        }
-
-        synchronized class Bar
-        {
-            void bar() { }  // bar is synchronized
+            synchronized void foo() { }  // foo is synchronized
         }
         ---
 
