@@ -3625,7 +3625,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 Expression tmpdecl = new DeclarationExp(loc, tmp);
 
                 auto dse = new DsymbolExp(loc, cd.vtblSymbol());
-                auto ase = new AddrExp(loc, dse);
+                auto ase = new AddrExp(loc, new IndexExp(loc, dse, new IntegerExp(loc, 0, Type.tsize_t)));
                 auto pte = new DotIdExp(loc, new ThisExp(loc), Id.__vptr);
                 auto ate = new AssignExp(loc, pte, ase);
 
