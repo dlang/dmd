@@ -20,6 +20,5 @@ void main()
 
     foreach(ref i; Range11934()) { }
 
-    GC.collect();
 	assert(Struct11934.instances == 0);
 }
