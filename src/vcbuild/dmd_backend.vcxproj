@@ -119,7 +119,6 @@
     <ClCompile Include="..\dmd\backend\el.c" />
     <ClCompile Include="..\dmd\backend\elfobj.c" />
     <ClCompile Include="..\dmd\backend\fp.c" />
-    <ClCompile Include="..\dmd\backend\go.c" />
     <ClCompile Include="..\dmd\backend\machobj.c" />
     <ClCompile Include="..\dmd\backend\md5.c" />
     <ClCompile Include="..\dmd\backend\mscoffobj.c" />
