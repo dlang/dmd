@@ -18,7 +18,7 @@ import core.stdc.string;
  *      true if match found
  */
 
-private __gshared bool longest_match(char *dict, int dlen, char *pattern, int plen,
+private bool longest_match(char *dict, int dlen, char *pattern, int plen,
         int *pmatchoff, int *pmatchlen)
 {
     int matchlen = 0;
@@ -68,7 +68,7 @@ private __gshared bool longest_match(char *dict, int dlen, char *pattern, int pl
  *      malloc'd compressed 0-terminated identifier
  */
 
-char *id_compress(char *id, int idlen, size_t *plen)
+extern(C) char *id_compress(char *id, int idlen, size_t *plen)
 {
     int count = 0;
     char *p = cast(char *)malloc(idlen + 1);
