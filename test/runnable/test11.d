@@ -530,14 +530,14 @@ struct NODE27 {
     shared(NODE27) *next;
 }
 
-static shared NODE27 nodetbl[3] =
+static shared NODE27[3] nodetbl =
 [
     {   0,cast(shared(NODE27)*)nodetbl + 1},
     {   0,cast(shared(NODE27)*)nodetbl + 2},
     {   0,null}
 ];
 
-static shared NODE27 nodetbl2[3] = [
+static shared NODE27[3] nodetbl2 = [
     {   0,&nodetbl2[1]},
     {   0,&nodetbl2[2]},
     {   0,null}

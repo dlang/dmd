@@ -945,7 +945,7 @@ void test45()
 
 /************************************************/
 
-const int foo46[5] = [0,1,2,3,4];
+const int[5] foo46 = [0,1,2,3,4];
 
 void test46()
 {
@@ -1108,7 +1108,7 @@ bool equals54(string a, string b)
 
 /************************************************/
 
-const string foo55[2] = ["a", "b"];
+const string[2] foo55 = ["a", "b"];
 string retsth55(int i) { return foo55[i]; }
 
 void test55()
@@ -1121,7 +1121,7 @@ void test55()
 
 string retsth56(int i)
 {
-    static const string foo[2] = ["a", "b"];
+    static const string[2] foo = ["a", "b"];
     return foo[i];
 }
 
@@ -2602,7 +2602,7 @@ int delegtest6()
 {
     DelegStruct s;
     s.a = 5;
-    FoolishStruct k[3];
+    FoolishStruct[3] k;
     DelegType u = &s.bar;
     k[1].z = u;
     return k[1].z(3);
@@ -3278,7 +3278,7 @@ void test9954()
 
 struct Bug10483
 {
-    int val[3][4];
+    int[3][4] val;
 }
 
 struct Outer10483

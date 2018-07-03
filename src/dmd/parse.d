@@ -5030,10 +5030,7 @@ final class Parser(AST) : Lexer
 
         const(char)* sp = !ident ? "" : " ";
         const(char)* s = !ident ? "" : ident.toChars();
-        if (alt & 1) // contains C-style function pointer syntax
-            error(loc, "instead of C-style syntax, use D-style `%s%s%s`", t.toChars(), sp, s);
-        else
-           dmd.errors.deprecation(loc, "instead of C-style syntax, use D-style syntax `%s%s%s`", t.toChars(), sp, s);
+        error(loc, "instead of C-style syntax, use D-style `%s%s%s`", t.toChars(), sp, s);
     }
 
     /*****************************************
