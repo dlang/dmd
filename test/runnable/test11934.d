@@ -18,5 +18,5 @@ void main()
 
     foreach(ref i; Range11934()) { }
 
-	assert(Struct11934.instances == 0);
+    assert(Struct11934.instances == 0);
 }
