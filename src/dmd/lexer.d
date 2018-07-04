@@ -1824,6 +1824,11 @@ class Lexer : ErrorHandler
                 ++p;
                 base = 8;
                 break;
+            case '8':
+            case '9':
+                ++p;
+                deprecation("`%.*s` isn't a valid integer literal", cast(int)(p - start), start);
+                break;
             case 'x':
             case 'X':
                 ++p;
