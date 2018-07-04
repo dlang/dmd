@@ -100,6 +100,7 @@ struct Param
     bool vgc;               // identify gc usage
     bool vfield;            // identify non-mutable field variables
     bool vcomplex;          // identify complex/imaginary type usage
+    bool vnrvo;             // identify calls returning with nrvo
     ubyte symdebug;         // insert debug symbolic information
     bool symdebugref;       // insert debug information for all referenced types, too
     bool alwaysframe;       // always emit standard stack frame

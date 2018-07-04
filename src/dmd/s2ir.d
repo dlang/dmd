@@ -786,6 +786,9 @@ private extern (C++) class S2irVisitor : Visitor
                     // Return value via hidden pointer passed as parameter
                     // Write exp; return shidden;
                     es = e;
+
+                    if (global.params.vnrvo)
+                        message(s.loc, "function `%s` returns using named return value optimization", func.toChars());
                 }
                 else
                 {

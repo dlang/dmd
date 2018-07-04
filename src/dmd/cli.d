@@ -567,6 +567,9 @@ dmd -cov -unittest myprog.d
         Option("vgc",
             "list all gc allocations including hidden ones"
         ),
+        Option("vnrvo",
+            "list all functions that return using named return value optimization"
+        ),
         Option("vtls",
             "list all variables going into thread local storage"
         ),
