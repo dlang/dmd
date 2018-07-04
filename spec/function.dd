@@ -477,35 +477,34 @@ $(H2 $(LNAME2 inout-functions, Inout Functions))
         be matched with inout.
     )
 
-    $(P $(RELATIVE_LINK2 variadicnested, Nested functions) inside pure function are implicitly marked as pure.
+    $(P $(RELATIVE_LINK2 variadicnested, Nested functions) inside pure function are implicitly marked as pure.)
 
-        ---
-        pure int foo(int x, immutable int y)
+    ---
+    pure int foo(int x, immutable int y)
+    {
+        int bar()
+        // implicitly marked as pure, to be "weak purity"
+        // hidden context pointer is mutable
         {
-            int bar()
-            // implicitly marked as pure, to be "weak purity"
-            // hidden context pointer is mutable
-            {
-                x = 10;     // can access states in enclosing scope
-                            // through the mutable context pointer
-                return x;
-            }
-            pragma(msg, typeof(&bar));  // int delegate() pure
-
-            int baz() immutable
-            // qualify hidden context pointer with immutable,
-            // and has no other parameters, make "strong purity"
-            {
-                //return x; // error, cannot access mutable data
-                            // through the immutable context pointer
-                return y;   // ok
-            }
-
-            // can call pure nested functions
-            return bar() + baz();
+            x = 10;     // can access states in enclosing scope
+                        // through the mutable context pointer
+            return x;
         }
-        ---
-    )
+        pragma(msg, typeof(&bar));  // int delegate() pure
+
+        int baz() immutable
+        // qualify hidden context pointer with immutable,
+        // and has no other parameters, make "strong purity"
+        {
+            //return x; // error, cannot access mutable data
+                        // through the immutable context pointer
+            return y;   // ok
+        }
+
+        // can call pure nested functions
+        return bar() + baz();
+    }
+    ---
 
 $(H2 $(LNAME2 optional-parenthesis, Optional Parentheses))
 
