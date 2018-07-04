@@ -5650,8 +5650,14 @@ final class Parser(AST) : Lexer
             {
                 AST.Parameter param = null;
                 AST.Expression condition;
+                bool negateIf;
 
                 nextToken();
+                if (token.value == TOK.not)
+                {
+                    negateIf = true;
+                    nextToken();
+                }
                 check(TOK.leftParentheses);
 
                 StorageClass storageClass = 0;
@@ -5740,8 +5746,14 @@ final class Parser(AST) : Lexer
                 }
                 else
                     elsebody = null;
+
                 if (condition && ifbody)
+                {
+                    if (negateIf)
+                        condition = new AST.NotExp(condition.loc, condition);
+
                     s = new AST.IfStatement(loc, param, condition, ifbody, elsebody, token.loc);
+                }
                 else
                     s = null; // don't propagate parsing errors
                 break;
