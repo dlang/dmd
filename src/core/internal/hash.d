@@ -13,7 +13,7 @@ import core.internal.convert;
 
 // If true ensure that positive zero and negative zero have the same hash.
 // typeid(float).getHash does this but historically hashOf(float) did not.
-private enum floatCoalesceZeroes = false;
+private enum floatCoalesceZeroes = true;
 // If true ensure that all NaNs of the same floating point type have the same hash.
 // typeid(float).getHash does not do this but historically hashOf(float) did.
 private enum floatCoalesceNaNs = true;
@@ -47,12 +47,7 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (is(T == enum))
 //CTFE ready (depends on base type). Can be merged with dynamic array hash
 size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && __traits(isStaticArray, T))
 {
-    size_t cur_hash = seed;
-    foreach (ref cur; val)
-    {
-        cur_hash = hashOf(cur, cur_hash);
-    }
-    return cur_hash;
+    return hashOf(val[], seed);
 }
 
 //dynamic array hash
@@ -64,14 +59,15 @@ if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStati
     static if (is(ElementType == interface) || is(ElementType == class) ||
                    (is(ElementType == struct) && !isNonReference!ElementType) ||
                    ((is(ElementType == struct) || is(ElementType == union))
-                       && is(typeof(val[0].toHash()) == size_t)))
+                       && is(typeof(val[0].toHash()) == size_t)) ||
+                   ((floatCoalesceZeroes || floatCoalesceNaNs) && __traits(isFloating, ElementType)))
     //class or interface array or struct array with toHash(); CTFE depend on toHash() method
     //also do this for arrays of structs whose hashes would be calculated in a memberwise fashion
     {
         size_t hash = seed;
         foreach (o; val)
         {
-            hash = hashOf(o, hash);
+            hash = hashOf(hashOf(o), hash); // double hashing because TypeInfo.getHash doesn't allow to pass seed value
         }
         return hash;
     }
@@ -109,9 +105,16 @@ size_t hashOf(T)(scope const T val, size_t seed = 0) if (!is(T == enum) && __tra
         {
             import core.internal.traits : Unqual;
             Unqual!T data = val;
-            // Zero coalescing not supported for deprecated complex types.
+            // +0.0 and -0.0 become the same.
             static if (floatCoalesceZeroes && is(typeof(data = 0)))
-                if (data == 0) data = 0; // +0.0 and -0.0 become the same.
+                if (data == 0) data = 0;
+            static if (floatCoalesceZeroes && is(typeof(data = 0.0i)))
+                if (data == 0.0i) data = 0.0i;
+            static if (floatCoalesceZeroes && is(typeof(data = 0.0 + 0.0i)))
+            {
+                if (data.re == 0.0) data = 0.0 + (data.im * 1.0i);
+                if (data.im == 0.0i) data = data.re + 0.0i;
+            }
             static if (floatCoalesceNaNs)
                 if (data != data) data = T.nan; // All NaN patterns become the same.
         }
@@ -313,6 +316,12 @@ unittest
         int* a = null;
     }
 
+    static struct Plain
+    {
+        int a = 1;
+        int b = 2;
+    }
+
     interface IBoo
     {
         void boo();
@@ -362,7 +371,8 @@ unittest
     enum realexpr = 7.88;
     enum raexpr = [8.99L+86i, 3.12L+99i, 5.66L+12i];
     enum nullexpr = null;
-
+    enum plstr = Plain();
+    enum plarrstr = [Plain(), Plain(), Plain()];
     //No CTFE:
     Boom rstructexpr = Boom();
     Boom[] rstrarrexpr = [Boom(), Boom(), Boom()];
@@ -406,6 +416,9 @@ unittest
     enum h28 = realexpr.hashOf();
     enum h29 = raexpr.hashOf();
     enum h30 = nullexpr.hashOf();
+    enum h31 = plstr.hashOf();
+    enum h32 = plarrstr.hashOf();
+    enum h33 = hashOf(cast(Plain[3])plarrstr);
 
     auto v1 = dexpr;
     auto v2 = fexpr;
@@ -431,14 +444,17 @@ unittest
     auto v22 = cast(IBoo[3])[cast(IBoo)new Boo, cast(IBoo)new Boo, cast(IBoo)new Boo];
     auto v23 = cast(Bar[3])vsaexpr;
     auto v30 = null;
+    auto v31 = plstr;
+    auto v32 = plarrstr;
+    auto v33 = cast(Plain[3])plarrstr;
 
     //NO CTFE:
-    /*auto v24 = rstructexpr;
+    auto v24 = rstructexpr;
     auto v25 = rstrarrexpr;
     auto v26 = dgexpr;
     auto v27 = ptrexpr;
     auto v28 = realexpr;
-    auto v29 = raexpr;*/
+    auto v29 = raexpr;
 
     //runtime hashes
     auto rth1 = hashOf(v1);
@@ -465,13 +481,17 @@ unittest
     auto rth22 = hashOf(v22);
     auto rth23 = hashOf(v23);
     auto rth30 = hashOf(v30);
-    /*//NO CTFE:
+    //NO CTFE:
     auto rth24 = hashOf(v24);
     auto rth25 = hashOf(v25);
     auto rth26 = hashOf(v26);
     auto rth27 = hashOf(v27);
     auto rth28 = hashOf(v28);
-    auto rth29 = hashOf(v29);*/
+    auto rth29 = hashOf(v29);
+
+    auto rth31 = hashOf(v31);
+    auto rth32 = hashOf(v32);
+    auto rth33 = hashOf(v33);
 
     assert(h1 == rth1);
     assert(h2 == rth2);
@@ -503,8 +523,84 @@ unittest
     assert(h28 == rth28);
     assert(h29 == rth29);*/
     assert(h30 == rth30);
+    assert(h31 == rth31);
+    assert(h32 == rth32);
+    assert(h33 == rth33);
 
     assert(hashOf(null, 0) != hashOf(null, 123456789)); // issue 18932
+
+    static size_t tiHashOf(T)(T var)
+    {
+        return typeid(T).getHash(&var);
+    }
+
+    auto tih1 = tiHashOf(v1);
+    auto tih2 = tiHashOf(v2);
+    auto tih3 = tiHashOf(v3);
+    auto tih4 = tiHashOf(v4);
+    auto tih5 = tiHashOf(v5);
+    auto tih6 = tiHashOf(v6);
+    auto tih7 = tiHashOf(v7);
+    auto tih8 = tiHashOf(v8);
+    auto tih9 = tiHashOf(v9);
+    auto tih10 = tiHashOf(v10);
+    auto tih11 = tiHashOf(v11);
+    auto tih12 = tiHashOf(v12);
+    auto tih13 = tiHashOf(v13);
+    auto tih14 = tiHashOf(v14);
+    auto tih15 = tiHashOf(v15);
+    auto tih16 = tiHashOf(v16);
+    auto tih17 = tiHashOf(v17);
+    auto tih18 = tiHashOf(v18);
+    auto tih19 = tiHashOf(v19);
+    auto tih20 = tiHashOf(v20);
+    auto tih21 = tiHashOf(v21);
+    auto tih22 = tiHashOf(v22);
+    auto tih23 = tiHashOf(v23);
+    auto tih24 = tiHashOf(v24);
+    auto tih25 = tiHashOf(v25);
+    auto tih26 = tiHashOf(v26);
+    auto tih27 = tiHashOf(v27);
+    auto tih28 = tiHashOf(v28);
+    auto tih29 = tiHashOf(v29);
+    auto tih30 = tiHashOf(v30);
+    auto tih31 = tiHashOf(v31);
+    auto tih32 = tiHashOf(v32);
+    auto tih33 = tiHashOf(v33);
+
+    assert(tih1 == rth1);
+    assert(tih2 == rth2);
+    assert(tih3 == rth3);
+    assert(tih4 == rth4);
+    assert(tih5 == rth5);
+    assert(tih6 == rth6);
+    assert(tih7 == rth7);
+    assert(tih8 == rth8);
+    assert(tih9 == rth9);
+    //assert(tih10 == rth10); // need compiler-generated __xtoHash changes
+    assert(tih11 == rth11);
+    assert(tih12 == rth12);
+    assert(tih13 == rth13);
+    assert(tih14 == rth14);
+    assert(tih15 == rth15);
+    assert(tih16 == rth16);
+    assert(tih17 == rth17);
+    assert(tih18 == rth18);
+    //assert(tih19 == rth19); // need compiler-generated __xtoHash changes
+    assert(tih20 == rth20);
+    assert(tih21 == rth21);
+    assert(tih22 == rth22);
+    //assert(tih23 == rth23); // need compiler-generated __xtoHash changes
+    //assert(tih24 == rth24);
+    //assert(tih25 == rth25);
+    assert(tih26 == rth26);
+    assert(tih27 == rth27);
+    assert(tih28 == rth28);
+    assert(tih29 == rth29);
+    assert(tih30 == rth30);
+    assert(tih31 == rth31);
+    assert(tih32 == rth32);
+    assert(tih33 == rth33);
 }
 
 

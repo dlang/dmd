@@ -1025,10 +1025,7 @@ class TypeInfo
 
     override size_t toHash() @trusted const nothrow
     {
-        import core.internal.traits : externDFunc;
-        alias hashOf = externDFunc!("rt.util.hash.hashOf",
-                                    size_t function(const(void)[], size_t) @trusted pure nothrow @nogc);
-        return hashOf(this.toString(), 0);
+        return hashOf(this.toString());
     }
 
     override int opCmp(Object o)
@@ -1064,7 +1061,10 @@ class TypeInfo
      * Bugs:
      *    fix https://issues.dlang.org/show_bug.cgi?id=12516 e.g. by changing this to a truly safe interface.
      */
-    size_t getHash(scope const void* p) @trusted nothrow const { return cast(size_t)p; }
+    size_t getHash(scope const void* p) @trusted nothrow const
+    {
+        return hashOf(p);
+    }
 
     /// Compares two instances for equality.
     bool equals(in void* p1, in void* p2) const { return p1 == p2; }
@@ -1191,12 +1191,7 @@ class TypeInfo_Pointer : TypeInfo
 
     override size_t getHash(scope const void* p) @trusted const
     {
-        // If the target of `p` is n-byte aligned then the
-        // bottom log2(n) bits of `p` will always be 0.
-        // Performing a constant magnitude xor-shift is
-        // inexpensive and will generally pay off.
-        size_t addr = cast(size_t) *cast(const void**) p;
-        return addr ^ (addr >>> 4);
+        return hashOf(*cast(void**)p);
     }
 
     override bool equals(in void* p1, in void* p2) const
@@ -1716,7 +1711,7 @@ class TypeInfo_Class : TypeInfo
     override size_t getHash(scope const void* p) @trusted const
     {
         auto o = *cast(Object*)p;
-        return o ? o.toHash() : 0;
+        return hashOf(o ? o.toHash() : 0);
     }
 
     override bool equals(in void* p1, in void* p2) const
@@ -1870,10 +1865,14 @@ class TypeInfo_Interface : TypeInfo
 
     override size_t getHash(scope const void* p) @trusted const
     {
+        if (!*cast(void**)p)
+        {
+            return hashOf(null);
+        }
         Interface* pi = **cast(Interface ***)*cast(void**)p;
         Object o = cast(Object)(*cast(void**)p - pi.offset);
         assert(o);
-        return o.toHash();
+        return hashOf(o.toHash());
     }
 
     override bool equals(in void* p1, in void* p2) const
@@ -1943,14 +1942,11 @@ class TypeInfo_Struct : TypeInfo
         assert(p);
         if (xtoHash)
         {
-            return (*xtoHash)(p);
+            return hashOf((*xtoHash)(p));
         }
         else
         {
-            import core.internal.traits : externDFunc;
-            alias hashOf = externDFunc!("rt.util.hash.hashOf",
-                                        size_t function(const(void)[], size_t) @trusted pure nothrow @nogc);
-            return hashOf(p[0 .. initializer().length], 0);
+            return hashOf(p[0 .. initializer().length]);
         }
     }
 
@@ -4546,14 +4542,12 @@ private size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) 
     }
 
     import core.internal.traits : externDFunc;
-    alias hashOf = externDFunc!("rt.util.hash.hashOf",
-                                size_t function(const(void)[], size_t) @trusted pure nothrow @nogc);
     if(!hasCustomToHash(element))
-        return hashOf(ptr[0 .. elementSize * count], 0);
+        return hashOf(ptr[0 .. elementSize * count]);
 
     size_t hash = 0;
     foreach(size_t i; 0 .. count)
-        hash = hash * 33 + element.getHash(ptr + i * elementSize);
+        hash = hashOf(element.getHash(ptr + i * elementSize), hash);
     return hash;
 }
 
