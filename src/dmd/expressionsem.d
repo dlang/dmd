@@ -3482,7 +3482,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         sc.func.kind(), sc.func.toPrettyChars(), p, exp.e1.toChars());
                     err = true;
                 }
-                if (tf.trust <= TRUST.system && sc.func.setUnsafe())
+                if (tf.trust <= TRUST.system && sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
                 {
                     exp.error("`@safe` %s `%s` cannot call `@system` %s `%s`",
                         sc.func.kind(), sc.func.toPrettyChars(), p, exp.e1.toChars());
@@ -4898,7 +4898,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     }
                     if (sc.func && !sc.intypeof)
                     {
-                        if (sc.func.setUnsafe())
+                        if (sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
                         {
                             exp.error("`this` reference necessary to take address of member `%s` in `@safe` function `%s`", f.toChars(), sc.func.toChars());
                         }
@@ -4920,7 +4920,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (ce.e1.type.ty == Tfunction)
             {
                 TypeFunction tf = cast(TypeFunction)ce.e1.type;
-                if (tf.isref && sc.func && !sc.intypeof && sc.func.setUnsafe())
+                if (tf.isref && sc.func && !sc.intypeof && sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
                 {
                     exp.error("cannot take address of `ref return` of `%s()` in `@safe` function `%s`",
                         ce.e1.toChars(), sc.func.toChars());
@@ -5300,7 +5300,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (!sc.intypeof && sc.func &&
             !exp.isRAII &&
-            sc.func.setUnsafe())
+            sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
         {
             exp.error("`%s` is not `@safe` but is used in `@safe` function `%s`", exp.toChars(), sc.func.toChars());
             err = true;
@@ -5435,7 +5435,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         // Check for unsafe casts
         if (sc.func && !sc.intypeof &&
             !isSafeCast(ex, t1b, tob) &&
-            sc.func.setUnsafe())
+            sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
         {
             exp.error("cast from `%s` to `%s` not allowed in safe code", exp.e1.type.toChars(), exp.to.toChars());
             return setError();
@@ -5578,7 +5578,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.error("need upper and lower bound to slice pointer");
                 return setError();
             }
-            if (sc.func && !sc.intypeof && sc.func.setUnsafe())
+            if (sc.func && !sc.intypeof && sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
             {
                 exp.error("pointer slicing not allowed in safe functions");
                 return setError();
@@ -6072,7 +6072,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.e2.op == TOK.int64 && exp.e2.toInteger() == 0)
             {
             }
-            else if (sc.func && sc.func.setUnsafe())
+            else if (sc.func && sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
             {
                 exp.error("safe function `%s` cannot index pointer `%s`", sc.func.toPrettyChars(), exp.e1.toChars());
                 return setError();
@@ -7287,7 +7287,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             if (t1n.toBasetype.ty == Tvoid && t2n.toBasetype.ty == Tvoid)
             {
-                if (!sc.intypeof && sc.func && sc.func.setUnsafe())
+                if (!sc.intypeof && sc.func && sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
                 {
                     exp.error("cannot copy `void[]` to `void[]` in `@safe` code");
                     return setError();
@@ -10055,13 +10055,13 @@ private bool checkAddressVar(Scope* sc, UnaExp exp, VarDeclaration v)
                 // Taking the address of v means it cannot be set to 'scope' later
                 v.storage_class &= ~STC.maybescope;
                 v.doNotInferScope = true;
-                if (v.storage_class & STC.scope_ && sc.func.setUnsafe())
+                if (v.storage_class & STC.scope_ && sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
                 {
                     exp.error("cannot take address of `scope` %s `%s` in `@safe` function `%s`", p, v.toChars(), sc.func.toChars());
                     return false;
                 }
             }
-            else if (sc.func.setUnsafe())
+            else if (sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
             {
                 exp.error("cannot take address of %s `%s` in `@safe` function `%s`", p, v.toChars(), sc.func.toChars());
                 return false;

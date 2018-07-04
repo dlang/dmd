@@ -3200,7 +3200,7 @@ private extern(C++) final class DotExpVisitor : Visitor
                 result = new ErrorExp();
                 return;
             }
-            else if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe())
+            else if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
             {
                 e.error("`%s.ptr` cannot be used in `@safe` code, use `&%s[0]` instead", e.toChars(), e.toChars());
                 result = new ErrorExp();
@@ -3255,7 +3255,7 @@ private extern(C++) final class DotExpVisitor : Visitor
         }
         else if (ident == Id.ptr)
         {
-            if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe())
+            if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
             {
                 e.error("`%s.ptr` cannot be used in `@safe` code, use `&%s[0]` instead", e.toChars(), e.toChars());
                     result = new ErrorExp();
@@ -3327,7 +3327,7 @@ private extern(C++) final class DotExpVisitor : Visitor
         }
         else if (ident == Id.funcptr)
         {
-            if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe())
+            if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
             {
                 e.error("`%s.funcptr` cannot be used in `@safe` code", e.toChars());
                 result = new ErrorExp();
