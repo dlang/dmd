@@ -1230,7 +1230,7 @@ void test15455()
 /****************************************/
 // 15372
 
-extern(C++) int foo15372(T)(T v);
+extern(C++) int foo15372(T)(int v);
 
 void test15372()
 {
