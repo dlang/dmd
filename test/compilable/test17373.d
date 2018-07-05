@@ -1,3 +1,4 @@
+// https://issues.dlang.org/show_bug.cgi?id=17373
 interface Foo { void visit (int); }
 interface Bar { void visit(double); }
 interface FooBar : Foo, Bar {}
@@ -17,4 +18,15 @@ interface Simple
 }
 static assert(__traits(getOverloads, Simple, "square").length == 2);
 
-void main() {}
+// https://issues.dlang.org/show_bug.cgi?id=19064
+interface InputStream {}
+interface OutputStream{}
+interface Stream : InputStream, OutputStream{}
+interface ConnectionStream : Stream
+{
+    @property bool connected() const;
+    void close();
+}
+
+static assert(__traits(getOverloads, ConnectionStream, "connected").stringof == "tuple(connected)");
+static assert(__traits(getOverloads, ConnectionStream, "close").stringof == "tuple(close)");
