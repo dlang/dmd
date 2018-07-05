@@ -5,7 +5,7 @@
 
 import core.stdc.stdio;
 
-void main()
+int main()
 {
     fun(1);
     fun(2);
@@ -18,6 +18,8 @@ void main()
     foo(3, 10);
 #line 40
     foo(4, 10);
+
+    return 0;
 }
 
 void fun(int n, int defParam = 10)
