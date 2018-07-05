@@ -229,7 +229,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\type.h $C\dt.h $C\cgcv.h \
 	$C\el.h $C\iasm.h $C\rtlsym.h \
 	$C\bcomplex.d $C\blockopt.c $C\cg.c $C\cg87.c $C\cgxmm.c \
-	$C\cgcod.c $C\cgcs.c $C\cgcv.c $C\cgelem.c $C\cgen.c $C\cgobj.c \
+	$C\cgcod.c $C\cgcs.c $C\cgcv.c $C\cgelem.d $C\cgen.c $C\cgobj.c \
 	$C\compress.d $C\cgreg.c $C\var.c \
 	$C\cgsched.c $C\cod1.c $C\cod2.c $C\cod3.c $C\cod4.c $C\cod5.c \
 	$C\code.c $C\symbol.c $C\debug.c $C\dt.c $C\ee.c $C\el.c \
@@ -420,14 +420,16 @@ $(TOOLS_DIR)\checkwhitespace.d:
 	$(HOST_DC) -Df$@ $<
 
 ############################## Generated Source ##############################
-OPTABGENOUTPUT = $G\elxxx.c $G\cdxxx.c $G\optab.c $G\debtab.c $G\fltables.c $G\tytab.c
+OPTABGENOUTPUT = $G\elxxx.d $G\cdxxx.c $G\optab.c $G\debtab.c $G\fltables.c $G\tytab.c
 
 $(OPTABGENOUTPUT) : \
 	$C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c
 	$(CC) -cpp -o$G\optabgen.exe $C\optabgen -DMARS -DDM_TARGET_CPU_X86=1 -I$(TK)
 	$G\optabgen.exe
 	copy *.c "$G\"
+	copy elxxx.d "$G\"
 	$(DEL) *.c
+	$(DEL) elxxx.d
 
 $G\VERSION : ..\VERSION $G
 	copy ..\VERSION $@
@@ -469,8 +471,8 @@ $G/cgcs.obj : $C\cgcs.c
 $G/cgcv.obj : $C\cgcv.c
 	$(CC) -c -o$@ $(MFLAGS) $C\cgcv
 
-$G/cgelem.obj : $C\rtlsym.h $C\cgelem.c
-	$(CC) -c -o$@ $(MFLAGS) -I$D -I$G $C\cgelem
+$G/cgelem.obj : $G\elxxx.d $C\cgelem.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -J$G -mv=dmd.backend=$C $C\cgelem
 
 $G/cgen.obj : $C\rtlsym.h $C\cgen.c
 	$(CC) -c -o$@ $(MFLAGS) $C\cgen

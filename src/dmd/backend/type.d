@@ -157,6 +157,7 @@ void type_dehydrate(type **);
 
 targ_size_t type_size(type *);
 uint type_alignsize(type *);
+bool type_zeroSize(type *t, tym_t tyf);
 uint type_parameterSize(type *t, tym_t tyf);
 uint type_paramsize(type *t);
 type *type_alloc(tym_t);

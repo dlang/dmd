@@ -65,7 +65,6 @@ enum WM
     WM_undefined_inline = 30, // static inline not expanded or defined
 }
 
-/+
 static if (MEMMODELS == 1)
 {
     enum LARGEDATA = 0;     // don't want 48 bit pointers
@@ -76,7 +75,6 @@ else
     bool LARGEDATA() { return (config.memmodel & 6) != 0; }
     bool LARGECODE() { return (config.memmodel & 5) != 0; }
 }
-+/
 
 // Language for error messages
 enum LANG

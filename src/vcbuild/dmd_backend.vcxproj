@@ -99,7 +99,6 @@
     <ClCompile Include="..\dmd\backend\cgcod.c" />
     <ClCompile Include="..\dmd\backend\cgcs.c" />
     <ClCompile Include="..\dmd\backend\cgcv.c" />
-    <ClCompile Include="..\dmd\backend\cgelem.c" />
     <ClCompile Include="..\dmd\backend\cgen.c" />
     <ClCompile Include="..\dmd\backend\cgobj.c" />
     <ClCompile Include="..\dmd\backend\cgreg.c" />
@@ -149,7 +148,7 @@ pushd $(IntDir)generated
 "%(Filename).exe"
 if errorlevel 1 exit /B %ERRORLEVEL%
 popd</Command>
-      <Outputs>$(IntDir)generated\optab.c;$(IntDir)generated\debtab.c;$(IntDir)generated\cdxxx.c;$(IntDir)generated\elxxx.c;$(IntDir)generated\tytab.c;$(IntDir)generated\\fltables.c;%(Outputs)</Outputs>
+      <Outputs>$(IntDir)generated\optab.c;$(IntDir)generated\debtab.c;$(IntDir)generated\cdxxx.c;$(IntDir)generated\elxxx.d;$(IntDir)generated\tytab.c;$(IntDir)generated\\fltables.c;%(Outputs)</Outputs>
       <AdditionalInputs>..\dmd\backend\cc.h;..\dmd\backend\oper.h;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
   </ItemGroup>

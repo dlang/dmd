@@ -210,7 +210,7 @@ Thus it first needs to be built and the executed.
 */
 auto opTabGen()
 {
-    auto opTabFiles = ["debtab.c", "optab.c", "cdxxx.c", "elxxx.c", "fltables.c", "tytab.c"];
+    auto opTabFiles = ["debtab.c", "optab.c", "cdxxx.c", "elxxx.d", "fltables.c", "tytab.c"];
     auto opTabFilesBin = opTabFiles.map!(e => env["G"].buildPath(e)).array;
     auto opTabBin = env["G"].buildPath("optabgen").exeName;
     auto opTabSourceFile = env["C"].buildPath("optabgen.c");
@@ -608,7 +608,7 @@ void processEnvironment()
         cxxFlags ~= ["-xc++"];
 
     // TODO: allow adding new flags from the environment
-    string[] dflags = ["-version=MARS", "-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"]];
+    string[] dflags = ["-version=MARS", "-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"]];
 
     flags["BACK_FLAGS"] = ["-I"~env["ROOT"], "-I"~env["TK"], "-I"~env["C"], "-I"~env["G"], "-I"~env["D"], "-DDMDV2=1"];
 
