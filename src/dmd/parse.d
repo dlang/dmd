@@ -6489,7 +6489,9 @@ final class Parser(AST) : Lexer
                     if (token.value == TOK.colon)
                     {
                         nextToken();
-                        e = AST.initializerToExpression(value);
+                        AST.ExpInitializer expInit = value.isExpInitializer();
+                        assert(expInit);
+                        e = expInit.exp;
                         value = parseInitializer();
                     }
                     else
