@@ -6216,11 +6216,6 @@ struct ASTBase
         return result;
     }
 
-    static extern (C++) Expression initializerToExpression(Initializer i)
-    {
-        return i.toExpression;
-    }
-
     static extern (C++) Expression typeToExpression(Type t)
     {
         return t.toExpression;
