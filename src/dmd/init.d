@@ -16,16 +16,11 @@ import core.stdc.stdio;
 import core.checkedint;
 
 import dmd.arraytypes;
-import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dtemplate;
-import dmd.errors;
 import dmd.expression;
-import dmd.expressionsem;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.identifier;
-import dmd.initsem;
 import dmd.mtype;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
@@ -248,39 +243,6 @@ extern (C++) final class ArrayInitializer : Initializer
                 return true;
         }
         return false;
-    }
-
-    /********************************
-     * If possible, convert array initializer to associative array initializer.
-     */
-    Expression toAssocArrayLiteral()
-    {
-        Expression e;
-        //printf("ArrayInitializer::toAssocArrayInitializer()\n");
-        //static int i; if (++i == 2) assert(0);
-        auto keys = new Expressions();
-        keys.setDim(value.dim);
-        auto values = new Expressions();
-        values.setDim(value.dim);
-        for (size_t i = 0; i < value.dim; i++)
-        {
-            e = index[i];
-            if (!e)
-                goto Lno;
-            (*keys)[i] = e;
-            Initializer iz = value[i];
-            if (!iz)
-                goto Lno;
-            e = iz.initializerToExpression();
-            if (!e)
-                goto Lno;
-            (*values)[i] = e;
-        }
-        e = new AssocArrayLiteralExp(loc, keys, values);
-        return e;
-    Lno:
-        error(loc, "not an associative array initializer");
-        return new ErrorExp();
     }
 
     override ArrayInitializer isArrayInitializer()
