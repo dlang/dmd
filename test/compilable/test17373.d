@@ -28,5 +28,5 @@ interface ConnectionStream : Stream
     void close();
 }
 
-static assert(__traits(getOverloads, ConnectionStream, "connected").length == 1);
-static assert(__traits(getOverloads, ConnectionStream, "close").length == 1);
+static assert(__traits(getOverloads, ConnectionStream, "connected").stringof == "tuple(connected)");
+static assert(__traits(getOverloads, ConnectionStream, "close").stringof == "tuple(close)");
