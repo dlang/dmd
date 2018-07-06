@@ -43,7 +43,7 @@ import iasm;
 
 version (SCPP)
     enum SCPP_OR_NTEXCEPTIONS = true;
-else version (NTEXCEPTIONS)
+else static if (NTEXCEPTIONS)
     enum SCPP_OR_NTEXCEPTIONS = true;
 else
     enum SCPP_OR_NTEXCEPTIONS = false;
@@ -886,7 +886,7 @@ void brcombine()
                     }
 
                     b.BC = b2.BC;
-                    b.cover_BS[] = b2.cover_BS[];
+                    b.BS = b2.BS;
                     b.Bsucc = b2.Bsucc;
                     b2.Bsucc = null;
                     b2.BC = BCret;             /* a harmless one       */
@@ -1038,13 +1038,14 @@ private void brrear()
                         /* the number of iterations.                    */
 
                         version (SCPP)
-                            bool additionalAnd = b.Btry == bt.Btry;
-                        else version (NTEXCEPTIONS)
-                            bool additionalAnd = b.Btry == bt.Btry &&
-                                                 bt.Btry == bt.nthSucc(0).Btry;
+                            enum additionalAnd = "b.Btry == bt.Btry";
+                        else static if (NTEXCEPTIONS)
+                            enum additionalAnd = "b.Btry == bt.Btry &&
+                                                  bt.Btry == bt.nthSucc(0).Btry";
                         else
-                            enum additionalAnd = false;
-                        while (bt.BC == BCgoto && !bt.Belem && additionalAnd &&
+                            enum additionalAnd = "true";
+                        while (bt.BC == BCgoto && !bt.Belem &&
+                                mixin(additionalAnd) &&
                                 (OPTIMIZER || !(bt.Bsrcpos.Slinnum && configv.addlinenumbers)) &&
                                ++iter < 10)
                         {
@@ -1347,7 +1348,7 @@ version (SCPP)
             static if (SCPP_OR_NTEXCEPTIONS)
                 bool additionalAnd = b.Btry == bn.Btry;
             else
-                enum additionalAnd = false;
+                enum additionalAnd = true;
             if (b.BC == bn.BC &&
                 //(!OPTIMIZER || !(go.mfoptim & MFtime) || !b.Bsucc) &&
                 (!OPTIMIZER || !(b.Bflags & BFLnomerg) || !b.Bsucc) &&
@@ -1606,16 +1607,16 @@ private void bltailmerge()
            If the first expressions both lists are the same, split
            off a new block with that expression in it.
          */
+        static if (SCPP_OR_NTEXCEPTIONS)
+            enum additionalAnd = "b.Btry == bn.Btry";
+        else
+            enum additionalAnd = "true";
         for (block *b = startblock; b; b = b.Bnext)
         {
             if (!b.Blist)
                 continue;
             elem *e = list_elem(b.Blist);
             elem_debug(e);
-            static if (SCPP_OR_NTEXCEPTIONS)
-                bool additionalAnd = b.Btry == bn.Btry;
-            else
-                enum additionalAnd = true;
             for (block *bn = b.Bnext; bn; bn = bn.Bnext)
             {
                 elem *en;
@@ -1623,7 +1624,7 @@ private void bltailmerge()
                     list_equal(b.Bsucc,bn.Bsucc) &&
                     bn.Blist &&
                     el_match(e,(en = list_elem(bn.Blist))) &&
-                    additionalAnd
+                    mixin(additionalAnd)
                    )
                 {
                     switch (b.BC)
@@ -2204,7 +2205,7 @@ private void blassertsplit()
                     b2.Bnext = b.Bnext;
                     b.Bnext = b2;
                     b2.BC = b.BC;
-                    b.cover_BS[] = b2.cover_BS[];
+                    b2.BS = b.BS;
                     list_t bex = list_next(el);
                     el.next = null;
                     b.Belem = bl_delist(list_reverse(bel));
