@@ -7,4 +7,4 @@ echo 'import std.stdio; void main() { writeln("Success"); }' | \
 
 ${OUTPUT_BASE}${EXE}
 
-rm -f ${OUTPUT_BASE}{${OBJ},${EXE}}
+rm -f ${OUTPUT_BASE}{${OBJ},${EXE}} || true
