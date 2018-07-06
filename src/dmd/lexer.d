@@ -1826,10 +1826,11 @@ class Lexer : ErrorHandler
                 break;
             case '8':
             case '9':
+                n = c - '0';
                 ++p;
                 base = 8;
                 error("radix %d digit expected, not `%c`", base, c);
-                n = n * base + (c - '0');
+                err = true;
                 break;
             case 'x':
             case 'X':
