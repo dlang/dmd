@@ -1019,6 +1019,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 ifd = sym.isInterfaceDeclaration();
             // If the symbol passed as a parameter is an
             // interface that inherits other interfaces
+            overloadApply(f, &dg);
             if (ifd && ifd.interfaces)
             {
                 // check the overloads of each inherited interface individually
@@ -1028,8 +1029,6 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                         overloadApply(fd, &dg);
                 }
             }
-            else
-                overloadApply(f, &dg);
 
             auto tup = new TupleExp(e.loc, exps);
             return tup.expressionSemantic(scx);
