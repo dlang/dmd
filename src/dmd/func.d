@@ -3379,7 +3379,10 @@ extern (C++) final class DtorDeclaration : FuncDeclaration
 
     override bool addPreInvariant()
     {
-        return (isThis() && vthis && global.params.useInvariants);
+        bool thisIsStruct = vthis && vthis.type.ty == Tstruct;
+
+        // structs may be in T.init, which may violate invariants
+        return (isThis() && vthis && global.params.useInvariants && !thisIsStruct);
     }
 
     override bool addPostInvariant()
