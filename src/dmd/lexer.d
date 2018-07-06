@@ -1827,7 +1827,9 @@ class Lexer : ErrorHandler
             case '8':
             case '9':
                 ++p;
-                deprecation("`%.*s` isn't a valid integer literal", cast(int)(p - start), start);
+                base = 8;
+                error("radix %d digit expected, not `%c`", base, c);
+                n = n * base + (c - '0');
                 break;
             case 'x':
             case 'X':

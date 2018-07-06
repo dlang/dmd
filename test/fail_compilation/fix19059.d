@@ -2,8 +2,10 @@
  * PERMUTE_ARGS:
  * TEST_OUTPUT:
 ---
-fail_compilation/fix19059.d(14): Deprecation: `08` isn't a valid integer literal
-fail_compilation/fix19059.d(15): Deprecation: `09` isn't a valid integer literal
+fail_compilation/fix19059.d(16): Error: radix 8 digit expected, not `8`
+fail_compilation/fix19059.d(16): Error: octal literals `010` are no longer supported, use `std.conv.octal!10` instead
+fail_compilation/fix19059.d(17): Error: radix 8 digit expected, not `9`
+fail_compilation/fix19059.d(17): Error: octal literals `011` are no longer supported, use `std.conv.octal!11` instead
 ---
  */
 
