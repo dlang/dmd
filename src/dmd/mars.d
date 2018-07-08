@@ -248,7 +248,6 @@ private int tryMain(size_t argc, const(char)** argv)
             static assert(0, "fix this");
         }
     }
-    printf("*************** mars %s %p\n", global.inifilename, &global());
     // Read the configurarion file
     auto inifile = File(global.inifilename);
     inifile.read();
@@ -488,7 +487,6 @@ private int tryMain(size_t argc, const(char)** argv)
     setDefaultLibrary();
 
     // Initialization
-    CompilerInvocation.initialize();
     compilerInvocation.moduleState.onImport = &marsOnImport;
 
     if (global.params.verbose)

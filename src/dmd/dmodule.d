@@ -633,7 +633,7 @@ extern (C++) final class Module : Package
 
     // read file, returns 'true' if succeed, 'false' otherwise.
     bool read(Loc loc)
-    {printf("*************** dmodule %s %p\n", global.inifilename, &global());
+    {
         //printf("Module::read('%s') file '%s'\n", toChars(), srcfile.toChars());
         if (srcfile.read())
         {
