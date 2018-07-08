@@ -229,6 +229,11 @@ extern(C) void _d_throwdwarf(Throwable o)
              * try/catch.
              */
             fprintf(stderr, "uncaught exception\n");
+            /**
+            As _d_print_throwable() itself may throw multiple times when calling core.demangle,
+            and with the uncaught exception still on the EH stack, this doesn't bode well with core.demangle's error recovery.
+            */
+            __dmd_begin_catch(&eh.exception_object);
             _d_print_throwable(o);
             abort();
             assert(0);
