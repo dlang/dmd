@@ -144,11 +144,6 @@ struct Target
 
             state.cppExceptions = global.params.isLinux || global.params.isFreeBSD ||
                 global.params.isDragonFlyBSD || global.params.isOSX;
-
-            state.int64Mangle  = global.params.isOSX ? 'x' : 'l';
-            state.uint64Mangle = global.params.isOSX ? 'y' : 'm';
-
-            return state;
         }
     }
 
