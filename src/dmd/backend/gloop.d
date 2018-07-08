@@ -39,16 +39,7 @@ import dmd.backend.type;
 
 import dmd.backend.dlist;
 import dmd.backend.dvec;
-
-version (SCPP)
-    import tk.mem;
-else
-{
-    extern (C)
-    {
-        void *mem_calloc(size_t);
-    }
-}
+import dmd.backend.memh;
 
 char symbol_isintab(Symbol *s) { return sytab[s.Sclass] & SCSS; }
 

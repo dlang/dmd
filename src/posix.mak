@@ -398,7 +398,7 @@ BACK_SRC = \
 	$C/xmm.h $C/obj.h $C/pdata.c $C/cv8.c $C/backconfig.c $C/divcoeff.d \
 	$C/varstats.c $C/varstats.h $C/dvec.d \
 	$C/md5.c $C/md5.h \
-	$C/ph2.c $C/util2.c $C/dwarfeh.c $C/goh.d \
+	$C/ph2.c $C/util2.c $C/dwarfeh.c $C/goh.d $C/memh.d \
 	$(TARGET_CH)
 
 TK_SRC = \
