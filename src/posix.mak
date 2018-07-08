@@ -228,7 +228,7 @@ CXXFLAGS += \
 endif
 
 DFLAGS=
-override DFLAGS += -version=MARS $(PIC)
+override DFLAGS += -version=MARS $(PIC) -J$G
 # Enable D warnings
 override DFLAGS += -w -de
 
@@ -340,7 +340,7 @@ endif
 
 BACK_OBJS = var.o el.o \
 	os.o nteh.o fp.o cgcs.o \
-	rtlsym.o cgelem.o cgen.o cgreg.o out.o \
+	rtlsym.o cgen.o cgreg.o out.o \
 	blockopt.o cg.o type.o dt.o \
 	debug.o code.o ee.o symbol.o \
 	cgcod.o cod5.o outbuf.o \
@@ -351,7 +351,7 @@ BACK_OBJS = var.o el.o \
 	$(TARGET_OBJS)
 
 BACK_DOBJS = bcomplex.o evalu8.o divcoeff.o dvec.o go.o gsroa.o glocal.o gdag.o gother.o gflow.o \
-	gloop.o compress.o
+	gloop.o compress.o cgelem.o
 
 G_OBJS  = $(addprefix $G/, $(BACK_OBJS))
 G_DOBJS = $(addprefix $G/, $(BACK_DOBJS))
@@ -382,7 +382,7 @@ BACK_SRC = \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h \
 	$C/bcomplex.d $C/blockopt.c $C/cg.c $C/cg87.c $C/cgxmm.c \
-	$C/cgcod.c $C/cgcs.c $C/cgcv.c $C/cgelem.c $C/cgen.c $C/cgobj.c \
+	$C/cgcod.c $C/cgcs.c $C/cgcv.c $C/cgelem.d $C/cgen.c $C/cgobj.c \
 	$C/compress.d $C/cgreg.c $C/var.c $C/strtold.c \
 	$C/cgsched.c $C/cod1.c $C/cod2.c $C/cod3.c $C/cod4.c $C/cod5.c \
 	$C/code.c $C/symbol.c $C/debug.c $C/dt.c $C/ee.c $C/el.c \
@@ -524,7 +524,7 @@ $G/dmd.conf: $(SRC_MAKE)
 	echo "$$DEFAULT_DMD_CONF" > $@
 
 ######## optabgen generates some source
-optabgen_output = debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c
+optabgen_output = debtab.c optab.c cdxxx.c elxxx.d fltables.c tytab.c
 
 $G/optabgen: $C/optabgen.c $C/cc.h $C/oper.h
 	$(HOST_CXX) $(CXXFLAGS) -I$(TK) $< -o $G/optabgen
@@ -552,7 +552,7 @@ $(G_OBJS): $G/%.o: $C/%.c $(optabgen_files) $(SRC_MAKE)
 	@echo "  (CC)  BACK_OBJS  $<"
 	$(CXX) -c -o$@ $(CXXFLAGS) $(BACK_FLAGS) $(MMD) $<
 
-$(G_DOBJS): $G/%.o: $C/%.d posix.mak $(HOST_DMD_PATH)
+$(G_DOBJS): $G/%.o: $C/%.d $(optabgen_files) posix.mak $(HOST_DMD_PATH)
 	@echo "  (HOST_DMD_RUN)  BACK_DOBJS  $<"
 	$(HOST_DMD_RUN) -c -of$@ $(DFLAGS) $(MODEL_FLAG) $(BACK_BETTERC) $<
 

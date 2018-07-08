@@ -604,12 +604,25 @@ void dotab()
   fprintf(f,"\t%s\n\t};\n",cdxxx[i]);
   fclose(f);
 
-  f = fopen("elxxx.c","w");
-  fprintf(f,"static elem *(*elxxx[OPMAX]) (elem *, goal_t) = \n\t{\n");
-  for (i = 0; i < OPMAX - 1; i++)
-        fprintf(f,"\t%s,\n",elxxx[i]);
-  fprintf(f,"\t%s\n\t};\n",elxxx[i]);
-  fclose(f);
+#if 1
+    {
+        f = fopen("elxxx.d","w");
+        fprintf(f,"extern (C++) __gshared elem *function(elem *, goal_t)[OPMAX] elxxx = \n\t[\n");
+        for (i = 0; i < OPMAX - 1; i++)
+            fprintf(f,"\t&%s,\n",elxxx[i]);
+        fprintf(f,"\t&%s\n\t];\n",elxxx[i]);
+        fclose(f);
+    }
+#else
+    {
+        f = fopen("elxxx.c","w");
+        fprintf(f,"static elem *(*elxxx[OPMAX]) (elem *, goal_t) = \n\t{\n");
+        for (i = 0; i < OPMAX - 1; i++)
+            fprintf(f,"\t%s,\n",elxxx[i]);
+        fprintf(f,"\t%s\n\t};\n",elxxx[i]);
+        fclose(f);
+    }
+#endif
 }
 
 void fltables()

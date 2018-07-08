@@ -33,6 +33,8 @@ version (SPP)
     version = XVERSION;
 version (HTOD)
     version = XVERSION;
+version (MARS)
+    version = XVERSION;
 
 version (XVERSION)
 {
