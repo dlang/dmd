@@ -315,10 +315,9 @@ list_t list_prepend(list_t *plist, void *ptr)
 int list_nitems(list_t list)
 {
     int n = 0;
-    while (list)
+    foreach (l; ListRange(list))
     {
         ++n;
-        list = list_next(list);
     }
     return n;
 }
@@ -441,10 +440,10 @@ int list_cmp(list_t list1, list_t list2, int function(void*, void*) @nogc nothro
 
 list_t list_inlist(list_t list, void* ptr)
 {
-    for (; list; list = list_next(list))
-        if (list.ptr == ptr)
-            break;
-    return list;
+    foreach (l; ListRange(list))
+        if (l.ptr == ptr)
+            return l;
+    return null;
 }
 
 /*************************
@@ -471,7 +470,7 @@ list_t list_cat(list_t *pl1, list_t l2)
 void list_apply(list_t* plist, void function(void*) @nogc nothrow fp)
 {
     if (fp)
-        for (list_t l = *plist; l; l = list_next(l))
+        foreach (l; ListRange(*plist))
         {
             (*fp)(list_ptr(l));
         }
@@ -531,6 +530,26 @@ list_t list_insert(list_t *pl,void *ptr,int n)
         list.count = 1;
     }
     return list;
+}
+
+/********************************
+ * Range for Lists.
+ */
+struct ListRange
+{
+  pure nothrow @nogc @safe:
+
+    this(list_t li)
+    {
+        this.li = li;
+    }
+
+    list_t front() return  { return li; }
+    void popFront() { li = li.next; }
+    bool empty()    { return !li; }
+
+  private:
+    list_t li;
 }
 
 }
