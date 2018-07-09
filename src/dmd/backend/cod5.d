@@ -6,26 +6,31 @@
  *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod5.c, backend/cod5.c)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod5.d, backend/cod5.d)
  */
+module dmd.backend.cod5;
 
-#if !SPP
+version (SPP) {} else
+{
 
-#include        <stdio.h>
-#include        <string.h>
-#include        <time.h>
-#include        "cc.h"
-#include        "el.h"
-#include        "oper.h"
-#include        "code.h"
-#include        "global.h"
-#include        "type.h"
+import core.stdc.stdio;
+import core.stdc.string;
+import core.stdc.time;
+import dmd.backend.cc;
+import dmd.backend.el;
+import dmd.backend.oper;
+import dmd.backend.code;
+import dmd.backend.global;
+import dmd.backend.type;
 
-static char __file__[] = __FILE__;      /* for tassert.h                */
-#include        "tassert.h"
+import dmd.backend.cdef;
+import dmd.backend.dlist;
+import dmd.backend.ty;
 
-STATIC void pe_add(block *b);
-STATIC int need_prolog(block *b);
+extern(C++):
+
+private void pe_add(block *b);
+private int need_prolog(block *b);
 
 /********************************************************
  * Determine which blocks get the function prolog and epilog
@@ -34,9 +39,12 @@ STATIC int need_prolog(block *b);
 
 void cod5_prol_epi()
 {
-#if 1
+static if(1)
+{
     cod5_noprol();
-#else
+}
+else
+{
     tym_t tym;
     tym_t tyf;
     block *b;
@@ -44,7 +52,7 @@ void cod5_prol_epi()
     list_t bl;
     int nepis;
 
-    tyf = funcsym_p->ty();
+    tyf = funcsym_p.ty();
     tym = tybasic(tyf);
 
     if (!(config.flags4 & CFG4optimized) ||
@@ -70,26 +78,26 @@ void cod5_prol_epi()
 
     // Turn on BFLoutsideprolog for all blocks outside the ones needing the prolog.
 
-    for (b = startblock; b; b = b->Bnext)
-        b->Bflags &= ~BFLoutsideprolog;                 // start with them all off
+    for (b = startblock; b; b = b.Bnext)
+        b.Bflags &= ~BFLoutsideprolog;                 // start with them all off
 
     pe_add(startblock);
 
     // Look for only one block (bp) that will hold the prolog
-    bp = NULL;
+    bp = null;
     nepis = 0;
-    for (b = startblock; b; b = b->Bnext)
+    for (b = startblock; b; b = b.Bnext)
     {   int mark;
 
-        if (b->Bflags & BFLoutsideprolog)
+        if (b.Bflags & BFLoutsideprolog)
             continue;
 
         // If all predecessors are marked
         mark = 0;
-        assert(b->Bpred);
-        for (bl = b->Bpred; bl; bl = list_next(bl))
+        assert(b.Bpred);
+        for (bl = b.Bpred; bl; bl = list_next(bl))
         {
-            if (list_block(bl)->Bflags & BFLoutsideprolog)
+            if (list_block(bl).Bflags & BFLoutsideprolog)
             {
                 if (mark == 2)
                     goto L1;
@@ -111,9 +119,9 @@ void cod5_prol_epi()
 
         // See if b is an epilog
         mark = 0;
-        for (bl = b->Bsucc; bl; bl = list_next(bl))
+        for (bl = b.Bsucc; bl; bl = list_next(bl))
         {
-            if (list_block(bl)->Bflags & BFLoutsideprolog)
+            if (list_block(bl).Bflags & BFLoutsideprolog)
             {
                 if (mark == 2)
                     goto L1;
@@ -126,18 +134,18 @@ void cod5_prol_epi()
                 mark = 2;
             }
         }
-        if (mark == 1 || b->BC == BCret || b->BC == BCretexp)
-        {   b->Bflags |= BFLepilog;
+        if (mark == 1 || b.BC == BCret || b.BC == BCretexp)
+        {   b.Bflags |= BFLepilog;
             nepis++;
             if (nepis > 1 && config.flags4 & CFG4space)
                 goto L1;
         }
     }
     if (bp)
-    {   bp->Bflags |= BFLprolog;
+    {   bp.Bflags |= BFLprolog;
         //printf("=============== prolog opt\n");
     }
-#endif
+}
 }
 
 /**********************************************
@@ -149,17 +157,17 @@ void cod5_noprol()
     block *b;
 
     //printf("no prolog optimization\n");
-    startblock->Bflags |= BFLprolog;
-    for (b = startblock; b; b = b->Bnext)
+    startblock.Bflags |= BFLprolog;
+    for (b = startblock; b; b = b.Bnext)
     {
-        b->Bflags &= ~BFLoutsideprolog;
-        switch (b->BC)
+        b.Bflags &= ~BFLoutsideprolog;
+        switch (b.BC)
         {   case BCret:
             case BCretexp:
-                b->Bflags |= BFLepilog;
+                b.Bflags |= BFLepilog;
                 break;
             default:
-                b->Bflags &= ~BFLepilog;
+                b.Bflags &= ~BFLepilog;
         }
     }
 }
@@ -169,15 +177,15 @@ void cod5_noprol()
  * the function prolog.
  */
 
-STATIC void pe_add(block *b)
+private void pe_add(block *b)
 {   list_t bl;
 
-    if (b->Bflags & BFLoutsideprolog ||
+    if (b.Bflags & BFLoutsideprolog ||
         need_prolog(b))
         return;
 
-    b->Bflags |= BFLoutsideprolog;
-    for (bl = b->Bsucc; bl; bl = list_next(bl))
+    b.Bflags |= BFLoutsideprolog;
+    for (bl = b.Bsucc; bl; bl = list_next(bl))
         pe_add(list_block(bl));
 }
 
@@ -185,17 +193,17 @@ STATIC void pe_add(block *b)
  * Determine if block needs the function prolog to be set up.
  */
 
-STATIC int need_prolog(block *b)
+private int need_prolog(block *b)
 {
-    if (b->Bregcon.used & fregsaved)
+    if (b.Bregcon.used & fregsaved)
         goto Lneed;
 
     // If block referenced a param in 16 bit code
-    if (!I32 && b->Bflags & BFLrefparam)
+    if (!I32 && b.Bflags & BFLrefparam)
         goto Lneed;
 
     // If block referenced a stack local
-    if (b->Bflags & BFLreflocal)
+    if (b.Bflags & BFLreflocal)
         goto Lneed;
 
     return 0;
@@ -204,4 +212,4 @@ Lneed:
     return 1;
 }
 
-#endif
+}

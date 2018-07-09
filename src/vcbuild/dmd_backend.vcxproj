@@ -107,7 +107,6 @@
     <ClCompile Include="..\dmd\backend\cod2.c" />
     <ClCompile Include="..\dmd\backend\cod3.c" />
     <ClCompile Include="..\dmd\backend\cod4.c" />
-    <ClCompile Include="..\dmd\backend\cod5.c" />
     <ClCompile Include="..\dmd\backend\code.c" />
     <ClCompile Include="..\dmd\backend\debug.c" />
     <ClCompile Include="..\dmd\backend\dt.c" />
