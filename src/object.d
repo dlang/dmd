@@ -871,7 +871,15 @@ class Object
     size_t toHash() @trusted nothrow
     {
         // BUG: this prevents a compacting GC from working, needs to be fixed
-        return cast(size_t)cast(void*)this;
+        size_t addr = cast(size_t) cast(void*) this;
+        // The bottom log2((void*).alignof) bits of the address will always
+        // be 0. Moreover it is likely that each Object is allocated with a
+        // separate call to malloc. The alignment of malloc differs from
+        // platform to platform, but rather than having special cases for
+        // each platform it is safe to use a shift of 4. To minimize
+        // collisions in the low bits it is more important for the shift to
+        // not be too small than for the shift to not be too big.
+        return addr ^ (addr >>> 4);
     }
 
     /**
@@ -1183,7 +1191,12 @@ class TypeInfo_Pointer : TypeInfo
 
     override size_t getHash(scope const void* p) @trusted const
     {
-        return cast(size_t)*cast(void**)p;
+        // If the target of `p` is n-byte aligned then the
+        // bottom log2(n) bits of `p` will always be 0.
+        // Performing a constant magnitude xor-shift is
+        // inexpensive and will generally pay off.
+        size_t addr = cast(size_t) *cast(const void**) p;
+        return addr ^ (addr >>> 4);
     }
 
     override bool equals(in void* p1, in void* p2) const
