@@ -112,7 +112,6 @@
     <ClCompile Include="..\dmd\backend\debug.c" />
     <ClCompile Include="..\dmd\backend\dt.c" />
     <ClCompile Include="..\dmd\backend\dwarf.c" />
-    <ClCompile Include="..\dmd\backend\ee.c" />
     <ClCompile Include="..\dmd\backend\el.c" />
     <ClCompile Include="..\dmd\backend\elfobj.c" />
     <ClCompile Include="..\dmd\backend\fp.c" />

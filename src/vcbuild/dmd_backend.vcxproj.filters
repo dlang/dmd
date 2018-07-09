@@ -84,9 +84,6 @@
     <ClCompile Include="..\dmd\backend\dwarf.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
-    <ClCompile Include="..\dmd\backend\ee.c">
-      <Filter>dmd\backend</Filter>
-    </ClCompile>
     <ClCompile Include="..\dmd\backend\el.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
