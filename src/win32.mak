@@ -501,8 +501,8 @@ $G/cod3.obj : $C\rtlsym.h $C\cod3.c
 $G/cod4.obj : $C\cod4.c
 	$(CC) -c -o$@ $(MFLAGS) $C\cod4
 
-$G/cod5.obj : $C\cod5.c
-	$(CC) -c -o$@ $(MFLAGS) $C\cod5
+$G/cod5.obj : $C\cod5.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\cod5
 
 $G/code.obj : $C\code.c
 	$(CC) -c -o$@ $(MFLAGS) $C\code

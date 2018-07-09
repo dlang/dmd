@@ -36,7 +36,7 @@ extern (C++):
 
 void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
 
-private @property @nogc nothrow auto NPTRSIZE() { return _tysize[TYnptr]; }
+package(dmd) @property @nogc nothrow auto NPTRSIZE() { return _tysize[TYnptr]; }
 
 /****************************
  * Generate and output scope table.
