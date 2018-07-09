@@ -156,9 +156,6 @@
     <ClCompile Include="..\dmd\backend\util2.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
-    <ClCompile Include="..\dmd\backend\cv8.c">
-      <Filter>dmd\backend</Filter>
-    </ClCompile>
     <ClCompile Include="..\dmd\backend\pdata.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
