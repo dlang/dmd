@@ -13,7 +13,10 @@ module dmd.backend.outbuf;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_outbuf.html
 
+import core.stdc.stdio;
+import core.stdc.stdlib;
 import core.stdc.string;
+import core.memory;
 
 // Output buffer
 
@@ -23,23 +26,52 @@ extern (C++):
 
 struct Outbuffer
 {
-    ubyte *buf;         // the buffer itself
-    ubyte *pend;        // pointer past the end of the buffer
-    ubyte *p;           // current position in buffer
-    ubyte *origbuf;     // external buffer
+    ubyte *buf = null;         // the buffer itself
+    ubyte *pend = null;        // pointer past the end of the buffer
+    ubyte *p = null;           // current position in buffer
+    ubyte *origbuf = null;     // external buffer
 
-    //this();
+    static create()
+    {
+        return Outbuffer();
+    }
 
-    this(size_t initialSize); // : buf(null), pend(null), p(null), origbuf(null) { }
+    this(size_t initialSize) // : buf(null), pend(null), p(null), origbuf(null) { }
+    {
+        buf = null;
+        pend = null;
+        p = null;
+        origbuf = null;
+
+        enlarge(cast(uint) initialSize);
+    }
 
     this(ubyte *bufx, size_t bufxlen, uint incx)
     {
         buf = bufx; pend = bufx + bufxlen; p = bufx; origbuf = bufx;
     }
 
-    //~this();
+    ~this()
+    {
+        if (buf != origbuf)
+        {
+version (MEM_DEBUG)
+{
+            mem_free(buf);
+}
+else
+{
+            if (buf)
+                free(buf);
+}
+        }
 
-    void reset();
+    }
+
+    void reset()
+    {
+        p = buf;
+    }
 
     // Reserve nbytes in buffer
     void reserve(uint nbytes)
@@ -49,13 +81,77 @@ struct Outbuffer
     }
 
     // Reserve nbytes in buffer
-    void enlarge(uint nbytes);
+    void enlarge(uint nbytes)
+    {
+        const size_t oldlen = pend - buf;
+        const size_t used = p - buf;
+
+        size_t len = used + nbytes;
+        if (len <= oldlen)
+            return;
+
+        const size_t newlen = oldlen + (oldlen >> 1);   // oldlen * 1.5
+        if (len < newlen)
+            len = newlen;
+        len = (len + 15) & ~15;
+
+version (MEM_DEBUG)
+{
+        if (buf == origbuf)
+        {
+            buf = cast(ubyte *) mem_malloc(len);
+            if (buf)
+                memcpy(buf, origbuf, oldlen);
+        }
+        else
+            buf = cast(ubyte *)mem_realloc(buf, len);
+}
+else
+{
+         if (buf == origbuf && origbuf)
+         {
+             buf = cast(ubyte *) malloc(len);
+             if (buf)
+                 memcpy(buf, origbuf, used);
+         }
+         else
+             buf = cast(ubyte *) realloc(buf,len);
+}
+        if (!buf)
+        {
+            fprintf(stderr, "Fatal Error: Out of memory");
+            exit(EXIT_FAILURE);
+        }
+
+        pend = buf + len;
+        p = buf + used;
+    }
 
     // Write n zeros; return pointer to start of zeros
-    void *writezeros(size_t n);
+    void *writezeros(size_t len)
+    {
+        if (pend - p < len)
+            reserve(cast(uint) len);
+        void *pstart = memset(p,0,len);
+        p += len;
+        return pstart;
+    }
 
     // Position buffer to accept the specified number of bytes at offset
-    void position(size_t offset, size_t nbytes);
+    void position(size_t offset, size_t nbytes)
+    {
+        if (offset + nbytes > pend - buf)
+        {
+            enlarge(cast(uint) (offset + nbytes - (p - buf)));
+        }
+        p = buf + offset;
+debug
+{
+        assert(buf <= p);
+        assert(p <= pend);
+        assert(p + nbytes <= pend);
+}
+    }
 
     // Write an array to the buffer, no reserve check
     void writen(const void *b, size_t len)
@@ -72,7 +168,13 @@ struct Outbuffer
     }
 
     // Write an array to the buffer.
-    void write(const(void)* b, uint len);
+    void write(const(void)* b, uint len)
+    {
+        if (pend - p < len)
+            reserve(len);
+        memcpy(p,b,len);
+        p += len;
+    }
 
     void write(Outbuffer *b) { write(b.buf,cast(uint)(b.p - b.buf)); }
 
@@ -152,34 +254,89 @@ struct Outbuffer
     /**
      * Writes a 32 bit int.
      */
-    void write32(int v);
+    void write32(int v)
+    {
+        if (pend - p < 4)
+            reserve(4);
+        *cast(int *)p = v;
+        p += 4;
+    }
 
     /**
      * Writes a 64 bit long.
      */
-    void write64(long v);
+    version (X86_64)
+        private enum write64Mangle = "_ZN9Outbuffer7write64Ex";
+    else
+        private enum write64Mangle = "_ZN9Outbuffer7write64El";
+
+    pragma(mangle, write64Mangle)
+    void write64(long v)
+    {
+        if (pend - p < 8)
+            reserve(8);
+        *cast(long *)p = v;
+        p += 8;
+    }
 
     /**
      * Writes a 32 bit float.
      */
-    void writeFloat(float v);
+    void writeFloat(float v)
+    {
+        if (pend - p < float.sizeof)
+            reserve(float.sizeof);
+        *cast(float *)p = v;
+        p += float.sizeof;
+    }
 
     /**
      * Writes a 64 bit double.
      */
-    void writeDouble(double v);
+    void writeDouble(double v)
+    {
+        if (pend - p < double.sizeof)
+            reserve(double.sizeof);
+        *cast(double *)p = v;
+        p += double.sizeof;
+    }
 
-    void write(const(char)* s);
+    void write(const(char)* s)
+    {
+        write(s,cast(uint) strlen(s));
+    }
 
-    void write(const(ubyte)* s);
+    void write(const(ubyte)* s)
+    {
+        write(s,cast(uint) strlen(cast(const char *)s));
+    }
 
-    void writeString(const(char)* s);
+    void writeString(const(char)* s)
+    {
+        write(s,cast(uint) (strlen(s)+1));
+    }
 
-    void prependBytes(const(char)* s);
+    void prependBytes(const(char)* s)
+    {
+        prepend(s, strlen(s));
+    }
 
-    void prepend(const(void)* b, size_t len);
+    void prepend(const(void)* b, size_t len)
+    {
+        reserve(cast(uint) len);
+        memmove(buf + len,buf,p - buf);
+        memcpy(buf,b,len);
+        p += len;
+    }
 
-    void bracket(char c1,char c2);
+    void bracket(char c1,char c2)
+    {
+        reserve(2);
+        memmove(buf + 1,buf,p - buf);
+        buf[0] = c1;
+        p[1] = c2;
+        p += 2;
+    }
 
     /**
      * Returns the number of bytes written.
@@ -189,10 +346,51 @@ struct Outbuffer
         return p - buf;
     }
 
-    char *toString();
-    void setsize(size_t size);
+    char *toString()
+    {
+        if (pend == p)
+            reserve(1);
+        *p = 0;                     // terminate string
+        return cast(char *)buf;
+    }
 
-    void writesLEB128(int value);
-    void writeuLEB128(uint value);
+    void setsize(size_t size)
+    {
+        p = buf + size;
+debug
+{
+        assert(buf <= p);
+        assert(p <= pend);
+}
+    }
+
+    void writesLEB128(int value)
+    {
+        while (1)
+        {
+            ubyte b = value & 0x7F;
+
+            value >>= 7;            // arithmetic right shift
+            if (value == 0 && !(b & 0x40) ||
+                value == -1 && (b & 0x40))
+            {
+                 writeByte(b);
+                 break;
+            }
+            writeByte(b | 0x80);
+        }
+    }
+
+    void writeuLEB128(uint value)
+    {
+        do
+        {   ubyte b = value & 0x7F;
+
+            value >>= 7;
+            if (value)
+                b |= 0x80;
+            writeByte(b);
+        } while (value);
+    }
 
 }

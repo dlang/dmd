@@ -35,7 +35,7 @@ struct Outbuffer
     unsigned char *p;           // current position in buffer
     unsigned char *origbuf;     // external buffer
 
-    Outbuffer();
+    static Outbuffer create();
 
     Outbuffer(d_size_t initialSize);
 

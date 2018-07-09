@@ -1623,7 +1623,7 @@ void obj_filename(const char *modname)
 void Obj::compiler()
 {
     //dbg_printf("Obj::compiler\n");
-    comment_data = new Outbuffer();
+    comment_data = new Outbuffer(Outbuffer::create());
     comment_data->write(::compiler,sizeof(::compiler));
     //dbg_printf("Comment data size %d\n",comment_data->size());
 }
@@ -2716,7 +2716,7 @@ void ElfObj::addrel(int seg, targ_size_t offset, unsigned type,
     assert(secidx != 0);
 
     if (segdata->SDrel == NULL)
-        segdata->SDrel = new Outbuffer();
+        segdata->SDrel = new Outbuffer(Outbuffer::create());
     if (segdata->SDrel->size() == 0)
     {   IDXSEC relidx;
 

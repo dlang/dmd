@@ -2263,7 +2263,7 @@ STATIC void cv4_outsym(symbol *s)
             return;
 #if SCPP
         if (CPP && isclassmember(s))            // if method
-        {   Outbuffer buf;
+        {   Outbuffer buf = Outbuffer::create();
 
             param_tostring(&buf,s->Stype);
             buf.prependBytes(cpp_prettyident(s));

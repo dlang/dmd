@@ -128,8 +128,8 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
 
     DwEhTable *deh = &dwehtable;
     deh->dim = 0;
-    Outbuffer atbuf;
-    Outbuffer cstbuf;
+    Outbuffer atbuf = Outbuffer::create();
+    Outbuffer cstbuf = Outbuffer::create();
 
     /* Build deh table, and Action Table
      */
@@ -418,7 +418,7 @@ int actionTableInsert(Outbuffer *atbuf, int ttindex, int nextoffset)
 #ifdef DEBUG
 void unittest_actionTableInsert()
 {
-    Outbuffer atbuf;
+    Outbuffer atbuf = Outbuffer::create();
     static int tt1[] = { 1,2,3 };
     static int tt2[] = { 2 };
 
@@ -546,7 +546,7 @@ unsigned uLEB128size(unsigned value)
 #ifdef DEBUG
 void unittest_LEB128()
 {
-    Outbuffer buf;
+    Outbuffer buf = Outbuffer::create();
 
     static int values[] =
     {

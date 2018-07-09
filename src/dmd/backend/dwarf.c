@@ -357,7 +357,7 @@ static CFA_state CFA_state_init_64 =       // initial CFA state as defined by CI
 };
 
 static CFA_state CFA_state_current;     // current CFA state
-static Outbuffer cfa_buf;               // CFA instructions
+static Outbuffer cfa_buf = Outbuffer::create();               // CFA instructions
 
 /***********************************
  * Set the location, i.e. the offset from the start
@@ -1606,7 +1606,7 @@ void dwarf_func_term(Symbol *sfunc)
             }
         }
 
-        Outbuffer abuf;
+        Outbuffer abuf = Outbuffer::create();
         abuf.writeByte(DW_TAG_subprogram);
         abuf.writeByte(haveparameters);          // have children?
         if (haveparameters)
@@ -1851,7 +1851,7 @@ void cv_outsym(symbol *s)
     if (tyfunc(tym) && s->Sclass != SCtypedef)
         return;
 
-    Outbuffer abuf;
+    Outbuffer abuf = Outbuffer::create();
     unsigned code;
     unsigned typidx;
     unsigned soffset;
@@ -2370,7 +2370,7 @@ unsigned dwarf_typidx(type *t)
              * caching these, we can cache the function typidx.
              * Cache them in functypebuf[]
              */
-            Outbuffer tmpbuf;
+            Outbuffer tmpbuf = Outbuffer::create();
             nextidx = dwarf_typidx(t->Tnext);                   // function return type
             tmpbuf.write32(nextidx);
             unsigned params = 0;
@@ -2386,7 +2386,7 @@ unsigned dwarf_typidx(type *t)
             }
 
             if (!functypebuf)
-                functypebuf = new Outbuffer();
+                functypebuf = new Outbuffer(Outbuffer::create());
             unsigned functypebufidx = functypebuf->size();
             functypebuf->write(tmpbuf.buf, tmpbuf.size());
             /* If it's in the cache already, return the existing typidx
@@ -2406,7 +2406,7 @@ unsigned dwarf_typidx(type *t)
 
             /* Not in the cache, create a new typidx
              */
-            Outbuffer abuf;             // for abbrev
+            Outbuffer abuf = Outbuffer::create();             // for abbrev
             abuf.writeByte(DW_TAG_subroutine_type);
             if (params)
                 abuf.writeByte(1);      // children
@@ -2624,7 +2624,7 @@ unsigned dwarf_typidx(type *t)
                 break;                  // don't set Stypidx
             }
 
-            Outbuffer fieldidx;
+            Outbuffer fieldidx = Outbuffer::create();
 
             // Count number of fields
             unsigned nfields = 0;
@@ -2654,7 +2654,7 @@ unsigned dwarf_typidx(type *t)
             }
             else
             {
-                Outbuffer abuf;         // for abbrev
+                Outbuffer abuf = Outbuffer::create();         // for abbrev
                 abuf.writeByte(dwarf_classify_struct(st->Sflags));
                 abuf.writeByte(1);              // children
                 abuf.writeByte(DW_AT_name);     abuf.writeByte(DW_FORM_string);
@@ -2771,7 +2771,7 @@ unsigned dwarf_typidx(type *t)
                 break;                  // don't set Stypidx
             }
 
-            Outbuffer abuf;             // for abbrev
+            Outbuffer abuf = Outbuffer::create();             // for abbrev
             abuf.write(abbrevTypeEnum, sizeof(abbrevTypeEnum));
             code = dwarf_abbrev_code(abuf.buf, abuf.size());
 

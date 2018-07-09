@@ -343,7 +343,7 @@ BACK_OBJS = var.o el.o \
 	rtlsym.o cgen.o out.o \
 	dt.o \
 	code.o \
-	cgcod.o outbuf.o \
+	cgcod.o \
 	aa.o ti_achar.o \
 	ti_pvoid.o pdata.o cv8.o backconfig.o \
 	dwarf.o dwarfeh.o varstats.o \
@@ -352,7 +352,7 @@ BACK_OBJS = var.o el.o \
 
 BACK_DOBJS = bcomplex.o evalu8.o divcoeff.o dvec.o go.o gsroa.o glocal.o gdag.o gother.o gflow.o \
 	gloop.o compress.o cgelem.o cgcs.o ee.o cod5.o nteh.o blockopt.o memh.o cg.o cgreg.o \
-	dtype.o debugprint.o symbol.o
+	dtype.o debugprint.o symbol.o outbuf.o
 
 G_OBJS  = $(addprefix $G/, $(BACK_OBJS))
 G_DOBJS = $(addprefix $G/, $(BACK_DOBJS))
@@ -389,7 +389,7 @@ BACK_SRC = \
 	$C/code.c $C/symbol.d $C/debugprint.d $C/dt.c $C/ee.d $C/el.c \
 	$C/evalu8.d $C/fp.c $C/go.d $C/gflow.d $C/gdag.d \
 	$C/gother.d $C/glocal.d $C/gloop.d $C/gsroa.d $C/newman.c \
-	$C/nteh.d $C/os.c $C/out.c $C/outbuf.c $C/ptrntab.c $C/rtlsym.c \
+	$C/nteh.d $C/os.c $C/out.c $C/outbuf.d $C/ptrntab.c $C/rtlsym.c \
 	$C/dtype.d $C/melf.h $C/mach.h $C/mscoff.h $C/bcomplex.h \
 	$C/outbuf.h $C/token.h $C/tassert.h \
 	$C/elfobj.c $C/cv4.h $C/dwarf2.h $C/exh.h $C/go.h \
