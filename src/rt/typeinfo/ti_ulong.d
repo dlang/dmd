@@ -27,7 +27,10 @@ class TypeInfo_m : TypeInfo
 
     override size_t getHash(scope const void* p)
     {
-        return hashOf(*cast(ulong*)p);
+        static if (ulong.sizeof <= size_t.sizeof)
+            return *cast(const ulong*)p;
+        else
+            return hashOf(*cast(const ulong*)p);
     }
 
     override bool equals(in void* p1, in void* p2)

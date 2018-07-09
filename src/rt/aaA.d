@@ -672,7 +672,7 @@ extern (C) int _aaEqual(in TypeInfo tiRaw, in AA aa1, in AA aa2)
 extern (C) hash_t _aaGetHash(in AA* aa, in TypeInfo tiRaw) nothrow
 {
     if (aa.empty)
-        return hashOf(0);
+        return 0;
 
     import rt.lifetime : unqualify;
 
@@ -693,7 +693,7 @@ extern (C) hash_t _aaGetHash(in AA* aa, in TypeInfo tiRaw) nothrow
         h += hashOf(h2);
     }
 
-    return hashOf(h);
+    return h;
 }
 
 /**

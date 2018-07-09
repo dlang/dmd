@@ -1191,7 +1191,8 @@ class TypeInfo_Pointer : TypeInfo
 
     override size_t getHash(scope const void* p) @trusted const
     {
-        return hashOf(*cast(void**)p);
+        size_t addr = cast(size_t) *cast(const void**)p;
+        return addr ^ (addr >> 4);
     }
 
     override bool equals(in void* p1, in void* p2) const
@@ -1711,7 +1712,7 @@ class TypeInfo_Class : TypeInfo
     override size_t getHash(scope const void* p) @trusted const
     {
         auto o = *cast(Object*)p;
-        return hashOf(o ? o.toHash() : 0);
+        return o ? o.toHash() : 0;
     }
 
     override bool equals(in void* p1, in void* p2) const
@@ -1867,12 +1868,12 @@ class TypeInfo_Interface : TypeInfo
     {
         if (!*cast(void**)p)
         {
-            return hashOf(null);
+            return 0;
         }
         Interface* pi = **cast(Interface ***)*cast(void**)p;
         Object o = cast(Object)(*cast(void**)p - pi.offset);
         assert(o);
-        return hashOf(o.toHash());
+        return o.toHash();
     }
 
     override bool equals(in void* p1, in void* p2) const
@@ -1942,7 +1943,7 @@ class TypeInfo_Struct : TypeInfo
         assert(p);
         if (xtoHash)
         {
-            return hashOf((*xtoHash)(p));
+            return (*xtoHash)(p);
         }
         else
         {
@@ -4235,23 +4236,30 @@ version (none)
     }
 }
 
-/**
-Calculates the hash value of $(D arg) with $(D seed) initial value.
-The result may not be equal to `typeid(T).getHash(&arg)`.
-
-Params:
-    arg = argument to calculate the hash value of
-    seed = the $(D seed) value (may be used for hash chaining)
-
-Return: calculated hash value of $(D arg)
-*/
 version (D_Ddoc)
 {
     // This lets DDoc produce better documentation.
-    size_t hashOf(T)(auto ref T arg, size_t seed = 0)
+
+    /**
+    Calculates the hash value of `arg` with an optional `seed` initial value.
+    The result might not be equal to `typeid(T).getHash(&arg)`.
+
+    Params:
+        arg = argument to calculate the hash value of
+        seed = optional `seed` value (may be used for hash chaining)
+
+    Return: calculated hash value of `arg`
+    */
+    size_t hashOf(T)(auto ref T arg, size_t seed)
     {
         static import core.internal.hash;
         return core.internal.hash.hashOf(arg, seed);
+    }
+    /// ditto
+    size_t hashOf(T)(auto ref T arg)
+    {
+        static import core.internal.hash;
+        return core.internal.hash.hashOf(arg);
     }
 }
 else
