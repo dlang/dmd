@@ -115,7 +115,6 @@
     <ClCompile Include="..\dmd\backend\md5.c" />
     <ClCompile Include="..\dmd\backend\mscoffobj.c" />
     <ClCompile Include="..\dmd\backend\newman.c" />
-    <ClCompile Include="..\dmd\backend\os.c" />
     <ClCompile Include="..\dmd\backend\out.c" />
     <ClCompile Include="..\dmd\backend\outbuf.c" />
     <ClCompile Include="..\dmd\backend\ptrntab.c" />
