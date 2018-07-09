@@ -1880,7 +1880,7 @@ class Lexer : ErrorHandler
                     anyHexDigitsNoSingleUS = true;
                 if (base == 2 && !err)
                 {
-                    error("binary digit expected");
+                    error("radix %d digit expected, not `%c`", base, c);
                     err = true;
                 }
                 ++p;

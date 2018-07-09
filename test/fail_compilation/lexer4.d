@@ -4,7 +4,7 @@ TEST_OUTPUT:
 fail_compilation/lexer4.d(22): Error: unterminated character constant
 fail_compilation/lexer4.d(24): Error: unterminated character constant
 fail_compilation/lexer4.d(25): Error: unterminated character constant
-fail_compilation/lexer4.d(26): Error: binary digit expected
+fail_compilation/lexer4.d(26): Error: radix 2 digit expected, not `2`
 fail_compilation/lexer4.d(27): Error: radix 8 digit expected, not `8`
 fail_compilation/lexer4.d(27): Error: octal literals `0130` are no longer supported, use `std.conv.octal!130` instead
 fail_compilation/lexer4.d(28): Error: radix 10 digit expected, not `a`
