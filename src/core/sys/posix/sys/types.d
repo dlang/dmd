@@ -1056,12 +1056,15 @@ else version( CRuntime_Bionic )
         size_t  guard_size;
         int     sched_policy;
         int     sched_priority;
-        version(AArch64) char[16] __reserved;
+        version(D_LP64) char[16] __reserved;
     }
 
     struct pthread_cond_t
     {
-        int value; //volatile
+        version(D_LP64)
+            int[12] __private;
+        else
+            int[1] __private;
     }
 
     alias c_long pthread_condattr_t;
@@ -1069,24 +1072,24 @@ else version( CRuntime_Bionic )
 
     struct pthread_mutex_t
     {
-        int value; //volatile
+        version(D_LP64)
+            int[10] __private;
+        else
+            int[1] __private;
     }
 
     alias c_long pthread_mutexattr_t;
-    alias int    pthread_once_t; //volatile
+    alias int    pthread_once_t;
 
     struct pthread_rwlock_t
     {
-        pthread_mutex_t  lock;
-        pthread_cond_t   cond;
-        int              numLocks;
-        int              writerThreadId;
-        int              pendingReaders;
-        int              pendingWriters;
-        void*[4]         reserved;
+        version(D_LP64)
+            int[14] __private;
+        else
+            int[10] __private;
     }
 
-    alias int    pthread_rwlockattr_t;
+    alias c_long pthread_rwlockattr_t;
     alias c_long pthread_t;
 }
 else version ( CRuntime_UClibc )
