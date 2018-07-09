@@ -243,6 +243,8 @@ extern (C++) class Dsymbol : RootObject
     {
         if (this == o)
             return true;
+        if (o.dyncast() != DYNCAST.dsymbol)
+            return false;
         Dsymbol s = cast(Dsymbol)o;
         // Overload sets don't have an ident
         if (s && ident && s.ident && ident.equals(s.ident))
@@ -1487,6 +1489,10 @@ public:
 
     final void addAccessiblePackage(Package p, Prot protection)
     {
+        // https://issues.dlang.org/show_bug.cgi?id=17991
+        // An import of truly empty file/package can happen
+        if (p is null)
+            return;
         auto pary = protection.kind == Prot.Kind.private_ ? &privateAccessiblePackages : &accessiblePackages;
         if (pary.length <= p.tag)
             pary.length = p.tag + 1;

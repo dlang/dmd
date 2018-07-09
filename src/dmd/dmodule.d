@@ -579,6 +579,16 @@ extern (C++) final class Module : Package
         else
         {
             const(char)* argdoc;
+            OutBuffer buf;
+            if (!strcmp(arg, "__stdin.d"))
+            {
+                version (Posix)
+                    import core.sys.posix.unistd : getpid;
+                else version (Windows)
+                    import core.sys.windows.windows : getpid = GetCurrentProcessId;
+                buf.printf("__stdin_%d.d", getpid());
+                arg = buf.peekString();
+            }
             if (global.params.preservePaths)
                 argdoc = arg;
             else
@@ -892,38 +902,6 @@ extern (C++) final class Module : Package
              */
             if (!Identifier.isValidIdentifier(this.ident.toChars()))
                 error("has non-identifier characters in filename, use module declaration instead");
-        }
-        // Add internal used functions in 'object' module members.
-        if (!parent && ident == Id.object)
-        {
-            immutable code_ArrayEq = "bool _ArrayEq(T1, T2)(T1[] a, T2[] b) {\n if (a.length != b.length) return false;\n foreach (size_t i; 0 .. a.length) { if (a[i] != b[i]) return false; }\n return true; }\n";
-            immutable code_ArrayPostblit = "void _ArrayPostblit(T)(T[] a) { foreach (ref T e; a) e.__xpostblit(); }\n";
-            immutable code_ArrayDtor = "void _ArrayDtor(T)(T[] a) { foreach_reverse (ref T e; a) e.__xdtor(); }\n";
-            Identifier arreq = Id._ArrayEq;
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                Dsymbol sx = (*members)[i];
-                if (!sx)
-                    continue;
-                if (arreq && sx.ident == arreq)
-                    arreq = null;
-            }
-            if (arreq)
-            {
-                scope p = new Parser!ASTCodegen(loc, this, code_ArrayEq, false);
-                p.nextToken();
-                members.append(p.parseDeclDefs(0));
-            }
-            {
-                scope p = new Parser!ASTCodegen(loc, this, code_ArrayPostblit, false);
-                p.nextToken();
-                members.append(p.parseDeclDefs(0));
-            }
-            {
-                scope p = new Parser!ASTCodegen(loc, this, code_ArrayDtor, false);
-                p.nextToken();
-                members.append(p.parseDeclDefs(0));
-            }
         }
         // Insert module into the symbol table
         Dsymbol s = this;
@@ -1349,7 +1327,7 @@ struct ModuleDeclaration
     bool isdeprecated;      // if it is a deprecated module
     Expression msg;
 
-    extern (D) this(Loc loc, Identifiers* packages, Identifier id, Expression msg, bool isdeprecated)
+    extern (D) this(const ref Loc loc, Identifiers* packages, Identifier id, Expression msg, bool isdeprecated)
     {
         this.loc = loc;
         this.packages = packages;

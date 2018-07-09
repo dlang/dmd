@@ -32,9 +32,13 @@ shared static this()
 {
     // in alphabetic order
     hints = [
+        "calloc": "core.stdc.stdlib",
         "cos": "std.math",
         "fabs": "std.math",
+        "free": "core.stdc.stdlib",
+        "malloc": "core.stdc.stdlib",
         "printf": "core.stdc.stdio",
+        "realloc": "core.stdc.stdlib",
         "sin": "std.math",
         "sqrt": "std.math",
         "writefln": "std.stdio",

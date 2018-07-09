@@ -898,7 +898,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     Dsymbols deferToObj;                   // write these to OBJ file later
     Array!(elem*) varsInScope;
     Label*[void*] labels = null;
-    IRState irs = IRState(m, fd, &varsInScope, &deferToObj, &labels);
+    IRState irs = IRState(m, fd, &varsInScope, &deferToObj, &labels, &global.params);
 
     Symbol *shidden = null;
     Symbol *sthis = null;
@@ -908,7 +908,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
     assert(fd.type.ty == Tfunction);
     TypeFunction tf = cast(TypeFunction)fd.type;
-    RET retmethod = retStyle(tf);
+    RET retmethod = retStyle(tf, fd.needThis());
     if (retmethod == RET.stack)
     {
         // If function returns a struct, put a pointer to that
@@ -917,8 +917,15 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         char[5+4+1] hiddenparam = void;
         __gshared int hiddenparami;    // how many we've generated so far
 
-        sprintf(hiddenparam.ptr,"__HID%d",++hiddenparami);
-        shidden = symbol_name(hiddenparam.ptr,SCparameter,thidden);
+        const(char)* name;
+        if (fd.nrvo_can && fd.nrvo_var)
+            name = fd.nrvo_var.ident.toChars();
+        else
+        {
+            sprintf(hiddenparam.ptr, "__HID%d", ++hiddenparami);
+            name = hiddenparam.ptr;
+        }
+        shidden = symbol_name(name, SCparameter, thidden);
         shidden.Sflags |= SFLtrue | SFLfree;
         if (fd.nrvo_can && fd.nrvo_var && fd.nrvo_var.nestedrefs.dim)
             type_setcv(&shidden.Stype, shidden.Stype.Tty | mTYvolatile);
@@ -1154,7 +1161,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         if (fd.isCtorDeclaration())
         {
             assert(sthis);
-            for (block *b = f.Fstartblock; b; b = b.Bnext)
+            foreach (b; BlockRange(f.Fstartblock))
             {
                 if (b.BC == BCret)
                 {
@@ -1434,8 +1441,19 @@ uint totym(Type tx)
             break;
 
         case Tenum:
-            t = totym(tx.toBasetype());
+        {
+            Type tb = tx.toBasetype();
+            const id = tx.toDsymbol(null).ident;
+            if (id == Id.__c_long)
+                t = tb.ty == Tint32 ? TYlong : TYllong;
+            else if (id == Id.__c_ulong)
+                t = tb.ty == Tuns32 ? TYulong : TYullong;
+            else if (id == Id.__c_long_double)
+                t = TYdouble;
+            else
+                t = totym(tb);
             break;
+        }
 
         case Tident:
         case Ttypeof:
@@ -1496,7 +1514,7 @@ uint totym(Type tx)
                     if (global.params.isWindows)
                     {
                     }
-                    else if (!global.params.is64bit && retStyle(tf) == RET.stack)
+                    else if (!global.params.is64bit && retStyle(tf, false) == RET.stack)
                         t = TYhfunc;
                     break;
 

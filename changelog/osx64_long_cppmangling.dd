@@ -1,0 +1,11 @@
+64-bit OS X: Revert C++ mangling of `long` to pre-2.079 to restore `size_t` interop
+
+Direct interop of D `size_t` and C++ `size_t` was working before 2.079, on all platforms
+except for 32-bit OS X. By mangling D `long` as C++ `long long` on 64-bit OS X starting
+with 2.079, `size_t` interop broke on a more relevant platform.
+With new/fixed aliases, e.g., $(REF int64_t, core, stdc, stdint),
+$(REF uint64_t, core, stdc, stdint) and $(REF cpp_size_t, core, stdc, config), there are
+now proper tools for portable C++ interop wrt. integers.
+Reverting to the previous C++ mangling on 64-bit OS X (C++ `long`) may save mixed D/C++
+code bases from the need of manual adaptations by skipping the 2.079 and 2.080 DMD
+versions.

@@ -2,7 +2,7 @@
 REQUIRED_ARGS: -transition=import
 TEST_OUTPUT:
 ---
-fail_compilation/diag12598.d(14): Error: struct `lines` is a type, not an lvalue
+fail_compilation/diag12598.d(14): Error: `lines` is a `struct` definition and cannot be modified
 ---
 */
 

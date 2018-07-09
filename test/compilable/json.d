@@ -192,3 +192,12 @@ extern(C++) int flinkageCpp();
 extern(Windows) int flinkageWindows();
 extern(Pascal) int flinkagePascal();
 extern(Objective-C) int flinkageObjc();
+
+mixin template test18211(int n)
+{
+    static foreach (i; 0 .. n>10 ? 10 : n)
+    {
+        mixin("enum x" ~ cast(char)('0' + i));
+    }
+    static if (true) {}
+}

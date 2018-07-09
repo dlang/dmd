@@ -675,7 +675,7 @@ void test45()
    assert(foo45(0)==2);
    try{
       foo45(1);
-   }catch{
+   }catch(Throwable){
       return cast(void)0;
    }
    assert(0);
@@ -1084,17 +1084,17 @@ void test71()
 {
     size_t s = Foo71!(
 "helloabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-"helloabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-"helloabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-"helloabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-"helloabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-"helloabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-"helloabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-"helloabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-"helloabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-"helloabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-"helloabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-"When dealing with complex template tuples, it's very easy to overflow the
+~ "helloabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+~ "helloabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+~ "helloabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+~ "helloabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+~ "helloabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+~ "helloabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+~ "helloabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+~ "helloabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+~ "helloabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+~ "helloabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+~ "When dealing with complex template tuples, it's very easy to overflow the
 maximum symbol length allowed by OPTLINK.  This is, simply put, a damn shame,
 because it prevents otherwise completely legal code from compiling and linking
 with DMDWin, whereas it works perfectly fine when using DMDNix or GDC.
@@ -1783,7 +1783,7 @@ void test108()
 
 void test109()
 {
-    double x[] = new double[1];
+    double[] x = new double[1];
     assert(x[0] != 0);
 }
 
@@ -1850,7 +1850,7 @@ struct VariantN
 
     void bar(int value, int i)
     {
-        int args[2] = [ VariantN(value), VariantN(i) ];
+        int[2] args = [ VariantN(value), VariantN(i) ];
     }
 }
 
@@ -2216,7 +2216,7 @@ void test135()
 
 void test136()
 {
-    struct S { int i[3]; }
+    struct S { int[3] i; }
     enum S s = S(8);
     const int i  = s.i[2];
     assert(i == 8);
@@ -3233,7 +3233,7 @@ void test200()
 // Bugzilla 2931
 
 struct Bug2931 {
-        int val[3][4];
+    int[4][3] val;
 }
 
 struct Outer2931 {
@@ -3983,10 +3983,10 @@ void test229() {
 
 /***************************************************/
 
-static immutable real negtab[14] =
+static immutable real[14] negtab =
     [ 1e-4096L,1e-2048L,1e-1024L,1e-512L,1e-256L,1e-128L,1e-64L,1e-32L,
             1e-16L,1e-8L,1e-4L,1e-2L,1e-1L,1.0L ];
-static immutable real postab[13] =
+static immutable real[13] postab =
     [ 1e+4096L,1e+2048L,1e+1024L,1e+512L,1e+256L,1e+128L,1e+64L,1e+32L,
             1e+16L,1e+8L,1e+4L,1e+2L,1e+1L ];
 
@@ -6132,6 +6132,18 @@ void test5332()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=11742
+
+const int x11472 = void;
+
+static this() { x11472 = 10; }
+
+void test11472()
+{
+    assert(x11472 == 10);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -6433,6 +6445,7 @@ int main()
     test252();
     test7997();
     test5332();
+    test11472();
 
     writefln("Success");
     return 0;

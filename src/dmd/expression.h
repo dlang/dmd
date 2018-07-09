@@ -226,6 +226,7 @@ public:
     dinteger_t value;
 
     static IntegerExp *create(Loc loc, dinteger_t value, Type *type);
+    static IntegerExp *createi(Loc loc, int value, Type *type);
     bool equals(RootObject *o);
     dinteger_t toInteger();
     real_t toReal();
@@ -567,6 +568,12 @@ public:
 class VarExp : public SymbolExp
 {
 public:
+    /**
+    * Semantic can be called multiple times for a single expression.
+    * This field is needed to ensure the deprecation message will be printed only once.
+    */
+    bool hasCheckedAttrs;
+
     static VarExp *create(Loc loc, Declaration *var, bool hasOverloads = true);
     bool equals(RootObject *o);
     int checkModifiable(Scope *sc, int flag);

@@ -12,8 +12,8 @@ void ulog(string s)
 int open()
 {
     char *s;
-    char abs[2000];
-    char qu[100];
+    char[2000] abs;
+    char[100] qu;
     int a;
     ulog("reaches this only 9 times of 10!\n");
     return 0;
@@ -22,7 +22,7 @@ int open()
 
 int yhenda()
 {
-    char MEM[2200];
+    char[2200] MEM;
     int a;
     ulog("point(2.1) \n");
     open();

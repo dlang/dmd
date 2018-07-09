@@ -24,12 +24,11 @@ import dmd.backend.cc;
 import dmd.backend.cc : Symbol, block, Classsym, Blockx;
 import dmd.backend.code_x86 : code;
 import dmd.backend.code;
+import dmd.backend.dlist;
 import dmd.backend.el;
 import dmd.backend.el : elem;
 import dmd.backend.type;
 //import dmd.backend.obj;
-
-import dmd.tk.dlist;
 
 extern __gshared
 {
@@ -57,6 +56,7 @@ enum LF = '\n';             // \n into \r and \r into \n.  The translator versio
 enum CR_STR = "\r";
 enum LF_STR = "\n";
 
+enum SCMAX_ = SCMAX; // workaround gdc build failure (can be removed if gdc > 2.068)
 extern __gshared
 {
     uint[32] mask;                  // bit masks
@@ -69,7 +69,7 @@ extern __gshared
     symtab_t globsym;
 
 //    Config config;                  // precompiled part of configuration
-//    char[SCMAX] sytab;
+    char[SCMAX_] sytab;
 
     extern (C) /*volatile*/ int controlc_saw;    // a control C was seen
     uint maxblks;                   // array max for all block stuff
@@ -140,7 +140,8 @@ void util_set32();
 void util_set64();
 int ispow2(uint64_t);
 
-//#if __GNUC__
+version (Posix)
+{
 //#define util_malloc(n,size) mem_malloc((n)*(size))
 //#define util_calloc(n,size) mem_calloc((n)*(size))
 //#define util_free       mem_free
@@ -150,7 +151,9 @@ int ispow2(uint64_t);
 //#define parc_realloc    mem_realloc
 //#define parc_strdup     mem_strdup
 //#define parc_free       mem_free
-//#else
+}
+else
+{
 void *util_malloc(uint n,uint size);
 void *util_calloc(uint n,uint size);
 void util_free(void *p);
@@ -160,7 +163,7 @@ void *parc_calloc(size_t len);
 void *parc_realloc(void *oldp,size_t len);
 char *parc_strdup(const(char)* s);
 void parc_free(void *p);
-//#endif
+}
 
 void swap(int *, int *);
 //void crlf(FILE *);
@@ -518,7 +521,7 @@ void rtlsym_reset();
 void rtlsym_term();
 
 // compress.c
-char *id_compress(char *id, int idlen, size_t *plen);
+extern(C) char *id_compress(char *id, int idlen, size_t *plen);
 
 // Dwarf
 void dwarf_CFA_set_loc(size_t location);

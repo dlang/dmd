@@ -12,6 +12,7 @@
 
 module dmd.declaration;
 
+import core.stdc.stdio;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.ctorflow;
@@ -76,7 +77,7 @@ extern (C++) bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, 
  * Mark variable v as modified if it is inside a constructor that var
  * is a field in.
  */
-private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
+bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
 {
     //printf("modifyFieldVar(var = %s)\n", var.toChars());
     Dsymbol s = sc.func;
@@ -112,7 +113,8 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                         break;
                 }
                 assert(i < dim);
-                const fi = sc.ctorflow.fieldinit[i];
+                auto fieldInit = &sc.ctorflow.fieldinit[i];
+                const fi = fieldInit.csx;
 
                 if (fi & CSX.this_ctor)
                 {
@@ -121,10 +123,23 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                     else
                     {
                         const(char)* modStr = !var.type.isMutable() ? MODtoChars(var.type.mod) : MODtoChars(e1.type.mod);
-                        .error(loc, "%s field `%s` initialized multiple times", modStr, var.toChars());
+                        // Deprecated in 2018-04.
+                        // Change to error in 2019-04 by deleting the following
+                        // if-branch and the deprecate_18719 enum member in the
+                        // dmd.ctorflow.CSX enum.
+                        // @@@DEPRECATED_2019-01@@@.
+                        if (fi & CSX.deprecate_18719)
+                        {
+                            .deprecation(loc, "%s field `%s` was initialized in a previous constructor call", modStr, var.toChars());
+                        }
+                        else
+                        {
+                            .error(loc, "%s field `%s` initialized multiple times", modStr, var.toChars());
+                            .errorSupplemental(fieldInit.loc, "Previous initialization is here.");
+                        }
                     }
                 }
-                else if (sc.noctor || (fi & CSX.label))
+                else if (sc.inLoop || (fi & CSX.label))
                 {
                     if (!mustInit && var.type.isMutable() && e1.type.isMutable())
                         result = false;
@@ -135,7 +150,8 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                     }
                 }
 
-                sc.ctorflow.fieldinit[i] |= CSX.this_ctor;
+                fieldInit.csx |= CSX.this_ctor;
+                fieldInit.loc = e1.loc;
                 if (var.overlapped) // https://issues.dlang.org/show_bug.cgi?id=15258
                 {
                     foreach (j, v; ad.fields)
@@ -143,7 +159,7 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                         if (v is var || !var.isOverlappedWith(v))
                             continue;
                         v.ctorinit = true;
-                        sc.ctorflow.fieldinit[j] = CSX.this_ctor;
+                        sc.ctorflow.fieldinit[j].csx = CSX.this_ctor;
                     }
                 }
             }
@@ -332,7 +348,7 @@ extern (C++) abstract class Declaration : Dsymbol
                                     return false;
                         }
                     }
-                    error(loc, "is not callable because it is annotated with `@disable`");
+                    error(loc, "cannot be used because it is annotated with `@disable`");
                 }
             }
             return true;
@@ -545,7 +561,7 @@ extern (C++) final class TupleDeclaration : Declaration
     bool isexp;             // true: expression tuple
     TypeTuple tupletype;    // !=null if this is a type tuple
 
-    extern (D) this(Loc loc, Identifier id, Objects* objects)
+    extern (D) this(const ref Loc loc, Identifier id, Objects* objects)
     {
         super(id);
         this.loc = loc;
@@ -605,7 +621,7 @@ extern (C++) final class TupleDeclaration : Declaration
                 }
                 else
                 {
-                    auto arg = new Parameter(0, t, null, null);
+                    auto arg = new Parameter(0, t, null, null, null);
                 }
                 (*args)[i] = arg;
                 if (!t.deco)
@@ -676,7 +692,7 @@ extern (C++) final class AliasDeclaration : Declaration
     Dsymbol overnext;   // next in overload list
     Dsymbol _import;    // !=null if unresolved internal alias for selective import
 
-    extern (D) this(Loc loc, Identifier id, Type type)
+    extern (D) this(const ref Loc loc, Identifier id, Type type)
     {
         super(id);
         //printf("AliasDeclaration(id = '%s', type = %p)\n", id.toChars(), type);
@@ -686,7 +702,7 @@ extern (C++) final class AliasDeclaration : Declaration
         assert(type);
     }
 
-    extern (D) this(Loc loc, Identifier id, Dsymbol s)
+    extern (D) this(const ref Loc loc, Identifier id, Dsymbol s)
     {
         super(id);
         //printf("AliasDeclaration(id = '%s', s = %p)\n", id.toChars(), s);
@@ -1080,7 +1096,9 @@ extern (C++) class VarDeclaration : Declaration
     Expression edtor;               // if !=null, does the destruction of the variable
     IntRange* range;                // if !=null, the variable is known to be within the range
 
-    final extern (D) this(Loc loc, Type type, Identifier id, Initializer _init, StorageClass storage_class = STC.undefined_)
+    VarDeclarations* maybes;        // STC.maybescope variables that are assigned to this STC.maybescope variable
+
+    final extern (D) this(const ref Loc loc, Type type, Identifier id, Initializer _init, StorageClass storage_class = STC.undefined_)
     {
         super(id);
         //printf("VarDeclaration('%s')\n", id.toChars());
@@ -1383,7 +1401,7 @@ extern (C++) class VarDeclaration : Declaration
             }
             else
             {
-                // _ArrayDtor(v[0 .. n])
+                // __ArrayDtor(v[0 .. n])
                 e = new VarExp(loc, this);
 
                 const sdsz = sd.type.size();
@@ -1398,7 +1416,7 @@ extern (C++) class VarDeclaration : Declaration
                 // This is a hack so we can call destructors on const/immutable objects.
                 e.type = sd.type.arrayOf();
 
-                e = new CallExp(loc, new IdentifierExp(loc, Id._ArrayDtor), e);
+                e = new CallExp(loc, new IdentifierExp(loc, Id.__ArrayDtor), e);
             }
             return e;
         }
@@ -1624,6 +1642,23 @@ extern (C++) class VarDeclaration : Declaration
     {
         return sequenceNumber < v.sequenceNumber;
     }
+
+    /***************************************
+     * Add variable to maybes[].
+     * When a maybescope variable `v` is assigned to a maybescope variable `this`,
+     * we cannot determine if `this` is actually scope until the semantic
+     * analysis for the function is completed. Thus, we save the data
+     * until then.
+     * Params:
+     *  v = an STC.maybescope variable that was assigned to `this`
+     */
+    final void addMaybe(VarDeclaration v)
+    {
+        //printf("add %s to %s's list of dependencies\n", v.toChars(), toChars());
+        if (!maybes)
+            maybes = new VarDeclarations();
+        maybes.push(v);
+    }
 }
 
 /***********************************************************
@@ -1633,7 +1668,7 @@ extern (C++) final class SymbolDeclaration : Declaration
 {
     StructDeclaration dsym;
 
-    extern (D) this(Loc loc, StructDeclaration dsym)
+    extern (D) this(const ref Loc loc, StructDeclaration dsym)
     {
         super(dsym.ident);
         this.loc = loc;
@@ -2105,7 +2140,7 @@ extern (C++) final class TypeInfoVectorDeclaration : TypeInfoDeclaration
  */
 extern (C++) final class ThisDeclaration : VarDeclaration
 {
-    extern (D) this(Loc loc, Type t)
+    extern (D) this(const ref Loc loc, Type t)
     {
         super(loc, t, Id.This, null);
         storage_class |= STC.nodtor;

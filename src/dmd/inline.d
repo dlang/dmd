@@ -2040,8 +2040,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
  */
 private bool isConstruction(Expression e)
 {
-    while (e.op == TOK.comma)
-        e = (cast(CommaExp)e).e2;
+    e = lastComma(e);
 
     if (e.op == TOK.structLiteral)
     {

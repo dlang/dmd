@@ -16,8 +16,20 @@ export DMD=${DMD:-dmd}         # can be {dmd,ldc,gdc}
 
 export N=4
 export OS_NAME=linux
-export BRANCH=$BRANCH_NAME
 export FULL_BUILD="${PULL_REQUEST_NUMBER+false}"
+# SemaphoreCI doesn't provide a convenient way to the base branch (e.g. master or stable)
+if [ -n "${PULL_REQUEST_NUMBER:-}" ]; then
+    # detect master/stable without querying the rate-limited API
+    BRANCH="$(git describe --all | sed -E "s/.*\/([^-/]*)-.*/\1/")"
+    # check if the detected branch actually exists and fallback to master
+    if ! git ls-remote --exit-code --heads https://github.com/dlang/dmd.git "$BRANCH" > /dev/null ; then
+        echo "Invalid branch detected: ${BRANCH} - falling back to master"
+        BRANCH="master"
+    fi
+else
+    BRANCH="${BRANCH_NAME}"
+fi
+export BRANCH
 
 source ci.sh
 

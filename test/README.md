@@ -10,40 +10,39 @@ Quick guide
 ### Run all tests
 
 ```sh
-make -j10
+./run.d
 ```
 
 Note:
 
-- the exact parallelism parameter `-j` depends on your system,
-but if you have enough memory, a high `-j` allows a significant speed-up.
+- `run.d` will automatically use all available threads. Use e.g. `-j4` if you need a lower parallelism
 - all commands below assume that you are in the `test` directory
 
 ### Run only a specific subset
 
 ```sh
-make -j10 run_fail_compilation_tests
-make -j10 run_compilable_tests
+./run.d fail
+./run.d compilable
 ```
 
-As linking is slow the `runnable` tests take a bit longer:
+As linking is slow the `runnable` tests take a bit longer to run:
 
 ```sh
-make -j10 run_runnable_tests
+./run.d runnable
 ```
 
 ### Run only an individual test
 
 ```sh
-./run_individual_tests fail_compilation/diag10089.d
+./run.d fail_compilation/diag10089.d
 ```
 
 Multiple arguments are supported too.
-You can use `./run_individual_tests` to quickly run a custom subset of tests.
+You can use `./run.d` to quickly run a custom subset of tests.
 For example, all diagnostic tests in `fail_compilation`:
 
 ```sh
-./run_individual_tests fail_compilation/diag*.d
+./run.d fail_compilation/diag*.d
 ```
 
 ### Automatically update the `TEST_OUTPUT` segments
@@ -52,18 +51,19 @@ Often, when you add a new error message, a few tests need to be updated as their
 `TEST_OUTPUT` has changed. This is tedious work and `AUTO_UPDATE` can be to automate it:
 
 ```sh
-AUTO_UPDATE=1 make run_fail_compilation_tests -j10
+AUTO_UPDATE=1 ./run.d fail
 ```
 
 Updating the `TEST_OUTPUT` can also be done for a custom subset of tests:
 
 ```sh
-AUTO_UPDATE=1 ./run_individual_tests fail_compilation/diag*.d
+./run.d fail_compilation/diag*.d AUTO_UPDATE=1
 ```
 
 Note:
 - you might need to run this command twice if you add a new error message(s) as then the line numbers of the following error messages will change
 - `AUTO_UPDATE` doesn't work with tests that have multiple `TEST_OUTPUT` segments
+- `AUTO_UPDATE` can be set as an environment variable or as Makefile-like argument assignment
 
 Makefile targets
 ----------------
@@ -83,8 +83,30 @@ Makefile targets
     test_results/compilable/json.d.out      runs an individual test
                                             (run log of the test is stored)
 
-In-test variables
------------------
+Test Configuration
+------------------
+
+All tests defined within `.d` source files may use various settings to configure how they are to be run, i.e.
+
+`compilable/hellotest.d`:
+```D
+/*
+REQUIRED_ARGS: -version=Foo
+TEST_OUTPUT:
+---
+Hello, World!
+---
+*/
+void main(string[] args)
+{
+    version(Foo)
+    {
+        pragma(msg, "Hello World");
+    }
+}
+```
+
+The following is a list of all available settings:
 
     COMPILE_SEPARATELY:  if present, forces each .d file to compile separately and linked
                          together in an extra setup.
@@ -107,6 +129,9 @@ In-test variables
 
     EXTRA_SOURCES:       list of extra files to build and link along with the test
                          default: (none)
+
+    EXTRA_CPP_SOURCES:   list of extra C++ files to build and link along with the test
+                         default: (none).
 
     EXTRA_OBJC_SOURCES:  list of extra Objective-C files to build and link along with the test
                          default: (none). Test files with this variable will be ignored unless
@@ -150,8 +175,12 @@ In-test variables
                          Optionally a MODEL suffix can used for further filtering, e.g.
                          win32 win64 linux32 linux64 osx32 osx64 freebsd32 freebsd64
 
-Relevant environment variables
+Makefile Environment variables
 ------------------------------
+
+The Makefile uses environment variables to store test settings and as a way to pass these settings to the test wrapper tool `d_do_test`.
+
+> Note: These variables are also available inside any Bash test.
 
     ARGS:          set to execute all combinations of
     REQUIRED_ARGS: arguments always passed to the compiler
@@ -168,3 +197,21 @@ Windows vs non-windows portability env vars:
     SEP:           \ or / (required)
     OBJ:          .obj or .o (required)
     EXE:          .exe or <null> (required)
+
+Bash Tests
+----------
+
+Along with the environment variables provided by the Makefile (see above), an additional set of environment variables are made available to Bash tests. These variables are defined in `tools/exported_vars.sh`:
+
+    TEST_DIR           the name of the test directory
+                       (one of compilable, fail_compilation or runnable)
+
+    TEST_NAME          the base name of the test file without the extension, e.g. test15897
+
+    RESULTS_TEST_DIR   the results directory for tests of this type, e.g. test_results/runnable
+
+    OUTPUT_BASE        the prefix used for test output files, e.g. test_results/runnable/mytest
+
+    EXTRA_FILES        directory for extra files of this test type, e.g. runnable/extra-files
+
+    LIBEXT             platform-specific extension for library files, e.g. .a or .lib

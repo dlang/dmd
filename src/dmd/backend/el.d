@@ -15,11 +15,10 @@ module dmd.backend.el;
 
 import dmd.backend.cdef;
 import dmd.backend.cc;
+import dmd.backend.dlist;
 import dmd.backend.type;
 
 import dmd.backend.cc : Symbol;
-
-import dmd.tk.dlist;
 
 extern (C++):
 @nogc:
@@ -228,7 +227,7 @@ uint el_alignsize(elem *);
 size_t el_opN(elem *e, uint op);
 void el_opArray(elem ***parray, elem *e, uint op);
 void el_opFree(elem *e, uint op);
-elem *el_opCombine(elem **args, size_t length, uint op, uint ty);
+extern (C) elem *el_opCombine(elem **args, size_t length, uint op, uint ty);
 
 void elem_print(elem *);
 void elem_print_const(elem *);

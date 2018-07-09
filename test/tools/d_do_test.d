@@ -11,9 +11,12 @@ import std.process;
 import std.random;
 import std.range : chain;
 import std.regex;
+import std.path;
 import std.stdio;
 import std.string;
 import core.sys.posix.sys.wait;
+
+const scriptDir = __FILE_FULL_PATH__.dirName.dirName;
 
 version(Win32)
 {
@@ -22,16 +25,12 @@ version(Win32)
 
 void usage()
 {
-    write("d_do_test <input_dir> <test_name> <test_extension>\n"
+    write("d_do_test <test_file>\n"
           ~ "\n"
           ~ "   Note: this program is normally called through the Makefile, it"
           ~ "         is not meant to be called directly by the user.\n"
           ~ "\n"
-          ~ "   input_dir: one of: compilable, fail_compilation, runnable\n"
-          ~ "   test_name: basename of test case to run\n"
-          ~ "   test_extension: one of: d, html, or sh\n"
-          ~ "\n"
-          ~ "   example: d_do_test runnable pi d\n"
+          ~ "   example: d_do_test runnable/pi.d\n"
           ~ "\n"
           ~ "   relevant environment variables:\n"
           ~ "      ARGS:          set to execute all combinations of\n"
@@ -99,6 +98,7 @@ struct EnvData
     bool dobjc;
     bool coverage_build;
     bool autoUpdate;
+    bool usingMicrosoftCompiler;
 }
 
 bool findTestParameter(const ref EnvData envData, string file, string token, ref string result, string multiLineDelimiter = " ")
@@ -434,7 +434,7 @@ unittest
         == `fail_compilation\diag.d(2): Error: fail_compilation\imports\fail.d must be imported`);
 }
 
-bool collectExtraSources (in string input_dir, in string output_dir, in string[] extraSources, ref string[] sources, bool msc, in EnvData envData, in string compiler)
+bool collectExtraSources (in string input_dir, in string output_dir, in string[] extraSources, ref string[] sources, in EnvData envData, in string compiler)
 {
     foreach (cur; extraSources)
     {
@@ -443,7 +443,7 @@ bool collectExtraSources (in string input_dir, in string output_dir, in string[]
         string command = compiler;
         if (envData.compiler == "dmd")
         {
-            if (msc)
+            if (envData.usingMicrosoftCompiler)
             {
                 command ~= ` /c /nologo `~curSrc~` /Fo`~curObj;
             }
@@ -532,19 +532,35 @@ int main(string[] args)
 
 int tryMain(string[] args)
 {
-    if (args.length != 4)
+    if (args.length != 2)
     {
         usage();
         return 1;
     }
 
-    string input_dir      = args[1];
-    string test_name      = args[2];
-    string test_extension = args[3];
+    auto test_file = args[1];
+    string input_dir = test_file.dirName();
+
+    TestArgs testArgs;
+    switch (input_dir)
+    {
+        case "compilable":              testArgs.mode = TestMode.COMPILE;      break;
+        case "fail_compilation":        testArgs.mode = TestMode.FAIL_COMPILE; break;
+        case "runnable":                testArgs.mode = TestMode.RUN;          break;
+        default:
+            writefln("Error: invalid test directory '%s', expected 'compilable', 'fail_compilation', or 'runnable'", input_dir);
+            return 1;
+    }
+
+    string test_base_name = test_file.baseName();
+    string test_name = test_base_name.stripExtension();
+
+    if (test_base_name.extension() == ".sh")
+        return runBashTest(input_dir, test_name);
 
     EnvData envData;
     envData.all_args      = environment.get("ARGS");
-    envData.results_dir   = environment.get("RESULTS_DIR");
+    envData.results_dir   = envGetRequired("RESULTS_DIR");
     envData.sep           = envGetRequired ("SEP");
     envData.dsep          = environment.get("DSEP");
     envData.obj           = envGetRequired ("OBJ");
@@ -560,22 +576,10 @@ int tryMain(string[] args)
     envData.autoUpdate = environment.get("AUTO_UPDATE", "") == "1";
 
     string result_path    = envData.results_dir ~ envData.sep;
-    string input_file     = input_dir ~ envData.sep ~ test_name ~ "." ~ test_extension;
+    string input_file     = input_dir ~ envData.sep ~ test_base_name;
     string output_dir     = result_path ~ input_dir;
-    string output_file    = result_path ~ input_dir ~ envData.sep ~ test_name ~ "." ~ test_extension ~ ".out";
+    string output_file    = result_path ~ input_file ~ ".out";
     string test_app_dmd_base = output_dir ~ envData.sep ~ test_name ~ "_";
-
-    TestArgs testArgs;
-
-    switch (input_dir)
-    {
-        case "compilable":              testArgs.mode = TestMode.COMPILE;      break;
-        case "fail_compilation":        testArgs.mode = TestMode.FAIL_COMPILE; break;
-        case "runnable":                testArgs.mode = TestMode.RUN;          break;
-        default:
-            writeln("input_dir must be one of 'compilable', 'fail_compilation', or 'runnable'");
-            return 1;
-    }
 
     // running & linking costs time - for coverage builds we can save this
     if (envData.coverage_build && testArgs.mode == TestMode.RUN)
@@ -590,7 +594,8 @@ int tryMain(string[] args)
             default:      envData.ccompiler = "c++"; break;
         }
     }
-    bool msc = envData.ccompiler.toLower.endsWith("cl.exe");
+
+    envData.usingMicrosoftCompiler = envData.ccompiler.toLower.endsWith("cl.exe");
 
     if (!gatherTestParameters(testArgs, input_dir, input_file, envData))
         return 0;
@@ -632,11 +637,11 @@ int tryMain(string[] args)
                 writeln("unknown compiler: "~envData.compiler);
                 return 1;
         }
-        if (!collectExtraSources(input_dir, output_dir, testArgs.cppSources, testArgs.sources, msc, envData, envData.ccompiler))
+        if (!collectExtraSources(input_dir, output_dir, testArgs.cppSources, testArgs.sources, envData, envData.ccompiler))
             return 1;
     }
     //prepare objc extra sources
-    if (!collectExtraSources(input_dir, output_dir, testArgs.objcSources, testArgs.sources, msc, envData, "clang"))
+    if (!collectExtraSources(input_dir, output_dir, testArgs.objcSources, testArgs.sources, envData, "clang"))
         return 1;
 
     writef(" ... %-30s %s%s(%s)",
@@ -674,7 +679,7 @@ int tryMain(string[] args)
     Result testCombination(bool autoCompileImports, string argSet, size_t permuteIndex, string permutedArgs)
     {
         string test_app_dmd = test_app_dmd_base ~ to!string(permuteIndex) ~ envData.exe;
-
+        string command; // copy of the last executed command so that it can be re-invoked on failures
         try
         {
             string[] toCleanup;
@@ -696,7 +701,7 @@ int tryMain(string[] args)
 
             // https://issues.dlang.org/show_bug.cgi?id=10664: exceptions don't work reliably with COMDAT folding
             // it also slows down some tests drastically, e.g. runnable/test17338.d
-            if (msc)
+            if (envData.usingMicrosoftCompiler)
                 reqArgs ~= " -L/OPT:NOICF";
 
             string compile_output;
@@ -705,7 +710,7 @@ int tryMain(string[] args)
                 string objfile = output_dir ~ envData.sep ~ test_name ~ "_" ~ to!string(permuteIndex) ~ envData.obj;
                 toCleanup ~= objfile;
 
-                string command = format("%s -conf= -m%s -I%s %s %s -od%s -of%s %s %s%s %s", envData.dmd, envData.model, input_dir,
+                command = format("%s -conf= -m%s -I%s %s %s -od%s -of%s %s %s%s %s", envData.dmd, envData.model, input_dir,
                         reqArgs, permutedArgs, output_dir,
                         (testArgs.mode == TestMode.RUN || testArgs.link ? test_app_dmd : objfile),
                         argSet,
@@ -723,7 +728,7 @@ int tryMain(string[] args)
                     string newo= result_path ~ replace(replace(filename, ".d", envData.obj), envData.sep~"imports"~envData.sep, envData.sep);
                     toCleanup ~= newo;
 
-                    string command = format("%s -conf= -m%s -I%s %s %s -od%s -c %s %s", envData.dmd, envData.model, input_dir,
+                    command = format("%s -conf= -m%s -I%s %s %s -od%s -c %s %s", envData.dmd, envData.model, input_dir,
                         reqArgs, permutedArgs, output_dir, argSet, filename);
                     compile_output ~= execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
                 }
@@ -731,7 +736,7 @@ int tryMain(string[] args)
                 if (testArgs.mode == TestMode.RUN || testArgs.link)
                 {
                     // link .o's into an executable
-                    string command = format("%s -conf= -m%s%s%s %s %s -od%s -of%s %s", envData.dmd, envData.model,
+                    command = format("%s -conf= -m%s%s%s %s %s -od%s -of%s %s", envData.dmd, envData.model,
                         autoCompileImports ? " -i" : "",
                         autoCompileImports ? "extraSourceIncludePaths" : "",
                         envData.required_args, testArgs.requiredArgsForLink, output_dir, test_app_dmd, join(toCleanup, " "));
@@ -741,11 +746,13 @@ int tryMain(string[] args)
                 }
             }
 
-            compile_output = std.regex.replace(compile_output, regex(`^DMD v2\.[0-9]+.* DEBUG$`, "m"), "");
-            compile_output = std.string.strip(compile_output);
             compile_output = compile_output.unifyNewLine();
+            compile_output = std.regex.replace(compile_output, regex(`^DMD v2\.[0-9]+.*\n? DEBUG$`, "m"), "");
+            compile_output = std.string.strip(compile_output);
 
             auto m = std.regex.match(compile_output, `Internal error: .*$`);
+            enforce(!m, m.hit);
+            m = std.regex.match(compile_output, `core.exception.AssertError@dmd.*`);
             enforce(!m, m.hit);
 
             if (testArgs.compileOutput !is null)
@@ -758,7 +765,7 @@ int tryMain(string[] args)
             {
                 toCleanup ~= test_app_dmd;
                 version(Windows)
-                    if (msc)
+                    if (envData.usingMicrosoftCompiler)
                     {
                         toCleanup ~= test_app_dmd_base ~ to!string(permuteIndex) ~ ".ilk";
                         toCleanup ~= test_app_dmd_base ~ to!string(permuteIndex) ~ ".pdb";
@@ -766,7 +773,7 @@ int tryMain(string[] args)
 
                 if (testArgs.gdbScript is null)
                 {
-                    string command = test_app_dmd;
+                    command = test_app_dmd;
                     if (testArgs.executeArgs) command ~= " " ~ testArgs.executeArgs;
 
                     execute(fThisRun, command, true, result_path);
@@ -780,8 +787,8 @@ int tryMain(string[] args)
                         writeln("set disable-randomization off");
                         write(testArgs.gdbScript);
                     }
-                    string command = "gdb "~test_app_dmd~" --batch -x "~script;
-                    auto gdb_output = execute(fThisRun, command, true, result_path);
+                    string gdbCommand = "gdb "~test_app_dmd~" --batch -x "~script;
+                    auto gdb_output = execute(fThisRun, gdbCommand, true, result_path);
                     if (testArgs.gdbMatch !is null)
                     {
                         enforce(match(gdb_output, regex(testArgs.gdbMatch)),
@@ -816,42 +823,73 @@ int tryMain(string[] args)
             if (envData.autoUpdate)
             if (auto ce = cast(CompareException) e)
             {
+                // remove the output file in test_results as its outdated
+                output_file.remove();
+
                 auto existingText = input_file.readText;
                 auto updatedText = existingText.replace(ce.expected, ce.actual);
-                std.file.write(input_file, updatedText);
-                // remove the output file in test_results as its outdated
-                f.close();
-                output_file.remove();
-                writefln("==> `TEST_OUTPUT` of %s/%s.%s has been updated", input_dir, test_name, test_extension);
+                if (existingText != updatedText)
+                {
+                    std.file.write(input_file, updatedText);
+                    writefln("==> `TEST_OUTPUT` of %s has been updated", input_file);
+                }
+                else
+                {
+                    writefln("WARNING: %s has multiple `TEST_OUTPUT` blocks and can't be auto-updated", input_file);
+                }
                 return Result.return0;
             }
-
             f.writeln();
             f.writeln("==============================");
-            f.writef("Test %s/%s.%s failed: ", input_dir, test_name, test_extension);
+            f.writef("Test %s failed: ", input_file);
             f.writeln(e.msg);
             f.close();
 
-            writefln("Test %s/%s.%s failed.  The logged output:", input_dir, test_name, test_extension);
-            writeln(output_file.readText);
+            writefln("Test %s failed.  The logged output:", input_file);
+            auto outputText = output_file.readText;
+            writeln(outputText);
             output_file.remove();
+
+            // auto-update if a diff is found and can be updated
+            if (envData.autoUpdate &&
+                outputText.canFind("diff ") && outputText.canFind("--- ") && outputText.canFind("+++ "))
+            {
+                import std.range : dropOne;
+                auto newFile = outputText.findSplitAfter("+++ ")[1].until("\t");
+                auto baseFile = outputText.findSplitAfter("--- ")[1].until("\t");
+                writefln("===> Updating %s with %s", baseFile, newFile);
+                newFile.copy(baseFile);
+                return Result.return0;
+            }
+
+            // automatically rerun a segfaulting test and print its stack trace
+            version(linux)
+            if (e.msg.canFind("exited with rc == 139"))
+            {
+                auto gdbCommand = "gdb -q -n -ex 'set backtrace limit 100' -ex run -ex bt -batch -args " ~ command;
+                import std.process : spawnShell;
+                spawnShell(gdbCommand).wait;
+            }
+
             return Result.return1;
         }
     }
 
+    size_t index = 0; // index over all tests to avoid identical output names in consecutive tests
     auto argSets = (testArgs.argSets.length == 0) ? [""] : testArgs.argSets;
     for(auto autoCompileImports = false;; autoCompileImports = true)
     {
         foreach(argSet; argSets)
         {
-            foreach (i, c; combinations(testArgs.permuteArgs))
+            foreach (c; combinations(testArgs.permuteArgs))
             {
-                final switch(testCombination(autoCompileImports, argSet, i, c))
+                final switch(testCombination(autoCompileImports, argSet, index, c))
                 {
                     case Result.continue_: break;
                     case Result.return0: return 0;
                     case Result.return1: return 1;
                 }
+                index++;
             }
         }
         if(autoCompileImports || testArgs.compiledImports.length == 0)
@@ -863,4 +901,18 @@ int tryMain(string[] args)
         writefln(" !!! %-30s DISABLED but PASSES!", input_file);
 
     return 0;
+}
+
+int runBashTest(string input_dir, string test_name)
+{
+    version(Windows)
+    {
+        auto process = spawnShell(format("bash %s %s %s",
+            buildPath(scriptDir, "tools", "sh_do_test.sh"), input_dir, test_name));
+    }
+    else
+    {
+        auto process = spawnProcess([scriptDir.buildPath("tools", "sh_do_test.sh"), input_dir, test_name]);
+    }
+    return process.wait();
 }

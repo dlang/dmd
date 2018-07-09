@@ -921,6 +921,12 @@ public:
         }
         t.inuse++;
         PrePostAppendStrings pas;
+        extern(C++) int ignoreReturn(void* param, const(char)* name)
+        {
+            if (strcmp(name, "return") != 0)
+                PrePostAppendStrings.fp(param, name);
+            return 0;
+        }
         pas.buf = buf;
         pas.isCtor = (ident == Id.ctor);
         pas.isPostfixStyle = false;
@@ -931,7 +937,7 @@ public:
             MODtoBuffer(buf, t.mod);
             buf.writeByte(' ');
         }
-        t.attributesApply(&pas, &PrePostAppendStrings.fp);
+        t.attributesApply(&pas, &ignoreReturn);
         if (t.linkage > LINK.d && hgs.ddoc != 1 && !hgs.hdrgen)
         {
             linkageToBuffer(buf, t.linkage);
@@ -963,6 +969,11 @@ public:
             buf.writeByte(')');
         }
         parametersToBuffer(t.parameters, t.varargs);
+        if (t.isreturn)
+        {
+            PrePostAppendStrings.fp(&pas, " return");
+            pas.buf.offset -= 1; // remove final whitespace
+        }
         t.inuse--;
     }
 
@@ -1029,7 +1040,7 @@ public:
 
     override void visit(TypeEnum t)
     {
-        buf.writestring(t.sym.toChars());
+        buf.writestring(hgs.fullQual ? t.sym.toPrettyChars() : t.sym.toChars());
     }
 
     override void visit(TypeStruct t)
@@ -1909,27 +1920,65 @@ public:
         hgs.tpltMember = 0;
         hgs.autoMember = 0;
         buf.writenl();
+        bool requireDo = false;
         // in{}
-        if (f.frequire)
+        if (f.frequires)
         {
-            buf.writestring("in");
-            buf.writenl();
-            f.frequire.accept(this);
+            foreach (frequire; *f.frequires)
+            {
+                buf.writestring("in");
+                if (auto es = frequire.isExpStatement())
+                {
+                    assert(es.exp && es.exp.op == TOK.assert_);
+                    buf.writestring(" (");
+                    (cast(AssertExp)es.exp).e1.accept(this);
+                    buf.writeByte(')');
+                    buf.writenl();
+                    requireDo = false;
+                }
+                else
+                {
+                    buf.writenl();
+                    frequire.accept(this);
+                    requireDo = true;
+                }
+            }
         }
         // out{}
-        if (f.fensure)
+        if (f.fensures)
         {
-            buf.writestring("out");
-            if (f.outId)
+            foreach (fensure; *f.fensures)
             {
-                buf.writeByte('(');
-                buf.writestring(f.outId.toChars());
-                buf.writeByte(')');
+                buf.writestring("out");
+                if (auto es = fensure.ensure.isExpStatement())
+                {
+                    assert(es.exp && es.exp.op == TOK.assert_);
+                    buf.writestring(" (");
+                    if (fensure.id)
+                    {
+                        buf.writestring(fensure.id.toChars());
+                    }
+                    buf.writestring("; ");
+                    (cast(AssertExp)es.exp).e1.accept(this);
+                    buf.writeByte(')');
+                    buf.writenl();
+                    requireDo = false;
+                }
+                else
+                {
+                    if (fensure.id)
+                    {
+                        buf.writeByte('(');
+                        buf.writestring(fensure.id.toChars());
+                        buf.writeByte(')');
+                    }
+                    buf.writenl();
+                    fensure.ensure.accept(this);
+                    requireDo = true;
+                }
             }
-            buf.writenl();
-            f.fensure.accept(this);
         }
-        if (f.frequire || f.fensure)
+        if (requireDo)
         {
             buf.writestring("do");
             buf.writenl();
@@ -2046,7 +2095,18 @@ public:
         if (stcToBuffer(buf, d.storage_class))
             buf.writeByte(' ');
         buf.writestring("invariant");
-        bodyToBuffer(d);
+        if(auto es = d.fbody.isExpStatement())
+        {
+            assert(es.exp && es.exp.op == TOK.assert_);
+            buf.writestring(" (");
+            (cast(AssertExp)es.exp).e1.accept(this);
+            buf.writestring(");");
+            buf.writenl();
+        }
+        else
+        {
+            bodyToBuffer(d);
+        }
     }
 
     override void visit(UnitTestDeclaration d)
@@ -3054,6 +3114,18 @@ public:
     ////////////////////////////////////////////////////////////////////////////
     override void visit(Parameter p)
     {
+        if (p.userAttribDecl)
+        {
+            buf.writestring("@");
+            scope(exit) buf.writestring(" ");
+
+            bool isAnonymous = p.userAttribDecl.atts.dim > 0 && (*p.userAttribDecl.atts)[0].op != TOK.call;
+            if (isAnonymous)
+                buf.writestring("(");
+            argsToBuffer(p.userAttribDecl.atts);
+            if (isAnonymous)
+                buf.writestring(")");
+        }
         if (p.storageClass & STC.auto_)
             buf.writestring("auto ");
         if (p.storageClass & STC.return_)

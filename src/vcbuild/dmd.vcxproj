@@ -101,10 +101,11 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <StackReserveSize>8388608</StackReserveSize>
+      <AdditionalOptions>$(ExternalLinkerOptions) %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
-      <StringImportPaths>..\..;..\..\res</StringImportPaths>
+      <StringImportPaths>..\..;..\..\res;$(OutDir)\backend\generated</StringImportPaths>
       <CRuntimeLibrary>MultiThreadedDebug</CRuntimeLibrary>
       <CompilationModel>Package</CompilationModel>
       <ImportPaths>..</ImportPaths>
@@ -124,10 +125,11 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <StackReserveSize>8388608</StackReserveSize>
+      <AdditionalOptions>$(ExternalLinkerOptions) %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
-      <StringImportPaths>..\..;..\..\res</StringImportPaths>
+      <StringImportPaths>..\..;..\..\res;$(OutDir)\backend\generated</StringImportPaths>
       <CRuntimeLibrary>MultiThreadedDebug</CRuntimeLibrary>
       <CompilationModel>Package</CompilationModel>
       <ImportPaths>..</ImportPaths>
@@ -151,10 +153,11 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <StackReserveSize>8388608</StackReserveSize>
+      <AdditionalOptions>$(ExternalLinkerOptions) %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
-      <StringImportPaths>..\..;..\..\res</StringImportPaths>
+      <StringImportPaths>..\..;..\..\res;$(OutDir)\backend\generated</StringImportPaths>
       <CompilationModel>Package</CompilationModel>
       <ImportPaths>..</ImportPaths>
       <Optimizer>true</Optimizer>
@@ -179,10 +182,11 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <StackReserveSize>8388608</StackReserveSize>
+      <AdditionalOptions>$(ExternalLinkerOptions) %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
-      <StringImportPaths>..\..;..\..\res</StringImportPaths>
+      <StringImportPaths>..\..;..\..\res;$(OutDir)\backend\generated</StringImportPaths>
       <CompilationModel>Package</CompilationModel>
       <ImportPaths>..</ImportPaths>
       <Optimizer>true</Optimizer>

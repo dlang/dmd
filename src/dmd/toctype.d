@@ -19,6 +19,7 @@ import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.declaration;
+import dmd.denum;
 import dmd.dstruct;
 import dmd.globals;
 import dmd.glue;
@@ -26,6 +27,25 @@ import dmd.id;
 import dmd.mtype;
 import dmd.tocvdebug;
 import dmd.visitor;
+
+
+/************************************
+ * Convert front end type `t` to backend type `t.ctype`.
+ * Memoize the result.
+ * Params:
+ *      t = front end `Type`
+ * Returns:
+ *      back end equivalent `type`
+ */
+extern (C++) type* Type_toCtype(Type t)
+{
+    if (!t.ctype)
+    {
+        scope ToCtypeVisitor v = new ToCtypeVisitor();
+        t.accept(v);
+    }
+    return t.ctype;
+}
 
 private extern (C++) final class ToCtypeVisitor : Visitor
 {
@@ -65,12 +85,13 @@ public:
 
     override void visit(TypeFunction t)
     {
-        size_t nparams = Parameter.dim(t.parameters);
-        type*[10] tmp;
-        type** ptypes = tmp.ptr;
-        if (nparams > 10)
-            ptypes = cast(type**)malloc((type*).sizeof * nparams);
-        for (size_t i = 0; i < nparams; i++)
+        const nparams = Parameter.dim(t.parameters);
+        type*[10] tmp = void;
+        type** ptypes = (nparams <= tmp.length)
+                        ? tmp.ptr
+                        : cast(type**)malloc((type*).sizeof * nparams);
+
+        foreach (i; 0 .. nparams)
         {
             Parameter p = Parameter.getNth(t.parameters, i);
             type* tp = Type_toCtype(p.type);
@@ -85,7 +106,7 @@ public:
             ptypes[i] = tp;
         }
         t.ctype = type_function(totym(t), ptypes, nparams, t.varargs == 1, Type_toCtype(t.next));
-        if (nparams > 10)
+        if (nparams > tmp.length)
             free(ptypes);
     }
 
@@ -94,7 +115,12 @@ public:
         t.ctype = type_delegate(Type_toCtype(t.next));
     }
 
-    void addMod(Type t)
+    /*******************
+     * Add D modification bits for `Type t` to the corresponding backend type `t.ctype`
+     * Params:
+     *  t = front end Type
+     */
+    static void addMod(Type t)
     {
         switch (t.mod)
         {
@@ -140,9 +166,8 @@ public:
              */
             if (global.params.symdebug)
             {
-                for (size_t i = 0; i < sym.fields.dim; i++)
+                foreach (v; sym.fields)
                 {
-                    VarDeclaration v = sym.fields[i];
                     symbol_struct_addField(cast(Symbol*)t.ctype.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
                 }
             }
@@ -170,18 +195,26 @@ public:
         //printf("TypeEnum::toCtype() '%s'\n", t.sym.toChars());
         if (t.mod == 0)
         {
-            if (!t.sym.memtype)
+            EnumDeclaration sym = t.sym;
+            auto symMemtype = sym.memtype;
+            if (!symMemtype)
             {
                 // https://issues.dlang.org/show_bug.cgi?id=13792
                 t.ctype = Type_toCtype(Type.tvoid);
             }
-            else if (t.sym.memtype.toBasetype().ty == Tint32)
+            else if (sym.ident == Id.__c_long)
             {
-                t.ctype = type_enum(t.sym.toPrettyChars(true), Type_toCtype(t.sym.memtype));
+                t.ctype = type_fake(totym(t));
+                t.ctype.Tcount++;
+                return;
+            }
+            else if (symMemtype.toBasetype().ty == Tint32)
+            {
+                t.ctype = type_enum(sym.toPrettyChars(true), Type_toCtype(symMemtype));
             }
             else
             {
-                t.ctype = Type_toCtype(t.sym.memtype);
+                t.ctype = Type_toCtype(symMemtype);
             }
 
             if (global.params.symdebugref)
@@ -196,11 +229,9 @@ public:
         {
             Classsym* s = mctype.Ttag;
             assert(s);
-            t.ctype = type_alloc(TYenum);
+            t.ctype = type_allocn(TYenum, mctype.Tnext);
             t.ctype.Ttag = s; // enum tag name
             t.ctype.Tcount++;
-            t.ctype.Tnext = mctype.Tnext;
-            t.ctype.Tnext.Tcount++;
             addMod(t);
         }
         else
@@ -221,9 +252,8 @@ public:
              */
             if (global.params.symdebug)
             {
-                for (size_t i = 0; i < t.sym.fields.dim; i++)
+                foreach (v; t.sym.fields)
                 {
-                    VarDeclaration v = t.sym.fields[i];
                     symbol_struct_addField(cast(Symbol*)tc.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
                 }
             }
@@ -239,14 +269,4 @@ public:
         t.ctype.Tcount++;
         addMod(t);
     }
-}
-
-extern (C++) type* Type_toCtype(Type t)
-{
-    if (!t.ctype)
-    {
-        scope ToCtypeVisitor v = new ToCtypeVisitor();
-        t.accept(v);
-    }
-    return t.ctype;
 }

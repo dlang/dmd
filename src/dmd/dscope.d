@@ -80,9 +80,9 @@ struct Scope
     Statement scontinue;            /// enclosing statement that supports "continue"
     ForeachStatement fes;           /// if nested function for ForeachStatement, this is it
     Scope* callsc;                  /// used for __FUNCTION__, __PRETTY_FUNCTION__ and __MODULE__
-    int inunion;                    /// we're processing members of a union
-    int nofree;                     /// set if shouldn't free it
-    int noctor;                     /// set if constructor calls aren't allowed
+    bool inunion;                   /// true if processing members of a union
+    bool nofree;                    /// true if shouldn't free it
+    bool inLoop;                    /// true if inside a loop (where constructor calls aren't allowed)
     int intypeof;                   /// in typeof(exp)
     VarDeclaration lastVar;         /// Previous symbol used to prevent goto-skips-init
 
@@ -190,8 +190,8 @@ struct Scope
             assert(s != enclosing);
         }
         s.slabel = null;
-        s.nofree = 0;
-        s.ctorflow.fieldinit = ctorflow.saveFieldInit();
+        s.nofree = false;
+        s.ctorflow.fieldinit = ctorflow.fieldinit.arraydup;
         s.flags = (flags & SCOPEpush);
         s.lastdc = null;
         assert(&this != s);
@@ -209,21 +209,11 @@ struct Scope
     extern (C++) Scope* pop()
     {
         //printf("Scope::pop() %p nofree = %d\n", this, nofree);
-        Scope* enc = enclosing;
         if (enclosing)
-        {
-            enclosing.ctorflow.callSuper |= ctorflow.callSuper;
-            if (ctorflow.fieldinit.length)
-            {
-                if (enclosing.ctorflow.fieldinit.length)
-                {
-                    assert(ctorflow.fieldinit.ptr != enclosing.ctorflow.fieldinit.ptr);
-                    foreach (i, u; ctorflow.fieldinit)
-                        enclosing.ctorflow.fieldinit[i] |= u;
-                }
-                ctorflow.freeFieldinit();
-            }
-        }
+            enclosing.ctorflow.OR(ctorflow);
+        ctorflow.freeFieldinit();
+
+        Scope* enc = enclosing;
         if (!nofree)
         {
             enclosing = freelist;
@@ -277,82 +267,6 @@ struct Scope
         return pop();
     }
 
-    extern (C++) void mergeCallSuper(const ref Loc loc, CSX cs)
-    {
-        // This does a primitive flow analysis to support the restrictions
-        // regarding when and how constructors can appear.
-        // It merges the results of two paths.
-        // The two paths are ctorflow.callSuper and cs; the result is merged into ctorflow.callSuper.
-        if (cs != ctorflow.callSuper)
-        {
-            // Have ALL branches called a constructor?
-            int aAll = (cs & (CSX.this_ctor | CSX.super_ctor)) != 0;
-            int bAll = (ctorflow.callSuper & (CSX.this_ctor | CSX.super_ctor)) != 0;
-            // Have ANY branches called a constructor?
-            bool aAny = (cs & CSX.any_ctor) != 0;
-            bool bAny = (ctorflow.callSuper & CSX.any_ctor) != 0;
-            // Have any branches returned?
-            bool aRet = (cs & CSX.return_) != 0;
-            bool bRet = (ctorflow.callSuper & CSX.return_) != 0;
-            // Have any branches halted?
-            bool aHalt = (cs & CSX.halt) != 0;
-            bool bHalt = (ctorflow.callSuper & CSX.halt) != 0;
-            bool ok = true;
-            if (aHalt && bHalt)
-            {
-                ctorflow.callSuper = CSX.halt;
-            }
-            else if ((!aHalt && aRet && !aAny && bAny) || (!bHalt && bRet && !bAny && aAny))
-            {
-                // If one has returned without a constructor call, there must be never
-                // have been ctor calls in the other.
-                ok = false;
-            }
-            else if (aHalt || aRet && aAll)
-            {
-                // If one branch has called a ctor and then exited, anything the
-                // other branch has done is OK (except returning without a
-                // ctor call, but we already checked that).
-                ctorflow.callSuper |= cs & (CSX.any_ctor | CSX.label);
-            }
-            else if (bHalt || bRet && bAll)
-            {
-                ctorflow.callSuper = cast(CSX)(cs | (ctorflow.callSuper & (CSX.any_ctor | CSX.label)));
-            }
-            else
-            {
-                // Both branches must have called ctors, or both not.
-                ok = (aAll == bAll);
-                // If one returned without a ctor, we must remember that
-                // (Don't bother if we've already found an error)
-                if (ok && aRet && !aAny)
-                    ctorflow.callSuper |= CSX.return_;
-                ctorflow.callSuper |= cs & (CSX.any_ctor | CSX.label);
-            }
-            if (!ok)
-                error(loc, "one path skips constructor");
-        }
-    }
-
-    extern (D) void mergeFieldInit(const ref Loc loc, const CSX[] fies)
-    {
-        if (ctorflow.fieldinit.length && fies.length)
-        {
-            FuncDeclaration f = func;
-            if (fes)
-                f = fes.func;
-            auto ad = f.isMember2();
-            assert(ad);
-            foreach (i, v; ad.fields)
-            {
-                bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
-                if (!mergeFieldInitX(ctorflow.fieldinit[i], fies[i]) && mustInit)
-                {
-                    .error(loc, "one path skips field `%s`", v.toChars());
-                }
-            }
-        }
-    }
 
     /*******************************
      * Merge results of `ctorflow` into `this`.
@@ -362,8 +276,30 @@ struct Scope
      */
     extern (D) void merge(const ref Loc loc, const ref CtorFlow ctorflow)
     {
-        mergeCallSuper(loc, ctorflow.callSuper);
-        mergeFieldInit(loc, ctorflow.fieldinit);
+        if (!mergeCallSuper(this.ctorflow.callSuper, ctorflow.callSuper))
+            error(loc, "one path skips constructor");
+
+        const fies = ctorflow.fieldinit;
+        if (this.ctorflow.fieldinit.length && fies.length)
+        {
+            FuncDeclaration f = func;
+            if (fes)
+                f = fes.func;
+            auto ad = f.isMember2();
+            assert(ad);
+            foreach (i, v; ad.fields)
+            {
+                bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
+                auto fieldInit = &this.ctorflow.fieldinit[i];
+                const fiesCurrent = fies[i];
+                if (fieldInit.loc == Loc.init)
+                    fieldInit.loc = fiesCurrent.loc;
+                if (!mergeFieldInit(this.ctorflow.fieldinit[i].csx, fiesCurrent.csx) && mustInit)
+                {
+                    error(loc, "one path skips field `%s`", v.toChars());
+                }
+            }
+        }
     }
 
     extern (C++) Module instantiatingModule()
@@ -400,7 +336,7 @@ struct Scope
 
             static void printMsg(string txt, Dsymbol s)
             {
-                printf("%.*s  %s.%s, kind = '%s'\n", cast(int)msg.length, msg.ptr,
+                printf("%.*s  %s.%s, kind = '%s'\n", cast(int)txt.length, txt.ptr,
                     s.parent ? s.parent.toChars() : "", s.toChars(), s.kind());
             }
         }
@@ -695,7 +631,7 @@ struct Scope
         for (Scope* sc = &this; sc; sc = sc.enclosing)
         {
             //printf("\tsc = %p\n", sc);
-            sc.nofree = 1;
+            sc.nofree = true;
             assert(!(flags & SCOPE.free));
             //assert(sc != sc.enclosing);
             //assert(!sc.enclosing || sc != sc.enclosing.enclosing);
@@ -731,7 +667,7 @@ struct Scope
         this.depdecl = sc.depdecl;
         this.inunion = sc.inunion;
         this.nofree = sc.nofree;
-        this.noctor = sc.noctor;
+        this.inLoop = sc.inLoop;
         this.intypeof = sc.intypeof;
         this.lastVar = sc.lastVar;
         this.ctorflow = sc.ctorflow;

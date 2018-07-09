@@ -10,7 +10,7 @@
                 "endline": 8,
                 "kind": "function",
                 "line": 8,
-                "name": "_staticCtor1",
+                "name": "_staticCtor_L8_C1",
                 "storageClass": [
                     "static"
                 ]
@@ -22,7 +22,7 @@
                 "endline": 10,
                 "kind": "function",
                 "line": 10,
-                "name": "_staticDtor2",
+                "name": "_staticDtor_L10_C1",
                 "storageClass": [
                     "static"
                 ]
@@ -923,6 +923,20 @@
                 "line": 194,
                 "linkage": "objc",
                 "name": "flinkageObjc"
+            },
+            {
+                "char": 7,
+                "kind": "template",
+                "line": 196,
+                "members": [],
+                "name": "test18211",
+                "parameters": [
+                    {
+                        "deco": "VALUE_REMOVED_FOR_TEST",
+                        "kind": "value",
+                        "name": "n"
+                    }
+                ]
             }
         ],
         "name": "json"

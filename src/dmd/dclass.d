@@ -147,48 +147,18 @@ struct BaseClass
     }
 }
 
-struct ClassFlags
+enum ClassFlags : int
 {
-    alias Type = uint;
-
-    enum Enum : int
-    {
-        isCOMclass = 0x1,
-        noPointers = 0x2,
-        hasOffTi = 0x4,
-        hasCtor = 0x8,
-        hasGetMembers = 0x10,
-        hasTypeInfo = 0x20,
-        isAbstract = 0x40,
-        isCPPclass = 0x80,
-        hasDtor = 0x100,
-    }
-
-    alias isCOMclass = Enum.isCOMclass;
-    alias noPointers = Enum.noPointers;
-    alias hasOffTi = Enum.hasOffTi;
-    alias hasCtor = Enum.hasCtor;
-    alias hasGetMembers = Enum.hasGetMembers;
-    alias hasTypeInfo = Enum.hasTypeInfo;
-    alias isAbstract = Enum.isAbstract;
-    alias isCPPclass = Enum.isCPPclass;
-    alias hasDtor = Enum.hasDtor;
-}
-
-/**
- * The ClassKind enum is used in ClassDeclaration AST nodes
- * to specify the linkage type of the class or if it is an
- * anonymous class. If the class is anonymous it is also
- * considered to be a D class.
- */
-enum ClassKind : int
-{
-    /// the class is a d(efault) class
-    d,
-    /// the class is a C++ interface
-    cpp,
-    /// the class is an Objective-C class/interface
-    objc,
+    none          = 0x0,
+    isCOMclass    = 0x1,
+    noPointers    = 0x2,
+    hasOffTi      = 0x4,
+    hasCtor       = 0x8,
+    hasGetMembers = 0x10,
+    hasTypeInfo   = 0x20,
+    isAbstract    = 0x40,
+    isCPPclass    = 0x80,
+    hasDtor       = 0x100,
 }
 
 /***********************************************************
@@ -230,8 +200,8 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     /// true if this is a scope class
     bool stack;
 
-    /// specifies whether this is a D, C++, Objective-C or anonymous class/interface
-    ClassKind classKind;
+    /// if this is a C++ class, this is the slot reserved for the virtual destructor
+    int cppDtorVtblIndex = -1;
 
     /// to prevent recursive attempts
     private bool inuse;
@@ -253,7 +223,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
     Symbol* cpp_type_info_ptr_sym;      // cached instance of class Id.cpp_type_info_ptr
 
-    final extern (D) this(Loc loc, Identifier id, BaseClasses* baseclasses, Dsymbols* members, bool inObject)
+    final extern (D) this(const ref Loc loc, Identifier id, BaseClasses* baseclasses, Dsymbols* members, bool inObject)
     {
         if (!id)
         {
@@ -989,7 +959,22 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     }
 
     // Back end
-    Symbol* vtblsym;
+    Dsymbol vtblsym;
+
+    final Dsymbol vtblSymbol()
+    {
+        if (!vtblsym)
+        {
+            auto vtype = Type.tvoidptr.immutableOf().sarrayOf(vtbl.dim);
+            auto var = new VarDeclaration(loc, vtype, Identifier.idPool("__vtbl"), null, STC.immutable_ | STC.static_);
+            var.addMember(null, this);
+            var.isdataseg = 1;
+            var.linkage = LINK.d;
+            var.semanticRun = PASS.semanticdone; // no more semantic wanted
+            vtblsym = var;
+        }
+        return vtblsym;
+    }
 
     override final inout(ClassDeclaration) isClassDeclaration() inout
     {
@@ -1006,7 +991,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
  */
 extern (C++) final class InterfaceDeclaration : ClassDeclaration
 {
-    extern (D) this(Loc loc, Identifier id, BaseClasses* baseclasses)
+    extern (D) this(const ref Loc loc, Identifier id, BaseClasses* baseclasses)
     {
         super(loc, id, baseclasses, null, false);
         if (id == Id.IUnknown) // IUnknown is the root of all COM interfaces

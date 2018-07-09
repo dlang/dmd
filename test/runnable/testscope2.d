@@ -42,7 +42,7 @@ void test3()
         assert(SS.foo4.mangleof == "_D10testscope22SS4foo4MFNcNkKNgPiZi");
 
         // Test scope pretty-printing
-        assert(typeof(SS.foo1).stringof == "ref return ulong(return ref int* delegate() return p)");
+        assert(typeof(SS.foo1).stringof == "ref ulong(return ref int* delegate() return p) return");
         assert(typeof(SS.foo2).stringof == "ref int(return ref int delegate() p)");
         assert(typeof(SS.foo3).stringof == "ref int(return ref inout(int*) p)");
         assert(typeof(SS.foo4).stringof == "ref int(return ref inout(int*) p)");

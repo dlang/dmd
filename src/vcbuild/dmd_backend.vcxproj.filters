@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="dmd">
@@ -27,9 +27,6 @@
     <ClCompile Include="..\dmd\backend\aa.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
-    <ClCompile Include="..\dmd\backend\bcomplex.c">
-      <Filter>dmd\backend</Filter>
-    </ClCompile>
     <ClCompile Include="..\dmd\backend\blockopt.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
@@ -42,13 +39,7 @@
     <ClCompile Include="..\dmd\backend\cgcod.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
-    <ClCompile Include="..\dmd\backend\cgcs.c">
-      <Filter>dmd\backend</Filter>
-    </ClCompile>
     <ClCompile Include="..\dmd\backend\cgcv.c">
-      <Filter>dmd\backend</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dmd\backend\cgelem.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
     <ClCompile Include="..\dmd\backend\cgen.c">
@@ -93,34 +84,13 @@
     <ClCompile Include="..\dmd\backend\dwarf.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
-    <ClCompile Include="..\dmd\backend\ee.c">
-      <Filter>dmd\backend</Filter>
-    </ClCompile>
     <ClCompile Include="..\dmd\backend\el.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
     <ClCompile Include="..\dmd\backend\elfobj.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
-    <ClCompile Include="..\dmd\backend\evalu8.c">
-      <Filter>dmd\backend</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dmd\backend\gdag.c">
-      <Filter>dmd\backend</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dmd\backend\gflow.c">
-      <Filter>dmd\backend</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dmd\backend\glocal.c">
-      <Filter>dmd\backend</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dmd\backend\gloop.c">
-      <Filter>dmd\backend</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dmd\backend\go.c">
-      <Filter>dmd\backend</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dmd\backend\gother.c">
+    <ClCompile Include="..\dmd\backend\fp.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
     <ClCompile Include="..\dmd\backend\machobj.c">
@@ -174,17 +144,8 @@
     <ClCompile Include="..\dmd\tk\filespec.c">
       <Filter>dmd\tk</Filter>
     </ClCompile>
-    <ClCompile Include="..\dmd\tk\list.c">
-      <Filter>dmd\tk</Filter>
-    </ClCompile>
     <ClCompile Include="..\dmd\tk\mem.c">
       <Filter>dmd\tk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dmd\tk\vec.c">
-      <Filter>dmd\tk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dmd\root\longdouble.c">
-      <Filter>dmd\root</Filter>
     </ClCompile>
     <ClCompile Include="..\dmd\root\newdelete.c">
       <Filter>dmd\root</Filter>
@@ -205,12 +166,6 @@
       <Filter>dmd\backend</Filter>
     </ClCompile>
     <ClCompile Include="..\dmd\backend\varstats.c">
-      <Filter>dmd\backend</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dmd\backend\compress.c">
-      <Filter>dmd\backend</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dmd\backend\gsroa.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
   </ItemGroup>
@@ -434,12 +389,6 @@
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\dmd\backend\optabgen.c">
-      <Filter>dmd\gen</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\vcbuild\ldfpu.asm">
-      <Filter>vcbuild</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\dmd\idgen.d">
       <Filter>dmd\gen</Filter>
     </CustomBuild>
   </ItemGroup>

@@ -86,9 +86,9 @@ struct Scope
     Statement *scontinue;       // enclosing statement that supports "continue"
     ForeachStatement *fes;      // if nested function for ForeachStatement, this is it
     Scope *callsc;              // used for __FUNCTION__, __PRETTY_FUNCTION__ and __MODULE__
-    int inunion;                // we're processing members of a union
-    int nofree;                 // set if shouldn't free it
-    int noctor;                 // set if constructor calls aren't allowed
+    bool inunion;               // true if processing members of a union
+    bool nofree;                // true if shouldn't free it
+    bool inLoop;                // true if inside a loop (where constructor calls aren't allowed)
     int intypeof;               // in typeof(exp)
     VarDeclaration *lastVar;    // Previous symbol used to prevent goto-skips-init
 

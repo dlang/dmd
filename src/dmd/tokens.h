@@ -81,11 +81,6 @@ enum TOK
         TOKindex,       TOKis,
 
 // 64
-        // NCEG floating point compares
-        // !<>=     <>    <>=    !>     !>=   !<     !<=   !<>
-        TOKunord,TOKlg,TOKleg,TOKule,TOKul,TOKuge,TOKug,TOKue,
-
-// 72
         TOKshl,         TOKshr,
         TOKshlass,      TOKshrass,
         TOKushr,        TOKushrass,
@@ -101,7 +96,7 @@ enum TOK
         TOKquestion,    TOKandand,      TOKoror,
         TOKpreplusplus, TOKpreminusminus,
 
-// 111
+// 105
         // Numeric literals
         TOKint32v, TOKuns32v,
         TOKint64v, TOKuns64v,
@@ -130,7 +125,7 @@ enum TOK
         TOKcomplex32, TOKcomplex64, TOKcomplex80,
         TOKchar, TOKwchar, TOKdchar, TOKbool,
 
-// 158
+// 152
         // Aggregates
         TOKstruct, TOKclass, TOKinterface, TOKunion, TOKenum, TOKimport,
         TOKalias, TOKoverride, TOKdelegate, TOKfunction,
@@ -141,6 +136,7 @@ enum TOK
         TOKdebug, TOKdeprecated, TOKin, TOKout, TOKinout, TOKlazy,
         TOKauto, TOKpackage, TOKmanifest, TOKimmutable,
 
+// 183
         // Statements
         TOKif, TOKelse, TOKwhile, TOKfor, TOKdo, TOKswitch,
         TOKcase, TOKdefault, TOKbreak, TOKcontinue, TOKwith,
@@ -149,8 +145,9 @@ enum TOK
         TOKscope,
         TOKon_scope_exit, TOKon_scope_failure, TOKon_scope_success,
 
+// 207
         // Contracts
-        TOKbody, TOKinvariant,
+        TOKinvariant,
 
         // Testing
         TOKunittest,
@@ -160,6 +157,7 @@ enum TOK
         TOKref,
         TOKmacro,
 
+// 212
         TOKparameters,
         TOKtraits,
         TOKoverloadset,
@@ -180,6 +178,7 @@ enum TOK
         TOKvector,
         TOKpound,
 
+// 231
         TOKinterval,
         TOKvoidexp,
         TOKcantexp,

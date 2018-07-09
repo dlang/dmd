@@ -13,9 +13,9 @@ module dmd.backend.cc;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_cc.html
 
-import dmd.tk.dlist;
 import dmd.backend.cdef;        // host and target compiler definition
 import dmd.backend.code_x86;
+import dmd.backend.dlist;
 import dmd.backend.dt;
 import dmd.backend.el;
 import dmd.backend.type;
@@ -65,7 +65,6 @@ enum WM
     WM_undefined_inline = 30, // static inline not expanded or defined
 }
 
-/+
 static if (MEMMODELS == 1)
 {
     enum LARGEDATA = 0;     // don't want 48 bit pointers
@@ -76,7 +75,6 @@ else
     bool LARGEDATA() { return (config.memmodel & 6) != 0; }
     bool LARGECODE() { return (config.memmodel & 5) != 0; }
 }
-+/
 
 // Language for error messages
 enum LANG
@@ -670,6 +668,26 @@ enum
     BCjcatch    = 18,   // D catch block
     BC_lpad     = 19,   // EH_DWARF: landing pad for BC_except
     BCMAX
+}
+
+/********************************
+ * Range for blocks.
+ */
+struct BlockRange
+{
+  pure nothrow @nogc @safe:
+
+    this(block* b)
+    {
+        this.b = b;
+    }
+
+    block* front() return  { return b; }
+    void popFront() { b = b.Bnext; }
+    bool empty()    { return !b; }
+
+  private:
+    block* b;
 }
 
 /**********************************

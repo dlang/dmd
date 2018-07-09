@@ -202,16 +202,10 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
     t.accept(v);
 }
 
-struct StructFlags
+enum StructFlags : int
 {
-    alias Type = uint;
-
-    enum Enum : int
-    {
-        hasPointers = 0x1, // NB: should use noPointers as in ClassFlags
-    }
-
-    alias hasPointers = Enum.hasPointers;
+    none        = 0x0,
+    hasPointers = 0x1, // NB: should use noPointers as in ClassFlags
 }
 
 enum StructPOD : int
@@ -484,7 +478,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             {
                 if ((stype.alignment() < Target.ptrsize ||
                      (v.offset & (Target.ptrsize - 1))) &&
-                    sc.func.setUnsafe())
+                    (sc.func && sc.func.setUnsafe()))
                 {
                     .error(loc, "field `%s.%s` cannot assign to misaligned pointers in `@safe` code",
                         toChars(), v.toChars());

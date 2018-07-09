@@ -59,61 +59,58 @@ enum IDX_NOTFOUND = 0x12345678;
  * These functions substitute for dynamic_cast. dynamic_cast does not work
  * on earlier versions of gcc.
  */
-extern (C++) Expression isExpression(RootObject o)
+extern (C++) inout(Expression) isExpression(inout RootObject o)
 {
     //return dynamic_cast<Expression *>(o);
     if (!o || o.dyncast() != DYNCAST.expression)
         return null;
-    return cast(Expression)o;
+    return cast(inout(Expression))o;
 }
 
-extern (C++) Dsymbol isDsymbol(RootObject o)
+extern (C++) inout(Dsymbol) isDsymbol(inout RootObject o)
 {
     //return dynamic_cast<Dsymbol *>(o);
     if (!o || o.dyncast() != DYNCAST.dsymbol)
         return null;
-    return cast(Dsymbol)o;
+    return cast(inout(Dsymbol))o;
 }
 
-extern (C++) Type isType(RootObject o)
+extern (C++) inout(Type) isType(inout RootObject o)
 {
     //return dynamic_cast<Type *>(o);
     if (!o || o.dyncast() != DYNCAST.type)
         return null;
-    return cast(Type)o;
+    return cast(inout(Type))o;
 }
 
-extern (C++) Tuple isTuple(RootObject o)
+extern (C++) inout(Tuple) isTuple(inout RootObject o)
 {
     //return dynamic_cast<Tuple *>(o);
     if (!o || o.dyncast() != DYNCAST.tuple)
         return null;
-    return cast(Tuple)o;
+    return cast(inout(Tuple))o;
 }
 
-extern (C++) Parameter isParameter(RootObject o)
+extern (C++) inout(Parameter) isParameter(inout RootObject o)
 {
     //return dynamic_cast<Parameter *>(o);
     if (!o || o.dyncast() != DYNCAST.parameter)
         return null;
-    return cast(Parameter)o;
+    return cast(inout(Parameter))o;
 }
 
 /**************************************
  * Is this Object an error?
  */
-extern (C++) bool isError(RootObject o)
+extern (C++) bool isError(const RootObject o)
 {
-    Type t = isType(o);
-    if (t)
+    if (const t = isType(o))
         return (t.ty == Terror);
-    Expression e = isExpression(o);
-    if (e)
+    if (const e = isExpression(o))
         return (e.op == TOK.error || !e.type || e.type.ty == Terror);
-    Tuple v = isTuple(o);
-    if (v)
+    if (const v = isTuple(o))
         return arrayObjectIsError(&v.objects);
-    Dsymbol s = isDsymbol(o);
+    const s = isDsymbol(o);
     assert(s);
     if (s.errors)
         return true;
@@ -123,11 +120,10 @@ extern (C++) bool isError(RootObject o)
 /**************************************
  * Are any of the Objects an error?
  */
-extern (C++) bool arrayObjectIsError(Objects* args)
+extern (C++) bool arrayObjectIsError(const Objects* args)
 {
-    for (size_t i = 0; i < args.dim; i++)
+    foreach (const o; *args)
     {
-        RootObject o = (*args)[i];
         if (isError(o))
             return true;
     }
@@ -137,14 +133,13 @@ extern (C++) bool arrayObjectIsError(Objects* args)
 /***********************
  * Try to get arg as a type.
  */
-extern (C++) Type getType(RootObject o)
+extern (C++) inout(Type) getType(inout RootObject o)
 {
-    Type t = isType(o);
+    inout t = isType(o);
     if (!t)
     {
-        Expression e = isExpression(o);
-        if (e)
-            t = e.type;
+        if (inout e = isExpression(o))
+            return e.type;
     }
     return t;
 }
@@ -154,8 +149,7 @@ extern (C++) Dsymbol getDsymbol(RootObject oarg)
     //printf("getDsymbol()\n");
     //printf("e %p s %p t %p v %p\n", isExpression(oarg), isDsymbol(oarg), isType(oarg), isTuple(oarg));
     Dsymbol sa;
-    Expression ea = isExpression(oarg);
-    if (ea)
+    if (Expression ea = isExpression(oarg))
     {
         // Try to convert Expression to symbol
         if (ea.op == TOK.variable)
@@ -175,8 +169,7 @@ extern (C++) Dsymbol getDsymbol(RootObject oarg)
     else
     {
         // Try to convert Type to symbol
-        Type ta = isType(oarg);
-        if (ta)
+        if (Type ta = isType(oarg))
             sa = ta.toDsymbol(null);
         else
             sa = isDsymbol(oarg); // if already a symbol
@@ -186,16 +179,15 @@ extern (C++) Dsymbol getDsymbol(RootObject oarg)
 
 private Expression getValue(ref Dsymbol s)
 {
-    Expression e = null;
     if (s)
     {
-        VarDeclaration v = s.isVarDeclaration();
-        if (v && v.storage_class & STC.manifest)
+        if (VarDeclaration v = s.isVarDeclaration())
         {
-            e = v.getConstInitializer();
+            if (v.storage_class & STC.manifest)
+                return v.getConstInitializer();
         }
     }
-    return e;
+    return null;
 }
 
 /***********************
@@ -226,9 +218,9 @@ private Expression getExpression(RootObject o)
  */
 private bool match(RootObject o1, RootObject o2)
 {
-    enum debugPrint = 0;
+    enum log = false;
 
-    static if (debugPrint)
+    static if (log)
     {
         printf("match() o1 = %p %s (%d), o2 = %p %s (%d)\n",
             o1, o1.toChars(), o1.dyncast(), o2, o2.toChars(), o2.dyncast());
@@ -248,7 +240,7 @@ private bool match(RootObject o1, RootObject o2)
         if (!t2)
             goto Lnomatch;
 
-        static if (debugPrint)
+        static if (log)
         {
             printf("\tt1 = %s\n", t1.toChars());
             printf("\tt2 = %s\n", t2.toChars());
@@ -264,7 +256,7 @@ private bool match(RootObject o1, RootObject o2)
         if (!e2)
             goto Lnomatch;
 
-        static if (debugPrint)
+        static if (log)
         {
             printf("\te1 = %s '%s' %s\n", e1.type.toChars(), Token.toChars(e1.op), e1.toChars());
             printf("\te2 = %s '%s' %s\n", e2.type.toChars(), Token.toChars(e2.op), e2.toChars());
@@ -285,7 +277,7 @@ private bool match(RootObject o1, RootObject o2)
         if (!s2)
             goto Lnomatch;
 
-        static if (debugPrint)
+        static if (log)
         {
             printf("\ts1 = %s \n", s1.kind(), s1.toChars());
             printf("\ts2 = %s \n", s2.kind(), s2.toChars());
@@ -303,7 +295,7 @@ private bool match(RootObject o1, RootObject o2)
         if (!u2)
             goto Lnomatch;
 
-        static if (debugPrint)
+        static if (log)
         {
             printf("\tu1 = %s\n", u1.toChars());
             printf("\tu2 = %s\n", u2.toChars());
@@ -314,12 +306,12 @@ private bool match(RootObject o1, RootObject o2)
         goto Lmatch;
     }
 Lmatch:
-    static if (debugPrint)
+    static if (log)
         printf("\t. match\n");
     return true;
 
 Lnomatch:
-    static if (debugPrint)
+    static if (log)
         printf("\t. nomatch\n");
     return false;
 }
@@ -327,25 +319,25 @@ Lnomatch:
 /************************************
  * Match an array of them.
  */
-private int arrayObjectMatch(Objects* oa1, Objects* oa2)
+private bool arrayObjectMatch(Objects* oa1, Objects* oa2)
 {
     if (oa1 == oa2)
-        return 1;
+        return true;
     if (oa1.dim != oa2.dim)
-        return 0;
+        return false;
     immutable oa1dim = oa1.dim;
     auto oa1d = (*oa1).data;
     auto oa2d = (*oa2).data;
-    for (size_t j = 0; j < oa1dim; j++)
+    foreach (j; 0 .. oa1dim)
     {
         RootObject o1 = oa1d[j];
         RootObject o2 = oa2d[j];
         if (!match(o1, o2))
         {
-            return 0;
+            return false;
         }
     }
-    return 1;
+    return true;
 }
 
 /************************************
@@ -6605,7 +6597,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     Dsymbol s2 = s.getType().toDsymbol(sc);
                     if (!s2)
                     {
-                        error("`%s` is not a template declaration, it is a %s", id.toChars(), s.kind());
+                        .error(loc, "`%s` is not a valid template instance, because `%s` is not a template declaration but a type (`%s == %s`)", toChars(), id.toChars(), id.toChars(), s.getType.kind());
                         return false;
                     }
                     s = s2;
@@ -6692,7 +6684,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                         for (size_t i = 0; i < dim; i++)
                         {
                             Parameter arg = (*tt.arguments)[i];
-                            if (flags & 2 && arg.ident)
+                            if (flags & 2 && (arg.ident || arg.userAttribDecl))
                                 tiargs.insert(j + i, arg);
                             else
                                 tiargs.insert(j + i, arg.type);
@@ -7304,7 +7296,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     if (isstatic)
                     {
                         Dsymbol dparent = sa.toParent2();
-                        if (!enclosing)
+                        if (!dparent)
+                            goto L1;
+                        else if (!enclosing)
                             enclosing = dparent;
                         else if (enclosing != dparent)
                         {

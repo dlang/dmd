@@ -591,12 +591,8 @@ public:
             assert(slice.length);
             foreach (const char c; slice)
             {
-                assert(c == '_' ||
-                       c == '@' ||
-                       c == '?' ||
-                       c == '$' ||
-                       isalnum(c) ||
-                       c & 0x80);
+                assert(c.isValidMangling, "The mangled name '" ~ slice ~ "' " ~
+                    "contains an invalid character: " ~ c);
             }
         }
     }
@@ -883,15 +879,16 @@ public:
 
     override void visit(IntegerExp e)
     {
-        if (cast(sinteger_t)e.value < 0)
+        const v = e.toInteger();
+        if (cast(sinteger_t)v < 0)
         {
             buf.writeByte('N');
-            buf.print(-e.value);
+            buf.print(-v);
         }
         else
         {
             buf.writeByte('i');
-            buf.print(e.value);
+            buf.print(v);
         }
     }
 
@@ -1100,6 +1097,34 @@ public:
     }
 }
 
+/// Returns: `true` if the given character is a valid mangled character
+package bool isValidMangling(dchar c)
+{
+    return
+        c >= 'A' && c <= 'Z' ||
+        c >= 'a' && c <= 'z' ||
+        c >= '0' && c <= '9' ||
+        c != 0 && strchr("$%().:?@[]_", c);
+}
+
+// valid mangled characters
+unittest
+{
+    assert('a'.isValidMangling);
+    assert('B'.isValidMangling);
+    assert('2'.isValidMangling);
+    assert('@'.isValidMangling);
+    assert('_'.isValidMangling);
+}
+
+// invalid mangled characters
+unittest
+{
+    assert(!'-'.isValidMangling);
+    assert(!0.isValidMangling);
+    assert(!'/'.isValidMangling);
+    assert(!'\\'.isValidMangling);
+}
 
 /******************************************************************************
  * Returns exact mangled name of function.

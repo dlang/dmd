@@ -31,3 +31,14 @@ void foo()
         mixin("int a" ~ i.stringof ~ " = 1;");
     }
 }
+
+class C
+{
+    invariant {}
+    invariant (true);
+
+    int foo() in{} out{} out(r){} in(true) out(; true) out(r; true)
+    {
+        return 2;
+    }
+}

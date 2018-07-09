@@ -28,6 +28,7 @@ import dmd.declaration;
 import dmd.denum;
 import dmd.dimport;
 import dmd.dinterpret;
+import dmd.dmangle;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
@@ -97,6 +98,7 @@ private extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* 
         stc |= sd.postblits[i].storage_class & STC.disable;
     }
 
+    VarDeclaration[] fieldsToDestroy;
     auto postblitCalls = new Statements();
     // iterate through all the struct fields that are not disabled
     for (size_t i = 0; i < sd.fields.dim && !(stc & STC.disable); i++)
@@ -115,6 +117,84 @@ private extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* 
         if (!sdv.postblit)
             continue;
         assert(!sdv.isUnionDeclaration());
+
+        // if this field's postblit is not `nothrow`, add a `scope(failure)`
+        // block to destroy any prior successfully postblitted fields should
+        // this field's postblit fail
+        if (fieldsToDestroy.length > 0 && !(cast(TypeFunction)sdv.postblit.type).isnothrow)
+        {
+             // create a list of destructors that need to be called
+            Expression[] dtorCalls;
+            foreach(sf; fieldsToDestroy)
+            {
+                Expression ex;
+                tv = sf.type.toBasetype();
+                if (tv.ty == Tstruct)
+                {
+                    // this.v.__xdtor()
+
+                    ex = new ThisExp(loc);
+                    ex = new DotVarExp(loc, ex, sf);
+
+                    // This is a hack so we can call destructors on const/immutable objects.
+                    ex = new AddrExp(loc, ex);
+                    ex = new CastExp(loc, ex, sf.type.mutableOf().pointerTo());
+                    ex = new PtrExp(loc, ex);
+                    if (stc & STC.safe)
+                        stc = (stc & ~STC.safe) | STC.trusted;
+
+                    auto sfv = (cast(TypeStruct)sf.type.baseElemOf()).sym;
+
+                    ex = new DotVarExp(loc, ex, sfv.dtor, false);
+                    ex = new CallExp(loc, ex);
+
+                    dtorCalls ~= ex;
+                }
+                else
+                {
+                    // _ArrayDtor((cast(S*)this.v.ptr)[0 .. n])
+
+                    uinteger_t length = 1;
+                    while (tv.ty == Tsarray)
+                    {
+                        length *= (cast(TypeSArray)tv).dim.toUInteger();
+                        tv = tv.nextOf().toBasetype();
+                    }
+                    //if (n == 0)
+                    //    continue;
+
+                    ex = new ThisExp(loc);
+                    ex = new DotVarExp(loc, ex, sf);
+
+                    // This is a hack so we can call destructors on const/immutable objects.
+                    ex = new DotIdExp(loc, ex, Id.ptr);
+                    ex = new CastExp(loc, ex, sdv.type.pointerTo());
+                    if (stc & STC.safe)
+                        stc = (stc & ~STC.safe) | STC.trusted;
+
+                    ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
+                                            new IntegerExp(loc, length, Type.tsize_t));
+                    // Prevent redundant bounds check
+                    (cast(SliceExp)ex).upperIsInBounds = true;
+                    (cast(SliceExp)ex).lowerIsLessThanUpper = true;
+
+                    ex = new CallExp(loc, new IdentifierExp(loc, Id.__ArrayDtor), ex);
+
+                    dtorCalls ~= ex;
+                }
+            }
+            fieldsToDestroy = [];
+
+            // aggregate the destructor calls
+            auto dtors = new Statements();
+            foreach_reverse(dc; dtorCalls)
+            {
+                dtors.push(new ExpStatement(loc, dc));
+            }
+
+            // put destructor calls in a `scope(failure)` block
+            postblitCalls.push(new OnScopeStatement(loc, TOK.onScopeFailure, new CompoundStatement(loc, dtors)));
+        }
 
         // perform semantic on the member postblit in order to
         // be able to aggregate it later on with the rest of the
@@ -179,67 +259,22 @@ private extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* 
             // Prevent redundant bounds check
             (cast(SliceExp)ex).upperIsInBounds = true;
             (cast(SliceExp)ex).lowerIsLessThanUpper = true;
-            ex = new CallExp(loc, new IdentifierExp(loc, Id._ArrayPostblit), ex);
+            ex = new CallExp(loc, new IdentifierExp(loc, Id.__ArrayPostblit), ex);
         }
         postblitCalls.push(new ExpStatement(loc, ex)); // combine in forward order
 
         /* https://issues.dlang.org/show_bug.cgi?id=10972
-         * When the following field postblit calls fail,
+         * When subsequent field postblit calls fail,
          * this field should be destructed for Exception Safety.
          */
-        if (!sdv.dtor)
-            continue;
-        sdv.dtor.functionSemantic();
-
-        tv = structField.type.toBasetype();
-        if (tv.ty == Tstruct)
+        if (sdv.dtor)
         {
-            // this.v.__xdtor()
+            sdv.dtor.functionSemantic();
 
-            ex = new ThisExp(loc);
-            ex = new DotVarExp(loc, ex, structField);
-
-            // This is a hack so we can call destructors on const/immutable objects.
-            ex = new AddrExp(loc, ex);
-            ex = new CastExp(loc, ex, structField.type.mutableOf().pointerTo());
-            ex = new PtrExp(loc, ex);
-            if (stc & STC.safe)
-                stc = (stc & ~STC.safe) | STC.trusted;
-
-            ex = new DotVarExp(loc, ex, sdv.dtor, false);
-            ex = new CallExp(loc, ex);
+            // keep a list of fields that need to be destroyed in case
+            // of a future postblit failure
+            fieldsToDestroy ~= structField;
         }
-        else
-        {
-            // _ArrayDtor((cast(S*)this.v.ptr)[0 .. n])
-
-            uinteger_t length = 1;
-            while (tv.ty == Tsarray)
-            {
-                length *= (cast(TypeSArray)tv).dim.toUInteger();
-                tv = tv.nextOf().toBasetype();
-            }
-            //if (n == 0)
-            //    continue;
-
-            ex = new ThisExp(loc);
-            ex = new DotVarExp(loc, ex, structField);
-
-            // This is a hack so we can call destructors on const/immutable objects.
-            ex = new DotIdExp(loc, ex, Id.ptr);
-            ex = new CastExp(loc, ex, sdv.type.pointerTo());
-            if (stc & STC.safe)
-                stc = (stc & ~STC.safe) | STC.trusted;
-
-            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
-                                       new IntegerExp(loc, length, Type.tsize_t));
-            // Prevent redundant bounds check
-            (cast(SliceExp)ex).upperIsInBounds = true;
-            (cast(SliceExp)ex).lowerIsLessThanUpper = true;
-
-            ex = new CallExp(loc, new IdentifierExp(loc, Id._ArrayDtor), ex);
-        }
-        postblitCalls.push(new OnScopeStatement(loc, TOK.onScopeFailure, new ExpStatement(loc, ex)));
     }
 
     void checkShared()
@@ -405,7 +440,7 @@ package bool allowsContractWithoutBody(FuncDeclaration funcdecl)
     InterfaceDeclaration id = parent.isInterfaceDeclaration();
 
     if (!funcdecl.isAbstract() &&
-        (funcdecl.fensure || funcdecl.frequire) &&
+        (funcdecl.fensures || funcdecl.frequires) &&
         !(id && funcdecl.isVirtual()))
     {
         auto cd = parent.isClassDeclaration();
@@ -1019,7 +1054,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
-        if (!dsym._init && !fd)
+        if ((!dsym._init || dsym._init.isVoidInitializer) && !fd)
         {
             // If not mutable, initializable by constructor only
             dsym.storage_class |= STC.ctorinit;
@@ -1333,9 +1368,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         imp.semanticRun = PASS.semantic;
 
         // Load if not already done so
+        bool loadErrored = false;
         if (!imp.mod)
         {
-            imp.load(sc);
+            loadErrored = imp.load(sc);
             if (imp.mod)
                 imp.mod.importAll(null);
         }
@@ -1382,7 +1418,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 scopesym.addAccessiblePackage(imp.mod, imp.protection); // d
             }
 
-            imp.mod.dsymbolSemantic(null);
+            if (!loadErrored)
+            {
+                imp.mod.dsymbolSemantic(null);
+            }
+
             if (imp.mod.needmoduleinfo)
             {
                 //printf("module4 %s because of %s\n", sc.module.toChars(), mod.toChars());
@@ -1705,7 +1745,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     dchar c = p[i];
                     if (c < 0x80)
                     {
-                        if (c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c != 0 && strchr("$%().:?@[]_", c))
+                        if (c.isValidMangling)
                         {
                             ++i;
                             continue;
@@ -2130,6 +2170,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return errorReturn();
         }
         assert(em.ed);
+
         em.ed.dsymbolSemantic(sc);
         if (em.ed.errors)
             return errorReturn();
@@ -2145,8 +2186,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         em.protection = em.ed.isAnonymous() ? em.ed.protection : Prot(Prot.Kind.public_);
         em.linkage = LINK.d;
-        em.storage_class = STC.manifest;
-        em.userAttribDecl = em.ed.isAnonymous() ? em.ed.userAttribDecl : null;
+        em.storage_class |= STC.manifest;
+
+        // https://issues.dlang.org/show_bug.cgi?id=9701
+        if (em.ed.isAnonymous())
+        {
+            if (em.userAttribDecl)
+                em.userAttribDecl.userAttribDecl = em.ed.userAttribDecl;
+            else
+                em.userAttribDecl = em.ed.userAttribDecl;
+        }
 
         // The first enum member is special
         bool first = (em == (*em.ed.members)[0]);
@@ -2277,7 +2326,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 return errorReturn();
 
             Expression eprev = emprev.value;
-            Type tprev = eprev.type.equals(em.ed.type) ? em.ed.memtype : eprev.type;
+            // .toHeadMutable() due to https://issues.dlang.org/show_bug.cgi?id=18645
+            Type tprev = eprev.type.toHeadMutable().equals(em.ed.type.toHeadMutable())
+                ? em.ed.memtype
+                : eprev.type;
 
             Expression emax = tprev.getProperty(em.ed.loc, Id.max, 0);
             emax = emax.expressionSemantic(sc);
@@ -3530,6 +3582,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             genCmain(sc);
 
         assert(funcdecl.type.ty != Terror || funcdecl.errors);
+
+        // semantic for parameters' UDAs
+        foreach (i; 0 .. Parameter.dim(f.parameters))
+        {
+            Parameter param = Parameter.getNth(f.parameters, i);
+            if (param && param.userAttribDecl)
+                param.userAttribDecl.dsymbolSemantic(sc);
+        }
     }
 
      /// Do the semantic analysis on the external interface to the function.
@@ -3561,6 +3621,18 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         sc = sc.push();
+
+        if (sc.stc & STC.static_)
+        {
+            // Deprecated in 2018-04.
+            // Change to error in 2019-04.
+            // @@@DEPRECATED_2019-04@@@.
+            if (sc.stc & STC.shared_)
+                deprecation(ctd.loc, "`shared static` has no effect on a constructor inside a `shared static` block. Use `shared static this()`");
+            else
+                deprecation(ctd.loc, "`static` has no effect on a constructor inside a `static` block. Use `static this()`");
+        }
+
         sc.stc &= ~STC.static_; // not a static constructor
         sc.flags |= SCOPE.ctor;
 
@@ -3679,7 +3751,29 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (dd.ident == Id.dtor && dd.semanticRun < PASS.semantic)
             ad.dtors.push(dd);
         if (!dd.type)
+        {
             dd.type = new TypeFunction(null, Type.tvoid, false, LINK.d, dd.storage_class);
+            if (ad.classKind == ClassKind.cpp && dd.ident == Id.dtor)
+            {
+                if (auto cldec = ad.isClassDeclaration())
+                {
+                    assert (cldec.cppDtorVtblIndex == -1); // double-call check already by dd.type
+                    if (cldec.baseClass && cldec.baseClass.cppDtorVtblIndex != -1)
+                    {
+                        // override the base virtual
+                        cldec.cppDtorVtblIndex = cldec.baseClass.cppDtorVtblIndex;
+                    }
+                    else if (!dd.isFinal())
+                    {
+                        // reserve the dtor slot for the destructor (which we'll create later)
+                        cldec.cppDtorVtblIndex = cast(int)cldec.vtbl.dim;
+                        cldec.vtbl.push(dd);
+                        if (Target.twoDtorInVtable)
+                            cldec.vtbl.push(dd); // deleting destructor uses a second slot
+                    }
+                }
+            }
+        }
 
         sc = sc.push();
         sc.stc &= ~STC.static_; // not a static destructor
@@ -3922,7 +4016,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         //printf("NewDeclaration::semantic()\n");
 
         // `@disable new();` should not be deprecated
-        if (!nd.isDisabled())
+        if (!nd.isDisabled() && !nd.isDeprecated())
         {
             // @@@DEPRECATED_2.084@@@
             // Should be changed to an error in 2.084
@@ -3978,7 +4072,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         // @@@DEPRECATED_2.084@@@
         // Should be changed to an error in 2.084
-        deprecation(deld.loc, "class deallocators have been deprecated, consider moving the deallocation strategy outside of the class");
+        if (!deld.isDeprecated())
+            deprecation(deld.loc, "class deallocators have been deprecated, consider moving the deallocation strategy outside of the class");
 
         if (deld.semanticRun >= PASS.semanticdone)
             return;
@@ -4020,7 +4115,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(StructDeclaration sd)
     {
-        //printf("StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", this, toPrettyChars(), sizeok);
+        //printf("StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", sd, sd.toPrettyChars(), sd.sizeok);
 
         //static int count; if (++count == 20) assert(0);
 
@@ -4072,6 +4167,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 sd.error("structs, unions cannot be `abstract`");
 
             sd.userAttribDecl = sc.userAttribDecl;
+
+            if (sc.linkage == LINK.cpp)
+                sd.classKind = ClassKind.cpp;
         }
         else if (sd.symtab && !scx)
             return;
@@ -4167,6 +4265,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         sd.ctor = sd.searchCtor();
 
         sd.dtor = buildDtor(sd, sc2);
+        sd.tidtor = buildExternDDtor(sd, sc2);
         sd.postblit = buildPostBlit(sd, sc2);
 
         buildOpAssign(sd, sc2);
@@ -4183,7 +4282,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         Module.dprogress++;
         sd.semanticRun = PASS.semanticdone;
-        //printf("-StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
+        //printf("-StructDeclaration::semantic(this=%p, '%s')\n", sd, sd.toChars());
 
         sc2.pop();
 
@@ -4208,6 +4307,18 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
+        if (sd.type.ty == Tstruct && (cast(TypeStruct)sd.type).sym != sd)
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=19024
+            StructDeclaration sym = (cast(TypeStruct)sd.type).sym;
+            version (none)
+            {
+                printf("this = %p %s\n", sd, sd.toChars());
+                printf("type = %d sym = %p, %s\n", sd.type.ty, sym, sym.toPrettyChars());
+            }
+            sd.error("already exists at %s. Perhaps in another function with the same name?", sym.loc.toChars());
+        }
+
         if (global.errors != errors)
         {
             // The type is no good.
@@ -4222,16 +4333,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sd.deferred.semantic2(sc);
             sd.deferred.semantic3(sc);
         }
-
-        version (none)
-        {
-            if (sd.type.ty == Tstruct && (cast(TypeStruct)sd.type).sym != sd)
-            {
-                printf("this = %p %s\n", sd, sd.toChars());
-                printf("type = %d sym = %p\n", sd.type.ty, (cast(TypeStruct)sd.type).sym);
-            }
-        }
-        assert(sd.type.ty != Tstruct || (cast(TypeStruct)sd.type).sym == sd);
     }
 
     final void interfaceSemantic(ClassDeclaration cd)
@@ -4520,7 +4621,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             cldec.baseok = Baseok.done;
 
             // If no base class, and this is not an Object, use Object as base class
-            if (!cldec.baseClass && cldec.ident != Id.Object && !cldec.classKind == ClassKind.cpp)
+            if (!cldec.baseClass && cldec.ident != Id.Object && cldec.object && cldec.classKind == ClassKind.d)
             {
                 void badObjectDotD()
                 {
@@ -4793,6 +4894,21 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         cldec.dtor = buildDtor(cldec, sc2);
+        cldec.tidtor = buildExternDDtor(cldec, sc2);
+
+        if (cldec.classKind == ClassKind.cpp && cldec.cppDtorVtblIndex != -1)
+        {
+            // now we've built the aggregate destructor, we'll make it virtual and assign it to the reserved vtable slot
+            cldec.dtor.vtblIndex = cldec.cppDtorVtblIndex;
+            cldec.vtbl[cldec.cppDtorVtblIndex] = cldec.dtor;
+
+            if (Target.twoDtorInVtable)
+            {
+                // TODO: create a C++ compatible deleting destructor (call out to `operator delete`)
+                //       for the moment, we'll call the non-deleting destructor and leak
+                cldec.vtbl[cldec.cppDtorVtblIndex + 1] = cldec.dtor;
+            }
+        }
 
         if (auto f = hasIdentityOpAssign(cldec, sc2))
         {
@@ -5187,7 +5303,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
 void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions* fargs)
 {
-    //printf("[%s] TemplateInstance.dsymbolSemantic('%s', this=%p, gag = %d, sc = %p)\n", loc.toChars(), toChars(), this, global.gag, sc);
+    //printf("[%s] TemplateInstance.dsymbolSemantic('%s', this=%p, gag = %d, sc = %p)\n", tempinst.loc.toChars(), tempinst.toChars(), tempinst, global.gag, sc);
     version (none)
     {
         for (Dsymbol s = tempinst; s; s = s.parent)
@@ -5492,11 +5608,10 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     }
     Scope* sc2;
     sc2 = _scope.push(tempinst);
-    //printf("enclosing = %d, sc.parent = %s\n", enclosing, sc.parent.toChars());
+    //printf("enclosing = %d, sc.parent = %s\n", tempinst.enclosing, sc.parent.toChars());
     sc2.parent = tempinst;
     sc2.tinst = tempinst;
     sc2.minst = tempinst.minst;
-
     tempinst.tryExpandMembers(sc2);
 
     tempinst.semanticRun = PASS.semanticdone;
@@ -5588,12 +5703,20 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     else if (tempinst.tinst)
     {
         bool doSemantic3 = false;
-        if (sc.func && tempinst.aliasdecl && tempinst.aliasdecl.toAlias().isFuncDeclaration())
+        FuncDeclaration fd;
+        if (tempinst.aliasdecl)
+            fd = tempinst.aliasdecl.toAlias2().isFuncDeclaration();
+
+        if (fd)
         {
             /* Template function instantiation should run semantic3 immediately
              * for attribute inference.
              */
-            doSemantic3 = true;
+            scope fld = fd.isFuncLiteralDeclaration();
+            if (fld && fld.tok == TOK.reserved)
+                doSemantic3 = true;
+            else if (sc.func)
+                doSemantic3 = true;
         }
         else if (sc.func)
         {
@@ -5733,7 +5856,7 @@ Laftersemantic:
 // function used to perform semantic on AliasDeclaration
 void aliasSemantic(AliasDeclaration ds, Scope* sc)
 {
-    //printf("AliasDeclaration::semantic() %s\n", toChars());
+    //printf("AliasDeclaration::semantic() %s\n", ds.toChars());
     if (ds.aliassym)
     {
         auto fd = ds.aliassym.isFuncLiteralDeclaration();

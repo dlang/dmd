@@ -10,7 +10,7 @@ import std.random;   // for uniform random numbers
 
 /************************************************/
 
-int nametable[char[]];
+int[char[]] nametable;
 
 void insert(string name, int value)
 {
@@ -315,7 +315,7 @@ void test13()
     string[] key = array.keys;
     assert(key.length==3);
 
-    bool have[3];
+    bool[3] have;
 
     assert(!have[0]);
     assert(!have[1]);
@@ -493,7 +493,7 @@ void dummy17()
 {
 }
 
-int bb17[string];
+int[string] bb17;
 
 int foo17()
 {
@@ -511,7 +511,7 @@ int foo17()
         }catch(Error e){
             assert(e);
             return 0;
-        }catch{
+        }catch(Throwable){
             assert(0);
         }
         assert(0);

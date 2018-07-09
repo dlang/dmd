@@ -668,7 +668,7 @@ void test37()
 void test38()
 {
     int n = atoi("1");
-    static char flags[8192 + 1];
+    static char[8192 + 1] flags;
     long i, k;
     int count = 0;
 
@@ -696,7 +696,7 @@ void test38()
        printf("Count: %d\n", count);
         assert(count == 1028);
     }
-    catch
+    catch(Throwable)
     {
        printf("Exception: %d\n", k);
         assert(0);

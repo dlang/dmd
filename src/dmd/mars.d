@@ -70,6 +70,25 @@ private void logo()
     printf("DMD%llu D Compiler %s\n%s %s\n", cast(ulong)size_t.sizeof * 8, global._version, global.copyright, global.written);
 }
 
+/**
+Print DMD's logo with more debug information and error-reporting pointers.
+
+Params:
+    stream = output stream to print the information on
+*/
+extern(C) void printInternalFailure(FILE* stream)
+{
+    fputs(("---\n" ~
+    "ERROR: This is a compiler bug.\n" ~
+            "Please report it via https://issues.dlang.org/enter_bug.cgi\n" ~
+            "with, preferably, a reduced, reproducible example and the information below.\n" ~
+    "DustMite (https://github.com/CyberShadow/DustMite/wiki) can help with the reduction.\n" ~
+    "---\n").ptr, stream);
+    stream.fprintf("DMD %s\n", global._version);
+    stream.printPredefinedVersions;
+    stream.printGlobalConfigs();
+    fputs("---\n".ptr, stream);
+}
 
 /**
  * Print DMD's usage message on stdout
@@ -342,23 +361,7 @@ private int tryMain(size_t argc, const(char)** argv)
     global.params.cpu = setTargetCPU(global.params.cpu);
     if (global.params.is64bit != is64bit)
         error(Loc.initial, "the architecture must not be changed in the %s section of %s", envsection.ptr, global.inifilename);
-    if (global.params.enforcePropertySyntax)
-    {
-        /*NOTE: -property used to disallow calling non-properties
-         without parentheses. This behaviour has fallen from grace.
-         Phobos dropped support for it while dmd still recognized it, so
-         that the switch has effectively not been supported. Time to
-         remove it from dmd.
-         Step 1 (2.069): Deprecate -property and ignore it. */
-        Loc loc;
-        deprecation(loc, "The -property switch is deprecated and has no " ~
-            "effect anymore.");
-        /* Step 2: Remove -property. Throw an error when it's set.
-         Do this by removing global.params.enforcePropertySyntax and the code
-         above that sets it. Let it be handled as an unrecognized switch.
-         Step 3: Possibly reintroduce -property with different semantics.
-         Any new semantics need to be decided on first. */
-    }
+
     // Target uses 64bit pointers.
     global.params.isLP64 = global.params.is64bit;
     if (global.errors)
@@ -495,40 +498,10 @@ private int tryMain(size_t argc, const(char)** argv)
     Objc._init();
     builtin_init();
 
-    printPredefinedVersions();
-
     if (global.params.verbose)
     {
-        message("binary    %s", global.params.argv0);
-        message("version   %s", global._version);
-        message("config    %s", global.inifilename ? global.inifilename : "(none)");
-        // Print DFLAGS environment variable
-        {
-            Strings dflags;
-            getenv_setargv(readFromEnv(&environment, "DFLAGS"), &dflags);
-            OutBuffer buf;
-            foreach (flag; dflags.asDArray)
-            {
-                bool needsQuoting;
-                for (auto flagp = flag; flagp; flagp++)
-                {
-                    auto c = flagp[0];
-                    if (!(isalnum(c) || c == '_'))
-                    {
-                        needsQuoting = true;
-                        break;
-                    }
-                }
-
-                if (flag.strchr(' '))
-                    buf.printf("'%s' ", flag);
-                else
-                    buf.printf("%s ", flag);
-            }
-
-            auto res = buf.peekSlice() ? buf.peekSlice()[0 .. $ - 1] : "(none)";
-            message("DFLAGS    %.*s", res.length, res.ptr);
-        }
+        stdout.printPredefinedVersions();
+        stdout.printGlobalConfigs();
     }
     //printf("%d source files\n",files.dim);
 
@@ -666,7 +639,7 @@ private int tryMain(size_t argc, const(char)** argv)
         /* At this point, name is the D source file name stripped of
          * its path and extension.
          */
-        auto id = Identifier.idPool(name, strlen(name));
+        auto id = Identifier.idPool(name, cast(uint)strlen(name));
         auto m = new Module(files[i], id, global.params.doDocComments, global.params.doHdrGeneration);
         modules.push(m);
         if (firstmodule)
@@ -890,6 +863,11 @@ private int tryMain(size_t argc, const(char)** argv)
     Library library = null;
     if (global.params.lib)
     {
+        if (global.params.objfiles.dim == 0)
+        {
+            error(Loc.initial, "no input files");
+            return EXIT_FAILURE;
+        }
         library = Library.factory();
         library.setFilename(global.params.objdir, global.params.libname);
         // Add input object and input library files to output library
@@ -1093,6 +1071,8 @@ int main()
         dmd_coverDestPath(sourcePath);
         dmd_coverSetMerge(true);
     }
+
+    scope(failure) stderr.printInternalFailure;
 
     auto args = Runtime.cArgs();
     return tryMain(args.argc, cast(const(char)**)args.argv);
@@ -1406,9 +1386,9 @@ void addDefaultVersionIdentifiers()
     VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
 }
 
-private void printPredefinedVersions()
+private void printPredefinedVersions(FILE* stream)
 {
-    if (global.params.verbose && global.versionids)
+    if (global.versionids)
     {
         OutBuffer buf;
         foreach (const str; *global.versionids)
@@ -1416,10 +1396,45 @@ private void printPredefinedVersions()
             buf.writeByte(' ');
             buf.writestring(str.toChars());
         }
-        message("predefs  %s", buf.peekString());
+        stream.fprintf("predefs  %s\n", buf.peekString());
     }
 }
 
+extern(C) void printGlobalConfigs(FILE* stream)
+{
+    stream.fprintf("binary    %s\n", global.params.argv0);
+    stream.fprintf("version   %s\n", global._version);
+    stream.fprintf("config    %s\n", global.inifilename ? global.inifilename : "(none)");
+    // Print DFLAGS environment variable
+    {
+        StringTable environment;
+        environment._init(0);
+        Strings dflags;
+        getenv_setargv(readFromEnv(&environment, "DFLAGS"), &dflags);
+        environment.reset(1);
+        OutBuffer buf;
+        foreach (flag; dflags[])
+        {
+            bool needsQuoting;
+            foreach (c; flag[0 .. strlen(flag)])
+            {
+                if (!(isalnum(c) || c == '_'))
+                {
+                    needsQuoting = true;
+                    break;
+                }
+            }
+
+            if (flag.strchr(' '))
+                buf.printf("'%s' ", flag);
+            else
+                buf.printf("%s ", flag);
+        }
+
+        auto res = buf.peekSlice() ? buf.peekSlice()[0 .. $ - 1] : "(none)";
+        stream.fprintf("DFLAGS    %.*s\n", res.length, res.ptr);
+    }
+}
 
 /****************************************
  * Determine the instruction set to be used.
@@ -1949,8 +1964,6 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             }
             else if (arg == "-ignore")      // https://dlang.org/dmd.html#switch-ignore
                 params.ignoreUnsupportedPragmas = true;
-            else if (arg == "-property")
-                params.enforcePropertySyntax = true;
             else if (arg == "-inline")      // https://dlang.org/dmd.html#switch-inline
             {
                 params.useInline = true;
@@ -2479,7 +2492,7 @@ private void parseModulePattern(const(char)* modulePattern, MatcherNode* dst, us
                 if (*modulePattern == '.')
                 {
                     assert(modulePattern > idStart, "empty module pattern");
-                    *dst = MatcherNode(Identifier.idPool(idStart, modulePattern - idStart));
+                    *dst = MatcherNode(Identifier.idPool(idStart, cast(uint)(modulePattern - idStart)));
                     modulePattern++;
                     idStart = modulePattern;
                     break;
@@ -2491,7 +2504,7 @@ private void parseModulePattern(const(char)* modulePattern, MatcherNode* dst, us
             if (*modulePattern == '\0')
             {
                 assert(modulePattern > idStart, "empty module pattern");
-                *lastNode = MatcherNode(Identifier.idPool(idStart, modulePattern - idStart));
+                *lastNode = MatcherNode(Identifier.idPool(idStart, cast(uint)(modulePattern - idStart)));
                 break;
             }
         }

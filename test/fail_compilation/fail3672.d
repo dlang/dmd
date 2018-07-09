@@ -2,7 +2,7 @@
 TEST_OUTPUT:
 ---
 fail_compilation/fail3672.d(27): Error: read-modify-write operations are not allowed for `shared` variables. Use `core.atomic.atomicOp!"+="(*p, 1)` instead.
-fail_compilation/fail3672.d(31): Error: read-modify-write operations are not allowed for `shared` variables. Use `core.atomic.atomicOp!"+="(*sfp, 1)` instead.
+fail_compilation/fail3672.d(31): Error: none of the `opOpAssign` overloads of `SF` are callable for `*sfp` of type `shared(SF)`
 ---
 */
 

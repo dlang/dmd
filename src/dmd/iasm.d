@@ -3392,10 +3392,10 @@ code *asm_db_parse(OP *pop)
                 switch (op)
                 {
                     case OPdf:
-                        dt.f = asmstate.tok.floatvalue;
+                        dt.f = cast(float) asmstate.tok.floatvalue;
                         break;
                     case OPdd:
-                        dt.d = asmstate.tok.floatvalue;
+                        dt.d = cast(double) asmstate.tok.floatvalue;
                         break;
                     case OPde:
                         dt.ld = asmstate.tok.floatvalue;
@@ -3477,10 +3477,10 @@ code *asm_db_parse(OP *pop)
                     switch (op)
                     {
                         case OPdf:
-                            dt.f = e.toReal();
+                            dt.f = cast(float) e.toReal();
                             break;
                         case OPdd:
-                            dt.d = e.toReal();
+                            dt.d = cast(double) e.toReal();
                             break;
                         case OPde:
                             dt.ld = e.toReal();

@@ -204,10 +204,14 @@ int Symbol::Salignsize()
 }
 
 /****************************************
- * Return if symbol is dead.
+ * Aver if Symbol is not only merely dead, but really most sincerely dead.
+ * Params:
+ *      anyInlineAsm = true if there's any inline assembler code
+ * Returns:
+ *      true if symbol is dead.
  */
 
-bool Symbol::Sisdead(bool anyiasm)
+bool Symbol::Sisdead(bool anyInlineAsm)
 {
     return Sflags & SFLdead ||
            /* SFLdead means the optimizer found no references to it.
@@ -217,7 +221,7 @@ bool Symbol::Sisdead(bool anyiasm)
             * Code that does write those variables to memory gets NOPed out
             * during address assignment.
             */
-           (!anyiasm && !(Sflags & SFLread) && Sflags & SFLunambig &&
+           (!anyInlineAsm && !(Sflags & SFLread) && Sflags & SFLunambig &&
 #if MARS
             // mTYvolatile means this variable has been reference by a nested function
             !(Stype->Tty & mTYvolatile) &&

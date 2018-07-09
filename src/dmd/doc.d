@@ -556,7 +556,8 @@ extern (C++) void escapeDdocString(OutBuffer* buf, size_t start)
 extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start, bool respectMarkdownEscapes)
 {
     uint par_open = 0;
-    bool inCode = 0;
+    char inCode = 0;
+    bool atLineStart = true;
     for (size_t u = start; u < buf.offset; u++)
     {
         char c = buf.data[u];
@@ -565,6 +566,7 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start, 
         case '(':
             if (!inCode)
                 par_open++;
+            atLineStart = false;
             break;
         case ')':
             if (!inCode)
@@ -580,27 +582,38 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start, 
                 else
                     par_open--;
             }
+            atLineStart = false;
             break;
+        case '\n':
+            atLineStart = true;
             version (none)
             {
                 // For this to work, loc must be set to the beginning of the passed
                 // text which is currently not possible
                 // (loc is set to the Loc of the Dsymbol)
-            case '\n':
                 loc.linnum++;
-                break;
             }
+            break;
+        case ' ':
+        case '\r':
+        case '\t':
+            break;
         case '-':
+        case '`':
             // Issue 15465: don't try to escape unbalanced parens inside code
             // blocks.
-            int numdash = 0;
-            while (u < buf.offset && buf.data[u] == '-')
+            int numdash = 1;
+            for (++u; u < buf.offset && buf.data[u] == '-'; ++u)
+                ++numdash;
+            --u;
+            if (c == '`' || (atLineStart && numdash >= 3))
             {
-                numdash++;
-                u++;
+                if (inCode == c)
+                    inCode = 0;
+                else if (!inCode)
+                    inCode = c;
             }
-            if (numdash >= 3)
-                inCode = !inCode;
+            atLineStart = false;
             break;
         case '\\':
             if (!inCode && respectMarkdownEscapes && u+1 < buf.offset)
@@ -617,6 +630,7 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start, 
             }
             break;
         default:
+            atLineStart = false;
             break;
         }
     }
@@ -2319,6 +2333,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf,
                     codebuf.write(buf.peekSlice().ptr + iCodeStart + 1, i - (iCodeStart + 1));
                     // escape the contents, but do not perform highlighting except for DDOC_PSYMBOL
                     highlightCode(sc, a, &codebuf, 0);
+                    escapeStrayParenthesis(s ? s.loc : Loc.initial, &codebuf, 0);
                     buf.remove(iCodeStart, i - iCodeStart + 1); // also trimming off the current `
                     immutable pre = "$(DDOC_BACKQUOTED ";
                     i = buf.insert(iCodeStart, pre);
@@ -2416,6 +2431,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf,
                         ++p;
                     }
                     highlightCode2(sc, a, &codebuf, 0);
+                    escapeStrayParenthesis(s ? s.loc : Loc.initial, &codebuf, 0);
                     buf.remove(iCodeStart, i - iCodeStart);
                     i = buf.insert(iCodeStart, codebuf.peekSlice());
                     i = buf.insert(i, ")\n");

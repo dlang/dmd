@@ -64,6 +64,7 @@ OPTABLE0(INTO,    0xce,_i64_bit);
 OPTABLE0(INVD,    0x0f08,_I386);               // Actually a 486 only instruction
 OPTABLE0(IRET,    0xcf,_16_bit);
 OPTABLE0(IRETD,   0xcf,_32_bit | _I386);
+OPTABLE0(IRETQ,   0xcf,_64_bit | _I386);
 OPTABLE0(LAHF,    0x9f,_modax);
 OPTABLE0(LEAVE,   0xc9,_I386);
 OPTABLE0(LOCK,    0xf0,0);
@@ -5023,6 +5024,7 @@ PTRNTAB2 aptb2SHA256MSG2[] = /* SHA256MSG2 */ {
         X("invlpg",     1,              aptb1INVLPG )               \
         X("iret",       0,              aptb0IRET )                 \
         X("iretd",      0,              aptb0IRETD )                \
+        X("iretq",      0,              aptb0IRETQ )                \
         X("ja",         ITjump | 1,     aptb1JNBE )                 \
         X("jae",        ITjump | 1,     aptb1JNB )                  \
         X("jb",         ITjump | 1,     aptb1JB )                   \

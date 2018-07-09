@@ -1,9 +1,10 @@
-// PERMUTE_ARGS: -g
+// PERMUTE_ARGS: -g -version=PULL8152
 // EXTRA_CPP_SOURCES: cppb.cpp
 
 import core.stdc.stdio;
 import core.stdc.stdarg;
 import core.stdc.config;
+import core.stdc.stdint;
 
 extern (C++)
         int foob(int i, int j, int k);
@@ -605,13 +606,19 @@ extern(C++)
 
 version (CRuntime_Microsoft)
 {
-    struct __c_long_double
+    version (PULL8152)
     {
-        this(double d) { ld = d; }
-        double ld;
-        alias ld this;
+        enum __c_long_double : double;
     }
-
+    else
+    {
+        struct __c_long_double
+        {
+            this(double d) { ld = d; }
+            double ld;
+            alias ld this;
+        }
+    }
     alias __c_long_double myld;
 }
 else
@@ -648,18 +655,26 @@ else
   }
 }
 
-struct __c_long
+version (PULL8152)
 {
-    this(x_long d) { ld = d; }
-    x_long ld;
-    alias ld this;
+    enum __c_long : x_long;
+    enum __c_ulong : x_ulong;
 }
-
-struct __c_ulong
+else
 {
-    this(x_ulong d) { ld = d; }
-    x_ulong ld;
-    alias ld this;
+    struct __c_long
+    {
+        this(x_long d) { ld = d; }
+        x_long ld;
+        alias ld this;
+    }
+
+    struct __c_ulong
+    {
+        this(x_ulong d) { ld = d; }
+        x_ulong ld;
+        alias ld this;
+    }
 }
 
 alias __c_long mylong;
@@ -674,6 +689,7 @@ void test16()
   {
     mylong ld = 5;
     ld = testl(ld);
+    printf("ld = %lld, mylong.sizeof = %lld\n", cast(long)ld, cast(long)mylong.sizeof);
     assert(ld == 5 + mylong.sizeof);
   }
   {
@@ -681,7 +697,54 @@ void test16()
     ld = testul(ld);
     assert(ld == 5 + myulong.sizeof);
   }
+
+    version (PULL8152)
+    {
+        static if (__c_long.sizeof == long.sizeof)
+        {
+            static assert(__c_long.max == long.max);
+            static assert(__c_long.min == long.min);
+            static assert(__c_long.init == long.init);
+
+            static assert(__c_ulong.max == ulong.max);
+            static assert(__c_ulong.min == ulong.min);
+            static assert(__c_ulong.init == ulong.init);
+
+            __c_long cl = 0;
+            cl = cl + 1;
+            long l = cl;
+            cl = l;
+
+            __c_ulong cul = 0;
+            cul = cul + 1;
+            ulong ul = cul;
+            cul = ul;
+        }
+        else static if (__c_long.sizeof == int.sizeof)
+        {
+            static assert(__c_long.max == int.max);
+            static assert(__c_long.min == int.min);
+            static assert(__c_long.init == int.init);
+
+            static assert(__c_ulong.max == uint.max);
+            static assert(__c_ulong.min == uint.min);
+            static assert(__c_ulong.init == uint.init);
+
+            __c_long cl = 0;
+            cl = cl + 1;
+            int i = cl;
+            cl = i;
+
+            __c_ulong cul = 0;
+            cul = cul + 1;
+            uint u = cul;
+            cul = u;
+        }
+        else
+            static assert(0);
+    }
 }
+
 
 /****************************************/
 
@@ -825,13 +888,13 @@ void testVtable()
 
 /****************************************/
 /* problems detected by fuzzer */
-extern(C++) void fuzz1_cppvararg(long arg10, long arg11, bool arg12);
-extern(C++) void fuzz1_dvararg(long arg10, long arg11, bool arg12)
+extern(C++) void fuzz1_cppvararg(int64_t arg10, int64_t arg11, bool arg12);
+extern(C++) void fuzz1_dvararg(int64_t arg10, int64_t arg11, bool arg12)
 {
     fuzz1_checkValues(arg10, arg11, arg12);
 }
 
-extern(C++) void fuzz1_checkValues(long arg10, long arg11, bool arg12)
+extern(C++) void fuzz1_checkValues(int64_t arg10, int64_t arg11, bool arg12)
 {
     assert(arg10 == 103);
     assert(arg11 == 104);
@@ -848,13 +911,13 @@ void fuzz1()
 }
 
 ////////
-extern(C++) void fuzz2_cppvararg(ulong arg10, ulong arg11, bool arg12);
-extern(C++) void fuzz2_dvararg(ulong arg10, ulong arg11, bool arg12)
+extern(C++) void fuzz2_cppvararg(uint64_t arg10, uint64_t arg11, bool arg12);
+extern(C++) void fuzz2_dvararg(uint64_t arg10, uint64_t arg11, bool arg12)
 {
     fuzz2_checkValues(arg10, arg11, arg12);
 }
 
-extern(C++) void fuzz2_checkValues(ulong arg10, ulong arg11, bool arg12)
+extern(C++) void fuzz2_checkValues(uint64_t arg10, uint64_t arg11, bool arg12)
 {
     assert(arg10 == 103);
     assert(arg11 == 104);
@@ -1195,11 +1258,259 @@ void test15802()
 /****************************************/
 // 16536 - mangling mismatch on OSX
 
-version(OSX) extern(C++) ulong pass16536(ulong);
+version(OSX) extern(C++) uint64_t pass16536(uint64_t);
 
 void test16536()
 {
     version(OSX) assert(pass16536(123) == 123);
+}
+
+/****************************************/
+// 15589 - extern(C++) virtual destructors are not put in vtbl[]
+
+extern(C++)
+{
+    class A15589
+    {
+        extern(D) static int[] dtorSeq;
+        struct S
+        {
+            this(int x) { this.x = x; }
+            ~this() { dtorSeq ~= x; }
+            int x;
+        }
+        int foo() { return 100; } // shift dtor to slot 1
+        ~this() { dtorSeq ~= 10; }
+        S s1 = S(1);
+        S s2 = S(2);
+    }
+    class B15589 : A15589
+    {
+        int bar() { return 200;} // add an additional function AFTER the dtor at slot 2
+        ~this() { dtorSeq ~= 20; }
+        S s3 = S(3);
+    }
+
+    void test15589b(A15589 p);
+}
+
+void test15589()
+{
+    A15589 c = new B15589;
+    assert(A15589.dtorSeq == null);
+    assert(c.foo() == 100);
+    assert((cast(B15589)c).bar() == 200);
+    c.__xdtor(); // virtual dtor call
+    assert(A15589.dtorSeq[] == [ 20, 3, 10, 2, 1 ]); // destroyed full hierarchy!
+
+    A15589.dtorSeq = null;
+    test15589b(c);
+    assert(A15589.dtorSeq[] == [ 20, 3, 10, 2, 1 ]); // destroyed full hierarchy!
+}
+
+extern(C++)
+{
+    class Cpp15589Base
+    {
+    public:
+        final ~this();
+
+        void nonVirtual();
+        int a;
+    }
+
+    class Cpp15589Derived : Cpp15589Base
+    {
+    public:
+        this();
+        final ~this();
+        int b;
+    }
+
+    class Cpp15589BaseVirtual
+    {
+    public:
+        void beforeDtor();
+
+        this();
+        ~this();
+
+        void afterDtor();
+        int c = 1;
+    }
+
+    class Cpp15589DerivedVirtual : Cpp15589BaseVirtual
+    {
+    public:
+        this();
+        ~this();
+
+        override void afterDtor();
+
+        int d;
+    }
+
+    class Cpp15589IntroducingVirtual : Cpp15589Base
+    {
+    public:
+        this();
+        void beforeIntroducedVirtual();
+        ~this();
+        void afterIntroducedVirtual(int);
+
+        int e;
+    }
+
+    struct Cpp15589Struct
+    {
+        ~this();
+        int s;
+    }
+
+    void trace15589(int ch)
+    {
+        traceBuf[traceBufPos++] = cast(char) ch;
+    }
+}
+
+__gshared char[32] traceBuf;
+__gshared size_t traceBufPos;
+
+mixin template scopeAllocCpp(C)
+{
+    // workaround for https://issues.dlang.org/show_bug.cgi?id=18986
+    version(OSX)
+        enum cppCtorReturnsThis = false;
+    else version(FreeBSD)
+        enum cppCtorReturnsThis = false;
+    else
+        enum cppCtorReturnsThis = true;
+    
+    static if (cppCtorReturnsThis)
+        scope C ptr = new C;
+    else
+    {
+        ubyte[__traits(classInstanceSize, C)] data;
+        C ptr = (){ auto p = cast(C) data.ptr; p.__ctor(); return p; }();
+    }
+}
+
+void test15589b()
+{
+    traceBufPos = 0;
+    {
+        Cpp15589Struct struc = Cpp15589Struct();
+        mixin scopeAllocCpp!Cpp15589Derived derived;
+        mixin scopeAllocCpp!Cpp15589DerivedVirtual derivedVirtual;
+        mixin scopeAllocCpp!Cpp15589IntroducingVirtual introducingVirtual;
+
+        introducingVirtual.ptr.destroy();
+        derivedVirtual.ptr.destroy();
+        derived.ptr.destroy();
+    }
+    printf("traceBuf15589 %.*s\n", cast(int)traceBufPos, traceBuf.ptr);
+    assert(traceBuf[0..traceBufPos] == "IbVvBbs");
+}
+
+/****************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=18928
+// Win64: extern(C++) bad codegen, wrong calling convention
+
+extern(C++) struct Small18928
+{
+    int x;
+}
+
+extern(C++) class CC18928
+{
+    Small18928 getVirtual(); // { return S(3); }
+    final Small18928 getFinal(); // { return S(4); }
+    static Small18928 getStatic(); // { return S(5); }
+}
+
+extern(C++) CC18928 newCC18928();
+
+void test18928()
+{
+    auto cc = newCC18928();
+    Small18928 v = cc.getVirtual();
+    assert(v.x == 3);
+    Small18928 f = cc.getFinal();
+    assert(f.x == 4);
+    Small18928 s = cc.getStatic();
+    assert(s.x == 5);
+}
+
+/****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=18953
+// Win32: extern(C++) struct destructor not called correctly through runtime
+
+extern(C++) 
+struct S18953
+{
+    char x;
+    ~this() nothrow @nogc { traceBuf[traceBufPos++] = x; }
+}
+
+void test18953()
+{
+    traceBufPos = 0;
+    S18953[] arr = new S18953[3];
+    arr[1].x = '1';
+    arr[2].x = '2';
+    arr.length = 1;
+    assumeSafeAppend(arr); // destroys arr[1] and arr[2]
+    printf("traceBuf18953 %.*s\n", cast(int)traceBufPos, traceBuf.ptr);
+    assert(traceBuf[0..traceBufPos] == "21");
+}
+
+/****************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=18966
+
+extern(C++):
+class Base18966
+{
+    this() @safe nothrow;
+    ~this();
+    void vf();
+    int x;
+}
+
+class Derived18966 : Base18966
+{
+    override void vf() { x = 200; }
+}
+
+class Explicit18966 : Base18966
+{
+    this() @safe { super(); }
+    override void vf() { x = 250; }
+}
+
+class Implicit18966 : Base18966
+{
+    this() nothrow {}
+    override void vf() { x = 300; }
+}
+
+void test18966()
+{
+    Derived18966 d = new Derived18966;
+    assert(d.x == 10);
+    d.vf();
+    assert(d.x == 200);
+
+    Explicit18966 e = new Explicit18966;
+    assert(e.x == 10);
+    e.vf();
+    assert(e.x == 250);
+
+    Implicit18966 i = new Implicit18966;
+    assert(i.x == 10);
+    i.vf();
+    assert(i.x == 300);
 }
 
 /****************************************/
@@ -1246,6 +1557,11 @@ void main()
     test15372();
     test15802();
     test16536();
+    test15589();
+    test15589b();
+    test18928();
+    test18953();
+    test18966();
 
     printf("Success\n");
 }

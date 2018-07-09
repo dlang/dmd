@@ -47,7 +47,6 @@ import dmd.identifier;
 import dmd.init;
 import dmd.initsem;
 import dmd.hdrgen;
-import dmd.mars;
 import dmd.mtype;
 import dmd.nogc;
 import dmd.nspace;
@@ -281,12 +280,12 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
         uint oldErrors = global.errors;
 
-        if (funcdecl.frequire)
+        if (funcdecl.frequires)
         {
             for (size_t i = 0; i < funcdecl.foverrides.dim; i++)
             {
                 FuncDeclaration fdv = funcdecl.foverrides[i];
-                if (fdv.fbody && !fdv.frequire)
+                if (fdv.fbody && !fdv.frequires)
                 {
                     funcdecl.error("cannot have an in contract when overridden function `%s` does not have an in contract", fdv.toPrettyChars());
                     break;
@@ -297,7 +296,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         // Remember whether we need to generate an 'out' contract.
         immutable bool needEnsure = FuncDeclaration.needsFensure(funcdecl);
 
-        if (funcdecl.fbody || funcdecl.frequire || needEnsure)
+        if (funcdecl.fbody || funcdecl.frequires || needEnsure)
         {
             /* Symbol table into which we place parameters and nested functions,
              * solely to diagnose name collisions.
@@ -335,7 +334,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             sc2.flags &= ~SCOPE.compile;
             sc2.tf = null;
             sc2.os = null;
-            sc2.noctor = 0;
+            sc2.inLoop = false;
             sc2.userAttribDecl = null;
             if (sc2.intypeof == 1)
                 sc2.intypeof = 2;
@@ -467,6 +466,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         funcdecl.parameters.push(v);
                     funcdecl.localsymtab.insert(v);
                     v.parent = funcdecl;
+                    if (fparam.userAttribDecl)
+                        v.userAttribDecl = fparam.userAttribDecl;
                 }
             }
 
@@ -573,7 +574,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     }
                 }
 
-                if (!funcdecl.inferRetType && !Target.isReturnOnStack(f))
+                if (!funcdecl.inferRetType && !Target.isReturnOnStack(f, funcdecl.needThis()))
                     funcdecl.nrvo_can = 0;
 
                 bool inferRef = (f.isref && (funcdecl.storage_class & STC.auto_));
@@ -627,7 +628,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     if (funcdecl.storage_class & STC.auto_)
                         funcdecl.storage_class &= ~STC.auto_;
                 }
-                if (!Target.isReturnOnStack(f))
+                if (!Target.isReturnOnStack(f, funcdecl.needThis()))
                     funcdecl.nrvo_can = 0;
 
                 if (funcdecl.fbody.isErrorStatement())
@@ -674,7 +675,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             else
                             {
                                 bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
-                                if (mustInit && !(sc2.ctorflow.fieldinit[i] & CSX.this_ctor))
+                                if (mustInit && !(sc2.ctorflow.fieldinit[i].csx & CSX.this_ctor))
                                 {
                                     funcdecl.error("field `%s` must be initialized but skipped", v.toChars());
                                 }
@@ -884,7 +885,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             }
 
             funcdecl.frequire = funcdecl.mergeFrequire(funcdecl.frequire);
-            funcdecl.fensure = funcdecl.mergeFensure(funcdecl.fensure, funcdecl.outId);
+            funcdecl.fensure = funcdecl.mergeFensure(funcdecl.fensure, Id.result);
 
             Statement freq = funcdecl.frequire;
             Statement fens = funcdecl.fensure;
@@ -920,8 +921,17 @@ private extern(C++) final class Semantic3Visitor : Visitor
             {
                 /* fensure is composed of the [out] contracts
                  */
-                if (f.next.ty == Tvoid && funcdecl.outId)
-                    funcdecl.error("`void` functions have no result");
+                if (f.next.ty == Tvoid && funcdecl.fensures)
+                {
+                    foreach (e; *funcdecl.fensures)
+                    {
+                        if (e.id)
+                        {
+                            funcdecl.error(e.ensure.loc, "`void` functions have no result");
+                            //fens = null;
+                        }
+                    }
+                }
 
                 sc2 = scout; //push
                 sc2.flags = (sc2.flags & ~SCOPE.contract) | SCOPE.ensure;
@@ -955,7 +965,11 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         VarDeclaration v = (*funcdecl.parameters)[i];
                         if (v.storage_class & STC.out_)
                         {
-                            assert(v._init);
+                            if (!v._init)
+                            {
+                                v.error("Zero-length `out` parameters are not allowed.");
+                                return;
+                            }
                             ExpInitializer ie = v._init.isExpInitializer();
                             assert(ie);
                             if (ie.exp.op == TOK.construct)
@@ -1114,7 +1128,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 }
             }
 
-            if (funcdecl.naked && (funcdecl.fensure || funcdecl.frequire))
+            if (funcdecl.naked && (funcdecl.fensures || funcdecl.frequires))
                 funcdecl.error("naked assembly functions with contracts are not supported");
 
             sc2.ctorflow.callSuper = CSX.none;
@@ -1165,6 +1179,37 @@ private extern(C++) final class Semantic3Visitor : Visitor
         }
 
         funcdecl.flags &= ~FUNCFLAG.inferScope;
+
+        // Eliminate maybescope's
+        {
+            // Create and fill array[] with maybe candidates from the `this` and the parameters
+            VarDeclaration[] array = void;
+
+            VarDeclaration[10] tmp = void;
+            size_t dim = (funcdecl.vthis !is null) + (funcdecl.parameters ? funcdecl.parameters.dim : 0);
+            if (dim <= tmp.length)
+                array = tmp[0 .. dim];
+            else
+            {
+                auto ptr = cast(VarDeclaration*)mem.xmalloc(dim * VarDeclaration.sizeof);
+                array = ptr[0 .. dim];
+            }
+            size_t n = 0;
+            if (funcdecl.vthis)
+                array[n++] = funcdecl.vthis;
+            if (funcdecl.parameters)
+            {
+                foreach (v; *funcdecl.parameters)
+                {
+                    array[n++] = v;
+                }
+            }
+
+            eliminateMaybeScopes(array[0 .. n]);
+
+            if (dim > tmp.length)
+                mem.xfree(array.ptr);
+        }
 
         // Infer STC.scope_
         if (funcdecl.parameters && !funcdecl.errors)

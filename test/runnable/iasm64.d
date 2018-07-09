@@ -3605,6 +3605,10 @@ void test50()
         0xCD, 0x67,     // int  067h
 //      0xCE,           // into
         0x66, 0xCF,     // iret
+        0x48, 0xCF,     // iretq
+        0x90, 0x90,     // nop;nop - put instructions above this or L10 changes
+                        //           address, which changes all the jump
+                        //           instructions and breaks the test case.
         0x77, 0xFC,     // ja   L30
         0x77, 0xFA,     // ja   L30
         0x73, 0xF8,     // jae  L30
@@ -3727,7 +3731,11 @@ void test50()
         int     3       ;
         int     0x67    ;
         //into          ;
-L10:    iret            ;
+        iret            ;
+        iretq           ;
+L10:    nop; nop;         // put instructions above this or L10 changes
+                          // address, which changes all the jump instructions
+                          // and breaks the test case.
         ja      L10     ;
         jnbe    L10     ;
         jae     L10     ;

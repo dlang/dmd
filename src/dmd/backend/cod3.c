@@ -10,7 +10,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cod3.c
  */
 
-#if !SPP
+#if (SCPP && !HTOD) || MARS
 
 #include        <stdio.h>
 #include        <string.h>
@@ -223,20 +223,20 @@ void REGSAVE::save(CodeBuilder& cdb, int reg, unsigned *pidx)
     *pidx = i;
 }
 
-void REGSAVE::restore(CodeBuilder& cdb, int reg, unsigned idx)
+void REGSAVE::restore(CodeBuilder& cdb, int reg, unsigned index)
 {
     if (reg >= XMM0)
     {
         assert(alignment == 16);
-        // MOVD xmm,idx[RBP]
+        // MOVD xmm,index[RBP]
         unsigned op = LODAPD;
         if (0)
             op = LODUPD;
-        cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FLregsave,(targ_uns) idx);
+        cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FLregsave,(targ_uns) index);
     }
     else
-    {   // MOV reg,idx[RBP]
-        cdb.genc1(0x8B,modregxrm(2, reg, BPRM),FLregsave,(targ_uns) idx);
+    {   // MOV reg,index[RBP]
+        cdb.genc1(0x8B,modregxrm(2, reg, BPRM),FLregsave,(targ_uns) index);
         if (I64)
             code_orrex(cdb.last(), REX_W);
     }
@@ -869,8 +869,8 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
                 bl->Btry != nextb->Btry &&
                 nextb->BC != BC_finally)
             {
-                regm_t retregs = 0;
-                gencodelem(cdb,e,&retregs,TRUE);
+                regm_t retregsx = 0;
+                gencodelem(cdb,e,&retregsx,TRUE);
                 int toindex = nextb->Btry ? nextb->Btry->Bscope_index : -1;
                 assert(bl->Btry);
                 int fromindex = bl->Btry->Bscope_index;
@@ -915,7 +915,7 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
                             continue;
 
                         // call __finally
-                        cdb.append(callFinallyBlock(bf->nthSucc(0), retregs));
+                        cdb.append(callFinallyBlock(bf->nthSucc(0), retregsx));
                     }
                 }
 #endif
@@ -923,8 +923,8 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
             }
         case_goto:
         {
-            regm_t retregs = 0;
-            gencodelem(cdb,e,&retregs,TRUE);
+            regm_t retregsx = 0;
+            gencodelem(cdb,e,&retregsx,TRUE);
             if (anyspill)
             {   // Add in the epilog code
                 CodeBuilder cdbstore;
@@ -970,8 +970,8 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
                 // Mark scratch registers as destroyed.
                 getregsNoSave(lpadregs());
 
-                regm_t retregs = 0;
-                gencodelem(cdb,bl->Belem,&retregs,TRUE);
+                regm_t retregsx = 0;
+                gencodelem(cdb,bl->Belem,&retregsx,TRUE);
 
                 // JMP bl->nthSucc(1)
                 nextb = bl->nthSucc(1);
@@ -1015,8 +1015,8 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
 
         case BC_ret:
         {
-            regm_t retregs = 0;
-            gencodelem(cdb,e,&retregs,TRUE);
+            regm_t retregsx = 0;
+            gencodelem(cdb,e,&retregsx,TRUE);
             if (ehmethod(funcsym_p) == EH_DWARF)
             {
             }
@@ -1041,8 +1041,8 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in filter blocks.
             getregsNoSave(allregs);
-            regm_t retregs = regmask(e->Ety, TYnfunc);
-            gencodelem(cdb,e,&retregs,TRUE);
+            regm_t retregsx = regmask(e->Ety, TYnfunc);
+            gencodelem(cdb,e,&retregsx,TRUE);
             cdb.gen1(0xC3);   // RET
             break;
         }
@@ -3780,15 +3780,15 @@ void prolog_loadparams(CodeBuilder& cdb, tym_t tyf, bool pushalloc, regm_t* name
                 {
                     cdb.genc1(0x8B,
                         modregxrm(2,s->Sregmsw,BPRM),FLconst,Para.size + s->Soffset + REGSIZE);
-                    code *c = cdb.last();
+                    code *cx = cdb.last();
                     if (I64)
-                        c->Irex |= REX_W;
+                        cx->Irex |= REX_W;
                     if (!hasframe)
                     {   // Convert to ESP relative address rather than EBP
                         assert(!I16);
-                        c->Irm = modregxrm(2,s->Sregmsw,4);
-                        c->Isib = modregrm(0,4,SP);
-                        c->IEVpointer1 += EBPtoESP;
+                        cx->Irm = modregxrm(2,s->Sregmsw,4);
+                        cx->Isib = modregrm(0,4,SP);
+                        cx->IEVpointer1 += EBPtoESP;
                     }
                 }
             }
@@ -3933,11 +3933,11 @@ void epilog(block *b)
                      */
                     assert(I32 || I64);
                     targ_size_t value = 0x0000BEAF;
-                    reg_t reg = CX;
-                    mfuncreg &= ~mask[reg];
+                    reg_t regcx = CX;
+                    mfuncreg &= ~mask[regcx];
                     unsigned grex = I64 ? REX_W << 16 : 0;
-                    cdbx.genc2(0xC7,grex | modregrmx(3,0,reg),value);     // MOV reg,value
-                    cdbx.gen2sib(0x89,grex | modregrm(0,reg,4),modregrm(0,4,SP)); // MOV [ESP],reg
+                    cdbx.genc2(0xC7,grex | modregrmx(3,0,regcx),value);   // MOV regcx,value
+                    cdbx.gen2sib(0x89,grex | modregrm(0,regcx,4),modregrm(0,4,SP)); // MOV [ESP],regcx
                     code *c1 = cdbx.last();
                     cdbx.genc2(0x81,grex | modregrm(3,0,SP),REGSIZE);     // ADD ESP,REGSIZE
                     genregs(cdbx,0x39,SP,BP);                             // CMP EBP,ESP
@@ -4780,21 +4780,19 @@ void assignaddrc(code *c)
             L2:
                     if (!hasframe)
                     {   /* Convert to ESP relative address instead of EBP */
-                        unsigned char rm;
-
                         assert(!I16);
                         c->IEVpointer1 += EBPtoESP;
-                        rm = c->Irm;
-                        if ((rm & 7) == 4)              // if SIB byte
+                        unsigned char crm = c->Irm;
+                        if ((crm & 7) == 4)              // if SIB byte
                         {
                             assert((c->Isib & 7) == BP);
-                            assert((rm & 0xC0) != 0);
+                            assert((crm & 0xC0) != 0);
                             c->Isib = (c->Isib & ~7) | modregrm(0,0,SP);
                         }
                         else
                         {
-                            assert((rm & 7) == 5);
-                            c->Irm = (rm & modregrm(0,7,0))
+                            assert((crm & 7) == 5);
+                            c->Irm = (crm & modregrm(0,7,0))
                                     | modregrm(2,0,4);
                             c->Isib = modregrm(0,4,SP);
                         }
@@ -6297,12 +6295,14 @@ unsigned codout(int seg, code *c)
                               (rm & 7) == 5))
                             break;
                     case 0x80:
-                    {   int flags = CFoff;
+                    {
+                        int cfflags = CFoff;
                         targ_size_t val = 0;
                         if (I64)
                         {
                             if ((rm & modregrm(3,0,7)) == modregrm(0,0,5))      // if disp32[RIP]
-                            {   flags |= CFpc32;
+                            {
+                                cfflags |= CFpc32;
                                 val = -4;
                                 unsigned reg = rm & modregrm(0,7,0);
                                 if (ins & T ||
@@ -6322,7 +6322,7 @@ unsigned codout(int seg, code *c)
 #endif
                             }
                         }
-                        do32bit(&ggen, (enum FL)c->IFL1,&c->IEV1,flags,val);
+                        do32bit(&ggen, (enum FL)c->IFL1,&c->IEV1,cfflags,val);
                         break;
                     }
                 }
