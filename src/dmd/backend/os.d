@@ -674,9 +674,9 @@ else
  * Get file size of open file. Return -1L on error.
  */
 
-static if (NEEDS_WIN32_NON_MS)
+version (CRuntime_DigitalMars)
 {
-extern (C) void*[] _osfhnd;
+extern extern (C) void*[] _osfhnd;
 }
 
 long os_file_size(int fd)
