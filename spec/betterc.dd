@@ -98,7 +98,6 @@ $(OL
     $(LI `final switch`)
     $(LI `synchronized` and $(MREF core, sync))
     $(LI Static module constructors or destructors)
-    $(LI Struct destructors)
     $(LI `unittest` (testing can be done without the $(TT -betterC) flag))
 )
 
