@@ -44,8 +44,7 @@ if [ ! -f "gnumake/make.exe" ]; then
 fi
 
 if [ $D_COMPILER == "dmd" ]; then
-    #appveyor DownloadFile "http://downloads.dlang.org/releases/2.x/${D_VERSION}/dmd.${D_VERSION}.windows.7z" -FileName dmd2.7z
-    appveyor DownloadFile "http://nightlies.dlang.org/dmd-master-2017-12-22/dmd.master.windows.7z" -FileName dmd2.7z
+    appveyor DownloadFile "http://downloads.dlang.org/releases/2.x/${D_VERSION}/dmd.${D_VERSION}.windows.7z" -FileName dmd2.7z
     7z x dmd2.7z > /dev/null
     export PATH=$PWD/dmd2/windows/bin/:$PATH
     export DMD=/c/projects/dmd2/windows/bin/dmd.exe
