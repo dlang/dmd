@@ -22,6 +22,7 @@ import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.expression;
+import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
 import dmd.gluelayer;
