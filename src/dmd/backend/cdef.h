@@ -219,6 +219,8 @@ One and only one of these macros must be set by the makefile:
 #define TARGET_WINDOS   (!(TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS))
 #endif
 
+#include <stdint.h>
+
 #if __GNUC__
 #include <time.h>
 
@@ -552,8 +554,8 @@ enum
 
 // targ_llong is also used to store host pointers, so it should have at least their size
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS || TARGET_OSX || MARS
-typedef targ_llong      targ_ptrdiff_t; /* ptrdiff_t for target machine  */
-typedef targ_ullong     targ_size_t;    /* size_t for the target machine */
+typedef int64_t         targ_ptrdiff_t; /* ptrdiff_t for target machine  */
+typedef uint64_t        targ_size_t;    /* size_t for the target machine */
 #else
 typedef targ_int        targ_ptrdiff_t; /* ptrdiff_t for target machine  */
 typedef targ_uns        targ_size_t;    /* size_t for the target machine */

@@ -235,7 +235,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\code.c $C\symbol.c $C\debug.c $C\dt.c $C\ee.d $C\el.c \
 	$C\evalu8.d $C\fp.c $C\go.d $C\gflow.d $C\gdag.d \
 	$C\gother.d $C\glocal.d $C\gloop.d $C\gsroa.d $C\newman.c \
-	$C\nteh.c $C\os.c $C\out.c $C\outbuf.c $C\ptrntab.c $C\rtlsym.c \
+	$C\nteh.d $C\os.c $C\out.c $C\outbuf.c $C\ptrntab.c $C\rtlsym.c \
 	$C\type.c $C\melf.h $C\mach.h $C\mscoff.h $C\bcomplex.h \
 	$C\outbuf.h $C\token.h $C\tassert.h \
 	$C\elfobj.c $C\cv4.h $C\dwarf2.h $C\exh.h $C\go.h \
@@ -576,8 +576,8 @@ $G/mscoffobj.obj : $C\mscoff.h $C\mscoffobj.c
 $G/newman.obj : $(CH) $C\newman.c
 	$(CC) -c -o$@ $(MFLAGS) $C\newman
 
-$G/nteh.obj : $C\rtlsym.h $C\nteh.c
-	$(CC) -c -o$@ $(MFLAGS) $C\nteh
+$G/nteh.obj : $C\rtlsym.h $C\nteh.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\nteh
 
 $G/os.obj : $C\os.c
 	$(CC) -c -o$@ $(MFLAGS) $C\os
