@@ -7742,3 +7742,20 @@ struct RBNode(T)
 
 static assert(!__traits(compiles, { alias bug18057 = RBNode!int; }));
 
+/**************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=19074
+
+struct S19074a { }
+
+struct S19074b
+{
+    S19074a field;
+    this(S19074a) { }
+
+    static const S19074b* data = new S19074b(S19074a());
+}
+
+void test19074()
+{
+    auto var = S19074b.data;
+}
