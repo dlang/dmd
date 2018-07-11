@@ -1,0 +1,20 @@
+dmd now supports expressive diagnostic error messages with `-verrors=context`
+
+With the new CLI option `-verrors=context` dmd will now show the offending line directly in its error messages.
+Consider this faulty program `test.d`:
+
+---
+void foo()
+{
+    a = 1;
+}
+---
+
+Now run it with `-verrors=context`:
+
+$(CONSOLE
+> dmd -verrors=context test.d
+test.d(4): $(RED Error): undefined identifier a
+    a = 1;
+    ^
+)
