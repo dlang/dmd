@@ -399,8 +399,9 @@ DDOC=% Copyright (c) 1999-$(YEAR) by Digital Mars
 \usepackage{hyperref}
 \usepackage{multicol}
 \usepackage{longtable}
-\usepackage[T1]{fontenc}
 \usepackage{MnSymbol}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
 
 % For reproducible builds, fix the date if run on DAutoTest (empty by default)
 $(LATEX_NO_DATE)
