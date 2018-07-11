@@ -29,6 +29,7 @@ import dmd.backend.oper;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 import dmd.backend.el;
+import dmd.backend.memh;
 import dmd.backend.type;
 import dmd.backend.global;
 import dmd.backend.goh;
@@ -52,21 +53,6 @@ extern(C++):
 
 extern(C) void *mem_fcalloc(size_t numbytes); // tk/mem.c
 void *mem_free(size_t numbytes); // tk/mem.c
-extern(C) void *mem_ffree(void* p) // tk/mem.h
-{
-    version (MEM_NONE)
-    {
-        return null;
-    }
-    else version (MEM_DEBUG)
-    {
-        return mem_free(p);
-    }
-    else
-    {
-        return null;
-    }
-}
 
 import dmd.backend.gflow : util_realloc;
 
