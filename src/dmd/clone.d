@@ -772,8 +772,8 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
         "size_t h = 0;" ~
         "foreach (i, T; typeof(p.tupleof))" ~
         // workaround https://issues.dlang.org/show_bug.cgi?id=17968
-        "    static if(is(T* : const(Object)*)) " ~
-        "        h = h * 33 + typeid(const(Object)).getHash(cast(const void*)&p.tupleof[i]);" ~
+        "    static if(is(T* : const(.object.Object)*)) " ~
+        "        h = h * 33 + typeid(const(.object.Object)).getHash(cast(const void*)&p.tupleof[i]);" ~
         "    else " ~
         "        h = h * 33 + typeid(T).getHash(cast(const void*)&p.tupleof[i]);" ~
         "return h;";
