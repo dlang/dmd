@@ -1010,7 +1010,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             // If the symbol passed as a parameter is an
             // interface that inherits other interfaces
             overloadApply(f, &dg);
-            if (ifd && ifd.interfaces)
+            if (ifd && ifd.interfaces && f)
             {
                 // check the overloads of each inherited interface individually
                 foreach (bc; ifd.interfaces)
