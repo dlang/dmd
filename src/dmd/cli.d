@@ -586,6 +586,9 @@ dmd -cov -unittest myprog.d
         Option("verrors=spec",
             "show errors from speculative compiles such as __traits(compiles,...)"
         ),
+        Option("verrors=context",
+            "show error messages with the context of the erroring source line"
+        ),
         Option("-version",
             "print compiler version and exit"
         ),

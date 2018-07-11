@@ -233,6 +233,31 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
     else
         fputs(tmp.peekString(), stderr);
     fputc('\n', stderr);
+
+    if (global.params.printErrorContext &&
+        // ignore invalid files
+        loc != Loc.initial &&
+        // ignore mixins for now
+        !loc.filename.strstr(".d-mixin-"))
+    {
+        import dmd.filecache : FileCache;
+        auto fllines = FileCache.fileCache.addOrGetFile(loc.filename[0 .. strlen(loc.filename)]);
+
+        if (loc.linnum - 1 < fllines.lines.length)
+        {
+            auto line = fllines.lines[loc.linnum - 1];
+            if (loc.charnum < line.length)
+            {
+                fprintf(stderr, "%.*s\n", line.length, line.ptr);
+                foreach (_; 1 .. loc.charnum)
+                    fputc(' ', stderr);
+
+                fputc('^', stderr);
+                fputc('\n', stderr);
+            }
+        }
+    }
+end:
     fflush(stderr);     // ensure it gets written out in case of compiler aborts
 }
 
