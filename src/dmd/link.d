@@ -745,7 +745,7 @@ version (Windows)
         {
             if ((len = strlen(args)) > 255)
             {
-                const char* q = cast(char*)alloca(8 + len + 1);
+                char* q = cast(char*)alloca(8 + len + 1);
                 sprintf(q, "_CMDLINE=%s", args);
                 status = putenv(q);
                 if (status == 0)
