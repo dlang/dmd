@@ -101,7 +101,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
         import dmd.staticcond;
         bool errors;
-        bool result = evalStaticCondition(sc, sa.exp, sa.exp, errors);
+        const bool result = evalStaticCondition(sc, sa.exp, sa.exp, errors);
         sc = sc.pop();
         if (errors)
         {
@@ -155,8 +155,8 @@ private extern(C++) final class Semantic2Visitor : Visitor
             sc.tinst = tempinst;
             sc.minst = tempinst.minst;
 
-            int needGagging = (tempinst.gagged && !global.gag);
-            uint olderrors = global.errors;
+            const int needGagging = (tempinst.gagged && !global.gag);
+            const uint olderrors = global.errors;
             int oldGaggedErrors = -1; // dead-store to prevent spurious warning
             if (needGagging)
                 oldGaggedErrors = global.startGagging();
@@ -247,7 +247,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
             vd.inuse++;
             version (none)
             {
-                ExpInitializer ei = vd._init.isExpInitializer();
+                const ExpInitializer ei = vd._init.isExpInitializer();
                 if (ei)
                 {
                     ei.exp.print();

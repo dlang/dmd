@@ -77,7 +77,7 @@ private void writeFilename(OutBuffer* buf, const(char)* filename, size_t len)
      */
     for (size_t i = 0; i < len; i++)
     {
-        char c = filename[i];
+        const char c = filename[i];
         if (isalnum(c) || c == '_')
             continue;
         /* Need to quote
@@ -249,7 +249,7 @@ public int runLINK()
             }
             char* p = cmdbuf.peekString();
             const(char)* lnkfilename = null;
-            size_t plen = strlen(p);
+            const size_t plen = strlen(p);
             if (plen > 7000)
             {
                 lnkfilename = FileName.forceExt(global.params.exefile, "lnk");
@@ -267,7 +267,7 @@ public int runLINK()
             if (!linkcmd)
                 linkcmd = vsopt.linkerPath(global.params.is64bit);
 
-            int status = executecmd(linkcmd, p);
+            const int status = executecmd(linkcmd, p);
             if (lnkfilename)
             {
                 remove(lnkfilename);
@@ -341,7 +341,7 @@ public int runLINK()
             /* Eliminate unnecessary trailing commas    */
             while (1)
             {
-                size_t i = cmdbuf.offset;
+                const size_t i = cmdbuf.offset;
                 if (!i || cmdbuf.data[i - 1] != ',')
                     break;
                 cmdbuf.offset--;
@@ -377,7 +377,7 @@ public int runLINK()
             cmdbuf.writeByte(';');
             char* p = cmdbuf.peekString();
             const(char)* lnkfilename = null;
-            size_t plen = strlen(p);
+            const size_t plen = strlen(p);
             if (plen > 7000)
             {
                 lnkfilename = FileName.forceExt(global.params.exefile, "lnk");
@@ -392,7 +392,7 @@ public int runLINK()
             const(char)* linkcmd = getenv("LINKCMD");
             if (!linkcmd)
                 linkcmd = "link";
-            int status = executecmd(linkcmd, p);
+            const int status = executecmd(linkcmd, p);
             if (lnkfilename)
             {
                 remove(lnkfilename);
@@ -745,7 +745,7 @@ version (Windows)
         {
             if ((len = strlen(args)) > 255)
             {
-                char* q = cast(char*)alloca(8 + len + 1);
+                const char* q = cast(char*)alloca(8 + len + 1);
                 sprintf(q, "_CMDLINE=%s", args);
                 status = putenv(q);
                 if (status == 0)
@@ -1235,7 +1235,7 @@ version (Windows)
                 return FileName.exists(lp) ? p : null;
             }
 
-            bool isHost64 = isWin64Host();
+            const bool isHost64 = isWin64Host();
             if (VCToolsInstallDir !is null)
             {
                 if (isHost64)
