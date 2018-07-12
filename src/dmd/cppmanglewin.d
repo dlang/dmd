@@ -677,24 +677,22 @@ private:
     }
 
     /**
-     * Mangles a symbol with a special name, if any
-     *
+     * Computes mangling for symbols with special mangling.
      * Params:
      *      sym = symbol to mangle
-     *
      * Returns:
-     *      true if sym has no further mangling needed
-     *      false otherwise
+     *      mangling for special symbols,
+     *      null if not a special symbol
      */
-    bool mangleSpecialName(Dsymbol sym)
+    extern (D) static string mangleSpecialName(Dsymbol sym)
     {
-        const(char)* mangle;
+        string mangle;
         if (sym.isCtorDeclaration())
             mangle = "?0";
         else if (sym.isPrimaryDtor())
             mangle = "?1";
         else if (!sym.ident)
-            return false;
+            return null;
         else if (sym.ident == Id.assign)
             mangle = "?4";
         else if (sym.ident == Id.eq)
@@ -706,10 +704,9 @@ private:
         else if (sym.ident == Id.cppdtor)
             mangle = "?_G";
         else
-            return false;
+            return null;
 
-        buf.writestring(mangle);
-        return true;
+        return mangle;
     }
 
     /**
@@ -946,8 +943,11 @@ private:
         const(char)* name = null;
         bool is_dmc_template = false;
 
-        if (mangleSpecialName(sym))
+        if (string s = mangleSpecialName(sym))
+        {
+            buf.writestring(s);
             return;
+        }
 
         if (TemplateInstance ti = sym.isTemplateInstance())
         {
