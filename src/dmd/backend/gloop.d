@@ -244,34 +244,34 @@ private void freeloop(loop **pl)
 
 int blockinit()
 {
-    uint i;
-    block *b;
-    int hasasm = 0;
+    bool hasasm = false;
 
     assert(dfo);
-    for (i = 0, b = startblock; b; i++, b = b.Bnext)
+    uint i = 0;
+    foreach (b; BlockRange(startblock))
     {
         debug                   /* check integrity of Bpred and Bsucc   */
-            for (list_t blp = b.Bpred; blp; blp = list_next(blp))
+          L1:
+            foreach (blp; ListRange(b.Bpred))
             {
-                for (list_t bls = list_block(blp).Bsucc; bls; bls = list_next(bls))
+                foreach (bls; ListRange(list_block(blp).Bsucc))
                     if (list_block(bls) == b)
-                        goto L1;
+                        continue L1;
                 assert(0);
-              L1: ;
             }
 
+        ++i;
         if (b.BC == BCasm)
-            hasasm = 1;
+            hasasm = true;
                                         /* compute number of blocks     */
     }
     assert(numblks == i && maxblks);
     assert(i <= maxblks);
-    for (uint j = 0; j < dfotop; j++)
+    foreach (j, b; dfo[0 .. dfotop])
     {
-        assert(dfo[j].Bdfoidx == j);
-        dfo[j].Bdom = vec_realloc(dfo[j].Bdom, maxblks); /* alloc Bdom vectors */
-        vec_clear(dfo[j].Bdom);
+        assert(b.Bdfoidx == j);
+        b.Bdom = vec_realloc(b.Bdom, maxblks); /* alloc Bdom vectors */
+        vec_clear(b.Bdom);
     }
     return hasasm;
 }
@@ -289,40 +289,48 @@ int blockinit()
 
 void compdom()
 {
-    uint cntr;
-    vec_t t1;
-    list_t bl;
-    bool chgs;
-    block *sb;
+    compdom(dfo[0 .. dfotop]);
+}
 
-    assert(dfo);
-    sb = dfo[0];                         // starting block
-    t1 = vec_calloc(vec_numbits(sb.Bdom));       // allocate a temporary
+private extern (D) void compdom(block*[] dfo)
+{
+    assert(dfo.length);
+    block* sb = dfo[0];                  // starting block
+
     vec_clear(sb.Bdom);
     vec_setbit(0,sb.Bdom);               // starting block only doms itself
-    for (int i = 1; i < dfotop; i++)     // for all except startblock
-        vec_set(dfo[i].Bdom);            // dominate all blocks
-    cntr = 0;                            // # of times thru loop
+    foreach (b; dfo)                     // for all except startblock
+    {
+        if (b != sb)
+            vec_set(b.Bdom);             // dominate all blocks
+    }
+
+    vec_t t1 = vec_calloc(vec_numbits(sb.Bdom));       // allocate a temporary
+    uint cntr = 0;                       // # of times thru loop
+    bool chgs;
     do
     {
         chgs = false;
-        for (int i = 1; i < dfotop; ++i) // for each block in dfo[]
-        {                                // except startblock
-            bl = dfo[i].Bpred;
-            if (bl)                 // if there are predecessors
+        foreach (i, b; dfo)              // for each block in dfo[]
+        {
+            if (i == 0)
+                continue;                // except startblock
+            if (b.Bpred)                 // if there are predecessors
             {
-                vec_copy(t1,list_block(bl).Bdom);
-                while ((bl = list_next(bl)) != null)
+                vec_set(t1);
+                foreach (bl; ListRange(b.Bpred))
+                {
                     vec_andass(t1,list_block(bl).Bdom);
+                }
             }
             else
                 vec_clear(t1);      // no predecessors to dominate
             vec_setbit(i,t1);       // each block doms itself
             if (chgs)
-                vec_copy(dfo[i].Bdom,t1);
-            else if (!vec_equal(dfo[i].Bdom,t1))   // if any changes
+                vec_copy(b.Bdom,t1);
+            else if (!vec_equal(b.Bdom,t1))   // if any changes
             {
-                vec_copy(dfo[i].Bdom,t1);
+                vec_copy(b.Bdom,t1);
                 chgs = true;
             }
         }
@@ -330,13 +338,10 @@ void compdom()
         assert(cntr < 50);              // should have converged by now
     } while (chgs);
     vec_free(t1);
-    if (cntr <= 2)
+
+    debug if (debugc)
     {
-        if (debugc) printf("Flow graph is reducible\n");
-    }
-    else
-    {
-        if (debugc) printf("Flow graph is not reducible\n");
+        printf("Flow graph is%s reducible\n", cntr <= 2 ? "".ptr : " not".ptr);
     }
 }
 
