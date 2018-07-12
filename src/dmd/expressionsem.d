@@ -3969,7 +3969,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     }
                     else if (auto td = sd.ctor.isTemplateDeclaration())
                     {
-                        e = new DotTemplateExp(exp.loc, e, td);
+                        e = new DotIdExp(exp.loc, e, td.ident);
                     }
                     else if (auto os = sd.ctor.isOverloadSet())
                     {
