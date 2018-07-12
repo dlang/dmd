@@ -1824,6 +1824,14 @@ class Lexer : ErrorHandler
                 ++p;
                 base = 8;
                 break;
+            case '8':
+            case '9':
+                n = c - '0';
+                ++p;
+                base = 8;
+                error("radix %d digit expected, not `%c`", base, c);
+                err = true;
+                break;
             case 'x':
             case 'X':
                 ++p;
