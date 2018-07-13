@@ -2020,8 +2020,13 @@ class Lexer : ErrorHandler
             }
             break;
         }
-        if (base == 8 && n >= 8)
-            error("octal literals `0%llo%.*s` are no longer supported, use `std.conv.octal!%llo%.*s` instead", n, p - psuffix, psuffix, n, p - psuffix, psuffix);
+        if (base == 8)
+        {
+            if (n >= 8)
+                error("octal literals `0%llo%.*s` are no longer supported, use `std.conv.octal!%llo%.*s` instead", n, p - psuffix, psuffix, n, p - psuffix, psuffix);
+            else
+                deprecation("octal literals `0%llo%.*s` are no longer supported, use `std.conv.octal!%llo%.*s` instead", n, p - psuffix, psuffix, n, p - psuffix, psuffix);
+        }
         TOK result;
         switch (flags)
         {
