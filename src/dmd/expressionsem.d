@@ -3981,7 +3981,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 // overload of opCall, therefore it's a call
                 if (exp.e1.op != TOK.type)
                 {
-                    if (!exp.aliasthislock) //we don't need the recursion. On recursion done in iterateAliasThis
+                    if (!exp.aliasthislock) //we don't need the recursion. Recursion is done in iterateAliasThis
                     {
                         exp.aliasthislock = true;
                         Expression[] results;

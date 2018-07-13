@@ -2128,6 +2128,21 @@ extern (C++) abstract class Type : RootObject
         return MATCH.nomatch;
     }
 
+    /********************************
+     * Determine if 'this' can be implicitly converted
+     * to type 'to' without resolving alias this.
+     * Returns:
+     *      MATCH.nomatch, MATCH.convert, MATCH.constant, MATCH.exact
+     */
+    final MATCH implicitConvToWithoutAliasThis(Type to)
+    {
+        uint oldatlock = aliasthislock;
+        aliasthislock |= AliasThisRec.RECtracing;
+        MATCH m = implicitConvTo(to);
+        aliasthislock = oldatlock;
+        return m;
+    }
+
     /*******************************
      * Determine if converting 'this' to 'to' is an identity operation,
      * a conversion to const operation, or the types aren't the same.
@@ -2178,6 +2193,24 @@ extern (C++) abstract class Type : RootObject
                 assert(0);
         }
         return 0;
+    }
+
+    /***************************************
+     * Compute MOD bits matching `this` argument type to wild parameter type
+     * without alias this resolvig.
+     * Params:
+     *  t = corresponding parameter type
+     *  isRef = parameter is `ref` or `out`
+     * Returns:
+     *  MOD bits
+     */
+    final MOD deduceWildWithoutAliasThis(Type t, bool isRef)
+    {
+        uint oldatlock = aliasthislock;
+        aliasthislock |= AliasThisRec.RECtracing;
+        auto ret = deduceWild(t, isRef);
+        aliasthislock = oldatlock;
+        return ret;
     }
 
     Type substWildTo(uint mod)
@@ -4765,33 +4798,31 @@ extern (C++) final class TypeFunction : TypeNext
                      */
                     if (ta.toBasetype().ty == Tclass || ta.toBasetype().ty == Tstruct)
                     {
-                        Type[] basetypes;
+                        Type[] candidates;
                         bool[] islvalues;
                         Type[] results_exact;
                         Type[] results_convert;
                         bool last_exact_l_value = 0;
                         bool last_convert_l_value = 0;
 
-                        getAliasThisTypes(arg.type, basetypes, islvalues);
+                        getAliasThisTypes(arg.type, candidates, islvalues);
 
-                        for (size_t i = 0; i < basetypes.length; i++)
+                        for (size_t i = 0; i < candidates.length; i++)
                         {
-                            if (basetypes[i].equals(arg.type))
+                            if (candidates[i].equals(arg.type))
                             {
                                 continue;
                             }
-                            uint oldatlock = basetypes[i].aliasthislock;
-                            basetypes[i].aliasthislock |= AliasThisRec.RECtracing;
-                            MATCH mx = basetypes[i].implicitConvTo(tprm);
-                            basetypes[i].aliasthislock = oldatlock;
-                            if (mx == MATCH.exact)
+                            MATCH m2 = candidates[i].implicitConvToWithoutAliasThis(tprm);
+
+                            if (m2 == MATCH.exact)
                             {
-                                results_exact ~= basetypes[i];
+                                results_exact ~= candidates[i];
                                 last_exact_l_value = islvalues[i];
                             }
-                            else if (mx != MATCH.nomatch)
+                            else if (m2 != MATCH.nomatch)
                             {
-                                results_convert ~= basetypes[i];
+                                results_convert ~= candidates[i];
                                 last_convert_l_value = islvalues[i];
                             }
                         }
@@ -5618,10 +5649,7 @@ extern (C++) final class TypeStruct : Type
             m = MATCH.nomatch;
             for (size_t i = 0; i < candidates.length; i++)
             {
-                uint oldatlock = candidates[i].aliasthislock;
-                candidates[i].aliasthislock |= AliasThisRec.RECtracing;
-                MATCH m2 = candidates[i].implicitConvTo(to);
-                candidates[i].aliasthislock = oldatlock;
+                MATCH m2 = candidates[i].implicitConvToWithoutAliasThis(to);
                 if (m2 > m)
                 {
                     m = m2;
@@ -5659,11 +5687,9 @@ extern (C++) final class TypeStruct : Type
 
             for (size_t i = 0; i < candidates.length; i++)
             {
-                uint oldatlock = candidates[i].aliasthislock;
-                candidates[i].aliasthislock |= AliasThisRec.RECtracing;
-                wm = candidates[i].deduceWild(t, isRef);
-                candidates[i].aliasthislock = oldatlock;
-                break;
+                wm = candidates[i].deduceWildWithoutAliasThis(t, isRef);
+                if (wm)
+                    break;
             }
         }
         return wm;
@@ -5917,10 +5943,7 @@ extern (C++) final class TypeClass : Type
             m = MATCH.nomatch;
             for (size_t i = 0; i < candidates.length; i++)
             {
-                uint oldatlock = candidates[i].aliasthislock;
-                candidates[i].aliasthislock |= AliasThisRec.RECtracing;
-                MATCH m2 = candidates[i].implicitConvTo(to);
-                candidates[i].aliasthislock = oldatlock;
+                MATCH m2 = candidates[i].implicitConvToWithoutAliasThis(to);
                 if (m2 > m)
                 {
                     m = m2;
@@ -5969,11 +5992,9 @@ extern (C++) final class TypeClass : Type
 
             for (size_t i = 0; i < candidates.length; i++)
             {
-                uint oldatlock = candidates[i].aliasthislock;
-                candidates[i].aliasthislock |= AliasThisRec.RECtracing;
-                wm = candidates[i].deduceWild(t, isRef);
-                candidates[i].aliasthislock = oldatlock;
-                break;
+                wm = candidates[i].deduceWildWithoutAliasThis(t, isRef);
+                if (wm)
+                    break;
             }
         }
 

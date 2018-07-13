@@ -2966,6 +2966,20 @@ Lagain:
     t1 = t1b;
     t2 = t2b;
 
+    bool tryToMergeAliasThis(Scope *sc, Type *pt, TOK op, Expression *pe1, Expression *pe2)
+    {
+        bool r = mergeAliasThis(sc, pt, op, pe1, pe2);
+        if (r)
+        {
+            e1 = *pe1;
+            e2 = *pe2;
+            t1 = e1.type;
+            t2 = e2.type;
+            t = *pt;
+        }
+        return r;
+    }
+
     if (t1.ty == Ttuple || t2.ty == Ttuple)
         goto Lincompatible;
 
@@ -3181,6 +3195,7 @@ Lagain:
     else if (t1.ty == Tclass || t2.ty == Tclass)
     {
     Lcc:
+
         while (1)
         {
             MATCH i1 = e2.implicitConvTo(t1);
@@ -3232,16 +3247,7 @@ Lagain:
                     Expression te1 = e1;
                     Expression te2 = e2;
                     Type tt1 = t;
-                    int r = mergeAliasThis(sc, &tt1, op, &te1, &te2);
-                    if (r)
-                    {
-                        e1 = te1;
-                        e2 = te2;
-                        t1 = e1.type;
-                        t2 = e2.type;
-                        t = tt1;
-                    }
-                    else
+                    if (!tryToMergeAliasThis(sc, &tt1, op, &te1, &te2))
                     {
                         goto Lincompatible;
                     }
@@ -3251,39 +3257,12 @@ Lagain:
                     goto Lincompatible;
                 }
             }
-            else if ((t1.ty == Tstruct || t1.ty == Tclass) && checkaliastthis)
+            else if ((t1.ty == Tstruct || t1.ty == Tclass || t2.ty == Tstruct || t2.ty == Tclass) && checkaliastthis)
             {
                 Expression te1 = e1;
                 Expression te2 = e2;
                 Type tt1 = *pt;
-                int r = mergeAliasThis(sc, &tt1, op, &te1, &te2);
-                if (r)
-                {
-                    e1 = te1;
-                    e2 = te2;
-                    t1 = e1.type;
-                    t2 = e2.type;
-                }
-                else
-                {
-                    goto Lincompatible;
-                }
-                continue;
-            }
-            else if ((t2.ty == Tstruct || t2.ty == Tclass) && checkaliastthis)
-            {
-                Expression te1 = e1;
-                Expression te2 = e2;
-                Type tt1 = *pt;
-                int r = mergeAliasThis(sc, &tt1, op, &te1, &te2);
-                if (r)
-                {
-                    e1 = te1;
-                    e2 = te2;
-                    t1 = e1.type;
-                    t2 = e2.type;
-                }
-                else
+                if (!tryToMergeAliasThis(sc, &tt1, op, &te1, &te2))
                 {
                     goto Lincompatible;
                 }
@@ -3316,14 +3295,8 @@ Lagain:
             Expression te1 = e1;
             Expression te2 = e2;
             Type tt1 = t;
-            int r = mergeAliasThis(sc, &tt1, op, &te1, &te2);
-            if (r)
+            if (tryToMergeAliasThis(sc, &tt1, op, &te1, &te2))
             {
-                e1 = te1;
-                e2 = te2;
-                t1 = e1.type;
-                t2 = e2.type;
-                t = tt1;
                 goto Lagain;
             }
         }

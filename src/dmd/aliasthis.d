@@ -79,10 +79,11 @@ extern (C++) final class AliasThis : Dsymbol
  * Params:
  *      sc = scope
  *      e = expression to resolve
+ *      resolvePropertiesOrTemplates = is need to resolve properties or templates
  * Returns:
  *      Result expression with resolved alias this symbol.
  */
-private Expression resolveAliasThis(Scope* sc, Expression e)
+private Expression resolveAliasThis(Scope* sc, Expression e, bool resolvePropertiesOrTemplates)
 {
     AggregateDeclaration ad = isAggregate(e.type);
     if (ad && ad.aliasthis)
@@ -90,9 +91,11 @@ private Expression resolveAliasThis(Scope* sc, Expression e)
         Loc loc = e.loc;
         Type tthis = (e.op == TOK.type ? e.type : null);
         e = e.expressionSemantic(sc);
-
         e = new DotIdExp(loc, e, ad.aliasthis.ident);
         e = e.expressionSemantic(sc);
+        if (!resolvePropertiesOrTemplates)
+            return e;
+
         if (tthis && ad.aliasthis.needThis())
         {
             if (e.op == TOK.variable)
@@ -127,23 +130,6 @@ private Expression resolveAliasThis(Scope* sc, Expression e)
             e = e.expressionSemantic(sc);
         }
         e = resolveProperties(sc, e);
-    }
-    return e;
-}
-
-/*
- * Similar resolveAliasThis, but it doesn't resolve properties and templates.
- */
-private Expression resolveAliasThis2(Scope* sc, Expression e)
-{
-    AggregateDeclaration ad = isAggregate(e.type);
-    if (ad && ad.aliasthis)
-    {
-        Loc loc = e.loc;
-        Type tthis = (e.op == TOK.type ? e.type : null);
-        e = e.expressionSemantic(sc);
-        e = new DotIdExp(loc, e, ad.aliasthis.ident);
-        e = e.expressionSemantic(sc);
     }
     return e;
 }
@@ -239,11 +225,7 @@ bool iterateAliasThis(Scope* sc, Expression e, bool delegate(Scope* sc, Expressi
         uint olderrors = 0;
         if (gagerrors)
             olderrors = global.startGagging();
-        Expression e1;
-        if (resolve_at)
-            e1 = resolveAliasThis(sc, e);
-        else
-            e1 = resolveAliasThis2(sc, e);
+        Expression e1 = resolveAliasThis(sc, e, resolve_at);
 
         // printf("iterateAliasThis(%s) => %s\n", e.toChars(), e1.toChars());
         if (!(gagerrors && global.endGagging(olderrors)) && e1 && e1.type && e1.type.ty != Terror)
@@ -266,7 +248,7 @@ bool iterateAliasThis(Scope* sc, Expression e, bool delegate(Scope* sc, Expressi
                 {
                     if (gagerrors)
                         olderrors = global.startGagging();
-                    Expression eres = resolveAliasThis(sc, e);
+                    Expression eres = resolveAliasThis(sc, e, true);
                     if (!(gagerrors && global.endGagging(olderrors)) && eres && eres.type && eres.type.ty != Terror)
                     {
                         e1 = eres;
