@@ -1467,12 +1467,13 @@ private bool checkDefCtor(Loc loc, Type t)
  *      3. do default promotions on arguments corresponding to ...
  *      4. add hidden _arguments[] argument
  *      5. call copy constructor for struct value arguments
- * Input:
- *      tf      type of the function
- *      fd      the function being called, NULL if called indirectly
- * Output:
- *      *prettype return type of function
- *      *peprefix expression to execute before arguments[] are evaluated, NULL if none
+ * Params:
+ *      tf        = type of the function
+ *      tthis     = type of `this` argument, `null` if no `this` argument
+ *      arguments = array of actual arguments to function call
+ *      fd        = the function being called, `null` if called indirectly
+ *      prettype  = set to return type of function
+ *      peprefix  = set to expression to execute before `arguments[]` are evaluated, `null` if none
  * Returns:
  *      true    errors happened
  */
@@ -1514,22 +1515,10 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
 
     /* If the function return type has wildcards in it, we'll need to figure out the actual type
      * based on the actual argument types.
+     * Start with the `this` argument, later on merge into wildmatch the mod bits of the rest
+     * of the arguments.
      */
-    MOD wildmatch = 0;
-    if (tthis && tf.isWild() && !isCtorCall)
-    {
-        Type t = tthis;
-        if (t.isImmutable())
-            wildmatch = MODFlags.immutable_;
-        else if (t.isWildConst())
-            wildmatch = MODFlags.wildconst;
-        else if (t.isWild())
-            wildmatch = MODFlags.wild;
-        else if (t.isConst())
-            wildmatch = MODFlags.const_;
-        else
-            wildmatch = MODFlags.mutable;
-    }
+    MOD wildmatch = (tthis && !isCtorCall) ? tthis.Type.deduceWild(tf, false) : 0;
 
     int done = 0;
     for (size_t i = 0; i < n; i++)
