@@ -23,6 +23,7 @@ import dmd.root.stringtable;
 import dmd.tokens;
 import dmd.utf;
 
+
 /***********************************************************
  */
 extern (C++) final class Identifier : RootObject
@@ -124,6 +125,13 @@ nothrow:
 
     extern (C++) static __gshared StringTable stringtable;
 
+    /**
+       A secondary string table is used to guarantee that we generate unique
+       identifiers per module. See generateIdWithLoc and issues
+       16995, 18097, 18111, 18880, 18868, 19058
+     */
+    private extern (C++) static __gshared StringTable fullPathStringTable;
+
     static Identifier generateId(const(char)* prefix)
     {
         static __gshared size_t i;
@@ -153,23 +161,67 @@ nothrow:
      */
     extern (D) static Identifier generateIdWithLoc(string prefix, const ref Loc loc)
     {
-        OutBuffer buf;
-        buf.writestring(prefix);
-        buf.writestring("_L");
-        buf.print(loc.linnum);
-        buf.writestring("_C");
-        buf.print(loc.charnum);
-        auto basesize = buf.peekSlice().length;
-        uint counter = 1;
-        while (stringtable.lookup(buf.peekSlice().ptr, buf.peekSlice().length) !is null)
+        import dmd.root.filename: absPathThen;
+
+        // see below for why we use absPathThen
+        return loc.filename.absPathThen!((absPath)
         {
-            // Strip the extra suffix
-            buf.setsize(basesize);
-            // Add new suffix with increased counter
-            buf.writestring("_");
-            buf.print(counter++);
-        }
-        return idPool(buf.peekSlice());
+
+            // this block generates the "regular" identifier, i.e. if there are no collisions
+            OutBuffer idBuf;
+            idBuf.writestring(prefix);
+            idBuf.writestring("_L");
+            idBuf.print(loc.linnum);
+            idBuf.writestring("_C");
+            idBuf.print(loc.charnum);
+
+            // This block generates an identifier that is prefixed by the absolute path of the file
+            // being compiled. The reason this is necessary is that we want unique identifiers per
+            // module, but the identifiers are generated before the module information is available.
+            // To guarantee that each generated identifier is unique without modules, we make them
+            // unique to each absolute file path. This also makes it consistent even if the files
+            // are compiled separately. See issues
+            // 16995, 18097, 18111, 18880, 18868, 19058.
+            OutBuffer fullPathIdBuf;
+            if(absPath)
+            {
+                // replace characters that demangle can't handle
+                for(auto ptr = absPath; *ptr != '\0'; ++ptr)
+                {
+                    if(*ptr == '/' || *ptr == '\\' || *ptr == '.' || *ptr == '?' || *ptr == ':')
+                        *ptr = '_';
+                }
+
+                fullPathIdBuf.writestring(absPath);
+                fullPathIdBuf.writestring("_");
+            }
+
+            fullPathIdBuf.writestring(idBuf.peekSlice());
+            const fullPathIdLength = fullPathIdBuf.peekSlice().length;
+            uint counter = 1;
+
+            // loop until we can't find the absolute path ~ identifier, adding a counter suffix each time
+            while (fullPathStringTable.lookup(fullPathIdBuf.peekSlice().ptr, fullPathIdBuf.peekSlice().length) !is null)
+            {
+                // Strip the counter suffix if any
+                fullPathIdBuf.setsize(fullPathIdLength);
+                // Add new counter suffix
+                fullPathIdBuf.writestring("_");
+                fullPathIdBuf.print(counter++);
+            }
+
+            // `idStartIndex` is the start of the "true" identifier. We don't actually use the absolute
+            // file path in the generated identifier since the module system makes sure that the fully
+            // qualified name is unique.
+            const idStartIndex = fullPathIdLength - idBuf.peekSlice().length;
+
+            // Remember the full path identifier to avoid possible future collisions
+            fullPathStringTable.insert(fullPathIdBuf.peekString(),
+                                       fullPathIdBuf.peekSlice().length,
+                                       null);
+
+            return idPool(fullPathIdBuf.peekSlice()[idStartIndex .. $]);
+        });
     }
 
     /********************************************
@@ -240,6 +292,8 @@ nothrow:
 
     static void initTable()
     {
-        stringtable._init(28000);
+        enum size = 28_000;
+        stringtable._init(size);
+        fullPathStringTable._init(size);
     }
 }

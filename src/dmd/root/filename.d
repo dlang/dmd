@@ -793,6 +793,7 @@ version(Windows)
      */
     private int _mkdir(const(char)* path) nothrow
     {
+        import core.sys.windows.winbase: CreateDirectoryW;
         const createRet = path.extendedPathThen!(p => CreateDirectoryW(p,
                                                                        null /*securityAttributes*/));
         // different conventions for CreateDirectory and mkdir
@@ -810,8 +811,10 @@ version(Windows)
      * References:
      *  https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx
      */
-    package auto extendedPathThen(alias F)(const(char*) path)
+    auto extendedPathThen(alias F)(const(char*) path)
     {
+        import core.sys.windows.winbase: GetFullPathNameW;
+
         return path.toWStringzThen!((wpath)
         {
             // GetFullPathNameW expects a sized buffer to store the result in. Since we don't
@@ -823,7 +826,7 @@ version(Windows)
                                                 null /*filePartBuffer*/);
             if (pathLength == 0)
             {
-                return F(""w.ptr);
+                return F(cast(wchar*) null);
             }
 
             // wpath is the UTF16 version of path, but to be able to use
@@ -846,7 +849,7 @@ version(Windows)
 
             if (absPathRet == 0 || absPathRet > absPath.length - prefix.length)
             {
-                return F(""w.ptr);
+                return F(cast(wchar*) null);
             }
 
             return F(absPath.ptr);
@@ -867,13 +870,14 @@ version(Windows)
     {
         import core.stdc.string: strlen;
         import core.stdc.stdlib: malloc, free;
+        import core.sys.windows.winnls: MultiByteToWideChar;
 
         wchar[1024] buf;
         // cache this for efficiency
         const int strLength = cast(int)(strlen(str) + 1);
         // first find out how long the buffer must be to store the result
         const length = MultiByteToWideChar(0 /*codepage*/, 0 /*flags*/, str, strLength, null, 0);
-        if (!length) return F(""w.ptr);
+        if (!length) return F(cast(wchar*) null);
 
         auto ret = length > buf.length
             ? (cast(wchar*)malloc(length * wchar.sizeof))
@@ -888,5 +892,78 @@ version(Windows)
         assert(length == length2); // should always be true according to the API
 
         return F(ret);
+    }
+
+}
+
+version(Posix)
+{
+
+    /**************************
+     * Takes a callable F and applies it to the result of converting
+     * `fileName` to an absolute file path (char*)
+     */
+    auto absPathThen(alias F)(const(char)* fileName)
+    {
+        char[1024] realPathBuffer;
+        auto absPath = realpath(fileName, &realPathBuffer[0]);
+        return F(absPath);
+    }
+
+    extern(C) char* realpath(const(char)* file_name, char* resolved_name) @nogc nothrow;
+}
+else
+{
+    /**************************
+     * Takes a callable F and applies it to the result of converting
+     * `fileName` to an absolute file path (char*)
+     */
+    auto absPathThen(alias F)(const(char)* fileName)
+    {
+        import core.sys.windows.winnls: WideCharToMultiByte;
+        import core.stdc.stdlib: malloc, free;
+        import std.stdio: writeln;
+        import std.conv: text;
+
+        return fileName.extendedPathThen!((wpath) {
+                // first find out how long the buffer must be to store the result
+                const length = WideCharToMultiByte(0,    // code page
+                                                   0,    // flags
+                                                   wpath,
+                                                   -1,   // wpath len, -1 is null terminated
+                                                   null, // multibyte output ptr
+                                                   0,    // multibyte output length
+                                                   null, // default char
+                                                   null, // if used default char
+                );
+
+                if(!length) return F(cast(char*) null);
+
+                char[1024] buf;
+
+                auto multibyteBuf = length > buf.length
+                    ? (cast(char*)malloc(length * char.sizeof))
+                    : &buf[0];
+                scope (exit)
+                {
+                    if (multibyteBuf != &buf[0])
+                        free(multibyteBuf);
+                }
+
+                // first find out how long the buffer must be to store the result
+                const length2 = WideCharToMultiByte(0,    // code page
+                                                    0,    // flags
+                                                    wpath,
+                                                    -1,   // wpath len, -1 is null terminated
+                                                    multibyteBuf,
+                                                    length,
+                                                    null, // default char
+                                                    null, // if used default char
+                );
+
+                assert(length == length2);
+
+                return F(multibyteBuf);
+        });
     }
 }
