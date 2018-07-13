@@ -1098,7 +1098,7 @@ public:
 }
 
 /// Returns: `true` if the given character is a valid mangled character
-package bool isValidMangling(dchar c)
+package bool isValidMangling(dchar c) nothrow
 {
     return
         c >= 'A' && c <= 'Z' ||
