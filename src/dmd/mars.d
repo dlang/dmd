@@ -206,8 +206,7 @@ private int tryMain(size_t argc, const(char)** argv)
         fatal();
     }
     // Convert argc/argv into arguments[] for easier handling
-    Strings arguments;
-    arguments.setDim(argc);
+    Strings arguments = Strings(argc);
     for (size_t i = 0; i < argc; i++)
     {
         if (!argv[i])

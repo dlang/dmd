@@ -54,8 +54,7 @@ extern (C++) class Initializer : RootObject
         Initializers* a = null;
         if (ai)
         {
-            a = new Initializers();
-            a.setDim(ai.dim);
+            a = new Initializers(ai.dim);
             for (size_t i = 0; i < a.dim; i++)
                 (*a)[i] = (*ai)[i].syntaxCopy();
         }

@@ -299,8 +299,7 @@ private Expressions* copyLiteralArray(Expressions* oldelems, Expression basis = 
     if (!oldelems)
         return oldelems;
     CtfeStatus.numArrayAllocs++;
-    auto newelems = new Expressions();
-    newelems.setDim(oldelems.dim);
+    auto newelems = new Expressions(oldelems.dim);
     foreach (i, el; *oldelems)
     {
         (*newelems)[i] = copyLiteral(el ? el : basis).copy();
@@ -356,8 +355,7 @@ extern (C++) UnionExp copyLiteral(Expression e)
          */
         auto sle = cast(StructLiteralExp)e;
         auto oldelems = sle.elements;
-        auto newelems = new Expressions();
-        newelems.setDim(oldelems.dim);
+        auto newelems = new Expressions(oldelems.dim);
         foreach (i, ref el; *newelems)
         {
             // We need the struct definition to detect block assignment
@@ -622,8 +620,7 @@ extern (C++) ArrayLiteralExp createBlockDuplicatedArrayLiteral(const ref Loc loc
     const tb = elem.type.toBasetype();
     const mustCopy = tb.ty == Tstruct || tb.ty == Tsarray;
 
-    auto elements = new Expressions();
-    elements.setDim(dim);
+    auto elements = new Expressions(dim);
     foreach (i, ref el; *elements)
     {
         el = mustCopy && i ? copyLiteral(elem).copy() : elem;
@@ -1709,8 +1706,7 @@ extern (C++) UnionExp changeArrayLiteralLength(const ref Loc loc, TypeArray arra
     Type elemType = arrayType.next;
     assert(elemType);
     Expression defaultElem = elemType.defaultInitLiteral(loc);
-    auto elements = new Expressions();
-    elements.setDim(newlen);
+    auto elements = new Expressions(newlen);
     // Resolve slices
     size_t indxlo = 0;
     if (oldval.op == TOK.slice)
@@ -1989,9 +1985,8 @@ extern (C++) UnionExp voidInitLiteral(Type t, VarDeclaration var)
         // For aggregate value types (structs, static arrays) we must
         // create an a separate copy for each element.
         const mustCopy = (elem.op == TOK.arrayLiteral || elem.op == TOK.structLiteral);
-        auto elements = new Expressions();
         const d = cast(size_t)tsa.dim.toInteger();
-        elements.setDim(d);
+        auto elements = new Expressions(d);
         foreach (i; 0 .. d)
         {
             if (mustCopy && i > 0)
@@ -2006,8 +2001,7 @@ extern (C++) UnionExp voidInitLiteral(Type t, VarDeclaration var)
     else if (t.ty == Tstruct)
     {
         TypeStruct ts = cast(TypeStruct)t;
-        auto exps = new Expressions();
-        exps.setDim(ts.sym.fields.dim);
+        auto exps = new Expressions(ts.sym.fields.dim);
         foreach (size_t i;  0 .. ts.sym.fields.dim)
         {
             (*exps)[i] = voidInitLiteral(ts.sym.fields[i].type, ts.sym.fields[i]).copy();

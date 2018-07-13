@@ -932,8 +932,7 @@ extern (C++) final class CompoundDeclarationStatement : CompoundStatement
 
     override Statement syntaxCopy()
     {
-        auto a = new Statements();
-        a.setDim(statements.dim);
+        auto a = new Statements(statements.dim);
         foreach (i, s; *statements)
         {
             (*a)[i] = s ? s.syntaxCopy() : null;
@@ -963,8 +962,7 @@ extern (C++) final class UnrolledLoopStatement : Statement
 
     override Statement syntaxCopy()
     {
-        auto a = new Statements();
-        a.setDim(statements.dim);
+        auto a = new Statements(statements.dim);
         foreach (i, s; *statements)
         {
             (*a)[i] = s ? s.syntaxCopy() : null;
@@ -1094,8 +1092,7 @@ extern (C++) final class ForwardingStatement : Statement
         {
             return a;
         }
-        auto b = new Statements();
-        b.setDim(a.dim);
+        auto b = new Statements(a.dim);
         foreach (i, s; *a)
         {
             (*b)[i] = s ? new ForwardingStatement(s.loc, sym, s) : null;
@@ -1966,8 +1963,7 @@ extern (C++) final class TryCatchStatement : Statement
 
     override Statement syntaxCopy()
     {
-        auto a = new Catches();
-        a.setDim(catches.dim);
+        auto a = new Catches(catches.dim);
         foreach (i, c; *catches)
         {
             (*a)[i] = c.syntaxCopy();
@@ -2424,8 +2420,7 @@ extern (C++) final class CompoundAsmStatement : CompoundStatement
 
     override CompoundAsmStatement syntaxCopy()
     {
-        auto a = new Statements();
-        a.setDim(statements.dim);
+        auto a = new Statements(statements.dim);
         foreach (i, s; *statements)
         {
             (*a)[i] = s ? s.syntaxCopy() : null;
@@ -2458,8 +2453,7 @@ extern (C++) final class ImportStatement : Statement
 
     override Statement syntaxCopy()
     {
-        auto m = new Dsymbols();
-        m.setDim(imports.dim);
+        auto m = new Dsymbols(imports.dim);
         foreach (i, s; *imports)
         {
             (*m)[i] = s.syntaxCopy(null);

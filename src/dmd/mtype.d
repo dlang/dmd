@@ -3703,8 +3703,7 @@ extern (C++) final class TypeSArray : TypeArray
             elementinit = tuns8.defaultInitLiteral(loc);
         else
             elementinit = next.defaultInitLiteral(loc);
-        auto elements = new Expressions();
-        elements.setDim(d);
+        auto elements = new Expressions(d);
         for (size_t i = 0; i < d; i++)
             (*elements)[i] = null;
         auto ae = new ArrayLiteralExp(Loc.initial, elementinit, elements);
@@ -5435,8 +5434,7 @@ extern (C++) final class TypeStruct : Type
         if (sym.sizeok != Sizeok.done)
             return new ErrorExp();
 
-        auto structelems = new Expressions();
-        structelems.setDim(sym.fields.dim - sym.isNested());
+        auto structelems = new Expressions(sym.fields.dim - sym.isNested());
         uint offset = 0;
         for (size_t j = 0; j < structelems.dim; j++)
         {
@@ -6287,8 +6285,7 @@ extern (C++) final class Parameter : RootObject
         Parameters* params = null;
         if (parameters)
         {
-            params = new Parameters();
-            params.setDim(parameters.dim);
+            params = new Parameters(parameters.dim);
             for (size_t i = 0; i < params.dim; i++)
                 (*params)[i] = (*parameters)[i].syntaxCopy();
         }

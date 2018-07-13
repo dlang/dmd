@@ -588,16 +588,14 @@ private Expression resolveUFCSProperties(Scope* sc, Expression e1, Expression e2
         /* f(e1) = e2
          */
         Expression ex = e.copy();
-        auto a1 = new Expressions();
-        a1.setDim(1);
+        auto a1 = new Expressions(1);
         (*a1)[0] = eleft;
         ex = new CallExp(loc, ex, a1);
         ex = ex.trySemantic(sc);
 
         /* f(e1, e2)
          */
-        auto a2 = new Expressions();
-        a2.setDim(2);
+        auto a2 = new Expressions(2);
         (*a2)[0] = eleft;
         (*a2)[1] = e2;
         e = new CallExp(loc, e, a2);
@@ -624,8 +622,7 @@ private Expression resolveUFCSProperties(Scope* sc, Expression e1, Expression e2
     {
         /* f(e1)
          */
-        auto arguments = new Expressions();
-        arguments.setDim(1);
+        auto arguments = new Expressions(1);
         (*arguments)[0] = eleft;
         e = new CallExp(loc, e, arguments);
         e = e.expressionSemantic(sc);
@@ -1594,8 +1591,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
                         Type tbn = (cast(TypeArray)tb).next;
                         Type tsa = tbn.sarrayOf(nargs - i);
 
-                        auto elements = new Expressions();
-                        elements.setDim(nargs - i);
+                        auto elements = new Expressions(nargs - i);
                         for (size_t u = 0; u < elements.dim; u++)
                         {
                             Expression a = (*arguments)[i + u];
@@ -1625,8 +1621,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
                         /* Set arg to be:
                          *      new Tclass(arg0, arg1, ..., argn)
                          */
-                        auto args = new Expressions();
-                        args.setDim(nargs - i);
+                        auto args = new Expressions(nargs - i);
                         for (size_t u = i; u < nargs; u++)
                             (*args)[u - i] = (*arguments)[u];
                         arg = new NewExp(loc, null, null, p.type, args);
@@ -2048,8 +2043,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
     {
         assert(arguments.dim >= nparams);
 
-        auto args = new Parameters();
-        args.setDim(arguments.dim - nparams);
+        auto args = new Parameters(arguments.dim - nparams);
         for (size_t i = 0; i < arguments.dim - nparams; i++)
         {
             auto arg = new Parameter(STC.in_, (*arguments)[nparams + i].type, null, null, null);
@@ -5018,8 +5012,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             Identifier tid = e.id ? e.id : Identifier.generateId("__isexp_id");
             e.parameters.insert(0, new TemplateTypeParameter(e.loc, tid, null, null));
 
-            Objects dedtypes;
-            dedtypes.setDim(e.parameters.dim);
+            Objects dedtypes = Objects(e.parameters.dim);
             dedtypes.zero();
 
             MATCH m = deduceType(e.targ, sc, e.tspec, e.parameters, &dedtypes);
@@ -5034,8 +5027,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tded = cast(Type)dedtypes[0];
                 if (!tded)
                     tded = e.targ;
-                Objects tiargs;
-                tiargs.setDim(1);
+                Objects tiargs = Objects(1);
                 tiargs[0] = e.targ;
 
                 /* Declare trailing parameters
@@ -6657,8 +6649,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             Expression e;
             if (exp.e1.op == TOK.tuple)
             {
-                auto exps = new Expressions();
-                exps.setDim(j2 - j1);
+                auto exps = new Expressions(j2 - j1);
                 for (size_t i = 0; i < j2 - j1; i++)
                 {
                     (*exps)[i] = (*te.exps)[j1 + i];
@@ -7528,8 +7519,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
                 else
                 {
-                    auto exps = new Expressions();
-                    exps.setDim(dim);
+                    auto exps = new Expressions(dim);
                     for (size_t i = 0; i < dim; i++)
                     {
                         Expression ex1 = (*tup1.exps)[i];
@@ -10466,8 +10456,7 @@ Expression semanticX(DotIdExp exp, Scope* sc)
         /* 'distribute' the .offsetof to each of the tuple elements.
          */
         TupleExp te = cast(TupleExp)exp.e1;
-        auto exps = new Expressions();
-        exps.setDim(te.exps.dim);
+        auto exps = new Expressions(te.exps.dim);
         for (size_t i = 0; i < exps.dim; i++)
         {
             Expression e = (*te.exps)[i];

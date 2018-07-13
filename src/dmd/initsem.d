@@ -55,10 +55,8 @@ Expression toAssocArrayLiteral(ArrayInitializer ai)
     //printf("ArrayInitializer::toAssocArrayInitializer()\n");
     //static int i; if (++i == 2) assert(0);
     const dim = ai.value.dim;
-    auto keys = new Expressions();
-    keys.setDim(dim);
-    auto values = new Expressions();
-    values.setDim(dim);
+    auto keys = new Expressions(dim);
+    auto values = new Expressions(dim);
     for (size_t i = 0; i < dim; i++)
     {
         e = ai.index[i];
@@ -182,8 +180,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             }
             size_t nfields = sd.fields.dim - sd.isNested();
             //expandTuples for non-identity arguments?
-            auto elements = new Expressions();
-            elements.setDim(nfields);
+            auto elements = new Expressions(nfields);
             for (size_t j = 0; j < elements.dim; j++)
                 (*elements)[j] = null;
             // Run semantic for explicitly given initializers
@@ -630,10 +627,8 @@ private extern(C++) final class InferTypeVisitor : Visitor
         Expressions* values;
         if (init.isAssociativeArray())
         {
-            keys = new Expressions();
-            keys.setDim(init.value.dim);
-            values = new Expressions();
-            values.setDim(init.value.dim);
+            keys = new Expressions(init.value.dim);
+            values = new Expressions(init.value.dim);
             for (size_t i = 0; i < init.value.dim; i++)
             {
                 Expression e = init.index[i];
@@ -660,8 +655,7 @@ private extern(C++) final class InferTypeVisitor : Visitor
         }
         else
         {
-            auto elements = new Expressions();
-            elements.setDim(init.value.dim);
+            auto elements = new Expressions(init.value.dim);
             elements.zero();
             for (size_t i = 0; i < init.value.dim; i++)
             {
@@ -854,8 +848,7 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
                     edim = cast(uint)(j + 1);
             }
         }
-        elements = new Expressions();
-        elements.setDim(edim);
+        elements = new Expressions(edim);
         elements.zero();
         for (size_t i = 0, j = 0; i < init.value.dim; i++, j++)
         {
@@ -902,8 +895,7 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
                     {
                         if (te.equals(e.type))
                         {
-                            auto elements2 = new Expressions();
-                            elements2.setDim(dim);
+                            auto elements2 = new Expressions(dim);
                             foreach (ref e2; *elements2)
                                 e2 = e;
                             e = new ArrayLiteralExp(e.loc, elements2);
@@ -945,8 +937,7 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
             {
                 TypeSArray tsa = cast(TypeSArray)tb;
                 size_t d = cast(size_t)tsa.dim.toInteger();
-                auto elements = new Expressions();
-                elements.setDim(d);
+                auto elements = new Expressions(d);
                 for (size_t j = 0; j < d; j++)
                     (*elements)[j] = e;
                 auto ae = new ArrayLiteralExp(e.loc, elements);
