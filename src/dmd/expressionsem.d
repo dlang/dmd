@@ -1474,14 +1474,15 @@ private bool checkDefCtor(Loc loc, Type t)
  * Returns:
  *      true    errors happened
  */
-private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis, Expressions* arguments, FuncDeclaration fd, Type* prettype, Expression* peprefix)
+private bool functionParameters(const ref Loc loc, Scope* sc,
+    TypeFunction tf, Type tthis, Expressions* arguments, FuncDeclaration fd, Type* prettype, Expression* peprefix)
 {
     //printf("functionParameters() %s\n", fd ? fd.toChars() : "");
     assert(arguments);
     assert(fd || tf.next);
     size_t nargs = arguments ? arguments.dim : 0;
-    size_t nparams = Parameter.dim(tf.parameters);
-    uint olderrors = global.errors;
+    const size_t nparams = Parameter.dim(tf.parameters);
+    const olderrors = global.errors;
     bool err = false;
     *prettype = Type.terror;
     Expression eprefix = null;
@@ -1506,9 +1507,9 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
             fd.functionSemantic3();
         }
     }
-    bool isCtorCall = fd && fd.needThis() && fd.isCtorDeclaration();
+    const isCtorCall = fd && fd.needThis() && fd.isCtorDeclaration();
 
-    size_t n = (nargs > nparams) ? nargs : nparams; // n = max(nargs, nparams)
+    const size_t n = (nargs > nparams) ? nargs : nparams; // n = max(nargs, nparams)
 
     /* If the function return type has wildcards in it, we'll need to figure out the actual type
      * based on the actual argument types.
@@ -1517,18 +1518,19 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
      */
     MOD wildmatch = (tthis && !isCtorCall) ? tthis.Type.deduceWild(tf, false) : 0;
 
-    int done = 0;
-    for (size_t i = 0; i < n; i++)
+    bool done = false;
+    foreach (const i; 0 .. n)
     {
-        Expression arg;
-
-        if (i < nargs)
-            arg = (*arguments)[i];
-        else
-            arg = null;
+        Expression arg = (i < nargs) ? (*arguments)[i] : null;
 
         if (i < nparams)
         {
+            bool errorArgs()
+            {
+                error(loc, "expected %llu function arguments, not %llu", cast(ulong)nparams, cast(ulong)nargs);
+                return true;
+            }
+
             Parameter p = Parameter.getNth(tf.parameters, i);
 
             if (!arg)
@@ -1537,8 +1539,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
                 {
                     if (tf.varargs == 2 && i + 1 == nparams)
                         goto L2;
-                    error(loc, "expected %llu function arguments, not %llu", cast(ulong)nparams, cast(ulong)nargs);
-                    return true;
+                    return errorArgs();
                 }
                 arg = p.defaultArg;
                 arg = inlineCopy(arg, sc);
@@ -1566,10 +1567,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
                         if (p.type.nextOf() && arg.implicitConvTo(p.type.nextOf()) >= m)
                             goto L2;
                         else if (nargs != nparams)
-                        {
-                            error(loc, "expected %llu function arguments, not %llu", cast(ulong)nparams, cast(ulong)nargs);
-                            return true;
-                        }
+                            return errorArgs();
                         goto L1;
                     }
                 }
@@ -1592,7 +1590,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
                         Type tsa = tbn.sarrayOf(nargs - i);
 
                         auto elements = new Expressions(nargs - i);
-                        for (size_t u = 0; u < elements.dim; u++)
+                        foreach (u; 0 .. elements.dim)
                         {
                             Expression a = (*arguments)[i + u];
                             if (tret && a.implicitConvTo(tret))
@@ -1622,7 +1620,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
                          *      new Tclass(arg0, arg1, ..., argn)
                          */
                         auto args = new Expressions(nargs - i);
-                        for (size_t u = i; u < nargs; u++)
+                        foreach (u; i .. nargs)
                             (*args)[u - i] = (*arguments)[u];
                         arg = new NewExp(loc, null, null, p.type, args);
                         break;
@@ -1640,7 +1638,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
                 arguments.setDim(i + 1);
                 (*arguments)[i] = arg;
                 nargs = i + 1;
-                done = 1;
+                done = true;
             }
 
         L1:
