@@ -2217,9 +2217,14 @@ extern (C++) abstract class Type : RootObject
     }
 
     /***************************************
-     * Return MOD bits matching this type to wild parameter type (tprm).
+     * Compute MOD bits matching `this` argument type to wild parameter type.
+     * Params:
+     *  t = corresponding parameter type
+     *  isRef = parameter is `ref` or `out`
+     * Returns:
+     *  MOD bits
      */
-    ubyte deduceWild(Type t, bool isRef)
+    MOD deduceWild(Type t, bool isRef)
     {
         //printf("Type::deduceWild this = '%s', tprm = '%s'\n", toChars(), tprm.toChars());
         if (t.isWild())
@@ -3011,7 +3016,7 @@ extern (C++) abstract class TypeNext : Type
         return m;
     }
 
-    override final ubyte deduceWild(Type t, bool isRef)
+    override final MOD deduceWild(Type t, bool isRef)
     {
         if (ty == Tfunction)
             return 0;
@@ -5651,7 +5656,7 @@ extern (C++) final class TypeStruct : Type
         return MATCH.nomatch;
     }
 
-    override ubyte deduceWild(Type t, bool isRef)
+    override MOD deduceWild(Type t, bool isRef)
     {
         if (ty == t.ty && sym == (cast(TypeStruct)t).sym)
             return Type.deduceWild(t, isRef);
@@ -5946,7 +5951,7 @@ extern (C++) final class TypeClass : Type
         return MATCH.nomatch;
     }
 
-    override ubyte deduceWild(Type t, bool isRef)
+    override MOD deduceWild(Type t, bool isRef)
     {
         ClassDeclaration cd = t.isClassHandle();
         if (cd && (sym == cd || cd.isBaseOf(sym, null)))
