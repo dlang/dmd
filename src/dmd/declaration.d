@@ -603,8 +603,7 @@ extern (C++) final class TupleDeclaration : Declaration
             /* We know it's a type tuple, so build the TypeTuple
              */
             Types* types = cast(Types*)objects;
-            auto args = new Parameters();
-            args.setDim(objects.dim);
+            auto args = new Parameters(objects.dim);
             OutBuffer buf;
             int hasdeco = 1;
             for (size_t i = 0; i < types.dim; i++)

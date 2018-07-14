@@ -945,8 +945,7 @@ extern (C++) class FuncDeclaration : Declaration
 
         /* Create a dummy array of arguments out of the parameters to f()
          */
-        Expressions args;
-        args.setDim(nfparams);
+        Expressions args = Expressions(nfparams);
         for (size_t u = 0; u < nfparams; u++)
         {
             Parameter p = Parameter.getNth(tf.parameters, u);

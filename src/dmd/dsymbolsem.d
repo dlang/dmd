@@ -817,8 +817,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
             }
 
-            auto exps = new Objects();
-            exps.setDim(nelems);
+            auto exps = new Objects(nelems);
             for (size_t i = 0; i < nelems; i++)
             {
                 Parameter arg = Parameter.getNth(tt.arguments, i);
@@ -2441,8 +2440,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (global.params.doDocComments)
         {
-            tempdecl.origParameters = new TemplateParameters();
-            tempdecl.origParameters.setDim(tempdecl.parameters.dim);
+            tempdecl.origParameters = new TemplateParameters(tempdecl.parameters.dim);
             for (size_t i = 0; i < tempdecl.parameters.dim; i++)
             {
                 TemplateParameter tp = (*tempdecl.parameters)[i];
@@ -2471,8 +2469,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         /* Calculate TemplateParameter.dependent
          */
-        TemplateParameters tparams;
-        tparams.setDim(1);
+        TemplateParameters tparams = TemplateParameters(1);
         for (size_t i = 0; i < tempdecl.parameters.dim; i++)
         {
             TemplateParameter tp = (*tempdecl.parameters)[i];

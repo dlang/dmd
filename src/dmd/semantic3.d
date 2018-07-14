@@ -484,8 +484,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     {
                         TypeTuple t = cast(TypeTuple)fparam.type;
                         size_t dim = Parameter.dim(t.arguments);
-                        auto exps = new Objects();
-                        exps.setDim(dim);
+                        auto exps = new Objects(dim);
                         for (size_t j = 0; j < dim; j++)
                         {
                             Parameter narg = Parameter.getNth(t.arguments, j);

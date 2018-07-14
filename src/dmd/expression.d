@@ -846,8 +846,7 @@ extern (C++) abstract class Expression : RootObject
         Expressions* a = null;
         if (exps)
         {
-            a = new Expressions();
-            a.setDim(exps.dim);
+            a = new Expressions(exps.dim);
             foreach (i, e; *exps)
             {
                 (*a)[i] = e ? e.syntaxCopy() : null;
@@ -2974,8 +2973,7 @@ extern (C++) final class StructLiteralExp : Expression
                 {
                     TypeSArray tsa = cast(TypeSArray)type;
                     size_t length = cast(size_t)tsa.dim.toInteger();
-                    auto z = new Expressions();
-                    z.setDim(length);
+                    auto z = new Expressions(length);
                     foreach (ref q; *z)
                         q = e.copy();
                     e = new ArrayLiteralExp(loc, z);
@@ -3885,8 +3883,7 @@ extern (C++) final class IsExp : Expression
         TemplateParameters* p = null;
         if (parameters)
         {
-            p = new TemplateParameters();
-            p.setDim(parameters.dim);
+            p = new TemplateParameters(parameters.dim);
             foreach (i, el; *parameters)
                 (*p)[i] = el.syntaxCopy();
         }
@@ -4660,8 +4657,7 @@ extern (C++) final class CallExp : UnaExp
     extern (D) this(const ref Loc loc, Expression e, Expression earg1, Expression earg2)
     {
         super(loc, TOK.call, __traits(classInstanceSize, CallExp), e);
-        auto arguments = new Expressions();
-        arguments.setDim(2);
+        auto arguments = new Expressions(2);
         (*arguments)[0] = earg1;
         (*arguments)[1] = earg2;
         this.arguments = arguments;

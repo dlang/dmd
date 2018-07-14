@@ -1384,8 +1384,7 @@ extern (C++) UnionExp Slice(Type type, Expression e1, Expression lwr, Expression
             cantExp(ue);
         else
         {
-            auto elements = new Expressions();
-            elements.setDim(cast(size_t)(iupr - ilwr));
+            auto elements = new Expressions(cast(size_t)(iupr - ilwr));
             memcpy(elements.tdata(), es1.elements.tdata() + ilwr, cast(size_t)(iupr - ilwr) * ((*es1.elements)[0]).sizeof);
             emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, elements);
             ue.exp().type = type;
@@ -1575,8 +1574,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         StringExp es = cast(StringExp)e2;
         ArrayLiteralExp ea = cast(ArrayLiteralExp)e1;
         size_t len = es.len + ea.elements.dim;
-        auto elems = new Expressions();
-        elems.setDim(len);
+        auto elems = new Expressions(len);
         for (size_t i = 0; i < ea.elements.dim; ++i)
         {
             (*elems)[i] = ea.getElement(i);
@@ -1594,8 +1592,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         StringExp es = cast(StringExp)e1;
         ArrayLiteralExp ea = cast(ArrayLiteralExp)e2;
         size_t len = es.len + ea.elements.dim;
-        auto elems = new Expressions();
-        elems.setDim(len);
+        auto elems = new Expressions(len);
         for (size_t i = 0; i < ea.elements.dim; ++i)
         {
             (*elems)[es.len + i] = ea.getElement(i);

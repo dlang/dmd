@@ -565,8 +565,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         TemplateParameters* p = null;
         if (parameters)
         {
-            p = new TemplateParameters();
-            p.setDim(parameters.dim);
+            p = new TemplateParameters(parameters.dim);
             for (size_t i = 0; i < p.dim; i++)
                 (*p)[i] = (*parameters)[i].syntaxCopy();
         }
@@ -1019,8 +1018,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         scope TemplateInstance ti = new TemplateInstance(Loc.initial, ident, tiargs); // create dummy template instance
 
         // Temporary Array to hold deduced types
-        Objects dedtypes;
-        dedtypes.setDim(td2.parameters.dim);
+        Objects dedtypes = Objects(td2.parameters.dim);
 
         // Attempt a type deduction
         MATCH m = td2.matchWithInstance(sc, ti, &dedtypes, fargs, 1);
@@ -2560,8 +2558,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
             if (!tiargs)
                 tiargs = new Objects();
             auto ti = new TemplateInstance(loc, td, tiargs);
-            Objects dedtypes;
-            dedtypes.setDim(td.parameters.dim);
+            Objects dedtypes = Objects(td.parameters.dim);
             assert(td.semanticRun != PASS.init);
             MATCH mta = td.matchWithInstance(sc, ti, &dedtypes, fargs, 0);
             //printf("matchWithInstance = %d\n", mta);
@@ -4151,8 +4148,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             if (parti)
             {
                 // Make a temporary copy of dedtypes so we don't destroy it
-                auto tmpdedtypes = new Objects();
-                tmpdedtypes.setDim(dedtypes.dim);
+                auto tmpdedtypes = new Objects(dedtypes.dim);
                 memcpy(tmpdedtypes.tdata(), dedtypes.tdata(), dedtypes.dim * (void*).sizeof);
 
                 auto t = new TypeInstance(Loc.initial, parti);
@@ -4241,8 +4237,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 int numBaseClassMatches = 0; // Have we found an interface match?
 
                 // Our best guess at dedtypes
-                auto best = new Objects();
-                best.setDim(dedtypes.dim);
+                auto best = new Objects(dedtypes.dim);
 
                 ClassDeclaration s = t.sym;
                 while (s && s.baseclasses.dim > 0)
@@ -6004,8 +5999,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         Objects* a = null;
         if (objs)
         {
-            a = new Objects();
-            a.setDim(objs.dim);
+            a = new Objects(objs.dim);
             for (size_t i = 0; i < objs.dim; i++)
                 (*a)[i] = objectSyntaxCopy((*objs)[i]);
         }

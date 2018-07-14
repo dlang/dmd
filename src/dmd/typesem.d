@@ -451,8 +451,7 @@ private Type stripDefaultArgs(Type t)
                 if (ps)
                 {
                     // Replace params with a copy we can modify
-                    Parameters* nparams = new Parameters();
-                    nparams.setDim(parameters.dim);
+                    Parameters* nparams = new Parameters(parameters.dim);
 
                     foreach (j, ref np; *nparams)
                     {
@@ -1423,8 +1422,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                          * Make a copy, as original may be referenced elsewhere.
                          */
                         size_t tdim = tt.arguments.dim;
-                        auto newparams = new Parameters();
-                        newparams.setDim(tdim);
+                        auto newparams = new Parameters(tdim);
                         for (size_t j = 0; j < tdim; j++)
                         {
                             Parameter narg = (*tt.arguments)[j];
@@ -2513,8 +2511,7 @@ private extern(C++) final class ResolveVisitor : Visitor
                  * Do it this way because TemplateInstance::semanticTiargs()
                  * can handle unresolved Objects this way.
                  */
-                auto objects = new Objects();
-                objects.setDim(1);
+                auto objects = new Objects(1);
                 (*objects)[0] = o;
                 *ps = new TupleDeclaration(loc, tup.ident, objects);
             }
@@ -2883,8 +2880,7 @@ private extern(C++) final class ResolveVisitor : Visitor
                 /* Create a new TupleDeclaration which
                  * is a slice [i1..i2] out of the old one.
                  */
-                auto objects = new Objects();
-                objects.setDim(cast(size_t)(i2 - i1));
+                auto objects = new Objects(cast(size_t)(i2 - i1));
                 for (size_t i = 0; i < objects.dim; i++)
                 {
                     (*objects)[i] = (*td.objects)[cast(size_t)i1 + i];
@@ -4513,8 +4509,7 @@ private extern(C++) final class DefaultInitVisitor : Visitor
         {
             printf("TypeTuple::defaultInit() '%s'\n", mt.toChars());
         }
-        auto exps = new Expressions();
-        exps.setDim(mt.arguments.dim);
+        auto exps = new Expressions(mt.arguments.dim);
         for (size_t i = 0; i < mt.arguments.dim; i++)
         {
             Parameter p = (*mt.arguments)[i];
