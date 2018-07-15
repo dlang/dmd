@@ -1880,7 +1880,7 @@ class Lexer : ErrorHandler
                     anyHexDigitsNoSingleUS = true;
                 if (base == 2 && !err)
                 {
-                    error("radix %d digit expected, not `%c`", base, c);
+                    error("radix 2 digit expected, not `%c`", c);
                     err = true;
                 }
                 ++p;
