@@ -2619,34 +2619,39 @@ extern (C++) final class ArrayLiteralExp : Expression
     Expressions* elements;
     OwnedBy ownedByCtfe = OwnedBy.code;
 
-    extern (D) this(const ref Loc loc, Expressions* elements)
+
+    extern (D) this(const ref Loc loc, Type type, Expressions* elements)
     {
         super(loc, TOK.arrayLiteral, __traits(classInstanceSize, ArrayLiteralExp));
+        this.type = type;
         this.elements = elements;
     }
 
-    extern (D) this(const ref Loc loc, Expression e)
+    extern (D) this(const ref Loc loc, Type type, Expression e)
     {
         super(loc, TOK.arrayLiteral, __traits(classInstanceSize, ArrayLiteralExp));
+        this.type = type;
         elements = new Expressions();
         elements.push(e);
     }
 
-    extern (D) this(const ref Loc loc, Expression basis, Expressions* elements)
+    extern (D) this(const ref Loc loc, Type type, Expression basis, Expressions* elements)
     {
         super(loc, TOK.arrayLiteral, __traits(classInstanceSize, ArrayLiteralExp));
+        this.type = type;
         this.basis = basis;
         this.elements = elements;
     }
 
     static ArrayLiteralExp create(Loc loc, Expressions* elements)
     {
-        return new ArrayLiteralExp(loc, elements);
+        return new ArrayLiteralExp(loc, null, elements);
     }
 
     override Expression syntaxCopy()
     {
         return new ArrayLiteralExp(loc,
+            null,
             basis ? basis.syntaxCopy() : null,
             arraySyntaxCopy(elements));
     }
@@ -2976,8 +2981,7 @@ extern (C++) final class StructLiteralExp : Expression
                     auto z = new Expressions(length);
                     foreach (ref q; *z)
                         q = e.copy();
-                    e = new ArrayLiteralExp(loc, z);
-                    e.type = type;
+                    e = new ArrayLiteralExp(loc, type, z);
                 }
                 else
                 {

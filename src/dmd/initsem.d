@@ -673,7 +673,7 @@ private extern(C++) final class InferTypeVisitor : Visitor
                 (*elements)[i] = (cast(ExpInitializer)iz).exp;
                 assert((*elements)[i].op != TOK.error);
             }
-            Expression e = new ArrayLiteralExp(init.loc, elements);
+            Expression e = new ArrayLiteralExp(init.loc, null, elements);
             auto ei = new ExpInitializer(init.loc, e);
             result = ei.inferType(sc);
             return;
@@ -898,8 +898,7 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
                             auto elements2 = new Expressions(dim);
                             foreach (ref e2; *elements2)
                                 e2 = e;
-                            e = new ArrayLiteralExp(e.loc, elements2);
-                            e.type = tn;
+                            e = new ArrayLiteralExp(e.loc, tn, elements2);
                         }
                     }
                 }
@@ -917,8 +916,7 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
                 }
             }
 
-            Expression e = new ArrayLiteralExp(init.loc, elements);
-            e.type = init.type;
+            Expression e = new ArrayLiteralExp(init.loc, init.type, elements);
             result = e;
             return;
         }
@@ -940,8 +938,7 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
                 auto elements = new Expressions(d);
                 for (size_t j = 0; j < d; j++)
                     (*elements)[j] = e;
-                auto ae = new ArrayLiteralExp(e.loc, elements);
-                ae.type = itype;
+                auto ae = new ArrayLiteralExp(e.loc, itype, elements);
                 result = ae;
                 return;
             }

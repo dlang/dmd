@@ -3711,8 +3711,7 @@ extern (C++) final class TypeSArray : TypeArray
         auto elements = new Expressions(d);
         for (size_t i = 0; i < d; i++)
             (*elements)[i] = null;
-        auto ae = new ArrayLiteralExp(Loc.initial, elementinit, elements);
-        ae.type = this;
+        auto ae = new ArrayLiteralExp(Loc.initial, this, elementinit, elements);
         return ae;
     }
 

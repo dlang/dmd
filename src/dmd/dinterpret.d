@@ -2728,9 +2728,8 @@ public:
                 result = CTFEExp.cantexp;
                 return;
             }
-            emplaceExp!(ArrayLiteralExp)(pue, e.loc, basis, expsx);
+            emplaceExp!(ArrayLiteralExp)(pue, e.loc, e.type, basis, expsx);
             auto ale = cast(ArrayLiteralExp)pue.exp();
-            ale.type = e.type;
             ale.ownedByCtfe = OwnedBy.ctfe;
             result = ale;
         }
@@ -2928,8 +2927,7 @@ public:
             auto elements = new Expressions(len);
             for (size_t i = 0; i < len; i++)
                 (*elements)[i] = copyLiteral(elem).copy();
-            auto ae = new ArrayLiteralExp(loc, elements);
-            ae.type = newtype;
+            auto ae = new ArrayLiteralExp(loc, newtype, elements);
             ae.ownedByCtfe = OwnedBy.ctfe;
             return ae;
         }
@@ -3097,8 +3095,7 @@ public:
             // Create a CTFE pointer &[newval][0]
             auto elements = new Expressions(1);
             (*elements)[0] = newval;
-            auto ae = new ArrayLiteralExp(e.loc, elements);
-            ae.type = e.newtype.arrayOf();
+            auto ae = new ArrayLiteralExp(e.loc, e.newtype.arrayOf(), elements);
             ae.ownedByCtfe = OwnedBy.ctfe;
 
             auto ei = new IndexExp(e.loc, ae, new IntegerExp(Loc.initial, 0, Type.tsize_t));
@@ -6570,9 +6567,8 @@ private Expression interpret_keys(InterState* istate, Expression earg, Type retu
         return null;
     assert(earg.op == TOK.assocArrayLiteral);
     AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)earg;
-    auto ae = new ArrayLiteralExp(aae.loc, aae.keys);
+    auto ae = new ArrayLiteralExp(aae.loc, returnType, aae.keys);
     ae.ownedByCtfe = aae.ownedByCtfe;
-    ae.type = returnType;
     return copyLiteral(ae).copy();
 }
 
@@ -6591,9 +6587,8 @@ private Expression interpret_values(InterState* istate, Expression earg, Type re
         return null;
     assert(earg.op == TOK.assocArrayLiteral);
     AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)earg;
-    auto ae = new ArrayLiteralExp(aae.loc, aae.values);
+    auto ae = new ArrayLiteralExp(aae.loc, returnType, aae.values);
     ae.ownedByCtfe = aae.ownedByCtfe;
-    ae.type = returnType;
     //printf("result is %s\n", e.toChars());
     return copyLiteral(ae).copy();
 }

@@ -7967,7 +7967,7 @@ final class Parser(AST) : Lexer
                 if (keys)
                     e = new AST.AssocArrayLiteralExp(loc, keys, values);
                 else
-                    e = new AST.ArrayLiteralExp(loc, values);
+                    e = new AST.ArrayLiteralExp(loc, null, values);
                 break;
             }
         case TOK.leftCurly:
