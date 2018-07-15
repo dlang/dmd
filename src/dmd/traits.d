@@ -411,8 +411,7 @@ extern (C++) Expression pointerBitmap(TraitsExp e)
     foreach (d_uns64 i; 0 .. data.dim)
         exps.push(new IntegerExp(e.loc, data[cast(size_t)i], Type.tsize_t));
 
-    auto ale = new ArrayLiteralExp(e.loc, exps);
-    ale.type = Type.tsize_t.sarrayOf(data.dim + 1);
+    auto ale = new ArrayLiteralExp(e.loc, Type.tsize_t.sarrayOf(data.dim + 1), exps);
     return ale;
 }
 

@@ -1586,8 +1586,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                          * is now optimized.
                          * https://issues.dlang.org/show_bug.cgi?id=2356
                          */
-                        Type tbn = (cast(TypeArray)tb).next;
-                        Type tsa = tbn.sarrayOf(nargs - i);
+                        Type tbn = (cast(TypeArray)tb).next;    // array element type
 
                         auto elements = new Expressions(nargs - i);
                         foreach (u; 0 .. elements.dim)
@@ -1605,8 +1604,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                         }
                         // https://issues.dlang.org/show_bug.cgi?id=14395
                         // Convert to a static array literal, or its slice.
-                        arg = new ArrayLiteralExp(loc, elements);
-                        arg.type = tsa;
+                        arg = new ArrayLiteralExp(loc, tbn.sarrayOf(nargs - i), elements);
                         if (tb.ty == Tarray)
                         {
                             arg = new SliceExp(loc, arg, null, null);
@@ -8872,8 +8870,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (tb2.ty == Tarray || tb2.ty == Tsarray)
                 {
                     // Make e2 into [e2]
-                    exp.e2 = new ArrayLiteralExp(exp.e2.loc, exp.e2);
-                    exp.e2.type = exp.type;
+                    exp.e2 = new ArrayLiteralExp(exp.e2.loc, exp.type, exp.e2);
                 }
                 else if (checkNewEscape(sc, exp.e2, false))
                     return setError();
@@ -8911,8 +8908,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (tb1.ty == Tarray || tb1.ty == Tsarray)
                 {
                     // Make e1 into [e1]
-                    exp.e1 = new ArrayLiteralExp(exp.e1.loc, exp.e1);
-                    exp.e1.type = exp.type;
+                    exp.e1 = new ArrayLiteralExp(exp.e1.loc, exp.type, exp.e1);
                 }
                 else if (checkNewEscape(sc, exp.e1, false))
                     return setError();

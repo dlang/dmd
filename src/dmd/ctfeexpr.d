@@ -331,10 +331,9 @@ extern (C++) UnionExp copyLiteral(Expression e)
         auto ale = cast(ArrayLiteralExp)e;
         auto elements = copyLiteralArray(ale.elements, ale.basis);
 
-        emplaceExp!(ArrayLiteralExp)(&ue, e.loc, elements);
+        emplaceExp!(ArrayLiteralExp)(&ue, e.loc, e.type, elements);
 
         ArrayLiteralExp r = cast(ArrayLiteralExp)ue.exp();
-        r.type = e.type;
         r.ownedByCtfe = OwnedBy.ctfe;
         return ue;
     }
@@ -625,8 +624,7 @@ extern (C++) ArrayLiteralExp createBlockDuplicatedArrayLiteral(const ref Loc loc
     {
         el = mustCopy && i ? copyLiteral(elem).copy() : elem;
     }
-    auto ale = new ArrayLiteralExp(loc, elements);
-    ale.type = type;
+    auto ale = new ArrayLiteralExp(loc, type, elements);
     ale.ownedByCtfe = OwnedBy.ctfe;
     return ale;
 }
@@ -1486,10 +1484,9 @@ extern (C++) UnionExp ctfeCat(const ref Loc loc, Type type, Expression e1, Expre
         //  [ e1 ] ~ [ e2 ] ---> [ e1, e2 ]
         ArrayLiteralExp es1 = cast(ArrayLiteralExp)e1;
         ArrayLiteralExp es2 = cast(ArrayLiteralExp)e2;
-        emplaceExp!(ArrayLiteralExp)(&ue, es1.loc, copyLiteralArray(es1.elements));
+        emplaceExp!(ArrayLiteralExp)(&ue, es1.loc, type, copyLiteralArray(es1.elements));
         es1 = cast(ArrayLiteralExp)ue.exp();
         es1.elements.insert(es1.elements.dim, copyLiteralArray(es2.elements));
-        es1.type = type;
         return ue;
     }
     if (e1.op == TOK.arrayLiteral && e2.op == TOK.null_ && t1.nextOf().equals(t2.nextOf()))
@@ -1767,9 +1764,8 @@ extern (C++) UnionExp changeArrayLiteralLength(const ref Loc loc, TypeArray arra
             foreach (size_t i; copylen .. newlen)
                 (*elements)[i] = defaultElem;
         }
-        emplaceExp!(ArrayLiteralExp)(&ue, loc, elements);
+        emplaceExp!(ArrayLiteralExp)(&ue, loc, arrayType, elements);
         ArrayLiteralExp aae = cast(ArrayLiteralExp)ue.exp();
-        aae.type = arrayType;
         aae.ownedByCtfe = OwnedBy.ctfe;
     }
     return ue;
@@ -1993,9 +1989,8 @@ extern (C++) UnionExp voidInitLiteral(Type t, VarDeclaration var)
                 elem = copyLiteral(elem).copy();
             (*elements)[i] = elem;
         }
-        emplaceExp!(ArrayLiteralExp)(&ue, var.loc, elements);
+        emplaceExp!(ArrayLiteralExp)(&ue, var.loc, tsa, elements);
         ArrayLiteralExp ae = cast(ArrayLiteralExp)ue.exp();
-        ae.type = tsa;
         ae.ownedByCtfe = OwnedBy.ctfe;
     }
     else if (t.ty == Tstruct)
