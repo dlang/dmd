@@ -1573,7 +1573,6 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 }
             L2:
                 Type tb = p.type.toBasetype();
-                Type tret = p.isLazyArray();
                 switch (tb.ty)
                 {
                 case Tsarray:
@@ -1587,6 +1586,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                          * https://issues.dlang.org/show_bug.cgi?id=2356
                          */
                         Type tbn = (cast(TypeArray)tb).next;    // array element type
+                        Type tret = p.isLazyArray();
 
                         auto elements = new Expressions(nargs - i);
                         foreach (u; 0 .. elements.dim)
@@ -1594,9 +1594,10 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                             Expression a = (*arguments)[i + u];
                             if (tret && a.implicitConvTo(tret))
                             {
-                                a = a.implicitCastTo(sc, tret);
-                                a = a.optimize(WANTvalue);
-                                a = toDelegate(a, a.type, sc);
+                                // p is a lazy array of delegates, tret is return type of the delegates
+                                a = a.implicitCastTo(sc, tret)
+                                     .optimize(WANTvalue)
+                                     .toDelegate(tret, sc);
                             }
                             else
                                 a = a.implicitCastTo(sc, tbn);
@@ -1645,10 +1646,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 bool isRef = (p.storageClass & (STC.ref_ | STC.out_)) != 0;
                 if (ubyte wm = arg.type.deduceWild(p.type, isRef))
                 {
-                    if (wildmatch)
-                        wildmatch = MODmerge(wildmatch, wm);
-                    else
-                        wildmatch = wm;
+                    wildmatch = wildmatch ? MODmerge(wildmatch, wm) : wm;
                     //printf("[%d] p = %s, a = %s, wm = %d, wildmatch = %d\n", i, p.type.toChars(), arg.type.toChars(), wm, wildmatch);
                 }
             }
@@ -1656,8 +1654,17 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
         if (done)
             break;
     }
-    if ((wildmatch == MODFlags.mutable || wildmatch == MODFlags.immutable_) && tf.next.hasWild() && (tf.isref || !tf.next.implicitConvTo(tf.next.immutableOf())))
+    if ((wildmatch == MODFlags.mutable || wildmatch == MODFlags.immutable_) &&
+        tf.next.hasWild() &&
+        (tf.isref || !tf.next.implicitConvTo(tf.next.immutableOf())))
     {
+        bool errorInout(MOD wildmatch)
+        {
+            const(char)* s = wildmatch == MODFlags.mutable ? "mutable" : MODtoChars(wildmatch);
+            error(loc, "modify `inout` to `%s` is not allowed inside `inout` function", s);
+            return true;
+        }
+
         if (fd)
         {
             /* If the called function may return the reference to
@@ -1684,7 +1691,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 if (auto ff = s.isFuncDeclaration())
                 {
                     if ((cast(TypeFunction)ff.type).iswild)
-                        goto Linouterr;
+                        return errorInout(wildmatch);
 
                     if (ff.isNested() || ff.isThis())
                         continue;
@@ -1693,27 +1700,21 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             }
         }
         else if (tf.isWild())
-        {
-        Linouterr:
-            const(char)* s = wildmatch == MODFlags.mutable ? "mutable" : MODtoChars(wildmatch);
-            error(loc, "modify `inout` to `%s` is not allowed inside `inout` function", s);
-            return true;
-        }
+            return errorInout(wildmatch);
     }
 
     assert(nargs >= nparams);
-    for (size_t i = 0; i < nargs; i++)
+    foreach (const i, arg; (*arguments)[0 .. nargs])
     {
-        Expression arg = (*arguments)[i];
         assert(arg);
         if (i < nparams)
         {
             Parameter p = Parameter.getNth(tf.parameters, i);
             if (!(p.storageClass & STC.lazy_ && p.type.ty == Tvoid))
             {
-                Type tprm = p.type;
-                if (p.type.hasWild())
-                    tprm = p.type.substWildTo(wildmatch);
+                Type tprm = p.type.hasWild()
+                    ? p.type.substWildTo(wildmatch)
+                    : p.type;
                 if (!tprm.equals(arg.type))
                 {
                     //printf("arg.type = %s, p.type = %s\n", arg.type.toChars(), p.type.toChars());
@@ -1747,10 +1748,8 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             else if (p.storageClass & STC.lazy_)
             {
                 // Convert lazy argument to a delegate
-                if (p.type.ty == Tvoid)
-                    arg = toDelegate(arg, p.type, sc);
-                else
-                    arg = toDelegate(arg, arg.type, sc);
+                auto t = (p.type.ty == Tvoid) ? p.type : arg.type;
+                arg = toDelegate(arg, t, sc);
             }
             //printf("arg: %s\n", arg.toChars());
             //printf("type: %s\n", arg.type.toChars());
@@ -2046,8 +2045,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             (*args)[i] = arg;
         }
         auto tup = new TypeTuple(args);
-        Expression e = new TypeidExp(loc, tup);
-        e = e.expressionSemantic(sc);
+        Expression e = (new TypeidExp(loc, tup)).expressionSemantic(sc);
         arguments.insert(0, e);
     }
 
