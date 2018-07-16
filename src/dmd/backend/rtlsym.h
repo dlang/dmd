@@ -31,7 +31,7 @@
 #define SYMBOL_SCPP_TX86(e, fl, saved, n, flags, ty)
 #endif
 
-#if MARS
+#if 1 || MARS
 #define SYMBOL_MARS(e, fl, saved, n, flags, ty) SYMBOL_Z(e,fl,saved,n,flags,ty)
 #else
 #define SYMBOL_MARS(e, fl, saved, n, flags, ty)

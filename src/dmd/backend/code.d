@@ -118,8 +118,6 @@ enum
     NTEHpassthru    = 0x100,
 }
 
-extern __gshared LocalSection Para;
-
 alias IDXSTR = uint;
 alias IDXSEC = uint;
 alias IDXSYM = uint;
@@ -205,32 +203,173 @@ struct FuncParamRegs
 
 extern __gshared
 {
+    regm_t msavereg,mfuncreg,allregs;
+
     int BPRM;
-    targ_size_t localsize;
-    targ_size_t funcoffset;
-    targ_size_t framehandleroffset;
+    regm_t FLOATREGS;
+    regm_t FLOATREGS2;
+    regm_t DOUBLEREGS;
+    //const char datafl[],stackfl[],segfl[],flinsymtab[];
+    char needframe,gotref;
+    targ_size_t localsize,
+        funcoffset,
+        framehandleroffset;
     segidx_t cseg;
+    int STACKALIGN;
+    LocalSection Para;
+    LocalSection Fast;
+    LocalSection Auto;
+    LocalSection EEStack;
+    LocalSection Alloca;
 }
 
 /* cgxmm.c */
 bool isXMMstore(uint op);
 
-extern __gshared LocalSection Alloca;
-
 /* cgcod.c */
+extern __gshared int pass;
+enum
+{
+    PASSinitial,     // initial pass through code generator
+    PASSreg,         // register assignment pass
+    PASSfinal,       // final pass
+}
+
+extern __gshared int dfoidx;
+//extern __gshared CSE *csextab;
+extern __gshared bool floatreg;
+extern __gshared targ_size_t prolog_allocoffset;
+extern __gshared targ_size_t startoffset;
 extern __gshared targ_size_t retoffset;
+extern __gshared targ_size_t retsize;
+extern __gshared uint stackpush;
+extern __gshared int stackchanged;
 extern __gshared int refparam;
+extern __gshared int reflocal;
+extern __gshared bool anyiasm;
+extern __gshared char calledafunc;
+//extern __gshared void function(ref CodeBuilder,elem *,regm_t *)[OPMAX] cdxxx;
+extern __gshared bool calledFinally;
+
+void stackoffsets(int);
+void codgen(Symbol *);
+//#ifdef DEBUG
+//unsigned findreg (regm_t regm , int line , const char *file );
+//#define findreg(regm) findreg((regm),__LINE__,__FILE__)
+//#else
+//unsigned findreg (regm_t regm );
+//#endif
+//#define findregmsw(regm) findreg((regm) & mMSW)
+//#define findreglsw(regm) findreg((regm) & (mLSW | mBP))
+void freenode(elem *e);
+int isregvar(elem *e, regm_t *pregm, uint *preg);
+//#ifdef DEBUG
+//void allocreg(CodeBuilder& cdb, regm_t *pretregs, unsigned *preg, tym_t tym, int line, const char *file);
+//#define allocreg(a,b,c,d) allocreg((a),(b),(c),(d),__LINE__,__FILE__)
+//#else
+//void allocreg(ref CodeBuilder cdb, regm_t *pretregs, uint *preg, tym_t tym);
+//#endif
+regm_t lpadregs();
+void useregs (regm_t regm);
+void getregs(ref CodeBuilder cdb, regm_t r);
+void getregsNoSave(regm_t r);
+void getregs_imm(ref CodeBuilder cdb, regm_t r);
+void cse_flush(ref CodeBuilder, int);
+bool cse_simple(code *c, elem *e);
+void gen_testcse(ref CodeBuilder cdb, uint sz, targ_uns i);
+void gen_loadcse(ref CodeBuilder cdb, uint reg, targ_uns i);
+bool cssave (elem *e , regm_t regm , uint opsflag );
+bool evalinregister(elem *e);
+regm_t getscratch();
+void codelem(ref CodeBuilder cdb, elem *e, regm_t *pretregs, bool constflag);
+void scodelem(ref CodeBuilder cdb, elem *e, regm_t *pretregs, regm_t keepmsk, bool constflag);
+const(char)* regm_str(regm_t rm);
+int numbitsset(regm_t);
+
+/* cod1.c */
+extern __gshared int clib_inited;
+
+int isscaledindex(elem *);
+int ssindex(int op,targ_uns product);
+void buildEA(code *c,int base,int index,int scale,targ_size_t disp);
+uint buildModregrm(int mod, int reg, int rm);
+void andregcon (con_t *pregconsave);
+void genEEcode();
+void docommas(ref CodeBuilder cdb,elem **pe);
+uint gensaverestore(regm_t, ref CodeBuilder cdbsave, ref CodeBuilder cdbrestore);
+void genstackclean(ref CodeBuilder cdb,uint numpara,regm_t keepmsk);
+void logexp(ref CodeBuilder cdb, elem *e, int jcond, uint fltarg, code *targ);
+uint getaddrmode(regm_t idxregs);
+void setaddrmode(code *c, regm_t idxregs);
+void fltregs(ref CodeBuilder cdb, code *pcs, tym_t tym);
+void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, uint saveflag);
+void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs);
+void callclib(ref CodeBuilder cdb, elem *e, uint clib, regm_t *pretregs, regm_t keepmask);
+void pushParams(ref CodeBuilder cdb,elem *, uint, tym_t tyf);
+void offsetinreg(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
+
+/* cod2.c */
+int movOnly(elem *e);
+regm_t idxregm(code *c);
+void opdouble(ref CodeBuilder cdb, elem *e, regm_t *pretregs, uint clib);
+void WRcodlst(code *c);
+void getoffset(ref CodeBuilder cdb, elem *e, uint reg);
 
 /* cod3.c */
 
+int cod3_EA(code *c);
+regm_t cod3_useBP();
 void cod3_initregs();
 void cod3_setdefault();
 void cod3_set32();
 void cod3_set64();
+void cod3_align_bytes(int seg, size_t nbytes);
+void cod3_align(int seg);
+void cod3_buildmodulector(Outbuffer* buf, int codeOffset, int refOffset);
+void cod3_stackadj(ref CodeBuilder cdb, int nbytes);
+regm_t regmask(tym_t tym, tym_t tyf);
+void cgreg_dst_regs(uint *dst_integer_reg, uint *dst_float_reg);
+void cgreg_set_priorities(tym_t ty, ubyte **pseq, ubyte **pseqmsw);
+void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const char* sflsave, Symbol** retsym, const regm_t mfuncregsave );
+void outjmptab(block *b);
+void outswitab(block *b);
+int jmpopcode(elem *e);
+void cod3_ptrchk(ref CodeBuilder cdb,code *pcs,regm_t keepmsk);
+void genregs(ref CodeBuilder cdb, uint op, uint dstreg, uint srcreg);
+void gentstreg(ref CodeBuilder cdb, uint reg);
+void genpush(ref CodeBuilder cdb, uint reg);
+void genpop(ref CodeBuilder cdb, uint reg);
+void gensavereg(ref CodeBuilder cdb, ref uint reg, targ_uns slot);
+code *genmovreg(uint to, uint from);
+void genmovreg(ref CodeBuilder cdb, uint to, uint from);
+void genmulimm(ref CodeBuilder cdb,uint r1,uint r2,targ_int imm);
+void genshift(ref CodeBuilder cdb);
+void movregconst(ref CodeBuilder cdb,uint reg,targ_size_t value,regm_t flags);
+void genjmp(ref CodeBuilder cdb, uint op, uint fltarg, block *targ);
+void prolog(ref CodeBuilder cdb);
+void epilog (block *b);
+void gen_spill_reg(ref CodeBuilder cdb, Symbol *s, bool toreg);
+void load_localgot(ref CodeBuilder cdb);
 targ_size_t cod3_spoff();
-uint calccodsize(code *c);
+void makeitextern (Symbol *s );
+void fltused();
+int branch(block *bl, int flag);
+void cod3_adjSymOffsets();
+void assignaddr(block *bl);
+void assignaddrc(code *c);
 targ_size_t cod3_bpoffset(Symbol *s);
-void searchfixlist(Symbol *s) { }
+void pinholeopt (code *c , block *bn );
+void simplify_code(code *c);
+void jmpaddr (code *c);
+int code_match(code *c1,code *c2);
+uint calcblksize (code *c);
+uint calccodsize(code *c);
+uint codout(int seg, code *c);
+size_t addtofixlist(Symbol *s , targ_size_t soffset , int seg , targ_size_t val , int flags );
+void searchfixlist(Symbol *s) {}
+void outfixlist();
+void code_hydrate(code **pc);
+void code_dehydrate(code **pc);
 
 /* cgxmm.c */
 void checkSetVex3(code *c);

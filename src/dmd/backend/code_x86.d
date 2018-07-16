@@ -332,18 +332,18 @@ enum
  * genorreg:    OR  t,f
  */
 
+ubyte modregrm(uint m, uint r, uint rm) { return cast(ubyte)((m << 6) | (r << 3) | rm); }
 /+
-#define modregrm(m,r,rm)        (((m)<<6)|((r)<<3)|(rm))
 #define modregxrm(m,r,rm)       ((((r)&8)<<15)|modregrm((m),(r)&7,rm))
 #define modregrmx(m,r,rm)       ((((rm)&8)<<13)|modregrm((m),r,(rm)&7))
 #define modregxrmx(m,r,rm)      ((((r)&8)<<15)|(((rm)&8)<<13)|modregrm((m),(r)&7,(rm)&7))
 
 #define NEWREXR(x,r)            ((x)=((x)&~REX_R)|(((r)&8)>>1))
-#define NEWREG(x,r)             ((x)=((x)&~(7<<3))|((r)<<3))
-#define code_newreg(c,r)        (NEWREG((c)->Irm,(r)&7),NEWREXR((c)->Irex,(r)))
-
-#define genorreg(c,t,f)         genregs((c),0x09,(f),(t))
 +/
+void NEWREG(ref ubyte x, uint r)   { x = cast(ubyte)((x & ~(7 << 3)) | (r << 3)); }
+//#define code_newreg(c,r)        (NEWREG((c)->Irm,(r)&7),NEWREXR((c)->Irex,(r)))
+
+//#define genorreg(c,t,f)         genregs((c),0x09,(f),(t))
 
 enum
 {
