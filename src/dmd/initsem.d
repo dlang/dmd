@@ -340,6 +340,10 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
         if (t.ty == Tsarray)
         {
             uinteger_t edim = (cast(TypeSArray)t).dim.toInteger();
+            if (!i.isAssociativeArray() && i.dim != edim)
+            {
+                deprecation(i.loc, "mismatched array lengths, %llu and %u", edim, i.dim);
+            }
             if (i.dim > edim)
             {
                 error(i.loc, "array initializer has %u elements, but array length is %llu", i.dim, edim);
