@@ -693,6 +693,7 @@ extern (C++) abstract class Expression : RootObject
         CTFEExp.breakexp = new CTFEExp(TOK.break_);
         CTFEExp.continueexp = new CTFEExp(TOK.continue_);
         CTFEExp.gotoexp = new CTFEExp(TOK.goto_);
+        CTFEExp.showcontext = new CTFEExp(TOK.showCtfeContext);
     }
 
     /*********************************

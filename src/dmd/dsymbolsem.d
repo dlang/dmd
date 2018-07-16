@@ -1218,6 +1218,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     // https://issues.dlang.org/show_bug.cgi?id=14166
                     // Don't run CTFE for the temporary variables inside typeof
                     dsym._init = dsym._init.initializerSemantic(sc, dsym.type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
+                    const init_err = dsym._init.isExpInitializer();
+                    if (init_err && init_err.exp.op == TOK.showCtfeContext)
+                    {
+                         errorSupplemental(dsym.loc, "compile time context created here");
+                    }
                 }
             }
             else if (parent.isAggregateDeclaration())

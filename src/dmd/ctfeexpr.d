@@ -235,6 +235,10 @@ extern (C++) final class CTFEExp : Expression
     extern (C++) static __gshared CTFEExp breakexp;
     extern (C++) static __gshared CTFEExp continueexp;
     extern (C++) static __gshared CTFEExp gotoexp;
+    /* Used when additional information is needed regarding
+     * a ctfe error.
+     */
+    extern (C++) static __gshared CTFEExp showcontext;
 
     static bool isCantExp(const Expression e)
     {
@@ -250,7 +254,7 @@ extern (C++) final class CTFEExp : Expression
 // True if 'e' is CTFEExp::cantexp, or an exception
 extern (C++) bool exceptionOrCantInterpret(const Expression e)
 {
-    return e && (e.op == TOK.cantExpression || e.op == TOK.thrownException);
+    return e && (e.op == TOK.cantExpression || e.op == TOK.thrownException || e.op == TOK.showCtfeContext);
 }
 
 /************** Aggregate literals (AA/string/array/struct) ******************/

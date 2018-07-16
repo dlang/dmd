@@ -434,7 +434,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
 
     override void visit(ExpInitializer i)
     {
-        //printf("ExpInitializer::semantic(%s), type = %s\n", exp.toChars(), t.toChars());
+        //printf("ExpInitializer::semantic(%s), type = %s\n", i.exp.toChars(), t.toChars());
         if (needInterpret)
             sc = sc.startCTFE();
         i.exp = i.exp.expressionSemantic(sc);
@@ -586,7 +586,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             i.exp = i.exp.ctfeInterpret();
         else
             i.exp = i.exp.optimize(WANTvalue);
-        //printf("-ExpInitializer::semantic(): "); exp.print();
+        //printf("-ExpInitializer::semantic(): "); i.exp.print();
         result = i;
     }
 }
@@ -928,7 +928,7 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
     {
         if (itype)
         {
-            //printf("ExpInitializer::toExpression(t = %s) exp = %s\n", t.toChars(), exp.toChars());
+            //printf("ExpInitializer::toExpression(t = %s) exp = %s\n", itype.toChars(), i.exp.toChars());
             Type tb = itype.toBasetype();
             Expression e = (i.exp.op == TOK.construct || i.exp.op == TOK.blit) ? (cast(AssignExp)i.exp).e2 : i.exp;
             if (tb.ty == Tsarray && e.implicitConvTo(tb.nextOf()))

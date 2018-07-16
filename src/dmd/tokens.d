@@ -283,6 +283,7 @@ enum TOK : int
     interval = 231,
     voidExpression,
     cantExpression,
+    showCtfeContext,
 
     objcClassReference,
 
@@ -693,6 +694,7 @@ extern (C++) struct Token
         TOK.interval: "interval",
         TOK.voidExpression: "voidexp",
         TOK.cantExpression: "cantexp",
+        TOK.showCtfeContext : "showCtfeContext",
 
         TOK.objcClassReference: "class",
     ];
