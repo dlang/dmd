@@ -1470,15 +1470,24 @@ alias Aliassym = Symbol;
 //alias Funcsym = Symbol;
 
 // Determine if this Symbol is stored in a COMDAT
-//#if MARS
-//#define symbol_iscomdat(s)      ((s)->Sclass == SCcomdat ||             \
-//        config.flags2 & CFG2comdat && (s)->Sclass == SCinline ||        \
-//        config.flags4 & CFG4allcomdat && ((s)->Sclass == SCglobal))
-//#else
-//#define symbol_iscomdat(s)      ((s)->Sclass == SCcomdat ||             \
-//        config.flags2 & CFG2comdat && (s)->Sclass == SCinline ||        \
-//        config.flags4 & CFG4allcomdat && ((s)->Sclass == SCglobal || (s)->Sclass == SCstatic))
-//#endif
+version (MARS)
+{
+    auto symbol_iscomdat(S)(S s)
+    {
+        return s.Sclass == SCcomdat ||
+            config.flags2 & CFG2comdat && s.Sclass == SCinline ||
+            config.flags4 & CFG4allcomdat && (s.Sclass == SCglobal);
+    }
+}
+else
+{
+    auto symbol_iscomdat(S)(S s)
+    {
+        return s.Sclass == SCcomdat ||
+        config.flags2 & CFG2comdat && s.Sclass == SCinline ||
+        config.flags4 & CFG4allcomdat && (s.Sclass == SCglobal || s.Sclass == SCstatic);
+    }
+}
 
 /* Format the identifier for presentation to the user   */
 version (SCPP)

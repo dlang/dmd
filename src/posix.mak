@@ -345,13 +345,13 @@ BACK_OBJS = var.o el.o \
 	debug.o code.o symbol.o \
 	cgcod.o outbuf.o \
 	aa.o ti_achar.o \
-	ti_pvoid.o pdata.o cv8.o backconfig.o \
+	ti_pvoid.o pdata.o backconfig.o \
 	dwarf.o dwarfeh.o varstats.o \
 	ph2.o util2.o tk.o strtold.o md5.o \
 	$(TARGET_OBJS)
 
 BACK_DOBJS = bcomplex.o evalu8.o divcoeff.o dvec.o go.o gsroa.o glocal.o gdag.o gother.o gflow.o \
-	gloop.o compress.o cgelem.o cgcs.o ee.o cod5.o
+	gloop.o compress.o cgelem.o cgcs.o ee.o cod5.o cv8.o
 
 G_OBJS  = $(addprefix $G/, $(BACK_OBJS))
 G_DOBJS = $(addprefix $G/, $(BACK_DOBJS))
@@ -395,7 +395,7 @@ BACK_SRC = \
 	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aa.c $C/tinfo.h $C/ti_achar.c \
 	$C/ti_pvoid.c $C/platform_stub.c $C/code_x86.h $C/code_stub.h \
 	$C/machobj.c $C/mscoffobj.c \
-	$C/xmm.h $C/obj.h $C/pdata.c $C/cv8.c $C/backconfig.c $C/divcoeff.d \
+	$C/xmm.h $C/obj.h $C/pdata.c $C/cv8.d $C/backconfig.c $C/divcoeff.d \
 	$C/varstats.c $C/varstats.h $C/dvec.d \
 	$C/md5.c $C/md5.h \
 	$C/ph2.c $C/util2.c $C/dwarfeh.c $C/goh.d $C/memh.d \
