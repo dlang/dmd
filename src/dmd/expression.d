@@ -686,15 +686,6 @@ extern (C++) abstract class Expression : RootObject
         this.size = cast(ubyte)size;
     }
 
-    static void _init()
-    {
-        CTFEExp.cantexp = new CTFEExp(TOK.cantExpression);
-        CTFEExp.voidexp = new CTFEExp(TOK.voidExpression);
-        CTFEExp.breakexp = new CTFEExp(TOK.break_);
-        CTFEExp.continueexp = new CTFEExp(TOK.continue_);
-        CTFEExp.gotoexp = new CTFEExp(TOK.goto_);
-    }
-
     /*********************************
      * Does *not* do a deep copy.
      */

@@ -205,6 +205,31 @@ extern (C++) final class ThrownExceptionExp : Expression
  */
 extern (C++) final class CTFEExp : Expression
 {
+    extern (D) package static struct SharedState
+    {
+        @generateForwarder
+        {
+            CTFEExp cantexp;
+            CTFEExp voidexp;
+            CTFEExp breakexp;
+            CTFEExp continueexp;
+            CTFEExp gotoexp;
+        }
+
+        @disable this(this);
+
+        static void initialize(ref SharedState state)
+        {
+            state.cantexp = new CTFEExp(TOK.cantExpression);
+            state.voidexp = new CTFEExp(TOK.voidExpression);
+            state.breakexp = new CTFEExp(TOK.break_);
+            state.continueexp = new CTFEExp(TOK.continue_);
+            state.gotoexp = new CTFEExp(TOK.goto_);
+        }
+    }
+
+    mixin(generateForwarders!(SharedState, "ctfeExpressionState"));
+
     extern (D) this(TOK tok)
     {
         super(Loc.initial, tok, __traits(classInstanceSize, CTFEExp));
@@ -229,12 +254,6 @@ extern (C++) final class CTFEExp : Expression
             assert(0);
         }
     }
-
-    extern (C++) static __gshared CTFEExp cantexp;
-    extern (C++) static __gshared CTFEExp voidexp;
-    extern (C++) static __gshared CTFEExp breakexp;
-    extern (C++) static __gshared CTFEExp continueexp;
-    extern (C++) static __gshared CTFEExp gotoexp;
 
     static bool isCantExp(const Expression e)
     {

@@ -127,13 +127,11 @@ struct ObjcSelector
     }
 }
 
-private __gshared Objc _objc;
-
 Objc objc()
 {
-    return _objc;
+    import dmd.globals : compilerInvocation;
+    return compilerInvocation.objc;
 }
-
 
 /**
  * Contains all data for a class declaration that is needed for the Objective-C
@@ -151,12 +149,12 @@ struct ObjcClassDeclaration
 // Should be an interface
 extern(C++) abstract class Objc
 {
-    static void _init()
+    static Objc initialize()
     {
         if (global.params.isOSX && global.params.is64bit)
-            _objc = new Supported;
+            return new Supported;
         else
-            _objc = new Unsupported;
+            return new Unsupported;
     }
 
     abstract void setObjc(ClassDeclaration cd);

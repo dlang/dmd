@@ -25,24 +25,31 @@ import dmd.tokens;
  */
 struct Id
 {
-    static __gshared:
+    import dmd.globals : generateForwarder, generateForwarders, compilerInvocation;
 
-    mixin(msgtable.generate(&identifier));
-
-    /**
-     * Populates the identifier pool with all predefined symbols.
-     *
-     * An identifier that corresponds to each static field in this struct will
-     * be placed in the identifier pool.
-     */
-    extern(C++) void initialize()
+    extern (D) package static struct SharedState
     {
-        mixin(msgtable.generate(&initializer));
+        @generateForwarder
+        {
+            mixin(msgtable.generate(&identifier));
+        }
+
+        /**
+         * Populates the identifier pool with all predefined symbols.
+         *
+         * An identifier that corresponds to each static field in this struct will
+         * be placed in the identifier pool.
+         */
+        static void initialize(ref SharedState state)
+        {
+            mixin(msgtable.generate(&initializer));
+        }
     }
+
+    mixin(generateForwarders!(SharedState, "idState"));
 }
 
 private:
-
 
 /**
  * Each element in this array will generate one static field in the `Id` struct
@@ -479,5 +486,5 @@ string identifier(Msgtable m)
 // Used to generate the code for each initializer.
 string initializer(Msgtable m)
 {
-    return m.ident ~ ` = Identifier.idPool("` ~ m.name ~ `");`;
+    return "state." ~ m.ident ~ ` = Identifier.idPool("` ~ m.name ~ `");`;
 }

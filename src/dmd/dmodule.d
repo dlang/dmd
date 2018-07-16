@@ -284,26 +284,39 @@ extern (C++) class Package : ScopeDsymbol
  */
 extern (C++) final class Module : Package
 {
-    extern (C++) static __gshared Module rootModule;
-    extern (C++) static __gshared DsymbolTable modules; // symbol table of all modules
-    extern (C++) static __gshared Modules amodules;     // array of all modules
-    extern (C++) static __gshared Dsymbols deferred;    // deferred Dsymbol's needing semantic() run on them
-    extern (C++) static __gshared Dsymbols deferred2;   // deferred Dsymbol's needing semantic2() run on them
-    extern (C++) static __gshared Dsymbols deferred3;   // deferred Dsymbol's needing semantic3() run on them
-    extern (C++) static __gshared uint dprogress;       // progress resolving the deferred list
-    /**
-     * A callback function that is called once an imported module is
-     * parsed. If the callback returns true, then it tells the
-     * frontend that the driver intends on compiling the import.
-     */
-    extern (C++) static __gshared bool function(Module mod) onImport;
+    import dmd.root.array : Array;
 
-    static void _init()
+    extern (D) package static struct SharedState
     {
-        modules = new DsymbolTable();
+        @generateForwarder
+        {
+            Module rootModule;
+            DsymbolTable modules; // symbol table of all modules
+            Modules amodules;     // array of all modules
+            Dsymbols deferred;    // deferred Dsymbol's needing semantic() run on them
+            Dsymbols deferred2;   // deferred Dsymbol's needing semantic2() run on them
+            Dsymbols deferred3;   // deferred Dsymbol's needing semantic3() run on them
+            uint dprogress;       // progress resolving the deferred list
+
+            AggregateDeclaration moduleinfo;
+        }
+
+        @disable this(this);
+
+        /**
+         * A callback function that is called once an imported module is
+         * parsed. If the callback returns true, then it tells the
+         * frontend that the driver intends on compiling the import.
+         */
+        extern (C++) bool function(Module mod) onImport;
+
+        static void initialize(ref SharedState state)
+        {
+            state.modules = new DsymbolTable();
+        }
     }
 
-    extern (C++) static __gshared AggregateDeclaration moduleinfo;
+    mixin(generateForwarders!(SharedState, "moduleState"));
 
     const(char)* arg;           // original argument name
     ModuleDeclaration* md;      // if !=null, the contents of the ModuleDeclaration declaration
@@ -531,9 +544,9 @@ extern (C++) final class Module : Package
         //!!!!!!!!!!!!!!!!!!!!!!!
         version(OSX)
         {
-            if (!m.isRoot() && onImport)
+            if (!m.isRoot() && compilerInvocation.moduleState.onImport)
             {
-                auto onImportResult = onImport(m);
+                auto onImportResult = compilerInvocation.moduleState.onImport(m);
                 if(onImportResult)
                 {
                     m.importedFrom = m;
@@ -543,7 +556,11 @@ extern (C++) final class Module : Package
         }
         else
         {
-            if (!m.isRoot() && onImport && onImport(m))
+            if (
+                !m.isRoot() &&
+                compilerInvocation.moduleState.onImport &&
+                compilerInvocation.moduleState.onImport(m)
+            )
             {
                 m.importedFrom = m;
                 assert(m.isRoot());
@@ -1195,7 +1212,7 @@ extern (C++) final class Module : Package
     {
         Module.runDeferredSemantic();
 
-        Dsymbols* a = &Module.deferred2;
+        Dsymbols* a = &Module.deferred2();
         for (size_t i = 0; i < a.dim; i++)
         {
             Dsymbol s = (*a)[i];
@@ -1212,7 +1229,7 @@ extern (C++) final class Module : Package
     {
         Module.runDeferredSemantic2();
 
-        Dsymbols* a = &Module.deferred3;
+        Dsymbols* a = &Module.deferred3();
         for (size_t i = 0; i < a.dim; i++)
         {
             Dsymbol s = (*a)[i];

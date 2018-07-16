@@ -94,9 +94,12 @@ private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
     return getDsymbol(oarg);
 }
 
-extern (C++) __gshared StringTable traitsStringTable;
+extern (C++) ref StringTable traitsStringTable()
+{
+    return compilerInvocation.traitsStringTable;
+}
 
-shared static this()
+package void initializeTraits(ref StringTable traitsStringTable)
 {
     static immutable string[] names =
     [

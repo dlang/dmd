@@ -19,6 +19,115 @@ import dmd.root.outbuffer;
 import dmd.compiler;
 import dmd.identifier;
 
+package enum generateForwarder;
+
+package string generateForwarders(Type, string compilerInvocationFieldName)()
+{
+    alias Tuple(T...) = T;
+
+    static bool isForwardable(alias field)()
+    {
+        alias attributes = Tuple!(__traits(getAttributes, field));
+        return attributes.length > 0 && is(attributes[0] == generateForwarder);
+    }
+
+    static string accessField(string name)
+    {
+        return "return compilerInvocation." ~ compilerInvocationFieldName ~
+            '.' ~ name;
+    }
+
+    static string generateGetter(string name)
+    {
+        return q{extern (D) @property static ref auto } ~ name ~ "() " ~
+               "{ " ~
+                       accessField(name) ~ "; " ~
+               '}';
+    }
+
+    static string generateSetter(string type, string name)
+    {
+        return q{extern (D) @property static auto } ~ name ~ "()(auto ref " ~ type ~ ' ' ~ name ~ ") " ~
+               "{ " ~
+                        accessField(name) ~ " = " ~ name ~ ';' ~
+               '}';
+    }
+
+    alias Fields = typeof(Type.tupleof);
+    string code;
+
+    foreach (i, _; Fields)
+    {
+        if (!isForwardable!(Type.tupleof[i]))
+            continue;
+
+        enum name = __traits(identifier, Type.tupleof[i]);
+        enum type = Fields[i].stringof;
+
+        code ~= generateGetter(name) ~ '\n' ~ generateSetter(type, name);
+
+        if (i != Fields.length - 1)
+            code ~= '\n';
+    }
+
+    return code;
+}
+
+class CompilerInvocation
+{
+    import dmd.ctfeexpr : CTFEExp;
+    import dmd.dmodule : Module;
+    import dmd.id : Id;
+    import dmd.mtype : Type;
+    import dmd.objc : Objc;
+    import dmd.root.stringtable : StringTable;
+    import dmd.target : Target;
+    import dmd.traits : initializeTraits;
+
+    Global global;
+    Type.SharedState typeState;
+    Id.SharedState idState;
+    Module.SharedState moduleState;
+    Target.SharedState targetState;
+    CTFEExp.SharedState ctfeExpressionState;
+
+    Objc objc;
+    StringTable builtins;
+
+    StringTable traitsStringTable;
+
+    private void _init()
+    {
+        import dmd.builtin : initializeBuiltins;
+        import dmd.mars : addDefaultVersionIdentifiers;
+
+        global._init();
+        addDefaultVersionIdentifiers();
+
+        Type.SharedState.initialize(typeState);
+        Id.SharedState.initialize(idState);
+        Module.SharedState.initialize(moduleState);
+        Target.SharedState.initialize(targetState);
+        CTFEExp.SharedState.initialize(ctfeExpressionState);
+
+        objc = Objc.initialize();
+        initializeBuiltins(builtins);
+
+        initializeTraits(traitsStringTable);
+    }
+
+    static void initialize()
+    in
+    {
+        assert(!compilerInvocation);
+    }
+    body
+    {
+        compilerInvocation = new CompilerInvocation();
+        compilerInvocation._init();
+    }
+}
+
 template xversion(string s)
 {
     enum xversion = mixin(`{ version (` ~ s ~ `) return true; else return false; }`)();
@@ -513,4 +622,9 @@ enum PINLINE : int
 
 alias StorageClass = uinteger_t;
 
-extern (C++) __gshared Global global;
+extern (C++) ref Global global() nothrow
+{
+    return compilerInvocation.global;
+}
+
+extern (C++) __gshared CompilerInvocation compilerInvocation;

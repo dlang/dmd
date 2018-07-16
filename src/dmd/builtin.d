@@ -40,16 +40,9 @@ private:
  */
 extern (C++) alias builtin_fp = Expression function(Loc loc, FuncDeclaration fd, Expressions* arguments);
 
-__gshared StringTable builtins;
-
-public extern (C++) void add_builtin(const(char)* mangle, builtin_fp fp)
-{
-    builtins.insert(mangle, strlen(mangle), cast(void*)fp);
-}
-
 builtin_fp builtin_lookup(const(char)* mangle)
 {
-    if (const sv = builtins.lookup(mangle, strlen(mangle)))
+    if (const sv = compilerInvocation.builtins.lookup(mangle, strlen(mangle)))
         return cast(builtin_fp)sv.ptrvalue;
     return null;
 }
@@ -326,9 +319,15 @@ extern (C++) Expression eval_yl2xp1(Loc loc, FuncDeclaration fd, Expressions* ar
     return new RealExp(loc, result, arg0.type);
 }
 
-public extern (C++) void builtin_init()
+package void initializeBuiltins(ref StringTable builtins)
 {
     builtins._init(47);
+
+    void add_builtin(const(char)* mangle, builtin_fp fp)
+    {
+        builtins.insert(mangle, strlen(mangle), cast(void*)fp);
+    }
+
     // @safe @nogc pure nothrow real function(real)
     add_builtin("_D4core4math3sinFNaNbNiNfeZe", &eval_sin);
     add_builtin("_D4core4math3cosFNaNbNiNfeZe", &eval_cos);

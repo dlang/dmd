@@ -394,92 +394,199 @@ extern (C++) abstract class Type : RootObject
 
     type* ctype;                    // for back end
 
-    extern (C++) static __gshared Type tvoid;
-    extern (C++) static __gshared Type tint8;
-    extern (C++) static __gshared Type tuns8;
-    extern (C++) static __gshared Type tint16;
-    extern (C++) static __gshared Type tuns16;
-    extern (C++) static __gshared Type tint32;
-    extern (C++) static __gshared Type tuns32;
-    extern (C++) static __gshared Type tint64;
-    extern (C++) static __gshared Type tuns64;
-    extern (C++) static __gshared Type tint128;
-    extern (C++) static __gshared Type tuns128;
-    extern (C++) static __gshared Type tfloat32;
-    extern (C++) static __gshared Type tfloat64;
-    extern (C++) static __gshared Type tfloat80;
-    extern (C++) static __gshared Type timaginary32;
-    extern (C++) static __gshared Type timaginary64;
-    extern (C++) static __gshared Type timaginary80;
-    extern (C++) static __gshared Type tcomplex32;
-    extern (C++) static __gshared Type tcomplex64;
-    extern (C++) static __gshared Type tcomplex80;
-    extern (C++) static __gshared Type tbool;
-    extern (C++) static __gshared Type tchar;
-    extern (C++) static __gshared Type twchar;
-    extern (C++) static __gshared Type tdchar;
-
-    // Some special types
-    extern (C++) static __gshared Type tshiftcnt;
-    extern (C++) static __gshared Type tvoidptr;    // void*
-    extern (C++) static __gshared Type tstring;     // immutable(char)[]
-    extern (C++) static __gshared Type twstring;    // immutable(wchar)[]
-    extern (C++) static __gshared Type tdstring;    // immutable(dchar)[]
-    extern (C++) static __gshared Type tvalist;     // va_list alias
-    extern (C++) static __gshared Type terror;      // for error recovery
-    extern (C++) static __gshared Type tnull;       // for null type
-
-    extern (C++) static __gshared Type tsize_t;     // matches size_t alias
-    extern (C++) static __gshared Type tptrdiff_t;  // matches ptrdiff_t alias
-    extern (C++) static __gshared Type thash_t;     // matches hash_t alias
-
-    extern (C++) static __gshared ClassDeclaration dtypeinfo;
-    extern (C++) static __gshared ClassDeclaration typeinfoclass;
-    extern (C++) static __gshared ClassDeclaration typeinfointerface;
-    extern (C++) static __gshared ClassDeclaration typeinfostruct;
-    extern (C++) static __gshared ClassDeclaration typeinfopointer;
-    extern (C++) static __gshared ClassDeclaration typeinfoarray;
-    extern (C++) static __gshared ClassDeclaration typeinfostaticarray;
-    extern (C++) static __gshared ClassDeclaration typeinfoassociativearray;
-    extern (C++) static __gshared ClassDeclaration typeinfovector;
-    extern (C++) static __gshared ClassDeclaration typeinfoenum;
-    extern (C++) static __gshared ClassDeclaration typeinfofunction;
-    extern (C++) static __gshared ClassDeclaration typeinfodelegate;
-    extern (C++) static __gshared ClassDeclaration typeinfotypelist;
-    extern (C++) static __gshared ClassDeclaration typeinfoconst;
-    extern (C++) static __gshared ClassDeclaration typeinfoinvariant;
-    extern (C++) static __gshared ClassDeclaration typeinfoshared;
-    extern (C++) static __gshared ClassDeclaration typeinfowild;
-
-    extern (C++) static __gshared TemplateDeclaration rtinfo;
-
-    extern (C++) static __gshared Type[TMAX] basic;
-    extern (C++) static __gshared StringTable stringtable;
-
-    extern (C++) static __gshared ubyte[TMAX] sizeTy = ()
+    extern (D) package static struct SharedState
+    {
+        @generateForwarder
         {
-            ubyte[TMAX] sizeTy = __traits(classInstanceSize, TypeBasic);
-            sizeTy[Tsarray] = __traits(classInstanceSize, TypeSArray);
-            sizeTy[Tarray] = __traits(classInstanceSize, TypeDArray);
-            sizeTy[Taarray] = __traits(classInstanceSize, TypeAArray);
-            sizeTy[Tpointer] = __traits(classInstanceSize, TypePointer);
-            sizeTy[Treference] = __traits(classInstanceSize, TypeReference);
-            sizeTy[Tfunction] = __traits(classInstanceSize, TypeFunction);
-            sizeTy[Tdelegate] = __traits(classInstanceSize, TypeDelegate);
-            sizeTy[Tident] = __traits(classInstanceSize, TypeIdentifier);
-            sizeTy[Tinstance] = __traits(classInstanceSize, TypeInstance);
-            sizeTy[Ttypeof] = __traits(classInstanceSize, TypeTypeof);
-            sizeTy[Tenum] = __traits(classInstanceSize, TypeEnum);
-            sizeTy[Tstruct] = __traits(classInstanceSize, TypeStruct);
-            sizeTy[Tclass] = __traits(classInstanceSize, TypeClass);
-            sizeTy[Ttuple] = __traits(classInstanceSize, TypeTuple);
-            sizeTy[Tslice] = __traits(classInstanceSize, TypeSlice);
-            sizeTy[Treturn] = __traits(classInstanceSize, TypeReturn);
-            sizeTy[Terror] = __traits(classInstanceSize, TypeError);
-            sizeTy[Tnull] = __traits(classInstanceSize, TypeNull);
-            sizeTy[Tvector] = __traits(classInstanceSize, TypeVector);
-            return sizeTy;
-        }();
+            Type tvoid;
+            Type tint8;
+            Type tuns8;
+            Type tint16;
+            Type tuns16;
+            Type tint32;
+            Type tuns32;
+            Type tint64;
+            Type tuns64;
+            Type tint128;
+            Type tuns128;
+            Type tfloat32;
+            Type tfloat64;
+            Type tfloat80;
+            Type timaginary32;
+            Type timaginary64;
+            Type timaginary80;
+            Type tcomplex32;
+            Type tcomplex64;
+            Type tcomplex80;
+            Type tbool;
+            Type tchar;
+            Type twchar;
+            Type tdchar;
+
+
+            Type tshiftcnt;
+            Type tvoidptr;    // void*
+            Type tstring;     // immutable(char)[]
+            Type twstring;    // immutable(wchar)[]
+            Type tdstring;    // immutable(dchar)[]
+            Type tvalist;     // va_list alias
+            Type terror;      // for error recovery
+            Type tnull;       // for null type
+
+            Type tsize_t;     // matches size_t alias
+            Type tptrdiff_t;  // matches ptrdiff_t alias
+            Type thash_t;     // matches hash_t alias
+
+            ClassDeclaration dtypeinfo;
+            ClassDeclaration typeinfoclass;
+            ClassDeclaration typeinfointerface;
+            ClassDeclaration typeinfostruct;
+            ClassDeclaration typeinfopointer;
+            ClassDeclaration typeinfoarray;
+            ClassDeclaration typeinfostaticarray;
+            ClassDeclaration typeinfoassociativearray;
+            ClassDeclaration typeinfovector;
+            ClassDeclaration typeinfoenum;
+            ClassDeclaration typeinfofunction;
+            ClassDeclaration typeinfodelegate;
+            ClassDeclaration typeinfotypelist;
+            ClassDeclaration typeinfoconst;
+            ClassDeclaration typeinfoinvariant;
+            ClassDeclaration typeinfoshared;
+            ClassDeclaration typeinfowild;
+
+            TemplateDeclaration rtinfo;
+
+            Type[TMAX] basic;
+            StringTable stringtable;
+
+            ubyte[TMAX] sizeTy = () {
+                ubyte[TMAX] sizeTy = __traits(classInstanceSize, TypeBasic);
+                sizeTy[Tsarray] = __traits(classInstanceSize, TypeSArray);
+                sizeTy[Tarray] = __traits(classInstanceSize, TypeDArray);
+                sizeTy[Taarray] = __traits(classInstanceSize, TypeAArray);
+                sizeTy[Tpointer] = __traits(classInstanceSize, TypePointer);
+                sizeTy[Treference] = __traits(classInstanceSize, TypeReference);
+                sizeTy[Tfunction] = __traits(classInstanceSize, TypeFunction);
+                sizeTy[Tdelegate] = __traits(classInstanceSize, TypeDelegate);
+                sizeTy[Tident] = __traits(classInstanceSize, TypeIdentifier);
+                sizeTy[Tinstance] = __traits(classInstanceSize, TypeInstance);
+                sizeTy[Ttypeof] = __traits(classInstanceSize, TypeTypeof);
+                sizeTy[Tenum] = __traits(classInstanceSize, TypeEnum);
+                sizeTy[Tstruct] = __traits(classInstanceSize, TypeStruct);
+                sizeTy[Tclass] = __traits(classInstanceSize, TypeClass);
+                sizeTy[Ttuple] = __traits(classInstanceSize, TypeTuple);
+                sizeTy[Tslice] = __traits(classInstanceSize, TypeSlice);
+                sizeTy[Treturn] = __traits(classInstanceSize, TypeReturn);
+                sizeTy[Terror] = __traits(classInstanceSize, TypeError);
+                sizeTy[Tnull] = __traits(classInstanceSize, TypeNull);
+                sizeTy[Tvector] = __traits(classInstanceSize, TypeVector);
+                return sizeTy;
+            }();
+        }
+
+        @disable this(this);
+
+        static void initialize(ref SharedState state)
+        {
+            state.stringtable._init(14000);
+
+            // Set basic types
+            static __gshared TY* basetab =
+            [
+                Tvoid,
+                Tint8,
+                Tuns8,
+                Tint16,
+                Tuns16,
+                Tint32,
+                Tuns32,
+                Tint64,
+                Tuns64,
+                Tint128,
+                Tuns128,
+                Tfloat32,
+                Tfloat64,
+                Tfloat80,
+                Timaginary32,
+                Timaginary64,
+                Timaginary80,
+                Tcomplex32,
+                Tcomplex64,
+                Tcomplex80,
+                Tbool,
+                Tchar,
+                Twchar,
+                Tdchar,
+                Terror
+            ];
+
+            for (size_t i = 0; basetab[i] != Terror; i++)
+            {
+                Type t = new TypeBasic(basetab[i]);
+                t = t.merge();
+                state.basic[basetab[i]] = t;
+            }
+            state.basic[Terror] = new TypeError();
+
+            state.tvoid = state.basic[Tvoid];
+            state.tint8 = state.basic[Tint8];
+            state.tuns8 = state.basic[Tuns8];
+            state.tint16 = state.basic[Tint16];
+            state.tuns16 = state.basic[Tuns16];
+            state.tint32 = state.basic[Tint32];
+            state.tuns32 = state.basic[Tuns32];
+            state.tint64 = state.basic[Tint64];
+            state.tuns64 = state.basic[Tuns64];
+            state.tint128 = state.basic[Tint128];
+            state.tuns128 = state.basic[Tuns128];
+            state.tfloat32 = state.basic[Tfloat32];
+            state.tfloat64 = state.basic[Tfloat64];
+            state.tfloat80 = state.basic[Tfloat80];
+
+            state.timaginary32 = state.basic[Timaginary32];
+            state.timaginary64 = state.basic[Timaginary64];
+            state.timaginary80 = state.basic[Timaginary80];
+
+            state.tcomplex32 = state.basic[Tcomplex32];
+            state.tcomplex64 = state.basic[Tcomplex64];
+            state.tcomplex80 = state.basic[Tcomplex80];
+
+            state.tbool = state.basic[Tbool];
+            state.tchar = state.basic[Tchar];
+            state.twchar = state.basic[Twchar];
+            state.tdchar = state.basic[Tdchar];
+
+            state.tshiftcnt = state.tint32;
+            state.terror = state.basic[Terror];
+            state.tnull = state.basic[Tnull];
+            state.tnull = new TypeNull();
+            state.tnull.deco = state.tnull.merge().deco;
+
+            state.tvoidptr = state.tvoid.pointerTo();
+            state.tstring = state.tchar.immutableOf().arrayOf();
+            state.twstring = state.twchar.immutableOf().arrayOf();
+            state.tdstring = state.tdchar.immutableOf().arrayOf();
+            state.tvalist = Target.va_listType();
+
+            if (global.params.isLP64)
+            {
+                Tsize_t = Tuns64;
+                Tptrdiff_t = Tint64;
+            }
+            else
+            {
+                Tsize_t = Tuns32;
+                Tptrdiff_t = Tint32;
+            }
+
+            state.tsize_t = state.basic[Tsize_t];
+            state.tptrdiff_t = state.basic[Tptrdiff_t];
+            state.thash_t = state.tsize_t;
+        }
+    }
+
+    mixin(generateForwarders!(SharedState, "typeState"));
 
     final extern (D) this(TY ty)
     {
@@ -790,104 +897,6 @@ extern (C++) abstract class Type : RootObject
 
         .toCBuffer(this, &buf, null, &hgs);
         return buf.extractString();
-    }
-
-    static void _init()
-    {
-        stringtable._init(14000);
-
-        // Set basic types
-        static __gshared TY* basetab =
-        [
-            Tvoid,
-            Tint8,
-            Tuns8,
-            Tint16,
-            Tuns16,
-            Tint32,
-            Tuns32,
-            Tint64,
-            Tuns64,
-            Tint128,
-            Tuns128,
-            Tfloat32,
-            Tfloat64,
-            Tfloat80,
-            Timaginary32,
-            Timaginary64,
-            Timaginary80,
-            Tcomplex32,
-            Tcomplex64,
-            Tcomplex80,
-            Tbool,
-            Tchar,
-            Twchar,
-            Tdchar,
-            Terror
-        ];
-
-        for (size_t i = 0; basetab[i] != Terror; i++)
-        {
-            Type t = new TypeBasic(basetab[i]);
-            t = t.merge();
-            basic[basetab[i]] = t;
-        }
-        basic[Terror] = new TypeError();
-
-        tvoid = basic[Tvoid];
-        tint8 = basic[Tint8];
-        tuns8 = basic[Tuns8];
-        tint16 = basic[Tint16];
-        tuns16 = basic[Tuns16];
-        tint32 = basic[Tint32];
-        tuns32 = basic[Tuns32];
-        tint64 = basic[Tint64];
-        tuns64 = basic[Tuns64];
-        tint128 = basic[Tint128];
-        tuns128 = basic[Tuns128];
-        tfloat32 = basic[Tfloat32];
-        tfloat64 = basic[Tfloat64];
-        tfloat80 = basic[Tfloat80];
-
-        timaginary32 = basic[Timaginary32];
-        timaginary64 = basic[Timaginary64];
-        timaginary80 = basic[Timaginary80];
-
-        tcomplex32 = basic[Tcomplex32];
-        tcomplex64 = basic[Tcomplex64];
-        tcomplex80 = basic[Tcomplex80];
-
-        tbool = basic[Tbool];
-        tchar = basic[Tchar];
-        twchar = basic[Twchar];
-        tdchar = basic[Tdchar];
-
-        tshiftcnt = tint32;
-        terror = basic[Terror];
-        tnull = basic[Tnull];
-        tnull = new TypeNull();
-        tnull.deco = tnull.merge().deco;
-
-        tvoidptr = tvoid.pointerTo();
-        tstring = tchar.immutableOf().arrayOf();
-        twstring = twchar.immutableOf().arrayOf();
-        tdstring = tdchar.immutableOf().arrayOf();
-        tvalist = Target.va_listType();
-
-        if (global.params.isLP64)
-        {
-            Tsize_t = Tuns64;
-            Tptrdiff_t = Tint64;
-        }
-        else
-        {
-            Tsize_t = Tuns32;
-            Tptrdiff_t = Tint32;
-        }
-
-        tsize_t = basic[Tsize_t];
-        tptrdiff_t = basic[Tptrdiff_t];
-        thash_t = tsize_t;
     }
 
     final d_uns64 size()

@@ -263,7 +263,7 @@ struct Global
     unsigned versionNumber();
 };
 
-extern Global global;
+Global& global();
 
 // Because int64_t and friends may be any integral type of the
 // correct size, we have to explicitly ask for the correct

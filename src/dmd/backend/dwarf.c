@@ -1091,9 +1091,9 @@ void dwarf_initfile(const char *filename)
     }
 #endif
 #if 0 && MARS
-    for (int i = 0; i < global.params.imppath->dim; i++)
+    for (int i = 0; i < global().params.imppath->dim; i++)
     {
-        debug_line.buf->writeString((*global.params.imppath)[i]);
+        debug_line.buf->writeString((*global().params.imppath)[i]);
         debug_line.buf->writeByte(0);
     }
 #endif
@@ -1144,12 +1144,12 @@ void dwarf_initfile(const char *filename)
     debug_info.buf->writeuLEB128(1);                   // abbreviation code
 #if MARS
     debug_info.buf->write("Digital Mars D ");
-    debug_info.buf->writeString(global.version);       // DW_AT_producer
+    debug_info.buf->writeString(global().version);       // DW_AT_producer
     // DW_AT_language
     debug_info.buf->writeByte((config.fulltypes == CVDWARF_D) ? DW_LANG_D : DW_LANG_C89);
 #elif SCPP
     debug_info.buf->write("Digital Mars C ");
-    debug_info.buf->writeString(global.version);       // DW_AT_producer
+    debug_info.buf->writeString(global().version);       // DW_AT_producer
     debug_info.buf->writeByte(DW_LANG_C89);            // DW_AT_language
 #else
     assert(0);
