@@ -1,0 +1,1 @@
+module newpkg.sub1;

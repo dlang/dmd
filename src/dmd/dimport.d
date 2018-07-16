@@ -172,6 +172,7 @@ extern (C++) final class Import : Dsymbol
                     }
                     if (!mod)
                     {
+                        // FIXME confusing error messages
                         .error(loc, "can only import from a module, not from package `%s.%s`", p.toPrettyChars(), id.toChars());
                     }
                 }

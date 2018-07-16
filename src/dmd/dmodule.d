@@ -663,7 +663,8 @@ extern (C++) final class Module : Package
         const(char)* srcname = srcfile.name.toChars();
         //printf("Module::parse(srcname = '%s')\n", srcname);
         isPackageFile = (strcmp(srcfile.name.name(), "package.d") == 0 ||
-                         strcmp(srcfile.name.name(), "package.di") == 0);
+                         strcmp(srcfile.name.name(), "package.di") == 0 ||
+                         FileName.exists(FileName.removeExt(srcfile.name.str)) == 2);
         char* buf = cast(char*)srcfile.buffer;
         size_t buflen = srcfile.len;
         if (buflen >= 2)
