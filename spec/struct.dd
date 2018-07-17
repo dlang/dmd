@@ -1227,7 +1227,7 @@ $(H2 $(LNAME2 StructInvariant, Struct Invariants))
 
 $(GRAMMAR
 $(GNAME StructInvariant):
-    $(D invariant ( )) $(GLINK2 statement, BlockStatement)
+    $(D invariant $(LPAREN) $(RPAREN)) $(GLINK2 statement, BlockStatement)
     $(D invariant) $(GLINK2 statement, BlockStatement)
     $(D invariant $(LPAREN)) $(GLINK2 expression, ContractArguments) $(D $(RPAREN) ;)
 )

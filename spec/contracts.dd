@@ -66,11 +66,9 @@ $(H2 $(LNAME2 pre_post_contracts, Pre and Post Contracts))
         In D, pre contracts begin with `in`, and post contracts begin with `out`. They
         come at the end of the function signature and before the opening brace of the function body.)
 
-        $(P As of the acceptance of
-        $(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1009.md, DIP1009),
-        pre and post contracts can be written either in expression form, with
-        syntaxes similar to $(B assert), or as block statements containing arbitrary
-        code.)
+        $(P Pre and post contracts can be written either in expression form (feature introduced in DMD
+        2.081.0), with a syntax similar to $(B assert), or as block statements
+        containing arbitrary code.)
 
         $(P The expression form is:)
 ------
@@ -112,16 +110,16 @@ do
         an `assert` statement within the corresponding `in` or `out` block will throw an
         `AssertError`.)
 
-        $(P Notice that the keyword `do` can be used to announce the function body. While any number
+        $(P The keyword `do` can be used to announce the function body. Although any number
         of pre or post contracts of any form may follow each other, `do` is
         required only when the last contract before the body is a block statement.
         (Before the acceptance of
         $(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1003.md, DIP1003),
-        the keyword $(D body) was required instead of `do`, and may still be encountered in
-        old code bases. In the long term, $(D body) may be deprecated, but for now it's allowed both
-        as a keyword in this context and as an identifier elsewhere, although $(D do) is preferred.) )
+        the keyword `body` was required instead of `do`, and may still be encountered in
+        old code bases. In the long term, `body` may be deprecated, but for now it's allowed both
+        as a keyword in this context and as an identifier elsewhere, although `do` is preferred.) )
 
-        $(P While any arbitrary D code is allowed in the `in` and `out` contract blocks,
+        $(P Though any arbitrary D code is allowed in the `in` and `out` contract blocks,
         their only function should be to verify incoming and outgoing data. It is important
         to ensure that the
         code has no side effects, and that the release version of the code
@@ -158,7 +156,7 @@ do
 }
 ------
 
-        $(P The two functions are almost semantically identical. The expressions in the
+        $(P The two functions are almost identical semantically. The expressions in the
         first are lowered to contract blocks that look almost exactly like the second,
         except that a separate block is created for each expression in the first, thus
         avoiding shadowing variable names.)
@@ -216,8 +214,7 @@ class Date
 ------
 
         $(P Invariant blocks should contain `assert` expressions, and should throw
-        $(D AssertError)s when they fail. As of
-        $(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1009.md, DIP1009),
+        `AssertError`s when they fail. Since DMD version 2.081.0,
         invariants can also be written as expression statements, with `assert` implied:
         )
 
