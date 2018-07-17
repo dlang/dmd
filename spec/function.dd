@@ -6,6 +6,8 @@ $(HEADERNAV_TOC)
 
 $(H2 $(LNAME2 grammar, Grammar))
 
+$(H3 Function declaration)
+
 $(GRAMMAR
 $(GNAME FuncDeclaration):
     $(GLINK2 declaration, StorageClasses)$(OPT) $(GLINK2 declaration, BasicType) $(GLINK FuncDeclarator) $(GLINK FunctionBody)
@@ -21,6 +23,8 @@ $(GNAME FuncDeclaratorSuffix):
     $(GLINK Parameters) $(GLINK MemberFunctionAttributes)$(OPT)
     $(GLINK2 template, TemplateParameters) $(GLINK Parameters) $(GLINK MemberFunctionAttributes)$(OPT) $(GLINK2 template, Constraint)$(OPT)
 )
+
+$(H3 Parameters)
 
 $(GRAMMAR
 $(GNAME Parameters):
@@ -52,7 +56,11 @@ $(GNAME InOutX):
     $(D ref)
     $(RELATIVE_LINK2 return-ref-parameters, $(D return ref))
     $(D scope)
+)
 
+$(H3 Function attributes)
+
+$(GRAMMAR
 $(GNAME FunctionAttributes):
     $(GLINK FunctionAttribute)
     $(GLINK FunctionAttribute) $(I FunctionAttributes)
@@ -75,15 +83,86 @@ $(GNAME MemberFunctionAttribute):
     $(GLINK FunctionAttribute)
 )
 
+$(H3 Function body)
+
 $(GRAMMAR
 $(GNAME FunctionBody):
-    $(GLINK2 statement, BlockStatement)
-    $(GLINK FunctionContracts)$(OPT) $(GLINK BodyStatement)
-    $(GLINK FunctionContracts)
+    $(GLINK SpecifiedFunctionBody)
+    $(GLINK MissingFunctionBody)
+<<<<<<< HEAD
 
+$(GNAME FunctionLiteralBody):
+    $(GLINK SpecifiedFunctionBody)
+
+$(GNAME SpecifiedFunctionBody):
+    $(D do)$(OPT) $(GLINK2 statement, BlockStatement)
+    $(GLINK FunctionContracts)$(OPT) $(GLINK InOutExpression) $(D do)$(OPT) $(GLINK2 statement, BlockStatement)
+    $(GLINK FunctionContracts)$(OPT) $(GLINK InOutStatement) $(D do)$(OPT) $(GLINK2 statement, BlockStatement)
+
+$(GNAME MissingFunctionBody):
+    $(D ;)
+    $(GLINK FunctionContracts)$(OPT) $(GLINK InOutExpression) $(D ;)
+    $(GLINK FunctionContracts)$(OPT) $(GLINK InOutStatement)
+=======
+)
+>>>>>>> 0918d24fc7d4515b4e02f1ebf50bf0bf6af32348
+
+$(GRAMMAR
+$(GNAME FunctionLiteralBody):
+    $(GLINK SpecifiedFunctionBody)
+
+$(GNAME SpecifiedFunctionBody):
+    $(D do)$(OPT) $(GLINK2 statement, BlockStatement)
+    $(GLINK FunctionContracts)$(OPT) $(GLINK InOutContractExpression) $(D do)$(OPT) $(GLINK2 statement, BlockStatement)
+    $(GLINK FunctionContracts)$(OPT) $(GLINK InOutStatement) $(D do)$(OPT) $(GLINK2 statement, BlockStatement)
+
+$(GNAME MissingFunctionBody):
+    $(D ;)
+    $(GLINK FunctionContracts)$(OPT) $(GLINK InOutContractExpression) $(D ;)
+    $(GLINK FunctionContracts)$(OPT) $(GLINK InOutStatement)
+)
+
+$(H3 Function contracts)
+
+$(GRAMMAR
 $(GNAME FunctionContracts):
-    $(GLINK InStatement) $(GLINK OutStatement)$(OPT)
-    $(GLINK OutStatement) $(GLINK InStatement)$(OPT)
+    $(GLINK FunctionContract)
+    $(GLINK FunctionContract) $(I FunctionContracts)
+
+$(GNAME FunctionContract):
+<<<<<<< HEAD
+    $(GLINK InOutExpression)
+    $(GLINK InOutStatement)
+
+$(GNAME InOutExpression):
+    $(GLINK InExpression)
+    $(GLINK OutExpression)
+=======
+    $(GLINK InOutContractExpression)
+    $(GLINK InOutStatement)
+
+$(GNAME InOutContractExpression):
+    $(GLINK InContractExpression)
+    $(GLINK OutContractExpression)
+>>>>>>> 0918d24fc7d4515b4e02f1ebf50bf0bf6af32348
+
+$(GNAME InOutStatement):
+    $(GLINK InStatement)
+    $(GLINK OutStatement)
+
+<<<<<<< HEAD
+$(GNAME InExpression):
+    $(D in $(LPAREN)) $(GLINK2 expression, ContractArguments) $(D $(RPAREN))
+
+$(GNAME OutExpression):
+=======
+$(GNAME InContractExpression):
+    $(D in $(LPAREN)) $(GLINK2 expression, ContractArguments) $(D $(RPAREN))
+
+$(GNAME OutContractExpression):
+>>>>>>> 0918d24fc7d4515b4e02f1ebf50bf0bf6af32348
+    $(D out $(LPAREN) ;) $(GLINK2 expression, ContractArguments) $(D $(RPAREN))
+    $(D out $(LPAREN)) $(I Identifier) $(D ;) $(GLINK2 expression, ContractArguments) $(D $(RPAREN))
 
 $(GNAME InStatement):
     $(D in) $(GLINK2 statement, BlockStatement)
@@ -91,14 +170,11 @@ $(GNAME InStatement):
 $(GNAME OutStatement):
     $(D out) $(GLINK2 statement, BlockStatement)
     $(D out) $(D $(LPAREN)) $(I Identifier) $(D $(RPAREN)) $(GLINK2 statement, BlockStatement)
-
-$(GNAME BodyStatement):
-    $(D body) $(GLINK2 statement, BlockStatement)
 )
 
 $(H2 $(LNAME2 contracts, Contracts))
 
-    $(P The $(D in) and $(D out) blocks of a function declaration specify
+    $(P The $(D in) and $(D out) blocks or expressions of a function declaration specify
     the pre- and post-conditions of the function. They are used in
     $(LINK2 contracts.html, Contract Programming).
     The code inside these blocks should

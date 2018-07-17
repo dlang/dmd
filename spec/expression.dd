@@ -1621,8 +1621,11 @@ $(H3 $(LNAME2 assert_expressions, Assert Expressions))
 
 $(GRAMMAR
 $(GNAME AssertExpression):
-    $(D assert $(LPAREN)) $(GLINK AssignExpression) $(D ,)$(OPT) $(D $(RPAREN))
-    $(D assert $(LPAREN)) $(GLINK AssignExpression) $(D ,) $(GLINK AssignExpression) $(D ,)$(OPT) $(D $(RPAREN))
+    $(D assert $(LPAREN)) $(GLINK ContractArguments) $(D $(RPAREN))
+
+$(GNAME ContractArguments):
+    $(GLINK AssignExpression) $(D ,)$(OPT)
+    $(GLINK AssignExpression) $(D ,) $(GLINK AssignExpression) $(D ,)$(OPT)
 )
 
     $(P The first $(I AssignExpression) must evaluate to true. If it does not, an $(I Assert Failure)
