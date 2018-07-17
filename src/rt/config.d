@@ -60,7 +60,7 @@ alias rt_configCallBack = string delegate(string) @nogc nothrow;
 
 /**
 * get a druntime config option using standard configuration options
-*      opt             name of the option to retreive
+*      opt             name of the option to retrieve
 *      dg              if non-null, passes the option through this
 *                      delegate and only returns its return value if non-null
 *      reverse         reverse the default processing order cmdline/envvar/rt_options

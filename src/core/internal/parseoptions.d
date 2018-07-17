@@ -14,6 +14,8 @@ import core.stdc.stdio;
 import core.stdc.ctype;
 import core.stdc.string;
 import core.vararg;
+import core.internal.traits : externDFunc;
+
 
 @nogc nothrow:
 extern extern(C) string[] rt_args();
@@ -21,6 +23,10 @@ extern extern(C) string[] rt_args();
 extern extern(C) __gshared bool rt_envvars_enabled;
 extern extern(C) __gshared bool rt_cmdline_enabled;
 extern extern(C) __gshared string[] rt_options;
+
+alias rt_configCallBack = string delegate(string) @nogc nothrow;
+alias fn_configOption = string function(string opt, scope rt_configCallBack dg, bool reverse) @nogc nothrow;
+alias rt_configOption = externDFunc!("rt.config.rt_configOption", fn_configOption);
 
 /**
 * initialize members of struct CFG from rt_config options
@@ -32,13 +38,6 @@ extern extern(C) __gshared string[] rt_options;
 */
 bool initConfigOptions(CFG)(ref CFG cfg, string cfgname)
 {
-    import core.internal.traits : externDFunc;
-
-    alias rt_configCallBack = string delegate(string) @nogc nothrow;
-    alias fn_configOption = string function(string opt, scope rt_configCallBack dg, bool reverse) @nogc nothrow;
-
-    alias rt_configOption = externDFunc!("rt.config.rt_configOption", fn_configOption);
-
     string parse(string opt) @nogc nothrow
     {
         if (!parseOptions(cfg, opt))

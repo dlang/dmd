@@ -655,10 +655,7 @@ extern (C) UnitTestResult runModuleUnitTests()
         }
     }
 
-    import core.internal.traits : externDFunc;
-    alias rt_configCallBack = string delegate(string) @nogc nothrow;
-    alias fn_configOption = string function(string opt, scope rt_configCallBack dg, bool reverse) @nogc nothrow;
-    alias rt_configOption = externDFunc!("rt.config.rt_configOption", fn_configOption);
+    import core.internal.parseoptions : rt_configOption;
 
     if (results.passed != results.executed)
     {
