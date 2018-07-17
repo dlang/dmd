@@ -89,25 +89,7 @@ $(GRAMMAR
 $(GNAME FunctionBody):
     $(GLINK SpecifiedFunctionBody)
     $(GLINK MissingFunctionBody)
-<<<<<<< HEAD
 
-$(GNAME FunctionLiteralBody):
-    $(GLINK SpecifiedFunctionBody)
-
-$(GNAME SpecifiedFunctionBody):
-    $(D do)$(OPT) $(GLINK2 statement, BlockStatement)
-    $(GLINK FunctionContracts)$(OPT) $(GLINK InOutExpression) $(D do)$(OPT) $(GLINK2 statement, BlockStatement)
-    $(GLINK FunctionContracts)$(OPT) $(GLINK InOutStatement) $(D do)$(OPT) $(GLINK2 statement, BlockStatement)
-
-$(GNAME MissingFunctionBody):
-    $(D ;)
-    $(GLINK FunctionContracts)$(OPT) $(GLINK InOutExpression) $(D ;)
-    $(GLINK FunctionContracts)$(OPT) $(GLINK InOutStatement)
-=======
-)
->>>>>>> 0918d24fc7d4515b4e02f1ebf50bf0bf6af32348
-
-$(GRAMMAR
 $(GNAME FunctionLiteralBody):
     $(GLINK SpecifiedFunctionBody)
 
@@ -130,37 +112,21 @@ $(GNAME FunctionContracts):
     $(GLINK FunctionContract) $(I FunctionContracts)
 
 $(GNAME FunctionContract):
-<<<<<<< HEAD
-    $(GLINK InOutExpression)
-    $(GLINK InOutStatement)
-
-$(GNAME InOutExpression):
-    $(GLINK InExpression)
-    $(GLINK OutExpression)
-=======
     $(GLINK InOutContractExpression)
     $(GLINK InOutStatement)
 
 $(GNAME InOutContractExpression):
     $(GLINK InContractExpression)
     $(GLINK OutContractExpression)
->>>>>>> 0918d24fc7d4515b4e02f1ebf50bf0bf6af32348
 
 $(GNAME InOutStatement):
     $(GLINK InStatement)
     $(GLINK OutStatement)
 
-<<<<<<< HEAD
-$(GNAME InExpression):
-    $(D in $(LPAREN)) $(GLINK2 expression, ContractArguments) $(D $(RPAREN))
-
-$(GNAME OutExpression):
-=======
 $(GNAME InContractExpression):
     $(D in $(LPAREN)) $(GLINK2 expression, ContractArguments) $(D $(RPAREN))
 
 $(GNAME OutContractExpression):
->>>>>>> 0918d24fc7d4515b4e02f1ebf50bf0bf6af32348
     $(D out $(LPAREN) ;) $(GLINK2 expression, ContractArguments) $(D $(RPAREN))
     $(D out $(LPAREN)) $(I Identifier) $(D ;) $(GLINK2 expression, ContractArguments) $(D $(RPAREN))
 
