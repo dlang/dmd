@@ -10783,6 +10783,11 @@ Expression semanticY(DotTemplateInstanceExp exp, Scope* sc, int flag)
         printf("DotTemplateInstanceExpY::semantic('%s')\n", exp.toChars());
     }
 
+    static Expression errorExp()
+    {
+        return new ErrorExp();
+    }
+
     auto die = new DotIdExp(exp.loc, exp.e1, exp.ti.name);
 
     Expression e = die.semanticX(sc);
@@ -10799,19 +10804,20 @@ Expression semanticY(DotTemplateInstanceExp exp, Scope* sc, int flag)
                 return null;
         }
         e = die.semanticY(sc, flag);
-        if (flag && e && isDotOpDispatch(e))
+        if (flag)
         {
-            /* opDispatch!tiargs would be a function template that needs IFTI,
-             * so it's not a template
-             */
-            e = null; /* fall down to UFCS */
+            if (!e ||
+                isDotOpDispatch(e))
+            {
+                /* opDispatch!tiargs would be a function template that needs IFTI,
+                 * so it's not a template
+                 */
+                return null;
+            }
         }
-        if (flag && !e)
-            return null;
     }
     assert(e);
 
-L1:
     if (e.op == TOK.error)
         return e;
     if (e.op == TOK.dotVariable)
@@ -10819,8 +10825,7 @@ L1:
         DotVarExp dve = cast(DotVarExp)e;
         if (FuncDeclaration fd = dve.var.isFuncDeclaration())
         {
-            TemplateDeclaration td = fd.findTemplateDeclRoot();
-            if (td)
+            if (TemplateDeclaration td = fd.findTemplateDeclRoot())
             {
                 e = new DotTemplateExp(dve.loc, dve.e1, td);
                 e = e.expressionSemantic(sc);
@@ -10836,22 +10841,17 @@ L1:
                 return exp;
             exp.ti.dsymbolSemantic(sc);
             if (!exp.ti.inst || exp.ti.errors) // if template failed to expand
-                return new ErrorExp();
+                return errorExp();
 
-            Dsymbol s = exp.ti.toAlias();
-            Declaration v = s.isDeclaration();
-            if (v)
+            if (Declaration v = exp.ti.toAlias().isDeclaration())
             {
                 if (v.type && !v.type.deco)
                     v.type = v.type.typeSemantic(v.loc, sc);
-                e = new DotVarExp(exp.loc, exp.e1, v);
-                e = e.expressionSemantic(sc);
-                return e;
+                return new DotVarExp(exp.loc, exp.e1, v)
+                       .expressionSemantic(sc);
             }
-            e = new ScopeExp(exp.loc, exp.ti);
-            e = new DotExp(exp.loc, exp.e1, e);
-            e = e.expressionSemantic(sc);
-            return e;
+            return new DotExp(exp.loc, exp.e1, new ScopeExp(exp.loc, exp.ti))
+                   .expressionSemantic(sc);
         }
     }
     else if (e.op == TOK.variable)
@@ -10859,21 +10859,20 @@ L1:
         VarExp ve = cast(VarExp)e;
         if (FuncDeclaration fd = ve.var.isFuncDeclaration())
         {
-            TemplateDeclaration td = fd.findTemplateDeclRoot();
-            if (td)
+            if (TemplateDeclaration td = fd.findTemplateDeclRoot())
             {
-                e = new TemplateExp(ve.loc, td);
-                e = e.expressionSemantic(sc);
+                e = new TemplateExp(ve.loc, td)
+                    .expressionSemantic(sc);
             }
         }
         else if (OverDeclaration od = ve.var.isOverDeclaration())
         {
             exp.ti.tempdecl = od;
-            e = new ScopeExp(exp.loc, exp.ti);
-            e = e.expressionSemantic(sc);
-            return e;
+            return new ScopeExp(exp.loc, exp.ti)
+                   .expressionSemantic(sc);
         }
     }
+
     if (e.op == TOK.dotTemplateDeclaration)
     {
         DotTemplateExp dte = cast(DotTemplateExp)e;
@@ -10881,32 +10880,29 @@ L1:
 
         exp.ti.tempdecl = dte.td;
         if (!exp.ti.semanticTiargs(sc))
-            return new ErrorExp();
+            return errorExp();
         if (exp.ti.needsTypeInference(sc))
             return exp;
         exp.ti.dsymbolSemantic(sc);
         if (!exp.ti.inst || exp.ti.errors) // if template failed to expand
-            return new ErrorExp();
+            return errorExp();
 
-        Dsymbol s = exp.ti.toAlias();
-        Declaration v = s.isDeclaration();
-        if (v && (v.isFuncDeclaration() || v.isVarDeclaration()))
+        if (Declaration v = exp.ti.toAlias().isDeclaration())
         {
-            e = new DotVarExp(exp.loc, exp.e1, v);
-            e = e.expressionSemantic(sc);
-            return e;
+            if (v.isFuncDeclaration() || v.isVarDeclaration())
+            {
+                return new DotVarExp(exp.loc, exp.e1, v)
+                       .expressionSemantic(sc);
+            }
         }
-        e = new ScopeExp(exp.loc, exp.ti);
-        e = new DotExp(exp.loc, exp.e1, e);
-        e = e.expressionSemantic(sc);
-        return e;
+        return new DotExp(exp.loc, exp.e1, new ScopeExp(exp.loc, exp.ti))
+               .expressionSemantic(sc);
     }
     else if (e.op == TOK.template_)
     {
         exp.ti.tempdecl = (cast(TemplateExp)e).td;
-        e = new ScopeExp(exp.loc, exp.ti);
-        e = e.expressionSemantic(sc);
-        return e;
+        return new ScopeExp(exp.loc, exp.ti)
+               .expressionSemantic(sc);
     }
     else if (e.op == TOK.dot)
     {
@@ -10916,42 +10912,36 @@ L1:
         {
             if (!exp.findTempDecl(sc) || !exp.ti.semanticTiargs(sc))
             {
-                return new ErrorExp();
+                return errorExp();
             }
             if (exp.ti.needsTypeInference(sc))
                 return exp;
             exp.ti.dsymbolSemantic(sc);
             if (!exp.ti.inst || exp.ti.errors) // if template failed to expand
-                return new ErrorExp();
+                return errorExp();
 
-            Dsymbol s = exp.ti.toAlias();
-            Declaration v = s.isDeclaration();
-            if (v)
+            if (Declaration v = exp.ti.toAlias().isDeclaration())
             {
                 if (v.type && !v.type.deco)
                     v.type = v.type.typeSemantic(v.loc, sc);
-                e = new DotVarExp(exp.loc, exp.e1, v);
-                e = e.expressionSemantic(sc);
-                return e;
+                return new DotVarExp(exp.loc, exp.e1, v)
+                       .expressionSemantic(sc);
             }
-            e = new ScopeExp(exp.loc, exp.ti);
-            e = new DotExp(exp.loc, exp.e1, e);
-            e = e.expressionSemantic(sc);
-            return e;
+            return new DotExp(exp.loc, exp.e1, new ScopeExp(exp.loc, exp.ti))
+                   .expressionSemantic(sc);
         }
     }
     else if (e.op == TOK.overloadSet)
     {
         OverExp oe = cast(OverExp)e;
         exp.ti.tempdecl = oe.vars;
-        e = new ScopeExp(exp.loc, exp.ti);
-        e = e.expressionSemantic(sc);
-        return e;
+        return new ScopeExp(exp.loc, exp.ti)
+               .expressionSemantic(sc);
     }
 
 Lerr:
     exp.error("`%s` isn't a template", e.toChars());
-    return new ErrorExp();
+    return errorExp();
 }
 
 
