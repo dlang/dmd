@@ -4173,8 +4173,19 @@ final class Parser(AST) : Lexer
                 goto L1;
 
             case TOK.enum_:
-                stc = AST.STC.manifest;
-                goto L1;
+                {
+                    Token* t = peek(&token);
+                    if (t.value == TOK.leftCurly || t.value == TOK.colon)
+                        break;
+                    else if (t.value == TOK.identifier)
+                    {
+                        t = peek(t);
+                        if (t.value == TOK.leftCurly || t.value == TOK.colon || t.value == TOK.semicolon)
+                            break;
+                    }
+                    stc = AST.STC.manifest;
+                    goto L1;
+                }
 
             case TOK.at:
                 {
@@ -4434,7 +4445,23 @@ final class Parser(AST) : Lexer
 
         parseStorageClasses(storage_class, link, setAlignment, ealign, udas);
 
-        if (token.value == TOK.struct_ ||
+        if (token.value == TOK.enum_)
+        {
+            AST.Dsymbol d = parseEnum();
+            auto a = new AST.Dsymbols();
+            a.push(d);
+
+            if (udas)
+            {
+                d = new AST.UserAttributeDeclaration(udas, a);
+                a = new AST.Dsymbols();
+                a.push(d);
+            }
+
+            addComment(d, comment);
+            return a;
+        }
+        else if (token.value == TOK.struct_ ||
             token.value == TOK.union_ ||
             token.value == TOK.class_ ||
             token.value == TOK.interface_)
