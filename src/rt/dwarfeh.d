@@ -224,7 +224,7 @@ extern(C) void _d_throwdwarf(Throwable o)
         case _URC_END_OF_STACK:
             /* Unwound the stack without encountering a catch clause.
              * In C++, this would mean call uncaught_exception().
-             * In D, this can happen only if `rt_trapException` is cleared
+             * In D, this can happen only if `rt_trapExceptions` is cleared
              * since otherwise everything is enclosed by a top-level
              * try/catch.
              */

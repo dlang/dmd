@@ -1,0 +1,35 @@
+Exception trapping can now be disabled via `--DRT-trapExceptions=0`
+
+Previously it was only possible to disable the trapping of exception by setting
+the global variable `rt_trapExceptions` to `false`.
+Now you can, for example, immediately open `gdb` at the uncaught exception:
+
+$(CONSOLE
+> gdb -ex run --args <my-program> --DRT-trapExceptions=0
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/usr/lib/libthread_db.so.1".
+uncaught exception
+object.Exception@src/rt_trap_exceptions_drt.d(4): foo
+$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)
+src/rt_trap_exceptions_drt.d:4 void rt_trap_exceptions_drt.test() [0x55591026]
+src/rt_trap_exceptions_drt.d:9 _Dmain [0x55591058]
+$(P)
+Program received signal SIGABRT, Aborted.
+0x00007ffff6e7b86b in raise () from /usr/lib/libc.so.6
+(gdb) bt full
+#0  0x00007ffff6e7b86b in raise () from /usr/lib/libc.so.6
+No symbol table info available.
+#1  0x00007ffff6e6640e in abort () from /usr/lib/libc.so.6
+No symbol table info available.
+#2  0x00005555555918cc in _d_throwdwarf (o=0x7ffff7ea4000) at src/rt/dwarfeh.d:233
+        eh = 0x7ffff7fa4740
+        refcount = 0
+        r = 5
+#3  0x0000555555591027 in rt_trap_exceptions_drt.test() () at ../../src/object.d:2695
+        innerLocal = 20
+#4  0x0000555555591059 in D main (args=...) at src/rt_trap_exceptions_drt.d:9
+        myLocal = "bar"
+)
+
+$(LINK2 http://arsdnet.net/this-week-in-d/2016-aug-07.html, This Week in D) for
+an in-depth explanation of `rt_trapExceptions`

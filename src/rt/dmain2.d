@@ -452,17 +452,17 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
         args = argsCopy[0..j];
     }
 
-    bool trapExceptions = rt_trapExceptions;
+    auto useExceptionTrap = parseExceptionOptions();
 
     version (Windows)
     {
         if (IsDebuggerPresent())
-            trapExceptions = false;
+            useExceptionTrap = false;
     }
 
     void tryExec(scope void delegate() dg)
     {
-        if (trapExceptions)
+        if (useExceptionTrap)
         {
             try
             {
@@ -556,6 +556,18 @@ private void formatThrowable(Throwable t, scope void delegate(in char[] s) nothr
         }
         sink("=== ~Bypassed ===\n");
     }
+}
+
+private auto parseExceptionOptions()
+{
+    import rt.config : rt_configOption;
+    import core.internal.parseoptions : rt_parseOption;
+    const optName = "trapExceptions";
+    auto option = rt_configOption(optName);
+    auto trap = rt_trapExceptions;
+    if (option.length)
+        rt_parseOption(optName, option, trap, "");
+    return trap;
 }
 
 extern (C) void _d_print_throwable(Throwable t)

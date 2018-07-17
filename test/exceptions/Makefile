@@ -1,26 +1,30 @@
 include ../common.mak
 
-TESTS:=stderr_msg unittest_assert invalid_memory_operation unknown_gc static_dtor future_message
+TESTS=stderr_msg unittest_assert invalid_memory_operation unknown_gc static_dtor future_message rt_trap_exceptions_drt
 
 ifeq ($(OS)-$(BUILD),linux-debug)
-	TESTS:=$(TESTS) line_trace rt_trap_exceptions
+	TESTS+=line_trace rt_trap_exceptions
 	LINE_TRACE_DFLAGS:=-L--export-dynamic
 endif
+ifeq ($(OS),linux)
+	TESTS+=rt_trap_exceptions_drt_gdb
+endif
 ifeq ($(OS)-$(BUILD),freebsd-debug)
-	TESTS:=$(TESTS) line_trace
+	TESTS+=line_trace
 	LINE_TRACE_DFLAGS:=-L--export-dynamic
 endif
 ifeq ($(OS)-$(BUILD),dragonflybsd-debug)
-	TESTS:=$(TESTS) line_trace
+	TESTS+=line_trace
 	LINE_TRACE_DFLAGS:=-L--export-dynamic
 endif
 ifeq ($(OS)-$(BUILD),osx-debug)
-	TESTS:=$(TESTS) line_trace
+	TESTS+=line_trace
 	LINE_TRACE_DFLAGS:=
 endif
 
 DIFF:=diff
 SED:=sed
+GDB:=gdb
 
 .PHONY: all clean
 all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
@@ -56,9 +60,25 @@ $(ROOT)/%.done: $(ROOT)/%
 	fi
 	@touch $@
 
+$(ROOT)/rt_trap_exceptions_drt.done: STDERR_EXP="uncaught exception\nobject.Exception@rt_trap_exceptions_drt.d(4): exception"
+$(ROOT)/rt_trap_exceptions_drt.done: RUN_ARGS="--DRT-trapExceptions=0"
+$(ROOT)/rt_trap_exceptions_drt.done: NEGATE=!
+
+
+$(ROOT)/rt_trap_exceptions_drt_gdb.done: $(ROOT)/rt_trap_exceptions_drt
+	@echo Testing rt_trap_exceptions_drt_gdb
+	$(QUIET)$(TIMELIMIT) $(GDB) -ex run -ex 'bt full' -ex q --args $< --DRT-trapExceptions=0 \
+		> $(ROOT)/rt_trap_exceptions_drt_gdb.output 2>&1 || true
+	cat $(ROOT)/rt_trap_exceptions_drt_gdb.output
+	grep "in D main (args=...) at src/rt_trap_exceptions_drt.d:9" > /dev/null < $(ROOT)/rt_trap_exceptions_drt_gdb.output
+	grep 'myLocal' > /dev/null < $(ROOT)/rt_trap_exceptions_drt_gdb.output
+	! grep "No stack." > /dev/null < $(ROOT)/rt_trap_exceptions_drt_gdb.output
+	@touch $@
+
 $(ROOT)/unittest_assert: DFLAGS+=-unittest
 $(ROOT)/line_trace: DFLAGS+=$(LINE_TRACE_DFLAGS)
-$(ROOT)/%: $(SRC)/%.d
+$(ROOT)/rt_trap_exceptions_drt: DFLAGS+=-g
+$(ROOT)/%: $(SRC)/%.d $(DMD) $(DRUNTIME)
 	$(QUIET)$(DMD) $(DFLAGS) -of$@ $<
 
 clean:
