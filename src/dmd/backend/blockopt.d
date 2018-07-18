@@ -312,20 +312,21 @@ void blocklist_free(block **pb)
 
 void block_optimizer_free(block *b)
 {
-    vec_free(b.Bdom);
-    vec_free(b.Binrd);
-    vec_free(b.Boutrd);
-    vec_free(b.Binlv);
-    vec_free(b.Boutlv);
-    vec_free(b.Bin);
-    vec_free(b.Bout);
-    vec_free(b.Bgen);
-    vec_free(b.Bkill);
-    vec_free(b.Bout2);
-    vec_free(b.Bgen2);
-    vec_free(b.Bkill2);
+    static void vfree(ref vec_t v) { vec_free(v); v = null; }
+    vfree(b.Bdom);
+    vfree(b.Binrd);
+    vfree(b.Boutrd);
+    vfree(b.Binlv);
+    vfree(b.Boutlv);
+    vfree(b.Bin);
+    vfree(b.Bout);
+    vfree(b.Bgen);
+    vfree(b.Bkill);
+    vfree(b.Bout2);
+    vfree(b.Bgen2);
+    vfree(b.Bkill2);
 
-    memset(&b,0,b.sizeof);
+    // memset(&b->_BLU,0,sizeof(b->_BLU));
 }
 
 /****************************
