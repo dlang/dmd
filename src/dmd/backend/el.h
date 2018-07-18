@@ -184,7 +184,7 @@ elem *el_bint(unsigned,type *,elem *,elem *);
 elem *el_unat(unsigned,type *,elem *);
 elem *el_bin(unsigned,tym_t,elem *,elem *);
 elem *el_una(unsigned,tym_t,elem *);
-elem *el_longt(type *,targ_llong);
+extern "C" elem *el_longt(type *,targ_llong);
 Symbol *el_alloc_localgot();
 elem *el_var(Symbol *);
 elem *el_settype(elem *,type *);

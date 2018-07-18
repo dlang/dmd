@@ -168,7 +168,7 @@ void *mem_calloc(size_t);
  *      void *mem_realloc(void *ptr,size_t numbytes);
  */
 
-void *mem_realloc(void *,size_t);
+extern "C" void *mem_realloc(void *,size_t);
 
 /*****************************
  * Free memory allocated by mem_malloc(), mem_calloc() or mem_realloc().
@@ -205,6 +205,8 @@ void mem_term(void);
  * act just like the regular mem functions, so it can be debugged.
  */
 
+extern "C"
+{
 #if MEM_NONE
 #define mem_fmalloc(u)  malloc(u)
 #define mem_fcalloc(u)  calloc((u),1)
@@ -223,6 +225,7 @@ void *mem_fcalloc(size_t);
 char *mem_fstrdup(const char *);
 #endif
 #endif
+}
 
 /***********************************
  * C++ stuff.

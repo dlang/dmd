@@ -551,6 +551,9 @@ struct block
             block *b_ret;               // EH_DWARF: associated BC_ret block
         }                               // finally
 
+        // add member mimicking the largest of the other elements of this union, so it can be copied
+        struct _BS { Symbol *jcvar; int Bscope_idx, Blast_idx; }
+        _BS BS;
     }
     Srcpos      Bsrcpos;        // line number (0 if not known)
     ubyte       BC;             // exit condition (enum BC)
