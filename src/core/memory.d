@@ -1019,7 +1019,7 @@ void __delete(T)(ref T x) @system
     }
     else static if (is(T : E2[], E2))
     {
-        GC.free(x.ptr);
+        GC.free(cast(void*) x.ptr);
         x = null;
     }
 }
@@ -1167,3 +1167,21 @@ unittest
     int* pint; __delete(pint);
     S* ps; __delete(ps);
 }
+
+// https://issues.dlang.org/show_bug.cgi?id=19092
+unittest
+{
+    const(int)[] x = [1, 2, 3];
+    assert(GC.addrOf(x.ptr) != null);
+    __delete(x);
+    assert(x is null);
+    assert(GC.addrOf(x.ptr) == null);
+
+    immutable(int)[] y = [1, 2, 3];
+    assert(GC.addrOf(y.ptr) != null);
+    __delete(y);
+    assert(y is null);
+    assert(GC.addrOf(y.ptr) == null);
+}
+
+
