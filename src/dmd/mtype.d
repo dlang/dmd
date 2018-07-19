@@ -5509,13 +5509,15 @@ extern (C++) final class TypeStruct : Type
         bool assignable = true;
         uint offset = ~0; // dead-store initialize to prevent spurious warning
 
+        sym.determineSize(sym.loc);
+
         /* If any of the fields are const or immutable,
          * then one cannot assign this struct.
          */
         for (size_t i = 0; i < sym.fields.dim; i++)
         {
             VarDeclaration v = sym.fields[i];
-            //printf("%s [%d] v = (%s) %s, v.offset = %d, v.parent = %s", sym.toChars(), i, v.kind(), v.toChars(), v.offset, v.parent.kind());
+            //printf("%s [%d] v = (%s) %s, v.offset = %d, v.parent = %s\n", sym.toChars(), i, v.kind(), v.toChars(), v.offset, v.parent.kind());
             if (i == 0)
             {
             }
