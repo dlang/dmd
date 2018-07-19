@@ -8,7 +8,7 @@ fail_compilation/fail19095.d(15): Deprecation: mismatched array lengths. array i
 ---
  */
 
-// https://issues.dlang.org/show_bug.cgi?id=1XXXX
+// https://issues.dlang.org/show_bug.cgi?id=19095
 
 int[2] ARR = [1];
 static int[2] static_arr = [1];

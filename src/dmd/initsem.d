@@ -340,9 +340,9 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
         if (t.ty == Tsarray)
         {
             uinteger_t edim = (cast(TypeSArray)t).dim.toInteger();
-            // Deprecated in 2018-07.
-            // Change to error in 2019-07.
-            // @@@DEPRECATED_2019-07@@@.
+            // Deprecated in 2019-02.
+            // Change to error in 2020-02.
+            // @@@DEPRECATED_2019-02@@@.
             if (!i.isAssociativeArray() && i.dim != edim)
             {
                 deprecation(i.loc, "mismatched array lengths. array initializer has %u elements, but array length is %llu", i.dim, edim);
