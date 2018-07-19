@@ -1,0 +1,10 @@
+Deprecate array length mismatch in global static arrays.
+
+Example
+---
+// Old
+int[2] ARR = [5]; // [5, 0]
+
+// New
+int[2] ARR = [5]; // Deprecation: mismatched array lengths. array initializer has 1 elements, but array length is 2
+---
