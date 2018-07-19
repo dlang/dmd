@@ -1,0 +1,14 @@
+Exceptions are `@nogc`
+
+DIP 1008 is now activated by default:
+
+---
+void main() @nogc
+{
+    throw new Exception("I'm @nogc now");
+}
+---
+
+$(CONSOLE
+rdmd app.d
+)

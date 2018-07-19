@@ -1882,7 +1882,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-dip1008")
         {
-            params.ehnogc = true;
+            deprecation(Loc.initial, "-dip1008 has no effect anymore.");
         }
         else if (arg == "-lib")         // https://dlang.org/dmd.html#switch-lib
             params.lib = true;

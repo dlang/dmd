@@ -291,10 +291,6 @@ dmd -cov -unittest myprog.d
             "implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1000.md",
             "implement $(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/DIP1000.md, DIP1000 (Scoped Pointers))"
         ),
-        Option("dip1008",
-            "implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1008.md",
-            "implement $(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/DIP1008.md, DIP1008 (@nogc Throwable))"
-        ),
         Option("fPIC",
             "generate position independent code",
             TargetOS.all & ~(TargetOS.windows | TargetOS.macOS)
