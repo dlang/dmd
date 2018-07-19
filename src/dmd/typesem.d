@@ -1287,7 +1287,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                         if (tf.isref)
                         {
                         }
-                        else if (tf.next && !tf.next.hasPointers())
+                        else if (tf.next && !tf.next.hasPointers() && tf.next.toBasetype().ty != Tvoid)
                         {
                             fparam.storageClass &= ~STC.return_;   // https://issues.dlang.org/show_bug.cgi?id=18963
                         }
