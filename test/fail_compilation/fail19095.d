@@ -2,9 +2,9 @@
  * PERMUTE_ARGS:
  * TEST_OUTPUT:
 ---
-fail_compilation/fail19095.d(13): Deprecation: mismatched array lengths, 2 and 1
-fail_compilation/fail19095.d(14): Deprecation: mismatched array lengths, 2 and 1
-fail_compilation/fail19095.d(15): Deprecation: mismatched array lengths, 2 and 1
+fail_compilation/fail19095.d(13): Deprecation: mismatched array lengths. array initializer has 1 elements, but array length is 2
+fail_compilation/fail19095.d(14): Deprecation: mismatched array lengths. array initializer has 1 elements, but array length is 2
+fail_compilation/fail19095.d(15): Deprecation: mismatched array lengths. array initializer has 1 elements, but array length is 2
 ---
  */
 

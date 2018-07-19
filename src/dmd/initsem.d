@@ -342,7 +342,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
             uinteger_t edim = (cast(TypeSArray)t).dim.toInteger();
             if (!i.isAssociativeArray() && i.dim != edim)
             {
-                deprecation(i.loc, "mismatched array lengths, %llu and %u", edim, i.dim);
+                deprecation(i.loc, "mismatched array lengths. array initializer has %u elements, but array length is %llu", i.dim, edim);
             }
             if (i.dim > edim)
             {
