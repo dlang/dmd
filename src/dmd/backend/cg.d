@@ -6,28 +6,28 @@
  *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cg.c, backend/cg.c)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cg.c, backend/cg.d)
  */
 
-#include        <stdio.h>
-#include        <time.h>
-#include        <string.h>
-#include        <stdlib.h>
+module dmd.backend.cg;
 
-#include        "cc.h"
-#include        "global.h"
-#include        "code.h"
-#include        "type.h"
-#include        "filespec.h"
+import dmd.backend.cdef;
+import dmd.backend.cc;
+import dmd.backend.global;
+import dmd.backend.code;
+import dmd.backend.code_x86;
+import dmd.backend.type;
+
+extern (C++):
 
 ///////////////////// GLOBALS /////////////////////
 
-#include        "fltables.c"
+mixin(import("fltables.d"));
 
+__gshared
+{
 targ_size_t     framehandleroffset;     // offset of C++ frame handler
-#if TARGET_OSX
 targ_size_t     localgotoffset; // offset of where localgot refers to
-#endif
 
 int cseg = CODE;                // current code segment
                                 // (negative values mean it is the negative
@@ -46,7 +46,8 @@ regm_t  FLOATREGS = FLOATREGS_16;
 regm_t  FLOATREGS2 = FLOATREGS2_16;
 regm_t  DOUBLEREGS = DOUBLEREGS_16;
 
-symbol *localgot;               // reference to GOT for this function
-symbol *tls_get_addr_sym;       // function __tls_get_addr
+Symbol *localgot;               // reference to GOT for this function
+Symbol *tls_get_addr_sym;       // function __tls_get_addr
 
 int STACKALIGN = 2;             // default for 16 bit code
+}

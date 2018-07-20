@@ -198,7 +198,7 @@ extern  int BPRM;
 extern  regm_t FLOATREGS;
 extern  regm_t FLOATREGS2;
 extern  regm_t DOUBLEREGS;
-extern  const char datafl[],stackfl[],segfl[],flinsymtab[];
+extern  unsigned char datafl[],stackfl[],segfl[],flinsymtab[];
 extern  char needframe,gotref;
 extern  targ_size_t localsize,
         funcoffset,

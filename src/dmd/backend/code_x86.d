@@ -128,6 +128,27 @@ enum RMstore = (1 << 31);
 extern (C++) extern __gshared regm_t ALLREGS;
 extern (C++) extern __gshared regm_t BYTEREGS;
 
+/* We use the same IDXREGS for the 386 as the 8088, because if
+   we used ALLREGS, it would interfere with mMSW
+ */
+enum IDXREGS         = (mBX|mSI|mDI);
+
+enum FLOATREGS_64    = mAX;
+enum FLOATREGS2_64   = mDX;
+enum DOUBLEREGS_64   = mAX;
+enum DOUBLEREGS2_64  = mDX;
+
+enum FLOATREGS_32    = mAX;
+enum FLOATREGS2_32   = mDX;
+enum DOUBLEREGS_32   = (mAX|mDX);
+enum DOUBLEREGS2_32  = (mCX|mBX);
+
+enum FLOATREGS_16    = (mDX|mAX);
+enum FLOATREGS2_16   = (mCX|mBX);
+enum DOUBLEREGS_16   = (mAX|mBX|mCX|mDX);
+
+/*#define _8087REGS (mST0|mST1|mST2|mST3|mST4|mST5|mST6|mST7)*/
+
 alias code_flags_t = uint;
 enum
 {
