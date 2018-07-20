@@ -8,11 +8,11 @@ jobs:
     steps:
       - checkout
       - run:
-          command: ./.circleci/run.sh install-deps
-          name: Install DMD
-      - run:
           command: ./.circleci/run.sh setup-repos
           name: Clone DMD
+      - run:
+          command: ./.circleci/run.sh install-deps
+          name: Install DMD
       - run:
           command: ./.circleci/run.sh style
           name: Check code style
