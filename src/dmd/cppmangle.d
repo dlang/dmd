@@ -203,49 +203,13 @@ private final class CppMangleVisitor : Visitor
     int find(RootObject p)
     {
         //printf("find %p %d %s\n", p, p.dyncast(), p ? p.toChars() : null);
-
-        if (p.dyncast() == DYNCAST.dsymbol)
-            if (auto ns = (cast(Dsymbol)p).isNspace())
-                return find(ns);
-
+        scope v = new ComponentVisitor(p);
         foreach (i, component; components)
         {
-            if (p == component)
+            if (component)
+                component.visitObject(v);
+            if (v.result)
                 return cast(int)i;
-        }
-        return -1;
-    }
-
-    /**
-     * Overload which accepts a Namespace
-     *
-     * It is very common for large C++ projects to have multiple files sharing
-     * the same `namespace`. If any D project adopts the same approach
-     * (e.g. separating data structures from functions), it will lead to two
-     * `Nspace` objects being instantiated, with different addresses.
-     * At the same time, we cannot compare just any Dsymbol via identifier,
-     * because it messes with templates.
-     *
-     * See_Also:
-     *  https://issues.dlang.org/show_bug.cgi?id=18922
-     *
-     * Params:
-     *   ns = C++ namespace to do substitution for
-     *
-     * Returns:
-     *  Index of the entry, if found, or `-1` otherwise
-     */
-    int find(Nspace ns)
-    {
-        foreach (i, component; components)
-        {
-            if (ns == component)
-                return cast(int)i;
-
-            if (component && component.dyncast() == DYNCAST.dsymbol)
-                if (auto ons = (cast(Dsymbol)component).isNspace())
-                    if (ns.equals(ons))
-                        return cast(int)i;
         }
         return -1;
     }
@@ -1372,5 +1336,112 @@ extern(C++):
     override void visit(TypeClass t)
     {
         mangleTypeClass(t, false);
+    }
+}
+
+/// Helper code to visit `RootObject`, as it doesn't define `accept`,
+/// only its direct subtypes do.
+private void visitObject (V : Visitor) (RootObject o, V this_)
+{
+    assert(o !is null);
+    if (Type ta = isType(o))
+        ta.accept(this_);
+    else if (Expression ea = isExpression(o))
+        ea.accept(this_);
+    else if (Dsymbol sa = isDsymbol(o))
+        sa.accept(this_);
+    else if (TemplateParameter t = isTemplateParameter(o))
+        t.accept(this_);
+    else if (Tuple t = isTuple(o))
+        this_.visit(t);
+    else {
+        assert(0, o.toString());
+    }
+}
+
+/// Helper class to compare entries in components
+private extern(C++) final class ComponentVisitor : Visitor
+{
+    /// Only one of the following is not `null`, it's always
+    /// the most specialized type, set from the ctor
+    private Nspace namespace;
+
+    /// Least specialized type
+    private RootObject object;
+
+    /// Set to the result of the comparison
+    private bool result;
+
+    public this(RootObject base)
+    {
+        switch (base.dyncast())
+        {
+        case DYNCAST.dsymbol:
+            if (auto ns = (cast(Dsymbol)base).isNspace())
+                this.namespace = ns;
+            else
+                goto default;
+            break;
+
+        default:
+            this.object = base;
+        }
+    }
+
+    /// Introduce base class overloads
+    alias visit = Visitor.visit;
+
+    /// Least specialized overload of each direct child of `RootObject`
+    public override void visit(Dsymbol o)
+    {
+        this.result = this.object && this.object == o;
+    }
+
+    /// Ditto
+    public override void visit(Expression o)
+    {
+        this.result = this.object && this.object == o;
+    }
+
+    /// Ditto
+    public void visit(Tuple o)
+    {
+        this.result = this.object && this.object == o;
+    }
+
+    /// Ditto
+    public override void visit(Type o)
+    {
+        this.result = this.object && this.object == o;
+    }
+
+    /// Ditto
+    public override void visit(TemplateParameter o)
+    {
+        this.result = this.object && this.object == o;
+    }
+
+    /**
+     * Overload which accepts a Namespace
+     *
+     * It is very common for large C++ projects to have multiple files sharing
+     * the same `namespace`. If any D project adopts the same approach
+     * (e.g. separating data structures from functions), it will lead to two
+     * `Nspace` objects being instantiated, with different addresses.
+     * At the same time, we cannot compare just any Dsymbol via identifier,
+     * because it messes with templates.
+     *
+     * See_Also:
+     *  https://issues.dlang.org/show_bug.cgi?id=18922
+     *
+     * Params:
+     *   ns = C++ namespace to do substitution for
+     *
+     * Returns:
+     *  Index of the entry, if found, or `-1` otherwise
+     */
+    public override void visit(Nspace ns)
+    {
+        this.result = this.namespace && this.namespace.equals(ns);
     }
 }
