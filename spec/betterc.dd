@@ -83,7 +83,7 @@ $(H2 $(LNAME2 retained, Retained Features))
     $(LI `assert` failures are directed to the C runtime library)
     )
 
-$(H2 $(LNAME2 consequences, Not Available))
+$(H2 $(LNAME2 consequences, Unavailable Features))
 
     $(P D features not available with $(B BetterC):)
 
