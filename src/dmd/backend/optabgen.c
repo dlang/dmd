@@ -740,28 +740,30 @@ void fltables()
             }
         }
 
-        f = fopen("fltables.c","w");
+        f = fopen("fltables.d","w");
+        fprintf(f, "extern (C++) __gshared {\n");
 
-        fprintf(f,"const char datafl[FLMAX] = \n\t{ ");
+        fprintf(f,"ubyte[FLMAX] datafl = \n\t[ ");
         for (i = 0; i < FLMAX - 1; i++)
-                fprintf(f,"%d,",datafl[i]);
-        fprintf(f,"%d };\n",datafl[i]);
+                fprintf(f,"cast(ubyte)%d,",datafl[i]);
+        fprintf(f,"cast(ubyte)%d ];\n",datafl[i]);
 
-        fprintf(f,"const char stackfl[FLMAX] = \n\t{ ");
+        fprintf(f,"ubyte[FLMAX] stackfl = \n\t[ ");
         for (i = 0; i < FLMAX - 1; i++)
-                fprintf(f,"%d,",stackfl[i]);
-        fprintf(f,"%d };\n",stackfl[i]);
+                fprintf(f,"cast(ubyte)%d,",stackfl[i]);
+        fprintf(f,"cast(ubyte)%d ];\n",stackfl[i]);
 
-        fprintf(f,"const char segfl[FLMAX] = \n\t{ ");
+        fprintf(f,"ubyte[FLMAX] segfl = \n\t[ ");
         for (i = 0; i < FLMAX - 1; i++)
-                fprintf(f,"%d,",segfl[i]);
-        fprintf(f,"%d };\n",segfl[i]);
+                fprintf(f,"cast(ubyte)%d,",segfl[i]);
+        fprintf(f,"cast(ubyte)%d ];\n",segfl[i]);
 
-        fprintf(f,"const char flinsymtab[FLMAX] = \n\t{ ");
+        fprintf(f,"ubyte[FLMAX] flinsymtab = \n\t[ ");
         for (i = 0; i < FLMAX - 1; i++)
-                fprintf(f,"%d,",flinsymtab[i]);
-        fprintf(f,"%d };\n",flinsymtab[i]);
+                fprintf(f,"cast(ubyte)%d,",flinsymtab[i]);
+        fprintf(f,"cast(ubyte)%d ];\n",flinsymtab[i]);
 
+        fprintf(f, "}\n");
         fclose(f);
 }
 
