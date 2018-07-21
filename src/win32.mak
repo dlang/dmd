@@ -230,7 +230,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\el.h $C\iasm.h $C\rtlsym.h \
 	$C\bcomplex.d $C\blockopt.d $C\cg.d $C\cg87.c $C\cgxmm.c \
 	$C\cgcod.c $C\cgcs.d $C\cgcv.c $C\cgelem.d $C\cgen.c $C\cgobj.c \
-	$C\compress.d $C\cgreg.c $C\var.c \
+	$C\compress.d $C\cgreg.d $C\var.c \
 	$C\cgsched.c $C\cod1.c $C\cod2.c $C\cod3.c $C\cod4.c $C\cod5.c \
 	$C\code.c $C\symbol.c $C\debug.c $C\dt.c $C\ee.d $C\el.c \
 	$C\evalu8.d $C\fp.c $C\go.d $C\gflow.d $C\gdag.d \
@@ -482,8 +482,8 @@ $G/cgen.obj : $C\rtlsym.h $C\cgen.c
 $G/cgobj.obj : $C\md5.h $C\cgobj.c
 	$(CC) -c -o$@ $(MFLAGS) $C\cgobj
 
-$G/cgreg.obj : $C\cgreg.c
-	$(CC) -c -o$@ $(MFLAGS) $C\cgreg
+$G/cgreg.obj : $C\cgreg.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\cgreg
 
 $G/cgsched.obj : $C\rtlsym.h $C\cgsched.c
 	$(CC) -c -o$@ $(MFLAGS) $C\cgsched

@@ -253,12 +253,18 @@ extern __gshared bool calledFinally;
 
 void stackoffsets(int);
 void codgen(Symbol *);
-//#ifdef DEBUG
-//unsigned findreg (regm_t regm , int line , const char *file );
-//#define findreg(regm) findreg((regm),__LINE__,__FILE__)
-//#else
-//unsigned findreg (regm_t regm );
-//#endif
+
+debug
+{
+    uint findreg(regm_t regm , int line, const(char)* file);
+    extern (D) uint findreg(regm_t regm , int line = __LINE__, string file = __FILE__)
+    { return findreg(regm, line, file.ptr); }
+}
+else
+{
+    uint findreg(regm_t regm);
+}
+
 //#define findregmsw(regm) findreg((regm) & mMSW)
 //#define findreglsw(regm) findreg((regm) & (mLSW | mBP))
 void freenode(elem *e);
