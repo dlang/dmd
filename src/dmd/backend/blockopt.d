@@ -18,6 +18,11 @@
 version (SPP) {} else
 {
 
+version (SCPP)
+    version = COMPILE;
+else version (HTOD)
+    version = COMPILE;
+
 import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.time;
@@ -35,10 +40,11 @@ import dmd.backend.global;
 import dmd.backend.goh;
 import dmd.backend.code;
 import dmd.backend.ty;
-version (SCPP)
+version (COMPILE)
 {
 import parser;
 import iasm;
+import precomp;
 }
 
 
@@ -51,12 +57,17 @@ else
 
 extern(C++):
 
-extern(C) void *mem_fcalloc(size_t numbytes); // tk/mem.c
-void *mem_free(size_t numbytes); // tk/mem.c
+extern (C) void *mem_fcalloc(size_t numbytes); // tk/mem.c
+extern (C) void mem_free(void*); // tk/mem.c
 
-import dmd.backend.gflow : util_realloc;
+alias MEM_PH_FREE = mem_free;
 
-private __gshared
+version (HTOD)
+    void *util_realloc(void* p, uint n, uint size);
+else
+    import dmd.backend.gflow : util_realloc;
+
+__gshared
 {
 
 uint numblks;       // number of basic blocks in current function
@@ -86,7 +97,7 @@ pragma(inline, true) block *block_calloc_i()
         *b = blkzero;
     }
     else
-        b = cast(block *) mem_fcalloc(block.sizeof);
+        b = cast(block *) mem_calloc(block.sizeof);
     return b;
 }
 
@@ -119,7 +130,7 @@ void block_term()
 {
     while (block_freelist)
     {   block *b = block_freelist.Bnext;
-        mem_ffree(block_freelist);
+        mem_free(block_freelist);
         block_freelist = b;
     }
 }
@@ -146,7 +157,7 @@ else
 {
 void block_next(int bc,block *bn)
 {
-    curblock.BC = bc;
+    curblock.BC = cast(ubyte) bc;
     curblock.Bsymend = globsym.top;
     block_last = curblock;
     if (!bn)
@@ -186,7 +197,7 @@ block *block_goto(Blockx *bx,int bc,block *bn)
  * Start a new block that is labelled by newlbl.
  */
 
-version (SCPP)
+version (COMPILE)
 {
 
 void block_goto()
@@ -201,7 +212,7 @@ void block_goto(block *bn)
 
 void block_goto(block *bgoto,block *bnew)
 {
-    enum BC bc;
+    BC bc;
 
     assert(bgoto);
     curblock.appendSucc(bgoto);
@@ -227,7 +238,7 @@ void block_ptr()
     numblks = 0;
     for (block *b = startblock; b; b = b.Bnext)       /* for each block        */
     {
-        b.blknum = numblks;
+        b.Bblknum = numblks;
         numblks++;
     }
     maxblks = 3 * numblks;              /* allow for increase in # of blocks */
@@ -384,20 +395,22 @@ version (HTOD) {} else
  * Hydrate/dehydrate a list of blocks.
  */
 
-version (HYDRATE)
+version (COMPILE)
+{
+static if (HYDRATE)
 {
 void blocklist_hydrate(block **pb)
 {
     while (isdehydrated(*pb))
     {
         /*printf("blocklist_hydrate(*pb = %p) =",*pb);*/
-        block *b = cast(block *)ph_hydrate(pb);
+        block *b = cast(block *)ph_hydrate(cast(void**)pb);
         /*printf(" %p\n",b);*/
         el_hydrate(&b.Belem);
         list_hydrate(&b.Bsucc,FPNULL);
         list_hydrate(&b.Bpred,FPNULL);
-        cast(void) ph_hydrate(&b.Btry);
-        cast(void) ph_hydrate(&b.Bendscope);
+        cast(void) ph_hydrate(cast(void**)&b.Btry);
+        cast(void) ph_hydrate(cast(void**)&b.Bendscope);
         symbol_hydrate(&b.Binitvar);
         switch (b.BC)
         {
@@ -408,7 +421,7 @@ void blocklist_hydrate(block **pb)
                 type_hydrate(&b.Bcatchtype);
                 break;
             case BCswitch:
-                cast(void) ph_hydrate(&b.Bswitch);
+                ph_hydrate(cast(void**)&b.Bswitch);
                 break;
 
             case BC_finally:
@@ -416,7 +429,7 @@ void blocklist_hydrate(block **pb)
                 break;
 
             case BC_lpad:
-                symbol_hydrate(&b.BS.BI_FINALLY.flag);
+                symbol_hydrate(&b.flag);
                 break;
 
             case BCasm:
@@ -424,6 +437,9 @@ version (HTOD) {} else
 {
                 code_hydrate(&b.Bcode);
 }
+                break;
+
+            default:
                 break;
         }
         filename_translate(&b.Bsrcpos);
@@ -433,7 +449,7 @@ version (HTOD) {} else
 }
 }
 
-version (DEHYRDATE)
+static if (DEHYDRATE)
 {
 void blocklist_dehydrate(block **pb)
 {   block *b;
@@ -471,16 +487,20 @@ version (DEBUG_XSYMGEN)
                 break;
 
             case BC_lpad:
-                symbol_dehydrate(&b.BS.BI_FINALLY.flag);
+                symbol_dehydrate(&b.flag);
                 break;
 
             case BCasm:
                 code_dehydrate(&b.Bcode);
                 break;
+
+            default:
+                break;
         }
         srcpos_dehydrate(&b.Bsrcpos);
         pb = &b.Bnext;
     }
+}
 }
 }
 
@@ -496,8 +516,8 @@ version (DEBUG_XSYMGEN)
 void block_appendexp(block *b,elem *e)
 {
     version (MARS) {}
-    else version (PARSER) {}
-    else assert(0);
+    else assert(PARSER);
+
     if (e)
     {
         assert(b);
@@ -547,7 +567,7 @@ else
  * Mark curblock as initializing Symbol s.
  */
 
-version (SCPP)
+version (COMPILE)
 {
 
 //#undef block_initvar
@@ -569,8 +589,8 @@ void block_initvar(Symbol *s)
 
 void block_endfunc(int flag)
 {
-    curblock.symend = globsym.top;
-    curblock.endscope = curblock;
+    curblock.Bsymend = globsym.top;
+    curblock.Bendscope = curblock;
     if (flag)
     {
         elem *e = el_longt(tstypes[TYint], 0);
@@ -1025,12 +1045,19 @@ private void brrear()
                         /* the number of iterations.                    */
 
                         version (SCPP)
-                            enum additionalAnd = "b.Btry == bt.Btry";
+                        {
+                            static if (NTEXCEPTIONS)
+                                enum additionalAnd = "b.Btry == bt.Btry &&
+                                                  bt.Btry == bt.nthSucc(0).Btry";
+                            else
+                                enum additionalAnd = "b.Btry == bt.Btry";
+                        }
                         else static if (NTEXCEPTIONS)
                             enum additionalAnd = "b.Btry == bt.Btry &&
-                                                  bt.Btry == bt.nthSucc(0).Btry";
+                                              bt.Btry == bt.nthSucc(0).Btry";
                         else
                             enum additionalAnd = "true";
+
                         while (bt.BC == BCgoto && !bt.Belem &&
                                 mixin(additionalAnd) &&
                                 (OPTIMIZER || !(bt.Bsrcpos.Slinnum && configv.addlinenumbers)) &&
