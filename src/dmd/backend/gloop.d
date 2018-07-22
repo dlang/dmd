@@ -359,18 +359,17 @@ bool dom(block *A,block *B)
  * Find all the loops.
  */
 
-private void findloops(loop **ploops)
+private extern (D) void findloops(block*[] dfo, loop **ploops)
 {
     freeloop(ploops);
 
     //printf("findloops()\n");
-    for (uint i = 0; i < dfotop; i++)
-        dfo[i].Bweight = 1;             // reset Bweights
-    for (uint i = dfotop; i--;)         // for each block (note reverse
-                                        // dfo order, so most nested
-                                        // loops are found first)
+    foreach (b; dfo)
+        b.Bweight = 1;             // reset Bweights
+    foreach_reverse (b; dfo)       // for each block (note reverse
+                                   // dfo order, so most nested
+                                   // loops are found first)
     {
-        block *b = dfo[i];
         assert(b);
         for (list_t bl = b.Bsucc; bl; bl = list_next(bl))
         {
@@ -391,15 +390,16 @@ private void findloops(loop **ploops)
 /********************************
  */
 
-private void loop_weight(block *b,int factor)
+private uint loop_weight(uint weight, int factor) pure
 {
     // Be careful not to overflow
-    if (b.Bweight < 0x10000)
-        b.Bweight *= 10 * factor;
-    else if (b.Bweight < 0x100000)
-        b.Bweight *= 2 * factor;
+    if (weight < 0x10000)
+        weight *= 10 * factor;
+    else if (weight < 0x100000)
+        weight *= 2 * factor;
     else
-        b.Bweight += factor;
+        weight += factor;
+    return weight;
 }
 
 /*****************************
@@ -424,7 +424,7 @@ private void buildloop(loop **ploops,block *head,block *tail)
 
             v = vec_calloc(maxblks);
             vec_setbit(head.Bdfoidx,v);
-            loop_weight(head,1);
+            head.Bweight = loop_weight(head.Bweight, 1);
             insert(tail,v);
 
             vec_orass(l.Lloop,v);      // merge into existing loop
@@ -445,7 +445,7 @@ private void buildloop(loop **ploops,block *head,block *tail)
     l.Ltail = tail;
 
     vec_setbit(head.Bdfoidx,l.Lloop);    /* add head to the loop         */
-    loop_weight(head,2);                 // *20 usage for loop header
+    head.Bweight = loop_weight(head.Bweight, 2);  // *20 usage for loop header
 
     insert(tail,l.Lloop);                /* insert tail in loop          */
 
@@ -475,7 +475,7 @@ L1:
         All other predecessors of head must be inside the loop.
      */
     l.Lpreheader = null;
-    for (list_t bl = head.Bpred; bl; bl = list_next(bl))
+    foreach (bl; ListRange(head.Bpred))
     {
         block *b = list_block(bl);
 
@@ -507,7 +507,7 @@ private void insert(block *b, vec_t lv)
     if (!vec_testbit(b.Bdfoidx,lv))     /* if block is not in loop      */
     {
         vec_setbit(b.Bdfoidx,lv);       /* add block to loop            */
-        loop_weight(b,1);               // *10 usage count
+        b.Bweight = loop_weight(b.Bweight,1);   // *10 usage count
         for (list_t bl = b.Bpred; bl; bl = list_next(bl))
             insert(list_block(bl),lv);  /* insert all its predecessors  */
     }
@@ -589,7 +589,7 @@ private int looprotate(loop *l)
         goto Lret;
 
     // Do not rotate if already rotated
-    for (block *b = tail.Bnext; b; b = b.Bnext)
+    foreach (b; BlockRange(tail.Bnext))
         if (b == head)                  // if loop already rotated
             goto Lret;
 
@@ -649,7 +649,7 @@ private int looprotate(loop *l)
         } // for each pred(head)
 
         // succ(head2) = succ(head)
-        for (list_t bl = head.Bsucc; bl; bl = list_next(bl))
+        foreach (bl; ListRange(head.Bsucc))
         {
             list_append(&(head2.Bsucc),list_block(bl));
             list_append(&(list_block(bl).Bpred),head2);
@@ -678,18 +678,19 @@ private int looprotate(loop *l)
             )
     {   // optimize for space
         // Simply position the header past the tail
-        block *b;
-        for (b = startblock; b; b = b.Bnext)
+        foreach (b; BlockRange(startblock))
+        {
             if (b.Bnext == head)
-                goto L1;                // found parent b of head
+            {   // found parent b of head
+                b.Bnext = head.Bnext;
+                head.Bnext = tail.Bnext;
+                tail.Bnext = head;
+                if (debugc) printf("2Rotated loop %p\n", l);
+                go.changes++;
+                return false;
+            }
+        }
         assert(0);
-
-    L1:
-        b.Bnext = head.Bnext;
-        head.Bnext = tail.Bnext;
-        tail.Bnext = head;
-        if (debugc) printf("2Rotated loop %p\n", l);
-        go.changes++;
     }
 Lret:
     return false;
@@ -722,12 +723,12 @@ restart:
     file_progress();
     if (blockinit())                    // init block data
     {
-        findloops(&startloop);          // Compute Bweights
+        findloops(dfo[0 .. dfotop], &startloop);          // Compute Bweights
         freeloop(&startloop);           // free existing loops
         return;                         // can't handle ASM blocks
     }
     compdom();                          // compute dominators
-    findloops(&startloop);              // find the loops
+    findloops(dfo[0 .. dfotop], &startloop);              // find the loops
 
     for (loop *l = startloop; l; l = ln)
     {
@@ -737,7 +738,7 @@ restart:
             compdfo();
             blockinit();
             compdom();
-            findloops(&startloop);      // may trash l.Lnext
+            findloops(dfo[0 .. dfotop], &startloop);      // may trash l.Lnext
             if (ln)
             {   ln = startloop;         // start over
                 file_progress();
@@ -815,7 +816,7 @@ restart:
         compdfo();                      /* compute depth-first order    */
         blockinit();
         compdom();
-        findloops(&startloop);          // recompute block info
+        findloops(dfo[0 .. dfotop], &startloop);          // recompute block info
         addblk = false;
     }
 
@@ -836,7 +837,7 @@ restart:
                 compdfo();                      // compute depth-first order
                 blockinit();
                 compdom();
-                findloops(&startloop);          // recompute block info
+                findloops(dfo[0 .. dfotop], &startloop);          // recompute block info
                 doflow = true;
                 if (ln)
                 {   ln = startloop;         // start over
@@ -902,7 +903,7 @@ restart:
                 {
                     printf("B%d\n", i);
                     {
-                        for (int j = 0; j < go.deftop; j++)
+                        foreach (j; 0 .. go.deftop)
                         {
                             printf("  [%2d] ", j);
                             WReqn(go.defnod[j].DNelem);
@@ -1358,7 +1359,7 @@ void fillInDNunambig(vec_t v, elem *e)
 
 
     // for all unambig defs in go.defnod[]
-    for (uint i = 0; i < go.deftop; i++)
+    foreach (uint i; 0 .. go.deftop)
     {
         elem *tn = go.defnod[i].DNelem;
         elem *tn1;
@@ -1423,7 +1424,7 @@ void updaterd(elem *n,vec_t GEN,vec_t KILL)
             if (OTassign(op) && t.Eoper != OPvar && t.Ejty)
             {
                 // for all unambig defs in go.defnod[]
-                for (uint i = 0; i < go.deftop; i++)
+                foreach (uint i; 0 .. go.deftop)
                 {
                     elem *tn = go.defnod[i].DNelem;
                     elem *tn1;
@@ -1624,7 +1625,7 @@ Lnextlis:
                     uint i;
                     for (i = 0; (i = cast(uint) vec_index(i, l.Lexit)) < dfotop; ++i)  // for each exit block
                     {
-                        for (list_t bl = dfo[i].Bsucc; bl; bl = list_next(bl))
+                        foreach (bl; ListRange(dfo[i].Bsucc))
                         {
                             block *s;           // successor to exit block
 
@@ -1690,7 +1691,7 @@ Lnextlis:
 
                 // We have an LI assignment, n.
                 // Check to see if the rvalue is already in the preheader.
-                for (list_t nl = l.Llis; nl; nl = list_next(nl))
+                foreach (nl; ListRange(l.Llis))
                 {
                     if (el_match(n.EV.E2,list_elem(nl).EV.E2))
                     {
@@ -1832,11 +1833,9 @@ L3:
             s = el_basesym(n.EV.E1);
             if (s)
             {
-                for (list_t nl = l.Llis; nl; nl = list_next(nl))
-                {   elem *el;
-                    tym_t ty2;
-
-                    el = list_elem(nl);
+                foreach (nl; ListRange(l.Llis))
+                {
+                    elem *el = list_elem(nl);
                     el = el.EV.E2;
                     elem_print(el);
                     if (el.Eoper == OPind && el_basesym(el.EV.E1) == s)
@@ -1866,7 +1865,7 @@ L3:
 
     // See if it's already been moved
     ty = n.Ety;
-    for (list_t nl = l.Llis; nl; nl = list_next(nl))
+    foreach (nl; ListRange(l.Llis))
     {
         elem *el;
         tym_t ty2;
@@ -2147,7 +2146,7 @@ private void findbasivs(loop *l)
 
     /* for each def in go.defnod[] that is within loop l     */
 
-    for (uint i = 0; i < go.deftop; i++)
+    foreach (uint i; 0 .. go.deftop)
     {
         if (!vec_testbit(go.defnod[i].DNblock.Bdfoidx,l.Lloop))
             continue;               /* def is not in the loop       */
@@ -2189,7 +2188,7 @@ private void findbasivs(loop *l)
 
             if (!ambdone)           /* avoid redundant loops        */
             {
-                for (uint j = 0; j < globsym.top; j++)
+                foreach (uint j; 0 .. globsym.top)
                 {
                     if (!(globsym.tab[j].Sflags & SFLunambig))
                         vec_setbit(j,notposs);
@@ -2241,26 +2240,27 @@ private void findbasivs(loop *l)
         /* the parent of the increment elem for it.                     */
 
         /* First find the go.defnod[]      */
-        uint j;
-        for (j = 0; j < go.deftop; j++)
+        foreach (j; 0 .. go.deftop)
         {
             /* If go.defnod is a def of i and it is in the loop        */
             if (go.defnod[j].DNelem.EV.E1 &&     /* OPasm are def nodes  */
                 go.defnod[j].DNelem.EV.E1.EV.Vsym == s &&
                 vec_testbit(go.defnod[j].DNblock.Bdfoidx,l.Lloop))
+            {
+                biv.IVincr = el_parent(go.defnod[j].DNelem,&(go.defnod[j].DNblock.Belem));
+                assert(s == (*biv.IVincr).EV.E1.EV.Vsym);
+
+                debug if (debugc)
+                {
+                    printf("Increment elem is: "); WReqn(*biv.IVincr);     printf("\n");
+                }
                 goto L1;
+            }
         }
         assert(0);                      /* should have found it         */
         /* NOTREACHED */
 
-    L1: biv.IVincr = el_parent(go.defnod[j].DNelem,&(go.defnod[j].DNblock.Belem));
-        assert(s == (*biv.IVincr).EV.E1.EV.Vsym);
-
-        debug
-            if (debugc)
-            {
-                printf("Increment elem is: "); WReqn(*biv.IVincr);     printf("\n");
-            }
+    L1: ;
     }
 
     vec_free(poss);
@@ -2289,7 +2289,7 @@ private void findopeqs(loop *l)
 
     // for each def in go.defnod[] that is within loop l
 
-    for (uint i = 0; i < go.deftop; i++)
+    foreach (i; 0 .. go.deftop)
     {
         if (!vec_testbit(go.defnod[i].DNblock.Bdfoidx,l.Lloop))
             continue;               // def is not in the loop
@@ -2325,7 +2325,7 @@ private void findopeqs(loop *l)
 
             if (!ambdone)           // avoid redundant loops
             {
-                for (uint j = 0; j < globsym.top; j++)
+                foreach (j; 0 .. globsym.top)
                 {
                     if (!(globsym.tab[j].Sflags & SFLunambig))
                         vec_setbit(j,notposs);
@@ -2382,26 +2382,25 @@ private void findopeqs(loop *l)
         // the parent of the increment elem for it.
 
         // First find the go.defnod[]
-        uint j;
-        for (j = 0; j < go.deftop; j++)
+        foreach (j; 0 .. go.deftop)
         {
             // If go.defnod is a def of i and it is in the loop
             if (go.defnod[j].DNelem.EV.E1 &&     // OPasm are def nodes
                 go.defnod[j].DNelem.EV.E1.EV.Vsym == s &&
                 vec_testbit(go.defnod[j].DNblock.Bdfoidx,l.Lloop))
-                goto L1;
+            {
+                biv.IVincr = el_parent(go.defnod[j].DNelem,&(go.defnod[j].DNblock.Belem));
+                assert(s == (*biv.IVincr).EV.E1.EV.Vsym);
+
+                debug if (debugc)
+                {
+                    printf("Opeq elem is: "); WReqn(*biv.IVincr);  printf("\n");
+                }
+                goto Lcont;
+            }
         }
         assert(0);                      // should have found it
         // NOTREACHED
-
-    L1: biv.IVincr = el_parent(go.defnod[j].DNelem,&(go.defnod[j].DNblock.Belem));
-        assert(s == (*biv.IVincr).EV.E1.EV.Vsym);
-
-        debug
-            if (debugc)
-            {
-                printf("Opeq elem is: "); WReqn(*biv.IVincr);  printf("\n");
-            }
 
     Lcont:
         ;
@@ -2423,8 +2422,7 @@ private void findivfams(loop *l)
     if (debugc) printf("findivfams(%p)\n",l);
     for (Iv *biv = l.Livlist; biv; biv = biv.IVnext)
     {
-        uint i;
-        for (i = 0; (i = cast(uint) vec_index(i, l.Lloop)) < dfotop; ++i)  // for each block in loop
+        for (uint i = 0; (i = cast(uint) vec_index(i, l.Lloop)) < dfotop; ++i)  // for each block in loop
             if (dfo[i].Belem)
                 ivfamelems(biv,&(dfo[i].Belem));
         /* Fold all the constant expressions in c1 and c2.      */
@@ -3127,13 +3125,12 @@ private void elimbasivs(loop *l)
             /* if X is live on entry to any successor S outside loop */
             /*      prepend elem X=(T-c2)/c1 to S.Belem     */
 
-            uint i;
-            for (i = 0; (i = cast(uint) vec_index(i, l.Lexit)) < dfotop; ++i)  // for each exit block
+            for (uint i = 0; (i = cast(uint) vec_index(i, l.Lexit)) < dfotop; ++i)  // for each exit block
             {
                 elem *ne;
                 block *b;
 
-                for (list_t bl = dfo[i].Bsucc; bl; bl = list_next(bl))
+                foreach (bl; ListRange(dfo[i].Bsucc))
                 {   /* for each successor   */
                     b = list_block(bl);
                     if (vec_testbit(b.Bdfoidx,l.Lloop))
@@ -3181,8 +3178,7 @@ private void elimbasivs(loop *l)
                         list_append(&(bn.Bsucc),b);
                         list_append(&(bn.Bpred),dfo[i]);
                         bl.ptr = cast(void *)bn;
-                        for (list_t bl2 = b.Bpred; bl2;
-                             bl2 = list_next(bl2))
+                        foreach (bl2; ListRange(b.Bpred))
                             if (list_block(bl2) == dfo[i])
                             {
                                 bl2.ptr = cast(void *)bn;
@@ -3210,10 +3206,9 @@ private void elimbasivs(loop *l)
         else if (refcount == 0)                 /* if no uses of IV in loop  */
         {
             /* Eliminate the basic IV if it is not live on any successor */
-            uint i;
-            for (i = 0; (i = cast(uint) vec_index(i, l.Lexit)) < dfotop; ++i)  // for each exit block
+            for (uint i = 0; (i = cast(uint) vec_index(i, l.Lexit)) < dfotop; ++i)  // for each exit block
             {
-                for (list_t bl = dfo[i].Bsucc; bl; bl = list_next(bl))
+                foreach (bl; ListRange(dfo[i].Bsucc))
                 {   /* for each successor   */
                     block *b = list_block(bl);
                     if (vec_testbit(b.Bdfoidx,l.Lloop))
