@@ -40,11 +40,12 @@ import dmd.backend.global;
 import dmd.backend.goh;
 import dmd.backend.code;
 import dmd.backend.ty;
+
 version (COMPILE)
 {
-import parser;
-import iasm;
-import precomp;
+    import parser;
+    import iasm;
+    import precomp;
 }
 
 
@@ -69,30 +70,28 @@ else
 
 __gshared
 {
+    uint numblks;           // number of basic blocks in current function
+    block *startblock;      // beginning block of function
+                            // (can have no predecessors)
 
-uint numblks;       // number of basic blocks in current function
-block *startblock;      /* beginning block of function                  */
-                        /* (can have no predecessors)                   */
+    block **dfo = null;     // array of depth first order
+    uint dfotop;            // # of items in dfo[]
 
-block **dfo = null;     /* array of depth first order                   */
-uint dfotop;        /* # of items in dfo[]                          */
+    block *curblock;        // current block being read in
+    block *block_last;      // last block read in
 
-block *curblock;        /* current block being read in                  */
-block *block_last;      // last block read in
+    block *block_freelist;
 
-block * block_freelist;
-
-////////////////////////////
-// Storage allocator.
-
-block blkzero;
+    block blkzero;          // storage allocator
 }
 
 pragma(inline, true) block *block_calloc_i()
-{   block *b;
+{
+    block *b;
 
     if (block_freelist)
-    {   b = block_freelist;
+    {
+        b = block_freelist;
         block_freelist = b.Bnext;
         *b = blkzero;
     }
@@ -106,8 +105,8 @@ block *block_calloc()
     return block_calloc_i();
 }
 
-//////////////////////////////////
-//
+/*********************************
+ */
 
 __gshared goal_t[BCMAX] bc_goal;
 
@@ -123,13 +122,14 @@ void block_init()
     bc_goal[BCiftrue] = GOALflags;
 }
 
-//////////////////////////////////
-//
+/*********************************
+ */
 
 void block_term()
 {
     while (block_freelist)
-    {   block *b = block_freelist.Bnext;
+    {
+        block *b = block_freelist.Bnext;
         mem_free(block_freelist);
         block_freelist = b;
     }
@@ -147,7 +147,7 @@ void block_next(Blockx *bctx,int bc,block *bn)
     block_last = bctx.curblock;
     if (!bn)
         bn = block_calloc_i();
-    bctx.curblock.Bnext = bn;                 // next block
+    bctx.curblock.Bnext = bn;                // next block
     bctx.curblock = bctx.curblock.Bnext;     // new current block
     bctx.curblock.Btry = bctx.tryblock;
     bctx.curblock.Bflags |= bctx.flags;
@@ -162,8 +162,8 @@ void block_next(int bc,block *bn)
     block_last = curblock;
     if (!bn)
         bn = block_calloc_i();
-    curblock.Bnext = bn;                       // next block
-    curblock = curblock.Bnext;         // new current block
+    curblock.Bnext = bn;                     // next block
+    curblock = curblock.Bnext;               // new current block
     curblock.Bsymstart = globsym.top;
     curblock.Btry = pstate.STbtry;
 }
@@ -180,16 +180,15 @@ void block_next()
 
 version (MARS)
 {
-
 block *block_goto(Blockx *bx,int bc,block *bn)
-{   block *b;
+{
+    block *b;
 
     b = bx.curblock;
     block_next(bx,bc,bn);
     b.appendSucc(bx.curblock);
     return bx.curblock;
 }
-
 }
 
 /****************************
@@ -216,11 +215,11 @@ void block_goto(block *bgoto,block *bnew)
 
     assert(bgoto);
     curblock.appendSucc(bgoto);
-    if (curblock.Bcode)        // If there is already code in the block
+    if (curblock.Bcode)         // If there is already code in the block
                                 // then this is an ASM block
-            bc = BCasm;
+        bc = BCasm;
     else
-            bc = BCgoto;        // fall thru to next block
+        bc = BCgoto;            // fall thru to next block
     block_next(bc,bnew);
 }
 
@@ -259,9 +258,9 @@ void block_pred()
         //printf("b = %p, BC = ",b); WRBC(b.BC); printf("\n");
         for (list_t bp = b.Bsucc; bp; bp = list_next(bp))
         {                               /* for each successor to b      */
-                //printf("\tbs = %p\n",list_block(bp));
-                assert(list_block(bp));
-                list_prepend(&(list_block(bp).Bpred),b);
+            //printf("\tbs = %p\n",list_block(bp));
+            assert(list_block(bp));
+            list_prepend(&(list_block(bp).Bpred),b);
         }
     }
     assert(startblock.Bpred == null);  /* startblock has no preds      */
@@ -285,7 +284,8 @@ void block_visit(block *b)
 {
     b.Bflags |= BFLvisited;
     for (list_t l = b.Bsucc; l; l = list_next(l))      // for each successor
-    {   block *bs = list_block(l);
+    {
+        block *bs = list_block(l);
         assert(bs);
         if ((bs.Bflags & BFLvisited) == 0)     // if not visited
             block_visit(bs);
@@ -309,12 +309,13 @@ void block_compbcount()
 
 void blocklist_free(block **pb)
 {
-        block *bn;
-        for (block *b = *pb; b; b = bn)
-        {       bn = b.Bnext;
-                block_free(b);
-        }
-        *pb = null;
+    block *bn;
+    for (block *b = *pb; b; b = bn)
+    {
+        bn = b.Bnext;
+        block_free(b);
+    }
+    *pb = null;
 }
 
 /********************************
@@ -354,36 +355,41 @@ void block_free(block *b)
     if (OPTIMIZER)
         block_optimizer_free(b);
     switch (b.BC)
-    {   case BCswitch:
+    {
+        case BCswitch:
         case BCifthen:
         case BCjmptab:
-version (MARS)
-{
-            free(b.Bswitch);
-}
-else
-{
-            MEM_PH_FREE(b.Bswitch);
-}
+            version (MARS)
+            {
+                free(b.Bswitch);
+            }
+            else
+            {
+                MEM_PH_FREE(b.Bswitch);
+            }
             break;
-version (SCPP)
-{
-        case BCcatch:
-            type_free(b.Bcatchtype);
-            break;
-}
-version (MARS)
-{
-        case BCjcatch:
-            free(b.actionTable);
-            break;
-}
+
+        version (SCPP)
+        {
+            case BCcatch:
+                type_free(b.Bcatchtype);
+                break;
+        }
+
+        version (MARS)
+        {
+            case BCjcatch:
+                free(b.actionTable);
+                break;
+        }
+
         case BCasm:
-version (HTOD) {} else
-{
-            code_free(b.Bcode);
-}
+            version (HTOD) {} else
+            {
+                code_free(b.Bcode);
+            }
             break;
+
         default:
             break;
     }
@@ -417,9 +423,11 @@ void blocklist_hydrate(block **pb)
             case BCtry:
                 symbol_hydrate(&b.catchvar);
                 break;
+
             case BCcatch:
                 type_hydrate(&b.Bcatchtype);
                 break;
+
             case BCswitch:
                 ph_hydrate(cast(void**)&b.Bswitch);
                 break;
@@ -433,10 +441,10 @@ void blocklist_hydrate(block **pb)
                 break;
 
             case BCasm:
-version (HTOD) {} else
-{
-                code_hydrate(&b.Bcode);
-}
+                version (HTOD) {} else
+                {
+                    code_hydrate(&b.Bcode);
+                }
                 break;
 
             default:
@@ -452,15 +460,17 @@ version (HTOD) {} else
 static if (DEHYDRATE)
 {
 void blocklist_dehydrate(block **pb)
-{   block *b;
+{
+    block *b;
 
     while ((b = *pb) != null && !isdehydrated(b))
     {
-version (DEBUG_XSYMGEN)
-{
-        if (xsym_gen && ph_in_head(b))
-            return;
-}
+        version (DEBUG_XSYMGEN)
+        {
+            if (xsym_gen && ph_in_head(b))
+                return;
+        }
+
         /*printf("blocklist_dehydrate(*pb = %p) =",b);*/
         ph_dehydrate(pb);
         /*printf(" %p\n",*pb);*/
@@ -475,9 +485,11 @@ version (DEBUG_XSYMGEN)
             case BCtry:
                 symbol_dehydrate(&b.catchvar);
                 break;
+
             case BCcatch:
                 type_dehydrate(&b.Bcatchtype);
                 break;
+
             case BCswitch:
                 ph_dehydrate(&b.Bswitch);
                 break;
@@ -531,33 +543,33 @@ void block_appendexp(block *b,elem *e)
             if (t)
                 type_debug(t);
             elem_debug(e);
-version (MARS)
-{
-            tym_t ty = e.Ety;
+            version (MARS)
+            {
+                tym_t ty = e.Ety;
 
-            elem_debug(e);
-            /* Build tree such that (a,b) => (a,(b,e))  */
-            while (ec.Eoper == OPcomma)
-            {
-                ec.Ety = ty;
-                ec.ET = t;
-                pe = &(ec.EV.E2);
-                ec = *pe;
+                elem_debug(e);
+                /* Build tree such that (a,b) => (a,(b,e))  */
+                while (ec.Eoper == OPcomma)
+                {
+                    ec.Ety = ty;
+                    ec.ET = t;
+                    pe = &(ec.EV.E2);
+                    ec = *pe;
+                }
+                e = el_bin(OPcomma,ty,ec,e);
+                e.ET = t;
             }
-            e = el_bin(OPcomma,ty,ec,e);
-            e.ET = t;
-}
-else
-{
-            /* Build tree such that (a,b) => (a,(b,e))  */
-            while (ec.Eoper == OPcomma)
+            else
             {
-                el_settype(ec,t);
-                pe = &(ec.EV.E2);
-                ec = *pe;
+                /* Build tree such that (a,b) => (a,(b,e))  */
+                while (ec.Eoper == OPcomma)
+                {
+                    el_settype(ec,t);
+                    pe = &(ec.EV.E2);
+                    ec = *pe;
+                }
+                e = el_bint(OPcomma,t,ec,e);
             }
-            e = el_bint(OPcomma,t,ec,e);
-}
         }
         *pe = e;
     }
@@ -638,42 +650,38 @@ void blockopt(int iter)
                 count++;
             } while (mergeblks());      /* merge together blocks         */
         } while (go.changes);
-debug
-{
-        if (debugw)
+
+        debug if (debugw)
         {
             numberBlocks(startblock);
             for (block *b = startblock; b; b = b.Bnext)
                 WRblock(b);
         }
-}
     }
     else
     {
-debug
-{
-        numberBlocks(startblock);
-}
+        debug
+        {
+            numberBlocks(startblock);
+        }
+
         /* canonicalize the trees        */
         for (block *b = startblock; b; b = b.Bnext)
         {
-debug
-{
-            if (debugb)
+            debug if (debugb)
                 WRblock(b);
-}
+
             if (b.Belem)
-            {   b.Belem = doptelem(b.Belem,bc_goal[b.BC] | GOALstruct);
+            {
+                b.Belem = doptelem(b.Belem,bc_goal[b.BC] | GOALstruct);
                 if (b.Belem)
                     b.Belem = el_convert(b.Belem);
             }
-debug
-{
-            if (debugb)
+
+            debug if (debugb)
             {   printf("after optelem():\n");
                 WRblock(b);
             }
-}
         }
         if (localgot)
         {   // Initialize with:
@@ -687,16 +695,14 @@ debug
         bropt();                        /* branch optimization           */
         brrear();                       /* branch rearrangement          */
         comsubs();                      /* eliminate common subexpressions */
-debug
-{
-        if (debugb)
+
+        debug if (debugb)
         {
             printf("...................After blockopt().............\n");
             numberBlocks(startblock);
             for (block *b = startblock; b; b = b.Bnext)
                 WRblock(b);
         }
-}
     }
 }
 
@@ -723,7 +729,6 @@ void brcombine()
         int anychanges = 0;
         for (block *b = startblock; b; b = b.Bnext)   // for each block
         {
-
             /* Look for [e1 IFFALSE L3,L2] L2: [e2 GOTO L3] L3: [e3]    */
             /* Replace with [(e1 && e2),e3]                             */
             ubyte bc = b.BC;
@@ -834,7 +839,7 @@ void brcombine()
                     {
                         int op = OPoror;
                         b.Belem = PARSER ? el_bint(op,tstypes[TYint],b.Belem,b3.Belem)
-                                          : el_bin(op,TYint,b.Belem,b3.Belem);
+                                         : el_bin(op,TYint,b.Belem,b3.Belem);
                     }
                     b.BC = BCgoto;
                     b3.Belem = null;
@@ -883,8 +888,8 @@ void brcombine()
 
                     /* change predecessor of successors of b2 from b2 to b */
                     for (bl = b2.Bsucc; bl; bl = list_next(bl))
-                    {   list_t bp;
-
+                    {
+                        list_t bp;
                         for (bp = list_block(bl).Bpred; bp; bp = list_next(bp))
                         {
                             if (list_block(bp) == b2)
@@ -915,110 +920,112 @@ void brcombine()
 
 private void bropt()
 {
-        debug if (debugc) printf("bropt()\n");
-        assert(!PARSER);
-        for (block *b = startblock; b; b = b.Bnext)   // for each block
+    debug if (debugc) printf("bropt()\n");
+    assert(!PARSER);
+    for (block *b = startblock; b; b = b.Bnext)   // for each block
+    {
+        elem **pn = &(b.Belem);
+        if (OPTIMIZER && *pn)
+            while ((*pn).Eoper == OPcomma)
+                pn = &((*pn).EV.E2);
+
+        elem *n = *pn;
+        if (b.BC == BCiftrue)
         {
-                elem **pn = &(b.Belem);
-                if (OPTIMIZER && *pn)
-                    while ((*pn).Eoper == OPcomma)
-                        pn = &((*pn).EV.E2);
+            assert(n);
+            /* Replace IF (!e) GOTO ... with        */
+            /* IF OPnot (e) GOTO ...                */
+            if (n.Eoper == OPnot)
+            {
+                tym_t tym;
 
-                elem *n = *pn;
-                if (b.BC == BCiftrue)
-                {
-                        assert(n);
-                        /* Replace IF (!e) GOTO ... with        */
-                        /* IF OPnot (e) GOTO ...                */
-                        if (n.Eoper == OPnot)
-                        {
-                            tym_t tym;
+                tym = n.EV.E1.Ety;
+                *pn = el_selecte1(n);
+                (*pn).Ety = tym;
+                for (n = b.Belem; n.Eoper == OPcomma; n = n.EV.E2)
+                    n.Ety = tym;
+                b.Bsucc = list_reverse(b.Bsucc);
+                debug if (debugc) printf("CHANGE: if (!e)\n");
+                go.changes++;
+            }
 
-                            tym = n.EV.E1.Ety;
-                            *pn = el_selecte1(n);
-                            (*pn).Ety = tym;
-                            for (n = b.Belem; n.Eoper == OPcomma; n = n.EV.E2)
-                                n.Ety = tym;
-                            b.Bsucc = list_reverse(b.Bsucc);
-                            debug if (debugc) printf("CHANGE: if (!e)\n");
-                            go.changes++;
-                        }
+            /* Take care of IF (constant)                   */
+            block *db;
+            if (iftrue(n))          /* if elem is true      */
+            {
+                // select first succ
+                db = b.nthSucc(1);
+                goto L1;
+            }
+            else if (iffalse(n))
+            {
+                // select second succ
+                db = b.nthSucc(0);
 
-                        /* Take care of IF (constant)                   */
-                        block *db;
-                        if (iftrue(n))          /* if elem is true      */
-                        {
-                            // select first succ
-                            db = b.nthSucc(1);
-                            goto L1;
-                        }
-                        else if (iffalse(n))
-                        {
-                            // select second succ
-                            db = b.nthSucc(0);
+              L1:
+                list_subtract(&(b.Bsucc),db);
+                list_subtract(&(db.Bpred),b);
+                b.BC = BCgoto;
+                /* delete elem if it has no side effects */
+                b.Belem = doptelem(b.Belem,GOALnone | GOALagain);
+                debug if (debugc) printf("CHANGE: if (const)\n");
+                go.changes++;
+            }
 
-                            L1: list_subtract(&(b.Bsucc),db);
-                                list_subtract(&(db.Bpred),b);
-                                b.BC = BCgoto;
-                                /* delete elem if it has no side effects */
-                                b.Belem = doptelem(b.Belem,GOALnone | GOALagain);
-                                debug if (debugc) printf("CHANGE: if (const)\n");
-                                go.changes++;
-                        }
-
-                        /* Look for both destinations being the same    */
-                        else if (b.nthSucc(0) ==
-                                 b.nthSucc(1))
-                        {       b.BC = BCgoto;
-                                db = b.nthSucc(0);
-                                list_subtract(&(b.Bsucc),db);
-                                list_subtract(&(db.Bpred),b);
-                                debug if (debugc) printf("CHANGE: if (e) goto L1; else goto L1;\n");
-                                go.changes++;
-                        }
-                }
-                else if (b.BC == BCswitch)
-                {       /* see we can evaluate this switch now  */
-                        while (n.Eoper == OPcomma)
-                                n = n.EV.E2;
-                        if (n.Eoper != OPconst)
-                                continue;
-                        assert(tyintegral(n.Ety));
-                        targ_llong value = el_tolong(n);
-                        targ_llong* pv = b.Bswitch;      // ptr to switch data
-                        assert(pv);
-                        uint ncases = cast(uint) *pv++;          // # of cases
-                        uint i = 1;                  // first case
-                        while (1)
-                        {
-                                if (i > ncases)
-                                {   i = 0;      /* select default       */
-                                    break;
-                                }
-                                if (*pv++ == value)
-                                    break;      /* found it             */
-                                i++;            /* next case            */
-                        }
-                        /* the ith entry in Bsucc is the one we want    */
-                        block *db = b.nthSucc(i);
-                        /* delete predecessors of successors (!)        */
-                        for (list_t bl = b.Bsucc; bl; bl = list_next(bl))
-                            if (i--)            // if not ith successor
-                            {
-                                void *p = list_subtract(
-                                    &(list_block(bl).Bpred),b);
-                                assert(p == b);
-                            }
-
-                        /* dump old successor list and create a new one */
-                        list_free(&b.Bsucc,FPNULL);
-                        b.appendSucc(db);
-                        b.BC = BCgoto;
-                        b.Belem = doptelem(b.Belem,GOALnone | GOALagain);
-                        debug if (debugc) printf("CHANGE: switch (const)\n");
-                        go.changes++;
-                }
+            /* Look for both destinations being the same    */
+            else if (b.nthSucc(0) ==
+                     b.nthSucc(1))
+            {
+                b.BC = BCgoto;
+                db = b.nthSucc(0);
+                list_subtract(&(b.Bsucc),db);
+                list_subtract(&(db.Bpred),b);
+                debug if (debugc) printf("CHANGE: if (e) goto L1; else goto L1;\n");
+                go.changes++;
+            }
         }
+        else if (b.BC == BCswitch)
+        {   /* see we can evaluate this switch now  */
+            while (n.Eoper == OPcomma)
+                n = n.EV.E2;
+            if (n.Eoper != OPconst)
+                continue;
+            assert(tyintegral(n.Ety));
+            targ_llong value = el_tolong(n);
+            targ_llong* pv = b.Bswitch;      // ptr to switch data
+            assert(pv);
+            uint ncases = cast(uint) *pv++;  // # of cases
+            uint i = 1;                      // first case
+            while (1)
+            {
+                if (i > ncases)
+                {
+                    i = 0;      // select default
+                    break;
+                }
+                if (*pv++ == value)
+                    break;      // found it
+                i++;            // next case
+            }
+            /* the ith entry in Bsucc is the one we want    */
+            block *db = b.nthSucc(i);
+            /* delete predecessors of successors (!)        */
+            for (list_t bl = b.Bsucc; bl; bl = list_next(bl))
+                if (i--)            // if not ith successor
+                {
+                    void *p = list_subtract(&(list_block(bl).Bpred),b);
+                    assert(p == b);
+                }
+
+            /* dump old successor list and create a new one */
+            list_free(&b.Bsucc,FPNULL);
+            b.appendSucc(db);
+            b.BC = BCgoto;
+            b.Belem = doptelem(b.Belem,GOALnone | GOALagain);
+            debug if (debugc) printf("CHANGE: switch (const)\n");
+            go.changes++;
+        }
+    }
 }
 
 /*********************************
@@ -1027,83 +1034,85 @@ private void bropt()
 
 private void brrear()
 {
-        debug if (debugc) printf("brrear()\n");
-        for (block *b = startblock; b; b = b.Bnext)   // for each block
+    debug if (debugc) printf("brrear()\n");
+    for (block *b = startblock; b; b = b.Bnext)   // for each block
+    {
+        for (list_t bl = b.Bsucc; bl; bl = list_next(bl))
+        {   /* For each transfer of control block pointer   */
+            int iter = 0;
+
+            block *bt = list_block(bl);
+
+            /* If it is a transfer to a block that consists */
+            /* of nothing but an unconditional transfer,    */
+            /*      Replace transfer address with that      */
+            /*      transfer address.                       */
+            /* Note: There are certain kinds of infinite    */
+            /* loops which we avoid by putting a lid on     */
+            /* the number of iterations.                    */
+
+            version (SCPP)
+            {
+                static if (NTEXCEPTIONS)
+                    enum additionalAnd = "b.Btry == bt.Btry &&
+                                      bt.Btry == bt.nthSucc(0).Btry";
+                else
+                    enum additionalAnd = "b.Btry == bt.Btry";
+            }
+            else static if (NTEXCEPTIONS)
+                enum additionalAnd = "b.Btry == bt.Btry &&
+                                  bt.Btry == bt.nthSucc(0).Btry";
+            else
+                enum additionalAnd = "true";
+
+            while (bt.BC == BCgoto && !bt.Belem &&
+                   mixin(additionalAnd) &&
+                   (OPTIMIZER || !(bt.Bsrcpos.Slinnum && configv.addlinenumbers)) &&
+                   ++iter < 10)
+            {
+                bl.ptr = list_ptr(bt.Bsucc);
+                if (bt.Bsrcpos.Slinnum && !b.Bsrcpos.Slinnum)
+                    b.Bsrcpos = bt.Bsrcpos;
+                b.Bflags |= bt.Bflags;
+                list_append(&(list_block(bl).Bpred),b);
+                list_subtract(&(bt.Bpred),b);
+                debug if (debugc) printf("goto.goto\n");
+                bt = list_block(bl);
+            }
+
+            // Bsucc after the first are the targets of
+            // jumps, calls and loops, and as such to do this right
+            // we need to traverse the Bcode list and fix up
+            // the IEV2.Vblock pointers.
+            if (b.BC == BCasm)
+                break;
+        }
+
+        static if(0)
         {
-                for (list_t bl = b.Bsucc; bl; bl = list_next(bl))
-                {       /* For each transfer of control block pointer   */
-                        int iter = 0;
+            /* Replace cases of                     */
+            /*      IF (e) GOTO L1 ELSE L2          */
+            /*      L1:                             */
+            /* with                                 */
+            /*      IF OPnot (e) GOTO L2 ELSE L1    */
+            /*      L1:                             */
 
-                        block *bt = list_block(bl);
+            if (b.BC == BCiftrue || b.BC == BCiffalse)
+            {
+                block *bif = b.nthSucc(0);
+                block *belse = b.nthSucc(1);
 
-                        /* If it is a transfer to a block that consists */
-                        /* of nothing but an unconditional transfer,    */
-                        /*      Replace transfer address with that      */
-                        /*      transfer address.                       */
-                        /* Note: There are certain kinds of infinite    */
-                        /* loops which we avoid by putting a lid on     */
-                        /* the number of iterations.                    */
-
-                        version (SCPP)
-                        {
-                            static if (NTEXCEPTIONS)
-                                enum additionalAnd = "b.Btry == bt.Btry &&
-                                                  bt.Btry == bt.nthSucc(0).Btry";
-                            else
-                                enum additionalAnd = "b.Btry == bt.Btry";
-                        }
-                        else static if (NTEXCEPTIONS)
-                            enum additionalAnd = "b.Btry == bt.Btry &&
-                                              bt.Btry == bt.nthSucc(0).Btry";
-                        else
-                            enum additionalAnd = "true";
-
-                        while (bt.BC == BCgoto && !bt.Belem &&
-                                mixin(additionalAnd) &&
-                                (OPTIMIZER || !(bt.Bsrcpos.Slinnum && configv.addlinenumbers)) &&
-                               ++iter < 10)
-                        {
-                                bl.ptr = list_ptr(bt.Bsucc);
-                                if (bt.Bsrcpos.Slinnum && !b.Bsrcpos.Slinnum)
-                                    b.Bsrcpos = bt.Bsrcpos;
-                                b.Bflags |= bt.Bflags;
-                                list_append(&(list_block(bl).Bpred),b);
-                                list_subtract(&(bt.Bpred),b);
-                                debug if (debugc) printf("goto.goto\n");
-                                bt = list_block(bl);
-                        }
-
-                        // Bsucc after the first are the targets of
-                        // jumps, calls and loops, and as such to do this right
-                        // we need to traverse the Bcode list and fix up
-                        // the IEV2.Vblock pointers.
-                        if (b.BC == BCasm)
-                            break;
-                }
-static if(0)
-{
-                /* Replace cases of                     */
-                /*      IF (e) GOTO L1 ELSE L2          */
-                /*      L1:                             */
-                /* with                                 */
-                /*      IF OPnot (e) GOTO L2 ELSE L1    */
-                /*      L1:                             */
-
-                if (b.BC == BCiftrue || b.BC == BCiffalse)
+                if (bif == b.Bnext)
                 {
-                        block *bif = b.nthSucc(0);
-                        block *belse = b.nthSucc(1);
-
-                        if (bif == b.Bnext)
-                        {       b.BC ^= BCiffalse ^ BCiftrue;  /* toggle */
-                                b.setNthSucc(0, belse);
-                                b.setNthSucc(1, bif);
-                                b.Bflags |= bif.Bflags & BFLvisited;
-                                debug if (debugc) printf("if (e) L1 else L2\n");
-                        }
+                    b.BC ^= BCiffalse ^ BCiftrue;  /* toggle */
+                    b.setNthSucc(0, belse);
+                    b.setNthSucc(1, bif);
+                    b.Bflags |= bif.Bflags & BFLvisited;
+                    debug if (debugc) printf("if (e) L1 else L2\n");
                 }
-}
-        } /* for */
+            }
+        }
+    } /* for */
 }
 
 /*************************
@@ -1114,34 +1123,36 @@ static if(0)
 
 void compdfo()
 {
-  debug if (debugc) printf("compdfo()\n");
-  assert(OPTIMIZER);
-  block_clearvisit();
-debug
-{
-  if (maxblks == 0 || maxblks < numblks)
-        printf("maxblks = %d, numblks = %d\n",maxblks,numblks);
-}
-  assert(maxblks && maxblks >= numblks);
-  debug assert(!PARSER);
-  dfo = cast(block **) util_realloc(dfo, (block *).sizeof,maxblks);
-  memset(dfo, 0, (block *).sizeof * maxblks);
-  dfotop = numblks;                     /* assign numbers backwards     */
-  search(startblock);
-  assert(dfotop <= numblks);
-  /* Ripple data to the bottom of the array     */
-  if (dfotop)                           /* if not at bottom             */
-  {     for (uint i = 0; i < numblks - dfotop; i++)
-        {       dfo[i] = dfo[i + dfotop];
-                dfo[i].Bdfoidx = i;
+    debug if (debugc) printf("compdfo()\n");
+    assert(OPTIMIZER);
+    block_clearvisit();
+    debug
+    {
+        if (maxblks == 0 || maxblks < numblks)
+            printf("maxblks = %d, numblks = %d\n",maxblks,numblks);
+    }
+    assert(maxblks && maxblks >= numblks);
+    debug assert(!PARSER);
+    dfo = cast(block **) util_realloc(dfo, (block *).sizeof,maxblks);
+    memset(dfo, 0, (block *).sizeof * maxblks);
+    dfotop = numblks;                     /* assign numbers backwards     */
+    search(startblock);
+    assert(dfotop <= numblks);
+    /* Ripple data to the bottom of the array     */
+    if (dfotop)                 // if not at bottom
+    {
+        for (uint i = 0; i < numblks - dfotop; i++)
+        {
+            dfo[i] = dfo[i + dfotop];
+            dfo[i].Bdfoidx = i;
         }
-  }
-  dfotop = numblks - dfotop;
-static if(0)
-{
-  for (uint i = 0; i < dfotop; i++)
-        printf("dfo[%d] = %p\n",i,dfo[i]);
-}
+    }
+    dfotop = numblks - dfotop;
+    static if(0)
+    {
+        for (uint i = 0; i < dfotop; i++)
+            printf("dfo[%d] = %p\n",i,dfo[i]);
+    }
 }
 
 /******************************
@@ -1150,17 +1161,17 @@ static if(0)
 
 private void search(block *b)
 {
-  assert(b);
-  b.Bflags |= BFLvisited;              // executed at least once
-  for (list_t l = b.Bsucc; l; l = list_next(l))   // for each successor
-  {     block *bs = list_block(l);
-
+    assert(b);
+    b.Bflags |= BFLvisited;             // executed at least once
+    for (list_t l = b.Bsucc; l; l = list_next(l))   // for each successor
+    {
+        block *bs = list_block(l);
         assert(bs);
         if ((bs.Bflags & BFLvisited) == 0) // if not visited
             search(bs);                 // search it
-  }
-  dfo[--dfotop] = b;                    // add to dfo[]
-  b.Bdfoidx = dfotop;                  // link back
+    }
+    dfo[--dfotop] = b;                  // add to dfo[]
+    b.Bdfoidx = dfotop;                 // link back
 }
 
 /*************************
@@ -1170,51 +1181,53 @@ private void search(block *b)
 
 private void elimblks()
 {
-debug
-{
-    if (OPTIMIZER)
+    debug
     {
-        int n = 0;
-        for (block *b = startblock; b; b = b.Bnext)
-              n++;
-        //printf("1 n = %d, numblks = %d, dfotop = %d\n",n,numblks,dfotop);
-        assert(numblks == n);
+        if (OPTIMIZER)
+        {
+            int n = 0;
+            for (block *b = startblock; b; b = b.Bnext)
+                  n++;
+            //printf("1 n = %d, numblks = %d, dfotop = %d\n",n,numblks,dfotop);
+            assert(numblks == n);
+        }
     }
-}
 
     debug if (debugc) printf("elimblks()\n");
     block *bf = null;
     block *b;
     for (block **pb = &startblock; (b = *pb) != null;)
     {
-        if (((b.Bflags & BFLvisited) == 0)  /* if block is not visited */
-            && ((b.Bflags & BFLlabel) == 0)    /* need label offset    */
+        if (((b.Bflags & BFLvisited) == 0)   // if block is not visited
+            && ((b.Bflags & BFLlabel) == 0)  // need label offset
             )
         {
-                /* for each marked successor S to b                     */
-                /*      remove b from S.Bpred.                          */
-                /* Presumably all predecessors to b are unmarked also.  */
-                for (list_t s = b.Bsucc; s; s = list_next(s))
-                {   assert(list_block(s));
-                    if (list_block(s).Bflags & BFLvisited) /* if it is marked */
-                        list_subtract(&(list_block(s).Bpred),b);
-                }
-                if (b.Balign && b.Bnext && b.Balign > b.Bnext.Balign)
-                    b.Bnext.Balign = b.Balign;
-                *pb = b.Bnext;         /* remove from linked list      */
+            /* for each marked successor S to b                     */
+            /*      remove b from S.Bpred.                          */
+            /* Presumably all predecessors to b are unmarked also.  */
+            for (list_t s = b.Bsucc; s; s = list_next(s))
+            {
+                assert(list_block(s));
+                if (list_block(s).Bflags & BFLvisited) /* if it is marked */
+                    list_subtract(&(list_block(s).Bpred),b);
+            }
+            if (b.Balign && b.Bnext && b.Balign > b.Bnext.Balign)
+                b.Bnext.Balign = b.Balign;
+            *pb = b.Bnext;         // remove from linked list
 
-                b.Bnext = bf;
-                bf = b;                 /* prepend to deferred list to free */
-                debug if (debugc) printf("CHANGE: block %p deleted\n",b);
-                go.changes++;
+            b.Bnext = bf;
+            bf = b;                // prepend to deferred list to free
+            debug if (debugc) printf("CHANGE: block %p deleted\n",b);
+            go.changes++;
         }
         else
-                pb = &((*pb).Bnext);
+            pb = &((*pb).Bnext);
     }
 
     // Do deferred free's of the blocks
     for ( ; bf; bf = b)
-    {   b = bf.Bnext;
+    {
+        b = bf.Bnext;
         block_free(bf);
         numblks--;
     }
@@ -1236,91 +1249,93 @@ debug
  */
 
 private int mergeblks()
-{       int merge = 0;
-
-        assert(OPTIMIZER);
-        debug if (debugc) printf("mergeblks()\n");
-        for (int i = 0; i < dfotop; i++)
-        {
-                block *b = dfo[i];
-                if (b.BC == BCgoto)
-                {   block *bL2 = list_block(b.Bsucc);
-
-                    if (b == bL2)
-                    {
-                Lcontinue:
-                        continue;
-                    }
-                    assert(bL2.Bpred);
-                    if (!list_next(bL2.Bpred) && bL2 != startblock)
-                    {
-                        if (b == bL2 || bL2.BC == BCasm)
-                            continue;
-
-                        if (
-                            bL2.BC == BCtry ||
-                            bL2.BC == BC_try ||
-                            b.Btry != bL2.Btry)
-                            continue;
-version (SCPP)
 {
-                        // If any predecessors of b are BCasm, don't merge.
-                        for (list_t bl = b.Bpred; bl; bl = list_next(bl))
-                        {
-                            if (list_block(bl).BC == BCasm)
-                                goto Lcontinue;
-                        }
-}
+    int merge = 0;
 
-                        /* JOIN the elems               */
-                        elem *e = el_combine(b.Belem,bL2.Belem);
-                        if (b.Belem && bL2.Belem)
-                            e = doptelem(e,bc_goal[bL2.BC] | GOALagain);
-                        bL2.Belem = e;
-                        b.Belem = null;
+    assert(OPTIMIZER);
+    debug if (debugc) printf("mergeblks()\n");
+    for (int i = 0; i < dfotop; i++)
+    {
+        block *b = dfo[i];
+        if (b.BC == BCgoto)
+        {   block *bL2 = list_block(b.Bsucc);
 
-                        /* Remove b from predecessors of bL2    */
-                        list_free(&(bL2.Bpred),FPNULL);
-                        bL2.Bpred = b.Bpred;
-                        b.Bpred = null;
-                        /* Remove bL2 from successors of b      */
-                        list_free(&b.Bsucc,FPNULL);
+            if (b == bL2)
+            {
+        Lcontinue:
+                continue;
+            }
+            assert(bL2.Bpred);
+            if (!list_next(bL2.Bpred) && bL2 != startblock)
+            {
+                if (b == bL2 || bL2.BC == BCasm)
+                    continue;
 
-                        /* fix up successor list of predecessors        */
-                        for (list_t bl = bL2.Bpred; bl; bl = list_next(bl))
-                        {
-                            for (list_t bs = list_block(bl).Bsucc; bs; bs = list_next(bs))
-                                if (list_block(bs) == b)
-                                    bs.ptr = cast(void *)bL2;
-                        }
-
-                        merge++;
-                        debug if (debugc) printf("block %p merged with %p\n",b,bL2);
-
-                        if (b == startblock)
-                        {   /* bL2 is the new startblock */
-                            debug if (debugc) printf("bL2 is new startblock\n");
-                            /* Remove bL2 from list of blocks   */
-                            for (block **pb = &startblock; 1; pb = &(*pb).Bnext)
-                            {   assert(*pb);
-                                if (*pb == bL2)
-                                {   *pb = bL2.Bnext;
-                                    break;
-                                }
-                            }
-
-                            /* And relink bL2 at the start              */
-                            bL2.Bnext = startblock.Bnext;
-                            startblock = bL2;   /* new start            */
-
-                            block_free(b);
-                            numblks--;
-                            break;              /* dfo[] is now invalid */
-                        }
+                if (bL2.BC == BCtry ||
+                    bL2.BC == BC_try ||
+                    b.Btry != bL2.Btry)
+                    continue;
+                version (SCPP)
+                {
+                    // If any predecessors of b are BCasm, don't merge.
+                    for (list_t bl = b.Bpred; bl; bl = list_next(bl))
+                    {
+                        if (list_block(bl).BC == BCasm)
+                            goto Lcontinue;
                     }
                 }
+
+                /* JOIN the elems               */
+                elem *e = el_combine(b.Belem,bL2.Belem);
+                if (b.Belem && bL2.Belem)
+                    e = doptelem(e,bc_goal[bL2.BC] | GOALagain);
+                bL2.Belem = e;
+                b.Belem = null;
+
+                /* Remove b from predecessors of bL2    */
+                list_free(&(bL2.Bpred),FPNULL);
+                bL2.Bpred = b.Bpred;
+                b.Bpred = null;
+                /* Remove bL2 from successors of b      */
+                list_free(&b.Bsucc,FPNULL);
+
+                /* fix up successor list of predecessors        */
+                for (list_t bl = bL2.Bpred; bl; bl = list_next(bl))
+                {
+                    for (list_t bs = list_block(bl).Bsucc; bs; bs = list_next(bs))
+                        if (list_block(bs) == b)
+                            bs.ptr = cast(void *)bL2;
+                }
+
+                merge++;
+                debug if (debugc) printf("block %p merged with %p\n",b,bL2);
+
+                if (b == startblock)
+                {   /* bL2 is the new startblock */
+                    debug if (debugc) printf("bL2 is new startblock\n");
+                    /* Remove bL2 from list of blocks   */
+                    for (block **pb = &startblock; 1; pb = &(*pb).Bnext)
+                    {
+                        assert(*pb);
+                        if (*pb == bL2)
+                        {
+                            *pb = bL2.Bnext;
+                            break;
+                        }
+                    }
+
+                    /* And relink bL2 at the start              */
+                    bL2.Bnext = startblock.Bnext;
+                    startblock = bL2;   // new start
+
+                    block_free(b);
+                    numblks--;
+                    break;              // dfo[] is now invalid
+                }
+            }
         }
-        return merge;
+    }
+    return merge;
 }
 
 /*******************************
@@ -1332,17 +1347,18 @@ private void blident()
     debug if (debugc) printf("blident()\n");
     assert(startblock);
 
-version (SCPP)
-{
-    // Determine if any asm blocks
-    int anyasm = 0;
-    for (block *bn = startblock; bn; bn = bn.Bnext)
-    {   if (bn.BC == BCasm)
-        {   anyasm = 1;
-            break;
+    version (SCPP)
+    {
+        // Determine if any asm blocks
+        int anyasm = 0;
+        for (block *bn = startblock; bn; bn = bn.Bnext)
+        {
+            if (bn.BC == BCasm)
+            {   anyasm = 1;
+                break;
+            }
         }
     }
-}
 
     block *bnext;
     for (block *bn = startblock; bn; bn = bnext)
@@ -1387,6 +1403,7 @@ version (SCPP)
                     case BCasm:
                     Lcontinue:
                         continue;
+
                     default:
                         break;
                 }
@@ -1400,28 +1417,28 @@ version (SCPP)
                         goto Lcontinue;
                 }
 
-static if(0) // && SCPP
-{
-                // Predecessors must all be at the same btry level.
-                if (bn.Bpred)
+                static if(0) // && SCPP
                 {
-                    block *bp = list_block(bn.Bpred);
-                    btry = bp.Btry;
-                    if (bp.BC == BCtry)
-                        btry = bp;
-                }
-                else
-                    btry = null;
+                    // Predecessors must all be at the same btry level.
+                    if (bn.Bpred)
+                    {
+                        block *bp = list_block(bn.Bpred);
+                        btry = bp.Btry;
+                        if (bp.BC == BCtry)
+                            btry = bp;
+                    }
+                    else
+                        btry = null;
 
-                for (list_t bl = b.Bpred; bl; bl = list_next(bl))
-                {
-                    block *bp = list_block(bl);
-                    if (bp.BC != BCtry)
-                        bp = bp.Btry;
-                    if (btry != bp)
-                        goto Lcontinue;
+                    for (list_t bl = b.Bpred; bl; bl = list_next(bl))
+                    {
+                        block *bp = list_block(bl);
+                        if (bp.BC != BCtry)
+                            bp = bp.Btry;
+                        if (btry != bp)
+                            goto Lcontinue;
+                    }
                 }
-}
 
                 // if bn is startblock, eliminate b instead of bn
                 if (bn == startblock)
@@ -1432,24 +1449,24 @@ static if(0) // && SCPP
                     //b = startblock;             /* swap b and bn        */
                 }
 
-version (SCPP)
-{
-                // Don't do it if any predecessors are ASM blocks, since
-                // we'd have to walk the code list to fix up any jmps.
-                if (anyasm)
+                version (SCPP)
                 {
-                    for (list_t bl = bn.Bpred; bl; bl = list_next(bl))
+                    // Don't do it if any predecessors are ASM blocks, since
+                    // we'd have to walk the code list to fix up any jmps.
+                    if (anyasm)
                     {
-                        block *bp = list_block(bl);
-                        if (bp.BC == BCasm)
-                            goto Lcontinue;
-                        for (list_t bls = bp.Bsucc; bls; bls = list_next(bls))
-                            if (list_block(bls) == bn &&
-                                list_block(bls).BC == BCasm)
+                        for (list_t bl = bn.Bpred; bl; bl = list_next(bl))
+                        {
+                            block *bp = list_block(bl);
+                            if (bp.BC == BCasm)
                                 goto Lcontinue;
+                            for (list_t bls = bp.Bsucc; bls; bls = list_next(bls))
+                                if (list_block(bls) == bn &&
+                                    list_block(bls).BC == BCasm)
+                                    goto Lcontinue;
+                        }
                     }
                 }
-}
 
                 /* Change successors to predecessors of bn to point to  */
                 /* b instead of bn                                      */
@@ -1467,13 +1484,14 @@ version (SCPP)
                 /* elimblks() will delete bn entirely.                  */
                 list_free(&(bn.Bpred),FPNULL);
 
-debug
-{
-                assert(bn.BC != BCcatch);
-                if (debugc)
-                    printf("block B%d (%p) removed, it was same as B%d (%p)\n",
-                        bn.Bdfoidx,bn,b.Bdfoidx,b);
-}
+                debug
+                {
+                    assert(bn.BC != BCcatch);
+                    if (debugc)
+                        printf("block B%d (%p) removed, it was same as B%d (%p)\n",
+                            bn.Bdfoidx,bn,b.Bdfoidx,b);
+                }
+
                 go.changes++;
                 break;
             }
@@ -1494,7 +1512,8 @@ private void blreturn()
 
         /* Find last return block       */
         for (block *b = startblock; b; b = b.Bnext)
-        {   if (b.BC == BCret)
+        {
+            if (b.BC == BCret)
                 retcount++;
             if (b.BC == BCasm)
                 return;                 // mucks up blident()
@@ -1505,45 +1524,44 @@ private void blreturn()
 
         /* Split return blocks  */
         for (block *b = startblock; b; b = b.Bnext)
-        {   if (b.BC != BCret)
+        {
+            if (b.BC != BCret)
                 continue;
-static if (SCPP_OR_NTEXCEPTIONS)
-{
-            // If no other blocks with the same Btry, don't split
-version (SCPP)
-{
-            auto ifCondition = config.flags3 & CFG3eh;
-}
-else
-{
-            enum ifCondition = true;
-}
-            if (ifCondition)
+            static if (SCPP_OR_NTEXCEPTIONS)
             {
-                for (block *b2 = startblock; b2; b2 = b2.Bnext)
+                // If no other blocks with the same Btry, don't split
+                version (SCPP)
                 {
-                    if (b2.BC == BCret && b != b2 && b.Btry == b2.Btry)
-                        goto L1;
+                    auto ifCondition = config.flags3 & CFG3eh;
                 }
-                continue;
+                else
+                {
+                    enum ifCondition = true;
+                }
+                if (ifCondition)
+                {
+                    for (block *b2 = startblock; b2; b2 = b2.Bnext)
+                    {
+                        if (b2.BC == BCret && b != b2 && b.Btry == b2.Btry)
+                            goto L1;
+                    }
+                    continue;
+                }
+            L1: ;
             }
-        L1: ;
-}
             if (b.Belem)
             {   /* Split b into a goto and a b  */
-debug
-{
-                if (debugc)
+                debug if (debugc)
                     printf("blreturn: splitting block B%d\n",b.Bdfoidx);
-}
+
                 numblks++;
                 block *bn = block_calloc();
                 bn.BC = BCret;
                 bn.Bnext = b.Bnext;
-static if(SCPP_OR_NTEXCEPTIONS)
-{
-                bn.Btry = b.Btry;
-}
+                static if(SCPP_OR_NTEXCEPTIONS)
+                {
+                    bn.Btry = b.Btry;
+                }
                 b.BC = BCgoto;
                 b.Bnext = bn;
                 list_append(&b.Bsucc,bn);
@@ -1564,7 +1582,8 @@ static if(SCPP_OR_NTEXCEPTIONS)
  */
 
 private list_t bl_enlist(elem *e)
-{   list_t el = null;
+{
+    list_t el = null;
 
     if (e)
     {
@@ -1594,7 +1613,8 @@ private list_t bl_enlist(elem *e)
  */
 
 private elem * bl_delist(list_t el)
-{   elem *e;
+{
+    elem *e;
     list_t elstart = el;
 
     for (e = null; el; el = list_next(el))
@@ -1656,6 +1676,7 @@ private void bltailmerge()
                         case BC_lpad:
                         case BCasm:
                             continue;
+
                         default:
                             break;
                     }
@@ -1665,19 +1686,17 @@ private void bltailmerge()
                     /*  Create a new block, bnew, which will be the
                         merged block. Physically locate it just after bn.
                      */
-debug
-{
-                    if (debugc)
+                    debug if (debugc)
                         printf("tail merging: %p and %p\n", b, bn);
-}
+
                     numblks++;
                     block *bnew = block_calloc();
                     bnew.Bnext = bn.Bnext;
                     bnew.BC = b.BC;
-static if (SCPP_OR_NTEXCEPTIONS)
-{
-                    bnew.Btry = b.Btry;
-}
+                    static if (SCPP_OR_NTEXCEPTIONS)
+                    {
+                        bnew.Btry = b.Btry;
+                    }
                     if (bnew.BC == BCswitch)
                     {
                         bnew.Bswitch = b.Bswitch;
@@ -1744,12 +1763,12 @@ static if (SCPP_OR_NTEXCEPTIONS)
 
 private void brmin()
 {
-version (SCPP)
-{
-    // Dunno how this may mess up generating EH tables.
-    if (config.flags3 & CFG3eh)         // if EH turned on
-        return;
-}
+    version (SCPP)
+    {
+        // Dunno how this may mess up generating EH tables.
+        if (config.flags3 & CFG3eh)         // if EH turned on
+            return;
+    }
 
     debug if (debugc) printf("brmin()\n");
     debug assert(startblock);
@@ -1822,13 +1841,15 @@ private void block_check()
             case BCgoto:
                 assert(nsucc == 1);
                 break;
+
             case BCiftrue:
                 assert(nsucc == 2);
                 break;
         }
 
         for (list_t bl = b.Bsucc; bl; bl = list_next(bl))
-        {   block *bs = list_block(bl);
+        {
+            block *bs = list_block(bl);
 
             for (list_t bls = bs.Bpred; 1; bls = list_next(bls))
             {
@@ -1848,12 +1869,12 @@ private void block_check()
 
 private void brtailrecursion()
 {
-version (SCPP)
-{
-//    if (tyvariadic(funcsym_p.Stype))
-        return;
-    return;             // haven't dealt with struct params, and ctors/dtors
-}
+    version (SCPP)
+    {
+    //    if (tyvariadic(funcsym_p.Stype))
+            return;
+        return;             // haven't dealt with struct params, and ctors/dtors
+    }
     if (funcsym_p.Sfunc.Fflags3 & Fnotailrecursion)
         return;
     if (localgot)
@@ -1895,23 +1916,26 @@ version (SCPP)
                 e.EV.E1.Eoper == OPvar &&
                 e.EV.E1.EV.Vsym == funcsym_p)
             {
-//printf("before:\n");
-//elem_print(*pe);
+                //printf("before:\n");
+                //elem_print(*pe);
                 if (OTunary(e.Eoper))
-                {   *pe = el_long(TYint,0);
+                {
+                    *pe = el_long(TYint,0);
                 }
                 else
-                {   int si = 0;
+                {
+                    int si = 0;
                     elem *e2 = null;
                     *pe = assignparams(&e.EV.E2,&si,&e2);
                     *pe = el_combine(*pe,e2);
                 }
                 el_free(e);
-//printf("after:\n");
-//elem_print(*pe);
+                //printf("after:\n");
+                //elem_print(*pe);
 
                 if (b.BC == BCgoto)
-                {   list_subtract(&b.Bsucc,bn);
+                {
+                    list_subtract(&b.Bsucc,bn);
                     list_subtract(&bn.Bpred,b);
                 }
                 b.BC = BCgoto;
@@ -1944,8 +1968,9 @@ private elem * assignparams(elem **pe,int *psi,elem **pe2)
 {
     elem *e = *pe;
 
-    if (e.Eoper == OPparam)
-    {   elem *ea = null;
+        if (e.Eoper == OPparam)
+    {
+        elem *ea = null;
         elem *eb = null;
         elem *e2 = assignparams(&e.EV.E2,psi,&eb);
         elem *e1 = assignparams(&e.EV.E1,psi,&ea);
@@ -1955,7 +1980,8 @@ private elem * assignparams(elem **pe,int *psi,elem **pe2)
         *pe2 = el_combine(eb,ea);
     }
     else
-    {   int si = *psi;
+    {
+        int si = *psi;
         type *t;
 
         assert(si < globsym.top);
@@ -2042,13 +2068,13 @@ private void emptyloops()
                 b.BC = BCgoto;
                 list_subtract(&b.Bsucc,b);
                 list_subtract(&b.Bpred,b);
-debug
-{
-                if (debugc)
-                {   WReqn(erel);
+
+                debug if (debugc)
+                {
+                    WReqn(erel);
                     printf(" eliminated loop\n");
                 }
-}
+
                 go.changes++;
              }
         }
@@ -2065,24 +2091,24 @@ debug
 
 void funcsideeffects()
 {
-version (MARS)
-{
-    //printf("funcsideeffects('%s')\n",funcsym_p.Sident);
-    for (block *b = startblock; b; b = b.Bnext)
+    version (MARS)
     {
-        if (b.Belem && funcsideeffect_walk(b.Belem))
-            goto Lside;
+        //printf("funcsideeffects('%s')\n",funcsym_p.Sident);
+        for (block *b = startblock; b; b = b.Bnext)
+        {
+            if (b.Belem && funcsideeffect_walk(b.Belem))
+                goto Lside;
+        }
+
+      Lnoside:
+        funcsym_p.Sfunc.Fflags3 |= Fnosideeff;
+        //printf("  function '%s' has no side effects\n",funcsym_p.Sident);
+        //return;
+
+      Lside:
+        //printf("  function '%s' has side effects\n",funcsym_p.Sident);
+        ;
     }
-
-Lnoside:
-    funcsym_p.Sfunc.Fflags3 |= Fnosideeff;
-    //printf("  function '%s' has no side effects\n",funcsym_p.Sident);
-    //return;
-
-Lside:
-    //printf("  function '%s' has side effects\n",funcsym_p.Sident);
-    ;
-}
 }
 
 version (MARS)
@@ -2136,7 +2162,8 @@ private int el_anyframeptr(elem *e)
         if (OTunary(e.Eoper))
             e = e.EV.E1;
         else if (OTbinary(e.Eoper))
-        {   if (el_anyframeptr(e.EV.E2))
+        {
+            if (el_anyframeptr(e.EV.E2))
                 return 1;
             e = e.EV.E1;
         }
