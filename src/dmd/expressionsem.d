@@ -8923,7 +8923,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 TypeAArray ta = cast(TypeAArray)t2b;
 
                 // Special handling for array keys
-                if (!arrayTypeCompatible(exp.e1.loc, exp.e1.type, ta.index))
+                if (!arrayTypeCompatibleWithoutCasting(exp.e1.type, ta.index))
                 {
                     // Convert key to type of key
                     exp.e1 = exp.e1.implicitCastTo(sc, ta.index);
