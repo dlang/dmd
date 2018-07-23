@@ -123,6 +123,7 @@ enum
 #define RMstore (1 << 31)
 
 extern regm_t ALLREGS;
+#undef BYTEREGS
 extern regm_t BYTEREGS;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     // To support positional independent code,
