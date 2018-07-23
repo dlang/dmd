@@ -210,7 +210,7 @@ Thus it first needs to be built and the executed.
 */
 auto opTabGen()
 {
-    auto opTabFiles = ["debtab.c", "optab.c", "cdxxx.c", "elxxx.d", "fltables.d", "tytab.c"];
+    auto opTabFiles = ["debtab.d", "optab.c", "cdxxx.c", "elxxx.d", "fltables.d", "tytab.c"];
     auto opTabFilesBin = opTabFiles.map!(e => env["G"].buildPath(e)).array;
     auto opTabBin = env["G"].buildPath("optabgen").exeName;
     auto opTabSourceFile = env["C"].buildPath("optabgen.c");
