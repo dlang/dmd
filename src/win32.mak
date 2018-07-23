@@ -230,7 +230,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\el.h $C\iasm.h $C\rtlsym.h \
 	$C\bcomplex.d $C\blockopt.d $C\cg.d $C\cg87.c $C\cgxmm.c \
 	$C\cgcod.c $C\cgcs.d $C\cgcv.c $C\cgelem.d $C\cgen.c $C\cgobj.c \
-	$C\compress.d $C\cgreg.d $C\var.c \
+	$C\compress.d $C\cgreg.d $C\var.d \
 	$C\cgsched.c $C\cod1.c $C\cod2.c $C\cod3.c $C\cod4.c $C\cod5.c \
 	$C\code.c $C\symbol.c $C\debug.c $C\dt.c $C\ee.d $C\el.c \
 	$C\evalu8.d $C\fp.c $C\go.d $C\gflow.d $C\gdag.d \
@@ -512,7 +512,7 @@ $G/code.obj : $C\code.c
 $G/compress.obj : $C\compress.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\compress
 
-$G/csymbol.obj : $C\symbol.c
+$G/csymbol.obj : $C\symbol.c $G\optab.c
 	$(CC) -c -o$G\csymbol.obj $(MFLAGS) $C\symbol
 
 $G/cv8.obj : $C\cv8.c
@@ -617,8 +617,8 @@ $G/type.obj : $C\type.c
 $G/util2.obj : $C\util2.c
 	$(CC) -c -o$@ $(MFLAGS) $C\util2
 
-$G/var.obj : $C\var.c $G\optab.c
-	$(CC) -c -o$@ $(MFLAGS) -I$D -I$C -I$G $C\var
+$G/var.obj : $C\var.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\var
 
 $G/varstats.obj : $C\varstats.c
 	$(CC) -c -o$@ $(MFLAGS) -I$D -I$G $C\varstats

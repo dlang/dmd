@@ -39,6 +39,10 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
+// Add optab.c and tytab, s.t. they are included by the Makefile builds
+#include        "optab.c"
+#include        "tytab.c"
+
 //STATIC void symbol_undef(symbol *s);
 STATIC void symbol_freemember(symbol *s);
 STATIC void mptr_hydrate(mptr_t **);
