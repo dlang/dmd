@@ -34,16 +34,7 @@ if (is(T == float) || is(T == double) || is(T == real))
 
     size_t hashOf(T value) @trusted
     {
-        if (value == 0) // +0.0 and -0.0
-            value = 0;
-
-        static if (is(T == float))  // special case?
-            return *cast(uint*)&value;
-        else
-        {
-            import rt.util.hash;
-            return rt.util.hash.hashOf((&value)[0 .. 1], 0);
-        }
+        return .hashOf(value);
     }
 }
 template Floating(T)
@@ -75,10 +66,7 @@ if (is(T == cfloat) || is(T == cdouble) || is(T == creal))
 
     size_t hashOf(T value) @trusted
     {
-        if (value == 0 + 0i)
-            value = 0 + 0i;
-        import rt.util.hash;
-        return rt.util.hash.hashOf((&value)[0 .. 1], 0);
+        return .hashOf(value);
     }
 }
 
@@ -120,10 +108,7 @@ if (is(T ==  float) || is(T ==  double) || is(T ==  real) ||
 
     size_t hashOf(T[] value)
     {
-        size_t h = 0;
-        foreach (e; value)
-            h += Floating!T.hashOf(e);
-        return h;
+        return .hashOf(value);
     }
 }
 

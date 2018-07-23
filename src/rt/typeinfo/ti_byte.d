@@ -26,7 +26,7 @@ class TypeInfo_g : TypeInfo
 
     override size_t getHash(scope const void* p)
     {
-        return *cast(byte *)p;
+        return hashOf(*cast(byte *)p);
     }
 
     override bool equals(in void* p1, in void* p2)

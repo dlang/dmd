@@ -672,25 +672,28 @@ extern (C) int _aaEqual(in TypeInfo tiRaw, in AA aa1, in AA aa2)
 extern (C) hash_t _aaGetHash(in AA* aa, in TypeInfo tiRaw) nothrow
 {
     if (aa.empty)
-        return 0;
+        return hashOf(0);
 
     import rt.lifetime : unqualify;
 
     auto uti = unqualify(tiRaw);
     auto ti = *cast(TypeInfo_AssociativeArray*)&uti;
     immutable off = aa.valoff;
+    auto keyHash = &ti.key.getHash;
     auto valHash = &ti.value.getHash;
 
     size_t h;
+    import core.stdc.stdio;
     foreach (b; aa.buckets)
     {
         if (!b.filled)
             continue;
-        size_t[2] h2 = [b.hash, valHash(b.entry + off)];
+        size_t[2] h2 = [keyHash(b.entry), valHash(b.entry + off)];
         // use addition here, so that hash is independent of element order
         h += hashOf(h2);
     }
-    return h;
+
+    return hashOf(h);
 }
 
 /**
