@@ -120,9 +120,6 @@
     <ClCompile Include="..\dmd\backend\ti_pvoid.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
-    <ClCompile Include="..\dmd\backend\type.c">
-      <Filter>dmd\backend</Filter>
-    </ClCompile>
     <ClCompile Include="..\dmd\backend\var.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>

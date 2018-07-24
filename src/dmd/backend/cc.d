@@ -1552,17 +1552,35 @@ struct param_t
     param_t* Pnext;             // next in list
     pflags_t Pflags;
 
-    param_t* createTal(param_t*); // create template-argument-list blank from
+    param_t* createTal(param_t* p) // create template-argument-list blank from
                                 // template-parameter-list
-    param_t* search(char* id);  // look for Pident matching id
+    { return param_t_createTal(&this, p); }
+
+    param_t* search(char* id)   // look for Pident matching id
+    { return param_t_search(&this, id); }
+
     int searchn(char* id);      // look for Pident matching id, return index
-    uint length();              // number of parameters in list
-    void print();               // print this param_t
-    void print_list();          // print this list of param_t's
+
+    uint length()               // number of parameters in list
+    { return param_t_length(&this); }
+
+    void print()                // print this param_t
+    { param_t_print(&this); }
+
+    void print_list()           // print this list of param_t's
+    { param_t_print_list(&this); }
 
     static uint sizeCheck();
     unittest { assert(sizeCheck() == param_t.sizeof); }
 }
+
+void param_t_print(param_t* p);
+void param_t_print_list(param_t* p);
+uint param_t_length(param_t* p);
+param_t *param_t_createTal(param_t* p, param_t *ptali);
+param_t *param_t_search(param_t* p, char *id);
+int param_t_searchn(param_t* p, char *id);
+
 
 void param_debug(param_t *p)
 {

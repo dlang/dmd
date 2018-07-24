@@ -124,7 +124,6 @@
     <ClCompile Include="..\dmd\backend\symbol.c" />
     <ClCompile Include="..\dmd\backend\ti_achar.c" />
     <ClCompile Include="..\dmd\backend\ti_pvoid.c" />
-    <ClCompile Include="..\dmd\backend\type.c" />
     <ClCompile Include="..\dmd\backend\var.c" />
     <ClCompile Include="..\dmd\tk\filespec.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>

@@ -195,7 +195,7 @@ GLUEOBJ=
 GBACKOBJ= $G/go.obj $G/gdag.obj $G/gother.obj $G/gflow.obj $G/gloop.obj $G/var.obj $G/el.obj \
 	$G/newman.obj $G/glocal.obj $G/os.obj $G/nteh.obj $G/evalu8.obj $G/fp.obj $G/cgcs.obj \
 	$G/rtlsym.obj $G/cgelem.obj $G/cgen.obj $G/cgreg.obj $G/out.obj \
-	$G/blockopt.obj $G/cgobj.obj $G/cg.obj $G/cgcv.obj $G/type.obj $G/dt.obj \
+	$G/blockopt.obj $G/cgobj.obj $G/cg.obj $G/cgcv.obj $G/dtype.obj $G/dt.obj \
 	$G/debug.obj $G/code.obj $G/cg87.obj $G/cgxmm.obj $G/cgsched.obj $G/ee.obj $G/csymbol.obj \
 	$G/cgcod.obj $G/cod1.obj $G/cod2.obj $G/cod3.obj $G/cod4.obj $G/cod5.obj $G/outbuf.obj \
 	$G/bcomplex.obj $G/ptrntab.obj $G/aa.obj $G/ti_achar.obj $G/md5.obj \
@@ -236,7 +236,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\evalu8.d $C\fp.c $C\go.d $C\gflow.d $C\gdag.d \
 	$C\gother.d $C\glocal.d $C\gloop.d $C\gsroa.d $C\newman.c \
 	$C\nteh.d $C\os.c $C\out.c $C\outbuf.c $C\ptrntab.c $C\rtlsym.c \
-	$C\type.c $C\melf.h $C\mach.h $C\mscoff.h $C\bcomplex.h \
+	$C\dtype.d $C\melf.h $C\mach.h $C\mscoff.h $C\bcomplex.h \
 	$C\outbuf.h $C\token.h $C\tassert.h \
 	$C\elfobj.c $C\cv4.h $C\dwarf2.h $C\exh.h $C\go.h \
 	$C\dwarf.c $C\dwarf.h $C\machobj.c \
@@ -611,8 +611,8 @@ $G/ti_achar.obj : $C\tinfo.h $C\ti_achar.c
 $G/ti_pvoid.obj : $C\tinfo.h $C\ti_pvoid.c
 	$(CC) -c -o$@ $(MFLAGS) -I$D -I$G $C\ti_pvoid
 
-$G/type.obj : $C\type.c
-	$(CC) -c -o$@ $(MFLAGS) $C\type
+$G/dtype.obj : $C\dtype.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\dtype
 
 $G/util2.obj : $C\util2.c
 	$(CC) -c -o$@ $(MFLAGS) $C\util2
