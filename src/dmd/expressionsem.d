@@ -4311,6 +4311,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else if (t1.ty == Tdelegate)
             {
+                if (t1.isAmbiguous() && exp.e1.op == TOK.delegate_)
+                {
+                    auto de = cast(DelegateExp)exp.e1;
+                    exp.e1 = new DotVarExp(de.e1.loc, de.e1, de.func, de.hasOverloads);
+                    goto Lagain;
+                }
                 TypeDelegate td = cast(TypeDelegate)t1;
                 assert(td.next.ty == Tfunction);
                 tf = cast(TypeFunction)td.next;
@@ -4318,6 +4324,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else if (t1.ty == Tpointer && (cast(TypePointer)t1).next.ty == Tfunction)
             {
+                if (t1.isAmbiguous() && exp.e1.op == TOK.symbolOffset)
+                {
+                    auto se = cast(SymOffExp)exp.e1;
+                    exp.e1 = new VarExp(se.loc, se.var, se.hasOverloads);
+                    goto Lagain;
+                }
                 tf = cast(TypeFunction)(cast(TypePointer)t1).next;
                 p = "function pointer";
             }
@@ -4794,6 +4806,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             goto Lno;
         // errors, so condition is false
         e.targ = t;
+        if (e.targ.isAmbiguous())
+        {
+            // Even if is(typeof(func)) is OK, is(typeof(func) Sym) could be NG
+            if (e.id)
+                e.error("cannot take ambiguous type");
+            if (e.id || e.tspec || (e.tok2 != TOK.reserved && e.tok2 != TOK.function_))
+            {
+                tded = Type.terror;
+                goto Lno;
+            }
+        }
         if (e.tok2 != TOK.reserved)
         {
             switch (e.tok2)
@@ -6324,6 +6347,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         Type t1b = exp.e1.type.toBasetype();
         Type tob = exp.to.toBasetype();
+
+        if (t1b.isAmbiguous() && exp.e1.implicitConvTo(exp.to) <= MATCH.nomatch)
+        {
+            exp.error("cannot cast ambiguous expression `%s` to `%s`", exp.e1.toChars(), exp.to.toChars());
+            return setError();
+        }
 
         if (tob.ty == Tstruct && !tob.equals(t1b))
         {

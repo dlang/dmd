@@ -620,6 +620,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (needctfe)
                 sc = sc.endCTFE();
 
+            if (dsym.type.isAmbiguous())
+            {
+                dsym.type = Type.terror;
+                return;
+            }
+
             dsym.inuse--;
             inferred = 1;
 

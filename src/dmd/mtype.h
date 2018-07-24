@@ -198,6 +198,7 @@ public:
     static Type *twstring;              // immutable(wchar)[]
     static Type *tdstring;              // immutable(dchar)[]
     static Type *tvalist;               // va_list alias
+    static Type *tambig;                // for ambiguous function overloads
     static Type *terror;                // for error recovery
     static Type *tnull;                 // for null type
 
@@ -263,6 +264,7 @@ public:
     virtual bool isscope();
     virtual bool isString();
     virtual bool isAssignable();
+    virtual bool isAmbiguous();
     virtual bool isBoolean();
     virtual void checkDeprecated(const Loc &loc, Scope *sc);
     bool isConst() const       { return (mod & MODconst) != 0; }
@@ -356,6 +358,7 @@ class TypeNext : public Type
 public:
     Type *next;
 
+    bool isAmbiguous();
     void checkDeprecated(const Loc &loc, Scope *sc);
     int hasWild() const;
     Type *nextOf();
@@ -573,6 +576,7 @@ public:
     static TypeFunction *create(Parameters *parameters, Type *treturn, int varargs, LINK linkage, StorageClass stc = 0);
     const char *kind();
     Type *syntaxCopy();
+    bool isAmbiguous();
     void purityLevel();
     bool hasLazyParameters();
     bool parameterEscapes(Parameter *p);
