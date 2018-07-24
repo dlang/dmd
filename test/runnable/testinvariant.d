@@ -118,10 +118,10 @@ struct S13113
     }
 
     this(int) pure nothrow @safe @nogc {}
-    // post invaiant is called directly but doesn't interfere with constructor attributes
+    // post invariant is called directly but doesn't interfere with constructor attributes
 
     ~this() pure nothrow @safe @nogc {}
-    // pre invaiant is called directly but doesn't interfere with destructor attributes
+    // pre invariant is not called because we are a struct, and might be T.init
 
     void foo() pure nothrow @safe @nogc {}
     // pre & post invariant calls don't interfere with method attributes
@@ -136,7 +136,8 @@ void test13113()
         s.foo();
         assert(S13113.count == 3);
     }
-    assert(S13113.count == 4);
+    // no invariant check before constructor - struct could be in T.init state
+    assert(S13113.count == 3);
 }
 
 /***************************************************/
