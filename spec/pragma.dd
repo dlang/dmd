@@ -144,6 +144,11 @@ $(H3 $(LNAME2 mangle, $(D pragma mangle)))
     $(P There must be one $(ASSIGNEXPRESSION) and it must evaluate at compile time to a string literal.
     )
 
+    $(IMPLEMENTATION_DEFINED On macOS and Win32, an extra underscore (`_`) is prepended to the string
+        since 2.079, as is done by the C/C++ toolchain. This allows using the same `pragma(mangle)`
+        for all compatible (POSIX in one case, win64 in another) platforms instead of having to special-case.
+    )
+
     $(IMPLEMENTATION_DEFINED It's only effective
         when the symbol is a function declaration or a variable declaration.
         For example this allows linking to a symbol which is a D keyword, which would normally
