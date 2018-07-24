@@ -11,7 +11,7 @@
 
 
 /* Generate op-code tables
- * Creates optab.c,debtab.c,cdxxx.c,elxxx.c
+ * Creates optab.c,debtab.d,cdxxx.c,elxxx.d
  */
 
 #include        <stdio.h>
@@ -164,7 +164,7 @@ FILE *fdeb;
 int main()
 {
     printf("OPTABGEN... generating files\n");
-    fdeb = fopen("debtab.c","w");
+    fdeb = fopen("debtab.d","w");
     dooptab();
     dotab();
     fltables();
@@ -592,10 +592,10 @@ void dotab()
     }
   }
 
-  fprintf(fdeb,"static const char *debtab[OPMAX] = \n\t{\n");
+  fprintf(fdeb,"extern (C++) __gshared const(char)*[OPMAX] debtab = \n\t[\n");
   for (i = 0; i < OPMAX - 1; i++)
         fprintf(fdeb,"\t\"%s\",\n",debtab[i]);
-  fprintf(fdeb,"\t\"%s\"\n\t};\n",debtab[i]);
+  fprintf(fdeb,"\t\"%s\"\n\t];\n",debtab[i]);
 
   f = fopen("cdxxx.c","w");
   fprintf(f,"void (*cdxxx[OPMAX]) (CodeBuilder&,elem *,regm_t *) = \n\t{\n");
@@ -1106,13 +1106,13 @@ void dotytab()
 
     for (i = 0; i < arraysize(typetab); i++)
         tystring[typetab[i].ty] = typetab[i].string;
-    fprintf(f,"const char *tystring[] =\n{ ");
+    fprintf(f,"extern \"C\" { const char *tystring[] =\n{ ");
     for (i = 0; i < arraysize(tystring); i++)
     {   fprintf(f,"\"%s\",",tystring[i]);
         if ((i & 7) == 7 && i < arraysize(tystring) - 1)
             fprintf(f,"\n  ");
     }
-    fprintf(f,"\n};\n");
+    fprintf(f,"\n}; }\n");
 
     for (i = 0; i < arraysize(typetab); i++)
         dttab[typetab[i].ty] = typetab[i].debtyp;

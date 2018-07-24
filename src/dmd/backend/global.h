@@ -419,7 +419,7 @@ void compdfo();
 /* debug.c */
 extern const char *regstring[];
 
-void WRclass(SC c);
+void WRclass(int c);
 void WRTYxx(tym_t t);
 void WROP(unsigned oper);
 void WRBC(unsigned bc);
@@ -430,7 +430,7 @@ void WReqn(elem *e);
 void numberBlocks(block* startblock);
 void WRfunc();
 void WRdefnod();
-void WRFL(FL);
+void WRFL(int);
 char *sym_ident(SYMIDX si);
 
 /* cgelem.c     */
