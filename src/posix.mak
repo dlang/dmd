@@ -342,7 +342,7 @@ BACK_OBJS = var.o el.o \
 	os.o fp.o \
 	rtlsym.o cgen.o out.o \
 	dt.o \
-	code.o symbol.o \
+	code.o \
 	cgcod.o outbuf.o \
 	aa.o ti_achar.o \
 	ti_pvoid.o pdata.o cv8.o backconfig.o \
@@ -352,7 +352,7 @@ BACK_OBJS = var.o el.o \
 
 BACK_DOBJS = bcomplex.o evalu8.o divcoeff.o dvec.o go.o gsroa.o glocal.o gdag.o gother.o gflow.o \
 	gloop.o compress.o cgelem.o cgcs.o ee.o cod5.o nteh.o blockopt.o memh.o cg.o cgreg.o \
-	dtype.o debugprint.o
+	dtype.o debugprint.o symbol.o
 
 G_OBJS  = $(addprefix $G/, $(BACK_OBJS))
 G_DOBJS = $(addprefix $G/, $(BACK_DOBJS))
@@ -386,7 +386,7 @@ BACK_SRC = \
 	$C/cgcod.c $C/cgcs.d $C/cgcv.c $C/cgelem.d $C/cgen.c $C/cgobj.c \
 	$C/compress.d $C/cgreg.d $C/var.c $C/strtold.c \
 	$C/cgsched.c $C/cod1.c $C/cod2.c $C/cod3.c $C/cod4.c $C/cod5.d \
-	$C/code.c $C/symbol.c $C/debugprint.d $C/dt.c $C/ee.d $C/el.c \
+	$C/code.c $C/symbol.d $C/debugprint.d $C/dt.c $C/ee.d $C/el.c \
 	$C/evalu8.d $C/fp.c $C/go.d $C/gflow.d $C/gdag.d \
 	$C/gother.d $C/glocal.d $C/gloop.d $C/gsroa.d $C/newman.c \
 	$C/nteh.d $C/os.c $C/out.c $C/outbuf.c $C/ptrntab.c $C/rtlsym.c \

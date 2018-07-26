@@ -1177,14 +1177,14 @@ struct struct_t
 }
 
 //struct_t* struct_calloc() { return cast(struct_t*) mem_fcalloc(struct_t.sizeof); }
-void struct_free(struct_t* st) { }
+//void struct_free(struct_t* st) { }
 
 /**********************************
  * Symbol Table
  */
 
 Symbol* list_symbol(list_t lst) { return cast(Symbol*) list_ptr(lst); }
-//void list_setsymbol(list_t lst, Symbol* s) { list_ptr(lst) = s; }
+void list_setsymbol(list_t lst, Symbol* s) { lst.ptr = s; }
 Classsym* list_Classsym(list_t lst) { return cast(Classsym*) list_ptr(lst); }
 
 enum
@@ -1265,7 +1265,10 @@ struct Symbol
     Symbol* Snext;              // next in threaded list
     dt_t* Sdt;                  // variables: initializer
     int Salignment;             // variables: alignment, 0 or -1 means default alignment
-    int Salignsize();           // variables: return alignment
+
+    int Salignsize()            // variables: return alignment
+    { return Symbol_Salignsize(&this); }
+
     type* Stype;                // type of Symbol
     tym_t ty() { return Stype.Tty; }
 
@@ -1448,8 +1451,11 @@ struct Symbol
 
     char[1] Sident;             // identifier string (dynamic array)
 
-    int needThis();             // !=0 if symbol needs a 'this' pointer
-    bool Sisdead(bool anyiasm); // if variable is not referenced
+    int needThis()              // !=0 if symbol needs a 'this' pointer
+    { return Symbol_needThis(&this); }
+
+    bool Sisdead(bool anyiasm)  // if variable is not referenced
+    { return Symbol_Sisdead(&this, anyiasm); }
 
     static uint sizeCheck();
     unittest { assert(sizeCheck() == Symbol.sizeof); }
@@ -1459,6 +1465,10 @@ void symbol_debug(Symbol* s)
 {
     debug assert(s.id == s.IDsymbol);
 }
+
+int Symbol_Salignsize(Symbol* s);
+bool Symbol_Sisdead(Symbol* s, bool anyInlineAsm);
+int Symbol_needThis(Symbol* s);
 
 bool isclassmember(Symbol* s) { return s.Sscope && s.Sscope.Sclass == SCstruct; }
 
@@ -1824,16 +1834,16 @@ struct dt_t
     }
 }
 
-//enum
-//{
-//    DT_abytes = 0,
-//    DT_azeros = 1,
-//    DT_xoff   = 2,
-//    DT_nbytes = 3,
-//    DT_common = 4,
-//    DT_coff   = 5,
-//    DT_ibytes = 6,
-//};
+enum
+{
+    DT_abytes = 0,
+    DT_azeros = 1,
+    DT_xoff   = 2,
+    DT_nbytes = 3,
+    DT_common = 4,
+    DT_coff   = 5,
+    DT_ibytes = 6,
+}
 
 // An efficient way to clear aligned memory
 //#define MEMCLEAR(p,sz)                  \

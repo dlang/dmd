@@ -1067,8 +1067,8 @@ int
     /* Largest align size goes furthest away from frame pointer,
      * so they get allocated first.
      */
-    unsigned alignsize1 = s1->Salignsize();
-    unsigned alignsize2 = s2->Salignsize();
+    unsigned alignsize1 = Symbol_Salignsize(s1);
+    unsigned alignsize2 = Symbol_Salignsize(s2);
     if (alignsize1 < alignsize2)
         return 1;
     else if (alignsize1 > alignsize2)
@@ -1151,7 +1151,7 @@ void stackoffsets(int flags)
 
             default:
             Ldefault:
-                if (s->Sisdead(anyiasm))
+                if (Symbol_Sisdead(s, anyiasm))
                     continue;       // don't allocate space
                 break;
         }
@@ -1160,7 +1160,7 @@ void stackoffsets(int flags)
         if (sz == 0)
             sz++;               // can't handle 0 length structs
 
-        unsigned alignsize = s->Salignsize();
+        unsigned alignsize = Symbol_Salignsize(s);
         if (alignsize > STACKALIGN)
             alignsize = STACKALIGN;         // no point if the stack is less aligned
 
@@ -1268,7 +1268,7 @@ void stackoffsets(int flags)
             if (sz == 0)
                 sz++;               // can't handle 0 length structs
 
-            unsigned alignsize = s->Salignsize();
+            unsigned alignsize = Symbol_Salignsize(s);
             if (alignsize > STACKALIGN)
                 alignsize = STACKALIGN;         // no point if the stack is less aligned
 

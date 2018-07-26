@@ -318,7 +318,7 @@ extern __gshared
 }
 
 /* Symbol.c */
-Symbol **symtab_realloc(Symbol **tab, size_t symmax);
+extern (C) Symbol **symtab_realloc(Symbol **tab, size_t symmax);
 Symbol **symtab_malloc(size_t symmax);
 Symbol **symtab_calloc(size_t symmax);
 void symtab_free(Symbol **tab);
@@ -432,7 +432,7 @@ void compdfo();
 /* debug.c */
 extern __gshared const(char)*[32] regstring;
 
-void WRclass(SC c);
+void WRclass(int c);
 void WRTYxx(tym_t t);
 void WROP(uint oper);
 void WRBC(uint bc);
