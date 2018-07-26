@@ -921,10 +921,11 @@ extern (C++) abstract class Type : RootObject
         }
         else
         {
-            // If `typeSemantic` succeeded, that's great, but there may have been deprecations
-            // that were gagged due the the `startGagging` above.  Run again to display those
-            // deprecations.  https://issues.dlang.org/show_bug.cgi?id=19107
-            typeSemantic(tcopy, loc, sc);
+            // If `typeSemantic` succeeded, there may have been deprecations that
+            // were gagged due the the `startGagging` above.  Run again to display
+            // those deprecations.  https://issues.dlang.org/show_bug.cgi?id=19107
+            if (global.gaggedWarnings > 0)
+                typeSemantic(tcopy, loc, sc);
         }
         //printf("-trySemantic(%s) %d\n", toChars(), global.errors);
         return t;

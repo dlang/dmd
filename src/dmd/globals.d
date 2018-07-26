@@ -264,6 +264,7 @@ struct Global
     uint warnings;          // number of warnings reported so far
     uint gag;               // !=0 means gag reporting of errors & warnings
     uint gaggedErrors;      // number of errors reported while gagged
+    uint gaggedWarnings;    // number of warnings reported while gagged
 
     void* console;         // opaque pointer to console for controlling text attributes
 
@@ -275,6 +276,7 @@ struct Global
     extern (C++) uint startGagging()
     {
         ++gag;
+        gaggedWarnings = 0;
         return gaggedErrors;
     }
 
