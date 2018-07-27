@@ -415,7 +415,7 @@ void cv_init()
     }
     else
     {
-        reset_symbuf = new Outbuffer(10 * sizeof(symbol *));
+        reset_symbuf = new Outbuffer(Outbuffer::create((10 * sizeof(symbol *))));
     }
 
     /* Reset for different OBJ file formats     */

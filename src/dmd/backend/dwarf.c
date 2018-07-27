@@ -1053,7 +1053,7 @@ void dwarf_initfile(const char *filename)
     }
     else
     {
-        reset_symbuf = new Outbuffer(10 * sizeof(symbol *));
+        reset_symbuf = new Outbuffer(Outbuffer::create(10 * sizeof(symbol *)));
     }
 
     /* ======================================== */

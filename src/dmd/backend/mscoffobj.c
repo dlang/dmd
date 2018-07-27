@@ -352,7 +352,7 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
     // Initialize buffers
 
     if (!string_table)
-    {   string_table = new Outbuffer(1024);
+    {   string_table = new Outbuffer(Outbuffer::create((1024)));
         string_table->reserve(2048);
     }
     string_table->setsize(0);
@@ -367,10 +367,10 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
         symbuf->setsize(0);
     }
     else
-        symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
+        symbuf = new Outbuffer(Outbuffer::create((sizeof(symbol *) * SYM_TAB_INIT)));
 
     if (!syment_buf)
-        syment_buf = new Outbuffer(sizeof(SymbolTable32) * SYM_TAB_INIT);
+        syment_buf = new Outbuffer(Outbuffer::create((sizeof(SymbolTable32) * SYM_TAB_INIT)));
     syment_buf->setsize(0);
 
     extdef = 0;
@@ -379,7 +379,7 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
     // Initialize segments for CODE, DATA, UDATA and CDATA
     if (!ScnhdrBuf)
     {
-        ScnhdrBuf = new Outbuffer(SYM_TAB_INC * sizeof(IMAGE_SECTION_HEADER));
+        ScnhdrBuf = new Outbuffer(Outbuffer::create((SYM_TAB_INC * sizeof(IMAGE_SECTION_HEADER))));
         ScnhdrBuf->reserve(SCNHDR_TAB_INITSIZE * sizeof(IMAGE_SECTION_HEADER));
     }
     ScnhdrBuf->setsize(0);
@@ -1453,7 +1453,7 @@ segidx_t MsCoffObj::getsegment2(IDXSEC shtidx)
             b1->setsize(0);
         else
         {
-            b1 = new Outbuffer(4096);
+            b1 = new Outbuffer(Outbuffer::create((4096)));
             b1->reserve(4096);
         }
         if (b2)
@@ -1466,7 +1466,7 @@ segidx_t MsCoffObj::getsegment2(IDXSEC shtidx)
         seg_data *pseg = (seg_data *)mem_calloc(sizeof(seg_data));
         SegData[seg] = pseg;
         if (!(ScnhdrTab[shtidx].Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA))
-        {   pseg->SDbuf = new Outbuffer(4096);
+        {   pseg->SDbuf = new Outbuffer(Outbuffer::create((4096)));
             pseg->SDbuf->reserve(4096);
         }
     }

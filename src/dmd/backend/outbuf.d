@@ -36,19 +36,26 @@ struct Outbuffer
         return Outbuffer();
     }
 
-    this(size_t initialSize) // : buf(null), pend(null), p(null), origbuf(null) { }
+    static Outbuffer create(size_t initialSize) // : buf(null), pend(null), p(null), origbuf(null) { }
     {
-        buf = null;
-        pend = null;
-        p = null;
-        origbuf = null;
+        Outbuffer buf;
+        buf.buf = null;
+        buf.pend = null;
+        buf.p = null;
+        buf.origbuf = null;
 
-        enlarge(cast(uint) initialSize);
+        buf.enlarge(cast(uint) initialSize);
+        return buf;
     }
 
-    this(ubyte *bufx, size_t bufxlen, uint incx)
+    static Outbuffer create(ubyte *bufx, size_t bufxlen, uint incx)
     {
-        buf = bufx; pend = bufx + bufxlen; p = bufx; origbuf = bufx;
+        Outbuffer buf;
+        buf.buf = bufx;
+        buf.pend = bufx + bufxlen;
+        buf.p = bufx;
+        buf.origbuf = bufx;
+        return buf;
     }
 
     ~this()

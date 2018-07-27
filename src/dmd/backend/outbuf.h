@@ -37,10 +37,9 @@ struct Outbuffer
 
     static Outbuffer create();
 
-    Outbuffer(d_size_t initialSize);
+    static Outbuffer create(d_size_t initialSize);
 
-    Outbuffer(unsigned char *bufx, d_size_t bufxlen, unsigned incx) :
-        buf(bufx), pend(bufx + bufxlen), p(bufx), origbuf(bufx) { }
+    static Outbuffer create(unsigned char *bufx, d_size_t bufxlen, unsigned incx);
 
     ~Outbuffer();
 

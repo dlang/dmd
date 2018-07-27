@@ -492,13 +492,13 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
     if (symtab_strings)
         symtab_strings->setsize(1);
     else
-    {   symtab_strings = new Outbuffer(1024);
+    {   symtab_strings = new Outbuffer(Outbuffer::create((1024)));
         symtab_strings->reserve(2048);
         symtab_strings->writeByte(0);
     }
 
     if (!local_symbuf)
-        local_symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
+        local_symbuf = new Outbuffer(Outbuffer::create((sizeof(symbol *) * SYM_TAB_INIT)));
     local_symbuf->setsize(0);
 
     if (public_symbuf)
@@ -507,7 +507,7 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
         public_symbuf->setsize(0);
     }
     else
-        public_symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
+        public_symbuf = new Outbuffer(Outbuffer::create((sizeof(symbol *) * SYM_TAB_INIT)));
 
     if (extern_symbuf)
     {
@@ -515,10 +515,10 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
         extern_symbuf->setsize(0);
     }
     else
-        extern_symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
+        extern_symbuf = new Outbuffer(Outbuffer::create((sizeof(symbol *) * SYM_TAB_INIT)));
 
     if (!comdef_symbuf)
-        comdef_symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
+        comdef_symbuf = new Outbuffer(Outbuffer::create((sizeof(symbol *) * SYM_TAB_INIT)));
     comdef_symbuf->setsize(0);
 
     extdef = 0;
@@ -539,7 +539,7 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
     }
     else
     {
-        SECbuf = new Outbuffer(SYM_TAB_INC * struct_section_size);
+        SECbuf = new Outbuffer(Outbuffer::create((SYM_TAB_INC * struct_section_size)));
         SECbuf->reserve(SEC_TAB_INIT * struct_section_size);
         // Ignore the first section - section numbers start at 1
         SECbuf->writezeros(struct_section_size);
@@ -1887,7 +1887,7 @@ int MachObj::getsegment(const char *sectname, const char *segname,
         seg_data *pseg = (seg_data *)mem_calloc(sizeof(seg_data));
         SegData[seg] = pseg;
         if (flags != S_ZEROFILL)
-        {   pseg->SDbuf = new Outbuffer(4096);
+        {   pseg->SDbuf = new Outbuffer(Outbuffer::create((4096)));
             pseg->SDbuf->reserve(4096);
         }
     }

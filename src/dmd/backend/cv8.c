@@ -135,32 +135,32 @@ void cv8_initfile(const char *filename)
     // Recycle buffers; much faster than delete/renew
 
     if (!F1_buf)
-        F1_buf = new Outbuffer(1024);
+        F1_buf = new Outbuffer(Outbuffer::create((1024)));
     F1_buf->setsize(0);
 
     if (!F1fixup)
-        F1fixup = new Outbuffer(1024);
+        F1fixup = new Outbuffer(Outbuffer::create((1024)));
     F1fixup->setsize(0);
 
     if (!F2_buf)
-        F2_buf = new Outbuffer(1024);
+        F2_buf = new Outbuffer(Outbuffer::create((1024)));
     F2_buf->setsize(0);
 
     if (!F3_buf)
-        F3_buf = new Outbuffer(1024);
+        F3_buf = new Outbuffer(Outbuffer::create((1024)));
     F3_buf->setsize(0);
     F3_buf->writeByte(0);       // first "filename"
 
     if (!F4_buf)
-        F4_buf = new Outbuffer(1024);
+        F4_buf = new Outbuffer(Outbuffer::create((1024)));
     F4_buf->setsize(0);
 
     if (!funcdata)
-        funcdata = new Outbuffer(1024);
+        funcdata = new Outbuffer(Outbuffer::create((1024)));
     funcdata->setsize(0);
 
     if (!linepair)
-        linepair = new Outbuffer(1024);
+        linepair = new Outbuffer(Outbuffer::create((1024)));
     linepair->setsize(0);
 
     memset(&currentfuncdata, 0, sizeof(currentfuncdata));
@@ -310,8 +310,8 @@ void cv8_func_start(Symbol *sfunc)
     currentfuncdata.f1fixup = F1fixup;
     if (symbol_iscomdat(sfunc))
     {
-        currentfuncdata.f1buf = new Outbuffer(128);
-        currentfuncdata.f1fixup = new Outbuffer(128);
+        currentfuncdata.f1buf = new Outbuffer(Outbuffer::create((128)));
+        currentfuncdata.f1fixup = new Outbuffer(Outbuffer::create((128)));
     }
     varStats.startFunction();
 }

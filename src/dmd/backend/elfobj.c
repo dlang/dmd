@@ -523,7 +523,7 @@ static IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, unsigned sz,
     {   // If the section index is too big we need to store it as
         // extended section header index.
         if (!shndx_data)
-            shndx_data = new Outbuffer(50 * sizeof(Elf64_Word));
+            shndx_data = new Outbuffer(Outbuffer::create((50 * sizeof(Elf64_Word))));
         // fill with zeros up to symbol_idx
         const size_t shndx_idx = shndx_data->size() / sizeof(Elf64_Word);
         shndx_data->writezeros((symbol_idx - shndx_idx) * sizeof(Elf64_Word));
@@ -535,7 +535,7 @@ static IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, unsigned sz,
     if (I64)
     {
         if (!SYMbuf)
-        {   SYMbuf = new Outbuffer(50 * sizeof(Elf64_Sym));
+        {   SYMbuf = new Outbuffer(Outbuffer::create((50 * sizeof(Elf64_Sym))));
             SYMbuf->reserve(100 * sizeof(Elf64_Sym));
         }
         Elf64_Sym sym;
@@ -550,7 +550,7 @@ static IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, unsigned sz,
     else
     {
         if (!SYMbuf)
-        {   SYMbuf = new Outbuffer(50 * sizeof(Elf32_Sym));
+        {   SYMbuf = new Outbuffer(Outbuffer::create((50 * sizeof(Elf32_Sym))));
             SYMbuf->reserve(100 * sizeof(Elf32_Sym));
         }
         Elf32_Sym sym;
@@ -607,7 +607,7 @@ static IDXSEC elf_newsection2(
     sec.sh_entsize = entsize;
 
     if (!SECbuf)
-    {   SECbuf = new Outbuffer(4 * sizeof(Elf32_Shdr));
+    {   SECbuf = new Outbuffer(Outbuffer::create((4 * sizeof(Elf32_Shdr))));
         SECbuf->reserve(16 * sizeof(Elf32_Shdr));
     }
     if (section_cnt == SHN_LORESERVE)
@@ -772,7 +772,7 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
     if (symtab_strings)
         symtab_strings->setsize(1);
     else
-    {   symtab_strings = new Outbuffer(1024);
+    {   symtab_strings = new Outbuffer(Outbuffer::create((1024)));
         symtab_strings->reserve(2048);
         symtab_strings->writeByte(0);
     }
@@ -808,7 +808,7 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
         if (section_names)
             section_names->setsize(sizeof(section_names_init64));
         else
-        {   section_names = new Outbuffer(512);
+        {   section_names = new Outbuffer(Outbuffer::create((512)));
             section_names->reserve(1024);
             section_names->writen(section_names_init64, sizeof(section_names_init64));
         }
@@ -856,7 +856,7 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
         if (section_names)
             section_names->setsize(sizeof(section_names_init));
         else
-        {   section_names = new Outbuffer(512);
+        {   section_names = new Outbuffer(Outbuffer::create((512)));
             section_names->reserve(100*1024);
             section_names->writen(section_names_init, sizeof(section_names_init));
         }
@@ -909,7 +909,7 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
     }
     else
     {
-        reset_symbuf = new Outbuffer(50 * sizeof(symbol *));
+        reset_symbuf = new Outbuffer(Outbuffer::create((50 * sizeof(symbol *))));
     }
     if (shndx_data)
         shndx_data->setsize(0);
@@ -1957,7 +1957,7 @@ static int elf_addsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx)
         pseg->SDbuf->setsize(0);
     else
     {   if (SecHdrTab[shtidx].sh_type != SHT_NOBITS)
-        {   pseg->SDbuf = new Outbuffer(OB_XTRA_STR);
+        {   pseg->SDbuf = new Outbuffer(Outbuffer::create((OB_XTRA_STR)));
             pseg->SDbuf->reserve(1024);
         }
     }

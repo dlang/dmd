@@ -641,7 +641,7 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
         }
         else
         {
-            reset_symbuf = new Outbuffer(50 * sizeof(symbol *));
+            reset_symbuf = new Outbuffer(Outbuffer::create((50 * sizeof(symbol *))));
         }
 
         memset(&obj,0,sizeof(obj));
