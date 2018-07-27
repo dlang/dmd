@@ -589,8 +589,8 @@ $G/os.obj : $C\os.c
 $G/out.obj : $C\out.c
 	$(CC) -c -o$@ $(MFLAGS) $C\out
 
-$G/outbuf.obj : $C\outbuf.h $C\outbuf.c
-	$(CC) -c -o$@ $(MFLAGS) $C\outbuf
+$G/outbuf.obj : $C\outbuf.h $C\outbuf.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\outbuf
 
 $G/pdata.obj : $C\pdata.c
 	$(CC) -c -o$@ $(MFLAGS) $C\pdata
