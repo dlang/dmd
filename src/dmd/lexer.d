@@ -1977,6 +1977,9 @@ class Lexer : ErrorHandler
             error("integer overflow");
             err = true;
         }
+        // Deprecated in 2018-06.
+        // Change to error in 2019-06.
+        // @@@DEPRECATED_2019-06@@@
         if ((base == 2 && !anyBinaryDigitsUS) ||
             (base == 16 && !anyHexDigitsNoSingleUS))
             deprecation("`%.*s` isn't a valid integer literal, use `%.*s0` instead", cast(int)(p - start), start, 2, start);
