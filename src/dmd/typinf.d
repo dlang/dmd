@@ -34,7 +34,7 @@ import core.stdc.stdio;
  */
 extern (C++) void genTypeInfo(Loc loc, Type torig, Scope* sc)
 {
-    //printf("Type::genTypeInfo() %p, %s\n", this, toChars());
+    // printf("genTypeInfo() %s\n", torig.toChars());
 
     // Even when compiling without `useTypeInfo` (e.g. -betterC) we should
     // still be able to evaluate `TypeInfo` at compile-time, just not at runtime.
