@@ -196,7 +196,7 @@ GBACKOBJ= $G/go.obj $G/gdag.obj $G/gother.obj $G/gflow.obj $G/gloop.obj $G/var.o
 	$G/newman.obj $G/glocal.obj $G/os.obj $G/nteh.obj $G/evalu8.obj $G/fp.obj $G/cgcs.obj \
 	$G/rtlsym.obj $G/cgelem.obj $G/cgen.obj $G/cgreg.obj $G/out.obj \
 	$G/blockopt.obj $G/cgobj.obj $G/cg.obj $G/cgcv.obj $G/dtype.obj $G/dt.obj \
-	$G/debugprint.obj $G/code.obj $G/cg87.obj $G/cgxmm.obj $G/cgsched.obj $G/ee.obj $G/csymbol.obj \
+	$G/debugprint.obj $G/code.obj $G/cg87.obj $G/cgxmm.obj $G/cgsched.obj $G/ee.obj $G/symbol.obj \
 	$G/cgcod.obj $G/cod1.obj $G/cod2.obj $G/cod3.obj $G/cod4.obj $G/cod5.obj $G/outbuf.obj \
 	$G/bcomplex.obj $G/ptrntab.obj $G/aa.obj $G/ti_achar.obj $G/md5.obj \
 	$G/ti_pvoid.obj $G/mscoffobj.obj $G/pdata.obj $G/cv8.obj $G/backconfig.obj \
@@ -232,7 +232,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\cgcod.c $C\cgcs.d $C\cgcv.c $C\cgelem.d $C\cgen.c $C\cgobj.c \
 	$C\compress.d $C\cgreg.d $C\var.c \
 	$C\cgsched.c $C\cod1.c $C\cod2.c $C\cod3.c $C\cod4.c $C\cod5.c \
-	$C\code.c $C\symbol.c $C\debugprint.d $C\dt.c $C\ee.d $C\el.c \
+	$C\code.c $C\symbol.d $C\debugprint.d $C\dt.c $C\ee.d $C\el.c \
 	$C\evalu8.d $C\fp.c $C\go.d $C\gflow.d $C\gdag.d \
 	$C\gother.d $C\glocal.d $C\gloop.d $C\gsroa.d $C\newman.c \
 	$C\nteh.d $C\os.c $C\out.c $C\outbuf.c $C\ptrntab.c $C\rtlsym.c \
@@ -514,8 +514,8 @@ $G/code.obj : $C\code.c
 $G/compress.obj : $C\compress.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\compress
 
-$G/csymbol.obj : $C\symbol.c
-	$(CC) -c -o$G\csymbol.obj $(MFLAGS) $C\symbol
+$G/symbol.obj : $C\symbol.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\symbol
 
 $G/cv8.obj : $C\cv8.c
 	$(CC) -c -o$@ $(MFLAGS) $C\cv8
