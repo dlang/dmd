@@ -1522,7 +1522,10 @@ extern (C++) abstract class Expression : RootObject
                 if (ret)
                 {
                     if (ret.op == TOK.error)
+                    {
+                        // can not be tested now, bacause structs with multiple alias this are not implemented yet
                         return ret;
+                    }
                     e = ret;
                     t = e.type;
                     tb = e.type.toBasetype();

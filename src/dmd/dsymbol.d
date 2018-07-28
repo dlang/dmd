@@ -1747,6 +1747,7 @@ extern (C++) final class WithScopeSymbol : ScopeDsymbol
         FindMemberAliasThisCtx ctx = FindMemberAliasThisCtx(loc, ident, flags);
         iterateAliasThis(_scope, e, &ctx.findMember, results);
 
+        assert(ctx.candidates.length == results.length);
         if (ctx.candidates.length == 1)
         {
             return ctx.candidates[0];
@@ -1754,9 +1755,9 @@ extern (C++) final class WithScopeSymbol : ScopeDsymbol
         else if (ctx.candidates.length > 1)
         {
             e.error("there are many candidates to %s.%s resolve:", e.toChars(), ident.toChars());
-            for (size_t j = 0; j < results.length; ++j)
+            for (size_t j = 0; j < ctx.candidates.length; ++j)
             {
-                .errorSupplemental(e.loc, "%s", results[j].toChars());
+                .errorSupplemental(e.loc, "%s.%s", results[j].toChars(), ctx.candidates[j].toChars());
             }
         }
 

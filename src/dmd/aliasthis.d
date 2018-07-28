@@ -298,68 +298,66 @@ Type aliasThisOf(Type t, bool* islvalue = null)
         islvalue = &dummy;
     *islvalue = false;
     AggregateDeclaration ad = isAggregate(t);
-    if (ad && ad.aliasthis)
+    if (!ad || !ad.aliasthis)
+        return null;
+
+    auto s = ad.aliasthis;
+    if (s.isAliasDeclaration())
+        s = s.toAlias();
+
+    if (s.isTupleDeclaration())
+        return null;
+
+    if (auto vd = s.isVarDeclaration())
     {
-        Dsymbol s = ad.aliasthis;
-        if (s.isAliasDeclaration())
-            s = s.toAlias();
-        Declaration d = s.isDeclaration();
-        if (d && !d.isTupleDeclaration())
-        {
-            assert(d.type);
-            Type t2 = d.type;
-            if (d.isVarDeclaration() && d.needThis())
-            {
-                t2 = t2.addMod(t.mod);
-                *islvalue = true; //Variable is always l-value
-            }
-            else if (d.isFuncDeclaration())
-            {
-                FuncDeclaration fd = resolveFuncCall(Loc.initial, null, d, null, t, null, 1);
-                if (fd && fd.errors)
-                    return Type.terror;
-                if (fd && !fd.type.nextOf() && !fd.functionSemantic())
-                    fd = null;
-                if (fd)
-                {
-                    t2 = fd.type.nextOf();
-                    if (!t2) // issue 14185
-                        return Type.terror;
-                    t2 = t2.substWildTo(t.mod == 0 ? MODFlags.mutable : t.mod);
-                    if ((cast(TypeFunction)fd.type).isref)
-                        *islvalue = true;
-                }
-                else
-                    return Type.terror;
-            }
-            return t2;
-        }
-        EnumDeclaration ed = s.isEnumDeclaration();
-        if (ed)
-        {
-            Type t2 = ed.type;
-            return t2;
-        }
-        TemplateDeclaration td = s.isTemplateDeclaration();
-        if (td)
-        {
-            assert(td._scope);
-            FuncDeclaration fd = resolveFuncCall(Loc.initial, null, td, null, t, null, 1);
-            if (fd && fd.errors)
-                return Type.terror;
-            if (fd && fd.functionSemantic())
-            {
-                Type t2 = fd.type.nextOf();
-                t2 = t2.substWildTo(t.mod == 0 ? MODFlags.mutable : t.mod);
-                if ((cast(TypeFunction)fd.type).isref)
-                    *islvalue = true;
-                return t2;
-            }
-            else
-                return Type.terror;
-        }
-        //printf("%s\n", s.kind());
+        auto t2 = vd.type;
+        if (vd.needThis())
+            t2 = t2.addMod(t.mod);
+        *islvalue = true;
+        return t2;
     }
+
+    if (auto fd = s.isFuncDeclaration())
+    {
+        fd = resolveFuncCall(Loc.initial, null, fd, null, t, null, 1);
+        if (!fd || fd.errors || !fd.functionSemantic())
+            return Type.terror;
+
+        auto t2 = fd.type.nextOf();
+        if (!t2) // issue 14185
+            return Type.terror;
+        t2 = t2.substWildTo(t.mod == 0 ? MODFlags.mutable : t.mod);
+        if ((cast(TypeFunction)fd.type).isref)
+            *islvalue = true;
+        return t2;
+    }
+
+    if (auto d = s.isDeclaration())
+    {
+        assert(d.type);
+        return d.type;
+    }
+    if (auto ed = s.isEnumDeclaration())
+    {
+        return ed.type;
+    }
+    if (auto td = s.isTemplateDeclaration())
+    {
+        assert(td._scope);
+        auto fd = resolveFuncCall(Loc.initial, null, td, null, t, null, 1);
+        if (!fd || fd.errors || !fd.functionSemantic())
+            return Type.terror;
+
+        auto t2 = fd.type.nextOf();
+        if (!t2)
+            return Type.terror;
+        t2 = t2.substWildTo(t.mod == 0 ? MODFlags.mutable : t.mod);
+        if ((cast(TypeFunction)fd.type).isref)
+            *islvalue = true;
+        return t2;
+    }
+    //printf("%s\n", s.kind());
+
     return null;
 }
 
@@ -486,8 +484,7 @@ MATCH implicitConvToWithAliasThis(Loc loc, Type from, Type to, Type root_from = 
         {
             ClassDeclaration bd = (*cd.baseclasses)[i].sym;
             Type bt = (*cd.baseclasses)[i].type;
-            if (!bt)
-                bt = bd.type;
+            assert(bt);
             if (!(bt.aliasthislock & AliasThisRec.RECtracing))
             {
                 OutBuffer next_buff;
@@ -550,8 +547,7 @@ void getAliasThisTypes(Type t, ref Type[] ret, ref bool[] islvalues)
         {
             ClassDeclaration bd = (*cd.baseclasses)[i].sym;
             Type bt = (*cd.baseclasses)[i].type;
-            if (!bt)
-                bt = bd.type;
+            assert(bt);
             getAliasThisTypes(bt, ret, islvalues);
         }
     }
@@ -660,7 +656,7 @@ struct FindMemberAliasThisCtx
     bool findMember(Scope *sc, Expression e, ref Expression outexpr)
     {
         Dsymbol s = null;
-        if (e.op == TOK.import_)
+        if (e.op == TOK.scope_)
         {
             s = (cast(ScopeExp)e).sds;
         }
@@ -679,6 +675,7 @@ struct FindMemberAliasThisCtx
             if (s)
             {
                 candidates ~= s;
+                outexpr = e;
                 return true;
             }
         }
@@ -773,20 +770,17 @@ struct UnaAliasThisCtx
     bool atUnaDotId(Scope *sc, Expression e, ref Expression outexpr)
     {
         UnaExp ue = cast(UnaExp)ctx.copy();
-        if (ue.e1.op != TOK.dotIdentifier)
-        {
-            printf("%s\n", Token.toChars(ue.e1.op));
-        }
         assert(ue.e1.op == TOK.dotIdentifier || ue.e1.op == TOK.dotTemplateInstance);
         UnaExp die = cast(UnaExp)ue.e1.copy();
         ue.aliasthislock = true;
         die.e1 = e;
         Expression ey;
-
         if (ue.e1.op == TOK.dotIdentifier)
             ey = (cast(DotIdExp)die).semanticY(sc, 1);
         else if (ue.e1.op == TOK.dotTemplateInstance)
+        {
             ey = (cast(DotTemplateInstanceExp)die).semanticY(sc, 1);
+        }
         else
             assert(0);
 

@@ -2809,6 +2809,50 @@ void test21()
 
 /***************************************************/
 
+struct Test22a
+{
+    int a;
+}
+
+struct Test22b
+{
+    short a;
+}
+
+interface ITest22a
+{
+    static @property Test22a getTest22a()
+    {
+        return Test22a(42);
+    }
+    static alias getTest22a this;
+}
+
+interface ITest22b
+{
+    static @property Test22b getTest22b()
+    {
+        return Test22b(24);
+    }
+    static alias getTest22b this;
+}
+
+class Test22: ITest22a, ITest22b
+{
+}
+
+Test22b test22x()
+{
+    return Test22;
+}
+
+void test22()
+{
+    assert(test22x().a == 24);
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -2878,6 +2922,7 @@ int main()
     test19();
     test20();
     test21();
+    test22();
     printf("Success\n");
     return 0;
 }

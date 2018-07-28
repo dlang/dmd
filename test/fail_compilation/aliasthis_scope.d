@@ -1,9 +1,13 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/aliasthis_scope.d(55): Error: There are many candidates to t.a resolve:
-fail_compilation/aliasthis_scope.d(55):        (cast(ITest)t).getTest1().a
-fail_compilation/aliasthis_scope.d(55):        (cast(ITest2)t).getTest2().a
+fail_compilation/aliasthis_scope.d(57): Error: there are many candidates to t.a resolve:
+fail_compilation/aliasthis_scope.d(57):        (cast(ITest)t).getTest1().a
+fail_compilation/aliasthis_scope.d(57):        (cast(ITest2)t).getTest2().a
+fail_compilation/aliasthis_scope.d(57): Error: there are many candidates to t.a resolve:
+fail_compilation/aliasthis_scope.d(57):        (cast(ITest)t).getTest1().a
+fail_compilation/aliasthis_scope.d(57):        (cast(ITest2)t).getTest2().a
+fail_compilation/aliasthis_scope.d(59): Error: undefined identifier `a`
 ---
 */
 
@@ -52,6 +56,6 @@ void main()
 
     with(t)
     {
-        long x = t.a;
+        long x = a;
     }
 }
