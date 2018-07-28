@@ -212,7 +212,7 @@ unittest
     static assert(!__traits(compiles, 100.numDigits!37()));
 }
 
-int dstrcmp( scope const char[] s1, scope const char[] s2 ) @trusted
+int dstrcmp()( scope const char[] s1, scope const char[] s2 ) @trusted
 {
     immutable len = s1.length <= s2.length ? s1.length : s2.length;
     if (__ctfe)
