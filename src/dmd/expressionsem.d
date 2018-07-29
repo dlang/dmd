@@ -2667,7 +2667,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
-        semanticTypeInfo(sc, e.type);
+        if (global.params.useTypeInfo && Type.dtypeinfo)
+            semanticTypeInfo(sc, e.type);
 
         result = e;
     }
@@ -9973,7 +9974,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (t.ty != Tstruct)
                 return false;
 
-            semanticTypeInfo(sc, t);
+            if (global.params.useTypeInfo && Type.dtypeinfo)
+                semanticTypeInfo(sc, t);
+
             return (cast(TypeStruct)t).sym.hasIdentityEquals;
         }
 
