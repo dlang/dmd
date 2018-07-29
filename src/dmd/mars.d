@@ -1388,7 +1388,16 @@ void addDefaultVersionIdentifiers()
     if (global.params.useArrayBounds == CHECKENABLE.off)
         VersionCondition.addPredefinedGlobalIdent("D_NoBoundsChecks");
     if (global.params.betterC)
+    {
         VersionCondition.addPredefinedGlobalIdent("D_BetterC");
+    }
+    else
+    {
+        VersionCondition.addPredefinedGlobalIdent("D_ModuleInfo");
+        VersionCondition.addPredefinedGlobalIdent("D_Exceptions");
+        VersionCondition.addPredefinedGlobalIdent("D_TypeInfo");
+    }
+
 
     VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
 }
