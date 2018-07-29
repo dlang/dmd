@@ -4725,13 +4725,22 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             ta.checkComplexTransition(exp.loc, sc);
 
         Expression e;
-        if (ea && ta.toBasetype().ty == Tclass)
+        auto tb = ta.toBasetype();
+        if (ea && tb.ty == Tclass)
         {
-            /* Get the dynamic type, which is .classinfo
-             */
-            ea = ea.expressionSemantic(sc);
-            e = new TypeidExp(ea.loc, ea);
-            e.type = Type.typeinfoclass.type;
+            if (tb.toDsymbol(sc).isClassDeclaration().classKind == ClassKind.cpp)
+            {
+                error(exp.loc, "Runtime type information is not supported for `extern(C++)` classes");
+                e = new ErrorExp();
+            }
+            else
+            {
+                /* Get the dynamic type, which is .classinfo
+                */
+                ea = ea.expressionSemantic(sc);
+                e = new TypeidExp(ea.loc, ea);
+                e.type = Type.typeinfoclass.type;
+            }
         }
         else if (ta.ty == Terror)
         {
