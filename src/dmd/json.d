@@ -167,7 +167,7 @@ public:
         comma();
     }
 
-    void itemBool(bool b)
+    void itemBool(const bool b)
     {
         indent();
         valueBool(b);
@@ -268,7 +268,7 @@ public:
         comma();
     }
 
-    void propertyBool(const(char)* name, bool b)
+    void propertyBool(const(char)* name, const bool b)
     {
         propertyStart(name);
         valueBool(b);
@@ -318,7 +318,7 @@ public:
         }
     }
 
-    void property(const(char)* name, LINK linkage)
+    void property(const(char)* name, const LINK linkage)
     {
         final switch (linkage)
         {
