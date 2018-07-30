@@ -178,6 +178,10 @@ struct linnum_data
 
 extern __gshared seg_data **SegData;
 
+ref targ_size_t Offset(int seg) { return SegData[seg].SDoffset; }
+ref targ_size_t Doffset() { return Offset(DATA); }
+ref targ_size_t CDoffset() { return Offset(CDATA); }
+
 /**************************************************/
 
 /* Allocate registers to function parameters
