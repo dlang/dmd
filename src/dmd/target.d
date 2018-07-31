@@ -181,6 +181,17 @@ struct Target
     }
 
     /**
+     * Deinitializes the global state of the compiler.
+     *
+     * This can be used to restore the state set by `_init` to its original
+     * state.
+     */
+    void deinitialize()
+    {
+        this = this.init;
+    }
+
+    /**
      * Requested target memory alignment size of the given type.
      * Params:
      *      type = type to inspect

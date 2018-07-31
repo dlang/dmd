@@ -188,6 +188,17 @@ extern(C++) abstract class Objc
             _objc = new Unsupported;
     }
 
+    /**
+     * Deinitializes the global state of the compiler.
+     *
+     * This can be used to restore the state set by `_init` to its original
+     * state.
+     */
+    static void deinitialize()
+    {
+        _objc = _objc.init;
+    }
+
     abstract void setObjc(ClassDeclaration cd);
     abstract void setObjc(InterfaceDeclaration);
 

@@ -299,6 +299,17 @@ extern (C++) final class Module : Package
         modules = new DsymbolTable();
     }
 
+    /**
+     * Deinitializes the global state of the compiler.
+     *
+     * This can be used to restore the state set by `_init` to its original
+     * state.
+     */
+    static void deinitialize()
+    {
+        modules = modules.init;
+    }
+
     extern (C++) __gshared AggregateDeclaration moduleinfo;
 
     const(char)* arg;           // original argument name
