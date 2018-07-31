@@ -3,7 +3,7 @@ DRuntime: Runtime Library for the D Programming Language
 
 [![GitHub tag](https://img.shields.io/github/tag/dlang/druntime.svg?maxAge=86400)](https://github.com/dlang/druntime/releases)
 [![Bugzilla Issues](https://img.shields.io/badge/issues-Bugzilla-green.svg)](https://issues.dlang.org/buglist.cgi?component=druntime&list_id=220148&product=D&resolution=---)
-[![Build status](https://img.shields.io/circleci/project/dlang/druntime.svg?maxAge=86400)](https://circleci.com/gh/dlang/druntime)
+[![CircleCI](https://circleci.com/gh/dlang/druntime/tree/master.svg?style=svg)](https://circleci.com/gh/dlang/druntime/tree/master)
 [![Code coverage](https://img.shields.io/codecov/c/github/dlang/druntime.svg?maxAge=86400)](https://codecov.io/gh/dlang/druntime)
 [![Issue Stats](https://img.shields.io/issuestats/p/github/dlang/druntime.svg?maxAge=2592000)](http://www.issuestats.com/github/dlang/druntime)
 [![license](https://img.shields.io/github/license/dlang/druntime.svg)](https://github.com/dlang/druntime/blob/master/LICENSE.txt)
