@@ -909,11 +909,23 @@ extern (C++) abstract class Type : RootObject
     final Type trySemantic(const ref Loc loc, Scope* sc)
     {
         //printf("+trySemantic(%s) %d\n", toChars(), global.errors);
+
+        // Needed to display any deprecations that were gagged
+        auto tcopy = this.syntaxCopy();
+
         uint errors = global.startGagging();
         Type t = typeSemantic(this, loc, sc);
         if (global.endGagging(errors) || t.ty == Terror) // if any errors happened
         {
             t = null;
+        }
+        else
+        {
+            // If `typeSemantic` succeeded, there may have been deprecations that
+            // were gagged due the the `startGagging` above.  Run again to display
+            // those deprecations.  https://issues.dlang.org/show_bug.cgi?id=19107
+            if (global.gaggedWarnings > 0)
+                typeSemantic(tcopy, loc, sc);
         }
         //printf("-trySemantic(%s) %d\n", toChars(), global.errors);
         return t;
