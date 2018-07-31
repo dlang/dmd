@@ -6272,6 +6272,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.to == Type.terror)
                 return setError();
 
+            // Convert an expression like `cast(uint[])[]` or `cast(string[])[null]`
+            // to a typed array literals
+            if (exp.e1.op == TOK.arrayLiteral)
+            {
+                auto al = cast(ArrayLiteralExp)exp.e1.expressionSemantic(sc);
+                al.type = exp.to;
+                result = al;
+                return;
+            }
+
             if (!exp.to.hasPointers())
                 exp.setNoderefOperand();
 
@@ -6381,6 +6391,42 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             exp.error("cast from `%s` to `%s` not allowed in safe code", exp.e1.type.toChars(), exp.to.toChars());
             return setError();
+        }
+
+        if (tob.ty == Tarray && t1b.ty == Tarray && exp.e1.op != TOK.string_)
+        {
+            auto tFrom = t1b.nextOf();
+            auto tTo = tob.nextOf();
+
+            uint fromSize = cast(uint)tFrom.size();
+            uint toSize = cast(uint)tTo.size();
+
+            if (fromSize != toSize)
+            {
+                // Array element sizes do not match, so we must adjust the dimensions
+
+                if ((fromSize % toSize) != 0)
+                {
+                    // Runtime check needed in case arrays don't line up
+
+                    // lower to `object.__ArrayCast!(TFrom, TTo)(from)`
+
+                    auto id = Identifier.idPool("__ArrayCast");
+
+                    auto tiargs = new Objects();
+                    tiargs.push(tFrom);
+                    tiargs.push(tTo);
+                    auto ti = new TemplateInstance(exp.loc, id, tiargs);
+                    Expression __ArrayCast = new ScopeExp(exp.loc, ti);
+
+                    auto arguments = new Expressions();
+                    arguments.push(exp.e1);
+                    __ArrayCast = new CallExp(exp.loc, __ArrayCast, arguments);
+
+                    result = expressionSemantic(__ArrayCast, sc);
+                    return;
+                }
+            }
         }
 
         result = ex;

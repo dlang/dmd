@@ -97,6 +97,12 @@ struct Sint
     this(int v) { x = v;}
 }
 
+bool castToLongFailed = false;
+extern(C) void castToLongAssertFail(int sig) nothrow @nogc
+{
+	castToLongFailed = true;
+}
+
 void testRuntimeLowerings()
 {
     // test call to `object.__equals`
@@ -155,4 +161,32 @@ void testRuntimeLowerings()
         default:
             break;
     }
+
+    // test call to `object.__ArrayCast`
+    import core.stdc.stdlib : malloc, free, exit;
+    import core.stdc.signal;
+
+    byte[] b;
+    int[]  i;
+    long[] l;
+
+    // We can't actually create dynamic arrays in idiomatic D when
+    // compiling with -betterC, so we do it manually.
+    auto b_length = cast(size_t*)&b;
+    auto b_ptr = cast(void*)(b_length + 1);
+    *b_length = int.sizeof * 3;
+    b_ptr = malloc(*b_length);
+
+    i = cast(int[])b;
+    assert(i.length == 3);
+
+    // size mismatch, should result in an assertion failure
+    l = cast(long[])b;
+    signal(SIGABRT, &castToLongAssertFail);
+    assert(castToLongFailed);
+
+    // No garbage collector in -betterC, we must free memory manually.
+    free(b_ptr);
+
+    exit(0);
 }
