@@ -1,0 +1,66 @@
+name "dmd"
+description "The DMD compiler"
+authors "Walter Bright"
+copyright "Copyright © 1999-2018, The D Language Foundation"
+license "BSL-1.0"
+
+targetType "none"
+dependency ":frontend" version="*"
+
+subPackage {
+  name "root"
+  targetType "library"
+  sourcePaths "src/dmd/root"
+}
+
+subPackage {
+  name "lexer"
+  targetType "library"
+  sourcePaths
+
+  sourceFiles \
+    "src/dmd/console.d" \
+    "src/dmd/entity.d" \
+    "src/dmd/errors.d" \
+    "src/dmd/globals.d" \
+    "src/dmd/id.d" \
+    "src/dmd/identifier.d" \
+    "src/dmd/lexer.d" \
+    "src/dmd/tokens.d" \
+    "src/dmd/utf.d"
+
+  preGenerateCommands `cd "$${DUB_PACKAGE_DIR}" && ./config.sh generated/dub VERSION /etc`
+  stringImportPaths "generated/dub"
+
+  dependency "dmd:root" version="*"
+}
+
+subPackage {
+  name "parser"
+  targetType "library"
+  sourcePaths
+
+  sourceFiles \
+    "src/dmd/astbase.d" \
+    "src/dmd/parse.d" \
+    "src/dmd/transitivevisitor.d" \
+    "src/dmd/permissivevisitor.d" \
+    "src/dmd/strictvisitor.d"
+
+  dependency "dmd:lexer" version="*"
+}
+
+subPackage {
+  name "frontend"
+  targetType "library"
+  preGenerateCommands `cd "$${DUB_PACKAGE_DIR}" && ./config.sh generated/dub VERSION /etc`
+  stringImportPaths "generated/dub"
+  stringImportPaths "res"
+  versions "NoBackend"
+  versions "GC"
+  versions "NoMain"
+  versions "MARS"
+  sourcePaths "src/dmd"
+  excludedSourceFiles "src/dmd/backend/*"
+  excludedSourceFiles "src/dmd/{e2ir,eh,glue,iasm,objc_glue,s2ir,tocsym,toctype,toobj,todt,toir}.d"
+}

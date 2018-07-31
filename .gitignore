@@ -1,0 +1,44 @@
+*.[oa]
+*.deps
+test/test_results
+test/trace.def
+test/trace.log
+generated/
+*.obj
+*.map
+-.DS_Store
+-trace.def
+-trace.log
+*.lst
+.dub
+
+# Visual Studio files
+*.exe
+*.pdb
+src/vcbuild/Win32
+src/vcbuild/x64
+*.ncb
+*.suo
+*.sdf
+*.opensdf
+*.user
+*.ilk
+ipch
+
+# Xcode files
+DerivedData/
+xcuserdata/
+dmd.xcodeproj/
+
+# Output files
+src/*.bak
+src/*.lib
+src/*.lst
+tags
+
+# OSX
+src/optabgen.dSYM/
+
+# GCov
+*.gcno
+*.gcda

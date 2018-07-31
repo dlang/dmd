@@ -1,0 +1,8 @@
+shared static this()
+Foo static ctor
+static ctor
+Bar static ctor
+Bar static dtor
+static dtor
+Foo static dtor
+shared static this()

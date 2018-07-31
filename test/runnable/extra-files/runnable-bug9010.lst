@@ -1,0 +1,24 @@
+       |// PERMUTE_ARGS:
+       |// POST_SCRIPT: runnable/extra-files/coverage-postscript.sh
+       |// REQUIRED_ARGS: -cov
+       |// EXECUTE_ARGS: ${RESULTS_DIR}/runnable
+       |
+       |struct A
+       |{
+       |    bool opEquals(A o) const
+       |    {
+      1|        return false;
+       |    }
+       |
+       |}
+       |
+       |extern(C) void dmd_coverDestPath(string pathname);
+       |
+       |void main(string[] args)
+       |{
+      1|    dmd_coverDestPath(args[1]);
+       |
+      1|    auto a = A();
+      1|    auto b = A();
+      1|    assert(a != b);
+       |}

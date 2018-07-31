@@ -1,0 +1,51 @@
+Deprecatie usage of `opDot`
+
+`opDot` was the D1 analog to `alias this`.
+However, `alias this` covers all use cases of `opDot`, but ensures safety.
+
+---
+struct S
+{
+    int a, b;
+}
+struct T
+{
+    S s;
+
+    S* opDot()
+    {
+        return &s;
+    }
+}
+
+void main()
+{
+    T t;
+    t.a = 4;
+    assert(t.a == 4);
+    t.b = 5;
+}
+---
+
+With `alias this`:
+
+---
+struct S
+{
+    int a, b;
+}
+struct T
+{
+    S s;
+
+    alias s this;
+}
+
+void main() @safe
+{
+    T t;
+    t.a = 4;
+    assert(t.a == 4);
+    t.b = 5;
+}
+---
