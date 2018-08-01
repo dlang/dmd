@@ -1,0 +1,42 @@
+Support for comparing arrays of unsigned byte-sized types and structs has been added to -betterC
+
+Prior to this release, the following code did not build in -betterC, but will with this release.
+
+---
+// (Prior to this release) Error: TypeInfo cannot be used with -betterC
+struct Sint
+{
+    int x;
+    this(int v) { x = v;}
+}
+
+extern(C) void main()
+{
+    Sint[6] a1 = [Sint(1), Sint(2), Sint(3), Sint(1), Sint(2), Sint(3)];
+    assert(a1[0..3] == a1[3..$]);
+}
+---
+
+---
+// (Prior to this release) Linker Error: undefined reference to `core.internal.string.dstrcmp`
+extern(C) void main()
+{
+    auto s = "abc";
+    switch(s)
+    {
+        case "abc":
+            break;
+        default:
+            break;
+    }
+}
+---
+
+---
+// (Prior to this release) Linker Error: undefined reference to `core.internal.string.dstrcmp`
+extern(C) void main()
+{
+    char[6] a = [1,2,3,1,2,3];
+    assert(a[0..3] >= a[3..$]);  // failed for any byte-sized type (e.g. `char`, `ubyte`, etc...)
+}
+---
