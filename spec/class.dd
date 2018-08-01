@@ -678,12 +678,12 @@ $(GNAME Destructor):
 
         $(P The garbage collector is not guaranteed to run the destructor
         for all unreferenced objects. Furthermore, the order in which the
-        garbage collector calls destructors for unreference objects
+        garbage collector calls destructors for unreferenced objects
         is not specified.
         This means that
         when the garbage collector calls a destructor for an object of a class
         that has
-        members that are references to garbage collected objects, those
+        members which are references to garbage collected objects, those
         references may no longer be valid. This means that destructors
         cannot reference sub objects.
         This rule does not apply to auto objects or objects destructed
