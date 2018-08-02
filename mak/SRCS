@@ -69,6 +69,7 @@ SRCS=\
 	src\core\sys\freebsd\sys\event.d \
 	src\core\sys\freebsd\sys\link_elf.d \
 	src\core\sys\freebsd\sys\mman.d \
+	src\core\sys\freebsd\sys\mount.d \
 	src\core\sys\freebsd\time.d \
 	\
 	src\core\sys\dragonflybsd\dlfcn.d \

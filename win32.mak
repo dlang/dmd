@@ -446,6 +446,9 @@ $(IMPDIR)\core\sys\freebsd\sys\link_elf.d : src\core\sys\freebsd\sys\link_elf.d
 $(IMPDIR)\core\sys\freebsd\sys\mman.d : src\core\sys\freebsd\sys\mman.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\freebsd\sys\mount.d : src\core\sys\freebsd\sys\mount.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\dragonflybsd\dlfcn.d : src\core\sys\dragonflybsd\dlfcn.d
 	copy $** $@
 
