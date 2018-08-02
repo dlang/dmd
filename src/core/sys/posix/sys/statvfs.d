@@ -3,8 +3,9 @@
 
     Copyright: Copyright 2012 -
     License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
-    Authors:   Robert Klotzner anh $(HTTP jmdavisprog.com, Jonathan M Davis)
-    Standards: The Open Group Base Specifications Issue 6 IEEE Std 1003.1, 2004 Edition
+    Authors:   Robert Klotzner and $(HTTP jmdavisprog.com, Jonathan M Davis)
+    Standards: $(HTTP http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/sys_statvfs.h.html,
+                      The Open Group Base Specifications Issue 7 IEEE Std 1003.1, 2018 Edition)
  +/
 module core.sys.posix.sys.statvfs;
 private import core.stdc.config;
@@ -234,6 +235,27 @@ else version (FreeBSD)
 
     deprecated("Moved to core.sys.freebsd.sys.mount to correspond to C header file sys/mount.h")
     alias fstatfs = core.sys.freebsd.sys.mount.fstatfs;
+
+    struct statvfs_t
+    {
+        fsblkcnt_t f_bavail;
+        fsblkcnt_t f_bfree;
+        fsblkcnt_t f_blocks;
+        fsfilcnt_t f_favail;
+        fsfilcnt_t f_ffree;
+        fsfilcnt_t f_files;
+        ulong f_bsize;
+        ulong f_flag;
+        ulong f_frsize;
+        ulong f_fsid;
+        ulong f_namemax;
+    }
+
+    enum uint ST_RDONLY = 0x1;
+    enum uint ST_NOSUID = 0x2;
+
+    int fstatvfs(int, statvfs_t*);
+    int statvfs(const char*, statvfs_t*);
 }
 else
 {
