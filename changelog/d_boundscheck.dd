@@ -1,0 +1,29 @@
+Add version identifier `D_BoundsChecks`
+
+One stylistic rule of D is that version identifier should be positive.
+`D_NoBoundsChecks` stands out as an exception in this regard.
+This version adds the opposite `D_BoundsChecks` so that code have at least
+one release to transition to it, before `D_NoBoundsChecks` is deprecated.
+
+---
+/// Before
+void func (ubyte[] arr, size_t idx)
+{
+  version (D_NoBoundsCheck) {}
+  else
+  {
+    assert(idx < arr.length);
+  }
+  // ...
+}
+
+/// After
+void func (ubyte[] arr, size_t idx)
+{
+  version (D_BoundsCheck)
+  {
+    assert(idx < arr.length);
+  }
+  // ...
+}
+---

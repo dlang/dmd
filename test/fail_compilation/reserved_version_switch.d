@@ -94,6 +94,7 @@
 // REQUIRED_ARGS: -version=D_SIMD
 // REQUIRED_ARGS: -version=D_Version2
 // REQUIRED_ARGS: -version=D_NoBoundsChecks
+// REQUIRED_ARGS: -version=D_BoundsChecks
 // REQUIRED_ARGS: -version=unittest
 // REQUIRED_ARGS: -version=assert
 // REQUIRED_ARGS: -version=all
@@ -190,6 +191,7 @@
 // REQUIRED_ARGS: -debug=D_SIMD
 // REQUIRED_ARGS: -debug=D_Version2
 // REQUIRED_ARGS: -debug=D_NoBoundsChecks
+// REQUIRED_ARGS: -debug=D_BoundsChecks
 // REQUIRED_ARGS: -debug=unittest
 // REQUIRED_ARGS: -debug=assert
 // REQUIRED_ARGS: -debug=all
@@ -291,6 +293,7 @@ Error: version identifier `D_PIC` is reserved and cannot be set
 Error: version identifier `D_SIMD` is reserved and cannot be set
 Error: version identifier `D_Version2` is reserved and cannot be set
 Error: version identifier `D_NoBoundsChecks` is reserved and cannot be set
+Error: version identifier `D_BoundsChecks` is reserved and cannot be set
 Error: version identifier `unittest` is reserved and cannot be set
 Error: version identifier `assert` is reserved and cannot be set
 Error: version identifier `all` is reserved and cannot be set
