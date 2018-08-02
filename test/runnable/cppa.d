@@ -1230,7 +1230,7 @@ void test15455()
 /****************************************/
 // 15372
 
-extern(C++) int foo15372(T)(T v);
+extern(C++) int foo15372(T)(int v);
 
 void test15372()
 {
@@ -1385,7 +1385,7 @@ mixin template scopeAllocCpp(C)
         enum cppCtorReturnsThis = false;
     else
         enum cppCtorReturnsThis = true;
-    
+
     static if (cppCtorReturnsThis)
         scope C ptr = new C;
     else
@@ -1446,7 +1446,7 @@ void test18928()
 // https://issues.dlang.org/show_bug.cgi?id=18953
 // Win32: extern(C++) struct destructor not called correctly through runtime
 
-extern(C++) 
+extern(C++)
 struct S18953
 {
     char x;

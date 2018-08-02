@@ -51,6 +51,8 @@ string astTypeName(RootObject node)
             return "RootObject";
         case DYNCAST.identifier:
             return "Identifier";
+        case DYNCAST.templateparameter:
+            return "TemplateParameter";
 
         case DYNCAST.expression:
             return astTypeName(cast(Expression) node);
