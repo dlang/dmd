@@ -1495,6 +1495,37 @@ class Implicit18966 : Base18966
     override void vf() { x = 300; }
 }
 
+// test vptr in full ctor chain of mixed D/C++ class hierarchies
+
+// TODO: Make this a D class and let C++ derive from it. This works on Windows,
+//       but results in linker errors on Posix due to extra base ctor (`C2`
+//       mangling) being called by the B ctor.
+class A18966 // in C++
+{
+    char[8] calledOverloads = 0;
+    int i;
+    this();
+    void foo();
+}
+
+class B18966 : A18966 // in C++
+{
+    this();
+    override void foo();
+}
+
+class C18966 : B18966
+{
+    this() { foo(); }
+    override void foo() { calledOverloads[i++] = 'C'; }
+}
+
+class D18966 : C18966
+{
+    this() { foo(); }
+    override void foo() { calledOverloads[i++] = 'D'; }
+}
+
 void test18966()
 {
     Derived18966 d = new Derived18966;
@@ -1511,6 +1542,55 @@ void test18966()
     assert(i.x == 10);
     i.vf();
     assert(i.x == 300);
+
+    // TODO: Allocating + constructing a C++ class with the D GC is not
+    //       supported on Posix. The returned pointer (probably from C++ ctor)
+    //       seems to be an offset and not the actual object address.
+    version (Windows)
+    {
+        auto a = new A18966;
+        assert(a.calledOverloads[0..2] == "A\0");
+
+        auto b = new B18966;
+        assert(b.calledOverloads[0..3] == "AB\0");
+    }
+
+    auto c = new C18966;
+    assert(c.calledOverloads[0..4] == "ABC\0");
+
+    auto d2 = new D18966;
+    // note: the vptr semantics in ctors of extern(C++) classes may be revised (to "ABCD")
+    assert(d2.calledOverloads[0..5] == "ABDD\0");
+}
+
+/****************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=19134
+
+class Base19134
+{
+    int a = 123;
+    this() { a += 42; }
+    int foo() const { return a; }
+}
+
+class Derived19134 : Base19134
+{
+    int b = 666;
+    this()
+    {
+        a *= 2;
+        b -= 6;
+    }
+    override int foo() const { return b; }
+}
+
+void test19134()
+{
+    static const d = new Derived19134;
+    assert(d.a == (123 + 42) * 2);
+    assert(d.b == 666 - 6);
+    assert(d.foo() == 660);
 }
 
 /****************************************/
@@ -1562,6 +1642,7 @@ void main()
     test18928();
     test18953();
     test18966();
+    test19134();
 
     printf("Success\n");
 }

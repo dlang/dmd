@@ -4547,24 +4547,25 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             auto ad = sc.func ? sc.func.isThis() : null;
             auto cd = ad ? ad.isClassDeclaration() : null;
-            if (cd && cd.classKind == ClassKind.cpp)
+            if (cd && cd.classKind == ClassKind.cpp && exp.f && !exp.f.fbody)
             {
                 // if super is defined in C++, it sets the vtable pointer to the base class
-                // so we have to rewrite it, but still return 'this' from super() call:
-                // (auto tmp = super(), this.__vptr = __vtbl, tmp)
-                __gshared int superid = 0;
-                char[20] buf;
-                sprintf(buf.ptr, "__super%d", superid++);
-                auto tmp = copyToTemp(0, buf.ptr, result);
+                // so we have to restore it, but still return 'this' from super() call:
+                // (auto __vptrTmp = this.__vptr, auto __superTmp = super()), (this.__vptr = __vptrTmp, __superTmp)
                 Loc loc = exp.loc;
-                Expression tmpdecl = new DeclarationExp(loc, tmp);
 
-                auto dse = new DsymbolExp(loc, cd.vtblSymbol());
-                auto ase = new AddrExp(loc, new IndexExp(loc, dse, new IntegerExp(loc, 0, Type.tsize_t)));
-                auto pte = new DotIdExp(loc, new ThisExp(loc), Id.__vptr);
-                auto ate = new AssignExp(loc, pte, ase);
+                auto vptr = new DotIdExp(loc, new ThisExp(loc), Id.__vptr);
+                auto vptrTmpDecl = copyToTemp(0, "__vptrTmp", vptr);
+                auto declareVptrTmp = new DeclarationExp(loc, vptrTmpDecl);
 
-                Expression e = new CommaExp(loc, new CommaExp(loc, tmpdecl, ate), new VarExp(loc, tmp));
+                auto superTmpDecl = copyToTemp(0, "__superTmp", result);
+                auto declareSuperTmp = new DeclarationExp(loc, superTmpDecl);
+
+                auto declareTmps = new CommaExp(loc, declareVptrTmp, declareSuperTmp);
+
+                auto restoreVptr = new AssignExp(loc, vptr.syntaxCopy(), new VarExp(loc, vptrTmpDecl));
+
+                Expression e = new CommaExp(loc, declareTmps, new CommaExp(loc, restoreVptr, new VarExp(loc, superTmpDecl)));
                 result = e.expressionSemantic(sc);
             }
         }

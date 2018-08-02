@@ -927,3 +927,9 @@ void Base18966::vf()
 {
     x = 100;
 }
+
+A18966::A18966() : calledOverloads(/*zero-init*/), i(0) { foo(); }
+void A18966::foo() { calledOverloads[i++] = 'A'; }
+
+B18966::B18966() { foo(); }
+void B18966::foo() { calledOverloads[i++] = 'B'; }
