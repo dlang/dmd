@@ -624,7 +624,8 @@ extern (C++) final class Module : Package
             {
                 .error(loc, "cannot find source code for runtime library file 'object.d'");
                 errorSupplemental(loc, "dmd might not be correctly installed. Run 'dmd -man' for installation instructions.");
-                errorSupplemental(loc, "config file: %s", FileName.canonicalName(global.inifilename));
+                const dmdConfFile = FileName.canonicalName(global.inifilename);
+                errorSupplemental(loc, "config file: %s", dmdConfFile ? dmdConfFile : "not found".ptr);
             }
             else
             {
