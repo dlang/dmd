@@ -382,6 +382,7 @@ extern (C++) final class Module : Package
     Dsymbols* decldefs;         // top level declarations for this Module
 
     Modules aimports;           // all imported modules
+    Strings astringImports;     // all string-imported files
 
     uint debuglevel;            // debug level
     Identifiers* debugids;      // debug identifiers

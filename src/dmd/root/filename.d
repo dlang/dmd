@@ -771,6 +771,57 @@ nothrow:
     {
         return str ? str[0 .. strlen(str)] : null;
     }
+
+    /**
+     * Escapes '(', ')', backslashes and whitespace in the path.
+     *
+     * Params:
+     *   buf = Buffer to write the escaped path to
+     */
+    extern(D) void escapeSpaces(OutBuffer* buf) const nothrow
+    {
+        const(char)* it = this.str;
+        while (1)
+        {
+            switch (*it)
+            {
+            case 0:
+                return;
+            case '(':
+            case ')':
+            case '\\':
+            case ' ':
+            case '\t':
+            case '\f':
+            case '\v':
+                buf.writeByte('\\');
+                goto default;
+            default:
+                buf.writeByte(*it);
+                break;
+            }
+            it++;
+        }
+    }
+    ///
+    unittest
+    {
+        OutBuffer buf;
+        FileName("simple_path.d").escapeSpaces(&buf);
+        assert(buf.peekSlice() == "simple_path.d");
+        buf.reset();
+
+        FileName("spaced path.d").escapeSpaces(&buf);
+        assert(buf.peekSlice() == "spaced\\ path.d");
+        buf.reset();
+
+        FileName("windows\\folder with\ttab/and(parens).d").escapeSpaces(&buf);
+        assert(buf.peekSlice() == "windows\\\\folder\\ with\\\ttab/and\\(parens\\).d");
+        buf.reset();
+
+        FileName("specials()\\ \t\f\v.d").escapeSpaces(&buf);
+        assert(buf.peekSlice() == "specials\\(\\)\\\\\\ \\\t\\\f\\\v.d");
+    }
 }
 
 version(Windows)

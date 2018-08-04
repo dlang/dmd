@@ -848,21 +848,106 @@ private int tryMain(size_t argc, const(char)** argv)
         fatal();
 
     // inlineScan incrementally run semantic3 of each expanded functions.
-    // So deps file generation should be moved after the inlinig stage.
-    if (global.params.moduleDeps)
+    // So deps file generation should be moved after the inlining stage.
+    if (global.params.moduleDeps || global.params.doMakeDeps)
     {
-        foreach (i; 1 .. modules[0].aimports.dim)
-            semantic3OnDependencies(modules[0].aimports[i]);
-
-        OutBuffer* ob = global.params.moduleDeps;
-        if (global.params.moduleDepsFile)
+        if (global.params.moduleDeps)
         {
-            auto deps = File(global.params.moduleDepsFile);
-            deps.setbuffer(cast(void*)ob.data, ob.offset);
-            writeFile(Loc.initial, &deps);
+            foreach (i; 1 .. modules[0].aimports.dim)
+                semantic3OnDependencies(modules[0].aimports[i]);
+            OutBuffer* ob = global.params.moduleDeps;
+            if (global.params.moduleDepsFile)
+            {
+                auto deps = File(global.params.moduleDepsFile);
+                deps.setbuffer(cast(void*)ob.data, ob.offset);
+                writeFile(Loc.initial, &deps);
+            }
+            else
+                printf("%.*s", cast(int)ob.offset, ob.data);
         }
-        else
-            printf("%.*s", cast(int)ob.offset, ob.data);
+        if (global.params.doMakeDeps)
+        {
+            // Recursive dependencies scanner, fills string tables with module source paths and string-imported files paths
+            void recursivelyAddModuleDependencies(Module m, StringTable* moduleImportedPaths, StringTable* stringImportedPaths)
+            {
+                auto mpath = m.srcfile.toString();
+                // Skip modules already in the table, add self
+                if (moduleImportedPaths.insert(mpath, null) is null)
+                    return;
+                // Add string imports
+                foreach (i, const(char)* imp; m.astringImports)
+                {
+                    stringImportedPaths.insert(imp, strlen(imp), null);
+                }
+                // Process module imports
+                foreach (i, impmod; m.aimports)
+                {
+                    // Skip self-imports
+                    if (impmod is m || impmod is null)
+                        continue;
+                    // Recurse
+                    recursivelyAddModuleDependencies(impmod, moduleImportedPaths, stringImportedPaths);
+                }
+            }
+
+            __gshared static OutBuffer mdout;
+            bool mdSingleFile = global.params.makeDepsFile !is null;
+            File* mdOutput;
+            if (mdSingleFile)
+            {
+                mdOutput = modules[0].setOutfile(global.params.makeDepsFile, global.params.makeDepsDir, modules[0].arg, "dep");
+                mdOutput._ref = 1;
+            }
+
+            extern(C++) int modulePathOutputSink(const(StringValue)* val)
+            {
+                mdout.writestring(" \\\n ");
+                mdout.writestring(val.toDchars()[0..val.length]);
+
+                return 0;
+            }
+
+            foreach (i, m; modules)
+            {
+                // Skip the modules that were not on the commandline explicitly
+                if (m.srcfile is null || m.arg is null || m.ident == Id.entrypoint || m.ident.toString() == "__main")
+                    continue;
+                // Each module needs to walk its entire dependency tree for the output to be correct
+                StringTable moduleImportedPaths, stringImportedPaths;
+                moduleImportedPaths._init();
+                stringImportedPaths._init();
+                recursivelyAddModuleDependencies(m, &moduleImportedPaths, &stringImportedPaths);
+                if (global.params.makeDepsTarget is null)
+                {
+                    // no actual file is created, uses just the path
+                    File* objfile = m.setOutfile(global.params.objname, global.params.objdir, m.arg, global.obj_ext);
+                    objfile.name.escapeSpaces(&mdout);
+                }
+                else
+                {
+                    mdout.writestring(global.params.makeDepsTarget);
+                }
+                mdout.writeByte(':');
+                moduleImportedPaths.apply(&modulePathOutputSink);
+                stringImportedPaths.apply(&modulePathOutputSink);
+                mdout.writeByte('\n');
+                mdout.writeByte('\n');
+                if (!mdSingleFile)
+                {
+                    File* sout = m.setOutfile(global.params.makeDepsFile, global.params.makeDepsDir, m.arg, "dep");
+                    sout._ref = 1;
+                    sout.setbuffer(mdout.data, mdout.offset);
+                    sout.write();
+                    mdout.reset();
+                }
+            }
+
+            if (mdSingleFile)
+            {
+                mdOutput.setbuffer(mdout.data, mdout.offset);
+                mdOutput.write();
+            }
+        }
     }
 
     printCtfePerformanceStats();
@@ -2188,6 +2273,32 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                     goto Lerror;
                 }
                 params.moduleDeps = new OutBuffer();
+            }
+            else if (p[1] == 'M')
+            {
+                params.doMakeDeps = true;
+                switch (p[2])
+                {
+                case '\0':
+                    break;
+                case 'f':
+                    if (p[3] == '\0')
+                        goto Lnoarg;
+                    params.makeDepsFile = p + 3 + (p[3] == '=');
+                    break;
+                case 'd':
+                    if (p[3] == '\0')
+                        goto Lnoarg;
+                    params.makeDepsDir = p + 3 + (p[3] == '=');
+                    break;
+                case 't':
+                    if (p[3] == '\0')
+                        goto Lnoarg;
+                    params.makeDepsTarget = p + 3 + (p[3] == '=');
+                    break;
+                default:
+                    goto Lerror;
+                }
             }
             else if (arg == "-main")             // https://dlang.org/dmd.html#switch-main
             {

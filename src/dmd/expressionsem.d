@@ -5302,6 +5302,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             ob.writestring(")");
             ob.writenl();
         }
+        sc.instantiatingModule().astringImports.push(name);
+
 
         {
             auto f = File(name);

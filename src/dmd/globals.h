@@ -180,6 +180,11 @@ struct Param
     const char *moduleDepsFile; // filename for deps output
     OutBuffer *moduleDeps;      // contents to be written to deps file
 
+    bool doMakeDeps;                  // generate make-style dependencies file
+    const char *makeDepsFile;         // filename for make-style dependencies output
+    const char *makeDepsDir;          // directory for make-style dependencies output
+    const char *makeDepsTarget;       // the generated make target name
+
     // Hidden debug switches
     bool debugb;
     bool debugc;

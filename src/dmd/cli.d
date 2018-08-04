@@ -377,6 +377,18 @@ dmd -cov -unittest myprog.d
             source module to be compiled. This name can be overridden with
             the $(SWLINK -of) switch.`,
         ),
+        Option("M",
+            "generate make-style dependencies"
+        ),
+        Option("Mf<filename>",
+            "write make-style dependencies to filename"
+        ),
+        Option("Md<directory>",
+            "write make-style dependencies to directory"
+        ),
+        Option("Mt<name>",
+            "specifies the name of the target rule in the make depfile"
+        ),
         Option("m32",
             "generate 32 bit code",
             `$(UNIX Compile a 32 bit executable. This is the default for the 32 bit dmd.)
