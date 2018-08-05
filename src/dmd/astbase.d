@@ -2424,7 +2424,7 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class AsmStatement : Statement
+    extern (C++) class AsmStatement : Statement
     {
         Token* tokens;
 
@@ -2432,6 +2432,19 @@ struct ASTBase
         {
             super(loc);
             this.tokens = tokens;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class InlineAsmStatement : AsmStatement
+    {
+        extern (D) this(const ref Loc loc, Token* tokens)
+        {
+            super(loc, tokens);
         }
 
         override void accept(Visitor v)

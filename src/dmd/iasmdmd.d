@@ -28,7 +28,6 @@ import dmd.dsymbol;
 import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
-import dmd.func;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
@@ -113,7 +112,7 @@ struct ASM_STATE
     LabelDsymbol psDollar;
     Dsymbol psLocalsize;
     bool bReturnax;
-    AsmStatement statement;
+    InlineAsmStatement statement;
     Scope* sc;
     Token* tok;
     TOK tokValue;
@@ -4357,23 +4356,17 @@ extern (C++) public regm_t iasm_regs(block *bp)
 }
 
 
-/************************ AsmStatement ***************************************/
+/************************ InlineAsmStatement *********************************/
 
-extern (C++) public Statement asmSemantic(AsmStatement s, Scope *sc)
+public Statement inlineAsmSemantic(InlineAsmStatement s, Scope *sc)
 {
-    //printf("AsmStatement.semantic()\n");
+    //printf("InlineAsmStatement.semantic()\n");
 
     OP *o;
     OPND opnd1, opnd2, opnd3, opnd4;
     OPND* o1, o2, o3, o4;
     PTRNTAB ptb;
     int usNumops;
-    FuncDeclaration fd = sc.parent.isFuncDeclaration();
-
-    assert(fd);
-
-    if (!s.tokens)
-        return null;
 
     asmstate.ucItype = 0;
     asmstate.bReturnax = false;
@@ -4393,9 +4386,6 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
     if (sc.func.type.nextOf().isscalar())
         asmstate.bReturnax = false;
 }
-
-    // Assume assembler code takes care of setting the return value
-    sc.func.hasReturnExp |= 8;
 
     if (!asmstate.bInit)
     {

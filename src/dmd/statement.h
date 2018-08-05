@@ -677,6 +677,14 @@ class AsmStatement : public Statement
 {
 public:
     Token *tokens;
+
+    Statement *syntaxCopy();
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class InlineAsmStatement : public AsmStatement
+{
+public:
     code *asmcode;
     unsigned asmalign;          // alignment of this statement
     unsigned regs;              // mask of registers modified (must match regm_t in back end)
@@ -684,7 +692,6 @@ public:
     bool naked;                 // true if function is to be naked
 
     Statement *syntaxCopy();
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
