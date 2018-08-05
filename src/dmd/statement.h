@@ -695,6 +695,24 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+// A GCC asm statement - assembler instructions with D expression operands
+class GccAsmStatement : public AsmStatement
+{
+public:
+    StorageClass stc;           // attributes of the asm {} block
+    Expression *insn;           // string expression that is the template for assembler code
+    Expressions *args;          // input and output operands of the statement
+    unsigned outputargs;        // of the operands in 'args', the number of output operands
+    Identifiers *names;         // list of symbolic names for the operands
+    Expressions *constraints;   // list of string constants specifying constraints on operands
+    Expressions *clobbers;      // list of string constants specifying clobbers and scratch registers
+    Identifiers *labels;        // list of goto labels
+    GotoStatements *gotos;      // of the goto labels, the equivalent statements they represent
+
+    Statement *syntaxCopy();
+    void accept(Visitor *v) { v->visit(this); }
+};
+
 // a complete asm {} block
 class CompoundAsmStatement : public CompoundStatement
 {

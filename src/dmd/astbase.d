@@ -2453,6 +2453,19 @@ struct ASTBase
         }
     }
 
+    extern (C++) final class GccAsmStatement : AsmStatement
+    {
+        extern (D) this(const ref Loc loc, Token* tokens)
+        {
+            super(loc, tokens);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
     extern (C++) class ExpStatement : Statement
     {
         Expression exp;

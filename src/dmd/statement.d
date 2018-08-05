@@ -2428,6 +2428,38 @@ extern (C++) final class InlineAsmStatement : AsmStatement
 }
 
 /***********************************************************
+ * https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html
+ * Assembler instructions with D expression operands.
+ */
+extern (C++) final class GccAsmStatement : AsmStatement
+{
+    StorageClass stc;           // attributes of the asm {} block
+    Expression insn;            // string expression that is the template for assembler code
+    Expressions* args;          // input and output operands of the statement
+    uint outputargs;            // of the operands in 'args', the number of output operands
+    Identifiers* names;         // list of symbolic names for the operands
+    Expressions* constraints;   // list of string constants specifying constraints on operands
+    Expressions* clobbers;      // list of string constants specifying clobbers and scratch registers
+    Identifiers* labels;        // list of goto labels
+    GotoStatements* gotos;      // of the goto labels, the equivalent statements they represent
+
+    extern (D) this(const ref Loc loc, Token* tokens)
+    {
+        super(loc, tokens);
+    }
+
+    override Statement syntaxCopy()
+    {
+        return new GccAsmStatement(loc, tokens);
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
  * a complete asm {} block
  */
 extern (C++) final class CompoundAsmStatement : CompoundStatement

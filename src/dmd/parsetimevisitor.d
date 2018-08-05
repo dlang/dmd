@@ -128,6 +128,7 @@ public:
 
     // AsmStatements
     void visit(AST.InlineAsmStatement s) { visit(cast(AST.AsmStatement)s); }
+    void visit(AST.GccAsmStatement s) { visit(cast(AST.AsmStatement)s); }
 
     //=========================================================================================
     // Types

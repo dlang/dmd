@@ -23,6 +23,10 @@ version (MARS)
 {
     import dmd.iasmdmd;
 }
+else version (IN_GCC)
+{
+    import dmd.iasmgcc;
+}
 
 /************************ AsmStatement ***************************************/
 
@@ -43,6 +47,11 @@ extern(C++) Statement asmSemantic(AsmStatement s, Scope *sc)
     {
         auto ias = new InlineAsmStatement(s.loc, s.tokens);
         return inlineAsmSemantic(ias, sc);
+    }
+    else version (IN_GCC)
+    {
+        auto eas = new GccAsmStatement(s.loc, s.tokens);
+        return gccAsmSemantic(eas, sc);
     }
     else
     {
