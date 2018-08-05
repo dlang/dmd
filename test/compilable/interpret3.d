@@ -7742,3 +7742,11 @@ struct RBNode(T)
 
 static assert(!__traits(compiles, { alias bug18057 = RBNode!int; }));
 
+/**************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=19140
+
+void test19140()
+{
+    real f19140();
+    static if (__traits(compiles, (){ enum real r = f19140(); })) {}
+}
