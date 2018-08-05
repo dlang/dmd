@@ -1717,6 +1717,25 @@ foo(1, 3+x, dg, cast(int delegate())null);
 foo( { return 1; }, { return 3+x; }, dg, null );
 ---
 
+        $(P The lazy variadic delegate solution is preferable to using a lazy
+        variadic array, because each array index would evaluate every element:)
+
+---
+import std.stdio;
+
+void foo(lazy int[] arr...)
+{
+    writeln(arr[0]); // 1
+    writeln(arr[1]); // 4, not 2
+}
+
+void main()
+{
+    int x;
+    foo(++x, ++x);
+}
+---
+
 $(H2 $(LEGACY_LNAME2 Local Variables, local-variables, Local Variables))
 
         $(P It is an error to use a local variable without first assigning it a
