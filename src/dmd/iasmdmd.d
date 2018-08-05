@@ -6,15 +6,15 @@
  *              Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     Mike Cote, John Micco and $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/iasm.d, _iasm.d)
- * Documentation:  https://dlang.org/phobos/dmd_iasm.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/iasm.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/iasmdmd.d, _iasmdmd.d)
+ * Documentation:  https://dlang.org/phobos/dmd_iasmdmd.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/iasmdmd.d
  */
 
-/* Inline assembler for the D programming language compiler
+/* Inline assembler for the Digital Mars D compiler
  */
 
-module dmd.iasm;
+module dmd.iasmdmd;
 
 import core.stdc.stdio;
 import core.stdc.stdarg;
@@ -47,10 +47,6 @@ import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.global;
-import dmd.backend.el;
-import dmd.backend.type;
-import dmd.backend.oper;
-import dmd.backend.code;
 import dmd.backend.iasm;
 import dmd.backend.xmm;
 
