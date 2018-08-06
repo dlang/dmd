@@ -230,10 +230,11 @@ struct Global
 
     Compiler compiler;
     Param params;
-    unsigned errors;       // number of errors reported so far
-    unsigned warnings;     // number of warnings reported so far
-    unsigned gag;          // !=0 means gag reporting of errors & warnings
-    unsigned gaggedErrors; // number of errors reported while gagged
+    unsigned errors;         // number of errors reported so far
+    unsigned warnings;       // number of warnings reported so far
+    unsigned gag;            // !=0 means gag reporting of errors & warnings
+    unsigned gaggedErrors;   // number of errors reported while gagged
+    unsigned gaggedWarnings; // number of warnings reported while gagged
 
     void* console;         // opaque pointer to console for controlling text attributes
 
