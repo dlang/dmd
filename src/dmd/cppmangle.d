@@ -3,7 +3,7 @@
  *
  * Do mangling for C++ linkage.
  * This is the POSIX side of the implementation.
- * It is not exposed directly to C++, but called from target.
+ * It exports two functions to C++, `toCppMangleItanium` and `cppTypeInfoMangleItanium`.
  *
  * Copyright: Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, http://www.digitalmars.com
@@ -62,7 +62,8 @@ package CppOperator isCppOperator(Identifier id)
     return CppOperator.Unknown;
 }
 
-const(char)* toCppMangleItanium(Dsymbol s)
+///
+extern(C++) const(char)* toCppMangleItanium(Dsymbol s)
 {
     //printf("toCppMangleItanium(%s)\n", s.toChars());
     OutBuffer buf;
@@ -71,7 +72,8 @@ const(char)* toCppMangleItanium(Dsymbol s)
     return buf.extractString();
 }
 
-const(char)* cppTypeInfoMangleItanium(Dsymbol s)
+///
+extern(C++) const(char)* cppTypeInfoMangleItanium(Dsymbol s)
 {
     //printf("cppTypeInfoMangle(%s)\n", s.toChars());
     OutBuffer buf;
