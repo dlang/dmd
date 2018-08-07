@@ -102,12 +102,9 @@ extern (C++) final class StaticForeach : RootObject
     bool needExpansion = false;
 
     extern (D) this(const ref Loc loc,ForeachStatement aggrfe,ForeachRangeStatement rangefe)
-    in
     {
         assert(!!aggrfe ^ !!rangefe);
-    }
-    do
-    {
+
         this.loc = loc;
         this.aggrfe = aggrfe;
         this.rangefe = rangefe;
@@ -373,12 +370,9 @@ extern (C++) final class StaticForeach : RootObject
      * `dmd.statementsem.makeTupleForeach`.
      */
     final extern(D) void prepare(Scope* sc)
-    in
     {
         assert(sc);
-    }
-    do
-    {
+
         if (aggrfe)
         {
             sc = sc.startCTFE();
