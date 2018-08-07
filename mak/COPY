@@ -83,6 +83,7 @@ COPY=\
 	$(IMPDIR)\core\sys\freebsd\sys\elf_common.d \
 	$(IMPDIR)\core\sys\freebsd\sys\event.d \
 	$(IMPDIR)\core\sys\freebsd\sys\link_elf.d \
+	$(IMPDIR)\core\sys\freebsd\sys\mount.d \
 	$(IMPDIR)\core\sys\freebsd\sys\mman.d \
 	$(IMPDIR)\core\sys\freebsd\time.d \
 	\
