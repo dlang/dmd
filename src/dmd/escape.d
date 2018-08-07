@@ -96,7 +96,7 @@ bool checkAssocArrayLiteralEscape(Scope *sc, AssocArrayLiteralExp ae, bool gag)
 bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier par, Expression arg, bool gag)
 {
     enum log = false;
-    if (log) printf("checkParamArgumentEscape(arg: %s par: %s)\n", arg.toChars(), par.toChars());
+    if (log) printf("checkParamArgumentEscape(arg: %s par: %s)\n", arg ? arg.toChars() : "null", par ? par.toChars() : "null");
     //printf("type = %s, %d\n", arg.type.toChars(), arg.type.hasPointers());
 
     if (!arg.type.hasPointers())
@@ -153,14 +153,15 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier par, Ex
             /* v is not 'scope', and is assigned to a parameter that may escape.
              * Therefore, v can never be 'scope'.
              */
-            if (log) printf("no infer for %s in %s, fdc %s, %d\n",
-                v.toChars(), sc.func.ident.toChars(), fdc.ident.toChars(),  __LINE__);
+            if (log) printf("no infer for %s in %s loc %s, fdc %s, %d\n",
+                v.toChars(), sc.func.ident.toChars(), sc.func.loc.toChars(), fdc.ident.toChars(),  __LINE__);
             v.doNotInferScope = true;
         }
     }
 
     foreach (VarDeclaration v; er.byref)
     {
+        if (log) printf("byref %s\n", v.toChars());
         if (v.isDataseg())
             continue;
 
@@ -283,6 +284,11 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
     bool inferScope = false;
     if (va && sc.func && sc.func.type && sc.func.type.ty == Tfunction)
         inferScope = (cast(TypeFunction)sc.func.type).trust != TRUST.system;
+    //printf("inferScope = %d, %d\n", inferScope, (va.storage_class & STCmaybescope) != 0);
+
+    // Determine if va is a parameter that is an indirect reference
+    const bool vaIsRef = va && va.storage_class & STC.parameter &&
+        (va.storage_class & (STC.ref_ | STC.out_) || va.type.toBasetype().ty == Tclass);
 
     bool result = false;
     foreach (VarDeclaration v; er.byvalue)
@@ -296,7 +302,17 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
         Dsymbol p = v.toParent2();
 
-        if (!(va && va.isScope()))
+        if (va && !vaIsRef && !va.isScope() && !v.isScope() &&
+            (va.storage_class & v.storage_class & (STC.maybescope | STC.variadic)) == STC.maybescope &&
+            p == sc.func)
+        {
+            /* Add v to va's list of dependencies
+             */
+            va.addMaybe(v);
+            continue;
+        }
+
+        if (!(va && va.isScope()) || vaIsRef)
             notMaybeScope(v);
 
         if (v.isScope())
@@ -314,8 +330,9 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
             if (va &&
                 (va.enclosesLifetimeOf(v) && !(v.storage_class & (STC.parameter | STC.temp)) ||
                  // va is class reference
-                 ae.e1.op == TOK.dotVariable && va.type.toBasetype().ty == Tclass && (va.enclosesLifetimeOf(v) || !va.isScope) ||
-                 va.storage_class & STC.ref_ && !(v.storage_class & STC.temp)) &&
+                 ae.e1.op == TOK.dotVariable && va.type.toBasetype().ty == Tclass && (va.enclosesLifetimeOf(v) || !va.isScope()) ||
+                 vaIsRef ||
+                 va.storage_class & (STC.ref_ | STC.out_) && !(v.storage_class & STC.temp)) &&
                 sc.func.setUnsafe())
             {
                 if (!gag)
@@ -1578,5 +1595,57 @@ else
     {
         v.storage_class &= ~STC.maybescope;
     }
+}
+
+
+/**********************************************
+ * Have some variables that are maybescopes that were
+ * assigned values from other maybescope variables.
+ * Now that semantic analysis of the function is
+ * complete, we can finalize this by turning off
+ * maybescope for array elements that cannot be scope.
+ *
+ *  `va`    `v`    =>  `va`   `v`
+ *  maybe   maybe  =>  scope  scope
+ *  scope   scope  =>  scope  scope
+ *  scope   maybe  =>  scope  scope
+ *  maybe   scope  =>  scope  scope
+ *  -       -      =>  -      -
+ *  -       maybe  =>  -      -
+ *  -       scope  =>  error
+ *  maybe   -      =>  scope  -
+ *  scope   -      =>  scope  -
+ * Params:
+ *      array = array of variables that were assigned to from maybescope variables
+ */
+void eliminateMaybeScopes(VarDeclaration[] array)
+{
+    enum log = false;
+    if (log) printf("eliminateMaybeScopes()\n");
+    bool changes;
+    do
+    {
+        changes = false;
+        foreach (va; array)
+        {
+            if (log) printf("  va = %s\n", va.toChars());
+            if (!(va.storage_class & (STC.maybescope | STC.scope_)))
+            {
+                if (va.maybes)
+                {
+                    foreach (v; *va.maybes)
+                    {
+                        if (log) printf("    v = %s\n", v.toChars());
+                        if (v.storage_class & STC.maybescope)
+                        {
+                            // v cannot be scope since it is assigned to a non-scope va
+                            notMaybeScope(v);
+                            changes = true;
+                        }
+                    }
+                }
+            }
+        }
+    } while (changes);
 }
 

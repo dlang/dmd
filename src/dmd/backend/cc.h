@@ -1396,6 +1396,10 @@ struct Aliassym : Symbol { };
 // Function symbol
 //struct Funcsym : Symbol { };
 
+int Symbol_Salignsize(Symbol* s);
+bool Symbol_Sisdead(Symbol* s, bool anyInlineAsm);
+int Symbol_needThis(Symbol* s);
+
 // Determine if this Symbol is stored in a COMDAT
 #if MARS
 #define symbol_iscomdat(s)      ((s)->Sclass == SCcomdat ||             \

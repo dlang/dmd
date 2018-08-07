@@ -17,9 +17,11 @@ import core.stdc.string;
 
 import dmd.aggregate;
 import dmd.arraytypes;
+import dmd.attrib;
 import dmd.canthrow;
 import dmd.dclass;
 import dmd.declaration;
+import dmd.denum;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
@@ -409,8 +411,7 @@ extern (C++) Expression pointerBitmap(TraitsExp e)
     foreach (d_uns64 i; 0 .. data.dim)
         exps.push(new IntegerExp(e.loc, data[cast(size_t)i], Type.tsize_t));
 
-    auto ale = new ArrayLiteralExp(e.loc, exps);
-    ale.type = Type.tsize_t.sarrayOf(data.dim + 1);
+    auto ale = new ArrayLiteralExp(e.loc, Type.tsize_t.sarrayOf(data.dim + 1), exps);
     return ale;
 }
 
@@ -424,7 +425,8 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident != Id.compiles &&
         e.ident != Id.isSame &&
         e.ident != Id.identifier &&
-        e.ident != Id.getProtection)
+        e.ident != Id.getProtection &&
+        e.ident != Id.getAttributes)
     {
         if (!TemplateInstance.semanticTiargs(e.loc, sc, e.args, 1))
             return new ErrorExp();
@@ -510,6 +512,8 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 auto y = s.isDeclaration();
             static if (is(T == FuncDeclaration))
                 auto y = s.isFuncDeclaration();
+            static if (is(T == EnumMember))
+                auto y = s.isEnumMember();
 
             if (!y || !fp(y))
                 return False();
@@ -521,6 +525,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     alias isDsymX = isX!Dsymbol;
     alias isDeclX = isX!Declaration;
     alias isFuncX = isX!FuncDeclaration;
+    alias isEnumMemX = isX!EnumMember;
 
     if (e.ident == Id.isArithmetic)
     {
@@ -634,7 +639,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (dim != 1)
             return dimError(1);
 
-        return isFuncX(f => f.isDisabled());
+        return isDeclX(f => f.isDisabled());
     }
     if (e.ident == Id.isAbstractFunction)
     {
@@ -715,8 +720,12 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         Identifier id;
         if (auto po = isParameter(o))
         {
+            if (!po.ident)
+            {
+                e.error("argument `%s` has no identifier", po.type.toChars());
+                return new ErrorExp();
+            }
             id = po.ident;
-            assert(id);
         }
         else
         {
@@ -1074,12 +1083,34 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     }
     if (e.ident == Id.getAttributes)
     {
+        /* Specify 0 for bit 0 of the flags argument to semanticTiargs() so that
+         * a symbol should not be folded to a constant.
+         * Bit 1 means don't convert Parameter to Type if Parameter has an identifier
+         */
+        if (!TemplateInstance.semanticTiargs(e.loc, sc, e.args, 3))
+            return new ErrorExp();
+
         if (dim != 1)
             return dimError(1);
 
         auto o = (*e.args)[0];
+        auto po = isParameter(o);
         auto s = getDsymbolWithoutExpCtx(o);
-        if (!s)
+        UserAttributeDeclaration udad = null;
+        if (po)
+        {
+            udad = po.userAttribDecl;
+        }
+        else if (s)
+        {
+            if (s.isImport())
+            {
+                s = s.isImport().mod;
+            }
+            //printf("getAttributes %s, attrs = %p, scope = %p\n", s.toChars(), s.userAttribDecl, s.scope);
+            udad = s.userAttribDecl;
+        }
+        else
         {
             version (none)
             {
@@ -1093,13 +1124,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             e.error("first argument is not a symbol");
             return new ErrorExp();
         }
-        if (auto imp = s.isImport())
-        {
-            s = imp.mod;
-        }
 
-        //printf("getAttributes %s, attrs = %p, scope = %p\n", s.toChars(), s.userAttribDecl, s.scope);
-        auto udad = s.userAttribDecl;
         auto exps = udad ? udad.getAttributes() : new Expressions();
         auto tup = new TupleExp(e.loc, exps);
         return tup.expressionSemantic(sc);

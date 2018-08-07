@@ -47,7 +47,6 @@ import dmd.identifier;
 import dmd.init;
 import dmd.initsem;
 import dmd.hdrgen;
-import dmd.mars;
 import dmd.mtype;
 import dmd.nogc;
 import dmd.nspace;
@@ -467,6 +466,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         funcdecl.parameters.push(v);
                     funcdecl.localsymtab.insert(v);
                     v.parent = funcdecl;
+                    if (fparam.userAttribDecl)
+                        v.userAttribDecl = fparam.userAttribDecl;
                 }
             }
 
@@ -483,8 +484,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     {
                         TypeTuple t = cast(TypeTuple)fparam.type;
                         size_t dim = Parameter.dim(t.arguments);
-                        auto exps = new Objects();
-                        exps.setDim(dim);
+                        auto exps = new Objects(dim);
                         for (size_t j = 0; j < dim; j++)
                         {
                             Parameter narg = Parameter.getNth(t.arguments, j);
@@ -674,7 +674,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             else
                             {
                                 bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
-                                if (mustInit && !(sc2.ctorflow.fieldinit[i] & CSX.this_ctor))
+                                if (mustInit && !(sc2.ctorflow.fieldinit[i].csx & CSX.this_ctor))
                                 {
                                     funcdecl.error("field `%s` must be initialized but skipped", v.toChars());
                                 }
@@ -1178,6 +1178,37 @@ private extern(C++) final class Semantic3Visitor : Visitor
         }
 
         funcdecl.flags &= ~FUNCFLAG.inferScope;
+
+        // Eliminate maybescope's
+        {
+            // Create and fill array[] with maybe candidates from the `this` and the parameters
+            VarDeclaration[] array = void;
+
+            VarDeclaration[10] tmp = void;
+            size_t dim = (funcdecl.vthis !is null) + (funcdecl.parameters ? funcdecl.parameters.dim : 0);
+            if (dim <= tmp.length)
+                array = tmp[0 .. dim];
+            else
+            {
+                auto ptr = cast(VarDeclaration*)mem.xmalloc(dim * VarDeclaration.sizeof);
+                array = ptr[0 .. dim];
+            }
+            size_t n = 0;
+            if (funcdecl.vthis)
+                array[n++] = funcdecl.vthis;
+            if (funcdecl.parameters)
+            {
+                foreach (v; *funcdecl.parameters)
+                {
+                    array[n++] = v;
+                }
+            }
+
+            eliminateMaybeScopes(array[0 .. n]);
+
+            if (dim > tmp.length)
+                mem.xfree(array.ptr);
+        }
 
         // Infer STC.scope_
         if (funcdecl.parameters && !funcdecl.errors)

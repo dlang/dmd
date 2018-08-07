@@ -242,18 +242,68 @@ else
         }
     }
 }
+/**
+Makes a null-terminated copy of the given string on newly allocated memory.
+The null-terminator won't be part of the returned string slice. It will be
+at position `n` where `n` is the length of the input string.
 
-extern (D) static char[] xarraydup(const(char)[] s) nothrow
+Params:
+    s = string to copy
+
+Returns: A null-terminated copy of the input array.
+*/
+extern (D) char[] xarraydup(const(char)[] s) nothrow
 {
-    if (s)
-    {
-        auto p = cast(char*)mem.xmalloc(s.length + 1);
-        char[] a = p[0 .. s.length];
-        a[] = s[0 .. s.length];
-        p[s.length] = 0;    // preserve 0 terminator semantics
-        return a;
-    }
-    return null;
+    if (!s)
+        return null;
+
+    auto p = cast(char*)mem.xmalloc(s.length + 1);
+    char[] a = p[0 .. s.length];
+    a[] = s[0 .. s.length];
+    p[s.length] = 0;    // preserve 0 terminator semantics
+    return a;
 }
 
+///
+unittest
+{
+    auto s1 = "foo";
+    auto s2 = s1.xarraydup;
+    s2[0] = 'b';
+    assert(s1 == "foo");
+    assert(s2 == "boo");
+    assert(*(s2.ptr + s2.length) == '\0');
+    string sEmpty;
+    assert(sEmpty.xarraydup is null);
+}
 
+/**
+Makes a copy of the given array on newly allocated memory.
+
+Params:
+    s = array to copy
+
+Returns: A copy of the input array.
+*/
+extern (D) T[] arraydup(T)(const scope T[] s) nothrow
+{
+    if (!s)
+        return null;
+
+    const dim = s.length;
+    auto p = (cast(T*)mem.xmalloc(T.sizeof * dim))[0 .. dim];
+    p[] = s;
+    return p;
+}
+
+///
+unittest
+{
+    auto s1 = [0, 1, 2];
+    auto s2 = s1.arraydup;
+    s2[0] = 4;
+    assert(s1 == [0, 1, 2]);
+    assert(s2 == [4, 1, 2]);
+    string sEmpty;
+    assert(sEmpty.arraydup is null);
+}

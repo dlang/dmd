@@ -479,6 +479,7 @@ public:
 class SwitchErrorStatement : public Statement
 {
 public:
+    Expression *exp;
 
     void accept(Visitor *v) { v->visit(this); }
 };

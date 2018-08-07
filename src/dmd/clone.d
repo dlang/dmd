@@ -185,31 +185,70 @@ private bool needOpAssign(StructDeclaration sd)
 }
 
 /******************************************
- * Build opAssign for struct.
- *      ref S opAssign(S s) { ... }
+ * Build opAssign for a `struct`.
  *
- * Note that `s` will be constructed onto the stack, and probably
- * copy-constructed in caller site.
+ * The generated `opAssign` function has the following signature:
+ *---
+ *ref S opAssign(S s)    // S is the name of the `struct`
+ *---
  *
- * If S has copy copy construction and/or destructor,
- * the body will make bit-wise object swap:
- *          S __swap = this; // bit copy
- *          this = s;        // bit copy
- *          __swap.dtor();
- * Instead of running the destructor on s, run it on tmp instead.
+ * The opAssign function will be built for a struct `S` if the
+ * following constraints are met:
  *
- * Otherwise, the body will make member-wise assignments:
- * Then, the body is:
- *          this.field1 = s.field1;
- *          this.field2 = s.field2;
- *          ...;
+ * 1. `S` does not have an identity `opAssign` defined.
+ *
+ * 2. `S` has at least one of the following members: a postblit (user-defined or
+ * generated for fields that have a defined postblit), a destructor
+ * (user-defined or generated for fields that have a defined destructor)
+ * or at least one field that has a defined `opAssign`.
+ *
+ * 3. `S` does not have any non-mutable fields.
+ *
+ * If `S` has a disabled destructor or at least one field that has a disabled
+ * `opAssign`, `S.opAssign` is going to be generated, but marked with `@disable`
+ *
+ * If `S` defines a destructor, the generated code for `opAssign` is:
+ *
+ *---
+ *S __swap = void;
+ *__swap = this;   // bit copy
+ *this = s;        // bit copy
+ *__swap.dtor();
+ *---
+ *
+ * Otherwise, if `S` defines a postblit, the generated code for `opAssign` is:
+ *
+ *---
+ *this = s;
+ *---
+ *
+ * Note that the parameter to the generated `opAssign` is passed by value, which means
+ * that the postblit is going to be called (if it is defined) in both  of the above
+ * situations before entering the body of `opAssign`. The assignments in the above generated
+ * function bodies are blit expressions, so they can be regarded as `memcpy`s
+ * (`opAssign` is not called as this will result in an infinite recursion; the postblit
+ * is not called because it has already been called when the parameter was passed by value).
+ *
+ * If `S` does not have a postblit or a destructor, but contains at least one field that defines
+ * an `opAssign` function (which is not disabled), then the body will make member-wise
+ * assignments:
+ *
+ *---
+ *this.field1 = s.field1;
+ *this.field2 = s.field2;
+ *...;
+ *---
+ *
+ * In this situation, the assignemnts are actual assign expressions (`opAssign` is used
+ * if defined).
+ *
  * References:
  *      https://dlang.org/spec/struct.html#assign-overload
  * Params:
  *      sd = struct to generate opAssign for
  *      sc = context
  * Returns:
- *      generated opAssign function
+ *      generated `opAssign` function
  */
 extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
 {
@@ -247,6 +286,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
 
     if (sd.dtor || sd.postblit)
     {
+        // if the type is not assignable, we cannot generate opAssign
         if (!sd.type.isAssignable()) // https://issues.dlang.org/show_bug.cgi?id=13044
             return null;
         stc = mergeFuncAttrs(stc, sd.dtor);
@@ -255,7 +295,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     }
 
     auto fparams = new Parameters();
-    fparams.push(new Parameter(STC.nodtor, sd.type, Id.p, null));
+    fparams.push(new Parameter(STC.nodtor, sd.type, Id.p, null, null));
     auto tf = new TypeFunction(fparams, sd.handleType(), 0, LINK.d, stc | STC.ref_);
     auto fop = new FuncDeclaration(declLoc, Loc.initial, Id.assign, stc, tf);
     fop.storage_class |= STC.inference;
@@ -265,37 +305,35 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     {
         e = null;
     }
-    else if (sd.dtor || sd.postblit)
+    /* Do swap this and rhs.
+     *    __swap = this; this = s; __swap.dtor();
+     */
+    else if (sd.dtor)
     {
-        /* Do swap this and rhs.
-         *    __swap = this; this = s; __swap.dtor();
-         */
         //printf("\tswap copy\n");
-        if (sd.dtor)
-        {
-            TypeFunction tdtor = cast(TypeFunction)sd.dtor.type;
-            assert(tdtor.ty == Tfunction);
+        TypeFunction tdtor = cast(TypeFunction)sd.dtor.type;
+        assert(tdtor.ty == Tfunction);
 
-            auto idswap = Identifier.generateId("__swap");
-            auto swap = new VarDeclaration(loc, sd.type, idswap, new VoidInitializer(loc));
-            swap.storage_class |= STC.nodtor | STC.temp | STC.ctfe;
-            if (tdtor.isscope)
-                swap.storage_class |= STC.scope_;
-            auto e1 = new DeclarationExp(loc, swap);
+        auto idswap = Identifier.generateId("__swap");
+        auto swap = new VarDeclaration(loc, sd.type, idswap, new VoidInitializer(loc));
+        swap.storage_class |= STC.nodtor | STC.temp | STC.ctfe;
+        if (tdtor.isscope)
+            swap.storage_class |= STC.scope_;
+        auto e1 = new DeclarationExp(loc, swap);
 
-            auto e2 = new BlitExp(loc, new VarExp(loc, swap), new ThisExp(loc));
-            auto e3 = new BlitExp(loc, new ThisExp(loc), new IdentifierExp(loc, Id.p));
+        auto e2 = new BlitExp(loc, new VarExp(loc, swap), new ThisExp(loc));
+        auto e3 = new BlitExp(loc, new ThisExp(loc), new IdentifierExp(loc, Id.p));
 
-            /* Instead of running the destructor on s, run it
-             * on swap. This avoids needing to copy swap back in to s.
-             */
-            auto e4 = new CallExp(loc, new DotVarExp(loc, new VarExp(loc, swap), sd.dtor, false));
+        /* Instead of running the destructor on s, run it
+         * on swap. This avoids needing to copy swap back in to s.
+         */
+        auto e4 = new CallExp(loc, new DotVarExp(loc, new VarExp(loc, swap), sd.dtor, false));
 
-            e = Expression.combine(e1, e2, e3, e4);
-        }
-        else
-            e = new BlitExp(loc, new ThisExp(loc), new IdentifierExp(loc, Id.p));
+        e = Expression.combine(e1, e2, e3, e4);
     }
+    /* postblit was called when the value was passed to opAssign, we just need to blit the result */
+    else if (sd.postblit)
+        e = new BlitExp(loc, new ThisExp(loc), new IdentifierExp(loc, Id.p));
     else
     {
         /* Do memberwise copy.
@@ -504,7 +542,7 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
                 /* const bool opEquals(ref const S s);
                  */
                 auto parameters = new Parameters();
-                parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, null, null));
+                parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, null, null, null));
                 tfeqptr = new TypeFunction(parameters, Type.tbool, 0, LINK.d);
                 tfeqptr.mod = MODFlags.const_;
                 tfeqptr = cast(TypeFunction)tfeqptr.typeSemantic(Loc.initial, &scx);
@@ -529,8 +567,8 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
     Loc declLoc; // loc is unnecessary so __xopEquals is never called directly
     Loc loc; // loc is unnecessary so errors are gagged
     auto parameters = new Parameters();
-    parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.p, null));
-    parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.q, null));
+    parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.p, null, null));
+    parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.q, null, null));
     auto tf = new TypeFunction(parameters, Type.tbool, 0, LINK.d);
     Identifier id = Id.xopEquals;
     auto fop = new FuncDeclaration(declLoc, Loc.initial, id, STC.static_, tf);
@@ -574,7 +612,7 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
                 /* const int opCmp(ref const S s);
                  */
                 auto parameters = new Parameters();
-                parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, null, null));
+                parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, null, null, null));
                 tfcmpptr = new TypeFunction(parameters, Type.tint32, 0, LINK.d);
                 tfcmpptr.mod = MODFlags.const_;
                 tfcmpptr = cast(TypeFunction)tfcmpptr.typeSemantic(Loc.initial, &scx);
@@ -649,8 +687,8 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
     Loc declLoc; // loc is unnecessary so __xopCmp is never called directly
     Loc loc; // loc is unnecessary so errors are gagged
     auto parameters = new Parameters();
-    parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.p, null));
-    parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.q, null));
+    parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.p, null, null));
+    parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.q, null, null));
     auto tf = new TypeFunction(parameters, Type.tint32, 0, LINK.d);
     Identifier id = Id.xopCmp;
     auto fop = new FuncDeclaration(declLoc, Loc.initial, id, STC.static_, tf);
@@ -757,7 +795,7 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
     Loc declLoc; // loc is unnecessary so __xtoHash is never called directly
     Loc loc; // internal code should have no loc to prevent coverage
     auto parameters = new Parameters();
-    parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.p, null));
+    parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.p, null, null));
     auto tf = new TypeFunction(parameters, Type.thash_t, 0, LINK.d, STC.nothrow_ | STC.trusted);
     Identifier id = Id.xtoHash;
     auto fop = new FuncDeclaration(declLoc, Loc.initial, id, STC.static_, tf);
@@ -1009,7 +1047,7 @@ private DtorDeclaration buildWindowsCppDtor(AggregateDeclaration ad, DtorDeclara
     //   // TODO: if (del) delete (char*)this;
     //   return (void*) this;
     // }
-    Parameter delparam = new Parameter(STC.undefined_, Type.tuns32, Identifier.idPool("del"), new IntegerExp(dtor.loc, 0, Type.tuns32));
+    Parameter delparam = new Parameter(STC.undefined_, Type.tuns32, Identifier.idPool("del"), new IntegerExp(dtor.loc, 0, Type.tuns32), null);
     Parameters* params = new Parameters;
     params.push(delparam);
     auto ftype = new TypeFunction(params, Type.tvoidptr, false, LINK.cpp, dtor.storage_class);

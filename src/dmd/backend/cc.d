@@ -13,9 +13,9 @@ module dmd.backend.cc;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_cc.html
 
-import dmd.tk.dlist;
 import dmd.backend.cdef;        // host and target compiler definition
 import dmd.backend.code_x86;
+import dmd.backend.dlist;
 import dmd.backend.dt;
 import dmd.backend.el;
 import dmd.backend.type;
@@ -65,7 +65,6 @@ enum WM
     WM_undefined_inline = 30, // static inline not expanded or defined
 }
 
-/+
 static if (MEMMODELS == 1)
 {
     enum LARGEDATA = 0;     // don't want 48 bit pointers
@@ -76,7 +75,6 @@ else
     bool LARGEDATA() { return (config.memmodel & 6) != 0; }
     bool LARGECODE() { return (config.memmodel & 5) != 0; }
 }
-+/
 
 // Language for error messages
 enum LANG
@@ -553,6 +551,9 @@ struct block
             block *b_ret;               // EH_DWARF: associated BC_ret block
         }                               // finally
 
+        // add member mimicking the largest of the other elements of this union, so it can be copied
+        struct _BS { version (MARS) { Symbol *jcvar; } int Bscope_idx, Blast_idx; }
+        _BS BS;
     }
     Srcpos      Bsrcpos;        // line number (0 if not known)
     ubyte       BC;             // exit condition (enum BC)
@@ -572,15 +573,15 @@ struct block
         // CPP
         struct
         {
-            SYMIDX      symstart;       // (symstart <= symnum < symend) Symbols
-            SYMIDX      symend;         // are declared in this block
-            block*      endscope;       // block that forms the end of the
+            SYMIDX      Bsymstart;      // (symstart <= symnum < symend) Symbols
+            SYMIDX      Bsymend;        // are declared in this block
+            block*      Bendscope;      // block that forms the end of the
                                         // scope for the declared Symbols
-            uint        blknum;         // position of block from startblock
+            uint        Bblknum;        // position of block from startblock
             Symbol*     Binitvar;       // !=NULL points to an auto variable with
                                         // an explicit or implicit initializer
-            block*      gotolist;       // BCtry, BCcatch: backward list of try scopes
-            block*      gotothread;     // BCgoto: threaded list of goto's to
+            block*      Bgotolist;      // BCtry, BCcatch: backward list of try scopes
+            block*      Bgotothread;    // BCgoto: threaded list of goto's to
                                         // unknown labels
         }
 
@@ -670,6 +671,26 @@ enum
     BCjcatch    = 18,   // D catch block
     BC_lpad     = 19,   // EH_DWARF: landing pad for BC_except
     BCMAX
+}
+
+/********************************
+ * Range for blocks.
+ */
+struct BlockRange
+{
+  pure nothrow @nogc @safe:
+
+    this(block* b)
+    {
+        this.b = b;
+    }
+
+    block* front() return  { return b; }
+    void popFront() { b = b.Bnext; }
+    bool empty()    { return !b; }
+
+  private:
+    block* b;
 }
 
 /**********************************
@@ -1156,14 +1177,14 @@ struct struct_t
 }
 
 //struct_t* struct_calloc() { return cast(struct_t*) mem_fcalloc(struct_t.sizeof); }
-void struct_free(struct_t* st) { }
+//void struct_free(struct_t* st) { }
 
 /**********************************
  * Symbol Table
  */
 
 Symbol* list_symbol(list_t lst) { return cast(Symbol*) list_ptr(lst); }
-//void list_setsymbol(list_t lst, Symbol* s) { list_ptr(lst) = s; }
+void list_setsymbol(list_t lst, Symbol* s) { lst.ptr = s; }
 Classsym* list_Classsym(list_t lst) { return cast(Classsym*) list_ptr(lst); }
 
 enum
@@ -1244,7 +1265,10 @@ struct Symbol
     Symbol* Snext;              // next in threaded list
     dt_t* Sdt;                  // variables: initializer
     int Salignment;             // variables: alignment, 0 or -1 means default alignment
-    int Salignsize();           // variables: return alignment
+
+    int Salignsize()            // variables: return alignment
+    { return Symbol_Salignsize(&this); }
+
     type* Stype;                // type of Symbol
     tym_t ty() { return Stype.Tty; }
 
@@ -1349,7 +1373,10 @@ struct Symbol
         }
     }
 
-    regm_t Spregm();            // return mask of Spreg and Spreg2
+    regm_t Spregm()             // return mask of Spreg and Spreg2
+    {
+        return (1 << Spreg) | (Spreg2 == NOREG ? 0 : (1 << Spreg2));
+    }
 
 //#if SCPP || MARS
     Symbol *Sscope;             // enclosing scope (could be struct tag,
@@ -1424,8 +1451,11 @@ struct Symbol
 
     char[1] Sident;             // identifier string (dynamic array)
 
-    int needThis();             // !=0 if symbol needs a 'this' pointer
-    bool Sisdead(bool anyiasm); // if variable is not referenced
+    int needThis()              // !=0 if symbol needs a 'this' pointer
+    { return Symbol_needThis(&this); }
+
+    bool Sisdead(bool anyiasm)  // if variable is not referenced
+    { return Symbol_Sisdead(&this, anyiasm); }
 
     static uint sizeCheck();
     unittest { assert(sizeCheck() == Symbol.sizeof); }
@@ -1435,6 +1465,10 @@ void symbol_debug(Symbol* s)
 {
     debug assert(s.id == s.IDsymbol);
 }
+
+int Symbol_Salignsize(Symbol* s);
+bool Symbol_Sisdead(Symbol* s, bool anyInlineAsm);
+int Symbol_needThis(Symbol* s);
 
 bool isclassmember(Symbol* s) { return s.Sscope && s.Sscope.Sclass == SCstruct; }
 
@@ -1528,17 +1562,35 @@ struct param_t
     param_t* Pnext;             // next in list
     pflags_t Pflags;
 
-    param_t* createTal(param_t*); // create template-argument-list blank from
+    param_t* createTal(param_t* p) // create template-argument-list blank from
                                 // template-parameter-list
-    param_t* search(char* id);  // look for Pident matching id
+    { return param_t_createTal(&this, p); }
+
+    param_t* search(char* id)   // look for Pident matching id
+    { return param_t_search(&this, id); }
+
     int searchn(char* id);      // look for Pident matching id, return index
-    uint length();              // number of parameters in list
-    void print();               // print this param_t
-    void print_list();          // print this list of param_t's
+
+    uint length()               // number of parameters in list
+    { return param_t_length(&this); }
+
+    void print()                // print this param_t
+    { param_t_print(&this); }
+
+    void print_list()           // print this list of param_t's
+    { param_t_print_list(&this); }
 
     static uint sizeCheck();
     unittest { assert(sizeCheck() == param_t.sizeof); }
 }
+
+void param_t_print(param_t* p);
+void param_t_print_list(param_t* p);
+uint param_t_length(param_t* p);
+param_t *param_t_createTal(param_t* p, param_t *ptali);
+param_t *param_t_search(param_t* p, char *id);
+int param_t_searchn(param_t* p, char *id);
+
 
 void param_debug(param_t *p)
 {
@@ -1782,16 +1834,16 @@ struct dt_t
     }
 }
 
-//enum
-//{
-//    DT_abytes = 0,
-//    DT_azeros = 1,
-//    DT_xoff   = 2,
-//    DT_nbytes = 3,
-//    DT_common = 4,
-//    DT_coff   = 5,
-//    DT_ibytes = 6,
-//};
+enum
+{
+    DT_abytes = 0,
+    DT_azeros = 1,
+    DT_xoff   = 2,
+    DT_nbytes = 3,
+    DT_common = 4,
+    DT_coff   = 5,
+    DT_ibytes = 6,
+}
 
 // An efficient way to clear aligned memory
 //#define MEMCLEAR(p,sz)                  \

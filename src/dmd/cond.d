@@ -102,12 +102,9 @@ extern (C++) final class StaticForeach : RootObject
     bool needExpansion = false;
 
     extern (D) this(const ref Loc loc,ForeachStatement aggrfe,ForeachRangeStatement rangefe)
-    in
     {
         assert(!!aggrfe ^ !!rangefe);
-    }
-    body
-    {
+
         this.loc = loc;
         this.aggrfe = aggrfe;
         this.rangefe = rangefe;
@@ -291,7 +288,7 @@ extern (C++) final class StaticForeach : RootObject
             foreach (params; pparams)
             {
                 auto p = aggrfe ? (*aggrfe.parameters)[i] : rangefe.prm;
-                params.push(new Parameter(p.storageClass, p.type, p.ident, null));
+                params.push(new Parameter(p.storageClass, p.type, p.ident, null, null));
             }
         }
         Expression[2] res;
@@ -373,12 +370,9 @@ extern (C++) final class StaticForeach : RootObject
      * `dmd.statementsem.makeTupleForeach`.
      */
     final extern(D) void prepare(Scope* sc)
-    in
     {
         assert(sc);
-    }
-    body
-    {
+
         if (aggrfe)
         {
             sc = sc.startCTFE();

@@ -110,8 +110,7 @@ public extern (C++) Expression ctfeInterpretForPragmaMsg(Expression e)
         {
             if (!expsx)
             {
-                expsx = new Expressions();
-                expsx.setDim(tup.exps.dim);
+                expsx = new Expressions(tup.exps.dim);
                 for (size_t j = 0; j < tup.exps.dim; j++)
                     (*expsx)[j] = (*tup.exps)[j];
             }
@@ -795,14 +794,13 @@ private Expression interpretFunction(FuncDeclaration fd, InterState* istate, Exp
 
     // Place to hold all the arguments to the function while
     // we are evaluating them.
-    Expressions eargs;
     size_t dim = arguments ? arguments.dim : 0;
     assert((fd.parameters ? fd.parameters.dim : 0) == dim);
 
     /* Evaluate all the arguments to the function,
      * store the results in eargs[]
      */
-    eargs.setDim(dim);
+    Expressions eargs = Expressions(dim);
     for (size_t i = 0; i < dim; i++)
     {
         Expression earg = (*arguments)[i];
@@ -2730,9 +2728,8 @@ public:
                 result = CTFEExp.cantexp;
                 return;
             }
-            emplaceExp!(ArrayLiteralExp)(pue, e.loc, basis, expsx);
+            emplaceExp!(ArrayLiteralExp)(pue, e.loc, e.type, basis, expsx);
             auto ale = cast(ArrayLiteralExp)pue.exp();
-            ale.type = e.type;
             ale.ownedByCtfe = OwnedBy.ctfe;
             result = ale;
         }
@@ -2928,12 +2925,10 @@ public:
             if (exceptionOrCantInterpret(elem))
                 return elem;
 
-            auto elements = new Expressions();
-            elements.setDim(len);
+            auto elements = new Expressions(len);
             for (size_t i = 0; i < len; i++)
                 (*elements)[i] = copyLiteral(elem).copy();
-            auto ae = new ArrayLiteralExp(loc, elements);
-            ae.type = newtype;
+            auto ae = new ArrayLiteralExp(loc, newtype, elements);
             ae.ownedByCtfe = OwnedBy.ctfe;
             return ae;
         }
@@ -3022,8 +3017,7 @@ public:
             size_t totalFieldCount = 0;
             for (ClassDeclaration c = cd; c; c = c.baseClass)
                 totalFieldCount += c.fields.dim;
-            auto elems = new Expressions();
-            elems.setDim(totalFieldCount);
+            auto elems = new Expressions(totalFieldCount);
             size_t fieldsSoFar = totalFieldCount;
             for (ClassDeclaration c = cd; c; c = c.baseClass)
             {
@@ -3100,11 +3094,9 @@ public:
                 return;
 
             // Create a CTFE pointer &[newval][0]
-            auto elements = new Expressions();
-            elements.setDim(1);
+            auto elements = new Expressions(1);
             (*elements)[0] = newval;
-            auto ae = new ArrayLiteralExp(e.loc, elements);
-            ae.type = e.newtype.arrayOf();
+            auto ae = new ArrayLiteralExp(e.loc, e.newtype.arrayOf(), elements);
             ae.ownedByCtfe = OwnedBy.ctfe;
 
             auto ei = new IndexExp(e.loc, ae, new IntegerExp(Loc.initial, 0, Type.tsize_t));
@@ -5004,7 +4996,7 @@ public:
         if (!fd.fbody)
         {
             e.error("`%s` cannot be interpreted at compile time, because it has no available source code", fd.toChars());
-            result = CTFEExp.cantexp;
+            result = CTFEExp.showcontext;
             return;
         }
 
@@ -6576,9 +6568,8 @@ private Expression interpret_keys(InterState* istate, Expression earg, Type retu
         return null;
     assert(earg.op == TOK.assocArrayLiteral);
     AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)earg;
-    auto ae = new ArrayLiteralExp(aae.loc, aae.keys);
+    auto ae = new ArrayLiteralExp(aae.loc, returnType, aae.keys);
     ae.ownedByCtfe = aae.ownedByCtfe;
-    ae.type = returnType;
     return copyLiteral(ae).copy();
 }
 
@@ -6597,9 +6588,8 @@ private Expression interpret_values(InterState* istate, Expression earg, Type re
         return null;
     assert(earg.op == TOK.assocArrayLiteral);
     AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)earg;
-    auto ae = new ArrayLiteralExp(aae.loc, aae.values);
+    auto ae = new ArrayLiteralExp(aae.loc, returnType, aae.values);
     ae.ownedByCtfe = aae.ownedByCtfe;
-    ae.type = returnType;
     //printf("result is %s\n", e.toChars());
     return copyLiteral(ae).copy();
 }
@@ -6658,8 +6648,7 @@ private Expression interpret_aaApply(InterState* istate, Expression aa, Expressi
     Parameter fparam = Parameter.getNth((cast(TypeFunction)fd.type).parameters, numParams - 1);
     bool wantRefValue = 0 != (fparam.storageClass & (STC.out_ | STC.ref_));
 
-    Expressions args;
-    args.setDim(numParams);
+    Expressions args = Expressions(numParams);
 
     AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)aa;
     if (!ae.keys || ae.keys.dim == 0)
@@ -6733,8 +6722,7 @@ private Expression foreachApplyUtf(InterState* istate, Expression str, Expressio
         str.error("CTFE internal error: cannot foreach `%s`", str.toChars());
         return CTFEExp.cantexp;
     }
-    Expressions args;
-    args.setDim(numParams);
+    Expressions args = Expressions(numParams);
 
     Expression eresult = null; // ded-store to prevent spurious warning
 
@@ -6959,8 +6947,7 @@ private Expression evaluateIfBuiltin(InterState* istate, const ref Loc loc, Func
     {
         if (isBuiltin(fd) == BUILTIN.yes)
         {
-            Expressions args;
-            args.setDim(nargs);
+            Expressions args = Expressions(nargs);
             for (size_t i = 0; i < args.dim; i++)
             {
                 Expression earg = (*arguments)[i];

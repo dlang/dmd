@@ -26,5 +26,5 @@ struct Signal(T, A...)
 
 private:
     alias D = T delegate(A);
-    D _arr[];
+    D[] _arr;
 }

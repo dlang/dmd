@@ -1550,7 +1550,7 @@ bool xmmIsAligned(elem *e)
     if (tyvector(e->Ety) && e->Eoper == OPvar)
     {
         Symbol *s = e->EV.sp.Vsym;
-        if (s->Salignsize() < 16 ||
+        if (Symbol_Salignsize(s) < 16 ||
             e->EV.sp.Voffset & (16 - 1) ||
             tysize(e->Ety) > STACKALIGN
            )

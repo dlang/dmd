@@ -190,7 +190,7 @@ class N
 
 union U
 {
-    size_t data[4];
+    size_t[4] data;
     Large*[] arr; // { length, ptr }
 
     struct

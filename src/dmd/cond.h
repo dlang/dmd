@@ -68,7 +68,6 @@ public:
 class DebugCondition : public DVCondition
 {
 public:
-    static void setGlobalLevel(unsigned level);
     static void addGlobalIdent(const char *ident);
 
     int include(Scope *sc);
@@ -79,7 +78,6 @@ public:
 class VersionCondition : public DVCondition
 {
 public:
-    static void setGlobalLevel(unsigned level);
     static void addGlobalIdent(const char *ident);
     static void addPredefinedGlobalIdent(const char *ident);
 

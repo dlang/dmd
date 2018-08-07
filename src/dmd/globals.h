@@ -116,7 +116,6 @@ struct Param
     unsigned char covPercent;   // 0..100 code coverage percentage required
     bool nofloat;       // code should not pull in floating point support
     bool ignoreUnsupportedPragmas;      // rather than error on them
-    bool enforcePropertySyntax;
     bool useModuleInfo; // generate runtime module information
     bool useTypeInfo;   // generate runtime type information
     bool useExceptions; // support exception handling
@@ -231,10 +230,11 @@ struct Global
 
     Compiler compiler;
     Param params;
-    unsigned errors;       // number of errors reported so far
-    unsigned warnings;     // number of warnings reported so far
-    unsigned gag;          // !=0 means gag reporting of errors & warnings
-    unsigned gaggedErrors; // number of errors reported while gagged
+    unsigned errors;         // number of errors reported so far
+    unsigned warnings;       // number of warnings reported so far
+    unsigned gag;            // !=0 means gag reporting of errors & warnings
+    unsigned gaggedErrors;   // number of errors reported while gagged
+    unsigned gaggedWarnings; // number of warnings reported while gagged
 
     void* console;         // opaque pointer to console for controlling text attributes
 
@@ -317,7 +317,7 @@ struct Loc
     Loc(const char *filename, unsigned linnum, unsigned charnum);
 
     const char *toChars() const;
-    bool equals(const Loc& loc);
+    bool equals(const Loc& loc) const;
 };
 
 enum LINK

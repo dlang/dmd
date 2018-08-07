@@ -265,6 +265,8 @@ public:
     Expression *edtor;          // if !=NULL, does the destruction of the variable
     IntRange *range;            // if !NULL, the variable is known to be within the range
 
+    VarDeclarations *maybes;    // STCmaybescope variables that are assigned to this STCmaybescope variable
+
     Dsymbol *syntaxCopy(Dsymbol *);
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     const char *kind() const;

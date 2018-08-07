@@ -11,7 +11,7 @@
 
 
 /* Generate op-code tables
- * Creates optab.c,debtab.c,cdxxx.c,elxxx.c
+ * Creates optab.c,debtab.d,cdxxx.c,elxxx.d
  */
 
 #include        <stdio.h>
@@ -164,7 +164,7 @@ FILE *fdeb;
 int main()
 {
     printf("OPTABGEN... generating files\n");
-    fdeb = fopen("debtab.c","w");
+    fdeb = fopen("debtab.d","w");
     dooptab();
     dotab();
     fltables();
@@ -592,10 +592,10 @@ void dotab()
     }
   }
 
-  fprintf(fdeb,"static const char *debtab[OPMAX] = \n\t{\n");
+  fprintf(fdeb,"extern (C++) __gshared const(char)*[OPMAX] debtab = \n\t[\n");
   for (i = 0; i < OPMAX - 1; i++)
         fprintf(fdeb,"\t\"%s\",\n",debtab[i]);
-  fprintf(fdeb,"\t\"%s\"\n\t};\n",debtab[i]);
+  fprintf(fdeb,"\t\"%s\"\n\t];\n",debtab[i]);
 
   f = fopen("cdxxx.c","w");
   fprintf(f,"void (*cdxxx[OPMAX]) (CodeBuilder&,elem *,regm_t *) = \n\t{\n");
@@ -604,12 +604,25 @@ void dotab()
   fprintf(f,"\t%s\n\t};\n",cdxxx[i]);
   fclose(f);
 
-  f = fopen("elxxx.c","w");
-  fprintf(f,"static elem *(*elxxx[OPMAX]) (elem *, goal_t) = \n\t{\n");
-  for (i = 0; i < OPMAX - 1; i++)
-        fprintf(f,"\t%s,\n",elxxx[i]);
-  fprintf(f,"\t%s\n\t};\n",elxxx[i]);
-  fclose(f);
+#if 1
+    {
+        f = fopen("elxxx.d","w");
+        fprintf(f,"extern (C++) __gshared elem *function(elem *, goal_t)[OPMAX] elxxx = \n\t[\n");
+        for (i = 0; i < OPMAX - 1; i++)
+            fprintf(f,"\t&%s,\n",elxxx[i]);
+        fprintf(f,"\t&%s\n\t];\n",elxxx[i]);
+        fclose(f);
+    }
+#else
+    {
+        f = fopen("elxxx.c","w");
+        fprintf(f,"static elem *(*elxxx[OPMAX]) (elem *, goal_t) = \n\t{\n");
+        for (i = 0; i < OPMAX - 1; i++)
+            fprintf(f,"\t%s,\n",elxxx[i]);
+        fprintf(f,"\t%s\n\t};\n",elxxx[i]);
+        fclose(f);
+    }
+#endif
 }
 
 void fltables()
@@ -727,28 +740,30 @@ void fltables()
             }
         }
 
-        f = fopen("fltables.c","w");
+        f = fopen("fltables.d","w");
+        fprintf(f, "extern (C++) __gshared {\n");
 
-        fprintf(f,"const char datafl[FLMAX] = \n\t{ ");
+        fprintf(f,"ubyte[FLMAX] datafl = \n\t[ ");
         for (i = 0; i < FLMAX - 1; i++)
-                fprintf(f,"%d,",datafl[i]);
-        fprintf(f,"%d };\n",datafl[i]);
+                fprintf(f,"cast(ubyte)%d,",datafl[i]);
+        fprintf(f,"cast(ubyte)%d ];\n",datafl[i]);
 
-        fprintf(f,"const char stackfl[FLMAX] = \n\t{ ");
+        fprintf(f,"ubyte[FLMAX] stackfl = \n\t[ ");
         for (i = 0; i < FLMAX - 1; i++)
-                fprintf(f,"%d,",stackfl[i]);
-        fprintf(f,"%d };\n",stackfl[i]);
+                fprintf(f,"cast(ubyte)%d,",stackfl[i]);
+        fprintf(f,"cast(ubyte)%d ];\n",stackfl[i]);
 
-        fprintf(f,"const char segfl[FLMAX] = \n\t{ ");
+        fprintf(f,"ubyte[FLMAX] segfl = \n\t[ ");
         for (i = 0; i < FLMAX - 1; i++)
-                fprintf(f,"%d,",segfl[i]);
-        fprintf(f,"%d };\n",segfl[i]);
+                fprintf(f,"cast(ubyte)%d,",segfl[i]);
+        fprintf(f,"cast(ubyte)%d ];\n",segfl[i]);
 
-        fprintf(f,"const char flinsymtab[FLMAX] = \n\t{ ");
+        fprintf(f,"ubyte[FLMAX] flinsymtab = \n\t[ ");
         for (i = 0; i < FLMAX - 1; i++)
-                fprintf(f,"%d,",flinsymtab[i]);
-        fprintf(f,"%d };\n",flinsymtab[i]);
+                fprintf(f,"cast(ubyte)%d,",flinsymtab[i]);
+        fprintf(f,"cast(ubyte)%d ];\n",flinsymtab[i]);
 
+        fprintf(f, "}\n");
         fclose(f);
 }
 
@@ -1091,13 +1106,13 @@ void dotytab()
 
     for (i = 0; i < arraysize(typetab); i++)
         tystring[typetab[i].ty] = typetab[i].string;
-    fprintf(f,"const char *tystring[] =\n{ ");
+    fprintf(f,"extern \"C\" { const char *tystring[] =\n{ ");
     for (i = 0; i < arraysize(tystring); i++)
     {   fprintf(f,"\"%s\",",tystring[i]);
         if ((i & 7) == 7 && i < arraysize(tystring) - 1)
             fprintf(f,"\n  ");
     }
-    fprintf(f,"\n};\n");
+    fprintf(f,"\n}; }\n");
 
     for (i = 0; i < arraysize(typetab); i++)
         dttab[typetab[i].ty] = typetab[i].debtyp;

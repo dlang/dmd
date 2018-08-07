@@ -198,7 +198,7 @@ extern  int BPRM;
 extern  regm_t FLOATREGS;
 extern  regm_t FLOATREGS2;
 extern  regm_t DOUBLEREGS;
-extern  const char datafl[],stackfl[],segfl[],flinsymtab[];
+extern  unsigned char datafl[],stackfl[],segfl[],flinsymtab[];
 extern  char needframe,gotref;
 extern  targ_size_t localsize,
         funcoffset,
@@ -243,22 +243,34 @@ extern  bool calledFinally;
 
 void stackoffsets(int);
 void codgen(Symbol *);
+
 #ifdef DEBUG
+#define FINDREG_DEBUG 1
+#elif __APPLE__
+#define FINDREG_DEBUG 0
+#else
+#define FINDREG_DEBUG 0
+#endif
+
+#if FINDREG_DEBUG
 unsigned findreg (regm_t regm , int line , const char *file );
 #define findreg(regm) findreg((regm),__LINE__,__FILE__)
 #else
 unsigned findreg (regm_t regm );
 #endif
+
 #define findregmsw(regm) findreg((regm) & mMSW)
 #define findreglsw(regm) findreg((regm) & (mLSW | mBP))
 void freenode (elem *e );
 int isregvar (elem *e , regm_t *pregm , unsigned *preg );
-#ifdef DEBUG
+
+#if FINDREG_DEBUG
 void allocreg(CodeBuilder& cdb, regm_t *pretregs, unsigned *preg, tym_t tym, int line, const char *file);
 #define allocreg(a,b,c,d) allocreg((a),(b),(c),(d),__LINE__,__FILE__)
 #else
 void allocreg(CodeBuilder& cdb, regm_t *pretregs, unsigned *preg, tym_t tym);
 #endif
+
 regm_t lpadregs();
 void useregs (regm_t regm );
 void getregs(CodeBuilder& cdb, regm_t r);

@@ -310,7 +310,7 @@ extern unsigned char pseudoreg[];
 extern regm_t pseudomask[];
 
 /* Symbol.c */
-Symbol **symtab_realloc(Symbol **tab, size_t symmax);
+extern "C" { Symbol **symtab_realloc(Symbol **tab, size_t symmax); }
 Symbol **symtab_malloc(size_t symmax);
 Symbol **symtab_calloc(size_t symmax);
 void symtab_free(Symbol **tab);
@@ -419,7 +419,7 @@ void compdfo();
 /* debug.c */
 extern const char *regstring[];
 
-void WRclass(SC c);
+void WRclass(int c);
 void WRTYxx(tym_t t);
 void WROP(unsigned oper);
 void WRBC(unsigned bc);
@@ -430,7 +430,7 @@ void WReqn(elem *e);
 void numberBlocks(block* startblock);
 void WRfunc();
 void WRdefnod();
-void WRFL(FL);
+void WRFL(int);
 char *sym_ident(SYMIDX si);
 
 /* cgelem.c     */
@@ -483,7 +483,7 @@ void rtlsym_reset();
 void rtlsym_term();
 
 // compress.c
-char *id_compress(char *id, int idlen, size_t *plen);
+extern "C" { char *id_compress(char *id, int idlen, size_t *plen); }
 
 // Dwarf
 void dwarf_CFA_set_loc(size_t location);

@@ -1294,7 +1294,7 @@ private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
         dtb.size(0);
 
     // flags
-    ClassFlags.Type flags = ClassFlags.hasOffTi;
+    ClassFlags flags = ClassFlags.hasOffTi;
     if (cd.isCOMclass()) flags |= ClassFlags.isCOMclass;
     if (cd.isCPPclass()) flags |= ClassFlags.isCPPclass;
     flags |= ClassFlags.hasGetMembers;
@@ -1519,7 +1519,7 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
     dtb.size(0);
 
     // flags
-    ClassFlags.Type flags = ClassFlags.hasOffTi | ClassFlags.hasTypeInfo;
+    ClassFlags flags = ClassFlags.hasOffTi | ClassFlags.hasTypeInfo;
     if (id.isCOMinterface()) flags |= ClassFlags.isCOMclass;
     dtb.size(flags);
 
