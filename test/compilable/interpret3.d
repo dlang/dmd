@@ -7750,3 +7750,21 @@ void test19140()
     real f19140();
     static if (__traits(compiles, (){ enum real r = f19140(); })) {}
 }
+
+/**************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=19074
+
+struct S19074a { }
+
+struct S19074b
+{
+    S19074a field;
+    this(S19074a) { }
+
+    static const S19074b* data = new S19074b(S19074a());
+}
+
+void test19074()
+{
+    auto var = S19074b.data;
+}
