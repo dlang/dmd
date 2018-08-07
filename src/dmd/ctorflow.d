@@ -17,6 +17,7 @@ module dmd.ctorflow;
 import core.stdc.stdio;
 
 import dmd.root.rmem;
+import dmd.globals : Loc;
 
 enum CSX : ushort
 {
@@ -30,6 +31,13 @@ enum CSX : ushort
     deprecate_18719 = 0x40,    // issue deprecation for Issue 18719 - delete when deprecation period is over
 }
 
+/// Individual field in the Ctor with information about its callees and location.
+struct FieldInit
+{
+    CSX csx; /// information about the field's callees
+    Loc loc; /// location of the field initialization
+}
+
 /***********
  * Primitive flow analysis for constructors
  */
@@ -37,30 +45,19 @@ struct CtorFlow
 {
     CSX callSuper;      /// state of calling other constructors
 
-    CSX[] fieldinit;    /// state of field initializations
+    FieldInit[] fieldinit;    /// state of field initializations
 
     void allocFieldinit(size_t dim)
     {
-        fieldinit = (cast(CSX*)mem.xcalloc(CSX.sizeof, dim))[0 .. dim];
+        fieldinit = (cast(FieldInit*)mem.xcalloc(FieldInit.sizeof, dim))[0 .. dim];
     }
 
     void freeFieldinit()
     {
         if (fieldinit.ptr)
             mem.xfree(fieldinit.ptr);
-        fieldinit = null;
-    }
 
-    CSX[] saveFieldInit()
-    {
-        CSX[] fi = null;
-        if (fieldinit.length) // copy
-        {
-            const dim = fieldinit.length;
-            fi = (cast(CSX*)mem.xmalloc(CSX.sizeof * dim))[0 .. dim];
-            fi[] = fieldinit[];
-        }
-        return fi;
+        fieldinit = null;
     }
 
     /***********************
@@ -70,7 +67,7 @@ struct CtorFlow
      */
     CtorFlow clone()
     {
-        return CtorFlow(callSuper, saveFieldInit());
+        return CtorFlow(callSuper, fieldinit.arraydup);
     }
 
     /**********************************
@@ -82,7 +79,7 @@ struct CtorFlow
     {
         callSuper |= csx;
         foreach (ref u; fieldinit)
-            u |= csx;
+            u.csx |= csx;
     }
 
     /******************************
@@ -97,7 +94,12 @@ struct CtorFlow
         {
             assert(fieldinit.length == ctorflow.fieldinit.length);
             foreach (i, u; ctorflow.fieldinit)
-                fieldinit[i] |= u;
+            {
+                auto fi = &fieldinit[i];
+                fi.csx |= u.csx;
+                if (fi.loc == Loc.init)
+                    fi.loc = u.loc;
+            }
         }
     }
 }

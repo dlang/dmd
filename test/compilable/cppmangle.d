@@ -744,3 +744,19 @@ version (Posix)
 
     static assert(test18957.mangleof == "_Z9test18957RKNSt9test18957E");
 }
+
+/**************************************/
+// https://issues.dlang.org/show_bug.cgi?id=19043
+// Incorrect mangling for extern(C++) const template parameter on windows
+
+extern(C++) struct test19043(T) {}
+
+extern(C++) void test19043a(test19043!(const(char)) a) {}
+extern(C++) void test19043b(T)(T a) {}
+version(Windows)
+{
+    static assert(test19043a.mangleof == "?test19043a@@YAXU?$test19043@$$CBD@@@Z");
+    static assert(test19043b!(test19043!(const(char))).mangleof ==
+      "??$test19043b@U?$test19043@$$CBD@@@@YAXU?$test19043@$$CBD@@@Z");
+}
+

@@ -3,7 +3,7 @@ import core.stdc.stdio;
 
 struct Foo
 {
-    uint array[2];
+    uint[2] array;
 
     int opApply(int delegate(ref uint) dg)
     {

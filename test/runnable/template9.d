@@ -3201,7 +3201,7 @@ void test11843()
 {
     struct Foo
     {
-        int x[string];
+        int[string] x;
     }
 
     struct Bar(alias foo) {}

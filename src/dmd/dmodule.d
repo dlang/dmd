@@ -1327,7 +1327,7 @@ struct ModuleDeclaration
     bool isdeprecated;      // if it is a deprecated module
     Expression msg;
 
-    extern (D) this(Loc loc, Identifiers* packages, Identifier id, Expression msg, bool isdeprecated)
+    extern (D) this(const ref Loc loc, Identifiers* packages, Identifier id, Expression msg, bool isdeprecated)
     {
         this.loc = loc;
         this.packages = packages;

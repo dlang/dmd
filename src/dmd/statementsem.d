@@ -1667,14 +1667,14 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     if (!fdapply[i])
                     {
                         auto params = new Parameters();
-                        params.push(new Parameter(0, Type.tvoid.pointerTo(), null, null));
-                        params.push(new Parameter(STC.in_, Type.tsize_t, null, null));
+                        params.push(new Parameter(0, Type.tvoid.pointerTo(), null, null, null));
+                        params.push(new Parameter(STC.in_, Type.tsize_t, null, null, null));
                         auto dgparams = new Parameters();
-                        dgparams.push(new Parameter(0, Type.tvoidptr, null, null));
+                        dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
                         if (dim == 2)
-                            dgparams.push(new Parameter(0, Type.tvoidptr, null, null));
+                            dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
                         fldeTy[i] = new TypeDelegate(new TypeFunction(dgparams, Type.tint32, 0, LINK.d));
-                        params.push(new Parameter(0, fldeTy[i], null, null));
+                        params.push(new Parameter(0, fldeTy[i], null, null, null));
                         fdapply[i] = FuncDeclaration.genCfunc(params, Type.tint32, name[i]);
                     }
 
@@ -1737,13 +1737,13 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     FuncDeclaration fdapply;
                     TypeDelegate dgty;
                     auto params = new Parameters();
-                    params.push(new Parameter(STC.in_, tn.arrayOf(), null, null));
+                    params.push(new Parameter(STC.in_, tn.arrayOf(), null, null, null));
                     auto dgparams = new Parameters();
-                    dgparams.push(new Parameter(0, Type.tvoidptr, null, null));
+                    dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
                     if (dim == 2)
-                        dgparams.push(new Parameter(0, Type.tvoidptr, null, null));
+                        dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
                     dgty = new TypeDelegate(new TypeFunction(dgparams, Type.tint32, 0, LINK.d));
-                    params.push(new Parameter(0, dgty, null, null));
+                    params.push(new Parameter(0, dgty, null, null, null));
                     fdapply = FuncDeclaration.genCfunc(params, Type.tint32, fdname.ptr);
 
                     if (tab.ty == Tsarray)
@@ -1907,13 +1907,13 @@ else
             LcopyArg:
                 id = Identifier.generateId("__applyArg", cast(int)i);
 
-                Initializer ie = new ExpInitializer(Loc.initial, new IdentifierExp(Loc.initial, id));
-                auto v = new VarDeclaration(Loc.initial, p.type, p.ident, ie);
+                Initializer ie = new ExpInitializer(fs.loc, new IdentifierExp(fs.loc, id));
+                auto v = new VarDeclaration(fs.loc, p.type, p.ident, ie);
                 v.storage_class |= STC.temp;
-                Statement s = new ExpStatement(Loc.initial, v);
+                Statement s = new ExpStatement(fs.loc, v);
                 fs._body = new CompoundStatement(fs.loc, s, fs._body);
             }
-            params.push(new Parameter(stc, p.type, id, null));
+            params.push(new Parameter(stc, p.type, id, null, null));
         }
         // https://issues.dlang.org/show_bug.cgi?id=13840
         // Throwable nested function inside nothrow function is acceptable.
@@ -1921,11 +1921,13 @@ else
         auto tf = new TypeFunction(params, Type.tint32, 0, LINK.d, stc);
         fs.cases = new Statements();
         fs.gotos = new ScopeStatements();
-        auto fld = new FuncLiteralDeclaration(fs.loc, Loc.initial, tf, TOK.delegate_, fs);
+        auto fld = new FuncLiteralDeclaration(fs.loc, fs.endloc, tf, TOK.delegate_, fs);
         fld.fbody = fs._body;
         Expression flde = new FuncExp(fs.loc, fld);
         flde = flde.expressionSemantic(sc);
         fld.tookAddressOf = 0;
+        if (flde.op == TOK.error)
+            return null;
         return cast(FuncExp)flde;
     }
 
@@ -3234,7 +3236,7 @@ else
             foreach (i, v; ad.fields)
             {
                 bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
-                if (mustInit && !(sc.ctorflow.fieldinit[i] & CSX.this_ctor))
+                if (mustInit && !(sc.ctorflow.fieldinit[i].csx & CSX.this_ctor))
                 {
                     rs.error("an earlier `return` statement skips field `%s` initialization", v.toChars());
                     errors = true;
@@ -3519,7 +3521,7 @@ else
                 cs.push(new ExpStatement(ss.loc, tmp));
 
                 auto args = new Parameters();
-                args.push(new Parameter(0, ClassDeclaration.object.type, null, null));
+                args.push(new Parameter(0, ClassDeclaration.object.type, null, null, null));
 
                 FuncDeclaration fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.monitorenter);
                 Expression e = new CallExp(ss.loc, fdenter, new VarExp(ss.loc, tmp));
@@ -3561,7 +3563,7 @@ else
             cs.push(new ExpStatement(ss.loc, v));
 
             auto args = new Parameters();
-            args.push(new Parameter(0, t.pointerTo(), null, null));
+            args.push(new Parameter(0, t.pointerTo(), null, null, null));
 
             FuncDeclaration fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.criticalenter, STC.nothrow_);
             Expression int0 = new IntegerExp(ss.loc, dinteger_t(0), Type.tint8);

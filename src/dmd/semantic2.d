@@ -46,7 +46,6 @@ import dmd.identifier;
 import dmd.init;
 import dmd.initsem;
 import dmd.hdrgen;
-import dmd.mars;
 import dmd.mtype;
 import dmd.nogc;
 import dmd.nspace;
@@ -354,7 +353,6 @@ private extern(C++) final class Semantic2Visitor : Visitor
         if (fd.semanticRun >= PASS.semantic2done)
             return;
         assert(fd.semanticRun <= PASS.semantic2);
-
         fd.semanticRun = PASS.semantic2;
 
         //printf("FuncDeclaration::semantic2 [%s] fd0 = %s %s\n", loc.toChars(), toChars(), type.toChars());
@@ -447,12 +445,24 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 return 0;
             });
         }
-
         objc.setSelector(fd, sc);
         objc.validateSelector(fd);
         if (ClassDeclaration cd = fd.parent.isClassDeclaration())
         {
             objc.checkLinkage(fd);
+        }
+        if (!fd.type || fd.type.ty != Tfunction)
+            return;
+        TypeFunction f = cast(TypeFunction) fd.type;
+        if (!f.parameters)
+            return;
+        size_t nparams = Parameter.dim(f.parameters);
+        //semantic for parameters' UDAs
+        foreach (i; 0..nparams)
+        {
+            Parameter param = Parameter.getNth(f.parameters, i);
+            if (param && param.userAttribDecl)
+                param.userAttribDecl.semantic2(sc);
         }
     }
 

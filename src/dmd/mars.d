@@ -206,8 +206,7 @@ private int tryMain(size_t argc, const(char)** argv)
         fatal();
     }
     // Convert argc/argv into arguments[] for easier handling
-    Strings arguments;
-    arguments.setDim(argc);
+    Strings arguments = Strings(argc);
     for (size_t i = 0; i < argc; i++)
     {
         if (!argv[i])
@@ -361,23 +360,7 @@ private int tryMain(size_t argc, const(char)** argv)
     global.params.cpu = setTargetCPU(global.params.cpu);
     if (global.params.is64bit != is64bit)
         error(Loc.initial, "the architecture must not be changed in the %s section of %s", envsection.ptr, global.inifilename);
-    if (global.params.enforcePropertySyntax)
-    {
-        /*NOTE: -property used to disallow calling non-properties
-         without parentheses. This behaviour has fallen from grace.
-         Phobos dropped support for it while dmd still recognized it, so
-         that the switch has effectively not been supported. Time to
-         remove it from dmd.
-         Step 1 (2.069): Deprecate -property and ignore it. */
-        Loc loc;
-        deprecation(loc, "The -property switch is deprecated and has no " ~
-            "effect anymore.");
-        /* Step 2: Remove -property. Throw an error when it's set.
-         Do this by removing global.params.enforcePropertySyntax and the code
-         above that sets it. Let it be handled as an unrecognized switch.
-         Step 3: Possibly reintroduce -property with different semantics.
-         Any new semantics need to be decided on first. */
-    }
+
     // Target uses 64bit pointers.
     global.params.isLP64 = global.params.is64bit;
     if (global.errors)
@@ -513,6 +496,14 @@ private int tryMain(size_t argc, const(char)** argv)
     Expression._init();
     Objc._init();
     builtin_init();
+
+    version(CRuntime_Microsoft)
+    {
+        import dmd.root.longdouble;
+        initFPU();
+    }
+    import dmd.root.ctfloat : CTFloat;
+    CTFloat.initialize();
 
     if (global.params.verbose)
     {
@@ -1397,7 +1388,16 @@ void addDefaultVersionIdentifiers()
     if (global.params.useArrayBounds == CHECKENABLE.off)
         VersionCondition.addPredefinedGlobalIdent("D_NoBoundsChecks");
     if (global.params.betterC)
+    {
         VersionCondition.addPredefinedGlobalIdent("D_BetterC");
+    }
+    else
+    {
+        VersionCondition.addPredefinedGlobalIdent("D_ModuleInfo");
+        VersionCondition.addPredefinedGlobalIdent("D_Exceptions");
+        VersionCondition.addPredefinedGlobalIdent("D_TypeInfo");
+    }
+
 
     VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
 }
@@ -1980,8 +1980,6 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             }
             else if (arg == "-ignore")      // https://dlang.org/dmd.html#switch-ignore
                 params.ignoreUnsupportedPragmas = true;
-            else if (arg == "-property")
-                params.enforcePropertySyntax = true;
             else if (arg == "-inline")      // https://dlang.org/dmd.html#switch-inline
             {
                 params.useInline = true;

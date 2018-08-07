@@ -75,14 +75,17 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc);
 DtorDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc);
 FuncDeclaration *buildInv(AggregateDeclaration *ad, Scope *sc);
 
-enum ClassKind
+struct ClassKind
 {
-    /// the aggregate is a d(efault) struct/class/interface
-    d,
-    /// the aggregate is a C++ struct/class/interface
-    cpp,
-    /// the aggregate is an Objective-C class/interface
-    objc
+    enum Type
+    {
+        /// the aggregate is a d(efault) struct/class/interface
+        d,
+        /// the aggregate is a C++ struct/class/interface
+        cpp,
+        /// the aggregate is an Objective-C class/interface
+        objc
+    };
 };
 
 class AggregateDeclaration : public ScopeDsymbol
@@ -98,7 +101,7 @@ public:
     Dsymbol *deferred;          // any deferred semantic2() or semantic3() symbol
     bool isdeprecated;          // true if deprecated
 
-    ClassKind classKind;        // specifies the linkage type
+    ClassKind::Type classKind;  // specifies the linkage type
 
     /* !=NULL if is nested
      * pointing to the dsymbol that directly enclosing it.
@@ -165,9 +168,9 @@ public:
 
 struct StructFlags
 {
-    typedef unsigned Type;
-    enum Enum
+    enum Type
     {
+        none = 0x0,
         hasPointers = 0x1, // NB: should use noPointers as in ClassFlags
     };
 };
@@ -200,7 +203,7 @@ public:
     // For those, today TypeInfo_Struct is generated in COMDAT.
     bool requestTypeInfo;
 
-    static StructDeclaration *create(Loc loc, Identifier *id);
+    static StructDeclaration *create(Loc loc, Identifier *id, bool inObject);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semanticTypeInfoMembers();
     Dsymbol *search(Loc, Identifier *ident, int flags = SearchLocalsOnly);
@@ -245,9 +248,9 @@ struct BaseClass
 
 struct ClassFlags
 {
-    typedef unsigned Type;
-    enum Enum
+    enum Type
     {
+        none = 0x0,
         isCOMclass = 0x1,
         noPointers = 0x2,
         hasOffTi = 0x4,

@@ -206,7 +206,7 @@ extern (C++) struct CTFloat
     static __gshared real_t minusone;
     static __gshared real_t half;
 
-    shared static this()
+    static void initialize()
     {
         zero = real_t(0);
         one = real_t(1);

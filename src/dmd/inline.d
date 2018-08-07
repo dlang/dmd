@@ -346,8 +346,7 @@ public:
             if (!a)
                 return null;
 
-            auto newa = new Expressions();
-            newa.setDim(a.dim);
+            auto newa = new Expressions(a.dim);
 
             foreach (i; 0 .. a.dim)
             {

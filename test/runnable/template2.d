@@ -10,7 +10,7 @@ template VecTemplate(tfloat, int dim:3)
 {
  struct Vector
  {
-  tfloat d[dim];
+  tfloat[dim] d;
 
   version(none)
   {

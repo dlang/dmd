@@ -30,6 +30,7 @@ enum DYNCAST : int
     parameter,
     statement,
     condition,
+    templateparameter,
 }
 
 /***********************************************************

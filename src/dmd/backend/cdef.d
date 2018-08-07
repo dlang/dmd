@@ -13,16 +13,13 @@ module dmd.backend.cdef;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_cdef.html
 
-import dmd.backend.cc: Classsym, Symbol;
+import dmd.backend.cc: Classsym, Symbol, param_t, config;
 import dmd.backend.el;
-
-import dmd.tk.dlist;
+import dmd.backend.dlist;
 
 extern (C++):
 @nogc:
 nothrow:
-
-struct param_t;
 
 enum VERSION = "9.00.0";        // for banner and imbedding in .OBJ file
 enum VERSIONHEX = "0x900";      // for __DMC__ macro
@@ -33,6 +30,8 @@ version (SCPP)
 version (SPP)
     version = XVERSION;
 version (HTOD)
+    version = XVERSION;
+version (MARS)
     version = XVERSION;
 
 version (XVERSION)

@@ -9,6 +9,8 @@
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/evalu8.d, backend/evalu8.d)
  */
 
+module dmd.backend.evalu8;
+
 version (SPP)
 {
 }

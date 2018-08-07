@@ -3568,7 +3568,7 @@ void prolog_loadparams(CodeBuilder& cdb, tym_t tyf, bool pushalloc, regm_t* name
                     t = targ1;
             }
 
-            if (s->Sisdead(anyiasm))
+            if (Symbol_Sisdead(s, anyiasm))
             {
                 // Ignore it, as it is never referenced
                 ;
@@ -4751,7 +4751,7 @@ void assignaddrc(code *c)
             case FLauto:
                 soff = Auto.size;
             L1:
-                if (s->Sisdead(anyiasm))
+                if (Symbol_Sisdead(s, anyiasm))
                 {   c->Iop = NOP;               // remove references to it
                     continue;
                 }

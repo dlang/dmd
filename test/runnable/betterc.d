@@ -81,10 +81,20 @@ mixin template initArray()
     {
         T[6] a1 = [true, false, true, true, false, true];
     }
+    else static if (is(T == Sint))
+    {
+        T[6] a1 = [Sint(1), Sint(2), Sint(3), Sint(1), Sint(2), Sint(3)];
+    }
     else
     {
         T[6] a1 = [1,2,3,1,2,3];
     }
+}
+
+struct Sint
+{
+    int x;
+    this(int v) { x = v;}
 }
 
 void testRuntimeLowerings()
@@ -96,7 +106,7 @@ void testRuntimeLowerings()
 
         assert(a1[0..3] == a1[3..$]);
     }
-    
+
     test__equals!int;
     test__equals!uint;
     test__equals!long;
@@ -110,6 +120,7 @@ void testRuntimeLowerings()
     test__equals!char;
     test__equals!(const char);
     test__equals!bool;
+    test__equals!Sint;
 
     // test call to `object.__cmp`
     void test__cmp(T)()
@@ -129,22 +140,19 @@ void testRuntimeLowerings()
     test__cmp!byte;
     test__cmp!dchar;
     test__cmp!wchar;
-    
+    test__cmp!ubyte;
+    test__cmp!char;
+    test__cmp!(const char);
+    test__cmp!bool;
+    test__cmp!Sint;
 
-    // __cmp currently requires runtime support from `core.internal.string : dstrcmp`.
-    // If that runtime dependency can be removed, the following code might work.
-    //---------------------------------------------------------------------------------
-    // test__cmp!ubyte;
-    // test__cmp!char;
-    // test__cmp!(const char);
-    // test__cmp!bool;
-
-    // auto s = "abc";
-    // switch(s)                      // _switch
-    // {
-    //     case "abc":
-    //         break;
-    //     default:
-    //         break;
-    // }
+    // test call to `object.__switch``
+    auto s = "abc";
+    switch(s)
+    {
+        case "abc":
+            break;
+        default:
+            break;
+    }
 }

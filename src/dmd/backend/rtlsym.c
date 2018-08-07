@@ -23,6 +23,10 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
+#if HTOD
+unsigned ALLREGS;
+#endif
+
 Symbol *rtlsym[RTLSYM_MAX];
 
 #if MARS
@@ -63,7 +67,7 @@ void rtlsym_init()
         t->Tmangle = mTYman_c;
         t->Tcount++;
 
-#if MARS
+#if 1 || MARS
         // Variadic function
         type *tv = type_fake(TYnfunc);
         tv->Tmangle = mTYman_c;

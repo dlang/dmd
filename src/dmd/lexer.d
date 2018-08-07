@@ -96,44 +96,44 @@ enum CMzerosecond = 0x8;
 enum CMdigitsecond = 0x10;
 enum CMsinglechar = 0x20;
 
-bool isoctal(char c)
+bool isoctal(const char c)
 {
     return (cmtable[c] & CMoctal) != 0;
 }
 
-bool ishex(char c)
+bool ishex(const char c)
 {
     return (cmtable[c] & CMhex) != 0;
 }
 
-bool isidchar(char c)
+bool isidchar(const char c)
 {
     return (cmtable[c] & CMidchar) != 0;
 }
 
-bool isZeroSecond(char c)
+bool isZeroSecond(const char c)
 {
     return (cmtable[c] & CMzerosecond) != 0;
 }
 
-bool isDigitSecond(char c)
+bool isDigitSecond(const char c)
 {
     return (cmtable[c] & CMdigitsecond) != 0;
 }
 
-bool issinglechar(char c)
+bool issinglechar(const char c)
 {
     return (cmtable[c] & CMsinglechar) != 0;
 }
 
-private bool c_isxdigit(int c)
+private bool c_isxdigit(const int c)
 {
     return (( c >= '0' && c <= '9') ||
             ( c >= 'a' && c <= 'f') ||
             ( c >= 'A' && c <= 'F'));
 }
 
-private bool c_isalnum(int c)
+private bool c_isalnum(const int c)
 {
     return (( c >= '0' && c <= '9') ||
             ( c >= 'a' && c <= 'z') ||
@@ -1803,6 +1803,8 @@ class Lexer : ErrorHandler
         int d;
         bool err = false;
         bool overflow = false;
+        bool anyBinaryDigitsUS = false;
+        bool anyHexDigitsNoSingleUS = false;
         dchar c = *p;
         if (c == '0')
         {
@@ -1821,6 +1823,14 @@ class Lexer : ErrorHandler
                 n = c - '0';
                 ++p;
                 base = 8;
+                break;
+            case '8':
+            case '9':
+                n = c - '0';
+                ++p;
+                base = 8;
+                error("radix %d digit expected, not `%c`", base, c);
+                err = true;
                 break;
             case 'x':
             case 'X':
@@ -1861,6 +1871,10 @@ class Lexer : ErrorHandler
             {
             case '0':
             case '1':
+                if (base == 2 && !anyBinaryDigitsUS)
+                    anyBinaryDigitsUS = true;
+                else if (base == 16 && !anyHexDigitsNoSingleUS)
+                    anyHexDigitsNoSingleUS = true;
                 ++p;
                 d = c - '0';
                 break;
@@ -1870,6 +1884,8 @@ class Lexer : ErrorHandler
             case '5':
             case '6':
             case '7':
+                if (base == 16 && !anyHexDigitsNoSingleUS)
+                    anyHexDigitsNoSingleUS = true;
                 if (base == 2 && !err)
                 {
                     error("binary digit expected");
@@ -1880,6 +1896,8 @@ class Lexer : ErrorHandler
                 break;
             case '8':
             case '9':
+                if (base == 16 && !anyHexDigitsNoSingleUS)
+                    anyHexDigitsNoSingleUS = true;
                 ++p;
                 if (base < 10 && !err)
                 {
@@ -1900,6 +1918,8 @@ class Lexer : ErrorHandler
             case 'D':
             case 'E':
             case 'F':
+                if (base == 16 && !anyHexDigitsNoSingleUS)
+                    anyHexDigitsNoSingleUS = true;
                 ++p;
                 if (base != 16)
                 {
@@ -1933,6 +1953,8 @@ class Lexer : ErrorHandler
                 p = start;
                 return inreal(t);
             case '_':
+                if (base == 2 && !anyBinaryDigitsUS)
+                    anyBinaryDigitsUS = true;
                 ++p;
                 continue;
             default:
@@ -1955,6 +1977,12 @@ class Lexer : ErrorHandler
             error("integer overflow");
             err = true;
         }
+        // Deprecated in 2018-06.
+        // Change to error in 2019-06.
+        // @@@DEPRECATED_2019-06@@@
+        if ((base == 2 && !anyBinaryDigitsUS) ||
+            (base == 16 && !anyHexDigitsNoSingleUS))
+            deprecation("`%.*s` isn't a valid integer literal, use `%.*s0` instead", cast(int)(p - start), start, 2, start);
         enum FLAGS : int
         {
             none = 0,

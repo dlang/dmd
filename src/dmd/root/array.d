@@ -27,6 +27,16 @@ private:
     T[SMALLARRAYCAP] smallarray; // inline storage for small arrays
 
 public:
+    /*******************
+     * Params:
+     *  dim = initial length of array
+     */
+    this(size_t dim)
+    {
+        reserve(dim);
+        this.dim = dim;
+    }
+
     @disable this(this);
 
     ~this() nothrow

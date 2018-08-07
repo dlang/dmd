@@ -360,8 +360,9 @@ Dsymbol *isDsymbol(RootObject *o);
 Type *isType(RootObject *o);
 Tuple *isTuple(RootObject *o);
 Parameter *isParameter(RootObject *o);
-bool arrayObjectIsError(Objects *args);
-bool isError(RootObject *o);
+TemplateParameter *isTemplateParameter(RootObject *o);
+bool arrayObjectIsError(const Objects *args);
+bool isError(const RootObject *o);
 Type *getType(RootObject *o);
 Dsymbol *getDsymbol(RootObject *o);
 
