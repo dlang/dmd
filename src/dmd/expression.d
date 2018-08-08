@@ -1810,7 +1810,7 @@ extern (C++) final class ErrorExp : Expression
         v.visit(this);
     }
 
-    extern (C++) static __gshared ErrorExp errorexp; // handy shared value
+    extern (C++) __gshared ErrorExp errorexp; // handy shared value
 }
 
 /***********************************************************

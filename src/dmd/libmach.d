@@ -221,9 +221,9 @@ final class LibMach : Library
             /* Mock things up for the object module file that never was
              * actually written out.
              */
-            static __gshared uid_t uid;
-            static __gshared gid_t gid;
-            static __gshared int _init;
+            __gshared uid_t uid;
+            __gshared gid_t gid;
+            __gshared int _init;
             if (!_init)
             {
                 _init = 1;
@@ -315,7 +315,7 @@ private:
         {
             printf("LibMach::WriteLibToBuffer()\n");
         }
-        static __gshared char* pad = [0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A];
+        __gshared char* pad = [0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A];
         /************* Scan Object Modules for Symbols ******************/
         for (size_t i = 0; i < objmodules.dim; i++)
         {

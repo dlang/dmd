@@ -394,69 +394,69 @@ extern (C++) abstract class Type : RootObject
 
     type* ctype;                    // for back end
 
-    extern (C++) static __gshared Type tvoid;
-    extern (C++) static __gshared Type tint8;
-    extern (C++) static __gshared Type tuns8;
-    extern (C++) static __gshared Type tint16;
-    extern (C++) static __gshared Type tuns16;
-    extern (C++) static __gshared Type tint32;
-    extern (C++) static __gshared Type tuns32;
-    extern (C++) static __gshared Type tint64;
-    extern (C++) static __gshared Type tuns64;
-    extern (C++) static __gshared Type tint128;
-    extern (C++) static __gshared Type tuns128;
-    extern (C++) static __gshared Type tfloat32;
-    extern (C++) static __gshared Type tfloat64;
-    extern (C++) static __gshared Type tfloat80;
-    extern (C++) static __gshared Type timaginary32;
-    extern (C++) static __gshared Type timaginary64;
-    extern (C++) static __gshared Type timaginary80;
-    extern (C++) static __gshared Type tcomplex32;
-    extern (C++) static __gshared Type tcomplex64;
-    extern (C++) static __gshared Type tcomplex80;
-    extern (C++) static __gshared Type tbool;
-    extern (C++) static __gshared Type tchar;
-    extern (C++) static __gshared Type twchar;
-    extern (C++) static __gshared Type tdchar;
+    extern (C++) __gshared Type tvoid;
+    extern (C++) __gshared Type tint8;
+    extern (C++) __gshared Type tuns8;
+    extern (C++) __gshared Type tint16;
+    extern (C++) __gshared Type tuns16;
+    extern (C++) __gshared Type tint32;
+    extern (C++) __gshared Type tuns32;
+    extern (C++) __gshared Type tint64;
+    extern (C++) __gshared Type tuns64;
+    extern (C++) __gshared Type tint128;
+    extern (C++) __gshared Type tuns128;
+    extern (C++) __gshared Type tfloat32;
+    extern (C++) __gshared Type tfloat64;
+    extern (C++) __gshared Type tfloat80;
+    extern (C++) __gshared Type timaginary32;
+    extern (C++) __gshared Type timaginary64;
+    extern (C++) __gshared Type timaginary80;
+    extern (C++) __gshared Type tcomplex32;
+    extern (C++) __gshared Type tcomplex64;
+    extern (C++) __gshared Type tcomplex80;
+    extern (C++) __gshared Type tbool;
+    extern (C++) __gshared Type tchar;
+    extern (C++) __gshared Type twchar;
+    extern (C++) __gshared Type tdchar;
 
     // Some special types
-    extern (C++) static __gshared Type tshiftcnt;
-    extern (C++) static __gshared Type tvoidptr;    // void*
-    extern (C++) static __gshared Type tstring;     // immutable(char)[]
-    extern (C++) static __gshared Type twstring;    // immutable(wchar)[]
-    extern (C++) static __gshared Type tdstring;    // immutable(dchar)[]
-    extern (C++) static __gshared Type tvalist;     // va_list alias
-    extern (C++) static __gshared Type terror;      // for error recovery
-    extern (C++) static __gshared Type tnull;       // for null type
+    extern (C++) __gshared Type tshiftcnt;
+    extern (C++) __gshared Type tvoidptr;    // void*
+    extern (C++) __gshared Type tstring;     // immutable(char)[]
+    extern (C++) __gshared Type twstring;    // immutable(wchar)[]
+    extern (C++) __gshared Type tdstring;    // immutable(dchar)[]
+    extern (C++) __gshared Type tvalist;     // va_list alias
+    extern (C++) __gshared Type terror;      // for error recovery
+    extern (C++) __gshared Type tnull;       // for null type
 
-    extern (C++) static __gshared Type tsize_t;     // matches size_t alias
-    extern (C++) static __gshared Type tptrdiff_t;  // matches ptrdiff_t alias
-    extern (C++) static __gshared Type thash_t;     // matches hash_t alias
+    extern (C++) __gshared Type tsize_t;     // matches size_t alias
+    extern (C++) __gshared Type tptrdiff_t;  // matches ptrdiff_t alias
+    extern (C++) __gshared Type thash_t;     // matches hash_t alias
 
-    extern (C++) static __gshared ClassDeclaration dtypeinfo;
-    extern (C++) static __gshared ClassDeclaration typeinfoclass;
-    extern (C++) static __gshared ClassDeclaration typeinfointerface;
-    extern (C++) static __gshared ClassDeclaration typeinfostruct;
-    extern (C++) static __gshared ClassDeclaration typeinfopointer;
-    extern (C++) static __gshared ClassDeclaration typeinfoarray;
-    extern (C++) static __gshared ClassDeclaration typeinfostaticarray;
-    extern (C++) static __gshared ClassDeclaration typeinfoassociativearray;
-    extern (C++) static __gshared ClassDeclaration typeinfovector;
-    extern (C++) static __gshared ClassDeclaration typeinfoenum;
-    extern (C++) static __gshared ClassDeclaration typeinfofunction;
-    extern (C++) static __gshared ClassDeclaration typeinfodelegate;
-    extern (C++) static __gshared ClassDeclaration typeinfotypelist;
-    extern (C++) static __gshared ClassDeclaration typeinfoconst;
-    extern (C++) static __gshared ClassDeclaration typeinfoinvariant;
-    extern (C++) static __gshared ClassDeclaration typeinfoshared;
-    extern (C++) static __gshared ClassDeclaration typeinfowild;
+    extern (C++) __gshared ClassDeclaration dtypeinfo;
+    extern (C++) __gshared ClassDeclaration typeinfoclass;
+    extern (C++) __gshared ClassDeclaration typeinfointerface;
+    extern (C++) __gshared ClassDeclaration typeinfostruct;
+    extern (C++) __gshared ClassDeclaration typeinfopointer;
+    extern (C++) __gshared ClassDeclaration typeinfoarray;
+    extern (C++) __gshared ClassDeclaration typeinfostaticarray;
+    extern (C++) __gshared ClassDeclaration typeinfoassociativearray;
+    extern (C++) __gshared ClassDeclaration typeinfovector;
+    extern (C++) __gshared ClassDeclaration typeinfoenum;
+    extern (C++) __gshared ClassDeclaration typeinfofunction;
+    extern (C++) __gshared ClassDeclaration typeinfodelegate;
+    extern (C++) __gshared ClassDeclaration typeinfotypelist;
+    extern (C++) __gshared ClassDeclaration typeinfoconst;
+    extern (C++) __gshared ClassDeclaration typeinfoinvariant;
+    extern (C++) __gshared ClassDeclaration typeinfoshared;
+    extern (C++) __gshared ClassDeclaration typeinfowild;
 
-    extern (C++) static __gshared TemplateDeclaration rtinfo;
+    extern (C++) __gshared TemplateDeclaration rtinfo;
 
-    extern (C++) static __gshared Type[TMAX] basic;
-    extern (C++) static __gshared StringTable stringtable;
+    extern (C++) __gshared Type[TMAX] basic;
+    extern (C++) __gshared StringTable stringtable;
 
-    extern (C++) static __gshared ubyte[TMAX] sizeTy = ()
+    extern (C++) __gshared ubyte[TMAX] sizeTy = ()
         {
             ubyte[TMAX] sizeTy = __traits(classInstanceSize, TypeBasic);
             sizeTy[Tsarray] = __traits(classInstanceSize, TypeSArray);
@@ -797,7 +797,7 @@ extern (C++) abstract class Type : RootObject
         stringtable._init(14000);
 
         // Set basic types
-        static __gshared TY* basetab =
+        __gshared TY* basetab =
         [
             Tvoid,
             Tint8,

@@ -737,7 +737,7 @@ private void eqeqranges()
             e.EV.Vint = (e.Eoper == OPeqeq) ? result : result ^ 1;
             e.Eoper = OPconst;
         }
-    L1: ;
+    L1:
     }
 }
 
@@ -910,7 +910,6 @@ private void intranges()
         }
 
       nextrel:
-        ;
     }
 }
 
@@ -1337,7 +1336,6 @@ private void cpwalk(elem *n,vec_t IN)
         }
         //else printf("not found\n");
     noprop:
-        ;
     }
 }
 
@@ -1962,7 +1960,7 @@ void verybusyexp()
                     goto L2;
             }
             vec_clearbit(j,b.Bout);        /* thar ain't no path   */
-        L2: ;
+        L2:
         }
 
 

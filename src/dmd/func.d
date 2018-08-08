@@ -2296,7 +2296,7 @@ extern (C++) class FuncDeclaration : Declaration
         FuncDeclaration fd;
         TypeFunction tf;
         Dsymbol s;
-        static __gshared DsymbolTable st = null;
+        __gshared DsymbolTable st = null;
 
         //printf("genCfunc(name = '%s')\n", id.toChars());
         //printf("treturn\n\t"); treturn.print();

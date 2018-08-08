@@ -2088,7 +2088,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
 
 private Module loadStdMath()
 {
-    static __gshared Import impStdMath = null;
+    __gshared Import impStdMath = null;
     if (!impStdMath)
     {
         auto a = new Identifiers();
@@ -3837,7 +3837,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else
             {
-                static __gshared int nest;
+                __gshared int nest;
                 if (++nest > 500)
                 {
                     exp.error("recursive evaluation of `%s`", exp.toChars());

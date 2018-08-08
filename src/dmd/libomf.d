@@ -133,7 +133,7 @@ final class LibOMF : Library
         {
             auto om = new OmfObjModule();
             om.base = cast(ubyte*)base;
-            om.page = om.page = cast(ushort)((om.base - pstart) / g_page_size);
+            om.page = cast(ushort)((om.base - pstart) / g_page_size);
             om.length = cast(uint)length;
             /* Determine the name of the module
              */
@@ -243,7 +243,7 @@ private:
         ndicpages = (bucksForHash > bucksForSize) ? bucksForHash : bucksForSize;
         //printf("ndicpages = %u\n",ndicpages);
         // Find prime number greater than ndicpages
-        static __gshared uint* primes =
+        __gshared uint* primes =
         [
             1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43,
             47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103,

@@ -234,7 +234,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         super(loc, id);
 
-        static __gshared const(char)* msg = "only object.d can define this reserved class name";
+        __gshared const(char)* msg = "only object.d can define this reserved class name";
 
         if (baseclasses)
         {

@@ -655,7 +655,6 @@ debug
    /* not in table, so insert into table        */
    *parent = s;                         /* link new symbol into tree    */
 L1:
-   ;
 }
 
 }
@@ -1889,7 +1888,7 @@ else
                 outcommon(s,type_size(s.Stype));
             }
         }
-  L1:   ;
+  L1:
     } // for
 debug
 {

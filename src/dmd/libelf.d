@@ -268,9 +268,9 @@ final class LibElf : Library
             /* Mock things up for the object module file that never was
              * actually written out.
              */
-            static __gshared uid_t uid;
-            static __gshared gid_t gid;
-            static __gshared int _init;
+            __gshared uid_t uid;
+            __gshared gid_t gid;
+            __gshared int _init;
             if (!_init)
             {
                 _init = 1;

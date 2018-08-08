@@ -642,7 +642,7 @@ private int looprotate(loop *l)
                         goto L2;
                     }
                 assert(0);
-        L2:     ;
+        L2:
             }
             else
                 pbln = &((*pbl).next);      // next predecessor in list
@@ -937,7 +937,7 @@ restart:
             }
             // if i dom (all exit blocks)
             domexit = 1;
-        L1:     ;
+        L1:
             if (dfo[i].Belem)
             {   // If there is any hope of making an improvement
                 if (domexit || l.Llis)
@@ -1849,7 +1849,6 @@ L3:
             goto Lret;
 
         Lpass:
-            ;
         }
     }
 
@@ -1948,7 +1947,7 @@ L3:
     list_prepend(&l.Llis,ne);
 
 Lret:
-    ;
+
 }
 
 /***************************
@@ -2260,7 +2259,7 @@ private void findbasivs(loop *l)
         assert(0);                      /* should have found it         */
         /* NOTREACHED */
 
-    L1: ;
+    L1:
     }
 
     vec_free(poss);
@@ -2403,7 +2402,6 @@ private void findopeqs(loop *l)
         // NOTREACHED
 
     Lcont:
-        ;
     }
 
     vec_free(poss);
@@ -3228,7 +3226,6 @@ private void elimbasivs(loop *l)
             go.changes++;
             doflow = true;                  /* redo flow analysis   */
           L1:
-            ;
         }
     } /* for */
 }
@@ -3285,7 +3282,6 @@ private void elimopeqs(loop *l)
             go.changes++;
             doflow = true;                      // redo flow analysis
         L1:
-            ;
         }
     }
 }

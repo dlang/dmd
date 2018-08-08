@@ -125,7 +125,7 @@ struct Scope
     uint[void*] anchorCounts;  /// lookup duplicate anchor name count
     Identifier prevAnchor;     /// qualified symbol name of last doc anchor
 
-    extern (C++) static __gshared Scope* freelist;
+    extern (C++) __gshared Scope* freelist;
 
     extern (C++) static Scope* alloc()
     {

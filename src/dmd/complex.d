@@ -83,12 +83,12 @@ struct complex_t
         }
     }
 
-    bool opCast(T : bool)()
+    bool opCast(T : bool)() const
     {
         return re || im;
     }
 
-    int opEquals(complex_t y)
+    int opEquals(complex_t y) const
     {
         return re == y.re && im == y.im;
     }

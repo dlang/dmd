@@ -1547,7 +1547,7 @@ private void blreturn()
                     }
                     continue;
                 }
-            L1: ;
+            L1:
             }
             if (b.Belem)
             {   /* Split b into a goto and a b  */
@@ -1748,7 +1748,7 @@ private void bltailmerge()
                     } while (el_match(e,en));
                 }
             }
-    nextb:  ;
+    nextb:
         }
 
         /* Recombine elem lists into expression trees   */
@@ -1815,11 +1815,11 @@ private void brmin()
             go.changes++;
             break;
 
-        L2: ;
+        L2:
         }
 
 
-    L1: ;
+    L1:
     }
 }
 
@@ -2107,7 +2107,6 @@ void funcsideeffects()
 
       Lside:
         //printf("  function '%s' has side effects\n",funcsym_p.Sident);
-        ;
     }
 }
 

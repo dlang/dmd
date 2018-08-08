@@ -3291,7 +3291,7 @@ extern (C++) const(char)* stcToChars(ref StorageClass stc)
         const(char)* id;
     }
 
-    static __gshared SCstring* table =
+    __gshared SCstring* table =
     [
         SCstring(STC.auto_, TOK.auto_),
         SCstring(STC.scope_, TOK.scope_),

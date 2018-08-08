@@ -338,7 +338,7 @@ extern (C++) void vwarningSupplemental(const ref Loc loc, const(char)* format, v
  */
 extern (C++) void vdeprecation(const ref Loc loc, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
 {
-    static __gshared const(char)* header = "Deprecation: ";
+    __gshared const(char)* header = "Deprecation: ";
     if (global.params.useDeprecated == 0)
         verror(loc, format, ap, p1, p2, header);
     else if (global.params.useDeprecated == 2)

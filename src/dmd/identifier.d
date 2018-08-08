@@ -122,11 +122,11 @@ nothrow:
         return DYNCAST.identifier;
     }
 
-    extern (C++) static __gshared StringTable stringtable;
+    extern (C++) __gshared StringTable stringtable;
 
     static Identifier generateId(const(char)* prefix)
     {
-        static __gshared size_t i;
+        __gshared size_t i;
         return generateId(prefix, ++i);
     }
 
