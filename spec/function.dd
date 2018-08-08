@@ -1202,6 +1202,8 @@ void bar(C c)
 
 $(H2 $(LNAME2 parameters, Function Parameters))
 
+$(H3 $(LNAME2 param-storage, Parameter Storage Classes))
+
         $(P Parameter storage classes are $(D in), $(D out),
         $(D ref), $(D lazy), $(D const), $(D immutable), $(D shared),
         $(D inout) or
@@ -1283,10 +1285,11 @@ def(z);
         apply only to the reference and not the contents.
         )
 
-        $(P $(D lazy) arguments are evaluated not when the function is called,
-        but when the parameter is evaluated within the function. Hence,
-        a $(D lazy) argument can be executed 0 or more times. A $(D lazy) parameter
-        cannot be an lvalue.)
+$(H3 $(LNAME2 lazy-params, Lazy Parameters))
+
+        $(P An argument to a $(D lazy) parameter is not evaluated before the function is called.
+        The argument is only evaluated if/when the parameter is evaluated within the function. Hence,
+        a $(D lazy) argument can be executed 0 or more times. )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
@@ -1312,8 +1315,12 @@ $(CONSOLE
 2
 )
 
+        $(P A $(D lazy) parameter cannot be an lvalue.)
+
         $(P A $(D lazy) parameter of type $(D void) can accept an argument
         of any type.)
+
+        $(P See Also: $(RELATIVE_LINK2 lazy_variadic_functions, Lazy Variadic Functions))
 
 $(H3 $(LNAME2 function-default-args, Function Default Arguments))
 
