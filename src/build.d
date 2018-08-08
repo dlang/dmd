@@ -807,15 +807,17 @@ auto detectModel()
     string uname;
     if (detectOS == "solaris")
         uname = ["isainfo", "-n"].execute.output;
+    else if (detectOS == "windows")
+        uname = ["wmic", "OS", "get", "OSArchitecture"].execute.output;
     else
         uname = ["uname", "-m"].execute.output;
 
-    if (!uname.find("x86_64", "amd64")[0].empty)
+    if (!uname.find("x86_64", "amd64", "64-bit")[0].empty)
         return "64";
-    if (!uname.find("i386", "i586", "i686")[0].empty)
+    if (!uname.find("i386", "i586", "i686", "32-bit")[0].empty)
         return "32";
 
-    throw new Exception("Cannot figure 32/64 model from uname -m: " ~ uname);
+    throw new Exception(`Cannot figure 32/64 model from "` ~ uname ~ `"`);
 }
 
 // Add the executable filename extension to the given `name` for the current OS.
