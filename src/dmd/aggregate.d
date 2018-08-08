@@ -193,7 +193,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             if (v.aliassym)
                 return 0;   // If this variable was really a tuple, skip it.
 
-            with (STC) if (v.storage_class & (static_ | extern_ | tls | gshared | manifest | ctfe | templateparameter))
+            if (v.storage_class & (STC.static_ | STC.extern_ | STC.tls | STC.gshared | STC.manifest | STC.ctfe | STC.templateparameter))
                 return 0;
             if (!v.isField() || v.semanticRun < PASS.semanticdone)
                 return 1;   // unresolvable forward reference
