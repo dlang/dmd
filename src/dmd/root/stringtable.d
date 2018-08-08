@@ -103,6 +103,18 @@ public:
         pools = null;
     }
 
+    /**
+    Looks up the given string in the string table and returns its associated
+    value.
+
+    Params:
+     s = the string to look up
+     length = the length of $(D_PARAM s)
+     str = the string to look up
+
+    Returns: the string's associated value, or `null` if the string doesn't
+     exist in the string table
+    */
     extern (C++) inout(StringValue)* lookup(const(char)* s, size_t length) inout nothrow pure
     {
         const(hash_t) hash = calcHash(s, length);
@@ -111,6 +123,26 @@ public:
         return getValue(table[i].vptr);
     }
 
+    /// ditto
+    inout(StringValue)* lookup(const(char)[] str) inout nothrow pure
+    {
+        return lookup(str.ptr, str.length);
+    }
+
+    /**
+    Inserts the given string and the given associated value into the string
+    table.
+
+    Params:
+     s = the string to insert
+     length = the length of $(D_PARAM s)
+     ptrvalue = the value to associate with the inserted string
+     str = the string to insert
+     value = the value to associate with the inserted string
+
+    Returns: the newly inserted value, or `null` if the string table already
+     contains the string
+    */
     extern (C++) StringValue* insert(const(char)* s, size_t length, void* ptrvalue) nothrow
     {
         const(hash_t) hash = calcHash(s, length);
@@ -126,6 +158,12 @@ public:
         table[i].vptr = allocValue(s, length, ptrvalue);
         // printf("insert %.*s %p\n", (int)length, s, table[i].value ?: NULL);
         return getValue(table[i].vptr);
+    }
+
+    /// ditto
+    StringValue* insert(const(char)[] str, void* value) nothrow
+    {
+        return insert(str.ptr, str.length, value);
     }
 
     extern (C++) StringValue* update(const(char)* s, size_t length) nothrow
@@ -144,6 +182,11 @@ public:
         }
         // printf("update %.*s %p\n", (int)length, s, table[i].value ?: NULL);
         return getValue(table[i].vptr);
+    }
+
+    StringValue* update(const(char)[] name) nothrow
+    {
+        return update(name.ptr, name.length);
     }
 
     /********************************
@@ -166,11 +209,6 @@ public:
                 return result;
         }
         return 0;
-    }
-
-    StringValue* update(const(char)[] name) nothrow
-    {
-        return update(name.ptr, name.length);
     }
 
 private:
