@@ -50,6 +50,6 @@ check-clean-git:
 	fi
 
 style:
-	@echo "To be done"
+	$(QUIET)$(MAKE) -C src -f posix.mak style
 
 .DELETE_ON_ERROR: # GNU Make directive (delete output files on error)
