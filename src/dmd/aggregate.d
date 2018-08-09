@@ -202,7 +202,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
             if (v.storage_class & STC.ref_)
                 return 0;
-            const tv = v.type.baseElemOf();
+            auto tv = v.type.baseElemOf();
             if (tv.ty != Tstruct)
                 return 0;
             if (ad == (cast(TypeStruct)tv).sym)
@@ -216,8 +216,9 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             return 0;
         }
 
-        foreach (s; *members)
+        for (size_t i = 0; i < members.dim; i++)
         {
+            auto s = (*members)[i];
             if (s.apply(&func, cast(void*)this))
             {
                 if (sizeok != Sizeok.none)
@@ -298,7 +299,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     override final d_uns64 size(const ref Loc loc)
     {
         //printf("+AggregateDeclaration::size() %s, scope = %p, sizeok = %d\n", toChars(), _scope, sizeok);
-        const bool ok = determineSize(loc);
+        bool ok = determineSize(loc);
         //printf("-AggregateDeclaration::size() %s, scope = %p, sizeok = %d\n", toChars(), _scope, sizeok);
         return ok ? structsize : SIZE_INVALID;
     }
@@ -366,8 +367,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
                 if (vx._init && v2._init)
                 {
-                    .error(loc, "overlapping default initialization for field `%s` and `%s`",
-                        v2.toChars(), vd.toChars());
+                    .error(loc, "overlapping default initialization for field `%s` and `%s`", v2.toChars(), vd.toChars());
                     errors = true;
                 }
             }
@@ -590,7 +590,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         if (overflow) assert(0);
 
         alignmember(alignment, memalignsize, &ofs);
-        const uint memoffset = ofs;
+        uint memoffset = ofs;
         ofs += memsize;
         if (ofs > *paggsize)
             *paggsize = ofs;
@@ -730,8 +730,11 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                 }
             }
 
-            foreach (sm; *members)
+            for (size_t i = 0; i < members.dim; i++)
+            {
+                auto sm = (*members)[i];
                 sm.apply(&SearchCtor.fp, null);
+            }
         }
         return s;
     }
