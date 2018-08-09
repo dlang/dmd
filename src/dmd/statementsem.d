@@ -2363,7 +2363,7 @@ else
                 fd.inlining = inlining;
             }
         }
-        else
+        else if (!global.params.ignoreUnsupportedPragmas)
         {
             ps.error("unrecognized `pragma(%s)`", ps.ident.toChars());
             return setError();
