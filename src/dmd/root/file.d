@@ -66,9 +66,14 @@ nothrow:
         }
     }
 
-    extern (C++) const(char)* toChars() pure
+    extern (C++) const(char)* toChars() const pure nothrow @safe
     {
         return name.toChars();
+    }
+
+    const(char)[] toString() const nothrow pure @safe
+    {
+        return name.toString();
     }
 
     /*************************************

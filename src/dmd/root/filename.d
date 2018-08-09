@@ -761,9 +761,14 @@ nothrow:
         mem.xfree(cast(void*)str);
     }
 
-    extern (C++) const(char)* toChars() const pure
+    extern (C++) const(char)* toChars() const pure nothrow @safe
     {
         return str;
+    }
+
+    const(char)[] toString() const pure nothrow @trusted
+    {
+        return str ? str[0 .. strlen(str)] : null;
     }
 }
 
