@@ -6230,7 +6230,7 @@ struct ASTBase
             const(char)* id;
         }
 
-        static __gshared SCstring[31] table =
+        static immutable table =
         [
             SCstring(STC.auto_, TOK.auto_),
             SCstring(STC.scope_, TOK.scope_),
