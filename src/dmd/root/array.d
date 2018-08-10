@@ -211,8 +211,6 @@ public:
         assert(a <= b && b <= dim);
         return data[a .. b];
     }
-
-    alias opDollar = dim;
 }
 
 struct BitArray
