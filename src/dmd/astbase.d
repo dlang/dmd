@@ -5102,8 +5102,7 @@ struct ASTBase
         extern (D) this(const ref Loc loc, Expression e, Expression earg1, Expression earg2)
         {
             super(loc, TOK.call, __traits(classInstanceSize, CallExp), e);
-            auto arguments = new Expressions();
-            arguments.setDim(2);
+            auto arguments = new Expressions(2);
             (*arguments)[0] = earg1;
             (*arguments)[1] = earg2;
             this.arguments = arguments;
