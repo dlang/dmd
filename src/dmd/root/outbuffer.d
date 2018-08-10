@@ -459,4 +459,3 @@ char[] unsignedToTempString(ulong value, char[] buf, uint radix = 10) @safe
     } while (value);
     return buf[i .. $];
 }
-
