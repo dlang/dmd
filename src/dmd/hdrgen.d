@@ -3347,6 +3347,16 @@ extern (C++) const(char)* stcToChars(ref StorageClass stc)
     return null;
 }
 
+
+/**
+ * Returns:
+ *   a human readable representation of `stc`
+ */
+extern (D) const(char)[] stcToString(ref StorageClass stc)
+{
+    return stcToChars(stc).toDString;
+}
+
 extern (C++) void trustToBuffer(OutBuffer* buf, TRUST trust)
 {
     const(char)* p = trustToChars(trust);
@@ -3354,7 +3364,19 @@ extern (C++) void trustToBuffer(OutBuffer* buf, TRUST trust)
         buf.writestring(p);
 }
 
+/**
+ * Returns:
+ *   a human readable representation of `trust`,
+ *   which is the token `trust` corresponds to
+ */
 extern (C++) const(char)* trustToChars(TRUST trust)
+{
+    /// Works because we return a literal
+    return trustToString(trust).ptr;
+}
+
+/// Ditto
+extern (D) string trustToString(TRUST trust)
 {
     final switch (trust)
     {
@@ -3416,7 +3438,18 @@ extern (C++) void protectionToBuffer(OutBuffer* buf, Prot prot)
     }
 }
 
+/**
+ * Returns:
+ *   a human readable representation of `kind`
+ */
 extern (C++) const(char)* protectionToChars(Prot.Kind kind)
+{
+    // Null terminated because we return a literal
+    return protectionToString(kind).ptr;
+}
+
+/// Ditto
+extern (D) string protectionToString(Prot.Kind kind)
 {
     final switch (kind)
     {
