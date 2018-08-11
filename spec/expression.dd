@@ -167,7 +167,7 @@ $(GNAME ConditionalExpression):
 
     $(P $(B Note:)
         When a conditional expression is the left operand of
-        an $(RELATIVE_LINK2 assign_expressions, assign expression), 
+        an $(RELATIVE_LINK2 assign_expressions, assign expression),
         parentheses are required for disambiguation:
     )
     ---
