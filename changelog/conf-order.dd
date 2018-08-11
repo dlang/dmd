@@ -1,0 +1,13 @@
+DMD will now prefer a `dmd.conf` or `sc.ini` in the argv0 directory over the `dmd.conf` in the home directory
+
+The sequence of the inifile lookup has been changed to this order:
+
+$(OL
+  $(LI current directory)
+  $(LI exe directory (windows))
+  $(LI directory of argv0)
+  $(LI home directory)
+  $(LI SYSCONFDIR=/etc (non-windows))
+)
+
+Most importantly, the argv0 directory is now checked before the home directory.
