@@ -146,6 +146,8 @@ $(H2 $(LNAME2 field_properties, Field Properties))
 
         $(P The $(D .offsetof) property gives the offset in bytes of the field
         from the beginning of the class instantiation.
+        `.offsetof` is not available for fields of `extern(Objective-C)` classes
+        due to their fields having a dynamic offset.
         $(D .offsetof) can only be applied to
         expressions which produce the type of
         the field itself, not the class type:
@@ -172,6 +174,8 @@ $(H2 $(LNAME2 class_properties, Class Properties))
         $(DDSUBLINK spec/template, variadic-templates, expression sequence)
         of all the fields in the class, excluding the hidden fields and
         the fields in the base class.
+        `.tupleof` is not available for `extern(Objective-C)` classes due to
+        their fields having a dynamic offset.
         )
 ---
 class Foo { int x; long y; }
