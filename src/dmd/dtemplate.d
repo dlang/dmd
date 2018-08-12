@@ -479,9 +479,9 @@ extern (C++) final class Tuple : RootObject
     extern (D) this() {}
 
     /**
-     *  Params:
-     *      numObjects = The initial number of objects.
-     */
+    Params:
+        numObjects = The initial number of objects.
+    */
     extern (D) this(size_t numObjects)
     {
         objects.setDim(numObjects);
