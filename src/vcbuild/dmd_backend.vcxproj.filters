@@ -60,9 +60,6 @@
     <ClCompile Include="..\dmd\backend\cod4.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
-    <ClCompile Include="..\dmd\backend\code.c">
-      <Filter>dmd\backend</Filter>
-    </ClCompile>
     <ClCompile Include="..\dmd\backend\dt.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
