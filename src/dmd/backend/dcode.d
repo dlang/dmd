@@ -6,21 +6,34 @@
  *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/code.c, backend/code.c)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dcode.d, backend/dcode.d)
  */
 
-#if !SPP
+module dmd.backend.dcode;
 
-#include        <stdio.h>
-#include        <string.h>
-#include        <time.h>
+version (SCPP)
+    version = COMPILE;
+version (MARS)
+    version = COMPILE;
 
-#include        "cc.h"
-#include        "el.h"
-#include        "code.h"
-#include        "global.h"
+version (COMPILE)
+{
 
-code *code_list = NULL;
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
+
+import dmd.backend.cc;
+import dmd.backend.cdef;
+import dmd.backend.code;
+import dmd.backend.code_x86;
+import dmd.backend.global;
+import dmd.backend.memh;
+
+extern (C++):
+
+__gshared
+code *code_list = null;
 
 /************************************
  * Allocate a chunk of code's and add them to
@@ -28,13 +41,14 @@ code *code_list = NULL;
  */
 code *code_chunk_alloc()
 {
-    const size_t n = 4096 / sizeof(code);
-    code *chunk = (code *)mem_fmalloc(n * sizeof(code));
+    const size_t n = 4096 / code.sizeof;
+    //printf("code_chunk_alloc() n = %d\n", n);
+    code *chunk = cast(code *)mem_fmalloc(n * code.sizeof);
     for (size_t i = 0; i < n - 1; ++i)
     {
-        code_next(&chunk[i]) = &chunk[i + 1];
+        chunk[i].next = &chunk[i + 1];
     }
-    code_next(&chunk[n - 1]) = NULL;
+    chunk[n - 1].next = null;
     code_list = chunk;
     return chunk;
 }
@@ -45,10 +59,10 @@ code *code_chunk_alloc()
 
 code *code_calloc()
 {
-    //printf("code %d\n", sizeof(code));
+    //printf("code %d\n", code.sizeof);
     code *c = code_list ? code_list : code_chunk_alloc();
     code_list = code_next(c);
-    MEMCLEAR(c, sizeof(*c));
+    memset(c, 0, code.sizeof);
 
     //dbg_printf("code_calloc: %p\n",c);
     return c;
@@ -66,16 +80,16 @@ void code_free(code *cstart)
         code *c = cstart;
         while (1)
         {
-            if (c->Iop == ASM)
+            if (c.Iop == ASM)
             {
-                mem_free(c->IEV1.as.bytes);
+                mem_free(c.IEV1.bytes);
             }
             code *cnext = code_next(c);
             if (!cnext)
                 break;
             c = cnext;
         }
-        code_next(c) = code_list;
+        c.next = code_list;
         code_list = cstart;
     }
 }
@@ -86,7 +100,8 @@ void code_free(code *cstart)
 
 void code_term()
 {
-#if TERMCODE
+static if (TERMCODE)
+{
     code *cn;
     int count = 0;
 
@@ -96,18 +111,19 @@ void code_term()
         code_list = cn;
         count++;
     }
-#ifdef DEBUG
-    printf("Max # of codes = %d\n",count);
-#endif
-#else
-#ifdef DEBUG
+    debug printf("Max # of codes = %d\n",count);
+}
+else
+{
+debug
+{
     int count = 0;
 
     for (code *cn = code_list; cn; cn = code_next(cn))
         count++;
     printf("Max # of codes = %d\n",count);
-#endif
-#endif
+}
+}
 }
 
-#endif // !SPP
+}
