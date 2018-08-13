@@ -201,10 +201,10 @@ extern (C++) struct CTFloat
     }
 
     // Constant real values 0, 1, -1 and 0.5.
-    static __gshared real_t zero;
-    static __gshared real_t one;
-    static __gshared real_t minusone;
-    static __gshared real_t half;
+    __gshared real_t zero;
+    __gshared real_t one;
+    __gshared real_t minusone;
+    __gshared real_t half;
 
     static void initialize()
     {

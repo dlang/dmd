@@ -915,32 +915,35 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     return returnEarly();
                 }
             }
-            else if (!needExpansion)
-            {
-                // Declare value
-                if (!declareVariable(p.storageClass, p.type, p.ident, e, t))
-                {
-                    return returnEarly();
-                }
-            }
             else
-            { // expand tuples into multiple `static foreach` variables.
-                assert(e && !t);
-                auto ident = Identifier.generateId("__value");
-                declareVariable(0, e.type, ident, e, null);
-                import dmd.cond: StaticForeach;
-                auto field = Identifier.idPool(StaticForeach.tupleFieldName.ptr,StaticForeach.tupleFieldName.length);
-                Expression access = new DotIdExp(loc, e, field);
-                access = expressionSemantic(access, sc);
-                if (!tuple) return returnEarly();
-                //printf("%s\n",tuple.toChars());
-                foreach (l; 0 .. dim)
+            {
+                if (!needExpansion)
                 {
-                    auto cp = (*fs.parameters)[l];
-                    Expression init_ = new IndexExp(loc, access, new IntegerExp(loc, l, Type.tsize_t));
-                    init_ = init_.expressionSemantic(sc);
-                    assert(init_.type);
-                    declareVariable(p.storageClass, init_.type, cp.ident, init_, null);
+                    // Declare value
+                    if (!declareVariable(p.storageClass, p.type, p.ident, e, t))
+                    {
+                        return returnEarly();
+                    }
+                }
+                else
+                { // expand tuples into multiple `static foreach` variables.
+                    assert(e && !t);
+                    auto ident = Identifier.generateId("__value");
+                    declareVariable(0, e.type, ident, e, null);
+                    import dmd.cond: StaticForeach;
+                    auto field = Identifier.idPool(StaticForeach.tupleFieldName.ptr,StaticForeach.tupleFieldName.length);
+                    Expression access = new DotIdExp(loc, e, field);
+                    access = expressionSemantic(access, sc);
+                    if (!tuple) return returnEarly();
+                    //printf("%s\n",tuple.toChars());
+                    foreach (l; 0 .. dim)
+                    {
+                        auto cp = (*fs.parameters)[l];
+                        Expression init_ = new IndexExp(loc, access, new IntegerExp(loc, l, Type.tsize_t));
+                        init_ = init_.expressionSemantic(sc);
+                        assert(init_.type);
+                        declareVariable(p.storageClass, init_.type, cp.ident, init_, null);
+                    }
                 }
             }
 
@@ -1659,9 +1662,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                      *  extern(C) int _aaApply2(void*, in size_t, int delegate(void*, void*))
                      *      _aaApply2(aggr, keysize, flde)
                      */
-                    static __gshared const(char)** name = ["_aaApply", "_aaApply2"];
-                    static __gshared FuncDeclaration* fdapply = [null, null];
-                    static __gshared TypeDelegate* fldeTy = [null, null];
+                    __gshared const(char)** name = ["_aaApply", "_aaApply2"];
+                    __gshared FuncDeclaration* fdapply = [null, null];
+                    __gshared TypeDelegate* fldeTy = [null, null];
 
                     ubyte i = (dim == 2 ? 1 : 0);
                     if (!fdapply[i])
@@ -1703,7 +1706,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     /* Call:
                      *      _aApply(aggr, flde)
                      */
-                    static __gshared const(char)** fntab =
+                    __gshared const(char)** fntab =
                     [
                         "cc", "cw", "cd",
                         "wc", "cc", "wd",

@@ -203,7 +203,7 @@ enum
 //#else
     mTYTFF          = 0xFF000000,
 //#endif
-};
+}
 
 pure
 tym_t tybasic(tym_t ty) { return ty & mTYbasic; }
@@ -231,7 +231,7 @@ enum
     TYFLsimd        = 0x20000,    // SIMD vector type
     TYFLfarfunc     = 0x100,      // __far functions (for segmented architectures)
     TYFLxmmreg      = 0x10000,    // can be put in XMM register
-};
+}
 
 /* Array to give the size in bytes of a type, -1 means error    */
 extern __gshared byte[256] _tysize;

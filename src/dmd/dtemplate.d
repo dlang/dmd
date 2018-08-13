@@ -5174,7 +5174,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
     Type specType;      // if !=null, this is the type specialization
     Type defaultType;
 
-    extern (C++) static __gshared Type tdummy = null;
+    extern (C++) __gshared Type tdummy = null;
 
     extern (D) this(const ref Loc loc, Identifier ident, Type specType, Type defaultType)
     {
@@ -5370,7 +5370,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
     Expression specValue;
     Expression defaultValue;
 
-    extern (D) static __gshared Expression[void*] edummies;
+    extern (D) __gshared Expression[void*] edummies;
 
     extern (D) this(const ref Loc loc, Identifier ident, Type valType,
         Expression specValue, Expression defaultValue)
@@ -5599,7 +5599,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
     RootObject specAlias;
     RootObject defaultAlias;
 
-    extern (C++) static __gshared Dsymbol sdummy = null;
+    extern (C++) __gshared Dsymbol sdummy = null;
 
     extern (D) this(const ref Loc loc, Identifier ident, Type specType, RootObject specAlias, RootObject defaultAlias)
     {
@@ -7501,7 +7501,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
     final void tryExpandMembers(Scope* sc2)
     {
-        static __gshared int nest;
+        __gshared int nest;
         // extracted to a function to allow windows SEH to work without destructors in the same function
         //printf("%d\n", nest);
         if (++nest > 500)
@@ -7519,7 +7519,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     final void trySemantic3(Scope* sc2)
     {
         // extracted to a function to allow windows SEH to work without destructors in the same function
-        static __gshared int nest;
+        __gshared int nest;
         //printf("%d\n", nest);
         if (++nest > 300)
         {

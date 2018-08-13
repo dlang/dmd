@@ -218,7 +218,7 @@ void* speller(const(char)* seed, scope dg_speller_t dg, const(char)* charset)
 
 unittest
 {
-    static __gshared const(char)*** cases =
+    __gshared const(char)*** cases =
     [
         ["hello", "hell", "y"],
         ["hello", "hel", "y"],

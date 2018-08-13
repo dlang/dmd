@@ -370,7 +370,7 @@ struct Global
     extern(C++) uint versionNumber()
     {
         import core.stdc.ctype;
-        __gshared static uint cached = 0;
+        __gshared uint cached = 0;
         if (cached == 0)
         {
             //

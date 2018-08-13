@@ -50,7 +50,7 @@ extern (C++) FuncDeclaration search_toString(StructDeclaration sd)
     FuncDeclaration fd = s ? s.isFuncDeclaration() : null;
     if (fd)
     {
-        static __gshared TypeFunction tftostring;
+        __gshared TypeFunction tftostring;
         if (!tftostring)
         {
             tftostring = new TypeFunction(null, Type.tstring, 0, LINK.d);
@@ -230,8 +230,8 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     FuncDeclaration xeq;        // TypeInfo_Struct.xopEquals
     FuncDeclaration xcmp;       // TypeInfo_Struct.xopCmp
     FuncDeclaration xhash;      // TypeInfo_Struct.xtoHash
-    extern (C++) static __gshared FuncDeclaration xerreq;   // object.xopEquals
-    extern (C++) static __gshared FuncDeclaration xerrcmp;  // object.xopCmp
+    extern (C++) __gshared FuncDeclaration xerreq;   // object.xopEquals
+    extern (C++) __gshared FuncDeclaration xerrcmp;  // object.xopCmp
 
     structalign_t alignment;    // alignment applied outside of the struct
     StructPOD ispod;            // if struct is POD

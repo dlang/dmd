@@ -102,7 +102,7 @@ extern (C++) class Section
         assert(a.dim);
         if (namelen)
         {
-            static __gshared const(char)** table =
+            __gshared const(char)** table =
             [
                 "AUTHORS",
                 "BUGS",
@@ -362,8 +362,8 @@ extern (C++) __gshared const(char)* ddoc_decl_dd_e = ")\n";
  */
 extern (C++) void gendocfile(Module m)
 {
-    static __gshared OutBuffer mbuf;
-    static __gshared int mbuf_done;
+    __gshared OutBuffer mbuf;
+    __gshared int mbuf_done;
     OutBuffer buf;
     //printf("Module::gendocfile()\n");
     if (!mbuf_done) // if not already read the ddoc files
@@ -2417,7 +2417,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
                 else
                 {
-                    static __gshared const(char)* d_code = "$(D_CODE ";
+                    __gshared const(char)* d_code = "$(D_CODE ";
                     inCode = 1;
                     codeIndent = istart - iLineStart; // save indent count
                     i = buf.insert(i, d_code, strlen(d_code));

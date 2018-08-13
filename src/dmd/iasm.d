@@ -1593,7 +1593,7 @@ code *asm_emit(Loc loc,
     {
         emit(opcode);
     }
-L3: ;
+L3:
 
     // If CALL, Jxx or LOOPx to a symbolic location
     if (/*asmstate.ucItype == ITjump &&*/

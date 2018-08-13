@@ -35,9 +35,9 @@ import dmd.root.stringtable;
 struct ObjcSelector
 {
     // MARK: Selector
-    extern (C++) static __gshared StringTable stringtable;
-    extern (C++) static __gshared StringTable vTableDispatchSelectors;
-    extern (C++) static __gshared int incnum = 0;
+    extern (C++) __gshared StringTable stringtable;
+    extern (C++) __gshared StringTable vTableDispatchSelectors;
+    extern (C++) __gshared int incnum = 0;
     const(char)* stringvalue;
     size_t stringlen;
     size_t paramCount;
@@ -414,7 +414,7 @@ extern(C++) private final class Supported : Objc
  *  classDeclaration = the class/interface declaration to set the metaclass on
  */
 private void setMetaclass(alias newMetaclass, T)(T classDeclaration)
-    if (is(T == ClassDeclaration) || is(T == InterfaceDeclaration))
+if (is(T == ClassDeclaration) || is(T == InterfaceDeclaration))
 {
     static if (is(T == ClassDeclaration))
         enum errorType = "class";

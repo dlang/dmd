@@ -1033,9 +1033,9 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                 fatal();
             }
 
-            static __gshared FuncDeclaration feq = null;
-            static __gshared FuncDeclaration fcmp = null;
-            static __gshared FuncDeclaration fhash = null;
+            __gshared FuncDeclaration feq = null;
+            __gshared FuncDeclaration fcmp = null;
+            __gshared FuncDeclaration fhash = null;
             if (!feq)
                 feq = search_function(ClassDeclaration.object, Id.eq).isFuncDeclaration();
             if (!fcmp)
@@ -3278,7 +3278,7 @@ private extern(C++) final class DotExpVisitor : Visitor
         }
         if (ident == Id.length)
         {
-            static __gshared FuncDeclaration fd_aaLen = null;
+            __gshared FuncDeclaration fd_aaLen = null;
             if (fd_aaLen is null)
             {
                 auto fparams = new Parameters();
@@ -3353,7 +3353,7 @@ private extern(C++) final class DotExpVisitor : Visitor
 
         bool gagError = flag & 1;
 
-        static __gshared int nest;      // https://issues.dlang.org/show_bug.cgi?id=17380
+        __gshared int nest;      // https://issues.dlang.org/show_bug.cgi?id=17380
 
         static Expression returnExp(Expression e)
         {

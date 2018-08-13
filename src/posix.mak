@@ -97,6 +97,9 @@ GENERATED = ../generated
 G = $(GENERATED)/$(OS)/$(BUILD)/$(MODEL)
 $(shell mkdir -p $G)
 
+DSCANNER_HASH=3a859d39c4b59822b1bc0452b3ddcd598ef390a2
+DSCANNER_DIR=$G/dscanner-$(DSCANNER_HASH)
+
 ifeq (osx,$(OS))
     export MACOSX_DEPLOYMENT_TARGET=10.9
 endif
@@ -591,6 +594,28 @@ checkwhitespace: $(HOST_DMD_PATH) $(TOOLS_DIR)/checkwhitespace.d
 
 $(TOOLS_DIR)/checkwhitespace.d:
 	git clone --depth=1 ${GIT_HOME}/tools $(TOOLS_DIR)
+
+######################################################
+# DScanner
+######################################################
+
+style: dscanner
+
+$(DSCANNER_DIR):
+	git clone https://github.com/dlang-community/Dscanner $@
+	git -C $@ checkout $(DSCANNER_HASH)
+	git -C $@ submodule update --init --recursive
+
+$(DSCANNER_DIR)/dsc: $(HOST_DMD_PATH) | $(DSCANNER_DIR)
+	# debug build is faster, but disable 'missing import' messages (missing core from druntime)
+	sed 's/dparse_verbose/StdLoggerDisableWarning/' $(DSCANNER_DIR)/makefile > $(DSCANNER_DIR)/dscanner_makefile_tmp
+	mv $(DSCANNER_DIR)/dscanner_makefile_tmp $(DSCANNER_DIR)/makefile
+	DC=$(HOST_DMD_PATH) $(MAKE) -C $(DSCANNER_DIR) githash debug
+
+# runs static code analysis with Dscanner
+dscanner: $(DSCANNER_DIR)/dsc
+	@echo "Running DScanner"
+	$(DSCANNER_DIR)/dsc --config .dscanner.ini --styleCheck dmd -I.
 
 ######################################################
 

@@ -774,7 +774,7 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
 {
     if (Dsymbol s = search_function(sd, Id.tohash))
     {
-        static __gshared TypeFunction tftohash;
+        __gshared TypeFunction tftohash;
         if (!tftohash)
         {
             tftohash = new TypeFunction(null, Type.thash_t, 0, LINK.d);

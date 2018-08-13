@@ -1691,7 +1691,6 @@ private elem *elor(elem *e, goal_t goal)
         }
     }
   L1:
-    ;
 
     if (OPTIMIZER)
     {
@@ -1754,7 +1753,7 @@ private elem *elor(elem *e, goal_t goal)
             return e;
         }
 
-      L2: ;
+      L2:
     }
 
     return elbitwise(e, goal);
@@ -3618,7 +3617,7 @@ static if (0)
             e2.Eoper = OPxor;
             return optelem(e,GOALvalue);
 
-        L8: ;
+        L8:
         }
 
         // Replace (a=(r1 pair r2)) with (a1=r1), (a2=r2)

@@ -2711,7 +2711,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         Scope* sc2 = argscope.push(tm);
         //size_t deferred_dim = Module.deferred.dim;
 
-        static __gshared int nest;
+        __gshared int nest;
         //printf("%d\n", nest);
         if (++nest > 500)
         {
@@ -3566,7 +3566,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         funcdecl._scope = sc.copy();
         funcdecl._scope.setNoFree();
 
-        static __gshared bool printedMain = false; // semantic might run more than once
+        __gshared bool printedMain = false; // semantic might run more than once
         if (global.params.verbose && !printedMain)
         {
             const(char)* type = funcdecl.isMain() ? "main" : funcdecl.isWinMain() ? "winmain" : funcdecl.isDllMain() ? "dllmain" : cast(const(char)*)null;

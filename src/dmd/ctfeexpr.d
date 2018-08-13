@@ -39,14 +39,14 @@ import dmd.visitor;
  */
 struct CtfeStatus
 {
-    extern (C++) static __gshared int callDepth = 0;        // current number of recursive calls
+    extern (C++) __gshared int callDepth = 0;        // current number of recursive calls
 
     // When printing a stack trace, suppress this number of calls
-    extern (C++) static __gshared int stackTraceCallsToSuppress = 0;
+    extern (C++) __gshared int stackTraceCallsToSuppress = 0;
 
-    extern (C++) static __gshared int maxCallDepth = 0;     // highest number of recursive calls
-    extern (C++) static __gshared int numArrayAllocs = 0;   // Number of allocated arrays
-    extern (C++) static __gshared int numAssignments = 0;   // total number of assignments executed
+    extern (C++) __gshared int maxCallDepth = 0;     // highest number of recursive calls
+    extern (C++) __gshared int numArrayAllocs = 0;   // Number of allocated arrays
+    extern (C++) __gshared int numAssignments = 0;   // total number of assignments executed
 }
 
 /***********************************************************
@@ -232,15 +232,15 @@ extern (C++) final class CTFEExp : Expression
         }
     }
 
-    extern (C++) static __gshared CTFEExp cantexp;
-    extern (C++) static __gshared CTFEExp voidexp;
-    extern (C++) static __gshared CTFEExp breakexp;
-    extern (C++) static __gshared CTFEExp continueexp;
-    extern (C++) static __gshared CTFEExp gotoexp;
+    extern (C++) __gshared CTFEExp cantexp;
+    extern (C++) __gshared CTFEExp voidexp;
+    extern (C++) __gshared CTFEExp breakexp;
+    extern (C++) __gshared CTFEExp continueexp;
+    extern (C++) __gshared CTFEExp gotoexp;
     /* Used when additional information is needed regarding
      * a ctfe error.
      */
-    extern (C++) static __gshared CTFEExp showcontext;
+    extern (C++) __gshared CTFEExp showcontext;
 
     static bool isCantExp(const Expression e)
     {
