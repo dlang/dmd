@@ -476,6 +476,17 @@ extern (C++) final class Tuple : RootObject
 {
     Objects objects;
 
+    extern (D) this() {}
+
+    /**
+    Params:
+        numObjects = The initial number of objects.
+    */
+    extern (D) this(size_t numObjects)
+    {
+        objects.setDim(numObjects);
+    }
+
     // kludge for template.isType()
     override DYNCAST dyncast() const
     {
@@ -1151,11 +1162,10 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 /* The extra initial template arguments
                  * now form the tuple argument.
                  */
-                auto t = new Tuple();
+                auto t = new Tuple(ntargs - n);
                 assert(parameters.dim);
                 (*dedargs)[parameters.dim - 1] = t;
 
-                t.objects.setDim(ntargs - n);
                 for (size_t i = 0; i < t.objects.dim; i++)
                 {
                     t.objects[i] = (*tiargs)[n + i];
@@ -3727,8 +3737,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     else
                     {
                         // Create new tuple
-                        auto tup = new Tuple();
-                        tup.objects.setDim(tuple_dim);
+                        auto tup = new Tuple(tuple_dim);
                         for (size_t i = 0; i < tuple_dim; i++)
                         {
                             Parameter arg = Parameter.getNth(t.parameters, nfparams - 1 + i);
@@ -3905,9 +3914,8 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
 
                         /* Create tuple from remaining args
                          */
-                        auto vt = new Tuple();
                         size_t vtdim = (tempdecl.isVariadic() ? t.tempinst.tiargs.dim : t.tempinst.tdtypes.dim) - i;
-                        vt.objects.setDim(vtdim);
+                        auto vt = new Tuple(vtdim);
                         for (size_t k = 0; k < vtdim; k++)
                         {
                             RootObject o;
