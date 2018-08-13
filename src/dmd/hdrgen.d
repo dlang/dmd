@@ -685,6 +685,67 @@ public:
         buf.writenl();
     }
 
+    version (IN_GCC)
+    {
+        override void visit(ExtAsmStatement s)
+        {
+            buf.writestring ("gcc asm { ");
+
+            if (s.insn)
+                buf.writestring (s.insn.toChars());
+
+            buf.writestring (" : ");
+
+            if (s.args)
+            {
+                for (size_t i = 0; i < s.args.dim; i++)
+                {
+                    Identifier name = (*s.names)[i];
+                    Expression constr = (*s.constraints)[i];
+                    Expression arg = (*s.args)[i];
+
+                    if (name)
+                    {
+                        buf.writestring ("[");
+                        buf.writestring (name.toChars());
+                        buf.writestring ("] ");
+                    }
+
+                    if (constr)
+                    {
+                        buf.writestring (constr.toChars());
+                        buf.writestring (" ");
+                    }
+
+                    if (arg)
+                        buf.writestring (arg.toChars());
+
+                    if (i < s.outputargs - 1)
+                        buf.writestring (", ");
+                    else if (i == s.outputargs - 1)
+                        buf.writestring (" : ");
+                    else if (i < s.args.dim - 1)
+                        buf.writestring (", ");
+                }
+            }
+
+            if (s.clobbers)
+            {
+                buf.writestring (" : ");
+                for (size_t i = 0; i < s.clobbers.dim; i++)
+                {
+                    Expression clobber = (*s.clobbers)[i];
+                    buf.writestring (clobber.toChars());
+                    if (i < s.clobbers.dim - 1)
+                        buf.writestring (", ");
+                }
+            }
+
+            buf.writestring ("; }");
+            buf.writenl();
+        }
+    }
+
     override void visit(ImportStatement s)
     {
         foreach (imp; *s.imports)

@@ -119,6 +119,7 @@ public:
     void visit(AST.TryFinallyStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.ThrowStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.AsmStatement s) { visit(cast(AST.Statement)s); }
+    version (IN_GCC) void visit(AST.ExtAsmStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.ExpStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.CompoundStatement s) { visit(cast(AST.Statement)s); }
 
