@@ -2612,7 +2612,7 @@ class Lexer : ErrorHandler
     }
 
 private:
-    final void endOfLine()
+    void endOfLine()
     {
         scanloc.linnum++;
         line = p;

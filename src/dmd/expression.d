@@ -2685,7 +2685,7 @@ extern (C++) final class ArrayLiteralExp : Expression
         return false;
     }
 
-    final Expression getElement(size_t i)
+    Expression getElement(size_t i)
     {
         auto el = (*elements)[i];
         if (!el)

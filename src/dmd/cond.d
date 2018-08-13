@@ -369,7 +369,7 @@ extern (C++) final class StaticForeach : RootObject
      * to finally expand the `static foreach` using
      * `dmd.statementsem.makeTupleForeach`.
      */
-    final extern(D) void prepare(Scope* sc)
+    extern(D) void prepare(Scope* sc)
     {
         assert(sc);
 
@@ -408,7 +408,7 @@ extern (C++) final class StaticForeach : RootObject
      * Returns:
      *     `true` iff ready to call `dmd.statementsem.makeTupleForeach`.
      */
-    final extern(D) bool ready()
+    extern(D) bool ready()
     {
         return aggrfe && aggrfe.aggr && aggrfe.aggr.type && aggrfe.aggr.type.toBasetype().ty == Ttuple;
     }

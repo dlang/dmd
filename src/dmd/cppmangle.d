@@ -1020,7 +1020,7 @@ private final class CppMangleVisitor : Visitor
      * Params:
      *  t = TypeStruct or TypeEnum
      */
-    final void doSymbol(Type t)
+    void doSymbol(Type t)
     {
         if (substitute(t))
             return;

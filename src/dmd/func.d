@@ -1441,7 +1441,7 @@ extern (C++) class FuncDeclaration : Declaration
      *    which could have come from the function's parameters, mutable
      *    globals, or uplevel functions.
      */
-    private final bool isTypeIsolatedIndirect(Type t)
+    private bool isTypeIsolatedIndirect(Type t)
     {
         //printf("isTypeIsolatedIndirect(t: %s)\n", t.toChars());
         assert(t);

@@ -3347,7 +3347,7 @@ private extern(C++) final class DotExpVisitor : Visitor
      *
      * If flag & 1, don't report "not a property" error and just return NULL.
      */
-    final Expression noMember(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
+    Expression noMember(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
     {
         //printf("Type.noMember(e: %s ident: %s flag: %d)\n", e.toChars(), ident.toChars(), flag);
 

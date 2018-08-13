@@ -4337,7 +4337,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
     }
 
-    final void interfaceSemantic(ClassDeclaration cd)
+    void interfaceSemantic(ClassDeclaration cd)
     {
         cd.vtblInterfaces = new BaseClasses();
         cd.vtblInterfaces.reserve(cd.interfaces.length);

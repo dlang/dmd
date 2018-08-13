@@ -74,12 +74,12 @@ nothrow:
         return name;
     }
 
-    extern (D) final const(char)[] toString() const pure
+    extern (D) const(char)[] toString() const pure
     {
         return name[0 .. len];
     }
 
-    final int getValue() const pure
+    int getValue() const pure
     {
         return value;
     }
