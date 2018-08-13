@@ -330,10 +330,9 @@ struct ASTBase
             Dsymbol s = null;
             if (members)
             {
-                for (size_t i = 0; i < members.dim; i++)
+                foreach (Dsymbol sx; *members)
                 {
-                    Dsymbol sx = (*members)[i];
-                    bool x = sx.oneMember(ps, ident);
+                    const bool x = sx.oneMember(ps, ident);
                     if (!x)
                     {
                         assert(*ps is null);
@@ -1117,13 +1116,12 @@ struct ASTBase
 
         Objects* arraySyntaxCopy(Objects* objs)
         {
-            Objects* a = null;
+            Objects* a;
             if (objs)
             {
-                a = new Objects();
-                a.setDim(objs.dim);
-                for (size_t i = 0; i < objs.dim; i++)
-                    (*a)[i] = objectSyntaxCopy((*objs)[i]);
+                a = new Objects(objs.dim);
+                foreach (i, o; *objs)
+                    (*a)[i] = objectSyntaxCopy(o);
             }
             return a;
         }
@@ -1821,13 +1819,12 @@ struct ASTBase
 
         static Parameters* arraySyntaxCopy(Parameters* parameters)
         {
-            Parameters* params = null;
+            Parameters* params;
             if (parameters)
             {
-                params = new Parameters();
-                params.setDim(parameters.dim);
-                for (size_t i = 0; i < params.dim; i++)
-                    (*params)[i] = (*parameters)[i].syntaxCopy();
+                params = new Parameters(parameters.dim);
+                foreach (i, ref p; *params)
+                    p = (*parameters)[i].syntaxCopy();
             }
             return params;
         }
@@ -3620,9 +3617,8 @@ struct ASTBase
             if (exps)
             {
                 arguments.setDim(exps.dim);
-                for (size_t i = 0; i < exps.dim; i++)
+                foreach (i, e; *exps)
                 {
-                    Expression e = (*exps)[i];
                     if (e.type.ty == Ttuple)
                         e.error("cannot form tuple of tuples");
                     auto arg = new Parameter(STC.undefined_, e.type, null, null, null);
@@ -4830,9 +4826,8 @@ struct ASTBase
             this.exps = new Expressions();
 
             this.exps.reserve(tup.objects.dim);
-            for (size_t i = 0; i < tup.objects.dim; i++)
+            foreach (RootObject o; *tup.objects)
             {
-                RootObject o = (*tup.objects)[i];
                 if (Dsymbol s = getDsymbol(o))
                 {
                     Expression e = new DsymbolExp(loc, s);
@@ -5107,8 +5102,7 @@ struct ASTBase
         extern (D) this(const ref Loc loc, Expression e, Expression earg1, Expression earg2)
         {
             super(loc, TOK.call, __traits(classInstanceSize, CallExp), e);
-            auto arguments = new Expressions();
-            arguments.setDim(2);
+            auto arguments = new Expressions(2);
             (*arguments)[0] = earg1;
             (*arguments)[1] = earg2;
             this.arguments = arguments;
@@ -6119,9 +6113,8 @@ struct ASTBase
             OutBuffer buf;
             if (packages && packages.dim)
             {
-                for (size_t i = 0; i < packages.dim; i++)
+                foreach (Identifier pid; *packages)
                 {
-                    Identifier pid = (*packages)[i];
                     buf.writestring(pid.toChars());
                     buf.writeByte('.');
                 }
@@ -6236,7 +6229,7 @@ struct ASTBase
             const(char)* id;
         }
 
-        static __gshared SCstring* table =
+        static immutable table =
         [
             SCstring(STC.auto_, TOK.auto_),
             SCstring(STC.scope_, TOK.scope_),
@@ -6270,18 +6263,17 @@ struct ASTBase
             SCstring(STC.future, TOK.at, "@__future"),
             SCstring(0, TOK.reserved)
         ];
-        for (int i = 0; table[i].stc; i++)
+        foreach (ref sc; table)
         {
-            StorageClass tbl = table[i].stc;
-            assert(tbl & STCStorageClass);
-            if (stc & tbl)
+            assert(sc.stc & STCStorageClass);
+            if (stc & sc.stc)
             {
-                stc &= ~tbl;
-                if (tbl == STC.tls) // TOKtls was removed
+                stc &= ~sc.stc;
+                if (sc.stc == STC.tls) // TOKtls was removed
                     return "__thread";
-                TOK tok = table[i].tok;
+                TOK tok = sc.tok;
                 if (tok == TOK.at)
-                    return table[i].id;
+                    return sc.id;
                 else
                     return Token.toChars(tok);
             }
