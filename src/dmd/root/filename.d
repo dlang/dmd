@@ -320,12 +320,6 @@ nothrow:
     /**************************************
      * Replace filename portion of path.
      */
-    extern (C++) static const(char)* replaceName(const(char)* path, const(char)* name)
-    {
-        return replaceName(path[0 .. strlen(path)], name[0 .. strlen(name)]).ptr;
-    }
-
-    /// Ditto
     extern (D) static const(char)[] replaceName(const(char)[] path, const(char)[] name)
     {
         if (absolute(name))

@@ -922,7 +922,7 @@ public:
     {
         objectStart();
         requiredProperty("cwd", getcwd(null, 0).toDString);
-        requiredProperty("argv0", global.params.argv0.toDString);
+        requiredProperty("argv0", global.params.argv0);
         requiredProperty("config", global.inifilename.toDString);
         requiredProperty("libName", global.params.libname.toDString);
 

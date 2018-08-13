@@ -218,7 +218,7 @@ private int tryMain(size_t argc, const(char)** argv)
     //for (size_t i = 0; i < arguments.dim; ++i) printf("arguments[%d] = '%s'\n", i, arguments[i]);
     files.reserve(arguments.dim - 1);
     // Set default values
-    global.params.argv0 = arguments[0];
+    global.params.argv0 = arguments[0].toDString;
 
     // Temporary: Use 32 bits as the default on Windows, for config parsing
     static if (TARGET.Windows)
@@ -235,11 +235,11 @@ private int tryMain(size_t argc, const(char)** argv)
     {
         version (Windows)
         {
-            global.inifilename = findConfFile(global.params.argv0, "sc.ini");
+            global.inifilename = findConfFile(global.params.argv0, "sc.ini").ptr;
         }
         else version (Posix)
         {
-            global.inifilename = findConfFile(global.params.argv0, "dmd.conf");
+            global.inifilename = findConfFile(global.params.argv0, "dmd.conf").ptr;
         }
         else
         {
@@ -1415,7 +1415,7 @@ private void printPredefinedVersions(FILE* stream)
 
 extern(C) void printGlobalConfigs(FILE* stream)
 {
-    stream.fprintf("binary    %s\n", global.params.argv0);
+    stream.fprintf("binary    %.*s\n", global.params.argv0.length, global.params.argv0.ptr);
     stream.fprintf("version   %s\n", global._version);
     stream.fprintf("config    %s\n", global.inifilename ? global.inifilename : "(none)");
     // Print DFLAGS environment variable
