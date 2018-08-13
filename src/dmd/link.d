@@ -1056,8 +1056,8 @@ version (Windows)
 
             // search PATH to avoid createProcess preferring "link.exe" from the dmd folder
             Strings* paths = FileName.splitPath(getenv("PATH"));
-            if (auto p = FileName.searchPath(paths, "link.exe", false))
-                return p;
+            if (auto p = FileName.searchPath(paths, "link.exe"[], false))
+                return p.ptr;
             return "link.exe";
         }
 
@@ -1359,8 +1359,8 @@ version (Windows)
 
             // try mingw fallback relative to phobos library folder that's part of LIB
             Strings* libpaths = FileName.splitPath(getenv("LIB"));
-            if (auto p = FileName.searchPath(libpaths, r"mingw\kernel32.lib", false))
-                return FileName.path(p);
+            if (auto p = FileName.searchPath(libpaths, r"mingw\kernel32.lib"[], false))
+                return FileName.path(p).ptr;
 
             return null;
         }

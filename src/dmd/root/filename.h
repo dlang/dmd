@@ -29,7 +29,6 @@ struct FileName
     static const char *name(const char *);
     const char *name();
     static const char *path(const char *);
-    static const char *replaceName(const char *path, const char *name);
 
     static const char *combine(const char *path, const char *name);
     static Strings *splitPath(const char *path);

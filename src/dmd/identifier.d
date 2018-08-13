@@ -22,6 +22,7 @@ import dmd.root.rootobject;
 import dmd.root.stringtable;
 import dmd.tokens;
 import dmd.utf;
+import dmd.utils;
 
 
 /***********************************************************
@@ -169,9 +170,8 @@ nothrow:
         import dmd.root.filename: absPathThen;
 
         // see below for why we use absPathThen
-        return loc.filename.absPathThen!((absPath)
+        return loc.filename.toDString().absPathThen!((absPath)
         {
-
             // this block generates the "regular" identifier, i.e. if there are no collisions
             OutBuffer idBuf;
             idBuf.writestring(prefix);
@@ -197,13 +197,13 @@ nothrow:
             if (absPath)
             {
                 // replace characters that demangle can't handle
-                for (auto ptr = absPath; *ptr != '\0'; ++ptr)
+                foreach (ref c; absPath)
                 {
                     // see dmd.dmangle.isValidMangling
                     // Unfortunately importing it leads to either build failures or cyclic dependencies
                     // between modules.
-                    if (*ptr == '/' || *ptr == '\\' || *ptr == '.' || *ptr == '?' || *ptr == ':')
-                        *ptr = '_';
+                    if (c == '/' || c == '\\' || c == '.' || c == '?' || c == ':')
+                        c = '_';
                 }
 
                 fullPathIdBuf.writestring(absPath);
