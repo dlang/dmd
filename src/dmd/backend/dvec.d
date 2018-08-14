@@ -23,8 +23,8 @@ extern (C):
 nothrow:
 @nogc:
 
-alias size_t vec_base_t;                     // base type of vector
-alias vec_base_t* vec_t;
+alias vec_base_t = size_t;                     // base type of vector
+alias vec_t = vec_base_t*;
 
 enum VECBITS = vec_base_t.sizeof * 8;        // # of bits per entry
 enum VECMASK = VECBITS - 1;                  // mask for bit position

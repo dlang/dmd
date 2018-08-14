@@ -23,7 +23,7 @@ extern (C++):
 @nogc:
 nothrow:
 
-alias LIST* symlist_t;
+alias symlist_t = LIST*;
 
 extern char* ftdbname;
 
@@ -37,7 +37,7 @@ uint cv4_struct(Classsym*, int);
 
 /* =================== Added for MARS compiler ========================= */
 
-alias uint idx_t;        // type of type index
+alias idx_t = uint;        // type of type index
 
 /* Data structure for a type record     */
 

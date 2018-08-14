@@ -26,13 +26,13 @@ nothrow:
 
 /* Routines to handle elems.                            */
 
-alias ubyte eflags_t;
+alias eflags_t = ubyte;
 enum
 {
     EFLAGS_variadic = 1,   // variadic function call
 }
 
-alias uint pef_flags_t;
+alias pef_flags_t = uint;
 enum
 {
     PEFnotlvalue    = 1,       // although elem may look like
@@ -44,7 +44,7 @@ enum
     PEFmember       = 0x100,   // was a class member access
 }
 
-alias ubyte nflags_t;
+alias nflags_t = ubyte;
 enum
 {
     NFLli     = 1,     // loop invariant

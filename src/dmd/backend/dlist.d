@@ -42,13 +42,13 @@ struct LIST
         }
 }
 
-alias LIST* list_t;             /* pointer to a list entry              */
+alias list_t = LIST*;             /* pointer to a list entry              */
 
 /* FPNULL is a null function pointer designed to be an argument to
  * list_free().
  */
 
-alias void function(void*) @nogc nothrow list_free_fp;
+alias list_free_fp = void function(void*) @nogc nothrow;
 
 enum FPNULL = cast(list_free_fp)null;
 
