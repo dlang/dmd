@@ -264,7 +264,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
      * Returns:
      *  true if special
      */
-    final bool isSpecial() const nothrow @nogc
+    bool isSpecial() const nothrow @nogc
     {
         return (ident == Id.__c_long ||
                 ident == Id.__c_ulong ||

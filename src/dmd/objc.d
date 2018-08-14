@@ -121,7 +121,7 @@ struct ObjcSelector
         return lookup(cast(const(char)*)buf.data, buf.size, pcount);
     }
 
-    extern (D) final const(char)[] toString() const pure
+    extern (D) const(char)[] toString() const pure
     {
         return stringvalue[0 .. stringlen];
     }

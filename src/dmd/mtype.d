@@ -4421,7 +4421,7 @@ extern (C++) final class TypeFunction : TypeNext
      * Returns:
      *  storage class with STC.scope_ or STC.return_ OR'd in
      */
-    final StorageClass parameterStorageClass(Type tthis, Parameter p)
+    StorageClass parameterStorageClass(Type tthis, Parameter p)
     {
         //printf("parameterStorageClass(p: %s)\n", p.toChars());
         auto stc = p.storageClass;
@@ -6404,7 +6404,7 @@ extern (C++) final class Parameter : RootObject
      *  true = `this` can be used in place of `p`
      *  false = nope
      */
-    final bool isCovariant(bool returnByRef, const Parameter p) const pure nothrow @nogc @safe
+    bool isCovariant(bool returnByRef, const Parameter p) const pure nothrow @nogc @safe
     {
         enum stc = STC.ref_ | STC.in_ | STC.out_ | STC.lazy_;
         if ((this.storageClass & stc) != (p.storageClass & stc))

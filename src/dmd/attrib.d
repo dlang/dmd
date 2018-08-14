@@ -596,7 +596,7 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
         return buf.extractString();
     }
 
-    override final inout(ProtDeclaration) isProtDeclaration() inout
+    override inout(ProtDeclaration) isProtDeclaration() inout
     {
         return this;
     }
@@ -752,7 +752,7 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
         return (isunion ? "anonymous union" : "anonymous struct");
     }
 
-    override final inout(AnonDeclaration) isAnonDeclaration() inout
+    override inout(AnonDeclaration) isAnonDeclaration() inout
     {
         return this;
     }
@@ -1061,7 +1061,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
             Dsymbol.arraySyntaxCopy(decl));
     }
 
-    override final bool oneMember(Dsymbol* ps, Identifier ident)
+    override bool oneMember(Dsymbol* ps, Identifier ident)
     {
         // Required to support IFTI on a template that contains a
         // `static foreach` declaration.  `super.oneMember` calls
@@ -1126,7 +1126,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
         this.scopesym = sds;
     }
 
-    override final void addComment(const(char)* comment)
+    override void addComment(const(char)* comment)
     {
         // do nothing
         // change this to give semantics to documentation comments on static foreach declarations

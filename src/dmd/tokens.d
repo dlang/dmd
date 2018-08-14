@@ -759,7 +759,7 @@ extern (C++) struct Token
      *  ptr = pointer to string
      *  length = length of string
      */
-    final void setString(const(char)* ptr, size_t length)
+    void setString(const(char)* ptr, size_t length)
     {
         auto s = cast(char*)mem.xmalloc(length + 1);
         memcpy(s, ptr, length);
@@ -774,7 +774,7 @@ extern (C++) struct Token
      * Params:
      *  buf = string (not zero terminated)
      */
-    final void setString(const ref OutBuffer buf)
+    void setString(const ref OutBuffer buf)
     {
         setString(cast(const(char)*)buf.data, buf.offset);
     }
@@ -782,7 +782,7 @@ extern (C++) struct Token
     /****
      * Set to empty string
      */
-    final void setString()
+    void setString()
     {
         ustring = "";
         len = 0;
