@@ -1498,10 +1498,10 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     auto ve = new VarDeclaration(loc, p.type, p.ident, new ExpInitializer(loc, einit));
                     ve.storage_class |= STC.foreach_;
                     ve.storage_class |= p.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.TYPECTOR);
-                    
+
                     if (ignoreRef)
                         ve.storage_class &= ~STC.ref_;
-                    
+
                     makeargs = new ExpStatement(loc, ve);
                 }
                 else
@@ -1545,7 +1545,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         }
                         if (!p.type)
                             p.type = exp.type;
-                        
+
                         auto sc = p.storageClass;
                         if (ignoreRef) sc &= ~STC.ref_;
                         p.type = p.type.addStorageClass(sc).typeSemantic(loc, sc2);
