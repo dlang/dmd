@@ -997,7 +997,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 // if the parent is an interface declaration
                 // we must check for functions with the same signature
                 // in different inherited interfaces
-                if (sym.isInterfaceDeclaration())
+                if (sym && sym.isInterfaceDeclaration())
                     insertInterfaceInheritedFunction(fd, e);
                 else
                     exps.push(e);
