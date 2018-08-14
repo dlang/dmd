@@ -4028,6 +4028,9 @@ else
 
     override void visit(CompoundAsmStatement cas)
     {
+        // Apply postfix attributes of the asm block to each statement.
+        sc = sc.push();
+        sc.stc |= cas.stc;
         foreach (ref s; *cas.statements)
         {
             s = s ? s.statementSemantic(sc) : null;
@@ -4043,6 +4046,7 @@ else
         if (!(cas.stc & (STC.trusted | STC.safe)) && sc.func.setUnsafe())
             cas.error("`asm` statement is assumed to be `@system` - mark it with `@trusted` if it is not");
 
+        sc.pop();
         result = cas;
     }
 

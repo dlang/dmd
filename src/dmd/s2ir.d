@@ -1512,7 +1512,7 @@ private extern (C++) class S2irVisitor : Visitor
     /****************************************
      */
 
-    override void visit(AsmStatement s)
+    override void visit(InlineAsmStatement s)
 //    { .visit(irs, s); }
     {
         block *bpre;
