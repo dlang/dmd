@@ -654,7 +654,7 @@ private int tryMain(size_t argc, const(char)** argv)
         modules.push(m);
         if (firstmodule)
         {
-            global.params.objfiles.push(m.objfile.name.str);
+            global.params.objfiles.push(m.objfile.name.toChars());
             firstmodule = false;
         }
     }
@@ -666,7 +666,7 @@ private int tryMain(size_t argc, const(char)** argv)
         bool added = false;
         foreach (m; modules)
         {
-            if (strcmp(m.srcfile.name.str, global.main_d) == 0)
+            if (strcmp(m.srcfile.name.toChars(), global.main_d) == 0)
             {
                 string buf = "int main(){return 0;}";
                 m.srcfile.setbuffer(cast(void*)buf.ptr, buf.length);
@@ -728,7 +728,7 @@ private int tryMain(size_t argc, const(char)** argv)
             // Remove m's object file from list of object files
             for (size_t j = 0; j < global.params.objfiles.dim; j++)
             {
-                if (m.objfile.name.str == global.params.objfiles[j])
+                if (m.objfile.name.toChars() == global.params.objfiles[j])
                 {
                     global.params.objfiles.remove(j);
                     break;

@@ -602,9 +602,9 @@ extern (C++) final class Module : Package
             }
             docfilename = FileName.forceExt(argdoc, ext);
         }
-        if (FileName.equals(docfilename, srcfile.name.str))
+        if (FileName.equals(docfilename, srcfile.name.toChars()))
         {
-            error("source file and output file have same name '%s'", srcfile.name.str);
+            error("source file and output file have same name '%s'", srcfile.name.toChars());
             fatal();
         }
         return new File(docfilename);

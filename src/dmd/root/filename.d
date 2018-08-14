@@ -43,11 +43,11 @@ alias Files = Array!(File*);
 struct FileName
 {
 nothrow:
-    const(char)* str;
+    private const(char)[] str;
 
     extern (D) this(const(char)* str)
     {
-        this.str = mem.xstrdup(str);
+        this.str = mem.xstrdup(str).toDString();
     }
 
     /// Compare two name according to the platform's rules (case sensitive or not)
@@ -178,7 +178,7 @@ nothrow:
 
     extern (C++) const(char)* ext() const pure
     {
-        return ext(str);
+        return ext(str).ptr;
     }
 
     /********************************
@@ -264,7 +264,7 @@ nothrow:
 
     extern (C++) const(char)* name() const pure
     {
-        return name(str);
+        return name(str).ptr;
     }
 
     unittest
@@ -577,7 +577,7 @@ nothrow:
      */
     extern (C++) bool equalsExt(const(char)* ext) const pure
     {
-        return equalsExt(str, ext);
+        return equalsExt(str, ext.toDString());
     }
 
     /*************************************
@@ -894,14 +894,16 @@ nothrow:
         mem.xfree(cast(void*)str);
     }
 
-    extern (C++) const(char)* toChars() const pure nothrow @safe
+    extern (C++) const(char)* toChars() const pure nothrow @trusted
     {
-        return str;
+        // Since we can return an empty slice (but '\0' terminated),
+        // we don't do bounds check (as `&str[0]` does)
+        return str.ptr;
     }
 
     const(char)[] toString() const pure nothrow @trusted
     {
-        return str.toDString;
+        return str;
     }
 }
 
