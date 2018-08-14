@@ -384,14 +384,58 @@ version ( D_SIMD )
    * Returns:
    *      result of opcode
    */
-  pure @safe void16 __simd(XMM opcode, void16 op1, void16 op2);
+  pure @safe V1 simd(XMM opcode, V1, V2)(V1 op1, V2 op2)
+      if (is(V1 == __vector) && is(V2 == __vector))
+  {
+      pragma(inline, true);
+      return cast(V1)__simd(opcode, op1, op2);
+  }
+
+  pure @safe void16 __simd(XMM opcode, void16 op1, void16 op2); // intrinsic
+
+  ///
+  unittest
+  {
+      float4 a;
+      a = simd!(XMM.PXOR)(a, a);
+  }
 
   /**
    * Unary SIMD instructions.
    */
-  pure @safe void16 __simd(XMM opcode, void16 op1);
-  pure @safe void16 __simd(XMM opcode, double d);       ///
-  pure @safe void16 __simd(XMM opcode, float f);        ///
+  pure @safe V1 simd(XMM opcode, V1)(V1 op1)
+      if (is(V1 == __vector))
+  {
+      pragma(inline, true);
+      return cast(V1)__simd(opcode, op1);
+  }
+
+  ///
+  pure @safe V1 simd(XMM opcode, V1)(double d)
+      if (is(V1 == __vector))
+  {
+      pragma(inline, true);
+      return cast(V1)__simd(opcode, d);
+  }
+
+  ///
+  pure @safe V1 simd(XMM opcode, V1)(float f)
+      if (is(V1 == __vector))
+  {
+      pragma(inline, true);
+      return cast(V1)__simd(opcode, f);
+  }
+
+  pure @safe void16 __simd(XMM opcode, void16 op1); // intrinsic
+  pure @safe void16 __simd(XMM opcode, double d);   // intrinsic
+  pure @safe void16 __simd(XMM opcode, float f);    // intrinsic
+
+  ///
+  unittest
+  {
+      float4 a;
+      a = simd!(XMM.LODSS)(a);
+  }
 
   /****
    * For instructions:
@@ -408,7 +452,21 @@ version ( D_SIMD )
    * Returns:
    *      result of opcode
    */
-  pure @safe void16 __simd(XMM opcode, void16 op1, void16 op2, ubyte imm8);
+  pure @safe V1 simd(XMM opcode, ubyte imm8, V1, V2)(V1 op1, V2 op2)
+      if (is(V1 == __vector) && is(V2 == __vector))
+  {
+      pragma(inline, true);
+      return cast(V1)__simd(opcode, op1, op2, imm8);
+  }
+
+  pure @safe void16 __simd(XMM opcode, void16 op1, void16 op2, ubyte imm8); // intrinsic
+
+  ///
+  unittest
+  {
+      float4 a;
+      a = simd!(XMM.CMPPD, 0x7A)(a, a);
+  }
 
   /***
    * For instructions with the imm8 version:
@@ -421,7 +479,21 @@ version ( D_SIMD )
    * Returns:
    *      result of opcode
    */
-  pure @safe void16 __simd_ib(XMM opcode, void16 op1, ubyte imm8);
+  pure @safe V1 simd(XMM opcode, ubyte imm8, V1)(V1 op1)
+      if (is(V1 == __vector))
+  {
+      pragma(inline, true);
+      return cast(V1)__simd_ib(opcode, op1, imm8);
+  }
+
+  pure @safe void16 __simd_ib(XMM opcode, void16 op1, ubyte imm8);  // intrinsic
+
+  ///
+  unittest
+  {
+      float4 a;
+      a = simd!(XMM.PSRLQ, 0x7A)(a);
+  }
 
   /*****
    * For "store" operations of the form:
@@ -430,9 +502,44 @@ version ( D_SIMD )
    *    op2
    * These cannot be marked as pure, as semantic() doesn't check them.
    */
-  @safe void16 __simd_sto(XMM opcode, void16 op1, void16 op2);
-  @safe void16 __simd_sto(XMM opcode, double op1, void16 op2); ///
-  @safe void16 __simd_sto(XMM opcode, float op1, void16 op2);  ///
+  @safe V1 simd_sto(XMM opcode, V1, V2)(V1 op1, V2 op2)
+      if (is(V1 == __vector) && is(V2 == __vector))
+  {
+      pragma(inline, true);
+      return cast(V1)__simd_sto(opcode, op1, op2);
+  }
+
+  ///
+  @safe V1 simd_stod(XMM opcode, V1, V2)(double op1, V1 op2)
+      if (is(V1 == __vector))
+  {
+      pragma(inline, true);
+      return cast(V1)__simd_sto(opcode, op1, op2);
+  }
+
+  ///
+  @safe V1 simd_stof(XMM opcode, V1)(float op1, V1 op2)
+      if (is(V1 == __vector))
+  {
+      pragma(inline, true);
+      return cast(V1)__simd_sto(opcode, op1, op2);
+  }
+
+  @safe void16 __simd_sto(XMM opcode, void16 op1, void16 op2);  // intrinsic
+  @safe void16 __simd_sto(XMM opcode, double op1, void16 op2);  // intrinsic
+  @safe void16 __simd_sto(XMM opcode, float op1, void16 op2);   // intrinsic
+
+  ///
+  unittest
+  {
+      void16 a;
+      float f = 1;
+      double d = 1;
+
+      cast(void)simd_sto!(XMM.STOUPS)(a, a);
+      //simd_sto!(XMM.STOUPS)(f, a);
+      //simd_sto!(XMM.STOUPS)(d, a);
+  }
 
   /* The following use overloading to ensure correct typing.
    * Compile with inlining on for best performance.
@@ -440,12 +547,12 @@ version ( D_SIMD )
 
   pure @safe short8 pcmpeq()(short8 v1, short8 v2)
   {
-      return __simd(XMM.PCMPEQW, v1, v2);
+      return cast(short8)__simd(XMM.PCMPEQW, v1, v2);
   }
 
   pure @safe ushort8 pcmpeq()(ushort8 v1, ushort8 v2)
   {
-      return __simd(XMM.PCMPEQW, v1, v2);
+      return cast(ushort8)__simd(XMM.PCMPEQW, v1, v2);
   }
 
   /*********************
