@@ -943,7 +943,7 @@ extern (C++) final class Module : Package
             assert(prev);
             if (Module mprev = prev.isModule())
             {
-                if (FileName.compare(srcname, mprev.srcfile.toChars()) != 0)
+                if (!FileName.equals(srcname, mprev.srcfile.toChars()))
                     error(loc, "from file %s conflicts with another module %s from file %s", srcname, mprev.toChars(), mprev.srcfile.toChars());
                 else if (isRoot() && mprev.isRoot())
                     error(loc, "from file %s is specified twice on the command line", srcname);

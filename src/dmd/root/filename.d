@@ -21,12 +21,13 @@ import core.sys.windows.windows;
 import dmd.root.array;
 import dmd.root.file;
 import dmd.root.outbuffer;
+import dmd.root.port;
 import dmd.root.rmem;
 import dmd.root.rootobject;
+import dmd.utils;
 
 nothrow
 {
-version (Windows) extern (C) int stricmp(const char*, const char*) pure;
 version (Windows) extern (Windows) DWORD GetFullPathNameW(LPCWSTR, DWORD, LPWSTR, LPWSTR*) @nogc;
 version (Windows) extern (Windows) void SetLastError(DWORD) @nogc;
 version (Windows) extern (C) char* getcwd(char* buffer, size_t maxlen);
@@ -49,30 +50,25 @@ nothrow:
         this.str = mem.xstrdup(str);
     }
 
-    extern (C++) bool equals(const RootObject obj) const pure
-    {
-        return compare(obj) == 0;
-    }
-
+    /// Compare two name according to the platform's rules (case sensitive or not)
     extern (C++) static bool equals(const(char)* name1, const(char)* name2) pure
     {
-        return compare(name1, name2) == 0;
+        return equals(name1.toDString, name2.toDString);
     }
 
-    extern (C++) int compare(const RootObject obj) const pure
+    /// Ditto
+    extern (D) static bool equals(const(char)[] name1, const(char)[] name2) pure
     {
-        return compare(str, (cast(FileName*)obj).str);
-    }
+        if (name1.length != name2.length)
+            return false;
 
-    extern (C++) static int compare(const(char)* name1, const(char)* name2) pure
-    {
         version (Windows)
         {
-            return stricmp(name1, name2);
+            return Port.memicmp(name1.ptr, name2.ptr, name1.length) == 0;
         }
         else
         {
-            return strcmp(name1, name2);
+            return name1 == name2;
         }
     }
 
@@ -469,7 +465,7 @@ nothrow:
             return true;
         if (!e || !ext)
             return false;
-        return FileName.compare(e, ext) == 0;
+        return FileName.equals(e, ext);
     }
 
     /******************************

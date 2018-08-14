@@ -2243,8 +2243,8 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
         {
             static if (TARGET.Windows)
             {
-                const(char)* ext = FileName.ext(p);
-                if (ext && FileName.compare(ext, "exe") == 0)
+                const ext = FileName.ext(p);
+                if (ext && FileName.equals(ext, "exe"))
                 {
                     params.objname = p;
                     continue;
