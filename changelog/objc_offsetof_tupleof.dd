@@ -1,0 +1,14 @@
+`.offsetof` and `.tupleof` for fields of Objective-C classes have now been disabled
+
+To solve the fragile base class problem [1] in Objective-C, fields have a
+dynamic offset instead of a static offset. The compiler outputs a statically
+known offset which later the dynamic loader can update, if necessary, when the
+application is loaded. Due to this behavior it doesn't make sense to be able to
+get the offset of a field at compile time, because this offset might not
+actually be the same at runtime.
+
+To get the offset or value of a field, that is correct at runtime, functionality
+from the Objective-C runtime can be used instead [2].
+
+[1] $(LINK2 Fragile Binary Interface Problem, https://en.wikipedia.org/wiki/Fragile_binary_interface_problem)
+[2] $(LINK2 Objective-C Runtime, https://developer.apple.com/documentation/objectivec/objective_c_runtime)

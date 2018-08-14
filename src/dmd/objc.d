@@ -209,6 +209,39 @@ extern(C++) abstract class Objc
      * Returns: the Objective-C runtime metaclass of the given class declaration
      */
     abstract ClassDeclaration getRuntimeMetaclass(ClassDeclaration classDeclaration) const;
+
+    /**
+     * Issues a compile time error if the `.offsetof`/`.tupleof` property is
+     * used on a field of an Objective-C class.
+     *
+     * To solve the fragile base class problem in Objective-C, fields have a
+     * dynamic offset instead of a static offset. The compiler outputs a
+     * statically known offset which later the dynamic loader can update, if
+     * necessary, when the application is loaded. Due to this behavior it
+     * doesn't make sense to be able to get the offset of a field at compile
+     * time, because this offset might not actually be the same at runtime.
+     *
+     * To get the offset of a field that is correct at runtime, functionality
+     * from the Objective-C runtime can be used instead.
+     *
+     * Params:
+     *  expression = the `.offsetof`/`.tupleof` expression
+     *  aggregateDeclaration = the aggregate declaration the field of the
+     *      `.offsetof`/`.tupleof` expression belongs to
+     *  type = the type of the receiver of the `.tupleof` expression
+     *
+     * See_Also:
+     *  $(LINK2 https://en.wikipedia.org/wiki/Fragile_binary_interface_problem,
+     *      Fragile Binary Interface Problem)
+     *
+     * See_Also:
+     *  $(LINK2 https://developer.apple.com/documentation/objectivec/objective_c_runtime,
+     *      Objective-C Runtime)
+     */
+    abstract void checkOffsetof(Expression expression, AggregateDeclaration aggregateDeclaration) const;
+
+    /// ditto
+    abstract void checkTupleof(Expression expression, TypeClass type) const;
 }
 
 extern(C++) private final class Unsupported : Objc
@@ -261,6 +294,16 @@ extern(C++) private final class Unsupported : Objc
     override ClassDeclaration getRuntimeMetaclass(ClassDeclaration classDeclaration) const
     {
         assert(0, "Should never be called when Objective-C is not supported");
+    }
+
+    override void checkOffsetof(Expression expression, AggregateDeclaration aggregateDeclaration) const
+    {
+        // noop
+    }
+
+    override void checkTupleof(Expression expression, TypeClass type) const
+    {
+        // noop
     }
 }
 
@@ -392,6 +435,32 @@ extern(C++) private final class Supported : Objc
         }
         else
             return classDeclaration.objc.metaclass;
+    }
+
+    override void checkOffsetof(Expression expression, AggregateDeclaration aggregateDeclaration) const
+    {
+        if (aggregateDeclaration.classKind != ClassKind.objc)
+            return;
+
+        enum errorMessage = "no property `offsetof` for member `%s` of type " ~
+            "`%s`";
+
+        enum supplementalMessage = "`offsetof` is not available for members " ~
+            "of Objective-C classes. Please use the Objective-C runtime instead";
+
+        expression.error(errorMessage, expression.toChars(),
+            expression.type.toChars());
+        expression.errorSupplemental(supplementalMessage);
+    }
+
+    override void checkTupleof(Expression expression, TypeClass type) const
+    {
+        if (type.sym.classKind != ClassKind.objc)
+            return;
+
+        expression.error("no property `tupleof` for type `%s`", type.toChars());
+        expression.errorSupplemental("`tupleof` is not available for members " ~
+            "of Objective-C classes. Please use the Objective-C runtime instead");
     }
 
     extern(D) private bool isUdaSelector(StructDeclaration sd)

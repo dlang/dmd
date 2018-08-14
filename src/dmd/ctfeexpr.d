@@ -191,7 +191,7 @@ extern (C++) final class ThrownExceptionExp : Expression
          * (eg, in ScopeStatement)
          */
         if (loc.isValid() && !loc.equals(thrown.loc))
-            errorSupplemental(loc, "thrown from here");
+            .errorSupplemental(loc, "thrown from here");
     }
 
     override void accept(Visitor v)

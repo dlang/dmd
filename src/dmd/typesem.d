@@ -46,6 +46,7 @@ import dmd.init;
 import dmd.initsem;
 import dmd.visitor;
 import dmd.mtype;
+import dmd.objc;
 import dmd.opover;
 import dmd.root.ctfloat;
 import dmd.root.rmem;
@@ -2966,6 +2967,7 @@ private extern(C++) final class DotExpVisitor : Visitor
                 if (v.isField())
                 {
                     auto ad = v.toParent().isAggregateDeclaration();
+                    objc.checkOffsetof(e, ad);
                     ad.size(e.loc);
                     if (ad.sizeok != Sizeok.done)
                     {
@@ -3822,6 +3824,8 @@ private extern(C++) final class DotExpVisitor : Visitor
          */
         if (ident == Id._tupleof)
         {
+            objc.checkTupleof(e, mt);
+
             /* Create a TupleExp
              */
             e = e.expressionSemantic(sc); // do this before turning on noaccesscheck

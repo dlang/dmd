@@ -755,6 +755,17 @@ extern (C++) abstract class Expression : RootObject
         }
     }
 
+    final void errorSupplemental(const(char)* format, ...)
+    {
+        if (type == Type.terror)
+            return;
+
+        va_list ap;
+        va_start(ap, format);
+        .verrorSupplemental(loc, format, ap);
+        va_end(ap);
+    }
+
     final void warning(const(char)* format, ...) const
     {
         if (type != Type.terror)
@@ -1346,7 +1357,7 @@ extern (C++) abstract class Expression : RootObject
                 error("`@safe` %s `%s` cannot call `@system` %s `%s`",
                     sc.func.kind(), sc.func.toPrettyChars(), f.kind(),
                     prettyChars);
-                errorSupplemental(f.loc, "`%s` is declared here", prettyChars);
+                .errorSupplemental(f.loc, "`%s` is declared here", prettyChars);
                 return true;
             }
         }
