@@ -2340,7 +2340,7 @@ code **assemble(code **pc)  // reassemble scheduled instructions
                 pc = &cf.next;
             }
         }
-    L1: ;
+    L1:
     }
 
     // Just append any instructions left in the staging area
@@ -3176,7 +3176,7 @@ Lnop:
         c1 = cnext(c1);
         goto Ln;
     }
-L1: ;
+L1:
     return cstart;
 }
 
