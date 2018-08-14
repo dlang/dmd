@@ -361,3 +361,89 @@ public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
 
     return s;
 }
+
+unittest
+{
+    uint errors = global.startGagging();
+
+    // Immitates asmSemantic if version = IN_GCC.
+    static int semanticAsm(Token* tokens)
+    {
+        scope gas = new GccAsmStatement(Loc.initial, tokens);
+        scope p = new Parser!ASTCodegen(null, ";", false);
+        p.token = *tokens;
+        p.parseGccAsm(gas);
+        return p.errors;
+    }
+
+    // Immitates parseStatement for asm statements.
+    static void parseAsm(string input, bool expectError)
+    {
+        // Generate tokens from input test.
+        scope p = new Parser!ASTCodegen(null, input, false);
+        p.nextToken();
+
+        Token* toklist = null;
+        Token** ptoklist = &toklist;
+        p.check(TOK.asm_);
+        p.check(TOK.leftCurly);
+        while (1)
+        {
+            if (p.token.value == TOK.rightCurly || p.token.value == TOK.endOfFile)
+                break;
+            *ptoklist = Token.alloc();
+            memcpy(*ptoklist, &p.token, Token.sizeof);
+            ptoklist = &(*ptoklist).next;
+            *ptoklist = null;
+            p.nextToken();
+        }
+        p.check(TOK.rightCurly);
+
+        auto res = semanticAsm(toklist);
+        assert(res == 0 || expectError);
+    }
+
+    /// Assembly Tests, all should pass.
+    /// Note: Frontend is not initialized, use only strings and identifiers.
+    immutable string[] passAsmTests = [
+        // Basic asm statement
+        q{ asm { "nop";
+        } },
+
+        // Extended asm statement
+        q{ asm { "cpuid"
+               : "=a" (a), "=b" (b), "=c" (c), "=d" (d)
+               : "a" input;
+        } },
+
+        // Assembly with symbolic names
+        q{ asm { "bts %[base], %[offset]"
+               : [base] "+rm" *ptr,
+               : [offset] "Ir" bitnum;
+        } },
+
+        // Assembly with clobbers
+        q{ asm { "cpuid"
+               : "=a" a
+               : "a" input
+               : "ebx", "ecx", "edx";
+        } },
+
+        // Goto asm statement
+        q{ asm { "jmp %l0"
+               :
+               :
+               :
+               : Ljmplabel;
+        } },
+
+        // Any CTFE-able string allowed as instruction template.
+        q{ asm { generateAsm()
+        } },
+    ];
+
+    foreach (test; passAsmTests)
+        parseAsm(test, false);
+
+    global.endGagging(errors);
+}
