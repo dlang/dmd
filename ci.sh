@@ -158,17 +158,17 @@ download_install_sh() {
 
 install_d() {
   if [ "${DMD:-dmd}" == "gdc" ] || [ "${DMD:-dmd}" == "gdmd" ] ; then
-    export DMD=gdmd-8
-    if [ ! -e ~/dlang/gdc-8/activate ] ; then
+    export DMD=gdmd-${GDC_VERSION}
+    if [ ! -e ~/dlang/gdc-${GDC_VERSION}/activate ] ; then
         sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
         sudo apt-get update
-        sudo apt-get install -y gdc-8
+        sudo apt-get install -y gdc-${GDC_VERSION}
         # fetch the dmd-like wrapper
-        sudo wget https://raw.githubusercontent.com/D-Programming-GDC/GDMD/master/dmd-script -O /usr/bin/gdmd-8
-        sudo chmod +x /usr/bin/gdmd-8
+        sudo wget https://raw.githubusercontent.com/D-Programming-GDC/GDMD/master/dmd-script -O /usr/bin/gdmd-${GDC_VERSION}
+        sudo chmod +x /usr/bin/gdmd-${GDC_VERSION}
         # fake install script and create a fake 'activate' script
-        mkdir -p ~/dlang/gdc-8
-        echo "deactivate(){ echo;}" > ~/dlang/gdc-8/activate
+        mkdir -p ~/dlang/gdc-${GDC_VERSION}
+        echo "deactivate(){ echo;}" > ~/dlang/gdc-${GDC_VERSION}/activate
     fi
   else
     local install_sh="install.sh"
