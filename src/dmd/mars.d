@@ -1303,6 +1303,20 @@ void addDefaultVersionIdentifiers()
         VersionCondition.addPredefinedGlobalIdent("FreeBSD");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
         global.params.isFreeBSD = true;
+
+        import core.sys.posix.sys.utsname : uname, utsname;
+        utsname utsn;
+        if (uname(&utsn) == 0)
+        {
+            foreach (i, c; utsn.release)
+            {
+                if (c >= '0' && c <= '9')
+                    continue;
+                if (c == '.')
+                    VersionCondition.addPredefinedGlobalIdent("FreeBSD" ~ utsn.release[0 .. i]);
+                break;
+            }
+        }
     }
     else static if (TARGET.OpenBSD)
     {
