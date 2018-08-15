@@ -6,6 +6,7 @@
  * Authors:   Kenji Hara
  */
 module rt.util.typeinfo;
+static import core.internal.hash;
 
 template Floating(T)
 if (is(T == float) || is(T == double) || is(T == real))
@@ -32,10 +33,7 @@ if (is(T == float) || is(T == double) || is(T == real))
         return (d1 == d2) ? 0 : ((d1 < d2) ? -1 : 1);
     }
 
-    size_t hashOf(T value) @trusted
-    {
-        return .hashOf(value);
-    }
+    public alias hashOf = core.internal.hash.hashOf;
 }
 template Floating(T)
 if (is(T == cfloat) || is(T == cdouble) || is(T == creal))
@@ -64,10 +62,7 @@ if (is(T == cfloat) || is(T == cdouble) || is(T == creal))
         return result;
     }
 
-    size_t hashOf(T value) @trusted
-    {
-        return .hashOf(value);
-    }
+    public alias hashOf = core.internal.hash.hashOf;
 }
 
 template Array(T)
@@ -106,10 +101,7 @@ if (is(T ==  float) || is(T ==  double) || is(T ==  real) ||
         return 0;
     }
 
-    size_t hashOf(T[] value)
-    {
-        return .hashOf(value);
-    }
+    public alias hashOf = core.internal.hash.hashOf;
 }
 
 version(unittest)

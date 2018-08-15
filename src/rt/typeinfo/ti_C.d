@@ -25,7 +25,7 @@ class TypeInfo_C : TypeInfo
     override size_t getHash(scope const void* p)
     {
         Object o = *cast(Object*)p;
-        return hashOf(o ? o.toHash() : 0);
+        return o ? o.toHash() : 0;
     }
 
     override bool equals(in void* p1, in void* p2)

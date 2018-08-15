@@ -28,7 +28,8 @@ class TypeInfo_zi : TypeInfo
 
     override size_t getHash(scope const void* p)
     {
-        return hashOf(*cast(const cent*) p);
+        // Hash as if unsigned.
+        return hashOf(*cast(const ucent*) p);
     }
 
     override bool equals(in void* p1, in void* p2)

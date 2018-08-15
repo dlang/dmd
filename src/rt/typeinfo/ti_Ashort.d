@@ -25,7 +25,8 @@ class TypeInfo_As : TypeInfo_Array
 
     override size_t getHash(scope const void* p) @trusted const
     {
-        const s = *cast(const short[]*)p;
+        // Hash as if unsigned.
+        const s = *cast(const ushort[]*)p;
         return hashOf(s);
     }
 

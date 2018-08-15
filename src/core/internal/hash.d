@@ -147,7 +147,9 @@ private template useScopeConstPassByValue(T)
     else static if (is(T == struct) || is(T == union))
     {
         // Overly restrictive for simplicity.
-        enum useScopeConstPassByValue = false;
+        enum useScopeConstPassByValue = T.sizeof <= (int[]).sizeof &&
+            __traits(isPOD, T) && // "isPOD" just to check there's no dtor or postblit.
+            canBitwiseHash!T; // We can't verify toHash doesn't leak.
     }
     else static if (is(T : E[], E))
     {
@@ -157,8 +159,8 @@ private template useScopeConstPassByValue(T)
         else static if (T.length == 0)
             enum useScopeConstPassByValue = true;
         else
-            enum useScopeConstPassByValue = T.sizeof <= size_t.sizeof
-                && .useScopeConstPassByValue!(typeof(T[0]));
+            enum useScopeConstPassByValue = T.sizeof <= (uint[]).sizeof
+                && .useScopeConstPassByValue!(typeof(T.init[0]));
     }
     else static if (is(T : V[K], K, V))
     {
@@ -189,7 +191,21 @@ private template useScopeConstPassByValue(T)
 }
 
 //enum hash. CTFE depends on base type
-size_t hashOf(T)(scope const T val, size_t seed = 0)
+size_t hashOf(T)(scope const T val)
+if (is(T EType == enum) && useScopeConstPassByValue!EType)
+{
+    static if (is(T EType == enum)) //for EType
+    {
+        return hashOf(cast(const EType) val);
+    }
+    else
+    {
+        static assert(0);
+    }
+}
+
+//enum hash. CTFE depends on base type
+size_t hashOf(T)(scope const T val, size_t seed)
 if (is(T EType == enum) && useScopeConstPassByValue!EType)
 {
     static if (is(T EType == enum)) //for EType
@@ -273,10 +289,19 @@ if (!is(T == enum) && __traits(isStaticArray, T) && !canBitwiseHash!T)
 size_t hashOf(T)(scope const T val, size_t seed = 0)
 if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStaticArray, T)
     && !is(T == struct) && !is(T == class) && !is(T == union)
-    && canBitwiseHash!S)
+    && (__traits(isScalar, S) || canBitwiseHash!S))
 {
     alias ElementType = typeof(val[0]);
-    static if (is(typeof(toUbyte(val)) == const(ubyte)[]))
+    static if (!canBitwiseHash!ElementType)
+    {
+        size_t hash = seed;
+        foreach (ref o; val)
+        {
+            hash = hashOf(hashOf(o), hash); // double hashing to match TypeInfo.getHash
+        }
+        return hash;
+    }
+    else static if (is(typeof(toUbyte(val)) == const(ubyte)[]))
     //ubyteble array (arithmetic types and structs without toHash) CTFE ready for arithmetic types and structs without reference fields
     {
         return bytesHashAlignedBy!ElementType(toUbyte(val), seed);
@@ -292,7 +317,7 @@ if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStati
 size_t hashOf(T)(T val, size_t seed = 0)
 if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStaticArray, T)
     && !is(T == struct) && !is(T == class) && !is(T == union)
-    && !canBitwiseHash!S)
+    && !(__traits(isScalar, S) || canBitwiseHash!S))
 {
     size_t hash = seed;
     foreach (ref o; val)
@@ -316,7 +341,47 @@ if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStati
 
 //arithmetic type hash
 @trusted @nogc nothrow pure
-size_t hashOf(T)(scope const T val, size_t seed = 0) if (!is(T == enum) && __traits(isArithmetic, T))
+size_t hashOf(T)(scope const T val) if (!is(T == enum) && __traits(isArithmetic, T)
+    && __traits(isIntegral, T) && T.sizeof <= size_t.sizeof)
+{
+    return cast(UnqualUnsigned!T) val;
+}
+
+//arithmetic type hash
+@trusted @nogc nothrow pure
+size_t hashOf(T)(scope const T val, size_t seed) if (!is(T == enum) && __traits(isArithmetic, T)
+    && __traits(isIntegral, T) && T.sizeof <= size_t.sizeof)
+{
+    static if (size_t.sizeof < ulong.sizeof)
+    {
+        //MurmurHash3 32-bit single round
+        enum uint c1 = 0xcc9e2d51;
+        enum uint c2 = 0x1b873593;
+        enum uint c3 = 0xe6546b64;
+        enum uint r1 = 15;
+        enum uint r2 = 13;
+    }
+    else
+    {
+        //Half of MurmurHash3 64-bit single round
+        //(omits second interleaved update)
+        enum ulong c1 = 0x87c37b91114253d5;
+        enum ulong c2 = 0x4cf5ad432745937f;
+        enum ulong c3 = 0x52dce729;
+        enum uint r1 = 31;
+        enum uint r2 = 27;
+    }
+    auto h = c1 * cast(UnqualUnsigned!T) val;
+    h = (h << r1) | (h >>> (typeof(h).sizeof * 8 - r1));
+    h = (h * c2) ^ seed;
+    h = (h << r2) | (h >>> (typeof(h).sizeof * 8 - r2));
+    return h * 5 + c3;
+}
+
+//arithmetic type hash
+@trusted @nogc nothrow pure
+size_t hashOf(T)(scope const T val, size_t seed = 0) if (!is(T == enum) && __traits(isArithmetic, T)
+    && (!__traits(isIntegral, T) || T.sizeof > size_t.sizeof))
 {
     static if(__traits(isFloating, val))
     {
@@ -351,56 +416,52 @@ size_t hashOf(T)(scope const T val, size_t seed = 0) if (!is(T == enum) && __tra
     }
     else
     {
-        static if (T.sizeof <= size_t.sizeof && __traits(isIntegral, T))
-        {
-            static if (size_t.sizeof < ulong.sizeof)
-            {
-                //MurmurHash3 32-bit single round
-                enum uint c1 = 0xcc9e2d51;
-                enum uint c2 = 0x1b873593;
-                enum uint c3 = 0xe6546b64;
-                enum uint r1 = 15;
-                enum uint r2 = 13;
-            }
-            else
-            {
-                //Half of MurmurHash3 64-bit single round
-                //(omits second interleaved update)
-                enum ulong c1 = 0x87c37b91114253d5;
-                enum ulong c2 = 0x4cf5ad432745937f;
-                enum ulong c3 = 0x52dce729;
-                enum uint r1 = 31;
-                enum uint r2 = 27;
-            }
-            auto h = c1 * cast(UnqualUnsigned!T) val;
-            h = (h << r1) | (h >>> (typeof(h).sizeof * 8 - r1));
-            h = (h * c2) ^ seed;
-            h = (h << r2) | (h >>> (typeof(h).sizeof * 8 - r2));
-            return h * 5 + c3;
-        }
-        else static if (T.sizeof > size_t.sizeof && __traits(isIntegral, T))
-        {
-            static foreach (i; 0 .. T.sizeof / size_t.sizeof)
-                seed = hashOf(cast(size_t) (val >>> (size_t.sizeof * 8 * i)), seed);
-            return seed;
-        }
-        else
-        {
-            return bytesHashAlignedBy!T(toUbyte(val), seed);
-        }
+        static assert(T.sizeof > size_t.sizeof && __traits(isIntegral, T));
+        static foreach (i; 0 .. T.sizeof / size_t.sizeof)
+            seed = hashOf(cast(size_t) (val >>> (size_t.sizeof * 8 * i)), seed);
+        return seed;
     }
 }
 
 //typeof(null) hash. CTFE supported
 @trusted @nogc nothrow pure
-size_t hashOf(T)(scope const T val, size_t seed = 0) if (!is(T == enum) && is(T : typeof(null)))
+size_t hashOf(T)(scope const T val) if (!is(T == enum) && is(T : typeof(null)))
 {
-    return hashOf(cast(void*)null, seed);
+    return 0;
+}
+
+//typeof(null) hash. CTFE supported
+@trusted @nogc nothrow pure
+size_t hashOf(T)(scope const T val, size_t seed) if (!is(T == enum) && is(T : typeof(null)))
+{
+    return hashOf(size_t(0), seed);
 }
 
 //Pointers hash. CTFE unsupported if not null
 @trusted @nogc nothrow pure
-size_t hashOf(T)(scope const T val, size_t seed = 0)
+size_t hashOf(T)(scope const T val)
+if (!is(T == enum) && is(T V : V*) && !is(T : typeof(null))
+    && !is(T == struct) && !is(T == class) && !is(T == union))
+{
+    if(__ctfe)
+    {
+        if(val is null)
+        {
+            return 0;
+        }
+        else
+        {
+            assert(0, "Unable to calculate hash of non-null pointer at compile time");
+        }
+
+    }
+    auto addr = cast(size_t) val;
+    return addr ^ (addr >>> 4);
+}
+
+//Pointers hash. CTFE unsupported if not null
+@trusted @nogc nothrow pure
+size_t hashOf(T)(scope const T val, size_t seed)
 if (!is(T == enum) && is(T V : V*) && !is(T : typeof(null))
     && !is(T == struct) && !is(T == class) && !is(T == union))
 {
@@ -421,13 +482,14 @@ if (!is(T == enum) && is(T V : V*) && !is(T : typeof(null))
 
 private enum _hashOfStruct =
 q{
+    enum bool isChained = is(typeof(seed) : size_t);
+    static if (!isChained) enum size_t seed = 0;
     static if (hasCallableToHash!T) //CTFE depends on toHash()
     {
-        return hashOf(cast(size_t) val.toHash(), seed);
-    }
-    else static if (T.tupleof.length == 1)
-    {
-        return hashOf(val.tupleof[0], seed);
+        static if (isChained)
+            return hashOf(cast(size_t) val.toHash(), seed);
+        else
+            return val.toHash();
     }
     else
     {
@@ -436,13 +498,22 @@ q{
             pragma(msg, "Warning: struct "~__traits(identifier, T)~" has method toHash, however it cannot be called with "~T.stringof~" this.");
         }
 
-        static if (is(T == struct) && !canBitwiseHash!T)
+        static if (T.tupleof.length == 0)
+        {
+            return seed;
+        }
+        else static if ((is(T == struct) && !canBitwiseHash!T) || T.tupleof.length == 1)
         {
             static foreach (i, F; typeof(val.tupleof))
             {
-                seed = hashOf(val.tupleof[i], seed);
+                static if (i != 0)
+                    h = hashOf(val.tupleof[i], h);
+                else static if (isChained)
+                    size_t h = hashOf(val.tupleof[i], seed);
+                else
+                    size_t h = hashOf(val.tupleof[i]);
             }
-            return seed;
+            return h;
         }
         else static if (is(typeof(toUbyte(val)) == const(ubyte)[]))//CTFE ready for structs without reference fields
         {
@@ -466,7 +537,15 @@ if (!is(T == enum) && (is(T == struct) || is(T == union))
 }
 
 //struct or union hash
-size_t hashOf(T)(auto ref T val, size_t seed = 0)
+size_t hashOf(T)(auto ref T val)
+if (!is(T == enum) && (is(T == struct) || is(T == union))
+    && !canBitwiseHash!T)
+{
+    mixin(_hashOfStruct);
+}
+
+//struct or union hash
+size_t hashOf(T)(auto ref T val, size_t seed)
 if (!is(T == enum) && (is(T == struct) || is(T == union))
     && !canBitwiseHash!T)
 {
@@ -505,16 +584,39 @@ size_t hashOf(T)(scope const T val, size_t seed = 0) if (!is(T == enum) && is(T 
     return bytesHashAlignedBy!T(bytes, seed);
 }
 
-//class or interface hash. CTFE depends on toHash
-size_t hashOf(T)(scope const T val, size_t seed = 0)
+//address-based class hash. CTFE only if null.
+@nogc nothrow pure @trusted
+size_t hashOf(T)(scope const T val)
 if (!is(T == enum) && (is(T == interface) || is(T == class))
     && isFinalClassWithAddressBasedHash!T)
 {
+    if (__ctfe) if (val is null) return 0;
+    return hashOf(cast(const void*) val);
+}
+
+//address-based class hash. CTFE only if null.
+@nogc nothrow pure @trusted
+size_t hashOf(T)(scope const T val, size_t seed)
+if (!is(T == enum) && (is(T == interface) || is(T == class))
+    && isFinalClassWithAddressBasedHash!T)
+{
+    if (__ctfe) if (val is null) return hashOf(size_t(0), seed);
     return hashOf(cast(const void*) val, seed);
 }
 
 //class or interface hash. CTFE depends on toHash
-size_t hashOf(T)(T val, size_t seed = 0)
+size_t hashOf(T)(T val)
+if (!is(T == enum) && (is(T == interface) || is(T == class))
+    && !isFinalClassWithAddressBasedHash!T)
+{
+    static if (__traits(compiles, {size_t h = val.toHash();}))
+        return val ? val.toHash() : 0;
+    else
+        return val ? (cast(Object)val).toHash() : 0;
+}
+
+//class or interface hash. CTFE depends on toHash
+size_t hashOf(T)(T val, size_t seed)
 if (!is(T == enum) && (is(T == interface) || is(T == class))
     && !isFinalClassWithAddressBasedHash!T)
 {
@@ -525,9 +627,9 @@ if (!is(T == enum) && (is(T == interface) || is(T == class))
 }
 
 //associative array hash. CTFE depends on base types
-size_t hashOf(T)(T aa, size_t seed = 0) if (!is(T == enum) && __traits(isAssociativeArray, T))
+size_t hashOf(T)(T aa) if (!is(T == enum) && __traits(isAssociativeArray, T))
 {
-    if (!aa.length) return hashOf(0, seed);
+    if (!aa.length) return 0;
     size_t h = 0;
 
     // The computed hash is independent of the foreach traversal order.
@@ -538,7 +640,13 @@ size_t hashOf(T)(T aa, size_t seed = 0) if (!is(T == enum) && __traits(isAssocia
         hpair[1] = val.hashOf();
         h += hpair.hashOf();
     }
-    return h.hashOf(seed);
+    return h;
+}
+
+//associative array hash. CTFE depends on base types
+size_t hashOf(T)(T aa, size_t seed) if (!is(T == enum) && __traits(isAssociativeArray, T))
+{
+    return hashOf(hashOf(aa), seed);
 }
 
 unittest
