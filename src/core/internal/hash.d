@@ -13,10 +13,10 @@ import core.internal.convert;
 import core.internal.traits : allSatisfy;
 
 // If true ensure that positive zero and negative zero have the same hash.
-// typeid(float).getHash does this but historically hashOf(float) did not.
+// Historically typeid(float).getHash did this but hashOf(float) did not.
 private enum floatCoalesceZeroes = true;
 // If true ensure that all NaNs of the same floating point type have the same hash.
-// typeid(float).getHash does not do this but historically hashOf(float) did.
+// Historically typeid(float).getHash didn't do this but hashOf(float) did.
 private enum floatCoalesceNaNs = true;
 
 // If either of the above are true then no struct or array that contains the
