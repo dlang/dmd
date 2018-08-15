@@ -477,6 +477,7 @@ void parseEnvironment()
         env["PIC_FLAG"] = "";
     }
 
+    env.getDefault("GIT", "git");
     env.getDefault("GIT_HOME", "https://github.com/dlang");
     env.getDefault("SYSCONFDIR", "/etc");
     env.getDefault("TMP", tempDir);
@@ -490,13 +491,13 @@ void parseEnvironment()
     auto g = env.getDefault("G", generated.buildPath(os, build, model));
     mkdirRecurse(g);
 
-    env.getDefault("HOST_CXX", "c++");
-    env.getDefault("AR", "ar");
-    env.getDefault("GIT", "git");
+    env.getDefault("HOST_CXX", getHostCXX);
     auto cxxVersion = execute([env["HOST_CXX"], "--version"]).output;
     env.getDefault("CXX_KIND", !cxxVersion.find("gcc", "Free Software")[0].empty ? "g++" : "clang++");
 
     env.getDefault("HOST_DMD", "dmd");
+
+    env.getDefault("AR", "ar");
 }
 
 // Checks the environment variables and flags
@@ -818,6 +819,29 @@ auto detectModel()
         return "32";
 
     throw new Exception(`Cannot figure 32/64 model from "` ~ uname ~ `"`);
+}
+
+/*
+Gets the command for querying or invoking the host C++ compiler
+
+Returns: the command for querying or invoking the host C++ compiler
+*/
+auto getHostCXX()
+{
+    version(Posix)
+        return "c++";
+    else version(Windows)
+    {
+        immutable model = detectModel;
+        if (model == "32")
+            return "dmc";
+        else if (model == "64")
+            return `vcbuild\msvc-dmc`;
+        else
+            assert(false, `Unknown model "` ~ model ~ `"`);
+    }
+    else
+        static assert(false, "Unrecognized or unsupported OS.");
 }
 
 // Add the executable filename extension to the given `name` for the current OS.
