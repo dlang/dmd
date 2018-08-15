@@ -26,8 +26,9 @@ version(CRuntime_Glibc)
         char[utsNameLength] sysname;
         char[utsNameLength] nodename;
         char[utsNameLength] release;
-        // The field name is version but version is a keyword in D.
-        char[utsNameLength] update;
+        char[utsNameLength] version_;
+        // TODO Deprecate after version_ has been in an official release.
+        alias update = version_;
         char[utsNameLength] machine;
 
         char[utsNameLength] __domainname;
@@ -44,8 +45,9 @@ else version(Darwin)
         char[utsNameLength] sysname;
         char[utsNameLength] nodename;
         char[utsNameLength] release;
-        // The field name is version but version is a keyword in D.
-        char[utsNameLength] update;
+        char[utsNameLength] version_;
+        // TODO Deprecate after version_ has been in an official release.
+        alias update = version_;
         char[utsNameLength] machine;
     }
 
@@ -61,8 +63,9 @@ else version(FreeBSD)
         char[SYS_NMLN] sysname;
         char[SYS_NMLN] nodename;
         char[SYS_NMLN] release;
-        // The field name is version but version is a keyword in D.
-        char[SYS_NMLN] update;
+        char[SYS_NMLN] version_;
+        // TODO Deprecate after version_ has been in an official release.
+        alias update = version_;
         char[SYS_NMLN] machine;
     }
 
@@ -78,8 +81,9 @@ else version(NetBSD)
         char[utsNameLength] sysname;
         char[utsNameLength] nodename;
         char[utsNameLength] release;
-        // The field name is version but version is a keyword in D.
-        char[utsNameLength] update;
+        char[utsNameLength] version_;
+        // TODO Deprecate after version_ has been in an official release.
+        alias update = version_;
         char[utsNameLength] machine;
     }
 
@@ -94,8 +98,9 @@ else version(DragonFlyBSD)
         char[utsNameLength] sysname;
         char[utsNameLength] nodename;
         char[utsNameLength] release;
-        // The field name is version but version is a keyword in D.
-        char[utsNameLength] update;
+        char[utsNameLength] version_;
+        // TODO Deprecate after version_ has been in an official release.
+        alias update = version_;
         char[utsNameLength] machine;
     }
 
