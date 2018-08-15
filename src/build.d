@@ -236,6 +236,29 @@ auto opTabGen()
     return dependency;
 }
 
+version(Windows)
+{
+    // Build the msvc-dmc compiler wrapper
+    auto buildMsvcDmc()
+    {
+        Dependency dependency = {
+            target: env["G"].buildPath("msvc-dmc").exeName,
+            sources: [`vcbuild\msvc-dmc`],
+        };
+        return dependency;
+    }
+
+    // Build the msvc-lib linker wrapper
+    auto buildMsvcLib()
+    {
+        Dependency dependency = {
+            target: env["G"].buildPath("msvc-lib").exeName,
+            sources: [`vcbuild\msvc-lib`],
+        };
+        return dependency;
+    }
+}
+
 // Build individual CXX objects of the backend
 auto buildCXX(string obj, string fileName)
 {
@@ -270,6 +293,15 @@ auto dBackend()
 auto cxxBackend()
 {
     Dependency[] dependencys;
+    version(Windows)
+    {
+        immutable model = detectModel;
+        if (model == "64")
+        {
+            dependencys ~= buildMsvcDmc;
+            dependencys ~= buildMsvcLib;
+        }
+    }
     foreach (obj; sources.backendObjects)
         dependencys ~= buildCXX(obj, env["C"].buildPath(obj.baseName.stripExtension ~ ".c"));
 
@@ -836,7 +868,7 @@ auto getHostCXX()
         if (model == "32")
             return "dmc";
         else if (model == "64")
-            return `vcbuild\msvc-dmc`;
+            return buildMsvcDmc.target;
         else
             assert(false, `Unknown model "` ~ model ~ `"`);
     }
