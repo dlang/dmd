@@ -292,30 +292,30 @@ auto dBackend()
 // Build the CXX objects of the backend
 auto cxxBackend()
 {
-    Dependency[] dependencys;
+    Dependency[] dependencies;
     version(Windows)
     {
         immutable model = detectModel;
         if (model == "64")
         {
-            dependencys ~= buildMsvcDmc;
-            dependencys ~= buildMsvcLib;
+            dependencies ~= buildMsvcDmc;
+            dependencies ~= buildMsvcLib;
         }
     }
     foreach (obj; sources.backendObjects)
-        dependencys ~= buildCXX(obj, env["C"].buildPath(obj.baseName.stripExtension ~ ".c"));
+        dependencies ~= buildCXX(obj, env["C"].buildPath(obj.baseName.stripExtension ~ ".c"));
 
-    return dependencys;
+    return dependencies;
 }
 
-// Execute the sub-dependencys of the backend and pack everything into one object file
+// Execute the sub-dependencies of the backend and pack everything into one object file
 auto buildBackend()
 {
     opTabGen.run;
 
-    Dependency[] dependencys = cxxBackend();
-    dependencys ~= dBackend;
-    foreach (dependency; dependencys.parallel(1))
+    Dependency[] dependencies = cxxBackend();
+    dependencies ~= dBackend;
+    foreach (dependency; dependencies.parallel(1))
         dependency.run;
 
     // Pack the backend
@@ -361,18 +361,18 @@ auto configFiles()
 
 /**
 Main build routine for the DMD compiler.
-Defines the required order for the build dependencys, runs all these dependency dependencys
+Defines the required order for the build dependencies, runs all these dependency dependencies
 and afterwards builds the DMD compiler.
 */
 auto buildDMD()
 {
     // The string files are required by most targets
-    Dependency[] dependencys = buildStringFiles();
-    foreach (dependency; dependencys.parallel(1))
+    Dependency[] dependencies = buildStringFiles();
+    foreach (dependency; dependencies.parallel(1))
         dependency.run;
 
-    dependencys = [lexer, newDelete, dmdConf];
-    foreach (ref dependency; dependencys.parallel(1))
+    dependencies = [lexer, newDelete, dmdConf];
+    foreach (ref dependency; dependencies.parallel(1))
         dependency.run;
 
     auto backend = buildBackend();
@@ -380,7 +380,7 @@ auto buildDMD()
     // Main DMD build dependency
     Dependency dependency = {
         // newdelete.o + lexer.a + backend.a
-        sources: sources.dmd.chain(sources.root, dependencys[0].targets, dependencys[1].targets, backend.targets).array,
+        sources: sources.dmd.chain(sources.root, dependencies[0].targets, dependencies[1].targets, backend.targets).array,
         target: env["DMD_PATH"],
         name: "(CC) MAIN_DMD_BUILD",
         command: [
