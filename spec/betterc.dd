@@ -81,9 +81,36 @@ $(H2 $(LNAME2 retained, Retained Features))
     $(LI Interfacing with C++)
     $(LI COM classes and C++ classes)
     $(LI `assert` failures are directed to the C runtime library)
+    $(LI `switch` with strings)
+    $(LI `unittest`)
     )
 
-$(H2 $(LNAME2 consequences, Not Available))
+$(H3 $(LNAME2 unittests, Running unittests in `-betterC`))
+
+While, testing can be done without the $(TT -betterC) flag, it is sometimes desirable to run the testsuite in `-betterC` too.
+`unittest` blocks can be listed with the $(DDSUBLINK spec/traits, getUnitTests, `getUnitTests`) trait:
+
+---
+unittest
+{
+   assert(0);
+}
+
+extern(C) void main()
+{
+    static foreach(u; __traits(getUnitTests, __traits(parent, main)))
+        u();
+}
+---
+
+$(CONSOLE
+> dmd -betterC -unittest -run test.d
+dmd_runpezoXK: foo.d:3: Assertion `0' failed.
+)
+
+However, in `-betterC` `assert` expressions don't use Druntime's assert and are directed to `assert` of the C runtime library instead.
+
+$(H2 $(LNAME2 consequences, Unavailable Features))
 
     $(P D features not available with $(B BetterC):)
 
@@ -94,12 +121,9 @@ $(OL
     $(LI Built-in threading (e.g. $(MREF core, thread)))
     $(LI Dynamic arrays (though slices of static arrays work) and associative arrays)
     $(LI Exceptions)
-    $(LI `switch` with strings)
     $(LI `final switch`)
     $(LI `synchronized` and $(MREF core, sync))
     $(LI Static module constructors or destructors)
-    $(LI Struct destructors)
-    $(LI `unittest` (testing can be done without the $(TT -betterC) flag))
 )
 
 

@@ -720,7 +720,7 @@ int x = foo[3]; // error, out of bounds
         with a compile time switch.
         )
 
-        $(P An out of bounds memory access will cause undefined behavior,
+        $(UNDEFINED_BEHAVIOR An out of bounds memory access will cause undefined behavior,
             therefore array bounds check is normally enabled in `@safe` functions.
             The runtime behavior is part of the language semantics.
         )
@@ -785,7 +785,7 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
 enum Color { red, blue, green };
 
-int value[Color.max + 1] =
+int[Color.max + 1] value =
   [ Color.blue :6,
     Color.green:2,
     Color.red  :5 ];

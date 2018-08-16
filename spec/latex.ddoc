@@ -93,6 +93,7 @@ _=
 
 GLINK=$(LINK2 $0, $(I $0))
 GLINK2=$(GLINK $2)
+GLINK2_ALTTEXT=$(LINK2 $2, $(I $3))
 GNAME={\fontshape{sl}\selectfont $0}
 _=
 
@@ -399,8 +400,9 @@ DDOC=% Copyright (c) 1999-$(YEAR) by Digital Mars
 \usepackage{hyperref}
 \usepackage{multicol}
 \usepackage{longtable}
-\usepackage[T1]{fontenc}
 \usepackage{MnSymbol}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
 
 % For reproducible builds, fix the date if run on DAutoTest (empty by default)
 $(LATEX_NO_DATE)

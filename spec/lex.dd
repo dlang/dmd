@@ -258,9 +258,10 @@ $(GNAME IdentifierChar):
 
 $(P Identifiers start with a letter, $(D _), or universal alpha, and are
 followed by any number of letters, $(D _), digits, or universal alphas.
-Universal alphas are as defined in ISO/IEC 9899:1999(E) Appendix D. (This is the
-C99 Standard.) Identifiers can be arbitrarily long, and are case sensitive.
-Identifiers starting with $(D __) (two underscores) are reserved.)
+Universal alphas are as defined in ISO/IEC 9899:1999(E) Appendix D of the C99 Standard.
+Identifiers can be arbitrarily long, and are case sensitive.)
+
+$(IMPLEMENTATION_DEFINED Identifiers starting with $(D __) (two underscores) are reserved.)
 
 $(H2 $(LNAME2 string_literals, String Literals))
 
@@ -348,13 +349,15 @@ $(GNAME TokenString):
 
         $(P
         A string literal is either a double quoted string, a wysiwyg quoted
-        string, a delimited string, a token string,     or a hex string.
+        string, a delimited string, a token string, or a hex string.
         )
 
         $(P In all string literal forms, an $(GLINK EndOfLine) is regarded as a single
         $(D \n) character.)
 
-        $(P String literals are read only. Writes to string literals
+        $(P String literals are read only.)
+
+        $(UNDEFINED_BEHAVIOR Writes to string literals
         cannot always be detected, but cause undefined behavior.)
 
 $(H3 $(LNAME2 wysiwyg, Wysiwyg Strings))
@@ -541,7 +544,7 @@ $(H2 $(LNAME2 escape_sequences, Escape Sequences))
         or $(D 255) in decimal))
     $(TROW $(D \u)$(I nnnn), Unicode character U+$(I nnnn)$(COMMA) where
         $(I nnnn) are four hexadecimal digits.$(BR)For example$(COMMA)
-        $(D \u042F) represents the Unicode character Я (U+42F).)
+        $(D \u03B3) represents the Unicode character $(GAMMA) (U+03B3 - GREEK SMALL LETTER GAMMA).)
     $(TROW $(D \U)$(I nnnnnnnn), Unicode character U+$(I nnnnnnnn)$(COMMA)
         where $(I nnnnnnnn) are 8 hexadecimal digits.$(BR)For example$(COMMA)
         $(D \U0001F603) represents the Unicode character U+1F603 (SMILING FACE
@@ -943,7 +946,7 @@ $(MULTICOLS 4,
 
     $(LINK2 statement.html#IfStatement, $(D else))
     $(LINK2 enum.html, $(D enum))
-    $(LINK2 attribute.html#ProtectionAttribute, $(D export))
+    $(LINK2 attribute.html#visibility_attributes, $(D export))
     $(LINK2 attribute.html#linkage, $(D extern))
 
     $(LINK2 type.html, $(D false))
@@ -984,11 +987,11 @@ $(MULTICOLS 4,
     $(LINK2 function.html#OutStatement, $(D out))
     $(LINK2 attribute.html#override, $(D override))
 
-    $(LINK2 attribute.html#ProtectionAttribute, $(D package))
+    $(LINK2 attribute.html#visibility_attributes, $(D package))
     $(LINK2 pragma.html, $(D pragma))
-    $(LINK2 attribute.html#ProtectionAttribute, $(D private))
-    $(LINK2 attribute.html#ProtectionAttribute, $(D protected))
-    $(LINK2 attribute.html#ProtectionAttribute, $(D public))
+    $(LINK2 attribute.html#visibility_attributes, $(D private))
+    $(LINK2 attribute.html#visibility_attributes, $(D protected))
+    $(LINK2 attribute.html#visibility_attributes, $(D public))
     $(LINK2 function.html#pure-functions, $(D pure))
 
     $(LINK2 type.html, $(D real))

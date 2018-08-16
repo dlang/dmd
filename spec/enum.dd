@@ -22,9 +22,18 @@ $(GNAME EnumMembers):
     $(GLINK EnumMember) $(D ,)
     $(GLINK EnumMember) $(D ,) $(GLINK EnumMembers)
 
+$(GNAME EnumMemberAttributes):
+    $(GLINK EnumMemberAttribute)
+    $(GLINK EnumMemberAttribute) $(GLINK EnumMemberAttributes)
+
+$(GNAME EnumMemberAttribute):
+    $(GLINK2 attribute, DeprecatedAttribute)
+    $(GLINK2 attribute, UserDefinedAttribute)
+    $(D @)$(GLINK2 attribute, disable)
+
 $(GNAME EnumMember):
-    $(I Identifier)
-    $(I Identifier) $(D =) $(ASSIGNEXPRESSION)
+    $(GLINK EnumMemberAttributes)$(OPT) $(I Identifier)
+    $(GLINK EnumMemberAttributes)$(OPT) $(I Identifier) $(D =) $(ASSIGNEXPRESSION)
 
 $(GNAME AnonymousEnumDeclaration):
     $(D enum) $(D :) $(GLINK EnumBaseType) $(D {) $(GLINK EnumMembers) $(D })

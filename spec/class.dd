@@ -101,9 +101,10 @@ Foo var;
 
 $(H2 $(LNAME2 access_control, Access Control))
 
-        $(P Access to class members is controlled using $(GLINK2 attribute, ProtectionAttribute)s.
-        The default protection attribute is $(D public).
-        Access control does not affect visibility.
+        $(P Access to class members is controlled using
+        $(DDSUBLINK spec/attribute, visibility_attributes,
+        visibility attributes).
+        The default visibility attribute is $(D public).
         )
 
 $(H2 $(LNAME2 fields, Fields))
@@ -145,6 +146,8 @@ $(H2 $(LNAME2 field_properties, Field Properties))
 
         $(P The $(D .offsetof) property gives the offset in bytes of the field
         from the beginning of the class instantiation.
+        `.offsetof` is not available for fields of `extern(Objective-C)` classes
+        due to their fields having a dynamic offset.
         $(D .offsetof) can only be applied to
         expressions which produce the type of
         the field itself, not the class type:
@@ -171,6 +174,8 @@ $(H2 $(LNAME2 class_properties, Class Properties))
         $(DDSUBLINK spec/template, variadic-templates, expression sequence)
         of all the fields in the class, excluding the hidden fields and
         the fields in the base class.
+        `.tupleof` is not available for `extern(Objective-C)` classes due to
+        their fields having a dynamic offset.
         )
 ---
 class Foo { int x; long y; }
@@ -256,19 +261,13 @@ $(H2 $(LNAME2 synchronized-classes, Synchronized Classes))
         }
         ---
 
-        $(P Member functions of non-synchronized classes cannot be individually marked as synchronized.
-        The synchronized attribute must be applied to the class declaration itself:
+        $(P Member functions of non-synchronized classes can be individually marked as synchronized.
         )
 
         ---
         class Foo
         {
-            synchronized void foo() { }  // disallowed!
-        }
-
-        synchronized class Bar
-        {
-            void bar() { }  // bar is synchronized
+            synchronized void foo() { }  // foo is synchronized
         }
         ---
 
@@ -389,6 +388,20 @@ $(GNAME Constructor):
         $(P The following restrictions apply to class construction:)
 
     $(OL
+        $(LI It is illegal for constructors to mutually call each other.
+
+        ------
+        this() { this(1); }
+        this(int i) { this(); } // illegal, cyclic constructor calls
+        ------
+
+        $(IMPLEMENTATION_DEFINED The compiler is not required to detect
+        cyclic constructor calls.)
+
+        $(UNDEFINED_BEHAVIOR If the program executes with cyclic constructor
+        calls.)
+        )
+
         $(LI If a constructor's code contains a delegate constructor call, all
         possible execution paths through the constructor must make exactly one
         delegate constructor call:
@@ -669,12 +682,12 @@ $(GNAME Destructor):
 
         $(P The garbage collector is not guaranteed to run the destructor
         for all unreferenced objects. Furthermore, the order in which the
-        garbage collector calls destructors for unreference objects
+        garbage collector calls destructors for unreferenced objects
         is not specified.
         This means that
         when the garbage collector calls a destructor for an object of a class
         that has
-        members that are references to garbage collected objects, those
+        members which are references to garbage collected objects, those
         references may no longer be valid. This means that destructors
         cannot reference sub objects.
         This rule does not apply to auto objects or objects destructed
@@ -859,8 +872,9 @@ $(H2 $(LNAME2 invariants, Class Invariants))
 
 $(GRAMMAR
 $(GNAME ClassInvariant):
-    $(D invariant ( )) $(GLINK2 statement, BlockStatement)
+    $(D invariant $(LPAREN) $(RPAREN)) $(GLINK2 statement, BlockStatement)
     $(D invariant) $(GLINK2 statement, BlockStatement)
+    $(D invariant $(LPAREN)) $(GLINK2 expression, ContractArguments) $(D $(RPAREN) ;)
 )
 
     $(P $(I ClassInvariant) specify the relationships among the members of a class instance.

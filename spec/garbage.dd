@@ -193,7 +193,7 @@ $(H2 $(LNAME2 pointers_and_gc, Pointers and the Garbage Collector))
         to enable the maximum flexibility in garbage collector design.
         )
 
-        $(P Undefined behavior:)
+        $(UNDEFINED_BEHAVIOR
 
         $(UL
 
@@ -303,6 +303,7 @@ struct Foo
         came from, with likely disastrous results.
         )
 
+        )
         )
 
         $(P Things that are reliable and can be done:)

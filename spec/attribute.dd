@@ -277,10 +277,12 @@ auto sz = S.sizeof;  // 12
         $(P Do not align references or pointers that were allocated
         using $(GLINK2 expression, NewExpression) on boundaries that are not
         a multiple of $(D size_t). The garbage collector assumes that pointers
-        and references to gc allocated objects will be on $(D size_t)
-        byte boundaries. If they are not, undefined behavior will
-        result.
+        and references to GC allocated objects will be on $(D size_t)
+        byte boundaries.
         )
+
+        $(UNDEFINED_BEHAVIOR If any pointers and references to GC
+        allocated objects are not aligned on `size_t` byte boundaries.)
 
         $(P The $(I AlignAttribute) is reset to the default when
         entering a function scope or a non-anonymous struct, union, class, and restored
@@ -780,6 +782,9 @@ pragma(msg, __traits(getAttributes, typeof(a))); // prints tuple("hello")
             Whether the attributes are values or types is up to the user, and whether later
             attributes accumulate or override earlier ones is also up to how the user
             interprets them.
+        )
+        $(P
+            UDAs cannot be attached to template parameters.
         )
 $(SPEC_SUBNAV_PREV_NEXT property, Properties, pragma, Pragmas)
 )
