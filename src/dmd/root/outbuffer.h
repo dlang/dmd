@@ -55,7 +55,6 @@ public:
     void setsize(size_t size);
     void reset();
     void write(const void *data, d_size_t nbytes);
-    void writebstring(utf8_t *string);
     void writestring(const char *string);
     void prependstring(const char *string);
     void writenl();                     // write newline
