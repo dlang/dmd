@@ -1533,13 +1533,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             else
                 ob.writestring("???");
             ob.writeByte(')');
-            for (size_t i = 0; i < imp.names.dim; i++)
+            foreach (i, name; imp.names)
             {
                 if (i == 0)
                     ob.writeByte(':');
                 else
                     ob.writeByte(',');
-                Identifier name = imp.names[i];
                 Identifier _alias = imp.aliases[i];
                 if (!_alias)
                 {
