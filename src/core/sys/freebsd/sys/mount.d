@@ -11,6 +11,7 @@ module core.sys.freebsd.sys.mount;
 
 version(FreeBSD):
 
+import core.stdc.config : c_long;
 import core.sys.posix.sys.stat : stat_t;
 import core.sys.posix.sys.types : uid_t;
 
@@ -292,7 +293,7 @@ int fhstat(const fhandle_t*, stat_t*);
 int fhstatfs(const fhandle_t*, statfs_t*);
 int fstatfs(int, statfs_t*);
 int getfh(const char*, fhandle_t*);
-int getfsstat(statfs_t*, long, int);
+int getfsstat(statfs_t*, c_long, int);
 int getmntinfo(statfs_t**, int);
 int lgetfh(const char*, fhandle_t*);
 int mount(const char*, const char*, int, void*);
