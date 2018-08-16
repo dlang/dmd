@@ -524,8 +524,7 @@ void parseEnvironment()
     mkdirRecurse(g);
 
     env.getDefault("HOST_CXX", getHostCXX);
-    auto cxxVersion = execute([env["HOST_CXX"], "--version"]).output;
-    env.getDefault("CXX_KIND", !cxxVersion.find("gcc", "Free Software")[0].empty ? "g++" : "clang++");
+    env.getDefault("CXX_KIND", getHostCXXKind);
 
     env.getDefault("HOST_DMD", "dmd");
 
@@ -872,6 +871,24 @@ auto getHostCXX()
         else
             assert(false, `Unknown model "` ~ model ~ `"`);
     }
+    else
+        static assert(false, "Unrecognized or unsupported OS.");
+}
+
+/*
+Gets a string describing the type of host C++ compiler
+
+Returns: a string describing the type of host C++ compiler
+*/
+auto getHostCXXKind()
+{
+    version(Posix)
+    {
+        auto cxxVersion = execute([getHostCXX, "--version"]).output;
+        return !cxxVersion.find("gcc", "Free Software")[0].empty ? "g++" : "clang++";
+    }
+    else version(Windows)
+        return "dmc";
     else
         static assert(false, "Unrecognized or unsupported OS.");
 }
