@@ -13,8 +13,6 @@
  */
 module rt.typeinfo.ti_cent;
 
-private import rt.util.hash;
-
 static if(is(cent)):
 
 // cent
@@ -30,7 +28,8 @@ class TypeInfo_zi : TypeInfo
 
     override size_t getHash(scope const void* p)
     {
-        return rt.util.hash.hashOf(p[0 .. cent.sizeof], 0);
+        // Hash as if unsigned.
+        return hashOf(*cast(const ucent*) p);
     }
 
     override bool equals(in void* p1, in void* p2)

@@ -14,7 +14,6 @@
 module rt.typeinfo.ti_Ashort;
 
 private import core.stdc.string;
-private import rt.util.hash;
 
 // short[]
 
@@ -26,8 +25,9 @@ class TypeInfo_As : TypeInfo_Array
 
     override size_t getHash(scope const void* p) @trusted const
     {
-        const s = *cast(const short[]*)p;
-        return rt.util.hash.hashOf(s, 0);
+        // Hash as if unsigned.
+        const s = *cast(const ushort[]*)p;
+        return hashOf(s);
     }
 
     override bool equals(in void* p1, in void* p2) const

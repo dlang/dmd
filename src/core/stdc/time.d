@@ -86,7 +86,7 @@ version( Windows )
 }
 else version( OSX )
 {
-    enum clock_t CLOCKS_PER_SEC = 100;
+    enum clock_t CLOCKS_PER_SEC = 1_000_000; // was 100 until OSX 10.4/10.5
     version (X86)
         extern (C) pragma(mangle, "clock$UNIX2003") clock_t clock();
     else

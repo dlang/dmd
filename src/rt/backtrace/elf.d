@@ -52,6 +52,9 @@ struct Image
         if (dbgSectionIndex != -1)
         {
             auto dbgSectionHeader = ElfSectionHeader(&file, dbgSectionIndex);
+            // we don't support compressed debug sections
+            if ((dbgSectionHeader.shdr.sh_flags & SHF_COMPRESSED) != 0)
+                return null;
             // debug_line section found and loaded
             return ElfSection(&file, &dbgSectionHeader);
         }

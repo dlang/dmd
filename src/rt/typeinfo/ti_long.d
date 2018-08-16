@@ -13,8 +13,6 @@
  */
 module rt.typeinfo.ti_long;
 
-private import rt.util.hash;
-
 // long
 
 class TypeInfo_l : TypeInfo
@@ -28,7 +26,11 @@ class TypeInfo_l : TypeInfo
 
     override size_t getHash(scope const void* p)
     {
-        return rt.util.hash.hashOf(p[0 .. long.sizeof], 0);
+        // Hash as if unsigned.
+        static if (ulong.sizeof <= size_t.sizeof)
+            return *cast(const ulong*)p;
+        else
+            return hashOf(*cast(const ulong*)p);
     }
 
     override bool equals(in void* p1, in void* p2)

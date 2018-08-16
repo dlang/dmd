@@ -31,10 +31,11 @@ download() {
 }
 
 install_deps() {
+    sudo apt-get update
     if [ $MODEL -eq 32 ]; then
-        sudo apt-get update
-        sudo apt-get install g++-multilib
+        sudo apt-get install -y g++-multilib
     fi
+    sudo apt-get install -y gdb
 
     download "https://dlang.org/install.sh" "https://nightlies.dlang.org/install.sh" "install.sh"
 

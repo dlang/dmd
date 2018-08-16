@@ -13,8 +13,6 @@
  */
 module rt.typeinfo.ti_ucent;
 
-private import rt.util.hash;
-
 static if (is(ucent)):
 
 // ucent
@@ -30,7 +28,7 @@ class TypeInfo_zk : TypeInfo
 
     override size_t getHash(scope const void* p)
     {
-        return rt.util.hash.hashOf(p[0 .. ucent.sizeof], 0);
+        return hashOf(*cast(const ucent*) p);
     }
 
     override bool equals(in void* p1, in void* p2)

@@ -15,7 +15,20 @@ nothrow:
 
 alias UnsignedStringBuf = char[20];
 
-char[] unsignedToTempString(ulong value, return char[] buf, uint radix = 10) @safe
+/**
+Converts an unsigned integer value to a string of characters.
+
+This implementation is a template so it can be used when compiling with -betterC.
+
+Params:
+    value = the unsigned integer value to convert
+    buf   = the pre-allocated buffer used to store the result
+    radix = the numeric base to use in the conversion (defaults to 10)
+
+Returns:
+    The unsigned integer value as a string of characters
+*/
+char[] unsignedToTempString()(ulong value, return scope char[] buf, uint radix = 10) @safe
 {
     if (radix < 2)
         // not a valid radix, just return an empty string
@@ -52,7 +65,19 @@ private struct TempStringNoAlloc
     alias get this;
 }
 
-auto unsignedToTempString(ulong value, uint radix = 10) @safe
+/**
+Converts an unsigned integer value to a string of characters.
+
+This implementation is a template so it can be used when compiling with -betterC.
+
+Params:
+    value = the unsigned integer value to convert
+    radix = the numeric base to use in the conversion (defaults to 10)
+
+Returns:
+    The unsigned integer value as a string of characters
+*/
+auto unsignedToTempString()(ulong value, uint radix = 10) @safe
 {
     TempStringNoAlloc result = void;
     result._len = unsignedToTempString(value, result._buf, radix).length & 0xff;
@@ -86,7 +111,7 @@ unittest
 
 alias SignedStringBuf = char[20];
 
-char[] signedToTempString(long value, return char[] buf, uint radix = 10) @safe
+char[] signedToTempString(long value, return scope char[] buf, uint radix = 10) @safe
 {
     bool neg = value < 0;
     if(neg)
@@ -212,7 +237,7 @@ unittest
     static assert(!__traits(compiles, 100.numDigits!37()));
 }
 
-int dstrcmp( scope const char[] s1, scope const char[] s2 ) @trusted
+int dstrcmp()( scope const char[] s1, scope const char[] s2 ) @trusted
 {
     immutable len = s1.length <= s2.length ? s1.length : s2.length;
     if (__ctfe)

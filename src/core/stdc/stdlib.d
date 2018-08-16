@@ -135,17 +135,9 @@ else version (MinGW)
     ///
     alias __mingw_strtold strtold;
 }
-else version (CRuntime_Bionic)
-{
-    ///
-    real strtold(scope inout(char)* nptr, scope inout(char)** endptr)
-    {   // Fake it again till we make it
-        return strtod(nptr, endptr);
-    }
-}
 else
 {
-    ///
+    /// Added to Bionic since Lollipop.
     real strtold(scope inout(char)* nptr, scope inout(char)** endptr);
 }
 
