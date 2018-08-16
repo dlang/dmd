@@ -227,8 +227,8 @@ void test10()
 class A12
 {
 public:
-  int delegate(int, int) dgs[4];
-  int function(int, int) fps[4];
+  int delegate(int, int)[4] dgs;
+  int function(int, int)[4] fps;
   int delegate(int, int) dg;
   int function(int, int) fp;
   int f(int x, int y) {

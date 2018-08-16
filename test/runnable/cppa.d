@@ -4,6 +4,7 @@
 import core.stdc.stdio;
 import core.stdc.stdarg;
 import core.stdc.config;
+import core.stdc.stdint;
 
 extern (C++)
         int foob(int i, int j, int k);
@@ -887,13 +888,13 @@ void testVtable()
 
 /****************************************/
 /* problems detected by fuzzer */
-extern(C++) void fuzz1_cppvararg(long arg10, long arg11, bool arg12);
-extern(C++) void fuzz1_dvararg(long arg10, long arg11, bool arg12)
+extern(C++) void fuzz1_cppvararg(int64_t arg10, int64_t arg11, bool arg12);
+extern(C++) void fuzz1_dvararg(int64_t arg10, int64_t arg11, bool arg12)
 {
     fuzz1_checkValues(arg10, arg11, arg12);
 }
 
-extern(C++) void fuzz1_checkValues(long arg10, long arg11, bool arg12)
+extern(C++) void fuzz1_checkValues(int64_t arg10, int64_t arg11, bool arg12)
 {
     assert(arg10 == 103);
     assert(arg11 == 104);
@@ -910,13 +911,13 @@ void fuzz1()
 }
 
 ////////
-extern(C++) void fuzz2_cppvararg(ulong arg10, ulong arg11, bool arg12);
-extern(C++) void fuzz2_dvararg(ulong arg10, ulong arg11, bool arg12)
+extern(C++) void fuzz2_cppvararg(uint64_t arg10, uint64_t arg11, bool arg12);
+extern(C++) void fuzz2_dvararg(uint64_t arg10, uint64_t arg11, bool arg12)
 {
     fuzz2_checkValues(arg10, arg11, arg12);
 }
 
-extern(C++) void fuzz2_checkValues(ulong arg10, ulong arg11, bool arg12)
+extern(C++) void fuzz2_checkValues(uint64_t arg10, uint64_t arg11, bool arg12)
 {
     assert(arg10 == 103);
     assert(arg11 == 104);
@@ -1229,7 +1230,7 @@ void test15455()
 /****************************************/
 // 15372
 
-extern(C++) int foo15372(T)(T v);
+extern(C++) int foo15372(T)(int v);
 
 void test15372()
 {
@@ -1257,7 +1258,7 @@ void test15802()
 /****************************************/
 // 16536 - mangling mismatch on OSX
 
-version(OSX) extern(C++) ulong pass16536(ulong);
+version(OSX) extern(C++) uint64_t pass16536(uint64_t);
 
 void test16536()
 {
@@ -1384,7 +1385,7 @@ mixin template scopeAllocCpp(C)
         enum cppCtorReturnsThis = false;
     else
         enum cppCtorReturnsThis = true;
-    
+
     static if (cppCtorReturnsThis)
         scope C ptr = new C;
     else
@@ -1445,7 +1446,7 @@ void test18928()
 // https://issues.dlang.org/show_bug.cgi?id=18953
 // Win32: extern(C++) struct destructor not called correctly through runtime
 
-extern(C++) 
+extern(C++)
 struct S18953
 {
     char x;

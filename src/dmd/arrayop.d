@@ -60,14 +60,11 @@ extern (C++) bool isArrayOpValid(Expression e)
             BinExp be = cast(BinExp)e;
             return be.e1.op == TOK.slice && isArrayOpValid(be.e2);
         }
-        if (e.op == TOK.call)
-        {
-            return false; // TODO: Decide if [] is required after arrayop calls.
-        }
-        else
-        {
-            return false;
-        }
+        // if (e.op == TOK.call)
+        // {
+        // TODO: Decide if [] is required after arrayop calls.
+        // }
+        return false;
     }
     return true;
 }

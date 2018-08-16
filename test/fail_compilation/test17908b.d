@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test17908b.d(13): Error: function `test17908b.foobar` is not callable because it is annotated with `@disable`
+fail_compilation/test17908b.d(13): Error: function `test17908b.foobar` cannot be used because it is annotated with `@disable`
 ---
 */
 void foobar() {}

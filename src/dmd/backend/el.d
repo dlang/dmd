@@ -15,11 +15,10 @@ module dmd.backend.el;
 
 import dmd.backend.cdef;
 import dmd.backend.cc;
+import dmd.backend.dlist;
 import dmd.backend.type;
 
 import dmd.backend.cc : Symbol;
-
-import dmd.tk.dlist;
 
 extern (C++):
 @nogc:
@@ -27,13 +26,13 @@ nothrow:
 
 /* Routines to handle elems.                            */
 
-alias ubyte eflags_t;
+alias eflags_t = ubyte;
 enum
 {
     EFLAGS_variadic = 1,   // variadic function call
 }
 
-alias uint pef_flags_t;
+alias pef_flags_t = uint;
 enum
 {
     PEFnotlvalue    = 1,       // although elem may look like
@@ -45,7 +44,7 @@ enum
     PEFmember       = 0x100,   // was a class member access
 }
 
-alias ubyte nflags_t;
+alias nflags_t = ubyte;
 enum
 {
     NFLli     = 1,     // loop invariant
@@ -189,7 +188,7 @@ elem *el_bint(uint,type *,elem *,elem *);
 elem *el_unat(uint,type *,elem *);
 elem *el_bin(uint,tym_t,elem *,elem *);
 elem *el_una(uint,tym_t,elem *);
-elem *el_longt(type *,targ_llong);
+extern(C) elem *el_longt(type *,targ_llong);
 Symbol *el_alloc_localgot();
 elem *el_var(Symbol *);
 elem *el_settype(elem *,type *);
@@ -228,7 +227,7 @@ uint el_alignsize(elem *);
 size_t el_opN(elem *e, uint op);
 void el_opArray(elem ***parray, elem *e, uint op);
 void el_opFree(elem *e, uint op);
-elem *el_opCombine(elem **args, size_t length, uint op, uint ty);
+extern (C) elem *el_opCombine(elem **args, size_t length, uint op, uint ty);
 
 void elem_print(elem *);
 void elem_print_const(elem *);

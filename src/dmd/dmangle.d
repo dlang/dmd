@@ -191,7 +191,7 @@ public:
     * Params:
     *  pos           = relative position to encode
     */
-    final void writeBackRef(size_t pos)
+    void writeBackRef(size_t pos)
     {
         buf.writeByte('Q');
         enum base = 26;
@@ -221,7 +221,7 @@ public:
     *  true if the type was found. A back reference has been encoded.
     *  false if the type was not found. The current position is saved for later back references.
     */
-    final bool backrefType(Type t)
+    bool backrefType(Type t)
     {
         if (!t.isTypeBasic())
         {
@@ -249,7 +249,7 @@ public:
     *  true if the identifier was found. A back reference has been encoded.
     *  false if the identifier was not found. The current position is saved for later back references.
     */
-    final bool backrefIdentifier(Identifier id)
+    bool backrefIdentifier(Identifier id)
     {
         auto p = idents.getLvalue(id);
         if (*p)
@@ -261,18 +261,18 @@ public:
         return false;
     }
 
-    final void mangleSymbol(Dsymbol s)
+    void mangleSymbol(Dsymbol s)
     {
         s.accept(this);
     }
 
-    final void mangleType(Type t)
+    void mangleType(Type t)
     {
         if (!backrefType(t))
             t.accept(this);
     }
 
-    final void mangleIdentifier(Identifier id, Dsymbol s)
+    void mangleIdentifier(Identifier id, Dsymbol s)
     {
         if (!backrefIdentifier(id))
             toBuffer(id.toString(), s);
@@ -282,7 +282,7 @@ public:
     /**************************************************
      * Type mangling
      */
-    final void visitWithMask(Type t, ubyte modMask)
+    void visitWithMask(Type t, ubyte modMask)
     {
         if (modMask != t.mod)
         {
@@ -338,7 +338,7 @@ public:
         mangleFuncType(t, t, t.mod, t.next);
     }
 
-    final void mangleFuncType(TypeFunction t, TypeFunction ta, ubyte modMask, Type tret)
+    void mangleFuncType(TypeFunction t, TypeFunction ta, ubyte modMask, Type tret)
     {
         //printf("mangleFuncType() %s\n", t.toChars());
         if (t.inuse && tret)
@@ -456,7 +456,7 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    final void mangleDecl(Declaration sthis)
+    void mangleDecl(Declaration sthis)
     {
         mangleParent(sthis);
         assert(sthis.ident);
@@ -473,7 +473,7 @@ public:
             assert(0);
     }
 
-    final void mangleParent(Dsymbol s)
+    void mangleParent(Dsymbol s)
     {
         Dsymbol p;
         if (TemplateInstance ti = s.isTemplateInstance())
@@ -499,7 +499,7 @@ public:
         }
     }
 
-    final void mangleFunc(FuncDeclaration fd, bool inParent)
+    void mangleFunc(FuncDeclaration fd, bool inParent)
     {
         //printf("deco = '%s'\n", fd.type.deco ? fd.type.deco : "null");
         //printf("fd.type = %s\n", fd.type.toChars());
@@ -530,12 +530,12 @@ public:
     /************************************************************
      * Write length prefixed string to buf.
      */
-    final void toBuffer(const(char)* id, Dsymbol s)
+    void toBuffer(const(char)* id, Dsymbol s)
     {
         toBuffer(id[0 .. strlen(id)], s);
     }
 
-    extern (D) final void toBuffer(const(char)[] id, Dsymbol s)
+    extern (D) void toBuffer(const(char)[] id, Dsymbol s)
     {
         const len = id.length;
         if (buf.offset + len >= 8 * 1024 * 1024) // 8 megs ought be enough for anyone
@@ -591,12 +591,8 @@ public:
             assert(slice.length);
             foreach (const char c; slice)
             {
-                assert(c == '_' ||
-                       c == '@' ||
-                       c == '?' ||
-                       c == '$' ||
-                       isalnum(c) ||
-                       c & 0x80);
+                assert(c.isValidMangling, "The mangled name '" ~ slice ~ "' " ~
+                    "contains an invalid character: " ~ c);
             }
         }
     }
@@ -676,7 +672,7 @@ public:
         visit(cast(Dsymbol)od);
     }
 
-    final void mangleExact(FuncDeclaration fd)
+    void mangleExact(FuncDeclaration fd)
     {
         assert(!fd.isFuncAliasDeclaration());
         if (fd.mangleOverride)
@@ -746,7 +742,7 @@ public:
             mangleTemplateInstance(ti);
     }
 
-    final void mangleTemplateInstance(TemplateInstance ti)
+    void mangleTemplateInstance(TemplateInstance ti)
     {
         TemplateDeclaration tempdecl = ti.tempdecl.isTemplateDeclaration();
         assert(tempdecl);
@@ -902,7 +898,7 @@ public:
         realToMangleBuffer(e.value);
     }
 
-    final void realToMangleBuffer(real_t value)
+    void realToMangleBuffer(real_t value)
     {
         /* Rely on %A to get portable mangling.
          * Must munge result to get only identifier characters.
@@ -1056,7 +1052,7 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    final void paramsToDecoBuffer(Parameters* parameters)
+    void paramsToDecoBuffer(Parameters* parameters)
     {
         //printf("Parameter.paramsToDecoBuffer()\n");
 
@@ -1101,6 +1097,34 @@ public:
     }
 }
 
+/// Returns: `true` if the given character is a valid mangled character
+package bool isValidMangling(dchar c)
+{
+    return
+        c >= 'A' && c <= 'Z' ||
+        c >= 'a' && c <= 'z' ||
+        c >= '0' && c <= '9' ||
+        c != 0 && strchr("$%().:?@[]_", c);
+}
+
+// valid mangled characters
+unittest
+{
+    assert('a'.isValidMangling);
+    assert('B'.isValidMangling);
+    assert('2'.isValidMangling);
+    assert('@'.isValidMangling);
+    assert('_'.isValidMangling);
+}
+
+// invalid mangled characters
+unittest
+{
+    assert(!'-'.isValidMangling);
+    assert(!0.isValidMangling);
+    assert(!'/'.isValidMangling);
+    assert(!'\\'.isValidMangling);
+}
 
 /******************************************************************************
  * Returns exact mangled name of function.

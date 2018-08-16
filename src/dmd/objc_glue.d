@@ -159,9 +159,9 @@ struct Segments
 
     private
     {
-        __gshared static int[segmentData.length] segments;
+        __gshared int[segmentData.length] segments;
 
-        __gshared static Segments[__traits(allMembers, Id).length] segmentData = [
+        __gshared Segments[__traits(allMembers, Id).length] segmentData = [
             Segments("__objc_imageinfo", "__DATA", S_REGULAR | S_ATTR_NO_DEAD_STRIP, 0),
             Segments("__objc_methname", "__TEXT", S_CSTRING_LITERALS, 0),
             Segments("__objc_classlist", "__DATA", S_REGULAR | S_ATTR_NO_DEAD_STRIP, 3),

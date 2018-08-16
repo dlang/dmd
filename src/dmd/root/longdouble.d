@@ -65,11 +65,6 @@ bool initFPU()
     return true;
 }
 
-shared static this()
-{
-    initFPU();
-}
-
 void ld_clearfpu()
 {
     version(AsmX86)
@@ -183,7 +178,7 @@ nothrow @nogc pure:
     static uint min_exp() { return -16381; }
     static uint max_10_exp() { return 4932; }
     static uint min_10_exp() { return -4932; }
-};
+}
 
 static assert(longdouble_soft.alignof == longdouble.alignof);
 static assert(longdouble_soft.sizeof == longdouble.sizeof);

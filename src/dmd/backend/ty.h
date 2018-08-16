@@ -333,7 +333,7 @@ inline unsigned tyrelax(tym_t ty) { return _tyrelax[tybasic(ty)]; }
 extern unsigned char tyequiv[];
 
 /* Give an ascii string for a type      */
-extern const char *tystring[];
+extern "C" { extern const char *tystring[]; }
 
 /* Debugger value for type      */
 extern unsigned char dttab[];

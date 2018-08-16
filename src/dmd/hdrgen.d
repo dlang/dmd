@@ -1040,7 +1040,7 @@ public:
 
     override void visit(TypeEnum t)
     {
-        buf.writestring(t.sym.toChars());
+        buf.writestring(hgs.fullQual ? t.sym.toPrettyChars() : t.sym.toChars());
     }
 
     override void visit(TypeStruct t)
@@ -3114,6 +3114,18 @@ public:
     ////////////////////////////////////////////////////////////////////////////
     override void visit(Parameter p)
     {
+        if (p.userAttribDecl)
+        {
+            buf.writestring("@");
+            scope(exit) buf.writestring(" ");
+
+            bool isAnonymous = p.userAttribDecl.atts.dim > 0 && (*p.userAttribDecl.atts)[0].op != TOK.call;
+            if (isAnonymous)
+                buf.writestring("(");
+            argsToBuffer(p.userAttribDecl.atts);
+            if (isAnonymous)
+                buf.writestring(")");
+        }
         if (p.storageClass & STC.auto_)
             buf.writestring("auto ");
         if (p.storageClass & STC.return_)
@@ -3279,7 +3291,7 @@ extern (C++) const(char)* stcToChars(ref StorageClass stc)
         const(char)* id;
     }
 
-    static __gshared SCstring* table =
+    __gshared SCstring* table =
     [
         SCstring(STC.auto_, TOK.auto_),
         SCstring(STC.scope_, TOK.scope_),

@@ -1,8 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/disable_new.d(23): Error: allocator `disable_new.C.new` is not callable because it is annotated with `@disable`
-fail_compilation/disable_new.d(24): Error: allocator `disable_new.S.new` is not callable because it is annotated with `@disable`
+fail_compilation/disable_new.d(23): Error: allocator `disable_new.C.new` cannot be used because it is annotated with `@disable`
+fail_compilation/disable_new.d(24): Error: allocator `disable_new.S.new` cannot be used because it is annotated with `@disable`
 ---
 */
 

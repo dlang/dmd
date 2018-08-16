@@ -16,10 +16,9 @@ module dmd.backend.type;
 import dmd.backend.cdef;
 import dmd.backend.cc : block, Blockx, Classsym, Symbol, param_t;
 import dmd.backend.code;
+import dmd.backend.dlist;
 import dmd.backend.el : elem;
 import dmd.backend.ty;
-
-import dmd.tk.dlist;
 
 extern (C++):
 @nogc:
@@ -158,6 +157,7 @@ void type_dehydrate(type **);
 
 targ_size_t type_size(type *);
 uint type_alignsize(type *);
+bool type_zeroSize(type *t, tym_t tyf);
 uint type_parameterSize(type *t, tym_t tyf);
 uint type_paramsize(type *t);
 type *type_alloc(tym_t);

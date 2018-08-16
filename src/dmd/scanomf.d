@@ -254,7 +254,7 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
         case COMENT:
             // Recognize Phar Lap EASY-OMF format
             {
-                static __gshared ubyte* omfstr1 = [0x80, 0xAA, '8', '0', '3', '8', '6'];
+                __gshared ubyte* omfstr1 = [0x80, 0xAA, '8', '0', '3', '8', '6'];
                 if (recLen == (omfstr1).sizeof)
                 {
                     for (uint i = 0; i < (omfstr1).sizeof; i++)
@@ -267,7 +267,7 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
             }
             // Recognize .IMPDEF Import Definition Records
             {
-                static __gshared ubyte* omfstr2 = [0, 0xA0, 1];
+                __gshared ubyte* omfstr2 = [0, 0xA0, 1];
                 if (recLen >= 7)
                 {
                     p++;

@@ -39,14 +39,14 @@ import dmd.visitor;
  */
 struct CtfeStatus
 {
-    extern (C++) static __gshared int callDepth = 0;        // current number of recursive calls
+    extern (C++) __gshared int callDepth = 0;        // current number of recursive calls
 
     // When printing a stack trace, suppress this number of calls
-    extern (C++) static __gshared int stackTraceCallsToSuppress = 0;
+    extern (C++) __gshared int stackTraceCallsToSuppress = 0;
 
-    extern (C++) static __gshared int maxCallDepth = 0;     // highest number of recursive calls
-    extern (C++) static __gshared int numArrayAllocs = 0;   // Number of allocated arrays
-    extern (C++) static __gshared int numAssignments = 0;   // total number of assignments executed
+    extern (C++) __gshared int maxCallDepth = 0;     // highest number of recursive calls
+    extern (C++) __gshared int numArrayAllocs = 0;   // Number of allocated arrays
+    extern (C++) __gshared int numAssignments = 0;   // total number of assignments executed
 }
 
 /***********************************************************
@@ -191,7 +191,7 @@ extern (C++) final class ThrownExceptionExp : Expression
          * (eg, in ScopeStatement)
          */
         if (loc.isValid() && !loc.equals(thrown.loc))
-            errorSupplemental(loc, "thrown from here");
+            .errorSupplemental(loc, "thrown from here");
     }
 
     override void accept(Visitor v)
@@ -219,6 +219,8 @@ extern (C++) final class CTFEExp : Expression
             return "<cant>";
         case TOK.voidExpression:
             return "<void>";
+        case TOK.showCtfeContext:
+            return "<error>";
         case TOK.break_:
             return "<break>";
         case TOK.continue_:
@@ -230,11 +232,15 @@ extern (C++) final class CTFEExp : Expression
         }
     }
 
-    extern (C++) static __gshared CTFEExp cantexp;
-    extern (C++) static __gshared CTFEExp voidexp;
-    extern (C++) static __gshared CTFEExp breakexp;
-    extern (C++) static __gshared CTFEExp continueexp;
-    extern (C++) static __gshared CTFEExp gotoexp;
+    extern (C++) __gshared CTFEExp cantexp;
+    extern (C++) __gshared CTFEExp voidexp;
+    extern (C++) __gshared CTFEExp breakexp;
+    extern (C++) __gshared CTFEExp continueexp;
+    extern (C++) __gshared CTFEExp gotoexp;
+    /* Used when additional information is needed regarding
+     * a ctfe error.
+     */
+    extern (C++) __gshared CTFEExp showcontext;
 
     static bool isCantExp(const Expression e)
     {
@@ -250,7 +256,7 @@ extern (C++) final class CTFEExp : Expression
 // True if 'e' is CTFEExp::cantexp, or an exception
 extern (C++) bool exceptionOrCantInterpret(const Expression e)
 {
-    return e && (e.op == TOK.cantExpression || e.op == TOK.thrownException);
+    return e && (e.op == TOK.cantExpression || e.op == TOK.thrownException || e.op == TOK.showCtfeContext);
 }
 
 /************** Aggregate literals (AA/string/array/struct) ******************/
@@ -299,8 +305,7 @@ private Expressions* copyLiteralArray(Expressions* oldelems, Expression basis = 
     if (!oldelems)
         return oldelems;
     CtfeStatus.numArrayAllocs++;
-    auto newelems = new Expressions();
-    newelems.setDim(oldelems.dim);
+    auto newelems = new Expressions(oldelems.dim);
     foreach (i, el; *oldelems)
     {
         (*newelems)[i] = copyLiteral(el ? el : basis).copy();
@@ -332,10 +337,9 @@ extern (C++) UnionExp copyLiteral(Expression e)
         auto ale = cast(ArrayLiteralExp)e;
         auto elements = copyLiteralArray(ale.elements, ale.basis);
 
-        emplaceExp!(ArrayLiteralExp)(&ue, e.loc, elements);
+        emplaceExp!(ArrayLiteralExp)(&ue, e.loc, e.type, elements);
 
         ArrayLiteralExp r = cast(ArrayLiteralExp)ue.exp();
-        r.type = e.type;
         r.ownedByCtfe = OwnedBy.ctfe;
         return ue;
     }
@@ -356,8 +360,7 @@ extern (C++) UnionExp copyLiteral(Expression e)
          */
         auto sle = cast(StructLiteralExp)e;
         auto oldelems = sle.elements;
-        auto newelems = new Expressions();
-        newelems.setDim(oldelems.dim);
+        auto newelems = new Expressions(oldelems.dim);
         foreach (i, ref el; *newelems)
         {
             // We need the struct definition to detect block assignment
@@ -622,14 +625,12 @@ extern (C++) ArrayLiteralExp createBlockDuplicatedArrayLiteral(const ref Loc loc
     const tb = elem.type.toBasetype();
     const mustCopy = tb.ty == Tstruct || tb.ty == Tsarray;
 
-    auto elements = new Expressions();
-    elements.setDim(dim);
+    auto elements = new Expressions(dim);
     foreach (i, ref el; *elements)
     {
         el = mustCopy && i ? copyLiteral(elem).copy() : elem;
     }
-    auto ale = new ArrayLiteralExp(loc, elements);
-    ale.type = type;
+    auto ale = new ArrayLiteralExp(loc, type, elements);
     ale.ownedByCtfe = OwnedBy.ctfe;
     return ale;
 }
@@ -1489,10 +1490,9 @@ extern (C++) UnionExp ctfeCat(const ref Loc loc, Type type, Expression e1, Expre
         //  [ e1 ] ~ [ e2 ] ---> [ e1, e2 ]
         ArrayLiteralExp es1 = cast(ArrayLiteralExp)e1;
         ArrayLiteralExp es2 = cast(ArrayLiteralExp)e2;
-        emplaceExp!(ArrayLiteralExp)(&ue, es1.loc, copyLiteralArray(es1.elements));
+        emplaceExp!(ArrayLiteralExp)(&ue, es1.loc, type, copyLiteralArray(es1.elements));
         es1 = cast(ArrayLiteralExp)ue.exp();
         es1.elements.insert(es1.elements.dim, copyLiteralArray(es2.elements));
-        es1.type = type;
         return ue;
     }
     if (e1.op == TOK.arrayLiteral && e2.op == TOK.null_ && t1.nextOf().equals(t2.nextOf()))
@@ -1709,8 +1709,7 @@ extern (C++) UnionExp changeArrayLiteralLength(const ref Loc loc, TypeArray arra
     Type elemType = arrayType.next;
     assert(elemType);
     Expression defaultElem = elemType.defaultInitLiteral(loc);
-    auto elements = new Expressions();
-    elements.setDim(newlen);
+    auto elements = new Expressions(newlen);
     // Resolve slices
     size_t indxlo = 0;
     if (oldval.op == TOK.slice)
@@ -1771,9 +1770,8 @@ extern (C++) UnionExp changeArrayLiteralLength(const ref Loc loc, TypeArray arra
             foreach (size_t i; copylen .. newlen)
                 (*elements)[i] = defaultElem;
         }
-        emplaceExp!(ArrayLiteralExp)(&ue, loc, elements);
+        emplaceExp!(ArrayLiteralExp)(&ue, loc, arrayType, elements);
         ArrayLiteralExp aae = cast(ArrayLiteralExp)ue.exp();
-        aae.type = arrayType;
         aae.ownedByCtfe = OwnedBy.ctfe;
     }
     return ue;
@@ -1989,25 +1987,22 @@ extern (C++) UnionExp voidInitLiteral(Type t, VarDeclaration var)
         // For aggregate value types (structs, static arrays) we must
         // create an a separate copy for each element.
         const mustCopy = (elem.op == TOK.arrayLiteral || elem.op == TOK.structLiteral);
-        auto elements = new Expressions();
         const d = cast(size_t)tsa.dim.toInteger();
-        elements.setDim(d);
+        auto elements = new Expressions(d);
         foreach (i; 0 .. d)
         {
             if (mustCopy && i > 0)
                 elem = copyLiteral(elem).copy();
             (*elements)[i] = elem;
         }
-        emplaceExp!(ArrayLiteralExp)(&ue, var.loc, elements);
+        emplaceExp!(ArrayLiteralExp)(&ue, var.loc, tsa, elements);
         ArrayLiteralExp ae = cast(ArrayLiteralExp)ue.exp();
-        ae.type = tsa;
         ae.ownedByCtfe = OwnedBy.ctfe;
     }
     else if (t.ty == Tstruct)
     {
         TypeStruct ts = cast(TypeStruct)t;
-        auto exps = new Expressions();
-        exps.setDim(ts.sym.fields.dim);
+        auto exps = new Expressions(ts.sym.fields.dim);
         foreach (size_t i;  0 .. ts.sym.fields.dim)
         {
             (*exps)[i] = voidInitLiteral(ts.sym.fields[i].type, ts.sym.fields[i]).copy();

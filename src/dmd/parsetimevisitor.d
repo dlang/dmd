@@ -126,6 +126,10 @@ public:
     void visit(AST.CompoundDeclarationStatement s) { visit(cast(AST.CompoundStatement)s); }
     void visit(AST.CompoundAsmStatement s) { visit(cast(AST.CompoundStatement)s); }
 
+    // AsmStatements
+    void visit(AST.InlineAsmStatement s) { visit(cast(AST.AsmStatement)s); }
+    void visit(AST.GccAsmStatement s) { visit(cast(AST.AsmStatement)s); }
+
     //=========================================================================================
     // Types
     void visit(AST.TypeBasic t) { visit(cast(AST.Type)t); }

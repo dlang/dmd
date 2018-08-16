@@ -11,7 +11,7 @@ enum
 
 struct Token
 {
-    static char[] tochars[TOKmax];
+    static char[][TOKmax] tochars;
 }
 
 class Lexer

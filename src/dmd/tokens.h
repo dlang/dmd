@@ -182,6 +182,7 @@ enum TOK
         TOKinterval,
         TOKvoidexp,
         TOKcantexp,
+        TOKshowctfecontext,
 
         TOKobjc_class_reference,
 

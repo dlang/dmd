@@ -75,5 +75,5 @@ else
     void repeat(dt_t* dt, uint count);
     uint length();
     bool isZeroLength();
-};
+}
 

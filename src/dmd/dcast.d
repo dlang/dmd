@@ -144,7 +144,7 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
             visit(cast(Expression)e);
 
             Type tb = result.type.toBasetype();
-            if (tb.ty == Tarray)
+            if (tb.ty == Tarray && global.params.useTypeInfo && Type.dtypeinfo)
                 semanticTypeInfo(sc, (cast(TypeDArray)tb).next);
         }
 
@@ -2308,7 +2308,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             {
                 printf("DelegateExp::castTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
-            static __gshared const(char)* msg = "cannot form delegate due to covariant return type";
+            __gshared const(char)* msg = "cannot form delegate due to covariant return type";
 
             Type tb = t.toBasetype();
             Type typeb = e.type.toBasetype();

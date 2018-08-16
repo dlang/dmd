@@ -147,32 +147,18 @@ struct BaseClass
     }
 }
 
-struct ClassFlags
+enum ClassFlags : int
 {
-    alias Type = uint;
-
-    enum Enum : int
-    {
-        isCOMclass = 0x1,
-        noPointers = 0x2,
-        hasOffTi = 0x4,
-        hasCtor = 0x8,
-        hasGetMembers = 0x10,
-        hasTypeInfo = 0x20,
-        isAbstract = 0x40,
-        isCPPclass = 0x80,
-        hasDtor = 0x100,
-    }
-
-    alias isCOMclass = Enum.isCOMclass;
-    alias noPointers = Enum.noPointers;
-    alias hasOffTi = Enum.hasOffTi;
-    alias hasCtor = Enum.hasCtor;
-    alias hasGetMembers = Enum.hasGetMembers;
-    alias hasTypeInfo = Enum.hasTypeInfo;
-    alias isAbstract = Enum.isAbstract;
-    alias isCPPclass = Enum.isCPPclass;
-    alias hasDtor = Enum.hasDtor;
+    none          = 0x0,
+    isCOMclass    = 0x1,
+    noPointers    = 0x2,
+    hasOffTi      = 0x4,
+    hasCtor       = 0x8,
+    hasGetMembers = 0x10,
+    hasTypeInfo   = 0x20,
+    isAbstract    = 0x40,
+    isCPPclass    = 0x80,
+    hasDtor       = 0x100,
 }
 
 /***********************************************************
@@ -237,7 +223,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
     Symbol* cpp_type_info_ptr_sym;      // cached instance of class Id.cpp_type_info_ptr
 
-    final extern (D) this(Loc loc, Identifier id, BaseClasses* baseclasses, Dsymbols* members, bool inObject)
+    final extern (D) this(const ref Loc loc, Identifier id, BaseClasses* baseclasses, Dsymbols* members, bool inObject)
     {
         if (!id)
         {
@@ -248,7 +234,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         super(loc, id);
 
-        static __gshared const(char)* msg = "only object.d can define this reserved class name";
+        __gshared const(char)* msg = "only object.d can define this reserved class name";
 
         if (baseclasses)
         {
@@ -979,7 +965,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     {
         if (!vtblsym)
         {
-            auto vtype = Type.tvoidptr.immutableOf();
+            auto vtype = Type.tvoidptr.immutableOf().sarrayOf(vtbl.dim);
             auto var = new VarDeclaration(loc, vtype, Identifier.idPool("__vtbl"), null, STC.immutable_ | STC.static_);
             var.addMember(null, this);
             var.isdataseg = 1;
@@ -1005,7 +991,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
  */
 extern (C++) final class InterfaceDeclaration : ClassDeclaration
 {
-    extern (D) this(Loc loc, Identifier id, BaseClasses* baseclasses)
+    extern (D) this(const ref Loc loc, Identifier id, BaseClasses* baseclasses)
     {
         super(loc, id, baseclasses, null, false);
         if (id == Id.IUnknown) // IUnknown is the root of all COM interfaces

@@ -945,8 +945,7 @@ extern (C++) class FuncDeclaration : Declaration
 
         /* Create a dummy array of arguments out of the parameters to f()
          */
-        Expressions args;
-        args.setDim(nfparams);
+        Expressions args = Expressions(nfparams);
         for (size_t u = 0; u < nfparams; u++)
         {
             Parameter p = Parameter.getNth(tf.parameters, u);
@@ -1442,7 +1441,7 @@ extern (C++) class FuncDeclaration : Declaration
      *    which could have come from the function's parameters, mutable
      *    globals, or uplevel functions.
      */
-    private final bool isTypeIsolatedIndirect(Type t)
+    private bool isTypeIsolatedIndirect(Type t)
     {
         //printf("isTypeIsolatedIndirect(t: %s)\n", t.toChars());
         assert(t);
@@ -2170,7 +2169,7 @@ extern (C++) class FuncDeclaration : Declaration
             Parameter p = null;
             if (canBuildResultVar())
             {
-                p = new Parameter(STC.ref_ | STC.const_, f.nextOf(), Id.result, null);
+                p = new Parameter(STC.ref_ | STC.const_, f.nextOf(), Id.result, null, null);
                 fparams.push(p);
             }
             auto tf = new TypeFunction(fparams, Type.tvoid, 0, LINK.d);
@@ -2297,7 +2296,7 @@ extern (C++) class FuncDeclaration : Declaration
         FuncDeclaration fd;
         TypeFunction tf;
         Dsymbol s;
-        static __gshared DsymbolTable st = null;
+        __gshared DsymbolTable st = null;
 
         //printf("genCfunc(name = '%s')\n", id.toChars());
         //printf("treturn\n\t"); treturn.print();

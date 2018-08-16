@@ -1161,7 +1161,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         if (fd.isCtorDeclaration())
         {
             assert(sthis);
-            for (block *b = f.Fstartblock; b; b = b.Bnext)
+            foreach (b; BlockRange(f.Fstartblock))
             {
                 if (b.BC == BCret)
                 {

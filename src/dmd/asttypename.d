@@ -51,6 +51,8 @@ string astTypeName(RootObject node)
             return "RootObject";
         case DYNCAST.identifier:
             return "Identifier";
+        case DYNCAST.templateparameter:
+            return "TemplateParameter";
 
         case DYNCAST.expression:
             return astTypeName(cast(Expression) node);
@@ -112,6 +114,6 @@ public :
 unittest
 {
     import dmd.globals : Loc;
-    Expression e = new TypeidExp(Loc.init, null);
+    Expression e = new TypeidExp(Loc.initial, null);
     assert(e.astTypeName == "TypeidExp");
 }

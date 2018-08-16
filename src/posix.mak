@@ -4,18 +4,19 @@
 #
 # HOST_CXX:             Host C++ compiler to use (g++,clang++)
 # HOST_DMD:             Host D compiler to use for bootstrapping
-# AUTO_BOOTSTRAP:       Enable auto-boostrapping by download a stable DMD binary
+# AUTO_BOOTSTRAP:       Enable auto-boostrapping by downloading a stable DMD binary
 # INSTALL_DIR:          Installation folder to use
+# MODEL:                Target architecture to build for (32,64) - defaults to the host architecture
 #
 ################################################################################
 # Build modes:
 # ------------
-# BUILD: release (default) | debug (enabled a build with debug symbols)
+# BUILD: release (default) | debug (enabled a build with debug instructions)
 #
 # Opt-in build features:
 #
-# ENABLE_RELEASE:       Optimized release built (set by BUILD=release)
-# ENABLE_DEBUG:         Add debug instructions and symbols (set by BUILD=debug)
+# ENABLE_RELEASE:       Optimized release built
+# ENABLE_DEBUG:         Add debug instructions and symbols (set if ENABLE_RELEASE isn't set)
 # ENABLE_WARNINGS:      Enable C++ build warnings
 # ENABLE_PROFILING:     Build dmd with a profiling recorder (C++)
 # ENABLE_PGO_USE:       Build dmd with existing profiling information (C++)
@@ -96,6 +97,9 @@ GENERATED = ../generated
 G = $(GENERATED)/$(OS)/$(BUILD)/$(MODEL)
 $(shell mkdir -p $G)
 
+DSCANNER_HASH=3a859d39c4b59822b1bc0452b3ddcd598ef390a2
+DSCANNER_DIR=$G/dscanner-$(DSCANNER_HASH)
+
 ifeq (osx,$(OS))
     export MACOSX_DEPLOYMENT_TARGET=10.9
 endif
@@ -137,7 +141,7 @@ ifeq (,$(AUTO_BOOTSTRAP))
 else
   # Auto-bootstrapping, will download dmd automatically
   # Keep var below in sync with other occurrences of that variable, e.g. in circleci.sh
-  HOST_DMD_VER=2.074.1
+  HOST_DMD_VER=2.079.1
   HOST_DMD_ROOT=$(GENERATED)/host_dmd-$(HOST_DMD_VER)
   # dmd.2.072.2.osx.zip or dmd.2.072.2.linux.tar.xz
   HOST_DMD_BASENAME=dmd.$(HOST_DMD_VER).$(OS)$(if $(filter $(OS),freebsd),-$(MODEL),)
@@ -227,18 +231,9 @@ CXXFLAGS += \
 endif
 
 DFLAGS=
-override DFLAGS += -version=MARS $(PIC)
+override DFLAGS += -version=MARS $(PIC) -J$G
 # Enable D warnings
 override DFLAGS += -w -de
-
-ifneq (,$(DEBUG))
-ENABLE_DEBUG := 1
-$(error 'DEBUG=1 has been removed. Please use ENABLE_DEBUG=1')
-endif
-ifneq (,$(RELEASE))
-ENABLE_RELEASE := 1
-$(error 'RELEASE=1 has been removed. Please use ENABLE_RELEASE=1')
-endif
 
 # Append different flags for debugging, profiling and release.
 ifdef ENABLE_DEBUG
@@ -299,9 +294,7 @@ endif
 endif
 
 ifneq (gdc, $(HOST_DMD_KIND))
- ifeq (,$(findstring 2.068,$(HOST_DMD_VERSION)))
-  BACK_BETTERC = -betterC
- endif
+  BACK_BETTERC = -mv=dmd.backend=$C -betterC
 endif
 
 ######## DMD frontend source files
@@ -330,7 +323,7 @@ GLUE_OBJS =
 G_GLUE_OBJS = $(addprefix $G/, $(GLUE_OBJS))
 
 GLUE_SRCS=$(addsuffix .d, $(addprefix $D/,irstate toctype glue gluelayer todt tocsym toir dmsc \
-	tocvdebug s2ir toobj e2ir eh iasm objc_glue))
+	tocvdebug s2ir toobj e2ir eh iasm iasmdmd iasmgcc objc_glue))
 
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 
@@ -338,7 +331,7 @@ DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 
 ifeq (X86,$(TARGET_CPU))
     TARGET_CH = $C/code_x86.h
-    TARGET_OBJS = cg87.o cgxmm.o cgsched.o cod1.o cod2.o cod3.o cod4.o ptrntab.o
+    TARGET_OBJS = cg87.o cgxmm.o cod1.o cod2.o cod3.o cod4.o ptrntab.o
 else
     ifeq (stub,$(TARGET_CPU))
         TARGET_CH = $C/code_stub.h
@@ -348,19 +341,20 @@ else
     endif
 endif
 
-BACK_OBJS = go.o gdag.o gother.o gflow.o gloop.o gsroa.o var.o el.o \
-	glocal.o os.o nteh.o fp.o cgcs.o \
-	rtlsym.o cgelem.o cgen.o cgreg.o out.o \
-	blockopt.o cg.o type.o dt.o \
-	debug.o code.o ee.o symbol.o \
-	cgcod.o cod5.o outbuf.o compress.o \
+BACK_OBJS = var.o \
+	os.o fp.o \
+	rtlsym.o cgen.o out.o \
+	dt.o \
+	cgcod.o outbuf.o \
 	aa.o ti_achar.o \
 	ti_pvoid.o pdata.o cv8.o backconfig.o \
 	dwarf.o dwarfeh.o varstats.o \
 	ph2.o util2.o tk.o strtold.o md5.o \
 	$(TARGET_OBJS)
 
-BACK_DOBJS = bcomplex.o evalu8.o divcoeff.o dvec.o
+BACK_DOBJS = bcomplex.o evalu8.o divcoeff.o dvec.o go.o gsroa.o glocal.o gdag.o gother.o gflow.o \
+	gloop.o compress.o cgelem.o cgcs.o ee.o cod5.o nteh.o blockopt.o memh.o cg.o cgreg.o \
+	dtype.o debugprint.o symbol.o elem.o dcode.o cgsched.o
 
 G_OBJS  = $(addprefix $G/, $(BACK_OBJS))
 G_DOBJS = $(addprefix $G/, $(BACK_DOBJS))
@@ -381,23 +375,24 @@ GLUE_SRC = \
 
 BACK_HDRS=$C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
 	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d $C/iasm.d \
-	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/md5.d $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d
+	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/md5.di $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d \
+	$C/dlist.d
 
-TK_HDRS= $(TK)/dlist.d
+TK_HDRS=
 
 BACK_SRC = \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h \
-	$C/bcomplex.d $C/blockopt.c $C/cg.c $C/cg87.c $C/cgxmm.c \
-	$C/cgcod.c $C/cgcs.c $C/cgcv.c $C/cgelem.c $C/cgen.c $C/cgobj.c \
-	$C/compress.c $C/cgreg.c $C/var.c $C/strtold.c \
-	$C/cgsched.c $C/cod1.c $C/cod2.c $C/cod3.c $C/cod4.c $C/cod5.c \
-	$C/code.c $C/symbol.c $C/debug.c $C/dt.c $C/ee.c $C/el.c \
-	$C/evalu8.d $C/fp.c $C/go.c $C/gflow.c $C/gdag.c \
-	$C/gother.c $C/glocal.c $C/gloop.c $C/gsroa.c $C/newman.c \
-	$C/nteh.c $C/os.c $C/out.c $C/outbuf.c $C/ptrntab.c $C/rtlsym.c \
-	$C/type.c $C/melf.h $C/mach.h $C/mscoff.h $C/bcomplex.h \
+	$C/bcomplex.d $C/blockopt.d $C/cg.d $C/cg87.c $C/cgxmm.c \
+	$C/cgcod.c $C/cgcs.d $C/cgcv.c $C/cgelem.d $C/cgen.c $C/cgobj.c \
+	$C/compress.d $C/cgreg.d $C/var.c $C/strtold.c \
+	$C/cgsched.d $C/cod1.c $C/cod2.c $C/cod3.c $C/cod4.c $C/cod5.d \
+	$C/dcode.d $C/symbol.d $C/debugprint.d $C/dt.c $C/ee.d $C/elem.d \
+	$C/evalu8.d $C/fp.c $C/go.d $C/gflow.d $C/gdag.d \
+	$C/gother.d $C/glocal.d $C/gloop.d $C/gsroa.d $C/newman.c \
+	$C/nteh.d $C/os.c $C/out.c $C/outbuf.c $C/ptrntab.c $C/rtlsym.c \
+	$C/dtype.d $C/melf.h $C/mach.h $C/mscoff.h $C/bcomplex.h \
 	$C/outbuf.h $C/token.h $C/tassert.h \
 	$C/elfobj.c $C/cv4.h $C/dwarf2.h $C/exh.h $C/go.h \
 	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aa.c $C/tinfo.h $C/ti_achar.c \
@@ -406,12 +401,12 @@ BACK_SRC = \
 	$C/xmm.h $C/obj.h $C/pdata.c $C/cv8.c $C/backconfig.c $C/divcoeff.d \
 	$C/varstats.c $C/varstats.h $C/dvec.d \
 	$C/md5.c $C/md5.h \
-	$C/ph2.c $C/util2.c $C/dwarfeh.c \
+	$C/ph2.c $C/util2.c $C/dwarfeh.c $C/goh.d $C/memh.d \
 	$(TARGET_CH)
 
 TK_SRC = \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
-	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c
+	$(TK)/filespec.c $(TK)/mem.c
 
 ######## CXX header files (only needed for cxx-unittest)
 
@@ -532,7 +527,7 @@ $G/dmd.conf: $(SRC_MAKE)
 	echo "$$DEFAULT_DMD_CONF" > $@
 
 ######## optabgen generates some source
-optabgen_output = debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c
+optabgen_output = debtab.d optab.c cdxxx.c elxxx.d fltables.d tytab.c
 
 $G/optabgen: $C/optabgen.c $C/cc.h $C/oper.h
 	$(HOST_CXX) $(CXXFLAGS) -I$(TK) $< -o $G/optabgen
@@ -560,7 +555,7 @@ $(G_OBJS): $G/%.o: $C/%.c $(optabgen_files) $(SRC_MAKE)
 	@echo "  (CC)  BACK_OBJS  $<"
 	$(CXX) -c -o$@ $(CXXFLAGS) $(BACK_FLAGS) $(MMD) $<
 
-$(G_DOBJS): $G/%.o: $C/%.d posix.mak $(HOST_DMD_PATH)
+$(G_DOBJS): $G/%.o: $C/%.d $(optabgen_files) posix.mak $(HOST_DMD_PATH)
 	@echo "  (HOST_DMD_RUN)  BACK_DOBJS  $<"
 	$(HOST_DMD_RUN) -c -of$@ $(DFLAGS) $(MODEL_FLAG) $(BACK_BETTERC) $<
 
@@ -599,6 +594,28 @@ checkwhitespace: $(HOST_DMD_PATH) $(TOOLS_DIR)/checkwhitespace.d
 
 $(TOOLS_DIR)/checkwhitespace.d:
 	git clone --depth=1 ${GIT_HOME}/tools $(TOOLS_DIR)
+
+######################################################
+# DScanner
+######################################################
+
+style: dscanner
+
+$(DSCANNER_DIR):
+	git clone https://github.com/dlang-community/Dscanner $@
+	git -C $@ checkout $(DSCANNER_HASH)
+	git -C $@ submodule update --init --recursive
+
+$(DSCANNER_DIR)/dsc: $(HOST_DMD_PATH) | $(DSCANNER_DIR)
+	# debug build is faster, but disable 'missing import' messages (missing core from druntime)
+	sed 's/dparse_verbose/StdLoggerDisableWarning/' $(DSCANNER_DIR)/makefile > $(DSCANNER_DIR)/dscanner_makefile_tmp
+	mv $(DSCANNER_DIR)/dscanner_makefile_tmp $(DSCANNER_DIR)/makefile
+	DC=$(HOST_DMD_PATH) $(MAKE) -C $(DSCANNER_DIR) githash debug
+
+# runs static code analysis with Dscanner
+dscanner: $(DSCANNER_DIR)/dsc
+	@echo "Running DScanner"
+	$(DSCANNER_DIR)/dsc --config .dscanner.ini --styleCheck dmd -I.
 
 ######################################################
 

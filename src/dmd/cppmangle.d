@@ -2,6 +2,8 @@
  * Compiler implementation of the $(LINK2 http://www.dlang.org, D programming language)
  *
  * Do mangling for C++ linkage.
+ * This is the POSIX side of the implementation.
+ * It exports two functions to C++, `toCppMangleItanium` and `cppTypeInfoMangleItanium`.
  *
  * Copyright: Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, http://www.digitalmars.com
@@ -44,7 +46,6 @@ import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
 
-extern (C++):
 
 // helper to check if an identifier is a C++ operator
 enum CppOperator { Cast, Assign, Eq, Index, Call, Unary, Binary, OpAssign, Unknown }
@@ -61,7 +62,8 @@ package CppOperator isCppOperator(Identifier id)
     return CppOperator.Unknown;
 }
 
-const(char)* toCppMangleItanium(Dsymbol s)
+///
+extern(C++) const(char)* toCppMangleItanium(Dsymbol s)
 {
     //printf("toCppMangleItanium(%s)\n", s.toChars());
     OutBuffer buf;
@@ -70,7 +72,8 @@ const(char)* toCppMangleItanium(Dsymbol s)
     return buf.extractString();
 }
 
-const(char)* cppTypeInfoMangleItanium(Dsymbol s)
+///
+extern(C++) const(char)* cppTypeInfoMangleItanium(Dsymbol s)
 {
     //printf("cppTypeInfoMangle(%s)\n", s.toChars());
     OutBuffer buf;
@@ -100,12 +103,74 @@ bool isPrimaryDtor(const Dsymbol sym)
 
 private final class CppMangleVisitor : Visitor
 {
-    alias visit = Visitor.visit;
     Objects components;         // array of components available for substitution
     OutBuffer* buf;             // append the mangling to buf[]
     Loc loc;                    // location for use in error messages
 
-  final:
+    /**
+     * Constructor
+     *
+     * Params:
+     *   buf = `OutBuffer` to write the mangling to
+     *   loc = `Loc` of the symbol being mangled
+     */
+    this(OutBuffer* buf, Loc loc)
+    {
+        this.buf = buf;
+        this.loc = loc;
+    }
+
+    /*****
+     * Entry point. Append mangling to buf[]
+     * Params:
+     *  s = symbol to mangle
+     */
+    void mangleOf(Dsymbol s)
+    {
+        if (VarDeclaration vd = s.isVarDeclaration())
+        {
+            mangle_variable(vd, false);
+        }
+        else if (FuncDeclaration fd = s.isFuncDeclaration())
+        {
+            mangle_function(fd);
+        }
+        else
+        {
+            assert(0);
+        }
+    }
+
+    /**
+     * Write a seq-id from an index number, excluding the terminating '_'
+     *
+     * Params:
+     *   idx = the index in a substitution list.
+     *         Note that index 0 has no value, and `S0_` would be the
+     *         substitution at index 1 in the list.
+     *
+     * See-Also:
+     *  https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangle.seq-id
+     */
+    private void writeSequenceFromIndex(size_t idx)
+    {
+        if (idx)
+        {
+            void write_seq_id(size_t i)
+            {
+                if (i >= 36)
+                {
+                    write_seq_id(i / 36);
+                    i %= 36;
+                }
+                i += (i < 10) ? '0' : 'A' - 10;
+                buf.writeByte(cast(char)i);
+            }
+
+            write_seq_id(idx - 1);
+        }
+    }
+
     bool substitute(RootObject p)
     {
         //printf("substitute %s\n", p ? p.toChars() : null);
@@ -116,22 +181,7 @@ private final class CppMangleVisitor : Visitor
             /* Sequence is S_, S0_, .., S9_, SA_, ..., SZ_, S10_, ...
              */
             buf.writeByte('S');
-            if (i)
-            {
-                // Write <seq-id> to buf
-                void write_seq_id(size_t i)
-                {
-                    if (i >= 36)
-                    {
-                        write_seq_id(i / 36);
-                        i %= 36;
-                    }
-                    i += (i < 10) ? '0' : 'A' - 10;
-                    buf.writeByte(cast(char)i);
-                }
-
-                write_seq_id(i - 1);
-            }
+            writeSequenceFromIndex(i);
             buf.writeByte('_');
             return true;
         }
@@ -207,6 +257,19 @@ private final class CppMangleVisitor : Visitor
     {
         //printf("append %p %d %s\n", p, p.dyncast(), p ? p.toChars() : "null");
         components.push(p);
+    }
+
+    /**
+     * Write an identifier preceded by its length
+     *
+     * Params:
+     *   ident = `Identifier` to write to `this.buf`
+     */
+    void writeIdentifier(const ref Identifier ident)
+    {
+        const name = ident.toString();
+        this.buf.print(name.length);
+        this.buf.writestring(name);
     }
 
     /************************
@@ -319,6 +382,8 @@ private final class CppMangleVisitor : Visitor
      * Write the mangled representation of the template arguments.
      * Params:
      *  ti = the template instance
+     *  firstArg = index of the first template argument to mangle
+     *             (used for operator overloading)
      * Returns:
      *  true if any arguments were written
      */
@@ -372,18 +437,12 @@ private final class CppMangleVisitor : Visitor
             if (!substitute(ti.tempdecl))
             {
                 append(ti.tempdecl);
-                const name = ti.tempdecl.toAlias().ident.toString();
-                buf.print(name.length);
-                buf.writestring(name);
+                this.writeIdentifier(ti.tempdecl.toAlias().ident);
             }
             template_args(ti);
         }
         else
-        {
-            const name = s.ident.toString();
-            buf.print(name.length);
-            buf.writestring(name);
-        }
+            this.writeIdentifier(s.ident);
     }
 
     /********
@@ -465,7 +524,7 @@ private final class CppMangleVisitor : Visitor
      * Returns:
      *  true if found
      */
-    extern (D) bool char_std_char_traits_char(TemplateInstance ti, string st)
+    bool char_std_char_traits_char(TemplateInstance ti, string st)
     {
         if (ti.tiargs.dim == 2 &&
             isChar((*ti.tiargs)[0]) &&
@@ -688,156 +747,14 @@ private final class CppMangleVisitor : Visitor
              */
             TemplateInstance ti = d.parent.isTemplateInstance();
             assert(ti);
-            bool appendReturnType = true;
-            Dsymbol p = ti.toParent();
-            if (p && !p.isModule() && tf.linkage == LINK.cpp)
-            {
-                buf.writeByte('N');
-                CV_qualifiers(d.type);
-                prefix_name(p);
-                if (d.isCtorDeclaration())
-                {
-                    buf.writestring("C1");
-                    appendReturnType = false;
-                }
-                else if (d.isPrimaryDtor())
-                {
-                    buf.writestring("D1");
-                    appendReturnType = false;
-                }
-                else
-                {
-                    int firstTemplateArg = 0;
-                    bool isConvertFunc = false;
-                    string symName;
-
-                    // test for special symbols
-                    CppOperator whichOp = isCppOperator(ti.name);
-                    final switch (whichOp)
-                    {
-                        case CppOperator.Unknown:
-                            break;
-                        case CppOperator.Cast:
-                            symName = "cv";
-                            firstTemplateArg = 1;
-                            isConvertFunc = true;
-                            appendReturnType = false;
-                            break;
-                        case CppOperator.Assign:
-                            symName = "aS";
-                            break;
-                        case CppOperator.Eq:
-                            symName = "eq";
-                            break;
-                        case CppOperator.Index:
-                            symName = "ix";
-                            break;
-                        case CppOperator.Call:
-                            symName = "cl";
-                            break;
-                        case CppOperator.Unary:
-                        case CppOperator.Binary:
-                        case CppOperator.OpAssign:
-                            TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
-                            assert(td);
-                            assert(ti.tiargs.dim >= 1);
-                            TemplateParameter tp = (*td.parameters)[0];
-                            TemplateValueParameter tv = tp.isTemplateValueParameter();
-                            if (!tv || !tv.valType.isString())
-                                break; // expecting a string argument to operators!
-                            Expression exp = (*ti.tiargs)[0].isExpression();
-                            StringExp str = exp.toStringExp();
-                            switch (whichOp)
-                            {
-                                case CppOperator.Unary:
-                                    switch (str.peekSlice())
-                                    {
-                                        case "*":   symName = "de"; goto continue_template;
-                                        case "++":  symName = "pp"; goto continue_template;
-                                        case "--":  symName = "mm"; goto continue_template;
-                                        case "-":   symName = "ng"; goto continue_template;
-                                        case "+":   symName = "ps"; goto continue_template;
-                                        case "~":   symName = "co"; goto continue_template;
-                                        default:    break;
-                                    }
-                                    break;
-                                case CppOperator.Binary:
-                                    switch (str.peekSlice())
-                                    {
-                                        case ">>":  symName = "rs"; goto continue_template;
-                                        case "<<":  symName = "ls"; goto continue_template;
-                                        case "*":   symName = "ml"; goto continue_template;
-                                        case "-":   symName = "mi"; goto continue_template;
-                                        case "+":   symName = "pl"; goto continue_template;
-                                        case "&":   symName = "an"; goto continue_template;
-                                        case "/":   symName = "dv"; goto continue_template;
-                                        case "%":   symName = "rm"; goto continue_template;
-                                        case "^":   symName = "eo"; goto continue_template;
-                                        case "|":   symName = "or"; goto continue_template;
-                                        default:    break;
-                                    }
-                                    break;
-                                case CppOperator.OpAssign:
-                                    switch (str.peekSlice())
-                                    {
-                                        case "*":   symName = "mL"; goto continue_template;
-                                        case "+":   symName = "pL"; goto continue_template;
-                                        case "-":   symName = "mI"; goto continue_template;
-                                        case "/":   symName = "dV"; goto continue_template;
-                                        case "%":   symName = "rM"; goto continue_template;
-                                        case ">>":  symName = "rS"; goto continue_template;
-                                        case "<<":  symName = "lS"; goto continue_template;
-                                        case "&":   symName = "aN"; goto continue_template;
-                                        case "|":   symName = "oR"; goto continue_template;
-                                        case "^":   symName = "eO"; goto continue_template;
-                                        default:    break;
-                                    }
-                                    break;
-                                default:
-                                    assert(0);
-                                continue_template:
-                                    firstTemplateArg = 1;
-                                    break;
-                            }
-                            break;
-                    }
-                    if (symName.length == 0)
-                        source_name(ti);
-                    else
-                    {
-                        buf.writestring(symName);
-                        if (isConvertFunc)
-                            template_arg(ti, 0);
-                        appendReturnType = template_args(ti, firstTemplateArg) && appendReturnType;
-                    }
-                }
-                buf.writeByte('E');
-            }
-            else
-                source_name(ti);
-            if (appendReturnType)
-                headOfType(tf.nextOf());  // mangle return type
+            this.mangleTemplatedFunction(d, tf, ftd, ti);
         }
         else
         {
             Dsymbol p = d.toParent();
             if (p && !p.isModule() && tf.linkage == LINK.cpp)
             {
-                /* <nested-name> ::= N [<CV-qualifiers>] <prefix> <unqualified-name> E
-                 *               ::= N [<CV-qualifiers>] <template-prefix> <template-args> E
-                 */
-                buf.writeByte('N');
-                CV_qualifiers(d.type);
-
-                /* <prefix> ::= <prefix> <unqualified-name>
-                 *          ::= <template-prefix> <template-args>
-                 *          ::= <template-param>
-                 *          ::= # empty
-                 *          ::= <substitution>
-                 *          ::= <prefix> <data-member-prefix>
-                 */
-                prefix_name(p);
-                //printf("p: %s\n", buf.peekString());
+                this.mangleNestedFuncPrefix(tf, p);
 
                 if (d.isCtorDeclaration())
                     buf.writestring("C1");
@@ -868,6 +785,151 @@ private final class CppMangleVisitor : Visitor
         }
     }
 
+    /**
+     * Mangles a function template to C++
+     *
+     * Params:
+     *   d = Function declaration
+     *   tf = Function type (casted d.type)
+     *   ftd = Template declaration (ti.templdecl)
+     *   ti = Template instance (d.parent)
+     */
+    void mangleTemplatedFunction(FuncDeclaration d, TypeFunction tf,
+                                 TemplateDeclaration ftd, TemplateInstance ti)
+    {
+        Dsymbol p = ti.toParent();
+        // Check if this function is *not* nested
+        if (!p || p.isModule() || tf.linkage != LINK.cpp)
+        {
+            source_name(ti);
+            headOfType(tf.nextOf());  // mangle return type
+            return;
+        }
+
+        // It's a nested function (e.g. a member of an aggregate)
+        this.mangleNestedFuncPrefix(tf, p);
+
+        if (d.isCtorDeclaration())
+        {
+            buf.writestring("C1");
+        }
+        else if (d.isPrimaryDtor())
+        {
+            buf.writestring("D1");
+        }
+        else
+        {
+            int firstTemplateArg = 0;
+            bool appendReturnType = true;
+            bool isConvertFunc = false;
+            string symName;
+
+            // test for special symbols
+            CppOperator whichOp = isCppOperator(ti.name);
+            final switch (whichOp)
+            {
+            case CppOperator.Unknown:
+                break;
+            case CppOperator.Cast:
+                symName = "cv";
+                firstTemplateArg = 1;
+                isConvertFunc = true;
+                appendReturnType = false;
+                break;
+            case CppOperator.Assign:
+                symName = "aS";
+                break;
+            case CppOperator.Eq:
+                symName = "eq";
+                break;
+            case CppOperator.Index:
+                symName = "ix";
+                break;
+            case CppOperator.Call:
+                symName = "cl";
+                break;
+            case CppOperator.Unary:
+            case CppOperator.Binary:
+            case CppOperator.OpAssign:
+                TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
+                assert(td);
+                assert(ti.tiargs.dim >= 1);
+                TemplateParameter tp = (*td.parameters)[0];
+                TemplateValueParameter tv = tp.isTemplateValueParameter();
+                if (!tv || !tv.valType.isString())
+                    break; // expecting a string argument to operators!
+                Expression exp = (*ti.tiargs)[0].isExpression();
+                StringExp str = exp.toStringExp();
+                switch (whichOp)
+                {
+                case CppOperator.Unary:
+                    switch (str.peekSlice())
+                    {
+                    case "*":   symName = "de"; goto continue_template;
+                    case "++":  symName = "pp"; goto continue_template;
+                    case "--":  symName = "mm"; goto continue_template;
+                    case "-":   symName = "ng"; goto continue_template;
+                    case "+":   symName = "ps"; goto continue_template;
+                    case "~":   symName = "co"; goto continue_template;
+                    default:    break;
+                    }
+                    break;
+                case CppOperator.Binary:
+                    switch (str.peekSlice())
+                    {
+                    case ">>":  symName = "rs"; goto continue_template;
+                    case "<<":  symName = "ls"; goto continue_template;
+                    case "*":   symName = "ml"; goto continue_template;
+                    case "-":   symName = "mi"; goto continue_template;
+                    case "+":   symName = "pl"; goto continue_template;
+                    case "&":   symName = "an"; goto continue_template;
+                    case "/":   symName = "dv"; goto continue_template;
+                    case "%":   symName = "rm"; goto continue_template;
+                    case "^":   symName = "eo"; goto continue_template;
+                    case "|":   symName = "or"; goto continue_template;
+                    default:    break;
+                    }
+                    break;
+                case CppOperator.OpAssign:
+                    switch (str.peekSlice())
+                    {
+                    case "*":   symName = "mL"; goto continue_template;
+                    case "+":   symName = "pL"; goto continue_template;
+                    case "-":   symName = "mI"; goto continue_template;
+                    case "/":   symName = "dV"; goto continue_template;
+                    case "%":   symName = "rM"; goto continue_template;
+                    case ">>":  symName = "rS"; goto continue_template;
+                    case "<<":  symName = "lS"; goto continue_template;
+                    case "&":   symName = "aN"; goto continue_template;
+                    case "|":   symName = "oR"; goto continue_template;
+                    case "^":   symName = "eO"; goto continue_template;
+                    default:    break;
+                    }
+                    break;
+                default:
+                    assert(0);
+                continue_template:
+                    firstTemplateArg = 1;
+                    break;
+                }
+                break;
+            }
+            if (symName.length == 0)
+                source_name(ti);
+            else
+            {
+                buf.writestring(symName);
+                if (isConvertFunc)
+                    template_arg(ti, 0);
+                appendReturnType = template_args(ti, firstTemplateArg) && appendReturnType;
+            }
+            buf.writeByte('E');
+            if (appendReturnType)
+                headOfType(tf.nextOf());  // mangle return type
+        }
+    }
+
+
     void mangleFunctionParameters(Parameters* parameters, int varargs)
     {
         int numparams = 0;
@@ -893,34 +955,6 @@ private final class CppMangleVisitor : Visitor
             buf.writeByte('z');
         else if (!numparams)
             buf.writeByte('v'); // encode (void) parameters
-    }
-
-public:
-    extern (D) this(OutBuffer* buf, Loc loc)
-    {
-        this.buf = buf;
-        this.loc = loc;
-    }
-
-    /*****
-     * Entry point. Append mangling to buf[]
-     * Params:
-     *  s = symbol to mangle
-     */
-    void mangleOf(Dsymbol s)
-    {
-        if (VarDeclaration vd = s.isVarDeclaration())
-        {
-            mangle_variable(vd, false);
-        }
-        else if (FuncDeclaration fd = s.isFuncDeclaration())
-        {
-            mangle_function(fd);
-        }
-        else
-        {
-            assert(0);
-        }
     }
 
     /****** The rest is type mangling ************/
@@ -957,11 +991,6 @@ public:
         }
     }
 
-    override void visit(Type t)
-    {
-        error(t);
-    }
-
     /******
      * Write out 1 or 2 character basic type mangling.
      * Handle const and substitutions.
@@ -983,6 +1012,124 @@ public:
         if (p)
             buf.writeByte(p);
         buf.writeByte(c);
+    }
+
+
+    /****************
+     * Write structs and enums.
+     * Params:
+     *  t = TypeStruct or TypeEnum
+     */
+    void doSymbol(Type t)
+    {
+        if (substitute(t))
+            return;
+        CV_qualifiers(t);
+
+        // Handle any target-specific struct types.
+        if (auto tm = Target.cppTypeMangle(t))
+        {
+            buf.writestring(tm);
+        }
+        else
+        {
+            Dsymbol s = t.toDsymbol(null);
+            Dsymbol p = s.toParent();
+            if (p && p.isTemplateInstance())
+            {
+                 /* https://issues.dlang.org/show_bug.cgi?id=17947
+                  * Substitute the template instance symbol, not the struct/enum symbol
+                  */
+                if (substitute(p))
+                    return;
+            }
+            if (!substitute(s))
+            {
+                cpp_mangle_name(s, t.isConst());
+            }
+        }
+        if (t.isConst())
+            append(t);
+    }
+
+
+
+    /************************
+     * Mangle a class type.
+     * If it's the head, treat the initial pointer as a value type.
+     * Params:
+     *  t = class type
+     *  head = true for head of a type
+     */
+    void mangleTypeClass(TypeClass t, bool head)
+    {
+        if (t.isImmutable() || t.isShared())
+            return error(t);
+
+        /* Mangle as a <pointer to><struct>
+         */
+        if (substitute(t))
+            return;
+        if (!head)
+            CV_qualifiers(t);
+        buf.writeByte('P');
+
+        CV_qualifiers(t);
+
+        {
+            Dsymbol s = t.toDsymbol(null);
+            Dsymbol p = s.toParent();
+            if (p && p.isTemplateInstance())
+            {
+                 /* https://issues.dlang.org/show_bug.cgi?id=17947
+                  * Substitute the template instance symbol, not the class symbol
+                  */
+                if (substitute(p))
+                    return;
+            }
+        }
+
+        if (!substitute(t.sym))
+        {
+            cpp_mangle_name(t.sym, t.isConst());
+        }
+        if (t.isConst())
+            append(null);  // C++ would have an extra type here
+        append(t);
+    }
+
+    /**
+     * Mangle the prefix of a nested (e.g. member) function
+     *
+     * Params:
+     *   tf = Type of the nested function
+     *   parent = Parent in which the function is nested
+     */
+    void mangleNestedFuncPrefix(TypeFunction tf, Dsymbol parent)
+    {
+        /* <nested-name> ::= N [<CV-qualifiers>] <prefix> <unqualified-name> E
+         *               ::= N [<CV-qualifiers>] <template-prefix> <template-args> E
+         */
+        buf.writeByte('N');
+        CV_qualifiers(tf);
+
+        /* <prefix> ::= <prefix> <unqualified-name>
+         *          ::= <template-prefix> <template-args>
+         *          ::= <template-param>
+         *          ::= # empty
+         *          ::= <substitution>
+         *          ::= <prefix> <data-member-prefix>
+         */
+        prefix_name(parent);
+    }
+
+extern(C++):
+
+    alias visit = Visitor.visit;
+
+    override void visit(Type t)
+    {
+        error(t);
     }
 
     override void visit(TypeNull t)
@@ -1041,10 +1188,10 @@ public:
             case Tuns32:                c = 'j';        break;
             case Tfloat32:              c = 'f';        break;
             case Tint64:
-                c = Target.c_longsize == 8 ? Target.int64Mangle : 'x';
+                c = Target.c_longsize == 8 ? 'l' : 'x';
                 break;
             case Tuns64:
-                c = Target.c_longsize == 8 ? Target.uint64Mangle : 'y';
+                c = Target.c_longsize == 8 ? 'm' : 'y';
                 break;
             case Tint128:                c = 'n';       break;
             case Tuns128:                c = 'o';       break;
@@ -1222,89 +1369,8 @@ public:
         doSymbol(t);
     }
 
-    /****************
-     * Write structs and enums.
-     * Params:
-     *  t = TypeStruct or TypeEnum
-     */
-    final void doSymbol(Type t)
-    {
-        if (substitute(t))
-            return;
-        CV_qualifiers(t);
-
-        // Handle any target-specific struct types.
-        if (auto tm = Target.cppTypeMangle(t))
-        {
-            buf.writestring(tm);
-        }
-        else
-        {
-            Dsymbol s = t.toDsymbol(null);
-            Dsymbol p = s.toParent();
-            if (p && p.isTemplateInstance())
-            {
-                 /* https://issues.dlang.org/show_bug.cgi?id=17947
-                  * Substitute the template instance symbol, not the struct/enum symbol
-                  */
-                if (substitute(p))
-                    return;
-            }
-            if (!substitute(s))
-            {
-                cpp_mangle_name(s, t.isConst());
-            }
-        }
-        if (t.isConst())
-            append(t);
-    }
-
     override void visit(TypeClass t)
     {
         mangleTypeClass(t, false);
-    }
-
-    /************************
-     * Mangle a class type.
-     * If it's the head, treat the initial pointer as a value type.
-     * Params:
-     *  t = class type
-     *  head = true for head of a type
-     */
-    void mangleTypeClass(TypeClass t, bool head)
-    {
-        if (t.isImmutable() || t.isShared())
-            return error(t);
-
-        /* Mangle as a <pointer to><struct>
-         */
-        if (substitute(t))
-            return;
-        if (!head)
-            CV_qualifiers(t);
-        buf.writeByte('P');
-
-        CV_qualifiers(t);
-
-        {
-            Dsymbol s = t.toDsymbol(null);
-            Dsymbol p = s.toParent();
-            if (p && p.isTemplateInstance())
-            {
-                 /* https://issues.dlang.org/show_bug.cgi?id=17947
-                  * Substitute the template instance symbol, not the class symbol
-                  */
-                if (substitute(p))
-                    return;
-            }
-        }
-
-        if (!substitute(t.sym))
-        {
-            cpp_mangle_name(t.sym, t.isConst());
-        }
-        if (t.isConst())
-            append(null);  // C++ would have an extra type here
-        append(t);
     }
 }

@@ -128,6 +128,27 @@ enum RMstore = (1 << 31);
 extern (C++) extern __gshared regm_t ALLREGS;
 extern (C++) extern __gshared regm_t BYTEREGS;
 
+/* We use the same IDXREGS for the 386 as the 8088, because if
+   we used ALLREGS, it would interfere with mMSW
+ */
+enum IDXREGS         = (mBX|mSI|mDI);
+
+enum FLOATREGS_64    = mAX;
+enum FLOATREGS2_64   = mDX;
+enum DOUBLEREGS_64   = mAX;
+enum DOUBLEREGS2_64  = mDX;
+
+enum FLOATREGS_32    = mAX;
+enum FLOATREGS2_32   = mDX;
+enum DOUBLEREGS_32   = (mAX|mDX);
+enum DOUBLEREGS2_32  = (mCX|mBX);
+
+enum FLOATREGS_16    = (mDX|mAX);
+enum FLOATREGS2_16   = (mCX|mBX);
+enum DOUBLEREGS_16   = (mAX|mBX|mCX|mDX);
+
+/*#define _8087REGS (mST0|mST1|mST2|mST3|mST4|mST5|mST6|mST7)*/
+
 alias code_flags_t = uint;
 enum
 {
@@ -332,18 +353,18 @@ enum
  * genorreg:    OR  t,f
  */
 
+ubyte modregrm(uint m, uint r, uint rm) { return cast(ubyte)((m << 6) | (r << 3) | rm); }
 /+
-#define modregrm(m,r,rm)        (((m)<<6)|((r)<<3)|(rm))
 #define modregxrm(m,r,rm)       ((((r)&8)<<15)|modregrm((m),(r)&7,rm))
 #define modregrmx(m,r,rm)       ((((rm)&8)<<13)|modregrm((m),r,(rm)&7))
 #define modregxrmx(m,r,rm)      ((((r)&8)<<15)|(((rm)&8)<<13)|modregrm((m),(r)&7,(rm)&7))
 
 #define NEWREXR(x,r)            ((x)=((x)&~REX_R)|(((r)&8)>>1))
-#define NEWREG(x,r)             ((x)=((x)&~(7<<3))|((r)<<3))
-#define code_newreg(c,r)        (NEWREG((c)->Irm,(r)&7),NEWREXR((c)->Irex,(r)))
-
-#define genorreg(c,t,f)         genregs((c),0x09,(f),(t))
 +/
+void NEWREG(ref ubyte x, uint r)   { x = cast(ubyte)((x & ~(7 << 3)) | (r << 3)); }
+//#define code_newreg(c,r)        (NEWREG((c)->Irm,(r)&7),NEWREXR((c)->Irex,(r)))
+
+//#define genorreg(c,t,f)         genregs((c),0x09,(f),(t))
 
 enum
 {

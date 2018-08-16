@@ -1,0 +1,6 @@
+Added `D_ModuleInfo`, `D_Exceptions`, and `D_TypeInfo` version identifiers
+
+`D_ModuleInfo`, `D_Exceptions`, and `D_TypeInfo` version identifiers were added to allow
+better precision in druntime and other library implementations.
+
+See $(LINK2 https://dlang.org/spec/version.html#predefined-versions, Predefined Versions)

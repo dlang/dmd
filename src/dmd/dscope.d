@@ -125,7 +125,7 @@ struct Scope
     uint[void*] anchorCounts;  /// lookup duplicate anchor name count
     Identifier prevAnchor;     /// qualified symbol name of last doc anchor
 
-    extern (C++) static __gshared Scope* freelist;
+    extern (C++) __gshared Scope* freelist;
 
     extern (C++) static Scope* alloc()
     {
@@ -191,7 +191,7 @@ struct Scope
         }
         s.slabel = null;
         s.nofree = false;
-        s.ctorflow.fieldinit = ctorflow.saveFieldInit();
+        s.ctorflow.fieldinit = ctorflow.fieldinit.arraydup;
         s.flags = (flags & SCOPEpush);
         s.lastdc = null;
         assert(&this != s);
@@ -290,7 +290,11 @@ struct Scope
             foreach (i, v; ad.fields)
             {
                 bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
-                if (!mergeFieldInit(this.ctorflow.fieldinit[i], fies[i]) && mustInit)
+                auto fieldInit = &this.ctorflow.fieldinit[i];
+                const fiesCurrent = fies[i];
+                if (fieldInit.loc == Loc.init)
+                    fieldInit.loc = fiesCurrent.loc;
+                if (!mergeFieldInit(this.ctorflow.fieldinit[i].csx, fiesCurrent.csx) && mustInit)
                 {
                     error(loc, "one path skips field `%s`", v.toChars());
                 }

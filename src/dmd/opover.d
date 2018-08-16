@@ -1097,7 +1097,9 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     if (t.ty != Tstruct)
                         return false;
 
-                    semanticTypeInfo(sc, t);
+                    if (global.params.useTypeInfo && Type.dtypeinfo)
+                        semanticTypeInfo(sc, t);
+
                     return (cast(TypeStruct)t).sym.hasIdentityEquals;
                 }
 
@@ -1565,12 +1567,10 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id)
          *      b.opEquals(a)
          * and see which is better.
          */
-        Expressions args1;
-        Expressions args2;
-        args1.setDim(1);
+        Expressions args1 = Expressions(1);
         args1[0] = e.e1;
         expandTuples(&args1);
-        args2.setDim(1);
+        Expressions args2 = Expressions(1);
         args2[0] = e.e2;
         expandTuples(&args2);
         Match m;

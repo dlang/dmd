@@ -99,6 +99,13 @@ extern (C++) inout(Parameter) isParameter(inout RootObject o)
     return cast(inout(Parameter))o;
 }
 
+extern (C++) inout(TemplateParameter) isTemplateParameter(inout RootObject o)
+    {
+        if (!o || o.dyncast() != DYNCAST.templateparameter)
+            return null;
+        return cast(inout(TemplateParameter))o;
+    }
+
 /**************************************
  * Is this Object an error?
  */
@@ -469,6 +476,17 @@ extern (C++) final class Tuple : RootObject
 {
     Objects objects;
 
+    extern (D) this() {}
+
+    /**
+    Params:
+        numObjects = The initial number of objects.
+    */
+    extern (D) this(size_t numObjects)
+    {
+        objects.setDim(numObjects);
+    }
+
     // kludge for template.isType()
     override DYNCAST dyncast() const
     {
@@ -565,8 +583,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         TemplateParameters* p = null;
         if (parameters)
         {
-            p = new TemplateParameters();
-            p.setDim(parameters.dim);
+            p = new TemplateParameters(parameters.dim);
             for (size_t i = 0; i < p.dim; i++)
                 (*p)[i] = (*parameters)[i].syntaxCopy();
         }
@@ -1019,8 +1036,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         scope TemplateInstance ti = new TemplateInstance(Loc.initial, ident, tiargs); // create dummy template instance
 
         // Temporary Array to hold deduced types
-        Objects dedtypes;
-        dedtypes.setDim(td2.parameters.dim);
+        Objects dedtypes = Objects(td2.parameters.dim);
 
         // Attempt a type deduction
         MATCH m = td2.matchWithInstance(sc, ti, &dedtypes, fargs, 1);
@@ -1146,11 +1162,10 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 /* The extra initial template arguments
                  * now form the tuple argument.
                  */
-                auto t = new Tuple();
+                auto t = new Tuple(ntargs - n);
                 assert(parameters.dim);
                 (*dedargs)[parameters.dim - 1] = t;
 
-                t.objects.setDim(ntargs - n);
                 for (size_t i = 0; i < t.objects.dim; i++)
                 {
                     t.objects[i] = (*tiargs)[n + i];
@@ -2560,8 +2575,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
             if (!tiargs)
                 tiargs = new Objects();
             auto ti = new TemplateInstance(loc, td, tiargs);
-            Objects dedtypes;
-            dedtypes.setDim(td.parameters.dim);
+            Objects dedtypes = Objects(td.parameters.dim);
             assert(td.semanticRun != PASS.init);
             MATCH mta = td.matchWithInstance(sc, ti, &dedtypes, fargs, 0);
             //printf("matchWithInstance = %d\n", mta);
@@ -3723,8 +3737,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     else
                     {
                         // Create new tuple
-                        auto tup = new Tuple();
-                        tup.objects.setDim(tuple_dim);
+                        auto tup = new Tuple(tuple_dim);
                         for (size_t i = 0; i < tuple_dim; i++)
                         {
                             Parameter arg = Parameter.getNth(t.parameters, nfparams - 1 + i);
@@ -3901,9 +3914,8 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
 
                         /* Create tuple from remaining args
                          */
-                        auto vt = new Tuple();
                         size_t vtdim = (tempdecl.isVariadic() ? t.tempinst.tiargs.dim : t.tempinst.tdtypes.dim) - i;
-                        vt.objects.setDim(vtdim);
+                        auto vt = new Tuple(vtdim);
                         for (size_t k = 0; k < vtdim; k++)
                         {
                             RootObject o;
@@ -4151,8 +4163,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             if (parti)
             {
                 // Make a temporary copy of dedtypes so we don't destroy it
-                auto tmpdedtypes = new Objects();
-                tmpdedtypes.setDim(dedtypes.dim);
+                auto tmpdedtypes = new Objects(dedtypes.dim);
                 memcpy(tmpdedtypes.tdata(), dedtypes.tdata(), dedtypes.dim * (void*).sizeof);
 
                 auto t = new TypeInstance(Loc.initial, parti);
@@ -4241,8 +4252,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 int numBaseClassMatches = 0; // Have we found an interface match?
 
                 // Our best guess at dedtypes
-                auto best = new Objects();
-                best.setDim(dedtypes.dim);
+                auto best = new Objects(dedtypes.dim);
 
                 ClassDeclaration s = t.sym;
                 while (s && s.baseclasses.dim > 0)
@@ -5041,7 +5051,7 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
 
 /***********************************************************
  */
-extern (C++) class TemplateParameter
+extern (C++) class TemplateParameter : RootObject
 {
     Loc loc;
     Identifier ident;
@@ -5099,6 +5109,12 @@ extern (C++) class TemplateParameter
     abstract RootObject defaultArg(Loc instLoc, Scope* sc);
 
     abstract bool hasDefaultArg();
+
+    override const(char)* toChars() { return this.ident.toChars(); }
+    override DYNCAST dyncast() const pure @nogc nothrow @safe
+    {
+        return DYNCAST.templateparameter;
+    }
 
     /*******************************************
      * Match to a particular TemplateParameter.
@@ -5158,7 +5174,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
     Type specType;      // if !=null, this is the type specialization
     Type defaultType;
 
-    extern (C++) static __gshared Type tdummy = null;
+    extern (C++) __gshared Type tdummy = null;
 
     extern (D) this(const ref Loc loc, Identifier ident, Type specType, Type defaultType)
     {
@@ -5354,7 +5370,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
     Expression specValue;
     Expression defaultValue;
 
-    extern (D) static __gshared Expression[void*] edummies;
+    extern (D) __gshared Expression[void*] edummies;
 
     extern (D) this(const ref Loc loc, Identifier ident, Type valType,
         Expression specValue, Expression defaultValue)
@@ -5583,7 +5599,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
     RootObject specAlias;
     RootObject defaultAlias;
 
-    extern (C++) static __gshared Dsymbol sdummy = null;
+    extern (C++) __gshared Dsymbol sdummy = null;
 
     extern (D) this(const ref Loc loc, Identifier ident, Type specType, RootObject specAlias, RootObject defaultAlias)
     {
@@ -6004,8 +6020,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         Objects* a = null;
         if (objs)
         {
-            a = new Objects();
-            a.setDim(objs.dim);
+            a = new Objects(objs.dim);
             for (size_t i = 0; i < objs.dim; i++)
                 (*a)[i] = objectSyntaxCopy((*objs)[i]);
         }
@@ -6684,7 +6699,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                         for (size_t i = 0; i < dim; i++)
                         {
                             Parameter arg = (*tt.arguments)[i];
-                            if (flags & 2 && arg.ident)
+                            if (flags & 2 && (arg.ident || arg.userAttribDecl))
                                 tiargs.insert(j + i, arg);
                             else
                                 tiargs.insert(j + i, arg.type);
@@ -7486,7 +7501,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
     final void tryExpandMembers(Scope* sc2)
     {
-        static __gshared int nest;
+        __gshared int nest;
         // extracted to a function to allow windows SEH to work without destructors in the same function
         //printf("%d\n", nest);
         if (++nest > 500)
@@ -7504,7 +7519,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     final void trySemantic3(Scope* sc2)
     {
         // extracted to a function to allow windows SEH to work without destructors in the same function
-        static __gshared int nest;
+        __gshared int nest;
         //printf("%d\n", nest);
         if (++nest > 300)
         {

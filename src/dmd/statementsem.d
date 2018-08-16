@@ -915,32 +915,35 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     return returnEarly();
                 }
             }
-            else if (!needExpansion)
-            {
-                // Declare value
-                if (!declareVariable(p.storageClass, p.type, p.ident, e, t))
-                {
-                    return returnEarly();
-                }
-            }
             else
-            { // expand tuples into multiple `static foreach` variables.
-                assert(e && !t);
-                auto ident = Identifier.generateId("__value");
-                declareVariable(0, e.type, ident, e, null);
-                import dmd.cond: StaticForeach;
-                auto field = Identifier.idPool(StaticForeach.tupleFieldName.ptr,StaticForeach.tupleFieldName.length);
-                Expression access = new DotIdExp(loc, e, field);
-                access = expressionSemantic(access, sc);
-                if (!tuple) return returnEarly();
-                //printf("%s\n",tuple.toChars());
-                foreach (l; 0 .. dim)
+            {
+                if (!needExpansion)
                 {
-                    auto cp = (*fs.parameters)[l];
-                    Expression init_ = new IndexExp(loc, access, new IntegerExp(loc, l, Type.tsize_t));
-                    init_ = init_.expressionSemantic(sc);
-                    assert(init_.type);
-                    declareVariable(p.storageClass, init_.type, cp.ident, init_, null);
+                    // Declare value
+                    if (!declareVariable(p.storageClass, p.type, p.ident, e, t))
+                    {
+                        return returnEarly();
+                    }
+                }
+                else
+                { // expand tuples into multiple `static foreach` variables.
+                    assert(e && !t);
+                    auto ident = Identifier.generateId("__value");
+                    declareVariable(0, e.type, ident, e, null);
+                    import dmd.cond: StaticForeach;
+                    auto field = Identifier.idPool(StaticForeach.tupleFieldName.ptr,StaticForeach.tupleFieldName.length);
+                    Expression access = new DotIdExp(loc, e, field);
+                    access = expressionSemantic(access, sc);
+                    if (!tuple) return returnEarly();
+                    //printf("%s\n",tuple.toChars());
+                    foreach (l; 0 .. dim)
+                    {
+                        auto cp = (*fs.parameters)[l];
+                        Expression init_ = new IndexExp(loc, access, new IntegerExp(loc, l, Type.tsize_t));
+                        init_ = init_.expressionSemantic(sc);
+                        assert(init_.type);
+                        declareVariable(p.storageClass, init_.type, cp.ident, init_, null);
+                    }
                 }
             }
 
@@ -1659,22 +1662,22 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                      *  extern(C) int _aaApply2(void*, in size_t, int delegate(void*, void*))
                      *      _aaApply2(aggr, keysize, flde)
                      */
-                    static __gshared const(char)** name = ["_aaApply", "_aaApply2"];
-                    static __gshared FuncDeclaration* fdapply = [null, null];
-                    static __gshared TypeDelegate* fldeTy = [null, null];
+                    __gshared const(char)** name = ["_aaApply", "_aaApply2"];
+                    __gshared FuncDeclaration* fdapply = [null, null];
+                    __gshared TypeDelegate* fldeTy = [null, null];
 
                     ubyte i = (dim == 2 ? 1 : 0);
                     if (!fdapply[i])
                     {
                         auto params = new Parameters();
-                        params.push(new Parameter(0, Type.tvoid.pointerTo(), null, null));
-                        params.push(new Parameter(STC.in_, Type.tsize_t, null, null));
+                        params.push(new Parameter(0, Type.tvoid.pointerTo(), null, null, null));
+                        params.push(new Parameter(STC.in_, Type.tsize_t, null, null, null));
                         auto dgparams = new Parameters();
-                        dgparams.push(new Parameter(0, Type.tvoidptr, null, null));
+                        dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
                         if (dim == 2)
-                            dgparams.push(new Parameter(0, Type.tvoidptr, null, null));
+                            dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
                         fldeTy[i] = new TypeDelegate(new TypeFunction(dgparams, Type.tint32, 0, LINK.d));
-                        params.push(new Parameter(0, fldeTy[i], null, null));
+                        params.push(new Parameter(0, fldeTy[i], null, null, null));
                         fdapply[i] = FuncDeclaration.genCfunc(params, Type.tint32, name[i]);
                     }
 
@@ -1703,7 +1706,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     /* Call:
                      *      _aApply(aggr, flde)
                      */
-                    static __gshared const(char)** fntab =
+                    __gshared const(char)** fntab =
                     [
                         "cc", "cw", "cd",
                         "wc", "cc", "wd",
@@ -1737,13 +1740,13 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     FuncDeclaration fdapply;
                     TypeDelegate dgty;
                     auto params = new Parameters();
-                    params.push(new Parameter(STC.in_, tn.arrayOf(), null, null));
+                    params.push(new Parameter(STC.in_, tn.arrayOf(), null, null, null));
                     auto dgparams = new Parameters();
-                    dgparams.push(new Parameter(0, Type.tvoidptr, null, null));
+                    dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
                     if (dim == 2)
-                        dgparams.push(new Parameter(0, Type.tvoidptr, null, null));
+                        dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
                     dgty = new TypeDelegate(new TypeFunction(dgparams, Type.tint32, 0, LINK.d));
-                    params.push(new Parameter(0, dgty, null, null));
+                    params.push(new Parameter(0, dgty, null, null, null));
                     fdapply = FuncDeclaration.genCfunc(params, Type.tint32, fdname.ptr);
 
                     if (tab.ty == Tsarray)
@@ -1907,13 +1910,13 @@ else
             LcopyArg:
                 id = Identifier.generateId("__applyArg", cast(int)i);
 
-                Initializer ie = new ExpInitializer(Loc.initial, new IdentifierExp(Loc.initial, id));
-                auto v = new VarDeclaration(Loc.initial, p.type, p.ident, ie);
+                Initializer ie = new ExpInitializer(fs.loc, new IdentifierExp(fs.loc, id));
+                auto v = new VarDeclaration(fs.loc, p.type, p.ident, ie);
                 v.storage_class |= STC.temp;
-                Statement s = new ExpStatement(Loc.initial, v);
+                Statement s = new ExpStatement(fs.loc, v);
                 fs._body = new CompoundStatement(fs.loc, s, fs._body);
             }
-            params.push(new Parameter(stc, p.type, id, null));
+            params.push(new Parameter(stc, p.type, id, null, null));
         }
         // https://issues.dlang.org/show_bug.cgi?id=13840
         // Throwable nested function inside nothrow function is acceptable.
@@ -1921,11 +1924,13 @@ else
         auto tf = new TypeFunction(params, Type.tint32, 0, LINK.d, stc);
         fs.cases = new Statements();
         fs.gotos = new ScopeStatements();
-        auto fld = new FuncLiteralDeclaration(fs.loc, Loc.initial, tf, TOK.delegate_, fs);
+        auto fld = new FuncLiteralDeclaration(fs.loc, fs.endloc, tf, TOK.delegate_, fs);
         fld.fbody = fs._body;
         Expression flde = new FuncExp(fs.loc, fld);
         flde = flde.expressionSemantic(sc);
         fld.tookAddressOf = 0;
+        if (flde.op == TOK.error)
+            return null;
         return cast(FuncExp)flde;
     }
 
@@ -2361,7 +2366,7 @@ else
                 fd.inlining = inlining;
             }
         }
-        else
+        else if (!global.params.ignoreUnsupportedPragmas)
         {
             ps.error("unrecognized `pragma(%s)`", ps.ident.toChars());
             return setError();
@@ -3234,7 +3239,7 @@ else
             foreach (i, v; ad.fields)
             {
                 bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
-                if (mustInit && !(sc.ctorflow.fieldinit[i] & CSX.this_ctor))
+                if (mustInit && !(sc.ctorflow.fieldinit[i].csx & CSX.this_ctor))
                 {
                     rs.error("an earlier `return` statement skips field `%s` initialization", v.toChars());
                     errors = true;
@@ -3519,7 +3524,7 @@ else
                 cs.push(new ExpStatement(ss.loc, tmp));
 
                 auto args = new Parameters();
-                args.push(new Parameter(0, ClassDeclaration.object.type, null, null));
+                args.push(new Parameter(0, ClassDeclaration.object.type, null, null, null));
 
                 FuncDeclaration fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.monitorenter);
                 Expression e = new CallExp(ss.loc, fdenter, new VarExp(ss.loc, tmp));
@@ -3561,7 +3566,7 @@ else
             cs.push(new ExpStatement(ss.loc, v));
 
             auto args = new Parameters();
-            args.push(new Parameter(0, t.pointerTo(), null, null));
+            args.push(new Parameter(0, t.pointerTo(), null, null, null));
 
             FuncDeclaration fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.criticalenter, STC.nothrow_);
             Expression int0 = new IntegerExp(ss.loc, dinteger_t(0), Type.tint8);
@@ -4023,6 +4028,9 @@ else
 
     override void visit(CompoundAsmStatement cas)
     {
+        // Apply postfix attributes of the asm block to each statement.
+        sc = sc.push();
+        sc.stc |= cas.stc;
         foreach (ref s; *cas.statements)
         {
             s = s ? s.statementSemantic(sc) : null;
@@ -4038,6 +4046,7 @@ else
         if (!(cas.stc & (STC.trusted | STC.safe)) && sc.func.setUnsafe())
             cas.error("`asm` statement is assumed to be `@system` - mark it with `@trusted` if it is not");
 
+        sc.pop();
         result = cas;
     }
 

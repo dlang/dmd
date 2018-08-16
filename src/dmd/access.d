@@ -49,9 +49,8 @@ private Prot getAccess(AggregateDeclaration ad, Dsymbol smember)
     }
     if (ClassDeclaration cd = ad.isClassDeclaration())
     {
-        for (size_t i = 0; i < cd.baseclasses.dim; i++)
+        foreach (b; *cd.baseclasses)
         {
-            BaseClass* b = (*cd.baseclasses)[i];
             Prot access = getAccess(b.sym, smember);
             final switch (access.kind)
             {
@@ -101,10 +100,9 @@ private bool isAccessible(Dsymbol smember, Dsymbol sfunc, AggregateDeclaration d
             return true;
         if (ClassDeclaration cdthis = dthis.isClassDeclaration())
         {
-            for (size_t i = 0; i < cdthis.baseclasses.dim; i++)
+            foreach (b; *cdthis.baseclasses)
             {
-                BaseClass* b = (*cdthis.baseclasses)[i];
-                Prot access = getAccess(b.sym, smember);
+                const Prot access = getAccess(b.sym, smember);
                 if (access.kind >= Prot.Kind.protected_ || isAccessible(smember, sfunc, b.sym, cdscope))
                 {
                     return true;
@@ -118,12 +116,9 @@ private bool isAccessible(Dsymbol smember, Dsymbol sfunc, AggregateDeclaration d
         {
             if (ClassDeclaration cdthis = dthis.isClassDeclaration())
             {
-                for (size_t i = 0; i < cdthis.baseclasses.dim; i++)
-                {
-                    BaseClass* b = (*cdthis.baseclasses)[i];
+                foreach (b; *cdthis.baseclasses)
                     if (isAccessible(smember, sfunc, b.sym, cdscope))
                         return true;
-                }
             }
         }
     }
@@ -423,8 +418,7 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
         ClassDeclaration cd = (cast(TypeClass)e.type).sym;
         if (e.op == TOK.super_)
         {
-            ClassDeclaration cd2 = sc.func.toParent().isClassDeclaration();
-            if (cd2)
+            if (ClassDeclaration cd2 = sc.func.toParent().isClassDeclaration())
                 cd = cd2;
         }
         return checkAccess(cd, loc, sc, d);

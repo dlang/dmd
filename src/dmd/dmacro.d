@@ -81,8 +81,8 @@ public:
             printf("Buf is: '%.*s'\n", *pend - start, buf.data + start);
         }
         // limit recursive expansion
-        static __gshared int nest;
-        static __gshared const(int) nestLimit = 1000;
+        __gshared int nest;
+        __gshared const(int) nestLimit = 1000;
         if (nest > nestLimit)
         {
             error(Loc.initial, "DDoc macro expansion limit exceeded; more than %d expansions.", nestLimit);

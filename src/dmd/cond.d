@@ -102,12 +102,9 @@ extern (C++) final class StaticForeach : RootObject
     bool needExpansion = false;
 
     extern (D) this(const ref Loc loc,ForeachStatement aggrfe,ForeachRangeStatement rangefe)
-    in
     {
         assert(!!aggrfe ^ !!rangefe);
-    }
-    body
-    {
+
         this.loc = loc;
         this.aggrfe = aggrfe;
         this.rangefe = rangefe;
@@ -291,7 +288,7 @@ extern (C++) final class StaticForeach : RootObject
             foreach (params; pparams)
             {
                 auto p = aggrfe ? (*aggrfe.parameters)[i] : rangefe.prm;
-                params.push(new Parameter(p.storageClass, p.type, p.ident, null));
+                params.push(new Parameter(p.storageClass, p.type, p.ident, null, null));
             }
         }
         Expression[2] res;
@@ -372,13 +369,10 @@ extern (C++) final class StaticForeach : RootObject
      * to finally expand the `static foreach` using
      * `dmd.statementsem.makeTupleForeach`.
      */
-    final extern(D) void prepare(Scope* sc)
-    in
+    extern(D) void prepare(Scope* sc)
     {
         assert(sc);
-    }
-    body
-    {
+
         if (aggrfe)
         {
             sc = sc.startCTFE();
@@ -414,7 +408,7 @@ extern (C++) final class StaticForeach : RootObject
      * Returns:
      *     `true` iff ready to call `dmd.statementsem.makeTupleForeach`.
      */
-    final extern(D) bool ready()
+    extern(D) bool ready()
     {
         return aggrfe && aggrfe.aggr && aggrfe.aggr.type && aggrfe.aggr.type.toBasetype().ty == Ttuple;
     }

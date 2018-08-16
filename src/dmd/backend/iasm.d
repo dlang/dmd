@@ -169,7 +169,7 @@ else
 // Operand flags - usOp1, usOp2, usOp3
 //
 
-alias uint opflag_t;
+alias opflag_t = uint;
 
 // Operand flags for normal opcodes
 enum
