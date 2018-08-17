@@ -7,5 +7,4 @@ With new/fixed aliases, e.g., $(REF int64_t, core, stdc, stdint),
 $(REF uint64_t, core, stdc, stdint) and $(REF cpp_size_t, core, stdc, config), there are
 now proper tools for portable C++ interop wrt. integers.
 Reverting to the previous C++ mangling on 64-bit OS X (C++ `long`) may save mixed D/C++
-code bases from the need of manual adaptations by skipping the 2.079 and 2.080 DMD
-versions.
+code bases from the need of manual adaptations by skipping the 2.079-2.081 DMD versions.
