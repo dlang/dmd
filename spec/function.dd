@@ -127,11 +127,11 @@ $(GNAME InOutStatement):
     $(GLINK OutStatement)
 
 $(GNAME InContractExpression):
-    $(D in $(LPAREN)) $(GLINK2 expression, ContractArguments) $(D $(RPAREN))
+    $(D in $(LPAREN)) $(GLINK2 expression, AssertArguments) $(D $(RPAREN))
 
 $(GNAME OutContractExpression):
-    $(D out $(LPAREN) ;) $(GLINK2 expression, ContractArguments) $(D $(RPAREN))
-    $(D out $(LPAREN)) $(I Identifier) $(D ;) $(GLINK2 expression, ContractArguments) $(D $(RPAREN))
+    $(D out $(LPAREN) ;) $(GLINK2 expression, AssertArguments) $(D $(RPAREN))
+    $(D out $(LPAREN)) $(I Identifier) $(D ;) $(GLINK2 expression, AssertArguments) $(D $(RPAREN))
 
 $(GNAME InStatement):
     $(D in) $(GLINK2 statement, BlockStatement)
