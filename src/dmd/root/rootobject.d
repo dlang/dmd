@@ -62,6 +62,14 @@ extern (C++) class RootObject
         assert(0);
     }
 
+    ///
+    extern(D) const(char)[] toString()
+    {
+        import core.stdc.string : strlen;
+        auto p = this.toChars();
+        return p[0 .. strlen(p)];
+    }
+
     void toBuffer(OutBuffer* buf) nothrow pure @nogc @safe
     {
         assert(0);

@@ -38,6 +38,7 @@ import dmd.root.port;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.target;
+import dmd.utils;
 import dmd.visitor;
 
 version(Windows) {
@@ -1337,19 +1338,24 @@ struct ModuleDeclaration
         this.isdeprecated = isdeprecated;
     }
 
-    extern (C++) const(char)* toChars()
+    extern (C++) const(char)* toChars() const
     {
         OutBuffer buf;
         if (packages && packages.dim)
         {
-            for (size_t i = 0; i < packages.dim; i++)
+            foreach (pid; *packages)
             {
-                Identifier pid = (*packages)[i];
-                buf.writestring(pid.toChars());
+                buf.writestring(pid.toString());
                 buf.writeByte('.');
             }
         }
-        buf.writestring(id.toChars());
+        buf.writestring(id.toString());
         return buf.extractString();
+    }
+
+    /// Provide a human readable representation
+    extern (D) const(char)[] toString() const
+    {
+        return this.toChars().toDString;
     }
 }

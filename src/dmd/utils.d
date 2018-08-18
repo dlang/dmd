@@ -132,3 +132,9 @@ extern (C++) void escapePath(OutBuffer* buf, const(char)* fname)
         fname++;
     }
 }
+
+/// Slices a `\0`-terminated C-string, excluding the terminator
+const(char)[] toDString (const(char)* s) pure nothrow @nogc
+{
+    return s ? s[0 .. strlen(s)] : null;
+}
