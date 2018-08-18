@@ -33,7 +33,7 @@ struct File
     static File *create(const char *);
     ~File();
 
-    const char *toChars();
+    const char *toChars() const;
 
     /* Read file, return true if error
      */
