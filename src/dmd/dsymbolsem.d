@@ -533,7 +533,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             assert(t);
             if (ad.type.implicitConvTo(t) > MATCH.nomatch)
             {
-                error(dsym.loc, "alias this is not reachable as `%s` already converts to `%s`", ad.toChars(), t.toChars());
+                deprecation(dsym.loc, "alias this is not reachable as `%s` already converts to `%s`", ad.toChars(), t.toChars());
             }
         }
 

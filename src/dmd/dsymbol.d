@@ -1718,30 +1718,49 @@ extern (C++) final class WithScopeSymbol : ScopeDsymbol
             return null;
         // Acts as proxy to the with class declaration
         Dsymbol s = null;
-        Expression eold = null;
-        for (Expression e = withstate.exp; e != eold; e = resolveAliasThis(_scope, e))
+
+        Expression e = withstate.exp;
+
+        if (e.op == TOK.scope_)
         {
-            if (e.op == TOK.scope_)
-            {
-                s = (cast(ScopeExp)e).sds;
-            }
-            else if (e.op == TOK.type)
-            {
-                s = e.type.toDsymbol(null);
-            }
-            else
-            {
-                Type t = e.type.toBasetype();
-                s = t.toDsymbol(null);
-            }
-            if (s)
-            {
-                s = s.search(loc, ident, flags);
-                if (s)
-                    return s;
-            }
-            eold = e;
+            s = (cast(ScopeExp)e).sds;
         }
+        else if (e.op == TOK.type)
+        {
+            s = e.type.toDsymbol(null);
+        }
+        else
+        {
+            Type t = e.type.toBasetype();
+            s = t.toDsymbol(null);
+        }
+        if (s)
+        {
+            s = s.search(loc, ident, flags);
+            if (s)
+                return s;
+        }
+
+        //try alias this-es
+        Expression[] results;
+
+        FindMemberAliasThisCtx ctx = FindMemberAliasThisCtx(loc, ident, flags);
+        iterateAliasThis(_scope, e, &ctx.findMember, results);
+
+        assert(ctx.candidates.length == results.length);
+        if (ctx.candidates.length == 1)
+        {
+            return ctx.candidates[0];
+        }
+        else if (ctx.candidates.length > 1)
+        {
+            e.error("there are many candidates to %s.%s resolve:", e.toChars(), ident.toChars());
+            for (size_t j = 0; j < ctx.candidates.length; ++j)
+            {
+                .errorSupplemental(e.loc, "%s.%s", results[j].toChars(), ctx.candidates[j].toChars());
+            }
+        }
+
         return null;
     }
 

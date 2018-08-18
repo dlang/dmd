@@ -288,7 +288,7 @@ Lagain:
                 if (td && td.isexp)
                     return td;
             }
-            if (Type att = t.aliasthisOf())
+            if (Type att = aliasThisOf(t))
             {
                 t = att;
                 goto Lagain;
@@ -672,11 +672,12 @@ enum WANTexpand = 1;    // expand const/immutable variables if possible
  */
 extern (C++) abstract class Expression : RootObject
 {
-    Loc loc;        // file location
-    Type type;      // !=null means that semantic() has been run
-    TOK op;         // to minimize use of dynamic_cast
-    ubyte size;     // # of bytes in Expression so we can copy() it
-    ubyte parens;   // if this is a parenthesized expression
+    Loc loc;            // file location
+    Type type;          // !=null means that semantic() has been run
+    TOK op;             // to minimize use of dynamic_cast
+    ubyte size;         // # of bytes in Expression so we can copy() it
+    ubyte parens;       // if this is a parenthesized expression
+    bool aliasthislock; // used to prevent alias this resolving
 
     extern (D) this(const ref Loc loc, TOK op, int size)
     {
@@ -1523,14 +1524,24 @@ extern (C++) abstract class Expression : RootObject
             }
 
             // Forward to aliasthis.
-            if (ad.aliasthis && tb != att)
+            if (!(tb.aliasthislock & AliasThisRec.RECtracing))
             {
-                if (!att && tb.checkAliasThisRec())
-                    att = tb;
-                e = resolveAliasThis(sc, e);
-                t = e.type;
-                tb = e.type.toBasetype();
-                goto Lagain;
+                Expression[] results;
+                iterateAliasThis(sc, e, &EmptyAliasThisCtx().castToBool, results);
+
+                Expression ret = enforceOneResult(results, e.loc, "unable to represent %s as bool; candidates:", e.toChars());
+                if (ret)
+                {
+                    if (ret.op == TOK.error)
+                    {
+                        // can not be tested now, bacause structs with multiple alias this are not implemented yet
+                        return ret;
+                    }
+                    e = ret;
+                    t = e.type;
+                    tb = e.type.toBasetype();
+                    goto Lagain;
+                }
             }
         }
 
@@ -3917,7 +3928,6 @@ extern (C++) final class IsExp : Expression
 extern (C++) class UnaExp : Expression
 {
     Expression e1;
-    Type att1;      // Save alias this type to detect recursion
 
     extern (D) this(const ref Loc loc, TOK op, int size, Expression e1)
     {
@@ -3930,6 +3940,7 @@ extern (C++) class UnaExp : Expression
         UnaExp e = cast(UnaExp)copy();
         e.type = null;
         e.e1 = e.e1.syntaxCopy();
+        aliasthislock = false;
         return e;
     }
 
@@ -3988,8 +3999,6 @@ extern (C++) abstract class BinExp : Expression
 {
     Expression e1;
     Expression e2;
-    Type att1;      // Save alias this type to detect recursion
-    Type att2;      // Save alias this type to detect recursion
 
     extern (D) this(const ref Loc loc, TOK op, int size, Expression e1, Expression e2)
     {
@@ -4004,6 +4013,7 @@ extern (C++) abstract class BinExp : Expression
         e.type = null;
         e.e1 = e.e1.syntaxCopy();
         e.e2 = e.e2.syntaxCopy();
+        aliasthislock = false;
         return e;
     }
 
@@ -6154,6 +6164,9 @@ extern (C++) final class RemoveExp : BinExp
  */
 extern (C++) final class EqualExp : BinExp
 {
+    Type tupleComparingLockL; // used to prevent struct .tupleof comparing
+    Type tupleComparingLockR; // used to prevent struct .tupleof comparing
+
     extern (D) this(TOK op, const ref Loc loc, Expression e1, Expression e2)
     {
         super(loc, op, __traits(classInstanceSize, EqualExp), e1, e2);

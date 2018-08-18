@@ -1400,6 +1400,9 @@ void addDefaultVersionIdentifiers()
 
 
     VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
+
+    // temporary version for the soft transition
+    VersionCondition.addPredefinedGlobalIdent("__NewAliasThis");
 }
 
 private void printPredefinedVersions(FILE* stream)

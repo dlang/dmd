@@ -3,8 +3,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_opover.d(13): Error: no `[]` operator overload for type `object.Object`
-fail_compilation/fail_opover.d(17): Error: no `[]` operator overload for type `TestS`
+fail_compilation/fail_opover.d(13): Error: undefined identifier `error`, did you mean class `Error`?
+fail_compilation/fail_opover.d(17): Error: undefined identifier `error`, did you mean class `Error`?
 ---
 */
 void test1()

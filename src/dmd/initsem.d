@@ -697,7 +697,22 @@ private extern(C++) final class InferTypeVisitor : Visitor
 
         // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
         if (init.exp.op == TOK.type)
-            init.exp = resolveAliasThis(sc, init.exp);
+        {
+            Expression[] results;
+            Expression e = init.exp.copy();
+
+            iterateAliasThis(sc, e, &EmptyAliasThisCtx().findType, results);
+            Expression ret = enforceOneResult(results, e.loc, "unable to represent %s as initializer; candidates:", e.toChars());
+            if (ret)
+            {
+                if (ret.op == TOK.error)
+                {
+                    result = new ErrorInitializer();
+                    return;
+                }
+                init.exp = ret;
+            }
+        }
 
         init.exp = resolveProperties(sc, init.exp);
         if (init.exp.op == TOK.scope_)

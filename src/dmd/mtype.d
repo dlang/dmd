@@ -49,6 +49,7 @@ import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
+import dmd.aliasthis;
 
 enum LOGDOTEXP = 0;         // log ::dotExp()
 enum LOGDEFAULTINIT = 0;    // log ::defaultInit()
@@ -363,6 +364,14 @@ enum DotExpFlag
     noDeref = 2,    // the use of the expression will not attempt a dereference
 }
 
+// Whether alias this dependency is recursive or not.
+enum AliasThisRec
+{
+    RECinit      = 0x0,
+    RECtracing   = 0x1, // mark in progress of implicitConvTo/deduceWild
+    RECtracingDT = 0x2, // mark in progress of deduceType
+}
+
 /***********************************************************
  */
 extern (C++) abstract class Type : RootObject
@@ -370,6 +379,10 @@ extern (C++) abstract class Type : RootObject
     TY ty;
     MOD mod; // modifiers MODxxxx
     char* deco;
+    /* This field is a bit-mask of AliasThisRec values.
+     * It is used to prevent alias this resolving.
+     */
+    uint aliasthislock = AliasThisRec.RECinit;
 
     /* These are cached values that are lazily evaluated by constOf(), immutableOf(), etc.
      * They should not be referenced by anybody but mtype.c.
@@ -1142,10 +1155,7 @@ extern (C++) abstract class Type : RootObject
         t.swcto = null;
         t.vtinfo = null;
         t.ctype = null;
-        if (t.ty == Tstruct)
-            (cast(TypeStruct)t).att = AliasThisRec.fwdref;
-        if (t.ty == Tclass)
-            (cast(TypeClass)t).att = AliasThisRec.fwdref;
+        t.aliasthislock = AliasThisRec.RECinit;
         return t;
     }
 
@@ -2014,86 +2024,6 @@ extern (C++) abstract class Type : RootObject
         return t;
     }
 
-    final Type aliasthisOf()
-    {
-        auto ad = isAggregate(this);
-        if (!ad || !ad.aliasthis)
-            return null;
-
-        auto s = ad.aliasthis;
-        if (s.isAliasDeclaration())
-            s = s.toAlias();
-
-        if (s.isTupleDeclaration())
-            return null;
-
-        if (auto vd = s.isVarDeclaration())
-        {
-            auto t = vd.type;
-            if (vd.needThis())
-                t = t.addMod(this.mod);
-            return t;
-        }
-        if (auto fd = s.isFuncDeclaration())
-        {
-            fd = resolveFuncCall(Loc.initial, null, fd, null, this, null, 1);
-            if (!fd || fd.errors || !fd.functionSemantic())
-                return Type.terror;
-
-            auto t = fd.type.nextOf();
-            if (!t) // issue 14185
-                return Type.terror;
-            t = t.substWildTo(mod == 0 ? MODFlags.mutable : mod);
-            return t;
-        }
-        if (auto d = s.isDeclaration())
-        {
-            assert(d.type);
-            return d.type;
-        }
-        if (auto ed = s.isEnumDeclaration())
-        {
-            return ed.type;
-        }
-        if (auto td = s.isTemplateDeclaration())
-        {
-            assert(td._scope);
-            auto fd = resolveFuncCall(Loc.initial, null, td, null, this, null, 1);
-            if (!fd || fd.errors || !fd.functionSemantic())
-                return Type.terror;
-
-            auto t = fd.type.nextOf();
-            if (!t)
-                return Type.terror;
-            t = t.substWildTo(mod == 0 ? MODFlags.mutable : mod);
-            return t;
-        }
-
-        //printf("%s\n", s.kind());
-        return null;
-    }
-
-    final bool checkAliasThisRec()
-    {
-        Type tb = toBasetype();
-        AliasThisRec* pflag;
-        if (tb.ty == Tstruct)
-            pflag = &(cast(TypeStruct)tb).att;
-        else if (tb.ty == Tclass)
-            pflag = &(cast(TypeClass)tb).att;
-        else
-            return false;
-
-        AliasThisRec flag = cast(AliasThisRec)(*pflag & AliasThisRec.typeMask);
-        if (flag == AliasThisRec.fwdref)
-        {
-            Type att = aliasthisOf();
-            flag = att && att.implicitConvTo(this) ? AliasThisRec.yes : AliasThisRec.no;
-        }
-        *pflag = cast(AliasThisRec)(flag | (*pflag & ~AliasThisRec.typeMask));
-        return flag == AliasThisRec.yes;
-    }
-
     Type makeConst()
     {
         //printf("Type::makeConst() %p, %s\n", this, toChars());
@@ -2210,6 +2140,21 @@ extern (C++) abstract class Type : RootObject
         return MATCH.nomatch;
     }
 
+    /********************************
+     * Determine if 'this' can be implicitly converted
+     * to type 'to' without resolving alias this.
+     * Returns:
+     *      MATCH.nomatch, MATCH.convert, MATCH.constant, MATCH.exact
+     */
+    final MATCH implicitConvToWithoutAliasThis(Type to)
+    {
+        uint oldatlock = aliasthislock;
+        aliasthislock |= AliasThisRec.RECtracing;
+        MATCH m = implicitConvTo(to);
+        aliasthislock = oldatlock;
+        return m;
+    }
+
     /*******************************
      * Determine if converting 'this' to 'to' is an identity operation,
      * a conversion to const operation, or the types aren't the same.
@@ -2260,6 +2205,24 @@ extern (C++) abstract class Type : RootObject
                 assert(0);
         }
         return 0;
+    }
+
+    /***************************************
+     * Compute MOD bits matching `this` argument type to wild parameter type
+     * without alias this resolvig.
+     * Params:
+     *  t = corresponding parameter type
+     *  isRef = parameter is `ref` or `out`
+     * Returns:
+     *  MOD bits
+     */
+    final MOD deduceWildWithoutAliasThis(Type t, bool isRef)
+    {
+        uint oldatlock = aliasthislock;
+        aliasthislock |= AliasThisRec.RECtracing;
+        auto ret = deduceWild(t, isRef);
+        aliasthislock = oldatlock;
+        return ret;
     }
 
     Type substWildTo(uint mod)
@@ -4845,16 +4808,75 @@ extern (C++) final class TypeFunction : TypeNext
                      * https://issues.dlang.org/show_bug.cgi?id=15674
                      * Allow on both ref and out parameters.
                      */
-                    while (1)
+                    if (ta.toBasetype().ty == Tclass || ta.toBasetype().ty == Tstruct)
                     {
-                        Type tab = ta.toBasetype();
-                        Type tat = tab.aliasthisOf();
-                        if (!tat || !tat.implicitConvTo(tprm))
-                            break;
-                        if (tat == tab)
-                            break;
-                        ta = tat;
+                        Type[] candidates;
+                        bool[] islvalues;
+                        Type[] results_exact;
+                        Type[] results_convert;
+                        bool last_exact_l_value = 0;
+                        bool last_convert_l_value = 0;
+
+                        getAliasThisTypes(arg.type, candidates, islvalues);
+
+                        for (size_t i = 0; i < candidates.length; i++)
+                        {
+                            if (candidates[i].equals(arg.type))
+                            {
+                                continue;
+                            }
+                            MATCH m2 = candidates[i].implicitConvToWithoutAliasThis(tprm);
+
+                            if (m2 == MATCH.exact)
+                            {
+                                results_exact ~= candidates[i];
+                                last_exact_l_value = islvalues[i];
+                            }
+                            else if (m2 != MATCH.nomatch)
+                            {
+                                results_convert ~= candidates[i];
+                                last_convert_l_value = islvalues[i];
+                            }
+                        }
+
+                        if (results_exact.length == 1)
+                        {
+                            if (p.storageClass & STC.ref_ && !last_exact_l_value)
+                            {
+                                goto Nomatch;
+                            }
+                            ta = results_exact[0];
+                        }
+                        else if (results_exact.length > 1)
+                        {
+                            arg.error("unable to unambiguously represent %s as %s; candidates:",
+                                       arg.type.toChars(), tprm.toChars());
+                            for (size_t j = 0; j < results_exact.length; ++j)
+                            {
+                                .errorSupplemental(arg.loc, "%s", results_exact[j].toChars());
+                            }
+                            goto Nomatch;
+                        }
+                        else if (results_convert.length == 1)
+                        {
+                            if (p.storageClass & STC.ref_ && !last_convert_l_value)
+                            {
+                                goto Nomatch;
+                            }
+                            ta = results_convert[0];
+                        }
+                        else if (results_convert.length > 1)
+                        {
+                            arg.error("unable to unambiguously represent %s as %s; candidates:",
+                                       arg.type.toChars(), tprm.toChars());
+                            for (size_t j = 0; j < results_convert.length; ++j)
+                            {
+                                .errorSupplemental(arg.loc, "%s", results_convert[j].toChars());
+                            }
+                            goto Nomatch;
+                        }
                     }
+
 
                     /* A ref variable should work like a head-const reference.
                      * e.g. disallows:
@@ -5373,23 +5395,11 @@ extern (C++) final class TypeReturn : TypeQualified
     }
 }
 
-// Whether alias this dependency is recursive or not.
-enum AliasThisRec : int
-{
-    no           = 0,    // no alias this recursion
-    yes          = 1,    // alias this has recursive dependency
-    fwdref       = 2,    // not yet known
-    typeMask     = 3,    // mask to read no/yes/fwdref
-    tracing      = 0x4,  // mark in progress of implicitConvTo/deduceWild
-    tracingDT    = 0x8,  // mark in progress of deduceType
-}
-
 /***********************************************************
  */
 extern (C++) final class TypeStruct : Type
 {
     StructDeclaration sym;
-    AliasThisRec att = AliasThisRec.fwdref;
     CPPMANGLE cppmangle = CPPMANGLE.def;
 
     extern (D) this(StructDeclaration sym)
@@ -5642,19 +5652,26 @@ extern (C++) final class TypeStruct : Type
                 }
             }
         }
-        else if (sym.aliasthis && !(att & AliasThisRec.tracing))
+        else if (!(aliasthislock & AliasThisRec.RECtracing))
         {
-            if (auto ato = aliasthisOf())
+            Type[] candidates;
+            bool[] lvalues;
+            getAliasThisTypes(this, candidates, lvalues);
+
+            m = MATCH.nomatch;
+            for (size_t i = 0; i < candidates.length; i++)
             {
-                att = cast(AliasThisRec)(att | AliasThisRec.tracing);
-                m = ato.implicitConvTo(to);
-                att = cast(AliasThisRec)(att & ~AliasThisRec.tracing);
+                MATCH m2 = candidates[i].implicitConvToWithoutAliasThis(to);
+                if (m2 > m)
+                {
+                    m = m2;
+                }
             }
-            else
-                m = MATCH.nomatch; // no match
         }
         else
-            m = MATCH.nomatch; // no match
+        {
+            m = MATCH.nomatch;       // no match
+        }
         return m;
     }
 
@@ -5674,16 +5691,19 @@ extern (C++) final class TypeStruct : Type
 
         ubyte wm = 0;
 
-        if (t.hasWild() && sym.aliasthis && !(att & AliasThisRec.tracing))
+        if (t.hasWild() && !(aliasthislock & AliasThisRec.RECtracing))
         {
-            if (auto ato = aliasthisOf())
+            Type[] candidates;
+            bool[] lvalues;
+            getAliasThisTypes(this, candidates, lvalues);
+
+            for (size_t i = 0; i < candidates.length; i++)
             {
-                att = cast(AliasThisRec)(att | AliasThisRec.tracing);
-                wm = ato.deduceWild(t, isRef);
-                att = cast(AliasThisRec)(att & ~AliasThisRec.tracing);
+                wm = candidates[i].deduceWildWithoutAliasThis(t, isRef);
+                if (wm)
+                    break;
             }
         }
-
         return wm;
     }
 
@@ -5859,7 +5879,6 @@ extern (C++) final class TypeEnum : Type
 extern (C++) final class TypeClass : Type
 {
     ClassDeclaration sym;
-    AliasThisRec att = AliasThisRec.fwdref;
     CPPMANGLE cppmangle = CPPMANGLE.def;
 
     extern (D) this(ClassDeclaration sym)
@@ -5927,13 +5946,20 @@ extern (C++) final class TypeClass : Type
         }
 
         m = MATCH.nomatch;
-        if (sym.aliasthis && !(att & AliasThisRec.tracing))
+        if (!(aliasthislock & AliasThisRec.RECtracing))
         {
-            if (auto ato = aliasthisOf())
+            Type[] candidates;
+            bool[] lvalues;
+            getAliasThisTypes(this, candidates, lvalues);
+
+            m = MATCH.nomatch;
+            for (size_t i = 0; i < candidates.length; i++)
             {
-                att = cast(AliasThisRec)(att | AliasThisRec.tracing);
-                m = ato.implicitConvTo(to);
-                att = cast(AliasThisRec)(att & ~AliasThisRec.tracing);
+                MATCH m2 = candidates[i].implicitConvToWithoutAliasThis(to);
+                if (m2 > m)
+                {
+                    m = m2;
+                }
             }
         }
 
@@ -5970,13 +5996,17 @@ extern (C++) final class TypeClass : Type
 
         ubyte wm = 0;
 
-        if (t.hasWild() && sym.aliasthis && !(att & AliasThisRec.tracing))
+        if (t.hasWild() && !(aliasthislock & AliasThisRec.RECtracing))
         {
-            if (auto ato = aliasthisOf())
+            Type[] candidates;
+            bool[] lvalues;
+            getAliasThisTypes(this, candidates, lvalues);
+
+            for (size_t i = 0; i < candidates.length; i++)
             {
-                att = cast(AliasThisRec)(att | AliasThisRec.tracing);
-                wm = ato.deduceWild(t, isRef);
-                att = cast(AliasThisRec)(att & ~AliasThisRec.tracing);
+                wm = candidates[i].deduceWildWithoutAliasThis(t, isRef);
+                if (wm)
+                    break;
             }
         }
 
