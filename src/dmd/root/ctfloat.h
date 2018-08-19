@@ -18,9 +18,6 @@ typedef longdouble real_t;
 // Compile-time floating-point helper
 struct CTFloat
 {
-    static bool yl2x_supported;
-    static bool yl2xp1_supported;
-
     static void yl2x(const real_t *x, const real_t *y, real_t *res);
     static void yl2xp1(const real_t *x, const real_t *y, real_t *res);
 
@@ -63,6 +60,8 @@ struct CTFloat
     static real_t one;
     static real_t minusone;
     static real_t half;
+
+    static void initialize();
 };
 
 #endif
