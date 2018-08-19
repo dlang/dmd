@@ -85,6 +85,7 @@ struct Target
     static Type *cppParameterType(Parameter *p);
     static LINK systemLinkage();
     static TypeTuple *toArgTypes(Type *t);
+    static bool isReturnOnStack(TypeFunction *tf, bool needsThis);
     static d_uns64 parameterSize(const Loc& loc, Type *t);
 };
 
