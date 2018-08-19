@@ -721,7 +721,7 @@ auto sourceFiles()
     if (env["TARGET_CPU"] == "X86")
     {
         targetCH = "code_x86.h";
-        targetObjs = ["cg87", "cgxmm", "cod1", "cod2", "cod3", "cod4", "ptrntab"];
+        targetObjs = ["cgxmm", "cod1", "cod2", "cod3", "cod4", "ptrntab"];
     }
     else if (env["TARGET_CPU"] == "stub")
     {
