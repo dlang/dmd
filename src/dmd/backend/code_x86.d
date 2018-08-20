@@ -16,6 +16,7 @@ module dmd.backend.code_x86;
 import dmd.backend.cdef;
 import dmd.backend.cc : config;
 import dmd.backend.code;
+import dmd.backend.el : elem;
 
 /* Register definitions */
 
@@ -148,6 +149,100 @@ enum FLOATREGS2_16   = (mCX|mBX);
 enum DOUBLEREGS_16   = (mAX|mBX|mCX|mDX);
 
 /*#define _8087REGS (mST0|mST1|mST2|mST3|mST4|mST5|mST6|mST7)*/
+
+/* Segment registers    */
+enum
+{
+    SEG_ES  = 0,
+    SEG_CS  = 1,
+    SEG_SS  = 2,
+    SEG_DS  = 3,
+}
+
+/*********************
+ * Masks for register pairs.
+ * Note that index registers are always LSWs. This is for the convenience
+ * of implementing far pointers.
+ */
+
+static if (0)
+{
+// Give us an extra one so we can enregister a long
+enum mMSW = mCX|mDX|mDI|mES;       // most significant regs
+enum mLSW = mAX|mBX|mSI;           // least significant regs
+}
+else
+{
+enum mMSW = mCX|mDX|mES;           // most significant regs
+enum mLSW = mAX|mBX|mSI|mDI;       // least significant regs
+}
+
+/* Return !=0 if there is a SIB byte   */
+uint issib(uint rm) { return (rm & 7) == 4 && (rm & 0xC0) != 0xC0; }
+
+static if (0)
+{
+// relocation field size is always 32bits
+//enum is32bitaddr(x,Iflags) (1)
+}
+else
+{
+//
+// is32bitaddr works correctly only when x is 0 or 1.  This is
+// true today for the current definition of I32, but if the definition
+// of I32 changes, this macro will need to change as well
+//
+// Note: even for linux targets, CFaddrsize can be set by the inline
+// assembler.
+//enum is32bitaddr(x,Iflags) (I64 || ((x) ^(((Iflags) & CFaddrsize) !=0)))
+}
+
+
+/**********************
+ * C library routines.
+ * See callclib().
+ */
+
+enum CLIB
+{
+    lcmp,
+    lmul,
+    ldiv,
+    lmod,
+    uldiv,
+    ulmod,
+
+    dmul,ddiv,dtst0,dtst0exc,dcmp,dcmpexc,dneg,dadd,dsub,
+    fmul,fdiv,ftst0,ftst0exc,fcmp,fcmpexc,fneg,fadd,fsub,
+
+    dbllng,lngdbl,dblint,intdbl,
+    dbluns,unsdbl,
+    dblulng,
+    ulngdbl,
+    dblflt,fltdbl,
+    dblllng,
+    llngdbl,
+    dblullng,
+    ullngdbl,
+    dtst,
+    vptrfptr,cvptrfptr,
+
+    _87topsw,fltto87,dblto87,dblint87,dbllng87,
+    ftst,
+    fcompp,
+    ftest,
+    ftest0,
+    fdiv87,
+
+    // Complex numbers
+    cmul,
+    cdiv,
+    ccmp,
+
+    u64_ldbl,
+    ld_u64,
+    MAX
+}
 
 alias code_flags_t = uint;
 enum
@@ -353,16 +448,14 @@ enum
  * genorreg:    OR  t,f
  */
 
-ubyte modregrm(uint m, uint r, uint rm) { return cast(ubyte)((m << 6) | (r << 3) | rm); }
-/+
-#define modregxrm(m,r,rm)       ((((r)&8)<<15)|modregrm((m),(r)&7,rm))
-#define modregrmx(m,r,rm)       ((((rm)&8)<<13)|modregrm((m),r,(rm)&7))
-#define modregxrmx(m,r,rm)      ((((r)&8)<<15)|(((rm)&8)<<13)|modregrm((m),(r)&7,(rm)&7))
+ubyte modregrm (uint m, uint r, uint rm) { return cast(ubyte)((m << 6) | (r << 3) | rm); }
+uint modregxrm (uint m, uint r, uint rm) { return ((r&8)<<15)|modregrm(m,r&7,rm); }
+uint modregrmx (uint m, uint r, uint rm) { return ((rm&8)<<13)|modregrm(m,r,rm&7); }
+uint modregxrmx(uint m, uint r, uint rm) { return ((r&8)<<15)|((rm&8)<<13)|modregrm(m,r&7,rm&7); }
 
-#define NEWREXR(x,r)            ((x)=((x)&~REX_R)|(((r)&8)>>1))
-+/
-void NEWREG(ref ubyte x, uint r)   { x = cast(ubyte)((x & ~(7 << 3)) | (r << 3)); }
-//#define code_newreg(c,r)        (NEWREG((c)->Irm,(r)&7),NEWREXR((c)->Irex,(r)))
+void NEWREXR(ref ubyte x, uint r)  { x = (x&~REX_R)|((r&8)>>1); }
+void NEWREG (ref ubyte x, uint r)  { x = cast(ubyte)((x & ~(7 << 3)) | (r << 3)); }
+void code_newreg(code* c, uint r)  { NEWREG(c.Irm,r&7); NEWREXR(c.Irex,r); }
 
 //#define genorreg(c,t,f)         genregs((c),0x09,(f),(t))
 
@@ -403,4 +496,26 @@ uint VEX3_B2(code.Svex ivex)
 }
 
 bool ADDFWAIT() { return config.target_cpu <= TARGET_80286; }
+
+/************************************
+ */
+
+extern (C++):
+
+struct NDP
+{
+    elem *e;                    // which elem is stored here (NULL if none)
+    uint offset;            // offset from e (used for complex numbers)
+
+    __gshared NDP *save;
+    __gshared int savemax;         // # of entries in save[]
+    __gshared int savetop;         // # of entries used in save[]
+}
+
+extern __gshared NDP[8] _8087elems;
+
+void getlvalue_msw(code *);
+void getlvalue_lsw(code *);
+void getlvalue(ref CodeBuilder cdb, code *pcs, elem *e, regm_t keepmsk);
+void loadea(ref CodeBuilder cdb, elem *e, code *cs, uint op, uint reg, targ_size_t offset, regm_t keepmsk, regm_t desmsk);
 
