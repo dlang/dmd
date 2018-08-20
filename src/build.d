@@ -793,12 +793,7 @@ auto sourceFiles()
                 .array,
     };
     sources.dmd = sources.frontend ~ sources.backendHeaders;
-    version(OSX)
-        sources.backendObjects ~= env["G"].buildPath("machobj.o");
-    else version(Posix)
-        sources.backendObjects ~= env["G"].buildPath("elfobj.o");
-    else version(Windows)
-        assert(0, "TODO");
+
     return sources;
 }
 
