@@ -1,0 +1,32 @@
+Expose `__traits(isZeroInit, T)`
+
+Takes one argument which must be a type. If the type's
+$(DDSUBLINK spec/property, init, default initializer) has no non-zero
+bits then `true` is returned, otherwise `false`. `isZeroInit` will
+always return `true` for a class `C` because `C.init` is a null
+reference.
+
+This property was already being computed internally by the compiler
+so exposing it via `__traits` is more efficient than re-implementing
+it in library code.
+
+---
+struct S1
+{
+    int x;
+}
+
+struct S2
+{
+    int x = -1;
+}
+
+static assert(__traits(isZeroInit, S1));
+static assert(!__traits(isZeroInit, S2));
+
+void test()
+{
+    int x = 3;
+    static assert(__traits(isZeroInit, typeof(x)));
+}
+---

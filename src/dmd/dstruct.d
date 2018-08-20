@@ -401,9 +401,13 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         {
             if (vd._init)
             {
-                // Should examine init to see if it is really all 0's
-                zeroInit = false;
-                break;
+                // Examine init to see if it is all 0s.
+                auto exp = vd.getConstInitializer();
+                if (!exp || !_isZeroInit(vd.type.toBasetype(), exp))
+                {
+                    zeroInit = false;
+                    break;
+                }
             }
             else if (!vd.type.isZeroInit(loc))
             {
@@ -588,6 +592,100 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     {
         v.visit(this);
     }
+}
+
+private bool _isZeroInit(Type type, Expression exp)
+{
+    if (type.ty == Tsarray)
+    {
+        auto sarrayType = cast(TypeSArray) type;
+        const dim = cast(size_t) sarrayType.dim.toInteger();
+        auto elementType = type.baseElemOf().toBasetype();
+        if (exp.op == TOK.arrayLiteral)
+        {
+            auto arrayExp = cast(ArrayLiteralExp) exp;
+            foreach (i; 0 .. dim)
+            {
+                auto ei = arrayExp.getElement(i);
+                if (ei is null || !_isZeroInit(elementType, ei))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        else if (auto stringExp = exp.toStringExp())
+        {
+            foreach (i; 0 .. stringExp.len)
+                if (stringExp.getCodeUnit(i) != 0)
+                    return false;
+            return true;
+        }
+        else
+        {
+            // Can this happen?
+            return dim == 0;
+        }
+    }
+    else if (type.ty == Tstruct)
+    {
+        // FIXME: is anything special necessary for unions?
+        if (exp.op == TOK.structLiteral)
+        {
+            auto structLiteralExp = cast(StructLiteralExp) exp;
+            foreach (i; 0 .. structLiteralExp.sd.fields.dim)
+            {
+                auto field = structLiteralExp.sd.fields[i];
+                if ((*structLiteralExp.elements)[i] is null
+                        ? !field.type.toBasetype().isZeroInit(field.loc)
+                        : !_isZeroInit(field.type.toBasetype(), (*structLiteralExp.elements)[i]))
+                    return false;
+            }
+            return true;
+        }
+        else
+        {
+            // Can this happen?
+            return false;
+        }
+    }
+    else if (type.ty == Tvector)
+    {
+        auto vectorType = cast(TypeVector) type;
+        if (exp.op == TOK.vector)
+        {
+            auto vectorExp = cast(VectorExp) exp;
+            auto e1 = vectorExp.e1;
+            return e1 !is null && e1.type !is null && _isZeroInit(e1.type, e1);
+        }
+        else
+        {
+            // Can this happen?
+            return false;
+        }
+    }
+    else if (exp.op == TOK.arrayLiteral)
+    {
+        // Not sure what's going on here but this gets reached with a
+        // LHS that can't be initialized from an array literal when
+        // testing Bug10483 in tests/runnable/interpret.d.
+        return false;
+    }
+    else if (type.isintegral) return exp.toInteger() == 0;
+    else if (type.isfloating)
+    {
+        static if (!is(typeof(exp.toReal()) == struct))
+            return (exp.toReal() is 0) && (exp.toImaginary() is 0);
+        else
+        {
+            // Software floating point.
+            auto re = exp.toReal(), im = exp.toImaginary();
+            return ((re.mantissa | im.mantissa) | (re.exp_sign | im.exp_sign)) == 0;
+        }
+    }
+    else if (exp.op == TOK.null_ || exp.op == TOK.false_) return true;
+    // Nothing else applied.
+    else return false;
 }
 
 /***********************************************************
