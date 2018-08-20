@@ -295,39 +295,66 @@ nothrow:
         return f;
     }
 
+    /**
+       Combine a `path` and a file `name`
+
+       Params:
+         path = Path to append to
+         name = Name to append to path
+
+       Returns:
+         The `\0` terminated string which is the combination of `path` and `name`
+         and a valid path.
+    */
     extern (C++) static const(char)* combine(const(char)* path, const(char)* name)
     {
-        char* f;
-        size_t pathlen;
-        size_t namelen;
-        if (!path || !*path)
-            return cast(char*)name;
-        pathlen = strlen(path);
-        namelen = strlen(name);
-        f = cast(char*)mem.xmalloc(pathlen + 1 + namelen + 1);
-        memcpy(f, path, pathlen);
+        if (!path)
+            return name;
+        return combine(path.toDString, name.toDString).ptr;
+    }
+
+    /// Ditto
+    extern(D) static const(char)[] combine(const(char)[] path, const(char)[] name)
+    {
+        if (!path.length)
+            return name;
+
+        char* f = cast(char*)mem.xmalloc(path.length + 1 + name.length + 1);
+        memcpy(f, path.ptr, path.length);
+        bool trailingSlash = false;
         version (Posix)
         {
-            if (path[pathlen - 1] != '/')
+            if (path[$ - 1] != '/')
             {
-                f[pathlen] = '/';
-                pathlen++;
+                f[path.length] = '/';
+                trailingSlash = true;
             }
         }
         else version (Windows)
         {
-            if (path[pathlen - 1] != '\\' && path[pathlen - 1] != '/' && path[pathlen - 1] != ':')
+            if (path[$ - 1] != '\\' && path[$ - 1] != '/' && path[$ - 1] != ':')
             {
-                f[pathlen] = '\\';
-                pathlen++;
+                f[path.length] = '\\';
+                trailingSlash = true;
             }
         }
         else
         {
             assert(0);
         }
-        memcpy(f + pathlen, name, namelen + 1);
-        return f;
+        const len = path.length + trailingSlash;
+        memcpy(f + len, name.ptr, name.length);
+        // Note: At the moment `const(char)*` are being transitioned to
+        // `const(char)[]`. To avoid bugs crippling in, we `\0` terminate
+        // slices, but don't include it in the slice so `.ptr` can be used.
+        f[len + name.length] = '\0';
+        return f[0 .. len + name.length];
+    }
+
+    unittest
+    {
+        assert(combine("foo"[], "bar"[]) == "foo/bar");
+        assert(combine("foo/"[], "bar"[]) == "foo/bar");
     }
 
     static const(char)* buildPath(const(char)* path, const(char)*[] names...)
