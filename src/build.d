@@ -558,7 +558,7 @@ void processEnvironment()
     }
     else
     {
-        env["HOST_DMD_PATH"] = ["which", env["HOST_DMD"]].execute.output.strip.absolutePath;
+        env["HOST_DMD_PATH"] = getHostDMDPath(env["HOST_DMD"]).strip.absolutePath;
         env["HOST_DMD_RUN"] = env["HOST_DMD_PATH"];
     }
 
@@ -889,6 +889,23 @@ auto getHostCXXKind()
     }
     else version(Windows)
         return "dmc";
+    else
+        static assert(false, "Unrecognized or unsupported OS.");
+}
+
+/*
+Gets the absolute path of the host's dmd executable
+
+Params:
+    hostDmd = the command used to launch the host's dmd executable
+Returns: a string that is the absolute path of the host's dmd executable
+*/
+auto getHostDMDPath(string hostDmd)
+{
+    version(Posix)
+        return ["which", hostDmd].execute.output;
+    else version(Windows)
+        return ["where", hostDmd].execute.output;
     else
         static assert(false, "Unrecognized or unsupported OS.");
 }
