@@ -509,6 +509,10 @@ private Expression resolveUFCS(Scope* sc, CallExp ce)
         }
         else
         {
+            // even opDispatch and ufcs must have valid arguments.
+            if (arrayExpressionSemantic(ce.arguments, sc))
+                return new ErrorExp();
+
             if (Expression ey = die.semanticY(sc, 1))
             {
                 if (ey.op == TOK.error)
