@@ -1641,9 +1641,9 @@ $(H3 $(LNAME2 assert_expressions, Assert Expressions))
 
 $(GRAMMAR
 $(GNAME AssertExpression):
-    $(D assert $(LPAREN)) $(GLINK ContractArguments) $(D $(RPAREN))
+    $(D assert $(LPAREN)) $(GLINK AssertArguments) $(D $(RPAREN))
 
-$(GNAME ContractArguments):
+$(GNAME AssertArguments):
     $(GLINK AssignExpression) $(D ,)$(OPT)
     $(GLINK AssignExpression) $(D ,) $(GLINK AssignExpression) $(D ,)$(OPT)
 )
