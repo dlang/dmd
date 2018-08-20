@@ -1841,6 +1841,13 @@ Lreg:
 
 #undef allocreg
 
+#if FINDREG_DEBUG
+void allocreg(CodeBuilder& cdb,regm_t *pretregs,unsigned *preg,tym_t tym)
+{
+    allocreg(cdb, pretregs, preg, tym, __LINE__, __FILE__);
+}
+#endif
+
 void allocreg(CodeBuilder& cdb,regm_t *pretregs,unsigned *preg,tym_t tym
 #if FINDREG_DEBUG
         ,int line,const char *file
@@ -2610,6 +2617,11 @@ elem_print(e);
  */
 
 #include "cdxxx.c"                      /* jump table                   */
+
+void callcdxxx(CodeBuilder& cdb, elem *e, regm_t *pretregs, uint op)
+{
+    (*cdxxx[op])(cdb,e,pretregs);
+}
 
 void codelem(CodeBuilder& cdb,elem *e,regm_t *pretregs,bool constflag)
 {
