@@ -241,9 +241,13 @@ version(Windows)
     // Build the msvc-dmc compiler wrapper
     auto buildMsvcDmc()
     {
+        enum targetName = "msvc-dmc";
+
         Dependency dependency = {
-            target: env["G"].buildPath("msvc-dmc").exeName,
-            sources: [`vcbuild\msvc-dmc`],
+            target: env["G"].buildPath(targetName).exeName,
+            sources: [`vcbuild\` ~ targetName],
+            name: "(DC) MSCV-CC " ~ targetName,
+            command: [env["HOST_DMD_RUN"], "-of$@", "$<"]
         };
         return dependency;
     }
@@ -251,9 +255,13 @@ version(Windows)
     // Build the msvc-lib linker wrapper
     auto buildMsvcLib()
     {
+        enum targetName = "msvc-lib";
+
         Dependency dependency = {
-            target: env["G"].buildPath("msvc-lib").exeName,
-            sources: [`vcbuild\msvc-lib`],
+            target: env["G"].buildPath(targetName).exeName,
+            sources: [`vcbuild\` ~ targetName],
+            name: "(DC) MSCV-LIB " ~ targetName,
+            command: [env["HOST_DMD_RUN"], "-of$@", "$<"]
         };
         return dependency;
     }
@@ -293,15 +301,6 @@ auto dBackend()
 auto cxxBackend()
 {
     Dependency[] dependencies;
-    version(Windows)
-    {
-        immutable model = detectModel;
-        if (model == "64")
-        {
-            dependencies ~= buildMsvcDmc;
-            dependencies ~= buildMsvcLib;
-        }
-    }
     foreach (obj; sources.backendObjects)
         dependencies ~= buildCXX(obj, env["C"].buildPath(obj.baseName.stripExtension ~ ".c"));
 
@@ -366,6 +365,16 @@ and afterwards builds the DMD compiler.
 */
 auto buildDMD()
 {
+    version(Windows)
+    {
+        immutable model = detectModel;
+        if (model == "64")
+        {
+            foreach (dependency; [buildMsvcDmc, buildMsvcLib].parallel(1))
+                dependency.run;
+        }
+    }
+
     // The string files are required by most targets
     Dependency[] dependencies = buildStringFiles();
     foreach (dependency; dependencies.parallel(1))
@@ -523,19 +532,8 @@ void parseEnvironment()
     auto g = env.getDefault("G", generated.buildPath(os, build, model));
     mkdirRecurse(g);
 
-    env.getDefault("HOST_CXX", getHostCXX);
-    env.getDefault("CXX_KIND", getHostCXXKind);
-
     env.getDefault("HOST_DMD", "dmd");
 
-    env.getDefault("AR", "ar");
-}
-
-// Checks the environment variables and flags
-void processEnvironment()
-{
-    auto model = env["MODEL"];
-    auto os = env["OS"];
     // Auto-bootstrapping of a specific host compiler
     if (env.getDefault("AUTO_BOOTSTRAP", "0") != "0")
     {
@@ -567,6 +565,17 @@ void processEnvironment()
         stderr.writefln("No DMD compiler is installed. Try AUTO_BOOTSTRAP=1 or manually set the D host compiler with HOST_DMD");
         exit(1);
     }
+
+    env.getDefault("HOST_CXX", getHostCXX);
+    env.getDefault("CXX_KIND", getHostCXXKind);
+
+    env.getDefault("AR", "ar");
+}
+
+// Checks the environment variables and flags
+void processEnvironment()
+{
+    auto os = env["OS"];
 
     auto hostDMDVersion = [env["HOST_DMD_RUN"], "--version"].execute.output;
     if (hostDMDVersion.find("DMD"))
