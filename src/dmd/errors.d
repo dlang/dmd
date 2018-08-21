@@ -73,10 +73,7 @@ extern (D) void error(Loc loc, const(char)* format, ...)
  */
 extern (C++) void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...)
 {
-    Loc loc;
-    loc.filename = filename;
-    loc.linnum = linnum;
-    loc.charnum = charnum;
+    const loc = Loc(filename, linnum, charnum);
     va_list ap;
     va_start(ap, format);
     verror(loc, format, ap);
