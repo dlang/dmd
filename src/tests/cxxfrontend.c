@@ -54,7 +54,23 @@
 #include "template.h"
 #include "tokens.h"
 #include "version.h"
+
+#include "array.h"
+#include "ctfloat.h"
+#include "file.h"
+#include "filename.h"
+#include "longdouble.h"
+#include "object.h"
+// FIXME: UINT64_MAX
+//#include "outbuffer.h"
+//#include "port.h"
+#include "rmem.h"
+//#include "root.h"
+//#include "stringtable.h"
+#include "thread.h"
+
 #include "visitor.h"
+#include "frontend.h"
 
 /**********************************/
 
