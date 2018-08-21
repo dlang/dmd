@@ -65,6 +65,8 @@ import dmd.semantic3;
 import dmd.target;
 import dmd.utils;
 
+import dmd.dtoh;
+
 /**
  * Print DMD's logo on stdout
  */
@@ -684,6 +686,14 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             File.write(cgFilename.ptr, buf[]);
         }
     }
+
+    if (global.params.doCxxHdrGeneration)
+    {
+        genCppHdrFiles(modules);
+    }
+    if (global.errors)
+        fatal();
+
     if (!params.obj)
     {
     }
@@ -2131,6 +2141,27 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 if (!p[3])
                     goto Lnoarg;
                 params.docname = (p + 3 + (p[3] == '=')).toDString();
+                break;
+            case 0:
+                break;
+            default:
+                goto Lerror;
+            }
+        }
+        else if (p[1] == 'H' && p[2] == 'C')  // https://dlang.org/dmd.html#switch-HC
+        {
+            params.doCxxHdrGeneration = true;
+            switch (p[3])
+            {
+            case 'd':               // https://dlang.org/dmd.html#switch-HCd
+                if (!p[4])
+                    goto Lnoarg;
+                params.cxxhdrdir = (p + 4 + (p[4] == '=')).toDString;
+                break;
+            case 'f':               // https://dlang.org/dmd.html#switch-HCf
+                if (!p[4])
+                    goto Lnoarg;
+                params.cxxhdrname = (p + 4 + (p[4] == '=')).toDString;
                 break;
             case 0:
                 break;

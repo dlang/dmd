@@ -370,6 +370,15 @@ dmd -cov -unittest myprog.d
         Option("Hf=<filename>",
             "write 'header' file to filename"
         ),
+        Option("HC",
+            "generate C++ 'header' file"
+        ),
+        Option("HCd=<directory>",
+            "write C++ 'header' file to directory"
+        ),
+        Option("HCf=<filename>",
+            "write C++ 'header' file to filename"
+        ),
         Option("-help",
             "print help and exit"
         ),
