@@ -494,6 +494,7 @@ build-examples: $(EXAMPLES)
 clean:
 	rm -Rf $(GENERATED)
 	rm -f $(addprefix $D/backend/, $(optabgen_output))
+	rm -f $D/frontend.h
 	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
 
 ######## Download and install the last dmd buildable without dmd
@@ -630,7 +631,10 @@ dscanner: $(DSCANNER_DIR)/dsc
 $G/dtoh: $D/dtoh.d $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) -version=NoBackend -version=NoMain $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 
-$G/cxxfrontend.o: $G/%.o: tests/%.c $(SRC) $(ROOT_SRC)
+$D/frontend.h: $G/dtoh
+	$G/dtoh > $D/frontend.h
+
+$G/cxxfrontend.o: $G/%.o: tests/%.c $D/frontend.h $(SRC) $(ROOT_SRC)
 	$(CXX) -c -o$@ $(CXXFLAGS) $(DMD_FLAGS) $(MMD) $<
 
 $G/cxx-unittest: $G/cxxfrontend.o $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(G_OBJS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
