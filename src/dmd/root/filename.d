@@ -136,34 +136,44 @@ nothrow:
      */
     extern (C++) static const(char)* ext(const(char)* str) pure
     {
-        size_t len = strlen(str);
-        const(char)* e = str + len;
-        for (;;)
+        return ext(str.toDString).ptr;
+    }
+
+    /// Ditto
+    extern (D) static const(char)[] ext(const(char)[] str) nothrow pure @safe @nogc
+    {
+        foreach_reverse (idx, char e; str)
         {
-            switch (*e)
+            switch (e)
             {
             case '.':
-                return e + 1;
-                version (Posix)
-                {
-                case '/':
-                    break;
-                }
-                version (Windows)
-                {
-                case '\\':
-                case ':':
-                case '/':
-                    break;
-                }
+                return str[idx + 1 .. $];
+            version (Posix)
+            {
+            case '/':
+                return null;
+            }
+            version (Windows)
+            {
+            case '\\':
+            case ':':
+            case '/':
+                return null;
+            }
             default:
-                if (e == str)
-                    break;
-                e--;
                 continue;
             }
-            return null;
         }
+        return null;
+    }
+
+    unittest
+    {
+        assert(ext("/foo/bar/dmd.conf"[]) == "conf");
+        assert(ext("object.o"[]) == "o");
+        assert(ext("/foo/bar/dmd"[]) == null);
+        assert(ext(".objdir.o/object"[]) == null);
+        assert(ext([]) == null);
     }
 
     extern (C++) const(char)* ext() const pure
