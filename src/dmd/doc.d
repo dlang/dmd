@@ -352,11 +352,11 @@ private TemplateDeclaration getEponymousParent(Dsymbol s)
     return (td && getEponymousMember(td)) ? td : null;
 }
 
-extern (C++) __gshared const(char)* ddoc_default = import("default_ddoc_theme.ddoc");
-extern (C++) __gshared const(char)* ddoc_decl_s = "$(DDOC_DECL ";
-extern (C++) __gshared const(char)* ddoc_decl_e = ")\n";
-extern (C++) __gshared const(char)* ddoc_decl_dd_s = "$(DDOC_DECL_DD ";
-extern (C++) __gshared const(char)* ddoc_decl_dd_e = ")\n";
+private immutable ddoc_default = import("default_ddoc_theme.ddoc");
+private immutable ddoc_decl_s = "$(DDOC_DECL ";
+private immutable ddoc_decl_e = ")\n";
+private immutable ddoc_decl_dd_s = "$(DDOC_DECL_DD ";
+private immutable ddoc_decl_dd_e = ")\n";
 
 /****************************************************
  */
@@ -370,7 +370,7 @@ extern (C++) void gendocfile(Module m)
     {
         mbuf_done = 1;
         // Use our internal default
-        mbuf.write(ddoc_default, strlen(ddoc_default));
+        mbuf.writestring(ddoc_default);
         // Override with DDOCFILE specified in the sc.ini file
         char* p = getenv("DDOCFILE");
         if (p)
