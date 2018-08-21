@@ -12,6 +12,8 @@ auto-tester-build: toolchain-info
 
 auto-tester-test: test
 
+buildkite-test: test
+
 toolchain-info:
 	$(QUIET)$(MAKE) -C src -f posix.mak toolchain-info
 
