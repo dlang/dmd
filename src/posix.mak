@@ -412,13 +412,8 @@ TK_SRC = \
 
 ######## CXX header files (only needed for cxx-unittest)
 
-SRC = $(addprefix $D/, aggregate.h aliasthis.h arraytypes.h	\
-	attrib.h compiler.h complex_t.h cond.h ctfe.h ctfe.h declaration.h doc.h dsymbol.h	\
-	enum.h errors.h expression.h globals.h hdrgen.h identifier.h \
-	id.h import.h init.h json.h \
-	mangle.h mars.h module.h mtype.h nspace.h objc.h                \
-	scope.h statement.h staticassert.h target.h template.h tokens.h	\
-	version.h visitor.h libomf.d scanomf.d libmscoff.d scanmscoff.d)         \
+SRC = $(addprefix $D/, complex_t.h compiler.h errors.h globals.h mars.h \
+	visitor.h libomf.d scanomf.d libmscoff.d scanmscoff.d)  \
 	$(DMD_SRCS)
 
 ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h dcompat.h file.h filename.h \
