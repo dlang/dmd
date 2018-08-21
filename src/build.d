@@ -246,7 +246,7 @@ version(Windows)
         Dependency dependency = {
             target: env["G"].buildPath(targetName).exeName,
             sources: [`vcbuild\` ~ targetName],
-            name: "(DC) CC " ~ targetName,
+            name: "(DC) MSCV-CC " ~ targetName,
             command: [env["HOST_DMD_RUN"], "-of$@", "$<"]
         };
         return dependency;
@@ -260,7 +260,7 @@ version(Windows)
         Dependency dependency = {
             target: env["G"].buildPath(targetName).exeName,
             sources: [`vcbuild\` ~ targetName],
-            name: "(DC) LIB " ~ targetName,
+            name: "(DC) MSCV-LIB " ~ targetName,
             command: [env["HOST_DMD_RUN"], "-of$@", "$<"]
         };
         return dependency;
