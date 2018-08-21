@@ -81,18 +81,34 @@ nothrow:
      */
     extern (C++) static bool absolute(const(char)* name) pure
     {
+        return absolute(name.toDString);
+    }
+
+    /// Ditto
+    extern (D) static bool absolute(const(char)[] name) pure
+    {
+        if (!name.length)
+            return false;
+
         version (Windows)
         {
-            return (*name == '\\') || (*name == '/') || (*name && name[1] == ':');
+            return (name[0] == '\\') || (name[0] == '/')
+                || (name.length >= 2 && name[1] == ':');
         }
         else version (Posix)
         {
-            return (*name == '/');
+            return (name[0] == '/');
         }
         else
         {
             assert(0);
         }
+    }
+
+    unittest
+    {
+        assert(absolute("/"[]) == true);
+        assert(absolute(""[]) == false);
     }
 
     /**
