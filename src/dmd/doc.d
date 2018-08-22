@@ -120,7 +120,7 @@ extern (C++) class Section
             ];
             foreach (entry; table)
             {
-                if (icmp(entry.ptr, name, namelen) == 0)
+                if (iequals(entry, name[0 .. namelen]))
                 {
                     buf.printf("$(DDOC_%s ", entry.ptr);
                     goto L1;
@@ -1431,11 +1431,11 @@ struct DocComment
         for (size_t i = 0; i < dc.sections.dim; i++)
         {
             Section sec = dc.sections[i];
-            if (icmp("copyright", sec.name, sec.namelen) == 0)
+            if (iequals("copyright", sec.name[0 .. sec.namelen]))
             {
                 dc.copyright = sec;
             }
-            if (icmp("macros", sec.name, sec.namelen) == 0)
+            if (iequals("macros", sec.name[0 .. sec.namelen]))
             {
                 dc.macros = sec;
             }
@@ -1519,7 +1519,7 @@ struct DocComment
                 // Output existing macro
             L1:
                 //printf("macro '%.*s' = '%.*s'\n", namelen, namestart, textlen, textstart);
-                if (icmp("ESCAPES", namestart, namelen) == 0)
+                if (iequals("ESCAPES", namestart[0 .. namelen]))
                     parseEscapes(pescapetable, textstart, textlen);
                 else
                     Macro.define(pmacrotable, namestart[0 ..namelen], textstart[0 .. textlen]);
@@ -1698,9 +1698,9 @@ struct DocComment
             if (namelen || pstart < pend)
             {
                 Section s;
-                if (icmp("Params", name, namelen) == 0)
+                if (iequals("Params", name[0 .. namelen]))
                     s = new ParamSection();
-                else if (icmp("Macros", name, namelen) == 0)
+                else if (iequals("Macros", name[0 .. namelen]))
                     s = new MacroSection();
                 else
                     s = new Section();
@@ -1812,14 +1812,6 @@ extern (C++) int cmp(const(char)* stringz, const(void)* s, size_t slen)
     if (len1 != slen)
         return cast(int)(len1 - slen);
     return memcmp(stringz, s, slen);
-}
-
-extern (C++) int icmp(const(char)* stringz, const(void)* s, size_t slen)
-{
-    size_t len1 = strlen(stringz);
-    if (len1 != slen)
-        return cast(int)(len1 - slen);
-    return Port.memicmp(stringz, cast(char*)s, slen);
 }
 
 /*****************************************
