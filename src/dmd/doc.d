@@ -1833,20 +1833,25 @@ extern (C++) bool isDitto(const(char)* comment)
  */
 extern (C++) const(char)* skipwhitespace(const(char)* p)
 {
-    for (; 1; p++)
+    return skipwhitespace(p.toDString).ptr;
+}
+
+/// Ditto
+extern (D) const(char)[] skipwhitespace(const(char)[] p)
+{
+    foreach (idx, char c; p)
     {
-        switch (*p)
+        switch (c)
         {
         case ' ':
         case '\t':
         case '\n':
             continue;
         default:
-            break;
+            return p[idx .. $];
         }
-        break;
     }
-    return p;
+    return p[$ .. $];
 }
 
 /************************************************
