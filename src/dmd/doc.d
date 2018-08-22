@@ -319,10 +319,10 @@ alias Sections = Array!(Section);
 // Workaround for missing Parameter instance for variadic params. (it's unnecessary to instantiate one).
 extern (C++) bool isCVariadicParameter(Dsymbols* a, const(char)* p, size_t len)
 {
-    for (size_t i = 0; i < a.dim; i++)
+    foreach (member; *a)
     {
-        TypeFunction tf = isTypeFunction((*a)[i]);
-        if (tf && tf.varargs == 1 && cmp("...", p, len) == 0)
+        TypeFunction tf = isTypeFunction(member);
+        if (tf && tf.varargs == 1 && p[0 .. len] == "...")
             return true;
     }
     return false;
@@ -1802,18 +1802,6 @@ struct DocComment
     }
 }
 
-/******************************************
- * Compare 0-terminated string with length terminated string.
- * Return < 0, ==0, > 0
- */
-extern (C++) int cmp(const(char)* stringz, const(void)* s, size_t slen)
-{
-    size_t len1 = strlen(stringz);
-    if (len1 != slen)
-        return cast(int)(len1 - slen);
-    return memcmp(stringz, s, slen);
-}
-
 /*****************************************
  * Return true if comment consists entirely of "ditto".
  */
@@ -1962,10 +1950,9 @@ Lno:
  */
 extern (C++) bool isIdentifier(Dsymbols* a, const(char)* p, size_t len)
 {
-    for (size_t i = 0; i < a.dim; i++)
+    foreach (member; *a)
     {
-        const(char)* s = (*a)[i].ident.toChars();
-        if (cmp(s, p, len) == 0)
+        if (p[0 .. len] == member.ident.toString())
             return true;
     }
     return false;
@@ -1978,7 +1965,7 @@ extern (C++) bool isKeyword(const(char)* p, size_t len)
     immutable string[3] table = ["true", "false", "null"];
     foreach (s; table)
     {
-        if (cmp(s.ptr, p, len) == 0)
+        if (p[0 .. len] == s)
             return true;
     }
     return false;
@@ -2007,10 +1994,9 @@ private Parameter isFunctionParameter(Dsymbol s, const(char)* p, size_t len)
     TypeFunction tf = isTypeFunction(s);
     if (tf && tf.parameters)
     {
-        for (size_t k = 0; k < tf.parameters.dim; k++)
+        foreach (fparam; *tf.parameters)
         {
-            Parameter fparam = (*tf.parameters)[k];
-            if (fparam.ident && cmp(fparam.ident.toChars(), p, len) == 0)
+            if (fparam.ident && p[0 .. len] == fparam.ident.toString())
             {
                 return fparam;
             }
@@ -2094,10 +2080,9 @@ extern (C++) TemplateParameter isTemplateParameter(Dsymbols* a, const(char)* p, 
             td = getEponymousParent((*a)[i]);
         if (td && td.origParameters)
         {
-            for (size_t k = 0; k < td.origParameters.dim; k++)
+            foreach (tp; *td.origParameters)
             {
-                TemplateParameter tp = (*td.origParameters)[k];
-                if (tp.ident && cmp(tp.ident.toChars(), p, len) == 0)
+                if (tp.ident && p[0 .. len] == tp.ident.toString())
                 {
                     return tp;
                 }
@@ -2149,7 +2134,7 @@ extern (C++) bool isReservedName(const(char)* str, size_t len)
     ];
     foreach (s; table)
     {
-        if (cmp(s.ptr, str, len) == 0)
+        if (str[0 .. len] == s)
             return true;
     }
     return false;
@@ -2607,15 +2592,13 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
                 parametersBuf.writeByte(')');
 
-                const templateParams = parametersBuf.peekString();
-                const templateParamsLen = parametersBuf.peekSlice().length;
+                const templateParams = parametersBuf.peekSlice();
 
                 //printf("templateDecl: %s\ntemplateParams: %s\nstart: %s\n", td.toChars(), templateParams, start);
-
-                if (cmp(templateParams, start, templateParamsLen) == 0)
+                if (start[0 .. templateParams.length] == templateParams)
                 {
                     immutable templateParamListMacro = "$(DDOC_TEMPLATE_PARAM_LIST ";
-                    buf.bracket(i, templateParamListMacro.ptr, i + templateParamsLen, ")");
+                    buf.bracket(i, templateParamListMacro.ptr, i + templateParams.length, ")");
 
                     // We have the parameter list. While we're here we might
                     // as well wrap the parameters themselves as well
@@ -2736,7 +2719,7 @@ extern (C++) void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t 
  */
 extern (C++) bool isCVariadicArg(const(char)* p, size_t len)
 {
-    return len >= 3 && cmp("...", p, 3) == 0;
+    return len >= 3 && p[0 .. 3] == "...";
 }
 
 /****************************************
