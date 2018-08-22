@@ -656,6 +656,9 @@ ubyte loadconst(elem *e, int im)
 
     static if (real.sizeof < 10)
     {
+        import dmd.root.longdouble;
+        immutable targ_ldouble[7] ldval =
+        [ld_zero,ld_one,ld_pi,ld_log2t,ld_log2e,ld_log2,ld_ln2];
     }
     else
     {
@@ -768,52 +771,9 @@ ubyte loadconst(elem *e, int im)
                     continue;
                 break;
             case 10:
-            {
-                static if (real.sizeof < 10)
-                {
-                    import dmd.root.longdouble;
-
-                    switch (i)
-                    {
-                        case 0:
-                            if (ld_zero != ld)
-                                continue;
-                             break;
-                        case 1:
-                            if (ld_one != ld)
-                                continue;
-                             break;
-                        case 2:
-                            if (ld_pi != ld)
-                                continue;
-                             break;
-                        case 3:
-                            if (ld_log2t != ld)
-                                continue;
-                             break;
-                        case 4:
-                            if (ld_log2e != ld)
-                                continue;
-                             break;
-                        case 5:
-                            if (ld_log2 != ld)
-                                continue;
-                             break;
-                        case 6:
-                            if (ld_ln2 != ld)
-                                continue;
-                             break;
-                        default:
-                            assert(0);
-                    }
-                }
-                else
-                {
-                    if (ldval[i] != ld)
-                        continue;
-                }
+                if (ldval[i] != ld)
+                    continue;
                 break;
-            }
             default:
                 assert(0);
         }
