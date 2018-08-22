@@ -56,7 +56,7 @@ struct Escape
     /***************************************
      * Find character string to replace c with.
      */
-    extern (C++) const(char)* escapeChar(uint c)
+    const(char)* escapeChar(uint c)
     {
         version (all)
         {
@@ -89,7 +89,7 @@ struct Escape
 
 /***********************************************************
  */
-extern (C++) class Section
+private class Section
 {
     const(char)* name;
     size_t namelen;
@@ -153,7 +153,7 @@ extern (C++) class Section
 
 /***********************************************************
  */
-extern (C++) final class ParamSection : Section
+private final class ParamSection : Section
 {
     override void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
@@ -305,7 +305,7 @@ extern (C++) final class ParamSection : Section
 
 /***********************************************************
  */
-extern (C++) final class MacroSection : Section
+private final class MacroSection : Section
 {
     override void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
@@ -314,10 +314,10 @@ extern (C++) final class MacroSection : Section
     }
 }
 
-alias Sections = Array!(Section);
+private alias Sections = Array!(Section);
 
 // Workaround for missing Parameter instance for variadic params. (it's unnecessary to instantiate one).
-extern (C++) bool isCVariadicParameter(Dsymbols* a, const(char)* p, size_t len)
+private bool isCVariadicParameter(Dsymbols* a, const(char)* p, size_t len)
 {
     foreach (member; *a)
     {
@@ -359,7 +359,7 @@ private immutable ddoc_decl_dd_e = ")\n";
 
 /****************************************************
  */
-extern (C++) void gendocfile(Module m)
+void gendocfile(Module m)
 {
     __gshared OutBuffer mbuf;
     __gshared int mbuf_done;
@@ -516,7 +516,7 @@ extern (C++) void gendocfile(Module m)
  * to preserve text literally. This also means macros in the
  * text won't be expanded.
  */
-extern (C++) void escapeDdocString(OutBuffer* buf, size_t start)
+void escapeDdocString(OutBuffer* buf, size_t start)
 {
     for (size_t u = start; u < buf.offset; u++)
     {
@@ -550,7 +550,7 @@ extern (C++) void escapeDdocString(OutBuffer* buf, size_t start)
  *
  * Fix by replacing unmatched ( with $(LPAREN) and unmatched ) with $(RPAREN).
  */
-extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
+private void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
 {
     uint par_open = 0;
     char inCode = 0;
@@ -820,7 +820,7 @@ private void emitMemberComments(ScopeDsymbol sds, OutBuffer* buf, Scope* sc)
         buf.writestring(")");
 }
 
-extern (C++) void emitProtection(OutBuffer* buf, Prot prot)
+private void emitProtection(OutBuffer* buf, Prot prot)
 {
     if (prot.kind != Prot.Kind.undefined && prot.kind != Prot.Kind.public_)
     {
@@ -1410,7 +1410,7 @@ private void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
 
 /***********************************************************
  */
-struct DocComment
+extern(C++) struct DocComment
 {
     Sections sections;      // Section*[]
     Section summary;
@@ -1420,7 +1420,7 @@ struct DocComment
     Escape** pescapetable;
     Dsymbols a;
 
-    extern (C++) static DocComment* parse(Dsymbol s, const(char)* comment)
+    static DocComment* parse(Dsymbol s, const(char)* comment)
     {
         //printf("parse(%s): '%s'\n", s.toChars(), comment);
         auto dc = new DocComment();
@@ -1450,7 +1450,7 @@ struct DocComment
      *
      *      name2 = value2
      */
-    extern (C++) static void parseMacros(Escape** pescapetable, Macro** pmacrotable, const(char)* m, size_t mlen)
+    static void parseMacros(Escape** pescapetable, Macro** pmacrotable, const(char)* m, size_t mlen)
     {
         const(char)* p = m;
         size_t len = mlen;
@@ -1557,7 +1557,7 @@ struct DocComment
      * Multiple escapes can be separated
      * by whitespace and/or commas.
      */
-    extern (C++) static void parseEscapes(Escape** pescapetable, const(char)* textstart, size_t textlen)
+    static void parseEscapes(Escape** pescapetable, const(char)* textstart, size_t textlen)
     {
         Escape* escapetable = *pescapetable;
         if (!escapetable)
@@ -1608,7 +1608,7 @@ struct DocComment
      * If paragraph ends in 'identifier:',
      * then (*pcomment)[0 .. idlen] is the identifier.
      */
-    extern (C++) void parseSections(const(char)* comment)
+    void parseSections(const(char)* comment)
     {
         const(char)* p;
         const(char)* pstart;
@@ -1729,7 +1729,7 @@ struct DocComment
         }
     }
 
-    extern (C++) void writeSections(Scope* sc, Dsymbols* a, OutBuffer* buf)
+    void writeSections(Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
         assert(a.dim);
         //printf("DocComment::writeSections()\n");
@@ -1805,7 +1805,7 @@ struct DocComment
 /*****************************************
  * Return true if comment consists entirely of "ditto".
  */
-extern (C++) bool isDitto(const(char)* comment)
+bool isDitto(const(char)* comment)
 {
     if (comment)
     {
@@ -1819,7 +1819,7 @@ extern (C++) bool isDitto(const(char)* comment)
 /**********************************************
  * Skip white space.
  */
-extern (C++) const(char)* skipwhitespace(const(char)* p)
+const(char)* skipwhitespace(const(char)* p)
 {
     return skipwhitespace(p.toDString).ptr;
 }
@@ -1848,7 +1848,7 @@ extern (D) const(char)[] skipwhitespace(const(char)[] p)
  *      beginning of next line
  *      end of buf
  */
-extern (C++) size_t skiptoident(OutBuffer* buf, size_t i)
+size_t skiptoident(OutBuffer* buf, size_t i)
 {
     const slice = buf.peekSlice();
     while (i < slice.length)
@@ -1877,7 +1877,7 @@ extern (C++) size_t skiptoident(OutBuffer* buf, size_t i)
 /************************************************
  * Scan forward past end of identifier.
  */
-extern (C++) size_t skippastident(OutBuffer* buf, size_t i)
+size_t skippastident(OutBuffer* buf, size_t i)
 {
     const slice = buf.peekSlice();
     while (i < slice.length)
@@ -1910,7 +1910,7 @@ extern (C++) size_t skippastident(OutBuffer* buf, size_t i)
  *      i if not a URL
  *      index just past it if it is a URL
  */
-extern (C++) size_t skippastURL(OutBuffer* buf, size_t i)
+size_t skippastURL(OutBuffer* buf, size_t i)
 {
     const slice = buf.peekSlice()[i .. $];
     size_t j;
@@ -1948,7 +1948,7 @@ Lno:
 
 /****************************************************
  */
-extern (C++) bool isIdentifier(Dsymbols* a, const(char)* p, size_t len)
+private bool isIdentifier(Dsymbols* a, const(char)* p, size_t len)
 {
     foreach (member; *a)
     {
@@ -1960,7 +1960,7 @@ extern (C++) bool isIdentifier(Dsymbols* a, const(char)* p, size_t len)
 
 /****************************************************
  */
-extern (C++) bool isKeyword(const(char)* p, size_t len)
+bool isKeyword(const(char)* p, size_t len)
 {
     immutable string[3] table = ["true", "false", "null"];
     foreach (s; table)
@@ -1973,7 +1973,7 @@ extern (C++) bool isKeyword(const(char)* p, size_t len)
 
 /****************************************************
  */
-extern (C++) TypeFunction isTypeFunction(Dsymbol s)
+private TypeFunction isTypeFunction(Dsymbol s)
 {
     FuncDeclaration f = s.isFuncDeclaration();
     /* f.type may be NULL for template members.
@@ -2007,7 +2007,7 @@ private Parameter isFunctionParameter(Dsymbol s, const(char)* p, size_t len)
 
 /****************************************************
  */
-extern (C++) Parameter isFunctionParameter(Dsymbols* a, const(char)* p, size_t len)
+private Parameter isFunctionParameter(Dsymbols* a, const(char)* p, size_t len)
 {
     for (size_t i = 0; i < a.dim; i++)
     {
@@ -2070,7 +2070,7 @@ private Parameter isEponymousFunctionParameter(Dsymbols *a, const(char) *p, size
 
 /****************************************************
  */
-extern (C++) TemplateParameter isTemplateParameter(Dsymbols* a, const(char)* p, size_t len)
+private TemplateParameter isTemplateParameter(Dsymbols* a, const(char)* p, size_t len)
 {
     for (size_t i = 0; i < a.dim; i++)
     {
@@ -2096,7 +2096,7 @@ extern (C++) TemplateParameter isTemplateParameter(Dsymbols* a, const(char)* p, 
  * Return true if str is a reserved symbol name
  * that starts with a double underscore.
  */
-extern (C++) bool isReservedName(const(char)* str, size_t len)
+private bool isReservedName(const(char)* str, size_t len)
 {
     immutable string[] table =
     [
@@ -2143,7 +2143,7 @@ extern (C++) bool isReservedName(const(char)* str, size_t len)
 /**************************************************
  * Highlight text section.
  */
-extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset)
+private void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset)
 {
     Dsymbol s = a.dim ? (*a)[0] : null; // test
     //printf("highlightText()\n");
@@ -2500,7 +2500,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 /**************************************************
  * Highlight code for DDOC section.
  */
-extern (C++) void highlightCode(Scope* sc, Dsymbol s, OutBuffer* buf, size_t offset)
+private void highlightCode(Scope* sc, Dsymbol s, OutBuffer* buf, size_t offset)
 {
     //printf("highlightCode(s = %s '%s')\n", s.kind(), s.toChars());
     OutBuffer ancbuf;
@@ -2514,7 +2514,7 @@ extern (C++) void highlightCode(Scope* sc, Dsymbol s, OutBuffer* buf, size_t off
 
 /****************************************************
  */
-extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset)
+private void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset)
 {
     //printf("highlightCode(a = '%s')\n", a.toChars());
     bool resolvedTemplateParameters = false;
@@ -2630,7 +2630,7 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
 /****************************************
  */
-extern (C++) void highlightCode3(Scope* sc, OutBuffer* buf, const(char)* p, const(char)* pend)
+private void highlightCode3(Scope* sc, OutBuffer* buf, const(char)* p, const(char)* pend)
 {
     for (; p < pend; p++)
     {
@@ -2645,7 +2645,7 @@ extern (C++) void highlightCode3(Scope* sc, OutBuffer* buf, const(char)* p, cons
 /**************************************************
  * Highlight code for CODE section.
  */
-extern (C++) void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset)
+private void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset)
 {
     uint errorsave = global.errors;
     scope Lexer lex = new Lexer(null, cast(char*)buf.data, 0, buf.offset - 1, 0, 1);
@@ -2717,7 +2717,7 @@ extern (C++) void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t 
 /****************************************
  * Determine if p points to the start of a "..." parameter identifier.
  */
-extern (C++) bool isCVariadicArg(const(char)* p, size_t len)
+private bool isCVariadicArg(const(char)* p, size_t len)
 {
     return len >= 3 && p[0 .. 3] == "...";
 }
@@ -2725,7 +2725,7 @@ extern (C++) bool isCVariadicArg(const(char)* p, size_t len)
 /****************************************
  * Determine if p points to the start of an identifier.
  */
-extern (C++) bool isIdStart(const(char)* p)
+bool isIdStart(const(char)* p)
 {
     dchar c = *p;
     if (isalpha(c) || c == '_')
@@ -2744,7 +2744,7 @@ extern (C++) bool isIdStart(const(char)* p)
 /****************************************
  * Determine if p points to the rest of an identifier.
  */
-extern (C++) bool isIdTail(const(char)* p)
+bool isIdTail(const(char)* p)
 {
     dchar c = *p;
     if (isalnum(c) || c == '_')
@@ -2763,7 +2763,7 @@ extern (C++) bool isIdTail(const(char)* p)
 /****************************************
  * Determine if p points to the indentation space.
  */
-extern (C++) bool isIndentWS(const(char)* p)
+private bool isIndentWS(const(char)* p)
 {
     return (*p == ' ') || (*p == '\t');
 }
@@ -2771,7 +2771,7 @@ extern (C++) bool isIndentWS(const(char)* p)
 /*****************************************
  * Return number of bytes in UTF character.
  */
-extern (C++) int utfStride(const(char)* p)
+int utfStride(const(char)* p)
 {
     dchar c = *p;
     if (c < 0x80)
@@ -2781,7 +2781,7 @@ extern (C++) int utfStride(const(char)* p)
     return cast(int)i;
 }
 
-inout(char)* stripLeadingNewlines(inout(char)* s)
+private inout(char)* stripLeadingNewlines(inout(char)* s)
 {
     while (s && *s == '\n' || *s == '\r')
         s++;
