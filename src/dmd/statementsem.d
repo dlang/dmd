@@ -2374,6 +2374,11 @@ else
 
         if (ps._body)
         {
+            if (ps.ident == Id.msg || ps.ident == Id.startaddress)
+            {
+                ps.error("`pragma(%s)` is missing a terminating `;`", ps.ident.toChars());
+                return setError();
+            }
             ps._body = ps._body.statementSemantic(sc);
         }
         result = ps._body;
