@@ -102,7 +102,7 @@ extern (C++) class Section
         assert(a.dim);
         if (namelen)
         {
-            __gshared const(char)** table =
+            static immutable table =
             [
                 "AUTHORS",
                 "BUGS",
@@ -117,13 +117,12 @@ extern (C++) class Section
                 "STANDARDS",
                 "THROWS",
                 "VERSION",
-                null
             ];
-            for (size_t i = 0; table[i]; i++)
+            foreach (entry; table)
             {
-                if (icmp(table[i], name, namelen) == 0)
+                if (icmp(entry.ptr, name, namelen) == 0)
                 {
-                    buf.printf("$(DDOC_%s ", table[i]);
+                    buf.printf("$(DDOC_%s ", entry.ptr);
                     goto L1;
                 }
             }
