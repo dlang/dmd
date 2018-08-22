@@ -1,0 +1,12 @@
+UDAs on function parameters are now supported
+
+User-defined attributes on function parameters behave analogous to existing UDAs:
+
+---
+void example(@(22) string param)
+{
+    @(11) string var;
+    static assert([__traits(getAttributes, var)] == [11]);
+    static assert([__traits(getAttributes, param)] == [22]);
+}
+---
