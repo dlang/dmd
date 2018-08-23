@@ -1,4 +1,4 @@
-Deprecatie usage of `opDot`
+Deprecate usage of `opDot`
 
 `opDot` was the D1 analog to `alias this`.
 However, `alias this` covers all use cases of `opDot`, but ensures safety.
