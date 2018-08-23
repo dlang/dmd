@@ -631,71 +631,72 @@ nothrow:
         }
     }
 
+    /**
+       Ensure that the provided path exists
+
+       Accepts a path to either a file or a directory.
+       In the former case, the basepath (path to the containing directory)
+       will be checked for existence, and created if it does not exists.
+       In the later case, the directory pointed to will be checked for existence
+       and created if needed.
+
+       Params:
+         path = a path to a file or a directory
+
+       Returns:
+         `true` if the directory exists or was successfully created
+     */
     extern (C++) static bool ensurePathExists(const(char)* path)
     {
         //printf("FileName::ensurePathExists(%s)\n", path ? path : "");
-        if (path && *path)
+        if (!path || !(*path))
+            return true;
+        if (exists(path))
+            return true;
+
+        // We were provided with a file name
+        // We need to call ourselves recursively to ensure parent dir exist
+        const(char)* p = FileName.path(path);
+        if (*p)
         {
-            if (!exists(path))
+            version (Windows)
             {
-                const(char)* p = FileName.path(path);
-                if (*p)
+                const len = strlen(path);
+                const plen = strlen(p);
+                if (len == plen ||
+                    (len > 2 && path[1] == ':' && path[2 .. len] == p[0 .. plen]))
                 {
-                    version (Windows)
-                    {
-                        size_t len = strlen(path);
-                        if ((len > 2 && p[-1] == ':' && strcmp(path + 2, p) == 0) || len == strlen(p))
-                        {
-                            mem.xfree(cast(void*)p);
-                            return 0;
-                        }
-                    }
-                    bool r = ensurePathExists(p);
                     mem.xfree(cast(void*)p);
-
-                    if (r)
-                        return r;
-                }
-                version (Windows)
-                {
-                    char sep = '\\';
-                }
-                else version (Posix)
-                {
-                    char sep = '/';
-                }
-                if (path[strlen(path) - 1] != sep)
-                {
-                    version (Windows)
-                    {
-                        int r = _mkdir(path);
-                    }
-                    version (Posix)
-                    {
-                        int r = mkdir(path, (7 << 6) | (7 << 3) | 7);
-                    }
-                    if (r)
-                    {
-                        /* Don't error out if another instance of dmd just created
-                         * this directory
-                         */
-                        version (Windows)
-                        {
-                            // see core.sys.windows.winerror - the reason it's not imported here is because
-                            // the autotester's dmd is too old and doesn't have that module
-                            enum ERROR_ALREADY_EXISTS = 183;
-
-                            if (GetLastError() != ERROR_ALREADY_EXISTS)
-                                return true;
-                        }
-                        version (Posix)
-                        {
-                            if (errno != EEXIST)
-                                return true;
-                        }
-                    }
+                    return true;
                 }
             }
+            const r = ensurePathExists(p);
+            mem.xfree(cast(void*)p);
+
+            if (!r)
+                return r;
+        }
+
+        version (Windows)
+            const r = _mkdir(path);
+        version (Posix)
+            const r = mkdir(path, (7 << 6) | (7 << 3) | 7);
+
+        if (r == 0)
+            return true;
+
+        // Don't error out if another instance of dmd just created
+        // this directory
+        version (Windows)
+        {
+            import core.sys.windows.winerror : ERROR_ALREADY_EXISTS;
+            if (GetLastError() == ERROR_ALREADY_EXISTS)
+                return true;
+        }
+        version (Posix)
+        {
+            if (errno == EEXIST)
+                return true;
         }
 
         return false;
