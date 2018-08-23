@@ -1242,9 +1242,18 @@ int foo(in int x, out int y, ref int z, int q);
     $(TROW $(D out), parameter is passed by reference and initialized upon function entry with the default value
     for its type)
 
-    $(TROW $(D scope), references in the parameter
-    cannot be escaped (e.g. assigned to a global variable).
-    Ignored for parameters with no references)
+    $(TROW $(D scope), $(ARGS
+    The parameter does not escape the function call
+    (e.g. by being assigned to a global variable).
+    Ignored for any parameter that is not a reference type.
+    Escape analysis is only done for `@safe` functions, for other functions `scope` semantics must
+    be manually enforced.
+    As the parameter must not escape, the compiler can avoid heap-allocation of a unique argument
+    to a `scope` parameter. Due to this, passing e.g. a `new T` argument may not violate `@nogc`.
+    A typical example of this is passing a delegate literal to a `scope` parameter.
+    $(B Note): `scope` escape analysis is currently only done by `dmd`
+    when the `-dip1000` switch is passed.
+    ))
     $(TROW $(D return), $(ARGS Parameter may be returned or copied to the first parameter,
     but otherwise does not escape from the function.
     Such copies are required not to outlive the argument(s) they were derived from.
@@ -1421,10 +1430,6 @@ pure void f()
         )
 
 $(H3 $(LNAME2 return-ref-parameters, Return Ref Parameters))
-
-        $(P Note: The `return` attribute is currently only enforced by `dmd`
-        when the `-dip25` switch is passed.
-        )
 
         $(P Return ref parameters are used with
         $(RELATIVE_LINK2 ref-functions, ref functions) to ensure that the
