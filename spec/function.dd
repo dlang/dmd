@@ -1263,7 +1263,7 @@ $(H3 $(LNAME2 ref-params, Ref and Out Parameters))
     A Ref parameter takes an lvalue argument, so changes to its value will operate
     on the caller's argument.)
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
 void def(ref int x)
 {
@@ -1272,24 +1272,23 @@ void def(ref int x)
 
 int z = 3;
 def(z);
-// z is now 4
+assert(z == 4);
 ------------
 )
 
     $(P An Out parameter `x` is similar to a Ref parameter, except it is initialized
     with `x.init` upon function invocation.)
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ------
 void foo(out int x)
 {
-    // x is set to int.init,
-    // which is 0, at start of foo()
+    assert(x == 0);
 }
 
 int a = 3;
 foo(a);
-// a is now 0
+assert(x == 0);
 
 void abc(out int x)
 {
@@ -1298,7 +1297,7 @@ void abc(out int x)
 
 int y = 3;
 abc(y);
-// y is now 2
+assert(y == 2);
 ---
 )
 
