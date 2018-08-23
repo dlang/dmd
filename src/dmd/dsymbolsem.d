@@ -2919,20 +2919,24 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (sc.func)
             {
                 /* If the nesting parent is pure without inference,
-                 * then this function defaults to pure too.
-                 *
-                 *  auto foo() pure {
-                 *    auto bar() {}     // become a weak purity function
-                 *    class C {         // nested class
-                 *      auto baz() {}   // become a weak purity function
-                 *    }
-                 *
-                 *    static auto boo() {}   // typed as impure
-                 *    // Even though, boo cannot call any impure functions.
-                 *    // See also Expression::checkPurity().
-                 *  }
+                   then this function defaults to pure too.
+
+                   auto foo() pure
+                   {
+                       auto bar() {}       // become a weak purity function
+                       class C             // nested class
+                       {
+                           auto baz() {}   // become a weak purity function
+                       }
+
+                       static auto boo() {}   // typed as impure
+                       // Even though, boo cannot call any impure functions.
+                       // See also Expression::checkPurity().
+                   }
+
+                   The same applies for @safe.
                  */
-                if (tf.purity == PURE.impure && (funcdecl.isNested() || funcdecl.isThis()))
+                if ((funcdecl.isNested() || funcdecl.isThis) && !funcdecl.isInstantiated)
                 {
                     FuncDeclaration fd = null;
                     for (Dsymbol p = funcdecl.toParent2(); p; p = p.toParent2())
@@ -2946,14 +2950,17 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         if ((fd = p.isFuncDeclaration()) !is null)
                             break;
                     }
-
-                    /* If the parent's purity is inferred, then this function's purity needs
-                     * to be inferred first.
-                     */
-                    if (fd && fd.isPureBypassingInference() >= PURE.weak && !funcdecl.isInstantiated())
+                    if (fd)
                     {
-                        tf.purity = PURE.fwdref; // default to pure
+                        /* If the parent's purity/safety is inferred, then this function's purity/safety
+                           needs to be inferred first.
+                         */
+                        if (tf.purity == PURE.impure && fd.isPureBypassingInference() >= PURE.weak)
+                            tf.purity = PURE.fwdref;
+                        if (tf.trust == TRUST.default_ && fd.isSafeBypassingInference())
+                            tf.trust = TRUST.safe;
                     }
+
                 }
             }
 
