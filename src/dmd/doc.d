@@ -185,7 +185,7 @@ private final class ParamSection : Section
                     p++;
                     goto Lcont;
                 default:
-                    if (isIdStart(p) || isCVariadicArg(p, pend - p))
+                    if (isIdStart(p) || isCVariadicArg(p[0 .. cast(size_t)(pend - p)]))
                         break;
                     if (namelen)
                         goto Ltext;
@@ -197,7 +197,7 @@ private final class ParamSection : Section
             tempstart = p;
             while (isIdTail(p))
                 p += utfStride(p);
-            if (isCVariadicArg(p, pend - p))
+            if (isCVariadicArg(p[0 .. cast(size_t)(pend - p)]))
                 p += 3;
             templen = p - tempstart;
             while (*p == ' ' || *p == '\t')
@@ -229,7 +229,7 @@ private final class ParamSection : Section
                             // Search the parameters of nested eponymous functions (with the same name.)
                             fparam = isEponymousFunctionParameter(a, namestart, namelen);
                         }
-                        bool isCVariadic = isCVariadicParameter(a, namestart, namelen);
+                        bool isCVariadic = isCVariadicParameter(a, namestart[0 .. namelen]);
                         if (isCVariadic)
                         {
                             buf.writestring("...");
@@ -317,12 +317,12 @@ private final class MacroSection : Section
 private alias Sections = Array!(Section);
 
 // Workaround for missing Parameter instance for variadic params. (it's unnecessary to instantiate one).
-private bool isCVariadicParameter(Dsymbols* a, const(char)* p, size_t len)
+private bool isCVariadicParameter(Dsymbols* a, const(char)[] p)
 {
     foreach (member; *a)
     {
         TypeFunction tf = isTypeFunction(member);
-        if (tf && tf.varargs == 1 && p[0 .. len] == "...")
+        if (tf && tf.varargs == 1 && p == "...")
             return true;
     }
     return false;
@@ -393,8 +393,8 @@ extern(C++) void gendocfile(Module m)
     // Generate predefined macros
     // Set the title to be the name of the module
     {
-        const(char)* p = m.toPrettyChars();
-        Macro.define(&m.macrotable, "TITLE", p[0 .. strlen(p)]);
+        const p = m.toPrettyChars().toDString;
+        Macro.define(&m.macrotable, "TITLE", p);
     }
     // Set time macros
     {
@@ -405,10 +405,10 @@ extern(C++) void gendocfile(Module m)
         Macro.define(&m.macrotable, "DATETIME", p[0 .. strlen(p)]);
         Macro.define(&m.macrotable, "YEAR", p[20 .. 20 + 4]);
     }
-    const srcfilename = m.srcfile.toChars();
-    Macro.define(&m.macrotable, "SRCFILENAME", srcfilename[0 .. strlen(srcfilename)]);
-    const docfilename = m.docfile.toChars();
-    Macro.define(&m.macrotable, "DOCFILENAME", docfilename[0 .. strlen(docfilename)]);
+    const srcfilename = m.srcfile.toString();
+    Macro.define(&m.macrotable, "SRCFILENAME", srcfilename);
+    const docfilename = m.docfile.toString();
+    Macro.define(&m.macrotable, "DOCFILENAME", docfilename);
     if (dc.copyright)
     {
         dc.copyright.nooutput = 1;
@@ -783,7 +783,7 @@ private void emitMemberComments(ScopeDsymbol sds, OutBuffer* buf, Scope* sc)
     if (!sds.members)
         return;
     //printf("ScopeDsymbol::emitMemberComments() %s\n", toChars());
-    const(char)* m = "$(DDOC_MEMBERS ";
+    const(char)[] m = "$(DDOC_MEMBERS ";
     if (sds.isTemplateDeclaration())
         m = "$(DDOC_TEMPLATE_MEMBERS ";
     else if (sds.isClassDeclaration())
@@ -2095,7 +2095,7 @@ private TemplateParameter isTemplateParameter(Dsymbols* a, const(char)* p, size_
  * Return true if str is a reserved symbol name
  * that starts with a double underscore.
  */
-private bool isReservedName(const(char)* str, size_t len)
+private bool isReservedName(const(char)[] str)
 {
     immutable string[] table =
     [
@@ -2133,7 +2133,7 @@ private bool isReservedName(const(char)* str, size_t len)
     ];
     foreach (s; table)
     {
-        if (str[0 .. len] == s)
+        if (str == s)
             return true;
     }
     return false;
@@ -2465,7 +2465,7 @@ private void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset
                     break;
                 size_t len = j - i;
                 // leading '_' means no highlight unless it's a reserved symbol name
-                if (c == '_' && (i == 0 || !isdigit(*(start - 1))) && (i == buf.offset - 1 || !isReservedName(start, len)))
+                if (c == '_' && (i == 0 || !isdigit(*(start - 1))) && (i == buf.offset - 1 || !isReservedName(start[0 .. len])))
                 {
                     buf.remove(i, 1);
                     i = buf.bracket(i, "$(DDOC_AUTO_PSYMBOL_SUPPRESS ", j - 1, ")") - 1;
@@ -2716,9 +2716,9 @@ private void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offse
 /****************************************
  * Determine if p points to the start of a "..." parameter identifier.
  */
-private bool isCVariadicArg(const(char)* p, size_t len)
+private bool isCVariadicArg(const(char)[] p)
 {
-    return len >= 3 && p[0 .. 3] == "...";
+    return p.length >= 3 && p[0 .. 3] == "...";
 }
 
 /****************************************
