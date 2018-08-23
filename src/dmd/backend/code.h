@@ -687,7 +687,7 @@ extern "C++" { extern const unsigned mask[32]; }
 inline regm_t Symbol::Spregm()
 {
     /*assert(Sclass == SCfastpar);*/
-    return mask[Spreg] | (Spreg2 == NOREG ? 0 : mask[Spreg2]);
+    return (1 << Spreg) | (Spreg2 == NOREG ? 0 : (1 << Spreg2));
 }
 
 
