@@ -376,4 +376,7 @@ auto-tester-build: target checkwhitespace
 .PHONY : auto-tester-test
 auto-tester-test: unittest benchmark-compile-only
 
+.PHONY : buildkite-test
+buildkite-test: unittest benchmark-compile-only
+
 .DELETE_ON_ERROR: # GNU Make directive (delete output files on error)
