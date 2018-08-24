@@ -663,6 +663,8 @@ nothrow:
             {
                 const len = strlen(path);
                 const plen = strlen(p);
+                // Note: Windows filename comparison should be case-insensitive,
+                // however p is a subslice of path so we don't need it
                 if (len == plen ||
                     (len > 2 && path[1] == ':' && path[2 .. len] == p[0 .. plen]))
                 {
@@ -680,7 +682,10 @@ nothrow:
         version (Windows)
             const r = _mkdir(path);
         version (Posix)
+        {
+            errno = 0;
             const r = mkdir(path, (7 << 6) | (7 << 3) | 7);
+        }
 
         if (r == 0)
             return true;
