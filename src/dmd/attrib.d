@@ -957,7 +957,7 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
         onStack = true;
         scope(exit) onStack = false;
 
-        if (condition.inc == 0)
+        if (sc && condition.inc == 0)
         {
             assert(scopesym); // addMember is already done
             assert(_scope); // setScope is already done
