@@ -944,7 +944,7 @@ else
 
                 if(!length) return F((char*).init);
 
-                char[1024] buf;
+                char[1024] buf = void;
 
                 scope multibyteBuf = length > buf.length
                     ? (cast(char*)malloc(length * char.sizeof))
