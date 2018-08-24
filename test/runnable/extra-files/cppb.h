@@ -65,3 +65,19 @@ public:
     virtual void vf();
     int x;
 };
+
+class A18966
+{
+public:
+    char calledOverloads[8];
+    int i;
+    A18966();
+    virtual void foo();
+};
+
+class B18966 : public A18966
+{
+public:
+    B18966();
+    void foo() /*override*/;
+};
