@@ -957,7 +957,7 @@ else
                         free(multibyteBuf);
                 }
 
-                // first find out how long the buffer must be to store the result
+                // now store the result
                 const length2 = WideCharToMultiByte(0,    // code page
                                                     0,    // flags
                                                     wpath,
