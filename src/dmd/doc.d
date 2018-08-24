@@ -721,8 +721,7 @@ private void emitAnchor(OutBuffer* buf, Dsymbol s, Scope* sc, bool forHeader = f
     sc.prevAnchor = ident;
     auto macroName = forHeader ? "DDOC_HEADER_ANCHOR" : "DDOC_ANCHOR";
     auto symbolName = ident.toString();
-    buf.printf("$(%.*s %.*s", cast(int) macroName.length, macroName.ptr,
-        cast(int) symbolName.length, symbolName.ptr);
+    buf.printf("$(%.*s %.*s", macroName, symbolName);
     // only append count once there's a duplicate
     if (count > 1)
         buf.printf(".%u", count);
@@ -735,9 +734,7 @@ private void emitAnchor(OutBuffer* buf, Dsymbol s, Scope* sc, bool forHeader = f
             emitAnchorName(&anc, s, skipNonQualScopes(sc), false);
             shortIdent = Identifier.idPool(anc.peekSlice());
         }
-
-        auto shortName = shortIdent.toString();
-        buf.printf(", %.*s", cast(int) shortName.length, shortName.ptr);
+        buf.printf(", %.*s", shortIdent.toString());
     }
 
     buf.writeByte(')');

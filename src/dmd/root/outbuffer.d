@@ -329,7 +329,12 @@ struct OutBuffer
         offset += count;
     }
 
-    extern (C++) void printf(const(char)* format, ...) nothrow
+    extern (D) void printf(Args...)(const(char)* format, Args args) nothrow
+    {
+        mixin("cprintf(format, " ~ mapSlices!Args() ~ ");");
+    }
+
+    extern (C++) void cprintf(const(char)* format, ...) nothrow
     {
         va_list ap;
         va_start(ap, format);
@@ -423,6 +428,45 @@ struct OutBuffer
             writeByte(0);
         return extractData();
     }
+}
+
+/**
+Utility to turn a slice into a length/ptr couple
+for printf-like interfaces
+
+This would be better done with some template trickery but
+the CTFE engine really wants to evaluate the slice at CT,
+and we just cannot accept that kind of attitude here,
+so we use string mixins to do the length/ptr separation
+and the cast on the length.
+
+Note that thanks to the way string mixings work,
+a caller must use `mixin("printf(format, " ~ mapSlices!Args() ~ ");");`,
+and not the more natural `printf(format, mixin(mapSlices!Args()));`
+
+Params:
+  Args = Type of the arguments to match
+
+Returns:
+  A string describing the parameters to pass to `printf`.
+  The parameters must be a tuple named `args`.
+*/
+string mapSlices(Args...)()
+{
+    if (!__ctfe)
+        assert(0);
+
+    UnsignedStringBuf buf;
+    string ret;
+    foreach (idx, A; Args)
+    {
+        const idxstr = unsignedToTempString(idx, buf);
+        static if (is(A : const(char)[]))
+            ret ~= "cast(int)(args[" ~ idxstr ~ "].length), args[" ~ idxstr ~ "].ptr, ";
+        else
+            ret ~= "args[" ~ idxstr ~ "], ";
+    }
+    return ret;
 }
 
 /****** copied from core.internal.string *************/
