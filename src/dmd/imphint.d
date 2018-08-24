@@ -12,7 +12,7 @@
 
 module dmd.imphint;
 
-import core.stdc.string;
+import dmd.utils;
 
 /******************************************
  * Looks for undefined identifier s to see
@@ -23,7 +23,9 @@ import core.stdc.string;
  */
 extern (C++) const(char)* importHint(const(char)* s)
 {
-    return hints.get(cast(string) s[0..strlen(s)], null).ptr;
+    if (auto entry = s.toDString() in hints)
+        return entry.ptr;
+    return null;
 }
 
 private immutable string[string] hints;

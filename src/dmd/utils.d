@@ -138,3 +138,35 @@ const(char)[] toDString (const(char)* s) pure nothrow @nogc
 {
     return s ? s[0 .. strlen(s)] : null;
 }
+
+/**
+Compare two slices for equality, in a case-insensitive way
+
+Comparison is based on `char` and does not do decoding.
+As a result, it's only really accurate for plain ASCII strings.
+
+Params:
+s1 = string to compare
+s2 = string to compare
+
+Returns:
+`true` if `s1 == s2` regardless of case
+*/
+extern(D) static bool iequals(const(char)[] s1, const(char)[] s2)
+{
+    import core.stdc.ctype : toupper;
+
+    if (s1.length != s2.length)
+        return false;
+
+    int result = 0;
+    foreach (idx, c1; s1)
+    {
+        // Since we did a length check, it is safe to bypass bounds checking
+        const c2 = s2.ptr[idx];
+        if (c1 != c2)
+            if (toupper(c1) != toupper(c2))
+                return false;
+    }
+    return true;
+}

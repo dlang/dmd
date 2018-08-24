@@ -112,11 +112,11 @@ version (Posix)
     {
         version (OSX)
         {
-            __gshared const(char)* nmeErrorMessage = "`__Dmain`, referenced from:";
+            static immutable(char*) nmeErrorMessage = "`__Dmain`, referenced from:";
         }
         else
         {
-            __gshared const(char)* nmeErrorMessage = "undefined reference to `_Dmain`";
+            static immutable(char*) nmeErrorMessage = "undefined reference to `_Dmain`";
         }
         FILE* stream = fdopen(fd, "r");
         if (stream is null)

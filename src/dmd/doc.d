@@ -102,7 +102,7 @@ extern (C++) class Section
         assert(a.dim);
         if (namelen)
         {
-            __gshared const(char)** table =
+            static immutable table =
             [
                 "AUTHORS",
                 "BUGS",
@@ -117,13 +117,12 @@ extern (C++) class Section
                 "STANDARDS",
                 "THROWS",
                 "VERSION",
-                null
             ];
-            for (size_t i = 0; table[i]; i++)
+            foreach (entry; table)
             {
-                if (icmp(table[i], name, namelen) == 0)
+                if (iequals(entry, name[0 .. namelen]))
                 {
-                    buf.printf("$(DDOC_%s ", table[i]);
+                    buf.printf("$(DDOC_%s ", entry.ptr);
                     goto L1;
                 }
             }
@@ -352,11 +351,11 @@ private TemplateDeclaration getEponymousParent(Dsymbol s)
     return (td && getEponymousMember(td)) ? td : null;
 }
 
-extern (C++) __gshared const(char)* ddoc_default = import("default_ddoc_theme.ddoc");
-extern (C++) __gshared const(char)* ddoc_decl_s = "$(DDOC_DECL ";
-extern (C++) __gshared const(char)* ddoc_decl_e = ")\n";
-extern (C++) __gshared const(char)* ddoc_decl_dd_s = "$(DDOC_DECL_DD ";
-extern (C++) __gshared const(char)* ddoc_decl_dd_e = ")\n";
+private immutable ddoc_default = import("default_ddoc_theme.ddoc");
+private immutable ddoc_decl_s = "$(DDOC_DECL ";
+private immutable ddoc_decl_e = ")\n";
+private immutable ddoc_decl_dd_s = "$(DDOC_DECL_DD ";
+private immutable ddoc_decl_dd_e = ")\n";
 
 /****************************************************
  */
@@ -370,7 +369,7 @@ extern (C++) void gendocfile(Module m)
     {
         mbuf_done = 1;
         // Use our internal default
-        mbuf.write(ddoc_default, strlen(ddoc_default));
+        mbuf.writestring(ddoc_default);
         // Override with DDOCFILE specified in the sc.ini file
         char* p = getenv("DDOCFILE");
         if (p)
@@ -1432,11 +1431,11 @@ struct DocComment
         for (size_t i = 0; i < dc.sections.dim; i++)
         {
             Section sec = dc.sections[i];
-            if (icmp("copyright", sec.name, sec.namelen) == 0)
+            if (iequals("copyright", sec.name[0 .. sec.namelen]))
             {
                 dc.copyright = sec;
             }
-            if (icmp("macros", sec.name, sec.namelen) == 0)
+            if (iequals("macros", sec.name[0 .. sec.namelen]))
             {
                 dc.macros = sec;
             }
@@ -1520,7 +1519,7 @@ struct DocComment
                 // Output existing macro
             L1:
                 //printf("macro '%.*s' = '%.*s'\n", namelen, namestart, textlen, textstart);
-                if (icmp("ESCAPES", namestart, namelen) == 0)
+                if (iequals("ESCAPES", namestart[0 .. namelen]))
                     parseEscapes(pescapetable, textstart, textlen);
                 else
                     Macro.define(pmacrotable, namestart[0 ..namelen], textstart[0 .. textlen]);
@@ -1699,9 +1698,9 @@ struct DocComment
             if (namelen || pstart < pend)
             {
                 Section s;
-                if (icmp("Params", name, namelen) == 0)
+                if (iequals("Params", name[0 .. namelen]))
                     s = new ParamSection();
-                else if (icmp("Macros", name, namelen) == 0)
+                else if (iequals("Macros", name[0 .. namelen]))
                     s = new MacroSection();
                 else
                     s = new Section();
@@ -1815,14 +1814,6 @@ extern (C++) int cmp(const(char)* stringz, const(void)* s, size_t slen)
     return memcmp(stringz, s, slen);
 }
 
-extern (C++) int icmp(const(char)* stringz, const(void)* s, size_t slen)
-{
-    size_t len1 = strlen(stringz);
-    if (len1 != slen)
-        return cast(int)(len1 - slen);
-    return Port.memicmp(stringz, cast(char*)s, slen);
-}
-
 /*****************************************
  * Return true if comment consists entirely of "ditto".
  */
@@ -1842,20 +1833,25 @@ extern (C++) bool isDitto(const(char)* comment)
  */
 extern (C++) const(char)* skipwhitespace(const(char)* p)
 {
-    for (; 1; p++)
+    return skipwhitespace(p.toDString).ptr;
+}
+
+/// Ditto
+extern (D) const(char)[] skipwhitespace(const(char)[] p)
+{
+    foreach (idx, char c; p)
     {
-        switch (*p)
+        switch (c)
         {
         case ' ':
         case '\t':
         case '\n':
             continue;
         default:
-            break;
+            return p[idx .. $];
         }
-        break;
     }
-    return p;
+    return p[$ .. $];
 }
 
 /************************************************
