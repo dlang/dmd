@@ -901,9 +901,10 @@ version(Windows)
 version(Posix)
 {
 
-    /**************************
+    /**
     Takes a callable F and applies it to the result of converting
     `fileName` to an absolute file path (char*)
+
     Params:
         fileName = The file name to be converted to an absolute path
     Returns: Whatever `F` returns.
@@ -918,9 +919,10 @@ version(Posix)
 }
 else
 {
-    /**************************
+    /**
     Takes a callable F and applies it to the result of converting
     `fileName` to an absolute file path (char*)
+
     Params:
         fileName = The file name to be converted to an absolute path
     Returns: Whatever `F` returns.
