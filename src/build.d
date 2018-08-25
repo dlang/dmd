@@ -809,6 +809,41 @@ auto sourceFiles()
 }
 
 /*
+Downloads a file from a given URL
+
+Params:
+    to    = Location to store the file downloaded
+    from  = The URL to the file to download
+    tries = The number of times to try if an attempt to download fails
+Returns: `true` if download succeeded
+*/
+bool download(string to, string from, uint tries = 3)
+{
+    import std.net.curl : download, HTTPStatusException;
+    
+    foreach(i; 0..tries)
+    {
+        try
+        {
+            log("Downloading %s ...", from);
+            download(from, to);
+            return true;
+        }
+        catch(HTTPStatusException e) 
+        {
+            if (e.status == 404) throw e;
+            else 
+            {
+                log("Failed to download %s (Attempt %s of %s)", from, i + 1, tries);
+                continue;
+            }
+        }
+    }
+
+    return false;
+}
+
+/*
 Detects the host OS.
 
 Returns: a string from `{windows, osx,linux,freebsd,openbsd,netbsd,dragonflybsd,solaris}`
@@ -945,28 +980,10 @@ version(Windows)
             return outputPath;
 
         // try to download it
-        immutable url = "https://github.com/Microsoft/vswhere/releases/download/2.5.2/vswhere.exe";
-        enum tries = 3;
-        foreach(i; 0..tries)
-        {
-            import std.net.curl : download, HTTPStatusException;
-            try
-            {
-                log("Downloading %s ...", url);
-                download(url, outputPath);
-                return outputPath;
-            }
-            catch(HTTPStatusException e) 
-            {
-                if (e.status == 404) throw e;
-                else 
-                {
-                    log("Failed to download %s (Attempt %s of %s)", url, i + 1, tries);
-                    continue;
-                }
-            }
-        }
+        if (download(outputPath, "https://github.com/Microsoft/vswhere/releases/download/2.5.2/vswhere.exe"))
+            return outputPath;
 
+        // Could not find or obtain vswhere.exe
         throw new Exception("Could not obtain vswhere.exe.  Consider downloading it from https://github.com/Microsoft/vswhere and placing it in your PATH");
     }
 }
