@@ -968,9 +968,10 @@ version(Windows)
             return where.output;
 
         // Check if vswhere.exe is in the standard location
-        auto standardPath = ["cmd", "/C", "echo", `%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe`].execute.output;
-        standardPath = standardPath.replace(`"`, "");    // Remove quotes surrounding the path
-        standardPath = standardPath.replace("\r\n", ""); // Remove trailing newline characters
+        const standardPath = ["cmd", "/C", "echo", `%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe`]
+            .execute.output       // Execute command and return standard output
+            .replace(`"`, "")     // Remove quotes surrounding the path
+            .replace("\r\n", ""); // Remove trailing newline characters
         if (standardPath.exists)
             return standardPath;
 
@@ -984,7 +985,7 @@ version(Windows)
             return outputPath;
 
         // Could not find or obtain vswhere.exe
-        throw new Exception("Could not obtain vswhere.exe.  Consider downloading it from https://github.com/Microsoft/vswhere and placing it in your PATH");
+        throw new Exception("Could not obtain vswhere.exe. Consider downloading it from https://github.com/Microsoft/vswhere and placing it in your PATH");
     }
 }
 
