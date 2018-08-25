@@ -16,7 +16,7 @@
 #endif /* __DMC__ */
 
 
-#include "root.h"
+#include "root/root.h"
 
 typedef Array<class TemplateParameter *> TemplateParameters;
 

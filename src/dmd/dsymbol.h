@@ -15,8 +15,8 @@
 #pragma once
 #endif /* __DMC__ */
 
-#include "root.h"
-#include "stringtable.h"
+#include "root/root.h"
+#include "root/stringtable.h"
 
 #include "mars.h"
 #include "arraytypes.h"

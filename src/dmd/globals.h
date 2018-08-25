@@ -16,9 +16,9 @@
 #endif
 
 #include "root/dcompat.h"
-#include "ctfloat.h"
-#include "outbuffer.h"
-#include "filename.h"
+#include "root/ctfloat.h"
+#include "root/outbuffer.h"
+#include "root/filename.h"
 #include "compiler.h"
 
 // Can't include arraytypes.h here, need to declare these directly.

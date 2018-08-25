@@ -11,8 +11,8 @@
 #ifndef DMD_OBJC_H
 #define DMD_OBJC_H
 
-#include "root.h"
-#include "stringtable.h"
+#include "root/root.h"
+#include "root/stringtable.h"
 
 class AggregateDeclaration;
 class Identifier;

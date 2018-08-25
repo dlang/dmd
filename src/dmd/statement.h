@@ -15,7 +15,7 @@
 #pragma once
 #endif /* __DMC__ */
 
-#include "root.h"
+#include "root/root.h"
 
 #include "arraytypes.h"
 #include "dsymbol.h"
