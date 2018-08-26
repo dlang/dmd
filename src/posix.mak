@@ -327,7 +327,7 @@ DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 
 ifeq (X86,$(TARGET_CPU))
     TARGET_CH = $C/code_x86.h
-    TARGET_OBJS = cod1.o cod3.o cod4.o ptrntab.o
+    TARGET_OBJS = cod1.o cod3.o ptrntab.o
 else
     ifeq (stub,$(TARGET_CPU))
         TARGET_CH = $C/code_stub.h
@@ -349,7 +349,7 @@ BACK_OBJS = var.o \
 	$(TARGET_OBJS)
 
 BACK_DOBJS = bcomplex.o evalu8.o divcoeff.o dvec.o go.o gsroa.o glocal.o gdag.o gother.o gflow.o \
-	gloop.o compress.o cgelem.o cgcs.o ee.o cod5.o nteh.o blockopt.o memh.o cg.o cgreg.o \
+	gloop.o compress.o cgelem.o cgcs.o ee.o cod4.o cod5.o nteh.o blockopt.o memh.o cg.o cgreg.o \
 	dtype.o debugprint.o symbol.o elem.o dcode.o cgsched.o cg87.o cgxmm.o cod2.o
 
 G_OBJS  = $(addprefix $G/, $(BACK_OBJS))
@@ -383,7 +383,7 @@ BACK_SRC = \
 	$C/bcomplex.d $C/blockopt.d $C/cg.d $C/cg87.d $C/cgxmm.d \
 	$C/cgcod.c $C/cgcs.d $C/cgcv.c $C/cgelem.d $C/cgen.c $C/cgobj.c \
 	$C/compress.d $C/cgreg.d $C/var.c $C/strtold.c \
-	$C/cgsched.d $C/cod1.c $C/cod2.d $C/cod3.c $C/cod4.c $C/cod5.d \
+	$C/cgsched.d $C/cod1.c $C/cod2.d $C/cod3.c $C/cod4.d $C/cod5.d \
 	$C/dcode.d $C/symbol.d $C/debugprint.d $C/dt.c $C/ee.d $C/elem.d \
 	$C/evalu8.d $C/fp.c $C/go.d $C/gflow.d $C/gdag.d \
 	$C/gother.d $C/glocal.d $C/gloop.d $C/gsroa.d $C/newman.c \
