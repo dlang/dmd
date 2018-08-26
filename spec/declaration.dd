@@ -473,8 +473,9 @@ alias abc = foo.bar; // is it a type or a symbol?
 struct S { static int i; }
 S s;
 
-alias a = s.i; // illegal, s.i is an expression
-alias b = S.i; // ok
+alias a = s.i; // ok, s.i is a symbol
+alias b = S.i; // ok, S.i also is a symbol
+alias c = a + b; // illegal, a + b is an expression
 b = 4;         // sets S.i to 4
 -----------
 
