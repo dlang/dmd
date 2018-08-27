@@ -183,23 +183,41 @@ nothrow:
 
     /********************************
      * Return file name without extension.
+     *
+     * TODO:
+     * Once slice are used everywhere and `\0` is not assumed,
+     * this can be turned into a simple slicing.
+     *
      * Params:
      *  str = file name
+     *
      * Returns:
      *  mem.xmalloc'd filename with extension removed.
      */
     extern (C++) static const(char)* removeExt(const(char)* str)
     {
-        const(char)* e = ext(str);
-        if (e)
+        return removeExt(str.toDString).ptr;
+    }
+
+    /// Ditto
+    extern (D) static const(char)[] removeExt(const(char)[] str)
+    {
+        auto e = ext(str);
+        if (e.length)
         {
-            size_t len = (e - str) - 1;
+            const len = (str.length - e.length) - 1; // -1 for the dot
             char* n = cast(char*)mem.xmalloc(len + 1);
-            memcpy(n, str, len);
+            memcpy(n, str.ptr, len);
             n[len] = 0;
-            return n;
+            return n[0 .. len];
         }
-        return mem.xstrdup(str);
+        return mem.xstrdup(str.ptr)[0 .. str.length];
+    }
+
+    unittest
+    {
+        assert(removeExt("/foo/bar/object.d"[]) == "/foo/bar/object");
+        assert(removeExt("/foo/bar/frontend.di"[]) == "/foo/bar/frontend");
     }
 
     /********************************
