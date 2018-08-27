@@ -225,46 +225,52 @@ nothrow:
      */
     extern (C++) static const(char)* name(const(char)* str) pure
     {
-        size_t len = strlen(str);
-        const(char)* e = str + len;
-        for (;;)
+        return name(str.toDString).ptr;
+    }
+
+    /// Ditto
+    extern (D) static const(char)[] name(const(char)[] str) pure
+    {
+        foreach_reverse (idx, char e; str)
         {
-            switch (*e)
+            switch (e)
             {
                 version (Posix)
                 {
                 case '/':
-                    return e + 1;
+                    return str[idx + 1 .. $];
                 }
                 version (Windows)
                 {
                 case '/':
                 case '\\':
-                    return e + 1;
+                    return str[idx + 1 .. $];
                 case ':':
                     /* The ':' is a drive letter only if it is the second
                      * character or the last character,
                      * otherwise it is an ADS (Alternate Data Stream) separator.
                      * Consider ADS separators as part of the file name.
                      */
-                    if (e == str + 1 || e == str + len - 1)
-                        return e + 1;
-                    goto default;
+                    if (idx == 1 || idx == str.length - 1)
+                        return str[idx + 1 .. $];
+                    break;
                 }
             default:
-                if (e == str)
-                    break;
-                e--;
-                continue;
+                break;
             }
-            return e;
         }
-        assert(0);
+        return str;
     }
 
     extern (C++) const(char)* name() const pure
     {
         return name(str);
+    }
+
+    unittest
+    {
+        assert(name("/foo/bar/object.d"[]) == "object.d");
+        assert(name("/foo/bar/frontend.di"[]) == "frontend.di");
     }
 
     /**************************************
