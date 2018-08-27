@@ -3492,7 +3492,10 @@ private extern(C++) final class DotExpVisitor : Visitor
              */
             e = e.expressionSemantic(sc); // do this before turning on noaccesscheck
 
-            mt.sym.size(e.loc); // do semantic of type
+            if (!mt.sym.determineFields())
+            {
+                error(e.loc, "unable to determine fields of `%s` because of forward references", mt.toChars());
+            }
 
             Expression e0;
             Expression ev = e.op == TOK.type ? null : e;
