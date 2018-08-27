@@ -480,16 +480,29 @@ nothrow:
      */
     extern (C++) static const(char)* defaultExt(const(char)* name, const(char)* ext)
     {
-        const(char)* e = FileName.ext(name);
-        if (e) // if already has an extension
-            return mem.xstrdup(name);
-        size_t len = strlen(name);
-        size_t extlen = strlen(ext);
-        char* s = cast(char*)mem.xmalloc(len + 1 + extlen + 1);
-        memcpy(s, name, len);
-        s[len] = '.';
-        memcpy(s + len + 1, ext, extlen + 1);
-        return s;
+        return defaultExt(name.toDString, ext.toDString).ptr;
+    }
+
+    /// Ditto
+    extern (D) static const(char)[] defaultExt(const(char)[] name, const(char)[] ext)
+    {
+        auto e = FileName.ext(name);
+        if (e.length) // it already has an extension
+            return mem.xstrdup(name.ptr)[0 .. name.length];
+        const s_length = name.length + 1 + ext.length + 1;
+        auto s = cast(char*)mem.xmalloc(s_length);
+        memcpy(s, name.ptr, name.length);
+        s[name.length] = '.';
+        memcpy(s + name.length + 1, ext.ptr, ext.length);
+        s[s_length - 1] = '\0';
+        return s[0 .. s_length - 1];
+    }
+
+    unittest
+    {
+        assert(defaultExt("/foo/object.d"[], "d") == "/foo/object.d");
+        assert(defaultExt("/foo/object"[], "d") == "/foo/object.d");
+        assert(defaultExt("/foo/bar.d"[], "o") == "/foo/bar.d");
     }
 
     /***************************
