@@ -878,11 +878,8 @@ private int tryMain(size_t argc, const(char)** argv)
         library = Library.factory();
         library.setFilename(global.params.objdir, global.params.libname);
         // Add input object and input library files to output library
-        for (size_t i = 0; i < libmodules.dim; i++)
-        {
-            const(char)* p = libmodules[i];
+        foreach (p; libmodules)
             library.addObject(p, null);
-        }
     }
     // Generate output files
     if (global.params.doJsonGeneration)
@@ -2243,8 +2240,8 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
         {
             static if (TARGET.Windows)
             {
-                const(char)* ext = FileName.ext(p);
-                if (ext && FileName.compare(ext, "exe") == 0)
+                const ext = FileName.ext(p);
+                if (ext && FileName.equals(ext, "exe"))
                 {
                     params.objname = p;
                     continue;

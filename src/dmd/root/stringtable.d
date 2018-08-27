@@ -57,6 +57,12 @@ pure:
     {
         return cast(const(char)*)(&this + 1);
     }
+
+    /// Returns: The content of this entry as a D slice
+    extern (D) inout(char)[] toString() inout
+    {
+        return (cast(inout(char)*)(&this + 1))[0 .. length];
+    }
 }
 
 struct StringTable

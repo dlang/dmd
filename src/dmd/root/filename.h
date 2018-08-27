@@ -25,10 +25,7 @@ struct FileName
 {
     const char *str;
     FileName(const char *str);
-    bool equals(RootObject *obj);
     static bool equals(const char *name1, const char *name2);
-    int compare(RootObject *obj);
-    static int compare(const char *name1, const char *name2);
     static bool absolute(const char *name);
     static const char *toAbsolute(const char *name, const char *base = NULL);
     static const char *ext(const char *);

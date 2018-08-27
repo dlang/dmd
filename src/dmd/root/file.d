@@ -194,8 +194,6 @@ nothrow:
         }
         else version (Windows)
         {
-            import dmd.root.filename: extendedPathThen;
-
             DWORD size;
             DWORD numread;
 
@@ -272,8 +270,6 @@ nothrow:
         }
         else version (Windows)
         {
-            import dmd.root.filename: extendedPathThen;
-
             DWORD numwritten; // here because of the gotos
             const(char)* name = this.name.toChars();
             // work around Windows file path length limitation
