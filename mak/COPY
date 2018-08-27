@@ -48,6 +48,7 @@ COPY=\
 	$(IMPDIR)\core\stdc\wchar_.d \
 	$(IMPDIR)\core\stdc\wctype.d \
 	\
+	$(IMPDIR)\core\stdcpp\array.d \
 	$(IMPDIR)\core\stdcpp\exception.d \
 	$(IMPDIR)\core\stdcpp\typeinfo.d \
 	$(IMPDIR)\core\stdcpp\xutility.d \

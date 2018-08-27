@@ -1,0 +1,3 @@
+Added `core.stdcpp.array`.
+
+Added `core.stdcpp.array`, which links against C++ `std::array`
