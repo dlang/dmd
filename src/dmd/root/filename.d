@@ -322,39 +322,18 @@ nothrow:
      */
     extern (C++) static const(char)* replaceName(const(char)* path, const(char)* name)
     {
-        size_t pathlen;
-        size_t namelen;
+        return replaceName(path[0 .. strlen(path)], name[0 .. strlen(name)]).ptr;
+    }
+
+    /// Ditto
+    extern (D) static const(char)[] replaceName(const(char)[] path, const(char)[] name)
+    {
         if (absolute(name))
             return name;
-        const(char)* n = FileName.name(path);
+        auto n = FileName.name(path);
         if (n == path)
             return name;
-        pathlen = n - path;
-        namelen = strlen(name);
-        char* f = cast(char*)mem.xmalloc(pathlen + 1 + namelen + 1);
-        memcpy(f, path, pathlen);
-        version (Posix)
-        {
-            if (path[pathlen - 1] != '/')
-            {
-                f[pathlen] = '/';
-                pathlen++;
-            }
-        }
-        else version (Windows)
-        {
-            if (path[pathlen - 1] != '\\' && path[pathlen - 1] != '/' && path[pathlen - 1] != ':')
-            {
-                f[pathlen] = '\\';
-                pathlen++;
-            }
-        }
-        else
-        {
-            assert(0);
-        }
-        memcpy(f + pathlen, name, namelen + 1);
-        return f;
+        return combine(path[0 .. $ - n.length], name);
     }
 
     /**
