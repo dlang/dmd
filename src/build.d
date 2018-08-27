@@ -566,6 +566,9 @@ void parseEnvironment()
         exit(1);
     }
 
+    version(Windows)
+        env.getDefault("HOST_VSWHERE", getHostVSWhere(env["G"]));
+
     env.getDefault("HOST_CXX", getHostCXX);
     env.getDefault("CXX_KIND", getHostCXXKind);
 
@@ -806,6 +809,41 @@ auto sourceFiles()
 }
 
 /*
+Downloads a file from a given URL
+
+Params:
+    to    = Location to store the file downloaded
+    from  = The URL to the file to download
+    tries = The number of times to try if an attempt to download fails
+Returns: `true` if download succeeded
+*/
+bool download(string to, string from, uint tries = 3)
+{
+    import std.net.curl : download, HTTPStatusException;
+    
+    foreach(i; 0..tries)
+    {
+        try
+        {
+            log("Downloading %s ...", from);
+            download(from, to);
+            return true;
+        }
+        catch(HTTPStatusException e) 
+        {
+            if (e.status == 404) throw e;
+            else 
+            {
+                log("Failed to download %s (Attempt %s of %s)", from, i + 1, tries);
+                continue;
+            }
+        }
+    }
+
+    return false;
+}
+
+/*
 Detects the host OS.
 
 Returns: a string from `{windows, osx,linux,freebsd,openbsd,netbsd,dragonflybsd,solaris}`
@@ -911,6 +949,44 @@ auto getHostDMDPath(string hostDmd)
         return ["where", hostDmd].execute.output;
     else
         static assert(false, "Unrecognized or unsupported OS.");
+}
+
+version(Windows)
+{
+    /*
+    Gets the absolute path to the host's vshwere executable
+
+    Params:
+        outputFolder = this build's output folder
+    Returns: a string that is the absolute path of the host's vswhere executable
+    */
+    auto getHostVSWhere(string outputFolder)
+    {
+        // Check if vswhere.exe can be found in the host's PATH
+        const where = ["where", "vswhere"].execute;
+        if (where.status == 0)
+            return where.output;
+
+        // Check if vswhere.exe is in the standard location
+        const standardPath = ["cmd", "/C", "echo", `%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe`]
+            .execute.output       // Execute command and return standard output
+            .replace(`"`, "")     // Remove quotes surrounding the path
+            .replace("\r\n", ""); // Remove trailing newline characters
+        if (standardPath.exists)
+            return standardPath;
+
+        // Check if it has already been dowloaded to this build's output folder
+        const outputPath = outputFolder.buildPath("vswhere").exeName;
+        if (outputPath.exists)
+            return outputPath;
+
+        // try to download it
+        if (download(outputPath, "https://github.com/Microsoft/vswhere/releases/download/2.5.2/vswhere.exe"))
+            return outputPath;
+
+        // Could not find or obtain vswhere.exe
+        throw new Exception("Could not obtain vswhere.exe. Consider downloading it from https://github.com/Microsoft/vswhere and placing it in your PATH");
+    }
 }
 
 // Add the executable filename extension to the given `name` for the current OS.
