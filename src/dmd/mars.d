@@ -294,7 +294,7 @@ private int tryMain(size_t argc, const(char)** argv)
     }
 
     if (global.params.color)
-        global.console = Console.create(core.stdc.stdio.stderr);
+        global.console = cast(void*)Console.create(core.stdc.stdio.stderr);
 
     setTarget(global.params);           // set target operating system
     setTargetCPU(global.params);

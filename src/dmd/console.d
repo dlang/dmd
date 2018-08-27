@@ -42,21 +42,32 @@ enum Color : int
     white         = bright | lightGray,
 }
 
-struct Console
+interface Console
 {
-    version (Windows)
+    @property FILE* fp();
+
+    version (Posix)
     {
-        import core.sys.windows.windows;
+        /**
+         Tries to detect whether DMD has been invoked from a terminal.
+         Returns: `true` if a terminal has been detected, `false` otherwise
+         */
+        static bool detectTerminal()
+        {
+            import core.sys.posix.unistd : STDERR_FILENO;
+            import core.stdc.stdlib : getenv;
+            const(char)* term = getenv("TERM");
+            import core.stdc.string : strcmp;
+            return isatty(STDERR_FILENO) && term && term[0] && strcmp(term, "dumb") != 0;
+        }
 
-      private:
-        CONSOLE_SCREEN_BUFFER_INFO sbi;
-        HANDLE handle;
-        FILE* _fp;
-
-      public:
-
-        @property FILE* fp() { return _fp; }
-
+        static Console create(FILE* fp)
+        {
+            return AnsiConsole.create(fp);
+        }
+    }
+    else version (Windows)
+    {
         /**
          Tries to detect whether DMD has been invoked from a terminal.
          Returns: `true` if a terminal has been detected, `false` otherwise
@@ -82,6 +93,47 @@ struct Console
             }
         }
 
+        static Console create(FILE* fp)
+        {
+            if (detectTerminal())
+                return WindowsConsole.create(fp);
+            else
+                return AnsiConsole.create(fp);
+        }
+    }
+    else
+    {
+        static bool detectTerminal()
+        {
+            return false;
+        }
+
+        static Console create(FILE* fp)
+        {
+            return null;
+        }
+    }
+
+    void setColorBright(bool bright);
+    void setColor(Color color);
+    void resetColor();
+}
+
+version (Windows)
+{
+    import core.sys.windows.windows;
+    import core.sys.windows.wincon;
+
+    class WindowsConsole : Console
+    {
+      private:
+        CONSOLE_SCREEN_BUFFER_INFO sbi;
+        HANDLE handle;
+        FILE* _fp;
+
+      public:
+        @property FILE* fp() { return _fp; }
+
         /*********************************
          * Create an instance of Console connected to stream fp.
          * Params:
@@ -90,25 +142,8 @@ struct Console
          *      pointer to created Console
          *      null if failed
          */
-        static Console* create(FILE* fp)
+        static WindowsConsole create(FILE* fp)
         {
-            /* Determine if stream fp is a console
-             */
-            version (CRuntime_DigitalMars)
-            {
-                if (!isatty(fp._file))
-                    return null;
-            }
-            else version (CRuntime_Microsoft)
-            {
-                if (!isatty(fileno(fp)))
-                    return null;
-            }
-            else
-            {
-                return null;
-            }
-
             DWORD nStdHandle;
             if (fp == stdout)
                 nStdHandle = STD_OUTPUT_HANDLE;
@@ -122,7 +157,7 @@ struct Console
             if (GetConsoleScreenBufferInfo(h, &sbi) == 0) // get initial state of console
                 return null;
 
-            auto c = new Console();
+            auto c = new WindowsConsole();
             c._fp = fp;
             c.handle = h;
             c.sbi = sbi;
@@ -165,89 +200,51 @@ struct Console
             SetConsoleTextAttribute(handle, sbi.wAttributes);
         }
     }
-    else version (Posix)
+}
+
+/* The ANSI escape codes are used.
+ * https://en.wikipedia.org/wiki/ANSI_escape_code
+ * Foreground colors: 30..37
+ * Background colors: 40..47
+ * Attributes:
+ *  0: reset all attributes
+ *  1: high intensity
+ *  2: low intensity
+ *  3: italic
+ *  4: single line underscore
+ *  5: slow blink
+ *  6: fast blink
+ *  7: reverse video
+ *  8: hidden
+ */
+
+class AnsiConsole : Console
+{
+  private:
+    FILE* _fp;
+
+  public:
+    @property FILE* fp() { return _fp; }
+
+    static AnsiConsole create(FILE* fp)
     {
-        /* The ANSI escape codes are used.
-         * https://en.wikipedia.org/wiki/ANSI_escape_code
-         * Foreground colors: 30..37
-         * Background colors: 40..47
-         * Attributes:
-         *  0: reset all attributes
-         *  1: high intensity
-         *  2: low intensity
-         *  3: italic
-         *  4: single line underscore
-         *  5: slow blink
-         *  6: fast blink
-         *  7: reverse video
-         *  8: hidden
-         */
-
-        import core.sys.posix.unistd;
-
-      private:
-        FILE* _fp;
-
-      public:
-
-        @property FILE* fp() { return _fp; }
-        /**
-         Tries to detect whether DMD has been invoked from a terminal.
-         Returns: `true` if a terminal has been detect, `false` otherwise
-         */
-        static bool detectTerminal()
-        {
-            import core.stdc.stdlib : getenv;
-            const(char)* term = getenv("TERM");
-            import core.stdc.string : strcmp;
-            return isatty(STDERR_FILENO) && term && term[0] && strcmp(term, "dumb") != 0;
-        }
-
-        static Console* create(FILE* fp)
-        {
-            auto c = new Console();
-            c._fp = fp;
-            return c;
-        }
-
-        void setColorBright(bool bright)
-        {
-            fprintf(_fp, "\033[%dm", bright);
-        }
-
-        void setColor(Color color)
-        {
-            fprintf(_fp, "\033[%d;%dm", color & Color.bright ? 1 : 0, 30 + (color & ~Color.bright));
-        }
-
-        void resetColor()
-        {
-            fputs("\033[m", _fp);
-        }
-    }
-    else
-    {
-        @property FILE* fp() { assert(0); }
-
-        static Console* create(FILE* fp)
-        {
-            return null;
-        }
-
-        void setColorBright(bool bright)
-        {
-            assert(0);
-        }
-
-        void setColor(Color color)
-        {
-            assert(0);
-        }
-
-        void resetColor()
-        {
-            assert(0);
-        }
+        auto c = new AnsiConsole();
+        c._fp = fp;
+        return c;
     }
 
+    void setColorBright(bool bright)
+    {
+        fprintf(_fp, "\033[%dm", bright);
+    }
+
+    void setColor(Color color)
+    {
+        fprintf(_fp, "\033[%d;%dm", color & Color.bright ? 1 : 0, 30 + (color & ~Color.bright));
+    }
+
+    void resetColor()
+    {
+        fputs("\033[m", _fp);
+    }
 }

@@ -204,7 +204,7 @@ extern (C++) void message(const(char)* format, ...)
 private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* header,
         const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
 {
-    Console* con = cast(Console*)global.console;
+    Console con = cast(Console)global.console;
     const p = loc.toChars();
     if (con)
         con.setColorBright(true);
@@ -552,7 +552,7 @@ private void colorHighlightCode(OutBuffer* buf)
  * Params:
  *      buf = highlighted text
  */
-private void writeHighlights(Console* con, const OutBuffer *buf)
+private void writeHighlights(Console con, const OutBuffer *buf)
 {
     bool colors;
     scope (exit)
