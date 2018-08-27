@@ -42,17 +42,39 @@ enum Color : int
     white         = bright | lightGray,
 }
 
+/* The ANSI escape codes are used.
+ * https://en.wikipedia.org/wiki/ANSI_escape_code
+ * Foreground colors: 30..37
+ * Background colors: 40..47
+ * Attributes:
+ *  0: reset all attributes
+ *  1: high intensity
+ *  2: low intensity
+ *  3: italic
+ *  4: single line underscore
+ *  5: slow blink
+ *  6: fast blink
+ *  7: reverse video
+ *  8: hidden
+ */
+
 struct Console
 {
     version (Windows)
     {
         import core.sys.windows.windows;
+        import core.sys.windows.wincon;
+        
+        // added in druntime#2285
+        static if (__VERSION__ < 2082)
+            enum ENABLE_VIRTUAL_TERMINAL_PROCESSING = 4;
 
       private:
         CONSOLE_SCREEN_BUFFER_INFO sbi;
         HANDLE handle;
         FILE* _fp;
-
+        bool vtmode;
+        bool resetVtmode;
       public:
 
         @property FILE* fp() { return _fp; }
@@ -97,11 +119,41 @@ struct Console
             if (GetConsoleScreenBufferInfo(h, &sbi) == 0) // get initial state of console
                 return null;
 
+            // try enabling support for ANSI escape codes
+            DWORD mode;
+            bool vtmode;
+            bool resetVtmode;
+            if (GetConsoleMode(h, &mode))
+            {
+                if (mode & ENABLE_VIRTUAL_TERMINAL_PROCESSING)
+                {
+                    // the flag was enabled already, do not touch it afterwards
+                    vtmode = true;
+                }
+                else if (SetConsoleMode(h, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING))
+                {
+                    vtmode = true;
+                    resetVtmode = true;
+                }
+            }
+
             auto c = new Console();
             c._fp = fp;
             c.handle = h;
             c.sbi = sbi;
+            c.vtmode = vtmode;
+            c.resetVtmode = resetVtmode;
             return c;
+        }
+
+        ~this()
+        {
+            if (resetVtmode)
+            {
+                DWORD mode;
+                if (GetConsoleMode(handle, &mode))
+                    SetConsoleMode(handle, mode & ~ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+            }
         }
 
         /*******************
@@ -111,7 +163,10 @@ struct Console
          */
         void setColorBright(bool bright)
         {
-            SetConsoleTextAttribute(handle, sbi.wAttributes | (bright ? FOREGROUND_INTENSITY : 0));
+            if (vtmode)
+                fprintf(_fp, "\033[%dm", bright);
+            else
+                SetConsoleTextAttribute(handle, sbi.wAttributes | (bright ? FOREGROUND_INTENSITY : 0));
         }
 
         /***************************
@@ -121,14 +176,19 @@ struct Console
          */
         void setColor(Color color)
         {
-            enum FOREGROUND_WHITE = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
-            WORD attr = sbi.wAttributes;
-            attr = (attr & ~(FOREGROUND_WHITE | FOREGROUND_INTENSITY)) |
-                   ((color & Color.red)    ? FOREGROUND_RED   : 0) |
-                   ((color & Color.green)  ? FOREGROUND_GREEN : 0) |
-                   ((color & Color.blue)   ? FOREGROUND_BLUE  : 0) |
-                   ((color & Color.bright) ? FOREGROUND_INTENSITY : 0);
-            SetConsoleTextAttribute(handle, attr);
+            if (vtmode)
+                fprintf(_fp, "\033[%d;%dm", color & Color.bright ? 1 : 0, 30 + (color & ~Color.bright));
+            else
+            {
+                enum FOREGROUND_WHITE = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
+                WORD attr = sbi.wAttributes;
+                attr = (attr & ~(FOREGROUND_WHITE | FOREGROUND_INTENSITY)) |
+                       ((color & Color.red)    ? FOREGROUND_RED   : 0) |
+                       ((color & Color.green)  ? FOREGROUND_GREEN : 0) |
+                       ((color & Color.blue)   ? FOREGROUND_BLUE  : 0) |
+                       ((color & Color.bright) ? FOREGROUND_INTENSITY : 0);
+                SetConsoleTextAttribute(handle, attr);
+            }
         }
 
         /******************
@@ -137,27 +197,14 @@ struct Console
          */
         void resetColor()
         {
-            SetConsoleTextAttribute(handle, sbi.wAttributes);
+            if (vtmode)
+                fputs("\033[m", _fp);
+            else
+                SetConsoleTextAttribute(handle, sbi.wAttributes);
         }
     }
     else version (Posix)
     {
-        /* The ANSI escape codes are used.
-         * https://en.wikipedia.org/wiki/ANSI_escape_code
-         * Foreground colors: 30..37
-         * Background colors: 40..47
-         * Attributes:
-         *  0: reset all attributes
-         *  1: high intensity
-         *  2: low intensity
-         *  3: italic
-         *  4: single line underscore
-         *  5: slow blink
-         *  6: fast blink
-         *  7: reverse video
-         *  8: hidden
-         */
-
         import core.sys.posix.unistd;
 
       private:
