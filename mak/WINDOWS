@@ -190,6 +190,9 @@ $(IMPDIR)\core\stdcpp\exception.d : src\core\stdcpp\exception.d
 $(IMPDIR)\core\stdcpp\typeinfo.d : src\core\stdcpp\typeinfo.d
 	copy $** $@
 
+$(IMPDIR)\core\stdcpp\xutility.d : src\core\stdcpp\xutility.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\darwin\execinfo.d : src\core\sys\darwin\execinfo.d
 	copy $** $@
 
