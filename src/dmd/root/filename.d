@@ -510,18 +510,31 @@ nothrow:
      */
     extern (C++) static const(char)* forceExt(const(char)* name, const(char)* ext)
     {
-        const(char)* e = FileName.ext(name);
-        if (e) // if already has an extension
+        return forceExt(name.toDString, ext.toDString).ptr;
+    }
+
+    /// Ditto
+    extern (D) static const(char)[] forceExt(const(char)[] name, const(char)[] ext)
+    {
+        auto e = FileName.ext(name);
+        if (e.length) // if already has an extension
         {
-            size_t len = e - name;
-            size_t extlen = strlen(ext);
-            char* s = cast(char*)mem.xmalloc(len + extlen + 1);
-            memcpy(s, name, len);
-            memcpy(s + len, ext, extlen + 1);
-            return s;
+            const len = name.length - e.length;
+            char* s = cast(char*)mem.xmalloc(len + ext.length + 1);
+            memcpy(s, name.ptr, len);
+            memcpy(s + len, ext.ptr, ext.length);
+            s[len + ext.length] = '\0';
+            return s[0 .. len + ext.length];
         }
         else
             return defaultExt(name, ext); // doesn't have one
+    }
+
+    unittest
+    {
+        assert(forceExt("/foo/object.d"[], "d") == "/foo/object.d");
+        assert(forceExt("/foo/object"[], "d") == "/foo/object.d");
+        assert(forceExt("/foo/bar.d"[], "o") == "/foo/bar.o");
     }
 
     /// Returns:
