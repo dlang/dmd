@@ -640,12 +640,26 @@ nothrow:
         }
     }
 
+    /**
+       Check if the file the `path` points to exists
+
+       Returns:
+         0 if it does not exists
+         1 if it exists and is not a directory
+         2 if it exists and is a directory
+     */
     extern (C++) static int exists(const(char)* name)
+    {
+        return exists(name.toDString);
+    }
+
+    /// Ditto
+    extern (D) static int exists(const(char)[] name)
     {
         version (Posix)
         {
             stat_t st;
-            if (stat(name, &st) < 0)
+            if (name.toCStringThen!((v) => stat(v.ptr, &st)) < 0)
                 return 0;
             if (S_ISDIR(st.st_mode))
                 return 2;
@@ -653,7 +667,7 @@ nothrow:
         }
         else version (Windows)
         {
-            return name.toWStringzThen!((wname)
+            return name.toCStringThen!((cstr) => cstr.toWStringzThen!((wname)
             {
                 const dw = GetFileAttributesW(&wname[0]);
                 if (dw == -1)
@@ -662,7 +676,7 @@ nothrow:
                     return 2;
                 else
                     return 1;
-            });
+            }));
         }
         else
         {
@@ -719,7 +733,7 @@ nothrow:
         }
 
         version (Windows)
-            const r = _mkdir(path);
+            const r = _mkdir(path.toDString);
         version (Posix)
         {
             errno = 0;
