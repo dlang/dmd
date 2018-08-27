@@ -18,7 +18,7 @@
 #include "visitor.h"
 #include "tokens.h"
 
-#include "rmem.h"
+#include "root/rmem.h"
 
 class Type;
 class TypeVector;

@@ -282,7 +282,7 @@ endif
 endif
 
 # Unique extra flags if necessary
-DMD_FLAGS  := -I$D -I$(ROOT) -Wuninitialized
+DMD_FLAGS  := -I$D -Wuninitialized
 BACK_FLAGS := -I$(ROOT) -I$(TK) -I$C -I$G -I$D -DDMDV2=1
 ROOT_FLAGS := -I$(ROOT)
 
