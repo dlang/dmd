@@ -511,14 +511,30 @@ nothrow:
             return defaultExt(name, ext); // doesn't have one
     }
 
+    /// Returns:
+    ///   `true` if `name`'s extension is `ext`
     extern (C++) static bool equalsExt(const(char)* name, const(char)* ext) pure
     {
-        const(char)* e = FileName.ext(name);
-        if (!e && !ext)
+        return equalsExt(name.toDString, ext.toDString);
+    }
+
+    /// Ditto
+    extern (D) static bool equalsExt(const(char)[] name, const(char)[] ext) pure
+    {
+        auto e = FileName.ext(name);
+        if (!e.length && !ext.length)
             return true;
-        if (!e || !ext)
+        if (!e.length || !ext.length)
             return false;
         return FileName.equals(e, ext);
+    }
+
+    unittest
+    {
+        assert(!equalsExt("foo.bar"[], "d"));
+        assert(equalsExt("foo.bar"[], "bar"));
+        assert(equalsExt("object.d"[], "d"));
+        assert(!equalsExt("object"[], "d"));
     }
 
     /******************************
