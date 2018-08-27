@@ -279,30 +279,42 @@ nothrow:
      */
     extern (C++) static const(char)* path(const(char)* str)
     {
-        const(char)* n = name(str);
-        size_t pathlen;
-        if (n > str)
+        return path(str.toDString).ptr;
+    }
+
+    /// Ditto
+    extern (D) static const(char)[] path(const(char)[] str)
+    {
+        const n = name(str);
+        bool hasTrailingSlash;
+        if (n.length < str.length)
         {
             version (Posix)
             {
-                if (n[-1] == '/')
-                    n--;
+                if (str[$ - n.length - 1] == '/')
+                    hasTrailingSlash = true;
             }
             else version (Windows)
             {
-                if (n[-1] == '\\' || n[-1] == '/')
-                    n--;
+                if (str[$ - n.length - 1] == '\\' || str[$ - n.length - 1] == '/')
+                    hasTrailingSlash = true;
             }
             else
             {
                 assert(0);
             }
         }
-        pathlen = n - str;
+        const pathlen = str.length - n.length - (hasTrailingSlash ? 1 : 0);
         char* path = cast(char*)mem.xmalloc(pathlen + 1);
-        memcpy(path, str, pathlen);
+        memcpy(path, str.ptr, pathlen);
         path[pathlen] = 0;
-        return path;
+        return path[0 .. pathlen];
+    }
+
+    unittest
+    {
+        assert(path("/foo/bar"[]) == "/foo");
+        assert(path("foo"[]) == "");
     }
 
     /**************************************
