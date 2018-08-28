@@ -499,11 +499,43 @@ nothrow:
         return buf.extractString();
     }
 
+    /* Checks for equivalence,
+     * a) comparing the filename contents (not the pointer), case-
+     *    insensitively on Windows, and
+     * b) ignoring charnum if `global.params.showColumns` is false.
+     */
     extern (C++) bool equals(ref const(Loc) loc) const
     {
         return (!global.params.showColumns || charnum == loc.charnum) &&
                linnum == loc.linnum &&
                FileName.equals(filename, loc.filename);
+    }
+
+    /* opEquals() / toHash() for AA key usage:
+     *
+     * Compare filename contents (case-sensitively on Windows too), not
+     * the pointer - a static foreach loop repeatedly mixing in a mixin
+     * may lead to multiple equivalent filenames (`foo.d-mixin-<line>`),
+     * e.g., for test/runnable/test18880.d.
+     */
+    extern (D) bool opEquals(ref const(Loc) loc) const @trusted pure nothrow @nogc
+    {
+        import core.stdc.string : strcmp;
+
+        return charnum == loc.charnum &&
+               linnum == loc.linnum &&
+               (filename == loc.filename ||
+                (filename && loc.filename && strcmp(filename, loc.filename) == 0));
+    }
+
+    extern (D) size_t toHash() const @trusted pure nothrow
+    {
+        import dmd.utils : toDString;
+
+        auto hash = hashOf(linnum);
+        hash = hashOf(charnum, hash);
+        hash = hashOf(filename.toDString, hash);
+        return hash;
     }
 
     /******************

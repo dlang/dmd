@@ -293,7 +293,7 @@ struct Scope
                 bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
                 auto fieldInit = &this.ctorflow.fieldinit[i];
                 const fiesCurrent = fies[i];
-                if (fieldInit.loc == Loc.init)
+                if (fieldInit.loc is Loc.init)
                     fieldInit.loc = fiesCurrent.loc;
                 if (!mergeFieldInit(this.ctorflow.fieldinit[i].csx, fiesCurrent.csx) && mustInit)
                 {
