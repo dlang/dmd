@@ -159,7 +159,7 @@ auto newDelete()
     return dependency;
 }
 
-// Builds the lexer as a separate library
+/// Returns: the depedency that builds the lexer
 auto lexer()
 {
     Dependency dependency = {
@@ -178,7 +178,7 @@ auto lexer()
     return dependency;
 }
 
-// Generates a dmd.conf file in the generated folder
+/// Returns: the dependency that generates the dmd.conf file in the output folder
 auto dmdConf()
 {
     // TODO: add support for Windows
@@ -204,10 +204,7 @@ DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@
     return dependency;
 }
 
-/*
-optabgen generates a few C++ files.
-Thus it first needs to be built and the executed.
-*/
+/// Returns: the dependency that builds and executes the optabgen utility
 auto opTabGen()
 {
     auto opTabFiles = ["debtab.d", "optab.c", "cdxxx.c", "elxxx.d", "fltables.d", "tytab.c"];
@@ -238,7 +235,7 @@ auto opTabGen()
 
 version(Windows)
 {
-    // Build the msvc-dmc compiler wrapper
+    /// Returns: the dependency that builds msvc-dmd.exe
     auto buildMsvcDmc()
     {
         enum targetName = "msvc-dmc";
@@ -252,7 +249,7 @@ version(Windows)
         return dependency;
     }
 
-    // Build the msvc-lib linker wrapper
+    /// Returns: the dependency that builds msvc-lib.exe
     auto buildMsvcLib()
     {
         enum targetName = "msvc-lib";
@@ -267,7 +264,15 @@ version(Windows)
     }
 }
 
-// Build individual CXX objects of the backend
+/**
+Gets the dependency that generates the given object file from the given source file
+
+Params:
+    obj      = the object file that the dependency should generate
+    fileName = the source file to build, generating the object file
+Returns:
+    the dependency that generates the given object file from the given source file
+*/
 auto buildCXX(string obj, string fileName)
 {
     Dependency dependency = {
@@ -280,7 +285,7 @@ auto buildCXX(string obj, string fileName)
     return dependency;
 }
 
-// Build the D part of the backend
+/// Returns: the dependencies that build the D backend
 auto dBackend()
 {
     Dependency dependency = {
@@ -297,7 +302,7 @@ auto dBackend()
     return dependency;
 }
 
-// Build the CXX objects of the backend
+/// Returns: the dependencies that build the C++ backend
 auto cxxBackend()
 {
     Dependency[] dependencies;
@@ -307,7 +312,7 @@ auto cxxBackend()
     return dependencies;
 }
 
-// Execute the sub-dependencies of the backend and pack everything into one object file
+/// Execute the sub-dependencies of the backend and pack everything into one object file
 auto buildBackend()
 {
     opTabGen.run;
@@ -327,7 +332,7 @@ auto buildBackend()
     return dependency;
 }
 
-// Generate required string files: VERSION and SYSCONFDIR.imp
+/// Returns: the dependencies that generate required string files: VERSION and SYSCONFDIR.imp
 auto buildStringFiles()
 {
     const versionFile = env["G"].buildPath("VERSION");
@@ -352,7 +357,7 @@ auto buildStringFiles()
     return [versionDependency, sysconfDirDependency];
 }
 
-// Returns a list of config files that are required by the DMD build
+/// Returns: a list of config files that are required by the DMD build
 auto configFiles()
 {
     return buildStringFiles.map!(a => a.target).array ~ dmdConf.target;
@@ -408,6 +413,11 @@ auto buildDMD()
 Goes through the target list and replaces short-hand targets with their expanded version.
 Special targets:
 - clean -> removes generated directory + immediately stops the builder
+
+Params:
+    targets = the target list to process
+Returns:
+    the expanded targets
 */
 auto predefinedTargets(string[] targets)
 {
@@ -486,7 +496,7 @@ auto predefinedTargets(string[] targets)
     return newTargets.data;
 }
 
-// Sets the environment variables
+/// Sets the environment variables
 void parseEnvironment()
 {
     env.getDefault("TARGET_CPU", "X86");
@@ -584,7 +594,7 @@ void parseEnvironment()
     env.getDefault("AR", "ar");
 }
 
-// Checks the environment variables and flags
+/// Checks the environment variables and flags
 void processEnvironment()
 {
     auto os = env["OS"];
@@ -729,6 +739,7 @@ void processEnvironment()
 // D source files
 ////////////////////////////////////////////////////////////////////////////////
 
+/// Returns: all source files for the compiler
 auto sourceFiles()
 {
     struct Sources
@@ -817,7 +828,7 @@ auto sourceFiles()
     return sources;
 }
 
-/*
+/**
 Downloads a file from a given URL
 
 Params:
@@ -829,7 +840,7 @@ Returns: `true` if download succeeded
 bool download(string to, string from, uint tries = 3)
 {
     import std.net.curl : download, HTTPStatusException;
-    
+
     foreach(i; 0..tries)
     {
         try
@@ -838,10 +849,10 @@ bool download(string to, string from, uint tries = 3)
             download(from, to);
             return true;
         }
-        catch(HTTPStatusException e) 
+        catch(HTTPStatusException e)
         {
             if (e.status == 404) throw e;
-            else 
+            else
             {
                 log("Failed to download %s (Attempt %s of %s)", from, i + 1, tries);
                 continue;
@@ -852,7 +863,7 @@ bool download(string to, string from, uint tries = 3)
     return false;
 }
 
-/*
+/**
 Detects the host OS.
 
 Returns: a string from `{windows, osx,linux,freebsd,openbsd,netbsd,dragonflybsd,solaris}`
@@ -879,7 +890,7 @@ string detectOS()
         static assert(0, "Unrecognized or unsupported OS.");
 }
 
-/*
+/**
 Detects the host model
 
 Returns: 32, 64 or throws an Exception
@@ -902,11 +913,7 @@ auto detectModel()
     throw new Exception(`Cannot figure 32/64 model from "` ~ uname ~ `"`);
 }
 
-/*
-Gets the command for querying or invoking the host C++ compiler
-
-Returns: the command for querying or invoking the host C++ compiler
-*/
+/// Returns: the command for querying or invoking the host C++ compiler
 auto getHostCXX()
 {
     version(Posix)
@@ -925,11 +932,7 @@ auto getHostCXX()
         static assert(false, "Unrecognized or unsupported OS.");
 }
 
-/*
-Gets a string describing the type of host C++ compiler
-
-Returns: a string describing the type of host C++ compiler
-*/
+/// Returns: a string describing the type of host C++ compiler
 auto getHostCXXKind()
 {
     version(Posix)
@@ -943,7 +946,7 @@ auto getHostCXXKind()
         static assert(false, "Unrecognized or unsupported OS.");
 }
 
-/*
+/**
 Gets the absolute path of the host's dmd executable
 
 Params:
@@ -962,7 +965,7 @@ auto getHostDMDPath(string hostDmd)
 
 version(Windows)
 {
-    /*
+    /**
     Gets the absolute path to the host's vshwere executable
 
     Params:
@@ -997,7 +1000,7 @@ version(Windows)
         throw new Exception("Could not obtain vswhere.exe. Consider downloading it from https://github.com/Microsoft/vswhere and placing it in your PATH");
     }
 
-    /*
+    /**
     Gets the absolute path to the host's MSVC bin directory
 
     Params:
@@ -1030,7 +1033,12 @@ version(Windows)
     }
 }
 
-// Add the executable filename extension to the given `name` for the current OS.
+/**
+Add the executable filename extension to the given `name` for the current OS.
+
+Params:
+    name = the name to append the file extention to
+*/
 auto exeName(T)(T name)
 {
     version(Windows)
@@ -1038,14 +1046,25 @@ auto exeName(T)(T name)
     return name;
 }
 
-// Add the object file extension to the given `name` for the current OS.
+/**
+Add the object file extension to the given `name` for the current OS.
+
+Params:
+    name = the name to append the file extention to
+*/
 auto objName(T)(T name)
 {
     version(Windows)
         return name ~ ".obj";
     return name ~ ".o";
 }
-// Add the library file extension to the given `name` for the current OS.
+
+/**
+Add the library file extension to the given `name` for the current OS.
+
+Params:
+    name = the name to append the file extention to
+*/
 auto libName(T)(T name)
 {
     version(Windows)
@@ -1053,8 +1072,13 @@ auto libName(T)(T name)
     return name ~ ".a";
 }
 
-// Add additional make-like assignments to the environment
-// e.g. ./build.d ARGS=foo -> sets ARGS to 'foo'
+/**
+Add additional make-like assignments to the environment
+e.g. ./build.d ARGS=foo -> sets the "ARGS" internal environment variable to "foo"
+
+Params:
+    args = the command-line arguments from which the assignments will be parsed
+*/
 void args2Environment(ref string[] args)
 {
     bool tryToAdd(string arg)
@@ -1093,17 +1117,41 @@ auto getDefault(ref string[string] env, string key, string default_)
 // Mini build system
 ////////////////////////////////////////////////////////////////////////////////
 
+/**
+Determines if a target is up to date with respect to its source files
+
+Params:
+    target = the target to check
+    source = the source file to check against
+Returns: `true` if the target is up to date
+*/
 auto isUpToDate(string target, string source)
 {
     return isUpToDate(target, [source]);
 }
 
+/**
+Determines if a target is up to date with respect to its source files
+
+Params:
+    target = the target to check
+    source = the source files to check against
+Returns: `true` if the target is up to date
+*/
 auto isUpToDate(string target, string[][] sources...)
 {
     return isUpToDate([target], sources);
 }
 
-// checks whether any of the targets are older than the sources
+/**
+Checks whether any of the targets are older than the sources
+
+Params:
+    targets = the targets to check
+    sources = the source files to check against
+Returns:
+    `true` if the target is up to date
+*/
 auto isUpToDate(string[] targets, string[][] sources...)
 {
     if (force)
@@ -1124,7 +1172,7 @@ auto isUpToDate(string[] targets, string[][] sources...)
     return true;
 }
 
-/*
+/**
 A dependency has one or more sources and yields one or more targets.
 It knows how to build these target by invoking either the external command or
 the commandFunction.
@@ -1145,6 +1193,9 @@ struct Dependency
     string name; // name of the dependency that is e.g. written to the CLI when it's executed
     string[] trackSources;
 
+    /**
+    Executes the dependency
+    */
     auto run()
     {
         // allow one or multiple targets
@@ -1170,7 +1221,9 @@ struct Dependency
         command.runCanThrow;
     }
 
-    // Resolves variables shorthands like $@ (target) and $< (source)
+    /**
+    Resolves variables shorthands like $@ (target) and $< (source)
+    */
     void resolveShorthands()
     {
         // Support $@ (shortcut for the target path)
@@ -1183,23 +1236,36 @@ struct Dependency
     }
 }
 
-// Logging primitive
+/**
+Logging primitive
+
+Params:
+    args = the data to write to the log
+*/
 auto log(T...)(T args)
 {
     if (verbose)
         writefln(args);
 }
 
-// Run a command and optionally log the invocation
+/**
+Run a command and optionally log the invocation
+
+Params:
+    args = the command and command arguments to execute
+*/
 auto run(T)(T args)
 {
     log("Run: %s", args.join(" "));
     return execute(args, null, Config.none, size_t.max, srcDir);
 }
 
-/*
+/**
 Wrapper around execute that logs the execution
 and throws an exception for a non-zero exit code.
+
+Params:
+    args = the command and command arguments to execute
 */
 auto runCanThrow(T)(T args)
 {
