@@ -567,7 +567,16 @@ void parseEnvironment()
     }
 
     version(Windows)
-        env.getDefault("HOST_VSWHERE", getHostVSWhere(env["G"]));
+    {
+        const vswhere = getHostVSWhere(env["G"]);
+        const vcBinDir = getHostMSVCBinDir(model, vswhere);
+
+        // environment variable `MSVC_CC` will be read by `msvc-dmd.exe`
+        env.getDefault("MSVC_CC", vcBinDir.buildPath("cl.exe"));
+
+        // environment variable `MSVC_AR` will be read by `msvc-lib.exe`
+        env.getDefault("MSVC_AR", vcBinDir.buildPath("lib.exe"));
+    }
 
     env.getDefault("HOST_CXX", getHostCXX);
     env.getDefault("CXX_KIND", getHostCXXKind);
@@ -986,6 +995,38 @@ version(Windows)
 
         // Could not find or obtain vswhere.exe
         throw new Exception("Could not obtain vswhere.exe. Consider downloading it from https://github.com/Microsoft/vswhere and placing it in your PATH");
+    }
+
+    /*
+    Gets the absolute path to the host's MSVC bin directory
+
+    Params:
+        model   = a string describing the host's model, "64" or "32"
+        vswhere = a string that is the path to the vswhere executable
+    Returns: a string that is the absolute path to the host's MSVC bin directory
+    */
+    auto getHostMSVCBinDir(string model, string vswhere)
+    {
+        // See https://github.com/Microsoft/vswhere/wiki/Find-VC
+
+        const vsInstallPath = [vswhere, "-latest", "-products", "*", "-requires",
+            "Microsoft.VisualStudio.Component.VC.Tools.x86.x64", "-property", "installationPath"].execute.output
+            .replace("\r\n", "");
+
+        if (!vsInstallPath.exists)
+            throw new Exception("Could not locate the Visual Studio installation directory");
+
+        const vcVersionFile = vsInstallPath.buildPath("VC", "Auxiliary", "Build", "Microsoft.VCToolsVersion.default.txt");
+        if (!vcVersionFile.exists)
+            throw new Exception(`Could not locate the Visual C++ version file "%s"`.format(vcVersionFile));
+
+        const vcVersion = vcVersionFile.readText().replace("\r\n", "");
+        const vcArch = model == "64" ? "x64" : "x86";
+        const vcPath = vsInstallPath.buildPath("VC", "Tools", "MSVC", vcVersion, "bin", "Host" ~ vcArch, vcArch);
+        if (!vcPath.exists)
+            throw new Exception("Could not locate the Visual C++ installation directory");
+
+        return vcPath;
     }
 }
 
