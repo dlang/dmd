@@ -470,12 +470,17 @@ alias abc = foo.bar; // is it a type or a symbol?
         $(P Aliases cannot be used for expressions:)
 
 -----------
-struct S { static int i; }
-S s;
+struct S
+{
+    static int i;
+    static int j;
+}
 
-alias a = s.i; // illegal, s.i is an expression
-alias b = S.i; // ok
-b = 4;         // sets S.i to 4
+alias a = S.i; // OK, `S.i` is a symbol
+alias b = S.j; // OK. `S.j` is also a symbol
+alias c = a + b; // illegal, `a + b` is an expression
+a = 2;         // sets `S.i` to `2`
+b = 4;         // sets `S.j` to `4`
 -----------
 
 $(H2 $(LNAME2 extern, Extern Declarations))
