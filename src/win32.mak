@@ -231,7 +231,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\bcomplex.d $C\blockopt.d $C\cg.d $C\cg87.d $C\cgxmm.d \
 	$C\cgcod.c $C\cgcs.d $C\cgcv.c $C\cgelem.d $C\cgen.c $C\cgobj.c \
 	$C\compress.d $C\cgreg.d $C\var.c \
-	$C\cgsched.d $C\cod1.c $C\cod2.c $C\cod3.c $C\cod4.c $C\cod5.c \
+	$C\cgsched.d $C\cod1.c $C\cod2.d $C\cod3.c $C\cod4.c $C\cod5.c \
 	$C\dcode.d $C\symbol.d $C\debugprint.d $C\dt.c $C\ee.d $C\elem.d \
 	$C\evalu8.d $C\fp.c $C\go.d $C\gflow.d $C\gdag.d \
 	$C\gother.d $C\glocal.d $C\gloop.d $C\gsroa.d $C\newman.c \
@@ -496,8 +496,8 @@ $G/cgxmm.obj : $C\xmm.d $C\cgxmm.d
 $G/cod1.obj : $C\rtlsym.h $C\cod1.c
 	$(CC) -c -o$@ $(MFLAGS) $C\cod1
 
-$G/cod2.obj : $C\rtlsym.h $C\cod2.c
-	$(CC) -c -o$@ $(MFLAGS) $C\cod2
+$G/cod2.obj : $C\cod2.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\cod2
 
 $G/cod3.obj : $C\rtlsym.h $C\cod3.c
 	$(CC) -c -o$@ $(MFLAGS) $C\cod3
