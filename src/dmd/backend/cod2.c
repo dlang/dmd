@@ -2030,8 +2030,7 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
         opcode = 0x81;
         switch (sz2)
-        {   case 1:     opcode--;
-                        v1 = (signed char) v1;
+        {   case 1:     v1 = (signed char) v1;
                         v2 = (signed char) v2;
                         break;
             case 2:     v1 = (short) v1;
@@ -2051,6 +2050,44 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         else if (I64 && v2 != (targ_llong)(targ_long)v2)
         {
             // only sign-extension from 32-bits is available for 'and'
+        }
+        else if (v1 == v2)
+        {
+            unsigned reg = findreg(retregs);
+
+            movregconst(cdb, reg, v1, 0);
+
+            freenode(e21);
+            freenode(e22);
+            freenode(e2);
+
+            fixresult(cdb,e,retregs,pretregs);
+            cgstate.stackclean--;
+            return;
+        }
+        else if (I64 && sz2 > 1)
+        {
+            unsigned reg = findreg(retregs);
+            unsigned reg_alt;
+            unsigned reg_flags = mPSW;
+
+            // generate the test only to update the flags
+            codelem(cdb, e1, &reg_flags, FALSE);
+
+            // load both the constants in some registers
+            regwithvalue(cdb, ALLREGS, v2, &reg_alt, 0);
+            movregconst(cdb, reg, v1, 0);
+
+            // generate a CMOV{eq,ne}
+            cdb.gen2(0x0f44 + (jop == JNC), grex | modregxrmx(3, reg, reg_alt));
+
+            freenode(e21);
+            freenode(e22);
+            freenode(e2);
+
+            fixresult(cdb,e,retregs,pretregs);
+            cgstate.stackclean--;
+            return;
         }
         else
         {

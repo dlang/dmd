@@ -1209,6 +1209,13 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             {
                 expOptimize(e.e1, result, keepLvalue);
                 expOptimize(e.e2, result, keepLvalue);
+
+                // If both the branches are equal and the comparison has no side
+                // effects then simplify the expression
+                if (e.e1.equals(e.e2) && !hasSideEffect(e.econd))
+                {
+                    ret = e.e1;
+                }
             }
         }
     }
