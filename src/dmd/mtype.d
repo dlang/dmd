@@ -3369,10 +3369,10 @@ extern (C++) final class TypeBasic : Type
             EnumDeclaration ed = (cast(TypeEnum)to).sym;
             if (ed.isSpecial())
             {
-                /* Special enums that allow implicit conversions to them
-                 * with a MATCH.convert
-                 */
+                /* Special enums that allow implicit conversions to them.  */
                 tob = to.toBasetype().isTypeBasic();
+                if (tob)
+                    return implicitConvTo(tob);
             }
             else
                 return MATCH.nomatch;
