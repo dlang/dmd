@@ -2542,6 +2542,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[0]);
         assert(I16);
         if (((csemask | emask) & DOUBLEREGS_16) == DOUBLEREGS_16)
         {
+            static const uint dblreg[4] = { BX,DX,(uint)-1,CX }; // duplicate of one in cod4.d
             for (reg = 0; reg != -1; reg = dblreg[reg])
             {   assert((int) reg >= 0 && reg <= 7);
                 if (mask(reg) & csemask)
