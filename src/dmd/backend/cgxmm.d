@@ -35,15 +35,14 @@ import dmd.backend.xmm;
 
 version (SCPP)
     import dmd.backend.exh;
-
+version (MARS)
+    import dmd.backend.errors;
 
 extern (C++):
 
 int REGSIZE();
 
 uint mask(uint m);
-
-void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
 
 /*******************************************
  * Is operator a store operator?
