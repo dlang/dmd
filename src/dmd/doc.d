@@ -1410,7 +1410,7 @@ private void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
 
 /***********************************************************
  */
-extern(C++) struct DocComment
+struct DocComment
 {
     Sections sections;      // Section*[]
     Section summary;
@@ -1805,7 +1805,7 @@ extern(C++) struct DocComment
 /*****************************************
  * Return true if comment consists entirely of "ditto".
  */
-bool isDitto(const(char)* comment)
+private bool isDitto(const(char)* comment)
 {
     if (comment)
     {
@@ -1819,13 +1819,13 @@ bool isDitto(const(char)* comment)
 /**********************************************
  * Skip white space.
  */
-const(char)* skipwhitespace(const(char)* p)
+private const(char)* skipwhitespace(const(char)* p)
 {
     return skipwhitespace(p.toDString).ptr;
 }
 
 /// Ditto
-extern (D) const(char)[] skipwhitespace(const(char)[] p)
+private const(char)[] skipwhitespace(const(char)[] p)
 {
     foreach (idx, char c; p)
     {
@@ -1877,7 +1877,7 @@ size_t skiptoident(OutBuffer* buf, size_t i)
 /************************************************
  * Scan forward past end of identifier.
  */
-size_t skippastident(OutBuffer* buf, size_t i)
+private size_t skippastident(OutBuffer* buf, size_t i)
 {
     const slice = buf.peekSlice();
     while (i < slice.length)
@@ -1910,7 +1910,7 @@ size_t skippastident(OutBuffer* buf, size_t i)
  *      i if not a URL
  *      index just past it if it is a URL
  */
-size_t skippastURL(OutBuffer* buf, size_t i)
+private size_t skippastURL(OutBuffer* buf, size_t i)
 {
     const slice = buf.peekSlice()[i .. $];
     size_t j;
@@ -1960,7 +1960,7 @@ private bool isIdentifier(Dsymbols* a, const(char)* p, size_t len)
 
 /****************************************************
  */
-bool isKeyword(const(char)* p, size_t len)
+private bool isKeyword(const(char)* p, size_t len)
 {
     immutable string[3] table = ["true", "false", "null"];
     foreach (s; table)
