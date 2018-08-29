@@ -117,6 +117,11 @@ else version( DragonFlyBSD )
     enum clock_t CLOCKS_PER_SEC = 128;
     clock_t clock();
 }
+else version (Solaris)
+{
+    enum clock_t CLOCKS_PER_SEC = 1_000_000;
+    clock_t clock();
+}
 else version (CRuntime_Glibc)
 {
     enum clock_t CLOCKS_PER_SEC = 1_000_000;
