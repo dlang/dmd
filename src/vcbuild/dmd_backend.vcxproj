@@ -98,7 +98,6 @@
     <ClCompile Include="..\dmd\backend\cgen.c" />
     <ClCompile Include="..\dmd\backend\cgobj.c" />
     <ClCompile Include="..\dmd\backend\cod1.c" />
-    <ClCompile Include="..\dmd\backend\cod2.c" />
     <ClCompile Include="..\dmd\backend\cod3.c" />
     <ClCompile Include="..\dmd\backend\cod4.c" />
     <ClCompile Include="..\dmd\backend\dt.c" />

@@ -15,6 +15,8 @@ module dmd.backend.cdef;
 
 import dmd.backend.cc: Classsym, Symbol, param_t, config;
 import dmd.backend.el;
+import dmd.backend.ty : I32;
+
 import dmd.backend.dlist;
 
 extern (C++):
@@ -107,10 +109,13 @@ enum bool HEADER_LIST = true;
  * This is not quite the same as !SIXTEENBIT, as one could
  * have near/far with 32 bit code.
  */
-//#define TARGET_SEGMENTED     (!MARS && TARGET_WINDOS)
+version (MARS)
+    enum TARGET_SEGMENTED = false;
+else
+    enum TARGET_SEGMENTED = TARGET_WINDOS;
 
 
-//bool LDOUBLE() { return config.exe == EX_WIN32; }   // support true long doubles
+bool LDOUBLE() { return config.exe == EX_WIN32; }   // support true long doubles
 
 
 // NT structured exception handling
@@ -247,7 +252,8 @@ alias targ_double = double;
 public import dmd.root.longdouble : targ_ldouble = longdouble;
 
 // Extract most significant register from constant
-//#define MSREG(p)        ((REGSIZE == 2) ? (p) >> 16 : ((sizeof(targ_llong) == 8) ? (p) >> 32 : 0))
+int REGSIZE();
+ulong MSREG(ulong p) { return (REGSIZE == 2) ? p >> 16 : ((targ_llong.sizeof == 8) ? p >> 32 : 0); }
 
 alias targ_int = int;
 alias targ_uns = uint;
@@ -302,7 +308,7 @@ else
  */
 //#define NEWTEMPMANGLE   (!(config.flags4 & CFG4oldtmangle))     // do new template mangling
 //#define USEDLLSHELL     _WINDLL
-//bool MFUNC() { return I32 != 0; } // && config.exe == EX_WIN32)       // member functions are TYmfunc
+bool MFUNC() { return I32 != 0; } // && config.exe == EX_WIN32)       // member functions are TYmfunc
 enum CV3 = 0;          // 1 means support CV3 debug format
 
 /* Object module format

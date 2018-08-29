@@ -15,10 +15,12 @@ module dmd.backend.el;
 
 import dmd.backend.cdef;
 import dmd.backend.cc;
-import dmd.backend.dlist;
+import dmd.backend.global;
 import dmd.backend.type;
 
 import dmd.backend.cc : Symbol;
+
+import dmd.backend.dlist;
 
 extern (C++):
 @nogc:
@@ -130,7 +132,7 @@ version (MARS)
 else
     tym_t typemask(elem* e) { return PARSER ? e.ET.Tty : e.Ety; }
 
-//FL el_fl(elem *e) { return cast(FL)e.EV.Vsym.Sfl; }
+FL el_fl(elem *e) { return cast(FL)e.EV.Vsym.Sfl; }
 
 //#define Eoffset         EV.sp.Voffset
 //#define Esymnum         EV.sp.Vsymnum

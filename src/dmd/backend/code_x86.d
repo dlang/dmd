@@ -383,6 +383,8 @@ enum
     LES     = 0xC4,
     LEA     = 0x8D,
     LOCK    = 0xF0,
+    INT3    = 0xCC,
+    HLT     = 0xF4,
 
     STO     = 0x89,
     LOD     = 0x8B,
@@ -405,6 +407,8 @@ enum
     JGE     = 0x7D,
     JLE     = 0x7E,
     JG      = 0x7F,
+
+    UD2     = 0x0F0B,
 
     // NOP is used as a placeholder in the linked list of instructions, no
     // actual code will be generated for it.
