@@ -2237,146 +2237,23 @@ else
     {
         /* https://dlang.org/spec/statement.html#pragma-statement
          */
-        // Should be merged with PragmaDeclaration
 
         //printf("PragmaStatement::semantic() %s\n", ps.toChars());
         //printf("body = %p\n", ps._body);
-        if (ps.ident == Id.msg)
+        import dmd.pragmasem;
+        auto err = pragmaSemantic(sc,ps);
+        if (err)
         {
-            if (ps.args)
-            {
-                foreach (arg; *ps.args)
-                {
-                    sc = sc.startCTFE();
-                    auto e = arg.expressionSemantic(sc);
-                    e = resolveProperties(sc, e);
-                    sc = sc.endCTFE();
-
-                    // pragma(msg) is allowed to contain types as well as expressions
-                    e = ctfeInterpretForPragmaMsg(e);
-                    if (e.op == TOK.error)
-                    {
-                        errorSupplemental(ps.loc, "while evaluating `pragma(msg, %s)`", arg.toChars());
-                        return setError();
-                    }
-                    StringExp se = e.toStringExp();
-                    if (se)
-                    {
-                        se = se.toUTF8(sc);
-                        fprintf(stderr, "%.*s", cast(int)se.len, se.string);
-                    }
-                    else
-                        fprintf(stderr, "%s", e.toChars());
-                }
-                fprintf(stderr, "\n");
-            }
+            result = err;
         }
-        else if (ps.ident == Id.lib)
+        else if (ps._body)
         {
-            version (all)
-            {
-                /* Should this be allowed?
-                 */
-                ps.error("`pragma(lib)` not allowed as statement");
-                return setError();
-            }
-            else
-            {
-                if (!ps.args || ps.args.dim != 1)
-                {
-                    ps.error("`string` expected for library name");
-                    return setError();
-                }
-                else
-                {
-                    auto se = semanticString(sc, (*ps.args)[0], "library name");
-                    if (!se)
-                        return setError();
-
-                    if (global.params.verbose)
-                    {
-                        message("library   %.*s", cast(int)se.len, se.string);
-                    }
-                }
-            }
+            result = ps._body = ps._body.statementSemantic(sc);
         }
-        else if (ps.ident == Id.startaddress)
+        else
         {
-            if (!ps.args || ps.args.dim != 1)
-                ps.error("function name expected for start address");
-            else
-            {
-                Expression e = (*ps.args)[0];
-                sc = sc.startCTFE();
-                e = e.expressionSemantic(sc);
-                e = resolveProperties(sc, e);
-                sc = sc.endCTFE();
-
-                e = e.ctfeInterpret();
-                (*ps.args)[0] = e;
-                Dsymbol sa = getDsymbol(e);
-                if (!sa || !sa.isFuncDeclaration())
-                {
-                    ps.error("function name expected for start address, not `%s`", e.toChars());
-                    return setError();
-                }
-                if (ps._body)
-                {
-                    ps._body = ps._body.statementSemantic(sc);
-                    if (ps._body.isErrorStatement())
-                    {
-                        result = ps._body;
-                        return;
-                    }
-                }
-                result = ps;
-                return;
-            }
+            result = null;
         }
-        else if (ps.ident == Id.Pinline)
-        {
-            PINLINE inlining = PINLINE.default_;
-            if (!ps.args || ps.args.dim == 0)
-                inlining = PINLINE.default_;
-            else if (!ps.args || ps.args.dim != 1)
-            {
-                ps.error("boolean expression expected for `pragma(inline)`");
-                return setError();
-            }
-            else
-            {
-                Expression e = (*ps.args)[0];
-                if (e.op != TOK.int64 || !e.type.equals(Type.tbool))
-                {
-                    ps.error("pragma(inline, true or false) expected, not `%s`", e.toChars());
-                    return setError();
-                }
-
-                if (e.isBool(true))
-                    inlining = PINLINE.always;
-                else if (e.isBool(false))
-                    inlining = PINLINE.never;
-
-                    FuncDeclaration fd = sc.func;
-                if (!fd)
-                {
-                    ps.error("`pragma(inline)` is not inside a function");
-                    return setError();
-                }
-                fd.inlining = inlining;
-            }
-        }
-        else if (!global.params.ignoreUnsupportedPragmas)
-        {
-            ps.error("unrecognized `pragma(%s)`", ps.ident.toChars());
-            return setError();
-        }
-
-        if (ps._body)
-        {
-            ps._body = ps._body.statementSemantic(sc);
-        }
-        result = ps._body;
     }
 
     override void visit(StaticAssertStatement s)
