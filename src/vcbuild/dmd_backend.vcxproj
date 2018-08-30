@@ -153,7 +153,6 @@ popd</Command>
     <ClInclude Include="..\dmd\identifier.h" />
     <ClInclude Include="..\dmd\import.h" />
     <ClInclude Include="..\dmd\init.h" />
-    <ClInclude Include="..\dmd\intrange.h" />
     <ClInclude Include="..\dmd\json.h" />
     <ClInclude Include="..\dmd\mars.h" />
     <ClInclude Include="..\dmd\module.h" />

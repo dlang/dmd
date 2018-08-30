@@ -170,9 +170,6 @@
     <ClInclude Include="..\dmd\init.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="..\dmd\intrange.h">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="..\dmd\json.h">
       <Filter>src</Filter>
     </ClInclude>

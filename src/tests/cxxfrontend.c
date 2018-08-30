@@ -42,7 +42,6 @@
 #include "id.h"
 #include "import.h"
 #include "init.h"
-#include "intrange.h"
 #include "json.h"
 #include "mars.h"
 #include "mangle.h"
