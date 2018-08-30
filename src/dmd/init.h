@@ -111,4 +111,6 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+Expression *initializerToExpression(Initializer *init, Type *t = NULL);
+
 #endif

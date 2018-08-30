@@ -45,6 +45,7 @@
 #include "intrange.h"
 #include "json.h"
 #include "mars.h"
+#include "mangle.h"
 #include "module.h"
 #include "mtype.h"
 #include "nspace.h"
