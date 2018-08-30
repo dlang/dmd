@@ -7,8 +7,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/root/ctfloat.h
  */
 
-#ifndef CTFLOAT_H
-#define CTFLOAT_H
+#pragma once
 
 #include "longdouble.h"
 
@@ -63,5 +62,3 @@ struct CTFloat
 
     static void initialize();
 };
-
-#endif

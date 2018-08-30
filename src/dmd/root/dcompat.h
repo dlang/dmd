@@ -7,12 +7,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/root/dcompat.h
  */
 
-#ifndef DMD_ROOT_DCOMPAT_H
-#define DMD_ROOT_DCOMPAT_H
-
-#ifdef __DMC__
 #pragma once
-#endif
 
 /// Represents a D [ ] array
 template<typename T>
@@ -21,5 +16,3 @@ struct DArray
     size_t length;
     T *ptr;
 };
-
-#endif /* DMD_ROOT_DCOMPAT_H */

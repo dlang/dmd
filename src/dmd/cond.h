@@ -8,8 +8,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/cond.h
  */
 
-#ifndef DMD_DEBCOND_H
-#define DMD_DEBCOND_H
+#pragma once
 
 #include "globals.h"
 #include "visitor.h"
@@ -95,5 +94,3 @@ public:
     int include(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
-
-#endif

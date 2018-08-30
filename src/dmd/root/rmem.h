@@ -7,8 +7,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/root/rmem.h
  */
 
-#ifndef ROOT_MEM_H
-#define ROOT_MEM_H
+#pragma once
 
 #include <stddef.h>     // for size_t
 
@@ -35,5 +34,3 @@ struct Mem
 };
 
 extern Mem mem;
-
-#endif /* ROOT_MEM_H */

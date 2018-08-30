@@ -8,12 +8,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/dsymbol.h
  */
 
-#ifndef DMD_DSYMBOL_H
-#define DMD_DSYMBOL_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
 #include "root/root.h"
 #include "root/stringtable.h"
@@ -394,5 +389,3 @@ public:
     Dsymbol *update(Dsymbol *s);
     Dsymbol *insert(Identifier const * const ident, Dsymbol *s);     // when ident and s are not the same
 };
-
-#endif /* DMD_DSYMBOL_H */

@@ -8,8 +8,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/target.h
  */
 
-#ifndef TARGET_H
-#define TARGET_H
+#pragma once
 
 // This file contains a data structure that describes a back-end target.
 // At present it is incomplete, but in future it should grow to contain
@@ -88,5 +87,3 @@ struct Target
     static bool isReturnOnStack(TypeFunction *tf, bool needsThis);
     static d_uns64 parameterSize(const Loc& loc, Type *t);
 };
-
-#endif

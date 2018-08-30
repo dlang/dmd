@@ -8,12 +8,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/staticassert.h
  */
 
-#ifndef DMD_STATICASSERT_H
-#define DMD_STATICASSERT_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
 #include "dsymbol.h"
 
@@ -31,5 +26,3 @@ public:
     const char *kind() const;
     void accept(Visitor *v) { v->visit(this); }
 };
-
-#endif

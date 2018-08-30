@@ -8,12 +8,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/enum.h
  */
 
-#ifndef DMD_ENUM_H
-#define DMD_ENUM_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
 #include "root/root.h"
 #include "dsymbol.h"
@@ -94,5 +89,3 @@ public:
     EnumMember *isEnumMember() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
-
-#endif /* DMD_ENUM_H */

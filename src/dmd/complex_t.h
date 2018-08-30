@@ -8,8 +8,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/complex_t.h
  */
 
-#ifndef DMD_COMPLEX_T_H
-#define DMD_COMPLEX_T_H
+#pragma once
 
 #include "root/ctfloat.h"
 
@@ -70,5 +69,3 @@ inline real_t cimagl(complex_t x)
 {
     return x.im;
 }
-
-#endif

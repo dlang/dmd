@@ -8,12 +8,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/mtype.h
  */
 
-#ifndef DMD_MTYPE_H
-#define DMD_MTYPE_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
 #include "root/root.h"
 #include "root/stringtable.h"
@@ -841,5 +836,3 @@ public:
 
 bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
 bool arrayTypeCompatibleWithoutCasting(Type *t1, Type *t2);
-
-#endif /* DMD_MTYPE_H */

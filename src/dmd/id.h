@@ -8,16 +8,9 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/id.h
  */
 
-#ifndef DMD_ID_H
-#define DMD_ID_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
 struct Id
 {
     static void initialize();
 };
-
-#endif /* DMD_ID_H */

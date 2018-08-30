@@ -8,8 +8,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/expression.h
  */
 
-#ifndef DMD_EXPRESSION_H
-#define DMD_EXPRESSION_H
+#pragma once
 
 #include "mars.h"
 #include "identifier.h"
@@ -1391,5 +1390,3 @@ class ObjcClassReferenceExp : public Expression
 
     void accept(Visitor *v) { v->visit(this); }
 };
-
-#endif /* DMD_EXPRESSION_H */

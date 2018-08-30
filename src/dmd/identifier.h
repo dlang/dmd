@@ -8,12 +8,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/identifier.h
  */
 
-#ifndef DMD_IDENTIFIER_H
-#define DMD_IDENTIFIER_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
 #include "root/root.h"
 #include "root/rmem.h"
@@ -51,5 +46,3 @@ public:
     static Identifier *lookup(const char *s, size_t len);
     static void initTable();
 };
-
-#endif /* DMD_IDENTIFIER_H */

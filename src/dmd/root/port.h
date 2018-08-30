@@ -7,8 +7,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/root/port.h
  */
 
-#ifndef PORT_H
-#define PORT_H
+#pragma once
 
 // Portable wrapper around compiler/system specific things.
 // The idea is to minimize #ifdef's in the app code.
@@ -43,5 +42,3 @@ struct Port
     static unsigned readwordBE(void *buffer);
     static void valcpy(void *dst, uint64_t val, size_t size);
 };
-
-#endif

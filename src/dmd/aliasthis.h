@@ -8,12 +8,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/aliasthis.h
  */
 
-#ifndef DMD_ALIASTHIS_H
-#define DMD_ALIASTHIS_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
 #include "mars.h"
 #include "dsymbol.h"
@@ -31,5 +26,3 @@ public:
     AliasThis *isAliasThis() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
-
-#endif

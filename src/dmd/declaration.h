@@ -8,12 +8,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/declaration.h
  */
 
-#ifndef DMD_DECLARATION_H
-#define DMD_DECLARATION_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
 #include "dsymbol.h"
 #include "mtype.h"
@@ -851,5 +846,3 @@ public:
     DeleteDeclaration *isDeleteDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
-
-#endif /* DMD_DECLARATION_H */

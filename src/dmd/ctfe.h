@@ -8,12 +8,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/ctfe.h
  */
 
-#ifndef DMD_CTFE_H
-#define DMD_CTFE_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
 #include "tokens.h"
 #include "expression.h"
@@ -81,5 +76,3 @@ public:
     static bool isCantExp(Expression *e) { return e && e->op == TOKcantexp; }
     static bool isGotoExp(Expression *e) { return e && e->op == TOKgoto; }
 };
-
-#endif /* DMD_CTFE_H */

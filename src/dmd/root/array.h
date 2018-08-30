@@ -6,12 +6,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/root/array.h
  */
 
-#ifndef ARRAY_H
-#define ARRAY_H
-
-#if __DMC__
 #pragma once
-#endif
 
 #include <assert.h>
 #include <stdio.h>
@@ -239,5 +234,3 @@ struct BitArray
 private:
     BitArray(const BitArray&);
 };
-
-#endif

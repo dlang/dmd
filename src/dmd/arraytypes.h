@@ -8,13 +8,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/arraytypes.h
  */
 
-#ifndef DMD_ARRAYTYPES_H
-#define DMD_ARRAYTYPES_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
-
 
 #include "root/root.h"
 
@@ -70,5 +64,3 @@ typedef Array<class GotoStatement *> GotoStatements;
 typedef Array<class TemplateInstance *> TemplateInstances;
 
 typedef Array<struct Ensure> Ensures;
-
-#endif
