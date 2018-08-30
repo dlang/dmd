@@ -20,7 +20,7 @@ import dmd.globals;
 
 enum UINT64_MAX = 0xFFFFFFFFFFFFFFFFUL;
 
-static uinteger_t copySign(uinteger_t x, bool sign)
+private uinteger_t copySign(uinteger_t x, bool sign)
 {
     // return sign ? -x : x;
     return (x - cast(uinteger_t)sign) ^ -cast(uinteger_t)sign;
