@@ -407,7 +407,7 @@ TK_SRC = \
 ######## CXX header files (only needed for cxx-unittest)
 
 SRC = $(addprefix $D/, aggregate.h aliasthis.h arraytypes.h	\
-	attrib.h compiler.h complex_t.h cond.h ctfe.h ctfe.h declaration.h dsymbol.h	\
+	attrib.h compiler.h complex_t.h cond.h ctfe.h ctfe.h declaration.h doc.h dsymbol.h	\
 	enum.h errors.h expression.h globals.h hdrgen.h identifier.h \
 	id.h import.h init.h intrange.h json.h \
 	mars.h module.h mtype.h nspace.h objc.h                         \

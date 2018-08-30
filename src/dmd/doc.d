@@ -359,7 +359,7 @@ private immutable ddoc_decl_dd_e = ")\n";
 
 /****************************************************
  */
-void gendocfile(Module m)
+extern(C++) void gendocfile(Module m)
 {
     __gshared OutBuffer mbuf;
     __gshared int mbuf_done;
