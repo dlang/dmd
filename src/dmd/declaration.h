@@ -35,6 +35,7 @@ class ExpInitializer;
 class StructDeclaration;
 struct CompiledCtfeFunction;
 struct ObjcSelector;
+struct IntRange;
 
 enum LINK;
 enum TOK;

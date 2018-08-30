@@ -14,7 +14,6 @@
 #include "mars.h"
 #include "identifier.h"
 #include "arraytypes.h"
-#include "intrange.h"
 #include "visitor.h"
 #include "tokens.h"
 
@@ -80,7 +79,6 @@ bool isTrivialExp(Expression *e);
 int isConst(Expression *e);
 Expression *toDelegate(Expression *e, Type* t, Scope *sc);
 AggregateDeclaration *isAggregate(Type *t);
-IntRange getIntRange(Expression *e);
 bool checkNonAssignmentArrayOp(Expression *e, bool suggestion = false);
 bool isUnaArrayOp(TOK op);
 bool isBinArrayOp(TOK op);
