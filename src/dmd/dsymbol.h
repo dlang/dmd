@@ -92,8 +92,6 @@ struct Ungag
 void dsymbolSemantic(Dsymbol *dsym, Scope *sc);
 void semantic2(Dsymbol *dsym, Scope *sc);
 void semantic3(Dsymbol *dsym, Scope* sc);
-const char *mangleExact(FuncDeclaration *fd);
-void mangleToBuffer(Dsymbol *s, OutBuffer* buf);
 
 struct Prot
 {
