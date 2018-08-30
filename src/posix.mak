@@ -415,7 +415,7 @@ SRC = $(addprefix $D/, aggregate.h aliasthis.h arraytypes.h	\
 	version.h visitor.h libomf.d scanomf.d libmscoff.d scanmscoff.d)         \
 	$(DMD_SRCS)
 
-ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h file.h filename.h \
+ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h dcompat.h file.h filename.h \
 	longdouble.h newdelete.c object.h outbuffer.h port.h \
 	rmem.h root.h stringtable.h)
 
