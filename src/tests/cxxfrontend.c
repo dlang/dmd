@@ -30,6 +30,7 @@
 #include "cond.h"
 #include "ctfe.h"
 #include "declaration.h"
+#include "doc.h"
 #include "dsymbol.h"
 #include "enum.h"
 #include "errors.h"
