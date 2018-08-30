@@ -690,9 +690,6 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-typedef UnionExp (*fp_t)(const Loc &loc, Type *, Expression *, Expression *);
-typedef int (*fp2_t)(const Loc &loc, TOK, Expression *, Expression *);
-
 class BinExp : public Expression
 {
 public:
@@ -1394,49 +1391,5 @@ class ObjcClassReferenceExp : public Expression
 
     void accept(Visitor *v) { v->visit(this); }
 };
-
-/* Special values used by the interpreter
- */
-
-Expression *expType(Type *type, Expression *e);
-
-UnionExp Neg(Type *type, Expression *e1);
-UnionExp Com(Type *type, Expression *e1);
-UnionExp Not(Type *type, Expression *e1);
-UnionExp Bool(Type *type, Expression *e1);
-UnionExp Cast(Loc loc, Type *type, Type *to, Expression *e1);
-UnionExp ArrayLength(Type *type, Expression *e1);
-UnionExp Ptr(Type *type, Expression *e1);
-
-UnionExp Add(const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp Min(const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp Mul(const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp Div(const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp Mod(const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp Pow(const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp Shl(const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp Shr(const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp Ushr(const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp And(const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp Or(const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp Xor(const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp Index(Type *type, Expression *e1, Expression *e2);
-UnionExp Cat(Type *type, Expression *e1, Expression *e2);
-
-UnionExp Equal(TOK op, const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp Cmp(TOK op, const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp Identity(TOK op, const Loc &loc, Type *type, Expression *e1, Expression *e2);
-
-UnionExp Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr);
-
-// Const-folding functions used by CTFE
-
-void sliceAssignArrayLiteralFromString(ArrayLiteralExp *existingAE, StringExp *newval, size_t firstIndex);
-void sliceAssignStringFromArrayLiteral(StringExp *existingSE, ArrayLiteralExp *newae, size_t firstIndex);
-void sliceAssignStringFromString(StringExp *existingSE, StringExp *newstr, size_t firstIndex);
-
-int sliceCmpStringWithString(StringExp *se1, StringExp *se2, size_t lo1, size_t lo2, size_t len);
-int sliceCmpStringWithArray(StringExp *se1, ArrayLiteralExp *ae2, size_t lo1, size_t lo2, size_t len);
-
 
 #endif /* DMD_EXPRESSION_H */
