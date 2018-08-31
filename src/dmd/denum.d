@@ -415,6 +415,11 @@ extern (C++) final class EnumMember : VarDeclaration
         if (errors)
             return new ErrorExp();
         checkDisabled(loc, sc);
+
+        if (depdecl && !depdecl._scope)
+            depdecl._scope = sc;
+        checkDeprecated(loc, sc);
+
         if (errors)
             return new ErrorExp();
         Expression e = new VarExp(loc, this);
