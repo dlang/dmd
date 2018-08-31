@@ -812,7 +812,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        void shift_optimize(BinExp e, UnionExp function(const ref Loc, Type, Expression, Expression) shift)
+        extern (D) void shift_optimize(BinExp e, UnionExp function(const ref Loc, Type, Expression, Expression) shift)
         {
             if (binOptimize(e, result))
                 return;

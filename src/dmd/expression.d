@@ -3979,8 +3979,8 @@ extern (C++) class UnaExp : Expression
     }
 }
 
-extern (C++) alias fp_t = UnionExp function(const ref Loc loc, Type, Expression, Expression);
-extern (C++) alias fp2_t = int function(const ref Loc loc, TOK, Expression, Expression);
+alias fp_t = UnionExp function(const ref Loc loc, Type, Expression, Expression);
+alias fp2_t = int function(const ref Loc loc, TOK, Expression, Expression);
 
 /***********************************************************
  */
