@@ -565,12 +565,6 @@ public:
 class VarExp : public SymbolExp
 {
 public:
-    /**
-    * Semantic can be called multiple times for a single expression.
-    * This field is needed to ensure the deprecation message will be printed only once.
-    */
-    bool hasCheckedAttrs;
-
     static VarExp *create(Loc loc, Declaration *var, bool hasOverloads = true);
     bool equals(RootObject *o);
     int checkModifiable(Scope *sc, int flag);
