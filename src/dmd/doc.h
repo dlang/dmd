@@ -8,15 +8,8 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/doc.h
  */
 
-#ifndef DMD_DOC_H
-#define DMD_DOC_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
 class Module;
 
 void gendocfile(Module *m);
-
-#endif

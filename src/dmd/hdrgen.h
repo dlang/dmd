@@ -8,6 +8,8 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/hdrgen.h
  */
 
+#pragma once
+
 #include <string.h>                     // memset()
 
 #include "dsymbol.h"

@@ -7,12 +7,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/root/file.h
  */
 
-#ifndef FILE_H
-#define FILE_H
-
-#if __DMC__
 #pragma once
-#endif
 
 #include <stddef.h>
 
@@ -56,5 +51,3 @@ struct File
 
     void remove();              // delete file
 };
-
-#endif

@@ -7,8 +7,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/root/thread.h
  */
 
-#ifndef THREAD_H
-#define THREAD_H 1
+#pragma once
 
 typedef long ThreadId;
 
@@ -16,5 +15,3 @@ struct Thread
 {
     static ThreadId getId();
 };
-
-#endif

@@ -8,12 +8,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/template.h
  */
 
-#ifndef DMD_TEMPLATE_H
-#define DMD_TEMPLATE_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
 #include "root/root.h"
 #include "arraytypes.h"
@@ -367,5 +362,3 @@ Type *getType(RootObject *o);
 Dsymbol *getDsymbol(RootObject *o);
 
 RootObject *objectSyntaxCopy(RootObject *o);
-
-#endif /* DMD_TEMPLATE_H */

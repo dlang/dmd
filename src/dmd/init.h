@@ -8,8 +8,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/init.h
  */
 
-#ifndef INIT_H
-#define INIT_H
+#pragma once
 
 #include "root/root.h"
 
@@ -112,5 +111,3 @@ public:
 };
 
 Expression *initializerToExpression(Initializer *init, Type *t = NULL);
-
-#endif

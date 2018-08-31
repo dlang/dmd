@@ -7,12 +7,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/root/stringtable.h
  */
 
-#ifndef STRINGTABLE_H
-#define STRINGTABLE_H
-
-#if __SC__
 #pragma once
-#endif
 
 #include "root.h"
 #include "rmem.h"   // for d_size_t
@@ -55,5 +50,3 @@ public:
     StringValue *update(const char *s, d_size_t len);
     int apply(int (*fp)(StringValue *));
 };
-
-#endif

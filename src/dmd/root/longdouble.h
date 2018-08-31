@@ -9,8 +9,7 @@
 
 // 80 bit floating point value implementation for Microsoft compiler
 
-#ifndef __LONG_DOUBLE_H__
-#define __LONG_DOUBLE_H__
+#pragma once
 
 #if !_MSC_VER // has native 10 byte doubles
 #include <stdio.h>
@@ -265,5 +264,3 @@ typedef longdouble_soft longdouble;
 typedef longdouble_soft volatile_longdouble;
 
 #endif // !_MSC_VER
-
-#endif // __LONG_DOUBLE_H__

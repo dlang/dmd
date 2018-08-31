@@ -7,12 +7,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/root/filename.h
  */
 
-#ifndef FILENAME_H
-#define FILENAME_H
-
-#if __DMC__
 #pragma once
-#endif
 
 #include "array.h"
 
@@ -53,5 +48,3 @@ struct FileName
     static void free(const char *str);
     const char *toChars() const;
 };
-
-#endif

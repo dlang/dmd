@@ -7,14 +7,9 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/root/object.h
  */
 
-#ifndef OBJECT_H
-#define OBJECT_H
+#pragma once
 
 #define POSIX (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __DragonFly__ || __sun)
-
-#if __DMC__
-#pragma once
-#endif
 
 #include "dcompat.h"
 #include <stddef.h>
@@ -69,5 +64,3 @@ public:
      */
     virtual int dyncast() const;
 };
-
-#endif

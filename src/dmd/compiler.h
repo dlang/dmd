@@ -8,8 +8,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/compiler.h
  */
 
-#ifndef DMD_COMPILER_H
-#define DMD_COMPILER_H
+#pragma once
 
 // This file contains a data structure that describes a back-end compiler
 // and implements compiler-specific actions.
@@ -18,5 +17,3 @@ struct Compiler
 {
     const char *vendor;     // Compiler backend name
 };
-
-#endif /* DMD_COMPILER_H */

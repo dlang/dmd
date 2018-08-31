@@ -8,12 +8,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/aggregate.h
  */
 
-#ifndef DMD_AGGREGATE_H
-#define DMD_AGGREGATE_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
 #include "root/root.h"
 
@@ -350,5 +345,3 @@ public:
     InterfaceDeclaration *isInterfaceDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
-
-#endif /* DMD_AGGREGATE_H */

@@ -8,12 +8,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/version.h
  */
 
-#ifndef DMD_VERSION_H
-#define DMD_VERSION_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
 #include "dsymbol.h"
 
@@ -42,5 +37,3 @@ public:
     const char *kind() const;
     void accept(Visitor *v) { v->visit(this); }
 };
-
-#endif /* DMD_VERSION_H */

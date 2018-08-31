@@ -7,8 +7,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/root/outbuffer.h
  */
 
-#ifndef OUTBUFFER_H
-#define OUTBUFFER_H
+#pragma once
 
 #include <stdlib.h>
 #include <stdarg.h>
@@ -16,10 +15,6 @@
 #include <assert.h>
 #include "port.h"
 #include "rmem.h"
-
-#if __DMC__
-#pragma once
-#endif
 
 class RootObject;
 
@@ -80,5 +75,3 @@ public:
     // Append terminating null if necessary and take ownership of data
     char *extractString();
 };
-
-#endif

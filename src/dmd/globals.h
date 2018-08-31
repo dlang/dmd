@@ -8,12 +8,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/globals.h
  */
 
-#ifndef DMD_GLOBALS_H
-#define DMD_GLOBALS_H
-
-#ifdef __DMC__
 #pragma once
-#endif
 
 #include "root/dcompat.h"
 #include "root/ctfloat.h"
@@ -348,5 +343,3 @@ enum PINLINE
 };
 
 typedef uinteger_t StorageClass;
-
-#endif /* DMD_GLOBALS_H */

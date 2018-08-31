@@ -8,12 +8,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/statement.h
  */
 
-#ifndef DMD_STATEMENT_H
-#define DMD_STATEMENT_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
 #include "root/root.h"
 
@@ -734,5 +729,3 @@ public:
 
     void accept(Visitor *v) { v->visit(this); }
 };
-
-#endif /* DMD_STATEMENT_H */

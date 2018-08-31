@@ -8,12 +8,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/module.h
  */
 
-#ifndef DMD_MODULE_H
-#define DMD_MODULE_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
 #include "root/root.h"
 #include "dsymbol.h"
@@ -179,5 +174,3 @@ struct ModuleDeclaration
 
     const char *toChars() const;
 };
-
-#endif /* DMD_MODULE_H */

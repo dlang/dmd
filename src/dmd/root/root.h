@@ -7,12 +7,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/root/root.h
  */
 
-#ifndef ROOT_H
-#define ROOT_H
-
-#if __DMC__
 #pragma once
-#endif
 
 #include "object.h"
 
@@ -23,5 +18,3 @@
 #include "outbuffer.h"
 
 #include "array.h"
-
-#endif

@@ -8,18 +8,10 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/json.h
  */
 
-#ifndef DMD_JSON_H
-#define DMD_JSON_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
 #include "arraytypes.h"
 
 struct OutBuffer;
 
 void json_generate(OutBuffer *, Modules *);
-
-#endif /* DMD_JSON_H */
-

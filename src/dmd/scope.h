@@ -8,12 +8,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/scope.h
  */
 
-#ifndef DMD_SCOPE_H
-#define DMD_SCOPE_H
-
-#ifdef __DMC__
 #pragma once
-#endif
 
 class Dsymbol;
 class ScopeDsymbol;
@@ -161,5 +156,3 @@ struct Scope
 
     bool isDeprecated();
 };
-
-#endif /* DMD_SCOPE_H */

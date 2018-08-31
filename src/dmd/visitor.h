@@ -7,8 +7,7 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/visitor.h
  */
 
-#ifndef DMD_VISITOR_H
-#define DMD_VISITOR_H
+#pragma once
 
 #include <assert.h>
 
@@ -637,5 +636,3 @@ public:
     bool stop;
     StoppableVisitor() : stop(false) {}
 };
-
-#endif /* DMD_VISITOR_H */
