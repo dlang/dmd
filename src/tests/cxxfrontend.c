@@ -219,12 +219,25 @@ void test_semantic()
 
 /**********************************/
 
+void test_expression()
+{
+    Loc loc;
+    IntegerExp *ie = IntegerExp::createi(loc, 42, Type::tint32);
+    Expression *e = ie->ctfeInterpret();
+
+    assert(e);
+    assert(e->isConst());
+}
+
+/**********************************/
+
 int main(int argc, char **argv)
 {
     frontend_init();
 
     test_visitors();
     test_semantic();
+    test_expression();
 
     frontend_term();
 

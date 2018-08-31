@@ -262,7 +262,7 @@ package void setLengthVarIfKnown(VarDeclaration lengthVar, Type type)
  * Returns:
  *      Constant folded version of `e`
  */
-extern (C++) Expression Expression_optimize(Expression e, int result, bool keepLvalue)
+Expression Expression_optimize(Expression e, int result, bool keepLvalue)
 {
     extern (C++) final class OptimizeVisitor : Visitor
     {

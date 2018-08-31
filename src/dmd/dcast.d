@@ -49,7 +49,7 @@ enum LOG = false;
  * Do an implicit cast.
  * Issue error if it can't be done.
  */
-extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
+Expression implicitCastTo(Expression e, Scope* sc, Type t)
 {
     extern (C++) final class ImplicitCastTo : Visitor
     {
@@ -178,7 +178,7 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
  * Return MATCH level of implicitly converting e to type t.
  * Don't do the actual cast; don't change e.
  */
-extern (C++) MATCH implicitConvTo(Expression e, Type t)
+MATCH implicitConvTo(Expression e, Type t)
 {
     extern (C++) final class ImplicitConvTo : Visitor
     {
@@ -1406,7 +1406,7 @@ extern (C++) Type toStaticArrayType(SliceExp e)
  * Do an explicit cast.
  * Assume that the 'this' expression does not have any indirections.
  */
-extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
+Expression castTo(Expression e, Scope* sc, Type t)
 {
     extern (C++) final class CastTo : Visitor
     {
