@@ -3347,11 +3347,6 @@ extern (C++) final class SymOffExp : SymbolExp
  */
 extern (C++) final class VarExp : SymbolExp
 {
-    /**
-    * Semantic can be called multiple times for a single expression.
-    * This field is needed to ensure the deprecation message will be printed only once.
-    */
-    bool hasCheckedAttrs;
     extern (D) this(const ref Loc loc, Declaration var, bool hasOverloads = true)
     {
         if (var.isVarDeclaration())
@@ -3361,7 +3356,6 @@ extern (C++) final class VarExp : SymbolExp
         //printf("VarExp(this = %p, '%s', loc = %s)\n", this, var.toChars(), loc.toChars());
         //if (strcmp(var.ident.toChars(), "func") == 0) assert(0);
         this.type = var.type;
-        this.hasCheckedAttrs = false;
     }
 
     static VarExp create(Loc loc, Declaration var, bool hasOverloads = true)
@@ -3445,7 +3439,6 @@ extern (C++) final class VarExp : SymbolExp
     override Expression syntaxCopy()
     {
         auto ret = super.syntaxCopy();
-        (cast(VarExp)ret).hasCheckedAttrs = this.hasCheckedAttrs;
         return ret;
     }
 }
