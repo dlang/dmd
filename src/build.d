@@ -367,8 +367,11 @@ auto configFiles()
 Main build routine for the DMD compiler.
 Defines the required order for the build dependencies, runs all these dependency dependencies
 and afterwards builds the DMD compiler.
+
+Params:
+  extra_flags = Flags to apply to the main build but not the dependencies
 */
-auto buildDMD()
+auto buildDMD(string[] extraFlags...)
 {
     version(Windows)
     {
@@ -404,7 +407,7 @@ auto buildDMD()
             "-J"~env["G"],
             "-J../res",
             "-L-lstdc++",
-        ].chain(flags["DFLAGS"], "$<".only).array
+        ].chain(extraFlags).chain(flags["DFLAGS"], "$<".only).array
     };
     dependency.run;
 }
@@ -438,10 +441,8 @@ auto predefinedTargets(string[] targets)
 
             case "unittest":
                 flags["DFLAGS"] ~= "-version=NoMain";
-                flags["DFLAGS"] ~= "-main";
-                flags["DFLAGS"] ~= "-unittest";
                 newTargets.put((){
-                    buildDMD();
+                    buildDMD("-main", "-unittest");
                     spawnProcess(env["DMD_PATH"]); // run the unittests
                 }.toDelegate);
                 break;
