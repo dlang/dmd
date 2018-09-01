@@ -1,7 +1,0 @@
-`TypeInfo.getHash` now uses `core.internal.hash.hashOf` functions for hash computing
-
-Now `typeid(typeof(var)).getHash(&var)` should be always equal `hashOf(val)`.
-hashOf uses MurmurHash3 algorithm for bitwise hashing, including string hashing.
-Old implementation used polynomial hash for string hashing, which often provided
-lexicographical order of strings in associative array. However AA doesn't guarantee
-some specific order of elements, thus tests which rely on it should be changed.
