@@ -105,6 +105,11 @@ fail_compilation/reserved_version.d(206): Error: version identifier `CppRuntime_
 fail_compilation/reserved_version.d(207): Error: version identifier `CppRuntime_Gcc` is reserved and cannot be set
 fail_compilation/reserved_version.d(208): Error: version identifier `CppRuntime_Microsoft` is reserved and cannot be set
 fail_compilation/reserved_version.d(209): Error: version identifier `CppRuntime_Sun` is reserved and cannot be set
+fail_compilation/reserved_version.d(210): Error: version identifier `MSRuntime_None` is reserved and cannot be set
+fail_compilation/reserved_version.d(211): Error: version identifier `MSRuntime_Static` is reserved and cannot be set
+fail_compilation/reserved_version.d(212): Error: version identifier `MSRuntime_Dynamic` is reserved and cannot be set
+fail_compilation/reserved_version.d(213): Error: version identifier `MSRuntime_Debug` is reserved and cannot be set
+fail_compilation/reserved_version.d(214): Error: version identifier `MSRuntime_Release` is reserved and cannot be set
 ---
 */
 
@@ -216,6 +221,11 @@ version = CppRuntime_DigitalMars;
 version = CppRuntime_Gcc;
 version = CppRuntime_Microsoft;
 version = CppRuntime_Sun;
+version = MSRuntime_None;
+version = MSRuntime_Static;
+version = MSRuntime_Dynamic;
+version = MSRuntime_Debug;
+version = MSRuntime_Release;
 
 // This should work though
 debug = DigitalMars;
@@ -300,6 +310,11 @@ debug = CppRuntime_DigitalMars;
 debug = CppRuntime_Gcc;
 debug = CppRuntime_Microsoft;
 debug = CppRuntime_Sun;
+debug = MSRuntime_None;
+debug = MSRuntime_Static;
+debug = MSRuntime_Dynamic;
+debug = MSRuntime_Debug;
+debug = MSRuntime_Release;
 debug = D_Coverage;
 debug = D_Ddoc;
 debug = D_InlineAsm_X86;

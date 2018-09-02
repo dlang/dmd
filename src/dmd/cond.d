@@ -658,6 +658,11 @@ extern (C++) final class VersionCondition : DVCondition
             case "CppRuntime_Gcc":
             case "CppRuntime_Microsoft":
             case "CppRuntime_Sun":
+            case "MSRuntime_None":
+            case "MSRuntime_Static":
+            case "MSRuntime_Dynamic":
+            case "MSRuntime_Debug":
+            case "MSRuntime_Release":
             case "unittest":
             case "assert":
             case "all":
