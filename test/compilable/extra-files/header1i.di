@@ -3,6 +3,7 @@ import core.vararg;
 import std.stdio;
 pragma (lib, "test");
 pragma (msg, "Hello World");
+pragma (linkerDirective, "/DEFAULTLIB:test2");
 static assert(true, "message");
 alias mydbl = double;
 alias fl1 = function ()
