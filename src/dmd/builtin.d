@@ -24,6 +24,7 @@ import dmd.mtype;
 import dmd.root.ctfloat;
 import dmd.root.stringtable;
 import dmd.tokens;
+static import core.bitop;
 
 private:
 
@@ -242,14 +243,7 @@ extern (C++) Expression eval_bsf(Loc loc, FuncDeclaration fd, Expressions* argum
     uinteger_t n = arg0.toInteger();
     if (n == 0)
         error(loc, "`bsf(0)` is undefined");
-    n = (n ^ (n - 1)) >> 1; // convert trailing 0s to 1, and zero rest
-    int k = 0;
-    while (n)
-    {
-        ++k;
-        n >>= 1;
-    }
-    return new IntegerExp(loc, k, Type.tint32);
+    return new IntegerExp(loc, core.bitop.bsf(n), Type.tint32);
 }
 
 extern (C++) Expression eval_bsr(Loc loc, FuncDeclaration fd, Expressions* arguments)
@@ -259,12 +253,7 @@ extern (C++) Expression eval_bsr(Loc loc, FuncDeclaration fd, Expressions* argum
     uinteger_t n = arg0.toInteger();
     if (n == 0)
         error(loc, "`bsr(0)` is undefined");
-    int k = 0;
-    while (n >>= 1)
-    {
-        ++k;
-    }
-    return new IntegerExp(loc, k, Type.tint32);
+    return new IntegerExp(loc, core.bitop.bsr(n), Type.tint32);
 }
 
 extern (C++) Expression eval_bswap(Loc loc, FuncDeclaration fd, Expressions* arguments)
@@ -272,18 +261,11 @@ extern (C++) Expression eval_bswap(Loc loc, FuncDeclaration fd, Expressions* arg
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.int64);
     uinteger_t n = arg0.toInteger();
-    enum BYTEMASK = 0x00FF00FF00FF00FFL;
-    enum SHORTMASK = 0x0000FFFF0000FFFFL;
-    enum INTMASK = 0x0000FFFF0000FFFFL;
-    // swap adjacent ubytes
-    n = ((n >> 8) & BYTEMASK) | ((n & BYTEMASK) << 8);
-    // swap adjacent ushorts
-    n = ((n >> 16) & SHORTMASK) | ((n & SHORTMASK) << 16);
     TY ty = arg0.type.toBasetype().ty;
-    // If 64 bits, we need to swap high and low uints
     if (ty == Tint64 || ty == Tuns64)
-        n = ((n >> 32) & INTMASK) | ((n & INTMASK) << 32);
-    return new IntegerExp(loc, n, arg0.type);
+        return new IntegerExp(loc, core.bitop.bswap(cast(ulong) n), arg0.type);
+    else
+        return new IntegerExp(loc, core.bitop.bswap(cast(uint) n), arg0.type);
 }
 
 extern (C++) Expression eval_popcnt(Loc loc, FuncDeclaration fd, Expressions* arguments)
@@ -291,13 +273,7 @@ extern (C++) Expression eval_popcnt(Loc loc, FuncDeclaration fd, Expressions* ar
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.int64);
     uinteger_t n = arg0.toInteger();
-    int cnt = 0;
-    while (n)
-    {
-        cnt += (n & 1);
-        n >>= 1;
-    }
-    return new IntegerExp(loc, cnt, arg0.type);
+    return new IntegerExp(loc, core.bitop.popcnt(n), Type.tint32);
 }
 
 extern (C++) Expression eval_yl2x(Loc loc, FuncDeclaration fd, Expressions* arguments)
@@ -328,7 +304,7 @@ extern (C++) Expression eval_yl2xp1(Loc loc, FuncDeclaration fd, Expressions* ar
 
 public extern (C++) void builtin_init()
 {
-    builtins._init(47);
+    builtins._init(84);
     // @safe @nogc pure nothrow real function(real)
     add_builtin("_D4core4math3sinFNaNbNiNfeZe", &eval_sin);
     add_builtin("_D4core4math3cosFNaNbNiNfeZe", &eval_cos);
