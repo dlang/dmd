@@ -304,6 +304,7 @@ immutable Msgtable[] msgtable =
     // For pragma's
     { "Pinline", "inline" },
     { "lib" },
+    { "linkerDirective" },
     { "mangle" },
     { "msg" },
     { "startaddress" },

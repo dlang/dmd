@@ -61,6 +61,7 @@ version (OMF)
         void dosseg();
         void startaddress(Symbol *);
         bool includelib(const(char)* );
+        bool linkerdirective(const char *);
         bool allowZeroSize();
         void exestr(const(char)* p);
         void user(const(char)* p);
@@ -139,6 +140,7 @@ else version (OMFandMSCOFF)
         void dosseg();
         void startaddress(Symbol *);
         bool includelib(const(char)* );
+        bool linkerdirective(const(char)* );
         bool allowZeroSize();
         void exestr(const(char)* p);
         void user(const(char)* p);
@@ -215,6 +217,7 @@ else version (OMFandMSCOFF)
         //override size_t mangle(Symbol *s,char *dest);
         override void startaddress(Symbol *);
         override bool includelib(const(char)* );
+        override bool linkerdirective(const(char)* );
         override void _alias(const(char)* n1,const(char)* n2);
         override void user(const(char)* p);
     //    void _import(elem *e);
@@ -306,6 +309,7 @@ else version (Posix)
         static void dosseg();
         static void startaddress(Symbol *);
         static bool includelib(const(char)* );
+        static bool linkerdirective(const char *);
         static size_t mangle(Symbol *s,char *dest);
         static void _alias(const(char)* n1,const(char)* n2);
         static void user(const(char)* p);

@@ -1616,6 +1616,24 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     {
         // Should be merged with PragmaStatement
         //printf("\tPragmaDeclaration::semantic '%s'\n", pd.toChars());
+        if (global.params.mscoff)
+        {
+            if (pd.ident == Id.linkerDirective)
+            {
+                if (!pd.args || pd.args.dim != 1)
+                    pd.error("one string argument expected for pragma(linkerDirective)");
+                else
+                {
+                    auto se = semanticString(sc, (*pd.args)[0], "linker directive");
+                    if (!se)
+                        goto Lnodecl;
+                    (*pd.args)[0] = se;
+                    if (global.params.verbose)
+                        message("linkopt   %.*s", cast(int)se.len, se.string);
+                }
+                goto Lnodecl;
+            }
+        }
         if (pd.ident == Id.msg)
         {
             if (pd.args)
