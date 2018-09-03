@@ -445,7 +445,7 @@ extern (C++) Objects* opToArg(Scope* sc, TOK op)
  * with function call.
  * Return NULL if not an operator overload.
  */
-extern (C++) Expression op_overload(Expression e, Scope* sc)
+Expression op_overload(Expression e, Scope* sc)
 {
     extern (C++) final class OpOverload : Visitor
     {

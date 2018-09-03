@@ -75,7 +75,6 @@ Expression *integralPromotions(Expression *e, Scope *sc);
 bool discardValue(Expression *e);
 bool isTrivialExp(Expression *e);
 
-int isConst(Expression *e);
 Expression *toDelegate(Expression *e, Type* t, Scope *sc);
 AggregateDeclaration *isAggregate(Type *t);
 bool checkNonAssignmentArrayOp(Expression *e, bool suggestion = false);
@@ -87,13 +86,7 @@ Expression *arrayOp(BinExp *e, Scope *sc);
 Expression *arrayOp(BinAssignExp *e, Scope *sc);
 bool hasSideEffect(Expression *e);
 bool canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow);
-Expression *Expression_optimize(Expression *e, int result, bool keepLvalue);
-MATCH implicitConvTo(Expression *e, Type *t);
-Expression *implicitCastTo(Expression *e, Scope *sc, Type *t);
-Expression *castTo(Expression *e, Scope *sc, Type *t);
-Expression *ctfeInterpret(Expression *);
 Expression *inlineCopy(Expression *e, Scope *sc);
-Expression *op_overload(Expression *e, Scope *sc);
 Type *toStaticArrayType(SliceExp *e);
 Expression *scaleFactor(BinExp *be, Scope *sc);
 Expression *typeCombine(BinExp *be, Scope *sc);
@@ -156,18 +149,9 @@ public:
     virtual bool isLvalue();
     virtual Expression *toLvalue(Scope *sc, Expression *e);
     virtual Expression *modifiableLvalue(Scope *sc, Expression *e);
-    Expression *implicitCastTo(Scope *sc, Type *t)
-    {
-        return ::implicitCastTo(this, sc, t);
-    }
-    MATCH implicitConvTo(Type *t)
-    {
-        return ::implicitConvTo(this, t);
-    }
-    Expression *castTo(Scope *sc, Type *t)
-    {
-        return ::castTo(this, sc, t);
-    }
+    Expression *implicitCastTo(Scope *sc, Type *t);
+    MATCH implicitConvTo(Type *t);
+    Expression *castTo(Scope *sc, Type *t);
     virtual Expression *resolveLoc(const Loc &loc, Scope *sc);
     virtual bool checkType();
     virtual bool checkValue();
@@ -190,24 +174,14 @@ public:
     Expression *addressOf();
     Expression *deref();
 
-    Expression *optimize(int result, bool keepLvalue = false)
-    {
-        return Expression_optimize(this, result, keepLvalue);
-    }
+    Expression *optimize(int result, bool keepLvalue = false);
 
     // Entry point for CTFE.
     // A compile-time result is required. Give an error if not possible
-    Expression *ctfeInterpret()
-    {
-        return ::ctfeInterpret(this);
-    }
-
-    int isConst() { return ::isConst(this); }
+    Expression *ctfeInterpret();
+    int isConst();
     virtual bool isBool(bool result);
-    Expression *op_overload(Scope *sc)
-    {
-        return ::op_overload(this, sc);
-    }
+    Expression *op_overload(Scope *sc);
 
     virtual bool hasCode()
     {
