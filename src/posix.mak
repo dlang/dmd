@@ -266,7 +266,15 @@ ifdef ENABLE_PROFILE
 override DFLAGS  += -profile
 endif
 ifdef ENABLE_COVERAGE
-override DFLAGS  += -cov -L-lgcov
+ifeq ($(OS),osx)
+# OSX uses libclang_rt.profile_osx for coverage, not libgcov
+# Attempt to find it by parsing `clang`'s output
+CLANG_LIB_SEARCH_DIR := $(shell clang -print-search-dirs | grep libraries | cut -d= -f2)
+COVERAGE_LINK_FLAGS := -L-L$(CLANG_LIB_SEARCH_DIR)/lib/darwin/ -L-lclang_rt.profile_osx
+else
+COVERAGE_LINK_FLAGS := -L-lgcov
+endif
+override DFLAGS  += -cov $(COVERAGE_LINK_FLAGS)
 CXXFLAGS += --coverage
 endif
 ifdef ENABLE_SANITIZERS
