@@ -3073,12 +3073,12 @@ auto byKeyValue(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
                 {
                     auto p = (() @trusted => cast(substInout!K*) keyp) ();
                     return *p;
-                };
+                }
                 @property ref value() inout
                 {
                     auto p = (() @trusted => cast(substInout!V*) valp) ();
                     return *p;
-                };
+                }
             }
             return Pair(_aaRangeFrontKey(r),
                         _aaRangeFrontValue(r));
