@@ -31,7 +31,7 @@ class TemplateInstance;
 
 #if __GNUC__
 // Requires a full definition for LINK
-#include "mars.h"
+#include "globals.h"
 #else
 enum LINK;
 enum PINLINE;
