@@ -89,6 +89,7 @@ extern (C++) struct CTFloat
         static real_t log2(real_t x) { return real_t(cast(double)core.stdc.math.log2l(cast(double)x)); }
         static real_t log10(real_t x) { return real_t(cast(double)core.stdc.math.log10l(cast(double)x)); }
         static real_t pow(real_t x, real_t y) { return real_t(cast(double)core.stdc.math.powl(cast(double)x, cast(double)y)); }
+        static real_t exp(real_t x) { return real_t(cast(double)core.stdc.math.expl(cast(double)x)); }
         static real_t expm1(real_t x) { return real_t(cast(double)core.stdc.math.expm1l(cast(double)x)); }
         static real_t exp2(real_t x) { return real_t(cast(double)core.stdc.math.exp2l(cast(double)x)); }
         static real_t copysign(real_t x, real_t s) { return real_t(cast(double)core.stdc.math.copysignl(cast(double)x, cast(double)s)); }
@@ -103,6 +104,7 @@ extern (C++) struct CTFloat
         static real_t log2(real_t x) { return core.stdc.math.log2l(x); }
         static real_t log10(real_t x) { return core.stdc.math.log10l(x); }
         static real_t pow(real_t x, real_t y) { return core.stdc.math.powl(x, y); }
+        static real_t exp(real_t x) { return core.stdc.math.expl(x); }
         static real_t expm1(real_t x) { return core.stdc.math.expm1l(x); }
         static real_t exp2(real_t x) { return core.stdc.math.exp2l(x); }
         static real_t copysign(real_t x, real_t s) { return core.stdc.math.copysignl(x, s); }
