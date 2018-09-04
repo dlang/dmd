@@ -32,7 +32,6 @@ public:
     // 2: do not include
     int inc;
 
-    virtual Condition *syntaxCopy() = 0;
     virtual int include(Scope *sc) = 0;
     virtual DebugCondition *isDebugCondition() { return NULL; }
     virtual void accept(Visitor *v) { v->visit(this); }
@@ -58,7 +57,6 @@ public:
     Identifier *ident;
     Module *mod;
 
-    Condition *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -88,7 +86,6 @@ public:
     Expression *exp;
     int nest;         // limit circular dependencies
 
-    Condition *syntaxCopy();
     int include(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };

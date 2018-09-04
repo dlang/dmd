@@ -54,8 +54,6 @@ extern (C++) abstract class Condition : RootObject
         this.loc = loc;
     }
 
-    abstract Condition syntaxCopy();
-
     abstract int include(Scope* sc);
 
     DebugCondition isDebugCondition()
@@ -428,11 +426,6 @@ extern (C++) class DVCondition : Condition
         this.mod = mod;
         this.level = level;
         this.ident = ident;
-    }
-
-    override final Condition syntaxCopy()
-    {
-        return this; // don't need to copy
     }
 
     override void accept(Visitor v)
@@ -820,11 +813,6 @@ extern (C++) final class StaticIfCondition : Condition
     {
         super(loc);
         this.exp = exp;
-    }
-
-    override Condition syntaxCopy()
-    {
-        return new StaticIfCondition(loc, exp.syntaxCopy());
     }
 
     override int include(Scope* sc)

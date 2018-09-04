@@ -45,6 +45,7 @@ import dmd.root.rootobject;
 import dmd.sapply;
 import dmd.sideeffect;
 import dmd.staticassert;
+import dmd.syntaxcopy;
 import dmd.tokens;
 import dmd.visitor;
 

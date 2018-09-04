@@ -163,7 +163,7 @@ FRONT_SRCS=$D/access.d $D/aggregate.d $D/aliasthis.d $D/apply.d $D/argtypes.d $D
 	$D/safe.d $D/blockexit.d $D/permissivevisitor.d $D/transitivevisitor.d $D/parsetimevisitor.d $D/printast.d $D/typesem.d \
 	$D/traits.d $D/utils.d $D/visitor.d $D/libomf.d $D/scanomf.d $D/templateparamsem.d $D/typinf.d \
 	$D/libmscoff.d $D/scanmscoff.d $D/statement_rewrite_walker.d $D/statementsem.d $D/staticcond.d \
-	$D/semantic2.d $D/semantic3.d
+	$D/semantic2.d $D/semantic3.d $D/syntaxcopy.d
 
 LEXER_SRCS=$D/console.d $D/entity.d $D/errors.d $D/globals.d $D/id.d $D/identifier.d \
 	$D/lexer.d $D/tokens.d $D/utf.d
