@@ -482,6 +482,8 @@ private int tryMain(size_t argc, const(char)** argv)
         foreach (charz; *global.params.debugids)
             DebugCondition.addGlobalIdent(charz[0 .. strlen(charz)]);
 
+    setTarget(global.params);
+
     // Predefined version identifiers
     addDefaultVersionIdentifiers(global.params);
 
@@ -1261,70 +1263,92 @@ private void setDefaultLibrary()
         global.params.debuglibname = global.params.defaultlibname;
 }
 
+/*************************************
+ * Set the `is` target fields of `params` according
+ * to the TARGET value.
+ * Params:
+ *      params = where the `is` fields are
+ */
+void setTarget(ref Param params)
+{
+    static if (TARGET.Windows)
+        params.isWindows = true;
+    else static if (TARGET.Linux)
+        params.isLinux = true;
+    else static if (TARGET.OSX)
+        params.isOSX = true;
+    else static if (TARGET.FreeBSD)
+        params.isFreeBSD = true;
+    else static if (TARGET.OpenBSD)
+        params.isOpenBSD = true;
+    else static if (TARGET.Solaris)
+        params.isSolaris = true;
+    else static if (TARGET.DragonFlyBSD)
+        params.isDragonFlyBSD = true;
+    else
+        static assert(0, "unknown TARGET");
+}
 
 /**
  * Add default `version` identifier for dmd, and set the
- * target platform in `global`.
+ * target platform in `params`.
  * https://dlang.org/spec/version.html#predefined-versions
  *
  * Needs to be run after all arguments parsing (command line, DFLAGS environment
  * variable and config file) in order to add final flags (such as `X86_64` or
  * the `CRuntime` used).
+ *
+ * Params:
+ *      params = which target to compile for (set by `setTarget()`)
  */
-void addDefaultVersionIdentifiers(ref Param params)
+void addDefaultVersionIdentifiers(const ref Param params)
 {
     VersionCondition.addPredefinedGlobalIdent("DigitalMars");
-    static if (TARGET.Windows)
+    if (params.isWindows)
     {
         VersionCondition.addPredefinedGlobalIdent("Windows");
-        params.isWindows = true;
     }
-    else static if (TARGET.Linux)
+    else if (params.isLinux)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("linux");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        params.isLinux = true;
     }
-    else static if (TARGET.OSX)
+    else if (params.isOSX)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("OSX");
-        params.isOSX = true;
+
         // For legacy compatibility
         VersionCondition.addPredefinedGlobalIdent("darwin");
     }
-    else static if (TARGET.FreeBSD)
+    else if (params.isFreeBSD)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("FreeBSD");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        params.isFreeBSD = true;
     }
-    else static if (TARGET.OpenBSD)
+    else if (params.isOpenBSD)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("OpenBSD");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        params.isOpenBSD = true;
     }
-    else static if (TARGET.DragonFlyBSD)
+    else if (params.isDragonFlyBSD)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("DragonFlyBSD");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        params.isDragonFlyBSD = true;
     }
-    else static if (TARGET.Solaris)
+    else if (params.isSolaris)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("Solaris");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        params.isSolaris = true;
     }
     else
     {
-        static assert(0, "fix this");
+        assert(0);
     }
     VersionCondition.addPredefinedGlobalIdent("LittleEndian");
     VersionCondition.addPredefinedGlobalIdent("D_Version2");
@@ -1343,7 +1367,7 @@ void addDefaultVersionIdentifiers(ref Param params)
     {
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86_64");
         VersionCondition.addPredefinedGlobalIdent("X86_64");
-        static if (TARGET.Windows)
+        if (params.isWindows)
         {
             VersionCondition.addPredefinedGlobalIdent("Win64");
         }
@@ -1353,19 +1377,20 @@ void addDefaultVersionIdentifiers(ref Param params)
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm"); //legacy
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86");
         VersionCondition.addPredefinedGlobalIdent("X86");
-        static if (TARGET.Windows)
+        if (params.isWindows)
         {
             VersionCondition.addPredefinedGlobalIdent("Win32");
         }
     }
-    static if (TARGET.Windows)
+
+    if (params.isWindows)
     {
         if (params.mscoff)
             VersionCondition.addPredefinedGlobalIdent("CRuntime_Microsoft");
         else
             VersionCondition.addPredefinedGlobalIdent("CRuntime_DigitalMars");
     }
-    else static if (TARGET.Linux)
+    else if (params.isLinux)
     {
         VersionCondition.addPredefinedGlobalIdent("CRuntime_Glibc");
     }
@@ -1394,7 +1419,6 @@ void addDefaultVersionIdentifiers(ref Param params)
         VersionCondition.addPredefinedGlobalIdent("D_Exceptions");
         VersionCondition.addPredefinedGlobalIdent("D_TypeInfo");
     }
-
 
     VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
 }
