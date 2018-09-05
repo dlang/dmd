@@ -279,19 +279,9 @@ private extern(C++) final class Semantic3Visitor : Visitor
         }
 
         uint oldErrors = global.errors;
+        auto fds = FuncDeclSem3(funcdecl,sc);
 
-        if (funcdecl.frequires)
-        {
-            for (size_t i = 0; i < funcdecl.foverrides.dim; i++)
-            {
-                FuncDeclaration fdv = funcdecl.foverrides[i];
-                if (fdv.fbody && !fdv.frequires)
-                {
-                    funcdecl.error("cannot have an in contract when overridden function `%s` does not have an in contract", fdv.toPrettyChars());
-                    break;
-                }
-            }
-        }
+        fds.checkInContractOverrides();
 
         // Remember whether we need to generate an 'out' contract.
         immutable bool needEnsure = FuncDeclaration.needsFensure(funcdecl);
@@ -1354,5 +1344,38 @@ private extern(C++) final class Semantic3Visitor : Visitor
         if (sd)
             sd.semanticTypeInfoMembers();
         ad.semanticRun = PASS.semantic3done;
+    }
+}
+
+private struct FuncDeclSem3
+{
+    // The FuncDeclaration subject to Semantic analysis
+    FuncDeclaration funcdecl;
+
+    // Scope of analysis
+    Scope* sc;
+    this(FuncDeclaration fd,Scope* s)
+    {
+        funcdecl = fd;
+        sc = s;
+    }
+
+    /* Checks that the overriden functions (if any) have in contracts if
+     * funcdecl has an in contract.
+     */
+    void checkInContractOverrides()
+    {
+        if (funcdecl.frequires)
+        {
+            for (size_t i = 0; i < funcdecl.foverrides.dim; i++)
+            {
+                FuncDeclaration fdv = funcdecl.foverrides[i];
+                if (fdv.fbody && !fdv.frequires)
+                {
+                    funcdecl.error("cannot have an in contract when overridden function `%s` does not have an in contract", fdv.toPrettyChars());
+                    break;
+                }
+            }
+        }
     }
 }
