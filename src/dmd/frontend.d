@@ -38,7 +38,7 @@ void initDMD()
     import dmd.target : Target;
 
     global._init();
-    addDefaultVersionIdentifiers();
+    addDefaultVersionIdentifiers(global.params);
 
     Type._init();
     Id.initialize();
