@@ -464,7 +464,7 @@ $G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/backend.a $G/lexer.a $(STRING
 	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $(LEXER_ROOT) $G/dmd.conf,$^)
 endif
 
-$G/dmd-unittest: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(G_OBJS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+$G/dmd-unittest: $(DMD_SRCS) $(ROOT_SRCS) $(LEXER_SRCS) $G/newdelete.o $(G_OBJS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) -L-lstdc++ $(DFLAGS) -g -unittest -main -version=NoMain $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 
 unittest: $G/dmd-unittest
