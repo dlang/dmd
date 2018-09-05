@@ -3686,6 +3686,8 @@ final class Parser(AST) : Lexer
 
         default:
             error("basic type expected, not `%s`", token.toChars());
+            if (token.value == TOK.else_)
+                errorSupplemental(token.loc, "There's no `static else`, use `else` instead.");
             t = AST.Type.terror;
             break;
         }
@@ -4558,7 +4560,7 @@ final class Parser(AST) : Lexer
             bool isThis = (t.ty == AST.Tident && (cast(AST.TypeIdentifier)t).ident == Id.This && token.value == TOK.assign);
             if (ident)
                 checkCstyleTypeSyntax(loc, t, alt, ident);
-            else if (!isThis)
+            else if (!isThis && (t != AST.Type.terror))
                 error("no identifier for declarator `%s`", t.toChars());
 
             if (tok == TOK.alias_)
