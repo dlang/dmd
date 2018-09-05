@@ -5,12 +5,12 @@
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/dmd/mars.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/errors.h
  */
 
 #pragma once
 
-#include "mars.h"
+#include "globals.h"
 
 bool isConsoleColorSupported();
 

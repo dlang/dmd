@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include "mars.h"
+#include "globals.h"
 #include "dsymbol.h"
 
 /**************************************************************/

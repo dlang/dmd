@@ -12,7 +12,6 @@
 
 #include "dsymbol.h"
 #include "mtype.h"
-#include "objc.h"
 
 class Expression;
 class Statement;

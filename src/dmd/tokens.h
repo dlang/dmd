@@ -11,7 +11,7 @@
 #pragma once
 
 #include "root/port.h"
-#include "mars.h"
+#include "globals.h"
 
 class Identifier;
 

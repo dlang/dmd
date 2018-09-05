@@ -10,7 +10,8 @@
 
 #pragma once
 
-#include "mars.h"
+#include "complex_t.h"
+#include "globals.h"
 #include "identifier.h"
 #include "arraytypes.h"
 #include "visitor.h"
