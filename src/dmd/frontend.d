@@ -32,12 +32,13 @@ void initDMD()
     import dmd.expression : Expression;
     import dmd.globals : global;
     import dmd.id : Id;
-    import dmd.mars : addDefaultVersionIdentifiers;
+    import dmd.mars : setTarget, addDefaultVersionIdentifiers;
     import dmd.mtype : Type;
     import dmd.objc : Objc;
     import dmd.target : Target;
 
     global._init();
+    setTarget(global.params);
     addDefaultVersionIdentifiers(global.params);
 
     Type._init();
