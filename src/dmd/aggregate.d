@@ -167,7 +167,9 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
      */
     final bool determineFields()
     {
-        if (sizeok != Sizeok.none)
+        if (_scope)
+            dsymbolSemantic(this, null);
+        if (fields.dim > 0)
             return true;
 
         //printf("determineFields() %s, fields.dim = %d\n", toChars(), fields.dim);
