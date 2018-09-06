@@ -1307,18 +1307,30 @@ void addDefaultVersionIdentifiers(const ref Param params)
     if (params.isWindows)
     {
         VersionCondition.addPredefinedGlobalIdent("Windows");
+        if (global.params.mscoff)
+        {
+            VersionCondition.addPredefinedGlobalIdent("CRuntime_Microsoft");
+            VersionCondition.addPredefinedGlobalIdent("CppRuntime_Microsoft");
+        }
+        else
+        {
+            VersionCondition.addPredefinedGlobalIdent("CRuntime_DigitalMars");
+            VersionCondition.addPredefinedGlobalIdent("CppRuntime_DigitalMars");
+        }
     }
     else if (params.isLinux)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("linux");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
+        VersionCondition.addPredefinedGlobalIdent("CRuntime_Glibc");
+        VersionCondition.addPredefinedGlobalIdent("CppRuntime_Gcc");
     }
     else if (params.isOSX)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("OSX");
-
+        VersionCondition.addPredefinedGlobalIdent("CppRuntime_Clang");
         // For legacy compatibility
         VersionCondition.addPredefinedGlobalIdent("darwin");
     }
@@ -1327,24 +1339,28 @@ void addDefaultVersionIdentifiers(const ref Param params)
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("FreeBSD");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
+        VersionCondition.addPredefinedGlobalIdent("CppRuntime_Clang");
     }
     else if (params.isOpenBSD)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("OpenBSD");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
+        VersionCondition.addPredefinedGlobalIdent("CppRuntime_Gcc");
     }
     else if (params.isDragonFlyBSD)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("DragonFlyBSD");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
+        VersionCondition.addPredefinedGlobalIdent("CppRuntime_Gcc");
     }
     else if (params.isSolaris)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("Solaris");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
+        VersionCondition.addPredefinedGlobalIdent("CppRuntime_Sun");
     }
     else
     {
@@ -1381,18 +1397,6 @@ void addDefaultVersionIdentifiers(const ref Param params)
         {
             VersionCondition.addPredefinedGlobalIdent("Win32");
         }
-    }
-
-    if (params.isWindows)
-    {
-        if (params.mscoff)
-            VersionCondition.addPredefinedGlobalIdent("CRuntime_Microsoft");
-        else
-            VersionCondition.addPredefinedGlobalIdent("CRuntime_DigitalMars");
-    }
-    else if (params.isLinux)
-    {
-        VersionCondition.addPredefinedGlobalIdent("CRuntime_Glibc");
     }
 
     if (params.isLP64)
