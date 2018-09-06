@@ -81,18 +81,34 @@ nothrow:
      */
     extern (C++) static bool absolute(const(char)* name) pure
     {
+        return absolute(name.toDString);
+    }
+
+    /// Ditto
+    extern (D) static bool absolute(const(char)[] name) pure
+    {
+        if (!name.length)
+            return false;
+
         version (Windows)
         {
-            return (*name == '\\') || (*name == '/') || (*name && name[1] == ':');
+            return (name[0] == '\\') || (name[0] == '/')
+                || (name.length >= 2 && name[1] == ':');
         }
         else version (Posix)
         {
-            return (*name == '/');
+            return (name[0] == '/');
         }
         else
         {
             assert(0);
         }
+    }
+
+    unittest
+    {
+        assert(absolute("/"[]) == true);
+        assert(absolute(""[]) == false);
     }
 
     /**
@@ -120,34 +136,44 @@ nothrow:
      */
     extern (C++) static const(char)* ext(const(char)* str) pure
     {
-        size_t len = strlen(str);
-        const(char)* e = str + len;
-        for (;;)
+        return ext(str.toDString).ptr;
+    }
+
+    /// Ditto
+    extern (D) static const(char)[] ext(const(char)[] str) nothrow pure @safe @nogc
+    {
+        foreach_reverse (idx, char e; str)
         {
-            switch (*e)
+            switch (e)
             {
             case '.':
-                return e + 1;
-                version (Posix)
-                {
-                case '/':
-                    break;
-                }
-                version (Windows)
-                {
-                case '\\':
-                case ':':
-                case '/':
-                    break;
-                }
+                return str[idx + 1 .. $];
+            version (Posix)
+            {
+            case '/':
+                return null;
+            }
+            version (Windows)
+            {
+            case '\\':
+            case ':':
+            case '/':
+                return null;
+            }
             default:
-                if (e == str)
-                    break;
-                e--;
                 continue;
             }
-            return null;
         }
+        return null;
+    }
+
+    unittest
+    {
+        assert(ext("/foo/bar/dmd.conf"[]) == "conf");
+        assert(ext("object.o"[]) == "o");
+        assert(ext("/foo/bar/dmd"[]) == null);
+        assert(ext(".objdir.o/object"[]) == null);
+        assert(ext([]) == null);
     }
 
     extern (C++) const(char)* ext() const pure
@@ -157,23 +183,41 @@ nothrow:
 
     /********************************
      * Return file name without extension.
+     *
+     * TODO:
+     * Once slice are used everywhere and `\0` is not assumed,
+     * this can be turned into a simple slicing.
+     *
      * Params:
      *  str = file name
+     *
      * Returns:
      *  mem.xmalloc'd filename with extension removed.
      */
     extern (C++) static const(char)* removeExt(const(char)* str)
     {
-        const(char)* e = ext(str);
-        if (e)
+        return removeExt(str.toDString).ptr;
+    }
+
+    /// Ditto
+    extern (D) static const(char)[] removeExt(const(char)[] str)
+    {
+        auto e = ext(str);
+        if (e.length)
         {
-            size_t len = (e - str) - 1;
+            const len = (str.length - e.length) - 1; // -1 for the dot
             char* n = cast(char*)mem.xmalloc(len + 1);
-            memcpy(n, str, len);
+            memcpy(n, str.ptr, len);
             n[len] = 0;
-            return n;
+            return n[0 .. len];
         }
-        return mem.xstrdup(str);
+        return mem.xstrdup(str.ptr)[0 .. str.length];
+    }
+
+    unittest
+    {
+        assert(removeExt("/foo/bar/object.d"[]) == "/foo/bar/object");
+        assert(removeExt("/foo/bar/frontend.di"[]) == "/foo/bar/frontend");
     }
 
     /********************************
@@ -454,16 +498,29 @@ nothrow:
      */
     extern (C++) static const(char)* defaultExt(const(char)* name, const(char)* ext)
     {
-        const(char)* e = FileName.ext(name);
-        if (e) // if already has an extension
-            return mem.xstrdup(name);
-        size_t len = strlen(name);
-        size_t extlen = strlen(ext);
-        char* s = cast(char*)mem.xmalloc(len + 1 + extlen + 1);
-        memcpy(s, name, len);
-        s[len] = '.';
-        memcpy(s + len + 1, ext, extlen + 1);
-        return s;
+        return defaultExt(name.toDString, ext.toDString).ptr;
+    }
+
+    /// Ditto
+    extern (D) static const(char)[] defaultExt(const(char)[] name, const(char)[] ext)
+    {
+        auto e = FileName.ext(name);
+        if (e.length) // it already has an extension
+            return mem.xstrdup(name.ptr)[0 .. name.length];
+        const s_length = name.length + 1 + ext.length + 1;
+        auto s = cast(char*)mem.xmalloc(s_length);
+        memcpy(s, name.ptr, name.length);
+        s[name.length] = '.';
+        memcpy(s + name.length + 1, ext.ptr, ext.length);
+        s[s_length - 1] = '\0';
+        return s[0 .. s_length - 1];
+    }
+
+    unittest
+    {
+        assert(defaultExt("/foo/object.d"[], "d") == "/foo/object.d");
+        assert(defaultExt("/foo/object"[], "d") == "/foo/object.d");
+        assert(defaultExt("/foo/bar.d"[], "o") == "/foo/bar.d");
     }
 
     /***************************
@@ -471,28 +528,57 @@ nothrow:
      */
     extern (C++) static const(char)* forceExt(const(char)* name, const(char)* ext)
     {
-        const(char)* e = FileName.ext(name);
-        if (e) // if already has an extension
+        return forceExt(name.toDString, ext.toDString).ptr;
+    }
+
+    /// Ditto
+    extern (D) static const(char)[] forceExt(const(char)[] name, const(char)[] ext)
+    {
+        auto e = FileName.ext(name);
+        if (e.length) // if already has an extension
         {
-            size_t len = e - name;
-            size_t extlen = strlen(ext);
-            char* s = cast(char*)mem.xmalloc(len + extlen + 1);
-            memcpy(s, name, len);
-            memcpy(s + len, ext, extlen + 1);
-            return s;
+            const len = name.length - e.length;
+            char* s = cast(char*)mem.xmalloc(len + ext.length + 1);
+            memcpy(s, name.ptr, len);
+            memcpy(s + len, ext.ptr, ext.length);
+            s[len + ext.length] = '\0';
+            return s[0 .. len + ext.length];
         }
         else
             return defaultExt(name, ext); // doesn't have one
     }
 
+    unittest
+    {
+        assert(forceExt("/foo/object.d"[], "d") == "/foo/object.d");
+        assert(forceExt("/foo/object"[], "d") == "/foo/object.d");
+        assert(forceExt("/foo/bar.d"[], "o") == "/foo/bar.o");
+    }
+
+    /// Returns:
+    ///   `true` if `name`'s extension is `ext`
     extern (C++) static bool equalsExt(const(char)* name, const(char)* ext) pure
     {
-        const(char)* e = FileName.ext(name);
-        if (!e && !ext)
+        return equalsExt(name.toDString, ext.toDString);
+    }
+
+    /// Ditto
+    extern (D) static bool equalsExt(const(char)[] name, const(char)[] ext) pure
+    {
+        const e = FileName.ext(name);
+        if (!e.length && !ext.length)
             return true;
-        if (!e || !ext)
+        if (!e.length || !ext.length)
             return false;
         return FileName.equals(e, ext);
+    }
+
+    unittest
+    {
+        assert(!equalsExt("foo.bar"[], "d"));
+        assert(equalsExt("foo.bar"[], "bar"));
+        assert(equalsExt("object.d"[], "d"));
+        assert(!equalsExt("object"[], "d"));
     }
 
     /******************************
@@ -624,12 +710,26 @@ nothrow:
         }
     }
 
+    /**
+       Check if the file the `path` points to exists
+
+       Returns:
+         0 if it does not exists
+         1 if it exists and is not a directory
+         2 if it exists and is a directory
+     */
     extern (C++) static int exists(const(char)* name)
+    {
+        return exists(name.toDString);
+    }
+
+    /// Ditto
+    extern (D) static int exists(const(char)[] name)
     {
         version (Posix)
         {
             stat_t st;
-            if (stat(name, &st) < 0)
+            if (name.toCStringThen!(v => stat(v.ptr, &st)) < 0)
                 return 0;
             if (S_ISDIR(st.st_mode))
                 return 2;
@@ -637,7 +737,7 @@ nothrow:
         }
         else version (Windows)
         {
-            return name.toWStringzThen!((wname)
+            return name.toCStringThen!(cstr => cstr.toWStringzThen!((wname)
             {
                 const dw = GetFileAttributesW(&wname[0]);
                 if (dw == -1)
@@ -646,7 +746,7 @@ nothrow:
                     return 2;
                 else
                     return 1;
-            });
+            }));
         }
         else
         {
