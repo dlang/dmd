@@ -293,42 +293,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
              */
             funcdecl.localsymtab = new DsymbolTable();
 
-            // Establish function scope
-            auto ss = new ScopeDsymbol();
-            // find enclosing scope symbol, might skip symbol-less CTFE and/or FuncExp scopes
-            for (auto scx = sc; ; scx = scx.enclosing)
-            {
-                if (scx.scopesym)
-                {
-                    ss.parent = scx.scopesym;
-                    break;
-                }
-            }
-            ss.loc = funcdecl.loc;
-            ss.endlinnum = funcdecl.endloc.linnum;
-            Scope* sc2 = sc.push(ss);
-            sc2.func = funcdecl;
-            sc2.parent = funcdecl;
-            sc2.ctorflow.callSuper = CSX.none;
-            sc2.sbreak = null;
-            sc2.scontinue = null;
-            sc2.sw = null;
-            sc2.fes = funcdecl.fes;
-            sc2.linkage = LINK.d;
-            sc2.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.abstract_ | STC.deprecated_ | STC.override_ | STC.TYPECTOR | STC.final_ | STC.tls | STC.gshared | STC.ref_ | STC.return_ | STC.property | STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system);
-            sc2.protection = Prot(Prot.Kind.public_);
-            sc2.explicitProtection = 0;
-            sc2.aligndecl = null;
-            if (funcdecl.ident != Id.require && funcdecl.ident != Id.ensure)
-                sc2.flags = sc.flags & ~SCOPE.contract;
-            sc2.flags &= ~SCOPE.compile;
-            sc2.tf = null;
-            sc2.os = null;
-            sc2.inLoop = false;
-            sc2.userAttribDecl = null;
-            if (sc2.intypeof == 1)
-                sc2.intypeof = 2;
-            sc2.ctorflow.fieldinit = null;
+            // Create scope to avoid name collisions
+            Scope* sc2 = fds.setupScope();
 
             /* Note: When a lambda is defined immediately under aggregate member
              * scope, it should be contextless due to prevent interior pointers.
@@ -1352,8 +1318,11 @@ private struct FuncDeclSem3
     // The FuncDeclaration subject to Semantic analysis
     FuncDeclaration funcdecl;
 
+    // Scopes:
     // Scope of analysis
     Scope* sc;
+    // Scope created to avoid name collisions
+    Scope* sc2;
     this(FuncDeclaration fd,Scope* s)
     {
         funcdecl = fd;
@@ -1377,5 +1346,47 @@ private struct FuncDeclSem3
                 }
             }
         }
+    }
+
+    /* Create scope to avoid name collisions
+     */
+    private Scope* setupScope()
+    {
+        auto ss = new ScopeDsymbol();
+        // find enclosing scope symbol, might skip symbol-less CTFE and/or FuncExp scopes
+        for (auto scx = sc; ; scx = scx.enclosing)
+        {
+            if (scx.scopesym)
+            {
+                ss.parent = scx.scopesym;
+                break;
+            }
+        }
+        ss.loc = funcdecl.loc;
+        ss.endlinnum = funcdecl.endloc.linnum;
+        sc2 = sc.push(ss);
+        sc2.func = funcdecl;
+        sc2.parent = funcdecl;
+        sc2.ctorflow.callSuper = CSX.none;
+        sc2.sbreak = null;
+        sc2.scontinue = null;
+        sc2.sw = null;
+        sc2.fes = funcdecl.fes;
+        sc2.linkage = LINK.d;
+        sc2.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.abstract_ | STC.deprecated_ | STC.override_ | STC.TYPECTOR | STC.final_ | STC.tls | STC.gshared | STC.ref_ | STC.return_ | STC.property | STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system);
+        sc2.protection = Prot(Prot.Kind.public_);
+        sc2.explicitProtection = 0;
+        sc2.aligndecl = null;
+        if (funcdecl.ident != Id.require && funcdecl.ident != Id.ensure)
+            sc2.flags = sc.flags & ~SCOPE.contract;
+        sc2.flags &= ~SCOPE.compile;
+        sc2.tf = null;
+        sc2.os = null;
+        sc2.inLoop = false;
+        sc2.userAttribDecl = null;
+        if (sc2.intypeof == 1)
+            sc2.intypeof = 2;
+        sc2.ctorflow.fieldinit = null;
+        return sc2;
     }
 }
