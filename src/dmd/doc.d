@@ -51,22 +51,22 @@ import dmd.visitor;
 
 struct Escape
 {
-    const(char)*[256] strings;
+    const(char)[][256] strings;
 
     /***************************************
      * Find character string to replace c with.
      */
-    const(char)* escapeChar(uint c)
+    const(char)[] escapeChar(uint c)
     {
         version (all)
         {
             assert(c < 256);
-            //printf("escapeChar('%c') => %p, %p\n", c, strings, strings[c]);
+            //printf("escapeChar('%c') => %p, %p\n", c, strings, strings[c].ptr);
             return strings[c];
         }
         else
         {
-            const(char)* s;
+            const(char)[] s;
             switch (c)
             {
             case '<':
@@ -1594,7 +1594,7 @@ struct DocComment
             size_t len = p - start;
             char* s = cast(char*)memcpy(mem.xmalloc(len + 1), start, len);
             s[len] = 0;
-            escapetable.strings[c] = s;
+            escapetable.strings[c] = s[0 .. len];
             //printf("\t%c = '%s'\n", c, s);
             p++;
         }
@@ -2192,7 +2192,7 @@ private void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset
                 const slice = buf.peekSlice();
                 auto p = &slice[i];
                 const se = sc._module.escapetable.escapeChar('<');
-                if (se && strcmp(se, "&lt;") == 0)
+                if (se == "&lt;")
                 {
                     // Generating HTML
                     // Skip over comments
@@ -2236,11 +2236,10 @@ private void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset
                 }
             L1:
                 // Replace '<' with '&lt;' character entity
-                if (se)
+                if (se.length)
                 {
-                    const len = strlen(se);
                     buf.remove(i, 1);
-                    i = buf.insert(i, se, len);
+                    i = buf.insert(i, se);
                     i--; // point to ';'
                 }
                 break;
@@ -2251,12 +2250,11 @@ private void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset
                 if (inCode)
                     break;
                 // Replace '>' with '&gt;' character entity
-                const(char)* se = sc._module.escapetable.escapeChar('>');
-                if (se)
+                const se = sc._module.escapetable.escapeChar('>');
+                if (se.length)
                 {
-                    size_t len = strlen(se);
                     buf.remove(i, 1);
-                    i = buf.insert(i, se, len);
+                    i = buf.insert(i, se);
                     i--; // point to ';'
                 }
                 break;
@@ -2271,12 +2269,11 @@ private void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset
                     break;
                 // already a character entity
                 // Replace '&' with '&amp;' character entity
-                const(char)* se = sc._module.escapetable.escapeChar('&');
+                const se = sc._module.escapetable.escapeChar('&');
                 if (se)
                 {
-                    size_t len = strlen(se);
                     buf.remove(i, 1);
-                    i = buf.insert(i, se, len);
+                    i = buf.insert(i, se);
                     i--; // point to ';'
                 }
                 break;
@@ -2521,12 +2518,11 @@ private void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset
     for (size_t i = offset; i < buf.offset; i++)
     {
         char c = buf.data[i];
-        const(char)* se = sc._module.escapetable.escapeChar(c);
-        if (se)
+        const se = sc._module.escapetable.escapeChar(c);
+        if (se.length)
         {
-            size_t len = strlen(se);
             buf.remove(i, 1);
-            i = buf.insert(i, se, len);
+            i = buf.insert(i, se);
             i--; // point to ';'
             continue;
         }
@@ -2633,9 +2629,9 @@ private void highlightCode3(Scope* sc, OutBuffer* buf, const(char)* p, const(cha
 {
     for (; p < pend; p++)
     {
-        const(char)* s = sc._module.escapetable.escapeChar(*p);
-        if (s)
-            buf.writestring(s);
+        const se = sc._module.escapetable.escapeChar(*p);
+        if (se.length)
+            buf.writestring(se);
         else
             buf.writeByte(*p);
     }
