@@ -173,7 +173,7 @@ struct Param
 
     uint errorLimit = 20;
 
-    const(char)* argv0;                 // program name
+    const(char)[] argv0;                // program name
     Array!(const(char)*)* modFileAliasStrings; // array of char*'s of -I module filename alias strings
     Array!(const(char)*)* imppath;      // array of char*'s of where to look for import modules
     Array!(const(char)*)* fileImppath;  // array of char*'s of where to look for file import modules

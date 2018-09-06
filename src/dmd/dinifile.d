@@ -24,6 +24,7 @@ import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.port;
 import dmd.root.stringtable;
+import dmd.utils;
 
 version (Windows) extern (C) int putenv(const char*);
 private enum LOG = false;
@@ -37,11 +38,12 @@ private enum LOG = false;
  *      file path of the config file or NULL
  *      Note: this is a memory leak
  */
-const(char)* findConfFile(const(char)* argv0, const(char)* inifile)
+const(char)[] findConfFile(const(char)[] argv0, const(char)[] inifile)
 {
     static if (LOG)
     {
-        printf("findinifile(argv0 = '%s', inifile = '%s')\n", argv0, inifile);
+        printf("findinifile(argv0 = '%.*s', inifile = '%.*s')\n",
+               argv0.length, argv0.ptr, inifile.length, inifile.ptr);
     }
     if (FileName.absolute(inifile))
         return inifile;
@@ -54,16 +56,17 @@ const(char)* findConfFile(const(char)* argv0, const(char)* inifile)
      *      o directory off of argv0
      *      o SYSCONFDIR=/etc (non-windows)
      */
-    auto filename = FileName.combine(getenv("HOME"), inifile);
+    auto filename = FileName.combine(getenv("HOME").toDString, inifile);
     if (FileName.exists(filename))
         return filename;
     version (Windows)
     {
         // This fix by Tim Matthews
         char[MAX_PATH + 1] resolved_name;
-        if (GetModuleFileNameA(null, resolved_name.ptr, MAX_PATH + 1) && FileName.exists(resolved_name.ptr))
+        const len = GetModuleFileNameA(null, resolved_name.ptr, MAX_PATH + 1);
+        if (len && FileName.exists(resolved_name[0 .. len]))
         {
-            filename = FileName.replaceName(resolved_name.ptr, inifile);
+            filename = FileName.replaceName(resolved_name[0 .. len], inifile);
             if (FileName.exists(filename))
                 return filename;
         }
@@ -74,7 +77,7 @@ const(char)* findConfFile(const(char)* argv0, const(char)* inifile)
     version (Posix)
     {
         // Search PATH for argv0
-        auto p = getenv("PATH");
+        const p = getenv("PATH");
         static if (LOG)
         {
             printf("\tPATH='%s'\n", p);

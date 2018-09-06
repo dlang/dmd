@@ -824,16 +824,15 @@ version (Windows)
 {
     private int executearg0(const(char)* cmd, const(char)* args)
     {
-        const(char)* file;
-        const(char)* argv0 = global.params.argv0;
+        const argv0 = global.params.argv0;
         //printf("argv0='%s', cmd='%s', args='%s'\n",argv0,cmd,args);
         // If cmd is fully qualified, we don't do this
         if (FileName.absolute(cmd))
             return -1;
-        file = FileName.replaceName(argv0, cmd);
+        const file = FileName.replaceName(argv0, cmd.toDString);
         //printf("spawning '%s'\n",file);
         // spawnlp returns intptr_t in some systems, not int
-        return spawnl(0, file, file, args, null);
+        return spawnl(0, file.ptr, file.ptr, args, null);
     }
 }
 
@@ -1049,15 +1048,15 @@ version (Windows)
             char[MAX_PATH + 1] dmdpath = void;
             if (GetModuleFileNameA(null, dmdpath.ptr, dmdpath.length) <= MAX_PATH)
             {
-                auto lldpath = FileName.replaceName(dmdpath.ptr, "lld-link.exe");
+                auto lldpath = FileName.replaceName(dmdpath, "lld-link.exe");
                 if (FileName.exists(lldpath))
-                    return lldpath;
+                    return lldpath.ptr;
             }
 
             // search PATH to avoid createProcess preferring "link.exe" from the dmd folder
             Strings* paths = FileName.splitPath(getenv("PATH"));
-            if (auto p = FileName.searchPath(paths, "link.exe", false))
-                return p;
+            if (auto p = FileName.searchPath(paths, "link.exe"[], false))
+                return p.ptr;
             return "link.exe";
         }
 
@@ -1359,8 +1358,8 @@ version (Windows)
 
             // try mingw fallback relative to phobos library folder that's part of LIB
             Strings* libpaths = FileName.splitPath(getenv("LIB"));
-            if (auto p = FileName.searchPath(libpaths, r"mingw\kernel32.lib", false))
-                return FileName.path(p);
+            if (auto p = FileName.searchPath(libpaths, r"mingw\kernel32.lib"[], false))
+                return FileName.path(p).ptr;
 
             return null;
         }
