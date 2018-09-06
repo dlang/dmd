@@ -5369,6 +5369,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return;
             }
         }
+
+        // https://issues.dlang.org/show_bug.cgi?id=18946
+        if (exp.msg && canThrow(exp.msg,sc.func,false))
+            exp.msg.deprecation("`%s` assert error messages must not throw",exp.msg.toChars());
+
         exp.type = Type.tvoid;
         result = exp;
     }
