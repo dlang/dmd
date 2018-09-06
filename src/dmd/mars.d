@@ -1101,10 +1101,7 @@ private void getenv_setargv(const(char)* envvalue, Strings* args)
 {
     if (!envvalue)
         return;
-    char* p;
-    int instring;
-    int slash;
-    char c;
+
     char* env = mem.xstrdup(envvalue); // create our own writable copy
     //printf("env = '%s'\n", env);
     while (1)
@@ -1115,16 +1112,19 @@ private void getenv_setargv(const(char)* envvalue, Strings* args)
         case '\t':
             env++;
             break;
+
         case 0:
             return;
+
         default:
+        {
             args.push(env); // append
-            p = env;
-            slash = 0;
-            instring = 0;
+            auto p = env;
+            auto slash = 0;
+            bool instring = false;
             while (1)
             {
-                c = *env++;
+                auto c = *env++;
                 switch (c)
                 {
                 case '"':
@@ -1132,42 +1132,47 @@ private void getenv_setargv(const(char)* envvalue, Strings* args)
                     if (slash & 1)
                     {
                         p--;
-                        goto Laddc;
+                        goto default;
                     }
-                    instring ^= 1;
+                    instring ^= true;
                     slash = 0;
                     continue;
+
                 case ' ':
                 case '\t':
                     if (instring)
-                        goto Laddc;
+                        goto default;
                     *p = 0;
                     //if (wildcard)
                     //    wildcardexpand();     // not implemented
                     break;
+
                 case '\\':
                     slash++;
                     *p++ = c;
                     continue;
+
                 case 0:
                     *p = 0;
                     //if (wildcard)
                     //    wildcardexpand();     // not implemented
                     return;
+
                 default:
-                Laddc:
                     slash = 0;
                     *p++ = c;
                     continue;
                 }
                 break;
             }
+            break;
+        }
         }
     }
 }
 
 /**
- * Parse command line arguments for -m32 or -m64
+ * Parse command line arguments for the last instance of -m32, -m64 or -m32mscoff
  * to detect the desired architecture.
  *
  * Params:
@@ -1181,9 +1186,8 @@ private void getenv_setargv(const(char)* envvalue, Strings* args)
  */
 private const(char)* parse_arch_arg(Strings* args, const(char)* arch)
 {
-    for (size_t i = 0; i < args.dim; ++i)
+    foreach (const p; *args)
     {
-        const(char)* p = (*args)[i];
         if (p[0] == '-')
         {
             if (strcmp(p + 1, "m32") == 0 || strcmp(p + 1, "m32mscoff") == 0 || strcmp(p + 1, "m64") == 0)
@@ -1197,20 +1201,19 @@ private const(char)* parse_arch_arg(Strings* args, const(char)* arch)
 
 
 /**
- * Parse command line arguments for -conf=path.
+ * Parse command line arguments for the last instance of -conf=path.
  *
  * Params:
  *   args = Command line arguments
  *
  * Returns:
- *   Path to the config file to use
+ *   The 'path' in -conf=path, which is the path to the config file to use
  */
 private const(char)* parse_conf_arg(Strings* args)
 {
     const(char)* conf = null;
-    for (size_t i = 0; i < args.dim; ++i)
+    foreach (const p; *args)
     {
-        const(char)* p = (*args)[i];
         if (p[0] == '-')
         {
             if (strncmp(p + 1, "conf=", 5) == 0)
