@@ -357,7 +357,8 @@ private int tryMain(size_t argc, const(char)** argv)
     if (global.params.color)
         global.console = Console.create(core.stdc.stdio.stderr);
 
-    global.params.cpu = setTargetCPU(global.params.cpu);
+    setTarget(global.params);           // set target operating system
+    setTargetCPU(global.params);
     if (global.params.is64bit != is64bit)
         error(Loc.initial, "the architecture must not be changed in the %s section of %s", envsection.ptr, global.inifilename);
 
@@ -1478,51 +1479,38 @@ extern(C) void printGlobalConfigs(FILE* stream)
 }
 
 /****************************************
- * Determine the instruction set to be used.
+ * Determine the instruction set to be used, i.e. set params.cpu
+ * by combining the command line setting of
+ * params.cpu with the target operating system.
  * Params:
- *      cpu = value set by command line switch
- * Returns:
- *      value to generate code for
+ *      params = parameters set by command line switch
  */
 
-private CPU setTargetCPU(CPU cpu)
+private void setTargetCPU(ref Param params)
 {
-    // Determine base line for target
-    CPU baseline = CPU.x87;
-    if (global.params.is64bit)
-        baseline = CPU.sse2;
+    if (params.is64bit || params.isOSX)
+    {
+        switch (params.cpu)
+        {
+            case CPU.baseline:
+                params.cpu = CPU.sse2;
+                break;
+
+            case CPU.native:
+            {
+                import core.cpuid;
+                params.cpu = core.cpuid.avx2 ? CPU.avx2 :
+                             core.cpuid.avx  ? CPU.avx  :
+                                               CPU.sse2;
+                break;
+            }
+
+            default:
+                break;
+        }
+    }
     else
-    {
-        static if (TARGET.OSX)
-        {
-            baseline = CPU.sse2;
-        }
-    }
-
-    if (baseline < CPU.sse2)
-        return baseline;        // can't support other instruction sets
-
-    switch (cpu)
-    {
-        case CPU.baseline:
-            cpu = baseline;
-            break;
-
-        case CPU.native:
-        {
-            import core.cpuid;
-            cpu = baseline;
-            if (core.cpuid.avx2)
-                cpu = CPU.avx2;
-            else if (core.cpuid.avx)
-                cpu = CPU.avx;
-            break;
-        }
-
-        default:
-            break;
-    }
-    return cpu;
+        params.cpu = CPU.x87;   // cannot support other instruction sets
 }
 
 
