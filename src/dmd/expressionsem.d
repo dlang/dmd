@@ -7239,6 +7239,42 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = e.expressionSemantic(sc);
     }
 
+    /*
+     * Get the expression initializer for a specific struct
+     *
+     * Params:
+     *  sd = the struct for which the expression initializer is needed
+     *  loc = the location of the initializer
+     *  sc = the scope where the expression is located
+     *  t = the type of the expression
+     *
+     * Returns:
+     *  The expression initializer or error expression if any errors occured
+     */
+    private Expression getInitExp(StructDeclaration sd, Loc loc, Scope* sc, Type t)
+    {
+        if (sd.zeroInit && !sd.isNested())
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=14606
+            // Always use BlitExp for the special expression: (struct = 0)
+            return new IntegerExp(loc, 0, Type.tint32);
+        }
+
+        if (sd.isNested())
+        {
+            auto sle = new StructLiteralExp(loc, sd, null, t);
+            if (!sd.fill(loc, sle.elements, true))
+                return new ErrorExp();
+            if (checkFrameAccess(loc, sc, sd, sle.elements.dim))
+                return new ErrorExp();
+
+            sle.type = t;
+            return sle;
+        }
+
+        return t.defaultInit(loc);
+    }
+
     override void visit(AssignExp exp)
     {
         static if (LOGSEMANTIC)
@@ -7651,28 +7687,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                          * variable with a bit copy of the default
                          * initializer
                          */
-                        Expression einit;
-                        if (sd.zeroInit && !sd.isNested())
+                        Expression einit = getInitExp(sd, exp.loc, sc, t1);
+                        if (einit.op == TOK.error)
                         {
-                            // https://issues.dlang.org/show_bug.cgi?id=14606
-                            // Always use BlitExp for the special expression: (struct = 0)
-                            einit = new IntegerExp(exp.loc, 0, Type.tint32);
+                            result = einit;
+                            return;
                         }
-                        else if (sd.isNested())
-                        {
-                            auto sle = new StructLiteralExp(exp.loc, sd, null, t1);
-                            if (!sd.fill(exp.loc, sle.elements, true))
-                                return setError();
-                            if (checkFrameAccess(exp.loc, sc, sd, sle.elements.dim))
-                                return setError();
 
-                            sle.type = t1;
-                            einit = sle;
-                        }
-                        else
-                        {
-                            einit = t1.defaultInit(exp.loc);
-                        }
                         auto ae = new BlitExp(exp.loc, exp.e1, einit);
                         ae.type = e1x.type;
 
@@ -7784,8 +7805,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                             }
                         }
 
-                        Expression einit;
-                        einit = new BlitExp(exp.loc, e1x, e1x.type.defaultInit(exp.loc));
+                        Expression einit = new BlitExp(exp.loc, e1x, getInitExp(sd, exp.loc, sc, t1));
                         einit.type = e1x.type;
 
                         Expression e;
