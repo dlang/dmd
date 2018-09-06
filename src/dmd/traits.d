@@ -1646,7 +1646,36 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (cmp(s1,s2) || cmp(s2,s1))
             return True();
 
-        return (s1 == s2) ? True() : False();
+        if (s1 == s2)
+            return True();
+
+        // https://issues.dlang.org/show_bug.cgi?id=18771
+        // OverloadSets are equal if they contain the same functions
+        auto overSet1 = s1.isOverloadSet();
+        if (!overSet1)
+            return False();
+
+        auto overSet2 = s2.isOverloadSet();
+        if (!overSet2)
+            return False();
+
+        if (overSet1.a.dim != overSet2.a.dim)
+            return False();
+
+        // OverloadSets contain array of Dsymbols => O(n*n)
+        // to compare for equality as the order of overloads
+        // might not be the same
+Lnext:
+        foreach(overload1; overSet1.a)
+        {
+            foreach(overload2; overSet2.a)
+            {
+                if (overload1 == overload2)
+                    continue Lnext;
+            }
+            return False();
+        }
+        return True();
     }
     if (e.ident == Id.getUnitTests)
     {
