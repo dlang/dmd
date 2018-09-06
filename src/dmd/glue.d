@@ -309,6 +309,11 @@ void obj_startaddress(Symbol *s)
     return objmod.startaddress(s);
 }
 
+bool obj_linkerdirective(const(char)* directive)
+{
+    return objmod.linkerdirective(directive);
+}
+
 
 /**************************************
  * Generate .obj file for Module.

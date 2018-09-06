@@ -1060,6 +1060,19 @@ bool MsCoffObj::includelib(const char *name)
     return true;
 }
 
+/*******************************
+* Output linker directive name.
+*/
+
+bool MsCoffObj::linkerdirective(const char *directive)
+{
+    int seg = seg_drectve();
+    //dbg_printf("MsCoffObj::linkerdirective(directive *%s)\n",directive);
+    SegData[seg]->SDbuf->writeByte(' ');
+    SegData[seg]->SDbuf->write(directive, strlen(directive));
+    return true;
+}
+
 /**********************************
  * Do we allow zero sized objects?
  */

@@ -2300,6 +2300,13 @@ else
                 }
             }
         }
+        else if (ps.ident == Id.linkerDirective)
+        {
+            /* Should this be allowed?
+             */
+            ps.error("`pragma(linkerDirective)` not allowed as statement");
+            return setError();
+        }
         else if (ps.ident == Id.startaddress)
         {
             if (!ps.args || ps.args.dim != 1)

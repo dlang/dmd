@@ -49,6 +49,7 @@ struct seg_data;
         static void dosseg(void);
         static void startaddress(Symbol *);
         static bool includelib(const char *);
+        static bool linkerdirective(const char *);
         static bool allowZeroSize();
         static void exestr(const char *p);
         static void user(const char *p);
@@ -135,6 +136,7 @@ class Obj
     VIRTUAL void dosseg(void);
     VIRTUAL void startaddress(Symbol *);
     VIRTUAL bool includelib(const char *);
+    VIRTUAL bool linkerdirective(const char *);
     VIRTUAL bool allowZeroSize();
     VIRTUAL void exestr(const char *p);
     VIRTUAL void user(const char *p);
@@ -246,6 +248,7 @@ class MsCoffObj : public Obj
 //    VIRTUAL void dosseg(void);
     VIRTUAL void startaddress(Symbol *);
     VIRTUAL bool includelib(const char *);
+    VIRTUAL bool linkerdirective(const char *);
     VIRTUAL bool allowZeroSize();
     VIRTUAL void exestr(const char *p);
     VIRTUAL void user(const char *p);

@@ -770,6 +770,20 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 Symbol *s = toSymbol(f);
                 obj_startaddress(s);
             }
+            else if (pd.ident == Id.linkerDirective)
+            {
+                assert(pd.args && pd.args.dim == 1);
+
+                Expression e = (*pd.args)[0];
+
+                assert(e.op == TOK.string_);
+
+                StringExp se = cast(StringExp)e;
+                char *directive = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
+                se.writeTo(directive, true);
+
+                obj_linkerdirective(directive);
+            }
 
             visit(cast(AttribDeclaration)pd);
 

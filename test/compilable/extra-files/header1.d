@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -ignore
 module foo.bar;
 
 import core.vararg;
@@ -5,6 +6,7 @@ import std.stdio;
 
 pragma(lib, "test");
 pragma(msg, "Hello World");
+pragma(linkerDirective, "/DEFAULTLIB:test2");
 
 static assert(true, "message");
 
