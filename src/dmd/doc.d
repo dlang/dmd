@@ -51,16 +51,15 @@ import dmd.visitor;
 
 struct Escape
 {
-    const(char)[][256] strings;
+    const(char)[][char.max] strings;
 
     /***************************************
      * Find character string to replace c with.
      */
-    const(char)[] escapeChar(uint c)
+    const(char)[] escapeChar(char c)
     {
         version (all)
         {
-            assert(c < 256);
             //printf("escapeChar('%c') => %p, %p\n", c, strings, strings[c].ptr);
             return strings[c];
         }
