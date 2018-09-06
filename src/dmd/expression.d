@@ -959,7 +959,8 @@ extern (C++) abstract class Expression : RootObject
             }
             else if (!type.isAssignable())
             {
-                error("cannot modify struct `%s` `%s` with `immutable` members", toChars(), type.toChars());
+                error("cannot modify struct instance `%s` of type `%s` because it contains `const` or `immutable` members",
+                    toChars(), type.toChars());
                 return new ErrorExp();
             }
         }
