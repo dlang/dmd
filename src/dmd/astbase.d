@@ -4540,6 +4540,44 @@ struct ASTBase
             this.sz = 1;                    // work around LDC bug #1286
         }
 
+        /**********************************************
+        * Write the contents of the string to dest.
+        * Use numberOfCodeUnits() to determine size of result.
+        * Params:
+        *  dest = destination
+        *  tyto = encoding type of the result
+        *  zero = add terminating 0
+        */
+        void writeTo(void* dest, bool zero, int tyto = 0) const
+        {
+            int encSize;
+            switch (tyto)
+            {
+                case 0:      encSize = sz; break;
+                case Tchar:  encSize = 1; break;
+                case Twchar: encSize = 2; break;
+                case Tdchar: encSize = 4; break;
+                default:
+                    assert(0);
+            }
+            if (sz == encSize)
+            {
+                memcpy(dest, string, len * sz);
+                if (zero)
+                    memset(dest + len * sz, 0, sz);
+            }
+            else
+                assert(0);
+        }
+
+        extern (D) final const(char)[] toStringz() const
+        {
+            auto nbytes = len * sz;
+            char* s = cast(char*)mem.xmalloc(nbytes + sz);
+            writeTo(s, true);
+            return s[0 .. nbytes];
+        }
+
         override void accept(Visitor v)
         {
             v.visit(this);
