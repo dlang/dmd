@@ -30,6 +30,9 @@ private enum LOG = false;
  */
 extern (C++) final class Nspace : ScopeDsymbol
 {
+    /**
+     * Determines whether the symbol for this namespace should be included in the symbol table.
+     */
     bool ignoreCppSymbols;
 
     extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* members, bool ignoreCppSymbols)
