@@ -21,6 +21,8 @@ ceil()
 6.00000L
 trunc()
 5.00000L
+exp()
+244.692L
 expm1()
 243.692L
 exp2()
@@ -81,6 +83,11 @@ pragma(msg, "trunc()");
 enum truncf = trunc(5.5f); //pragma(msg, truncf);
 enum truncd = trunc(5.5 ); //pragma(msg, truncd);
 enum truncr = trunc(5.5L); pragma(msg, truncr);
+
+pragma(msg, "exp()");
+enum expf = exp(5.5f); //pragma(msg, expf);
+enum expd = exp(5.5 ); //pragma(msg, expd);
+enum expr = exp(5.5L); pragma(msg, expr);
 
 pragma(msg, "expm1()");
 enum expm1f = expm1(5.5f); //pragma(msg, expm1f);
