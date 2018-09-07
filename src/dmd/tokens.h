@@ -220,9 +220,6 @@ struct Token
 
     Token() : next(NULL) {}
     int isKeyword();
-#ifdef DEBUG
-    void print();
-#endif
     const char *toChars() const;
     static const char *toChars(TOK);
 };

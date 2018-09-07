@@ -745,14 +745,6 @@ extern (C++) struct Token
         return 0;
     }
 
-    debug
-    {
-        void print()
-        {
-            fprintf(stderr, "%s\n", toChars());
-        }
-    }
-
     /****
      * Set to contents of ptr[0..length]
      * Params:

@@ -2757,9 +2757,6 @@ Lagain:
         t2 = Type.basic[ty2];
         e1 = e1.castTo(sc, t1);
         e2 = e2.castTo(sc, t2);
-        //printf("after typeCombine():\n");
-        //print();
-        //printf("ty = %d, ty1 = %d, ty2 = %d\n", ty, ty1, ty2);
         goto Lret;
     }
 
@@ -3322,7 +3319,6 @@ Lret:
             printf("\tt2 = %s\n", e2.type.toChars());
         printf("\ttype = %s\n", t.toChars());
     }
-    //print();
     return true;
 
 Lt1:

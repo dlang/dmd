@@ -4951,7 +4951,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         Module.dprogress++;
         cldec.semanticRun = PASS.semanticdone;
         //printf("-ClassDeclaration.dsymbolSemantic(%s), type = %p\n", toChars(), type);
-        //members.print();
 
         sc2.pop();
 
@@ -5309,7 +5308,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         Module.dprogress++;
         idec.semanticRun = PASS.semanticdone;
         //printf("-InterfaceDeclaration.dsymbolSemantic(%s), type = %p\n", toChars(), type);
-        //members.print();
 
         sc2.pop();
 

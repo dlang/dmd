@@ -926,7 +926,6 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             ex = ex.expressionSemantic(scx);
             if (errors < global.errors)
                 e.error("`%s` cannot be resolved", eorig.toChars());
-            //ex.print();
 
             /* Create tuple of functions of ex
              */

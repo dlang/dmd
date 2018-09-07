@@ -1868,8 +1868,6 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
             // Even if vto is STC.lazy_, `vto = arg` is handled correctly in glue layer.
             ei.exp = new BlitExp(vto.loc, vto, arg);
             ei.exp.type = vto.type;
-            //arg.type.print();
-            //ei.exp.print();
 
             ids.from.push(vfrom);
             ids.to.push(vto);
@@ -1958,9 +1956,6 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
         fd.inlineNest++;
         auto e = doInlineAs!Expression(fd.fbody, ids);
         fd.inlineNest--;
-        //e.type.print();
-        //e.print();
-        //e.print();
 
         // https://issues.dlang.org/show_bug.cgi?id=11322
         if (tf.isref)
@@ -2003,8 +1998,6 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
             // Chain the two together:
             //   ( typeof(return) __inlineretval = ( inlined body )) , __inlineretval
             e = Expression.combine(de, new VarExp(callLoc, vd));
-
-            //fprintf(stderr, "CallExp.inlineScan: e = "); e.print();
         }
 
         // https://issues.dlang.org/show_bug.cgi?id=15210

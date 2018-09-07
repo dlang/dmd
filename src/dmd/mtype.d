@@ -500,8 +500,7 @@ extern (C++) abstract class Type : RootObject
 
     Type syntaxCopy()
     {
-        print();
-        fprintf(stderr, "ty = %d\n", ty);
+        fprintf(stderr, "this = %s, ty = %d\n", toChars(), ty);
         assert(0);
     }
 

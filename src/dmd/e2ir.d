@@ -681,7 +681,7 @@ else
             break;
 
         default:
-            t.print();
+            printf("%s\n", t.toChars());
             assert(0);
     }
     return e;
@@ -1048,8 +1048,7 @@ elem *toElem(Expression e, IRState *irs)
 
         override void visit(Expression e)
         {
-            printf("[%s] %s ", e.loc.toChars(), Token.toChars(e.op));
-            e.print();
+            printf("[%s] %s: %s\n", e.loc.toChars(), Token.toChars(e.op), e.toChars());
             assert(0);
         }
 
@@ -1413,10 +1412,8 @@ elem *toElem(Expression e, IRState *irs)
                     break;
 
                 default:
-                    re.print();
-                    re.type.print();
-                    re.type.toBasetype().print();
-                    printf("ty = %d, tym = %x\n", re.type.ty, ty);
+                    printf("ty = %d, tym = %x, re=%s, re.type=%s, re.type.toBasetype=%s\n",
+                           re.type.ty, ty, re.toChars(), re.type.toChars(), re.type.toBasetype().toChars());
                     assert(0);
             }
             e.Ety = ty;
@@ -2189,12 +2186,6 @@ elem *toElem(Expression e, IRState *irs)
 
         override void visit(CatExp ce)
         {
-            version (none)
-            {
-                printf("CatExp.toElem()\n");
-                ce.print();
-            }
-
             /* Do this check during code gen rather than semantic() because concatenation is
              * allowed in CTFE, and cannot distinguish that in semantic().
              */
@@ -2296,7 +2287,7 @@ elem *toElem(Expression e, IRState *irs)
                 case TOK.notEqual: eop = OPne;   break;
 
                 default:
-                    ce.print();
+                    printf("%s\n", ce.toChars());
                     assert(0);
             }
             if (!t1.isfloating())
@@ -2348,7 +2339,7 @@ elem *toElem(Expression e, IRState *irs)
                 case TOK.equal:          eop = OPeqeq;   break;
                 case TOK.notEqual:       eop = OPne;     break;
                 default:
-                    ee.print();
+                    printf("%s\n", ee.toChars());
                     assert(0);
             }
 
@@ -2491,7 +2482,7 @@ elem *toElem(Expression e, IRState *irs)
                 case TOK.identity:       eop = OPeqeq;   break;
                 case TOK.notIdentity:    eop = OPne;     break;
                 default:
-                    ie.print();
+                    printf("%s\n", ie.toChars());
                     assert(0);
             }
 

@@ -2218,8 +2218,6 @@ private bool includeImportedModuleCheck(ModuleComponentRange components)
                 if (range.empty || nodeOffset >= info.depth)
                 {
                     // MATCH
-                    //printf("matcher ");printMatcher(nodeIndex - 1);
-                    //printf(" MATCHES module '");components.print();printf("'\n");
                     return !info.isExclude;
                 }
                 if (!range.front.equals(matchNodes[nodeIndex + nodeOffset].id))
@@ -2229,8 +2227,6 @@ private bool includeImportedModuleCheck(ModuleComponentRange components)
                 nodeOffset++;
             }
         }
-        //printf("matcher ");printMatcher(nodeIndex-1);
-        //printf(" does not match module '");components.print();printf("'\n");
         nodeIndex += info.depth;
     }
     assert(nodeIndex == matchNodes.dim, "code bug");

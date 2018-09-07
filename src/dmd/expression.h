@@ -128,7 +128,6 @@ public:
     // kludge for template.isExpression()
     int dyncast() const { return DYNCAST_EXPRESSION; }
 
-    void print();
     const char *toChars();
     void error(const char *format, ...) const;
     void warning(const char *format, ...) const;

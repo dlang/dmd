@@ -2070,10 +2070,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         }
         else
         {
-            debug
-            {
-                o.print();
-            }
             assert(0);
         }
         d.storage_class |= STC.templateparameter;
@@ -3239,14 +3235,6 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
 
         override void visit(Type t)
         {
-            version (none)
-            {
-                printf("Type.deduceType()\n");
-                printf("\tthis   = %d, ", t.ty);
-                t.print();
-                printf("\ttparam = %d, ", tparam.ty);
-                tparam.print();
-            }
             if (!tparam)
                 goto Lnomatch;
 
@@ -3521,14 +3509,6 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
 
         override void visit(TypeVector t)
         {
-            version (none)
-            {
-                printf("TypeVector.deduceType()\n");
-                printf("\tthis   = %d, ", t.ty);
-                t.print();
-                printf("\ttparam = %d, ", tparam.ty);
-                tparam.print();
-            }
             if (tparam.ty == Tvector)
             {
                 TypeVector tp = cast(TypeVector)tparam;
@@ -3540,28 +3520,11 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
 
         override void visit(TypeDArray t)
         {
-            version (none)
-            {
-                printf("TypeDArray.deduceType()\n");
-                printf("\tthis   = %d, ", t.ty);
-                t.print();
-                printf("\ttparam = %d, ", tparam.ty);
-                tparam.print();
-            }
             visit(cast(Type)t);
         }
 
         override void visit(TypeSArray t)
         {
-            version (none)
-            {
-                printf("TypeSArray.deduceType()\n");
-                printf("\tthis   = %d, ", t.ty);
-                t.print();
-                printf("\ttparam = %d, ", tparam.ty);
-                tparam.print();
-            }
-
             // Extra check that array dimensions must match
             if (tparam)
             {
@@ -3614,15 +3577,6 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
 
         override void visit(TypeAArray t)
         {
-            version (none)
-            {
-                printf("TypeAArray.deduceType()\n");
-                printf("\tthis   = %d, ", t.ty);
-                t.print();
-                printf("\ttparam = %d, ", tparam.ty);
-                tparam.print();
-            }
-
             // Extra check that index type must match
             if (tparam && tparam.ty == Taarray)
             {
@@ -3638,10 +3592,6 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
 
         override void visit(TypeFunction t)
         {
-            //printf("TypeFunction.deduceType()\n");
-            //printf("\tthis   = %d, ", t.ty); t.print();
-            //printf("\ttparam = %d, ", tparam.ty); tparam.print();
-
             // Extra check that function characteristics must match
             if (tparam && tparam.ty == Tfunction)
             {
@@ -3672,8 +3622,6 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                         fparam.type = tx;
                     }
                 }
-                //printf("\t. this   = %d, ", t.ty); t.print();
-                //printf("\t. tparam = %d, ", tparam.ty); tparam.print();
 
                 size_t nfargs = Parameter.dim(t.parameters);
                 size_t nfparams = Parameter.dim(tp.parameters);
@@ -3794,14 +3742,6 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
 
         override void visit(TypeInstance t)
         {
-            version (none)
-            {
-                printf("TypeInstance.deduceType()\n");
-                printf("\tthis   = %d, ", t.ty);
-                t.print();
-                printf("\ttparam = %d, ", tparam.ty);
-                tparam.print();
-            }
             // Extra check
             if (tparam && tparam.ty == Tinstance && t.tempinst.tempdecl)
             {
@@ -4054,15 +3994,6 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
 
         override void visit(TypeStruct t)
         {
-            version (none)
-            {
-                printf("TypeStruct.deduceType()\n");
-                printf("\tthis.parent   = %s, ", t.sym.parent.toChars());
-                t.print();
-                printf("\ttparam = %d, ", tparam.ty);
-                tparam.print();
-            }
-
             /* If this struct is a template struct, and we're matching
              * it against a template instance, convert the struct type
              * to a template instance, too, and try again.

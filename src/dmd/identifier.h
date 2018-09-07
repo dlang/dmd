@@ -25,7 +25,6 @@ public:
     static Identifier* create(const char *string);
     bool equals(RootObject *o);
     int compare(RootObject *o);
-    void print();
     const char *toChars();
     int getValue() const;
     const char *toHChars2();
