@@ -2123,8 +2123,6 @@ final class Parser(AST) : Lexer
      */
     LINK parseLinkage(AST.Identifiers** pidents, out CPPMANGLE cppmangle, out bool ignoreCppSymbols)
     {
-        import std.string : toStringz;
-
         AST.Identifiers* idents = null;
         cppmangle = CPPMANGLE.def;
         LINK link = LINK.default_;
