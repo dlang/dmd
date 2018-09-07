@@ -1159,11 +1159,14 @@ struct ASTBase
 
     extern (C++) final class Nspace : ScopeDsymbol
     {
-        extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* members)
+        bool ignoreCppSymbols;
+
+        extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* members, bool ignoreCppSymbols)
         {
             super(ident);
             this.loc = loc;
             this.members = members;
+            this.ignoreCppSymbols = ignoreCppSymbols;
         }
 
         override void accept(Visitor v)

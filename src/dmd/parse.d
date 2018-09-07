@@ -870,7 +870,8 @@ final class Parser(AST) : Lexer
                     const linkLoc = token.loc;
                     AST.Identifiers* idents = null;
                     CPPMANGLE cppmangle;
-                    const link = parseLinkage(&idents, cppmangle);
+                    bool ignoreCppSymbols = false;
+                    const link = parseLinkage(&idents, cppmangle, ignoreCppSymbols);
                     if (pAttrs.link != LINK.default_)
                     {
                         if (pAttrs.link != link)
@@ -902,7 +903,7 @@ final class Parser(AST) : Lexer
                                 a = new AST.Dsymbols();
                                 a.push(s);
                             }
-                            s = new AST.Nspace(linkLoc, id, a);
+                            s = new AST.Nspace(linkLoc, id, a, ignoreCppSymbols);
                         }
                         pAttrs.link = LINK.default_;
                     }
@@ -2117,10 +2118,13 @@ final class Parser(AST) : Lexer
      * Parse:
      *      extern (linkage)
      *      extern (C++, namespaces)
+     *      extern (C++, "namespace", "namespaces", ...)
      * The parser is on the 'extern' token.
      */
-    LINK parseLinkage(AST.Identifiers** pidents, out CPPMANGLE cppmangle)
+    LINK parseLinkage(AST.Identifiers** pidents, out CPPMANGLE cppmangle, out bool ignoreCppSymbols)
     {
+        import std.string : toStringz;
+
         AST.Identifiers* idents = null;
         cppmangle = CPPMANGLE.def;
         LINK link = LINK.default_;
@@ -2151,6 +2155,42 @@ final class Parser(AST) : Lexer
                         {
                             cppmangle = token.value == TOK.class_ ? CPPMANGLE.asClass : CPPMANGLE.asStruct;
                             nextToken();
+                        }
+                        else if (token.value == TOK.string_) // extern(C++, "namespace", "namespaces")
+                        {
+                            ignoreCppSymbols = true;
+                            idents = new AST.Identifiers();
+
+                            while(1)
+                            {
+                                AST.StringExp stringExp = cast(AST.StringExp)parsePrimaryExp();
+                                const(char)[] name = stringExp.toStringz();
+                                if(name.length == 0)
+                                {
+                                    error("invalid zero length C++ namespace");
+                                    idents = null;
+                                    break;
+                                }
+                                else if(!Identifier.isValidIdentifier(name))
+                                {
+                                    error("C++ namespace `%s` is invalid", name.ptr);
+                                    idents = null;
+                                    break;
+                                }
+                                idents.push(Identifier.idPool(name));
+                                if(token.value == TOK.comma)
+                                {
+                                    nextToken();
+                                    if(token.value != TOK.string_)
+                                    {
+                                        error("string expected following `,` for C++ namespace");
+                                        idents = null;
+                                        break;
+                                    }
+                                }
+                                else
+                                    break;
+                            }
                         }
                         else
                         {
@@ -4212,7 +4252,8 @@ final class Parser(AST) : Lexer
                     sawLinkage = true;
                     AST.Identifiers* idents = null;
                     CPPMANGLE cppmangle;
-                    link = parseLinkage(&idents, cppmangle);
+                    bool ignoreCppSymbols = false;
+                    link = parseLinkage(&idents, cppmangle, ignoreCppSymbols);
                     if (idents)
                     {
                         error("C++ name spaces not allowed here");

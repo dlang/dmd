@@ -30,23 +30,27 @@ private enum LOG = false;
  */
 extern (C++) final class Nspace : ScopeDsymbol
 {
-    extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* members)
+    bool ignoreCppSymbols;
+
+    extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* members, bool ignoreCppSymbols)
     {
         super(ident);
         //printf("Nspace::Nspace(ident = %s)\n", ident.toChars());
         this.loc = loc;
         this.members = members;
+        this.ignoreCppSymbols = ignoreCppSymbols;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
-        auto ns = new Nspace(loc, ident, null);
+        auto ns = new Nspace(loc, ident, null, ignoreCppSymbols);
         return ScopeDsymbol.syntaxCopy(ns);
     }
 
     override void addMember(Scope* sc, ScopeDsymbol sds)
     {
-        ScopeDsymbol.addMember(sc, sds);
+        if(!ignoreCppSymbols)
+            ScopeDsymbol.addMember(sc, sds);
         if (members)
         {
             if (!symtab)
