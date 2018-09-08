@@ -1,8 +1,12 @@
-Implements new C++ mangling syntax which allows for keywords to be used for mangling
+Implemtn new C++ mangling syntax
+
+The new syntax allows for keywords to be used for mangling
 and only changes the mangle of a symbol with no other side-effects.
 
 ---
 extern(C++, "__traits") void foo();
 
 extern(C++, "std", "chrono") void bar(); // multiple namespace syntax
+
+int std; // no symbol clashing
 ---
