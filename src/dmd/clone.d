@@ -806,14 +806,26 @@ FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
      * hash value will also contain the result of parent class's toHash().
      */
     const(char)* code =
-        "size_t h = 0;" ~
-        "foreach (i, T; typeof(p.tupleof))" ~
-        // workaround https://issues.dlang.org/show_bug.cgi?id=17968
-        "    static if(is(T* : const(.object.Object)*)) " ~
-        "        h = h * 33 + typeid(const(.object.Object)).getHash(cast(const void*)&p.tupleof[i]);" ~
-        "    else " ~
-        "        h = h * 33 + typeid(T).getHash(cast(const void*)&p.tupleof[i]);" ~
-        "return h;";
+    `static if (!__traits(isDeprecated, typeof(p))) ` ~
+    `{ ` ~
+        // Don't use this branch when S is deprecated because if compiling
+        // with deprecations as errors compilation will fail.
+        `scope(failure) assert(0); ` ~ // For `nothrow`.
+        `static import core.internal.hash; ` ~
+        `return core.internal.hash.hashOf(p); ` ~
+    `} ` ~
+    `else ` ~
+    `{ ` ~
+        // Fall back to behavior using TypeInfo.
+        `size_t h;` ~
+        `foreach (i, T; typeof(p.tupleof)) ` ~
+         // workaround https://issues.dlang.org/show_bug.cgi?id=17968
+            `static if(is(T* : const(.object.Object)*)) ` ~
+                `h = h * 33 + typeid(const(.object.Object)).getHash(cast(const void*)&p.tupleof[i]); ` ~
+            `else ` ~
+                `h = h * 33 + typeid(T).getHash(cast(const void*)&p.tupleof[i]); ` ~
+        `return h; ` ~
+    `}`;
     fop.fbody = new CompileStatement(loc, new StringExp(loc, cast(char*)code));
     Scope* sc2 = sc.push();
     sc2.stc = 0;
