@@ -286,6 +286,8 @@ nothrow:
         const(char)* p = str.ptr;
         size_t len = str.length;
         size_t idx = 0;
+        if (!p || len == 0)
+            goto Linvalid;
         if (*p >= '0' && *p <= '9') // beware of isdigit() on signed chars
             goto Linvalid;
         while (idx < len)
