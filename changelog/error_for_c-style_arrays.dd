@@ -1,9 +1,0 @@
-Deprecated C-style array declarations will now result in a compilation error
-
-The deprecation period for C-style array declarations has expired.  Beginning with this
-release, declaring arrays with C-style syntax will result in an error.
-
----
-int a[2];  // Error: instead of C-style syntax, use D-style `int a[2]`
-int[2] b;  // OK
----
