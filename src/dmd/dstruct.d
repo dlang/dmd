@@ -674,26 +674,8 @@ private bool _isZeroInit(Type type, Expression exp)
     else if (type.isintegral) return exp.toInteger() == 0;
     else if (type.isfloating)
     {
-        static if (!is(typeof(exp.toReal()) == struct))
-            return (exp.toReal() is 0) && (exp.toImaginary() is 0);
-        else
-        {
-            // Software floating point.
-            auto re = exp.toReal(), im = exp.toImaginary();
-            version (GDC)
-            {
-                foreach (b; (cast(ubyte*) &re)[0 .. typeof(re).sizeof])
-                    if (b) return false;
-                foreach (b; (cast(ubyte*) &im)[0 .. typeof(im).sizeof])
-                    if (b) return false;
-                return true;
-            }
-            else
-            {
-                // LDC and DMD
-                return ((re.mantissa | im.mantissa) | (re.exp_sign | im.exp_sign)) == 0;
-            }
-        }
+        import dmd.root.ctfloat : CTFloat;
+        return (exp.toReal() is CTFloat.zero) && (exp.toImaginary() is CTFloat.zero);
     }
     else if (exp.op == TOK.null_ || exp.op == TOK.false_) return true;
     // Nothing else applied.
