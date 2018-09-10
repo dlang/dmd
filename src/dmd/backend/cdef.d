@@ -49,7 +49,7 @@ version (XVERSION)
     enum TARGET_OPENBSD = xversion!`OpenBSD`;
     enum TARGET_SOLARIS = xversion!`Solaris`;
     enum TARGET_WINDOS  = xversion!`Windows`;
-    enum TARGET_DRAGONFLYBSD  = xversion!`DragonFly`;
+    enum TARGET_DRAGONFLYBSD  = xversion!`DragonFlyBSD`;
 }
 
 
@@ -326,7 +326,7 @@ enum CV3 = 0;          // 1 means support CV3 debug format
 version (XVERSION)
 {
     enum SYMDEB_CODEVIEW = TARGET_WINDOS;
-    enum SYMDEB_DWARF = TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX;
+    enum SYMDEB_DWARF = TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS || TARGET_OSX;
 }
 
 //#define TOOLKIT_H
