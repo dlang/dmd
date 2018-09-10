@@ -71,30 +71,29 @@ version (CRuntime_Microsoft)
 /****************************************
  * Write filename to cmdbuf, quoting if necessary.
  */
-private void writeFilename(OutBuffer* buf, const(char)* filename, size_t len)
+private void writeFilename(OutBuffer* buf, const(char)[] filename)
 {
     /* Loop and see if we need to quote
      */
-    for (size_t i = 0; i < len; i++)
+    foreach (const char c; filename)
     {
-        const char c = filename[i];
         if (isalnum(c) || c == '_')
             continue;
         /* Need to quote
          */
         buf.writeByte('"');
-        buf.write(filename, len);
+        buf.writestring(filename);
         buf.writeByte('"');
         return;
     }
     /* No quoting necessary
      */
-    buf.write(filename, len);
+    buf.writestring(filename);
 }
 
 private void writeFilename(OutBuffer* buf, const(char)* filename)
 {
-    writeFilename(buf, filename, strlen(filename));
+    writeFilename(buf, filename.toDString());
 }
 
 version (Posix)
