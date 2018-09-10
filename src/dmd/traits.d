@@ -147,10 +147,9 @@ shared static this()
         "getUnitTests",
         "getVirtualIndex",
         "getPointerBitmap",
-        "isZeroInit",
     ];
 
-    traitsStringTable._init(48);
+    traitsStringTable._init(40);
 
     foreach (s; names)
     {
@@ -1730,23 +1729,6 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident == Id.getPointerBitmap)
     {
         return pointerBitmap(e);
-    }
-    if (e.ident == Id.isZeroInit)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        auto o = (*e.args)[0];
-        Type t = isType(o);
-        if (!t)
-        {
-            e.error("type expected as second argument of __traits `%s` instead of `%s`",
-                e.ident.toChars(), o.toChars());
-            return new ErrorExp();
-        }
-
-        Type tb = t.baseElemOf();
-        return tb.isZeroInit(e.loc) ? True() : False();
     }
 
     extern (D) void* trait_search_fp(const(char)* seed, ref int cost)
