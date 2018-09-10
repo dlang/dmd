@@ -404,7 +404,6 @@ immutable Msgtable[] msgtable =
     { "getVirtualIndex" },
     { "getPointerBitmap" },
     { "isReturnOnStack" },
-    { "isZeroInit" },
 
     // For C++ mangling
     { "allocator" },
