@@ -5,7 +5,7 @@ environment:
   matrix:
     - ARCH:                x64
       D_COMPILER:          dmd
-      D_VERSION:           2.077.1
+      D_VERSION:           2.079.1
       C_COMPILER:          MSVC
       VISUALD_VER:         v0.45.1-rc2
       LDC_VERSION:         1.8.0
