@@ -103,7 +103,10 @@ enum IMPLIED_PRAGMA_ONCE = 1;       // include guards count as #pragma once
 enum bool HEADER_LIST = true;
 
 // Support generating code for 16 bit memory models
-//#define SIXTEENBIT              (SCPP && TARGET_WINDOS)
+version (SCPP)
+    enum SIXTEENBIT = TARGET_WINDOS != 0;
+else
+    enum SIXTEENBIT = false;
 
 /* Set for supporting the FLAT memory model.
  * This is not quite the same as !SIXTEENBIT, as one could
@@ -276,7 +279,7 @@ enum
 //#define REGSIZE         _tysize[TYnptr]
 //@property @nogc nothrow auto NPTRSIZE() { return _tysize[TYnptr]; }
 //#define FPTRSIZE        _tysize[TYfptr]
-//#define REGMASK         0xFFFF
+enum REGMASK = 0xFFFF;
 
 // targ_llong is also used to store host pointers, so it should have at least their size
 version (SCPP)
@@ -316,12 +319,8 @@ enum CV3 = 0;          // 1 means support CV3 debug format
 //#ifndef OMFOBJ
 //#define OMFOBJ          TARGET_WINDOS
 //#endif
-//#ifndef ELFOBJ
-//#define ELFOBJ          (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-//#endif
-//#ifndef MACHOBJ
-//#define MACHOBJ         TARGET_OSX
-//#endif
+enum ELFOBJ = TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS;
+enum MACHOBJ = TARGET_OSX;
 
 version (XVERSION)
 {

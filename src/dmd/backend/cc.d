@@ -1547,6 +1547,18 @@ enum
     PFexplicit = 1,       // this template argument was explicit, i.e. in < >
 }
 
+/************************
+ * Params:
+ *      f = function symbol
+ * Returns:
+ *      exception method for f
+ */
+EHmethod ehmethod(Symbol *f)
+{
+    return f.Sfunc.Fflags3 & Feh_none ? EHmethod.EH_NONE : config.ehmethod;
+}
+
+
 struct param_t
 {
     debug ushort      id;

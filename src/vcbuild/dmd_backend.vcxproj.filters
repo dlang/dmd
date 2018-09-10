@@ -39,9 +39,6 @@
     <ClCompile Include="..\dmd\backend\cgobj.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
-    <ClCompile Include="..\dmd\backend\cod3.c">
-      <Filter>dmd\backend</Filter>
-    </ClCompile>
     <ClCompile Include="..\dmd\backend\dt.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
