@@ -680,7 +680,19 @@ private bool _isZeroInit(Type type, Expression exp)
         {
             // Software floating point.
             auto re = exp.toReal(), im = exp.toImaginary();
-            return ((re.mantissa | im.mantissa) | (re.exp_sign | im.exp_sign)) == 0;
+            version (GDC)
+            {
+                foreach (b; (cast(ubyte*) &re)[0 .. typeof(re).sizeof])
+                    if (b) return false;
+                foreach (b; (cast(ubyte*) &im)[0 .. typeof(im).sizeof])
+                    if (b) return false;
+                return true;
+            }
+            else
+            {
+                // LDC and DMD
+                return ((re.mantissa | im.mantissa) | (re.exp_sign | im.exp_sign)) == 0;
+            }
         }
     }
     else if (exp.op == TOK.null_ || exp.op == TOK.false_) return true;
