@@ -57,8 +57,10 @@ for proj in druntime phobos; do
             ! git ls-remote --exit-code --heads https://github.com/dlang/$proj.git $APPVEYOR_REPO_BRANCH > /dev/null; then
         # use master as fallback for other repos to test feature branches
         clone https://github.com/dlang/$proj.git $proj master
+        echo "+++ Switched $proj to branch master (APPVEYOR_REPO_BRANCH=$APPVEYOR_REPO_BRANCH)"
     else
         clone https://github.com/dlang/$proj.git $proj $APPVEYOR_REPO_BRANCH
+        echo "+++ Switched $proj to branch $APPVEYOR_REPO_BRANCH"
     fi
 done
 
