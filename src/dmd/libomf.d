@@ -78,7 +78,7 @@ final class LibOMF : Library
         if (!buf)
         {
             assert(module_name);
-            File* file = File.create(cast(char*)module_name);
+            File* file = File.create(module_name);
             readFile(Loc.initial, file);
             buf = file.buffer;
             buflen = file.len;
@@ -117,7 +117,7 @@ final class LibOMF : Library
                 return corrupt(__LINE__);
             buflen = lh.lSymSeek - g_page_size;
         }
-        else if (lh.recTyp == '!' && memcmp(lh, cast(char*)"!<arch>\n", 8) == 0)
+        else if (lh.recTyp == '!' && memcmp(lh, "!<arch>\n".ptr, 8) == 0)
         {
             error("COFF libraries not supported");
             return;

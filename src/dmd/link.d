@@ -185,7 +185,7 @@ public int runLINK()
                  */
                 const(char)* n = global.params.objfiles[0];
                 n = FileName.name(n);
-                global.params.exefile = cast(char*)FileName.forceExt(n, "exe");
+                global.params.exefile = FileName.forceExt(n, "exe");
             }
             // Make sure path to exe file exists
             ensurePathToNameExists(Loc.initial, global.params.exefile);
@@ -305,7 +305,7 @@ public int runLINK()
                  */
                 const(char)* n = global.params.objfiles[0];
                 n = FileName.name(n);
-                global.params.exefile = cast(char*)FileName.forceExt(n, "exe");
+                global.params.exefile = FileName.forceExt(n, "exe");
             }
             // Make sure path to exe file exists
             ensurePathToNameExists(Loc.initial, global.params.exefile);
@@ -481,21 +481,22 @@ public int runLINK()
         {
             // Generate exe file name from first obj name
             const(char)* n = global.params.objfiles[0];
-            char* ex;
+            const(char)* ex;
             n = FileName.name(n);
             const(char)* e = FileName.ext(n);
             if (e)
             {
                 e--; // back up over '.'
-                ex = cast(char*)mem.xmalloc(e - n + 1);
-                memcpy(ex, n, e - n);
-                ex[e - n] = 0;
+                auto tmp = cast(char*)mem.xmalloc(e - n + 1);
+                memcpy(tmp, n, e - n);
+                tmp[e - n] = 0;
+                ex = tmp;
                 // If generating dll then force dll extension
                 if (global.params.dll)
-                    ex = cast(char*)FileName.forceExt(ex, global.dll_ext);
+                    ex = FileName.forceExt(ex, global.dll_ext);
             }
             else
-                ex = cast(char*)"a.out"; // no extension, so give up
+                ex = "a.out".ptr; // no extension, so give up
             argv.push(ex);
             global.params.exefile = ex;
         }
@@ -682,7 +683,7 @@ public int runLINK()
             // pipe linker stderr to fds[0]
             dup2(fds[1], STDERR_FILENO);
             close(fds[0]);
-            execvp(argv[0], cast(char**)argv.tdata());
+            execvp(argv[0], argv.tdata());
             perror(argv[0]); // failed to execute
             return -1;
         }
@@ -895,7 +896,7 @@ public int runProgram()
                 // Make it "./fn"
                 fn = FileName.combine(".", fn);
             }
-            execv(fn, cast(char**)argv.tdata());
+            execv(fn, argv.tdata());
             perror(fn); // failed to execute
             return -1;
         }

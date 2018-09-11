@@ -541,7 +541,7 @@ private int tryMain(size_t argc, const(char)** argv)
 
     if (global.params.addMain)
     {
-        files.push(cast(char*)global.main_d); // a dummy name, we never actually look up this file
+        files.push(global.main_d); // a dummy name, we never actually look up this file
     }
     // Create Modules
     Modules modules;
@@ -926,7 +926,7 @@ private int tryMain(size_t argc, const(char)** argv)
     else if (global.params.oneobj)
     {
         if (modules.dim)
-            obj_start(cast(char*)modules[0].srcfile.toChars());
+            obj_start(modules[0].srcfile.toChars());
         foreach (m; modules)
         {
             if (global.params.verbose)
@@ -946,7 +946,7 @@ private int tryMain(size_t argc, const(char)** argv)
         {
             if (global.params.verbose)
                 message("code      %s", m.toChars());
-            obj_start(cast(char*)m.srcfile.toChars());
+            obj_start(m.srcfile.toChars());
             genObjFile(m, global.params.multiobj);
             if (entrypoint && m == rootHasMain)
                 genObjFile(entrypoint, global.params.multiobj);

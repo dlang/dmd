@@ -35,7 +35,7 @@ version (NoBackend)
     {
         // glue
         void obj_write_deferred(Library library)        {}
-        void obj_start(char* srcfile)                   {}
+        void obj_start(const(char)* srcfile)            {}
         void obj_end(Library library, File* objfile)    {}
         void genObjFile(Module m, bool multiobj)        {}
 
@@ -67,7 +67,7 @@ else version (MARS)
     extern (C++)
     {
         void obj_write_deferred(Library library);
-        void obj_start(char* srcfile);
+        void obj_start(const(char)* srcfile);
         void obj_end(Library library, File* objfile);
         void genObjFile(Module m, bool multiobj);
 
