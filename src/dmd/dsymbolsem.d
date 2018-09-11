@@ -86,6 +86,13 @@ private FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
     if (sd.isUnionDeclaration())
         return null;
 
+    bool hasCopyCtor = sd.copyCtor !is null;
+    if (hasCopyCtor && sd.postblits.dim == 1)
+    {
+        error(sd.postblits[0].loc, "struct `%s` cannot define both a postblit and copy constructor. Use the copy constructor.", sd.toChars());
+        return null;
+    }
+
     // by default, the storage class of the created postblit
     StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
     Loc declLoc = sd.postblits.dim ? sd.postblits[0].loc : sd.loc;
@@ -275,6 +282,11 @@ private FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
     if (postblitCalls.dim || (stc & STC.disable))
     {
         //printf("Building __fieldPostBlit()\n");
+        if (hasCopyCtor)
+        {
+            sd.error("contains fields with postblits, therefore it cannot have a copy constructor.");
+            return null;
+        }
         checkShared();
         auto dd = new PostBlitDeclaration(declLoc, Loc.initial, stc, Id.__fieldPostblit);
         dd.generated = true;
@@ -567,6 +579,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (dsym.semanticRun >= PASS.semanticdone)
             return;
+
+        if (dsym.storage_class & STC.implicit)
+        {
+            dsym.error("cannot be marked with `@implicit` because it is not a copy constructor");
+            return;
+        }
 
         Scope* scx = null;
         if (dsym._scope)
@@ -2895,6 +2913,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
              * once on them.
              * See test\interface2.d, test20
              */
+            return;
+        }
+
+        if ((funcdecl.storage_class & STC.implicit) && !funcdecl.isCtorDeclaration)
+        {
+            funcdecl.error("cannot be marked with `@implicit` because it is not a copy constructor");
             return;
         }
 
