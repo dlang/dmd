@@ -54,9 +54,9 @@ __gshared const uint[4] dblreg = [ BX,DX,cast(uint)-1,CX ];
 
 private int intree(Symbol *s,elem *e)
 {
-        if (!OTleaf(e.Eoper))
-            return intree(s,e.EV.E1) + (OTbinary(e.Eoper) ? intree(s,e.EV.E2) : 0);
-        return e.Eoper == OPvar && e.EV.Vsym == s;
+    if (!OTleaf(e.Eoper))
+        return intree(s,e.EV.E1) + (OTbinary(e.Eoper) ? intree(s,e.EV.E2) : 0);
+    return e.Eoper == OPvar && e.EV.Vsym == s;
 }
 
 /***********************************
@@ -69,7 +69,8 @@ private int intree(Symbol *s,elem *e)
  */
 
 int doinreg(Symbol *s, elem *e)
-{   int in_ = 0;
+{
+    int in_ = 0;
     int op;
 
  L1:
@@ -297,26 +298,26 @@ private void opnegassdbl(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             }
             else
             {
-static if (1)
-{
-                cs.Iop = 0x8B;
-                fltregs(cdb,&cs,TYdouble);     // MOV DOUBLEREGS, EA
-}
-else
-{
-                // Push EA onto stack
-                cs.Iop = 0xFF;
-                cs.Irm |= modregrm(0,6,0);
-                cs.IEV1.Voffset += DOUBLESIZE - REGSIZE;
-                cdb.gen(&cs);
-                cs.IEV1.Voffset -= REGSIZE;
-                cdb.gen(&cs);
-                cs.IEV1.Voffset -= REGSIZE;
-                cdb.gen(&cs);
-                cs.IEV1.Voffset -= REGSIZE;
-                cdb.gen(&cs);
-                stackpush += DOUBLESIZE;
-}
+                static if (1)
+                {
+                    cs.Iop = 0x8B;
+                    fltregs(cdb,&cs,TYdouble);     // MOV DOUBLEREGS, EA
+                }
+                else
+                {
+                    // Push EA onto stack
+                    cs.Iop = 0xFF;
+                    cs.Irm |= modregrm(0,6,0);
+                    cs.IEV1.Voffset += DOUBLESIZE - REGSIZE;
+                    cdb.gen(&cs);
+                    cs.IEV1.Voffset -= REGSIZE;
+                    cdb.gen(&cs);
+                    cs.IEV1.Voffset -= REGSIZE;
+                    cdb.gen(&cs);
+                    cs.IEV1.Voffset -= REGSIZE;
+                    cdb.gen(&cs);
+                    stackpush += DOUBLESIZE;
+                }
             }
             retregs = DOUBLEREGS;
         }
@@ -324,7 +325,8 @@ else
             cssave(e1,retregs,!OTleaf(e1.Eoper));         /* if lvalue is a CSE   */
     }
     else
-    {   retregs = 0;
+    {
+        retregs = 0;
         assert(e1.Ecount == 0);
     }
 
@@ -341,21 +343,21 @@ else
 
 void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
-  tym_t tymll;
-  uint reg;
-  code cs;
-  elem *e11;
-  bool regvar;                  // true means evaluate into register variable
-  regm_t varregm;
-  uint varreg;
-  targ_int postinc;
+    tym_t tymll;
+    uint reg;
+    code cs;
+    elem *e11;
+    bool regvar;                  // true means evaluate into register variable
+    regm_t varregm;
+    uint varreg;
+    targ_int postinc;
 
-  //printf("cdeq(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
-  elem *e1 = e.EV.E1;
-  elem *e2 = e.EV.E2;
-  int e2oper = e2.Eoper;
-  tym_t tyml = tybasic(e1.Ety);              // type of lvalue
-  regm_t retregs = *pretregs;
+    //printf("cdeq(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
+    elem *e1 = e.EV.E1;
+    elem *e2 = e.EV.E2;
+    int e2oper = e2.Eoper;
+    tym_t tyml = tybasic(e1.Ety);              // type of lvalue
+    regm_t retregs = *pretregs;
 
     if (tyxmmreg(tyml) && config.fpxmmregs)
     {
@@ -444,7 +446,8 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 freenode(e11.EV.E2);
             }
             else
-            {   postinc = 0;
+            {
+                postinc = 0;
                 getlvalue(cdb,&cs,e1,RMstore);
 
                 if (e2oper == OPconst &&
@@ -540,7 +543,8 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 cs.IEV2.Vsize_t = *p;
                 // Look for loading a register variable
                 if ((cs.Irm & 0xC0) == 0xC0)
-                {   uint regx = cs.Irm & 7;
+                {
+                    uint regx = cs.Irm & 7;
 
                     if (cs.Irex & REX_B)
                         regx |= 8;
@@ -626,44 +630,48 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             freenode(e2);
             goto Lp;
         }
-        retregs = allregs;              // pick a reg, any reg
+        retregs = allregs;        // pick a reg, any reg
         if (sz == 2 * REGSIZE)
-            retregs &= ~mBP;            // BP cannot be used for register pair
-  }
-  if (retregs == mPSW)
-  {     retregs = allregs;
+            retregs &= ~mBP;      // BP cannot be used for register pair
+    }
+    if (retregs == mPSW)
+    {
+        retregs = allregs;
         if (sz == 2 * REGSIZE)
-            retregs &= ~mBP;            // BP cannot be used for register pair
-  }
-  cs.Iop = 0x89;
-  if (sz == 1)                  // must have byte regs
-  {     cs.Iop = 0x88;
+            retregs &= ~mBP;      // BP cannot be used for register pair
+    }
+    cs.Iop = 0x89;
+    if (sz == 1)                  // must have byte regs
+    {
+        cs.Iop = 0x88;
         retregs &= BYTEREGS;
         if (!retregs)
-                retregs = BYTEREGS;
-  }
-  else if (retregs & mES
-           && (
+            retregs = BYTEREGS;
+    }
+    else if (retregs & mES &&
+           (
              (e1.Eoper == OPind &&
                 ((tymll = tybasic(e1.EV.E1.Ety)) == TYfptr || tymll == TYhptr)) ||
              (e1.Eoper == OPvar && e1.EV.Vsym.Sfl == FLfardata)
-            )
+           )
           )
         // getlvalue() needs ES, so we can't return it
         retregs = allregs;              // no conflicts with ES
-  else if (tyml == TYdouble || tyml == TYdouble_alias || retregs & mST0)
+    else if (tyml == TYdouble || tyml == TYdouble_alias || retregs & mST0)
         retregs = DOUBLEREGS;
-  regvar = false;
-  varregm = 0;
-  if (config.flags4 & CFG4optimized)
-  {
+
+    regvar = false;
+    varregm = 0;
+    if (config.flags4 & CFG4optimized)
+    {
         // Be careful of cases like (x = x+x+x). We cannot evaluate in
         // x if x is in a register.
         if (isregvar(e1,&varregm,&varreg) &&    // if lvalue is register variable
             doinreg(e1.EV.Vsym,e2) &&       // and we can compute directly into it
             !(sz == 1 && e1.EV.Voffset == 1)
            )
-        {   regvar = true;
+        {
+            regvar = true;
             retregs = varregm;
             reg = varreg;       // evaluate directly in target register
             if (tysize(e1.Ety) == REGSIZE &&
@@ -676,12 +684,12 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 reg = findreg(retregs);
             }
         }
-  }
-  if (*pretregs & mPSW && OTleaf(e1.Eoper))     // if evaluating e1 couldn't change flags
-  {     // Be careful that this lines up with jmpopcode()
+    }
+    if (*pretregs & mPSW && OTleaf(e1.Eoper))     // if evaluating e1 couldn't change flags
+    {   // Be careful that this lines up with jmpopcode()
         retregs |= mPSW;
         *pretregs &= ~mPSW;
-  }
+    }
     scodelem(cdb,e2,&retregs,0,true);    // get rvalue
 
     // Look for special case of (*p++ = ...), where p is a register variable
@@ -707,7 +715,8 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             cs.Irex &= ~REX_W;                  // incorrectly set by getlvalue()
     }
     else
-    {   postinc = 0;
+    {
+        postinc = 0;
         getlvalue(cdb,&cs,e1,RMstore | retregs);     // get lvalue (cl == null if regvar)
     }
 
@@ -774,15 +783,15 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                     NEWREG(cs.Irm,reg);
                 }
         }
-  }
-  if (e1.Ecount ||                     // if lvalue is a CSE or
-      regvar)                           // rvalue can't be a CSE
-  {
+    }
+    if (e1.Ecount ||                    // if lvalue is a CSE or
+        regvar)                         // rvalue can't be a CSE
+    {
         getregs_imm(cdb,retregs);       // necessary if both lvalue and
                                         //  rvalue are CSEs (since a reg
                                         //  can hold only one e at a time)
         cssave(e1,retregs,!OTleaf(e1.Eoper));     // if lvalue is a CSE
-  }
+    }
 
     fixresult(cdb,e,retregs,pretregs);
 Lp:
@@ -844,20 +853,20 @@ void cdaddass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     if (tyfloating(tyml))
     {
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-        if (op == OPnegass)
-            cdnegass87(cdb,e,pretregs);
+        static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+        {
+            if (op == OPnegass)
+                cdnegass87(cdb,e,pretregs);
+            else
+                opass87(cdb,e,pretregs);
+        }
         else
-            opass87(cdb,e,pretregs);
-}
-else
-{
-        if (op == OPnegass)
-            opnegassdbl(cdb,e,pretregs);
-        else
-            opassdbl(cdb,e,pretregs,op);
-}
+        {
+            if (op == OPnegass)
+                opnegassdbl(cdb,e,pretregs);
+            else
+                opassdbl(cdb,e,pretregs,op);
+        }
         return;
     }
     uint opsize = (I16 && tylong(tyml) && config.target_cpu >= TARGET_80386)
@@ -876,40 +885,48 @@ else
     uint jop;
 
 
-  switch (op)                   // select instruction opcodes
-  {     case OPpostinc: op = OPaddass;                  // i++ => +=
+    switch (op)                   // select instruction opcodes
+    {
+        case OPpostinc: op = OPaddass;                  // i++ => +=
                         goto case OPaddass;
 
         case OPaddass:  op1 = 0x01; op2 = 0x11;
                         cflags = CFpsw;
                         mode = 0; break;                // ADD, ADC
+
         case OPpostdec: op = OPminass;                  // i-- => -=
                         goto case OPminass;
 
         case OPminass:  op1 = 0x29; op2 = 0x19;
                         cflags = CFpsw;
                         mode = 5; break;                // SUB, SBC
+
         case OPandass:  op1 = op2 = 0x21;
                         mode = 4; break;                // AND, AND
+
         case OPorass:   op1 = op2 = 0x09;
                         mode = 1; break;                // OR , OR
+
         case OPxorass:  op1 = op2 = 0x31;
                         mode = 6; break;                // XOR, XOR
+
         case OPnegass:  op1 = 0xF7;                     // NEG
                         break;
+
         default:
                 assert(0);
-  }
-  op1 ^= isbyte;                  // bit 0 is 0 for byte operation
+    }
+    op1 ^= isbyte;                  // bit 0 is 0 for byte operation
 
-  if (op == OPnegass)
-  {
+    if (op == OPnegass)
+    {
         getlvalue(cdb,&cs,e1,0);
         modEA(cdb,&cs);
         cs.Irm |= modregrm(0,3,0);
         cs.Iop = op1;
         switch (_tysize[tyml])
-        {   case CHARSIZE:
+        {
+            case CHARSIZE:
                 cdb.gen(&cs);
                 break;
 
@@ -951,20 +968,20 @@ else
         }
         forccs = 0;             // flags already set by NEG
         *pretregs &= ~mPSW;
-  }
-  else if ((e2 = e.EV.E2).Eoper == OPconst &&    // if rvalue is a const
-      el_signx32(e2) &&
-       // Don't evaluate e2 in register if we can use an INC or DEC
-      (((sz <= REGSIZE || tyfv(tyml)) &&
-        (op == OPaddass || op == OPminass) &&
-        (el_allbits(e2, 1) || el_allbits(e2, -1))
-       ) ||
-       (!evalinregister(e2)
-        && tyml != TYhptr
-        )
-      )
-     )
-  {
+    }
+    else if ((e2 = e.EV.E2).Eoper == OPconst &&    // if rvalue is a const
+             el_signx32(e2) &&
+             // Don't evaluate e2 in register if we can use an INC or DEC
+             (((sz <= REGSIZE || tyfv(tyml)) &&
+               (op == OPaddass || op == OPminass) &&
+               (el_allbits(e2, 1) || el_allbits(e2, -1))
+              ) ||
+              (!evalinregister(e2)
+               && tyml != TYhptr
+              )
+             )
+            )
+    {
         getlvalue(cdb,&cs,e1,0);
         modEA(cdb,&cs);
         cs.IFL2 = FLconst;
@@ -993,7 +1010,8 @@ else
                 cs.Iop = 0x81;
                 cs.Irm |= modregrm(0,mode,0);
                 switch (op)
-                {   case OPminass:      // convert to +=
+                {
+                    case OPminass:      // convert to +=
                         cs.Irm ^= modregrm(0,5,0);
                         i = -i;
                         cs.IEV2.Vsize_t = i;
@@ -1024,24 +1042,27 @@ else
                         cs.IEV2.Vsize_t &= 0xFFFF;
                         cs.Iflags &= ~CFopsize; // don't worry about MSW
                         break;
+
                     case OPandass:
                         cs.IEV2.Vsize_t |= ~0xFFFFL;
                         cs.Iflags &= ~CFopsize; // don't worry about MSW
                         break;
+
                     case OPminass:
                     case OPaddass:
-static if (1)
-{
-                        if ((cs.Irm & 0xC0) == 0xC0)    // EA is register
-                            cs.Iflags &= ~CFopsize;
-}
-else
-{
-                        if ((cs.Irm & 0xC0) == 0xC0 &&  // EA is register and
-                            e1.Eoper == OPind)         // not a register var
-                            cs.Iflags &= ~CFopsize;
-}
+                        static if (1)
+                        {
+                            if ((cs.Irm & 0xC0) == 0xC0)    // EA is register
+                                cs.Iflags &= ~CFopsize;
+                        }
+                        else
+                        {
+                            if ((cs.Irm & 0xC0) == 0xC0 &&  // EA is register and
+                                e1.Eoper == OPind)          // not a register var
+                                cs.Iflags &= ~CFopsize;
+                        }
                         break;
+
                     default:
                         assert(0);
                 }
@@ -1057,7 +1078,8 @@ else
                 (config.target_cpu == TARGET_Pentium ||
                  config.target_cpu == TARGET_PentiumMMX) &&
                 config.flags4 & CFG4speed)
-            {   regm_t sregm;
+            {
+                regm_t sregm;
                 code cs2;
 
                 // Determine which registers to use
@@ -1098,39 +1120,42 @@ else
             }
         }
         else if (sz == 2 * REGSIZE)
-        {       targ_uns msw;
+        {
+            targ_uns msw;
 
-                cs.Iop = 0x81;
-                cs.Irm |= modregrm(0,mode,0);
-                cs.Iflags |= cflags;
-                cdb.gen(&cs);
-                cs.Iflags &= ~CFpsw;
+            cs.Iop = 0x81;
+            cs.Irm |= modregrm(0,mode,0);
+            cs.Iflags |= cflags;
+            cdb.gen(&cs);
+            cs.Iflags &= ~CFpsw;
 
-                getlvalue_msw(&cs);             // point to msw
-                msw = cast(uint)MSREG(e.EV.E2.EV.Vllong);
-                cs.IEV2.Vuns = msw;             // msw of constant
-                switch (op)
-                {   case OPminass:
-                        cs.Irm ^= modregrm(0,6,0);      // SUB => SBB
-                        break;
-                    case OPaddass:
-                        cs.Irm |= modregrm(0,2,0);      // ADD => ADC
-                        break;
+            getlvalue_msw(&cs);             // point to msw
+            msw = cast(uint)MSREG(e.EV.E2.EV.Vllong);
+            cs.IEV2.Vuns = msw;             // msw of constant
+            switch (op)
+            {
+                case OPminass:
+                    cs.Irm ^= modregrm(0,6,0);      // SUB => SBB
+                    break;
 
-                    default:
-                        break;
-                }
-                cdb.gen(&cs);
+                case OPaddass:
+                    cs.Irm |= modregrm(0,2,0);      // ADD => ADC
+                    break;
+
+                default:
+                    break;
+            }
+            cdb.gen(&cs);
         }
         else
             assert(0);
         freenode(e.EV.E2);        // don't need it anymore
-  }
-  else if (isregvar(e1,&varregm,&varreg) &&
-           (e2.Eoper == OPvar || e2.Eoper == OPind) &&
-          !evalinregister(e2) &&
-           sz <= REGSIZE)               // deal with later
-  {
+    }
+    else if (isregvar(e1,&varregm,&varreg) &&
+             (e2.Eoper == OPvar || e2.Eoper == OPind) &&
+            !evalinregister(e2) &&
+             sz <= REGSIZE)               // deal with later
+    {
         getlvalue(cdb,&cs,e2,0);
         freenode(e2);
         getregs(cdb,varregm);
@@ -1143,14 +1168,14 @@ else
         reverse = 2;                            // remember we toggled it
         cdb.gen(&cs);
         retregs = 0;            // to trigger a bug if we attempt to use it
-  }
-  else if ((op == OPaddass || op == OPminass) &&
-        sz <= REGSIZE &&
-        !e2.Ecount &&
-            ((jop = jmpopcode(e2)) == JC || jop == JNC ||
-             (OTconv(e2.Eoper) && !e2.EV.E1.Ecount && ((jop = jmpopcode(e2.EV.E1)) == JC || jop == JNC)))
-        )
-  {
+    }
+    else if ((op == OPaddass || op == OPminass) &&
+             sz <= REGSIZE &&
+             !e2.Ecount &&
+             ((jop = jmpopcode(e2)) == JC || jop == JNC ||
+              (OTconv(e2.Eoper) && !e2.EV.E1.Ecount && ((jop = jmpopcode(e2.EV.E1)) == JC || jop == JNC)))
+            )
+    {
         /* e1 += (x < y)    ADC EA,0
          * e1 -= (x < y)    SBB EA,0
          * e1 += (x >= y)   SBB EA,-1
@@ -1179,9 +1204,9 @@ else
         cs.IEV2.Vsize_t = (jop == JC) ? 0 : ~cast(targ_size_t)0;
         cdb.gen(&cs);
         retregs = 0;            // to trigger a bug if we attempt to use it
-  }
-  else // evaluate e2 into register
-  {
+    }
+    else // evaluate e2 into register
+    {
         retregs = (isbyte) ? BYTEREGS : ALLREGS;  // pick working reg
         if (tyml == TYhptr)
             retregs &= ~mCX;                    // need CX for shift count
@@ -1190,7 +1215,8 @@ else
         modEA(cdb,&cs);
         cs.Iop = op1;
         if (sz <= REGSIZE || tyfv(tyml))
-        {   reg = findreg(retregs);
+        {
+            reg = findreg(retregs);
             code_newreg(&cs, reg);              // OP1 EA,reg
             if (sz == 1 && reg >= 4 && I64)
                 cs.Irex |= REX;
@@ -1234,15 +1260,16 @@ else
             assert(0);
         cdb.gen(&cs);
         retregs = 0;            // to trigger a bug if we attempt to use it
-  }
+    }
 
-  // See if we need to reload result into a register.
-  // Need result in registers in case we have a 32 bit
-  // result and we want the flags as a result.
-  if (wantres || (sz > REGSIZE && forccs))
-  {
+    // See if we need to reload result into a register.
+    // Need result in registers in case we have a 32 bit
+    // result and we want the flags as a result.
+    if (wantres || (sz > REGSIZE && forccs))
+    {
         if (sz <= REGSIZE)
-        {   regm_t possregs;
+        {
+            regm_t possregs;
 
             possregs = ALLREGS;
             if (isbyte)
@@ -1280,31 +1307,34 @@ else
             }
         }
         else if (tyfv(tyml) || tyml == TYhptr)
-        {       regm_t idxregs;
+        {
+            regm_t idxregs;
 
-                if (tyml == TYhptr)
-                    getlvalue_lsw(&cs);
-                idxregs = idxregm(&cs);
-                retregs = forregs & ~idxregs;
-                if (!(retregs & IDXREGS))
-                        retregs |= IDXREGS & ~idxregs;
-                if (!(retregs & mMSW))
-                        retregs |= mMSW & ALLREGS;
-                allocreg(cdb,&retregs,&reg,tyml);
-                NEWREG(cs.Irm,findreglsw(retregs));
-                if (retregs & mES)              // if want ES loaded
-                {   cs.Iop = 0xC4;
-                    cdb.gen(&cs);               // LES lreg,EA
-                }
-                else
-                {   cs.Iop = 0x8B;
-                    cdb.gen(&cs);               // MOV lreg,EA
-                    getlvalue_msw(&cs);
-                    if (I32)
-                        cs.Iflags |= CFopsize;
-                    NEWREG(cs.Irm,reg);
-                    cdb.gen(&cs);               // MOV mreg,EA+2
-                }
+            if (tyml == TYhptr)
+                getlvalue_lsw(&cs);
+            idxregs = idxregm(&cs);
+            retregs = forregs & ~idxregs;
+            if (!(retregs & IDXREGS))
+                retregs |= IDXREGS & ~idxregs;
+            if (!(retregs & mMSW))
+                retregs |= mMSW & ALLREGS;
+            allocreg(cdb,&retregs,&reg,tyml);
+            NEWREG(cs.Irm,findreglsw(retregs));
+            if (retregs & mES)              // if want ES loaded
+            {
+                cs.Iop = 0xC4;
+                cdb.gen(&cs);               // LES lreg,EA
+            }
+            else
+            {
+                cs.Iop = 0x8B;
+                cdb.gen(&cs);               // MOV lreg,EA
+                getlvalue_msw(&cs);
+                if (I32)
+                    cs.Iflags |= CFopsize;
+                NEWREG(cs.Irm,reg);
+                cdb.gen(&cs);               // MOV mreg,EA+2
+            }
         }
         else if (sz == 2 * REGSIZE)
         {
@@ -1334,7 +1364,7 @@ else
         else
             assert(0);
         if (e1.Ecount)                 // if we gen a CSE
-                cssave(e1,retregs,!OTleaf(e1.Eoper));
+            cssave(e1,retregs,!OTleaf(e1.Eoper));
     }
     freenode(e1);
     if (sz <= REGSIZE)
@@ -1373,14 +1403,14 @@ void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     if (tyfloating(tyml))
     {
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-        opass87(cdb,e,pretregs);
-}
-else
-{
-        opassdbl(cdb,e,pretregs,op);
-}
+        static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+        {
+            opass87(cdb,e,pretregs);
+        }
+        else
+        {
+            opassdbl(cdb,e,pretregs,op);
+        }
         return;
     }
 
@@ -1443,7 +1473,8 @@ else
             cdb.gen(&cs);
         }
         else // /= or %=
-        {   targ_size_t e2factor;
+        {
+            targ_size_t e2factor;
             int pow2;
 
             assert(!isbyte);                      // should never happen
@@ -1468,12 +1499,14 @@ else
                 if (pow2 == 1)
                 {
                     if (op == OPdivass)
-                    {   cdb.gen2(0x2B,grex | modregrm(3,AX,DX));       // SUB AX,DX
+                    {
+                        cdb.gen2(0x2B,grex | modregrm(3,AX,DX));       // SUB AX,DX
                         cdb.gen2(0xD1,grex | modregrm(3,7,AX));        // SAR AX,1
                         resreg = AX;
                     }
                     else // OPmod
-                    {   cdb.gen2(0x33,grex | modregrm(3,AX,DX));       // XOR AX,DX
+                    {
+                        cdb.gen2(0x33,grex | modregrm(3,AX,DX));       // XOR AX,DX
                         cdb.genc2(0x81,grex | modregrm(3,4,AX),1);     // AND AX,1
                         cdb.gen2(0x03,grex | modregrm(3,DX,AX));       // ADD DX,AX
                         resreg = DX;
@@ -1484,7 +1517,8 @@ else
                     assert(pow2 < 32);
                     targ_ulong m = (1 << pow2) - 1;
                     if (op == OPdivass)
-                    {   cdb.genc2(0x81,grex | modregrm(3,4,DX),m);     // AND DX,m
+                    {
+                        cdb.genc2(0x81,grex | modregrm(3,4,DX),m);     // AND DX,m
                         cdb.gen2(0x03,grex | modregrm(3,AX,DX));       // ADD AX,DX
                         // Be careful not to generate this for 8088
                         assert(config.target_cpu >= TARGET_80286);
@@ -1492,7 +1526,8 @@ else
                         resreg = AX;
                     }
                     else // OPmodass
-                    {   cdb.gen2(0x33,grex | modregrm(3,AX,DX));       // XOR AX,DX
+                    {
+                        cdb.gen2(0x33,grex | modregrm(3,AX,DX));       // XOR AX,DX
                         cdb.gen2(0x2B,grex | modregrm(3,AX,DX));       // SUB AX,DX
                         cdb.genc2(0x81,grex | modregrm(3,4,AX),m);     // AND AX,m
                         cdb.gen2(0x33,grex | modregrm(3,AX,DX));       // XOR AX,DX
@@ -1530,14 +1565,15 @@ else
         freenode(e1);
         fixresult(cdb,e,mask(resreg),pretregs);
         return;
-  }
-  else if (sz == 2 * REGSIZE)
-  {
+    }
+    else if (sz == 2 * REGSIZE)
+    {
         lib = CLIB.lmul;
         if (op == OPdivass || op == OPmodass)
-        {       lib = (uns) ? CLIB.uldiv : CLIB.ldiv;
-                if (op == OPmodass)
-                        lib++;
+        {
+            lib = (uns) ? CLIB.uldiv : CLIB.ldiv;
+            if (op == OPmodass)
+                lib++;
         }
         retregs = mCX | mBX;
         codelem(cdb,e2,&retregs,false);
@@ -1566,7 +1602,8 @@ else
              cdb.gen2(0x03,modregrm(3,DX,CX));
         }
         else
-        {   if (op == OPmodass)
+        {
+            if (op == OPmodass)
                 retregs = mBX | mCX;
             callclib(cdb,e,lib,&retregs,idxregm(&cs));
         }
@@ -1579,15 +1616,15 @@ else
         getlvalue_msw(&cs);
         cdb.gen(&cs);                   // MOV EA+2,msreg
         if (e1.Ecount)                 // if we gen a CSE
-                cssave(e1,retregs,!OTleaf(e1.Eoper));
+            cssave(e1,retregs,!OTleaf(e1.Eoper));
         freenode(e1);
         fixresult(cdb,e,retregs,pretregs);
         return;
-  }
-  else
-  {     assert(0);
-        // NOTREACHED
-  }
+    }
+    else
+    {
+        assert(0);
+    }
 }
 
 
@@ -1617,12 +1654,13 @@ void cdshass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     if (e1.Ecount && !(*pretregs & (ALLREGS | mBP)) && !isregvar(e1,&retregs,&reg))
         *pretregs |= ALLREGS;
 
-version (SCPP)
-{
-    // Do this until the rest of the compiler does OPshr/OPashr correctly
-    if (oper == OPshrass)
-        oper = tyuns(tyml) ? OPshrass : OPashrass;
-}
+    version (SCPP)
+    {
+        // Do this until the rest of the compiler does OPshr/OPashr correctly
+        if (oper == OPshrass)
+            oper = tyuns(tyml) ? OPshrass : OPashrass;
+    }
+
     // Select opcodes. op2 is used for msw for long shifts.
 
     switch (oper)
@@ -1631,14 +1669,17 @@ version (SCPP)
             op1 = 4;                    // SHL
             op2 = 2;                    // RCL
             break;
+
         case OPshrass:
             op1 = 5;                    // SHR
             op2 = 3;                    // RCR
             break;
+
         case OPashrass:
             op1 = 7;                    // SAR
             op2 = 3;                    // RCR
             break;
+
         default:
             assert(0);
     }
@@ -1657,7 +1698,8 @@ version (SCPP)
             shiftcnt != 1)
             v = 0xC1;                   // SHIFT xx,shiftcnt
         else if (shiftcnt <= 3)
-        {   loopcnt = shiftcnt;
+        {
+            loopcnt = shiftcnt;
             v = 0xD1;                   // SHIFT xx,1
         }
     }
@@ -1685,7 +1727,8 @@ version (SCPP)
             if (sz <= REGSIZE)
             {
                 if (conste2)
-                {   cs.IFL2 = FLconst;
+                {
+                    cs.IFL2 = FLconst;
                     cs.IEV2.Vint = shiftcnt;
                 }
                 cdb.gen(&cs);             // SHIFT EA,[CL|1]
@@ -1693,13 +1736,15 @@ version (SCPP)
                   code_orflag(cdb.last(),CFpsw);
             }
             else // TYlong
-            {   cs.Iop = 0xD1;            // plain shift
+            {
+                cs.Iop = 0xD1;            // plain shift
                 code *ce = gennop(null);                  // ce: NOP
                 if (v == 0xD3)
                 {
                     getregs(cdb,mCX);
                     if (!conste2)
-                    {   assert(loopcnt == 0);
+                    {
+                        assert(loopcnt == 0);
                         genjmp(cdb,JCXZ,FLcode,cast(block *) ce);   // JCXZ ce
                     }
                 }
@@ -1737,9 +1782,11 @@ version (SCPP)
         // into a register.
 
         if (sz == 2 * REGSIZE && *pretregs)
-        {   retregs = *pretregs & (ALLREGS | mBP);
+        {
+            retregs = *pretregs & (ALLREGS | mBP);
             if (retregs)
-            {   retregs &= ~idxregm(&cs);
+            {
+                retregs &= ~idxregm(&cs);
                 allocreg(cdb,&retregs,&reg,tym);
                 cs.Iop = 0x8B;
 
@@ -1756,7 +1803,8 @@ version (SCPP)
                     tstresult(cdb,retregs,tyml,true);
             }
             else        // flags only
-            {   retregs = ALLREGS & ~idxregm(&cs);
+            {
+                retregs = ALLREGS & ~idxregm(&cs);
                 allocreg(cdb,&retregs,&reg,TYint);
                 cs.Iop = 0x8B;
                 NEWREG(cs.Irm,reg);
@@ -1774,10 +1822,10 @@ version (SCPP)
         {
             regm_t possregs = ALLREGS & ~mCX & ~idxregm(&cs);
             if (isbyte)
-                    possregs &= BYTEREGS;
+                possregs &= BYTEREGS;
             retregs = *pretregs & possregs;
             if (retregs == 0)
-                    retregs = possregs;
+                retregs = possregs;
             allocreg(cdb,&retregs,&reg,tym);
             cs.Iop = 0x8B ^ isbyte;
             code_newreg(&cs, reg);
@@ -1808,7 +1856,8 @@ version (SCPP)
                 }
             }
             if (*pretregs & mPSW && conste2)
-            {   assert(shiftcnt);
+            {
+                assert(shiftcnt);
                 *pretregs &= ~mPSW;     // result is already in flags
                 code_orflag(cdb.last(),CFpsw);
             }
@@ -1838,14 +1887,15 @@ version (SCPP)
  */
 
 void cdcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
-{ regm_t retregs,rretregs;
-  uint reg,rreg;
-  int fl;
+{
+    regm_t retregs,rretregs;
+    uint reg,rreg;
+    int fl;
 
-  //printf("cdcmp(e = %p, pretregs = %s)\n",e,regm_str(*pretregs));
-  // Collect extra parameter. This is pretty ugly...
-  int flag = cdcmp_flag;
-  cdcmp_flag = 0;
+    //printf("cdcmp(e = %p, pretregs = %s)\n",e,regm_str(*pretregs));
+    // Collect extra parameter. This is pretty ugly...
+    int flag = cdcmp_flag;
+    cdcmp_flag = 0;
 
     elem *e1 = e.EV.E1;
     elem *e2 = e.EV.E2;
@@ -1890,51 +1940,55 @@ void cdcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         }
         else
         {
-static if (TARGET_WINDOS)
-{
-            int clib;
+            static if (TARGET_WINDOS)
+            {
+                int clib;
 
-            retregs = 0;                /* skip result for now          */
-            if (iffalse(e2))            /* second operand is constant 0 */
-            {   assert(!eqorne);        /* should be OPbool or OPnot    */
-                if (tym == TYfloat)
-                {   retregs = FLOATREGS;
-                    clib = CLIB.ftst0;
+                retregs = 0;                /* skip result for now          */
+                if (iffalse(e2))            /* second operand is constant 0 */
+                {
+                    assert(!eqorne);        /* should be OPbool or OPnot    */
+                    if (tym == TYfloat)
+                    {
+                        retregs = FLOATREGS;
+                        clib = CLIB.ftst0;
+                    }
+                    else
+                    {
+                        retregs = DOUBLEREGS;
+                        clib = CLIB.dtst0;
+                    }
+                    if (rel_exception(op))
+                        clib += CLIB.dtst0exc - CLIB.dtst0;
+                    codelem(cdb,e1,&retregs,false);
+                    retregs = 0;
+                    callclib(cdb,e,clib,&retregs,0);
+                    freenode(e2);
                 }
                 else
-                {   retregs = DOUBLEREGS;
-                    clib = CLIB.dtst0;
+                {
+                    clib = CLIB.dcmp;
+                    if (rel_exception(op))
+                        clib += CLIB.dcmpexc - CLIB.dcmp;
+                    opdouble(cdb,e,&retregs,clib);
                 }
-                if (rel_exception(op))
-                    clib += CLIB.dtst0exc - CLIB.dtst0;
-                codelem(cdb,e1,&retregs,false);
-                retregs = 0;
-                callclib(cdb,e,clib,&retregs,0);
-                freenode(e2);
             }
             else
-            {   clib = CLIB.dcmp;
-                if (rel_exception(op))
-                    clib += CLIB.dcmpexc - CLIB.dcmp;
-                opdouble(cdb,e,&retregs,clib);
+            {
+                assert(0);
             }
-}
-else
-{
-            assert(0);
-}
         }
         goto L3;
-  }
+    }
 
-  /* If it's a signed comparison of longs, we have to call a library    */
-  /* routine, because we don't know the target of the signed branch     */
-  /* (have to set up flags so that jmpopcode() will do it right)        */
-  if (!eqorne &&
+    /* If it's a signed comparison of longs, we have to call a library    */
+    /* routine, because we don't know the target of the signed branch     */
+    /* (have to set up flags so that jmpopcode() will do it right)        */
+    if (!eqorne &&
         (I16 && tym == TYlong  && tybasic(e2.Ety) == TYlong ||
          I32 && tym == TYllong && tybasic(e2.Ety) == TYllong)
-     )
-  {
+       )
+    {
         assert(jop != JC && jop != JNC);
         retregs = mDX | mAX;
         codelem(cdb,e1,&retregs,false);
@@ -1977,222 +2031,236 @@ else
              retregs = mPSW;
         }
         goto L3;
-  }
+    }
 
-  /* See if we should reverse the comparison, so a JA => JC, and JBE => JNC
-   * (This is already reflected in the jop)
-   */
-  if ((jop == JC || jop == JNC) &&
-      (op == OPgt || op == OPle) &&
-      (tyuns(tym) || tyuns(e2.Ety))
-     )
-  {     // jmpopcode() sez comparison should be reversed
+    /* See if we should reverse the comparison, so a JA => JC, and JBE => JNC
+     * (This is already reflected in the jop)
+     */
+    if ((jop == JC || jop == JNC) &&
+        (op == OPgt || op == OPle) &&
+        (tyuns(tym) || tyuns(e2.Ety))
+       )
+    {   // jmpopcode() sez comparison should be reversed
         assert(e2.Eoper != OPconst && e2.Eoper != OPrelconst);
         reverse ^= 2;
-  }
+    }
 
-  /* See if we should swap operands     */
-  if (e1.Eoper == OPvar && e2.Eoper == OPvar && evalinregister(e2))
-  {     e1 = e.EV.E2;
+    /* See if we should swap operands     */
+    if (e1.Eoper == OPvar && e2.Eoper == OPvar && evalinregister(e2))
+    {
+        e1 = e.EV.E2;
         e2 = e.EV.E1;
         reverse ^= 2;
-  }
+    }
 
-  retregs = allregs;
-  if (isbyte)
+    retregs = allregs;
+    if (isbyte)
         retregs = BYTEREGS;
 
-  ce = null;
-  cs.Iflags = (!I16 && sz == SHORTSIZE) ? CFopsize : 0;
-  cs.Irex = cast(ubyte)rex;
-  if (sz > REGSIZE)
+    ce = null;
+    cs.Iflags = (!I16 && sz == SHORTSIZE) ? CFopsize : 0;
+    cs.Irex = cast(ubyte)rex;
+    if (sz > REGSIZE)
         ce = gennop(ce);
 
-  switch (e2.Eoper)
-  {
-      default:
-      L2:
-        scodelem(cdb,e1,&retregs,0,true);      // compute left leaf
-      L1:
-        rretregs = allregs & ~retregs;
-        if (isbyte)
+    switch (e2.Eoper)
+    {
+        default:
+        L2:
+            scodelem(cdb,e1,&retregs,0,true);      // compute left leaf
+        L1:
+            rretregs = allregs & ~retregs;
+            if (isbyte)
                 rretregs &= BYTEREGS;
-        scodelem(cdb,e2,&rretregs,retregs,true);     // get right leaf
-        if (sz <= REGSIZE)                              // CMP reg,rreg
-        {   reg = findreg(retregs);             // get reg that e1 is in
-            rreg = findreg(rretregs);
-            genregs(cdb,0x3B ^ isbyte ^ reverse,reg,rreg);
-            code_orrex(cdb.last(), rex);
-            if (!I16 && sz == SHORTSIZE)
-                cdb.last().Iflags |= CFopsize;          // compare only 16 bits
-            if (I64 && isbyte && (reg >= 4 || rreg >= 4))
-                cdb.last().Irex |= REX;                 // address byte registers
-        }
-        else
-        {   assert(sz <= 2 * REGSIZE);
+            scodelem(cdb,e2,&rretregs,retregs,true);     // get right leaf
+            if (sz <= REGSIZE)                              // CMP reg,rreg
+            {
+                reg = findreg(retregs);             // get reg that e1 is in
+                rreg = findreg(rretregs);
+                genregs(cdb,0x3B ^ isbyte ^ reverse,reg,rreg);
+                code_orrex(cdb.last(), rex);
+                if (!I16 && sz == SHORTSIZE)
+                    cdb.last().Iflags |= CFopsize;          // compare only 16 bits
+                if (I64 && isbyte && (reg >= 4 || rreg >= 4))
+                    cdb.last().Irex |= REX;                 // address byte registers
+            }
+            else
+            {
+                assert(sz <= 2 * REGSIZE);
 
-            // Compare MSW, if they're equal then compare the LSW
-            reg = findregmsw(retregs);
-            rreg = findregmsw(rretregs);
-            genregs(cdb,0x3B ^ reverse,reg,rreg);  // CMP reg,rreg
-            if (I32 && sz == 6)
-                cdb.last().Iflags |= CFopsize;         // seg is only 16 bits
-            else if (I64)
-                code_orrex(cdb.last(), REX_W);
-            genjmp(cdb,JNE,FLcode,cast(block *) ce);   // JNE nop
+                // Compare MSW, if they're equal then compare the LSW
+                reg = findregmsw(retregs);
+                rreg = findregmsw(rretregs);
+                genregs(cdb,0x3B ^ reverse,reg,rreg);  // CMP reg,rreg
+                if (I32 && sz == 6)
+                    cdb.last().Iflags |= CFopsize;         // seg is only 16 bits
+                else if (I64)
+                    code_orrex(cdb.last(), REX_W);
+                genjmp(cdb,JNE,FLcode,cast(block *) ce);   // JNE nop
 
-            reg = findreglsw(retregs);
-            rreg = findreglsw(rretregs);
-            genregs(cdb,0x3B ^ reverse,reg,rreg);  // CMP reg,rreg
-            if (I64)
-                code_orrex(cdb.last(), REX_W);
-        }
-        break;
-      case OPrelconst:
-        if (I64 && (config.flags3 & CFG3pic || config.exe == EX_WIN64))
-            goto L2;
-        fl = el_fl(e2);
-        switch (fl)
-        {   case FLfunc:
-                fl = FLextern;          // so it won't be self-relative
-                break;
-            case FLdata:
-            case FLudata:
-            case FLextern:
-                if (sz > REGSIZE)       // compare against DS, not DGROUP
-                    goto L2;
-                break;
-            case FLfardata:
-                break;
-            default:
-                goto L2;
-        }
-        cs.IFL2 = cast(ubyte)fl;
-        cs.IEV2.Vsym = e2.EV.Vsym;
-        if (sz > REGSIZE)
-        {   cs.Iflags |= CFseg;
-            cs.IEV2.Voffset = 0;
-        }
-        else
-        {   cs.Iflags |= CFoff;
-            cs.IEV2.Voffset = e2.EV.Voffset;
-        }
-        goto L4;
-
-      case OPconst:
-        // If compare against 0
-        if (sz <= REGSIZE && *pretregs == mPSW && !boolres(e2) &&
-            isregvar(e1,&retregs,&reg)
-           )
-        {   // Just do a TEST instruction
-            genregs(cdb,0x85 ^ isbyte,reg,reg);      // TEST reg,reg
-            cdb.last().Iflags |= (cs.Iflags & CFopsize) | CFpsw;
-            code_orrex(cdb.last(), rex);
-            if (I64 && isbyte && reg >= 4)
-                cdb.last().Irex |= REX;                 // address byte registers
-            retregs = mPSW;
+                reg = findreglsw(retregs);
+                rreg = findreglsw(rretregs);
+                genregs(cdb,0x3B ^ reverse,reg,rreg);  // CMP reg,rreg
+                if (I64)
+                    code_orrex(cdb.last(), REX_W);
+            }
             break;
-        }
 
-        if (!tyuns(tym) && !tyuns(e2.Ety) &&
-            !boolres(e2) && !(*pretregs & mPSW) &&
-            (sz == REGSIZE || (I64 && sz == 4)) &&
-            (!I16 || op == OPlt || op == OPge))
-        {
-            assert(*pretregs & (allregs));
-            codelem(cdb,e1,pretregs,false);
-            reg = findreg(*pretregs);
-            getregs(cdb,mask(reg));
-            switch (op)
-            {   case OPle:
-                    cdb.genc2(0x81,grex | modregrmx(3,0,reg),cast(uint)-1);   // ADD reg,-1
-                    code_orflag(cdb.last(), CFpsw);
-                    cdb.genc2(0x81,grex | modregrmx(3,2,reg),0);          // ADC reg,0
-                    goto oplt;
-                case OPgt:
-                    cdb.gen2(0xF7,grex | modregrmx(3,3,reg));         // NEG reg
-                        /* Flips the sign bit unless the value is 0 or int.min.
-                        Also sets the carry bit when the value is not 0. */
-                    code_orflag(cdb.last(), CFpsw);
-                    cdb.genc2(0x81,grex | modregrmx(3,3,reg),0);  // SBB reg,0
-                        /* Subtracts the carry bit. This turns int.min into
-                        int.max, flipping the sign bit.
-                        For other negative and positive values, subtracting 1
-                        doesn't affect the sign bit.
-                        For 0, the carry bit is not set, so this does nothing
-                        and the sign bit is not affected. */
-                    goto oplt;
-                case OPlt:
-                oplt:
-                    // Get the sign bit, i.e. 1 if the value is negative.
-                    if (!I16)
-                        cdb.genc2(0xC1,grex | modregrmx(3,5,reg),sz * 8 - 1); // SHR reg,31
-                    else
-                    {   /* 8088-286 do not have a barrel shifter, so use this
-                           faster sequence
-                         */
-                        genregs(cdb,0xD1,0,reg);   // ROL reg,1
-                        uint regi;
-                        if (reghasvalue(allregs,1,&regi))
-                            genregs(cdb,0x23,reg,regi);  // AND reg,regi
-                        else
-                            cdb.genc2(0x81,modregrm(3,4,reg),1); // AND reg,1
-                    }
+        case OPrelconst:
+            if (I64 && (config.flags3 & CFG3pic || config.exe == EX_WIN64))
+                goto L2;
+            fl = el_fl(e2);
+            switch (fl)
+            {
+                case FLfunc:
+                    fl = FLextern;          // so it won't be self-relative
                     break;
-                case OPge:
-                    genregs(cdb,0xD1,4,reg);        // SHL reg,1
-                    code_orrex(cdb.last(),rex);
-                    code_orflag(cdb.last(), CFpsw);
-                    genregs(cdb,0x19,reg,reg);      // SBB reg,reg
-                    code_orrex(cdb.last(),rex);
-                    if (I64)
-                    {
-                        cdb.gen2(0xFF,modregrmx(3,0,reg));       // INC reg
-                        code_orrex(cdb.last(), rex);
-                    }
-                    else
-                        cdb.gen1(0x40 + reg);                    // INC reg
+
+                case FLdata:
+                case FLudata:
+                case FLextern:
+                    if (sz > REGSIZE)       // compare against DS, not DGROUP
+                        goto L2;
+                    break;
+
+                case FLfardata:
                     break;
 
                 default:
-                    assert(0);
+                    goto L2;
             }
-            freenode(e2);
-            goto ret;
-        }
+            cs.IFL2 = cast(ubyte)fl;
+            cs.IEV2.Vsym = e2.EV.Vsym;
+            if (sz > REGSIZE)
+            {
+                cs.Iflags |= CFseg;
+                cs.IEV2.Voffset = 0;
+            }
+            else
+            {
+                cs.Iflags |= CFoff;
+                cs.IEV2.Voffset = e2.EV.Voffset;
+            }
+            goto L4;
 
-        cs.IFL2 = FLconst;
-        if (sz == 16)
-            cs.IEV2.Vsize_t = cast(targ_size_t)e2.EV.Vcent.msw;
-        else if (sz > REGSIZE)
-            cs.IEV2.Vint = cast(int)MSREG(e2.EV.Vllong);
-        else
-            cs.IEV2.Vsize_t = cast(targ_size_t)e2.EV.Vllong;
+        case OPconst:
+            // If compare against 0
+            if (sz <= REGSIZE && *pretregs == mPSW && !boolres(e2) &&
+                isregvar(e1,&retregs,&reg)
+               )
+            {   // Just do a TEST instruction
+                genregs(cdb,0x85 ^ isbyte,reg,reg);      // TEST reg,reg
+                cdb.last().Iflags |= (cs.Iflags & CFopsize) | CFpsw;
+                code_orrex(cdb.last(), rex);
+                if (I64 && isbyte && reg >= 4)
+                    cdb.last().Irex |= REX;                 // address byte registers
+                retregs = mPSW;
+                break;
+            }
 
-        // The cmp immediate relies on sign extension of the 32 bit immediate value
-        if (I64 && sz >= REGSIZE && cs.IEV2.Vsize_t != cast(int)cs.IEV2.Vint)
-            goto L2;
-      L4:
-        cs.Iop = 0x81 ^ isbyte;
+            if (!tyuns(tym) && !tyuns(e2.Ety) &&
+                !boolres(e2) && !(*pretregs & mPSW) &&
+                (sz == REGSIZE || (I64 && sz == 4)) &&
+                (!I16 || op == OPlt || op == OPge))
+            {
+                assert(*pretregs & (allregs));
+                codelem(cdb,e1,pretregs,false);
+                reg = findreg(*pretregs);
+                getregs(cdb,mask(reg));
+                switch (op)
+                {
+                    case OPle:
+                        cdb.genc2(0x81,grex | modregrmx(3,0,reg),cast(uint)-1);   // ADD reg,-1
+                        code_orflag(cdb.last(), CFpsw);
+                        cdb.genc2(0x81,grex | modregrmx(3,2,reg),0);          // ADC reg,0
+                        goto oplt;
 
-        /* if ((e1 is data or a '*' reference) and it's not a
-         * common subexpression
-         */
+                    case OPgt:
+                        cdb.gen2(0xF7,grex | modregrmx(3,3,reg));         // NEG reg
+                            /* Flips the sign bit unless the value is 0 or int.min.
+                            Also sets the carry bit when the value is not 0. */
+                        code_orflag(cdb.last(), CFpsw);
+                        cdb.genc2(0x81,grex | modregrmx(3,3,reg),0);  // SBB reg,0
+                            /* Subtracts the carry bit. This turns int.min into
+                            int.max, flipping the sign bit.
+                            For other negative and positive values, subtracting 1
+                            doesn't affect the sign bit.
+                            For 0, the carry bit is not set, so this does nothing
+                            and the sign bit is not affected. */
+                        goto oplt;
 
-        if ((e1.Eoper == OPvar && datafl[el_fl(e1)] ||
-             e1.Eoper == OPind) &&
-            !evalinregister(e1))
-        {
+                    case OPlt:
+                    oplt:
+                        // Get the sign bit, i.e. 1 if the value is negative.
+                        if (!I16)
+                            cdb.genc2(0xC1,grex | modregrmx(3,5,reg),sz * 8 - 1); // SHR reg,31
+                        else
+                        {   /* 8088-286 do not have a barrel shifter, so use this
+                               faster sequence
+                             */
+                            genregs(cdb,0xD1,0,reg);   // ROL reg,1
+                            uint regi;
+                            if (reghasvalue(allregs,1,&regi))
+                                genregs(cdb,0x23,reg,regi);  // AND reg,regi
+                            else
+                                cdb.genc2(0x81,modregrm(3,4,reg),1); // AND reg,1
+                        }
+                        break;
+
+                    case OPge:
+                        genregs(cdb,0xD1,4,reg);        // SHL reg,1
+                        code_orrex(cdb.last(),rex);
+                        code_orflag(cdb.last(), CFpsw);
+                        genregs(cdb,0x19,reg,reg);      // SBB reg,reg
+                        code_orrex(cdb.last(),rex);
+                        if (I64)
+                        {
+                            cdb.gen2(0xFF,modregrmx(3,0,reg));       // INC reg
+                            code_orrex(cdb.last(), rex);
+                        }
+                        else
+                            cdb.gen1(0x40 + reg);                    // INC reg
+                        break;
+
+                    default:
+                        assert(0);
+                }
+                freenode(e2);
+                goto ret;
+            }
+
+            cs.IFL2 = FLconst;
+            if (sz == 16)
+                cs.IEV2.Vsize_t = cast(targ_size_t)e2.EV.Vcent.msw;
+            else if (sz > REGSIZE)
+                cs.IEV2.Vint = cast(int)MSREG(e2.EV.Vllong);
+            else
+                cs.IEV2.Vsize_t = cast(targ_size_t)e2.EV.Vllong;
+
+            // The cmp immediate relies on sign extension of the 32 bit immediate value
+            if (I64 && sz >= REGSIZE && cs.IEV2.Vsize_t != cast(int)cs.IEV2.Vint)
+                goto L2;
+          L4:
+            cs.Iop = 0x81 ^ isbyte;
+
+            /* if ((e1 is data or a '*' reference) and it's not a
+             * common subexpression
+             */
+
+            if ((e1.Eoper == OPvar && datafl[el_fl(e1)] ||
+                 e1.Eoper == OPind) &&
+                !evalinregister(e1))
+            {
                 getlvalue(cdb,&cs,e1,RMload);
                 freenode(e1);
                 if (evalinregister(e2))
                 {
                     retregs = idxregm(&cs);
                     if ((cs.Iflags & CFSEG) == CFes)
-                            retregs |= mES;             // take no chances
+                        retregs |= mES;             // take no chances
                     rretregs = allregs & ~retregs;
                     if (isbyte)
-                            rretregs &= BYTEREGS;
+                        rretregs &= BYTEREGS;
                     scodelem(cdb,e2,&rretregs,retregs,true);
                     cs.Iop = 0x39 ^ isbyte ^ reverse;
                     if (sz > REGSIZE)
@@ -2249,166 +2317,168 @@ else
                 }
                 cdb.gen(&cs);
                 break;
-        }
-
-        if (evalinregister(e2) && !OTassign(e1.Eoper) &&
-            !isregvar(e1,null,null))
-        {   regm_t m;
-
-            m = allregs & ~regcon.mvar;
-            if (isbyte)
-                m &= BYTEREGS;
-            if (m & (m - 1))    // if more than one free register
-                goto L2;
-        }
-        if ((e1.Eoper == OPstrcmp || (OTassign(e1.Eoper) && sz <= REGSIZE)) &&
-            !boolres(e2) && !evalinregister(e1))
-        {
-            retregs = mPSW;
-            scodelem(cdb,e1,&retregs,0,false);
-            freenode(e2);
-            break;
-        }
-        if (sz <= REGSIZE && !boolres(e2) && e1.Eoper == OPadd && *pretregs == mPSW)
-        {
-            retregs |= mPSW;
-            scodelem(cdb,e1,&retregs,0,false);
-            freenode(e2);
-            break;
-        }
-        scodelem(cdb,e1,&retregs,0,true);  // compute left leaf
-        if (sz == 1)
-        {
-            reg = findreg(retregs & allregs);   // get reg that e1 is in
-            cs.Irm = modregrm(3,7,reg & 7);
-            if (reg & 8)
-                cs.Irex |= REX_B;
-            if (e1.Eoper == OPvar && e1.EV.Voffset == 1 && e1.EV.Vsym.Sfl == FLreg)
-            {   assert(reg < 4);
-                cs.Irm |= 4;                    // use upper register half
             }
-            if (I64 && reg >= 4)
-                cs.Irex |= REX;                 // address byte registers
-        }
-        else if (sz <= REGSIZE)
-        {                                       // CMP reg,const
-            reg = findreg(retregs & allregs);   // get reg that e1 is in
-            rretregs = allregs & ~retregs;
-            if (cs.IFL2 == FLconst && reghasvalue(rretregs,cs.IEV2.Vint,&rreg))
+
+            if (evalinregister(e2) && !OTassign(e1.Eoper) &&
+                !isregvar(e1,null,null))
             {
-                genregs(cdb,0x3B,reg,rreg);
-                code_orrex(cdb.last(), rex);
-                if (!I16)
-                    cdb.last().Iflags |= cs.Iflags & CFopsize;
+                regm_t m;
+
+                m = allregs & ~regcon.mvar;
+                if (isbyte)
+                    m &= BYTEREGS;
+                if (m & (m - 1))    // if more than one free register
+                    goto L2;
+            }
+            if ((e1.Eoper == OPstrcmp || (OTassign(e1.Eoper) && sz <= REGSIZE)) &&
+                !boolres(e2) && !evalinregister(e1))
+            {
+                retregs = mPSW;
+                scodelem(cdb,e1,&retregs,0,false);
                 freenode(e2);
                 break;
             }
-            cs.Irm = modregrm(3,7,reg & 7);
-            if (reg & 8)
-                cs.Irex |= REX_B;
-        }
-        else if (sz <= 2 * REGSIZE)
-        {
-            reg = findregmsw(retregs);          // get reg that e1 is in
-            cs.Irm = modregrm(3,7,reg);
-            cdb.gen(&cs);                       // CMP reg,MSW
-            if (I32 && sz == 6)
-                cdb.last().Iflags |= CFopsize;  // seg is only 16 bits
-            genjmp(cdb,JNE,FLcode, cast(block *) ce);  // JNE ce
+            if (sz <= REGSIZE && !boolres(e2) && e1.Eoper == OPadd && *pretregs == mPSW)
+            {
+                retregs |= mPSW;
+                scodelem(cdb,e1,&retregs,0,false);
+                freenode(e2);
+                break;
+            }
+            scodelem(cdb,e1,&retregs,0,true);  // compute left leaf
+            if (sz == 1)
+            {
+                reg = findreg(retregs & allregs);   // get reg that e1 is in
+                cs.Irm = modregrm(3,7,reg & 7);
+                if (reg & 8)
+                    cs.Irex |= REX_B;
+                if (e1.Eoper == OPvar && e1.EV.Voffset == 1 && e1.EV.Vsym.Sfl == FLreg)
+                {   assert(reg < 4);
+                    cs.Irm |= 4;                    // use upper register half
+                }
+                if (I64 && reg >= 4)
+                    cs.Irex |= REX;                 // address byte registers
+            }
+            else if (sz <= REGSIZE)
+            {   // CMP reg,const
+                reg = findreg(retregs & allregs);   // get reg that e1 is in
+                rretregs = allregs & ~retregs;
+                if (cs.IFL2 == FLconst && reghasvalue(rretregs,cs.IEV2.Vint,&rreg))
+                {
+                    genregs(cdb,0x3B,reg,rreg);
+                    code_orrex(cdb.last(), rex);
+                    if (!I16)
+                        cdb.last().Iflags |= cs.Iflags & CFopsize;
+                    freenode(e2);
+                    break;
+                }
+                cs.Irm = modregrm(3,7,reg & 7);
+                if (reg & 8)
+                    cs.Irex |= REX_B;
+            }
+            else if (sz <= 2 * REGSIZE)
+            {
+                reg = findregmsw(retregs);          // get reg that e1 is in
+                cs.Irm = modregrm(3,7,reg);
+                cdb.gen(&cs);                       // CMP reg,MSW
+                if (I32 && sz == 6)
+                    cdb.last().Iflags |= CFopsize;  // seg is only 16 bits
+                genjmp(cdb,JNE,FLcode, cast(block *) ce);  // JNE ce
 
-            reg = findreglsw(retregs);
-            cs.Irm = modregrm(3,7,reg);
-            if (e2.Eoper == OPconst)
-                cs.IEV2.Vint = e2.EV.Vlong;
-            else if (e2.Eoper == OPrelconst)
-            {   // Turn off CFseg, on CFoff
-                cs.Iflags ^= CFseg | CFoff;
-                cs.IEV2.Voffset = e2.EV.Voffset;
+                reg = findreglsw(retregs);
+                cs.Irm = modregrm(3,7,reg);
+                if (e2.Eoper == OPconst)
+                    cs.IEV2.Vint = e2.EV.Vlong;
+                else if (e2.Eoper == OPrelconst)
+                {   // Turn off CFseg, on CFoff
+                    cs.Iflags ^= CFseg | CFoff;
+                    cs.IEV2.Voffset = e2.EV.Voffset;
+                }
+                else
+                    assert(0);
             }
             else
                 assert(0);
-        }
-        else
-                assert(0);
-        cdb.gen(&cs);                         // CMP sucreg,LSW
-        freenode(e2);
-        break;
-
-      case OPind:
-        if (e2.Ecount)
-            goto L2;
-        goto L5;
-
-      case OPvar:
-static if (TARGET_OSX)
-{
-        if (movOnly(e2))
-            goto L2;
-}
-        if ((e1.Eoper == OPvar &&
-             isregvar(e2,&rretregs,&reg) &&
-             sz <= REGSIZE
-            ) ||
-            (e1.Eoper == OPind &&
-             isregvar(e2,&rretregs,&reg) &&
-             !evalinregister(e1) &&
-             sz <= REGSIZE
-            )
-           )
-        {
-            // CMP EA,e2
-            getlvalue(cdb,&cs,e1,RMload);
-            freenode(e1);
-            cs.Iop = 0x39 ^ isbyte ^ reverse;
-            code_newreg(&cs,reg);
-            if (I64 && isbyte && reg >= 4)
-                cs.Irex |= REX;                 // address byte registers
-            cdb.gen(&cs);
+            cdb.gen(&cs);                         // CMP sucreg,LSW
             freenode(e2);
             break;
-        }
-      L5:
-        scodelem(cdb,e1,&retregs,0,true);      // compute left leaf
-        if (sz <= REGSIZE)                      // CMP reg,EA
-        {
-            reg = findreg(retregs & allregs);   // get reg that e1 is in
-            uint opsize = cs.Iflags & CFopsize;
-            loadea(cdb,e2,&cs,0x3B ^ isbyte ^ reverse,reg,0,RMload | retregs,0);
-            code_orflag(cdb.last(),opsize);
-        }
-        else if (sz <= 2 * REGSIZE)
-        {
-            reg = findregmsw(retregs);   // get reg that e1 is in
-            // CMP reg,EA
-            loadea(cdb,e2,&cs,0x3B ^ reverse,reg,REGSIZE,RMload | retregs,0);
-            if (I32 && sz == 6)
-                cdb.last().Iflags |= CFopsize;        // seg is only 16 bits
-            genjmp(cdb,JNE,FLcode, cast(block *) ce);  // JNE ce
-            reg = findreglsw(retregs);
-            if (e2.Eoper == OPind)
+
+        case OPind:
+            if (e2.Ecount)
+                goto L2;
+            goto L5;
+
+        case OPvar:
+            static if (TARGET_OSX)
             {
-                NEWREG(cs.Irm,reg);
-                getlvalue_lsw(&cs);
+                if (movOnly(e2))
+                    goto L2;
+            }
+            if ((e1.Eoper == OPvar &&
+                 isregvar(e2,&rretregs,&reg) &&
+                 sz <= REGSIZE
+                ) ||
+                (e1.Eoper == OPind &&
+                 isregvar(e2,&rretregs,&reg) &&
+                 !evalinregister(e1) &&
+                 sz <= REGSIZE
+                )
+               )
+            {
+                // CMP EA,e2
+                getlvalue(cdb,&cs,e1,RMload);
+                freenode(e1);
+                cs.Iop = 0x39 ^ isbyte ^ reverse;
+                code_newreg(&cs,reg);
+                if (I64 && isbyte && reg >= 4)
+                    cs.Irex |= REX;                 // address byte registers
                 cdb.gen(&cs);
+                freenode(e2);
+                break;
+            }
+          L5:
+            scodelem(cdb,e1,&retregs,0,true);      // compute left leaf
+            if (sz <= REGSIZE)                      // CMP reg,EA
+            {
+                reg = findreg(retregs & allregs);   // get reg that e1 is in
+                uint opsize = cs.Iflags & CFopsize;
+                loadea(cdb,e2,&cs,0x3B ^ isbyte ^ reverse,reg,0,RMload | retregs,0);
+                code_orflag(cdb.last(),opsize);
+            }
+            else if (sz <= 2 * REGSIZE)
+            {
+                reg = findregmsw(retregs);   // get reg that e1 is in
+                // CMP reg,EA
+                loadea(cdb,e2,&cs,0x3B ^ reverse,reg,REGSIZE,RMload | retregs,0);
+                if (I32 && sz == 6)
+                    cdb.last().Iflags |= CFopsize;        // seg is only 16 bits
+                genjmp(cdb,JNE,FLcode, cast(block *) ce);  // JNE ce
+                reg = findreglsw(retregs);
+                if (e2.Eoper == OPind)
+                {
+                    NEWREG(cs.Irm,reg);
+                    getlvalue_lsw(&cs);
+                    cdb.gen(&cs);
+                }
+                else
+                    loadea(cdb,e2,&cs,0x3B ^ reverse,reg,0,RMload | retregs,0);
             }
             else
-                loadea(cdb,e2,&cs,0x3B ^ reverse,reg,0,RMload | retregs,0);
-        }
-        else
-            assert(0);
-        freenode(e2);
-        break;
+                assert(0);
+            freenode(e2);
+            break;
     }
     cdb.append(ce);
 
 L3:
-  if ((retregs = (*pretregs & (ALLREGS | mBP))) != 0) // if return result in register
-  {
+    if ((retregs = (*pretregs & (ALLREGS | mBP))) != 0) // if return result in register
+    {
         if (config.target_cpu >= TARGET_80386 && !flag && !(jop & 0xFF00))
         {
             regm_t resregs = retregs;
             if (!I64)
-            {   resregs &= BYTEREGS;
+            {
+                resregs &= BYTEREGS;
                 if (!resregs)
                     resregs = BYTEREGS;
             }
@@ -2453,7 +2523,8 @@ L3:
                         cdb.gen1(0x40 + reg);               // INC reg
                 }
                 else
-                {   cdb.gen2(0xF7,modregrmx(3,3,reg));      // NEG reg
+                {
+                    cdb.gen2(0xF7,modregrmx(3,3,reg));      // NEG reg
                     code_orrex(cdb.last(), rex);
                 }
             }
@@ -2527,116 +2598,119 @@ void longcmp(ref CodeBuilder cdb,elem *e,bool jcond,uint fltarg,code *targ)
     genjmp(cdbjmp,jop,fltarg, cast(block *) targ);             // Jx targ
     genjmp(cdbjmp,jop ^ (JL ^ JG),FLcode, cast(block *) ce);   // Jy nop
 
-  switch (e2.Eoper)
-  {
-      default:
-      L2:
-        scodelem(cdb,e1,&retregs,0,true);      // compute left leaf
-        rretregs = ALLREGS & ~retregs;
-        scodelem(cdb,e2,&rretregs,retregs,true);     // get right leaf
-        cse_flush(cdb,1);
-        // Compare MSW, if they're equal then compare the LSW
-        reg = findregmsw(retregs);
-        rreg = findregmsw(rretregs);
-        genregs(cdb,0x3B,reg,rreg);        // CMP reg,rreg
-        cdb.append(cdbjmp);
+    switch (e2.Eoper)
+    {
+        default:
+        L2:
+            scodelem(cdb,e1,&retregs,0,true);      // compute left leaf
+            rretregs = ALLREGS & ~retregs;
+            scodelem(cdb,e2,&rretregs,retregs,true);     // get right leaf
+            cse_flush(cdb,1);
+            // Compare MSW, if they're equal then compare the LSW
+            reg = findregmsw(retregs);
+            rreg = findregmsw(rretregs);
+            genregs(cdb,0x3B,reg,rreg);        // CMP reg,rreg
+            cdb.append(cdbjmp);
 
-        reg = findreglsw(retregs);
-        rreg = findreglsw(rretregs);
-        genregs(cdb,0x3B,reg,rreg);        // CMP reg,rreg
-        break;
-      case OPconst:
-        cs.IEV2.Vint = cast(int)MSREG(e2.EV.Vllong);            // MSW first
-        cs.IFL2 = FLconst;
-        cs.Iop = 0x81;
+            reg = findreglsw(retregs);
+            rreg = findreglsw(rretregs);
+            genregs(cdb,0x3B,reg,rreg);        // CMP reg,rreg
+            break;
 
-        /* if ((e1 is data or a '*' reference) and it's not a
-         * common subexpression
-         */
+        case OPconst:
+            cs.IEV2.Vint = cast(int)MSREG(e2.EV.Vllong);            // MSW first
+            cs.IFL2 = FLconst;
+            cs.Iop = 0x81;
 
-        if ((e1.Eoper == OPvar && datafl[el_fl(e1)] ||
-             e1.Eoper == OPind) &&
-            !evalinregister(e1))
-        {
+            /* if ((e1 is data or a '*' reference) and it's not a
+             * common subexpression
+             */
+
+            if ((e1.Eoper == OPvar && datafl[el_fl(e1)] ||
+                 e1.Eoper == OPind) &&
+                !evalinregister(e1))
+            {
                 getlvalue(cdb,&cs,e1,0);
                 freenode(e1);
                 if (evalinregister(e2))
                 {
-                        retregs = idxregm(&cs);
-                        if ((cs.Iflags & CFSEG) == CFes)
-                                retregs |= mES;         // take no chances
-                        rretregs = ALLREGS & ~retregs;
-                        scodelem(cdb,e2,&rretregs,retregs,true);
-                        cse_flush(cdb,1);
-                        rreg = findregmsw(rretregs);
-                        cs.Iop = 0x39;
-                        cs.Irm |= modregrm(0,rreg,0);
-                        getlvalue_msw(&cs);
-                        cdb.gen(&cs);           // CMP EA+2,rreg
-                        cdb.append(cdbjmp);
-                        rreg = findreglsw(rretregs);
-                        NEWREG(cs.Irm,rreg);
+                    retregs = idxregm(&cs);
+                    if ((cs.Iflags & CFSEG) == CFes)
+                            retregs |= mES;         // take no chances
+                    rretregs = ALLREGS & ~retregs;
+                    scodelem(cdb,e2,&rretregs,retregs,true);
+                    cse_flush(cdb,1);
+                    rreg = findregmsw(rretregs);
+                    cs.Iop = 0x39;
+                    cs.Irm |= modregrm(0,rreg,0);
+                    getlvalue_msw(&cs);
+                    cdb.gen(&cs);           // CMP EA+2,rreg
+                    cdb.append(cdbjmp);
+                    rreg = findreglsw(rretregs);
+                    NEWREG(cs.Irm,rreg);
                 }
                 else
                 {
-                        cse_flush(cdb,1);
-                        cs.Irm |= modregrm(0,7,0);
-                        getlvalue_msw(&cs);
-                        cdb.gen(&cs);           // CMP EA+2,const
-                        cdb.append(cdbjmp);
-                        cs.IEV2.Vint = e2.EV.Vlong;
-                        freenode(e2);
+                    cse_flush(cdb,1);
+                    cs.Irm |= modregrm(0,7,0);
+                    getlvalue_msw(&cs);
+                    cdb.gen(&cs);           // CMP EA+2,const
+                    cdb.append(cdbjmp);
+                    cs.IEV2.Vint = e2.EV.Vlong;
+                    freenode(e2);
                 }
                 getlvalue_lsw(&cs);
                 cdb.gen(&cs);                   // CMP EA,rreg/const
                 break;
-        }
-        if (evalinregister(e2))
-            goto L2;
+            }
+            if (evalinregister(e2))
+                goto L2;
 
-        scodelem(cdb,e1,&retregs,0,true);    // compute left leaf
-        cse_flush(cdb,1);
-        reg = findregmsw(retregs);              // get reg that e1 is in
-        cs.Irm = modregrm(3,7,reg);
-
-        cdb.gen(&cs);                           // CMP reg,MSW
-        cdb.append(cdbjmp);
-        reg = findreglsw(retregs);
-        cs.Irm = modregrm(3,7,reg);
-        cs.IEV2.Vint = e2.EV.Vlong;
-        cdb.gen(&cs);                           // CMP sucreg,LSW
-        freenode(e2);
-        break;
-      case OPvar:
-        if (!e1.Ecount && e1.Eoper == OPs32_64)
-        {   uint msreg;
-
-            retregs = allregs;
-            scodelem(cdb,e1.EV.E1,&retregs,0,true);
-            freenode(e1);
-            reg = findreg(retregs);
-            retregs = allregs & ~retregs;
-            allocreg(cdb,&retregs,&msreg,TYint);
-            genmovreg(cdb,msreg,reg);                  // MOV msreg,reg
-            cdb.genc2(0xC1,modregrm(3,7,msreg),REGSIZE * 8 - 1);    // SAR msreg,31
+            scodelem(cdb,e1,&retregs,0,true);    // compute left leaf
             cse_flush(cdb,1);
-            loadea(cdb,e2,&cs,0x3B,msreg,REGSIZE,mask(reg),0);
-            cdb.append(cdbjmp);
-            loadea(cdb,e2,&cs,0x3B,reg,0,mask(reg),0);
-            freenode(e2);
-        }
-        else
-        {
-            scodelem(cdb,e1,&retregs,0,true);  // compute left leaf
-            cse_flush(cdb,1);
-            reg = findregmsw(retregs);   // get reg that e1 is in
-            loadea(cdb,e2,&cs,0x3B,reg,REGSIZE,retregs,0);
+            reg = findregmsw(retregs);              // get reg that e1 is in
+            cs.Irm = modregrm(3,7,reg);
+
+            cdb.gen(&cs);                           // CMP reg,MSW
             cdb.append(cdbjmp);
             reg = findreglsw(retregs);
-            loadea(cdb,e2,&cs,0x3B,reg,0,retregs,0);
+            cs.Irm = modregrm(3,7,reg);
+            cs.IEV2.Vint = e2.EV.Vlong;
+            cdb.gen(&cs);                           // CMP sucreg,LSW
             freenode(e2);
-        }
-        break;
+            break;
+
+        case OPvar:
+            if (!e1.Ecount && e1.Eoper == OPs32_64)
+            {
+                uint msreg;
+
+                retregs = allregs;
+                scodelem(cdb,e1.EV.E1,&retregs,0,true);
+                freenode(e1);
+                reg = findreg(retregs);
+                retregs = allregs & ~retregs;
+                allocreg(cdb,&retregs,&msreg,TYint);
+                genmovreg(cdb,msreg,reg);                  // MOV msreg,reg
+                cdb.genc2(0xC1,modregrm(3,7,msreg),REGSIZE * 8 - 1);    // SAR msreg,31
+                cse_flush(cdb,1);
+                loadea(cdb,e2,&cs,0x3B,msreg,REGSIZE,mask(reg),0);
+                cdb.append(cdbjmp);
+                loadea(cdb,e2,&cs,0x3B,reg,0,mask(reg),0);
+                freenode(e2);
+            }
+            else
+            {
+                scodelem(cdb,e1,&retregs,0,true);  // compute left leaf
+                cse_flush(cdb,1);
+                reg = findregmsw(retregs);   // get reg that e1 is in
+                loadea(cdb,e2,&cs,0x3B,reg,REGSIZE,retregs,0);
+                cdb.append(cdbjmp);
+                reg = findreglsw(retregs);
+                loadea(cdb,e2,&cs,0x3B,reg,0,retregs,0);
+                freenode(e2);
+            }
+            break;
     }
 
     jop = joplsw[op - OPle];
@@ -2659,22 +2733,22 @@ void cdcnvt(ref CodeBuilder cdb,elem *e, regm_t *pretregs)
 
     static immutable ubyte[2][16] clib =
     [
-      [ OPd_s32,        CLIB.dbllng   ],
-      [ OPs32_d,        CLIB.lngdbl   ],
-      [ OPd_s16,        CLIB.dblint   ],
-      [ OPs16_d,        CLIB.intdbl   ],
-      [ OPd_u16,        CLIB.dbluns   ],
-      [ OPu16_d,        CLIB.unsdbl   ],
-      [ OPd_u32,        CLIB.dblulng  ],
-      [ OPu32_d,        CLIB.ulngdbl  ],
-      [ OPd_s64,        CLIB.dblllng  ],
-      [ OPs64_d,        CLIB.llngdbl  ],
-      [ OPd_u64,        CLIB.dblullng ],
-      [ OPu64_d,        CLIB.ullngdbl ],
-      [ OPd_f,          CLIB.dblflt   ],
-      [ OPf_d,          CLIB.fltdbl   ],
-      [ OPvp_fp,        CLIB.vptrfptr ],
-      [ OPcvp_fp,       CLIB.cvptrfptr]
+        [ OPd_s32,        CLIB.dbllng   ],
+        [ OPs32_d,        CLIB.lngdbl   ],
+        [ OPd_s16,        CLIB.dblint   ],
+        [ OPs16_d,        CLIB.intdbl   ],
+        [ OPd_u16,        CLIB.dbluns   ],
+        [ OPu16_d,        CLIB.unsdbl   ],
+        [ OPd_u32,        CLIB.dblulng  ],
+        [ OPu32_d,        CLIB.ulngdbl  ],
+        [ OPd_s64,        CLIB.dblllng  ],
+        [ OPs64_d,        CLIB.llngdbl  ],
+        [ OPd_u64,        CLIB.dblullng ],
+        [ OPu64_d,        CLIB.ullngdbl ],
+        [ OPd_f,          CLIB.dblflt   ],
+        [ OPf_d,          CLIB.fltdbl   ],
+        [ OPvp_fp,        CLIB.vptrfptr ],
+        [ OPcvp_fp,       CLIB.cvptrfptr]
     ];
 
     if (!*pretregs)
@@ -2704,6 +2778,7 @@ void cdcnvt(ref CodeBuilder cdb,elem *e, regm_t *pretregs)
                 fixresult87(cdb, e, retregsx, pretregs);
                 return;
             }
+
             case OPf_d:
             case OPd_f:
                 if (tycomplex(e.EV.E1.Ety))
@@ -2773,6 +2848,7 @@ void cdcnvt(ref CodeBuilder cdb,elem *e, regm_t *pretregs)
                     return;
                 }
                 break;
+
             case OPd_s64:
                 if (!I64)
                     goto Lcnvt87;
@@ -2791,6 +2867,7 @@ void cdcnvt(ref CodeBuilder cdb,elem *e, regm_t *pretregs)
             Lcnvt87:
                 cnvt87(cdb,e,pretregs);
                 return;
+
             case OPd_u32:               // use subroutine, not 8087
                 if (I64 && config.fpxmmregs)
                 {
@@ -2802,14 +2879,15 @@ void cdcnvt(ref CodeBuilder cdb,elem *e, regm_t *pretregs)
                     cdd_u32(cdb,e,pretregs);
                     return;
                 }
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-                retregs = mST0;
-}
-else
-{
-                retregs = DOUBLEREGS;
-}
+                static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD ||
+                           TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+                {
+                    retregs = mST0;
+                }
+                else
+                {
+                    retregs = DOUBLEREGS;
+                }
                 goto L1;
 
             case OPd_u64:
@@ -2820,6 +2898,7 @@ else
                 }
                 retregs = DOUBLEREGS;
                 goto L1;
+
             case OPu64_d:
                 if (*pretregs & mST0)
                 {
@@ -2829,6 +2908,7 @@ else
                     return;
                 }
                 break;
+
             case OPld_u64:
             {
                 if (I32 || I64)
@@ -2853,7 +2933,8 @@ L1:
     {
         assert(i < clib.length);
         if (clib[i][0] == e.Eoper)
-        {   callclib(cdb,e,clib[i][1],pretregs,0);
+        {
+            callclib(cdb,e,clib[i][1],pretregs,0);
             break;
         }
     }
@@ -2879,7 +2960,6 @@ void cdshtlng(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         codelem(cdb,e.EV.E1,pretregs,false);     // then conversion isn't necessary
         return;
     }
-
     else if (
              op == OPnp_fp ||
              (I16 && op == OPu16_32) ||
@@ -2902,7 +2982,8 @@ void cdshtlng(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         if (e1comsub)
             getregs(cdb,retregsx);
         if (op == OPnp_fp)
-        {   int segreg;
+        {
+            int segreg;
 
             // BUG: what about pointers to functions?
             switch (tym1)
@@ -2925,7 +3006,8 @@ void cdshtlng(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         elem *e1 = e.EV.E1;
         retregs = *pretregs;
         if (e1.Eoper == OPvar || (e1.Eoper == OPind && !e1.Ecount))
-        {   code cs;
+        {
+            code cs;
 
             allocreg(cdb,&retregs,&reg,TYint);
             loadea(cdb,e1,&cs,0x8B,reg,0,retregs,retregs);  //  MOV Ereg,EA
@@ -2961,135 +3043,137 @@ void cdshtlng(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         codelem(cdb,e.EV.E1,&retregs,false);
         fixresult(cdb,e,retregs,pretregs);
         return;
-  }
-  else if (!I16 && (op == OPs16_32 || op == OPu16_32) ||
-            I64 && op == OPs32_64)
-  {
-    elem *e11;
-
-    elem *e1 = e.EV.E1;
-
-    if (e1.Eoper == OPu8_16 && !e1.Ecount &&
-        ((e11 = e1.EV.E1).Eoper == OPvar || (e11.Eoper == OPind && !e11.Ecount))
-       )
-    {   code cs;
-
-        retregs = *pretregs & BYTEREGS;
-        if (!retregs)
-            retregs = BYTEREGS;
-        allocreg(cdb,&retregs,&reg,TYint);
-        movregconst(cdb,reg,0,0);                   //  XOR reg,reg
-        loadea(cdb,e11,&cs,0x8A,reg,0,retregs,retregs);  //  MOV regL,EA
-        freenode(e11);
-        freenode(e1);
     }
-    else if (e1.Eoper == OPvar ||
-        (e1.Eoper == OPind && !e1.Ecount))
-    {   code cs;
-        uint opcode;
-
-        if (I32 && op == OPu16_32 && config.flags4 & CFG4speed)
-            goto L2;
-        retregs = *pretregs;
-        allocreg(cdb,&retregs,&reg,TYint);
-        opcode = (op == OPu16_32) ? 0x0FB7 : 0x0FBF; // MOVZX/MOVSX reg,EA
-        if (op == OPs32_64)
-        {
-            assert(I64);
-            // MOVSXD reg,e1
-            loadea(cdb,e1,&cs,0x63,reg,0,0,retregs);
-            code_orrex(cdb.last(), REX_W);
-        }
-        else
-            loadea(cdb,e1,&cs,opcode,reg,0,0,retregs);
-        freenode(e1);
-    }
-    else
+    else if (!I16 && (op == OPs16_32 || op == OPu16_32) ||
+              I64 && op == OPs32_64)
     {
-    L2:
-        retregs = *pretregs;
-        if (op == OPs32_64)
-            retregs = mAX | (*pretregs & mPSW);
-        *pretregs &= ~mPSW;             // flags are already set
-        CodeBuilder cdbx;
-        cdbx.ctor();
-        codelem(cdbx,e1,&retregs,false);
-        code *cx = cdbx.finish();
-        cdb.append(cdbx);
-        getregs(cdb,retregs);
-        if (op == OPu16_32 && cx)
+        elem *e11;
+        elem *e1 = e.EV.E1;
+
+        if (e1.Eoper == OPu8_16 && !e1.Ecount &&
+            ((e11 = e1.EV.E1).Eoper == OPvar || (e11.Eoper == OPind && !e11.Ecount))
+           )
         {
-            cx = code_last(cx);
-            if (cx.Iop == 0x81 && (cx.Irm & modregrm(3,7,0)) == modregrm(3,4,0) &&
-                mask(cx.Irm & 7) == retregs)
-            {
-                // Convert AND of a word to AND of a dword, zeroing upper word
-                if (cx.Irex & REX_B)
-                    retregs = mask(8 | (cx.Irm & 7));
-                cx.Iflags &= ~CFopsize;
-                cx.IEV2.Vint &= 0xFFFF;
-                goto L1;
-            }
+            code cs;
+
+            retregs = *pretregs & BYTEREGS;
+            if (!retregs)
+                retregs = BYTEREGS;
+            allocreg(cdb,&retregs,&reg,TYint);
+            movregconst(cdb,reg,0,0);                   //  XOR reg,reg
+            loadea(cdb,e11,&cs,0x8A,reg,0,retregs,retregs);  //  MOV regL,EA
+            freenode(e11);
+            freenode(e1);
         }
-        if (op == OPs16_32 && retregs == mAX)
-            cdb.gen1(0x98);         // CWDE
-        else if (op == OPs32_64 && retregs == mAX)
-        {   cdb.gen1(0x98);         // CDQE
-            code_orrex(cdb.last(), REX_W);
+        else if (e1.Eoper == OPvar ||
+            (e1.Eoper == OPind && !e1.Ecount))
+        {
+            code cs;
+            uint opcode;
+
+            if (I32 && op == OPu16_32 && config.flags4 & CFG4speed)
+                goto L2;
+            retregs = *pretregs;
+            allocreg(cdb,&retregs,&reg,TYint);
+            opcode = (op == OPu16_32) ? 0x0FB7 : 0x0FBF; // MOVZX/MOVSX reg,EA
+            if (op == OPs32_64)
+            {
+                assert(I64);
+                // MOVSXD reg,e1
+                loadea(cdb,e1,&cs,0x63,reg,0,0,retregs);
+                code_orrex(cdb.last(), REX_W);
+            }
+            else
+                loadea(cdb,e1,&cs,opcode,reg,0,0,retregs);
+            freenode(e1);
         }
         else
         {
-            reg = findreg(retregs);
-            if (config.flags4 & CFG4speed && op == OPu16_32)
-            {   // AND reg,0xFFFF
-                cdb.genc2(0x81,modregrmx(3,4,reg),0xFFFFu);
+        L2:
+            retregs = *pretregs;
+            if (op == OPs32_64)
+                retregs = mAX | (*pretregs & mPSW);
+            *pretregs &= ~mPSW;             // flags are already set
+            CodeBuilder cdbx;
+            cdbx.ctor();
+            codelem(cdbx,e1,&retregs,false);
+            code *cx = cdbx.finish();
+            cdb.append(cdbx);
+            getregs(cdb,retregs);
+            if (op == OPu16_32 && cx)
+            {
+                cx = code_last(cx);
+                if (cx.Iop == 0x81 && (cx.Irm & modregrm(3,7,0)) == modregrm(3,4,0) &&
+                    mask(cx.Irm & 7) == retregs)
+                {
+                    // Convert AND of a word to AND of a dword, zeroing upper word
+                    if (cx.Irex & REX_B)
+                        retregs = mask(8 | (cx.Irm & 7));
+                    cx.Iflags &= ~CFopsize;
+                    cx.IEV2.Vint &= 0xFFFF;
+                    goto L1;
+                }
+            }
+            if (op == OPs16_32 && retregs == mAX)
+                cdb.gen1(0x98);         // CWDE
+            else if (op == OPs32_64 && retregs == mAX)
+            {
+                cdb.gen1(0x98);         // CDQE
+                code_orrex(cdb.last(), REX_W);
             }
             else
             {
-                uint iop = (op == OPu16_32) ? 0x0FB7 : 0x0FBF; // MOVZX/MOVSX reg,reg
-                genregs(cdb,iop,reg,reg);
+                reg = findreg(retregs);
+                if (config.flags4 & CFG4speed && op == OPu16_32)
+                {   // AND reg,0xFFFF
+                    cdb.genc2(0x81,modregrmx(3,4,reg),0xFFFFu);
+                }
+                else
+                {
+                    uint iop = (op == OPu16_32) ? 0x0FB7 : 0x0FBF; // MOVZX/MOVSX reg,reg
+                    genregs(cdb,iop,reg,reg);
+                }
             }
+         L1:
+            if (e1comsub)
+                getregs(cdb,retregs);
         }
-     L1:
+        fixresult(cdb,e,retregs,pretregs);
+        return;
+    }
+    else if (*pretregs & mPSW || config.target_cpu < TARGET_80286)
+    {
+        // OPs16_32, OPs32_64
+        // CWD doesn't affect flags, so we can depend on the integer
+        // math to provide the flags.
+        retregs = mAX | mPSW;               // want integer result in AX
+        *pretregs &= ~mPSW;                 // flags are already set
+        codelem(cdb,e.EV.E1,&retregs,false);
+        getregs(cdb,mDX);           // sign extend into DX
+        cdb.gen1(0x99);                     // CWD/CDQ
         if (e1comsub)
             getregs(cdb,retregs);
+        fixresult(cdb,e,mDX | retregs,pretregs);
+        return;
     }
-    fixresult(cdb,e,retregs,pretregs);
-    return;
-  }
-  else if (*pretregs & mPSW || config.target_cpu < TARGET_80286)
-  {
-    // OPs16_32, OPs32_64
-    // CWD doesn't affect flags, so we can depend on the integer
-    // math to provide the flags.
-    retregs = mAX | mPSW;               // want integer result in AX
-    *pretregs &= ~mPSW;                 // flags are already set
-    codelem(cdb,e.EV.E1,&retregs,false);
-    getregs(cdb,mDX);           // sign extend into DX
-    cdb.gen1(0x99);                     // CWD/CDQ
-    if (e1comsub)
-        getregs(cdb,retregs);
-    fixresult(cdb,e,mDX | retregs,pretregs);
-    return;
-  }
-  else
-  {
-    // OPs16_32, OPs32_64
-    uint msreg,lsreg;
+    else
+    {
+        // OPs16_32, OPs32_64
+        uint msreg,lsreg;
 
-    retregs = *pretregs & mLSW;
-    assert(retregs);
-    codelem(cdb,e.EV.E1,&retregs,false);
-    retregs |= *pretregs & mMSW;
-    allocreg(cdb,&retregs,&reg,e.Ety);
-    msreg = findregmsw(retregs);
-    lsreg = findreglsw(retregs);
-    genmovreg(cdb,msreg,lsreg);                // MOV msreg,lsreg
-    assert(config.target_cpu >= TARGET_80286);              // 8088 can't handle SAR reg,imm8
-    cdb.genc2(0xC1,modregrm(3,7,msreg),REGSIZE * 8 - 1);    // SAR msreg,31
-    fixresult(cdb,e,retregs,pretregs);
-    return;
-  }
+        retregs = *pretregs & mLSW;
+        assert(retregs);
+        codelem(cdb,e.EV.E1,&retregs,false);
+        retregs |= *pretregs & mMSW;
+        allocreg(cdb,&retregs,&reg,e.Ety);
+        msreg = findregmsw(retregs);
+        lsreg = findreglsw(retregs);
+        genmovreg(cdb,msreg,lsreg);                // MOV msreg,lsreg
+        assert(config.target_cpu >= TARGET_80286);              // 8088 can't handle SAR reg,imm8
+        cdb.genc2(0xC1,modregrm(3,7,msreg),REGSIZE * 8 - 1);    // SAR msreg,31
+        fixresult(cdb,e,retregs,pretregs);
+        return;
+    }
 }
 
 
@@ -3117,7 +3201,8 @@ void cdbyteint(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     if (!I16)
     {
         if (e1.Eoper == OPvar || (e1.Eoper == OPind && !e1.Ecount))
-        {   code cs;
+        {
+            code cs;
 
             regm_t retregsx = *pretregs;
             uint reg;
@@ -3236,21 +3321,21 @@ void cdbyteint(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
 void cdlngsht(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
-debug
-{
-    switch (e.Eoper)
+    debug
     {
-        case OP32_16:
-        case OPoffset:
-        case OP16_8:
-        case OP64_32:
-        case OP128_64:
-            break;
+        switch (e.Eoper)
+        {
+            case OP32_16:
+            case OPoffset:
+            case OP16_8:
+            case OP64_32:
+            case OP128_64:
+                break;
 
-        default:
-            assert(0);
+            default:
+                assert(0);
+        }
     }
-}
 
     regm_t retregs;
     if (e.Eoper == OP16_8)
