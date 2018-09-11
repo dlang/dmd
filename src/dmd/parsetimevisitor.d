@@ -51,6 +51,7 @@ public:
     void visit(AST.FuncLiteralDeclaration s) { visit(cast(AST.FuncDeclaration)s); }
     void visit(AST.PostBlitDeclaration s) { visit(cast(AST.FuncDeclaration)s); }
     void visit(AST.CtorDeclaration s) { visit(cast(AST.FuncDeclaration)s); }
+    void visit(AST.CopyCtorDeclaration s) { visit(cast(AST.CtorDeclaration)s); }
     void visit(AST.DtorDeclaration s) { visit(cast(AST.FuncDeclaration)s); }
     void visit(AST.InvariantDeclaration s) { visit(cast(AST.FuncDeclaration)s); }
     void visit(AST.UnitTestDeclaration s) { visit(cast(AST.FuncDeclaration)s); }
