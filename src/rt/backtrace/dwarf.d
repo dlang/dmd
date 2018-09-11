@@ -91,11 +91,19 @@ int traceHandlerOpApplyImpl(const void*[] callstack, scope int delegate(ref size
         int bufferLength;
         auto symbol = getDemangledSymbol(frameList[i][0 .. strlen(frameList[i])], symbolBuffer);
         if (symbol.length > 0)
-            bufferLength = snprintf(buffer.ptr, buffer.length, "%s%.*s [0x%x]", addressBuffer.ptr, cast(int) symbol.length, symbol.ptr, callstack[i]);
+            bufferLength = snprintf(buffer.ptr, buffer.length, "%s%.*s ", addressBuffer.ptr, cast(int) symbol.length, symbol.ptr);
         else
-            bufferLength = snprintf(buffer.ptr, buffer.length, "%s[0x%x]", addressBuffer.ptr, callstack[i]);
+            bufferLength = snprintf(buffer.ptr, buffer.length, "%s", addressBuffer.ptr);
 
         assert(bufferLength >= 0);
+        const addressLength = 20;
+        const maxBufferLength = buffer.length - addressLength;
+        if (bufferLength > maxBufferLength)
+        {
+            bufferLength = maxBufferLength;
+            buffer[$-4-addressLength..$-addressLength] = "... ";
+        }
+        bufferLength += snprintf(buffer.ptr + bufferLength, buffer.length, "[0x%x]", callstack[i]);
 
         auto output = buffer[0 .. bufferLength];
         auto pos = i;
