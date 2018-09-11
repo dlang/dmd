@@ -31,17 +31,26 @@ extern (C++) final class Identifier : RootObject
 {
 private:
     const int value;
-    const char* name;
-    const size_t len;
+    const char[] name;
 
 public:
+    /**
+       Construct an identifier from a D slice
 
+       Note: Since `name` needs to be `\0` terminated for `toChars`,
+       no slice overload is provided yet.
+
+       Params:
+         name = the identifier name
+                There must be `'\0'` at `name[length]`.
+         length = the length of `name`, excluding the terminating `'\0'`
+         value = Identifier value (e.g. `Id.unitTest`) or `TOK.identifier`
+     */
     extern (D) this(const(char)* name, size_t length, int value) nothrow
     {
         //printf("Identifier('%s', %d)\n", name, value);
-        this.name = name;
+        this.name = name[0 .. length];
         this.value = value;
-        this.len = length;
     }
 
     extern (D) this(const(char)* name) nothrow
@@ -57,28 +66,28 @@ public:
 
     override bool equals(RootObject o) const
     {
-        return this == o || strncmp(name, o.toChars(), len + 1) == 0;
+        return this == o || name == o.toString();
     }
 
     override int compare(RootObject o) const
     {
-        return strncmp(name, o.toChars(), len + 1);
+        return strncmp(name.ptr, o.toChars(), name.length + 1);
     }
 
 nothrow:
     override void print() const
     {
-        fprintf(stderr, "%s", name);
+        fprintf(stderr, "%.*s", cast(int)name.length, name.ptr);
     }
 
     override const(char)* toChars() const pure
     {
-        return name;
+        return name.ptr;
     }
 
     extern (D) override const(char)[] toString() const pure
     {
-        return name[0 .. len];
+        return name;
     }
 
     int getValue() const pure
