@@ -1916,7 +1916,15 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 Type tprm = p.type.hasWild()
                     ? p.type.substWildTo(wildmatch)
                     : p.type;
-                if (!tprm.equals(arg.type))
+
+                bool hasCopyCtor;
+                if (arg.type.ty == Tstruct)
+                {
+                    TypeStruct targ = cast(TypeStruct)(arg.type);
+                    if (targ.sym.copyCtor)
+                        hasCopyCtor = true;
+                }
+                if (!hasCopyCtor && !tprm.equals(arg.type))
                 {
                     //printf("arg.type = %s, p.type = %s\n", arg.type.toChars(), p.type.toChars());
                     arg = arg.implicitCastTo(sc, tprm);
@@ -2246,7 +2254,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                  */
                 Type tv = arg.type.baseElemOf();
                 if (!isRef && tv.ty == Tstruct)
-                    arg = doCopyOrMove(sc, arg);
+                    arg = doCopyOrMove(sc, arg, parameter ? parameter.type : null);
             }
 
             (*arguments)[i] = arg;
@@ -4616,7 +4624,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
 
             const(char)* failMessage;
-            if (!tf.callMatch(null, exp.arguments, 0, &failMessage))
+            if (!tf.callMatch(null, exp.arguments, 0, &failMessage, sc))
             {
                 OutBuffer buf;
                 buf.writeByte('(');
@@ -4690,7 +4698,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.f = exp.f.toAliasFunc();
                 TypeFunction tf = cast(TypeFunction)exp.f.type;
                 const(char)* failMessage;
-                if (!tf.callMatch(null, exp.arguments, 0, &failMessage))
+                if (!tf.callMatch(null, exp.arguments, 0, &failMessage, sc))
                 {
                     OutBuffer buf;
                     buf.writeByte('(');

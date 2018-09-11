@@ -34,6 +34,7 @@ import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
+import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
 import dmd.hdrgen;
@@ -4574,7 +4575,7 @@ extern (C++) final class TypeFunction : TypeNext
      * Returns:
      *      MATCHxxxx
      */
-    extern (D) MATCH callMatch(Type tthis, Expressions* args, int flag = 0, const(char)** pMessage = null)
+    extern (D) MATCH callMatch(Type tthis, Expressions* args, int flag = 0, const(char)** pMessage = null, Scope* sc = null)
     {
         //printf("TypeFunction::callMatch() %s\n", toChars());
         MATCH match = MATCH.exact; // assume exact match
@@ -4689,7 +4690,39 @@ extern (C++) final class TypeFunction : TypeNext
                         m = targ.implicitConvTo(tprm);
                     }
                     else
+                    {
                         m = arg.implicitConvTo(tprm);
+
+                        bool isRef = (p.storageClass & (STC.ref_ | STC.out_)) != 0;
+                        // if there's no match, there might be a copy
+                        // constructor that specifies how the copy should be made
+                        if (!isRef && m == MATCH.nomatch && targ.ty == Tstruct && tprm.ty == Tstruct)
+                        {
+                            // if the argument and the parameter are of the same unqualified struct type
+                            StructDeclaration argStruct = (cast(TypeStruct)targ).sym;
+                            StructDeclaration prmStruct = (cast(TypeStruct)tprm).sym;
+                             // check if the copy constructor may be called to copy the argument
+                            if (argStruct == prmStruct && argStruct.copyCtor)
+                            {
+                                /* this is done by seeing if a call to the copy constructor can be made:
+                                 *
+                                 * typeof(tprm) __copytmp;
+                                 * copytmp.__copyCtor(arg);
+                                 *
+                                 * If the above code is succesfully semantically analyzed, then there
+                                 * is a copy constructor that may be used. The actual lowering to the
+                                 * call is performed later.
+                                 */
+                                auto tmp = new VarDeclaration(arg.loc, tprm, Identifier.generateId("__copytmp"), null);
+                                tmp.dsymbolSemantic(sc);
+                                Expression ve = new VarExp(arg.loc, tmp);
+                                Expression e = new DotIdExp(arg.loc, ve, Id.copyCtor);
+                                e = new CallExp(arg.loc, e, arg);
+                                if (.trySemantic(e, sc))
+                                    m = MATCH.convert;      // implicit conversion using copy constructor
+                            }
+                        }
+                    }
                     //printf("match %d\n", m);
                 }
 

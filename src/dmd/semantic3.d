@@ -826,7 +826,17 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             else if (exp.type.wildOf().implicitConvTo(tret))
                                 exp = exp.castTo(sc2, exp.type.wildOf());
                         }
-                        exp = exp.implicitCastTo(sc2, tret);
+
+                        bool hasCopyCtor;
+                        if (exp.type.ty == Tstruct)
+                        {
+                            TypeStruct ts = cast(TypeStruct)(exp.type);
+                            if (ts.sym.copyCtor)
+                                hasCopyCtor = true;
+                        }
+                         // if a copy constructor is present, the return type conversion will be handled by it
+                        if (!hasCopyCtor)
+                            exp = exp.implicitCastTo(sc2, tret);
 
                         if (f.isref)
                         {
@@ -842,7 +852,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                              * If NRVO is not possible, all returned lvalues should call their postblits.
                              */
                             if (!funcdecl.nrvo_can)
-                                exp = doCopyOrMove(sc2, exp);
+                                exp = doCopyOrMove(sc2, exp, f.next);
 
                             if (tret.hasPointers())
                                 checkReturnEscape(sc2, exp, false);
