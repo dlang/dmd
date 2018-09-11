@@ -2460,7 +2460,6 @@ Modules createModules(ref Strings files, ref Strings libmodules)
         const(char)* p = files[i];
         p = FileName.name(p); // strip path
         const(char)* ext = FileName.ext(p);
-        char* newname;
         if (ext)
         {
             /* Deduce what to do with a file based on its extension
@@ -2524,12 +2523,7 @@ Modules createModules(ref Strings files, ref Strings libmodules)
              */
             if (FileName.equals(ext, global.mars_ext) || FileName.equals(ext, global.hdr_ext) || FileName.equals(ext, "dd"))
             {
-                ext--; // skip onto '.'
-                assert(*ext == '.');
-                newname = cast(char*)mem.xmalloc((ext - p) + 1);
-                memcpy(newname, p, ext - p);
-                newname[ext - p] = 0; // strip extension
-                name = newname;
+                name = FileName.removeExt(p);
                 if (name[0] == 0 || strcmp(name, "..") == 0 || strcmp(name, ".") == 0)
                 {
                 Linvalid:
