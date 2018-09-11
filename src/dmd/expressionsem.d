@@ -8055,7 +8055,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         result = e;
                         return;
                     }
-                    if (sd.postblit)
+                    if (sd.postblit || sd.copyCtor)
                     {
                         /* We have a copy constructor for this
                          */
@@ -8074,28 +8074,57 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                         if (e2x.isLvalue())
                         {
-                            if (!e2x.type.implicitConvTo(e1x.type))
+                            if (sd.copyCtor)
                             {
-                                exp.error("conversion error from `%s` to `%s`",
-                                    e2x.type.toChars(), e1x.type.toChars());
-                                return setError();
-                            }
+                                /* Rewrite as:
+                                 * e1 = init, e1.copyCtor(e2);
+                                 */
+                                Expression einit = new BlitExp(exp.loc, exp.e1, getInitExp(sd, exp.loc, sc, t1));
+                                einit.type = e1x.type;
 
-                            /* Rewrite as:
-                             *  (e1 = e2).postblit();
-                             *
-                             * Blit assignment e1 = e2 returns a reference to the original e1,
-                             * then call the postblit on it.
-                             */
-                            Expression e = e1x.copy();
-                            e.type = e.type.mutableOf();
-                            if (e.type.isShared && !sd.type.isShared)
-                                e.type = e.type.unSharedOf();
-                            e = new BlitExp(exp.loc, e, e2x);
-                            e = new DotVarExp(exp.loc, e, sd.postblit, false);
-                            e = new CallExp(exp.loc, e);
-                            result = e.expressionSemantic(sc);
-                            return;
+                                if (!einit)
+                                    return setError();
+
+                                Expression e;
+                                e = new DotIdExp(exp.loc, e1x, Id.copyCtor);
+                                e = new CallExp(exp.loc, e, e2x);
+                                e = new CommaExp(exp.loc, einit, e);
+
+                                //printf("e: %s\n", e.toChars());
+
+                                /* If semantic is performed correctly on e
+                                 * there is a copy constructor overload to be used.
+                                 * Otherwise, implicit copying may be used
+                                 */
+                                result = e.expressionSemantic(sc);
+                                if (result.op != TOK.error)
+                                    return;
+                            }
+                            else
+                            {
+                                if (!e2x.type.implicitConvTo(e1x.type))
+                                {
+                                    exp.error("conversion error from `%s` to `%s`",
+                                        e2x.type.toChars(), e1x.type.toChars());
+                                    return setError();
+                                }
+
+                                /* Rewrite as:
+                                 *  (e1 = e2).postblit();
+                                 *
+                                 * Blit assignment e1 = e2 returns a reference to the original e1,
+                                 * then call the postblit on it.
+                                 */
+                                Expression e = e1x.copy();
+                                e.type = e.type.mutableOf();
+                                if (e.type.isShared && !sd.type.isShared)
+                                    e.type = e.type.unSharedOf();
+                                e = new BlitExp(exp.loc, e, e2x);
+                                e = new DotVarExp(exp.loc, e, sd.postblit, false);
+                                e = new CallExp(exp.loc, e);
+                                result = e.expressionSemantic(sc);
+                                return;
+                            }
                         }
                         else
                         {

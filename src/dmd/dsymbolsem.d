@@ -336,6 +336,13 @@ private FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
     return xpostblit;
 }
 
+private CopyCtorDeclaration buildCopyCtor(StructDeclaration sd, Scope* sc)
+{
+    Dsymbol s = sd.search(sd.loc, Id.copyCtor);
+
+    return s ? s.isCopyCtorDeclaration : null;
+}
+
 private uint setMangleOverride(Dsymbol s, const(char)[] sym)
 {
     if (s.isFuncDeclaration() || s.isVarDeclaration())
@@ -4410,6 +4417,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         // Look for the constructor
         sd.ctor = sd.searchCtor();
 
+        sd.copyCtor = buildCopyCtor(sd, sc2);
         sd.dtor = buildDtor(sd, sc2);
         sd.tidtor = buildExternDDtor(sd, sc2);
         sd.postblit = buildPostBlit(sd, sc2);
