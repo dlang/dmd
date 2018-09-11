@@ -158,7 +158,8 @@ private bool needOpAssign(StructDeclaration sd)
 
     if (sd.hasIdentityAssign || // because has identity==elaborate opAssign
         sd.dtor ||
-        sd.postblit)
+        sd.postblit ||
+        sd.copyCtor)
         return isNeeded();
 
     /* If any of the fields need an opAssign, then we
@@ -197,7 +198,7 @@ private bool needOpAssign(StructDeclaration sd)
  * 1. `S` does not have an identity `opAssign` defined.
  *
  * 2. `S` has at least one of the following members: a postblit (user-defined or
- * generated for fields that have a defined postblit), a destructor
+ * generated for fields that have a defined postblit), a copy constructor, a destructor
  * (user-defined or generated for fields that have a defined destructor)
  * or at least one field that has a defined `opAssign`.
  *
@@ -215,7 +216,7 @@ private bool needOpAssign(StructDeclaration sd)
  *__swap.dtor();
  *---
  *
- * Otherwise, if `S` defines a postblit, the generated code for `opAssign` is:
+ * Otherwise, if `S` defines a postblit/copy constructor, the generated code for `opAssign` is:
  *
  *---
  *this = s;
@@ -228,7 +229,7 @@ private bool needOpAssign(StructDeclaration sd)
  * (`opAssign` is not called as this will result in an infinite recursion; the postblit
  * is not called because it has already been called when the parameter was passed by value).
  *
- * If `S` does not have a postblit or a destructor, but contains at least one field that defines
+ * If `S` does not have a postblit/copy constructor or a destructor, but contains at least one field that defines
  * an `opAssign` function (which is not disabled), then the body will make member-wise
  * assignments:
  *
@@ -283,7 +284,7 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
         stc = mergeFuncAttrs(stc, hasIdentityOpAssign(sdv, sc));
     }
 
-    if (sd.dtor || sd.postblit)
+    if (sd.dtor || sd.postblit || sd.copyCtor)
     {
         // if the type is not assignable, we cannot generate opAssign
         if (!sd.type.isAssignable()) // https://issues.dlang.org/show_bug.cgi?id=13044
@@ -331,7 +332,7 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
         e = Expression.combine(e1, e2, e3, e4);
     }
     /* postblit was called when the value was passed to opAssign, we just need to blit the result */
-    else if (sd.postblit)
+    else if (sd.postblit || sd.copyCtor)
         e = new BlitExp(loc, new ThisExp(loc), new IdentifierExp(loc, Id.p));
     else
     {
