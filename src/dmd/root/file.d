@@ -34,6 +34,11 @@ struct File
 nothrow:
     extern (D) this(const(char)* n)
     {
+        this(n.toDString());
+    }
+
+    extern (D) this(const(char)[] n)
+    {
         _ref = 0;
         buffer = null;
         len = 0;
@@ -42,7 +47,7 @@ nothrow:
 
     extern (C++) static File* create(const(char)* n)
     {
-        return new File(n);
+        return new File(n.toDString());
     }
 
     extern (D) this(const(FileName)* n)

@@ -377,7 +377,7 @@ extern(C++) void gendocfile(Module m)
         // Override with the ddoc macro files from the command line
         for (size_t i = 0; i < global.params.ddocfiles.dim; i++)
         {
-            auto f = FileName(global.params.ddocfiles[i]);
+            auto f = FileName(global.params.ddocfiles[i].toDString());
             auto file = File(&f);
             readFile(m.loc, &file);
             // BUG: convert file contents to UTF-8 before use

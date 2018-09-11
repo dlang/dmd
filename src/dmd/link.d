@@ -290,7 +290,7 @@ public int runLINK()
                 if (ext && !strchr(basename, '.'))
                 {
                     // Write name sans extension (but not if a double extension)
-                    writeFilename(&cmdbuf, p, ext - p - 1);
+                    writeFilename(&cmdbuf, p[0 .. ext - p - 1]);
                 }
                 else
                     writeFilename(&cmdbuf, p);

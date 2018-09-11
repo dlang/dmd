@@ -45,9 +45,10 @@ struct FileName
 nothrow:
     private const(char)[] str;
 
-    extern (D) this(const(char)* str)
+    ///
+    extern (D) this(const(char)[] str)
     {
-        this.str = mem.xstrdup(str).toDString();
+        this.str = str.xarraydup;
     }
 
     /// Compare two name according to the platform's rules (case sensitive or not)
