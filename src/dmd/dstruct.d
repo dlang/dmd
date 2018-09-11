@@ -195,6 +195,8 @@ enum StructPOD : int
     fwd,   // POD not yet computed
 }
 
+alias ushort ModBits;
+
 /***********************************************************
  * All `struct` declarations are an instance of this.
  */
@@ -208,6 +210,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     FuncDeclaration postblit;   // aggregate postblit
 
     CopyCtorDeclaration copyCtor;       // copy constructor
+    bool[ModBits] copyCtorTypes;        // source-destination qualifiers for the struct copy constructors
 
     FuncDeclaration xeq;        // TypeInfo_Struct.xopEquals
     FuncDeclaration xcmp;       // TypeInfo_Struct.xopCmp
