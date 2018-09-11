@@ -558,7 +558,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
         ispod = StructPOD.yes;
 
-        if (enclosing || postblit || dtor)
+        if (enclosing || postblit || dtor || copyCtor)
             ispod = StructPOD.no;
 
         // Recursively check all fields are POD.
