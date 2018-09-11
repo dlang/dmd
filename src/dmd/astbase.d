@@ -828,7 +828,7 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class CtorDeclaration : FuncDeclaration
+    extern (C++) class CtorDeclaration : FuncDeclaration
     {
         extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Type type, bool isCpCtor = false)
         {
@@ -841,7 +841,7 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class CopyCtorDeclaration : FuncDeclaration
+    extern (C++) final class CopyCtorDeclaration : CtorDeclaration
     {
         extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Type type)
         {

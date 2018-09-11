@@ -8,7 +8,8 @@ fail_compilation/parseCopyCtor.d(17): Error: the copy constructor receives exact
 fail_compilation/parseCopyCtor.d(18): Error: the parameter to the copy constructor must by passed by reference. Add `ref` to the parameter type
 ---
 */
- struct A
+
+struct A
 {
     static @implicit this(ref A another) {}
     @implicit this()(ref A another) {}

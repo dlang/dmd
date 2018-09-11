@@ -9,6 +9,7 @@ fail_compilation/semanticCopyCtor.d(30): Error: struct `C` cannot define both a 
 fail_compilation/semanticCopyCtor.d(34): Error: struct `semanticCopyCtor.D` contains fields with postblits, therefore it cannot have a copy constructor.
 ---
 */
+
 @implicit this(ref A another) {}
 
 struct A
