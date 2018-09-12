@@ -419,7 +419,7 @@ else
  *      seg = segment to write alignment bytes to
  *      nbytes = number of alignment bytes to write
  */
-void cod3_align_bytes(int seg, uint nbytes)
+void cod3_align_bytes(int seg, size_t nbytes)
 {
     /* Table 4-2 from Intel Instruction Set Reference M-Z
      * 1 bytes NOP                                        90
