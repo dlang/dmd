@@ -2,6 +2,19 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
+ * This module provides up to 3 kinds of overload to a given function:
+ * - A va_arg accepting function which will be the actual implementation
+ *   This overload is not always present
+ * - A C++ facing implementation, with the prefix which accept C-style varargs.
+ * - An `extern(D)` wrapper to the C++ implementation which accepts
+ *   variadic template arguments.
+ *   Those functions have a 'd' prefix, e.g. `derror`
+ *
+ *   The goal of the wrapper is to turn slices into the length/ptr pair that
+ *   is accepted by printf. This wrapper does not alter the format string,
+ *   and as such the user should call `dmessage("%.*s", my_string)`
+ *   and not `dmessage("%s", my_string)` as this could result in a SIGSEGV
+ *
  * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
@@ -20,6 +33,7 @@ import dmd.globals;
 import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.console;
+import dmd.utils;
 
 /**
  * Color highlighting to classify messages
@@ -33,12 +47,20 @@ enum Classification
 }
 
 /**
- * Print an error message, increasing the global error count.
- * Params:
- *      loc    = location of error
- *      format = printf-style format specification
- *      ...    = printf-style variadic arguments
- */
+Print an error message, increasing the global error count.
+
+Params:
+loc    = location of error
+format = printf-style format specification
+args   = variadic list of arguments
+...    = printf-style variadic arguments
+*/
+void derror(Args...)(const ref Loc loc, const(char)* format, Args args)
+{
+    mixin("error(loc, format, " ~ mapSlices!Args() ~ ");");
+}
+
+/// ditto
 extern (C++) void error(const ref Loc loc, const(char)* format, ...)
 {
     va_list ap;
@@ -69,8 +91,15 @@ extern (D) void error(Loc loc, const(char)* format, ...)
  *      linnum   = line in the source file
  *      charnum  = column number on the line
  *      format   = printf-style format specification
+ *      args   = variadic list of arguments
  *      ...      = printf-style variadic arguments
  */
+void derror(Args...)(const(char)* filename, uint linnum, uint charnum, const(char)* format, Args args)
+{
+    mixin("error(filename, linnum, charnum, format, " ~ mapSlices!Args() ~ ");");
+}
+
+/// ditto
 extern (C++) void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...)
 {
     const loc = Loc(filename, linnum, charnum);
@@ -86,8 +115,15 @@ extern (C++) void error(const(char)* filename, uint linnum, uint charnum, const(
  * Params:
  *      loc    = location of error
  *      format = printf-style format specification
+ *      args   = variadic list of arguments
  *      ...    = printf-style variadic arguments
  */
+void derrorSupplemental(Args...)(const ref Loc loc, const(char)* format, Args args)
+{
+    mixin("errorSupplemental(loc, format, " ~ mapSlices!Args() ~ ");");
+}
+
+/// ditto
 extern (C++) void errorSupplemental(const ref Loc loc, const(char)* format, ...)
 {
     va_list ap;
@@ -101,8 +137,15 @@ extern (C++) void errorSupplemental(const ref Loc loc, const(char)* format, ...)
  * Params:
  *      loc    = location of warning
  *      format = printf-style format specification
+ *      args   = variadic list of arguments
  *      ...    = printf-style variadic arguments
  */
+void dwarning(Args...)(const ref Loc loc, const(char)* format, Args args)
+{
+    mixin("warning(loc, format, " ~ mapSlices!Args() ~ ");");
+}
+
+/// ditto
 extern (C++) void warning(const ref Loc loc, const(char)* format, ...)
 {
     va_list ap;
@@ -117,8 +160,15 @@ extern (C++) void warning(const ref Loc loc, const(char)* format, ...)
  * Params:
  *      loc    = location of warning
  *      format = printf-style format specification
+ *      args   = variadic list of arguments
  *      ...    = printf-style variadic arguments
  */
+void dwarningSupplemental(Args...)(const ref Loc loc, const(char)* format, Args args)
+{
+    mixin("warningSupplemental(loc, format, " ~ mapSlices!Args() ~ ");");
+}
+
+/// ditto
 extern (C++) void warningSupplemental(const ref Loc loc, const(char)* format, ...)
 {
     va_list ap;
@@ -133,8 +183,15 @@ extern (C++) void warningSupplemental(const ref Loc loc, const(char)* format, ..
  * Params:
  *      loc    = location of deprecation
  *      format = printf-style format specification
+ *      args   = variadic list of arguments
  *      ...    = printf-style variadic arguments
  */
+void ddeprecation(Args...)(const ref Loc loc, const(char)* format, Args args)
+{
+    mixin("deprecation(loc, format, " ~ mapSlices!Args() ~ ");");
+}
+
+/// ditto
 extern (C++) void deprecation(const ref Loc loc, const(char)* format, ...)
 {
     va_list ap;
@@ -149,8 +206,15 @@ extern (C++) void deprecation(const ref Loc loc, const(char)* format, ...)
  * Params:
  *      loc    = location of deprecation
  *      format = printf-style format specification
+ *      args   = variadic list of arguments
  *      ...    = printf-style variadic arguments
  */
+void ddeprecationSupplemental(Args...)(const ref Loc loc, const(char)* format, Args args)
+{
+    mixin("deprecationSupplemental(loc, format, " ~ mapSlices!Args() ~ ");");
+}
+
+/// ditto
 extern (C++) void deprecationSupplemental(const ref Loc loc, const(char)* format, ...)
 {
     va_list ap;
@@ -165,8 +229,15 @@ extern (C++) void deprecationSupplemental(const ref Loc loc, const(char)* format
  * Params:
  *      loc    = location of message
  *      format = printf-style format specification
+ *      args   = variadic list of arguments
  *      ...    = printf-style variadic arguments
  */
+void dmessage(Args...)(const ref Loc loc, const(char)* format, Args args)
+{
+    mixin("message(loc, format, " ~ mapSlices!Args() ~ ");");
+}
+
+/// ditto
 extern (C++) void message(const ref Loc loc, const(char)* format, ...)
 {
     va_list ap;
@@ -179,8 +250,15 @@ extern (C++) void message(const ref Loc loc, const(char)* format, ...)
  * Same as above, but doesn't take a location argument.
  * Params:
  *      format = printf-style format specification
+ *      args   = variadic list of arguments
  *      ...    = printf-style variadic arguments
  */
+void dmessage(Args...)(const(char)* format, Args args)
+{
+    mixin("message(format, " ~ mapSlices!Args() ~ ");");
+}
+
+/// ditto
 extern (C++) void message(const(char)* format, ...)
 {
     va_list ap;

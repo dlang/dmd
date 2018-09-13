@@ -64,7 +64,7 @@ public:
     void write(RootObject *obj);
     void fill0(size_t nbytes);
     void vprintf(const char *format, va_list args);
-    void printf(const char *format, ...);
+    void cprintf(const char *format, ...);
     void bracket(char left, char right);
     size_t bracket(size_t i, const char *left, size_t j, const char *right);
     void spread(size_t offset, size_t nbytes);
