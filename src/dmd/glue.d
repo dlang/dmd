@@ -85,7 +85,7 @@ __gshared
     SharedStaticDtorDeclarations esharedctorgates;
     symbols sshareddtors;
 
-    char *lastmname;
+    const(char)* lastmname;
 }
 
 
@@ -108,10 +108,10 @@ void obj_write_deferred(Library library)
         Dsymbol s = obj_symbols_towrite[i];
         Module m = s.getModule();
 
-        char *mname;
+        const(char)* mname;
         if (m)
         {
-            mname = cast(char*)m.srcfile.toChars();
+            mname = m.srcfile.toChars();
             lastmname = mname;
         }
         else
@@ -246,7 +246,7 @@ private Symbol *callFuncsAndGates(Module m, symbols *sctors, StaticDtorDeclarati
 
 __gshared Outbuffer objbuf;
 
-void obj_start(char *srcfile)
+void obj_start(const(char)* srcfile)
 {
     //printf("obj_start()\n");
 
@@ -340,7 +340,7 @@ void genObjFile(Module m, bool multiobj)
         return;
     }
 
-    lastmname = cast(char*)m.srcfile.toChars();
+    lastmname = m.srcfile.toChars();
 
     objmod.initfile(lastmname, null, m.toPrettyChars());
 

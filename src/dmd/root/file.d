@@ -29,28 +29,25 @@ struct File
     int _ref; // != 0 if this is a reference to someone else's buffer
     ubyte* buffer; // data for our file
     size_t len; // amount of data in buffer[]
-    const(FileName)* name; // name of our file
+    const(FileName) name; // name of our file
 
 nothrow:
     extern (D) this(const(char)* n)
     {
+        this(n.toDString());
+    }
+
+    extern (D) this(const(char)[] n)
+    {
         _ref = 0;
         buffer = null;
         len = 0;
-        name = new FileName(n);
+        name = FileName(n);
     }
 
     extern (C++) static File* create(const(char)* n)
     {
-        return new File(n);
-    }
-
-    extern (D) this(const(FileName)* n)
-    {
-        _ref = 0;
-        buffer = null;
-        len = 0;
-        name = n;
+        return new File(n.toDString());
     }
 
     extern (C++) ~this()

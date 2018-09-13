@@ -71,30 +71,29 @@ version (CRuntime_Microsoft)
 /****************************************
  * Write filename to cmdbuf, quoting if necessary.
  */
-private void writeFilename(OutBuffer* buf, const(char)* filename, size_t len)
+private void writeFilename(OutBuffer* buf, const(char)[] filename)
 {
     /* Loop and see if we need to quote
      */
-    for (size_t i = 0; i < len; i++)
+    foreach (const char c; filename)
     {
-        const char c = filename[i];
         if (isalnum(c) || c == '_')
             continue;
         /* Need to quote
          */
         buf.writeByte('"');
-        buf.write(filename, len);
+        buf.writestring(filename);
         buf.writeByte('"');
         return;
     }
     /* No quoting necessary
      */
-    buf.write(filename, len);
+    buf.writestring(filename);
 }
 
 private void writeFilename(OutBuffer* buf, const(char)* filename)
 {
-    writeFilename(buf, filename, strlen(filename));
+    writeFilename(buf, filename.toDString());
 }
 
 version (Posix)
@@ -186,7 +185,7 @@ public int runLINK()
                  */
                 const(char)* n = global.params.objfiles[0];
                 n = FileName.name(n);
-                global.params.exefile = cast(char*)FileName.forceExt(n, "exe");
+                global.params.exefile = FileName.forceExt(n, "exe");
             }
             // Make sure path to exe file exists
             ensurePathToNameExists(Loc.initial, global.params.exefile);
@@ -290,7 +289,7 @@ public int runLINK()
                 if (ext && !strchr(basename, '.'))
                 {
                     // Write name sans extension (but not if a double extension)
-                    writeFilename(&cmdbuf, p, ext - p - 1);
+                    writeFilename(&cmdbuf, p[0 .. ext - p - 1]);
                 }
                 else
                     writeFilename(&cmdbuf, p);
@@ -306,7 +305,7 @@ public int runLINK()
                  */
                 const(char)* n = global.params.objfiles[0];
                 n = FileName.name(n);
-                global.params.exefile = cast(char*)FileName.forceExt(n, "exe");
+                global.params.exefile = FileName.forceExt(n, "exe");
             }
             // Make sure path to exe file exists
             ensurePathToNameExists(Loc.initial, global.params.exefile);
@@ -482,21 +481,22 @@ public int runLINK()
         {
             // Generate exe file name from first obj name
             const(char)* n = global.params.objfiles[0];
-            char* ex;
+            const(char)* ex;
             n = FileName.name(n);
             const(char)* e = FileName.ext(n);
             if (e)
             {
                 e--; // back up over '.'
-                ex = cast(char*)mem.xmalloc(e - n + 1);
-                memcpy(ex, n, e - n);
-                ex[e - n] = 0;
+                auto tmp = cast(char*)mem.xmalloc(e - n + 1);
+                memcpy(tmp, n, e - n);
+                tmp[e - n] = 0;
+                ex = tmp;
                 // If generating dll then force dll extension
                 if (global.params.dll)
-                    ex = cast(char*)FileName.forceExt(ex, global.dll_ext);
+                    ex = FileName.forceExt(ex, global.dll_ext);
             }
             else
-                ex = cast(char*)"a.out"; // no extension, so give up
+                ex = "a.out".ptr; // no extension, so give up
             argv.push(ex);
             global.params.exefile = ex;
         }
@@ -683,7 +683,7 @@ public int runLINK()
             // pipe linker stderr to fds[0]
             dup2(fds[1], STDERR_FILENO);
             close(fds[0]);
-            execvp(argv[0], cast(char**)argv.tdata());
+            execvp(argv[0], argv.tdata());
             perror(argv[0]); // failed to execute
             return -1;
         }
@@ -896,7 +896,7 @@ public int runProgram()
                 // Make it "./fn"
                 fn = FileName.combine(".", fn);
             }
-            execv(fn, cast(char**)argv.tdata());
+            execv(fn, argv.tdata());
             perror(fn); // failed to execute
             return -1;
         }

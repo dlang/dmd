@@ -572,23 +572,29 @@ extern (C++) final class Module : Package
      */
     File* setOutfile(const(char)* name, const(char)* dir, const(char)* arg, const(char)* ext)
     {
-        const(char)* docfilename;
+        return setOutfile(name.toDString(), dir.toDString(), arg.toDString(), ext.toDString());
+    }
+
+    /// Ditto
+    extern(D) File* setOutfile(const(char)[] name, const(char)[] dir, const(char)[] arg, const(char)[] ext)
+    {
+        const(char)[] docfilename;
         if (name)
         {
             docfilename = name;
         }
         else
         {
-            const(char)* argdoc;
+            const(char)[] argdoc;
             OutBuffer buf;
-            if (!strcmp(arg, "__stdin.d"))
+            if (arg == "__stdin.d")
             {
                 version (Posix)
                     import core.sys.posix.unistd : getpid;
                 else version (Windows)
                     import core.sys.windows.windows : getpid = GetCurrentProcessId;
                 buf.printf("__stdin_%d.d", getpid());
-                arg = buf.peekString();
+                arg = buf.peekSlice();
             }
             if (global.params.preservePaths)
                 argdoc = arg;
@@ -602,9 +608,9 @@ extern (C++) final class Module : Package
             }
             docfilename = FileName.forceExt(argdoc, ext);
         }
-        if (FileName.equals(docfilename, srcfile.name.str))
+        if (FileName.equals(docfilename, srcfile.name.toString()))
         {
-            error("source file and output file have same name '%s'", srcfile.name.str);
+            error("source file and output file have same name '%s'", srcfile.name.toChars());
             fatal();
         }
         return new File(docfilename);

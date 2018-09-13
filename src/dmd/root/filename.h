@@ -10,6 +10,7 @@
 #pragma once
 
 #include "array.h"
+#include "dcompat.h"
 
 class RootObject;
 
@@ -18,7 +19,9 @@ typedef Array<const char *> Strings;
 
 struct FileName
 {
-    const char *str;
+private:
+    DArray<const char> str;
+public:
     FileName(const char *str);
     static bool equals(const char *name1, const char *name2);
     static bool absolute(const char *name);
