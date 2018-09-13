@@ -1,8 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/semanticCopyCtor.d(13): Error: copy constructor can only be a member of aggregate, not module `semanticCopyCtor`
-fail_compilation/semanticCopyCtor.d(17): Error: the copy constructor parameter basic type needs to be `A`, not `int`
+fail_compilation/semanticCopyCtor.d(13): Error: copy constructor can only be a member of `struct`, not module `semanticCopyCtor`
+fail_compilation/semanticCopyCtor.d(17): Error: the copy constructor parameter base type needs to be `A`, not `int`
 fail_compilation/semanticCopyCtor.d(20): Error: function `semanticCopyCtor.foo` cannot be marked with `@implicit` because it is not a copy constructor
 fail_compilation/semanticCopyCtor.d(21): Error: variable `semanticCopyCtor.a` cannot be marked with `@implicit` because it is not a copy constructor
 fail_compilation/semanticCopyCtor.d(30): Error: struct `C` cannot define both a postblit and copy constructor. Use the copy constructor.

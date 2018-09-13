@@ -413,7 +413,9 @@ Expression valueNoDtor(Expression e)
  * rewrite e as:
  *    (tmp = e),tmp
  * Input:
- *      sc      just used to specify the scope of created temporary variable
+ *      sc = just used to specify the scope of created temporary variable
+ *      destinationType = the type of the object on which the copy constructor is called;
+ *                        may be null if the struct defines a postblit
  */
 private Expression callCpCtor(Scope* sc, Expression e, Type destinationType)
 {
@@ -445,6 +447,14 @@ private Expression callCpCtor(Scope* sc, Expression e, Type destinationType)
 
 /************************************************
  * Handle the postblit call on lvalue, or the move of rvalue.
+ *
+ * Params:
+ *   sc = the scope where the expression is encountered
+ *   e = the expression the needs to be moved or copied (source)
+ *   t = if the struct defines a copy constructor, the type of the destination
+ *
+ * Returns:
+ *  The expression that copy constructs or moves the value.
  */
 extern (D) Expression doCopyOrMove(Scope *sc, Expression e, Type t = null)
 {

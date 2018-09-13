@@ -1917,14 +1917,8 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     ? p.type.substWildTo(wildmatch)
                     : p.type;
 
-                bool hasCopyCtor;
-                if (arg.type.ty == Tstruct)
-                {
-                    TypeStruct targ = cast(TypeStruct)(arg.type);
-                    if (targ.sym.copyCtor)
-                        hasCopyCtor = true;
-                }
-                if (!hasCopyCtor && !tprm.equals(arg.type))
+                bool hasCopyCtor = (arg.type.ty == Tstruct) && (cast(TypeStruct)arg.type).sym.copyCtor !is null;
+                if (!(hasCopyCtor || tprm.equals(arg.type)))
                 {
                     //printf("arg.type = %s, p.type = %s\n", arg.type.toChars(), p.type.toChars());
                     arg = arg.implicitCastTo(sc, tprm);
@@ -8089,9 +8083,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                                  */
                                 Expression einit = new BlitExp(exp.loc, exp.e1, getInitExp(sd, exp.loc, sc, t1));
                                 einit.type = e1x.type;
-
-                                if (!einit)
-                                    return setError();
 
                                 Expression e;
                                 e = new DotIdExp(exp.loc, e1x, Id.copyCtor);
