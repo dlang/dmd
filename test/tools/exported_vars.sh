@@ -13,6 +13,14 @@ else
     export LIBEXT=.a
 fi
 
+if [[ "$OS" == "win"* ]]; then
+    export SOEXT=.dll
+elif [[ "$OS" = "osx" ]]; then
+    export SOEXT=.dylib
+else
+    export SOEXT=.so
+fi
+
 # Default to DigitalMars C++ on Win32
 if [ "$OS" == "win32" ] && [ -z "${CC+set}" ] ; then
     CC="dmc"
