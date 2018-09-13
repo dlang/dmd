@@ -1591,671 +1591,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
     {
         const(char)* p = arguments[i];
         const(char)[] arg = p[0 .. strlen(p)];
-        if (*p == '-')
-        {
-            if (arg == "-allinst")               // https://dlang.org/dmd.html#switch-allinst
-                params.allInst = true;
-            else if (arg == "-de")               // https://dlang.org/dmd.html#switch-de
-                params.useDeprecated = 0;
-            else if (arg == "-d")                // https://dlang.org/dmd.html#switch-d
-                params.useDeprecated = 1;
-            else if (arg == "-dw")               // https://dlang.org/dmd.html#switch-dw
-                params.useDeprecated = 2;
-            else if (arg == "-c")                // https://dlang.org/dmd.html#switch-c
-                params.link = false;
-            else if (startsWith(p + 1, "color")) // https://dlang.org/dmd.html#switch-color
-            {
-                params.color = true;
-                // Parse:
-                //      -color
-                //      -color=on|off
-                if (p[6] == '=')
-                {
-                    if (strcmp(p + 7, "off") == 0)
-                        params.color = false;
-                    else if (strcmp(p + 7, "on") != 0)
-                        goto Lerror;
-                }
-                else if (p[6])
-                    goto Lerror;
-            }
-            else if (startsWith(p + 1, "conf=")) // https://dlang.org/dmd.html#switch-conf
-            {
-                // ignore, already handled above
-            }
-            else if (startsWith(p + 1, "cov")) // https://dlang.org/dmd.html#switch-cov
-            {
-                params.cov = true;
-                // Parse:
-                //      -cov
-                //      -cov=nnn
-                if (p[4] == '=')
-                {
-                    if (isdigit(cast(char)p[5]))
-                    {
-                        const percent = parseDigits(p + 5, 100);
-                        if (percent == uint.max)
-                            goto Lerror;
-                        params.covPercent = cast(ubyte)percent;
-                    }
-                    else
-                        goto Lerror;
-                }
-                else if (p[4])
-                    goto Lerror;
-            }
-            else if (arg == "-shared")
-                params.dll = true;
-            else if (arg == "-fPIC")
-            {
-                static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-                {
-                    params.pic = 1;
-                }
-                else
-                {
-                    goto Lerror;
-                }
-            }
-            else if (arg == "-map") // https://dlang.org/dmd.html#switch-map
-                params.map = true;
-            else if (arg == "-multiobj")
-                params.multiobj = true;
-            else if (arg == "-g") // https://dlang.org/dmd.html#switch-g
-                params.symdebug = 1;
-            else if (arg == "-gc")  // https://dlang.org/dmd.html#switch-gc
-            {
-                Loc loc;
-                deprecation(loc, "use -g instead of -gc");
-                params.symdebug = 2;
-            }
-            else if (arg == "-gf")
-            {
-                if (!params.symdebug)
-                    params.symdebug = 1;
-                params.symdebugref = true;
-            }
-            else if (arg == "-gs")  // https://dlang.org/dmd.html#switch-gs
-                params.alwaysframe = true;
-            else if (arg == "-gx")  // https://dlang.org/dmd.html#switch-gx
-                params.stackstomp = true;
-            else if (arg == "-gt")
-            {
-                error("use -profile instead of -gt");
-                params.trace = true;
-            }
-            else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
-            {
-                static if (TARGET.DragonFlyBSD) {
-                    error("-m32 is not supported on DragonFlyBSD, it is 64-bit only");
-                } else {
-                    params.is64bit = false;
-                    params.mscoff = false;
-                }
-            }
-            else if (arg == "-m64") // https://dlang.org/dmd.html#switch-m64
-            {
-                params.is64bit = true;
-                static if (TARGET.Windows)
-                {
-                    params.mscoff = true;
-                }
-            }
-            else if (arg == "-m32mscoff") // https://dlang.org/dmd.html#switch-m32mscoff
-            {
-                static if (TARGET.Windows)
-                {
-                    params.is64bit = 0;
-                    params.mscoff = true;
-                }
-                else
-                {
-                    error("-m32mscoff can only be used on windows");
-                }
-            }
-            else if (strncmp(p + 1, "mscrtlib=", 9) == 0)
-            {
-                static if (TARGET.Windows)
-                {
-                    params.mscrtlib = p + 10;
-                }
-                else
-                {
-                    error("-mscrtlib");
-                }
-            }
-            else if (startsWith(p + 1, "profile")) // https://dlang.org/dmd.html#switch-profile
-            {
-                // Parse:
-                //      -profile
-                //      -profile=gc
-                if (p[8] == '=')
-                {
-                    if (strcmp(p + 9, "gc") == 0)
-                        params.tracegc = true;
-                    else
-                        goto Lerror;
-                }
-                else if (p[8])
-                    goto Lerror;
-                else
-                    params.trace = true;
-            }
-            else if (arg == "-v") // https://dlang.org/dmd.html#switch-v
-                params.verbose = true;
-            else if (arg == "-vcg-ast")
-                params.vcg_ast = true;
-            else if (arg == "-vtls") // https://dlang.org/dmd.html#switch-vtls
-                params.vtls = true;
-            else if (arg == "-vcolumns") // https://dlang.org/dmd.html#switch-vcolumns
-                params.showColumns = true;
-            else if (arg == "-vgc") // https://dlang.org/dmd.html#switch-vgc
-                params.vgc = true;
-            else if (startsWith(p + 1, "verrors")) // https://dlang.org/dmd.html#switch-verrors
-            {
-                if (p[8] == '=' && isdigit(cast(char)p[9]))
-                {
-                    const num = parseDigits(p + 9, int.max);
-                    if (num == uint.max)
-                        goto Lerror;
-                    params.errorLimit = num;
-                }
-                else if (startsWith(p + 9, "spec"))
-                {
-                    params.showGaggedErrors = true;
-                }
-                else
-                    goto Lerror;
-            }
-            else if (startsWith(p + 1, "mcpu")) // https://dlang.org/dmd.html#switch-mcpu
-            {
-                // Parse:
-                //      -mcpu=identifier
-                if (p[5] == '=')
-                {
-                    if (strcmp(p + 6, "?") == 0)
-                    {
-                        params.mcpuUsage = true;
-                        return false;
-                    }
-                    else if (Identifier.isValidIdentifier(p + 6))
-                    {
-                        const ident = p + 6;
-                        switch (ident[0 .. strlen(ident)])
-                        {
-                        case "baseline":
-                            params.cpu = CPU.baseline;
-                            break;
-                        case "avx":
-                            params.cpu = CPU.avx;
-                            break;
-                        case "avx2":
-                            params.cpu = CPU.avx2;
-                            break;
-                        case "native":
-                            params.cpu = CPU.native;
-                            break;
-                        default:
-                            goto Lerror;
-                        }
-                    }
-                    else
-                        goto Lerror;
-                }
-                else
-                    goto Lerror;
-            }
-            else if (startsWith(p + 1, "transition") ) // https://dlang.org/dmd.html#switch-transition
-            {
-                // Parse:
-                //      -transition=number
-                if (p[11] == '=')
-                {
-                    if (strcmp(p + 12, "?") == 0)
-                    {
-                        params.transitionUsage = true;
-                        return false;
-                    }
-                    if (isdigit(cast(char)p[12]))
-                    {
-                        const num = parseDigits(p + 12, int.max);
-                        if (num == uint.max)
-                            goto Lerror;
-
-                        string generateTransitionsNumbers()
-                        {
-                            import dmd.cli : Usage;
-                            string buf;
-                            foreach (t; Usage.transitions)
-                            {
-                                if (t.bugzillaNumber !is null)
-                                    buf ~= `case `~t.bugzillaNumber~`: params.`~t.paramName~` = true;break;`;
-                            }
-                            return buf;
-                        }
-
-                        // Bugzilla issue number
-                        switch (num)
-                        {
-                        mixin(generateTransitionsNumbers());
-                        default:
-                            goto Lerror;
-                        }
-                    }
-                    else if (Identifier.isValidIdentifier(p + 12))
-                    {
-                        string generateTransitionsText()
-                        {
-                            import dmd.cli : Usage;
-                            string buf = `case "all":`;
-                            foreach (t; Usage.transitions)
-                                buf ~= `params.`~t.paramName~` = true;`;
-                            buf ~= "break;";
-
-                            foreach (t; Usage.transitions)
-                            {
-                                buf ~= `case "`~t.name~`": params.`~t.paramName~` = true;break;`;
-                            }
-                            return buf;
-                        }
-                        const ident = p + 12;
-                        switch (ident[0 .. strlen(ident)])
-                        {
-                        mixin(generateTransitionsText());
-                        default:
-                            goto Lerror;
-                        }
-                    }
-                    else
-                        goto Lerror;
-                }
-                else
-                    goto Lerror;
-            }
-            else if (arg == "-w")   // https://dlang.org/dmd.html#switch-w
-                params.warnings = 1;
-            else if (arg == "-wi")  // https://dlang.org/dmd.html#switch-wi
-                params.warnings = 2;
-            else if (arg == "-O")   // https://dlang.org/dmd.html#switch-O
-                params.optimize = true;
-            else if (p[1] == 'o')
-            {
-                const(char)* path;
-                switch (p[2])
-                {
-                case '-':                       // https://dlang.org/dmd.html#switch-o-
-                    params.obj = false;
-                    break;
-                case 'd':                       // https://dlang.org/dmd.html#switch-od
-                    if (!p[3])
-                        goto Lnoarg;
-                    path = p + 3 + (p[3] == '=');
-                    version (Windows)
-                    {
-                        path = toWinPath(path);
-                    }
-                    params.objdir = path;
-                    break;
-                case 'f':                       // https://dlang.org/dmd.html#switch-of
-                    if (!p[3])
-                        goto Lnoarg;
-                    path = p + 3 + (p[3] == '=');
-                    version (Windows)
-                    {
-                        path = toWinPath(path);
-                    }
-                    params.objname = path;
-                    break;
-                case 'p':                       // https://dlang.org/dmd.html#switch-op
-                    if (p[3])
-                        goto Lerror;
-                    params.preservePaths = true;
-                    break;
-                case 0:
-                    error("-o no longer supported, use -of or -od");
-                    break;
-                default:
-                    goto Lerror;
-                }
-            }
-            else if (p[1] == 'D')       // https://dlang.org/dmd.html#switch-D
-            {
-                params.doDocComments = true;
-                switch (p[2])
-                {
-                case 'd':               // https://dlang.org/dmd.html#switch-Dd
-                    if (!p[3])
-                        goto Lnoarg;
-                    params.docdir = p + 3 + (p[3] == '=');
-                    break;
-                case 'f':               // https://dlang.org/dmd.html#switch-Df
-                    if (!p[3])
-                        goto Lnoarg;
-                    params.docname = p + 3 + (p[3] == '=');
-                    break;
-                case 0:
-                    break;
-                default:
-                    goto Lerror;
-                }
-            }
-            else if (p[1] == 'H')       // https://dlang.org/dmd.html#switch-H
-            {
-                params.doHdrGeneration = true;
-                switch (p[2])
-                {
-                case 'd':               // https://dlang.org/dmd.html#switch-Hd
-                    if (!p[3])
-                        goto Lnoarg;
-                    params.hdrdir = p + 3 + (p[3] == '=');
-                    break;
-                case 'f':               // https://dlang.org/dmd.html#switch-Hf
-                    if (!p[3])
-                        goto Lnoarg;
-                    params.hdrname = p + 3 + (p[3] == '=');
-                    break;
-                case 0:
-                    break;
-                default:
-                    goto Lerror;
-                }
-            }
-            else if (p[1] == 'X')       // https://dlang.org/dmd.html#switch-X
-            {
-                params.doJsonGeneration = true;
-                switch (p[2])
-                {
-                case 'f':               // https://dlang.org/dmd.html#switch-Xf
-                    if (!p[3])
-                        goto Lnoarg;
-                    params.jsonfilename = p + 3 + (p[3] == '=');
-                    break;
-                case 'i':
-                    if (!p[3])
-                        goto Lnoarg;
-                    if (p[3] != '=')
-                        goto Lerror;
-                    if (!p[4])
-                        goto Lnoarg;
-
-                    {
-                        auto flag = tryParseJsonField(p + 4);
-                        if (!flag)
-                        {
-                            error("unknown JSON field `-Xi=%s`, expected one of " ~ jsonFieldNames, p + 4);
-                            continue;
-                        }
-                        global.params.jsonFieldFlags |= flag;
-                    }
-                    break;
-                case 0:
-                    break;
-                default:
-                    goto Lerror;
-                }
-            }
-            else if (arg == "-ignore")      // https://dlang.org/dmd.html#switch-ignore
-                params.ignoreUnsupportedPragmas = true;
-            else if (arg == "-inline")      // https://dlang.org/dmd.html#switch-inline
-            {
-                params.useInline = true;
-                params.hdrStripPlainFunctions = false;
-            }
-            else if (arg == "-i")
-                includeImports = true;
-            else if (startsWith(p + 1, "i="))
-            {
-                includeImports = true;
-                if (!p[3])
-                {
-                    error("invalid option '%s', module patterns cannot be empty", p);
-                }
-                else
-                {
-                    // NOTE: we could check that the argument only contains valid "module-pattern" characters.
-                    //       Invalid characters doesn't break anything but an error message to the user might
-                    //       be nice.
-                    includeModulePatterns.push(p + 3);
-                }
-            }
-            else if (arg == "-dip25")       // https://dlang.org/dmd.html#switch-dip25
-                params.useDIP25 = true;
-            else if (arg == "-dip1000")
-            {
-                params.useDIP25 = true;
-                params.vsafe = true;
-            }
-            else if (arg == "-dip1008")
-            {
-                params.ehnogc = true;
-            }
-            else if (arg == "-lib")         // https://dlang.org/dmd.html#switch-lib
-                params.lib = true;
-            else if (arg == "-nofloat")
-                params.nofloat = true;
-            else if (arg == "-quiet")
-            {
-                // Ignore
-            }
-            else if (arg == "-release")     // https://dlang.org/dmd.html#switch-release
-                params.release = true;
-            else if (arg == "-betterC")     // https://dlang.org/dmd.html#switch-betterC
-                params.betterC = true;
-            else if (arg == "-noboundscheck") // https://dlang.org/dmd.html#switch-noboundscheck
-            {
-                params.useArrayBounds = CHECKENABLE.off;
-            }
-            else if (startsWith(p + 1, "boundscheck")) // https://dlang.org/dmd.html#switch-boundscheck
-            {
-                // Parse:
-                //      -boundscheck=[on|safeonly|off]
-                if (p[12] == '=')
-                {
-                    if (strcmp(p + 13, "on") == 0)
-                    {
-                        params.useArrayBounds = CHECKENABLE.on;
-                    }
-                    else if (strcmp(p + 13, "safeonly") == 0)
-                    {
-                        params.useArrayBounds = CHECKENABLE.safeonly;
-                    }
-                    else if (strcmp(p + 13, "off") == 0)
-                    {
-                        params.useArrayBounds = CHECKENABLE.off;
-                    }
-                    else
-                        goto Lerror;
-                }
-                else
-                    goto Lerror;
-            }
-            else if (arg == "-unittest")
-                params.useUnitTests = true;
-            else if (p[1] == 'I')              // https://dlang.org/dmd.html#switch-I
-            {
-                if (!params.imppath)
-                    params.imppath = new Strings();
-                params.imppath.push(p + 2 + (p[2] == '='));
-            }
-            else if (p[1] == 'm' && p[2] == 'v' && p[3] == '=') // https://dlang.org/dmd.html#switch-mv
-            {
-                if (p[4] && strchr(p + 5, '='))
-                {
-                    if (!params.modFileAliasStrings)
-                        params.modFileAliasStrings = new Strings();
-                    params.modFileAliasStrings.push(p + 4);
-                }
-                else
-                    goto Lerror;
-            }
-            else if (p[1] == 'J')             // https://dlang.org/dmd.html#switch-J
-            {
-                if (!params.fileImppath)
-                    params.fileImppath = new Strings();
-                params.fileImppath.push(p + 2 + (p[2] == '='));
-            }
-            else if (startsWith(p + 1, "debug") && p[6] != 'l') // https://dlang.org/dmd.html#switch-debug
-            {
-                // Parse:
-                //      -debug
-                //      -debug=number
-                //      -debug=identifier
-                if (p[6] == '=')
-                {
-                    if (isdigit(cast(char)p[7]))
-                    {
-                        const level = parseDigits(p + 7, int.max);
-                        if (level == uint.max)
-                            goto Lerror;
-
-                        params.debuglevel = level;
-                    }
-                    else if (Identifier.isValidIdentifier(p + 7))
-                    {
-                        if (!params.debugids)
-                            params.debugids = new Array!(const(char)*);
-                        params.debugids.push(p + 7);
-                    }
-                    else
-                        goto Lerror;
-                }
-                else if (p[6])
-                    goto Lerror;
-                else
-                    params.debuglevel = 1;
-            }
-            else if (startsWith(p + 1, "version")) // https://dlang.org/dmd.html#switch-version
-            {
-                // Parse:
-                //      -version=number
-                //      -version=identifier
-                if (p[8] == '=')
-                {
-                    if (isdigit(cast(char)p[9]))
-                    {
-                        const level = parseDigits(p + 9, int.max);
-                        if (level == uint.max)
-                            goto Lerror;
-                        params.versionlevel = level;
-                    }
-                    else if (Identifier.isValidIdentifier(p + 9))
-                    {
-                        if (!params.versionids)
-                            params.versionids = new Array!(const(char)*);
-                        params.versionids.push(p + 9);
-                    }
-                    else
-                        goto Lerror;
-                }
-                else
-                    goto Lerror;
-            }
-            else if (arg == "--b")
-                params.debugb = true;
-            else if (arg == "--c")
-                params.debugc = true;
-            else if (arg == "--f")
-                params.debugf = true;
-            else if (arg == "--help" ||
-                     arg == "-h")
-            {
-                params.usage = true;
-                return false;
-            }
-            else if (arg == "--r")
-                params.debugr = true;
-            else if (arg == "--version")
-            {
-                params.logo = true;
-                return false;
-            }
-            else if (arg == "--x")
-                params.debugx = true;
-            else if (arg == "--y")
-                params.debugy = true;
-            else if (p[1] == 'L')                        // https://dlang.org/dmd.html#switch-L
-            {
-                params.linkswitches.push(p + 2 + (p[2] == '='));
-            }
-            else if (startsWith(p + 1, "defaultlib="))   // https://dlang.org/dmd.html#switch-defaultlib
-            {
-                params.defaultlibname = p + 1 + 11;
-            }
-            else if (startsWith(p + 1, "debuglib="))     // https://dlang.org/dmd.html#switch-debuglib
-            {
-                params.debuglibname = p + 1 + 9;
-            }
-            else if (startsWith(p + 1, "deps"))          // https://dlang.org/dmd.html#switch-deps
-            {
-                if (params.moduleDeps)
-                {
-                    error("-deps[=file] can only be provided once!");
-                    break;
-                }
-                if (p[5] == '=')
-                {
-                    params.moduleDepsFile = p + 1 + 5;
-                    if (!params.moduleDepsFile[0])
-                        goto Lnoarg;
-                }
-                else if (p[5] != '\0')
-                {
-                    // Else output to stdout.
-                    goto Lerror;
-                }
-                params.moduleDeps = new OutBuffer();
-            }
-            else if (arg == "-main")             // https://dlang.org/dmd.html#switch-main
-            {
-                params.addMain = true;
-            }
-            else if (startsWith(p + 1, "man"))   // https://dlang.org/dmd.html#switch-man
-            {
-                params.manual = true;
-                return false;
-            }
-            else if (arg == "-run")              // https://dlang.org/dmd.html#switch-run
-            {
-                params.run = true;
-                size_t length = argc - i - 1;
-                if (length)
-                {
-                    const(char)* ext = FileName.ext(arguments[i + 1]);
-                    if (ext && FileName.equals(ext, "d") == 0 && FileName.equals(ext, "di") == 0)
-                    {
-                        error("-run must be followed by a source file, not '%s'", arguments[i + 1]);
-                        break;
-                    }
-                    if (strcmp(arguments[i + 1], "-") == 0)
-                        files.push("__stdin.d");
-                    else
-                        files.push(arguments[i + 1]);
-                    params.runargs.setDim(length - 1);
-                    for (size_t j = 0; j < length - 1; ++j)
-                    {
-                        params.runargs[j] = arguments[i + 2 + j];
-                    }
-                    i += length;
-                }
-                else
-                {
-                    params.run = false;
-                    goto Lnoarg;
-                }
-            }
-            else if (p[1] == '\0')
-                files.push("__stdin.d");
-            else
-            {
-            Lerror:
-                error("unrecognized switch '%s'", arguments[i]);
-                continue;
-            Lnoarg:
-                error("argument expected for switch '%s'", arguments[i]);
-                continue;
-            }
-        }
-        else
+        if (*p != '-')
         {
             static if (TARGET.Windows)
             {
@@ -2272,6 +1608,669 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 }
             }
             files.push(p);
+            continue;
+        }
+
+        if (arg == "-allinst")               // https://dlang.org/dmd.html#switch-allinst
+            params.allInst = true;
+        else if (arg == "-de")               // https://dlang.org/dmd.html#switch-de
+            params.useDeprecated = 0;
+        else if (arg == "-d")                // https://dlang.org/dmd.html#switch-d
+            params.useDeprecated = 1;
+        else if (arg == "-dw")               // https://dlang.org/dmd.html#switch-dw
+            params.useDeprecated = 2;
+        else if (arg == "-c")                // https://dlang.org/dmd.html#switch-c
+            params.link = false;
+        else if (startsWith(p + 1, "color")) // https://dlang.org/dmd.html#switch-color
+        {
+            params.color = true;
+            // Parse:
+            //      -color
+            //      -color=on|off
+            if (p[6] == '=')
+            {
+                if (strcmp(p + 7, "off") == 0)
+                    params.color = false;
+                else if (strcmp(p + 7, "on") != 0)
+                    goto Lerror;
+            }
+            else if (p[6])
+                goto Lerror;
+        }
+        else if (startsWith(p + 1, "conf=")) // https://dlang.org/dmd.html#switch-conf
+        {
+            // ignore, already handled above
+        }
+        else if (startsWith(p + 1, "cov")) // https://dlang.org/dmd.html#switch-cov
+        {
+            params.cov = true;
+            // Parse:
+            //      -cov
+            //      -cov=nnn
+            if (p[4] == '=')
+            {
+                if (isdigit(cast(char)p[5]))
+                {
+                    const percent = parseDigits(p + 5, 100);
+                    if (percent == uint.max)
+                        goto Lerror;
+                    params.covPercent = cast(ubyte)percent;
+                }
+                else
+                    goto Lerror;
+            }
+            else if (p[4])
+                goto Lerror;
+        }
+        else if (arg == "-shared")
+            params.dll = true;
+        else if (arg == "-fPIC")
+        {
+            static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+            {
+                params.pic = 1;
+            }
+            else
+            {
+                goto Lerror;
+            }
+        }
+        else if (arg == "-map") // https://dlang.org/dmd.html#switch-map
+            params.map = true;
+        else if (arg == "-multiobj")
+            params.multiobj = true;
+        else if (arg == "-g") // https://dlang.org/dmd.html#switch-g
+            params.symdebug = 1;
+        else if (arg == "-gc")  // https://dlang.org/dmd.html#switch-gc
+        {
+            Loc loc;
+            deprecation(loc, "use -g instead of -gc");
+            params.symdebug = 2;
+        }
+        else if (arg == "-gf")
+        {
+            if (!params.symdebug)
+                params.symdebug = 1;
+            params.symdebugref = true;
+        }
+        else if (arg == "-gs")  // https://dlang.org/dmd.html#switch-gs
+            params.alwaysframe = true;
+        else if (arg == "-gx")  // https://dlang.org/dmd.html#switch-gx
+            params.stackstomp = true;
+        else if (arg == "-gt")
+        {
+            error("use -profile instead of -gt");
+            params.trace = true;
+        }
+        else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
+        {
+            static if (TARGET.DragonFlyBSD) {
+                error("-m32 is not supported on DragonFlyBSD, it is 64-bit only");
+            } else {
+                params.is64bit = false;
+                params.mscoff = false;
+            }
+        }
+        else if (arg == "-m64") // https://dlang.org/dmd.html#switch-m64
+        {
+            params.is64bit = true;
+            static if (TARGET.Windows)
+            {
+                params.mscoff = true;
+            }
+        }
+        else if (arg == "-m32mscoff") // https://dlang.org/dmd.html#switch-m32mscoff
+        {
+            static if (TARGET.Windows)
+            {
+                params.is64bit = 0;
+                params.mscoff = true;
+            }
+            else
+            {
+                error("-m32mscoff can only be used on windows");
+            }
+        }
+        else if (strncmp(p + 1, "mscrtlib=", 9) == 0)
+        {
+            static if (TARGET.Windows)
+            {
+                params.mscrtlib = p + 10;
+            }
+            else
+            {
+                error("-mscrtlib");
+            }
+        }
+        else if (startsWith(p + 1, "profile")) // https://dlang.org/dmd.html#switch-profile
+        {
+            // Parse:
+            //      -profile
+            //      -profile=gc
+            if (p[8] == '=')
+            {
+                if (strcmp(p + 9, "gc") == 0)
+                    params.tracegc = true;
+                else
+                    goto Lerror;
+            }
+            else if (p[8])
+                goto Lerror;
+            else
+                params.trace = true;
+        }
+        else if (arg == "-v") // https://dlang.org/dmd.html#switch-v
+            params.verbose = true;
+        else if (arg == "-vcg-ast")
+            params.vcg_ast = true;
+        else if (arg == "-vtls") // https://dlang.org/dmd.html#switch-vtls
+            params.vtls = true;
+        else if (arg == "-vcolumns") // https://dlang.org/dmd.html#switch-vcolumns
+            params.showColumns = true;
+        else if (arg == "-vgc") // https://dlang.org/dmd.html#switch-vgc
+            params.vgc = true;
+        else if (startsWith(p + 1, "verrors")) // https://dlang.org/dmd.html#switch-verrors
+        {
+            if (p[8] == '=' && isdigit(cast(char)p[9]))
+            {
+                const num = parseDigits(p + 9, int.max);
+                if (num == uint.max)
+                    goto Lerror;
+                params.errorLimit = num;
+            }
+            else if (startsWith(p + 9, "spec"))
+            {
+                params.showGaggedErrors = true;
+            }
+            else
+                goto Lerror;
+        }
+        else if (startsWith(p + 1, "mcpu")) // https://dlang.org/dmd.html#switch-mcpu
+        {
+            // Parse:
+            //      -mcpu=identifier
+            if (p[5] == '=')
+            {
+                if (strcmp(p + 6, "?") == 0)
+                {
+                    params.mcpuUsage = true;
+                    return false;
+                }
+                else if (Identifier.isValidIdentifier(p + 6))
+                {
+                    const ident = p + 6;
+                    switch (ident[0 .. strlen(ident)])
+                    {
+                    case "baseline":
+                        params.cpu = CPU.baseline;
+                        break;
+                    case "avx":
+                        params.cpu = CPU.avx;
+                        break;
+                    case "avx2":
+                        params.cpu = CPU.avx2;
+                        break;
+                    case "native":
+                        params.cpu = CPU.native;
+                        break;
+                    default:
+                        goto Lerror;
+                    }
+                }
+                else
+                    goto Lerror;
+            }
+            else
+                goto Lerror;
+        }
+        else if (startsWith(p + 1, "transition") ) // https://dlang.org/dmd.html#switch-transition
+        {
+            // Parse:
+            //      -transition=number
+            if (p[11] == '=')
+            {
+                if (strcmp(p + 12, "?") == 0)
+                {
+                    params.transitionUsage = true;
+                    return false;
+                }
+                if (isdigit(cast(char)p[12]))
+                {
+                    const num = parseDigits(p + 12, int.max);
+                    if (num == uint.max)
+                        goto Lerror;
+
+                    string generateTransitionsNumbers()
+                    {
+                        import dmd.cli : Usage;
+                        string buf;
+                        foreach (t; Usage.transitions)
+                        {
+                            if (t.bugzillaNumber !is null)
+                                buf ~= `case `~t.bugzillaNumber~`: params.`~t.paramName~` = true;break;`;
+                        }
+                        return buf;
+                    }
+
+                    // Bugzilla issue number
+                    switch (num)
+                    {
+                        mixin(generateTransitionsNumbers());
+                    default:
+                        goto Lerror;
+                    }
+                }
+                else if (Identifier.isValidIdentifier(p + 12))
+                {
+                    string generateTransitionsText()
+                    {
+                        import dmd.cli : Usage;
+                        string buf = `case "all":`;
+                        foreach (t; Usage.transitions)
+                            buf ~= `params.`~t.paramName~` = true;`;
+                        buf ~= "break;";
+
+                        foreach (t; Usage.transitions)
+                        {
+                            buf ~= `case "`~t.name~`": params.`~t.paramName~` = true;break;`;
+                        }
+                        return buf;
+                    }
+                    const ident = p + 12;
+                    switch (ident[0 .. strlen(ident)])
+                    {
+                        mixin(generateTransitionsText());
+                    default:
+                        goto Lerror;
+                    }
+                }
+                else
+                    goto Lerror;
+            }
+            else
+                goto Lerror;
+        }
+        else if (arg == "-w")   // https://dlang.org/dmd.html#switch-w
+            params.warnings = 1;
+        else if (arg == "-wi")  // https://dlang.org/dmd.html#switch-wi
+            params.warnings = 2;
+        else if (arg == "-O")   // https://dlang.org/dmd.html#switch-O
+            params.optimize = true;
+        else if (p[1] == 'o')
+        {
+            const(char)* path;
+            switch (p[2])
+            {
+            case '-':                       // https://dlang.org/dmd.html#switch-o-
+                params.obj = false;
+                break;
+            case 'd':                       // https://dlang.org/dmd.html#switch-od
+                if (!p[3])
+                    goto Lnoarg;
+                path = p + 3 + (p[3] == '=');
+                version (Windows)
+                {
+                    path = toWinPath(path);
+                }
+                params.objdir = path;
+                break;
+            case 'f':                       // https://dlang.org/dmd.html#switch-of
+                if (!p[3])
+                    goto Lnoarg;
+                path = p + 3 + (p[3] == '=');
+                version (Windows)
+                {
+                    path = toWinPath(path);
+                }
+                params.objname = path;
+                break;
+            case 'p':                       // https://dlang.org/dmd.html#switch-op
+                if (p[3])
+                    goto Lerror;
+                params.preservePaths = true;
+                break;
+            case 0:
+                error("-o no longer supported, use -of or -od");
+                break;
+            default:
+                goto Lerror;
+            }
+        }
+        else if (p[1] == 'D')       // https://dlang.org/dmd.html#switch-D
+        {
+            params.doDocComments = true;
+            switch (p[2])
+            {
+            case 'd':               // https://dlang.org/dmd.html#switch-Dd
+                if (!p[3])
+                    goto Lnoarg;
+                params.docdir = p + 3 + (p[3] == '=');
+                break;
+            case 'f':               // https://dlang.org/dmd.html#switch-Df
+                if (!p[3])
+                    goto Lnoarg;
+                params.docname = p + 3 + (p[3] == '=');
+                break;
+            case 0:
+                break;
+            default:
+                goto Lerror;
+            }
+        }
+        else if (p[1] == 'H')       // https://dlang.org/dmd.html#switch-H
+        {
+            params.doHdrGeneration = true;
+            switch (p[2])
+            {
+            case 'd':               // https://dlang.org/dmd.html#switch-Hd
+                if (!p[3])
+                    goto Lnoarg;
+                params.hdrdir = p + 3 + (p[3] == '=');
+                break;
+            case 'f':               // https://dlang.org/dmd.html#switch-Hf
+                if (!p[3])
+                    goto Lnoarg;
+                params.hdrname = p + 3 + (p[3] == '=');
+                break;
+            case 0:
+                break;
+            default:
+                goto Lerror;
+            }
+        }
+        else if (p[1] == 'X')       // https://dlang.org/dmd.html#switch-X
+        {
+            params.doJsonGeneration = true;
+            switch (p[2])
+            {
+            case 'f':               // https://dlang.org/dmd.html#switch-Xf
+                if (!p[3])
+                    goto Lnoarg;
+                params.jsonfilename = p + 3 + (p[3] == '=');
+                break;
+            case 'i':
+                if (!p[3])
+                    goto Lnoarg;
+                if (p[3] != '=')
+                    goto Lerror;
+                if (!p[4])
+                    goto Lnoarg;
+
+                {
+                    auto flag = tryParseJsonField(p + 4);
+                    if (!flag)
+                    {
+                        error("unknown JSON field `-Xi=%s`, expected one of " ~ jsonFieldNames, p + 4);
+                        continue;
+                    }
+                    global.params.jsonFieldFlags |= flag;
+                }
+                break;
+            case 0:
+                break;
+            default:
+                goto Lerror;
+            }
+        }
+        else if (arg == "-ignore")      // https://dlang.org/dmd.html#switch-ignore
+            params.ignoreUnsupportedPragmas = true;
+        else if (arg == "-inline")      // https://dlang.org/dmd.html#switch-inline
+        {
+            params.useInline = true;
+            params.hdrStripPlainFunctions = false;
+        }
+        else if (arg == "-i")
+            includeImports = true;
+        else if (startsWith(p + 1, "i="))
+        {
+            includeImports = true;
+            if (!p[3])
+            {
+                error("invalid option '%s', module patterns cannot be empty", p);
+            }
+            else
+            {
+                // NOTE: we could check that the argument only contains valid "module-pattern" characters.
+                //       Invalid characters doesn't break anything but an error message to the user might
+                //       be nice.
+                includeModulePatterns.push(p + 3);
+            }
+        }
+        else if (arg == "-dip25")       // https://dlang.org/dmd.html#switch-dip25
+            params.useDIP25 = true;
+        else if (arg == "-dip1000")
+        {
+            params.useDIP25 = true;
+            params.vsafe = true;
+        }
+        else if (arg == "-dip1008")
+        {
+            params.ehnogc = true;
+        }
+        else if (arg == "-lib")         // https://dlang.org/dmd.html#switch-lib
+            params.lib = true;
+        else if (arg == "-nofloat")
+            params.nofloat = true;
+        else if (arg == "-quiet")
+        {
+            // Ignore
+        }
+        else if (arg == "-release")     // https://dlang.org/dmd.html#switch-release
+            params.release = true;
+        else if (arg == "-betterC")     // https://dlang.org/dmd.html#switch-betterC
+            params.betterC = true;
+        else if (arg == "-noboundscheck") // https://dlang.org/dmd.html#switch-noboundscheck
+        {
+            params.useArrayBounds = CHECKENABLE.off;
+        }
+        else if (startsWith(p + 1, "boundscheck")) // https://dlang.org/dmd.html#switch-boundscheck
+        {
+            // Parse:
+            //      -boundscheck=[on|safeonly|off]
+            if (p[12] == '=')
+            {
+                if (strcmp(p + 13, "on") == 0)
+                {
+                    params.useArrayBounds = CHECKENABLE.on;
+                }
+                else if (strcmp(p + 13, "safeonly") == 0)
+                {
+                    params.useArrayBounds = CHECKENABLE.safeonly;
+                }
+                else if (strcmp(p + 13, "off") == 0)
+                {
+                    params.useArrayBounds = CHECKENABLE.off;
+                }
+                else
+                    goto Lerror;
+            }
+            else
+                goto Lerror;
+        }
+        else if (arg == "-unittest")
+            params.useUnitTests = true;
+        else if (p[1] == 'I')              // https://dlang.org/dmd.html#switch-I
+        {
+            if (!params.imppath)
+                params.imppath = new Strings();
+            params.imppath.push(p + 2 + (p[2] == '='));
+        }
+        else if (p[1] == 'm' && p[2] == 'v' && p[3] == '=') // https://dlang.org/dmd.html#switch-mv
+        {
+            if (p[4] && strchr(p + 5, '='))
+            {
+                if (!params.modFileAliasStrings)
+                    params.modFileAliasStrings = new Strings();
+                params.modFileAliasStrings.push(p + 4);
+            }
+            else
+                goto Lerror;
+        }
+        else if (p[1] == 'J')             // https://dlang.org/dmd.html#switch-J
+        {
+            if (!params.fileImppath)
+                params.fileImppath = new Strings();
+            params.fileImppath.push(p + 2 + (p[2] == '='));
+        }
+        else if (startsWith(p + 1, "debug") && p[6] != 'l') // https://dlang.org/dmd.html#switch-debug
+        {
+            // Parse:
+            //      -debug
+            //      -debug=number
+            //      -debug=identifier
+            if (p[6] == '=')
+            {
+                if (isdigit(cast(char)p[7]))
+                {
+                    const level = parseDigits(p + 7, int.max);
+                    if (level == uint.max)
+                        goto Lerror;
+
+                    params.debuglevel = level;
+                }
+                else if (Identifier.isValidIdentifier(p + 7))
+                {
+                    if (!params.debugids)
+                        params.debugids = new Array!(const(char)*);
+                    params.debugids.push(p + 7);
+                }
+                else
+                    goto Lerror;
+            }
+            else if (p[6])
+                goto Lerror;
+            else
+                params.debuglevel = 1;
+        }
+        else if (startsWith(p + 1, "version")) // https://dlang.org/dmd.html#switch-version
+        {
+            // Parse:
+            //      -version=number
+            //      -version=identifier
+            if (p[8] == '=')
+            {
+                if (isdigit(cast(char)p[9]))
+                {
+                    const level = parseDigits(p + 9, int.max);
+                    if (level == uint.max)
+                        goto Lerror;
+                    params.versionlevel = level;
+                }
+                else if (Identifier.isValidIdentifier(p + 9))
+                {
+                    if (!params.versionids)
+                        params.versionids = new Array!(const(char)*);
+                    params.versionids.push(p + 9);
+                }
+                else
+                    goto Lerror;
+            }
+            else
+                goto Lerror;
+        }
+        else if (arg == "--b")
+            params.debugb = true;
+        else if (arg == "--c")
+            params.debugc = true;
+        else if (arg == "--f")
+            params.debugf = true;
+        else if (arg == "--help" ||
+                 arg == "-h")
+        {
+            params.usage = true;
+            return false;
+        }
+        else if (arg == "--r")
+            params.debugr = true;
+        else if (arg == "--version")
+        {
+            params.logo = true;
+            return false;
+        }
+        else if (arg == "--x")
+            params.debugx = true;
+        else if (arg == "--y")
+            params.debugy = true;
+        else if (p[1] == 'L')                        // https://dlang.org/dmd.html#switch-L
+        {
+            params.linkswitches.push(p + 2 + (p[2] == '='));
+        }
+        else if (startsWith(p + 1, "defaultlib="))   // https://dlang.org/dmd.html#switch-defaultlib
+        {
+            params.defaultlibname = p + 1 + 11;
+        }
+        else if (startsWith(p + 1, "debuglib="))     // https://dlang.org/dmd.html#switch-debuglib
+        {
+            params.debuglibname = p + 1 + 9;
+        }
+        else if (startsWith(p + 1, "deps"))          // https://dlang.org/dmd.html#switch-deps
+        {
+            if (params.moduleDeps)
+            {
+                error("-deps[=file] can only be provided once!");
+                break;
+            }
+            if (p[5] == '=')
+            {
+                params.moduleDepsFile = p + 1 + 5;
+                if (!params.moduleDepsFile[0])
+                    goto Lnoarg;
+            }
+            else if (p[5] != '\0')
+            {
+                // Else output to stdout.
+                goto Lerror;
+            }
+            params.moduleDeps = new OutBuffer();
+        }
+        else if (arg == "-main")             // https://dlang.org/dmd.html#switch-main
+        {
+            params.addMain = true;
+        }
+        else if (startsWith(p + 1, "man"))   // https://dlang.org/dmd.html#switch-man
+        {
+            params.manual = true;
+            return false;
+        }
+        else if (arg == "-run")              // https://dlang.org/dmd.html#switch-run
+        {
+            params.run = true;
+            size_t length = argc - i - 1;
+            if (length)
+            {
+                const(char)* ext = FileName.ext(arguments[i + 1]);
+                if (ext && FileName.equals(ext, "d") == 0 && FileName.equals(ext, "di") == 0)
+                {
+                    error("-run must be followed by a source file, not '%s'", arguments[i + 1]);
+                    break;
+                }
+                if (strcmp(arguments[i + 1], "-") == 0)
+                    files.push("__stdin.d");
+                else
+                    files.push(arguments[i + 1]);
+                params.runargs.setDim(length - 1);
+                for (size_t j = 0; j < length - 1; ++j)
+                {
+                    params.runargs[j] = arguments[i + 2 + j];
+                }
+                i += length;
+            }
+            else
+            {
+                params.run = false;
+                goto Lnoarg;
+            }
+        }
+        else if (p[1] == '\0')
+            files.push("__stdin.d");
+        else
+        {
+        Lerror:
+            error("unrecognized switch '%s'", arguments[i]);
+            continue;
+        Lnoarg:
+            error("argument expected for switch '%s'", arguments[i]);
+            continue;
         }
     }
     return errors;
