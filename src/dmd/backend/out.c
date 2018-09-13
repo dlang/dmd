@@ -1088,7 +1088,7 @@ STATIC void writefunc2(symbol *sfunc)
     //printf("globsym.top = %d\n", globsym.top);
 
 #if SCPP
-    FuncParamRegs fpr(tyf);
+    FuncParamRegs fpr = FuncParamRegs_create(tyf);
 #endif
 
     for (SYMIDX si = 0; si < globsym.top; si++)
@@ -1114,7 +1114,7 @@ STATIC void writefunc2(symbol *sfunc)
             case SCfastpar:
             case SCregpar:
             case SCparameter:
-                if (si == 0 && fpr.alloc(s->Stype, s->Stype->Tty, &s->Spreg, &s->Spreg2))
+                if (si == 0 && FuncParamRegs_alloc(fpr, s->Stype, s->Stype->Tty, &s->Spreg, &s->Spreg2))
                 {
                     assert(s->Spreg == ((tyf == TYmfunc) ? CX : AX));
                     assert(s->Spreg2 == NOREG);
