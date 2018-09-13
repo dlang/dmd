@@ -675,6 +675,18 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+class CopyCtorDeclaration : public CtorDeclaration
+{
+public:
+    Dsymbol *syntaxCopy(Dsymbol *);
+    const char *kind() const;
+    const char *toChars();
+    bool isVirtual() const;
+
+    CtorDeclaration *isCtorDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
+};
+
 class PostBlitDeclaration : public FuncDeclaration
 {
 public:

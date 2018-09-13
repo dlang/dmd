@@ -35,6 +35,7 @@ class FuncAliasDeclaration;
 class OverDeclaration;
 class FuncLiteralDeclaration;
 class CtorDeclaration;
+class CopyCtorDeclaration;
 class PostBlitDeclaration;
 class DtorDeclaration;
 class StaticCtorDeclaration;
@@ -247,6 +248,7 @@ public:
     virtual OverDeclaration *isOverDeclaration() { return NULL; }
     virtual FuncLiteralDeclaration *isFuncLiteralDeclaration() { return NULL; }
     virtual CtorDeclaration *isCtorDeclaration() { return NULL; }
+    virtual CtorDeclaration *isCopyCtorDeclaration() { return NULL; }
     virtual PostBlitDeclaration *isPostBlitDeclaration() { return NULL; }
     virtual DtorDeclaration *isDtorDeclaration() { return NULL; }
     virtual StaticCtorDeclaration *isStaticCtorDeclaration() { return NULL; }
