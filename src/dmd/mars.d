@@ -1568,12 +1568,6 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             params.multiobj = true;
         else if (arg == "-g") // https://dlang.org/dmd.html#switch-g
             params.symdebug = 1;
-        else if (arg == "-gc")  // https://dlang.org/dmd.html#switch-gc
-        {
-            Loc loc;
-            deprecation(loc, "use -g instead of -gc");
-            params.symdebug = 2;
-        }
         else if (arg == "-gf")
         {
             if (!params.symdebug)
@@ -1584,11 +1578,6 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             params.alwaysframe = true;
         else if (arg == "-gx")  // https://dlang.org/dmd.html#switch-gx
             params.stackstomp = true;
-        else if (arg == "-gt")
-        {
-            error("use -profile instead of -gt");
-            params.trace = true;
-        }
         else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
         {
             static if (TARGET.DragonFlyBSD) {
