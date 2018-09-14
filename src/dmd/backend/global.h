@@ -486,7 +486,7 @@ void rtlsym_term();
 extern "C" { char *id_compress(char *id, int idlen, size_t *plen); }
 
 // Dwarf
-void dwarf_CFA_set_loc(size_t location);
+void dwarf_CFA_set_loc(unsigned location);
 void dwarf_CFA_set_reg_offset(int reg, int offset);
 void dwarf_CFA_offset(int reg, int offset);
 void dwarf_CFA_args_size(size_t sz);

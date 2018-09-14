@@ -17,6 +17,7 @@ import dmd.backend.cdef;
 import dmd.backend.cc : config;
 import dmd.backend.code;
 import dmd.backend.el : elem;
+import dmd.backend.ty : I64;
 
 /* Register definitions */
 
@@ -129,6 +130,22 @@ enum RMstore = (1 << 31);
 extern (C++) extern __gshared regm_t ALLREGS;
 extern (C++) extern __gshared regm_t BYTEREGS;
 
+static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+{
+    // To support positional independent code,
+    // must be able to remove BX from available registers
+    enum ALLREGS_INIT          = (mAX|mBX|mCX|mDX|mSI|mDI);
+    enum ALLREGS_INIT_PIC      = (mAX|mCX|mDX|mSI|mDI);
+    enum BYTEREGS_INIT         = (mAX|mBX|mCX|mDX);
+    enum BYTEREGS_INIT_PIC     = (mAX|mCX|mDX);
+}
+else
+{
+    enum ALLREGS_INIT          = (mAX|mBX|mCX|mDX|mSI|mDI);
+    enum BYTEREGS_INIT         = (mAX|mBX|mCX|mDX);
+}
+
+
 /* We use the same IDXREGS for the 386 as the 8088, because if
    we used ALLREGS, it would interfere with mMSW
  */
@@ -194,7 +211,7 @@ else
 //
 // Note: even for linux targets, CFaddrsize can be set by the inline
 // assembler.
-//enum is32bitaddr(x,Iflags) (I64 || ((x) ^(((Iflags) & CFaddrsize) !=0)))
+bool is32bitaddr(bool x,code_flags_t Iflags) { return I64 || (x ^ ((Iflags & CFaddrsize) !=0)); }
 }
 
 
@@ -357,10 +374,28 @@ struct code
     evc IEV1;             // 1st operand, if any
     evc IEV2;             // 2nd operand, if any
 
+    void orReg(uint reg)
+    {   if (reg & 8)
+            Irex |= REX_R;
+        Irm |= modregrm(0, reg & 7, 0);
+    }
+
+    void setReg(uint reg)
+    {
+        Irex &= ~REX_R;
+        Irm &= cast(ubyte)~cast(uint)modregrm(0, 7, 0);
+        orReg(reg);
+    }
+
     bool isJumpOP() { return Iop == JMP || Iop == JMPS; }
 
-    extern (C++) void print();               // pretty-printer
+    extern (C++) void print()               // pretty-printer
+    {
+        code_print(&this);
+    }
 }
+
+extern (C) void code_print(code*);
 
 /*******************
  * Some instructions.

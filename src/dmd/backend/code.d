@@ -118,9 +118,12 @@ struct REGSAVE
     int alignment;              // 8 or 16
 
     void reset() { off = 0; top = 0; idx = 0; alignment = _tysize[TYnptr]/*REGSIZE*/; }
-    void save(ref CodeBuilder cdb, int reg, uint *pidx);
-    void restore(ref CodeBuilder cdb, int reg, uint idx);
+    void save(ref CodeBuilder cdb, int reg, uint *pidx) { REGSAVE_save(this, cdb, reg, pidx); }
+    void restore(ref CodeBuilder cdb, int reg, uint idx) { REGSAVE_restore(this, cdb, reg, idx); }
 }
+
+void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, int reg, uint *pidx);
+void REGSAVE_restore(ref REGSAVE regsave, ref CodeBuilder cdb, int reg, uint index);
 
 extern __gshared REGSAVE regsave;
 
@@ -500,7 +503,7 @@ void cod3_initregs();
 void cod3_setdefault();
 void cod3_set32();
 void cod3_set64();
-void cod3_align_bytes(int seg, size_t nbytes);
+void cod3_align_bytes(int seg, uint nbytes);
 void cod3_align(int seg);
 void cod3_buildmodulector(Outbuffer* buf, int codeOffset, int refOffset);
 void cod3_stackadj(ref CodeBuilder cdb, int nbytes);
@@ -547,6 +550,19 @@ void searchfixlist(Symbol *s) {}
 void outfixlist();
 void code_hydrate(code **pc);
 void code_dehydrate(code **pc);
+
+extern __gshared
+{
+    int hasframe;            /* !=0 if this function has a stack frame */
+    targ_size_t spoff;
+    targ_size_t Foff;        // BP offset of floating register
+    targ_size_t CSoff;       // offset of common sub expressions
+    targ_size_t NDPoff;      // offset of saved 8087 registers
+    targ_size_t pushoff;     // offset of saved registers
+    bool pushoffuse;         // using pushoff
+    int BPoff;               // offset from BP
+    int EBPtoESP;            // add to EBP offset to get ESP offset
+}
 
 /* cod4.c */
 extern __gshared
