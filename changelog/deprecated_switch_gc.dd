@@ -1,0 +1,6 @@
+Deprecated CLI switch `-gc` have been removed
+
+This switch was deprecated in v2.075.0 and is now removed,
+meaning DMD will complain about an unrecognized switch.
+`-gc` used to pretend to be C, but debuggers have been
+D-aware for around a decade.
