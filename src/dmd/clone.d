@@ -963,6 +963,7 @@ extern (C++) DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
             ad.dtors.shift(dd);
             ad.members.push(dd);
             dd.dsymbolSemantic(sc);
+            ad.fieldDtor = dd;
         }
     }
 

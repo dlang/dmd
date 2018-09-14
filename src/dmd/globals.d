@@ -151,6 +151,8 @@ struct Param
                             // https://issues.dlang.org/show_bug.cgi?id=16997
     bool vsafe;             // use enhanced @safe checking
     bool ehnogc;            // use @nogc exception handling
+    bool dtorFields;        // destruct fields of partially constructed objects
+                            // https://issues.dlang.org/show_bug.cgi?id=14246
     /** The --transition=safe switch should only be used to show code with
      * silent semantics changes related to @safe improvements.  It should not be
      * used to hide a feature that will have to go through deprecate-then-error
