@@ -2126,6 +2126,7 @@ private bool isReservedName(const(char)[] str)
         "__VENDOR__",
         "__VERSION__",
         "__EOF__",
+        "__CXXLIB__",
         "__LOCAL_SIZE",
         "___tls_get_addr",
         "__entrypoint",

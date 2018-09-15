@@ -159,6 +159,7 @@ immutable Msgtable[] msgtable =
     { "VENDOR", "__VENDOR__" },
     { "VERSIONX", "__VERSION__" },
     { "EOFX", "__EOF__" },
+    { "CXXLIB", "__CXXLIB__" },
 
     { "nan" },
     { "infinity" },
