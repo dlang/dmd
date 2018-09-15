@@ -129,8 +129,14 @@ extern (C++)
     void init_optab();
 }
 
+/**
+ * Describes a register
+ *
+ * This struct is only used for manifest constant
+ */
 struct REG
 {
+immutable:
     char[6] regstr;
     ubyte val;
     opflag_t ty;
@@ -404,10 +410,10 @@ enum
 
 struct OPND
 {
-    const(REG) *base;        // if plain register
-    const(REG) *pregDisp1;   // if [register1]
-    const(REG) *pregDisp2;
-    const(REG) *segreg;      // if segment override
+    immutable(REG) *base;        // if plain register
+    immutable(REG) *pregDisp1;   // if [register1]
+    immutable(REG) *pregDisp2;
+    immutable(REG) *segreg;      // if segment override
     bool bOffset;            // if 'offset' keyword
     bool bSeg;               // if 'segment' keyword
     bool bPtr;               // if 'ptr' keyword
@@ -3184,7 +3190,7 @@ bool asm_match_float_flags(opflag_t usOp, opflag_t usTable)
 /*******************************
  */
 
-const(REG)* asm_reg_lookup(const(char)* s)
+immutable(REG)* asm_reg_lookup(const(char)* s)
 {
     //dbg_printf("asm_reg_lookup('%s')\n",s);
 
@@ -4119,7 +4125,7 @@ void asm_primary_exp(out OPND o1)
     Dsymbol s;
     Dsymbol scopesym;
 
-    const(REG)* regp;
+    immutable(REG)* regp;
 
     switch (asmstate.tokValue)
     {
@@ -4560,4 +4566,3 @@ private int ispow2(uint c)
         { }
     return i;
 }
-
