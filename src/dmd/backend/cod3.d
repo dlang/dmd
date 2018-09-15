@@ -5597,7 +5597,7 @@ debug
   }
 
   debug
-  if (1 || debugc) {
+  if (debugc) {
       printf("-pinholeopt(%p)\n",cstart);
         for (c = cstart; c; c = code_next(c))
             code_print(c);
