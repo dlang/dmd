@@ -4023,46 +4023,6 @@ private
  * as ARM_SoftFP) this can cause problems. Druntime must be compiled as
  * ARM_SoftFP in this case.
  *
- * Example:
- * ----------------------------------------------------------------------
- *
- * class DerivedFiber : Fiber
- * {
- *     this()
- *     {
- *         super( &run );
- *     }
- *
- * private :
- *     void run()
- *     {
- *         printf( "Derived fiber running.\n" );
- *     }
- * }
- *
- * void fiberFunc()
- * {
- *     printf( "Composed fiber running.\n" );
- *     Fiber.yield();
- *     printf( "Composed fiber running.\n" );
- * }
- *
- * // create instances of each type
- * Fiber derived = new DerivedFiber();
- * Fiber composed = new Fiber( &fiberFunc );
- *
- * // call both fibers once
- * derived.call();
- * composed.call();
- * printf( "Execution returned to calling context.\n" );
- * composed.call();
- *
- * // since each fiber has run to completion, each should have state TERM
- * assert( derived.state == Fiber.State.TERM );
- * assert( composed.state == Fiber.State.TERM );
- *
- * ----------------------------------------------------------------------
- *
  * Authors: Based on a design by Mikola Lysenko.
  */
 class Fiber
@@ -5105,6 +5065,53 @@ private:
     }
 }
 
+///
+unittest {
+    int counter;
+
+    class DerivedFiber : Fiber
+    {
+        this()
+        {
+            super( &run );
+        }
+
+    private :
+        void run()
+        {
+            counter += 2;
+        }
+    }
+
+    void fiberFunc()
+    {
+        counter += 4;
+        Fiber.yield();
+        counter += 8;
+    }
+
+    // create instances of each type
+    Fiber derived = new DerivedFiber();
+    Fiber composed = new Fiber( &fiberFunc );
+
+    assert( counter == 0 );
+
+    derived.call();
+    assert( counter == 2, "Derived fiber increment." );
+
+    composed.call();
+    assert( counter == 6, "First composed fiber increment." );
+
+    counter += 16;
+    assert( counter == 22, "Calling context increment." );
+
+    composed.call();
+    assert( counter == 30, "Second composed fiber increment." );
+
+    // since each fiber has run to completion, each should have state TERM
+    assert( derived.state == Fiber.State.TERM );
+    assert( composed.state == Fiber.State.TERM );
+}
 
 version( unittest )
 {
