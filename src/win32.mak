@@ -229,7 +229,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\type.h $C\dt.h $C\cgcv.h \
 	$C\el.h $C\iasm.h $C\rtlsym.h \
 	$C\bcomplex.d $C\blockopt.d $C\cg.d $C\cg87.d $C\cgxmm.d \
-	$C\cgcod.c $C\cgcs.d $C\cgcv.c $C\cgelem.d $C\cgen.c $C\cgobj.c \
+	$C\cgcod.d $C\cgcs.d $C\cgcv.c $C\cgelem.d $C\cgen.c $C\cgobj.c \
 	$C\compress.d $C\cgreg.d $C\var.c \
 	$C\cgsched.d $C\cod1.d $C\cod2.d $C\cod3.d $C\cod4.d $C\cod5.d \
 	$C\dcode.d $C\symbol.d $C\debugprint.d $C\dt.c $C\ee.d $C\elem.d \
@@ -420,13 +420,14 @@ $(TOOLS_DIR)\checkwhitespace.d:
 	$(HOST_DC) -Df$@ $<
 
 ############################## Generated Source ##############################
-OPTABGENOUTPUT = $G\elxxx.d $G\cdxxx.c $G\optab.c $G\debtab.d $G\fltables.d $G\tytab.c
+OPTABGENOUTPUT = $G\elxxx.d $G\cdxxx.d $G\optab.c $G\debtab.d $G\fltables.d $G\tytab.c
 
 $(OPTABGENOUTPUT) : \
 	$C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c
 	$(CC) -cpp -o$G\optabgen.exe $C\optabgen -DMARS -DDM_TARGET_CPU_X86=1 -I$(TK)
 	$G\optabgen.exe
 	copy *.c "$G\"
+	copy cdxxx.d "$G\"
 	copy debtab.d "$G\"
 	copy elxxx.d "$G\"
 	copy fltables.d "$G\"
@@ -434,6 +435,7 @@ $(OPTABGENOUTPUT) : \
 	$(DEL) debtab.d
 	$(DEL) elxxx.d
 	$(DEL) fltables.d
+	$(DEL) cdxxx.d
 
 $G\VERSION : ..\VERSION $G
 	copy ..\VERSION $@
@@ -466,8 +468,8 @@ $G/cg.obj : $G\fltables.d $C\cg.d
 $G/cg87.obj : $C\cg87.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\cg87
 
-$G/cgcod.obj : $C\cgcod.c
-	$(CC) -c -o$@ $(MFLAGS) -I$D -I$G $C\cgcod
+$G/cgcod.obj : $G\cdxxx.d $C\cgcod.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -J$G -betterC -mv=dmd.backend=$C $C\cgcod
 
 $G/cgcs.obj : $C\cgcs.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\cgcs

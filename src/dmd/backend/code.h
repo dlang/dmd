@@ -397,7 +397,7 @@ void cod3_initregs();
 void cod3_setdefault();
 void cod3_set32 (void );
 void cod3_set64 (void );
-void cod3_align_bytes(int seg, uint nbytes);
+void cod3_align_bytes(int seg, size_t nbytes);
 void cod3_align(int seg);
 void cod3_buildmodulector(Outbuffer* buf, int codeOffset, int refOffset);
 void cod3_stackadj(CodeBuilder& cdb, int nbytes);

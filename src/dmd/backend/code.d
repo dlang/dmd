@@ -503,14 +503,14 @@ void cod3_initregs();
 void cod3_setdefault();
 void cod3_set32();
 void cod3_set64();
-void cod3_align_bytes(int seg, uint nbytes);
+void cod3_align_bytes(int seg, size_t nbytes);
 void cod3_align(int seg);
 void cod3_buildmodulector(Outbuffer* buf, int codeOffset, int refOffset);
 void cod3_stackadj(ref CodeBuilder cdb, int nbytes);
 regm_t regmask(tym_t tym, tym_t tyf);
 void cgreg_dst_regs(uint *dst_integer_reg, uint *dst_float_reg);
 void cgreg_set_priorities(tym_t ty, ubyte **pseq, ubyte **pseqmsw);
-void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const char* sflsave, Symbol** retsym, const regm_t mfuncregsave );
+void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const(char)* sflsave, Symbol** retsym, const regm_t mfuncregsave );
 void outjmptab(block *b);
 void outswitab(block *b);
 int jmpopcode(elem *e);
@@ -563,6 +563,19 @@ extern __gshared
     int BPoff;               // offset from BP
     int EBPtoESP;            // add to EBP offset to get ESP offset
 }
+
+void prolog_ifunc(ref CodeBuilder cdb, tym_t* tyf);
+void prolog_ifunc2(ref CodeBuilder cdb, tym_t tyf, tym_t tym, bool pushds);
+void prolog_16bit_windows_farfunc(ref CodeBuilder cdb, tym_t* tyf, bool* pushds);
+void prolog_frame(ref CodeBuilder cdb, uint farfunc, uint* xlocalsize, bool* enter, int* cfa_offset);
+void prolog_frameadj(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool enter, bool* pushalloc);
+void prolog_frameadj2(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool* pushalloc);
+void prolog_setupalloca(ref CodeBuilder cdb);
+void prolog_saveregs(ref CodeBuilder cdb, regm_t topush, int cfa_offset);
+void prolog_trace(ref CodeBuilder cdb, bool farfunc, uint* regsaved);
+void prolog_gen_win64_varargs(ref CodeBuilder cdb);
+void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t* namedargs);
+void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, regm_t* namedargs);
 
 /* cod4.c */
 extern __gshared

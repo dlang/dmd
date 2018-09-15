@@ -349,7 +349,7 @@ BACK_OBJS = var.o \
 	os.o fp.o \
 	rtlsym.o cgen.o out.o \
 	dt.o \
-	cgcod.o outbuf.o \
+	outbuf.o \
 	aa.o ti_achar.o \
 	ti_pvoid.o pdata.o cv8.o backconfig.o \
 	dwarf.o dwarfeh.o varstats.o \
@@ -358,7 +358,7 @@ BACK_OBJS = var.o \
 
 BACK_DOBJS = bcomplex.o evalu8.o divcoeff.o dvec.o go.o gsroa.o glocal.o gdag.o gother.o gflow.o \
 	gloop.o compress.o cgelem.o cgcs.o ee.o cod4.o cod5.o nteh.o blockopt.o memh.o cg.o cgreg.o \
-	dtype.o debugprint.o symbol.o elem.o dcode.o cgsched.o cg87.o cgxmm.o cod1.o cod2.o cod3.o
+	dtype.o debugprint.o symbol.o elem.o dcode.o cgsched.o cg87.o cgxmm.o cgcod.o cod1.o cod2.o cod3.o
 
 G_OBJS  = $(addprefix $G/, $(BACK_OBJS))
 G_DOBJS = $(addprefix $G/, $(BACK_DOBJS))
@@ -389,7 +389,7 @@ BACK_SRC = \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h \
 	$C/bcomplex.d $C/blockopt.d $C/cg.d $C/cg87.d $C/cgxmm.d \
-	$C/cgcod.c $C/cgcs.d $C/cgcv.c $C/cgelem.d $C/cgen.c $C/cgobj.c \
+	$C/cgcod.d $C/cgcs.d $C/cgcv.c $C/cgelem.d $C/cgen.c $C/cgobj.c \
 	$C/compress.d $C/cgreg.d $C/var.c $C/strtold.c \
 	$C/cgsched.d $C/cod1.d $C/cod2.d $C/cod3.d $C/cod4.d $C/cod5.d \
 	$C/dcode.d $C/symbol.d $C/debugprint.d $C/dt.c $C/ee.d $C/elem.d \
@@ -528,7 +528,7 @@ $G/dmd.conf: $(SRC_MAKE)
 	echo "$$DEFAULT_DMD_CONF" > $@
 
 ######## optabgen generates some source
-optabgen_output = debtab.d optab.c cdxxx.c elxxx.d fltables.d tytab.c
+optabgen_output = debtab.d optab.c cdxxx.d elxxx.d fltables.d tytab.c
 
 $G/optabgen: $C/optabgen.c $C/cc.h $C/oper.h
 	$(HOST_CXX) $(CXXFLAGS) -I$(TK) $< -o $G/optabgen

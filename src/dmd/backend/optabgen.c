@@ -11,7 +11,7 @@
 
 
 /* Generate op-code tables
- * Creates optab.c,debtab.d,cdxxx.c,elxxx.d
+ * Creates optab.c,debtab.d,cdxxx.d,elxxx.d
  */
 
 #include        <stdio.h>
@@ -597,11 +597,11 @@ void dotab()
         fprintf(fdeb,"\t\"%s\",\n",debtab[i]);
   fprintf(fdeb,"\t\"%s\"\n\t];\n",debtab[i]);
 
-  f = fopen("cdxxx.c","w");
-  fprintf(f,"void (*cdxxx[OPMAX]) (CodeBuilder&,elem *,regm_t *) = \n\t{\n");
+  f = fopen("cdxxx.d","w");
+  fprintf(f,"__gshared void function (ref CodeBuilder,elem *,regm_t *)[OPMAX] cdxxx = \n\t[\n");
   for (i = 0; i < OPMAX - 1; i++)
-        fprintf(f,"\t%s,\n",cdxxx[i]);
-  fprintf(f,"\t%s\n\t};\n",cdxxx[i]);
+        fprintf(f,"\t&%s,\n",cdxxx[i]);
+  fprintf(f,"\t&%s\n\t];\n",cdxxx[i]);
   fclose(f);
 
 #if 1
