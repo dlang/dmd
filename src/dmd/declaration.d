@@ -290,7 +290,7 @@ extern (C++) abstract class Declaration : Dsymbol
     int inuse;          // used to detect cycles
 
     // overridden symbol with pragma(mangle, "...")
-    const(char)* mangleOverride;
+    const(char)[] mangleOverride;
 
     final extern (D) this(Identifier id)
     {
