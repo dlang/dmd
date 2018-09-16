@@ -401,6 +401,12 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         {
             if (vd._init)
             {
+                if (vd._init.isVoidInitializer())
+                    /* Treat as 0 for the purposes of putting the initializer
+                     * in the BSS segment, or doing a mass set to 0
+                     */
+                    continue;
+
                 // Zero size fields are zero initialized
                 if (vd.type.size(vd.loc) == 0)
                     continue;
