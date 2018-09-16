@@ -740,9 +740,17 @@ extern(C++, Namespace18922)
 
 version (Posix)
 {
+    // https://godbolt.org/z/C5T2LQ
+    /+
+    namespace std
+    {
+    struct test18957 {};
+    }
+    void test18957(const std::test18957& t) {}
+    +/
     extern (C++) void test18957(ref const(std.test18957) t) {}
 
-    static assert(test18957.mangleof == "_Z9test18957RKNSt9test18957E");
+    static assert(test18957.mangleof == "_Z9test18957RKSt9test18957");
 }
 
 /**************************************/

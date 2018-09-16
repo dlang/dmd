@@ -1045,7 +1045,7 @@ private final class CppMangleVisitor : Visitor
             }
             if (!substitute(s))
             {
-                cpp_mangle_name(s, t.isConst());
+                cpp_mangle_name(s, false);
             }
         }
         if (t.isConst())
@@ -1091,7 +1091,7 @@ private final class CppMangleVisitor : Visitor
 
         if (!substitute(t.sym))
         {
-            cpp_mangle_name(t.sym, t.isConst());
+            cpp_mangle_name(t.sym, false);
         }
         if (t.isConst())
             append(null);  // C++ would have an extra type here
