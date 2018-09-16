@@ -137,7 +137,7 @@ extern (C++)
 struct REG
 {
 immutable:
-    char[6] regstr;
+    string regstr;
     ubyte val;
     opflag_t ty;
 
@@ -145,10 +145,10 @@ immutable:
     {
         // Be careful as these have the same val's as AH CH DH BH
         return ty == _r8 &&
-            ((val == _SIL && strcmp(regstr.ptr, "SIL") == 0) ||
-             (val == _DIL && strcmp(regstr.ptr, "DIL") == 0) ||
-             (val == _BPL && strcmp(regstr.ptr, "BPL") == 0) ||
-             (val == _SPL && strcmp(regstr.ptr, "SPL") == 0));
+            ((val == _SIL && regstr == "SIL") ||
+             (val == _DIL && regstr == "DIL") ||
+             (val == _BPL && regstr == "BPL") ||
+             (val == _SPL && regstr == "SPL"));
     }
 }
 
@@ -3190,13 +3190,13 @@ bool asm_match_float_flags(opflag_t usOp, opflag_t usTable)
 /*******************************
  */
 
-immutable(REG)* asm_reg_lookup(const(char)* s)
+immutable(REG)* asm_reg_lookup(const(char)[] s)
 {
     //dbg_printf("asm_reg_lookup('%s')\n",s);
 
     for (int i = 0; i < regtab.length; i++)
     {
-        if (strcmp(s,regtab[i].regstr.ptr) == 0)
+        if (s == regtab[i].regstr)
         {
             return &regtab[i];
         }
@@ -3205,7 +3205,7 @@ immutable(REG)* asm_reg_lookup(const(char)* s)
     {
         for (int i = 0; i < regtab64.length; i++)
         {
-            if (strcmp(s,regtab64[i].regstr.ptr) == 0)
+            if (s == regtab64[i].regstr)
             {
                 return &regtab64[i];
             }
@@ -4136,7 +4136,7 @@ void asm_primary_exp(out OPND o1)
 
         case TOK.this_:
         case TOK.identifier:
-            regp = asm_reg_lookup(asmstate.tok.ident.toChars());
+            regp = asm_reg_lookup(asmstate.tok.ident.toString());
             if (regp != null)
             {
                 asm_token();
