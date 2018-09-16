@@ -3236,14 +3236,10 @@ void asm_token_trans(Token *tok)
         asmstate.tokValue = tok.value;
         if (asmstate.tokValue == TOK.identifier)
         {
-            size_t len;
-            const(char)* id;
-
-            id = tok.ident.toChars();
-            len = strlen(id);
-            if (len < 20)
+            const id = tok.ident.toString();
+            if (id.length < 20)
             {
-                ASMTK asmtk = cast(ASMTK) binary(id, cast(const(char)**)apszAsmtk.ptr, ASMTKmax);
+                ASMTK asmtk = cast(ASMTK) binary(id.ptr, cast(const(char)**)apszAsmtk.ptr, ASMTKmax);
                 if (cast(int)asmtk >= 0)
                     asmstate.tokValue = cast(TOK) (asmtk + TOK.max_ + 1);
             }
