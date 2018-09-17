@@ -126,7 +126,7 @@ public:
     Prot protection;
     LINK linkage;
     int inuse;                  // used to detect cycles
-    const char *mangleOverride;      // overridden symbol with pragma(mangle, "...")
+    DArray<const char> mangleOverride;      // overridden symbol with pragma(mangle, "...")
 
     const char *kind() const;
     d_uns64 size(const Loc &loc);
