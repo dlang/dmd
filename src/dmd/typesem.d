@@ -1672,8 +1672,6 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             {
                 if (mtype.cppmangle == CPPMANGLE.def)
                     mtype.cppmangle = sc.cppmangle;
-                else
-                    assert(mtype.cppmangle == sc.cppmangle);
             }
             result = mtype;
             return;
@@ -1688,8 +1686,11 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         if (mtype.sym.type.ty == Terror)
             return error();
 
-        if (sc)
+        if (sc && sc.cppmangle != CPPMANGLE.def)
             mtype.cppmangle = sc.cppmangle;
+        else
+            mtype.cppmangle = CPPMANGLE.asStruct;
+
         result = merge(mtype);
     }
 
@@ -1708,8 +1709,6 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             {
                 if (mtype.cppmangle == CPPMANGLE.def)
                     mtype.cppmangle = sc.cppmangle;
-                else
-                    assert(mtype.cppmangle == sc.cppmangle);
             }
             result = mtype;
             return;
@@ -1724,8 +1723,11 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         if (mtype.sym.type.ty == Terror)
             return error();
 
-        if (sc)
+        if (sc && sc.cppmangle != CPPMANGLE.def)
             mtype.cppmangle = sc.cppmangle;
+        else
+            mtype.cppmangle = CPPMANGLE.asClass;
+
         result = merge(mtype);
     }
 
