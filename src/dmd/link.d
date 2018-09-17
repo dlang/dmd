@@ -480,25 +480,20 @@ public int runLINK()
         else
         {
             // Generate exe file name from first obj name
-            const(char)* n = global.params.objfiles[0];
-            const(char)* ex;
+            const(char)[] n = global.params.objfiles[0].toDString();
+            const(char)[] ex;
             n = FileName.name(n);
-            const(char)* e = FileName.ext(n);
-            if (e)
+            if (const e = FileName.ext(n))
             {
-                e--; // back up over '.'
-                auto tmp = cast(char*)mem.xmalloc(e - n + 1);
-                memcpy(tmp, n, e - n);
-                tmp[e - n] = 0;
-                ex = tmp;
-                // If generating dll then force dll extension
                 if (global.params.dll)
-                    ex = FileName.forceExt(ex, global.dll_ext);
+                    ex = FileName.forceExt(ex, global.dll_ext.toDString());
+                else
+                    ex = FileName.removeExt(n);
             }
             else
-                ex = "a.out".ptr; // no extension, so give up
-            argv.push(ex);
-            global.params.exefile = ex;
+                ex = "a.out"; // no extension, so give up
+            argv.push(ex.ptr);
+            global.params.exefile = ex.ptr;
         }
         // Make sure path to exe file exists
         ensurePathToNameExists(Loc.initial, global.params.exefile);
