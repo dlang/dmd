@@ -722,6 +722,8 @@ nothrow:
     /// Ditto
     extern (D) static int exists(const(char)[] name)
     {
+        if (!name.length)
+            return 0;
         version (Posix)
         {
             stat_t st;
