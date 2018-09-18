@@ -485,6 +485,28 @@ nothrow:
         return array;
     }
 
+    /**
+     * Add the extension `ext` to `name`, regardless of the content of `name`
+     *
+     * Params:
+     *   name = Path to append the extension to
+     *   ext  = Extension to add (should not include '.')
+     *
+     * Returns:
+     *   A newly allocated string (free with `FileName.free`)
+     */
+    extern(D) static char[] addExt(const(char)[] name, const(char)[] ext)
+    {
+        const len = name.length + ext.length + 2;
+        auto s = cast(char*)mem.xmalloc(len);
+        s[0 .. name.length] = name[];
+        s[name.length] = '.';
+        s[name.length + 1 .. len - 1] = ext[];
+        s[len - 1] = '\0';
+        return s[0 .. len - 1];
+    }
+
+
     /***************************
      * Free returned value with FileName::free()
      */
@@ -498,14 +520,8 @@ nothrow:
     {
         auto e = FileName.ext(name);
         if (e.length) // it already has an extension
-            return mem.xstrdup(name.ptr)[0 .. name.length];
-        const s_length = name.length + 1 + ext.length + 1;
-        auto s = cast(char*)mem.xmalloc(s_length);
-        memcpy(s, name.ptr, name.length);
-        s[name.length] = '.';
-        memcpy(s + name.length + 1, ext.ptr, ext.length);
-        s[s_length - 1] = '\0';
-        return s[0 .. s_length - 1];
+            return name.xarraydup;
+        return addExt(name, ext);
     }
 
     unittest
@@ -526,18 +542,9 @@ nothrow:
     /// Ditto
     extern (D) static const(char)[] forceExt(const(char)[] name, const(char)[] ext)
     {
-        auto e = FileName.ext(name);
-        if (e.length) // if already has an extension
-        {
-            const len = name.length - e.length;
-            char* s = cast(char*)mem.xmalloc(len + ext.length + 1);
-            memcpy(s, name.ptr, len);
-            memcpy(s + len, ext.ptr, ext.length);
-            s[len + ext.length] = '\0';
-            return s[0 .. len + ext.length];
-        }
-        else
-            return defaultExt(name, ext); // doesn't have one
+        if (auto e = FileName.ext(name))
+            return addExt(name[0 .. $ - e.length - 1], ext);
+        return defaultExt(name, ext); // doesn't have one
     }
 
     unittest
