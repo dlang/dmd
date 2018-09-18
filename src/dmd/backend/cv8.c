@@ -39,6 +39,11 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        <alloca.h>
 #endif
 
+#define null NULL
+typedef unsigned char ubyte;
+typedef unsigned short ushort;
+#define mask(m) (1 << (m))
+
 #if MARS
 #if TARGET_WINDOS
 
@@ -65,8 +70,8 @@ static Outbuffer *F4_buf;
 struct F1_Fixups
 {
     Symbol *s;
-    unsigned offset;
-    unsigned value;
+    uint offset;
+    uint value;
 };
 
 static Outbuffer *F1fixup;      // array of F1_Fixups
@@ -77,11 +82,11 @@ static Outbuffer *F1fixup;      // array of F1_Fixups
 struct FuncData
 {
     Symbol *sfunc;
-    unsigned section_length;
+    uint section_length;
     const char *srcfilename;
-    unsigned srcfileoff;
-    unsigned linepairstart;     // starting index of offset/line pairs in linebuf[]
-    unsigned linepairnum;       // number of offset/line pairs
+    uint srcfileoff;
+    uint linepairstart;     // starting index of offset/line pairs in linebuf[]
+    uint linepairnum;       // number of offset/line pairs
     Outbuffer *f1buf;
     Outbuffer *f1fixup;
 };
@@ -92,8 +97,8 @@ static Outbuffer *funcdata;     // array of FuncData's
 
 static Outbuffer *linepair;     // array of offset/line pairs
 
-unsigned cv8_addfile(const char *filename);
-void cv8_writesection(int seg, unsigned type, Outbuffer *buf);
+uint cv8_addfile(const char *filename);
+void cv8_writesection(int seg, uint type, Outbuffer *buf);
 
 void cv8_writename(Outbuffer *buf, const char* name, size_t len)
 {
@@ -102,7 +107,7 @@ void cv8_writename(Outbuffer *buf, const char* name, size_t len)
         const char* start = name;
         const char* cur = strchr(start, '.');
         const char* end = start + len;
-        while(cur != NULL)
+        while(cur != null)
         {
             if(cur >= end)
             {
@@ -179,7 +184,7 @@ void cv8_termfile(const char *objfilename)
 
     int seg = MsCoffObj::seg_debugS();
 
-    unsigned value = 4;
+    uint value = 4;
     objmod->bytes(seg,0,4,&value);
 
     /* Start with starting symbol in separate "F1" section
@@ -204,9 +209,9 @@ void cv8_termfile(const char *objfilename)
     cv8_writesection(seg, 0xF1, &buf);
 
     // Write out "F2" sections
-    unsigned length = funcdata->size();
-    unsigned char *p = funcdata->buf;
-    for (unsigned u = 0; u < length; u += sizeof(FuncData))
+    uint length = funcdata->size();
+    ubyte *p = funcdata->buf;
+    for (uint u = 0; u < length; u += sizeof(FuncData))
     {   FuncData *fd = (FuncData *)(p + u);
 
         F2_buf->setsize(0);
@@ -226,20 +231,20 @@ void cv8_termfile(const char *objfilename)
             objmod->bytes(f2seg,0,4,&value);
         }
 
-        unsigned offset = SegData[f2seg]->SDoffset + 8;
+        uint offset = SegData[f2seg]->SDoffset + 8;
         cv8_writesection(f2seg, 0xF2, F2_buf);
         objmod->reftoident(f2seg, offset, fd->sfunc, 0, CFseg | CFoff);
 
         if (f2seg != seg && fd->f1buf->size())
         {
             // Write out "F1" section
-            const unsigned f1offset = SegData[f2seg]->SDoffset;
+            const uint f1offset = SegData[f2seg]->SDoffset;
             cv8_writesection(f2seg, 0xF1, fd->f1buf);
 
             // Fixups for "F1" section
-            const unsigned fixupLength = fd->f1fixup->size();
-            unsigned char *pfixup = fd->f1fixup->buf;
-            for (unsigned v = 0; v < fixupLength; v += sizeof(F1_Fixups))
+            const uint fixupLength = fd->f1fixup->size();
+            ubyte *pfixup = fd->f1fixup->buf;
+            for (uint v = 0; v < fixupLength; v += sizeof(F1_Fixups))
             {   F1_Fixups *f = (F1_Fixups *)(pfixup + v);
 
                 objmod->reftoident(f2seg, f1offset + 8 + f->offset, f->s, f->value, CFseg | CFoff);
@@ -256,13 +261,13 @@ void cv8_termfile(const char *objfilename)
     if (F1_buf->size())
     {
         // Write out "F1" section
-        unsigned f1offset = SegData[seg]->SDoffset;
+        uint f1offset = SegData[seg]->SDoffset;
         cv8_writesection(seg, 0xF1, F1_buf);
 
         // Fixups for "F1" section
         length = F1fixup->size();
         p = F1fixup->buf;
-        for (unsigned u = 0; u < length; u += sizeof(F1_Fixups))
+        for (uint u = 0; u < length; u += sizeof(F1_Fixups))
         {   F1_Fixups *f = (F1_Fixups *)(p + u);
 
             objmod->reftoident(seg, f1offset + 8 + f->offset, f->s, f->value, CFseg | CFoff);
@@ -302,7 +307,7 @@ void cv8_func_start(Symbol *sfunc)
     //printf("cv8_func_start(%s)\n", sfunc->Sident);
     currentfuncdata.sfunc = sfunc;
     currentfuncdata.section_length = 0;
-    currentfuncdata.srcfilename = NULL;
+    currentfuncdata.srcfilename = null;
     currentfuncdata.srcfileoff = 0;
     currentfuncdata.linepairstart += currentfuncdata.linepairnum;
     currentfuncdata.linepairnum = 0;
@@ -333,15 +338,15 @@ void cv8_func_term(Symbol *sfunc)
     {
         // generate member function type info
         // it would be nicer if this could be in cv4_typidx, but the function info is not available there
-        unsigned nparam;
-        unsigned char call = cv4_callconv(sfunc->Stype);
+        uint nparam;
+        ubyte call = cv4_callconv(sfunc->Stype);
         idx_t paramidx = cv4_arglist(sfunc->Stype,&nparam);
-        unsigned next = cv4_typidx(sfunc->Stype->Tnext);
+        uint next = cv4_typidx(sfunc->Stype->Tnext);
 
         type* classtype = (type*)fn->Fclass;
-        unsigned classidx = cv4_typidx(classtype);
+        uint classidx = cv4_typidx(classtype);
         type *tp = type_allocn(TYnptr, classtype);
-        unsigned thisidx = cv4_typidx(tp);  // TODO
+        uint thisidx = cv4_typidx(tp);  // TODO
         debtyp_t *d = debtyp_alloc(2 + 4 + 4 + 4 + 1 + 1 + 2 + 4 + 4);
         TOWORD(d->data,LF_MFUNCTION_V2);
         TOLONG(d->data + 2,next);       // return type
@@ -404,14 +409,14 @@ void cv8_func_term(Symbol *sfunc)
         // record for CV record S_BLOCK_V3
         struct block_v3_data
         {
-            unsigned short len;
-            unsigned short id;
-            unsigned int pParent;
-            unsigned int pEnd;
-            unsigned int length;
-            unsigned int offset;
-            unsigned short seg;
-            unsigned char name[1];
+            ushort len;
+            ushort id;
+            uint pParent;
+            uint pEnd;
+            uint length;
+            uint offset;
+            ushort seg;
+            ubyte name[1];
         };
 
         static void endArgs()
@@ -423,7 +428,7 @@ void cv8_func_term(Symbol *sfunc)
         static void beginBlock(int offset, int length)
         {
             Outbuffer *buf = currentfuncdata.f1buf;
-            unsigned soffset = buf->size();
+            uint soffset = buf->size();
             // parent and end to be filled by linker
             block_v3_data block32 = { sizeof(block_v3_data) - 2, S_BLOCK_V3, 0, 0, length, offset, 0, { 0 } };
             buf->write(&block32, sizeof(block32));
@@ -459,9 +464,9 @@ void cv8_func_term(Symbol *sfunc)
 /**********************************************
  */
 
-void cv8_linnum(Srcpos srcpos, unsigned offset)
+void cv8_linnum(Srcpos srcpos, uint offset)
 {
-    //printf("cv8_linnum(file = %s, line = %d, offset = x%x)\n", srcpos.Sfilename, (int)srcpos.Slinnum, (unsigned)offset);
+    //printf("cv8_linnum(file = %s, line = %d, offset = x%x)\n", srcpos.Sfilename, (int)srcpos.Slinnum, (uint)offset);
     if (currentfuncdata.srcfilename)
     {
         /* Ignore line numbers from different files in the same function.
@@ -480,8 +485,8 @@ void cv8_linnum(Srcpos srcpos, unsigned offset)
 
     varStats.recordLineOffset(srcpos, offset);
 
-    static unsigned lastoffset;
-    static unsigned lastlinnum;
+    static uint lastoffset;
+    static uint lastlinnum;
     if (currentfuncdata.linepairnum)
     {
         if (offset <= lastoffset || srcpos.Slinnum <= lastlinnum)
@@ -490,8 +495,8 @@ void cv8_linnum(Srcpos srcpos, unsigned offset)
     lastoffset = offset;
     lastlinnum = srcpos.Slinnum;
 
-    linepair->write32((unsigned)offset);
-    linepair->write32((unsigned)srcpos.Slinnum | 0x80000000);
+    linepair->write32((uint)offset);
+    linepair->write32((uint)srcpos.Slinnum | 0x80000000);
     ++currentfuncdata.linepairnum;
 }
 
@@ -500,7 +505,7 @@ void cv8_linnum(Srcpos srcpos, unsigned offset)
  * Return offset into F4.
  */
 
-unsigned cv8_addfile(const char *filename)
+uint cv8_addfile(const char *filename)
 {
     //printf("cv8_addfile('%s')\n", filename);
 
@@ -509,14 +514,14 @@ unsigned cv8_addfile(const char *filename)
      * Unlike C, there won't be lots of .h source files to be accounted for.
      */
 
-    unsigned length = F3_buf->size();
-    unsigned char *p = F3_buf->buf;
+    uint length = F3_buf->size();
+    ubyte *p = F3_buf->buf;
     size_t len = strlen(filename);
 
     // ensure the filename is absolute to help the debugger to find the source
     // without having to know the working directory during compilation
     static char cwd[260];
-    static unsigned cwdlen;
+    static uint cwdlen;
     bool abs = (*filename == '\\') ||
                (*filename == '/')  ||
                (*filename && filename[1] == ':');
@@ -530,7 +535,7 @@ unsigned cv8_addfile(const char *filename)
                 cwd[cwdlen++] = '\\';
         }
     }
-    unsigned off = 1;
+    uint off = 1;
     while (off + len < length)
     {
         if (!abs)
@@ -559,17 +564,17 @@ L1:
     length = F4_buf->size();
     p = F4_buf->buf;
 
-    unsigned u = 0;
+    uint u = 0;
     while (u + 8 <= length)
     {
-        //printf("\t%x\n", *(unsigned *)(p + u));
-        if (off == *(unsigned *)(p + u))
+        //printf("\t%x\n", *(uint *)(p + u));
+        if (off == *(uint *)(p + u))
         {
             //printf("\tfound %x\n", u);
             return u;
         }
         u += 4;
-        unsigned short type = *(unsigned short *)(p + u);
+        ushort type = *(ushort *)(p + u);
         u += 2;
         if (type == 0x0110)
             u += 16;            // MD5 checksum
@@ -592,7 +597,7 @@ L1:
     return length;
 }
 
-void cv8_writesection(int seg, unsigned type, Outbuffer *buf)
+void cv8_writesection(int seg, uint type, Outbuffer *buf)
 {
     /* Write out as:
      *  bytes   desc
@@ -602,13 +607,13 @@ void cv8_writesection(int seg, unsigned type, Outbuffer *buf)
      *  length  data
      *  pad     pad to 4 byte boundary
      */
-    unsigned off = SegData[seg]->SDoffset;
+    uint off = SegData[seg]->SDoffset;
     objmod->bytes(seg,off,4,&type);
-    unsigned length = buf->size();
+    uint length = buf->size();
     objmod->bytes(seg,off+4,4,&length);
     objmod->bytes(seg,off+8,length,buf->buf);
     // Align to 4
-    unsigned pad = ((length + 3) & ~3) - length;
+    uint pad = ((length + 3) & ~3) - length;
     objmod->lidata(seg,off+8+length,pad);
 }
 
@@ -632,8 +637,8 @@ void cv8_outsym(Symbol *s)
     f1f.value = 0;
     Outbuffer *buf = currentfuncdata.f1buf;
 
-    unsigned sr;
-    unsigned base;
+    uint sr;
+    uint base;
     switch (s->Sclass)
     {
         case SCparameter:
@@ -648,6 +653,7 @@ void cv8_outsym(Symbol *s)
             }
             base = Para.size - BPoff;    // cancel out add of BPoff
             goto L1;
+
         case SCauto:
             if (s->Sfl == FLreg)
                 goto case_register;
@@ -709,12 +715,12 @@ void cv8_outsym(Symbol *s)
         case SClocstat:
             sr = S_LDATA_V3;
             goto Ldata;
+
         case SCglobal:
         case SCcomdat:
         case SCcomdef:
             sr = S_GDATA_V3;
         Ldata:
-//return;
             /*
              *  2       length (not including these 2 bytes)
              *  2       S_GDATA_V2
@@ -775,7 +781,7 @@ int cv8_regnum(Symbol *s)
 {
     int reg = s->Sreglsw;
     assert(s->Sfl == FLreg);
-    if (mask[reg] & XMMREGS)
+    if (mask(reg) & XMMREGS)
         return reg - XMM0 + 154;
     switch (type_size(s->Stype))
     {
@@ -787,21 +793,25 @@ int cv8_regnum(Symbol *s)
             else
                 reg += 344 - 4;
             break;
+
         case 2:
             if (reg < 8)
                 reg += 9;
             else
                 reg += 352 - 8;
             break;
+
         case 4:
             if (reg < 8)
                 reg += 17;
             else
                 reg += 360 - 8;
             break;
+
         case 8:
             reg += 328;
             break;
+
         default:
             reg = 0;
             break;
@@ -819,8 +829,8 @@ idx_t cv8_fwdref(Symbol *s)
 //    if (s->Stypidx && !global.params.multiobj)
 //      return s->Stypidx;
     struct_t *st = s->Sstruct;
-    unsigned leaf;
-    unsigned numidx;
+    uint leaf;
+    uint numidx;
     if (st->Sflags & STRunion)
     {
         leaf = LF_UNION_V3;
@@ -836,7 +846,7 @@ idx_t cv8_fwdref(Symbol *s)
         leaf = LF_STRUCTURE_V3;
         numidx = 18;
     }
-    unsigned len = numidx + cv4_numericbytes(0);
+    uint len = numidx + cv4_numericbytes(0);
     int idlen = strlen(s->Sident);
 
     if (idlen > CV8_MAX_SYMBOL_LENGTH)
@@ -892,7 +902,7 @@ idx_t cv8_darray(type *t, idx_t etypidx)
     idx_t ptridx = cv4_typidx(tp);
     type_free(tp);
 
-    static const unsigned char fl[] =
+    static const ubyte fl[] =
     {
         0x03, 0x12,             // LF_FIELDLIST_V2
         0x0d, 0x15,             // LF_MEMBER_V3
@@ -994,7 +1004,7 @@ idx_t cv8_ddelegate(type *t, idx_t functypidx)
     TOLONG(d->data + 10, key);  // void* type
     TOLONG(d->data + 14, functypidx); // function type
 #else
-    static const unsigned char fl[] =
+    static const ubyte fl[] =
     {
         0x03, 0x12,             // LF_FIELDLIST_V2
         0x0d, 0x15,             // LF_MEMBER_V3
@@ -1069,7 +1079,7 @@ idx_t cv8_daarray(type *t, idx_t keyidx, idx_t validx)
     idx_t pvidx = cv4_typidx(tv);
     type_free(tv);
 
-    static const unsigned char fl[] =
+    static const ubyte fl[] =
     {
         0x03, 0x12,             // LF_FIELDLIST_V2
         0x0d, 0x15,             // LF_MEMBER_V3
