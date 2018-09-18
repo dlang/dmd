@@ -1,7 +1,8 @@
 Implement new C++ mangling syntax
 
 The new syntax allows for keywords to be used for mangling
-and only changes the mangle of a symbol with no other side-effects.
+and only changes the mangle of a symbol. It does not provide any
+feature resembling C++ namespaces.
 
 ---
 extern(C++, "__traits") void foo();
