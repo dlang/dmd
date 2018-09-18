@@ -2181,7 +2181,7 @@ final class Parser(AST) : Lexer
                                     nextToken();
                                     if(token.value != TOK.string_)
                                     {
-                                        error("string expected following `,` for C++ namespace");
+                                        error("string expected following `,` for C++ namespace, not `%s`", token.toChars());
                                         idents = null;
                                         break;
                                     }
