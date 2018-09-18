@@ -7765,6 +7765,24 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                             e2x = valueNoDtor(e2x);
                         }
                     }
+
+                    // https://issues.dlang.org/show_bug.cgi?id=19251
+                    // if e2 cannot be converted to e1.type, maybe there is an alias this
+                    if (!e2x.implicitConvTo(t1))
+                    {
+                        AggregateDeclaration ad2 = isAggregate(e2x.type);
+                        if (ad2 && ad2.aliasthis && !(exp.att2 && e2x.type == exp.att2))
+                        {
+                            if (!exp.att2 && exp.e2.type.checkAliasThisRec())
+                            exp.att2 = exp.e2.type;
+                            /* Rewrite (e1 op e2) as:
+                             *      (e1 op e2.aliasthis)
+                             */
+                            exp.e2 = new DotIdExp(exp.e2.loc, exp.e2, ad2.aliasthis.ident);
+                            result = exp.expressionSemantic(sc);
+                            return;
+                        }
+                    }
                 }
                 else if (!e2x.implicitConvTo(t1))
                 {
