@@ -102,12 +102,6 @@ extern (C++) abstract class Statement : RootObject
         return b;
     }
 
-    override final void print()
-    {
-        fprintf(stderr, "%s\n", toChars());
-        fflush(stderr);
-    }
-
     override final const(char)* toChars()
     {
         HdrGenState hgs;
@@ -301,7 +295,6 @@ extern (C++) abstract class Statement : RootObject
     Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
     {
         //printf("Statement::scopeCode()\n");
-        //print();
         *sentry = null;
         *sexception = null;
         *sfinally = null;
@@ -661,7 +654,6 @@ extern (C++) class ExpStatement : Statement
     override final Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
     {
         //printf("ExpStatement::scopeCode()\n");
-        //print();
 
         *sentry = null;
         *sexception = null;
@@ -675,7 +667,6 @@ extern (C++) class ExpStatement : Statement
             {
                 if (v.needsScopeDtor())
                 {
-                    //printf("dtor is: "); v.edtor.print();
                     *sfinally = new DtorExpStatement(loc, v.edtor, v);
                     v.storage_class |= STC.nodtor; // don't add in dtor again
                 }
@@ -2079,7 +2070,6 @@ extern (C++) final class OnScopeStatement : Statement
     override Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
     {
         //printf("OnScopeStatement::scopeCode()\n");
-        //print();
         *sentry = null;
         *sexception = null;
         *sfinally = null;

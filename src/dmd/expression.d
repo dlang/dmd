@@ -708,7 +708,6 @@ extern (C++) abstract class Expression : RootObject
             {
                 fprintf(stderr, "No expression copy for: %s\n", toChars());
                 printf("op = %d\n", op);
-                print();
             }
             assert(0);
         }
@@ -728,12 +727,6 @@ extern (C++) abstract class Expression : RootObject
     override final DYNCAST dyncast() const
     {
         return DYNCAST.expression;
-    }
-
-    override final void print()
-    {
-        fprintf(stderr, "%s\n", toChars());
-        fflush(stderr);
     }
 
     override const(char)* toChars()
@@ -1497,12 +1490,6 @@ extern (C++) abstract class Expression : RootObject
     Expression toBoolean(Scope* sc)
     {
         // Default is 'yes' - do nothing
-        debug
-        {
-            if (!type)
-                print();
-            assert(type);
-        }
         Expression e = this;
         Type t = type;
         Type tb = type.toBasetype();

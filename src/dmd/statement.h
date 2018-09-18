@@ -73,7 +73,6 @@ public:
 
     virtual Statement *syntaxCopy();
 
-    void print();
     const char *toChars();
 
     void error(const char *format, ...);

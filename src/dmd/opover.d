@@ -1691,9 +1691,6 @@ extern (C++) Expression build_overload(const ref Loc loc, Scope* sc, Expression 
 {
     assert(d);
     Expression e;
-    //printf("build_overload(id = '%s')\n", id.toChars());
-    //earg.print();
-    //earg.type.print();
     Declaration decl = d.isDeclaration();
     if (decl)
         e = new DotVarExp(loc, ethis, decl, false);

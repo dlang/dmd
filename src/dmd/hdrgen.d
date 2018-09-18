@@ -2278,7 +2278,6 @@ public:
         }
         assert(precedence[e.op] != PREC.zero);
         assert(pr != PREC.zero);
-        //if (precedence[e.op] == 0) e.print();
         /* Despite precedence, we don't allow a<b<c expressions.
          * They must be parenthesized.
          */
@@ -2398,10 +2397,6 @@ public:
                  */
                 if (!global.errors)
                 {
-                    debug
-                    {
-                        t.print();
-                    }
                     assert(0);
                 }
                 break;

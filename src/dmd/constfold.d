@@ -389,8 +389,6 @@ UnionExp Div(const ref Loc loc, Type type, Expression e1, Expression e2)
     if (type.isfloating())
     {
         auto c = complex_t(CTFloat.zero);
-        //e1.type.print();
-        //e2.type.print();
         if (e2.type.isreal())
         {
             if (e1.type.isreal())

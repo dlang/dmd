@@ -180,7 +180,6 @@ private extern (C++) class S2irVisitor : Visitor
 
     override void visit(Statement s)
     {
-        s.print();
         assert(0);
     }
 
@@ -1587,7 +1586,6 @@ private extern (C++) class S2irVisitor : Visitor
                 default:
                     break;
             }
-            //c.print();
         }
 
         basm.bIasmrefparam = s.refparam;             // are parameters reference?
@@ -1855,4 +1853,3 @@ void insertFinallyBlockGotos(block *startblock)
         printf("-------------------------\n");
     }
 }
-

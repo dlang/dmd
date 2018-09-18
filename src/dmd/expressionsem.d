@@ -3663,16 +3663,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = exp;
             return; // semantic() already run
         }
-        version (none)
-        {
-            if (exp.arguments && exp.arguments.dim)
-            {
-                Expression earg = (*exp.arguments)[0];
-                earg.print();
-                if (earg.type)
-                    earg.type.print();
-            }
-        }
 
         Type t1;
         Objects* tiargs = null; // initial list of template arguments
@@ -8828,11 +8818,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          *      ' ' ~ c;
          */
 
-        version (none)
-        {
-            exp.e1.type.print();
-            exp.e2.type.print();
-        }
         Type tb1next = tb1.nextOf();
         Type tb2next = tb2.nextOf();
 
@@ -8973,13 +8958,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             if (exp.checkPostblit(sc, tbn))
                 return setError();
-        }
-        version (none)
-        {
-            exp.e1.type.print();
-            exp.e2.type.print();
-            exp.type.print();
-            exp.print();
         }
         Type t1 = exp.e1.type.toBasetype();
         Type t2 = exp.e2.type.toBasetype();

@@ -52,11 +52,6 @@ extern (C++) class RootObject
         assert(0);
     }
 
-    void print()
-    {
-        printf("%s %p\n", toChars(), this);
-    }
-
     const(char)* toChars()
     {
         assert(0);

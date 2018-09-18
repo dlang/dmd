@@ -75,11 +75,6 @@ public:
     }
 
 nothrow:
-    override void print() const
-    {
-        fprintf(stderr, "%.*s", cast(int)name.length, name.ptr);
-    }
-
     override const(char)* toChars() const pure
     {
         return name.ptr;

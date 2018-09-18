@@ -848,7 +848,6 @@ extern (C++) class Dsymbol : RootObject
      */
     Dsymbol syntaxCopy(Dsymbol s)
     {
-        print();
         printf("%s %s\n", kind(), toChars());
         assert(0);
     }
@@ -2118,21 +2117,6 @@ extern (C++) final class DsymbolTable : RootObject
             return null; // already in table
         *ps = s;
         return s;
-    }
-
-    debug
-    {
-        /**
-        print the symbol table contents
-        */
-        override void print()
-        {
-            printf("SYMBOL TABLE (%d entries)\n------------------------------\n", tab.length);
-            foreach (keyValue; tab.asRange)
-            {
-                printf("%s\n", keyValue.key.toChars());
-            }
-        }
     }
 
     // Look for Dsymbol in table. If there, return it. If not, insert s and return that.
