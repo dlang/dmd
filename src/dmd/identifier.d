@@ -275,7 +275,7 @@ nothrow:
     {
         if (!p || !*p)
             return false;
-        return isValidIdentifier(p[0 .. strlen(p)]);
+        return isValidIdentifier(p.toDString);
     }
 
     /**********************************
