@@ -1162,14 +1162,14 @@ struct ASTBase
         /**
          * Determines whether the symbol for this namespace should be included in the symbol table.
          */
-        bool ignoreCppSymbols;
+        bool mangleOnly;
 
-        extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* members, bool ignoreCppSymbols)
+        extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* members, bool mangleOnly)
         {
             super(ident);
             this.loc = loc;
             this.members = members;
-            this.ignoreCppSymbols = ignoreCppSymbols;
+            this.mangleOnly = mangleOnly;
         }
 
         override void accept(Visitor v)

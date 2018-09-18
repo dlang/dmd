@@ -870,8 +870,8 @@ final class Parser(AST) : Lexer
                     const linkLoc = token.loc;
                     AST.Identifiers* idents = null;
                     CPPMANGLE cppmangle;
-                    bool ignoreCppSymbols = false;
-                    const link = parseLinkage(&idents, cppmangle, ignoreCppSymbols);
+                    bool cppMangleOnly = false;
+                    const link = parseLinkage(&idents, cppmangle, cppMangleOnly);
                     if (pAttrs.link != LINK.default_)
                     {
                         if (pAttrs.link != link)
@@ -903,7 +903,7 @@ final class Parser(AST) : Lexer
                                 a = new AST.Dsymbols();
                                 a.push(s);
                             }
-                            s = new AST.Nspace(linkLoc, id, a, ignoreCppSymbols);
+                            s = new AST.Nspace(linkLoc, id, a, cppMangleOnly);
                         }
                         pAttrs.link = LINK.default_;
                     }
@@ -2121,7 +2121,7 @@ final class Parser(AST) : Lexer
      *      extern (C++, "namespace", "namespaces", ...)
      * The parser is on the 'extern' token.
      */
-    LINK parseLinkage(AST.Identifiers** pidents, out CPPMANGLE cppmangle, out bool ignoreCppSymbols)
+    LINK parseLinkage(AST.Identifiers** pidents, out CPPMANGLE cppmangle, out bool cppMangleOnly)
     {
         AST.Identifiers* idents = null;
         cppmangle = CPPMANGLE.def;
@@ -2156,7 +2156,7 @@ final class Parser(AST) : Lexer
                         }
                         else if (token.value == TOK.string_) // extern(C++, "namespace", "namespaces")
                         {
-                            ignoreCppSymbols = true;
+                            cppMangleOnly = true;
                             idents = new AST.Identifiers();
 
                             while(1)
@@ -4250,8 +4250,8 @@ final class Parser(AST) : Lexer
                     sawLinkage = true;
                     AST.Identifiers* idents = null;
                     CPPMANGLE cppmangle;
-                    bool ignoreCppSymbols = false;
-                    link = parseLinkage(&idents, cppmangle, ignoreCppSymbols);
+                    bool cppMangleOnly = false;
+                    link = parseLinkage(&idents, cppmangle, cppMangleOnly);
                     if (idents)
                     {
                         error("C++ name spaces not allowed here");

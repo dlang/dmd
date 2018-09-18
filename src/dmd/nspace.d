@@ -33,26 +33,26 @@ extern (C++) final class Nspace : ScopeDsymbol
     /**
      * Determines whether the symbol for this namespace should be included in the symbol table.
      */
-    bool ignoreCppSymbols;
+    bool mangleOnly;
 
-    extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* members, bool ignoreCppSymbols)
+    extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* members, bool mangleOnly)
     {
         super(ident);
         //printf("Nspace::Nspace(ident = %s)\n", ident.toChars());
         this.loc = loc;
         this.members = members;
-        this.ignoreCppSymbols = ignoreCppSymbols;
+        this.mangleOnly = mangleOnly;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
-        auto ns = new Nspace(loc, ident, null, ignoreCppSymbols);
+        auto ns = new Nspace(loc, ident, null, mangleOnly);
         return ScopeDsymbol.syntaxCopy(ns);
     }
 
     override void addMember(Scope* sc, ScopeDsymbol sds)
     {
-        if(!ignoreCppSymbols)
+        if(!mangleOnly)
             ScopeDsymbol.addMember(sc, sds);
         if (members)
         {
