@@ -5540,11 +5540,10 @@ extern (C++) final class TypeStruct : Type
         return false;
     }
 
-    override MATCH implicitConvTo(Type to)
+    MATCH implicitConvToWithoutAliasThis(Type to)
     {
         MATCH m;
 
-        //printf("TypeStruct::implicitConvTo(%s => %s)\n", toChars(), to.toChars());
         if (ty == to.ty && sym == (cast(TypeStruct)to).sym)
         {
             m = MATCH.exact; // exact match
@@ -5596,7 +5595,13 @@ extern (C++) final class TypeStruct : Type
                 }
             }
         }
-        else if (sym.aliasthis && !(att & AliasThisRec.tracing))
+        return m;
+    }
+
+    MATCH implicitConvToThroughAliasThis(Type to)
+    {
+        MATCH m;
+        if (!(ty == to.ty && sym == (cast(TypeStruct)to).sym) && sym.aliasthis && !(att & AliasThisRec.tracing))
         {
             if (auto ato = aliasthisOf())
             {
@@ -5607,9 +5612,14 @@ extern (C++) final class TypeStruct : Type
             else
                 m = MATCH.nomatch; // no match
         }
-        else
-            m = MATCH.nomatch; // no match
         return m;
+    }
+
+    override MATCH implicitConvTo(Type to)
+    {
+        //printf("TypeStruct::implicitConvTo(%s => %s)\n", toChars(), to.toChars());
+        MATCH m = implicitConvToWithoutAliasThis(to);
+        return m ? m : implicitConvToThroughAliasThis(to);
     }
 
     override MATCH constConv(Type to)
@@ -5862,9 +5872,8 @@ extern (C++) final class TypeClass : Type
         return false;
     }
 
-    override MATCH implicitConvTo(Type to)
+    MATCH implicitConvToWithoutAliasThis(Type to)
     {
-        //printf("TypeClass::implicitConvTo(to = '%s') %s\n", to.toChars(), toChars());
         MATCH m = constConv(to);
         if (m > MATCH.nomatch)
             return m;
@@ -5883,8 +5892,12 @@ extern (C++) final class TypeClass : Type
                 return MATCH.convert;
             }
         }
+        return MATCH.nomatch;
+    }
 
-        m = MATCH.nomatch;
+    MATCH implicitConvToThroughAliasThis(Type to)
+    {
+        MATCH m;
         if (sym.aliasthis && !(att & AliasThisRec.tracing))
         {
             if (auto ato = aliasthisOf())
@@ -5894,8 +5907,14 @@ extern (C++) final class TypeClass : Type
                 att = cast(AliasThisRec)(att & ~AliasThisRec.tracing);
             }
         }
-
         return m;
+    }
+
+    override MATCH implicitConvTo(Type to)
+    {
+        //printf("TypeClass::implicitConvTo(to = '%s') %s\n", to.toChars(), toChars());
+        MATCH m = implicitConvToWithoutAliasThis(to);
+        return m ? m : implicitConvToThroughAliasThis(to);
     }
 
     override MATCH constConv(Type to)
