@@ -2171,7 +2171,7 @@ final class Parser(AST) : Lexer
                                 }
                                 else if(!Identifier.isValidIdentifier(name))
                                 {
-                                    error("C++ namespace `%s` is invalid", name.ptr);
+                                    error("expected valid identifer for C++ namespace but got `%s`", name.ptr);
                                     idents = null;
                                     break;
                                 }
