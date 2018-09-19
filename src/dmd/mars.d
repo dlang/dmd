@@ -1202,6 +1202,34 @@ void addDefaultVersionIdentifiers(const ref Param params)
         {
             VersionCondition.addPredefinedGlobalIdent("CRuntime_Microsoft");
             VersionCondition.addPredefinedGlobalIdent("CppRuntime_Microsoft");
+            if (!global.params.mscrtlib || !global.params.mscrtlib[0])
+            {
+                VersionCondition.addPredefinedGlobalIdent("MSRuntime_None");
+            }
+            else if (FileName.equals(global.params.mscrtlib, "libcmt"))
+            {
+                VersionCondition.addPredefinedGlobalIdent("MSRuntime_Static");
+                VersionCondition.addPredefinedGlobalIdent("MSRuntime_Release");
+            }
+            else if (FileName.equals(global.params.mscrtlib, "libcmtd"))
+            {
+                VersionCondition.addPredefinedGlobalIdent("MSRuntime_Static");
+                VersionCondition.addPredefinedGlobalIdent("MSRuntime_Debug");
+            }
+            else if (FileName.equals(global.params.mscrtlib, "msvcrt") || FileName.equals(global.params.mscrtlib, "msvcrt100"))
+            {
+                VersionCondition.addPredefinedGlobalIdent("MSRuntime_Dynamic");
+                VersionCondition.addPredefinedGlobalIdent("MSRuntime_Release");
+            }
+            else if (FileName.equals(global.params.mscrtlib, "msvcrtd"))
+            {
+                VersionCondition.addPredefinedGlobalIdent("MSRuntime_Dynamic");
+                VersionCondition.addPredefinedGlobalIdent("MSRuntime_Debug");
+            }
+            else
+            {
+                assert(0, "unexpected mscrtlib");
+            }
         }
         else
         {
