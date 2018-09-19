@@ -277,15 +277,24 @@ nothrow:
      */
     static bool isValidIdentifier(const(char)* p)
     {
-        size_t len;
-        size_t idx;
         if (!p || !*p)
+            return false;
+        return isValidIdentifier(p.toDString);
+    }
+
+    /**********************************
+     * ditto
+     */
+    extern (D) static bool isValidIdentifier(const(char)[] str)
+    {
+        const(char)* p = str.ptr;
+        size_t len = str.length;
+        size_t idx = 0;
+        if (!p || len == 0)
             goto Linvalid;
         if (*p >= '0' && *p <= '9') // beware of isdigit() on signed chars
             goto Linvalid;
-        len = strlen(p);
-        idx = 0;
-        while (p[idx])
+        while (idx < len)
         {
             dchar dc;
             const q = utf_decodeChar(p, len, idx, dc);

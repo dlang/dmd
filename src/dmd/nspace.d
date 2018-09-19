@@ -30,23 +30,30 @@ private enum LOG = false;
  */
 extern (C++) final class Nspace : ScopeDsymbol
 {
-    extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* members)
+    /**
+     * Determines whether the symbol for this namespace should be included in the symbol table.
+     */
+    bool mangleOnly;
+
+    extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* members, bool mangleOnly)
     {
         super(ident);
         //printf("Nspace::Nspace(ident = %s)\n", ident.toChars());
         this.loc = loc;
         this.members = members;
+        this.mangleOnly = mangleOnly;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
-        auto ns = new Nspace(loc, ident, null);
+        auto ns = new Nspace(loc, ident, null, mangleOnly);
         return ScopeDsymbol.syntaxCopy(ns);
     }
 
     override void addMember(Scope* sc, ScopeDsymbol sds)
     {
-        ScopeDsymbol.addMember(sc, sds);
+        if(!mangleOnly)
+            ScopeDsymbol.addMember(sc, sds);
         if (members)
         {
             if (!symtab)
