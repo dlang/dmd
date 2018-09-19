@@ -1812,6 +1812,35 @@ extern (C++) final class ErrorExp : Expression
     extern (C++) __gshared ErrorExp errorexp; // handy shared value
 }
 
+
+/***********************************************************
+ * An uninitialized value,
+ * generated from void initializers.
+ */
+extern (C++) final class VoidInitExp : Expression
+{
+    VarDeclaration var; /// the variable from where the void value came from, null if not known
+                        /// Useful for error messages
+
+    extern (D) this(VarDeclaration var)
+    {
+        super(var.loc, TOK.void_, __traits(classInstanceSize, VoidInitExp));
+        this.var = var;
+        this.type = var.type;
+    }
+
+    override const(char)* toChars() const
+    {
+        return "void";
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+
 /***********************************************************
  */
 extern (C++) final class RealExp : Expression

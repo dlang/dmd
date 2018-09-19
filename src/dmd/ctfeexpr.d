@@ -119,31 +119,6 @@ extern (C++) final class ClassReferenceExp : Expression
     }
 }
 
-/***********************************************************
- * An uninitialized value
- */
-extern (C++) final class VoidInitExp : Expression
-{
-    VarDeclaration var;
-
-    extern (D) this(VarDeclaration var)
-    {
-        super(var.loc, TOK.void_, __traits(classInstanceSize, VoidInitExp));
-        this.var = var;
-        this.type = var.type;
-    }
-
-    override const(char)* toChars() const
-    {
-        return "void";
-    }
-
-    override void accept(Visitor v)
-    {
-        v.visit(this);
-    }
-}
-
 /*************************
  * Same as getFieldIndex, but checks for a direct match with the VarDeclaration
  * Returns:

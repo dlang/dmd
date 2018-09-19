@@ -2413,6 +2413,11 @@ public:
         buf.writestring("__error");
     }
 
+    override void visit(VoidInitExp e)
+    {
+        buf.writestring("__void");
+    }
+
     void floatToBuffer(Type type, real_t value)
     {
         /** sizeof(value)*3 is because each byte of mantissa is max
