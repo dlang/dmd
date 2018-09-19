@@ -12,7 +12,6 @@ void main()
     import std.file : remove, tempDir, fwrite = write;
     import std.path : buildPath;
 
-    initDMD;
     findImportPaths.each!addImport;
 
     auto fileName = tempDir.buildPath("d_frontend_test.d");
