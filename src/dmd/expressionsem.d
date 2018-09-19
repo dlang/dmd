@@ -13,7 +13,6 @@
 module dmd.expressionsem;
 
 import core.stdc.stdio;
-import core.stdc.string;
 
 import dmd.access;
 import dmd.aggregate;
@@ -10729,8 +10728,8 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
         }
         else if (exp.ident == Id.stringof)
         {
-            const p = ie.toChars();
-            e = new StringExp(exp.loc, cast(char*)p, strlen(p));
+            const p = ie.toString();
+            e = new StringExp(exp.loc, cast(char*)p.ptr, p.length);
             e = e.expressionSemantic(sc);
             return e;
         }

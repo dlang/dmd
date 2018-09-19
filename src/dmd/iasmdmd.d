@@ -129,9 +129,15 @@ extern (C++)
     void init_optab();
 }
 
+/**
+ * Describes a register
+ *
+ * This struct is only used for manifest constant
+ */
 struct REG
 {
-    char[6] regstr;
+immutable:
+    string regstr;
     ubyte val;
     opflag_t ty;
 
@@ -139,10 +145,10 @@ struct REG
     {
         // Be careful as these have the same val's as AH CH DH BH
         return ty == _r8 &&
-            ((val == _SIL && strcmp(regstr.ptr, "SIL") == 0) ||
-             (val == _DIL && strcmp(regstr.ptr, "DIL") == 0) ||
-             (val == _BPL && strcmp(regstr.ptr, "BPL") == 0) ||
-             (val == _SPL && strcmp(regstr.ptr, "SPL") == 0));
+            ((val == _SIL && regstr == "SIL") ||
+             (val == _DIL && regstr == "DIL") ||
+             (val == _BPL && regstr == "BPL") ||
+             (val == _SPL && regstr == "SPL"));
     }
 }
 
@@ -404,10 +410,10 @@ enum
 
 struct OPND
 {
-    const(REG) *base;        // if plain register
-    const(REG) *pregDisp1;   // if [register1]
-    const(REG) *pregDisp2;
-    const(REG) *segreg;      // if segment override
+    immutable(REG) *base;        // if plain register
+    immutable(REG) *pregDisp1;   // if [register1]
+    immutable(REG) *pregDisp2;
+    immutable(REG) *segreg;      // if segment override
     bool bOffset;            // if 'offset' keyword
     bool bSeg;               // if 'segment' keyword
     bool bPtr;               // if 'ptr' keyword
@@ -3184,13 +3190,13 @@ bool asm_match_float_flags(opflag_t usOp, opflag_t usTable)
 /*******************************
  */
 
-const(REG)* asm_reg_lookup(const(char)* s)
+immutable(REG)* asm_reg_lookup(const(char)[] s)
 {
     //dbg_printf("asm_reg_lookup('%s')\n",s);
 
     for (int i = 0; i < regtab.length; i++)
     {
-        if (strcmp(s,regtab[i].regstr.ptr) == 0)
+        if (s == regtab[i].regstr)
         {
             return &regtab[i];
         }
@@ -3199,7 +3205,7 @@ const(REG)* asm_reg_lookup(const(char)* s)
     {
         for (int i = 0; i < regtab64.length; i++)
         {
-            if (strcmp(s,regtab64[i].regstr.ptr) == 0)
+            if (s == regtab64[i].regstr)
             {
                 return &regtab64[i];
             }
@@ -3230,14 +3236,10 @@ void asm_token_trans(Token *tok)
         asmstate.tokValue = tok.value;
         if (asmstate.tokValue == TOK.identifier)
         {
-            size_t len;
-            const(char)* id;
-
-            id = tok.ident.toChars();
-            len = strlen(id);
-            if (len < 20)
+            const id = tok.ident.toString();
+            if (id.length < 20)
             {
-                ASMTK asmtk = cast(ASMTK) binary(id, cast(const(char)**)apszAsmtk.ptr, ASMTKmax);
+                ASMTK asmtk = cast(ASMTK) binary(id.ptr, cast(const(char)**)apszAsmtk.ptr, ASMTKmax);
                 if (cast(int)asmtk >= 0)
                     asmstate.tokValue = cast(TOK) (asmtk + TOK.max_ + 1);
             }
@@ -4119,7 +4121,7 @@ void asm_primary_exp(out OPND o1)
     Dsymbol s;
     Dsymbol scopesym;
 
-    const(REG)* regp;
+    immutable(REG)* regp;
 
     switch (asmstate.tokValue)
     {
@@ -4130,7 +4132,7 @@ void asm_primary_exp(out OPND o1)
 
         case TOK.this_:
         case TOK.identifier:
-            regp = asm_reg_lookup(asmstate.tok.ident.toChars());
+            regp = asm_reg_lookup(asmstate.tok.ident.toString());
             if (regp != null)
             {
                 asm_token();
@@ -4560,4 +4562,3 @@ private int ispow2(uint c)
         { }
     return i;
 }
-
