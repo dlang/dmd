@@ -123,7 +123,9 @@ nothrow:
     */
     extern (C++) static const(char)* toAbsolute(const(char)* name, const(char)* base = null)
     {
-        return absolute(name) ? name : combine(base ? base : getcwd(null, 0), name);
+        const name_ = name.toDString();
+        const base_ = base ? base.toDString() : getcwd(null, 0).toDString();
+        return absolute(name_) ? name : combine(base_, name_).ptr;
     }
 
     /********************************
