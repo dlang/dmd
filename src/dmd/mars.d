@@ -1437,6 +1437,20 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             params.useDeprecated = 2;
         else if (arg == "-c")                // https://dlang.org/dmd.html#switch-c
             params.link = false;
+        else if (startsWith(p + 1, "checkaction=")) // https://dlang.org/dmd.html#switch-checkaction
+        {
+            /* Parse:
+             *    -checkaction=D|C|halt
+             */
+            if (strcmp(p + 13, "D") == 0)
+                params.checkAction = CHECKACTION.D;
+            else if (strcmp(p + 13, "C") == 0)
+                params.checkAction = CHECKACTION.C;
+            else if (strcmp(p + 13, "halt") == 0)
+                params.checkAction = CHECKACTION.halt;
+            else
+                goto Lerror;
+        }
         else if (startsWith(p + 1, "color")) // https://dlang.org/dmd.html#switch-color
         {
             params.color = true;
