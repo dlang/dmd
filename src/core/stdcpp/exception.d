@@ -13,7 +13,7 @@ module core.stdcpp.exception;
 
 extern (C++, "std"):
 
-version (CRuntime_DigitalMars)
+version (CppRuntime_DigitalMars)
 {
     import core.stdcpp.typeinfo;
 
@@ -46,7 +46,7 @@ version (CRuntime_DigitalMars)
         override const(char)* what() const nothrow;
     }
 }
-else version (CRuntime_Glibc)
+else version (CppRuntime_Gcc)
 {
     alias void function() unexpected_handler;
     unexpected_handler set_unexpected(unexpected_handler f) nothrow;
@@ -74,7 +74,7 @@ else version (CRuntime_Glibc)
         override const(char)* what() const;
     }
 }
-else version (CRuntime_Microsoft)
+else version (CppRuntime_Microsoft)
 {
     class exception
     {
@@ -96,3 +96,5 @@ else version (CRuntime_Microsoft)
         //virtual ~this();
     }
 }
+else
+    static assert(0, "Missing std::exception binding for this platform");

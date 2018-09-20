@@ -11,7 +11,7 @@
 
 module core.stdcpp.typeinfo;
 
-version (CRuntime_DigitalMars)
+version (CppRuntime_DigitalMars)
 {
     import core.stdcpp.exception;
 
@@ -54,7 +54,7 @@ version (CRuntime_DigitalMars)
         override const (char)* what() const nothrow;
     }
 }
-else version (CRuntime_Microsoft)
+else version (CppRuntime_Microsoft)
 {
     import core.stdcpp.exception;
 
@@ -95,7 +95,7 @@ else version (CRuntime_Microsoft)
         //virtual ~this();
     }
 }
-else version (CRuntime_Glibc)
+else version (CppRuntime_Gcc)
 {
     import core.stdcpp.exception;
 
@@ -143,3 +143,5 @@ else version (CRuntime_Glibc)
         override const(char)* what() const;
     }
 }
+else
+    static assert(0, "Missing std::type_info binding for this platform");
