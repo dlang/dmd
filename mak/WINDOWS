@@ -187,6 +187,9 @@ $(IMPDIR)\core\stdc\wctype.d : src\core\stdc\wctype.d
 $(IMPDIR)\core\stdcpp\exception.d : src\core\stdcpp\exception.d
 	copy $** $@
 
+$(IMPDIR)\core\stdcpp\array.d : src\core\stdcpp\array.d
+	copy $** $@
+
 $(IMPDIR)\core\stdcpp\typeinfo.d : src\core\stdcpp\typeinfo.d
 	copy $** $@
 
