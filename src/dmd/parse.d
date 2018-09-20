@@ -2159,27 +2159,27 @@ final class Parser(AST) : Lexer
                             cppMangleOnly = true;
                             idents = new AST.Identifiers();
 
-                            while(1)
+                            while (1)
                             {
                                 AST.StringExp stringExp = cast(AST.StringExp)parsePrimaryExp();
                                 const(char)[] name = stringExp.toStringz();
-                                if(name.length == 0)
+                                if (name.length == 0)
                                 {
                                     error("invalid zero length C++ namespace");
                                     idents = null;
                                     break;
                                 }
-                                else if(!Identifier.isValidIdentifier(name))
+                                else if (!Identifier.isValidIdentifier(name))
                                 {
                                     error("expected valid identifer for C++ namespace but got `%s`", name.ptr);
                                     idents = null;
                                     break;
                                 }
                                 idents.push(Identifier.idPool(name));
-                                if(token.value == TOK.comma)
+                                if (token.value == TOK.comma)
                                 {
                                     nextToken();
-                                    if(token.value != TOK.string_)
+                                    if (token.value != TOK.string_)
                                     {
                                         error("string expected following `,` for C++ namespace, not `%s`", token.toChars());
                                         idents = null;
