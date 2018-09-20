@@ -143,16 +143,21 @@ nothrow @nogc pure:
         T opCast(T)() const @trusted
         {
             static      if (is(T == bool))   return mantissa != 0 || (exp_sign & 0x7fff) != 0;
-            else static if (is(T == byte))   return cast(T)ld_read(&this);
-            else static if (is(T == ubyte))  return cast(T)ld_read(&this);
-            else static if (is(T == short))  return cast(T)ld_read(&this);
-            else static if (is(T == ushort)) return cast(T)ld_read(&this);
-            else static if (is(T == int))    return cast(T)ld_read(&this);
-            else static if (is(T == uint))   return cast(T)ld_read(&this);
+            // Account for __c_[u]long
+            else static if (__traits(isIntegral,T))
+            {
+                static if (T.ziseof == 8)
+                {
+                    static if (__traits(isUnsigned,T))
+                        return cast(T)ld_readull(&this);
+                    else
+                        return cast(T)ld_readll(&this);
+                }
+                else
+                   return cast(T)ld_read(&this);
+            }
             else static if (is(T == float))  return cast(T)ld_read(&this);
             else static if (is(T == double)) return cast(T)ld_read(&this);
-            else static if (is(T == long))   return ld_readll(&this);
-            else static if (is(T == ulong))  return ld_readull(&this);
             else static if (is(T == real))
             {
                 // convert to front end real if built with dmd
