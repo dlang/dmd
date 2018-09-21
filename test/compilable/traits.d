@@ -11,3 +11,10 @@ class C19152
         return 0;
     }
 }
+
+static assert(is(typeof(__traits(getTargetInfo, "cppRuntimeLibrary")) == string));
+
+version (CppRuntime_Microsoft)
+{
+    static assert(__traits(getTargetInfo, "cppRuntimeLibrary") == "libcmt");
+}
