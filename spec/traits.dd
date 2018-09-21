@@ -56,6 +56,7 @@ $(GNAME TraitsKeyword):
     $(GLINK getParameterStorageClasses)
     $(GLINK getPointerBitmap)
     $(GLINK getProtection)
+    $(GLINK getTargetInfo)
     $(GLINK getVirtualFunctions)
     $(GLINK getVirtualMethods)
     $(GLINK getUnitTests)
@@ -842,6 +843,24 @@ export
 public
 )
 
+$(H2 $(GNAME getTargetInfo))
+
+        $(P Receives a string key as argument.
+        The result is an expression describing the requested target information.
+        )
+
+---
+version (CppRuntime_Microsoft)
+    static assert(__traits(getTargetInfo, "cppRuntimeLibrary") == "libcmt");
+---
+
+        $(P Keys are implementation defined, allowing relevant data for exotic targets.
+        A reliable subset exists which are always available:
+        )
+
+        $(UL
+        $(LI $(D "cppRuntimeLibrary"))
+        )
 
 $(H2 $(GNAME getVirtualFunctions))
 
