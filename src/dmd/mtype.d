@@ -4716,7 +4716,7 @@ extern (C++) final class TypeFunction : TypeNext
                                 auto tmp = new VarDeclaration(arg.loc, tprm, Identifier.generateId("__copytmp"), null);
                                 tmp.dsymbolSemantic(sc);
                                 Expression ve = new VarExp(arg.loc, tmp);
-                                Expression e = new DotIdExp(arg.loc, ve, Id.copyCtor);
+                                Expression e = new DotIdExp(arg.loc, ve, Id.ctor);
                                 e = new CallExp(arg.loc, e, arg);
                                 if (.trySemantic(e, sc))
                                     m = MATCH.convert;      // implicit conversion using copy constructor

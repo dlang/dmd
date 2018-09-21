@@ -19,7 +19,6 @@ class TypeFunction;
 class Expression;
 class FuncDeclaration;
 class CtorDeclaration;
-class CopyCtorDeclaration;
 class DtorDeclaration;
 class NewDeclaration;
 class DeleteDeclaration;
@@ -165,7 +164,7 @@ public:
     FuncDeclarations postblits; // Array of postblit functions
     FuncDeclaration *postblit;  // aggregate postblit
 
-    CopyCtorDeclaration *copyCtor;   // copy constructor
+    CtorDeclaration *copyCtor;   // copy constructor
     void *copyCtorTypes;             // hashtable of copy constructor types for this struct
 
     FuncDeclaration *xeq;       // TypeInfo_Struct.xopEquals

@@ -1181,7 +1181,7 @@ extern (C++) class Dsymbol : ASTNode
         return null;
     }
 
-    inout(CopyCtorDeclaration) isCopyCtorDeclaration() inout
+    inout(CtorDeclaration) isCopyCtorDeclaration() inout
     {
         return null;
     }

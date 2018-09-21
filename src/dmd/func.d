@@ -2792,18 +2792,9 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         {
             assert(fd);
 
-            uint errors;
-            bool isCpCtor = fd.isCopyCtorDeclaration() !is null;
-            if (isCpCtor)
-                errors = global.startGagging();
-
             // remove when deprecation period of class allocators and deallocators is over
             if (fd.isNewDeclaration() && fd.checkDisabled(loc, sc))
-            {
-                if (isCpCtor)
-                    global.endGagging(errors);
                 return null;
-            }
 
             bool hasOverloads = fd.overnext !is null;
             auto tf = fd.type.toTypeFunction();
@@ -2895,8 +2886,6 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                     .errorSupplemental(loc, "... (%d more, -v to show) ...", num);
                 return 1;   // stop iterating
             }, sc);
-            if (isCpCtor)
-                global.endGagging(errors);
         }
     }
     else if (m.nextf)
@@ -3371,9 +3360,11 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
  */
 extern (C++) class CtorDeclaration : FuncDeclaration
 {
+    bool isCpCtor;
     extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Type type, bool isCpCtor = false)
     {
         super(loc, endloc, isCpCtor ? Id.copyCtor : Id.ctor, stc, type);
+        this.isCpCtor = isCpCtor;
         //printf("CtorDeclaration(loc = %s) %s\n", loc.toChars(), toChars());
     }
 
@@ -3414,42 +3405,11 @@ extern (C++) class CtorDeclaration : FuncDeclaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override inout(CtorDeclaration) isCopyCtorDeclaration() inout
     {
-        v.visit(this);
-    }
-}
-
-/***********************************************************
- */
-extern (C++) class CopyCtorDeclaration : CtorDeclaration
-{
-    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Type type)
-    {
-        super(loc, endloc, stc, type, true);
+        return isCpCtor ? this : null;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
-    {
-        assert(!s);
-        auto f = new CopyCtorDeclaration(loc, endloc, storage_class, type.syntaxCopy());
-        return FuncDeclaration.syntaxCopy(f);
-    }
-
-    override const(char)* kind() const
-    {
-        return "copy constructor";
-    }
-
-    override const(char)* toChars() const
-    {
-        return "@implicit this";
-    }
-
-    override inout(CopyCtorDeclaration) isCopyCtorDeclaration() inout
-    {
-        return this;
-    }
 
     override void accept(Visitor v)
     {
