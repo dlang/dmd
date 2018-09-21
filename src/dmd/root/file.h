@@ -12,10 +12,9 @@
 #include <stddef.h>
 
 #include "array.h"
+#include "filename.h"
 
 typedef Array<struct File *> Files;
-
-struct FileName;
 
 struct File
 {
@@ -23,7 +22,7 @@ struct File
     unsigned char *buffer;      // data for our file
     size_t len;                 // amount of data in buffer[]
 
-    FileName *name;             // name of our file
+    FileName name;              // name of our file
 
     static File *create(const char *);
     ~File();
