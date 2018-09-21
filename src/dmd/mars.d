@@ -796,11 +796,7 @@ private int tryMain(size_t argc, const(char)** argv)
             mod.accept(ppv);
 
             // write the output to $(filename).cg
-            auto modFilename = mod.srcfile.toChars();
-            auto modFilenameLength = strlen(modFilename);
-            auto cgFilename = cast(char*)allocmemory(modFilenameLength + 4);
-            memcpy(cgFilename, modFilename, modFilenameLength);
-            cgFilename[modFilenameLength .. modFilenameLength + 4] = ".cg\0";
+            auto cgFilename = FileName.addExt(mod.srcfile.toString(), "cg");
             auto cgFile = File(cgFilename);
             cgFile.setbuffer(buf.data, buf.offset);
             cgFile._ref = 1;
