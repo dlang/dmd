@@ -382,6 +382,17 @@ extern (C++) class Dsymbol : RootObject
         return parent.pastMixin();
     }
 
+    final inout(Dsymbol) pastMixinAndNspace() inout
+    {
+        //printf("Dsymbol::pastMixin() %s\n", toChars());
+        auto nspace = isNspace();
+        if (!(nspace && nspace.mangleOnly) && !isTemplateMixin() && !isForwardingAttribDeclaration())
+            return this;
+        if (!parent)
+            return null;
+        return parent.pastMixinAndNspace();
+    }
+
     /**********************************
      * `parent` field returns a lexically enclosing scope symbol this is a member of.
      *
@@ -414,7 +425,7 @@ extern (C++) class Dsymbol : RootObject
      */
     final inout(Dsymbol) toParent() inout
     {
-        return parent ? parent.pastMixin() : null;
+        return parent ? parent.pastMixinAndNspace() : null;
     }
 
     /// ditto
