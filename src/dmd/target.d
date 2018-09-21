@@ -13,6 +13,7 @@
 module dmd.target;
 
 import dmd.argtypes;
+import core.stdc.string : strlen;
 import dmd.cppmangle;
 import dmd.cppmanglewin;
 import dmd.dclass;
@@ -28,6 +29,7 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.typesem;
 import dmd.tokens : TOK;
+import dmd.utils : toDString;
 import dmd.root.ctfloat;
 import dmd.root.outbuffer;
 
@@ -773,6 +775,25 @@ struct Target
         }
         const sz = t.size(loc);
         return global.params.is64bit ? (sz + 7) & ~7 : (sz + 3) & ~3;
+    }
+
+    /**
+     * Get targetInfo by key
+     * Params:
+     *  name = name of targetInfo to get
+     *  loc = location to use for error messages
+     * Returns:
+     *  Expression for the requested targetInfo
+     */
+    extern (C++) static Expression getTargetInfo(const(char)* name, const ref Loc loc)
+    {
+        switch (name.toDString)
+        {
+            case "cppRuntimeLibrary":
+                return new StringExp(loc, cast(void*)global.params.mscrtlib, global.params.mscrtlib ? strlen(global.params.mscrtlib) : 0);
+            default:
+                return null;
+        }
     }
 }
 
