@@ -169,7 +169,7 @@ If forward is false, bsr is computed (the index of the last set bit).
 -1 is returned if no bits are set (v == 0).
 */
 private int softScan(N, bool forward)(N v) pure
-    if(is(N == uint) || is(N == ulong))
+    if (is(N == uint) || is(N == ulong))
 {
     // bsf() and bsr() are officially undefined for v == 0.
     if (!v)
@@ -251,7 +251,7 @@ unittest
 
     foreach (b; 0 .. 64)
     {
-        if(b < 32)
+        if (b < 32)
         {
             assert(softBsf!uint(1u << b) == b);
             assert(softBsr!uint(1u << b) == b);
@@ -415,7 +415,7 @@ struct BitRange
         // clear the current bit
         auto curbit = idx % bitsPerWord;
         cur ^= size_t(1) << curbit;
-        if(!cur)
+        if (!cur)
         {
             // find next size_t with set bit
             idx -= curbit;
@@ -458,7 +458,7 @@ struct BitRange
     // iterate
     size_t testSum;
     size_t nBits;
-    foreach(b; BitRange(bitArr, 100))
+    foreach (b; BitRange(bitArr, 100))
     {
         testSum += b;
         ++nBits;
@@ -478,10 +478,10 @@ struct BitRange
         size_t* bitArr = cast(size_t *)malloc(numBytes);
         scope(exit) free(bitArr);
         memset(bitArr, 0, numBytes);
-        foreach(b; bitsToTest)
+        foreach (b; bitsToTest)
             bts(bitArr, b);
         auto br = BitRange(bitArr, numBits);
-        foreach(b; bitsToTest)
+        foreach (b; bitsToTest)
         {
             assert(!br.empty);
             assert(b == br.front);
@@ -796,7 +796,7 @@ unittest
     static void test(alias impl)()
     {
         assert (impl( 0x8000_0100 ) == 0x0080_0001);
-        foreach(i; 0 .. 32)
+        foreach (i; 0 .. 32)
             assert (impl(1 << i) == 1 << 32 - i - 1);
     }
 

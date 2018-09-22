@@ -269,7 +269,7 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, co
 
     size_t typeInfoSize = structTypeInfoSize(tinext);
 
-    if(info.size <= 256)
+    if (info.size <= 256)
     {
         import core.checkedint;
 
@@ -278,20 +278,20 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, co
                                      addu(SMALLPAD, typeInfoSize, overflow),
                                      overflow);
 
-        if(newlength_padded > info.size || overflow)
+        if (newlength_padded > info.size || overflow)
             // new size does not fit inside block
             return false;
 
         auto length = cast(ubyte *)(info.base + info.size - typeInfoSize - SMALLPAD);
-        if(oldlength != ~0)
+        if (oldlength != ~0)
         {
-            if(isshared)
+            if (isshared)
             {
                 return cas(cast(shared)length, cast(ubyte)oldlength, cast(ubyte)newlength);
             }
             else
             {
-                if(*length == cast(ubyte)oldlength)
+                if (*length == cast(ubyte)oldlength)
                     *length = cast(ubyte)newlength;
                 else
                     return false;
@@ -308,21 +308,21 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, co
             *typeInfo = cast() tinext;
         }
     }
-    else if(info.size < PAGESIZE)
+    else if (info.size < PAGESIZE)
     {
-        if(newlength + MEDPAD + typeInfoSize > info.size)
+        if (newlength + MEDPAD + typeInfoSize > info.size)
             // new size does not fit inside block
             return false;
         auto length = cast(ushort *)(info.base + info.size - typeInfoSize - MEDPAD);
-        if(oldlength != ~0)
+        if (oldlength != ~0)
         {
-            if(isshared)
+            if (isshared)
             {
                 return cas(cast(shared)length, cast(ushort)oldlength, cast(ushort)newlength);
             }
             else
             {
-                if(*length == oldlength)
+                if (*length == oldlength)
                     *length = cast(ushort)newlength;
                 else
                     return false;
@@ -341,19 +341,19 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, co
     }
     else
     {
-        if(newlength + LARGEPAD > info.size)
+        if (newlength + LARGEPAD > info.size)
             // new size does not fit inside block
             return false;
         auto length = cast(size_t *)(info.base);
-        if(oldlength != ~0)
+        if (oldlength != ~0)
         {
-            if(isshared)
+            if (isshared)
             {
                 return cas(cast(shared)length, cast(size_t)oldlength, cast(size_t)newlength);
             }
             else
             {
-                if(*length == oldlength)
+                if (*length == oldlength)
                     *length = newlength;
                 else
                     return false;
@@ -378,10 +378,10 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, co
   */
 size_t __arrayAllocLength(ref BlkInfo info, const TypeInfo tinext) pure nothrow
 {
-    if(info.size <= 256)
+    if (info.size <= 256)
         return *cast(ubyte *)(info.base + info.size - structTypeInfoSize(tinext) - SMALLPAD);
 
-    if(info.size < PAGESIZE)
+    if (info.size < PAGESIZE)
         return *cast(ushort *)(info.base + info.size - structTypeInfoSize(tinext) - MEDPAD);
 
     return *cast(size_t *)(info.base);
@@ -453,7 +453,7 @@ enum N_CACHE_BLOCKS=8;
 // note this is TLS, so no need to sync.
 BlkInfo *__blkcache_storage;
 
-static if(N_CACHE_BLOCKS==1)
+static if (N_CACHE_BLOCKS==1)
 {
     version=single_cache;
 }
@@ -474,7 +474,7 @@ else
 
 @property BlkInfo *__blkcache() nothrow
 {
-    if(!__blkcache_storage)
+    if (!__blkcache_storage)
     {
         import core.stdc.stdlib;
         import core.stdc.string;
@@ -490,7 +490,7 @@ else
 static ~this()
 {
     // free the blkcache
-    if(__blkcache_storage)
+    if (__blkcache_storage)
     {
         import core.stdc.stdlib;
         free(__blkcache_storage);
@@ -506,16 +506,16 @@ void processGCMarks(BlkInfo* cache, scope rt.tlsgc.IsMarkedDg isMarked) nothrow
     // might be ready to sweep
 
     debug(PRINTF) printf("processing GC Marks, %x\n", cache);
-    if(cache)
+    if (cache)
     {
-        debug(PRINTF) foreach(i; 0 .. N_CACHE_BLOCKS)
+        debug(PRINTF) foreach (i; 0 .. N_CACHE_BLOCKS)
         {
             printf("cache entry %d has base ptr %x\tsize %d\tflags %x\n", i, cache[i].base, cache[i].size, cache[i].attr);
         }
         auto cache_end = cache + N_CACHE_BLOCKS;
-        for(;cache < cache_end; ++cache)
+        for (;cache < cache_end; ++cache)
         {
-            if(cache.base != null && !isMarked(cache.base))
+            if (cache.base != null && !isMarked(cache.base))
             {
                 debug(PRINTF) printf("clearing cache entry at %x\n", cache.base);
                 cache.base = null; // clear that data.
@@ -550,15 +550,15 @@ BlkInfo *__getBlkInfo(void *interior) nothrow
     BlkInfo *ptr = __blkcache;
     version(single_cache)
     {
-        if(ptr.base && ptr.base <= interior && (interior - ptr.base) < ptr.size)
+        if (ptr.base && ptr.base <= interior && (interior - ptr.base) < ptr.size)
             return ptr;
         return null; // not in cache.
     }
     else version(simple_cache)
     {
-        foreach(i; 0..N_CACHE_BLOCKS)
+        foreach (i; 0..N_CACHE_BLOCKS)
         {
-            if(ptr.base && ptr.base <= interior && (interior - ptr.base) < ptr.size)
+            if (ptr.base && ptr.base <= interior && (interior - ptr.base) < ptr.size)
                 return ptr;
             ptr++;
         }
@@ -567,15 +567,15 @@ BlkInfo *__getBlkInfo(void *interior) nothrow
     {
         // try to do a smart lookup, using __nextBlkIdx as the "head"
         auto curi = ptr + __nextBlkIdx;
-        for(auto i = curi; i >= ptr; --i)
+        for (auto i = curi; i >= ptr; --i)
         {
-            if(i.base && i.base <= interior && cast(size_t)(interior - i.base) < i.size)
+            if (i.base && i.base <= interior && cast(size_t)(interior - i.base) < i.size)
                 return i;
         }
 
-        for(auto i = ptr + N_CACHE_BLOCKS - 1; i > curi; --i)
+        for (auto i = ptr + N_CACHE_BLOCKS - 1; i > curi; --i)
         {
-            if(i.base && i.base <= interior && cast(size_t)(interior - i.base) < i.size)
+            if (i.base && i.base <= interior && cast(size_t)(interior - i.base) < i.size)
                 return i;
         }
     }
@@ -592,7 +592,7 @@ void __insertBlkInfoCache(BlkInfo bi, BlkInfo *curpos) nothrow
     {
         version(simple_cache)
         {
-            if(curpos)
+            if (curpos)
                 *curpos = bi;
             else
             {
@@ -611,7 +611,7 @@ void __insertBlkInfoCache(BlkInfo bi, BlkInfo *curpos) nothrow
             // current block index to the a random element and evict that
             // element.
             auto cache = __blkcache;
-            if(!curpos)
+            if (!curpos)
             {
                 __nextBlkIdx = (__nextRndNum = 1664525 * __nextRndNum + 1013904223) & (N_CACHE_BLOCKS - 1);
                 curpos = cache + __nextBlkIdx;
@@ -630,12 +630,12 @@ void __insertBlkInfoCache(BlkInfo bi, BlkInfo *curpos) nothrow
             // and insert it there.
             //
             auto cache = __blkcache;
-            if(!curpos)
+            if (!curpos)
             {
                 __nextBlkIdx = (__nextBlkIdx+1) & (N_CACHE_BLOCKS - 1);
                 curpos = cache + __nextBlkIdx;
             }
-            else if(curpos !is cache + __nextBlkIdx)
+            else if (curpos !is cache + __nextBlkIdx)
             {
                 *curpos = cache[__nextBlkIdx];
                 curpos = cache + __nextBlkIdx;
@@ -661,7 +661,7 @@ extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) /+nothrow+/
     auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
     auto bic = isshared ? null : __getBlkInfo(arr.ptr);
     auto info = bic ? *bic : GC.query(arr.ptr);
-    if(info.base && (info.attr & BlkAttr.APPENDABLE))
+    if (info.base && (info.attr & BlkAttr.APPENDABLE))
     {
         auto newsize = (arr.ptr - __arrayStart(info)) + cursize;
 
@@ -702,18 +702,18 @@ void __doPostblit(void *ptr, size_t len, const TypeInfo ti)
     if (!hasPostblit(ti))
         return;
 
-    if(auto tis = cast(TypeInfo_Struct)ti)
+    if (auto tis = cast(TypeInfo_Struct)ti)
     {
         // this is a struct, check the xpostblit member
         auto pblit = tis.xpostblit;
-        if(!pblit)
+        if (!pblit)
             // postblit not specified, no point in looping.
             return;
 
         // optimized for struct, call xpostblit directly for each element
         immutable size = ti.tsize;
         const eptr = ptr + len;
-        for(;ptr < eptr;ptr += size)
+        for (;ptr < eptr;ptr += size)
             pblit(ptr);
     }
     else
@@ -721,7 +721,7 @@ void __doPostblit(void *ptr, size_t len, const TypeInfo ti)
         // generic case, call the typeinfo's postblit function
         immutable size = ti.tsize;
         const eptr = ptr + len;
-        for(;ptr < eptr;ptr += size)
+        for (;ptr < eptr;ptr += size)
             ti.postblit(ptr);
     }
 }
@@ -797,14 +797,14 @@ Lcontinue:
     size_t curcapacity = void;
     size_t offset = void;
     size_t arraypad = void;
-    if(info.base && (info.attr & BlkAttr.APPENDABLE))
+    if (info.base && (info.attr & BlkAttr.APPENDABLE))
     {
-        if(info.size <= 256)
+        if (info.size <= 256)
         {
             arraypad = SMALLPAD + structTypeInfoSize(tinext);
             curallocsize = *(cast(ubyte *)(info.base + info.size - arraypad));
         }
-        else if(info.size < PAGESIZE)
+        else if (info.size < PAGESIZE)
         {
             arraypad = MEDPAD + structTypeInfoSize(tinext);
             curallocsize = *(cast(ushort *)(info.base + info.size - arraypad));
@@ -817,7 +817,7 @@ Lcontinue:
 
 
         offset = (*p).ptr - __arrayStart(info);
-        if(offset + (*p).length * size != curallocsize)
+        if (offset + (*p).length * size != curallocsize)
         {
             curcapacity = 0;
         }
@@ -834,21 +834,21 @@ Lcontinue:
     }
     debug(PRINTF) printf("_d_arraysetcapacity, p = x%d,%d, newcapacity=%d, info.size=%d, reqsize=%d, curallocsize=%d, curcapacity=%d, offset=%d\n", (*p).ptr, (*p).length, newcapacity, info.size, reqsize, curallocsize, curcapacity, offset);
 
-    if(curcapacity >= reqsize)
+    if (curcapacity >= reqsize)
     {
         // no problems, the current allocated size is large enough.
         return curcapacity / size;
     }
 
     // step 3, try to extend the array in place.
-    if(info.size >= PAGESIZE && curcapacity != 0)
+    if (info.size >= PAGESIZE && curcapacity != 0)
     {
         auto extendsize = reqsize + offset + LARGEPAD - info.size;
         auto u = GC.extend(info.base, extendsize, extendsize);
-        if(u)
+        if (u)
         {
             // extend worked, save the new current allocated size
-            if(bic)
+            if (bic)
                 bic.size = u; // update cache
             curcapacity = u - offset - LARGEPAD;
             return curcapacity / size;
@@ -860,7 +860,7 @@ Lcontinue:
     // copy attributes from original block, or from the typeinfo if the
     // original block doesn't exist.
     info = __arrayAlloc(reqsize, info, ti, tinext);
-    if(info.base is null)
+    if (info.base is null)
         goto Loverflow;
     // copy the data over.
     // note that malloc will have initialized the data we did not request to 0.
@@ -870,7 +870,7 @@ Lcontinue:
     // handle postblit
     __doPostblit(tgt, datasize, tinext);
 
-    if(!(info.attr & BlkAttr.NO_SCAN))
+    if (!(info.attr & BlkAttr.NO_SCAN))
     {
         // need to memset the newly requested data, except for the data that
         // malloc returned that we didn't request.
@@ -884,7 +884,7 @@ Lcontinue:
 
     // set up the correct length
     __setArrayAllocLength(info, datasize, isshared, tinext);
-    if(!isshared)
+    if (!isshared)
         __insertBlkInfoCache(info, bic);
 
     *p = (cast(void*)tgt)[0 .. (*p).length];
@@ -892,9 +892,9 @@ Lcontinue:
     // determine the padding.  This has to be done manually because __arrayPad
     // assumes you are not counting the pad size, and info.size does include
     // the pad.
-    if(info.size <= 256)
+    if (info.size <= 256)
         arraypad = SMALLPAD + structTypeInfoSize(tinext);
-    else if(info.size < PAGESIZE)
+    else if (info.size < PAGESIZE)
         arraypad = MEDPAD + structTypeInfoSize(tinext);
     else
         arraypad = LARGEPAD;
@@ -1041,7 +1041,7 @@ void[] _d_newarrayOpT(alias op)(const TypeInfo ti, size_t[] dims)
         __setArrayAllocLength(info, allocsize, isshared, tinext);
         auto p = __arrayStart(info)[0 .. dim];
 
-        foreach(i; 0..dim)
+        foreach (i; 0..dim)
         {
             (cast(void[]*)p.ptr)[i] = foo(tinext, dims[1..$]);
         }
@@ -1143,7 +1143,7 @@ debug(PRINTF)
     {
         auto ptr = __blkcache;
         printf("CACHE: \n");
-        foreach(i; 0 .. N_CACHE_BLOCKS)
+        foreach (i; 0 .. N_CACHE_BLOCKS)
         {
             printf("  %d\taddr:% .8x\tsize:% .10d\tflags:% .8x\n", i, ptr[i].base, ptr[i].size, ptr[i].attr);
         }
@@ -1170,7 +1170,7 @@ extern (C) void _d_delarray_t(void[]* p, const TypeInfo_Struct ti)
             }
 
             // if p is in the cache, clear it there as well
-            if(bic)
+            if (bic)
                 bic.base = null;
 
             GC.free(info.base);
@@ -1273,7 +1273,7 @@ extern (C) int rt_hasFinalizerInSegment(void* p, size_t size, uint attr, in void
 
     // otherwise class
     auto ppv = cast(void**) p;
-    if(!p || !*ppv)
+    if (!p || !*ppv)
         return false;
 
     auto c = *cast(ClassInfo*)*ppv;
@@ -1289,7 +1289,7 @@ extern (C) int rt_hasFinalizerInSegment(void* p, size_t size, uint attr, in void
 
 int hasStructFinalizerInSegment(void* p, size_t size, in void[] segment) nothrow
 {
-    if(!p)
+    if (!p)
         return false;
 
     auto ti = *cast(TypeInfo_Struct*)(p + size - size_t.sizeof);
@@ -1298,7 +1298,7 @@ int hasStructFinalizerInSegment(void* p, size_t size, in void[] segment) nothrow
 
 int hasArrayFinalizerInSegment(void* p, size_t size, in void[] segment) nothrow
 {
-    if(!p)
+    if (!p)
         return false;
 
     TypeInfo_Struct si = void;
@@ -1316,7 +1316,7 @@ void finalize_array2(void* p, size_t size) nothrow
     debug(PRINTF) printf("rt_finalize_array2(p = %p)\n", p);
 
     TypeInfo_Struct si = void;
-    if(size <= 256)
+    if (size <= 256)
     {
         si = *cast(TypeInfo_Struct*)(p + size - size_t.sizeof);
         size = *cast(ubyte*)(p + size - size_t.sizeof - SMALLPAD);
@@ -1382,7 +1382,7 @@ extern (C) void rt_finalize2(void* p, bool det = true, bool resetMemory = true) 
     debug(PRINTF) printf("rt_finalize2(p = %p)\n", p);
 
     auto ppv = cast(void**) p;
-    if(!p || !*ppv)
+    if (!p || !*ppv)
         return;
 
     auto pc = cast(ClassInfo*) *ppv;
@@ -1518,7 +1518,7 @@ do
             assert(0);
         }
         __setArrayAllocLength(info, newsize, isshared, tinext);
-        if(!isshared)
+        if (!isshared)
             __insertBlkInfoCache(info, null);
         void* newdata = cast(byte *)__arrayStart(info);
         memset(newdata, 0, newsize);
@@ -1535,30 +1535,30 @@ do
      */
     bool allocateAndCopy = false;
     void* newdata = (*p).ptr;
-    if(info.base && (info.attr & BlkAttr.APPENDABLE))
+    if (info.base && (info.attr & BlkAttr.APPENDABLE))
     {
         // calculate the extent of the array given the base.
         const size_t offset = (*p).ptr - __arrayStart(info);
-        if(info.size >= PAGESIZE)
+        if (info.size >= PAGESIZE)
         {
             // size of array is at the front of the block
-            if(!__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
+            if (!__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
             {
                 // check to see if it failed because there is not
                 // enough space
-                if(*(cast(size_t*)info.base) == size + offset)
+                if (*(cast(size_t*)info.base) == size + offset)
                 {
                     // not enough space, try extending
                     auto extendsize = newsize + offset + LARGEPAD - info.size;
                     auto u = GC.extend(info.base, extendsize, extendsize);
-                    if(u)
+                    if (u)
                     {
                         // extend worked, now try setting the length
                         // again.
                         info.size = u;
-                        if(__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
+                        if (__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
                         {
-                            if(!isshared)
+                            if (!isshared)
                                 __insertBlkInfoCache(info, bic);
                             memset(newdata + size, 0, newsize - size);
                             *p = newdata[0 .. newlength];
@@ -1570,18 +1570,18 @@ do
                 // couldn't do it, reallocate
                 allocateAndCopy = true;
             }
-            else if(!isshared && !bic)
+            else if (!isshared && !bic)
             {
                 // add this to the cache, it wasn't present previously.
                 __insertBlkInfoCache(info, null);
             }
         }
-        else if(!__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
+        else if (!__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
         {
             // could not resize in place
             allocateAndCopy = true;
         }
-        else if(!isshared && !bic)
+        else if (!isshared && !bic)
         {
             // add this to the cache, it wasn't present previously.
             __insertBlkInfoCache(info, null);
@@ -1592,9 +1592,9 @@ do
 
     if (allocateAndCopy)
     {
-        if(info.base)
+        if (info.base)
         {
-            if(bic)
+            if (bic)
             {
                 // a chance that flags have changed since this was cached, we should fetch the most recent flags
                 info.attr = GC.getAttr(info.base) | BlkAttr.APPENDABLE;
@@ -1613,7 +1613,7 @@ do
         }
 
         __setArrayAllocLength(info, newsize, isshared, tinext);
-        if(!isshared)
+        if (!isshared)
             __insertBlkInfoCache(info, bic);
         newdata = cast(byte *)__arrayStart(info);
         newdata[0 .. size] = (*p).ptr[0 .. size];
@@ -1736,7 +1736,7 @@ do
             assert(0);
         }
         __setArrayAllocLength(info, newsize, isshared, tinext);
-        if(!isshared)
+        if (!isshared)
             __insertBlkInfoCache(info, null);
         void* newdata = cast(byte *)__arrayStart(info);
         doInitialize(newdata, newdata + newsize, tinext.initializer);
@@ -1754,30 +1754,30 @@ do
     bool allocateAndCopy = false;
     void* newdata = (*p).ptr;
 
-    if(info.base && (info.attr & BlkAttr.APPENDABLE))
+    if (info.base && (info.attr & BlkAttr.APPENDABLE))
     {
         // calculate the extent of the array given the base.
         const size_t offset = (*p).ptr - __arrayStart(info);
-        if(info.size >= PAGESIZE)
+        if (info.size >= PAGESIZE)
         {
             // size of array is at the front of the block
-            if(!__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
+            if (!__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
             {
                 // check to see if it failed because there is not
                 // enough space
-                if(*(cast(size_t*)info.base) == size + offset)
+                if (*(cast(size_t*)info.base) == size + offset)
                 {
                     // not enough space, try extending
                     auto extendsize = newsize + offset + LARGEPAD - info.size;
                     auto u = GC.extend(info.base, extendsize, extendsize);
-                    if(u)
+                    if (u)
                     {
                         // extend worked, now try setting the length
                         // again.
                         info.size = u;
-                        if(__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
+                        if (__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
                         {
-                            if(!isshared)
+                            if (!isshared)
                                 __insertBlkInfoCache(info, bic);
                             doInitialize(newdata + size, newdata + newsize, tinext.initializer);
                             *p = newdata[0 .. newlength];
@@ -1789,18 +1789,18 @@ do
                 // couldn't do it, reallocate
                 allocateAndCopy = true;
             }
-            else if(!isshared && !bic)
+            else if (!isshared && !bic)
             {
                 // add this to the cache, it wasn't present previously.
                 __insertBlkInfoCache(info, null);
             }
         }
-        else if(!__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
+        else if (!__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
         {
             // could not resize in place
             allocateAndCopy = true;
         }
-        else if(!isshared && !bic)
+        else if (!isshared && !bic)
         {
             // add this to the cache, it wasn't present previously.
             __insertBlkInfoCache(info, null);
@@ -1811,9 +1811,9 @@ do
 
     if (allocateAndCopy)
     {
-        if(info.base)
+        if (info.base)
         {
-            if(bic)
+            if (bic)
             {
                 // a chance that flags have changed since this was cached, we should fetch the most recent flags
                 info.attr = GC.getAttr(info.base) | BlkAttr.APPENDABLE;
@@ -1832,7 +1832,7 @@ do
         }
 
         __setArrayAllocLength(info, newsize, isshared, tinext);
-        if(!isshared)
+        if (!isshared)
             __insertBlkInfoCache(info, bic);
         newdata = cast(byte *)__arrayStart(info);
         newdata[0 .. size] = (*p).ptr[0 .. size];
@@ -1974,29 +1974,29 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, ref byte[] px, size_t n)
 
     // calculate the extent of the array given the base.
     size_t offset = cast(void*)px.ptr - __arrayStart(info);
-    if(info.base && (info.attr & BlkAttr.APPENDABLE))
+    if (info.base && (info.attr & BlkAttr.APPENDABLE))
     {
-        if(info.size >= PAGESIZE)
+        if (info.size >= PAGESIZE)
         {
             // size of array is at the front of the block
-            if(!__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
+            if (!__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
             {
                 // check to see if it failed because there is not
                 // enough space
                 newcap = newCapacity(newlength, sizeelem);
-                if(*(cast(size_t*)info.base) == size + offset)
+                if (*(cast(size_t*)info.base) == size + offset)
                 {
                     // not enough space, try extending
                     auto extendoffset = offset + LARGEPAD - info.size;
                     auto u = GC.extend(info.base, newsize + extendoffset, newcap + extendoffset);
-                    if(u)
+                    if (u)
                     {
                         // extend worked, now try setting the length
                         // again.
                         info.size = u;
-                        if(__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
+                        if (__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
                         {
-                            if(!isshared)
+                            if (!isshared)
                                 __insertBlkInfoCache(info, bic);
                             goto L1;
                         }
@@ -2006,18 +2006,18 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, ref byte[] px, size_t n)
                 // couldn't do it, reallocate
                 goto L2;
             }
-            else if(!isshared && !bic)
+            else if (!isshared && !bic)
             {
                 __insertBlkInfoCache(info, null);
             }
         }
-        else if(!__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
+        else if (!__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
         {
             // could not resize in place
             newcap = newCapacity(newlength, sizeelem);
             goto L2;
         }
-        else if(!isshared && !bic)
+        else if (!isshared && !bic)
         {
             __insertBlkInfoCache(info, null);
         }
@@ -2026,10 +2026,10 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, ref byte[] px, size_t n)
     {
         // not appendable or is null
         newcap = newCapacity(newlength, sizeelem);
-        if(info.base)
+        if (info.base)
         {
     L2:
-            if(bic)
+            if (bic)
             {
                 // a chance that flags have changed since this was cached, we should fetch the most recent flags
                 info.attr = GC.getAttr(info.base) | BlkAttr.APPENDABLE;
@@ -2041,7 +2041,7 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, ref byte[] px, size_t n)
             info = __arrayAlloc(newcap, ti, tinext);
         }
         __setArrayAllocLength(info, newsize, isshared, tinext);
-        if(!isshared)
+        if (!isshared)
             __insertBlkInfoCache(info, bic);
         auto newdata = cast(byte *)__arrayStart(info);
         memcpy(newdata, px.ptr, length * sizeelem);
@@ -2243,7 +2243,7 @@ extern (C) void[] _d_arraycatnTX(const TypeInfo ti, byte[][] arrs)
     auto tinext = unqualify(ti.next);
     auto size = tinext.tsize;   // array element size
 
-    foreach(b; arrs)
+    foreach (b; arrs)
         length += b.length;
 
     if (!length)
@@ -2256,7 +2256,7 @@ extern (C) void[] _d_arraycatnTX(const TypeInfo ti, byte[][] arrs)
     void *a = __arrayStart (info);
 
     size_t j = 0;
-    foreach(b; arrs)
+    foreach (b; arrs)
     {
         if (b.length)
         {
@@ -2313,12 +2313,12 @@ unittest
     // test slice appending
     b = a[0..1];
     b ~= 4;
-    for(i = 0; i < 3; i++)
+    for (i = 0; i < 3; i++)
         assert(a[i] == i + 1);
 
     // test reserving
     char[] arr = new char[4093];
-    for(i = 0; i < arr.length; i++)
+    for (i = 0; i < arr.length; i++)
         arr[i] = cast(char)(i % 256);
 
     // note that these two commands used to cause corruption, which may not be
@@ -2451,7 +2451,7 @@ unittest
         size_t x = size_t.max;
         byte[] big_buf = new byte[x];
     }
-    catch(OutOfMemoryError)
+    catch (OutOfMemoryError)
     {
     }
 }
@@ -2681,11 +2681,11 @@ unittest
         {
             GC.runFinalizers((cast(uint*)&C1.__dtor)[0..1]);
         }
-        catch(FinalizeError err)
+        catch (FinalizeError err)
         {
             caught = true;
         }
-        catch(E)
+        catch (E)
         {
         }
         GC.free(cast(void*)c);
@@ -2719,11 +2719,11 @@ unittest
         {
             GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
         }
-        catch(FinalizeError err)
+        catch (FinalizeError err)
         {
             caught = true;
         }
-        catch(E)
+        catch (E)
         {
         }
         GC.free(s);
@@ -2745,7 +2745,7 @@ unittest
     }
 
     S[] test14126 = new S[2048]; // make sure we allocate at least a PAGE
-    foreach(ref s; test14126)
+    foreach (ref s; test14126)
     {
         s.thisptr = &s;
     }

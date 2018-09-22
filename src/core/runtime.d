@@ -597,7 +597,7 @@ extern (C) UnitTestResult runModuleUnitTests()
     else version( CRuntime_UClibc )
         import core.sys.linux.execinfo;
 
-    static if( __traits( compiles, backtrace ) )
+    static if ( __traits( compiles, backtrace ) )
     {
         import core.sys.posix.signal; // segv handler
 
@@ -633,13 +633,13 @@ extern (C) UnitTestResult runModuleUnitTests()
     else if (Runtime.sm_moduleUnitTester !is null)
         return Runtime.sm_moduleUnitTester() ? UnitTestResult.pass : UnitTestResult.fail;
     UnitTestResult results;
-    foreach( m; ModuleInfo )
+    foreach ( m; ModuleInfo )
     {
-        if( m )
+        if ( m )
         {
             auto fp = m.unitTest;
 
-            if( fp )
+            if ( fp )
             {
                 ++results.executed;
                 try
@@ -647,7 +647,7 @@ extern (C) UnitTestResult runModuleUnitTests()
                     fp();
                     ++results.passed;
                 }
-                catch( Throwable e )
+                catch ( Throwable e )
                 {
                     _d_print_throwable(e);
                 }
@@ -721,7 +721,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
         return null;
 
     //printf("runtime.defaultTraceHandler()\n");
-    static if( __traits( compiles, backtrace ) )
+    static if ( __traits( compiles, backtrace ) )
     {
         import core.demangle;
         import core.stdc.stdlib : free;
@@ -749,11 +749,11 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                     auto  stackBottom = cast(void**) thread_stackBottom();
                     void* dummy;
 
-                    if( stackTop && &dummy < stackTop && stackTop < stackBottom )
+                    if ( stackTop && &dummy < stackTop && stackTop < stackBottom )
                     {
                         auto stackPtr = stackTop;
 
-                        for( numframes = 0; stackTop <= stackPtr &&
+                        for ( numframes = 0; stackTop <= stackPtr &&
                                             stackPtr < stackBottom &&
                                             numframes < MAXFRAMES; )
                         {
@@ -827,14 +827,14 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                     scope(exit) free(cast(void*) framelist);
 
                     int ret = 0;
-                    for( int i = FIRSTFRAME; i < numframes; ++i )
+                    for ( int i = FIRSTFRAME; i < numframes; ++i )
                     {
                         char[4096] fixbuf;
                         auto buf = framelist[i][0 .. strlen(framelist[i])];
                         auto pos = cast(size_t)(i - FIRSTFRAME);
                         buf = fixline( buf, fixbuf );
                         ret = dg( pos, buf );
-                        if( ret )
+                        if ( ret )
                             break;
                     }
                     return ret;
@@ -845,7 +845,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
             override string toString() const
             {
                 string buf;
-                foreach( i, line; this )
+                foreach ( i, line; this )
                     buf ~= i ? "\n" ~ line : line;
                 return buf;
             }
@@ -863,17 +863,17 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                 {
                     // format is:
                     //  1  module    0x00000000 D6module4funcAFZv + 0
-                    for( size_t i = 0, n = 0; i < buf.length; i++ )
+                    for ( size_t i = 0, n = 0; i < buf.length; i++ )
                     {
-                        if( ' ' == buf[i] )
+                        if ( ' ' == buf[i] )
                         {
                             n++;
-                            while( i < buf.length && ' ' == buf[i] )
+                            while ( i < buf.length && ' ' == buf[i] )
                                 i++;
-                            if( 3 > n )
+                            if ( 3 > n )
                                 continue;
                             symBeg = i;
-                            while( i < buf.length && ' ' != buf[i] )
+                            while ( i < buf.length && ' ' != buf[i] )
                                 i++;
                             symEnd = i;
                             break;
@@ -891,7 +891,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                     if (pptr && pptr < eptr)
                         eptr = pptr;
 
-                    if( bptr++ && eptr )
+                    if ( bptr++ && eptr )
                     {
                         symBeg = bptr - buf.ptr;
                         symEnd = eptr - buf.ptr;
@@ -903,7 +903,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                     auto bptr = cast(char*) memchr( buf.ptr, '<', buf.length );
                     auto eptr = cast(char*) memchr( buf.ptr, '+', buf.length );
 
-                    if( bptr++ && eptr )
+                    if ( bptr++ && eptr )
                     {
                         symBeg = bptr - buf.ptr;
                         symEnd = eptr - buf.ptr;
@@ -915,7 +915,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                     auto bptr = cast(char*) memchr( buf.ptr, '<', buf.length );
                     auto eptr = cast(char*) memchr( buf.ptr, '+', buf.length );
 
-                    if( bptr++ && eptr )
+                    if ( bptr++ && eptr )
                     {
                         symBeg = bptr - buf.ptr;
                         symEnd = eptr - buf.ptr;
@@ -927,7 +927,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                     auto bptr = cast(char*) memchr( buf.ptr, '<', buf.length );
                     auto eptr = cast(char*) memchr( buf.ptr, '+', buf.length );
 
-                    if( bptr++ && eptr )
+                    if ( bptr++ && eptr )
                     {
                         symBeg = bptr - buf.ptr;
                         symEnd = eptr - buf.ptr;
@@ -939,7 +939,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                     auto bptr = cast(char*) memchr( buf.ptr, '\'', buf.length );
                     auto eptr = cast(char*) memchr( buf.ptr, '+', buf.length );
 
-                    if( bptr++ && eptr )
+                    if ( bptr++ && eptr )
                     {
                         symBeg = bptr - buf.ptr;
                         symEnd = eptr - buf.ptr;
@@ -987,7 +987,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
 
         return new DefaultTraceInfo;
     }
-    else static if( __traits( compiles, new StackTrace(0, null) ) )
+    else static if ( __traits( compiles, new StackTrace(0, null) ) )
     {
         version (Win64)
         {

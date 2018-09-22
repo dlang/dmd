@@ -217,7 +217,7 @@ unittest
         auto ary = Array!size_t(cast(size_t*)0xdeadbeef, -1);
         ary.insertBack(0);
     }
-    catch(OutOfMemoryError)
+    catch (OutOfMemoryError)
     {
     }
     try
@@ -226,7 +226,7 @@ unittest
         auto ary = Array!size_t(cast(size_t*)0xdeadbeef, -2);
         ary.insertBack(0);
     }
-    catch(OutOfMemoryError)
+    catch (OutOfMemoryError)
     {
     }
 }

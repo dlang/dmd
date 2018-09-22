@@ -102,7 +102,7 @@ ssize_t write(int, in void*, size_t);
 
 version( CRuntime_Glibc )
 {
-  static if( __USE_FILE_OFFSET64 )
+  static if ( __USE_FILE_OFFSET64 )
   {
     off_t lseek64(int, off_t, int) @trusted;
     alias lseek64 lseek;
@@ -111,7 +111,7 @@ version( CRuntime_Glibc )
   {
     off_t lseek(int, off_t, int) @trusted;
   }
-  static if( __USE_LARGEFILE64 )
+  static if ( __USE_LARGEFILE64 )
   {
     int   ftruncate64(int, off_t) @trusted;
     alias ftruncate64 ftruncate;
@@ -148,7 +148,7 @@ else version( Solaris )
     }
     else
     {
-        static if( __USE_LARGEFILE64 )
+        static if ( __USE_LARGEFILE64 )
         {
             off64_t lseek64(int, off64_t, int) @trusted;
             alias   lseek64 lseek;
@@ -182,7 +182,7 @@ else version( CRuntime_Musl )
 }
 else version( CRuntime_UClibc )
 {
-  static if( __USE_FILE_OFFSET64 )
+  static if ( __USE_FILE_OFFSET64 )
   {
     off_t lseek64(int, off_t, int) @trusted;
     alias lseek64 lseek;
@@ -191,7 +191,7 @@ else version( CRuntime_UClibc )
   {
     off_t lseek(int, off_t, int) @trusted;
   }
-  static if( __USE_LARGEFILE64 )
+  static if ( __USE_LARGEFILE64 )
   {
     int   ftruncate64(int, off_t) @trusted;
     alias ftruncate64 ftruncate;
@@ -2105,7 +2105,7 @@ version( CRuntime_Glibc )
     int        usleep(useconds_t) @trusted;
     pid_t      vfork();
 
-  static if( __USE_FILE_OFFSET64 )
+  static if ( __USE_FILE_OFFSET64 )
   {
     int        lockf64(int, int, off_t) @trusted;
     alias      lockf64 lockf;
@@ -2286,7 +2286,7 @@ else version( Solaris )
     }
     else
     {
-        static if( __USE_FILE_OFFSET64 )
+        static if ( __USE_FILE_OFFSET64 )
         {
             int        lockf64(int, int, off64_t);
             alias      lockf64 lockf;
@@ -2330,7 +2330,7 @@ else version( CRuntime_UClibc )
     int        usleep(useconds_t) @trusted;
     pid_t      vfork();
 
-  static if( __USE_FILE_OFFSET64 )
+  static if ( __USE_FILE_OFFSET64 )
   {
     int        lockf64(int, int, off_t) @trusted;
     alias      lockf64 lockf;

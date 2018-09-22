@@ -559,7 +559,7 @@ nothrow @safe @nogc unittest
     /// ditto
     void destroy(T)(T obj) if (is(T == class))
     {
-        static if(__traits(getLinkage, T) == "C++")
+        static if (__traits(getLinkage, T) == "C++")
         {
             obj.__xdtor();
 
@@ -3963,7 +3963,7 @@ unittest
         this(this)
         {
             order ~= "copy inner #" ~ id;
-            if(id == '2')
+            if (id == '2')
                 throw new FailedPostblitException();
         }
 
@@ -3999,15 +3999,15 @@ unittest
     auto outer = Outer('1', '2', '3');
 
     try _postblitRecurse(outer);
-    catch(FailedPostblitException) {}
-    catch(Exception) assert(false);
+    catch (FailedPostblitException) {}
+    catch (Exception) assert(false);
 
     auto postblitRecurseOrder = order;
     order = null;
 
     try auto copy = outer;
-    catch(FailedPostblitException) {}
-    catch(Exception) assert(false);
+    catch (FailedPostblitException) {}
+    catch (Exception) assert(false);
 
     assert(postblitRecurseOrder == order);
     order = null;
@@ -4015,15 +4015,15 @@ unittest
     Outer[3] arr = [Outer('1', '1', '1'), Outer('1', '2', '3'), Outer('3', '3', '3')];
 
     try _postblitRecurse(arr);
-    catch(FailedPostblitException) {}
-    catch(Exception) assert(false);
+    catch (FailedPostblitException) {}
+    catch (Exception) assert(false);
 
     postblitRecurseOrder = order;
     order = null;
 
     try auto arrCopy = arr;
-    catch(FailedPostblitException) {}
-    catch(Exception) assert(false);
+    catch (FailedPostblitException) {}
+    catch (Exception) assert(false);
 
     assert(postblitRecurseOrder == order);
 }
@@ -4166,7 +4166,7 @@ unittest
     assert(newcap >= 2000);
     assert(newcap == arr.capacity);
     auto ptr = arr.ptr;
-    foreach(i; 0..2000)
+    foreach (i; 0..2000)
         arr ~= i;
     assert(ptr == arr.ptr);
     arr = arr[0..1];
@@ -4436,7 +4436,7 @@ unittest
 
         static int bug5381(immutable(T)[] s)
         {
-            switch(s)
+            switch (s)
             {
                 case "unittest":        return 1;
                 case "D_Version2":      return 2;
@@ -4467,7 +4467,7 @@ unittest
 
         static int binarySearch(immutable(T)[] s)
         {
-            switch(s)
+            switch (s)
             {
                 static foreach (i; 0 .. 16)
                 case i.stringof: return i;
@@ -4511,15 +4511,15 @@ void __switch_error()(string file = __FILE__, size_t line = __LINE__)
 private inout(TypeInfo) getElement(inout TypeInfo value) @trusted pure nothrow
 {
     TypeInfo element = cast() value;
-    for(;;)
+    for (;;)
     {
-        if(auto qualified = cast(TypeInfo_Const) element)
+        if (auto qualified = cast(TypeInfo_Const) element)
             element = qualified.base;
-        else if(auto redefined = cast(TypeInfo_Enum) element)
+        else if (auto redefined = cast(TypeInfo_Enum) element)
             element = redefined.base;
-        else if(auto staticArray = cast(TypeInfo_StaticArray) element)
+        else if (auto staticArray = cast(TypeInfo_StaticArray) element)
             element = staticArray.value;
-        else if(auto vector = cast(TypeInfo_Vector) element)
+        else if (auto vector = cast(TypeInfo_Vector) element)
             element = vector.base;
         else
             break;
@@ -4529,18 +4529,18 @@ private inout(TypeInfo) getElement(inout TypeInfo value) @trusted pure nothrow
 
 private size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) @trusted nothrow
 {
-    if(!count)
+    if (!count)
         return 0;
 
     const size_t elementSize = element.tsize;
-    if(!elementSize)
+    if (!elementSize)
         return 0;
 
     static bool hasCustomToHash(in TypeInfo value) @trusted pure nothrow
     {
         const element = getElement(value);
 
-        if(const struct_ = cast(const TypeInfo_Struct) element)
+        if (const struct_ = cast(const TypeInfo_Struct) element)
             return !!struct_.xtoHash;
 
         return cast(const TypeInfo_Array) element
@@ -4550,11 +4550,11 @@ private size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) 
     }
 
     import core.internal.traits : externDFunc;
-    if(!hasCustomToHash(element))
+    if (!hasCustomToHash(element))
         return hashOf(ptr[0 .. elementSize * count]);
 
     size_t hash = 0;
-    foreach(size_t i; 0 .. count)
+    foreach (size_t i; 0 .. count)
         hash = hashOf(element.getHash(ptr + i * elementSize), hash);
     return hash;
 }

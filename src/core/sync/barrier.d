@@ -87,13 +87,13 @@ class Barrier
         {
             uint group = m_group;
 
-            if( --m_count == 0 )
+            if ( --m_count == 0 )
             {
                 m_group++;
                 m_count = m_limit;
                 m_cond.notifyAll();
             }
-            while( group == m_group )
+            while ( group == m_group )
                 m_cond.wait();
         }
     }
@@ -141,7 +141,7 @@ version( unittest )
 
         auto group = new ThreadGroup;
 
-        for( int i = 0; i < numThreads; ++i )
+        for ( int i = 0; i < numThreads; ++i )
         {
             group.create( &threadFn );
         }

@@ -57,7 +57,7 @@ else
 }
 
 /+
-static if(is(typeof(VirtualAlloc)))
+static if (is(typeof(VirtualAlloc)))
     version = GC_Use_Alloc_Win32;
 else static if (is(typeof(mmap)))
     version = GC_Use_Alloc_MMap;

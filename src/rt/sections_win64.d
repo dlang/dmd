@@ -189,7 +189,7 @@ extern(C)
 immutable(ModuleInfo*)[] getModuleInfos() nothrow @nogc
 out (result)
 {
-    foreach(m; result)
+    foreach (m; result)
         assert(m !is null);
 }
 do
@@ -303,7 +303,7 @@ void[] findImageSection(string name) nothrow @nogc
 
     auto nthdr = cast(IMAGE_NT_HEADERS*)(cast(void*)doshdr + doshdr.e_lfanew);
     auto sections = cast(IMAGE_SECTION_HEADER*)(cast(void*)nthdr + IMAGE_NT_HEADERS.sizeof + nthdr.FileHeader.SizeOfOptionalHeader);
-    for(ushort i = 0; i < nthdr.FileHeader.NumberOfSections; i++)
+    for (ushort i = 0; i < nthdr.FileHeader.NumberOfSections; i++)
         if (compareSectionName (sections[i], name))
             return (cast(void*)&__ImageBase + sections[i].VirtualAddress)[0 .. sections[i].VirtualSize];
 

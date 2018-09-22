@@ -141,7 +141,7 @@ extern(C) void _minit() nothrow @nogc;
 immutable(ModuleInfo*)[] getModuleInfos() nothrow @nogc
 out (result)
 {
-    foreach(m; result)
+    foreach (m; result)
         assert(m !is null);
 }
 do

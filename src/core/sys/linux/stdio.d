@@ -76,7 +76,7 @@ unittest
     assert(written == "hello".length);
     // Note: do not swap reading and writing here.
     int c = 0;
-    while((c = fgetc(f)) != EOF)
+    while ((c = fgetc(f)) != EOF)
     {
         assert(c == 'a');
         break; // endless otherwise

@@ -67,7 +67,7 @@ unittest
     auto s = "hello"c[];
     int i;
 
-    foreach_reverse(dchar d; s)
+    foreach_reverse (dchar d; s)
     {
         switch (i)
         {
@@ -84,7 +84,7 @@ unittest
 
     s = "a\u1234\U000A0456b";
     i = 0;
-    foreach_reverse(dchar d; s)
+    foreach_reverse (dchar d; s)
     {
         //printf("i = %d, d = %x\n", i, d);
         switch (i)
@@ -131,7 +131,7 @@ unittest
     auto s = "hello"w[];
     int i;
 
-    foreach_reverse(dchar d; s)
+    foreach_reverse (dchar d; s)
     {
         switch (i)
         {
@@ -148,7 +148,7 @@ unittest
 
     s = "a\u1234\U000A0456b";
     i = 0;
-    foreach_reverse(dchar d; s)
+    foreach_reverse (dchar d; s)
     {
         //printf("i = %d, d = %x\n", i, d);
         switch (i)
@@ -217,7 +217,7 @@ unittest
     auto s = "hello"c[];
     int i;
 
-    foreach_reverse(wchar d; s)
+    foreach_reverse (wchar d; s)
     {
         switch (i)
         {
@@ -234,7 +234,7 @@ unittest
 
     s = "a\u1234\U000A0456b";
     i = 0;
-    foreach_reverse(wchar d; s)
+    foreach_reverse (wchar d; s)
     {
         //printf("i = %d, d = %x\n", i, d);
         switch (i)
@@ -298,7 +298,7 @@ unittest
     auto s = "hello"w[];
     int i;
 
-    foreach_reverse(char d; s)
+    foreach_reverse (char d; s)
     {
         switch (i)
         {
@@ -315,7 +315,7 @@ unittest
 
     s = "a\u1234\U000A0456b";
     i = 0;
-    foreach_reverse(char d; s)
+    foreach_reverse (char d; s)
     {
         //printf("i = %d, d = %x\n", i, d);
         switch (i)
@@ -377,7 +377,7 @@ unittest
     auto s = "hello"d[];
     int i;
 
-    foreach_reverse(char d; s)
+    foreach_reverse (char d; s)
     {
         switch (i)
         {
@@ -394,7 +394,7 @@ unittest
 
     s = "a\u1234\U000A0456b";
     i = 0;
-    foreach_reverse(char d; s)
+    foreach_reverse (char d; s)
     {
         //printf("i = %d, d = %x\n", i, d);
         switch (i)
@@ -449,7 +449,7 @@ unittest
     auto s = "hello"d[];
     int i;
 
-    foreach_reverse(wchar d; s)
+    foreach_reverse (wchar d; s)
     {
         switch (i)
         {
@@ -466,7 +466,7 @@ unittest
 
     s = "a\u1234\U000A0456b";
     i = 0;
-    foreach_reverse(wchar d; s)
+    foreach_reverse (wchar d; s)
     {
         //printf("i = %d, d = %x\n", i, d);
         switch (i)
@@ -531,7 +531,7 @@ unittest
     auto s = "hello"c[];
     int i;
 
-    foreach_reverse(k, dchar d; s)
+    foreach_reverse (k, dchar d; s)
     {
         assert(k == 4 - i);
         switch (i)
@@ -549,7 +549,7 @@ unittest
 
     s = "a\u1234\U000A0456b";
     i = 0;
-    foreach_reverse(k, dchar d; s)
+    foreach_reverse (k, dchar d; s)
     {
         //printf("i = %d, k = %d, d = %x\n", i, k, d);
         switch (i)
@@ -596,7 +596,7 @@ unittest
     auto s = "hello"w[];
     int i;
 
-    foreach_reverse(k, dchar d; s)
+    foreach_reverse (k, dchar d; s)
     {
         //printf("i = %d, k = %d, d = %x\n", i, k, d);
         assert(k == 4 - i);
@@ -615,7 +615,7 @@ unittest
 
     s = "a\u1234\U000A0456b";
     i = 0;
-    foreach_reverse(k, dchar d; s)
+    foreach_reverse (k, dchar d; s)
     {
         //printf("i = %d, k = %d, d = %x\n", i, k, d);
         switch (i)
@@ -684,7 +684,7 @@ unittest
     auto s = "hello"c[];
     int i;
 
-    foreach_reverse(k, wchar d; s)
+    foreach_reverse (k, wchar d; s)
     {
         //printf("i = %d, k = %d, d = %x\n", i, k, d);
         assert(k == 4 - i);
@@ -703,7 +703,7 @@ unittest
 
     s = "a\u1234\U000A0456b";
     i = 0;
-    foreach_reverse(k, wchar d; s)
+    foreach_reverse (k, wchar d; s)
     {
         //printf("i = %d, k = %d, d = %x\n", i, k, d);
         switch (i)
@@ -767,7 +767,7 @@ unittest
     auto s = "hello"w[];
     int i;
 
-    foreach_reverse(k, char d; s)
+    foreach_reverse (k, char d; s)
     {
         //printf("i = %d, k = %d, d = %x\n", i, k, d);
         assert(k == 4 - i);
@@ -786,7 +786,7 @@ unittest
 
     s = "a\u1234\U000A0456b";
     i = 0;
-    foreach_reverse(k, char d; s)
+    foreach_reverse (k, char d; s)
     {
         //printf("i = %d, k = %d, d = %x\n", i, k, d);
         switch (i)
@@ -847,7 +847,7 @@ unittest
     auto s = "hello"d[];
     int i;
 
-    foreach_reverse(k, char d; s)
+    foreach_reverse (k, char d; s)
     {
         //printf("i = %d, k = %d, d = %x\n", i, k, d);
         assert(k == 4 - i);
@@ -866,7 +866,7 @@ unittest
 
     s = "a\u1234\U000A0456b";
     i = 0;
-    foreach_reverse(k, char d; s)
+    foreach_reverse (k, char d; s)
     {
         //printf("i = %d, k = %d, d = %x\n", i, k, d);
         switch (i)
@@ -921,7 +921,7 @@ unittest
     auto s = "hello"d[];
     int i;
 
-    foreach_reverse(k, wchar d; s)
+    foreach_reverse (k, wchar d; s)
     {
         //printf("i = %d, k = %d, d = %x\n", i, k, d);
         assert(k == 4 - i);
@@ -940,7 +940,7 @@ unittest
 
     s = "a\u1234\U000A0456b";
     i = 0;
-    foreach_reverse(k, wchar d; s)
+    foreach_reverse (k, wchar d; s)
     {
         //printf("i = %d, k = %d, d = %x\n", i, k, d);
         switch (i)

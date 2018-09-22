@@ -310,7 +310,7 @@ string appendFN( string path, string name )
 
     auto dest = path;
 
-    if( dest.length && dest[$ - 1] != sep )
+    if ( dest.length && dest[$ - 1] != sep )
         dest ~= sep;
     dest ~= name;
     return dest;
@@ -341,19 +341,19 @@ string getExt( string name )
 {
     auto i = name.length;
 
-    while( i > 0 )
+    while ( i > 0 )
     {
-        if( name[i - 1] == '.' )
+        if ( name[i - 1] == '.' )
             return name[i .. $];
         --i;
         version( Windows )
         {
-            if( name[i] == ':' || name[i] == '\\' )
+            if ( name[i] == ':' || name[i] == '\\' )
                 break;
         }
         else version( Posix )
         {
-            if( name[i] == '/' )
+            if ( name[i] == '/' )
                 break;
         }
     }
@@ -365,9 +365,9 @@ string addExt( string name, string ext )
 {
     auto  existing = getExt( name );
 
-    if( existing.length == 0 )
+    if ( existing.length == 0 )
     {
-        if( name.length && name[$ - 1] == '.' )
+        if ( name.length && name[$ - 1] == '.' )
             name ~= ext;
         else
             name = name ~ "." ~ ext;
@@ -382,24 +382,24 @@ string addExt( string name, string ext )
 
 string chomp( string str, string delim = null )
 {
-    if( delim is null )
+    if ( delim is null )
     {
         auto len = str.length;
 
-        if( len )
+        if ( len )
         {
             auto c = str[len - 1];
 
-            if( c == '\r' )
+            if ( c == '\r' )
                 --len;
-            else if( c == '\n' && str[--len - 1] == '\r' )
+            else if ( c == '\n' && str[--len - 1] == '\r' )
                 --len;
         }
         return str[0 .. len];
     }
-    else if( str.length >= delim.length )
+    else if ( str.length >= delim.length )
     {
-        if( str[$ - delim.length .. $] == delim )
+        if ( str[$ - delim.length .. $] == delim )
             return str[0 .. $ - delim.length];
     }
     return str;
@@ -491,17 +491,17 @@ void splitLines( char[] buf, ref char[][] lines )
             pos = 0;
 
     lines.length = 0;
-    for( ; pos < buf.length; ++pos )
+    for ( ; pos < buf.length; ++pos )
     {
         char c = buf[pos];
 
-        switch( buf[pos] )
+        switch ( buf[pos] )
         {
         case '\r':
         case '\n':
             lines ~= buf[beg .. pos];
             beg = pos + 1;
-            if( buf[pos] == '\r' && pos < buf.length - 1 && buf[pos + 1] == '\n' )
+            if ( buf[pos] == '\r' && pos < buf.length - 1 && buf[pos + 1] == '\n' )
             {
                 ++pos; ++beg;
             }
@@ -510,7 +510,7 @@ void splitLines( char[] buf, ref char[][] lines )
             continue;
         }
     }
-    if( beg != pos )
+    if ( beg != pos )
     {
         lines ~= buf[beg .. pos];
     }
@@ -527,13 +527,13 @@ char[] expandTabs( char[] str, int tabsize = 8 )
     int column;
     int nspaces;
 
-    foreach( size_t i, dchar c; str )
+    foreach ( size_t i, dchar c; str )
     {
-        switch( c )
+        switch ( c )
         {
             case '\t':
                 nspaces = tabsize - (column % tabsize);
-                if( !changes )
+                if ( !changes )
                 {
                     changes = true;
                     result = null;

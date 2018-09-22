@@ -80,7 +80,7 @@ version( CRuntime_Glibc )
         // Managed by OS
     }
 
-    static if( __USE_FILE_OFFSET64 )
+    static if ( __USE_FILE_OFFSET64 )
     {
         dirent* readdir64(DIR*);
         alias   readdir64 readdir;
@@ -346,7 +346,7 @@ else version( CRuntime_Musl )
     {
     }
 
-    static if( __USE_FILE_OFFSET64 )
+    static if ( __USE_FILE_OFFSET64 )
     {
         dirent* readdir64(DIR*);
         alias   readdir64 readdir;
@@ -395,7 +395,7 @@ else version( CRuntime_UClibc )
         // Managed by OS
     }
 
-    static if( __USE_FILE_OFFSET64 )
+    static if ( __USE_FILE_OFFSET64 )
     {
         dirent* readdir64(DIR*);
         alias   readdir64 readdir;
@@ -454,7 +454,7 @@ int readdir_r(DIR*, dirent*, dirent**);
 
 version( CRuntime_Glibc )
 {
-  static if( __USE_LARGEFILE64 )
+  static if ( __USE_LARGEFILE64 )
   {
     int   readdir64_r(DIR*, dirent*, dirent**);
     alias readdir64_r readdir_r;
@@ -510,7 +510,7 @@ else version( CRuntime_Musl )
 }
 else version( CRuntime_UClibc )
 {
-  static if( __USE_LARGEFILE64 )
+  static if ( __USE_LARGEFILE64 )
   {
     int   readdir64_r(DIR*, dirent*, dirent**);
     alias readdir64_r readdir_r;

@@ -239,13 +239,13 @@ version( Windows )
                 {
                     obj.run();
                 }
-                catch( Throwable t )
+                catch ( Throwable t )
                 {
                     append( t );
                 }
                 rt_moduleTlsDtor();
             }
-            catch( Throwable t )
+            catch ( Throwable t )
             {
                 append( t );
             }
@@ -347,12 +347,12 @@ else version( Posix )
             //       implementation actually requires default initialization
             //       then pthread_cleanup should be restructured to maintain
             //       the current lack of a link dependency.
-            static if( __traits( compiles, pthread_cleanup ) )
+            static if ( __traits( compiles, pthread_cleanup ) )
             {
                 pthread_cleanup cleanup = void;
                 cleanup.push( &thread_cleanupHandler, cast(void*) obj );
             }
-            else static if( __traits( compiles, pthread_cleanup_push ) )
+            else static if ( __traits( compiles, pthread_cleanup_push ) )
             {
                 pthread_cleanup_push( &thread_cleanupHandler, cast(void*) obj );
             }
@@ -383,7 +383,7 @@ else version( Posix )
                 {
                     obj.run();
                 }
-                catch( Throwable t )
+                catch ( Throwable t )
                 {
                     append( t );
                 }
@@ -394,18 +394,18 @@ else version( Posix )
                                  void function() @nogc nothrow)();
                 }
             }
-            catch( Throwable t )
+            catch ( Throwable t )
             {
                 append( t );
             }
 
             // NOTE: Normal cleanup is handled by scope(exit).
 
-            static if( __traits( compiles, pthread_cleanup ) )
+            static if ( __traits( compiles, pthread_cleanup ) )
             {
                 cleanup.pop( 0 );
             }
-            else static if( __traits( compiles, pthread_cleanup_push ) )
+            else static if ( __traits( compiles, pthread_cleanup_push ) )
             {
                 pthread_cleanup_pop( 0 );
             }
@@ -435,7 +435,7 @@ else version( Posix )
                 Thread obj = Thread.getThis();
                 assert(obj !is null);
 
-                if( !obj.m_lock )
+                if ( !obj.m_lock )
                 {
                     obj.m_curr.tstack = getStackTop();
                 }
@@ -455,7 +455,7 @@ else version( Posix )
 
                 sigsuspend( &sigres );
 
-                if( !obj.m_lock )
+                if ( !obj.m_lock )
                 {
                     obj.m_curr.tstack = obj.m_curr.bstack;
                 }
@@ -596,7 +596,7 @@ class Thread
      */
     ~this() nothrow @nogc
     {
-        if( m_addr == m_addr.init )
+        if ( m_addr == m_addr.init )
         {
             return;
         }
@@ -647,7 +647,7 @@ class Thread
         multiThreadedFlag = true;
         scope( failure )
         {
-            if( !wasThreaded )
+            if ( !wasThreaded )
                 multiThreadedFlag = false;
         }
 
@@ -656,9 +656,9 @@ class Thread
         {
             pthread_attr_t  attr;
 
-            if( pthread_attr_init( &attr ) )
+            if ( pthread_attr_init( &attr ) )
                 onThreadError( "Error initializing thread attributes" );
-            if( m_sz && pthread_attr_setstacksize( &attr, m_sz ) )
+            if ( m_sz && pthread_attr_setstacksize( &attr, m_sz ) )
                 onThreadError( "Error initializing thread stack size" );
         }
 
@@ -675,7 +675,7 @@ class Thread
             //       add and resume it with slock acquired
             assert(m_sz <= uint.max, "m_sz must be less than or equal to uint.max");
             m_hndl = cast(HANDLE) _beginthreadex( null, cast(uint) m_sz, &thread_entryPoint, cast(void*) this, CREATE_SUSPENDED, &m_addr );
-            if( cast(size_t) m_hndl == 0 )
+            if ( cast(size_t) m_hndl == 0 )
                 onThreadError( "Error creating thread" );
         }
 
@@ -687,7 +687,7 @@ class Thread
             pAboutToStart[nAboutToStart - 1] = this;
             version( Windows )
             {
-                if( ResumeThread( m_hndl ) == -1 )
+                if ( ResumeThread( m_hndl ) == -1 )
                     onThreadError( "Error resuming thread" );
             }
             else version( Posix )
@@ -707,7 +707,7 @@ class Thread
                     if (ps is null) onOutOfMemoryError();
                     ps[0] = cast(void*)this;
                     ps[1] = cast(void*)libs;
-                    if( pthread_create( &m_addr, &attr, &thread_entryPoint, ps ) != 0 )
+                    if ( pthread_create( &m_addr, &attr, &thread_entryPoint, ps ) != 0 )
                     {
                         externDFunc!("rt.sections_elf_shared.unpinLoadedLibraries",
                                      void function(void*) @nogc nothrow)(libs);
@@ -717,14 +717,14 @@ class Thread
                 }
                 else
                 {
-                    if( pthread_create( &m_addr, &attr, &thread_entryPoint, cast(void*) this ) != 0 )
+                    if ( pthread_create( &m_addr, &attr, &thread_entryPoint, cast(void*) this ) != 0 )
                         onThreadError( "Error creating thread" );
                 }
             }
             version( Darwin )
             {
                 m_tmach = pthread_mach_thread_np( m_addr );
-                if( m_tmach == m_tmach.init )
+                if ( m_tmach == m_tmach.init )
                     onThreadError( "Error creating thread" );
             }
 
@@ -752,7 +752,7 @@ class Thread
     {
         version( Windows )
         {
-            if( WaitForSingleObject( m_hndl, INFINITE ) != WAIT_OBJECT_0 )
+            if ( WaitForSingleObject( m_hndl, INFINITE ) != WAIT_OBJECT_0 )
                 throw new ThreadException( "Unable to join thread" );
             // NOTE: m_addr must be cleared before m_hndl is closed to avoid
             //       a race condition with isRunning. The operation is done
@@ -763,7 +763,7 @@ class Thread
         }
         else version( Posix )
         {
-            if( pthread_join( m_addr, null ) != 0 )
+            if ( pthread_join( m_addr, null ) != 0 )
                 throw new ThreadException( "Unable to join thread" );
             // NOTE: pthread_join acts as a substitute for pthread_detach,
             //       which is normally called by the dtor.  Setting m_addr
@@ -771,9 +771,9 @@ class Thread
             //       on object destruction.
             m_addr = m_addr.init;
         }
-        if( m_unhandled )
+        if ( m_unhandled )
         {
-            if( rethrow )
+            if ( rethrow )
                 throw m_unhandled;
             return m_unhandled;
         }
@@ -881,7 +881,7 @@ class Thread
      */
     final @property bool isRunning() nothrow @nogc
     {
-        if( m_addr == m_addr.init )
+        if ( m_addr == m_addr.init )
         {
             return false;
         }
@@ -1124,7 +1124,7 @@ class Thread
     {
         version( Windows )
         {
-            if( !SetThreadPriority( m_hndl, val ) )
+            if ( !SetThreadPriority( m_hndl, val ) )
                 throw new ThreadException( "Unable to set thread priority" );
         }
         else version( Solaris )
@@ -1159,7 +1159,7 @@ class Thread
         }
         else version( Posix )
         {
-            static if(__traits(compiles, pthread_setschedprio))
+            static if (__traits(compiles, pthread_setschedprio))
             {
                 if (auto err = pthread_setschedprio(m_addr, val))
                 {
@@ -1255,7 +1255,7 @@ class Thread
             auto maxSleepMillis = dur!("msecs")( uint.max - 1 );
 
             // avoid a non-zero time to be round down to 0
-            if( val > dur!"msecs"( 0 ) && val < dur!"msecs"( 1 ) )
+            if ( val > dur!"msecs"( 0 ) && val < dur!"msecs"( 1 ) )
                 val = dur!"msecs"( 1 );
 
             // NOTE: In instances where all other threads in the process have a
@@ -1265,7 +1265,7 @@ class Thread
             //       only for execution to suspend for the requested interval.
             //       Therefore, expected performance may not be met if a yield
             //       is forced upon the user.
-            while( val > maxSleepMillis )
+            while ( val > maxSleepMillis )
             {
                 Sleep( cast(uint)
                        maxSleepMillis.total!"msecs" );
@@ -1279,13 +1279,13 @@ class Thread
             timespec tout = void;
 
             val.split!("seconds", "nsecs")(tin.tv_sec, tin.tv_nsec);
-            if( val.total!"seconds" > tin.tv_sec.max )
+            if ( val.total!"seconds" > tin.tv_sec.max )
                 tin.tv_sec  = tin.tv_sec.max;
-            while( true )
+            while ( true )
             {
-                if( !nanosleep( &tin, &tout ) )
+                if ( !nanosleep( &tin, &tout ) )
                     return;
-                if( errno != EINTR )
+                if ( errno != EINTR )
                     assert(0, "Unable to sleep for the specified duration");
                 tin = tout;
             }
@@ -1450,7 +1450,7 @@ private:
     //
     final void run()
     {
-        switch( m_call )
+        switch ( m_call )
         {
         case Call.FN:
             m_fn();
@@ -1781,11 +1781,11 @@ private:
     }
     do
     {
-        if( c.prev )
+        if ( c.prev )
             c.prev.next = c.next;
-        if( c.next )
+        if ( c.next )
             c.next.prev = c.prev;
-        if( sm_cbeg == c )
+        if ( sm_cbeg == c )
             sm_cbeg = c.next;
         // NOTE: Don't null out c.next or c.prev because opApply currently
         //       follows c.next after removing a node.  This could be easily
@@ -1871,11 +1871,11 @@ private:
             //       when it is done with them.
             remove( &t.m_main );
 
-            if( t.prev )
+            if ( t.prev )
                 t.prev.next = t.next;
-            if( t.next )
+            if ( t.next )
                 t.next.prev = t.prev;
-            if( sm_tbeg is t )
+            if ( sm_tbeg is t )
                 sm_tbeg = t.next;
             t.prev = t.next = null;
             --sm_tlen;
@@ -1945,7 +1945,7 @@ unittest
         }).start().join();
         assert( false, "Expected rethrown exception." );
     }
-    catch( Throwable t )
+    catch ( Throwable t )
     {
         assert( t.msg == MSG );
     }
@@ -2020,12 +2020,12 @@ extern (C) void thread_init() @nogc
     }
     else version( Posix )
     {
-        if( suspendSignalNumber == 0 )
+        if ( suspendSignalNumber == 0 )
         {
             suspendSignalNumber = SIGUSR1;
         }
 
-        if( resumeSignalNumber == 0 )
+        if ( resumeSignalNumber == 0 )
         {
             resumeSignalNumber = SIGUSR2;
         }
@@ -2042,7 +2042,7 @@ extern (C) void thread_init() @nogc
         // NOTE: SA_RESTART indicates that system calls should restart if they
         //       are interrupted by a signal, but this is not available on all
         //       Posix systems, even those that support multithreading.
-        static if( __traits( compiles, SA_RESTART ) )
+        static if ( __traits( compiles, SA_RESTART ) )
             sigusr1.sa_flags = SA_RESTART;
         else
             sigusr1.sa_flags   = 0;
@@ -2165,7 +2165,7 @@ private Thread attachThread(Thread thisThread) @nogc
 
     Thread.add( thisThread, false );
     Thread.add( thisContext );
-    if( Thread.sm_main !is null )
+    if ( Thread.sm_main !is null )
         multiThreadedFlag = true;
     return thisThread;
 }
@@ -2208,7 +2208,7 @@ version( Windows )
 
         thisThread.m_isDaemon = true;
 
-        if( addr == GetCurrentThreadId() )
+        if ( addr == GetCurrentThreadId() )
         {
             thisThread.m_hndl = GetCurrentThreadHandle();
             thisThread.m_tlsgcdata = rt_tlsgc_init();
@@ -2226,7 +2226,7 @@ version( Windows )
 
         Thread.add( thisThread, false );
         Thread.add( thisContext );
-        if( Thread.sm_main !is null )
+        if ( Thread.sm_main !is null )
             multiThreadedFlag = true;
         return thisThread;
     }
@@ -2264,7 +2264,7 @@ extern (C) void thread_detachThis() nothrow @nogc
  */
 extern (C) void thread_detachByAddr( ThreadID addr )
 {
-    if( auto t = thread_findByAddr( addr ) )
+    if ( auto t = thread_findByAddr( addr ) )
         Thread.remove( t );
 }
 
@@ -2530,9 +2530,9 @@ private bool suspend( Thread t ) nothrow
 
     version( Windows )
     {
-        if( t.m_addr != GetCurrentThreadId() && SuspendThread( t.m_hndl ) == 0xFFFFFFFF )
+        if ( t.m_addr != GetCurrentThreadId() && SuspendThread( t.m_hndl ) == 0xFFFFFFFF )
         {
-            if( !t.isRunning )
+            if ( !t.isRunning )
             {
                 Thread.remove( t );
                 return false;
@@ -2543,11 +2543,11 @@ private bool suspend( Thread t ) nothrow
         CONTEXT context = void;
         context.ContextFlags = CONTEXT_INTEGER | CONTEXT_CONTROL;
 
-        if( !GetThreadContext( t.m_hndl, &context ) )
+        if ( !GetThreadContext( t.m_hndl, &context ) )
             onThreadError( "Unable to load thread context" );
         version( X86 )
         {
-            if( !t.m_lock )
+            if ( !t.m_lock )
                 t.m_curr.tstack = cast(void*) context.Esp;
             // eax,ebx,ecx,edx,edi,esi,ebp,esp
             t.m_reg[0] = context.Eax;
@@ -2561,7 +2561,7 @@ private bool suspend( Thread t ) nothrow
         }
         else version( X86_64 )
         {
-            if( !t.m_lock )
+            if ( !t.m_lock )
                 t.m_curr.tstack = cast(void*) context.Rsp;
             // rax,rbx,rcx,rdx,rdi,rsi,rbp,rsp
             t.m_reg[0] = context.Rax;
@@ -2589,9 +2589,9 @@ private bool suspend( Thread t ) nothrow
     }
     else version( Darwin )
     {
-        if( t.m_addr != pthread_self() && thread_suspend( t.m_tmach ) != KERN_SUCCESS )
+        if ( t.m_addr != pthread_self() && thread_suspend( t.m_tmach ) != KERN_SUCCESS )
         {
-            if( !t.isRunning )
+            if ( !t.isRunning )
             {
                 Thread.remove( t );
                 return false;
@@ -2604,9 +2604,9 @@ private bool suspend( Thread t ) nothrow
             x86_thread_state32_t    state = void;
             mach_msg_type_number_t  count = x86_THREAD_STATE32_COUNT;
 
-            if( thread_get_state( t.m_tmach, x86_THREAD_STATE32, &state, &count ) != KERN_SUCCESS )
+            if ( thread_get_state( t.m_tmach, x86_THREAD_STATE32, &state, &count ) != KERN_SUCCESS )
                 onThreadError( "Unable to load thread state" );
-            if( !t.m_lock )
+            if ( !t.m_lock )
                 t.m_curr.tstack = cast(void*) state.esp;
             // eax,ebx,ecx,edx,edi,esi,ebp,esp
             t.m_reg[0] = state.eax;
@@ -2623,9 +2623,9 @@ private bool suspend( Thread t ) nothrow
             x86_thread_state64_t    state = void;
             mach_msg_type_number_t  count = x86_THREAD_STATE64_COUNT;
 
-            if( thread_get_state( t.m_tmach, x86_THREAD_STATE64, &state, &count ) != KERN_SUCCESS )
+            if ( thread_get_state( t.m_tmach, x86_THREAD_STATE64, &state, &count ) != KERN_SUCCESS )
                 onThreadError( "Unable to load thread state" );
-            if( !t.m_lock )
+            if ( !t.m_lock )
                 t.m_curr.tstack = cast(void*) state.rsp;
             // rax,rbx,rcx,rdx,rdi,rsi,rbp,rsp
             t.m_reg[0] = state.rax;
@@ -2653,11 +2653,11 @@ private bool suspend( Thread t ) nothrow
     }
     else version( Posix )
     {
-        if( t.m_addr != pthread_self() )
+        if ( t.m_addr != pthread_self() )
         {
-            if( pthread_kill( t.m_addr, suspendSignalNumber ) != 0 )
+            if ( pthread_kill( t.m_addr, suspendSignalNumber ) != 0 )
             {
-                if( !t.isRunning )
+                if ( !t.isRunning )
                 {
                     Thread.remove( t );
                     return false;
@@ -2665,7 +2665,7 @@ private bool suspend( Thread t ) nothrow
                 onThreadError( "Unable to suspend thread" );
             }
         }
-        else if( !t.m_lock )
+        else if ( !t.m_lock )
         {
             t.m_curr.tstack = getStackTop();
         }
@@ -2697,9 +2697,9 @@ extern (C) void thread_suspendAll() nothrow
     //       error.  For the short time when Thread.sm_tbeg is null, there is
     //       no reason not to simply call the multithreaded code below, with
     //       the expectation that the foreach loop will never be entered.
-    if( !multiThreadedFlag && Thread.sm_tbeg )
+    if ( !multiThreadedFlag && Thread.sm_tbeg )
     {
-        if( ++suspendDepth == 1 )
+        if ( ++suspendDepth == 1 )
             suspend( Thread.getThis() );
 
         return;
@@ -2707,7 +2707,7 @@ extern (C) void thread_suspendAll() nothrow
 
     Thread.slock.lock_nothrow();
     {
-        if( ++suspendDepth > 1 )
+        if ( ++suspendDepth > 1 )
             return;
 
         Thread.criticalRegionLock.lock_nothrow();
@@ -2776,9 +2776,9 @@ private void resume( Thread t ) nothrow
 {
     version( Windows )
     {
-        if( t.m_addr != GetCurrentThreadId() && ResumeThread( t.m_hndl ) == 0xFFFFFFFF )
+        if ( t.m_addr != GetCurrentThreadId() && ResumeThread( t.m_hndl ) == 0xFFFFFFFF )
         {
-            if( !t.isRunning )
+            if ( !t.isRunning )
             {
                 Thread.remove( t );
                 return;
@@ -2786,15 +2786,15 @@ private void resume( Thread t ) nothrow
             onThreadError( "Unable to resume thread" );
         }
 
-        if( !t.m_lock )
+        if ( !t.m_lock )
             t.m_curr.tstack = t.m_curr.bstack;
         t.m_reg[0 .. $] = 0;
     }
     else version( Darwin )
     {
-        if( t.m_addr != pthread_self() && thread_resume( t.m_tmach ) != KERN_SUCCESS )
+        if ( t.m_addr != pthread_self() && thread_resume( t.m_tmach ) != KERN_SUCCESS )
         {
-            if( !t.isRunning )
+            if ( !t.isRunning )
             {
                 Thread.remove( t );
                 return;
@@ -2802,17 +2802,17 @@ private void resume( Thread t ) nothrow
             onThreadError( "Unable to resume thread" );
         }
 
-        if( !t.m_lock )
+        if ( !t.m_lock )
             t.m_curr.tstack = t.m_curr.bstack;
         t.m_reg[0 .. $] = 0;
     }
     else version( Posix )
     {
-        if( t.m_addr != pthread_self() )
+        if ( t.m_addr != pthread_self() )
         {
-            if( pthread_kill( t.m_addr, resumeSignalNumber ) != 0 )
+            if ( pthread_kill( t.m_addr, resumeSignalNumber ) != 0 )
             {
-                if( !t.isRunning )
+                if ( !t.isRunning )
                 {
                     Thread.remove( t );
                     return;
@@ -2820,7 +2820,7 @@ private void resume( Thread t ) nothrow
                 onThreadError( "Unable to resume thread" );
             }
         }
-        else if( !t.m_lock )
+        else if ( !t.m_lock )
         {
             t.m_curr.tstack = t.m_curr.bstack;
         }
@@ -2846,19 +2846,19 @@ in
 do
 {
     // NOTE: See thread_suspendAll for the logic behind this.
-    if( !multiThreadedFlag && Thread.sm_tbeg )
+    if ( !multiThreadedFlag && Thread.sm_tbeg )
     {
-        if( --suspendDepth == 0 )
+        if ( --suspendDepth == 0 )
             resume( Thread.getThis() );
         return;
     }
 
     scope(exit) Thread.slock.unlock_nothrow();
     {
-        if( --suspendDepth > 0 )
+        if ( --suspendDepth > 0 )
             return;
 
-        for( Thread t = Thread.sm_tbeg; t; t = t.next )
+        for ( Thread t = Thread.sm_tbeg; t; t = t.next )
         {
             // NOTE: We do not need to care about critical regions at all
             //       here. thread_suspendAll takes care of everything.
@@ -2905,10 +2905,10 @@ private void scanAllTypeImpl( scope ScanAllThreadsTypeFn scan, void* curStackTop
     Thread  thisThread  = null;
     void*   oldStackTop = null;
 
-    if( Thread.sm_tbeg )
+    if ( Thread.sm_tbeg )
     {
         thisThread  = Thread.getThis();
-        if( !thisThread.m_lock )
+        if ( !thisThread.m_lock )
         {
             oldStackTop = thisThread.m_curr.tstack;
             thisThread.m_curr.tstack = curStackTop;
@@ -2917,9 +2917,9 @@ private void scanAllTypeImpl( scope ScanAllThreadsTypeFn scan, void* curStackTop
 
     scope( exit )
     {
-        if( Thread.sm_tbeg )
+        if ( Thread.sm_tbeg )
         {
-            if( !thisThread.m_lock )
+            if ( !thisThread.m_lock )
             {
                 thisThread.m_curr.tstack = oldStackTop;
             }
@@ -2932,23 +2932,23 @@ private void scanAllTypeImpl( scope ScanAllThreadsTypeFn scan, void* curStackTop
     if (Thread.nAboutToStart)
         scan(ScanType.stack, Thread.pAboutToStart, Thread.pAboutToStart + Thread.nAboutToStart);
 
-    for( Thread.Context* c = Thread.sm_cbeg; c; c = c.next )
+    for ( Thread.Context* c = Thread.sm_cbeg; c; c = c.next )
     {
         version( StackGrowsDown )
         {
             // NOTE: We can't index past the bottom of the stack
             //       so don't do the "+1" for StackGrowsDown.
-            if( c.tstack && c.tstack < c.bstack )
+            if ( c.tstack && c.tstack < c.bstack )
                 scan( ScanType.stack, c.tstack, c.bstack );
         }
         else
         {
-            if( c.bstack && c.bstack < c.tstack )
+            if ( c.bstack && c.bstack < c.tstack )
                 scan( ScanType.stack, c.bstack, c.tstack + 1 );
         }
     }
 
-    for( Thread t = Thread.sm_tbeg; t; t = t.next )
+    for ( Thread t = Thread.sm_tbeg; t; t = t.next )
     {
         version( Windows )
         {
@@ -3186,7 +3186,7 @@ alias IsMarkedDg = int delegate( void* addr ) nothrow; /// The isMarked callback
  */
 extern(C) void thread_processGCMarks( scope IsMarkedDg isMarked ) nothrow
 {
-    for( Thread t = Thread.sm_tbeg; t; t = t.next )
+    for ( Thread t = Thread.sm_tbeg; t; t = t.next )
     {
         /* Can be null if collection was triggered between adding a
          * thread and calling rt_tlsgc_init.
@@ -3484,10 +3484,10 @@ class ThreadGroup
 
             // NOTE: This loop relies on the knowledge that m_all uses the
             //       Thread object for both the key and the mapped value.
-            foreach( Thread t; m_all.keys )
+            foreach ( Thread t; m_all.keys )
             {
                 ret = dg( t );
-                if( ret )
+                if ( ret )
                     break;
             }
             return ret;
@@ -3512,7 +3512,7 @@ class ThreadGroup
         {
             // NOTE: This loop relies on the knowledge that m_all uses the
             //       Thread object for both the key and the mapped value.
-            foreach( Thread t; m_all.keys )
+            foreach ( Thread t; m_all.keys )
             {
                 t.join( rethrow );
             }
@@ -3664,12 +3664,12 @@ private
         {
             obj.run();
         }
-        catch( Throwable t )
+        catch ( Throwable t )
         {
             obj.m_unhandled = t;
         }
 
-        static if( __traits( compiles, ucontext_t ) )
+        static if ( __traits( compiles, ucontext_t ) )
           obj.m_ucur = &obj.m_utxt;
 
         obj.m_state = Fiber.State.TERM;
@@ -3861,7 +3861,7 @@ private
                 jmp RCX;
             }
         }
-        else static if( __traits( compiles, ucontext_t ) )
+        else static if ( __traits( compiles, ucontext_t ) )
         {
             Fiber   cfib = Fiber.getThis();
             void*   ucur = cfib.m_ucur;
@@ -4155,11 +4155,11 @@ class Fiber
     final Throwable call( Rethrow rethrow )()
     {
         callImpl();
-        if( m_unhandled )
+        if ( m_unhandled )
         {
             Throwable t = m_unhandled;
             m_unhandled = null;
-            static if( rethrow )
+            static if ( rethrow )
                 throw t;
             else
                 return t;
@@ -4183,14 +4183,14 @@ class Fiber
     {
         Fiber   cur = getThis();
 
-        static if( __traits( compiles, ucontext_t ) )
+        static if ( __traits( compiles, ucontext_t ) )
           m_ucur = cur ? &cur.m_utxt : &Fiber.sm_utxt;
 
         setThis( this );
         this.switchIn();
         setThis( cur );
 
-        static if( __traits( compiles, ucontext_t ) )
+        static if ( __traits( compiles, ucontext_t ) )
           m_ucur = null;
 
         // NOTE: If the fiber has terminated then the stack pointers must be
@@ -4200,7 +4200,7 @@ class Fiber
         //       the collection of otherwise dead objects.  The most notable
         //       being the current object, which is referenced at the top of
         //       fiber_entryPoint.
-        if( m_state == State.TERM )
+        if ( m_state == State.TERM )
         {
             m_ctxt.tstack = m_ctxt.bstack;
         }
@@ -4295,7 +4295,7 @@ class Fiber
         assert( cur, "Fiber.yield() called with no active fiber" );
         assert( cur.m_state == State.EXEC );
 
-        static if( __traits( compiles, ucontext_t ) )
+        static if ( __traits( compiles, ucontext_t ) )
           cur.m_ucur = &cur.m_utxt;
 
         cur.m_state = State.HOLD;
@@ -4325,7 +4325,7 @@ class Fiber
         assert( cur, "Fiber.yield() called with no active fiber" );
         assert( cur.m_state == State.EXEC );
 
-        static if( __traits( compiles, ucontext_t ) )
+        static if ( __traits( compiles, ucontext_t ) )
           cur.m_ucur = &cur.m_utxt;
 
         cur.m_unhandled = t;
@@ -4363,7 +4363,7 @@ class Fiber
     {
         static this()
         {
-            static if( __traits( compiles, ucontext_t ) )
+            static if ( __traits( compiles, ucontext_t ) )
             {
               int status = getcontext( &sm_utxt );
               assert( status == 0 );
@@ -4387,7 +4387,7 @@ private:
     //
     final void run()
     {
-        switch( m_call )
+        switch ( m_call )
         {
         case Call.FN:
             m_fn();
@@ -4457,14 +4457,14 @@ private:
         //       requires too much special logic to be worthwhile.
         m_ctxt = new Thread.Context;
 
-        static if( __traits( compiles, VirtualAlloc ) )
+        static if ( __traits( compiles, VirtualAlloc ) )
         {
             // reserve memory for stack
             m_pmem = VirtualAlloc( null,
                                    sz + guardPageSize,
                                    MEM_RESERVE,
                                    PAGE_NOACCESS );
-            if( !m_pmem )
+            if ( !m_pmem )
                 onOutOfMemoryError();
 
             version( StackGrowsDown )
@@ -4485,7 +4485,7 @@ private:
                                   sz,
                                   MEM_COMMIT,
                                   PAGE_READWRITE );
-            if( !stack )
+            if ( !stack )
                 onOutOfMemoryError();
 
             if (guardPageSize)
@@ -4495,7 +4495,7 @@ private:
                                       guardPageSize,
                                       MEM_COMMIT,
                                       PAGE_READWRITE | PAGE_GUARD );
-                if( !guard )
+                if ( !guard )
                     onOutOfMemoryError();
             }
 
@@ -4513,7 +4513,7 @@ private:
             version (Darwin) import core.sys.darwin.sys.mman : MAP_ANON;
             version (CRuntime_UClibc) import core.sys.linux.sys.mman : MAP_ANON;
 
-            static if( __traits( compiles, mmap ) )
+            static if ( __traits( compiles, mmap ) )
             {
                 // Allocate more for the memory guard
                 sz += guardPageSize;
@@ -4524,14 +4524,14 @@ private:
                                MAP_PRIVATE | MAP_ANON,
                                -1,
                                0 );
-                if( m_pmem == MAP_FAILED )
+                if ( m_pmem == MAP_FAILED )
                     m_pmem = null;
             }
-            else static if( __traits( compiles, valloc ) )
+            else static if ( __traits( compiles, valloc ) )
             {
                 m_pmem = valloc( sz );
             }
-            else static if( __traits( compiles, malloc ) )
+            else static if ( __traits( compiles, malloc ) )
             {
                 m_pmem = malloc( sz );
             }
@@ -4540,7 +4540,7 @@ private:
                 m_pmem = null;
             }
 
-            if( !m_pmem )
+            if ( !m_pmem )
                 onOutOfMemoryError();
 
             version( StackGrowsDown )
@@ -4557,7 +4557,7 @@ private:
             }
             m_size = sz;
 
-            static if( __traits( compiles, mmap ) )
+            static if ( __traits( compiles, mmap ) )
             {
                 if (guardPageSize)
                 {
@@ -4593,7 +4593,7 @@ private:
         scope(exit) Thread.slock.unlock_nothrow();
         Thread.remove( m_ctxt );
 
-        static if( __traits( compiles, VirtualAlloc ) )
+        static if ( __traits( compiles, VirtualAlloc ) )
         {
             VirtualFree( m_pmem, 0, MEM_RELEASE );
         }
@@ -4601,15 +4601,15 @@ private:
         {
             import core.sys.posix.sys.mman; // munmap
 
-            static if( __traits( compiles, mmap ) )
+            static if ( __traits( compiles, mmap ) )
             {
                 munmap( m_pmem, m_size );
             }
-            else static if( __traits( compiles, valloc ) )
+            else static if ( __traits( compiles, valloc ) )
             {
                 free( m_pmem );
             }
-            else static if( __traits( compiles, malloc ) )
+            else static if ( __traits( compiles, malloc ) )
             {
                 free( m_pmem );
             }
@@ -4943,7 +4943,7 @@ private:
              */
             pstack += int.sizeof * 1;
         }
-        else static if( __traits( compiles, ucontext_t ) )
+        else static if ( __traits( compiles, ucontext_t ) )
         {
             getcontext( &m_utxt );
             m_utxt.uc_stack.ss_sp   = m_pmem;
@@ -4962,7 +4962,7 @@ private:
     size_t          m_size;
     void*           m_pmem;
 
-    static if( __traits( compiles, ucontext_t ) )
+    static if ( __traits( compiles, ucontext_t ) )
     {
         // NOTE: The static ucontext instance is used to represent the context
         //       of the executing thread.
@@ -5124,7 +5124,7 @@ version( unittest )
 
         void run()
         {
-            foreach(i; 0 .. 1000)
+            foreach (i; 0 .. 1000)
             {
                 sum += i;
                 Fiber.yield();
@@ -5138,13 +5138,13 @@ version( unittest )
     void runTen()
     {
         TestFiber[10] fibs;
-        foreach(ref fib; fibs)
+        foreach (ref fib; fibs)
             fib = new TestFiber();
 
         bool cont;
         do {
             cont = false;
-            foreach(fib; fibs) {
+            foreach (fib; fibs) {
                 if (fib.state == Fiber.State.HOLD)
                 {
                     fib.call();
@@ -5153,7 +5153,7 @@ version( unittest )
             }
         } while (cont);
 
-        foreach(fib; fibs)
+        foreach (fib; fibs)
         {
             assert(fib.sum == TestFiber.expSum);
         }
@@ -5172,7 +5172,7 @@ unittest
 unittest
 {
     auto group = new ThreadGroup();
-    foreach(_; 0 .. 4)
+    foreach (_; 0 .. 4)
     {
         group.create(&runTen);
     }
@@ -5191,7 +5191,7 @@ unittest
         bool cont;
         do {
             cont = false;
-            foreach(idx; 0 .. 10)
+            foreach (idx; 0 .. 10)
             {
                 if (cas(&locks[idx], false, true))
                 {
@@ -5210,19 +5210,19 @@ unittest
         } while (cont);
     }
 
-    foreach(ref fib; fibs)
+    foreach (ref fib; fibs)
     {
         fib = new TestFiber();
     }
 
     auto group = new ThreadGroup();
-    foreach(_; 0 .. 4)
+    foreach (_; 0 .. 4)
     {
         group.create(&runShared);
     }
     group.joinAll();
 
-    foreach(fib; fibs)
+    foreach (fib; fibs)
     {
         assert(fib.sum == TestFiber.expSum);
     }
@@ -5288,7 +5288,7 @@ version (Win32) {
         })).call();
         assert( false, "Expected rethrown exception." );
     }
-    catch( Throwable t )
+    catch ( Throwable t )
     {
         assert( t.msg == MSG );
     }

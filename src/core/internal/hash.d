@@ -383,7 +383,7 @@ size_t hashOf(T)(scope const T val, size_t seed) if (!is(T == enum) && __traits(
 size_t hashOf(T)(scope const T val, size_t seed = 0) if (!is(T == enum) && __traits(isArithmetic, T)
     && (!__traits(isIntegral, T) || T.sizeof > size_t.sizeof))
 {
-    static if(__traits(isFloating, val))
+    static if (__traits(isFloating, val))
     {
         static if (floatCoalesceZeroes || floatCoalesceNaNs)
         {
@@ -443,9 +443,9 @@ size_t hashOf(T)(scope const T val)
 if (!is(T == enum) && is(T V : V*) && !is(T : typeof(null))
     && !is(T == struct) && !is(T == class) && !is(T == union))
 {
-    if(__ctfe)
+    if (__ctfe)
     {
-        if(val is null)
+        if (val is null)
         {
             return 0;
         }
@@ -465,9 +465,9 @@ size_t hashOf(T)(scope const T val, size_t seed)
 if (!is(T == enum) && is(T V : V*) && !is(T : typeof(null))
     && !is(T == struct) && !is(T == class) && !is(T == union))
 {
-    if(__ctfe)
+    if (__ctfe)
     {
-        if(val is null)
+        if (val is null)
         {
             return hashOf(cast(size_t)0, seed);
         }
@@ -493,7 +493,7 @@ q{
     }
     else
     {
-        static if(__traits(hasMember, T, "toHash") && is(typeof(T.toHash) == function))
+        static if (__traits(hasMember, T, "toHash") && is(typeof(T.toHash) == function))
         {
             pragma(msg, "Warning: struct "~__traits(identifier, T)~" has method toHash, however it cannot be called with "~T.stringof~" this.");
         }
@@ -1045,7 +1045,7 @@ private size_t bytesHash(bool dataKnownToBeAligned)(scope const(ubyte)[] bytes, 
     //----------
     // body
     auto end_data = data+nblocks*uint.sizeof;
-    for(; data!=end_data; data += uint.sizeof)
+    for (; data!=end_data; data += uint.sizeof)
     {
         static if (dataKnownToBeAligned)
             uint k1 = __ctfe ? get32bits(data) : *(cast(const uint*) data);
@@ -1064,7 +1064,7 @@ private size_t bytesHash(bool dataKnownToBeAligned)(scope const(ubyte)[] bytes, 
     // tail
     uint k1 = 0;
 
-    switch(len & 3)
+    switch (len & 3)
     {
         case 3: k1 ^= data[2] << 16; goto case;
         case 2: k1 ^= data[1] << 8;  goto case;

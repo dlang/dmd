@@ -37,7 +37,7 @@ enum : UINT {
     CDN_TYPECHANGE     = CDN_FIRST - 6,
 }
 
-//static if(_WIN32_WINNT >= 0x500) {
+//static if (_WIN32_WINNT >= 0x500) {
     enum : UINT {
         CDN_INCLUDEITEM    = CDN_FIRST - 7,
     }

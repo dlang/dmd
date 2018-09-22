@@ -421,7 +421,7 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
         char[][] args = (cast(char[]*) alloca(argc * (char[]).sizeof))[0 .. argc];
 
         size_t totalArgsLength = 0;
-        foreach(i, ref arg; args)
+        foreach (i, ref arg; args)
         {
             arg = argv[i][0 .. strlen(argv[i])];
             totalArgsLength += arg.length;
@@ -441,7 +441,7 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
         char[][] argsCopy = buff[0 .. args.length];
         auto argBuff = cast(char*) (buff + args.length);
         size_t j = 0;
-        foreach(arg; args)
+        foreach (arg; args)
         {
             if (arg.length < 6 || arg[0..6] != "--DRT-") // skip D runtime options
             {
