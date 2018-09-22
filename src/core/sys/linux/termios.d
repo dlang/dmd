@@ -8,7 +8,7 @@
 
 module core.sys.linux.termios;
 
-version(linux):
+version (linux):
     public import core.sys.posix.termios;
 
     enum B57600 = 0x1001; // 0010001

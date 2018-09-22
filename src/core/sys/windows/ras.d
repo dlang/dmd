@@ -931,7 +931,7 @@ static if (_WIN32_WINNT >= 0x500) {
 
 
 /* UNICODE defines for functions */
-version(Unicode) {
+version (Unicode) {
     alias RasDialW RasDial;
     alias RasEnumConnectionsW RasEnumConnections;
     alias RasEnumEntriesW RasEnumEntries;

@@ -46,7 +46,7 @@ if_nameindex_t* if_nameindex();
 void            if_freenameindex(if_nameindex_t*);
 */
 
-version( CRuntime_Glibc )
+version ( CRuntime_Glibc )
 {
     struct if_nameindex_t
     {
@@ -61,7 +61,7 @@ version( CRuntime_Glibc )
     if_nameindex_t* if_nameindex();
     void            if_freenameindex(if_nameindex_t*);
 }
-else version( Darwin )
+else version ( Darwin )
 {
     struct if_nameindex_t
     {
@@ -76,7 +76,7 @@ else version( Darwin )
     if_nameindex_t* if_nameindex();
     void            if_freenameindex(if_nameindex_t*);
 }
-else version( FreeBSD )
+else version ( FreeBSD )
 {
     struct if_nameindex_t
     {
@@ -91,7 +91,7 @@ else version( FreeBSD )
     if_nameindex_t* if_nameindex();
     void            if_freenameindex(if_nameindex_t*);
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     struct if_nameindex_t
     {
@@ -106,7 +106,7 @@ else version(NetBSD)
     if_nameindex_t* if_nameindex();
     void            if_freenameindex(if_nameindex_t*);
 }
-else version( DragonFlyBSD )
+else version ( DragonFlyBSD )
 {
     struct if_nameindex_t
     {
@@ -121,14 +121,14 @@ else version( DragonFlyBSD )
     if_nameindex_t* if_nameindex();
     void            if_freenameindex(if_nameindex_t*);
 }
-else version( CRuntime_Bionic )
+else version ( CRuntime_Bionic )
 {
     enum IF_NAMESIZE = 16;
 
     uint            if_nametoindex(in char*);
     char*           if_indextoname(uint, char*);
 }
-else version( CRuntime_UClibc )
+else version ( CRuntime_UClibc )
 {
     struct if_nameindex_t
     {

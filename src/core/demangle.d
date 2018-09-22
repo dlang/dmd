@@ -2412,14 +2412,14 @@ private template hasPlainMangling(FT) if (is(FT == function))
 /***
  * C name mangling is done by adding a prefix on some platforms.
  */
-version(Win32)
+version (Win32)
     enum string cPrefix = "_";
-else version(Darwin)
+else version (Darwin)
     enum string cPrefix = "_";
 else
     enum string cPrefix = "";
 
-version(unittest)
+version (unittest)
 {
     immutable string[2][] table =
     [

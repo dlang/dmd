@@ -13,9 +13,9 @@ module rt.cover;
 
 private
 {
-    version( Windows )
+    version ( Windows )
         import core.sys.windows.windows;
-    else version( Posix )
+    else version ( Posix )
     {
         import core.sys.posix.fcntl;
         import core.sys.posix.unistd;
@@ -303,9 +303,9 @@ string appendFN( string path, string name )
 {
     if (!path.length) return name;
 
-    version( Windows )
+    version ( Windows )
         const char sep = '\\';
-    else version( Posix )
+    else version ( Posix )
         const char sep = '/';
 
     auto dest = path;
@@ -346,12 +346,12 @@ string getExt( string name )
         if ( name[i - 1] == '.' )
             return name[i .. $];
         --i;
-        version( Windows )
+        version ( Windows )
         {
             if ( name[i] == ':' || name[i] == '\\' )
                 break;
         }
-        else version( Posix )
+        else version ( Posix )
         {
             if ( name[i] == '/' )
                 break;
@@ -423,7 +423,7 @@ FILE* openOrCreateFile(string name)
 
 version (Windows) HANDLE handle(int fd)
 {
-    version(CRuntime_DigitalMars)
+    version (CRuntime_DigitalMars)
         return _fdToHandle(fd);
     else
         return cast(HANDLE)_get_osfhandle(fd);
@@ -468,8 +468,8 @@ bool readFile(FILE* file, ref char[] buf)
     return true;
 }
 
-version(Windows) extern (C) nothrow @nogc FILE* _wfopen(in wchar* filename, in wchar* mode);
-version(Windows) extern (C) int chsize(int fd, c_long size);
+version (Windows) extern (C) nothrow @nogc FILE* _wfopen(in wchar* filename, in wchar* mode);
+version (Windows) extern (C) int chsize(int fd, c_long size);
 
 
 bool readFile(string name, ref char[] buf)

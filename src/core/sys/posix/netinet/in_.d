@@ -73,7 +73,7 @@ ntohl() // from core.sys.posix.arpa.inet
 ntohs() // from core.sys.posix.arpa.inet
 */
 
-version( CRuntime_Glibc )
+version ( CRuntime_Glibc )
 {
     // Some networking constants are subtly different for glibc, linux kernel
     // constants are also provided below.
@@ -123,7 +123,7 @@ version( CRuntime_Glibc )
 
     //enum INET_ADDRSTRLEN       = 16;
 }
-else version( Darwin )
+else version ( Darwin )
 {
     //alias uint16_t in_port_t;
     //alias uint32_t in_addr_t;
@@ -168,7 +168,7 @@ else version( Darwin )
 
     //enum INET_ADDRSTRLEN       = 16;
 }
-else version( FreeBSD )
+else version ( FreeBSD )
 {
     //alias uint16_t in_port_t;
     //alias uint32_t in_addr_t;
@@ -211,7 +211,7 @@ else version( FreeBSD )
 
     //enum INET_ADDRSTRLEN       = 16;
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     struct sockaddr_in
     {
@@ -246,7 +246,7 @@ else version(NetBSD)
 
     //enum INET_ADDRSTRLEN       = 16;
 }
-else version( DragonFlyBSD )
+else version ( DragonFlyBSD )
 {
     //alias uint16_t in_port_t;
     //alias uint32_t in_addr_t;
@@ -289,7 +289,7 @@ else version( DragonFlyBSD )
 
     //enum INET_ADDRSTRLEN       = 16;
 }
-else version( CRuntime_UClibc )
+else version ( CRuntime_UClibc )
 {
     private enum __SOCK_SIZE__ = 16;
 
@@ -341,7 +341,7 @@ else version( CRuntime_UClibc )
         INADDR_NONE      = 0xFFFFFFFF
     }
 }
-else version( Solaris )
+else version ( Solaris )
 {
     struct sockaddr_in
     {
@@ -373,7 +373,7 @@ else version( Solaris )
         INADDR_NONE      = 0xffffffff
     }
 }
-else version( linux )
+else version ( linux )
 {
     private enum __SOCK_SIZE__ = 16;
 
@@ -589,7 +589,7 @@ version ( CRuntime_Glibc )
                ((cast(uint8_t*) addr)[1] & 0xf) == 0xe;
     }
 }
-else version( Darwin )
+else version ( Darwin )
 {
     struct in6_addr
     {
@@ -713,7 +713,7 @@ else version( Darwin )
                ((cast(uint8_t*) addr)[1] & 0xf) == 0xe;
     }
 }
-else version( FreeBSD )
+else version ( FreeBSD )
 {
     struct in6_addr
     {
@@ -852,7 +852,7 @@ else version( FreeBSD )
                __IPV6_ADDR_MC_SCOPE(a) == __IPV6_ADDR_SCOPE_GLOBAL;
     }
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     struct in6_addr
     {
@@ -991,7 +991,7 @@ else version(NetBSD)
                __IPV6_ADDR_MC_SCOPE(a) == __IPV6_ADDR_SCOPE_GLOBAL;
     }
 }
-else version( DragonFlyBSD )
+else version ( DragonFlyBSD )
 {
     struct in6_addr
     {
@@ -1130,7 +1130,7 @@ else version( DragonFlyBSD )
                __IPV6_ADDR_MC_SCOPE(a) == __IPV6_ADDR_SCOPE_GLOBAL;
     }
 }
-else version( Solaris )
+else version ( Solaris )
 {
     struct in6_addr
     {
@@ -1242,7 +1242,7 @@ else version( Solaris )
         return a.s6_addr8[0] == 0xff && (a.s6_addr8[1] & 0x0f) == 0x0e;
     }
 }
-else version( CRuntime_Bionic )
+else version ( CRuntime_Bionic )
 {
     struct in6_addr
     {
@@ -1385,7 +1385,7 @@ else version( CRuntime_Bionic )
         }
     }
 }
-else version( CRuntime_Musl )
+else version ( CRuntime_Musl )
 {
 
     struct in6_addr {
@@ -1560,35 +1560,35 @@ else version ( CRuntime_UClibc )
 IPPROTO_RAW
 */
 
-version( CRuntime_Glibc )
+version ( CRuntime_Glibc )
 {
     enum uint IPPROTO_RAW = 255;
 }
-else version( Darwin )
+else version ( Darwin )
 {
     enum uint IPPROTO_RAW = 255;
 }
-else version( FreeBSD )
+else version ( FreeBSD )
 {
     enum uint IPPROTO_RAW = 255;
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     enum uint IPPROTO_RAW = 255;
 }
-else version( DragonFlyBSD )
+else version ( DragonFlyBSD )
 {
     enum uint IPPROTO_RAW = 255;
 }
-else version( Solaris )
+else version ( Solaris )
 {
     enum uint IPPROTO_RAW = 255;
 }
-else version( linux )
+else version ( linux )
 {
     enum uint IPPROTO_RAW = 255;
 }
-else version( CRuntime_UClibc )
+else version ( CRuntime_UClibc )
 {
     enum uint IPPROTO_RAW = 255;
 }

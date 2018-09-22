@@ -101,7 +101,7 @@ enum M64_PLT_ALIGN    = M64_WORD_ALIGN;
 enum M64_GOT_ENTSIZE  = 8;
 enum M64_PLT_RESERVSZ = M32_PLT_RESERVSZ;
 
-version(_ELF64)
+version (_ELF64)
 {
     enum M_WORD_ALIGN   = M64_WORD_ALIGN;
     enum M_PLT_ENTSIZE  = M64_PLT_ENTSIZE;

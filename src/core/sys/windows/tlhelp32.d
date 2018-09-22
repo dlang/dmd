@@ -101,7 +101,7 @@ struct MODULEENTRY32W {
 alias MODULEENTRY32W* PMODULEENTRY32W;
 alias MODULEENTRY32W* LPMODULEENTRY32W;
 
-version(Unicode) {
+version (Unicode) {
     alias PROCESSENTRY32W PROCESSENTRY32;
     alias PPROCESSENTRY32W PPROCESSENTRY32;
     alias LPPROCESSENTRY32W LPPROCESSENTRY32;
@@ -157,7 +157,7 @@ extern(Windows) nothrow @nogc {
     BOOL Process32NextW(HANDLE,LPPROCESSENTRY32W);
 }
 
-version(Unicode) {
+version (Unicode) {
     alias Module32FirstW Module32First;
     alias Module32NextW Module32Next;
     alias Process32FirstW Process32First;

@@ -10,14 +10,14 @@
 
 module core.atomic;
 
-version( D_InlineAsm_X86 )
+version ( D_InlineAsm_X86 )
 {
     version = AsmX86;
     version = AsmX86_32;
     enum has64BitCAS = true;
     enum has128BitCAS = false;
 }
-else version( D_InlineAsm_X86_64 )
+else version ( D_InlineAsm_X86_64 )
 {
     version = AsmX86;
     version = AsmX86_64;
@@ -147,7 +147,7 @@ private
 }
 
 
-version( AsmX86 )
+version ( AsmX86 )
 {
     // NOTE: Strictly speaking, the x86 supports atomic operations on
     //       unaligned values.  However, this is far slower than the
@@ -169,7 +169,7 @@ version( AsmX86 )
 }
 
 
-version( CoreDdoc )
+version ( CoreDdoc )
 {
     /**
      * Performs the binary operation 'op' on val using 'mod' as the modifier.
@@ -268,7 +268,7 @@ version( CoreDdoc )
      */
     void atomicFence() nothrow @nogc;
 }
-else version( AsmX86_32 )
+else version ( AsmX86_32 )
 {
     // Uses specialized asm for fast fetch and add operations
     private TailShared!(T) atomicFetchAdd(T)( ref shared T val, size_t mod ) pure nothrow @nogc @safe
@@ -756,7 +756,7 @@ else version( AsmX86_32 )
         }
     }
 }
-else version( AsmX86_64 )
+else version ( AsmX86_64 )
 {
     // Uses specialized asm for fast fetch and add operations
     private TailShared!(T) atomicFetchAdd(T)( ref shared T val, size_t mod ) pure nothrow @nogc @trusted
@@ -947,7 +947,7 @@ else version( AsmX86_64 )
             //////////////////////////////////////////////////////////////////
             // 16 Byte CAS on a 64-Bit Processor
             //////////////////////////////////////////////////////////////////
-            version(Win64){
+            version (Win64){
                 //Windows 64 calling convention uses different registers.
                 //DMD appears to reverse the register order.
                 asm pure nothrow @nogc @trusted
@@ -1148,7 +1148,7 @@ else version( AsmX86_64 )
             //////////////////////////////////////////////////////////////////
             // 16 Byte Load on a 64-Bit Processor
             //////////////////////////////////////////////////////////////////
-            version(Win64){
+            version (Win64){
                 size_t[2] retVal;
                 asm pure nothrow @nogc @trusted
                 {
@@ -1321,7 +1321,7 @@ else version( AsmX86_64 )
             //////////////////////////////////////////////////////////////////
             // 16 Byte Store on a 64-Bit Processor
             //////////////////////////////////////////////////////////////////
-            version(Win64){
+            version (Win64){
                 asm pure nothrow @nogc @trusted
                 {
                     push RDI;
@@ -1414,7 +1414,7 @@ if (__traits(isFloating, T))
 ////////////////////////////////////////////////////////////////////////////////
 
 
-version( unittest )
+version ( unittest )
 {
     void testCAS(T)( T val ) pure nothrow @nogc @trusted
     in
@@ -1622,7 +1622,7 @@ version( unittest )
         assert(atomicOp!"+="(i8, 8) == 13);
         assert(atomicOp!"+="(i16, 8) == 14);
         assert(atomicOp!"+="(i32, 8) == 15);
-        version( AsmX86_64 )
+        version ( AsmX86_64 )
         {
             shared ulong u64 = 4;
             shared long i64 = 8;
@@ -1646,7 +1646,7 @@ version( unittest )
         assert(atomicOp!"-="(i8, 1) == 4);
         assert(atomicOp!"-="(i16, 1) == 5);
         assert(atomicOp!"-="(i32, 1) == 6);
-        version( AsmX86_64 )
+        version ( AsmX86_64 )
         {
             shared ulong u64 = 4;
             shared long i64 = 8;

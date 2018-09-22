@@ -17,7 +17,7 @@ extern (C) :
 nothrow:
 @nogc:
 
-version(CRuntime_Glibc) {
+version (CRuntime_Glibc) {
     static if (__WORDSIZE == 32)
     {
         version=_STATVFSBUF_F_UNUSED;
@@ -33,7 +33,7 @@ version(CRuntime_Glibc) {
         fsfilcnt_t f_ffree;
         fsfilcnt_t f_favail;
         c_ulong f_fsid;
-        version(_STATVFSBUF_F_UNUSED)
+        version (_STATVFSBUF_F_UNUSED)
         {
             int __f_unused;
         }
@@ -86,7 +86,7 @@ version(CRuntime_Glibc) {
     }
 
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     enum  _VFS_MNAMELEN = 1024;
     enum  _VFS_NAMELEN = 32;

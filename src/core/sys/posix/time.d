@@ -49,23 +49,23 @@ size_t strftime(char*, size_t, in char*, in tm*);
 time_t time(time_t*);
 */
 
-version( CRuntime_Glibc )
+version ( CRuntime_Glibc )
 {
     time_t timegm(tm*); // non-standard
 }
-else version( Darwin )
+else version ( Darwin )
 {
     time_t timegm(tm*); // non-standard
 }
-else version( FreeBSD )
+else version ( FreeBSD )
 {
     time_t timegm(tm*); // non-standard
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     time_t timegm(tm*); // non-standard
 }
-else version( DragonFlyBSD )
+else version ( DragonFlyBSD )
 {
     time_t timegm(tm*); // non-standard
 }
@@ -81,7 +81,7 @@ else version (CRuntime_Musl)
 {
     time_t timegm(tm*);
 }
-else version( CRuntime_UClibc )
+else version ( CRuntime_UClibc )
 {
     time_t timegm(tm*);
 }
@@ -120,7 +120,7 @@ int clock_nanosleep(clockid_t, int, in timespec*, timespec*);
 CLOCK_MONOTONIC
 */
 
-version( linux )
+version ( linux )
 {
     enum CLOCK_MONOTONIC          = 1;
     // To be removed in December 2015.
@@ -207,7 +207,7 @@ int timer_getoverrun(timer_t);
 int timer_settime(timer_t, int, in itimerspec*, itimerspec*);
 */
 
-version( CRuntime_Glibc )
+version ( CRuntime_Glibc )
 {
     enum CLOCK_PROCESS_CPUTIME_ID = 2;
     enum CLOCK_THREAD_CPUTIME_ID  = 3;
@@ -246,11 +246,11 @@ version( CRuntime_Glibc )
     int timer_getoverrun(timer_t);
     int timer_settime(timer_t, int, in itimerspec*, itimerspec*);
 }
-else version( Darwin )
+else version ( Darwin )
 {
     int nanosleep(in timespec*, timespec*);
 }
-else version( FreeBSD )
+else version ( FreeBSD )
 {
     //enum CLOCK_PROCESS_CPUTIME_ID = ??;
     enum CLOCK_THREAD_CPUTIME_ID  = 15;
@@ -285,7 +285,7 @@ else version( FreeBSD )
     int timer_getoverrun(timer_t);
     int timer_settime(timer_t, int, in itimerspec*, itimerspec*);
 }
-else version( DragonFlyBSD )
+else version ( DragonFlyBSD )
 {
     enum CLOCK_THREAD_CPUTIME_ID  = 15;
 
@@ -311,7 +311,7 @@ else version( DragonFlyBSD )
     int timer_getoverrun(timer_t);
     int timer_settime(timer_t, int, in itimerspec*, itimerspec*);
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     struct itimerspec
     {
@@ -365,7 +365,7 @@ else version (Solaris)
     int timer_gettime(timer_t, itimerspec*);
     int timer_settime(timer_t, int, in itimerspec*, itimerspec*);
 }
-else version( CRuntime_Bionic )
+else version ( CRuntime_Bionic )
 {
     enum CLOCK_PROCESS_CPUTIME_ID = 2;
     enum CLOCK_THREAD_CPUTIME_ID  = 3;
@@ -392,7 +392,7 @@ else version( CRuntime_Bionic )
     int timer_getoverrun(timer_t);
     int timer_settime(timer_t, int, in itimerspec*, itimerspec*);
 }
-else version( CRuntime_Musl )
+else version ( CRuntime_Musl )
 {
     alias int clockid_t;
     alias void* timer_t;
@@ -429,7 +429,7 @@ else version( CRuntime_Musl )
     int timer_settime(timer_t, int, in itimerspec*, itimerspec*);
     int timer_getoverrun(timer_t);
 }
-else version( CRuntime_UClibc )
+else version ( CRuntime_UClibc )
 {
     enum CLOCK_REALTIME             = 0;
     enum CLOCK_PROCESS_CPUTIME_ID   = 2;
@@ -471,35 +471,35 @@ tm*   gmtime_r(in time_t*, tm*);
 tm*   localtime_r(in time_t*, tm*);
 */
 
-version( CRuntime_Glibc )
+version ( CRuntime_Glibc )
 {
     char* asctime_r(in tm*, char*);
     char* ctime_r(in time_t*, char*);
     tm*   gmtime_r(in time_t*, tm*);
     tm*   localtime_r(in time_t*, tm*);
 }
-else version( Darwin )
+else version ( Darwin )
 {
     char* asctime_r(in tm*, char*);
     char* ctime_r(in time_t*, char*);
     tm*   gmtime_r(in time_t*, tm*);
     tm*   localtime_r(in time_t*, tm*);
 }
-else version( FreeBSD )
+else version ( FreeBSD )
 {
     char* asctime_r(in tm*, char*);
     char* ctime_r(in time_t*, char*);
     tm*   gmtime_r(in time_t*, tm*);
     tm*   localtime_r(in time_t*, tm*);
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     char* asctime_r(in tm*, char*);
     char* ctime_r(in time_t*, char*);
     tm*   gmtime_r(in time_t*, tm*);
     tm*   localtime_r(in time_t*, tm*);
 }
-else version( DragonFlyBSD )
+else version ( DragonFlyBSD )
 {
     char* asctime_r(in tm*, char*);
     char* ctime_r(in time_t*, char*);
@@ -527,7 +527,7 @@ else version (CRuntime_Musl)
     tm*   gmtime_r(in time_t*, tm*);
     tm*   localtime_r(in time_t*, tm*);
 }
-else version( CRuntime_UClibc )
+else version ( CRuntime_UClibc )
 {
     char* asctime_r(in tm*, char*);
     char* ctime_r(in time_t*, char*);
@@ -552,7 +552,7 @@ tm* getdate(in char*);
 char* strptime(in char*, in char*, tm*);
 */
 
-version( CRuntime_Glibc )
+version ( CRuntime_Glibc )
 {
     extern __gshared int    daylight;
     extern __gshared c_long timezone;
@@ -560,7 +560,7 @@ version( CRuntime_Glibc )
     tm*   getdate(in char*);
     char* strptime(in char*, in char*, tm*);
 }
-else version( Darwin )
+else version ( Darwin )
 {
     extern __gshared c_long timezone;
     extern __gshared int    daylight;
@@ -568,17 +568,17 @@ else version( Darwin )
     tm*   getdate(in char*);
     char* strptime(in char*, in char*, tm*);
 }
-else version( FreeBSD )
+else version ( FreeBSD )
 {
     //tm*   getdate(in char*);
     char* strptime(in char*, in char*, tm*);
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     tm*   getdate(in char*);
     char* strptime(in char*, in char*, tm*);
 }
-else version( DragonFlyBSD )
+else version ( DragonFlyBSD )
 {
     //tm*   getdate(in char*);
     char* strptime(in char*, in char*, tm*);
@@ -592,19 +592,19 @@ else version (Solaris)
     char* __strptime_dontzero(in char*, in char*, tm*);
     alias __strptime_dontzero strptime;
 }
-else version( CRuntime_Bionic )
+else version ( CRuntime_Bionic )
 {
     extern __gshared int    daylight;
     extern __gshared c_long timezone;
 
     char* strptime(in char*, in char*, tm*);
 }
-else version( CRuntime_Musl )
+else version ( CRuntime_Musl )
 {
     tm*   getdate(in char*);
     char* strptime(in char*, in char*, tm*);
 }
-else version( CRuntime_UClibc )
+else version ( CRuntime_UClibc )
 {
     extern __gshared int    daylight;
     extern __gshared c_long timezone;

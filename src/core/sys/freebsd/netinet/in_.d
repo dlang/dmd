@@ -13,7 +13,7 @@ import core.sys.freebsd.sys.cdefs;
 
 public import core.sys.posix.netinet.in_;
 
-version(FreeBSD):
+version (FreeBSD):
 
 extern(C) nothrow @nogc:
 

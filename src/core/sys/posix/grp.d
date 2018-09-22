@@ -47,7 +47,7 @@ group* getgrnam(in char*);
 group* getgrgid(gid_t);
 */
 
-version( CRuntime_Glibc )
+version ( CRuntime_Glibc )
 {
     struct group
     {
@@ -57,7 +57,7 @@ version( CRuntime_Glibc )
         char**  gr_mem;
     }
 }
-else version( Darwin )
+else version ( Darwin )
 {
     struct group
     {
@@ -67,7 +67,7 @@ else version( Darwin )
         char**  gr_mem;
     }
 }
-else version( FreeBSD )
+else version ( FreeBSD )
 {
     struct group
     {
@@ -77,7 +77,7 @@ else version( FreeBSD )
         char**  gr_mem;
     }
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     struct group
     {
@@ -87,7 +87,7 @@ else version(NetBSD)
         char**  gr_mem;
     }
 }
-else version( OpenBSD )
+else version ( OpenBSD )
 {
     struct group
     {
@@ -97,7 +97,7 @@ else version( OpenBSD )
         char**  gr_mem;
     }
 }
-else version( DragonFlyBSD )
+else version ( DragonFlyBSD )
 {
     struct group
     {
@@ -107,7 +107,7 @@ else version( DragonFlyBSD )
         char**  gr_mem;
     }
 }
-else version( Solaris )
+else version ( Solaris )
 {
     struct group
     {
@@ -117,7 +117,7 @@ else version( Solaris )
         char**  gr_mem;
     }
 }
-else version( CRuntime_Bionic )
+else version ( CRuntime_Bionic )
 {
     struct group
     {
@@ -127,7 +127,7 @@ else version( CRuntime_Bionic )
         char**  gr_mem;
     }
 }
-else version( CRuntime_UClibc )
+else version ( CRuntime_UClibc )
 {
     struct group
     {
@@ -137,7 +137,7 @@ else version( CRuntime_UClibc )
         char**  gr_mem;
     }
 }
-else version( CRuntime_Musl )
+else version ( CRuntime_Musl )
 {
     struct group
     {
@@ -163,50 +163,50 @@ int getgrnam_r(in char*, group*, char*, size_t, group**);
 int getgrgid_r(gid_t, group*, char*, size_t, group**);
 */
 
-version( CRuntime_Glibc )
+version ( CRuntime_Glibc )
 {
     int getgrnam_r(in char*, group*, char*, size_t, group**);
     int getgrgid_r(gid_t, group*, char*, size_t, group**);
 }
-else version( Darwin )
+else version ( Darwin )
 {
     int getgrnam_r(in char*, group*, char*, size_t, group**);
     int getgrgid_r(gid_t, group*, char*, size_t, group**);
 }
-else version( FreeBSD )
+else version ( FreeBSD )
 {
     int getgrnam_r(in char*, group*, char*, size_t, group**);
     int getgrgid_r(gid_t, group*, char*, size_t, group**);
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     int getgrnam_r(in char*, group*, char*, size_t, group**);
     int getgrgid_r(gid_t, group*, char*, size_t, group**);
 }
-else version( OpenBSD )
+else version ( OpenBSD )
 {
     int getgrnam_r(in char*, group*, char*, size_t, group**);
     int getgrgid_r(gid_t, group*, char*, size_t, group**);
 }
-else version( DragonFlyBSD )
+else version ( DragonFlyBSD )
 {
     int getgrnam_r(in char*, group*, char*, size_t, group**);
     int getgrgid_r(gid_t, group*, char*, size_t, group**);
 }
-else version( Solaris )
+else version ( Solaris )
 {
     int getgrnam_r(in char*, group*, char*, int, group**);
     int getgrgid_r(gid_t, group*, char*, int, group**);
 }
-else version( CRuntime_Bionic )
+else version ( CRuntime_Bionic )
 {
 }
-else version( CRuntime_UClibc )
+else version ( CRuntime_UClibc )
 {
     int getgrnam_r(in char*, group*, char*, size_t, group**);
     int getgrgid_r(gid_t, group*, char*, size_t, group**);
 }
-else version( CRuntime_Musl )
+else version ( CRuntime_Musl )
 {
     int getgrnam_r(in char*, group*, char*, size_t, group**);
     int getgrgid_r(gid_t, group*, char*, size_t, group**);
@@ -225,58 +225,58 @@ void           endgrent(void);
 void           setgrent(void);
 */
 
-version( CRuntime_Glibc )
+version ( CRuntime_Glibc )
 {
     group* getgrent();
     @trusted void endgrent();
     @trusted void setgrent();
 }
-else version( Darwin )
+else version ( Darwin )
 {
     group* getgrent();
     @trusted void endgrent();
     @trusted void setgrent();
 }
-else version( FreeBSD )
+else version ( FreeBSD )
 {
     group* getgrent();
     @trusted void endgrent();
     @trusted void setgrent();
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     group* getgrent();
     @trusted void endgrent();
     @trusted void setgrent();
 }
-else version( OpenBSD )
+else version ( OpenBSD )
 {
     group* getgrent();
     @trusted void endgrent();
     @trusted void setgrent();
 }
-else version( DragonFlyBSD )
+else version ( DragonFlyBSD )
 {
     group* getgrent();
     @trusted void endgrent();
     @trusted void setgrent();
 }
-else version( Solaris )
+else version ( Solaris )
 {
     group* getgrent();
     @trusted void endgrent();
     @trusted void setgrent();
 }
-else version( CRuntime_Bionic )
+else version ( CRuntime_Bionic )
 {
 }
-else version( CRuntime_UClibc )
+else version ( CRuntime_UClibc )
 {
     group* getgrent();
     @trusted void endgrent();
     @trusted void setgrent();
 }
-else version( CRuntime_Musl )
+else version ( CRuntime_Musl )
 {
     group* getgrent();
     @trusted void endgrent();

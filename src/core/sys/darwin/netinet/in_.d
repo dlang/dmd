@@ -13,16 +13,16 @@ import core.sys.darwin.sys.cdefs;
 
 public import core.sys.posix.netinet.in_;
 
-version(OSX)
+version (OSX)
     version = Darwin;
-else version(iOS)
+else version (iOS)
     version = Darwin;
-else version(TVOS)
+else version (TVOS)
     version = Darwin;
-else version(WatchOS)
+else version (WatchOS)
     version = Darwin;
 
-version(Darwin):
+version (Darwin):
 extern(C) nothrow @nogc:
 
 enum IPPROTO_IP = 0;

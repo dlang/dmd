@@ -59,7 +59,7 @@ int setitimer(int, in itimerval*, itimerval*);
 int utimes(in char*, ref const(timeval)[2]); // LEGACY
 */
 
-version( CRuntime_Glibc )
+version ( CRuntime_Glibc )
 {
     struct timeval
     {
@@ -82,7 +82,7 @@ version( CRuntime_Glibc )
     int setitimer(int, in itimerval*, itimerval*);
     int utimes(in char*, ref const(timeval)[2]); // LEGACY
 }
-else version( CRuntime_Musl )
+else version ( CRuntime_Musl )
 {
     struct timeval
     {
@@ -92,7 +92,7 @@ else version( CRuntime_Musl )
     int gettimeofday(timeval*, void*);
     int utimes(in char*, ref const(timeval)[2]);
 }
-else version( Darwin )
+else version ( Darwin )
 {
     struct timeval
     {
@@ -118,7 +118,7 @@ else version( Darwin )
     int setitimer(int, in itimerval*, itimerval*);
     int utimes(in char*, ref const(timeval)[2]);
 }
-else version( FreeBSD )
+else version ( FreeBSD )
 {
     struct timeval
     {
@@ -144,7 +144,7 @@ else version( FreeBSD )
     int setitimer(int, in itimerval*, itimerval*);
     int utimes(in char*, ref const(timeval)[2]);
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     struct timeval
     {
@@ -163,7 +163,7 @@ else version(NetBSD)
     int setitimer(int, in itimerval*, itimerval*);
     int utimes(in char*, ref const(timeval)[2]);
 }
-else version( DragonFlyBSD )
+else version ( DragonFlyBSD )
 {
     struct timeval
     {
@@ -208,7 +208,7 @@ else version (Solaris)
     int setitimer(int, in itimerval*, itimerval*);
     int utimes(in char*, ref const(timeval)[2]);
 }
-else version( CRuntime_Bionic )
+else version ( CRuntime_Bionic )
 {
     struct timeval
     {
@@ -237,7 +237,7 @@ else version( CRuntime_Bionic )
     int setitimer(int, in itimerval*, itimerval*);
     int utimes(in char*, ref const(timeval)[2]);
 }
-else version( CRuntime_UClibc )
+else version ( CRuntime_UClibc )
 {
     struct timeval
     {

@@ -7,7 +7,7 @@
  */
 module core.sys.dragonflybsd.netinet.in_;
 
-version(DragonFlyBSD):
+version (DragonFlyBSD):
 
 import core.sys.dragonflybsd.sys.cdefs;
 

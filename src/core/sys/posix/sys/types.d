@@ -85,7 +85,7 @@ time_t
 uid_t
 */
 
-version( CRuntime_Glibc )
+version ( CRuntime_Glibc )
 {
   static if ( __USE_FILE_OFFSET64 )
   {
@@ -110,7 +110,7 @@ version( CRuntime_Glibc )
     alias slong_t   time_t;
     alias uint      uid_t;
 }
-else version( CRuntime_Musl )
+else version ( CRuntime_Musl )
 {
     alias long      blksize_t;
     alias ulong     nlink_t;
@@ -127,7 +127,7 @@ else version( CRuntime_Musl )
     alias ulong     pthread_t;
     alias _Addr     ssize_t;
 }
-else version( Darwin )
+else version ( Darwin )
 {
     alias long      blkcnt_t;
     alias int       blksize_t;
@@ -143,7 +143,7 @@ else version( Darwin )
     alias c_long    time_t;
     alias uint      uid_t;
 }
-else version( FreeBSD )
+else version ( FreeBSD )
 {
     // https://github.com/freebsd/freebsd/blob/master/sys/sys/_types.h
     alias long      blkcnt_t;
@@ -161,7 +161,7 @@ else version( FreeBSD )
     alias uint      uid_t;
     alias uint      fflags_t;
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     alias long      blkcnt_t;
     alias int       blksize_t;
@@ -177,7 +177,7 @@ else version(NetBSD)
     alias c_long      time_t;
     alias uint        uid_t;
 }
-else version( DragonFlyBSD )
+else version ( DragonFlyBSD )
 {
     alias long      blkcnt_t;
     alias long      blksize_t;
@@ -234,7 +234,7 @@ else version (Solaris)
     alias c_long time_t;
     alias uint uid_t;
 }
-else version( CRuntime_Bionic )
+else version ( CRuntime_Bionic )
 {
     alias c_ulong   blkcnt_t;
     alias c_ulong   blksize_t;
@@ -247,27 +247,27 @@ else version( CRuntime_Bionic )
     alias c_long    time_t;
     alias uint      uid_t;
 
-    version(X86)
+    version (X86)
     {
         alias ushort    mode_t;
         alias ushort    nlink_t;
     }
-    else version(X86_64)
+    else version (X86_64)
     {
         alias ushort    mode_t;
         alias uint      nlink_t;
     }
-    else version(ARM)
+    else version (ARM)
     {
         alias ushort    mode_t;
         alias ushort    nlink_t;
     }
-    else version(AArch64)
+    else version (AArch64)
     {
         alias uint      mode_t;
         alias uint      nlink_t;
     }
-    else version(MIPS32)
+    else version (MIPS32)
     {
         alias uint      mode_t;
         alias uint      nlink_t;
@@ -277,7 +277,7 @@ else version( CRuntime_Bionic )
         static assert(false, "Architecture not supported.");
     }
 }
-else version( CRuntime_UClibc )
+else version ( CRuntime_UClibc )
 {
     static if ( __USE_FILE_OFFSET64 )
     {
@@ -332,7 +332,7 @@ suseconds_t
 useconds_t
 */
 
-version( CRuntime_Glibc )
+version ( CRuntime_Glibc )
 {
   static if ( __USE_FILE_OFFSET64 )
   {
@@ -350,7 +350,7 @@ version( CRuntime_Glibc )
     alias slong_t   suseconds_t;
     alias uint      useconds_t;
 }
-else version( Darwin )
+else version ( Darwin )
 {
     alias uint   fsblkcnt_t;
     alias uint   fsfilcnt_t;
@@ -360,7 +360,7 @@ else version( Darwin )
     alias int    suseconds_t;
     alias uint   useconds_t;
 }
-else version( FreeBSD )
+else version ( FreeBSD )
 {
     alias ulong     fsblkcnt_t;
     alias ulong     fsfilcnt_t;
@@ -370,7 +370,7 @@ else version( FreeBSD )
     alias c_long    suseconds_t;
     alias uint      useconds_t;
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     alias ulong     fsblkcnt_t;
     alias ulong     fsfilcnt_t;
@@ -380,7 +380,7 @@ else version(NetBSD)
     alias c_long    suseconds_t;
     alias uint      useconds_t;
 }
-else version( DragonFlyBSD )
+else version ( DragonFlyBSD )
 {
     alias ulong     fsblkcnt_t;
     alias ulong     fsfilcnt_t;
@@ -415,7 +415,7 @@ else version (Solaris)
     alias id_t zoneid_t;
     alias id_t ctid_t;
 }
-else version( CRuntime_Bionic )
+else version ( CRuntime_Bionic )
 {
     alias c_ulong  fsblkcnt_t;
     alias c_ulong  fsfilcnt_t;
@@ -425,7 +425,7 @@ else version( CRuntime_Bionic )
     alias c_long   suseconds_t;
     alias uint     useconds_t; // Updated in Lollipop
 }
-else version( CRuntime_Musl )
+else version ( CRuntime_Musl )
 {
   static if ( __USE_FILE_OFFSET64 )
   {
@@ -441,7 +441,7 @@ else version( CRuntime_Musl )
     alias uint id_t;
     alias long suseconds_t;
 }
-else version( CRuntime_UClibc )
+else version ( CRuntime_UClibc )
 {
   static if ( __USE_FILE_OFFSET64 )
   {
@@ -728,9 +728,9 @@ version (CRuntime_Glibc)
 
     alias c_ulong pthread_t;
 }
-else version( CRuntime_Musl )
+else version ( CRuntime_Musl )
 {
-    version(X86_64) {
+    version (X86_64) {
         union pthread_attr_t
         {
             int[14] __i;
@@ -765,9 +765,9 @@ else version( CRuntime_Musl )
         static assert (false, "Architecture unsupported");
     }
 }
-else version( Darwin )
+else version ( Darwin )
 {
-    version( D_LP64 )
+    version ( D_LP64 )
     {
         enum __PTHREAD_SIZE__               = 1168;
         enum __PTHREAD_ATTR_SIZE__          = 56;
@@ -858,7 +858,7 @@ else version( Darwin )
 
     alias _opaque_pthread_t* pthread_t;
 }
-else version( FreeBSD )
+else version ( FreeBSD )
 {
     alias int lwpid_t;
 
@@ -873,7 +873,7 @@ else version( FreeBSD )
     alias void* pthread_rwlockattr_t;
     alias void* pthread_t;
 }
-else version(NetBSD)
+else version (NetBSD)
 {
    struct pthread_queue_t {
          void*  ptqh_first;
@@ -941,7 +941,7 @@ else version(NetBSD)
     alias uint pthread_key_t;
     alias void* pthread_t;
 }
-else version( DragonFlyBSD )
+else version ( DragonFlyBSD )
 {
     alias int lwpid_t;
 
@@ -1046,7 +1046,7 @@ else version (Solaris)
 
     alias uint pthread_key_t;
 }
-else version( CRuntime_Bionic )
+else version ( CRuntime_Bionic )
 {
     struct pthread_attr_t
     {
@@ -1056,12 +1056,12 @@ else version( CRuntime_Bionic )
         size_t  guard_size;
         int     sched_policy;
         int     sched_priority;
-        version(D_LP64) char[16] __reserved;
+        version (D_LP64) char[16] __reserved;
     }
 
     struct pthread_cond_t
     {
-        version(D_LP64)
+        version (D_LP64)
             int[12] __private;
         else
             int[1] __private;
@@ -1072,7 +1072,7 @@ else version( CRuntime_Bionic )
 
     struct pthread_mutex_t
     {
-        version(D_LP64)
+        version (D_LP64)
             int[10] __private;
         else
             int[1] __private;
@@ -1083,7 +1083,7 @@ else version( CRuntime_Bionic )
 
     struct pthread_rwlock_t
     {
-        version(D_LP64)
+        version (D_LP64)
             int[14] __private;
         else
             int[10] __private;
@@ -1212,7 +1212,7 @@ else version ( CRuntime_UClibc )
             uint __writer_wakeup;
             uint __nr_readers_queued;
             uint __nr_writers_queued;
-            version( BigEndian )
+            version ( BigEndian )
             {
                 ubyte __pad1;
                 ubyte __pad2;
@@ -1253,7 +1253,7 @@ pthread_barrier_t
 pthread_barrierattr_t
 */
 
-version( CRuntime_Glibc )
+version ( CRuntime_Glibc )
 {
     struct pthread_barrier_t
     {
@@ -1267,22 +1267,22 @@ version( CRuntime_Glibc )
         int __align;
     }
 }
-else version( FreeBSD )
+else version ( FreeBSD )
 {
     alias void* pthread_barrier_t;
     alias void* pthread_barrierattr_t;
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     alias void* pthread_barrier_t;
     alias void* pthread_barrierattr_t;
 }
-else version( DragonFlyBSD )
+else version ( DragonFlyBSD )
 {
     alias void* pthread_barrier_t;
     alias void* pthread_barrierattr_t;
 }
-else version( Darwin )
+else version ( Darwin )
 {
 }
 else version (Solaris)
@@ -1302,13 +1302,13 @@ else version (Solaris)
         void* __pthread_barrierattrp;
     }
 }
-else version( CRuntime_Bionic )
+else version ( CRuntime_Bionic )
 {
 }
-else version( CRuntime_Musl )
+else version ( CRuntime_Musl )
 {
 }
-else version( CRuntime_UClibc )
+else version ( CRuntime_UClibc )
 {
     struct pthread_barrier_t
     {
@@ -1334,19 +1334,19 @@ else
 pthread_spinlock_t
 */
 
-version( CRuntime_Glibc )
+version ( CRuntime_Glibc )
 {
     alias int pthread_spinlock_t; // volatile
 }
-else version( FreeBSD )
+else version ( FreeBSD )
 {
     alias void* pthread_spinlock_t;
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     //already defined
 }
-else version( DragonFlyBSD )
+else version ( DragonFlyBSD )
 {
     alias void* pthread_spinlock_t;
 }
@@ -1354,7 +1354,7 @@ else version (Solaris)
 {
     alias pthread_mutex_t pthread_spinlock_t;
 }
-else version( CRuntime_UClibc )
+else version ( CRuntime_UClibc )
 {
     alias int pthread_spinlock_t; // volatile
 }

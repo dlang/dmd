@@ -4416,7 +4416,7 @@ static if (_WIN32_WINNT >= 0x500) {
     }
 } // extern (Windows)
 
-version(Unicode) {
+version (Unicode) {
     alias WCHAR BCHAR;
     alias DOCINFOW DOCINFO;
     alias LOGFONTW LOGFONT;

@@ -40,7 +40,7 @@ private
         externDFunc!("rt.tlsgc.processGCMarks", void function(void*, scope IsMarkedDg) nothrow);
 }
 
-version( Solaris )
+version ( Solaris )
 {
     import core.sys.solaris.sys.priocntl;
     import core.sys.solaris.sys.types;
@@ -59,7 +59,7 @@ version = StackGrowsDown;
  * writefln("Current process id: %s", getpid());
  * ---
  */
-version(Posix)
+version (Posix)
 {
     alias getpid = core.sys.posix.unistd.getpid;
 }
@@ -179,7 +179,7 @@ private
 ///////////////////////////////////////////////////////////////////////////////
 
 
-version( Windows )
+version ( Windows )
 {
     private
     {
@@ -227,7 +227,7 @@ version( Windows )
                 obj.m_unhandled = Throwable.chainTogether(obj.m_unhandled, t);
             }
 
-            version( D_InlineAsm_X86 )
+            version ( D_InlineAsm_X86 )
             {
                 asm nothrow @nogc { fninit; }
             }
@@ -266,7 +266,7 @@ version( Windows )
         }
     }
 }
-else version( Posix )
+else version ( Posix )
 {
     private
     {
@@ -277,13 +277,13 @@ else version( Posix )
         import core.sys.posix.signal;
         import core.sys.posix.time;
 
-        version( Darwin )
+        version ( Darwin )
         {
             import core.sys.darwin.mach.thread_act;
             import core.sys.darwin.pthread : pthread_mach_thread_np;
         }
 
-        version( GNU )
+        version ( GNU )
         {
             import gcc.builtins;
         }
@@ -601,18 +601,18 @@ class Thread
             return;
         }
 
-        version( Windows )
+        version ( Windows )
         {
             m_addr = m_addr.init;
             CloseHandle( m_hndl );
             m_hndl = m_hndl.init;
         }
-        else version( Posix )
+        else version ( Posix )
         {
             pthread_detach( m_addr );
             m_addr = m_addr.init;
         }
-        version( Darwin )
+        version ( Darwin )
         {
             m_tmach = m_tmach.init;
         }
@@ -651,8 +651,8 @@ class Thread
                 multiThreadedFlag = false;
         }
 
-        version( Windows ) {} else
-        version( Posix )
+        version ( Windows ) {} else
+        version ( Posix )
         {
             pthread_attr_t  attr;
 
@@ -662,7 +662,7 @@ class Thread
                 onThreadError( "Error initializing thread stack size" );
         }
 
-        version( Windows )
+        version ( Windows )
         {
             // NOTE: If a thread is just executing DllMain()
             //       while another thread is started here, it holds an OS internal
@@ -685,12 +685,12 @@ class Thread
             ++nAboutToStart;
             pAboutToStart = cast(Thread*)realloc(pAboutToStart, Thread.sizeof * nAboutToStart);
             pAboutToStart[nAboutToStart - 1] = this;
-            version( Windows )
+            version ( Windows )
             {
                 if ( ResumeThread( m_hndl ) == -1 )
                     onThreadError( "Error resuming thread" );
             }
-            else version( Posix )
+            else version ( Posix )
             {
                 // NOTE: This is also set to true by thread_entryPoint, but set it
                 //       here as well so the calling thread will see the isRunning
@@ -721,7 +721,7 @@ class Thread
                         onThreadError( "Error creating thread" );
                 }
             }
-            version( Darwin )
+            version ( Darwin )
             {
                 m_tmach = pthread_mach_thread_np( m_addr );
                 if ( m_tmach == m_tmach.init )
@@ -750,7 +750,7 @@ class Thread
      */
     final Throwable join( bool rethrow = true )
     {
-        version( Windows )
+        version ( Windows )
         {
             if ( WaitForSingleObject( m_hndl, INFINITE ) != WAIT_OBJECT_0 )
                 throw new ThreadException( "Unable to join thread" );
@@ -761,7 +761,7 @@ class Thread
             CloseHandle( m_hndl );
             m_hndl = m_hndl.init;
         }
-        else version( Posix )
+        else version ( Posix )
         {
             if ( pthread_join( m_addr, null ) != 0 )
                 throw new ThreadException( "Unable to join thread" );
@@ -886,13 +886,13 @@ class Thread
             return false;
         }
 
-        version( Windows )
+        version ( Windows )
         {
             uint ecode = 0;
             GetExitCodeThread( m_hndl, &ecode );
             return ecode == STILL_ACTIVE;
         }
-        else version( Posix )
+        else version ( Posix )
         {
             return atomicLoad(m_isRunning);
         }
@@ -903,7 +903,7 @@ class Thread
     // Thread Priority Actions
     ///////////////////////////////////////////////////////////////////////////
 
-    version( Windows )
+    version ( Windows )
     {
         @property static int PRIORITY_MIN() @nogc nothrow pure @safe
         {
@@ -955,7 +955,7 @@ class Thread
         private static Priority loadPriorities() @nogc nothrow @trusted
         {
             Priority result;
-            version( Solaris )
+            version ( Solaris )
             {
                 pcparms_t pcParms;
                 pcinfo_t pcInfo;
@@ -1004,7 +1004,7 @@ class Thread
                     result.PRIORITY_DEFAULT = 0;
                 }
             }
-            else version( Posix )
+            else version ( Posix )
             {
                 int         policy;
                 sched_param param;
@@ -1063,7 +1063,7 @@ class Thread
         }
     }
 
-    version(NetBSD)
+    version (NetBSD)
     {
         //NetBSD does not support priority for default policy
         // and it is not possible change policy without root access
@@ -1081,15 +1081,15 @@ class Thread
      */
     final @property int priority()
     {
-        version( Windows )
+        version ( Windows )
         {
             return GetThreadPriority( m_hndl );
         }
-        else version(NetBSD)
+        else version (NetBSD)
         {
            return fakePriority==int.max? PRIORITY_DEFAULT : fakePriority;
         }
-        else version( Posix )
+        else version ( Posix )
         {
             int         policy;
             sched_param param;
@@ -1122,12 +1122,12 @@ class Thread
     }
     do
     {
-        version( Windows )
+        version ( Windows )
         {
             if ( !SetThreadPriority( m_hndl, val ) )
                 throw new ThreadException( "Unable to set thread priority" );
         }
-        else version( Solaris )
+        else version ( Solaris )
         {
             // the pthread_setschedprio(3c) and pthread_setschedparam functions
             // are broken for the default (TS / time sharing) scheduling class.
@@ -1153,11 +1153,11 @@ class Thread
             if (priocntl(idtype_t.P_LWPID, P_MYID, PC_SETPARMS, &pcparm) == -1)
                 throw new ThreadException( "Unable to set scheduling class" );
         }
-        else version(NetBSD)
+        else version (NetBSD)
         {
            fakePriority = val;
         }
-        else version( Posix )
+        else version ( Posix )
         {
             static if (__traits(compiles, pthread_setschedprio))
             {
@@ -1250,7 +1250,7 @@ class Thread
     }
     do
     {
-        version( Windows )
+        version ( Windows )
         {
             auto maxSleepMillis = dur!("msecs")( uint.max - 1 );
 
@@ -1273,7 +1273,7 @@ class Thread
             }
             Sleep( cast(uint) val.total!"msecs" );
         }
-        else version( Posix )
+        else version ( Posix )
         {
             timespec tin  = void;
             timespec tout = void;
@@ -1298,9 +1298,9 @@ class Thread
      */
     static void yield() @nogc nothrow
     {
-        version( Windows )
+        version ( Windows )
             SwitchToThread();
-        else version( Posix )
+        else version ( Posix )
             sched_yield();
     }
 
@@ -1479,11 +1479,11 @@ private:
     //
     // Standard types
     //
-    version( Windows )
+    version ( Windows )
     {
         alias TLSKey = uint;
     }
-    else version( Posix )
+    else version ( Posix )
     {
         alias TLSKey = pthread_key_t;
     }
@@ -1510,11 +1510,11 @@ private:
     //
     // Standard thread data
     //
-    version( Windows )
+    version ( Windows )
     {
         HANDLE          m_hndl;
     }
-    else version( Darwin )
+    else version ( Darwin )
     {
         mach_port_t     m_tmach;
     }
@@ -1527,7 +1527,7 @@ private:
         void delegate() m_dg;
     }
     size_t              m_sz;
-    version( Posix )
+    version ( Posix )
     {
         shared bool     m_isRunning;
     }
@@ -1535,7 +1535,7 @@ private:
     bool                m_isInCriticalRegion;
     Throwable           m_unhandled;
 
-    version( Solaris )
+    version ( Solaris )
     {
         __gshared bool m_isRTClass;
     }
@@ -1620,13 +1620,13 @@ private:
     bool                m_lock;
     void*               m_tlsgcdata;
 
-    version( Windows )
+    version ( Windows )
     {
-      version( X86 )
+      version ( X86 )
       {
         uint[8]         m_reg; // edi,esi,ebp,esp,ebx,edx,ecx,eax
       }
-      else version( X86_64 )
+      else version ( X86_64 )
       {
         ulong[16]       m_reg; // rdi,rsi,rbp,rsp,rbx,rdx,rcx,rax
                                // r8,r9,r10,r11,r12,r13,r14,r15
@@ -1636,13 +1636,13 @@ private:
         static assert(false, "Architecture not supported." );
       }
     }
-    else version( Darwin )
+    else version ( Darwin )
     {
-      version( X86 )
+      version ( X86 )
       {
         uint[8]         m_reg; // edi,esi,ebp,esp,ebx,edx,ecx,eax
       }
-      else version( X86_64 )
+      else version ( X86_64 )
       {
         ulong[16]       m_reg; // rdi,rsi,rbp,rsp,rbx,rdx,rcx,rax
                                // r8,r9,r10,r11,r12,r13,r14,r15
@@ -1956,7 +1956,7 @@ unittest
 // GC Support Routines
 ///////////////////////////////////////////////////////////////////////////////
 
-version( CoreDdoc )
+version ( CoreDdoc )
 {
     /**
      * Instruct the thread module, when initialized, to use a different set of
@@ -1968,7 +1968,7 @@ version( CoreDdoc )
     {
     }
 }
-else version( Posix )
+else version ( Posix )
 {
     extern (C) void thread_setGCSignals(int suspendSignalNo, int resumeSignalNo) nothrow @nogc
     in
@@ -1990,7 +1990,7 @@ else version( Posix )
     }
 }
 
-version( Posix )
+version ( Posix )
 {
     __gshared int suspendSignalNumber;
     __gshared int resumeSignalNumber;
@@ -2013,12 +2013,12 @@ extern (C) void thread_init() @nogc
     // The Android VM runtime intercepts SIGUSR1 and apparently doesn't allow
     // its signal handler to run, so swap the two signals on Android, since
     // thread_resumeHandler does nothing.
-    version( Android ) thread_setGCSignals(SIGUSR2, SIGUSR1);
+    version ( Android ) thread_setGCSignals(SIGUSR2, SIGUSR1);
 
-    version( Darwin )
+    version ( Darwin )
     {
     }
-    else version( Posix )
+    else version ( Posix )
     {
         if ( suspendSignalNumber == 0 )
         {
@@ -2138,14 +2138,14 @@ private Thread attachThread(Thread thisThread) @nogc
     Thread.Context* thisContext = &thisThread.m_main;
     assert( thisContext == thisThread.m_curr );
 
-    version( Windows )
+    version ( Windows )
     {
         thisThread.m_addr  = GetCurrentThreadId();
         thisThread.m_hndl  = GetCurrentThreadHandle();
         thisContext.bstack = getStackBottom();
         thisContext.tstack = thisContext.bstack;
     }
-    else version( Posix )
+    else version ( Posix )
     {
         thisThread.m_addr  = pthread_self();
         thisContext.bstack = getStackBottom();
@@ -2157,7 +2157,7 @@ private Thread attachThread(Thread thisThread) @nogc
     thisThread.m_tlsgcdata = rt_tlsgc_init();
     Thread.setThis( thisThread );
 
-    version( Darwin )
+    version ( Darwin )
     {
         thisThread.m_tmach = pthread_mach_thread_np( thisThread.m_addr );
         assert( thisThread.m_tmach != thisThread.m_tmach.init );
@@ -2171,7 +2171,7 @@ private Thread attachThread(Thread thisThread) @nogc
 }
 
 
-version( Windows )
+version ( Windows )
 {
     // NOTE: These calls are not safe on Posix systems that use signals to
     //       perform garbage collection.  The suspendHandler uses getThis()
@@ -2528,7 +2528,7 @@ private bool suspend( Thread t ) nothrow
         goto Lagain;
     }
 
-    version( Windows )
+    version ( Windows )
     {
         if ( t.m_addr != GetCurrentThreadId() && SuspendThread( t.m_hndl ) == 0xFFFFFFFF )
         {
@@ -2545,7 +2545,7 @@ private bool suspend( Thread t ) nothrow
 
         if ( !GetThreadContext( t.m_hndl, &context ) )
             onThreadError( "Unable to load thread context" );
-        version( X86 )
+        version ( X86 )
         {
             if ( !t.m_lock )
                 t.m_curr.tstack = cast(void*) context.Esp;
@@ -2559,7 +2559,7 @@ private bool suspend( Thread t ) nothrow
             t.m_reg[6] = context.Ebp;
             t.m_reg[7] = context.Esp;
         }
-        else version( X86_64 )
+        else version ( X86_64 )
         {
             if ( !t.m_lock )
                 t.m_curr.tstack = cast(void*) context.Rsp;
@@ -2587,7 +2587,7 @@ private bool suspend( Thread t ) nothrow
             static assert(false, "Architecture not supported." );
         }
     }
-    else version( Darwin )
+    else version ( Darwin )
     {
         if ( t.m_addr != pthread_self() && thread_suspend( t.m_tmach ) != KERN_SUCCESS )
         {
@@ -2599,7 +2599,7 @@ private bool suspend( Thread t ) nothrow
             onThreadError( "Unable to suspend thread" );
         }
 
-        version( X86 )
+        version ( X86 )
         {
             x86_thread_state32_t    state = void;
             mach_msg_type_number_t  count = x86_THREAD_STATE32_COUNT;
@@ -2618,7 +2618,7 @@ private bool suspend( Thread t ) nothrow
             t.m_reg[6] = state.ebp;
             t.m_reg[7] = state.esp;
         }
-        else version( X86_64 )
+        else version ( X86_64 )
         {
             x86_thread_state64_t    state = void;
             mach_msg_type_number_t  count = x86_THREAD_STATE64_COUNT;
@@ -2651,7 +2651,7 @@ private bool suspend( Thread t ) nothrow
             static assert(false, "Architecture not supported." );
         }
     }
-    else version( Posix )
+    else version ( Posix )
     {
         if ( t.m_addr != pthread_self() )
         {
@@ -2774,7 +2774,7 @@ extern (C) void thread_suspendAll() nothrow
  */
 private void resume( Thread t ) nothrow
 {
-    version( Windows )
+    version ( Windows )
     {
         if ( t.m_addr != GetCurrentThreadId() && ResumeThread( t.m_hndl ) == 0xFFFFFFFF )
         {
@@ -2790,7 +2790,7 @@ private void resume( Thread t ) nothrow
             t.m_curr.tstack = t.m_curr.bstack;
         t.m_reg[0 .. $] = 0;
     }
-    else version( Darwin )
+    else version ( Darwin )
     {
         if ( t.m_addr != pthread_self() && thread_resume( t.m_tmach ) != KERN_SUCCESS )
         {
@@ -2806,7 +2806,7 @@ private void resume( Thread t ) nothrow
             t.m_curr.tstack = t.m_curr.bstack;
         t.m_reg[0 .. $] = 0;
     }
-    else version( Posix )
+    else version ( Posix )
     {
         if ( t.m_addr != pthread_self() )
         {
@@ -2934,7 +2934,7 @@ private void scanAllTypeImpl( scope ScanAllThreadsTypeFn scan, void* curStackTop
 
     for ( Thread.Context* c = Thread.sm_cbeg; c; c = c.next )
     {
-        version( StackGrowsDown )
+        version ( StackGrowsDown )
         {
             // NOTE: We can't index past the bottom of the stack
             //       so don't do the "+1" for StackGrowsDown.
@@ -2950,7 +2950,7 @@ private void scanAllTypeImpl( scope ScanAllThreadsTypeFn scan, void* curStackTop
 
     for ( Thread t = Thread.sm_tbeg; t; t = t.next )
     {
-        version( Windows )
+        version ( Windows )
         {
             // Ideally, we'd pass ScanType.regs or something like that, but this
             // would make portability annoying because it only makes sense on Windows.
@@ -3229,7 +3229,7 @@ private void* getStackBottom() nothrow @nogc
     {
         version (D_InlineAsm_X86)
             asm pure nothrow @nogc { naked; mov EAX, FS:4; ret; }
-        else version(D_InlineAsm_X86_64)
+        else version (D_InlineAsm_X86_64)
             asm pure nothrow @nogc
             {    naked;
                  mov RAX, 8;
@@ -3532,79 +3532,79 @@ private:
 
 private
 {
-    version( D_InlineAsm_X86 )
+    version ( D_InlineAsm_X86 )
     {
-        version( Windows )
+        version ( Windows )
             version = AsmX86_Windows;
-        else version( Posix )
+        else version ( Posix )
             version = AsmX86_Posix;
 
-        version( Darwin )
+        version ( Darwin )
             version = AlignFiberStackTo16Byte;
     }
-    else version( D_InlineAsm_X86_64 )
+    else version ( D_InlineAsm_X86_64 )
     {
-        version( Windows )
+        version ( Windows )
         {
             version = AsmX86_64_Windows;
             version = AlignFiberStackTo16Byte;
         }
-        else version( Posix )
+        else version ( Posix )
         {
             version = AsmX86_64_Posix;
             version = AlignFiberStackTo16Byte;
         }
     }
-    else version( PPC )
+    else version ( PPC )
     {
-        version( Posix )
+        version ( Posix )
         {
             version = AsmPPC_Posix;
             version = AsmExternal;
         }
     }
-    else version( PPC64 )
+    else version ( PPC64 )
     {
-        version( Posix )
+        version ( Posix )
         {
             version = AlignFiberStackTo16Byte;
         }
     }
-    else version( MIPS_O32 )
+    else version ( MIPS_O32 )
     {
-        version( Posix )
+        version ( Posix )
         {
             version = AsmMIPS_O32_Posix;
             version = AsmExternal;
         }
     }
-    else version( AArch64 )
+    else version ( AArch64 )
     {
-        version( Posix )
+        version ( Posix )
         {
             version = AsmAArch64_Posix;
             version = AsmExternal;
             version = AlignFiberStackTo16Byte;
         }
     }
-    else version( ARM )
+    else version ( ARM )
     {
-        version( Posix )
+        version ( Posix )
         {
             version = AsmARM_Posix;
             version = AsmExternal;
         }
     }
 
-    version( Posix )
+    version ( Posix )
     {
         import core.sys.posix.unistd;   // for sysconf
 
-        version( AsmX86_Windows )    {} else
-        version( AsmX86_Posix )      {} else
-        version( AsmX86_64_Windows ) {} else
-        version( AsmX86_64_Posix )   {} else
-        version( AsmExternal )       {} else
+        version ( AsmX86_Windows )    {} else
+        version ( AsmX86_Posix )      {} else
+        version ( AsmX86_64_Windows ) {} else
+        version ( AsmX86_64_Posix )   {} else
+        version ( AsmExternal )       {} else
         {
             // NOTE: The ucontext implementation requires architecture specific
             //       data definitions to operate so testing for it must be done
@@ -3677,7 +3677,7 @@ private
     }
 
   // Look above the definition of 'class Fiber' for some information about the implementation of this routine
-  version( AsmExternal )
+  version ( AsmExternal )
     extern (C) void fiber_switchContext( void** oldp, void* newp ) nothrow @nogc;
   else
     extern (C) void fiber_switchContext( void** oldp, void* newp ) nothrow @nogc
@@ -3686,7 +3686,7 @@ private
         //       default stack created by Fiber.initStack or the initial
         //       switch into a new context will fail.
 
-        version( AsmX86_Windows )
+        version ( AsmX86_Windows )
         {
             asm pure nothrow @nogc
             {
@@ -3724,7 +3724,7 @@ private
                 jmp ECX;
             }
         }
-        else version( AsmX86_64_Windows )
+        else version ( AsmX86_64_Windows )
         {
             asm pure nothrow @nogc
             {
@@ -3796,7 +3796,7 @@ private
                 jmp RCX;
             }
         }
-        else version( AsmX86_Posix )
+        else version ( AsmX86_Posix )
         {
             asm pure nothrow @nogc
             {
@@ -3828,7 +3828,7 @@ private
                 jmp ECX;
             }
         }
-        else version( AsmX86_64_Posix )
+        else version ( AsmX86_64_Posix )
         {
             asm pure nothrow @nogc
             {
@@ -4031,7 +4031,7 @@ class Fiber
     // Initialization
     ///////////////////////////////////////////////////////////////////////////
 
-    version(Windows)
+    version (Windows)
         // exception handling walks the stack, invoking DbgHelp.dll which
         // needs up to 16k of stack space depending on the version of DbgHelp.dll,
         // the existence of debug symbols and other conditions. Avoid causing
@@ -4359,7 +4359,7 @@ class Fiber
     ///////////////////////////////////////////////////////////////////////////
 
 
-    version( Posix )
+    version ( Posix )
     {
         static this()
         {
@@ -4467,7 +4467,7 @@ private:
             if ( !m_pmem )
                 onOutOfMemoryError();
 
-            version( StackGrowsDown )
+            version ( StackGrowsDown )
             {
                 void* stack = m_pmem + guardPageSize;
                 void* guard = m_pmem;
@@ -4543,7 +4543,7 @@ private:
             if ( !m_pmem )
                 onOutOfMemoryError();
 
-            version( StackGrowsDown )
+            version ( StackGrowsDown )
             {
                 m_ctxt.bstack = m_pmem + sz;
                 m_ctxt.tstack = m_pmem + sz;
@@ -4636,7 +4636,7 @@ private:
 
         void push( size_t val ) nothrow
         {
-            version( StackGrowsDown )
+            version ( StackGrowsDown )
             {
                 pstack -= size_t.sizeof;
                 *(cast(size_t*) pstack) = val;
@@ -4651,9 +4651,9 @@ private:
         // NOTE: On OS X the stack must be 16-byte aligned according
         // to the IA-32 call spec. For x86_64 the stack also needs to
         // be aligned to 16-byte according to SysV AMD64 ABI.
-        version( AlignFiberStackTo16Byte )
+        version ( AlignFiberStackTo16Byte )
         {
-            version( StackGrowsDown )
+            version ( StackGrowsDown )
             {
                 pstack = cast(void*)(cast(size_t)(pstack) - (cast(size_t)(pstack) & 0x0F));
             }
@@ -4663,9 +4663,9 @@ private:
             }
         }
 
-        version( AsmX86_Windows )
+        version ( AsmX86_Windows )
         {
-            version( StackGrowsDown ) {} else static assert( false );
+            version ( StackGrowsDown ) {} else static assert( false );
 
             // On Windows Server 2008 and 2008 R2, an exploit mitigation
             // technique known as SEHOP is activated by default. To avoid
@@ -4738,7 +4738,7 @@ private:
             push( cast(size_t) m_ctxt.bstack - m_size );            // FS:[8]
             push( 0x00000000 );                                     // EAX
         }
-        else version( AsmX86_64_Windows )
+        else version ( AsmX86_64_Windows )
         {
             // Using this trampoline instead of the raw fiber_entryPoint
             // ensures that during context switches, source and destination
@@ -4788,7 +4788,7 @@ private:
             push( 0x00000000_00000000 );                            // XMM15 (low)
             push( 0x00000000_00000000 );                            // RBX
             push( 0xFFFFFFFF_FFFFFFFF );                            // GS:[0]
-            version( StackGrowsDown )
+            version ( StackGrowsDown )
             {
                 push( cast(size_t) m_ctxt.bstack );                 // GS:[8]
                 push( cast(size_t) m_ctxt.bstack - m_size );        // GS:[16]
@@ -4799,7 +4799,7 @@ private:
                 push( cast(size_t) m_ctxt.bstack + m_size );        // GS:[16]
             }
         }
-        else version( AsmX86_Posix )
+        else version ( AsmX86_Posix )
         {
             push( 0x00000000 );                                     // Return address of fiber_entryPoint call
             push( cast(size_t) &fiber_entryPoint );                 // EIP
@@ -4809,7 +4809,7 @@ private:
             push( 0x00000000 );                                     // EBX
             push( 0x00000000 );                                     // EAX
         }
-        else version( AsmX86_64_Posix )
+        else version ( AsmX86_64_Posix )
         {
             push( 0x00000000_00000000 );                            // Return address of fiber_entryPoint call
             push( cast(size_t) &fiber_entryPoint );                 // RIP
@@ -4820,9 +4820,9 @@ private:
             push( 0x00000000_00000000 );                            // R14
             push( 0x00000000_00000000 );                            // R15
         }
-        else version( AsmPPC_Posix )
+        else version ( AsmPPC_Posix )
         {
-            version( StackGrowsDown )
+            version ( StackGrowsDown )
             {
                 pstack -= int.sizeof * 5;
             }
@@ -4836,7 +4836,7 @@ private:
             push( 0x00000000 );                         // old stack pointer
 
             // GPR values
-            version( StackGrowsDown )
+            version ( StackGrowsDown )
             {
                 pstack -= int.sizeof * 20;
             }
@@ -4847,7 +4847,7 @@ private:
 
             assert( (cast(size_t) pstack & 0x0f) == 0 );
         }
-        else version( AsmMIPS_O32_Posix )
+        else version ( AsmMIPS_O32_Posix )
         {
             version (StackGrowsDown) {}
             else static assert(0);
@@ -4888,7 +4888,7 @@ private:
             pstack -= ABOVE;
             *cast(size_t*)(pstack - SZ_RA) = cast(size_t)&fiber_entryPoint;
         }
-        else version( AsmAArch64_Posix )
+        else version ( AsmAArch64_Posix )
         {
             // Like others, FP registers and return address (lr) are kept
             // below the saved stack top (tstack) to hide from GC scanning.
@@ -4901,7 +4901,7 @@ private:
             //   ...
             //    0: d15
 
-            version( StackGrowsDown ) {}
+            version ( StackGrowsDown ) {}
             else
                 static assert(false, "Only full descending stacks supported on AArch64");
 
@@ -4911,7 +4911,7 @@ private:
             push(cast(size_t) &fiber_entryPoint);
             pstack += size_t.sizeof;         // adjust sp (newp) above lr
         }
-        else version( AsmARM_Posix )
+        else version ( AsmARM_Posix )
         {
             /* We keep the FP registers and the return address below
              * the stack pointer, so they don't get scanned by the
@@ -4930,7 +4930,7 @@ private:
              *   stack grows down: The pointer value here is smaller than some lines above
              */
             // frame pointer can be zero, r10-r4 also zero initialized
-            version( StackGrowsDown )
+            version ( StackGrowsDown )
                 pstack -= int.sizeof * 8;
             else
                 static assert(false, "Only full descending stacks supported on ARM");
@@ -5113,7 +5113,7 @@ unittest {
     assert( composed.state == Fiber.State.TERM );
 }
 
-version( unittest )
+version ( unittest )
 {
     class TestFiber : Fiber
     {
@@ -5464,7 +5464,7 @@ unittest
 }
 
 
-version( AsmX86_64_Windows )
+version ( AsmX86_64_Windows )
 {
     // Test Windows x64 calling convention
     unittest
@@ -5519,7 +5519,7 @@ version( AsmX86_64_Windows )
 }
 
 
-version( D_InlineAsm_X86_64 )
+version ( D_InlineAsm_X86_64 )
 {
     unittest
     {

@@ -44,7 +44,7 @@ struct utimbuf
 int utime(in char*, in utimbuf*);
 */
 
-version( CRuntime_Glibc )
+version ( CRuntime_Glibc )
 {
     struct utimbuf
     {
@@ -54,7 +54,7 @@ version( CRuntime_Glibc )
 
     int utime(in char*, in utimbuf*);
 }
-else version( CRuntime_Musl )
+else version ( CRuntime_Musl )
 {
     struct utimbuf
     {
@@ -64,7 +64,7 @@ else version( CRuntime_Musl )
 
     int utime(in char*, in utimbuf*);
 }
-else version( Darwin )
+else version ( Darwin )
 {
     struct utimbuf
     {
@@ -74,7 +74,7 @@ else version( Darwin )
 
     int utime(in char*, in utimbuf*);
 }
-else version( FreeBSD )
+else version ( FreeBSD )
 {
     struct utimbuf
     {
@@ -84,7 +84,7 @@ else version( FreeBSD )
 
     int utime(in char*, in utimbuf*);
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     struct utimbuf
     {
@@ -94,7 +94,7 @@ else version(NetBSD)
 
     int utime(in char*, in utimbuf*);
 }
-else version( DragonFlyBSD )
+else version ( DragonFlyBSD )
 {
     struct utimbuf
     {
@@ -104,7 +104,7 @@ else version( DragonFlyBSD )
 
     int utime(in char*, in utimbuf*);
 }
-else version( Solaris )
+else version ( Solaris )
 {
     struct utimbuf
     {
@@ -114,7 +114,7 @@ else version( Solaris )
 
     int utime(in char*, in utimbuf*);
 }
-else version( CRuntime_Bionic )
+else version ( CRuntime_Bionic )
 {
     struct utimbuf
     {
@@ -124,7 +124,7 @@ else version( CRuntime_Bionic )
 
     int utime(in char*, in utimbuf*);
 }
-else version( CRuntime_UClibc )
+else version ( CRuntime_UClibc )
 {
     struct utimbuf
     {

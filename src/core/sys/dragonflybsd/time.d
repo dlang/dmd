@@ -7,7 +7,7 @@
  */
 module core.sys.dragonflybsd.time;
 
-version(DragonFlyBSD):
+version (DragonFlyBSD):
 
 public import core.sys.posix.time;
 

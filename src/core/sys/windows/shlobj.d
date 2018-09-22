@@ -52,7 +52,7 @@ enum BFFM_SETSTATUSTEXTW = WM_USER + 104;
 enum BFFM_SETOKTEXT = WM_USER + 105;
 enum BFFM_SETEXPANDED = WM_USER + 106;
 
-version(Unicode) {
+version (Unicode) {
     alias BFFM_SETSTATUSTEXTW BFFM_SETSTATUSTEXT;
     alias BFFM_SETSELECTIONW BFFM_SETSELECTION;
     alias BFFM_VALIDATEFAILEDW BFFM_VALIDATEFAILED;
@@ -111,7 +111,7 @@ enum SHCNF_TYPE = 0xFF;
 enum SHCNF_FLUSH = 0x1000;
 enum SHCNF_FLUSHNOWAIT = 0x2000;
 
-version(Unicode) {
+version (Unicode) {
     alias SHCNF_PATHW SHCNF_PATH;
     alias SHCNF_PRINTERW SHCNF_PRINTER;
 } else {
@@ -255,7 +255,7 @@ const TCHAR[]
     CFSTR_FILEDESCRIPTORW   = "FileGroupDescriptorW",
     CFSTR_INETURLW          = "UniformResourceLocatorW";
 
-version(Unicode) {
+version (Unicode) {
     alias CFSTR_FILENAMEW CFSTR_FILENAME;
     alias CFSTR_FILENAMEMAPW CFSTR_FILENAMEMAP;
     alias CFSTR_FILEDESCRIPTORW CFSTR_FILEDESCRIPTOR;
@@ -290,7 +290,7 @@ enum GCS_HELPTEXTW=5;
 enum GCS_VALIDATEW=6;
 enum GCS_UNICODE=4;
 
-version(Unicode) {
+version (Unicode) {
     alias GCS_VERBW GCS_VERB;
     alias GCS_HELPTEXTW GCS_HELPTEXT;
     alias GCS_VALIDATEW GCS_VALIDATE;
@@ -779,7 +779,7 @@ interface IExtractIconW : IUnknown {
 }
 alias IExtractIconW LPEXTRACTICONW;
 
-version(Unicode) {
+version (Unicode) {
     alias IExtractIconW IExtractIcon;
     alias LPEXTRACTICONW LPEXTRACTICON;
 } else {
@@ -1289,7 +1289,7 @@ static if (_WIN32_WINNT >= 0x500) {
     HRESULT SHCoCreateInstance(LPCWSTR, REFCLSID, IUnknown, REFIID, void**);
 }
 
-version(Unicode) {
+version (Unicode) {
     alias IShellExecuteHookW IShellExecuteHook;
     alias IShellLinkW IShellLink;
     alias BROWSEINFOW BROWSEINFO;

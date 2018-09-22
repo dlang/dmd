@@ -16,7 +16,7 @@ private import core.sys.windows.wingdi; // for LF_FACESIZE
 
 align(4):
 
-version(Unicode) {
+version (Unicode) {
 const wchar[] RICHEDIT_CLASS = "RichEdit20W";
 } else {
 const char[] RICHEDIT_CLASS  = "RichEdit20A";
@@ -589,7 +589,7 @@ align(4):
     UINT codepage;
 }
 
-version(Unicode) {
+version (Unicode) {
     alias CHARFORMATW CHARFORMAT;
     alias CHARFORMAT2W CHARFORMAT2;
     alias FINDTEXTW FINDTEXT;

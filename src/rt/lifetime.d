@@ -465,7 +465,7 @@ else
     // ensure N_CACHE_BLOCKS is power of 2.
     static assert(!((N_CACHE_BLOCKS - 1) & N_CACHE_BLOCKS));
 
-    version(random_cache)
+    version (random_cache)
     {
         int __nextRndNum = 0;
     }
@@ -548,13 +548,13 @@ unittest
 BlkInfo *__getBlkInfo(void *interior) nothrow
 {
     BlkInfo *ptr = __blkcache;
-    version(single_cache)
+    version (single_cache)
     {
         if (ptr.base && ptr.base <= interior && (interior - ptr.base) < ptr.size)
             return ptr;
         return null; // not in cache.
     }
-    else version(simple_cache)
+    else version (simple_cache)
     {
         foreach (i; 0..N_CACHE_BLOCKS)
         {
@@ -584,13 +584,13 @@ BlkInfo *__getBlkInfo(void *interior) nothrow
 
 void __insertBlkInfoCache(BlkInfo bi, BlkInfo *curpos) nothrow
 {
-    version(single_cache)
+    version (single_cache)
     {
         *__blkcache = bi;
     }
     else
     {
-        version(simple_cache)
+        version (simple_cache)
         {
             if (curpos)
                 *curpos = bi;
@@ -605,7 +605,7 @@ void __insertBlkInfoCache(BlkInfo bi, BlkInfo *curpos) nothrow
                 __nextBlkIdx = (__nextBlkIdx+1) & (N_CACHE_BLOCKS - 1);
             }
         }
-        else version(random_cache)
+        else version (random_cache)
         {
             // strategy: if the block currently is in the cache, move the
             // current block index to the a random element and evict that
@@ -928,7 +928,7 @@ extern (C) void[] _d_newarrayU(const TypeInfo ti, size_t length) pure nothrow
             jnc     Lcontinue       ;
         }
     }
-    else version(D_InlineAsm_X86_64)
+    else version (D_InlineAsm_X86_64)
     {
         asm pure nothrow @nogc
         {
@@ -1873,7 +1873,7 @@ extern (C) void[] _d_arrayappendT(const TypeInfo ti, ref byte[] x, byte[] y)
  */
 size_t newCapacity(size_t newlength, size_t size)
 {
-    version(none)
+    version (none)
     {
         size_t newcap = newlength * size;
     }
@@ -2384,7 +2384,7 @@ unittest
 }
 
 // cannot define structs inside unit test block, or they become nested structs.
-version(unittest)
+version (unittest)
 {
     struct S1
     {

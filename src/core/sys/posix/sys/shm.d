@@ -59,7 +59,7 @@ int   shmdt(in void*);
 int   shmget(key_t, size_t, int);
 */
 
-version( CRuntime_Glibc )
+version ( CRuntime_Glibc )
 {
     enum SHM_RDONLY     = 0x01000; // 010000
     enum SHM_RND        = 0x02000; // 020000
@@ -75,11 +75,11 @@ version( CRuntime_Glibc )
         ipc_perm    shm_perm;
         size_t      shm_segsz;
         time_t      shm_atime;
-        version( X86_64 ) {} else c_ulong     __unused1;
+        version ( X86_64 ) {} else c_ulong     __unused1;
         time_t      shm_dtime;
-        version( X86_64 ) {} else c_ulong     __unused2;
+        version ( X86_64 ) {} else c_ulong     __unused2;
         time_t      shm_ctime;
-        version( X86_64 ) {} else c_ulong     __unused3;
+        version ( X86_64 ) {} else c_ulong     __unused3;
         pid_t       shm_cpid;
         pid_t       shm_lpid;
         shmatt_t    shm_nattch;
@@ -92,7 +92,7 @@ version( CRuntime_Glibc )
     int   shmdt(in void*);
     int   shmget(key_t, size_t, int);
 }
-else version( FreeBSD )
+else version ( FreeBSD )
 {
     enum SHM_RDONLY     = 0x01000; // 010000
     enum SHM_RND        = 0x02000; // 020000
@@ -130,7 +130,7 @@ else version( FreeBSD )
     int   shmdt(in void*);
     int   shmget(key_t, size_t, int);
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     enum SHM_RDONLY     = 0x01000; // 010000
     enum SHM_RND        = 0x02000; // 020000
@@ -156,7 +156,7 @@ else version(NetBSD)
     int   shmdt(in void*);
     int   shmget(key_t, size_t, int);
 }
-else version(DragonFlyBSD)
+else version (DragonFlyBSD)
 {
     enum SHM_RDONLY     = 0x01000; // 010000
     enum SHM_RND        = 0x02000; // 020000
@@ -182,11 +182,11 @@ else version(DragonFlyBSD)
     int   shmdt(in void*);
     int   shmget(key_t, size_t, int);
 }
-else version( Darwin )
+else version ( Darwin )
 {
 
 }
-else version( CRuntime_UClibc )
+else version ( CRuntime_UClibc )
 {
     enum SHM_RDONLY     = 0x1000; // 010000
     enum SHM_RND        = 0x2000; // 020000
@@ -197,7 +197,7 @@ else version( CRuntime_UClibc )
 
     alias c_ulong   shmatt_t;
 
-    version( X86_64 )
+    version ( X86_64 )
         enum includeUnused  = false;
     else version ( MIPS32 )
         enum includeUnused  = false;

@@ -1743,7 +1743,7 @@ enum {
 mixin DECLARE_HANDLE!("HTREEITEM");
 mixin DECLARE_HANDLE!("HIMAGELIST");
 
-version(Win64)
+version (Win64)
 {
 enum HTREEITEM
     TVI_ROOT  = cast(HTREEITEM) cast(ULONG_PTR)-0x10000,
@@ -2996,7 +2996,7 @@ struct TBBUTTON {
     int   idCommand;
     BYTE  fsState;
     BYTE  fsStyle;
-    version(Win64){
+    version (Win64){
         BYTE[6] bReserved;
     } else {
         BYTE[2] bReserved;

@@ -28,7 +28,7 @@ version (Posix):
 
 extern (C) nothrow @nogc:
 
-version(CRuntime_Glibc)
+version (CRuntime_Glibc)
 {
     //PRIORITY
     enum {
@@ -88,7 +88,7 @@ version(CRuntime_Glibc)
     void syslog (int __pri, const char *__fmt, ...);
     void closelog();
 }
-else version( Darwin )
+else version ( Darwin )
 {
     //http://www.opensource.apple.com/source/xnu/xnu-1456.1.26/osfmk/sys/syslog.h
 
@@ -146,7 +146,7 @@ else version( Darwin )
     void syslog (int __pri, const char *__fmt, ...);
     void closelog();
 }
-else version( FreeBSD )
+else version ( FreeBSD )
 {
     //http://fxr.watson.org/fxr/source/sys/syslog.h
 
@@ -211,7 +211,7 @@ else version( FreeBSD )
     void syslog (int __pri, const char *__fmt, ...);
     void closelog();
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     //http://fxr.watson.org/fxr/source/sys/syslog.h
 
@@ -276,7 +276,7 @@ else version(NetBSD)
     void syslog (int __pri, const char *__fmt, ...);
     void closelog();
 }
-else version( DragonFlyBSD )
+else version ( DragonFlyBSD )
 {
     //PRIORITY
     enum {
@@ -339,7 +339,7 @@ else version( DragonFlyBSD )
     void syslog (int __pri, const char *__fmt, ...);
     void closelog();
 }
-else version( Solaris )
+else version ( Solaris )
 {
     //http://pubs.opengroup.org/onlinepubs/007904875/basedefs/syslog.h.html
 
@@ -399,7 +399,7 @@ else version( Solaris )
     void syslog (int __pri, const char *__fmt, ...);
     void closelog();
 }
-else version(CRuntime_UClibc)
+else version (CRuntime_UClibc)
 {
     //PRIORITY
     enum {

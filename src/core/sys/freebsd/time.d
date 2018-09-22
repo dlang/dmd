@@ -11,7 +11,7 @@ module core.sys.freebsd.time;
 
 public import core.sys.posix.time;
 
-version(FreeBSD):
+version (FreeBSD):
 
 enum CLOCK_VIRTUAL           = 1;
 enum CLOCK_PROF              = 2;

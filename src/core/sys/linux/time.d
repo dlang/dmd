@@ -11,7 +11,7 @@ module core.sys.linux.time;
 
 public import core.sys.posix.time;
 
-version(linux):
+version (linux):
 
 enum CLOCK_MONOTONIC_RAW      = 4;
 enum CLOCK_REALTIME_COARSE    = 5;

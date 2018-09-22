@@ -314,7 +314,7 @@ struct link_map
 {
     c_ulong  l_addr;
     char*    l_name;
-    version(D_LP64)
+    version (D_LP64)
         Elf64_Dyn*  l_ld;
     else
         Elf32_Dyn*  l_ld;
@@ -323,7 +323,7 @@ struct link_map
     char*      l_refname;
 }
 
-version(_SYSCALL32)
+version (_SYSCALL32)
 {
 alias link_map32 Link_map32;
 
@@ -372,7 +372,7 @@ struct r_debug
     rd_flags_e  r_flags;
 }
 
-version(_SYSCALL32)
+version (_SYSCALL32)
 {
 struct r_debug32
 {

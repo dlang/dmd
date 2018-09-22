@@ -1638,7 +1638,7 @@ extern (Windows) nothrow @nogc {
     //--------------------------------------
     // These functions are problematic
 
-    version(UseNtoSKernel) {}else {
+    version (UseNtoSKernel) {}else {
         /* CAREFUL: These are exported from ntoskrnl.exe and declared in winddk.h
            as __fastcall functions, but are  exported from kernel32.dll as __stdcall */
         static if (_WIN32_WINNT >= 0x501) {

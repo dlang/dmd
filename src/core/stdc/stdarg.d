@@ -16,7 +16,7 @@ module core.stdc.stdarg;
 //@nogc:    // Not yet, need to make TypeInfo's member functions @nogc first
 nothrow:
 
-version( X86 )
+version ( X86 )
 {
     /*********************
      * The argument pointer type.
