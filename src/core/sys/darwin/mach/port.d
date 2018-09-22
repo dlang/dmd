@@ -25,11 +25,11 @@ else version (WatchOS)
 version (Darwin):
 extern (C):
 
-version ( X86 )
+version (X86)
     version = i386;
-version ( X86_64 )
+version (X86_64)
     version = i386;
-version ( i386 )
+version (i386)
 {
     alias uint        natural_t;
     alias natural_t   mach_port_t;

@@ -20,7 +20,7 @@ public import core.sync.exception;
 private import core.sync.condition;
 private import core.sync.mutex;
 
-version ( Posix )
+version (Posix)
 {
     private import core.stdc.errno;
     private import core.sys.posix.pthread;
@@ -113,7 +113,7 @@ private:
 ////////////////////////////////////////////////////////////////////////////////
 
 
-version ( unittest )
+version (unittest)
 {
     private import core.thread;
 

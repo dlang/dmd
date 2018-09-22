@@ -13,9 +13,9 @@ nothrow:
 @safe:
 @nogc:
 
-version ( D_InlineAsm_X86_64 )
+version (D_InlineAsm_X86_64)
     version = AsmX86;
-else version ( D_InlineAsm_X86 )
+else version (D_InlineAsm_X86)
     version = AsmX86;
 
 version (X86_64)

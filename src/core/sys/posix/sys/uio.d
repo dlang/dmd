@@ -46,7 +46,7 @@ ssize_t readv(int, in iovec*, int);
 ssize_t writev(int, in iovec*, int);
 */
 
-version ( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     struct iovec
     {
@@ -57,7 +57,7 @@ version ( CRuntime_Glibc )
     ssize_t readv(int, in iovec*, int);
     ssize_t writev(int, in iovec*, int);
 }
-else version ( Darwin )
+else version (Darwin)
 {
     struct iovec
     {
@@ -68,7 +68,7 @@ else version ( Darwin )
     ssize_t readv(int, in iovec*, int);
     ssize_t writev(int, in iovec*, int);
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     struct iovec
     {
@@ -90,7 +90,7 @@ else version (NetBSD)
     ssize_t readv(int, in iovec*, int);
     ssize_t writev(int, in iovec*, int);
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     struct iovec
     {
@@ -112,7 +112,7 @@ else version (Solaris)
     ssize_t readv(int, in iovec*, int);
     ssize_t writev(int, in iovec*, int);
 }
-else version ( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     struct iovec
     {
@@ -123,7 +123,7 @@ else version ( CRuntime_Bionic )
     int readv(int, in iovec*, int);
     int writev(int, in iovec*, int);
 }
-else version ( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     struct iovec
     {
@@ -134,7 +134,7 @@ else version ( CRuntime_Musl )
     ssize_t readv(int, in iovec*, int);
     ssize_t writev(int, in iovec*, int);
 }
-else version ( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     struct iovec
     {

@@ -13,9 +13,9 @@ module rt.cover;
 
 private
 {
-    version ( Windows )
+    version (Windows)
         import core.sys.windows.windows;
-    else version ( Posix )
+    else version (Posix)
     {
         import core.sys.posix.fcntl;
         import core.sys.posix.unistd;
@@ -303,9 +303,9 @@ string appendFN( string path, string name )
 {
     if (!path.length) return name;
 
-    version ( Windows )
+    version (Windows)
         const char sep = '\\';
-    else version ( Posix )
+    else version (Posix)
         const char sep = '/';
 
     auto dest = path;
@@ -346,12 +346,12 @@ string getExt( string name )
         if ( name[i - 1] == '.' )
             return name[i .. $];
         --i;
-        version ( Windows )
+        version (Windows)
         {
             if ( name[i] == ':' || name[i] == '\\' )
                 break;
         }
-        else version ( Posix )
+        else version (Posix)
         {
             if ( name[i] == '/' )
                 break;

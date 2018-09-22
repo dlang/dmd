@@ -57,7 +57,7 @@ int sched_setparam(pid_t, in sched_param*);
 int sched_setscheduler(pid_t, int, in sched_param*);
 */
 
-version ( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     struct sched_param
     {
@@ -69,7 +69,7 @@ version ( CRuntime_Glibc )
     enum SCHED_RR       = 2;
     //SCHED_SPORADIC (SS|TSP)
 }
-else version ( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     struct sched_param {
         int sched_priority;
@@ -79,7 +79,7 @@ else version ( CRuntime_Musl )
         int sched_ss_max_repl;
     }
 }
-else version ( Darwin )
+else version (Darwin)
 {
     enum SCHED_OTHER    = 1;
     enum SCHED_FIFO     = 4;
@@ -94,7 +94,7 @@ else version ( Darwin )
         byte[__PTHREAD_MUTEX_SIZE__]    __opaque;
     }
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     struct sched_param
     {
@@ -116,7 +116,7 @@ else version (NetBSD)
     enum SCHED_OTHER    = 0;
     enum SCHED_RR       = 2;
 }
-else version ( OpenBSD )
+else version (OpenBSD)
 {
     struct sched_param
     {
@@ -127,7 +127,7 @@ else version ( OpenBSD )
     enum SCHED_OTHER    = 2;
     enum SCHED_RR       = 3;
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     struct sched_param
     {
@@ -155,7 +155,7 @@ else version (Solaris)
     enum SCHED_FX = 6;
     enum _SCHED_NEXT = 7;
 }
-else version ( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     struct sched_param
     {
@@ -167,7 +167,7 @@ else version ( CRuntime_Bionic )
     enum SCHED_FIFO     = 1;
     enum SCHED_RR       = 2;
 }
-else version ( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     struct sched_param
     {
@@ -199,15 +199,15 @@ int sched_setscheduler(pid_t, int, in sched_param*);
 int sched_yield();
 */
 
-version ( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     int sched_yield();
 }
-else version ( Darwin )
+else version (Darwin)
 {
     int sched_yield();
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     int sched_yield();
 }
@@ -215,11 +215,11 @@ else version (NetBSD)
 {
     int sched_yield();
 }
-else version ( OpenBSD )
+else version (OpenBSD)
 {
     int sched_yield();
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     int sched_yield();
 }
@@ -235,7 +235,7 @@ else version (CRuntime_Musl)
 {
     int sched_yield();
 }
-else version ( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     int sched_yield();
 }
@@ -253,19 +253,19 @@ int sched_get_priority_min(int);
 int sched_rr_get_interval(pid_t, timespec*);
 */
 
-version ( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     int sched_get_priority_max(int);
     int sched_get_priority_min(int);
     int sched_rr_get_interval(pid_t, timespec*);
 }
-else version ( Darwin )
+else version (Darwin)
 {
     int sched_get_priority_min(int);
     int sched_get_priority_max(int);
     //int sched_rr_get_interval(pid_t, timespec*); // FIXME: unavailable?
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     int sched_get_priority_min(int);
     int sched_get_priority_max(int);
@@ -277,13 +277,13 @@ else version (NetBSD)
     int sched_get_priority_max(int);
     int sched_rr_get_interval(pid_t, timespec*);
 }
-else version ( OpenBSD )
+else version (OpenBSD)
 {
     int sched_get_priority_min(int);
     int sched_get_priority_max(int);
     int sched_rr_get_interval(pid_t, timespec*);
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     int sched_get_priority_min(int);
     int sched_get_priority_max(int);
@@ -307,7 +307,7 @@ else version (CRuntime_Musl)
     int sched_get_priority_min(int);
     int sched_rr_get_interval(pid_t, timespec*);
 }
-else version ( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     int sched_get_priority_max(int);
     int sched_get_priority_min(int);

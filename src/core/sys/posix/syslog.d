@@ -88,7 +88,7 @@ version (CRuntime_Glibc)
     void syslog (int __pri, const char *__fmt, ...);
     void closelog();
 }
-else version ( Darwin )
+else version (Darwin)
 {
     //http://www.opensource.apple.com/source/xnu/xnu-1456.1.26/osfmk/sys/syslog.h
 
@@ -146,7 +146,7 @@ else version ( Darwin )
     void syslog (int __pri, const char *__fmt, ...);
     void closelog();
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     //http://fxr.watson.org/fxr/source/sys/syslog.h
 
@@ -276,7 +276,7 @@ else version (NetBSD)
     void syslog (int __pri, const char *__fmt, ...);
     void closelog();
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     //PRIORITY
     enum {
@@ -339,7 +339,7 @@ else version ( DragonFlyBSD )
     void syslog (int __pri, const char *__fmt, ...);
     void closelog();
 }
-else version ( Solaris )
+else version (Solaris)
 {
     //http://pubs.opengroup.org/onlinepubs/007904875/basedefs/syslog.h.html
 

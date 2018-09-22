@@ -87,7 +87,7 @@ int    stat(in char*, stat*);
 mode_t umask(mode_t);
  */
 
-version ( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     version (X86)
     {
@@ -723,7 +723,7 @@ version ( CRuntime_Glibc )
         ref const(timespec)[2] times, int flags);
     int futimens(int fd, ref const(timespec)[2] times);
 }
-else version ( Darwin )
+else version (Darwin)
 {
     // _DARWIN_FEATURE_64_BIT_INODE stat is default for Mac OSX >10.5 and is
     // only meaningful type for other OS X/Darwin variants (e.g. iOS).
@@ -802,7 +802,7 @@ else version ( Darwin )
     extern (D) bool S_ISLNK( mode_t mode )  { return S_ISTYPE( mode, S_IFLNK );  }
     extern (D) bool S_ISSOCK( mode_t mode ) { return S_ISTYPE( mode, S_IFSOCK ); }
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     // https://github.com/freebsd/freebsd/blob/master/sys/sys/stat.h
 
@@ -944,7 +944,7 @@ else version (NetBSD)
     extern (D) bool S_ISLNK( mode_t mode )  { return S_ISTYPE( mode, S_IFLNK );  }
     extern (D) bool S_ISSOCK( mode_t mode ) { return S_ISTYPE( mode, S_IFSOCK ); }
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     struct stat_t {
             ino_t     st_ino;               /* inode's number */
@@ -1158,7 +1158,7 @@ else version (Solaris)
     extern (D) bool S_ISDOOR(mode_t mode) { return S_ISTYPE(mode, S_IFDOOR); }
     extern (D) bool S_ISPORT(mode_t mode) { return S_ISTYPE(mode, S_IFPORT); }
 }
-else version ( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     version (X86)
     {
@@ -1350,7 +1350,7 @@ else version (CRuntime_Musl)
     int utimensat(int dirfd, const char *pathname,
         ref const(timespec)[2] times, int flags);
 }
-else version ( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     version (X86_64)
     {
@@ -1579,7 +1579,7 @@ int    mkfifo(in char*, mode_t);
 //int    stat(in char*, stat_t*);
 mode_t umask(mode_t);
 
-version ( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
   static if ( __USE_LARGEFILE64 )
   {
@@ -1635,11 +1635,11 @@ else version (Solaris)
         }
     }
 }
-else version ( Darwin )
+else version (Darwin)
 {
     // OS X maintains backwards compatibility with older binaries using 32-bit
     // inode functions by appending $INODE64 to newer 64-bit inode functions.
-    version ( OSX )
+    version (OSX)
     {
         pragma(mangle, "fstat$INODE64") int fstat(int, stat_t*);
         pragma(mangle, "lstat$INODE64") int lstat(in char*, stat_t*);
@@ -1652,7 +1652,7 @@ else version ( Darwin )
         int stat(in char*, stat_t*);
     }
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     int   fstat(int, stat_t*);
     int   lstat(in char*, stat_t*);
@@ -1667,19 +1667,19 @@ else version (NetBSD)
     alias __lstat50 lstat;
     alias __stat50 stat;
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     int   fstat(int, stat_t*);
     int   lstat(in char*, stat_t*);
     int   stat(in char*, stat_t*);
 }
-else version ( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     int   fstat(int, stat_t*) @trusted;
     int   lstat(in char*, stat_t*);
     int   stat(in char*, stat_t*);
 }
-else version ( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     int stat(in char*, stat_t*);
     int fstat(int, stat_t*);
@@ -1689,7 +1689,7 @@ else version ( CRuntime_Musl )
     alias lstat lstat64;
     alias stat stat64;
 }
-else version ( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
   static if ( __USE_LARGEFILE64 )
   {
@@ -1733,7 +1733,7 @@ S_IFSOCK
 int mknod(in 3char*, mode_t, dev_t);
 */
 
-version ( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     enum S_IFMT     = 0xF000; // octal 0170000
     enum S_IFBLK    = 0x6000; // octal 0060000
@@ -1746,7 +1746,7 @@ version ( CRuntime_Glibc )
 
     int mknod(in char*, mode_t, dev_t);
 }
-else version ( Darwin )
+else version (Darwin)
 {
     enum S_IFMT     = 0xF000; // octal 0170000
     enum S_IFBLK    = 0x6000; // octal 0060000
@@ -1759,7 +1759,7 @@ else version ( Darwin )
 
     int mknod(in char*, mode_t, dev_t);
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     enum S_IFMT     = 0xF000; // octal 0170000
     enum S_IFBLK    = 0x6000; // octal 0060000
@@ -1785,7 +1785,7 @@ else version (NetBSD)
 
     int mknod(in char*, mode_t, dev_t);
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     enum S_IFMT     = 0xF000; // octal 0170000
     enum S_IFBLK    = 0x6000; // octal 0060000
@@ -1813,7 +1813,7 @@ else version (Solaris)
 
     int mknod(in char*, mode_t, dev_t);
 }
-else version ( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     enum S_IFMT     = 0xF000; // octal 0170000
     enum S_IFBLK    = 0x6000; // octal 0060000
@@ -1826,7 +1826,7 @@ else version ( CRuntime_Bionic )
 
     int mknod(in char*, mode_t, dev_t);
 }
-else version ( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     enum {
         S_IFMT     = 0xF000, // octal 0170000
@@ -1841,7 +1841,7 @@ else version ( CRuntime_Musl )
 
     int mknod(in char*, mode_t, dev_t);
 }
-else version ( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     enum S_IFMT     = 0xF000; // octal 0170000
     enum S_IFBLK    = 0x6000; // octal 0060000

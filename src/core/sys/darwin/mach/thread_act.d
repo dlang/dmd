@@ -30,11 +30,11 @@ nothrow:
 public import core.sys.darwin.mach.kern_return;
 public import core.sys.darwin.mach.port;
 
-version ( X86 )
+version (X86)
     version = i386;
-version ( X86_64 )
+version (X86_64)
     version = i386;
-version ( i386 )
+version (i386)
 {
     alias mach_port_t thread_act_t;
     alias void        thread_state_t;

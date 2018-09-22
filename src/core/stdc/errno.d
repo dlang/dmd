@@ -121,7 +121,7 @@ else
 extern (C):
 
 
-version ( Windows )
+version (Windows)
 {
     enum EPERM              = 1;        /// Operation not permitted
     enum ENOENT             = 2;        /// No such file or directory
@@ -163,7 +163,7 @@ version ( Windows )
     enum EILSEQ             = 42;       /// Illegal byte sequence
     enum EDEADLOCK          = EDEADLK;  /// Resource deadlock would occur
 }
-else version ( linux )
+else version (linux)
 {
     enum EPERM              = 1;  ///
     enum ENOENT             = 2;  ///
@@ -1445,7 +1445,7 @@ else version ( linux )
         static assert(false, "Architecture not supported.");
     }
 }
-else version ( Darwin )
+else version (Darwin)
 {
     enum EPERM              = 1;        /// Operation not permitted
     enum ENOENT             = 2;        /// No such file or directory
@@ -1528,7 +1528,7 @@ else version ( Darwin )
     enum ETIME              = 101;      /// STREAM ioctl timeout
     enum ELAST              = 101;      /// Must be equal largest errno
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     enum EPERM              = 1;        /// Operation not permitted
     enum ENOENT             = 2;        /// No such file or directory
@@ -1755,7 +1755,7 @@ else version (NetBSD)
     enum ENOLINK         = 95;
     enum EPROTO          = 96;
 }
-else version ( OpenBSD )
+else version (OpenBSD)
 {
     enum EPERM              = 1;        /// Operation not permitted
     enum ENOENT             = 2;        /// No such file or directory
@@ -1851,7 +1851,7 @@ else version ( OpenBSD )
     enum ENOTSUP            = 91;       /// Not supported
     enum ELAST              = 91;       /// Must be equal largest errno
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     enum EPERM              = 1;
     enum ENOENT             = 2;

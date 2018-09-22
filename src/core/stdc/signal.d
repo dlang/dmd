@@ -25,7 +25,7 @@ alias int sig_atomic_t;
 
 private alias void function(int) sigfn_t;
 
-version ( Posix )
+version (Posix)
 {
     ///
     enum SIG_ERR    = cast(sigfn_t) -1;
@@ -48,7 +48,7 @@ version ( Posix )
     ///
     enum SIGTERM    = 15; // Termination
 }
-else version ( Windows )
+else version (Windows)
 {
     ///
     enum SIG_ERR    = cast(sigfn_t) -1;

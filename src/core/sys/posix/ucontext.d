@@ -38,10 +38,10 @@ struct ucontext_t
 }
 */
 
-version ( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
 
-    version ( X86_64 )
+    version (X86_64)
     {
         enum
         {
@@ -123,7 +123,7 @@ version ( CRuntime_Glibc )
             _libc_fpstate   __fpregs_mem;
         }
     }
-    else version ( X86 )
+    else version (X86)
     {
         enum
         {
@@ -670,10 +670,10 @@ version ( CRuntime_Glibc )
     else
         static assert(0, "unimplemented");
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     // <machine/ucontext.h>
-    version ( X86_64 )
+    version (X86_64)
     {
       alias long __register_t;
       alias uint __uint32_t;
@@ -724,7 +724,7 @@ else version ( FreeBSD )
        long[6]    mc_spare;
       }
     }
-    else version ( X86 )
+    else version (X86)
     {
         alias int __register_t;
 
@@ -765,7 +765,7 @@ else version ( FreeBSD )
             int[6]          mc_spare2;
         }
     }
-    else version ( AArch64 )
+    else version (AArch64)
     {
         alias __register_t = long;
 
@@ -815,7 +815,7 @@ else version ( FreeBSD )
 else version (NetBSD)
 {
 
-    version ( X86_64 )
+    version (X86_64)
     {
       enum { NGREG = 26 };
       alias __greg_t = ulong;
@@ -828,7 +828,7 @@ else version (NetBSD)
         __fpregset_t    __fpregs;
       }
     }
-    else version ( X86 )
+    else version (X86)
     {
       enum { NGREG = 19 };
       alias __greg_t = ulong;
@@ -868,10 +868,10 @@ else version (NetBSD)
 
     }
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     // <machine/ucontext.h>
-    version ( X86_64 )
+    version (X86_64)
     {
       alias long __register_t;
       alias uint __uint32_t;
@@ -933,16 +933,16 @@ else version ( DragonFlyBSD )
         int[4]          __spare__;
     }
 }
-else version ( Solaris )
+else version (Solaris)
 {
     alias uint[4] upad128_t;
 
-    version ( X86_64 )
+    version (X86_64)
     {
         enum _NGREG = 28;
         alias long greg_t;
     }
-    else version ( X86 )
+    else version (X86)
     {
         enum _NGREG = 19;
         alias int greg_t;
@@ -950,7 +950,7 @@ else version ( Solaris )
 
     alias greg_t[_NGREG] gregset_t;
 
-    version ( X86_64 )
+    version (X86_64)
     {
         union _u_st
         {
@@ -983,7 +983,7 @@ else version ( Solaris )
             }
         }
     }
-    else version ( X86 )
+    else version (X86)
     {
         struct fpregset_t
         {
@@ -1027,9 +1027,9 @@ else version ( Solaris )
         c_long[5]   uc_filler;
     }
 }
-else version ( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
-    version ( X86_64 )
+    version (X86_64)
     {
         enum
         {

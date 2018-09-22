@@ -374,6 +374,9 @@ style_lint:
 	@echo "Enforce whitespace before opening parenthesis"
 	$(GREP) -nrE "\<(for|foreach|foreach_reverse|if|while|switch|catch|version)\(" $$(find src -name '*.d') ; test $$? -eq 1
 
+	@echo "Enforce no whitespace after opening parenthesis"
+	$(GREP) -nrE "\<(version) \( " $$(find src -name '*.d') ; test $$? -eq 1
+
 .PHONY : auto-tester-build
 auto-tester-build: target checkwhitespace
 

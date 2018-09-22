@@ -84,7 +84,7 @@ int creat(in char*, mode_t);
 int fcntl(int, int, ...);
 int open(in char*, int, ...);
 */
-version ( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     enum F_DUPFD        = 0;
     enum F_GETFD        = 1;
@@ -290,7 +290,7 @@ version ( CRuntime_Glibc )
     enum AT_SYMLINK_NOFOLLOW = 0x100;
     enum AT_FDCWD = -100;
 }
-else version ( Darwin )
+else version (Darwin)
 {
     enum F_DUPFD        = 0;
     enum F_GETFD        = 1;
@@ -337,7 +337,7 @@ else version ( Darwin )
     int creat(in char*, mode_t);
     int open(in char*, int, ...);
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     enum F_DUPFD        = 0;
     enum F_GETFD        = 1;
@@ -401,7 +401,7 @@ else version ( FreeBSD )
     enum AT_SYMLINK_NOFOLLOW = 0x200;
     enum AT_FDCWD = -100;
 }
-else version ( OpenBSD )
+else version (OpenBSD)
 {
     enum F_DUPFD        = 0;
     enum F_GETFD        = 1;
@@ -523,7 +523,7 @@ else version (NetBSD)
     int creat(in char*, mode_t);
     int open(in char*, int, ...);
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     enum O_RDONLY       = 0x0000;
     enum O_WRONLY       = 0x0001;
@@ -723,7 +723,7 @@ else version (Solaris)
         }
     }
 }
-else version ( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     // All these except for the two functions open and creat really come from
     // the linux kernel and can probably be merged.
@@ -801,7 +801,7 @@ else version ( CRuntime_Bionic )
 
     enum AT_FDCWD = -100;
 }
-else version ( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     enum {
         O_CREAT         = 0x40,     // octal     0100
@@ -863,7 +863,7 @@ else version ( CRuntime_Musl )
 
     enum AT_FDCWD = -100;
 }
-else version ( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     enum F_DUPFD        = 0;
     enum F_GETFD        = 1;

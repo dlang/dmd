@@ -30,9 +30,9 @@ int  setjmp(ref jmp_buf);
 void longjmp(ref jmp_buf, int);
 */
 
-version ( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
-    version ( X86_64 )
+    version (X86_64)
     {
         //enum JB_BX      = 0;
         //enum JB_BP      = 1;
@@ -46,7 +46,7 @@ version ( CRuntime_Glibc )
 
         alias long[8] __jmp_buf;
     }
-    else version ( X86 )
+    else version (X86)
     {
         //enum JB_BX      = 0;
         //enum JB_SI      = 1;
@@ -149,25 +149,25 @@ version ( CRuntime_Glibc )
     alias _setjmp setjmp; // see XOpen block
     void longjmp(ref jmp_buf, int);
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     // <machine/setjmp.h>
-    version ( X86 )
+    version (X86)
     {
         enum _JBLEN = 11;
         struct _jmp_buf { int[_JBLEN + 1] _jb; }
     }
-    else version ( X86_64)
+    else version (X86_64)
     {
         enum _JBLEN = 12;
         struct _jmp_buf { c_long[_JBLEN] _jb; }
     }
-    else version ( SPARC )
+    else version (SPARC)
     {
         enum _JBLEN = 5;
         struct _jmp_buf { c_long[_JBLEN + 1] _jb; }
     }
-    else version ( AArch64 )
+    else version (AArch64)
     {
         enum _JBLEN = 31;
         // __int128_t
@@ -183,12 +183,12 @@ else version ( FreeBSD )
 else version (NetBSD)
 {
     // <machine/setjmp.h>
-    version ( X86 )
+    version (X86)
     {
         enum _JBLEN = 13;
         struct _jmp_buf { int[_JBLEN + 1] _jb; }
     }
-    else version ( X86_64)
+    else version (X86_64)
     {
         enum _JBLEN = 11;
         struct _jmp_buf { c_long[_JBLEN] _jb; }
@@ -200,34 +200,34 @@ else version (NetBSD)
     int  setjmp(ref jmp_buf);
     void longjmp(ref jmp_buf, int);
 }
-else version ( OpenBSD )
+else version (OpenBSD)
 {
     // <machine/setjmp.h>
-    version ( X86 )
+    version (X86)
     {
         enum _JBLEN = 10;
     }
-    else version ( X86_64)
+    else version (X86_64)
     {
         enum _JBLEN = 11;
     }
-    else version ( ARM )
+    else version (ARM)
     {
         enum _JBLEN = 64;
     }
-    else version ( PPC )
+    else version (PPC)
     {
         enum _JBLEN = 100;
     }
-    else version ( MIPS64 )
+    else version (MIPS64)
     {
         enum _JBLEN = 83;
     }
-    else version ( SPARC )
+    else version (SPARC)
     {
         enum _JBLEN = 10;
     }
-    else version ( SPARC64 )
+    else version (SPARC64)
     {
         enum _JBLEN = 14;
     }
@@ -239,10 +239,10 @@ else version ( OpenBSD )
     int  setjmp(ref jmp_buf);
     void longjmp(ref jmp_buf, int);
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     // <machine/setjmp.h>
-    version ( X86_64)
+    version (X86_64)
     {
         enum _JBLEN = 12;
         struct _jmp_buf { c_long[_JBLEN] _jb; }
@@ -254,18 +254,18 @@ else version ( DragonFlyBSD )
     int  setjmp(ref jmp_buf);
     void longjmp(ref jmp_buf, int);
 }
-else version ( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     // <machine/setjmp.h>
-    version ( X86 )
+    version (X86)
     {
         enum _JBLEN = 10;
     }
-    else version ( ARM )
+    else version (ARM)
     {
         enum _JBLEN = 64;
     }
-    else version ( AArch64 )
+    else version (AArch64)
     {
         enum _JBLEN = 32;
     }
@@ -279,9 +279,9 @@ else version ( CRuntime_Bionic )
     int  setjmp(ref jmp_buf);
     void longjmp(ref jmp_buf, int);
 }
-else version ( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
-    version ( X86_64 )
+    version (X86_64)
     {
         alias long[8] __jmp_buf;
     }
@@ -342,7 +342,7 @@ int  sigsetjmp(sigjmp_buf, int);
 void siglongjmp(sigjmp_buf, int);
 */
 
-version ( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     alias jmp_buf sigjmp_buf;
 
@@ -350,18 +350,18 @@ version ( CRuntime_Glibc )
     alias __sigsetjmp sigsetjmp;
     void siglongjmp(sigjmp_buf, int);
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     // <machine/setjmp.h>
-    version ( X86 )
+    version (X86)
     {
         struct _sigjmp_buf { int[_JBLEN + 1] _ssjb; }
     }
-    else version ( X86_64)
+    else version (X86_64)
     {
         struct _sigjmp_buf { c_long[_JBLEN] _sjb; }
     }
-    else version ( SPARC )
+    else version (SPARC)
     {
         enum _JBLEN         = 5;
         enum _JB_FP         = 0;
@@ -371,7 +371,7 @@ else version ( FreeBSD )
         enum _JB_SIGFLAG    = 5;
         struct _sigjmp_buf { c_long[_JBLEN + 1] _sjb; }
     }
-    else version ( AArch64 )
+    else version (AArch64)
     {
         // __int128_t
         struct _sigjmp_buf { long[2][_JBLEN + 1] _jb; };
@@ -386,11 +386,11 @@ else version ( FreeBSD )
 else version (NetBSD)
 {
     // <machine/setjmp.h>
-    version ( X86 )
+    version (X86)
     {
         struct _sigjmp_buf { int[_JBLEN + 1] _ssjb; }
     }
-    else version ( X86_64)
+    else version (X86_64)
     {
         struct _sigjmp_buf { c_long[_JBLEN] _sjb; }
     }
@@ -401,17 +401,17 @@ else version (NetBSD)
     int  sigsetjmp(ref sigjmp_buf);
     void siglongjmp(ref sigjmp_buf, int);
 }
-else version ( OpenBSD )
+else version (OpenBSD)
 {
     alias sigjmp_buf = c_long[_JBLEN + 1];
 
     int  sigsetjmp(ref sigjmp_buf);
     void siglongjmp(ref sigjmp_buf, int);
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     // <machine/setjmp.h>
-    version ( X86_64)
+    version (X86_64)
     {
         struct _sigjmp_buf { c_long[_JBLEN] _sjb; }
     }
@@ -422,14 +422,14 @@ else version ( DragonFlyBSD )
     int  sigsetjmp(ref sigjmp_buf);
     void siglongjmp(ref sigjmp_buf, int);
 }
-else version ( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     alias c_long[_JBLEN + 1] sigjmp_buf;
 
     int  sigsetjmp(ref sigjmp_buf, int);
     void siglongjmp(ref sigjmp_buf, int);
 }
-else version ( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     alias jmp_buf sigjmp_buf;
 
@@ -446,12 +446,12 @@ int  _setjmp(jmp_buf);
 void _longjmp(jmp_buf, int);
 */
 
-version ( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     int  _setjmp(ref jmp_buf);
     void _longjmp(ref jmp_buf, int);
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     int  _setjmp(ref jmp_buf);
     void _longjmp(ref jmp_buf, int);
@@ -461,22 +461,22 @@ else version (NetBSD)
     int  _setjmp(ref jmp_buf);
     void _longjmp(ref jmp_buf, int);
 }
-else version ( OpenBSD )
+else version (OpenBSD)
 {
     int  _setjmp(ref jmp_buf);
     void _longjmp(ref jmp_buf, int);
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     int  _setjmp(ref jmp_buf);
     void _longjmp(ref jmp_buf, int);
 }
-else version ( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     int  _setjmp(ref jmp_buf);
     void _longjmp(ref jmp_buf, int);
 }
-else version ( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     int  _setjmp(ref jmp_buf);
     void _longjmp(ref jmp_buf, int);

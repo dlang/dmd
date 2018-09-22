@@ -45,7 +45,7 @@ void* dlopen(in char*, int);
 void* dlsym(void*, in char*);
 */
 
-version ( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     version (X86)
     {
@@ -139,7 +139,7 @@ version ( CRuntime_Glibc )
         }
     }
 }
-else version ( Darwin )
+else version (Darwin)
 {
     enum RTLD_LAZY      = 0x00001;
     enum RTLD_NOW       = 0x00002;
@@ -160,7 +160,7 @@ else version ( Darwin )
         void*        dli_saddr;
     }
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     enum RTLD_LAZY      = 1;
     enum RTLD_NOW       = 2;
@@ -204,7 +204,7 @@ else version (NetBSD)
         void*        dli_saddr;
     }
 }
-else version ( OpenBSD )
+else version (OpenBSD)
 {
     enum RTLD_LAZY      = 1;
     enum RTLD_NOW       = 2;
@@ -225,7 +225,7 @@ else version ( OpenBSD )
         void*        dli_saddr;
     }
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     enum RTLD_LAZY      = 1;
     enum RTLD_NOW       = 2;
@@ -246,7 +246,7 @@ else version ( DragonFlyBSD )
         void*        dli_saddr;
     }
 }
-else version ( Solaris )
+else version (Solaris)
 {
     enum RTLD_LAZY      = 1;
     enum RTLD_NOW       = 2;
@@ -267,7 +267,7 @@ else version ( Solaris )
         void*        dli_saddr;
     }
 }
-else version ( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     enum
     {
@@ -291,7 +291,7 @@ else version ( CRuntime_Bionic )
         void*        dli_saddr;
     }
 }
-else version ( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     enum {
         RTLD_LAZY     = 1,
@@ -306,7 +306,7 @@ else version ( CRuntime_Musl )
     void*        dlopen(in char*, int);
     void*        dlsym(void*, in char*);
 }
-else version ( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     version (X86_64)
     {

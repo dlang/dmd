@@ -102,7 +102,7 @@ int pthread_setcanceltype(int, int*);
 int pthread_setspecific(pthread_key_t, in void*);
 void pthread_testcancel();
 */
-version ( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     enum
     {
@@ -141,7 +141,7 @@ version ( CRuntime_Glibc )
         PTHREAD_PROCESS_SHARED
     }
 }
-else version ( Darwin )
+else version (Darwin)
 {
     enum
     {
@@ -180,7 +180,7 @@ else version ( Darwin )
         PTHREAD_PROCESS_SHARED  = 1
     }
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     enum
     {
@@ -254,7 +254,7 @@ else version (NetBSD)
     enum PTHREAD_COND_INITIALIZER               = pthread_cond_t(0x55550005);
     enum PTHREAD_RWLOCK_INITIALIZER             = pthread_rwlock_t(0x99990009);
 }
-else version ( OpenBSD )
+else version (OpenBSD)
 {
     enum
     {
@@ -294,7 +294,7 @@ else version ( OpenBSD )
     enum PTHREAD_COND_INITIALIZER               = null;
     enum PTHREAD_RWLOCK_INITIALIZER             = null;
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     enum
     {
@@ -364,7 +364,7 @@ else version (Solaris)
     enum PTHREAD_MUTEX_INITIALIZER  = pthread_mutex_t.init;
     enum PTHREAD_ONCE_INIT          = pthread_once_t.init;
 }
-else version ( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     enum
     {
@@ -381,7 +381,7 @@ else version ( CRuntime_Bionic )
         PTHREAD_PROCESS_SHARED
     }
 }
-else version ( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     enum
     {
@@ -398,7 +398,7 @@ else version ( CRuntime_Musl )
         PTHREAD_PROCESS_SHARED = 1
     }
 }
-else version ( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     enum
     {
@@ -454,7 +454,7 @@ int pthread_atfork(void function(), void function(), void function());
 
 alias void function(void*) _pthread_cleanup_routine;
 alias void function(void*) @nogc _pthread_cleanup_routine_nogc;
-version ( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     struct _pthread_cleanup_buffer
     {
@@ -483,7 +483,7 @@ version ( CRuntime_Glibc )
         }
     }
 }
-else version ( Darwin )
+else version (Darwin)
 {
     struct _pthread_cleanup_buffer
     {
@@ -516,7 +516,7 @@ else version ( Darwin )
         }
     }
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     struct _pthread_cleanup_info
     {
@@ -542,7 +542,7 @@ else version ( FreeBSD )
     void __pthread_cleanup_push_imp(_pthread_cleanup_routine_nogc, void*, _pthread_cleanup_info*) @nogc;
     void __pthread_cleanup_pop_imp(int);
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     struct _pthread_cleanup_info
     {
@@ -592,7 +592,7 @@ else version (NetBSD)
     void pthread__cleanup_push(_pthread_cleanup_routine, void*, void*);
     void pthread__cleanup_pop(int, void *);
 }
-else version ( OpenBSD )
+else version (OpenBSD)
 {
     void pthread_cleanup_push(void function(void*), void*);
     void pthread_cleanup_pop(int);
@@ -625,7 +625,7 @@ else version (Solaris)
     void __pthread_cleanup_push(_pthread_cleanup_routine_nogc, void*, caddr_t, _pthread_cleanup_info*) @nogc;
     void __pthread_cleanup_pop(int, _pthread_cleanup_info*);
 }
-else version ( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     struct __pthread_cleanup_t
     {
@@ -653,7 +653,7 @@ else version ( CRuntime_Bionic )
         }
     }
 }
-else version ( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     struct __ptcb {
         _pthread_cleanup_routine f;
@@ -678,7 +678,7 @@ else version ( CRuntime_Musl )
         }
     }
 }
-else version ( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     struct _pthread_cleanup_buffer
     {
@@ -771,7 +771,7 @@ int pthread_barrierattr_init(pthread_barrierattr_t*);
 int pthread_barrierattr_setpshared(pthread_barrierattr_t*, int); (BAR|TSH)
 */
 
-version ( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     enum PTHREAD_BARRIER_SERIAL_THREAD = -1;
 
@@ -783,7 +783,7 @@ version ( CRuntime_Glibc )
     int pthread_barrierattr_init(pthread_barrierattr_t*);
     int pthread_barrierattr_setpshared(pthread_barrierattr_t*, int);
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     enum PTHREAD_BARRIER_SERIAL_THREAD = -1;
 
@@ -795,7 +795,7 @@ else version ( FreeBSD )
     int pthread_barrierattr_init(pthread_barrierattr_t*);
     int pthread_barrierattr_setpshared(pthread_barrierattr_t*, int);
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     enum PTHREAD_BARRIER_SERIAL_THREAD = -1;
     enum PTHREAD_KEYS_MAX              = 256;
@@ -822,7 +822,7 @@ else version (NetBSD)
     int pthread_barrierattr_init(pthread_barrierattr_t*);
     int pthread_barrierattr_setpshared(pthread_barrierattr_t*, int);
 }
-else version ( OpenBSD )
+else version (OpenBSD)
 {
     enum PTHREAD_BARRIER_SERIAL_THREAD = -1;
 
@@ -856,7 +856,7 @@ else version (CRuntime_Musl)
 {
 
 }
-else version ( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     enum PTHREAD_BARRIER_SERIAL_THREAD = -1;
 
@@ -892,7 +892,7 @@ int pthread_spin_trylock(pthread_spinlock_t*);
 int pthread_spin_unlock(pthread_spinlock_t*);
 */
 
-version ( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     int pthread_spin_destroy(pthread_spinlock_t*);
     int pthread_spin_init(pthread_spinlock_t*, int);
@@ -900,7 +900,7 @@ version ( CRuntime_Glibc )
     int pthread_spin_trylock(pthread_spinlock_t*);
     int pthread_spin_unlock(pthread_spinlock_t*);
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     int pthread_spin_init(pthread_spinlock_t*, int);
     int pthread_spin_destroy(pthread_spinlock_t*);
@@ -908,7 +908,7 @@ else version ( FreeBSD )
     int pthread_spin_trylock(pthread_spinlock_t*);
     int pthread_spin_unlock(pthread_spinlock_t*);
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     int pthread_spin_init(pthread_spinlock_t*, int);
     int pthread_spin_destroy(pthread_spinlock_t*);
@@ -924,7 +924,7 @@ else version (NetBSD)
     int pthread_spin_trylock(pthread_spinlock_t*);
     int pthread_spin_unlock(pthread_spinlock_t*);
 }
-else version ( OpenBSD )
+else version (OpenBSD)
 {
     int pthread_spin_init(pthread_spinlock_t*, int);
     int pthread_spin_destroy(pthread_spinlock_t*);
@@ -950,7 +950,7 @@ else version (CRuntime_Musl)
 {
 
 }
-else version ( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     int pthread_spin_destroy(pthread_spinlock_t*);
     int pthread_spin_init(pthread_spinlock_t*, int);
@@ -980,7 +980,7 @@ int pthread_mutexattr_settype(pthread_mutexattr_t*, int);
 int pthread_setconcurrency(int);
 */
 
-version ( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     enum PTHREAD_MUTEX_NORMAL       = 0;
     enum PTHREAD_MUTEX_RECURSIVE    = 1;
@@ -994,7 +994,7 @@ version ( CRuntime_Glibc )
     int pthread_mutexattr_settype(pthread_mutexattr_t*, int) @trusted;
     int pthread_setconcurrency(int);
 }
-else version ( Darwin )
+else version (Darwin)
 {
     enum PTHREAD_MUTEX_NORMAL       = 0;
     enum PTHREAD_MUTEX_ERRORCHECK   = 1;
@@ -1008,7 +1008,7 @@ else version ( Darwin )
     int pthread_mutexattr_settype(pthread_mutexattr_t*, int) @trusted;
     int pthread_setconcurrency(int);
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     enum
     {
@@ -1045,7 +1045,7 @@ else version (NetBSD)
     int pthread_mutexattr_settype(pthread_mutexattr_t*, int) @trusted;
     int pthread_setconcurrency(int);
 }
-else version ( OpenBSD )
+else version (OpenBSD)
 {
     enum
     {
@@ -1064,7 +1064,7 @@ else version ( OpenBSD )
     int pthread_mutexattr_settype(pthread_mutexattr_t*, int) @trusted;
     int pthread_setconcurrency(int);
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     enum
     {
@@ -1122,7 +1122,7 @@ else version (CRuntime_Musl)
     }
     int pthread_mutexattr_settype(pthread_mutexattr_t*, int) @trusted;
 }
-else version ( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     enum
     {
@@ -1156,22 +1156,22 @@ else
 int pthread_getcpuclockid(pthread_t, clockid_t*);
 */
 
-version ( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     int pthread_getcpuclockid(pthread_t, clockid_t*);
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     int pthread_getcpuclockid(pthread_t, clockid_t*);
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     int pthread_getcpuclockid(pthread_t, clockid_t*);
 }
 else version (NetBSD)
 {
 }
-else version ( OpenBSD )
+else version (OpenBSD)
 {
     int pthread_getcpuclockid(pthread_t, clockid_t*);
 }
@@ -1181,15 +1181,15 @@ else version (Darwin)
 else version (Solaris)
 {
 }
-else version ( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     int pthread_getcpuclockid(pthread_t, clockid_t*);
 }
-else version ( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
 
 }
-else version ( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     int pthread_getcpuclockid(pthread_t, clockid_t*);
 }
@@ -1207,19 +1207,19 @@ int pthread_rwlock_timedrdlock(pthread_rwlock_t*, in timespec*);
 int pthread_rwlock_timedwrlock(pthread_rwlock_t*, in timespec*);
 */
 
-version ( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     int pthread_mutex_timedlock(pthread_mutex_t*, in timespec*);
     int pthread_rwlock_timedrdlock(pthread_rwlock_t*, in timespec*);
     int pthread_rwlock_timedwrlock(pthread_rwlock_t*, in timespec*);
 }
-else version ( Darwin )
+else version (Darwin)
 {
     int pthread_mutex_timedlock(pthread_mutex_t*, in timespec*);
     int pthread_rwlock_timedrdlock(pthread_rwlock_t*, in timespec*);
     int pthread_rwlock_timedwrlock(pthread_rwlock_t*, in timespec*);
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     int pthread_mutex_timedlock(pthread_mutex_t*, in timespec*);
     int pthread_rwlock_timedrdlock(pthread_rwlock_t*, in timespec*);
@@ -1231,13 +1231,13 @@ else version (NetBSD)
     int pthread_rwlock_timedrdlock(pthread_rwlock_t*, in timespec*);
     int pthread_rwlock_timedwrlock(pthread_rwlock_t*, in timespec*);
 }
-else version ( OpenBSD )
+else version (OpenBSD)
 {
     int pthread_mutex_timedlock(pthread_mutex_t*, in timespec*);
     int pthread_rwlock_timedrdlock(pthread_rwlock_t*, in timespec*);
     int pthread_rwlock_timedwrlock(pthread_rwlock_t*, in timespec*);
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     int pthread_mutex_timedlock(pthread_mutex_t*, in timespec*);
     int pthread_rwlock_timedrdlock(pthread_rwlock_t*, in timespec*);
@@ -1249,16 +1249,16 @@ else version (Solaris)
     int pthread_rwlock_timedrdlock(pthread_rwlock_t*, in timespec*);
     int pthread_rwlock_timedwrlock(pthread_rwlock_t*, in timespec*);
 }
-else version ( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     int pthread_rwlock_timedrdlock(pthread_rwlock_t*, in timespec*);
     int pthread_rwlock_timedwrlock(pthread_rwlock_t*, in timespec*);
 }
-else version ( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
 
 }
-else version ( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     int pthread_mutex_timedlock(pthread_mutex_t*, in timespec*);
     int pthread_rwlock_timedrdlock(pthread_rwlock_t*, in timespec*);
@@ -1284,7 +1284,7 @@ int pthread_mutexattr_getprotocol(in pthread_mutexattr_t*, int*); (TPI|TPP)
 int pthread_mutexattr_setprioceiling(pthread_mutexattr_t*, int); (TPP)
 int pthread_mutexattr_setprotocol(pthread_mutexattr_t*, int); (TPI|TPP)
 */
-version ( Darwin )
+version (Darwin)
 {
     enum
     {
@@ -1300,7 +1300,7 @@ version ( Darwin )
     int pthread_mutexattr_setprioceiling(pthread_mutexattr_t*, int);
     int pthread_mutexattr_setprotocol(pthread_mutexattr_t*, int);
 }
-else version ( Solaris )
+else version (Solaris)
 {
     enum
     {
@@ -1335,7 +1335,7 @@ int pthread_setschedparam(pthread_t, int, in sched_param*);
 int pthread_setschedprio(pthread_t, int);
 */
 
-version ( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     enum
     {
@@ -1353,7 +1353,7 @@ version ( CRuntime_Glibc )
     int pthread_setschedparam(pthread_t, int, in sched_param*);
     int pthread_setschedprio(pthread_t, int);
 }
-else version ( Darwin )
+else version (Darwin)
 {
     enum
     {
@@ -1371,7 +1371,7 @@ else version ( Darwin )
     int pthread_setschedparam(pthread_t, int, in sched_param*);
     // int pthread_setschedprio(pthread_t, int); // not implemented
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     enum
     {
@@ -1407,7 +1407,7 @@ else version (NetBSD)
     int pthread_setschedparam(pthread_t, int, sched_param*);
     //int pthread_setschedprio(pthread_t, int);
 }
-else version ( OpenBSD )
+else version (OpenBSD)
 {
     enum
     {
@@ -1425,7 +1425,7 @@ else version ( OpenBSD )
     int pthread_setschedparam(pthread_t, int, sched_param*);
     // int pthread_setschedprio(pthread_t, int); // not implemented
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     enum
     {
@@ -1487,7 +1487,7 @@ else version (CRuntime_Musl)
     int pthread_setschedparam(pthread_t, int, in sched_param*);
     int pthread_setschedprio(pthread_t, int);
 }
-else version ( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     enum
     {
@@ -1522,7 +1522,7 @@ int pthread_attr_setstackaddr(pthread_attr_t*, void*); (TSA)
 int pthread_attr_setstacksize(pthread_attr_t*, size_t); (TSS)
 */
 
-version ( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     int pthread_attr_getstack(in pthread_attr_t*, void**, size_t*);
     int pthread_attr_getstackaddr(in pthread_attr_t*, void**);
@@ -1531,7 +1531,7 @@ version ( CRuntime_Glibc )
     int pthread_attr_setstackaddr(pthread_attr_t*, void*);
     int pthread_attr_setstacksize(pthread_attr_t*, size_t);
 }
-else version ( Darwin )
+else version (Darwin)
 {
     int pthread_attr_getstack(in pthread_attr_t*, void**, size_t*);
     int pthread_attr_getstackaddr(in pthread_attr_t*, void**);
@@ -1540,7 +1540,7 @@ else version ( Darwin )
     int pthread_attr_setstackaddr(pthread_attr_t*, void*);
     int pthread_attr_setstacksize(pthread_attr_t*, size_t);
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     int pthread_attr_getstack(in pthread_attr_t*, void**, size_t*);
     int pthread_attr_getstackaddr(in pthread_attr_t*, void**);
@@ -1558,7 +1558,7 @@ else version (NetBSD)
     int pthread_attr_setstackaddr(pthread_attr_t*, void*);
     int pthread_attr_setstacksize(pthread_attr_t*, size_t);
 }
-else version ( OpenBSD )
+else version (OpenBSD)
 {
     int pthread_attr_getstack(in pthread_attr_t*, void**, size_t*);
     int pthread_attr_getstackaddr(in pthread_attr_t*, void**);
@@ -1567,7 +1567,7 @@ else version ( OpenBSD )
     int pthread_attr_setstackaddr(pthread_attr_t*, void*);
     int pthread_attr_setstacksize(pthread_attr_t*, size_t);
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     int pthread_attr_getstack(in pthread_attr_t*, void**, size_t*);
     int pthread_attr_getstackaddr(in pthread_attr_t*, void**);
@@ -1599,7 +1599,7 @@ else version (CRuntime_Musl)
     int pthread_attr_getstack(in pthread_attr_t*, void**, size_t*);
     int pthread_attr_setstacksize(pthread_attr_t*, size_t);
 }
-else version ( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     int pthread_attr_getstack(in pthread_attr_t*, void**, size_t*);
     int pthread_attr_getstackaddr(in pthread_attr_t*, void**);
@@ -1634,7 +1634,7 @@ version (CRuntime_Glibc)
     int pthread_rwlockattr_getpshared(in pthread_rwlockattr_t*, int*);
     int pthread_rwlockattr_setpshared(pthread_rwlockattr_t*, int);
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     int pthread_condattr_getpshared(in pthread_condattr_t*, int*);
     int pthread_condattr_setpshared(pthread_condattr_t*, int);
@@ -1652,10 +1652,10 @@ else version (NetBSD)
     int pthread_rwlockattr_getpshared(in pthread_rwlockattr_t*, int*);
     int pthread_rwlockattr_setpshared(pthread_rwlockattr_t*, int);
 }
-else version ( OpenBSD )
+else version (OpenBSD)
 {
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     int pthread_condattr_getpshared(in pthread_condattr_t*, int*);
     int pthread_condattr_setpshared(pthread_condattr_t*, int);
@@ -1664,7 +1664,7 @@ else version ( DragonFlyBSD )
     int pthread_rwlockattr_getpshared(in pthread_rwlockattr_t*, int*);
     int pthread_rwlockattr_setpshared(pthread_rwlockattr_t*, int);
 }
-else version ( Darwin )
+else version (Darwin)
 {
     int pthread_condattr_getpshared(in pthread_condattr_t*, int*);
     int pthread_condattr_setpshared(pthread_condattr_t*, int);

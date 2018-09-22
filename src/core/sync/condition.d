@@ -20,12 +20,12 @@ public import core.sync.exception;
 public import core.sync.mutex;
 public import core.time;
 
-version ( Windows )
+version (Windows)
 {
     private import core.sync.semaphore;
     private import core.sys.windows.windows;
 }
-else version ( Posix )
+else version (Posix)
 {
     private import core.sync.config;
     private import core.stdc.errno;
@@ -71,7 +71,7 @@ class Condition
      */
     this( Mutex m ) nothrow @safe
     {
-        version ( Windows )
+        version (Windows)
         {
             m_blockLock = CreateSemaphoreA( null, 1, 1, null );
             if ( m_blockLock == m_blockLock.init )
@@ -86,7 +86,7 @@ class Condition
             InitializeCriticalSection( &m_unblockLock );
             m_assocMutex = m;
         }
-        else version ( Posix )
+        else version (Posix)
         {
             m_assocMutex = m;
             int rc = pthread_cond_init( &m_hndl, null );
@@ -98,7 +98,7 @@ class Condition
 
     ~this()
     {
-        version ( Windows )
+        version (Windows)
         {
             BOOL rc = CloseHandle( m_blockLock );
             assert( rc, "Unable to destroy condition" );
@@ -106,7 +106,7 @@ class Condition
             assert( rc, "Unable to destroy condition" );
             DeleteCriticalSection( &m_unblockLock );
         }
-        else version ( Posix )
+        else version (Posix)
         {
             int rc = pthread_cond_destroy( &m_hndl );
             assert( !rc, "Unable to destroy condition" );
@@ -150,11 +150,11 @@ class Condition
      */
     void wait()
     {
-        version ( Windows )
+        version (Windows)
         {
             timedWait( INFINITE );
         }
-        else version ( Posix )
+        else version (Posix)
         {
             int rc = pthread_cond_wait( &m_hndl, m_assocMutex.handleAddr() );
             if ( rc )
@@ -186,7 +186,7 @@ class Condition
     }
     do
     {
-        version ( Windows )
+        version (Windows)
         {
             auto maxWaitMillis = dur!("msecs")( uint.max - 1 );
 
@@ -199,7 +199,7 @@ class Condition
             }
             return timedWait( cast(uint) val.total!"msecs" );
         }
-        else version ( Posix )
+        else version (Posix)
         {
             timespec t = void;
             mktspec( t, val );
@@ -224,11 +224,11 @@ class Condition
      */
     void notify()
     {
-        version ( Windows )
+        version (Windows)
         {
             notify( false );
         }
-        else version ( Posix )
+        else version (Posix)
         {
             int rc = pthread_cond_signal( &m_hndl );
             if ( rc )
@@ -245,11 +245,11 @@ class Condition
      */
     void notifyAll()
     {
-        version ( Windows )
+        version (Windows)
         {
             notify( true );
         }
-        else version ( Posix )
+        else version (Posix)
         {
             int rc = pthread_cond_broadcast( &m_hndl );
             if ( rc )
@@ -259,7 +259,7 @@ class Condition
 
 
 private:
-    version ( Windows )
+    version (Windows)
     {
         bool timedWait( DWORD timeout )
         {
@@ -422,7 +422,7 @@ private:
         int                 m_numWaitersBlocked     = 0;
         int                 m_numWaitersToUnblock   = 0;
     }
-    else version ( Posix )
+    else version (Posix)
     {
         Mutex               m_assocMutex;
         pthread_cond_t      m_hndl;
@@ -435,7 +435,7 @@ private:
 ////////////////////////////////////////////////////////////////////////////////
 
 
-version ( unittest )
+version (unittest)
 {
     private import core.thread;
     private import core.sync.mutex;

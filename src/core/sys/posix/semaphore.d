@@ -49,7 +49,7 @@ int sem_unlink(in char*);
 int sem_wait(sem_t*);
 */
 
-version ( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     private alias int __atomic_lock_t;
 
@@ -68,13 +68,13 @@ version ( CRuntime_Glibc )
 
     enum SEM_FAILED = cast(sem_t*) null;
 }
-else version ( Darwin )
+else version (Darwin)
 {
     alias int sem_t;
 
     enum SEM_FAILED = cast(sem_t*) null;
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     // FBSD-9.0 definition
     struct sem_t
@@ -96,14 +96,14 @@ else version (NetBSD)
 
     enum SEM_FAILED = cast(sem_t*) null;
 }
-else version ( OpenBSD )
+else version (OpenBSD)
 {
     struct __sem { }
     alias sem_t = __sem*;
 
     enum SEM_FAILED = cast(sem_t*) null;
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     struct sem_t
     {
@@ -131,7 +131,7 @@ else version (Solaris)
 
     enum SEM_FAILED = cast(sem_t*)-1;
 }
-else version ( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     struct sem_t
     {
@@ -140,13 +140,13 @@ else version ( CRuntime_Bionic )
 
     enum SEM_FAILED = null;
 }
-else version ( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     struct sem_t {
         int[4*long.sizeof/int.sizeof] __val;
     }
 }
-else version ( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     enum __SIZEOF_SEM_T  = 16;
 
@@ -180,15 +180,15 @@ int sem_wait(sem_t*);
 int sem_timedwait(sem_t*, in timespec*);
 */
 
-version ( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     int sem_timedwait(sem_t*, in timespec*);
 }
-else version ( Darwin )
+else version (Darwin)
 {
     int sem_timedwait(sem_t*, in timespec*);
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     int sem_timedwait(sem_t*, in timespec*);
 }
@@ -196,11 +196,11 @@ else version (NetBSD)
 {
     int sem_timedwait(sem_t*, in timespec*);
 }
-else version ( OpenBSD )
+else version (OpenBSD)
 {
     int sem_timedwait(sem_t*, in timespec*);
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     int sem_timedwait(sem_t*, in timespec*);
 }
@@ -208,15 +208,15 @@ else version (Solaris)
 {
     int sem_timedwait(sem_t*, in timespec*);
 }
-else version ( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     int sem_timedwait(sem_t*, in timespec*);
 }
-else version ( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     int sem_timedwait(sem_t*, in timespec*);
 }
-else version ( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     int sem_timedwait(sem_t*, in timespec*);
 }
