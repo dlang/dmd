@@ -397,11 +397,14 @@ extern (C++) class Dsymbol : RootObject
      * `parent` field returns a lexically enclosing scope symbol this is a member of.
      *
      * `toParent()` returns a logically enclosing scope symbol this is a member of.
-     * It skips over TemplateMixin's.
+     * It skips over TemplateMixin's and Nspaces that are mangleOnly.
      *
      * `toParent2()` returns an enclosing scope symbol this is living at runtime.
      * It skips over both TemplateInstance's and TemplateMixin's.
      * It's used when looking for the 'this' pointer of the enclosing function/class.
+     *
+     * `toParent3()` returns a logically enclosing scope symbol this is a member of.
+     * It skips over TemplateMixin's.
      *
      * Examples:
      *  module mod;
@@ -434,6 +437,11 @@ extern (C++) class Dsymbol : RootObject
         if (!parent || !parent.isTemplateInstance && !parent.isForwardingAttribDeclaration())
             return parent;
         return parent.toParent2;
+    }
+
+    final inout(Dsymbol) toParent3() inout
+    {
+        return parent ? parent.pastMixin() : null;
     }
 
     final inout(TemplateInstance) isInstantiated() inout
