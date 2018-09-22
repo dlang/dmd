@@ -35,6 +35,10 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
+#define null NULL
+typedef unsigned char ubyte;
+typedef unsigned short ushort;
+
 void dt_writeToObj(Obj& objmod, dt_t *dt, int seg, targ_size_t& offset);
 
 #if SCPP
@@ -42,7 +46,7 @@ void dt_writeToObj(Obj& objmod, dt_t *dt, int seg, targ_size_t& offset);
 /**********************************
  * We put out an external definition.
  */
-void out_extdef(symbol *s)
+void out_extdef(Symbol *s)
 {
     pstate.STflags |= PFLextdef;
     if (//config.flags2 & CFG2phgen ||
@@ -66,16 +70,17 @@ void outcsegname(char *csegname)
 /***********************************
  * Output function thunk.
  */
-extern "C" {
-void outthunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
+void outthunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
         targ_size_t d,int i,targ_size_t d2)
 {
+#if !HTOD
     sthunk->Sseg = cseg;
     cod3_thunk(sthunk,sfunc,p,thisty,d,i,d2);
     sthunk->Sfunc->Fflags &= ~Fpending;
     sthunk->Sfunc->Fflags |= Foutput;   /* mark it as having been output */
+#endif
 }
-}
+
 
 /***************************
  * Write out statically allocated data.
@@ -83,7 +88,7 @@ void outthunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
  *      s               symbol to be initialized
  */
 
-void outdata(symbol *s)
+void outdata(Symbol *s)
 {
 #if HTOD
     return;
@@ -104,7 +109,7 @@ void outdata(symbol *s)
     s->Sflags |= SFLlivexit;
 
     dt_t *dtstart = s->Sdt;
-    s->Sdt = NULL;                      // it will be free'd
+    s->Sdt = null;                      // it will be free'd
     targ_size_t datasize = 0;
     tym_t ty = s->ty();
 #if SCPP && TARGET_WINDOS
@@ -124,7 +129,6 @@ void outdata(symbol *s)
             {   // Put out the data for the string, and
                 // reserve a spot for a pointer to that string
                 datasize += size(dt->Dty);      // reserve spot for pointer to string
-#if TARGET_SEGMENTED
                 if (tybasic(dt->Dty) == TYcptr)
                 {   dt->DTseg = codeseg;
                     dt->DTabytes += Offset(codeseg);
@@ -133,23 +137,26 @@ void outdata(symbol *s)
                 else if (tybasic(dt->Dty) == TYfptr &&
                          dt->DTnbytes > config.threshold)
                 {
+#if SCPP
                     targ_size_t foffset;
                     dt->DTseg = objmod->fardata(s->Sident,dt->DTnbytes,&foffset);
                     dt->DTabytes += foffset;
+#endif
                 L1:
                     objmod->write_bytes(SegData[dt->DTseg],dt->DTnbytes,dt->DTpbytes);
                     break;
                 }
                 else
-#endif
                 {
                     dt->DTabytes += objmod->data_readonly(dt->DTpbytes,dt->DTnbytes,&dt->DTseg);
                 }
                 break;
             }
+
             case DT_ibytes:
                 datasize += dt->DTn;
                 break;
+
             case DT_nbytes:
                 //printf("DT_nbytes %d\n", dt->DTnbytes);
                 datasize += dt->DTnbytes;
@@ -167,11 +174,12 @@ void outdata(symbol *s)
                      */
                     switch (ty & mTYLINK)
                     {
-#if TARGET_SEGMENTED
+#if SCPP
                         case mTYfar:                    // if far data
                             s->Sseg = objmod->fardata(s->Sident,datasize,&s->Soffset);
                             s->Sfl = FLfardata;
                             break;
+#endif
 
                         case mTYcs:
                             s->Sseg = codeseg;
@@ -180,7 +188,7 @@ void outdata(symbol *s)
                             Offset(codeseg) += datasize;
                             s->Sfl = FLcsdata;
                             break;
-#endif
+
                         case mTYthreadData:
                             assert(config.objfmt == OBJ_MACH && I64);
                         case mTYthread:
@@ -194,6 +202,7 @@ void outdata(symbol *s)
                             s->Sfl = FLtlsdata;
                             break;
                         }
+
                         default:
                             s->Sseg = UDATA;
                             objmod->data_start(s,datasize,UDATA);
@@ -214,20 +223,21 @@ void outdata(symbol *s)
                     goto Lret;
                 }
                 break;
+
             case DT_common:
                 assert(!dt->DTnext);
                 outcommon(s,dt->DTazeros);
                 goto Lret;
 
             case DT_xoff:
-            {   symbol *sb = dt->DTsym;
+            {   Symbol *sb = dt->DTsym;
 
                 if (tyfunc(sb->ty()))
+                {
 #if SCPP
                     nwc_mustwrite(sb);
-#else
-                    ;
 #endif
+                }
                 else if (sb->Sdt)               // if initializer for symbol
 { if (!s->Sseg) s->Sseg = DATA;
                     outdata(sb);                // write out data for symbol
@@ -261,6 +271,7 @@ void outdata(symbol *s)
             case 0:
                 s->Sfl = FLdata;        // initialized data
                 break;
+
             case mTYthread:
                 s->Sfl = FLtlsdata;
                 break;
@@ -273,11 +284,12 @@ void outdata(symbol *s)
     {
       switch (ty & mTYLINK)
       {
-#if TARGET_SEGMENTED
+#if SCPP
         case mTYfar:                    // if far data
             seg = objmod->fardata(s->Sident,datasize,&s->Soffset);
             s->Sfl = FLfardata;
             break;
+#endif
 
         case mTYcs:
             seg = codeseg;
@@ -285,7 +297,7 @@ void outdata(symbol *s)
             s->Soffset = Offset(codeseg);
             s->Sfl = FLcsdata;
             break;
-#endif
+
         case mTYthreadData:
         {
             assert(config.objfmt == OBJ_MACH && I64);
@@ -315,6 +327,7 @@ void outdata(symbol *s)
             seg = objmod->data_start(s,datasize,DATA);
             s->Sfl = FLdata;            // initialized data
             break;
+
         default:
             assert(0);
       }
@@ -363,7 +376,8 @@ void dt_writeToObj(Obj& objmod, dt_t *dt, int seg, targ_size_t& offset)
     for (; dt; dt = dt->DTnext)
     {
         switch (dt->dt)
-        {   case DT_abytes:
+        {
+            case DT_abytes:
             {
                 int flags;
                 if (tyreg(dt->Dty))
@@ -375,35 +389,46 @@ void dt_writeToObj(Obj& objmod, dt_t *dt, int seg, targ_size_t& offset)
                 if (tybasic(dt->Dty) == TYcptr)
                     objmod.reftocodeseg(seg,offset,dt->DTabytes);
                 else
+                {
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
                     objmod.reftodatseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
 #else
-                /*else*/ if (dt->DTseg == DATA)
-                    objmod.reftodatseg(seg,offset,dt->DTabytes,DATA,flags);
+                    if (dt->DTseg == DATA)
+                        objmod.reftodatseg(seg,offset,dt->DTabytes,DATA,flags);
+                    else
+                    {
 #if MARS
-                else if (dt->DTseg == CDATA)
-                    objmod.reftodatseg(seg,offset,dt->DTabytes,CDATA,flags);
+                        if (dt->DTseg == CDATA)
+                            objmod.reftodatseg(seg,offset,dt->DTabytes,CDATA,flags);
+                        else
+                            objmod.reftofarseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
+#else
+                        objmod.reftofarseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
 #endif
-                else
-                    objmod.reftofarseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
+                    }
 #endif
+                }
                 offset += size(dt->Dty);
                 break;
             }
+
             case DT_ibytes:
                 objmod.bytes(seg,offset,dt->DTn,dt->DTdata);
                 offset += dt->DTn;
                 break;
+
             case DT_nbytes:
                 objmod.bytes(seg,offset,dt->DTnbytes,dt->DTpbytes);
                 offset += dt->DTnbytes;
                 break;
+
             case DT_azeros:
                 //printf("objmod.lidata(seg = %d, offset = %d, azeros = %d)\n", seg, offset, dt->DTazeros);
                 SegData[seg]->SDoffset = offset;
                 objmod.lidata(seg,offset,dt->DTazeros);
                 offset = SegData[seg]->SDoffset;
                 break;
+
             case DT_xoff:
             {
                 Symbol *sb = dt->DTsym;          // get external symbol pointer
@@ -418,10 +443,12 @@ void dt_writeToObj(Obj& objmod, dt_t *dt, int seg, targ_size_t& offset)
                 offset += objmod.reftoident(seg,offset,sb,a,flags);
                 break;
             }
+
             case DT_coff:
                 objmod.reftocodeseg(seg,offset,dt->DToffset);
                 offset += intsize;
                 break;
+
             default:
                 //printf("dt = %p, dt = %d\n",dt,dt->dt);
                 assert(0);
@@ -434,7 +461,7 @@ void dt_writeToObj(Obj& objmod, dt_t *dt, int seg, targ_size_t& offset)
  * Output n bytes of a common block, n > 0.
  */
 
-void outcommon(symbol *s,targ_size_t n)
+void outcommon(Symbol *s,targ_size_t n)
 {
     //printf("outcommon('%s',%d)\n",s->Sident,n);
     if (n != 0)
@@ -533,7 +560,7 @@ void out_readonly(Symbol *s)
  *      sz = size of each character (1, 2 or 4)
  * Returns: a Symbol pointing to it.
  */
-Symbol *out_string_literal(const char *str, unsigned len, unsigned sz)
+Symbol *out_string_literal(const char *str, uint len, uint sz)
 {
     tym_t ty = TYchar;
     if (sz == 2)
@@ -567,7 +594,7 @@ Symbol *out_string_literal(const char *str, unsigned len, unsigned sz)
         case 2:
             for (int i = 0; i < len; ++i)
             {
-                const unsigned short *p = (const unsigned short *)str;
+                const ushort *p = (const ushort *)str;
                 if (p[i] == 0)
                 {
                     s->Sseg = CDATA;
@@ -579,7 +606,7 @@ Symbol *out_string_literal(const char *str, unsigned len, unsigned sz)
         case 4:
             for (int i = 0; i < len; ++i)
             {
-                const unsigned *p = (const unsigned *)str;
+                const uint *p = (const uint *)str;
                 if (p[i] == 0)
                 {
                     s->Sseg = CDATA;
@@ -593,8 +620,8 @@ Symbol *out_string_literal(const char *str, unsigned len, unsigned sz)
     }
 
     DtBuilder dtb;
-    dtb.nbytes((unsigned)(len * sz), str);
-    dtb.nzeros((unsigned)sz);       // include terminating 0
+    dtb.nbytes((uint)(len * sz), str);
+    dtb.nzeros((uint)sz);       // include terminating 0
     s->Sdt = dtb.finish();
     s->Sfl = FLdata;
     s->Salignment = sz;
@@ -610,7 +637,7 @@ Symbol *out_string_literal(const char *str, unsigned len, unsigned sz)
 
 STATIC void outelem(elem *e, bool& addressOfParam)
 {
-    symbol *s;
+    Symbol *s;
     tym_t tym;
     elem *e1;
 #if SCPP
@@ -634,7 +661,8 @@ again:
     type_debug(t);
     tym = t->Tty;
     switch (tybasic(tym))
-    {   case TYstruct:
+    {
+        case TYstruct:
             t->Tcount++;
             break;
 
@@ -649,16 +677,16 @@ again:
         case TYvtshape:
         case TYnullptr:
             tym = tym_conv(t);
-            e->ET = NULL;
+            e->ET = null;
             break;
 
         case TYenum:
             tym = tym_conv(t->Tnext);
-            e->ET = NULL;
+            e->ET = null;
             break;
 
         default:
-            e->ET = NULL;
+            e->ET = null;
             break;
     }
     e->Nflags = 0;
@@ -751,6 +779,7 @@ again:
             case SCmember:
                 err_noinstance(s->Sscope,s);
                 goto L5;
+
             case SCstruct:
                 cpperr(EM_no_instance,s->Sident);       // no instance of class
             L5:
@@ -761,11 +790,14 @@ again:
             case SCfuncalias:
                 e->EV.sp.Vsym = s->Sfunc->Falias;
                 goto L6;
+
             case SCstack:
                 break;
+
             case SCfunctempl:
                 cpperr(EM_no_template_instance, s->Sident);
                 break;
+
             default:
                 symbol_print(s);
                 WRclass((enum SC) s->Sclass);
@@ -775,11 +807,7 @@ again:
 #if SCPP
         if (tyfunc(s->ty()))
         {
-#if SCPP
             nwc_mustwrite(s);           /* must write out function      */
-#else
-            ;
-#endif
         }
         else if (s->Sdt)                /* if initializer for symbol    */
             outdata(s);                 // write out data for symbol
@@ -789,10 +817,12 @@ again:
         }
 #endif
         break;
+
     case OPstring:
     case OPconst:
     case OPstrthis:
         break;
+
     case OPsizeof:
 #if SCPP
         e->Eoper = OPconst;
@@ -824,6 +854,7 @@ again:
         if (e1->Eoper == OPvar)
             e1->EV.sp.Vsym->Sflags &= ~GTregcand;
         goto Lop;
+
     case OPmark:
         break;
 #endif
@@ -931,11 +962,15 @@ STATIC void out_regcand_walk(elem *e, bool& addressOfParam)
                         else
                             s->Sflags &= ~(SFLunambig | GTregcand);
                         break;
+
                     case SCauto:
                     case SCregister:
                     case SCfastpar:
                     case SCbprel:
                         s->Sflags &= ~(SFLunambig | GTregcand);
+                        break;
+
+                    default:
                         break;
                 }
             }
@@ -960,9 +995,9 @@ STATIC void out_regcand_walk(elem *e, bool& addressOfParam)
  * and write it out.
  */
 
-STATIC void writefunc2(symbol *sfunc);
+STATIC void writefunc2(Symbol *sfunc);
 
-void writefunc(symbol *sfunc)
+void writefunc(Symbol *sfunc)
 {
 #if HTOD
     return;
@@ -971,11 +1006,11 @@ void writefunc(symbol *sfunc)
 #else
     cstate.CSpsymtab = &globsym;
     writefunc2(sfunc);
-    cstate.CSpsymtab = NULL;
+    cstate.CSpsymtab = null;
 #endif
 }
 
-STATIC void writefunc2(symbol *sfunc)
+STATIC void writefunc2(Symbol *sfunc)
 {
     func_t *f = sfunc->Sfunc;
 
@@ -1013,17 +1048,18 @@ STATIC void writefunc2(symbol *sfunc)
     f->Fflags &= ~Fpending;
     f->Fflags |= Foutput;
 
-    if (
 #if SCPP
-        errcnt ||
+    if (errcnt)
+        return;
 #endif
-        (eecontext.EEcompile && eecontext.EEfunc != sfunc))
+
+    if (eecontext.EEcompile && eecontext.EEfunc != sfunc)
         return;
 
     /* Copy local symbol table onto main one, making sure       */
     /* that the symbol numbers are adjusted accordingly */
     //dbg_printf("f->Flocsym.top = %d\n",f->Flocsym.top);
-    unsigned nsymbols = f->Flocsym.top;
+    uint nsymbols = f->Flocsym.top;
     if (nsymbols > globsym.symmax)
     {   /* Reallocate globsym.tab[]     */
         globsym.symmax = nsymbols;
@@ -1031,10 +1067,10 @@ STATIC void writefunc2(symbol *sfunc)
     }
     debug(debugy && dbg_printf("appending symbols to symtab...\n"));
     assert(globsym.top == 0);
-    memcpy(&globsym.tab[0],&f->Flocsym.tab[0],nsymbols * sizeof(symbol *));
+    memcpy(&globsym.tab[0],&f->Flocsym.tab[0],nsymbols * sizeof(Symbol *));
     globsym.top = nsymbols;
 
-    assert(startblock == NULL);
+    assert(startblock == null);
     if (f->Fflags & Finline)            // if keep function around
     {   // Generate copy of function
 
@@ -1053,7 +1089,7 @@ STATIC void writefunc2(symbol *sfunc)
     }
     else
     {   startblock = sfunc->Sfunc->Fstartblock;
-        sfunc->Sfunc->Fstartblock = NULL;
+        sfunc->Sfunc->Fstartblock = null;
     }
     assert(startblock);
 
@@ -1066,7 +1102,7 @@ STATIC void writefunc2(symbol *sfunc)
     /* If function is _STIxxxx, add in the auto destructors             */
     if (cpp_stidtors && memcmp("__SI",sfunc->Sident,4) == 0)
     {
-        assert(startblock->Bnext == NULL);
+        assert(startblock->Bnext == null);
         list_t el = cpp_stidtors;
         do
         {
@@ -1076,7 +1112,7 @@ STATIC void writefunc2(symbol *sfunc)
         list_free(&cpp_stidtors,FPNULL);
     }
 #endif
-    assert(funcsym_p == NULL);
+    assert(funcsym_p == null);
     funcsym_p = sfunc;
     tym_t tyf = tybasic(sfunc->ty());
 
@@ -1092,7 +1128,7 @@ STATIC void writefunc2(symbol *sfunc)
 #endif
 
     for (SYMIDX si = 0; si < globsym.top; si++)
-    {   symbol *s = globsym.tab[si];
+    {   Symbol *s = globsym.tab[si];
 
         symbol_debug(s);
         //printf("symbol %d '%s'\n",si,s->Sident);
@@ -1106,10 +1142,12 @@ STATIC void writefunc2(symbol *sfunc)
             case SCbprel:
                 s->Sfl = FLbprel;
                 goto L3;
+
             case SCauto:
             case SCregister:
                 s->Sfl = FLauto;
                 goto L3;
+
 #if SCPP
             case SCfastpar:
             case SCregpar:
@@ -1128,6 +1166,7 @@ STATIC void writefunc2(symbol *sfunc)
             case SCfastpar:
                 s->Sfl = FLfast;
                 goto L3;
+
             case SCregpar:
             case SCparameter:
             case SCshadowreg:
@@ -1141,14 +1180,18 @@ STATIC void writefunc2(symbol *sfunc)
                 if (!(s->ty() & mTYvolatile))
                     s->Sflags |= GTregcand | SFLunambig; // assume register candidate   */
                 break;
+
             case SCpseudo:
                 s->Sfl = FLpseudo;
                 break;
+
             case SCstatic:
                 break;                  // already taken care of by datadef()
+
             case SCstack:
                 s->Sfl = FLstack;
                 break;
+
             default:
                 symbol_print(s);
                 assert(0);
@@ -1187,7 +1230,7 @@ STATIC void writefunc2(symbol *sfunc)
     }
     PARSER = 0;
     if (eecontext.EEelem)
-    {   unsigned marksi = globsym.top;
+    {   uint marksi = globsym.top;
 
         eecontext.EEin++;
         outelem(eecontext.EEelem, addressOfParam);
@@ -1259,7 +1302,9 @@ STATIC void writefunc2(symbol *sfunc)
         else
             if (config.flags & CFGsegs) // if user set switch for this
             {
-#if SCPP || TARGET_WINDOS
+#if SCPP
+                objmod->codeseg(cpp_mangle(funcsym_p),1);
+#elif TARGET_WINDOS
                 objmod->codeseg(cpp_mangle(funcsym_p),1);
 #else
                 objmod->codeseg(funcsym_p->Sident, 1);
@@ -1409,16 +1454,17 @@ STATIC void writefunc2(symbol *sfunc)
 #if _M_I86
         short *p = (short *) sfunc->Sident;
         if (p[0] == 'S_' && (p[1] == 'IT' || p[1] == 'DT'))
+            objmod->setModuleCtorDtor(sfunc, sfunc->Sident[3] == 'I');
 #else
         char *p = sfunc->Sident;
         if (p[0] == '_' && p[1] == 'S' && p[2] == 'T' &&
             (p[3] == 'I' || p[3] == 'D'))
-#endif
             objmod->setModuleCtorDtor(sfunc, sfunc->Sident[3] == 'I');
+#endif
     }
 
 Ldone:
-    funcsym_p = NULL;
+    funcsym_p = null;
 
 #if SCPP
     // Free any added symbols
@@ -1428,7 +1474,7 @@ Ldone:
 
     //dbg_printf("done with writefunc()\n");
     util_free(dfo);
-    dfo = NULL;
+    dfo = null;
 }
 
 /*************************
@@ -1456,9 +1502,9 @@ void alignOffset(int seg,targ_size_t datasize)
 #define ROMAX 32
 struct Readonly
 {
-    symbol *sym;
+    Symbol *sym;
     size_t length;
-    unsigned char p[ROMAX];
+    ubyte p[ROMAX];
 };
 
 #define RMAX 16
@@ -1472,15 +1518,15 @@ void out_reset()
     readonly_i = 0;
 }
 
-symbol *out_readonly_sym(tym_t ty, void *p, int len)
+Symbol *out_readonly_sym(tym_t ty, void *p, int len)
 {
 #if HTOD
-    return NULL;
+    return null;
 #endif
 #if 0
     printf("out_readonly_sym(ty = x%x)\n", ty);
     for (int i = 0; i < len; i++)
-        printf(" [%d] = %02x\n", i, ((unsigned char*)p)[i]);
+        printf(" [%d] = %02x\n", i, ((ubyte*)p)[i]);
 #endif
     // Look for previous symbol we can reuse
     for (int i = 0; i < readonly_length; i++)
@@ -1502,7 +1548,7 @@ symbol *out_readonly_sym(tym_t ty, void *p, int len)
     }
     else
     {
-        unsigned sz = tysize(ty);
+        uint sz = tysize(ty);
 
         alignOffset(DATA, sz);
         s = symboldata(Offset(DATA),ty | mTYconst);
@@ -1540,7 +1586,7 @@ symbol *out_readonly_sym(tym_t ty, void *p, int len)
  *      len = length of that data
  *      nzeros = number of trailing zeros to append
  */
-void out_readonly_comdat(Symbol *s, const void *p, unsigned len, unsigned nzeros)
+void out_readonly_comdat(Symbol *s, const void *p, uint len, uint nzeros)
 {
     objmod->readonly_comdat(s);         // create comdat segment
     objmod->write_bytes(SegData[s->Sseg], len, (void *)p);
@@ -1553,7 +1599,7 @@ void Srcpos::print(const char *func)
 #if MARS
     printf("Sfilename = %s", Sfilename ? Sfilename : "null");
 #else
-    Sfile *sf = Sfilptr ? *Sfilptr : NULL;
+    Sfile *sf = Sfilptr ? *Sfilptr : null;
     printf("Sfilptr = %p (filename = %s)", sf, sf ? sf->SFname : "null");
 #endif
     printf(", Slinnum = %u", Slinnum);
