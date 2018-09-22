@@ -113,45 +113,37 @@ else version (Win64)
 }
 else version (OSX)
 {
-    alias int8_t   = byte;   ///
-    alias int16_t  = short;  ///
-    alias uint8_t  = ubyte;  ///
-    alias uint16_t = ushort; ///
-    alias int32_t  = int;    ///
-    alias uint32_t = uint;   ///
+    alias int8_t   = byte;          ///
+    alias int16_t  = short;         ///
+    alias uint8_t  = ubyte;         ///
+    alias uint16_t = ushort;        ///
+    alias int32_t  = int;           ///
+    alias uint32_t = uint;          ///
     alias int64_t  = cpp_longlong;  ///
     alias uint64_t = cpp_ulonglong; ///
 
-    alias int_least8_t   = byte;   ///
-    alias uint_least8_t  = ubyte;  ///
-    alias int_least16_t  = short;  ///
-    alias uint_least16_t = ushort; ///
-    alias int_least32_t  = int;    ///
-    alias uint_least32_t = uint;   ///
+    alias int_least8_t   = byte;     ///
+    alias uint_least8_t  = ubyte;    ///
+    alias int_least16_t  = short;    ///
+    alias uint_least16_t = ushort;   ///
+    alias int_least32_t  = int;      ///
+    alias uint_least32_t = uint;     ///
     alias int_least64_t  = int64_t;  ///
     alias uint_least64_t = uint64_t; ///
 
-    alias int_fast8_t   = byte;  ///
-    alias uint_fast8_t  = ubyte; ///
-    alias int_fast16_t  = short;  ///
-    alias uint_fast16_t = ushort; ///
-    alias int_fast32_t  = int;   ///
-    alias uint_fast32_t = uint;  ///
+    alias int_fast8_t   = byte;     ///
+    alias uint_fast8_t  = ubyte;    ///
+    alias int_fast16_t  = short;    ///
+    alias uint_fast16_t = ushort;   ///
+    alias int_fast32_t  = int;      ///
+    alias uint_fast32_t = uint;     ///
     alias int_fast64_t  = int64_t;  ///
     alias uint_fast64_t = uint64_t; ///
 
     alias intptr_t  = cpp_long;  ///
     alias uintptr_t = cpp_ulong; ///
-    version (D_LP64)
-    {
-        alias intmax_t  = cpp_long;  ///
-        alias uintmax_t = cpp_ulong; ///
-    }
-    else
-    {
-        alias intmax_t  = long;  ///
-        alias uintmax_t = ulong; ///
-    }
+    alias intmax_t  = long;      ///
+    alias uintmax_t = ulong;     ///
 }
 else version (Posix)
 {
