@@ -5,8 +5,8 @@
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Authors:   Martin Nowak
  */
-import core.cpuid, std.algorithm, std.datetime, std.meta, std.stdio, std.string,
-    std.range;
+import core.cpuid, std.algorithm, std.meta, std.stdio, std.string, std.range;
+import std.datetime.stopwatch : benchmark, StopWatch, AutoStart;
 
 float[6] getLatencies(T, string op)()
 {
@@ -33,7 +33,7 @@ float[6] getLatencies(T, string op)()
                     .replace("c", "c[off .. off + len]");
                 mixin(op ~ ";");
             }
-            latency = min(latency, sw.peek.nsecs);
+            latency = min(latency, sw.peek.total!"nsecs");
         }
     }
     float[6] res = latencies[] / 1024;
@@ -69,7 +69,7 @@ float[4] getThroughput(T, string op)()
                     .replace("c", "c[off .. off + len]");
                 mixin(op ~ ";");
             }
-            immutable nsecs = sw.peek.nsecs;
+            immutable nsecs = sw.peek.total!"nsecs";
             runMasked({latency = min(latency, nsecs);});
         }
     }
