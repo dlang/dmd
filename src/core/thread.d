@@ -3678,7 +3678,11 @@ private
 
   // Look above the definition of 'class Fiber' for some information about the implementation of this routine
   version (AsmExternal)
-    extern (C) void fiber_switchContext( void** oldp, void* newp ) nothrow @nogc;
+  {
+      extern (C) void fiber_switchContext( void** oldp, void* newp ) nothrow @nogc;
+      version (AArch64)
+          extern (C) void fiber_trampoline() nothrow;
+  }
   else
     extern (C) void fiber_switchContext( void** oldp, void* newp ) nothrow @nogc
     {
@@ -4908,7 +4912,7 @@ private:
             // Only need to set return address (lr).  Everything else is fine
             // zero initialized.
             pstack -= size_t.sizeof * 11;    // skip past x19-x29
-            push(cast(size_t) &fiber_entryPoint);
+            push(cast(size_t) &fiber_trampoline); // see threadasm.S for docs
             pstack += size_t.sizeof;         // adjust sp (newp) above lr
         }
         else version (AsmARM_Posix)
