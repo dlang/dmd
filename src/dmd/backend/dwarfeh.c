@@ -30,39 +30,44 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
+#define null NULL
+typedef unsigned char ubyte;
+typedef unsigned short ushort;
+
+
 int actionTableInsert(Outbuffer *atbuf, int ttindex, int nextoffset);
 
-unsigned long uLEB128(unsigned char **p);
-long sLEB128(unsigned char **p);
-unsigned uLEB128size(unsigned value);
-unsigned sLEB128size(int value);
+uint uLEB128(ubyte **p);
+int sLEB128(ubyte **p);
+uint uLEB128size(uint value);
+uint sLEB128size(int value);
 
 void unittest_dwarfeh();
 
 struct DwEhTableEntry
 {
-    unsigned start;
-    unsigned end;       // 1 past end
-    unsigned lpad;      // landing pad
-    unsigned action;    // index into Action Table
+    uint start;
+    uint end;           // 1 past end
+    uint lpad;          // landing pad
+    uint action;        // index into Action Table
     block *bcatch;      // catch block data
     int prev;           // index to enclosing entry (-1 for none)
 };
 
 struct DwEhTable
 {
-    DwEhTableEntry *ptr;        // pointer to table
-    unsigned dim;               // current amount used
-    unsigned capacity;
+    DwEhTableEntry *ptr;    // pointer to table
+    uint dim;               // current amount used
+    uint capacity;
 
-    DwEhTableEntry *index(unsigned i)
+    DwEhTableEntry *index(uint i)
     {
         if (i >= dim) printf("i = %d dim = %d\n", i, dim);
         assert(i < dim);
         return ptr + i;
     }
 
-    unsigned push()
+    uint push()
     {
         assert(dim <= capacity);
         if (dim == capacity)
@@ -89,7 +94,7 @@ static DwEhTable dwehtable;
  *      retoffset = offset from start of function to epilog
  */
 
-void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned startoffset, unsigned retoffset)
+void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, uint startoffset, uint retoffset)
 {
 #ifdef DEBUG
     unittest_dwarfeh();
@@ -123,7 +128,7 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
     printf("-------------------------\n");
 #endif
 
-    unsigned startsize = et->size();
+    uint startsize = et->size();
     assert((startsize & 3) == 0);       // should be aligned
 
     DwEhTable *deh = &dwehtable;
@@ -134,10 +139,10 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
     /* Build deh table, and Action Table
      */
     int index = -1;
-    block *bprev = NULL;
+    block *bprev = null;
     // The first entry encompasses the entire function
     {
-        unsigned i = deh->push();
+        uint i = deh->push();
         DwEhTableEntry *d = deh->index(i);
         d->start = startblock->Boffset + startoffset;
         d->end = startblock->Boffset + retoffset;
@@ -156,7 +161,7 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
         }
         if (b->BC == BC_try)
         {
-            unsigned i = deh->push();
+            uint i = deh->push();
             DwEhTableEntry *d = deh->index(i);
             d->start = b->Boffset;
 
@@ -165,11 +170,11 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
             {
                 d->lpad = bf->Boffset;
                 d->bcatch = bf;
-                unsigned *pat = bf->BS.BIJCATCH.actionTable;
-                unsigned length = pat[0];
+                uint *pat = bf->BS.BIJCATCH.actionTable;
+                uint length = pat[0];
                 assert(length);
-                unsigned offset = -1;
-                for (unsigned u = length; u; --u)
+                uint offset = -1;
+                for (uint u = length; u; --u)
                 {
                     /* Buy doing depth-first insertion into the Action Table,
                      * we can combine common tails.
@@ -186,13 +191,13 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
         }
         if (scancode)
         {
-            unsigned coffset = b->Boffset;
+            uint coffset = b->Boffset;
             int n = 0;
             for (code *c = b->Bcode; c; c = code_next(c))
             {
                 if (c->Iop == (ESCAPE | ESCdctor))
                 {
-                    unsigned i = deh->push();
+                    uint i = deh->push();
                     DwEhTableEntry *d = deh->index(i);
                     d->start = coffset;
                     d->prev = index;
@@ -222,8 +227,8 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
      * and generate nested ranges reflecting the layout in the code.
      */
     assert(deh->dim);
-    unsigned end = deh->index(0)->start;
-    for (unsigned i = 0; i < deh->dim; ++i)
+    uint end = deh->index(0)->start;
+    for (uint i = 0; i < deh->dim; ++i)
     {
         DwEhTableEntry *d = deh->index(i);
         if (d->start < d->end)
@@ -235,13 +240,13 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
 #else
                 assert(0);
 #endif
-                unsigned CallSiteStart = d->start - startblock->Boffset;
+                uint CallSiteStart = d->start - startblock->Boffset;
                 cstbuf.WRITE(CallSiteStart);
-                unsigned CallSiteRange = d->end - d->start;
+                uint CallSiteRange = d->end - d->start;
                 cstbuf.WRITE(CallSiteRange);
-                unsigned LandingPad = d->lpad ? d->lpad - startblock->Boffset : 0;
+                uint LandingPad = d->lpad ? d->lpad - startblock->Boffset : 0;
                 cstbuf.WRITE(LandingPad);
-                unsigned ActionTable = d->action;
+                uint ActionTable = d->action;
                 cstbuf.writeuLEB128(ActionTable);
                 //printf("\t%x %x %x %x\n", CallSiteStart, CallSiteRange, LandingPad, ActionTable);
                 #undef WRITE
@@ -256,10 +261,10 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
      * be overlapping entries in the Call Site Table.
      */
     assert(deh->dim);
-    unsigned end = deh->index(0)->start;
-    for (unsigned i = 0; i < deh->dim; ++i)
+    uint end = deh->index(0)->start;
+    for (uint i = 0; i < deh->dim; ++i)
     {
-        unsigned j = i;
+        uint j = i;
         do
         {
             DwEhTableEntry *d = deh->index(j);
@@ -267,8 +272,8 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
             //  j, d->start, d->end, d->lpad, d->action, d->bcatch, d->prev);
             if (d->start <= end && end < d->end)
             {
-                unsigned start = end;
-                unsigned dend = d->end;
+                uint start = end;
+                uint dend = d->end;
                 if (i + 1 < deh->dim)
                 {
                     DwEhTableEntry *dnext = deh->index(i + 1);
@@ -284,13 +289,13 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
 #else
                     assert(0);
 #endif
-                    unsigned CallSiteStart = start - startblock->Boffset;
+                    uint CallSiteStart = start - startblock->Boffset;
                     cstbuf.WRITE(CallSiteStart);
-                    unsigned CallSiteRange = dend - start;
+                    uint CallSiteRange = dend - start;
                     cstbuf.WRITE(CallSiteRange);
-                    unsigned LandingPad = d->lpad - startblock->Boffset;
+                    uint LandingPad = d->lpad - startblock->Boffset;
                     cstbuf.WRITE(LandingPad);
-                    unsigned ActionTable = d->action;
+                    uint ActionTable = d->action;
                     cstbuf.WRITE(ActionTable);
                     //printf("\t%x %x %x %x\n", CallSiteStart, CallSiteRange, LandingPad, ActionTable);
                     #undef WRITE
@@ -303,13 +308,13 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
 #endif
 
     /* Write LSDT header */
-    const unsigned char LPstart = DW_EH_PE_omit;
+    const ubyte LPstart = DW_EH_PE_omit;
     et->writeByte(LPstart);
-    unsigned LPbase = 0;
+    uint LPbase = 0;
     if (LPstart != DW_EH_PE_omit)
         et->writeuLEB128(LPbase);
 
-    const unsigned char TType = (config.flags3 & CFG3pic)
+    const ubyte TType = (config.flags3 & CFG3pic)
                                 ? DW_EH_PE_indirect | DW_EH_PE_pcrel | DW_EH_PE_sdata4
                                 : DW_EH_PE_absptr | DW_EH_PE_udata4;
     et->writeByte(TType);
@@ -323,30 +328,30 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
      *  6. Types Table
      * Iterate until it converges.
      */
-    unsigned TTbase = 1;
-    unsigned CallSiteTableSize = cstbuf.size();
-    unsigned oldTTbase;
+    uint TTbase = 1;
+    uint CallSiteTableSize = cstbuf.size();
+    uint oldTTbase;
     do
     {
         oldTTbase = TTbase;
-        unsigned start = (et->size() - startsize) + uLEB128size(TTbase);
+        uint start = (et->size() - startsize) + uLEB128size(TTbase);
         TTbase = 1 +
                 uLEB128size(CallSiteTableSize) +
                 CallSiteTableSize +
                 atbuf.size();
-        unsigned sz = start + TTbase;
+        uint sz = start + TTbase;
         TTbase += -sz & 3;      // align to 4
         TTbase += sfunc->Sfunc->typesTableDim * 4;
     } while (TTbase != oldTTbase);
 
     if (TType != DW_EH_PE_omit)
         et->writeuLEB128(TTbase);
-    unsigned TToffset = TTbase + et->size() - startsize;
+    uint TToffset = TTbase + et->size() - startsize;
 
 #if ELFOBJ
-    const unsigned char CallSiteFormat = DW_EH_PE_absptr | DW_EH_PE_uleb128;
+    const ubyte CallSiteFormat = DW_EH_PE_absptr | DW_EH_PE_uleb128;
 #elif MACHOBJ
-    const unsigned char CallSiteFormat = DW_EH_PE_absptr | DW_EH_PE_udata4;
+    const ubyte CallSiteFormat = DW_EH_PE_absptr | DW_EH_PE_udata4;
 #else
     assert(0);
 #endif
@@ -361,7 +366,7 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
     et->write(&atbuf);
 
     /* Align to 4 */
-    for (unsigned n = (-et->size() & 3); n; --n)
+    for (uint n = (-et->size() & 3); n; --n)
         et->writeByte(0);
 
     /* Write out Types Table in reverse */
@@ -392,13 +397,13 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
 int actionTableInsert(Outbuffer *atbuf, int ttindex, int nextoffset)
 {
     //printf("actionTableInsert(%d, %d)\n", ttindex, nextoffset);
-    unsigned char *p;
+    ubyte *p;
     for (p = atbuf->buf; p < atbuf->p; )
     {
         int offset = p - atbuf->buf;
-        long TypeFilter = sLEB128(&p);
+        int TypeFilter = sLEB128(&p);
         int nrpoffset = p - atbuf->buf;
-        long NextRecordPtr = sLEB128(&p);
+        int NextRecordPtr = sLEB128(&p);
 
         if (ttindex == TypeFilter &&
             nextoffset == nrpoffset + NextRecordPtr)
@@ -433,7 +438,7 @@ void unittest_actionTableInsert()
         offset = actionTableInsert(&atbuf, tt2[i], offset);
     }
 
-    static unsigned char result[] = { 3,0,2,0x7D,1,0x7D,2,0 };
+    static ubyte result[] = { 3,0,2,0x7D,1,0x7D,2,0 };
     //for (int i = 0; i < atbuf.size(); ++i) printf(" %02x\n", atbuf.buf[i]);
     assert(sizeof(result) == atbuf.size());
     int r = memcmp(result, atbuf.buf, atbuf.size());
@@ -451,14 +456,14 @@ void unittest_actionTableInsert()
  * See_Also:
  *      https://en.wikipedia.org/wiki/LEB128
  */
-unsigned long uLEB128(unsigned char **p)
+uint uLEB128(ubyte **p)
 {
-    unsigned char *q = *p;
-    unsigned long result = 0;
-    unsigned shift = 0;
+    ubyte *q = *p;
+    uint result = 0;
+    uint shift = 0;
     while (1)
     {
-        unsigned char byte = *q++;
+        ubyte byte = *q++;
         result |= (byte & 0x7F) << shift;
         if ((byte & 0x80) == 0)
             break;
@@ -478,13 +483,13 @@ unsigned long uLEB128(unsigned char **p)
  * See_Also:
  *      https://en.wikipedia.org/wiki/LEB128
  */
-long sLEB128(unsigned char **p)
+int sLEB128(ubyte **p)
 {
-    unsigned char *q = *p;
-    unsigned char byte;
+    ubyte *q = *p;
+    ubyte byte;
 
-    long result = 0;
-    unsigned shift = 0;
+    int result = 0;
+    uint shift = 0;
     while (1)
     {
         byte = *q++;
@@ -508,13 +513,13 @@ long sLEB128(unsigned char **p)
  * See_Also:
  *      https://en.wikipedia.org/wiki/LEB128
  */
-unsigned sLEB128size(int value)
+uint sLEB128size(int value)
 {
-    unsigned size = 0;
+    uint size = 0;
     while (1)
     {
         ++size;
-        unsigned char b = value & 0x40;
+        ubyte b = value & 0x40;
 
         value >>= 7;            // arithmetic right shift
         if (value == 0 && !b ||
@@ -535,9 +540,9 @@ unsigned sLEB128size(int value)
  * See_Also:
  *      https://en.wikipedia.org/wiki/LEB128
  */
-unsigned uLEB128size(unsigned value)
+uint uLEB128size(uint value)
 {
-    unsigned size = 1;
+    uint size = 1;
     while ((value >>= 7) != 0)
         ++size;
     return size;
@@ -561,7 +566,7 @@ void unittest_LEB128()
         buf.reset();
         buf.writeuLEB128(value);
         assert(buf.size() == uLEB128size(value));
-        unsigned char *p = buf.buf;
+        ubyte *p = buf.buf;
         int result = uLEB128(&p);
         assert(p == buf.p);
         assert(result == value);
