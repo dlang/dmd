@@ -18,7 +18,6 @@
 class Identifier;
 class Type;
 class Expression;
-class VarDeclaration;
 
 class EnumDeclaration : public ScopeDsymbol
 {

@@ -28,8 +28,6 @@ struct Scope;
 class Expression;
 class FuncDeclaration;
 class Parameter;
-enum MATCH;
-enum PASS;
 
 class Tuple : public RootObject
 {

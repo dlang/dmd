@@ -28,7 +28,6 @@ class TypeInfoDeclaration;
 class Dsymbol;
 class TemplateInstance;
 class TemplateDeclaration;
-enum LINK;
 
 class TypeBasic;
 class Parameter;

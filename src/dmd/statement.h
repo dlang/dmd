@@ -26,7 +26,6 @@ class ExpStatement;
 class DefaultStatement;
 class VarDeclaration;
 class Condition;
-struct Token;
 class ErrorStatement;
 class ReturnStatement;
 class CompoundStatement;
