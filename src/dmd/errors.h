@@ -10,8 +10,6 @@
 
 #pragma once
 
-#include "globals.h"
-
 bool isConsoleColorSupported();
 
 #if defined(__GNUC__)

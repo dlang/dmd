@@ -10,7 +10,6 @@
 
 #pragma once
 
-#include "root/root.h"
 #include "arraytypes.h"
 #include "dsymbol.h"
 

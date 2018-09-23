@@ -10,7 +10,6 @@
 
 #pragma once
 
-#include "root/root.h"
 #include "dsymbol.h"
 
 struct ModuleDeclaration;

@@ -12,7 +12,6 @@
 
 #include "root/dcompat.h"
 #include "root/root.h"
-#include "root/rmem.h"
 #include "root/stringtable.h"
 
 class Identifier : public RootObject

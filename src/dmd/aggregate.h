@@ -10,10 +10,7 @@
 
 #pragma once
 
-#include "root/root.h"
-
 #include "dsymbol.h"
-#include "declaration.h"
 #include "objc.h"
 
 class Identifier;

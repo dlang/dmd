@@ -10,7 +10,6 @@
 
 #pragma once
 
-#include "root/root.h"
 #include "root/stringtable.h"
 #include "root/rmem.h" // for d_size_t
 
