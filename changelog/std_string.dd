@@ -1,0 +1,3 @@
+Added `core.stdcpp.string`.
+
+Added `core.stdcpp.string`, which links against C++ `std::string`
