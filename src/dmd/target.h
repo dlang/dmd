@@ -22,6 +22,7 @@ class Expression;
 class Parameter;
 class Type;
 class TypeTuple;
+class TypeFunction;
 class Module;
 
 struct Target

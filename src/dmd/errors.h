@@ -10,6 +10,8 @@
 
 #pragma once
 
+struct Loc;
+
 bool isConsoleColorSupported();
 
 #if defined(__GNUC__)

@@ -12,6 +12,7 @@
 
 #include "dsymbol.h"
 #include "mtype.h"
+#include "tokens.h"
 
 class Expression;
 class Statement;

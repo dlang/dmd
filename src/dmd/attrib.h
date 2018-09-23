@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "root/port.h"
 #include "dsymbol.h"
 
 class Expression;
