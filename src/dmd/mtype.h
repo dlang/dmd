@@ -14,7 +14,7 @@
 #include "root/rmem.h" // for d_size_t
 
 #include "arraytypes.h"
-#include "expression.h"
+#include "globals.h"
 #include "visitor.h"
 
 struct Scope;
