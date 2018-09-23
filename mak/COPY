@@ -50,6 +50,7 @@ COPY=\
 	$(IMPDIR)\core\stdc\wchar_.d \
 	$(IMPDIR)\core\stdc\wctype.d \
 	\
+	$(IMPDIR)\core\stdcpp\allocator.d \
 	$(IMPDIR)\core\stdcpp\array.d \
 	$(IMPDIR)\core\stdcpp\exception.d \
 	$(IMPDIR)\core\stdcpp\new_.d \
