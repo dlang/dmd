@@ -12,7 +12,18 @@
 
 #include <string.h>                     // memset()
 
-#include "dsymbol.h"
+#include "globals.h"
+#include "arraytypes.h"
+
+class Expression;
+class Initializer;
+class Module;
+class Statement;
+class Dsymbol;
+class TemplateParameter;
+class TemplateInstance;
+class TemplateDeclaration;
+class TypeFunction;
 
 void genhdrfile(Module *m);
 
