@@ -13,12 +13,9 @@
 #include "root/root.h"
 #include "dsymbol.h"
 
-class ClassDeclaration;
 struct ModuleDeclaration;
 struct Macro;
 struct Escape;
-class VarDeclaration;
-class Library;
 
 enum PKG
 {

@@ -23,7 +23,6 @@ class Parameter;
 class Type;
 class TypeTuple;
 class Module;
-struct OutBuffer;
 
 struct Target
 {

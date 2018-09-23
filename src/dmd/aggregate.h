@@ -23,7 +23,6 @@ class Expression;
 class FuncDeclaration;
 class CtorDeclaration;
 class DtorDeclaration;
-class InvariantDeclaration;
 class NewDeclaration;
 class DeleteDeclaration;
 class InterfaceDeclaration;

@@ -14,13 +14,10 @@
 #include "root/stringtable.h"
 
 class AggregateDeclaration;
-class Identifier;
 class FuncDeclaration;
 class ClassDeclaration;
 class InterfaceDeclaration;
 struct Scope;
-class StructDeclaration;
-class Type;
 
 struct ObjcSelector
 {

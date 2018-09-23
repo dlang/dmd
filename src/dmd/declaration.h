@@ -17,7 +17,6 @@ class Expression;
 class Statement;
 class LabelDsymbol;
 class Initializer;
-class Module;
 class ForeachStatement;
 struct Ensure
 {
@@ -25,7 +24,6 @@ struct Ensure
     Statement *ensure;
 };
 class FuncDeclaration;
-class ExpInitializer;
 class StructDeclaration;
 struct CompiledCtfeFunction;
 struct ObjcSelector;

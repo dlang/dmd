@@ -18,9 +18,7 @@
 
 class Identifier;
 class Expression;
-struct Scope;
 class Type;
-class AggregateDeclaration;
 class ErrorInitializer;
 class VoidInitializer;
 class StructInitializer;

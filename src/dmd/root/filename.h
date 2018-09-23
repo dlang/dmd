@@ -12,8 +12,6 @@
 #include "array.h"
 #include "dcompat.h"
 
-class RootObject;
-
 template <typename TYPE> struct Array;
 typedef Array<const char *> Strings;
 

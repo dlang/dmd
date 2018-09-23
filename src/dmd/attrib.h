@@ -13,10 +13,6 @@
 #include "dsymbol.h"
 
 class Expression;
-class Statement;
-class LabelDsymbol;
-class Initializer;
-class Module;
 class Condition;
 class StaticForeach;
 

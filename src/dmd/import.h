@@ -16,7 +16,6 @@ class Identifier;
 struct Scope;
 class Module;
 class Package;
-class AliasDeclaration;
 
 class Import : public Dsymbol
 {
