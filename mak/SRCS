@@ -47,6 +47,7 @@ SRCS=\
 	src\core\stdc\wchar_.d \
 	\
 	src\core\stdcpp\array.d \
+	src\core\stdcpp\string_view.d \
 	src\core\stdcpp\xutility.d \
 	\
 	src\core\sync\barrier.d \

@@ -1,0 +1,3 @@
+Added `core.stdcpp.string_view`.
+
+Added `core.stdcpp.string_view`, which links against C++ `std::string_view`
