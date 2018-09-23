@@ -81,6 +81,19 @@ extern (C++) void genhdrfile(Module m)
     writeFile(m.loc, m.hdrfile);
 }
 
+/**
+ * Dumps the full contents of module `m` to `buf`.
+ * Params:
+ *   buf = buffer to write to.
+ *   m = module to visit all members of.
+ */
+extern (C++) void moduleToBuffer(OutBuffer* buf, Module m)
+{
+    HdrGenState hgs;
+    hgs.fullDump = true;
+    toCBuffer(m, buf, &hgs);
+}
+
 extern (C++) final class PrettyPrintVisitor : Visitor
 {
     alias visit = Visitor.visit;

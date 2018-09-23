@@ -26,6 +26,7 @@ class TemplateDeclaration;
 class TypeFunction;
 
 void genhdrfile(Module *m);
+void moduleToBuffer(OutBuffer *buf, Module *m);
 
 struct HdrGenState
 {
