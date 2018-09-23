@@ -3236,26 +3236,26 @@ public:
     }
 }
 
-extern (C++) void toCBuffer(Statement s, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(Statement s, OutBuffer* buf, HdrGenState* hgs)
 {
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
     s.accept(v);
 }
 
-extern (C++) void toCBuffer(Type t, OutBuffer* buf, Identifier ident, HdrGenState* hgs)
+void toCBuffer(Type t, OutBuffer* buf, Identifier ident, HdrGenState* hgs)
 {
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
     v.typeToBuffer(t, ident);
 }
 
-extern (C++) void toCBuffer(Dsymbol s, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(Dsymbol s, OutBuffer* buf, HdrGenState* hgs)
 {
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
     s.accept(v);
 }
 
 // used from TemplateInstance::toChars() and TemplateMixin::toChars()
-extern (C++) void toCBufferInstance(TemplateInstance ti, OutBuffer* buf, bool qualifyTypes = false)
+void toCBufferInstance(TemplateInstance ti, OutBuffer* buf, bool qualifyTypes = false)
 {
     HdrGenState hgs;
     hgs.fullQual = qualifyTypes;
@@ -3263,13 +3263,13 @@ extern (C++) void toCBufferInstance(TemplateInstance ti, OutBuffer* buf, bool qu
     v.visit(ti);
 }
 
-extern (C++) void toCBuffer(Initializer iz, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(Initializer iz, OutBuffer* buf, HdrGenState* hgs)
 {
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
     iz.accept(v);
 }
 
-extern (C++) bool stcToBuffer(OutBuffer* buf, StorageClass stc)
+bool stcToBuffer(OutBuffer* buf, StorageClass stc)
 {
     bool result = false;
     if ((stc & (STC.return_ | STC.scope_)) == (STC.return_ | STC.scope_))
@@ -3484,7 +3484,7 @@ extern (D) string protectionToString(Prot.Kind kind)
 }
 
 // Print the full function signature with correct ident, attributes and template args
-extern (C++) void functionToBufferFull(TypeFunction tf, OutBuffer* buf, Identifier ident, HdrGenState* hgs, TemplateDeclaration td)
+void functionToBufferFull(TypeFunction tf, OutBuffer* buf, Identifier ident, HdrGenState* hgs, TemplateDeclaration td)
 {
     //printf("TypeFunction::toCBuffer() this = %p\n", this);
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
@@ -3492,14 +3492,14 @@ extern (C++) void functionToBufferFull(TypeFunction tf, OutBuffer* buf, Identifi
 }
 
 // ident is inserted before the argument list and will be "function" or "delegate" for a type
-extern (C++) void functionToBufferWithIdent(TypeFunction tf, OutBuffer* buf, const(char)* ident)
+void functionToBufferWithIdent(TypeFunction tf, OutBuffer* buf, const(char)* ident)
 {
     HdrGenState hgs;
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, &hgs);
     v.visitFuncIdentWithPostfix(tf, ident);
 }
 
-extern (C++) void toCBuffer(Expression e, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(Expression e, OutBuffer* buf, HdrGenState* hgs)
 {
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
     e.accept(v);
@@ -3508,7 +3508,7 @@ extern (C++) void toCBuffer(Expression e, OutBuffer* buf, HdrGenState* hgs)
 /**************************************************
  * Write out argument types to buf.
  */
-extern (C++) void argExpTypesToCBuffer(OutBuffer* buf, Expressions* arguments)
+void argExpTypesToCBuffer(OutBuffer* buf, Expressions* arguments)
 {
     if (!arguments || !arguments.dim)
         return;
@@ -3522,13 +3522,13 @@ extern (C++) void argExpTypesToCBuffer(OutBuffer* buf, Expressions* arguments)
     }
 }
 
-extern (C++) void toCBuffer(TemplateParameter tp, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(TemplateParameter tp, OutBuffer* buf, HdrGenState* hgs)
 {
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
     tp.accept(v);
 }
 
-extern (C++) void arrayObjectsToBuffer(OutBuffer* buf, Objects* objects)
+void arrayObjectsToBuffer(OutBuffer* buf, Objects* objects)
 {
     if (!objects || !objects.dim)
         return;
