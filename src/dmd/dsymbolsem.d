@@ -80,7 +80,7 @@ enum LOG = false;
  * Note the close similarity with AggregateDeclaration::buildDtor(),
  * and the ordering changes (runs forward instead of backwards).
  */
-private extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
+private FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
 {
     //printf("StructDeclaration::buildPostBlit() %s\n", sd.toChars());
     if (sd.isUnionDeclaration())
