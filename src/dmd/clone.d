@@ -46,7 +46,7 @@ import dmd.tokens;
  * Returns:
  *      merged storage class
  */
-extern (C++) StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) pure
+StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) pure
 {
     if (!f)
         return s1;
@@ -92,7 +92,7 @@ extern (C++) StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration 
  * Returns:
  *      if found, returns FuncDeclaration of opAssign, otherwise null
  */
-extern (C++) FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope* sc)
+FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope* sc)
 {
     Dsymbol assign = search_function(ad, Id.assign);
     if (assign)
@@ -250,7 +250,7 @@ private bool needOpAssign(StructDeclaration sd)
  * Returns:
  *      generated `opAssign` function
  */
-extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
+FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
 {
     if (FuncDeclaration f = hasIdentityOpAssign(sd, sc))
     {
@@ -395,7 +395,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
  * any fields has an opEquals.
  * Generate one if a user-specified one does not exist.
  */
-extern (C++) bool needOpEquals(StructDeclaration sd)
+bool needOpEquals(StructDeclaration sd)
 {
     //printf("StructDeclaration::needOpEquals() %s\n", sd.toChars());
     if (sd.isUnionDeclaration())
@@ -507,7 +507,7 @@ private FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope* sc)
  *      s1.tupleof == s2.tupleof
  * to calculate structural equality. See EqualExp.op_overload.
  */
-extern (C++) FuncDeclaration buildOpEquals(StructDeclaration sd, Scope* sc)
+FuncDeclaration buildOpEquals(StructDeclaration sd, Scope* sc)
 {
     if (hasIdentityOpEquals(sd, sc))
     {
@@ -526,7 +526,7 @@ extern (C++) FuncDeclaration buildOpEquals(StructDeclaration sd, Scope* sc)
  * This is called by TypeInfo.equals(p1, p2). If the struct does not support
  * const objects comparison, it will throw "not implemented" Error in runtime.
  */
-extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
+FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
 {
     if (!needOpEquals(sd))
         return null; // bitwise comparison would work
@@ -599,7 +599,7 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
  * This is called by TypeInfo.compare(p1, p2). If the struct does not support
  * const objects comparison, it will throw "not implemented" Error in runtime.
  */
-extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
+FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
 {
     //printf("StructDeclaration::buildXopCmp() %s\n", toChars());
     if (Dsymbol cmp = search_function(sd, Id.cmp))
@@ -770,7 +770,7 @@ Lneed:
  * Build __xtoHash for non-bitwise hashing
  *      static hash_t xtoHash(ref const S p) nothrow @trusted;
  */
-extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
+FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
 {
     if (Dsymbol s = search_function(sd, Id.tohash))
     {
@@ -840,7 +840,7 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
  * Close similarity with StructDeclaration::buildPostBlit(),
  * and the ordering changes (runs backward instead of forwards).
  */
-extern (C++) DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
+DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
 {
     //printf("AggregateDeclaration::buildDtor() %s\n", ad.toChars());
     if (ad.isUnionDeclaration())
@@ -1135,7 +1135,7 @@ DtorDeclaration buildExternDDtor(AggregateDeclaration ad, Scope* sc)
  *          invs[0](), invs[1](), ...;
  *      }
  */
-extern (C++) FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
+FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
 {
     switch (ad.invs.dim)
     {
