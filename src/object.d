@@ -3754,14 +3754,6 @@ else
     }
 }
 
-unittest
-{
-    // Issue # 16654 / 16764
-    auto a = [1];
-    auto b = a.dup;
-    assert(hashOf(a) == hashOf(b));
-}
-
 bool _xopEquals(in void*, in void*)
 {
     throw new Error("TypeInfo.equals is not implemented");
@@ -4018,32 +4010,6 @@ private size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) 
     foreach(size_t i; 0 .. count)
         hash = hashOf(element.getHash(ptr + i * elementSize), hash);
     return hash;
-}
-
-
-// Tests ensure TypeInfo_Array.getHash  uses element hash functions instead of hashing array data
-
-unittest
-{
-    class C
-    {
-        int i;
-        this(in int i) { this.i = i; }
-        override hash_t toHash() { return 0; }
-    }
-    C[] a1 = [new C(11)], a2 = [new C(12)];
-    assert(typeid(C[]).getHash(&a1) == typeid(C[]).getHash(&a2));
-}
-
-unittest
-{
-    struct S
-    {
-        int i;
-        hash_t toHash() const @safe nothrow { return 0; }
-    }
-    S[] a1 = [S(11)], a2 = [S(12)];
-    assert(typeid(S[]).getHash(&a1) == typeid(S[]).getHash(&a2));
 }
 
 /// Provide the .dup array property.
