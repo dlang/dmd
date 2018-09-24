@@ -10,8 +10,6 @@
 
 #pragma once
 
-class Dsymbol;
-class ScopeDsymbol;
 class Identifier;
 class Module;
 class Statement;
@@ -28,14 +26,6 @@ struct AA;
 class TemplateInstance;
 
 #include "dsymbol.h"
-
-#if __GNUC__
-// Requires a full definition for LINK
-#include "globals.h"
-#else
-enum LINK;
-enum PINLINE;
-#endif
 
 #define CSXthis_ctor    1       // called this()
 #define CSXsuper_ctor   2       // called super()

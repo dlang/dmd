@@ -15,10 +15,8 @@
 
 class Expression;
 class Identifier;
-struct OutBuffer;
 class Module;
 struct Scope;
-class ScopeDsymbol;
 class DebugCondition;
 class ForeachStatement;
 class ForeachRangeStatement;

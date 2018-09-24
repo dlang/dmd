@@ -10,12 +10,11 @@
 
 #pragma once
 
-#include "root/root.h"
 #include "root/stringtable.h"
 #include "root/rmem.h" // for d_size_t
 
 #include "arraytypes.h"
-#include "expression.h"
+#include "globals.h"
 #include "visitor.h"
 
 struct Scope;
@@ -28,7 +27,6 @@ class TypeInfoDeclaration;
 class Dsymbol;
 class TemplateInstance;
 class TemplateDeclaration;
-enum LINK;
 
 class TypeBasic;
 class Parameter;

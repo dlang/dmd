@@ -10,15 +10,12 @@
 
 #pragma once
 
-#include "root/root.h"
 #include "dsymbol.h"
 #include "declaration.h"
-#include "tokens.h"
 
 class Identifier;
 class Type;
 class Expression;
-class VarDeclaration;
 
 class EnumDeclaration : public ScopeDsymbol
 {

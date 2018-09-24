@@ -9,7 +9,6 @@
 
 #pragma once
 
-#include "root.h"
 #include "rmem.h"   // for d_size_t
 
 struct StringEntry;

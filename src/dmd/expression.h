@@ -12,7 +12,6 @@
 
 #include "complex_t.h"
 #include "globals.h"
-#include "identifier.h"
 #include "arraytypes.h"
 #include "visitor.h"
 #include "tokens.h"
@@ -30,8 +29,6 @@ class Declaration;
 class CtorDeclaration;
 class NewDeclaration;
 class Dsymbol;
-class Import;
-class Module;
 class ScopeDsymbol;
 class Expression;
 class Declaration;
@@ -42,7 +39,6 @@ class TemplateDeclaration;
 class ClassDeclaration;
 class BinExp;
 class OverloadSet;
-class Initializer;
 class StringExp;
 class ArrayExp;
 class SliceExp;

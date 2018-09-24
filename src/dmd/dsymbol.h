@@ -10,9 +10,7 @@
 
 #pragma once
 
-#include "root/root.h"
-#include "root/stringtable.h"
-
+#include "root/port.h"
 #include "globals.h"
 #include "arraytypes.h"
 #include "visitor.h"

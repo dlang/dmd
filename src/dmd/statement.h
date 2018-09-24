@@ -10,14 +10,11 @@
 
 #pragma once
 
-#include "root/root.h"
-
 #include "arraytypes.h"
 #include "dsymbol.h"
 #include "visitor.h"
 #include "tokens.h"
 
-struct OutBuffer;
 struct Scope;
 class Expression;
 class LabelDsymbol;
@@ -27,8 +24,6 @@ class ExpStatement;
 class DefaultStatement;
 class VarDeclaration;
 class Condition;
-class Module;
-struct Token;
 class ErrorStatement;
 class ReturnStatement;
 class CompoundStatement;

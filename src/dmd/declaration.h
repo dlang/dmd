@@ -12,12 +12,12 @@
 
 #include "dsymbol.h"
 #include "mtype.h"
+#include "tokens.h"
 
 class Expression;
 class Statement;
 class LabelDsymbol;
 class Initializer;
-class Module;
 class ForeachStatement;
 struct Ensure
 {
@@ -25,17 +25,10 @@ struct Ensure
     Statement *ensure;
 };
 class FuncDeclaration;
-class ExpInitializer;
 class StructDeclaration;
 struct CompiledCtfeFunction;
 struct ObjcSelector;
 struct IntRange;
-
-enum LINK;
-enum TOK;
-enum MATCH;
-enum PURE;
-enum PINLINE;
 
 #define STCundefined    0LL
 #define STCstatic       1LL

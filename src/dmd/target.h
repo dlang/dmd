@@ -22,8 +22,8 @@ class Expression;
 class Parameter;
 class Type;
 class TypeTuple;
+class TypeFunction;
 class Module;
-struct OutBuffer;
 
 struct Target
 {

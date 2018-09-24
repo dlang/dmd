@@ -10,10 +10,7 @@
 
 #pragma once
 
-#include "root/root.h"
-
 #include "dsymbol.h"
-#include "declaration.h"
 #include "objc.h"
 
 class Identifier;
@@ -23,7 +20,6 @@ class Expression;
 class FuncDeclaration;
 class CtorDeclaration;
 class DtorDeclaration;
-class InvariantDeclaration;
 class NewDeclaration;
 class DeleteDeclaration;
 class InterfaceDeclaration;

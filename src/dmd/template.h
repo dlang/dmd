@@ -10,12 +10,9 @@
 
 #pragma once
 
-#include "root/root.h"
 #include "arraytypes.h"
 #include "dsymbol.h"
 
-
-struct OutBuffer;
 class Identifier;
 class TemplateInstance;
 class TemplateParameter;
@@ -26,14 +23,10 @@ class TemplateAliasParameter;
 class TemplateTupleParameter;
 class Type;
 class TypeQualified;
-class TypeTypeof;
 struct Scope;
 class Expression;
-class AliasDeclaration;
 class FuncDeclaration;
 class Parameter;
-enum MATCH;
-enum PASS;
 
 class Tuple : public RootObject
 {
