@@ -790,10 +790,7 @@ private int tryMain(size_t argc, const(char)** argv)
         {
             auto buf = OutBuffer();
             buf.doindent = 1;
-            scope HdrGenState hgs;
-            hgs.fullDump = 1;
-            scope PrettyPrintVisitor ppv = new PrettyPrintVisitor(&buf, &hgs);
-            mod.accept(ppv);
+            moduleToBuffer(&buf, mod);
 
             // write the output to $(filename).cg
             auto cgFilename = FileName.addExt(mod.srcfile.toString(), "cg");
