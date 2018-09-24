@@ -871,11 +871,11 @@ public:
         bool isPostfixStyle;
         bool isCtor;
 
-        extern (C++) static int fp(void* param, const(char)* str)
+        extern (D) static int fp(void* param, const(char)[] str)
         {
             PrePostAppendStrings* p = cast(PrePostAppendStrings*)param;
             // don't write 'ref' for ctors
-            if (p.isCtor && strcmp(str, "ref") == 0)
+            if (p.isCtor && str == "ref")
                 return 0;
             if (p.isPostfixStyle)
                 p.buf.writeByte(' ');
@@ -934,9 +934,9 @@ public:
         }
         t.inuse++;
         PrePostAppendStrings pas;
-        extern(C++) int ignoreReturn(void* param, const(char)* name)
+        extern (D) static int ignoreReturn(void* param, const(char)[] name)
         {
-            if (strcmp(name, "return") != 0)
+            if (name != "return")
                 PrePostAppendStrings.fp(param, name);
             return 0;
         }
