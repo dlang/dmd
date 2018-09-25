@@ -8089,7 +8089,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                                 e = new CallExp(exp.loc, e, e2x);
                                 e = new CommaExp(exp.loc, einit, e);
 
-                                printf("e: %s\n", e.toChars());
+                                //printf("e: %s\n", e.toChars());
 
                                 result = e.expressionSemantic(sc);
                                 return;

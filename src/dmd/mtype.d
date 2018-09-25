@@ -4691,37 +4691,39 @@ extern (C++) final class TypeFunction : TypeNext
                     }
                     else
                     {
-                        m = arg.implicitConvTo(tprm);
-
                         bool isRef = (p.storageClass & (STC.ref_ | STC.out_)) != 0;
-                        // if there's no match, there might be a copy
-                        // constructor that specifies how the copy should be made
-                        if (!isRef && m == MATCH.nomatch && targ.ty == Tstruct && tprm.ty == Tstruct)
+
+                        StructDeclaration argStruct, prmStruct;
+
+                        // first look for a copy constructor
+                        if (!isRef && targ.ty == Tstruct && tprm.ty == Tstruct)
                         {
                             // if the argument and the parameter are of the same unqualified struct type
-                            StructDeclaration argStruct = (cast(TypeStruct)targ).sym;
-                            StructDeclaration prmStruct = (cast(TypeStruct)tprm).sym;
-                             // check if the copy constructor may be called to copy the argument
-                            if (argStruct == prmStruct && argStruct.copyCtor)
-                            {
-                                /* this is done by seeing if a call to the copy constructor can be made:
-                                 *
-                                 * typeof(tprm) __copytmp;
-                                 * copytmp.__copyCtor(arg);
-                                 *
-                                 * If the above code is succesfully semantically analyzed, then there
-                                 * is a copy constructor that may be used. The actual lowering to the
-                                 * call is performed later.
-                                 */
-                                auto tmp = new VarDeclaration(arg.loc, tprm, Identifier.generateId("__copytmp"), null);
-                                tmp.dsymbolSemantic(sc);
-                                Expression ve = new VarExp(arg.loc, tmp);
-                                Expression e = new DotIdExp(arg.loc, ve, Id.ctor);
-                                e = new CallExp(arg.loc, e, arg);
-                                if (.trySemantic(e, sc))
-                                    m = MATCH.convert;      // implicit conversion using copy constructor
-                            }
+                            argStruct = (cast(TypeStruct)targ).sym;
+                            prmStruct = (cast(TypeStruct)tprm).sym;
                         }
+
+                        // check if the copy constructor may be called to copy the argument
+                        if (argStruct && argStruct == prmStruct && argStruct.copyCtor)
+                        {
+                            /* this is done by seeing if a call to the copy constructor can be made:
+                             *
+                             * typeof(tprm) __copytmp;
+                             * copytmp.__copyCtor(arg);
+                             */
+                            auto tmp = new VarDeclaration(arg.loc, tprm, Identifier.generateId("__copytmp"), null);
+                            tmp.dsymbolSemantic(sc);
+                            Expression ve = new VarExp(arg.loc, tmp);
+                            Expression e = new DotIdExp(arg.loc, ve, Id.copyCtor);
+                            e = new CallExp(arg.loc, e, arg);
+                            //printf("e = %s\n", e.toChars());
+                            if(.trySemantic(e, sc))
+                                m = MATCH.exact;
+                            else
+                                m = MATCH.nomatch;
+                        }
+                        else
+                            m = arg.implicitConvTo(tprm);
                     }
                     //printf("match %d\n", m);
                 }
