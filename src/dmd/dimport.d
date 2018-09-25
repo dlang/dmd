@@ -223,7 +223,7 @@ extern (C++) final class Import : Dsymbol
                     protection = sc.protection;
                 if (!isstatic && !aliasId && !names.dim)
                 {
-                    sc.scopesym.importScope(mod, protection);
+                    sc.scopesym.importScope(loc, mod, protection);
                 }
             }
         }

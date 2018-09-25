@@ -105,6 +105,14 @@ struct Prot
     bool isSubsetOf(const Prot& other) const;
 };
 
+struct ImportInfo
+{
+    Dsymbol *symbol;
+    Prot::Kind kind;
+    const Loc loc;
+    bool used;
+};
+
 // in hdrgen.c
 void protectionToBuffer(OutBuffer *buf, Prot prot);
 const char *protectionToChars(Prot::Kind kind);
@@ -287,8 +295,8 @@ public:
     unsigned endlinnum;         // the linnumber of the statement after the scope (0 if unknown)
 
 private:
-    Dsymbols *importedScopes;   // imported Dsymbol's
-    Prot::Kind *prots;            // array of PROTKIND, one for each import
+
+    Imports imports;            // import info, protection, line number, usedness
 
     BitArray accessiblePackages, privateAccessiblePackages;
 
@@ -296,7 +304,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
     OverloadSet *mergeOverloadSet(Identifier *ident, OverloadSet *os, Dsymbol *s);
-    virtual void importScope(Dsymbol *s, Prot protection);
+    virtual void importScope(const Loc &loc, Dsymbol *s, Prot protection);
     void addAccessiblePackage(Package *p, Prot protection);
     virtual bool isPackageAccessible(Package *p, Prot protection, int flags = 0);
     bool isforwardRef();
@@ -364,7 +372,7 @@ class ForwardingScopeDsymbol : public ScopeDsymbol
 
     Dsymbol *symtabInsert(Dsymbol *s);
     Dsymbol *symtabLookup(Dsymbol *s, Identifier *id);
-    void importScope(Dsymbol *s, Prot protection);
+    void importScope(const Loc &loc, Dsymbol *s, Prot protection);
     const char *kind() const;
 
     ForwardingScopeDsymbol *isForwardingScopeDsymbol() { return this; }

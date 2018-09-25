@@ -202,6 +202,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         }
         sc = sc.pop();
         sc.pop();
+        mod.writeUnusedImports;
         mod.semanticRun = PASS.semantic3done;
     }
 
