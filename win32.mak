@@ -109,6 +109,13 @@ unittest : $(SRCS) $(DRUNTIME)
 	*$(DMD) $(UDFLAGS) -L/co -unittest -ofunittest.exe -main $(SRCS) $(DRUNTIME) -debuglib=$(DRUNTIME) -defaultlib=$(DRUNTIME)
 	unittest
 
+################### tests ######################################
+
+test_aa:
+	$(DMD) -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIME) -run test\aa\src\test_aa.d
+
+################### zip/install/clean ##########################
+
 zip: druntime.zip
 
 druntime.zip:
@@ -126,4 +133,4 @@ clean:
 
 auto-tester-build: target
 
-auto-tester-test: unittest
+auto-tester-test: unittest test_aa
