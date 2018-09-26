@@ -1279,11 +1279,28 @@ extern (C++) final class Module : Package
         return this.importedFrom == this;
     }
 
-    // true if the module source file is directly
-    // listed in command line.
-    bool isCoreModule(Identifier ident)
+    /**
+     * Compare a provided list of identifier with this module
+     *
+     * Params:
+     *   idents = Identifiers to compare to, should be provided
+     *            in the "natural" order.
+     *            E.g. if this module is `core.attribute`,
+     *            use `attrmodule.isModuleName(Id.core, Id.attribute)`
+     *
+     * Returns:
+     *   `true` if this module correspond to the provided identifiers
+     */
+    extern(D) final bool isModuleName(scope Identifier[] idents...)
     {
-        return this.ident == ident && parent && parent.ident == Id.core && !parent.parent;
+        Dsymbol sym = this;
+        foreach_reverse (id; idents)
+        {
+            if (!sym || id != sym.ident)
+                return false;
+            sym = sym.parent;
+        }
+        return sym is null;
     }
 
     // Back end
