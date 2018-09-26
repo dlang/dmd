@@ -572,7 +572,7 @@ long muls(long x, long y, ref bool overflow)
 {
     immutable long r = cast(ulong)x * cast(ulong)y;
     enum not0or1 = ~1L;
-    if((x & not0or1) && ((r == y)? r : (r / x) != y))
+    if ((x & not0or1) && ((r == y)? r : (r / x) != y))
         overflow = true;
     return r;
 }
@@ -608,7 +608,7 @@ cent muls(cent x, cent y, ref bool overflow)
 {
     immutable cent r = cast(ucent)x * cast(ucent)y;
     enum not0or1 = ~1L;
-    if((x & not0or1) && ((r == y)? r : (r / x) != y))
+    if ((x & not0or1) && ((r == y)? r : (r / x) != y))
         overflow = true;
     return r;
 }

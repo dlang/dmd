@@ -609,7 +609,7 @@ version( CRuntime_Glibc )
 {
     struct sigaction_t
     {
-        static if( true /* __USE_POSIX199309 */ )
+        static if ( true /* __USE_POSIX199309 */ )
         {
             union
             {
@@ -631,7 +631,7 @@ else version( CRuntime_Musl )
 {
     struct sigaction_t
     {
-        static if( true /* __USE_POSIX199309 */ )
+        static if ( true /* __USE_POSIX199309 */ )
         {
             union
             {
@@ -730,7 +730,7 @@ else version( CRuntime_UClibc )
     {
         struct sigaction_t
         {
-            static if( true /* __USE_POSIX199309 */ )
+            static if ( true /* __USE_POSIX199309 */ )
             {
                 union
                 {
@@ -752,7 +752,7 @@ else version( CRuntime_UClibc )
         struct sigaction_t
         {
             uint     sa_flags;
-            static if( true /* __USE_POSIX199309 */ )
+            static if ( true /* __USE_POSIX199309 */ )
             {
                 union
                 {
@@ -829,7 +829,7 @@ else version( Darwin )
 {
     struct sigaction_t
     {
-        static if( true /* __USE_POSIX199309 */ )
+        static if ( true /* __USE_POSIX199309 */ )
         {
             union
             {
@@ -941,7 +941,7 @@ version( CRuntime_Glibc )
 
     private enum __SI_MAX_SIZE = 128;
 
-    static if( __WORDSIZE == 64 )
+    static if ( __WORDSIZE == 64 )
     {
         private enum __SI_PAD_SIZE = ((__SI_MAX_SIZE / int.sizeof) - 4);
     }
@@ -1740,7 +1740,7 @@ else version( CRuntime_UClibc )
 
     private enum __SI_MAX_SIZE = 128;
 
-    static if( __WORDSIZE == 64 )
+    static if ( __WORDSIZE == 64 )
     {
         private enum __SI_PAD_SIZE = ((__SI_MAX_SIZE / int.sizeof) - 4);
     }
@@ -3450,7 +3450,7 @@ version( CRuntime_Glibc )
 {
     private enum __SIGEV_MAX_SIZE = 64;
 
-    static if( __WORDSIZE == 64 )
+    static if ( __WORDSIZE == 64 )
     {
         private enum __SIGEV_PAD_SIZE = ((__SIGEV_MAX_SIZE / int.sizeof) - 4);
     }
@@ -3611,7 +3611,7 @@ else version( CRuntime_UClibc )
 {
     private enum __SIGEV_MAX_SIZE = 64;
 
-    static if( __WORDSIZE == 64 )
+    static if ( __WORDSIZE == 64 )
     {
         private enum __SIGEV_PAD_SIZE = ((__SIGEV_MAX_SIZE / int.sizeof) - 4);
     }

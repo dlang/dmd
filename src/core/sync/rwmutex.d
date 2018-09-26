@@ -89,15 +89,15 @@ class ReadWriteMutex
     this( Policy policy = Policy.PREFER_WRITERS )
     {
         m_commonMutex = new Mutex;
-        if( !m_commonMutex )
+        if ( !m_commonMutex )
             throw new SyncError( "Unable to initialize mutex" );
 
         m_readerQueue = new Condition( m_commonMutex );
-        if( !m_readerQueue )
+        if ( !m_readerQueue )
             throw new SyncError( "Unable to initialize mutex" );
 
         m_writerQueue = new Condition( m_commonMutex );
-        if( !m_writerQueue )
+        if ( !m_writerQueue )
             throw new SyncError( "Unable to initialize mutex" );
 
         m_policy = policy;
@@ -183,7 +183,7 @@ class ReadWriteMutex
                 ++m_numQueuedReaders;
                 scope(exit) --m_numQueuedReaders;
 
-                while( shouldQueueReader )
+                while ( shouldQueueReader )
                     m_readerQueue.wait();
                 ++m_numActiveReaders;
             }
@@ -197,9 +197,9 @@ class ReadWriteMutex
         {
             synchronized( m_commonMutex )
             {
-                if( --m_numActiveReaders < 1 )
+                if ( --m_numActiveReaders < 1 )
                 {
-                    if( m_numQueuedWriters > 0 )
+                    if ( m_numQueuedWriters > 0 )
                         m_writerQueue.notify();
                 }
             }
@@ -218,7 +218,7 @@ class ReadWriteMutex
         {
             synchronized( m_commonMutex )
             {
-                if( shouldQueueReader )
+                if ( shouldQueueReader )
                     return false;
                 ++m_numActiveReaders;
                 return true;
@@ -229,10 +229,10 @@ class ReadWriteMutex
     private:
         @property bool shouldQueueReader()
         {
-            if( m_numActiveWriters > 0 )
+            if ( m_numActiveWriters > 0 )
                 return true;
 
-            switch( m_policy )
+            switch ( m_policy )
             {
             case Policy.PREFER_WRITERS:
                  return m_numQueuedWriters > 0;
@@ -286,7 +286,7 @@ class ReadWriteMutex
                 ++m_numQueuedWriters;
                 scope(exit) --m_numQueuedWriters;
 
-                while( shouldQueueWriter )
+                while ( shouldQueueWriter )
                     m_writerQueue.wait();
                 ++m_numActiveWriters;
             }
@@ -300,21 +300,21 @@ class ReadWriteMutex
         {
             synchronized( m_commonMutex )
             {
-                if( --m_numActiveWriters < 1 )
+                if ( --m_numActiveWriters < 1 )
                 {
-                    switch( m_policy )
+                    switch ( m_policy )
                     {
                     default:
                     case Policy.PREFER_READERS:
-                        if( m_numQueuedReaders > 0 )
+                        if ( m_numQueuedReaders > 0 )
                             m_readerQueue.notifyAll();
-                        else if( m_numQueuedWriters > 0 )
+                        else if ( m_numQueuedWriters > 0 )
                             m_writerQueue.notify();
                         break;
                     case Policy.PREFER_WRITERS:
-                        if( m_numQueuedWriters > 0 )
+                        if ( m_numQueuedWriters > 0 )
                             m_writerQueue.notify();
-                        else if( m_numQueuedReaders > 0 )
+                        else if ( m_numQueuedReaders > 0 )
                             m_readerQueue.notifyAll();
                     }
                 }
@@ -334,7 +334,7 @@ class ReadWriteMutex
         {
             synchronized( m_commonMutex )
             {
-                if( shouldQueueWriter )
+                if ( shouldQueueWriter )
                     return false;
                 ++m_numActiveWriters;
                 return true;
@@ -345,10 +345,10 @@ class ReadWriteMutex
     private:
         @property bool shouldQueueWriter()
         {
-            if( m_numActiveWriters > 0 ||
+            if ( m_numActiveWriters > 0 ||
                 m_numActiveReaders > 0 )
                 return true;
-            switch( m_policy )
+            switch ( m_policy )
             {
             case Policy.PREFER_READERS:
                 return m_numQueuedReaders > 0;

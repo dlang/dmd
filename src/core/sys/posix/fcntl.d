@@ -105,7 +105,7 @@ version( CRuntime_Glibc )
     enum F_SETLKW       = 7;
   }
   else
-  static if( __USE_FILE_OFFSET64 )
+  static if ( __USE_FILE_OFFSET64 )
   {
     enum F_GETLK        = 12;
     enum F_SETLK        = 13;
@@ -273,7 +273,7 @@ version( CRuntime_Glibc )
         pid_t   l_pid;
     }
 
-    static if( __USE_FILE_OFFSET64 )
+    static if ( __USE_FILE_OFFSET64 )
     {
         int   creat64(in char*, mode_t);
         alias creat64 creat;
@@ -966,7 +966,7 @@ else version( CRuntime_UClibc )
         pid_t   l_pid;
     }
 
-    static if( __USE_FILE_OFFSET64 )
+    static if ( __USE_FILE_OFFSET64 )
     {
         int   creat64(in char*, mode_t);
         alias creat64 creat;

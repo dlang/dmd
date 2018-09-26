@@ -45,7 +45,7 @@ unittest
     auto s = "hello"c[];
     int i;
 
-    foreach(dchar d; s)
+    foreach (dchar d; s)
     {
         switch (i)
         {
@@ -62,7 +62,7 @@ unittest
 
     s = "a\u1234\U000A0456b";
     i = 0;
-    foreach(dchar d; s)
+    foreach (dchar d; s)
     {
         //printf("i = %d, d = %x\n", i, d);
         switch (i)
@@ -107,7 +107,7 @@ unittest
     auto s = "hello"w[];
     int i;
 
-    foreach(dchar d; s)
+    foreach (dchar d; s)
     {
         switch (i)
         {
@@ -124,7 +124,7 @@ unittest
 
     s = "a\u1234\U000A0456b";
     i = 0;
-    foreach(dchar d; s)
+    foreach (dchar d; s)
     {
         //printf("i = %d, d = %x\n", i, d);
         switch (i)
@@ -181,7 +181,7 @@ unittest
     auto s = "hello"c[];
     int i;
 
-    foreach(wchar d; s)
+    foreach (wchar d; s)
     {
         switch (i)
         {
@@ -198,7 +198,7 @@ unittest
 
     s = "a\u1234\U000A0456b";
     i = 0;
-    foreach(wchar d; s)
+    foreach (wchar d; s)
     {
         //printf("i = %d, d = %x\n", i, d);
         switch (i)
@@ -258,7 +258,7 @@ unittest
     auto s = "hello"w[];
     int i;
 
-    foreach(char d; s)
+    foreach (char d; s)
     {
         switch (i)
         {
@@ -275,7 +275,7 @@ unittest
 
     s = "a\u1234\U000A0456b";
     i = 0;
-    foreach(char d; s)
+    foreach (char d; s)
     {
         //printf("i = %d, d = %x\n", i, d);
         switch (i)
@@ -335,7 +335,7 @@ unittest
     auto s = "hello"d[];
     int i;
 
-    foreach(char d; s)
+    foreach (char d; s)
     {
         switch (i)
         {
@@ -352,7 +352,7 @@ unittest
 
     s = "a\u1234\U000A0456b";
     i = 0;
-    foreach(char d; s)
+    foreach (char d; s)
     {
         //printf("i = %d, d = %x\n", i, d);
         switch (i)
@@ -408,7 +408,7 @@ unittest
     auto s = "hello"d[];
     int i;
 
-    foreach(wchar d; s)
+    foreach (wchar d; s)
     {
         switch (i)
         {
@@ -425,7 +425,7 @@ unittest
 
     s = "a\u1234\U000A0456b";
     i = 0;
-    foreach(wchar d; s)
+    foreach (wchar d; s)
     {
         //printf("i = %d, d = %x\n", i, d);
         switch (i)
@@ -481,7 +481,7 @@ unittest
     auto s = "hello"c[];
     int i;
 
-    foreach(k, dchar d; s)
+    foreach (k, dchar d; s)
     {
         //printf("i = %d, k = %d, d = %x\n", i, k, d);
         assert(k == i);
@@ -500,7 +500,7 @@ unittest
 
     s = "a\u1234\U000A0456b";
     i = 0;
-    foreach(k, dchar d; s)
+    foreach (k, dchar d; s)
     {
         //printf("i = %d, k = %d, d = %x\n", i, k, d);
         switch (i)
@@ -550,7 +550,7 @@ unittest
     auto s = "hello"w[];
     int i;
 
-    foreach(k, dchar d; s)
+    foreach (k, dchar d; s)
     {
         //printf("i = %d, k = %d, d = %x\n", i, k, d);
         assert(k == i);
@@ -569,7 +569,7 @@ unittest
 
     s = "a\u1234\U000A0456b";
     i = 0;
-    foreach(k, dchar d; s)
+    foreach (k, dchar d; s)
     {
         //printf("i = %d, k = %d, d = %x\n", i, k, d);
         switch (i)
@@ -629,7 +629,7 @@ unittest
     auto s = "hello"c[];
     int i;
 
-    foreach(k, wchar d; s)
+    foreach (k, wchar d; s)
     {
         //printf("i = %d, k = %d, d = %x\n", i, k, d);
         assert(k == i);
@@ -648,7 +648,7 @@ unittest
 
     s = "a\u1234\U000A0456b";
     i = 0;
-    foreach(k, wchar d; s)
+    foreach (k, wchar d; s)
     {
         //printf("i = %d, k = %d, d = %x\n", i, k, d);
         switch (i)
@@ -711,7 +711,7 @@ unittest
     auto s = "hello"w[];
     int i;
 
-    foreach(k, char d; s)
+    foreach (k, char d; s)
     {
         //printf("i = %d, k = %d, d = %x\n", i, k, d);
         assert(k == i);
@@ -730,7 +730,7 @@ unittest
 
     s = "a\u1234\U000A0456b";
     i = 0;
-    foreach(k, char d; s)
+    foreach (k, char d; s)
     {
         //printf("i = %d, k = %d, d = %x\n", i, k, d);
         switch (i)
@@ -792,7 +792,7 @@ unittest
     auto s = "hello"d[];
     int i;
 
-    foreach(k, char d; s)
+    foreach (k, char d; s)
     {
         //printf("i = %d, k = %d, d = %x\n", i, k, d);
         assert(k == i);
@@ -811,7 +811,7 @@ unittest
 
     s = "a\u1234\U000A0456b";
     i = 0;
-    foreach(k, char d; s)
+    foreach (k, char d; s)
     {
         //printf("i = %d, k = %d, d = %x\n", i, k, d);
         switch (i)
@@ -867,7 +867,7 @@ unittest
     auto s = "hello"d[];
     int i;
 
-    foreach(k, wchar d; s)
+    foreach (k, wchar d; s)
     {
         //printf("i = %d, k = %d, d = %x\n", i, k, d);
         assert(k == i);
@@ -886,7 +886,7 @@ unittest
 
     s = "a\u1234\U000A0456b";
     i = 0;
-    foreach(k, wchar d; s)
+    foreach (k, wchar d; s)
     {
         //printf("i = %d, k = %d, d = %x\n", i, k, d);
         switch (i)

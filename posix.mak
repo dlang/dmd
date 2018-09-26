@@ -371,6 +371,9 @@ style_lint:
 	@echo "Check for trailing whitespace"
 	$(GREP) -nr '[[:blank:]]$$' $(MANIFEST) ; test $$? -eq 1
 
+	@echo "Enforce whitespace before opening parenthesis"
+	grep -nrE "\<(for|foreach|foreach_reverse|if|while|switch|catch)\(" $$(find src -name '*.d') ; test $$? -eq 1
+
 .PHONY : auto-tester-build
 auto-tester-build: target checkwhitespace
 

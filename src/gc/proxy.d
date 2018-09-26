@@ -228,12 +228,12 @@ extern (C)
     {
         void gc_setProxy( GC proxy )
         {
-            foreach(root; instance.rootIter)
+            foreach (root; instance.rootIter)
             {
                 proxy.addRoot(root);
             }
 
-            foreach(range; instance.rangeIter)
+            foreach (range; instance.rangeIter)
             {
                 proxy.addRange(range.pbot, range.ptop - range.pbot, range.ti);
             }
@@ -244,12 +244,12 @@ extern (C)
 
         void gc_clrProxy()
         {
-            foreach(root; proxiedGC.rootIter)
+            foreach (root; proxiedGC.rootIter)
             {
                 instance.removeRoot(root);
             }
 
-            foreach(range; proxiedGC.rangeIter)
+            foreach (range; proxiedGC.rangeIter)
             {
                 instance.removeRange(range);
             }

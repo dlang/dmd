@@ -320,7 +320,7 @@ void sigsegvUserspaceProcess(void* address)
 {
     // SEGV_MAPERR, SEGV_ACCERR.
     // The first page is protected to detect null dereferences.
-    if((cast(size_t) address) < MEMORY_RESERVED_FOR_NULL_DEREFERENCE)
+    if ((cast(size_t) address) < MEMORY_RESERVED_FOR_NULL_DEREFERENCE)
     {
         throw new NullPointerError();
     }

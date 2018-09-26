@@ -21,7 +21,7 @@ UnitTestResult testModules()
     UnitTestResult ret;
     ret.summarize = false;
     ret.runMain = false;
-    foreach(name; Runtime.args[1..$])
+    foreach (name; Runtime.args[1..$])
     {
         immutable pkg = ".package";
         immutable pkgLen = pkg.length;
@@ -40,7 +40,7 @@ UnitTestResult testAll()
     UnitTestResult ret;
     ret.summarize = false;
     ret.runMain = false;
-    foreach(moduleInfo; ModuleInfo)
+    foreach (moduleInfo; ModuleInfo)
     {
         doTest(moduleInfo, ret);
     }

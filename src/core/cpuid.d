@@ -551,7 +551,7 @@ void getcacheinfoCPUID2()
 void getcacheinfoCPUID4()
 {
     int cachenum = 0;
-    for(;;) {
+    for (;;) {
         uint a, b, number_of_sets;
         version(GNU) asm pure nothrow @nogc {
             "cpuid" : "=a" a, "=b" b, "=c" number_of_sets : "a" 4, "c" cachenum : "edx";

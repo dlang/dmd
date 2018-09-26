@@ -509,7 +509,7 @@ else version( Darwin )
         {
             pthread_t self       = pthread_self();
             self.__cleanup_stack = cast(pthread_handler_rec*) buffer.__next;
-            if( execute )
+            if ( execute )
             {
                 buffer.__routine( buffer.__arg );
             }

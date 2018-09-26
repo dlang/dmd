@@ -115,7 +115,7 @@ version( Windows )
 }
 else version( Posix )
 {
-  static if( (void*).sizeof > int.sizeof )
+  static if ( (void*).sizeof > int.sizeof )
   {
     enum __c_longlong  : long;
     enum __c_ulonglong : ulong;

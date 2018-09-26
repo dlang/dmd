@@ -336,7 +336,7 @@ version( CRuntime_Glibc )
     void   srandom(uint);
     int    unlockpt(int);
 
-  static if( __USE_LARGEFILE64 )
+  static if ( __USE_LARGEFILE64 )
   {
     int    mkstemp64(char*);
     alias  mkstemp64 mkstemp;
@@ -668,7 +668,7 @@ else version( CRuntime_UClibc )
     void   srandom(uint);
     int    unlockpt(int);
 
-  static if( __USE_LARGEFILE64 )
+  static if ( __USE_LARGEFILE64 )
   {
     int    mkstemp64(char*);
     alias  mkstemp64 mkstemp;

@@ -19,7 +19,7 @@ void enforceTypedArraysConformable(T)(const char[] action,
     const T[] a1, const T[] a2, in bool allowOverlap = false)
 {
     _enforceSameLength(action, a1.length, a2.length);
-    if(!allowOverlap)
+    if (!allowOverlap)
         _enforceNoOverlap(action, arrayToPtr(a1), arrayToPtr(a2), T.sizeof * a1.length);
 }
 
@@ -27,14 +27,14 @@ void enforceRawArraysConformable(const char[] action, in size_t elementSize,
     const void[] a1, const void[] a2, in bool allowOverlap = false)
 {
     _enforceSameLength(action, a1.length, a2.length);
-    if(!allowOverlap)
+    if (!allowOverlap)
         _enforceNoOverlap(action, arrayToPtr(a1), arrayToPtr(a2), elementSize * a1.length);
 }
 
 private void _enforceSameLength(const char[] action,
     in size_t length1, in size_t length2)
 {
-    if(length1 == length2)
+    if (length1 == length2)
         return;
 
     UnsignedStringBuf tmpBuff = void;
@@ -51,7 +51,7 @@ private void _enforceNoOverlap(const char[] action,
     uintptr_t ptr1, uintptr_t ptr2, in size_t bytes)
 {
     const d = ptr1 > ptr2 ? ptr1 - ptr2 : ptr2 - ptr1;
-    if(d >= bytes)
+    if (d >= bytes)
         return;
     const overlappedBytes = bytes - d;
 

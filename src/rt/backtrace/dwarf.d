@@ -69,7 +69,7 @@ int traceHandlerOpApplyImpl(const void*[] callstack, scope int delegate(ref size
         {
             // resolve addresses
             locations.length = callstack.length;
-            foreach(size_t i; 0 .. callstack.length)
+            foreach (size_t i; 0 .. callstack.length)
                 locations[i].address = cast(size_t) callstack[i];
 
             resolveAddresses(debugLineSectionData, locations[], image.baseAddress);

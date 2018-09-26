@@ -177,7 +177,7 @@ struct ModuleGroup
 
         auto onCycle = OnCycle.abort;
 
-        switch(cycleHandling) with(OnCycle)
+        switch (cycleHandling) with(OnCycle)
         {
         case "deprecate":
             onCycle = deprecate;
@@ -274,8 +274,8 @@ struct ModuleGroup
         // free all the edges after we are done
         scope(exit)
         {
-            foreach(e; edges)
-                if(e.ptr)
+            foreach (e; edges)
+                if (e.ptr)
                     .free(e.ptr);
             .free(edges.ptr);
         }
@@ -354,11 +354,11 @@ struct ModuleGroup
                             if (bt(ctorstart, midx))
                             {
                                 // was already started, this is a cycle.
-                                final switch(onCycle) with(OnCycle)
+                                final switch (onCycle) with(OnCycle)
                                 {
                                 case deprecate:
                                     // check with old algorithm
-                                    if(sortCtorsOld(edges))
+                                    if (sortCtorsOld(edges))
                                     {
                                         // unwind to print deprecation message.
                                         return false;   // deprecated cycle error
@@ -702,10 +702,10 @@ struct ModuleGroup
         if (result) // no cycle
         {
             // fall back to original ordering as part of the deprecation.
-            if(_ctors.ptr)
+            if (_ctors.ptr)
                 .free(_ctors.ptr);
             _ctors = _ctors2;
-            if(_tlsctors.ptr)
+            if (_tlsctors.ptr)
                 .free(_tlsctors.ptr);
             _tlsctors = _tlsctors2;
         }

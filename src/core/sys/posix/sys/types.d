@@ -87,7 +87,7 @@ uid_t
 
 version( CRuntime_Glibc )
 {
-  static if( __USE_FILE_OFFSET64 )
+  static if ( __USE_FILE_OFFSET64 )
   {
     alias long      blkcnt_t;
     alias ulong     ino_t;
@@ -279,7 +279,7 @@ else version( CRuntime_Bionic )
 }
 else version( CRuntime_UClibc )
 {
-    static if( __USE_FILE_OFFSET64 )
+    static if ( __USE_FILE_OFFSET64 )
     {
         alias long      blkcnt_t;
         alias ulong     ino_t;
@@ -334,7 +334,7 @@ useconds_t
 
 version( CRuntime_Glibc )
 {
-  static if( __USE_FILE_OFFSET64 )
+  static if ( __USE_FILE_OFFSET64 )
   {
     alias ulong     fsblkcnt_t;
     alias ulong     fsfilcnt_t;
@@ -427,7 +427,7 @@ else version( CRuntime_Bionic )
 }
 else version( CRuntime_Musl )
 {
-  static if( __USE_FILE_OFFSET64 )
+  static if ( __USE_FILE_OFFSET64 )
   {
     alias ulong     fsblkcnt_t;
     alias ulong     fsfilcnt_t;
@@ -443,7 +443,7 @@ else version( CRuntime_Musl )
 }
 else version( CRuntime_UClibc )
 {
-  static if( __USE_FILE_OFFSET64 )
+  static if ( __USE_FILE_OFFSET64 )
   {
     alias ulong     fsblkcnt_t;
     alias ulong     fsfilcnt_t;

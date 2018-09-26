@@ -182,7 +182,7 @@ pure @safe:
     {
         pragma(inline, false); // tame dmd inliner
 
-        if( val.length && !mute )
+        if ( val.length && !mute )
         {
             assert( contains( dst[0 .. len], val ) );
             debug(info) printf( "shifting (%.*s)\n", cast(int) val.length, val.ptr );
@@ -204,7 +204,7 @@ pure @safe:
     {
         pragma(inline, false); // tame dmd inliner
 
-        if( val.length )
+        if ( val.length )
         {
             assert( contains( dst[0 .. len], val ) );
             debug(info) printf( "removing (%.*s)\n", cast(int) val.length, val.ptr );
@@ -220,21 +220,21 @@ pure @safe:
     {
         pragma(inline, false); // tame dmd inliner
 
-        if( val.length && !mute )
+        if ( val.length && !mute )
         {
-            if( !dst.length )
+            if ( !dst.length )
                 dst.length = minBufSize;
             assert( !contains( dst[0 .. len], val ) );
             debug(info) printf( "appending (%.*s)\n", cast(int) val.length, val.ptr );
 
-            if( dst.length - len >= val.length && &dst[len] == &val[0] )
+            if ( dst.length - len >= val.length && &dst[len] == &val[0] )
             {
                 // data is already in place
                 auto t = dst[len .. len + val.length];
                 len += val.length;
                 return t;
             }
-            if( dst.length - len >= val.length )
+            if ( dst.length - len >= val.length )
             {
                 dst[len .. len + val.length] = val[];
                 auto t = dst[len .. len + val.length];
@@ -263,9 +263,9 @@ pure @safe:
     {
         pragma(inline, false); // tame dmd inliner
 
-        if( val.length )
+        if ( val.length )
         {
-            if( !contains( dst[0 .. len], val ) )
+            if ( !contains( dst[0 .. len], val ) )
                 return append( val );
             return shift( val );
         }
@@ -283,7 +283,7 @@ pure @safe:
         int slen = cast(int)s.length;
         if (slen < width)
         {
-            foreach(i; slen .. width)
+            foreach (i; slen .. width)
                 put('0');
         }
         put(s);
@@ -292,7 +292,7 @@ pure @safe:
 
     void pad( const(char)[] val )
     {
-        if( val.length )
+        if ( val.length )
         {
             append( " " );
             put( val );
@@ -319,14 +319,14 @@ pure @safe:
 
     @property char front()
     {
-        if( pos < buf.length )
+        if ( pos < buf.length )
             return buf[pos];
         return char.init;
     }
 
     char peek( size_t n )
     {
-        if( pos + n < buf.length )
+        if ( pos + n < buf.length )
             return buf[pos + n];
         return char.init;
     }
@@ -334,14 +334,14 @@ pure @safe:
 
     void test( char val )
     {
-        if( val != front )
+        if ( val != front )
             error();
     }
 
 
     void popFront()
     {
-        if( pos++ >= buf.length )
+        if ( pos++ >= buf.length )
             error();
     }
 
@@ -355,7 +355,7 @@ pure @safe:
 
     void match( const(char)[] val )
     {
-        foreach(char e; val )
+        foreach (char e; val )
         {
             test( e );
             popFront();
@@ -365,16 +365,16 @@ pure @safe:
 
     void eat( char val )
     {
-        if( val == front )
+        if ( val == front )
             popFront();
     }
 
     bool isSymbolNameFront()
     {
         char val = front;
-        if( isDigit( val ) || val == '_' )
+        if ( isDigit( val ) || val == '_' )
             return true;
-        if( val != 'Q' )
+        if ( val != 'Q' )
             return false;
 
         // check the back reference encoding after 'Q'
@@ -437,7 +437,7 @@ pure @safe:
 
         auto beg = pos;
 
-        while( true )
+        while ( true )
         {
             auto t = front;
             if (t >= '0' && t <= '9')
@@ -464,7 +464,7 @@ pure @safe:
 
         size_t val = 0;
 
-        foreach( c; num )
+        foreach ( c; num )
         {
             import core.checkedint : mulu, addu;
 
@@ -487,22 +487,22 @@ pure @safe:
         size_t   tlen = 0;
         real     val  = void;
 
-        if( 'I' == front )
+        if ( 'I' == front )
         {
             match( "INF" );
             put( "real.infinity" );
             return;
         }
-        if( 'N' == front )
+        if ( 'N' == front )
         {
             popFront();
-            if( 'I' == front )
+            if ( 'I' == front )
             {
                 match( "INF" );
                 put( "-real.infinity" );
                 return;
             }
-            if( 'A' == front )
+            if ( 'A' == front )
             {
                 match( "AN" );
                 put( "real.nan" );
@@ -513,20 +513,20 @@ pure @safe:
 
         tbuf[tlen++] = '0';
         tbuf[tlen++] = 'X';
-        if( !isHexDigit( front ) )
+        if ( !isHexDigit( front ) )
             error( "Expected hex digit" );
         tbuf[tlen++] = front;
         tbuf[tlen++] = '.';
         popFront();
 
-        while( isHexDigit( front ) )
+        while ( isHexDigit( front ) )
         {
             tbuf[tlen++] = front;
             popFront();
         }
         match( 'P' );
         tbuf[tlen++] = 'p';
-        if( 'N' == front )
+        if ( 'N' == front )
         {
             tbuf[tlen++] = '-';
             popFront();
@@ -535,7 +535,7 @@ pure @safe:
         {
             tbuf[tlen++] = '+';
         }
-        while( isDigit( front ) )
+        while ( isDigit( front ) )
         {
             tbuf[tlen++] = front;
             popFront();
@@ -574,17 +574,17 @@ pure @safe:
         debug(trace) printf( "parseLName+\n" );
         debug(trace) scope(success) printf( "parseLName-\n" );
 
-        static if(__traits(hasMember, Hooks, "parseLName"))
+        static if (__traits(hasMember, Hooks, "parseLName"))
             if (hooks.parseLName(this))
                 return;
 
-        if( front == 'Q' )
+        if ( front == 'Q' )
         {
             // back reference to LName
             auto refPos = pos;
             popFront();
             size_t n = decodeBackref();
-            if( !n || n > refPos )
+            if ( !n || n > refPos )
                 error( "Invalid LName back reference" );
             if ( !mute )
             {
@@ -596,18 +596,18 @@ pure @safe:
             return;
         }
         auto n = decodeNumber();
-        if( n == 0 )
+        if ( n == 0 )
         {
             put( "__anonymous" );
             return;
         }
-        if( n > buf.length || n > buf.length - pos )
+        if ( n > buf.length || n > buf.length - pos )
             error( "LName must be at least 1 character" );
-        if( '_' != front && !isAlpha( front ) )
+        if ( '_' != front && !isAlpha( front ) )
             error( "Invalid character in LName" );
-        foreach(char e; buf[pos + 1 .. pos + n] )
+        foreach (char e; buf[pos + 1 .. pos + n] )
         {
-            if( '_' != e && !isAlpha( e ) && !isDigit( e ) )
+            if ( '_' != e && !isAlpha( e ) && !isDigit( e ) )
                 error( "Invalid character in LName" );
         }
 
@@ -844,7 +844,7 @@ pure @safe:
             return ret;
         }
 
-        switch( t )
+        switch ( t )
         {
         case 'Q': // Type back reference
             return parseBackrefType( () => parseType( name ) );
@@ -871,7 +871,7 @@ pure @safe:
             return dst[beg .. len];
         case 'N':
             popFront();
-            switch( front )
+            switch ( front )
             {
             case 'g': // Wild (Ng Type)
                 popFront();
@@ -937,7 +937,7 @@ pure @safe:
             auto modbeg = len;
             parseModifier();
             auto modend = len;
-            if( front == 'Q' )
+            if ( front == 'Q' )
                 parseBackrefType( () => parseTypeFunction( name, IsDelegate.yes ) );
             else
                 parseTypeFunction( name, IsDelegate.yes );
@@ -977,7 +977,7 @@ pure @safe:
             else if (t == 'z')
             {
                 popFront();
-                switch( front )
+                switch ( front )
                 {
                 case 'i':
                     popFront();
@@ -1075,7 +1075,7 @@ pure @safe:
     void parseCallConvention()
     {
         // CallConvention
-        switch( front )
+        switch ( front )
         {
         case 'F': // D
             popFront();
@@ -1103,7 +1103,7 @@ pure @safe:
 
     void parseModifier()
     {
-        switch( front )
+        switch ( front )
         {
         case 'y':
             popFront();
@@ -1112,18 +1112,18 @@ pure @safe:
         case 'O':
             popFront();
             put( "shared " );
-            if( front == 'x' )
+            if ( front == 'x' )
                 goto case 'x';
-            if( front == 'N' )
+            if ( front == 'N' )
                 goto case 'N';
             break;
         case 'N':
-            if( peek( 1 ) != 'g' )
+            if ( peek( 1 ) != 'g' )
                 break;
             popFront();
             popFront();
             put( "inout " );
-            if( front == 'x' )
+            if ( front == 'x' )
                 goto case 'x';
             break;
         case 'x':
@@ -1141,7 +1141,7 @@ pure @safe:
         while ('N' == front)
         {
             popFront();
-            switch( front )
+            switch ( front )
             {
             case 'a': // FuncAttrPure
                 popFront();
@@ -1199,10 +1199,10 @@ pure @safe:
     void parseFuncArguments()
     {
         // Arguments
-        for( size_t n = 0; true; n++ )
+        for ( size_t n = 0; true; n++ )
         {
             debug(info) printf( "tok (%c)\n", front );
-            switch( front )
+            switch ( front )
             {
             case 'X': // ArgClose (variadic T t...) style)
                 popFront();
@@ -1219,15 +1219,15 @@ pure @safe:
                 break;
             }
             putComma(n);
-            if( 'M' == front )
+            if ( 'M' == front )
             {
                 popFront();
                 put( "scope " );
             }
-            if( 'N' == front )
+            if ( 'N' == front )
             {
                 popFront();
-                if( 'k' == front ) // Return (Nk Parameter2)
+                if ( 'k' == front ) // Return (Nk Parameter2)
                 {
                     popFront();
                     put( "return " );
@@ -1235,7 +1235,7 @@ pure @safe:
                 else
                     pos--;
             }
-            switch( front )
+            switch ( front )
             {
             case 'J': // out (J Type)
                 popFront();
@@ -1289,17 +1289,17 @@ pure @safe:
         parseType();
         put( ' ' );
         // append name/delegate/function
-        if( name.length )
+        if ( name.length )
         {
-            if( !contains( dst[0 .. len], name ) )
+            if ( !contains( dst[0 .. len], name ) )
                 put( name );
-            else if( shift( name ).ptr != name.ptr )
+            else if ( shift( name ).ptr != name.ptr )
             {
                 argbeg -= name.length;
                 retbeg -= name.length;
             }
         }
-        else if( IsDelegate.yes == isdg )
+        else if ( IsDelegate.yes == isdg )
             put( "delegate" );
         else
             put( "function" );
@@ -1310,7 +1310,7 @@ pure @safe:
 
     static bool isCallConvention( char ch )
     {
-        switch( ch )
+        switch ( ch )
         {
             case 'F', 'U', 'V', 'W', 'R':
                 return true;
@@ -1359,7 +1359,7 @@ pure @safe:
         debug(trace) scope(success) printf( "parseValue-\n" );
 
 //        printf( "*** %c\n", front );
-        switch( front )
+        switch ( front )
         {
         case 'n':
             popFront();
@@ -1367,7 +1367,7 @@ pure @safe:
             return;
         case 'i':
             popFront();
-            if( '0' > front || '9' < front )
+            if ( '0' > front || '9' < front )
                 error( "Number expected" );
             goto case;
         case '0': .. case '9':
@@ -1412,7 +1412,7 @@ pure @safe:
                 }
             }
             put( '"' );
-            if( 'a' != t )
+            if ( 'a' != t )
                 put(t);
             return;
         case 'A':
@@ -1423,14 +1423,14 @@ pure @safe:
             //       array value is for the caller to supply the type char.
             //       Hopefully, this will change so that the value is
             //       "H2i1i2i3i4", rendering this unnecesary.
-            if( 'H' == type )
+            if ( 'H' == type )
                 goto LassocArray;
             // A Number Value...
             // An array literal. Value is repeated Number times.
             popFront();
             put( '[' );
             auto n = decodeNumber();
-            foreach( i; 0 .. n )
+            foreach ( i; 0 .. n )
             {
                 putComma(i);
                 parseValue();
@@ -1444,7 +1444,7 @@ pure @safe:
             popFront();
             put( '[' );
             auto n = decodeNumber();
-            foreach( i; 0 .. n )
+            foreach ( i; 0 .. n )
             {
                 putComma(i);
                 parseValue();
@@ -1457,11 +1457,11 @@ pure @safe:
             // S Number Value...
             // A struct literal. Value is repeated Number times.
             popFront();
-            if( name.length )
+            if ( name.length )
                 put( name );
             put( '(' );
             auto n = decodeNumber();
-            foreach( i; 0 .. n )
+            foreach ( i; 0 .. n )
             {
                 putComma(i);
                 parseValue();
@@ -1479,7 +1479,7 @@ pure @safe:
         debug(trace) printf( "parseIntegerValue+\n" );
         debug(trace) scope(success) printf( "parseIntegerValue-\n" );
 
-        switch( type )
+        switch ( type )
         {
         case 'a': // char
         case 'u': // wchar
@@ -1488,7 +1488,7 @@ pure @safe:
             auto val = sliceNumber();
             auto num = decodeNumber( val );
 
-            switch( num )
+            switch ( num )
             {
             case '\'':
                 put( "'\\''" );
@@ -1519,10 +1519,10 @@ pure @safe:
                 put( "'\\v'" );
                 return;
             default:
-                switch( type )
+                switch ( type )
                 {
                 case 'a':
-                    if( num >= 0x20 && num < 0x7F )
+                    if ( num >= 0x20 && num < 0x7F )
                     {
                         put( '\'' );
                         put( cast(char)num );
@@ -1590,12 +1590,12 @@ pure @safe:
         debug(trace) scope(success) printf( "parseTemplateArgs-\n" );
 
     L_nextArg:
-        for( size_t n = 0; true; n++ )
+        for ( size_t n = 0; true; n++ )
         {
-            if( front == 'H' )
+            if ( front == 'H' )
                 popFront();
 
-            switch( front )
+            switch ( front )
             {
             case 'T':
                 popFront();
@@ -1610,7 +1610,7 @@ pure @safe:
                 //       generated by parseValue, so it is safe to simply
                 //       decrement len and let put/append do its thing.
                 char t = front; // peek at type for parseValue
-                if( t == 'Q' )
+                if ( t == 'Q' )
                     t = peekBackref();
                 char[] name; silent( name = parseType() );
                 parseValue( name, t );
@@ -1630,7 +1630,7 @@ pure @safe:
                         parseMangledNameArg();
                         continue;
                     }
-                    catch( ParseException e )
+                    catch ( ParseException e )
                     {
                         len = l;
                         pos = p;
@@ -1638,7 +1638,7 @@ pure @safe:
                         debug(trace) printf( "not a mangled name arg\n" );
                     }
                 }
-                if( isDigit( front ) && isDigit( peek( 1 ) ) )
+                if ( isDigit( front ) && isDigit( peek( 1 ) ) )
                 {
                     // ambiguity: length followed by qualified name (starting with number)
                     // try all possible pairs of numbers
@@ -1647,15 +1647,15 @@ pure @safe:
                     auto l = len;
                     auto p = pos;
                     auto b = brp;
-                    while( qlen > 0 )
+                    while ( qlen > 0 )
                     {
                         try
                         {
                             parseQualifiedName();
-                            if( pos == p + qlen )
+                            if ( pos == p + qlen )
                                 continue L_nextArg;
                         }
-                        catch( ParseException e )
+                        catch ( ParseException e )
                         {
                         }
                         qlen /= 10; // retry with one digit less
@@ -1737,7 +1737,7 @@ pure @safe:
         put( "!(" );
         parseTemplateArgs();
         match( 'Z' );
-        if( hasNumber && pos - beg != n )
+        if ( hasNumber && pos - beg != n )
             error( "Template name length mismatch" );
         put( ')' );
     }
@@ -1770,7 +1770,7 @@ pure @safe:
 
         // LName -> Number
         // TemplateInstanceName -> Number "__T"
-        switch( front )
+        switch ( front )
         {
         case '_':
             // no length encoding for templates for new mangling
@@ -1778,7 +1778,7 @@ pure @safe:
             return;
 
         case '0': .. case '9':
-            if( mayBeTemplateInstanceName() )
+            if ( mayBeTemplateInstanceName() )
             {
                 auto t = len;
 
@@ -1788,7 +1788,7 @@ pure @safe:
                     parseTemplateInstanceName(true);
                     return;
                 }
-                catch( ParseException e )
+                catch ( ParseException e )
                 {
                     debug(trace) printf( "not a template instance name\n" );
                     len = t;
@@ -1815,18 +1815,18 @@ pure @safe:
         char[] attr;
         try
         {
-            if( 'M' == front )
+            if ( 'M' == front )
             {
                 // do not emit "needs this"
                 popFront();
                 parseModifier();
             }
-            if( isCallConvention( front ) )
+            if ( isCallConvention( front ) )
             {
                 // we don't want calling convention and attributes in the qualified name
                 parseCallConvention();
                 parseFuncAttr();
-                if( keepAttr )
+                if ( keepAttr )
                 {
                     attr = dst[prevlen .. len];
                 }
@@ -1840,7 +1840,7 @@ pure @safe:
                 put( ')' );
             }
         }
-        catch( ParseException )
+        catch ( ParseException )
         {
             // not part of a qualified name, so back up
             pos = prevpos;
@@ -1865,12 +1865,12 @@ pure @safe:
 
         do
         {
-            if( n++ )
+            if ( n++ )
                 put( '.' );
             parseSymbolName();
             parseFunctionTypeNoReturn();
 
-        } while( isSymbolNameFront() );
+        } while ( isSymbolNameFront() );
         return dst[beg .. len];
     }
 
@@ -1897,17 +1897,17 @@ pure @safe:
             char[] attr;
             do
             {
-                if( attr )
+                if ( attr )
                     remove( attr ); // dump attributes of parent symbols
-                if( beg != len )
+                if ( beg != len )
                     put( '.' );
                 parseSymbolName();
                 nameEnd = len;
                 attr = parseFunctionTypeNoReturn( displayType );
 
-            } while( isSymbolNameFront() );
+            } while ( isSymbolNameFront() );
 
-            if( displayType )
+            if ( displayType )
             {
                 attr = shift( attr );
                 nameEnd = len - attr.length;  // name includes function arguments
@@ -1915,14 +1915,14 @@ pure @safe:
             name = dst[beg .. nameEnd];
 
             debug(info) printf( "name (%.*s)\n", cast(int) name.length, name.ptr );
-            if( 'M' == front )
+            if ( 'M' == front )
                 popFront(); // has 'this' pointer
 
             auto lastlen = len;
             auto type = parseType();
-            if( displayType )
+            if ( displayType )
             {
-                if( type.length )
+                if ( type.length )
                     put( ' ' );
                 // sort (name,attr,type) -> (attr,type,name)
                 shift( name );
@@ -1933,10 +1933,10 @@ pure @safe:
                 assert( attr.length == 0 );
                 len = lastlen;
             }
-            if( pos >= buf.length || (n != 0 && pos >= end) )
+            if ( pos >= buf.length || (n != 0 && pos >= end) )
                 return;
 
-            switch( front )
+            switch ( front )
             {
             case 'T': // terminators when used as template alias parameter
             case 'V':
@@ -1947,7 +1947,7 @@ pure @safe:
             }
             put( '.' );
 
-        } while( true );
+        } while ( true );
     }
 
     void parseMangledName()
@@ -1957,7 +1957,7 @@ pure @safe:
 
     char[] doDemangle(alias FUNC)()
     {
-        while( true )
+        while ( true )
         {
             try
             {
@@ -1965,7 +1965,7 @@ pure @safe:
                 FUNC();
                 return dst[0 .. len];
             }
-            catch( OverflowException e )
+            catch ( OverflowException e )
             {
                 debug(trace) printf( "overflow... restarting\n" );
                 auto a = minBufSize;
@@ -1976,19 +1976,19 @@ pure @safe:
                 pos = len = brp = 0;
                 continue;
             }
-            catch( ParseException e )
+            catch ( ParseException e )
             {
                 debug(info)
                 {
                     auto msg = e.toString();
                     printf( "error: %.*s\n", cast(int) msg.length, msg.ptr );
                 }
-                if( dst.length < buf.length )
+                if ( dst.length < buf.length )
                     dst.length = buf.length;
                 dst[0 .. buf.length] = buf[];
                 return dst[0 .. buf.length];
             }
-            catch( Exception e )
+            catch ( Exception e )
             {
                 assert( false ); // no other exceptions thrown
             }
@@ -2136,7 +2136,7 @@ char[] reencodeMangled(const(char)[] mangled) nothrow pure @safe
             else
             {
                 auto n = d.decodeNumber();
-                if(!n || n > d.buf.length || n > d.buf.length - d.pos)
+                if (!n || n > d.buf.length || n > d.buf.length - d.pos)
                     d.error("LName too shot or too long");
                 auto id = d.buf[d.pos .. d.pos + n];
                 d.pos += n;
@@ -2206,7 +2206,7 @@ char[] reencodeMangled(const(char)[] mangled) nothrow pure @safe
             d.hooks.result ~= d.buf[d.hooks.lastpos .. d.pos];
         return d.hooks.result;
     }
-    catch(Exception)
+    catch (Exception)
     {
         // overflow exception cannot occur
         return mangled.dup;
@@ -2274,7 +2274,7 @@ char[] mangle(T)(const(char)[] fqn, char[] dst = null) @safe pure nothrow
     dst[i .. i + T.mangleof.length] = T.mangleof[];
     i += T.mangleof.length;
 
-    static if(hasTypeBackRef)
+    static if (hasTypeBackRef)
         return reencodeMangled(dst[0 .. i]);
     else
         return dst[0 .. i];
@@ -2343,7 +2343,7 @@ private enum hasTypeBackRef = (int function(void**,void**)).mangleof[$-4 .. $] =
 @safe pure nothrow unittest
 {
     assert(mangleFunc!(int function(int))("a.b") == "_D1a1bFiZi");
-    static if(hasTypeBackRef)
+    static if (hasTypeBackRef)
     {
         assert(mangleFunc!(int function(Object))("object.Object.opEquals") == "_D6object6Object8opEqualsFCQsZi");
         assert(mangleFunc!(int function(Object, Object))("object.Object.opEquals") == "_D6object6Object8opEqualsFCQsQdZi");
@@ -2550,13 +2550,13 @@ version(unittest)
 }
 @safe pure nothrow unittest
 {
-    foreach( i, name; table )
+    foreach ( i, name; table )
     {
         auto r = demangle( name[0] );
         assert( r == name[1],
                 "demangled \"" ~ name[0] ~ "\" as \"" ~ r ~ "\" but expected \"" ~ name[1] ~ "\"");
     }
-    foreach( i; staticIota!(table.length) )
+    foreach ( i; staticIota!(table.length) )
     {
         enum r = demangle( table[i][0] );
         static assert( r == table[i][1],
@@ -2577,7 +2577,7 @@ unittest
 {
     // https://issues.dlang.org/show_bug.cgi?id=18300
     string s = demangle.mangleof;
-    foreach(i; 1..77)
+    foreach (i; 1..77)
     {
         char[] buf = new char[i];
         auto ds = demangle(s, buf);
@@ -2609,32 +2609,32 @@ string decodeDmdString( const(char)[] ln, ref size_t p ) nothrow pure @safe
     uint zlen, zpos;
 
     // decompress symbol
-    while( p < ln.length )
+    while ( p < ln.length )
     {
         int ch = cast(ubyte) ln[p++];
-        if( (ch & 0xc0) == 0xc0 )
+        if ( (ch & 0xc0) == 0xc0 )
         {
             zlen = (ch & 0x7) + 1;
             zpos = ((ch >> 3) & 7) + 1; // + zlen;
-            if( zpos > s.length )
+            if ( zpos > s.length )
                 break;
             s ~= s[$ - zpos .. $ - zpos + zlen];
         }
-        else if( ch >= 0x80 )
+        else if ( ch >= 0x80 )
         {
-            if( p >= ln.length )
+            if ( p >= ln.length )
                 break;
             int ch2 = cast(ubyte) ln[p++];
             zlen = (ch2 & 0x7f) | ((ch & 0x38) << 4);
-            if( p >= ln.length )
+            if ( p >= ln.length )
                 break;
             int ch3 = cast(ubyte) ln[p++];
             zpos = (ch3 & 0x7f) | ((ch & 7) << 7);
-            if( zpos > s.length )
+            if ( zpos > s.length )
                 break;
             s ~= s[$ - zpos .. $ - zpos + zlen];
         }
-        else if( Demangle!().isAlpha(cast(char)ch) || Demangle!().isDigit(cast(char)ch) || ch == '_' )
+        else if ( Demangle!().isAlpha(cast(char)ch) || Demangle!().isDigit(cast(char)ch) || ch == '_' )
             s ~= cast(char) ch;
         else
         {

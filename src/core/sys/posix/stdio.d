@@ -112,7 +112,7 @@ version( CRuntime_Glibc )
      * the *64 functions shouldn't be visible, but the aliases should
      * still be supported
      */
-    static if( __USE_FILE_OFFSET64 )
+    static if ( __USE_FILE_OFFSET64 )
     {
         int   fgetpos64(FILE*, fpos_t *);
         alias fgetpos64 fgetpos;
@@ -151,7 +151,7 @@ else version( CRuntime_Bionic )
 }
 else version( CRuntime_UClibc )
 {
-    static if( __USE_FILE_OFFSET64 )
+    static if ( __USE_FILE_OFFSET64 )
     {
         int   fgetpos64(FILE*, fpos_t *);
         alias fgetpos64 fgetpos;
@@ -201,7 +201,7 @@ version( CRuntime_Glibc )
 {
     enum L_ctermid = 9;
 
-  static if( __USE_FILE_OFFSET64 )
+  static if ( __USE_FILE_OFFSET64 )
   {
     int   fseeko64(FILE*, off_t, int);
     alias fseeko64 fseeko;
@@ -211,7 +211,7 @@ version( CRuntime_Glibc )
     int   fseeko(FILE*, off_t, int);
   }
 
-  static if( __USE_FILE_OFFSET64 )
+  static if ( __USE_FILE_OFFSET64 )
   {
     off_t ftello64(FILE*);
     alias ftello64 ftello;
@@ -226,7 +226,7 @@ else version( CRuntime_UClibc )
     enum L_ctermid = 9;
     enum L_cuserid = 9;
 
-  static if( __USE_FILE_OFFSET64 )
+  static if ( __USE_FILE_OFFSET64 )
   {
     int   fseeko64(FILE*, off_t, int);
     alias fseeko64 fseeko;
@@ -236,7 +236,7 @@ else version( CRuntime_UClibc )
     int   fseeko(FILE*, off_t, int);
   }
 
-  static if( __USE_FILE_OFFSET64 )
+  static if ( __USE_FILE_OFFSET64 )
   {
     off_t ftello64(FILE*);
     alias ftello64 ftello;

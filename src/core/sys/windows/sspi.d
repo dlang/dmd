@@ -302,7 +302,7 @@ SECURITY_STATUS QueryContextAttributesA(PCtxtHandle,ULONG,PVOID);
 SECURITY_STATUS QueryContextAttributesW(PCtxtHandle,ULONG,PVOID);
 SECURITY_STATUS QueryCredentialsAttributesA(PCredHandle,ULONG,PVOID);
 SECURITY_STATUS QueryCredentialsAttributesW(PCredHandle,ULONG,PVOID);
-static if(_WIN32_WINNT >= 0x500){
+static if (_WIN32_WINNT >= 0x500){
     SECURITY_STATUS QuerySecurityContextToken(PCtxtHandle,HANDLE*);
 }
 SECURITY_STATUS DecryptMessage(PCtxtHandle,PSecBufferDesc,ULONG,PULONG);

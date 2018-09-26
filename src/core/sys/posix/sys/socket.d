@@ -183,7 +183,7 @@ version( CRuntime_Glibc )
         size_t cmsg_len;
         int    cmsg_level;
         int    cmsg_type;
-        static if( false /* (!is( __STRICT_ANSI__ ) && __GNUC__ >= 2) || __STDC_VERSION__ >= 199901L */ )
+        static if ( false /* (!is( __STRICT_ANSI__ ) && __GNUC__ >= 2) || __STDC_VERSION__ >= 199901L */ )
         {
             ubyte[1] __cmsg_data;
         }
@@ -194,7 +194,7 @@ version( CRuntime_Glibc )
         SCM_RIGHTS = 0x01
     }
 
-    static if( false /* (!is( __STRICT_ANSI__ ) && __GNUC__ >= 2) || __STDC_VERSION__ >= 199901L */ )
+    static if ( false /* (!is( __STRICT_ANSI__ ) && __GNUC__ >= 2) || __STDC_VERSION__ >= 199901L */ )
     {
         extern (D) ubyte[1] CMSG_DATA( cmsghdr* cmsg ) pure nothrow @nogc { return cmsg.__cmsg_data; }
     }
@@ -864,13 +864,13 @@ else version( FreeBSD )
 
     extern (D) cmsghdr* CMSG_NXTHDR( msghdr* mhdr, cmsghdr* cmsg )
     {
-        if( cmsg == null )
+        if ( cmsg == null )
         {
            return CMSG_FIRSTHDR( mhdr );
         }
         else
         {
-            if( cast(ubyte*) cmsg + _ALIGN( cmsg.cmsg_len ) + _ALIGN( cmsghdr.sizeof ) >
+            if ( cast(ubyte*) cmsg + _ALIGN( cmsg.cmsg_len ) + _ALIGN( cmsghdr.sizeof ) >
                     cast(ubyte*) mhdr.msg_control + mhdr.msg_controllen )
                 return null;
             else
@@ -1041,13 +1041,13 @@ else version(NetBSD)
 
     extern (D) cmsghdr* CMSG_NXTHDR( msghdr* mhdr, cmsghdr* cmsg )
     {
-        if( cmsg == null )
+        if ( cmsg == null )
         {
            return CMSG_FIRSTHDR( mhdr );
         }
         else
         {
-            if( cast(ubyte*) cmsg + _ALIGN( cmsg.cmsg_len ) + _ALIGN( cmsghdr.sizeof ) >
+            if ( cast(ubyte*) cmsg + _ALIGN( cmsg.cmsg_len ) + _ALIGN( cmsghdr.sizeof ) >
                     cast(ubyte*) mhdr.msg_control + mhdr.msg_controllen )
                 return null;
             else
@@ -1417,13 +1417,13 @@ else version( DragonFlyBSD )
 
     extern (D) cmsghdr* CMSG_NXTHDR( msghdr* mhdr, cmsghdr* cmsg )
     {
-        if( cmsg == null )
+        if ( cmsg == null )
         {
            return CMSG_FIRSTHDR( mhdr );
         }
         else
         {
-            if( cast(ubyte*) cmsg + _ALIGN( cmsg.cmsg_len ) + _ALIGN( cmsghdr.sizeof ) >
+            if ( cast(ubyte*) cmsg + _ALIGN( cmsg.cmsg_len ) + _ALIGN( cmsghdr.sizeof ) >
                     cast(ubyte*) mhdr.msg_control + mhdr.msg_controllen )
                 return null;
             else

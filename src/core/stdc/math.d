@@ -2684,20 +2684,20 @@ else version(NetBSD)
     /// NetBSD has no logl. It is just alias log(double)
     real    logl(real x)
     {
-        if(x<0) return real.nan;
-        if(x==0) return -real.infinity;
-        if(isnan(x) || isinf(x)) return x;
+        if (x<0) return real.nan;
+        if (x==0) return -real.infinity;
+        if (isnan(x) || isinf(x)) return x;
         real rs = 0;
-        if(x>double.max)
+        if (x>double.max)
         {
             immutable MAX = log(double.max);
-            for(; x>double.max; x /= double.max)
+            for (; x>double.max; x /= double.max)
                 rs += MAX;
         }
-        else if(x<double.min_normal)
+        else if (x<double.min_normal)
         {
             immutable MIN = log(double.min_normal);
-            for(; x<double.min_normal; x /= double.min_normal)
+            for (; x<double.min_normal; x /= double.min_normal)
                 rs += MIN;
         }
         rs += log(x);
@@ -2711,21 +2711,21 @@ else version(NetBSD)
     ///NetBSD has no log10l. It is just alias log(double)
     real    log10l(real x)
     {
-        if(x<0) return real.nan;
-        if(x==0) return -real.infinity;
-        if(isnan(x) || isinf(x)) return x;
+        if (x<0) return real.nan;
+        if (x==0) return -real.infinity;
+        if (isnan(x) || isinf(x)) return x;
 
         real rs = 0;
-        if(x>double.max)
+        if (x>double.max)
         {
             immutable MAX = log10(double.max);
-            for(; x>double.max; x /= double.max)
+            for (; x>double.max; x /= double.max)
                 rs += MAX;
         }
-        else if(x<double.min_normal)
+        else if (x<double.min_normal)
         {
             immutable MIN = log10(double.min_normal);
-            for(; x<double.min_normal; x /= double.min_normal)
+            for (; x<double.min_normal; x /= double.min_normal)
                 rs += MIN;
         }
         rs += log10(x);
