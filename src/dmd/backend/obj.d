@@ -328,7 +328,7 @@ else version (Posix)
         static void ehtables(Symbol *sfunc,uint size,Symbol *ehsym);
         static void ehsections();
         static void moduleinfo(Symbol *scc);
-        int comdat(Symbol *);
+        static int comdat(Symbol *);
         static int comdatsize(Symbol *, targ_size_t symsize);
         int readonly_comdat(Symbol *s);
         static void setcodeseg(int seg);

@@ -6,42 +6,83 @@
  *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/out.c, backend/out.c)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/out.d, backend/out.d)
  */
 
 
-#if !SPP
+module dmd.backend.dout;
 
-#include        <stdio.h>
-#include        <string.h>
-#include        <time.h>
+version (SPP) { } else
+{
 
-#include        "cc.h"
-#include        "oper.h"
-#include        "global.h"
-#include        "type.h"
-#include        "filespec.h"
-#include        "code.h"
-#include        "cgcv.h"
-#include        "go.h"
-#include        "dt.h"
-#if SCPP
-#include        "parser.h"
-#include        "cpp.h"
-#include        "el.h"
-#include        "code.h"
-#endif
+import core.stdc.stdio;
+import core.stdc.string;
 
-static char __file__[] = __FILE__;      /* for tassert.h                */
-#include        "tassert.h"
+import dmd.backend.cc;
+import dmd.backend.cdef;
+import dmd.backend.cgcv;
+import dmd.backend.code;
+import dmd.backend.code_x86;
+import dmd.backend.cv4;
+import dmd.backend.dt;
+import dmd.backend.dlist;
+import dmd.backend.memh;
+import dmd.backend.el;
+import dmd.backend.exh;
+import dmd.backend.global;
+import dmd.backend.goh;
+import dmd.backend.obj;
+import dmd.backend.oper;
+import dmd.backend.outbuf;
+import dmd.backend.rtlsym;
+import dmd.backend.ty;
+import dmd.backend.type;
 
-#define null NULL
-typedef unsigned char ubyte;
-typedef unsigned short ushort;
+version (SCPP)
+{
+    import cpp;
+    import msgs2;
+    import parser;
+}
+version (HTOD)
+{
+    import cpp;
+    import msgs2;
+    import parser;
+}
 
-void dt_writeToObj(Obj& objmod, dt_t *dt, int seg, targ_size_t& offset);
+version (Windows)
+{
+    extern (C)
+    {
+        int stricmp(const(char)*, const(char)*) pure nothrow @nogc;
+        int memicmp(const(void)*, const(void)*, size_t) pure nothrow @nogc;
+    }
+}
 
-#if SCPP
+extern (C++):
+
+void dt_writeToObj(Obj objmod, dt_t *dt, int seg, ref targ_size_t offset);
+
+// Determine if this Symbol is stored in a COMDAT
+bool symbol_iscomdat2(Symbol* s)
+{
+    version (MARS)
+    {
+        return s.Sclass == SCcomdat ||
+            config.flags2 & CFG2comdat && s.Sclass == SCinline ||
+            config.flags4 & CFG4allcomdat && s.Sclass == SCglobal;
+    }
+    else
+    {
+        return s.Sclass == SCcomdat ||
+            config.flags2 & CFG2comdat && s.Sclass == SCinline ||
+            config.flags4 & CFG4allcomdat && (s.Sclass == SCglobal || s.Sclass == SCstatic);
+    }
+}
+
+version (SCPP)
+{
 
 /**********************************
  * We put out an external definition.
@@ -62,23 +103,29 @@ void out_extdef(Symbol *s)
  */
 void outcsegname(char *csegname)
 {
-    Obj::codeseg(csegname,0);
+    Obj.codeseg(csegname,0);
 }
 
-#endif
+}
+
+version (HTOD)
+{
+    void outcsegname(char *csegname) { }
+}
 
 /***********************************
  * Output function thunk.
  */
-void outthunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
+extern (C) void outthunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
         targ_size_t d,int i,targ_size_t d2)
 {
-#if !HTOD
-    sthunk->Sseg = cseg;
-    cod3_thunk(sthunk,sfunc,p,thisty,d,i,d2);
-    sthunk->Sfunc->Fflags &= ~Fpending;
-    sthunk->Sfunc->Fflags |= Foutput;   /* mark it as having been output */
-#endif
+version (HTOD) { } else
+{
+    sthunk.Sseg = cseg;
+    cod3_thunk(sthunk,sfunc,p,thisty,cast(uint)d,i,cast(uint)d2);
+    sthunk.Sfunc.Fflags &= ~Fpending;
+    sthunk.Sfunc.Fflags |= Foutput;   /* mark it as having been output */
+}
 }
 
 
@@ -90,190 +137,201 @@ void outthunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
 
 void outdata(Symbol *s)
 {
-#if HTOD
+version (HTOD)
+{
     return;
-#endif
+}
+
     int seg;
     targ_size_t offset;
     int flags;
     const int codeseg = cseg;
 
     symbol_debug(s);
-#ifdef DEBUG
-    debugy && dbg_printf("outdata('%s')\n",s->Sident);
-#endif
-    //printf("outdata('%s', ty=x%x)\n",s->Sident,s->Stype->Tty);
+
+    debug
+    debugy && printf("outdata('%s')\n",s.Sident.ptr);
+
+    //printf("outdata('%s', ty=x%x)\n",s.Sident.ptr,s.Stype.Tty);
     //symbol_print(s);
 
     // Data segment variables are always live on exit from a function
-    s->Sflags |= SFLlivexit;
+    s.Sflags |= SFLlivexit;
 
-    dt_t *dtstart = s->Sdt;
-    s->Sdt = null;                      // it will be free'd
+    dt_t *dtstart = s.Sdt;
+    s.Sdt = null;                      // it will be free'd
     targ_size_t datasize = 0;
-    tym_t ty = s->ty();
-#if SCPP && TARGET_WINDOS
+    tym_t ty = s.ty();
+version (SCPP)
+{
     if (eecontext.EEcompile)
-    {   s->Sfl = (s->ty() & mTYfar) ? FLfardata : FLextern;
-        s->Sseg = UNKNOWN;
+    {   s.Sfl = (s.ty() & mTYfar) ? FLfardata : FLextern;
+        s.Sseg = UNKNOWN;
         goto Lret;                      // don't output any data
     }
-#endif
-    if (ty & mTYexport && config.wflags & WFexpdef && s->Sclass != SCstatic)
-        objmod->export_symbol(s,0);        // export data definition
-    for (dt_t *dt = dtstart; dt; dt = dt->DTnext)
+}
+    if (ty & mTYexport && config.wflags & WFexpdef && s.Sclass != SCstatic)
+        objmod.export_symbol(s,0);        // export data definition
+    for (dt_t *dt = dtstart; dt; dt = dt.DTnext)
     {
-        //printf("\tdt = %p, dt = %d\n",dt,dt->dt);
-        switch (dt->dt)
+        //printf("\tdt = %p, dt = %d\n",dt,dt.dt);
+        switch (dt.dt)
         {   case DT_abytes:
             {   // Put out the data for the string, and
                 // reserve a spot for a pointer to that string
-                datasize += size(dt->Dty);      // reserve spot for pointer to string
-                if (tybasic(dt->Dty) == TYcptr)
-                {   dt->DTseg = codeseg;
-                    dt->DTabytes += Offset(codeseg);
+                datasize += size(dt.Dty);      // reserve spot for pointer to string
+                if (tybasic(dt.Dty) == TYcptr)
+                {   dt.DTseg = codeseg;
+                    dt.DTabytes += Offset(codeseg);
                     goto L1;
                 }
-                else if (tybasic(dt->Dty) == TYfptr &&
-                         dt->DTnbytes > config.threshold)
+                else if (tybasic(dt.Dty) == TYfptr &&
+                         dt.DTnbytes > config.threshold)
                 {
-#if SCPP
+version (SCPP)
+{
+                    {
                     targ_size_t foffset;
-                    dt->DTseg = objmod->fardata(s->Sident,dt->DTnbytes,&foffset);
-                    dt->DTabytes += foffset;
-#endif
+                    dt.DTseg = objmod.fardata(s.Sident.ptr,dt.DTnbytes,&foffset);
+                    dt.DTabytes += foffset;
+                    }
+}
                 L1:
-                    objmod->write_bytes(SegData[dt->DTseg],dt->DTnbytes,dt->DTpbytes);
+                    objmod.write_bytes(SegData[dt.DTseg],dt.DTnbytes,dt.DTpbytes);
                     break;
                 }
                 else
                 {
-                    dt->DTabytes += objmod->data_readonly(dt->DTpbytes,dt->DTnbytes,&dt->DTseg);
+                    dt.DTabytes += objmod.data_readonly(cast(char*)dt.DTpbytes,dt.DTnbytes,&dt.DTseg);
                 }
                 break;
             }
 
             case DT_ibytes:
-                datasize += dt->DTn;
+                datasize += dt.DTn;
                 break;
 
             case DT_nbytes:
-                //printf("DT_nbytes %d\n", dt->DTnbytes);
-                datasize += dt->DTnbytes;
+                //printf("DT_nbytes %d\n", dt.DTnbytes);
+                datasize += dt.DTnbytes;
                 break;
 
             case DT_azeros:
                 /* A block of zeros
                  */
-                //printf("DT_azeros %d\n", dt->DTazeros);
+                //printf("DT_azeros %d\n", dt.DTazeros);
             case_azeros:
-                datasize += dt->DTazeros;
-                if (dt == dtstart && !dt->DTnext && s->Sclass != SCcomdat &&
-                    (s->Sseg == UNKNOWN || s->Sseg <= UDATA))
+                datasize += dt.DTazeros;
+                if (dt == dtstart && !dt.DTnext && s.Sclass != SCcomdat &&
+                    (s.Sseg == UNKNOWN || s.Sseg <= UDATA))
                 {   /* first and only, so put in BSS segment
                      */
                     switch (ty & mTYLINK)
                     {
-#if SCPP
+version (SCPP)
+{
                         case mTYfar:                    // if far data
-                            s->Sseg = objmod->fardata(s->Sident,datasize,&s->Soffset);
-                            s->Sfl = FLfardata;
+                            s.Sseg = objmod.fardata(s.Sident.ptr,datasize,&s.Soffset);
+                            s.Sfl = FLfardata;
                             break;
-#endif
+}
 
                         case mTYcs:
-                            s->Sseg = codeseg;
+                            s.Sseg = codeseg;
                             Offset(codeseg) = _align(datasize,Offset(codeseg));
-                            s->Soffset = Offset(codeseg);
+                            s.Soffset = Offset(codeseg);
                             Offset(codeseg) += datasize;
-                            s->Sfl = FLcsdata;
+                            s.Sfl = FLcsdata;
                             break;
 
                         case mTYthreadData:
                             assert(config.objfmt == OBJ_MACH && I64);
+                            goto case;
                         case mTYthread:
-                        {   seg_data *pseg = objmod->tlsseg_bss();
-                            s->Sseg = pseg->SDseg;
-                            objmod->data_start(s, datasize, pseg->SDseg);
+                        {   seg_data *pseg = objmod.tlsseg_bss();
+                            s.Sseg = pseg.SDseg;
+                            objmod.data_start(s, datasize, pseg.SDseg);
                             if (config.objfmt == OBJ_OMF)
-                                pseg->SDoffset += datasize;
+                                pseg.SDoffset += datasize;
                             else
-                                objmod->lidata(pseg->SDseg, pseg->SDoffset, datasize);
-                            s->Sfl = FLtlsdata;
+                                objmod.lidata(pseg.SDseg, pseg.SDoffset, datasize);
+                            s.Sfl = FLtlsdata;
                             break;
                         }
 
                         default:
-                            s->Sseg = UDATA;
-                            objmod->data_start(s,datasize,UDATA);
-                            objmod->lidata(s->Sseg,s->Soffset,datasize);
-                            s->Sfl = FLudata;           // uninitialized data
+                            s.Sseg = UDATA;
+                            objmod.data_start(s,datasize,UDATA);
+                            objmod.lidata(s.Sseg,s.Soffset,datasize);
+                            s.Sfl = FLudata;           // uninitialized data
                             break;
                     }
-                    assert(s->Sseg && s->Sseg != UNKNOWN);
-                    if (s->Sclass == SCglobal || (s->Sclass == SCstatic && config.objfmt != OBJ_OMF)) // if a pubdef to be done
-                        objmod->pubdefsize(s->Sseg,s,s->Soffset,datasize);   // do the definition
+                    assert(s.Sseg && s.Sseg != UNKNOWN);
+                    if (s.Sclass == SCglobal || (s.Sclass == SCstatic && config.objfmt != OBJ_OMF)) // if a pubdef to be done
+                        objmod.pubdefsize(s.Sseg,s,s.Soffset,datasize);   // do the definition
                     searchfixlist(s);
                     if (config.fulltypes &&
-                        !(s->Sclass == SCstatic && funcsym_p)) // not local static
+                        !(s.Sclass == SCstatic && funcsym_p)) // not local static
                         cv_outsym(s);
-#if SCPP
+version (SCPP)
+{
                     out_extdef(s);
-#endif
+}
                     goto Lret;
                 }
                 break;
 
             case DT_common:
-                assert(!dt->DTnext);
-                outcommon(s,dt->DTazeros);
+                assert(!dt.DTnext);
+                outcommon(s,dt.DTazeros);
                 goto Lret;
 
             case DT_xoff:
-            {   Symbol *sb = dt->DTsym;
+            {   Symbol *sb = dt.DTsym;
 
-                if (tyfunc(sb->ty()))
+                if (tyfunc(sb.ty()))
                 {
-#if SCPP
+version (SCPP)
+{
                     nwc_mustwrite(sb);
-#endif
+}
                 }
-                else if (sb->Sdt)               // if initializer for symbol
-{ if (!s->Sseg) s->Sseg = DATA;
+                else if (sb.Sdt)               // if initializer for symbol
+{ if (!s.Sseg) s.Sseg = DATA;
                     outdata(sb);                // write out data for symbol
 }
             }
+                goto case;
             case DT_coff:
-                datasize += size(dt->Dty);
+                datasize += size(dt.Dty);
                 break;
             default:
-#ifdef DEBUG
-                dbg_printf("dt = %p, dt = %d\n",dt,dt->dt);
-#endif
+                debug
+                printf("dt = %p, dt = %d\n",dt,dt.dt);
                 assert(0);
         }
     }
 
-    if (s->Sclass == SCcomdat)          // if initialized common block
+    if (s.Sclass == SCcomdat)          // if initialized common block
     {
-        seg = objmod->comdatsize(s, datasize);
+        seg = objmod.comdatsize(s, datasize);
         switch (ty & mTYLINK)
         {
             case mTYfar:                // if far data
-                s->Sfl = FLfardata;
+                s.Sfl = FLfardata;
                 break;
 
             case mTYcs:
-                s->Sfl = FLcsdata;
+                s.Sfl = FLcsdata;
                 break;
 
             case mTYnear:
             case 0:
-                s->Sfl = FLdata;        // initialized data
+                s.Sfl = FLdata;        // initialized data
                 break;
 
             case mTYthread:
-                s->Sfl = FLtlsdata;
+                s.Sfl = FLtlsdata;
                 break;
 
             default:
@@ -284,83 +342,86 @@ void outdata(Symbol *s)
     {
       switch (ty & mTYLINK)
       {
-#if SCPP
+version (SCPP)
+{
         case mTYfar:                    // if far data
-            seg = objmod->fardata(s->Sident,datasize,&s->Soffset);
-            s->Sfl = FLfardata;
+            seg = objmod.fardata(s.Sident.ptr,datasize,&s.Soffset);
+            s.Sfl = FLfardata;
             break;
-#endif
+}
 
         case mTYcs:
             seg = codeseg;
             Offset(codeseg) = _align(datasize,Offset(codeseg));
-            s->Soffset = Offset(codeseg);
-            s->Sfl = FLcsdata;
+            s.Soffset = Offset(codeseg);
+            s.Sfl = FLcsdata;
             break;
 
         case mTYthreadData:
         {
             assert(config.objfmt == OBJ_MACH && I64);
 
-            seg_data *pseg = objmod->tlsseg_data();
-            s->Sseg = pseg->SDseg;
-            objmod->data_start(s, datasize, s->Sseg);
-            seg = pseg->SDseg;
-            s->Sfl = FLtlsdata;
+            seg_data *pseg = objmod.tlsseg_data();
+            s.Sseg = pseg.SDseg;
+            objmod.data_start(s, datasize, s.Sseg);
+            seg = pseg.SDseg;
+            s.Sfl = FLtlsdata;
             break;
         }
         case mTYthread:
         {
-            seg_data *pseg = objmod->tlsseg();
-            s->Sseg = pseg->SDseg;
-            objmod->data_start(s, datasize, s->Sseg);
-            seg = pseg->SDseg;
-            s->Sfl = FLtlsdata;
+            seg_data *pseg = objmod.tlsseg();
+            s.Sseg = pseg.SDseg;
+            objmod.data_start(s, datasize, s.Sseg);
+            seg = pseg.SDseg;
+            s.Sfl = FLtlsdata;
             break;
         }
         case mTYnear:
         case 0:
             if (
-                s->Sseg == 0 ||
-                s->Sseg == UNKNOWN)
-                s->Sseg = DATA;
-            seg = objmod->data_start(s,datasize,DATA);
-            s->Sfl = FLdata;            // initialized data
+                s.Sseg == 0 ||
+                s.Sseg == UNKNOWN)
+                s.Sseg = DATA;
+            seg = objmod.data_start(s,datasize,DATA);
+            s.Sfl = FLdata;            // initialized data
             break;
 
         default:
             assert(0);
       }
     }
-    if (s->Sseg == UNKNOWN && (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH))
-        s->Sseg = seg;
+    if (s.Sseg == UNKNOWN && (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH))
+        s.Sseg = seg;
     else if (config.objfmt == OBJ_OMF)
-        s->Sseg = seg;
+        s.Sseg = seg;
     else
-        seg = s->Sseg;
+        seg = s.Sseg;
 
-    if (s->Sclass == SCglobal || (s->Sclass == SCstatic && config.objfmt != OBJ_OMF))
-        objmod->pubdefsize(seg,s,s->Soffset,datasize);    /* do the definition            */
+    if (s.Sclass == SCglobal || (s.Sclass == SCstatic && config.objfmt != OBJ_OMF))
+        objmod.pubdefsize(seg,s,s.Soffset,datasize);    /* do the definition            */
 
-    assert(s->Sseg != UNKNOWN);
+    assert(s.Sseg != UNKNOWN);
     if (config.fulltypes &&
-        !(s->Sclass == SCstatic && funcsym_p)) // not local static
+        !(s.Sclass == SCstatic && funcsym_p)) // not local static
         cv_outsym(s);
     searchfixlist(s);
 
     /* Go back through list, now that we know its size, and send out    */
     /* the data.                                                        */
 
-    offset = s->Soffset;
+    offset = s.Soffset;
 
-    dt_writeToObj(*objmod, dtstart, seg, offset);
+    dt_writeToObj(objmod, dtstart, seg, offset);
     Offset(seg) = offset;
-#if SCPP
+version (SCPP)
+{
     out_extdef(s);
-#endif
+}
 Lret:
     dt_free(dtstart);
 }
+
 
 /********************************************
  * Write dt to Object file.
@@ -371,86 +432,92 @@ Lret:
  *      offset = starting offset in segment - will get updated to reflect ending offset
  */
 
-void dt_writeToObj(Obj& objmod, dt_t *dt, int seg, targ_size_t& offset)
+void dt_writeToObj(Obj objmod, dt_t *dt, int seg, ref targ_size_t offset)
 {
-    for (; dt; dt = dt->DTnext)
+    for (; dt; dt = dt.DTnext)
     {
-        switch (dt->dt)
+        switch (dt.dt)
         {
             case DT_abytes:
             {
                 int flags;
-                if (tyreg(dt->Dty))
+                if (tyreg(dt.Dty))
                     flags = CFoff;
                 else
                     flags = CFoff | CFseg;
                 if (I64)
                     flags |= CFoffset64;
-                if (tybasic(dt->Dty) == TYcptr)
-                    objmod.reftocodeseg(seg,offset,dt->DTabytes);
+                if (tybasic(dt.Dty) == TYcptr)
+                    objmod.reftocodeseg(seg,offset,dt.DTabytes);
                 else
                 {
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
-                    objmod.reftodatseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
-#else
-                    if (dt->DTseg == DATA)
-                        objmod.reftodatseg(seg,offset,dt->DTabytes,DATA,flags);
+static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+{
+                    objmod.reftodatseg(seg,offset,dt.DTabytes,dt.DTseg,flags);
+}
+else
+{
+                    if (dt.DTseg == DATA)
+                        objmod.reftodatseg(seg,offset,dt.DTabytes,DATA,flags);
                     else
                     {
-#if MARS
-                        if (dt->DTseg == CDATA)
-                            objmod.reftodatseg(seg,offset,dt->DTabytes,CDATA,flags);
+version (MARS)
+{
+                        if (dt.DTseg == CDATA)
+                            objmod.reftodatseg(seg,offset,dt.DTabytes,CDATA,flags);
                         else
-                            objmod.reftofarseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
-#else
-                        objmod.reftofarseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
-#endif
+                            objmod.reftofarseg(seg,offset,dt.DTabytes,dt.DTseg,flags);
+}
+else
+{
+                        objmod.reftofarseg(seg,offset,dt.DTabytes,dt.DTseg,flags);
+}
                     }
-#endif
+}
                 }
-                offset += size(dt->Dty);
+                offset += size(dt.Dty);
                 break;
             }
 
             case DT_ibytes:
-                objmod.bytes(seg,offset,dt->DTn,dt->DTdata);
-                offset += dt->DTn;
+                objmod.bytes(seg,offset,dt.DTn,dt.DTdata.ptr);
+                offset += dt.DTn;
                 break;
 
             case DT_nbytes:
-                objmod.bytes(seg,offset,dt->DTnbytes,dt->DTpbytes);
-                offset += dt->DTnbytes;
+                objmod.bytes(seg,offset,dt.DTnbytes,dt.DTpbytes);
+                offset += dt.DTnbytes;
                 break;
 
             case DT_azeros:
-                //printf("objmod.lidata(seg = %d, offset = %d, azeros = %d)\n", seg, offset, dt->DTazeros);
-                SegData[seg]->SDoffset = offset;
-                objmod.lidata(seg,offset,dt->DTazeros);
-                offset = SegData[seg]->SDoffset;
+                //printf("objmod.lidata(seg = %d, offset = %d, azeros = %d)\n", seg, offset, dt.DTazeros);
+                SegData[seg].SDoffset = offset;
+                objmod.lidata(seg,offset,dt.DTazeros);
+                offset = SegData[seg].SDoffset;
                 break;
 
             case DT_xoff:
             {
-                Symbol *sb = dt->DTsym;          // get external symbol pointer
-                targ_size_t a = dt->DToffset;    // offset from it
+                Symbol *sb = dt.DTsym;          // get external symbol pointer
+                targ_size_t a = dt.DToffset;    // offset from it
                 int flags;
-                if (tyreg(dt->Dty))
+                if (tyreg(dt.Dty))
                     flags = CFoff;
                 else
                     flags = CFoff | CFseg;
-                if (I64 && tysize(dt->Dty) == 8)
+                if (I64 && tysize(dt.Dty) == 8)
                     flags |= CFoffset64;
                 offset += objmod.reftoident(seg,offset,sb,a,flags);
                 break;
             }
 
             case DT_coff:
-                objmod.reftocodeseg(seg,offset,dt->DToffset);
-                offset += intsize;
+                objmod.reftocodeseg(seg,offset,dt.DToffset);
+                offset += _tysize[TYint];
                 break;
 
             default:
-                //printf("dt = %p, dt = %d\n",dt,dt->dt);
+                //printf("dt = %p, dt = %d\n",dt,dt.dt);
                 assert(0);
         }
     }
@@ -463,64 +530,67 @@ void dt_writeToObj(Obj& objmod, dt_t *dt, int seg, targ_size_t& offset)
 
 void outcommon(Symbol *s,targ_size_t n)
 {
-    //printf("outcommon('%s',%d)\n",s->Sident,n);
+    //printf("outcommon('%s',%d)\n",s.Sident.ptr,n);
     if (n != 0)
     {
-        assert(s->Sclass == SCglobal);
-        if (s->ty() & mTYcs) // if store in code segment
+        assert(s.Sclass == SCglobal);
+        if (s.ty() & mTYcs) // if store in code segment
         {
             /* COMDEFs not supported in code segment
              * so put them out as initialized 0s
              */
-            DtBuilder dtb;
-            dtb.nzeros(n);
-            s->Sdt = dtb.finish();
+            scope dtb = new DtBuilder();
+            dtb.nzeros(cast(uint)n);
+            s.Sdt = dtb.finish();
             outdata(s);
-#if SCPP
+version (SCPP)
+{
             out_extdef(s);
-#endif
+}
         }
-        else if (s->ty() & mTYthread) // if store in thread local segment
+        else if (s.ty() & mTYthread) // if store in thread local segment
         {
             if (config.objfmt == OBJ_ELF)
             {
-                s->Sclass = SCcomdef;
-                objmod->common_block(s, 0, n, 1);
+                s.Sclass = SCcomdef;
+                objmod.common_block(s, 0, n, 1);
             }
             else
             {
                 /* COMDEFs not supported in tls segment
                  * so put them out as COMDATs with initialized 0s
                  */
-                s->Sclass = SCcomdat;
-                DtBuilder dtb;
-                dtb.nzeros(n);
-                s->Sdt = dtb.finish();
+                s.Sclass = SCcomdat;
+                scope dtb = new DtBuilder();
+                dtb.nzeros(cast(uint)n);
+                s.Sdt = dtb.finish();
                 outdata(s);
-#if SCPP
+version (SCPP)
+{
                 if (config.objfmt == OBJ_OMF)
                     out_extdef(s);
-#endif
+}
             }
         }
         else
         {
-            s->Sclass = SCcomdef;
+            s.Sclass = SCcomdef;
             if (config.objfmt == OBJ_OMF)
             {
-                s->Sxtrnnum = objmod->common_block(s,(s->ty() & mTYfar) == 0,n,1);
-                if (s->ty() & mTYfar)
-                    s->Sfl = FLfardata;
+                s.Sxtrnnum = objmod.common_block(s,(s.ty() & mTYfar) == 0,n,1);
+                if (s.ty() & mTYfar)
+                    s.Sfl = FLfardata;
                 else
-                    s->Sfl = FLextern;
-                s->Sseg = UNKNOWN;
+                    s.Sfl = FLextern;
+                s.Sseg = UNKNOWN;
                 pstate.STflags |= PFLcomdef;
-#if SCPP
+version (SCPP)
+{
                 ph_comdef(s);               // notify PH that a COMDEF went out
-#endif
+}
             }
             else
-                objmod->common_block(s, 0, n, 1);
+                objmod.common_block(s, 0, n, 1);
         }
         if (config.fulltypes)
             cv_outsym(s);
@@ -540,14 +610,14 @@ void out_readonly(Symbol *s)
          * Instead use the .data.rel.ro section.
          * https://issues.dlang.org/show_bug.cgi?id=11171
          */
-        if (config.flags3 & CFG3pic && dtpointers(s->Sdt))
-            s->Sseg = CDATAREL;
+        if (config.flags3 & CFG3pic && dtpointers(s.Sdt))
+            s.Sseg = CDATAREL;
         else
-            s->Sseg = CDATA;
+            s.Sseg = CDATA;
     }
     else
     {
-        s->Sseg = CDATA;
+        s.Sseg = CDATA;
     }
 }
 
@@ -560,7 +630,7 @@ void out_readonly(Symbol *s)
  *      sz = size of each character (1, 2 or 4)
  * Returns: a Symbol pointing to it.
  */
-Symbol *out_string_literal(const char *str, uint len, uint sz)
+Symbol *out_string_literal(const(char)* str, uint len, uint sz)
 {
     tym_t ty = TYchar;
     if (sz == 2)
@@ -572,7 +642,7 @@ Symbol *out_string_literal(const char *str, uint len, uint sz)
     {
         case OBJ_ELF:
         case OBJ_MACH:
-            s->Sseg = objmod->string_literal_segment(sz);
+            s.Sseg = objmod.string_literal_segment(sz);
             break;
 
         case OBJ_MSCOFF:
@@ -588,16 +658,16 @@ Symbol *out_string_literal(const char *str, uint len, uint sz)
     {
         case 1:
             if (memchr(str, 0, len))
-                s->Sseg = CDATA;
+                s.Sseg = CDATA;
             break;
 
         case 2:
             for (int i = 0; i < len; ++i)
             {
-                const ushort *p = (const ushort *)str;
+                const(ushort)* p = cast(const(ushort)*)str;
                 if (p[i] == 0)
                 {
-                    s->Sseg = CDATA;
+                    s.Sseg = CDATA;
                     break;
                 }
             }
@@ -606,10 +676,10 @@ Symbol *out_string_literal(const char *str, uint len, uint sz)
         case 4:
             for (int i = 0; i < len; ++i)
             {
-                const uint *p = (const uint *)str;
+                const(uint)* p = cast(const(uint)*)str;
                 if (p[i] == 0)
                 {
-                    s->Sseg = CDATA;
+                    s.Sseg = CDATA;
                     break;
                 }
             }
@@ -619,12 +689,12 @@ Symbol *out_string_literal(const char *str, uint len, uint sz)
             assert(0);
     }
 
-    DtBuilder dtb;
-    dtb.nbytes((uint)(len * sz), str);
-    dtb.nzeros((uint)sz);       // include terminating 0
-    s->Sdt = dtb.finish();
-    s->Sfl = FLdata;
-    s->Salignment = sz;
+    scope dtb = new DtBuilder();
+    dtb.nbytes(cast(uint)(len * sz), str);
+    dtb.nzeros(cast(uint)sz);       // include terminating 0
+    s.Sdt = dtb.finish();
+    s.Sfl = FLdata;
+    s.Salignment = sz;
     outdata(s);
     return s;
 }
@@ -635,39 +705,42 @@ Symbol *out_string_literal(const char *str, uint len, uint sz)
  * a code generator tree.
  */
 
-STATIC void outelem(elem *e, bool& addressOfParam)
+/*private*/ void outelem(elem *e, ref bool addressOfParam)
 {
     Symbol *s;
     tym_t tym;
     elem *e1;
-#if SCPP
+version (SCPP)
+{
     type *t;
-#endif
+}
 
 again:
     assert(e);
     elem_debug(e);
 
-#ifdef DEBUG
-    if (EBIN(e))
-        assert(e->E1 && e->E2);
-//    else if (EUNA(e))
-//      assert(e->E1 && !e->E2);
-#endif
+debug
+{
+    if (OTbinary(e.Eoper))
+        assert(e.EV.E1 && e.EV.E2);
+//    else if (OTunary(e.Eoper))
+//      assert(e.EV.E1 && !e.EV.E2);
+}
 
-#if SCPP
-    t = e->ET;
+version (SCPP)
+{
+    t = e.ET;
     assert(t);
     type_debug(t);
-    tym = t->Tty;
+    tym = t.Tty;
     switch (tybasic(tym))
     {
         case TYstruct:
-            t->Tcount++;
+            t.Tcount++;
             break;
 
         case TYarray:
-            t->Tcount++;
+            t.Tcount++;
             break;
 
         case TYbool:
@@ -677,56 +750,61 @@ again:
         case TYvtshape:
         case TYnullptr:
             tym = tym_conv(t);
-            e->ET = null;
+            e.ET = null;
             break;
 
         case TYenum:
-            tym = tym_conv(t->Tnext);
-            e->ET = null;
+            tym = tym_conv(t.Tnext);
+            e.ET = null;
             break;
 
         default:
-            e->ET = null;
+            e.ET = null;
             break;
     }
-    e->Nflags = 0;
-    e->Ety = tym;
-#endif
+    e.Nflags = 0;
+    e.Ety = tym;
+}
 
-    switch (e->Eoper)
+    switch (e.Eoper)
     {
     default:
     Lop:
-#if DEBUG
-        //if (!EOP(e)) dbg_printf("e->Eoper = x%x\n",e->Eoper);
-#endif
-        if (EBIN(e))
-        {   outelem(e->E1, addressOfParam);
-            e = e->E2;
+debug
+{
+        //if (!EOP(e)) printf("e.Eoper = x%x\n",e.Eoper);
+}
+        if (OTbinary(e.Eoper))
+        {   outelem(e.EV.E1, addressOfParam);
+            e = e.EV.E2;
         }
-        else if (EUNA(e))
+        else if (OTunary(e.Eoper))
         {
-            e = e->E1;
+            e = e.EV.E1;
         }
         else
             break;
-#if SCPP
+version (SCPP)
+{
         type_free(t);
-#endif
+}
         goto again;                     /* iterate instead of recurse   */
     case OPaddr:
-        e1 = e->E1;
-        if (e1->Eoper == OPvar)
+        e1 = e.EV.E1;
+        if (e1.Eoper == OPvar)
         {   // Fold into an OPrelconst
-#if SCPP
+version (SCPP)
+{
             el_copy(e,e1);
-            e->ET = t;
-#else
-            tym = e->Ety;
+            e.ET = t;
+}
+else
+{
+            tym = e.Ety;
             el_copy(e,e1);
-            e->Ety = tym;
-#endif
-            e->Eoper = OPrelconst;
+            e.Ety = tym;
+}
+            e.Eoper = OPrelconst;
             el_free(e1);
             goto again;
         }
@@ -735,20 +813,20 @@ again:
     case OPrelconst:
     case OPvar:
     L6:
-        s = e->EV.sp.Vsym;
+        s = e.EV.Vsym;
         assert(s);
         symbol_debug(s);
-        switch (s->Sclass)
+        switch (s.Sclass)
         {
             case SCregpar:
             case SCparameter:
             case SCshadowreg:
-                if (e->Eoper == OPrelconst)
+                if (e.Eoper == OPrelconst)
                 {
                     if (I16)
                         addressOfParam = true;   // taking addr of param list
                     else
-                        s->Sflags &= ~(SFLunambig | GTregcand);
+                        s.Sflags &= ~(SFLunambig | GTregcand);
                 }
                 break;
 
@@ -762,60 +840,67 @@ again:
             case SCinline:
             case SCsinline:
             case SCeinline:
-                s->Sflags |= SFLlivexit;
-                /* FALL-THROUGH */
+                s.Sflags |= SFLlivexit;
+                goto case;
             case SCauto:
             case SCregister:
             case SCfastpar:
             case SCbprel:
-                if (e->Eoper == OPrelconst)
+                if (e.Eoper == OPrelconst)
                 {
-                    s->Sflags &= ~(SFLunambig | GTregcand);
+                    s.Sflags &= ~(SFLunambig | GTregcand);
                 }
-                else if (s->ty() & mTYfar)
-                    e->Ety |= mTYfar;
+                else if (s.ty() & mTYfar)
+                    e.Ety |= mTYfar;
                 break;
-#if SCPP
+version (SCPP)
+{
             case SCmember:
-                err_noinstance(s->Sscope,s);
+                err_noinstance(s.Sscope,s);
                 goto L5;
 
             case SCstruct:
-                cpperr(EM_no_instance,s->Sident);       // no instance of class
+                cpperr(EM_no_instance,s.Sident.ptr);       // no instance of class
             L5:
-                e->Eoper = OPconst;
-                e->Ety = TYint;
+                e.Eoper = OPconst;
+                e.Ety = TYint;
                 return;
 
             case SCfuncalias:
-                e->EV.sp.Vsym = s->Sfunc->Falias;
+                e.EV.Vsym = s.Sfunc.Falias;
                 goto L6;
 
             case SCstack:
                 break;
 
             case SCfunctempl:
-                cpperr(EM_no_template_instance, s->Sident);
+                cpperr(EM_no_template_instance, s.Sident.ptr);
                 break;
 
             default:
                 symbol_print(s);
-                WRclass((enum SC) s->Sclass);
+                WRclass(cast(SC) s.Sclass);
                 assert(0);
-#endif
+}
+else
+{
+            default:
+                break;
+}
         }
-#if SCPP
-        if (tyfunc(s->ty()))
+version (SCPP)
+{
+        if (tyfunc(s.ty()))
         {
             nwc_mustwrite(s);           /* must write out function      */
         }
-        else if (s->Sdt)                /* if initializer for symbol    */
+        else if (s.Sdt)                /* if initializer for symbol    */
             outdata(s);                 // write out data for symbol
         if (config.flags3 & CFG3pic)
         {
-            objmod->gotref(s);
+            objmod.gotref(s);
         }
-#endif
+}
         break;
 
     case OPstring:
@@ -824,135 +909,139 @@ again:
         break;
 
     case OPsizeof:
-#if SCPP
-        e->Eoper = OPconst;
-        e->EV.Vlong = type_size(e->EV.sp.Vsym->Stype);
-#else
-        assert(0);
-#endif
+version (SCPP)
+{
+        e.Eoper = OPconst;
+        e.EV.Vlong = type_size(e.EV.Vsym.Stype);
         break;
+}
+else
+{
+        assert(0);
+}
 
-#if SCPP
+version (SCPP)
+{
     case OPstreq:
     case OPstrpar:
     case OPstrctor:
-        type_size(e->E1->ET);
+        type_size(e.EV.E1.ET);
         goto Lop;
 
     case OPasm:
         break;
 
     case OPctor:
-        nwc_mustwrite(e->EV.eop.Edtor);
+        nwc_mustwrite(e.EV.Edtor);
+        goto case;
     case OPdtor:
         // Don't put 'this' pointers in registers if we need
         // them for EH stack cleanup.
-        e1 = e->E1;
+        e1 = e.EV.E1;
         elem_debug(e1);
-        if (e1->Eoper == OPadd)
-            e1 = e1->E1;
-        if (e1->Eoper == OPvar)
-            e1->EV.sp.Vsym->Sflags &= ~GTregcand;
+        if (e1.Eoper == OPadd)
+            e1 = e1.EV.E1;
+        if (e1.Eoper == OPvar)
+            e1.EV.Vsym.Sflags &= ~GTregcand;
         goto Lop;
 
     case OPmark:
         break;
-#endif
+}
     }
-#if SCPP
+version (SCPP)
+{
     type_free(t);
-#endif
+}
 }
 
 /*************************************
  * Determine register candidates.
  */
 
-STATIC void out_regcand_walk(elem *e, bool& addressOfParam);
-
 void out_regcand(symtab_t *psymtab)
 {
     //printf("out_regcand()\n");
-    const bool ifunc = (tybasic(funcsym_p->ty()) == TYifunc);
-    for (SYMIDX si = 0; si < psymtab->top; si++)
-    {   Symbol *s = psymtab->tab[si];
+    const bool ifunc = (tybasic(funcsym_p.ty()) == TYifunc);
+    for (SYMIDX si = 0; si < psymtab.top; si++)
+    {   Symbol *s = psymtab.tab[si];
 
         symbol_debug(s);
-        //assert(sytab[s->Sclass] & SCSS);      // only stack variables
-        s->Ssymnum = si;                        // Ssymnum trashed by cpp_inlineexpand
-        if (!(s->ty() & mTYvolatile) &&
-            !(ifunc && (s->Sclass == SCparameter || s->Sclass == SCregpar)) &&
-            s->Sclass != SCstatic)
-            s->Sflags |= (GTregcand | SFLunambig);      // assume register candidate
+        //assert(sytab[s.Sclass] & SCSS);      // only stack variables
+        s.Ssymnum = si;                        // Ssymnum trashed by cpp_inlineexpand
+        if (!(s.ty() & mTYvolatile) &&
+            !(ifunc && (s.Sclass == SCparameter || s.Sclass == SCregpar)) &&
+            s.Sclass != SCstatic)
+            s.Sflags |= (GTregcand | SFLunambig);      // assume register candidate
         else
-            s->Sflags &= ~(GTregcand | SFLunambig);
+            s.Sflags &= ~(GTregcand | SFLunambig);
     }
 
     bool addressOfParam = false;                  // haven't taken addr of param yet
-    for (block *b = startblock; b; b = b->Bnext)
+    for (block *b = startblock; b; b = b.Bnext)
     {
-        if (b->Belem)
-            out_regcand_walk(b->Belem, addressOfParam);
+        if (b.Belem)
+            out_regcand_walk(b.Belem, addressOfParam);
 
         // Any assembler blocks make everything ambiguous
-        if (b->BC == BCasm)
-            for (SYMIDX si = 0; si < psymtab->top; si++)
-                psymtab->tab[si]->Sflags &= ~(SFLunambig | GTregcand);
+        if (b.BC == BCasm)
+            for (SYMIDX si = 0; si < psymtab.top; si++)
+                psymtab.tab[si].Sflags &= ~(SFLunambig | GTregcand);
     }
 
     // If we took the address of one parameter, assume we took the
     // address of all non-register parameters.
     if (addressOfParam)                      // if took address of a parameter
     {
-        for (SYMIDX si = 0; si < psymtab->top; si++)
-            if (psymtab->tab[si]->Sclass == SCparameter || psymtab->tab[si]->Sclass == SCshadowreg)
-                psymtab->tab[si]->Sflags &= ~(SFLunambig | GTregcand);
+        for (SYMIDX si = 0; si < psymtab.top; si++)
+            if (psymtab.tab[si].Sclass == SCparameter || psymtab.tab[si].Sclass == SCshadowreg)
+                psymtab.tab[si].Sflags &= ~(SFLunambig | GTregcand);
     }
 
 }
 
-STATIC void out_regcand_walk(elem *e, bool& addressOfParam)
+private void out_regcand_walk(elem *e, ref bool addressOfParam)
 {
     while (1)
     {   elem_debug(e);
 
-        if (EBIN(e))
-        {   if (e->Eoper == OPstreq)
-            {   if (e->E1->Eoper == OPvar)
+        if (OTbinary(e.Eoper))
+        {   if (e.Eoper == OPstreq)
+            {   if (e.EV.E1.Eoper == OPvar)
                 {
-                    Symbol *s = e->E1->EV.sp.Vsym;
-                    s->Sflags &= ~(SFLunambig | GTregcand);
+                    Symbol *s = e.EV.E1.EV.Vsym;
+                    s.Sflags &= ~(SFLunambig | GTregcand);
                 }
-                if (e->E2->Eoper == OPvar)
+                if (e.EV.E2.Eoper == OPvar)
                 {
-                    Symbol *s = e->E2->EV.sp.Vsym;
-                    s->Sflags &= ~(SFLunambig | GTregcand);
+                    Symbol *s = e.EV.E2.EV.Vsym;
+                    s.Sflags &= ~(SFLunambig | GTregcand);
                 }
             }
-            out_regcand_walk(e->E1, addressOfParam);
-            e = e->E2;
+            out_regcand_walk(e.EV.E1, addressOfParam);
+            e = e.EV.E2;
         }
-        else if (EUNA(e))
+        else if (OTunary(e.Eoper))
         {
             // Don't put 'this' pointers in registers if we need
             // them for EH stack cleanup.
-            if (e->Eoper == OPctor)
-            {   elem *e1 = e->E1;
+            if (e.Eoper == OPctor)
+            {   elem *e1 = e.EV.E1;
 
-                if (e1->Eoper == OPadd)
-                    e1 = e1->E1;
-                if (e1->Eoper == OPvar)
-                    e1->EV.sp.Vsym->Sflags &= ~GTregcand;
+                if (e1.Eoper == OPadd)
+                    e1 = e1.EV.E1;
+                if (e1.Eoper == OPvar)
+                    e1.EV.Vsym.Sflags &= ~GTregcand;
             }
-            e = e->E1;
+            e = e.EV.E1;
         }
         else
-        {   if (e->Eoper == OPrelconst)
+        {   if (e.Eoper == OPrelconst)
             {
-                Symbol *s = e->EV.sp.Vsym;
+                Symbol *s = e.EV.Vsym;
                 assert(s);
                 symbol_debug(s);
-                switch (s->Sclass)
+                switch (s.Sclass)
                 {
                     case SCregpar:
                     case SCparameter:
@@ -960,27 +1049,27 @@ STATIC void out_regcand_walk(elem *e, bool& addressOfParam)
                         if (I16)
                             addressOfParam = true;       // taking addr of param list
                         else
-                            s->Sflags &= ~(SFLunambig | GTregcand);
+                            s.Sflags &= ~(SFLunambig | GTregcand);
                         break;
 
                     case SCauto:
                     case SCregister:
                     case SCfastpar:
                     case SCbprel:
-                        s->Sflags &= ~(SFLunambig | GTregcand);
+                        s.Sflags &= ~(SFLunambig | GTregcand);
                         break;
 
                     default:
                         break;
                 }
             }
-            else if (e->Eoper == OPvar)
+            else if (e.Eoper == OPvar)
             {
-                if (e->EV.sp.Voffset)
-                {   if (!(e->EV.sp.Voffset == 1 && tybyte(e->Ety)) &&
-                        !(e->EV.sp.Voffset == REGSIZE && tysize(e->Ety) == REGSIZE))
+                if (e.EV.Voffset)
+                {   if (!(e.EV.Voffset == 1 && tybyte(e.Ety)) &&
+                        !(e.EV.Voffset == REGSIZE && tysize(e.Ety) == REGSIZE))
                     {
-                        e->EV.sp.Vsym->Sflags &= ~GTregcand;
+                        e.EV.Vsym.Sflags &= ~GTregcand;
                     }
                 }
             }
@@ -989,207 +1078,221 @@ STATIC void out_regcand_walk(elem *e, bool& addressOfParam)
     }
 }
 
+
 /**************************
  * Optimize function,
  * generate code for it,
  * and write it out.
  */
 
-STATIC void writefunc2(Symbol *sfunc);
-
 void writefunc(Symbol *sfunc)
 {
-#if HTOD
+version (HTOD)
+{
     return;
-#elif SCPP
+}
+else version (SCPP)
+{
     writefunc2(sfunc);
-#else
+}
+else
+{
     cstate.CSpsymtab = &globsym;
     writefunc2(sfunc);
     cstate.CSpsymtab = null;
-#endif
+}
 }
 
-STATIC void writefunc2(Symbol *sfunc)
+private void writefunc2(Symbol *sfunc)
 {
-    func_t *f = sfunc->Sfunc;
+    func_t *f = sfunc.Sfunc;
 
-    //printf("writefunc(%s)\n",sfunc->Sident);
-    debug(debugy && dbg_printf("writefunc(%s)\n",sfunc->Sident));
-#if SCPP
+    //printf("writefunc(%s)\n",sfunc.Sident.ptr);
+    debug debugy && printf("writefunc(%s)\n",sfunc.Sident.ptr);
+version (SCPP)
+{
     if (CPP)
     {
 
     // If constructor or destructor, make sure it has been fixed.
-    if (f->Fflags & (Fctor | Fdtor))
-        assert(errcnt || f->Fflags & Ffixed);
+    if (f.Fflags & (Fctor | Fdtor))
+        assert(errcnt || f.Fflags & Ffixed);
 
     // If this function is the 'trigger' to output the vtbl[], do so
-    if (f->Fflags3 & Fvtblgen && !eecontext.EEcompile)
+    if (f.Fflags3 & Fvtblgen && !eecontext.EEcompile)
     {
-        Classsym *stag = (Classsym *) sfunc->Sscope;
+        Classsym *stag = cast(Classsym *) sfunc.Sscope;
         {
-            enum SC scvtbl;
+            SC scvtbl;
 
-            scvtbl = (enum SC) ((config.flags2 & CFG2comdat) ? SCcomdat : SCglobal);
+            scvtbl = cast(SC) ((config.flags2 & CFG2comdat) ? SCcomdat : SCglobal);
             n2_genvtbl(stag,scvtbl,1);
             n2_genvbtbl(stag,scvtbl,1);
-#if SYMDEB_CODEVIEW
+static if (SYMDEB_CODEVIEW)
+{
             if (config.fulltypes == CV4)
                 cv4_struct(stag,2);
-#endif
+}
         }
     }
     }
-#endif
+}
 
     /* Signify that function has been output                    */
     /* (before inline_do() to prevent infinite recursion!)      */
-    f->Fflags &= ~Fpending;
-    f->Fflags |= Foutput;
+    f.Fflags &= ~Fpending;
+    f.Fflags |= Foutput;
 
-#if SCPP
+version (SCPP)
+{
     if (errcnt)
         return;
-#endif
+}
 
     if (eecontext.EEcompile && eecontext.EEfunc != sfunc)
         return;
 
     /* Copy local symbol table onto main one, making sure       */
     /* that the symbol numbers are adjusted accordingly */
-    //dbg_printf("f->Flocsym.top = %d\n",f->Flocsym.top);
-    uint nsymbols = f->Flocsym.top;
+    //printf("f.Flocsym.top = %d\n",f.Flocsym.top);
+    uint nsymbols = f.Flocsym.top;
     if (nsymbols > globsym.symmax)
     {   /* Reallocate globsym.tab[]     */
         globsym.symmax = nsymbols;
         globsym.tab = symtab_realloc(globsym.tab, globsym.symmax);
     }
-    debug(debugy && dbg_printf("appending symbols to symtab...\n"));
+    debug debugy && printf("appending symbols to symtab...\n");
     assert(globsym.top == 0);
-    memcpy(&globsym.tab[0],&f->Flocsym.tab[0],nsymbols * sizeof(Symbol *));
+    memcpy(&globsym.tab[0],&f.Flocsym.tab[0],nsymbols * (Symbol *).sizeof);
     globsym.top = nsymbols;
 
     assert(startblock == null);
-    if (f->Fflags & Finline)            // if keep function around
+    if (f.Fflags & Finline)            // if keep function around
     {   // Generate copy of function
 
         block **pb = &startblock;
-        for (block *bf = f->Fstartblock; bf; bf = bf->Bnext)
+        for (block *bf = f.Fstartblock; bf; bf = bf.Bnext)
         {
             block *b = block_calloc();
             *pb = b;
-            pb = &b->Bnext;
+            pb = &b.Bnext;
 
             *b = *bf;
-            assert(b->numSucc() == 0);
-            assert(!b->Bpred);
-            b->Belem = el_copytree(b->Belem);
+            assert(b.numSucc() == 0);
+            assert(!b.Bpred);
+            b.Belem = el_copytree(b.Belem);
         }
     }
     else
-    {   startblock = sfunc->Sfunc->Fstartblock;
-        sfunc->Sfunc->Fstartblock = null;
+    {   startblock = sfunc.Sfunc.Fstartblock;
+        sfunc.Sfunc.Fstartblock = null;
     }
     assert(startblock);
 
     /* Do any in-line expansion of function calls inside sfunc  */
-#if SCPP
+version (SCPP)
+{
     inline_do(sfunc);
-#endif
+}
 
-#if SCPP
+version (SCPP)
+{
     /* If function is _STIxxxx, add in the auto destructors             */
-    if (cpp_stidtors && memcmp("__SI",sfunc->Sident,4) == 0)
+    if (cpp_stidtors && memcmp("__SI".ptr,sfunc.Sident.ptr,4) == 0)
     {
-        assert(startblock->Bnext == null);
+        assert(startblock.Bnext == null);
         list_t el = cpp_stidtors;
         do
         {
-            startblock->Belem = el_combine(startblock->Belem,list_elem(el));
+            startblock.Belem = el_combine(startblock.Belem,list_elem(el));
             el = list_next(el);
         } while (el);
         list_free(&cpp_stidtors,FPNULL);
     }
-#endif
+}
     assert(funcsym_p == null);
     funcsym_p = sfunc;
-    tym_t tyf = tybasic(sfunc->ty());
+    tym_t tyf = tybasic(sfunc.ty());
 
-#if SCPP
+version (SCPP)
+{
     out_extdef(sfunc);
-#endif
+}
 
     // TX86 computes parameter offsets in stackoffsets()
     //printf("globsym.top = %d\n", globsym.top);
 
-#if SCPP
+version (SCPP)
+{
     FuncParamRegs fpr = FuncParamRegs_create(tyf);
-#endif
+}
 
     for (SYMIDX si = 0; si < globsym.top; si++)
     {   Symbol *s = globsym.tab[si];
 
         symbol_debug(s);
-        //printf("symbol %d '%s'\n",si,s->Sident);
+        //printf("symbol %d '%s'\n",si,s.Sident.ptr);
 
-        type_size(s->Stype);    // do any forward template instantiations
+        type_size(s.Stype);    // do any forward template instantiations
 
-        s->Ssymnum = si;        // Ssymnum trashed by cpp_inlineexpand
-        s->Sflags &= ~(SFLunambig | GTregcand);
-        switch (s->Sclass)
+        s.Ssymnum = si;        // Ssymnum trashed by cpp_inlineexpand
+        s.Sflags &= ~(SFLunambig | GTregcand);
+        switch (s.Sclass)
         {
             case SCbprel:
-                s->Sfl = FLbprel;
+                s.Sfl = FLbprel;
                 goto L3;
 
             case SCauto:
             case SCregister:
-                s->Sfl = FLauto;
+                s.Sfl = FLauto;
                 goto L3;
 
-#if SCPP
+version (SCPP)
+{
             case SCfastpar:
             case SCregpar:
             case SCparameter:
-                if (si == 0 && FuncParamRegs_alloc(fpr, s->Stype, s->Stype->Tty, &s->Spreg, &s->Spreg2))
+                if (si == 0 && FuncParamRegs_alloc(fpr, s.Stype, s.Stype.Tty, &s.Spreg, &s.Spreg2))
                 {
-                    assert(s->Spreg == ((tyf == TYmfunc) ? CX : AX));
-                    assert(s->Spreg2 == NOREG);
+                    assert(s.Spreg == ((tyf == TYmfunc) ? CX : AX));
+                    assert(s.Spreg2 == NOREG);
                     assert(si == 0);
-                    s->Sclass = SCfastpar;
-                    s->Sfl = FLfast;
+                    s.Sclass = SCfastpar;
+                    s.Sfl = FLfast;
                     goto L3;
                 }
-                assert(s->Sclass != SCfastpar);
-#else
+                assert(s.Sclass != SCfastpar);
+}
+else
+{
             case SCfastpar:
-                s->Sfl = FLfast;
+                s.Sfl = FLfast;
                 goto L3;
 
             case SCregpar:
             case SCparameter:
             case SCshadowreg:
-#endif
-                s->Sfl = FLpara;
+}
+                s.Sfl = FLpara;
                 if (tyf == TYifunc)
-                {   s->Sflags |= SFLlivexit;
+                {   s.Sflags |= SFLlivexit;
                     break;
                 }
             L3:
-                if (!(s->ty() & mTYvolatile))
-                    s->Sflags |= GTregcand | SFLunambig; // assume register candidate   */
+                if (!(s.ty() & mTYvolatile))
+                    s.Sflags |= GTregcand | SFLunambig; // assume register candidate   */
                 break;
 
             case SCpseudo:
-                s->Sfl = FLpseudo;
+                s.Sfl = FLpseudo;
                 break;
 
             case SCstatic:
                 break;                  // already taken care of by datadef()
 
             case SCstack:
-                s->Sfl = FLstack;
+                s.Sfl = FLstack;
                 break;
 
             default:
@@ -1201,32 +1304,34 @@ STATIC void writefunc2(Symbol *sfunc)
     bool addressOfParam = false;  // see if any parameters get their address taken
     bool anyasm = false;
     numblks = 0;
-    for (block *b = startblock; b; b = b->Bnext)
+    for (block *b = startblock; b; b = b.Bnext)
     {
         numblks++;                              // redo count
-        memset(&b->_BLU,0,sizeof(b->_BLU));
-        if (b->Belem)
-        {   outelem(b->Belem, addressOfParam);
-#if SCPP
-            if (!el_returns(b->Belem) && !(config.flags3 & CFG3eh))
-            {   b->BC = BCexit;
-                list_free(&b->Bsucc,FPNULL);
+        memset(&b._BLU,0,block.sizeof - block._BLU.offsetof);
+        if (b.Belem)
+        {   outelem(b.Belem, addressOfParam);
+version (SCPP)
+{
+            if (!el_returns(b.Belem) && !(config.flags3 & CFG3eh))
+            {   b.BC = BCexit;
+                list_free(&b.Bsucc,FPNULL);
             }
-#endif
-#if MARS
-            if (b->Belem->Eoper == OPhalt)
-            {   b->BC = BCexit;
-                list_free(&b->Bsucc,FPNULL);
+}
+version (MARS)
+{
+            if (b.Belem.Eoper == OPhalt)
+            {   b.BC = BCexit;
+                list_free(&b.Bsucc,FPNULL);
             }
-#endif
+}
         }
-        if (b->BC == BCasm)
+        if (b.BC == BCasm)
             anyasm = true;
-        if (sfunc->Sflags & SFLexit && (b->BC == BCret || b->BC == BCretexp))
-        {   b->BC = BCexit;
-            list_free(&b->Bsucc,FPNULL);
+        if (sfunc.Sflags & SFLexit && (b.BC == BCret || b.BC == BCretexp))
+        {   b.BC = BCexit;
+            list_free(&b.Bsucc,FPNULL);
         }
-        assert(b != b->Bnext);
+        assert(b != b.Bnext);
     }
     PARSER = 0;
     if (eecontext.EEelem)
@@ -1234,7 +1339,7 @@ STATIC void writefunc2(Symbol *sfunc)
 
         eecontext.EEin++;
         outelem(eecontext.EEelem, addressOfParam);
-        eecontext.EEelem = doptelem(eecontext.EEelem,TRUE);
+        eecontext.EEelem = doptelem(eecontext.EEelem,true);
         eecontext.EEin--;
         eecontext_convs(marksi);
     }
@@ -1244,8 +1349,8 @@ STATIC void writefunc2(Symbol *sfunc)
     if (addressOfParam | anyasm)        // if took address of a parameter
     {
         for (SYMIDX si = 0; si < globsym.top; si++)
-            if (anyasm || globsym.tab[si]->Sclass == SCparameter)
-                globsym.tab[si]->Sflags &= ~(SFLunambig | GTregcand);
+            if (anyasm || globsym.tab[si].Sclass == SCparameter)
+                globsym.tab[si].Sflags &= ~(SFLunambig | GTregcand);
     }
 
     block_pred();                       // compute predecessors to blocks
@@ -1258,99 +1363,121 @@ STATIC void writefunc2(Symbol *sfunc)
     }
     else
     {
-        //dbg_printf("blockopt()\n");
+        //printf("blockopt()\n");
         blockopt(0);                    /* optimize                     */
     }
 
-#if SCPP
+version (SCPP)
+{
     if (CPP)
     {
+        version (DEBUG_XSYMGEN)
+        {
+            /* the internal dataview function is allowed to lie about its return value */
+            enum noret = compile_state != kDataView;
+        }
+        else
+            enum noret = true;
+
         // Look for any blocks that return nothing.
         // Do it after optimization to eliminate any spurious
         // messages like the implicit return on { while(1) { ... } }
-        if (tybasic(funcsym_p->Stype->Tnext->Tty) != TYvoid &&
-            !(funcsym_p->Sfunc->Fflags & (Fctor | Fdtor | Finvariant))
-#if DEBUG_XSYMGEN
-            /* the internal dataview function is allowed to lie about its return value */
-            && compile_state != kDataView
-#endif
+        if (tybasic(funcsym_p.Stype.Tnext.Tty) != TYvoid &&
+            !(funcsym_p.Sfunc.Fflags & (Fctor | Fdtor | Finvariant))
+            && noret
            )
         {
             char err = 0;
-            for (block *b = startblock; b; b = b->Bnext)
-            {   if (b->BC == BCasm)     // no errors if any asm blocks
+            for (block *b = startblock; b; b = b.Bnext)
+            {   if (b.BC == BCasm)     // no errors if any asm blocks
                     err |= 2;
-                else if (b->BC == BCret)
+                else if (b.BC == BCret)
                     err |= 1;
             }
             if (err == 1)
                 func_noreturnvalue();
         }
     }
-#endif
+}
     assert(funcsym_p == sfunc);
     const int CSEGSAVE_DEFAULT = -10000;        // some unlikely number
     int csegsave = CSEGSAVE_DEFAULT;
     if (eecontext.EEcompile != 1)
     {
-        if (symbol_iscomdat(sfunc))
+        if (symbol_iscomdat2(sfunc))
         {
             csegsave = cseg;
-            objmod->comdat(sfunc);
-            cseg = sfunc->Sseg;
+            objmod.comdat(sfunc);
+            cseg = sfunc.Sseg;
         }
         else
             if (config.flags & CFGsegs) // if user set switch for this
             {
-#if SCPP
-                objmod->codeseg(cpp_mangle(funcsym_p),1);
-#elif TARGET_WINDOS
-                objmod->codeseg(cpp_mangle(funcsym_p),1);
-#else
-                objmod->codeseg(funcsym_p->Sident, 1);
-#endif
+version (SCPP)
+{
+                objmod.codeseg(cpp_mangle(funcsym_p),1);
+}
+else static if (TARGET_WINDOS)
+{
+                objmod.codeseg(cpp_mangle(funcsym_p),1);
+}
+else
+{
+                objmod.codeseg(funcsym_p.Sident.ptr, 1);
+}
                                         // generate new code segment
             }
         cod3_align(cseg);               // align start of function
-#if !HTOD
-        objmod->func_start(sfunc);
-#endif
+version (HTOD) { } else
+{
+        objmod.func_start(sfunc);
+}
         searchfixlist(sfunc);           // backpatch any refs to this function
     }
 
-    //dbg_printf("codgen()\n");
-#if SCPP
+    //printf("codgen()\n");
+version (SCPP)
+{
     if (!errcnt)
-#endif
         codgen(sfunc);                  // generate code
-    //dbg_printf("after codgen for %s Coffset %x\n",sfunc->Sident,Offset(cseg));
+}
+else
+{
+    codgen(sfunc);                  // generate code
+}
+    //printf("after codgen for %s Coffset %x\n",sfunc.Sident.ptr,Offset(cseg));
     blocklist_free(&startblock);
-#if SCPP
+version (SCPP)
+{
     PARSER = 1;
-#endif
-#if !HTOD
-    objmod->func_term(sfunc);
-#endif
+}
+version (HTOD) { } else
+{
+    objmod.func_term(sfunc);
+}
     if (eecontext.EEcompile == 1)
         goto Ldone;
-    if (sfunc->Sclass == SCglobal)
+    if (sfunc.Sclass == SCglobal)
     {
         if ((config.objfmt == OBJ_OMF || config.objfmt == OBJ_MSCOFF) && !(config.flags4 & CFG4allcomdat))
         {
-            assert(sfunc->Sseg == cseg);
-            objmod->pubdef(sfunc->Sseg,sfunc,sfunc->Soffset);       // make a public definition
+            assert(sfunc.Sseg == cseg);
+            objmod.pubdef(sfunc.Sseg,sfunc,sfunc.Soffset);       // make a public definition
         }
 
-#if SCPP && _WIN32
+version (SCPP)
+{
+version (Win32)
+{
         // Determine which startup code to reference
         if (!CPP || !isclassmember(sfunc))              // if not member function
-        {   static char *startup[] =
-            {   "__acrtused","__acrtused_winc","__acrtused_dll",
+        {   __gshared const(char)*[6] startup =
+            [   "__acrtused","__acrtused_winc","__acrtused_dll",
                 "__acrtused_con","__wacrtused","__wacrtused_con",
-            };
+            ];
             int i;
 
-            const char *id = sfunc->Sident;
+            const(char)* id = sfunc.Sident.ptr;
             switch (id[0])
             {
                 case 'D': if (strcmp(id,"DllMain"))
@@ -1379,6 +1506,7 @@ STATIC void writefunc2(Symbol *sfunc)
                                 }
                                 break;
                           }
+                          goto case;
                 case 'W': if (stricmp(id,"WinMain") == 0)
                           {
                                 i = 0;
@@ -1402,23 +1530,28 @@ STATIC void writefunc2(Symbol *sfunc)
                           }
                           break;
 
-                L2:     objmod->external_def(startup[i]);          // pull in startup code
+                L2:     objmod.external_def(startup[i]);          // pull in startup code
                         break;
+
+                default:
+                    break;
             }
         }
-#endif
+}
+}
     }
     if (config.wflags & WFexpdef &&
-        sfunc->Sclass != SCstatic &&
-        sfunc->Sclass != SCsinline &&
-        !(sfunc->Sclass == SCinline && !(config.flags2 & CFG2comdat)) &&
-        sfunc->ty() & mTYexport)
-        objmod->export_symbol(sfunc,Para.offset);      // export function definition
+        sfunc.Sclass != SCstatic &&
+        sfunc.Sclass != SCsinline &&
+        !(sfunc.Sclass == SCinline && !(config.flags2 & CFG2comdat)) &&
+        sfunc.ty() & mTYexport)
+        objmod.export_symbol(sfunc,cast(uint)Para.offset);      // export function definition
 
     if (config.fulltypes && config.fulltypes != CV8)
         cv_func(sfunc);                 // debug info for function
 
-#if MARS
+version (MARS)
+{
     /* This is to make uplevel references to SCfastpar variables
      * from nested functions work.
      */
@@ -1426,9 +1559,12 @@ STATIC void writefunc2(Symbol *sfunc)
     {
         Symbol *s = globsym.tab[si];
 
-        switch (s->Sclass)
+        switch (s.Sclass)
         {   case SCfastpar:
-                s->Sclass = SCauto;
+                s.Sclass = SCauto;
+                break;
+
+            default:
                 break;
         }
     }
@@ -1438,12 +1574,12 @@ STATIC void writefunc2(Symbol *sfunc)
      * Necessary for nested function access to lexically enclosing frames.
      */
      cod3_adjSymOffsets();
-#endif
+}
 
-    if (symbol_iscomdat(sfunc))         // if generated a COMDAT
+    if (symbol_iscomdat2(sfunc))         // if generated a COMDAT
     {
         assert(csegsave != CSEGSAVE_DEFAULT);
-        objmod->setcodeseg(csegsave);       // reset to real code seg
+        objmod.setcodeseg(csegsave);       // reset to real code seg
         if (config.objfmt == OBJ_MACH)
             assert(cseg == CODE);
     }
@@ -1451,28 +1587,32 @@ STATIC void writefunc2(Symbol *sfunc)
     /* Check if function is a constructor or destructor, by     */
     /* seeing if the function name starts with _STI or _STD     */
     {
-#if _M_I86
-        short *p = (short *) sfunc->Sident;
-        if (p[0] == 'S_' && (p[1] == 'IT' || p[1] == 'DT'))
-            objmod->setModuleCtorDtor(sfunc, sfunc->Sident[3] == 'I');
-#else
-        char *p = sfunc->Sident;
+version (LittleEndian)
+{
+        short *p = cast(short *) sfunc.Sident.ptr;
+        if (p[0] == (('S' << 8) | '_') && (p[1] == (('I' << 8) | 'T') || p[1] == (('D' << 8) | 'T')))
+            objmod.setModuleCtorDtor(sfunc, sfunc.Sident.ptr[3] == 'I');
+}
+else
+{
+        char *p = sfunc.Sident.ptr;
         if (p[0] == '_' && p[1] == 'S' && p[2] == 'T' &&
             (p[3] == 'I' || p[3] == 'D'))
-            objmod->setModuleCtorDtor(sfunc, sfunc->Sident[3] == 'I');
-#endif
+            objmod.setModuleCtorDtor(sfunc, sfunc.Sident.ptr[3] == 'I');
+}
     }
 
 Ldone:
     funcsym_p = null;
 
-#if SCPP
+version (SCPP)
+{
     // Free any added symbols
     freesymtab(globsym.tab,nsymbols,globsym.top);
-#endif
+}
     globsym.top = 0;
 
-    //dbg_printf("done with writefunc()\n");
+    //printf("done with writefunc()\n");
     util_free(dfo);
     dfo = null;
 }
@@ -1487,30 +1627,32 @@ Ldone:
 void alignOffset(int seg,targ_size_t datasize)
 {
     targ_size_t alignbytes = _align(datasize,Offset(seg)) - Offset(seg);
-    //dbg_printf("seg %d datasize = x%x, Offset(seg) = x%x, alignbytes = x%x\n",
+    //printf("seg %d datasize = x%x, Offset(seg) = x%x, alignbytes = x%x\n",
       //seg,datasize,Offset(seg),alignbytes);
     if (alignbytes)
-        objmod->lidata(seg,Offset(seg),alignbytes);
+        objmod.lidata(seg,Offset(seg),alignbytes);
 }
-
 
 /***************************************
  * Write data into read-only data segment.
  * Return symbol for it.
  */
 
-#define ROMAX 32
+enum ROMAX = 32;
 struct Readonly
 {
     Symbol *sym;
     size_t length;
-    ubyte p[ROMAX];
-};
+    ubyte[ROMAX] p;
+}
 
-#define RMAX 16
-static Readonly readonly[RMAX];
-static size_t readonly_length;
-static size_t readonly_i;
+enum RMAX = 16;
+private __gshared
+{
+    Readonly[RMAX] readonly;
+    size_t readonly_length;
+    size_t readonly_i;
+}
 
 void out_reset()
 {
@@ -1520,31 +1662,44 @@ void out_reset()
 
 Symbol *out_readonly_sym(tym_t ty, void *p, int len)
 {
-#if HTOD
+version (HTOD)
+{
     return null;
-#endif
-#if 0
+}
+else
+{
+static if (0)
+{
     printf("out_readonly_sym(ty = x%x)\n", ty);
     for (int i = 0; i < len; i++)
-        printf(" [%d] = %02x\n", i, ((ubyte*)p)[i]);
-#endif
+        printf(" [%d] = %02x\n", i, (cast(ubyte*)p)[i]);
+}
     // Look for previous symbol we can reuse
     for (int i = 0; i < readonly_length; i++)
     {
         Readonly *r = &readonly[i];
-        if (r->length == len && memcmp(p, r->p, len) == 0)
-            return r->sym;
+        if (r.length == len && memcmp(p, r.p.ptr, len) == 0)
+            return r.sym;
     }
 
     Symbol *s;
 
-    if (config.objfmt == OBJ_ELF ||
-        (MARS && (config.objfmt == OBJ_OMF || config.objfmt == OBJ_MSCOFF)))
+version (MARS)
+{
+    bool cdata = config.objfmt == OBJ_ELF ||
+                 config.objfmt == OBJ_OMF ||
+                 config.objfmt == OBJ_MSCOFF;
+}
+else
+{
+    bool cdata = config.objfmt == OBJ_ELF;
+}
+    if (cdata)
     {
         /* MACHOBJ can't go here, because the const data segment goes into
          * the _TEXT segment, and one cannot have a fixup from _TEXT to _TEXT.
          */
-        s = objmod->sym_cdata(ty, (char *)p, len);
+        s = objmod.sym_cdata(ty, cast(char *)p, len);
     }
     else
     {
@@ -1552,9 +1707,9 @@ Symbol *out_readonly_sym(tym_t ty, void *p, int len)
 
         alignOffset(DATA, sz);
         s = symboldata(Offset(DATA),ty | mTYconst);
-        s->Sseg = DATA;
-        objmod->write_bytes(SegData[DATA], len, p);
-        //printf("s->Sseg = %d:x%x\n", s->Sseg, s->Soffset);
+        s.Sseg = DATA;
+        objmod.write_bytes(SegData[DATA], len, p);
+        //printf("s.Sseg = %d:x%x\n", s.Sseg, s.Soffset);
     }
 
     if (len <= ROMAX)
@@ -1571,11 +1726,12 @@ Symbol *out_readonly_sym(tym_t ty, void *p, int len)
             if (readonly_i >= RMAX)
                 readonly_i = 0;
         }
-        r->length = len;
-        r->sym = s;
-        memcpy(r->p, p, len);
+        r.length = len;
+        r.sym = s;
+        memcpy(r.p.ptr, p, len);
     }
     return s;
+}
 }
 
 /*************************************
@@ -1586,26 +1742,28 @@ Symbol *out_readonly_sym(tym_t ty, void *p, int len)
  *      len = length of that data
  *      nzeros = number of trailing zeros to append
  */
-void out_readonly_comdat(Symbol *s, const void *p, uint len, uint nzeros)
+void out_readonly_comdat(Symbol *s, const(void)* p, uint len, uint nzeros)
 {
-    objmod->readonly_comdat(s);         // create comdat segment
-    objmod->write_bytes(SegData[s->Sseg], len, (void *)p);
-    objmod->lidata(s->Sseg, len, nzeros);
+    objmod.readonly_comdat(s);         // create comdat segment
+    objmod.write_bytes(SegData[s.Sseg], len, cast(void *)p);
+    objmod.lidata(s.Sseg, len, nzeros);
 }
 
-void Srcpos::print(const char *func)
+void Srcpos_print(ref Srcpos srcpos, const(char)* func)
 {
     printf("%s(", func);
-#if MARS
-    printf("Sfilename = %s", Sfilename ? Sfilename : "null");
-#else
-    Sfile *sf = Sfilptr ? *Sfilptr : null;
-    printf("Sfilptr = %p (filename = %s)", sf, sf ? sf->SFname : "null");
-#endif
-    printf(", Slinnum = %u", Slinnum);
+version (MARS)
+{
+    printf("Sfilename = %s", srcpos.Sfilename ? srcpos.Sfilename : "null".ptr);
+}
+else
+{
+    Sfile *sf = srcpos.Sfilptr ? *srcpos.Sfilptr : null;
+    printf("Sfilptr = %p (filename = %s)", sf, sf ? sf.SFname : "null".ptr);
+}
+    printf(", Slinnum = %u", srcpos.Slinnum);
     printf(")\n");
 }
 
 
-#endif /* !SPP */
-
+}
