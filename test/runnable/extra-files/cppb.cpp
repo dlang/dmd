@@ -933,3 +933,34 @@ void A18966::foo() { calledOverloads[i++] = 'A'; }
 
 B18966::B18966() { foo(); }
 void B18966::foo() { calledOverloads[i++] = 'B'; }
+
+
+//
+extern void throwingDFunction19269();
+extern void throwingDFunctionDerived19269();
+
+bool catchThrowFromD19269()
+{
+    try
+    {
+        throwingDFunction19269();
+    }
+    catch (std::exception& e)
+    {
+        return true;
+    }
+    return false;
+}
+
+std::exception* catchThrowFromDDerived19269()
+{
+    try
+    {
+        throwingDFunctionDerived19269();
+    }
+    catch (std::exception& e)
+    {
+        return &e;
+    }
+    return NULL;
+}
