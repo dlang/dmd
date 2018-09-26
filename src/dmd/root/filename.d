@@ -836,20 +836,24 @@ version(Windows)
             // path.
             static immutable prefix = `\\?\`w;
 
-            // +1 for the null terminator
-            const bufferLength = pathLength + prefix.length + 1;
+            // prefix only needed for long names and non-UNC names
+            const needsPrefix = pathLength >= MAX_PATH && (wpath[0] != '\\' || wpath[1] != '\\');
+            const prefixLength = needsPrefix ? prefix.length : 0;
 
-            wchar[1024] absBuf;
+            // +1 for the null terminator
+            const bufferLength = pathLength + prefixLength + 1;
+
+            wchar[1024] absBuf = void;
             auto absPath = bufferLength > absBuf.length ? new wchar[bufferLength] : absBuf[];
 
-            absPath[0 .. prefix.length] = prefix[];
+            absPath[0 .. prefixLength] = prefix[0 .. prefixLength];
 
             const absPathRet = GetFullPathNameW(wpath,
-                                                cast(uint)(absPath.length - prefix.length),
-                                                &absPath[prefix.length],
+                                                cast(uint)(absPath.length - prefixLength),
+                                                &absPath[prefixLength],
                                                 null /*filePartBuffer*/);
 
-            if (absPathRet == 0 || absPathRet > absPath.length - prefix.length)
+            if (absPathRet == 0 || absPathRet > absPath.length - prefixLength)
             {
                 return F((wchar*).init);
             }
