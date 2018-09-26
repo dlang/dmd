@@ -7,9 +7,11 @@
 // runtime, does not generate ModuleInfo or exception handling code, and does not
 // require TypeInfo
 
+nothrow:
+
 struct S { }
 
-enum E 
+enum E
 {
     e0 = 0,
     e1 = 1

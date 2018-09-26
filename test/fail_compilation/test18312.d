@@ -8,7 +8,7 @@ fail_compilation/test18312.d(14): Error: array concatenation of expression `"[" 
 
 // https://issues.dlang.org/show_bug.cgi?id=18312
 
-extern (C) void main()
+extern (C) void main() nothrow
 {
     scope string s;
     s = "[" ~ s ~ "]";

@@ -15,6 +15,9 @@
 
 import core.stdc.stdio;
 
+nothrow:
+@nogc:
+
 extern (C++):
 
 alias ullong = ulong;

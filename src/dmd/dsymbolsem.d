@@ -3076,6 +3076,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         f = cast(TypeFunction)funcdecl.type;
 
+        if ((!global.params.useExceptions || !ClassDeclaration.throwable) && !f.isnothrow)
+            funcdecl.error("must be `nothrow` if compiling without support for exceptions (e.g. -betterC)");
+
         if ((funcdecl.storage_class & STC.auto_) && !f.isref && !funcdecl.inferRetType)
             funcdecl.error("storage class `auto` has no effect if return type is not inferred");
 

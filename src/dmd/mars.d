@@ -138,10 +138,19 @@ extern (C++) void genCmain(Scope* sc)
 {
     if (entrypoint)
         return;
+
     /* The D code to be generated is provided as D source code in the form of a string.
      * Note that Solaris, for unknown reasons, requires both a main() and an _main()
      */
-    immutable cmaincode =
+
+    // prepend `nothrow` if compiling in an environment that does not support exceptions
+    // (e.g. -betterC)
+    import dmd.dclass : ClassDeclaration;
+    immutable nothrowHeader = !global.params.useExceptions || !ClassDeclaration.throwable
+        ? "nothrow:\n\n"
+        : "";
+
+    immutable cmaincode = nothrowHeader ~
     q{
         extern(C)
         {
@@ -154,6 +163,7 @@ extern (C++) void genCmain(Scope* sc)
             version (Solaris) int _main(int argc, char** argv) { return main(argc, argv); }
         }
     };
+
     Identifier id = Id.entrypoint;
     auto m = new Module("__entrypoint.d", id, 0, 0);
     scope p = new Parser!ASTCodegen(m, cmaincode, false);

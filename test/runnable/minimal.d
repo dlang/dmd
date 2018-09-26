@@ -4,4 +4,4 @@
 
 // This test ensures an empty main can be built and executed with a minimal runtime
 
-void main() { }
+void main() nothrow { }

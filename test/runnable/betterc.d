@@ -2,6 +2,7 @@
    PERMUTE_ARGS:
  */
 
+nothrow:
 
 void test(int ij)
 {
@@ -62,7 +63,7 @@ struct S18493
 {
     this(this) nothrow { }  // Since this is attributed with `nothrow` there should be no error about using
                             // try-catch with -betterC
-    ~this() { }
+    ~this() nothrow { }
 }
 
 struct S18493_2
