@@ -25,8 +25,17 @@
 #include        "type.h"
 #include        "filespec.h"
 
+#if SCPP
+#include        "scope.h"
+#endif
+
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
+
+#define null NULL
+typedef unsigned char ubyte;
+typedef unsigned short ushort;
+#define private static
 
 #define BUFIDMAX (2 * IDMAX)
 
@@ -80,46 +89,46 @@ char cpp_name_primdt[]  = "?_D";
 char cpp_name_scaldeldt[] = "?_G";
 char cpp_name_priminv[] = "?_R";
 
-STATIC int cpp_cvidx ( tym_t ty );
-STATIC int cpp_protection ( symbol *s );
-STATIC void cpp_decorated_name ( symbol *s );
-STATIC void cpp_symbol_name ( symbol *s );
-STATIC void cpp_zname ( const char *p );
-STATIC void cpp_scope ( symbol *s );
-STATIC void cpp_type_encoding ( symbol *s );
-STATIC void cpp_external_function_type(symbol *s);
-STATIC void cpp_external_data_type ( symbol *s );
-STATIC void cpp_member_function_type ( symbol *s );
-STATIC void cpp_static_member_function_type ( symbol *s );
-STATIC void cpp_static_member_data_type ( symbol *s );
-STATIC void cpp_local_static_data_type ( symbol *s );
-STATIC void cpp_vftable_type(symbol *s);
-STATIC void cpp_adjustor_thunk_type(symbol *s);
-STATIC void cpp_function_type ( type *t );
-STATIC void cpp_throw_types ( type *t );
-STATIC void cpp_ecsu_name ( symbol *s );
-STATIC void cpp_return_type ( symbol *s );
-STATIC void cpp_data_type ( type *t );
-STATIC void cpp_storage_convention ( symbol *s );
-STATIC void cpp_this_type ( type *t,Classsym *s );
-STATIC void cpp_vcall_model_type ( void );
-STATIC void cpp_calling_convention ( type *t );
-STATIC void cpp_argument_types ( type *t );
-STATIC void cpp_argument_list ( type *t, int flag );
-STATIC void cpp_primary_data_type ( type *t );
-STATIC void cpp_reference_type ( type *t );
-STATIC void cpp_pointer_type ( type *t );
-STATIC void cpp_ecsu_data_indirect_type ( type *t );
-STATIC void cpp_data_indirect_type ( type *t );
-STATIC void cpp_function_indirect_type ( type *t );
-STATIC void cpp_basic_data_type ( type *t );
-STATIC void cpp_ecsu_data_type(type *t);
-STATIC void cpp_pointer_data_type ( type *t );
-STATIC void cpp_reference_data_type ( type *t, int flag );
-STATIC void cpp_enum_name ( symbol *s );
-STATIC void cpp_dimension ( targ_ullong u );
-STATIC void cpp_dimension_ld ( targ_ldouble ld );
-STATIC void cpp_string ( char *s, size_t len );
+private int cpp_cvidx ( tym_t ty );
+private int cpp_protection ( Symbol *s );
+private void cpp_decorated_name ( Symbol *s );
+private void cpp_symbol_name ( Symbol *s );
+private void cpp_zname ( const char *p );
+private void cpp_scope ( Symbol *s );
+private void cpp_type_encoding ( Symbol *s );
+private void cpp_external_function_type(Symbol *s);
+private void cpp_external_data_type ( Symbol *s );
+private void cpp_member_function_type ( Symbol *s );
+private void cpp_static_member_function_type ( Symbol *s );
+private void cpp_static_member_data_type ( Symbol *s );
+private void cpp_local_static_data_type ( Symbol *s );
+private void cpp_vftable_type(Symbol *s);
+private void cpp_adjustor_thunk_type(Symbol *s);
+private void cpp_function_type ( type *t );
+private void cpp_throw_types ( type *t );
+private void cpp_ecsu_name ( Symbol *s );
+private void cpp_return_type ( Symbol *s );
+private void cpp_data_type ( type *t );
+private void cpp_storage_convention ( Symbol *s );
+private void cpp_this_type ( type *t,Classsym *s );
+private void cpp_vcall_model_type ( );
+private void cpp_calling_convention ( type *t );
+private void cpp_argument_types ( type *t );
+private void cpp_argument_list ( type *t, int flag );
+private void cpp_primary_data_type ( type *t );
+private void cpp_reference_type ( type *t );
+private void cpp_pointer_type ( type *t );
+private void cpp_ecsu_data_indirect_type ( type *t );
+private void cpp_data_indirect_type ( type *t );
+private void cpp_function_indirect_type ( type *t );
+private void cpp_basic_data_type ( type *t );
+private void cpp_ecsu_data_type(type *t);
+private void cpp_pointer_data_type ( type *t );
+private void cpp_reference_data_type ( type *t, int flag );
+private void cpp_enum_name ( Symbol *s );
+private void cpp_dimension ( targ_ullong u );
+private void cpp_dimension_ld ( targ_ldouble ld );
+private void cpp_string ( char *s, size_t len );
 
 /****************************
  */
@@ -127,8 +136,8 @@ STATIC void cpp_string ( char *s, size_t len );
 struct OPTABLE
 #if MARS
 {
-    unsigned char tokn;
-    unsigned char oper;
+    ubyte tokn;
+    ubyte oper;
     char *string;
     char *pretty;
 }
@@ -286,7 +295,7 @@ int cpp_opidx(int op)
 /***************************************
  * Find identifier string associated with operator.
  * Returns:
- *      NULL if not found
+ *      null if not found
  */
 
 #if SCPP
@@ -295,7 +304,7 @@ char *cpp_opident(int op)
 {   int i;
 
     i = cpp_opidx(op);
-    return (i == -1) ? NULL : oparray[i].string;
+    return (i == -1) ? null : oparray[i].string;
 }
 
 #endif
@@ -317,7 +326,7 @@ char *cpp_operator(int *poper,type **pt)
     type *typ_spec;
     char *s;
 
-    *pt = NULL;
+    *pt = null;
     stoken();                           /* skip over operator keyword   */
     for (i = 0; i < arraysize(oparray); i++)
     {   if (oparray[i].tokn == tok.TKval)
@@ -397,7 +406,7 @@ char *cpp_operator2(token_t *to, int *pcastoverload)
 
     *pcastoverload = 0;
     if (!to || !to->TKnext)
-        return NULL;
+        return null;
 
     for (i = 0; i < arraysize(oparray); i++)
     {
@@ -408,7 +417,7 @@ char *cpp_operator2(token_t *to, int *pcastoverload)
 
     //printf("cpp_operator2(): castoverload\n");
     *pcastoverload = 1;
-    return NULL;
+    return null;
 
 L1:
     tn = to->TKnext;
@@ -491,7 +500,7 @@ char *cpp_typetostring(type *t,char *prefix)
  *      pointer to mangled name (a static buffer)
  */
 
-char *cpp_mangle(symbol *s)
+char *cpp_mangle(Symbol *s)
 {
     symbol_debug(s);
     //printf("cpp_mangle(s = %p, '%s')\n", s, s->Sident);
@@ -527,7 +536,7 @@ char *cpp_mangle(symbol *s)
  * Add char into cpp_name[].
  */
 
-STATIC void __inline CHAR(char c)
+private void __inline CHAR(char c)
 {
     if (mangle.np < &mangle.buf[BUFIDMAX])
         *mangle.np++ = c;
@@ -537,7 +546,7 @@ STATIC void __inline CHAR(char c)
  * Add char into cpp_name[].
  */
 
-STATIC void STR(const char *p)
+private void STR(const char *p)
 {
     size_t len;
 
@@ -555,7 +564,7 @@ STATIC void STR(const char *p)
  * Convert const volatile combinations into 0..3
  */
 
-STATIC int cpp_cvidx(tym_t ty)
+private int cpp_cvidx(tym_t ty)
 {   int i;
 
     i  = (ty & mTYconst) ? 1 : 0;
@@ -567,7 +576,7 @@ STATIC int cpp_cvidx(tym_t ty)
  * Turn protection into 0..2
  */
 
-STATIC int cpp_protection(symbol *s)
+private int cpp_protection(Symbol *s)
 {   int i;
 
     switch (s->Sflags & SFLpmask)
@@ -587,7 +596,7 @@ STATIC int cpp_protection(symbol *s)
 
 #if SCPP
 
-char *template_mangle(symbol *s,param_t *arglist)
+char *template_mangle(Symbol *s,param_t *arglist)
 {
     /*  mangling ::= '$' template_name { type | expr }
         type ::= "T" mangled type
@@ -750,7 +759,7 @@ char *template_mangle(symbol *s,param_t *arglist)
 // Functions corresponding to the name mangling grammar in the
 // "Microsoft Object Mapping Specification"
 
-STATIC void cpp_string(char *s,size_t len)
+private void cpp_string(char *s,size_t len)
 {   char c;
 
     for (; --len; s++)
@@ -767,7 +776,7 @@ STATIC void cpp_string(char *s,size_t len)
         else
         {
             CHAR('?');
-            if ((p = (char *)strchr(special_char,c)) != NULL)
+            if ((p = (char *)strchr(special_char,c)) != null)
                 c = '0' + (p - special_char);
             else
             {
@@ -781,7 +790,7 @@ STATIC void cpp_string(char *s,size_t len)
     CHAR('@');
 }
 
-STATIC void cpp_dimension(targ_ullong u)
+private void cpp_dimension(targ_ullong u)
 {
     if (u && u <= 10)
         CHAR('0' + (char)u - 1);
@@ -800,8 +809,8 @@ STATIC void cpp_dimension(targ_ullong u)
 }
 
 #if 0
-STATIC void cpp_dimension_ld(targ_ldouble ld)
-{   unsigned char ldbuf[sizeof(targ_ldouble)];
+private void cpp_dimension_ld(targ_ldouble ld)
+{   ubyte ldbuf[sizeof(targ_ldouble)];
 
     memcpy(ldbuf,&ld,sizeof(ld));
     if (u && u <= 10)
@@ -821,7 +830,7 @@ STATIC void cpp_dimension_ld(targ_ldouble ld)
 }
 #endif
 
-STATIC void cpp_enum_name(symbol *s)
+private void cpp_enum_name(Symbol *s)
 {   type *t;
     char c;
 
@@ -842,7 +851,7 @@ STATIC void cpp_enum_name(symbol *s)
     cpp_ecsu_name(s);
 }
 
-STATIC void cpp_reference_data_type(type *t, int flag)
+private void cpp_reference_data_type(type *t, int flag)
 {
     if (tybasic(t->Tty) == TYarray)
     {
@@ -886,7 +895,7 @@ STATIC void cpp_reference_data_type(type *t, int flag)
         cpp_basic_data_type(t);
 }
 
-STATIC void cpp_pointer_data_type(type *t)
+private void cpp_pointer_data_type(type *t)
 {
     if (tybasic(t->Tty) == TYvoid)
         CHAR('X');
@@ -894,9 +903,9 @@ STATIC void cpp_pointer_data_type(type *t)
         cpp_reference_data_type(t, 0);
 }
 
-STATIC void cpp_ecsu_data_type(type *t)
+private void cpp_ecsu_data_type(type *t)
 {   char c;
-    symbol *stag;
+    Symbol *stag;
     int i;
 
     type_debug(t);
@@ -926,7 +935,7 @@ STATIC void cpp_ecsu_data_type(type *t)
     }
 }
 
-STATIC void cpp_basic_data_type(type *t)
+private void cpp_basic_data_type(type *t)
 {   char c;
     int i;
 
@@ -1070,7 +1079,7 @@ STATIC void cpp_basic_data_type(type *t)
     }
 }
 
-STATIC void cpp_function_indirect_type(type *t)
+private void cpp_function_indirect_type(type *t)
 {   int farfunc;
 
     farfunc = tyfarfunc(t->Tnext->Tty) != 0;
@@ -1087,7 +1096,7 @@ STATIC void cpp_function_indirect_type(type *t)
         CHAR('6' + farfunc);
 }
 
-STATIC void cpp_data_indirect_type(type *t)
+private void cpp_data_indirect_type(type *t)
 {   int i;
 #if !MARS
     if (tybasic(t->Tty) == TYmemptr)    // if pointer to member
@@ -1104,7 +1113,7 @@ STATIC void cpp_data_indirect_type(type *t)
         cpp_ecsu_data_indirect_type(t);
 }
 
-STATIC void cpp_ecsu_data_indirect_type(type *t)
+private void cpp_ecsu_data_indirect_type(type *t)
 {   int i;
     tym_t ty;
 
@@ -1137,7 +1146,7 @@ STATIC void cpp_ecsu_data_indirect_type(type *t)
     CHAR('A' + i);
 }
 
-STATIC void cpp_pointer_type(type *t)
+private void cpp_pointer_type(type *t)
 {   tym_t ty;
 
     if (tyfunc(t->Tnext->Tty))
@@ -1152,13 +1161,13 @@ STATIC void cpp_pointer_type(type *t)
     }
 }
 
-STATIC void cpp_reference_type(type *t)
+private void cpp_reference_type(type *t)
 {
     cpp_data_indirect_type(t);
     cpp_reference_data_type(t->Tnext, 0);
 }
 
-STATIC void cpp_primary_data_type(type *t)
+private void cpp_primary_data_type(type *t)
 {
     if (tyref(t->Tty))
     {
@@ -1186,7 +1195,7 @@ STATIC void cpp_primary_data_type(type *t)
  * flag: 1 = template argument
  */
 
-STATIC void cpp_argument_list(type *t, int flag)
+private void cpp_argument_list(type *t, int flag)
 {   int i;
     tym_t ty;
 
@@ -1236,7 +1245,7 @@ STATIC void cpp_argument_list(type *t, int flag)
     }
 }
 
-STATIC void cpp_argument_types(type *t)
+private void cpp_argument_types(type *t)
 {   param_t *p;
     char c;
 
@@ -1251,7 +1260,7 @@ STATIC void cpp_argument_types(type *t)
     CHAR(c);
 }
 
-STATIC void cpp_calling_convention(type *t)
+private void cpp_calling_convention(type *t)
 {   char c;
 
     switch (tybasic(t->Tty))
@@ -1280,13 +1289,13 @@ STATIC void cpp_calling_convention(type *t)
     CHAR(c);
 }
 
-STATIC void cpp_vcall_model_type()
+private void cpp_vcall_model_type()
 {
 }
 
 #if SCPP || MARS
 
-STATIC void cpp_this_type(type *tfunc,Classsym *stag)
+private void cpp_this_type(type *tfunc,Classsym *stag)
 {   type *t;
 
     type_debug(tfunc);
@@ -1303,7 +1312,7 @@ STATIC void cpp_this_type(type *tfunc,Classsym *stag)
 
 #endif
 
-STATIC void cpp_storage_convention(symbol *s)
+private void cpp_storage_convention(Symbol *s)
 {   tym_t ty;
     type *t = s->Stype;
 
@@ -1314,7 +1323,7 @@ STATIC void cpp_storage_convention(symbol *s)
     t->Tty = ty;
 }
 
-STATIC void cpp_data_type(type *t)
+private void cpp_data_type(type *t)
 {
     type_debug(t);
     switch (tybasic(t->Tty))
@@ -1333,7 +1342,7 @@ STATIC void cpp_data_type(type *t)
     }
 }
 
-STATIC void cpp_return_type(symbol *s)
+private void cpp_return_type(Symbol *s)
 {
     if (s->Sfunc->Fflags & (Fctor | Fdtor))     // if ctor or dtor
         CHAR('@');                              // no type
@@ -1341,7 +1350,7 @@ STATIC void cpp_return_type(symbol *s)
         cpp_data_type(s->Stype->Tnext);
 }
 
-STATIC void cpp_ecsu_name(symbol *s)
+private void cpp_ecsu_name(Symbol *s)
 {
     //printf("cpp_ecsu_name(%s)\n", symbol_ident(s));
     cpp_zname(symbol_ident(s));
@@ -1352,13 +1361,13 @@ STATIC void cpp_ecsu_name(symbol *s)
     CHAR('@');
 }
 
-STATIC void cpp_throw_types(type *t)
+private void cpp_throw_types(type *t)
 {
     //cpp_argument_types(?);
     CHAR('Z');
 }
 
-STATIC void cpp_function_type(type *t)
+private void cpp_function_type(type *t)
 {   tym_t ty;
     type *tn;
 
@@ -1378,35 +1387,35 @@ STATIC void cpp_function_type(type *t)
     cpp_throw_types(t);
 }
 
-STATIC void cpp_adjustor_thunk_type(symbol *s)
+private void cpp_adjustor_thunk_type(Symbol *s)
 {
 }
 
-STATIC void cpp_vftable_type(symbol *s)
+private void cpp_vftable_type(Symbol *s)
 {
     cpp_ecsu_data_indirect_type(s->Stype);
 //      vpath_name();
     CHAR('@');
 }
 
-STATIC void cpp_local_static_data_type(symbol *s)
+private void cpp_local_static_data_type(Symbol *s)
 {
     //cpp_lexical_frame(?);
     cpp_external_data_type(s);
 }
 
-STATIC void cpp_static_member_data_type(symbol *s)
+private void cpp_static_member_data_type(Symbol *s)
 {
     cpp_external_data_type(s);
 }
 
-STATIC void cpp_static_member_function_type(symbol *s)
+private void cpp_static_member_function_type(Symbol *s)
 {
     cpp_function_type(s->Stype);
 }
 
 #if SCPP || MARS
-STATIC void cpp_member_function_type(symbol *s)
+private void cpp_member_function_type(Symbol *s)
 {
     assert(tyfunc(s->Stype->Tty));
     cpp_this_type(s->Stype,(Classsym *)s->Sscope);
@@ -1423,18 +1432,18 @@ STATIC void cpp_member_function_type(symbol *s)
 }
 #endif
 
-STATIC void cpp_external_data_type(symbol *s)
+private void cpp_external_data_type(Symbol *s)
 {
     cpp_primary_data_type(s->Stype);
     cpp_storage_convention(s);
 }
 
-STATIC void cpp_external_function_type(symbol *s)
+private void cpp_external_function_type(Symbol *s)
 {
     cpp_function_type(s->Stype);
 }
 
-STATIC void cpp_type_encoding(symbol *s)
+private void cpp_type_encoding(Symbol *s)
 {   char c;
 
     //printf("cpp_type_encoding()\n");
@@ -1467,44 +1476,57 @@ STATIC void cpp_type_encoding(symbol *s)
             }
         }
         else
-#endif
         {   // Non-member function
             CHAR('Y' + farfunc);
             cpp_external_function_type(s);
         }
+#else
+        // Non-member function
+        CHAR('Y' + farfunc);
+        cpp_external_function_type(s);
+#endif
     }
     else
     {
 #if SCPP || MARS
         if (isclassmember(s))
         {
-            {   // Static data member
-                CHAR(cpp_protection(s) + '0');
-                cpp_static_member_data_type(s);
-            }
+            // Static data member
+            CHAR(cpp_protection(s) + '0');
+            cpp_static_member_data_type(s);
         }
         else
-#endif
         {
-            if (s->Sclass == SCstatic
-#if SCPP || MARS
-                || (s->Sscope &&
+            if (s->Sclass == SCstatic ||
+                (s->Sscope &&
                  s->Sscope->Sclass != SCstruct &&
-                 s->Sscope->Sclass != SCnamespace)
-#endif
-                )
-            {   CHAR('4');
+                 s->Sscope->Sclass != SCnamespace))
+            {
+                CHAR('4');
                 cpp_local_static_data_type(s);
             }
             else
-            {   CHAR('3');
+            {
+                CHAR('3');
                 cpp_external_data_type(s);
             }
         }
+#else
+        if (s->Sclass == SCstatic)
+        {
+            CHAR('4');
+            cpp_local_static_data_type(s);
+        }
+        else
+        {
+            CHAR('3');
+            cpp_external_data_type(s);
+        }
+#endif
     }
 }
 
-STATIC void cpp_scope(symbol *s)
+private void cpp_scope(Symbol *s)
 {
     /*  scope ::=
                 zname [ scope ]
@@ -1539,7 +1561,7 @@ STATIC void cpp_scope(symbol *s)
     }
 }
 
-STATIC void cpp_zname(const char *p)
+private void cpp_zname(const char *p)
 {
     //printf("cpp_zname(%s)\n", p);
     if (*p != '?' ||                            // if not operator_name
@@ -1575,7 +1597,7 @@ STATIC void cpp_zname(const char *p)
     }
 }
 
-STATIC void cpp_symbol_name(symbol *s)
+private void cpp_symbol_name(Symbol *s)
 {   char *p;
 
     p = s->Sident;
@@ -1624,7 +1646,7 @@ STATIC void cpp_symbol_name(symbol *s)
     cpp_zname(p);
 }
 
-STATIC void cpp_decorated_name(symbol *s)
+private void cpp_decorated_name(Symbol *s)
 {   char *p;
 
     CHAR('?');
@@ -1645,17 +1667,17 @@ STATIC void cpp_decorated_name(symbol *s)
 
 #if SCPP
 
-symbol *mangle_tbl(
+Symbol *mangle_tbl(
         int flag,       // 0: vtbl, 1: vbtbl
         type *t,        // type for symbol
         Classsym *stag, // class we're putting tbl in
-        baseclass_t *b) // base class (NULL if none)
+        baseclass_t *b) // base class (null if none)
 {   const char *id;
-    symbol *s;
+    Symbol *s;
 
 #if 0
     dbg_printf("mangle_tbl(stag = '%s', sbase = '%s', parent = '%s')\n",
-        stag->Sident,b ? b->BCbase->Sident : "NULL", b ? b->parent->Sident : "NULL");
+        stag->Sident,b ? b->BCbase->Sident : "null", b ? b->parent->Sident : "null");
 #endif
     if (flag == 0)
         id = config.flags3 & CFG3rtti ? "?_Q" : "?_7";
