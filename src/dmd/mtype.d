@@ -159,60 +159,54 @@ MOD MODmerge(MOD mod1, MOD mod2) pure nothrow @nogc @safe
  */
 void MODtoBuffer(OutBuffer* buf, MOD mod) nothrow
 {
-    switch (mod)
-    {
-    case 0:
-        break;
-
-    case MODFlags.immutable_:
-        buf.writestring(Token.toString(TOK.immutable_));
-        break;
-
-    case MODFlags.shared_:
-        buf.writestring(Token.toString(TOK.shared_));
-        break;
-
-    case MODFlags.shared_ | MODFlags.const_:
-        buf.writestring(Token.toString(TOK.shared_));
-        buf.writeByte(' ');
-        goto case; /+ fall through +/
-    case MODFlags.const_:
-        buf.writestring(Token.toString(TOK.const_));
-        break;
-
-    case MODFlags.shared_ | MODFlags.wild:
-        buf.writestring(Token.toString(TOK.shared_));
-        buf.writeByte(' ');
-        goto case; /+ fall through +/
-    case MODFlags.wild:
-        buf.writestring(Token.toString(TOK.inout_));
-        break;
-
-    case MODFlags.shared_ | MODFlags.wildconst:
-        buf.writestring(Token.toString(TOK.shared_));
-        buf.writeByte(' ');
-        goto case; /+ fall through +/
-    case MODFlags.wildconst:
-        buf.writestring(Token.toString(TOK.inout_));
-        buf.writeByte(' ');
-        buf.writestring(Token.toString(TOK.const_));
-        break;
-
-    default:
-        assert(0);
-    }
+    buf.writestring(MODtoString(mod));
 }
 
 /*********************************
- * Return modifier name.
+ * Returns:
+ *   a human readable representation of `mod`,
+ *   which is the token `mod` corresponds to
  */
-char* MODtoChars(MOD mod) nothrow
+const(char)* MODtoChars(MOD mod) nothrow
 {
-    OutBuffer buf;
-    buf.reserve(16);
-    MODtoBuffer(&buf, mod);
-    return buf.extractString();
+    /// Works because we return a literal
+    return MODtoString(mod).ptr;
 }
+
+/// Ditto
+string MODtoString(MOD mod) nothrow
+{
+    final switch (mod)
+    {
+    case 0:
+        return "";
+
+    case MODFlags.immutable_:
+        return "immutable";
+
+    case MODFlags.shared_:
+        return "shared";
+
+    case MODFlags.shared_ | MODFlags.const_:
+        return "shared const";
+
+    case MODFlags.const_:
+        return "const";
+
+    case MODFlags.shared_ | MODFlags.wild:
+        return "shared inout";
+
+    case MODFlags.wild:
+        return "inout";
+
+    case MODFlags.shared_ | MODFlags.wildconst:
+        return "shared inout const";
+
+    case MODFlags.wildconst:
+        return "inout const";
+    }
+}
+
 
 /************************************
  * Convert MODxxxx to STCxxx
@@ -6463,10 +6457,7 @@ int modifiersApply(TypeFunction tf, void* param, int function(void*, const(char)
     {
         if (tf.mod & modsarr)
         {
-            OutBuffer buf;
-            MODtoBuffer(&buf, modsarr);
-            const len = buf.offset;
-            if (int res = fp(param, buf.extractData()[0 .. len]))
+            if (int res = fp(param, MODtoString(modsarr)))
                 return res;
         }
     }
