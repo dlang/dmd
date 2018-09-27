@@ -6449,7 +6449,7 @@ const(char*)[2] toAutoQualChars(Type t1, Type t2)
  * For each active modifier (MODFlags.const_, MODFlags.immutable_, etc) call `fp` with a
  * void* for the work param and a string representation of the attribute.
  */
-int modifiersApply(TypeFunction tf, void* param, int function(void*, const(char)[]) fp)
+int modifiersApply(TypeFunction tf, void* param, int function(void*, string) fp)
 {
     immutable ubyte[4] modsArr = [MODFlags.const_, MODFlags.immutable_, MODFlags.wild, MODFlags.shared_];
 
@@ -6469,7 +6469,7 @@ int modifiersApply(TypeFunction tf, void* param, int function(void*, const(char)
  * For each active attribute (ref/const/nogc/etc) call `fp` with a void* for the
  * work param and a string representation of the attribute.
  */
-int attributesApply(TypeFunction tf, void* param, int function(void*, const(char)[]) fp, TRUSTformat trustFormat = TRUSTformatDefault)
+int attributesApply(TypeFunction tf, void* param, int function(void*, string) fp, TRUSTformat trustFormat = TRUSTformatDefault)
 {
     int res = 0;
     if (tf.purity)

@@ -871,7 +871,7 @@ public:
         bool isPostfixStyle;
         bool isCtor;
 
-        extern (D) static int fp(void* param, const(char)[] str)
+        extern (D) static int fp(void* param, string str)
         {
             PrePostAppendStrings* p = cast(PrePostAppendStrings*)param;
             // don't write 'ref' for ctors
@@ -934,7 +934,7 @@ public:
         }
         t.inuse++;
         PrePostAppendStrings pas;
-        extern (D) static int ignoreReturn(void* param, const(char)[] name)
+        extern (D) static int ignoreReturn(void* param, string name)
         {
             if (name != "return")
                 PrePostAppendStrings.fp(param, name);
