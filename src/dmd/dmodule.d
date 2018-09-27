@@ -600,7 +600,7 @@ extern (C++) final class Module : Package
         //printf("Module::read('%s') file '%s'\n", toChars(), srcfile.toChars());
         if (srcfile.read())
         {
-            if (!strcmp(srcfile.toChars(), "object.d"))
+            if (FileName.equals(srcfile.toString(), "object.d"))
             {
                 .error(loc, "cannot find source code for runtime library file 'object.d'");
                 errorSupplemental(loc, "dmd might not be correctly installed. Run 'dmd -man' for installation instructions.");
