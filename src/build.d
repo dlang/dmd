@@ -580,7 +580,9 @@ void parseEnvironment()
     version(Windows)
     {
         const vswhere = getHostVSWhere(env["G"]);
-        const vcBinDir = getHostMSVCBinDir(model, vswhere);
+        const vcInstallDir = getHostVCInstallDir(vswhere);
+        setVCVars(vcInstallDir, model);
+        const vcBinDir = getHostMSVCBinDir(vcInstallDir, model);
 
         // environment variable `MSVC_CC` will be read by `msvc-dmd.exe`
         env.getDefault("MSVC_CC", vcBinDir.buildPath("cl.exe"));
@@ -1001,15 +1003,7 @@ version(Windows)
         throw new Exception("Could not obtain vswhere.exe. Consider downloading it from https://github.com/Microsoft/vswhere and placing it in your PATH");
     }
 
-    /**
-    Gets the absolute path to the host's MSVC bin directory
-
-    Params:
-        model   = a string describing the host's model, "64" or "32"
-        vswhere = a string that is the path to the vswhere executable
-    Returns: a string that is the absolute path to the host's MSVC bin directory
-    */
-    auto getHostMSVCBinDir(string model, string vswhere)
+    auto getHostVCInstallDir(string vswhere)
     {
         // See https://github.com/Microsoft/vswhere/wiki/Find-VC
 
@@ -1020,13 +1014,64 @@ version(Windows)
         if (!vsInstallPath.exists)
             throw new Exception("Could not locate the Visual Studio installation directory");
 
-        const vcVersionFile = vsInstallPath.buildPath("VC", "Auxiliary", "Build", "Microsoft.VCToolsVersion.default.txt");
+        const vcInstallPath = vsInstallPath.buildPath("VC");
+        if (!vcInstallPath.exists)
+            throw new Exception("Could not locate the Visual C++ installation directory");
+
+        return vcInstallPath;
+    }
+
+    /**
+    Sets certain MSVC environment variables
+
+    Params:
+        vcInstallPath = the absolute path to the MSVC installation directory
+        model         = a string describing the host's model, "64" or "32"
+    */
+    void setVCVars(string vcInstallPath, string model)
+    {
+        const vcVarsFilename = "vcvars" ~ model ~ ".bat";
+        const vcVars = vcInstallPath.buildPath("Auxiliary", "Build", vcVarsFilename);
+        if (!vcVars.exists)
+            throw new Exception("Could not locate the Visual C++ " ~ vcVarsFilename ~ " file");
+
+        // run vcvars{arch}.bat and return the resulting environment variables with the `set` command
+        const vsVars = ["cmd", "/C", vcVars, "&&", "set"].execute.output;
+
+        // copy the environment variables we need to the current environment
+        const varsToCopy = ["INCLUDE", "LIBPATH"];
+        foreach(line; vsVars.split("\r\n"))
+        {
+            foreach(var; varsToCopy)
+            {
+                if (line.startsWith(var ~ "="))
+                {
+                    env.getDefault(var, line.split("=")[1]);
+                    break;
+                }
+            }
+        }
+    }
+
+    /**
+    Gets the absolute path to the host's MSVC bin directory
+
+    Params:
+        vcInstallPath = the absolute path to the MSVC installation directory
+        model         = a string describing the host's model, "64" or "32"
+    Returns: a string that is the absolute path to the host's MSVC bin directory
+    */
+    auto getHostMSVCBinDir(string vcInstallPath, string model)
+    {
+        // See https://github.com/Microsoft/vswhere/wiki/Find-VC
+
+        const vcVersionFile = vcInstallPath.buildPath("Auxiliary", "Build", "Microsoft.VCToolsVersion.default.txt");
         if (!vcVersionFile.exists)
             throw new Exception(`Could not locate the Visual C++ version file "%s"`.format(vcVersionFile));
 
         const vcVersion = vcVersionFile.readText().replace("\r\n", "");
         const vcArch = model == "64" ? "x64" : "x86";
-        const vcPath = vsInstallPath.buildPath("VC", "Tools", "MSVC", vcVersion, "bin", "Host" ~ vcArch, vcArch);
+        const vcPath = vcInstallPath.buildPath("Tools", "MSVC", vcVersion, "bin", "Host" ~ vcArch, vcArch);
         if (!vcPath.exists)
             throw new Exception("Could not locate the Visual C++ installation directory");
 
@@ -1258,7 +1303,7 @@ Params:
 auto run(T)(T args)
 {
     log("Run: %s", args.join(" "));
-    return execute(args, null, Config.none, size_t.max, srcDir);
+    return execute(args, env, Config.none, size_t.max, srcDir);
 }
 
 /**
