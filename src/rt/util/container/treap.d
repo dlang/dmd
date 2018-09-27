@@ -52,7 +52,7 @@ nothrow:
         return opApplyHelper(root, dg);
     }
 
-    version(unittest)
+    version (unittest)
     bool opEquals(E[] elements)
     {
         size_t i;
@@ -72,14 +72,14 @@ nothrow:
         root = null;
     }
 
-    version(unittest)
+    version (unittest)
     bool valid()
     {
         return valid(root);
     }
 
 
-    version(none)
+    version (none)
     uint height()
     {
         static uint height(Node* node)
@@ -93,7 +93,7 @@ nothrow:
         return height(root);
     }
 
-    version(none)
+    version (none)
     size_t count()
     {
         static size_t count(Node* node)
@@ -224,7 +224,7 @@ static:
         return opApplyHelper(node.right, dg);
     }
 
-    version(unittest)
+    version (unittest)
     bool valid(Node* node)
     {
         if (!node)

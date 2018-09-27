@@ -41,7 +41,7 @@ struct sockaddr_un
 sa_family_t    // From core.sys.posix.sys.socket
 */
 
-version( linux )
+version (linux)
 {
     enum UNIX_PATH_MAX = 108;
 
@@ -51,7 +51,7 @@ version( linux )
         byte[UNIX_PATH_MAX] sun_path;
     }
 }
-else version( Darwin )
+else version (Darwin)
 {
     struct sockaddr_un
     {
@@ -60,7 +60,7 @@ else version( Darwin )
         byte[104]   sun_path;
     }
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     struct sockaddr_un
     {
@@ -69,7 +69,7 @@ else version( FreeBSD )
         byte[104]   sun_path;
     }
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     struct sockaddr_un
     {
@@ -78,7 +78,7 @@ else version(NetBSD)
         byte[104]   sun_path;
     }
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     struct sockaddr_un
     {
@@ -87,7 +87,7 @@ else version( DragonFlyBSD )
         byte[104]   sun_path;
     }
 }
-else version( Solaris )
+else version (Solaris)
 {
     struct sockaddr_un
     {

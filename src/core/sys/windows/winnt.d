@@ -2129,7 +2129,7 @@ enum MAXIMUM_SUPPORTED_EXTENSION = 512;
         BYTE[MAXIMUM_SUPPORTED_EXTENSION] ExtendedRegisters;
     }
 
-} else version(X86_64)
+} else version (X86_64)
 {
 enum CONTEXT_AMD64 = 0x100000;
 

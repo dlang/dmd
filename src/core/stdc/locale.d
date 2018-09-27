@@ -57,7 +57,7 @@ struct lconv
     byte  int_n_sign_posn;
 }
 
-version(CRuntime_Glibc)
+version (CRuntime_Glibc)
 {
     ///
     enum LC_CTYPE          = 0;
@@ -86,7 +86,7 @@ version(CRuntime_Glibc)
     ///
     enum LC_IDENTIFICATION = 12; // non-standard
 }
-else version(Windows)
+else version (Windows)
 {
     ///
     enum LC_ALL            = 0;
@@ -101,24 +101,7 @@ else version(Windows)
     ///
     enum LC_TIME           = 5;
 }
-else version(Darwin)
-{
-    ///
-    enum LC_ALL            = 0;
-    ///
-    enum LC_COLLATE        = 1;
-    ///
-    enum LC_CTYPE          = 2;
-    ///
-    enum LC_MONETARY       = 3;
-    ///
-    enum LC_NUMERIC        = 4;
-    ///
-    enum LC_TIME           = 5;
-    ///
-    enum LC_MESSAGES       = 6;
-}
-else version(FreeBSD)
+else version (Darwin)
 {
     ///
     enum LC_ALL            = 0;
@@ -135,7 +118,7 @@ else version(FreeBSD)
     ///
     enum LC_MESSAGES       = 6;
 }
-else version(NetBSD)
+else version (FreeBSD)
 {
     ///
     enum LC_ALL            = 0;
@@ -152,7 +135,7 @@ else version(NetBSD)
     ///
     enum LC_MESSAGES       = 6;
 }
-else version(OpenBSD)
+else version (NetBSD)
 {
     ///
     enum LC_ALL            = 0;
@@ -169,7 +152,7 @@ else version(OpenBSD)
     ///
     enum LC_MESSAGES       = 6;
 }
-else version(DragonFlyBSD)
+else version (OpenBSD)
 {
     ///
     enum LC_ALL            = 0;
@@ -186,7 +169,24 @@ else version(DragonFlyBSD)
     ///
     enum LC_MESSAGES       = 6;
 }
-else version(CRuntime_Bionic)
+else version (DragonFlyBSD)
+{
+    ///
+    enum LC_ALL            = 0;
+    ///
+    enum LC_COLLATE        = 1;
+    ///
+    enum LC_CTYPE          = 2;
+    ///
+    enum LC_MONETARY       = 3;
+    ///
+    enum LC_NUMERIC        = 4;
+    ///
+    enum LC_TIME           = 5;
+    ///
+    enum LC_MESSAGES       = 6;
+}
+else version (CRuntime_Bionic)
 {
     enum
     {
@@ -218,7 +218,7 @@ else version(CRuntime_Bionic)
         LC_IDENTIFICATION = 12,
     }
 }
-else version(Solaris)
+else version (Solaris)
 {
     ///
     enum LC_CTYPE       = 0;
@@ -235,7 +235,7 @@ else version(Solaris)
     ///
     enum LC_ALL         = 6;
 }
-else version(CRuntime_Musl)
+else version (CRuntime_Musl)
 {
     ///
     enum LC_CTYPE          = 0;
@@ -252,7 +252,7 @@ else version(CRuntime_Musl)
     ///
     enum LC_ALL            = 6;
 }
-else version(CRuntime_UClibc)
+else version (CRuntime_UClibc)
 {
     ///
     enum LC_CTYPE          = 0;

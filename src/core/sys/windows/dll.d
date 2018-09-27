@@ -28,13 +28,13 @@ extern (C)
 {
     version (Win32)
     {
-        version(CRuntime_DigitalMars)
+        version (CRuntime_DigitalMars)
         {
             extern __gshared byte  _tlsstart;
             extern __gshared byte  _tlsend;
             extern __gshared void* _tls_callbacks_a;
         }
-        else version(CRuntime_Microsoft)
+        else version (CRuntime_Microsoft)
         {
             extern __gshared byte  _tls_start;
             extern __gshared byte  _tls_end;

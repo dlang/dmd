@@ -160,7 +160,7 @@ struct thread_aux
     // get linear address of TEB of current thread
     static void** getTEB() nothrow
     {
-        version(Win32)
+        version (Win32)
         {
             asm pure nothrow @nogc
             {
@@ -169,7 +169,7 @@ struct thread_aux
                 ret;
             }
         }
-        else version(Win64)
+        else version (Win64)
         {
             asm pure nothrow @nogc
             {
@@ -287,7 +287,7 @@ struct thread_aux
         curteb[11] = tlsarray;
 
         // swap out the TLS slots aswell
-        version(Win64)
+        version (Win64)
         {
             enum TEB_offset_TlsSlots = 0x1480;
             enum TEB_offset_TlsExpansionSlots = 0x1780;

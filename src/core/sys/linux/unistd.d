@@ -2,7 +2,7 @@ module core.sys.linux.unistd;
 
 public import core.sys.posix.unistd;
 
-version(linux):
+version (linux):
 extern(C):
 nothrow:
 

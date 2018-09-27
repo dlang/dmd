@@ -23,7 +23,7 @@ extern (C):
 nothrow:
 @nogc:
 
-version( FreeBSD )
+version (FreeBSD)
 {
     ///
     alias core.stdc.math.acos          acos;
@@ -571,7 +571,7 @@ version( FreeBSD )
 //  alias core.stdc.complex.crealf     creal;
 //  alias core.stdc.complex.creall     creal;
 }
-version( NetBSD )
+version (NetBSD)
 {
     ///
     alias core.stdc.math.acos          acos;
@@ -1119,7 +1119,7 @@ version( NetBSD )
 //  alias core.stdc.complex.crealf     creal;
 //  alias core.stdc.complex.creall     creal;
 }
-else version( OpenBSD )
+else version (OpenBSD)
 {
     ///
     alias core.stdc.math.acos          acos;
@@ -1955,7 +1955,7 @@ else
 
     ///
     alias core.stdc.math.fabs          fabs;
-    version( CRuntime_Microsoft )
+    version (CRuntime_Microsoft)
     {
     }
     else

@@ -634,7 +634,7 @@ private template bytesHashAlignedBy(AlignType)
 // handle aligned reads, do the conversion here
 private uint get32bits()(scope const(ubyte)* x) @nogc nothrow pure @system
 {
-    version(BigEndian)
+    version (BigEndian)
     {
         return ((cast(uint) x[0]) << 24) | ((cast(uint) x[1]) << 16) | ((cast(uint) x[2]) << 8) | (cast(uint) x[3]);
     }
@@ -716,7 +716,7 @@ pure nothrow @system @nogc unittest
     assert(hashVal == bytesHash(&test_str[0], test_str.length, 0));
 
     // Detect unintended changes to bytesHash on unaligned and aligned inputs.
-    version(BigEndian)
+    version (BigEndian)
     {
         const ubyte[7] a = [99, 4, 3, 2, 1, 5, 88];
         const uint[2] b = [0x01_02_03_04, 0x05_ff_ff_ff];

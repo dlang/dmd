@@ -13,7 +13,7 @@ module core.sys.netbsd.time;
 
 public import core.sys.posix.time;
 
-version(NetBSD):
+version (NetBSD):
 
 enum CLOCK_REALTIME          = 0;
 enum CLOCK_VIRTUAL           = 1;

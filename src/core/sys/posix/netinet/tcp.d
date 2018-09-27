@@ -35,31 +35,31 @@ extern (C):
 TCP_NODELAY
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     enum TCP_NODELAY = 1;
 }
-else version( Darwin )
+else version (Darwin)
 {
     enum TCP_NODELAY = 1;
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     enum TCP_NODELAY = 1;
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     enum TCP_NODELAY = 1;
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     enum TCP_NODELAY = 1;
 }
-else version( Solaris )
+else version (Solaris)
 {
     enum TCP_NODELAY = 1;
 }
-else version( linux )
+else version (linux)
 {
     enum TCP_NODELAY = 1;
 }

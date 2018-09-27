@@ -77,7 +77,7 @@ version (OSX)
     extern (C) __gshared void* __osx_stack_end = cast(void*)0xC0000000;
 }
 
-version(CRuntime_Microsoft)
+version (CRuntime_Microsoft)
 {
     extern(C) void init_msvc();
 }
@@ -351,7 +351,7 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
     version (CRuntime_Microsoft)
     {
         // enable full precision for reals
-        version(Win64)
+        version (Win64)
             asm
             {
                 push    RAX;
@@ -361,7 +361,7 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
                 fldcw   word ptr [RSP];
                 pop     RAX;
             }
-        else version(Win32)
+        else version (Win32)
         {
             asm
             {

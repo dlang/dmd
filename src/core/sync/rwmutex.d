@@ -21,7 +21,7 @@ private import core.sync.condition;
 private import core.sync.mutex;
 private import core.memory;
 
-version( Posix )
+version (Posix)
 {
     private import core.sys.posix.pthread;
 }

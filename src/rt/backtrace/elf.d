@@ -11,18 +11,18 @@
 
 module rt.backtrace.elf;
 
-version(linux) version = linux_or_bsd;
-else version(FreeBSD) version = linux_or_bsd;
-else version(DragonFlyBSD) version = linux_or_bsd;
+version (linux) version = linux_or_bsd;
+else version (FreeBSD) version = linux_or_bsd;
+else version (DragonFlyBSD) version = linux_or_bsd;
 
-version(linux_or_bsd):
+version (linux_or_bsd):
 
 import core.sys.posix.fcntl;
 import core.sys.posix.unistd;
 
-version(linux) import core.sys.linux.elf;
-version(FreeBSD) import core.sys.freebsd.sys.elf;
-version(DragonFlyBSD) import core.sys.dragonflybsd.sys.elf;
+version (linux) import core.sys.linux.elf;
+version (FreeBSD) import core.sys.freebsd.sys.elf;
+version (DragonFlyBSD) import core.sys.dragonflybsd.sys.elf;
 
 struct Image
 {
@@ -64,17 +64,17 @@ struct Image
 
     @property size_t baseAddress()
     {
-        version(linux)
+        version (linux)
         {
             import core.sys.linux.link;
             import core.sys.linux.elf;
         }
-        else version(FreeBSD)
+        else version (FreeBSD)
         {
             import core.sys.freebsd.sys.link_elf;
             import core.sys.freebsd.sys.elf;
         }
-        else version(DragonFlyBSD)
+        else version (DragonFlyBSD)
         {
             import core.sys.dragonflybsd.sys.link_elf;
             import core.sys.dragonflybsd.sys.elf;
@@ -301,55 +301,55 @@ struct MMapRegion(T)
     void* mptr;
 }
 
-version(X86)
+version (X86)
 {
     alias Elf_Ehdr = Elf32_Ehdr;
     alias Elf_Shdr = Elf32_Shdr;
     enum ELFCLASS = ELFCLASS32;
 }
-else version(X86_64)
+else version (X86_64)
 {
     alias Elf_Ehdr = Elf64_Ehdr;
     alias Elf_Shdr = Elf64_Shdr;
     enum ELFCLASS = ELFCLASS64;
 }
-else version(ARM)
+else version (ARM)
 {
     alias Elf_Ehdr = Elf32_Ehdr;
     alias Elf_Shdr = Elf32_Shdr;
     enum ELFCLASS = ELFCLASS32;
 }
-else version(AArch64)
+else version (AArch64)
 {
     alias Elf_Ehdr = Elf64_Ehdr;
     alias Elf_Shdr = Elf64_Shdr;
     enum ELFCLASS = ELFCLASS64;
 }
-else version(PPC)
+else version (PPC)
 {
     alias Elf_Ehdr = Elf32_Ehdr;
     alias Elf_Shdr = Elf32_Shdr;
     enum ELFCLASS = ELFCLASS32;
 }
-else version(PPC64)
+else version (PPC64)
 {
     alias Elf_Ehdr = Elf64_Ehdr;
     alias Elf_Shdr = Elf64_Shdr;
     enum ELFCLASS = ELFCLASS64;
 }
-else version(MIPS)
+else version (MIPS)
 {
     alias Elf_Ehdr = Elf32_Ehdr;
     alias Elf_Shdr = Elf32_Shdr;
     enum ELFCLASS = ELFCLASS32;
 }
-else version(MIPS64)
+else version (MIPS64)
 {
     alias Elf_Ehdr = Elf64_Ehdr;
     alias Elf_Shdr = Elf64_Shdr;
     enum ELFCLASS = ELFCLASS64;
 }
-else version(SystemZ)
+else version (SystemZ)
 {
     alias Elf_Ehdr = Elf64_Ehdr;
     alias Elf_Shdr = Elf64_Shdr;
@@ -360,11 +360,11 @@ else
     static assert(0, "unsupported architecture");
 }
 
-version(LittleEndian)
+version (LittleEndian)
 {
     alias ELFDATA = ELFDATA2LSB;
 }
-else version(BigEndian)
+else version (BigEndian)
 {
     alias ELFDATA = ELFDATA2MSB;
 }

@@ -99,7 +99,7 @@ const(ubyte)[] toUbyte(T)(const ref T val) if (is(Unqual!T == float) || is(Unqua
         sign <<= 7;
         buff[off_bytes] |= sign;
 
-        version(LittleEndian)
+        version (LittleEndian)
         {
             return buff;
         }
@@ -399,7 +399,7 @@ private Float denormalizedMantissa(T)(T x, uint sign) if (floatFormat!T == Float
         return Float(fl.mantissa2 & 0x00FFFFFFFFFFFFFFUL , 0, sign, 1);
 }
 
-version(unittest)
+version (unittest)
 {
     private const(ubyte)[] toUbyte2(T)(T val)
     {
@@ -617,7 +617,7 @@ const(ubyte)[] toUbyte(T)(const ref T val) if (__traits(isIntegral, T) && !is(T 
         for (size_t i = 0; i < T.sizeof; ++i)
         {
             size_t idx;
-            version(LittleEndian) idx = i;
+            version (LittleEndian) idx = i;
             else idx = T.sizeof-i-1;
             tmp[idx] = cast(ubyte)(val_&0xff);
             val_ >>= 8;

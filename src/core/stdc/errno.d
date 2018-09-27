@@ -121,7 +121,7 @@ else
 extern (C):
 
 
-version( Windows )
+version (Windows)
 {
     enum EPERM              = 1;        /// Operation not permitted
     enum ENOENT             = 2;        /// No such file or directory
@@ -163,7 +163,7 @@ version( Windows )
     enum EILSEQ             = 42;       /// Illegal byte sequence
     enum EDEADLOCK          = EDEADLK;  /// Resource deadlock would occur
 }
-else version( linux )
+else version (linux)
 {
     enum EPERM              = 1;  ///
     enum ENOENT             = 2;  ///
@@ -200,7 +200,7 @@ else version( linux )
     enum EDOM               = 33; ///
     enum ERANGE             = 34; ///
 
-    version(X86)
+    version (X86)
     {
         enum EDEADLK            = 35;         ///
         enum ENAMETOOLONG       = 36;         ///
@@ -303,7 +303,7 @@ else version( linux )
         enum ERFKILL            = 132;        ///
         enum EHWPOISON          = 133;        ///
     }
-    else version(X86_64)
+    else version (X86_64)
     {
         enum EDEADLK            = 35;         ///
         enum ENAMETOOLONG       = 36;         ///
@@ -406,7 +406,7 @@ else version( linux )
         enum ERFKILL            = 132;        ///
         enum EHWPOISON          = 133;        ///
     }
-    else version(ARM)
+    else version (ARM)
     {
         enum EDEADLK            = 35;         ///
         enum ENAMETOOLONG       = 36;         ///
@@ -509,7 +509,7 @@ else version( linux )
         enum ERFKILL            = 132;        ///
         enum EHWPOISON          = 133;        ///
     }
-    else version(AArch64)
+    else version (AArch64)
     {
         enum EDEADLK            = 35;         ///
         enum ENAMETOOLONG       = 36;         ///
@@ -612,7 +612,7 @@ else version( linux )
         enum ERFKILL            = 132;        ///
         enum EHWPOISON          = 133;        ///
     }
-    else version(MIPS32)
+    else version (MIPS32)
     {
         enum ENOMSG             = 35;         ///
         enum EIDRM              = 36;         ///
@@ -717,7 +717,7 @@ else version( linux )
         enum EHWPOISON          = 168;        ///
         enum EDQUOT             = 1133;       ///
     }
-    else version(MIPS64)
+    else version (MIPS64)
     {
         enum ENOMSG             = 35;         ///
         enum EIDRM              = 36;         ///
@@ -822,7 +822,7 @@ else version( linux )
         enum EHWPOISON          = 168;        ///
         enum EDQUOT             = 1133;       ///
     }
-    else version(PPC)
+    else version (PPC)
     {
         enum EDEADLK            = 35;         ///
         enum ENAMETOOLONG       = 36;         ///
@@ -925,7 +925,7 @@ else version( linux )
         enum ERFKILL            = 132;        ///
         enum EHWPOISON          = 133;        ///
     }
-    else version(PPC64)
+    else version (PPC64)
     {
         enum EDEADLK            = 35;         ///
         enum ENAMETOOLONG       = 36;         ///
@@ -1028,7 +1028,7 @@ else version( linux )
         enum ERFKILL            = 132;        ///
         enum EHWPOISON          = 133;        ///
     }
-    else version(RISCV32)
+    else version (RISCV32)
     {
         enum EDEADLK            = 35;         ///
         enum ENAMETOOLONG       = 36;         ///
@@ -1130,7 +1130,7 @@ else version( linux )
         enum ERFKILL            = 132;        ///
         enum EHWPOISON          = 133;        ///
     }
-    else version(RISCV64)
+    else version (RISCV64)
     {
         enum EDEADLK            = 35;         ///
         enum ENAMETOOLONG       = 36;         ///
@@ -1232,7 +1232,7 @@ else version( linux )
         enum ERFKILL            = 132;        ///
         enum EHWPOISON          = 133;        ///
     }
-    else version(SPARC64)
+    else version (SPARC64)
     {
         enum EWOULDBLOCK        = EAGAIN;     ///
         enum EINPROGRESS        = 36;         ///
@@ -1337,7 +1337,7 @@ else version( linux )
         enum ERFKILL            = 134;        ///
         enum EHWPOISON          = 135;        ///
     }
-    else version(SystemZ)
+    else version (SystemZ)
     {
         enum EDEADLK            = 35;         ///
         enum ENAMETOOLONG       = 36;         ///
@@ -1445,7 +1445,7 @@ else version( linux )
         static assert(false, "Architecture not supported.");
     }
 }
-else version( Darwin )
+else version (Darwin)
 {
     enum EPERM              = 1;        /// Operation not permitted
     enum ENOENT             = 2;        /// No such file or directory
@@ -1528,7 +1528,7 @@ else version( Darwin )
     enum ETIME              = 101;      /// STREAM ioctl timeout
     enum ELAST              = 101;      /// Must be equal largest errno
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     enum EPERM              = 1;        /// Operation not permitted
     enum ENOENT             = 2;        /// No such file or directory
@@ -1755,7 +1755,7 @@ else version (NetBSD)
     enum ENOLINK         = 95;
     enum EPROTO          = 96;
 }
-else version( OpenBSD )
+else version (OpenBSD)
 {
     enum EPERM              = 1;        /// Operation not permitted
     enum ENOENT             = 2;        /// No such file or directory
@@ -1851,7 +1851,7 @@ else version( OpenBSD )
     enum ENOTSUP            = 91;       /// Not supported
     enum ELAST              = 91;       /// Must be equal largest errno
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     enum EPERM              = 1;
     enum ENOENT             = 2;

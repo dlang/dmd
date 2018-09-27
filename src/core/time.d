@@ -83,11 +83,11 @@ import core.stdc.stdio;
 import core.internal.traits : _Unqual = Unqual;
 import core.internal.string;
 
-version(Windows)
+version (Windows)
 {
 import core.sys.windows.windows;
 }
-else version(Posix)
+else version (Posix)
 {
 import core.sys.posix.time;
 import core.sys.posix.sys.time;
@@ -104,7 +104,7 @@ else version (WatchOS)
 
 //This probably should be moved somewhere else in druntime which
 //is Darwin-specific.
-version(Darwin)
+version (Darwin)
 {
 
 public import core.sys.darwin.mach.kern_return;
@@ -129,7 +129,7 @@ ulong mach_absolute_time();
 }
 
 //To verify that an lvalue isn't required.
-version(unittest) private T copy(T)(T t)
+version (unittest) private T copy(T)(T t)
 {
     return t;
 }
@@ -156,7 +156,7 @@ version(unittest) private T copy(T)(T t)
     $(D ClockType.second) only works with $(D Clock.currTime). The others only
     work with $(LREF MonoTimeImpl).
   +/
-version(CoreDdoc) enum ClockType
+version (CoreDdoc) enum ClockType
 {
     /++
         Use the normal clock.
@@ -278,21 +278,21 @@ version(CoreDdoc) enum ClockType
       +/
     uptimePrecise = 10,
 }
-else version(Windows) enum ClockType
+else version (Windows) enum ClockType
 {
     normal = 0,
     coarse = 2,
     precise = 3,
     second = 6,
 }
-else version(Darwin) enum ClockType
+else version (Darwin) enum ClockType
 {
     normal = 0,
     coarse = 2,
     precise = 3,
     second = 6,
 }
-else version(linux) enum ClockType
+else version (linux) enum ClockType
 {
     normal = 0,
     bootTime = 1,
@@ -303,7 +303,7 @@ else version(linux) enum ClockType
     second = 6,
     threadCPUTime = 7,
 }
-else version(FreeBSD) enum ClockType
+else version (FreeBSD) enum ClockType
 {
     normal = 0,
     coarse = 2,
@@ -313,14 +313,14 @@ else version(FreeBSD) enum ClockType
     uptimeCoarse = 9,
     uptimePrecise = 10,
 }
-else version(NetBSD) enum ClockType
+else version (NetBSD) enum ClockType
 {
     normal = 0,
     coarse = 2,
     precise = 3,
     second = 6,
 }
-else version(DragonFlyBSD) enum ClockType
+else version (DragonFlyBSD) enum ClockType
 {
     normal = 0,
     coarse = 2,
@@ -330,7 +330,7 @@ else version(DragonFlyBSD) enum ClockType
     uptimeCoarse = 9,
     uptimePrecise = 10,
 }
-else version(Solaris) enum ClockType
+else version (Solaris) enum ClockType
 {
     normal = 0,
     coarse = 2,
@@ -349,14 +349,14 @@ else
 
 // private, used to translate clock type to proper argument to clock_xxx
 // functions on posix systems
-version(CoreDdoc)
+version (CoreDdoc)
     private int _posixClock(ClockType clockType) { return 0; }
 else
-version(Posix)
+version (Posix)
 {
     private auto _posixClock(ClockType clockType)
     {
-        version(linux)
+        version (linux)
         {
             import core.sys.linux.time;
             with(ClockType) final switch (clockType)
@@ -371,7 +371,7 @@ version(Posix)
             case second: assert(0);
             }
         }
-        else version(FreeBSD)
+        else version (FreeBSD)
         {
             import core.sys.freebsd.time;
             with(ClockType) final switch (clockType)
@@ -385,7 +385,7 @@ version(Posix)
             case second: assert(0);
             }
         }
-        else version(NetBSD)
+        else version (NetBSD)
         {
             import core.sys.netbsd.time;
             with(ClockType) final switch (clockType)
@@ -396,7 +396,7 @@ version(Posix)
             case second: assert(0);
             }
         }
-        else version(DragonFlyBSD)
+        else version (DragonFlyBSD)
         {
             import core.sys.dragonflybsd.time;
             with(ClockType) final switch (clockType)
@@ -410,7 +410,7 @@ version(Posix)
             case second: assert(0);
             }
         }
-        else version(Solaris)
+        else version (Solaris)
         {
             import core.sys.solaris.time;
             with(ClockType) final switch (clockType)
@@ -2043,7 +2043,7 @@ struct MonoTimeImpl(ClockType clockType)
 
 @safe:
 
-    version(Windows)
+    version (Windows)
     {
         static if (clockType != ClockType.coarse &&
                   clockType != ClockType.normal &&
@@ -2053,7 +2053,7 @@ struct MonoTimeImpl(ClockType clockType)
                              " is not supported by MonoTimeImpl on this system.");
         }
     }
-    else version(Darwin)
+    else version (Darwin)
     {
         static if (clockType != ClockType.coarse &&
                   clockType != ClockType.normal &&
@@ -2063,7 +2063,7 @@ struct MonoTimeImpl(ClockType clockType)
                              " is not supported by MonoTimeImpl on this system.");
         }
     }
-    else version(Posix)
+    else version (Posix)
     {
         enum clockArg = _posixClock(clockType);
     }
@@ -2106,7 +2106,7 @@ struct MonoTimeImpl(ClockType clockType)
                       ") failed to get the frequency of the system's monotonic clock.");
         }
 
-        version(Windows)
+        version (Windows)
         {
             long ticks;
             if (QueryPerformanceCounter(&ticks) == 0)
@@ -2117,9 +2117,9 @@ struct MonoTimeImpl(ClockType clockType)
             }
             return MonoTimeImpl(ticks);
         }
-        else version(Darwin)
+        else version (Darwin)
             return MonoTimeImpl(mach_absolute_time());
-        else version(Posix)
+        else version (Posix)
         {
             timespec ts;
             if (clock_gettime(clockArg, &ts) != 0)
@@ -2469,9 +2469,9 @@ extern(C) void _d_initMonoTime()
     // documentation build defines all of the possible ClockTypes, which won't
     // work when they're used in the static ifs, because no system supports them
     // all.
-    version(CoreDdoc)
+    version (CoreDdoc)
     {}
-    else version(Windows)
+    else version (Windows)
     {
         long ticksPerSecond;
         if (QueryPerformanceFrequency(&ticksPerSecond) != 0)
@@ -2486,7 +2486,7 @@ extern(C) void _d_initMonoTime()
             }
         }
     }
-    else version(Darwin)
+    else version (Darwin)
     {
         immutable long ticksPerSecond = machTicksPerSecond();
         foreach (i, typeStr; __traits(allMembers, ClockType))
@@ -2498,7 +2498,7 @@ extern(C) void _d_initMonoTime()
             tps[i] = ticksPerSecond;
         }
     }
-    else version(Posix)
+    else version (Posix)
     {
         timespec ts;
         foreach (i, typeStr; __traits(allMembers, ClockType))
@@ -2790,16 +2790,16 @@ struct TickDuration
 
     @trusted shared static this()
     {
-        version(Windows)
+        version (Windows)
         {
             if (QueryPerformanceFrequency(cast(long*)&ticksPerSec) == 0)
                 ticksPerSec = 0;
         }
-        else version(Darwin)
+        else version (Darwin)
         {
             ticksPerSec = machTicksPerSecond();
         }
-        else version(Posix)
+        else version (Posix)
         {
             static if (is(typeof(clock_gettime)))
             {
@@ -3342,7 +3342,7 @@ struct TickDuration
     static @property TickDuration currSystemTick() @trusted nothrow @nogc
     {
         import core.internal.abort : abort;
-        version(Windows)
+        version (Windows)
         {
             ulong ticks;
             if (QueryPerformanceCounter(cast(long*)&ticks) == 0)
@@ -3350,7 +3350,7 @@ struct TickDuration
 
             return TickDuration(ticks);
         }
-        else version(Darwin)
+        else version (Darwin)
         {
             static if (is(typeof(mach_absolute_time)))
                 return TickDuration(cast(long)mach_absolute_time());
@@ -3364,7 +3364,7 @@ struct TickDuration
                                     tv.tv_usec * TickDuration.ticksPerSec / 1000 / 1000);
             }
         }
-        else version(Posix)
+        else version (Posix)
         {
             static if (is(typeof(clock_gettime)))
             {
@@ -4533,7 +4533,7 @@ unittest
     static assert(!__traits(compiles, nextLargerTimeUnits!"years"));
 }
 
-version(Darwin)
+version (Darwin)
 long machTicksPerSecond()
 {
     // Be optimistic that ticksPerSecond (1e9*denom/numer) is integral. So far
@@ -4563,7 +4563,7 @@ double _abs(double val) @safe pure nothrow @nogc
 }
 
 
-version(unittest)
+version (unittest)
 string doubleToString(double value) @safe pure nothrow
 {
     string result;
@@ -4594,7 +4594,7 @@ unittest
     assert(aStr == "-0.337", aStr);
 }
 
-version(unittest) const(char)* numToStringz()(long value) @trusted pure nothrow
+version (unittest) const(char)* numToStringz()(long value) @trusted pure nothrow
 {
     return (signedToTempString(value, 10) ~ "\0").ptr;
 }
@@ -4608,7 +4608,7 @@ template _TypeTuple(TList...)
 
 
 /+ An adjusted copy of std.exception.assertThrown. +/
-version(unittest) void _assertThrown(T : Throwable = Exception, E)
+version (unittest) void _assertThrown(T : Throwable = Exception, E)
                                     (lazy E expression,
                                      string msg = null,
                                      string file = __FILE__,
@@ -4703,7 +4703,7 @@ unittest
 }
 
 
-version(unittest) void assertApprox(D, E)(D actual,
+version (unittest) void assertApprox(D, E)(D actual,
                                           E lower,
                                           E upper,
                                           string msg = "unittest failure",
@@ -4716,7 +4716,7 @@ version(unittest) void assertApprox(D, E)(D actual,
         throw new AssertError(msg ~ ": upper: " ~ actual.toString(), __FILE__, line);
 }
 
-version(unittest) void assertApprox(D, E)(D actual,
+version (unittest) void assertApprox(D, E)(D actual,
                                           E lower,
                                           E upper,
                                           string msg = "unittest failure",
@@ -4732,7 +4732,7 @@ version(unittest) void assertApprox(D, E)(D actual,
     }
 }
 
-version(unittest) void assertApprox(MT)(MT actual,
+version (unittest) void assertApprox(MT)(MT actual,
                                         MT lower,
                                         MT upper,
                                         string msg = "unittest failure",
@@ -4742,7 +4742,7 @@ version(unittest) void assertApprox(MT)(MT actual,
     assertApprox(actual._ticks, lower._ticks, upper._ticks, msg, line);
 }
 
-version(unittest) void assertApprox()(long actual,
+version (unittest) void assertApprox()(long actual,
                                       long lower,
                                       long upper,
                                       string msg = "unittest failure",

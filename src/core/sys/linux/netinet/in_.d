@@ -13,15 +13,15 @@ import core.sys.posix.config;
 
 public import core.sys.posix.netinet.in_;
 
-version(CRuntime_Glibc)         version = linux_libc;
-else version(CRuntime_Musl)     version = linux_libc;
-else version(CRuntime_Bionic)   version = linux_libc;
-else version(CRuntime_UClibc)   version = linux_libc;
+version (CRuntime_Glibc)         version = linux_libc;
+else version (CRuntime_Musl)     version = linux_libc;
+else version (CRuntime_Bionic)   version = linux_libc;
+else version (CRuntime_UClibc)   version = linux_libc;
 
-version(CRuntime_Glibc)         version = gnu_libc;
-else version(CRuntime_UClibc)   version = gnu_libc;
+version (CRuntime_Glibc)         version = gnu_libc;
+else version (CRuntime_UClibc)   version = gnu_libc;
 
-version(linux_libc)
+version (linux_libc)
 {
     extern(C) nothrow @nogc:
 
@@ -115,7 +115,7 @@ version(linux_libc)
     enum IN6ADDR_ANY_INIT      = in6_addr.init;
     enum IN6ADDR_LOOPBACK_INIT = in6_addr([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]);
 
-    version(gnu_libc) static if (__USE_MISC)
+    version (gnu_libc) static if (__USE_MISC)
     {
         struct ip_mreq
         {
@@ -174,13 +174,13 @@ version(linux_libc)
 
     extern(D) bool IN6_ARE_ADDR_EQUAL(in6_addr* a, in6_addr* b) pure @safe { return *a == *b; }
 
-    version(gnu_libc) static if (__USE_MISC)
+    version (gnu_libc) static if (__USE_MISC)
     {
         int bindresvport(int __sockfd, sockaddr_in* __sock_in);
         int bindresvport6(int __sockfd, sockaddr_in6* _);
     }
 
-    version(gnu_libc) static if (__USE_GNU)
+    version (gnu_libc) static if (__USE_GNU)
     {
         struct in6_pktinfo
         {
@@ -254,7 +254,7 @@ version(linux_libc)
     enum IP_DROP_SOURCE_MEMBERSHIP = 40;
     enum IP_MSFILTER               = 41;
 
-    version(gnu_libc) static if (__USE_MISC)
+    version (gnu_libc) static if (__USE_MISC)
     {
         enum MCAST_JOIN_GROUP         = 42;
         enum MCAST_BLOCK_SOURCE       = 43;
@@ -307,7 +307,7 @@ version(linux_libc)
     enum IP_DEFAULT_MULTICAST_LOOP = 1;
     enum IP_MAX_MEMBERSHIPS        = 20;
 
-    version(gnu_libc) static if (__USE_MISC)
+    version (gnu_libc) static if (__USE_MISC)
     {
         struct ip_opts
         {

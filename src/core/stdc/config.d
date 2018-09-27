@@ -99,7 +99,7 @@ else version (TVOS)
 else version (WatchOS)
     version = Darwin;
 
-version( Windows )
+version (Windows)
 {
     enum __c_long  : int;
     enum __c_ulong : uint;
@@ -113,7 +113,7 @@ version( Windows )
     alias long  cpp_longlong;
     alias ulong cpp_ulonglong;
 }
-else version( Posix )
+else version (Posix)
 {
   static if ( (void*).sizeof > int.sizeof )
   {
@@ -145,7 +145,7 @@ else version( Posix )
   }
 }
 
-version( CRuntime_Microsoft )
+version (CRuntime_Microsoft)
 {
     /* long double is 64 bits, not 80 bits, but is mangled differently
      * than double. To distinguish double from long double, create a wrapper to represent
@@ -157,39 +157,39 @@ version( CRuntime_Microsoft )
 
     alias __c_long_double c_long_double;
 }
-else version( DigitalMars )
+else version (DigitalMars)
 {
-    version( X86 )
+    version (X86)
     {
         alias real c_long_double;
     }
-    else version( X86_64 )
+    else version (X86_64)
     {
-        version( linux )
+        version (linux)
             alias real c_long_double;
-        else version( FreeBSD )
+        else version (FreeBSD)
             alias real c_long_double;
-        else version( OpenBSD )
+        else version (OpenBSD)
             alias real c_long_double;
-        else version( NetBSD )
+        else version (NetBSD)
             alias real c_long_double;
-        else version( DragonFlyBSD )
+        else version (DragonFlyBSD)
             alias real c_long_double;
-        else version( Solaris )
+        else version (Solaris)
             alias real c_long_double;
-        else version( Darwin )
+        else version (Darwin)
             alias real c_long_double;
     }
 }
-else version( GNU )
+else version (GNU)
     alias real c_long_double;
-else version( LDC )
+else version (LDC)
     alias real c_long_double;
-else version( SDC )
+else version (SDC)
 {
-    version( X86 )
+    version (X86)
         alias real c_long_double;
-    else version( X86_64 )
+    else version (X86_64)
         alias real c_long_double;
 }
 

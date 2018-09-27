@@ -144,7 +144,7 @@ void         setprotoent(int);
 void         setservent(int);
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     struct hostent
     {
@@ -228,7 +228,7 @@ version( CRuntime_Glibc )
     enum EAI_SYSTEM         = -11;
     enum EAI_OVERFLOW       = -12;
 }
-else version( Darwin )
+else version (Darwin)
 {
     struct hostent
     {
@@ -312,7 +312,7 @@ else version( Darwin )
     enum EAI_SYSTEM         = 11;
     enum EAI_OVERFLOW       = 14;
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     struct hostent
     {
@@ -396,7 +396,7 @@ else version( FreeBSD )
     enum EAI_SYSTEM         = 11;
     enum EAI_OVERFLOW       = 14;
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     struct hostent
     {
@@ -503,7 +503,7 @@ else version(NetBSD)
     enum EAI_SYSTEM         = 11;
     enum EAI_OVERFLOW       = 14;
 }
-else version( OpenBSD )
+else version (OpenBSD)
 {
     struct hostent
     {
@@ -594,7 +594,7 @@ else version( OpenBSD )
     enum EAI_PROTOCOL       = -13;
     enum EAI_OVERFLOW       = -14;
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     /*
      * Error return codes from gethostbyname() and gethostbyaddr()
@@ -785,7 +785,7 @@ else version (Solaris)
     enum EAI_PROTOCOL = 13;
     enum EAI_MAX = 14;
 }
-else version( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     struct hostent
     {
@@ -866,7 +866,7 @@ else version( CRuntime_Bionic )
     enum EAI_SYSTEM         = 11;
     enum EAI_OVERFLOW       = 14;
 }
-else version( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     struct hostent
     {
@@ -944,7 +944,7 @@ else version( CRuntime_Musl )
         EAI_OVERFLOW       = -12,
     }
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     struct hostent
     {

@@ -152,7 +152,7 @@ uint elf_version(uint);
 Elf_Data* elf32_xlatetof(Elf_Data*, in Elf_Data*, uint);
 Elf_Data* elf32_xlatetom(Elf_Data*, in Elf_Data*, uint);
 
-version(D_LP64)
+version (D_LP64)
 {
 size_t elf64_fsize(Elf_Type, size_t, uint);
 Elf64_Ehdr* elf64_getehdr(Elf*);

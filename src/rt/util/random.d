@@ -14,7 +14,7 @@ struct Rand48
 
     void defaultSeed() @trusted
     {
-        version(D_InlineAsm_X86_64)
+        version (D_InlineAsm_X86_64)
         {
             // RDTSC takes around 22 clock cycles.
             ulong result = void; // Workaround for LDC issue #950, cannot access struct members in DMD asm.
@@ -33,22 +33,22 @@ struct Rand48
             rng_state = result;
             popFront();
         }
-        //else version(D_InlineAsm_X86)
+        //else version (D_InlineAsm_X86)
         //{
-        //    // We don't use `rdtsc` with version(D_InlineAsm_X86) because
+        //    // We don't use `rdtsc` with version (D_InlineAsm_X86) because
         //    // some x86 processors don't support `rdtsc` and because on
         //    // x86 (but not x86-64) Linux `prctl` can disable a process's
         //    // ability to use `rdtsc`.
         //    static assert(0);
         //}
-        else version(Windows)
+        else version (Windows)
         {
             // QueryPerformanceCounter takes about 1/4 the time of ctime.time.
             import core.sys.windows.winbase : QueryPerformanceCounter;
             QueryPerformanceCounter(cast(long*) &rng_state);
             popFront();
         }
-        else version(OSX)
+        else version (OSX)
         {
             // mach_absolute_time is much faster than ctime.time.
             import core.time : mach_absolute_time;

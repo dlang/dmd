@@ -20,8 +20,8 @@ else version (TVOS)
 else version (WatchOS)
     version = Darwin;
 
-version(Darwin):
-version(X86_64):
+version (Darwin):
+version (X86_64):
 
 // debug = PRINTF;
 import core.stdc.stdio;

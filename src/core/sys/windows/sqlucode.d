@@ -19,7 +19,7 @@ enum SQL_WLONGVARCHAR = -10;
 enum SQL_C_WCHAR      = SQL_WCHAR;
 
 enum SQL_SQLSTATE_SIZEW = 10;
-version(Unicode) {
+version (Unicode) {
 enum SQL_C_TCHAR = SQL_C_WCHAR;
 } else {
 enum SQL_C_TCHAR = SQL_C_CHAR;

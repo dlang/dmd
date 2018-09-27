@@ -580,21 +580,21 @@ extern (C) void profilegc_setlogfilename(string name);
 extern (C) UnitTestResult runModuleUnitTests()
 {
     // backtrace
-    version( CRuntime_Glibc )
+    version (CRuntime_Glibc)
         import core.sys.linux.execinfo;
-    else version( Darwin )
+    else version (Darwin)
         import core.sys.darwin.execinfo;
-    else version( FreeBSD )
+    else version (FreeBSD)
         import core.sys.freebsd.execinfo;
-    else version( NetBSD )
+    else version (NetBSD)
         import core.sys.netbsd.execinfo;
-    else version( DragonFlyBSD )
+    else version (DragonFlyBSD)
         import core.sys.dragonflybsd.execinfo;
-    else version( Windows )
+    else version (Windows)
         import core.sys.windows.stacktrace;
-    else version( Solaris )
+    else version (Solaris)
         import core.sys.solaris.execinfo;
-    else version( CRuntime_UClibc )
+    else version (CRuntime_UClibc)
         import core.sys.linux.execinfo;
 
     static if ( __traits( compiles, backtrace ) )
@@ -698,21 +698,21 @@ extern (C) UnitTestResult runModuleUnitTests()
 Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
 {
     // backtrace
-    version( CRuntime_Glibc )
+    version (CRuntime_Glibc)
         import core.sys.linux.execinfo;
-    else version( Darwin )
+    else version (Darwin)
         import core.sys.darwin.execinfo;
-    else version( FreeBSD )
+    else version (FreeBSD)
         import core.sys.freebsd.execinfo;
-    else version( NetBSD )
+    else version (NetBSD)
         import core.sys.netbsd.execinfo;
-    else version( DragonFlyBSD )
+    else version (DragonFlyBSD)
         import core.sys.dragonflybsd.execinfo;
-    else version( Windows )
+    else version (Windows)
         import core.sys.windows.stacktrace;
-    else version( Solaris )
+    else version (Solaris)
         import core.sys.solaris.execinfo;
-    else version( CRuntime_UClibc )
+    else version (CRuntime_UClibc)
         import core.sys.linux.execinfo;
 
     // avoid recursive GC calls in finalizer, trace handlers should be made @nogc instead
@@ -736,10 +736,10 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                 {
                     static void** getBasePtr()
                     {
-                        version( D_InlineAsm_X86 )
+                        version (D_InlineAsm_X86)
                             asm { naked; mov EAX, EBP; ret; }
                         else
-                        version( D_InlineAsm_X86_64 )
+                        version (D_InlineAsm_X86_64)
                             asm { naked; mov RAX, RBP; ret; }
                         else
                             return null;
@@ -776,7 +776,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
 
             override int opApply( scope int delegate(ref size_t, ref const(char[])) dg ) const
             {
-                version(Posix)
+                version (Posix)
                 {
                     // NOTE: The first 4 frames with the current implementation are
                     //       inside core.runtime and the object code, so eliminate
@@ -785,7 +785,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                     //       mangled function names.
                     enum FIRSTFRAME = 4;
                 }
-                else version(Windows)
+                else version (Windows)
                 {
                     // NOTE: On Windows, the number of frames to exclude is based on
                     //       whether the exception is user or system-generated, so
@@ -794,10 +794,10 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                     enum FIRSTFRAME = 0;
                 }
 
-                version(linux) enum enableDwarf = true;
-                else version(FreeBSD) enum enableDwarf = true;
-                else version(DragonFlyBSD) enum enableDwarf = true;
-                else version(Darwin) enum enableDwarf = true;
+                version (linux) enum enableDwarf = true;
+                else version (FreeBSD) enum enableDwarf = true;
+                else version (DragonFlyBSD) enum enableDwarf = true;
+                else version (Darwin) enum enableDwarf = true;
                 else enum enableDwarf = false;
 
                 static if (enableDwarf)
@@ -859,7 +859,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
             const(char)[] fixline( const(char)[] buf, return ref char[4096] fixbuf ) const
             {
                 size_t symBeg, symEnd;
-                version( Darwin )
+                version (Darwin)
                 {
                     // format is:
                     //  1  module    0x00000000 D6module4funcAFZv + 0
@@ -880,7 +880,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                         }
                     }
                 }
-                else version( CRuntime_Glibc )
+                else version (CRuntime_Glibc)
                 {
                     // format is:  module(_D6module4funcAFZv) [0x00000000]
                     // or:         module(_D6module4funcAFZv+0x78) [0x00000000]
@@ -897,7 +897,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                         symEnd = eptr - buf.ptr;
                     }
                 }
-                else version( FreeBSD )
+                else version (FreeBSD)
                 {
                     // format is: 0x00000000 <_D6module4funcAFZv+0x78> at module
                     auto bptr = cast(char*) memchr( buf.ptr, '<', buf.length );
@@ -909,7 +909,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                         symEnd = eptr - buf.ptr;
                     }
                 }
-                else version( NetBSD )
+                else version (NetBSD)
                 {
                     // format is: 0x00000000 <_D6module4funcAFZv+0x78> at module
                     auto bptr = cast(char*) memchr( buf.ptr, '<', buf.length );
@@ -921,7 +921,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                         symEnd = eptr - buf.ptr;
                     }
                 }
-                else version( DragonFlyBSD )
+                else version (DragonFlyBSD)
                 {
                     // format is: 0x00000000 <_D6module4funcAFZv+0x78> at module
                     auto bptr = cast(char*) memchr( buf.ptr, '<', buf.length );
@@ -933,7 +933,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                         symEnd = eptr - buf.ptr;
                     }
                 }
-                else version( Solaris )
+                else version (Solaris)
                 {
                     // format is object'symbol+offset [pc]
                     auto bptr = cast(char*) memchr( buf.ptr, '\'', buf.length );

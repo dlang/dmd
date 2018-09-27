@@ -17,7 +17,7 @@ extern(C):
 nothrow:
 @nogc:
 
-version(CRuntime_Glibc)
+version (CRuntime_Glibc)
 {
     private enum utsNameLength = 65;
 
@@ -36,7 +36,7 @@ version(CRuntime_Glibc)
 
     int uname(utsname* __name);
 }
-else version(Darwin)
+else version (Darwin)
 {
     private enum utsNameLength = 256;
 
@@ -53,7 +53,7 @@ else version(Darwin)
 
     int uname(utsname* __name);
 }
-else version(FreeBSD)
+else version (FreeBSD)
 {
     //private enum SYS_NMLN = 32;       // old FreeBSD 1.1 ABI
     private enum SYS_NMLN = 256;
@@ -72,7 +72,7 @@ else version(FreeBSD)
     int __xuname(int, void*);
     int uname()(utsname* __name) { return __xuname(SYS_NMLN, cast(void*) __name); }
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     private enum utsNameLength = 256;
 
@@ -89,7 +89,7 @@ else version(NetBSD)
 
     int uname(utsname* __name);
 }
-else version(DragonFlyBSD)
+else version (DragonFlyBSD)
 {
     private enum utsNameLength = 32;
 
@@ -106,7 +106,7 @@ else version(DragonFlyBSD)
 
     int uname(utsname* __name);
 }
-else version(Solaris)
+else version (Solaris)
 {
     private enum SYS_NMLN = 257;
 
@@ -122,7 +122,7 @@ else version(Solaris)
 
     int uname(utsname* __name);
 }
-else version(CRuntime_Bionic)
+else version (CRuntime_Bionic)
 {
     private enum SYS_NMLN = 65;
 
@@ -139,7 +139,7 @@ else version(CRuntime_Bionic)
 
     int uname(utsname*);
 }
-else version(CRuntime_Musl)
+else version (CRuntime_Musl)
 {
     private enum SYS_NMLN = 65;
 
@@ -155,7 +155,7 @@ else version(CRuntime_Musl)
 
     int uname(utsname*);
 }
-else version(CRuntime_UClibc)
+else version (CRuntime_UClibc)
 {
     private enum utsNameLength = 65;
 

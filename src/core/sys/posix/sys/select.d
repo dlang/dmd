@@ -15,7 +15,7 @@ public import core.sys.posix.sys.types; // for time_t
 public import core.sys.posix.signal;    // for sigset_t
 
 //debug=select;  // uncomment to turn on debugging printf's
-version(unittest) import core.stdc.stdio: printf;
+version (unittest) import core.stdc.stdio: printf;
 
 version (OSX)
     version = Darwin;
@@ -51,7 +51,7 @@ int  pselect(int, fd_set*, fd_set*, fd_set*, in timespec*, in sigset_t*);
 int  select(int, fd_set*, fd_set*, fd_set*, timeval*);
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     private
     {
@@ -134,7 +134,7 @@ version( CRuntime_Glibc )
     int pselect(int, fd_set*, fd_set*, fd_set*, in timespec*, in sigset_t*);
     int select(int, fd_set*, fd_set*, fd_set*, timeval*);
 }
-else version( Darwin )
+else version (Darwin)
 {
     private
     {
@@ -172,7 +172,7 @@ else version( Darwin )
     int pselect(int, fd_set*, fd_set*, fd_set*, in timespec*, in sigset_t*);
     int select(int, fd_set*, fd_set*, fd_set*, timeval*);
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     private
     {
@@ -221,7 +221,7 @@ else version( FreeBSD )
     int pselect(int, fd_set*, fd_set*, fd_set*, in timespec*, in sigset_t*);
     int select(int, fd_set*, fd_set*, fd_set*, timeval*);
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     private
     {
@@ -270,7 +270,7 @@ else version(NetBSD)
     int pselect(int, fd_set*, fd_set*, fd_set*, in timespec*, in sigset_t*);
     int select(int, fd_set*, fd_set*, fd_set*, timeval*);
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     private
     {
@@ -362,7 +362,7 @@ else version (Solaris)
     int select(int, fd_set*, fd_set*, fd_set*, timeval*);
     int pselect(int, fd_set*, fd_set*, fd_set*, in timespec*, in sigset_t*);
 }
-else version( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     private
     {
@@ -411,7 +411,7 @@ else version( CRuntime_Bionic )
     int pselect(int, fd_set*, fd_set*, fd_set*, in timespec*, in sigset_t*);
     int select(int, fd_set*, fd_set*, fd_set*, timeval*);
 }
-else version( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     enum FD_SETSIZE = 1024;
 
@@ -458,7 +458,7 @@ else version( CRuntime_Musl )
     int pselect(int, fd_set*, fd_set*, fd_set*, in timespec*, in sigset_t*);
     int select(int, fd_set*, fd_set*, fd_set*, timeval*);
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     private
     {

@@ -8,7 +8,7 @@ void abort(scope string msg, scope string filename = __FILE__, size_t line = __L
 {
     import core.stdc.stdlib: c_abort = abort;
     // use available OS system calls to print the message to stderr
-    version(Posix)
+    version (Posix)
     {
         import core.sys.posix.unistd: write;
         static void writeStr(scope const(char)[][] m...) @nogc nothrow @trusted
@@ -17,7 +17,7 @@ void abort(scope string msg, scope string filename = __FILE__, size_t line = __L
                 write(2, s.ptr, s.length);
         }
     }
-    else version(Windows)
+    else version (Windows)
     {
         import core.sys.windows.windows: GetStdHandle, STD_ERROR_HANDLE, WriteFile, INVALID_HANDLE_VALUE;
         auto h = (() @trusted => GetStdHandle(STD_ERROR_HANDLE))();

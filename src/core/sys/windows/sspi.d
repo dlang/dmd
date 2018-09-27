@@ -320,7 +320,7 @@ SECURITY_STATUS QuerySecurityPackageInfoW(SEC_WCHAR*,PSecPkgInfoW*);
 PSecurityFunctionTableA InitSecurityInterfaceA();
 PSecurityFunctionTableW InitSecurityInterfaceW();
 
-version(Unicode) {
+version (Unicode) {
     alias UNISP_NAME_W UNISP_NAME;
     alias SecPkgInfoW SecPkgInfo;
     alias PSecPkgInfoW PSecPkgInfo;

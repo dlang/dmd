@@ -45,9 +45,9 @@ public:
     {
         if (context is null)
         {
-            version(Win64)
+            version (Win64)
                 static enum INTERNALFRAMES = 3;
-            else version(Win32)
+            else version (Win32)
                 static enum INTERNALFRAMES = 2;
 
             skip += INTERNALFRAMES; //skip the stack frames within the StackTrace class
@@ -55,9 +55,9 @@ public:
         else
         {
             //When a exception context is given the first stack frame is repeated for some reason
-            version(Win64)
+            version (Win64)
                 static enum INTERNALFRAMES = 1;
-            else version(Win32)
+            else version (Win32)
                 static enum INTERNALFRAMES = 1;
 
             skip += INTERNALFRAMES;
@@ -149,11 +149,11 @@ private:
             if (backtraceLength > 1 && backtraceLength < buffer.length - skip)
             {
                 debug(PRINTF) printf("Using result from RtlCaptureStackBackTrace\n");
-                version(Win64)
+                version (Win64)
                 {
                     return buffer[0..backtraceLength].dup;
                 }
-                else version(Win32)
+                else version (Win32)
                 {
                     auto result = new ulong[backtraceLength];
                     foreach (i, ref e; result)
@@ -183,7 +183,7 @@ private:
         STACKFRAME64 stackframe;
         with (stackframe)
         {
-            version(X86)
+            version (X86)
             {
                 enum Flat = ADDRESS_MODE.AddrModeFlat;
                 AddrPC.Offset    = ctxt.Eip;
@@ -193,7 +193,7 @@ private:
                 AddrStack.Offset = ctxt.Esp;
                 AddrStack.Mode   = Flat;
             }
-        else version(X86_64)
+        else version (X86_64)
             {
                 enum Flat = ADDRESS_MODE.AddrModeFlat;
                 AddrPC.Offset    = ctxt.Rip;
@@ -295,7 +295,7 @@ private:
         res ~= " in ";
         const(char)[] tempSymName = symName[0 .. strlen(symName)];
         //Deal with dmd mangling of long names
-        version(CRuntime_DigitalMars)
+        version (CRuntime_DigitalMars)
         {
             size_t decodeIndex = 0;
             tempSymName = decodeDmdString(tempSymName, decodeIndex);

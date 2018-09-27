@@ -33,12 +33,12 @@ version (PPC)
 else version (PPC64)
     version = PPC_Any;
 
-version( MinGW )
+version (MinGW)
     version = GNUFP;
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
     version = GNUFP;
 
-version( GNUFP )
+version (GNUFP)
 {
     // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/x86/fpu/bits/fenv.h
     version (X86)
@@ -152,7 +152,7 @@ version( GNUFP )
         static assert(0, "Unimplemented architecture");
     }
 }
-else version( CRuntime_DigitalMars )
+else version (CRuntime_DigitalMars)
 {
     struct fenv_t
     {
@@ -163,7 +163,7 @@ else version( CRuntime_DigitalMars )
     }
     alias fexcept_t = int;
 }
-else version( CRuntime_Microsoft )
+else version (CRuntime_Microsoft)
 {
     struct fenv_t
     {
@@ -173,14 +173,14 @@ else version( CRuntime_Microsoft )
 
     alias fexcept_t = uint;
 }
-else version ( Darwin )
+else version (Darwin)
 {
-    version ( BigEndian )
+    version (BigEndian)
     {
         alias uint fenv_t;
         alias uint fexcept_t;
     }
-    version ( LittleEndian )
+    version (LittleEndian)
     {
         struct fenv_t
         {
@@ -193,7 +193,7 @@ else version ( Darwin )
         alias ushort fexcept_t;
     }
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     struct fenv_t
     {
@@ -207,9 +207,9 @@ else version ( FreeBSD )
 
     alias ushort fexcept_t;
 }
-else version ( NetBSD )
+else version (NetBSD)
 {
-    version(X86_64)
+    version (X86_64)
     {
         struct fenv_t
         {
@@ -225,7 +225,7 @@ else version ( NetBSD )
             uint mxcsr;                 /* Control and status register */
         }
    }
-   version(X86)
+   version (X86)
    {
         struct fenv_t
         {
@@ -247,7 +247,7 @@ else version ( NetBSD )
 
     alias uint fexcept_t;
 }
-else version ( OpenBSD )
+else version (OpenBSD)
 {
     struct fenv_t
     {
@@ -263,7 +263,7 @@ else version ( OpenBSD )
 
     alias fexcept_t = uint;
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     struct fenv_t
     {
@@ -281,9 +281,9 @@ else version ( DragonFlyBSD )
 
     alias uint fexcept_t;
 }
-else version( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
-    version(X86)
+    version (X86)
     {
         struct fenv_t
         {
@@ -297,12 +297,12 @@ else version( CRuntime_Bionic )
 
         alias ushort fexcept_t;
     }
-    else version(ARM)
+    else version (ARM)
     {
         alias uint fenv_t;
         alias uint fexcept_t;
     }
-    else version(AArch64)
+    else version (AArch64)
     {
         struct fenv_t
         {
@@ -317,7 +317,7 @@ else version( CRuntime_Bionic )
         static assert(false, "Architecture not supported.");
     }
 }
-else version( Solaris )
+else version (Solaris)
 {
     import core.stdc.config : c_ulong;
 
@@ -337,7 +337,7 @@ else version( Solaris )
 
     alias int fexcept_t;
 }
-else version( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     version (X86_64)
     {
@@ -364,7 +364,7 @@ else version( CRuntime_Musl )
         static assert(false, "Architecture not supported.");
     }
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     version (X86)
     {
@@ -435,7 +435,7 @@ else
     static assert( false, "Unsupported platform" );
 }
 
-version( CRuntime_Microsoft )
+version (CRuntime_Microsoft)
 {
     enum
     {
@@ -543,7 +543,7 @@ else
             FE_TOWARDZERO   = 0xC00000, ///
         }
     }
-    else version(MIPS32)
+    else version (MIPS32)
     {
         // Define bits representing the exception.
         enum
@@ -565,7 +565,7 @@ else
             FE_DOWNWARD     = 0x3, ///
         }
     }
-    else version(MIPS64)
+    else version (MIPS64)
     {
         // Define bits representing the exception.
         enum
@@ -651,7 +651,7 @@ else
             FE_DOWNWARD     = 3, ///
         }
     }
-    else version(SPARC64)
+    else version (SPARC64)
     {
         // Define bits representing the exception.
         enum
@@ -673,7 +673,7 @@ else
             FE_DOWNWARD     = 0xc0000000, ///
         }
     }
-    else version(SystemZ)
+    else version (SystemZ)
     {
         // Define bits representing the exception.
         enum
@@ -702,71 +702,71 @@ else
 
 }
 
-version( GNUFP )
+version (GNUFP)
 {
     ///
     enum FE_DFL_ENV = cast(fenv_t*)(-1);
 }
-else version( CRuntime_DigitalMars )
+else version (CRuntime_DigitalMars)
 {
     private extern __gshared fenv_t _FE_DFL_ENV;
     ///
     enum fenv_t* FE_DFL_ENV = &_FE_DFL_ENV;
 }
-else version( CRuntime_Microsoft )
+else version (CRuntime_Microsoft)
 {
     private extern __gshared fenv_t _Fenv0;
     ///
     enum FE_DFL_ENV = &_Fenv0;
 }
-else version( Darwin )
+else version (Darwin)
 {
     private extern __gshared fenv_t _FE_DFL_ENV;
     ///
     enum FE_DFL_ENV = &_FE_DFL_ENV;
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     private extern const fenv_t __fe_dfl_env;
     ///
     enum FE_DFL_ENV = &__fe_dfl_env;
 }
-else version( NetBSD )
+else version (NetBSD)
 {
     private extern const fenv_t __fe_dfl_env;
     ///
     enum FE_DFL_ENV = &__fe_dfl_env;
 }
-else version( OpenBSD )
+else version (OpenBSD)
 {
     private extern const fenv_t __fe_dfl_env;
     ///
     enum FE_DFL_ENV = &__fe_dfl_env;
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     private extern const fenv_t __fe_dfl_env;
     ///
     enum FE_DFL_ENV = &__fe_dfl_env;
 }
-else version( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     private extern const fenv_t __fe_dfl_env;
     ///
     enum FE_DFL_ENV = &__fe_dfl_env;
 }
-else version( Solaris )
+else version (Solaris)
 {
     private extern const fenv_t __fenv_def_env;
     ///
     enum FE_DFL_ENV = &__fenv_def_env;
 }
-else version( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     ///
     enum FE_DFL_ENV = cast(fenv_t*)(-1);
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     ///
     enum FE_DFL_ENV = cast(fenv_t*)(-1);
@@ -800,7 +800,7 @@ int fegetenv(fenv_t* envp);
 int fesetenv(in fenv_t* envp);
 
 // MS define feraiseexcept() and feupdateenv() inline.
-version( CRuntime_Microsoft ) // supported since MSVCRT 12 (VS 2013) only
+version (CRuntime_Microsoft) // supported since MSVCRT 12 (VS 2013) only
 {
     ///
     int feraiseexcept()(int excepts)

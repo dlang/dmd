@@ -21,13 +21,13 @@ else version (TVOS)
 else version (WatchOS)
     version = Darwin;
 
-version(CRuntime_Glibc) version = has_backtrace;
-else version(FreeBSD) version = has_backtrace;
-else version(DragonFlyBSD) version = has_backtrace;
-else version(CRuntime_UClibc) version = has_backtrace;
-else version(Darwin) version = has_backtrace;
+version (CRuntime_Glibc) version = has_backtrace;
+else version (FreeBSD) version = has_backtrace;
+else version (DragonFlyBSD) version = has_backtrace;
+else version (CRuntime_UClibc) version = has_backtrace;
+else version (Darwin) version = has_backtrace;
 
-version(has_backtrace):
+version (has_backtrace):
 
 version (Darwin)
     import rt.backtrace.macho;
@@ -49,10 +49,10 @@ struct Location
 int traceHandlerOpApplyImpl(const void*[] callstack, scope int delegate(ref size_t, ref const(char[])) dg)
 {
     import core.stdc.stdio : snprintf;
-    version(linux) import core.sys.linux.execinfo : backtrace_symbols;
-    else version(FreeBSD) import core.sys.freebsd.execinfo : backtrace_symbols;
-    else version(DragonFlyBSD) import core.sys.dragonflybsd.execinfo : backtrace_symbols;
-    else version(Darwin) import core.sys.darwin.execinfo : backtrace_symbols;
+    version (linux) import core.sys.linux.execinfo : backtrace_symbols;
+    else version (FreeBSD) import core.sys.freebsd.execinfo : backtrace_symbols;
+    else version (DragonFlyBSD) import core.sys.dragonflybsd.execinfo : backtrace_symbols;
+    else version (Darwin) import core.sys.darwin.execinfo : backtrace_symbols;
     import core.sys.posix.stdlib : free;
 
     const char** frameList = backtrace_symbols(callstack.ptr, cast(int) callstack.length);
@@ -400,7 +400,7 @@ const(char)[] getDemangledSymbol(const(char)[] btSymbol, ref char[1024] buffer)
 {
     import core.demangle;
 
-    version(linux)
+    version (linux)
     {
         // format is:  module(_D6module4funcAFZv) [0x00000000]
         // or:         module(_D6module4funcAFZv+0x78) [0x00000000]
@@ -408,21 +408,21 @@ const(char)[] getDemangledSymbol(const(char)[] btSymbol, ref char[1024] buffer)
         auto eptr = cast(char*) memchr(btSymbol.ptr, ')', btSymbol.length);
         auto pptr = cast(char*) memchr(btSymbol.ptr, '+', btSymbol.length);
     }
-    else version(FreeBSD)
+    else version (FreeBSD)
     {
         // format is: 0x00000000 <_D6module4funcAFZv+0x78> at module
         auto bptr = cast(char*) memchr(btSymbol.ptr, '<', btSymbol.length);
         auto eptr = cast(char*) memchr(btSymbol.ptr, '>', btSymbol.length);
         auto pptr = cast(char*) memchr(btSymbol.ptr, '+', btSymbol.length);
     }
-    else version(DragonFlyBSD)
+    else version (DragonFlyBSD)
     {
         // format is: 0x00000000 <_D6module4funcAFZv+0x78> at module
         auto bptr = cast(char*) memchr(btSymbol.ptr, '<', btSymbol.length);
         auto eptr = cast(char*) memchr(btSymbol.ptr, '>', btSymbol.length);
         auto pptr = cast(char*) memchr(btSymbol.ptr, '+', btSymbol.length);
     }
-    else version(Darwin)
+    else version (Darwin)
         return demangle(extractSymbol(btSymbol), buffer[]);
 
     version (Darwin) {}

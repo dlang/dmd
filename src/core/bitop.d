@@ -13,9 +13,9 @@ nothrow:
 @safe:
 @nogc:
 
-version( D_InlineAsm_X86_64 )
+version (D_InlineAsm_X86_64)
     version = AsmX86;
-else version( D_InlineAsm_X86 )
+else version (D_InlineAsm_X86)
     version = AsmX86;
 
 version (X86_64)
@@ -29,7 +29,7 @@ private union Split64
     ulong u64;
     struct
     {
-        version(LittleEndian)
+        version (LittleEndian)
         {
             uint lo;
             uint hi;
@@ -561,7 +561,7 @@ version (DigitalMars) version (AnyX86) @system // not pure
 int popcnt(uint x) pure
 {
     // Select the fastest method depending on the compiler and CPU architecture
-    version(DigitalMars)
+    version (DigitalMars)
     {
         static if (is(typeof(_popcnt(uint.max))))
         {
@@ -598,7 +598,7 @@ int popcnt(ulong x) pure
     static if (size_t.sizeof == uint.sizeof)
     {
         const sx = Split64(x);
-        version(DigitalMars)
+        version (DigitalMars)
         {
             static if (is(typeof(_popcnt(uint.max))))
             {
@@ -611,7 +611,7 @@ int popcnt(ulong x) pure
     }
     else static if (size_t.sizeof == ulong.sizeof)
     {
-        version(DigitalMars)
+        version (DigitalMars)
         {
             static if (is(typeof(_popcnt(ulong.max))))
             {

@@ -798,7 +798,7 @@ BOOL StartPagePrinter(HANDLE);
 DWORD WaitForPrinterChange(HANDLE, DWORD);
 BOOL WritePrinter(HANDLE, PVOID, DWORD, PDWORD);
 
-version(Unicode) {
+version (Unicode) {
 
 alias JOB_INFO_1W JOB_INFO_1;
 alias JOB_INFO_2W JOB_INFO_2;

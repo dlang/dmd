@@ -114,7 +114,7 @@ union sigval
     void*   sival_ptr;
 }
 
-version( Solaris )
+version (Solaris)
 {
     import core.sys.posix.unistd;
 
@@ -134,7 +134,7 @@ version( Solaris )
         return sig;
     }
 }
-else version( CRuntime_Glibc )
+else version (CRuntime_Glibc)
 {
     private extern (C) nothrow @nogc
     {
@@ -168,7 +168,7 @@ else version (DragonFlyBSD) {
     enum SIGRTMIN = 35;
     enum SIGRTMAX = 126;
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     enum SIGRTMIN = 33;
     enum SIGRTMAX = 63;
@@ -198,7 +198,7 @@ else version (CRuntime_Bionic)
         return sig;
     }
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     private extern (C) nothrow @nogc
     {
@@ -217,7 +217,7 @@ else version( CRuntime_UClibc )
     }
 }
 
-version( linux )
+version (linux)
 {
     version (X86)
     {
@@ -462,7 +462,7 @@ version( linux )
     else
         static assert(0, "unimplemented");
 }
-else version( Darwin )
+else version (Darwin)
 {
     //SIGABRT (defined in core.stdc.signal)
     enum SIGALRM    = 14;
@@ -486,7 +486,7 @@ else version( Darwin )
     enum SIGUSR2    = 31;
     enum SIGURG     = 16;
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     //SIGABRT (defined in core.stdc.signal)
     enum SIGALRM    = 14;
@@ -510,7 +510,7 @@ else version( FreeBSD )
     enum SIGUSR2    = 31;
     enum SIGURG     = 16;
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     //SIGABRT (defined in core.stdc.signal)
     enum SIGALRM    = 14;
@@ -534,7 +534,7 @@ else version(NetBSD)
     enum SIGUSR2    = 31;
     enum SIGURG     = 16;
 }
-else version( OpenBSD )
+else version (OpenBSD)
 {
     //SIGABRT (defined in core.stdc.signal)
     enum SIGALRM    = 14;
@@ -558,7 +558,7 @@ else version( OpenBSD )
     enum SIGUSR2    = 31;
     enum SIGURG     = 16;
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     //SIGABRT (defined in core.stdc.signal)
     enum SIGALRM    = 14;
@@ -605,7 +605,7 @@ else
     static assert(false, "Unsupported platform");
 }
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     struct sigaction_t
     {
@@ -627,7 +627,7 @@ version( CRuntime_Glibc )
         void function() sa_restorer;
     }
 }
-else version( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     struct sigaction_t
     {
@@ -649,7 +649,7 @@ else version( CRuntime_Musl )
         void function() sa_restorer;
     }
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     struct sigaction_t
     {
@@ -662,7 +662,7 @@ else version( FreeBSD )
         sigset_t sa_mask;
     }
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     struct sigaction_t
     {
@@ -675,7 +675,7 @@ else version(NetBSD)
         int      sa_flags;
     }
 }
-else version(OpenBSD)
+else version (OpenBSD)
 {
     struct sigaction_t
     {
@@ -690,7 +690,7 @@ else version(OpenBSD)
         int      sa_flags;
     }
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     struct sigaction_t
     {
@@ -721,7 +721,7 @@ else version (Solaris)
             int[2] sa_resv;
     }
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     version (ARM)           version = sigaction_common;
     else version (X86_64)   version = sigaction_common;
@@ -825,7 +825,7 @@ else version (CRuntime_Bionic)
         static assert(false, "Architecture not supported.");
     }
 }
-else version( Darwin )
+else version (Darwin)
 {
     struct sigaction_t
     {
@@ -876,7 +876,7 @@ struct siginfo_t
     int     si_signo;
     int     si_code;
 
-    version( XSI )
+    version (XSI)
     {
         int     si_errno;
         pid_t   si_pid;
@@ -885,7 +885,7 @@ struct siginfo_t
         int     si_status;
         c_long  si_band;
     }
-    version( RTS )
+    version (RTS)
     {
         sigval  si_value;
     }
@@ -913,7 +913,7 @@ int sigwait(in sigset_t*, int*);
 nothrow @nogc
 {
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     enum SIG_HOLD = cast(sigfn_t2) 1;
 
@@ -1042,7 +1042,7 @@ version( CRuntime_Glibc )
     int sigsuspend(in sigset_t*);
     int sigwait(in sigset_t*, int*);
 }
-else version( Darwin )
+else version (Darwin)
 {
     enum SIG_HOLD = cast(sigfn_t2) 5;
 
@@ -1094,7 +1094,7 @@ else version( Darwin )
     int sigsuspend(in sigset_t*);
     int sigwait(in sigset_t*, int*);
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     enum SIG_HOLD = cast(sigfn_t2) 3;
 
@@ -1172,7 +1172,7 @@ else version( FreeBSD )
     int sigsuspend(in sigset_t *);
     int sigwait(in sigset_t*, int*);
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     enum SIG_HOLD = cast(sigfn_t2) 3;
 
@@ -1266,7 +1266,7 @@ else version(NetBSD)
     alias __sigprocmask14 sigprocmask;
     alias __sigsuspend14 sigsuspend;
 }
-else version( OpenBSD )
+else version (OpenBSD)
 {
     enum SIG_CATCH = cast(sigfn_t2) 2;
     enum SIG_HOLD = cast(sigfn_t2) 3;
@@ -1342,7 +1342,7 @@ else version( OpenBSD )
     int sigsuspend(in sigset_t *);
     int sigwait(in sigset_t*, int*);
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     enum SIG_CATCH = cast(sigfn_t2) 2;
     enum SIG_HOLD = cast(sigfn_t2) 3;
@@ -1500,7 +1500,7 @@ else version (Solaris)
     int sigsuspend(in sigset_t*);
     int sigwait(in sigset_t*, int*);
 }
-else version( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     public import core.sys.posix.time: timer_t;
     private import core.stdc.string : memset;
@@ -1633,7 +1633,7 @@ else version( CRuntime_Bionic )
     int sigsuspend(in sigset_t*);
     int sigwait(in sigset_t*, int*);
 }
-else version( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     struct sigset_t {
         ulong[128/long.sizeof] __bits;
@@ -1718,11 +1718,11 @@ else version( CRuntime_Musl )
     int sigsuspend(in sigset_t*);
     int sigwait(in sigset_t*, int*);
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     enum SIG_HOLD = cast(sigfn_t2) 2;
 
-    version ( MIPS32 )
+    version (MIPS32)
         private enum _SIGSET_NWORDS = 128 / (8 * c_ulong.sizeof);
     else
         private enum _SIGSET_NWORDS = 64 / (8 * c_ulong.sizeof);
@@ -2060,7 +2060,7 @@ int sigpause(int);
 int sigrelse(int);
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     version (X86)
     {
@@ -2271,7 +2271,7 @@ version( CRuntime_Glibc )
     int sigpause(int);
     int sigrelse(int);
 }
-else version( Darwin )
+else version (Darwin)
 {
     enum SIGPOLL        = 7;
     enum SIGPROF        = 27;
@@ -2381,7 +2381,7 @@ else version( Darwin )
     int sigpause(int);
     int sigrelse(int);
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     // No SIGPOLL on *BSD
     enum SIGPROF        = 27;
@@ -2505,7 +2505,7 @@ else version( FreeBSD )
     int sigpause(int);
     int sigrelse(int);
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     // No SIGPOLL on *BSD
     enum SIGPROF        = 27;
@@ -2745,7 +2745,7 @@ else version (OpenBSD)
     int siginterrupt(int, int);
     int sigpause(int);
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     // No SIGPOLL on *BSD
     enum SIGPROF        = 27;
@@ -3157,11 +3157,11 @@ else version (CRuntime_Bionic)
     int sigaltstack(in stack_t*, stack_t*);
     int siginterrupt(int, int);
 }
-else version( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     enum SA_RESTART     = 0x10000000;
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     version (X86_64)
     {
@@ -3362,7 +3362,7 @@ struct timespec
 }
 */
 
-version( linux )
+version (linux)
 {
     struct timespec
     {
@@ -3370,7 +3370,7 @@ version( linux )
         c_long  tv_nsec;
     }
 }
-else version( Darwin )
+else version (Darwin)
 {
     struct timespec
     {
@@ -3378,7 +3378,7 @@ else version( Darwin )
         c_long  tv_nsec;
     }
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     struct timespec
     {
@@ -3386,7 +3386,7 @@ else version( FreeBSD )
         c_long  tv_nsec;
     }
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     struct timespec
     {
@@ -3394,7 +3394,7 @@ else version(NetBSD)
         c_long  tv_nsec;
     }
 }
-else version( OpenBSD )
+else version (OpenBSD)
 {
     struct timespec
     {
@@ -3402,7 +3402,7 @@ else version( OpenBSD )
         c_long  tv_nsec;
     }
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     struct timespec
     {
@@ -3446,7 +3446,7 @@ int sigwaitinfo(in sigset_t*, siginfo_t*);
 nothrow:
 @nogc:
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     private enum __SIGEV_MAX_SIZE = 64;
 
@@ -3482,7 +3482,7 @@ version( CRuntime_Glibc )
     int sigtimedwait(in sigset_t*, siginfo_t*, in timespec*);
     int sigwaitinfo(in sigset_t*, siginfo_t*);
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     struct sigevent
     {
@@ -3505,7 +3505,7 @@ else version( FreeBSD )
     int sigtimedwait(in sigset_t*, siginfo_t*, in timespec*);
     int sigwaitinfo(in sigset_t*, siginfo_t*);
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     struct sigevent
     {
@@ -3523,7 +3523,7 @@ else version(NetBSD)
 else version (OpenBSD)
 {
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     union  _sigev_un_t
     {
@@ -3569,7 +3569,7 @@ else version (Solaris)
     int sigtimedwait(in sigset_t*, siginfo_t*, in timespec*);
     int sigwaitinfo(in sigset_t*, siginfo_t*);
 }
-else version( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     private enum __ARCH_SIGEV_PREAMBLE_SIZE = (int.sizeof * 2) + sigval.sizeof;
     private enum SIGEV_MAX_SIZE = 64;
@@ -3595,7 +3595,7 @@ else version( CRuntime_Bionic )
         } _sigev_un_t _sigev_un;
     }
 }
-else version( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     struct sigevent
     {
@@ -3607,7 +3607,7 @@ else version( CRuntime_Musl )
         char[56 - 3 * long.sizeof] __pad;
     }
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     private enum __SIGEV_MAX_SIZE = 64;
 
@@ -3659,32 +3659,32 @@ int pthread_kill(pthread_t, int);
 int pthread_sigmask(int, in sigset_t*, sigset_t*);
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     int pthread_kill(pthread_t, int);
     int pthread_sigmask(int, in sigset_t*, sigset_t*);
 }
-else version( Darwin )
+else version (Darwin)
 {
     int pthread_kill(pthread_t, int);
     int pthread_sigmask(int, in sigset_t*, sigset_t*);
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     int pthread_kill(pthread_t, int);
     int pthread_sigmask(int, in sigset_t*, sigset_t*);
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     int pthread_kill(pthread_t, int);
     int pthread_sigmask(int, in sigset_t*, sigset_t*);
 }
-else version( OpenBSD )
+else version (OpenBSD)
 {
     int pthread_kill(pthread_t, int);
     int pthread_sigmask(int, in sigset_t*, sigset_t*);
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     int pthread_kill(pthread_t, int);
     int pthread_sigmask(int, in sigset_t*, sigset_t*);
@@ -3694,17 +3694,17 @@ else version (Solaris)
     int pthread_kill(pthread_t, int);
     int pthread_sigmask(int, in sigset_t*, sigset_t*);
 }
-else version( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     int pthread_kill(pthread_t, int);
     int pthread_sigmask(int, in sigset_t*, sigset_t*);
 }
-else version( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     int pthread_kill(pthread_t, int);
     int pthread_sigmask(int, in sigset_t*, sigset_t*);
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     int pthread_kill(pthread_t, int);
     int pthread_sigmask(int, in sigset_t*, sigset_t*);

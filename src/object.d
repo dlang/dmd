@@ -16,7 +16,7 @@ module object;
 //alias typeof(int.sizeof)                    size_t;
 //alias typeof(cast(void*)0 - cast(void*)0)   ptrdiff_t;
 
-version(D_LP64)
+version (D_LP64)
 {
     alias size_t = ulong;
     alias ptrdiff_t = long;
@@ -692,7 +692,7 @@ nothrow @safe @nogc unittest
             assert(b.s == "B");
         }
         // this test is invalid now that the default ctor is not run after clearing
-        version(none)
+        version (none)
         {
             class C
             {
@@ -3258,7 +3258,7 @@ void _postblitRecurse(E, size_t n)(ref E[n] arr)
 
     struct InnerMiddle {}
 
-    version(none) // https://issues.dlang.org/show_bug.cgi?id=14242
+    version (none) // https://issues.dlang.org/show_bug.cgi?id=14242
     struct InnerElement
     {
         static char counter = '1';
@@ -3292,7 +3292,7 @@ void _postblitRecurse(E, size_t n)(ref E[n] arr)
         char[] s;
         InnerTop top;
         InnerMiddle middle;
-        version(none) InnerElement[3] array; // https://issues.dlang.org/show_bug.cgi?id=14242
+        version (none) InnerElement[3] array; // https://issues.dlang.org/show_bug.cgi?id=14242
         int a;
         InnerBottom bottom;
         ~this() @safe nothrow pure { order ~= "destroy outer"; }
