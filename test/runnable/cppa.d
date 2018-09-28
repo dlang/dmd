@@ -6,6 +6,8 @@ import core.stdc.stdarg;
 import core.stdc.config;
 import core.stdc.stdint;
 
+import core.stdcpp.exception;
+
 extern (C++)
         int foob(int i, int j, int k);
 
@@ -500,8 +502,6 @@ extern (C++, std)
         }
     }
 
-    class exception { }
-
     // 14956
     extern(C++, N14956)
     {
@@ -982,7 +982,7 @@ void testeh()
             {
                 throwit();
             }
-            catch (std.exception e)
+            catch (exception e)
             {
                 caught = true;
             }
@@ -1019,7 +1019,7 @@ version (linux)
             {
                 dFunction();
             }
-            catch(std.exception e)
+            catch(exception e)
             {
                 assert(raii_works);
             }
@@ -1047,7 +1047,7 @@ void testeh3()
             {
                throwle();
             }
-            catch (std.exception e)  //polymorphism test.
+            catch (exception e)  //polymorphism test.
             {
                 caught = true;
             }
@@ -1593,6 +1593,36 @@ void test19134()
     assert(d.foo() == 660);
 }
 
+// https://issues.dlang.org/show_bug.cgi?id=19269
+extern(C++) void throwingDFunction19269()
+{
+    throw new exception();
+}
+
+extern(C++) void throwingDFunctionDerived19269()
+{
+    throw new CppException19269("Hello from the D world");
+}
+
+extern(C++) class CppException19269 : exception
+{
+    extern(D) this(const(char)[] m) { this.msg = m; }
+    const(char)[] msg;
+}
+
+extern(C++) bool catchThrowFromD19269();
+extern(C++) exception catchThrowFromDDerived19269();
+
+void test19269()
+{
+    assert(catchThrowFromD19269());
+    auto e = catchThrowFromDDerived19269();
+    assert(e);
+    auto cp = cast(CppException19269)e;
+    assert(cp.msg == "Hello from the D world");
+}
+
+
 /****************************************/
 
 void main()
@@ -1643,6 +1673,7 @@ void main()
     test18953();
     test18966();
     test19134();
+    test19269();
 
     printf("Success\n");
 }

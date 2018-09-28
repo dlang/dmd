@@ -3936,12 +3936,12 @@ else
         checkThrowEscape(sc, ts.exp, false);
 
         ClassDeclaration cd = ts.exp.type.toBasetype().isClassHandle();
-        if (!cd || ((cd != ClassDeclaration.throwable) && !ClassDeclaration.throwable.isBaseOf(cd, null)))
+
+        if (!cd.canBeThrown)
         {
-            ts.error("can only throw class objects derived from `Throwable`, not type `%s`", ts.exp.type.toChars());
+            ts.error("can only throw class objects derived from `Throwable` or `core.stdcpp.exception.exception`, not type `%s`", ts.exp.type.toChars());
             return setError();
         }
-
         result = ts;
     }
 
@@ -4272,4 +4272,38 @@ TupleForeachRet!(isStatic, isDecl) makeTupleForeach(bool isStatic, bool isDecl)(
     {
         return v.makeTupleForeach!(isStatic, isDecl)(fs, args);
     }
+}
+
+/**
+   Check if this `ClassDeclaration` derives from either
+   `core.stdcpp.exception : exception` (aka `std::exception`)
+   or `object : Exception`
+
+   Note:
+     For `std::exception`, the check is actually "is the base class
+     defined in `core.stdcpp.exception`.
+     `std::exception`'s ClassDeclaration cannot just be a global property
+     like `object : Exception` is because the mechanism which
+     is used for the later works at parsing time, and so relies on those
+     definitions not being versioned (or within `static if`).
+
+   Returns:
+     `true` if this type can be `throw`n and caught
+*/
+private bool canBeThrown (ClassDeclaration cd)
+{
+    if (!cd)
+        return false;
+    if (cd == ClassDeclaration.throwable)
+        return true;
+    if (ClassDeclaration.throwable.isBaseOf(cd, null))
+        return true;
+    if (!cd.isCPPclass)
+        return false;
+    // Get the root class (C++ class don't derive from `Object`)
+    while (cd.baseClass !is null)
+        cd = cd.baseClass;
+    // The module defining the root class should be `core.stdcpp.exception`
+    auto mod = cd.getModule();
+    return mod.isModuleName(Id.core, Id.stdcpp, Id.cppException);
 }

@@ -97,6 +97,7 @@ immutable Msgtable[] msgtable =
     { "typeinfo" },
     { "outer" },
     { "Exception" },
+    { "cppException", "exception" },
     { "RTInfo" },
     { "Throwable" },
     { "Error" },
@@ -333,11 +334,12 @@ immutable Msgtable[] msgtable =
     // varargs implementation
     { "va_start" },
 
-    // Builtin functions
+    // Builtin functions / modules
     { "std" },
     { "core" },
     { "etc" },
     { "attribute" },
+    { "stdcpp" },
     { "math" },
     { "sin" },
     { "cos" },

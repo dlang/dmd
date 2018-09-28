@@ -468,7 +468,7 @@ extern(C++) private final class Supported : Objc
         if (sd.ident != Id.udaSelector || !sd.parent)
             return false;
         Module _module = sd.parent.isModule();
-        return _module && _module.isCoreModule(Id.attribute);
+        return _module && _module.isModuleName(Id.core, Id.attribute);
     }
 }
 
