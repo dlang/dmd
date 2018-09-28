@@ -87,11 +87,6 @@ private FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         return null;
 
     bool hasCopyCtor = sd.copyCtor !is null;
-    if (hasCopyCtor && sd.postblits.dim == 1)
-    {
-        error(sd.postblits[0].loc, "struct `%s` cannot define both a postblit and copy constructor. Use the copy constructor.", sd.toChars());
-        return null;
-    }
 
     // by default, the storage class of the created postblit
     StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
@@ -282,11 +277,6 @@ private FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
     if (postblitCalls.dim || (stc & STC.disable))
     {
         //printf("Building __fieldPostBlit()\n");
-        if (hasCopyCtor)
-        {
-            sd.error("contains fields with postblits, therefore it cannot have a copy constructor.");
-            return null;
-        }
         checkShared();
         auto dd = new PostBlitDeclaration(declLoc, Loc.initial, stc, Id.__fieldPostblit);
         dd.generated = true;
@@ -403,6 +393,8 @@ private Statement generateCopyCtorBody(StructDeclaration sd)
  */
 private CtorDeclaration buildCopyCtor(StructDeclaration sd, Scope* sc)
 {
+    if (sd.postblit)
+        return null;
     Dsymbol s = sd.search(sd.loc, Id.copyCtor);
     return s ? s.isCopyCtorDeclaration : null;
 /*    bool[ModBits] copyCtorTable;      // hashtable used to store what copy constructors should be generated
@@ -3959,7 +3951,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     {
                         //printf("copy constructor\n");
                         auto cpCtor = new CtorDeclaration(ctd.loc, ctd.endloc, ctd.storage_class, ctd.type, true);
-                        cpCtor.fbody = ctd.fbody;
+                        cpCtor.fbody = ctd.fbody.syntaxCopy();
                         sd.members.push(cpCtor);
                         cpCtor.addMember(sc, sd);
                     }
@@ -4564,10 +4556,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         // Look for the constructor
         sd.ctor = sd.searchCtor();
 
-        sd.copyCtor = buildCopyCtor(sd, sc2);
         sd.dtor = buildDtor(sd, sc2);
         sd.tidtor = buildExternDDtor(sd, sc2);
         sd.postblit = buildPostBlit(sd, sc2);
+        sd.copyCtor = buildCopyCtor(sd, sc2);
 
         buildOpAssign(sd, sc2);
         buildOpEquals(sd, sc2);

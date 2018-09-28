@@ -4696,7 +4696,7 @@ extern (C++) final class TypeFunction : TypeNext
                         StructDeclaration argStruct, prmStruct;
 
                         // first look for a copy constructor
-                        if (!isRef && targ.ty == Tstruct && tprm.ty == Tstruct)
+                        if (arg.isLvalue() && !isRef && targ.ty == Tstruct && tprm.ty == Tstruct)
                         {
                             // if the argument and the parameter are of the same unqualified struct type
                             argStruct = (cast(TypeStruct)targ).sym;
