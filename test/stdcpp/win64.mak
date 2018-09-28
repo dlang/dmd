@@ -5,12 +5,27 @@ MODEL=64
 DRUNTIMELIB=druntime64.lib
 CC=cl
 
-TESTS= array allocator new
+TESTS= array allocator new string
 
 test: $(TESTS)
 
 $(TESTS):
-	"$(CC)" -c /Fo$@_cpp.obj test\stdcpp\src\$@.cpp /EHsc
-	"$(DMD)" -of=$@.exe -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) -main -unittest test\stdcpp\src\$@_test.d $@_cpp.obj
+	"$(CC)" -c /Fo$@_cpp.obj test\stdcpp\src\$@.cpp /EHsc /MT
+	"$(DMD)" -of=$@.exe -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) -main -unittest -version=_MSC_VER_$(_MSC_VER) -mscrtlib=libcmt test\stdcpp\src\$@_test.d $@_cpp.obj
+	$@.exe
+	del $@.exe $@.obj $@_cpp.obj
+
+	"$(CC)" -c /Fo$@_cpp.obj test\stdcpp\src\$@.cpp /EHsc /MD
+	"$(DMD)" -of=$@.exe -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) -main -unittest -version=_MSC_VER_$(_MSC_VER) -mscrtlib=msvcrt test\stdcpp\src\$@_test.d $@_cpp.obj
+	$@.exe
+	del $@.exe $@.obj $@_cpp.obj
+
+	"$(CC)" -c /Fo$@_cpp.obj test\stdcpp\src\$@.cpp /EHsc /MTd
+	"$(DMD)" -of=$@.exe -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) -main -unittest -version=_MSC_VER_$(_MSC_VER) -mscrtlib=libcmtd test\stdcpp\src\$@_test.d $@_cpp.obj
+	$@.exe
+	del $@.exe $@.obj $@_cpp.obj
+
+	"$(CC)" -c /Fo$@_cpp.obj test\stdcpp\src\$@.cpp /EHsc /MDd
+	"$(DMD)" -of=$@.exe -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) -main -unittest -version=_MSC_VER_$(_MSC_VER) -mscrtlib=msvcrtd test\stdcpp\src\$@_test.d $@_cpp.obj
 	$@.exe
 	del $@.exe $@.obj $@_cpp.obj
