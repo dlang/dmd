@@ -63,10 +63,7 @@ version (Windows)
     alias int_least64_t  = long;     ///
     alias uint_least64_t = ulong;    ///
 
-    version (Win64) // TODO: this is wrong but tested in compilable/teststdint.d
-        alias int_fast8_t = char;   ///
-    else
-        alias int_fast8_t = byte;   ///
+    alias int_fast8_t   = byte;     ///
     alias uint_fast8_t  = ubyte;    ///
     alias int_fast16_t  = int;      ///
     alias uint_fast16_t = uint;     ///
@@ -134,12 +131,24 @@ else version (Posix)
     alias int_least64_t  = long;   ///
     alias uint_least64_t = ulong;  ///
 
-    alias int_fast8_t   = byte;      ///
-    alias uint_fast8_t  = ubyte;     ///
-    alias int_fast16_t  = ptrdiff_t; ///
-    alias uint_fast16_t = size_t;    ///
-    alias int_fast32_t  = ptrdiff_t; ///
-    alias uint_fast32_t = size_t;    ///
+    version (FreeBSD)
+    {
+        alias int_fast8_t   = int;  ///
+        alias uint_fast8_t  = uint; ///
+        alias int_fast16_t  = int;  ///
+        alias uint_fast16_t = uint; ///
+        alias int_fast32_t  = int;  ///
+        alias uint_fast32_t = uint; ///
+    }
+    else
+    {
+        alias int_fast8_t   = byte;      ///
+        alias uint_fast8_t  = ubyte;     ///
+        alias int_fast16_t  = ptrdiff_t; ///
+        alias uint_fast16_t = size_t;    ///
+        alias int_fast32_t  = ptrdiff_t; ///
+        alias uint_fast32_t = size_t;    ///
+    }
     alias int_fast64_t  = long;      ///
     alias uint_fast64_t = ulong;     ///
 
