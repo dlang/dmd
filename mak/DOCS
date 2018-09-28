@@ -42,6 +42,7 @@ DOCS=\
 	$(DOCDIR)\core_stdcpp_string_view.html \
 	$(DOCDIR)\core_stdcpp_exception.html \
 	$(DOCDIR)\core_stdcpp_typeinfo.html \
+	$(DOCDIR)\core_stdcpp_type_traits.html \
 	\
 	$(DOCDIR)\core_sync_barrier.html \
 	$(DOCDIR)\core_sync_condition.html \

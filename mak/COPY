@@ -53,6 +53,7 @@ COPY=\
 	$(IMPDIR)\core\stdcpp\exception.d \
 	$(IMPDIR)\core\stdcpp\string_view.d \
 	$(IMPDIR)\core\stdcpp\typeinfo.d \
+	$(IMPDIR)\core\stdcpp\type_traits.d \
 	$(IMPDIR)\core\stdcpp\xutility.d \
 	\
 	$(IMPDIR)\core\sys\darwin\crt_externs.d \
