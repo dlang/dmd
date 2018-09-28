@@ -60,6 +60,18 @@ TypeIdentifier getThrowable()
     return tid;
 }
 
+/**
+ * Returns:
+ *      TypeIdentifier corresponding to `object.Exception`
+ */
+TypeIdentifier getException()
+{
+    auto tid = new TypeIdentifier(Loc.initial, Id.empty);
+    tid.addIdent(Id.object);
+    tid.addIdent(Id.Exception);
+    return tid;
+}
+
 
 /***********************************************************
  * Specification: http://dlang.org/spec/statement.html

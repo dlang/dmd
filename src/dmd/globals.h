@@ -124,6 +124,8 @@ struct Param
                         // https://issues.dlang.org/show_bug.cgi?id=16997
     bool vsafe;         // use enhanced @safe checking
     bool ehnogc;        // use @nogc exception handling
+    bool dtorFields;        // destruct fields of partially constructed objects
+                            // https://issues.dlang.org/show_bug.cgi?id=14246
     bool showGaggedErrors;  // print gagged errors anyway
     bool manual;            // open browser on compiler manual
     bool usage;             // print usage and exit

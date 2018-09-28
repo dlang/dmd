@@ -605,6 +605,8 @@ dmd -cov -unittest myprog.d
             "list all non-mutable fields which occupy an object instance"),
         Transition("10378", "import", "bug10378",
             "revert to single phase name lookup"),
+        Transition("14246", "dtorfields", "dtorFields",
+            "destruct fields of partially constructed objects"),
         Transition(null, "checkimports", "check10378",
             "give deprecation messages about 10378 anomalies"),
         Transition("14488", "complex", "vcomplex",
