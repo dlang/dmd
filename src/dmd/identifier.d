@@ -322,4 +322,9 @@ nothrow:
         stringtable._init(size);
         fullPathStringTable._init(size);
     }
+
+    static void deinitTable()
+    {
+        stringtable.reset();
+    }
 }

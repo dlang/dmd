@@ -705,14 +705,26 @@ extern (C++) struct Token
         return true;
     }());
 
+    // this is currently only here as a workaround for non-dmd code
     shared static this()
     {
         Identifier.initTable();
+        Token.initialize();
+    }
+
+    static void initialize()
+    {
         foreach (kw; keywords)
         {
             //printf("keyword[%d] = '%s'\n",kw, tochars[kw].ptr);
             Identifier.idPool(tochars[kw].ptr, tochars[kw].length, cast(uint)kw);
         }
+    }
+
+    static void deinitialize()
+    {
+        // we reset this manually, just to prevent any chance of pinning memory
+        Token.freelist = null;
     }
 
     __gshared Token* freelist = null;

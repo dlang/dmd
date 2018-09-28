@@ -43,4 +43,5 @@ public:
     static bool isValidIdentifier(const char *p);
     static Identifier *lookup(const char *s, size_t len);
     static void initTable();
+    static void deinitTable();
 };

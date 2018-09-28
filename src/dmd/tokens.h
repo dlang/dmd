@@ -214,6 +214,9 @@ struct Token
 
     static const char *tochars[TOKMAX];
 
+    static void initialize();
+    static void deinitialize();
+
     static Token *freelist;
     static Token *alloc();
     void free();

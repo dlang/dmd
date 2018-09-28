@@ -13,4 +13,5 @@
 struct Id
 {
     static void initialize();
+    static void deinitialize();
 };

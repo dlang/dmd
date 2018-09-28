@@ -193,6 +193,11 @@ private int tryMain(size_t argc, const(char)** argv)
     Strings files;
     Strings libmodules;
     global._init();
+
+    // Temporary: removed module constructor (dmd.tokens) which initialized Identifier
+    Identifier.initTable();
+    Token.initialize();
+
     debug
     {
         printf("DMD %s DEBUG\n", global._version);
