@@ -15,16 +15,9 @@ int testCppIntMaxMangle(intmax_t, uintmax_t);
 
 void main()
 {
-  // temporarily disable testing [u]int_fast<N>_t on Win64 and FreeBSD,
-  // druntime needs to be fixed first
-  version (Win64) {}
-  else version (FreeBSD) {}
-  else
-  {
     assert(testCppI8Mangle (1, 2, 3, 4, 5, 6) == 1);
     assert(testCppI16Mangle(1, 2, 3, 4, 5, 6) == 2);
     assert(testCppI32Mangle(1, 2, 3, 4, 5, 6) == 3);
-  }
     assert(testCppI64Mangle(1, 2, 3, 4, 5, 6) == 4);
     assert(testCppIntPtrMangle(1, 2) == 5);
     assert(testCppIntMaxMangle(1, 2) == 6);
