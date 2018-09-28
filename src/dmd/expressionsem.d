@@ -2888,6 +2888,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             if (auto v = s.isVarDeclaration())
             {
+                s.checkDeprecated(exp.loc, sc);
+
                 if (!v.type)
                 {
                     exp.error("forward reference of %s `%s`", v.kind(), v.toChars());
