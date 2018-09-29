@@ -469,15 +469,6 @@ typedef Expression *(*builtin_fp)(Loc loc, FuncDeclaration *fd, Expressions *arg
 void add_builtin(const char *mangle, builtin_fp fp);
 void builtin_init();
 
-#define FUNCFLAGpurityInprocess    1    // working on determining purity
-#define FUNCFLAGsafetyInprocess    2    // working on determining safety
-#define FUNCFLAGnothrowInprocess   4    // working on determining nothrow
-#define FUNCFLAGnogcInprocess      8    // working on determining @nogc
-#define FUNCFLAGreturnInprocess 0x10    // working on inferring 'return' for parameters
-#define FUNCFLAGinlineScanned   0x20    // function has been scanned for inline possibilities
-#define FUNCFLAGinferScope      0x40    // infer 'scope' for parameters
-#define FUNCFLAGhasCatches      0x80    // function has try-catch statements
-
 class FuncDeclaration : public Declaration
 {
 public:
