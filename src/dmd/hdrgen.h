@@ -11,7 +11,8 @@
 #pragma once
 
 #include "globals.h"
-#include "arraytypes.h"
+#include "dsymbol.h"
+#include "mtype.h"
 
 class Module;
 
@@ -20,4 +21,8 @@ void moduleToBuffer(OutBuffer *buf, Module *m);
 
 const char *parametersTypeToChars(Parameters *parameters, int varargs);
 const char *stcToChars(StorageClass& stc);
+void trustToBuffer(OutBuffer *buf, TRUST trust);
+const char *trustToChars(TRUST trust);
 const char *linkageToChars(LINK linkage);
+void protectionToBuffer(OutBuffer *buf, Prot prot);
+const char *protectionToChars(Prot::Kind kind);

@@ -105,10 +105,6 @@ struct Prot
     bool isSubsetOf(const Prot& other) const;
 };
 
-// in hdrgen.c
-void protectionToBuffer(OutBuffer *buf, Prot prot);
-const char *protectionToChars(Prot::Kind kind);
-
 /* State of symbol in winding its way through the passes of the compiler
  */
 enum PASS
