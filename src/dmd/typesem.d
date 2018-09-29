@@ -591,7 +591,7 @@ private extern (C++) final class TypeToExpressionVisitor : Visitor
  * Redo it as an Expression.
  * NULL if cannot.
  */
-extern (C++) Expression typeToExpression(Type t)
+Expression typeToExpression(Type t)
 {
     scope v = new TypeToExpressionVisitor();
     t.accept(v);
@@ -601,7 +601,7 @@ extern (C++) Expression typeToExpression(Type t)
 /* Helper function for `typeToExpression`. Contains common code
  * for TypeQualified derived classes.
  */
-extern (C++) Expression typeToExpressionHelper(TypeQualified t, Expression e, size_t i = 0)
+Expression typeToExpressionHelper(TypeQualified t, Expression e, size_t i = 0)
 {
     //printf("toExpressionHelper(e = %s %s)\n", Token.toChars(e.op), e.toChars());
     foreach (id; t.idents[i .. t.idents.dim])
@@ -1865,7 +1865,7 @@ Type merge(Type type)
  *  ident = the identifier of the property
  *  flag = if flag & 1, don't report "not a property" error and just return NULL.
  */
-extern(C++) Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
+Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
 {
     scope v = new GetPropertyVisitor(loc, ident, flag);
     t.accept(v);
@@ -2412,7 +2412,7 @@ private extern (C++) final class GetPropertyVisitor : Visitor
  *  ps = is set if t is a symbol
  *  intypeid = true if in type id
  */
-extern(C++) void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
 {
     scope v = new ResolveVisitor(loc, sc, pe, pt, ps, intypeid);
     mt.accept(v);
@@ -2918,7 +2918,7 @@ private extern(C++) final class ResolveVisitor : Visitor
  * Returns:
  *  resulting expression with e.ident resolved
  */
-extern(C++) Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
+Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
 {
     scope v = new DotExpVisitor(sc, e, ident, flag);
     mt.accept(v);
@@ -4322,7 +4322,7 @@ private extern(C++) final class DotExpVisitor : Visitor
  * Returns:
  *  The initialization expression for the type.
  */
-extern(C++) Expression defaultInit(Type mt, const ref Loc loc)
+Expression defaultInit(Type mt, const ref Loc loc)
 {
     scope v = new DefaultInitVisitor(loc);
     mt.accept(v);

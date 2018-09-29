@@ -175,7 +175,7 @@ Lno:
  * Returns:
  *      true means a `this` is needed
  */
-extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
+bool isNeedThisScope(Scope* sc, Declaration d)
 {
     if (sc.intypeof == 1)
         return false;
@@ -210,7 +210,7 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
  * check e is exp.opDispatch!(tiargs) or not
  * It's used to switch to UFCS the semantic analysis path
  */
-extern (C++) bool isDotOpDispatch(Expression e)
+bool isDotOpDispatch(Expression e)
 {
     return e.op == TOK.dotTemplateInstance && (cast(DotTemplateInstanceExp)e).ti.name == Id.opDispatch;
 }
@@ -533,7 +533,7 @@ private:
  * Regard NaN's as equivalent.
  * Regard +0 and -0 as different.
  */
-extern (C++) int RealEquals(real_t x1, real_t x2)
+int RealEquals(real_t x1, real_t x2)
 {
     return (CTFloat.isNaN(x1) && CTFloat.isNaN(x2)) || CTFloat.isIdentical(x1, x2);
 }

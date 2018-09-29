@@ -115,9 +115,9 @@ Where:
 }
 
 /// DMD-generated module `__entrypoint` where the C main resides
-extern (C++) __gshared Module entrypoint = null;
+private __gshared Module entrypoint = null;
 /// Module in which the D main is
-extern (C++) __gshared Module rootHasMain = null;
+private __gshared Module rootHasMain = null;
 
 
 /**
@@ -134,7 +134,7 @@ extern (C++) __gshared Module rootHasMain = null;
  *   sc = Scope which triggered the generation of the C main,
  *        used to get the module where the D main is.
  */
-extern (C++) void genCmain(Scope* sc)
+void genCmain(Scope* sc)
 {
     if (entrypoint)
         return;

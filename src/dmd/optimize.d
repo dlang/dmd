@@ -38,7 +38,7 @@ import dmd.visitor;
  *      null if not,
  *      ErrorExp if error
  */
-extern (C++) Expression expandVar(int result, VarDeclaration v)
+Expression expandVar(int result, VarDeclaration v)
 {
     //printf("expandVar(result = %d, v = %p, %s)\n", result, v, v ? v.toChars() : "null");
 

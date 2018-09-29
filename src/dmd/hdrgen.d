@@ -3566,7 +3566,7 @@ extern (C++) const(char)* parametersTypeToChars(Parameters* parameters, int vara
  *  fullQual = whether to fully qualify types.
  * Returns: Null-terminated string representing parameters.
  */
-extern (C++) const(char)* parameterToChars(Parameter parameter, TypeFunction tf, bool fullQual)
+const(char)* parameterToChars(Parameter parameter, TypeFunction tf, bool fullQual)
 {
     OutBuffer buf;
     HdrGenState hgs;

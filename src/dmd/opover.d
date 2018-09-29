@@ -39,7 +39,7 @@ import dmd.visitor;
  * Determine if operands of binary op can be reversed
  * to fit operator overload.
  */
-extern (C++) bool isCommutative(TOK op)
+bool isCommutative(TOK op)
 {
     switch (op)
     {
@@ -384,7 +384,7 @@ extern (C++) AggregateDeclaration isAggregate(Type t)
 /*******************************************
  * Helper function to turn operator into template argument list
  */
-extern (C++) Objects* opToArg(Scope* sc, TOK op)
+Objects* opToArg(Scope* sc, TOK op)
 {
     /* Remove the = from op=
      */

@@ -32,7 +32,7 @@ import core.stdc.stdio;
  *      torig = the type to generate the `TypeInfo` object for
  *      sc    = the scope
  */
-extern (C++) void genTypeInfo(Loc loc, Type torig, Scope* sc)
+void genTypeInfo(Loc loc, Type torig, Scope* sc)
 {
     // printf("genTypeInfo() %s\n", torig.toChars());
 
@@ -108,7 +108,7 @@ extern (C++) Type getTypeInfoType(Loc loc, Type t, Scope* sc)
     return t.vtinfo.type;
 }
 
-extern (C++) TypeInfoDeclaration getTypeInfoDeclaration(Type t)
+private TypeInfoDeclaration getTypeInfoDeclaration(Type t)
 {
     //printf("Type::getTypeInfoDeclaration() %s\n", t.toChars());
     switch (t.ty)
@@ -144,7 +144,7 @@ extern (C++) TypeInfoDeclaration getTypeInfoDeclaration(Type t)
     }
 }
 
-extern (C++) bool isSpeculativeType(Type t)
+bool isSpeculativeType(Type t)
 {
     extern (C++) final class SpeculativeTypeVisitor : Visitor
     {

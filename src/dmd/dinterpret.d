@@ -336,7 +336,7 @@ private struct InterState
     Statement gotoTarget;
 }
 
-extern (C++) __gshared CtfeStack ctfeStack;
+private __gshared CtfeStack ctfeStack;
 
 /***********************************************************
  * CTFE-object code for a single function
