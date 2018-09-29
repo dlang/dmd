@@ -62,17 +62,5 @@ public:
 class CTFEExp : public Expression
 {
 public:
-    CTFEExp(TOK tok);
-
     const char *toChars();
-
-    // Handy instances to share
-    static CTFEExp *cantexp;
-    static CTFEExp *voidexp;
-    static CTFEExp *breakexp;
-    static CTFEExp *continueexp;
-    static CTFEExp *gotoexp;
-
-    static bool isCantExp(Expression *e) { return e && e->op == TOKcantexp; }
-    static bool isGotoExp(Expression *e) { return e && e->op == TOKgoto; }
 };

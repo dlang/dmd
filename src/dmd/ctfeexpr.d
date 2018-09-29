@@ -207,22 +207,22 @@ extern (C++) final class CTFEExp : Expression
         }
     }
 
-    extern (C++) __gshared CTFEExp cantexp;
-    extern (C++) __gshared CTFEExp voidexp;
-    extern (C++) __gshared CTFEExp breakexp;
-    extern (C++) __gshared CTFEExp continueexp;
-    extern (C++) __gshared CTFEExp gotoexp;
+    extern (D) __gshared CTFEExp cantexp;
+    extern (D) __gshared CTFEExp voidexp;
+    extern (D) __gshared CTFEExp breakexp;
+    extern (D) __gshared CTFEExp continueexp;
+    extern (D) __gshared CTFEExp gotoexp;
     /* Used when additional information is needed regarding
      * a ctfe error.
      */
-    extern (C++) __gshared CTFEExp showcontext;
+    extern (D) __gshared CTFEExp showcontext;
 
-    static bool isCantExp(const Expression e)
+    extern (D) static bool isCantExp(const Expression e)
     {
         return e && e.op == TOK.cantExpression;
     }
 
-    static bool isGotoExp(const Expression e)
+    extern (D) static bool isGotoExp(const Expression e)
     {
         return e && e.op == TOK.goto_;
     }
