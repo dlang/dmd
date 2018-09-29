@@ -1403,6 +1403,97 @@ private bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type* pt)
     return (t0 == Type.terror);
 }
 
+private Expression opAssignToOp(const ref Loc loc, TOK op, Expression e1, Expression e2)
+{
+    Expression e;
+    switch (op)
+    {
+    case TOK.addAssign:
+        e = new AddExp(loc, e1, e2);
+        break;
+
+    case TOK.minAssign:
+        e = new MinExp(loc, e1, e2);
+        break;
+
+    case TOK.mulAssign:
+        e = new MulExp(loc, e1, e2);
+        break;
+
+    case TOK.divAssign:
+        e = new DivExp(loc, e1, e2);
+        break;
+
+    case TOK.modAssign:
+        e = new ModExp(loc, e1, e2);
+        break;
+
+    case TOK.andAssign:
+        e = new AndExp(loc, e1, e2);
+        break;
+
+    case TOK.orAssign:
+        e = new OrExp(loc, e1, e2);
+        break;
+
+    case TOK.xorAssign:
+        e = new XorExp(loc, e1, e2);
+        break;
+
+    case TOK.leftShiftAssign:
+        e = new ShlExp(loc, e1, e2);
+        break;
+
+    case TOK.rightShiftAssign:
+        e = new ShrExp(loc, e1, e2);
+        break;
+
+    case TOK.unsignedRightShiftAssign:
+        e = new UshrExp(loc, e1, e2);
+        break;
+
+    default:
+        assert(0);
+    }
+    return e;
+}
+
+/*********************
+ * Rewrite:
+ *    array.length op= e2
+ * as:
+ *    array.length = array.length op e2
+ * or:
+ *    auto tmp = &array;
+ *    (*tmp).length = (*tmp).length op e2
+ */
+private Expression rewriteOpAssign(BinExp exp)
+{
+    Expression e;
+
+    assert(exp.e1.op == TOK.arrayLength);
+    ArrayLengthExp ale = cast(ArrayLengthExp)exp.e1;
+    if (ale.e1.op == TOK.variable)
+    {
+        e = opAssignToOp(exp.loc, exp.op, ale, exp.e2);
+        e = new AssignExp(exp.loc, ale.syntaxCopy(), e);
+    }
+    else
+    {
+        /*    auto tmp = &array;
+         *    (*tmp).length = (*tmp).length op e2
+         */
+        auto tmp = copyToTemp(0, "__arraylength", new AddrExp(ale.loc, ale.e1));
+
+        Expression e1 = new ArrayLengthExp(ale.loc, new PtrExp(ale.loc, new VarExp(ale.loc, tmp)));
+        Expression elvalue = e1.syntaxCopy();
+        e = opAssignToOp(exp.loc, exp.op, e1, exp.e2);
+        e = new AssignExp(exp.loc, elvalue, e);
+        e = new CommaExp(exp.loc, new DeclarationExp(ale.loc, tmp), e);
+    }
+    return e;
+}
+
 /****************************************
  * Preprocess arguments to function.
  * Output:
@@ -5092,7 +5183,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (exp.e1.op == TOK.arrayLength)
         {
             // arr.length op= e2;
-            e = ArrayLengthExp.rewriteOpAssign(exp);
+            e = rewriteOpAssign(exp);
             e = e.expressionSemantic(sc);
             result = e;
             return;
