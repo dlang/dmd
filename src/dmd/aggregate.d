@@ -541,7 +541,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
      *   size = alignment requirement of field
      *   poffset = pointer to offset to be aligned
      */
-    static void alignmember(structalign_t alignment, uint size, uint* poffset) pure nothrow @safe
+    extern (D) static void alignmember(structalign_t alignment, uint size, uint* poffset) pure nothrow @safe
     {
         //printf("alignment = %d, size = %d, offset = %d\n",alignment,size,offset);
         switch (alignment)
@@ -578,7 +578,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
      * paggalignsize: alignment of aggregate (updated)
      * isunion:       the aggregate is a union
      */
-    static uint placeField(uint* nextoffset, uint memsize, uint memalignsize,
+    extern (D) static uint placeField(uint* nextoffset, uint memsize, uint memalignsize,
         structalign_t alignment, uint* paggsize, uint* paggalignsize, bool isunion)
     {
         uint ofs = *nextoffset;
