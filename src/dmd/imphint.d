@@ -21,10 +21,10 @@ import dmd.utils;
  * Not meant to be a comprehensive list of names in each module,
  * just the most common ones.
  */
-extern (C++) const(char)* importHint(const(char)* s)
+const(char)[] importHint(const(char)[] s)
 {
-    if (auto entry = s.toDString() in hints)
-        return entry.ptr;
+    if (auto entry = s in hints)
+        return *entry;
     return null;
 }
 
@@ -51,11 +51,7 @@ shared static this()
 
 unittest
 {
-    const(char)* p;
-    p = importHint("printf");
-    assert(p);
-    p = importHint("fabs");
-    assert(p);
-    p = importHint("xxxxx");
-    assert(!p);
+    assert(importHint("printf") !is null);
+    assert(importHint("fabs") !is null);
+    assert(importHint("xxxxx") is null);
 }
