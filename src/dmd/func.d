@@ -2630,7 +2630,7 @@ private const(char)* prependSpace(const(char)* str)
  * Returns:
  *      if match is found, then function symbol, else null
  */
-extern (C++) FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
+FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     Objects* tiargs, Type tthis, Expressions* fargs, int flags = 0)
 {
     if (!s)
