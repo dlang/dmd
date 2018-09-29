@@ -148,6 +148,7 @@ shared static this()
         "getVirtualIndex",
         "getPointerBitmap",
         "isZeroInit",
+        "getTargetInfo"
     ];
 
     traitsStringTable._init(48);
@@ -1775,6 +1776,28 @@ Lnext:
 
         Type tb = t.baseElemOf();
         return tb.isZeroInit(e.loc) ? True() : False();
+    }
+    if (e.ident == Id.getTargetInfo)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        auto ex = isExpression((*e.args)[0]);
+        StringExp se = ex ? ex.ctfeInterpret().toStringExp() : null;
+        if (!ex || !se || se.len == 0)
+        {
+            e.error("string expected as argument of __traits `%s` instead of `%s`", e.ident.toChars(), ex.toChars());
+            return new ErrorExp();
+        }
+        se = se.toUTF8(sc);
+
+        Expression r = Target.getTargetInfo(se.toPtr(), e.loc);
+        if (!r)
+        {
+            e.error("`getTargetInfo` key `\"%s\"` not supported by this implementation", se.toPtr());
+            return new ErrorExp();
+        }
+        return r.expressionSemantic(sc);
     }
 
     extern (D) void* trait_search_fp(const(char)* seed, ref int cost)
