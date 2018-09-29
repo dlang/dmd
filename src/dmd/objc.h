@@ -10,8 +10,6 @@
 
 #pragma once
 
-#include "root/stringtable.h"
-
 class AggregateDeclaration;
 class FuncDeclaration;
 class ClassDeclaration;
@@ -20,10 +18,6 @@ struct Scope;
 
 struct ObjcSelector
 {
-    static StringTable stringtable;
-    static StringTable vTableDispatchSelectors;
-    static int incnum;
-
     const char *stringvalue;
     size_t stringlen;
     size_t paramCount;
@@ -31,9 +25,6 @@ struct ObjcSelector
     static void _init();
 
     ObjcSelector(const char *sv, size_t len, size_t pcount);
-
-    static ObjcSelector *lookup(const char *s);
-    static ObjcSelector *lookup(const char *s, size_t len, size_t pcount);
 
     static ObjcSelector *create(FuncDeclaration *fdecl);
 };
