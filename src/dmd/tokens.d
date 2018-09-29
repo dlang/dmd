@@ -715,9 +715,9 @@ extern (C++) struct Token
         }
     }
 
-    __gshared Token* freelist = null;
+    extern (D) private __gshared Token* freelist = null;
 
-    static Token* alloc()
+    extern (D) static Token* alloc()
     {
         if (Token.freelist)
         {
@@ -918,7 +918,7 @@ extern (C++) struct Token
         return p;
     }
 
-    static const(char)* toChars(TOK value)
+    extern (D) static const(char)* toChars(TOK value)
     {
         return toString(value).ptr;
     }
