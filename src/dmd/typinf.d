@@ -43,14 +43,14 @@ extern (C++) void genTypeInfo(Loc loc, Type torig, Scope* sc)
     {
         if (!global.params.useTypeInfo)
         {
-            torig.error(loc, "`TypeInfo` cannot be used with -betterC");
+            .error(loc, "`TypeInfo` cannot be used with -betterC");
             fatal();
         }
     }
 
     if (!Type.dtypeinfo)
     {
-        torig.error(loc, "`object.TypeInfo` could not be found, but is implicitly used");
+        .error(loc, "`object.TypeInfo` could not be found, but is implicitly used");
         fatal();
     }
 
