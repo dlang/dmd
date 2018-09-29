@@ -129,13 +129,6 @@ public:
     void warning(const char *format, ...) const;
     void deprecation(const char *format, ...) const;
 
-    // creates a single expression which is effectively (e1, e2)
-    // this new expression does not necessarily need to have valid D source code representation,
-    // for example, it may include declaration expressions
-    static Expression *combine(Expression *e1, Expression *e2);
-    static Expression *extractLast(Expression *e, Expression **pe0);
-    static Expressions *arraySyntaxCopy(Expressions *exps);
-
     virtual dinteger_t toInteger();
     virtual uinteger_t toUInteger();
     virtual real_t toReal();
@@ -365,7 +358,6 @@ public:
     Expression *syntaxCopy();
     bool equals(RootObject *o);
     Expression *getElement(d_size_t i);
-    static Expressions* copyElements(Expression *e1, Expression *e2 = NULL);
     bool isBool(bool result);
     StringExp *toStringExp();
 

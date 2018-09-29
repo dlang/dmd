@@ -784,7 +784,7 @@ extern (C++) abstract class Expression : RootObject
     /**********************************
      * Combine e1 and e2 by CommaExp if both are not NULL.
      */
-    static Expression combine(Expression e1, Expression e2)
+    extern (D) static Expression combine(Expression e1, Expression e2)
     {
         if (e1)
         {
@@ -799,12 +799,12 @@ extern (C++) abstract class Expression : RootObject
         return e1;
     }
 
-    static Expression combine(Expression e1, Expression e2, Expression e3)
+    extern (D) static Expression combine(Expression e1, Expression e2, Expression e3)
     {
         return combine(combine(e1, e2), e3);
     }
 
-    static Expression combine(Expression e1, Expression e2, Expression e3, Expression e4)
+    extern (D) static Expression combine(Expression e1, Expression e2, Expression e3, Expression e4)
     {
         return combine(combine(e1, e2), combine(e3, e4));
     }
@@ -815,7 +815,7 @@ extern (C++) abstract class Expression : RootObject
      * is returned via *pe0.
      * Otherwise 'e' is directly returned and *pe0 is set to NULL.
      */
-    static Expression extractLast(Expression e, Expression* pe0)
+    extern (D) static Expression extractLast(Expression e, Expression* pe0)
     {
         if (e.op != TOK.comma)
         {
@@ -846,7 +846,7 @@ extern (C++) abstract class Expression : RootObject
         }
     }
 
-    static Expressions* arraySyntaxCopy(Expressions* exps)
+    extern (D) static Expressions* arraySyntaxCopy(Expressions* exps)
     {
         Expressions* a = null;
         if (exps)
@@ -2719,49 +2719,6 @@ extern (C++) final class ArrayLiteralExp : Expression
         if (!el)
             el = basis;
         return el;
-    }
-
-    /** Copy element `Expressions` in the parameters when they're `ArrayLiteralExp`s.
-     * Params:
-     *      e1  = If it's ArrayLiteralExp, its `elements` will be copied.
-     *            Otherwise, `e1` itself will be pushed into the new `Expressions`.
-     *      e2  = If it's not `null`, it will be pushed/appended to the new
-     *            `Expressions` by the same way with `e1`.
-     * Returns:
-     *      Newly allocated `Expressions`. Note that it points to the original
-     *      `Expression` values in e1 and e2.
-     */
-    static Expressions* copyElements(Expression e1, Expression e2 = null)
-    {
-        auto elems = new Expressions();
-
-        void append(ArrayLiteralExp ale)
-        {
-            if (!ale.elements)
-                return;
-            auto d = elems.dim;
-            elems.append(ale.elements);
-            foreach (ref el; (*elems)[d .. elems.dim])
-            {
-                if (!el)
-                    el = ale.basis;
-            }
-        }
-
-        if (e1.op == TOK.arrayLiteral)
-            append(cast(ArrayLiteralExp)e1);
-        else
-            elems.push(e1);
-
-        if (e2)
-        {
-            if (e2.op == TOK.arrayLiteral)
-                append(cast(ArrayLiteralExp)e2);
-            else
-                elems.push(e2);
-        }
-
-        return elems;
     }
 
     override bool isBool(bool result)
