@@ -99,7 +99,6 @@
     <ClCompile Include="..\dmd\backend\ph2.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
-    <ClCompile Include="..\dmd\backend\util2.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
     <ClCompile Include="..\dmd\backend\varstats.c">
