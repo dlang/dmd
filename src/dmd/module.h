@@ -32,8 +32,6 @@ public:
 
     const char *kind() const;
 
-    static DsymbolTable *resolve(Identifiers *packages, Dsymbol **pparent, Package **ppkg);
-
     Package *isPackage() { return this; }
 
     bool isAncestorPackageOf(const Package * const pkg) const;
