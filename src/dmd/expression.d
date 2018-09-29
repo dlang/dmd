@@ -810,28 +810,28 @@ extern (C++) abstract class Expression : RootObject
     }
 
     /**********************************
-     * If 'e' is a tree of commas, returns the leftmost expression
+     * If 'e' is a tree of commas, returns the rightmost expression
      * by stripping off it from the tree. The remained part of the tree
-     * is returned via *pe0.
-     * Otherwise 'e' is directly returned and *pe0 is set to NULL.
+     * is returned via e0.
+     * Otherwise 'e' is directly returned and e0 is set to NULL.
      */
-    extern (D) static Expression extractLast(Expression e, Expression* pe0)
+    extern (D) static Expression extractLast(Expression e, out Expression e0)
     {
         if (e.op != TOK.comma)
         {
-            *pe0 = null;
+            e0 = null;
             return e;
         }
 
         CommaExp ce = cast(CommaExp)e;
         if (ce.e2.op != TOK.comma)
         {
-            *pe0 = ce.e1;
+            e0 = ce.e1;
             return ce.e2;
         }
         else
         {
-            *pe0 = e;
+            e0 = e;
 
             Expression* pce = &ce.e2;
             while ((cast(CommaExp)(*pce)).e2.op == TOK.comma)
