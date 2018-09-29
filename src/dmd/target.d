@@ -795,6 +795,18 @@ struct Target
                 return null;
         }
     }
+
+    /**
+     * Get all supported target-info keys
+     * Returns:
+     *  Array of targetInfo keys
+     */
+    extern (C++) static const(char*)* allTargetInfos(size_t* numTargetInfos)
+    {
+        __gshared immutable(char*[]) keys = [ "cppRuntimeLibrary" ];
+        *numTargetInfos = keys.length;
+        return keys.ptr;
+    }
 }
 
 /******************************
