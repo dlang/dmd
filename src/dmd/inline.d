@@ -1811,7 +1811,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
     if (ethis)
     {
         Expression e0;
-        ethis = Expression.extractLast(ethis, &e0);
+        ethis = Expression.extractLast(ethis, e0);
         if (ethis.op == TOK.variable)
         {
             vthis = (cast(VarExp)ethis).var.isVarDeclaration();

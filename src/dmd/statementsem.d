@@ -3068,7 +3068,7 @@ else
                 rs.exp = new ErrorExp();
 
             // Extract side-effect part
-            rs.exp = Expression.extractLast(rs.exp, &e0);
+            rs.exp = Expression.extractLast(rs.exp, e0);
             if (rs.exp.op == TOK.call)
                 rs.exp = valueNoDtor(rs.exp);
 
