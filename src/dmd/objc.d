@@ -35,9 +35,9 @@ import dmd.root.stringtable;
 struct ObjcSelector
 {
     // MARK: Selector
-    extern (C++) __gshared StringTable stringtable;
-    extern (C++) __gshared StringTable vTableDispatchSelectors;
-    extern (C++) __gshared int incnum = 0;
+    private __gshared StringTable stringtable;
+    private __gshared StringTable vTableDispatchSelectors;
+    private __gshared int incnum = 0;
     const(char)* stringvalue;
     size_t stringlen;
     size_t paramCount;
@@ -54,7 +54,7 @@ struct ObjcSelector
         paramCount = pcount;
     }
 
-    extern (C++) static ObjcSelector* lookup(const(char)* s)
+    extern (D) static ObjcSelector* lookup(const(char)* s)
     {
         size_t len = 0;
         size_t pcount = 0;
@@ -69,7 +69,7 @@ struct ObjcSelector
         return lookup(s, len, pcount);
     }
 
-    extern (C++) static ObjcSelector* lookup(const(char)* s, size_t len, size_t pcount)
+    extern (D) static ObjcSelector* lookup(const(char)* s, size_t len, size_t pcount)
     {
         StringValue* sv = stringtable.update(s, len);
         ObjcSelector* sel = cast(ObjcSelector*)sv.ptrvalue;
