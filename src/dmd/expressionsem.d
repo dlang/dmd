@@ -6272,8 +6272,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     e = new CallExp(exp.loc, new VarExp(exp.loc, f, false), e);
                     ec = e.expressionSemantic(sc);
                 }
-                ea = Expression.combine(ea, eb);
-                ea = Expression.combine(ea, ec);
+                ea = Expression.combine(ea, eb, ec);
                 assert(ea);
                 result = ea;
                 return;
@@ -7630,7 +7629,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     e = new IntegerExp(exp.loc, 0, Type.tint32);
                     e = new CastExp(exp.loc, e, Type.tvoid); // avoid "has no effect" error
-                    e = Expression.combine(Expression.combine(tup1.e0, tup2.e0), e);
+                    e = Expression.combine(tup1.e0, tup2.e0, e);
                 }
                 else
                 {
@@ -7789,8 +7788,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         Expression e0;
                         Expression.extractLast(e2x, &e0);
 
-                        auto e = Expression.combine(ae, cx);
-                        e = Expression.combine(e0, e);
+                        auto e = Expression.combine(e0, ae, cx);
                         e = e.expressionSemantic(sc);
                         result = e;
                         return;

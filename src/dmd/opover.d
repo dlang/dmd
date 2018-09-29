@@ -1297,7 +1297,7 @@ Expression op_overload(Expression e, Scope* sc)
                     }
                     assert(result);
                 }
-                result = Expression.combine(Expression.combine(tup1.e0, tup2.e0), result);
+                result = Expression.combine(tup1.e0, tup2.e0, result);
                 result = result.expressionSemantic(sc);
 
                 return;
