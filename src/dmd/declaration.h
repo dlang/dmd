@@ -94,16 +94,6 @@ const StorageClass STCStorageClass = (STCauto | STCscope | STCstatic | STCextern
     STCmanifest | STCimmutable | STCshared | STCwild | STCnothrow | STCnogc | STCpure | STCref | STCreturn | STCtls |
     STCgshared | STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable | STClocal);
 
-struct Match
-{
-    int count;                  // number of matches found
-    MATCH last;                 // match level of lastf
-    FuncDeclaration *lastf;     // last matching function we found
-    FuncDeclaration *nextf;     // current matching function
-    FuncDeclaration *anyf;      // pick a func, any func, to use for error recovery
-};
-
-void functionResolve(Match *m, Dsymbol *fd, Loc loc, Scope *sc, Objects *tiargs, Type *tthis, Expressions *fargs);
 int overloadApply(Dsymbol *fstart, void *param, int (*fp)(void *, Dsymbol *));
 
 void ObjectNotFound(Identifier *id);
@@ -633,12 +623,6 @@ public:
     virtual FuncDeclaration *toAliasFunc() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
-
-FuncDeclaration *resolveFuncCall(const Loc &loc, Scope *sc, Dsymbol *s,
-        Objects *tiargs,
-        Type *tthis,
-        Expressions *arguments,
-        int flags = 0);
 
 class FuncAliasDeclaration : public FuncDeclaration
 {
