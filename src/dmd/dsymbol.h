@@ -307,9 +307,6 @@ public:
     virtual Dsymbol *symtabLookup(Dsymbol *s, Identifier *id);
     bool hasStaticCtorOrDtor();
 
-    static size_t dim(Dsymbols *members);
-    static Dsymbol *getNth(Dsymbols *members, size_t nth, size_t *pn = NULL);
-
     ScopeDsymbol *isScopeDsymbol() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
