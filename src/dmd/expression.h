@@ -25,23 +25,18 @@ class TupleDeclaration;
 class VarDeclaration;
 class FuncDeclaration;
 class FuncLiteralDeclaration;
-class Declaration;
 class CtorDeclaration;
 class NewDeclaration;
 class Dsymbol;
 class ScopeDsymbol;
 class Expression;
 class Declaration;
-class AggregateDeclaration;
 class StructDeclaration;
 class TemplateInstance;
 class TemplateDeclaration;
 class ClassDeclaration;
-class BinExp;
 class OverloadSet;
 class StringExp;
-class ArrayExp;
-class SliceExp;
 struct UnionExp;
 #ifdef IN_GCC
 typedef union tree_node Symbol;
@@ -49,54 +44,16 @@ typedef union tree_node Symbol;
 struct Symbol;          // back end symbol
 #endif
 
-Expression *resolveProperties(Scope *sc, Expression *e);
-Expression *resolvePropertiesOnly(Scope *sc, Expression *e1);
-bool checkAccess(Loc loc, Scope *sc, Expression *e, Declaration *d);
-bool checkAccess(Loc loc, Scope *sc, Package *p);
-Expression *build_overload(const Loc &loc, Scope *sc, Expression *ethis, Expression *earg, Dsymbol *d);
-Dsymbol *search_function(ScopeDsymbol *ad, Identifier *funcid);
 void expandTuples(Expressions *exps);
 TupleDeclaration *isAliasThisTuple(Expression *e);
 int expandAliasThisTuples(Expressions *exps, size_t starti = 0);
-FuncDeclaration *hasThis(Scope *sc);
-Expression *fromConstInitializer(int result, Expression *e);
 bool arrayExpressionSemantic(Expressions *exps, Scope *sc, bool preserveErrors = false);
 TemplateDeclaration *getFuncTemplateDecl(Dsymbol *s);
-Expression *valueNoDtor(Expression *e);
-int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1);
-Expression *resolveAliasThis(Scope *sc, Expression *e, bool gag = false);
-Expression *doCopyOrMove(Scope *sc, Expression *e);
-Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, Expression **pe0);
-Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, IntervalExp *ie, Expression **pe0);
-Expression *integralPromotions(Expression *e, Scope *sc);
-bool discardValue(Expression *e);
 bool isTrivialExp(Expression *e);
 
 Expression *toDelegate(Expression *e, Type* t, Scope *sc);
-AggregateDeclaration *isAggregate(Type *t);
-bool checkNonAssignmentArrayOp(Expression *e, bool suggestion = false);
-bool isUnaArrayOp(TOK op);
-bool isBinArrayOp(TOK op);
-bool isBinAssignArrayOp(TOK op);
-bool isArrayOpOperand(Expression *e);
-Expression *arrayOp(BinExp *e, Scope *sc);
-Expression *arrayOp(BinAssignExp *e, Scope *sc);
 bool hasSideEffect(Expression *e);
 bool canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow);
-Expression *inlineCopy(Expression *e, Scope *sc);
-Type *toStaticArrayType(SliceExp *e);
-Expression *scaleFactor(BinExp *be, Scope *sc);
-Expression *typeCombine(BinExp *be, Scope *sc);
-Expression *inferType(Expression *e, Type *t, int flag = 0);
-Expression *semanticTraits(TraitsExp *e, Scope *sc);
-Type *getIndirection(Type *t);
-
-Expression *checkGC(Scope *sc, Expression *e);
-
-/* Run CTFE on the expression, but allow the expression to be a TypeExp
- * or a tuple containing a TypeExp. (This is required by pragma(msg)).
- */
-Expression *ctfeInterpretForPragmaMsg(Expression *e);
 
 enum OwnedBy
 {
@@ -104,9 +61,6 @@ enum OwnedBy
     OWNEDctfe,      // value expression for CTFE
     OWNEDcache,     // constant value cached for CTFE
 };
-
-#define WANTvalue   0   // default
-#define WANTexpand  1   // expand const/immutable variables if possible
 
 class Expression : public RootObject
 {
@@ -386,19 +340,6 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-// scrubReturnValue is running
-#define stageScrub          0x1
-// hasNonConstPointers is running
-#define stageSearchPointers 0x2
-// optimize is running
-#define stageOptimize       0x4
-// apply is running
-#define stageApply          0x8
-//inlineScan is running
-#define stageInlineScan     0x10
-// toCBuffer is running
-#define stageToCBuffer      0x20
-
 class StructLiteralExp : public Expression
 {
 public:
@@ -435,9 +376,6 @@ public:
 
     void accept(Visitor *v) { v->visit(this); }
 };
-
-class DotIdExp;
-DotIdExp *typeDotIdExp(const Loc &loc, Type *type, Identifier *ident);
 
 class TypeExp : public Expression
 {

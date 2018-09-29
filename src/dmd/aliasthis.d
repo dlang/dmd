@@ -61,7 +61,7 @@ extern (C++) final class AliasThis : Dsymbol
     }
 }
 
-extern (C++) Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false)
+Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false)
 {
     AggregateDeclaration ad = isAggregate(e.type);
     if (ad && ad.aliasthis)

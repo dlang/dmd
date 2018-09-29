@@ -81,7 +81,7 @@ public Expression ctfeInterpret(Expression e)
 /* Run CTFE on the expression, but allow the expression to be a TypeExp
  *  or a tuple containing a TypeExp. (This is required by pragma(msg)).
  */
-public extern (C++) Expression ctfeInterpretForPragmaMsg(Expression e)
+public Expression ctfeInterpretForPragmaMsg(Expression e)
 {
     if (e.op == TOK.error || e.op == TOK.type)
         return e;

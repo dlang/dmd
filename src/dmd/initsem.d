@@ -86,7 +86,7 @@ Lno:
  * Returns:
  *      an equivalent `ExpInitializer` if successful, or `ErrorInitializer` if it cannot be translated
  */
-extern (C++) Initializer inferType(Initializer init, Scope* sc)
+Initializer inferType(Initializer init, Scope* sc)
 {
     scope v = new InferTypeVisitor(sc);
     init.accept(v);

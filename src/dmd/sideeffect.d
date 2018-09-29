@@ -218,7 +218,7 @@ private bool lambdaHasSideEffect(Expression e)
  * Returns:
  *      true if expression has no side effects
  */
-extern (C++) bool discardValue(Expression e)
+bool discardValue(Expression e)
 {
     if (lambdaHasSideEffect(e)) // check side-effect shallowly
         return false;

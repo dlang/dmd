@@ -121,7 +121,7 @@ inout(Expression) lastComma(inout Expression e)
  * Returns:
  *      Found function if it satisfies `isThis()`, otherwise `null`
  */
-extern (C++) FuncDeclaration hasThis(Scope* sc)
+FuncDeclaration hasThis(Scope* sc)
 {
     //printf("hasThis()\n");
     Dsymbol p = sc.parent;
@@ -363,7 +363,7 @@ extern (C++) TemplateDeclaration getFuncTemplateDecl(Dsymbol s)
  * If we want the value of this expression, but do not want to call
  * the destructor on it.
  */
-extern (C++) Expression valueNoDtor(Expression e)
+Expression valueNoDtor(Expression e)
 {
     auto ex = lastComma(e);
 
@@ -448,7 +448,7 @@ private Expression callCpCtor(Scope* sc, Expression e)
 /************************************************
  * Handle the postblit call on lvalue, or the move of rvalue.
  */
-extern (C++) Expression doCopyOrMove(Scope *sc, Expression e)
+Expression doCopyOrMove(Scope *sc, Expression e)
 {
     if (e.op == TOK.question)
     {
@@ -545,7 +545,7 @@ extern (C++) int RealEquals(real_t x1, real_t x2)
  *      (foo).size
  *      cast(foo).size
  */
-extern (C++) DotIdExp typeDotIdExp(const ref Loc loc, Type type, Identifier ident)
+DotIdExp typeDotIdExp(const ref Loc loc, Type type, Identifier ident)
 {
     return new DotIdExp(loc, new TypeExp(loc, type), ident);
 }
