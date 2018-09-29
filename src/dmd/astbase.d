@@ -325,7 +325,7 @@ struct ASTBase
             return true;
         }
 
-        static bool oneMembers(Dsymbols* members, Dsymbol* ps, Identifier ident)
+        extern (D) static bool oneMembers(Dsymbols* members, Dsymbol* ps, Identifier ident)
         {
             Dsymbol s = null;
             if (members)
