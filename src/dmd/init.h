@@ -31,7 +31,6 @@ public:
     Loc loc;
 
     virtual Initializer *syntaxCopy() = 0;
-    static Initializers *arraySyntaxCopy(Initializers *ai);
 
     const char *toChars();
 
