@@ -2699,22 +2699,6 @@ extern (C++) abstract class Type : RootObject
         return false;
     }
 
-    static void error(const ref Loc loc, const(char)* format, ...)
-    {
-        va_list ap;
-        va_start(ap, format);
-        .verror(loc, format, ap);
-        va_end(ap);
-    }
-
-    static void warning(const ref Loc loc, const(char)* format, ...)
-    {
-        va_list ap;
-        va_start(ap, format);
-        .vwarning(loc, format, ap);
-        va_end(ap);
-    }
-
     // For eliminating dynamic_cast
     TypeBasic isTypeBasic()
     {

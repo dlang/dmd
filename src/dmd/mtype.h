@@ -326,9 +326,6 @@ public:
     virtual bool needsNested();
     bool checkComplexTransition(const Loc &loc, Scope *sc);
 
-    static void error(const Loc &loc, const char *format, ...);
-    static void warning(const Loc &loc, const char *format, ...);
-
     // For eliminating dynamic_cast
     virtual TypeBasic *isTypeBasic();
     virtual void accept(Visitor *v) { v->visit(this); }
