@@ -12,7 +12,10 @@
 
 module dmd.compiler;
 
+/**
+ * A data structure that describes a back-end compiler and implements
+ * compiler-specific actions.
+ */
 struct Compiler
 {
-    const(char)* vendor; // Compiler backend name
 }

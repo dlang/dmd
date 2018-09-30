@@ -15,5 +15,4 @@
 
 struct Compiler
 {
-    const char *vendor;     // Compiler backend name
 };
