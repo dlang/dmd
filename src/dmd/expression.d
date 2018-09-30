@@ -5438,6 +5438,7 @@ extern (C++) final class PostExp : BinExp
     extern (D) this(TOK op, const ref Loc loc, Expression e)
     {
         super(loc, op, __traits(classInstanceSize, PostExp), e, new IntegerExp(loc, 1, Type.tint32));
+        assert(op == TOK.minusMinus || op == TOK.plusPlus);
     }
 
     override void accept(Visitor v)
@@ -5454,6 +5455,7 @@ extern (C++) final class PreExp : UnaExp
     extern (D) this(TOK op, const ref Loc loc, Expression e)
     {
         super(loc, op, __traits(classInstanceSize, PreExp), e);
+        assert(op == TOK.preMinusMinus || op == TOK.prePlusPlus);
     }
 
     override void accept(Visitor v)
@@ -5995,6 +5997,7 @@ extern (C++) final class LogicalExp : BinExp
     extern (D) this(const ref Loc loc, TOK op, Expression e1, Expression e2)
     {
         super(loc, op, __traits(classInstanceSize, LogicalExp), e1, e2);
+        assert(op == TOK.andAnd || op == TOK.orOr);
     }
 
     override Expression toBoolean(Scope* sc)
@@ -6014,8 +6017,7 @@ extern (C++) final class LogicalExp : BinExp
 
 /***********************************************************
  * `op` is one of:
- *      TOK.lessThan, TOK.lessOrEqual, TOK.greaterThan, TOK.greaterOrEqual,
- *      TOK.unord, TOK.lg, TOK.leg, TOK.ule, TOK.ul, TOK.uge, TOK.ug, TOK.ue
+ *      TOK.lessThan, TOK.lessOrEqual, TOK.greaterThan, TOK.greaterOrEqual
  *
  * http://dlang.org/spec/expression.html#relation_expressions
  */
@@ -6024,6 +6026,7 @@ extern (C++) final class CmpExp : BinExp
     extern (D) this(TOK op, const ref Loc loc, Expression e1, Expression e2)
     {
         super(loc, op, __traits(classInstanceSize, CmpExp), e1, e2);
+        assert(op == TOK.lessThan || op == TOK.lessOrEqual || op == TOK.greaterThan || op == TOK.greaterOrEqual);
     }
 
     override void accept(Visitor v)
@@ -6097,6 +6100,7 @@ extern (C++) final class IdentityExp : BinExp
     extern (D) this(TOK op, const ref Loc loc, Expression e1, Expression e2)
     {
         super(loc, op, __traits(classInstanceSize, IdentityExp), e1, e2);
+        assert(op == TOK.identity || op == TOK.notIdentity);
     }
 
     override void accept(Visitor v)
