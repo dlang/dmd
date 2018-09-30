@@ -518,10 +518,6 @@ enum TRUST
     TRUSTsafe = 3,      // @safe
 };
 
-// in hdrgen.c
-void trustToBuffer(OutBuffer *buf, TRUST trust);
-const char *trustToChars(TRUST trust);
-
 enum TRUSTformat
 {
     TRUSTformatDefault,  // do not emit @system when trust == TRUSTdefault
