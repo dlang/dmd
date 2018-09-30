@@ -33,7 +33,7 @@ import dmd.root.rmem;
  * Returns:
  *   A newly-allocated string with '/' turned into backslashes
  */
-extern (C++) const(char)* toWinPath(const(char)* src)
+const(char)* toWinPath(const(char)* src)
 {
     if (src is null)
         return null;

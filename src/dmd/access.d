@@ -130,7 +130,7 @@ private bool isAccessible(Dsymbol smember, Dsymbol sfunc, AggregateDeclaration d
  * type of the 'this' pointer used to access smember.
  * Returns true if the member is not accessible.
  */
-extern (C++) bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymbol smember)
+bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymbol smember)
 {
     FuncDeclaration f = sc.func;
     AggregateDeclaration cdscope = sc.getStructClassScope();
@@ -471,7 +471,7 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Package p)
  *  s = symbol to check for visibility
  * Returns: true if s is visible in mod
  */
-extern (C++) bool symbolIsVisible(Module mod, Dsymbol s)
+bool symbolIsVisible(Module mod, Dsymbol s)
 {
     // should sort overloads by ascending protection instead of iterating here
     s = mostVisibleOverload(s);
@@ -489,7 +489,7 @@ extern (C++) bool symbolIsVisible(Module mod, Dsymbol s)
 /**
  * Same as above, but determines the lookup module from symbols `origin`.
  */
-extern (C++) bool symbolIsVisible(Dsymbol origin, Dsymbol s)
+bool symbolIsVisible(Dsymbol origin, Dsymbol s)
 {
     return symbolIsVisible(origin.getAccessModule(), s);
 }
@@ -503,7 +503,7 @@ extern (C++) bool symbolIsVisible(Dsymbol origin, Dsymbol s)
  *  s = symbol to check for visibility
  * Returns: true if s is visible by origin
  */
-extern (C++) bool symbolIsVisible(Scope *sc, Dsymbol s)
+bool symbolIsVisible(Scope *sc, Dsymbol s)
 {
     s = mostVisibleOverload(s);
     return checkSymbolAccess(sc, s);
@@ -518,7 +518,7 @@ extern (C++) bool symbolIsVisible(Scope *sc, Dsymbol s)
  *  s = symbol to check for visibility
  * Returns: true if s is visible by origin
  */
-extern (C++) bool checkSymbolAccess(Scope *sc, Dsymbol s)
+bool checkSymbolAccess(Scope *sc, Dsymbol s)
 {
     final switch (s.prot().kind)
     {

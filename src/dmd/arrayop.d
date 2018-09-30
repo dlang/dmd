@@ -32,7 +32,7 @@ import dmd.visitor;
 /**********************************************
  * Check that there are no uses of arrays without [].
  */
-extern (C++) bool isArrayOpValid(Expression e)
+bool isArrayOpValid(Expression e)
 {
     if (e.op == TOK.slice)
         return true;
@@ -69,7 +69,7 @@ extern (C++) bool isArrayOpValid(Expression e)
     return true;
 }
 
-extern (C++) bool isNonAssignmentArrayOp(Expression e)
+bool isNonAssignmentArrayOp(Expression e)
 {
     if (e.op == TOK.slice)
         return isNonAssignmentArrayOp((cast(SliceExp)e).e1);

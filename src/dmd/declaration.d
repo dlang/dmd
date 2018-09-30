@@ -45,7 +45,7 @@ import dmd.visitor;
  * accessible from the current scope.
  * Returns true if error occurs.
  */
-extern (C++) bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, size_t iStart = 0)
+bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, size_t iStart = 0)
 {
     Dsymbol sparent = ad.toParent2();
     Dsymbol s = sc.func;

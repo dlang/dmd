@@ -484,7 +484,7 @@ extern (C++) final class PeelStatement : Statement
 /***********************************************************
  * Convert TemplateMixin members (== Dsymbols) to Statements.
  */
-extern (C++) Statement toStatement(Dsymbol s)
+private Statement toStatement(Dsymbol s)
 {
     extern (C++) final class ToStmt : Visitor
     {

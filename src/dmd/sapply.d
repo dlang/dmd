@@ -172,7 +172,7 @@ public:
     }
 }
 
-extern (C++) bool walkPostorder(Statement s, StoppableVisitor v)
+bool walkPostorder(Statement s, StoppableVisitor v)
 {
     scope PostorderStatementVisitor pv = new PostorderStatementVisitor(v);
     s.accept(pv);

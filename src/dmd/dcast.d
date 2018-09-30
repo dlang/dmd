@@ -2679,7 +2679,7 @@ private bool isVoidArrayLiteral(Expression e, Type other)
  *      true    success
  *      false   failed
  */
-extern (C++) bool typeMerge(Scope* sc, TOK op, Type* pt, Expression* pe1, Expression* pe2)
+bool typeMerge(Scope* sc, TOK op, Type* pt, Expression* pe1, Expression* pe2)
 {
     //printf("typeMerge() %s op %s\n", pe1.toChars(), pe2.toChars());
 
@@ -3488,7 +3488,7 @@ extern (C++) bool arrayTypeCompatibleWithoutCasting(Type t1, Type t2)
  * This is used to determine if implicit narrowing conversions will
  * be allowed.
  */
-extern (C++) IntRange getIntRange(Expression e)
+IntRange getIntRange(Expression e)
 {
     extern (C++) final class IntRangeVisitor : Visitor
     {

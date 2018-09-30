@@ -133,7 +133,7 @@ private void lambdaSetParent(Expression e, FuncDeclaration fd)
  * Returns:
  *      true if error occurs.
  */
-extern (C++) bool lambdaCheckForNestedRef(Expression e, Scope* sc)
+bool lambdaCheckForNestedRef(Expression e, Scope* sc)
 {
     extern (C++) final class LambdaCheckForNestedRef : StoppableVisitor
     {
