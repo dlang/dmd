@@ -468,7 +468,7 @@ extern (C++) class Dsymbol : RootObject
     /*************************************
      * Do syntax copy of an array of Dsymbol's.
      */
-    static Dsymbols* arraySyntaxCopy(Dsymbols* a)
+    extern (D) static Dsymbols* arraySyntaxCopy(Dsymbols* a)
     {
         Dsymbols* b = null;
         if (a)
@@ -869,7 +869,7 @@ extern (C++) class Dsymbol : RootObject
     /*****************************************
      * Same as Dsymbol::oneMember(), but look at an array of Dsymbols.
      */
-    static bool oneMembers(Dsymbols* members, Dsymbol* ps, Identifier ident)
+    extern (D) static bool oneMembers(Dsymbols* members, Dsymbol* ps, Identifier ident)
     {
         //printf("Dsymbol::oneMembers() %d\n", members ? members.dim : 0);
         Dsymbol s = null;
