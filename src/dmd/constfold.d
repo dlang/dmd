@@ -1455,6 +1455,49 @@ int sliceCmpStringWithArray(const StringExp se1, ArrayLiteralExp ae2, size_t lo1
     return 0;
 }
 
+/** Copy element `Expressions` in the parameters when they're `ArrayLiteralExp`s.
+ * Params:
+ *      e1  = If it's ArrayLiteralExp, its `elements` will be copied.
+ *            Otherwise, `e1` itself will be pushed into the new `Expressions`.
+ *      e2  = If it's not `null`, it will be pushed/appended to the new
+ *            `Expressions` by the same way with `e1`.
+ * Returns:
+ *      Newly allocated `Expressions`. Note that it points to the original
+ *      `Expression` values in e1 and e2.
+ */
+private Expressions* copyElements(Expression e1, Expression e2 = null)
+{
+    auto elems = new Expressions();
+
+    void append(ArrayLiteralExp ale)
+    {
+        if (!ale.elements)
+            return;
+        auto d = elems.dim;
+        elems.append(ale.elements);
+        foreach (ref el; (*elems)[d .. elems.dim])
+        {
+            if (!el)
+                el = ale.basis;
+        }
+    }
+
+    if (e1.op == TOK.arrayLiteral)
+        append(cast(ArrayLiteralExp)e1);
+    else
+        elems.push(e1);
+
+    if (e2)
+    {
+        if (e2.op == TOK.arrayLiteral)
+            append(cast(ArrayLiteralExp)e2);
+        else
+            elems.push(e2);
+    }
+
+    return elems;
+}
+
 /* Also return TOK.cantExpression if this fails
  */
 UnionExp Cat(Type type, Expression e1, Expression e2)
@@ -1645,7 +1688,7 @@ UnionExp Cat(Type type, Expression e1, Expression e2)
     else if (e1.op == TOK.arrayLiteral && e2.op == TOK.arrayLiteral && t1.nextOf().equals(t2.nextOf()))
     {
         // Concatenate the arrays
-        auto elems = ArrayLiteralExp.copyElements(e1, e2);
+        auto elems = copyElements(e1, e2);
 
         emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, cast(Type)null, elems);
 
@@ -1669,7 +1712,7 @@ UnionExp Cat(Type type, Expression e1, Expression e2)
         e = e2;
     L3:
         // Concatenate the array with null
-        auto elems = ArrayLiteralExp.copyElements(e);
+        auto elems = copyElements(e);
 
         emplaceExp!(ArrayLiteralExp)(&ue, e.loc, cast(Type)null, elems);
 
@@ -1686,7 +1729,7 @@ UnionExp Cat(Type type, Expression e1, Expression e2)
     else if ((e1.op == TOK.arrayLiteral || e1.op == TOK.null_) && e1.type.toBasetype().nextOf() && e1.type.toBasetype().nextOf().equals(e2.type))
     {
         auto elems = (e1.op == TOK.arrayLiteral)
-                ? ArrayLiteralExp.copyElements(e1) : new Expressions();
+                ? copyElements(e1) : new Expressions();
         elems.push(e2);
 
         emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, cast(Type)null, elems);
@@ -1703,7 +1746,7 @@ UnionExp Cat(Type type, Expression e1, Expression e2)
     }
     else if (e2.op == TOK.arrayLiteral && e2.type.toBasetype().nextOf().equals(e1.type))
     {
-        auto elems = ArrayLiteralExp.copyElements(e1, e2);
+        auto elems = copyElements(e1, e2);
 
         emplaceExp!(ArrayLiteralExp)(&ue, e2.loc, cast(Type)null, elems);
 
