@@ -521,34 +521,10 @@ extern (C++) final class Module : Package
         // need to determine it early because it affects semantic analysis. This is
         // being done after parsing the module so the full module name can be taken
         // from whatever was declared in the file.
-
-        //!!!!!!!!!!!!!!!!!!!!!!!
-        // Workaround for bug in dmd version 2.068.2 platform Darwin_64_32.
-        // This is the compiler version that the autotester uses, and this code
-        // has been carefully crafted using trial and error to prevent a seg fault
-        // bug that occurs with that version of the compiler.  Note, this segfault
-        // does not occur on the next version of dmd, namely, version 2.069.0. If
-        // the autotester upgrades to that version, then this workaround can be removed.
-        //!!!!!!!!!!!!!!!!!!!!!!!
-        version(OSX)
+        if (!m.isRoot() && onImport && onImport(m))
         {
-            if (!m.isRoot() && onImport)
-            {
-                auto onImportResult = onImport(m);
-                if(onImportResult)
-                {
-                    m.importedFrom = m;
-                    assert(m.isRoot());
-                }
-            }
-        }
-        else
-        {
-            if (!m.isRoot() && onImport && onImport(m))
-            {
-                m.importedFrom = m;
-                assert(m.isRoot());
-            }
+            m.importedFrom = m;
+            assert(m.isRoot());
         }
 
         Target.loadModule(m);
