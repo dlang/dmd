@@ -367,7 +367,7 @@ private Identifier opId_r(Expression e)
  * If type is a class or struct, return the symbol for it,
  * else NULL
  */
-extern (C++) AggregateDeclaration isAggregate(Type t)
+AggregateDeclaration isAggregate(Type t)
 {
     t = t.toBasetype();
     if (t.ty == Tclass)
@@ -1687,7 +1687,7 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id)
 /***********************************
  * Utility to build a function call out of this reference and argument.
  */
-extern (C++) Expression build_overload(const ref Loc loc, Scope* sc, Expression ethis, Expression earg, Dsymbol d)
+Expression build_overload(const ref Loc loc, Scope* sc, Expression ethis, Expression earg, Dsymbol d)
 {
     assert(d);
     Expression e;
@@ -1704,7 +1704,7 @@ extern (C++) Expression build_overload(const ref Loc loc, Scope* sc, Expression 
 /***************************************
  * Search for function funcid in aggregate ad.
  */
-extern (C++) Dsymbol search_function(ScopeDsymbol ad, Identifier funcid)
+Dsymbol search_function(ScopeDsymbol ad, Identifier funcid)
 {
     Dsymbol s = ad.search(Loc.initial, funcid);
     if (s)

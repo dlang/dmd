@@ -1379,7 +1379,7 @@ MATCH implicitConvTo(Expression e, Type t)
     return v.result;
 }
 
-extern (C++) Type toStaticArrayType(SliceExp e)
+Type toStaticArrayType(SliceExp e)
 {
     if (e.lwr && e.upr)
     {
@@ -2485,7 +2485,7 @@ Expression castTo(Expression e, Scope* sc, Type t)
  *      t       Target type
  *      flag    1: don't put an error when inference fails
  */
-extern (C++) Expression inferType(Expression e, Type t, int flag = 0)
+Expression inferType(Expression e, Type t, int flag = 0)
 {
     extern (C++) final class InferType : Visitor
     {
@@ -2587,7 +2587,7 @@ extern (C++) Expression inferType(Expression e, Type t, int flag = 0)
 /****************************************
  * Scale addition/subtraction to/from pointer.
  */
-extern (C++) Expression scaleFactor(BinExp be, Scope* sc)
+Expression scaleFactor(BinExp be, Scope* sc)
 {
     Type t1b = be.e1.type.toBasetype();
     Type t2b = be.e2.type.toBasetype();
@@ -3337,7 +3337,7 @@ Lt2:
  * Returns:
  *    null on success, ErrorExp if error occurs
  */
-extern (C++) Expression typeCombine(BinExp be, Scope* sc)
+Expression typeCombine(BinExp be, Scope* sc)
 {
     Expression errorReturn()
     {
@@ -3376,7 +3376,7 @@ extern (C++) Expression typeCombine(BinExp be, Scope* sc)
  * Do integral promotions (convertchk).
  * Don't convert <array of> to <pointer to>
  */
-extern (C++) Expression integralPromotions(Expression e, Scope* sc)
+Expression integralPromotions(Expression e, Scope* sc)
 {
     //printf("integralPromotions %s %s\n", e.toChars(), e.type.toChars());
     switch (e.type.toBasetype().ty)

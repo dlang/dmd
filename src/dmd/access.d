@@ -383,7 +383,7 @@ private bool hasPrivateAccess(AggregateDeclaration ad, Dsymbol smember)
  * Check access to d for expression e.d
  * Returns true if the declaration is not accessible.
  */
-extern (C++) bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
+bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
 {
     if (sc.flags & SCOPE.noaccesscheck)
         return false;
@@ -446,7 +446,7 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
  * (see https://issues.dlang.org/show_bug.cgi?id=313).
  *
  */
-extern (C++) bool checkAccess(Loc loc, Scope* sc, Package p)
+bool checkAccess(Loc loc, Scope* sc, Package p)
 {
     if (sc._module == p)
         return false;

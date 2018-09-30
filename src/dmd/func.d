@@ -2846,7 +2846,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
 /**************************************
  * Returns an indirect type one step from t.
  */
-extern (C++) Type getIndirection(Type t)
+Type getIndirection(Type t)
 {
     t = t.baseElemOf();
     if (t.ty == Tarray || t.ty == Tpointer)

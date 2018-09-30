@@ -139,7 +139,7 @@ private Expression extractOpDollarSideEffect(Scope* sc, UnaExp ue)
  * Runs semantic on ae.arguments. Declares temporary variables
  * if '$' was used.
  */
-extern (C++) Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
+Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
 {
     assert(!ae.lengthVar);
     *pe0 = null;
@@ -224,7 +224,7 @@ extern (C++) Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
  * Runs semantic on se.lwr and se.upr. Declares a temporary variable
  * if '$' was used.
  */
-extern (C++) Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, Expression* pe0)
+Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, Expression* pe0)
 {
     //assert(!ae.lengthVar);
     if (!ie)
@@ -637,7 +637,7 @@ private Expression resolveUFCSProperties(Scope* sc, Expression e1, Expression e2
 /******************************
  * If e1 is a property function (template), resolve it.
  */
-extern (C++) Expression resolvePropertiesOnly(Scope* sc, Expression e1)
+Expression resolvePropertiesOnly(Scope* sc, Expression e1)
 {
     //printf("e1 = %s %s\n", Token::toChars(e1.op), e1.toChars());
     OverloadSet os;

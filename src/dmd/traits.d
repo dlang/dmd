@@ -417,7 +417,7 @@ private Expression pointerBitmap(TraitsExp e)
     return ale;
 }
 
-extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
+Expression semanticTraits(TraitsExp e, Scope* sc)
 {
     static if (LOGSEMANTIC)
     {
