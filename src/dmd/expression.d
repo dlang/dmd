@@ -729,7 +729,7 @@ extern (C++) abstract class Expression : RootObject
     /**********************************
      * Combine e1 and e2 by CommaExp if both are not NULL.
      */
-    static Expression combine(Expression e1, Expression e2)
+    extern (D) static Expression combine(Expression e1, Expression e2)
     {
         if (e1)
         {
@@ -744,12 +744,12 @@ extern (C++) abstract class Expression : RootObject
         return e1;
     }
 
-    static Expression combine(Expression e1, Expression e2, Expression e3)
+    extern (D) static Expression combine(Expression e1, Expression e2, Expression e3)
     {
         return combine(combine(e1, e2), e3);
     }
 
-    static Expression combine(Expression e1, Expression e2, Expression e3, Expression e4)
+    extern (D) static Expression combine(Expression e1, Expression e2, Expression e3, Expression e4)
     {
         return combine(combine(e1, e2), combine(e3, e4));
     }
@@ -760,7 +760,7 @@ extern (C++) abstract class Expression : RootObject
      * is returned via *pe0.
      * Otherwise 'e' is directly returned and *pe0 is set to NULL.
      */
-    static Expression extractLast(Expression e, Expression* pe0)
+    extern (D) static Expression extractLast(Expression e, Expression* pe0)
     {
         if (e.op != TOK.comma)
         {
@@ -791,7 +791,7 @@ extern (C++) abstract class Expression : RootObject
         }
     }
 
-    static Expressions* arraySyntaxCopy(Expressions* exps)
+    extern (D) static Expressions* arraySyntaxCopy(Expressions* exps)
     {
         Expressions* a = null;
         if (exps)
