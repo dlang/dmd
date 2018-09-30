@@ -92,7 +92,6 @@
     <ClCompile Include="..\dmd\backend\varstats.c" />
     <ClCompile Include="..\dmd\backend\tk.c" />
     <ClCompile Include="..\dmd\backend\aa.c" />
-    <ClCompile Include="..\dmd\backend\cgcv.c" />
     <ClCompile Include="..\dmd\backend\cgen.c" />
     <ClCompile Include="..\dmd\backend\cgobj.c" />
     <ClCompile Include="..\dmd\backend\dt.c" />
