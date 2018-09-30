@@ -407,8 +407,8 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
          */
         const p = mt.mutableOf().unSharedOf().toChars();
         auto id = Identifier.idPool(p, cast(uint)strlen(p));
-        if (const n = importHint(p))
-            error(loc, "`%s` is not defined, perhaps `import %s;` ?", p, n);
+        if (const n = importHint(id.toString()))
+            error(loc, "`%s` is not defined, perhaps `import %.*s;` ?", p, cast(int)n.length, n.ptr);
         else if (auto s2 = sc.search_correct(id))
             error(loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s2.kind(), s2.toChars());
         else if (const q = Scope.search_correct_C(id))
