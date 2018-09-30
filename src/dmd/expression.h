@@ -887,8 +887,6 @@ public:
 class ArrayLengthExp : public UnaExp
 {
 public:
-
-    static Expression *rewriteOpAssign(BinExp *exp);
     void accept(Visitor *v) { v->visit(this); }
 };
 
