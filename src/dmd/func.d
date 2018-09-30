@@ -2522,11 +2522,6 @@ extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg, Sco
     return 0;
 }
 
-extern (C++) int overloadApply(Dsymbol fstart, void* param, int function(void*, Dsymbol) fp)
-{
-    return overloadApply(fstart, s => (*fp)(param, s));
-}
-
 /**
 Checks for mismatching modifiers between `lhsMod` and `rhsMod` and prints the
 mismatching modifiers to `buf`.

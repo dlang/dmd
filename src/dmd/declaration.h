@@ -88,8 +88,6 @@ struct IntRange;
 #define STCfuture        0x4000000000000LL // introducing new base class function
 #define STClocal         0x8000000000000LL // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
 
-int overloadApply(Dsymbol *fstart, void *param, int (*fp)(void *, Dsymbol *));
-
 void ObjectNotFound(Identifier *id);
 
 /**************************************************************/
