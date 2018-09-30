@@ -212,14 +212,9 @@ struct Token
         Identifier *ident;
     };
 
-    static const char *tochars[TOKMAX];
-
-    static Token *freelist;
-    static Token *alloc();
     void free();
 
     Token() : next(NULL) {}
     int isKeyword();
     const char *toChars() const;
-    static const char *toChars(TOK);
 };
