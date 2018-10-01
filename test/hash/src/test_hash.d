@@ -6,6 +6,7 @@ void main()
     issue18918();
     issue18925();
     issue19005();
+    issue19282();
     testTypeInfoArrayGetHash1();
     testTypeInfoArrayGetHash2();
     pr2243();
@@ -83,6 +84,16 @@ void issue19005() @nogc nothrow pure @safe
     }
     Date date;
     auto hash = date.hashOf;
+}
+
+extern(C++) class Issue19282CppClass {}
+
+/// test that hashOf doesn't crash for non-null C++ objects.
+void issue19282()
+{
+    Issue19282CppClass c = new Issue19282CppClass();
+    size_t h = hashOf(c);
+    h = hashOf(c, h);
 }
 
 /// Tests ensure TypeInfo_Array.getHash uses element hash functions instead
