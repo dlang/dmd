@@ -2756,7 +2756,7 @@ version (MARS)
         }
     }
 
-    varStats.writeSymbolTable(&globsym, &cv4_outsym, &cv4.endArgs, &cv4.beginBlock, &cv4.endBlock);
+    varStats_writeSymbolTable(&globsym, &cv4_outsym, &cv4.endArgs, &cv4.beginBlock, &cv4.endBlock);
 }
 else
 {

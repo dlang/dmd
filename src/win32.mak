@@ -180,7 +180,7 @@ GLUE_SRCS=$D/irstate.d $D/toctype.d $D/glue.d $D/gluelayer.d $D/todt.d $D/tocsym
 BACK_HDRS=$C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
 	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d $C/iasm.d \
 	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d \
-	$C/dlist.d $C/goh.d $C/memh.d $C/melf.d $C/varstats.d
+	$C/dlist.d $C/goh.d $C/memh.d $C/melf.d $C/varstats.di
 
 TK_HDRS=
 
@@ -200,7 +200,7 @@ GBACKOBJ= $G/go.obj $G/gdag.obj $G/gother.obj $G/gflow.obj $G/gloop.obj $G/var.o
 	$G/cgcod.obj $G/cod1.obj $G/cod2.obj $G/cod3.obj $G/cod4.obj $G/cod5.obj $G/outbuf.obj \
 	$G/bcomplex.obj $G/ptrntab.obj $G/md5.obj \
 	$G/mscoffobj.obj $G/pdata.obj $G/cv8.obj $G/backconfig.obj $G/sizecheck.obj \
-	$G/divcoeff.obj $G/dwarf.obj $G/compress.obj $G/varstats.obj \
+	$G/divcoeff.obj $G/dwarf.obj $G/compress.obj $G/dvarstats.obj \
 	$G/ph2.obj $G/util2.obj $G/tk.obj $G/gsroa.obj $G/dvec.obj \
 
 # Root package
@@ -243,7 +243,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.d \
 	$C\strtold.c $C\aa.h \
 	$C\md5.h $C\md5.d $C\ph2.d $C\util2.d \
 	$C\mscoffobj.c $C\obj.h $C\pdata.d $C\cv8.d $C\backconfig.d $C\sizecheck.c \
-	$C\divcoeff.d $C\dwarfeh.d $C\varstats.c $C\varstats.h \
+	$C\divcoeff.d $C\dwarfeh.d $C\dvarstats.d $C\varstats.h \
 	$C\dvec.d $C\backend.txt
 
 # Toolkit
@@ -620,8 +620,9 @@ $G/util2.obj : $C\util2.d
 $G/var.obj : $C\var.d $G\optab.d $G\tytab.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -J$G -betterC -mv=dmd.backend=$C $C\var
 
-$G/varstats.obj : $C\varstats.c
-	$(CC) -c -o$@ $(MFLAGS) -I$D -I$G $C\varstats
+$G/dvarstats.obj : $C\dvarstats.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\dvarstats
+#	$(CC) -c -o$@ $(MFLAGS) -I$D -I$G $C\varstats
 
 
 $G/tk.obj : $C\tk.c

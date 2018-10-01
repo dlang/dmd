@@ -85,7 +85,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\dmd\backend\varstats.c" />
     <ClCompile Include="..\dmd\backend\tk.c" />
     <ClCompile Include="..\dmd\backend\cgen.c" />
     <ClCompile Include="..\dmd\backend\dt.c" />

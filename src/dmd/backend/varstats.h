@@ -34,7 +34,7 @@ struct LineOffset
 
 struct VarStatistics
 {
-    VarStatistics();
+    //VarStatistics();
 
     void writeSymbolTable(symtab_t* symtab,
                           void (*fnWriteVar)(Symbol*), void (*fnEndArgs)(),
