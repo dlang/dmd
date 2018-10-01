@@ -3344,10 +3344,8 @@ struct TickDuration
         import core.internal.abort : abort;
         version (Windows)
         {
-            ulong ticks;
-            if (QueryPerformanceCounter(cast(long*)&ticks) == 0)
-                abort("Failed in QueryPerformanceCounter().");
-
+            ulong ticks = void;
+            QueryPerformanceCounter(cast(long*)&ticks);
             return TickDuration(ticks);
         }
         else version (Darwin)
@@ -3356,10 +3354,8 @@ struct TickDuration
                 return TickDuration(cast(long)mach_absolute_time());
             else
             {
-                timeval tv;
-                if (gettimeofday(&tv, null) != 0)
-                    abort("Failed in gettimeofday().");
-
+                timeval tv = void;
+                gettimeofday(&tv, null);
                 return TickDuration(tv.tv_sec * TickDuration.ticksPerSec +
                                     tv.tv_usec * TickDuration.ticksPerSec / 1000 / 1000);
             }
@@ -3377,10 +3373,8 @@ struct TickDuration
             }
             else
             {
-                timeval tv;
-                if (gettimeofday(&tv, null) != 0)
-                    abort("Failed in gettimeofday().");
-
+                timeval tv = void;
+                gettimeofday(&tv, null);
                 return TickDuration(tv.tv_sec * TickDuration.ticksPerSec +
                                     tv.tv_usec * TickDuration.ticksPerSec / 1000 / 1000);
             }
