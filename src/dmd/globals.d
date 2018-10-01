@@ -504,6 +504,7 @@ enum MATCH : int
 {
     nomatch,   // no match
     convert,   // match with conversions
+    shared_,   // match with conversion to shared
     constant,  // match with conversion to const
     exact,     // exact match
 }
