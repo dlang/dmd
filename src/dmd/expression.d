@@ -2666,49 +2666,6 @@ extern (C++) final class ArrayLiteralExp : Expression
         return el;
     }
 
-    /** Copy element `Expressions` in the parameters when they're `ArrayLiteralExp`s.
-     * Params:
-     *      e1  = If it's ArrayLiteralExp, its `elements` will be copied.
-     *            Otherwise, `e1` itself will be pushed into the new `Expressions`.
-     *      e2  = If it's not `null`, it will be pushed/appended to the new
-     *            `Expressions` by the same way with `e1`.
-     * Returns:
-     *      Newly allocated `Expressions`. Note that it points to the original
-     *      `Expression` values in e1 and e2.
-     */
-    static Expressions* copyElements(Expression e1, Expression e2 = null)
-    {
-        auto elems = new Expressions();
-
-        void append(ArrayLiteralExp ale)
-        {
-            if (!ale.elements)
-                return;
-            auto d = elems.dim;
-            elems.append(ale.elements);
-            foreach (ref el; (*elems)[d .. elems.dim])
-            {
-                if (!el)
-                    el = ale.basis;
-            }
-        }
-
-        if (e1.op == TOK.arrayLiteral)
-            append(cast(ArrayLiteralExp)e1);
-        else
-            elems.push(e1);
-
-        if (e2)
-        {
-            if (e2.op == TOK.arrayLiteral)
-                append(cast(ArrayLiteralExp)e2);
-            else
-                elems.push(e2);
-        }
-
-        return elems;
-    }
-
     override bool isBool(bool result)
     {
         size_t dim = elements ? elements.dim : 0;
