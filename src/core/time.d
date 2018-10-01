@@ -2108,26 +2108,26 @@ struct MonoTimeImpl(ClockType clockType)
 
         version (Windows)
         {
-            long ticks;
-            if (QueryPerformanceCounter(&ticks) == 0)
-            {
-                // This probably cannot happen on Windows 95 or later
-                import core.internal.abort : abort;
-                abort("Call to QueryPerformanceCounter failed.");
-            }
+            long ticks = void;
+            QueryPerformanceCounter(&ticks);
             return MonoTimeImpl(ticks);
         }
         else version (Darwin)
             return MonoTimeImpl(mach_absolute_time());
         else version (Posix)
         {
-            timespec ts;
-            if (clock_gettime(clockArg, &ts) != 0)
+            timespec ts = void;
+            immutable error = clock_gettime(clockArg, &ts);
+            // clockArg is supported and if tv_sec is long or larger
+            // overflow won't happen before 292 billion years A.D.
+            static if (ts.tv_sec.max < long.max)
             {
-                import core.internal.abort : abort;
-                abort("Call to clock_gettime failed.");
+                if (error)
+                {
+                    import core.internal.abort : abort;
+                    abort("Call to clock_gettime failed.");
+                }
             }
-
             return MonoTimeImpl(convClockFreq(ts.tv_sec * 1_000_000_000L + ts.tv_nsec,
                                               1_000_000_000L,
                                               ticksPerSecond));
@@ -3364,10 +3364,18 @@ struct TickDuration
         {
             static if (is(typeof(clock_gettime)))
             {
-                timespec ts;
-                if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
-                    abort("Failed in clock_gettime().");
-
+                timespec ts = void;
+                immutable error = clock_gettime(CLOCK_MONOTONIC, &ts);
+                // CLOCK_MONOTONIC is supported and if tv_sec is long or larger
+                // overflow won't happen before 292 billion years A.D.
+                static if (ts.tv_sec.max < long.max)
+                {
+                    if (error)
+                    {
+                        import core.internal.abort : abort;
+                        abort("Call to clock_gettime failed.");
+                    }
+                }
                 return TickDuration(ts.tv_sec * TickDuration.ticksPerSec +
                                     ts.tv_nsec * TickDuration.ticksPerSec / 1000 / 1000 / 1000);
             }
