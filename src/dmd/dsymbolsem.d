@@ -22,6 +22,7 @@ import dmd.astcodegen;
 import dmd.attrib;
 import dmd.blockexit;
 import dmd.clone;
+import dmd.compiler;
 import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
@@ -46,7 +47,6 @@ import dmd.identifier;
 import dmd.init;
 import dmd.initsem;
 import dmd.hdrgen;
-import dmd.mars;
 import dmd.mtype;
 import dmd.nogc;
 import dmd.nspace;
@@ -3609,7 +3609,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         if (funcdecl.fbody && funcdecl.isMain() && sc._module.isRoot())
-            genCmain(sc);
+            Compiler.genCmain(sc);
 
         assert(funcdecl.type.ty != Terror || funcdecl.errors);
 
