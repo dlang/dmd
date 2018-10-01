@@ -16,7 +16,6 @@ import core.stdc.stdint;
 import dmd.root.array;
 import dmd.root.filename;
 import dmd.root.outbuffer;
-import dmd.compiler;
 import dmd.identifier;
 
 template xversion(string s)
@@ -259,8 +258,8 @@ struct Global
     Array!(const(char)*)* filePath;     // Array of char*'s which form the file import lookup path
 
     const(char)* _version;
+    const(char)* vendor;    // Compiler backend name
 
-    Compiler compiler;
     Param params;
     uint errors;            // number of errors reported so far
     uint warnings;          // number of warnings reported so far
@@ -363,7 +362,7 @@ struct Global
             static assert(0, "fix this");
         }
         _version = (import("VERSION") ~ '\0').ptr;
-        compiler.vendor = "Digital Mars D";
+        vendor = "Digital Mars D";
     }
 
     /**

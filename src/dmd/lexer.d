@@ -527,7 +527,7 @@ class Lexer : ErrorHandler
                         }
                         else if (id == Id.VENDOR)
                         {
-                            t.ustring = global.compiler.vendor;
+                            t.ustring = global.vendor;
                             goto Lstr;
                         }
                         else if (id == Id.TIMESTAMP)
