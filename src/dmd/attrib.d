@@ -76,7 +76,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
      * If the returned scope != sc, the caller should pop
      * the scope after it used.
      */
-    static Scope* createNewScope(Scope* sc, StorageClass stc, LINK linkage,
+    extern (D) static Scope* createNewScope(Scope* sc, StorageClass stc, LINK linkage,
         CPPMANGLE cppmangle, Prot protection, int explicitProtection,
         AlignDeclaration aligndecl, PINLINE inlining)
     {
@@ -1305,7 +1305,7 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
         return AttribDeclaration.setScope(sc);
     }
 
-    static Expressions* concat(Expressions* udas1, Expressions* udas2)
+    extern (D) static Expressions* concat(Expressions* udas1, Expressions* udas2)
     {
         Expressions* udas;
         if (!udas1 || udas1.dim == 0)

@@ -12,7 +12,6 @@
 
 #include "root/dcompat.h"
 #include "root/root.h"
-#include "root/stringtable.h"
 
 class Identifier : public RootObject
 {
@@ -29,8 +28,6 @@ public:
     const char *toHChars2();
     int dyncast() const;
 
-    static StringTable stringtable;
-    static StringTable fullPathStringTable;
     static Identifier *generateId(const char *prefix);
     static Identifier *generateId(const char *prefix, size_t i);
     static Identifier *idPool(const char *s, unsigned len);
@@ -41,6 +38,4 @@ public:
     }
 
     static bool isValidIdentifier(const char *p);
-    static Identifier *lookup(const char *s, size_t len);
-    static void initTable();
 };

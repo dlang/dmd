@@ -10,7 +10,6 @@
 
 #pragma once
 
-#include "root/stringtable.h"
 #include "root/rmem.h" // for d_size_t
 
 #include "arraytypes.h"
@@ -219,8 +218,6 @@ public:
     static TemplateDeclaration *rtinfo;
 
     static Type *basic[TMAX];
-    static unsigned char sizeTy[TMAX];
-    static StringTable stringtable;
 
     virtual const char *kind();
     Type *copy();
@@ -817,12 +814,10 @@ public:
     int dyncast() const { return DYNCAST_PARAMETER; }
     virtual void accept(Visitor *v) { v->visit(this); }
 
-    static Parameters *arraySyntaxCopy(Parameters *parameters);
     static size_t dim(Parameters *parameters);
     static Parameter *getNth(Parameters *parameters, d_size_t nth, d_size_t *pn = NULL);
     const char *toChars();
     bool isCovariant(bool returnByRef, const Parameter *p) const;
-    static bool isCovariantScope(bool returnByRef, StorageClass from, StorageClass to);
 };
 
 bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2);

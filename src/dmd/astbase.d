@@ -325,7 +325,7 @@ struct ASTBase
             return true;
         }
 
-        static bool oneMembers(Dsymbols* members, Dsymbol* ps, Identifier ident)
+        extern (D) static bool oneMembers(Dsymbols* members, Dsymbol* ps, Identifier ident)
         {
             Dsymbol s = null;
             if (members)
@@ -1205,7 +1205,7 @@ struct ASTBase
             this.atts = atts;
         }
 
-        static Expressions* concat(Expressions* udas1, Expressions* udas2)
+        extern (D) static Expressions* concat(Expressions* udas1, Expressions* udas2)
         {
             Expressions* udas;
             if (!udas1 || udas1.dim == 0)

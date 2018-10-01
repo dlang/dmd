@@ -5105,7 +5105,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
     Type specType;      // if !=null, this is the type specialization
     Type defaultType;
 
-    extern (C++) __gshared Type tdummy = null;
+    extern (D) __gshared Type tdummy = null;
 
     extern (D) this(const ref Loc loc, Identifier ident, Type specType, Type defaultType)
     {
@@ -5530,7 +5530,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
     RootObject specAlias;
     RootObject defaultAlias;
 
-    extern (C++) __gshared Dsymbol sdummy = null;
+    extern (D) __gshared Dsymbol sdummy = null;
 
     extern (D) this(const ref Loc loc, Identifier ident, Type specType, RootObject specAlias, RootObject defaultAlias)
     {
@@ -5946,7 +5946,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         assert(tempdecl._scope);
     }
 
-    static Objects* arraySyntaxCopy(Objects* objs)
+    extern (D) static Objects* arraySyntaxCopy(Objects* objs)
     {
         Objects* a = null;
         if (objs)
@@ -6587,7 +6587,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      * Returns:
      *      false if one or more arguments have errors.
      */
-    static bool semanticTiargs(const ref Loc loc, Scope* sc, Objects* tiargs, int flags)
+    extern (D) static bool semanticTiargs(const ref Loc loc, Scope* sc, Objects* tiargs, int flags)
     {
         // Run semantic on each argument, place results in tiargs[]
         //printf("+TemplateInstance.semanticTiargs()\n");

@@ -128,7 +128,7 @@ nothrow:
         return DYNCAST.identifier;
     }
 
-    extern (C++) __gshared StringTable stringtable;
+    private extern (D) __gshared StringTable stringtable;
 
     /**
        A secondary string table is used to guarantee that we generate unique
@@ -140,7 +140,7 @@ nothrow:
        https://issues.dlang.org/show_bug.cgi?id=18868
        https://issues.dlang.org/show_bug.cgi?id=19058.
      */
-    private extern (C++) __gshared StringTable fullPathStringTable;
+    private extern (D) __gshared StringTable fullPathStringTable;
 
     static Identifier generateId(const(char)* prefix)
     {
@@ -308,7 +308,7 @@ nothrow:
         return false;
     }
 
-    static Identifier lookup(const(char)* s, size_t len)
+    extern (D) static Identifier lookup(const(char)* s, size_t len)
     {
         auto sv = stringtable.lookup(s, len);
         if (!sv)
@@ -316,7 +316,7 @@ nothrow:
         return cast(Identifier)sv.ptrvalue;
     }
 
-    static void initTable()
+    extern (D) static void initTable()
     {
         enum size = 28_000;
         stringtable._init(size);
