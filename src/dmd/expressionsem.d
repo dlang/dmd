@@ -112,7 +112,7 @@ StringExp semanticString(Scope *sc, Expression exp, const char* s)
 private Expression extractOpDollarSideEffect(Scope* sc, UnaExp ue)
 {
     Expression e0;
-    Expression e1 = Expression.extractLast(ue.e1, &e0);
+    Expression e1 = Expression.extractLast(ue.e1, e0);
     // https://issues.dlang.org/show_bug.cgi?id=12585
     // Extract the side effect part if ue.e1 is comma.
 
@@ -6272,8 +6272,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     e = new CallExp(exp.loc, new VarExp(exp.loc, f, false), e);
                     ec = e.expressionSemantic(sc);
                 }
-                ea = Expression.combine(ea, eb);
-                ea = Expression.combine(ea, ec);
+                ea = Expression.combine(ea, eb, ec);
                 assert(ea);
                 result = ea;
                 return;
@@ -7378,7 +7377,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (!(cast(CommaExp)exp.e2).isGenerated)
                 exp.error("Using the result of a comma expression is not allowed");
             Expression e0;
-            exp.e2 = Expression.extractLast(exp.e2, &e0);
+            exp.e2 = Expression.extractLast(exp.e2, e0);
             Expression e = Expression.combine(e0, exp);
             result = e.expressionSemantic(sc);
             return;
@@ -7630,7 +7629,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     e = new IntegerExp(exp.loc, 0, Type.tint32);
                     e = new CastExp(exp.loc, e, Type.tvoid); // avoid "has no effect" error
-                    e = Expression.combine(Expression.combine(tup1.e0, tup2.e0), e);
+                    e = Expression.combine(tup1.e0, tup2.e0, e);
                 }
                 else
                 {
@@ -7787,10 +7786,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         cx.e1 = dvx;
 
                         Expression e0;
-                        Expression.extractLast(e2x, &e0);
+                        Expression.extractLast(e2x, e0);
 
-                        auto e = Expression.combine(ae, cx);
-                        e = Expression.combine(e0, e);
+                        auto e = Expression.combine(e0, ae, cx);
                         e = e.expressionSemantic(sc);
                         result = e;
                         return;
@@ -8506,7 +8504,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             Expression e0 = null;
             e = exp.reorderSettingAAElem(sc);
-            e = Expression.extractLast(e, &e0);
+            e = Expression.extractLast(e, e0);
             assert(e == exp);
 
             if (exp.e1.op == TOK.variable)
