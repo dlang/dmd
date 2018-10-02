@@ -148,7 +148,8 @@ shared static this()
         "getVirtualIndex",
         "getPointerBitmap",
         "isZeroInit",
-        "getTargetInfo"
+        "getTargetInfo",
+        "allTargetInfos"
     ];
 
     traitsStringTable._init(48);
@@ -1798,6 +1799,21 @@ Lnext:
             return new ErrorExp();
         }
         return r.expressionSemantic(sc);
+    }
+    if (e.ident == Id.allTargetInfos)
+    {
+        if (dim != 0)
+            return dimError(0);
+
+        size_t numTargetInfos;
+        const(char*)[] targetInfoKeys = Target.allTargetInfos(&numTargetInfos)[0 .. numTargetInfos];
+
+        Expressions* exps = new Expressions();
+        foreach (k; targetInfoKeys)
+            exps.push(new StringExp(e.loc, cast(char*)k));
+
+        Expression ex = new TupleExp(e.loc, exps);
+        return ex.expressionSemantic(sc);
     }
 
     extern (D) void* trait_search_fp(const(char)* seed, ref int cost)

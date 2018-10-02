@@ -406,6 +406,7 @@ immutable Msgtable[] msgtable =
     { "isReturnOnStack" },
     { "isZeroInit" },
     { "getTargetInfo" },
+    { "allTargetInfos" },
 
     // For C++ mangling
     { "allocator" },

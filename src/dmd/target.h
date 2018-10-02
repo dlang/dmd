@@ -87,4 +87,5 @@ struct Target
     static bool isReturnOnStack(TypeFunction *tf, bool needsThis);
     static d_uns64 parameterSize(const Loc& loc, Type *t);
     static Expression *getTargetInfo(const char* name, const Loc& loc);
+    static const char *const * allTargetInfos(size_t* numTargetInfos);
 };

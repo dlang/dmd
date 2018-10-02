@@ -12,7 +12,13 @@ class C19152
     }
 }
 
+static assert(is(typeof(__traits(allTargetInfos)[0]) == string));
 static assert(is(typeof(__traits(getTargetInfo, "cppRuntimeLibrary")) == string));
+
+version (DigitalMars)
+{
+    static assert([__traits(allTargetInfos)] == ["cppRuntimeLibrary"]);
+}
 
 version (CppRuntime_Microsoft)
 {
