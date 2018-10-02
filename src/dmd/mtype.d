@@ -79,7 +79,8 @@ bool MODimplicitConv(MOD modfrom, MOD modto) pure nothrow @nogc @safe
     case X(MODFlags.wild, MODFlags.const_):
     case X(MODFlags.wild, MODFlags.wildconst):
     case X(MODFlags.wildconst, MODFlags.const_):
-        return (modfrom & MODFlags.shared_) == (modto & MODFlags.shared_);
+        // Casting to shared is fine, but otherwise casting from shared is not.
+        return (modto & MODFlags.shared_) || !(modfrom & MODFlags.shared_);
 
     case X(MODFlags.immutable_, MODFlags.const_):
     case X(MODFlags.immutable_, MODFlags.wildconst):
@@ -115,6 +116,9 @@ MATCH MODmethodConv(MOD modfrom, MOD modto) pure nothrow @nogc @safe
     case X(MODFlags.shared_ | MODFlags.const_, MODFlags.shared_ | MODFlags.wild):
     case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.shared_ | MODFlags.wild):
         return MATCH.constant;
+
+    case X(0,MODFlags.shared_):
+        return MATCH.shared_;
 
     default:
         return MATCH.nomatch;
