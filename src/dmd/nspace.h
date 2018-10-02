@@ -20,6 +20,7 @@ class Nspace : public ScopeDsymbol
 {
   public:
     bool mangleOnly;
+    Expression *identExp;
     Dsymbol *syntaxCopy(Dsymbol *s);
     void addMember(Scope *sc, ScopeDsymbol *sds);
     void setScope(Scope *sc);

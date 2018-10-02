@@ -2831,6 +2831,68 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (!sc)
             return;
 
+        bool repopulateMembers = false;
+        if (ns.identExp)
+        {
+            // resolve the namespace identifier
+            sc = sc.startCTFE();
+            Expression resolved = ns.identExp.expressionSemantic(sc);
+            resolved = resolveProperties(sc, resolved);
+            sc = sc.endCTFE();
+            resolved = resolved.ctfeInterpret();
+            StringExp name = resolved.toStringExp();
+            TupleExp tup = name ? null : resolved.toTupleExp();
+            if (!tup && !name)
+            {
+                error(ns.loc, "expected string expression for namespace name, got `%s`", ns.identExp.toChars());
+                return;
+            }
+            ns.identExp = resolved; // we don't need to keep the old AST around
+            if (name)
+            {
+                const(char)[] ident = name.toStringz();
+                if (ident.length == 0 || !Identifier.isValidIdentifier(ident))
+                {
+                    error(ns.loc, "expected valid identifer for C++ namespace but got `%.*s`", cast(int)ident.length, ident.ptr);
+                    return;
+                }
+                ns.ident = Identifier.idPool(ident);
+            }
+            else
+            {
+                // create namespace stack from the tuple
+                Nspace parentns = ns;
+                foreach (i, exp; *tup.exps)
+                {
+                    name = exp.toStringExp();
+                    if (!name)
+                    {
+                        error(ns.loc, "expected string expression for namespace name, got `%s`", exp.toChars());
+                        return;
+                    }
+                    const(char)[] ident = name.toStringz();
+                    if (ident.length == 0 || !Identifier.isValidIdentifier(ident))
+                    {
+                        error(ns.loc, "expected valid identifer for C++ namespace but got `%.*s`", cast(int)ident.length, ident.ptr);
+                        return;
+                    }
+                    if (i == 0)
+                    {
+                        ns.ident = Identifier.idPool(ident);
+                    }
+                    else
+                    {
+                        // insert the new namespace
+                        Nspace childns = new Nspace(ns.loc, Identifier.idPool(ident), null, parentns.members, ns.mangleOnly);
+                        parentns.members = new Dsymbols;
+                        parentns.members.push(childns);
+                        parentns = childns;
+                        repopulateMembers = true;
+                    }
+                }
+            }
+        }
+
         ns.semanticRun = PASS.semantic;
         ns.parent = sc.parent;
         if (ns.members)
@@ -2841,6 +2903,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sc.parent = ns;
             foreach (s; *ns.members)
             {
+                if (repopulateMembers)
+                    s.setScope(sc);
                 s.importAll(sc);
             }
             foreach (s; *ns.members)
