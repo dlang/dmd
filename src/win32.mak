@@ -242,7 +242,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\dwarf.c $C\dwarf.h $C\machobj.c \
 	$C\strtold.c $C\aa.h $C\aa.c $C\tinfo.h $C\ti_achar.c \
 	$C\md5.h $C\md5.c $C\ti_pvoid.c $C\xmm.h $C\ph2.c $C\util2.c \
-	$C\mscoffobj.c $C\obj.h $C\pdata.c $C\cv8.d $C\backconfig.c \
+	$C\mscoffobj.c $C\obj.h $C\pdata.d $C\cv8.d $C\backconfig.c \
 	$C\divcoeff.d $C\dwarfeh.c $C\varstats.c $C\varstats.h \
 	$C\dvec.d $C\backend.txt
 
@@ -594,8 +594,8 @@ $G/out.obj : $C\out.c
 $G/outbuf.obj : $C\outbuf.h $C\outbuf.c
 	$(CC) -c -o$@ $(MFLAGS) $C\outbuf
 
-$G/pdata.obj : $C\pdata.c
-	$(CC) -c -o$@ $(MFLAGS) $C\pdata
+$G/pdata.obj : $C\pdata.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\pdata
 
 $G/ph2.obj : $C\ph2.c
 	$(CC) -c -o$@ $(MFLAGS) $C\ph2

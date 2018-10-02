@@ -86,7 +86,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\dmd\backend\backconfig.c" />
-    <ClCompile Include="..\dmd\backend\pdata.c" />
     <ClCompile Include="..\dmd\backend\ph2.c" />
     <ClCompile Include="..\dmd\backend\util2.c" />
     <ClCompile Include="..\dmd\backend\varstats.c" />
