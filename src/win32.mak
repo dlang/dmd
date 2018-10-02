@@ -241,7 +241,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\elfobj.c $C\cv4.h $C\dwarf2.h $C\exh.h $C\go.h \
 	$C\dwarf.c $C\dwarf.h $C\machobj.c \
 	$C\strtold.c $C\aa.h $C\aa.c $C\tinfo.h $C\ti_achar.c \
-	$C\md5.h $C\md5.c $C\ti_pvoid.c $C\xmm.h $C\ph2.c $C\util2.c \
+	$C\md5.h $C\md5.c $C\ti_pvoid.c $C\xmm.h $C\ph2.c $C\util2.d \
 	$C\mscoffobj.c $C\obj.h $C\pdata.d $C\cv8.d $C\backconfig.c \
 	$C\divcoeff.d $C\dwarfeh.c $C\varstats.c $C\varstats.h \
 	$C\dvec.d $C\backend.txt
@@ -618,8 +618,8 @@ $G/ti_pvoid.obj : $C\tinfo.h $C\ti_pvoid.c
 $G/dtype.obj : $C\dtype.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\dtype
 
-$G/util2.obj : $C\util2.c
-	$(CC) -c -o$@ $(MFLAGS) $C\util2
+$G/util2.obj : $C\util2.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\util2
 
 $G/var.obj : $C\var.c $G\optab.c
 	$(CC) -c -o$@ $(MFLAGS) -I$D -I$C -I$G $C\var
