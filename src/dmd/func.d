@@ -2714,25 +2714,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                 td.kind(), td.parent.toPrettyChars(), td.ident.toChars(),
                 tiargsBuf.peekString(), fargsBuf.peekString());
 
-            // Display candidate templates (even if there are no multiple overloads)
-            int numToDisplay = numOverloadsDisplay;
-            overloadApply(td, (Dsymbol s)
-            {
-                auto td = s.isTemplateDeclaration();
-                if (!td)
-                    return 0;
-                .errorSupplemental(td.loc, "`%s`", td.toPrettyChars());
-                if (global.params.verbose || --numToDisplay != 0 || !td.overnext)
-                    return 0;
-
-                // Too many overloads to sensibly display.
-                // Just show count of remaining overloads.
-                int num = 0;
-                overloadApply(td.overnext, (s) { ++num; return 0; });
-                if (num > 0)
-                    .errorSupplemental(loc, "... (%d more, -v to show) ...", num);
-                return 1;   // stop iterating
-            });
+            printCandidates(loc, td);
         }
         else if (od)
         {
@@ -2792,36 +2774,8 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                 }
             }
 
-            // Display candidate functions
-            int numToDisplay = numOverloadsDisplay;
-            overloadApply(hasOverloads ? fd : null, (Dsymbol s)
-            {
-                auto fd = s.isFuncDeclaration();
-                auto td = s.isTemplateDeclaration();
-                if (fd)
-                {
-                    if (fd.errors || fd.type.ty == Terror)
-                        return 0;
-
-                    auto tf = cast(TypeFunction)fd.type;
-                    .errorSupplemental(fd.loc, "`%s%s`", fd.toPrettyChars(),
-                        parametersTypeToChars(tf.parameters, tf.varargs));
-                }
-                else
-                {
-                    .errorSupplemental(td.loc, "`%s`", td.toPrettyChars());
-                }
-
-                if (global.params.verbose || --numToDisplay != 0 || !fd)
-                    return 0;
-
-                // Too many overloads to sensibly display.
-                int num = 0;
-                overloadApply(fd.overnext, (s){ ++num; return 0; });
-                if (num > 0)
-                    .errorSupplemental(loc, "... (%d more, -v to show) ...", num);
-                return 1;   // stop iterating
-            }, sc);
+            if (hasOverloads)
+                printCandidates(loc, fd);
         }
     }
     else if (m.nextf)
@@ -2841,6 +2795,52 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
             m.nextf.loc.toChars(), m.nextf.toPrettyChars(), nextprms, mod2);
     }
     return null;
+}
+
+/*******************************************
+ * Prints template and function overload candidates as supplemental errors.
+ * Params:
+ *      loc =           instantiation location
+ *      declaration =   the declaration to print overload candidates for
+ */
+private void printCandidates(Decl)(const ref Loc loc, Decl declaration)
+if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
+{
+    // max num of overloads to print (-v overrides this).
+    int numToDisplay = 5;
+
+    overloadApply(declaration, (Dsymbol s)
+    {
+        Dsymbol nextOverload;
+
+        if (auto fd = s.isFuncDeclaration())
+        {
+            if (fd.errors || fd.type.ty == Terror)
+                return 0;
+
+            auto tf = cast(TypeFunction) fd.type;
+            .errorSupplemental(fd.loc, "`%s%s`", fd.toPrettyChars(),
+                parametersTypeToChars(tf.parameters, tf.varargs));
+            nextOverload = fd.overnext;
+        }
+        else if (auto td = s.isTemplateDeclaration())
+        {
+            .errorSupplemental(td.loc, "`%s`", td.toPrettyChars());
+            nextOverload = td.overnext;
+        }
+
+        if (global.params.verbose || --numToDisplay != 0)
+            return 0;
+
+        // Too many overloads to sensibly display.
+        // Just show count of remaining overloads.
+        int num = 0;
+        overloadApply(nextOverload, (s) { ++num; return 0; });
+
+        if (num > 0)
+            .errorSupplemental(loc, "... (%d more, -v to show) ...", num);
+        return 1;   // stop iterating
+    });
 }
 
 /**************************************
