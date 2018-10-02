@@ -288,7 +288,7 @@ private void opnegassdbl(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 // Load EA into DOUBLEREGS
                 getregs(cdb,DOUBLEREGS_32);
                 cs.Iop = 0x8B;
-                cs.Irm &= ~modregrm(0,7,0);
+                cs.Irm &= ~cast(uint)modregrm(0,7,0);
                 cs.Irm |= modregrm(0,AX,0);
                 cdb.gen(&cs);
                 cs.Irm |= modregrm(0,DX,0);
