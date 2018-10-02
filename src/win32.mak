@@ -230,7 +230,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\el.h $C\iasm.h $C\rtlsym.h \
 	$C\bcomplex.d $C\blockopt.d $C\cg.d $C\cg87.d $C\cgxmm.d \
 	$C\cgcod.d $C\cgcs.d $C\dcgcv.d $C\cgelem.d $C\cgen.c $C\cgobj.c \
-	$C\compress.d $C\cgreg.d $C\var.c \
+	$C\compress.d $C\cgreg.d $C\var.d \
 	$C\cgsched.d $C\cod1.d $C\cod2.d $C\cod3.d $C\cod4.d $C\cod5.d \
 	$C\dcode.d $C\symbol.d $C\debugprint.d $C\dt.c $C\ee.d $C\elem.d \
 	$C\evalu8.d $C\fp.c $C\go.d $C\gflow.d $C\gdag.d \
@@ -420,7 +420,7 @@ $(TOOLS_DIR)\checkwhitespace.d:
 	$(HOST_DC) -Df$@ $<
 
 ############################## Generated Source ##############################
-OPTABGENOUTPUT = $G\elxxx.d $G\cdxxx.d $G\optab.c $G\debtab.d $G\fltables.d $G\tytab.c
+OPTABGENOUTPUT = $G\elxxx.d $G\cdxxx.d $G\optab.d $G\debtab.d $G\fltables.d $G\tytab.d
 
 $(OPTABGENOUTPUT) : \
 	$C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c
@@ -431,11 +431,15 @@ $(OPTABGENOUTPUT) : \
 	copy debtab.d "$G\"
 	copy elxxx.d "$G\"
 	copy fltables.d "$G\"
+	copy tytab.d "$G\"
+	copy optab.d "$G\"
 	$(DEL) *.c
 	$(DEL) debtab.d
 	$(DEL) elxxx.d
 	$(DEL) fltables.d
 	$(DEL) cdxxx.d
+	$(DEL) tytab.d
+	$(DEL) optab.d
 
 $G\VERSION : ..\VERSION $G
 	copy ..\VERSION $@
@@ -621,8 +625,8 @@ $G/dtype.obj : $C\dtype.d
 $G/util2.obj : $C\util2.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\util2
 
-$G/var.obj : $C\var.c $G\optab.c
-	$(CC) -c -o$@ $(MFLAGS) -I$D -I$C -I$G $C\var
+$G/var.obj : $C\var.d $G\optab.d $G\tytab.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -J$G -betterC -mv=dmd.backend=$C $C\var
 
 $G/varstats.obj : $C\varstats.c
 	$(CC) -c -o$@ $(MFLAGS) -I$D -I$G $C\varstats

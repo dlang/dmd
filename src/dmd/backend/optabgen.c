@@ -234,8 +234,8 @@ void dooptab()
 #undef X2
 #undef X1
 
-        f = fopen("optab.c","w");
-        fprintf(f,"extern \"C\" { unsigned char optab1[OPMAX] =\n\t{");
+        f = fopen("optab.d","w");
+        fprintf(f,"extern (C) __gshared ubyte[OPMAX] optab1 =\n\t[");
         for (i = 0; i < OPMAX; i++)
         {       if ((i & 7) == 0)
                         fprintf(f,"\n\t");
@@ -243,8 +243,8 @@ void dooptab()
                 if (i != OPMAX - 1)
                         fprintf(f,",");
         }
-        fprintf(f,"\t}; }\n");
-        fprintf(f,"extern \"C\" { unsigned char optab2[OPMAX] =\n\t{");
+        fprintf(f,"\t];\n");
+        fprintf(f,"extern (C) __gshared ubyte[OPMAX] optab2 =\n\t[");
         for (i = 0; i < OPMAX; i++)
         {       if ((i & 7) == 0)
                         fprintf(f,"\n\t");
@@ -252,8 +252,8 @@ void dooptab()
                 if (i != OPMAX - 1)
                         fprintf(f,",");
         }
-        fprintf(f,"\t}; }\n");
-        fprintf(f,"extern \"C\" { unsigned char optab3[OPMAX] =\n\t{");
+        fprintf(f,"\t];\n");
+        fprintf(f,"extern (C) __gshared ubyte[OPMAX] optab3 =\n\t[");
         for (i = 0; i < OPMAX; i++)
         {       if ((i & 7) == 0)
                         fprintf(f,"\n\t");
@@ -261,9 +261,9 @@ void dooptab()
                 if (i != OPMAX - 1)
                         fprintf(f,",");
         }
-        fprintf(f,"\t}; }\n");
+        fprintf(f,"\t];\n");
 
-        fprintf(f,"extern \"C\" { unsigned char opcost[OPMAX] =\n\t{");
+        fprintf(f,"extern (C) __gshared ubyte[OPMAX] opcost =\n\t[");
         for (i = 0; i < OPMAX; i++)
         {       if ((i & 7) == 0)
                         fprintf(f,"\n\t");
@@ -271,7 +271,7 @@ void dooptab()
                 if (i != OPMAX - 1)
                         fprintf(f,",");
         }
-        fprintf(f,"\t}; }\n");
+        fprintf(f,"\t];\n");
 
         doreltables(f);
         fclose(f);
@@ -320,7 +320,7 @@ void doreltables(FILE *f)
             { OPnug,    OPug,   OPnul,  OPle,   0,      0 },
             { OPnue,    OPue,   OPnue,  OPne,   0,      0 },
         };
-#define RELMAX arraysize(reltables)
+#define RELMAX ((int)arraysize(reltables))
         enum OPER rel_not[RELMAX];
         enum OPER rel_swap[RELMAX];
         enum OPER rel_integral[RELMAX];
@@ -339,45 +339,45 @@ void doreltables(FILE *f)
             rel_unord    [j] = reltables[i].unord;
         }
 
-    fprintf(f,"unsigned char _rel_not[] =\n{ ");
+    fprintf(f,"__gshared ubyte[%d] _rel_not =\n[ ", RELMAX);
     for (i = 0; i < arraysize(rel_not); i++)
     {   fprintf(f,"0x%02x,",rel_not[i]);
         if ((i & 7) == 7 && i < arraysize(rel_not) - 1)
             fprintf(f,"\n  ");
     }
-    fprintf(f,"\n};\n");
+    fprintf(f,"\n];\n");
 
-    fprintf(f,"unsigned char _rel_swap[] =\n{ ");
+    fprintf(f,"__gshared ubyte[%d] _rel_swap =\n[ ", RELMAX);
     for (i = 0; i < arraysize(rel_swap); i++)
     {   fprintf(f,"0x%02x,",rel_swap[i]);
         if ((i & 7) == 7 && i < arraysize(rel_swap) - 1)
             fprintf(f,"\n  ");
     }
-    fprintf(f,"\n};\n");
+    fprintf(f,"\n];\n");
 
-    fprintf(f,"unsigned char _rel_integral[] =\n{ ");
+    fprintf(f,"__gshared ubyte[%d] _rel_integral =\n[ ", RELMAX);
     for (i = 0; i < arraysize(rel_integral); i++)
     {   fprintf(f,"0x%02x,",rel_integral[i]);
         if ((i & 7) == 7 && i < arraysize(rel_integral) - 1)
             fprintf(f,"\n  ");
     }
-    fprintf(f,"\n};\n");
+    fprintf(f,"\n];\n");
 
-    fprintf(f,"unsigned char _rel_exception[] =\n{ ");
+    fprintf(f,"__gshared ubyte[%d] _rel_exception =\n[ ", RELMAX);
     for (i = 0; i < arraysize(rel_exception); i++)
     {   fprintf(f,"0x%02x,",rel_exception[i]);
         if ((i & 7) == 7 && i < arraysize(rel_exception) - 1)
             fprintf(f,"\n  ");
     }
-    fprintf(f,"\n};\n");
+    fprintf(f,"\n];\n");
 
-    fprintf(f,"unsigned char _rel_unord[] =\n{ ");
+    fprintf(f,"__gshared ubyte[%d] _rel_unord =\n[ ", RELMAX);
     for (i = 0; i < arraysize(rel_unord); i++)
     {   fprintf(f,"0x%02x,",rel_unord[i]);
         if ((i & 7) == 7 && i < arraysize(rel_unord) - 1)
             fprintf(f,"\n  ");
     }
-    fprintf(f,"\n};\n");
+    fprintf(f,"\n];\n");
 }
 
 
@@ -996,48 +996,48 @@ void dotytab()
 #undef T1
 #undef T2
 
-    f = fopen("tytab.c","w");
+    f = fopen("tytab.d","w");
 
-    fprintf(f,"unsigned tytab[] =\n{ ");
+    fprintf(f,"__gshared uint[256] tytab =\n[ ");
     for (i = 0; i < arraysize(tytab); i++)
     {   fprintf(f,"0x%02x,",tytab[i]);
         if ((i & 7) == 7 && i < arraysize(tytab) - 1)
             fprintf(f,"\n  ");
     }
-    fprintf(f,"\n};\n");
+    fprintf(f,"\n];\n");
 
 #if 0
-    fprintf(f,"unsigned char tytab2[] =\n{ ");
+    fprintf(f,"__gshared ubyte[TYMAX] tytab2 =\n[ ");
     for (i = 0; i < arraysize(tytab2); i++)
     {   fprintf(f,"0x%02x,",tytab2[i]);
         if ((i & 7) == 7 && i < arraysize(tytab2) - 1)
             fprintf(f,"\n  ");
     }
-    fprintf(f,"\n};\n");
+    fprintf(f,"\n];\n");
 #endif
 
     for (i = 0; i < arraysize(typetab); i++)
     {   tytouns[typetab[i].ty] = typetab[i].unsty;
     }
-    fprintf(f,"tym_t tytouns[] =\n{ ");
+    fprintf(f,"__gshared tym_t[256] tytouns =\n[ ");
     for (i = 0; i < arraysize(tytouns); i++)
     {   fprintf(f,"0x%02x,",tytouns[i]);
         if ((i & 7) == 7 && i < arraysize(tytouns) - 1)
             fprintf(f,"\n  ");
     }
-    fprintf(f,"\n};\n");
+    fprintf(f,"\n];\n");
 
     for (i = 0; i < arraysize(typetab); i++)
     {   _tysize[typetab[i].ty | 0x00] = typetab[i].size;
         /*printf("_tysize[%d] = %d\n",typetab[i].ty,typetab[i].size);*/
     }
-    fprintf(f,"signed char _tysize[] =\n{ ");
+    fprintf(f,"__gshared byte[256] _tysize =\n[ ");
     for (i = 0; i < arraysize(_tysize); i++)
     {   fprintf(f,"%d,",_tysize[i]);
         if ((i & 7) == 7 && i < arraysize(_tysize) - 1)
             fprintf(f,"\n  ");
     }
-    fprintf(f,"\n};\n");
+    fprintf(f,"\n];\n");
 
     for (i = 0; i < arraysize(_tysize); i++)
         _tysize[i] = 0;
@@ -1067,27 +1067,28 @@ void dotytab()
         _tysize[typetab[i].ty | 0x00] = sz;
         /*printf("_tyalignsize[%d] = %d\n",typetab[i].ty,typetab[i].size);*/
     }
-    fprintf(f,"signed char _tyalignsize[] =\n{ ");
+
+    fprintf(f,"__gshared byte[256] _tyalignsize =\n[ ");
     for (i = 0; i < arraysize(_tysize); i++)
     {   fprintf(f,"%d,",_tysize[i]);
         if ((i & 7) == 7 && i < arraysize(_tysize) - 1)
             fprintf(f,"\n  ");
     }
-    fprintf(f,"\n};\n");
+    fprintf(f,"\n];\n");
 
     for (i = 0; i < arraysize(typetab); i++)
     {   _tyrelax[typetab[i].ty] = typetab[i].relty;
         /*printf("_tyrelax[%d] = %d\n",typetab[i].ty,typetab[i].relty);*/
     }
-    fprintf(f,"unsigned char _tyrelax[] =\n{ ");
+    fprintf(f,"__gshared ubyte[TYMAX] _tyrelax =\n[ ");
     for (i = 0; i < arraysize(_tyrelax); i++)
     {   fprintf(f,"0x%02x,",_tyrelax[i]);
         if ((i & 7) == 7 && i < arraysize(_tyrelax) - 1)
             fprintf(f,"\n  ");
     }
-    fprintf(f,"\n};\n");
+    fprintf(f,"\n];\n");
 
-    /********** tyequiv[] ************/
+    /********** tyequiv ************/
     for (i = 0; i < arraysize(_tyequiv); i++)
         _tyequiv[i] = i;
     _tyequiv[TYchar] = TYschar;         /* chars are signed by default  */
@@ -1096,43 +1097,43 @@ void dotytab()
     _tyequiv[TYint] = TYshort;
     _tyequiv[TYuint] = TYushort;
 
-    fprintf(f,"unsigned char tyequiv[] =\n{ ");
+    fprintf(f,"__gshared ubyte[TYMAX] tyequiv =\n[ ");
     for (i = 0; i < arraysize(_tyequiv); i++)
     {   fprintf(f,"0x%02x,",_tyequiv[i]);
         if ((i & 7) == 7 && i < arraysize(_tyequiv) - 1)
             fprintf(f,"\n  ");
     }
-    fprintf(f,"\n};\n");
+    fprintf(f,"\n];\n");
 
     for (i = 0; i < arraysize(typetab); i++)
         tystring[typetab[i].ty] = typetab[i].string;
-    fprintf(f,"extern \"C\" { const char *tystring[] =\n{ ");
+    fprintf(f,"extern (C) __gshared const(char)*[TYMAX] tystring =\n[ ");
     for (i = 0; i < arraysize(tystring); i++)
     {   fprintf(f,"\"%s\",",tystring[i]);
         if ((i & 7) == 7 && i < arraysize(tystring) - 1)
             fprintf(f,"\n  ");
     }
-    fprintf(f,"\n}; }\n");
+    fprintf(f,"\n];\n");
 
     for (i = 0; i < arraysize(typetab); i++)
         dttab[typetab[i].ty] = typetab[i].debtyp;
-    fprintf(f,"unsigned char dttab[] =\n{ ");
+    fprintf(f,"__gshared ubyte[TYMAX] dttab =\n[ ");
     for (i = 0; i < arraysize(dttab); i++)
     {   fprintf(f,"0x%02x,",dttab[i]);
         if ((i & 7) == 7 && i < arraysize(dttab) - 1)
             fprintf(f,"\n  ");
     }
-    fprintf(f,"\n};\n");
+    fprintf(f,"\n];\n");
 
     for (i = 0; i < arraysize(typetab); i++)
         dttab4[typetab[i].ty] = typetab[i].debtyp4;
-    fprintf(f,"unsigned short dttab4[] =\n{ ");
+    fprintf(f,"__gshared ushort[TYMAX] dttab4 =\n[ ");
     for (i = 0; i < arraysize(dttab4); i++)
     {   fprintf(f,"0x%02x,",dttab4[i]);
         if ((i & 7) == 7 && i < arraysize(dttab4) - 1)
             fprintf(f,"\n  ");
     }
-    fprintf(f,"\n};\n");
+    fprintf(f,"\n];\n");
 
     fclose(f);
 }
