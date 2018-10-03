@@ -235,7 +235,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\dcode.d $C\symbol.d $C\debugprint.d $C\dt.c $C\ee.d $C\elem.d \
 	$C\evalu8.d $C\fp.c $C\go.d $C\gflow.d $C\gdag.d \
 	$C\gother.d $C\glocal.d $C\gloop.d $C\gsroa.d $C\newman.c \
-	$C\nteh.d $C\os.c $C\out.c $C\outbuf.c $C\ptrntab.c $C\rtlsym.c \
+	$C\nteh.d $C\os.c $C\out.d $C\outbuf.c $C\ptrntab.c $C\rtlsym.c \
 	$C\dtype.d $C\melf.h $C\mach.h $C\mscoff.h $C\bcomplex.h \
 	$C\outbuf.h $C\token.h $C\tassert.h \
 	$C\elfobj.c $C\cv4.h $C\dwarf2.h $C\exh.h $C\go.h \
@@ -592,8 +592,8 @@ $G/nteh.obj : $C\rtlsym.h $C\nteh.d
 $G/os.obj : $C\os.c
 	$(CC) -c -o$@ $(MFLAGS) $C\os
 
-$G/out.obj : $C\out.c
-	$(CC) -c -o$@ $(MFLAGS) $C\out
+$G/out.obj : $C\out.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\out
 
 $G/outbuf.obj : $C\outbuf.h $C\outbuf.c
 	$(CC) -c -o$@ $(MFLAGS) $C\outbuf

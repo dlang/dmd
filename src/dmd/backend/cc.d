@@ -229,7 +229,7 @@ struct Srcpos
         }
     }
 
-    void print(const(char)* func);
+    void print(const(char)* func) { Srcpos_print(this, func); }
 
     static uint sizeCheck();
     unittest { assert(sizeCheck() == Srcpos.sizeof); }
@@ -251,6 +251,7 @@ version (HTOD)
     static char* srcpos_name(Srcpos p)   { return srcpos_sfile(p).SFname; }
 }
 
+void Srcpos_print(ref Srcpos srcpos, const(char)* func);
 
 //#include "token.h"
 
@@ -570,6 +571,8 @@ struct block
     uint        Bnumber;        // sequence number of block
     union
     {
+        uint _BLU;              // start of the union
+
         // CPP
         struct
         {
