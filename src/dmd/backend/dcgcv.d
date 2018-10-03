@@ -243,7 +243,7 @@ debtyp_t * debtyp_alloc(uint length)
 
 debug
 {
-    uint len = debtyp_t.sizeof - (d.data).sizeof + length;
+    const len = debtyp_t.sizeof - (d.data).sizeof + length;
     assert(len < 4 * 4096 - 100);
     d = cast(debtyp_t *) mem_malloc(len /*+ 1*/);
     memset(d, 0xAA, len);
