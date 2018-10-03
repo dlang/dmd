@@ -387,7 +387,7 @@ BACK_HDRS=$C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/glob
 TK_HDRS=
 
 BACK_SRC = \
-	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
+	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.d \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h \
 	$C/bcomplex.d $C/blockopt.d $C/cg.d $C/cg87.d $C/cgxmm.d \
@@ -532,8 +532,8 @@ $G/dmd.conf: $(SRC_MAKE)
 ######## optabgen generates some source
 optabgen_output = debtab.d optab.d cdxxx.d elxxx.d fltables.d tytab.d
 
-$G/optabgen: $C/optabgen.c $C/cc.h $C/oper.h
-	$(HOST_CXX) $(CXXFLAGS) -I$(TK) $< -o $G/optabgen
+$G/optabgen: $C/optabgen.d $C/cc.d $C/oper.d $(HOST_DMD_PATH)
+	$(HOST_DMD_RUN) -of$@ $(DFLAGS) $(MODEL_FLAG) -mv=dmd.backend=$C $<
 	$G/optabgen
 	mv $(optabgen_output) $G
 

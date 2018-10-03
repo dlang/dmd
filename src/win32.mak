@@ -224,7 +224,7 @@ GLUESRC= \
 	$(GLUE_SRCS)
 
 # D back end
-BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
+BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.d \
 	$C\global.h $C\code.h $C\code_x86.h $C/code_stub.h $C/platform_stub.c \
 	$C\type.h $C\dt.h $C\cgcv.h \
 	$C\el.h $C\iasm.h $C\rtlsym.h \
@@ -423,8 +423,8 @@ $(TOOLS_DIR)\checkwhitespace.d:
 OPTABGENOUTPUT = $G\elxxx.d $G\cdxxx.d $G\optab.d $G\debtab.d $G\fltables.d $G\tytab.d
 
 $(OPTABGENOUTPUT) : \
-	$C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c
-	$(CC) -cpp -o$G\optabgen.exe $C\optabgen -DMARS -DDM_TARGET_CPU_X86=1 -I$(TK)
+	$C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.d
+	$(HOST_DC) -of$G\optabgen.exe -betterC $(DFLAGS) -mv=dmd.backend=$C $C\optabgen
 	$G\optabgen.exe
 	copy *.c "$G\"
 	copy cdxxx.d "$G\"
