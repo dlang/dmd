@@ -48,9 +48,6 @@
     <ClCompile Include="..\dmd\backend\machobj.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
-    <ClCompile Include="..\dmd\backend\md5.c">
-      <Filter>dmd\backend</Filter>
-    </ClCompile>
     <ClCompile Include="..\dmd\backend\mscoffobj.c">
       <Filter>dmd\backend</Filter>
     </ClCompile>
