@@ -427,7 +427,7 @@ SRC = $(addprefix $D/, aggregate.h aliasthis.h arraytypes.h	\
 
 ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h dcompat.h file.h filename.h \
 	longdouble.h newdelete.c object.h outbuffer.h port.h \
-	rmem.h root.h stringtable.h)
+	rmem.h root.h)
 
 ######## Additional files
 
