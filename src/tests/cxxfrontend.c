@@ -19,7 +19,6 @@
 #include "root/port.h"
 #include "root/rmem.h"
 #include "root/root.h"
-#include "root/stringtable.h"
 #include "root/thread.h"
 
 #include "aggregate.h"

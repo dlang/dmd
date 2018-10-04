@@ -193,7 +193,6 @@ popd</Command>
     <ClInclude Include="..\dmd\root\port.h" />
     <ClInclude Include="..\dmd\root\rmem.h" />
     <ClInclude Include="..\dmd\root\root.h" />
-    <ClInclude Include="..\dmd\root\stringtable.h" />
     <ClInclude Include="..\vcbuild\alloca.h" />
     <ClInclude Include="..\vcbuild\fenv.h" />
     <ClInclude Include="..\vcbuild\stdint.h" />
