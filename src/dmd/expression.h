@@ -124,7 +124,6 @@ public:
     Expression *ctfeInterpret();
     int isConst();
     virtual bool isBool(bool result);
-    Expression *op_overload(Scope *sc);
 
     virtual bool hasCode()
     {
