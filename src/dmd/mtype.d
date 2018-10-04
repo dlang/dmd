@@ -4720,7 +4720,17 @@ extern (C++) final class TypeFunction : TypeNext
                             if(.trySemantic(e, sc))
                                 m = MATCH.exact;
                             else
+                            {
                                 m = MATCH.nomatch;
+                                if (pMessage)
+                                {
+                                    OutBuffer buf;
+                                    buf.printf("`struct %s` does not define a copy constructor for `%s` to `%s` copies",
+                                           argStruct.toChars(), targ.toChars(), tprm.toChars());
+                                    *pMessage = buf.extractString();
+                                }
+                                goto Nomatch;
+                            }
                         }
                         else
                             m = arg.implicitConvTo(tprm);
