@@ -3431,7 +3431,7 @@ extern (C++) final class FuncExp : Expression
         return false;
     }
 
-    void genIdent(Scope* sc)
+    extern (D) void genIdent(Scope* sc)
     {
         if (fd.ident == Id.empty)
         {
@@ -3488,7 +3488,7 @@ extern (C++) final class FuncExp : Expression
             return new FuncExp(loc, fd);
     }
 
-    MATCH matchType(Type to, Scope* sc, FuncExp* presult, int flag = 0)
+    extern (D) MATCH matchType(Type to, Scope* sc, FuncExp* presult, int flag = 0)
     {
         //printf("FuncExp::matchType('%s'), to=%s\n", type ? type.toChars() : "null", to.toChars());
         if (presult)

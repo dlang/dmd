@@ -498,9 +498,7 @@ public:
     TOK tok;
 
     bool equals(RootObject *o);
-    void genIdent(Scope *sc);
     Expression *syntaxCopy();
-    MATCH matchType(Type *to, Scope *sc, FuncExp **pfe, int flag = 0);
     const char *toChars();
     bool checkType();
     bool checkValue();
