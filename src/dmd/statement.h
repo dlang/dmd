@@ -291,7 +291,6 @@ public:
     ScopeStatements *gotos;     // forward referenced goto's go here
 
     Statement *syntaxCopy();
-    bool checkForArgTypes();
     bool hasBreak();
     bool hasContinue();
 
@@ -396,7 +395,6 @@ public:
 
     Statement *syntaxCopy();
     bool hasBreak();
-    bool checkLabel();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -624,7 +622,6 @@ public:
     VarDeclaration *lastVar;
 
     Statement *syntaxCopy();
-    bool checkLabel();
 
     void accept(Visitor *v) { v->visit(this); }
 };

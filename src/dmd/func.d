@@ -406,7 +406,7 @@ extern (C++) class FuncDeclaration : Declaration
      * Check that this function type is properly resolved.
      * If not, report "forward reference error" and return true.
      */
-    final bool checkForwardRef(const ref Loc loc)
+    extern (D) final bool checkForwardRef(const ref Loc loc)
     {
         if (!functionSemantic())
             return true;
@@ -1670,7 +1670,7 @@ extern (C++) class FuncDeclaration : Declaration
      *    then mark it as a delegate.
      * Returns true if error occurs.
      */
-    final bool checkNestedReference(Scope* sc, const ref Loc loc)
+    extern (D) final bool checkNestedReference(Scope* sc, const ref Loc loc)
     {
         //printf("FuncDeclaration::checkNestedReference() %s\n", toPrettyChars());
 
@@ -1840,7 +1840,7 @@ extern (C++) class FuncDeclaration : Declaration
      * Returns:
      *      true if any errors occur.
      */
-    final bool checkClosure()
+    extern (D) final bool checkClosure()
     {
         if (!needsClosure())
             return false;
@@ -2327,7 +2327,7 @@ extern (C++) class FuncDeclaration : Declaration
      * Check parameters and return type of D main() function.
      * Issue error messages.
      */
-    final void checkDmain()
+    extern (D) final void checkDmain()
     {
         TypeFunction tf = type.toTypeFunction();
         const nparams = Parameter.dim(tf.parameters);

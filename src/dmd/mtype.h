@@ -286,7 +286,6 @@ public:
     Type *arrayOf();
     Type *sarrayOf(dinteger_t dim);
     Type *aliasthisOf();
-    bool checkAliasThisRec();
     virtual Type *makeConst();
     virtual Type *makeImmutable();
     virtual Type *makeShared();
@@ -321,7 +320,6 @@ public:
     uinteger_t sizemask();
     virtual bool needsDestruction();
     virtual bool needsNested();
-    bool checkComplexTransition(const Loc &loc, Scope *sc);
 
     // For eliminating dynamic_cast
     virtual TypeBasic *isTypeBasic();
@@ -567,7 +565,6 @@ public:
     int attributesApply(void *param, int (*fp)(void *, const char *), TRUSTformat trustFormat = TRUSTformatDefault);
 
     Type *substWildTo(unsigned mod);
-    bool checkRetType(const Loc &loc);
 
     void accept(Visitor *v) { v->visit(this); }
 };

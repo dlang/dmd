@@ -2072,7 +2072,7 @@ extern (C++) abstract class Type : RootObject
         return null;
     }
 
-    final bool checkAliasThisRec()
+    extern (D) final bool checkAliasThisRec()
     {
         Type tb = toBasetype();
         AliasThisRec* pflag;
@@ -2647,7 +2647,7 @@ extern (C++) abstract class Type : RootObject
      *  loc = The source location.
      *  sc = scope of the type
      */
-    final bool checkComplexTransition(const ref Loc loc, Scope* sc)
+    extern (D) final bool checkComplexTransition(const ref Loc loc, Scope* sc)
     {
         if (sc.isDeprecated())
             return false;
@@ -4940,7 +4940,7 @@ extern (C++) final class TypeFunction : TypeNext
         return MATCH.nomatch;
     }
 
-    bool checkRetType(const ref Loc loc)
+    extern (D) bool checkRetType(const ref Loc loc)
     {
         Type tb = next.toBasetype();
         if (tb.ty == Tfunction)

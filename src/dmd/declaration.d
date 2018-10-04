@@ -325,7 +325,7 @@ extern (C++) abstract class Declaration : Dsymbol
      * Returns:
      *   `true` if this `Declaration` is `@disable`d, `false` otherwise.
      */
-    final bool checkDisabled(Loc loc, Scope* sc, bool isAliasedDeclaration = false)
+    extern (D) final bool checkDisabled(Loc loc, Scope* sc, bool isAliasedDeclaration = false)
     {
         if (storage_class & STC.disable)
         {
@@ -361,7 +361,7 @@ extern (C++) abstract class Declaration : Dsymbol
      * Check to see if declaration can be modified in this context (sc).
      * Issue error if not.
      */
-    final int checkModify(Loc loc, Scope* sc, Expression e1, int flag)
+    extern (D) final int checkModify(Loc loc, Scope* sc, Expression e1, int flag)
     {
         VarDeclaration v = isVarDeclaration();
         if (v && v.canassign)
@@ -1515,7 +1515,7 @@ extern (C++) class VarDeclaration : Declaration
      * rather than the current one.
      * Returns true if error occurs.
      */
-    final bool checkNestedReference(Scope* sc, Loc loc)
+    extern (D) final bool checkNestedReference(Scope* sc, Loc loc)
     {
         //printf("VarDeclaration::checkNestedReference() %s\n", toChars());
         if (sc.intypeof == 1 || (sc.flags & SCOPE.ctfe))

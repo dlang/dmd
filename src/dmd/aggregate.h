@@ -123,7 +123,6 @@ public:
     bool determineSize(Loc loc);
     virtual void finalizeSize() = 0;
     d_uns64 size(const Loc &loc);
-    bool checkOverlappedFields();
     bool fill(Loc loc, Expressions *elements, bool ctorinit);
     Type *getType();
     bool isDeprecated();         // is aggregate deprecated?
