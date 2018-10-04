@@ -351,7 +351,7 @@ BACK_OBJS = \
 	dt.o \
 	outbuf.o \
 	aa.o ti_achar.o \
-	ti_pvoid.o backconfig.o \
+	ti_pvoid.o backconfig.o sizecheck.o \
 	dwarf.o dwarfeh.o varstats.o \
 	ph2.o tk.o strtold.o \
 	$(TARGET_OBJS)
@@ -404,7 +404,7 @@ BACK_SRC = \
 	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aa.c $C/tinfo.h $C/ti_achar.c \
 	$C/ti_pvoid.c $C/platform_stub.c $C/code_x86.h $C/code_stub.h \
 	$C/machobj.c $C/mscoffobj.c \
-	$C/xmm.h $C/obj.h $C/pdata.d $C/cv8.d $C/backconfig.c $C/divcoeff.d \
+	$C/xmm.h $C/obj.h $C/pdata.d $C/cv8.d $C/backconfig.c $C/sizecheck.c $C/divcoeff.d \
 	$C/varstats.c $C/varstats.h $C/dvec.d \
 	$C/md5.d $C/md5.h \
 	$C/ph2.c $C/util2.d $C/dwarfeh.c $C/goh.d $C/memh.d \

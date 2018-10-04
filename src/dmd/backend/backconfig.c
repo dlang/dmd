@@ -476,27 +476,3 @@ void util_set64()
     TYdarray = TYucent;
 }
 
-// cc.d
-unsigned Srcpos::sizeCheck() { return sizeof(Srcpos); }
-unsigned Pstate::sizeCheck() { return sizeof(Pstate); }
-unsigned Cstate::sizeCheck() { return sizeof(Cstate); }
-unsigned Blockx::sizeCheck() { return sizeof(Blockx); }
-unsigned block::sizeCheck()  { return sizeof(block);  }
-unsigned func_t::sizeCheck() { return sizeof(func_t); }
-unsigned baseclass_t::sizeCheck() { return sizeof(baseclass_t); }
-unsigned template_t::sizeCheck() { return sizeof(template_t); }
-unsigned struct_t::sizeCheck() { return sizeof(struct_t); }
-unsigned Symbol::sizeCheck() { return sizeof(Symbol); }
-unsigned param_t::sizeCheck() { return sizeof(param_t); }
-unsigned Declar::sizeCheck() { return sizeof(Declar); }
-unsigned dt_t::sizeCheck() { return sizeof(dt_t); }
-
-// cdef.d
-unsigned Config::sizeCheck() { return sizeof(Config); }
-unsigned Configv::sizeCheck() { return sizeof(Configv); }
-unsigned eve::sizeCheck() { return sizeof(eve); }
-
-// el.d
-
-// type.d
-unsigned TYPE::sizeCheck() { return sizeof(type); }
