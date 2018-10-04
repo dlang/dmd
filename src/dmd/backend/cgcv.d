@@ -25,7 +25,7 @@ nothrow:
 
 alias symlist_t = LIST*;
 
-extern char* ftdbname;
+extern __gshared char* ftdbname;
 
 void cv_init();
 uint cv_typidx(type* t);

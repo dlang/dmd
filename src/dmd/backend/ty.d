@@ -334,7 +334,7 @@ uint tyrelax(tym_t ty) { return _tyrelax[tybasic(ty)]; }
 extern __gshared ubyte[TYMAX] tyequiv;
 
 /* Give an ascii string for a type      */
-extern (C) { extern __gshared const char*[TYMAX] tystring; }
+extern (C) { extern __gshared const(char)*[TYMAX] tystring; }
 
 /* Debugger value for type      */
 extern __gshared ubyte[TYMAX] dttab;
