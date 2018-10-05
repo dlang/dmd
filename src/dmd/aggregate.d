@@ -313,7 +313,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
      * Returns:
      *      true if any errors happen.
      */
-    final bool checkOverlappedFields()
+    extern (D) final bool checkOverlappedFields()
     {
         //printf("AggregateDeclaration::checkOverlappedFields() %s\n", toChars());
         assert(sizeok == Sizeok.done);

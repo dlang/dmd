@@ -960,7 +960,7 @@ extern (C++) abstract class Expression : RootObject
         return false;
     }
 
-    final bool checkScalar()
+    extern (D) final bool checkScalar()
     {
         if (op == TOK.error)
             return true;
@@ -974,7 +974,7 @@ extern (C++) abstract class Expression : RootObject
         return checkValue();
     }
 
-    final bool checkNoBool()
+    extern (D) final bool checkNoBool()
     {
         if (op == TOK.error)
             return true;
@@ -988,7 +988,7 @@ extern (C++) abstract class Expression : RootObject
         return false;
     }
 
-    final bool checkIntegral()
+    extern (D) final bool checkIntegral()
     {
         if (op == TOK.error)
             return true;
@@ -1002,7 +1002,7 @@ extern (C++) abstract class Expression : RootObject
         return checkValue();
     }
 
-    final bool checkArithmetic()
+    extern (D) final bool checkArithmetic()
     {
         if (op == TOK.error)
             return true;
@@ -1021,7 +1021,7 @@ extern (C++) abstract class Expression : RootObject
         return s.checkDeprecated(loc, sc);
     }
 
-    final bool checkDisabled(Scope* sc, Dsymbol s)
+    extern (D) final bool checkDisabled(Scope* sc, Dsymbol s)
     {
         if (auto d = s.isDeclaration())
         {
@@ -1037,7 +1037,7 @@ extern (C++) abstract class Expression : RootObject
      * we can only call other pure functions.
      * Returns true if error occurs.
      */
-    final bool checkPurity(Scope* sc, FuncDeclaration f)
+    extern (D) final bool checkPurity(Scope* sc, FuncDeclaration f)
     {
         if (!sc.func)
             return false;
@@ -1128,7 +1128,7 @@ extern (C++) abstract class Expression : RootObject
      * Check for purity and safety violations.
      * Returns true if error occurs.
      */
-    final bool checkPurity(Scope* sc, VarDeclaration v)
+    extern (D) final bool checkPurity(Scope* sc, VarDeclaration v)
     {
         //printf("v = %s %s\n", v.type.toChars(), v.toChars());
         /* Look for purity and safety violations when accessing variable v
@@ -1273,7 +1273,7 @@ extern (C++) abstract class Expression : RootObject
      * we can only call @safe or @trusted functions.
      * Returns true if error occurs.
      */
-    final bool checkSafety(Scope* sc, FuncDeclaration f)
+    extern (D) final bool checkSafety(Scope* sc, FuncDeclaration f)
     {
         if (!sc.func)
             return false;
@@ -1308,7 +1308,7 @@ extern (C++) abstract class Expression : RootObject
      * we can only call other @nogc functions.
      * Returns true if error occurs.
      */
-    final bool checkNogc(Scope* sc, FuncDeclaration f)
+    extern (D) final bool checkNogc(Scope* sc, FuncDeclaration f)
     {
         if (!sc.func)
             return false;
@@ -1337,7 +1337,7 @@ extern (C++) abstract class Expression : RootObject
      * Check that the postblit is callable if t is an array of structs.
      * Returns true if error happens.
      */
-    final bool checkPostblit(Scope* sc, Type t)
+    extern (D) final bool checkPostblit(Scope* sc, Type t)
     {
         t = t.baseElemOf();
         if (t.ty == Tstruct)
@@ -1363,7 +1363,7 @@ extern (C++) abstract class Expression : RootObject
         return false;
     }
 
-    final bool checkRightThis(Scope* sc)
+    extern (D) final bool checkRightThis(Scope* sc)
     {
         if (op == TOK.error)
             return true;
@@ -1386,7 +1386,7 @@ extern (C++) abstract class Expression : RootObject
      * ex is the RHS expression, or NULL if ++/-- is used (for diagnostics)
      * Returns true if error occurs.
      */
-    final bool checkReadModifyWrite(TOK rmwOp, Expression ex = null)
+    extern (D) final bool checkReadModifyWrite(TOK rmwOp, Expression ex = null)
     {
         //printf("Expression::checkReadModifyWrite() %s %s", toChars(), ex ? ex.toChars() : "");
         if (!type || !type.isShared())
@@ -3298,8 +3298,6 @@ extern (C++) final class VarExp : SymbolExp
         return var.checkModify(loc, sc, null, flag);
     }
 
-    bool checkReadModifyWrite();
-
     override bool isLvalue()
     {
         if (var.storage_class & (STC.lazy_ | STC.rvalue | STC.manifest))
@@ -3947,7 +3945,7 @@ extern (C++) abstract class BinExp : Expression
         return new ErrorExp();
     }
 
-    final Expression checkOpAssignTypes(Scope* sc)
+    extern (D) final Expression checkOpAssignTypes(Scope* sc)
     {
         // At that point t1 and t2 are the merged types. type is the original type of the lhs.
         Type t1 = e1.type;
@@ -4094,14 +4092,14 @@ extern (C++) abstract class BinExp : Expression
         return this;
     }
 
-    final bool checkIntegralBin()
+    extern (D) final bool checkIntegralBin()
     {
         bool r1 = e1.checkIntegral();
         bool r2 = e2.checkIntegral();
         return (r1 || r2);
     }
 
-    final bool checkArithmeticBin()
+    extern (D) final bool checkArithmeticBin()
     {
         bool r1 = e1.checkArithmetic();
         bool r2 = e2.checkArithmetic();
@@ -4377,8 +4375,6 @@ extern (C++) final class DotVarExp : UnaExp
         //printf("\te1 = %s\n", e1.toChars());
         return e1.checkModifiable(sc, flag);
     }
-
-    bool checkReadModifyWrite();
 
     override bool isLvalue()
     {

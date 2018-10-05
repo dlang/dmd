@@ -105,8 +105,6 @@ public:
 
     const char *kind() const;
     d_uns64 size(const Loc &loc);
-    bool checkDisabled(Loc loc, Scope* sc, bool isAliasedDeclaration = false);
-    int checkModify(Loc loc, Scope *sc, Expression *e1, int flag);
 
     Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
 
@@ -256,7 +254,6 @@ public:
     Expression *getConstInitializer(bool needFullType = true);
     Expression *expandInitializer(Loc loc);
     void checkCtorConstInit();
-    bool checkNestedReference(Scope *sc, Loc loc);
     Dsymbol *toAlias();
     // Eliminate need for dynamic_cast
     VarDeclaration *isVarDeclaration() { return (VarDeclaration *)this; }
@@ -545,7 +542,6 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     bool functionSemantic();
     bool functionSemantic3();
-    bool checkForwardRef(const Loc &loc);
     // called from semantic3
     VarDeclaration *declareThis(Scope *sc, AggregateDeclaration *ad);
     bool equals(RootObject *o);
@@ -597,9 +593,7 @@ public:
     virtual bool addPostInvariant();
     const char *kind() const;
     FuncDeclaration *isUnique();
-    bool checkNestedReference(Scope *sc, Loc loc);
     bool needsClosure();
-    bool checkClosure();
     bool hasNestedFrameRefs();
     void buildResultVar(Scope *sc, Type *tret);
     Statement *mergeFrequire(Statement *);
@@ -608,7 +602,6 @@ public:
 
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc=0);
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id, StorageClass stc=0);
-    void checkDmain();
 
     FuncDeclaration *isFuncDeclaration() { return this; }
 

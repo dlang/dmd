@@ -98,19 +98,7 @@ public:
     virtual Expression *resolveLoc(const Loc &loc, Scope *sc);
     virtual bool checkType();
     virtual bool checkValue();
-    bool checkScalar();
-    bool checkNoBool();
-    bool checkIntegral();
-    bool checkArithmetic();
     bool checkDeprecated(Scope *sc, Dsymbol *s);
-    bool checkDisabled(Scope *sc, Dsymbol *s);
-    bool checkPurity(Scope *sc, FuncDeclaration *f);
-    bool checkPurity(Scope *sc, VarDeclaration *v);
-    bool checkSafety(Scope *sc, FuncDeclaration *f);
-    bool checkNogc(Scope *sc, FuncDeclaration *f);
-    bool checkPostblit(Scope *sc, Type *t);
-    bool checkRightThis(Scope *sc);
-    bool checkReadModifyWrite(TOK rmwOp, Expression *ex = NULL);
     virtual int checkModifiable(Scope *sc, int flag = 0);
     virtual Expression *toBoolean(Scope *sc);
     virtual Expression *addDtorHook(Scope *sc);
@@ -467,7 +455,6 @@ public:
     static VarExp *create(Loc loc, Declaration *var, bool hasOverloads = true);
     bool equals(RootObject *o);
     int checkModifiable(Scope *sc, int flag);
-    bool checkReadModifyWrite();
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -591,9 +578,6 @@ public:
 
     Expression *syntaxCopy();
     Expression *incompatibleTypes();
-    Expression *checkOpAssignTypes(Scope *sc);
-    bool checkIntegralBin();
-    bool checkArithmeticBin();
 
     Expression *reorderSettingAAElem(Scope *sc);
 
@@ -660,7 +644,6 @@ public:
     bool hasOverloads;
 
     int checkModifiable(Scope *sc, int flag);
-    bool checkReadModifyWrite();
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);

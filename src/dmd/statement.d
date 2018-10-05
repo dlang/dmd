@@ -1591,7 +1591,7 @@ extern (C++) final class SwitchStatement : Statement
      * Returns:
      *  true if error
      */
-    bool checkLabel()
+    extern (D) bool checkLabel()
     {
         /*
          * Checks the scope of a label for existing variable declaration.
@@ -2216,7 +2216,7 @@ extern (C++) final class GotoStatement : Statement
         return new GotoStatement(loc, ident);
     }
 
-    bool checkLabel()
+    extern (D) bool checkLabel()
     {
         if (!label.statement)
         {
