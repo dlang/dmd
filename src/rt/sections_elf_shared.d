@@ -774,59 +774,51 @@ void scanSegments(in ref dl_phdr_info info, DSO* pdso) nothrow @nogc
 
 /**************************
  * Input:
- *      result  where the output is to be written; dl_phdr_info is a Linux struct
+ *      result  where the output is to be written; dl_phdr_info is an OS struct
  * Returns:
  *      true if found, and *result is filled in
  * References:
  *      http://linux.die.net/man/3/dl_iterate_phdr
  */
-version (linux) bool findDSOInfoForAddr(in void* addr, dl_phdr_info* result=null) nothrow @nogc
+bool findDSOInfoForAddr(in void* addr, dl_phdr_info* result=null) nothrow @nogc
 {
-    static struct DG { const(void)* addr; dl_phdr_info* result; }
+    version (linux)       enum IterateManually = true;
+    else version (NetBSD) enum IterateManually = true;
+    else                  enum IterateManually = false;
 
-    extern(C) int callback(dl_phdr_info* info, size_t sz, void* arg) nothrow @nogc
+    static if (IterateManually)
     {
-        auto p = cast(DG*)arg;
-        if (findSegmentForAddr(*info, p.addr))
+        static struct DG { const(void)* addr; dl_phdr_info* result; }
+
+        extern(C) int callback(dl_phdr_info* info, size_t sz, void* arg) nothrow @nogc
         {
-            if (p.result !is null) *p.result = *info;
-            return 1; // break;
+            auto p = cast(DG*)arg;
+            if (findSegmentForAddr(*info, p.addr))
+            {
+                if (p.result !is null) *p.result = *info;
+                return 1; // break;
+            }
+            return 0; // continue iteration
         }
-        return 0; // continue iteration
+
+        auto dg = DG(addr, result);
+
+        /* OS function that walks through the list of an application's shared objects and
+         * calls 'callback' once for each object, until either all shared objects
+         * have been processed or 'callback' returns a nonzero value.
+         */
+        return dl_iterate_phdr(&callback, &dg) != 0;
     }
-
-    auto dg = DG(addr, result);
-
-    /* Linux function that walks through the list of an application's shared objects and
-     * calls 'callback' once for each object, until either all shared objects
-     * have been processed or 'callback' returns a nonzero value.
-     */
-    return dl_iterate_phdr(&callback, &dg) != 0;
-}
-else version (FreeBSD) bool findDSOInfoForAddr(in void* addr, dl_phdr_info* result=null) nothrow @nogc
-{
-    return !!_rtld_addr_phdr(addr, result);
-}
-else version (NetBSD) bool findDSOInfoForAddr(in void* addr, dl_phdr_info* result=null) nothrow @nogc
-{
-    static struct DG { const(void)* addr; dl_phdr_info* result; }
-
-    extern(C) int callback(dl_phdr_info* info, size_t sz, void* arg) nothrow @nogc
+    else version (FreeBSD)
     {
-        auto p = cast(DG*)arg;
-        if (findSegmentForAddr(*info, p.addr))
-        {
-            if (p.result !is null) *p.result = *info;
-            return 1; // break;
-        }
-        return 0; // continue iteration
+        return !!_rtld_addr_phdr(addr, result);
     }
-    auto dg = DG(addr, result);
-    return dl_iterate_phdr(&callback, &dg) != 0;
-}
-else version (DragonFlyBSD) bool findDSOInfoForAddr(in void* addr, dl_phdr_info* result=null) nothrow @nogc
-{
-    return !!_rtld_addr_phdr(addr, result);
+    else version (DragonFlyBSD)
+    {
+        return !!_rtld_addr_phdr(addr, result);
+    }
+    else
+        static assert(0, "unimplemented");
 }
 
 /*********************************
