@@ -12,6 +12,7 @@
 
 module dmd.staticcond;
 
+import dmd.aliasthis;
 import dmd.arraytypes;
 import dmd.dmodule;
 import dmd.dscope;
@@ -92,6 +93,8 @@ bool evalStaticCondition(Scope* sc, Expression exp, Expression e, ref bool error
         errors = true;
         return false;
     }
+
+    e = resolveAliasThis(sc, e);
 
     if (!e.type.isBoolean())
     {
