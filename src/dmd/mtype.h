@@ -567,7 +567,6 @@ public:
     int attributesApply(void *param, int (*fp)(void *, const char *), TRUSTformat trustFormat = TRUSTformatDefault);
 
     Type *substWildTo(unsigned mod);
-    MATCH callMatch(Type *tthis, Expressions *toargs, int flag = 0);
     bool checkRetType(const Loc &loc);
 
     void accept(Visitor *v) { v->visit(this); }
