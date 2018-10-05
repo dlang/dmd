@@ -17,6 +17,7 @@ import core.stdc.string;
 import dmd.arraytypes;
 import dmd.complex;
 import dmd.constfold;
+import dmd.compiler;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dinterpret;
@@ -30,7 +31,6 @@ import dmd.mtype;
 import dmd.root.ctfloat;
 import dmd.root.port;
 import dmd.root.rmem;
-import dmd.target;
 import dmd.tokens;
 import dmd.visitor;
 
@@ -1006,7 +1006,7 @@ Expression paintFloatInt(Expression fromVal, Type to)
     if (exceptionOrCantInterpret(fromVal))
         return fromVal;
     assert(to.size() == 4 || to.size() == 8);
-    return Target.paintAsType(fromVal, to);
+    return Compiler.paintAsType(fromVal, to);
 }
 
 /******** Constant folding, with support for CTFE ***************************/
