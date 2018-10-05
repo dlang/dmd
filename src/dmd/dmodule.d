@@ -596,8 +596,6 @@ extern (C++) final class Module : Package
             m.importedFrom = m;
             assert(m.isRoot());
         }
-
-        Compiler.loadModule(m);
         return m;
     }
 
@@ -1115,6 +1113,7 @@ extern (C++) final class Module : Package
             // Add to global array of all modules
             amodules.push(this);
         }
+        Compiler.onParseModule(this);
         return this;
     }
 
