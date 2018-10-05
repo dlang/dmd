@@ -215,3 +215,6 @@ Along with the environment variables provided by the Makefile (see above), an ad
     EXTRA_FILES        directory for extra files of this test type, e.g. runnable/extra-files
 
     LIBEXT             platform-specific extension for library files, e.g. .a or .lib
+
+    SOEXT              platform-specific extension for shared object files (aka. dynamic libraries),
+                       e.g. .so, .dll or .dylib
