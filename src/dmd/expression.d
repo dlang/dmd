@@ -1541,11 +1541,6 @@ extern (C++) abstract class Expression : RootObject
         return false;
     }
 
-    final Expression op_overload(Scope* sc)
-    {
-        return .op_overload(this, sc);
-    }
-
     bool hasCode()
     {
         return true;
