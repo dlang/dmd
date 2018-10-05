@@ -5,31 +5,28 @@
  * Copyright:   Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/backconfig.c, backend/backconfig.c)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/backconfig.d, backend/backconfig.d)
  */
 
 // Configure the back end (optimizer and code generator)
 
-#include        <stdio.h>
-#include        <ctype.h>
-#include        <string.h>
-#include        <stdlib.h>
-#include        <time.h>
+module dmd.backend.backconfig;
 
-#include        "cc.h"
-#include        "global.h"
-#include        "oper.h"
-#include        "code.h"
-#include        "type.h"
-#include        "dt.h"
-#include        "cgcv.h"
+import core.stdc.stdio;
 
-static char __file__[] = __FILE__;      /* for tassert.h                */
-#include        "tassert.h"
+import dmd.backend.cdef;
+import dmd.backend.cc;
+import dmd.backend.code;
+import dmd.backend.global;
+import dmd.backend.ty;
+import dmd.backend.type;
 
-#if MARS
-extern void ph_init();
-#endif
+extern (C++):
+
+version (MARS)
+{
+    void ph_init();
+}
 
 /**************************************
  * Initialize configuration variables.
@@ -50,13 +47,14 @@ void out_config_init(
                         // 2: fake it with C symbolic debug info
         bool alwaysframe,       // always create standard function frame
         bool stackstomp,        // add stack stomping code
-        unsigned char avx,      // use AVX instruction set (0, 1, 2)
+        ubyte avx,              // use AVX instruction set (0, 1, 2)
         bool useModuleInfo,     // implement ModuleInfo
         bool useTypeInfo,       // implement TypeInfo
         bool useExceptions      // implement exception handling
         )
 {
-#if MARS
+version (MARS)
+{
     //printf("out_config_init()\n");
 
     if (!config.target_cpu)
@@ -64,19 +62,20 @@ void out_config_init(
         config.target_scheduler = config.target_cpu;
     }
     config.fulltypes = CVNONE;
-    config.fpxmmregs = FALSE;
+    config.fpxmmregs = false;
     config.inline8087 = 1;
     config.memmodel = 0;
     config.flags |= CFGuchar;   // make sure TYchar is unsigned
     tytab[TYchar] |= TYFLuns;
     bool mscoff = model & 1;
     model &= 32 | 64;
-#if TARGET_WINDOS
+static if (TARGET_WINDOS)
+{
     if (model == 64)
     {   config.exe = EX_WIN64;
-        config.fpxmmregs = TRUE;
+        config.fpxmmregs = true;
         config.avx = avx;
-        config.ehmethod = useExceptions ? EH_DM : EH_NONE;
+        config.ehmethod = useExceptions ? EHmethod.EH_DM : EHmethod.EH_NONE;
 
         // Not sure we really need these two lines, try removing them later
         config.flags |= CFGnoebp;
@@ -87,25 +86,26 @@ void out_config_init(
     else
     {
         config.exe = EX_WIN32;
-        config.ehmethod = useExceptions ? EH_WIN32 : EH_NONE;
+        config.ehmethod = useExceptions ? EHmethod.EH_WIN32 : EHmethod.EH_NONE;
         config.objfmt = mscoff ? OBJ_MSCOFF : OBJ_OMF;
     }
 
     if (exe)
         config.wflags |= WFexe;         // EXE file only optimizations
     config.flags4 |= CFG4underscore;
-#endif
-#if TARGET_LINUX
+}
+static if (TARGET_LINUX)
+{
     if (model == 64)
     {   config.exe = EX_LINUX64;
-        config.ehmethod = useExceptions ? EH_DWARF : EH_NONE;
-        config.fpxmmregs = TRUE;
+        config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+        config.fpxmmregs = true;
         config.avx = avx;
     }
     else
     {
         config.exe = EX_LINUX;
-        config.ehmethod = useExceptions ? EH_DWARF : EH_NONE;
+        config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
         if (!exe)
             config.flags |= CFGromable; // put switch tables in code segment
     }
@@ -116,19 +116,20 @@ void out_config_init(
         config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
     }
     config.objfmt = OBJ_ELF;
-#endif
-#if TARGET_OSX
-    config.fpxmmregs = TRUE;
+}
+static if (TARGET_OSX)
+{
+    config.fpxmmregs = true;
     config.avx = avx;
     if (model == 64)
     {   config.exe = EX_OSX64;
-        config.fpxmmregs = TRUE;
-        config.ehmethod = useExceptions ? EH_DWARF : EH_NONE;
+        config.fpxmmregs = true;
+        config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
     }
     else
     {
         config.exe = EX_OSX;
-        config.ehmethod = useExceptions ? EH_DWARF : EH_NONE;
+        config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
     }
     config.flags |= CFGnoebp;
     if (!exe)
@@ -138,18 +139,19 @@ void out_config_init(
     }
     config.flags |= CFGromable; // put switch tables in code segment
     config.objfmt = OBJ_MACH;
-#endif
-#if TARGET_FREEBSD
+}
+static if (TARGET_FREEBSD)
+{
     if (model == 64)
     {   config.exe = EX_FREEBSD64;
-        config.ehmethod = useExceptions ? EH_DWARF : EH_NONE;
-        config.fpxmmregs = TRUE;
+        config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+        config.fpxmmregs = true;
         config.avx = avx;
     }
     else
     {
         config.exe = EX_FREEBSD;
-        config.ehmethod = useExceptions ? EH_DWARF : EH_NONE;
+        config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
         if (!exe)
             config.flags |= CFGromable; // put switch tables in code segment
     }
@@ -160,11 +162,12 @@ void out_config_init(
         config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
     }
     config.objfmt = OBJ_ELF;
-#endif
-#if TARGET_OPENBSD
+}
+static if (TARGET_OPENBSD)
+{
     if (model == 64)
     {   config.exe = EX_OPENBSD64;
-        config.fpxmmregs = TRUE;
+        config.fpxmmregs = true;
         config.avx = avx;
     }
     else
@@ -178,13 +181,14 @@ void out_config_init(
     if (!exe)
         config.flags3 |= CFG3pic;
     config.objfmt = OBJ_ELF;
-    config.ehmethod = useExceptions ? EH_DM : EH_NONE;
-#endif
-#if TARGET_DRAGONFLYBSD
+    config.ehmethod = useExceptions ? EHmethod.EH_DM : EHmethod.EH_NONE;
+}
+static if (TARGET_DRAGONFLYBSD)
+{
     if (model == 64)
     {   config.exe = EX_DRAGONFLYBSD64;
-        config.ehmethod = useExceptions ? EH_DWARF : EH_NONE;
-        config.fpxmmregs = TRUE;
+        config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+        config.fpxmmregs = true;
         config.avx = avx;
     }
     else
@@ -198,11 +202,12 @@ void out_config_init(
         config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
     }
     config.objfmt = OBJ_ELF;
-#endif
-#if TARGET_SOLARIS
+}
+static if (TARGET_SOLARIS)
+{
     if (model == 64)
     {   config.exe = EX_SOLARIS64;
-        config.fpxmmregs = TRUE;
+        config.fpxmmregs = true;
         config.avx = avx;
     }
     else
@@ -216,19 +221,24 @@ void out_config_init(
     if (!exe)
         config.flags3 |= CFG3pic;
     config.objfmt = OBJ_ELF;
-    config.ehmethod = useExceptions ? EH_DM : EH_NONE;
-#endif
+    config.ehmethod = useExceptions ? EHmethod.EH_DM : EHmethod.EH_NONE;
+}
     config.flags2 |= CFG2nodeflib;      // no default library
     config.flags3 |= CFG3eseqds;
-#if 0
-    if (env->getEEcontext()->EEcompile != 2)
+static if (0)
+{
+    if (env.getEEcontext().EEcompile != 2)
         config.flags4 |= CFG4allcomdat;
-    if (env->nochecks())
+    if (env.nochecks())
         config.flags4 |= CFG4nochecks;  // no runtime checking
-#elif TARGET_OSX
-#else
+}
+else static if (TARGET_OSX)
+{
+}
+else
+{
     config.flags4 |= CFG4allcomdat;
-#endif
+}
     if (trace)
         config.flags |= CFGtrace;       // turn on profiler
     if (nofloat)
@@ -237,15 +247,17 @@ void out_config_init(
     configv.verbose = verbose;
 
     if (optimize)
-        go_flag((char *)"-o");
+        go_flag(cast(char*)"-o".ptr);
 
     if (symdebug)
     {
-#if SYMDEB_DWARF
+static if (SYMDEB_DWARF)
+{
         configv.addlinenumbers = 1;
         config.fulltypes = (symdebug == 1) ? CVDWARF_D : CVDWARF_C;
-#endif
-#if SYMDEB_CODEVIEW
+}
+static if (SYMDEB_CODEVIEW)
+{
         if (config.objfmt == OBJ_MSCOFF)
         {
             configv.addlinenumbers = 1;
@@ -258,7 +270,7 @@ void out_config_init(
             configv.addlinenumbers = 1;
             config.fulltypes = CV4;
         }
-#endif
+}
         if (!optimize)
             config.flags |= CFGalwaysframe;
     }
@@ -296,10 +308,11 @@ void out_config_init(
     }
 
     rtlsym_init(); // uses fregsaved, so must be after it's set inside cod3_set*
-#endif
+}
 }
 
-#ifdef DEBUG
+debug
+{
 
 /****************************
  * Transmit internal compiler debugging flags.
@@ -323,7 +336,7 @@ void out_config_debug(
     debugy = y;
 }
 
-#endif
+}
 
 /*************************************
  */
@@ -359,21 +372,28 @@ void util_set32()
     _tysize[TYnullptr] = LONGSIZE;
     _tysize[TYnptr] = LONGSIZE;
     _tysize[TYnref] = LONGSIZE;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
+static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+{
     _tysize[TYldouble] = 12;
     _tysize[TYildouble] = 12;
     _tysize[TYcldouble] = 24;
-#elif TARGET_OSX
+}
+else static if (TARGET_OSX)
+{
     _tysize[TYldouble] = 16;
     _tysize[TYildouble] = 16;
     _tysize[TYcldouble] = 32;
-#elif TARGET_WINDOS
+}
+else static if (TARGET_WINDOS)
+{
     _tysize[TYldouble] = 10;
     _tysize[TYildouble] = 10;
     _tysize[TYcldouble] = 20;
-#else
+}
+else
+{
     assert(0);
-#endif
+}
     _tysize[TYsptr] = LONGSIZE;
     _tysize[TYcptr] = LONGSIZE;
     _tysize[TYfptr] = 6;     // NOTE: There are codgen test that check
@@ -386,21 +406,28 @@ void util_set32()
     _tyalignsize[TYnullptr] = LONGSIZE;
     _tyalignsize[TYnref] = LONGSIZE;
     _tyalignsize[TYnptr] = LONGSIZE;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
+static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+{
     _tyalignsize[TYldouble] = 4;
     _tyalignsize[TYildouble] = 4;
     _tyalignsize[TYcldouble] = 4;
-#elif TARGET_OSX
+}
+else static if (TARGET_OSX)
+{
     _tyalignsize[TYldouble] = 16;
     _tyalignsize[TYildouble] = 16;
     _tyalignsize[TYcldouble] = 16;
-#elif TARGET_WINDOS
+}
+else static if (TARGET_WINDOS)
+{
     _tyalignsize[TYldouble] = 2;
     _tyalignsize[TYildouble] = 2;
     _tyalignsize[TYcldouble] = 2;
-#else
+}
+else
+{
     assert(0);
-#endif
+}
     _tyalignsize[TYsptr] = LONGSIZE;
     _tyalignsize[TYcptr] = LONGSIZE;
 }
@@ -424,17 +451,22 @@ void util_set64()
     _tysize[TYnullptr] = 8;
     _tysize[TYnptr] = 8;
     _tysize[TYnref] = 8;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS || TARGET_OSX
+static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS || TARGET_OSX)
+{
     _tysize[TYldouble] = 16;
     _tysize[TYildouble] = 16;
     _tysize[TYcldouble] = 32;
-#elif TARGET_WINDOS
+}
+else static if (TARGET_WINDOS)
+{
     _tysize[TYldouble] = 10;
     _tysize[TYildouble] = 10;
     _tysize[TYcldouble] = 20;
-#else
+}
+else
+{
     assert(0);
-#endif
+}
     _tysize[TYsptr] = 8;
     _tysize[TYcptr] = 8;
     _tysize[TYfptr] = 10;    // NOTE: There are codgen test that check
@@ -447,21 +479,28 @@ void util_set64()
     _tyalignsize[TYnullptr] = 8;
     _tyalignsize[TYnptr] = 8;
     _tyalignsize[TYnref] = 8;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
+static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+{
     _tyalignsize[TYldouble] = 16;
     _tyalignsize[TYildouble] = 16;
     _tyalignsize[TYcldouble] = 16;
-#elif TARGET_OSX
+}
+else static if (TARGET_OSX)
+{
     _tyalignsize[TYldouble] = 16;
     _tyalignsize[TYildouble] = 16;
     _tyalignsize[TYcldouble] = 16;
-#elif TARGET_WINDOS
+}
+else static if (TARGET_WINDOS)
+{
     _tyalignsize[TYldouble] = 2;
     _tyalignsize[TYildouble] = 2;
     _tyalignsize[TYcldouble] = 2;
-#else
+}
+else
+{
     assert(0);
-#endif
+}
     _tyalignsize[TYsptr] = 8;
     _tyalignsize[TYcptr] = 8;
     _tyalignsize[TYfptr] = 8;

@@ -242,7 +242,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\dwarf.c $C\dwarf.h $C\machobj.c \
 	$C\strtold.c $C\aa.h $C\aa.c $C\tinfo.h $C\ti_achar.c \
 	$C\md5.h $C\md5.d $C\ti_pvoid.c $C\xmm.h $C\ph2.c $C\util2.d \
-	$C\mscoffobj.c $C\obj.h $C\pdata.d $C\cv8.d $C\backconfig.c $C\sizecheck.c \
+	$C\mscoffobj.c $C\obj.h $C\pdata.d $C\cv8.d $C\backconfig.d $C\sizecheck.c \
 	$C\divcoeff.d $C\dwarfeh.c $C\varstats.c $C\varstats.h \
 	$C\dvec.d $C\backend.txt
 
@@ -457,8 +457,8 @@ $G\VERSION : ..\VERSION $G
 $G/aa.obj : $C\tinfo.h $C\aa.h $C\aa.c
 	$(CC) -c -o$@ $(MFLAGS) -I$D -I$G $C\aa
 
-$G/backconfig.obj : $C\backconfig.c
-	$(CC) -c -o$@ $(MFLAGS) $C\backconfig
+$G/backconfig.obj : $C\backconfig.d
+	$(HOST_DC) -c -betterC -of$@ $(DFLAGS) -mv=dmd.backend=$C $C\backconfig
 
 $G/bcomplex.obj : $C\bcomplex.d
 	$(HOST_DC) -c -betterC -of$@ $(DFLAGS) -mv=dmd.backend=$C $C\bcomplex
