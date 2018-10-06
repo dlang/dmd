@@ -59,6 +59,18 @@ import rt.minfo;
 import rt.util.container.array;
 import rt.util.container.hashtab;
 
+/****
+ * Asserts the specified condition, independent from -release, by abort()ing.
+ * Regular assertions throw an AssertError and thus require an initialized
+ * GC, which isn't the case (yet or anymore) for the startup/shutdown code in
+ * this module (called by CRT ctors/dtors etc.).
+ */
+private void safeAssert(bool condition, scope string msg, size_t line = __LINE__) @nogc nothrow @safe
+{
+    import core.internal.abort;
+    condition || abort(msg, __FILE__, line);
+}
+
 alias DSO SectionGroup;
 struct DSO
 {
@@ -106,9 +118,9 @@ private:
 
     invariant()
     {
-        assert(_moduleGroup.modules.length);
+        safeAssert(_moduleGroup.modules.length > 0, "No modules for DSO.");
         version (CRuntime_UClibc) {} else
-        assert(_tlsMod || !_tlsSize);
+        safeAssert(_tlsMod || !_tlsSize, "Inconsistent TLS fields for DSO.");
     }
 
     ModuleGroup _moduleGroup;
@@ -198,7 +210,8 @@ version (Shared)
             if (tdso._addCnt)
             {
                 // Increment the dlopen ref for explicitly loaded libraries to pin them.
-                .dlopen(linkMapForHandle(tdso._pdso._handle).l_name, RTLD_LAZY) !is null || assert(0);
+                const success = .dlopen(linkMapForHandle(tdso._pdso._handle).l_name, RTLD_LAZY) !is null;
+                safeAssert(success, "Failed to increment dlopen ref.");
                 (*res)[i]._addCnt = 1; // new array takes over the additional ref count
             }
         }
@@ -214,7 +227,7 @@ version (Shared)
             if (tdso._addCnt)
             {
                 auto handle = tdso._pdso._handle;
-                handle !is null || assert(0);
+                safeAssert(handle !is null, "Invalid library handle.");
                 .dlclose(handle);
             }
         }
@@ -226,7 +239,7 @@ version (Shared)
     // of the parent thread.
     void inheritLoadedLibraries(void* p) nothrow @nogc
     {
-        assert(_loadedDSOs.empty);
+        safeAssert(_loadedDSOs.empty, "DSOs have already been registered for this thread.");
         _loadedDSOs.swap(*cast(Array!(ThreadDSO)*)p);
         .free(p);
         foreach (ref dso; _loadedDSOs)
@@ -244,7 +257,7 @@ version (Shared)
             if (tdso._addCnt == 0) continue;
 
             auto handle = tdso._pdso._handle;
-            handle !is null || assert(0);
+            safeAssert(handle !is null, "Invalid DSO handle.");
             for (; tdso._addCnt > 0; --tdso._addCnt)
                 .dlclose(handle);
         }
@@ -374,7 +387,7 @@ T[] toRange(T)(T* beg, T* end) { return beg[0 .. end - beg]; }
 extern(C) void _d_dso_registry(CompilerDSOData* data)
 {
     // only one supported currently
-    data._version >= 1 || assert(0, "corrupt DSO data version");
+    safeAssert(data._version >= 1, "Incompatible compiler-generated DSO data version.");
 
     // no backlink => register
     if (*data._slot is null)
@@ -389,7 +402,8 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
         pdso._moduleGroup = ModuleGroup(toRange(data._minfo_beg, data._minfo_end));
 
         dl_phdr_info info = void;
-        findDSOInfoForAddr(data._slot, &info) || assert(0);
+        const headerFound = findDSOInfoForAddr(data._slot, &info);
+        safeAssert(headerFound, "Failed to find image header.");
 
         scanSegments(info, pdso);
 
@@ -415,7 +429,8 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
         }
         else
         {
-            foreach (p; _loadedDSOs) assert(p !is pdso);
+            foreach (p; _loadedDSOs)
+                safeAssert(p !is pdso, "DSO already registered.");
             _loadedDSOs.insertBack(pdso);
             _tlsRanges.insertBack(pdso.tlsRange());
         }
@@ -468,7 +483,7 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
         else
         {
             // static DSOs are unloaded in reverse order
-            assert(pdso == _loadedDSOs.back);
+            safeAssert(pdso == _loadedDSOs.back, "DSO being unregistered isn't current last one.");
             _loadedDSOs.popBack();
         }
 
@@ -479,7 +494,7 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
         {
             version (Shared)
             {
-                assert(_handleToDSO.empty);
+                safeAssert(_handleToDSO.empty, "_handleToDSO not in sync with _loadedDSOs.");
                 _handleToDSO.reset();
             }
             finiLocks();
@@ -522,8 +537,8 @@ version (Shared)
     void decThreadRef(DSO* pdso, bool decAdd)
     {
         auto tdata = findThreadDSO(pdso);
-        tdata !is null || assert(0);
-        !decAdd || tdata._addCnt > 0 || assert(0, "Mismatching rt_unloadLibrary call.");
+        safeAssert(tdata !is null, "Failed to find thread DSO.");
+        safeAssert(!decAdd || tdata._addCnt > 0, "Mismatching rt_unloadLibrary call.");
 
         if (decAdd && --tdata._addCnt > 0) return;
         if (--tdata._refCnt > 0) return;
@@ -630,13 +645,14 @@ version (Shared)
     link_map* linkMapForHandle(void* handle)
     {
         link_map* map;
-        dlinfo(handle, RTLD_DI_LINKMAP, &map) == 0 || assert(0);
+        const success = dlinfo(handle, RTLD_DI_LINKMAP, &map) == 0;
+        safeAssert(success, "Failed to get DSO info.");
         return map;
     }
 
      link_map* exeLinkMap(link_map* map)
      {
-         assert(map);
+         safeAssert(map !is null, "Invalid link_map.");
          while (map.l_prev !is null)
              map = map.l_prev;
          return map;
@@ -655,7 +671,7 @@ version (Shared)
     void setDSOForHandle(DSO* pdso, void* handle)
     {
         !pthread_mutex_lock(&_handleToDSOMutex) || assert(0);
-        assert(handle !in _handleToDSO);
+        safeAssert(handle !in _handleToDSO, "DSO already registered.");
         _handleToDSO[handle] = pdso;
         !pthread_mutex_unlock(&_handleToDSOMutex) || assert(0);
     }
@@ -663,7 +679,7 @@ version (Shared)
     void unsetDSOForHandle(DSO* pdso, void* handle)
     {
         !pthread_mutex_lock(&_handleToDSOMutex) || assert(0);
-        assert(_handleToDSO[handle] == pdso);
+        safeAssert(_handleToDSO[handle] == pdso, "Handle doesn't match registered DSO.");
         _handleToDSO.remove(handle);
         !pthread_mutex_unlock(&_handleToDSOMutex) || assert(0);
     }
@@ -713,7 +729,7 @@ version (Shared)
             // get handle without loading the library
             auto handle = handleForName(name);
             // the runtime linker has already loaded all dependencies
-            if (handle is null) assert(0);
+            safeAssert(handle !is null, "Failed to get library handle.");
             // if it's a D library
             if (auto pdso = dsoForHandle(handle))
                 deps.insertBack(pdso); // append it to the dependencies
@@ -756,7 +772,7 @@ void scanSegments(in ref dl_phdr_info info, DSO* pdso) nothrow @nogc
             break;
 
         case PT_TLS: // TLS segment
-            assert(!pdso._tlsSize); // is unique per DSO
+            safeAssert(!pdso._tlsSize, "Multiple TLS segments in image header.");
             version (CRuntime_UClibc)
             {
                 // uClibc doesn't provide a 'dlpi_tls_modid' definition
