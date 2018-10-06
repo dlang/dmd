@@ -354,14 +354,14 @@ BACK_OBJS = \
 	aa.o ti_achar.o \
 	ti_pvoid.o sizecheck.o \
 	dwarf.o dwarfeh.o varstats.o \
-	ph2.o tk.o strtold.o \
+	tk.o strtold.o \
 	$(TARGET_OBJS)
 
 BACK_DOBJS = bcomplex.o evalu8.o divcoeff.o dvec.o go.o gsroa.o glocal.o gdag.o gother.o gflow.o \
 	out.o \
 	gloop.o compress.o cgelem.o cgcs.o ee.o cod4.o cod5.o nteh.o blockopt.o memh.o cg.o cgreg.o \
 	dtype.o debugprint.o symbol.o elem.o dcode.o cgsched.o cg87.o cgxmm.o cgcod.o cod1.o cod2.o \
-	cod3.o cv8.o dcgcv.o pdata.o util2.o var.o md5.o backconfig.o
+	cod3.o cv8.o dcgcv.o pdata.o util2.o var.o md5.o backconfig.o ph2.o
 
 G_OBJS  = $(addprefix $G/, $(BACK_OBJS))
 G_DOBJS = $(addprefix $G/, $(BACK_DOBJS))
@@ -408,7 +408,7 @@ BACK_SRC = \
 	$C/xmm.h $C/obj.h $C/pdata.d $C/cv8.d $C/backconfig.d $C/sizecheck.c $C/divcoeff.d \
 	$C/varstats.c $C/varstats.h $C/dvec.d \
 	$C/md5.d $C/md5.h \
-	$C/ph2.c $C/util2.d $C/dwarfeh.c $C/goh.d $C/memh.d \
+	$C/ph2.d $C/util2.d $C/dwarfeh.c $C/goh.d $C/memh.d \
 	$(TARGET_CH)
 
 TK_SRC = \
