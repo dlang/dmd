@@ -30,7 +30,7 @@ enum Sizeok
 {
     SIZEOKnone,         // size of aggregate is not yet able to compute
     SIZEOKfwd,          // size of aggregate is ready to compute
-    SIZEOKdone,         // size of aggregate is set correctly
+    SIZEOKdone          // size of aggregate is set correctly
 };
 
 enum Baseok
@@ -38,21 +38,21 @@ enum Baseok
     BASEOKnone,         // base classes not computed yet
     BASEOKin,           // in process of resolving base classes
     BASEOKdone,         // all base classes are resolved
-    BASEOKsemanticdone, // all base classes semantic done
+    BASEOKsemanticdone  // all base classes semantic done
 };
 
 enum StructPOD
 {
     ISPODno,            // struct is not POD
     ISPODyes,           // struct is POD
-    ISPODfwd,           // POD not yet computed
+    ISPODfwd            // POD not yet computed
 };
 
 enum Abstract
 {
     ABSfwdref = 0,      // whether an abstract class is not yet computed
     ABSyes,             // is abstract class
-    ABSno,              // is not abstract class
+    ABSno               // is not abstract class
 };
 
 FuncDeclaration *search_toString(StructDeclaration *sd);
@@ -149,7 +149,7 @@ struct StructFlags
     enum Type
     {
         none = 0x0,
-        hasPointers = 0x1, // NB: should use noPointers as in ClassFlags
+        hasPointers = 0x1  // NB: should use noPointers as in ClassFlags
     };
 };
 
@@ -237,7 +237,7 @@ struct ClassFlags
         hasTypeInfo = 0x20,
         isAbstract = 0x40,
         isCPPclass = 0x80,
-        hasDtor = 0x100,
+        hasDtor = 0x100
     };
 };
 

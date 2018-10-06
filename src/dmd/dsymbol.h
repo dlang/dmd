@@ -96,7 +96,7 @@ struct Prot
         package_,
         protected_,
         public_,
-        export_,
+        export_
     };
     Kind kind;
     Package *pkg;
@@ -118,7 +118,7 @@ enum PASS
     PASSsemantic3done,  // semantic3() done
     PASSinline,         // inline started
     PASSinlinedone,     // inline done
-    PASSobj,            // toObjFile() run
+    PASSobj             // toObjFile() run
 };
 
 /* Flags for symbol search
@@ -135,7 +135,7 @@ enum
                                     // meaning don't search imports in that scope,
                                     // because qualified module searches search
                                     // their imports
-    IgnoreSymbolVisibility  = 0x80, // also find private and package protected symbols
+    IgnoreSymbolVisibility  = 0x80  // also find private and package protected symbols
 };
 
 typedef int (*Dsymbol_apply_ft_t)(Dsymbol *, void *);

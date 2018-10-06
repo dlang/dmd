@@ -58,7 +58,7 @@ enum BE
     BEbreak =    0x20,
     BEcontinue = 0x40,
     BEerrthrow = 0x80,
-    BEany = (BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt),
+    BEany = (BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt)
 };
 
 class Statement : public RootObject

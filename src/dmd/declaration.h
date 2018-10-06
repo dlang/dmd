@@ -429,7 +429,7 @@ enum ILS
 {
     ILSuninitialized,   // not computed yet
     ILSno,              // cannot inline
-    ILSyes,             // can inline
+    ILSyes              // can inline
 };
 
 /**************************************************************/
@@ -438,7 +438,7 @@ enum BUILTIN
 {
     BUILTINunknown = -1,        // not known if this is a builtin
     BUILTINno,                  // this is not a builtin
-    BUILTINyes,                 // this is a builtin
+    BUILTINyes                  // this is a builtin
 };
 
 Expression *eval_builtin(Loc loc, FuncDeclaration *fd, Expressions *arguments);
