@@ -113,9 +113,9 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\dmd\root\newdelete.c" />
-    <CustomBuild Include="..\dmd\backend\optabgen.c">
+    <CustomBuild Include="..\dmd\backend\optabgen.d">
       <Message>Building and running $(IntDir)%(Filename).exe</Message>
-      <Command>cl /TP /I..\dmd\tk /I..\dmd\root /I. /I.. /FIwarnings.h /Fo"$(IntDir)%(Filename).obj" /Fe"$(IntDir)generated\%(Filename).exe" "%(FullPath)"
+      <Command>$(DMDBinDir)\dmd.exe -I.. -version=MARS -of"$(IntDir)generated\%(Filename).exe" "%(FullPath)"
 if errorlevel 1 exit /B %ERRORLEVEL%
 pushd $(IntDir)generated
 "%(Filename).exe"
