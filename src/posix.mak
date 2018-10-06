@@ -301,7 +301,8 @@ endif
 endif
 
 ifneq (gdc, $(HOST_DMD_KIND))
-  BACK_BETTERC = -mv=dmd.backend=$C -betterC
+  BACK_MV = -mv=dmd.backend=$C
+  BACK_BETTERC = $(BACK_MV) -betterC
 endif
 
 ######## DMD frontend source files
@@ -533,7 +534,7 @@ $G/dmd.conf: $(SRC_MAKE)
 optabgen_output = debtab.d optab.d cdxxx.d elxxx.d fltables.d tytab.d
 
 $G/optabgen: $C/optabgen.d $C/cc.d $C/oper.d $(HOST_DMD_PATH)
-	$(HOST_DMD_RUN) -of$@ $(DFLAGS) $(MODEL_FLAG) -mv=dmd.backend=$C $<
+	$(HOST_DMD_RUN) -of$@ $(DFLAGS) $(MODEL_FLAG) $(BACK_MV) $<
 	$G/optabgen
 	mv $(optabgen_output) $G
 
