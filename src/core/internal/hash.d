@@ -57,6 +57,18 @@ private enum isFinalClassWithAddressBasedHash(T) = __traits(isFinalClass, T)
     static assert(!isFinalClassWithAddressBasedHash!C3);
 }
 
+private template isCppClassWithoutHash(T)
+{
+    static if (!is(T == class) && !is(T == interface))
+        enum isCppClassWithoutHash = false;
+    else
+    {
+        import core.internal.traits : Unqual;
+        enum bool isCppClassWithoutHash = __traits(getLinkage, T) == "C++"
+            && !is(Unqual!T : Object) && !hasCallableToHash!T;
+    }
+}
+
 /+
 Is it valid to calculate a hash code for T based on the bits of its
 representation? Always false for interfaces, dynamic arrays, and
@@ -80,11 +92,11 @@ private template canBitwiseHash(T)
         enum canBitwiseHash = true;
     else static if (is(T == class))
     {
-        enum canBitwiseHash = isFinalClassWithAddressBasedHash!T;
+        enum canBitwiseHash = isFinalClassWithAddressBasedHash!T || isCppClassWithoutHash!T;
     }
     else static if (is(T == interface))
     {
-        enum canBitwiseHash = false;
+        enum canBitwiseHash = isCppClassWithoutHash!T;
     }
     else static if (is(T == struct))
     {
@@ -553,7 +565,7 @@ size_t hashOf(T)(scope const T val, size_t seed = 0) if (!is(T == enum) && is(T 
 @nogc nothrow pure @trusted
 size_t hashOf(T)(scope const T val)
 if (!is(T == enum) && (is(T == interface) || is(T == class))
-    && isFinalClassWithAddressBasedHash!T)
+    && canBitwiseHash!T)
 {
     if (__ctfe) if (val is null) return 0;
     return hashOf(cast(const void*) val);
@@ -563,7 +575,7 @@ if (!is(T == enum) && (is(T == interface) || is(T == class))
 @nogc nothrow pure @trusted
 size_t hashOf(T)(scope const T val, size_t seed)
 if (!is(T == enum) && (is(T == interface) || is(T == class))
-    && isFinalClassWithAddressBasedHash!T)
+    && canBitwiseHash!T)
 {
     if (__ctfe) if (val is null) return hashOf(size_t(0), seed);
     return hashOf(cast(const void*) val, seed);
@@ -572,7 +584,7 @@ if (!is(T == enum) && (is(T == interface) || is(T == class))
 //class or interface hash. CTFE depends on toHash
 size_t hashOf(T)(T val)
 if (!is(T == enum) && (is(T == interface) || is(T == class))
-    && !isFinalClassWithAddressBasedHash!T)
+    && !canBitwiseHash!T)
 {
     static if (__traits(compiles, {size_t h = val.toHash();}))
         return val ? val.toHash() : 0;
@@ -583,7 +595,7 @@ if (!is(T == enum) && (is(T == interface) || is(T == class))
 //class or interface hash. CTFE depends on toHash
 size_t hashOf(T)(T val, size_t seed)
 if (!is(T == enum) && (is(T == interface) || is(T == class))
-    && !isFinalClassWithAddressBasedHash!T)
+    && !canBitwiseHash!T)
 {
     static if (__traits(compiles, {size_t h = val.toHash();}))
         return hashOf(val ? cast(size_t) val.toHash() : size_t(0), seed);
