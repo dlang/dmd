@@ -2162,20 +2162,40 @@ final class Parser(AST) : Lexer
                             while (1)
                             {
                                 AST.StringExp stringExp = cast(AST.StringExp)parsePrimaryExp();
-                                const(char)[] name = stringExp.toStringz();
-                                if (name.length == 0)
+                                const(char)[] ns = stringExp.toStringz();
+                                bool again = true;
+                                while (again)
                                 {
-                                    error("invalid zero length C++ namespace");
-                                    idents = null;
-                                    break;
+                                    again = false;
+                                    const(char)[] name = ns;
+                                    if (name.length >= 2)
+                                    {
+                                        // handle extern(C++, "namespace::namespaces")
+                                        foreach (i; 0 .. name.length - 1)
+                                        {
+                                            if (name[i .. i + 2] == "::")
+                                            {
+                                                ns = name[i + 2 .. $];
+                                                name = name[0 .. i];
+                                                again = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if (name.length == 0)
+                                    {
+                                        error("invalid zero length C++ namespace");
+                                        idents = null;
+                                        break;
+                                    }
+                                    else if (!Identifier.isValidIdentifier(name))
+                                    {
+                                        error("expected valid identifer for C++ namespace but got `%s`", name.ptr);
+                                        idents = null;
+                                        break;
+                                    }
+                                    idents.push(Identifier.idPool(name));
                                 }
-                                else if (!Identifier.isValidIdentifier(name))
-                                {
-                                    error("expected valid identifer for C++ namespace but got `%s`", name.ptr);
-                                    idents = null;
-                                    break;
-                                }
-                                idents.push(Identifier.idPool(name));
                                 if (token.value == TOK.comma)
                                 {
                                     nextToken();
