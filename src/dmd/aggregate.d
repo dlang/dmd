@@ -695,7 +695,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         }
     }
 
-    override final bool isExport()
+    override final bool isExport() const
     {
         return protection.kind == Prot.Kind.export_;
     }

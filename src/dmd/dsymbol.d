@@ -769,13 +769,13 @@ extern (C++) class Dsymbol : RootObject
     }
 
     // is Dsymbol exported?
-    bool isExport()
+    bool isExport() const
     {
         return false;
     }
 
     // is Dsymbol imported?
-    bool isImportedSymbol()
+    bool isImportedSymbol() const
     {
         return false;
     }
