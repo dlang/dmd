@@ -197,8 +197,8 @@ public:
     virtual d_uns64 size(const Loc &loc);
     virtual bool isforwardRef();
     virtual AggregateDeclaration *isThis();     // is a 'this' required to access the member
-    virtual bool isExport();                    // is Dsymbol exported?
-    virtual bool isImportedSymbol();            // is Dsymbol imported?
+    virtual bool isExport() const;              // is Dsymbol exported?
+    virtual bool isImportedSymbol() const;      // is Dsymbol imported?
     virtual bool isDeprecated();                // is Dsymbol deprecated?
     virtual bool isOverloadable();
     virtual LabelDsymbol *isLabel();            // is this a LabelDsymbol?

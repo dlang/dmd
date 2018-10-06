@@ -47,7 +47,7 @@ public:
     Dsymbol *toAlias();
     void addMember(Scope *sc, ScopeDsymbol *sds);
     void setScope(Scope* sc);
-    Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
+    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
     bool overloadInsert(Dsymbol *s);
 
     Import *isImport() { return this; }

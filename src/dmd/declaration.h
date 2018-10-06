@@ -106,13 +106,13 @@ public:
     const char *kind() const;
     d_uns64 size(const Loc &loc);
 
-    Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
+    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
 
     bool isStatic() const { return (storage_class & STCstatic) != 0; }
     virtual bool isDelete();
     virtual bool isDataseg();
     virtual bool isThreadlocal();
-    virtual bool isCodeseg();
+    virtual bool isCodeseg() const;
     bool isCtorinit() const     { return (storage_class & STCctorinit) != 0; }
     bool isFinal() const        { return (storage_class & STCfinal) != 0; }
     virtual bool isAbstract()   { return (storage_class & STCabstract) != 0; }
@@ -240,8 +240,8 @@ public:
     const char *kind() const;
     AggregateDeclaration *isThis();
     bool needThis();
-    bool isExport();
-    bool isImportedSymbol();
+    bool isExport() const;
+    bool isImportedSymbol() const;
     bool isDataseg();
     bool isThreadlocal();
     bool isCTFE();

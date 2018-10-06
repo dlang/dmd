@@ -128,7 +128,7 @@ public:
     bool isDeprecated();         // is aggregate deprecated?
     bool isNested();
     void makeNested();
-    bool isExport();
+    bool isExport() const;
     Dsymbol *searchCtor();
 
     Prot prot();
@@ -184,7 +184,7 @@ public:
     static StructDeclaration *create(Loc loc, Identifier *id, bool inObject);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semanticTypeInfoMembers();
-    Dsymbol *search(Loc, Identifier *ident, int flags = SearchLocalsOnly);
+    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
     const char *kind() const;
     void finalizeSize();
     bool fit(const Loc &loc, Scope *sc, Expressions *elements, Type *stype);
@@ -289,7 +289,7 @@ public:
     bool isAnonymous();
 
     bool isBaseInfoComplete();
-    Dsymbol *search(Loc, Identifier *ident, int flags = SearchLocalsOnly);
+    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
     ClassDeclaration *searchBase(Identifier *ident);
     void finalizeSize();
     bool isFuncHidden(FuncDeclaration *fd);
