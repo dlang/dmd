@@ -437,7 +437,7 @@ extern (C++) abstract class Declaration : Dsymbol
         return false;
     }
 
-    bool isCodeseg()
+    bool isCodeseg() const pure nothrow @nogc @safe
     {
         return false;
     }
@@ -1244,12 +1244,12 @@ extern (C++) class VarDeclaration : Declaration
         return isField();
     }
 
-    override final bool isExport()
+    override final bool isExport() const
     {
         return protection.kind == Prot.Kind.export_;
     }
 
-    override final bool isImportedSymbol()
+    override final bool isImportedSymbol() const
     {
         if (protection.kind == Prot.Kind.export_ && !_init && (storage_class & STC.static_ || parent.isModule()))
             return true;
