@@ -33,7 +33,7 @@ typedef unsigned char CHECKACTION;
 enum
 {
     CHECKACTION_D,        // call D assert on failure
-    CHECKACTION_C,        // call C assert on failure
+    CHECKACTION_C         // call C assert on failure
 };
 
 enum CPU
@@ -319,14 +319,14 @@ enum LINK
     LINKwindows,
     LINKpascal,
     LINKobjc,
-    LINKsystem,
+    LINKsystem
 };
 
 enum CPPMANGLE
 {
     CPPMANGLEdefault,
     CPPMANGLEstruct,
-    CPPMANGLEclass,
+    CPPMANGLEclass
 };
 
 enum MATCH

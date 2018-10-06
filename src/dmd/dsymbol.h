@@ -96,7 +96,7 @@ struct Prot
         package_,
         protected_,
         public_,
-        export_,
+        export_
     };
     Kind kind;
     Package *pkg;
@@ -118,7 +118,7 @@ enum PASS
     PASSsemantic3done,  // semantic3() done
     PASSinline,         // inline started
     PASSinlinedone,     // inline done
-    PASSobj,            // toObjFile() run
+    PASSobj             // toObjFile() run
 };
 
 /* Flags for symbol search
@@ -135,7 +135,7 @@ enum
                                     // meaning don't search imports in that scope,
                                     // because qualified module searches search
                                     // their imports
-    IgnoreSymbolVisibility  = 0x80, // also find private and package protected symbols
+    IgnoreSymbolVisibility  = 0x80  // also find private and package protected symbols
 };
 
 typedef int (*Dsymbol_apply_ft_t)(Dsymbol *, void *);
@@ -197,8 +197,8 @@ public:
     virtual d_uns64 size(const Loc &loc);
     virtual bool isforwardRef();
     virtual AggregateDeclaration *isThis();     // is a 'this' required to access the member
-    virtual bool isExport();                    // is Dsymbol exported?
-    virtual bool isImportedSymbol();            // is Dsymbol imported?
+    virtual bool isExport() const;              // is Dsymbol exported?
+    virtual bool isImportedSymbol() const;      // is Dsymbol imported?
     virtual bool isDeprecated();                // is Dsymbol deprecated?
     virtual bool isOverloadable();
     virtual LabelDsymbol *isLabel();            // is this a LabelDsymbol?
