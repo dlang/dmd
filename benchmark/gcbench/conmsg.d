@@ -7,7 +7,7 @@
  */
 import std.algorithm, std.concurrency, std.conv, std.file, std.json, std.range;
 
-JSONValue buildVal(in dchar[] word)
+JSONValue buildVal(in dchar[] word) pure
 {
     JSONValue[string] res;
     res["word"] = word.to!string;
@@ -35,9 +35,9 @@ void producer(Tid consumer)
 
 void serialize(in JSONValue val, ref ubyte[] buf)
 {
-    with (JSON_TYPE) switch (val.type)
+    with (JSONType) switch (val.type)
     {
-    case OBJECT:
+    case object:
         foreach (k, v; val.object)
         {
             buf ~= cast(ubyte[])k;
@@ -45,17 +45,17 @@ void serialize(in JSONValue val, ref ubyte[] buf)
         }
         break;
 
-    case ARRAY:
+    case array:
         foreach (v; val.array)
             serialize(v, buf);
         break;
 
-    case UINTEGER:
+    case uinteger:
         ulong v = val.uinteger;
         buf ~= (cast(ubyte*)&v)[0 .. v.sizeof];
         break;
 
-    case STRING:
+    case string:
         buf ~= cast(ubyte[])val.str;
         break;
 
