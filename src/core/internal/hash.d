@@ -606,6 +606,10 @@ if (!is(T == enum) && (is(T == interface) || is(T == class))
 //associative array hash. CTFE depends on base types
 size_t hashOf(T)(T aa) if (!is(T == enum) && __traits(isAssociativeArray, T))
 {
+    static if (is(typeof(aa) : V[K], K, V)) {} // Put K & V in scope.
+    static if (__traits(compiles, (ref K k, ref V v) nothrow => .hashOf(k) + .hashOf(v)))
+        scope (failure) assert(0); // Allow compiler to infer nothrow.
+
     if (!aa.length) return 0;
     size_t h = 0;
 

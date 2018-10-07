@@ -6,6 +6,7 @@ void main()
     issue18918();
     issue18925();
     issue19005();
+    issue19262();
     issue19282();
     testTypeInfoArrayGetHash1();
     testTypeInfoArrayGetHash2();
@@ -84,6 +85,14 @@ void issue19005() @nogc nothrow pure @safe
     }
     Date date;
     auto hash = date.hashOf;
+}
+
+/// hashOf associative array should infer nothrow
+void issue19262() nothrow
+{
+    int[int] aa;
+    auto h = hashOf(aa);
+    h = hashOf(aa, h);
 }
 
 extern(C++) class Issue19282CppClass {}
