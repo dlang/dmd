@@ -2,35 +2,35 @@ string result;
 
 struct A
 {
-    @implicit this(ref A rhs)
+    this(ref A rhs)
     {
         result ~= "A";
     }
-    @implicit this(ref immutable A rhs)
+    this(ref immutable A rhs)
     {
         result ~= "B";
     }
-    @implicit this(ref const A rhs)
+    this(ref const A rhs)
     {
         result ~= "C";
     }
-    @implicit this(ref A rhs) immutable
+    this(ref A rhs) immutable
     {
         result ~= "D";
     }
-    @implicit this(ref const A rhs) shared
+    this(ref const A rhs) shared
     {
         result ~= "E";
     }
-    @implicit this(ref A rhs) shared
+    this(ref A rhs) shared
     {
         result ~= "F";
     }
-    @implicit this(ref shared A rhs) immutable
+    this(ref shared A rhs) immutable
     {
         result ~= "G";
     }
-    @implicit this(ref shared A rhs) shared
+    this(ref shared A rhs) shared
     {
         result ~= "H";
     }
@@ -57,7 +57,7 @@ struct B
         return B();
     }
 
-    @implicit this(ref immutable B rhs)
+    this(ref immutable B rhs)
     {
         result ~= "A";
     }
@@ -111,7 +111,7 @@ int fun()
             this.x1 = x;
             b = B(3);
         }
-        @implicit this(ref A rhs)
+        this(ref A rhs)
         {
             this.x1 = rhs.x1 + rhs.b.x2 + x;
         }

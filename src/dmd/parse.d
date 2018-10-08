@@ -2483,7 +2483,7 @@ final class Parser(AST) : Lexer
         if (varargs != AST.VarArg.none || AST.Parameter.dim(parameters) != 0)
         {
             if (stc & AST.STC.static_)
-                error(loc, "constructors cannot be static");
+                error(loc, "constructor cannot be static");
         }
         else if (StorageClass ss = stc & (AST.STC.shared_ | AST.STC.static_)) // this()
         {

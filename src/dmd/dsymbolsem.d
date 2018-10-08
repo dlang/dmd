@@ -339,28 +339,27 @@ private FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
 }
 
 // Concatenates 2 MODs(ubyte) into one ModBits(ushort)
-/*private ModBits createModKey(MOD mod1, MOD mod2)
+private ModBits createModKey(MOD mod1, MOD mod2)
 {
     return ((mod1 << 8) | mod2);
 }
-*/
+
 /* Generates a copy constructor declaration with the specified storage
-   class for the parameter and the function : @implicit this(ref paramSTC S p) funcStc;
+   class for the parameter and the function : this(ref paramSTC S p) funcStc;
 */
-/*
-private CopyCtorDeclaration generateCopyCtorDeclaration(StructDeclaration sd, const StorageClass paramStc, const StorageClass funcStc)
+private CtorDeclaration generateCopyCtorDeclaration(StructDeclaration sd, const StorageClass paramStc, const StorageClass funcStc)
 {
     auto fparams = new Parameters();
     auto structType = sd.type;
     fparams.push(new Parameter(paramStc | STC.ref_, structType, Id.p, null, null));
     auto tf = new TypeFunction(fparams, structType, 0, LINK.d, STC.ref_);
-    auto ccd = new CopyCtorDeclaration(sd.loc, Loc.initial, STC.ref_, tf);
+    auto ccd = new CtorDeclaration(sd.loc, Loc.initial, STC.ref_, tf, true);
     ccd.storage_class |= funcStc;
     ccd.storage_class |= STC.inference;
     ccd.generated = true;
     return ccd;
 }
-*/
+
 /* Generates a trivial copy constructor body that simply does memberwise
  * initialization:
  *
@@ -368,7 +367,6 @@ private CopyCtorDeclaration generateCopyCtorDeclaration(StructDeclaration sd, co
  *    this.field2 = rhs.field2;
  *    ...
  */
-/*
 private Statement generateCopyCtorBody(StructDeclaration sd)
 {
     Loc loc;
@@ -384,7 +382,7 @@ private Statement generateCopyCtorBody(StructDeclaration sd)
     Statement s1 = new ExpStatement(loc, e);
     return new CompoundStatement(loc, s1);
 }
-*/
+
 /* Generates copy constructors for the fields that define copy constructors.
    The body of all generated copy constructors is the same and it does
    memberwise initialization. If any initialization in a particular
@@ -395,9 +393,9 @@ private CtorDeclaration buildCopyCtor(StructDeclaration sd, Scope* sc)
 {
     if (sd.postblit)
         return null;
+
     Dsymbol s = sd.search(sd.loc, Id.copyCtor);
-    return s ? s.isCopyCtorDeclaration : null;
-/*    bool[ModBits] copyCtorTable;      // hashtable used to store what copy constructors should be generated
+    bool[ModBits] copyCtorTable;      // hashtable used to store what copy constructors should be generated
     // see if any struct members define a copy constructor
     foreach (v; sd.fields)
     {
@@ -460,8 +458,8 @@ private CtorDeclaration buildCopyCtor(StructDeclaration sd, Scope* sc)
                 s = ccd;
         }
     }
-    */
-    //return s ? s.isCopyCtorDeclaration : null;
+
+    return s ? s.isCopyCtorDeclaration : null;
 }
 
 private uint setMangleOverride(Dsymbol s, const(char)[] sym)
@@ -3810,56 +3808,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     {
         funcDeclarationSemantic(funcdecl);
     }
-/*
-    override void visit(CopyCtorDeclaration cctd)
-    {
-        //printf("CopyCtorDeclaration::semantic() %s\n", toChars());
-        if (cctd.semanticRun >= PASS.semanticdone)
-            return;
 
-        if (cctd._scope)
-        {
-            sc = cctd._scope;
-            cctd._scope = null;
-        }
-
-        cctd.parent = sc.parent;
-        Dsymbol p = cctd.toParent2();
-        StructDeclaration sd = p.isStructDeclaration();
-        if (!sd)
-        {
-            error(cctd.loc, "copy constructor can only be a member of `struct`, not %s `%s`", p.kind(), p.toChars());
-            cctd.type = Type.terror;
-            cctd.errors = true;
-            return;
-        }
-
-        sc = sc.push();
-        sc.stc &= ~STC.static_;
-        sc.flags |= SCOPE.ctor;
-        funcDeclarationSemantic(cctd);
-        sc.pop();
-
-         if (cctd.errors)
-            return;
-
-        TypeFunction tf = cctd.type.toTypeFunction();
-        Parameter param = Parameter.getNth(tf.parameters, 0);
-        assert(param);
-
-        // store the source-destination type of the copy constructor;
-        // this is needed when generating copy constructors for fields;
-        ModBits key = createModKey(param.type.mod, tf.mod);
-        sd.copyCtorTypes[key] = true;
-
-        // copy constructor parameter type needs to be the same as
-        // the struct containing it (not taking into account qualifiers)
-        Type unqualParamType = param.type.mutableOf().unSharedOf();
-        Type unqualStructType = sd.type.mutableOf().unSharedOf();
-        if (unqualParamType != unqualStructType)
-            error(cctd.loc, "the copy constructor parameter base type needs to be `%s`, not `%s`", unqualStructType.toChars(), unqualParamType.toChars());
-    }
-*/
     override void visit(CtorDeclaration ctd)
     {
         //printf("CtorDeclaration::semantic() %s\n", toChars());
@@ -3954,6 +3903,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         cpCtor.fbody = ctd.fbody.syntaxCopy();
                         sd.members.push(cpCtor);
                         cpCtor.addMember(sc, sd);
+
+                        // store the source-destination type of the copy constructor;
+                        // this is needed when generating copy constructors for fields;
+                        ModBits key = createModKey(param.type.mod, tf.mod);
+                        sd.copyCtorTypes[key] = true;
+
+
                     }
                 }
             }
