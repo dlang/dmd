@@ -5577,7 +5577,7 @@ final class Parser(AST) : Lexer
                     if (e.op == TOK.mixin_)
                     {
                         AST.CompileExp cpe = cast(AST.CompileExp)e;
-                        s = new AST.CompileStatement(loc, cpe.e1);
+                        s = new AST.CompileStatement(loc, (*cpe.exps)[0]);
                     }
                     else
                     {
@@ -7962,11 +7962,12 @@ final class Parser(AST) : Lexer
             }
         case TOK.mixin_:
             {
+                // https://dlang.org/spec/expression.html#mixin_expressions
                 nextToken();
-                check(TOK.leftParentheses, "`mixin`");
-                e = parseAssignExp();
-                check(TOK.rightParentheses);
-                e = new AST.CompileExp(loc, e);
+                if (token.value != TOK.leftParentheses)
+                    error("found `%s` when expecting `%s` following %s", token.toChars(), Token.toChars(TOK.leftParentheses), "`mixin`".ptr);
+                auto exps = parseArguments();
+                e = new AST.CompileExp(loc, exps);
                 break;
             }
         case TOK.import_:

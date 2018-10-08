@@ -31,6 +31,7 @@ import dmd.dcast;
 import dmd.delegatize;
 import dmd.denum;
 import dmd.dimport;
+import dmd.dinterpret;
 import dmd.dmangle;
 import dmd.dmodule;
 import dmd.dstruct;
@@ -5282,14 +5283,38 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     private Expression compileIt(CompileExp exp)
     {
-        //printf("CompileExp::compileIt('%s')\n", exp.toChars());
-        auto se = semanticString(sc, exp.e1, "argument to mixin");
-        if (!se)
-            return null;
-        se = se.toUTF8(sc);
+        OutBuffer buf;
+        if (exp.exps)
+        {
+            foreach (ex; *exp.exps)
+            {
+                sc = sc.startCTFE();
+                auto e = ex.expressionSemantic(sc);
+                e = resolveProperties(sc, e);
+                sc = sc.endCTFE();
+
+                // allowed to contain types as well as expressions
+                e = ctfeInterpretForPragmaMsg(e);
+                if (e.op == TOK.error)
+                {
+                    //errorSupplemental(exp.loc, "while evaluating `mixin(%s)`", ex.toChars());
+                    return null;
+                }
+                StringExp se = e.toStringExp();
+                if (se)
+                {
+                    se = se.toUTF8(sc);
+                    buf.printf("%.*s", cast(int)se.len, se.string);
+                }
+                else
+                    buf.printf("%s", e.toChars());
+            }
+        }
 
         uint errors = global.errors;
-        scope p = new Parser!ASTCodegen(exp.loc, sc._module, se.toStringz(), false);
+        const len = buf.offset;
+        const str = buf.extractString()[0 .. len];
+        scope p = new Parser!ASTCodegen(exp.loc, sc._module, str, false);
         p.nextToken();
         //printf("p.loc.linnum = %d\n", p.loc.linnum);
 
@@ -5301,7 +5326,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         if (p.token.value != TOK.endOfFile)
         {
-            exp.error("incomplete mixin expression `%s`", se.toChars());
+            exp.error("incomplete mixin expression `%s`", str.ptr);
             return null;
         }
         return e;
@@ -5309,6 +5334,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(CompileExp exp)
     {
+        /* https://dlang.org/spec/expression.html#mixin_expressions
+         */
+
         static if (LOGSEMANTIC)
         {
             printf("CompileExp::semantic('%s')\n", exp.toChars());

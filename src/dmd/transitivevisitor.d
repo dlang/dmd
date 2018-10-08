@@ -1002,7 +1002,7 @@ package mixin template ParseVisitMethods(AST)
     override void visit(AST.CompileExp e)
     {
         //printf("Visiting CompileExp\n");
-        e.e1.accept(this);
+        visitArgs(e.exps);
     }
 
     override void visit(AST.ImportExp e)

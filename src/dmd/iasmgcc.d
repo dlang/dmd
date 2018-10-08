@@ -306,7 +306,7 @@ public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
 
     // Fold the instruction template string.
     if (s.insn.op == TOK.mixin_)
-        s.insn = (cast(CompileExp)s.insn).e1;
+        s.insn = (*(cast(CompileExp)s.insn).exps)[0];
     s.insn = semanticString(sc, s.insn, "asm instruction template");
 
     if (s.labels && s.outputargs)

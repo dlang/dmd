@@ -176,6 +176,7 @@ public:
     void visit(AST.NewExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.AssocArrayLiteralExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.ArrayLiteralExp e) { visit(cast(AST.Expression)e); }
+    void visit(AST.CompileExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.FuncExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.IntervalExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.TypeExp e) { visit(cast(AST.Expression)e); }
@@ -208,7 +209,6 @@ public:
     void visit(AST.CallExp e) { visit(cast(AST.UnaExp)e); }
     void visit(AST.DotIdExp e) { visit(cast(AST.UnaExp)e); }
     void visit(AST.AssertExp e) { visit(cast(AST.UnaExp)e); }
-    void visit(AST.CompileExp e) { visit(cast(AST.UnaExp)e); }
     void visit(AST.ImportExp e) { visit(cast(AST.UnaExp)e); }
     void visit(AST.DotTemplateInstanceExp e) { visit(cast(AST.UnaExp)e); }
     void visit(AST.ArrayExp e) { visit(cast(AST.UnaExp)e); }
