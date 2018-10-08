@@ -25,4 +25,5 @@ struct Compiler
     // Backend
     static void loadModule(Module *);
     static void genCmain(Scope *);
+    static bool onImport(Module *);
 };

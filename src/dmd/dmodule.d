@@ -292,12 +292,6 @@ extern (C++) final class Module : Package
     extern (C++) __gshared Dsymbols deferred2;   // deferred Dsymbol's needing semantic2() run on them
     extern (C++) __gshared Dsymbols deferred3;   // deferred Dsymbol's needing semantic3() run on them
     extern (C++) __gshared uint dprogress;       // progress resolving the deferred list
-    /**
-     * A callback function that is called once an imported module is
-     * parsed. If the callback returns true, then it tells the
-     * frontend that the driver intends on compiling the import.
-     */
-    extern (C++) __gshared bool function(Module mod) onImport;
 
     static void _init()
     {
@@ -518,7 +512,7 @@ extern (C++) final class Module : Package
         // need to determine it early because it affects semantic analysis. This is
         // being done after parsing the module so the full module name can be taken
         // from whatever was declared in the file.
-        if (!m.isRoot() && onImport && onImport(m))
+        if (!m.isRoot() && Compiler.onImport(m))
         {
             m.importedFrom = m;
             assert(m.isRoot());
