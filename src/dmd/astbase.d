@@ -5222,11 +5222,14 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class CompileExp : UnaExp
+    extern (C++) final class CompileExp : Expression
     {
-        extern (D) this(const ref Loc loc, Expression e)
+        Expressions* exps;
+
+        extern (D) this(const ref Loc loc, Expressions* exps)
         {
-            super(loc, TOK.mixin_, __traits(classInstanceSize, CompileExp), e);
+            super(loc, TOK.mixin_, __traits(classInstanceSize, CompileExp));
+            this.exps = exps;
         }
 
         override void accept(Visitor v)

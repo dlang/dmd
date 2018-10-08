@@ -2808,7 +2808,7 @@ public:
     override void visit(CompileExp e)
     {
         buf.writestring("mixin(");
-        expToBuffer(e.e1, PREC.assign);
+        argsToBuffer(e.exps, null);
         buf.writeByte(')');
     }
 

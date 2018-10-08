@@ -4207,12 +4207,41 @@ extern (C++) class BinAssignExp : BinExp
 }
 
 /***********************************************************
+ * https://dlang.org/spec/expression.html#mixin_expressions
  */
-extern (C++) final class CompileExp : UnaExp
+extern (C++) final class CompileExp : Expression
 {
-    extern (D) this(const ref Loc loc, Expression e)
+    Expressions* exps;
+
+    extern (D) this(const ref Loc loc, Expressions* exps)
     {
-        super(loc, TOK.mixin_, __traits(classInstanceSize, CompileExp), e);
+        super(loc, TOK.mixin_, __traits(classInstanceSize, CompileExp));
+        this.exps = exps;
+    }
+
+    override Expression syntaxCopy()
+    {
+        return new CompileExp(loc, arraySyntaxCopy(exps));
+    }
+
+    override bool equals(RootObject o)
+    {
+        if (this == o)
+            return true;
+        if (o && o.dyncast() == DYNCAST.expression && (cast(Expression)o).op == TOK.mixin_)
+        {
+            CompileExp ce = cast(CompileExp)o;
+            if (exps.dim != ce.exps.dim)
+                return false;
+            foreach (i, e1; *exps)
+            {
+                Expression e2 = (*ce.exps)[i];
+                if (e1 != e2 && (!e1 || !e2 || !e1.equals(e2)))
+                    return false;
+            }
+            return true;
+        }
+        return false;
     }
 
     override void accept(Visitor v)
