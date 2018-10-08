@@ -5631,6 +5631,8 @@ extern (C++) final class TypeStruct : Type
             {
                 att = cast(AliasThisRec)(att | AliasThisRec.tracing);
                 m = ato.implicitConvTo(to);
+                if (m)
+                    m = MATCH.convert;
                 att = cast(AliasThisRec)(att & ~AliasThisRec.tracing);
             }
             else
@@ -5916,6 +5918,8 @@ extern (C++) final class TypeClass : Type
             {
                 att = cast(AliasThisRec)(att | AliasThisRec.tracing);
                 m = ato.implicitConvTo(to);
+                if (m)
+                    m = MATCH.convert;
                 att = cast(AliasThisRec)(att & ~AliasThisRec.tracing);
             }
         }
