@@ -3908,8 +3908,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         // this is needed when generating copy constructors for fields;
                         ModBits key = createModKey(param.type.mod, tf.mod);
                         sd.copyCtorTypes[key] = true;
-
-
                     }
                 }
             }

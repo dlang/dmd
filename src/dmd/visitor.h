@@ -156,7 +156,6 @@ class FuncDeclaration;
 class FuncAliasDeclaration;
 class FuncLiteralDeclaration;
 class CtorDeclaration;
-class CopyCtorDeclaration;
 class PostBlitDeclaration;
 class DtorDeclaration;
 class StaticCtorDeclaration;
@@ -342,7 +341,6 @@ public:
     virtual void visit(FuncLiteralDeclaration *s) { visit((FuncDeclaration *)s); }
     virtual void visit(PostBlitDeclaration *s) { visit((FuncDeclaration *)s); }
     virtual void visit(CtorDeclaration *s) { visit((FuncDeclaration *)s); }
-    virtual void visit(CopyCtorDeclaration *s) { visit((FuncDeclaration *)s); }
     virtual void visit(DtorDeclaration *s) { visit((FuncDeclaration *)s); }
     virtual void visit(InvariantDeclaration *s) { visit((FuncDeclaration *)s); }
     virtual void visit(UnitTestDeclaration *s) { visit((FuncDeclaration *)s); }

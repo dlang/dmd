@@ -832,7 +832,7 @@ struct ASTBase
     {
         extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Type type, bool isCopyCtor = false)
         {
-            super(loc, endloc, isCopyCtor ? IdcopyCtor : Id.ctor, stc, type);
+            super(loc, endloc, isCopyCtor ? Id.copyCtor : Id.ctor, stc, type);
         }
 
         override void accept(Visitor v)

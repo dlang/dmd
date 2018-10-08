@@ -664,6 +664,7 @@ public:
 class CtorDeclaration : public FuncDeclaration
 {
 public:
+    bool isCpCtor;
     Dsymbol *syntaxCopy(Dsymbol *);
     const char *kind() const;
     const char *toChars();
@@ -672,6 +673,7 @@ public:
     bool addPostInvariant();
 
     CtorDeclaration *isCtorDeclaration() { return this; }
+    CtorDeclaration *isCopyCtorDeclaration() { return isCpCtor ? this : NULL; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
