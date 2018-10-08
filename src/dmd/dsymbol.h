@@ -35,7 +35,6 @@ class FuncAliasDeclaration;
 class OverDeclaration;
 class FuncLiteralDeclaration;
 class CtorDeclaration;
-class CopyCtorDeclaration;
 class PostBlitDeclaration;
 class DtorDeclaration;
 class StaticCtorDeclaration;
