@@ -140,7 +140,7 @@ public:
     override void visit(CompileStatement s)
     {
         buf.writestring("mixin(");
-        s.exp.accept(this);
+        argsToBuffer(s.exps, null);
         buf.writestring(");");
         if (!hgs.forStmtInit)
             buf.writenl();

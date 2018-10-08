@@ -2,10 +2,11 @@
 
 int test()
 {
-    return mixin("1", 2);
+    mixin("enum x = ", 7, ";");
+    return mixin("1", x, 2U);
 }
 
 void testit()
 {
-    static assert(test() == 12);
+    static assert(test() == 172);
 }

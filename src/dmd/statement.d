@@ -38,6 +38,7 @@ import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
+import dmd.dinterpret;
 import dmd.mtype;
 import dmd.parse;
 import dmd.root.outbuffer;
@@ -770,17 +771,24 @@ extern (C++) final class DtorExpStatement : ExpStatement
  */
 extern (C++) final class CompileStatement : Statement
 {
-    Expression exp;
+    Expressions* exps;
 
     extern (D) this(const ref Loc loc, Expression exp)
     {
+        Expressions* exps = new Expressions();
+        exps.push(exp);
+        this(loc, exps);
+    }
+
+    extern (D) this(const ref Loc loc, Expressions* exps)
+    {
         super(loc);
-        this.exp = exp;
+        this.exps = exps;
     }
 
     override Statement syntaxCopy()
     {
-        return new CompileStatement(loc, exp.syntaxCopy());
+        return new CompileStatement(loc, Expression.arraySyntaxCopy(exps));
     }
 
     private Statements* compileIt(Scope* sc)
@@ -794,13 +802,39 @@ extern (C++) final class CompileStatement : Statement
             return a;
         }
 
-        auto se = semanticString(sc, exp, "argument to mixin");
-        if (!se)
-            return errorStatements();
-        se = se.toUTF8(sc);
 
-        uint errors = global.errors;
-        scope p = new Parser!ASTCodegen(loc, sc._module, se.toStringz(), false);
+        OutBuffer buf;
+        if (exps)
+        {
+            foreach (ex; *exps)
+            {
+                sc = sc.startCTFE();
+                auto e = ex.expressionSemantic(sc);
+                e = resolveProperties(sc, e);
+                sc = sc.endCTFE();
+
+                // allowed to contain types as well as expressions
+                e = ctfeInterpretForPragmaMsg(e);
+                if (e.op == TOK.error)
+                {
+                    //errorSupplemental(exp.loc, "while evaluating `mixin(%s)`", ex.toChars());
+                    return errorStatements();
+                }
+                StringExp se = e.toStringExp();
+                if (se)
+                {
+                    se = se.toUTF8(sc);
+                    buf.printf("%.*s", cast(int)se.len, se.string);
+                }
+                else
+                    buf.printf("%s", e.toChars());
+            }
+        }
+
+        const errors = global.errors;
+        const len = buf.offset;
+        const str = buf.extractString()[0 .. len];
+        scope p = new Parser!ASTCodegen(loc, sc._module, str, false);
         p.nextToken();
 
         auto a = new Statements();
