@@ -477,11 +477,9 @@ final class Parser(AST) : Lexer
                         {
                             // mixin(string)
                             nextToken();
-                            check(TOK.leftParentheses, "`mixin`");
-                            AST.Expression e = parseAssignExp();
-                            check(TOK.rightParentheses);
+                            auto exps = parseArguments();
                             check(TOK.semicolon);
-                            s = new AST.CompileDeclaration(loc, e);
+                            s = new AST.CompileDeclaration(loc, exps);
                             break;
                         }
                     case TOK.template_:

@@ -560,7 +560,7 @@ package mixin template ParseVisitMethods(AST)
     override void visit(AST.CompileDeclaration d)
     {
         //printf("Visiting compileDeclaration\n");
-        d.exp.accept(this);
+        visitArgs(d.exps);
     }
 
     override void visit(AST.UserAttributeDeclaration d)
