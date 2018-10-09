@@ -5876,16 +5876,30 @@ extern (C++) final class TypeClass : Type
         }
 
         m = MATCH.nomatch;
-        if (sym.aliasthis && !(att & AliasThisRec.tracing))
-        {
-            if (auto ato = aliasthisOf())
-            {
-                att = cast(AliasThisRec)(att | AliasThisRec.tracing);
-                m = ato.implicitConvTo(to);
-                att = cast(AliasThisRec)(att & ~AliasThisRec.tracing);
-            }
-        }
 
+        /* At this point, if no match was found the alias this is tried going
+         * up on the chain of ancestors. The youngest ancestor wins.
+         */
+        auto base = sym;
+        while (base && base != ClassDeclaration.object)
+        {
+            //printf("base: %s\n", base.toChars());
+            TypeClass tcls = cast(TypeClass)(base.type);
+            if (base.aliasthis && !(tcls.att & AliasThisRec.tracing))
+            {
+                if (auto ato = tcls.aliasthisOf())
+                {
+                    tcls.att = cast(AliasThisRec)(tcls.att | AliasThisRec.tracing);
+                    // alias this of the ancestor preserves the type qualifier
+                    ato = ato.addMod(this.mod);
+                    m = ato.implicitConvTo(to);
+                    tcls.att = cast(AliasThisRec)(tcls.att & ~AliasThisRec.tracing);
+                    if (m)
+                        break;
+                }
+            }
+            base = base.baseClass;
+        }
         return m;
     }
 
