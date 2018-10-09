@@ -1239,6 +1239,31 @@ else version (CRuntime_Bionic)
             uint        __unused5;
         }
     }
+    else version (X86_64)
+    {
+        struct stat_t
+        {
+            ulong       st_dev;
+            ulong       st_ino;
+            ulong       st_nlink;
+            uint        st_mode;
+            uid_t       st_uid;
+            gid_t       st_gid;
+            uint        __pad0;
+
+            ulong       st_rdev;
+            long        st_size;
+            long        st_blksize;
+            long        st_blocks;
+            long        st_atime;
+            ulong       st_atime_nsec;
+            long        st_mtime;
+            ulong       st_mtime_nsec;
+            long        st_ctime;
+            ulong       st_ctime_nsec;
+            long[3]     __pad3;
+        }
+    }
     else
     {
         static assert(false, "Architecture not supported.");
