@@ -43,7 +43,7 @@ package mixin template ParseVisitMethods(AST)
     override void visit(AST.CompileStatement s)
     {
         //printf("Visiting CompileStatement\n");
-        s.exp.accept(this);
+        visitArgs(s.exps);
     }
 
     override void visit(AST.CompoundStatement s)

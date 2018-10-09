@@ -1961,12 +1961,12 @@ struct ASTBase
 
     extern (C++) final class CompileStatement : Statement
     {
-        Expression exp;
+        Expressions* exps;
 
-        final extern (D) this(const ref Loc loc, Expression exp)
+        final extern (D) this(const ref Loc loc, Expressions* exps)
         {
             super(loc);
-            this.exp = exp;
+            this.exps = exps;
         }
 
         override void accept(Visitor v)

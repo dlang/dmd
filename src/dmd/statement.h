@@ -152,7 +152,7 @@ public:
 class CompileStatement : public Statement
 {
 public:
-    Expression *exp;
+    Expressions *exps;
 
     Statement *syntaxCopy();
     Statements *flatten(Scope *sc);

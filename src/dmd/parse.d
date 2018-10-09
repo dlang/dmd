@@ -5577,7 +5577,7 @@ final class Parser(AST) : Lexer
                     if (e.op == TOK.mixin_)
                     {
                         AST.CompileExp cpe = cast(AST.CompileExp)e;
-                        s = new AST.CompileStatement(loc, (*cpe.exps)[0]);
+                        s = new AST.CompileStatement(loc, cpe.exps);
                     }
                     else
                     {
