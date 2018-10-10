@@ -305,8 +305,6 @@ public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
     s.stc = sc.stc;
 
     // Fold the instruction template string.
-    if (s.insn.op == TOK.mixin_)
-        s.insn = (*(cast(CompileExp)s.insn).exps)[0];
     s.insn = semanticString(sc, s.insn, "asm instruction template");
 
     if (s.labels && s.outputargs)
@@ -438,7 +436,11 @@ unittest
         } },
 
         // Any CTFE-able string allowed as instruction template.
-        q{ asm { generateAsm()
+        q{ asm { generateAsm();
+        } },
+
+        // Likewise mixins, permissible so long as the result is a string.
+        q{ asm { mixin(`"repne"`, `~ "scasb"`);
         } },
     ];
 
