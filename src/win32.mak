@@ -235,7 +235,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.d \
 	$C\dcode.d $C\symbol.d $C\debugprint.d $C\dt.c $C\ee.d $C\elem.d \
 	$C\evalu8.d $C\fp.c $C\go.d $C\gflow.d $C\gdag.d \
 	$C\gother.d $C\glocal.d $C\gloop.d $C\gsroa.d $C\newman.d \
-	$C\nteh.d $C\os.c $C\out.d $C\outbuf.c $C\ptrntab.c $C\drtlsym.d \
+	$C\nteh.d $C\os.c $C\out.d $C\outbuf.c $C\ptrntab.d $C\drtlsym.d \
 	$C\dtype.d $C\melf.h $C\mach.h $C\mscoff.h $C\bcomplex.h \
 	$C\outbuf.h $C\token.h $C\tassert.h \
 	$C\elfobj.c $C\cv4.h $C\dwarf2.h $C\exh.h $C\go.h \
@@ -601,8 +601,8 @@ $G/pdata.obj : $C\pdata.d
 $G/ph2.obj : $C\ph2.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\ph2
 
-$G/ptrntab.obj : $C\iasm.h $C\ptrntab.c
-	$(CC) -c -o$@ $(MFLAGS) $C\ptrntab
+$G/ptrntab.obj : $C\iasm.h $C\ptrntab.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\ptrntab
 
 $G/drtlsym.obj : $C\rtlsym.d $C\drtlsym.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\drtlsym
