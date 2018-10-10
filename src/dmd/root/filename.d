@@ -391,7 +391,10 @@ nothrow:
 
     unittest
     {
-        assert(combine("foo"[], "bar"[]) == "foo/bar");
+        version (Windows)
+            assert(combine("foo"[], "bar"[]) == "foo\\bar");
+        else
+            assert(combine("foo"[], "bar"[]) == "foo/bar");
         assert(combine("foo/"[], "bar"[]) == "foo/bar");
     }
 
