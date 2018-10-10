@@ -54,10 +54,10 @@ struct PushAttributes
 {
     Expressions* mods;
 
-    extern (C++) static int fp(void* param, const(char)* str)
+    extern (D) static int fp(void* param, string str)
     {
         PushAttributes* p = cast(PushAttributes*)param;
-        p.mods.push(new StringExp(Loc.initial, cast(char*)str));
+        p.mods.push(new StringExp(Loc.initial, cast(char*)str.ptr, str.length));
         return 0;
     }
 }

@@ -239,10 +239,6 @@ public:
     void modToBuffer(OutBuffer *buf);
     char *modToChars();
 
-    /** For each active modifier (MODconst, MODimmutable, etc) call fp with a
-    void* for the work param and a string representation of the attribute. */
-    int modifiersApply(void *param, int (*fp)(void *, const char *));
-
     virtual bool isintegral();
     virtual bool isfloating();   // real, imaginary, or complex
     virtual bool isreal();
@@ -559,10 +555,6 @@ public:
     bool parameterEscapes(Parameter *p);
     StorageClass parameterStorageClass(Parameter *p);
     Type *addStorageClass(StorageClass stc);
-
-    /** For each active attribute (ref/const/nogc/etc) call fp with a void* for the
-    work param and a string representation of the attribute. */
-    int attributesApply(void *param, int (*fp)(void *, const char *), TRUSTformat trustFormat = TRUSTformatDefault);
 
     Type *substWildTo(unsigned mod);
 
