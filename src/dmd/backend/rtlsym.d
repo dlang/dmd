@@ -7,11 +7,10 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/rtlsym.d, backend/_rtlsym.d)
+ * Documentation: https://dlang.org/phobos/dmd_backend_rtlsym.html
  */
 
 module dmd.backend.rtlsym;
-
-// Online documentation: https://dlang.org/phobos/dmd_backend_rtlsym.html
 
 import dmd.backend.cc : Symbol;
 
@@ -181,3 +180,5 @@ extern (C++):
 
 extern __gshared Symbol*[RTLSYM_MAX] rtlsym;
 Symbol *getRtlsym(int i) { return rtlsym[i]; }
+
+Symbol* getRtlsymPersonality() { return rtlsym[RTLSYM_PERSONALITY]; }
