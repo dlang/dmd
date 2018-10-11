@@ -61,13 +61,18 @@ struct ElfFile
 @nogc nothrow:
     static bool open(const(char)* path, out ElfFile file)
     {
-        file.fd = .open(path, O_RDONLY);
-        if (file.fd < 0)
-            return false;
+        file = ElfFile(.open(path, O_RDONLY));
+        return file.isValid();
+    }
 
-        // memory map header
-        file.ehdr = MMapRegion!Elf_Ehdr(file.fd, 0, Elf_Ehdr.sizeof);
-        return isValidElfHeader(*file.ehdr);
+    this(int fd)
+    {
+        this.fd = fd;
+        if (fd != -1)
+        {
+            // memory map header
+            this.ehdr = MMapRegion!Elf_Ehdr(fd, 0, Elf_Ehdr.sizeof);
+        }
     }
 
     @disable this(this);
@@ -79,6 +84,11 @@ struct ElfFile
 
     int fd = -1;
     MMapRegion!Elf_Ehdr ehdr;
+
+    bool isValid() const
+    {
+        return fd != -1 && isValidElfHeader(*ehdr);
+    }
 
     bool findSectionHeaderByName(const(char)[] sectionName, out ElfSectionHeader header) const
     {
