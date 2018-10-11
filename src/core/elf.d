@@ -41,11 +41,12 @@ else version (DragonFlyBSD)
  */
 struct SharedObjects
 {
-    alias Callback = int delegate(ref const dl_phdr_info) @nogc nothrow;
+@nogc nothrow:
+    alias Callback = int delegate(ref const dl_phdr_info);
 
-    static int opApply(scope Callback dg) @nogc nothrow
+    static int opApply(scope Callback dg)
     {
-        extern(C) int nativeCallback(dl_phdr_info* info, size_t, void* data) @nogc nothrow
+        extern(C) int nativeCallback(dl_phdr_info* info, size_t, void* data)
         {
             auto dg = *cast(Callback*) data;
             return dg(*info);
@@ -57,7 +58,8 @@ struct SharedObjects
 
 struct ElfFile
 {
-    static bool open(const(char)* path, out ElfFile file) @nogc nothrow
+@nogc nothrow:
+    static bool open(const(char)* path, out ElfFile file)
     {
         file.fd = .open(path, O_RDONLY);
         if (file.fd < 0)
@@ -70,7 +72,7 @@ struct ElfFile
 
     @disable this(this);
 
-    ~this() @nogc nothrow
+    ~this()
     {
         if (fd != -1) close(fd);
     }
@@ -78,7 +80,7 @@ struct ElfFile
     int fd = -1;
     MMapRegion!Elf_Ehdr ehdr;
 
-    bool findSectionHeaderByName(const(char)[] sectionName, out ElfSectionHeader header) const @nogc nothrow
+    bool findSectionHeaderByName(const(char)[] sectionName, out ElfSectionHeader header) const
     {
         const index = findSectionIndexByName(sectionName);
         if (index == -1)
@@ -87,7 +89,7 @@ struct ElfFile
         return true;
     }
 
-    size_t findSectionIndexByName(const(char)[] sectionName) const @nogc nothrow
+    size_t findSectionIndexByName(const(char)[] sectionName) const
     {
         const stringSectionHeader = ElfSectionHeader(this, ehdr.e_shstrndx);
         const stringSection = ElfSection(this, stringSectionHeader);
@@ -107,7 +109,8 @@ struct ElfFile
 
 struct ElfSectionHeader
 {
-    this(ref const ElfFile file, size_t index) @nogc nothrow
+@nogc nothrow:
+    this(ref const ElfFile file, size_t index)
     {
         assert(Elf_Shdr.sizeof == file.ehdr.e_shentsize);
         shdr = MMapRegion!Elf_Shdr(
@@ -125,7 +128,8 @@ struct ElfSectionHeader
 
 struct ElfSection
 {
-    this(ref const ElfFile file, ref const ElfSectionHeader shdr) @nogc nothrow
+@nogc nothrow:
+    this(ref const ElfFile file, ref const ElfSectionHeader shdr)
     {
         data = MMapRegion!void(
             file.fd,
@@ -138,7 +142,7 @@ struct ElfSection
 
     @disable this(this);
 
-    const(void)[] get() const @nogc nothrow
+    const(void)[] get() const
     {
         return data.get()[0 .. length];
     }
@@ -149,9 +153,9 @@ struct ElfSection
     size_t length;
 }
 
-private:
+private @nogc nothrow:
 
-const(char)[] getSectionName(ref const ElfSection stringSection, size_t nameIndex) @nogc nothrow
+const(char)[] getSectionName(ref const ElfSection stringSection, size_t nameIndex)
 {
     const data = cast(const(ubyte[])) stringSection.get();
 
@@ -164,7 +168,7 @@ const(char)[] getSectionName(ref const ElfSection stringSection, size_t nameInde
     return null;
 }
 
-bool isValidElfHeader(ref const Elf_Ehdr ehdr) @nogc nothrow
+bool isValidElfHeader(ref const Elf_Ehdr ehdr)
 {
     if (ehdr.e_ident[EI_MAG0] != ELFMAG0) return false;
     if (ehdr.e_ident[EI_MAG1] != ELFMAG1) return false;
@@ -180,10 +184,11 @@ bool isValidElfHeader(ref const Elf_Ehdr ehdr) @nogc nothrow
 
 struct MMapRegion(T)
 {
+@nogc nothrow:
     import core.sys.posix.sys.mman;
     import core.sys.posix.unistd;
 
-    this(int fd, size_t offset, size_t length) @nogc nothrow
+    this(int fd, size_t offset, size_t length)
     {
         auto pagesize = sysconf(_SC_PAGESIZE);
 
@@ -196,12 +201,12 @@ struct MMapRegion(T)
 
     @disable this(this);
 
-    ~this() @nogc nothrow
+    ~this()
     {
         if (mptr) munmap(mptr, realLength);
     }
 
-    const(T)* get() const @nogc nothrow
+    const(T)* get() const
     {
         return cast(T*)(mptr + offsetDiff);
     }
@@ -213,64 +218,7 @@ struct MMapRegion(T)
     void* mptr;
 }
 
-version (X86)
-{
-    alias Elf_Ehdr = Elf32_Ehdr;
-    alias Elf_Shdr = Elf32_Shdr;
-    enum ELFCLASS = ELFCLASS32;
-}
-else version (X86_64)
-{
-    version (D_X32)
-    {
-        alias Elf_Ehdr = Elf32_Ehdr;
-        alias Elf_Shdr = Elf32_Shdr;
-        enum ELFCLASS = ELFCLASS32;
-    }
-    else
-    {
-        alias Elf_Ehdr = Elf64_Ehdr;
-        alias Elf_Shdr = Elf64_Shdr;
-        enum ELFCLASS = ELFCLASS64;
-    }
-}
-else version (ARM)
-{
-    alias Elf_Ehdr = Elf32_Ehdr;
-    alias Elf_Shdr = Elf32_Shdr;
-    enum ELFCLASS = ELFCLASS32;
-}
-else version (AArch64)
-{
-    alias Elf_Ehdr = Elf64_Ehdr;
-    alias Elf_Shdr = Elf64_Shdr;
-    enum ELFCLASS = ELFCLASS64;
-}
-else version (PPC)
-{
-    alias Elf_Ehdr = Elf32_Ehdr;
-    alias Elf_Shdr = Elf32_Shdr;
-    enum ELFCLASS = ELFCLASS32;
-}
-else version (PPC64)
-{
-    alias Elf_Ehdr = Elf64_Ehdr;
-    alias Elf_Shdr = Elf64_Shdr;
-    enum ELFCLASS = ELFCLASS64;
-}
-else version (MIPS)
-{
-    alias Elf_Ehdr = Elf32_Ehdr;
-    alias Elf_Shdr = Elf32_Shdr;
-    enum ELFCLASS = ELFCLASS32;
-}
-else version (MIPS64)
-{
-    alias Elf_Ehdr = Elf64_Ehdr;
-    alias Elf_Shdr = Elf64_Shdr;
-    enum ELFCLASS = ELFCLASS64;
-}
-else version (SystemZ)
+version (D_LP64)
 {
     alias Elf_Ehdr = Elf64_Ehdr;
     alias Elf_Shdr = Elf64_Shdr;
@@ -278,7 +226,9 @@ else version (SystemZ)
 }
 else
 {
-    static assert(0, "unsupported architecture");
+    alias Elf_Ehdr = Elf32_Ehdr;
+    alias Elf_Shdr = Elf32_Shdr;
+    enum ELFCLASS = ELFCLASS32;
 }
 
 version (LittleEndian)
