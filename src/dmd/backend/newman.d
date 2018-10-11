@@ -9,142 +9,142 @@
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/newman.c, backend/newman.c)
  */
 
-#if !SPP
+module dmd.backend.newman;
 
-#include        <stdio.h>
-#include        <ctype.h>
-#include        <string.h>
-#include        <stdlib.h>
-#include        <time.h>
+version (SCPP)
+{
+    version = COMPILE;
+    version = SCPPorMARS;
+    version = SCPPorHTOD;
+}
+version (HTOD)
+{
+    version = COMPILE;
+    version = SCPPorMARS;
+    version = SCPPorHTOD;
+}
+version (MARS)
+{
+    version = COMPILE;
+    version = SCPPorMARS;
+}
 
-#include        "cc.h"
-#include        "token.h"
-#include        "global.h"
-#include        "oper.h"
-#include        "el.h"
-#include        "type.h"
-#include        "filespec.h"
+version (COMPILE)
+{
 
-#if SCPP
-#include        "scope.h"
-#endif
+import core.stdc.ctype;
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
 
-static char __file__[] = __FILE__;      /* for tassert.h                */
-#include        "tassert.h"
+import dmd.backend.cc;
+import dmd.backend.cdef;
+import dmd.backend.code;
+import dmd.backend.code_x86;
+import dmd.backend.memh;
+import dmd.backend.el;
+import dmd.backend.exh;
+import dmd.backend.global;
+import dmd.backend.obj;
+import dmd.backend.oper;
+import dmd.backend.rtlsym;
+import dmd.backend.ty;
+import dmd.backend.type;
+import dmd.backend.xmm;
 
-#define null NULL
-typedef unsigned char ubyte;
-typedef unsigned short ushort;
-#define private static
+version (SCPPorHTOD)
+{
+    import cpp;
+    import dtoken;
+    import msgs2;
+    import parser;
+    import scopeh;
+}
 
-#define BUFIDMAX (2 * IDMAX)
+version (MARS)
+    struct token_t;
+
+extern (C++):
+
+bool NEWTEMPMANGLE() { return !(config.flags4 & CFG4oldtmangle); }     // do new template mangling
+
+enum BUFIDMAX = 2 * IDMAX;
 
 struct Mangle
 {
-    char buf[BUFIDMAX + 2];
+    char[BUFIDMAX + 2] buf;
 
     char *np;                   // index into buf[]
 
     // Used for compression of redundant znames
-    const char *zname[10];
+    const(char)*[10] zname;
     int znamei;
 
-    type *arg[10];              // argument_replicator
+    type*[10] arg;              // argument_replicator
     int argi;                   // number used in arg[]
-};
+}
 
-static Mangle mangle;
+private __gshared
+{
+    Mangle mangle;
 
-static int mangle_inuse;
+    int mangle_inuse;
+}
 
 struct MangleInuse
 {
-    MangleInuse()
+static if (0)
+{
+    this(int i)
     {
-#if 0
         assert(mangle_inuse == 0);
         mangle_inuse++;
-#endif
     }
 
-    ~MangleInuse()
+    ~this()
     {
-#if 0
         assert(mangle_inuse == 1);
         mangle_inuse--;
-#endif
     }
-};
+}
+}
 
 /* Names for special variables  */
-char cpp_name_new[]     = "?2";
-char cpp_name_delete[]  = "?3";
-char cpp_name_anew[]    = "?_P";
-char cpp_name_adelete[] = "?_Q";
-char cpp_name_ct[]      = "?0";
-char cpp_name_dt[]      = "?1";
-char cpp_name_as[]      = "?4";
-char cpp_name_vc[]      = "?_H";
-char cpp_name_primdt[]  = "?_D";
-char cpp_name_scaldeldt[] = "?_G";
-char cpp_name_priminv[] = "?_R";
+__gshared
+{
+char[3] cpp_name_new     = "?2";
+char[3] cpp_name_delete  = "?3";
+char[4] cpp_name_anew    = "?_P";
+char[4] cpp_name_adelete = "?_Q";
+char[3] cpp_name_ct      = "?0";
+char[3] cpp_name_dt      = "?1";
+char[3] cpp_name_as      = "?4";
+char[4] cpp_name_vc      = "?_H";
+char[4] cpp_name_primdt  = "?_D";
+char[4] cpp_name_scaldeldt = "?_G";
+char[4] cpp_name_priminv = "?_R";
+}
 
-private int cpp_cvidx ( tym_t ty );
-private int cpp_protection ( Symbol *s );
-private void cpp_decorated_name ( Symbol *s );
-private void cpp_symbol_name ( Symbol *s );
-private void cpp_zname ( const char *p );
-private void cpp_scope ( Symbol *s );
-private void cpp_type_encoding ( Symbol *s );
-private void cpp_external_function_type(Symbol *s);
-private void cpp_external_data_type ( Symbol *s );
-private void cpp_member_function_type ( Symbol *s );
-private void cpp_static_member_function_type ( Symbol *s );
-private void cpp_static_member_data_type ( Symbol *s );
-private void cpp_local_static_data_type ( Symbol *s );
-private void cpp_vftable_type(Symbol *s);
-private void cpp_adjustor_thunk_type(Symbol *s);
-private void cpp_function_type ( type *t );
-private void cpp_throw_types ( type *t );
-private void cpp_ecsu_name ( Symbol *s );
-private void cpp_return_type ( Symbol *s );
-private void cpp_data_type ( type *t );
-private void cpp_storage_convention ( Symbol *s );
-private void cpp_this_type ( type *t,Classsym *s );
-private void cpp_vcall_model_type ( );
-private void cpp_calling_convention ( type *t );
-private void cpp_argument_types ( type *t );
-private void cpp_argument_list ( type *t, int flag );
-private void cpp_primary_data_type ( type *t );
-private void cpp_reference_type ( type *t );
-private void cpp_pointer_type ( type *t );
-private void cpp_ecsu_data_indirect_type ( type *t );
-private void cpp_data_indirect_type ( type *t );
-private void cpp_function_indirect_type ( type *t );
-private void cpp_basic_data_type ( type *t );
-private void cpp_ecsu_data_type(type *t);
-private void cpp_pointer_data_type ( type *t );
-private void cpp_reference_data_type ( type *t, int flag );
-private void cpp_enum_name ( Symbol *s );
-private void cpp_dimension ( targ_ullong u );
-private void cpp_dimension_ld ( targ_ldouble ld );
-private void cpp_string ( char *s, size_t len );
 
 /****************************
  */
 
+version (MARS)
+{
 struct OPTABLE
-#if MARS
 {
     ubyte tokn;
     ubyte oper;
-    char *string;
-    char *pretty;
+    const(char)* string;
+    const(char)* pretty;
 }
-#endif
- oparray[] = {
-    {   TKnew, OPnew,           cpp_name_new,   "new" },
-    {   TKdelete, OPdelete,     cpp_name_delete,"del" },
+}
+
+version (SCPPorHTOD)
+{
+__gshared OPTABLE[57] oparray = [
+    {   TKnew, OPnew,           cpp_name_new.ptr,   "new" },
+    {   TKdelete, OPdelete,     cpp_name_delete.ptr,"del" },
     {   TKadd, OPadd,           "?H",           "+" },
     {   TKadd, OPuadd,          "?H",           "+" },
     {   TKmin, OPmin,           "?G",           "-" },
@@ -159,12 +159,12 @@ struct OPTABLE
     {   TKor, OPor,             "?U",           "|" },
     {   TKcom, OPcom,           "?S",           "~" },
     {   TKnot, OPnot,           "?7",           "!" },
-    {   TKeq, OPeq,             cpp_name_as,    "=" },
+    {   TKeq, OPeq,             cpp_name_as.ptr,    "=" },
     {   TKeq, OPstreq,          "?4",           "=" },
     {   TKlt, OPlt,             "?M",           "<" },
     {   TKgt, OPgt,             "?O",           ">" },
-    {   TKnew, OPanew,          cpp_name_anew,  "n[]" },
-    {   TKdelete, OPadelete,    cpp_name_adelete,"d[]" },
+    {   TKnew, OPanew,          cpp_name_anew.ptr,  "n[]" },
+    {   TKdelete, OPadelete,    cpp_name_adelete.ptr,"d[]" },
     {   TKunord, OPunord,       "?_S",          "!<>=" },
     {   TKlg, OPlg,             "?_T",          "<>"   },
     {   TKleg, OPleg,           "?_U",          "<>="  },
@@ -200,41 +200,40 @@ struct OPTABLE
     {   TKarrow, OParrow,       "?C",           "->" },
     {   TKcomma, OPcomma,       "?Q",           "," },
     {   TKarrowstar, OParrowstar, "?J",         "->*" },
-};
+];
+}
 
 /****************************************
  * Convert from identifier to operator
  */
-#if SCPP
-
-#if __GNUC__    // NOT DONE - FIX
-char * unmangle_pt(const char **s)
+version (SCPPorHTOD)
 {
-    return (char *)*s;
+
+static if (0) //__GNUC__    // NOT DONE - FIX
+{
+char * unmangle_pt(const(char)** s)
+{
+    return cast(char *)*s;
 }
-#else
-#if __cplusplus
-extern "C"
-#endif
-        char * __cdecl unmangle_pt(const char **);
+}
+else
+{
+    extern (C) char *unmangle_pt(const(char)**);
+}
 
-#endif
-
-char *cpp_unmangleident(const char *p)
-{   int i;
+char *cpp_unmangleident(const(char)* p)
+{
     MangleInuse m;
 
     //printf("cpp_unmangleident('%s')\n", p);
     if (*p == '$')              // if template name
-    {   char *s;
-        const char *q;
-
+    {
     L1:
-        q = p;
-        s = unmangle_pt(&q);
+        const(char)* q = p;
+        char* s = unmangle_pt(&q);
         if (s)
         {   if (strlen(s) <= BUFIDMAX)
-                p = strcpy(mangle.buf, s);
+                p = strcpy(mangle.buf.ptr, s);
             free(s);
         }
     }
@@ -243,11 +242,11 @@ char *cpp_unmangleident(const char *p)
 
         if (NEWTEMPMANGLE && p[1] == '$')       // if template name
             goto L1;
-        for (i = 0; i < arraysize(oparray); i++)
+        for (i = 0; i < oparray.length; i++)
         {   if (strcmp(p,oparray[i].string) == 0)
-            {   char *s;
+            {   const(char)* s;
 
-                strcpy(mangle.buf, "operator ");
+                strcpy(mangle.buf.ptr, "operator ");
                 switch (oparray[i].oper)
                 {   case OPanew:
                         s = "new[]";
@@ -259,19 +258,19 @@ char *cpp_unmangleident(const char *p)
                         s = "delete";
                         break;
                     default:
-                        s = oparray[i].pretty;
+                        s = oparray[i].pretty.ptr;
                         break;
                 }
-                strcat(mangle.buf,s);
-                p = mangle.buf;
+                strcat(mangle.buf.ptr,s);
+                p = mangle.buf.ptr;
                 break;
             }
         }
     }
     //printf("-cpp_unmangleident() = '%s'\n", p);
-    return (char *)p;
+    return cast(char *)p;
 }
-#endif
+}
 
 /****************************************
  * Find index in oparray[] for operator.
@@ -279,18 +278,19 @@ char *cpp_unmangleident(const char *p)
  *      index or -1 if not found
  */
 
-#if SCPP
+version (SCPPorHTOD)
+{
 
 int cpp_opidx(int op)
 {   int i;
 
-    for (i = 0; i < arraysize(oparray); i++)
+    for (i = 0; i < oparray.length; i++)
         if (oparray[i].oper == op)
             return i;
     return -1;
 }
 
-#endif
+}
 
 /***************************************
  * Find identifier string associated with operator.
@@ -298,16 +298,17 @@ int cpp_opidx(int op)
  *      null if not found
  */
 
-#if SCPP
+version (SCPPorHTOD)
+{
 
 char *cpp_opident(int op)
 {   int i;
 
     i = cpp_opidx(op);
-    return (i == -1) ? null : oparray[i].string;
+    return (i == -1) ? null : cast(char*)oparray[i].string;
 }
 
-#endif
+}
 
 /**********************************
  * Convert from operator token to name.
@@ -318,7 +319,8 @@ char *cpp_opident(int op)
  *      pointer to corresponding name
  */
 
-#if SCPP
+version (SCPPorHTOD)
+{
 
 char *cpp_operator(int *poper,type **pt)
 {
@@ -328,7 +330,7 @@ char *cpp_operator(int *poper,type **pt)
 
     *pt = null;
     stoken();                           /* skip over operator keyword   */
-    for (i = 0; i < arraysize(oparray); i++)
+    for (i = 0; i < oparray.length; i++)
     {   if (oparray[i].tokn == tok.TKval)
             goto L1;
     }
@@ -341,15 +343,15 @@ char *cpp_operator(int *poper,type **pt)
         fixdeclar(t);
         type_free(typ_spec);
         *pt = t;
-        return cpp_typetostring(t,"?B");
+        return cpp_typetostring(t,cast(char*)"?B".ptr);
     }
 
     cpperr(EM_not_overloadable);        // that token cannot be overloaded
-    s = "_";
+    s = cast(char*)"_".ptr;
     goto L2;
 
 L1:
-    s = oparray[i].string;
+    s = cast(char*)oparray[i].string;
     *poper = oparray[i].oper;
     switch (*poper)
     {   case OPcall:
@@ -366,14 +368,14 @@ L1:
             if (stoken() != TKlbra)
                 goto Lret;
             *poper = OPanew;            // operator new[]
-            s = cpp_name_anew;
+            s = cpp_name_anew.ptr;
             goto L3;
 
         case OPdelete:
             if (stoken() != TKlbra)
                 goto Lret;
             *poper = OPadelete;         // operator delete[]
-            s = cpp_name_adelete;
+            s = cpp_name_adelete.ptr;
         L3:
             if (stoken() != TKrbra)
                 synerr(EM_rbra);                // ']' expected
@@ -381,6 +383,9 @@ L1:
             {   cpperr(EM_enable_anew);         // throw -Aa to support this
                 config.flags4 |= CFG4anew;
             }
+            break;
+
+        default:
             break;
     }
 L2:
@@ -405,13 +410,13 @@ char *cpp_operator2(token_t *to, int *pcastoverload)
     int oper;
 
     *pcastoverload = 0;
-    if (!to || !to->TKnext)
+    if (!to || !to.TKnext)
         return null;
 
-    for (i = 0; i < arraysize(oparray); i++)
+    for (i = 0; i < oparray.length; i++)
     {
         //printf("[%d] %d, %d\n", i, oparray[i].tokn, tok.TKval);
-        if (oparray[i].tokn == to->TKval)
+        if (oparray[i].tokn == to.TKval)
             goto L1;
     }
 
@@ -420,46 +425,49 @@ char *cpp_operator2(token_t *to, int *pcastoverload)
     return null;
 
 L1:
-    tn = to->TKnext;
-    s = oparray[i].string;
+    tn = to.TKnext;
+    s = cast(char*)oparray[i].string;
     oper = oparray[i].oper;
     switch (oper)
     {   case OPcall:
-            if (tn->TKval != TKrpar)
+            if (tn.TKval != TKrpar)
                 synerr(EM_rpar);        // ')' expected
             break;
 
         case OPbrack:
-            if (tn->TKval != TKrbra)
+            if (tn.TKval != TKrbra)
                 synerr(EM_rbra);        // ']' expected
             break;
 
         case OPnew:
-            if (tn->TKval != TKlbra)
+            if (tn.TKval != TKlbra)
                 break;
             oper = OPanew;              // operator new[]
-            s = cpp_name_anew;
+            s = cpp_name_anew.ptr;
             goto L3;
 
         case OPdelete:
-            if (tn->TKval != TKlbra)
+            if (tn.TKval != TKlbra)
                 break;
             oper = OPadelete;           // operator delete[]
-            s = cpp_name_adelete;
+            s = cpp_name_adelete.ptr;
         L3:
-            if (tn->TKval != TKrbra)
+            if (tn.TKval != TKrbra)
                 synerr(EM_rbra);                // ']' expected
             if (!(config.flags4 & CFG4anew))
             {   cpperr(EM_enable_anew);         // throw -Aa to support this
                 config.flags4 |= CFG4anew;
             }
             break;
+
+        default:
+            break;
     }
 Lret:
     return s;
 }
 
-#endif
+}
 
 /***********************************
  * Generate and return a pointer to a string constructed from
@@ -474,8 +482,8 @@ char *cpp_typetostring(type *t,char *prefix)
 {   int i;
 
     if (prefix)
-    {   strcpy(mangle.buf,prefix);
-        i = strlen(prefix);
+    {   strcpy(mangle.buf.ptr,prefix);
+        i = cast(int)strlen(prefix);
     }
     else
         i = 0;
@@ -484,14 +492,14 @@ char *cpp_typetostring(type *t,char *prefix)
     MangleInuse m;
     mangle.znamei = 0;
     mangle.argi = 0;
-    mangle.np = mangle.buf + i;
+    mangle.np = mangle.buf.ptr + i;
     mangle.buf[BUFIDMAX + 1] = 0x55;
     cpp_data_type(t);
     *mangle.np = 0;                     // 0-terminate mangle.buf[]
     //dbg_printf("cpp_typetostring: '%s'\n", mangle.buf);
-    assert(strlen(mangle.buf) <= BUFIDMAX);
+    assert(strlen(mangle.buf.ptr) <= BUFIDMAX);
     assert(mangle.buf[BUFIDMAX + 1] == 0x55);
-    return mangle.buf;
+    return mangle.buf.ptr;
 }
 
 /********************************
@@ -503,15 +511,16 @@ char *cpp_typetostring(type *t,char *prefix)
 char *cpp_mangle(Symbol *s)
 {
     symbol_debug(s);
-    //printf("cpp_mangle(s = %p, '%s')\n", s, s->Sident);
-    //type_print(s->Stype);
+    //printf("cpp_mangle(s = %p, '%s')\n", s, s.Sident);
+    //type_print(s.Stype);
 
-#if SCPP
+version (SCPPorHTOD)
+{
     if (!CPP)
         return symbol_ident(s);
-#endif
+}
 
-    if (type_mangle(s->Stype) != mTYman_cpp)
+    if (type_mangle(s.Stype) != mTYman_cpp)
         return symbol_ident(s);
     else
     {
@@ -519,14 +528,14 @@ char *cpp_mangle(Symbol *s)
 
         mangle.znamei = 0;
         mangle.argi = 0;
-        mangle.np = mangle.buf;
+        mangle.np = mangle.buf.ptr;
         mangle.buf[BUFIDMAX + 1] = 0x55;
         cpp_decorated_name(s);
         *mangle.np = 0;                 // 0-terminate cpp_name[]
         //dbg_printf("cpp_mangle() = '%s'\n", mangle.buf);
-        assert(strlen(mangle.buf) <= BUFIDMAX);
+        assert(strlen(mangle.buf.ptr) <= BUFIDMAX);
         assert(mangle.buf[BUFIDMAX + 1] == 0x55);
-        return mangle.buf;
+        return mangle.buf.ptr;
     }
 }
 
@@ -536,17 +545,17 @@ char *cpp_mangle(Symbol *s)
  * Add char into cpp_name[].
  */
 
-private void __inline CHAR(char c)
+private void CHAR(int c)
 {
     if (mangle.np < &mangle.buf[BUFIDMAX])
-        *mangle.np++ = c;
+        *mangle.np++ = cast(char)c;
 }
 
 /*********************************
  * Add char into cpp_name[].
  */
 
-private void STR(const char *p)
+private void STR(const(char)* p)
 {
     size_t len;
 
@@ -579,7 +588,7 @@ private int cpp_cvidx(tym_t ty)
 private int cpp_protection(Symbol *s)
 {   int i;
 
-    switch (s->Sflags & SFLpmask)
+    switch (s.Sflags & SFLpmask)
     {   case SFLprivate:        i = 0;  break;
         case SFLprotected:      i = 1;  break;
         case SFLpublic:         i = 2;  break;
@@ -594,7 +603,8 @@ private int cpp_protection(Symbol *s)
  * Create mangled name for template instantiation.
  */
 
-#if SCPP
+version (SCPPorHTOD)
+{
 
 char *template_mangle(Symbol *s,param_t *arglist)
 {
@@ -612,15 +622,15 @@ char *template_mangle(Symbol *s,param_t *arglist)
 
     assert(s);
     symbol_debug(s);
-    //assert(s->Sclass == SCtemplate);
+    //assert(s.Sclass == SCtemplate);
 
-    //printf("\ntemplate_mangle(s = '%s', arglist = %p)\n", s->Sident, arglist);
-    //arglist->print_list();
+    //printf("\ntemplate_mangle(s = '%s', arglist = %p)\n", s.Sident, arglist);
+    //arglist.print_list();
 
     MangleInuse m;
     mangle.znamei = 0;
     mangle.argi = 0;
-    mangle.np = mangle.buf;
+    mangle.np = mangle.buf.ptr;
     mangle.buf[BUFIDMAX + 1] = 0x55;
 
     if (NEWTEMPMANGLE)
@@ -630,34 +640,34 @@ char *template_mangle(Symbol *s,param_t *arglist)
 
     // BUG: this is for templates nested inside class scopes.
     // Need to check if it creates names that are properly unmanglable.
-    cpp_zname(s->Sident);
-    if (s->Sscope)
-        cpp_scope(s->Sscope);
+    cpp_zname(s.Sident.ptr);
+    if (s.Sscope)
+        cpp_scope(s.Sscope);
 
-    for (p = arglist; p; p = p->Pnext)
+    for (p = arglist; p; p = p.Pnext)
     {
-        if (p->Ptype)
+        if (p.Ptype)
         {   /* Argument is a type       */
             if (!NEWTEMPMANGLE)
                 CHAR('T');
-            cpp_argument_list(p->Ptype, 1);
+            cpp_argument_list(p.Ptype, 1);
         }
-        else if (p->Psym)
+        else if (p.Psym)
         {
             CHAR('V');  // this is a 'class' name, but it should be a 'template' name
-            cpp_ecsu_name(p->Psym);
+            cpp_ecsu_name(p.Psym);
         }
         else
         {   /* Argument is an expression        */
-            elem *e = p->Pelem;
-            tym_t ty = tybasic(e->ET->Tty);
-            char *p;
-            char a[2];
+            elem *e = p.Pelem;
+            tym_t ty = tybasic(e.ET.Tty);
+            char *p2;
+            char[2] a = void;
             int ni;
             char c;
 
         L2:
-            switch (e->Eoper)
+            switch (e.Eoper)
             {   case OPconst:
                     switch (ty)
                     {   case TYfloat:   ni = FLOATSIZE;  c = 'F'; goto L1;
@@ -668,26 +678,22 @@ char *template_mangle(Symbol *s,param_t *arglist)
                             if (NEWTEMPMANGLE)
                                 CHAR('$');
                             CHAR(c);
-                            p = (char *)&e->EV.Vdouble;
+                            p2 = cast(char *)&e.EV.Vdouble;
                             while (ni--)
-                            {   char c;
-#if __GNUC__
-                                static char hex[16] =
-                                    {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
-#else
-                                static char hex[16] = "0123456789ABCDEF";
-#endif
+                            {   char ch;
+                                static immutable char[16] hex = "0123456789ABCDEF";
 
-                                c = *p++;
-                                CHAR(hex[c & 15]);
-                                CHAR(hex[(c >> 4) & 15]);
+                                ch = *p2++;
+                                CHAR(hex[ch & 15]);
+                                CHAR(hex[(ch >> 4) & 15]);
                             }
                             break;
                         default:
-#ifdef DEBUG
+debug
+{
                             if (!tyintegral(ty) && !tymptr(ty))
                                 elem_print(e);
-#endif
+}
                             assert(tyintegral(ty) || tymptr(ty));
                             if (NEWTEMPMANGLE)
                                 STR("$0");
@@ -702,58 +708,62 @@ char *template_mangle(Symbol *s,param_t *arglist)
                         STR("$S");
                     else
                         CHAR('S');
-                    if (e->EV.ss.Voffset)
+                    if (e.EV.Voffset)
                         synerr(EM_const_init);          // constant initializer expected
-                    cpp_string(e->EV.ss.Vstring,e->EV.ss.Vstrlen);
+                    cpp_string(e.EV.Vstring,e.EV.Vstrlen);
                     break;
                 case OPrelconst:
-                    if (e->EV.sp.Voffset)
+                    if (e.EV.Voffset)
                         synerr(EM_const_init);          // constant initializer expected
-                    s = e->EV.sp.Vsym;
+                    s = e.EV.Vsym;
                     if (NEWTEMPMANGLE)
                     {   STR("$1");
                         cpp_decorated_name(s);
                     }
                     else
                     {   CHAR('R');
-                        cpp_zname(s->Sident);
+                        cpp_zname(s.Sident.ptr);
                     }
                     break;
                 case OPvar:
-                    if (e->EV.sp.Vsym->Sflags & SFLvalue &&
-                        tybasic(e->ET->Tty) != TYstruct)
+                    if (e.EV.Vsym.Sflags & SFLvalue &&
+                        tybasic(e.ET.Tty) != TYstruct)
                     {
-                        e = e->EV.sp.Vsym->Svalue;
+                        e = e.EV.Vsym.Svalue;
                         goto L2;
                     }
-                    else if (e->EV.sp.Vsym->Sclass == SCconst /*&&
+                    else if (e.EV.Vsym.Sclass == SCconst /*&&
                              pstate.STintemplate*/)
                     {
                         CHAR('V');              // pretend to be a class name
-                        cpp_zname(e->EV.sp.Vsym->Sident);
+                        cpp_zname(e.EV.Vsym.Sident.ptr);
                         break;
                     }
+                    goto default;
+
                 default:
-#if SCPP
-#ifdef DEBUG
+version (SCPPorHTOD)
+{
+debug
+{
                     if (!errcnt)
                         elem_print(e);
-#endif
+}
                     synerr(EM_const_init);              // constant initializer expected
                     assert(errcnt);
-#endif
+}
                     break;
             }
         }
     }
     *mangle.np = 0;
     //printf("template_mangle() = '%s'\n", mangle.buf);
-    assert(strlen(mangle.buf) <= BUFIDMAX);
+    assert(strlen(mangle.buf.ptr) <= BUFIDMAX);
     assert(mangle.buf[BUFIDMAX + 1] == 0x55);
-    return mangle.buf;
+    return mangle.buf.ptr;
 }
 
-#endif
+}
 
 //////////////////////////////////////////////////////
 // Functions corresponding to the name mangling grammar in the
@@ -763,7 +773,7 @@ private void cpp_string(char *s,size_t len)
 {   char c;
 
     for (; --len; s++)
-    {   static char special_char[] = ",/\\:. \n\t'-";
+    {   static immutable char[11] special_char = ",/\\:. \n\t'-";
         char *p;
 
         c = *s;
@@ -772,12 +782,12 @@ private void cpp_string(char *s,size_t len)
             c &= 0x7F;
         }
         else if (isalnum(c))
-            ;
+        { }
         else
         {
             CHAR('?');
-            if ((p = (char *)strchr(special_char,c)) != null)
-                c = '0' + (p - special_char);
+            if ((p = cast(char *)strchr(special_char.ptr,c)) != null)
+                c = cast(char)('0' + (p - special_char.ptr));
             else
             {
                 CHAR('$');
@@ -793,13 +803,13 @@ private void cpp_string(char *s,size_t len)
 private void cpp_dimension(targ_ullong u)
 {
     if (u && u <= 10)
-        CHAR('0' + (char)u - 1);
+        CHAR('0' + cast(char)u - 1);
     else
-    {   char buffer[sizeof(u) * 2 + 1];
+    {   char[u.sizeof * 2 + 1] buffer = void;
         char *p;
 
-        buffer[sizeof(buffer) - 1] = 0;
-        for (p = &buffer[sizeof(buffer) - 1]; u; u >>= 4)
+        buffer[buffer.length - 1] = 0;
+        for (p = &buffer[buffer.length - 1]; u; u >>= 4)
         {
             *--p = 'A' + (u & 0x0F);
         }
@@ -808,19 +818,20 @@ private void cpp_dimension(targ_ullong u)
     }
 }
 
-#if 0
+static if (0)
+{
 private void cpp_dimension_ld(targ_ldouble ld)
-{   ubyte ldbuf[sizeof(targ_ldouble)];
+{   ubyte[targ_ldouble.sizeof] ldbuf = void;
 
-    memcpy(ldbuf,&ld,sizeof(ld));
+    memcpy(ldbuf.ptr,&ld,ld.sizeof);
     if (u && u <= 10)
-        CHAR('0' + (char)u - 1);
+        CHAR('0' + cast(char)u - 1);
     else
-    {   char buffer[sizeof(u) * 2 + 1];
+    {   char[u.sizeof * 2 + 1] buffer = void;
         char *p;
 
-        buffer[sizeof(buffer) - 1] = 0;
-        for (p = &buffer[sizeof(buffer) - 1]; u; u >>= 4)
+        buffer[buffer.length - 1] = 0;
+        for (p = &buffer[buffer.length - 1]; u; u >>= 4)
         {
             *--p = 'A' + (u & 0x0F);
         }
@@ -828,14 +839,14 @@ private void cpp_dimension_ld(targ_ldouble ld)
         CHAR('@');
     }
 }
-#endif
+}
 
 private void cpp_enum_name(Symbol *s)
 {   type *t;
     char c;
 
-    t = tsint;
-    switch (tybasic(t->Tty))
+    t = tstypes[TYint];
+    switch (tybasic(t.Tty))
     {
         case TYschar:   c = '0';        break;
         case TYuchar:   c = '1';        break;
@@ -853,7 +864,7 @@ private void cpp_enum_name(Symbol *s)
 
 private void cpp_reference_data_type(type *t, int flag)
 {
-    if (tybasic(t->Tty) == TYarray)
+    if (tybasic(t.Tty) == TYarray)
     {
         int ndim;
         type *tn;
@@ -866,22 +877,22 @@ private void cpp_reference_data_type(type *t, int flag)
         tn = t;
         do
         {   ndim++;
-            tn = tn->Tnext;
-        } while (tybasic(tn->Tty) == TYarray);
+            tn = tn.Tnext;
+        } while (tybasic(tn.Tty) == TYarray);
 
         cpp_dimension(ndim);
-        for (; tybasic(t->Tty) == TYarray; t = t->Tnext)
+        for (; tybasic(t.Tty) == TYarray; t = t.Tnext)
         {
-            if (t->Tflags & TFvla)
+            if (t.Tflags & TFvla)
                 CHAR('X');                      // DMC++ extension
             else
-                cpp_dimension(t->Tdim);
+                cpp_dimension(t.Tdim);
         }
 
         // DMC++ extension
         if (flag)                       // if template type argument
         {
-            i = cpp_cvidx(t->Tty);
+            i = cpp_cvidx(t.Tty);
             if (i)
             {   CHAR('_');
                 //CHAR('X' + i - 1);            // _X, _Y, _Z
@@ -897,7 +908,7 @@ private void cpp_reference_data_type(type *t, int flag)
 
 private void cpp_pointer_data_type(type *t)
 {
-    if (tybasic(t->Tty) == TYvoid)
+    if (tybasic(t.Tty) == TYvoid)
         CHAR('X');
     else
         cpp_reference_data_type(t, 0);
@@ -909,11 +920,11 @@ private void cpp_ecsu_data_type(type *t)
     int i;
 
     type_debug(t);
-    switch (tybasic(t->Tty))
+    switch (tybasic(t.Tty))
     {
         case TYstruct:
-            stag = t->Ttag;
-            switch (stag->Sstruct->Sflags & (STRclass | STRunion))
+            stag = t.Ttag;
+            switch (stag.Sstruct.Sflags & (STRclass | STRunion))
             {   case 0:         c = 'U';        break;
                 case STRunion:  c = 'T';        break;
                 case STRclass:  c = 'V';        break;
@@ -925,12 +936,12 @@ private void cpp_ecsu_data_type(type *t)
             break;
         case TYenum:
             CHAR('W');
-            cpp_enum_name(t->Ttag);
+            cpp_enum_name(t.Ttag);
             break;
         default:
-#ifdef DEBUG
+            debug
             type_print(t);
-#endif
+
             assert(0);
     }
 }
@@ -941,7 +952,7 @@ private void cpp_basic_data_type(type *t)
 
     //printf("cpp_basic_data_type(t)\n");
     //type_print(t);
-    switch (tybasic(t->Tty))
+    switch (tybasic(t.Tty))
     {
         case TYschar:   c = 'C';        goto dochar;
         case TYchar:    c = 'D';        goto dochar;
@@ -956,7 +967,7 @@ private void cpp_basic_data_type(type *t)
         case TYdouble:  c = 'N';        goto dochar;
 
         case TYdouble_alias:
-                        if (intsize == 4)
+                        if (_tysize[TYint] == 4)
                         {   c = 'O';
                             goto dochar;
                         }
@@ -964,7 +975,7 @@ private void cpp_basic_data_type(type *t)
                         goto dochar2;
 
         case TYldouble:
-                        if (intsize == 2)
+                        if (_tysize[TYint] == 2)
                         {   c = 'O';
                             goto dochar;
                         }
@@ -1012,11 +1023,9 @@ private void cpp_basic_data_type(type *t)
         case TYfptr:
         case TYhptr:
         case TYvptr:
-#if !MARS
         case TYmemptr:
-#endif
         case TYnptr:
-            c = 'P' + cpp_cvidx(t->Tty);
+            c = cast(char)('P' + cpp_cvidx(t.Tty));
             CHAR(c);
             if(I64)
                 CHAR('E'); // __ptr64 modifier
@@ -1027,7 +1036,7 @@ private void cpp_basic_data_type(type *t)
             cpp_ecsu_data_type(t);
             break;
         case TYarray:
-            i = cpp_cvidx(t->Tty);
+            i = cpp_cvidx(t.Tty);
             i |= 1;                     // always const
             CHAR('P' + i);
             cpp_pointer_type(t);
@@ -1035,18 +1044,20 @@ private void cpp_basic_data_type(type *t)
         case TYvoid:
             c = 'X';
             goto dochar;
-#if !MARS
+version (SCPPorHTOD)
+{
         case TYident:
             if (pstate.STintemplate)
             {
                 CHAR('V');              // pretend to be a class name
-                cpp_zname(t->Tident);
+                cpp_zname(t.Tident);
             }
             else
             {
-#if SCPP
-                cpperr(EM_no_type,t->Tident);   // no type for argument
-#endif
+version (SCPPorHTOD)
+{
+                cpperr(EM_no_type,t.Tident);   // no type for argument
+}
                 c = 'X';
                 goto dochar;
             }
@@ -1055,26 +1066,26 @@ private void cpp_basic_data_type(type *t)
             if (pstate.STintemplate)
             {
                 CHAR('V');              // pretend to be a class name
-                cpp_zname(((typetemp_t *)t)->Tsym->Sident);
+                cpp_zname((cast(typetemp_t *)t).Tsym.Sident.ptr);
             }
             else
                 goto Ldefault;
             break;
-#endif
+}
 
         default:
         Ldefault:
-            if (tyfunc(t->Tty))
+            if (tyfunc(t.Tty))
                 cpp_function_type(t);
             else
             {
-#if SCPP
-#ifdef DEBUG
+version (SCPPorHTOD)
+{
+                debug
                 if (!errcnt)
                     type_print(t);
-#endif
                 assert(errcnt);
-#endif
+}
             }
     }
 }
@@ -1082,35 +1093,43 @@ private void cpp_basic_data_type(type *t)
 private void cpp_function_indirect_type(type *t)
 {   int farfunc;
 
-    farfunc = tyfarfunc(t->Tnext->Tty) != 0;
-#if !MARS
-    if (tybasic(t->Tty) == TYmemptr)
+    farfunc = tyfarfunc(t.Tnext.Tty) != 0;
+version (SCPPorHTOD)
+{
+    if (tybasic(t.Tty) == TYmemptr)
     {
         CHAR('8' + farfunc);
-        cpp_scope(t->Ttag);
+        cpp_scope(t.Ttag);
         CHAR('@');
-        //cpp_this_type(t->Tnext,t->Ttag);      // MSC doesn't do this
+        //cpp_this_type(t.Tnext,t.Ttag);      // MSC doesn't do this
     }
     else
-#endif
         CHAR('6' + farfunc);
+}
+else
+    CHAR('6' + farfunc);
 }
 
 private void cpp_data_indirect_type(type *t)
 {   int i;
-#if !MARS
-    if (tybasic(t->Tty) == TYmemptr)    // if pointer to member
+version (SCPPorHTOD)
+{
+    if (tybasic(t.Tty) == TYmemptr)    // if pointer to member
     {
-        i = cpp_cvidx(t->Tty);
-        if (t->Tty & mTYfar)
+        i = cpp_cvidx(t.Tty);
+        if (t.Tty & mTYfar)
             i += 4;
         CHAR('Q' + i);
-        cpp_scope(t->Ttag);
+        cpp_scope(t.Ttag);
         CHAR('@');
     }
     else
-#endif
         cpp_ecsu_data_indirect_type(t);
+}
+else
+{
+    cpp_ecsu_data_indirect_type(t);
+}
 }
 
 private void cpp_ecsu_data_indirect_type(type *t)
@@ -1118,9 +1137,9 @@ private void cpp_ecsu_data_indirect_type(type *t)
     tym_t ty;
 
     i = 0;
-    if (t->Tnext)
-    {   ty = t->Tnext->Tty & (mTYconst | mTYvolatile);
-        switch (tybasic(t->Tty))
+    if (t.Tnext)
+    {   ty = t.Tnext.Tty & (mTYconst | mTYvolatile);
+        switch (tybasic(t.Tty))
         {
             case TYfptr:
             case TYvptr:
@@ -1136,10 +1155,13 @@ private void cpp_ecsu_data_indirect_type(type *t)
                 if (LARGEDATA && !(ty & mTYLINK))
                     ty |= mTYfar;
                 break;
+
+            default:
+                break;
         }
     }
     else
-        ty = t->Tty & (mTYLINK | mTYconst | mTYvolatile);
+        ty = t.Tty & (mTYLINK | mTYconst | mTYvolatile);
     i |= cpp_cvidx(ty);
     if (ty & (mTYcs | mTYfar))
         i += 4;
@@ -1149,33 +1171,36 @@ private void cpp_ecsu_data_indirect_type(type *t)
 private void cpp_pointer_type(type *t)
 {   tym_t ty;
 
-    if (tyfunc(t->Tnext->Tty))
+    if (tyfunc(t.Tnext.Tty))
     {
         cpp_function_indirect_type(t);
-        cpp_function_type(t->Tnext);
+        cpp_function_type(t.Tnext);
     }
     else
     {
         cpp_data_indirect_type(t);
-        cpp_pointer_data_type(t->Tnext);
+        cpp_pointer_data_type(t.Tnext);
     }
 }
 
 private void cpp_reference_type(type *t)
 {
     cpp_data_indirect_type(t);
-    cpp_reference_data_type(t->Tnext, 0);
+    cpp_reference_data_type(t.Tnext, 0);
 }
 
 private void cpp_primary_data_type(type *t)
 {
-    if (tyref(t->Tty))
+    if (tyref(t.Tty))
     {
-#if 1
+static if (1)
+{
         // C++98 8.3.2 says cv-qualified references are ignored
         CHAR('A');
-#else
-        switch (t->Tty & (mTYconst | mTYvolatile))
+}
+else
+{
+        switch (t.Tty & (mTYconst | mTYvolatile))
         {
             case 0:                      CHAR('A');     break;
             case mTYvolatile:            CHAR('B');     break;
@@ -1183,8 +1208,11 @@ private void cpp_primary_data_type(type *t)
             // Digital Mars extensions
             case mTYconst | mTYvolatile: CHAR('_'); CHAR('L');  break;
             case mTYconst:               CHAR('_'); CHAR('M');  break;
+
+            default:
+                break;
         }
-#endif
+}
         cpp_reference_type(t);
     }
     else
@@ -1201,10 +1229,10 @@ private void cpp_argument_list(type *t, int flag)
 
     //printf("cpp_argument_list(flag = %d)\n", flag);
     // If a data type that encodes only into one character
-    ty = tybasic(t->Tty);
+    ty = tybasic(t.Tty);
     if (ty <= TYldouble && ty != TYenum
         && ty != TYbool         // added for versions >= 8.1b9
-        && !(t->Tty & (mTYconst | mTYvolatile))
+        && !(t.Tty & (mTYconst | mTYvolatile))
        )
     {
         cpp_primary_data_type(t);
@@ -1218,7 +1246,7 @@ private void cpp_argument_list(type *t, int flag)
             {
                 if (ty <= TYcldouble || ty == TYstruct)
                 {
-                    int cvidx = cpp_cvidx(t->Tty);
+                    int cvidx = cpp_cvidx(t.Tty);
                     if (cvidx)
                     {
                         // Digital Mars extensions
@@ -1226,7 +1254,7 @@ private void cpp_argument_list(type *t, int flag)
                         CHAR('N' + cvidx);      // _O, _P, _Q prefix
                     }
                 }
-                if (flag && tybasic(t->Tty) == TYarray)
+                if (flag && tybasic(t.Tty) == TYarray)
                 {
                    cpp_reference_data_type(t, flag);
                 }
@@ -1251,10 +1279,10 @@ private void cpp_argument_types(type *t)
 
     //printf("cpp_argument_types()\n");
     //type_debug(t);
-    for (p = t->Tparamtypes; p; p = p->Pnext)
-        cpp_argument_list(p->Ptype, 0);
-    if (t->Tflags & TFfixed)
-        c = t->Tparamtypes ? '@' : 'X';
+    for (p = t.Tparamtypes; p; p = p.Pnext)
+        cpp_argument_list(p.Ptype, 0);
+    if (t.Tflags & TFfixed)
+        c = t.Tparamtypes ? '@' : 'X';
     else
         c = 'Z';
     CHAR(c);
@@ -1263,7 +1291,7 @@ private void cpp_argument_types(type *t)
 private void cpp_calling_convention(type *t)
 {   char c;
 
-    switch (tybasic(t->Tty))
+    switch (tybasic(t.Tty))
     {
         case TYnfunc:
         case TYhfunc:
@@ -1293,40 +1321,42 @@ private void cpp_vcall_model_type()
 {
 }
 
-#if SCPP || MARS
+version (SCPPorMARS)
+{
 
 private void cpp_this_type(type *tfunc,Classsym *stag)
 {   type *t;
 
     type_debug(tfunc);
     symbol_debug(stag);
-#if MARS
-    t = type_pointer(stag->Stype);
-#else
+
+version (MARS)
+    t = type_pointer(stag.Stype);
+else
     t = cpp_thistype(tfunc,stag);
-#endif
+
     //cpp_data_indirect_type(t);
     cpp_ecsu_data_indirect_type(t);
     type_free(t);
 }
 
-#endif
+}
 
 private void cpp_storage_convention(Symbol *s)
 {   tym_t ty;
-    type *t = s->Stype;
+    type *t = s.Stype;
 
-    ty = t->Tty;
+    ty = t.Tty;
     if (LARGEDATA && !(ty & mTYLINK))
-        t->Tty |= mTYfar;
+        t.Tty |= mTYfar;
     cpp_data_indirect_type(t);
-    t->Tty = ty;
+    t.Tty = ty;
 }
 
 private void cpp_data_type(type *t)
 {
     type_debug(t);
-    switch (tybasic(t->Tty))
+    switch (tybasic(t.Tty))
     {   case TYvoid:
             CHAR('X');
             break;
@@ -1344,20 +1374,21 @@ private void cpp_data_type(type *t)
 
 private void cpp_return_type(Symbol *s)
 {
-    if (s->Sfunc->Fflags & (Fctor | Fdtor))     // if ctor or dtor
+    if (s.Sfunc.Fflags & (Fctor | Fdtor))     // if ctor or dtor
         CHAR('@');                              // no type
     else
-        cpp_data_type(s->Stype->Tnext);
+        cpp_data_type(s.Stype.Tnext);
 }
 
 private void cpp_ecsu_name(Symbol *s)
 {
     //printf("cpp_ecsu_name(%s)\n", symbol_ident(s));
     cpp_zname(symbol_ident(s));
-#if SCPP || MARS
-    if (s->Sscope)
-        cpp_scope(s->Sscope);
-#endif
+version (SCPPorMARS)
+{
+    if (s.Sscope)
+        cpp_scope(s.Sscope);
+}
     CHAR('@');
 }
 
@@ -1373,16 +1404,16 @@ private void cpp_function_type(type *t)
 
     //printf("cpp_function_type()\n");
     //type_debug(t);
-    assert(tyfunc(t->Tty));
+    assert(tyfunc(t.Tty));
     cpp_calling_convention(t);
     //cpp_return_type(s);
-    tn = t->Tnext;
-    ty = tn->Tty;
+    tn = t.Tnext;
+    ty = tn.Tty;
     if (LARGEDATA && (tybasic(ty) == TYstruct || tybasic(ty) == TYenum) &&
         !(ty & mTYLINK))
-        tn->Tty |= mTYfar;
+        tn.Tty |= mTYfar;
     cpp_data_type(tn);
-    tn->Tty = ty;
+    tn.Tty = ty;
     cpp_argument_types(t);
     cpp_throw_types(t);
 }
@@ -1393,7 +1424,7 @@ private void cpp_adjustor_thunk_type(Symbol *s)
 
 private void cpp_vftable_type(Symbol *s)
 {
-    cpp_ecsu_data_indirect_type(s->Stype);
+    cpp_ecsu_data_indirect_type(s.Stype);
 //      vpath_name();
     CHAR('@');
 }
@@ -1411,16 +1442,17 @@ private void cpp_static_member_data_type(Symbol *s)
 
 private void cpp_static_member_function_type(Symbol *s)
 {
-    cpp_function_type(s->Stype);
+    cpp_function_type(s.Stype);
 }
 
-#if SCPP || MARS
+version (SCPPorMARS)
+{
 private void cpp_member_function_type(Symbol *s)
 {
-    assert(tyfunc(s->Stype->Tty));
-    cpp_this_type(s->Stype,(Classsym *)s->Sscope);
-    if (s->Sfunc->Fflags & (Fctor | Fdtor))
-    {   type *t = s->Stype;
+    assert(tyfunc(s.Stype.Tty));
+    cpp_this_type(s.Stype,cast(Classsym *)s.Sscope);
+    if (s.Sfunc.Fflags & (Fctor | Fdtor))
+    {   type *t = s.Stype;
 
         cpp_calling_convention(t);
         CHAR('@');                      // return_type for ctors & dtors
@@ -1430,38 +1462,39 @@ private void cpp_member_function_type(Symbol *s)
     else
         cpp_static_member_function_type(s);
 }
-#endif
+}
 
 private void cpp_external_data_type(Symbol *s)
 {
-    cpp_primary_data_type(s->Stype);
+    cpp_primary_data_type(s.Stype);
     cpp_storage_convention(s);
 }
 
 private void cpp_external_function_type(Symbol *s)
 {
-    cpp_function_type(s->Stype);
+    cpp_function_type(s.Stype);
 }
 
 private void cpp_type_encoding(Symbol *s)
 {   char c;
 
     //printf("cpp_type_encoding()\n");
-    if (tyfunc(s->Stype->Tty))
+    if (tyfunc(s.Stype.Tty))
     {   int farfunc;
 
-        farfunc = tyfarfunc(s->Stype->Tty) != 0;
-#if SCPP || MARS
+        farfunc = tyfarfunc(s.Stype.Tty) != 0;
+version (SCPPorMARS)
+{
         if (isclassmember(s))
         {   // Member function
             int protection;
             int ftype;
 
             protection = cpp_protection(s);
-            if (s->Sfunc->Fthunk && !(s->Sfunc->Fflags & Finstance))
+            if (s.Sfunc.Fthunk && !(s.Sfunc.Fflags & Finstance))
                 ftype = 3;
             else
-                switch (s->Sfunc->Fflags & (Fvirtual | Fstatic))
+                switch (s.Sfunc.Fflags & (Fvirtual | Fstatic))
                 {   case Fvirtual:      ftype = 2;      break;
                     case Fstatic:       ftype = 1;      break;
                     case 0:             ftype = 0;      break;
@@ -1473,6 +1506,8 @@ private void cpp_type_encoding(Symbol *s)
                 case 1: cpp_static_member_function_type(s);     break;
                 case 2: cpp_member_function_type(s);            break;
                 case 3: cpp_adjustor_thunk_type(s);             break;
+                default:
+                    break;
             }
         }
         else
@@ -1480,15 +1515,18 @@ private void cpp_type_encoding(Symbol *s)
             CHAR('Y' + farfunc);
             cpp_external_function_type(s);
         }
-#else
+}
+else
+{
         // Non-member function
         CHAR('Y' + farfunc);
         cpp_external_function_type(s);
-#endif
+}
     }
     else
     {
-#if SCPP || MARS
+version (SCPPorMARS)
+{
         if (isclassmember(s))
         {
             // Static data member
@@ -1497,10 +1535,10 @@ private void cpp_type_encoding(Symbol *s)
         }
         else
         {
-            if (s->Sclass == SCstatic ||
-                (s->Sscope &&
-                 s->Sscope->Sclass != SCstruct &&
-                 s->Sscope->Sclass != SCnamespace))
+            if (s.Sclass == SCstatic ||
+                (s.Sscope &&
+                 s.Sscope.Sclass != SCstruct &&
+                 s.Sscope.Sclass != SCnamespace))
             {
                 CHAR('4');
                 cpp_local_static_data_type(s);
@@ -1511,8 +1549,10 @@ private void cpp_type_encoding(Symbol *s)
                 cpp_external_data_type(s);
             }
         }
-#else
-        if (s->Sclass == SCstatic)
+}
+else
+{
+        if (s.Sclass == SCstatic)
         {
             CHAR('4');
             cpp_local_static_data_type(s);
@@ -1522,7 +1562,7 @@ private void cpp_type_encoding(Symbol *s)
             CHAR('3');
             cpp_external_data_type(s);
         }
-#endif
+}
     }
 }
 
@@ -1538,10 +1578,10 @@ private void cpp_scope(Symbol *s)
     {   char *p;
 
         symbol_debug(s);
-        switch (s->Sclass)
+        switch (s.Sclass)
         {
             case SCnamespace:
-                cpp_zname(s->Sident);
+                cpp_zname(s.Sident.ptr);
                 break;
 
             case SCstruct:
@@ -1553,29 +1593,31 @@ private void cpp_scope(Symbol *s)
                 cpp_decorated_name(s);
                 break;
         }
-#if SCPP || MARS
-        s = s->Sscope;
-#else
+
+version (SCPPorMARS)
+        s = s.Sscope;
+else
         break;
-#endif
+
     }
 }
 
-private void cpp_zname(const char *p)
+private void cpp_zname(const(char)* p)
 {
     //printf("cpp_zname(%s)\n", p);
     if (*p != '?' ||                            // if not operator_name
         (NEWTEMPMANGLE && p[1] == '$'))         // ?$ is a template name
     {
-#if MARS
+version (MARS)
+{
         /* Scan forward past any dots
          */
-        for (const char *q = p; *q; q++)
+        for (const(char)* q = p; *q; q++)
         {
             if (*q == '.')
                 p = q + 1;
         }
-#endif
+}
 
         for (int i = 0; i < mangle.znamei; i++)
         {
@@ -1600,49 +1642,52 @@ private void cpp_zname(const char *p)
 private void cpp_symbol_name(Symbol *s)
 {   char *p;
 
-    p = s->Sident;
-#if SCPP
-    if (tyfunc(s->Stype->Tty) && s->Sfunc)
+    p = s.Sident.ptr;
+version (SCPPorHTOD)
+{
+    if (tyfunc(s.Stype.Tty) && s.Sfunc)
     {
-        if (s->Sfunc->Fflags & Finstance)
+        if (s.Sfunc.Fflags & Finstance)
         {
             Mangle save = mangle;
             char *q;
             int len;
 
-            p = template_mangle(s, s->Sfunc->Fptal);
+            p = template_mangle(s, s.Sfunc.Fptal);
             len = strlen(p);
-            q = (char *)alloca(len + 1);
+            q = cast(char *)alloca(len + 1);
+            assert(q);
             memcpy(q, p, len + 1);
             mangle = save;
             p = q;
         }
-        else if (s->Sfunc->Fflags & Foperator)
+        else if (s.Sfunc.Fflags & Foperator)
         {   // operator_name ::= '?' operator_code
             //CHAR('?');                        // already there
             STR(p);
             return;
         }
     }
-#endif
-#if MARS && 0
+}
+version (none) //#if MARS && 0
+{
     //It mangles correctly, but the ABI doesn't match,
     // leading to copious segfaults. At least with the
     // wrong mangling you get link errors.
-    if (tyfunc(s->Stype->Tty) && s->Sfunc)
+    if (tyfunc(s.Stype.Tty) && s.Sfunc)
     {
-        if (s->Sfunc->Fflags & Fctor)
+        if (s.Sfunc.Fflags & Fctor)
         {
             cpp_zname(cpp_name_ct);
             return;
         }
-        if (s->Sfunc->Fflags & Fdtor)
+        if (s.Sfunc.Fflags & Fdtor)
         {
             cpp_zname(cpp_name_dt);
             return;
         }
     }
-#endif
+}
     cpp_zname(p);
 }
 
@@ -1651,10 +1696,11 @@ private void cpp_decorated_name(Symbol *s)
 
     CHAR('?');
     cpp_symbol_name(s);
-#if SCPP || MARS
-    if (s->Sscope)
-        cpp_scope(s->Sscope);
-#endif
+version (SCPPorMARS)
+{
+    if (s.Sscope)
+        cpp_scope(s.Sscope);
+}
     CHAR('@');
     cpp_type_encoding(s);
 }
@@ -1665,20 +1711,22 @@ private void cpp_decorated_name(Symbol *s)
  *      pointer to generated symbol with mangled name
  */
 
-#if SCPP
+version (SCPPorHTOD)
+{
 
 Symbol *mangle_tbl(
         int flag,       // 0: vtbl, 1: vbtbl
         type *t,        // type for symbol
         Classsym *stag, // class we're putting tbl in
         baseclass_t *b) // base class (null if none)
-{   const char *id;
+{   const(char)* id;
     Symbol *s;
 
-#if 0
-    dbg_printf("mangle_tbl(stag = '%s', sbase = '%s', parent = '%s')\n",
-        stag->Sident,b ? b->BCbase->Sident : "null", b ? b->parent->Sident : "null");
-#endif
+static if (0)
+{
+    printf("mangle_tbl(stag = '%s', sbase = '%s', parent = '%s')\n",
+        stag.Sident.ptr,b ? b.BCbase.Sident.ptr : "null", b ? b.parent.Sident.ptr : "null");
+}
     if (flag == 0)
         id = config.flags3 & CFG3rtti ? "?_Q" : "?_7";
     else
@@ -1686,40 +1734,43 @@ Symbol *mangle_tbl(
     MangleInuse m;
     mangle.znamei = 0;
     mangle.argi = 0;
-    mangle.np = mangle.buf;
+    mangle.np = mangle.buf.ptr;
     CHAR('?');
     cpp_zname(id);
     cpp_scope(stag);
     CHAR('@');
     CHAR('6' + flag);
     cpp_ecsu_data_indirect_type(t);
-#if 1
+static if (1)
+{
     while (b)
     {
-        cpp_scope(b->BCbase);
+        cpp_scope(b.BCbase);
         CHAR('@');
-        b = b->BCpbase;
+        b = b.BCpbase;
     }
-#else
+}
+else
+{
     if (b)
-    {   cpp_scope(b->BCbase);
+    {   cpp_scope(b.BCbase);
         CHAR('@');
         // BUG: what if b is more than one level down?
-        if (b->parent != stag)
-        {   cpp_scope(b->BCparent);
+        if (b.parent != stag)
+        {   cpp_scope(b.BCparent);
             CHAR('@');
         }
     }
-#endif
+}
     CHAR('@');
     *mangle.np = 0;                     // 0-terminate mangle.buf[]
-    assert(strlen(mangle.buf) <= BUFIDMAX);
-    s = scope_define(mangle.buf,SCTglobal | SCTnspace | SCTlocal,SCunde);
-    s->Stype = t;
-    t->Tcount++;
+    assert(strlen(mangle.buf.ptr) <= BUFIDMAX);
+    s = scope_define(mangle.buf.ptr,SCTglobal | SCTnspace | SCTlocal,SCunde);
+    s.Stype = t;
+    t.Tcount++;
     return s;
 }
 
-#endif
+}
 
-#endif
+}
