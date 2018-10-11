@@ -54,7 +54,6 @@ application if debug info is needed when the application is deployed.
 #include        "cv4.h"
 #include        "cgcv.h"
 #include        "dt.h"
-#include        "rtlsym.h"
 
 #include        "aa.h"
 #include        "tinfo.h"
@@ -98,6 +97,7 @@ IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
 void addSegmentToComdat(segidx_t seg, segidx_t comdatseg);
 #endif
 
+Symbol* getRtlsymPersonality();
 
 static Outbuffer  *reset_symbuf;        // Keep pointers to reset symbols
 
