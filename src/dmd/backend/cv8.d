@@ -1164,7 +1164,7 @@ else
     TOLONG(f.data.ptr + 38, validx);
     idx_t fieldlist = cv_debtyp(f);
 
-    const(char)* id = "dAssocArray";
+    const(char)* id = t.Tident ? t.Tident : "dAssocArray";
     int idlen = cast(int)strlen(id);
     if (idlen > CV8_MAX_SYMBOL_LENGTH)
         idlen = CV8_MAX_SYMBOL_LENGTH;
