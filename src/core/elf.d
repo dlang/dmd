@@ -20,9 +20,40 @@ version (linux_or_bsd):
 import core.sys.posix.fcntl;
 import core.sys.posix.unistd;
 
-version (linux) import core.sys.linux.elf;
-version (FreeBSD) import core.sys.freebsd.sys.elf;
-version (DragonFlyBSD) import core.sys.dragonflybsd.sys.elf;
+version (linux)
+{
+    import core.sys.linux.link;
+    import core.sys.linux.elf;
+}
+else version (FreeBSD)
+{
+    import core.sys.freebsd.sys.link_elf;
+    import core.sys.freebsd.sys.elf;
+}
+else version (DragonFlyBSD)
+{
+    import core.sys.dragonflybsd.sys.link_elf;
+    import core.sys.dragonflybsd.sys.elf;
+}
+
+/****
+ * Enables iterating over the process' currently loaded shared objects.
+ */
+struct SharedObjects
+{
+    alias Callback = int delegate(ref const dl_phdr_info) @nogc nothrow;
+
+    static int opApply(scope Callback dg) @nogc nothrow
+    {
+        extern(C) int nativeCallback(dl_phdr_info* info, size_t, void* data) @nogc nothrow
+        {
+            auto dg = *cast(Callback*) data;
+            return dg(*info);
+        }
+
+        return dl_iterate_phdr(&nativeCallback, &dg);
+    }
+}
 
 struct ElfFile
 {
