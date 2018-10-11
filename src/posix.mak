@@ -397,7 +397,7 @@ BACK_SRC = \
 	$C/cgsched.d $C/cod1.d $C/cod2.d $C/cod3.d $C/cod4.d $C/cod5.d \
 	$C/dcode.d $C/symbol.d $C/debugprint.d $C/dt.c $C/ee.d $C/elem.d \
 	$C/evalu8.d $C/fp.c $C/go.d $C/gflow.d $C/gdag.d \
-	$C/gother.d $C/glocal.d $C/gloop.d $C/gsroa.d $C/newman.c \
+	$C/gother.d $C/glocal.d $C/gloop.d $C/gsroa.d $C/newman.d \
 	$C/nteh.d $C/os.c $C/out.d $C/outbuf.c $C/ptrntab.c $C/rtlsym.c \
 	$C/dtype.d $C/melf.h $C/mach.h $C/mscoff.h $C/bcomplex.h \
 	$C/outbuf.h $C/token.h $C/tassert.h \
