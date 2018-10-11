@@ -4325,7 +4325,7 @@ final class Parser(AST) : Lexer
              */
             if (token.value == TOK.identifier && peekNext() == TOK.this_)
             {
-                auto s = new AST.AliasThis(loc, token.ident);
+                auto s = new AST.AliasThis(loc, token.ident, pAttrs.storageClass);
                 nextToken();
                 check(TOK.this_);
                 check(TOK.semicolon);

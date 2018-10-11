@@ -538,6 +538,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         ad.aliasthis = s;
+        if (dsym.stc & STC.deprecated_)
+            ad.hasDeprecatedAliasThis = true;
         dsym.semanticRun = PASS.semanticdone;
     }
 

@@ -459,12 +459,14 @@ struct ASTBase
     extern (C++) class AliasThis : Dsymbol
     {
         Identifier ident;
+        StorageClass stc;
 
-        extern (D) this(const ref Loc loc, Identifier ident)
+        extern (D) this(const ref Loc loc, Identifier ident, StorageClass stc)
         {
             super(null);
             this.loc = loc;
             this.ident = ident;
+            this.stc = stc;
         }
 
         override void accept(Visitor v)
