@@ -2353,19 +2353,29 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (hasThis(sc))
         {
-            AggregateDeclaration ad = sc.getStructClassScope();
-            if (ad && ad.aliasthis)
+            for (AggregateDeclaration ad = sc.getStructClassScope(); ad;)
             {
-                Expression e;
-                e = new ThisExp(exp.loc);
-                e = new DotIdExp(exp.loc, e, ad.aliasthis.ident);
-                e = new DotIdExp(exp.loc, e, exp.ident);
-                e = e.trySemantic(sc);
-                if (e)
+                if (ad.aliasthis)
                 {
-                    result = e;
-                    return;
+                    Expression e;
+                    e = new ThisExp(exp.loc);
+                    e = new DotIdExp(exp.loc, e, ad.aliasthis.ident);
+                    e = new DotIdExp(exp.loc, e, exp.ident);
+                    e = e.trySemantic(sc);
+                    if (e)
+                    {
+                        result = e;
+                        return;
+                    }
                 }
+
+                auto cd = ad.isClassDeclaration();
+                if (cd && cd.baseClass && cd.baseClass != ClassDeclaration.object)
+                {
+                    ad = cd.baseClass;
+                    continue;
+                }
+                break;
             }
         }
 
