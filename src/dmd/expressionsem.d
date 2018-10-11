@@ -2357,7 +2357,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (ad && ad.aliasthis)
             {
                 Expression e;
-                e = new IdentifierExp(exp.loc, Id.This);
+                e = new ThisExp(exp.loc);
                 e = new DotIdExp(exp.loc, e, ad.aliasthis.ident);
                 e = new DotIdExp(exp.loc, e, exp.ident);
                 e = e.trySemantic(sc);
