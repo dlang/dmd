@@ -68,8 +68,14 @@ struct Image
         if ((dbgSectionHeader.shdr.sh_flags & SHF_COMPRESSED) != 0)
             return null;
 
-        // debug_line section found and loaded
-        return cast(const(ubyte)[]) ElfSection(file, dbgSectionHeader).get();
+        auto dbgSection = ElfSection(file, dbgSectionHeader);
+        const sectionData = cast(const(ubyte)[]) dbgSection.get();
+        // do not munmap() the section data to be returned
+        import core.stdc.string;
+        ElfSection initialSection;
+        memcpy(&dbgSection, &initialSection, ElfSection.sizeof);
+
+        return sectionData;
     }
 
     @property size_t baseAddress()
