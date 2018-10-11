@@ -2073,7 +2073,7 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         {
             // only zero-extension from 32-bits is available for 'or'
         }
-        else if (I64 && v2 != cast(targ_llong)cast(targ_long)v2)
+        else if (I64 && cast(targ_llong)v2 != cast(targ_llong)cast(targ_long)v2)
         {
             // only sign-extension from 32-bits is available for 'and'
         }
