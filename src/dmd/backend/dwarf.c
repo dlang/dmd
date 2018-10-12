@@ -1524,7 +1524,7 @@ void dwarf_func_term(Symbol *sfunc)
 
         uint *poffset = ehunwind ? &CIE_offset_unwind : &CIE_offset_no_unwind;
         if (*poffset == ~0)
-            *poffset = writeEhFrameHeader(dfseg, buf, getRtlsym(RTLSYM_PERSONALITY), ehunwind);
+            *poffset = writeEhFrameHeader(dfseg, buf, getRtlsymPersonality(), ehunwind);
 
         writeEhFrameFDE(dfseg, sfunc, ehunwind, *poffset);
     }

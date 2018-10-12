@@ -194,7 +194,7 @@ GLUEOBJ=
 # D back end
 GBACKOBJ= $G/go.obj $G/gdag.obj $G/gother.obj $G/gflow.obj $G/gloop.obj $G/var.obj $G/elem.obj \
 	$G/newman.obj $G/glocal.obj $G/os.obj $G/nteh.obj $G/evalu8.obj $G/fp.obj $G/cgcs.obj \
-	$G/rtlsym.obj $G/cgelem.obj $G/cgen.obj $G/cgreg.obj $G/out.obj \
+	$G/drtlsym.obj $G/cgelem.obj $G/cgen.obj $G/cgreg.obj $G/out.obj \
 	$G/blockopt.obj $G/cgobj.obj $G/cg.obj $G/dcgcv.obj $G/dtype.obj $G/dt.obj \
 	$G/debugprint.obj $G/dcode.obj $G/cg87.obj $G/cgxmm.obj $G/cgsched.obj $G/ee.obj $G/symbol.obj \
 	$G/cgcod.obj $G/cod1.obj $G/cod2.obj $G/cod3.obj $G/cod4.obj $G/cod5.obj $G/outbuf.obj \
@@ -227,7 +227,7 @@ GLUESRC= \
 BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.d \
 	$C\global.h $C\code.h $C\code_x86.h $C/code_stub.h $C/platform_stub.c \
 	$C\type.h $C\dt.h $C\cgcv.h \
-	$C\el.h $C\iasm.h $C\rtlsym.h \
+	$C\el.h $C\iasm.h \
 	$C\bcomplex.d $C\blockopt.d $C\cg.d $C\cg87.d $C\cgxmm.d \
 	$C\cgcod.d $C\cgcs.d $C\dcgcv.d $C\cgelem.d $C\cgen.c $C\cgobj.c \
 	$C\compress.d $C\cgreg.d $C\var.d \
@@ -235,7 +235,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.d \
 	$C\dcode.d $C\symbol.d $C\debugprint.d $C\dt.c $C\ee.d $C\elem.d \
 	$C\evalu8.d $C\fp.c $C\go.d $C\gflow.d $C\gdag.d \
 	$C\gother.d $C\glocal.d $C\gloop.d $C\gsroa.d $C\newman.d \
-	$C\nteh.d $C\os.c $C\out.d $C\outbuf.c $C\ptrntab.c $C\rtlsym.c \
+	$C\nteh.d $C\os.c $C\out.d $C\outbuf.c $C\ptrntab.c $C\drtlsym.d \
 	$C\dtype.d $C\melf.h $C\mach.h $C\mscoff.h $C\bcomplex.h \
 	$C\outbuf.h $C\token.h $C\tassert.h \
 	$C\elfobj.c $C\cv4.h $C\dwarf2.h $C\exh.h $C\go.h \
@@ -484,7 +484,7 @@ $G/dcgcv.obj : $C\dcgcv.d
 $G/cgelem.obj : $G\elxxx.d $C\cgelem.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -J$G -betterC -mv=dmd.backend=$C $C\cgelem
 
-$G/cgen.obj : $C\rtlsym.h $C\cgen.c
+$G/cgen.obj : $C\cgen.c
 	$(CC) -c -o$@ $(MFLAGS) $C\cgen
 
 $G/cgobj.obj : $C\md5.h $C\cgobj.c
@@ -499,7 +499,7 @@ $G/cgsched.obj : $C\cgsched.d
 $G/cgxmm.obj : $C\xmm.d $C\cgxmm.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\cgxmm
 
-$G/cod1.obj : $C\rtlsym.h $C\cod1.d
+$G/cod1.obj : $C\cod1.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\cod1
 
 $G/cod2.obj : $C\cod2.d
@@ -571,9 +571,6 @@ $G/glocal.obj : $C\glocal.d
 $G/gloop.obj : $C\gloop.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\gloop
 
-$G/glue.obj : $(CH) $C\rtlsym.h $D\mars.h $D\module.h $D\glue.c
-	$(CC) -c -o$@ $(MFLAGS) -I$(ROOT) $D\glue
-
 $G/gsroa.obj : $C\gsroa.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\gsroa
 
@@ -586,7 +583,7 @@ $G/mscoffobj.obj : $C\mscoff.h $C\mscoffobj.c
 $G/newman.obj : $(CH) $C\newman.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\newman
 
-$G/nteh.obj : $C\rtlsym.h $C\nteh.d
+$G/nteh.obj : $C\rtlsym.d $C\nteh.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\nteh
 
 $G/os.obj : $C\os.c
@@ -607,8 +604,8 @@ $G/ph2.obj : $C\ph2.d
 $G/ptrntab.obj : $C\iasm.h $C\ptrntab.c
 	$(CC) -c -o$@ $(MFLAGS) $C\ptrntab
 
-$G/rtlsym.obj : $C\rtlsym.h $C\rtlsym.c
-	$(CC) -c -o$@ $(MFLAGS) $C\rtlsym
+$G/drtlsym.obj : $C\rtlsym.d $C\drtlsym.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\drtlsym
 
 $G/sizecheck.obj : $C\sizecheck.c
 	$(CC) -c -o$@ $(MFLAGS) $C\sizecheck
