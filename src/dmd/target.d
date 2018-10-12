@@ -717,6 +717,14 @@ struct Target
         return global.params.is64bit ? (sz + 7) & ~7 : (sz + 3) & ~3;
     }
 
+    // this guarantees `getTargetInfo` and `allTargetInfos` remain in sync
+    private enum TargetInfoKeys
+    {
+        cppRuntimeLibrary,
+        floatAbi,
+        objectFormat,
+    }
+
     /**
      * Get targetInfo by key
      * Params:
@@ -727,10 +735,30 @@ struct Target
      */
     extern (C++) static Expression getTargetInfo(const(char)* name, const ref Loc loc)
     {
-        switch (name.toDString)
+        StringExp stringExp(const(char)[] sval)
         {
-            case "cppRuntimeLibrary":
-                return new StringExp(loc, cast(void*)global.params.mscrtlib, global.params.mscrtlib ? strlen(global.params.mscrtlib) : 0);
+            return new StringExp(loc, cast(void*)sval.ptr, sval.length);
+        }
+
+        switch (name.toDString) with (TargetInfoKeys)
+        {
+            case objectFormat.stringof:
+                if (global.params.isWindows)
+                    return stringExp(global.params.mscoff ? "coff" : "omf");
+                else if (global.params.isOSX)
+                    return stringExp("macho");
+                else
+                    return stringExp("elf");
+            case floatAbi.stringof:
+                return stringExp("hard");
+            case cppRuntimeLibrary.stringof:
+                if (global.params.isWindows)
+                {
+                    if (global.params.mscoff)
+                        return stringExp(global.params.mscrtlib ? global.params.mscrtlib.toDString : "");
+                    return stringExp("snn");
+                }
+                return stringExp("");
             default:
                 return null;
         }
