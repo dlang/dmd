@@ -99,7 +99,6 @@
     <ClCompile Include="..\dmd\backend\os.c" />
     <ClCompile Include="..\dmd\backend\outbuf.c" />
     <ClCompile Include="..\dmd\backend\ptrntab.c" />
-    <ClCompile Include="..\dmd\backend\rtlsym.c" />
     <ClCompile Include="..\dmd\backend\sizecheck.c" />
     <ClCompile Include="..\dmd\backend\strtold.c" />
     <ClCompile Include="..\dmd\backend\ti_achar.c" />
