@@ -1686,6 +1686,21 @@ void test11333()
 }
 
 /***************************************************/
+// 11538
+
+struct NullableRef11538(T)
+{
+    T* _value;
+    inout(T) get() inout { return *_value; }
+    alias get this;
+}
+
+struct S11538
+{
+    NullableRef11538!S11538 parent;
+}
+
+/***************************************************/
 // 11800
 
 struct A11800
