@@ -64,6 +64,7 @@ struct TestArgs
     bool     link;
     string   executeArgs;
     string   dflags;
+    string   cxxflags;
     string[] sources;
     string[] compiledImports;
     string[] cppSources;
@@ -269,6 +270,7 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
             testArgs.compiledImports ~= input_dir ~ "/" ~ s;
     }
 
+    findTestParameter(envData, file, "CXXFLAGS", testArgs.cxxflags);
     string extraCppSourcesStr;
     findTestParameter(envData, file, "EXTRA_CPP_SOURCES", extraCppSourcesStr);
     testArgs.cppSources = [];
@@ -434,7 +436,9 @@ unittest
         == `fail_compilation\diag.d(2): Error: fail_compilation\imports\fail.d must be imported`);
 }
 
-bool collectExtraSources (in string input_dir, in string output_dir, in string[] extraSources, ref string[] sources, in EnvData envData, in string compiler)
+bool collectExtraSources (in string input_dir, in string output_dir, in string[] extraSources,
+                          ref string[] sources, in EnvData envData, in string compiler,
+                          const(char)[] cxxflags)
 {
     foreach (cur; extraSources)
     {
@@ -460,6 +464,8 @@ bool collectExtraSources (in string input_dir, in string output_dir, in string[]
         {
             command ~= " -m"~envData.model~" -c "~curSrc~" -o "~curObj;
         }
+        if (compiler == "c++" && cxxflags)
+            command ~= " " ~ cxxflags;
 
         auto rc = system(command);
         if(rc)
@@ -637,11 +643,11 @@ int tryMain(string[] args)
                 writeln("unknown compiler: "~envData.compiler);
                 return 1;
         }
-        if (!collectExtraSources(input_dir, output_dir, testArgs.cppSources, testArgs.sources, envData, envData.ccompiler))
+        if (!collectExtraSources(input_dir, output_dir, testArgs.cppSources, testArgs.sources, envData, envData.ccompiler, testArgs.cxxflags))
             return 1;
     }
     //prepare objc extra sources
-    if (!collectExtraSources(input_dir, output_dir, testArgs.objcSources, testArgs.sources, envData, "clang"))
+    if (!collectExtraSources(input_dir, output_dir, testArgs.objcSources, testArgs.sources, envData, "clang", null))
         return 1;
 
     writef(" ... %-30s %s%s(%s)",
