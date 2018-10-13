@@ -1411,7 +1411,7 @@ public:
     override void visit(CompileDeclaration d)
     {
         buf.writestring("mixin(");
-        d.exp.accept(this);
+        argsToBuffer(d.exps, null);
         buf.writestring(");");
         buf.writenl();
     }
