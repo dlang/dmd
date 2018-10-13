@@ -71,6 +71,7 @@ SRCS=\
 	src\core\sys\freebsd\sys\mman.d \
 	src\core\sys\freebsd\sys\mount.d \
 	src\core\sys\freebsd\time.d \
+	src\core\sys\freebsd\unistd.d \
 	\
 	src\core\sys\dragonflybsd\dlfcn.d \
 	src\core\sys\dragonflybsd\execinfo.d \

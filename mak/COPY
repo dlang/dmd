@@ -86,6 +86,7 @@ COPY=\
 	$(IMPDIR)\core\sys\freebsd\sys\mount.d \
 	$(IMPDIR)\core\sys\freebsd\sys\mman.d \
 	$(IMPDIR)\core\sys\freebsd\time.d \
+	$(IMPDIR)\core\sys\freebsd\unistd.d \
 	\
 	$(IMPDIR)\core\sys\dragonflybsd\dlfcn.d \
 	$(IMPDIR)\core\sys\dragonflybsd\execinfo.d \
