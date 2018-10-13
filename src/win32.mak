@@ -243,7 +243,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.d \
 	$C\strtold.c $C\aa.h $C\aa.c $C\tinfo.h $C\ti_achar.c \
 	$C\md5.h $C\md5.d $C\ti_pvoid.c $C\xmm.h $C\ph2.d $C\util2.d \
 	$C\mscoffobj.c $C\obj.h $C\pdata.d $C\cv8.d $C\backconfig.d $C\sizecheck.c \
-	$C\divcoeff.d $C\dwarfeh.c $C\varstats.c $C\varstats.h \
+	$C\divcoeff.d $C\dwarfeh.d $C\varstats.c $C\varstats.h \
 	$C\dvec.d $C\backend.txt
 
 # Toolkit
