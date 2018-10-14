@@ -30,9 +30,6 @@
 #include        "cgcv.h"
 #include        "dt.h"
 
-#include        "aa.h"
-#include        "tinfo.h"
-
 #if TARGET_WINDOS
 
 #include        "mscoff.h"

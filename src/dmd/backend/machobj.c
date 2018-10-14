@@ -38,9 +38,6 @@
 #include        "cgcv.h"
 #include        "dt.h"
 
-#include        "aa.h"
-#include        "tinfo.h"
-
 #if MACHOBJ
 
 #if MARS

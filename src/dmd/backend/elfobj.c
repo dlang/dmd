@@ -36,14 +36,10 @@
 #include        "dt.h"
 
 #include        "aa.h"
-#include        "tinfo.h"
 
 #if ELFOBJ
 
 #include        "dwarf.h"
-
-#include        "aa.h"
-#include        "tinfo.h"
 
 #ifndef ELFOSABI
 # if TARGET_LINUX
@@ -166,72 +162,9 @@ static Outbuffer *section_names;
 #define SEC_NAMES_INC   400
 
 // Hash table for section_names
-AArray *section_names_hashtable;
+AApair *section_names_hashtable;
 
 int jmpseg;
-
-/* ====================== Cached Strings in section_names ================= */
-
-struct TypeInfo_Idxstr : TypeInfo
-{
-    const char* toString();
-    hash_t getHash(void *p);
-    int equals(void *p1, void *p2);
-    int compare(void *p1, void *p2);
-    size_t tsize();
-    void swap(void *p1, void *p2);
-};
-
-TypeInfo_Idxstr ti_idxstr;
-
-const char* TypeInfo_Idxstr::toString()
-{
-    return "IDXSTR";
-}
-
-hash_t TypeInfo_Idxstr::getHash(void *p)
-{
-    IDXSTR a = *(IDXSTR *)p;
-    hash_t hash = 0;
-    for (const char *s = (char *)(section_names->buf + a);
-         *s;
-         s++)
-    {
-        hash = hash * 11 + *s;
-    }
-    return hash;
-}
-
-int TypeInfo_Idxstr::equals(void *p1, void *p2)
-{
-    IDXSTR a1 = *(IDXSTR*)p1;
-    IDXSTR a2 = *(IDXSTR*)p2;
-    const char *s1 = (char *)(section_names->buf + a1);
-    const char *s2 = (char *)(section_names->buf + a2);
-
-    return strcmp(s1, s2) == 0;
-}
-
-int TypeInfo_Idxstr::compare(void *p1, void *p2)
-{
-    IDXSTR a1 = *(IDXSTR*)p1;
-    IDXSTR a2 = *(IDXSTR*)p2;
-    const char *s1 = (char *)(section_names->buf + a1);
-    const char *s2 = (char *)(section_names->buf + a2);
-
-    return strcmp(s1, s2);
-}
-
-size_t TypeInfo_Idxstr::tsize()
-{
-    return sizeof(IDXSTR);
-}
-
-void TypeInfo_Idxstr::swap(void *p1, void *p2)
-{
-    assert(0);
-}
-
 
 /* ======================================================================== */
 
@@ -641,7 +574,8 @@ static IDXSTR elf_addsectionname(const char *name, const char *suffix = NULL, bo
         section_names->setsize(section_names->size() - 1);  // back up over terminating 0
         section_names->writeString(suffix);
     }
-    IDXSTR *pidx = (IDXSTR *)section_names_hashtable->get(&namidx);
+    IDXSTR *pidx = section_names_hashtable->get(namidx, section_names->size() - 1);
+    //IDXSTR *pidx = (IDXSTR *)section_names_hashtable->get(&namidx);
     if (*pidx)
     {
         // this section name already exists, remove addition
@@ -814,8 +748,10 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
         }
 
         if (section_names_hashtable)
-            delete section_names_hashtable;
-        section_names_hashtable = new AArray(&ti_idxstr, sizeof(IDXSTR));
+            AApair::destroy(section_names_hashtable);
+            //delete section_names_hashtable;
+        section_names_hashtable = AApair::create(&section_names->buf);
+        //section_names_hashtable = new AArray(&ti_idxstr, sizeof(IDXSTR));
 
         // name,type,flags,addr,offset,size,link,info,addralign,entsize
         elf_newsection2(0,               SHT_NULL,   0,                 0,0,0,0,0, 0,0);
@@ -834,19 +770,19 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
         elf_newsection2(NAMIDX_CDATAREL,SHT_PROGBITS,SHF_ALLOC|SHF_WRITE,0,0,0,0,0, 16,0);
 
         IDXSTR namidx;
-        namidx = NAMIDX_TEXT;      *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
-        namidx = NAMIDX_RELTEXT;   *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
-        namidx = NAMIDX_DATA;      *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
-        namidx = NAMIDX_RELDATA64; *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
-        namidx = NAMIDX_BSS;       *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
-        namidx = NAMIDX_RODATA;    *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
-        namidx = NAMIDX_STRTAB;    *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
-        namidx = NAMIDX_SYMTAB;    *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
-        namidx = NAMIDX_SHSTRTAB;  *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
-        namidx = NAMIDX_COMMENT;   *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
-        namidx = NAMIDX_NOTE;      *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
-        namidx = NAMIDX_GNUSTACK;  *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
-        namidx = NAMIDX_CDATAREL;  *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
+        namidx = NAMIDX_TEXT;      *section_names_hashtable->get(namidx, namidx + strlen(section_names_init64 + namidx)) = namidx;
+        namidx = NAMIDX_RELTEXT;   *section_names_hashtable->get(namidx, namidx + strlen(section_names_init64 + namidx)) = namidx;
+        namidx = NAMIDX_DATA;      *section_names_hashtable->get(namidx, namidx + strlen(section_names_init64 + namidx)) = namidx;
+        namidx = NAMIDX_RELDATA64; *section_names_hashtable->get(namidx, namidx + strlen(section_names_init64 + namidx)) = namidx;
+        namidx = NAMIDX_BSS;       *section_names_hashtable->get(namidx, namidx + strlen(section_names_init64 + namidx)) = namidx;
+        namidx = NAMIDX_RODATA;    *section_names_hashtable->get(namidx, namidx + strlen(section_names_init64 + namidx)) = namidx;
+        namidx = NAMIDX_STRTAB;    *section_names_hashtable->get(namidx, namidx + strlen(section_names_init64 + namidx)) = namidx;
+        namidx = NAMIDX_SYMTAB;    *section_names_hashtable->get(namidx, namidx + strlen(section_names_init64 + namidx)) = namidx;
+        namidx = NAMIDX_SHSTRTAB;  *section_names_hashtable->get(namidx, namidx + strlen(section_names_init64 + namidx)) = namidx;
+        namidx = NAMIDX_COMMENT;   *section_names_hashtable->get(namidx, namidx + strlen(section_names_init64 + namidx)) = namidx;
+        namidx = NAMIDX_NOTE;      *section_names_hashtable->get(namidx, namidx + strlen(section_names_init64 + namidx)) = namidx;
+        namidx = NAMIDX_GNUSTACK;  *section_names_hashtable->get(namidx, namidx + strlen(section_names_init64 + namidx)) = namidx;
+        namidx = NAMIDX_CDATAREL;  *section_names_hashtable->get(namidx, namidx + strlen(section_names_init64 + namidx)) = namidx;
     }
     else
     {
@@ -862,8 +798,10 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
         }
 
         if (section_names_hashtable)
-            delete section_names_hashtable;
-        section_names_hashtable = new AArray(&ti_idxstr, sizeof(IDXSTR));
+            AApair::destroy(section_names_hashtable);
+            //delete section_names_hashtable;
+        section_names_hashtable = AApair::create(&section_names->buf);
+        //section_names_hashtable = new AArray(&ti_idxstr, sizeof(IDXSTR));
 
         // name,type,flags,addr,offset,size,link,info,addralign,entsize
         elf_newsection2(0,               SHT_NULL,   0,                 0,0,0,0,0, 0,0);
@@ -882,19 +820,19 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
         elf_newsection2(NAMIDX_CDATAREL,SHT_PROGBITS,SHF_ALLOC|SHF_WRITE,0,0,0,0,0, 1,0);
 
         IDXSTR namidx;
-        namidx = NAMIDX_TEXT;      *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
-        namidx = NAMIDX_RELTEXT;   *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
-        namidx = NAMIDX_DATA;      *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
-        namidx = NAMIDX_RELDATA;   *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
-        namidx = NAMIDX_BSS;       *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
-        namidx = NAMIDX_RODATA;    *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
-        namidx = NAMIDX_STRTAB;    *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
-        namidx = NAMIDX_SYMTAB;    *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
-        namidx = NAMIDX_SHSTRTAB;  *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
-        namidx = NAMIDX_COMMENT;   *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
-        namidx = NAMIDX_NOTE;      *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
-        namidx = NAMIDX_GNUSTACK;  *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
-        namidx = NAMIDX_CDATAREL;  *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
+        namidx = NAMIDX_TEXT;     *section_names_hashtable->get(namidx, namidx + strlen(section_names_init + namidx)) = namidx;
+        namidx = NAMIDX_RELTEXT;  *section_names_hashtable->get(namidx, namidx + strlen(section_names_init + namidx)) = namidx;
+        namidx = NAMIDX_DATA;     *section_names_hashtable->get(namidx, namidx + strlen(section_names_init + namidx)) = namidx;
+        namidx = NAMIDX_RELDATA;  *section_names_hashtable->get(namidx, namidx + strlen(section_names_init + namidx)) = namidx;
+        namidx = NAMIDX_BSS;      *section_names_hashtable->get(namidx, namidx + strlen(section_names_init + namidx)) = namidx;
+        namidx = NAMIDX_RODATA;   *section_names_hashtable->get(namidx, namidx + strlen(section_names_init + namidx)) = namidx;
+        namidx = NAMIDX_STRTAB;   *section_names_hashtable->get(namidx, namidx + strlen(section_names_init + namidx)) = namidx;
+        namidx = NAMIDX_SYMTAB;   *section_names_hashtable->get(namidx, namidx + strlen(section_names_init + namidx)) = namidx;
+        namidx = NAMIDX_SHSTRTAB; *section_names_hashtable->get(namidx, namidx + strlen(section_names_init + namidx)) = namidx;
+        namidx = NAMIDX_COMMENT;  *section_names_hashtable->get(namidx, namidx + strlen(section_names_init + namidx)) = namidx;
+        namidx = NAMIDX_NOTE;     *section_names_hashtable->get(namidx, namidx + strlen(section_names_init + namidx)) = namidx;
+        namidx = NAMIDX_GNUSTACK; *section_names_hashtable->get(namidx, namidx + strlen(section_names_init + namidx)) = namidx;
+        namidx = NAMIDX_CDATAREL; *section_names_hashtable->get(namidx, namidx + strlen(section_names_init + namidx)) = namidx;
     }
 
     if (SYMbuf)
