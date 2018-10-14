@@ -108,8 +108,9 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     // it would be stored in TypeInfo_Class.defaultConstructor
     CtorDeclaration defaultCtor;
 
-    Dsymbol aliasthis;      // forward unresolved lookups to aliasthis
-    bool noDefaultCtor;     // no default construction
+    Dsymbol aliasthis;         // forward unresolved lookups to aliasthis
+    bool hasDeprecatedAliasThis;  // true if alias this is deprecated
+    bool noDefaultCtor;        // no default construction
 
     DtorDeclarations dtors; // Array of destructors
     DtorDeclaration dtor;   // aggregate destructor

@@ -16,6 +16,7 @@ import core.stdc.stdio;
 import dmd.aggregate;
 import dmd.dscope;
 import dmd.dsymbol;
+import dmd.declaration;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.globals;
@@ -31,18 +32,20 @@ import dmd.visitor;
 extern (C++) final class AliasThis : Dsymbol
 {
     Identifier ident;
+    StorageClass stc;
 
-    extern (D) this(const ref Loc loc, Identifier ident)
+    extern (D) this(const ref Loc loc, Identifier ident, StorageClass stc)
     {
         super(null);    // it's anonymous (no identifier)
         this.loc = loc;
         this.ident = ident;
+        this.stc = stc;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new AliasThis(loc, ident);
+        return new AliasThis(loc, ident, stc);
     }
 
     override const(char)* kind() const
@@ -107,6 +110,8 @@ Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false)
         e = resolveProperties(sc, e);
         if (gag && global.endGagging(olderrors))
             e = null;
+        else if (!gag && ad.hasDeprecatedAliasThis)
+            e.deprecation("accessing `alias this` of `%s %s` is deprecated", ad.kind(), ad.toChars());
     }
     return e;
 }
