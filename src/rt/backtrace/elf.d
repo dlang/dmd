@@ -29,19 +29,12 @@ struct Image
 
     static Image openSelf()
     {
-        version (linux)
+        const(char)* selfPath;
+        foreach (object; SharedObjects)
         {
-            auto selfPath = "/proc/self/exe".ptr;
-        }
-        else version (FreeBSD)
-        {
-            char[1024] selfPathBuffer = void;
-            auto selfPath = getFreeBSDExePath(selfPathBuffer[]);
-            if (selfPath is null) return false;
-        }
-        else version (DragonFlyBSD)
-        {
-            auto selfPath = "/proc/curproc/file".ptr;
+            // the first object is the main binary
+            selfPath = object.name().ptr;
+            break;
         }
 
         Image image;
@@ -92,30 +85,5 @@ struct Image
         }
 
         return base;
-    }
-}
-
-private:
-
-version (FreeBSD)
-{
-    extern (C) int sysctl(const int* name, uint namelen, void* oldp, size_t* oldlenp, const void* newp, size_t newlen) @nogc nothrow;
-    const(char)* getFreeBSDExePath(char[] buffer) @nogc nothrow
-    {
-        enum
-        {
-            CTL_KERN = 1,
-            KERN_PROC = 14,
-            KERN_PROC_PATHNAME = 12
-        }
-
-        int[4] mib = [CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1];
-        size_t len = buffer.length;
-
-        auto result = sysctl(mib.ptr, mib.length, buffer.ptr, &len, null, 0); // get the length of the path
-        if (result != 0) return null;
-        if (len + 1 > buffer.length) return null;
-        buffer[len] = 0;
-        return buffer.ptr;
     }
 }
