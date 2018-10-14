@@ -16,6 +16,8 @@ Glibc: https://sourceware.org/git/?p=glibc.git;a=blob;f=posix/spawn.h;hb=HEAD
 
 Bionic libc: https://android.googlesource.com/platform/bionic.git/+/master/libc/include/spawn.h
 
+Musl libc: https://git.musl-libc.org/cgit/musl/tree/include/spawn.h
+
 Darwin XNU:
 https://opensource.apple.com/source/xnu/xnu-4570.71.2/libsyscall/wrappers/spawn/spawn.h.auto.html
 https://opensource.apple.com/source/xnu/xnu-4570.71.2/bsd/sys/spawn.h.auto.html
@@ -138,6 +140,36 @@ version (linux)
         alias posix_spawn_file_actions_t = __posix_spawn_file_actions*;
         struct __posix_spawnattr;
         struct __posix_spawn_file_actions;
+    }
+    else version (CRuntime_Musl)
+    {
+        // Source: https://git.musl-libc.org/cgit/musl/tree/include/spawn.h
+        enum
+        {
+            POSIX_SPAWN_RESETIDS = 1,
+            POSIX_SPAWN_SETPGROUP = 2,
+            POSIX_SPAWN_SETSIGDEF = 4,
+            POSIX_SPAWN_SETSIGMASK = 8,
+            POSIX_SPAWN_SETSCHEDPARAM = 16,
+            POSIX_SPAWN_SETSCHEDULER = 32,
+            POSIX_SPAWN_USEVFORK = 64,
+            POSIX_SPAWN_SETSID = 128
+        }
+        struct posix_spawnattr_t
+        {
+            int __flags;
+            pid_t __pgrp;
+            sigset_t __def, __mask;
+            int __prio, __pol;
+            void* __fn;
+            char[64 - (void*).sizeof] __pad;
+        }
+        struct posix_spawn_file_actions_t
+        {
+            int[2] __pad0;
+            void* __actions;
+            int[16] __pad;
+        }
     }
     else
         static assert(0, "Unsupported Linux libc");
