@@ -18,6 +18,8 @@ Bionic libc: https://android.googlesource.com/platform/bionic.git/+/master/libc/
 
 Musl libc: https://git.musl-libc.org/cgit/musl/tree/include/spawn.h
 
+uClibc: https://git.uclibc.org/uClibc/tree/include/spawn.h
+
 Darwin XNU:
 https://opensource.apple.com/source/xnu/xnu-4570.71.2/libsyscall/wrappers/spawn/spawn.h.auto.html
 https://opensource.apple.com/source/xnu/xnu-4570.71.2/bsd/sys/spawn.h.auto.html
@@ -168,6 +170,44 @@ version (linux)
         {
             int[2] __pad0;
             void* __actions;
+            int[16] __pad;
+        }
+    }
+    else version (CRuntime_UClibc)
+    {
+        // Source: https://git.uclibc.org/uClibc/tree/include/spawn.h
+        enum
+        {
+            POSIX_SPAWN_RESETIDS = 0x01,
+            POSIX_SPAWN_SETPGROUP = 0x02,
+            POSIX_SPAWN_SETSIGDEF = 0x04,
+            POSIX_SPAWN_SETSIGMASK = 0x08,
+            POSIX_SPAWN_SETSCHEDPARAM = 0x10,
+            POSIX_SPAWN_SETSCHEDULER = 0x20
+        }
+        import core.sys.posix.config : __USE_GNU;
+        static if (__USE_GNU)
+        {
+            enum
+            {
+                POSIX_SPAWN_USEVFORK = 0x40,
+            }
+        }
+        struct posix_spawnattr_t
+        {
+            short __flags;
+            pid_t __pgrp;
+            sigset_t __sd;
+            sigset_t __ss;
+            sched_param __sp;
+            int __policy;
+            int[16] __pad;
+        }
+        struct posix_spawn_file_actions_t
+        {
+            int __allocated;
+            int __used;
+            __spawn_action* __actions;
             int[16] __pad;
         }
     }
