@@ -30,6 +30,8 @@ FreeBSD: https://github.com/freebsd/freebsd/blob/master/include/spawn.h
 NetBSD: https://github.com/NetBSD/src/blob/trunk/sys/sys/spawn.h
 
 OpenBSD: https://github.com/openbsd/src/blob/master/include/spawn.h
+
+DragonFlyBSD: https://github.com/DragonFlyBSD/DragonFlyBSD/blob/master/include/spawn.h
 */
 
 version (OSX) // macOS and iOS only as this API is prohibited on WatchOS and TVOS
@@ -287,6 +289,23 @@ else version (NetBSD)
 else version (OpenBSD)
 {
     // Source: https://github.com/openbsd/src/blob/master/include/spawn.h
+    enum
+    {
+        POSIX_SPAWN_RESETIDS = 0x01,
+        POSIX_SPAWN_SETPGROUP = 0x02,
+        POSIX_SPAWN_SETSCHEDPARAM = 0x04,
+        POSIX_SPAWN_SETSCHEDULER = 0x08,
+        POSIX_SPAWN_SETSIGDEF = 0x10,
+        POSIX_SPAWN_SETSIGMASK = 0x20
+    }
+    alias posix_spawnattr_t = __posix_spawnattr*;
+    alias posix_spawn_file_actions_t = __posix_spawn_file_actions*;
+    struct __posix_spawnattr;
+    struct __posix_spawn_file_actions;
+}
+else version (DragonFlyBSD)
+{
+    // Source: https://github.com/DragonFlyBSD/DragonFlyBSD/blob/master/include/spawn.h
     enum
     {
         POSIX_SPAWN_RESETIDS = 0x01,
