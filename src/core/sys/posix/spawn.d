@@ -14,6 +14,8 @@ Based on the following system headers:
 
 Glibc: https://sourceware.org/git/?p=glibc.git;a=blob;f=posix/spawn.h;hb=HEAD
 
+Bionic libc: https://android.googlesource.com/platform/bionic.git/+/master/libc/include/spawn.h
+
 Darwin XNU:
 https://opensource.apple.com/source/xnu/xnu-4570.71.2/libsyscall/wrappers/spawn/spawn.h.auto.html
 https://opensource.apple.com/source/xnu/xnu-4570.71.2/bsd/sys/spawn.h.auto.html
@@ -110,6 +112,32 @@ version (linux)
             __spawn_action* __actions;
             int[16] __pad;
         }
+    }
+    else version (CRuntime_Bionic)
+    {
+        // Source: https://android.googlesource.com/platform/bionic.git/+/master/libc/include/spawn.h
+        enum
+        {
+            POSIX_SPAWN_RESETIDS = 1,
+            POSIX_SPAWN_SETPGROUP = 2,
+            POSIX_SPAWN_SETSIGDEF = 4,
+            POSIX_SPAWN_SETSIGMASK = 8,
+            POSIX_SPAWN_SETSCHEDPARAM = 16,
+            POSIX_SPAWN_SETSCHEDULER = 32
+        }
+        import core.sys.posix.config : __USE_GNU;
+        static if (__USE_GNU)
+        {
+            enum
+            {
+                POSIX_SPAWN_USEVFORK = 64,
+                POSIX_SPAWN_SETSID = 128
+            }
+        }
+        alias posix_spawnattr_t = __posix_spawnattr*;
+        alias posix_spawn_file_actions_t = __posix_spawn_file_actions*;
+        struct __posix_spawnattr;
+        struct __posix_spawn_file_actions;
     }
     else
         static assert(0, "Unsupported Linux libc");
