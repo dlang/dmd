@@ -24,6 +24,8 @@ Darwin XNU:
 https://opensource.apple.com/source/xnu/xnu-4570.71.2/libsyscall/wrappers/spawn/spawn.h.auto.html
 https://opensource.apple.com/source/xnu/xnu-4570.71.2/bsd/sys/spawn.h.auto.html
 https://github.com/opensource-apple/xnu (GitHub mirror)
+
+FreeBSD: https://github.com/freebsd/freebsd/blob/master/include/spawn.h
 */
 
 version (OSX) // macOS and iOS only as this API is prohibited on WatchOS and TVOS
@@ -232,6 +234,21 @@ else version (Darwin)
     }
     alias posix_spawnattr_t = void*;
     alias posix_spawn_file_actions_t = void*;
+}
+else version (FreeBSD)
+{
+    // Source: https://github.com/freebsd/freebsd/blob/master/include/spawn.h
+    enum
+    {
+        POSIX_SPAWN_RESETIDS = 0x01,
+        POSIX_SPAWN_SETPGROUP = 0x02,
+        POSIX_SPAWN_SETSCHEDPARAM = 0x04,
+        POSIX_SPAWN_SETSCHEDULER = 0x08,
+        POSIX_SPAWN_SETSIGDEF = 0x10,
+        POSIX_SPAWN_SETSIGMASK = 0x20
+    }
+    alias posix_spawnattr_t =  void*;
+    alias posix_spawn_file_actions_t =  void*;
 }
 else
     static assert(0, "Unsupported OS");
