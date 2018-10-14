@@ -623,12 +623,17 @@ $(H2 $(LEGACY_LNAME2 MixinDeclaration, mixin-declaration, Mixin Declaration))
 
 $(GRAMMAR
 $(GNAME MixinDeclaration):
-    $(D mixin) $(D $(LPAREN)) $(ASSIGNEXPRESSION) $(D $(RPAREN)) $(D ;)
+    $(D mixin) $(D $(LPAREN)) $(GLINK2 expression, ArgumentList) $(D $(RPAREN)) $(D ;)
 )
 
-$(P The $(ASSIGNEXPRESSION) must evaluate at compile time to a constant string.
-The text contents of the string must be compilable as a valid $(GLINK DeclDefs),
-and is compiled as such.)
+    $(P Each $(GLINK2 expression, AssignExpression) in the $(I ArgumentList) is
+        evaluated at compile time, and the result must be representable
+        as a string.
+        The resulting strings are concatenated to form a string.
+        The text contents of the string must be compilable as a valid
+        $(GLINK DeclDefs), and is compiled as such.
+        )
+
 
 $(H2 $(LEGACY_LNAME2 PackageModule, package-module, Package Module))
 
