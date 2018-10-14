@@ -13,7 +13,17 @@ module core.sys.posix.spawn;
 Based on the following system headers:
 
 Glibc: https://sourceware.org/git/?p=glibc.git;a=blob;f=posix/spawn.h;hb=HEAD
+
+Darwin XNU:
+https://opensource.apple.com/source/xnu/xnu-4570.71.2/libsyscall/wrappers/spawn/spawn.h.auto.html
+https://opensource.apple.com/source/xnu/xnu-4570.71.2/bsd/sys/spawn.h.auto.html
+https://github.com/opensource-apple/xnu (GitHub mirror)
 */
+
+version (OSX) // macOS and iOS only as this API is prohibited on WatchOS and TVOS
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
 
 version (Posix):
 public import core.sys.posix.sys.types : mode_t, pid_t;
@@ -32,15 +42,22 @@ int posix_spawn_file_actions_init(posix_spawn_file_actions_t*);
 int posix_spawnattr_destroy(posix_spawnattr_t*);
 int posix_spawnattr_getflags(const posix_spawnattr_t*, short*);
 int posix_spawnattr_getpgroup(const posix_spawnattr_t*, pid_t*);
-int posix_spawnattr_getschedparam(const posix_spawnattr_t*, sched_param*);
-int posix_spawnattr_getschedpolicy(const posix_spawnattr_t*, int*);
+
+version (Darwin)
+{ } // Not supported
+else
+{
+    int posix_spawnattr_getschedparam(const posix_spawnattr_t*, sched_param*);
+    int posix_spawnattr_getschedpolicy(const posix_spawnattr_t*, int*);
+    int posix_spawnattr_setschedparam(posix_spawnattr_t*, const sched_param*);
+    int posix_spawnattr_setschedpolicy(posix_spawnattr_t*, int);
+}
+
 int posix_spawnattr_getsigdefault(const posix_spawnattr_t*, sigset_t*);
 int posix_spawnattr_getsigmask(const posix_spawnattr_t*, sigset_t*);
 int posix_spawnattr_init(posix_spawnattr_t*);
 int posix_spawnattr_setflags(posix_spawnattr_t*, short);
 int posix_spawnattr_setpgroup(posix_spawnattr_t*, pid_t);
-int posix_spawnattr_setschedparam(posix_spawnattr_t*, const sched_param*);
-int posix_spawnattr_setschedpolicy(posix_spawnattr_t*, int);
 int posix_spawnattr_setsigdefault(posix_spawnattr_t*, const sigset_t*);
 int posix_spawnattr_setsigmask(posix_spawnattr_t*, const sigset_t*);
 int posix_spawn(pid_t*pid, const char* path,
@@ -96,6 +113,25 @@ version (linux)
     }
     else
         static assert(0, "Unsupported Linux libc");
+}
+else version (Darwin)
+{
+    // Sources:
+    // https://opensource.apple.com/source/xnu/xnu-4570.71.2/libsyscall/wrappers/spawn/spawn.h.auto.html
+    // https://opensource.apple.com/source/xnu/xnu-4570.71.2/bsd/sys/spawn.h.auto.html
+    enum
+    {
+        POSIX_SPAWN_RESETIDS = 0x01,
+        POSIX_SPAWN_SETPGROUP = 0x02,
+        POSIX_SPAWN_SETSIGDEF = 0x04,
+        POSIX_SPAWN_SETSIGMASK = 0x08,
+        // POSIX_SPAWN_SETSCHEDPARAM = 0x10,  // not supported
+        // POSIX_SPAWN_SETSCHEDULER = 0x20,   // ditto
+        POSIX_SPAWN_SETEXEC = 0x40,
+        POSIX_SPAWN_START_SUSPENDED = 0x80
+    }
+    alias posix_spawnattr_t = void*;
+    alias posix_spawn_file_actions_t = void*;
 }
 else
     static assert(0, "Unsupported OS");
