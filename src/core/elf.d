@@ -1,5 +1,7 @@
 /**
- * This code reads ELF files and sections using memory mapped IO.
+ * This code simplifies working with ELF binaries, e.g., iterating
+ * over loaded shared objects & their segments as well as reading
+ * headers and sections from ELF files.
  *
  * Reference: http://www.dwarfstd.org/
  *
@@ -11,8 +13,8 @@
 
 module core.elf;
 
-version (linux) version = linux_or_bsd;
-else version (FreeBSD) version = linux_or_bsd;
+version (linux)             version = linux_or_bsd;
+else version (FreeBSD)      version = linux_or_bsd;
 else version (DragonFlyBSD) version = linux_or_bsd;
 
 version (linux_or_bsd):
@@ -36,6 +38,10 @@ else version (DragonFlyBSD)
     import core.sys.dragonflybsd.sys.elf;
 }
 
+alias Elf_Phdr = ElfW!"Phdr";
+alias Elf_Ehdr = ElfW!"Ehdr";
+alias Elf_Shdr = ElfW!"Shdr";
+
 /****
  * Enables iterating over the process' currently loaded shared objects.
  */
@@ -56,20 +62,9 @@ struct SharedObjects
     }
 }
 
-version (linux)
-{
-    import core.sys.linux.errno : program_invocation_name;
-}
-else
-{
-    extern(C) const(char)* getprogname() nothrow @nogc;
-}
-
 struct SharedObject
 {
 @nogc nothrow:
-    alias ProgramHeader = const(ElfW!"Phdr");
-
     /****
      * Finds the shared object containing the specified address in one of its segments.
      */
@@ -83,7 +78,7 @@ struct SharedObject
         {
             foreach (object; SharedObjects)
             {
-                ProgramHeader* segment;
+                const(Elf_Phdr)* segment;
                 if (object.findSegmentForAddress(address, segment))
                 {
                     result = object;
@@ -111,16 +106,7 @@ struct SharedObject
 
         // the main executable has an empty name
         if (cstr[0] == 0)
-        {
-            version (linux)
-            {
-                cstr = program_invocation_name;
-            }
-            else
-            {
-                cstr = getprogname();
-            }
-        }
+            cstr = getprogname();
 
         import core.stdc.string;
         return cstr[0 .. strlen(cstr)];
@@ -129,7 +115,7 @@ struct SharedObject
     /****
      * Iterates over this object's segments.
      */
-    int opApply(scope int delegate(ref ProgramHeader) @nogc nothrow dg) const
+    int opApply(scope int delegate(ref const Elf_Phdr) @nogc nothrow dg) const
     {
         foreach (ref phdr; info.dlpi_phdr[0 .. info.dlpi_phnum])
         {
@@ -140,7 +126,7 @@ struct SharedObject
         return 0;
     }
 
-    bool findSegmentForAddress(const scope void* address, out ProgramHeader* result) const
+    bool findSegmentForAddress(const scope void* address, out const(Elf_Phdr)* result) const
     {
         if (address < baseAddress())
             return false;
@@ -158,7 +144,9 @@ struct SharedObject
     }
 }
 
-// file-based I/O:
+// -------------------------------
+//  File-based memory-mapped I/O:
+// -------------------------------
 
 struct ElfFile
 {
@@ -269,6 +257,19 @@ struct ElfSection
 
 private @nogc nothrow:
 
+version (linux)
+{
+    const(char)* getprogname()
+    {
+        import core.sys.linux.errno;
+        return program_invocation_name;
+    }
+}
+else
+{
+    extern(C) const(char)* getprogname();
+}
+
 const(char)[] getSectionName(ref const ElfSection stringSection, size_t nameIndex)
 {
     const data = cast(const(ubyte[])) stringSection.get();
@@ -284,6 +285,13 @@ const(char)[] getSectionName(ref const ElfSection stringSection, size_t nameInde
 
 bool isValidElfHeader(ref const Elf_Ehdr ehdr)
 {
+    version (D_LP64) alias ELFCLASS = ELFCLASS64;
+    else             alias ELFCLASS = ELFCLASS32;
+
+    version (LittleEndian)   alias ELFDATA = ELFDATA2LSB;
+    else version (BigEndian) alias ELFDATA = ELFDATA2MSB;
+    else static assert(0, "unsupported byte order");
+
     if (ehdr.e_ident[EI_MAG0] != ELFMAG0) return false;
     if (ehdr.e_ident[EI_MAG1] != ELFMAG1) return false;
     if (ehdr.e_ident[EI_MAG2] != ELFMAG2) return false;
@@ -330,30 +338,4 @@ struct MMapRegion(T)
     size_t realLength;
     size_t offsetDiff;
     void* mptr;
-}
-
-version (D_LP64)
-{
-    alias Elf_Ehdr = Elf64_Ehdr;
-    alias Elf_Shdr = Elf64_Shdr;
-    enum ELFCLASS = ELFCLASS64;
-}
-else
-{
-    alias Elf_Ehdr = Elf32_Ehdr;
-    alias Elf_Shdr = Elf32_Shdr;
-    enum ELFCLASS = ELFCLASS32;
-}
-
-version (LittleEndian)
-{
-    alias ELFDATA = ELFDATA2LSB;
-}
-else version (BigEndian)
-{
-    alias ELFDATA = ELFDATA2MSB;
-}
-else
-{
-    static assert(0, "unsupported byte order");
 }
