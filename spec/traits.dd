@@ -859,7 +859,9 @@ version (CppRuntime_Microsoft)
         )
 
         $(UL
-        $(LI $(D "cppRuntimeLibrary"))
+        $(LI $(D "cppRuntimeLibrary") - The C++ runtime library affinity for this toolchain)
+        $(LI $(D "floatAbi") - Floating point ABI; may be $(D "hard"), $(D "soft"), or $(D "softfp"))
+        $(LI $(D "objectFormat") - Target object format)
         )
 
 $(H2 $(GNAME getVirtualFunctions))
