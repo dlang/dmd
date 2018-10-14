@@ -9,6 +9,12 @@
  */
 module core.sys.posix.spawn;
 
+/*
+Based on the following system headers:
+
+Glibc: https://sourceware.org/git/?p=glibc.git;a=blob;f=posix/spawn.h;hb=HEAD
+*/
+
 version (Posix):
 public import core.sys.posix.sys.types : mode_t, pid_t;
 public import core.sys.posix.signal : sigset_t;
@@ -46,83 +52,50 @@ int posix_spawnp(pid_t* pid, const char* file,
                  const posix_spawnattr_t* attrp,
                  const char** argv, const char** envp);
 
-version (CRuntime_Glibc)
+version (linux)
 {
-    // Source: https://sourceware.org/git/?p=glibc.git;a=blob;f=posix/spawn.h;hb=HEAD
-    enum
+    version (CRuntime_Glibc)
     {
-        POSIX_SPAWN_RESETIDS = 0x01,
-        POSIX_SPAWN_SETPGROUP = 0x02,
-        POSIX_SPAWN_SETSIGDEF = 0x04,
-        POSIX_SPAWN_SETSIGMASK = 0x08,
-        POSIX_SPAWN_SETSCHEDPARAM = 0x10,
-        POSIX_SPAWN_SETSCHEDULER = 0x20
-    }
-
-    import core.sys.posix.config : __USE_GNU;
-    static if (__USE_GNU)
-    {
+        // Source: https://sourceware.org/git/?p=glibc.git;a=blob;f=posix/spawn.h;hb=HEAD
         enum
         {
-            POSIX_SPAWN_USEVFORK = 0x40,
-            POSIX_SPAWN_SETSID = 0x80
+            POSIX_SPAWN_RESETIDS = 0x01,
+            POSIX_SPAWN_SETPGROUP = 0x02,
+            POSIX_SPAWN_SETSIGDEF = 0x04,
+            POSIX_SPAWN_SETSIGMASK = 0x08,
+            POSIX_SPAWN_SETSCHEDPARAM = 0x10,
+            POSIX_SPAWN_SETSCHEDULER = 0x20
+        }
+        import core.sys.posix.config : __USE_GNU;
+        static if (__USE_GNU)
+        {
+            enum
+            {
+                POSIX_SPAWN_USEVFORK = 0x40,
+                POSIX_SPAWN_SETSID = 0x80
+            }
+        }
+        struct posix_spawnattr_t
+        {
+            short __flags;
+            pid_t __pgrp;
+            sigset_t __sd;
+            sigset_t __ss;
+            sched_param __sp;
+            int __policy;
+            int[16] __pad;
+        }
+        struct __spawn_action;
+        struct posix_spawn_file_actions_t
+        {
+            int __allocated;
+            int __used;
+            __spawn_action* __actions;
+            int[16] __pad;
         }
     }
-
-    struct __spawn_action
-    {
-        enum tag_t
-        {
-            spawn_do_close,
-            spawn_do_dup2,
-            spawn_do_open
-        }
-
-        struct close_action_t
-        {
-            int fd;
-        }
-
-        struct dup2_action_t
-        {
-            int fd;
-            int newfd;
-        }
-
-        struct open_action_t
-        {
-            int fd;
-            char*path;
-            int oflag;
-            mode_t mode;
-        }
-
-        tag_t tag;
-
-        union
-        {
-            close_action_t close_action;
-            dup2_action_t dup2_action;
-            open_action_t open_action;
-        }
-    }
-
-    struct posix_spawn_file_actions_t
-    {
-        int __allocated;
-        int __used;
-        __spawn_action* __actions;
-        int[16] __pad;
-    }
-
-    struct posix_spawnattr_t
-    {
-        short __flags;
-        pid_t __pgrp;
-        sigset_t __sd;
-        sigset_t __ss;
-        sched_param __sp;
-        int __policy;
-        int[16] __pad;
-    }
+    else
+        static assert(0, "Unsupported Linux libc");
 }
+else
+    static assert(0, "Unsupported OS");
