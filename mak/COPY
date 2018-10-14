@@ -172,6 +172,7 @@ COPY=\
 	$(IMPDIR)\core\sys\posix\semaphore.d \
 	$(IMPDIR)\core\sys\posix\setjmp.d \
 	$(IMPDIR)\core\sys\posix\signal.d \
+	$(IMPDIR)\core\sys\posix\spawn.d \
 	$(IMPDIR)\core\sys\posix\stdio.d \
 	$(IMPDIR)\core\sys\posix\stdlib.d \
 	$(IMPDIR)\core\sys\posix\syslog.d \

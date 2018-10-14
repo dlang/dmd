@@ -511,6 +511,9 @@ $(IMPDIR)\core\sys\posix\setjmp.d : src\core\sys\posix\setjmp.d
 $(IMPDIR)\core\sys\posix\signal.d : src\core\sys\posix\signal.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\posix\spawn.d : src\core\sys\posix\spawn.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\posix\stdio.d : src\core\sys\posix\stdio.d
 	copy $** $@
 
