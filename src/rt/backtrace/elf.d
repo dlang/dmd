@@ -84,10 +84,10 @@ struct Image
             return 0;
 
         size_t base = 0;
-        foreach (ref info; SharedObjects)
+        foreach (object; SharedObjects)
         {
             // only take the first address as this will be the main binary
-            base = info.dlpi_addr;
+            base = cast(size_t) object.baseAddress();
             break;
         }
 

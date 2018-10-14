@@ -5,7 +5,7 @@
  *
  * Copyright: Copyright Digital Mars 2015 - 2015.
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
- * Authors:   Yazan Dabain
+ * Authors:   Yazan Dabain, Martin Kinkelin
  * Source: $(DRUNTIMESRC core/elf.d)
  */
 
@@ -42,19 +42,123 @@ else version (DragonFlyBSD)
 struct SharedObjects
 {
 @nogc nothrow:
-    alias Callback = int delegate(ref const dl_phdr_info);
+    alias Callback = int delegate(SharedObject);
 
     static int opApply(scope Callback dg)
     {
         extern(C) int nativeCallback(dl_phdr_info* info, size_t, void* data)
         {
             auto dg = *cast(Callback*) data;
-            return dg(*info);
+            return dg(SharedObject(*info));
         }
 
         return dl_iterate_phdr(&nativeCallback, &dg);
     }
 }
+
+version (linux)
+{
+    import core.sys.linux.errno : program_invocation_name;
+}
+else
+{
+    extern(C) const(char)* getprogname() nothrow @nogc;
+}
+
+struct SharedObject
+{
+@nogc nothrow:
+    alias ProgramHeader = const(ElfW!"Phdr");
+
+    /****
+     * Finds the shared object containing the specified address in one of its segments.
+     */
+    static bool findForAddress(const scope void* address, out SharedObject result)
+    {
+        version (linux)       enum IterateManually = true;
+        else version (NetBSD) enum IterateManually = true;
+        else                  enum IterateManually = false;
+
+        static if (IterateManually)
+        {
+            foreach (object; SharedObjects)
+            {
+                ProgramHeader* segment;
+                if (object.findSegmentForAddress(address, segment))
+                {
+                    result = object;
+                    return true;
+                }
+            }
+            return false;
+        }
+        else
+        {
+            return !!_rtld_addr_phdr(address, &result.info);
+        }
+    }
+
+    dl_phdr_info info;
+
+    void* baseAddress() const
+    {
+        return cast(void*) info.dlpi_addr;
+    }
+
+    const(char)[] name() const
+    {
+        const(char)* cstr = info.dlpi_name;
+
+        // the main executable has an empty name
+        if (cstr[0] == 0)
+        {
+            version (linux)
+            {
+                cstr = program_invocation_name;
+            }
+            else
+            {
+                cstr = getprogname();
+            }
+        }
+
+        import core.stdc.string;
+        return cstr[0 .. strlen(cstr)];
+    }
+
+    /****
+     * Iterates over this object's segments.
+     */
+    int opApply(scope int delegate(ref ProgramHeader) @nogc nothrow dg) const
+    {
+        foreach (ref phdr; info.dlpi_phdr[0 .. info.dlpi_phnum])
+        {
+            const r = dg(phdr);
+            if (r != 0)
+                return r;
+        }
+        return 0;
+    }
+
+    bool findSegmentForAddress(const scope void* address, out ProgramHeader* result) const
+    {
+        if (address < baseAddress())
+            return false;
+
+        foreach (ref phdr; this)
+        {
+            const begin = baseAddress() + phdr.p_vaddr;
+            if (cast(size_t)(address - begin) < phdr.p_memsz)
+            {
+                result = &phdr;
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+// file-based I/O:
 
 struct ElfFile
 {
