@@ -26,6 +26,8 @@ https://opensource.apple.com/source/xnu/xnu-4570.71.2/bsd/sys/spawn.h.auto.html
 https://github.com/opensource-apple/xnu (GitHub mirror)
 
 FreeBSD: https://github.com/freebsd/freebsd/blob/master/include/spawn.h
+
+NetBSD: https://github.com/NetBSD/src/blob/trunk/sys/sys/spawn.h
 */
 
 version (OSX) // macOS and iOS only as this API is prohibited on WatchOS and TVOS
@@ -249,6 +251,36 @@ else version (FreeBSD)
     }
     alias posix_spawnattr_t =  void*;
     alias posix_spawn_file_actions_t =  void*;
+}
+else version (NetBSD)
+{
+    // Source: https://github.com/NetBSD/src/blob/trunk/sys/sys/spawn.h
+    enum
+    {
+        POSIX_SPAWN_RESETIDS = 0x01,
+        POSIX_SPAWN_SETPGROUP = 0x02,
+        POSIX_SPAWN_SETSCHEDPARAM = 0x04,
+        POSIX_SPAWN_SETSCHEDULER = 0x08,
+        POSIX_SPAWN_SETSIGDEF = 0x10,
+        POSIX_SPAWN_SETSIGMASK = 0x20,
+        POSIX_SPAWN_RETURNERROR = 0x40 // NetBSD specific
+    }
+    struct posix_spawnattr
+    {
+        short sa_flags;
+        pid_t sa_pgroup;
+        sched_param sa_schedparam;
+        int sa_schedpolicy;
+        sigset_t sa_sigdefault;
+        sigset_t sa_sigmask;
+    }
+    struct posix_spawn_file_actions_entry_t;
+    struct posix_spawn_file_actions
+    {
+        uint size;
+        uint len;
+        posix_spawn_file_actions_entry_t* fae;
+    }
 }
 else
     static assert(0, "Unsupported OS");
