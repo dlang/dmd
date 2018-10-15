@@ -32,6 +32,8 @@ NetBSD: https://github.com/NetBSD/src/blob/trunk/sys/sys/spawn.h
 OpenBSD: https://github.com/openbsd/src/blob/master/include/spawn.h
 
 DragonFlyBSD: https://github.com/DragonFlyBSD/DragonFlyBSD/blob/master/include/spawn.h
+
+Solaris: https://github.com/illumos/illumos-gate/blob/master/usr/src/head/spawn.h
 */
 
 version (OSX) // macOS and iOS only as this API is prohibited on WatchOS and TVOS
@@ -319,6 +321,50 @@ else version (DragonFlyBSD)
     alias posix_spawn_file_actions_t = __posix_spawn_file_actions*;
     struct __posix_spawnattr;
     struct __posix_spawn_file_actions;
+}
+else version (Solaris)
+{
+    // Source: https://github.com/illumos/illumos-gate/blob/master/usr/src/head/spawn.h
+    enum
+    {
+        POSIX_SPAWN_RESETIDS = 0x01,
+        POSIX_SPAWN_SETPGROUP = 0x02,
+        POSIX_SPAWN_SETSIGDEF = 0x04,
+        POSIX_SPAWN_SETSIGMASK = 0x08,
+        POSIX_SPAWN_SETSCHEDPARAM = 0x10,
+        POSIX_SPAWN_SETSCHEDULER = 0x20,
+    }
+    version (none)
+    {
+        // Non-portable Solaris extensions.
+        enum
+        {
+            POSIX_SPAWN_SETSIGIGN_NP = 0x0800,
+            POSIX_SPAWN_NOSIGCHLD_NP = 0x1000,
+            POSIX_SPAWN_WAITPID_NP = 0x2000,
+            POSIX_SPAWN_NOEXECERR_NP = 0x4000,
+        }
+    }
+    struct posix_spawnattr_t
+    {
+        void* __spawn_attrp;
+    }
+    struct posix_spawn_file_actions_t
+    {
+        void* __file_attrp;
+    }
+    version (none)
+    {
+        // Non-portable Solaris extensions.
+        alias boolean_t = int;
+        int posix_spawn_file_actions_addclosefrom_np(posix_spawn_file_actions_t* file_actions,
+                                                     int lowfiledes);
+        int posix_spawn_pipe_np(pid_t* pidp, int* fdp, const char* cmd, boolean_t write,
+                                posix_spawn_file_actions_t* fact,
+                                posix_spawnattr_t* attr);
+        int posix_spawnattr_getsigignore_np(const posix_spawnattr_t* attr, sigset_t* sigignore);
+        int posix_spawnattr_setsigignore_np(posix_spawnattr_t* attr, const sigset_t* sigignore);
+    }
 }
 else
     static assert(0, "Unsupported OS");
