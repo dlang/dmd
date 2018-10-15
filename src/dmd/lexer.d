@@ -2272,7 +2272,7 @@ class Lexer : ErrorHandler
         va_start(ap, format);
         .vdeprecation(token.loc, format, ap);
         va_end(ap);
-        if (global.params.useDeprecated == 0)
+        if (global.params.useDeprecated == Diagnostic.error)
             errors = true;
     }
 

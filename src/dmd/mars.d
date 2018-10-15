@@ -1429,11 +1429,11 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
         if (arg == "-allinst")               // https://dlang.org/dmd.html#switch-allinst
             params.allInst = true;
         else if (arg == "-de")               // https://dlang.org/dmd.html#switch-de
-            params.useDeprecated = 0;
+            params.useDeprecated = Diagnostic.error;
         else if (arg == "-d")                // https://dlang.org/dmd.html#switch-d
-            params.useDeprecated = 1;
+            params.useDeprecated = Diagnostic.off;
         else if (arg == "-dw")               // https://dlang.org/dmd.html#switch-dw
-            params.useDeprecated = 2;
+            params.useDeprecated = Diagnostic.inform;
         else if (arg == "-c")                // https://dlang.org/dmd.html#switch-c
             params.link = false;
         else if (startsWith(p + 1, "color")) // https://dlang.org/dmd.html#switch-color
@@ -1695,9 +1695,9 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 goto Lerror;
         }
         else if (arg == "-w")   // https://dlang.org/dmd.html#switch-w
-            params.warnings = 1;
+            params.warnings = Diagnostic.error;
         else if (arg == "-wi")  // https://dlang.org/dmd.html#switch-wi
-            params.warnings = 2;
+            params.warnings = Diagnostic.inform;
         else if (arg == "-O")   // https://dlang.org/dmd.html#switch-O
             params.optimize = true;
         else if (p[1] == 'o')
