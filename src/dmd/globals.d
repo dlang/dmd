@@ -34,6 +34,13 @@ enum TARGET : bool
     DragonFlyBSD = xversion!`DragonFlyBSD`,
 }
 
+enum Diagnostic : ubyte
+{
+    error,        // generate an error
+    inform,       // generate a warning
+    off,          // disable diagnostic
+}
+
 enum CHECKENABLE : ubyte
 {
     _default,     // initial value
@@ -115,10 +122,7 @@ struct Param
     bool isSolaris;         // generate code for Solaris
     bool hasObjectiveC;     // target supports Objective-C
     bool mscoff = false;    // for Win32: write MsCoff object files instead of OMF
-    // 0: don't allow use of deprecated features
-    // 1: silently allow use of deprecated features
-    // 2: warn about the use of deprecated features
-    byte useDeprecated = 2;
+    Diagnostic useDeprecated = Diagnostic.inform;  // how use of deprecated features are handled
     bool useInvariants = true;  // generate class invariant checks
     bool useIn = true;          // generate precondition checks
     bool useOut = true;         // generate postcondition checks
@@ -128,10 +132,7 @@ struct Param
     bool useDIP25;          // implement http://wiki.dlang.org/DIP25
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
-    // 0: disable warnings
-    // 1: warnings as errors
-    // 2: informational warnings (no errors)
-    byte warnings;
+    Diagnostic warnings = Diagnostic.off;  // how compiler warnings are handled
     bool pic;               // generate position-independent-code for shared libs
     bool color = true;      // use ANSI colors in console output
     bool cov;               // generate code coverage data

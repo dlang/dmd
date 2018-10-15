@@ -299,7 +299,7 @@ extern (C++) class Dsymbol : RootObject
 
     final bool checkDeprecated(const ref Loc loc, Scope* sc)
     {
-        if (global.params.useDeprecated != 1 && isDeprecated())
+        if (global.params.useDeprecated != Diagnostic.off && isDeprecated())
         {
             // Don't complain if we're inside a deprecated symbol's scope
             if (sc.isDeprecated())

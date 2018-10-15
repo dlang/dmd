@@ -251,7 +251,7 @@ bool discardValue(Expression e)
         }
     case TOK.call:
         /* Issue 3882: */
-        if (global.params.warnings && !global.gag)
+        if (global.params.warnings != Diagnostic.off && !global.gag)
         {
             CallExp ce = cast(CallExp)e;
             if (e.type.ty == Tvoid)
