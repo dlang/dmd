@@ -102,6 +102,7 @@ SRCS=\
 	\
 	src\core\sys\posix\dirent.d \
 	src\core\sys\posix\signal.d \
+	src\core\sys\posix\spawn.d \
 	src\core\sys\posix\netdb.d \
 	src\core\sys\posix\netinet\in_.d \
 	src\core\sys\posix\arpa\inet.d \
