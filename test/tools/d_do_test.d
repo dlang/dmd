@@ -624,8 +624,11 @@ int tryMain(string[] args)
         }
     }
 
+    if (testArgs.disabledPlatforms.any!(a => envData.os.chain(envData.model).canFind(a)))
+        testArgs.disabled = true;
+
     //prepare cpp extra sources
-    if (testArgs.cppSources.length)
+    if (!testArgs.disabled && testArgs.cppSources.length)
     {
         switch (envData.compiler)
         {
@@ -647,7 +650,7 @@ int tryMain(string[] args)
             return 1;
     }
     //prepare objc extra sources
-    if (!collectExtraSources(input_dir, output_dir, testArgs.objcSources, testArgs.sources, envData, "clang", null))
+    if (!testArgs.disabled && !collectExtraSources(input_dir, output_dir, testArgs.objcSources, testArgs.sources, envData, "clang", null))
         return 1;
 
     writef(" ... %-30s %s%s(%s)",
@@ -667,11 +670,8 @@ int tryMain(string[] args)
     }
 
     // allows partial matching, e.g. win for both win32 and win64
-    if (testArgs.disabledPlatforms.any!(a => envData.os.chain(envData.model).canFind(a)))
-    {
-        testArgs.disabled = true;
+    if (testArgs.disabled)
         writefln("!!! [DISABLED on %s]", envData.os);
-    }
     else
         write("\n");
 
