@@ -310,7 +310,7 @@ endif
 
 ######## DMD frontend source files
 
-FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argtypes arrayop	\
+FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argtypes argtypes_sysv_x64 arrayop	\
 	arraytypes astcodegen ast_node attrib builtin canthrow cli clone compiler complex cond constfold	\
 	cppmangle cppmanglewin ctfeexpr ctorflow dcast dclass declaration delegatize denum dimport	\
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol dsymbolsem	\

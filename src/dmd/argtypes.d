@@ -20,6 +20,11 @@ import dmd.globals;
 import dmd.mtype;
 import dmd.visitor;
 
+private bool isDMDx64Target()
+{
+    return global.params.is64bit;
+}
+
 /****************************************************
  * This breaks a type down into 'simpler' types that can be passed to a function
  * in registers, and returned in registers.
@@ -34,7 +39,7 @@ import dmd.visitor;
  *  For 64 bit code, follows Itanium C++ ABI 1.86 Chapter 3
  *  http://refspecs.linux-foundation.org/cxxabi-1.86.html#calls
  */
-TypeTuple toArgTypes(Type t)
+extern (C++) TypeTuple toArgTypes(Type t)
 {
     extern (C++) final class ToArgTypes : Visitor
     {
@@ -108,7 +113,7 @@ TypeTuple toArgTypes(Type t)
                 t1 = Type.tfloat80;
                 break;
             case Tcomplex32:
-                if (global.params.is64bit)
+                if (isDMDx64Target())
                     t1 = Type.tfloat64;
                 else
                 {
@@ -257,7 +262,7 @@ TypeTuple toArgTypes(Type t)
             /* Should be done as if it were:
              * struct S { size_t length; void* ptr; }
              */
-            if (global.params.is64bit && !global.params.isLP64)
+            if (isDMDx64Target() && !global.params.isLP64)
             {
                 // For AMD64 ILP32 ABI, D arrays fit into a single integer register.
                 const offset = cast(uint)Type.tsize_t.size(Loc.initial);
@@ -275,7 +280,7 @@ TypeTuple toArgTypes(Type t)
             /* Should be done as if it were:
              * struct S { void* funcptr; void* ptr; }
              */
-            if (global.params.is64bit && !global.params.isLP64)
+            if (isDMDx64Target() && !global.params.isLP64)
             {
                 // For AMD64 ILP32 ABI, delegates fit into a single integer register.
                 const offset = cast(uint)Type.tsize_t.size(Loc.initial);
@@ -357,7 +362,7 @@ TypeTuple toArgTypes(Type t)
             if (nfields == 0)
                 return memory();
 
-            if (global.params.is64bit)
+            if (isDMDx64Target())
             {
                 if (sz == 0 || sz > 16)
                     return memory();
