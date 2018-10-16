@@ -41,6 +41,8 @@ source ci.sh
 # See https://github.com/dlang/dub/issues/1551
 if [ "$DMD" == "dmd" ]; then
     install_d "dmd-2.081.2"
+elif  [ "$DMD" == "ldc" ]; then
+    install_d "ldc-1.11.0"
 else
     install_d "$DMD"
 fi
