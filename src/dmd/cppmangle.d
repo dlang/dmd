@@ -513,48 +513,16 @@ private final class CppMangleVisitor : Visitor
         {
             if (isStd(p))
             {
-                TemplateInstance ti = si.isTemplateInstance();
-                if (ti)
+                bool needsTa;
+                auto ti = si.isTemplateInstance();
+                if (this.writeStdSubstitution(ti, needsTa))
                 {
-                    if (s.ident == Id.allocator)
+                    if (needsTa)
                     {
-                        buf.writestring("Sa");
                         template_args(ti);
                         append(ti);
-                        return;
                     }
-                    if (s.ident == Id.basic_string)
-                    {
-                        // ::std::basic_string<char, ::std::char_traits<char>, ::std::allocator<char>>
-                        if (ti.tiargs.dim == 3 &&
-                            isChar((*ti.tiargs)[0]) &&
-                            isChar_traits_char((*ti.tiargs)[1]) &&
-                            isAllocator_char((*ti.tiargs)[2]))
-
-                        {
-                            buf.writestring("Ss");
-                            return;
-                        }
-                        buf.writestring("Sb");      // ::std::basic_string
-                        template_args(ti);
-                        append(ti);
-                        return;
-                    }
-
-                    // ::std::basic_istream<char, ::std::char_traits<char>>
-                    if (s.ident == Id.basic_istream &&
-                        char_std_char_traits_char(ti, "Si"))
-                        return;
-
-                    // ::std::basic_ostream<char, ::std::char_traits<char>>
-                    if (s.ident == Id.basic_ostream &&
-                        char_std_char_traits_char(ti, "So"))
-                        return;
-
-                    // ::std::basic_iostream<char, ::std::char_traits<char>>
-                    if (s.ident == Id.basic_iostream &&
-                        char_std_char_traits_char(ti, "Sd"))
-                        return;
+                    return;
                 }
                 buf.writestring("St");
             }
@@ -568,6 +536,65 @@ private final class CppMangleVisitor : Visitor
              * https://issues.dlang.org/show_bug.cgi?id=17947
              */
             append(si);
+    }
+
+    /**
+     * Write common substitution for standard types, such as std::allocator
+     *
+     * This function assumes that the symbol `ti` is in the namespace `std`.
+     *
+     * Params:
+     *   ti = Template instance to consider
+     *   needsTa = If this function returns `true`, this value indicates
+     *             if additional template argument mangling is needed
+     *
+     * Returns:
+     *   `true` if a special std symbol was found
+     */
+    bool writeStdSubstitution(TemplateInstance ti, out bool needsTa)
+    {
+        if (!ti)
+            return false;
+
+        if (ti.name == Id.allocator)
+        {
+            buf.writestring("Sa");
+            needsTa = true;
+            return true;
+        }
+        if (ti.name == Id.basic_string)
+        {
+            // ::std::basic_string<char, ::std::char_traits<char>, ::std::allocator<char>>
+            if (ti.tiargs.dim == 3 &&
+                isChar((*ti.tiargs)[0]) &&
+                isChar_traits_char((*ti.tiargs)[1]) &&
+                isAllocator_char((*ti.tiargs)[2]))
+
+            {
+                buf.writestring("Ss");
+                return true;
+            }
+            buf.writestring("Sb");      // ::std::basic_string
+            needsTa = true;
+            return true;
+        }
+
+        // ::std::basic_istream<char, ::std::char_traits<char>>
+        if (ti.name == Id.basic_istream &&
+            char_std_char_traits_char(ti, "Si"))
+            return true;
+
+        // ::std::basic_ostream<char, ::std::char_traits<char>>
+        if (ti.name == Id.basic_ostream &&
+            char_std_char_traits_char(ti, "So"))
+            return true;
+
+        // ::std::basic_iostream<char, ::std::char_traits<char>>
+        if (ti.name == Id.basic_iostream &&
+            char_std_char_traits_char(ti, "Sd"))
+            return true;
+
+        return false;
     }
 
 
