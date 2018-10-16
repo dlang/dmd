@@ -1641,9 +1641,9 @@ $(H3 $(LNAME2 assert_expressions, Assert Expressions))
 
 $(GRAMMAR
 $(GNAME AssertExpression):
-    $(D assert $(LPAREN)) $(GLINK ContractArguments) $(D $(RPAREN))
+    $(D assert $(LPAREN)) $(GLINK AssertArguments) $(D $(RPAREN))
 
-$(GNAME ContractArguments):
+$(GNAME AssertArguments):
     $(GLINK AssignExpression) $(D ,)$(OPT)
     $(GLINK AssignExpression) $(D ,) $(GLINK AssignExpression) $(D ,)$(OPT)
 )
@@ -1728,18 +1728,20 @@ $(H3 $(LNAME2 mixin_expressions, Mixin Expressions))
 
 $(GRAMMAR
 $(GNAME MixinExpression):
-    $(D mixin $(LPAREN)) $(GLINK AssignExpression) $(D $(RPAREN))
+    $(D mixin $(LPAREN)) $(GLINK ArgumentList) $(D $(RPAREN))
 )
 
-    $(P The $(I AssignExpression) must evaluate at compile time
-        to a constant string.
+    $(P Each $(GLINK AssignExpression) in the $(I ArgumentList) is
+        evaluated at compile time, and the result must be representable
+        as a string.
+        The resulting strings are concatenated to form a string.
         The text contents of the string must be compilable as a valid
-        $(I Expression), and is compiled as such.)
+        $(GLINK Expression), and is compiled as such.)
 
         ---
         int foo(int x)
         {
-            return mixin("x + 1") * 7;  // same as ((x + 1) * 7)
+            return mixin("x +", 1) * 7;  // same as ((x + 1) * 7)
         }
         ---
 

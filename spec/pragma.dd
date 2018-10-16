@@ -62,6 +62,7 @@ $(P All implementations must support these, even if by just ignoring them:)
 $(UL
     $(LI $(LINK2 #inline, pragma inline))
     $(LI $(LINK2 #lib, pragma lib))
+    $(LI $(LINK2 #linkerDirective, pragma linkerDirective))
     $(LI $(LINK2 #mangle, pragma mangle))
     $(LI $(LINK2 #msg, pragma msg))
     $(LI $(LINK2 #startaddress, pragma startaddress))
@@ -135,6 +136,20 @@ pragma(lib, "foo.lib");
     Typically, the string literal specifies the file name of a library file. This name
     is inserted into the generated object file, or otherwise is passed to the linker,
     so the linker automatically links in that library.
+    )
+
+$(H3 $(LNAME2 linkerDirective, $(D pragma linkerDirective)))
+
+    $(P There must be one $(ASSIGNEXPRESSION) and it must evaluate at compile time to a string literal.
+    )
+-----------------
+pragma(linkerDirective, "/FAILIFMISMATCH:_ITERATOR_DEBUG_LEVEL=2");
+-----------------
+
+    $(IMPLEMENTATION_DEFINED
+    $(P The string literal specifies a linker directive to be embedded in the generated object file.)
+
+    $(P Linker directives are only supported for MS-COFF output.)
     )
 
 $(H3 $(LNAME2 mangle, $(D pragma mangle)))

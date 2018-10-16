@@ -43,6 +43,7 @@ $(GNAME TraitsKeyword):
     $(GLINK isOut)
     $(GLINK isLazy)
     $(GLINK isReturnOnStack)
+    $(GLINK isZeroInit)
     $(GLINK hasMember)
     $(GLINK identifier)
     $(GLINK getAliasThis)
@@ -55,6 +56,7 @@ $(GNAME TraitsKeyword):
     $(GLINK getParameterStorageClasses)
     $(GLINK getPointerBitmap)
     $(GLINK getProtection)
+    $(GLINK getTargetInfo)
     $(GLINK getVirtualFunctions)
     $(GLINK getVirtualMethods)
     $(GLINK getUnitTests)
@@ -399,6 +401,35 @@ static assert(__traits(isTemplate,foo));
 static assert(!__traits(isTemplate,foo!int()));
 static assert(!__traits(isTemplate,"string"));
 ---
+
+$(H2 $(GNAME isZeroInit))
+
+        $(P Takes one argument which must be a type. If the type's
+        $(DDSUBLINK spec/property, init, default initializer) is all zero
+        bits then `true` is returned, otherwise `false`.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S1 { int x; }
+struct S2 { int x = -1; }
+
+static assert(__traits(isZeroInit, S1));
+static assert(!__traits(isZeroInit, S2));
+
+void test()
+{
+    int x = 3;
+    static assert(__traits(isZeroInit, typeof(x)));
+}
+
+// `isZeroInit` will always return true for a class C
+// because `C.init` is null reference.
+
+class C { int x = -1; }
+
+static assert(__traits(isZeroInit, C));
+---
+)
 
 $(H2 $(GNAME isReturnOnStack))
 
@@ -812,6 +843,26 @@ export
 public
 )
 
+$(H2 $(GNAME getTargetInfo))
+
+        $(P Receives a string key as argument.
+        The result is an expression describing the requested target information.
+        )
+
+---
+version (CppRuntime_Microsoft)
+    static assert(__traits(getTargetInfo, "cppRuntimeLibrary") == "libcmt");
+---
+
+        $(P Keys are implementation defined, allowing relevant data for exotic targets.
+        A reliable subset exists which are always available:
+        )
+
+        $(UL
+        $(LI $(D "cppRuntimeLibrary") - The C++ runtime library affinity for this toolchain)
+        $(LI $(D "floatAbi") - Floating point ABI; may be $(D "hard"), $(D "soft"), or $(D "softfp"))
+        $(LI $(D "objectFormat") - Target object format)
+        )
 
 $(H2 $(GNAME getVirtualFunctions))
 

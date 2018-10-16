@@ -1229,7 +1229,7 @@ $(GRAMMAR
 $(GNAME StructInvariant):
     $(D invariant $(LPAREN) $(RPAREN)) $(GLINK2 statement, BlockStatement)
     $(D invariant) $(GLINK2 statement, BlockStatement)
-    $(D invariant $(LPAREN)) $(GLINK2 expression, ContractArguments) $(D $(RPAREN) ;)
+    $(D invariant $(LPAREN)) $(GLINK2 expression, AssertArguments) $(D $(RPAREN) ;)
 )
 
     $(P $(I StructInvariant)s specify the relationships among the members of a struct instance.
