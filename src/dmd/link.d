@@ -71,30 +71,29 @@ version (CRuntime_Microsoft)
 /****************************************
  * Write filename to cmdbuf, quoting if necessary.
  */
-private void writeFilename(OutBuffer* buf, const(char)* filename, size_t len)
+private void writeFilename(OutBuffer* buf, const(char)[] filename)
 {
     /* Loop and see if we need to quote
      */
-    for (size_t i = 0; i < len; i++)
+    foreach (const char c; filename)
     {
-        const char c = filename[i];
         if (isalnum(c) || c == '_')
             continue;
         /* Need to quote
          */
         buf.writeByte('"');
-        buf.write(filename, len);
+        buf.writestring(filename);
         buf.writeByte('"');
         return;
     }
     /* No quoting necessary
      */
-    buf.write(filename, len);
+    buf.writestring(filename);
 }
 
 private void writeFilename(OutBuffer* buf, const(char)* filename)
 {
-    writeFilename(buf, filename, strlen(filename));
+    writeFilename(buf, filename.toDString());
 }
 
 version (Posix)
@@ -112,11 +111,11 @@ version (Posix)
     {
         version (OSX)
         {
-            __gshared const(char)* nmeErrorMessage = "`__Dmain`, referenced from:";
+            static immutable(char*) nmeErrorMessage = "`__Dmain`, referenced from:";
         }
         else
         {
-            __gshared const(char)* nmeErrorMessage = "undefined reference to `_Dmain`";
+            static immutable(char*) nmeErrorMessage = "undefined reference to `_Dmain`";
         }
         FILE* stream = fdopen(fd, "r");
         if (stream is null)
@@ -186,7 +185,7 @@ public int runLINK()
                  */
                 const(char)* n = global.params.objfiles[0];
                 n = FileName.name(n);
-                global.params.exefile = cast(char*)FileName.forceExt(n, "exe");
+                global.params.exefile = FileName.forceExt(n, "exe");
             }
             // Make sure path to exe file exists
             ensurePathToNameExists(Loc.initial, global.params.exefile);
@@ -290,7 +289,7 @@ public int runLINK()
                 if (ext && !strchr(basename, '.'))
                 {
                     // Write name sans extension (but not if a double extension)
-                    writeFilename(&cmdbuf, p, ext - p - 1);
+                    writeFilename(&cmdbuf, p[0 .. ext - p - 1]);
                 }
                 else
                     writeFilename(&cmdbuf, p);
@@ -306,7 +305,7 @@ public int runLINK()
                  */
                 const(char)* n = global.params.objfiles[0];
                 n = FileName.name(n);
-                global.params.exefile = cast(char*)FileName.forceExt(n, "exe");
+                global.params.exefile = FileName.forceExt(n, "exe");
             }
             // Make sure path to exe file exists
             ensurePathToNameExists(Loc.initial, global.params.exefile);
@@ -481,24 +480,20 @@ public int runLINK()
         else
         {
             // Generate exe file name from first obj name
-            const(char)* n = global.params.objfiles[0];
-            char* ex;
+            const(char)[] n = global.params.objfiles[0].toDString();
+            const(char)[] ex;
             n = FileName.name(n);
-            const(char)* e = FileName.ext(n);
-            if (e)
+            if (const e = FileName.ext(n))
             {
-                e--; // back up over '.'
-                ex = cast(char*)mem.xmalloc(e - n + 1);
-                memcpy(ex, n, e - n);
-                ex[e - n] = 0;
-                // If generating dll then force dll extension
                 if (global.params.dll)
-                    ex = cast(char*)FileName.forceExt(ex, global.dll_ext);
+                    ex = FileName.forceExt(ex, global.dll_ext.toDString());
+                else
+                    ex = FileName.removeExt(n);
             }
             else
-                ex = cast(char*)"a.out"; // no extension, so give up
-            argv.push(ex);
-            global.params.exefile = ex;
+                ex = "a.out"; // no extension, so give up
+            argv.push(ex.ptr);
+            global.params.exefile = ex.ptr;
         }
         // Make sure path to exe file exists
         ensurePathToNameExists(Loc.initial, global.params.exefile);
@@ -682,7 +677,7 @@ public int runLINK()
             // pipe linker stderr to fds[0]
             dup2(fds[1], STDERR_FILENO);
             close(fds[0]);
-            execvp(argv[0], cast(char**)argv.tdata());
+            execvp(argv[0], argv.tdata());
             perror(argv[0]); // failed to execute
             return -1;
         }
@@ -823,16 +818,15 @@ version (Windows)
 {
     private int executearg0(const(char)* cmd, const(char)* args)
     {
-        const(char)* file;
-        const(char)* argv0 = global.params.argv0;
+        const argv0 = global.params.argv0;
         //printf("argv0='%s', cmd='%s', args='%s'\n",argv0,cmd,args);
         // If cmd is fully qualified, we don't do this
         if (FileName.absolute(cmd))
             return -1;
-        file = FileName.replaceName(argv0, cmd);
+        const file = FileName.replaceName(argv0, cmd.toDString);
         //printf("spawning '%s'\n",file);
         // spawnlp returns intptr_t in some systems, not int
-        return spawnl(0, file, file, args, null);
+        return spawnl(0, file.ptr, file.ptr, args, null);
     }
 }
 
@@ -896,7 +890,7 @@ public int runProgram()
                 // Make it "./fn"
                 fn = FileName.combine(".", fn);
             }
-            execv(fn, cast(char**)argv.tdata());
+            execv(fn, argv.tdata());
             perror(fn); // failed to execute
             return -1;
         }
@@ -1048,15 +1042,15 @@ version (Windows)
             char[MAX_PATH + 1] dmdpath = void;
             if (GetModuleFileNameA(null, dmdpath.ptr, dmdpath.length) <= MAX_PATH)
             {
-                auto lldpath = FileName.replaceName(dmdpath.ptr, "lld-link.exe");
+                auto lldpath = FileName.replaceName(dmdpath, "lld-link.exe");
                 if (FileName.exists(lldpath))
-                    return lldpath;
+                    return lldpath.ptr;
             }
 
             // search PATH to avoid createProcess preferring "link.exe" from the dmd folder
             Strings* paths = FileName.splitPath(getenv("PATH"));
-            if (auto p = FileName.searchPath(paths, "link.exe", false))
-                return p;
+            if (auto p = FileName.searchPath(paths, "link.exe"[], false))
+                return p.ptr;
             return "link.exe";
         }
 
@@ -1358,8 +1352,8 @@ version (Windows)
 
             // try mingw fallback relative to phobos library folder that's part of LIB
             Strings* libpaths = FileName.splitPath(getenv("LIB"));
-            if (auto p = FileName.searchPath(libpaths, r"mingw\kernel32.lib", false))
-                return FileName.path(p);
+            if (auto p = FileName.searchPath(libpaths, r"mingw\kernel32.lib"[], false))
+                return FileName.path(p).ptr;
 
             return null;
         }

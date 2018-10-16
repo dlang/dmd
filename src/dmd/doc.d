@@ -51,22 +51,21 @@ import dmd.visitor;
 
 struct Escape
 {
-    const(char)*[256] strings;
+    const(char)[][char.max] strings;
 
     /***************************************
      * Find character string to replace c with.
      */
-    extern (C++) const(char)* escapeChar(uint c)
+    const(char)[] escapeChar(char c)
     {
         version (all)
         {
-            assert(c < 256);
-            //printf("escapeChar('%c') => %p, %p\n", c, strings, strings[c]);
+            //printf("escapeChar('%c') => %p, %p\n", c, strings, strings[c].ptr);
             return strings[c];
         }
         else
         {
-            const(char)* s;
+            const(char)[] s;
             switch (c)
             {
             case '<':
@@ -89,7 +88,7 @@ struct Escape
 
 /***********************************************************
  */
-extern (C++) class Section
+private class Section
 {
     const(char)* name;
     size_t namelen;
@@ -102,7 +101,7 @@ extern (C++) class Section
         assert(a.dim);
         if (namelen)
         {
-            __gshared const(char)** table =
+            static immutable table =
             [
                 "AUTHORS",
                 "BUGS",
@@ -117,13 +116,12 @@ extern (C++) class Section
                 "STANDARDS",
                 "THROWS",
                 "VERSION",
-                null
             ];
-            for (size_t i = 0; table[i]; i++)
+            foreach (entry; table)
             {
-                if (icmp(table[i], name, namelen) == 0)
+                if (iequals(entry, name[0 .. namelen]))
                 {
-                    buf.printf("$(DDOC_%s ", table[i]);
+                    buf.printf("$(DDOC_%s ", entry.ptr);
                     goto L1;
                 }
             }
@@ -154,7 +152,7 @@ extern (C++) class Section
 
 /***********************************************************
  */
-extern (C++) final class ParamSection : Section
+private final class ParamSection : Section
 {
     override void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
@@ -186,7 +184,7 @@ extern (C++) final class ParamSection : Section
                     p++;
                     goto Lcont;
                 default:
-                    if (isIdStart(p) || isCVariadicArg(p, pend - p))
+                    if (isIdStart(p) || isCVariadicArg(p[0 .. cast(size_t)(pend - p)]))
                         break;
                     if (namelen)
                         goto Ltext;
@@ -198,7 +196,7 @@ extern (C++) final class ParamSection : Section
             tempstart = p;
             while (isIdTail(p))
                 p += utfStride(p);
-            if (isCVariadicArg(p, pend - p))
+            if (isCVariadicArg(p[0 .. cast(size_t)(pend - p)]))
                 p += 3;
             templen = p - tempstart;
             while (*p == ' ' || *p == '\t')
@@ -230,7 +228,7 @@ extern (C++) final class ParamSection : Section
                             // Search the parameters of nested eponymous functions (with the same name.)
                             fparam = isEponymousFunctionParameter(a, namestart, namelen);
                         }
-                        bool isCVariadic = isCVariadicParameter(a, namestart, namelen);
+                        bool isCVariadic = isCVariadicParameter(a, namestart[0 .. namelen]);
                         if (isCVariadic)
                         {
                             buf.writestring("...");
@@ -306,7 +304,7 @@ extern (C++) final class ParamSection : Section
 
 /***********************************************************
  */
-extern (C++) final class MacroSection : Section
+private final class MacroSection : Section
 {
     override void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
@@ -315,15 +313,15 @@ extern (C++) final class MacroSection : Section
     }
 }
 
-alias Sections = Array!(Section);
+private alias Sections = Array!(Section);
 
 // Workaround for missing Parameter instance for variadic params. (it's unnecessary to instantiate one).
-extern (C++) bool isCVariadicParameter(Dsymbols* a, const(char)* p, size_t len)
+private bool isCVariadicParameter(Dsymbols* a, const(char)[] p)
 {
-    for (size_t i = 0; i < a.dim; i++)
+    foreach (member; *a)
     {
-        TypeFunction tf = isTypeFunction((*a)[i]);
-        if (tf && tf.varargs == 1 && cmp("...", p, len) == 0)
+        TypeFunction tf = isTypeFunction(member);
+        if (tf && tf.varargs == 1 && p == "...")
             return true;
     }
     return false;
@@ -352,15 +350,15 @@ private TemplateDeclaration getEponymousParent(Dsymbol s)
     return (td && getEponymousMember(td)) ? td : null;
 }
 
-extern (C++) __gshared const(char)* ddoc_default = import("default_ddoc_theme.ddoc");
-extern (C++) __gshared const(char)* ddoc_decl_s = "$(DDOC_DECL ";
-extern (C++) __gshared const(char)* ddoc_decl_e = ")\n";
-extern (C++) __gshared const(char)* ddoc_decl_dd_s = "$(DDOC_DECL_DD ";
-extern (C++) __gshared const(char)* ddoc_decl_dd_e = ")\n";
+private immutable ddoc_default = import("default_ddoc_theme.ddoc");
+private immutable ddoc_decl_s = "$(DDOC_DECL ";
+private immutable ddoc_decl_e = ")\n";
+private immutable ddoc_decl_dd_s = "$(DDOC_DECL_DD ";
+private immutable ddoc_decl_dd_e = ")\n";
 
 /****************************************************
  */
-extern (C++) void gendocfile(Module m)
+extern(C++) void gendocfile(Module m)
 {
     __gshared OutBuffer mbuf;
     __gshared int mbuf_done;
@@ -370,7 +368,7 @@ extern (C++) void gendocfile(Module m)
     {
         mbuf_done = 1;
         // Use our internal default
-        mbuf.write(ddoc_default, strlen(ddoc_default));
+        mbuf.writestring(ddoc_default);
         // Override with DDOCFILE specified in the sc.ini file
         char* p = getenv("DDOCFILE");
         if (p)
@@ -378,8 +376,7 @@ extern (C++) void gendocfile(Module m)
         // Override with the ddoc macro files from the command line
         for (size_t i = 0; i < global.params.ddocfiles.dim; i++)
         {
-            auto f = FileName(global.params.ddocfiles[i]);
-            auto file = File(&f);
+            auto file = File(global.params.ddocfiles[i].toDString());
             readFile(m.loc, &file);
             // BUG: convert file contents to UTF-8 before use
             //printf("file: '%.*s'\n", file.len, file.buffer);
@@ -395,8 +392,8 @@ extern (C++) void gendocfile(Module m)
     // Generate predefined macros
     // Set the title to be the name of the module
     {
-        const(char)* p = m.toPrettyChars();
-        Macro.define(&m.macrotable, "TITLE", p[0 .. strlen(p)]);
+        const p = m.toPrettyChars().toDString;
+        Macro.define(&m.macrotable, "TITLE", p);
     }
     // Set time macros
     {
@@ -407,10 +404,10 @@ extern (C++) void gendocfile(Module m)
         Macro.define(&m.macrotable, "DATETIME", p[0 .. strlen(p)]);
         Macro.define(&m.macrotable, "YEAR", p[20 .. 20 + 4]);
     }
-    const srcfilename = m.srcfile.toChars();
-    Macro.define(&m.macrotable, "SRCFILENAME", srcfilename[0 .. strlen(srcfilename)]);
-    const docfilename = m.docfile.toChars();
-    Macro.define(&m.macrotable, "DOCFILENAME", docfilename[0 .. strlen(docfilename)]);
+    const srcfilename = m.srcfile.toString();
+    Macro.define(&m.macrotable, "SRCFILENAME", srcfilename);
+    const docfilename = m.docfile.toString();
+    Macro.define(&m.macrotable, "DOCFILENAME", docfilename);
     if (dc.copyright)
     {
         dc.copyright.nooutput = 1;
@@ -517,7 +514,7 @@ extern (C++) void gendocfile(Module m)
  * to preserve text literally. This also means macros in the
  * text won't be expanded.
  */
-extern (C++) void escapeDdocString(OutBuffer* buf, size_t start)
+void escapeDdocString(OutBuffer* buf, size_t start)
 {
     for (size_t u = start; u < buf.offset; u++)
     {
@@ -551,7 +548,7 @@ extern (C++) void escapeDdocString(OutBuffer* buf, size_t start)
  *
  * Fix by replacing unmatched ( with $(LPAREN) and unmatched ) with $(RPAREN).
  */
-extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
+private void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
 {
     uint par_open = 0;
     char inCode = 0;
@@ -785,7 +782,7 @@ private void emitMemberComments(ScopeDsymbol sds, OutBuffer* buf, Scope* sc)
     if (!sds.members)
         return;
     //printf("ScopeDsymbol::emitMemberComments() %s\n", toChars());
-    const(char)* m = "$(DDOC_MEMBERS ";
+    const(char)[] m = "$(DDOC_MEMBERS ";
     if (sds.isTemplateDeclaration())
         m = "$(DDOC_TEMPLATE_MEMBERS ";
     else if (sds.isClassDeclaration())
@@ -821,7 +818,7 @@ private void emitMemberComments(ScopeDsymbol sds, OutBuffer* buf, Scope* sc)
         buf.writestring(")");
 }
 
-extern (C++) void emitProtection(OutBuffer* buf, Prot prot)
+private void emitProtection(OutBuffer* buf, Prot prot)
 {
     if (prot.kind != Prot.Kind.undefined && prot.kind != Prot.Kind.public_)
     {
@@ -1421,7 +1418,7 @@ struct DocComment
     Escape** pescapetable;
     Dsymbols a;
 
-    extern (C++) static DocComment* parse(Dsymbol s, const(char)* comment)
+    static DocComment* parse(Dsymbol s, const(char)* comment)
     {
         //printf("parse(%s): '%s'\n", s.toChars(), comment);
         auto dc = new DocComment();
@@ -1432,11 +1429,11 @@ struct DocComment
         for (size_t i = 0; i < dc.sections.dim; i++)
         {
             Section sec = dc.sections[i];
-            if (icmp("copyright", sec.name, sec.namelen) == 0)
+            if (iequals("copyright", sec.name[0 .. sec.namelen]))
             {
                 dc.copyright = sec;
             }
-            if (icmp("macros", sec.name, sec.namelen) == 0)
+            if (iequals("macros", sec.name[0 .. sec.namelen]))
             {
                 dc.macros = sec;
             }
@@ -1451,7 +1448,7 @@ struct DocComment
      *
      *      name2 = value2
      */
-    extern (C++) static void parseMacros(Escape** pescapetable, Macro** pmacrotable, const(char)* m, size_t mlen)
+    static void parseMacros(Escape** pescapetable, Macro** pmacrotable, const(char)* m, size_t mlen)
     {
         const(char)* p = m;
         size_t len = mlen;
@@ -1520,7 +1517,7 @@ struct DocComment
                 // Output existing macro
             L1:
                 //printf("macro '%.*s' = '%.*s'\n", namelen, namestart, textlen, textstart);
-                if (icmp("ESCAPES", namestart, namelen) == 0)
+                if (iequals("ESCAPES", namestart[0 .. namelen]))
                     parseEscapes(pescapetable, textstart, textlen);
                 else
                     Macro.define(pmacrotable, namestart[0 ..namelen], textstart[0 .. textlen]);
@@ -1558,7 +1555,7 @@ struct DocComment
      * Multiple escapes can be separated
      * by whitespace and/or commas.
      */
-    extern (C++) static void parseEscapes(Escape** pescapetable, const(char)* textstart, size_t textlen)
+    static void parseEscapes(Escape** pescapetable, const(char)* textstart, size_t textlen)
     {
         Escape* escapetable = *pescapetable;
         if (!escapetable)
@@ -1596,7 +1593,7 @@ struct DocComment
             size_t len = p - start;
             char* s = cast(char*)memcpy(mem.xmalloc(len + 1), start, len);
             s[len] = 0;
-            escapetable.strings[c] = s;
+            escapetable.strings[c] = s[0 .. len];
             //printf("\t%c = '%s'\n", c, s);
             p++;
         }
@@ -1609,7 +1606,7 @@ struct DocComment
      * If paragraph ends in 'identifier:',
      * then (*pcomment)[0 .. idlen] is the identifier.
      */
-    extern (C++) void parseSections(const(char)* comment)
+    void parseSections(const(char)* comment)
     {
         const(char)* p;
         const(char)* pstart;
@@ -1699,9 +1696,9 @@ struct DocComment
             if (namelen || pstart < pend)
             {
                 Section s;
-                if (icmp("Params", name, namelen) == 0)
+                if (iequals("Params", name[0 .. namelen]))
                     s = new ParamSection();
-                else if (icmp("Macros", name, namelen) == 0)
+                else if (iequals("Macros", name[0 .. namelen]))
                     s = new MacroSection();
                 else
                     s = new Section();
@@ -1730,7 +1727,7 @@ struct DocComment
         }
     }
 
-    extern (C++) void writeSections(Scope* sc, Dsymbols* a, OutBuffer* buf)
+    void writeSections(Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
         assert(a.dim);
         //printf("DocComment::writeSections()\n");
@@ -1803,30 +1800,10 @@ struct DocComment
     }
 }
 
-/******************************************
- * Compare 0-terminated string with length terminated string.
- * Return < 0, ==0, > 0
- */
-extern (C++) int cmp(const(char)* stringz, const(void)* s, size_t slen)
-{
-    size_t len1 = strlen(stringz);
-    if (len1 != slen)
-        return cast(int)(len1 - slen);
-    return memcmp(stringz, s, slen);
-}
-
-extern (C++) int icmp(const(char)* stringz, const(void)* s, size_t slen)
-{
-    size_t len1 = strlen(stringz);
-    if (len1 != slen)
-        return cast(int)(len1 - slen);
-    return Port.memicmp(stringz, cast(char*)s, slen);
-}
-
 /*****************************************
  * Return true if comment consists entirely of "ditto".
  */
-extern (C++) bool isDitto(const(char)* comment)
+private bool isDitto(const(char)* comment)
 {
     if (comment)
     {
@@ -1840,22 +1817,27 @@ extern (C++) bool isDitto(const(char)* comment)
 /**********************************************
  * Skip white space.
  */
-extern (C++) const(char)* skipwhitespace(const(char)* p)
+private const(char)* skipwhitespace(const(char)* p)
 {
-    for (; 1; p++)
+    return skipwhitespace(p.toDString).ptr;
+}
+
+/// Ditto
+private const(char)[] skipwhitespace(const(char)[] p)
+{
+    foreach (idx, char c; p)
     {
-        switch (*p)
+        switch (c)
         {
         case ' ':
         case '\t':
         case '\n':
             continue;
         default:
-            break;
+            return p[idx .. $];
         }
-        break;
     }
-    return p;
+    return p[$ .. $];
 }
 
 /************************************************
@@ -1864,7 +1846,7 @@ extern (C++) const(char)* skipwhitespace(const(char)* p)
  *      beginning of next line
  *      end of buf
  */
-extern (C++) size_t skiptoident(OutBuffer* buf, size_t i)
+size_t skiptoident(OutBuffer* buf, size_t i)
 {
     const slice = buf.peekSlice();
     while (i < slice.length)
@@ -1893,7 +1875,7 @@ extern (C++) size_t skiptoident(OutBuffer* buf, size_t i)
 /************************************************
  * Scan forward past end of identifier.
  */
-extern (C++) size_t skippastident(OutBuffer* buf, size_t i)
+private size_t skippastident(OutBuffer* buf, size_t i)
 {
     const slice = buf.peekSlice();
     while (i < slice.length)
@@ -1926,7 +1908,7 @@ extern (C++) size_t skippastident(OutBuffer* buf, size_t i)
  *      i if not a URL
  *      index just past it if it is a URL
  */
-extern (C++) size_t skippastURL(OutBuffer* buf, size_t i)
+private size_t skippastURL(OutBuffer* buf, size_t i)
 {
     const slice = buf.peekSlice()[i .. $];
     size_t j;
@@ -1964,12 +1946,11 @@ Lno:
 
 /****************************************************
  */
-extern (C++) bool isIdentifier(Dsymbols* a, const(char)* p, size_t len)
+private bool isIdentifier(Dsymbols* a, const(char)* p, size_t len)
 {
-    for (size_t i = 0; i < a.dim; i++)
+    foreach (member; *a)
     {
-        const(char)* s = (*a)[i].ident.toChars();
-        if (cmp(s, p, len) == 0)
+        if (p[0 .. len] == member.ident.toString())
             return true;
     }
     return false;
@@ -1977,12 +1958,12 @@ extern (C++) bool isIdentifier(Dsymbols* a, const(char)* p, size_t len)
 
 /****************************************************
  */
-extern (C++) bool isKeyword(const(char)* p, size_t len)
+private bool isKeyword(const(char)* p, size_t len)
 {
     immutable string[3] table = ["true", "false", "null"];
     foreach (s; table)
     {
-        if (cmp(s.ptr, p, len) == 0)
+        if (p[0 .. len] == s)
             return true;
     }
     return false;
@@ -1990,7 +1971,7 @@ extern (C++) bool isKeyword(const(char)* p, size_t len)
 
 /****************************************************
  */
-extern (C++) TypeFunction isTypeFunction(Dsymbol s)
+private TypeFunction isTypeFunction(Dsymbol s)
 {
     FuncDeclaration f = s.isFuncDeclaration();
     /* f.type may be NULL for template members.
@@ -2011,10 +1992,9 @@ private Parameter isFunctionParameter(Dsymbol s, const(char)* p, size_t len)
     TypeFunction tf = isTypeFunction(s);
     if (tf && tf.parameters)
     {
-        for (size_t k = 0; k < tf.parameters.dim; k++)
+        foreach (fparam; *tf.parameters)
         {
-            Parameter fparam = (*tf.parameters)[k];
-            if (fparam.ident && cmp(fparam.ident.toChars(), p, len) == 0)
+            if (fparam.ident && p[0 .. len] == fparam.ident.toString())
             {
                 return fparam;
             }
@@ -2025,7 +2005,7 @@ private Parameter isFunctionParameter(Dsymbol s, const(char)* p, size_t len)
 
 /****************************************************
  */
-extern (C++) Parameter isFunctionParameter(Dsymbols* a, const(char)* p, size_t len)
+private Parameter isFunctionParameter(Dsymbols* a, const(char)* p, size_t len)
 {
     for (size_t i = 0; i < a.dim; i++)
     {
@@ -2088,7 +2068,7 @@ private Parameter isEponymousFunctionParameter(Dsymbols *a, const(char) *p, size
 
 /****************************************************
  */
-extern (C++) TemplateParameter isTemplateParameter(Dsymbols* a, const(char)* p, size_t len)
+private TemplateParameter isTemplateParameter(Dsymbols* a, const(char)* p, size_t len)
 {
     for (size_t i = 0; i < a.dim; i++)
     {
@@ -2098,10 +2078,9 @@ extern (C++) TemplateParameter isTemplateParameter(Dsymbols* a, const(char)* p, 
             td = getEponymousParent((*a)[i]);
         if (td && td.origParameters)
         {
-            for (size_t k = 0; k < td.origParameters.dim; k++)
+            foreach (tp; *td.origParameters)
             {
-                TemplateParameter tp = (*td.origParameters)[k];
-                if (tp.ident && cmp(tp.ident.toChars(), p, len) == 0)
+                if (tp.ident && p[0 .. len] == tp.ident.toString())
                 {
                     return tp;
                 }
@@ -2115,7 +2094,7 @@ extern (C++) TemplateParameter isTemplateParameter(Dsymbols* a, const(char)* p, 
  * Return true if str is a reserved symbol name
  * that starts with a double underscore.
  */
-extern (C++) bool isReservedName(const(char)* str, size_t len)
+private bool isReservedName(const(char)[] str)
 {
     immutable string[] table =
     [
@@ -2147,13 +2126,14 @@ extern (C++) bool isReservedName(const(char)* str, size_t len)
         "__VENDOR__",
         "__VERSION__",
         "__EOF__",
+        "__CXXLIB__",
         "__LOCAL_SIZE",
         "___tls_get_addr",
         "__entrypoint",
     ];
     foreach (s; table)
     {
-        if (cmp(s.ptr, str, len) == 0)
+        if (str == s)
             return true;
     }
     return false;
@@ -2162,7 +2142,7 @@ extern (C++) bool isReservedName(const(char)* str, size_t len)
 /**************************************************
  * Highlight text section.
  */
-extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset)
+private void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset)
 {
     Dsymbol s = a.dim ? (*a)[0] : null; // test
     //printf("highlightText()\n");
@@ -2212,7 +2192,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 const slice = buf.peekSlice();
                 auto p = &slice[i];
                 const se = sc._module.escapetable.escapeChar('<');
-                if (se && strcmp(se, "&lt;") == 0)
+                if (se == "&lt;")
                 {
                     // Generating HTML
                     // Skip over comments
@@ -2256,11 +2236,10 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
             L1:
                 // Replace '<' with '&lt;' character entity
-                if (se)
+                if (se.length)
                 {
-                    const len = strlen(se);
                     buf.remove(i, 1);
-                    i = buf.insert(i, se, len);
+                    i = buf.insert(i, se);
                     i--; // point to ';'
                 }
                 break;
@@ -2271,12 +2250,11 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 if (inCode)
                     break;
                 // Replace '>' with '&gt;' character entity
-                const(char)* se = sc._module.escapetable.escapeChar('>');
-                if (se)
+                const se = sc._module.escapetable.escapeChar('>');
+                if (se.length)
                 {
-                    size_t len = strlen(se);
                     buf.remove(i, 1);
-                    i = buf.insert(i, se, len);
+                    i = buf.insert(i, se);
                     i--; // point to ';'
                 }
                 break;
@@ -2291,12 +2269,11 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     break;
                 // already a character entity
                 // Replace '&' with '&amp;' character entity
-                const(char)* se = sc._module.escapetable.escapeChar('&');
+                const se = sc._module.escapetable.escapeChar('&');
                 if (se)
                 {
-                    size_t len = strlen(se);
                     buf.remove(i, 1);
-                    i = buf.insert(i, se, len);
+                    i = buf.insert(i, se);
                     i--; // point to ';'
                 }
                 break;
@@ -2485,7 +2462,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     break;
                 size_t len = j - i;
                 // leading '_' means no highlight unless it's a reserved symbol name
-                if (c == '_' && (i == 0 || !isdigit(*(start - 1))) && (i == buf.offset - 1 || !isReservedName(start, len)))
+                if (c == '_' && (i == 0 || !isdigit(*(start - 1))) && (i == buf.offset - 1 || !isReservedName(start[0 .. len])))
                 {
                     buf.remove(i, 1);
                     i = buf.bracket(i, "$(DDOC_AUTO_PSYMBOL_SUPPRESS ", j - 1, ")") - 1;
@@ -2519,7 +2496,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 /**************************************************
  * Highlight code for DDOC section.
  */
-extern (C++) void highlightCode(Scope* sc, Dsymbol s, OutBuffer* buf, size_t offset)
+private void highlightCode(Scope* sc, Dsymbol s, OutBuffer* buf, size_t offset)
 {
     //printf("highlightCode(s = %s '%s')\n", s.kind(), s.toChars());
     OutBuffer ancbuf;
@@ -2533,7 +2510,7 @@ extern (C++) void highlightCode(Scope* sc, Dsymbol s, OutBuffer* buf, size_t off
 
 /****************************************************
  */
-extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset)
+private void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset)
 {
     //printf("highlightCode(a = '%s')\n", a.toChars());
     bool resolvedTemplateParameters = false;
@@ -2541,12 +2518,11 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     for (size_t i = offset; i < buf.offset; i++)
     {
         char c = buf.data[i];
-        const(char)* se = sc._module.escapetable.escapeChar(c);
-        if (se)
+        const se = sc._module.escapetable.escapeChar(c);
+        if (se.length)
         {
-            size_t len = strlen(se);
             buf.remove(i, 1);
-            i = buf.insert(i, se, len);
+            i = buf.insert(i, se);
             i--; // point to ';'
             continue;
         }
@@ -2611,15 +2587,13 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
                 parametersBuf.writeByte(')');
 
-                const templateParams = parametersBuf.peekString();
-                const templateParamsLen = parametersBuf.peekSlice().length;
+                const templateParams = parametersBuf.peekSlice();
 
                 //printf("templateDecl: %s\ntemplateParams: %s\nstart: %s\n", td.toChars(), templateParams, start);
-
-                if (cmp(templateParams, start, templateParamsLen) == 0)
+                if (start[0 .. templateParams.length] == templateParams)
                 {
                     immutable templateParamListMacro = "$(DDOC_TEMPLATE_PARAM_LIST ";
-                    buf.bracket(i, templateParamListMacro.ptr, i + templateParamsLen, ")");
+                    buf.bracket(i, templateParamListMacro.ptr, i + templateParams.length, ")");
 
                     // We have the parameter list. While we're here we might
                     // as well wrap the parameters themselves as well
@@ -2651,13 +2625,13 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
 /****************************************
  */
-extern (C++) void highlightCode3(Scope* sc, OutBuffer* buf, const(char)* p, const(char)* pend)
+private void highlightCode3(Scope* sc, OutBuffer* buf, const(char)* p, const(char)* pend)
 {
     for (; p < pend; p++)
     {
-        const(char)* s = sc._module.escapetable.escapeChar(*p);
-        if (s)
-            buf.writestring(s);
+        const se = sc._module.escapetable.escapeChar(*p);
+        if (se.length)
+            buf.writestring(se);
         else
             buf.writeByte(*p);
     }
@@ -2666,7 +2640,7 @@ extern (C++) void highlightCode3(Scope* sc, OutBuffer* buf, const(char)* p, cons
 /**************************************************
  * Highlight code for CODE section.
  */
-extern (C++) void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset)
+private void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset)
 {
     uint errorsave = global.errors;
     scope Lexer lex = new Lexer(null, cast(char*)buf.data, 0, buf.offset - 1, 0, 1);
@@ -2738,15 +2712,15 @@ extern (C++) void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t 
 /****************************************
  * Determine if p points to the start of a "..." parameter identifier.
  */
-extern (C++) bool isCVariadicArg(const(char)* p, size_t len)
+private bool isCVariadicArg(const(char)[] p)
 {
-    return len >= 3 && cmp("...", p, 3) == 0;
+    return p.length >= 3 && p[0 .. 3] == "...";
 }
 
 /****************************************
  * Determine if p points to the start of an identifier.
  */
-extern (C++) bool isIdStart(const(char)* p)
+bool isIdStart(const(char)* p)
 {
     dchar c = *p;
     if (isalpha(c) || c == '_')
@@ -2765,7 +2739,7 @@ extern (C++) bool isIdStart(const(char)* p)
 /****************************************
  * Determine if p points to the rest of an identifier.
  */
-extern (C++) bool isIdTail(const(char)* p)
+bool isIdTail(const(char)* p)
 {
     dchar c = *p;
     if (isalnum(c) || c == '_')
@@ -2784,7 +2758,7 @@ extern (C++) bool isIdTail(const(char)* p)
 /****************************************
  * Determine if p points to the indentation space.
  */
-extern (C++) bool isIndentWS(const(char)* p)
+private bool isIndentWS(const(char)* p)
 {
     return (*p == ' ') || (*p == '\t');
 }
@@ -2792,7 +2766,7 @@ extern (C++) bool isIndentWS(const(char)* p)
 /*****************************************
  * Return number of bytes in UTF character.
  */
-extern (C++) int utfStride(const(char)* p)
+int utfStride(const(char)* p)
 {
     dchar c = *p;
     if (c < 0x80)
@@ -2802,7 +2776,7 @@ extern (C++) int utfStride(const(char)* p)
     return cast(int)i;
 }
 
-inout(char)* stripLeadingNewlines(inout(char)* s)
+private inout(char)* stripLeadingNewlines(inout(char)* s)
 {
     while (s && *s == '\n' || *s == '\r')
         s++;

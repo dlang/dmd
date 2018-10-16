@@ -5,21 +5,18 @@
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/cond.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/cond.h
  */
 
-#ifndef DMD_DEBCOND_H
-#define DMD_DEBCOND_H
+#pragma once
 
 #include "globals.h"
 #include "visitor.h"
 
 class Expression;
 class Identifier;
-struct OutBuffer;
 class Module;
 struct Scope;
-class ScopeDsymbol;
 class DebugCondition;
 class ForeachStatement;
 class ForeachRangeStatement;
@@ -95,5 +92,3 @@ public:
     int include(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
-
-#endif

@@ -4,11 +4,10 @@
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/visitor.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/visitor.h
  */
 
-#ifndef DMD_VISITOR_H
-#define DMD_VISITOR_H
+#pragma once
 
 #include <assert.h>
 
@@ -461,6 +460,7 @@ public:
     virtual void visit(NewExp *e) { visit((Expression *)e); }
     virtual void visit(AssocArrayLiteralExp *e) { visit((Expression *)e); }
     virtual void visit(ArrayLiteralExp *e) { visit((Expression *)e); }
+    virtual void visit(CompileExp *e) { visit((Expression *)e); }
     virtual void visit(FuncExp *e) { visit((Expression *)e); }
     virtual void visit(IntervalExp *e) { visit((Expression *)e); }
     virtual void visit(TypeExp *e) { visit((Expression *)e); }
@@ -493,7 +493,6 @@ public:
     virtual void visit(CallExp *e) { visit((UnaExp *)e); }
     virtual void visit(DotIdExp *e) { visit((UnaExp *)e); }
     virtual void visit(AssertExp *e) { visit((UnaExp *)e); }
-    virtual void visit(CompileExp *e) { visit((UnaExp *)e); }
     virtual void visit(ImportExp *e) { visit((UnaExp *)e); }
     virtual void visit(DotTemplateInstanceExp *e) { visit((UnaExp *)e); }
     virtual void visit(ArrayExp *e) { visit((UnaExp *)e); }
@@ -637,5 +636,3 @@ public:
     bool stop;
     StoppableVisitor() : stop(false) {}
 };
-
-#endif /* DMD_VISITOR_H */

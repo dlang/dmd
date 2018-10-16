@@ -501,26 +501,9 @@ typedef unsigned short  targ_ushort;
 typedef int             targ_long;
 typedef unsigned        targ_ulong;
 
-/** HACK: Prefer UINTMAX_TYPE on OSX (unsigned long for LP64) to workaround
- * https://issues.dlang.org/show_bug.cgi?id=16536. In D ulong uses the mangling
- * of unsigned long on LP64. Newer versions of XCode/clang introduced the
- * __UINT64_TYPE__ definition so the below rules would pick unsigned long long
- * instead. This has a different mangling on OSX and causes a mismatch w/ C++
- * ABIs using ulong.
- *
- * As a proper fix we should use uint64_t on both sides, which is always unsigned long long.
- */
-// This MUST MATCH typedef ullong in divcoeff.c.
-#if defined(__UINT64_TYPE__) && !defined(__APPLE__)
-typedef __INT64_TYPE__     targ_llong;
-typedef __UINT64_TYPE__    targ_ullong;
-#elif defined(__UINTMAX_TYPE__)
-typedef __INTMAX_TYPE__    targ_llong;
-typedef __UINTMAX_TYPE__   targ_ullong;
-#else
-typedef long long          targ_llong;
-typedef unsigned long long targ_ullong;
-#endif
+// This MUST MATCH typedef ullong in divcoeff.d.
+typedef int64_t         targ_llong;
+typedef uint64_t        targ_ullong;
 
 typedef float           targ_float;
 typedef double          targ_double;
@@ -552,7 +535,6 @@ enum
 #define FPTRSIZE        _tysize[TYfptr]
 #define REGMASK         0xFFFF
 
-// targ_llong is also used to store host pointers, so it should have at least their size
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS || TARGET_OSX || MARS
 typedef int64_t         targ_ptrdiff_t; /* ptrdiff_t for target machine  */
 typedef uint64_t        targ_size_t;    /* size_t for the target machine */

@@ -22,6 +22,7 @@ import dmd.astcodegen;
 import dmd.attrib;
 import dmd.blockexit;
 import dmd.clone;
+import dmd.compiler;
 import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
@@ -46,7 +47,6 @@ import dmd.identifier;
 import dmd.init;
 import dmd.initsem;
 import dmd.hdrgen;
-import dmd.mars;
 import dmd.mtype;
 import dmd.nogc;
 import dmd.nspace;
@@ -80,7 +80,7 @@ enum LOG = false;
  * Note the close similarity with AggregateDeclaration::buildDtor(),
  * and the ordering changes (runs forward instead of backwards).
  */
-private extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
+private FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
 {
     //printf("StructDeclaration::buildPostBlit() %s\n", sd.toChars());
     if (sd.isUnionDeclaration())
@@ -348,7 +348,7 @@ private extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* 
     return xpostblit;
 }
 
-private uint setMangleOverride(Dsymbol s, char* sym)
+private uint setMangleOverride(Dsymbol s, const(char)[] sym)
 {
     AttribDeclaration ad = s.isAttribDeclaration();
     if (ad)
@@ -1533,13 +1533,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             else
                 ob.writestring("???");
             ob.writeByte(')');
-            for (size_t i = 0; i < imp.names.dim; i++)
+            foreach (i, name; imp.names)
             {
                 if (i == 0)
                     ob.writeByte(':');
                 else
                     ob.writeByte(',');
-                Identifier name = imp.names[i];
                 Identifier _alias = imp.aliases[i];
                 if (!_alias)
                 {
@@ -1617,6 +1616,24 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     {
         // Should be merged with PragmaStatement
         //printf("\tPragmaDeclaration::semantic '%s'\n", pd.toChars());
+        if (global.params.mscoff)
+        {
+            if (pd.ident == Id.linkerDirective)
+            {
+                if (!pd.args || pd.args.dim != 1)
+                    pd.error("one string argument expected for pragma(linkerDirective)");
+                else
+                {
+                    auto se = semanticString(sc, (*pd.args)[0], "linker directive");
+                    if (!se)
+                        goto Lnodecl;
+                    (*pd.args)[0] = se;
+                    if (global.params.verbose)
+                        message("linkopt   %.*s", cast(int)se.len, se.string);
+                }
+                goto Lnodecl;
+            }
+        }
         if (pd.ident == Id.msg)
         {
             if (pd.args)
@@ -1828,7 +1845,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         char* name = cast(char*)mem.xmalloc(se.len + 1);
                         memcpy(name, se.string, se.len);
                         name[se.len] = 0;
-                        uint cnt = setMangleOverride(s, name);
+                        uint cnt = setMangleOverride(s, name[0 .. se.len]);
                         if (cnt > 1)
                             pd.error("can only apply to a single declaration");
                     }
@@ -1860,13 +1877,38 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     private Dsymbols* compileIt(CompileDeclaration cd)
     {
         //printf("CompileDeclaration::compileIt(loc = %d) %s\n", cd.loc.linnum, cd.exp.toChars());
-        auto se = semanticString(sc, cd.exp, "argument to mixin");
-        if (!se)
-            return null;
-        se = se.toUTF8(sc);
+        OutBuffer buf;
+        if (cd.exps)
+        {
+            foreach (ex; *cd.exps)
+            {
+                sc = sc.startCTFE();
+                auto e = ex.expressionSemantic(sc);
+                e = resolveProperties(sc, e);
+                sc = sc.endCTFE();
 
-        uint errors = global.errors;
-        scope p = new Parser!ASTCodegen(cd.loc, sc._module, se.toStringz(), false);
+                // allowed to contain types as well as expressions
+                e = ctfeInterpretForPragmaMsg(e);
+                if (e.op == TOK.error)
+                {
+                    //errorSupplemental(exp.loc, "while evaluating `mixin(%s)`", ex.toChars());
+                    return null;
+                }
+                StringExp se = e.toStringExp();
+                if (se)
+                {
+                    se = se.toUTF8(sc);
+                    buf.printf("%.*s", cast(int)se.len, se.string);
+                }
+                else
+                    buf.printf("%s", e.toChars());
+            }
+        }
+
+        const errors = global.errors;
+        const len = buf.offset;
+        const str = buf.extractString()[0 .. len];
+        scope p = new Parser!ASTCodegen(cd.loc, sc._module, str, false);
         p.nextToken();
 
         auto d = p.parseDeclDefs(0);
@@ -1877,12 +1919,15 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
         if (p.token.value != TOK.endOfFile)
         {
-            cd.exp.error("incomplete mixin declaration `%s`", se.toChars());
+            cd.error("incomplete mixin declaration `%s`", str.ptr);
             return null;
         }
         return d;
     }
 
+    /***********************************************************
+     * https://dlang.org/spec/module.html#mixin-declaration
+     */
     override void visit(CompileDeclaration cd)
     {
         //printf("CompileDeclaration::semantic()\n");
@@ -3459,19 +3504,30 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                 if (s)
                 {
-                    auto fd = s.isFuncDeclaration();
-                    assert(fd);
-
                     HdrGenState hgs;
-                    OutBuffer buf1, buf2;
+                    OutBuffer buf;
 
-                    functionToBufferFull(cast(TypeFunction)(fd.type), &buf1,
-                        new Identifier(fd.toPrettyChars()), &hgs, null);
-                    functionToBufferFull(cast(TypeFunction)(funcdecl.type), &buf2,
+                    auto fd = s.isFuncDeclaration();
+                    functionToBufferFull(cast(TypeFunction)(funcdecl.type), &buf,
                         new Identifier(funcdecl.toPrettyChars()), &hgs, null);
+                    const(char)* funcdeclToChars = buf.peekString();
 
-                    error(funcdecl.loc, "function `%s` does not override any function, did you mean to override `%s`?",
-                        buf2.extractString(), buf1.extractString());
+                    if (fd)
+                    {
+                        OutBuffer buf1;
+
+                        functionToBufferFull(cast(TypeFunction)(fd.type), &buf1,
+                            new Identifier(fd.toPrettyChars()), &hgs, null);
+
+                        error(funcdecl.loc, "function `%s` does not override any function, did you mean to override `%s`?",
+                            funcdeclToChars, buf1.peekString());
+                    }
+                    else
+                    {
+                        error(funcdecl.loc, "function `%s` does not override any function, did you mean to override %s `%s`?",
+                            funcdeclToChars, s.kind, s.toPrettyChars());
+                        errorSupplemental(funcdecl.loc, "Functions are the only declarations that may be overriden");
+                    }
                 }
                 else
                     funcdecl.error("does not override any function");
@@ -3581,7 +3637,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         if (funcdecl.fbody && funcdecl.isMain() && sc._module.isRoot())
-            genCmain(sc);
+            Compiler.genCmain(sc);
 
         assert(funcdecl.type.ty != Terror || funcdecl.errors);
 
@@ -4923,7 +4979,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         Module.dprogress++;
         cldec.semanticRun = PASS.semanticdone;
         //printf("-ClassDeclaration.dsymbolSemantic(%s), type = %p\n", toChars(), type);
-        //members.print();
 
         sc2.pop();
 
@@ -5281,7 +5336,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         Module.dprogress++;
         idec.semanticRun = PASS.semanticdone;
         //printf("-InterfaceDeclaration.dsymbolSemantic(%s), type = %p\n", toChars(), type);
-        //members.print();
 
         sc2.pop();
 

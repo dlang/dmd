@@ -5,18 +5,25 @@
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/compiler.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/compiler.h
  */
 
-#ifndef DMD_COMPILER_H
-#define DMD_COMPILER_H
+#pragma once
 
 // This file contains a data structure that describes a back-end compiler
 // and implements compiler-specific actions.
 
+class Expression;
+class Module;
+class Type;
+struct Scope;
+
 struct Compiler
 {
-    const char *vendor;     // Compiler backend name
+    // CTFE support for cross-compilation.
+    static Expression *paintAsType(Expression *, Type *);
+    // Backend
+    static void loadModule(Module *);
+    static void genCmain(Scope *);
+    static bool onImport(Module *);
 };
-
-#endif /* DMD_COMPILER_H */

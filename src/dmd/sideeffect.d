@@ -92,7 +92,7 @@ extern (C++) bool hasSideEffect(Expression e)
  *      1   nothrow + constant purity
  *      2   nothrow + strong purity
  */
-extern (C++) int callSideEffectLevel(FuncDeclaration f)
+int callSideEffectLevel(FuncDeclaration f)
 {
     /* https://issues.dlang.org/show_bug.cgi?id=12760
      * ctor call always has side effects.
@@ -112,7 +112,7 @@ extern (C++) int callSideEffectLevel(FuncDeclaration f)
     return 0;
 }
 
-extern (C++) int callSideEffectLevel(Type t)
+int callSideEffectLevel(Type t)
 {
     t = t.toBasetype();
     TypeFunction tf;
@@ -218,7 +218,7 @@ private bool lambdaHasSideEffect(Expression e)
  * Returns:
  *      true if expression has no side effects
  */
-extern (C++) bool discardValue(Expression e)
+bool discardValue(Expression e)
 {
     if (lambdaHasSideEffect(e)) // check side-effect shallowly
         return false;

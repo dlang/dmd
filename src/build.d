@@ -159,7 +159,7 @@ auto newDelete()
     return dependency;
 }
 
-// Builds the lexer as a separate library
+/// Returns: the depedency that builds the lexer
 auto lexer()
 {
     Dependency dependency = {
@@ -178,7 +178,7 @@ auto lexer()
     return dependency;
 }
 
-// Generates a dmd.conf file in the generated folder
+/// Returns: the dependency that generates the dmd.conf file in the output folder
 auto dmdConf()
 {
     // TODO: add support for Windows
@@ -204,22 +204,20 @@ DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@
     return dependency;
 }
 
-/*
-optabgen generates a few C++ files.
-Thus it first needs to be built and the executed.
-*/
+/// Returns: the dependency that builds and executes the optabgen utility
 auto opTabGen()
 {
-    auto opTabFiles = ["debtab.d", "optab.c", "cdxxx.c", "elxxx.d", "fltables.d", "tytab.c"];
+    auto opTabFiles = ["debtab.d", "optab.d", "cdxxx.d", "elxxx.d", "fltables.d", "tytab.d"];
     auto opTabFilesBin = opTabFiles.map!(e => env["G"].buildPath(e)).array;
     auto opTabBin = env["G"].buildPath("optabgen").exeName;
-    auto opTabSourceFile = env["C"].buildPath("optabgen.c");
+    auto opTabSourceFile = env["C"].buildPath("optabgen.d");
 
     auto commandFunction = (){
-        auto args = [env["HOST_CXX"], "-I"~env["TK"], opTabSourceFile, "-o", opTabBin];
-        args ~= flags["CXXFLAGS"];
+        auto args = [env["HOST_DMD_RUN"], opTabSourceFile, "-of" ~ opTabBin];
+        args ~= flags["DFLAGS"];
 
         writefln("(CC) BUILD_OPTABGEN");
+        writeln(args);
         args.runCanThrow;
 
         writefln("(CC) RUN_OPTABBIN %-(%s, %)", opTabFiles);
@@ -238,28 +236,44 @@ auto opTabGen()
 
 version(Windows)
 {
-    // Build the msvc-dmc compiler wrapper
+    /// Returns: the dependency that builds msvc-dmd.exe
     auto buildMsvcDmc()
     {
+        enum targetName = "msvc-dmc";
+
         Dependency dependency = {
-            target: env["G"].buildPath("msvc-dmc").exeName,
-            sources: [`vcbuild\msvc-dmc`],
+            target: env["G"].buildPath(targetName).exeName,
+            sources: [`vcbuild\` ~ targetName],
+            name: "(DC) MSCV-CC " ~ targetName,
+            command: [env["HOST_DMD_RUN"], "-of$@", "$<"]
         };
         return dependency;
     }
 
-    // Build the msvc-lib linker wrapper
+    /// Returns: the dependency that builds msvc-lib.exe
     auto buildMsvcLib()
     {
+        enum targetName = "msvc-lib";
+
         Dependency dependency = {
-            target: env["G"].buildPath("msvc-lib").exeName,
-            sources: [`vcbuild\msvc-lib`],
+            target: env["G"].buildPath(targetName).exeName,
+            sources: [`vcbuild\` ~ targetName],
+            name: "(DC) MSCV-LIB " ~ targetName,
+            command: [env["HOST_DMD_RUN"], "-of$@", "$<"]
         };
         return dependency;
     }
 }
 
-// Build individual CXX objects of the backend
+/**
+Gets the dependency that generates the given object file from the given source file
+
+Params:
+    obj      = the object file that the dependency should generate
+    fileName = the source file to build, generating the object file
+Returns:
+    the dependency that generates the given object file from the given source file
+*/
 auto buildCXX(string obj, string fileName)
 {
     Dependency dependency = {
@@ -272,7 +286,7 @@ auto buildCXX(string obj, string fileName)
     return dependency;
 }
 
-// Build the D part of the backend
+/// Returns: the dependencies that build the D backend
 auto dBackend()
 {
     Dependency dependency = {
@@ -289,26 +303,17 @@ auto dBackend()
     return dependency;
 }
 
-// Build the CXX objects of the backend
+/// Returns: the dependencies that build the C++ backend
 auto cxxBackend()
 {
     Dependency[] dependencies;
-    version(Windows)
-    {
-        immutable model = detectModel;
-        if (model == "64")
-        {
-            dependencies ~= buildMsvcDmc;
-            dependencies ~= buildMsvcLib;
-        }
-    }
     foreach (obj; sources.backendObjects)
         dependencies ~= buildCXX(obj, env["C"].buildPath(obj.baseName.stripExtension ~ ".c"));
 
     return dependencies;
 }
 
-// Execute the sub-dependencies of the backend and pack everything into one object file
+/// Execute the sub-dependencies of the backend and pack everything into one object file
 auto buildBackend()
 {
     opTabGen.run;
@@ -328,7 +333,7 @@ auto buildBackend()
     return dependency;
 }
 
-// Generate required string files: VERSION and SYSCONFDIR.imp
+/// Returns: the dependencies that generate required string files: VERSION and SYSCONFDIR.imp
 auto buildStringFiles()
 {
     const versionFile = env["G"].buildPath("VERSION");
@@ -353,7 +358,7 @@ auto buildStringFiles()
     return [versionDependency, sysconfDirDependency];
 }
 
-// Returns a list of config files that are required by the DMD build
+/// Returns: a list of config files that are required by the DMD build
 auto configFiles()
 {
     return buildStringFiles.map!(a => a.target).array ~ dmdConf.target;
@@ -363,9 +368,22 @@ auto configFiles()
 Main build routine for the DMD compiler.
 Defines the required order for the build dependencies, runs all these dependency dependencies
 and afterwards builds the DMD compiler.
+
+Params:
+  extra_flags = Flags to apply to the main build but not the dependencies
 */
-auto buildDMD()
+auto buildDMD(string[] extraFlags...)
 {
+    version(Windows)
+    {
+        immutable model = detectModel;
+        if (model == "64")
+        {
+            foreach (dependency; [buildMsvcDmc, buildMsvcLib].parallel(1))
+                dependency.run;
+        }
+    }
+
     // The string files are required by most targets
     Dependency[] dependencies = buildStringFiles();
     foreach (dependency; dependencies.parallel(1))
@@ -390,7 +408,7 @@ auto buildDMD()
             "-J"~env["G"],
             "-J../res",
             "-L-lstdc++",
-        ].chain(flags["DFLAGS"], "$<".only).array
+        ].chain(extraFlags).chain(flags["DFLAGS"], "$<".only).array
     };
     dependency.run;
 }
@@ -399,6 +417,11 @@ auto buildDMD()
 Goes through the target list and replaces short-hand targets with their expanded version.
 Special targets:
 - clean -> removes generated directory + immediately stops the builder
+
+Params:
+    targets = the target list to process
+Returns:
+    the expanded targets
 */
 auto predefinedTargets(string[] targets)
 {
@@ -419,10 +442,8 @@ auto predefinedTargets(string[] targets)
 
             case "unittest":
                 flags["DFLAGS"] ~= "-version=NoMain";
-                flags["DFLAGS"] ~= "-main";
-                flags["DFLAGS"] ~= "-unittest";
                 newTargets.put((){
-                    buildDMD();
+                    buildDMD("-main", "-unittest");
                     spawnProcess(env["DMD_PATH"]); // run the unittests
                 }.toDelegate);
                 break;
@@ -477,7 +498,7 @@ auto predefinedTargets(string[] targets)
     return newTargets.data;
 }
 
-// Sets the environment variables
+/// Sets the environment variables
 void parseEnvironment()
 {
     env.getDefault("TARGET_CPU", "X86");
@@ -523,20 +544,8 @@ void parseEnvironment()
     auto g = env.getDefault("G", generated.buildPath(os, build, model));
     mkdirRecurse(g);
 
-    env.getDefault("HOST_CXX", getHostCXX);
-    auto cxxVersion = execute([env["HOST_CXX"], "--version"]).output;
-    env.getDefault("CXX_KIND", !cxxVersion.find("gcc", "Free Software")[0].empty ? "g++" : "clang++");
-
     env.getDefault("HOST_DMD", "dmd");
 
-    env.getDefault("AR", "ar");
-}
-
-// Checks the environment variables and flags
-void processEnvironment()
-{
-    auto model = env["MODEL"];
-    auto os = env["OS"];
     // Auto-bootstrapping of a specific host compiler
     if (env.getDefault("AUTO_BOOTSTRAP", "0") != "0")
     {
@@ -559,7 +568,7 @@ void processEnvironment()
     }
     else
     {
-        env["HOST_DMD_PATH"] = ["which", env["HOST_DMD"]].execute.output.strip.absolutePath;
+        env["HOST_DMD_PATH"] = getHostDMDPath(env["HOST_DMD"]).strip.absolutePath;
         env["HOST_DMD_RUN"] = env["HOST_DMD_PATH"];
     }
 
@@ -568,6 +577,29 @@ void processEnvironment()
         stderr.writefln("No DMD compiler is installed. Try AUTO_BOOTSTRAP=1 or manually set the D host compiler with HOST_DMD");
         exit(1);
     }
+
+    version(Windows)
+    {
+        const vswhere = getHostVSWhere(env["G"]);
+        const vcBinDir = getHostMSVCBinDir(model, vswhere);
+
+        // environment variable `MSVC_CC` will be read by `msvc-dmd.exe`
+        env.getDefault("MSVC_CC", vcBinDir.buildPath("cl.exe"));
+
+        // environment variable `MSVC_AR` will be read by `msvc-lib.exe`
+        env.getDefault("MSVC_AR", vcBinDir.buildPath("lib.exe"));
+    }
+
+    env.getDefault("HOST_CXX", getHostCXX);
+    env.getDefault("CXX_KIND", getHostCXXKind);
+
+    env.getDefault("AR", "ar");
+}
+
+/// Checks the environment variables and flags
+void processEnvironment()
+{
+    auto os = env["OS"];
 
     auto hostDMDVersion = [env["HOST_DMD_RUN"], "--version"].execute.output;
     if (hostDMDVersion.find("DMD"))
@@ -709,6 +741,7 @@ void processEnvironment()
 // D source files
 ////////////////////////////////////////////////////////////////////////////////
 
+/// Returns: all source files for the compiler
 auto sourceFiles()
 {
     struct Sources
@@ -721,7 +754,6 @@ auto sourceFiles()
     if (env["TARGET_CPU"] == "X86")
     {
         targetCH = "code_x86.h";
-        targetObjs = ["cg87", "cgxmm", "cod1", "cod2", "cod3", "cod4", "ptrntab"];
     }
     else if (env["TARGET_CPU"] == "stub")
     {
@@ -794,16 +826,46 @@ auto sourceFiles()
                 .array,
     };
     sources.dmd = sources.frontend ~ sources.backendHeaders;
-    version(OSX)
-        sources.backendObjects ~= env["G"].buildPath("machobj.o");
-    else version(Posix)
-        sources.backendObjects ~= env["G"].buildPath("elfobj.o");
-    else version(Windows)
-        assert(0, "TODO");
+
     return sources;
 }
 
-/*
+/**
+Downloads a file from a given URL
+
+Params:
+    to    = Location to store the file downloaded
+    from  = The URL to the file to download
+    tries = The number of times to try if an attempt to download fails
+Returns: `true` if download succeeded
+*/
+bool download(string to, string from, uint tries = 3)
+{
+    import std.net.curl : download, HTTPStatusException;
+
+    foreach(i; 0..tries)
+    {
+        try
+        {
+            log("Downloading %s ...", from);
+            download(from, to);
+            return true;
+        }
+        catch(HTTPStatusException e)
+        {
+            if (e.status == 404) throw e;
+            else
+            {
+                log("Failed to download %s (Attempt %s of %s)", from, i + 1, tries);
+                continue;
+            }
+        }
+    }
+
+    return false;
+}
+
+/**
 Detects the host OS.
 
 Returns: a string from `{windows, osx,linux,freebsd,openbsd,netbsd,dragonflybsd,solaris}`
@@ -830,7 +892,7 @@ string detectOS()
         static assert(0, "Unrecognized or unsupported OS.");
 }
 
-/*
+/**
 Detects the host model
 
 Returns: 32, 64 or throws an Exception
@@ -853,11 +915,7 @@ auto detectModel()
     throw new Exception(`Cannot figure 32/64 model from "` ~ uname ~ `"`);
 }
 
-/*
-Gets the command for querying or invoking the host C++ compiler
-
-Returns: the command for querying or invoking the host C++ compiler
-*/
+/// Returns: the command for querying or invoking the host C++ compiler
 auto getHostCXX()
 {
     version(Posix)
@@ -876,7 +934,113 @@ auto getHostCXX()
         static assert(false, "Unrecognized or unsupported OS.");
 }
 
-// Add the executable filename extension to the given `name` for the current OS.
+/// Returns: a string describing the type of host C++ compiler
+auto getHostCXXKind()
+{
+    version(Posix)
+    {
+        auto cxxVersion = execute([getHostCXX, "--version"]).output;
+        return !cxxVersion.find("gcc", "Free Software")[0].empty ? "g++" : "clang++";
+    }
+    else version(Windows)
+        return "dmc";
+    else
+        static assert(false, "Unrecognized or unsupported OS.");
+}
+
+/**
+Gets the absolute path of the host's dmd executable
+
+Params:
+    hostDmd = the command used to launch the host's dmd executable
+Returns: a string that is the absolute path of the host's dmd executable
+*/
+auto getHostDMDPath(string hostDmd)
+{
+    version(Posix)
+        return ["which", hostDmd].execute.output;
+    else version(Windows)
+        return ["where", hostDmd].execute.output;
+    else
+        static assert(false, "Unrecognized or unsupported OS.");
+}
+
+version(Windows)
+{
+    /**
+    Gets the absolute path to the host's vshwere executable
+
+    Params:
+        outputFolder = this build's output folder
+    Returns: a string that is the absolute path of the host's vswhere executable
+    */
+    auto getHostVSWhere(string outputFolder)
+    {
+        // Check if vswhere.exe can be found in the host's PATH
+        const where = ["where", "vswhere"].execute;
+        if (where.status == 0)
+            return where.output;
+
+        // Check if vswhere.exe is in the standard location
+        const standardPath = ["cmd", "/C", "echo", `%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe`]
+            .execute.output       // Execute command and return standard output
+            .replace(`"`, "")     // Remove quotes surrounding the path
+            .replace("\r\n", ""); // Remove trailing newline characters
+        if (standardPath.exists)
+            return standardPath;
+
+        // Check if it has already been dowloaded to this build's output folder
+        const outputPath = outputFolder.buildPath("vswhere").exeName;
+        if (outputPath.exists)
+            return outputPath;
+
+        // try to download it
+        if (download(outputPath, "https://github.com/Microsoft/vswhere/releases/download/2.5.2/vswhere.exe"))
+            return outputPath;
+
+        // Could not find or obtain vswhere.exe
+        throw new Exception("Could not obtain vswhere.exe. Consider downloading it from https://github.com/Microsoft/vswhere and placing it in your PATH");
+    }
+
+    /**
+    Gets the absolute path to the host's MSVC bin directory
+
+    Params:
+        model   = a string describing the host's model, "64" or "32"
+        vswhere = a string that is the path to the vswhere executable
+    Returns: a string that is the absolute path to the host's MSVC bin directory
+    */
+    auto getHostMSVCBinDir(string model, string vswhere)
+    {
+        // See https://github.com/Microsoft/vswhere/wiki/Find-VC
+
+        const vsInstallPath = [vswhere, "-latest", "-products", "*", "-requires",
+            "Microsoft.VisualStudio.Component.VC.Tools.x86.x64", "-property", "installationPath"].execute.output
+            .replace("\r\n", "");
+
+        if (!vsInstallPath.exists)
+            throw new Exception("Could not locate the Visual Studio installation directory");
+
+        const vcVersionFile = vsInstallPath.buildPath("VC", "Auxiliary", "Build", "Microsoft.VCToolsVersion.default.txt");
+        if (!vcVersionFile.exists)
+            throw new Exception(`Could not locate the Visual C++ version file "%s"`.format(vcVersionFile));
+
+        const vcVersion = vcVersionFile.readText().replace("\r\n", "");
+        const vcArch = model == "64" ? "x64" : "x86";
+        const vcPath = vsInstallPath.buildPath("VC", "Tools", "MSVC", vcVersion, "bin", "Host" ~ vcArch, vcArch);
+        if (!vcPath.exists)
+            throw new Exception("Could not locate the Visual C++ installation directory");
+
+        return vcPath;
+    }
+}
+
+/**
+Add the executable filename extension to the given `name` for the current OS.
+
+Params:
+    name = the name to append the file extention to
+*/
 auto exeName(T)(T name)
 {
     version(Windows)
@@ -884,14 +1048,25 @@ auto exeName(T)(T name)
     return name;
 }
 
-// Add the object file extension to the given `name` for the current OS.
+/**
+Add the object file extension to the given `name` for the current OS.
+
+Params:
+    name = the name to append the file extention to
+*/
 auto objName(T)(T name)
 {
     version(Windows)
         return name ~ ".obj";
     return name ~ ".o";
 }
-// Add the library file extension to the given `name` for the current OS.
+
+/**
+Add the library file extension to the given `name` for the current OS.
+
+Params:
+    name = the name to append the file extention to
+*/
 auto libName(T)(T name)
 {
     version(Windows)
@@ -899,8 +1074,13 @@ auto libName(T)(T name)
     return name ~ ".a";
 }
 
-// Add additional make-like assignments to the environment
-// e.g. ./build.d ARGS=foo -> sets ARGS to 'foo'
+/**
+Add additional make-like assignments to the environment
+e.g. ./build.d ARGS=foo -> sets the "ARGS" internal environment variable to "foo"
+
+Params:
+    args = the command-line arguments from which the assignments will be parsed
+*/
 void args2Environment(ref string[] args)
 {
     bool tryToAdd(string arg)
@@ -939,17 +1119,41 @@ auto getDefault(ref string[string] env, string key, string default_)
 // Mini build system
 ////////////////////////////////////////////////////////////////////////////////
 
+/**
+Determines if a target is up to date with respect to its source files
+
+Params:
+    target = the target to check
+    source = the source file to check against
+Returns: `true` if the target is up to date
+*/
 auto isUpToDate(string target, string source)
 {
     return isUpToDate(target, [source]);
 }
 
+/**
+Determines if a target is up to date with respect to its source files
+
+Params:
+    target = the target to check
+    source = the source files to check against
+Returns: `true` if the target is up to date
+*/
 auto isUpToDate(string target, string[][] sources...)
 {
     return isUpToDate([target], sources);
 }
 
-// checks whether any of the targets are older than the sources
+/**
+Checks whether any of the targets are older than the sources
+
+Params:
+    targets = the targets to check
+    sources = the source files to check against
+Returns:
+    `true` if the target is up to date
+*/
 auto isUpToDate(string[] targets, string[][] sources...)
 {
     if (force)
@@ -970,7 +1174,7 @@ auto isUpToDate(string[] targets, string[][] sources...)
     return true;
 }
 
-/*
+/**
 A dependency has one or more sources and yields one or more targets.
 It knows how to build these target by invoking either the external command or
 the commandFunction.
@@ -991,6 +1195,9 @@ struct Dependency
     string name; // name of the dependency that is e.g. written to the CLI when it's executed
     string[] trackSources;
 
+    /**
+    Executes the dependency
+    */
     auto run()
     {
         // allow one or multiple targets
@@ -1016,7 +1223,9 @@ struct Dependency
         command.runCanThrow;
     }
 
-    // Resolves variables shorthands like $@ (target) and $< (source)
+    /**
+    Resolves variables shorthands like $@ (target) and $< (source)
+    */
     void resolveShorthands()
     {
         // Support $@ (shortcut for the target path)
@@ -1029,23 +1238,36 @@ struct Dependency
     }
 }
 
-// Logging primitive
+/**
+Logging primitive
+
+Params:
+    args = the data to write to the log
+*/
 auto log(T...)(T args)
 {
     if (verbose)
         writefln(args);
 }
 
-// Run a command and optionally log the invocation
+/**
+Run a command and optionally log the invocation
+
+Params:
+    args = the command and command arguments to execute
+*/
 auto run(T)(T args)
 {
     log("Run: %s", args.join(" "));
     return execute(args, null, Config.none, size_t.max, srcDir);
 }
 
-/*
+/**
 Wrapper around execute that logs the execution
 and throws an exception for a non-zero exit code.
+
+Params:
+    args = the command and command arguments to execute
 */
 auto runCanThrow(T)(T args)
 {

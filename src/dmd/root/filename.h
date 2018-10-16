@@ -3,32 +3,24 @@
  * All Rights Reserved, written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
- * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
- * https://github.com/dlang/dmd/blob/master/src/root/filename.h
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/dlang/dmd/blob/master/src/dmd/root/filename.h
  */
 
-#ifndef FILENAME_H
-#define FILENAME_H
-
-#if __DMC__
 #pragma once
-#endif
 
 #include "array.h"
+#include "dcompat.h"
 
-class RootObject;
-
-template <typename TYPE> struct Array;
 typedef Array<const char *> Strings;
 
 struct FileName
 {
-    const char *str;
+private:
+    DArray<const char> str;
+public:
     FileName(const char *str);
-    bool equals(RootObject *obj);
     static bool equals(const char *name1, const char *name2);
-    int compare(RootObject *obj);
-    static int compare(const char *name1, const char *name2);
     static bool absolute(const char *name);
     static const char *toAbsolute(const char *name, const char *base = NULL);
     static const char *ext(const char *);
@@ -37,7 +29,6 @@ struct FileName
     static const char *name(const char *);
     const char *name();
     static const char *path(const char *);
-    static const char *replaceName(const char *path, const char *name);
 
     static const char *combine(const char *path, const char *name);
     static Strings *splitPath(const char *path);
@@ -56,5 +47,3 @@ struct FileName
     static void free(const char *str);
     const char *toChars() const;
 };
-
-#endif

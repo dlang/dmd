@@ -1566,6 +1566,15 @@ bool Obj::includelib(const char *name)
     return false;
 }
 
+/*******************************
+* Output linker directive.
+*/
+
+bool Obj::linkerdirective(const char *name)
+{
+    return false;
+}
+
 /**********************************
  * Do we allow zero sized objects?
  */

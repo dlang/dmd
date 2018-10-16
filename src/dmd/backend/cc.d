@@ -229,7 +229,7 @@ struct Srcpos
         }
     }
 
-    void print(const(char)* func);
+    void print(const(char)* func) { Srcpos_print(this, func); }
 
     static uint sizeCheck();
     unittest { assert(sizeCheck() == Srcpos.sizeof); }
@@ -251,6 +251,7 @@ version (HTOD)
     static char* srcpos_name(Srcpos p)   { return srcpos_sfile(p).SFname; }
 }
 
+void Srcpos_print(ref Srcpos srcpos, const(char)* func);
 
 //#include "token.h"
 
@@ -294,27 +295,27 @@ enum
 
 struct Pstate
 {
-    char STinopeq;              // if in n2_createopeq()
-    char STinarglist;           // if !=0, then '>' is the end of a template
+    ubyte STinopeq;             // if in n2_createopeq()
+    ubyte STinarglist;          // if !=0, then '>' is the end of a template
                                 // argument list, not an operator
-    char STinsizeof;            // !=0 if in a sizeof expression. Useful to
+    ubyte STinsizeof;           // !=0 if in a sizeof expression. Useful to
                                 // prevent <array of> being converted to
                                 // <pointer to>.
-    char STintemplate;          // if !=0, then expanding a function template
+    ubyte STintemplate;         // if !=0, then expanding a function template
                                 // (do not expand template Symbols)
-    char STdeferDefaultArg;     // defer parsing of default arg for parameter
-    char STnoexpand;            // if !=0, don't expand template symbols
-    char STignoretal;           // if !=0 ignore template argument list
-    char STexplicitInstantiation;       // if !=0, then template explicit instantiation
-    char STexplicitSpecialization;      // if !=0, then template explicit specialization
-    char STinconstexp;          // if !=0, then parsing a constant expression
-    char STisaddr;              // is this a possible pointer to member expression?
+    ubyte STdeferDefaultArg;    // defer parsing of default arg for parameter
+    ubyte STnoexpand;           // if !=0, don't expand template symbols
+    ubyte STignoretal;          // if !=0 ignore template argument list
+    ubyte STexplicitInstantiation;      // if !=0, then template explicit instantiation
+    ubyte STexplicitSpecialization;     // if !=0, then template explicit specialization
+    ubyte STinconstexp;         // if !=0, then parsing a constant expression
+    ubyte STisaddr;             // is this a possible pointer to member expression?
     uint STinexp;               // if !=0, then in an expression
 
     static if (NTEXCEPTIONS)
     {
-        char STinfilter;        // if !=0 then in exception filter
-        char STinexcept;        // if !=0 then in exception handler
+        ubyte STinfilter;       // if !=0 then in exception filter
+        ubyte STinexcept;       // if !=0 then in exception handler
         block *STbfilter;       // current exception filter
     }
 
@@ -350,8 +351,8 @@ struct Pstate
                                 // functions to parse
     Classsym *STstag;           // returned by struct_searchmember() and with_search()
     SYMIDX STmarksi;            // to determine if temporaries are created
-    char STnoparse;             // add to classlist instead of parsing
-    char STdeferparse;          // defer member func parse
+    ubyte STnoparse;            // add to classlist instead of parsing
+    ubyte STdeferparse;         // defer member func parse
     SC STgclass;                // default function storage class
     int STdefertemps;           // defer allocation of temps
     int STdeferaccesscheck;     // defer access check for members (BUG: it
@@ -570,6 +571,8 @@ struct block
     uint        Bnumber;        // sequence number of block
     union
     {
+        uint _BLU;              // start of the union
+
         // CPP
         struct
         {
@@ -1546,6 +1549,18 @@ enum
 {
     PFexplicit = 1,       // this template argument was explicit, i.e. in < >
 }
+
+/************************
+ * Params:
+ *      f = function symbol
+ * Returns:
+ *      exception method for f
+ */
+EHmethod ehmethod(Symbol *f)
+{
+    return f.Sfunc.Fflags3 & Feh_none ? EHmethod.EH_NONE : config.ehmethod;
+}
+
 
 struct param_t
 {

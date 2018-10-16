@@ -266,7 +266,15 @@ ifdef ENABLE_PROFILE
 override DFLAGS  += -profile
 endif
 ifdef ENABLE_COVERAGE
-override DFLAGS  += -cov -L-lgcov
+ifeq ($(OS),osx)
+# OSX uses libclang_rt.profile_osx for coverage, not libgcov
+# Attempt to find it by parsing `clang`'s output
+CLANG_LIB_SEARCH_DIR := $(shell clang -print-search-dirs | grep libraries | cut -d= -f2)
+COVERAGE_LINK_FLAGS := -L-L$(CLANG_LIB_SEARCH_DIR)/lib/darwin/ -L-lclang_rt.profile_osx
+else
+COVERAGE_LINK_FLAGS := -L-lgcov
+endif
+override DFLAGS  += -cov $(COVERAGE_LINK_FLAGS)
 CXXFLAGS += --coverage
 endif
 ifdef ENABLE_SANITIZERS
@@ -282,8 +290,7 @@ endif
 endif
 
 # Unique extra flags if necessary
-DMD_FLAGS  := -I$D -I$(ROOT) -Wuninitialized
-GLUE_FLAGS := -I$D -I$(ROOT) -I$(TK) -I$C
+DMD_FLAGS  := -I$D -Wuninitialized
 BACK_FLAGS := -I$(ROOT) -I$(TK) -I$C -I$G -I$D -DDMDV2=1
 ROOT_FLAGS := -I$(ROOT)
 
@@ -294,7 +301,8 @@ endif
 endif
 
 ifneq (gdc, $(HOST_DMD_KIND))
-  BACK_BETTERC = -mv=dmd.backend=$C -betterC
+  BACK_MV = -mv=dmd.backend=$C
+  BACK_BETTERC = $(BACK_MV) -betterC
 endif
 
 ######## DMD frontend source files
@@ -319,9 +327,6 @@ ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array ctfloat file \
 	filename man outbuffer port response rmem rootobject speller \
 	longdouble stringtable hash))
 
-GLUE_OBJS =
-G_GLUE_OBJS = $(addprefix $G/, $(GLUE_OBJS))
-
 GLUE_SRCS=$(addsuffix .d, $(addprefix $D/,irstate toctype glue gluelayer todt tocsym toir dmsc \
 	tocvdebug s2ir toobj e2ir eh iasm iasmdmd iasmgcc objc_glue))
 
@@ -331,7 +336,7 @@ DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 
 ifeq (X86,$(TARGET_CPU))
     TARGET_CH = $C/code_x86.h
-    TARGET_OBJS = cg87.o cgxmm.o cod1.o cod2.o cod3.o cod4.o ptrntab.o
+    TARGET_OBJS = ptrntab.o
 else
     ifeq (stub,$(TARGET_CPU))
         TARGET_CH = $C/code_stub.h
@@ -341,20 +346,22 @@ else
     endif
 endif
 
-BACK_OBJS = var.o \
+BACK_OBJS = \
 	os.o fp.o \
-	rtlsym.o cgen.o out.o \
+	cgen.o \
 	dt.o \
-	cgcod.o outbuf.o \
+	outbuf.o \
 	aa.o ti_achar.o \
-	ti_pvoid.o pdata.o cv8.o backconfig.o \
-	dwarf.o dwarfeh.o varstats.o \
-	ph2.o util2.o tk.o strtold.o md5.o \
+	ti_pvoid.o sizecheck.o \
+	dwarf.o varstats.o \
+	tk.o strtold.o \
 	$(TARGET_OBJS)
 
 BACK_DOBJS = bcomplex.o evalu8.o divcoeff.o dvec.o go.o gsroa.o glocal.o gdag.o gother.o gflow.o \
-	gloop.o compress.o cgelem.o cgcs.o ee.o cod5.o nteh.o blockopt.o memh.o cg.o cgreg.o \
-	dtype.o debugprint.o symbol.o elem.o dcode.o cgsched.o
+	out.o \
+	gloop.o compress.o cgelem.o cgcs.o ee.o cod4.o cod5.o nteh.o blockopt.o memh.o cg.o cgreg.o \
+	dtype.o debugprint.o symbol.o elem.o dcode.o cgsched.o cg87.o cgxmm.o cgcod.o cod1.o cod2.o \
+	cod3.o cv8.o dcgcv.o pdata.o util2.o var.o md5.o backconfig.o ph2.o drtlsym.o dwarfeh.o
 
 G_OBJS  = $(addprefix $G/, $(BACK_OBJS))
 G_DOBJS = $(addprefix $G/, $(BACK_DOBJS))
@@ -375,33 +382,33 @@ GLUE_SRC = \
 
 BACK_HDRS=$C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
 	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d $C/iasm.d \
-	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/md5.di $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d \
-	$C/dlist.d
+	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d \
+	$C/dlist.d $C/melf.d $C/varstats.d
 
 TK_HDRS=
 
 BACK_SRC = \
-	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
+	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.d \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
-	$C/el.h $C/iasm.h $C/rtlsym.h \
-	$C/bcomplex.d $C/blockopt.d $C/cg.d $C/cg87.c $C/cgxmm.c \
-	$C/cgcod.c $C/cgcs.d $C/cgcv.c $C/cgelem.d $C/cgen.c $C/cgobj.c \
-	$C/compress.d $C/cgreg.d $C/var.c $C/strtold.c \
-	$C/cgsched.d $C/cod1.c $C/cod2.c $C/cod3.c $C/cod4.c $C/cod5.d \
+	$C/el.h $C/iasm.h \
+	$C/bcomplex.d $C/blockopt.d $C/cg.d $C/cg87.d $C/cgxmm.d \
+	$C/cgcod.d $C/cgcs.d $C/dcgcv.d $C/cgelem.d $C/cgen.c $C/cgobj.c \
+	$C/compress.d $C/cgreg.d $C/var.d $C/strtold.c \
+	$C/cgsched.d $C/cod1.d $C/cod2.d $C/cod3.d $C/cod4.d $C/cod5.d \
 	$C/dcode.d $C/symbol.d $C/debugprint.d $C/dt.c $C/ee.d $C/elem.d \
 	$C/evalu8.d $C/fp.c $C/go.d $C/gflow.d $C/gdag.d \
-	$C/gother.d $C/glocal.d $C/gloop.d $C/gsroa.d $C/newman.c \
-	$C/nteh.d $C/os.c $C/out.c $C/outbuf.c $C/ptrntab.c $C/rtlsym.c \
+	$C/gother.d $C/glocal.d $C/gloop.d $C/gsroa.d $C/newman.d \
+	$C/nteh.d $C/os.c $C/out.d $C/outbuf.c $C/ptrntab.c $C/drtlsym.d \
 	$C/dtype.d $C/melf.h $C/mach.h $C/mscoff.h $C/bcomplex.h \
 	$C/outbuf.h $C/token.h $C/tassert.h \
 	$C/elfobj.c $C/cv4.h $C/dwarf2.h $C/exh.h $C/go.h \
 	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aa.c $C/tinfo.h $C/ti_achar.c \
 	$C/ti_pvoid.c $C/platform_stub.c $C/code_x86.h $C/code_stub.h \
 	$C/machobj.c $C/mscoffobj.c \
-	$C/xmm.h $C/obj.h $C/pdata.c $C/cv8.c $C/backconfig.c $C/divcoeff.d \
+	$C/xmm.h $C/obj.h $C/pdata.d $C/cv8.d $C/backconfig.d $C/sizecheck.c $C/divcoeff.d \
 	$C/varstats.c $C/varstats.h $C/dvec.d \
-	$C/md5.c $C/md5.h \
-	$C/ph2.c $C/util2.c $C/dwarfeh.c $C/goh.d $C/memh.d \
+	$C/md5.d $C/md5.h \
+	$C/ph2.d $C/util2.d $C/dwarfeh.d $C/goh.d $C/memh.d \
 	$(TARGET_CH)
 
 TK_SRC = \
@@ -411,17 +418,17 @@ TK_SRC = \
 ######## CXX header files (only needed for cxx-unittest)
 
 SRC = $(addprefix $D/, aggregate.h aliasthis.h arraytypes.h	\
-	attrib.h compiler.h complex_t.h cond.h ctfe.h ctfe.h declaration.h dsymbol.h	\
+	attrib.h compiler.h complex_t.h cond.h ctfe.h ctfe.h declaration.h doc.h dsymbol.h	\
 	enum.h errors.h expression.h globals.h hdrgen.h identifier.h \
-	id.h import.h init.h intrange.h json.h \
-	mars.h module.h mtype.h nspace.h objc.h                         \
+	id.h import.h init.h json.h \
+	mangle.h mars.h module.h mtype.h nspace.h objc.h                \
 	scope.h statement.h staticassert.h target.h template.h tokens.h	\
 	version.h visitor.h libomf.d scanomf.d libmscoff.d scanmscoff.d)         \
 	$(DMD_SRCS)
 
-ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h file.h filename.h \
+ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h dcompat.h file.h filename.h \
 	longdouble.h newdelete.c object.h outbuffer.h port.h \
-	rmem.h root.h stringtable.h)
+	rmem.h root.h)
 
 ######## Additional files
 
@@ -429,7 +436,7 @@ SRC_MAKE = posix.mak osmodel.mak
 
 STRING_IMPORT_FILES = $G/VERSION $G/SYSCONFDIR.imp $(RES)/default_ddoc_theme.ddoc
 
-DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(GLUE_OBJS) $(BACK_OBJS) $(BACK_DOBJS))
+DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(BACK_OBJS) $(BACK_DOBJS))
 
 ######## Begin build targets
 
@@ -451,9 +458,6 @@ toolchain-info:
 	@echo '==== Toolchain Information ===='
 	@echo
 
-$G/glue.a: $(G_GLUE_OBJS) $(SRC_MAKE)
-	$(AR) rcs $@ $(G_GLUE_OBJS)
-
 $G/backend.a: $(G_OBJS) $(G_DOBJS) $(SRC_MAKE)
 	$(AR) rcs $@ $(G_OBJS) $(G_DOBJS)
 
@@ -464,14 +468,14 @@ $G/dmd_frontend: $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/newdelete.o $G/lex
 	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
 
 ifdef ENABLE_LTO
-$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(G_GLUE_OBJS) $(G_OBJS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $G/dmd.conf
+$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(G_OBJS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $G/dmd.conf
 	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $G/dmd.conf,$^)
 else
 $G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/backend.a $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $G/dmd.conf
 	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $(LEXER_ROOT) $G/dmd.conf,$^)
 endif
 
-$G/dmd-unittest: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(G_GLUE_OBJS) $(G_OBJS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+$G/dmd-unittest: $(DMD_SRCS) $(ROOT_SRCS) $(LEXER_SRCS) $G/newdelete.o $(G_OBJS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) -L-lstdc++ $(DFLAGS) -g -unittest -main -version=NoMain $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 
 unittest: $G/dmd-unittest
@@ -480,7 +484,7 @@ unittest: $G/dmd-unittest
 ######## DMD as a library examples
 
 EXAMPLES=$(addprefix $G/examples/, avg impvisitor)
-PARSER_SRCS=$(addsuffix .d, $(addprefix $D/,parse astbase parsetimevisitor transitivevisitor permissivevisitor strictvisitor))
+PARSER_SRCS=$(addsuffix .d, $(addprefix $D/,parse astbase parsetimevisitor transitivevisitor permissivevisitor strictvisitor utils))
 
 $G/parser.a: $(PARSER_SRCS) $(LEXER_SRCS) $(ROOT_SRCS) $G/dmd $G/dmd.conf $(SRC_MAKE)
 	CC="$(HOST_CXX)" $G/dmd -lib -of$@ $(MODEL_FLAG) -L-lstdc++ -J$G $(DFLAGS) $(PARSER_SRCS) $(LEXER_SRCS) $(ROOT_SRCS)
@@ -527,10 +531,10 @@ $G/dmd.conf: $(SRC_MAKE)
 	echo "$$DEFAULT_DMD_CONF" > $@
 
 ######## optabgen generates some source
-optabgen_output = debtab.d optab.c cdxxx.c elxxx.d fltables.d tytab.c
+optabgen_output = debtab.d optab.d cdxxx.d elxxx.d fltables.d tytab.d
 
-$G/optabgen: $C/optabgen.c $C/cc.h $C/oper.h
-	$(HOST_CXX) $(CXXFLAGS) -I$(TK) $< -o $G/optabgen
+$G/optabgen: $C/optabgen.d $C/cc.d $C/oper.d $(HOST_DMD_PATH)
+	$(HOST_DMD_RUN) -of$@ $(DFLAGS) $(MODEL_FLAG) $(BACK_MV) $<
 	$G/optabgen
 	mv $(optabgen_output) $G
 
@@ -558,10 +562,6 @@ $(G_OBJS): $G/%.o: $C/%.c $(optabgen_files) $(SRC_MAKE)
 $(G_DOBJS): $G/%.o: $C/%.d $(optabgen_files) posix.mak $(HOST_DMD_PATH)
 	@echo "  (HOST_DMD_RUN)  BACK_DOBJS  $<"
 	$(HOST_DMD_RUN) -c -of$@ $(DFLAGS) $(MODEL_FLAG) $(BACK_BETTERC) $<
-
-$(G_GLUE_OBJS): $G/%.o: $D/%.c $(optabgen_files) $(SRC_MAKE)
-	@echo "  (CC)  GLUE_OBJS  $<"
-	$(CXX) -c -o$@ $(CXXFLAGS) $(GLUE_FLAGS) $(MMD) $<
 
 $G/newdelete.o: $G/%.o: $(ROOT)/%.c $(SRC_MAKE)
 	@echo "  (CC)  ROOT_OBJS  $<"
@@ -622,7 +622,7 @@ dscanner: $(DSCANNER_DIR)/dsc
 $G/cxxfrontend.o: $G/%.o: tests/%.c $(SRC) $(ROOT_SRC)
 	$(CXX) -c -o$@ $(CXXFLAGS) $(DMD_FLAGS) $(MMD) $<
 
-$G/cxx-unittest: $G/cxxfrontend.o $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(G_GLUE_OBJS) $(G_OBJS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+$G/cxx-unittest: $G/cxxfrontend.o $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(G_OBJS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) -L-lstdc++ $(DFLAGS) -version=NoMain $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 
 cxx-unittest: $G/cxx-unittest

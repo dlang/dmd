@@ -18,6 +18,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 import dmd.globals;
+import dmd.errors;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
@@ -33,8 +34,6 @@ import dmd.backend.type;
 extern (C++):
 
 // Support for D exception handling
-
-void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
 
 package(dmd) @property @nogc nothrow auto NPTRSIZE() { return _tysize[TYnptr]; }
 
@@ -378,4 +377,3 @@ void except_fillInEHTable(Symbol *s)
     assert(sz != 0);
     s.Sdt = dtb.finish();
 }
-

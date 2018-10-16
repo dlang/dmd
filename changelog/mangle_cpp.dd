@@ -1,0 +1,16 @@
+Implement new C++ mangling syntax
+
+The new syntax allows for keywords to be used for mangling
+and only changes the mangle of a symbol. It does not provide any
+feature resembling C++ namespaces. This allows users to structure
+their C++ in traditional D fashion, utilizing modules. The old syntax
+`extern(C++, foo)` would occupy the symbol `foo`. This meant modules
+couldn't use this name and match the C++ namespace.
+
+---
+extern(C++, "__traits") void foo();
+
+extern(C++, "std", "chrono") void bar(); // multiple namespace syntax
+
+int std; // no symbol clashing with above extern(C++, "std", ...)
+---

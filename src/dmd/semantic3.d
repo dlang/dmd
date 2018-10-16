@@ -279,19 +279,9 @@ private extern(C++) final class Semantic3Visitor : Visitor
         }
 
         uint oldErrors = global.errors;
+        auto fds = FuncDeclSem3(funcdecl,sc);
 
-        if (funcdecl.frequires)
-        {
-            for (size_t i = 0; i < funcdecl.foverrides.dim; i++)
-            {
-                FuncDeclaration fdv = funcdecl.foverrides[i];
-                if (fdv.fbody && !fdv.frequires)
-                {
-                    funcdecl.error("cannot have an in contract when overridden function `%s` does not have an in contract", fdv.toPrettyChars());
-                    break;
-                }
-            }
-        }
+        fds.checkInContractOverrides();
 
         // Remember whether we need to generate an 'out' contract.
         immutable bool needEnsure = FuncDeclaration.needsFensure(funcdecl);
@@ -1265,6 +1255,68 @@ private extern(C++) final class Semantic3Visitor : Visitor
         //fflush(stdout);
     }
 
+    override void visit(CtorDeclaration ctor)
+    {
+        //printf("CtorDeclaration()\n%s\n", ctor.fbody.toChars());
+        if (ctor.semanticRun >= PASS.semantic3)
+            return;
+
+        /* If any of the fields of the aggregate have a destructor, add
+         *   scope (failure) { this.fieldDtor(); }
+         * as the first statement. It is not necessary to add it after
+         * each initialization of a field, because destruction of .init constructed
+         * structs should be benign.
+         * https://issues.dlang.org/show_bug.cgi?id=14246
+         */
+        AggregateDeclaration ad = ctor.toParent2().isAggregateDeclaration();
+        if (ad && ad.fieldDtor && global.params.dtorFields)
+        {
+            /* Generate:
+             *   this.fieldDtor()
+             */
+            Expression e = new ThisExp(ctor.loc);
+            e.type = ad.type.mutableOf();
+            e = new DotVarExp(ctor.loc, e, ad.fieldDtor, false);
+            e = new CallExp(ctor.loc, e);
+            auto sexp = new ExpStatement(ctor.loc, e);
+            auto ss = new ScopeStatement(ctor.loc, sexp, ctor.loc);
+
+            version (all)
+            {
+                /* Generate:
+                 *   try { ctor.fbody; }
+                 *   catch (Exception __o)
+                 *   { this.fieldDtor(); throw __o; }
+                 * This differs from the alternate scope(failure) version in that an Exception
+                 * is caught rather than a Throwable. This enables the optimization whereby
+                 * the try-catch can be removed if ctor.fbody is nothrow. (nothrow only
+                 * applies to Exception.)
+                 */
+                Identifier id = Identifier.generateId("__o");
+                auto ts = new ThrowStatement(ctor.loc, new IdentifierExp(ctor.loc, id));
+                auto handler = new CompoundStatement(ctor.loc, ss, ts);
+
+                auto catches = new Catches();
+                auto ctch = new Catch(ctor.loc, getException(), id, handler);
+                catches.push(ctch);
+
+                ctor.fbody = new TryCatchStatement(ctor.loc, ctor.fbody, catches);
+            }
+            else
+            {
+                /* Generate:
+                 *   scope (failure) { this.fieldDtor(); }
+                 * Hopefully we can use this version someday when scope(failure) catches
+                 * Exception instead of Throwable.
+                 */
+                auto s = new OnScopeStatement(ctor.loc, TOK.onScopeFailure, ss);
+                ctor.fbody = new CompoundStatement(ctor.loc, s, ctor.fbody);
+            }
+        }
+        visit(cast(FuncDeclaration)ctor);
+    }
+
+
     override void visit(Nspace ns)
     {
         if (ns.semanticRun >= PASS.semantic3)
@@ -1354,5 +1406,38 @@ private extern(C++) final class Semantic3Visitor : Visitor
         if (sd)
             sd.semanticTypeInfoMembers();
         ad.semanticRun = PASS.semantic3done;
+    }
+}
+
+private struct FuncDeclSem3
+{
+    // The FuncDeclaration subject to Semantic analysis
+    FuncDeclaration funcdecl;
+
+    // Scope of analysis
+    Scope* sc;
+    this(FuncDeclaration fd,Scope* s)
+    {
+        funcdecl = fd;
+        sc = s;
+    }
+
+    /* Checks that the overriden functions (if any) have in contracts if
+     * funcdecl has an in contract.
+     */
+    void checkInContractOverrides()
+    {
+        if (funcdecl.frequires)
+        {
+            for (size_t i = 0; i < funcdecl.foverrides.dim; i++)
+            {
+                FuncDeclaration fdv = funcdecl.foverrides[i];
+                if (fdv.fbody && !fdv.frequires)
+                {
+                    funcdecl.error("cannot have an in contract when overridden function `%s` does not have an in contract", fdv.toPrettyChars());
+                    break;
+                }
+            }
+        }
     }
 }

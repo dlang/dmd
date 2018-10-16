@@ -85,11 +85,6 @@ struct OutBuffer
         offset += nbytes;
     }
 
-    extern (C++) void writebstring(char* string) nothrow
-    {
-        write(string, *string + 1);
-    }
-
     extern (C++) void writestring(const(char)* string) nothrow
     {
         write(string, strlen(string));
@@ -459,4 +454,3 @@ char[] unsignedToTempString(ulong value, char[] buf, uint radix = 10) @safe
     } while (value);
     return buf[i .. $];
 }
-

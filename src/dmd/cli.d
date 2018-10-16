@@ -256,13 +256,16 @@ dmd -cov -unittest myprog.d
             (only imports).`,
         ),
         Option("dip25",
-            "implement http://wiki.dlang.org/DIP25"
+            "implement https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md",
+            "implement $(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md, DIP25 (Sealed references))"
         ),
         Option("dip1000",
-            "implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1000.md"
+            "implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1000.md",
+            "implement $(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/DIP1000.md, DIP1000 (Scoped Pointers))"
         ),
         Option("dip1008",
-            "implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1008.md"
+            "implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1008.md",
+            "implement $(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/DIP1008.md, DIP1008 (@nogc Throwable))"
         ),
         Option("fPIC",
             "generate position independent code",
@@ -602,6 +605,8 @@ dmd -cov -unittest myprog.d
             "list all non-mutable fields which occupy an object instance"),
         Transition("10378", "import", "bug10378",
             "revert to single phase name lookup"),
+        Transition("14246", "dtorfields", "dtorFields",
+            "destruct fields of partially constructed objects"),
         Transition(null, "checkimports", "check10378",
             "give deprecation messages about 10378 anomalies"),
         Transition("14488", "complex", "vcomplex",

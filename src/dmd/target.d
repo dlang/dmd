@@ -13,11 +13,11 @@
 module dmd.target;
 
 import dmd.argtypes;
+import core.stdc.string : strlen;
 import dmd.cppmangle;
 import dmd.cppmanglewin;
 import dmd.dclass;
 import dmd.declaration;
-import dmd.dmodule;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.expression;
@@ -28,6 +28,7 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.typesem;
 import dmd.tokens : TOK;
+import dmd.utils : toDString;
 import dmd.root.ctfloat;
 import dmd.root.outbuffer;
 
@@ -432,65 +433,6 @@ struct Target
     }
 
     /**
-     * Encode the given expression, which is assumed to be an rvalue literal
-     * as another type for use in CTFE.
-     * This corresponds roughly to the idiom `*cast(T*)&e`.
-     * Params:
-     *      e    = literal constant expression
-     *      type = target type of the result
-     * Returns:
-     *      resulting `Expression` re-evaluated as `type`
-     */
-    extern (C++) static Expression paintAsType(Expression e, Type type)
-    {
-        // We support up to 512-bit values.
-        ubyte[64] buffer;
-        assert(e.type.size() == type.size());
-        // Write the expression into the buffer.
-        switch (e.type.ty)
-        {
-        case Tint32:
-        case Tuns32:
-        case Tint64:
-        case Tuns64:
-            encodeInteger(e, buffer.ptr);
-            break;
-        case Tfloat32:
-        case Tfloat64:
-            encodeReal(e, buffer.ptr);
-            break;
-        default:
-            assert(0);
-        }
-        // Interpret the buffer as a new type.
-        switch (type.ty)
-        {
-        case Tint32:
-        case Tuns32:
-        case Tint64:
-        case Tuns64:
-            return decodeInteger(e.loc, type, buffer.ptr);
-        case Tfloat32:
-        case Tfloat64:
-            return decodeReal(e.loc, type, buffer.ptr);
-        default:
-            assert(0);
-        }
-    }
-
-    /**
-     * Perform any post parsing analysis on the given module.
-     * Certain compiler backends (ie: GDC) have special placeholder
-     * modules whose source are empty, but code gets injected
-     * immediately after loading.
-     * Params:
-     *      m = module to inspect
-     */
-    extern (C++) static void loadModule(Module m)
-    {
-    }
-
-    /**
      * Mangle the given symbol for C++ ABI.
      * Params:
      *      s = declaration with C++ linkage
@@ -774,80 +716,51 @@ struct Target
         const sz = t.size(loc);
         return global.params.is64bit ? (sz + 7) & ~7 : (sz + 3) & ~3;
     }
-}
 
-/******************************
- * Private helpers for Target::paintAsType.
- */
-// Write the integer value of 'e' into a unsigned byte buffer.
-private void encodeInteger(Expression e, ubyte* buffer)
-{
-    dinteger_t value = e.toInteger();
-    int size = cast(int)e.type.size();
-    for (int p = 0; p < size; p++)
+    // this guarantees `getTargetInfo` and `allTargetInfos` remain in sync
+    private enum TargetInfoKeys
     {
-        int offset = p; // Would be (size - 1) - p; on BigEndian
-        buffer[offset] = ((value >> (p * 8)) & 0xFF);
+        cppRuntimeLibrary,
+        floatAbi,
+        objectFormat,
     }
-}
 
-// Write the bytes encoded in 'buffer' into an integer and returns
-// the value as a new IntegerExp.
-private Expression decodeInteger(const ref Loc loc, Type type, ubyte* buffer)
-{
-    dinteger_t value = 0;
-    int size = cast(int)type.size();
-    for (int p = 0; p < size; p++)
+    /**
+     * Get targetInfo by key
+     * Params:
+     *  name = name of targetInfo to get
+     *  loc = location to use for error messages
+     * Returns:
+     *  Expression for the requested targetInfo
+     */
+    extern (C++) static Expression getTargetInfo(const(char)* name, const ref Loc loc)
     {
-        int offset = p; // Would be (size - 1) - p; on BigEndian
-        value |= (cast(dinteger_t)buffer[offset] << (p * 8));
-    }
-    return new IntegerExp(loc, value, type);
-}
+        StringExp stringExp(const(char)[] sval)
+        {
+            return new StringExp(loc, cast(void*)sval.ptr, sval.length);
+        }
 
-// Write the real_t value of 'e' into a unsigned byte buffer.
-private void encodeReal(Expression e, ubyte* buffer)
-{
-    switch (e.type.ty)
-    {
-    case Tfloat32:
+        switch (name.toDString) with (TargetInfoKeys)
         {
-            float* p = cast(float*)buffer;
-            *p = cast(float)e.toReal();
-            break;
+            case objectFormat.stringof:
+                if (global.params.isWindows)
+                    return stringExp(global.params.mscoff ? "coff" : "omf");
+                else if (global.params.isOSX)
+                    return stringExp("macho");
+                else
+                    return stringExp("elf");
+            case floatAbi.stringof:
+                return stringExp("hard");
+            case cppRuntimeLibrary.stringof:
+                if (global.params.isWindows)
+                {
+                    if (global.params.mscoff)
+                        return stringExp(global.params.mscrtlib ? global.params.mscrtlib.toDString : "");
+                    return stringExp("snn");
+                }
+                return stringExp("");
+            default:
+                return null;
         }
-    case Tfloat64:
-        {
-            double* p = cast(double*)buffer;
-            *p = cast(double)e.toReal();
-            break;
-        }
-    default:
-        assert(0);
     }
-}
-
-// Write the bytes encoded in 'buffer' into a real_t and returns
-// the value as a new RealExp.
-private Expression decodeReal(const ref Loc loc, Type type, ubyte* buffer)
-{
-    real_t value;
-    switch (type.ty)
-    {
-    case Tfloat32:
-        {
-            float* p = cast(float*)buffer;
-            value = real_t(*p);
-            break;
-        }
-    case Tfloat64:
-        {
-            double* p = cast(double*)buffer;
-            value = real_t(*p);
-            break;
-        }
-    default:
-        assert(0);
-    }
-    return new RealExp(loc, value, type);
 }

@@ -39,7 +39,7 @@ import dmd.visitor;
  * Determine if operands of binary op can be reversed
  * to fit operator overload.
  */
-extern (C++) bool isCommutative(TOK op)
+bool isCommutative(TOK op)
 {
     switch (op)
     {
@@ -367,7 +367,7 @@ private Identifier opId_r(Expression e)
  * If type is a class or struct, return the symbol for it,
  * else NULL
  */
-extern (C++) AggregateDeclaration isAggregate(Type t)
+AggregateDeclaration isAggregate(Type t)
 {
     t = t.toBasetype();
     if (t.ty == Tclass)
@@ -384,7 +384,7 @@ extern (C++) AggregateDeclaration isAggregate(Type t)
 /*******************************************
  * Helper function to turn operator into template argument list
  */
-extern (C++) Objects* opToArg(Scope* sc, TOK op)
+Objects* opToArg(Scope* sc, TOK op)
 {
     /* Remove the = from op=
      */
@@ -445,7 +445,7 @@ extern (C++) Objects* opToArg(Scope* sc, TOK op)
  * with function call.
  * Return NULL if not an operator overload.
  */
-extern (C++) Expression op_overload(Expression e, Scope* sc)
+Expression op_overload(Expression e, Scope* sc)
 {
     extern (C++) final class OpOverload : Visitor
     {
@@ -1297,7 +1297,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     }
                     assert(result);
                 }
-                result = Expression.combine(Expression.combine(tup1.e0, tup2.e0), result);
+                result = Expression.combine(tup1.e0, tup2.e0, result);
                 result = result.expressionSemantic(sc);
 
                 return;
@@ -1687,13 +1687,10 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id)
 /***********************************
  * Utility to build a function call out of this reference and argument.
  */
-extern (C++) Expression build_overload(const ref Loc loc, Scope* sc, Expression ethis, Expression earg, Dsymbol d)
+Expression build_overload(const ref Loc loc, Scope* sc, Expression ethis, Expression earg, Dsymbol d)
 {
     assert(d);
     Expression e;
-    //printf("build_overload(id = '%s')\n", id.toChars());
-    //earg.print();
-    //earg.type.print();
     Declaration decl = d.isDeclaration();
     if (decl)
         e = new DotVarExp(loc, ethis, decl, false);
@@ -1707,7 +1704,7 @@ extern (C++) Expression build_overload(const ref Loc loc, Scope* sc, Expression 
 /***************************************
  * Search for function funcid in aggregate ad.
  */
-extern (C++) Dsymbol search_function(ScopeDsymbol ad, Identifier funcid)
+Dsymbol search_function(ScopeDsymbol ad, Identifier funcid)
 {
     Dsymbol s = ad.search(Loc.initial, funcid);
     if (s)

@@ -49,18 +49,6 @@ extern (C++) class Initializer : RootObject
 
     abstract Initializer syntaxCopy();
 
-    static Initializers* arraySyntaxCopy(Initializers* ai)
-    {
-        Initializers* a = null;
-        if (ai)
-        {
-            a = new Initializers(ai.dim);
-            for (size_t i = 0; i < a.dim; i++)
-                (*a)[i] = (*ai)[i].syntaxCopy();
-        }
-        return a;
-    }
-
     override final const(char)* toChars()
     {
         OutBuffer buf;

@@ -250,7 +250,24 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         sexception = sexception.statementSemantic(sc);
                     if (sexception)
                     {
-                        if (i + 1 == cs.statements.dim && !sfinally)
+                        /* Returns: true if statements[] are empty statements
+                         */
+                        static bool isEmpty(const Statement[] statements)
+                        {
+                            foreach (s; statements)
+                            {
+                                if (const cs = s.isCompoundStatement())
+                                {
+                                    if (!isEmpty((*cs.statements)[]))
+                                        return false;
+                                }
+                                else
+                                    return false;
+                            }
+                            return true;
+                        }
+
+                        if (!sfinally && isEmpty((*cs.statements)[i + 1 .. cs.statements.dim]))
                         {
                         }
                         else
@@ -2300,6 +2317,13 @@ else
                 }
             }
         }
+        else if (ps.ident == Id.linkerDirective)
+        {
+            /* Should this be allowed?
+             */
+            ps.error("`pragma(linkerDirective)` not allowed as statement");
+            return setError();
+        }
         else if (ps.ident == Id.startaddress)
         {
             if (!ps.args || ps.args.dim != 1)
@@ -2374,6 +2398,11 @@ else
 
         if (ps._body)
         {
+            if (ps.ident == Id.msg || ps.ident == Id.startaddress)
+            {
+                ps.error("`pragma(%s)` is missing a terminating `;`", ps.ident.toChars());
+                return setError();
+            }
             ps._body = ps._body.statementSemantic(sc);
         }
         result = ps._body;
@@ -3056,7 +3085,7 @@ else
                 rs.exp = new ErrorExp();
 
             // Extract side-effect part
-            rs.exp = Expression.extractLast(rs.exp, &e0);
+            rs.exp = Expression.extractLast(rs.exp, e0);
             if (rs.exp.op == TOK.call)
                 rs.exp = valueNoDtor(rs.exp);
 

@@ -121,7 +121,7 @@ inout(Expression) lastComma(inout Expression e)
  * Returns:
  *      Found function if it satisfies `isThis()`, otherwise `null`
  */
-extern (C++) FuncDeclaration hasThis(Scope* sc)
+FuncDeclaration hasThis(Scope* sc)
 {
     //printf("hasThis()\n");
     Dsymbol p = sc.parent;
@@ -175,7 +175,7 @@ Lno:
  * Returns:
  *      true means a `this` is needed
  */
-extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
+bool isNeedThisScope(Scope* sc, Declaration d)
 {
     if (sc.intypeof == 1)
         return false;
@@ -210,7 +210,7 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
  * check e is exp.opDispatch!(tiargs) or not
  * It's used to switch to UFCS the semantic analysis path
  */
-extern (C++) bool isDotOpDispatch(Expression e)
+bool isDotOpDispatch(Expression e)
 {
     return e.op == TOK.dotTemplateInstance && (cast(DotTemplateInstanceExp)e).ti.name == Id.opDispatch;
 }
@@ -363,7 +363,7 @@ extern (C++) TemplateDeclaration getFuncTemplateDecl(Dsymbol s)
  * If we want the value of this expression, but do not want to call
  * the destructor on it.
  */
-extern (C++) Expression valueNoDtor(Expression e)
+Expression valueNoDtor(Expression e)
 {
     auto ex = lastComma(e);
 
@@ -448,7 +448,7 @@ private Expression callCpCtor(Scope* sc, Expression e)
 /************************************************
  * Handle the postblit call on lvalue, or the move of rvalue.
  */
-extern (C++) Expression doCopyOrMove(Scope *sc, Expression e)
+Expression doCopyOrMove(Scope *sc, Expression e)
 {
     if (e.op == TOK.question)
     {
@@ -533,7 +533,7 @@ private:
  * Regard NaN's as equivalent.
  * Regard +0 and -0 as different.
  */
-extern (C++) int RealEquals(real_t x1, real_t x2)
+int RealEquals(real_t x1, real_t x2)
 {
     return (CTFloat.isNaN(x1) && CTFloat.isNaN(x2)) || CTFloat.isIdentical(x1, x2);
 }
@@ -545,64 +545,9 @@ extern (C++) int RealEquals(real_t x1, real_t x2)
  *      (foo).size
  *      cast(foo).size
  */
-extern (C++) DotIdExp typeDotIdExp(const ref Loc loc, Type type, Identifier ident)
+DotIdExp typeDotIdExp(const ref Loc loc, Type type, Identifier ident)
 {
     return new DotIdExp(loc, new TypeExp(loc, type), ident);
-}
-
-private Expression opAssignToOp(const ref Loc loc, TOK op, Expression e1, Expression e2)
-{
-    Expression e;
-    switch (op)
-    {
-    case TOK.addAssign:
-        e = new AddExp(loc, e1, e2);
-        break;
-
-    case TOK.minAssign:
-        e = new MinExp(loc, e1, e2);
-        break;
-
-    case TOK.mulAssign:
-        e = new MulExp(loc, e1, e2);
-        break;
-
-    case TOK.divAssign:
-        e = new DivExp(loc, e1, e2);
-        break;
-
-    case TOK.modAssign:
-        e = new ModExp(loc, e1, e2);
-        break;
-
-    case TOK.andAssign:
-        e = new AndExp(loc, e1, e2);
-        break;
-
-    case TOK.orAssign:
-        e = new OrExp(loc, e1, e2);
-        break;
-
-    case TOK.xorAssign:
-        e = new XorExp(loc, e1, e2);
-        break;
-
-    case TOK.leftShiftAssign:
-        e = new ShlExp(loc, e1, e2);
-        break;
-
-    case TOK.rightShiftAssign:
-        e = new ShrExp(loc, e1, e2);
-        break;
-
-    case TOK.unsignedRightShiftAssign:
-        e = new UshrExp(loc, e1, e2);
-        break;
-
-    default:
-        assert(0);
-    }
-    return e;
 }
 
 /***************************************************
@@ -708,7 +653,6 @@ extern (C++) abstract class Expression : RootObject
             {
                 fprintf(stderr, "No expression copy for: %s\n", toChars());
                 printf("op = %d\n", op);
-                print();
             }
             assert(0);
         }
@@ -728,12 +672,6 @@ extern (C++) abstract class Expression : RootObject
     override final DYNCAST dyncast() const
     {
         return DYNCAST.expression;
-    }
-
-    override final void print()
-    {
-        fprintf(stderr, "%s\n", toChars());
-        fflush(stderr);
     }
 
     override const(char)* toChars()
@@ -791,7 +729,7 @@ extern (C++) abstract class Expression : RootObject
     /**********************************
      * Combine e1 and e2 by CommaExp if both are not NULL.
      */
-    static Expression combine(Expression e1, Expression e2)
+    extern (D) static Expression combine(Expression e1, Expression e2)
     {
         if (e1)
         {
@@ -806,39 +744,38 @@ extern (C++) abstract class Expression : RootObject
         return e1;
     }
 
-    static Expression combine(Expression e1, Expression e2, Expression e3)
+    extern (D) static Expression combine(Expression e1, Expression e2, Expression e3)
     {
         return combine(combine(e1, e2), e3);
     }
 
-    static Expression combine(Expression e1, Expression e2, Expression e3, Expression e4)
+    extern (D) static Expression combine(Expression e1, Expression e2, Expression e3, Expression e4)
     {
         return combine(combine(e1, e2), combine(e3, e4));
     }
 
     /**********************************
-     * If 'e' is a tree of commas, returns the leftmost expression
+     * If 'e' is a tree of commas, returns the rightmost expression
      * by stripping off it from the tree. The remained part of the tree
-     * is returned via *pe0.
-     * Otherwise 'e' is directly returned and *pe0 is set to NULL.
+     * is returned via e0.
+     * Otherwise 'e' is directly returned and e0 is set to NULL.
      */
-    static Expression extractLast(Expression e, Expression* pe0)
+    extern (D) static Expression extractLast(Expression e, out Expression e0)
     {
         if (e.op != TOK.comma)
         {
-            *pe0 = null;
             return e;
         }
 
         CommaExp ce = cast(CommaExp)e;
         if (ce.e2.op != TOK.comma)
         {
-            *pe0 = ce.e1;
+            e0 = ce.e1;
             return ce.e2;
         }
         else
         {
-            *pe0 = e;
+            e0 = e;
 
             Expression* pce = &ce.e2;
             while ((cast(CommaExp)(*pce)).e2.op == TOK.comma)
@@ -853,7 +790,7 @@ extern (C++) abstract class Expression : RootObject
         }
     }
 
-    static Expressions* arraySyntaxCopy(Expressions* exps)
+    extern (D) static Expressions* arraySyntaxCopy(Expressions* exps)
     {
         Expressions* a = null;
         if (exps)
@@ -959,7 +896,8 @@ extern (C++) abstract class Expression : RootObject
             }
             else if (!type.isAssignable())
             {
-                error("cannot modify struct `%s` `%s` with `immutable` members", toChars(), type.toChars());
+                error("cannot modify struct instance `%s` of type `%s` because it contains `const` or `immutable` members",
+                    toChars(), type.toChars());
                 return new ErrorExp();
             }
         }
@@ -1022,7 +960,7 @@ extern (C++) abstract class Expression : RootObject
         return false;
     }
 
-    final bool checkScalar()
+    extern (D) final bool checkScalar()
     {
         if (op == TOK.error)
             return true;
@@ -1036,7 +974,7 @@ extern (C++) abstract class Expression : RootObject
         return checkValue();
     }
 
-    final bool checkNoBool()
+    extern (D) final bool checkNoBool()
     {
         if (op == TOK.error)
             return true;
@@ -1050,7 +988,7 @@ extern (C++) abstract class Expression : RootObject
         return false;
     }
 
-    final bool checkIntegral()
+    extern (D) final bool checkIntegral()
     {
         if (op == TOK.error)
             return true;
@@ -1064,7 +1002,7 @@ extern (C++) abstract class Expression : RootObject
         return checkValue();
     }
 
-    final bool checkArithmetic()
+    extern (D) final bool checkArithmetic()
     {
         if (op == TOK.error)
             return true;
@@ -1083,7 +1021,7 @@ extern (C++) abstract class Expression : RootObject
         return s.checkDeprecated(loc, sc);
     }
 
-    final bool checkDisabled(Scope* sc, Dsymbol s)
+    extern (D) final bool checkDisabled(Scope* sc, Dsymbol s)
     {
         if (auto d = s.isDeclaration())
         {
@@ -1099,7 +1037,7 @@ extern (C++) abstract class Expression : RootObject
      * we can only call other pure functions.
      * Returns true if error occurs.
      */
-    final bool checkPurity(Scope* sc, FuncDeclaration f)
+    extern (D) final bool checkPurity(Scope* sc, FuncDeclaration f)
     {
         if (!sc.func)
             return false;
@@ -1190,7 +1128,7 @@ extern (C++) abstract class Expression : RootObject
      * Check for purity and safety violations.
      * Returns true if error occurs.
      */
-    final bool checkPurity(Scope* sc, VarDeclaration v)
+    extern (D) final bool checkPurity(Scope* sc, VarDeclaration v)
     {
         //printf("v = %s %s\n", v.type.toChars(), v.toChars());
         /* Look for purity and safety violations when accessing variable v
@@ -1335,7 +1273,7 @@ extern (C++) abstract class Expression : RootObject
      * we can only call @safe or @trusted functions.
      * Returns true if error occurs.
      */
-    final bool checkSafety(Scope* sc, FuncDeclaration f)
+    extern (D) final bool checkSafety(Scope* sc, FuncDeclaration f)
     {
         if (!sc.func)
             return false;
@@ -1370,7 +1308,7 @@ extern (C++) abstract class Expression : RootObject
      * we can only call other @nogc functions.
      * Returns true if error occurs.
      */
-    final bool checkNogc(Scope* sc, FuncDeclaration f)
+    extern (D) final bool checkNogc(Scope* sc, FuncDeclaration f)
     {
         if (!sc.func)
             return false;
@@ -1399,7 +1337,7 @@ extern (C++) abstract class Expression : RootObject
      * Check that the postblit is callable if t is an array of structs.
      * Returns true if error happens.
      */
-    final bool checkPostblit(Scope* sc, Type t)
+    extern (D) final bool checkPostblit(Scope* sc, Type t)
     {
         t = t.baseElemOf();
         if (t.ty == Tstruct)
@@ -1425,7 +1363,7 @@ extern (C++) abstract class Expression : RootObject
         return false;
     }
 
-    final bool checkRightThis(Scope* sc)
+    extern (D) final bool checkRightThis(Scope* sc)
     {
         if (op == TOK.error)
             return true;
@@ -1448,7 +1386,7 @@ extern (C++) abstract class Expression : RootObject
      * ex is the RHS expression, or NULL if ++/-- is used (for diagnostics)
      * Returns true if error occurs.
      */
-    final bool checkReadModifyWrite(TOK rmwOp, Expression ex = null)
+    extern (D) final bool checkReadModifyWrite(TOK rmwOp, Expression ex = null)
     {
         //printf("Expression::checkReadModifyWrite() %s %s", toChars(), ex ? ex.toChars() : "");
         if (!type || !type.isShared())
@@ -1496,12 +1434,6 @@ extern (C++) abstract class Expression : RootObject
     Expression toBoolean(Scope* sc)
     {
         // Default is 'yes' - do nothing
-        debug
-        {
-            if (!type)
-                print();
-            assert(type);
-        }
         Expression e = this;
         Type t = type;
         Type tb = type.toBasetype();
@@ -1607,11 +1539,6 @@ extern (C++) abstract class Expression : RootObject
     bool isBool(bool result)
     {
         return false;
-    }
-
-    final Expression op_overload(Scope* sc)
-    {
-        return .op_overload(this, sc);
     }
 
     bool hasCode()
@@ -1823,6 +1750,35 @@ extern (C++) final class ErrorExp : Expression
 
     extern (C++) __gshared ErrorExp errorexp; // handy shared value
 }
+
+
+/***********************************************************
+ * An uninitialized value,
+ * generated from void initializers.
+ */
+extern (C++) final class VoidInitExp : Expression
+{
+    VarDeclaration var; /// the variable from where the void value came from, null if not known
+                        /// Useful for error messages
+
+    extern (D) this(VarDeclaration var)
+    {
+        super(var.loc, TOK.void_, __traits(classInstanceSize, VoidInitExp));
+        this.var = var;
+        this.type = var.type;
+    }
+
+    override const(char)* toChars() const
+    {
+        return "void";
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
 
 /***********************************************************
  */
@@ -2704,49 +2660,6 @@ extern (C++) final class ArrayLiteralExp : Expression
         return el;
     }
 
-    /** Copy element `Expressions` in the parameters when they're `ArrayLiteralExp`s.
-     * Params:
-     *      e1  = If it's ArrayLiteralExp, its `elements` will be copied.
-     *            Otherwise, `e1` itself will be pushed into the new `Expressions`.
-     *      e2  = If it's not `null`, it will be pushed/appended to the new
-     *            `Expressions` by the same way with `e1`.
-     * Returns:
-     *      Newly allocated `Expressions`. Note that it points to the original
-     *      `Expression` values in e1 and e2.
-     */
-    static Expressions* copyElements(Expression e1, Expression e2 = null)
-    {
-        auto elems = new Expressions();
-
-        void append(ArrayLiteralExp ale)
-        {
-            if (!ale.elements)
-                return;
-            auto d = elems.dim;
-            elems.append(ale.elements);
-            foreach (ref el; (*elems)[d .. elems.dim])
-            {
-                if (!el)
-                    el = ale.basis;
-            }
-        }
-
-        if (e1.op == TOK.arrayLiteral)
-            append(cast(ArrayLiteralExp)e1);
-        else
-            elems.push(e1);
-
-        if (e2)
-        {
-            if (e2.op == TOK.arrayLiteral)
-                append(cast(ArrayLiteralExp)e2);
-            else
-                elems.push(e2);
-        }
-
-        return elems;
-    }
-
     override bool isBool(bool result)
     {
         size_t dim = elements ? elements.dim : 0;
@@ -3347,11 +3260,6 @@ extern (C++) final class SymOffExp : SymbolExp
  */
 extern (C++) final class VarExp : SymbolExp
 {
-    /**
-    * Semantic can be called multiple times for a single expression.
-    * This field is needed to ensure the deprecation message will be printed only once.
-    */
-    bool hasCheckedAttrs;
     extern (D) this(const ref Loc loc, Declaration var, bool hasOverloads = true)
     {
         if (var.isVarDeclaration())
@@ -3361,7 +3269,6 @@ extern (C++) final class VarExp : SymbolExp
         //printf("VarExp(this = %p, '%s', loc = %s)\n", this, var.toChars(), loc.toChars());
         //if (strcmp(var.ident.toChars(), "func") == 0) assert(0);
         this.type = var.type;
-        this.hasCheckedAttrs = false;
     }
 
     static VarExp create(Loc loc, Declaration var, bool hasOverloads = true)
@@ -3390,8 +3297,6 @@ extern (C++) final class VarExp : SymbolExp
         assert(type);
         return var.checkModify(loc, sc, null, flag);
     }
-
-    bool checkReadModifyWrite();
 
     override bool isLvalue()
     {
@@ -3445,7 +3350,6 @@ extern (C++) final class VarExp : SymbolExp
     override Expression syntaxCopy()
     {
         auto ret = super.syntaxCopy();
-        (cast(VarExp)ret).hasCheckedAttrs = this.hasCheckedAttrs;
         return ret;
     }
 }
@@ -3520,7 +3424,7 @@ extern (C++) final class FuncExp : Expression
         return false;
     }
 
-    void genIdent(Scope* sc)
+    extern (D) void genIdent(Scope* sc)
     {
         if (fd.ident == Id.empty)
         {
@@ -3577,7 +3481,7 @@ extern (C++) final class FuncExp : Expression
             return new FuncExp(loc, fd);
     }
 
-    MATCH matchType(Type to, Scope* sc, FuncExp* presult, int flag = 0)
+    extern (D) MATCH matchType(Type to, Scope* sc, FuncExp* presult, int flag = 0)
     {
         //printf("FuncExp::matchType('%s'), to=%s\n", type ? type.toChars() : "null", to.toChars());
         if (presult)
@@ -3914,7 +3818,7 @@ extern (C++) final class IsExp : Expression
 
 /***********************************************************
  */
-extern (C++) class UnaExp : Expression
+extern (C++) abstract class UnaExp : Expression
 {
     Expression e1;
     Type att1;      // Save alias this type to detect recursion
@@ -3979,8 +3883,8 @@ extern (C++) class UnaExp : Expression
     }
 }
 
-extern (C++) alias fp_t = UnionExp function(const ref Loc loc, Type, Expression, Expression);
-extern (C++) alias fp2_t = int function(const ref Loc loc, TOK, Expression, Expression);
+alias fp_t = UnionExp function(const ref Loc loc, Type, Expression, Expression);
+alias fp2_t = int function(const ref Loc loc, TOK, Expression, Expression);
 
 /***********************************************************
  */
@@ -4041,7 +3945,7 @@ extern (C++) abstract class BinExp : Expression
         return new ErrorExp();
     }
 
-    final Expression checkOpAssignTypes(Scope* sc)
+    extern (D) final Expression checkOpAssignTypes(Scope* sc)
     {
         // At that point t1 and t2 are the merged types. type is the original type of the lhs.
         Type t1 = e1.type;
@@ -4188,14 +4092,14 @@ extern (C++) abstract class BinExp : Expression
         return this;
     }
 
-    final bool checkIntegralBin()
+    extern (D) final bool checkIntegralBin()
     {
         bool r1 = e1.checkIntegral();
         bool r2 = e2.checkIntegral();
         return (r1 || r2);
     }
 
-    final bool checkArithmeticBin()
+    extern (D) final bool checkArithmeticBin()
     {
         bool r1 = e1.checkArithmetic();
         bool r2 = e2.checkArithmetic();
@@ -4303,12 +4207,41 @@ extern (C++) class BinAssignExp : BinExp
 }
 
 /***********************************************************
+ * https://dlang.org/spec/expression.html#mixin_expressions
  */
-extern (C++) final class CompileExp : UnaExp
+extern (C++) final class CompileExp : Expression
 {
-    extern (D) this(const ref Loc loc, Expression e)
+    Expressions* exps;
+
+    extern (D) this(const ref Loc loc, Expressions* exps)
     {
-        super(loc, TOK.mixin_, __traits(classInstanceSize, CompileExp), e);
+        super(loc, TOK.mixin_, __traits(classInstanceSize, CompileExp));
+        this.exps = exps;
+    }
+
+    override Expression syntaxCopy()
+    {
+        return new CompileExp(loc, arraySyntaxCopy(exps));
+    }
+
+    override bool equals(RootObject o)
+    {
+        if (this == o)
+            return true;
+        if (o && o.dyncast() == DYNCAST.expression && (cast(Expression)o).op == TOK.mixin_)
+        {
+            CompileExp ce = cast(CompileExp)o;
+            if (exps.dim != ce.exps.dim)
+                return false;
+            foreach (i, e1; *exps)
+            {
+                Expression e2 = (*ce.exps)[i];
+                if (e1 != e2 && (!e1 || !e2 || !e1.equals(e2)))
+                    return false;
+            }
+            return true;
+        }
+        return false;
     }
 
     override void accept(Visitor v)
@@ -4471,8 +4404,6 @@ extern (C++) final class DotVarExp : UnaExp
         //printf("\te1 = %s\n", e1.toChars());
         return e1.checkModifiable(sc, flag);
     }
-
-    bool checkReadModifyWrite();
 
     override bool isLvalue()
     {
@@ -5135,42 +5066,6 @@ extern (C++) final class ArrayLengthExp : UnaExp
         super(loc, TOK.arrayLength, __traits(classInstanceSize, ArrayLengthExp), e1);
     }
 
-    /*********************
-     * Rewrite:
-     *    array.length op= e2
-     * as:
-     *    array.length = array.length op e2
-     * or:
-     *    auto tmp = &array;
-     *    (*tmp).length = (*tmp).length op e2
-     */
-    static Expression rewriteOpAssign(BinExp exp)
-    {
-        Expression e;
-
-        assert(exp.e1.op == TOK.arrayLength);
-        ArrayLengthExp ale = cast(ArrayLengthExp)exp.e1;
-        if (ale.e1.op == TOK.variable)
-        {
-            e = opAssignToOp(exp.loc, exp.op, ale, exp.e2);
-            e = new AssignExp(exp.loc, ale.syntaxCopy(), e);
-        }
-        else
-        {
-            /*    auto tmp = &array;
-             *    (*tmp).length = (*tmp).length op e2
-             */
-            auto tmp = copyToTemp(0, "__arraylength", new AddrExp(ale.loc, ale.e1));
-
-            Expression e1 = new ArrayLengthExp(ale.loc, new PtrExp(ale.loc, new VarExp(ale.loc, tmp)));
-            Expression elvalue = e1.syntaxCopy();
-            e = opAssignToOp(exp.loc, exp.op, e1, exp.e2);
-            e = new AssignExp(exp.loc, elvalue, e);
-            e = new CommaExp(exp.loc, new DeclarationExp(ale.loc, tmp), e);
-        }
-        return e;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -5519,6 +5414,7 @@ extern (C++) final class PostExp : BinExp
     extern (D) this(TOK op, const ref Loc loc, Expression e)
     {
         super(loc, op, __traits(classInstanceSize, PostExp), e, new IntegerExp(loc, 1, Type.tint32));
+        assert(op == TOK.minusMinus || op == TOK.plusPlus);
     }
 
     override void accept(Visitor v)
@@ -5535,6 +5431,7 @@ extern (C++) final class PreExp : UnaExp
     extern (D) this(TOK op, const ref Loc loc, Expression e)
     {
         super(loc, op, __traits(classInstanceSize, PreExp), e);
+        assert(op == TOK.preMinusMinus || op == TOK.prePlusPlus);
     }
 
     override void accept(Visitor v)
@@ -6076,6 +5973,7 @@ extern (C++) final class LogicalExp : BinExp
     extern (D) this(const ref Loc loc, TOK op, Expression e1, Expression e2)
     {
         super(loc, op, __traits(classInstanceSize, LogicalExp), e1, e2);
+        assert(op == TOK.andAnd || op == TOK.orOr);
     }
 
     override Expression toBoolean(Scope* sc)
@@ -6095,8 +5993,7 @@ extern (C++) final class LogicalExp : BinExp
 
 /***********************************************************
  * `op` is one of:
- *      TOK.lessThan, TOK.lessOrEqual, TOK.greaterThan, TOK.greaterOrEqual,
- *      TOK.unord, TOK.lg, TOK.leg, TOK.ule, TOK.ul, TOK.uge, TOK.ug, TOK.ue
+ *      TOK.lessThan, TOK.lessOrEqual, TOK.greaterThan, TOK.greaterOrEqual
  *
  * http://dlang.org/spec/expression.html#relation_expressions
  */
@@ -6105,6 +6002,7 @@ extern (C++) final class CmpExp : BinExp
     extern (D) this(TOK op, const ref Loc loc, Expression e1, Expression e2)
     {
         super(loc, op, __traits(classInstanceSize, CmpExp), e1, e2);
+        assert(op == TOK.lessThan || op == TOK.lessOrEqual || op == TOK.greaterThan || op == TOK.greaterOrEqual);
     }
 
     override void accept(Visitor v)
@@ -6178,6 +6076,7 @@ extern (C++) final class IdentityExp : BinExp
     extern (D) this(TOK op, const ref Loc loc, Expression e1, Expression e2)
     {
         super(loc, op, __traits(classInstanceSize, IdentityExp), e1, e2);
+        assert(op == TOK.identity || op == TOK.notIdentity);
     }
 
     override void accept(Visitor v)

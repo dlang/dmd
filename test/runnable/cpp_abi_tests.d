@@ -7,6 +7,11 @@ struct S
     float a = 1;
 }
 
+extern(C++, std)
+{
+    struct test19248 {int a = 34;}
+}
+
 bool   passthrough(bool   value);
 byte   passthrough(byte   value);
 ubyte  passthrough(ubyte  value);
@@ -21,6 +26,7 @@ ulong  passthrough(ulong  value);
 float  passthrough(float  value);
 double passthrough(double value);
 S      passthrough(S      value);
+std.test19248 passthrough(const(std.test19248) value);
 
 bool   passthrough_ptr(bool   *value);
 byte   passthrough_ptr(byte   *value);
@@ -36,6 +42,7 @@ ulong  passthrough_ptr(ulong  *value);
 float  passthrough_ptr(float  *value);
 double passthrough_ptr(double *value);
 S      passthrough_ptr(S      *value);
+std.test19248 passthrough_ptr(const(std.test19248)* value);
 
 bool   passthrough_ref(ref bool   value);
 byte   passthrough_ref(ref byte   value);
@@ -51,6 +58,7 @@ ulong  passthrough_ref(ref ulong  value);
 float  passthrough_ref(ref float  value);
 double passthrough_ref(ref double value);
 S      passthrough_ref(ref S      value);
+std.test19248 passthrough_ref(ref const(std.test19248) value);
 }
 
 template IsSigned(T)
@@ -154,4 +162,5 @@ void main()
     foreach(float val; values!float())   check(val);
     foreach(double val; values!double()) check(val);
     check(S());
+    check(std.test19248());
 }

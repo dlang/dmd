@@ -54,10 +54,10 @@ struct PushAttributes
 {
     Expressions* mods;
 
-    extern (C++) static int fp(void* param, const(char)* str)
+    extern (D) static int fp(void* param, string str)
     {
         PushAttributes* p = cast(PushAttributes*)param;
-        p.mods.push(new StringExp(Loc.initial, cast(char*)str));
+        p.mods.push(new StringExp(Loc.initial, cast(char*)str.ptr, str.length));
         return 0;
     }
 }
@@ -94,7 +94,7 @@ private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
     return getDsymbol(oarg);
 }
 
-extern (C++) __gshared StringTable traitsStringTable;
+private __gshared StringTable traitsStringTable;
 
 shared static this()
 {
@@ -147,9 +147,11 @@ shared static this()
         "getUnitTests",
         "getVirtualIndex",
         "getPointerBitmap",
+        "isZeroInit",
+        "getTargetInfo"
     ];
 
-    traitsStringTable._init(40);
+    traitsStringTable._init(48);
 
     foreach (s; names)
     {
@@ -163,7 +165,7 @@ shared static this()
  *  if interpreted as the type given as argument
  * Returns: the size of the type in bytes, d_uns64.max on error
  */
-extern (C++) d_uns64 getTypePointerBitmap(Loc loc, Type t, Array!(d_uns64)* data)
+d_uns64 getTypePointerBitmap(Loc loc, Type t, Array!(d_uns64)* data)
 {
     d_uns64 sz;
     if (t.ty == Tclass && !(cast(TypeClass)t).sym.isInterfaceDeclaration())
@@ -386,7 +388,7 @@ extern (C++) d_uns64 getTypePointerBitmap(Loc loc, Type t, Array!(d_uns64)* data
  *
  *  Returns: [T.sizeof, pointerbit0-31/63, pointerbit32/64-63/128, ...]
  */
-extern (C++) Expression pointerBitmap(TraitsExp e)
+private Expression pointerBitmap(TraitsExp e)
 {
     if (!e.args || e.args.dim != 1)
     {
@@ -415,7 +417,7 @@ extern (C++) Expression pointerBitmap(TraitsExp e)
     return ale;
 }
 
-extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
+Expression semanticTraits(TraitsExp e, Scope* sc)
 {
     static if (LOGSEMANTIC)
     {
@@ -925,7 +927,6 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             ex = ex.expressionSemantic(scx);
             if (errors < global.errors)
                 e.error("`%s` cannot be resolved", eorig.toChars());
-            //ex.print();
 
             /* Create tuple of functions of ex
              */
@@ -1645,7 +1646,36 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (cmp(s1,s2) || cmp(s2,s1))
             return True();
 
-        return (s1 == s2) ? True() : False();
+        if (s1 == s2)
+            return True();
+
+        // https://issues.dlang.org/show_bug.cgi?id=18771
+        // OverloadSets are equal if they contain the same functions
+        auto overSet1 = s1.isOverloadSet();
+        if (!overSet1)
+            return False();
+
+        auto overSet2 = s2.isOverloadSet();
+        if (!overSet2)
+            return False();
+
+        if (overSet1.a.dim != overSet2.a.dim)
+            return False();
+
+        // OverloadSets contain array of Dsymbols => O(n*n)
+        // to compare for equality as the order of overloads
+        // might not be the same
+Lnext:
+        foreach(overload1; overSet1.a)
+        {
+            foreach(overload2; overSet2.a)
+            {
+                if (overload1 == overload2)
+                    continue Lnext;
+            }
+            return False();
+        }
+        return True();
     }
     if (e.ident == Id.getUnitTests)
     {
@@ -1729,6 +1759,45 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident == Id.getPointerBitmap)
     {
         return pointerBitmap(e);
+    }
+    if (e.ident == Id.isZeroInit)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        auto o = (*e.args)[0];
+        Type t = isType(o);
+        if (!t)
+        {
+            e.error("type expected as second argument of __traits `%s` instead of `%s`",
+                e.ident.toChars(), o.toChars());
+            return new ErrorExp();
+        }
+
+        Type tb = t.baseElemOf();
+        return tb.isZeroInit(e.loc) ? True() : False();
+    }
+    if (e.ident == Id.getTargetInfo)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        auto ex = isExpression((*e.args)[0]);
+        StringExp se = ex ? ex.ctfeInterpret().toStringExp() : null;
+        if (!ex || !se || se.len == 0)
+        {
+            e.error("string expected as argument of __traits `%s` instead of `%s`", e.ident.toChars(), ex.toChars());
+            return new ErrorExp();
+        }
+        se = se.toUTF8(sc);
+
+        Expression r = Target.getTargetInfo(se.toPtr(), e.loc);
+        if (!r)
+        {
+            e.error("`getTargetInfo` key `\"%s\"` not supported by this implementation", se.toPtr());
+            return new ErrorExp();
+        }
+        return r.expressionSemantic(sc);
     }
 
     extern (D) void* trait_search_fp(const(char)* seed, ref int cost)

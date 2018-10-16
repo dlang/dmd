@@ -141,7 +141,7 @@ download_install_sh() {
     "https://dlang.org/install.sh"
     "https://downloads.dlang.org/other/install.sh"
     "https://nightlies.dlang.org/install.sh"
-    "https://github.com/dlang/installer/raw/master/script/install.sh"
+    "https://raw.githubusercontent.com/dlang/installer/master/script/install.sh"
   )
   if [ -f "$location" ] ; then
       return

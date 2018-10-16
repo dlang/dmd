@@ -622,11 +622,8 @@ void cdsetjmp(ref CodeBuilder cdb, elem *e,regm_t *pretregs)
 
     stackpushsave = stackpush;
 version (SCPP)
-    enum SCPP = true;
-else
-    enum SCPP = false;
-
-    if (SCPP && CPP && (funcsym_p.Sfunc.Fflags3 & Fcppeh || usednteh & NTEHcpp))
+{
+    if (CPP && (funcsym_p.Sfunc.Fflags3 & Fcppeh || usednteh & NTEHcpp))
     {
         /*  If in C++ try block
             If the frame that is calling setjmp has a try,catch block then
@@ -666,8 +663,9 @@ else
         cdb.genadjesp(4);
 
         flag = 3;
+        goto L2;
     }
-    else
+}
     if (funcsym_p.Sfunc.Fflags3 & Fnteh)
     {
         /*  If in NT SEH try block
@@ -716,7 +714,7 @@ else
     L1:
         flag = 0;
     }
-
+L2:
     cs.Iop = 0x68;
     cs.Iflags = 0;
     cs.Irex = 0;

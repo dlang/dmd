@@ -5,18 +5,13 @@
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/tokens.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/tokens.h
  */
 
-#ifndef DMD_TOKENS_H
-#define DMD_TOKENS_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
-#include "port.h"
-#include "mars.h"
+#include "root/port.h"
+#include "globals.h"
 
 class Identifier;
 
@@ -191,6 +186,12 @@ enum TOK
 
 #define TOKwild TOKinout
 
+// Token has an anonymous struct, which is not strict ISO C++.
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+#endif
+
 struct Token
 {
     Token *next;
@@ -217,19 +218,13 @@ struct Token
         Identifier *ident;
     };
 
-    static const char *tochars[TOKMAX];
-
-    static Token *freelist;
-    static Token *alloc();
     void free();
 
     Token() : next(NULL) {}
     int isKeyword();
-#ifdef DEBUG
-    void print();
-#endif
     const char *toChars() const;
-    static const char *toChars(TOK);
 };
 
-#endif /* DMD_TOKENS_H */
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif

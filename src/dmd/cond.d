@@ -653,6 +653,11 @@ extern (C++) final class VersionCondition : DVCondition
             case "CRuntime_Microsoft":
             case "CRuntime_Musl":
             case "CRuntime_UClibc":
+            case "CppRuntime_Clang":
+            case "CppRuntime_DigitalMars":
+            case "CppRuntime_Gcc":
+            case "CppRuntime_Microsoft":
+            case "CppRuntime_Sun":
             case "unittest":
             case "assert":
             case "all":

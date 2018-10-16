@@ -55,7 +55,7 @@ extern(C++) Statement asmSemantic(AsmStatement s, Scope *sc)
     }
     else
     {
-        error("D inline assembler statements are not supported");
+        s.error("D inline assembler statements are not supported");
         return new ErrorStatement();
     }
 }

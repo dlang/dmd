@@ -22,6 +22,7 @@ import dmd.root.rootobject;
 import dmd.root.stringtable;
 import dmd.tokens;
 import dmd.utf;
+import dmd.utils;
 
 
 /***********************************************************
@@ -30,17 +31,26 @@ extern (C++) final class Identifier : RootObject
 {
 private:
     const int value;
-    const char* name;
-    const size_t len;
+    const char[] name;
 
 public:
+    /**
+       Construct an identifier from a D slice
 
+       Note: Since `name` needs to be `\0` terminated for `toChars`,
+       no slice overload is provided yet.
+
+       Params:
+         name = the identifier name
+                There must be `'\0'` at `name[length]`.
+         length = the length of `name`, excluding the terminating `'\0'`
+         value = Identifier value (e.g. `Id.unitTest`) or `TOK.identifier`
+     */
     extern (D) this(const(char)* name, size_t length, int value) nothrow
     {
         //printf("Identifier('%s', %d)\n", name, value);
-        this.name = name;
+        this.name = name[0 .. length];
         this.value = value;
-        this.len = length;
     }
 
     extern (D) this(const(char)* name) nothrow
@@ -56,28 +66,23 @@ public:
 
     override bool equals(RootObject o) const
     {
-        return this == o || strncmp(name, o.toChars(), len + 1) == 0;
+        return this == o || name == o.toString();
     }
 
     override int compare(RootObject o) const
     {
-        return strncmp(name, o.toChars(), len + 1);
+        return strncmp(name.ptr, o.toChars(), name.length + 1);
     }
 
 nothrow:
-    override void print() const
-    {
-        fprintf(stderr, "%s", name);
-    }
-
     override const(char)* toChars() const pure
     {
-        return name;
+        return name.ptr;
     }
 
-    extern (D) const(char)[] toString() const pure
+    extern (D) override const(char)[] toString() const pure
     {
-        return name[0 .. len];
+        return name;
     }
 
     int getValue() const pure
@@ -123,7 +128,7 @@ nothrow:
         return DYNCAST.identifier;
     }
 
-    extern (C++) __gshared StringTable stringtable;
+    private extern (D) __gshared StringTable stringtable;
 
     /**
        A secondary string table is used to guarantee that we generate unique
@@ -135,7 +140,7 @@ nothrow:
        https://issues.dlang.org/show_bug.cgi?id=18868
        https://issues.dlang.org/show_bug.cgi?id=19058.
      */
-    private extern (C++) __gshared StringTable fullPathStringTable;
+    private extern (D) __gshared StringTable fullPathStringTable;
 
     static Identifier generateId(const(char)* prefix)
     {
@@ -169,9 +174,8 @@ nothrow:
         import dmd.root.filename: absPathThen;
 
         // see below for why we use absPathThen
-        return loc.filename.absPathThen!((absPath)
+        return loc.filename.toDString().absPathThen!((absPath)
         {
-
             // this block generates the "regular" identifier, i.e. if there are no collisions
             OutBuffer idBuf;
             idBuf.writestring(prefix);
@@ -197,13 +201,13 @@ nothrow:
             if (absPath)
             {
                 // replace characters that demangle can't handle
-                for (auto ptr = absPath; *ptr != '\0'; ++ptr)
+                foreach (ref c; absPath)
                 {
                     // see dmd.dmangle.isValidMangling
                     // Unfortunately importing it leads to either build failures or cyclic dependencies
                     // between modules.
-                    if (*ptr == '/' || *ptr == '\\' || *ptr == '.' || *ptr == '?' || *ptr == ':')
-                        *ptr = '_';
+                    if (c == '/' || c == '\\' || c == '.' || c == '?' || c == ':')
+                        c = '_';
                 }
 
                 fullPathIdBuf.writestring(absPath);
@@ -273,15 +277,24 @@ nothrow:
      */
     static bool isValidIdentifier(const(char)* p)
     {
-        size_t len;
-        size_t idx;
         if (!p || !*p)
+            return false;
+        return isValidIdentifier(p.toDString);
+    }
+
+    /**********************************
+     * ditto
+     */
+    extern (D) static bool isValidIdentifier(const(char)[] str)
+    {
+        const(char)* p = str.ptr;
+        size_t len = str.length;
+        size_t idx = 0;
+        if (!p || len == 0)
             goto Linvalid;
         if (*p >= '0' && *p <= '9') // beware of isdigit() on signed chars
             goto Linvalid;
-        len = strlen(p);
-        idx = 0;
-        while (p[idx])
+        while (idx < len)
         {
             dchar dc;
             const q = utf_decodeChar(p, len, idx, dc);
@@ -295,7 +308,7 @@ nothrow:
         return false;
     }
 
-    static Identifier lookup(const(char)* s, size_t len)
+    extern (D) static Identifier lookup(const(char)* s, size_t len)
     {
         auto sv = stringtable.lookup(s, len);
         if (!sv)
@@ -303,7 +316,7 @@ nothrow:
         return cast(Identifier)sv.ptrvalue;
     }
 
-    static void initTable()
+    extern (D) static void initTable()
     {
         enum size = 28_000;
         stringtable._init(size);

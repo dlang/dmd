@@ -47,7 +47,7 @@ private Expression expType(Type type, Expression e)
  * Returns:
  *    true if e is a constant
  */
-extern (C++) int isConst(Expression e)
+int isConst(Expression e)
 {
     //printf("Expression::isConst(): %s\n", e.toChars());
     switch (e.op)
@@ -81,7 +81,7 @@ void cantExp(out UnionExp ue)
  * and so have been folded in with them.
  */
 /* ========================================================================== */
-extern (C++) UnionExp Neg(Type type, Expression e1)
+UnionExp Neg(Type type, Expression e1)
 {
     UnionExp ue = void;
     Loc loc = e1.loc;
@@ -104,7 +104,7 @@ extern (C++) UnionExp Neg(Type type, Expression e1)
     return ue;
 }
 
-extern (C++) UnionExp Com(Type type, Expression e1)
+UnionExp Com(Type type, Expression e1)
 {
     UnionExp ue = void;
     Loc loc = e1.loc;
@@ -112,7 +112,7 @@ extern (C++) UnionExp Com(Type type, Expression e1)
     return ue;
 }
 
-extern (C++) UnionExp Not(Type type, Expression e1)
+UnionExp Not(Type type, Expression e1)
 {
     UnionExp ue = void;
     Loc loc = e1.loc;
@@ -128,7 +128,7 @@ private UnionExp Bool(Type type, Expression e1)
     return ue;
 }
 
-extern (C++) UnionExp Add(const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Add(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
     static if (LOG)
@@ -235,7 +235,7 @@ extern (C++) UnionExp Add(const ref Loc loc, Type type, Expression e1, Expressio
     return ue;
 }
 
-extern (C++) UnionExp Min(const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Min(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
     if (type.isreal())
@@ -334,7 +334,7 @@ extern (C++) UnionExp Min(const ref Loc loc, Type type, Expression e1, Expressio
     return ue;
 }
 
-extern (C++) UnionExp Mul(const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Mul(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
     if (type.isfloating())
@@ -383,14 +383,12 @@ extern (C++) UnionExp Mul(const ref Loc loc, Type type, Expression e1, Expressio
     return ue;
 }
 
-extern (C++) UnionExp Div(const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Div(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
     if (type.isfloating())
     {
         auto c = complex_t(CTFloat.zero);
-        //e1.type.print();
-        //e2.type.print();
         if (e2.type.isreal())
         {
             if (e1.type.isreal())
@@ -474,7 +472,7 @@ extern (C++) UnionExp Div(const ref Loc loc, Type type, Expression e1, Expressio
     return ue;
 }
 
-extern (C++) UnionExp Mod(const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Mod(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
     if (type.isfloating())
@@ -539,7 +537,7 @@ extern (C++) UnionExp Mod(const ref Loc loc, Type type, Expression e1, Expressio
     return ue;
 }
 
-extern (C++) UnionExp Pow(const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Pow(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     //printf("Pow()\n");
     UnionExp ue;
@@ -619,14 +617,14 @@ extern (C++) UnionExp Pow(const ref Loc loc, Type type, Expression e1, Expressio
     return ue;
 }
 
-extern (C++) UnionExp Shl(const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Shl(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
     emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() << e2.toInteger(), type);
     return ue;
 }
 
-extern (C++) UnionExp Shr(const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Shr(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
     dinteger_t value = e1.toInteger();
@@ -672,7 +670,7 @@ extern (C++) UnionExp Shr(const ref Loc loc, Type type, Expression e1, Expressio
     return ue;
 }
 
-extern (C++) UnionExp Ushr(const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Ushr(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
     dinteger_t value = e1.toInteger();
@@ -712,21 +710,21 @@ extern (C++) UnionExp Ushr(const ref Loc loc, Type type, Expression e1, Expressi
     return ue;
 }
 
-extern (C++) UnionExp And(const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp And(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
     emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() & e2.toInteger(), type);
     return ue;
 }
 
-extern (C++) UnionExp Or(const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Or(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
     emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() | e2.toInteger(), type);
     return ue;
 }
 
-extern (C++) UnionExp Xor(const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Xor(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     //printf("Xor(linnum = %d, e1 = %s, e2 = %s)\n", loc.linnum, e1.toChars(), e2.toChars());
     UnionExp ue = void;
@@ -736,7 +734,7 @@ extern (C++) UnionExp Xor(const ref Loc loc, Type type, Expression e1, Expressio
 
 /* Also returns TOK.cantExpression if cannot be computed.
  */
-extern (C++) UnionExp Equal(TOK op, const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Equal(TOK op, const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
     int cmp = 0;
@@ -936,7 +934,7 @@ extern (C++) UnionExp Equal(TOK op, const ref Loc loc, Type type, Expression e1,
     return ue;
 }
 
-extern (C++) UnionExp Identity(TOK op, const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Identity(TOK op, const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
     int cmp;
@@ -982,7 +980,7 @@ extern (C++) UnionExp Identity(TOK op, const ref Loc loc, Type type, Expression 
     return ue;
 }
 
-extern (C++) UnionExp Cmp(TOK op, const ref Loc loc, Type type, Expression e1, Expression e2)
+UnionExp Cmp(TOK op, const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
     dinteger_t n;
@@ -1044,7 +1042,7 @@ extern (C++) UnionExp Cmp(TOK op, const ref Loc loc, Type type, Expression e1, E
  *  to: type to cast to
  *  type: type to paint the result
  */
-extern (C++) UnionExp Cast(const ref Loc loc, Type type, Type to, Expression e1)
+UnionExp Cast(const ref Loc loc, Type type, Type to, Expression e1)
 {
     UnionExp ue = void;
     Type tb = to.toBasetype();
@@ -1197,7 +1195,7 @@ extern (C++) UnionExp Cast(const ref Loc loc, Type type, Type to, Expression e1)
     return ue;
 }
 
-extern (C++) UnionExp ArrayLength(Type type, Expression e1)
+UnionExp ArrayLength(Type type, Expression e1)
 {
     UnionExp ue = void;
     Loc loc = e1.loc;
@@ -1230,7 +1228,7 @@ extern (C++) UnionExp ArrayLength(Type type, Expression e1)
 
 /* Also return TOK.cantExpression if this fails
  */
-extern (C++) UnionExp Index(Type type, Expression e1, Expression e2)
+UnionExp Index(Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
     Loc loc = e1.loc;
@@ -1332,7 +1330,7 @@ extern (C++) UnionExp Index(Type type, Expression e1, Expression e2)
 
 /* Also return TOK.cantExpression if this fails
  */
-extern (C++) UnionExp Slice(Type type, Expression e1, Expression lwr, Expression upr)
+UnionExp Slice(Type type, Expression e1, Expression lwr, Expression upr)
 {
     UnionExp ue = void;
     Loc loc = e1.loc;
@@ -1397,7 +1395,7 @@ extern (C++) UnionExp Slice(Type type, Expression e1, Expression lwr, Expression
 /* Set a slice of char/integer array literal 'existingAE' from a string 'newval'.
  * existingAE[firstIndex..firstIndex+newval.length] = newval.
  */
-extern (C++) void sliceAssignArrayLiteralFromString(ArrayLiteralExp existingAE, const StringExp newval, size_t firstIndex)
+void sliceAssignArrayLiteralFromString(ArrayLiteralExp existingAE, const StringExp newval, size_t firstIndex)
 {
     const len = newval.len;
     Type elemType = existingAE.type.nextOf();
@@ -1411,7 +1409,7 @@ extern (C++) void sliceAssignArrayLiteralFromString(ArrayLiteralExp existingAE, 
 /* Set a slice of string 'existingSE' from a char array literal 'newae'.
  *   existingSE[firstIndex..firstIndex+newae.length] = newae.
  */
-extern (C++) void sliceAssignStringFromArrayLiteral(StringExp existingSE, ArrayLiteralExp newae, size_t firstIndex)
+void sliceAssignStringFromArrayLiteral(StringExp existingSE, ArrayLiteralExp newae, size_t firstIndex)
 {
     assert(existingSE.ownedByCtfe != OwnedBy.code);
     foreach (j; 0 .. newae.elements.dim)
@@ -1423,7 +1421,7 @@ extern (C++) void sliceAssignStringFromArrayLiteral(StringExp existingSE, ArrayL
 /* Set a slice of string 'existingSE' from a string 'newstr'.
  *   existingSE[firstIndex..firstIndex+newstr.length] = newstr.
  */
-extern (C++) void sliceAssignStringFromString(StringExp existingSE, const StringExp newstr, size_t firstIndex)
+void sliceAssignStringFromString(StringExp existingSE, const StringExp newstr, size_t firstIndex)
 {
     assert(existingSE.ownedByCtfe != OwnedBy.code);
     size_t sz = existingSE.sz;
@@ -1434,7 +1432,7 @@ extern (C++) void sliceAssignStringFromString(StringExp existingSE, const String
 /* Compare a string slice with another string slice.
  * Conceptually equivalent to memcmp( se1[lo1..lo1+len],  se2[lo2..lo2+len])
  */
-extern (C++) int sliceCmpStringWithString(const StringExp se1, const StringExp se2, size_t lo1, size_t lo2, size_t len)
+int sliceCmpStringWithString(const StringExp se1, const StringExp se2, size_t lo1, size_t lo2, size_t len)
 {
     size_t sz = se1.sz;
     assert(sz == se2.sz);
@@ -1444,7 +1442,7 @@ extern (C++) int sliceCmpStringWithString(const StringExp se1, const StringExp s
 /* Compare a string slice with an array literal slice
  * Conceptually equivalent to memcmp( se1[lo1..lo1+len],  ae2[lo2..lo2+len])
  */
-extern (C++) int sliceCmpStringWithArray(const StringExp se1, ArrayLiteralExp ae2, size_t lo1, size_t lo2, size_t len)
+int sliceCmpStringWithArray(const StringExp se1, ArrayLiteralExp ae2, size_t lo1, size_t lo2, size_t len)
 {
     foreach (j; 0 .. len)
     {
@@ -1457,9 +1455,52 @@ extern (C++) int sliceCmpStringWithArray(const StringExp se1, ArrayLiteralExp ae
     return 0;
 }
 
+/** Copy element `Expressions` in the parameters when they're `ArrayLiteralExp`s.
+ * Params:
+ *      e1  = If it's ArrayLiteralExp, its `elements` will be copied.
+ *            Otherwise, `e1` itself will be pushed into the new `Expressions`.
+ *      e2  = If it's not `null`, it will be pushed/appended to the new
+ *            `Expressions` by the same way with `e1`.
+ * Returns:
+ *      Newly allocated `Expressions`. Note that it points to the original
+ *      `Expression` values in e1 and e2.
+ */
+private Expressions* copyElements(Expression e1, Expression e2 = null)
+{
+    auto elems = new Expressions();
+
+    void append(ArrayLiteralExp ale)
+    {
+        if (!ale.elements)
+            return;
+        auto d = elems.dim;
+        elems.append(ale.elements);
+        foreach (ref el; (*elems)[d .. elems.dim])
+        {
+            if (!el)
+                el = ale.basis;
+        }
+    }
+
+    if (e1.op == TOK.arrayLiteral)
+        append(cast(ArrayLiteralExp)e1);
+    else
+        elems.push(e1);
+
+    if (e2)
+    {
+        if (e2.op == TOK.arrayLiteral)
+            append(cast(ArrayLiteralExp)e2);
+        else
+            elems.push(e2);
+    }
+
+    return elems;
+}
+
 /* Also return TOK.cantExpression if this fails
  */
-extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
+UnionExp Cat(Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
     Expression e = CTFEExp.cantexp;
@@ -1647,7 +1688,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
     else if (e1.op == TOK.arrayLiteral && e2.op == TOK.arrayLiteral && t1.nextOf().equals(t2.nextOf()))
     {
         // Concatenate the arrays
-        auto elems = ArrayLiteralExp.copyElements(e1, e2);
+        auto elems = copyElements(e1, e2);
 
         emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, cast(Type)null, elems);
 
@@ -1671,7 +1712,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         e = e2;
     L3:
         // Concatenate the array with null
-        auto elems = ArrayLiteralExp.copyElements(e);
+        auto elems = copyElements(e);
 
         emplaceExp!(ArrayLiteralExp)(&ue, e.loc, cast(Type)null, elems);
 
@@ -1688,7 +1729,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
     else if ((e1.op == TOK.arrayLiteral || e1.op == TOK.null_) && e1.type.toBasetype().nextOf() && e1.type.toBasetype().nextOf().equals(e2.type))
     {
         auto elems = (e1.op == TOK.arrayLiteral)
-                ? ArrayLiteralExp.copyElements(e1) : new Expressions();
+                ? copyElements(e1) : new Expressions();
         elems.push(e2);
 
         emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, cast(Type)null, elems);
@@ -1705,7 +1746,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
     }
     else if (e2.op == TOK.arrayLiteral && e2.type.toBasetype().nextOf().equals(e1.type))
     {
-        auto elems = ArrayLiteralExp.copyElements(e1, e2);
+        auto elems = copyElements(e1, e2);
 
         emplaceExp!(ArrayLiteralExp)(&ue, e2.loc, cast(Type)null, elems);
 
@@ -1757,7 +1798,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
     return ue;
 }
 
-extern (C++) UnionExp Ptr(Type type, Expression e1)
+UnionExp Ptr(Type type, Expression e1)
 {
     //printf("Ptr(e1 = %s)\n", e1.toChars());
     UnionExp ue = void;

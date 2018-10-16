@@ -119,8 +119,11 @@ debug
 debug (DEBUG_TREES)
     void dbg_optprint(const(char) *);
 else
-                        // to print progress message, undo comment
-    void dbg_optprint(const(char) *c) { printf(c); }
+    void dbg_optprint(const(char) *c)
+    {
+        // to print progress message, undo comment
+        // printf(c);
+    }
 }
 else
 {

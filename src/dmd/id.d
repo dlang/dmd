@@ -304,6 +304,7 @@ immutable Msgtable[] msgtable =
     // For pragma's
     { "Pinline", "inline" },
     { "lib" },
+    { "linkerDirective" },
     { "mangle" },
     { "msg" },
     { "startaddress" },
@@ -403,6 +404,8 @@ immutable Msgtable[] msgtable =
     { "getVirtualIndex" },
     { "getPointerBitmap" },
     { "isReturnOnStack" },
+    { "isZeroInit" },
+    { "getTargetInfo" },
 
     // For C++ mangling
     { "allocator" },

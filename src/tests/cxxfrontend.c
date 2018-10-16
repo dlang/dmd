@@ -8,18 +8,18 @@
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tests/cxxfrontend.c, _cxxfrontend.c)
  */
 
-#include "array.h"
-#include "ctfloat.h"
-#include "file.h"
-#include "filename.h"
-#include "longdouble.h"
-#include "object.h"
-#include "outbuffer.h"
-#include "port.h"
-#include "rmem.h"
-#include "root.h"
-#include "stringtable.h"
-#include "thread.h"
+#include "root/array.h"
+#include "root/ctfloat.h"
+#include "root/dcompat.h"
+#include "root/file.h"
+#include "root/filename.h"
+#include "root/longdouble.h"
+#include "root/object.h"
+#include "root/outbuffer.h"
+#include "root/port.h"
+#include "root/rmem.h"
+#include "root/root.h"
+#include "root/thread.h"
 
 #include "aggregate.h"
 #include "aliasthis.h"
@@ -30,6 +30,7 @@
 #include "cond.h"
 #include "ctfe.h"
 #include "declaration.h"
+#include "doc.h"
 #include "dsymbol.h"
 #include "enum.h"
 #include "errors.h"
@@ -40,9 +41,9 @@
 #include "id.h"
 #include "import.h"
 #include "init.h"
-#include "intrange.h"
 #include "json.h"
 #include "mars.h"
+#include "mangle.h"
 #include "module.h"
 #include "mtype.h"
 #include "nspace.h"
@@ -68,6 +69,7 @@ static void frontend_init()
 
     global._init();
     global.params.isLinux = true;
+    global.vendor = "Front-End Tester";
 
     Type::_init();
     Id::initialize();
@@ -101,15 +103,21 @@ class TestVisitor : public Visitor
     bool attrib;
     bool decl;
     bool typeinfo;
+    bool idexpr;
 
     TestVisitor() : expr(false), package(false), stmt(false), type(false),
-        aggr(false), attrib(false), decl(false), typeinfo(false)
+        aggr(false), attrib(false), decl(false), typeinfo(false), idexpr(false)
     {
     }
 
     void visit(Expression *)
     {
         expr = true;
+    }
+
+    void visit(IdentifierExp *)
+    {
+        idexpr = true;
     }
 
     void visit(Package *)
@@ -157,6 +165,10 @@ void test_visitors()
     IntegerExp *ie = IntegerExp::createi(loc, 42, Type::tint32);
     ie->accept(&tv);
     assert(tv.expr == true);
+
+    IdentifierExp *id = IdentifierExp::create (loc, ident);
+    id->accept(&tv);
+    assert(tv.idexpr == true);
 
     Module *mod = Module::create("test", ident, 0, 0);
     mod->accept(&tv);
@@ -217,12 +229,25 @@ void test_semantic()
 
 /**********************************/
 
+void test_expression()
+{
+    Loc loc;
+    IntegerExp *ie = IntegerExp::createi(loc, 42, Type::tint32);
+    Expression *e = ie->ctfeInterpret();
+
+    assert(e);
+    assert(e->isConst());
+}
+
+/**********************************/
+
 int main(int argc, char **argv)
 {
     frontend_init();
 
     test_visitors();
     test_semantic();
+    test_expression();
 
     frontend_term();
 

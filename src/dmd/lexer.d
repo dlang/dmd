@@ -527,7 +527,7 @@ class Lexer : ErrorHandler
                         }
                         else if (id == Id.VENDOR)
                         {
-                            t.ustring = global.compiler.vendor;
+                            t.ustring = global.vendor;
                             goto Lstr;
                         }
                         else if (id == Id.TIMESTAMP)
@@ -1820,17 +1820,9 @@ class Lexer : ErrorHandler
             case '5':
             case '6':
             case '7':
-                n = c - '0';
-                ++p;
-                base = 8;
-                break;
             case '8':
             case '9':
-                n = c - '0';
-                ++p;
                 base = 8;
-                error("radix %d digit expected, not `%c`", base, c);
-                err = true;
                 break;
             case 'x':
             case 'X':
@@ -1871,39 +1863,15 @@ class Lexer : ErrorHandler
             {
             case '0':
             case '1':
-                if (base == 2 && !anyBinaryDigitsUS)
-                    anyBinaryDigitsUS = true;
-                else if (base == 16 && !anyHexDigitsNoSingleUS)
-                    anyHexDigitsNoSingleUS = true;
-                ++p;
-                d = c - '0';
-                break;
             case '2':
             case '3':
             case '4':
             case '5':
             case '6':
             case '7':
-                if (base == 16 && !anyHexDigitsNoSingleUS)
-                    anyHexDigitsNoSingleUS = true;
-                if (base == 2 && !err)
-                {
-                    error("binary digit expected");
-                    err = true;
-                }
-                ++p;
-                d = c - '0';
-                break;
             case '8':
             case '9':
-                if (base == 16 && !anyHexDigitsNoSingleUS)
-                    anyHexDigitsNoSingleUS = true;
                 ++p;
-                if (base < 10 && !err)
-                {
-                    error("radix %d digit expected, not `%c`", base, c);
-                    err = true;
-                }
                 d = c - '0';
                 break;
             case 'a':
@@ -1918,18 +1886,11 @@ class Lexer : ErrorHandler
             case 'D':
             case 'E':
             case 'F':
-                if (base == 16 && !anyHexDigitsNoSingleUS)
-                    anyHexDigitsNoSingleUS = true;
                 ++p;
                 if (base != 16)
                 {
                     if (c == 'e' || c == 'E' || c == 'f' || c == 'F')
                         goto Lreal;
-                    if (!err)
-                    {
-                        error("radix %d digit expected, not `%c`", base, c);
-                        err = true;
-                    }
                 }
                 if (c >= 'a')
                     d = c + 10 - 'a';
@@ -1953,12 +1914,21 @@ class Lexer : ErrorHandler
                 p = start;
                 return inreal(t);
             case '_':
-                if (base == 2 && !anyBinaryDigitsUS)
-                    anyBinaryDigitsUS = true;
+                anyBinaryDigitsUS = true;
                 ++p;
                 continue;
             default:
                 goto Ldone;
+            }
+            // got a digit here, set any necessary flags, check for errors
+            anyHexDigitsNoSingleUS = true;
+            anyBinaryDigitsUS = true;
+            if (!err && d >= base)
+            {
+                error("%s digit expected, not `%c`", base == 2 ? "binary".ptr :
+                                                     base == 8 ? "octal".ptr :
+                                                     "decimal".ptr, c);
+                err = true;
             }
             // Avoid expensive overflow check if we aren't at risk of overflow
             if (n <= 0x0FFF_FFFF_FFFF_FFFFUL)
@@ -2024,7 +1994,13 @@ class Lexer : ErrorHandler
             break;
         }
         if (base == 8 && n >= 8)
-            error("octal literals `0%llo%.*s` are no longer supported, use `std.conv.octal!%llo%.*s` instead", n, p - psuffix, psuffix, n, p - psuffix, psuffix);
+        {
+            if (err)
+                // can't translate invalid octal value, just show a generic message
+                error("octal literals larger than 7 are no longer supported");
+            else
+                error("octal literals `0%llo%.*s` are no longer supported, use `std.conv.octal!%llo%.*s` instead", n, p - psuffix, psuffix, n, p - psuffix, psuffix);
+        }
         TOK result;
         switch (flags)
         {

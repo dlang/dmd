@@ -682,12 +682,16 @@ struct FuncParamRegs
     const unsigned char* floatregs;     // map to fp register
 };
 
+FuncParamRegs FuncParamRegs_create(tym_t tyf);
+int FuncParamRegs_alloc(FuncParamRegs& fpr, type *t, tym_t ty, unsigned char *reg1, unsigned char *reg2);
+
+
 extern "C++" { extern const unsigned mask[32]; }
 
 inline regm_t Symbol::Spregm()
 {
     /*assert(Sclass == SCfastpar);*/
-    return mask[Spreg] | (Spreg2 == NOREG ? 0 : mask[Spreg2]);
+    return (1 << Spreg) | (Spreg2 == NOREG ? 0 : (1 << Spreg2));
 }
 
 

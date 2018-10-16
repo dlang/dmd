@@ -20,6 +20,7 @@ import core.sys.posix.unistd;
 import core.sys.windows.windows;
 import dmd.root.filename;
 import dmd.root.rmem;
+import dmd.utils;
 
 /***********************************************************
  */
@@ -28,28 +29,25 @@ struct File
     int _ref; // != 0 if this is a reference to someone else's buffer
     ubyte* buffer; // data for our file
     size_t len; // amount of data in buffer[]
-    const(FileName)* name; // name of our file
+    const(FileName) name; // name of our file
 
 nothrow:
     extern (D) this(const(char)* n)
     {
+        this(n.toDString());
+    }
+
+    extern (D) this(const(char)[] n)
+    {
         _ref = 0;
         buffer = null;
         len = 0;
-        name = new FileName(n);
+        name = FileName(n);
     }
 
     extern (C++) static File* create(const(char)* n)
     {
-        return new File(n);
-    }
-
-    extern (D) this(const(FileName)* n)
-    {
-        _ref = 0;
-        buffer = null;
-        len = 0;
-        name = n;
+        return new File(n.toDString());
     }
 
     extern (C++) ~this()
@@ -76,7 +74,11 @@ nothrow:
         return name.toString();
     }
 
-    /*************************************
+    /**
+     * Read the full content of a file
+     *
+     * Returns:
+     *   `true` if there was an error
      */
     extern (C++) bool read()
     {
@@ -194,15 +196,13 @@ nothrow:
         }
         else version (Windows)
         {
-            import dmd.root.filename: extendedPathThen;
-
             DWORD size;
             DWORD numread;
 
             // work around Windows file path length limitation
             // (see documentation for extendedPathThen).
-            HANDLE h = name.extendedPathThen!
-                (p => CreateFileW(p,
+            HANDLE h = name.toDString.extendedPathThen!
+                (p => CreateFileW(p.ptr,
                                   GENERIC_READ,
                                   FILE_SHARE_READ,
                                   null,
@@ -272,14 +272,12 @@ nothrow:
         }
         else version (Windows)
         {
-            import dmd.root.filename: extendedPathThen;
-
             DWORD numwritten; // here because of the gotos
             const(char)* name = this.name.toChars();
             // work around Windows file path length limitation
             // (see documentation for extendedPathThen).
-            HANDLE h = name.extendedPathThen!
-                (p => CreateFileW(p,
+            HANDLE h = name.toDString.extendedPathThen!
+                (p => CreateFileW(p.ptr,
                                   GENERIC_WRITE,
                                   0,
                                   null,

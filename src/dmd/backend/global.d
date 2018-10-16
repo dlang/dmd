@@ -27,6 +27,7 @@ import dmd.backend.code;
 import dmd.backend.dlist;
 import dmd.backend.el;
 import dmd.backend.el : elem;
+import dmd.backend.memh;
 import dmd.backend.type;
 //import dmd.backend.obj;
 
@@ -142,10 +143,10 @@ int ispow2(uint64_t);
 
 version (Posix)
 {
-//#define util_malloc(n,size) mem_malloc((n)*(size))
-//#define util_calloc(n,size) mem_calloc((n)*(size))
-//#define util_free       mem_free
-//#define util_realloc(oldp,n,size) mem_realloc(oldp,(n)*(size))
+void* util_malloc(uint n,uint size) { return mem_malloc(n * size); }
+void* util_calloc(uint n,uint size) { return mem_calloc(n * size); }
+void util_free(void *p) { mem_free(p); }
+void *util_realloc(void *oldp,uint n,uint size) { return mem_realloc(oldp, n * size); }
 //#define parc_malloc     mem_malloc
 //#define parc_calloc     mem_calloc
 //#define parc_realloc    mem_realloc
@@ -524,7 +525,7 @@ void rtlsym_term();
 extern(C) char *id_compress(char *id, int idlen, size_t *plen);
 
 // Dwarf
-void dwarf_CFA_set_loc(size_t location);
+void dwarf_CFA_set_loc(uint location);
 void dwarf_CFA_set_reg_offset(int reg, int offset);
 void dwarf_CFA_offset(int reg, int offset);
 void dwarf_CFA_args_size(size_t sz);

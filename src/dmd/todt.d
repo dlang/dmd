@@ -233,7 +233,6 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
             version (none)
             {
                 printf("Expression.toDt() %d\n", e.op);
-                print();
             }
             e.error("non-constant expression `%s`", e.toChars());
             dtb.nzeros(1);
@@ -326,8 +325,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
                 }
 
                 default:
-                    printf("%s\n", e.toChars());
-                    e.type.print();
+                    printf("%s, e.type=%s\n", e.toChars(), e.type.toChars());
                     assert(0);
             }
         }

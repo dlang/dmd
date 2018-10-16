@@ -43,19 +43,25 @@ struct StringValue
 
 nothrow:
 pure:
-    extern (C++) char* lstring()
+    char* lstring()
     {
         return cast(char*)(&this + 1);
     }
 
-    extern (C++) size_t len() const
+    size_t len() const
     {
         return length;
     }
 
-    extern (C++) const(char)* toDchars() const
+    const(char)* toDchars() const
     {
         return cast(const(char)*)(&this + 1);
+    }
+
+    /// Returns: The content of this entry as a D slice
+    inout(char)[] toString() inout
+    {
+        return (cast(inout(char)*)(&this + 1))[0 .. length];
     }
 }
 
@@ -70,7 +76,7 @@ private:
     size_t count;
 
 public:
-    extern (C++) void _init(size_t size = 0) nothrow
+    void _init(size_t size = 0) nothrow
     {
         size = nextpow2(cast(size_t)(size / loadFactor));
         if (size < 32)
@@ -82,7 +88,7 @@ public:
         count = 0;
     }
 
-    extern (C++) void reset(size_t size = 0) nothrow
+    void reset(size_t size = 0) nothrow
     {
         for (size_t i = 0; i < npools; ++i)
             mem.xfree(pools[i]);
@@ -93,7 +99,7 @@ public:
         _init(size);
     }
 
-    extern (C++) ~this() nothrow
+    ~this() nothrow
     {
         for (size_t i = 0; i < npools; ++i)
             mem.xfree(pools[i]);
@@ -115,7 +121,7 @@ public:
     Returns: the string's associated value, or `null` if the string doesn't
      exist in the string table
     */
-    extern (C++) inout(StringValue)* lookup(const(char)* s, size_t length) inout nothrow pure
+    inout(StringValue)* lookup(const(char)* s, size_t length) inout nothrow pure
     {
         const(hash_t) hash = calcHash(s, length);
         const(size_t) i = findSlot(hash, s, length);
@@ -143,7 +149,7 @@ public:
     Returns: the newly inserted value, or `null` if the string table already
      contains the string
     */
-    extern (C++) StringValue* insert(const(char)* s, size_t length, void* ptrvalue) nothrow
+    StringValue* insert(const(char)* s, size_t length, void* ptrvalue) nothrow
     {
         const(hash_t) hash = calcHash(s, length);
         size_t i = findSlot(hash, s, length);
@@ -166,7 +172,7 @@ public:
         return insert(str.ptr, str.length, value);
     }
 
-    extern (C++) StringValue* update(const(char)* s, size_t length) nothrow
+    StringValue* update(const(char)* s, size_t length) nothrow
     {
         const(hash_t) hash = calcHash(s, length);
         size_t i = findSlot(hash, s, length);
@@ -197,7 +203,7 @@ public:
      * Returns:
      *      last return value of fp call
      */
-    extern (C++) int apply(int function(const(StringValue)*) fp)
+    int apply(int function(const(StringValue)*) fp)
     {
         foreach (const se; table[0 .. tabledim])
         {

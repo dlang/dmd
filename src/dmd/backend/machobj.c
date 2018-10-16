@@ -1603,6 +1603,15 @@ bool Obj::includelib(const char *name)
     return false;
 }
 
+/*******************************
+* Output linker directive.
+*/
+
+bool Obj::linkerdirective(const char *name)
+{
+    return false;
+}
+
 /**********************************
  * Do we allow zero sized objects?
  */
@@ -1791,7 +1800,7 @@ int Obj::comdat(Symbol *s)
         s->Sfl = FLtlsdata;
         align = 4;
         if (I64)
-            s->Sseg = tlsseg()->SDseg;
+            s->Sseg = objmod->tlsseg()->SDseg;
         else
             s->Sseg = MachObj::getsegment("__tlscoal_nt", "__DATA", align, S_COALESCED);
         Obj::data_start(s, 1 << align, s->Sseg);

@@ -43,8 +43,8 @@ import scopeh;
 }
 
 extern (C++):
-
-extern void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
+version (MARS)
+    import dmd.backend.errors;
 
 // fp.c
 int testFE();

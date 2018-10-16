@@ -1225,6 +1225,19 @@ bool Obj::includelib(const char *name)
     return true;
 }
 
+/*******************************
+* Output linker directive.
+* Output:
+*      directive is modified
+* Returns:
+*      true if operation is supported
+*/
+
+bool Obj::linkerdirective(const char *name)
+{
+    return false;
+}
+
 /**********************************
  * Do we allow zero sized objects?
  */

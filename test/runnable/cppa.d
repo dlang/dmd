@@ -449,7 +449,7 @@ version (linux)
 
 extern (C++, std)
 {
-    struct allocator(T)
+    extern (C++, class) struct allocator(T)
     {
         version (linux)
         {
@@ -459,45 +459,42 @@ extern (C++, std)
         }
     }
 
-    version (linux)
+    class vector(T, A = allocator!T)
     {
-        class vector(T, A = allocator!T)
-        {
-            final void push_back(ref const T);
-        }
+        final void push_back(ref const T);
+    }
 
-        struct char_traits(T)
-        {
-        }
+    struct char_traits(T)
+    {
+    }
 
-        // https://gcc.gnu.org/onlinedocs/libstdc++/manual/using_dual_abi.html
-        version (none)
-        {
-            extern (C++, __cxx11)
-            {
-                struct basic_string(T, C = char_traits!T, A = allocator!T)
-                {
-                }
-            }
-        }
-        else
+    // https://gcc.gnu.org/onlinedocs/libstdc++/manual/using_dual_abi.html
+    version (none)
+    {
+        extern (C++, __cxx11)
         {
             struct basic_string(T, C = char_traits!T, A = allocator!T)
             {
             }
         }
-
-        struct basic_istream(T, C = char_traits!T)
+    }
+    else
+    {
+        extern (C++, class) struct basic_string(T, C = char_traits!T, A = allocator!T)
         {
         }
+    }
 
-        struct basic_ostream(T, C = char_traits!T)
-        {
-        }
+    struct basic_istream(T, C = char_traits!T)
+    {
+    }
 
-        struct basic_iostream(T, C = char_traits!T)
-        {
-        }
+    struct basic_ostream(T, C = char_traits!T)
+    {
+    }
+
+    struct basic_iostream(T, C = char_traits!T)
+    {
     }
 
     class exception { }
@@ -1593,6 +1590,14 @@ void test19134()
     assert(d.foo() == 660);
 }
 
+// https://issues.dlang.org/show_bug.cgi?id=18955
+alias std_string = std.basic_string!(char);
+
+extern(C++) void callback18955(ref const(std_string) str)
+{
+}
+extern(C++) void test18955();
+
 /****************************************/
 
 void main()
@@ -1643,6 +1648,7 @@ void main()
     test18953();
     test18966();
     test19134();
-
+    test18955();
+    
     printf("Success\n");
 }

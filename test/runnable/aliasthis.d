@@ -1686,6 +1686,21 @@ void test11333()
 }
 
 /***************************************************/
+// 11538
+
+struct NullableRef11538(T)
+{
+    T* _value;
+    inout(T) get() inout { return *_value; }
+    alias get this;
+}
+
+struct S11538
+{
+    NullableRef11538!S11538 parent;
+}
+
+/***************************************************/
 // 11800
 
 struct A11800
@@ -1972,6 +1987,74 @@ struct S15292
 
 /***************************************************/
 
+struct S19284a { int x; }
+struct S19284b
+{
+    S19284a s;
+    alias s this;
+    int t;
+    void f()
+    {
+        void wrapped()
+        {
+            x = 1;
+            t = 1;
+        }
+        wrapped(); // <-- 'x' not found, whereas 's.x' works fine
+    }
+
+    void f1()
+    {
+        x = 2;
+    }
+
+    void f2()
+    {
+        int x;
+        void wrapped()
+        {
+            x = 7;
+        }
+        wrapped();
+        assert(x == 7);
+    }
+
+    void f3()
+    {
+        void wrapped()
+        {
+            void wrapped2()
+            {
+                x = 5;
+            }
+            wrapped2();
+        }
+        wrapped();
+    }
+}
+
+void test19284()
+{
+    S19284b t;
+
+    // nested function modifies alias this
+    t.f();
+    assert(t.x == 1);
+    assert(t.t == 1);
+
+    // member function modifies alias this
+    t.f1();
+    assert(t.x == 2);
+
+    // nested function does not modify alias this when it is shadowd by a local variable
+    t.f2();
+    assert(t.x == 2);
+
+    // multiple levels of nesting
+    t.f3();
+    assert(t.x == 5);
+}
+
 int main()
 {
     test1();
@@ -2028,6 +2111,7 @@ int main()
     test13490();
     test11355();
     test14806();
+    test19284();
 
     printf("Success\n");
     return 0;
