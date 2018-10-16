@@ -114,10 +114,10 @@ alias SignedStringBuf = char[20];
 char[] signedToTempString(long value, return scope char[] buf, uint radix = 10) @safe
 {
     bool neg = value < 0;
-    if(neg)
+    if (neg)
         value = cast(ulong)-value;
     auto r = unsignedToTempString(value, buf, radix);
-    if(neg)
+    if (neg)
     {
         // about to do a slice without a bounds check
         auto trustedSlice(return char[] r) @trusted { assert(r.ptr > buf.ptr); return (r.ptr-1)[0..r.length+1]; }
@@ -130,10 +130,10 @@ char[] signedToTempString(long value, return scope char[] buf, uint radix = 10) 
 auto signedToTempString(long value, uint radix = 10) @safe
 {
     bool neg = value < 0;
-    if(neg)
+    if (neg)
         value = cast(ulong)-value;
     auto r = unsignedToTempString(value, radix);
-    if(neg)
+    if (neg)
     {
         r._len++;
         r.get()[0] = '-';
@@ -253,7 +253,7 @@ int dstrcmp()( scope const char[] s1, scope const char[] s2 ) @trusted
         import core.stdc.string : memcmp;
 
         const ret = memcmp( s1.ptr, s2.ptr, len );
-        if( ret )
+        if ( ret )
             return ret;
     }
     return s1.length < s2.length ? -1 : (s1.length > s2.length);

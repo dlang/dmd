@@ -426,16 +426,16 @@ CpuFeatures* getCpuFeatures() @nogc nothrow
     }
 
 
-version(GNU) {
-    version(X86)
+version (GNU) {
+    version (X86)
         enum supportedX86 = true;
-    else version(X86_64)
+    else version (X86_64)
         enum supportedX86 = true;
     else
         enum supportedX86 = false;
-} else version(D_InlineAsm_X86) {
+} else version (D_InlineAsm_X86) {
     enum supportedX86 = true;
-} else version(D_InlineAsm_X86_64) {
+} else version (D_InlineAsm_X86_64) {
     enum supportedX86 = true;
 } else {
     enum supportedX86 = false;
@@ -509,7 +509,7 @@ void getcacheinfoCPUID2()
     // for old single-core CPUs.
     uint numinfos = 1;
     do {
-        version(GNU) asm pure nothrow @nogc {
+        version (GNU) asm pure nothrow @nogc {
             "cpuid" : "=a" a[0], "=b" a[1], "=c" a[2], "=d" a[3] : "a" 2;
         } else asm pure nothrow @nogc {
             mov EAX, 2;
@@ -551,9 +551,9 @@ void getcacheinfoCPUID2()
 void getcacheinfoCPUID4()
 {
     int cachenum = 0;
-    for(;;) {
+    for (;;) {
         uint a, b, number_of_sets;
-        version(GNU) asm pure nothrow @nogc {
+        version (GNU) asm pure nothrow @nogc {
             "cpuid" : "=a" a, "=b" b, "=c" number_of_sets : "a" 4, "c" cachenum : "edx";
         } else asm pure nothrow @nogc {
             mov EAX, 4;
@@ -593,7 +593,7 @@ void getcacheinfoCPUID4()
 void getAMDcacheinfo()
 {
     uint dummy, c5, c6, d6;
-    version(GNU) asm pure nothrow @nogc {
+    version (GNU) asm pure nothrow @nogc {
         "cpuid" : "=a" dummy, "=c" c5 : "a" 0x8000_0005 : "ebx", "edx";
     } else asm pure nothrow @nogc {
         mov EAX, 0x8000_0005; // L1 cache
@@ -612,7 +612,7 @@ void getAMDcacheinfo()
         // AMD K6-III or K6-2+ or later.
         ubyte numcores = 1;
         if (max_extended_cpuid >= 0x8000_0008) {
-            version(GNU) asm pure nothrow @nogc {
+            version (GNU) asm pure nothrow @nogc {
                 "cpuid" : "=a" dummy, "=c" numcores : "a" 0x8000_0008 : "ebx", "edx";
             } else asm pure nothrow @nogc {
                 mov EAX, 0x8000_0008;
@@ -623,7 +623,7 @@ void getAMDcacheinfo()
             if (numcores>cpuFeatures.maxCores) cpuFeatures.maxCores = numcores;
         }
 
-        version(GNU) asm pure nothrow @nogc {
+        version (GNU) asm pure nothrow @nogc {
             "cpuid" : "=a" dummy, "=c" c6, "=d" d6 : "a" 0x8000_0006 : "ebx";
         } else asm pure nothrow @nogc {
             mov EAX, 0x8000_0006; // L2/L3 cache
@@ -652,7 +652,7 @@ void getCpuInfo0B()
     int threadsPerCore;
     uint a, b, c, d;
     do {
-        version(GNU) asm pure nothrow @nogc {
+        version (GNU) asm pure nothrow @nogc {
             "cpuid" : "=a" a, "=b" b, "=c" c, "=d" d : "a" 0x0B, "c" level;
         } else asm pure nothrow @nogc {
             mov EAX, 0x0B;
@@ -684,7 +684,7 @@ void cpuidX86()
 
     uint a, b, c, d;
     uint* venptr = cast(uint*)cf.vendorID.ptr;
-    version(GNU)
+    version (GNU)
     {
         asm pure nothrow @nogc { "cpuid" : "=a" max_cpuid, "=b" venptr[0], "=d" venptr[1], "=c" venptr[2] : "a" 0; }
         asm pure nothrow @nogc { "cpuid" : "=a" max_extended_cpuid : "a" 0x8000_0000 : "ebx", "ecx", "edx"; }
@@ -692,7 +692,7 @@ void cpuidX86()
     else
     {
         uint a2;
-        version(D_InlineAsm_X86)
+        version (D_InlineAsm_X86)
         {
             asm pure nothrow @nogc {
                 mov EAX, 0;
@@ -704,7 +704,7 @@ void cpuidX86()
                 mov [EAX + 8], ECX;
             }
         }
-        else version(D_InlineAsm_X86_64)
+        else version (D_InlineAsm_X86_64)
         {
             asm pure nothrow @nogc {
                 mov EAX, 0;
@@ -729,7 +729,7 @@ void cpuidX86()
     cf.probablyIntel = cf.vendorID == "GenuineIntel";
     cf.probablyAMD = cf.vendorID == "AuthenticAMD";
     uint apic = 0; // brand index, apic id
-    version(GNU) asm pure nothrow @nogc {
+    version (GNU) asm pure nothrow @nogc {
         "cpuid" : "=a" a, "=b" apic, "=c" cf.miscfeatures, "=d" cf.features : "a" 1;
     } else {
         asm pure nothrow @nogc {
@@ -752,7 +752,7 @@ void cpuidX86()
 
     if (max_cpuid >= 7)
     {
-        version(GNU) asm pure nothrow @nogc {
+        version (GNU) asm pure nothrow @nogc {
             "cpuid" : "=a" a, "=b" cf.extfeatures, "=c" c : "a" 7, "c" 0 : "edx";
         } else {
             uint ext;
@@ -768,7 +768,7 @@ void cpuidX86()
 
     if (cf.miscfeatures & OSXSAVE_BIT)
     {
-        version(GNU) asm pure nothrow @nogc {
+        version (GNU) asm pure nothrow @nogc {
             "xgetbv" : "=a" a, "=d" d : "c" 0;
         } else asm pure nothrow @nogc {
             mov ECX, 0;
@@ -782,7 +782,7 @@ void cpuidX86()
     cf.amdfeatures = 0;
     cf.amdmiscfeatures = 0;
     if (max_extended_cpuid >= 0x8000_0001) {
-        version(GNU) asm pure nothrow @nogc {
+        version (GNU) asm pure nothrow @nogc {
             "cpuid" : "=a" a, "=c" cf.amdmiscfeatures, "=d" cf.amdfeatures : "a" 0x8000_0001 : "ebx";
         } else {
             asm pure nothrow @nogc {
@@ -803,7 +803,7 @@ void cpuidX86()
         cf.maxCores = 1;
         if (hyperThreadingBit) {
             // determine max number of cores for AMD
-            version(GNU) asm pure nothrow @nogc {
+            version (GNU) asm pure nothrow @nogc {
                 "cpuid" : "=a" a, "=c" c : "a" 0x8000_0008 : "ebx", "edx";
             } else asm pure nothrow @nogc {
                 mov EAX, 0x8000_0008;
@@ -816,13 +816,13 @@ void cpuidX86()
 
     if (max_extended_cpuid >= 0x8000_0004) {
         uint* pnb = cast(uint*)cf.processorNameBuffer.ptr;
-        version(GNU)
+        version (GNU)
         {
             asm pure nothrow @nogc { "cpuid" : "=a" pnb[0], "=b" pnb[1], "=c" pnb[ 2], "=d" pnb[ 3] : "a" 0x8000_0002; }
             asm pure nothrow @nogc { "cpuid" : "=a" pnb[4], "=b" pnb[5], "=c" pnb[ 6], "=d" pnb[ 7] : "a" 0x8000_0003; }
             asm pure nothrow @nogc { "cpuid" : "=a" pnb[8], "=b" pnb[9], "=c" pnb[10], "=d" pnb[11] : "a" 0x8000_0004; }
         }
-        else version(D_InlineAsm_X86)
+        else version (D_InlineAsm_X86)
         {
             asm pure nothrow @nogc {
                 push ESI;
@@ -848,7 +848,7 @@ void cpuidX86()
                 pop ESI;
             }
         }
-        else version(D_InlineAsm_X86_64)
+        else version (D_InlineAsm_X86_64)
         {
             asm pure nothrow @nogc {
                 push RSI;
@@ -951,12 +951,12 @@ void cpuidX86()
 // BUG(WONTFIX): Returns false for Cyrix 6x86 and 6x86L. They will be treated as 486 machines.
 bool hasCPUID()
 {
-    version(X86_64)
+    version (X86_64)
         return true;
     else
     {
         uint flags;
-        version(GNU)
+        version (GNU)
         {
             // http://wiki.osdev.org/CPUID#Checking_CPUID_availability
             // ASM template supports both AT&T and Intel syntax.
@@ -974,7 +974,7 @@ bool hasCPUID()
                 " : "=a" flags;
             }
         }
-        else version(D_InlineAsm_X86)
+        else version (D_InlineAsm_X86)
         {
             asm nothrow @nogc {
                 pushfd;

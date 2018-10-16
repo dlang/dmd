@@ -100,9 +100,9 @@ int     ttyname_r(int, char*, size_t);
 int     unlink(in char*);
 ssize_t write(int, in void*, size_t);
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
-  static if( __USE_FILE_OFFSET64 )
+  static if ( __USE_FILE_OFFSET64 )
   {
     off_t lseek64(int, off_t, int) @trusted;
     alias lseek64 lseek;
@@ -111,7 +111,7 @@ version( CRuntime_Glibc )
   {
     off_t lseek(int, off_t, int) @trusted;
   }
-  static if( __USE_LARGEFILE64 )
+  static if ( __USE_LARGEFILE64 )
   {
     int   ftruncate64(int, off_t) @trusted;
     alias ftruncate64 ftruncate;
@@ -121,24 +121,24 @@ version( CRuntime_Glibc )
     int   ftruncate(int, off_t) @trusted;
   }
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     off_t lseek(int, off_t, int) @trusted;
     int   ftruncate(int, off_t) @trusted;
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     off_t lseek(int, off_t, int) @trusted;
     int   ftruncate(int, off_t) @trusted;
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     off_t lseek(int, off_t, int) @trusted;
     int   ftruncate(int, off_t) @trusted;
 }
-else version( Solaris )
+else version (Solaris)
 {
-    version ( D_LP64 )
+    version (D_LP64)
     {
         off_t   lseek(int, off_t, int) @trusted;
         alias   lseek lseek64;
@@ -148,7 +148,7 @@ else version( Solaris )
     }
     else
     {
-        static if( __USE_LARGEFILE64 )
+        static if ( __USE_LARGEFILE64 )
         {
             off64_t lseek64(int, off64_t, int) @trusted;
             alias   lseek64 lseek;
@@ -163,26 +163,26 @@ else version( Solaris )
         }
     }
 }
-else version( Darwin )
+else version (Darwin)
 {
     off_t lseek(int, off_t, int) @trusted;
     int   ftruncate(int, off_t) @trusted;
 }
-else version( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     off_t lseek(int, off_t, int) @trusted;
     int   ftruncate(int, off_t) @trusted;
 }
-else version( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     int ftruncate(int, off_t) @trusted;
     off_t lseek(int, off_t, int) @trusted;
     alias ftruncate ftruncate64;
     alias lseek lseek64;
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
-  static if( __USE_FILE_OFFSET64 )
+  static if ( __USE_FILE_OFFSET64 )
   {
     off_t lseek64(int, off_t, int) @trusted;
     alias lseek64 lseek;
@@ -191,7 +191,7 @@ else version( CRuntime_UClibc )
   {
     off_t lseek(int, off_t, int) @trusted;
   }
-  static if( __USE_LARGEFILE64 )
+  static if ( __USE_LARGEFILE64 )
   {
     int   ftruncate64(int, off_t) @trusted;
     alias ftruncate64 ftruncate;
@@ -202,7 +202,7 @@ else version( CRuntime_UClibc )
   }
 }
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     enum F_OK       = 0;
     enum R_OK       = 4;
@@ -517,7 +517,7 @@ version( CRuntime_Glibc )
         _SC_RAW_SOCKETS
     }
 }
-else version( Darwin )
+else version (Darwin)
 {
     enum F_OK       = 0;
     enum R_OK       = 4;
@@ -701,7 +701,7 @@ else version( Darwin )
         _CS_DARWIN_USER_CACHE_DIR               = 65538,
     }
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     enum F_OK       = 0;
     enum R_OK       = 0x04;
@@ -856,7 +856,7 @@ else version( FreeBSD )
         _CS_POSIX_V6_WIDTH_RESTRICTED_ENVS =  14,
     }
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     enum F_OK       = 0;
     enum R_OK       = 0x04;
@@ -993,7 +993,7 @@ else version(NetBSD)
         _CS_POSIX_V6_WIDTH_RESTRICTED_ENVS =  14,
     }
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     enum F_OK       = 0;
     enum R_OK       = 0x04;
@@ -1148,7 +1148,7 @@ else version( DragonFlyBSD )
         _CS_POSIX_V6_WIDTH_RESTRICTED_ENVS =  14,
     }
 }
-else version( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     enum F_OK       = 0;
     enum R_OK       = 4;
@@ -1159,7 +1159,7 @@ else version( CRuntime_Bionic )
     enum _SC_NPROCESSORS_ONLN = 0x0061;
     enum _SC_THREAD_STACK_MIN = 0x004c;
 }
-else version( Solaris )
+else version (Solaris)
 {
     enum F_OK       = 0;
     enum R_OK       = 4;
@@ -1426,7 +1426,7 @@ else version( Solaris )
 
     enum _PC_LAST = 101;
 }
-else version( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     enum F_OK       = 0;
     enum R_OK       = 4;
@@ -1668,7 +1668,7 @@ else version( CRuntime_Musl )
         _SC_THREAD_ROBUST_PRIO_PROTECT
     }
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     enum F_OK       = 0;
     enum R_OK       = 4;
@@ -1991,39 +1991,39 @@ else version( CRuntime_UClibc )
 int fsync(int);
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     int fsync(int) @trusted;
 }
-else version( Darwin )
+else version (Darwin)
 {
     int fsync(int) @trusted;
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     int fsync(int) @trusted;
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     int fsync(int) @trusted;
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     int fsync(int) @trusted;
 }
-else version( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     int fsync(int) @trusted;
 }
-else version( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     int fsync(int) @trusted;
 }
-else version( Solaris )
+else version (Solaris)
 {
     int fsync(int) @trusted;
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     int fsync(int) @trusted;
 }
@@ -2035,19 +2035,19 @@ else version( CRuntime_UClibc )
 int fdatasync(int);
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     int fdatasync(int) @trusted;
 }
-else version( Solaris )
+else version (Solaris)
 {
     int fdatasync(int) @trusted;
 }
-else version( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     int fdatasync(int) @trusted;
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     int fdatasync(int) @trusted;
 }
@@ -2080,7 +2080,7 @@ int        usleep(useconds_t);
 pid_t      vfork();
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     char*      crypt(in char*, in char*);
     char*      ctermid(char*);
@@ -2105,7 +2105,7 @@ version( CRuntime_Glibc )
     int        usleep(useconds_t) @trusted;
     pid_t      vfork();
 
-  static if( __USE_FILE_OFFSET64 )
+  static if ( __USE_FILE_OFFSET64 )
   {
     int        lockf64(int, int, off_t) @trusted;
     alias      lockf64 lockf;
@@ -2127,13 +2127,13 @@ version( CRuntime_Glibc )
     int        truncate(in char*, off_t);
   }
 }
-else version( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     int fchdir(int) @trusted;
     int lockf(int, int, off_t);
     alias lockf lockf64;
 }
-else version( Darwin )
+else version (Darwin)
 {
     char*      crypt(in char*, in char*);
     char*      ctermid(char*);
@@ -2158,7 +2158,7 @@ else version( Darwin )
     int        usleep(useconds_t) @trusted;
     pid_t      vfork();
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     char*      crypt(in char*, in char*);
     //char*      ctermid(char*);
@@ -2183,7 +2183,7 @@ else version( FreeBSD )
     int        usleep(useconds_t) @trusted;
     pid_t      vfork();
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     char*      crypt(in char*, in char*);
     //char*      ctermid(char*);
@@ -2208,7 +2208,7 @@ else version(NetBSD)
     int        usleep(useconds_t) @trusted;
     pid_t      vfork();
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     char*      crypt(in char*, in char*);
     //char*      ctermid(char*);
@@ -2233,7 +2233,7 @@ else version( DragonFlyBSD )
     int        usleep(useconds_t) @trusted;
     pid_t      vfork();
 }
-else version( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     int        fchdir(int) @trusted;
     pid_t      getpgid(pid_t) @trusted;
@@ -2249,7 +2249,7 @@ else version( CRuntime_Bionic )
     int        usleep(c_ulong) @trusted;
     pid_t      vfork();
 }
-else version( Solaris )
+else version (Solaris)
 {
     char*      crypt(in char*, in char*);
     char*      ctermid(char*);
@@ -2286,7 +2286,7 @@ else version( Solaris )
     }
     else
     {
-        static if( __USE_FILE_OFFSET64 )
+        static if ( __USE_FILE_OFFSET64 )
         {
             int        lockf64(int, int, off64_t);
             alias      lockf64 lockf;
@@ -2309,7 +2309,7 @@ else version( Solaris )
         }
     }
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     char*      crypt(in char*, in char*);
     char*      ctermid(char*);
@@ -2330,7 +2330,7 @@ else version( CRuntime_UClibc )
     int        usleep(useconds_t) @trusted;
     pid_t      vfork();
 
-  static if( __USE_FILE_OFFSET64 )
+  static if ( __USE_FILE_OFFSET64 )
   {
     int        lockf64(int, int, off_t) @trusted;
     alias      lockf64 lockf;

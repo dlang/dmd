@@ -26,7 +26,7 @@ extern (C):
 nothrow:
 @nogc:
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     ///
     struct mbstate_t
@@ -64,7 +64,7 @@ else version (Solaris)
         }
     }
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     ///
     struct mbstate_t
@@ -143,7 +143,7 @@ extern (D) @trusted
     ///
     wint_t ungetwc(wint_t c, FILE* stream);
     ///
-    version( CRuntime_Microsoft )
+    version (CRuntime_Microsoft)
     {
         // MSVC defines this as an inline function.
         int fwide(FILE* stream, int mode) { return mode; }
@@ -216,7 +216,7 @@ pure wchar_t* wmemset(return wchar_t* s, wchar_t c, size_t n);
 ///
 size_t wcsftime(wchar_t* s, size_t maxsize, in wchar_t* format, in tm* timeptr);
 
-version( Windows )
+version (Windows)
 {
     ///
     wchar_t* _wasctime(tm*);      // non-standard

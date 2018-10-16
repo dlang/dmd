@@ -84,28 +84,28 @@ int creat(in char*, mode_t);
 int fcntl(int, int, ...);
 int open(in char*, int, ...);
 */
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     enum F_DUPFD        = 0;
     enum F_GETFD        = 1;
     enum F_SETFD        = 2;
     enum F_GETFL        = 3;
     enum F_SETFL        = 4;
-  version(X86_64)
+  version (X86_64)
   {
     static assert(off_t.sizeof == 8);
     enum F_GETLK        = 5;
     enum F_SETLK        = 6;
     enum F_SETLKW       = 7;
   }
-  else version(AArch64)
+  else version (AArch64)
   {
     enum F_GETLK        = 5;
     enum F_SETLK        = 6;
     enum F_SETLKW       = 7;
   }
   else
-  static if( __USE_FILE_OFFSET64 )
+  static if ( __USE_FILE_OFFSET64 )
   {
     enum F_GETLK        = 12;
     enum F_SETLK        = 13;
@@ -273,7 +273,7 @@ version( CRuntime_Glibc )
         pid_t   l_pid;
     }
 
-    static if( __USE_FILE_OFFSET64 )
+    static if ( __USE_FILE_OFFSET64 )
     {
         int   creat64(in char*, mode_t);
         alias creat64 creat;
@@ -290,7 +290,7 @@ version( CRuntime_Glibc )
     enum AT_SYMLINK_NOFOLLOW = 0x100;
     enum AT_FDCWD = -100;
 }
-else version( Darwin )
+else version (Darwin)
 {
     enum F_DUPFD        = 0;
     enum F_GETFD        = 1;
@@ -337,7 +337,7 @@ else version( Darwin )
     int creat(in char*, mode_t);
     int open(in char*, int, ...);
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     enum F_DUPFD        = 0;
     enum F_GETFD        = 1;
@@ -401,7 +401,7 @@ else version( FreeBSD )
     enum AT_SYMLINK_NOFOLLOW = 0x200;
     enum AT_FDCWD = -100;
 }
-else version( OpenBSD )
+else version (OpenBSD)
 {
     enum F_DUPFD        = 0;
     enum F_GETFD        = 1;
@@ -470,7 +470,7 @@ else version( OpenBSD )
     enum AT_SYMLINK_FOLLOW   = 0x04;
     enum AT_REMOVEDIR        = 0x08;
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     enum F_DUPFD        = 0;
     enum F_GETFD        = 1;
@@ -523,7 +523,7 @@ else version(NetBSD)
     int creat(in char*, mode_t);
     int open(in char*, int, ...);
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     enum O_RDONLY       = 0x0000;
     enum O_WRONLY       = 0x0001;
@@ -723,7 +723,7 @@ else version (Solaris)
         }
     }
 }
-else version( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     // All these except for the two functions open and creat really come from
     // the linux kernel and can probably be merged.
@@ -801,7 +801,7 @@ else version( CRuntime_Bionic )
 
     enum AT_FDCWD = -100;
 }
-else version( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     enum {
         O_CREAT         = 0x40,     // octal     0100
@@ -863,7 +863,7 @@ else version( CRuntime_Musl )
 
     enum AT_FDCWD = -100;
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     enum F_DUPFD        = 0;
     enum F_GETFD        = 1;
@@ -871,7 +871,7 @@ else version( CRuntime_UClibc )
     enum F_GETFL        = 3;
     enum F_SETFL        = 4;
 
-    version(X86_64)
+    version (X86_64)
     {
         enum F_GETLK        = 5;
         enum F_SETLK        = 6;
@@ -966,7 +966,7 @@ else version( CRuntime_UClibc )
         pid_t   l_pid;
     }
 
-    static if( __USE_FILE_OFFSET64 )
+    static if ( __USE_FILE_OFFSET64 )
     {
         int   creat64(in char*, mode_t);
         alias creat64 creat;

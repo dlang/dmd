@@ -11,7 +11,7 @@ module core.sys.solaris.time;
 
 public import core.sys.posix.time;
 
-version(Solaris):
+version (Solaris):
 
 enum CLOCK_VIRTUAL           = 1;
 enum CLOCK_HIGHRES           = CLOCK_MONOTONIC;

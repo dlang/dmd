@@ -53,16 +53,24 @@ enum {
 }
 
 enum {
-    ENABLE_PROCESSED_INPUT  = 1,
-    ENABLE_LINE_INPUT       = 2,
-    ENABLE_ECHO_INPUT       = 4,
-    ENABLE_WINDOW_INPUT     = 8,
-    ENABLE_MOUSE_INPUT      = 16
+    ENABLE_PROCESSED_INPUT        = 1,
+    ENABLE_LINE_INPUT             = 2,
+    ENABLE_ECHO_INPUT             = 4,
+    ENABLE_WINDOW_INPUT           = 8,
+    ENABLE_MOUSE_INPUT            = 16,
+    ENABLE_INSERT_MODE            = 32,
+    ENABLE_QUICK_EDIT_MODE        = 64,
+    ENABLE_EXTENDED_FLAGS         = 128,
+    ENABLE_AUTO_POSITION          = 256,
+    ENABLE_VIRTUAL_TERMINAL_INPUT = 512
 }
 
 enum {
-    ENABLE_PROCESSED_OUTPUT    = 1,
-    ENABLE_WRAP_AT_EOL_OUTPUT  = 2
+    ENABLE_PROCESSED_OUTPUT            = 1,
+    ENABLE_WRAP_AT_EOL_OUTPUT          = 2,
+    ENABLE_VIRTUAL_TERMINAL_PROCESSING = 4,
+    DISABLE_NEWLINE_AUTO_RETURN        = 8,
+    ENABLE_LVB_GRID_WORLDWIDE          = 16
 }
 
 enum {

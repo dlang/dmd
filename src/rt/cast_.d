@@ -96,7 +96,7 @@ int _d_isbaseof2(ClassInfo oc, ClassInfo c, ref size_t offset)
         }
 
         oc = oc.base;
-    } while(oc);
+    } while (oc);
 
     return false;
 }
@@ -118,7 +118,7 @@ int _d_isbaseof(ClassInfo oc, ClassInfo c)
         }
 
         oc = oc.base;
-    } while(oc);
+    } while (oc);
 
     return false;
 }

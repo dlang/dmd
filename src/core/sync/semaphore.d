@@ -27,18 +27,18 @@ else version (TVOS)
 else version (WatchOS)
     version = Darwin;
 
-version( Windows )
+version (Windows)
 {
     private import core.sys.windows.windows;
 }
-else version( Darwin )
+else version (Darwin)
 {
     private import core.sync.config;
     private import core.stdc.errno;
     private import core.sys.posix.time;
     private import core.sys.darwin.mach.semaphore;
 }
-else version( Posix )
+else version (Posix)
 {
     private import core.sync.config;
     private import core.stdc.errno;
@@ -84,22 +84,22 @@ class Semaphore
      */
     this( uint count = 0 )
     {
-        version( Windows )
+        version (Windows)
         {
             m_hndl = CreateSemaphoreA( null, count, int.max, null );
-            if( m_hndl == m_hndl.init )
+            if ( m_hndl == m_hndl.init )
                 throw new SyncError( "Unable to create semaphore" );
         }
-        else version( Darwin )
+        else version (Darwin)
         {
             auto rc = semaphore_create( mach_task_self(), &m_hndl, SYNC_POLICY_FIFO, count );
-            if( rc )
+            if ( rc )
                 throw new SyncError( "Unable to create semaphore" );
         }
-        else version( Posix )
+        else version (Posix)
         {
             int rc = sem_init( &m_hndl, 0, count );
-            if( rc )
+            if ( rc )
                 throw new SyncError( "Unable to create semaphore" );
         }
     }
@@ -107,17 +107,17 @@ class Semaphore
 
     ~this()
     {
-        version( Windows )
+        version (Windows)
         {
             BOOL rc = CloseHandle( m_hndl );
             assert( rc, "Unable to destroy semaphore" );
         }
-        else version( Darwin )
+        else version (Darwin)
         {
             auto rc = semaphore_destroy( mach_task_self(), m_hndl );
             assert( !rc, "Unable to destroy semaphore" );
         }
-        else version( Posix )
+        else version (Posix)
         {
             int rc = sem_destroy( &m_hndl );
             assert( !rc, "Unable to destroy semaphore" );
@@ -139,31 +139,31 @@ class Semaphore
      */
     void wait()
     {
-        version( Windows )
+        version (Windows)
         {
             DWORD rc = WaitForSingleObject( m_hndl, INFINITE );
-            if( rc != WAIT_OBJECT_0 )
+            if ( rc != WAIT_OBJECT_0 )
                 throw new SyncError( "Unable to wait for semaphore" );
         }
-        else version( Darwin )
+        else version (Darwin)
         {
-            while( true )
+            while ( true )
             {
                 auto rc = semaphore_wait( m_hndl );
-                if( !rc )
+                if ( !rc )
                     return;
-                if( rc == KERN_ABORTED && errno == EINTR )
+                if ( rc == KERN_ABORTED && errno == EINTR )
                     continue;
                 throw new SyncError( "Unable to wait for semaphore" );
             }
         }
-        else version( Posix )
+        else version (Posix)
         {
-            while( true )
+            while ( true )
             {
-                if( !sem_wait( &m_hndl ) )
+                if ( !sem_wait( &m_hndl ) )
                     return;
-                if( errno != EINTR )
+                if ( errno != EINTR )
                     throw new SyncError( "Unable to wait for semaphore" );
             }
         }
@@ -195,15 +195,15 @@ class Semaphore
     }
     do
     {
-        version( Windows )
+        version (Windows)
         {
             auto maxWaitMillis = dur!("msecs")( uint.max - 1 );
 
-            while( period > maxWaitMillis )
+            while ( period > maxWaitMillis )
             {
                 auto rc = WaitForSingleObject( m_hndl, cast(uint)
                                                        maxWaitMillis.total!"msecs" );
-                switch( rc )
+                switch ( rc )
                 {
                 case WAIT_OBJECT_0:
                     return true;
@@ -214,7 +214,7 @@ class Semaphore
                     throw new SyncError( "Unable to wait for semaphore" );
                 }
             }
-            switch( WaitForSingleObject( m_hndl, cast(uint) period.total!"msecs" ) )
+            switch ( WaitForSingleObject( m_hndl, cast(uint) period.total!"msecs" ) )
             {
             case WAIT_OBJECT_0:
                 return true;
@@ -224,41 +224,41 @@ class Semaphore
                 throw new SyncError( "Unable to wait for semaphore" );
             }
         }
-        else version( Darwin )
+        else version (Darwin)
         {
             mach_timespec_t t = void;
             (cast(byte*) &t)[0 .. t.sizeof] = 0;
 
-            if( period.total!"seconds" > t.tv_sec.max )
+            if ( period.total!"seconds" > t.tv_sec.max )
             {
                 t.tv_sec  = t.tv_sec.max;
                 t.tv_nsec = cast(typeof(t.tv_nsec)) period.split!("seconds", "nsecs")().nsecs;
             }
             else
                 period.split!("seconds", "nsecs")(t.tv_sec, t.tv_nsec);
-            while( true )
+            while ( true )
             {
                 auto rc = semaphore_timedwait( m_hndl, t );
-                if( !rc )
+                if ( !rc )
                     return true;
-                if( rc == KERN_OPERATION_TIMED_OUT )
+                if ( rc == KERN_OPERATION_TIMED_OUT )
                     return false;
-                if( rc != KERN_ABORTED || errno != EINTR )
+                if ( rc != KERN_ABORTED || errno != EINTR )
                     throw new SyncError( "Unable to wait for semaphore" );
             }
         }
-        else version( Posix )
+        else version (Posix)
         {
             timespec t = void;
             mktspec( t, period );
 
-            while( true )
+            while ( true )
             {
-                if( !sem_timedwait( &m_hndl, &t ) )
+                if ( !sem_timedwait( &m_hndl, &t ) )
                     return true;
-                if( errno == ETIMEDOUT )
+                if ( errno == ETIMEDOUT )
                     return false;
-                if( errno != EINTR )
+                if ( errno != EINTR )
                     throw new SyncError( "Unable to wait for semaphore" );
             }
         }
@@ -274,21 +274,21 @@ class Semaphore
      */
     void notify()
     {
-        version( Windows )
+        version (Windows)
         {
-            if( !ReleaseSemaphore( m_hndl, 1, null ) )
+            if ( !ReleaseSemaphore( m_hndl, 1, null ) )
                 throw new SyncError( "Unable to notify semaphore" );
         }
-        else version( Darwin )
+        else version (Darwin)
         {
             auto rc = semaphore_signal( m_hndl );
-            if( rc )
+            if ( rc )
                 throw new SyncError( "Unable to notify semaphore" );
         }
-        else version( Posix )
+        else version (Posix)
         {
             int rc = sem_post( &m_hndl );
-            if( rc )
+            if ( rc )
                 throw new SyncError( "Unable to notify semaphore" );
         }
     }
@@ -306,9 +306,9 @@ class Semaphore
      */
     bool tryWait()
     {
-        version( Windows )
+        version (Windows)
         {
-            switch( WaitForSingleObject( m_hndl, 0 ) )
+            switch ( WaitForSingleObject( m_hndl, 0 ) )
             {
             case WAIT_OBJECT_0:
                 return true;
@@ -318,19 +318,19 @@ class Semaphore
                 throw new SyncError( "Unable to wait for semaphore" );
             }
         }
-        else version( Darwin )
+        else version (Darwin)
         {
             return wait( dur!"hnsecs"(0) );
         }
-        else version( Posix )
+        else version (Posix)
         {
-            while( true )
+            while ( true )
             {
-                if( !sem_trywait( &m_hndl ) )
+                if ( !sem_trywait( &m_hndl ) )
                     return true;
-                if( errno == EAGAIN )
+                if ( errno == EAGAIN )
                     return false;
-                if( errno != EINTR )
+                if ( errno != EINTR )
                     throw new SyncError( "Unable to wait for semaphore" );
             }
         }
@@ -340,11 +340,11 @@ class Semaphore
 protected:
 
     /// Aliases the operating-system-specific semaphore type.
-    version(Windows)        alias Handle = HANDLE;
+    version (Windows)        alias Handle = HANDLE;
     /// ditto
-    else version(Darwin)    alias Handle = semaphore_t;
+    else version (Darwin)    alias Handle = semaphore_t;
     /// ditto
-    else version(Posix)     alias Handle = sem_t;
+    else version (Posix)     alias Handle = sem_t;
 
     /// Handle to the system-specific semaphore.
     Handle m_hndl;
@@ -356,7 +356,7 @@ protected:
 ////////////////////////////////////////////////////////////////////////////////
 
 
-version( unittest )
+version (unittest)
 {
     import core.thread, core.atomic;
 
@@ -412,7 +412,7 @@ version( unittest )
 
         auto group = new ThreadGroup;
 
-        for( int i = 0; i < numConsumers; ++i )
+        for ( int i = 0; i < numConsumers; ++i )
             group.create(&consumer);
         group.create(&producer);
         group.joinAll();

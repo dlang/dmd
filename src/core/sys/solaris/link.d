@@ -25,7 +25,7 @@ void ld_file(in char*, in Elf_Kind, int, Elf*);
 void ld_input_section(in char*, Elf32_Shdr**, Elf32_Word, Elf_Data*, Elf*, uint*);
 void ld_section(in char*, Elf32_Shdr*, Elf32_Word, Elf_Data*, Elf*);
 
-version(D_LP64)
+version (D_LP64)
 {
 void ld_start64(in char*, in Elf64_Half, in char*);
 void ld_atexit64(int);
@@ -85,7 +85,7 @@ enum LA_ACT_ADD        = 0x01;
 enum LA_ACT_DELETE     = 0x02;
 enum LA_ACT_MAX        = 3;
 
-version(D_LP64)
+version (D_LP64)
     alias long lagreg_t;
 else
     alias int lagreg_t;
@@ -102,7 +102,7 @@ struct _la_sparc_regs
     lagreg_t  lr_rego7;
 }
 
-version(D_LP64)
+version (D_LP64)
 {
     alias _la_sparc_regs La_sparcv9_regs;
     struct La_amd64_regs
@@ -135,7 +135,7 @@ uint la_objopen(Link_map*, Lmid_t, uintptr_t*);
 uint la_objclose(uintptr_t*);
 int la_objfilter(uintptr_t*, in char*, uintptr_t*, uint);
 
-version(D_LP64)
+version (D_LP64)
 {
 uintptr_t la_amd64_pltenter(Elf64_Sym*, uint, uintptr_t*, uintptr_t*, La_amd64_regs*, uint*, in char*);
 uintptr_t la_symbind64(Elf64_Sym*, uint, uintptr_t*, uintptr_t*, uint*, in char*);

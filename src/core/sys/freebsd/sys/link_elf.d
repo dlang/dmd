@@ -12,7 +12,7 @@ nothrow:
 import core.stdc.stdint : uint64_t;
 import core.sys.freebsd.sys.elf;
 
-version(D_LP64)
+version (D_LP64)
     enum __ELF_NATIVE_CLASS = 64;
 else
     enum __ELF_NATIVE_CLASS = 32;

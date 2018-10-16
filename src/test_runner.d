@@ -21,7 +21,7 @@ UnitTestResult testModules()
     UnitTestResult ret;
     ret.summarize = false;
     ret.runMain = false;
-    foreach(name; Runtime.args[1..$])
+    foreach (name; Runtime.args[1..$])
     {
         immutable pkg = ".package";
         immutable pkgLen = pkg.length;
@@ -40,7 +40,7 @@ UnitTestResult testAll()
     UnitTestResult ret;
     ret.summarize = false;
     ret.runMain = false;
-    foreach(moduleInfo; ModuleInfo)
+    foreach (moduleInfo; ModuleInfo)
     {
         doTest(moduleInfo, ret);
     }
@@ -79,7 +79,7 @@ void doTest(ModuleInfo* moduleInfo, ref UnitTestResult ret)
 
 shared static this()
 {
-    version(D_Coverage)
+    version (D_Coverage)
     {
         import core.runtime : dmd_coverSetMerge;
         dmd_coverSetMerge(true);

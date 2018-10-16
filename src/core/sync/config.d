@@ -16,7 +16,7 @@
 module core.sync.config;
 
 
-version( Posix )
+version (Posix)
 {
     private import core.sys.posix.time;
     private import core.sys.posix.sys.time;
@@ -25,7 +25,7 @@ version( Posix )
 
     void mktspec( ref timespec t ) nothrow
     {
-        static if( false && is( typeof( clock_gettime ) ) )
+        static if ( false && is( typeof( clock_gettime ) ) )
         {
             clock_gettime( CLOCK_REALTIME, &t );
         }
@@ -57,7 +57,7 @@ version( Posix )
         //auto val = delta + dur!"seconds"( t.tv_sec ) +
         //                 + dur!"nsecs"( t.tv_nsec );
 
-        if( val.total!"seconds" > t.tv_sec.max )
+        if ( val.total!"seconds" > t.tv_sec.max )
         {
             t.tv_sec  = t.tv_sec.max;
             t.tv_nsec = cast(typeof(t.tv_nsec)) val.split!("seconds", "nsecs")().nsecs;

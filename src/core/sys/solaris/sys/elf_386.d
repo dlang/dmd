@@ -71,7 +71,7 @@ enum M32_PLT_ALIGN    = M32_WORD_ALIGN;
 enum M32_GOT_ENTSIZE  = 4;
 enum M32_PLT_RESERVSZ = (M_PLT_XNumber * M32_PLT_ENTSIZE);
 
-version(_ELF64) {}
+version (_ELF64) {}
 else
 {
     enum M_WORD_ALIGN   = M32_WORD_ALIGN;

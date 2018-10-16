@@ -96,6 +96,12 @@ unittest32mscoff:
 test_uuid:
 	$(MAKE) -f test\uuid\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) test
 
+test_aa:
+	$(DMD) -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIME) -run test\aa\src\test_aa.d
+
+test_hash:
+	$(DMD) -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIME) -run test\hash\src\test_hash.d
+
 ################### zip/install/clean ##########################
 
 zip: druntime.zip
@@ -115,4 +121,4 @@ clean:
 
 auto-tester-build: target
 
-auto-tester-test: unittest test_uuid
+auto-tester-test: unittest test_uuid test_aa test_hash

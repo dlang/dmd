@@ -328,7 +328,7 @@ enum _cstr SCNxFAST32       = "lx";
 ///
 enum _cstr SCNxFAST64       = "llx";
 
-version( D_LP64 )
+version (D_LP64)
 {
     ///
     enum _cstr PRIdMAX      = PRId64;

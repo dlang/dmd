@@ -47,7 +47,7 @@ POSIX_MADV_WILLNEED
 POSIX_MADV_DONTNEED
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     version (Alpha)
         private enum __POSIX_MADV_DONTNEED = 6;
@@ -67,7 +67,7 @@ version( CRuntime_Glibc )
         int posix_madvise(void *__addr, size_t __len, int __advice);
     }
 }
-else version( Darwin )
+else version (Darwin)
 {
     enum POSIX_MADV_NORMAL      = 0;
     enum POSIX_MADV_RANDOM      = 1;
@@ -76,7 +76,7 @@ else version( Darwin )
     enum POSIX_MADV_DONTNEED    = 4;
     int posix_madvise(void *addr, size_t len, int advice);
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     enum POSIX_MADV_NORMAL      = 0;
     enum POSIX_MADV_RANDOM      = 1;
@@ -85,7 +85,7 @@ else version( FreeBSD )
     enum POSIX_MADV_DONTNEED    = 4;
     int posix_madvise(void *addr, size_t len, int advice);
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     enum POSIX_MADV_NORMAL      = 0;
     enum POSIX_MADV_RANDOM      = 1;
@@ -94,7 +94,7 @@ else version(NetBSD)
     enum POSIX_MADV_DONTNEED    = 4;
     int posix_madvise(void *addr, size_t len, int advice);
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     enum POSIX_MADV_NORMAL      = 0;
     enum POSIX_MADV_RANDOM      = 1;
@@ -112,7 +112,7 @@ else version (CRuntime_Bionic)
 else version (CRuntime_Musl)
 {
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     enum
     {
@@ -139,35 +139,35 @@ PROT_EXEC
 PROT_NONE
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     enum PROT_NONE      = 0x0;
     enum PROT_READ      = 0x1;
     enum PROT_WRITE     = 0x2;
     enum PROT_EXEC      = 0x4;
 }
-else version( Darwin )
+else version (Darwin)
 {
     enum PROT_NONE      = 0x00;
     enum PROT_READ      = 0x01;
     enum PROT_WRITE     = 0x02;
     enum PROT_EXEC      = 0x04;
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     enum PROT_NONE      = 0x00;
     enum PROT_READ      = 0x01;
     enum PROT_WRITE     = 0x02;
     enum PROT_EXEC      = 0x04;
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     enum PROT_NONE      = 0x00;
     enum PROT_READ      = 0x01;
     enum PROT_WRITE     = 0x02;
     enum PROT_EXEC      = 0x04;
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     enum PROT_NONE      = 0x00;
     enum PROT_READ      = 0x01;
@@ -195,7 +195,7 @@ else version (CRuntime_Musl)
     enum PROT_WRITE     = 0x2;
     enum PROT_EXEC      = 0x4;
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     enum PROT_NONE      = 0x0;
     enum PROT_READ      = 0x1;
@@ -215,7 +215,7 @@ void* mmap(void*, size_t, int, int, int, off_t);
 int munmap(void*, size_t);
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     static if (__USE_LARGEFILE64) void* mmap64(void*, size_t, int, int, int, off_t);
     static if (__USE_FILE_OFFSET64)
@@ -224,22 +224,22 @@ version( CRuntime_Glibc )
         void* mmap(void*, size_t, int, int, int, off_t);
     int munmap(void*, size_t);
 }
-else version( Darwin )
+else version (Darwin)
 {
     void* mmap(void*, size_t, int, int, int, off_t);
     int   munmap(void*, size_t);
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     void* mmap(void*, size_t, int, int, int, off_t);
     int   munmap(void*, size_t);
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     void* mmap(void*, size_t, int, int, int, off_t);
     int   munmap(void*, size_t);
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     void* mmap(void*, size_t, int, int, int, off_t);
     int   munmap(void*, size_t);
@@ -263,7 +263,7 @@ else version (CRuntime_Musl)
         void* mmap(void*, size_t, int, int, int, off_t);
     int munmap(void*, size_t);
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     static if (__USE_LARGEFILE64) void* mmap64(void*, size_t, int, int, int, off64_t);
     static if (__USE_FILE_OFFSET64)
@@ -293,7 +293,7 @@ MS_INVALIDATE (MF|SIO)
 int msync(void*, size_t, int); (MF|SIO)
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     enum MAP_SHARED     = 0x01;
     enum MAP_PRIVATE    = 0x02;
@@ -384,7 +384,7 @@ version( CRuntime_Glibc )
 
     int msync(void*, size_t, int);
 }
-else version( Darwin )
+else version (Darwin)
 {
     enum MAP_SHARED     = 0x0001;
     enum MAP_PRIVATE    = 0x0002;
@@ -399,7 +399,7 @@ else version( Darwin )
 
     int msync(void*, size_t, int);
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     enum MAP_SHARED     = 0x0001;
     enum MAP_PRIVATE    = 0x0002;
@@ -414,7 +414,7 @@ else version( FreeBSD )
 
     int msync(void*, size_t, int);
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     enum MAP_SHARED     = 0x0001;
     enum MAP_PRIVATE    = 0x0002;
@@ -430,7 +430,7 @@ else version(NetBSD)
     int __msync13(void*, size_t, int);
     alias msync = __msync13;
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     enum MAP_SHARED     = 0x0001;
     enum MAP_PRIVATE    = 0x0002;
@@ -504,7 +504,7 @@ else version (CRuntime_Musl)
     enum MS_SYNC = 4;
     int msync(void*, size_t, int);
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     enum MAP_SHARED     = 0x01;
     enum MAP_PRIVATE    = 0x02;
@@ -557,7 +557,7 @@ int mlockall(int);
 int munlockall();
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     version (SPARC) enum
     {
@@ -594,7 +594,7 @@ version( CRuntime_Glibc )
     int munlockall();
 
 }
-else version( Darwin )
+else version (Darwin)
 {
     enum MCL_CURRENT    = 0x0001;
     enum MCL_FUTURE     = 0x0002;
@@ -602,7 +602,7 @@ else version( Darwin )
     int mlockall(int);
     int munlockall();
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     enum MCL_CURRENT    = 0x0001;
     enum MCL_FUTURE     = 0x0002;
@@ -610,7 +610,7 @@ else version( FreeBSD )
     int mlockall(int);
     int munlockall();
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     enum MCL_CURRENT    = 0x0001;
     enum MCL_FUTURE     = 0x0002;
@@ -618,7 +618,7 @@ else version(NetBSD)
     int mlockall(int);
     int munlockall();
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     enum MCL_CURRENT    = 0x0001;
     enum MCL_FUTURE     = 0x0002;
@@ -645,7 +645,7 @@ else version (CRuntime_Bionic)
 else version (CRuntime_Musl)
 {
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     enum
     {
@@ -670,27 +670,27 @@ int mlock(in void*, size_t);
 int munlock(in void*, size_t);
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     int mlock(in void*, size_t);
     int munlock(in void*, size_t);
 }
-else version( Darwin )
+else version (Darwin)
 {
     int mlock(in void*, size_t);
     int munlock(in void*, size_t);
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     int mlock(in void*, size_t);
     int munlock(in void*, size_t);
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     int mlock(in void*, size_t);
     int munlock(in void*, size_t);
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     int mlock(in void*, size_t);
     int munlock(in void*, size_t);
@@ -708,7 +708,7 @@ else version (CRuntime_Bionic)
 else version (CRuntime_Musl)
 {
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     int mlock(in void*, size_t);
     int munlock(in void*, size_t);
@@ -729,19 +729,19 @@ version (CRuntime_Glibc)
 {
     int mprotect(void*, size_t, int);
 }
-else version( Darwin )
+else version (Darwin)
 {
     int mprotect(void*, size_t, int);
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     int mprotect(void*, size_t, int);
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     int mprotect(void*, size_t, int);
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     int mprotect(void*, size_t, int);
 }
@@ -774,27 +774,27 @@ int shm_open(in char*, int, mode_t);
 int shm_unlink(in char*);
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     int shm_open(in char*, int, mode_t);
     int shm_unlink(in char*);
 }
-else version( Darwin )
+else version (Darwin)
 {
     int shm_open(in char*, int, mode_t);
     int shm_unlink(in char*);
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     int shm_open(in char*, int, mode_t);
     int shm_unlink(in char*);
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     int shm_open(in char*, int, mode_t);
     int shm_unlink(in char*);
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     int shm_open(in char*, int, mode_t);
     int shm_unlink(in char*);
@@ -810,7 +810,7 @@ else version (CRuntime_Bionic)
 else version (CRuntime_Musl)
 {
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     int shm_open(in char*, int, mode_t);
     int shm_unlink(in char*);

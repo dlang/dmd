@@ -17,12 +17,12 @@ private import core.sys.windows.basetyps, core.sys.windows.commctrl, core.sys.wi
   core.sys.windows.winreg, core.sys.windows.windef;
 private import core.sys.windows.winbase; // for SYSTEMTIME
 
-/*static if(_WIN32_WINNT < _WIN32_WINDOWS) {
+/*static if (_WIN32_WINNT < _WIN32_WINDOWS) {
 enum UINT _SETUPAPI_VER = _WIN32_WINNT; // SetupAPI version follows Windows NT version
-} else static if(_WIN32_WINDOWS) {
-    static if(_WIN32_WINDOWS >= 0x0490) {
+} else static if (_WIN32_WINDOWS) {
+    static if (_WIN32_WINDOWS >= 0x0490) {
 enum UINT _SETUPAPI_VER = 0x0500;     // WinME uses same version of SetupAPI as Win2k
-    } else static if(_WIN32_WINDOWS >= 0x0410) {
+    } else static if (_WIN32_WINDOWS >= 0x0410) {
 enum UINT _SETUPAPI_VER = 0x0410;     // Indicates version of SetupAPI shipped with Win98
     } else {
 enum UINT _SETUPAPI_VER = 0x0400;     // Earliest SetupAPI version
@@ -446,7 +446,7 @@ enum : DWORD {
     FLG_ADDREG_TYPE_MASK      = 0xFFFF0000 | FLG_ADDREG_BINVALUETYPE
 }
 
-static if(_SETUPAPI_VER >= 0x0501) {
+static if (_SETUPAPI_VER >= 0x0501) {
     enum : DWORD {
         FLG_ADDREG_64BITKEY       = 0x00001000,
         FLG_ADDREG_KEYONLY_COMMON = 0x00002000,
@@ -459,7 +459,7 @@ enum : DWORD {
     FLG_DELREG_VALUE = 0x00000000
 }
 
-static if(_SETUPAPI_VER >= 0x0501) {
+static if (_SETUPAPI_VER >= 0x0501) {
     enum : DWORD {
         FLG_DELREG_TYPE_MASK          = FLG_ADDREG_TYPE_MASK,
         FLG_DELREG_TYPE_SZ            = FLG_ADDREG_TYPE_SZ,
@@ -481,7 +481,7 @@ enum : DWORD {
     FLG_BITREG_SETBITS   = 0x00000001
 }
 
-static if(_SETUPAPI_VER >= 0x0501) {
+static if (_SETUPAPI_VER >= 0x0501) {
     enum : DWORD {
         FLG_BITREG_64BITKEY = 0x00001000,
         FLG_BITREG_32BITKEY = 0x00004000
@@ -528,7 +528,7 @@ enum : DWORD {
     IDF_WARNIFSKIP   = 0x00000800
 }
 
-static if(_SETUPAPI_VER >= 0x0501) {
+static if (_SETUPAPI_VER >= 0x0501) {
     enum : DWORD {
         IDF_NOREMOVABLEMEDIAPROMPT = 0x00001000,
         IDF_USEDISKNAMEASPROMPT    = 0x00002000,
@@ -624,7 +624,7 @@ enum : DWORD {
     SP_COPY_NOPRUNE             = 0x0100000
 }
 
-static if(_SETUPAPI_VER >= 0x0501) {
+static if (_SETUPAPI_VER >= 0x0501) {
     enum : DWORD {
         SP_COPY_OEM_F6_INF = 0x0200000
     }
@@ -716,7 +716,7 @@ enum : UINT {
     SPFILENOTIFY_TARGETNEWER     = 0x00040000
 }
 
-static if(_SETUPAPI_VER >= 0x0501) {
+static if (_SETUPAPI_VER >= 0x0501) {
     enum : UINT {
         SPFILENOTIFY_QUEUESCAN_SIGNERINFO = 0x00000040
     }
@@ -762,7 +762,7 @@ enum : UINT {
     SPINST_LOGCONFIGS_ARE_OVERRIDES = 0x00040000
 }
 
-static if(_SETUPAPI_VER >= 0x0501) {
+static if (_SETUPAPI_VER >= 0x0501) {
     enum : UINT {
         SPINST_COPYINF               = 0x00000200,
         SPINST_ALL                   = 0x000003ff,
@@ -796,7 +796,7 @@ enum : DWORD {
     SPQ_SCAN_PRUNE_COPY_QUEUE = 0x00000020
 }
 
-static if(_SETUPAPI_VER >= 0x0501) {
+static if (_SETUPAPI_VER >= 0x0501) {
     enum : DWORD {
         SPQ_SCAN_USE_CALLBACK_SIGNERINFO = 0x00000040,
         SPQ_SCAN_PRUNE_DELREN            = 0x00000080
@@ -824,7 +824,7 @@ enum : DWORD {
     SPSVCINST_STOPSERVICE              = 0x00000200
 }
 
-static if(_SETUPAPI_VER >= 0x0501) {
+static if (_SETUPAPI_VER >= 0x0501) {
     enum : DWORD {
         SPSVCINST_CLOBBER_SECURITY = 0x00000400
     }
@@ -1280,7 +1280,7 @@ version (Unicode) {
 alias SP_DRVINFO_DATA_V1* PSP_DRVINFO_DATA_V1;
 alias SP_DRVINFO_DATA_V2* PSP_DRVINFO_DATA_V2;
 
-static if(USE_SP_DRVINFO_DATA_V1) {
+static if (USE_SP_DRVINFO_DATA_V1) {
     alias SP_DRVINFO_DATA_V1_A SP_DRVINFO_DATA_A;
     alias SP_DRVINFO_DATA_V1_A* PSP_DRVINFO_DATA_A;
     alias SP_DRVINFO_DATA_V1_W SP_DRVINFO_DATA_W;

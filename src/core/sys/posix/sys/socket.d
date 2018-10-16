@@ -141,7 +141,7 @@ int     sockatmark(int);
 int     socketpair(int, int, int, ref int[2]);
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     // Some of the constants below and from the Bionic section are really from
     // the linux kernel headers.
@@ -183,7 +183,7 @@ version( CRuntime_Glibc )
         size_t cmsg_len;
         int    cmsg_level;
         int    cmsg_type;
-        static if( false /* (!is( __STRICT_ANSI__ ) && __GNUC__ >= 2) || __STDC_VERSION__ >= 199901L */ )
+        static if ( false /* (!is( __STRICT_ANSI__ ) && __GNUC__ >= 2) || __STDC_VERSION__ >= 199901L */ )
         {
             ubyte[1] __cmsg_data;
         }
@@ -194,7 +194,7 @@ version( CRuntime_Glibc )
         SCM_RIGHTS = 0x01
     }
 
-    static if( false /* (!is( __STRICT_ANSI__ ) && __GNUC__ >= 2) || __STDC_VERSION__ >= 199901L */ )
+    static if ( false /* (!is( __STRICT_ANSI__ ) && __GNUC__ >= 2) || __STDC_VERSION__ >= 199901L */ )
     {
         extern (D) ubyte[1] CMSG_DATA( cmsghdr* cmsg ) pure nothrow @nogc { return cmsg.__cmsg_data; }
     }
@@ -474,6 +474,7 @@ version( CRuntime_Glibc )
             SO_RCVLOWAT     = 18,
             SO_RCVTIMEO     = 20,
             SO_REUSEADDR    = 2,
+            SO_REUSEPORT    = 15,
             SO_SNDBUF       = 7,
             SO_SNDLOWAT     = 19,
             SO_SNDTIMEO     = 21,
@@ -508,6 +509,7 @@ version( CRuntime_Glibc )
             SO_RCVLOWAT     = 18,
             SO_RCVTIMEO     = 20,
             SO_REUSEADDR    = 2,
+            SO_REUSEPORT    = 15,
             SO_SNDBUF       = 7,
             SO_SNDLOWAT     = 19,
             SO_SNDTIMEO     = 21,
@@ -641,7 +643,7 @@ version( CRuntime_Glibc )
     int     sockatmark(int) @safe;
     int     socketpair(int, int, int, ref int[2]) @safe;
 }
-else version( Darwin )
+else version (Darwin)
 {
     alias uint   socklen_t;
     alias ubyte  sa_family_t;
@@ -797,7 +799,7 @@ else version( Darwin )
     int     sockatmark(int) @safe;
     int     socketpair(int, int, int, ref int[2]) @safe;
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     alias uint   socklen_t;
     alias ubyte  sa_family_t;
@@ -862,13 +864,13 @@ else version( FreeBSD )
 
     extern (D) cmsghdr* CMSG_NXTHDR( msghdr* mhdr, cmsghdr* cmsg )
     {
-        if( cmsg == null )
+        if ( cmsg == null )
         {
            return CMSG_FIRSTHDR( mhdr );
         }
         else
         {
-            if( cast(ubyte*) cmsg + _ALIGN( cmsg.cmsg_len ) + _ALIGN( cmsghdr.sizeof ) >
+            if ( cast(ubyte*) cmsg + _ALIGN( cmsg.cmsg_len ) + _ALIGN( cmsghdr.sizeof ) >
                     cast(ubyte*) mhdr.msg_control + mhdr.msg_controllen )
                 return null;
             else
@@ -974,7 +976,7 @@ else version( FreeBSD )
     int     sockatmark(int) @safe;
     int     socketpair(int, int, int, ref int[2]) @safe;
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     alias uint   socklen_t;
     alias ubyte  sa_family_t;
@@ -1039,13 +1041,13 @@ else version(NetBSD)
 
     extern (D) cmsghdr* CMSG_NXTHDR( msghdr* mhdr, cmsghdr* cmsg )
     {
-        if( cmsg == null )
+        if ( cmsg == null )
         {
            return CMSG_FIRSTHDR( mhdr );
         }
         else
         {
-            if( cast(ubyte*) cmsg + _ALIGN( cmsg.cmsg_len ) + _ALIGN( cmsghdr.sizeof ) >
+            if ( cast(ubyte*) cmsg + _ALIGN( cmsg.cmsg_len ) + _ALIGN( cmsghdr.sizeof ) >
                     cast(ubyte*) mhdr.msg_control + mhdr.msg_controllen )
                 return null;
             else
@@ -1171,7 +1173,7 @@ else version(NetBSD)
     int     sockatmark(int) @safe;
     int     socketpair(int, int, int, ref int[2]) @safe;
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     alias uint   socklen_t;
     alias ubyte  sa_family_t;
@@ -1415,13 +1417,13 @@ else version( DragonFlyBSD )
 
     extern (D) cmsghdr* CMSG_NXTHDR( msghdr* mhdr, cmsghdr* cmsg )
     {
-        if( cmsg == null )
+        if ( cmsg == null )
         {
            return CMSG_FIRSTHDR( mhdr );
         }
         else
         {
-            if( cast(ubyte*) cmsg + _ALIGN( cmsg.cmsg_len ) + _ALIGN( cmsghdr.sizeof ) >
+            if ( cast(ubyte*) cmsg + _ALIGN( cmsg.cmsg_len ) + _ALIGN( cmsghdr.sizeof ) >
                     cast(ubyte*) mhdr.msg_control + mhdr.msg_controllen )
                 return null;
             else
@@ -1622,7 +1624,7 @@ else version (Solaris)
     int     sockatmark(int) @safe;
     int     socketpair(int, int, int, ref int[2]) @safe;
 }
-else version( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     alias int    socklen_t;
     alias ushort sa_family_t;
@@ -1862,7 +1864,7 @@ else version( CRuntime_Bionic )
     int     sockatmark(int) @safe;
     int     socketpair(int, int, int, ref int[2]) @safe;
 }
-else version( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     alias uint socklen_t;
     alias ushort sa_family_t;
@@ -1986,7 +1988,7 @@ else version( CRuntime_Musl )
     int     sockatmark(int);
     int     socketpair(int, int, int, ref int[2]);
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     alias uint   socklen_t;
     alias ushort sa_family_t;
@@ -2188,35 +2190,35 @@ else
 AF_INET6
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     enum
     {
         AF_INET6    = 10
     }
 }
-else version( Darwin )
+else version (Darwin)
 {
     enum
     {
         AF_INET6    = 30
     }
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     enum
     {
         AF_INET6    = 28
     }
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     enum
     {
         AF_INET6    = 24
     }
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     enum
     {
@@ -2230,18 +2232,18 @@ else version (Solaris)
         AF_INET6 = 26,
     }
 }
-else version( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     enum
     {
         AF_INET6    = 10
     }
 }
-else version( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     enum AF_INET6 = 10;
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     enum
     {
@@ -2260,35 +2262,35 @@ else
 SOCK_RAW
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     enum
     {
         SOCK_RAW    = 3
     }
 }
-else version( Darwin )
+else version (Darwin)
 {
     enum
     {
         SOCK_RAW    = 3
     }
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     enum
     {
         SOCK_RAW    = 3
     }
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     enum
     {
         SOCK_RAW    = 3
     }
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     enum
     {
@@ -2302,17 +2304,17 @@ else version (Solaris)
         SOCK_RAW = 4,
     }
 }
-else version( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     enum
     {
         SOCK_RAW    = 3
     }
 }
-else version( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     enum
     {

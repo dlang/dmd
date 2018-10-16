@@ -141,7 +141,7 @@ int     tcsendbreak(int, int);
 int     tcsetattr(int, int, in termios*);
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     alias ubyte cc_t;
     alias uint  speed_t;
@@ -250,7 +250,7 @@ version( CRuntime_Glibc )
     int     tcsendbreak(int, int);
     int     tcsetattr(int, int, in termios*);
 }
-else version( Darwin )
+else version (Darwin)
 {
     alias ubyte cc_t;
     alias c_ulong  speed_t;
@@ -359,7 +359,7 @@ else version( Darwin )
     int     tcsetattr(int, int, in termios*);
 
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     alias ubyte cc_t;
     alias uint  speed_t;
@@ -467,7 +467,7 @@ else version ( FreeBSD )
     int     tcsendbreak(int, int);
     int     tcsetattr(int, int, in termios*);
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     alias ubyte cc_t;
     alias uint  speed_t;
@@ -816,7 +816,7 @@ else version (Solaris)
     int     tcflush(int, int);
     int     tcflow(int, int);
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     alias ubyte cc_t;
     alias uint  speed_t;
@@ -969,7 +969,7 @@ FFDLY
 pid_t   tcgetsid(int);
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     enum IXANY      = 0x0000800; // 0004000
 
@@ -1039,7 +1039,7 @@ else version (Darwin)
     pid_t tcgetsid (int);
 }
 
-else version( FreeBSD )
+else version (FreeBSD)
 {
     enum IXANY      = 0x00000800;
 
@@ -1073,7 +1073,7 @@ else version( FreeBSD )
 
     pid_t   tcgetsid(int);
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     enum IXANY      = 0x00000800;
 
@@ -1107,7 +1107,7 @@ else version( DragonFlyBSD )
 
     pid_t   tcgetsid(int);
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     enum IXANY      = 0x00000800;
 
@@ -1177,7 +1177,7 @@ else version (Solaris)
 
     pid_t   tcgetsid(int);
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     enum IXANY      = 0x0000800; // 0004000
 

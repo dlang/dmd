@@ -16,7 +16,7 @@ module object;
 //alias typeof(int.sizeof)                    size_t;
 //alias typeof(cast(void*)0 - cast(void*)0)   ptrdiff_t;
 
-version(D_LP64)
+version (D_LP64)
 {
     alias size_t = ulong;
     alias ptrdiff_t = long;
@@ -559,7 +559,7 @@ nothrow @safe @nogc unittest
     /// ditto
     void destroy(T)(T obj) if (is(T == class))
     {
-        static if(__traits(getLinkage, T) == "C++")
+        static if (__traits(getLinkage, T) == "C++")
         {
             obj.__xdtor();
 
@@ -692,7 +692,7 @@ nothrow @safe @nogc unittest
             assert(b.s == "B");
         }
         // this test is invalid now that the default ctor is not run after clearing
-        version(none)
+        version (none)
         {
             class C
             {
@@ -1662,34 +1662,6 @@ class TypeInfo_Delegate : TypeInfo
         arg2 = typeid(void*);
         return 0;
     }
-}
-
-unittest
-{
-    // Bugzilla 15367
-    void f1() {}
-    void f2() {}
-
-    // TypeInfo_Delegate.getHash
-    int[void delegate()] aa;
-    assert(aa.length == 0);
-    aa[&f1] = 1;
-    assert(aa.length == 1);
-    aa[&f1] = 1;
-    assert(aa.length == 1);
-
-    auto a1 = [&f2, &f1];
-    auto a2 = [&f2, &f1];
-
-    // TypeInfo_Delegate.equals
-    for (auto i = 0; i < 2; i++)
-        assert(a1[i] == a2[i]);
-    assert(a1 == a2);
-
-    // TypeInfo_Delegate.compare
-    for (auto i = 0; i < 2; i++)
-        assert(a1[i] <= a2[i]);
-    assert(a1 <= a2);
 }
 
 /**
@@ -3073,12 +3045,12 @@ auto byKeyValue(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
                 {
                     auto p = (() @trusted => cast(substInout!K*) keyp) ();
                     return *p;
-                };
+                }
                 @property ref value() inout
                 {
                     auto p = (() @trusted => cast(substInout!V*) valp) ();
                     return *p;
-                };
+                }
             }
             return Pair(_aaRangeFrontKey(r),
                         _aaRangeFrontValue(r));
@@ -3140,34 +3112,6 @@ Value[] values(T : Value[Key], Value, Key)(T *aa) @property
     return (*aa).values;
 }
 
-unittest
-{
-    static struct T
-    {
-        byte b;
-        static size_t count;
-        this(this) { ++count; }
-    }
-    T[int] aa;
-    T t;
-    aa[0] = t;
-    aa[1] = t;
-    assert(T.count == 2);
-    auto vals = aa.values;
-    assert(vals.length == 2);
-    assert(T.count == 4);
-
-    T.count = 0;
-    int[T] aa2;
-    aa2[t] = 0;
-    assert(T.count == 1);
-    aa2[t] = 1;
-    assert(T.count == 1);
-    auto keys = aa2.keys;
-    assert(keys.length == 1);
-    assert(T.count == 2);
-}
-
 /***********************************
  * Looks up key; if it exists returns corresponding value else evaluates and
  * returns defaultValue.
@@ -3190,41 +3134,6 @@ inout(V) get(K, V)(inout(V[K])* aa, K key, lazy inout(V) defaultValue)
     return (*aa).get(key, defaultValue);
 }
 
-@safe unittest
-{
-    int[string] aa;
-    int a;
-    foreach (val; aa.byKeyValue)
-    {
-        ++aa[val.key];
-        a = val.value;
-    }
-}
-
-unittest
-{
-    static class T
-    {
-        static size_t count;
-        this() { ++count; }
-    }
-
-    T[string] aa;
-
-    auto a = new T;
-    aa["foo"] = a;
-    assert(T.count == 1);
-    auto b = aa.get("foo", new T);
-    assert(T.count == 1);
-    assert(b is a);
-    auto c = aa.get("bar", new T);
-    assert(T.count == 2);
-    assert(c !is a);
-
-    //Obviously get doesn't add.
-    assert("bar" !in aa);
-}
-
 /***********************************
  * Looks up key; if it exists returns corresponding value else evaluates
  * value, adds it to the associative array and returns it.
@@ -3240,80 +3149,6 @@ ref V require(K, V)(ref V[K] aa, K key, lazy V value = V.init)
     bool found;
     auto p = cast(V*) _aaGetX(cast(void**)&aa, typeid(V[K]), V.sizeof, &key, found);
     return found ? *p : (*p = value);
-}
-
-unittest
-{
-    static class T
-    {
-        static size_t count;
-        this() { ++count; }
-    }
-
-    T[string] aa;
-
-    auto a = new T;
-    aa["foo"] = a;
-    assert(T.count == 1);
-    auto b = aa.require("foo", new T);
-    assert(T.count == 1);
-    assert(b is a);
-    auto c = aa.require("bar", null);
-    assert(T.count == 1);
-    assert(c is null);
-    assert("bar" in aa);
-    auto d = aa.require("bar", new T);
-    assert(d is null);
-    auto e = aa.require("baz", new T);
-    assert(T.count == 2);
-    assert(e !is a);
-
-    assert("baz" in aa);
-
-    bool created = false;
-    auto f = aa.require("qux", { created = true; return new T; }());
-    assert(created == true);
-
-    T g;
-    auto h = aa.require("qux", { g = new T; return g; }());
-    assert(g !is h);
-}
-
-unittest
-{
-    static struct S
-    {
-        int value;
-    }
-
-    S[string] aa;
-
-    aa.require("foo").value = 1;
-    assert(aa == ["foo" : S(1)]);
-
-    aa["bar"] = S(2);
-    auto a = aa.require("bar", S(3));
-    assert(a == S(2));
-
-    auto b = aa["bar"];
-    assert(b == S(2));
-
-    S* c = &aa.require("baz", S(4));
-    assert(c is &aa["baz"]);
-    assert(*c == S(4));
-
-    assert("baz" in aa);
-
-    auto d = aa["baz"];
-    assert(d == S(4));
-}
-
-pure unittest
-{
-    string[string] aa;
-
-    auto a = aa.require("foo", "bar");
-    assert("foo" in aa);
 }
 
 // Constraints for aa update. Delegates, Functions or Functors (classes that
@@ -3359,380 +3194,6 @@ if (isCreateOperation!(C, V) && isUpdateOperation!(U, V))
         *p = create();
     else
         *p = update(*p);
-}
-
-unittest
-{
-    static class C {}
-    C[string] aa;
-
-    C orig = new C;
-    aa["foo"] = orig;
-
-    C newer;
-    C older;
-
-    void test(string key)
-    {
-        aa.update(key, {
-            newer = new C;
-            return newer;
-        }, (ref C c) {
-            older = c;
-            newer = new C;
-            return newer;
-        });
-    }
-
-    test("foo");
-    assert(older is orig);
-    assert(newer is aa["foo"]);
-
-    test("bar");
-    assert(newer is aa["bar"]);
-}
-
-unittest
-{
-    static class C {}
-    C[string] aa;
-
-    auto created = false;
-    auto updated = false;
-
-    class Creator
-    {
-        C opCall()
-        {
-            created = true;
-            return new C();
-        }
-    }
-
-    class Updater
-    {
-        C opCall(ref C)
-        {
-            updated = true;
-            return new C();
-        }
-    }
-
-    aa.update("foo", new Creator, new Updater);
-    assert(created);
-    aa.update("foo", new Creator, new Updater);
-    assert(updated);
-}
-
-unittest
-{
-    static assert(!__traits(compiles,
-        () @safe {
-            struct BadValue
-            {
-                int x;
-                this(this) @safe { *(cast(ubyte*)(null) + 100000) = 5; } // not @safe
-                alias x this;
-            }
-
-            BadValue[int] aa;
-            () @safe { auto x = aa.byKey.front; } ();
-        }
-    ));
-}
-
-pure nothrow unittest
-{
-    int[int] a;
-    foreach (i; a.byKey)
-    {
-        assert(false);
-    }
-    foreach (i; a.byValue)
-    {
-        assert(false);
-    }
-}
-
-pure /*nothrow */ unittest
-{
-    auto a = [ 1:"one", 2:"two", 3:"three" ];
-    auto b = a.dup;
-    assert(b == [ 1:"one", 2:"two", 3:"three" ]);
-
-    int[] c;
-    foreach (k; a.byKey)
-    {
-        c ~= k;
-    }
-
-    assert(c.length == 3);
-    assert(c[0] == 1 || c[1] == 1 || c[2] == 1);
-    assert(c[0] == 2 || c[1] == 2 || c[2] == 2);
-    assert(c[0] == 3 || c[1] == 3 || c[2] == 3);
-}
-
-pure nothrow unittest
-{
-    // test for bug 5925
-    const a = [4:0];
-    const b = [4:0];
-    assert(a == b);
-}
-
-pure nothrow unittest
-{
-    // test for bug 9052
-    static struct Json {
-        Json[string] aa;
-        void opAssign(Json) {}
-        size_t length() const { return aa.length; }
-        // This length() instantiates AssociativeArray!(string, const(Json)) to call AA.length(), and
-        // inside ref Slot opAssign(Slot p); (which is automatically generated by compiler in Slot),
-        // this.value = p.value would actually fail, because both side types of the assignment
-        // are const(Json).
-    }
-}
-
-pure nothrow unittest
-{
-    // test for bug 8583: ensure Slot and aaA are on the same page wrt value alignment
-    string[byte]    aa0 = [0: "zero"];
-    string[uint[3]] aa1 = [[1,2,3]: "onetwothree"];
-    ushort[uint[3]] aa2 = [[9,8,7]: 987];
-    ushort[uint[4]] aa3 = [[1,2,3,4]: 1234];
-    string[uint[5]] aa4 = [[1,2,3,4,5]: "onetwothreefourfive"];
-
-    assert(aa0.byValue.front == "zero");
-    assert(aa1.byValue.front == "onetwothree");
-    assert(aa2.byValue.front == 987);
-    assert(aa3.byValue.front == 1234);
-    assert(aa4.byValue.front == "onetwothreefourfive");
-}
-
-pure nothrow unittest
-{
-    // test for bug 10720
-    static struct NC
-    {
-        @disable this(this) { }
-    }
-
-    NC[string] aa;
-    static assert(!is(aa.nonExistingField));
-}
-
-pure nothrow unittest
-{
-    // bug 5842
-    string[string] test = null;
-    test["test1"] = "test1";
-    test.remove("test1");
-    test.rehash;
-    test["test3"] = "test3"; // causes divide by zero if rehash broke the AA
-}
-
-pure nothrow unittest
-{
-    string[] keys = ["a", "b", "c", "d", "e", "f"];
-
-    // Test forward range capabilities of byKey
-    {
-        int[string] aa;
-        foreach (key; keys)
-            aa[key] = 0;
-
-        auto keyRange = aa.byKey();
-        auto savedKeyRange = keyRange.save;
-
-        // Consume key range once
-        size_t keyCount = 0;
-        while (!keyRange.empty)
-        {
-            aa[keyRange.front]++;
-            keyCount++;
-            keyRange.popFront();
-        }
-
-        foreach (key; keys)
-        {
-            assert(aa[key] == 1);
-        }
-        assert(keyCount == keys.length);
-
-        // Verify it's possible to iterate the range the second time
-        keyCount = 0;
-        while (!savedKeyRange.empty)
-        {
-            aa[savedKeyRange.front]++;
-            keyCount++;
-            savedKeyRange.popFront();
-        }
-
-        foreach (key; keys)
-        {
-            assert(aa[key] == 2);
-        }
-        assert(keyCount == keys.length);
-    }
-
-    // Test forward range capabilities of byValue
-    {
-        size_t[string] aa;
-        foreach (i; 0 .. keys.length)
-        {
-            aa[keys[i]] = i;
-        }
-
-        auto valRange = aa.byValue();
-        auto savedValRange = valRange.save;
-
-        // Consume value range once
-        int[] hasSeen;
-        hasSeen.length = keys.length;
-        while (!valRange.empty)
-        {
-            assert(hasSeen[valRange.front] == 0);
-            hasSeen[valRange.front]++;
-            valRange.popFront();
-        }
-
-        foreach (sawValue; hasSeen) { assert(sawValue == 1); }
-
-        // Verify it's possible to iterate the range the second time
-        hasSeen = null;
-        hasSeen.length = keys.length;
-        while (!savedValRange.empty)
-        {
-            assert(!hasSeen[savedValRange.front]);
-            hasSeen[savedValRange.front] = true;
-            savedValRange.popFront();
-        }
-
-        foreach (sawValue; hasSeen) { assert(sawValue); }
-    }
-}
-
-pure nothrow unittest
-{
-    // expanded test for 5842: increase AA size past the point where the AA
-    // stops using binit, in order to test another code path in rehash.
-    int[int] aa;
-    foreach (int i; 0 .. 32)
-        aa[i] = i;
-    foreach (int i; 0 .. 32)
-        aa.remove(i);
-    aa.rehash;
-    aa[1] = 1;
-}
-
-pure nothrow unittest
-{
-    // bug 13078
-    shared string[][string] map;
-    map.rehash;
-}
-
-pure nothrow unittest
-{
-    // bug 11761: test forward range functionality
-    auto aa = ["a": 1];
-
-    void testFwdRange(R, T)(R fwdRange, T testValue)
-    {
-        assert(!fwdRange.empty);
-        assert(fwdRange.front == testValue);
-        static assert(is(typeof(fwdRange.save) == typeof(fwdRange)));
-
-        auto saved = fwdRange.save;
-        fwdRange.popFront();
-        assert(fwdRange.empty);
-
-        assert(!saved.empty);
-        assert(saved.front == testValue);
-        saved.popFront();
-        assert(saved.empty);
-    }
-
-    testFwdRange(aa.byKey, "a");
-    testFwdRange(aa.byValue, 1);
-    //testFwdRange(aa.byPair, tuple("a", 1));
-}
-
-unittest
-{
-    // Issue 9119
-    int[string] aa;
-    assert(aa.byKeyValue.empty);
-
-    aa["a"] = 1;
-    aa["b"] = 2;
-    aa["c"] = 3;
-
-    auto pairs = aa.byKeyValue;
-
-    auto savedPairs = pairs.save;
-    size_t count = 0;
-    while (!pairs.empty)
-    {
-        assert(pairs.front.key in aa);
-        assert(pairs.front.value == aa[pairs.front.key]);
-        count++;
-        pairs.popFront();
-    }
-    assert(count == aa.length);
-
-    // Verify that saved range can iterate over the AA again
-    count = 0;
-    while (!savedPairs.empty)
-    {
-        assert(savedPairs.front.key in aa);
-        assert(savedPairs.front.value == aa[savedPairs.front.key]);
-        count++;
-        savedPairs.popFront();
-    }
-    assert(count == aa.length);
-}
-
-unittest
-{
-    // Verify iteration with const.
-    auto aa = [1:2, 3:4];
-    foreach (const t; aa.byKeyValue)
-    {
-        auto k = t.key;
-        auto v = t.value;
-    }
-}
-
-unittest
-{
-    // test for bug 14626
-    static struct S
-    {
-        string[string] aa;
-        inout(string) key() inout { return aa.byKey().front; }
-        inout(string) val() inout { return aa.byValue().front; }
-        auto keyval() inout { return aa.byKeyValue().front; }
-    }
-
-    S s = S(["a":"b"]);
-    assert(s.key() == "a");
-    assert(s.val() == "b");
-    assert(s.keyval().key == "a");
-    assert(s.keyval().value == "b");
-
-    void testInoutKeyVal(inout(string) key)
-    {
-        inout(string)[typeof(key)] aa;
-
-        foreach (i; aa.byKey()) {}
-        foreach (i; aa.byValue()) {}
-        foreach (i; aa.byKeyValue()) {}
-    }
-
-    const int[int] caa;
-    static assert(is(typeof(caa.byValue().front) == const int));
 }
 
 private void _destructRecurse(E, size_t n)(ref E[n] arr)
@@ -3797,7 +3258,7 @@ void _postblitRecurse(E, size_t n)(ref E[n] arr)
 
     struct InnerMiddle {}
 
-    version(none) // https://issues.dlang.org/show_bug.cgi?id=14242
+    version (none) // https://issues.dlang.org/show_bug.cgi?id=14242
     struct InnerElement
     {
         static char counter = '1';
@@ -3831,7 +3292,7 @@ void _postblitRecurse(E, size_t n)(ref E[n] arr)
         char[] s;
         InnerTop top;
         InnerMiddle middle;
-        version(none) InnerElement[3] array; // https://issues.dlang.org/show_bug.cgi?id=14242
+        version (none) InnerElement[3] array; // https://issues.dlang.org/show_bug.cgi?id=14242
         int a;
         InnerBottom bottom;
         ~this() @safe nothrow pure { order ~= "destroy outer"; }
@@ -3963,7 +3424,7 @@ unittest
         this(this)
         {
             order ~= "copy inner #" ~ id;
-            if(id == '2')
+            if (id == '2')
                 throw new FailedPostblitException();
         }
 
@@ -3999,15 +3460,15 @@ unittest
     auto outer = Outer('1', '2', '3');
 
     try _postblitRecurse(outer);
-    catch(FailedPostblitException) {}
-    catch(Exception) assert(false);
+    catch (FailedPostblitException) {}
+    catch (Exception) assert(false);
 
     auto postblitRecurseOrder = order;
     order = null;
 
     try auto copy = outer;
-    catch(FailedPostblitException) {}
-    catch(Exception) assert(false);
+    catch (FailedPostblitException) {}
+    catch (Exception) assert(false);
 
     assert(postblitRecurseOrder == order);
     order = null;
@@ -4015,15 +3476,15 @@ unittest
     Outer[3] arr = [Outer('1', '1', '1'), Outer('1', '2', '3'), Outer('3', '3', '3')];
 
     try _postblitRecurse(arr);
-    catch(FailedPostblitException) {}
-    catch(Exception) assert(false);
+    catch (FailedPostblitException) {}
+    catch (Exception) assert(false);
 
     postblitRecurseOrder = order;
     order = null;
 
     try auto arrCopy = arr;
-    catch(FailedPostblitException) {}
-    catch(Exception) assert(false);
+    catch (FailedPostblitException) {}
+    catch (Exception) assert(false);
 
     assert(postblitRecurseOrder == order);
 }
@@ -4166,7 +3627,7 @@ unittest
     assert(newcap >= 2000);
     assert(newcap == arr.capacity);
     auto ptr = arr.ptr;
-    foreach(i; 0..2000)
+    foreach (i; 0..2000)
         arr ~= i;
     assert(ptr == arr.ptr);
     arr = arr[0..1];
@@ -4291,14 +3752,6 @@ else
             return hash;
         }
     }
-}
-
-unittest
-{
-    // Issue # 16654 / 16764
-    auto a = [1];
-    auto b = a.dup;
-    assert(hashOf(a) == hashOf(b));
 }
 
 bool _xopEquals(in void*, in void*)
@@ -4436,7 +3889,7 @@ unittest
 
         static int bug5381(immutable(T)[] s)
         {
-            switch(s)
+            switch (s)
             {
                 case "unittest":        return 1;
                 case "D_Version2":      return 2;
@@ -4467,7 +3920,7 @@ unittest
 
         static int binarySearch(immutable(T)[] s)
         {
-            switch(s)
+            switch (s)
             {
                 static foreach (i; 0 .. 16)
                 case i.stringof: return i;
@@ -4511,15 +3964,15 @@ void __switch_error()(string file = __FILE__, size_t line = __LINE__)
 private inout(TypeInfo) getElement(inout TypeInfo value) @trusted pure nothrow
 {
     TypeInfo element = cast() value;
-    for(;;)
+    for (;;)
     {
-        if(auto qualified = cast(TypeInfo_Const) element)
+        if (auto qualified = cast(TypeInfo_Const) element)
             element = qualified.base;
-        else if(auto redefined = cast(TypeInfo_Enum) element)
+        else if (auto redefined = cast(TypeInfo_Enum) element)
             element = redefined.base;
-        else if(auto staticArray = cast(TypeInfo_StaticArray) element)
+        else if (auto staticArray = cast(TypeInfo_StaticArray) element)
             element = staticArray.value;
-        else if(auto vector = cast(TypeInfo_Vector) element)
+        else if (auto vector = cast(TypeInfo_Vector) element)
             element = vector.base;
         else
             break;
@@ -4529,18 +3982,18 @@ private inout(TypeInfo) getElement(inout TypeInfo value) @trusted pure nothrow
 
 private size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) @trusted nothrow
 {
-    if(!count)
+    if (!count)
         return 0;
 
     const size_t elementSize = element.tsize;
-    if(!elementSize)
+    if (!elementSize)
         return 0;
 
     static bool hasCustomToHash(in TypeInfo value) @trusted pure nothrow
     {
         const element = getElement(value);
 
-        if(const struct_ = cast(const TypeInfo_Struct) element)
+        if (const struct_ = cast(const TypeInfo_Struct) element)
             return !!struct_.xtoHash;
 
         return cast(const TypeInfo_Array) element
@@ -4550,54 +4003,13 @@ private size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) 
     }
 
     import core.internal.traits : externDFunc;
-    if(!hasCustomToHash(element))
+    if (!hasCustomToHash(element))
         return hashOf(ptr[0 .. elementSize * count]);
 
     size_t hash = 0;
-    foreach(size_t i; 0 .. count)
+    foreach (size_t i; 0 .. count)
         hash = hashOf(element.getHash(ptr + i * elementSize), hash);
     return hash;
-}
-
-
-// Tests ensure TypeInfo_Array.getHash  uses element hash functions instead of hashing array data
-
-unittest
-{
-    class C
-    {
-        int i;
-        this(in int i) { this.i = i; }
-        override hash_t toHash() { return 0; }
-    }
-    C[] a1 = [new C(11)], a2 = [new C(12)];
-    assert(typeid(C[]).getHash(&a1) == typeid(C[]).getHash(&a2));
-}
-
-unittest
-{
-    struct S
-    {
-        int i;
-        hash_t toHash() const @safe nothrow { return 0; }
-    }
-    S[] a1 = [S(11)], a2 = [S(12)];
-    assert(typeid(S[]).getHash(&a1) == typeid(S[]).getHash(&a2));
-}
-
-@safe unittest
-{
-    struct S
-    {
-        int i;
-    const @safe nothrow:
-        hash_t toHash() { return 0; }
-        bool opEquals(const S) { return true; }
-        int opCmp(const S) { return 0; }
-    }
-
-    int[S[]] aa = [[S(11)] : 13];
-    assert(aa[[S(12)]] == 13);
 }
 
 /// Provide the .dup array property.

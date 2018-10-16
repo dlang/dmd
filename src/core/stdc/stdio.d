@@ -53,7 +53,7 @@ extern (C):
 nothrow:
 @nogc:
 
-version( CRuntime_DigitalMars )
+version (CRuntime_DigitalMars)
 {
     enum
     {
@@ -80,7 +80,7 @@ version( CRuntime_DigitalMars )
     ///
     enum int     L_tmpnam   = _P_tmpdir.length + 12;
 }
-else version( CRuntime_Microsoft )
+else version (CRuntime_Microsoft)
 {
     enum
     {
@@ -107,7 +107,7 @@ else version( CRuntime_Microsoft )
     /// Actually 260 since Visual Studio 2015.
     enum int     L_tmpnam   = _P_tmpdir.length + 12;
 }
-else version( CRuntime_Glibc )
+else version (CRuntime_Glibc)
 {
     enum
     {
@@ -125,7 +125,7 @@ else version( CRuntime_Glibc )
         L_tmpnam     = 20
     }
 }
-else version( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     enum
     {
@@ -143,7 +143,7 @@ else version( CRuntime_Musl )
         L_tmpnam     = 20
     }
 }
-else version( Darwin )
+else version (Darwin)
 {
     enum
     {
@@ -175,7 +175,7 @@ else version( Darwin )
         }
     }
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     enum
     {
@@ -205,7 +205,7 @@ else version ( FreeBSD )
         long        _mbstateL;
     }
 }
-else version ( NetBSD )
+else version (NetBSD)
 {
     enum
     {
@@ -235,7 +235,7 @@ else version ( NetBSD )
         long        _mbstateL;
     }
 }
-else version ( OpenBSD )
+else version (OpenBSD)
 {
     enum
     {
@@ -265,7 +265,7 @@ else version ( OpenBSD )
         long        __mbstateL;
     }
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     enum
     {
@@ -329,7 +329,7 @@ else version (Solaris)
         ///
         enum int _NFILE = 20;
 }
-else version( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     enum
     {
@@ -353,7 +353,7 @@ else version( CRuntime_Bionic )
         int _size;
     }
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     enum
     {
@@ -386,7 +386,7 @@ enum
     SEEK_END
 }
 
-version( CRuntime_DigitalMars )
+version (CRuntime_DigitalMars)
 {
     ///
     alias c_long fpos_t;
@@ -407,7 +407,7 @@ version( CRuntime_DigitalMars )
     ///
     alias shared(_iobuf) FILE;
 }
-else version( CRuntime_Microsoft )
+else version (CRuntime_Microsoft)
 {
     ///
     alias long fpos_t;
@@ -421,7 +421,7 @@ else version( CRuntime_Microsoft )
     ///
     alias shared(_iobuf) FILE;
 }
-else version( CRuntime_Glibc )
+else version (CRuntime_Glibc)
 {
     import core.stdc.wchar_ : mbstate_t;
     ///
@@ -462,7 +462,7 @@ else version( CRuntime_Glibc )
     ///
     alias shared(_IO_FILE) FILE;
 }
-else version( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     union fpos_t
     {
@@ -476,7 +476,7 @@ else version( CRuntime_Musl )
     ///
     alias shared(_IO_FILE) FILE;
 }
-else version( Darwin )
+else version (Darwin)
 {
     ///
     alias long fpos_t;
@@ -516,7 +516,7 @@ else version( Darwin )
     ///
     alias shared(__sFILE) FILE;
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     ///
     alias off_t fpos_t;
@@ -562,7 +562,7 @@ else version( FreeBSD )
     ///
     alias shared(__sFILE) FILE;
 }
-else version( NetBSD )
+else version (NetBSD)
 {
     ///
     alias off_t fpos_t;
@@ -606,7 +606,7 @@ else version( NetBSD )
     ///
     alias shared(__sFILE) FILE;
 }
-else version( OpenBSD )
+else version (OpenBSD)
 {
     ///
     alias fpos_t = off_t;
@@ -644,7 +644,7 @@ else version( OpenBSD )
     ///
     alias shared(__sFILE) FILE;
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     alias off_t fpos_t;
 
@@ -709,7 +709,7 @@ else version (Solaris)
     ///
     alias shared(_iobuf) FILE;
 }
-else version( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     import core.sys.posix.sys.types : off_t;
     ///
@@ -750,7 +750,7 @@ else version( CRuntime_Bionic )
     ///
     alias shared(__sFILE) FILE;
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     import core.stdc.wchar_ : mbstate_t;
     import core.stdc.stddef : wchar_t;
@@ -834,7 +834,7 @@ enum
     _F_TERM = 0x0200, // non-standard
 }
 
-version( CRuntime_DigitalMars )
+version (CRuntime_DigitalMars)
 {
     enum
     {
@@ -879,7 +879,7 @@ version( CRuntime_DigitalMars )
     ///
     enum stdprn = &_iob[4];
 }
-else version( CRuntime_Microsoft )
+else version (CRuntime_Microsoft)
 {
     enum
     {
@@ -918,7 +918,7 @@ else version( CRuntime_Microsoft )
     ///
     shared FILE* stderr; // = &__iob_func()[2];
 }
-else version( CRuntime_Glibc )
+else version (CRuntime_Glibc)
 {
     enum
     {
@@ -937,7 +937,7 @@ else version( CRuntime_Glibc )
     ///
     extern shared FILE* stderr;
 }
-else version( Darwin )
+else version (Darwin)
 {
     enum
     {
@@ -960,7 +960,7 @@ else version( Darwin )
     ///
     alias __stderrp stderr;
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     enum
     {
@@ -983,7 +983,7 @@ else version( FreeBSD )
     ///
     alias __stderrp stderr;
 }
-else version( NetBSD )
+else version (NetBSD)
 {
     enum
     {
@@ -1006,7 +1006,7 @@ else version( NetBSD )
     ///
     alias __stderr stderr;
 }
-else version( OpenBSD )
+else version (OpenBSD)
 {
     enum
     {
@@ -1027,7 +1027,7 @@ else version( OpenBSD )
     ///
     shared stderr = &__sF[2];
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     enum
     {
@@ -1077,7 +1077,7 @@ else version (Solaris)
     ///
     shared stderr = &__iob[2];
 }
-else version( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     enum
     {
@@ -1098,7 +1098,7 @@ else version( CRuntime_Bionic )
     ///
     shared stderr = &__sF[2];
 }
-else version( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     // needs tail const
     extern shared FILE* stdin;
@@ -1116,7 +1116,7 @@ else version( CRuntime_Musl )
         _IONBF = 2,
     }
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     enum
     {
@@ -1315,7 +1315,7 @@ size_t fwrite(scope const void* ptr, size_t size, size_t nmemb, FILE* stream);
     c_long ftell(FILE* stream);
 }
 
-version( MinGW )
+version (MinGW)
 {
   // No unsafe pointer manipulation.
   extern (D) @trusted
@@ -1343,7 +1343,7 @@ version( MinGW )
     ///
     alias __mingw_vsnprintf vsnprintf;
 }
-else version( CRuntime_DigitalMars )
+else version (CRuntime_DigitalMars)
 {
   // No unsafe pointer manipulation.
   extern (D) @trusted
@@ -1369,7 +1369,7 @@ else version( CRuntime_DigitalMars )
     ///
     alias _vsnprintf vsnprintf;
 }
-else version( CRuntime_Microsoft )
+else version (CRuntime_Microsoft)
 {
   // No unsafe pointer manipulation.
   @trusted
@@ -1411,7 +1411,7 @@ else version( CRuntime_Microsoft )
     ///
     int _open_osfhandle(intptr_t osfhandle, int flags);
 }
-else version( CRuntime_Glibc )
+else version (CRuntime_Glibc)
 {
   // No unsafe pointer manipulation.
   @trusted
@@ -1433,7 +1433,7 @@ else version( CRuntime_Glibc )
     ///
     int  vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
 }
-else version( Darwin )
+else version (Darwin)
 {
   // No unsafe pointer manipulation.
   @trusted
@@ -1455,7 +1455,7 @@ else version( Darwin )
     ///
     int  vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
   // No unsafe pointer manipulation.
   @trusted
@@ -1477,7 +1477,7 @@ else version( FreeBSD )
     ///
     int  vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
 }
-else version( NetBSD )
+else version (NetBSD)
 {
   // No unsafe pointer manipulation.
   @trusted
@@ -1499,7 +1499,7 @@ else version( NetBSD )
     ///
     int  vsnprintf(char* s, size_t n, in char* format, va_list arg);
 }
-else version( OpenBSD )
+else version (OpenBSD)
 {
     // No unsafe pointer manipulation.
     @trusted
@@ -1590,7 +1590,7 @@ else version( OpenBSD )
     ///
     int  vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
   // No unsafe pointer manipulation.
   @trusted
@@ -1643,7 +1643,7 @@ else version (Solaris)
     ///
     int  vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
 }
-else version( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
   // No unsafe pointer manipulation.
   @trusted
@@ -1665,7 +1665,7 @@ else version( CRuntime_Bionic )
     ///
     int  vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
 }
-else version( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     import core.sys.posix.sys.types : off_t;
     ///
@@ -1689,7 +1689,7 @@ else version( CRuntime_Musl )
     ///
     int vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
   // No unsafe pointer manipulation.
   @trusted
@@ -1719,7 +1719,7 @@ else
 ///
 void perror(scope const char* s);
 
-version(CRuntime_DigitalMars)
+version (CRuntime_DigitalMars)
 {
     import core.sys.windows.windows;
 

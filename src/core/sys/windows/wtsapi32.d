@@ -58,7 +58,7 @@ struct WTS_SERVER_INFOA {
 }
 alias WTS_SERVER_INFOA* PWTS_SERVER_INFOA;
 
-version(Unicode) {
+version (Unicode) {
     alias WTS_SERVER_INFOW  WTS_SERVER_INFO;
     alias PWTS_SERVER_INFOW PWTS_SERVER_INFO;
 } else {
@@ -80,7 +80,7 @@ struct WTS_SESSION_INFOA {
 }
 alias WTS_SESSION_INFOA* PWTS_SESSION_INFOA;
 
-version(Unicode) {
+version (Unicode) {
     alias WTS_SESSION_INFOW  WTS_SESSION_INFO;
     alias PWTS_SESSION_INFOW PWTS_SESSION_INFO;
 } else {
@@ -104,7 +104,7 @@ struct WTS_PROCESS_INFOA {
 }
 alias WTS_PROCESS_INFOA* PWTS_PROCESS_INFOA;
 
-version(Unicode) {
+version (Unicode) {
     alias WTS_PROCESS_INFOW  WTS_PROCESS_INFO;
     alias PWTS_PROCESS_INFOW PWTS_PROCESS_INFO;
 } else {
@@ -201,7 +201,7 @@ enum WTS_VIRTUAL_CLASS {
     WTSVirtualFileHandle
 }
 
-version(Unicode) {
+version (Unicode) {
     alias WTSEnumerateServersW WTSEnumerateServers;
     alias WTSOpenServerW WTSOpenServer;
     alias WTSEnumerateSessionsW WTSEnumerateSessions;
@@ -318,7 +318,7 @@ static if (_WIN32_WINNT >= 0x600) {
     }
     alias WTSCLIENTA* PWTSCLIENTA;
 
-    version(Unicode) {
+    version (Unicode) {
         alias WTSCLIENTW  WTSCLIENT;
         alias PWTSCLIENTW PWTSCLIENT;
     } else {
@@ -366,7 +366,7 @@ static if (_WIN32_WINNT >= 0x600) {
     }
     alias WTSINFOA* PWTSINFOA;
 
-    version(Unicode) {
+    version (Unicode) {
         alias WTSINFOW  WTSINFO;
         alias PWTSINFOW PWTSINFO;
     } else {
@@ -409,7 +409,7 @@ static if (_WIN32_WINNT >= 0x600) {
             USHORT HotkeyModifiers
         );
 
-        version(Unicode) {
+        version (Unicode) {
             alias WTSStartRemoteControlSessionW WTSStartRemoteControlSession;
             alias WTSConnectSessionW WTSConnectSession;
         } else {

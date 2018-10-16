@@ -39,7 +39,7 @@ struct msginfo
     ushort msgseg;
 }
 
-version(Alpha)
+version (Alpha)
 {
     // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/alpha/bits/msq.h
     alias c_ulong msgqnum_t;
@@ -60,7 +60,7 @@ version(Alpha)
         c_ulong __glibc_reserved2;
     }
 }
-else version(HPPA)
+else version (HPPA)
 {
     // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/hppa/bits/msq.h
     alias c_ulong msgqnum_t;
@@ -86,7 +86,7 @@ else version(HPPA)
     }
 
 }
-else version(MIPS32)
+else version (MIPS32)
 {
     // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/mips/bits/msq.h
     alias c_ulong msgqnum_t;
@@ -95,15 +95,15 @@ else version(MIPS32)
     struct msqid_ds
     {
         ipc_perm  msg_perm;
-        version(BigEndian) c_ulong __glibc_reserved1;
+        version (BigEndian) c_ulong __glibc_reserved1;
         time_t    msg_stime;
-        version(LittleEndian) c_ulong __glibc_reserved1;
-        version(BigEndian) c_ulong __glibc_reserved2;
+        version (LittleEndian) c_ulong __glibc_reserved1;
+        version (BigEndian) c_ulong __glibc_reserved2;
         time_t    msg_rtime;
-        version(LittleEndian) c_ulong __glibc_reserved2;
-        version(BigEndian) c_ulong __glibc_reserved3;
+        version (LittleEndian) c_ulong __glibc_reserved2;
+        version (BigEndian) c_ulong __glibc_reserved3;
         time_t    msg_ctime;
-        version(LittleEndian) c_ulong __glibc_reserved3;
+        version (LittleEndian) c_ulong __glibc_reserved3;
         c_ulong   __msg_cbytes;
         msgqnum_t msg_qnum;
         msglen_t  msg_qbytes;
@@ -113,7 +113,7 @@ else version(MIPS32)
         c_ulong   __glibc_reserved5;
     }
 }
-else version(MIPS64)
+else version (MIPS64)
 {
     // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/mips/bits/msq.h
     alias c_ulong msgqnum_t;

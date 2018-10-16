@@ -205,7 +205,7 @@ extern (Windows) {
     HRESULT WindowFromAccessibleObject(IAccessible, HWND*);
 }
 
-version(Unicode) {
+version (Unicode) {
     alias CreateStdAccessibleProxyW CreateStdAccessibleProxy;
     alias GetRoleTextW GetRoleText;
     alias GetStateTextW GetStateText;

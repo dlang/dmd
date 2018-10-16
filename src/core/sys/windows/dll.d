@@ -28,13 +28,13 @@ extern (C)
 {
     version (Win32)
     {
-        version(CRuntime_DigitalMars)
+        version (CRuntime_DigitalMars)
         {
             extern __gshared byte  _tlsstart;
             extern __gshared byte  _tlsend;
             extern __gshared void* _tls_callbacks_a;
         }
-        else version(CRuntime_Microsoft)
+        else version (CRuntime_Microsoft)
         {
             extern __gshared byte  _tls_start;
             extern __gshared byte  _tls_end;
@@ -77,13 +77,13 @@ struct dll_aux
     // find a code sequence and return the address after the sequence
     static void* findCodeSequence( void* adr, int len, ref ubyte[] pattern ) nothrow
     {
-        if( !adr )
+        if ( !adr )
             return null;
 
         ubyte* code = cast(ubyte*) adr;
-        for( int p = 0; p < len; p++ )
+        for ( int p = 0; p < len; p++ )
         {
-            if( code[ p .. p + pattern.length ] == pattern[ 0 .. $ ] )
+            if ( code[ p .. p + pattern.length ] == pattern[ 0 .. $ ] )
             {
                 ubyte* padr = code + p + pattern.length;
                 return padr;
@@ -95,13 +95,13 @@ struct dll_aux
     // find a code sequence and return the (relative) address that follows
     static void* findCodeReference( void* adr, int len, ref ubyte[] pattern, bool relative ) nothrow
     {
-        if( !adr )
+        if ( !adr )
             return null;
 
         ubyte* padr = cast(ubyte*) findCodeSequence( adr, len, pattern );
-        if( padr )
+        if ( padr )
         {
-            if( relative )
+            if ( relative )
                 return padr + 4 + *cast(int*) padr;
             return *cast(void**) padr;
         }
@@ -142,25 +142,25 @@ struct dll_aux
 
         void* pLdrpInitialize = findCodeReference( fn, 20, jmp_LdrpInitialize, true );
         void* p_LdrpInitialize = findCodeReference( pLdrpInitialize, 40, jmp__LdrpInitialize, true );
-        if( !p_LdrpInitialize )
+        if ( !p_LdrpInitialize )
             p_LdrpInitialize = findCodeSequence( pLdrpInitialize, 40, jmp__LdrpInitialize_xp64 );
         void* pLdrpInitializeThread = findCodeReference( p_LdrpInitialize, 200, call_LdrpInitializeThread, true );
         void* pLdrpAllocateTls = findCodeReference( pLdrpInitializeThread, 40, call_LdrpAllocateTls, true );
-        if(!pLdrpAllocateTls)
+        if (!pLdrpAllocateTls)
             pLdrpAllocateTls = findCodeReference( pLdrpInitializeThread, 100, call_LdrpAllocateTls_svr03, true );
         void* pBodyAllocateTls = findCodeReference( pLdrpAllocateTls, 40, jne_LdrpAllocateTls, true );
 
         int* pLdrpNumberOfTlsEntries = cast(int*) findCodeReference( pBodyAllocateTls, 60, mov_LdrpNumberOfTlsEntries, false );
         pNtdllBaseTag = cast(int*) findCodeReference( pBodyAllocateTls, 30, mov_NtdllBaseTag, false );
-        if(!pNtdllBaseTag)
+        if (!pNtdllBaseTag)
             pNtdllBaseTag = cast(int*) findCodeReference( pBodyAllocateTls, 30, mov_NtdllBaseTag_srv03, false );
         LdrpTlsListEntry* pLdrpTlsList = cast(LdrpTlsListEntry*)findCodeReference( pBodyAllocateTls, 80, mov_LdrpTlsList, false );
 
-        if( !pLdrpNumberOfTlsEntries || !pNtdllBaseTag || !pLdrpTlsList )
+        if ( !pLdrpNumberOfTlsEntries || !pNtdllBaseTag || !pLdrpTlsList )
             return null;
 
         fnRtlAllocateHeap fnAlloc = cast(fnRtlAllocateHeap) GetProcAddress( hnd, "RtlAllocateHeap" );
-        if( !fnAlloc )
+        if ( !fnAlloc )
             return null;
 
         // allocate new TlsList entry (adding 0xC0000 to the tag is obviously a flag also usesd by
@@ -168,7 +168,7 @@ struct dll_aux
         //  but this is not documented in the msdn entry for RtlAlloateHeap
         void* heap = peb[6];
         LdrpTlsListEntry* entry = cast(LdrpTlsListEntry*) (*fnAlloc)( heap, *pNtdllBaseTag | 0xc0000, LdrpTlsListEntry.sizeof );
-        if( !entry )
+        if ( !entry )
             return null;
 
         // fill entry
@@ -197,7 +197,7 @@ struct dll_aux
         assert( hnd, "cannot get module handle for ntdll" );
 
         fnRtlAllocateHeap fnAlloc = cast(fnRtlAllocateHeap) GetProcAddress( hnd, "RtlAllocateHeap" );
-        if( !fnAlloc || !pNtdllBaseTag )
+        if ( !fnAlloc || !pNtdllBaseTag )
             return false;
 
         void** peb = cast(void**) teb[12];
@@ -205,7 +205,7 @@ struct dll_aux
 
         auto sz = tlsend - tlsstart;
         void* tlsdata = cast(void*) (*fnAlloc)( heap, *pNtdllBaseTag | 0xc0000, sz );
-        if( !tlsdata )
+        if ( !tlsdata )
             return false;
 
         // no relocations! not even self-relocations. Windows does not do them.
@@ -213,10 +213,10 @@ struct dll_aux
 
         // create copy of tls pointer array
         void** array = cast(void**) (*fnAlloc)( heap, *pNtdllBaseTag | 0xc0000, (tlsindex + 1) * (void*).sizeof );
-        if( !array )
+        if ( !array )
             return false;
 
-        if( tlsindex > 0 && teb[11] )
+        if ( tlsindex > 0 && teb[11] )
             core.stdc.string.memcpy( array, teb[11], tlsindex * (void*).sizeof);
         array[tlsindex] = tlsdata;
         teb[11] = cast(void*) array;
@@ -273,10 +273,10 @@ struct dll_aux
     {
         PEB_LDR_DATA* ldrData = cast(PEB_LDR_DATA*) peb[3];
         LIST_ENTRY* root = &ldrData.InLoadOrderModuleList;
-        for(LIST_ENTRY* entry = root.next; entry != root; entry = entry.next)
+        for (LIST_ENTRY* entry = root.next; entry != root; entry = entry.next)
         {
             LDR_MODULE *ldrMod = cast(LDR_MODULE*) entry;
-            if(ldrMod.BaseAddress == hInstance)
+            if (ldrMod.BaseAddress == hInstance)
                 return ldrMod;
         }
         return null;
@@ -285,7 +285,7 @@ struct dll_aux
     static bool setDllTlsUsage( HINSTANCE hInstance, void** peb ) nothrow
     {
         LDR_MODULE *thisMod = findLdrModule( hInstance, peb );
-        if( !thisMod )
+        if ( !thisMod )
             return false;
 
         thisMod.TlsIndex = -1;  // uses TLS (not the index itself)
@@ -323,7 +323,7 @@ bool dll_fixTLS( HINSTANCE hInstance, void* tlsstart, void* tlsend, void* tls_ca
      * Vista and later Windows systems should do this correctly and not need
      * this function.
      */
-    if( *tlsindex != 0 )
+    if ( *tlsindex != 0 )
         return true;
 
     void** peb;
@@ -333,18 +333,18 @@ bool dll_fixTLS( HINSTANCE hInstance, void* tlsstart, void* tlsend, void* tls_ca
         mov peb, EAX;
     }
     dll_aux.LDR_MODULE *ldrMod = dll_aux.findLdrModule( hInstance, peb );
-    if( !ldrMod )
+    if ( !ldrMod )
         return false; // not in module list, bail out
-    if( ldrMod.TlsIndex != 0 )
+    if ( ldrMod.TlsIndex != 0 )
         return true;  // the OS has already setup TLS
 
     dll_aux.LdrpTlsListEntry* entry = dll_aux.addTlsListEntry( peb, tlsstart, tlsend, tls_callbacks_a, tlsindex );
-    if( !entry )
+    if ( !entry )
         return false;
 
     scope (failure) assert(0); // enforce nothrow, Bugzilla 13561
 
-    if( !enumProcessThreads(
+    if ( !enumProcessThreads(
         function (uint id, void* context) nothrow {
             dll_aux.LdrpTlsListEntry* entry = cast(dll_aux.LdrpTlsListEntry*) context;
             return dll_aux.addTlsData( getTEB( id ), entry.tlsstart, entry.tlsend, entry.tlsindex );
@@ -365,22 +365,22 @@ bool dll_process_attach( HINSTANCE hInstance, bool attach_threads,
 {
     version (Win32)
     {
-        if( !dll_fixTLS( hInstance, tlsstart, tlsend, tls_callbacks_a, tlsindex ) )
+        if ( !dll_fixTLS( hInstance, tlsstart, tlsend, tls_callbacks_a, tlsindex ) )
             return false;
     }
 
     Runtime.initialize();
 
-    if( !attach_threads )
+    if ( !attach_threads )
         return true;
 
     // attach to all other threads
     return enumProcessThreads(
         function (uint id, void* context) {
-            if( !thread_findByAddr( id ) )
+            if ( !thread_findByAddr( id ) )
             {
                 // if the OS has not prepared TLS for us, don't attach to the thread
-                if( GetTlsDataAddress( id ) )
+                if ( GetTlsDataAddress( id ) )
                 {
                     thread_attachByAddr( id );
                     thread_moduleTlsCtor( id );
@@ -409,10 +409,10 @@ bool dll_process_attach( HINSTANCE hInstance, bool attach_threads = true )
 void dll_process_detach( HINSTANCE hInstance, bool detach_threads = true )
 {
     // detach from all other threads
-    if( detach_threads )
+    if ( detach_threads )
         enumProcessThreads(
             function (uint id, void* context) {
-                if( id != GetCurrentThreadId() && thread_findByAddr( id ) )
+                if ( id != GetCurrentThreadId() && thread_findByAddr( id ) )
                 {
                     thread_moduleTlsDtor( id );
                     thread_detachByAddr( id );
@@ -434,14 +434,14 @@ bool dll_thread_attach( bool attach_thread = true, bool initTls = true )
 {
     // if the OS has not prepared TLS for us, don't attach to the thread
     //  (happened when running under x64 OS)
-    if( !GetTlsDataAddress( GetCurrentThreadId() ) )
+    if ( !GetTlsDataAddress( GetCurrentThreadId() ) )
         return false;
-    if( !thread_findByAddr( GetCurrentThreadId() ) )
+    if ( !thread_findByAddr( GetCurrentThreadId() ) )
     {
         // only attach to thread and initalize it if it is not in the thread list (so it's not created by "new Thread")
-        if( attach_thread )
+        if ( attach_thread )
             thread_attachThis();
-        if( initTls && !tlsCtorRun ) // avoid duplicate calls
+        if ( initTls && !tlsCtorRun ) // avoid duplicate calls
             rt_moduleTlsCtor();
     }
     return true;
@@ -451,13 +451,13 @@ bool dll_thread_attach( bool attach_thread = true, bool initTls = true )
 bool dll_thread_detach( bool detach_thread = true, bool exitTls = true )
 {
     // if the OS has not prepared TLS for us, we did not attach to the thread
-    if( !GetTlsDataAddress( GetCurrentThreadId() ) )
+    if ( !GetTlsDataAddress( GetCurrentThreadId() ) )
          return false;
-    if( thread_findByAddr( GetCurrentThreadId() ) )
+    if ( thread_findByAddr( GetCurrentThreadId() ) )
     {
-        if( exitTls && tlsCtorRun ) // avoid dtors to be run twice
+        if ( exitTls && tlsCtorRun ) // avoid dtors to be run twice
             rt_moduleTlsDtor();
-        if( detach_thread )
+        if ( detach_thread )
             thread_detachThis();
     }
     return true;
@@ -482,7 +482,7 @@ mixin template SimpleDllMain()
         import core.sys.windows.dll :
             dll_process_attach, dll_process_detach,
             dll_thread_attach, dll_thread_detach;
-        switch(ulReason)
+        switch (ulReason)
         {
             default: assert(0);
             case DLL_PROCESS_ATTACH:

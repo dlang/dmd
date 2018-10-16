@@ -122,6 +122,12 @@ private:
         Array!(DSO*) _deps; // D libraries needed by this DSO
         void* _handle; // corresponding handle
     }
+
+    // get the TLS range for the executing thread
+    void[] tlsRange() const nothrow @nogc
+    {
+        return getTLSRange(_tlsMod, _tlsSize);
+    }
 }
 
 /****
@@ -302,7 +308,7 @@ version (Shared)
         // update the _tlsRange for the executing thread
         void updateTLSRange() nothrow @nogc
         {
-            _tlsRange = getTLSRange(_pdso._tlsMod, _pdso._tlsSize);
+            _tlsRange = _pdso.tlsRange();
         }
     }
     Array!(ThreadDSO) _loadedDSOs;
@@ -404,15 +410,14 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
                  * thread with a refCnt of 1 and call the TlsCtors.
                  */
                 immutable ushort refCnt = 1, addCnt = 0;
-                auto tlsRng = getTLSRange(pdso._tlsMod, pdso._tlsSize);
-                _loadedDSOs.insertBack(ThreadDSO(pdso, refCnt, addCnt, tlsRng));
+                _loadedDSOs.insertBack(ThreadDSO(pdso, refCnt, addCnt, pdso.tlsRange()));
             }
         }
         else
         {
             foreach (p; _loadedDSOs) assert(p !is pdso);
             _loadedDSOs.insertBack(pdso);
-            _tlsRanges.insertBack(getTLSRange(pdso._tlsMod, pdso._tlsSize));
+            _tlsRanges.insertBack(pdso.tlsRange());
         }
 
         // don't initialize modules before rt_init was called (see Bugzilla 11378)
@@ -509,8 +514,7 @@ version (Shared)
             foreach (dep; pdso._deps)
                 incThreadRef(dep, false);
             immutable ushort refCnt = 1, addCnt = incAdd ? 1 : 0;
-            auto tlsRng = getTLSRange(pdso._tlsMod, pdso._tlsSize);
-            _loadedDSOs.insertBack(ThreadDSO(pdso, refCnt, addCnt, tlsRng));
+            _loadedDSOs.insertBack(ThreadDSO(pdso, refCnt, addCnt, pdso.tlsRange()));
             pdso._moduleGroup.runTlsCtors();
         }
     }
@@ -623,14 +627,14 @@ void freeDSO(DSO* pdso) nothrow @nogc
 version (Shared)
 {
 @nogc nothrow:
-    link_map* linkMapForHandle(void* handle) nothrow @nogc
+    link_map* linkMapForHandle(void* handle)
     {
         link_map* map;
         dlinfo(handle, RTLD_DI_LINKMAP, &map) == 0 || assert(0);
         return map;
     }
 
-     link_map* exeLinkMap(link_map* map) nothrow @nogc
+     link_map* exeLinkMap(link_map* map)
      {
          assert(map);
          while (map.l_prev !is null)
@@ -638,7 +642,7 @@ version (Shared)
          return map;
      }
 
-    DSO* dsoForHandle(void* handle) nothrow @nogc
+    DSO* dsoForHandle(void* handle)
     {
         DSO* pdso;
         !pthread_mutex_lock(&_handleToDSOMutex) || assert(0);
@@ -648,7 +652,7 @@ version (Shared)
         return pdso;
     }
 
-    void setDSOForHandle(DSO* pdso, void* handle) nothrow @nogc
+    void setDSOForHandle(DSO* pdso, void* handle)
     {
         !pthread_mutex_lock(&_handleToDSOMutex) || assert(0);
         assert(handle !in _handleToDSO);
@@ -656,7 +660,7 @@ version (Shared)
         !pthread_mutex_unlock(&_handleToDSOMutex) || assert(0);
     }
 
-    void unsetDSOForHandle(DSO* pdso, void* handle) nothrow @nogc
+    void unsetDSOForHandle(DSO* pdso, void* handle)
     {
         !pthread_mutex_lock(&_handleToDSOMutex) || assert(0);
         assert(_handleToDSO[handle] == pdso);
@@ -664,7 +668,7 @@ version (Shared)
         !pthread_mutex_unlock(&_handleToDSOMutex) || assert(0);
     }
 
-    void getDependencies(in ref dl_phdr_info info, ref Array!(DSO*) deps) nothrow @nogc
+    void getDependencies(in ref dl_phdr_info info, ref Array!(DSO*) deps)
     {
         // get the entries of the .dynamic section
         ElfW!"Dyn"[] dyns;
@@ -672,7 +676,7 @@ version (Shared)
         {
             if (phdr.p_type == PT_DYNAMIC)
             {
-                auto p = cast(ElfW!"Dyn"*)(info.dlpi_addr + phdr.p_vaddr);
+                auto p = cast(ElfW!"Dyn"*)(info.dlpi_addr + (phdr.p_vaddr & ~(size_t.sizeof - 1)));
                 dyns = p[0 .. phdr.p_memsz / ElfW!"Dyn".sizeof];
                 break;
             }
@@ -716,7 +720,7 @@ version (Shared)
         }
     }
 
-    void* handleForName(const char* name) nothrow @nogc
+    void* handleForName(const char* name)
     {
         auto handle = .dlopen(name, RTLD_NOLOAD | RTLD_LAZY);
         if (handle !is null) .dlclose(handle); // drop reference count
@@ -741,12 +745,12 @@ void scanSegments(in ref dl_phdr_info info, DSO* pdso) nothrow @nogc
         case PT_LOAD:
             if (phdr.p_flags & PF_W) // writeable data segment
             {
-                auto beg = cast(void*)(info.dlpi_addr + phdr.p_vaddr);
+                auto beg = cast(void*)(info.dlpi_addr + (phdr.p_vaddr & ~(size_t.sizeof - 1)));
                 pdso._gcRanges.insertBack(beg[0 .. phdr.p_memsz]);
             }
             version (Shared) if (phdr.p_flags & PF_X) // code segment
             {
-                auto beg = cast(void*)(info.dlpi_addr + phdr.p_vaddr);
+                auto beg = cast(void*)(info.dlpi_addr + (phdr.p_vaddr & ~(size_t.sizeof - 1)));
                 pdso._codeSegments.insertBack(beg[0 .. phdr.p_memsz]);
             }
             break;
@@ -770,59 +774,51 @@ void scanSegments(in ref dl_phdr_info info, DSO* pdso) nothrow @nogc
 
 /**************************
  * Input:
- *      result  where the output is to be written; dl_phdr_info is a Linux struct
+ *      result  where the output is to be written; dl_phdr_info is an OS struct
  * Returns:
  *      true if found, and *result is filled in
  * References:
  *      http://linux.die.net/man/3/dl_iterate_phdr
  */
-version (linux) bool findDSOInfoForAddr(in void* addr, dl_phdr_info* result=null) nothrow @nogc
+bool findDSOInfoForAddr(in void* addr, dl_phdr_info* result=null) nothrow @nogc
 {
-    static struct DG { const(void)* addr; dl_phdr_info* result; }
+    version (linux)       enum IterateManually = true;
+    else version (NetBSD) enum IterateManually = true;
+    else                  enum IterateManually = false;
 
-    extern(C) int callback(dl_phdr_info* info, size_t sz, void* arg) nothrow @nogc
+    static if (IterateManually)
     {
-        auto p = cast(DG*)arg;
-        if (findSegmentForAddr(*info, p.addr))
+        static struct DG { const(void)* addr; dl_phdr_info* result; }
+
+        extern(C) int callback(dl_phdr_info* info, size_t sz, void* arg) nothrow @nogc
         {
-            if (p.result !is null) *p.result = *info;
-            return 1; // break;
+            auto p = cast(DG*)arg;
+            if (findSegmentForAddr(*info, p.addr))
+            {
+                if (p.result !is null) *p.result = *info;
+                return 1; // break;
+            }
+            return 0; // continue iteration
         }
-        return 0; // continue iteration
+
+        auto dg = DG(addr, result);
+
+        /* OS function that walks through the list of an application's shared objects and
+         * calls 'callback' once for each object, until either all shared objects
+         * have been processed or 'callback' returns a nonzero value.
+         */
+        return dl_iterate_phdr(&callback, &dg) != 0;
     }
-
-    auto dg = DG(addr, result);
-
-    /* Linux function that walks through the list of an application's shared objects and
-     * calls 'callback' once for each object, until either all shared objects
-     * have been processed or 'callback' returns a nonzero value.
-     */
-    return dl_iterate_phdr(&callback, &dg) != 0;
-}
-else version (FreeBSD) bool findDSOInfoForAddr(in void* addr, dl_phdr_info* result=null) nothrow @nogc
-{
-    return !!_rtld_addr_phdr(addr, result);
-}
-else version (NetBSD) bool findDSOInfoForAddr(in void* addr, dl_phdr_info* result=null) nothrow @nogc
-{
-    static struct DG { const(void)* addr; dl_phdr_info* result; }
-
-    extern(C) int callback(dl_phdr_info* info, size_t sz, void* arg) nothrow @nogc
+    else version (FreeBSD)
     {
-        auto p = cast(DG*)arg;
-        if (findSegmentForAddr(*info, p.addr))
-        {
-            if (p.result !is null) *p.result = *info;
-            return 1; // break;
-        }
-        return 0; // continue iteration
+        return !!_rtld_addr_phdr(addr, result);
     }
-    auto dg = DG(addr, result);
-    return dl_iterate_phdr(&callback, &dg) != 0;
-}
-else version (DragonFlyBSD) bool findDSOInfoForAddr(in void* addr, dl_phdr_info* result=null) nothrow @nogc
-{
-    return !!_rtld_addr_phdr(addr, result);
+    else version (DragonFlyBSD)
+    {
+        return !!_rtld_addr_phdr(addr, result);
+    }
+    else
+        static assert(0, "unimplemented");
 }
 
 /*********************************
@@ -905,25 +901,25 @@ extern(C) void* __tls_get_addr(tls_index* ti) nothrow @nogc;
  * See: https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/powerpc/dl-tls.h;h=f7cf6f96ebfb505abfd2f02be0ad0e833107c0cd;hb=HEAD#l34
  *      https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/mips/dl-tls.h;h=93a6dc050cb144b9f68b96fb3199c60f5b1fcd18;hb=HEAD#l32
  */
-version(X86)
+version (X86)
     enum TLS_DTV_OFFSET = 0x0;
-else version(X86_64)
+else version (X86_64)
     enum TLS_DTV_OFFSET = 0x0;
-else version(ARM)
+else version (ARM)
     enum TLS_DTV_OFFSET = 0x0;
-else version(AArch64)
+else version (AArch64)
     enum TLS_DTV_OFFSET = 0x0;
-else version(SPARC)
+else version (SPARC)
     enum TLS_DTV_OFFSET = 0x0;
-else version(SPARC64)
+else version (SPARC64)
     enum TLS_DTV_OFFSET = 0x0;
-else version(PPC)
+else version (PPC)
     enum TLS_DTV_OFFSET = 0x8000;
-else version(PPC64)
+else version (PPC64)
     enum TLS_DTV_OFFSET = 0x8000;
-else version(MIPS32)
+else version (MIPS32)
     enum TLS_DTV_OFFSET = 0x8000;
-else version(MIPS64)
+else version (MIPS64)
     enum TLS_DTV_OFFSET = 0x8000;
 else
     static assert( false, "Platform not supported." );

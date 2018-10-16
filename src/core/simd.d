@@ -62,7 +62,7 @@ static if (is(Vector!(uint[8])))    alias Vector!(uint[8])    uint8;         ///
 static if (is(Vector!(long[4])))    alias Vector!(long[4])    long4;         ///
 static if (is(Vector!(ulong[4])))   alias Vector!(ulong[4])   ulong4;        ///
 
-version ( D_SIMD )
+version (D_SIMD)
 {
   /** XMM opcodes that conform to the following:
    *

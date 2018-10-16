@@ -12,7 +12,7 @@
 
 module rt.sections_win64;
 
-version(CRuntime_Microsoft):
+version (CRuntime_Microsoft):
 
 // debug = PRINTF;
 debug(PRINTF) import core.stdc.stdio;
@@ -41,7 +41,7 @@ struct SectionGroup
         return _moduleGroup;
     }
 
-    version(Win64)
+    version (Win64)
     @property immutable(FuncTable)[] ehTables() const
     {
         auto pbeg = cast(immutable(FuncTable)*)&_deh_beg;
@@ -117,7 +117,7 @@ void[] initTLSRanges() nothrow @nogc
     //  longer generate offsets into .tls, but DATA.
     // Use the TEB entry to find the start of TLS instead and read the
     //  length from the TLS directory
-    version(D_InlineAsm_X86)
+    version (D_InlineAsm_X86)
     {
         asm @nogc nothrow
         {
@@ -130,7 +130,7 @@ void[] initTLSRanges() nothrow @nogc
             mov pend, EAX;
         }
     }
-    else version(D_InlineAsm_X86_64)
+    else version (D_InlineAsm_X86_64)
     {
         asm @nogc nothrow
         {
@@ -189,7 +189,7 @@ extern(C)
 immutable(ModuleInfo*)[] getModuleInfos() nothrow @nogc
 out (result)
 {
-    foreach(m; result)
+    foreach (m; result)
         assert(m !is null);
 }
 do
@@ -303,7 +303,7 @@ void[] findImageSection(string name) nothrow @nogc
 
     auto nthdr = cast(IMAGE_NT_HEADERS*)(cast(void*)doshdr + doshdr.e_lfanew);
     auto sections = cast(IMAGE_SECTION_HEADER*)(cast(void*)nthdr + IMAGE_NT_HEADERS.sizeof + nthdr.FileHeader.SizeOfOptionalHeader);
-    for(ushort i = 0; i < nthdr.FileHeader.NumberOfSections; i++)
+    for (ushort i = 0; i < nthdr.FileHeader.NumberOfSections; i++)
         if (compareSectionName (sections[i], name))
             return (cast(void*)&__ImageBase + sections[i].VirtualAddress)[0 .. sections[i].VirtualSize];
 

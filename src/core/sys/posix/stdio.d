@@ -105,14 +105,14 @@ int    vsprintf(char*, in char*, va_list);
 int    vsscanf(in char*, in char*, va_list arg);
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     /*
      * actually, if __USE_FILE_OFFSET64 && !_LARGEFILE64_SOURCE
      * the *64 functions shouldn't be visible, but the aliases should
      * still be supported
      */
-    static if( __USE_FILE_OFFSET64 )
+    static if ( __USE_FILE_OFFSET64 )
     {
         int   fgetpos64(FILE*, fpos_t *);
         alias fgetpos64 fgetpos;
@@ -141,7 +141,7 @@ version( CRuntime_Glibc )
         FILE* tmpfile();
     }
 }
-else version( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     int   fgetpos(FILE*, fpos_t *);
     FILE* fopen(in char*, in char*);
@@ -149,9 +149,9 @@ else version( CRuntime_Bionic )
     int   fseek(FILE*, c_long, int);
     int   fsetpos(FILE*, in fpos_t*);
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
-    static if( __USE_FILE_OFFSET64 )
+    static if ( __USE_FILE_OFFSET64 )
     {
         int   fgetpos64(FILE*, fpos_t *);
         alias fgetpos64 fgetpos;
@@ -197,11 +197,11 @@ int    pclose(FILE*);
 FILE*  popen(in char*, in char*);
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     enum L_ctermid = 9;
 
-  static if( __USE_FILE_OFFSET64 )
+  static if ( __USE_FILE_OFFSET64 )
   {
     int   fseeko64(FILE*, off_t, int);
     alias fseeko64 fseeko;
@@ -211,7 +211,7 @@ version( CRuntime_Glibc )
     int   fseeko(FILE*, off_t, int);
   }
 
-  static if( __USE_FILE_OFFSET64 )
+  static if ( __USE_FILE_OFFSET64 )
   {
     off_t ftello64(FILE*);
     alias ftello64 ftello;
@@ -221,12 +221,12 @@ version( CRuntime_Glibc )
     off_t ftello(FILE*);
   }
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     enum L_ctermid = 9;
     enum L_cuserid = 9;
 
-  static if( __USE_FILE_OFFSET64 )
+  static if ( __USE_FILE_OFFSET64 )
   {
     int   fseeko64(FILE*, off_t, int);
     alias fseeko64 fseeko;
@@ -236,7 +236,7 @@ else version( CRuntime_UClibc )
     int   fseeko(FILE*, off_t, int);
   }
 
-  static if( __USE_FILE_OFFSET64 )
+  static if ( __USE_FILE_OFFSET64 )
   {
     off_t ftello64(FILE*);
     alias ftello64 ftello;
@@ -246,7 +246,7 @@ else version( CRuntime_UClibc )
     off_t ftello(FILE*);
   }
 }
-else version( Posix )
+else version (Posix)
 {
     int   fseeko(FILE*, off_t, int);
     off_t ftello(FILE*);
@@ -265,22 +265,22 @@ FILE*  popen(in char*, in char*);
 // memstream functions are conforming to POSIX.1-2008.  These functions are
 // not specified in POSIX.1-2001 and are not widely available on other
 // systems.
-version( CRuntime_Glibc )                     // as of glibc 1.0x
+version (CRuntime_Glibc)                     // as of glibc 1.0x
     version = HaveMemstream;
-else version( FreeBSD )                      // as of FreeBSD 9.2
+else version (FreeBSD)                      // as of FreeBSD 9.2
     version = HaveMemstream;
-else version( DragonFlyBSD )                 // for DragonFlyBSD
+else version (DragonFlyBSD)                 // for DragonFlyBSD
     version = HaveMemstream;
-else version( OpenBSD )                      // as of OpenBSD 5.4
+else version (OpenBSD)                      // as of OpenBSD 5.4
     version = HaveMemstream;
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
     version = HaveMemstream;
 
-version( HaveMemstream )
+version (HaveMemstream)
 {
     FILE*  fmemopen(in void* buf, in size_t size, in char* mode);
     FILE*  open_memstream(char** ptr, size_t* sizeloc);
-    version( CRuntime_UClibc ) {} else
+    version (CRuntime_UClibc) {} else
     FILE*  open_wmemstream(wchar_t** ptr, size_t* sizeloc);
 }
 
@@ -297,7 +297,7 @@ int    putc_unlocked(int, FILE*);
 int    putchar_unlocked(int);
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     void   flockfile(FILE*);
     int    ftrylockfile(FILE*);
@@ -307,7 +307,7 @@ version( CRuntime_Glibc )
     int    putc_unlocked(int, FILE*);
     int    putchar_unlocked(int);
 }
-else version( OpenBSD )
+else version (OpenBSD)
 {
     void   flockfile(FILE*);
     int    ftrylockfile(FILE*);
@@ -317,7 +317,7 @@ else version( OpenBSD )
     int    putc_unlocked(int, FILE*);
     int    putchar_unlocked(int);
 }
-else version( Solaris )
+else version (Solaris)
 {
     void   flockfile(FILE*);
     int    ftrylockfile(FILE*);
@@ -327,7 +327,7 @@ else version( Solaris )
     int    putc_unlocked(int, FILE*);
     int    putchar_unlocked(int);
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     void   flockfile(FILE*);
     int    ftrylockfile(FILE*);
@@ -350,44 +350,44 @@ char*  tempnam(in char*, in char*);
 
 char*  tempnam(in char*, in char*);
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     enum P_tmpdir  = "/tmp";
 }
-version( CRuntime_Musl )
+version (CRuntime_Musl)
 {
     enum P_tmpdir  = "/tmp";
 }
-version( Darwin )
+version (Darwin)
 {
     enum P_tmpdir  = "/var/tmp";
 }
-version( FreeBSD )
+version (FreeBSD)
 {
     enum P_tmpdir  = "/var/tmp/";
 }
-version(NetBSD)
+version (NetBSD)
 {
     enum P_tmpdir  = "/var/tmp/";
 }
-version( OpenBSD )
+version (OpenBSD)
 {
     enum P_tmpdir  = "/tmp/";
 }
-version( DragonFlyBSD )
+version (DragonFlyBSD)
 {
     enum P_tmpdir  = "/var/tmp/";
 }
-version( Solaris )
+version (Solaris)
 {
     enum P_tmpdir  = "/var/tmp/";
 }
-version( CRuntime_UClibc )
+version (CRuntime_UClibc)
 {
     enum P_tmpdir  = "/tmp";
 }
 
-version( HaveMemstream )
+version (HaveMemstream)
 unittest
 { /* fmemopen */
     import core.stdc.string : memcmp;
@@ -401,7 +401,7 @@ unittest
     assert(fclose(f) == 0);
 }
 
-version( HaveMemstream )
+version (HaveMemstream)
 unittest
 { /* Note: open_memstream is only useful for writing */
     import core.stdc.string : memcmp;
@@ -416,8 +416,8 @@ unittest
     assert(fclose(f) == 0);
 }
 
-version( CRuntime_UClibc ) {} else
-version( HaveMemstream )
+version (CRuntime_UClibc) {} else
+version (HaveMemstream)
 unittest
 { /* Note: open_wmemstream is only useful for writing */
     import core.stdc.string : memcmp;

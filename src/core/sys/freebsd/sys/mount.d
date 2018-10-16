@@ -9,7 +9,7 @@
  +/
 module core.sys.freebsd.sys.mount;
 
-version(FreeBSD):
+version (FreeBSD):
 
 import core.stdc.config : c_long;
 import core.sys.posix.sys.stat : stat_t;

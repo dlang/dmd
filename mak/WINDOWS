@@ -277,6 +277,9 @@ $(IMPDIR)\core\sys\freebsd\sys\mman.d : src\core\sys\freebsd\sys\mman.d
 $(IMPDIR)\core\sys\freebsd\sys\mount.d : src\core\sys\freebsd\sys\mount.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\freebsd\unistd.d : src\core\sys\freebsd\unistd.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\dragonflybsd\dlfcn.d : src\core\sys\dragonflybsd\dlfcn.d
 	copy $** $@
 
@@ -506,6 +509,9 @@ $(IMPDIR)\core\sys\posix\setjmp.d : src\core\sys\posix\setjmp.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\posix\signal.d : src\core\sys\posix\signal.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\spawn.d : src\core\sys\posix\spawn.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\posix\stdio.d : src\core\sys\posix\stdio.d

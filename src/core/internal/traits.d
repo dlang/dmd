@@ -86,7 +86,7 @@ private template substInoutForm(T)
 }
 
 /// used to declare an extern(D) function that is defined in a different module
-template externDFunc(string fqn, T:FT*, FT) if(is(FT == function))
+template externDFunc(string fqn, T:FT*, FT) if (is(FT == function))
 {
     static if (is(FT RT == return) && is(FT Args == function))
     {

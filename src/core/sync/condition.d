@@ -20,12 +20,12 @@ public import core.sync.exception;
 public import core.sync.mutex;
 public import core.time;
 
-version( Windows )
+version (Windows)
 {
     private import core.sync.semaphore;
     private import core.sys.windows.windows;
 }
-else version( Posix )
+else version (Posix)
 {
     private import core.sync.config;
     private import core.stdc.errno;
@@ -71,26 +71,26 @@ class Condition
      */
     this( Mutex m ) nothrow @safe
     {
-        version( Windows )
+        version (Windows)
         {
             m_blockLock = CreateSemaphoreA( null, 1, 1, null );
-            if( m_blockLock == m_blockLock.init )
+            if ( m_blockLock == m_blockLock.init )
                 throw new SyncError( "Unable to initialize condition" );
             scope(failure) CloseHandle( m_blockLock );
 
             m_blockQueue = CreateSemaphoreA( null, 0, int.max, null );
-            if( m_blockQueue == m_blockQueue.init )
+            if ( m_blockQueue == m_blockQueue.init )
                 throw new SyncError( "Unable to initialize condition" );
             scope(failure) CloseHandle( m_blockQueue );
 
             InitializeCriticalSection( &m_unblockLock );
             m_assocMutex = m;
         }
-        else version( Posix )
+        else version (Posix)
         {
             m_assocMutex = m;
             int rc = pthread_cond_init( &m_hndl, null );
-            if( rc )
+            if ( rc )
                 throw new SyncError( "Unable to initialize condition" );
         }
     }
@@ -98,7 +98,7 @@ class Condition
 
     ~this()
     {
-        version( Windows )
+        version (Windows)
         {
             BOOL rc = CloseHandle( m_blockLock );
             assert( rc, "Unable to destroy condition" );
@@ -106,7 +106,7 @@ class Condition
             assert( rc, "Unable to destroy condition" );
             DeleteCriticalSection( &m_unblockLock );
         }
-        else version( Posix )
+        else version (Posix)
         {
             int rc = pthread_cond_destroy( &m_hndl );
             assert( !rc, "Unable to destroy condition" );
@@ -150,14 +150,14 @@ class Condition
      */
     void wait()
     {
-        version( Windows )
+        version (Windows)
         {
             timedWait( INFINITE );
         }
-        else version( Posix )
+        else version (Posix)
         {
             int rc = pthread_cond_wait( &m_hndl, m_assocMutex.handleAddr() );
-            if( rc )
+            if ( rc )
                 throw new SyncError( "Unable to wait for condition" );
         }
     }
@@ -186,20 +186,20 @@ class Condition
     }
     do
     {
-        version( Windows )
+        version (Windows)
         {
             auto maxWaitMillis = dur!("msecs")( uint.max - 1 );
 
-            while( val > maxWaitMillis )
+            while ( val > maxWaitMillis )
             {
-                if( timedWait( cast(uint)
+                if ( timedWait( cast(uint)
                                maxWaitMillis.total!"msecs" ) )
                     return true;
                 val -= maxWaitMillis;
             }
             return timedWait( cast(uint) val.total!"msecs" );
         }
-        else version( Posix )
+        else version (Posix)
         {
             timespec t = void;
             mktspec( t, val );
@@ -207,9 +207,9 @@ class Condition
             int rc = pthread_cond_timedwait( &m_hndl,
                                              m_assocMutex.handleAddr(),
                                              &t );
-            if( !rc )
+            if ( !rc )
                 return true;
-            if( rc == ETIMEDOUT )
+            if ( rc == ETIMEDOUT )
                 return false;
             throw new SyncError( "Unable to wait for condition" );
         }
@@ -224,14 +224,14 @@ class Condition
      */
     void notify()
     {
-        version( Windows )
+        version (Windows)
         {
             notify( false );
         }
-        else version( Posix )
+        else version (Posix)
         {
             int rc = pthread_cond_signal( &m_hndl );
-            if( rc )
+            if ( rc )
                 throw new SyncError( "Unable to notify condition" );
         }
     }
@@ -245,21 +245,21 @@ class Condition
      */
     void notifyAll()
     {
-        version( Windows )
+        version (Windows)
         {
             notify( true );
         }
-        else version( Posix )
+        else version (Posix)
         {
             int rc = pthread_cond_broadcast( &m_hndl );
-            if( rc )
+            if ( rc )
                 throw new SyncError( "Unable to notify condition" );
         }
     }
 
 
 private:
-    version( Windows )
+    version (Windows)
     {
         bool timedWait( DWORD timeout )
         {
@@ -285,12 +285,12 @@ private:
             EnterCriticalSection( &m_unblockLock );
             scope(failure) LeaveCriticalSection( &m_unblockLock );
 
-            if( (numSignalsLeft = m_numWaitersToUnblock) != 0 )
+            if ( (numSignalsLeft = m_numWaitersToUnblock) != 0 )
             {
                 if ( timedOut )
                 {
                     // timeout (or canceled)
-                    if( m_numWaitersBlocked != 0 )
+                    if ( m_numWaitersBlocked != 0 )
                     {
                         m_numWaitersBlocked--;
                         // do not unblock next waiter below (already unblocked)
@@ -302,9 +302,9 @@ private:
                         m_numWaitersGone = 1;
                     }
                 }
-                if( --m_numWaitersToUnblock == 0 )
+                if ( --m_numWaitersToUnblock == 0 )
                 {
-                    if( m_numWaitersBlocked != 0 )
+                    if ( m_numWaitersBlocked != 0 )
                     {
                         // open the gate
                         rc = ReleaseSemaphore( m_blockLock, 1, null );
@@ -312,13 +312,13 @@ private:
                         // do not open the gate below again
                         numSignalsLeft = 0;
                     }
-                    else if( (numWaitersGone = m_numWaitersGone) != 0 )
+                    else if ( (numWaitersGone = m_numWaitersGone) != 0 )
                     {
                         m_numWaitersGone = 0;
                     }
                 }
             }
-            else if( ++m_numWaitersGone == int.max / 2 )
+            else if ( ++m_numWaitersGone == int.max / 2 )
             {
                 // timeout/canceled or spurious event :-)
                 rc = WaitForSingleObject( m_blockLock, INFINITE );
@@ -332,10 +332,10 @@ private:
 
             LeaveCriticalSection( &m_unblockLock );
 
-            if( numSignalsLeft == 1 )
+            if ( numSignalsLeft == 1 )
             {
                 // better now than spurious later (same as ResetEvent)
-                for( ; numWaitersGone > 0; --numWaitersGone )
+                for ( ; numWaitersGone > 0; --numWaitersGone )
                 {
                     rc = WaitForSingleObject( m_blockQueue, INFINITE );
                     assert( rc == WAIT_OBJECT_0 );
@@ -344,7 +344,7 @@ private:
                 rc = ReleaseSemaphore( m_blockLock, 1, null );
                 assert( rc );
             }
-            else if( numSignalsLeft != 0 )
+            else if ( numSignalsLeft != 0 )
             {
                 // unblock next waiter
                 rc = ReleaseSemaphore( m_blockQueue, 1, null );
@@ -362,14 +362,14 @@ private:
             EnterCriticalSection( &m_unblockLock );
             scope(failure) LeaveCriticalSection( &m_unblockLock );
 
-            if( m_numWaitersToUnblock != 0 )
+            if ( m_numWaitersToUnblock != 0 )
             {
-                if( m_numWaitersBlocked == 0 )
+                if ( m_numWaitersBlocked == 0 )
                 {
                     LeaveCriticalSection( &m_unblockLock );
                     return;
                 }
-                if( all )
+                if ( all )
                 {
                     m_numWaitersToUnblock += m_numWaitersBlocked;
                     m_numWaitersBlocked = 0;
@@ -381,16 +381,16 @@ private:
                 }
                 LeaveCriticalSection( &m_unblockLock );
             }
-            else if( m_numWaitersBlocked > m_numWaitersGone )
+            else if ( m_numWaitersBlocked > m_numWaitersGone )
             {
                 rc = WaitForSingleObject( m_blockLock, INFINITE );
                 assert( rc == WAIT_OBJECT_0 );
-                if( 0 != m_numWaitersGone )
+                if ( 0 != m_numWaitersGone )
                 {
                     m_numWaitersBlocked -= m_numWaitersGone;
                     m_numWaitersGone = 0;
                 }
-                if( all )
+                if ( all )
                 {
                     m_numWaitersToUnblock = m_numWaitersBlocked;
                     m_numWaitersBlocked = 0;
@@ -422,7 +422,7 @@ private:
         int                 m_numWaitersBlocked     = 0;
         int                 m_numWaitersToUnblock   = 0;
     }
-    else version( Posix )
+    else version (Posix)
     {
         Mutex               m_assocMutex;
         pthread_cond_t      m_hndl;
@@ -435,7 +435,7 @@ private:
 ////////////////////////////////////////////////////////////////////////////////
 
 
-version( unittest )
+version (unittest)
 {
     private import core.thread;
     private import core.sync.mutex;
@@ -457,11 +457,11 @@ version( unittest )
 
         void waiter()
         {
-            for( int i = 0; i < numTries; ++i )
+            for ( int i = 0; i < numTries; ++i )
             {
                 synchronized( mutex )
                 {
-                    while( numReady < 1 )
+                    while ( numReady < 1 )
                     {
                         condReady.wait();
                     }
@@ -479,12 +479,12 @@ version( unittest )
 
         auto group = new ThreadGroup;
 
-        for( int i = 0; i < numWaiters; ++i )
+        for ( int i = 0; i < numWaiters; ++i )
             group.create( &waiter );
 
-        for( int i = 0; i < numTries; ++i )
+        for ( int i = 0; i < numTries; ++i )
         {
-            for( int j = 0; j < numWaiters; ++j )
+            for ( int j = 0; j < numWaiters; ++j )
             {
                 synchronized( mutex )
                 {
@@ -492,16 +492,16 @@ version( unittest )
                     condReady.notify();
                 }
             }
-            while( true )
+            while ( true )
             {
                 synchronized( synLoop )
                 {
-                    if( numDone >= numWaiters )
+                    if ( numDone >= numWaiters )
                         break;
                 }
                 Thread.yield();
             }
-            for( int j = 0; j < numWaiters; ++j )
+            for ( int j = 0; j < numWaiters; ++j )
             {
                 semDone.notify();
             }
@@ -526,7 +526,7 @@ version( unittest )
             synchronized( mutex )
             {
                 ++numReady;
-                while( !alert )
+                while ( !alert )
                     condReady.wait();
                 ++numDone;
             }
@@ -534,14 +534,14 @@ version( unittest )
 
         auto group = new ThreadGroup;
 
-        for( int i = 0; i < numWaiters; ++i )
+        for ( int i = 0; i < numWaiters; ++i )
             group.create( &waiter );
 
-        while( true )
+        while ( true )
         {
             synchronized( mutex )
             {
-                if( numReady >= numWaiters )
+                if ( numReady >= numWaiters )
                 {
                     alert = true;
                     condReady.notifyAll();
@@ -578,11 +578,11 @@ version( unittest )
         auto thread = new Thread( &waiter );
         thread.start();
 
-        while( true )
+        while ( true )
         {
             synchronized( mutex )
             {
-                if( waiting )
+                if ( waiting )
                 {
                     condReady.notify();
                     break;

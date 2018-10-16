@@ -55,7 +55,7 @@ IPC_STAT
 key_t ftok(in char*, int);
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     struct ipc_perm
     {
@@ -84,11 +84,11 @@ version( CRuntime_Glibc )
 
     key_t ftok(in char*, int);
 }
-else version( Darwin )
+else version (Darwin)
 {
 
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     struct ipc_perm_old // <= FreeBSD7
     {
@@ -124,7 +124,7 @@ else version( FreeBSD )
 
     key_t ftok(in char*, int);
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     struct ipc_perm
     {
@@ -149,7 +149,7 @@ else version(NetBSD)
 
     key_t ftok(in char*, int);
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     struct ipc_perm
     {
@@ -174,7 +174,7 @@ else version( DragonFlyBSD )
 
     key_t ftok(in char*, int);
 }
-else version( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     // All except ftok are from the linux kernel headers.
     version (X86)
@@ -233,7 +233,7 @@ else version( CRuntime_Bionic )
 
     key_t ftok(in char*, int);
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     struct ipc_perm
     {

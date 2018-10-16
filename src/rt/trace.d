@@ -661,7 +661,7 @@ void _c_trace_epi()
         // totaltime is time spent in this function + all time spent in
         // subfunctions - bookkeeping overhead.
         --tos.sym.recursion;
-        if(tos.sym.recursion == 0)
+        if (tos.sym.recursion == 0)
             tos.sym.totaltime += totaltime;
 
         //if (totaltime < tos.subtime)

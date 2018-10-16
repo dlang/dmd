@@ -48,7 +48,7 @@ passwd* getpwnam(in char*);
 passwd* getpwuid(uid_t);
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     struct passwd
     {
@@ -61,7 +61,7 @@ version( CRuntime_Glibc )
         char*   pw_shell;
     }
 }
-else version( Darwin )
+else version (Darwin)
 {
     struct passwd
     {
@@ -77,7 +77,7 @@ else version( Darwin )
         time_t  pw_expire;
     }
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     struct passwd
     {
@@ -94,7 +94,7 @@ else version( FreeBSD )
         int pw_fields;      /* internal: fields filled in */
     }
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     struct passwd
     {
@@ -110,7 +110,7 @@ else version(NetBSD)
         time_t  pw_expire;      /* account expiration */
     }
 }
-else version( OpenBSD )
+else version (OpenBSD)
 {
     struct passwd
     {
@@ -126,7 +126,7 @@ else version( OpenBSD )
         time_t  pw_expire;      /* account expiration */
     }
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     struct passwd
     {
@@ -158,7 +158,7 @@ else version (Solaris)
         char* pw_shell;
     }
 }
-else version( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     struct passwd
     {
@@ -170,7 +170,7 @@ else version( CRuntime_Bionic )
         char*   pw_shell;
     }
 }
-else version( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     struct passwd {
         char *pw_name;
@@ -182,7 +182,7 @@ else version( CRuntime_Musl )
         char *pw_shell;
     }
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     struct passwd
     {
@@ -211,34 +211,34 @@ int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
 int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
     int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 }
-else version( Darwin )
+else version (Darwin)
 {
     int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
     int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 }
-else version( FreeBSD )
+else version (FreeBSD)
 {
     int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
     int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 }
-else version(NetBSD)
+else version (NetBSD)
 {
     int __getpwnam_r50(in char*, passwd*, char*, size_t, passwd**);
     alias __getpwnam_r50 getpwnam_r;
     int __getpwuid_r50(uid_t, passwd*, char*, size_t, passwd**);
     alias __getpwuid_r50 getpwuid_r;
 }
-else version( OpenBSD )
+else version (OpenBSD)
 {
     int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
     int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 }
-else version( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
     int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
@@ -252,13 +252,13 @@ else version (Solaris)
     int __posix_getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
     int __posix_getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 }
-else version( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
 }
-else version( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
     int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
@@ -277,19 +277,19 @@ passwd* getpwent();
 void    setpwent();
 */
 
-version( CRuntime_Glibc )
+version (CRuntime_Glibc)
 {
     void    endpwent();
     passwd* getpwent();
     void    setpwent();
 }
-else version ( Darwin )
+else version (Darwin)
 {
     void    endpwent();
     passwd* getpwent();
     void    setpwent();
 }
-else version ( FreeBSD )
+else version (FreeBSD)
 {
     void    endpwent();
     passwd* getpwent();
@@ -301,13 +301,13 @@ else version (NetBSD)
     passwd* getpwent();
     void    setpwent();
 }
-else version ( OpenBSD )
+else version (OpenBSD)
 {
     void    endpwent();
     passwd* getpwent();
     void    setpwent();
 }
-else version ( DragonFlyBSD )
+else version (DragonFlyBSD)
 {
     void    endpwent();
     passwd* getpwent();
@@ -319,16 +319,16 @@ else version (Solaris)
     passwd* getpwent();
     void setpwent();
 }
-else version ( CRuntime_Bionic )
+else version (CRuntime_Bionic)
 {
     void    endpwent();
 }
-else version( CRuntime_Musl )
+else version (CRuntime_Musl)
 {
     int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
     int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 }
-else version( CRuntime_UClibc )
+else version (CRuntime_UClibc)
 {
     void    endpwent();
     passwd* getpwent();

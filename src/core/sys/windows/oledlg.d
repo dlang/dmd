@@ -877,7 +877,7 @@ extern (C) {
     int OleUIPromptUserA(int, HWND, ...);
 }
 
-version(Unicode) {
+version (Unicode) {
     alias IDD_SERVERNOTREGW IDD_SERVERNOTREG;
     alias IDD_LINKTYPECHANGEDW IDD_LINKTYPECHANGED;
     alias OleUIUpdateLinksW OleUIUpdateLinks;

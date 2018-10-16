@@ -13,7 +13,7 @@
  */
 module rt.typeinfo.ti_cent;
 
-static if(is(cent)):
+static if (is(cent)):
 
 // cent
 

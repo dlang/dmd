@@ -13,7 +13,7 @@ extern (C):
 
 c_ulong getauxval(c_ulong type) nothrow pure @nogc @system;
 
-version(ARM)
+version (ARM)
 {
   // See https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/arm/bits/hwcap.h
 
@@ -40,7 +40,7 @@ version(ARM)
   enum HWCAP_ARM_LPAE                     = 1048576;
   enum HWCAP_ARM_EVTSTRM                  = 2097152;
 }
-else version(AArch64)
+else version (AArch64)
 {
   // See https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/aarch64/bits/hwcap.h
 
@@ -56,7 +56,7 @@ else version(AArch64)
   enum HWCAP_FPHP                         = 512;
   enum HWCAP_ASIMDHP                      = 1024;
 }
-else version(PPC)
+else version (PPC)
 {
   // See https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/powerpc/bits/hwcap.h
 
@@ -98,7 +98,7 @@ else version(PPC)
   enum PPC_FEATURE2_HAS_TAR               = 0x04000000;
   enum PPC_FEATURE2_HAS_VEC_CRYPTO        = 0x02000000;
 }
-else version(PPC64)
+else version (PPC64)
 {
   // See https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/powerpc/bits/hwcap.h
 
@@ -140,7 +140,7 @@ else version(PPC64)
   enum PPC_FEATURE2_HAS_TAR               = 0x04000000;
   enum PPC_FEATURE2_HAS_VEC_CRYPTO        = 0x02000000;
 }
-else version(SPARC)
+else version (SPARC)
 {
   // See https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/sparc/bits/hwcap.h
 
@@ -172,7 +172,7 @@ else version(SPARC)
   enum HWCAP_SPARC_CBCOND                 = 0x02000000;
   enum HWCAP_SPARC_CRYPTO                 = 0x04000000;
 }
-else version(SPARC64)
+else version (SPARC64)
 {
   // See https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/sparc/bits/hwcap.h
 
@@ -204,7 +204,7 @@ else version(SPARC64)
   enum HWCAP_SPARC_CBCOND                 = 0x02000000;
   enum HWCAP_SPARC_CRYPTO                 = 0x04000000;
 }
-else version(SystemZ)
+else version (SystemZ)
 {
   // See https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/s390/bits/hwcap.h
 

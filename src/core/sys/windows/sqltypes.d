@@ -51,7 +51,7 @@ alias DWORD SQLTRANSID;
 alias SQLUSMALLINT SQLSETPOSIROW;
 alias wchar SQLWCHAR;
 
-version(Unicode) {
+version (Unicode) {
     alias SQLWCHAR SQLTCHAR;
 } else {
     alias SQLCHAR  SQLTCHAR;

@@ -12,7 +12,7 @@
 
 module rt.sections_win32;
 
-version(CRuntime_DigitalMars):
+version (CRuntime_DigitalMars):
 
 // debug = PRINTF;
 debug(PRINTF) import core.stdc.stdio;
@@ -141,7 +141,7 @@ extern(C) void _minit() nothrow @nogc;
 immutable(ModuleInfo*)[] getModuleInfos() nothrow @nogc
 out (result)
 {
-    foreach(m; result)
+    foreach (m; result)
         assert(m !is null);
 }
 do

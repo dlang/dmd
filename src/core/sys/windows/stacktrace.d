@@ -43,11 +43,11 @@ public:
      */
     this(size_t skip, CONTEXT* context)
     {
-        if(context is null)
+        if (context is null)
         {
-            version(Win64)
+            version (Win64)
                 static enum INTERNALFRAMES = 3;
-            else version(Win32)
+            else version (Win32)
                 static enum INTERNALFRAMES = 2;
 
             skip += INTERNALFRAMES; //skip the stack frames within the StackTrace class
@@ -55,14 +55,14 @@ public:
         else
         {
             //When a exception context is given the first stack frame is repeated for some reason
-            version(Win64)
+            version (Win64)
                 static enum INTERNALFRAMES = 1;
-            else version(Win32)
+            else version (Win32)
                 static enum INTERNALFRAMES = 1;
 
             skip += INTERNALFRAMES;
         }
-        if( initialized )
+        if ( initialized )
             m_trace = trace(skip, context);
     }
 
@@ -78,9 +78,9 @@ public:
     int opApply( scope int delegate(ref size_t, ref const(char[])) dg ) const
     {
         int result;
-        foreach( i, e; resolve(m_trace) )
+        foreach ( i, e; resolve(m_trace) )
         {
-            if( (result = dg( i, e )) != 0 )
+            if ( (result = dg( i, e )) != 0 )
                 break;
         }
         return result;
@@ -91,7 +91,7 @@ public:
     {
         string result;
 
-        foreach( e; this )
+        foreach ( e; this )
         {
             result ~= e ~ "\n";
         }
@@ -136,27 +136,27 @@ private:
     static ulong[] traceNoSync(size_t skip, CONTEXT* context)
     {
         auto dbghelp  = DbgHelp.get();
-        if(dbghelp is null)
+        if (dbghelp is null)
             return []; // dbghelp.dll not available
 
-        if(RtlCaptureStackBackTrace !is null && context is null)
+        if (RtlCaptureStackBackTrace !is null && context is null)
         {
             size_t[63] buffer = void; // On windows xp the sum of "frames to skip" and "frames to capture" can't be greater then 63
             auto backtraceLength = RtlCaptureStackBackTrace(cast(ULONG)skip, cast(ULONG)(buffer.length - skip), cast(void**)buffer.ptr, null);
 
             // If we get a backtrace and it does not have the maximum length use it.
             // Otherwise rely on tracing through StackWalk64 which is slower but works when no frame pointers are available.
-            if(backtraceLength > 1 && backtraceLength < buffer.length - skip)
+            if (backtraceLength > 1 && backtraceLength < buffer.length - skip)
             {
                 debug(PRINTF) printf("Using result from RtlCaptureStackBackTrace\n");
-                version(Win64)
+                version (Win64)
                 {
                     return buffer[0..backtraceLength].dup;
                 }
-                else version(Win32)
+                else version (Win32)
                 {
                     auto result = new ulong[backtraceLength];
-                    foreach(i, ref e; result)
+                    foreach (i, ref e; result)
                     {
                         e = buffer[i];
                     }
@@ -169,7 +169,7 @@ private:
         HANDLE       hProcess = GetCurrentProcess();
         CONTEXT      ctxt;
 
-        if(context is null)
+        if (context is null)
         {
             ctxt.ContextFlags = CONTEXT_FULL;
             RtlCaptureContext(&ctxt);
@@ -183,7 +183,7 @@ private:
         STACKFRAME64 stackframe;
         with (stackframe)
         {
-            version(X86)
+            version (X86)
             {
                 enum Flat = ADDRESS_MODE.AddrModeFlat;
                 AddrPC.Offset    = ctxt.Eip;
@@ -193,7 +193,7 @@ private:
                 AddrStack.Offset = ctxt.Esp;
                 AddrStack.Mode   = Flat;
             }
-        else version(X86_64)
+        else version (X86_64)
             {
                 enum Flat = ADDRESS_MODE.AddrModeFlat;
                 AddrPC.Offset    = ctxt.Rip;
@@ -215,12 +215,12 @@ private:
         // do ... while so that we don't skip the first stackframe
         do
         {
-            if( stackframe.AddrPC.Offset == stackframe.AddrReturn.Offset )
+            if ( stackframe.AddrPC.Offset == stackframe.AddrReturn.Offset )
             {
                 debug(PRINTF) printf("Endless callstack\n");
                 break;
             }
-            if(frameNum >= skip)
+            if (frameNum >= skip)
             {
                 result ~= stackframe.AddrPC.Offset;
             }
@@ -234,7 +234,7 @@ private:
     static char[][] resolveNoSync(const(ulong)[] addresses)
     {
         auto dbghelp  = DbgHelp.get();
-        if(dbghelp is null)
+        if (dbghelp is null)
             return []; // dbghelp.dll not available
 
         HANDLE hProcess = GetCurrentProcess();
@@ -251,9 +251,9 @@ private:
         symbol.MaxNameLength = bufSymbol._buf.length;
 
         char[][] trace;
-        foreach(pc; addresses)
+        foreach (pc; addresses)
         {
-            if( pc != 0 )
+            if ( pc != 0 )
             {
                 char[] res;
                 if (dbghelp.SymGetSymFromAddr64(hProcess, pc, null, symbol) &&
@@ -295,7 +295,7 @@ private:
         res ~= " in ";
         const(char)[] tempSymName = symName[0 .. strlen(symName)];
         //Deal with dmd mangling of long names
-        version(CRuntime_DigitalMars)
+        version (CRuntime_DigitalMars)
         {
             size_t decodeIndex = 0;
             tempSymName = decodeDmdString(tempSymName, decodeIndex);
@@ -361,9 +361,9 @@ private string generateSearchPath()
     char[2048] temp;
     DWORD len;
 
-    foreach( e; defaultPathList )
+    foreach ( e; defaultPathList )
     {
-        if( (len = GetEnvironmentVariableA( e.ptr, temp.ptr, temp.length )) > 0 )
+        if ( (len = GetEnvironmentVariableA( e.ptr, temp.ptr, temp.length )) > 0 )
         {
             path ~= temp[0 .. len];
             path ~= ";";
@@ -378,16 +378,16 @@ shared static this()
 {
     auto dbghelp = DbgHelp.get();
 
-    if( dbghelp is null )
+    if ( dbghelp is null )
         return; // dbghelp.dll not available
 
     auto kernel32Handle = LoadLibraryA( "kernel32.dll" );
-    if(kernel32Handle !is null)
+    if (kernel32Handle !is null)
     {
         RtlCaptureStackBackTrace = cast(RtlCaptureStackBackTraceFunc) GetProcAddress(kernel32Handle, "RtlCaptureStackBackTrace");
         debug(PRINTF)
         {
-            if(RtlCaptureStackBackTrace !is null)
+            if (RtlCaptureStackBackTrace !is null)
                 printf("Found RtlCaptureStackBackTrace\n");
         }
     }

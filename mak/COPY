@@ -86,6 +86,7 @@ COPY=\
 	$(IMPDIR)\core\sys\freebsd\sys\mount.d \
 	$(IMPDIR)\core\sys\freebsd\sys\mman.d \
 	$(IMPDIR)\core\sys\freebsd\time.d \
+	$(IMPDIR)\core\sys\freebsd\unistd.d \
 	\
 	$(IMPDIR)\core\sys\dragonflybsd\dlfcn.d \
 	$(IMPDIR)\core\sys\dragonflybsd\execinfo.d \
@@ -171,6 +172,7 @@ COPY=\
 	$(IMPDIR)\core\sys\posix\semaphore.d \
 	$(IMPDIR)\core\sys\posix\setjmp.d \
 	$(IMPDIR)\core\sys\posix\signal.d \
+	$(IMPDIR)\core\sys\posix\spawn.d \
 	$(IMPDIR)\core\sys\posix\stdio.d \
 	$(IMPDIR)\core\sys\posix\stdlib.d \
 	$(IMPDIR)\core\sys\posix\syslog.d \
