@@ -3208,7 +3208,7 @@ __gshared Expression emptyArrayElement = null;
  * Output:
  *      dedtypes = [ int ]      // Array of Expression/Type's
  */
-MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* parameters, Objects* dedtypes, uint* wm = null, size_t inferStart = 0)
+MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* parameters, Objects* dedtypes, uint* wm = null, size_t inferStart = 0, bool ignoreAliasThis = false)
 {
     extern (C++) final class DeduceType : Visitor
     {
@@ -3220,9 +3220,10 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
         Objects* dedtypes;
         uint* wm;
         size_t inferStart;
+        bool ignoreAliasThis;
         MATCH result;
 
-        extern (D) this(Scope* sc, Type tparam, TemplateParameters* parameters, Objects* dedtypes, uint* wm, size_t inferStart)
+        extern (D) this(Scope* sc, Type tparam, TemplateParameters* parameters, Objects* dedtypes, uint* wm, size_t inferStart, bool ignoreAliasThis)
         {
             this.sc = sc;
             this.tparam = tparam;
@@ -3230,6 +3231,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             this.dedtypes = dedtypes;
             this.wm = wm;
             this.inferStart = inferStart;
+            this.ignoreAliasThis = ignoreAliasThis;
             result = MATCH.nomatch;
         }
 
@@ -3442,7 +3444,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 }
 
                 MATCH m = t.implicitConvTo(tparam);
-                if (m == MATCH.nomatch)
+                if (m == MATCH.nomatch && !ignoreAliasThis)
                 {
                     if (t.ty == Tclass)
                     {
@@ -4595,7 +4597,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
         }
     }
 
-    scope DeduceType v = new DeduceType(sc, tparam, parameters, dedtypes, wm, inferStart);
+    scope DeduceType v = new DeduceType(sc, tparam, parameters, dedtypes, wm, inferStart, ignoreAliasThis);
     if (Type t = isType(o))
         t.accept(v);
     else
