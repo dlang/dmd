@@ -56,7 +56,6 @@ application if debug info is needed when the application is deployed.
 #include        "dt.h"
 
 #include        "aa.h"
-#include        "tinfo.h"
 
 #if ELFOBJ
 #include        "melf.h"
@@ -523,83 +522,15 @@ const char* debug_frame_name = ".debug_frame";
  * representing the abbreviation code itself."
  */
 static uint abbrevcode = 1;
-static AArray *abbrev_table;
+static AApair *abbrev_table;
 static int hasModname;    // 1 if has DW_TAG_module
 
 // .debug_info
-static AArray *infoFileName_table;
+static AAchars *infoFileName_table;
 
-static AArray *type_table;
-static AArray *functype_table;  // not sure why this cannot be combined with type_table
+static AApair *type_table;
+static AApair *functype_table;  // not sure why this cannot be combined with type_table
 static Outbuffer *functypebuf;
-
-// typeinfo declarations for hash of char*
-
-struct Abuf
-{
-    const ubyte *buf;
-    size_t length;
-};
-
-struct TypeInfo_Abuf : TypeInfo
-{
-    const char* toString();
-    hash_t getHash(void *p);
-    int equals(void *p1, void *p2);
-    int compare(void *p1, void *p2);
-    size_t tsize();
-    void swap(void *p1, void *p2);
-};
-
-TypeInfo_Abuf ti_abuf;
-
-const char* TypeInfo_Abuf::toString()
-{
-    return "Abuf";
-}
-
-hash_t TypeInfo_Abuf::getHash(void *p)
-{
-    Abuf a = *(Abuf *)p;
-
-    hash_t hash = 0;
-    for (size_t i = 0; i < a.length; i++)
-        hash = hash * 11 + a.buf[i];
-
-    return hash;
-}
-
-int TypeInfo_Abuf::equals(void *p1, void *p2)
-{
-    Abuf a1 = *(Abuf*)p1;
-    Abuf a2 = *(Abuf*)p2;
-
-    return a1.length == a2.length &&
-        memcmp(a1.buf, a2.buf, a1.length) == 0;
-}
-
-int TypeInfo_Abuf::compare(void *p1, void *p2)
-{
-    Abuf a1 = *(Abuf*)p1;
-    Abuf a2 = *(Abuf*)p2;
-
-    if (a1.length == a2.length)
-        return memcmp(a1.buf, a2.buf, a1.length);
-    else if (a1.length < a2.length)
-        return -1;
-    else
-        return 1;
-}
-
-size_t TypeInfo_Abuf::tsize()
-{
-    return sizeof(Abuf);
-}
-
-void TypeInfo_Abuf::swap(void *p1, void *p2)
-{
-    assert(0);
-}
 
 #pragma pack(1)
 struct DebugInfoHeader
@@ -1076,7 +1007,8 @@ void dwarf_initfile(const char *filename)
     /* ======================================== */
 
     if (infoFileName_table)
-    {   delete infoFileName_table;
+    {
+        AAchars::destroy(infoFileName_table);
         infoFileName_table = null;
     }
 
@@ -1110,7 +1042,8 @@ void dwarf_initfile(const char *filename)
 
     // Free only if starting another file. Waste of time otherwise.
     if (abbrev_table)
-    {   delete abbrev_table;
+    {
+        AApair::destroy(abbrev_table);
         abbrev_table = null;
     }
 
@@ -1240,15 +1173,11 @@ void dwarf_initfile(const char *filename)
 int dwarf_line_addfile(const char* filename)
 {
     if (!infoFileName_table) {
-        infoFileName_table = new AArray(&ti_abuf, sizeof(uint));
+        infoFileName_table = AAchars::create();
         linebuf_filetab_end = debug_line.buf->size();
     }
 
-    Abuf abuf;
-    abuf.buf = (const ubyte*)filename;
-    abuf.length = strlen(filename);
-
-    uint *pidx = cast(uint *)infoFileName_table->get(&abuf);
+    uint *pidx = infoFileName_table->get(filename, strlen(filename));
     if (!*pidx)                 // if no idx assigned yet
     {
         *pidx = infoFileName_table->length(); // assign newly computed idx
@@ -1478,11 +1407,13 @@ void dwarf_termfile()
 
     // Free only if starting another file. Waste of time otherwise.
     if (type_table)
-    {   delete type_table;
+    {
+        AApair::destroy(type_table);
         type_table = null;
     }
     if (functype_table)
-    {   delete functype_table;
+    {
+        AApair::destroy(functype_table);
         functype_table = null;
     }
     if (functypebuf)
@@ -1945,75 +1876,6 @@ void cv_func(Funcsym *s)
 
 /* =================== Cached Types in debug_info ================= */
 
-struct Atype
-{
-    Outbuffer *buf;
-    size_t start;
-    size_t end;
-};
-
-struct TypeInfo_Atype : TypeInfo
-{
-    const char* toString();
-    hash_t getHash(void *p);
-    int equals(void *p1, void *p2);
-    int compare(void *p1, void *p2);
-    size_t tsize();
-    void swap(void *p1, void *p2);
-};
-
-TypeInfo_Atype ti_atype;
-
-const char* TypeInfo_Atype::toString()
-{
-    return "Atype";
-}
-
-hash_t TypeInfo_Atype::getHash(void *p)
-{
-    hash_t hash = 0;
-
-    Atype a = *cast(Atype *)p;
-    for (size_t i = a.start; i < a.end; i++)
-    {
-        hash = hash * 11 + a.buf->buf[i];
-    }
-    return hash;
-}
-
-int TypeInfo_Atype::equals(void *p1, void *p2)
-{
-    Atype a1 = *cast(Atype*)p1;
-    Atype a2 = *cast(Atype*)p2;
-    size_t len = a1.end - a1.start;
-
-    return len == a2.end - a2.start &&
-        memcmp(a1.buf->buf + a1.start, a2.buf->buf + a2.start, len) == 0;
-}
-
-int TypeInfo_Atype::compare(void *p1, void *p2)
-{
-    Atype a1 = *cast(Atype*)p1;
-    Atype a2 = *cast(Atype*)p2;
-    size_t len = a1.end - a1.start;
-    if (len == a2.end - a2.start)
-        return memcmp(a1.buf->buf + a1.start, a2.buf->buf + a2.start, len);
-    else if (len < a2.end - a2.start)
-        return -1;
-    else
-        return 1;
-}
-
-size_t TypeInfo_Atype::tsize()
-{
-    return sizeof(Atype);
-}
-
-void TypeInfo_Atype::swap(void *p1, void *p2)
-{
-    assert(0);
-}
-
 ubyte dwarf_classify_struct(uint sflags)
 {
     if (sflags & STRclass)
@@ -2410,12 +2272,8 @@ uint dwarf_typidx(type *t)
             /* If it's in the cache already, return the existing typidx
              */
             if (!functype_table)
-                functype_table = new AArray(&ti_atype, sizeof(uint));
-            Atype functype;
-            functype.buf = functypebuf;
-            functype.start = functypebufidx;
-            functype.end = functypebuf->size();
-            uint *pidx = cast(uint *)functype_table->get(&functype);
+                functype_table = AApair::create(&functypebuf->buf);
+            uint *pidx = cast(uint *)functype_table->get(functypebufidx, functypebuf->size());
             if (*pidx)
             {   // Reuse existing typidx
                 functypebuf->setsize(functypebufidx);
@@ -2839,19 +2697,13 @@ Lret:
     /* If debug_info.buf->buf[idx .. size()] is already in debug_info.buf,
      * discard this one and use the previous one.
      */
-    Atype atype;
-    atype.buf = debug_info.buf;
-    atype.start = idx;
-    atype.end = debug_info.buf->size();
-
     if (!type_table)
         /* uint[Adata] type_table;
          * where the table values are the type indices
          */
-        type_table = new AArray(&ti_atype, sizeof(uint));
+        type_table = AApair::create(&debug_info.buf->buf);
 
-    uint *pidx;
-    pidx = cast(uint *)type_table->get(&atype);
+    uint *pidx = type_table->get(idx, debug_info.buf->size());
     if (!*pidx)                 // if no idx assigned yet
     {
         *pidx = idx;            // assign newly computed idx
@@ -2866,76 +2718,6 @@ Lret:
 
 /* ======================= Abbreviation Codes ====================== */
 
-struct Adata
-{
-    size_t start;
-    size_t end;
-};
-
-struct TypeInfo_Adata : TypeInfo
-{
-    const char* toString();
-    hash_t getHash(void *p);
-    int equals(void *p1, void *p2);
-    int compare(void *p1, void *p2);
-    size_t tsize();
-    void swap(void *p1, void *p2);
-};
-
-TypeInfo_Adata ti_adata;
-
-const char* TypeInfo_Adata::toString()
-{
-    return "Adata";
-}
-
-hash_t TypeInfo_Adata::getHash(void *p)
-{
-    hash_t hash = 0;
-
-    Adata a = *cast(Adata *)p;
-    for (size_t i = a.start; i < a.end; i++)
-    {
-        //printf("%02x ", debug_abbrev.buf->buf[i]);
-        hash = hash * 11 + debug_abbrev.buf->buf[i];
-    }
-    //printf("\nhash = %x, length = %d\n", hash, a.end - a.start);
-    return hash;
-}
-
-int TypeInfo_Adata::equals(void *p1, void *p2)
-{
-    Adata a1 = *cast(Adata*)p1;
-    Adata a2 = *cast(Adata*)p2;
-    size_t len = a1.end - a1.start;
-
-    return len == a2.end - a2.start &&
-        memcmp(debug_abbrev.buf->buf + a1.start, debug_abbrev.buf->buf + a2.start, len) == 0;
-}
-
-int TypeInfo_Adata::compare(void *p1, void *p2)
-{
-    Adata a1 = *cast(Adata*)p1;
-    Adata a2 = *cast(Adata*)p2;
-    size_t len = a1.end - a1.start;
-    if (len == a2.end - a2.start)
-        return memcmp(debug_abbrev.buf->buf + a1.start, debug_abbrev.buf->buf + a2.start, len);
-    else if (len < a2.end - a2.start)
-        return -1;
-    else
-        return 1;
-}
-
-size_t TypeInfo_Adata::tsize()
-{
-    return sizeof(Adata);
-}
-
-void TypeInfo_Adata::swap(void *p1, void *p2)
-{
-    assert(0);
-}
-
 
 uint dwarf_abbrev_code(ubyte *data, size_t nbytes)
 {
@@ -2943,25 +2725,23 @@ uint dwarf_abbrev_code(ubyte *data, size_t nbytes)
         /* uint[Adata] abbrev_table;
          * where the table values are the abbreviation codes.
          */
-        abbrev_table = new AArray(&ti_adata, sizeof(uint));
+        abbrev_table = AApair::create(&debug_abbrev.buf->buf);
 
     /* Write new entry into debug_abbrev.buf
      */
-    Adata adata;
 
     uint idx = debug_abbrev.buf->size();
     abbrevcode++;
     debug_abbrev.buf->writeuLEB128(abbrevcode);
-    adata.start = debug_abbrev.buf->size();
+    size_t start = debug_abbrev.buf->size();
     debug_abbrev.buf->write(data, nbytes);
-    adata.end = debug_abbrev.buf->size();
+    size_t end = debug_abbrev.buf->size();
 
     /* If debug_abbrev.buf->buf[idx .. size()] is already in debug_abbrev.buf,
      * discard this one and use the previous one.
      */
 
-    uint *pcode;
-    pcode = cast(uint *)abbrev_table->get(&adata);
+    uint *pcode = abbrev_table->get(start, end);
     if (!*pcode)                // if no code assigned yet
     {
         *pcode = abbrevcode;    // assign newly computed code

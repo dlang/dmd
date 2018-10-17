@@ -198,8 +198,8 @@ GBACKOBJ= $G/go.obj $G/gdag.obj $G/gother.obj $G/gflow.obj $G/gloop.obj $G/var.o
 	$G/blockopt.obj $G/cgobj.obj $G/cg.obj $G/dcgcv.obj $G/dtype.obj $G/dt.obj \
 	$G/debugprint.obj $G/dcode.obj $G/cg87.obj $G/cgxmm.obj $G/cgsched.obj $G/ee.obj $G/symbol.obj \
 	$G/cgcod.obj $G/cod1.obj $G/cod2.obj $G/cod3.obj $G/cod4.obj $G/cod5.obj $G/outbuf.obj \
-	$G/bcomplex.obj $G/ptrntab.obj $G/aa.obj $G/ti_achar.obj $G/md5.obj \
-	$G/ti_pvoid.obj $G/mscoffobj.obj $G/pdata.obj $G/cv8.obj $G/backconfig.obj $G/sizecheck.obj \
+	$G/bcomplex.obj $G/ptrntab.obj $G/md5.obj \
+	$G/mscoffobj.obj $G/pdata.obj $G/cv8.obj $G/backconfig.obj $G/sizecheck.obj \
 	$G/divcoeff.obj $G/dwarf.obj $G/compress.obj $G/varstats.obj \
 	$G/ph2.obj $G/util2.obj $G/tk.obj $G/gsroa.obj $G/dvec.obj \
 
@@ -239,9 +239,9 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.d \
 	$C\dtype.d $C\melf.h $C\mach.h $C\mscoff.h $C\bcomplex.h \
 	$C\outbuf.h $C\token.h $C\tassert.h \
 	$C\elfobj.c $C\cv4.h $C\dwarf2.h $C\exh.h $C\go.h \
-	$C\dwarf.c $C\dwarf.h $C\machobj.c \
-	$C\strtold.c $C\aa.h $C\aa.c $C\tinfo.h $C\ti_achar.c \
-	$C\md5.h $C\md5.d $C\ti_pvoid.c $C\xmm.h $C\ph2.d $C\util2.d \
+	$C\dwarf.c $C\dwarf.h $C\machobj.c $C\aarray.d \
+	$C\strtold.c $C\aa.h \
+	$C\md5.h $C\md5.d $C\xmm.h $C\ph2.d $C\util2.d \
 	$C\mscoffobj.c $C\obj.h $C\pdata.d $C\cv8.d $C\backconfig.d $C\sizecheck.c \
 	$C\divcoeff.d $C\dwarfeh.d $C\varstats.c $C\varstats.h \
 	$C\dvec.d $C\backend.txt
@@ -454,8 +454,6 @@ $G\VERSION : ..\VERSION $G
 	$(CC) -c $(CFLAGS) $*
 
 # D front/back end
-$G/aa.obj : $C\tinfo.h $C\aa.h $C\aa.c
-	$(CC) -c -o$@ $(MFLAGS) -I$D -I$G $C\aa
 
 $G/backconfig.obj : $C\backconfig.d
 	$(HOST_DC) -c -betterC -of$@ $(DFLAGS) -mv=dmd.backend=$C $C\backconfig
@@ -612,12 +610,6 @@ $G/sizecheck.obj : $C\sizecheck.c
 
 $G/strtold.obj : $C\strtold.c
 	$(CC) -c -o$@ -cpp $C\strtold
-
-$G/ti_achar.obj : $C\tinfo.h $C\ti_achar.c
-	$(CC) -c -o$@ $(MFLAGS) -I$D $C\ti_achar
-
-$G/ti_pvoid.obj : $C\tinfo.h $C\ti_pvoid.c
-	$(CC) -c -o$@ $(MFLAGS) -I$D -I$G $C\ti_pvoid
 
 $G/dtype.obj : $C\dtype.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\dtype
