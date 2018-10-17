@@ -6041,13 +6041,24 @@ struct ASTBase
         }
     }
 
+    enum InitKind : ubyte
+    {
+        void_,
+        error,
+        struct_,
+        array,
+        exp,
+    }
+
     extern (C++) class Initializer : RootObject
     {
         Loc loc;
+        InitKind kind;
 
-        final extern (D) this(const ref Loc loc)
+        final extern (D) this(const ref Loc loc, InitKind kind)
         {
             this.loc = loc;
+            this.kind = kind;
         }
 
         // this should be abstract and implemented in child classes
@@ -6056,9 +6067,9 @@ struct ASTBase
             return null;
         }
 
-        ExpInitializer isExpInitializer()
+        final ExpInitializer isExpInitializer()
         {
-            return null;
+            return kind == InitKind.exp ? cast(ExpInitializer)cast(void*)this : null;
         }
 
         void accept(Visitor v)
@@ -6073,13 +6084,8 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Expression exp)
         {
-            super(loc);
+            super(loc, InitKind.exp);
             this.exp = exp;
-        }
-
-        override ExpInitializer isExpInitializer()
-        {
-            return this;
         }
 
         override void accept(Visitor v)
@@ -6095,7 +6101,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc)
         {
-            super(loc);
+            super(loc, InitKind.struct_);
         }
 
         void addInit(Identifier field, Initializer value)
@@ -6119,7 +6125,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc)
         {
-            super(loc);
+            super(loc, InitKind.array);
         }
 
         void addInit(Expression index, Initializer value)
@@ -6140,7 +6146,7 @@ struct ASTBase
     {
         extern (D) this(const ref Loc loc)
         {
-            super(loc);
+            super(loc, InitKind.void_);
         }
 
         override void accept(Visitor v)
