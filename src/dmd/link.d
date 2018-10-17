@@ -565,13 +565,23 @@ public int runLINK()
             argv.push("--gc-sections");
         }
         /* Add libraries. The order of libraries passed is:
-         *  1. static libraries ending with *.a     (global.params.libfiles)
-         *  2. link switches passed with -L command line switch  (global.params.linkswitches)
-         *  3. libraries specified by pragma(lib), which were appended
+         *  1. link switches others than with -L command line switch,
+               e.g. --whole-archive "lib.a" --no-whole-archive     (global.params.linkswitches)
+         *  2. static libraries ending with *.a     (global.params.libfiles)
+         *  3. link switches passed with -L command line switch  (global.params.linkswitches)
+         *  4. libraries specified by pragma(lib), which were appended
          *     to global.params.libfiles. These are prefixed with "-l"
-         *  4. dynamic libraries passed to the command line (global.params.dllfiles)
-         *  5. standard libraries.
+         *  5. dynamic libraries passed to the command line (global.params.dllfiles)
+         *  6. standard libraries.
          */
+        foreach (p; global.params.linkswitches)
+        {
+            if (p && p[0] && !(p[0] == '-' && (p[1] == 'l' || p[1] == 'L')))
+            {
+                argv.push("-Xlinker");
+                argv.push(p);
+            }
+        }
         foreach (p; global.params.libfiles)
         {
             if (FileName.equalsExt(p, "a"))
@@ -579,14 +589,16 @@ public int runLINK()
         }
         foreach (p; global.params.linkswitches)
         {
-            if (!p || !p[0] || !(p[0] == '-' && (p[1] == 'l' || p[1] == 'L')))
+            if (!p || !p[0])
             {
                 // Don't need -Xlinker if switch starts with -l or -L.
                 // Eliding -Xlinker is significant for -L since it allows our paths
                 // to take precedence over gcc defaults.
+                // All other link switches were already added in step 1.
                 argv.push("-Xlinker");
             }
-            argv.push(p);
+            if (!p || !p[0] || p[0] == '-' && (p[1] == 'l' || p[1] == 'L'))
+                argv.push(p);
         }
         foreach (p; global.params.libfiles)
         {
