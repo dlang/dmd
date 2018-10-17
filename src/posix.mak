@@ -336,7 +336,7 @@ DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 
 ifeq (X86,$(TARGET_CPU))
     TARGET_CH = $C/code_x86.h
-    TARGET_OBJS = ptrntab.o
+    TARGET_OBJS =
 else
     ifeq (stub,$(TARGET_CPU))
         TARGET_CH = $C/code_stub.h
@@ -361,7 +361,7 @@ BACK_DOBJS = bcomplex.o evalu8.o divcoeff.o dvec.o go.o gsroa.o glocal.o gdag.o 
 	out.o \
 	gloop.o compress.o cgelem.o cgcs.o ee.o cod4.o cod5.o nteh.o blockopt.o memh.o cg.o cgreg.o \
 	dtype.o debugprint.o symbol.o elem.o dcode.o cgsched.o cg87.o cgxmm.o cgcod.o cod1.o cod2.o \
-	cod3.o cv8.o dcgcv.o pdata.o util2.o var.o md5.o backconfig.o ph2.o drtlsym.o dwarfeh.o
+	cod3.o cv8.o dcgcv.o pdata.o util2.o var.o md5.o backconfig.o ph2.o drtlsym.o dwarfeh.o ptrntab.o
 
 G_OBJS  = $(addprefix $G/, $(BACK_OBJS))
 G_DOBJS = $(addprefix $G/, $(BACK_DOBJS))
@@ -398,7 +398,7 @@ BACK_SRC = \
 	$C/dcode.d $C/symbol.d $C/debugprint.d $C/dt.c $C/ee.d $C/elem.d \
 	$C/evalu8.d $C/fp.c $C/go.d $C/gflow.d $C/gdag.d \
 	$C/gother.d $C/glocal.d $C/gloop.d $C/gsroa.d $C/newman.d \
-	$C/nteh.d $C/os.c $C/out.d $C/outbuf.c $C/ptrntab.c $C/drtlsym.d \
+	$C/nteh.d $C/os.c $C/out.d $C/outbuf.c $C/ptrntab.d $C/drtlsym.d \
 	$C/dtype.d $C/melf.h $C/mach.h $C/mscoff.h $C/bcomplex.h \
 	$C/outbuf.h $C/token.h $C/tassert.h \
 	$C/elfobj.c $C/cv4.h $C/dwarf2.h $C/exh.h $C/go.h \
