@@ -72,12 +72,12 @@ $(H2 $(LNAME2 pre_post_contracts, Pre and Post Contracts))
 
         $(P The expression form is:)
 ------
-in(expression)
-in(expression, "failure string")
-out(identifier; expression)
-out(identifier; expression, "failure string")
-out(; expression)
-out(; expression, "failure string")
+in (expression)
+in (expression, "failure string")
+out (identifier; expression)
+out (identifier; expression, "failure string")
+out (; expression)
+out (; expression, "failure string")
 {
     ...function body...
 }
@@ -131,10 +131,10 @@ do
 
 ------
 int fun(ref int a, int b)
-    in(a > 0)
-    in(b >= 0, "b cannot be negative!")
-    out(r; r > 0, "return must be positive")
-    out(; a != 0)
+in (a > 0)
+in (b >= 0, "b cannot be negative!")
+out (r; r > 0, "return must be positive")
+out (; a != 0)
 {
     // function body
 }
@@ -145,7 +145,7 @@ in
     assert(a > 0);
     assert(b >= 0, "b cannot be negative!");
 }
-out(r)
+out (r)
 {
     assert(r > 0, "return must be positive");
     assert(a != 0);
@@ -219,8 +219,8 @@ class Date
         )
 
 ------
-    invariant(1 <= day && day <= 31);
-    invariant(0 <= hour && hour < 24, "hour out of bounds");
+    invariant (1 <= day && day <= 31);
+    invariant (0 <= hour && hour < 24, "hour out of bounds");
 ------
 
         $(P The invariant is a contract saying that the `assert`s must hold true.
