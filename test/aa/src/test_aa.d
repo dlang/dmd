@@ -622,7 +622,8 @@ void issue14626()
     static assert(is(typeof(caa.byValue().front) == const int));
 }
 
-/// test duplicated keys in AA literal (issue 15290)
+/// test duplicated keys in AA literal
+/// https://issues.dlang.org/show_bug.cgi?id=15290
 void issue15290()
 {
     string[int] aa = [ 0: "a", 0: "b" ];
@@ -657,7 +658,8 @@ void issue15367()
     assert(a1 <= a2);
 }
 
-/// test AA as key (Issue 16974)
+/// test AA as key
+/// https://issues.dlang.org/show_bug.cgi?id=16974
 void issue16974()
 {
     int[int] a = [1 : 2], a2 = [1 : 2];
@@ -669,7 +671,8 @@ void issue16974()
     assert(typeid(a).getHash(&a) == typeid(a).getHash(&a2));
 }
 
-/// test safety for alias-this'd AA that have unsafe opCast (issue 18071)
+/// test safety for alias-this'd AA that have unsafe opCast
+/// https://issues.dlang.org/show_bug.cgi?id=18071
 void issue18071()
 {
     static struct Foo

@@ -373,7 +373,8 @@ void pr2243()
     assert(h32 == rth32);
     assert(h33 == rth33);
 
-    assert(hashOf(null, 0) != hashOf(null, 123456789)); // issue 18932
+    // https://issues.dlang.org/show_bug.cgi?id=18932
+    assert(hashOf(null, 0) != hashOf(null, 123456789));
 
     static size_t tiHashOf(T)(T var)
     {
