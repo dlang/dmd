@@ -499,7 +499,7 @@ void test7358()
 }
 
 /*****************************************/
-// 9263
+// https://issues.dlang.org/show_bug.cgi?id=9263
 
 void test9263()
 {
@@ -622,7 +622,7 @@ void test23()
 }
 
 /*****************************************/
-// 14352
+// https://issues.dlang.org/show_bug.cgi?id=14352
 
 int transmogrify14352(int input)
 {

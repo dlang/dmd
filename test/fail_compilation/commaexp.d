@@ -47,7 +47,7 @@ int main () {
 
 
 /***************************************************/
-// 16022
+// https://issues.dlang.org/show_bug.cgi?id=16022
 
 bool test16022()
 {

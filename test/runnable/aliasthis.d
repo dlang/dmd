@@ -127,7 +127,7 @@ void test5()
 }
 
 /**********************************************/
-// 4617
+// https://issues.dlang.org/show_bug.cgi?id=4617
 
 struct S4617
 {
@@ -189,7 +189,7 @@ void test4617b()
 }
 
 /**********************************************/
-// 4773
+// https://issues.dlang.org/show_bug.cgi?id=4773
 
 void test4773()
 {
@@ -207,7 +207,7 @@ void test4773()
 }
 
 /**********************************************/
-// 5188
+// https://issues.dlang.org/show_bug.cgi?id=5188
 
 void test5188()
 {
@@ -419,7 +419,7 @@ void test7()
 }
 
 /***************************************************/
-// 11875 - endless recursion in Type::deduceType
+// https://issues.dlang.org/show_bug.cgi?id=11875 - endless recursion in Type::deduceType
 
 struct T11875x(C)
 {
@@ -441,7 +441,7 @@ class D11875c { T11875y!D11875b c; alias c this; }
 static assert(is(D11875c : T11875y!D, D) && is(D == D11875b));
 
 /***************************************************/
-// 11930
+// https://issues.dlang.org/show_bug.cgi?id=11930
 
 class BarObj11930 {}
 
@@ -466,7 +466,7 @@ void test11930()
 }
 
 /***************************************************/
-// 2781
+// https://issues.dlang.org/show_bug.cgi?id=2781
 
 struct Tuple2781a(T...) {
     T data;
@@ -568,7 +568,7 @@ void test2781()
 }
 
 /**********************************************/
-// 6546
+// https://issues.dlang.org/show_bug.cgi?id=6546
 
 void test6546()
 {
@@ -617,7 +617,7 @@ void test6546()
 }
 
 /**********************************************/
-// 6736
+// https://issues.dlang.org/show_bug.cgi?id=6736
 
 void test6736()
 {
@@ -635,7 +635,7 @@ void test6736()
 }
 
 /**********************************************/
-// 2777
+// https://issues.dlang.org/show_bug.cgi?id=2777
 
 struct ArrayWrapper(T) {
     T[] array;
@@ -672,7 +672,7 @@ void test2777b()
 }
 
 /****************************************/
-// 2787
+// https://issues.dlang.org/show_bug.cgi?id=2787
 
 struct Base2787
 {
@@ -689,7 +689,7 @@ struct Derived2787
 }
 
 /***********************************/
-// 5679
+// https://issues.dlang.org/show_bug.cgi?id=5679
 
 void test5679()
 {
@@ -710,7 +710,7 @@ void test5679()
 }
 
 /***********************************/
-// 6508
+// https://issues.dlang.org/show_bug.cgi?id=6508
 
 void test6508()
 {
@@ -765,7 +765,7 @@ void test6508x()
 }
 
 /***********************************/
-// 6369
+// https://issues.dlang.org/show_bug.cgi?id=6369
 
 void test6369a()
 {
@@ -843,7 +843,7 @@ void test6369d()
 }
 
 /**********************************************/
-// 6434
+// https://issues.dlang.org/show_bug.cgi?id=6434
 
 struct Variant6434{}
 
@@ -864,7 +864,7 @@ void test6434()
 }
 
 /**************************************/
-// 6366
+// https://issues.dlang.org/show_bug.cgi?id=6366
 
 void test6366()
 {
@@ -939,7 +939,7 @@ void test6366()
 }
 
 /***************************************************/
-// 6711
+// https://issues.dlang.org/show_bug.cgi?id=6711
 
 void test6711()
 {
@@ -963,7 +963,7 @@ void test6711()
 }
 
 /**********************************************/
-// 12161
+// https://issues.dlang.org/show_bug.cgi?id=12161
 
 class A12161
 {
@@ -985,7 +985,7 @@ void test12161()
 }
 
 /**********************************************/
-// 6759
+// https://issues.dlang.org/show_bug.cgi?id=6759
 
 struct Range
 {
@@ -1011,7 +1011,7 @@ void test6759()
 }
 
 /**********************************************/
-// 6479
+// https://issues.dlang.org/show_bug.cgi?id=6479
 
 struct Memory6479
 {
@@ -1027,7 +1027,7 @@ mixin template Wrapper6479()
 }
 
 /**********************************************/
-// 6832
+// https://issues.dlang.org/show_bug.cgi?id=6832
 
 void test6832()
 {
@@ -1045,7 +1045,7 @@ void test6832()
 }
 
 /**********************************************/
-// 6928
+// https://issues.dlang.org/show_bug.cgi?id=6928
 
 void test6928()
 {
@@ -1068,7 +1068,7 @@ void test6928()
 }
 
 /**********************************************/
-// 6929
+// https://issues.dlang.org/show_bug.cgi?id=6929
 
 struct S6929
 {
@@ -1088,7 +1088,7 @@ void test6929()
 }
 
 /***************************************************/
-// 7136
+// https://issues.dlang.org/show_bug.cgi?id=7136
 
 void test7136()
 {
@@ -1114,7 +1114,7 @@ void test7136()
 }
 
 /***************************************************/
-// 7731
+// https://issues.dlang.org/show_bug.cgi?id=7731
 
 struct A7731
 {
@@ -1157,7 +1157,7 @@ void test7731()
 }
 
 /***************************************************/
-// 7808
+// https://issues.dlang.org/show_bug.cgi?id=7808
 
 struct Nullable7808(T)
 {
@@ -1187,7 +1187,7 @@ void test7808()
 }
 
 /***************************************************/
-// 7945
+// https://issues.dlang.org/show_bug.cgi?id=7945
 
 struct S7945
 {
@@ -1206,7 +1206,7 @@ void test7945()
 }
 
 /***************************************************/
-// 15674 - alias this on out parameter, consistent with 7945 case
+// https://issues.dlang.org/show_bug.cgi?id=15674 - alias this on out parameter, consistent with 7945 case
 
 struct S15674
 {
@@ -1225,7 +1225,7 @@ void test15674()
 }
 
 /***************************************************/
-// 7979
+// https://issues.dlang.org/show_bug.cgi?id=7979
 
 void test7979()
 {
@@ -1265,7 +1265,7 @@ void test7979()
 }
 
 /***************************************************/
-// 7992
+// https://issues.dlang.org/show_bug.cgi?id=7992
 
 struct S7992
 {
@@ -1288,7 +1288,7 @@ void test7992()
 }
 
 /***************************************************/
-// 8169
+// https://issues.dlang.org/show_bug.cgi?id=8169
 
 void test8169()
 {
@@ -1313,7 +1313,7 @@ void test8169()
 }
 
 /***************************************************/
-// 8735
+// https://issues.dlang.org/show_bug.cgi?id=8735
 
 struct S8735(alias Arg)
 {
@@ -1350,7 +1350,7 @@ void test8735()
 }
 
 /***************************************************/
-// 9174
+// https://issues.dlang.org/show_bug.cgi?id=9174
 
 void test9174()
 {
@@ -1364,7 +1364,7 @@ void test9174()
 }
 
 /***************************************************/
-// 9177
+// https://issues.dlang.org/show_bug.cgi?id=9177
 
 struct S9177
 {
@@ -1374,7 +1374,7 @@ struct S9177
 pragma(msg, is(S9177 : int));
 
 /***************************************************/
-// 9858
+// https://issues.dlang.org/show_bug.cgi?id=9858
 
 struct S9858()
 {
@@ -1392,7 +1392,7 @@ void test9858()
 }
 
 /***************************************************/
-// 9873
+// https://issues.dlang.org/show_bug.cgi?id=9873
 
 void test9873()
 {
@@ -1427,7 +1427,7 @@ void test9873()
 }
 
 /***************************************************/
-// 10178
+// https://issues.dlang.org/show_bug.cgi?id=10178
 
 void test10178()
 {
@@ -1447,7 +1447,7 @@ void test10178()
 }
 
 /***************************************************/
-// 10179
+// https://issues.dlang.org/show_bug.cgi?id=10179
 
 void test10179()
 {
@@ -1467,7 +1467,7 @@ void test10179()
 }
 
 /***************************************************/
-// 9890
+// https://issues.dlang.org/show_bug.cgi?id=9890
 
 void test9890()
 {
@@ -1493,7 +1493,7 @@ void test9890()
 }
 
 /***************************************************/
-// 10004
+// https://issues.dlang.org/show_bug.cgi?id=10004
 
 void test10004()
 {
@@ -1515,7 +1515,7 @@ void test10004()
 }
 
 /***************************************************/
-// 10180
+// https://issues.dlang.org/show_bug.cgi?id=10180
 
 template TypeTuple10180(TL...) { alias TypeTuple10180 = TL; }
 
@@ -1554,7 +1554,7 @@ void test10180()
 }
 
 /***************************************************/
-// 10456
+// https://issues.dlang.org/show_bug.cgi?id=10456
 
 void test10456()
 {
@@ -1570,7 +1570,7 @@ struct S10456
 }
 
 /***************************************************/
-// 11261
+// https://issues.dlang.org/show_bug.cgi?id=11261
 
 template Tuple11261(Specs...)
 {
@@ -1660,7 +1660,7 @@ void test11261()
 }
 
 /***************************************************/
-// 11333
+// https://issues.dlang.org/show_bug.cgi?id=11333
 
 alias id11333(a...) = a;
 
@@ -1686,7 +1686,7 @@ void test11333()
 }
 
 /***************************************************/
-// 11538
+// https://issues.dlang.org/show_bug.cgi?id=11538
 
 struct NullableRef11538(T)
 {
@@ -1701,7 +1701,7 @@ struct S11538
 }
 
 /***************************************************/
-// 11800
+// https://issues.dlang.org/show_bug.cgi?id=11800
 
 struct A11800
 {
@@ -1728,7 +1728,7 @@ void test11800()
 }
 
 /***************************************************/
-// 12008
+// https://issues.dlang.org/show_bug.cgi?id=12008
 
 struct RefCounted12008(T)
 {
@@ -1781,7 +1781,7 @@ struct Group12008
 }
 
 /***************************************************/
-// 12038
+// https://issues.dlang.org/show_bug.cgi?id=12038
 
 bool f12038(void* p) { return true; }
 
@@ -1792,7 +1792,7 @@ struct S12038
 }
 
 /***************************************************/
-// 13490
+// https://issues.dlang.org/show_bug.cgi?id=13490
 
 struct S13490
 {
@@ -1819,7 +1819,7 @@ void test13490()
 }
 
 /***************************************************/
-// 11355
+// https://issues.dlang.org/show_bug.cgi?id=11355
 
 struct A11355
 {
@@ -1844,7 +1844,7 @@ void test11355()
 }
 
 /***************************************************/
-// 13009
+// https://issues.dlang.org/show_bug.cgi?id=13009
 
 struct T13009
 {
@@ -1898,7 +1898,7 @@ void test13009()
 }
 
 /***************************************************/
-// 14806
+// https://issues.dlang.org/show_bug.cgi?id=14806
 
 struct Nullable14806
 {
@@ -1926,7 +1926,7 @@ void test14806()
 }
 
 /***************************************************/
-// 14948
+// https://issues.dlang.org/show_bug.cgi?id=14948
 
 struct RefCounted14948(T)
 {
@@ -1956,7 +1956,7 @@ void test14948()
 }
 
 /***************************************************/
-// 15292
+// https://issues.dlang.org/show_bug.cgi?id=15292
 
 struct NullableRef15292(T)
 {

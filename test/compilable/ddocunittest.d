@@ -276,7 +276,7 @@ else
 unittest { int x6b; }
 
 // ------------------------------------
-// 9474
+// https://issues.dlang.org/show_bug.cgi?id=9474
 
 ///
 void foo9474() { }
@@ -323,7 +323,7 @@ template Template9474()
 unittest { alias Template9474!() T; }
 
 // ------------------------------------
-// 9713
+// https://issues.dlang.org/show_bug.cgi?id=9713
 
 ///
 void fooNoDescription() {}
@@ -419,7 +419,7 @@ unittest
 }
 
 // ------------------------------------
-// 14594
+// https://issues.dlang.org/show_bug.cgi?id=14594
 
 /*******************
  * testA

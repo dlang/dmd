@@ -395,7 +395,7 @@ void test13()
 }
 
 /********************************************************/
-// 7123
+// https://issues.dlang.org/show_bug.cgi?id=7123
 
 private struct DelegateFaker7123(F)
 {
@@ -626,7 +626,7 @@ struct Test24
 static assert(__traits(getProtection, __traits(getOverloads, Test24, "test24")[1]) == "private");
 
 /********************************************************/
-// 1369
+// https://issues.dlang.org/show_bug.cgi?id=1369
 
 void test1369()
 {
@@ -682,7 +682,7 @@ static assert([__traits(allMembers, S2234b)] == ["x"]);
 static assert([__traits(allMembers, S2234c)] == ["foo"]);
 
 /********************************************************/
-// 5878
+// https://issues.dlang.org/show_bug.cgi?id=5878
 
 template J5878(A)
 {
@@ -719,7 +719,7 @@ static assert([__traits(allMembers,Test6674)] == [
     "toString","toHash","opCmp","opEquals","Monitor","factory"]);
 
 /********************************************************/
-// 6073
+// https://issues.dlang.org/show_bug.cgi?id=6073
 
 struct S6073 {}
 
@@ -731,13 +731,13 @@ alias T6073!(__traits(parent, S6073)) U6073;    // error
 static assert(__traits(isSame, V6073, U6073));  // same instantiation == same arguemnts
 
 /********************************************************/
-// 7027
+// https://issues.dlang.org/show_bug.cgi?id=7027
 
 struct Foo7027 { int a; }
 static assert(!__traits(compiles, { return Foo7027.a; }));
 
 /********************************************************/
-// 9213
+// https://issues.dlang.org/show_bug.cgi?id=9213
 
 class Foo9213 { int a; }
 static assert(!__traits(compiles, { return Foo9213.a; }));
@@ -779,7 +779,7 @@ static assert(__traits(isVirtualMethod, FF.YYY));
 static assert(__traits(getVirtualMethods, FF, "YYY").length == 1);
 
 /********************************************************/
-// 7608
+// https://issues.dlang.org/show_bug.cgi?id=7608
 
 struct S7608a(bool T)
 {
@@ -804,7 +804,7 @@ void test7608()
 }
 
 /********************************************************/
-// 7858
+// https://issues.dlang.org/show_bug.cgi?id=7858
 
 void test7858()
 {
@@ -841,7 +841,7 @@ void test7858()
 }
 
 /********************************************************/
-// 8971
+// https://issues.dlang.org/show_bug.cgi?id=8971
 
 template Tuple8971(TL...){ alias TL Tuple8971; }
 
@@ -857,7 +857,7 @@ class A8971
 }
 
 /********************************************************/
-// 8972
+// https://issues.dlang.org/show_bug.cgi?id=8972
 
 struct A8972
 {
@@ -940,7 +940,7 @@ void getProtection()
 }
 
 /********************************************************/
-// 9546
+// https://issues.dlang.org/show_bug.cgi?id=9546
 
 void test9546()
 {
@@ -991,7 +991,7 @@ void test9546()
 }
 
 /********************************************************/
-// 9091
+// https://issues.dlang.org/show_bug.cgi?id=9091
 
 template isVariable9091(X...) if (X.length == 1)
 {
@@ -1137,7 +1137,7 @@ void test9237()
 }
 
 /*************************************************************/
-// 5978
+// https://issues.dlang.org/show_bug.cgi?id=5978
 
 void test5978()
 {
@@ -1162,7 +1162,7 @@ void test7408()
 }
 
 /*************************************************************/
-// 9552
+// https://issues.dlang.org/show_bug.cgi?id=9552
 
 class C9552
 {
@@ -1209,7 +1209,7 @@ void test9136()
 }
 
 /********************************************************/
-// 9939
+// https://issues.dlang.org/show_bug.cgi?id=9939
 
 struct Test9939
 {
@@ -1229,7 +1229,7 @@ struct Test9939
 static assert([__traits(allMembers, Test9939)] == ["f", "A", "B", "NamedEnum"]);
 
 /********************************************************/
-// 10043
+// https://issues.dlang.org/show_bug.cgi?id=10043
 
 void test10043()
 {
@@ -1239,7 +1239,7 @@ void test10043()
 }
 
 /********************************************************/
-// 10096
+// https://issues.dlang.org/show_bug.cgi?id=10096
 
 struct S10096X
 {
@@ -1432,7 +1432,7 @@ void test_isOverrideFunction ()
 }
 
 /********************************************************/
-// 11711 - Add __traits(getAliasThis)
+// https://issues.dlang.org/show_bug.cgi?id=11711 - Add __traits(getAliasThis)
 
 alias TypeTuple(T...) = T;
 
@@ -1474,7 +1474,7 @@ struct InPlace12278(T)
 }
 
 /********************************************************/
-// 12571
+// https://issues.dlang.org/show_bug.cgi?id=12571
 
 mixin template getScopeName12571()
 {
@@ -1488,7 +1488,7 @@ void test12571()
 }
 
 /********************************************************/
-// 12237
+// https://issues.dlang.org/show_bug.cgi?id=12237
 
 auto f12237(T)(T a)
 {
@@ -1527,7 +1527,7 @@ void async(ARGS...)(ARGS)
 alias test17495 = async!(int, int);
 
 /********************************************************/
-// 15094
+// https://issues.dlang.org/show_bug.cgi?id=15094
 
 void test15094()
 {

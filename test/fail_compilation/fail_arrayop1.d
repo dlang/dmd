@@ -17,7 +17,7 @@ TEST_OUTPUT:
 fail_compilation/fail_arrayop1.d(29): Error: invalid array operation `-a` (possible missing [])
 ---
 */
-void fail323()      // from fail323.d, maybe was a part of issue 3471 fix?
+void fail323()      // from fail323.d, maybe was a part of https://issues.dlang.org/show_bug.cgi?id=3471 fix?
 {
     void foo(double[]) {}
 

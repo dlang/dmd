@@ -224,7 +224,7 @@ version (linux)
 }
 
 /****************************************/
-// 4059
+// https://issues.dlang.org/show_bug.cgi?id=4059
 
 struct elem9 { }
 
@@ -242,7 +242,7 @@ version (linux)
 }
 
 /****************************************/
-// 5148
+// https://issues.dlang.org/show_bug.cgi?id=5148
 
 extern (C++)
 {
@@ -270,7 +270,7 @@ void test10()
 }
 
 /**************************************/
-// 10058
+// https://issues.dlang.org/show_bug.cgi?id=10058
 
 extern (C++)
 {
@@ -305,7 +305,7 @@ version (linux)
 }
 
 /**************************************/
-// 11696
+// https://issues.dlang.org/show_bug.cgi?id=11696
 
 class Expression;
 struct Loc {}
@@ -328,7 +328,7 @@ version (linux)
 }
 
 /**************************************/
-// 13337
+// https://issues.dlang.org/show_bug.cgi?id=13337
 
 extern(C++, N13337a.N13337b.N13337c)
 {
@@ -342,7 +342,7 @@ version (linux)
 }
 
 /**************************************/
-// 15789
+// https://issues.dlang.org/show_bug.cgi?id=15789
 
 extern (C++) void test15789a(T...)(T args);
 
@@ -352,7 +352,7 @@ void test15789()
 }
 
 /**************************************/
-// 7030
+// https://issues.dlang.org/show_bug.cgi?id=7030
 
 extern(C++)
 {

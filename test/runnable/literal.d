@@ -165,7 +165,7 @@ void test2()
 }
 
 /***************************************************/
-// 13907
+// https://issues.dlang.org/show_bug.cgi?id=13907
 
 void f13907_1(wchar[1] a) {}
 void f13907_2(wchar[2] a) {}
@@ -185,8 +185,8 @@ void test13907()
     static assert(!__traits(compiles, { f13907_1("\U00010000" ); }));
     f13907_2("\U00010000"w);
     f13907_2("\U00010000");
-    f13907_3("\U00010000"w);    // Re-enable implicit length extension, from issue 13999
-    f13907_3("\U00010000" );    // Re-enable implicit length extension, from issue 13999
+    f13907_3("\U00010000"w);    // Re-enable implicit length extension, from https://issues.dlang.org/show_bug.cgi?id=13999
+    f13907_3("\U00010000" );    // Re-enable implicit length extension, from https://issues.dlang.org/show_bug.cgi?id=13999
 
     assert(f13907_12("a") == 1);
     assert(f13907_12("ab") == 2);

@@ -145,7 +145,7 @@ void test7()
 
 /************************************/
 
-// 10833
+// https://issues.dlang.org/show_bug.cgi?id=10833
 string fun10833(T...)()
 {
     foreach (v ; T)
@@ -178,7 +178,7 @@ void test8() {
 }
 
 /************************************/
-// 4841
+// https://issues.dlang.org/show_bug.cgi?id=4841
 
 auto fun4841a()
 {
@@ -264,7 +264,7 @@ void test4841()
 }
 
 /************************************/
-// 7261
+// https://issues.dlang.org/show_bug.cgi?id=7261
 
 struct AbstractTask
 {
@@ -287,7 +287,7 @@ struct Task
 }
 
 /************************************/
-// 9356
+// https://issues.dlang.org/show_bug.cgi?id=9356
 
 void test9356()
 {
@@ -302,7 +302,7 @@ void test9356()
 }
 
 /************************************/
-// 12079
+// https://issues.dlang.org/show_bug.cgi?id=12079
 
 void test12079()
 {
@@ -312,7 +312,7 @@ void test12079()
 }
 
 /************************************/
-// 12243
+// https://issues.dlang.org/show_bug.cgi?id=12243
 
 char f12243() { return 'a'; }
 
@@ -323,7 +323,7 @@ void test12243()
 }
 
 /************************************/
-// 11201
+// https://issues.dlang.org/show_bug.cgi?id=11201
 
 struct Foo11201
 {
@@ -343,7 +343,7 @@ void test11201()
 }
 
 /************************************/
-// 11223
+// https://issues.dlang.org/show_bug.cgi?id=11223
 
 struct Tuple11223(T...)
 {
@@ -382,7 +382,7 @@ void test3918()
 }
 
 /************************************/
-// 11314
+// https://issues.dlang.org/show_bug.cgi?id=11314
 
 struct Tuple11314(T...)
 {
@@ -406,7 +406,7 @@ void test11314()
 }
 
 /************************************/
-// 11224
+// https://issues.dlang.org/show_bug.cgi?id=11224
 
 S11224* ptr11224;
 
@@ -438,7 +438,7 @@ void test11224()
 }
 
 /************************************/
-// 11322
+// https://issues.dlang.org/show_bug.cgi?id=11322
 
 bool b11322;
 uint n11322;
@@ -460,7 +460,7 @@ void test11322()
 }
 
 /************************************/
-// 11394
+// https://issues.dlang.org/show_bug.cgi?id=11394
 
 debug(NRVO) static void* p11394a, p11394b, p11394c;
 
@@ -497,7 +497,7 @@ void test11394()
 }
 
 /**********************************/
-// 12080
+// https://issues.dlang.org/show_bug.cgi?id=12080
 
 class TZ12080 {}
 
@@ -533,7 +533,7 @@ class Foo12080
 }
 
 /**********************************/
-// 13503
+// https://issues.dlang.org/show_bug.cgi?id=13503
 
 void f13503a(string[] s...)
 {
@@ -559,7 +559,7 @@ void test13503()
 }
 
 /**********************************/
-// 14267
+// https://issues.dlang.org/show_bug.cgi?id=14267
 
 // EXTRA_SOURCES: imports/a14267.d
 import imports.a14267;
@@ -584,7 +584,7 @@ void test14267()
 }
 
 /**********************************/
-// 13244
+// https://issues.dlang.org/show_bug.cgi?id=13244
 
 struct MapResult13244(alias fun)
 {
@@ -610,7 +610,7 @@ void test13244()
 }
 
 /**********************************/
-// 14306
+// https://issues.dlang.org/show_bug.cgi?id=14306
 
 struct MapResult(alias fun)
 {
@@ -656,7 +656,7 @@ void test14306()
 }
 
 /**********************************/
-// 14754
+// https://issues.dlang.org/show_bug.cgi?id=14754
 
 auto aafunc14754(string k)
 {
@@ -694,7 +694,7 @@ void test14754()
 }
 
 /**********************************/
-// 14606
+// https://issues.dlang.org/show_bug.cgi?id=14606
 
 struct S14606
 {
@@ -729,7 +729,7 @@ void test14606()
 }
 
 /**********************************/
-// 14753
+// https://issues.dlang.org/show_bug.cgi?id=14753
 
 pragma(inline)
 void test14753(string) { }
@@ -754,7 +754,7 @@ void test14975()
 }
 
 /**********************************/
-// 15210
+// https://issues.dlang.org/show_bug.cgi?id=15210
 
 struct BigInt15210 {}
 
@@ -809,7 +809,7 @@ void test7625()
 }
 
 /**********************************/
-// 9785 partial fix
+// https://issues.dlang.org/show_bug.cgi?id=9785 partial fix
 
 void test9785()
 {
@@ -829,7 +829,7 @@ void test9785()
 
 
 /**********************************/
-// 9785 partial fix
+// https://issues.dlang.org/show_bug.cgi?id=9785 partial fix
 
 void test9785_2() {
         int j = 3;
@@ -849,7 +849,7 @@ void test9785_2() {
 }
 
 /**********************************/
-// 9785 partial fix
+// https://issues.dlang.org/show_bug.cgi?id=9785 partial fix
 
 void test9785_3() @nogc
 {
@@ -879,7 +879,7 @@ void test9785_3() @nogc
 }
 
 /**********************************/
-// 15207
+// https://issues.dlang.org/show_bug.cgi?id=15207
 
 struct Vec15207
 {
@@ -923,7 +923,7 @@ void test15207()
 }
 
 /**********************************/
-// 15253
+// https://issues.dlang.org/show_bug.cgi?id=15253
 
 struct MessageType15253
 {
@@ -946,7 +946,7 @@ struct ProtoPackage15253
 }
 
 /**********************************/
-// 15296
+// https://issues.dlang.org/show_bug.cgi?id=15296
 
 static int x15296;
 

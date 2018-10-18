@@ -1,4 +1,4 @@
-// 10283
+// https://issues.dlang.org/show_bug.cgi?id=10283
 
 S10283 blah(S10283 xxx) { return xxx; }
 S10283 repy = blah(S10283());

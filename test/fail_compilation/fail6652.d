@@ -1,7 +1,7 @@
 // PERMUTE_ARGS: -w -dw -de -d
 
 /******************************************/
-// 6652
+// https://issues.dlang.org/show_bug.cgi?id=6652
 
 /*
 TEST_OUTPUT:
