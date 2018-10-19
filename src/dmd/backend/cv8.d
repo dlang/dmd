@@ -705,6 +705,8 @@ void cv8_outsym(Symbol *s)
         case_auto:
             base = cast(uint)Auto.size;
         L1:
+            if (s.Sscope) // local variables moved into the closure cannot be emitted directly
+                break;
 static if (1)
 {
             // Register relative addressing
