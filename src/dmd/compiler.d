@@ -30,15 +30,19 @@ import dmd.semantic2;
 import dmd.semantic3;
 import dmd.tokens;
 
-/// DMD-generated module `__entrypoint` where the C main resides
-package __gshared Module entrypoint = null;
-/// Module in which the D main is
-package __gshared Module rootHasMain = null;
+extern (C++) __gshared
+{
+    /// DMD-generated module `__entrypoint` where the C main resides
+    Module entrypoint = null;
+    /// Module in which the D main is
+    Module rootHasMain = null;
 
-package __gshared bool includeImports = false;
-// array of module patterns used to include/exclude imported modules
-package __gshared Array!(const(char)*) includeModulePatterns;
-package __gshared Modules compiledImports;
+    bool includeImports = false;
+    // array of module patterns used to include/exclude imported modules
+    Array!(const(char)*) includeModulePatterns;
+    Modules compiledImports;
+}
+
 
 /**
  * A data structure that describes a back-end compiler and implements
