@@ -405,7 +405,7 @@ BACK_SRC = \
 	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aarray.d \
 	$C/platform_stub.c $C/code_x86.h $C/code_stub.h \
 	$C/machobj.c $C/mscoffobj.c \
-	$C/xmm.h $C/obj.h $C/pdata.d $C/cv8.d $C/backconfig.d $C/sizecheck.c $C/divcoeff.d \
+	$C/obj.h $C/pdata.d $C/cv8.d $C/backconfig.d $C/sizecheck.c $C/divcoeff.d \
 	$C/varstats.c $C/varstats.h $C/dvec.d \
 	$C/md5.d $C/md5.h \
 	$C/ph2.d $C/util2.d $C/dwarfeh.d $C/goh.d $C/memh.d \
