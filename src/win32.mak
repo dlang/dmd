@@ -227,7 +227,7 @@ GLUESRC= \
 BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.d \
 	$C\global.h $C\code.h $C\code_x86.h $C/code_stub.h $C/platform_stub.c \
 	$C\type.h $C\dt.h $C\cgcv.h \
-	$C\el.h $C\iasm.h \
+	$C\el.h \
 	$C\bcomplex.d $C\blockopt.d $C\cg.d $C\cg87.d $C\cgxmm.d \
 	$C\cgcod.d $C\cgcs.d $C\dcgcv.d $C\cgelem.d $C\cgen.c $C\cgobj.c \
 	$C\compress.d $C\cgreg.d $C\var.d \
@@ -268,7 +268,7 @@ ROOTSRC= $(ROOT)\root.h \
 
 # Header files
 CH= $C\cc.h $C\global.h $C\oper.h $C\code.h $C\code_x86.h $C\type.h $C\dt.h $C\cgcv.h \
-	$C\el.h $C\iasm.h $C\obj.h
+	$C\el.h $C\obj.h
 
 # Makefiles
 MAKEFILES=win32.mak posix.mak osmodel.mak
@@ -599,7 +599,7 @@ $G/pdata.obj : $C\pdata.d
 $G/ph2.obj : $C\ph2.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\ph2
 
-$G/ptrntab.obj : $C\iasm.h $C\ptrntab.d
+$G/ptrntab.obj : $C\iasm.d $C\ptrntab.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\ptrntab
 
 $G/drtlsym.obj : $C\rtlsym.d $C\drtlsym.d
