@@ -1,4 +1,4 @@
-// Issue 16594
+// https://issues.dlang.org/show_bug.cgi?id=16594
 import core.stdc.stdio;
 
 shared static ~this()
