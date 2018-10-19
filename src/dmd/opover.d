@@ -456,7 +456,14 @@ private Expression checkAliasThisForLhs(AggregateDeclaration ad, Scope* sc, BinE
     if (!be.att1 && e.e1.type.checkAliasThisRec())
         be.att1 = e.e1.type;
     be.e1 = e1;
-    return be.trySemantic(sc);
+
+    Expression result;
+    if (be.op == TOK.concatenateAssign)
+        result = be.op_overload(sc);
+    else
+        result = be.trySemantic(sc);
+
+    return result;
 }
 
 // Try alias this on second operand
@@ -475,7 +482,14 @@ private Expression checkAliasThisForRhs(AggregateDeclaration ad, Scope* sc, BinE
     if (!be.att2 && e.e2.type.checkAliasThisRec())
         be.att2 = e.e2.type;
     be.e2 = e2;
-    return be.trySemantic(sc);
+
+    Expression result;
+    if (be.op == TOK.concatenateAssign)
+        result = be.op_overload(sc);
+    else
+        result = be.trySemantic(sc);
+
+    return result;
 }
 
 /************************************

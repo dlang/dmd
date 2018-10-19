@@ -8705,9 +8705,59 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else
         {
+            // Try alias this on first operand
+            static Expression tryAliasThisForLhs(BinAssignExp exp, Scope* sc)
+            {
+                AggregateDeclaration ad1 = isAggregate(exp.e1.type);
+                if (!ad1 || !ad1.aliasthis)
+                    return null;
+
+                /* Rewrite (e1 op e2) as:
+                 *      (e1.aliasthis op e2)
+                 */
+                if (exp.att1 && exp.e1.type == exp.att1)
+                    return null;
+                //printf("att %s e1 = %s\n", Token::toChars(e.op), e.e1.type.toChars());
+                Expression e1 = new DotIdExp(exp.loc, exp.e1, ad1.aliasthis.ident);
+                BinExp be = cast(BinExp)exp.copy();
+                if (!be.att1 && exp.e1.type.checkAliasThisRec())
+                    be.att1 = exp.e1.type;
+                be.e1 = e1;
+                return be.trySemantic(sc);
+            }
+
+            // Try alias this on second operand
+            static Expression tryAliasThisForRhs(BinAssignExp exp, Scope* sc)
+            {
+                AggregateDeclaration ad2 = isAggregate(exp.e2.type);
+                if (!ad2 || !ad2.aliasthis)
+                    return null;
+                /* Rewrite (e1 op e2) as:
+                 *      (e1 op e2.aliasthis)
+                 */
+                if (exp.att2 && exp.e2.type == exp.att2)
+                    return null;
+                //printf("att %s e2 = %s\n", Token::toChars(e.op), e.e2.type.toChars());
+                Expression e2 = new DotIdExp(exp.loc, exp.e2, ad2.aliasthis.ident);
+                BinExp be = cast(BinExp)exp.copy();
+                if (!be.att2 && exp.e2.type.checkAliasThisRec())
+                    be.att2 = exp.e2.type;
+                be.e2 = e2;
+                return be.trySemantic(sc);
+            }
+
+            result = tryAliasThisForLhs(exp, sc);
+            if (result)
+                return;
+
+            result = tryAliasThisForRhs(exp, sc);
+            if (result)
+                return;
+
             exp.error("cannot append type `%s` to type `%s`", tb2.toChars(), tb1.toChars());
             return setError();
         }
+
         if (exp.e2.checkValue())
             return setError();
 
