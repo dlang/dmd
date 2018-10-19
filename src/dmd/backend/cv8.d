@@ -223,7 +223,7 @@ void cv8_termfile(const(char)* objfilename)
     /* Write out the debug info sections.
      */
 
-    int seg = MsCoffObj.seg_debugS();
+    int seg = MsCoffObj_seg_debugS();
 
     uint value = 4;
     objmod.bytes(seg,0,4,&value);
@@ -269,7 +269,7 @@ void cv8_termfile(const(char)* objfilename)
         int f2seg = seg;
         if (symbol_iscomdat(fd.sfunc))
         {
-            f2seg = MsCoffObj.seg_debugS_comdat(fd.sfunc);
+            f2seg = MsCoffObj_seg_debugS_comdat(fd.sfunc);
             objmod.bytes(f2seg,0,4,&value);
         }
 

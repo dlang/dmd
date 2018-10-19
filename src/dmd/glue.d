@@ -257,8 +257,8 @@ void obj_start(const(char)* srcfile)
     {
         // Produce Ms COFF files for 64 bit code, OMF for 32 bit code
         assert(objbuf.size() == 0);
-        objmod = global.params.mscoff ? MsCoffObj.init(&objbuf, srcfile, null)
-                                      :       Obj.init(&objbuf, srcfile, null);
+        objmod = global.params.mscoff ? MsCoffObj_init(&objbuf, srcfile, null)
+                                      :    OmfObj_init(&objbuf, srcfile, null);
     }
     else
     {
