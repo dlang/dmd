@@ -139,6 +139,7 @@ STATIC void obj_tlssections();
 static void obj_rtinit();
 #endif
 static void addSectionToComdat(IDXSEC secidx, segidx_t comdatseg);
+STATIC void objflush_pointerRefs();
 
 static IDXSYM elf_addsym(IDXSTR sym, targ_size_t val, unsigned sz,
                          unsigned typ,unsigned bind,IDXSEC sec,
@@ -1095,6 +1096,7 @@ void Obj::term(const char *objfilename)
     if (!errcnt)
 #endif
     {
+        objflush_pointerRefs();
         outfixlist();           // backpatches
     }
 
@@ -3217,6 +3219,8 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                 outrel:
                     //printf("\t\t************* adding relocation\n");
                     const size_t nbytes = ElfObj::writerel(seg, offset, relinfo, refseg, val);
+                    //if(nbytes != retsize)
+                    //    printf("nbytes=%d retsize=%d, reltype=%d, s=%s\n", nbytes, retsize, relinfo, s->Sident);
                     assert(nbytes == retsize);
                 }
             }
@@ -3690,8 +3694,80 @@ symbol *Obj::tlv_bootstrap()
     return NULL;
 }
 
-void Obj::write_pointerRef(Symbol* s, unsigned off)
+static Outbuffer *ptrref_buf;           // buffer for pointer references
+
+/*****************************************
+ * write a reference to a mutable pointer into the object file
+ * Params:
+ *      s    = symbol that contains the pointer
+ *      soff = offset of the pointer inside the Symbol's memory
+ */
+void Obj::write_pointerRef(Symbol* s, unsigned soff)
 {
+    if (!ptrref_buf)
+        ptrref_buf = new Outbuffer;
+
+    // defer writing pointer references until the symbols are written out
+    ptrref_buf->write(&s, sizeof(s));
+    ptrref_buf->write32(soff);
+}
+
+/*****************************************
+ * flush a single pointer reference saved by write_pointerRef
+ * to the object file
+ * Params:
+ *      ptrseg = segment that stores the pointer reference
+ *      s      = symbol that contains the pointer
+ *      soff   = offset of the pointer inside the Symbol's memory
+ */
+static void objflush_pointerRef(int ptrseg, Symbol* s, unsigned soff)
+{
+    targ_size_t& offset = SegData[ptrseg]->SDoffset;
+    unsigned relinfo = (I64 ? R_X86_64_PC32 : R_386_PC32);
+    offset += ElfObj::writerel(ptrseg, offset, relinfo, MAP_SEG2SYMIDX(s->Sseg), s->Soffset + soff);
+}
+
+/*****************************************
+ * flush all pointer references to segment dat_ptr or tls_ptr
+ * Params:
+ *      tls = select which references to flush
+ */
+STATIC void objflush_pointerRefs(bool tls)
+{
+    unsigned char *p = ptrref_buf->buf;
+    unsigned char *end = ptrref_buf->p;
+    int seg = -1;
+    while (p < end)
+    {
+        Symbol* s = *(Symbol**)p;
+        p += sizeof(s);
+        unsigned soff = *(unsigned*)p;
+        p += sizeof(soff);
+        if ((s->Sfl == FLtlsdata) == tls)
+        {
+            if (seg == -1)
+            {
+                const char* segname = tls ? "tls_ptr" : "dat_ptr";
+                seg = ElfObj::getsegment(segname, NULL, SHT_PROGBITS, SHF_ALLOC | SHF_WRITE, 4);
+            }
+            objflush_pointerRef(seg, s, soff);
+        }
+    }
+}
+
+/*****************************************
+ * flush all pointer references saved by write_pointerRef
+ * to the object file
+ */
+STATIC void objflush_pointerRefs()
+{
+    if (!ptrref_buf)
+        return;
+
+    objflush_pointerRefs(false);
+    objflush_pointerRefs(true);
+
+    ptrref_buf->reset();
 }
 
 /******************************************
