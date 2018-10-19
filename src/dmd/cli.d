@@ -169,6 +169,16 @@ struct Usage
         Option("c",
             "compile only, do not link"
         ),
+        Option("checkaction=D|C|halt",
+            "behavior on assert/boundscheck/finalswitch failure",
+            `Sets behavior when an assert fails, and array boundscheck fails,
+             or a final switch errors.
+                $(UL
+                    $(LI $(I D): Default behavior, which throws an unrecoverable $(D Error).)
+                    $(LI $(I C): Calls the C runtime library assert failure function.)
+                    $(LI $(I halt): Executes a halt instruction, terminating the program.)
+                )`
+        ),
         Option("color",
             "turn colored console output on"
         ),
