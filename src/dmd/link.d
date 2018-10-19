@@ -1363,7 +1363,6 @@ version (Windows)
         static const(char)* findLatestSDKDir(const(char)* baseDir, const(char)* testfile)
         {
             auto allfiles = FileName.combine(baseDir, "*");
-            static if (!is(WIN32_FIND_DATAA)) alias WIN32_FIND_DATAA = WIN32_FIND_DATA; // support dmd 2.068
             WIN32_FIND_DATAA fileinfo;
             HANDLE h = FindFirstFileA(allfiles, &fileinfo);
             if (h == INVALID_HANDLE_VALUE)

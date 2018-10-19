@@ -321,10 +321,6 @@ uint tyfarfunc(tym_t ty) { return tytab[ty & 0xFF] & TYFLfarfunc; }
 // Determine if parameter is a SIMD vector type
 uint tysimd(tym_t ty) { return tytab[ty & 0xFF] & TYFLsimd; }
 
-// Workaround 2.066.x bug by resolving the TYMAX value before using it as dimension.
-static if (__VERSION__ <= 2066)
-    private enum computeEnumValue = TYMAX;
-
 /* Determine relaxed type       */
 extern __gshared ubyte[TYMAX] _tyrelax;
 uint tyrelax(tym_t ty) { return _tyrelax[tybasic(ty)]; }

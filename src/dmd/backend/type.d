@@ -116,10 +116,6 @@ void type_debug(type* t)
     debug assert(t.id == t.IDtype);
 }
 
-// Workaround 2.066.x bug by resolving the TYMAX value before using it as dimension.
-static if (__VERSION__ <= 2066)
-    private enum computeEnumValue = TYMAX;
-
 // Return name mangling of type
 mangle_t type_mangle(type *t) { return t.Tmangle; }
 
