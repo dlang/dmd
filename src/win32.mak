@@ -241,7 +241,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.d \
 	$C\elfobj.c $C\cv4.h $C\dwarf2.h $C\exh.h $C\go.h \
 	$C\dwarf.c $C\dwarf.h $C\machobj.c $C\aarray.d \
 	$C\strtold.c $C\aa.h \
-	$C\md5.h $C\md5.d $C\xmm.h $C\ph2.d $C\util2.d \
+	$C\md5.h $C\md5.d $C\ph2.d $C\util2.d \
 	$C\mscoffobj.c $C\obj.h $C\pdata.d $C\cv8.d $C\backconfig.d $C\sizecheck.c \
 	$C\divcoeff.d $C\dwarfeh.d $C\varstats.c $C\varstats.h \
 	$C\dvec.d $C\backend.txt
