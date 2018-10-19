@@ -32,6 +32,13 @@
 
 #if TARGET_WINDOS
 
+typedef unsigned char ubyte;
+typedef unsigned short ushort;
+typedef unsigned uint;
+#define null NULL
+#define private static
+#define cast
+
 #include        "mscoff.h"
 
 static Outbuffer *fobjbuf;
@@ -50,22 +57,22 @@ char *obj_mangle2(Symbol *s,char *dest);
 /******************************************
  */
 
-static long elf_align(int size, long offset);
+static int elf_align(int size, int offset);
 static void objflush_pointerRefs();
 
 // Forward references
 void MsCoffObj_pubdef(segidx_t seg, Symbol *s, targ_size_t offset);
-unsigned MsCoffObj_bytes(segidx_t seg, targ_size_t offset, unsigned nbytes, void *p);
-IDXSEC MsCoffObj_addScnhdr(const char *scnhdr_name, unsigned flags);
+uint MsCoffObj_bytes(segidx_t seg, targ_size_t offset, uint nbytes, void *p);
+IDXSEC MsCoffObj_addScnhdr(const char *scnhdr_name, uint flags);
 segidx_t MsCoffObj_getsegment2(IDXSEC shtidx);
 segidx_t MsCoffObj_seg_drectve();
-segidx_t MsCoffObj_getsegment(const char *sectname, unsigned flags);
+segidx_t MsCoffObj_getsegment(const char *sectname, uint flags);
 int MsCoffObj_reftoident(segidx_t seg, targ_size_t offset, Symbol *s, targ_size_t val,
         int flags);
 int MsCoffObj_comdat(Symbol *s);
 segidx_t MsCoffObj_data_start(Symbol *sdata, targ_size_t datasize, segidx_t seg);
 void MsCoffObj_lidata(segidx_t seg,targ_size_t offset,targ_size_t count);
-void MsCoffObj_byte(segidx_t seg,targ_size_t offset,unsigned byte);
+void MsCoffObj_byte(segidx_t seg,targ_size_t offset,uint byte);
 int MsCoffObj_external_def(const char *name);
 void MsCoffObj_setModuleCtorDtor(Symbol *sfunc, bool isCtor);
 
@@ -156,12 +163,12 @@ enum
 struct Relocation
 {   // Relocations are attached to the struct seg_data they refer to
     targ_size_t offset; // location in segment to be fixed up
-    symbol *funcsym;    // function in which offset lies, if any
-    symbol *targsym;    // if !=NULL, then location is to be fixed up
+    Symbol *funcsym;    // function in which offset lies, if any
+    Symbol *targsym;    // if !=null, then location is to be fixed up
                         // to address of this symbol
-    unsigned targseg;   // if !=0, then location is to be fixed up
+    uint targseg;   // if !=0, then location is to be fixed up
                         // to address of start of this segment
-    unsigned char rtype;   // RELxxxx
+    ubyte rtype;   // RELxxxx
     short val;          // 0, -1, -2, -3, -4, -5
 };
 
@@ -193,9 +200,9 @@ IDXSTR MsCoffObj_addstr(Outbuffer *strtab, const char *str)
  * Returns index into the specified string table or 0.
  */
 
-static IDXSTR elf_findstr(Outbuffer *strtab, const char *str, const char *suffix)
+private IDXSTR elf_findstr(Outbuffer *strtab, const char *str, const char *suffix)
 {
-    const char *ent = (char *)strtab->buf+4;
+    const char *ent = cast(char *)strtab->buf+4;
     const char *pend = ent+strtab->size() - 1;
     const char *s = str;
     const char *sx = suffix;
@@ -223,7 +230,7 @@ static IDXSTR elf_findstr(Outbuffer *strtab, const char *str, const char *suffix
         {                               // matched first string
             s = sx+1;                   // switch to suffix
             ent++;
-            sx = NULL;
+            sx = null;
         }
         else                            // continue comparing
         {
@@ -253,7 +260,7 @@ static IDXSTR elf_findstr(Outbuffer *strtab, const char *str, const char *suffix
  * Returns offset of the string in string table (offset of the string).
  */
 
-static IDXSTR elf_addmangled(Symbol *s)
+private IDXSTR elf_addmangled(Symbol *s)
 {
     //printf("elf_addmangled(%s)\n", s->Sident);
     char dest[DEST_LEN];
@@ -283,11 +290,11 @@ static IDXSTR elf_addmangled(Symbol *s)
  *
  */
 
-symbol * MsCoffObj_sym_cdata(tym_t ty,char *p,int len)
+Symbol * MsCoffObj_sym_cdata(tym_t ty,char *p,int len)
 {
     //printf("MsCoffObj_sym_cdata(ty = %x, p = %x, len = %d, Offset(CDATA) = %x)\n", ty, p, len, Offset(CDATA));
     alignOffset(CDATA, tysize(ty));
-    symbol *s = symboldata(Offset(CDATA), ty);
+    Symbol *s = symboldata(Offset(CDATA), ty);
     s->Sseg = CDATA;
     MsCoffObj_pubdef(CDATA, s, Offset(CDATA));
     MsCoffObj_bytes(CDATA, Offset(CDATA), len, p);
@@ -335,7 +342,7 @@ int MsCoffObj_data_readonly(char *p, int len)
  * Returns:
  *    segment index
  */
-int MsCoffObj_string_literal_segment(unsigned sz)
+int MsCoffObj_string_literal_segment(uint sz)
 {
     assert(0);
     return 0;
@@ -377,14 +384,14 @@ Obj *MsCoffObj_init(Outbuffer *objbuf, const char *filename, const char *csegnam
 
     if (symbuf)
     {
-        symbol **p = (symbol **)symbuf->buf;
-        const size_t n = symbuf->size() / sizeof(symbol *);
+        Symbol **p = cast(Symbol **)symbuf->buf;
+        const size_t n = symbuf->size() / sizeof(Symbol *);
         for (size_t i = 0; i < n; ++i)
             symbol_reset(p[i]);
         symbuf->setsize(0);
     }
     else
-        symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
+        symbuf = new Outbuffer(sizeof(Symbol *) * SYM_TAB_INIT);
 
     if (!syment_buf)
         syment_buf = new Outbuffer(sizeof(SymbolTable32) * SYM_TAB_INIT);
@@ -491,17 +498,17 @@ void MsCoffObj_initfile(const char *filename, const char *csegname, const char *
 
 int32_t *patchAddr(int seg, targ_size_t offset)
 {
-    return(int32_t *)(fobjbuf->buf + ScnhdrTab[SegData[seg]->SDshtidx].PointerToRawData + offset);
+    return cast(int32_t *)(fobjbuf->buf + ScnhdrTab[SegData[seg]->SDshtidx].PointerToRawData + offset);
 }
 
 int32_t *patchAddr64(int seg, targ_size_t offset)
 {
-    return(int32_t *)(fobjbuf->buf + ScnhdrTab[SegData[seg]->SDshtidx].PointerToRawData + offset);
+    return cast(int32_t *)(fobjbuf->buf + ScnhdrTab[SegData[seg]->SDshtidx].PointerToRawData + offset);
 }
 
 void patch(seg_data *pseg, targ_size_t offset, int seg, targ_size_t value)
 {
-    //printf("patch(offset = x%04x, seg = %d, value = x%llx)\n", (unsigned)offset, seg, value);
+    //printf("patch(offset = x%04x, seg = %d, value = x%llx)\n", cast(uint)offset, seg, value);
     if (I64)
     {
         int32_t *p = (int32_t *)(fobjbuf->buf + ScnhdrTab[pseg->SDshtidx].PointerToRawData  + offset);
@@ -538,7 +545,7 @@ void patch(seg_data *pseg, targ_size_t offset, int seg, targ_size_t value)
  * Store them in syment_buf.
  */
 
-static void syment_set_name(SymbolTable32 *sym, const char *name)
+private void syment_set_name(SymbolTable32 *sym, const char *name)
 {
     size_t len = strlen(name);
     if (len > 8)
@@ -565,9 +572,9 @@ void write_sym(SymbolTable32* sym, bool bigobj)
     {
         // the only difference between SymbolTable32 and SymbolTable
         // is that field SectionNumber is long instead of short
-        unsigned scoff = (char*)&sym->SectionNumber - (char*)sym;
+        uint scoff = (char*)&sym->SectionNumber - (char*)sym;
         syment_buf->write(sym, scoff + 2);
-        syment_buf->write((char*)sym + scoff + 4, sizeof(*sym) - scoff - 4);
+        syment_buf->write(cast(char*)sym + scoff + 4, sizeof(*sym) - scoff - 4);
     }
 }
 
@@ -577,7 +584,7 @@ void build_syment_table(bool bigobj)
      * Anything we put in there would have no relevance, so we'll not put out this symbol.
      */
 
-    unsigned symsize = bigobj ? sizeof(SymbolTable32) : sizeof(SymbolTable);
+    uint symsize = bigobj ? sizeof(SymbolTable32) : sizeof(SymbolTable);
     /* Now goes one symbol per section.
      */
     for (segidx_t seg = 1; seg <= seg_count; seg++)
@@ -606,15 +613,15 @@ void build_syment_table(bool bigobj)
             aux.x_section.length = pseg->SDoffset;
 
         if (pseg->SDrel)
-            aux.x_section.NumberOfRelocations = (unsigned short)(pseg->SDrel->size() / sizeof(struct Relocation));
+            aux.x_section.NumberOfRelocations = cast(ushort)(pseg->SDrel->size() / sizeof(struct Relocation));
 
         if (psechdr->Characteristics & IMAGE_SCN_LNK_COMDAT)
         {
-            aux.x_section.Selection = (unsigned char)IMAGE_COMDAT_SELECT_ANY;
+            aux.x_section.Selection = cast(ubyte)IMAGE_COMDAT_SELECT_ANY;
             if (pseg->SDassocseg)
-            {   aux.x_section.Selection = (unsigned char)IMAGE_COMDAT_SELECT_ASSOCIATIVE;
-                aux.x_section.NumberHighPart = (unsigned short)(pseg->SDassocseg >> 16);
-                aux.x_section.NumberLowPart = (unsigned short)(pseg->SDassocseg & 0x0000FFFF);
+            {   aux.x_section.Selection = cast(ubyte)IMAGE_COMDAT_SELECT_ASSOCIATIVE;
+                aux.x_section.NumberHighPart = cast(ushort)(pseg->SDassocseg >> 16);
+                aux.x_section.NumberLowPart = cast(ushort)(pseg->SDassocseg & 0x0000FFFF);
             }
         }
 
@@ -629,9 +636,9 @@ void build_syment_table(bool bigobj)
      */
 
     int n = seg_count + 1;
-    size_t dim = symbuf->size() / sizeof(symbol *);
+    size_t dim = symbuf->size() / sizeof(Symbol *);
     for (size_t i = 0; i < dim; i++)
-    {   symbol *s = ((symbol **)symbuf->buf)[i];
+    {   Symbol *s = ((Symbol **)symbuf->buf)[i];
         s->Sxtrnnum = syment_buf->size() / symsize;
         n++;
 
@@ -731,7 +738,7 @@ void MsCoffObj_term(const char *objfilename)
      *  Section data
      */
 
-    unsigned foffset;
+    uint foffset;
 
     // Write out the bytes for the header
 
@@ -740,7 +747,7 @@ void MsCoffObj_term(const char *objfilename)
 
     time_t f_timedat = 0;
     time(&f_timedat);
-    unsigned symtable_offset;
+    uint symtable_offset;
 
     if (bigobj)
     {
@@ -749,8 +756,8 @@ void MsCoffObj_term(const char *objfilename)
         header.Version = 2;
         header.Machine = I64 ? IMAGE_FILE_MACHINE_AMD64 : IMAGE_FILE_MACHINE_I386;
         header.NumberOfSections = scnhdr_cnt;
-        header.TimeDateStamp = (unsigned long)f_timedat;
-        unsigned char uuid[16] = { '\xc7', '\xa1', '\xba', '\xd1', '\xee', '\xba', '\xa9', '\x4b',
+        header.TimeDateStamp = cast(uint)f_timedat;
+        static ubyte uuid[16] = { '\xc7', '\xa1', '\xba', '\xd1', '\xee', '\xba', '\xa9', '\x4b',
                                     '\xaf', '\x20', '\xfa', '\xf6', '\x6a', '\xa4', '\xdc', '\xb8' };
         memcpy(header.UUID, uuid, 16);
         memset(header.unused, 0, sizeof(header.unused));
@@ -765,7 +772,7 @@ void MsCoffObj_term(const char *objfilename)
     {
         header_old.Machine = I64 ? IMAGE_FILE_MACHINE_AMD64 : IMAGE_FILE_MACHINE_I386;
         header_old.NumberOfSections = scnhdr_cnt;
-        header_old.TimeDateStamp = (unsigned long)f_timedat;
+        header_old.TimeDateStamp = cast(uint)f_timedat;
         header_old.SizeOfOptionalHeader = 0;
         header_old.Characteristics = 0;
         foffset = sizeof(header_old);   // start after header
@@ -776,7 +783,7 @@ void MsCoffObj_term(const char *objfilename)
         foffset += header_old.NumberOfSymbols * sizeof(SymbolTable);  // symbol table
     }
 
-    unsigned string_table_offset = foffset;
+    uint string_table_offset = foffset;
     foffset += string_table->size();            // string table
 
     // Compute file offsets of all the section data
@@ -793,7 +800,7 @@ void MsCoffObj_term(const char *objfilename)
         if (pseg->SDbuf && pseg->SDbuf->size())
         {
             psechdr->PointerToRawData = foffset;
-            //printf("seg = %2d SDshtidx = %2d psechdr = %p s_scnptr = x%x\n", seg, pseg->SDshtidx, psechdr, (unsigned)psechdr->s_scnptr);
+            //printf("seg = %2d SDshtidx = %2d psechdr = %p s_scnptr = x%x\n", seg, pseg->SDshtidx, psechdr, cast(uint)psechdr->s_scnptr);
             psechdr->SizeOfRawData = pseg->SDbuf->size();
             foffset += psechdr->SizeOfRawData;
         }
@@ -810,11 +817,11 @@ void MsCoffObj_term(const char *objfilename)
         {
             foffset = (foffset + 3) & ~3;
             assert(psechdr->PointerToRelocations == 0);
-            unsigned nreloc = pseg->SDrel->size() / sizeof(struct Relocation);
+            uint nreloc = pseg->SDrel->size() / sizeof(struct Relocation);
             if (nreloc)
             {
                 psechdr->PointerToRelocations = foffset;
-                //printf("seg = %d SDshtidx = %d psechdr = %p s_relptr = x%x\n", seg, pseg->SDshtidx, psechdr, (unsigned)psechdr->s_relptr);
+                //printf("seg = %d SDshtidx = %d psechdr = %p s_relptr = x%x\n", seg, pseg->SDshtidx, psechdr, cast(uint)psechdr->s_relptr);
                 psechdr->NumberOfRelocations = nreloc;
                 foffset += nreloc * sizeof(struct reloc);
             }
@@ -846,7 +853,7 @@ void MsCoffObj_term(const char *objfilename)
 
     // Write the string table
     assert(foffset == string_table_offset);
-    *(unsigned *)(string_table->buf) = string_table->size();
+    *cast(uint *)(string_table->buf) = string_table->size();
     fobjbuf->write(string_table);
     foffset += string_table->size();
 
@@ -858,7 +865,7 @@ void MsCoffObj_term(const char *objfilename)
         foffset = elf_align(pseg->SDalignment, foffset);
         if (pseg->SDbuf && pseg->SDbuf->size())
         {
-            //printf("seg = %2d SDshtidx = %2d psechdr = %p s_scnptr = x%x, foffset = x%x\n", seg, pseg->SDshtidx, psechdr, (unsigned)psechdr->s_scnptr, (unsigned)foffset);
+            //printf("seg = %2d SDshtidx = %2d psechdr = %p s_scnptr = x%x, foffset = x%x\n", seg, pseg->SDshtidx, psechdr, cast(uint)psechdr->s_scnptr, cast(uint)foffset);
             assert(pseg->SDbuf->size() == psechdr->SizeOfRawData);
             assert(foffset == psechdr->PointerToRawData);
             fobjbuf->write(pseg->SDbuf);
@@ -875,12 +882,12 @@ void MsCoffObj_term(const char *objfilename)
         if (pseg->SDrel)
         {   Relocation *r = (Relocation *)pseg->SDrel->buf;
             size_t sz = pseg->SDrel->size();
-            bool pdata = (strcmp((const char *)psechdr->Name, ".pdata") == 0);
-            Relocation *rend = (Relocation *)(pseg->SDrel->buf + sz);
+            bool pdata = (strcmp(cast(const char *)psechdr->Name, ".pdata") == 0);
+            Relocation *rend = cast(Relocation *)(pseg->SDrel->buf + sz);
             foffset = elf_align(4, foffset);
 #ifdef DEBUG
             if (sz && foffset != psechdr->PointerToRelocations)
-                printf("seg = %d SDshtidx = %d psechdr = %p s_relptr = x%x, foffset = x%x\n", seg, pseg->SDshtidx, psechdr, (unsigned)psechdr->PointerToRelocations, (unsigned)foffset);
+                printf("seg = %d SDshtidx = %d psechdr = %p s_relptr = x%x, foffset = x%x\n", seg, pseg->SDshtidx, psechdr, cast(uint)psechdr->PointerToRelocations, cast(uint)foffset);
 #endif
             assert(sz == 0 || foffset == psechdr->PointerToRelocations);
             for (; r != rend; r++)
@@ -889,9 +896,9 @@ void MsCoffObj_term(const char *objfilename)
                 rel.r_symndx = 0;
                 rel.r_type = 0;
 
-                symbol *s = r->targsym;
+                Symbol *s = r->targsym;
                 const char *rs = r->rtype == RELaddr ? "addr" : "rel";
-                //printf("%d:x%04lx : tseg %d tsym %s REL%s\n", seg, (int)r->offset, r->targseg, s ? s->Sident : "0", rs);
+                //printf("%d:x%04lx : tseg %d tsym %s REL%s\n", seg, cast(int)r->offset, r->targseg, s ? s->Sident : "0", rs);
                 if (s)
                 {
                     //printf("Relocation\n");
@@ -993,7 +1000,7 @@ void MsCoffObj_term(const char *objfilename)
                 }
                 else if (r->rtype == RELaddr && pseg->isCode())
                 {
-                    int32_t *p = NULL;
+                    int32_t *p = null;
                     p = patchAddr(seg, r->offset);
 
                     rel.r_vaddr = r->offset;
@@ -1205,7 +1212,7 @@ void MsCoffObj_setModuleCtorDtor(Symbol *sfunc, bool isCtor)
  *      length of function
  */
 
-void MsCoffObj_ehtables(Symbol *sfunc,unsigned size,Symbol *ehsym)
+void MsCoffObj_ehtables(Symbol *sfunc,uint size,Symbol *ehsym)
 {
     //printf("MsCoffObj_ehtables(func = %s, handler table = %s) \n",sfunc->Sident, ehsym->Sident);
 
@@ -1239,7 +1246,7 @@ void MsCoffObj_ehtables(Symbol *sfunc,unsigned size,Symbol *ehsym)
  * This gets called if this is the module with "extern (D) main()" in it.
  */
 
-static void emitSectionBrace(const char* segname, const char* symname, int attr, bool coffZeroBytes)
+private void emitSectionBrace(const char* segname, const char* symname, int attr, bool coffZeroBytes)
 {
     char name[16];
     strcat(strcpy(name, segname), "$A");
@@ -1251,22 +1258,22 @@ static void emitSectionBrace(const char* segname, const char* symname, int attr,
     /* Create symbol sym_beg that sits just before the .seg$B section
      */
     strcat(strcpy(name, symname), "_beg");
-    symbol *beg = symbol_name(name, SCglobal, tspvoid);
+    Symbol *beg = symbol_name(name, SCglobal, tspvoid);
     beg->Sseg = seg_bg;
     beg->Soffset = 0;
     symbuf->write(&beg, sizeof(beg));
     if (coffZeroBytes) // unnecessary, but required by current runtime
-        MsCoffObj_bytes(seg_bg, 0, I64 ? 8 : 4, NULL);
+        MsCoffObj_bytes(seg_bg, 0, I64 ? 8 : 4, null);
 
     /* Create symbol sym_end that sits just after the .seg$B section
      */
     strcat(strcpy(name, symname), "_end");
-    symbol *end = symbol_name(name, SCglobal, tspvoid);
+    Symbol *end = symbol_name(name, SCglobal, tspvoid);
     end->Sseg = seg_en;
     end->Soffset = 0;
     symbuf->write(&end, sizeof(end));
     if (coffZeroBytes) // unnecessary, but required by current runtime
-        MsCoffObj_bytes(seg_en, 0, I64 ? 8 : 4, NULL);
+        MsCoffObj_bytes(seg_en, 0, I64 ? 8 : 4, null);
 }
 
 void MsCoffObj_ehsections()
@@ -1308,19 +1315,19 @@ void MsCoffObj_ehsections()
 
     /* Create symbol _minfo_beg that sits just before the .tls$AAB section
      */
-    symbol *minfo_beg = symbol_name("_tlsstart", SCglobal, tspvoid);
+    Symbol *minfo_beg = symbol_name("_tlsstart", SCglobal, tspvoid);
     minfo_beg->Sseg = segbg;
     minfo_beg->Soffset = 0;
     symbuf->write(&minfo_beg, sizeof(minfo_beg));
-    MsCoffObj_bytes(segbg, 0, I64 ? 8 : 4, NULL);
+    MsCoffObj_bytes(segbg, 0, I64 ? 8 : 4, null);
 
     /* Create symbol _minfo_end that sits just after the .tls$AAB section
      */
-    symbol *minfo_end = symbol_name("_tlsend", SCglobal, tspvoid);
+    Symbol *minfo_end = symbol_name("_tlsend", SCglobal, tspvoid);
     minfo_end->Sseg = segen;
     minfo_end->Soffset = 0;
     symbuf->write(&minfo_end, sizeof(minfo_end));
-    MsCoffObj_bytes(segen, 0, I64 ? 8 : 4, NULL);
+    MsCoffObj_bytes(segen, 0, I64 ? 8 : 4, null);
   }
 #endif
 }
@@ -1341,7 +1348,7 @@ int MsCoffObj_comdatsize(Symbol *s, targ_size_t symsize)
 
 int MsCoffObj_comdat(Symbol *s)
 {
-    unsigned align;
+    uint align;
 
     //printf("MsCoffObj_comdat(Symbol* %s)\n",s->Sident);
     //symbol_print(s);
@@ -1435,7 +1442,7 @@ int MsCoffObj_jmpTableSegment(Symbol *s)
  *      segment index of found or newly created segment
  */
 
-segidx_t MsCoffObj_getsegment(const char *sectname, unsigned flags)
+segidx_t MsCoffObj_getsegment(const char *sectname, uint flags)
 {
     //printf("getsegment(%s)\n", sectname);
     assert(strlen(sectname) <= 8);      // so it won't go into string_table
@@ -1444,7 +1451,7 @@ segidx_t MsCoffObj_getsegment(const char *sectname, unsigned flags)
         for (segidx_t seg = 1; seg <= seg_count; seg++)
         {   seg_data *pseg = SegData[seg];
             if (!(ScnhdrTab[pseg->SDshtidx].Characteristics & IMAGE_SCN_LNK_COMDAT) &&
-                strncmp((const char *)ScnhdrTab[pseg->SDshtidx].Name, sectname, 8) == 0)
+                strncmp(cast(const char *)ScnhdrTab[pseg->SDshtidx].Name, sectname, 8) == 0)
             {
                 //printf("\t%s\n", sectname);
                 return seg;         // return existing segment
@@ -1469,7 +1476,7 @@ segidx_t MsCoffObj_getsegment2(IDXSEC shtidx)
     if (seg_count >= seg_max)
     {                           // need more room in segment table
         seg_max += 10;
-        SegData = (seg_data **)mem_realloc(SegData,seg_max * sizeof(seg_data *));
+        SegData = cast(seg_data **)mem_realloc(SegData,seg_max * sizeof(seg_data *));
         memset(&SegData[seg_count], 0, (seg_max - seg_count) * sizeof(seg_data *));
     }
     assert(seg_count < seg_max);
@@ -1521,7 +1528,7 @@ segidx_t MsCoffObj_getsegment2(IDXSEC shtidx)
  *      scnhdr number for added scnhdr
  */
 
-IDXSEC MsCoffObj_addScnhdr(const char *scnhdr_name, unsigned flags)
+IDXSEC MsCoffObj_addScnhdr(const char *scnhdr_name, uint flags)
 {
     IMAGE_SECTION_HEADER sec;
     memset(&sec, 0, sizeof(sec));
@@ -1529,19 +1536,19 @@ IDXSEC MsCoffObj_addScnhdr(const char *scnhdr_name, unsigned flags)
     if (len > 8)
     {   // Use /nnnn form
         IDXSTR idx = MsCoffObj_addstr(string_table, scnhdr_name);
-        sprintf((char *)sec.Name, "/%d", idx);
+        sprintf(cast(char *)sec.Name, "/%d", idx);
     }
     else
         memcpy(sec.Name, scnhdr_name, len);
     sec.Characteristics = flags;
-    ScnhdrBuf->write((void *)&sec, sizeof(sec));
+    ScnhdrBuf->write(cast(void *)&sec, sizeof(sec));
     return ++scnhdr_cnt;
 }
 
 /********************************
  * Define a new code segment.
  * Input:
- *      name            name of segment, if NULL then revert to default
+ *      name            name of segment, if null then revert to default
  *      suffix  0       use name as is
  *              1       append "_TEXT" to name
  * Output:
@@ -1599,7 +1606,7 @@ seg_data *MsCoffObj_tlsseg_data()
 {
     // specific for Mach-O
     assert(0);
-    return NULL;
+    return null;
 }
 
 /*************************************
@@ -1628,7 +1635,7 @@ segidx_t MsCoffObj_seg_xdata()
     return segidx_xdata;
 }
 
-segidx_t MsCoffObj_seg_pdata_comdat(symbol *sfunc)
+segidx_t MsCoffObj_seg_pdata_comdat(Symbol *sfunc)
 {
     segidx_t seg = MsCoffObj_getsegment(".pdata", IMAGE_SCN_CNT_INITIALIZED_DATA |
                                           IMAGE_SCN_ALIGN_4BYTES |
@@ -1638,7 +1645,7 @@ segidx_t MsCoffObj_seg_pdata_comdat(symbol *sfunc)
     return seg;
 }
 
-segidx_t MsCoffObj_seg_xdata_comdat(symbol *sfunc)
+segidx_t MsCoffObj_seg_xdata_comdat(Symbol *sfunc)
 {
     segidx_t seg = MsCoffObj_getsegment(".xdata", IMAGE_SCN_CNT_INITIALIZED_DATA |
                                           IMAGE_SCN_ALIGN_4BYTES |
@@ -1661,7 +1668,7 @@ segidx_t MsCoffObj_seg_debugS()
 }
 
 
-segidx_t MsCoffObj_seg_debugS_comdat(symbol *sfunc)
+segidx_t MsCoffObj_seg_debugS_comdat(Symbol *sfunc)
 {
     //printf("associated with seg %d\n", sfunc->Sseg);
     segidx_t seg = MsCoffObj_getsegment(".debug$S", IMAGE_SCN_CNT_INITIALIZED_DATA |
@@ -1703,17 +1710,17 @@ void MsCoffObj_alias(const char *n1,const char *n2)
     //printf("MsCoffObj_alias(%s,%s)\n",n1,n2);
     assert(0);
 #if NOT_DONE
-    unsigned len;
+    uint len;
     char *buffer;
 
-    buffer = (char *) alloca(strlen(n1) + strlen(n2) + 2 * ONS_OHD);
+    buffer = cast(char *) alloca(strlen(n1) + strlen(n2) + 2 * ONS_OHD);
     len = obj_namestring(buffer,n1);
     len += obj_namestring(buffer + len,n2);
     objrecord(ALIAS,buffer,len);
 #endif
 }
 
-char *unsstr(unsigned value)
+char *unsstr(uint value)
 {
     static char buffer [64];
 
@@ -1749,7 +1756,7 @@ char *obj_mangle2(Symbol *s,char *dest)
         case mTYman_pas:                // if upper case
         case mTYman_for:
             if (len >= DEST_LEN)
-                dest = (char *)mem_malloc(len + 1);
+                dest = cast(char *)mem_malloc(len + 1);
             memcpy(dest,name,len + 1);  // copy in name and ending 0
             strupr(dest);               // to upper case
             break;
@@ -1764,7 +1771,7 @@ char *obj_mangle2(Symbol *s,char *dest)
                 size_t destlen = prelen + len + 1 + pstrlen + 1;
 
                 if (destlen > DEST_LEN)
-                    dest = (char *)mem_malloc(destlen);
+                    dest = cast(char *)mem_malloc(destlen);
                 dest[0] = '_';
                 memcpy(dest + prelen,name,len);
                 dest[prelen + len] = '@';
@@ -1777,7 +1784,7 @@ char *obj_mangle2(Symbol *s,char *dest)
         case_mTYman_c64:
         case 0:
             if (len >= DEST_LEN)
-                dest = (char *)mem_malloc(len + 1);
+                dest = cast(char *)mem_malloc(len + 1);
             memcpy(dest,name,len+1);// copy in name and trailing 0
             break;
 
@@ -1808,7 +1815,7 @@ char *obj_mangle2(Symbol *s,char *dest)
  * Export a function name.
  */
 
-void MsCoffObj_export_symbol(Symbol *s,unsigned argsize)
+void MsCoffObj_export_symbol(Symbol *s,uint argsize)
 {
     char dest[DEST_LEN+1];
     char *destr = obj_mangle2(s, dest);
@@ -1907,7 +1914,7 @@ void MsCoffObj_func_term(Symbol *sfunc)
 void MsCoffObj_pubdef(segidx_t seg, Symbol *s, targ_size_t offset)
 {
 #if 0
-    printf("MsCoffObj_pubdef(%d:x%x s=%p, %s)\n", seg, (int)offset, s, s->Sident);
+    printf("MsCoffObj_pubdef(%d:x%x s=%p, %s)\n", seg, cast(int)offset, s, s->Sident);
     //symbol_print(s);
 #endif
     symbol_debug(s);
@@ -1951,7 +1958,7 @@ int MsCoffObj_external_def(const char *name)
 {
     //printf("MsCoffObj_external_def('%s')\n",name);
     assert(name);
-    symbol *s = symbol_name(name, SCextern, tspvoid);
+    Symbol *s = symbol_name(name, SCextern, tspvoid);
     symbuf->write(&s, sizeof(s));
     return 0;
 }
@@ -1995,7 +2002,7 @@ int MsCoffObj_common_block(Symbol *s,targ_size_t size,targ_size_t count)
     assert(!(s->ty() & mTYthread));
 
     s->Sfl = FLudata;
-    unsigned align = 16;
+    uint align = 16;
     s->Sseg = MsCoffObj_getsegment(".bss$B",  IMAGE_SCN_CNT_UNINITIALIZED_DATA |
                                         IMAGE_SCN_LNK_COMDAT |
                                         IMAGE_SCN_ALIGN_16BYTES |
@@ -2047,7 +2054,7 @@ void MsCoffObj_lidata(segidx_t seg,targ_size_t offset,targ_size_t count)
     }
     else
     {
-        MsCoffObj_bytes(seg, offset, count, NULL);
+        MsCoffObj_bytes(seg, offset, count, null);
     }
 }
 
@@ -2055,7 +2062,7 @@ void MsCoffObj_lidata(segidx_t seg,targ_size_t offset,targ_size_t count)
  * Append byte to segment.
  */
 
-void MsCoffObj_write_byte(seg_data *pseg, unsigned byte)
+void MsCoffObj_write_byte(seg_data *pseg, uint byte)
 {
     MsCoffObj_byte(pseg->SDseg, pseg->SDoffset, byte);
 }
@@ -2064,7 +2071,7 @@ void MsCoffObj_write_byte(seg_data *pseg, unsigned byte)
  * Output byte to object file.
  */
 
-void MsCoffObj_byte(segidx_t seg,targ_size_t offset,unsigned byte)
+void MsCoffObj_byte(segidx_t seg,targ_size_t offset,uint byte)
 {
     Outbuffer *buf = SegData[seg]->SDbuf;
     int save = buf->size();
@@ -2082,7 +2089,7 @@ void MsCoffObj_byte(segidx_t seg,targ_size_t offset,unsigned byte)
  * Append bytes to segment.
  */
 
-void MsCoffObj_write_bytes(seg_data *pseg, unsigned nbytes, void *p)
+void MsCoffObj_write_bytes(seg_data *pseg, uint nbytes, void *p)
 {
     MsCoffObj_bytes(pseg->SDseg, pseg->SDoffset, nbytes, p);
 }
@@ -2093,7 +2100,7 @@ void MsCoffObj_write_bytes(seg_data *pseg, unsigned nbytes, void *p)
  *      nbytes
  */
 
-unsigned MsCoffObj_bytes(segidx_t seg, targ_size_t offset, unsigned nbytes, void *p)
+uint MsCoffObj_bytes(segidx_t seg, targ_size_t offset, uint nbytes, void *p)
 {
 #if 0
     if (!(seg >= 0 && seg <= seg_count))
@@ -2103,11 +2110,11 @@ unsigned MsCoffObj_bytes(segidx_t seg, targ_size_t offset, unsigned nbytes, void
 #endif
     assert(seg >= 0 && seg <= seg_count);
     Outbuffer *buf = SegData[seg]->SDbuf;
-    if (buf == NULL)
+    if (buf == null)
     {
         //printf("MsCoffObj_bytes(seg=%d, offset=x%llx, nbytes=%d, p=x%x)\n", seg, offset, nbytes, p);
         //raise(SIGSEGV);
-        assert(buf != NULL);
+        assert(buf != null);
     }
     int save = buf->size();
     //dbg_printf("MsCoffObj_bytes(seg=%d, offset=x%lx, nbytes=%d, p=x%x)\n",
@@ -2133,8 +2140,8 @@ unsigned MsCoffObj_bytes(segidx_t seg, targ_size_t offset, unsigned nbytes, void
  * Add a relocation entry for seg/offset.
  */
 
-void MsCoffObj_addrel(segidx_t seg, targ_size_t offset, symbol *targsym,
-        unsigned targseg, int rtype, int val)
+void MsCoffObj_addrel(segidx_t seg, targ_size_t offset, Symbol *targsym,
+        uint targseg, int rtype, int val)
 {
     //printf("addrel()\n");
     if (!targsym)
@@ -2163,17 +2170,17 @@ void MsCoffObj_addrel(segidx_t seg, targ_size_t offset, symbol *targsym,
  */
 
 #if __DMC__
-static int __cdecl rel_fp(const void *e1, const void *e2)
-{   Relocation *r1 = (Relocation *)e1;
-    Relocation *r2 = (Relocation *)e2;
+private int __cdecl rel_fp(const void *e1, const void *e2)
+{   Relocation *r1 = cast(Relocation *)e1;
+    Relocation *r2 = cast(Relocation *)e2;
 
     return r1->offset - r2->offset;
 }
 #else
 extern "C" {
-static int rel_fp(const void *e1, const void *e2)
-{   Relocation *r1 = (Relocation *)e1;
-    Relocation *r2 = (Relocation *)e2;
+private int rel_fp(const void *e1, const void *e2)
+{   Relocation *r1 = cast(Relocation *)e1;
+    Relocation *r2 = cast(Relocation *)e2;
 
     return r1->offset - r2->offset;
 }
@@ -2199,7 +2206,7 @@ void mach_relsort(Outbuffer *buf)
  */
 
 void MsCoffObj_reftodatseg(segidx_t seg,targ_size_t offset,targ_size_t val,
-        unsigned targetdatum,int flags)
+        uint targetdatum,int flags)
 {
     Outbuffer *buf = SegData[seg]->SDbuf;
     int save = buf->size();
@@ -2213,7 +2220,7 @@ void MsCoffObj_reftodatseg(segidx_t seg,targ_size_t offset,targ_size_t val,
     {
         assert(0);
     }
-    MsCoffObj_addrel(seg, offset, NULL, targetdatum, RELaddr, 0);
+    MsCoffObj_addrel(seg, offset, null, targetdatum, RELaddr, 0);
     if (I64)
     {
         if (flags & CFoffset64)
@@ -2241,7 +2248,7 @@ void MsCoffObj_reftodatseg(segidx_t seg,targ_size_t offset,targ_size_t val,
 
 void MsCoffObj_reftocodeseg(segidx_t seg,targ_size_t offset,targ_size_t val)
 {
-    //printf("MsCoffObj_reftocodeseg(seg=%d, offset=x%lx, val=x%lx )\n",seg,(unsigned long)offset,(unsigned long)val);
+    //printf("MsCoffObj_reftocodeseg(seg=%d, offset=x%lx, val=x%lx )\n",seg,cast(uint)offset,cast(uint)val);
     assert(seg > 0);
     Outbuffer *buf = SegData[seg]->SDbuf;
     int save = buf->size();
@@ -2282,7 +2289,7 @@ int MsCoffObj_reftoident(segidx_t seg, targ_size_t offset, Symbol *s, targ_size_
         refsize += 2;
 #if 0
     printf("\nMsCoffObj_reftoident('%s' seg %d, offset x%llx, val x%llx, flags x%x)\n",
-        s->Sident,seg,(unsigned long long)offset,(unsigned long long)val,flags);
+        s->Sident,seg,cast(ulong)offset,cast(ulong)val,flags);
     //printf("refsize = %d\n", refsize);
     //dbg_printf("Sseg = %d, Sxtrnnum = %d\n",s->Sseg,s->Sxtrnnum);
     //symbol_print(s);
@@ -2327,13 +2334,13 @@ int MsCoffObj_reftoident(segidx_t seg, targ_size_t offset, Symbol *s, targ_size_
                 seg_data *pseg = SegData[jumpTableSeg];
              L1:
                 val -= offset + 4;
-                MsCoffObj_addrel(seg, offset, NULL, jumpTableSeg, RELrel, 0);
+                MsCoffObj_addrel(seg, offset, null, jumpTableSeg, RELrel, 0);
             }
             else if (SegData[seg]->isCode() &&
                     ((s->Sclass != SCextern && SegData[s->Sseg]->isCode()) || s->Sclass == SClocstat || s->Sclass == SCstatic))
             {
                 val += s->Soffset;
-                MsCoffObj_addrel(seg, offset, NULL, s->Sseg, RELaddr, 0);
+                MsCoffObj_addrel(seg, offset, null, s->Sseg, RELaddr, 0);
             }
             else if (SegData[seg]->isCode() && !tyfunc(s->ty()))
             {
@@ -2362,7 +2369,7 @@ int MsCoffObj_reftoident(segidx_t seg, targ_size_t offset, Symbol *s, targ_size_
 
              L2:
                 //printf("MsCoffObj_reftoident: seg = %d, offset = x%x, s = %s, val = x%x, pointersSeg = %d\n", seg, offset, s->Sident, val, pointersSeg);
-                MsCoffObj_addrel(seg, offset, NULL, pointersSeg, RELaddr, 0);
+                MsCoffObj_addrel(seg, offset, null, pointersSeg, RELaddr, 0);
             }
             else
             {   //val -= s->Soffset;
@@ -2421,12 +2428,12 @@ void MsCoffObj_fltused()
 }
 
 
-long elf_align(int size, long foffset)
+int elf_align(int size, int foffset)
 {
     if (size <= 1)
         return foffset;
-    long offset = (foffset + size - 1) & ~(size - 1);
-    //printf("offset = x%lx, foffset = x%lx, size = x%lx\n", offset, foffset, (long)size);
+    int offset = (foffset + size - 1) & ~(size - 1);
+    //printf("offset = x%lx, foffset = x%lx, size = x%lx\n", offset, foffset, (int)size);
     if (offset > foffset)
         fobjbuf->writezeros(offset - foffset);
     return offset;
@@ -2471,11 +2478,11 @@ void MsCoffObj_setcodeseg(int seg)
     cseg = seg;
 }
 
-symbol *MsCoffObj_tlv_bootstrap()
+Symbol *MsCoffObj_tlv_bootstrap()
 {
     // specific for Mach-O
     assert(0);
-    return NULL;
+    return null;
 }
 
 /*****************************************
@@ -2484,7 +2491,7 @@ symbol *MsCoffObj_tlv_bootstrap()
  *      s    = symbol that contains the pointer
  *      soff = offset of the pointer inside the Symbol's memory
  */
-void MsCoffObj_write_pointerRef(Symbol* s, unsigned soff)
+void MsCoffObj_write_pointerRef(Symbol* s, uint soff)
 {
     if (!ptrref_buf)
         ptrref_buf = new Outbuffer;
@@ -2501,7 +2508,7 @@ void MsCoffObj_write_pointerRef(Symbol* s, unsigned soff)
  *      s    = symbol that contains the pointer
  *      soff = offset of the pointer inside the Symbol's memory
  */
-static void objflush_pointerRef(Symbol* s, unsigned soff)
+private void objflush_pointerRef(Symbol* s, uint soff)
 {
     bool isTls = (s->Sfl == FLtlsdata);
     const char* segname = isTls ? ".tp$B" : ".dp$B";
@@ -2520,18 +2527,18 @@ static void objflush_pointerRef(Symbol* s, unsigned soff)
  * flush all pointer references saved by write_pointerRef
  * to the object file
  */
-STATIC void objflush_pointerRefs()
+private void objflush_pointerRefs()
 {
     if (!ptrref_buf)
         return;
 
-    unsigned char *p = ptrref_buf->buf;
-    unsigned char *end = ptrref_buf->p;
+    ubyte *p = ptrref_buf->buf;
+    ubyte *end = ptrref_buf->p;
     while (p < end)
     {
-        Symbol* s = *(Symbol**)p;
+        Symbol* s = *cast(Symbol**)p;
         p += sizeof(s);
-        unsigned soff = *(unsigned*)p;
+        uint soff = *cast(uint*)p;
         p += sizeof(soff);
         objflush_pointerRef(s, soff);
     }
