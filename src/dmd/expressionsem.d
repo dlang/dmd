@@ -2189,12 +2189,16 @@ private Module loadStdMath()
         auto a = new Identifiers();
         a.push(Id.std);
         auto s = new Import(Loc.initial, a, Id.math, null, false);
+        // Module.load will call fatal() if there's no std.math available.
+        // Gag the error here, pushing the error handling to the caller.
+        uint errors = global.startGagging();
         s.load(null);
         if (s.mod)
         {
             s.mod.importAll(null);
             s.mod.dsymbolSemantic(null);
         }
+        global.endGagging(errors);
         impStdMath = s;
     }
     return impStdMath.mod;
@@ -9464,17 +9468,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Module mmath = loadStdMath();
         if (!mmath)
         {
-            //error("requires std.math for ^^ operators");
-            //fatal();
-            // Leave handling of PowExp to the backend, or throw
-            // an error gracefully if no backend support exists.
-            if (Expression ex = typeCombine(exp, sc))
-            {
-                result = ex;
-                return;
-            }
-            result = exp;
-            return;
+            e.error("`%s` requires `std.math` for `^^` operators", e.toChars());
+            return setError();
         }
         e = new ScopeExp(exp.loc, mmath);
 
