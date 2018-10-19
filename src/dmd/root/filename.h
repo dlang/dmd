@@ -19,7 +19,6 @@ struct FileName
 private:
     DArray<const char> str;
 public:
-    FileName(const char *str);
     static bool equals(const char *name1, const char *name2);
     static bool absolute(const char *name);
     static const char *toAbsolute(const char *name, const char *base = NULL);
