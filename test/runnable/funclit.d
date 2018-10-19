@@ -338,7 +338,7 @@ void test11()
 }
 
 /***************************************************/
-// 3235
+// https://issues.dlang.org/show_bug.cgi?id=3235
 
 void test3235()
 {
@@ -349,7 +349,7 @@ void test3235()
 }
 
 /***************************************************/
-// 6714
+// https://issues.dlang.org/show_bug.cgi?id=6714
 
 void foo6714x(int function (int, int) a){}
 void bar6714x(int delegate (int, int) a){}
@@ -368,7 +368,7 @@ void test6714()
 }
 
 /***************************************************/
-// 7193
+// https://issues.dlang.org/show_bug.cgi?id=7193
 
 void test7193()
 {
@@ -378,7 +378,7 @@ void test7193()
 }
 
 /***************************************************/
-// 7207 : on CastExp
+// https://issues.dlang.org/show_bug.cgi?id=7207 : on CastExp
 
 void test7202()
 {
@@ -387,7 +387,7 @@ void test7202()
 }
 
 /***************************************************/
-// 7288
+// https://issues.dlang.org/show_bug.cgi?id=7288
 
 void test7288()
 {
@@ -404,7 +404,7 @@ void test7288()
 }
 
 /***************************************************/
-// 7499
+// https://issues.dlang.org/show_bug.cgi?id=7499
 
 void test7499()
 {
@@ -415,7 +415,7 @@ void test7499()
 }
 
 /***************************************************/
-// 7500
+// https://issues.dlang.org/show_bug.cgi?id=7500
 
 void test7500()
 {
@@ -424,7 +424,7 @@ void test7500()
 }
 
 /***************************************************/
-// 7525
+// https://issues.dlang.org/show_bug.cgi?id=7525
 
 void test7525()
 {
@@ -446,7 +446,7 @@ void test7525()
 }
 
 /***************************************************/
-// 7582
+// https://issues.dlang.org/show_bug.cgi?id=7582
 
 void test7582()
 {
@@ -458,7 +458,7 @@ void test7582()
 }
 
 /***************************************************/
-// 7649
+// https://issues.dlang.org/show_bug.cgi?id=7649
 
 void test7649()
 {
@@ -470,7 +470,7 @@ void test7649()
 }
 
 /***************************************************/
-// 7650
+// https://issues.dlang.org/show_bug.cgi?id=7650
 
 void test7650()
 {
@@ -497,7 +497,7 @@ void test7650()
 }
 
 /***************************************************/
-// 7705
+// https://issues.dlang.org/show_bug.cgi?id=7705
 
 void test7705()
 {
@@ -513,7 +513,7 @@ void test7705()
 }
 
 /***************************************************/
-// 7713
+// https://issues.dlang.org/show_bug.cgi?id=7713
 
 void foo7713(T)(T delegate(in Object) dlg)
 {}
@@ -523,7 +523,7 @@ void test7713()
 }
 
 /***************************************************/
-// 7743
+// https://issues.dlang.org/show_bug.cgi?id=7743
 
 auto foo7743a()
 {
@@ -548,7 +548,7 @@ void test7743()
 }
 
 /***************************************************/
-// 7761
+// https://issues.dlang.org/show_bug.cgi?id=7761
 
 enum dg7761 = (int a) pure => 2 * a;
 
@@ -559,7 +559,7 @@ void test7761()
 }
 
 /***************************************************/
-// 7941
+// https://issues.dlang.org/show_bug.cgi?id=7941
 
 void test7941()
 {
@@ -567,7 +567,7 @@ void test7941()
 }
 
 /***************************************************/
-// 8005
+// https://issues.dlang.org/show_bug.cgi?id=8005
 
 void test8005()
 {
@@ -599,7 +599,7 @@ void test8198()
 }
 
 /***************************************************/
-// 8226
+// https://issues.dlang.org/show_bug.cgi?id=8226
 
 immutable f8226 = (int x) => x * 2;
 
@@ -609,7 +609,7 @@ void test8226()
 }
 
 /***************************************************/
-// 8241
+// https://issues.dlang.org/show_bug.cgi?id=8241
 
 auto exec8241a(alias a = function(x) => x, T...)(T as)
 {
@@ -628,7 +628,7 @@ void test8241()
 }
 
 /***************************************************/
-// 8242
+// https://issues.dlang.org/show_bug.cgi?id=8242
 
 template exec8242(alias a, T...)
 {
@@ -648,7 +648,7 @@ void test8242()
 }
 
 /***************************************************/
-// 8315
+// https://issues.dlang.org/show_bug.cgi?id=8315
 
 void test8315()
 {
@@ -661,7 +661,7 @@ if (is(typeof(pred(1)) == bool))
 {}
 
 /***************************************************/
-// 8397
+// https://issues.dlang.org/show_bug.cgi?id=8397
 
 void test8397()
 {
@@ -672,7 +672,7 @@ void test8397()
 }
 
 /***************************************************/
-// 8496
+// https://issues.dlang.org/show_bug.cgi?id=8496
 
 void test8496()
 {
@@ -684,7 +684,7 @@ void test8496()
 }
 
 /***************************************************/
-// 8575
+// https://issues.dlang.org/show_bug.cgi?id=8575
 
 template tfunc8575(func...)
 {
@@ -704,7 +704,7 @@ void test8575()
 }
 
 /***************************************************/
-// 9153
+// https://issues.dlang.org/show_bug.cgi?id=9153
 
 void writeln9153(string s){}
 
@@ -721,7 +721,7 @@ void test9153()
 }
 
 /***************************************************/
-// 9393
+// https://issues.dlang.org/show_bug.cgi?id=9393
 
 template ifThrown9393a(E)
 {
@@ -745,7 +745,7 @@ void test9393()
 }
 
 /***************************************************/
-// 9415
+// https://issues.dlang.org/show_bug.cgi?id=9415
 
 void test9415()
 {
@@ -755,7 +755,7 @@ void test9415()
 }
 
 /***************************************************/
-// 9628
+// https://issues.dlang.org/show_bug.cgi?id=9628
 
 template TypeTuple9628(TL...) { alias TypeTuple9628 = TL; }
 void map9628(alias func)() { func(0); }
@@ -789,7 +789,7 @@ void test9628()
 }
 
 /***************************************************/
-// 9928
+// https://issues.dlang.org/show_bug.cgi?id=9928
 
 void test9928()
 {
@@ -797,7 +797,7 @@ void test9928()
 }
 
 /***************************************************/
-// 10133
+// https://issues.dlang.org/show_bug.cgi?id=10133
 
 ptrdiff_t countUntil10133(alias pred, R)(R haystack)
 {
@@ -839,7 +839,7 @@ void test10133()
 }
 
 /***************************************************/
-// 10219
+// https://issues.dlang.org/show_bug.cgi?id=10219
 
 void test10219()
 {
@@ -888,7 +888,7 @@ void test10219()
 }
 
 /***************************************************/
-// 10288
+// https://issues.dlang.org/show_bug.cgi?id=10288
 
 T foo10288(T)(T x)
 {
@@ -918,7 +918,7 @@ void test10288() @safe pure nothrow
 }
 
 /***************************************************/
-// 10666
+// https://issues.dlang.org/show_bug.cgi?id=10666
 
 struct S10666
 {
@@ -938,7 +938,7 @@ void foo10666(S10666 s1)
 }
 
 /***************************************************/
-// 11081
+// https://issues.dlang.org/show_bug.cgi?id=11081
 
 T ifThrown11081(E : Throwable, T)(T delegate(E) errorHandler)
 {
@@ -956,7 +956,7 @@ void test11081()
 }
 
 /***************************************************/
-// 11220
+// https://issues.dlang.org/show_bug.cgi?id=11220
 
 int parsePrimaryExp11220(int x)
 {
@@ -970,7 +970,7 @@ typeof(handler(1)) parseAmbig11220(alias handler)()
 }
 
 /***************************************************/
-// 11230
+// https://issues.dlang.org/show_bug.cgi?id=11230
 
 template map11230(fun...)
 {
@@ -1006,7 +1006,7 @@ C11230 visit11230()
 }
 
 /***************************************************/
-// 10336
+// https://issues.dlang.org/show_bug.cgi?id=10336
 
 struct S10336
 {
@@ -1025,7 +1025,7 @@ void test10336()
 }
 
 /***************************************************/
-// 10928
+// https://issues.dlang.org/show_bug.cgi?id=10928
 
 struct D10928
 {
@@ -1049,7 +1049,7 @@ void test10928()
 }
 
 /***************************************************/
-// 11661
+// https://issues.dlang.org/show_bug.cgi?id=11661
 
 void test11661()
 {
@@ -1058,7 +1058,7 @@ void test11661()
 }
 
 /***************************************************/
-// 11774
+// https://issues.dlang.org/show_bug.cgi?id=11774
 
 void f11774(T, R)(R delegate(T[]) dg)
 {
@@ -1075,7 +1075,7 @@ void test11774()
 }
 
 /***************************************************/
-// 12421
+// https://issues.dlang.org/show_bug.cgi?id=12421
 
 void test12421()
 {
@@ -1129,7 +1129,7 @@ void test12421()
 }
 
 /***************************************************/
-// 12508
+// https://issues.dlang.org/show_bug.cgi?id=12508
 
 interface A12508(T)
 {
@@ -1166,7 +1166,7 @@ void test12508()
 }
 
 /***************************************************/
-// 13879
+// https://issues.dlang.org/show_bug.cgi?id=13879
 
 void test13879()
 {
@@ -1178,7 +1178,7 @@ void test13879()
 }
 
 /***************************************************/
-// 14745
+// https://issues.dlang.org/show_bug.cgi?id=14745
 
 void test14745()
 {
@@ -1200,7 +1200,7 @@ void test14745()
 }
 
 /***************************************************/
-// 15794
+// https://issues.dlang.org/show_bug.cgi?id=15794
 
 struct Foo15794
 {

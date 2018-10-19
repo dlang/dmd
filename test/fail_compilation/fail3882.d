@@ -2,7 +2,7 @@
 // PERMUTE_ARGS: -debug
 
 /******************************************/
-// 3882
+// https://issues.dlang.org/show_bug.cgi?id=3882
 
 /*
 TEST_OUTPUT:

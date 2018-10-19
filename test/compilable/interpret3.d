@@ -7,9 +7,9 @@ template compiles(int T)
 
 alias TypeTuple(T...) = T;
 
-/**************************************************
-    3901 Arbitrary struct assignment, ref return
-**************************************************/
+/**************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=3901
+// Arbitrary struct assignment, ref return
 
 struct ArrayRet
 {
@@ -309,9 +309,9 @@ struct Matrix5248
 
 static assert(Matrix5248().Compile());
 
-/**************************************************
-    4837   >>>=
-**************************************************/
+/**************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=4837
+// >>>=
 
 bool bug4837()
 {
@@ -326,9 +326,9 @@ bool bug4837()
 
 static assert(bug4837());
 
-/**************************************************
-  10252 shift out of range
-**************************************************/
+/**************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=10252
+// shift out of range
 
 int lshr10252(int shift)
 {
@@ -355,9 +355,9 @@ static assert(!is(typeof(compiles!(rshr10252(80)))));
 static assert( is(typeof(compiles!(ushr10252( 2)))));
 static assert(!is(typeof(compiles!(ushr10252(60)))));
 
-/**************************************************
-  1982 CTFE null problems
-**************************************************/
+/**************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=1982
+// CTFE null problems
 
 enum a1982 = [1, 2, 3];
 static assert(a1982 !is null);
@@ -368,16 +368,16 @@ static assert(!foo1982().length);
 
 static assert(null is null);
 
-/**************************************************
-  7988 CTFE return values should be allowed in compile-time expressions
-**************************************************/
+/**************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=7988
+// CTFE return values should be allowed in compile-time expressions
 
 class X7988 { int y; this() { y = 2; } }
 static assert((new X7988).y == 2);
 
-/**************************************************
-  8253 ICE: calling of member function of non-CTFE class variable
-**************************************************/
+/**************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=8253
+// ICE: calling of member function of non-CTFE class variable
 
 class Bug8253
 {
@@ -389,9 +389,9 @@ class Bug8253
 Bug8253 m8253;
 static assert(!is(typeof(compiles!(m8253.j()))));
 
-/**************************************************
-  8285 Issue with slice returned from CTFE function
-**************************************************/
+/**************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=8285
+// Issue with slice returned from CTFE function
 
 string foo8285()
 {
@@ -469,8 +469,8 @@ int thisbug2()
 static assert(thisbug2());
 
 /**************************************************
-   6972 ICE with cast()cast()assign
-**************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=6972
+// ICE with cast()cast()assign
 
 int bug6972()
 {
@@ -634,7 +634,7 @@ size_t bug5524(int x, int[] more...)
 static assert(bug5524(3) == 10);
 
 
-// 5722
+// https://issues.dlang.org/show_bug.cgi?id=5722
 
 static assert(("" ~ "\&copy;"[0]).length == 1);
 const char[] null5722 = null;
@@ -964,7 +964,7 @@ auto bug5852(const(string) s)
 }
 static assert(bug5852("abc") == 3);
 
-// 7217
+// https://issues.dlang.org/show_bug.cgi?id=7217
 
 struct S7217 { int[] arr; }
 
@@ -991,7 +991,7 @@ static assert(
     return true;
 }());
 
-// 7185 char[].length = n
+// https://issues.dlang.org/show_bug.cgi?id=7185 char[].length = n
 
 bool bug7185()
 {
@@ -5569,7 +5569,7 @@ int test9982()
 
 static assert(test9982());
 
-// 9982, rejects-valid case
+// https://issues.dlang.org/show_bug.cgi?id=9982, rejects-valid case
 
 struct SS9982
 {
@@ -6481,7 +6481,7 @@ label:
 static assert(bug8865());
 
 /******************************************************/
-// 15450 labeled foreach + continue/break
+// https://issues.dlang.org/show_bug.cgi?id=15450 labeled foreach + continue/break
 
 static assert({
   L1:

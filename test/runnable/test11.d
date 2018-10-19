@@ -1228,7 +1228,7 @@ void test65()
 }
 
 /**************************************/
-// 8809
+// https://issues.dlang.org/show_bug.cgi?id=8809
 
 void test8809()
 {
@@ -1297,7 +1297,7 @@ void test8809()
 }
 
 /**************************************/
-// 9734
+// https://issues.dlang.org/show_bug.cgi?id=9734
 
 void test9734()
 {

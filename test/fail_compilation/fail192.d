@@ -6,7 +6,7 @@ fail_compilation/fail192.d(26): Error: template instance `fail192.X!(DummyClass)
 ---
 */
 
-// 1336 Internal error when trying to construct a class declared within a unittest from a templated class.
+// https://issues.dlang.org/show_bug.cgi?id=1336 Internal error when trying to construct a class declared within a unittest from a templated class.
 
 class X(T)
 {

@@ -32,7 +32,7 @@ void test1()
 }
 
 /***************************************/
-// 2411
+// https://issues.dlang.org/show_bug.cgi?id=2411
 
 struct S2411
 {
@@ -57,7 +57,7 @@ void test2411()
 }
 
 /***************************************/
-// 2442
+// https://issues.dlang.org/show_bug.cgi?id=2442
 
 template canForeach(T, E)
 {
@@ -137,7 +137,7 @@ void test2442()
 }
 
 /***************************************/
-// 2443
+// https://issues.dlang.org/show_bug.cgi?id=2443
 
 struct S2443
 {
@@ -164,7 +164,7 @@ void test2443()
 }
 
 /***************************************/
-// 3187
+// https://issues.dlang.org/show_bug.cgi?id=3187
 
 class Collection
 {
@@ -189,7 +189,7 @@ void test3187()
 }
 
 /***************************************/
-// 4090
+// https://issues.dlang.org/show_bug.cgi?id=4090
 
 void test4090a()
 {
@@ -233,7 +233,7 @@ void test4090b()
 }
 
 /***************************************/
-// 5605
+// https://issues.dlang.org/show_bug.cgi?id=5605
 
 struct MyRange
 {
@@ -271,7 +271,7 @@ void test5605()
 }
 
 /***************************************/
-// 7004
+// https://issues.dlang.org/show_bug.cgi?id=7004
 
 void func7004(A...)(A args)
 {
@@ -285,7 +285,7 @@ void test7004()
 }
 
 /***************************************/
-// 7406
+// https://issues.dlang.org/show_bug.cgi?id=7406
 
 template TypeTuple7406(T...)
 {
@@ -316,7 +316,7 @@ void test7406()
 }
 
 /***************************************/
-// 6659
+// https://issues.dlang.org/show_bug.cgi?id=6659
 
 void test6659()
 {
@@ -406,7 +406,7 @@ void test6659c()
 
 /***************************************/
 
-// 10221
+// https://issues.dlang.org/show_bug.cgi?id=10221
 
 void test10221()
 {
@@ -435,7 +435,7 @@ void test10221()
 }
 
 /***************************************/
-// 7814
+// https://issues.dlang.org/show_bug.cgi?id=7814
 
 struct File7814
 {
@@ -464,7 +464,7 @@ void test7814()
 }
 
 /***************************************/
-// 10049
+// https://issues.dlang.org/show_bug.cgi?id=10049
 
 struct ByLine10049
 {
@@ -504,7 +504,7 @@ void test11955()
 }
 
 /******************************************/
-// 6652
+// https://issues.dlang.org/show_bug.cgi?id=6652
 
 void test6652()
 {
@@ -605,7 +605,7 @@ void test6652()
 }
 
 /***************************************/
-// 8595
+// https://issues.dlang.org/show_bug.cgi?id=8595
 
 struct OpApply8595
 {
@@ -625,7 +625,7 @@ string test8595()
 }
 
 /***************************************/
-// 9068
+// https://issues.dlang.org/show_bug.cgi?id=9068
 
 struct Foo9068
 {
@@ -712,7 +712,7 @@ loop_with_dtors:
 }
 
 /***************************************/
-// 11885
+// https://issues.dlang.org/show_bug.cgi?id=11885
 
 struct Foo11885
 {
@@ -799,7 +799,7 @@ loop_with_dtors:
 }
 
 /***************************************/
-// 10475
+// https://issues.dlang.org/show_bug.cgi?id=10475
 
 void test10475a()
 {
@@ -877,7 +877,7 @@ void test10475b()
 }
 
 /***************************************/
-// 11291
+// https://issues.dlang.org/show_bug.cgi?id=11291
 
 void test11291()
 {
@@ -906,7 +906,7 @@ void test11291()
 }
 
 /***************************************/
-// 12103
+// https://issues.dlang.org/show_bug.cgi?id=12103
 
 alias TypeTuple12103(TL...) = TL;
 
@@ -934,7 +934,7 @@ void test12103()
 }
 
 /***************************************/
-// 12739
+// https://issues.dlang.org/show_bug.cgi?id=12739
 
 struct S12739
 {
@@ -952,7 +952,7 @@ void test12739() nothrow
 }
 
 /***************************************/
-// 12932
+// https://issues.dlang.org/show_bug.cgi?id=12932
 
 void test12932() @nogc
 {
@@ -965,7 +965,7 @@ void test12932() @nogc
 }
 
 /***************************************/
-// 13756
+// https://issues.dlang.org/show_bug.cgi?id=13756
 
 void test13756()
 {
@@ -1035,7 +1035,7 @@ void test13756()
 }
 
 /***************************************/
-// 14653
+// https://issues.dlang.org/show_bug.cgi?id=14653
 
 static string result14653;
 
@@ -1087,7 +1087,7 @@ void test14653()
 }
 
 /***************************************/
-// 15777
+// https://issues.dlang.org/show_bug.cgi?id=15777
 
 template funA15777()
 {

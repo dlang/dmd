@@ -45,7 +45,7 @@ void test2()
 }
 
 /**********************************************/
-// 5899
+// https://issues.dlang.org/show_bug.cgi?id=5899
 
 auto f5899(bool b)
 {
@@ -78,7 +78,7 @@ static assert(is(typeof(h5899) R == return) && is(R == int[]));
 pragma(msg, typeof(h5899));
 
 /**********************************************/
-// 7278
+// https://issues.dlang.org/show_bug.cgi?id=7278
 
 struct Foo7278(string s)
 {
@@ -96,7 +96,7 @@ void test7278()
 }
 
 /**********************************************/
-// 8221
+// https://issues.dlang.org/show_bug.cgi?id=8221
 
 class A8221
 {
@@ -117,7 +117,7 @@ void test8221()
 }
 
 /***************************************************/
-// 8589
+// https://issues.dlang.org/show_bug.cgi?id=8589
 
 void test8589()
 {
@@ -144,7 +144,7 @@ void test8589()
 }
 
 /**********************************************/
-// 9385
+// https://issues.dlang.org/show_bug.cgi?id=9385
 
 void test9385()
 {
@@ -154,7 +154,7 @@ void test9385()
 }
 
 /**********************************************/
-// 12203
+// https://issues.dlang.org/show_bug.cgi?id=12203
 
 void test12203()
 {

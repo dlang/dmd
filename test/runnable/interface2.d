@@ -923,7 +923,8 @@ void test27()
 }
 
 /*******************************************************/
-// 1747 & 2013
+// https://issues.dlang.org/show_bug.cgi?id=1747
+// https://issues.dlang.org/show_bug.cgi?id=2013
 
 void test1747()
 {
@@ -1009,14 +1010,14 @@ bool foo4088(Test4088 x, Test4088 y)
 }
 
 /*******************************************************/
-// 7950
+// https://issues.dlang.org/show_bug.cgi?id=7950
 
 template TypeTuple7950(T...){alias T TypeTuple7950;}
 interface I7950a {} // ok
 interface I7950b : I7950a, TypeTuple7950!() {} // fail
 
 /*******************************************************/
-// 10007
+// https://issues.dlang.org/show_bug.cgi?id=10007
 
 struct A10007 {}
 
@@ -1032,7 +1033,7 @@ class Foo10007 : IFoo10007
 }
 
 /*******************************************************/
-// 10744
+// https://issues.dlang.org/show_bug.cgi?id=10744
 
 interface A10744
 {
@@ -1065,7 +1066,7 @@ interface Baz10744 { }
 interface Qux10744 : Baz10744 { }
 
 /*******************************************************/
-// 11034
+// https://issues.dlang.org/show_bug.cgi?id=11034
 
 class A11034(T)
 {

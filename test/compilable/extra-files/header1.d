@@ -412,7 +412,7 @@ struct T12
 }
 
 
-// 6591
+// https://issues.dlang.org/show_bug.cgi?id=6591
 import std.stdio : writeln, F = File;
 
 void foo6591()()
@@ -421,7 +421,7 @@ void foo6591()()
 }
 
 
-// 8081
+// https://issues.dlang.org/show_bug.cgi?id=8081
 version(unittest) {
     pure nothrow unittest {}
     pure nothrow unittest {}
@@ -432,7 +432,7 @@ version(unittest) {
 }
 
 
-// 10334
+// https://issues.dlang.org/show_bug.cgi?id=10334
 
 template Foo10334(T) if (Bar10334!()) {}                ///
 template Foo10334(T) if (Bar10334!100) {}               ///
@@ -461,7 +461,7 @@ mixin Test10334!int a;          ///
 mixin Test10334!(int,long) b;   ///
 mixin Test10334!"str" c;        ///
 
-// 12266
+// https://issues.dlang.org/show_bug.cgi?id=12266
 auto clamp12266a(T1, T2, T3)(T1 x, T2 min_val, T3 max_val)
 {
     return 0;
@@ -475,10 +475,10 @@ pure clamp12266b(T1, T2, T3)(T1 x, T2 min_val, T3 max_val)
     return 0;
 }
 
-// 13832
+// https://issues.dlang.org/show_bug.cgi?id=13832
 alias Dg13832 = ref int delegate();
 
-// 16590
+// https://issues.dlang.org/show_bug.cgi?id=16590
 class TestClass {
     int aa;
     int b1, b2;

@@ -137,7 +137,7 @@ struct uD
 }
 
 @safe
-void safeunions()   // improved for issue 11510
+void safeunions()   // improved for https://issues.dlang.org/show_bug.cgi?id=11510
 {
     SafeUnion1 su1;
     SafeUnion2 su2;
@@ -412,7 +412,7 @@ void classcast()
 }
 
 /***************************************************/
-// 6278
+// https://issues.dlang.org/show_bug.cgi?id=6278
 
 @safe
 {
@@ -431,7 +431,7 @@ class B6278 : A6278 {
 }
 
 /***************************************************/
-// 7803
+// https://issues.dlang.org/show_bug.cgi?id=7803
 
 @safe int f7803() {
     scope(success) {/* ... */}
@@ -444,13 +444,13 @@ nothrow int g7803() {
 }
 
 /***************************************************/
-// 6405
+// https://issues.dlang.org/show_bug.cgi?id=6405
 
 void foo6405(int[][] args...) @trusted { }
 void test6405() @safe { foo6405([1,2,3], [1,2,3]); }
 
 /***************************************************/
-// 12502
+// https://issues.dlang.org/show_bug.cgi?id=12502
 
 void test12502() @safe
 {

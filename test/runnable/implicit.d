@@ -182,7 +182,7 @@ void testDIP29_4()
 }
 
 /***********************************/
-// 14155
+// https://issues.dlang.org/show_bug.cgi?id=14155
 
 immutable int g14155;
 
@@ -232,7 +232,7 @@ void test14155_for_testDIP29_4()
 }
 
 /***********************************/
-// 14141
+// https://issues.dlang.org/show_bug.cgi?id=14141
 
 struct S14141
 {
@@ -396,7 +396,7 @@ void testDIP29_6()
     }));
 }
 
-// 14155
+// https://issues.dlang.org/show_bug.cgi?id=14155
 
 void test14155_for_testDIP29_6()
 {
@@ -417,7 +417,7 @@ void test14155_for_testDIP29_6()
 }
 
 /***********************************/
-// 13640
+// https://issues.dlang.org/show_bug.cgi?id=13640
 
 struct S13640
 {
@@ -437,7 +437,7 @@ struct S13640
 }
 
 /***********************************/
-// 15778
+// https://issues.dlang.org/show_bug.cgi?id=15778
 
 void test15778()
 {

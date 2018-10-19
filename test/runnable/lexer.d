@@ -53,7 +53,7 @@ void test7()
 }
 
 /*********************************************************/
-// 4633
+// https://issues.dlang.org/show_bug.cgi?id=4633
 
 template Types(alias v)
 {

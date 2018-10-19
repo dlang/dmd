@@ -84,7 +84,7 @@ void test12179()
     foo(-a[]);
     foo(~a[]);
 
-    // from issue 11992
+    // from https://issues.dlang.org/show_bug.cgi?id=11992
     int[]   arr1;
     int[][] arr2;
     arr1 ~= [1] + a[];         // NG
