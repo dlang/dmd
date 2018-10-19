@@ -100,7 +100,7 @@ void win64_pdata(Symbol *sf)
     dtb.xoff(sunwind,0,TYint);
     spdata.Sdt = dtb.finish();
 
-    spdata.Sseg = symbol_iscomdat3(sf) ? MsCoffObj.seg_pdata_comdat(sf) : MsCoffObj.seg_pdata();
+    spdata.Sseg = symbol_iscomdat3(sf) ? MsCoffObj_seg_pdata_comdat(sf) : MsCoffObj_seg_pdata();
     spdata.Salignment = 4;
     outdata(spdata);
 
@@ -129,7 +129,7 @@ Symbol *win64_unwind(Symbol *sf)
     symbol_debug(sunwind);
 
     sunwind.Sdt = unwind_data();
-    sunwind.Sseg = symbol_iscomdat3(sf) ? MsCoffObj.seg_xdata_comdat(sf) : MsCoffObj.seg_xdata();
+    sunwind.Sseg = symbol_iscomdat3(sf) ? MsCoffObj_seg_xdata_comdat(sf) : MsCoffObj_seg_xdata();
     sunwind.Salignment = 1;
     outdata(sunwind);
 
