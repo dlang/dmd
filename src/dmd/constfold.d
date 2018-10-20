@@ -393,21 +393,7 @@ UnionExp Div(const ref Loc loc, Type type, Expression e1, Expression e2)
         {
             if (e1.type.isreal())
             {
-                version (all)
-                {
-                    // Work around redundant REX.W prefix breaking Valgrind
-                    // when built with affected versions of DMD.
-                    // https://issues.dlang.org/show_bug.cgi?id=14952
-                    // This can be removed once compiling with DMD 2.068 or
-                    // older is no longer supported.
-                    const r1 = e1.toReal();
-                    const r2 = e2.toReal();
-                    emplaceExp!(RealExp)(&ue, loc, r1 / r2, type);
-                }
-                else
-                {
-                    emplaceExp!(RealExp)(&ue, loc, e1.toReal() / e2.toReal(), type);
-                }
+                emplaceExp!(RealExp)(&ue, loc, e1.toReal() / e2.toReal(), type);
                 return ue;
             }
             const r = e2.toReal();
