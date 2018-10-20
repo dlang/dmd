@@ -69,6 +69,7 @@ struct TYPE
     mangle_t Tmangle;           // name mangling
 
     unsigned Tcount;            // # pointing to this type
+    char *Tident;               // TYident: identifier; TYdarray, TYaarray: pretty name for debug info
     TYPE *Tnext;                // next in list
                                 // TYenum: gives base type
     union
@@ -78,7 +79,6 @@ struct TYPE
         param_t *Tparamtypes;   // TYfunc, TYtemplate: types of function parameters
         Classsym *Ttag;         // TYstruct,TYmemptr: tag symbol
                                 // TYenum,TYvtshape: tag symbol
-        char *Tident;           // TYident: identifier
         TYPE *Talternate;       // C++: typtr: type of parameter before converting
         TYPE *Tkey;             // typtr: key type for associative arrays
     };
