@@ -5847,7 +5847,8 @@ void test7534()
 }
 
 /***************************************************/
-// https://issues.dlang.org/show_bug.cgi?id=7534 + return type covariance
+// https://issues.dlang.org/show_bug.cgi?id=7534
+// return type covariance
 
 class X7534 {}
 class Y7534 : X7534

@@ -419,7 +419,8 @@ void test7()
 }
 
 /***************************************************/
-// https://issues.dlang.org/show_bug.cgi?id=11875 - endless recursion in Type::deduceType
+// https://issues.dlang.org/show_bug.cgi?id=11875
+// endless recursion in Type::deduceType
 
 struct T11875x(C)
 {
@@ -1206,7 +1207,8 @@ void test7945()
 }
 
 /***************************************************/
-// https://issues.dlang.org/show_bug.cgi?id=15674 - alias this on out parameter, consistent with 7945 case
+// https://issues.dlang.org/show_bug.cgi?id=15674
+// alias this on out parameter, consistent with 7945 case
 
 struct S15674
 {

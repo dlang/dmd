@@ -4,7 +4,8 @@
 import imports.testmangle;
 
 /***************************************************/
-// https://issues.dlang.org/show_bug.cgi?id=10077 - pragma(mangle)
+// https://issues.dlang.org/show_bug.cgi?id=10077
+// pragma(mangle)
 
 pragma(mangle, "_test10077a_") int test10077a;
 static assert(test10077a.mangleof == "_test10077a_");

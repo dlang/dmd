@@ -1432,7 +1432,8 @@ void test_isOverrideFunction ()
 }
 
 /********************************************************/
-// https://issues.dlang.org/show_bug.cgi?id=11711 - Add __traits(getAliasThis)
+// https://issues.dlang.org/show_bug.cgi?id=11711
+// Add __traits(getAliasThis)
 
 alias TypeTuple(T...) = T;
 

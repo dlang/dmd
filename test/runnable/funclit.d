@@ -378,7 +378,8 @@ void test7193()
 }
 
 /***************************************************/
-// https://issues.dlang.org/show_bug.cgi?id=7207 : on CastExp
+// https://issues.dlang.org/show_bug.cgi?id=7207
+// on CastExp
 
 void test7202()
 {

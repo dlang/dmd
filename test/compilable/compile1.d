@@ -141,8 +141,8 @@ void bug14710b()
     bug14710a("", "");
 }
 
-/**************************************************
-https://issues.dlang.org/show_bug.cgi?id=6661
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=6661
 // Templates instantiated only through is(typeof()) shouldn't cause errors
 
 template bug6661(Q)

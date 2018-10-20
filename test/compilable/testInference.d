@@ -1,6 +1,6 @@
 
 /***************************************************/
-// https://issues.dlang.org/show_bug.cgi?id=6265.
+// https://issues.dlang.org/show_bug.cgi?id=6265
 
 pure nothrow @safe int h6265() {
     return 1;
@@ -340,7 +340,9 @@ void test9072()
 }
 
 /***************************************************/
-// https://issues.dlang.org/show_bug.cgi?id=5933 + Issue 8504 - Template attribute inferrence doesn't work
+// https://issues.dlang.org/show_bug.cgi?id=5933
+// https://issues.dlang.org/show_bug.cgi?id=8504
+// Template attribute inferrence doesn't work
 
 int foo5933()(int a) { return a*a; }
 struct S5933

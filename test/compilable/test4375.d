@@ -1,5 +1,6 @@
 // REQUIRED_ARGS: -unittest
-// https://issues.dlang.org/show_bug.cgi?id=4375: disallow dangling else
+// https://issues.dlang.org/show_bug.cgi?id=4375
+// disallow dangling else
 
 void main() {
 

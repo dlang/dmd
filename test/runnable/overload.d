@@ -484,7 +484,8 @@ void test10171()
 }
 
 /***************************************************/
-// https://issues.dlang.org/show_bug.cgi?id=1900 - template overload set
+// https://issues.dlang.org/show_bug.cgi?id=1900
+// template overload set
 
 void test1900a()
 {

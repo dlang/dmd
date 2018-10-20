@@ -991,7 +991,8 @@ static assert(
     return true;
 }());
 
-// https://issues.dlang.org/show_bug.cgi?id=7185 char[].length = n
+// https://issues.dlang.org/show_bug.cgi?id=7185
+// char[].length = n
 
 bool bug7185()
 {
@@ -5569,7 +5570,8 @@ int test9982()
 
 static assert(test9982());
 
-// https://issues.dlang.org/show_bug.cgi?id=9982, rejects-valid case
+// https://issues.dlang.org/show_bug.cgi?id=9982
+// rejects-valid case
 
 struct SS9982
 {

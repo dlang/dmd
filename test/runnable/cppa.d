@@ -1253,7 +1253,8 @@ void test15802()
 }
 
 /****************************************/
-// https://issues.dlang.org/show_bug.cgi?id=16536 - mangling mismatch on OSX
+// https://issues.dlang.org/show_bug.cgi?id=16536
+// mangling mismatch on OSX
 
 version(OSX) extern(C++) uint64_t pass16536(uint64_t);
 
@@ -1263,7 +1264,8 @@ void test16536()
 }
 
 /****************************************/
-// https://issues.dlang.org/show_bug.cgi?id=15589 - extern(C++) virtual destructors are not put in vtbl[]
+// https://issues.dlang.org/show_bug.cgi?id=15589
+// extern(C++) virtual destructors are not put in vtbl[]
 
 extern(C++)
 {
