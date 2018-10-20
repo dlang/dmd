@@ -460,7 +460,7 @@ int Obj::string_literal_segment(unsigned sz)
 {
     if (sz == 1)
     {
-        return MachObj::getsegment("__cstring", "__TEXT", 0, S_CSTRING_LITERALS);
+        return Obj::getsegment("__cstring", "__TEXT", 0, S_CSTRING_LITERALS);
     }
     return CDATA;  // no special handling for other wstring, dstring; use __const
 }
@@ -473,7 +473,7 @@ int Obj::string_literal_segment(unsigned sz)
 Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
 {
     //printf("Obj::init()\n");
-    MachObj *obj = I64 ? new MachObj64() : new MachObj();
+    Obj *obj = new Obj();
 
     cseg = CODE;
     fobjbuf = objbuf;
@@ -545,11 +545,11 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
 
     seg_count = 0;
     int align = I64 ? 4 : 2;            // align to 16 bytes for floating point
-    MachObj::getsegment("__text",  "__TEXT", 2, S_REGULAR | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS);
-    MachObj::getsegment("__data",  "__DATA", align, S_REGULAR);     // DATA
-    MachObj::getsegment("__const", "__TEXT", 2, S_REGULAR);         // CDATA
-    MachObj::getsegment("__bss",   "__DATA", 4, S_ZEROFILL);        // UDATA
-    MachObj::getsegment("__const", "__DATA", align, S_REGULAR);     // CDATAREL
+    Obj::getsegment("__text",  "__TEXT", 2, S_REGULAR | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS);
+    Obj::getsegment("__data",  "__DATA", align, S_REGULAR);     // DATA
+    Obj::getsegment("__const", "__TEXT", 2, S_REGULAR);         // CDATA
+    Obj::getsegment("__bss",   "__DATA", 4, S_ZEROFILL);        // UDATA
+    Obj::getsegment("__const", "__DATA", align, S_REGULAR);     // CDATAREL
 
     dwarf_initfile(filename);
     return obj;
@@ -1709,7 +1709,7 @@ void Obj::setModuleCtorDtor(Symbol *sfunc, bool isCtor)
     const char *secname = isCtor ? "__mod_init_func" : "__mod_term_func";
     const int align = I64 ? 3 : 2; // align to NPTRSIZE
     const int flags = isCtor ? S_MOD_INIT_FUNC_POINTERS : S_MOD_TERM_FUNC_POINTERS;
-    IDXSEC seg = MachObj::getsegment(secname, "__DATA", align, flags);
+    IDXSEC seg = Obj::getsegment(secname, "__DATA", align, flags);
 
     const int relflags = I64 ? CFoff | CFoffset64 : CFoff;
     const int sz = Obj::reftoident(seg, SegData[seg]->SDoffset, sfunc, 0, relflags);
@@ -1734,7 +1734,7 @@ void Obj::ehtables(Symbol *sfunc,unsigned size,Symbol *ehsym)
 
     int align = I64 ? 3 : 2;            // align to NPTRSIZE
     // The size is sizeof(struct FuncTable) in deh2.d
-    int seg = MachObj::getsegment("__deh_eh", "__DATA", align, S_REGULAR);
+    int seg = Obj::getsegment("__deh_eh", "__DATA", align, S_REGULAR);
 
     Outbuffer *buf = SegData[seg]->SDbuf;
     if (I64)
@@ -1790,7 +1790,7 @@ int Obj::comdat(Symbol *s)
         segname = "__TEXT";
         align = 2;              // 4 byte alignment
         flags = S_COALESCED | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS;
-        s->Sseg = MachObj::getsegment(sectname, segname, align, flags);
+        s->Sseg = Obj::getsegment(sectname, segname, align, flags);
     }
     else if ((s->ty() & mTYLINK) == mTYthread)
     {
@@ -1799,7 +1799,7 @@ int Obj::comdat(Symbol *s)
         if (I64)
             s->Sseg = objmod->tlsseg()->SDseg;
         else
-            s->Sseg = MachObj::getsegment("__tlscoal_nt", "__DATA", align, S_COALESCED);
+            s->Sseg = Obj::getsegment("__tlscoal_nt", "__DATA", align, S_COALESCED);
         Obj::data_start(s, 1 << align, s->Sseg);
     }
     else
@@ -1808,7 +1808,7 @@ int Obj::comdat(Symbol *s)
         sectname = "__datacoal_nt";
         segname = "__DATA";
         align = 4;              // 16 byte alignment
-        s->Sseg = MachObj::getsegment(sectname, segname, align, S_COALESCED);
+        s->Sseg = Obj::getsegment(sectname, segname, align, S_COALESCED);
         Obj::data_start(s, 1 << align, s->Sseg);
     }
                                 // find or create new segment
@@ -1847,7 +1847,7 @@ int Obj::jmpTableSegment(Symbol *s)
  *      segment index of found or newly created segment
  */
 
-int MachObj::getsegment(const char *sectname, const char *segname,
+int Obj::getsegment(const char *sectname, const char *segname,
         int align, int flags)
 {
     assert(strlen(sectname) <= 16);
@@ -1993,11 +1993,18 @@ int Obj::codeseg(char *name,int suffix)
 seg_data *Obj::tlsseg()
 {
     //printf("Obj::tlsseg(\n");
-    assert(I32);
-
-    if (seg_tlsseg == UNKNOWN)
-        seg_tlsseg = MachObj::getsegment("__tls_data", "__DATA", 2, S_REGULAR);
-    return SegData[seg_tlsseg];
+    if (I32)
+    {
+        if (seg_tlsseg == UNKNOWN)
+            seg_tlsseg = Obj::getsegment("__tls_data", "__DATA", 2, S_REGULAR);
+        return SegData[seg_tlsseg];
+    }
+    else
+    {
+        if (seg_tlsseg == UNKNOWN)
+            seg_tlsseg = Obj::getsegment("__thread_vars", "__DATA", 0, S_THREAD_LOCAL_VARIABLES);
+        return SegData[seg_tlsseg];
+    }
 }
 
 
@@ -2011,12 +2018,22 @@ seg_data *Obj::tlsseg()
 
 seg_data *Obj::tlsseg_bss()
 {
-    assert(I32);
 
-    /* Because DMD does not support native tls for Mach-O 32bit,
-     * it's easier to support if we have all the tls in one segment.
-     */
-    return Obj::tlsseg();
+    if (I32)
+    {
+        /* Because DMD does not support native tls for Mach-O 32bit,
+         * it's easier to support if we have all the tls in one segment.
+         */
+        return Obj::tlsseg();
+    }
+    else
+    {
+        // The alignment should actually be alignment of the largest variable in
+        // the section, but this seems to work anyway.
+        if (seg_tlsseg_bss == UNKNOWN)
+            seg_tlsseg_bss = Obj::getsegment("__thread_bss", "__DATA", 3, S_THREAD_LOCAL_ZEROFILL);
+        return SegData[seg_tlsseg_bss];
+    }
 }
 
 /*********************************
@@ -2035,7 +2052,7 @@ seg_data *Obj::tlsseg_data()
     // The alignment should actually be alignment of the largest variable in
     // the section, but this seems to work anyway.
     if (seg_tlsseg_data == UNKNOWN)
-        seg_tlsseg_data = MachObj::getsegment("__thread_data", "__DATA", 4, S_THREAD_LOCAL_REGULAR);
+        seg_tlsseg_data = Obj::getsegment("__thread_data", "__DATA", 4, S_THREAD_LOCAL_REGULAR);
     return SegData[seg_tlsseg_data];
 }
 
@@ -2474,7 +2491,7 @@ if (!buf) halt();
  * Add a relocation entry for seg/offset.
  */
 
-void MachObj::addrel(int seg, targ_size_t offset, symbol *targsym,
+void Obj::addrel(int seg, targ_size_t offset, symbol *targsym,
         unsigned targseg, int rtype, int val)
 {
     Relocation rel;
@@ -2519,21 +2536,6 @@ void mach_relsort(Outbuffer *buf)
 }
 
 /*******************************
- * Output a relocation entry for a segment
- * Input:
- *      seg =           where the address is going
- *      offset =        offset within seg
- *      type =          ELF relocation type
- *      index =         Related symbol table index
- *      val =           addend or displacement from address
- */
-
-void ElfObj::addrel(int seg, targ_size_t offset, unsigned type,
-                                        IDXSYM symidx, targ_size_t val)
-{
-}
-
-/*******************************
  * Refer to address that is in the data segment.
  * Input:
  *      seg:offset =    the address being fixed up
@@ -2561,7 +2563,7 @@ void Obj::reftodatseg(int seg,targ_size_t offset,targ_size_t val,
     {
         assert(0);
     }
-    MachObj::addrel(seg, offset, NULL, targetdatum, RELaddr);
+    Obj::addrel(seg, offset, NULL, targetdatum, RELaddr);
     if (I64)
     {
         if (flags & CFoffset64)
@@ -2595,7 +2597,7 @@ void Obj::reftocodeseg(int seg,targ_size_t offset,targ_size_t val)
     int save = buf->size();
     buf->setsize(offset);
     val -= funcsym_p->Soffset;
-    MachObj::addrel(seg, offset, funcsym_p, 0, RELaddr);
+    Obj::addrel(seg, offset, funcsym_p, 0, RELaddr);
 //    if (I64)
 //        buf->write64(val);
 //    else
@@ -2648,11 +2650,11 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                 v = (int)val;
             if (flags & CFselfrel)
             {
-                MachObj::addrel(seg, offset, s, 0, RELrel, v);
+                Obj::addrel(seg, offset, s, 0, RELrel, v);
             }
             else
             {
-                MachObj::addrel(seg, offset, s, 0, RELaddr, v);
+                Obj::addrel(seg, offset, s, 0, RELaddr, v);
             }
         }
         else
@@ -2662,7 +2664,7 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                 if (!jumpTableSeg)
                 {
                     jumpTableSeg =
-                        MachObj::getsegment("__jump_table", "__IMPORT",  0, S_SYMBOL_STUBS | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS | S_ATTR_SELF_MODIFYING_CODE);
+                        Obj::getsegment("__jump_table", "__IMPORT",  0, S_SYMBOL_STUBS | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS | S_ATTR_SELF_MODIFYING_CODE);
                 }
                 seg_data *pseg = SegData[jumpTableSeg];
                 if (I64)
@@ -2693,14 +2695,14 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                 indirectsymbuf1->write(&s, sizeof(Symbol *));
              L1:
                 val -= offset + 4;
-                MachObj::addrel(seg, offset, NULL, jumpTableSeg, RELrel);
+                Obj::addrel(seg, offset, NULL, jumpTableSeg, RELrel);
             }
             else if (SegData[seg]->isCode() &&
                      !(flags & CFindirect) &&
                     ((s->Sclass != SCextern && SegData[s->Sseg]->isCode()) || s->Sclass == SClocstat || s->Sclass == SCstatic))
             {
                 val += s->Soffset;
-                MachObj::addrel(seg, offset, NULL, s->Sseg, RELaddr);
+                Obj::addrel(seg, offset, NULL, s->Sseg, RELaddr);
             }
             else if ((flags & CFindirect) ||
                      SegData[seg]->isCode() && !tyfunc(s->ty()))
@@ -2708,7 +2710,7 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                 if (!pointersSeg)
                 {
                     pointersSeg =
-                        MachObj::getsegment("__pointers", "__IMPORT",  0, S_NON_LAZY_SYMBOL_POINTERS);
+                        Obj::getsegment("__pointers", "__IMPORT",  0, S_NON_LAZY_SYMBOL_POINTERS);
                 }
                 seg_data *pseg = SegData[pointersSeg];
 
@@ -2751,11 +2753,11 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                     pseg->SDrel->write(&rel, sizeof(rel));
                 }
                 else
-                    MachObj::addrel(seg, offset, NULL, pointersSeg, RELaddr);
+                    Obj::addrel(seg, offset, NULL, pointersSeg, RELaddr);
             }
             else
             {   //val -= s->Soffset;
-                MachObj::addrel(seg, offset, s, 0, RELaddr);
+                Obj::addrel(seg, offset, s, 0, RELaddr);
             }
         }
 
@@ -2843,7 +2845,7 @@ void Obj::moduleinfo(Symbol *scc)
 {
     int align = I64 ? 3 : 2; // align to NPTRSIZE
 
-    int seg = MachObj::getsegment("__minfodata", "__DATA", align, S_REGULAR);
+    int seg = Obj::getsegment("__minfodata", "__DATA", align, S_REGULAR);
     //printf("Obj::moduleinfo(%s) seg = %d:x%x\n", scc->Sident, seg, Offset(seg));
 
 #if 0
@@ -2908,42 +2910,6 @@ void Obj::write_pointerRef(Symbol* s, unsigned off)
 {
 }
 
-/*********************************
- * Define segments for Thread Local Storage variables.
- * Output:
- *      seg_tlsseg      set to segment number for TLS variables segment.
- * Returns:
- *      segment for TLS variables segment
- */
-
-seg_data *MachObj64::tlsseg()
-{
-    //printf("MachObj64::tlsseg(\n");
-
-    if (seg_tlsseg == UNKNOWN)
-        seg_tlsseg = MachObj::getsegment("__thread_vars", "__DATA", 0, S_THREAD_LOCAL_VARIABLES);
-    return SegData[seg_tlsseg];
-}
-
-/*********************************
- * Define segments for Thread Local Storage.
- * Output:
- *      seg_tlsseg_bss  set to segment number for TLS data segment.
- * Returns:
- *      segment for TLS segment
- */
-
-seg_data *MachObj64::tlsseg_bss()
-{
-    //printf("MachObj64::tlsseg_bss(\n");
-
-    // The alignment should actually be alignment of the largest variable in
-    // the section, but this seems to work anyway.
-    if (seg_tlsseg_bss == UNKNOWN)
-        seg_tlsseg_bss = MachObj::getsegment("__thread_bss", "__DATA", 3, S_THREAD_LOCAL_ZEROFILL);
-    return SegData[seg_tlsseg_bss];
-}
-
 /******************************************
  * Generate fixup specific to .eh_frame and .gcc_except_table sections.
  * Params:
@@ -2957,7 +2923,7 @@ seg_data *MachObj64::tlsseg_bss()
 int dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val)
 {
     //printf("dwarf_reftoident(seg=%d offset=x%x s=%s val=x%x\n", seg, (int)offset, s->Sident, (int)val);
-    MachObj::reftoident(seg, offset, s, val + 4, I64 ? CFoff : CFindirect);
+    Obj::reftoident(seg, offset, s, val + 4, I64 ? CFoff : CFindirect);
     return 4;
 }
 

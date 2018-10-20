@@ -548,14 +548,14 @@ void cod3_buildmodulector(Outbuffer* buf, int codeOffset, int refOffset)
         buf.writeByte(LEA);
         buf.writeByte(modregrm(0,AX,5));
         codeOffset += 3;
-        codeOffset += ElfObj.writerel(seg, codeOffset, R_X86_64_PC32, 3 /*STI_DATA*/, refOffset - 4);
+        codeOffset += Obj.writerel(seg, codeOffset, R_X86_64_PC32, 3 /*STI_DATA*/, refOffset - 4);
 
         // MOV RCX,_DmoduleRef@GOTPCREL[RIP]
         buf.writeByte(REX | REX_W);
         buf.writeByte(0x8B);
         buf.writeByte(modregrm(0,CX,5));
         codeOffset += 3;
-        codeOffset += ElfObj.writerel(seg, codeOffset, R_X86_64_GOTPCREL, Obj.external_def("_Dmodule_ref"), -4);
+        codeOffset += Obj.writerel(seg, codeOffset, R_X86_64_GOTPCREL, Obj.external_def("_Dmodule_ref"), -4);
     }
     else
     {
@@ -563,12 +563,12 @@ void cod3_buildmodulector(Outbuffer* buf, int codeOffset, int refOffset)
         buf.writeByte(0xB8);
         codeOffset += 1;
         const uint reltype = I64 ? R_X86_64_32 : R_386_32;
-        codeOffset += ElfObj.writerel(seg, codeOffset, reltype, 3 /*STI_DATA*/, refOffset);
+        codeOffset += Obj.writerel(seg, codeOffset, reltype, 3 /*STI_DATA*/, refOffset);
 
         /* movl _Dmodule_ref, %ecx */
         buf.writeByte(0xB9);
         codeOffset += 1;
-        codeOffset += ElfObj.writerel(seg, codeOffset, reltype, Obj.external_def("_Dmodule_ref"), 0);
+        codeOffset += Obj.writerel(seg, codeOffset, reltype, Obj.external_def("_Dmodule_ref"), 0);
     }
 
     if (I64)

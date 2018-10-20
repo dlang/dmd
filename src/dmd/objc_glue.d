@@ -193,7 +193,7 @@ struct Segments
 
         version (OSX)
         {
-            segmentsPtr[id] = MachObj.getsegment(
+            segmentsPtr[id] = Obj.getsegment(
                 seg.sectionName,
                 seg.segmentName,
                 seg.alignment,

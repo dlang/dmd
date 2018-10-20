@@ -137,9 +137,9 @@ bool doUnwindEhFrame()
 int dwarf_getsegment(const char *name, int align, int flags)
 {
 #if ELFOBJ
-    return ElfObj::getsegment(name, null, flags, 0, align * 4);
+    return Obj::getsegment(name, null, flags, 0, align * 4);
 #elif MACHOBJ
-    return MachObj::getsegment(name, "__DWARF", align * 2, flags);
+    return Obj::getsegment(name, "__DWARF", align * 2, flags);
 #else
     assert(0);
     return 0;
@@ -149,7 +149,7 @@ int dwarf_getsegment(const char *name, int align, int flags)
 #if ELFOBJ
 int dwarf_getsegment_alloc(const char *name, const char *suffix, int align)
 {
-    return ElfObj::getsegment(name, suffix, SHT_PROGBITS, SHF_ALLOC, align * 4);
+    return Obj::getsegment(name, suffix, SHT_PROGBITS, SHF_ALLOC, align * 4);
 }
 #endif
 
@@ -165,14 +165,14 @@ int dwarf_except_table_alloc(Symbol *s)
     if (pseg->SDassocseg)
     {
         const char *suffix = s->Sident; // cpp_mangle(s);
-        segidx_t tableseg = ElfObj::getsegment(".gcc_except_table.", suffix, SHT_PROGBITS, SHF_ALLOC|SHF_GROUP, 1);
+        segidx_t tableseg = Obj::getsegment(".gcc_except_table.", suffix, SHT_PROGBITS, SHF_ALLOC|SHF_GROUP, 1);
         addSegmentToComdat(tableseg, s->Sseg);
         return tableseg;
     }
     else
         return dwarf_getsegment_alloc(".gcc_except_table", null, 1);
 #elif MACHOBJ
-    int seg = MachObj::getsegment("__gcc_except_tab", "__TEXT", 2, S_REGULAR);
+    int seg = Obj::getsegment("__gcc_except_tab", "__TEXT", 2, S_REGULAR);
     except_table_seg = seg;
     return seg;
 #else
@@ -186,7 +186,7 @@ int dwarf_eh_frame_alloc()
 #if ELFOBJ
     return dwarf_getsegment_alloc(".eh_frame", null, I64 ? 2 : 1);
 #elif MACHOBJ
-    int seg = MachObj::getsegment("__eh_frame", "__TEXT", I64 ? 3 : 2,
+    int seg = Obj::getsegment("__eh_frame", "__TEXT", I64 ? 3 : 2,
         S_COALESCED | S_ATTR_NO_TOC | S_ATTR_STRIP_STATIC_SYMS | S_ATTR_LIVE_SUPPORT);
     /* Generate symbol for it to use for fixups
      */
@@ -214,9 +214,9 @@ int dwarf_eh_frame_alloc()
 void dwarf_addrel(int seg, targ_size_t offset, int targseg, targ_size_t val)
 {
 #if ELFOBJ
-    ElfObj::addrel(seg, offset, I64 ? R_X86_64_32 : R_386_32, MAP_SEG2SYMIDX(targseg), val);
+    Obj::addrel(seg, offset, I64 ? R_X86_64_32 : R_386_32, MAP_SEG2SYMIDX(targseg), val);
 #elif MACHOBJ
-    MachObj::addrel(seg, offset, null, targseg, RELaddr, val);
+    Obj::addrel(seg, offset, null, targseg, RELaddr, val);
 #else
     assert(0);
 #endif
@@ -225,9 +225,9 @@ void dwarf_addrel(int seg, targ_size_t offset, int targseg, targ_size_t val)
 void dwarf_addrel64(int seg, targ_size_t offset, int targseg, targ_size_t val)
 {
 #if ELFOBJ
-    ElfObj::addrel(seg, offset, R_X86_64_64, MAP_SEG2SYMIDX(targseg), val);
+    Obj::addrel(seg, offset, R_X86_64_64, MAP_SEG2SYMIDX(targseg), val);
 #elif MACHOBJ
-    MachObj::addrel(seg, offset, null, targseg, RELaddr, val);
+    Obj::addrel(seg, offset, null, targseg, RELaddr, val);
 #else
     assert(0);
 #endif
@@ -905,8 +905,8 @@ void writeEhFrameFDE(IDXSEC dfseg, Symbol *sfunc, bool ehunwind, uint CIE_offset
 #if ELFOBJ
     int fixup = I64 ? R_X86_64_PC32 : R_386_PC32;
     buf->write32(I64 ? 0 : sfunc->Soffset);             // address of function
-    ElfObj::addrel(dfseg, startsize + 8, fixup, MAP_SEG2SYMIDX(sfunc->Sseg), sfunc->Soffset);
-    //ElfObj::reftoident(dfseg, startsize + 8, sfunc, 0, CFpc32 | CFoff); // PC_begin
+    Obj::addrel(dfseg, startsize + 8, fixup, MAP_SEG2SYMIDX(sfunc->Sseg), sfunc->Soffset);
+    //Obj::reftoident(dfseg, startsize + 8, sfunc, 0, CFpc32 | CFoff); // PC_begin
     buf->write32(sfunc->Ssize);                         // PC Range
 #elif MACHOBJ
     dwarf_eh_frame_fixup(dfseg, buf->size(), sfunc, 0, fdesym);
@@ -926,7 +926,7 @@ void writeEhFrameFDE(IDXSEC dfseg, Symbol *sfunc, bool ehunwind, uint CIE_offset
         buf->write32(I64 ? 0 : sfunc->Sfunc->LSDAoffset); // address of LSDA (".gcc_except_table")
         if (config.flags3 & CFG3pic)
         {
-            ElfObj::addrel(dfseg, buf->size() - 4, fixup, MAP_SEG2SYMIDX(etseg), sfunc->Sfunc->LSDAoffset);
+            Obj::addrel(dfseg, buf->size() - 4, fixup, MAP_SEG2SYMIDX(etseg), sfunc->Sfunc->LSDAoffset);
         }
         else
             dwarf_addrel(dfseg, buf->size() - 4, etseg, sfunc->Sfunc->LSDAoffset);      // and the fixup
@@ -1827,13 +1827,13 @@ void cv_outsym(Symbol *s)
                 if (I64)
                 {
                     debug_info.buf->writeByte(DW_OP_const8u);
-                    ElfObj::addrel(debug_info.seg, debug_info.buf->size(), R_X86_64_DTPOFF32, s->Sxtrnnum, 0);
+                    Obj::addrel(debug_info.seg, debug_info.buf->size(), R_X86_64_DTPOFF32, s->Sxtrnnum, 0);
                     debug_info.buf->write64(0);
                 }
                 else
                 {
                     debug_info.buf->writeByte(DW_OP_const4u);
-                    ElfObj::addrel(debug_info.seg, debug_info.buf->size(), R_386_TLS_LDO_32, s->Sxtrnnum, 0);
+                    Obj::addrel(debug_info.seg, debug_info.buf->size(), R_386_TLS_LDO_32, s->Sxtrnnum, 0);
                     debug_info.buf->write32(0);
                 }
                 debug_info.buf->writeByte(DW_OP_GNU_push_tls_address);
