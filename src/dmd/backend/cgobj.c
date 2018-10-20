@@ -33,25 +33,34 @@
 #include        "scope.h"
 #endif
 
+typedef unsigned char ubyte;
+typedef unsigned short ushort;
+typedef unsigned long long ulong;
+typedef unsigned uint;
+#define null NULL
+#define cast
+
 #if MARS
 #include        "varstats.h"
 
 struct Loc
 {
     char *filename;
-    unsigned linnum;
-    unsigned charnum;
+    uint linnum;
+    uint charnum;
 
     Loc(int y, int x)
     {
         linnum = y;
         charnum = x;
-        filename = NULL;
+        filename = null;
     }
 };
 
 void error(Loc loc, const char *format, ...);
 #endif
+
+#define private static
 
 #if MARS
 // C++ name mangling is handled by front end
@@ -178,9 +187,9 @@ struct FIXUP
 {
     struct FIXUP        *FUnext;
     targ_size_t         FUoffset;       // offset from start of ledata
-    unsigned short      FUlcfd;         // LCxxxx | FDxxxx
-    unsigned short      FUframedatum;
-    unsigned short      FUtargetdatum;
+    ushort              FUlcfd;         // LCxxxx | FDxxxx
+    ushort              FUframedatum;
+    ushort              FUtargetdatum;
 };
 
 #define list_fixup(fl)  ((struct FIXUP *)list_ptr(fl))
@@ -195,17 +204,17 @@ struct FIXUP
 
 struct Ledatarec
 {
-    char header[14];                    // big enough to handle COMDAT header
+    char header[14];            // big enough to handle COMDAT header
     char data[LEDATAMAX];
-    int lseg;                           // segment value
-    unsigned i;                         // number of bytes in data
-    targ_size_t offset;                 // segment offset of start of data
-    struct FIXUP *fixuplist;            // fixups for this ledata
+    int lseg;                   // segment value
+    uint i;                     // number of bytes in data
+    targ_size_t offset;         // segment offset of start of data
+    struct FIXUP *fixuplist;    // fixups for this ledata
 
     // For COMDATs
-    unsigned char flags;                // flags byte of COMDAT
-    unsigned char alloctyp;             // allocation type of COMDAT
-    unsigned char align;                // align type
+    ubyte flags;                // flags byte of COMDAT
+    ubyte alloctyp;             // allocation type of COMDAT
+    ubyte align;                // align type
     int typidx;
     int pubbase;
     int pubnamidx;
@@ -291,7 +300,7 @@ struct Objstate
     int pubnamidx;              // index of COMDAT public name index
     Outbuffer *reset_symbuf;    // Keep pointers to reset symbols
 
-    Symbol *startaddress;       // if !NULL, then Symbol is start address
+    Symbol *startaddress;       // if !null, then Symbol is start address
 
 #ifdef DEBUG
     int fixup_count;
@@ -304,9 +313,9 @@ struct Objstate
     // Line numbers
     list_t linnum_list;
     char *linrec;               // line number record
-    unsigned linreci;           // index of next avail in linrec[]
-    unsigned linrecheader;      // size of line record header
-    unsigned linrecnum;         // number of line record entries
+    uint linreci;               // index of next avail in linrec[]
+    uint linrecheader;          // size of line record header
+    uint linrecnum;             // number of line record entries
     list_t linreclist;          // list of line records
     int mlinnum;
     int recseg;
@@ -349,24 +358,24 @@ static int seg_max;
 
 static Objstate obj;
 
-STATIC void obj_defaultlib();
-STATIC void objheader (char *csegname);
-STATIC char * objmodtoseg (const char *modname);
-STATIC void obj_browse_flush();
-STATIC int obj_newfarseg (targ_size_t size,int);
-STATIC void linnum_flush(void);
-STATIC void linnum_term(void);
-STATIC void objsegdef (int attr,targ_size_t size,int segnamidx,int classnamidx);
-STATIC void obj_modend();
-STATIC void objflush_pointerRefs();
-STATIC void objfixupp (struct FIXUP *);
-STATIC void outextdata();
-STATIC void outpubdata();
-STATIC Ledatarec *ledata_new(int seg,targ_size_t offset);
+private void obj_defaultlib();
+private void objheader (char *csegname);
+private char * objmodtoseg (const char *modname);
+private void obj_browse_flush();
+private int obj_newfarseg (targ_size_t size,int);
+private void linnum_flush(void);
+private void linnum_term(void);
+private void objsegdef (int attr,targ_size_t size,int segnamidx,int classnamidx);
+private void obj_modend();
+private void objflush_pointerRefs();
+private void objfixupp (struct FIXUP *);
+private void outextdata();
+private void outpubdata();
+private Ledatarec *ledata_new(int seg,targ_size_t offset);
 static int generate_comdat(Symbol *s, bool is_readonly_comdat);
 
 // Forward references
-unsigned OmfObj_bytes(int seg,targ_size_t offset,unsigned nbytes, void *p);
+uint OmfObj_bytes(int seg,targ_size_t offset,uint nbytes, void *p);
 void OmfObj_theadr(const char *modname);
 void OmfObj_segment_group(targ_size_t codesize,targ_size_t datasize,
                 targ_size_t cdatasize,targ_size_t udatasize);
@@ -377,7 +386,7 @@ size_t OmfObj_mangle(Symbol *s,char *dest);
 seg_data *OmfObj_tlsseg();
 int OmfObj_common_block(Symbol *s,int flag,targ_size_t size,targ_size_t count);
 void OmfObj_lidata(int seg,targ_size_t offset,targ_size_t count);
-void OmfObj_byte(int seg,targ_size_t offset,unsigned byte);
+void OmfObj_byte(int seg,targ_size_t offset,uint byte);
 
 
 /*******************************
@@ -388,7 +397,7 @@ void OmfObj_byte(int seg,targ_size_t offset,unsigned byte);
  *      reclen  =       # of bytes in record
  */
 
-void objrecord(unsigned rectyp,const char *record,unsigned reclen)
+void objrecord(uint rectyp,const char *record,uint reclen)
 {   Outbuffer *o = obj.buf;
 
     //printf("rectyp = x%x, record[0] = x%x, reclen = x%x\n",rectyp,record[0],reclen);
@@ -409,7 +418,7 @@ void objrecord(unsigned rectyp,const char *record,unsigned reclen)
  *      # of bytes stored
  */
 
-extern void error(const char *filename, unsigned linnum, unsigned charnum, const char *format, ...);
+extern void error(const char *filename, uint linnum, uint charnum, const char *format, ...);
 extern void fatal();
 
 void too_many_symbols()
@@ -417,13 +426,13 @@ void too_many_symbols()
 #if SCPP
     err_fatal(EM_too_many_symbols, 0x7FFF);
 #else // MARS
-    error(NULL, 0, 0, "more than %d symbols in object file", 0x7FFF);
+    error(null, 0, 0, "more than %d symbols in object file", 0x7FFF);
     fatal();
 #endif
 }
 
 #if !DEBUG && TX86 && !defined(_MSC_VER)
-__declspec(naked) int __pascal insidx(char *p,unsigned index)
+__declspec(naked) int __pascal insidx(char *p,uint index)
 {
 #undef AL
 #undef AH
@@ -454,7 +463,7 @@ __declspec(naked) int __pascal insidx(char *p,unsigned index)
         too_many_symbols();
 }
 #else
-__inline int insidx(char *p,unsigned index)
+__inline int insidx(char *p,uint index)
 {
     //if (index > 0x7FFF) printf("index = x%x\n",index);
     /* OFM spec says it could be <=0x7F, but that seems to cause
@@ -486,7 +495,7 @@ __inline int insidx(char *p,unsigned index)
  *      # of bytes stored
  */
 
-__inline int instypidx(char *p,unsigned index)
+__inline int instypidx(char *p,uint index)
 {
     if (index <= 127)
     {   *p = index;
@@ -508,8 +517,8 @@ __inline int instypidx(char *p,unsigned index)
  */
 
 #define getindex(p) ((*(p) & 0x80) \
-    ? ((*(unsigned char *)(p) & 0x7F) << 8) | *((unsigned char *)(p) + 1) \
-    : *(unsigned char *)(p))
+    ? ((*(ubyte *)(p) & 0x7F) << 8) | *((ubyte *)(p) + 1) \
+    : *(ubyte *)(p))
 
 /*****************************
  * Returns:
@@ -518,8 +527,8 @@ __inline int instypidx(char *p,unsigned index)
 
 #define ONS_OHD 4               // max # of extra bytes added by obj_namestring()
 
-STATIC int obj_namestring(char *p,const char *name)
-{   unsigned len;
+private int obj_namestring(char *p,const char *name)
+{   uint len;
 
     len = strlen(name);
     if (len > 255)
@@ -551,14 +560,14 @@ seg_data *getsegment()
     if (seg_count == seg_max)
     {
         seg_max += 10;
-        SegData = (seg_data **)mem_realloc(SegData, seg_max * sizeof(seg_data *));
+        SegData = cast(seg_data **)mem_realloc(SegData, seg_max * sizeof(seg_data *));
         memset(&SegData[seg_count], 0, 10 * sizeof(seg_data *));
     }
     assert(seg_count < seg_max);
     if (SegData[seg])
         memset(SegData[seg], 0, sizeof(seg_data));
     else
-        SegData[seg] = (seg_data *)mem_calloc(sizeof(seg_data));
+        SegData[seg] = cast(seg_data *)mem_calloc(sizeof(seg_data));
 
     seg_data *pseg = SegData[seg];
     pseg->SDseg = seg;
@@ -571,9 +580,9 @@ seg_data *getsegment()
  *
  */
 
-symbol * OmfObj_sym_cdata(tym_t ty,char *p,int len)
+Symbol * OmfObj_sym_cdata(tym_t ty,char *p,int len)
 {
-    symbol *s;
+    Symbol *s;
 
     alignOffset(CDATA, tysize(ty));
     s = symboldata(Offset(CDATA), ty);
@@ -624,7 +633,7 @@ int OmfObj_data_readonly(char *p, int len)
  * Returns:
  *    segment index
  */
-int OmfObj_string_literal_segment(unsigned sz)
+int OmfObj_string_literal_segment(uint sz)
 {
     assert(0);
     return 0;
@@ -639,7 +648,7 @@ segidx_t OmfObj_seg_debugT()
  * Perform initialization that applies to all .obj output files.
  * Input:
  *      filename        source file name
- *      csegname        code segment name (can be NULL)
+ *      csegname        code segment name (can be null)
  */
 
 Obj *OmfObj_init(Outbuffer *objbuf, const char *filename, const char *csegname)
@@ -650,15 +659,15 @@ Obj *OmfObj_init(Outbuffer *objbuf, const char *filename, const char *csegname)
         Outbuffer *reset_symbuf = obj.reset_symbuf;
         if (reset_symbuf)
         {
-            symbol **p = (symbol **)reset_symbuf->buf;
-            const size_t n = reset_symbuf->size() / sizeof(symbol *);
+            Symbol **p = cast(Symbol **)reset_symbuf->buf;
+            const size_t n = reset_symbuf->size() / sizeof(Symbol *);
             for (size_t i = 0; i < n; ++i)
                 symbol_reset(p[i]);
             reset_symbuf->setsize(0);
         }
         else
         {
-            reset_symbuf = new Outbuffer(50 * sizeof(symbol *));
+            reset_symbuf = new Outbuffer(50 * sizeof(Symbol *));
         }
 
         memset(&obj,0,sizeof(obj));
@@ -711,7 +720,7 @@ Obj *OmfObj_init(Outbuffer *objbuf, const char *filename, const char *csegname)
 
         if (!SegData)
         {   seg_max = UDATA + 10;
-            SegData = (seg_data **)mem_calloc(seg_max * sizeof(seg_data *));
+            SegData = cast(seg_data **)mem_calloc(seg_max * sizeof(seg_data *));
         }
 
         for (int i = 0; i < seg_max; i++)
@@ -719,7 +728,7 @@ Obj *OmfObj_init(Outbuffer *objbuf, const char *filename, const char *csegname)
             if (SegData[i])
                 memset(SegData[i], 0, sizeof(seg_data));
             else
-                SegData[i] = (seg_data *)mem_calloc(sizeof(seg_data));
+                SegData[i] = cast(seg_data *)mem_calloc(sizeof(seg_data));
         }
 
         SegData[CODE]->SDseg = CODE;
@@ -753,7 +762,7 @@ Obj *OmfObj_init(Outbuffer *objbuf, const char *filename, const char *csegname)
             obj.csegname = mem_strdup(csegname);        // our own copy
         objheader(obj.csegname);
         OmfObj_segment_group(0,0,0,0);             // obj seg and grp info
-        ledata_new(cseg,0);             // so ledata is never NULL
+        ledata_new(cseg,0);             // so ledata is never null
         if (config.fulltypes)           // if full typing information
         {   objmod = mobj;
             cv_init();                  // initialize debug output code
@@ -786,7 +795,7 @@ void OmfObj_term(const char *objfilename)
 {
         //printf("OmfObj_term()\n");
         list_t dl;
-        unsigned long size;
+        uint size;
 
 #if SCPP
         if (!errcnt)
@@ -914,7 +923,7 @@ void OmfObj_linnum(Srcpos srcpos,int seg,targ_size_t offset)
     varStats.recordLineOffset(srcpos, offset);
 #endif
 
-    unsigned linnum = srcpos.Slinnum;
+    uint linnum = srcpos.Slinnum;
 
 #if 0
 #if MARS || SCPP
@@ -948,7 +957,7 @@ void OmfObj_linnum(Srcpos srcpos,int seg,targ_size_t offset)
         {
             if (!ll)
             {
-                ln = (struct Linnum *) mem_calloc(sizeof(struct Linnum));
+                ln = cast(struct Linnum *) mem_calloc(sizeof(struct Linnum));
 #if MARS
                 ln->filename = srcpos.Sfilename;
 #else
@@ -979,12 +988,12 @@ void OmfObj_linnum(Srcpos srcpos,int seg,targ_size_t offset)
     else
     {
         if (linos2 && obj.linreci > LINRECMAX - 8)
-            obj.linrec = NULL;                  // allocate a new one
+            obj.linrec = null;                  // allocate a new one
         else if (seg != obj.recseg)
             linnum_flush();
 
         if (!obj.linrec)                        // if not allocated
-        {       obj.linrec = (char *) mem_calloc(LINRECMAX);
+        {       obj.linrec = cast(char *) mem_calloc(LINRECMAX);
                 obj.linrec[0] = 0;              // base group / flags
                 obj.linrecheader = 1 + insidx(obj.linrec + 1,seg_is_comdat(SegData[seg]->segidx) ? obj.pubnamidx : SegData[seg]->segidx);
                 obj.linreci = obj.linrecheader;
@@ -1054,7 +1063,7 @@ void OmfObj_linnum(Srcpos srcpos,int seg,targ_size_t offset)
  * Flush any pending line number records.
  */
 
-STATIC void linnum_flush()
+private void linnum_flush()
 {
     if (obj.linreclist)
     {   list_t list;
@@ -1087,12 +1096,12 @@ STATIC void linnum_flush()
         objrecord(obj.mlinnum,obj.linrec,14 + len);
 
         mem_free(obj.linrec);
-        obj.linrec = NULL;
+        obj.linrec = null;
     }
     else if (obj.linrec)                        // if some line numbers to send
     {   objrecord(obj.mlinnum,obj.linrec,obj.linreci);
         mem_free(obj.linrec);
-        obj.linrec = NULL;
+        obj.linrec = null;
     }
 #if MULTISCOPE
     vec_clear(obj.linvec);
@@ -1104,13 +1113,13 @@ STATIC void linnum_flush()
  * Terminate line numbers.
  */
 
-STATIC void linnum_term()
+private void linnum_term()
 {   list_t ll;
 #if SCPP
-    Sfile *lastfilptr = NULL;
+    Sfile *lastfilptr = null;
 #endif
 #if MARS
-    const char *lastfilename = NULL;
+    const char *lastfilename = null;
 #endif
     int csegsave = cseg;
 
@@ -1118,17 +1127,17 @@ STATIC void linnum_term()
     obj.term = 1;
     while (obj.linnum_list)
     {   struct Linnum *ln;
-        unsigned u;
+        uint u;
         Srcpos srcpos;
         targ_size_t offset;
 
         ll = obj.linnum_list;
-        ln = (struct Linnum *) list_ptr(ll);
+        ln = cast(struct Linnum *) list_ptr(ll);
 #if SCPP
         Sfile *filptr = ln->filptr;
         if (filptr != lastfilptr)
         {
-            if (lastfilptr == NULL && strcmp(filptr->SFname,obj.modname))
+            if (lastfilptr == null && strcmp(filptr->SFname,obj.modname))
             {
                 OmfObj_theadr(filptr->SFname);
             }
@@ -1156,12 +1165,12 @@ STATIC void linnum_term()
 #endif
             for (u = 0; u < ln->i; )
             {
-                srcpos.Slinnum = *(unsigned short *)&ln->data[u];
+                srcpos.Slinnum = *cast(ushort *)&ln->data[u];
                 u += 2;
                 if (I32)
-                    offset = *(unsigned long *)&ln->data[u];
+                    offset = *cast(uint *)&ln->data[u];
                 else
-                    offset = *(unsigned short *)&ln->data[u];
+                    offset = *(ushort *)&ln->data[u];
                 OmfObj_linnum(srcpos,cseg,offset);
                 u += intsize;
             }
@@ -1172,7 +1181,7 @@ STATIC void linnum_term()
         L1:
             if (!ll)
                 break;
-            ln = (struct Linnum *) list_ptr(ll);
+            ln = cast(struct Linnum *) list_ptr(ll);
 #if SCPP
             if (filptr != ln->filptr)
 #else
@@ -1214,11 +1223,11 @@ void OmfObj_dosseg()
  * Embed comment record.
  */
 
-STATIC void obj_comment(unsigned char x, const char *string, size_t len)
+private void obj_comment(ubyte x, const char *string, size_t len)
 {
     char buf[128];
 
-    char *library = (2 + len <= sizeof(buf)) ? buf : (char *) malloc(2 + len);
+    char *library = (2 + len <= sizeof(buf)) ? buf : cast(char *) malloc(2 + len);
     assert(library);
     library[0] = 0;
     library[1] = x;
@@ -1291,7 +1300,7 @@ void OmfObj_user(const char *p)
  * Put out default library name.
  */
 
-STATIC void obj_defaultlib()
+private void obj_defaultlib()
 {
     char library[4];            // default library
     static const char model[MEMMODELS+1] = "SMCLV";
@@ -1392,10 +1401,10 @@ void OmfObj_lzext(Symbol *s1,Symbol *s2)
  */
 
 void OmfObj_alias(const char *n1,const char *n2)
-{   unsigned len;
+{   uint len;
     char *buffer;
 
-    buffer = (char *) alloca(strlen(n1) + strlen(n2) + 2 * ONS_OHD);
+    buffer = cast(char *) alloca(strlen(n1) + strlen(n2) + 2 * ONS_OHD);
     len = obj_namestring(buffer,n1);
     len += obj_namestring(buffer + len,n2);
     objrecord(ALIAS,buffer,len);
@@ -1424,7 +1433,7 @@ void OmfObj_theadr(const char *modname)
         }
     }
 
-    char *theadr = (char *)alloca(ONS_OHD + strlen(modname));
+    char *theadr = cast(char *)alloca(ONS_OHD + strlen(modname));
     int i = obj_namestring(theadr,modname);
     objrecord(THEADR,theadr,i);                 // module name record
 }
@@ -1445,10 +1454,10 @@ void OmfObj_compiler()
 /*******************************
  * Output header stuff for object files.
  * Input:
- *      csegname        Name to use for code segment (NULL if use default)
+ *      csegname        Name to use for code segment (null if use default)
  */
 
-STATIC void objheader(char *csegname)
+private void objheader(char *csegname)
 {
   char *nam;
   static char lnames[] =
@@ -1514,9 +1523,9 @@ STATIC void objheader(char *csegname)
     {
         // Replace the module name _TEXT with the new code segment name
         const size_t i = strlen(csegname);
-        char *p = (char *)alloca(lnamesize + i - 5);
+        char *p = cast(char *)alloca(lnamesize + i - 5);
         memcpy(p,lnames,8);
-        p[texti] = (char)i;
+        p[texti] = cast(char)i;
         texti++;
         memcpy(p + texti,csegname,i);
         memcpy(p + texti + i,lnames + texti + 5,lnamesize - (texti + 5));
@@ -1532,8 +1541,8 @@ STATIC void objheader(char *csegname)
  *      mem_malloc'd code seg name
  */
 
-STATIC char * objmodtoseg(const char *modname)
-{   char *csegname = NULL;
+private char * objmodtoseg(const char *modname)
+{   char *csegname = null;
 
     if (LARGECODE)              // if need to add in module name
     {   int i;
@@ -1544,7 +1553,7 @@ STATIC char * objmodtoseg(const char *modname)
         m = filespecgetroot(filespecname(modname));
         strupr(m);
         i = strlen(m);
-        csegname = (char *)mem_malloc(i + sizeof(suffix));
+        csegname = cast(char *)mem_malloc(i + sizeof(suffix));
         strcpy(csegname,m);
         strcat(csegname,suffix);
         mem_free(m);
@@ -1556,9 +1565,9 @@ STATIC char * objmodtoseg(const char *modname)
  * Put out a segment definition.
  */
 
-STATIC void objsegdef(int attr,targ_size_t size,int segnamidx,int classnamidx)
+private void objsegdef(int attr,targ_size_t size,int segnamidx,int classnamidx)
 {
-    unsigned reclen;
+    uint reclen;
     char sd[1+4+2+2+2+1];
 
     //printf("objsegdef(attr=x%x, size=x%x, segnamidx=x%x, classnamidx=x%x)\n",
@@ -1840,7 +1849,7 @@ void OmfObj_setModuleCtorDtor(Symbol *s, bool isCtor)
  * Used for static ctor and dtor lists.
  */
 
-void OmfObj_ehtables(Symbol *sfunc,unsigned size,Symbol *ehsym)
+void OmfObj_ehtables(Symbol *sfunc,uint size,Symbol *ehsym)
 {
     // We need to always put out the segments in triples, so that the
     // linker will put them in the correct order.
@@ -1974,7 +1983,7 @@ static int generate_comdat(Symbol *s, bool is_readonly_comdat)
     char cextdef[2+2];
     char *p;
     size_t lnamesize;
-    unsigned ti;
+    uint ti;
     int isfunc;
     tym_t ty;
 
@@ -2024,7 +2033,7 @@ static int generate_comdat(Symbol *s, bool is_readonly_comdat)
         }
     }
     else
-    {   unsigned char atyp;
+    {   ubyte atyp;
 
         switch (ty & mTYLINK)
         {   case 0:
@@ -2081,7 +2090,7 @@ void OmfObj_setcodeseg(int seg)
 /********************************
  * Define a new code segment.
  * Input:
- *      name            name of segment, if NULL then revert to default
+ *      name            name of segment, if null then revert to default
  *      suffix  0       use name as is
  *              1       append "_TEXT" to name
  * Output:
@@ -2104,8 +2113,8 @@ int OmfObj_codeseg(char *name,int suffix)
 
     // Put out LNAMES record
     size_t lnamesize = strlen(name) + suffix * 5;
-    char *lnames = (char *) alloca(1 + lnamesize + 1);
-    lnames[0] = (char)lnamesize;
+    char *lnames = cast(char *) alloca(1 + lnamesize + 1);
+    lnames[0] = cast(char)lnamesize;
     assert(lnamesize <= (255 - 2 - sizeof(int)*3));
     strcpy(lnames + 1,name);
     if (suffix)
@@ -2175,7 +2184,7 @@ seg_data *OmfObj_tlsseg_data()
 {
     // specific for Mach-O
     assert(0);
-    return NULL;
+    return null;
 }
 
 /********************************
@@ -2198,7 +2207,7 @@ int OmfObj_fardata(char *name,targ_size_t size,targ_size_t *poffset)
     // See if we can use existing far segment, and just bump its size
     i = obj.lastfardatasegi;
     if (i != -1
-        && (intsize != 2 || (unsigned long) SegData[i]->SDoffset + size < 0x8000)
+        && (intsize != 2 || cast(uint) SegData[i]->SDoffset + size < 0x8000)
         )
     {   *poffset = SegData[i]->SDoffset;        // BUG: should align this
         SegData[i]->SDoffset += size;
@@ -2218,7 +2227,7 @@ int OmfObj_fardata(char *name,targ_size_t size,targ_size_t *poffset)
 
     // Generate name for this far segment
     len = 1 + strlen(name) + 3 + 5 + 1;
-    buffer = (char *)alloca(len);
+    buffer = cast(char *)alloca(len);
     sprintf(buffer + 1,"%s%d_DATA",name,obj.segidx);
     len = strlen(buffer + 1);
     buffer[0] = len;
@@ -2248,7 +2257,7 @@ int OmfObj_fardata(char *name,targ_size_t size,targ_size_t *poffset)
  *      index of SegData[]
  */
 
-STATIC int obj_newfarseg(targ_size_t size,int classidx)
+private int obj_newfarseg(targ_size_t size,int classidx)
 {
     seg_data *f = getsegment();
     f->isfarseg = true;
@@ -2286,7 +2295,7 @@ void OmfObj_import(elem *e)
 
         // Create import name
         len = OmfObj_mangle(s,buffer);
-        if (buffer[0] == (char)0xFF && buffer[1] == 0)
+        if (buffer[0] == cast(char)0xFF && buffer[1] == 0)
         {   name = buffer + 4;
             len -= 4;
         }
@@ -2295,13 +2304,13 @@ void OmfObj_import(elem *e)
             len -= 1;
         }
         if (config.flags4 & CFG4underscore)
-        {   p = (char *) alloca(5 + len + 1);
+        {   p = cast(char *) alloca(5 + len + 1);
             memcpy(p,"_imp_",5);
             memcpy(p + 5,name,len);
             p[5 + len] = 0;
         }
         else
-        {   p = (char *) alloca(6 + len + 1);
+        {   p = cast(char *) alloca(6 + len + 1);
             memcpy(p,"__imp_",6);
             memcpy(p + 6,name,len);
             p[6 + len] = 0;
@@ -2329,7 +2338,7 @@ void OmfObj_import(elem *e)
         {
             e->Eoper = OPind;
             e->E1 = el_var(simp);
-            e->E2 = NULL;
+            e->E2 = null;
         }
     }
 #endif
@@ -2345,7 +2354,7 @@ size_t OmfObj_mangle(Symbol *s,char *dest)
 {   size_t len;
     size_t ilen;
     char *name;
-    char *name2 = NULL;
+    char *name2 = null;
 
     //printf("OmfObj_mangle('%s'), mangle = x%x\n",s->Sident,type_mangle(s->Stype));
 #if SCPP
@@ -2376,13 +2385,13 @@ size_t OmfObj_mangle(Symbol *s,char *dest)
              */
             MD5_CTX mdContext;
             MD5Init(&mdContext);
-            MD5Update(&mdContext, (unsigned char *)name, len);
+            MD5Update(&mdContext, (ubyte *)name, len);
             MD5Final(&mdContext);
             memcpy(name2, name, LIBIDMAX - 32);
             for (int i = 0; i < 16; i++)
-            {   unsigned char c = mdContext.digest[i];
-                unsigned char c1 = (c >> 4) & 0x0F;
-                unsigned char c2 = c & 0x0F;
+            {   ubyte c = mdContext.digest[i];
+                ubyte c1 = (c >> 4) & 0x0F;
+                ubyte c2 = c & 0x0F;
                 c1 += (c1 < 10) ? '0' : 'A' - 10;
                 name2[LIBIDMAX - 32 + i * 2] = c1;
                 c2 += (c2 < 10) ? '0' : 'A' - 10;
@@ -2468,7 +2477,7 @@ size_t OmfObj_mangle(Symbol *s,char *dest)
         len += 4;
     }
     else
-    {   *dest = (char)len;
+    {   *dest = cast(char)len;
         len++;
     }
     if (name2)
@@ -2481,11 +2490,11 @@ size_t OmfObj_mangle(Symbol *s,char *dest)
  * Export a function name.
  */
 
-void OmfObj_export_symbol(Symbol *s,unsigned argsize)
+void OmfObj_export_symbol(Symbol *s,uint argsize)
 {   char *coment;
     size_t len;
 
-    coment = (char *) alloca(4 + 1 + (IDMAX + IDOHD) + 1); // allow extra byte for mangling
+    coment = cast(char *) alloca(4 + 1 + (IDMAX + IDOHD) + 1); // allow extra byte for mangling
     len = OmfObj_mangle(s,&coment[4]);
     assert(len <= IDMAX + IDOHD);
     coment[1] = 0xA0;                           // comment class
@@ -2561,7 +2570,7 @@ void OmfObj_func_term(Symbol *sfunc)
  *      offset =        offset of name
  */
 
-STATIC void outpubdata()
+private void outpubdata()
 {
     if (obj.pubdatai)
     {   objrecord(obj.mpubdef,obj.pubdata,obj.pubdatai);
@@ -2570,9 +2579,9 @@ STATIC void outpubdata()
 }
 
 void OmfObj_pubdef(int seg,Symbol *s,targ_size_t offset)
-{   unsigned reclen,len;
+{   uint reclen,len;
     char *p;
-    unsigned ti;
+    uint ti;
 
     assert(offset < 100000000);
     obj.reset_symbuf->write(&s, sizeof(s));
@@ -2610,7 +2619,7 @@ void OmfObj_pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsi
  *      External index of the definition (1,2,...)
  */
 
-STATIC void outextdata()
+private void outextdata()
 {
     if (obj.extdatai)
     {   objrecord(EXTDEF,obj.extdata,obj.extdatai);
@@ -2619,7 +2628,7 @@ STATIC void outextdata()
 }
 
 int OmfObj_external_def(const char *name)
-{   unsigned len;
+{   uint len;
     char *e;
 
     //printf("OmfObj_external_def('%s', %d)\n",name,obj.extidx + 1);
@@ -2653,7 +2662,7 @@ int OmfObj_external(Symbol *s)
         outextdata();
 
     char *e = &obj.extdata[obj.extdatai];
-    unsigned len = OmfObj_mangle(s,e);
+    uint len = OmfObj_mangle(s,e);
     e[len] = 0;                 // typidx = 0
     obj.extdatai += len + 1;
     s->Sxtrnnum = ++obj.extidx;
@@ -2674,7 +2683,7 @@ int OmfObj_external(Symbol *s)
 
 // Helper for OmfObj_common_block()
 
-static unsigned storelength(unsigned long length,unsigned i)
+static uint storelength(uint length,uint i)
 {
     obj.extdata[i] = length;
     if (length >= 128)  // Microsoft docs say 129, but their linker
@@ -2709,9 +2718,10 @@ int OmfObj_common_block(Symbol *s,targ_size_t size,targ_size_t count)
 }
 
 int OmfObj_common_block(Symbol *s,int flag,targ_size_t size,targ_size_t count)
-{ register unsigned i;
-  unsigned long length;
-  unsigned ti;
+{
+  uint i;
+  uint length;
+  uint ti;
 
     //printf("OmfObj_common_block('%s',%d,%d,%d, %d)\n",s->Sident,flag,size,count, obj.extidx + 1);
     obj.reset_symbuf->write(&s, sizeof(s));
@@ -2725,7 +2735,7 @@ int OmfObj_common_block(Symbol *s,int flag,targ_size_t size,targ_size_t count)
   {
         //printf("NEAR comdef\n");
         obj.extdata[i] = 0x62;
-        length = (unsigned long) size * count;
+        length = cast(uint) size * count;
         assert(I32 || length <= 0x10000);
         i = storelength(length,i + 1);
   }
@@ -2733,8 +2743,8 @@ int OmfObj_common_block(Symbol *s,int flag,targ_size_t size,targ_size_t count)
   {
         //printf("FAR comdef\n");
         obj.extdata[i] = 0x61;
-        i = storelength((unsigned long) size,i + 1);
-        i = storelength((unsigned long) count,i);
+        i = storelength(cast(uint) size,i + 1);
+        i = storelength(cast(uint) count,i);
   }
   assert(i <= arraysize(obj.extdata));
   objrecord(COMDEF,obj.extdata,i);
@@ -2759,7 +2769,7 @@ void OmfObj_write_zeros(seg_data *pseg, targ_size_t count)
 
 void OmfObj_lidata(int seg,targ_size_t offset,targ_size_t count)
 {   int i;
-    unsigned reclen;
+    uint reclen;
     static char zero[20];
     char data[20];
     char *di;
@@ -2799,7 +2809,7 @@ Lagain:
     {
         if (count >= 0x8000)            // repeat count can only go to 32k
         {
-            TOWORD(di + 4,(unsigned short)(count / 0x8000));
+            TOWORD(di + 4,(ushort)(count / 0x8000));
             TOWORD(di + 4 + 2,1);               // 1 data block follows
             TOWORD(di + 4 + 2 + 2,0x8000);      // repeat count
             TOWORD(di + 4 + 2 + 2 + 2,0);       // block count
@@ -2813,7 +2823,7 @@ Lagain:
         }
         else
         {
-            TOWORD(di + 4,(unsigned short)count);       // repeat count
+            TOWORD(di + 4,(ushort)count);       // repeat count
             TOWORD(di + 4 + 2,0);                       // block count
             TOWORD(di + 4 + 2 + 2,1);                   // 1 byte of 0
             reclen = i + 4 + 2 + 2 + 2;
@@ -2835,13 +2845,13 @@ Lagain:
  * Output a MODEND record.
  */
 
-STATIC void obj_modend()
+private void obj_modend()
 {
     if (obj.startaddress)
     {   char mdata[10];
         int i;
-        unsigned framedatum,targetdatum;
-        unsigned char fd;
+        uint framedatum,targetdatum;
+        ubyte fd;
         targ_size_t offset;
         int external;           // !=0 if identifier is defined externally
         tym_t ty;
@@ -2975,9 +2985,9 @@ STATIC void obj_modend()
  * Output the fixups in list fl.
  */
 
-STATIC void objfixupp(struct FIXUP *f)
+private void objfixupp(struct FIXUP *f)
 {
-  unsigned i,j,k;
+  uint i,j,k;
   targ_size_t locat;
   struct FIXUP *fn;
 
@@ -2986,7 +2996,7 @@ STATIC void objfixupp(struct FIXUP *f)
 
   i = 0;
   for (; f; f = fn)
-  {     unsigned char fd;
+  {     ubyte fd;
 
         if (i >= sizeof(data) - (3 + 2 + 2))    // if not enough room
         {   objrecord(obj.mfixupp,data,i);
@@ -3040,8 +3050,8 @@ STATIC void objfixupp(struct FIXUP *f)
  * Write things out if we overflow the list.
  */
 
-STATIC void addfixup(Ledatarec *lr, targ_size_t offset,unsigned lcfd,
-        unsigned framedatum,unsigned targetdatum)
+private void addfixup(Ledatarec *lr, targ_size_t offset,uint lcfd,
+        uint framedatum,uint targetdatum)
 {   struct FIXUP *f;
 
     assert(offset < 0x1024);
@@ -3049,7 +3059,7 @@ STATIC void addfixup(Ledatarec *lr, targ_size_t offset,unsigned lcfd,
     assert(targetdatum <= 0x7FFF);
     assert(framedatum <= 0x7FFF);
 #endif
-    f = (struct FIXUP *) mem_fmalloc(sizeof(struct FIXUP));
+    f = cast(struct FIXUP *) mem_fmalloc(sizeof(struct FIXUP));
     //printf("f = %p, offset = x%x\n",f,offset);
     f->FUoffset = offset;
     f->FUlcfd = lcfd;
@@ -3070,7 +3080,7 @@ STATIC void addfixup(Ledatarec *lr, targ_size_t offset,unsigned lcfd,
  *      offset  starting offset of start of data for this record
  */
 
-STATIC Ledatarec *ledata_new(int seg,targ_size_t offset)
+private Ledatarec *ledata_new(int seg,targ_size_t offset)
 {
 
     //printf("ledata_new(seg = %d, offset = x%lx)\n",seg,offset);
@@ -3080,12 +3090,12 @@ STATIC Ledatarec *ledata_new(int seg,targ_size_t offset)
     {
         size_t o = obj.ledatamax;
         obj.ledatamax = o * 2 + 100;
-        obj.ledatas = (Ledatarec **)mem_realloc(obj.ledatas, obj.ledatamax * sizeof(Ledatarec *));
+        obj.ledatas = cast(Ledatarec **)mem_realloc(obj.ledatas, obj.ledatamax * sizeof(Ledatarec *));
         memset(obj.ledatas + o, 0, (obj.ledatamax - o) * sizeof(Ledatarec *));
     }
     Ledatarec *lr = obj.ledatas[obj.ledatai];
     if (!lr)
-    {   lr = (Ledatarec *) mem_malloc(sizeof(Ledatarec));
+    {   lr = cast(Ledatarec *) mem_malloc(sizeof(Ledatarec));
         obj.ledatas[obj.ledatai] = lr;
     }
     memset(lr, 0, sizeof(Ledatarec));
@@ -3118,7 +3128,7 @@ STATIC Ledatarec *ledata_new(int seg,targ_size_t offset)
  * Append byte to segment.
  */
 
-void OmfObj_write_byte(seg_data *pseg, unsigned byte)
+void OmfObj_write_byte(seg_data *pseg, uint byte)
 {
     OmfObj_byte(pseg->SDseg, pseg->SDoffset, byte);
     pseg->SDoffset++;
@@ -3128,7 +3138,7 @@ void OmfObj_write_byte(seg_data *pseg, unsigned byte)
  * Output byte to object file.
  */
 
-void OmfObj_byte(int seg,targ_size_t offset,unsigned byte)
+void OmfObj_byte(int seg,targ_size_t offset,uint byte)
 {
     Ledatarec *lr = SegData[seg]->ledata;
     if (!lr)
@@ -3155,10 +3165,10 @@ void OmfObj_byte(int seg,targ_size_t offset,unsigned byte)
         }
 L2:
         lr = ledata_new(seg,offset);
-L1:     ;
+L1:     { }
     }
 
-    unsigned i = offset - lr->offset;
+    uint i = offset - lr->offset;
     if (lr->i <= i)
         lr->i = i + 1;
     lr->data[i] = byte;           // 1st byte of data
@@ -3168,7 +3178,7 @@ L1:     ;
  * Append bytes to segment.
  */
 
-void OmfObj_write_bytes(seg_data *pseg, unsigned nbytes, void *p)
+void OmfObj_write_bytes(seg_data *pseg, uint nbytes, void *p)
 {
     OmfObj_bytes(pseg->SDseg, pseg->SDoffset, nbytes, p);
     pseg->SDoffset += nbytes;
@@ -3180,8 +3190,8 @@ void OmfObj_write_bytes(seg_data *pseg, unsigned nbytes, void *p)
  *      nbytes
  */
 
-unsigned OmfObj_bytes(int seg,targ_size_t offset,unsigned nbytes, void *p)
-{   unsigned n = nbytes;
+uint OmfObj_bytes(int seg,targ_size_t offset,uint nbytes, void *p)
+{   uint n = nbytes;
 
     //dbg_printf("OmfObj_bytes(seg=%d, offset=x%lx, nbytes=x%x, p=%p)\n",seg,offset,nbytes,p);
     Ledatarec *lr = SegData[seg]->ledata;
@@ -3195,7 +3205,7 @@ unsigned OmfObj_bytes(int seg,targ_size_t offset,unsigned nbytes, void *p)
      )
     {
         while (nbytes)
-        {   OmfObj_byte(seg,offset,*(char *)p);
+        {   OmfObj_byte(seg,offset,*cast(char *)p);
             offset++;
             p = ((char *)p) + 1;
             nbytes--;
@@ -3206,7 +3216,7 @@ unsigned OmfObj_bytes(int seg,targ_size_t offset,unsigned nbytes, void *p)
     }
     else
     {
-        unsigned i = offset - lr->offset;
+        uint i = offset - lr->offset;
         if (lr->i < i + nbytes)
             lr->i = i + nbytes;
         memcpy(lr->data + i,p,nbytes);
@@ -3229,11 +3239,11 @@ unsigned OmfObj_bytes(int seg,targ_size_t offset,unsigned nbytes, void *p)
  */
 
 void OmfObj_ledata(int seg,targ_size_t offset,targ_size_t data,
-        unsigned lcfd,unsigned idx1,unsigned idx2)
+        uint lcfd,uint idx1,uint idx2)
 {
-    unsigned size;                      // number of bytes to output
+    uint size;                      // number of bytes to output
 
-    unsigned ptrsize = tysize(TYfptr);
+    uint ptrsize = tysize(TYfptr);
 
     if ((lcfd & LOCxx) == obj.LOCpointer)
         size = ptrsize;
@@ -3270,10 +3280,10 @@ void OmfObj_ledata(int seg,targ_size_t offset,targ_size_t data,
             }
         }
         lr = ledata_new(seg,offset);
-L1:     ;
+L1:     { }
     }
 
-    unsigned i = offset - lr->offset;
+    uint i = offset - lr->offset;
     if (lr->i < i + size)
         lr->i = i + size;
     if (size == 2 || !I32)
@@ -3300,10 +3310,10 @@ L1:     ;
  *              idx2 = target datum
  */
 
-void OmfObj_write_long(int seg,targ_size_t offset,unsigned data,
-        unsigned lcfd,unsigned idx1,unsigned idx2)
+void OmfObj_write_long(int seg,targ_size_t offset,uint data,
+        uint lcfd,uint idx1,uint idx2)
 {
-    unsigned sz = tysize(TYfptr);
+    uint sz = tysize(TYfptr);
     Ledatarec *lr = SegData[seg]->ledata;
     if (!lr)
          lr = ledata_new(seg, offset);
@@ -3313,7 +3323,7 @@ void OmfObj_write_long(int seg,targ_size_t offset,unsigned data,
          offset > lr->offset + lr->i
        )
         lr = ledata_new(seg,offset);
-    unsigned i = offset - lr->offset;
+    uint i = offset - lr->offset;
     if (lr->i < i + sz)
         lr->i = i + sz;
     TOLONG(lr->data + i,data);
@@ -3337,7 +3347,7 @@ void OmfObj_write_long(int seg,targ_size_t offset,unsigned data,
  */
 
 void OmfObj_reftodatseg(int seg,targ_size_t offset,targ_size_t val,
-        unsigned targetdatum,int flags)
+        uint targetdatum,int flags)
 {
     assert(flags);
 
@@ -3401,8 +3411,8 @@ void OmfObj_reftofarseg(int seg,targ_size_t offset,targ_size_t val,
  */
 
 void OmfObj_reftocodeseg(int seg,targ_size_t offset,targ_size_t val)
-{   unsigned framedatum;
-    unsigned lcfd;
+{   uint framedatum;
+    uint lcfd;
 
     int idx = SegData[cseg]->segidx;
     if (seg_is_comdat(idx))             // if comdat
@@ -3444,8 +3454,8 @@ void OmfObj_reftocodeseg(int seg,targ_size_t offset,targ_size_t val)
 int OmfObj_reftoident(int seg,targ_size_t offset,Symbol *s,targ_size_t val,
         int flags)
 {
-    unsigned targetdatum;       // which datum the symbol is in
-    unsigned framedatum;
+    uint targetdatum;       // which datum the symbol is in
+    uint framedatum;
     int     lc;
     int     external;           // !=0 if identifier is defined externally
     int numbytes;
@@ -3507,6 +3517,9 @@ int OmfObj_reftoident(int seg,targ_size_t offset,Symbol *s,targ_size_t val,
                 lc = obj.LOCpointer;
                 numbytes = tysize(TYfptr);
                 break;
+
+            default:
+                assert(0);
         }
         break;
     }
@@ -3638,7 +3651,7 @@ int OmfObj_reftoident(int seg,targ_size_t offset,Symbol *s,targ_size_t val,
 
 void OmfObj_far16thunk(Symbol *s)
 {
-    static unsigned char cod32_1[] =
+    static ubyte cod32_1[] =
     {
         0x55,                           //      PUSH    EBP
         0x8B,0xEC,                      //      MOV     EBP,ESP
@@ -3654,7 +3667,7 @@ void OmfObj_far16thunk(Symbol *s)
         0x8C,0xD0,                      //      MOV     AX,SS
         0x66,0x3D, // 0x00,0x00 */      /*      CMP     AX,seg FLAT:_DATA
     };
-    static unsigned char cod32_2[] =
+    static ubyte cod32_2[] =
     {   0x0F,0x85,0x10,0x00,0x00,0x00,  //      JNE     L1
         0x8B,0xC4,                      //      MOV     EAX,ESP
         0x66,0x3D,0x00,0x08,            //      CMP     AX,2048
@@ -3680,7 +3693,7 @@ void OmfObj_far16thunk(Symbol *s)
         0x66,0x0F,0xB2,0x24,0x24,       //      LSS     SP,[ESP]
         0x66,0xEA, // 0,0,0,0, */       /*      JMPF    L3
     };
-    static unsigned char cod32_3[] =
+    static ubyte cod32_3[] =
     {                                   // L2:
         0xC1,0xE0,0x10,                 //      SHL     EAX,16
         0x0F,0xAC,0xD0,0x10,            //      SHRD    EAX,EDX,16
@@ -3696,7 +3709,7 @@ void OmfObj_far16thunk(Symbol *s)
         0xC2,0x00,0x00                  //      RET     numparam
     };
 
-    unsigned numparam = 24;
+    uint numparam = 24;
     targ_size_t L2offset;
     int idx;
 
@@ -3725,7 +3738,7 @@ void OmfObj_far16thunk(Symbol *s)
         obj.CODE16offset = 0;
 
         // class CODE
-        unsigned attr = SEG_ATTR(SEG_ALIGN2,SEG_C_PUBLIC,0,USE16);
+        uint attr = SEG_ATTR(SEG_ALIGN2,SEG_C_PUBLIC,0,USE16);
         SegData[obj.code16segi]->attr = attr;
         objsegdef(attr,0,obj.lnameidx++,4);
         obj.segidx++;
@@ -3796,11 +3809,11 @@ void OmfObj_fltused()
     }
 }
 
-symbol *OmfObj_tlv_bootstrap()
+Symbol *OmfObj_tlv_bootstrap()
 {
     // specific for Mach-O
     assert(0);
-    return NULL;
+    return null;
 }
 
 void OmfObj_gotref(Symbol *s)
@@ -3814,7 +3827,7 @@ void OmfObj_gotref(Symbol *s)
  *      soff = offset of the pointer inside the Symbol's memory
  */
 
-void OmfObj_write_pointerRef(Symbol* s, unsigned soff)
+void OmfObj_write_pointerRef(Symbol* s, uint soff)
 {
 #if MARS
     if (!obj.ptrref_buf)
@@ -3833,7 +3846,7 @@ void OmfObj_write_pointerRef(Symbol* s, unsigned soff)
  *      s    = symbol that contains the pointer
  *      soff = offset of the pointer inside the Symbol's memory
  */
-STATIC void objflush_pointerRef(Symbol* s, unsigned soff)
+private void objflush_pointerRef(Symbol* s, uint soff)
 {
 #if MARS
     bool isTls = (s->Sfl == FLtlsdata);
@@ -3880,19 +3893,19 @@ STATIC void objflush_pointerRef(Symbol* s, unsigned soff)
  * flush all pointer references saved by write_pointerRef
  * to the object file
  */
-STATIC void objflush_pointerRefs()
+private void objflush_pointerRefs()
 {
 #if MARS
     if (!obj.ptrref_buf)
         return;
 
-    unsigned char *p = obj.ptrref_buf->buf;
-    unsigned char *end = obj.ptrref_buf->p;
+    ubyte *p = obj.ptrref_buf->buf;
+    ubyte *end = obj.ptrref_buf->p;
     while (p < end)
     {
-        Symbol* s = *(Symbol**)p;
+        Symbol* s = *cast(Symbol**)p;
         p += sizeof(s);
-        unsigned soff = *(unsigned*)p;
+        uint soff = *cast(uint*)p;
         p += sizeof(soff);
         objflush_pointerRef(s, soff);
     }
