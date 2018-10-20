@@ -1721,7 +1721,15 @@ void perror(scope const char* s);
 
 version (CRuntime_DigitalMars)
 {
-    import core.sys.windows.windows;
+    version (none)
+        import core.sys.windows.windows : HANDLE, _WaitSemaphore, _ReleaseSemaphore;
+    else
+    {
+        // too slow to import windows
+        private alias void* HANDLE;
+        private void _WaitSemaphore(int iSemaphore);
+        private void _ReleaseSemaphore(int iSemaphore);
+    }
 
     enum
     {
@@ -1745,9 +1753,6 @@ version (CRuntime_DigitalMars)
     private extern __gshared int[_MAX_SEMAPHORES] _iSemNestCount;
     private extern __gshared HANDLE[_NFILE] _osfhnd;
     extern shared ubyte[_NFILE] __fhnd_info;
-
-    private void _WaitSemaphore(int iSemaphore);
-    private void _ReleaseSemaphore(int iSemaphore);
 
     // this is copied from semlock.h in DMC's runtime.
     private void LockSemaphore()(uint num)
