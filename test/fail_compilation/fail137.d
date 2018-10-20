@@ -1,4 +1,5 @@
-// https://issues.dlang.org/show_bug.cgi?id=751 Compiler segfault on template expansion
+// https://issues.dlang.org/show_bug.cgi?id=751
+// Compiler segfault on template expansion
 
     template TypeTuple( TList... )
     {

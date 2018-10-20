@@ -1,7 +1,9 @@
 // PERMUTE_ARGS: -O -inline
 
 // Test value-range propagation.
-// See Bug 3147, Bug 6000, Bug 5225.
+// https://issues.dlang.org/show_bug.cgi?id=3147
+// https://issues.dlang.org/show_bug.cgi?id=6000
+// https://issues.dlang.org/show_bug.cgi?id=5225
 
 void add()
 {

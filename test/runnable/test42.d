@@ -84,7 +84,8 @@ void test5()
 }
 
 /***************************************************/
-// Bug 1200. One case moved to deprecate1.d
+// https://issues.dlang.org/show_bug.cgi?id=1200
+// One case moved to deprecate1.d
 
 void foo6a() {
         do
@@ -809,7 +810,7 @@ void test54()
 }
 
 /***************************************************/
-// bug 1767
+// https://issues.dlang.org/show_bug.cgi?id=1767
 
 class DebugInfo
 {
@@ -3182,7 +3183,7 @@ void test197()
 
 /***************************************************/
 
-void test198()  // Bugzilla 4506
+void test198()  // https://issues.dlang.org/show_bug.cgi?id=4506
 {
     int c = 1;
     for (int k = 0; k < 2; k++) {
@@ -3193,7 +3194,7 @@ void test198()  // Bugzilla 4506
 
 /***************************************************/
 
-// Bugzilla 4514
+// https://issues.dlang.org/show_bug.cgi?id=4514
 void g199(void delegate(void*, void*) d) { }
 
 struct X199 {
@@ -3205,7 +3206,7 @@ struct X199 {
 }
 
 /***************************************************/
-// Bugzilla 4443
+// https://issues.dlang.org/show_bug.cgi?id=4443
 
 struct Struct4443
 {
@@ -3230,7 +3231,7 @@ void test200()
 
 /***************************************************/
 
-// Bugzilla 2931
+// https://issues.dlang.org/show_bug.cgi?id=2931
 
 struct Bug2931 {
     int[4][3] val;
@@ -3310,7 +3311,7 @@ void test202()
 }
 
 /***************************************************/
-// Bugzilla 1418
+// https://issues.dlang.org/show_bug.cgi?id=1418
 
 class A203
 {
@@ -3341,13 +3342,13 @@ void test203()
 }
 
 /***************************************************/
-// Bugzilla 4516
+// https://issues.dlang.org/show_bug.cgi?id=4516
 
 struct A204 { B204 b; }
 enum B204 { Z }
 
 /***************************************************/
-// Bugzilla 4503
+// https://issues.dlang.org/show_bug.cgi?id=4503
 
 class Collection205(T) { }
 ICollection c;
@@ -3440,7 +3441,7 @@ template Bug6602B(U) {
 enum bug6602Compiles = __traits(compiles, Bug6602A!short);
 
 /***************************************************/
-// Bugzilla 3493
+// https://issues.dlang.org/show_bug.cgi?id=3493
 
 const bar209 = foo209;
 const int * foo209 = null;

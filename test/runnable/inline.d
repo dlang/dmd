@@ -159,7 +159,7 @@ void test10833()
 }
 
 /************************************/
-// Bugzilla 4825
+// https://issues.dlang.org/show_bug.cgi?id=4825
 
 int a8() {
     int r;

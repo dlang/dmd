@@ -465,7 +465,7 @@ int wrongcode3139(int x)
 
 static assert(wrongcode3139(-5)==3);
 
-// bug 3139
+// https://issues.dlang.org/show_bug.cgi?id=3139
 static assert(!is(typeof(
         (long x) { switch(x) { case long.max: .. case -long.max:
         default:} return 4; }(3)
@@ -659,7 +659,8 @@ void test14352()
 }
 
 /*****************************************/
-// Issue 14587 - DMD 2.067.1 generating crashing binary on OSX
+// https://issues.dlang.org/show_bug.cgi?id=14587
+// DMD 2.067.1 generating crashing binary on OSX
 
 struct Card {
     int value;
@@ -680,7 +681,8 @@ void test14587() {
 }
 
 /*****************************************/
-// Issue 15396 - static immutable not recognized as constant within switch statement
+// https://issues.dlang.org/show_bug.cgi?id=15396
+// static immutable not recognized as constant within switch statement
 
 void test15396()
 {
@@ -702,7 +704,6 @@ void test15396()
 }
 
 /*****************************************/
-
 // https://issues.dlang.org/show_bug.cgi?id=15538
 
 struct S15538

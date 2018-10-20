@@ -1460,7 +1460,7 @@ void test11711()
 
 
 /********************************************************/
-// Issue 12278
+// https://issues.dlang.org/show_bug.cgi?id=12278
 
 class Foo12278
 {

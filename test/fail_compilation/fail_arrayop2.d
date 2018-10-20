@@ -8,7 +8,7 @@ fail_compilation/fail_arrayop2.d(13): Error: array operation `[1, 2, 3] - [1, 2,
 fail_compilation/fail_arrayop2.d(16): Error: invalid array operation `"a" - "b"` (possible missing [])
 ---
 */
-void test2603() // Issue 2603 - ICE(cgcs.c) on subtracting string literals
+void test2603() // https://issues.dlang.org/show_bug.cgi?id=2603 - ICE(cgcs.c) on subtracting string literals
 {
     auto c1 = [1,2,3] - [1,2,3];
 

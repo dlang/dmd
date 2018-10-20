@@ -672,7 +672,7 @@ void test61()
 template Tuple63(T...){
     alias T Tuple63;
 }
-// Bugzilla 3336
+// https://issues.dlang.org/show_bug.cgi?id=3336
 static assert(!is(int[ Tuple63!(int, int) ]));
 
 void test63()
@@ -691,7 +691,7 @@ void test1411()
 }
 
 /***************************************/
-// Bugzilla 4444
+// https://issues.dlang.org/show_bug.cgi?id=4444
 
 void test4444()
 {

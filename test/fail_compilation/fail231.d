@@ -5,8 +5,8 @@ fail_compilation/fail231.d(15): Error: class `fail231.Derived` cannot implicitly
 ---
 */
 
-// Issue 951 - Missing line number: no constructor provided for a class derived from a class with no default constructor
-
+// https://issues.dlang.org/show_bug.cgi?id=951
+// Missing line number: no constructor provided for a class derived from a class with no default constructor
 class Base
 {
     this(int x) {}

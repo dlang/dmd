@@ -334,7 +334,7 @@ unittest { if (true) {fooNoDescription(); } /* comment */ }
 
 // ------------------------------------
 
-/// test for bugzilla 9757
+/// test for https://issues.dlang.org/show_bug.cgi?id=9757
 void foo9757() {}
 /// ditto
 void bar9757() {}
@@ -370,7 +370,7 @@ unittest
 }
 
 // ------------------------------------
-// Issue 9758
+// https://issues.dlang.org/show_bug.cgi?id=9758
 
 /// test
 void foo(){}
@@ -379,7 +379,7 @@ void foo(){}
 unittest {  }
 
 // ------------------------------------
-// Issue 10519
+// https://issues.dlang.org/show_bug.cgi?id=10519
 
 ///
 bool balancedParens10519(string, char, char) { return true; }
@@ -391,7 +391,7 @@ unittest
 }
 
 // ------------------------------------
-// Issue 12097
+// https://issues.dlang.org/show_bug.cgi?id=12097
 
 /// declaration
 struct S12097

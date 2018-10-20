@@ -1,4 +1,5 @@
-// Issue 2920 - recursive templates blow compiler stack
+// https://issues.dlang.org/show_bug.cgi?id=2920
+// recursive templates blow compiler stack
 // template_17_A.
 
 template t(int i)

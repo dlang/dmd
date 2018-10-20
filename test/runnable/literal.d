@@ -210,13 +210,13 @@ void test13907()
     static wchar[20] wsa = "hello world";  // ok
     static dchar[20] dsa = "hello world";  // ok
 
-    // Bugzilla 13966
+    // https://issues.dlang.org/show_bug.cgi?id=13966
     string[1][] arr;
     arr ~= ["class"];
     enum immutable(char[5]) sarrstr = "class";
     arr ~= [sarrstr];
 
-    // Bugzilla 13999
+    // https://issues.dlang.org/show_bug.cgi?id=13999
     string[dchar[2]] aa13999 = ["あ": "bar"];
     assert(aa13999["あ"] == "bar");
     dchar[2] key13999 = "あ";

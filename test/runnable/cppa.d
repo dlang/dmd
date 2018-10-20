@@ -499,7 +499,7 @@ extern (C++, std)
 
     class exception { }
 
-    // 14956
+    // https://issues.dlang.org/show_bug.cgi?id=14956
     extern(C++, N14956)
     {
         struct S14956 { }

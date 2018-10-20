@@ -5,8 +5,8 @@ fail_compilation/fail195.d(22): Error: struct `Foo` does not overload ()
 ---
 */
 
-// https://issues.dlang.org/show_bug.cgi?id=1384 Compiler segfaults when using struct variable like a function with no opCall member.
-
+// https://issues.dlang.org/show_bug.cgi?id=1384
+// Compiler segfaults when using struct variable like a function with no opCall member.
 struct Foo
 {
     union

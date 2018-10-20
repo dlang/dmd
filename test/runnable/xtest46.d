@@ -1744,7 +1744,7 @@ void test86()
 
 /***************************************************/
 
-// Bugzilla 3379
+// https://issues.dlang.org/show_bug.cgi?id=3379
 
 T1[] find(T1, T2)(T1[] longer, T2[] shorter)
    if (is(typeof(longer[0 .. 1] == shorter) : bool))
@@ -2373,7 +2373,7 @@ template foo114(fun...)
 pragma(msg, typeof(foo114!"a + b"([1,2,3])));
 
 /***************************************************/
-// Bugzilla 3935
+// https://issues.dlang.org/show_bug.cgi?id=3935
 
 struct Foo115 {
     void opBinary(string op)(Foo other) {
@@ -2389,7 +2389,7 @@ void test115()
 }
 
 /***************************************************/
-// Bugzilla 2477
+// https://issues.dlang.org/show_bug.cgi?id=2477
 
 void foo116(T,)(T t) { T x; }
 
@@ -2426,7 +2426,7 @@ void test1891()
 }
 
 /***************************************************/
-// Bugzilla 4291
+// https://issues.dlang.org/show_bug.cgi?id=4291
 
 void test117() pure
 {
@@ -2442,7 +2442,7 @@ template declareFunction()
 }
 
 /***************************************************/
-// Bugzilla 4177
+// https://issues.dlang.org/show_bug.cgi?id=4177
 
 pure real log118(real x) {
     if (__ctfe)
@@ -4968,7 +4968,7 @@ void test6763()
     i6763(0);
     o6763(n);   static assert(!__traits(compiles, o6763(0)));
 
-    // 6755
+    // https://issues.dlang.org/show_bug.cgi?id=6755
     static assert(typeof(f6763).stringof == "void(int _param_0)");
     static assert(typeof(c6763).stringof == "void(const(int) _param_0)");
     static assert(typeof(r6763).stringof == "void(ref int _param_0)");

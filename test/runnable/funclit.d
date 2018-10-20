@@ -160,7 +160,7 @@ void test4()
     // function/delegate inference + overload resolution
     assert(nbaz4({ }) == 1);
     assert(nbaz4({ v = 1; }) == 2);
-    assert(nbaz4({ sfoo(); }) == 1);    // Bugzilla 8836
+    assert(nbaz4({ sfoo(); }) == 1);    // https://issues.dlang.org/show_bug.cgi?id=8836
     assert(nbaz4({ nfoo(); }) == 2);
 
     assert(tbaz4({ }) == 1);

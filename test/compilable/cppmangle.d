@@ -1,6 +1,9 @@
 
 // Test C++ name mangling.
-// See Bugs 4059, 5148, 7024, 10058
+// https://issues.dlang.org/show_bug.cgi?id=4059
+// https://issues.dlang.org/show_bug.cgi?id=5148
+// https://issues.dlang.org/show_bug.cgi?id=7024
+// https://issues.dlang.org/show_bug.cgi?id=10058
 
 import core.stdc.stdio;
 

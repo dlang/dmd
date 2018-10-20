@@ -866,8 +866,8 @@ class Foo35
                 //writefln("y = %s", y);
                 assert(x == 42);
                 assert(y == 43);
-              //static assert(is(typeof(this.outer) == void*)); // Bugzilla 14442
-                static assert(is(typeof(this.outer) == Foo35)); // Bugzilla 15839
+              //static assert(is(typeof(this.outer) == void*)); // https://issues.dlang.org/show_bug.cgi?id=14442
+                static assert(is(typeof(this.outer) == Foo35)); // https://issues.dlang.org/show_bug.cgi?id=15839
             }
         };
     }
