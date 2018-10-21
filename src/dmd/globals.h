@@ -41,7 +41,8 @@ typedef unsigned char CHECKACTION;
 enum
 {
     CHECKACTION_D,        // call D assert on failure
-    CHECKACTION_C         // call C assert on failure
+    CHECKACTION_C,        // call C assert on failure
+    CHECKACTION_halt      // cause program halt on failure
 };
 
 enum CPU
