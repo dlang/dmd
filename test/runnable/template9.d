@@ -4172,7 +4172,7 @@ void test13294()
         f(src, dst);
     }
 
-    // 13351
+    // https://issues.dlang.org/show_bug.cgi?id=13351
     T add(T)(in T x, in T y)
     {
         T z;

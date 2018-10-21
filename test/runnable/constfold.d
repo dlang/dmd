@@ -349,7 +349,7 @@ int foo9() {
 static assert(foo9()==2);
 
 /************************************/
-// Bugzilla 6077
+// https://issues.dlang.org/show_bug.cgi?id=6077
 
 void test6077() {
     static string scat(string s1, string s2)

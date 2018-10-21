@@ -1,7 +1,8 @@
 module imports.template_ovs3;
 
 /***************************************************/
-// https://issues.dlang.org/show_bug.cgi?id=1900 - template overload set
+// https://issues.dlang.org/show_bug.cgi?id=1900
+// template overload set
 
 import imports.template_ovs1;
 import imports.template_ovs2;

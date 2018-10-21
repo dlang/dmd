@@ -480,7 +480,8 @@ class Bar14549
 }
 
 // ----
-// https://issues.dlang.org/show_bug.cgi?id=14609 - regression case
+// https://issues.dlang.org/show_bug.cgi?id=14609
+// regression case
 
 interface Foo14609(T)
 {

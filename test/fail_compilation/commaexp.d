@@ -22,7 +22,7 @@ int main () {
     size_t aggr;
     MyContainerClass mc;
 
-    // Bug 15997
+    // https://issues.dlang.org/show_bug.cgi?id=15997
     enum WINHTTP_ERROR_BASE = 4200;
     enum ERROR_WINHTTP_CLIENT_AUTH_CERT_NEEDED = (WINHTTP_ERROR_BASE, + 44);
 

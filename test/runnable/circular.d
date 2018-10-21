@@ -3,7 +3,7 @@
 // EXTRA_SOURCES: imports/circularA.d
 // This bug is typedef-specific.
 
-// Bugzilla 4543
+// https://issues.dlang.org/show_bug.cgi?id=4543
 
 import core.stdc.stdio;
 import imports.circularA;

@@ -1,7 +1,8 @@
 module imports.template_ovs1;
 
 /***************************************************/
-// https://issues.dlang.org/show_bug.cgi?id=1900 - template overload set
+// https://issues.dlang.org/show_bug.cgi?id=1900
+// template overload set
 
 auto foo1900a(int num) { return 1; }
 auto foo1900b(T)(T arg) if (is(T : const(char)[])) { return 2; }

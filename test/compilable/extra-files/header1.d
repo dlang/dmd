@@ -62,7 +62,7 @@ template Foo(T, int V)
 {
     void foo(...)
     {
-        static if (is(Object _ : X!TL, alias X, TL...)) {}  // Bugzilla 10044
+        static if (is(Object _ : X!TL, alias X, TL...)) {}  // https://issues.dlang.org/show_bug.cgi?id=10044
 
         auto x = __traits(hasMember, Object, "noMember");
         auto y = is(Object : X!TL, alias X, TL...);
@@ -540,7 +540,7 @@ class Foo2A {
 
 }
 
-// bugzilla 15676
+// https://issues.dlang.org/show_bug.cgi?id=15676
 struct Foo3A(T)
 {
     @disable this(this);

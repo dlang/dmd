@@ -408,7 +408,7 @@ void test7()
     static assert(!__traits(compiles, { switch (c1) { default: } }));
     static assert(!__traits(compiles, { switch (c3) { default: } }));
 
-    // Bugzilla 12537: function arguments with IFTI
+    // https://issues.dlang.org/show_bug.cgi?id=12537: function arguments with IFTI
     void eq12537()(Object lhs) {}
     const C0 cc0;
     const C1 cc1;
@@ -419,7 +419,8 @@ void test7()
 }
 
 /***************************************************/
-// https://issues.dlang.org/show_bug.cgi?id=11875 - endless recursion in Type::deduceType
+// https://issues.dlang.org/show_bug.cgi?id=11875
+// endless recursion in Type::deduceType
 
 struct T11875x(C)
 {
@@ -1206,7 +1207,8 @@ void test7945()
 }
 
 /***************************************************/
-// https://issues.dlang.org/show_bug.cgi?id=15674 - alias this on out parameter, consistent with 7945 case
+// https://issues.dlang.org/show_bug.cgi?id=15674
+// alias this on out parameter, consistent with 7945 case
 
 struct S15674
 {
@@ -1334,11 +1336,11 @@ void test8735()
     int n = s;
     assert(n == 1);
 
-    // 11502 case
+    // https://issues.dlang.org/show_bug.cgi?id=11502
     static void f(int i);
     S8735!f sf;
 
-    // 9709 case
+    // https://issues.dlang.org/show_bug.cgi?id=9709
     alias A = Tuple9709!(1,int,"foo");
     A a;
     //static assert(A[0] == 1);

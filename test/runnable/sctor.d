@@ -386,7 +386,8 @@ void test14944()
 }
 
 /***************************************************/
-// https://issues.dlang.org/show_bug.cgi?id=15258 - a field initialization affects other overlapped fields
+// https://issues.dlang.org/show_bug.cgi?id=15258
+// a field initialization affects other overlapped fields
 
 class C15258
 {

@@ -5,8 +5,8 @@ fail_compilation/fail152.d(15): Error: cannot use type `double` as an operand
 ---
 */
 
-// https://issues.dlang.org/show_bug.cgi?id=1028 Segfault using tuple inside asm code.
-
+// https://issues.dlang.org/show_bug.cgi?id=1028
+// Segfault using tuple inside asm code.
 void a(X...)(X expr)
 {
     alias X[0] var1;

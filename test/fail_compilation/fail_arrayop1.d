@@ -6,7 +6,7 @@ TEST_OUTPUT:
 fail_compilation/fail_arrayop1.d(11): Error: invalid array operation `a + a` (possible missing [])
 ---
 */
-void test2199(int[] a)  // Issue 2199 - Segfault using array operation in function call (from fail266.d)
+void test2199(int[] a)  // https://issues.dlang.org/show_bug.cgi?id=2199 - Segfault using array operation in function call (from fail266.d)
 {
     test2199(a + a);
 }

@@ -22,7 +22,7 @@ void main()
     int x = 3;
     strictlyPure(x);
 
-    // 12649
+    // https://issues.dlang.org/show_bug.cgi?id=12649
     auto fp = &strictlyPure!int;
     fp(x);
 }

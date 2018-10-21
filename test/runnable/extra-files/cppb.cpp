@@ -800,7 +800,8 @@ void test15802b()
 
 
 /****************************************/
-// https://issues.dlang.org/show_bug.cgi?id=16536 - mangling mismatch on OSX
+// https://issues.dlang.org/show_bug.cgi?id=16536
+// mangling mismatch on OSX
 
 #if defined(__APPLE__)
 uint64_t pass16536(uint64_t a)
@@ -810,7 +811,8 @@ uint64_t pass16536(uint64_t a)
 #endif
 
 /****************************************/
-// https://issues.dlang.org/show_bug.cgi?id=15589 - extern(C++) virtual destructors are not put in vtbl[]
+// https://issues.dlang.org/show_bug.cgi?id=15589
+// extern(C++) virtual destructors are not put in vtbl[]
 
 class A15589
 {

@@ -491,7 +491,7 @@ void test15c()
     auto c2 = new immutable C(1);
 }
 
-void test15d()  // Bugzilla 9974
+void test15d()  // https://issues.dlang.org/show_bug.cgi?id=9974
 {
     class CM { this() {} }
     auto cm = new CM();
@@ -525,7 +525,7 @@ void test15d()  // Bugzilla 9974
     shared const ssc = new shared const SSC(1);
 }
 
-void test15e()  // Bugzilla 10005
+void test15e()  // https://issues.dlang.org/show_bug.cgi?id=10005
 {
     // struct literal
     static struct S

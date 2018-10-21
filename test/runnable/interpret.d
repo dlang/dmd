@@ -2282,7 +2282,7 @@ static assert(memtest8() == 6 + 17);
 
 // --------- CTFE REF PASSING TESTS --------
 
-// Bugzilla 1950 - CTFE doesn't work correctly for structs passed by ref
+// https://issues.dlang.org/show_bug.cgi?id=1950 - CTFE doesn't work correctly for structs passed by ref
 struct S1950
 {
     int x;
@@ -2394,7 +2394,8 @@ int nested2(int x)
 
 static assert(nested2(7) == 17 + 8 + 10);
 
-// https://issues.dlang.org/show_bug.cgi?id=1605 D1 & D2. break in switch with goto breaks in ctfe
+// https://issues.dlang.org/show_bug.cgi?id=1605
+// D1 & D2. break in switch with goto breaks in ctfe
 int bug1605()
 {
     int i = 0;
@@ -2412,7 +2413,8 @@ int bug1605()
 
 static assert(bug1605() == 27);
 
-// https://issues.dlang.org/show_bug.cgi?id=2564. D2 only. CTFE: the index in a tuple foreach is uninitialized (bogus error)
+// https://issues.dlang.org/show_bug.cgi?id=2564
+// D2 only. CTFE: the index in a tuple foreach is uninitialized (bogus error)
 // NOTE: Beware of optimizer bug 3264.
 
 int bug2564()
@@ -2426,7 +2428,8 @@ int bug2564()
 static int bug2564b = bug2564();
 
 
-// https://issues.dlang.org/show_bug.cgi?id=1461 D1 + D2. Local variable as template alias parameter breaks CTFE
+// https://issues.dlang.org/show_bug.cgi?id=1461
+// D1 + D2. Local variable as template alias parameter breaks CTFE
 void bug1461()
 {
     int x;
@@ -2637,8 +2640,9 @@ static assert(lazyTest2(17) == 18);
 
 version(D_Version2)
 {
-// Bug 4020 and 4027 are D2 only
-
+// https://issues.dlang.org/show_bug.cgi?id=4020
+// https://issues.dlang.org/show_bug.cgi?id=4027
+// D2 only
 struct PostblitCrash
 {
     int x;
@@ -3130,7 +3134,7 @@ void test108()
 }
 */
 
-/***** Bug 5678 *********************************/
+/***** https://issues.dlang.org/show_bug.cgi?id=5678 *****/
 
 /*
 struct Bug5678
