@@ -927,7 +927,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             // If e2 *could* have been an integer, make it one.
             if (e.e2.op == TOK.float64)
             {
-                if (e.e2.toReal() == cast(sinteger_t)e.e2.toReal())
+                if (e.e2.toReal() == real_t(cast(sinteger_t)e.e2.toReal()))
                     e.e2 = new IntegerExp(e.loc, e.e2.toInteger(), Type.tint64);
             }
             if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
