@@ -596,7 +596,10 @@ class Thread
      */
     ~this() nothrow @nogc
     {
-        if ( m_addr == m_addr.init )
+        bool no_context = m_addr == m_addr.init;
+        bool not_registered = !next && !prev && (sm_tbeg !is this);
+
+        if (no_context || not_registered)
         {
             return;
         }
