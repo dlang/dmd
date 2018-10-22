@@ -392,7 +392,7 @@ BACK_SRC = \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h \
 	$C/bcomplex.d $C/blockopt.d $C/cg.d $C/cg87.d $C/cgxmm.d \
-	$C/cgcod.d $C/cgcs.d $C/dcgcv.d $C/cgelem.d $C/cgen.c $C/cgobj.c \
+	$C/cgcod.d $C/cgcs.d $C/dcgcv.d $C/cgelem.d $C/cgen.c $C/cgobj.d \
 	$C/compress.d $C/cgreg.d $C/var.d $C/strtold.c \
 	$C/cgsched.d $C/cod1.d $C/cod2.d $C/cod3.d $C/cod4.d $C/cod5.d \
 	$C/dcode.d $C/symbol.d $C/debugprint.d $C/dt.c $C/ee.d $C/elem.d \

@@ -229,7 +229,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.d \
 	$C\type.h $C\dt.h $C\cgcv.h \
 	$C\el.h \
 	$C\bcomplex.d $C\blockopt.d $C\cg.d $C\cg87.d $C\cgxmm.d \
-	$C\cgcod.d $C\cgcs.d $C\dcgcv.d $C\cgelem.d $C\cgen.c $C\cgobj.c \
+	$C\cgcod.d $C\cgcs.d $C\dcgcv.d $C\cgelem.d $C\cgen.c $C\cgobj.d \
 	$C\compress.d $C\cgreg.d $C\var.d \
 	$C\cgsched.d $C\cod1.d $C\cod2.d $C\cod3.d $C\cod4.d $C\cod5.d \
 	$C\dcode.d $C\symbol.d $C\debugprint.d $C\dt.c $C\ee.d $C\elem.d \
@@ -485,8 +485,8 @@ $G/cgelem.obj : $G\elxxx.d $C\cgelem.d
 $G/cgen.obj : $C\cgen.c
 	$(CC) -c -o$@ $(MFLAGS) $C\cgen
 
-$G/cgobj.obj : $C\md5.h $C\cgobj.c
-	$(CC) -c -o$@ $(MFLAGS) $C\cgobj
+$G/cgobj.obj : $C\md5.d $C\cgobj.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\cgobj
 
 $G/cgreg.obj : $C\cgreg.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\cgreg
