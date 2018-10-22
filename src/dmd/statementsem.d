@@ -2559,7 +2559,7 @@ else
                 needswitcherror = true;
         }
 
-        if (!sc.sw.sdefault && (!ss.isFinal || needswitcherror || global.params.useAssert == CHECKENABLE.on))
+        if (!sc.sw.sdefault && (!ss.isFinal || needswitcherror || global.params.useAssert == CHECKENABLE.on || sc.func.isSafe))
         {
             ss.hasNoDefault = 1;
 
