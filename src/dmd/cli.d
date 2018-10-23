@@ -221,15 +221,15 @@ dmd -cov -unittest myprog.d
             "write documentation file to filename"
         ),
         Option("d",
-            "silently allow deprecated features",
+            "silently allow deprecated features and symbols",
             `Silently allow $(DDLINK deprecate,deprecate,deprecated features) and use of symbols with
             $(DDSUBLINK $(ROOT_DIR)spec/attribute, deprecated, deprecated attributes).`,
         ),
         Option("dw",
-            "show use of deprecated features as warnings (default)"
+            "issue a message when deprecated features or symbols are used (default)"
         ),
         Option("de",
-            "show use of deprecated features as errors (halt compilation)"
+            "issue an error when deprecated features or symbols are used (halt compilation)"
         ),
         Option("debug",
             "compile in debug code",
