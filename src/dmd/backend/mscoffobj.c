@@ -140,8 +140,8 @@ int seg_data::isCode()
 
 // already in cgobj.c (should be part of objmod?):
 // seg_data **SegData;
-int seg_count;
-int seg_max;
+extern int seg_count;
+extern int seg_max;
 segidx_t seg_tlsseg = UNKNOWN;
 segidx_t seg_tlsseg_bss = UNKNOWN;
 
