@@ -681,7 +681,7 @@ else
             break;
 
         default:
-            t.print();
+            printf("%s\n", t.toChars());
             assert(0);
     }
     return e;
@@ -1048,8 +1048,7 @@ elem *toElem(Expression e, IRState *irs)
 
         override void visit(Expression e)
         {
-            printf("[%s] %s ", e.loc.toChars(), Token.toChars(e.op));
-            e.print();
+            printf("[%s] %s: %s\n", e.loc.toChars(), Token.toChars(e.op), e.toChars());
             assert(0);
         }
 
@@ -1413,10 +1412,8 @@ elem *toElem(Expression e, IRState *irs)
                     break;
 
                 default:
-                    re.print();
-                    re.type.print();
-                    re.type.toBasetype().print();
-                    printf("ty = %d, tym = %x\n", re.type.ty, ty);
+                    printf("ty = %d, tym = %x, re=%s, re.type=%s, re.type.toBasetype=%s\n",
+                           re.type.ty, ty, re.toChars(), re.type.toChars(), re.type.toBasetype().toChars());
                     assert(0);
             }
             e.Ety = ty;
@@ -1931,11 +1928,7 @@ elem *toElem(Expression e, IRState *irs)
 
         override void visit(HaltExp he)
         {
-            elem *e = el_calloc();
-            e.Ety = TYvoid;
-            e.Eoper = OPhalt;
-            elem_setLoc(e,he.loc);
-            result = e;
+            result = genHalt(he.loc);
         }
 
         /********************************************
@@ -1952,6 +1945,19 @@ elem *toElem(Expression e, IRState *irs)
                 {
                     auto econd = toElem(ae.e1, irs);
                     auto ea = callCAssert(irs, ae.e1.loc, ae.e1, ae.msg, null);
+                    auto eo = el_bin(OPoror, TYvoid, econd, ea);
+                    elem_setLoc(eo, ae.loc);
+                    result = eo;
+                    return;
+                }
+
+                if (irs.params.checkAction == CHECKACTION.halt)
+                {
+                    /* Generate:
+                     *  ae.e1 || halt
+                     */
+                    auto econd = toElem(ae.e1, irs);
+                    auto ea = genHalt(ae.loc);
                     auto eo = el_bin(OPoror, TYvoid, econd, ea);
                     elem_setLoc(eo, ae.loc);
                     result = eo;
@@ -2189,12 +2195,6 @@ elem *toElem(Expression e, IRState *irs)
 
         override void visit(CatExp ce)
         {
-            version (none)
-            {
-                printf("CatExp.toElem()\n");
-                ce.print();
-            }
-
             /* Do this check during code gen rather than semantic() because concatenation is
              * allowed in CTFE, and cannot distinguish that in semantic().
              */
@@ -2296,7 +2296,7 @@ elem *toElem(Expression e, IRState *irs)
                 case TOK.notEqual: eop = OPne;   break;
 
                 default:
-                    ce.print();
+                    printf("%s\n", ce.toChars());
                     assert(0);
             }
             if (!t1.isfloating())
@@ -2348,7 +2348,7 @@ elem *toElem(Expression e, IRState *irs)
                 case TOK.equal:          eop = OPeqeq;   break;
                 case TOK.notEqual:       eop = OPne;     break;
                 default:
-                    ee.print();
+                    printf("%s\n", ee.toChars());
                     assert(0);
             }
 
@@ -2491,7 +2491,7 @@ elem *toElem(Expression e, IRState *irs)
                 case TOK.identity:       eop = OPeqeq;   break;
                 case TOK.notIdentity:    eop = OPne;     break;
                 default:
-                    ie.print();
+                    printf("%s\n", ie.toChars());
                     assert(0);
             }
 
@@ -5807,7 +5807,7 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
             if (buf.offset >= 32 + 2)
             {   // Replace long string with hash of that string
                 import dmd.backend.md5;
-                MD5_CTX mdContext;
+                MD5_CTX mdContext = void;
                 MD5Init(&mdContext);
                 MD5Update(&mdContext, cast(ubyte*)buf.peekString(), cast(uint)buf.offset);
                 MD5Final(&mdContext);
@@ -5909,6 +5909,10 @@ elem *buildArrayBoundsError(IRState *irs, const ref Loc loc)
     if (irs.params.checkAction == CHECKACTION.C)
     {
         return callCAssert(irs, loc, null, null, "array overflow");
+    }
+    if (irs.params.checkAction == CHECKACTION.halt)
+    {
+        return genHalt(loc);
     }
     auto eassert = el_var(getRtlsym(RTLSYM_DARRAYP));
     auto efile = toEfilenamePtr(cast(Module)irs.blx._module);
@@ -6065,6 +6069,22 @@ elem *callCAssert(IRState *irs, const ref Loc loc, Expression exp, Expression em
         ea = el_bin(OPcall, TYvoid, eassert, el_params(eline, efilename, elmsg, null));
     }
     return ea;
+}
+
+/********************************************
+ * Generate HALT instruction.
+ * Params:
+ *      loc = location to use for debug info
+ * Returns:
+ *      generated instruction
+ */
+elem *genHalt(const ref Loc loc)
+{
+    elem *e = el_calloc();
+    e.Ety = TYvoid;
+    e.Eoper = OPhalt;
+    elem_setLoc(e, loc);
+    return e;
 }
 
 /*************************************************

@@ -299,7 +299,7 @@ extern (C++) class Dsymbol : RootObject
 
     final bool checkDeprecated(const ref Loc loc, Scope* sc)
     {
-        if (global.params.useDeprecated != 1 && isDeprecated())
+        if (global.params.useDeprecated != Diagnostic.off && isDeprecated())
         {
             // Don't complain if we're inside a deprecated symbol's scope
             if (sc.isDeprecated())
@@ -468,7 +468,7 @@ extern (C++) class Dsymbol : RootObject
     /*************************************
      * Do syntax copy of an array of Dsymbol's.
      */
-    static Dsymbols* arraySyntaxCopy(Dsymbols* a)
+    extern (D) static Dsymbols* arraySyntaxCopy(Dsymbols* a)
     {
         Dsymbols* b = null;
         if (a)
@@ -769,13 +769,13 @@ extern (C++) class Dsymbol : RootObject
     }
 
     // is Dsymbol exported?
-    bool isExport()
+    bool isExport() const
     {
         return false;
     }
 
     // is Dsymbol imported?
-    bool isImportedSymbol()
+    bool isImportedSymbol() const
     {
         return false;
     }
@@ -848,7 +848,6 @@ extern (C++) class Dsymbol : RootObject
      */
     Dsymbol syntaxCopy(Dsymbol s)
     {
-        print();
         printf("%s %s\n", kind(), toChars());
         assert(0);
     }
@@ -870,7 +869,7 @@ extern (C++) class Dsymbol : RootObject
     /*****************************************
      * Same as Dsymbol::oneMember(), but look at an array of Dsymbols.
      */
-    static bool oneMembers(Dsymbols* members, Dsymbol* ps, Identifier ident)
+    extern (D) static bool oneMembers(Dsymbols* members, Dsymbol* ps, Identifier ident)
     {
         //printf("Dsymbol::oneMembers() %d\n", members ? members.dim : 0);
         Dsymbol s = null;
@@ -1605,47 +1604,6 @@ public:
         return false;
     }
 
-    /***************************************
-     * Determine number of Dsymbols, folding in AttribDeclaration members.
-     */
-    static size_t dim(Dsymbols* members)
-    {
-        size_t n = 0;
-        int dimDg(size_t idx, Dsymbol s)
-        {
-            ++n;
-            return 0;
-        }
-
-        _foreach(null, members, &dimDg, &n);
-        return n;
-    }
-
-    /***************************************
-     * Get nth Dsymbol, folding in AttribDeclaration members.
-     * Returns:
-     *      Dsymbol*        nth Dsymbol
-     *      NULL            not found, *pn gets incremented by the number
-     *                      of Dsymbols
-     */
-    static Dsymbol getNth(Dsymbols* members, size_t nth, size_t* pn = null)
-    {
-        Dsymbol sym = null;
-
-        int getNthSymbolDg(size_t n, Dsymbol s)
-        {
-            if (n == nth)
-            {
-                sym = s;
-                return 1;
-            }
-            return 0;
-        }
-
-        int res = _foreach(null, members, &getNthSymbolDg);
-        return res ? sym : null;
-    }
-
     extern (D) alias ForeachDg = int delegate(size_t idx, Dsymbol s);
 
     /***************************************
@@ -2118,21 +2076,6 @@ extern (C++) final class DsymbolTable : RootObject
             return null; // already in table
         *ps = s;
         return s;
-    }
-
-    debug
-    {
-        /**
-        print the symbol table contents
-        */
-        override void print()
-        {
-            printf("SYMBOL TABLE (%d entries)\n------------------------------\n", tab.length);
-            foreach (keyValue; tab.asRange)
-            {
-                printf("%s\n", keyValue.key.toChars());
-            }
-        }
     }
 
     // Look for Dsymbol in table. If there, return it. If not, insert s and return that.

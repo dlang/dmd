@@ -1,6 +1,9 @@
 
 // Test C++ name mangling.
-// See Bugs 4059, 5148, 7024, 10058
+// https://issues.dlang.org/show_bug.cgi?id=4059
+// https://issues.dlang.org/show_bug.cgi?id=5148
+// https://issues.dlang.org/show_bug.cgi?id=7024
+// https://issues.dlang.org/show_bug.cgi?id=10058
 
 import core.stdc.stdio;
 
@@ -224,7 +227,7 @@ version (linux)
 }
 
 /****************************************/
-// 4059
+// https://issues.dlang.org/show_bug.cgi?id=4059
 
 struct elem9 { }
 
@@ -242,7 +245,7 @@ version (linux)
 }
 
 /****************************************/
-// 5148
+// https://issues.dlang.org/show_bug.cgi?id=5148
 
 extern (C++)
 {
@@ -270,7 +273,7 @@ void test10()
 }
 
 /**************************************/
-// 10058
+// https://issues.dlang.org/show_bug.cgi?id=10058
 
 extern (C++)
 {
@@ -305,7 +308,7 @@ version (linux)
 }
 
 /**************************************/
-// 11696
+// https://issues.dlang.org/show_bug.cgi?id=11696
 
 class Expression;
 struct Loc {}
@@ -328,7 +331,7 @@ version (linux)
 }
 
 /**************************************/
-// 13337
+// https://issues.dlang.org/show_bug.cgi?id=13337
 
 extern(C++, N13337a.N13337b.N13337c)
 {
@@ -342,7 +345,7 @@ version (linux)
 }
 
 /**************************************/
-// 15789
+// https://issues.dlang.org/show_bug.cgi?id=15789
 
 extern (C++) void test15789a(T...)(T args);
 
@@ -352,7 +355,7 @@ void test15789()
 }
 
 /**************************************/
-// 7030
+// https://issues.dlang.org/show_bug.cgi?id=7030
 
 extern(C++)
 {
@@ -740,9 +743,17 @@ extern(C++, Namespace18922)
 
 version (Posix)
 {
+    // https://godbolt.org/z/C5T2LQ
+    /+
+    namespace std
+    {
+    struct test18957 {};
+    }
+    void test18957(const std::test18957& t) {}
+    +/
     extern (C++) void test18957(ref const(std.test18957) t) {}
 
-    static assert(test18957.mangleof == "_Z9test18957RKNSt9test18957E");
+    static assert(test18957.mangleof == "_Z9test18957RKSt9test18957");
 }
 
 /**************************************/

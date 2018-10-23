@@ -36,30 +36,33 @@ enum NeedInterpret : int
 alias INITnointerpret = NeedInterpret.INITnointerpret;
 alias INITinterpret = NeedInterpret.INITinterpret;
 
+/*************
+ * Discriminant for which kind of initializer
+ */
+enum InitKind : ubyte
+{
+    void_,
+    error,
+    struct_,
+    array,
+    exp,
+}
+
 /***********************************************************
  */
 extern (C++) class Initializer : RootObject
 {
     Loc loc;
+    InitKind kind;
 
-    extern (D) this(const ref Loc loc)
+
+    extern (D) this(const ref Loc loc, InitKind kind)
     {
         this.loc = loc;
+        this.kind = kind;
     }
 
     abstract Initializer syntaxCopy();
-
-    static Initializers* arraySyntaxCopy(Initializers* ai)
-    {
-        Initializers* a = null;
-        if (ai)
-        {
-            a = new Initializers(ai.dim);
-            for (size_t i = 0; i < a.dim; i++)
-                (*a)[i] = (*ai)[i].syntaxCopy();
-        }
-        return a;
-    }
 
     override final const(char)* toChars()
     {
@@ -69,29 +72,30 @@ extern (C++) class Initializer : RootObject
         return buf.extractString();
     }
 
-    ErrorInitializer isErrorInitializer()
+    final inout(ErrorInitializer) isErrorInitializer() inout pure
     {
-        return null;
+        // Use void* cast to skip dynamic casting call
+        return kind == InitKind.error ? cast(inout ErrorInitializer)cast(void*)this : null;
     }
 
-    VoidInitializer isVoidInitializer()
+    final inout(VoidInitializer) isVoidInitializer() inout pure
     {
-        return null;
+        return kind == InitKind.void_ ? cast(inout VoidInitializer)cast(void*)this : null;
     }
 
-    StructInitializer isStructInitializer()
+    final inout(StructInitializer) isStructInitializer() inout pure
     {
-        return null;
+        return kind == InitKind.struct_ ? cast(inout StructInitializer)cast(void*)this : null;
     }
 
-    ArrayInitializer isArrayInitializer()
+    final inout(ArrayInitializer) isArrayInitializer() inout pure
     {
-        return null;
+        return kind == InitKind.array ? cast(inout ArrayInitializer)cast(void*)this : null;
     }
 
-    ExpInitializer isExpInitializer()
+    final inout(ExpInitializer) isExpInitializer() inout pure
     {
-        return null;
+        return kind == InitKind.exp ? cast(inout ExpInitializer)cast(void*)this : null;
     }
 
     void accept(Visitor v)
@@ -108,17 +112,12 @@ extern (C++) final class VoidInitializer : Initializer
 
     extern (D) this(const ref Loc loc)
     {
-        super(loc);
+        super(loc, InitKind.void_);
     }
 
     override Initializer syntaxCopy()
     {
         return new VoidInitializer(loc);
-    }
-
-    override VoidInitializer isVoidInitializer()
-    {
-        return this;
     }
 
     override void accept(Visitor v)
@@ -133,15 +132,10 @@ extern (C++) final class ErrorInitializer : Initializer
 {
     extern (D) this()
     {
-        super(Loc.initial);
+        super(Loc.initial, InitKind.error);
     }
 
     override Initializer syntaxCopy()
-    {
-        return this;
-    }
-
-    override ErrorInitializer isErrorInitializer()
     {
         return this;
     }
@@ -161,7 +155,7 @@ extern (C++) final class StructInitializer : Initializer
 
     extern (D) this(const ref Loc loc)
     {
-        super(loc);
+        super(loc, InitKind.struct_);
     }
 
     override Initializer syntaxCopy()
@@ -185,11 +179,6 @@ extern (C++) final class StructInitializer : Initializer
         this.value.push(value);
     }
 
-    override StructInitializer isStructInitializer()
-    {
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -208,7 +197,7 @@ extern (C++) final class ArrayInitializer : Initializer
 
     extern (D) this(const ref Loc loc)
     {
-        super(loc);
+        super(loc, InitKind.array);
     }
 
     override Initializer syntaxCopy()
@@ -244,11 +233,6 @@ extern (C++) final class ArrayInitializer : Initializer
         return false;
     }
 
-    override ArrayInitializer isArrayInitializer()
-    {
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -264,18 +248,13 @@ extern (C++) final class ExpInitializer : Initializer
 
     extern (D) this(const ref Loc loc, Expression exp)
     {
-        super(loc);
+        super(loc, InitKind.exp);
         this.exp = exp;
     }
 
     override Initializer syntaxCopy()
     {
         return new ExpInitializer(loc, exp.syntaxCopy());
-    }
-
-    override ExpInitializer isExpInitializer()
-    {
-        return this;
     }
 
     override void accept(Visitor v)

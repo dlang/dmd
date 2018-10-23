@@ -5,8 +5,8 @@ fail_compilation/fail106.d(12): Error: cannot modify `immutable` expression `'C'
 ---
 */
 
-// Issue 239 - Internal error: changing string literal elements
-
+// https://issues.dlang.org/show_bug.cgi?id=239
+// Internal error: changing string literal elements
 void main()
 {
     "ABC"[2] = 's';

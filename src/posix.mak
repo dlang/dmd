@@ -361,7 +361,8 @@ endif
 endif
 
 ifneq (gdc, $(HOST_DMD_KIND))
-  BACK_BETTERC = -mv=dmd.backend=$C -betterC
+  BACK_MV = -mv=dmd.backend=$C
+  BACK_BETTERC = $(BACK_MV) -betterC
 endif
 
 ######## DMD frontend source files
@@ -395,7 +396,7 @@ DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 
 ifeq (X86,$(TARGET_CPU))
     TARGET_CH = $C/code_x86.h
-    TARGET_OBJS = cod3.o ptrntab.o
+    TARGET_OBJS =
 else
     ifeq (stub,$(TARGET_CPU))
         TARGET_CH = $C/code_stub.h
@@ -405,20 +406,22 @@ else
     endif
 endif
 
-BACK_OBJS = var.o \
+BACK_OBJS = \
 	os.o fp.o \
-	rtlsym.o cgen.o out.o \
+	cgen.o \
 	dt.o \
-	cgcod.o outbuf.o \
-	aa.o ti_achar.o \
-	ti_pvoid.o pdata.o cv8.o backconfig.o \
-	dwarf.o dwarfeh.o varstats.o \
-	ph2.o util2.o tk.o strtold.o md5.o \
+	outbuf.o \
+	sizecheck.o \
+	dwarf.o varstats.o \
+	tk.o strtold.o \
 	$(TARGET_OBJS)
 
 BACK_DOBJS = bcomplex.o evalu8.o divcoeff.o dvec.o go.o gsroa.o glocal.o gdag.o gother.o gflow.o \
+	out.o \
 	gloop.o compress.o cgelem.o cgcs.o ee.o cod4.o cod5.o nteh.o blockopt.o memh.o cg.o cgreg.o \
-	dtype.o debugprint.o symbol.o elem.o dcode.o cgsched.o cg87.o cgxmm.o cod2.o cod1.o
+	dtype.o debugprint.o symbol.o elem.o dcode.o cgsched.o cg87.o cgxmm.o cgcod.o cod1.o cod2.o \
+	cod3.o cv8.o dcgcv.o pdata.o util2.o var.o md5.o backconfig.o ph2.o drtlsym.o dwarfeh.o ptrntab.o \
+	aarray.o
 
 G_OBJS  = $(addprefix $G/, $(BACK_OBJS))
 G_DOBJS = $(addprefix $G/, $(BACK_DOBJS))
@@ -439,33 +442,33 @@ GLUE_SRC = \
 
 BACK_HDRS=$C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
 	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d $C/iasm.d \
-	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/md5.di $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d \
-	$C/dlist.d
+	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d \
+	$C/dlist.d $C/melf.d $C/varstats.d
 
 TK_HDRS=
 
 BACK_SRC = \
-	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
+	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.d \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
-	$C/el.h $C/iasm.h $C/rtlsym.h \
+	$C/el.h \
 	$C/bcomplex.d $C/blockopt.d $C/cg.d $C/cg87.d $C/cgxmm.d \
-	$C/cgcod.c $C/cgcs.d $C/cgcv.c $C/cgelem.d $C/cgen.c $C/cgobj.c \
-	$C/compress.d $C/cgreg.d $C/var.c $C/strtold.c \
-	$C/cgsched.d $C/cod1.d $C/cod2.d $C/cod3.c $C/cod4.d $C/cod5.d \
+	$C/cgcod.d $C/cgcs.d $C/dcgcv.d $C/cgelem.d $C/cgen.c $C/cgobj.c \
+	$C/compress.d $C/cgreg.d $C/var.d $C/strtold.c \
+	$C/cgsched.d $C/cod1.d $C/cod2.d $C/cod3.d $C/cod4.d $C/cod5.d \
 	$C/dcode.d $C/symbol.d $C/debugprint.d $C/dt.c $C/ee.d $C/elem.d \
 	$C/evalu8.d $C/fp.c $C/go.d $C/gflow.d $C/gdag.d \
-	$C/gother.d $C/glocal.d $C/gloop.d $C/gsroa.d $C/newman.c \
-	$C/nteh.d $C/os.c $C/out.c $C/outbuf.c $C/ptrntab.c $C/rtlsym.c \
+	$C/gother.d $C/glocal.d $C/gloop.d $C/gsroa.d $C/newman.d \
+	$C/nteh.d $C/os.c $C/out.d $C/outbuf.c $C/ptrntab.d $C/drtlsym.d \
 	$C/dtype.d $C/melf.h $C/mach.h $C/mscoff.h $C/bcomplex.h \
 	$C/outbuf.h $C/token.h $C/tassert.h \
 	$C/elfobj.c $C/cv4.h $C/dwarf2.h $C/exh.h $C/go.h \
-	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aa.c $C/tinfo.h $C/ti_achar.c \
-	$C/ti_pvoid.c $C/platform_stub.c $C/code_x86.h $C/code_stub.h \
+	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aarray.d \
+	$C/platform_stub.c $C/code_x86.h $C/code_stub.h \
 	$C/machobj.c $C/mscoffobj.c \
-	$C/xmm.h $C/obj.h $C/pdata.c $C/cv8.c $C/backconfig.c $C/divcoeff.d \
+	$C/obj.h $C/pdata.d $C/cv8.d $C/backconfig.d $C/sizecheck.c $C/divcoeff.d \
 	$C/varstats.c $C/varstats.h $C/dvec.d \
-	$C/md5.c $C/md5.h \
-	$C/ph2.c $C/util2.c $C/dwarfeh.c $C/goh.d $C/memh.d \
+	$C/md5.d $C/md5.h \
+	$C/ph2.d $C/util2.d $C/dwarfeh.d $C/goh.d $C/memh.d \
 	$(TARGET_CH)
 
 TK_SRC = \
@@ -485,7 +488,7 @@ SRC = $(addprefix $D/, aggregate.h aliasthis.h arraytypes.h	\
 
 ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h dcompat.h file.h filename.h \
 	longdouble.h newdelete.c object.h outbuffer.h port.h \
-	rmem.h root.h stringtable.h)
+	rmem.h root.h)
 
 ######## Additional files
 
@@ -588,10 +591,10 @@ $G/dmd.conf: $(SRC_MAKE)
 	echo "$$DEFAULT_DMD_CONF" > $@
 
 ######## optabgen generates some source
-optabgen_output = debtab.d optab.c cdxxx.c elxxx.d fltables.d tytab.c
+optabgen_output = debtab.d optab.d cdxxx.d elxxx.d fltables.d tytab.d
 
-$G/optabgen: $C/optabgen.c $C/cc.h $C/oper.h
-	$(HOST_CXX) $(CXXFLAGS) -I$(TK) $< -o $G/optabgen
+$G/optabgen: $C/optabgen.d $C/cc.d $C/oper.d $(HOST_DMD_PATH)
+	$(HOST_DMD_RUN) -of$@ $(DFLAGS) $(MODEL_FLAG) $(BACK_MV) $<
 	$G/optabgen
 	mv $(optabgen_output) $G
 

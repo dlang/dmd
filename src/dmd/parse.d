@@ -477,11 +477,9 @@ final class Parser(AST) : Lexer
                         {
                             // mixin(string)
                             nextToken();
-                            check(TOK.leftParentheses, "`mixin`");
-                            AST.Expression e = parseAssignExp();
-                            check(TOK.rightParentheses);
+                            auto exps = parseArguments();
                             check(TOK.semicolon);
-                            s = new AST.CompileDeclaration(loc, e);
+                            s = new AST.CompileDeclaration(loc, exps);
                             break;
                         }
                     case TOK.template_:
@@ -870,7 +868,8 @@ final class Parser(AST) : Lexer
                     const linkLoc = token.loc;
                     AST.Identifiers* idents = null;
                     CPPMANGLE cppmangle;
-                    const link = parseLinkage(&idents, cppmangle);
+                    bool cppMangleOnly = false;
+                    const link = parseLinkage(&idents, cppmangle, cppMangleOnly);
                     if (pAttrs.link != LINK.default_)
                     {
                         if (pAttrs.link != link)
@@ -902,7 +901,7 @@ final class Parser(AST) : Lexer
                                 a = new AST.Dsymbols();
                                 a.push(s);
                             }
-                            s = new AST.Nspace(linkLoc, id, a);
+                            s = new AST.Nspace(linkLoc, id, a, cppMangleOnly);
                         }
                         pAttrs.link = LINK.default_;
                     }
@@ -2117,9 +2116,10 @@ final class Parser(AST) : Lexer
      * Parse:
      *      extern (linkage)
      *      extern (C++, namespaces)
+     *      extern (C++, "namespace", "namespaces", ...)
      * The parser is on the 'extern' token.
      */
-    LINK parseLinkage(AST.Identifiers** pidents, out CPPMANGLE cppmangle)
+    LINK parseLinkage(AST.Identifiers** pidents, out CPPMANGLE cppmangle, out bool cppMangleOnly)
     {
         AST.Identifiers* idents = null;
         cppmangle = CPPMANGLE.def;
@@ -2151,6 +2151,42 @@ final class Parser(AST) : Lexer
                         {
                             cppmangle = token.value == TOK.class_ ? CPPMANGLE.asClass : CPPMANGLE.asStruct;
                             nextToken();
+                        }
+                        else if (token.value == TOK.string_) // extern(C++, "namespace", "namespaces")
+                        {
+                            cppMangleOnly = true;
+                            idents = new AST.Identifiers();
+
+                            while (1)
+                            {
+                                AST.StringExp stringExp = cast(AST.StringExp)parsePrimaryExp();
+                                const(char)[] name = stringExp.toStringz();
+                                if (name.length == 0)
+                                {
+                                    error("invalid zero length C++ namespace");
+                                    idents = null;
+                                    break;
+                                }
+                                else if (!Identifier.isValidIdentifier(name))
+                                {
+                                    error("expected valid identifer for C++ namespace but got `%s`", name.ptr);
+                                    idents = null;
+                                    break;
+                                }
+                                idents.push(Identifier.idPool(name));
+                                if (token.value == TOK.comma)
+                                {
+                                    nextToken();
+                                    if (token.value != TOK.string_)
+                                    {
+                                        error("string expected following `,` for C++ namespace, not `%s`", token.toChars());
+                                        idents = null;
+                                        break;
+                                    }
+                                }
+                                else
+                                    break;
+                            }
                         }
                         else
                         {
@@ -4214,7 +4250,8 @@ final class Parser(AST) : Lexer
                     sawLinkage = true;
                     AST.Identifiers* idents = null;
                     CPPMANGLE cppmangle;
-                    link = parseLinkage(&idents, cppmangle);
+                    bool cppMangleOnly = false;
+                    link = parseLinkage(&idents, cppmangle, cppMangleOnly);
                     if (idents)
                     {
                         error("C++ name spaces not allowed here");
@@ -5538,7 +5575,7 @@ final class Parser(AST) : Lexer
                     if (e.op == TOK.mixin_)
                     {
                         AST.CompileExp cpe = cast(AST.CompileExp)e;
-                        s = new AST.CompileStatement(loc, cpe.e1);
+                        s = new AST.CompileStatement(loc, cpe.exps);
                     }
                     else
                     {
@@ -7923,11 +7960,12 @@ final class Parser(AST) : Lexer
             }
         case TOK.mixin_:
             {
+                // https://dlang.org/spec/expression.html#mixin_expressions
                 nextToken();
-                check(TOK.leftParentheses, "`mixin`");
-                e = parseAssignExp();
-                check(TOK.rightParentheses);
-                e = new AST.CompileExp(loc, e);
+                if (token.value != TOK.leftParentheses)
+                    error("found `%s` when expecting `%s` following %s", token.toChars(), Token.toChars(TOK.leftParentheses), "`mixin`".ptr);
+                auto exps = parseArguments();
+                e = new AST.CompileExp(loc, exps);
                 break;
             }
         case TOK.import_:

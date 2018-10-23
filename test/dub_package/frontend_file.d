@@ -35,10 +35,14 @@ void main()
     };
     fileName.fwrite(sourceCode);
 
-    auto m = fileName.parseModule;
+    auto t = fileName.parseModule;
 
-    m.fullSemantic;
-    auto generated = m.prettyPrint;
+
+    assert(!t.diagnostics.hasErrors);
+    assert(!t.diagnostics.hasWarnings);
+
+    t.module_.fullSemantic;
+    auto generated = t.module_.prettyPrint;
 
     auto expected =q{module foo;
 import object;

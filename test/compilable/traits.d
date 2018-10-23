@@ -11,3 +11,19 @@ class C19152
         return 0;
     }
 }
+
+static assert(is(typeof(__traits(getTargetInfo, "cppRuntimeLibrary")) == string));
+version (CppRuntime_Microsoft)
+{
+    static assert(__traits(getTargetInfo, "cppRuntimeLibrary") == "libcmt");
+}
+
+version (D_HardFloat)
+    static assert(__traits(getTargetInfo, "floatAbi") == "hard");
+
+version (Win64)
+    static assert(__traits(getTargetInfo, "objectFormat") == "coff");
+version (OSX)
+    static assert(__traits(getTargetInfo, "objectFormat") == "macho");
+version (linux)
+    static assert(__traits(getTargetInfo, "objectFormat") == "elf");

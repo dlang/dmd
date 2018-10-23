@@ -123,7 +123,9 @@ nothrow:
     */
     extern (C++) static const(char)* toAbsolute(const(char)* name, const(char)* base = null)
     {
-        return absolute(name) ? name : combine(base ? base : getcwd(null, 0), name);
+        const name_ = name.toDString();
+        const base_ = base ? base.toDString() : getcwd(null, 0).toDString();
+        return absolute(name_) ? name : combine(base_, name_).ptr;
     }
 
     /********************************
@@ -389,7 +391,10 @@ nothrow:
 
     unittest
     {
-        assert(combine("foo"[], "bar"[]) == "foo/bar");
+        version (Windows)
+            assert(combine("foo"[], "bar"[]) == "foo\\bar");
+        else
+            assert(combine("foo"[], "bar"[]) == "foo/bar");
         assert(combine("foo/"[], "bar"[]) == "foo/bar");
     }
 
@@ -485,6 +490,28 @@ nothrow:
         return array;
     }
 
+    /**
+     * Add the extension `ext` to `name`, regardless of the content of `name`
+     *
+     * Params:
+     *   name = Path to append the extension to
+     *   ext  = Extension to add (should not include '.')
+     *
+     * Returns:
+     *   A newly allocated string (free with `FileName.free`)
+     */
+    extern(D) static char[] addExt(const(char)[] name, const(char)[] ext)
+    {
+        const len = name.length + ext.length + 2;
+        auto s = cast(char*)mem.xmalloc(len);
+        s[0 .. name.length] = name[];
+        s[name.length] = '.';
+        s[name.length + 1 .. len - 1] = ext[];
+        s[len - 1] = '\0';
+        return s[0 .. len - 1];
+    }
+
+
     /***************************
      * Free returned value with FileName::free()
      */
@@ -498,14 +525,8 @@ nothrow:
     {
         auto e = FileName.ext(name);
         if (e.length) // it already has an extension
-            return mem.xstrdup(name.ptr)[0 .. name.length];
-        const s_length = name.length + 1 + ext.length + 1;
-        auto s = cast(char*)mem.xmalloc(s_length);
-        memcpy(s, name.ptr, name.length);
-        s[name.length] = '.';
-        memcpy(s + name.length + 1, ext.ptr, ext.length);
-        s[s_length - 1] = '\0';
-        return s[0 .. s_length - 1];
+            return name.xarraydup;
+        return addExt(name, ext);
     }
 
     unittest
@@ -526,18 +547,9 @@ nothrow:
     /// Ditto
     extern (D) static const(char)[] forceExt(const(char)[] name, const(char)[] ext)
     {
-        auto e = FileName.ext(name);
-        if (e.length) // if already has an extension
-        {
-            const len = name.length - e.length;
-            char* s = cast(char*)mem.xmalloc(len + ext.length + 1);
-            memcpy(s, name.ptr, len);
-            memcpy(s + len, ext.ptr, ext.length);
-            s[len + ext.length] = '\0';
-            return s[0 .. len + ext.length];
-        }
-        else
-            return defaultExt(name, ext); // doesn't have one
+        if (auto e = FileName.ext(name))
+            return addExt(name[0 .. $ - e.length - 1], ext);
+        return defaultExt(name, ext); // doesn't have one
     }
 
     unittest
@@ -722,6 +734,8 @@ nothrow:
     /// Ditto
     extern (D) static int exists(const(char)[] name)
     {
+        if (!name.length)
+            return 0;
         version (Posix)
         {
             stat_t st;
@@ -978,21 +992,25 @@ version(Windows)
             // path.
             static immutable prefix = `\\?\`w;
 
-            // +1 for the null terminator
-            const bufferLength = pathLength + prefix.length + 1;
+            // prefix only needed for long names and non-UNC names
+            const needsPrefix = pathLength >= MAX_PATH && (wpath[0] != '\\' || wpath[1] != '\\');
+            const prefixLength = needsPrefix ? prefix.length : 0;
 
-            wchar[1024] absBuf;
+            // +1 for the null terminator
+            const bufferLength = pathLength + prefixLength + 1;
+
+            wchar[1024] absBuf = void;
             wchar[] absPath = bufferLength > absBuf.length
                 ? new wchar[bufferLength] : absBuf[0 .. bufferLength];
 
-            absPath[0 .. prefix.length] = prefix[];
+            absPath[0 .. prefixLength] = prefix[0 .. prefixLength];
 
             const absPathRet = GetFullPathNameW(&wpath[0],
-                cast(uint)(absPath.length - prefix.length - 1),
-                &absPath[prefix.length],
+                cast(uint)(absPath.length - prefixLength - 1),
+                &absPath[prefixLength],
                 null /*filePartBuffer*/);
 
-            if (absPathRet == 0 || absPathRet > absPath.length - prefix.length)
+            if (absPathRet == 0 || absPathRet > absPath.length - prefixLength)
             {
                 return F((wchar[]).init);
             }

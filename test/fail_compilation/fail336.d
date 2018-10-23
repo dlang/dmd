@@ -5,8 +5,8 @@ fail_compilation/fail336.d(16): Error: struct `S` has constructors, cannot use `
 ---
 */
 
-// Issue 3476 - C-style initializer for structs must be disallowed for structs with a constructor
-
+// https://issues.dlang.org/show_bug.cgi?id=3476
+// C-style initializer for structs must be disallowed for structs with a constructor
 struct S
 {
     int a;

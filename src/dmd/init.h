@@ -10,17 +10,13 @@
 
 #pragma once
 
-#include "root/root.h"
-
 #include "globals.h"
 #include "arraytypes.h"
 #include "visitor.h"
 
 class Identifier;
 class Expression;
-struct Scope;
 class Type;
-class AggregateDeclaration;
 class ErrorInitializer;
 class VoidInitializer;
 class StructInitializer;
@@ -33,17 +29,18 @@ class Initializer : public RootObject
 {
 public:
     Loc loc;
+    unsigned char kind;
 
     virtual Initializer *syntaxCopy() = 0;
-    static Initializers *arraySyntaxCopy(Initializers *ai);
 
     const char *toChars();
 
-    virtual ErrorInitializer   *isErrorInitializer() { return NULL; }
-    virtual VoidInitializer    *isVoidInitializer() { return NULL; }
-    virtual StructInitializer  *isStructInitializer()  { return NULL; }
-    virtual ArrayInitializer   *isArrayInitializer()  { return NULL; }
-    virtual ExpInitializer     *isExpInitializer()  { return NULL; }
+    ErrorInitializer   *isErrorInitializer();
+    VoidInitializer    *isVoidInitializer();
+    StructInitializer  *isStructInitializer();
+    ArrayInitializer   *isArrayInitializer();
+    ExpInitializer     *isExpInitializer();
+
     virtual void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -54,7 +51,6 @@ public:
 
     Initializer *syntaxCopy();
 
-    virtual VoidInitializer *isVoidInitializer() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -63,7 +59,6 @@ class ErrorInitializer : public Initializer
 public:
     Initializer *syntaxCopy();
 
-    virtual ErrorInitializer *isErrorInitializer() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -76,7 +71,6 @@ public:
     Initializer *syntaxCopy();
     void addInit(Identifier *field, Initializer *value);
 
-    StructInitializer *isStructInitializer() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -94,7 +88,6 @@ public:
     bool isAssociativeArray();
     Expression *toAssocArrayLiteral();
 
-    ArrayInitializer *isArrayInitializer() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -106,7 +99,6 @@ public:
 
     Initializer *syntaxCopy();
 
-    ExpInitializer *isExpInitializer() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 

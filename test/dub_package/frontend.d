@@ -13,15 +13,18 @@ void main()
     initDMD;
     findImportPaths.each!addImport;
 
-    auto m = parseModule("test.d", q{
+    auto t = parseModule("test.d", q{
         void foo()
         {
             foreach (i; 0..10) {}
         }
     });
 
-    m.fullSemantic;
-    auto generated = m.prettyPrint;
+    assert(!t.diagnostics.hasErrors);
+    assert(!t.diagnostics.hasWarnings);
+
+    t.module_.fullSemantic;
+    auto generated = t.module_.prettyPrint;
 
     auto expected =q{import object;
 void foo()

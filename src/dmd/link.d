@@ -480,25 +480,20 @@ public int runLINK()
         else
         {
             // Generate exe file name from first obj name
-            const(char)* n = global.params.objfiles[0];
-            const(char)* ex;
+            const(char)[] n = global.params.objfiles[0].toDString();
+            const(char)[] ex;
             n = FileName.name(n);
-            const(char)* e = FileName.ext(n);
-            if (e)
+            if (const e = FileName.ext(n))
             {
-                e--; // back up over '.'
-                auto tmp = cast(char*)mem.xmalloc(e - n + 1);
-                memcpy(tmp, n, e - n);
-                tmp[e - n] = 0;
-                ex = tmp;
-                // If generating dll then force dll extension
                 if (global.params.dll)
-                    ex = FileName.forceExt(ex, global.dll_ext);
+                    ex = FileName.forceExt(ex, global.dll_ext.toDString());
+                else
+                    ex = FileName.removeExt(n);
             }
             else
-                ex = "a.out".ptr; // no extension, so give up
-            argv.push(ex);
-            global.params.exefile = ex;
+                ex = "a.out"; // no extension, so give up
+            argv.push(ex.ptr);
+            global.params.exefile = ex.ptr;
         }
         // Make sure path to exe file exists
         ensurePathToNameExists(Loc.initial, global.params.exefile);
@@ -569,38 +564,21 @@ public int runLINK()
             argv.push("-Xlinker");
             argv.push("--gc-sections");
         }
-        /* Add each library, prefixing it with "-l".
-         * The order of libraries passed is:
-         *  1. any libraries passed with -L command line switch
-         *  2. libraries specified on the command line
+        /* Add libraries. The order of libraries passed is:
+         *  1. static libraries ending with *.a     (global.params.libfiles)
+         *  2. link switches passed with -L command line switch  (global.params.linkswitches)
          *  3. libraries specified by pragma(lib), which were appended
-         *     to global.params.libfiles.
-         *  4. link switches, that may also contain -l libraries
+         *     to global.params.libfiles. These are prefixed with "-l"
+         *  4. dynamic libraries passed to the command line (global.params.dllfiles)
          *  5. standard libraries.
          */
-        for (size_t i = 0; i < global.params.libfiles.dim; i++)
+        foreach (p; global.params.libfiles)
         {
-            const(char)* p = global.params.libfiles[i];
-            size_t plen = strlen(p);
-            if (plen > 2 && p[plen - 2] == '.' && p[plen - 1] == 'a')
+            if (FileName.equalsExt(p, "a"))
                 argv.push(p);
-            else
-            {
-                char* s = cast(char*)mem.xmalloc(plen + 3);
-                s[0] = '-';
-                s[1] = 'l';
-                memcpy(s + 2, p, plen + 1);
-                argv.push(s);
-            }
         }
-        for (size_t i = 0; i < global.params.dllfiles.dim; i++)
+        foreach (p; global.params.linkswitches)
         {
-            const(char)* p = global.params.dllfiles[i];
-            argv.push(p);
-        }
-        for (size_t i = 0; i < global.params.linkswitches.dim; i++)
-        {
-            const(char)* p = global.params.linkswitches[i];
             if (!p || !p[0] || !(p[0] == '-' && (p[1] == 'l' || p[1] == 'L')))
             {
                 // Don't need -Xlinker if switch starts with -l or -L.
@@ -608,6 +586,22 @@ public int runLINK()
                 // to take precedence over gcc defaults.
                 argv.push("-Xlinker");
             }
+            argv.push(p);
+        }
+        foreach (p; global.params.libfiles)
+        {
+            if (!FileName.equalsExt(p, "a"))
+            {
+                const plen = strlen(p);
+                char* s = cast(char*)mem.xmalloc(plen + 3);
+                s[0] = '-';
+                s[1] = 'l';
+                memcpy(s + 2, p, plen + 1);
+                argv.push(s);
+            }
+        }
+        foreach (p; global.params.dllfiles)
+        {
             argv.push(p);
         }
         /* D runtime libraries must go after user specified libraries
@@ -1369,7 +1363,6 @@ version (Windows)
         static const(char)* findLatestSDKDir(const(char)* baseDir, const(char)* testfile)
         {
             auto allfiles = FileName.combine(baseDir, "*");
-            static if (!is(WIN32_FIND_DATAA)) alias WIN32_FIND_DATAA = WIN32_FIND_DATA; // support dmd 2.068
             WIN32_FIND_DATAA fileinfo;
             HANDLE h = FindFirstFileA(allfiles, &fileinfo);
             if (h == INVALID_HANDLE_VALUE)

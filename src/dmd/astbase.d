@@ -325,7 +325,7 @@ struct ASTBase
             return true;
         }
 
-        static bool oneMembers(Dsymbols* members, Dsymbol* ps, Identifier ident)
+        extern (D) static bool oneMembers(Dsymbols* members, Dsymbol* ps, Identifier ident)
         {
             Dsymbol s = null;
             if (members)
@@ -1159,11 +1159,17 @@ struct ASTBase
 
     extern (C++) final class Nspace : ScopeDsymbol
     {
-        extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* members)
+        /**
+         * Determines whether the symbol for this namespace should be included in the symbol table.
+         */
+        bool mangleOnly;
+
+        extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* members, bool mangleOnly)
         {
             super(ident);
             this.loc = loc;
             this.members = members;
+            this.mangleOnly = mangleOnly;
         }
 
         override void accept(Visitor v)
@@ -1174,13 +1180,13 @@ struct ASTBase
 
     extern (C++) final class CompileDeclaration : AttribDeclaration
     {
-        Expression exp;
+        Expressions* exps;
 
-        extern (D) this(const ref Loc loc, Expression exp)
+        extern (D) this(const ref Loc loc, Expressions* exps)
         {
             super(null);
             this.loc = loc;
-            this.exp = exp;
+            this.exps = exps;
         }
 
         override void accept(Visitor v)
@@ -1199,7 +1205,7 @@ struct ASTBase
             this.atts = atts;
         }
 
-        static Expressions* concat(Expressions* udas1, Expressions* udas2)
+        extern (D) static Expressions* concat(Expressions* udas1, Expressions* udas2)
         {
             Expressions* udas;
             if (!udas1 || udas1.dim == 0)
@@ -1955,12 +1961,12 @@ struct ASTBase
 
     extern (C++) final class CompileStatement : Statement
     {
-        Expression exp;
+        Expressions* exps;
 
-        final extern (D) this(const ref Loc loc, Expression exp)
+        final extern (D) this(const ref Loc loc, Expressions* exps)
         {
             super(loc);
-            this.exp = exp;
+            this.exps = exps;
         }
 
         override void accept(Visitor v)
@@ -4537,6 +4543,44 @@ struct ASTBase
             this.sz = 1;                    // work around LDC bug #1286
         }
 
+        /**********************************************
+        * Write the contents of the string to dest.
+        * Use numberOfCodeUnits() to determine size of result.
+        * Params:
+        *  dest = destination
+        *  tyto = encoding type of the result
+        *  zero = add terminating 0
+        */
+        void writeTo(void* dest, bool zero, int tyto = 0) const
+        {
+            int encSize;
+            switch (tyto)
+            {
+                case 0:      encSize = sz; break;
+                case Tchar:  encSize = 1; break;
+                case Twchar: encSize = 2; break;
+                case Tdchar: encSize = 4; break;
+                default:
+                    assert(0);
+            }
+            if (sz == encSize)
+            {
+                memcpy(dest, string, len * sz);
+                if (zero)
+                    memset(dest + len * sz, 0, sz);
+            }
+            else
+                assert(0);
+        }
+
+        extern (D) final const(char)[] toStringz() const
+        {
+            auto nbytes = len * sz;
+            char* s = cast(char*)mem.xmalloc(nbytes + sz);
+            writeTo(s, true);
+            return s[0 .. nbytes];
+        }
+
         override void accept(Visitor v)
         {
             v.visit(this);
@@ -5178,11 +5222,14 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class CompileExp : UnaExp
+    extern (C++) final class CompileExp : Expression
     {
-        extern (D) this(const ref Loc loc, Expression e)
+        Expressions* exps;
+
+        extern (D) this(const ref Loc loc, Expressions* exps)
         {
-            super(loc, TOK.mixin_, __traits(classInstanceSize, CompileExp), e);
+            super(loc, TOK.mixin_, __traits(classInstanceSize, CompileExp));
+            this.exps = exps;
         }
 
         override void accept(Visitor v)
@@ -5994,13 +6041,24 @@ struct ASTBase
         }
     }
 
+    enum InitKind : ubyte
+    {
+        void_,
+        error,
+        struct_,
+        array,
+        exp,
+    }
+
     extern (C++) class Initializer : RootObject
     {
         Loc loc;
+        InitKind kind;
 
-        final extern (D) this(const ref Loc loc)
+        final extern (D) this(const ref Loc loc, InitKind kind)
         {
             this.loc = loc;
+            this.kind = kind;
         }
 
         // this should be abstract and implemented in child classes
@@ -6009,9 +6067,9 @@ struct ASTBase
             return null;
         }
 
-        ExpInitializer isExpInitializer()
+        final ExpInitializer isExpInitializer()
         {
-            return null;
+            return kind == InitKind.exp ? cast(ExpInitializer)cast(void*)this : null;
         }
 
         void accept(Visitor v)
@@ -6026,13 +6084,8 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Expression exp)
         {
-            super(loc);
+            super(loc, InitKind.exp);
             this.exp = exp;
-        }
-
-        override ExpInitializer isExpInitializer()
-        {
-            return this;
         }
 
         override void accept(Visitor v)
@@ -6048,7 +6101,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc)
         {
-            super(loc);
+            super(loc, InitKind.struct_);
         }
 
         void addInit(Identifier field, Initializer value)
@@ -6072,7 +6125,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc)
         {
-            super(loc);
+            super(loc, InitKind.array);
         }
 
         void addInit(Expression index, Initializer value)
@@ -6093,7 +6146,7 @@ struct ASTBase
     {
         extern (D) this(const ref Loc loc)
         {
-            super(loc);
+            super(loc, InitKind.void_);
         }
 
         override void accept(Visitor v)

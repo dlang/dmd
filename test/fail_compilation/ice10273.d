@@ -1,4 +1,5 @@
-// 10273 - ICE in CTFE
+// https://issues.dlang.org/show_bug.cgi?id=10273
+// ICE in CTFE
 
 struct Bug10273 {
     int val = 3.45;

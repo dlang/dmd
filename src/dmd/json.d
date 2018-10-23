@@ -850,7 +850,7 @@ public:
     private void generateCompilerInfo()
     {
         objectStart();
-        requiredProperty("vendor", global.compiler.vendor.toDString);
+        requiredProperty("vendor", global.vendor.toDString);
         requiredProperty("version", global._version.toDString);
         property("__VERSION__", global.versionNumber());
         requiredProperty("interface", determineCompilerInterface());
@@ -1090,13 +1090,13 @@ Determines and returns the compiler interface which is one of `dmd`, `ldc`,
 */
 private extern(D) string determineCompilerInterface()
 {
-    if (!strcmp(global.compiler.vendor, "Digital Mars D"))
+    if (!strcmp(global.vendor, "Digital Mars D"))
         return "dmd";
-    if (!strcmp(global.compiler.vendor, "LDC"))
+    if (!strcmp(global.vendor, "LDC"))
         return "ldc";
-    if (!strcmp(global.compiler.vendor, "GNU"))
+    if (!strcmp(global.vendor, "GNU"))
         return "gdc";
-    if (!strcmp(global.compiler.vendor, "SDC"))
+    if (!strcmp(global.vendor, "SDC"))
         return "sdc";
     return null;
 }

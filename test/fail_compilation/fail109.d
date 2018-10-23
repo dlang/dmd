@@ -12,7 +12,7 @@ enum Bool : bool
     Unknown
 }
 
-/* Bugzilla 11088
+/* https://issues.dlang.org/show_bug.cgi?id=11088
 TEST_OUTPUT:
 ---
 fail_compilation/fail109.d(25): Error: enum member `fail109.E.B` initialization with `E.A+1` causes overflow for type `int`
@@ -31,7 +31,7 @@ enum E1 : short
     B
 }
 
-/* Bugzilla 14950
+/* https://issues.dlang.org/show_bug.cgi?id=14950
 TEST_OUTPUT:
 ---
 fail_compilation/fail109.d(50): Error: Comparison between different enumeration types `B` and `C`; If this behavior is intended consider using `std.conv.asOriginalType`
@@ -50,7 +50,7 @@ enum B
     end
 }
 
-/* Bugzilla 11849
+/* https://issues.dlang.org/show_bug.cgi?id=11849
 TEST_OUTPUT:
 ---
 fail_compilation/fail109.d(72): Error: enum `fail109.RegValueType1a` recursive definition of `.max` property

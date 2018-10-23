@@ -118,9 +118,12 @@ struct REGSAVE
     int alignment;              // 8 or 16
 
     void reset() { off = 0; top = 0; idx = 0; alignment = _tysize[TYnptr]/*REGSIZE*/; }
-    void save(ref CodeBuilder cdb, int reg, uint *pidx);
-    void restore(ref CodeBuilder cdb, int reg, uint idx);
+    void save(ref CodeBuilder cdb, int reg, uint *pidx) { REGSAVE_save(this, cdb, reg, pidx); }
+    void restore(ref CodeBuilder cdb, int reg, uint idx) { REGSAVE_restore(this, cdb, reg, idx); }
 }
+
+void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, int reg, uint *pidx);
+void REGSAVE_restore(ref REGSAVE regsave, ref CodeBuilder cdb, int reg, uint index);
 
 extern __gshared REGSAVE regsave;
 
@@ -507,7 +510,7 @@ void cod3_stackadj(ref CodeBuilder cdb, int nbytes);
 regm_t regmask(tym_t tym, tym_t tyf);
 void cgreg_dst_regs(uint *dst_integer_reg, uint *dst_float_reg);
 void cgreg_set_priorities(tym_t ty, ubyte **pseq, ubyte **pseqmsw);
-void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const char* sflsave, Symbol** retsym, const regm_t mfuncregsave );
+void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const(char)* sflsave, Symbol** retsym, const regm_t mfuncregsave );
 void outjmptab(block *b);
 void outswitab(block *b);
 int jmpopcode(elem *e);
@@ -547,6 +550,32 @@ void searchfixlist(Symbol *s) {}
 void outfixlist();
 void code_hydrate(code **pc);
 void code_dehydrate(code **pc);
+
+extern __gshared
+{
+    int hasframe;            /* !=0 if this function has a stack frame */
+    targ_size_t spoff;
+    targ_size_t Foff;        // BP offset of floating register
+    targ_size_t CSoff;       // offset of common sub expressions
+    targ_size_t NDPoff;      // offset of saved 8087 registers
+    targ_size_t pushoff;     // offset of saved registers
+    bool pushoffuse;         // using pushoff
+    int BPoff;               // offset from BP
+    int EBPtoESP;            // add to EBP offset to get ESP offset
+}
+
+void prolog_ifunc(ref CodeBuilder cdb, tym_t* tyf);
+void prolog_ifunc2(ref CodeBuilder cdb, tym_t tyf, tym_t tym, bool pushds);
+void prolog_16bit_windows_farfunc(ref CodeBuilder cdb, tym_t* tyf, bool* pushds);
+void prolog_frame(ref CodeBuilder cdb, uint farfunc, uint* xlocalsize, bool* enter, int* cfa_offset);
+void prolog_frameadj(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool enter, bool* pushalloc);
+void prolog_frameadj2(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool* pushalloc);
+void prolog_setupalloca(ref CodeBuilder cdb);
+void prolog_saveregs(ref CodeBuilder cdb, regm_t topush, int cfa_offset);
+void prolog_trace(ref CodeBuilder cdb, bool farfunc, uint* regsaved);
+void prolog_gen_win64_varargs(ref CodeBuilder cdb);
+void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t* namedargs);
+void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, regm_t* namedargs);
 
 /* cod4.c */
 extern __gshared

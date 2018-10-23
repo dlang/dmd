@@ -53,7 +53,7 @@ build_script:
         }
   - .\%VISUALD_INSTALLER% /S
   # configure DMD path
-  - reg add "HKLM\SOFTWARE\Microsoft\VisualStudio\14.0\ToolsOptionsPages\Projects\Visual D Settings" /v DMDInstallDir /t REG_SZ /d c:\projects\dmd2 /reg:32 /f
+  - reg add "HKCU\SOFTWARE\Microsoft\VisualStudio\14.0\ToolsOptionsPages\Projects\Visual D Settings" /v DMDInstallDir /t REG_SZ /d c:\projects\dmd2 /reg:32 /f
   # configure LDC path
   - reg add "HKCU\SOFTWARE\Microsoft\VisualStudio\14.0\ToolsOptionsPages\Projects\Visual D Settings" /v LDCInstallDir /t REG_SZ /d c:\projects\%LDC_DIR%\ /reg:32 /f
   # disable link dependencies monitoring, fails on AppVeyor server

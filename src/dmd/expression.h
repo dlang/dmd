@@ -12,7 +12,6 @@
 
 #include "complex_t.h"
 #include "globals.h"
-#include "identifier.h"
 #include "arraytypes.h"
 #include "visitor.h"
 #include "tokens.h"
@@ -26,26 +25,18 @@ class TupleDeclaration;
 class VarDeclaration;
 class FuncDeclaration;
 class FuncLiteralDeclaration;
-class Declaration;
 class CtorDeclaration;
 class NewDeclaration;
 class Dsymbol;
-class Import;
-class Module;
 class ScopeDsymbol;
 class Expression;
 class Declaration;
-class AggregateDeclaration;
 class StructDeclaration;
 class TemplateInstance;
 class TemplateDeclaration;
 class ClassDeclaration;
-class BinExp;
 class OverloadSet;
-class Initializer;
 class StringExp;
-class ArrayExp;
-class SliceExp;
 struct UnionExp;
 #ifdef IN_GCC
 typedef union tree_node Symbol;
@@ -53,64 +44,23 @@ typedef union tree_node Symbol;
 struct Symbol;          // back end symbol
 #endif
 
-Expression *resolveProperties(Scope *sc, Expression *e);
-Expression *resolvePropertiesOnly(Scope *sc, Expression *e1);
-bool checkAccess(Loc loc, Scope *sc, Expression *e, Declaration *d);
-bool checkAccess(Loc loc, Scope *sc, Package *p);
-Expression *build_overload(const Loc &loc, Scope *sc, Expression *ethis, Expression *earg, Dsymbol *d);
-Dsymbol *search_function(ScopeDsymbol *ad, Identifier *funcid);
 void expandTuples(Expressions *exps);
 TupleDeclaration *isAliasThisTuple(Expression *e);
 int expandAliasThisTuples(Expressions *exps, size_t starti = 0);
-FuncDeclaration *hasThis(Scope *sc);
-Expression *fromConstInitializer(int result, Expression *e);
 bool arrayExpressionSemantic(Expressions *exps, Scope *sc, bool preserveErrors = false);
 TemplateDeclaration *getFuncTemplateDecl(Dsymbol *s);
-Expression *valueNoDtor(Expression *e);
-int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1);
-Expression *resolveAliasThis(Scope *sc, Expression *e, bool gag = false);
-Expression *doCopyOrMove(Scope *sc, Expression *e);
-Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, Expression **pe0);
-Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, IntervalExp *ie, Expression **pe0);
-Expression *integralPromotions(Expression *e, Scope *sc);
-bool discardValue(Expression *e);
 bool isTrivialExp(Expression *e);
 
 Expression *toDelegate(Expression *e, Type* t, Scope *sc);
-AggregateDeclaration *isAggregate(Type *t);
-bool checkNonAssignmentArrayOp(Expression *e, bool suggestion = false);
-bool isUnaArrayOp(TOK op);
-bool isBinArrayOp(TOK op);
-bool isBinAssignArrayOp(TOK op);
-bool isArrayOpOperand(Expression *e);
-Expression *arrayOp(BinExp *e, Scope *sc);
-Expression *arrayOp(BinAssignExp *e, Scope *sc);
 bool hasSideEffect(Expression *e);
 bool canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow);
-Expression *inlineCopy(Expression *e, Scope *sc);
-Type *toStaticArrayType(SliceExp *e);
-Expression *scaleFactor(BinExp *be, Scope *sc);
-Expression *typeCombine(BinExp *be, Scope *sc);
-Expression *inferType(Expression *e, Type *t, int flag = 0);
-Expression *semanticTraits(TraitsExp *e, Scope *sc);
-Type *getIndirection(Type *t);
-
-Expression *checkGC(Scope *sc, Expression *e);
-
-/* Run CTFE on the expression, but allow the expression to be a TypeExp
- * or a tuple containing a TypeExp. (This is required by pragma(msg)).
- */
-Expression *ctfeInterpretForPragmaMsg(Expression *e);
 
 enum OwnedBy
 {
     OWNEDcode,      // normal code expression in AST
     OWNEDctfe,      // value expression for CTFE
-    OWNEDcache,     // constant value cached for CTFE
+    OWNEDcache      // constant value cached for CTFE
 };
-
-#define WANTvalue   0   // default
-#define WANTexpand  1   // expand const/immutable variables if possible
 
 class Expression : public RootObject
 {
@@ -128,18 +78,10 @@ public:
     // kludge for template.isExpression()
     int dyncast() const { return DYNCAST_EXPRESSION; }
 
-    void print();
     const char *toChars();
     void error(const char *format, ...) const;
     void warning(const char *format, ...) const;
     void deprecation(const char *format, ...) const;
-
-    // creates a single expression which is effectively (e1, e2)
-    // this new expression does not necessarily need to have valid D source code representation,
-    // for example, it may include declaration expressions
-    static Expression *combine(Expression *e1, Expression *e2);
-    static Expression *extractLast(Expression *e, Expression **pe0);
-    static Expressions *arraySyntaxCopy(Expressions *exps);
 
     virtual dinteger_t toInteger();
     virtual uinteger_t toUInteger();
@@ -156,19 +98,7 @@ public:
     virtual Expression *resolveLoc(const Loc &loc, Scope *sc);
     virtual bool checkType();
     virtual bool checkValue();
-    bool checkScalar();
-    bool checkNoBool();
-    bool checkIntegral();
-    bool checkArithmetic();
     bool checkDeprecated(Scope *sc, Dsymbol *s);
-    bool checkDisabled(Scope *sc, Dsymbol *s);
-    bool checkPurity(Scope *sc, FuncDeclaration *f);
-    bool checkPurity(Scope *sc, VarDeclaration *v);
-    bool checkSafety(Scope *sc, FuncDeclaration *f);
-    bool checkNogc(Scope *sc, FuncDeclaration *f);
-    bool checkPostblit(Scope *sc, Type *t);
-    bool checkRightThis(Scope *sc);
-    bool checkReadModifyWrite(TOK rmwOp, Expression *ex = NULL);
     virtual int checkModifiable(Scope *sc, int flag = 0);
     virtual Expression *toBoolean(Scope *sc);
     virtual Expression *addDtorHook(Scope *sc);
@@ -182,7 +112,6 @@ public:
     Expression *ctfeInterpret();
     int isConst();
     virtual bool isBool(bool result);
-    Expression *op_overload(Scope *sc);
 
     virtual bool hasCode()
     {
@@ -370,7 +299,6 @@ public:
     Expression *syntaxCopy();
     bool equals(RootObject *o);
     Expression *getElement(d_size_t i);
-    static Expressions* copyElements(Expression *e1, Expression *e2 = NULL);
     bool isBool(bool result);
     StringExp *toStringExp();
 
@@ -390,19 +318,6 @@ public:
 
     void accept(Visitor *v) { v->visit(this); }
 };
-
-// scrubReturnValue is running
-#define stageScrub          0x1
-// hasNonConstPointers is running
-#define stageSearchPointers 0x2
-// optimize is running
-#define stageOptimize       0x4
-// apply is running
-#define stageApply          0x8
-//inlineScan is running
-#define stageInlineScan     0x10
-// toCBuffer is running
-#define stageToCBuffer      0x20
 
 class StructLiteralExp : public Expression
 {
@@ -440,9 +355,6 @@ public:
 
     void accept(Visitor *v) { v->visit(this); }
 };
-
-class DotIdExp;
-DotIdExp *typeDotIdExp(const Loc &loc, Type *type, Identifier *ident);
 
 class TypeExp : public Expression
 {
@@ -543,7 +455,6 @@ public:
     static VarExp *create(Loc loc, Declaration *var, bool hasOverloads = true);
     bool equals(RootObject *o);
     int checkModifiable(Scope *sc, int flag);
-    bool checkReadModifyWrite();
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -573,9 +484,7 @@ public:
     TOK tok;
 
     bool equals(RootObject *o);
-    void genIdent(Scope *sc);
     Expression *syntaxCopy();
-    MATCH matchType(Type *to, Scope *sc, FuncExp **pfe, int flag = 0);
     const char *toChars();
     bool checkType();
     bool checkValue();
@@ -669,9 +578,6 @@ public:
 
     Expression *syntaxCopy();
     Expression *incompatibleTypes();
-    Expression *checkOpAssignTypes(Scope *sc);
-    bool checkIntegralBin();
-    bool checkArithmeticBin();
 
     Expression *reorderSettingAAElem(Scope *sc);
 
@@ -738,7 +644,6 @@ public:
     bool hasOverloads;
 
     int checkModifiable(Scope *sc, int flag);
-    bool checkReadModifyWrite();
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -892,8 +797,6 @@ public:
 class ArrayLengthExp : public UnaExp
 {
 public:
-
-    static Expression *rewriteOpAssign(BinExp *exp);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1001,7 +904,7 @@ public:
 enum MemorySet
 {
     blockAssign     = 1,    // setting the contents of an array
-    referenceInit   = 2,    // setting the reference of STCref variable
+    referenceInit   = 2     // setting the reference of STCref variable
 };
 
 class AssignExp : public BinExp

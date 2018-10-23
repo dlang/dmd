@@ -16,7 +16,6 @@ import core.stdc.stdint;
 import dmd.root.array;
 import dmd.root.filename;
 import dmd.root.outbuffer;
-import dmd.compiler;
 import dmd.identifier;
 
 template xversion(string s)
@@ -35,6 +34,13 @@ enum TARGET : bool
     DragonFlyBSD = xversion!`DragonFlyBSD`,
 }
 
+enum Diagnostic : ubyte
+{
+    error,        // generate an error
+    inform,       // generate a warning
+    off,          // disable diagnostic
+}
+
 enum CHECKENABLE : ubyte
 {
     _default,     // initial value
@@ -47,6 +53,7 @@ enum CHECKACTION : ubyte
 {
     D,            // call D assert on failure
     C,            // call C assert on failure
+    halt,         // cause program halt on failure
 }
 
 enum CPU
@@ -116,10 +123,7 @@ struct Param
     bool isSolaris;         // generate code for Solaris
     bool hasObjectiveC;     // target supports Objective-C
     bool mscoff = false;    // for Win32: write MsCoff object files instead of OMF
-    // 0: don't allow use of deprecated features
-    // 1: silently allow use of deprecated features
-    // 2: warn about the use of deprecated features
-    byte useDeprecated = 2;
+    Diagnostic useDeprecated = Diagnostic.inform;  // how use of deprecated features are handled
     bool useInvariants = true;  // generate class invariant checks
     bool useIn = true;          // generate precondition checks
     bool useOut = true;         // generate postcondition checks
@@ -129,10 +133,7 @@ struct Param
     bool useDIP25;          // implement http://wiki.dlang.org/DIP25
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
-    // 0: disable warnings
-    // 1: warnings as errors
-    // 2: informational warnings (no errors)
-    byte warnings;
+    Diagnostic warnings = Diagnostic.off;  // how compiler warnings are handled
     bool pic;               // generate position-independent-code for shared libs
     bool color = true;      // use ANSI colors in console output
     bool cov;               // generate code coverage data
@@ -151,6 +152,8 @@ struct Param
                             // https://issues.dlang.org/show_bug.cgi?id=16997
     bool vsafe;             // use enhanced @safe checking
     bool ehnogc;            // use @nogc exception handling
+    bool dtorFields;        // destruct fields of partially constructed objects
+                            // https://issues.dlang.org/show_bug.cgi?id=14246
     /** The --transition=safe switch should only be used to show code with
      * silent semantics changes related to @safe improvements.  It should not be
      * used to hide a feature that will have to go through deprecate-then-error
@@ -257,8 +260,8 @@ struct Global
     Array!(const(char)*)* filePath;     // Array of char*'s which form the file import lookup path
 
     const(char)* _version;
+    const(char)* vendor;    // Compiler backend name
 
-    Compiler compiler;
     Param params;
     uint errors;            // number of errors reported so far
     uint warnings;          // number of warnings reported so far
@@ -361,7 +364,7 @@ struct Global
             static assert(0, "fix this");
         }
         _version = (import("VERSION") ~ '\0').ptr;
-        compiler.vendor = "Digital Mars D";
+        vendor = "Digital Mars D";
     }
 
     /**

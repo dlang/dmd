@@ -103,7 +103,10 @@ enum IMPLIED_PRAGMA_ONCE = 1;       // include guards count as #pragma once
 enum bool HEADER_LIST = true;
 
 // Support generating code for 16 bit memory models
-//#define SIXTEENBIT              (SCPP && TARGET_WINDOS)
+version (SCPP)
+    enum SIXTEENBIT = TARGET_WINDOS != 0;
+else
+    enum SIXTEENBIT = false;
 
 /* Set for supporting the FLAT memory model.
  * This is not quite the same as !SIXTEENBIT, as one could
@@ -238,6 +241,8 @@ enum EXIT_BREAK = 255;     // aborted compile with ^C
  * Target machine data types as they appear on the host.
  */
 
+import core.stdc.stdint : int64_t, uint64_t;
+
 alias targ_char = byte;
 alias targ_uchar = ubyte;
 alias targ_schar = byte;
@@ -245,8 +250,8 @@ alias targ_short = short;
 alias targ_ushort= ushort;
 alias targ_long = int;
 alias targ_ulong = uint;
-alias targ_llong = long;
-alias targ_ullong = ulong;
+alias targ_llong = int64_t;
+alias targ_ullong = uint64_t;
 alias targ_float = float;
 alias targ_double = double;
 public import dmd.root.longdouble : targ_ldouble = longdouble;
@@ -276,7 +281,7 @@ enum
 //#define REGSIZE         _tysize[TYnptr]
 //@property @nogc nothrow auto NPTRSIZE() { return _tysize[TYnptr]; }
 //#define FPTRSIZE        _tysize[TYfptr]
-//#define REGMASK         0xFFFF
+enum REGMASK = 0xFFFF;
 
 // targ_llong is also used to store host pointers, so it should have at least their size
 version (SCPP)
@@ -298,8 +303,8 @@ else version (HTOD)
 else
 {
     // Support 64 bit targets
-    alias targ_ptrdiff_t = targ_llong;  // ptrdiff_t for target machine
-    alias targ_size_t = targ_ullong;    // size_t for the target machine
+    alias targ_ptrdiff_t = int64_t;  // ptrdiff_t for target machine
+    alias targ_size_t = uint64_t;    // size_t for the target machine
 }
 
 /* Enable/disable various features
@@ -316,12 +321,8 @@ enum CV3 = 0;          // 1 means support CV3 debug format
 //#ifndef OMFOBJ
 //#define OMFOBJ          TARGET_WINDOS
 //#endif
-//#ifndef ELFOBJ
-//#define ELFOBJ          (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-//#endif
-//#ifndef MACHOBJ
-//#define MACHOBJ         TARGET_OSX
-//#endif
+enum ELFOBJ = TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS;
+enum MACHOBJ = TARGET_OSX;
 
 version (XVERSION)
 {

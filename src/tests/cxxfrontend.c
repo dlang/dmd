@@ -19,7 +19,6 @@
 #include "root/port.h"
 #include "root/rmem.h"
 #include "root/root.h"
-#include "root/stringtable.h"
 #include "root/thread.h"
 
 #include "aggregate.h"
@@ -70,6 +69,7 @@ static void frontend_init()
 
     global._init();
     global.params.isLinux = true;
+    global.vendor = "Front-End Tester";
 
     Type::_init();
     Id::initialize();
@@ -103,15 +103,21 @@ class TestVisitor : public Visitor
     bool attrib;
     bool decl;
     bool typeinfo;
+    bool idexpr;
 
     TestVisitor() : expr(false), package(false), stmt(false), type(false),
-        aggr(false), attrib(false), decl(false), typeinfo(false)
+        aggr(false), attrib(false), decl(false), typeinfo(false), idexpr(false)
     {
     }
 
     void visit(Expression *)
     {
         expr = true;
+    }
+
+    void visit(IdentifierExp *)
+    {
+        idexpr = true;
     }
 
     void visit(Package *)
@@ -159,6 +165,10 @@ void test_visitors()
     IntegerExp *ie = IntegerExp::createi(loc, 42, Type::tint32);
     ie->accept(&tv);
     assert(tv.expr == true);
+
+    IdentifierExp *id = IdentifierExp::create (loc, ident);
+    id->accept(&tv);
+    assert(tv.idexpr == true);
 
     Module *mod = Module::create("test", ident, 0, 0);
     mod->accept(&tv);

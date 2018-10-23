@@ -34,11 +34,11 @@ struct seg_data;
 #endif
 
 
-#if OMF
+#if OMF || OMFandMSCOFF
     class Obj
     {
       public:
-        static Obj *init(Outbuffer *, const char *filename, const char *csegname);
+//        static Obj *init(Outbuffer *, const char *filename, const char *csegname);
         static void initfile(const char *filename, const char *csegname, const char *modname);
         static void termfile();
         static void term(const char *objfilename);
@@ -65,9 +65,9 @@ struct seg_data;
         static void ehtables(Symbol *sfunc,unsigned size,Symbol *ehsym);
         static void ehsections();
         static void moduleinfo(Symbol *scc);
-        int  comdat(Symbol *);
-        int  comdatsize(Symbol *, targ_size_t symsize);
-        int readonly_comdat(Symbol *s);
+        static int  comdat(Symbol *);
+        static int  comdatsize(Symbol *, targ_size_t symsize);
+        static int readonly_comdat(Symbol *s);
         static void setcodeseg(int seg);
         static seg_data *tlsseg();
         static seg_data *tlsseg_bss();
@@ -152,8 +152,8 @@ class Obj
     VIRTUAL void ehtables(Symbol *sfunc,unsigned size,Symbol *ehsym);
     VIRTUAL void ehsections();
     VIRTUAL void moduleinfo(Symbol *scc);
-    virtual int  comdat(Symbol *);
-    virtual int  comdatsize(Symbol *, targ_size_t symsize);
+    VIRTUAL int  comdat(Symbol *);
+    VIRTUAL int  comdatsize(Symbol *, targ_size_t symsize);
     virtual int readonly_comdat(Symbol *s);
     VIRTUAL void setcodeseg(int seg);
     virtual seg_data *tlsseg();

@@ -54,10 +54,8 @@ application if debug info is needed when the application is deployed.
 #include        "cv4.h"
 #include        "cgcv.h"
 #include        "dt.h"
-#include        "rtlsym.h"
 
 #include        "aa.h"
-#include        "tinfo.h"
 
 #if ELFOBJ
 #include        "melf.h"
@@ -75,24 +73,30 @@ application if debug info is needed when the application is deployed.
 #include        "dwarf.h"
 #include        "dwarf2.h"
 
+#define null NULL
+typedef unsigned char ubyte;
+typedef unsigned short ushort;
+#define cast
+
 extern int seg_count;
 
 #if MACHOBJ
 int except_table_seg = 0;       // __gcc_except_tab segment
 int except_table_num = 0;       // sequence number for GCC_except_table%d symbols
 int eh_frame_seg = 0;           // __eh_frame segment
-Symbol *eh_frame_sym = NULL;            // past end of __eh_frame
+Symbol *eh_frame_sym = null;            // past end of __eh_frame
 #endif
-unsigned CIE_offset_unwind;     // CIE offset for unwind data
-unsigned CIE_offset_no_unwind;  // CIE offset for no unwind data
+uint CIE_offset_unwind;     // CIE offset for unwind data
+uint CIE_offset_no_unwind;  // CIE offset for no unwind data
 
 #if ELFOBJ
-IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, unsigned sz,
-        unsigned typ, unsigned bind, IDXSEC sec,
-        unsigned char visibility = STV_DEFAULT);
+IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
+        uint typ, uint bind, IDXSEC sec,
+        ubyte visibility = STV_DEFAULT);
 void addSegmentToComdat(segidx_t seg, segidx_t comdatseg);
 #endif
 
+Symbol* getRtlsymPersonality();
 
 static Outbuffer  *reset_symbuf;        // Keep pointers to reset symbols
 
@@ -133,7 +137,7 @@ bool doUnwindEhFrame()
 int dwarf_getsegment(const char *name, int align, int flags)
 {
 #if ELFOBJ
-    return ElfObj::getsegment(name, NULL, flags, 0, align * 4);
+    return ElfObj::getsegment(name, null, flags, 0, align * 4);
 #elif MACHOBJ
     return MachObj::getsegment(name, "__DWARF", align * 2, flags);
 #else
@@ -166,7 +170,7 @@ int dwarf_except_table_alloc(Symbol *s)
         return tableseg;
     }
     else
-        return dwarf_getsegment_alloc(".gcc_except_table", NULL, 1);
+        return dwarf_getsegment_alloc(".gcc_except_table", null, 1);
 #elif MACHOBJ
     int seg = MachObj::getsegment("__gcc_except_tab", "__TEXT", 2, S_REGULAR);
     except_table_seg = seg;
@@ -180,7 +184,7 @@ int dwarf_except_table_alloc(Symbol *s)
 int dwarf_eh_frame_alloc()
 {
 #if ELFOBJ
-    return dwarf_getsegment_alloc(".eh_frame", NULL, I64 ? 2 : 1);
+    return dwarf_getsegment_alloc(".eh_frame", null, I64 ? 2 : 1);
 #elif MACHOBJ
     int seg = MachObj::getsegment("__eh_frame", "__TEXT", I64 ? 3 : 2,
         S_COALESCED | S_ATTR_NO_TOC | S_ATTR_STRIP_STATIC_SYMS | S_ATTR_LIVE_SUPPORT);
@@ -212,7 +216,7 @@ void dwarf_addrel(int seg, targ_size_t offset, int targseg, targ_size_t val)
 #if ELFOBJ
     ElfObj::addrel(seg, offset, I64 ? R_X86_64_32 : R_386_32, MAP_SEG2SYMIDX(targseg), val);
 #elif MACHOBJ
-    MachObj::addrel(seg, offset, NULL, targseg, RELaddr, val);
+    MachObj::addrel(seg, offset, null, targseg, RELaddr, val);
 #else
     assert(0);
 #endif
@@ -223,7 +227,7 @@ void dwarf_addrel64(int seg, targ_size_t offset, int targseg, targ_size_t val)
 #if ELFOBJ
     ElfObj::addrel(seg, offset, R_X86_64_64, MAP_SEG2SYMIDX(targseg), val);
 #elif MACHOBJ
-    MachObj::addrel(seg, offset, NULL, targseg, RELaddr, val);
+    MachObj::addrel(seg, offset, null, targseg, RELaddr, val);
 #else
     assert(0);
 #endif
@@ -278,7 +282,6 @@ struct CFA_state
     CFA_reg regstates[17];      // register states
 };
 
-#if TX86
 /***********************
  * Convert CPU register number to Dwarf register number.
  * Params:
@@ -314,7 +317,6 @@ int dwarf_regno(int reg)
         return reg < 8 ? to_amd64_reg_map[reg] : reg;
     }
 }
-#endif
 
 static CFA_state CFA_state_init_32 =       // initial CFA state as defined by CIE
 {   0,                // location
@@ -366,7 +368,7 @@ static Outbuffer cfa_buf;               // CFA instructions
  * Params:
  *      location = offset from the start of the function
  */
-void dwarf_CFA_set_loc(size_t location)
+void dwarf_CFA_set_loc(uint location)
 {
     assert(location >= CFA_state_current.location);
     size_t inc = location - CFA_state_current.location;
@@ -519,91 +521,23 @@ const char* debug_frame_name = ".debug_frame";
 /* DWARF 7.5.3: "Each declaration begins with an unsigned LEB128 number
  * representing the abbreviation code itself."
  */
-static unsigned abbrevcode = 1;
-static AArray *abbrev_table;
+static uint abbrevcode = 1;
+static AApair *abbrev_table;
 static int hasModname;    // 1 if has DW_TAG_module
 
 // .debug_info
-static AArray *infoFileName_table;
+static AAchars *infoFileName_table;
 
-static AArray *type_table;
-static AArray *functype_table;  // not sure why this cannot be combined with type_table
+static AApair *type_table;
+static AApair *functype_table;  // not sure why this cannot be combined with type_table
 static Outbuffer *functypebuf;
-
-// typeinfo declarations for hash of char*
-
-struct Abuf
-{
-    const unsigned char *buf;
-    size_t length;
-};
-
-struct TypeInfo_Abuf : TypeInfo
-{
-    const char* toString();
-    hash_t getHash(void *p);
-    int equals(void *p1, void *p2);
-    int compare(void *p1, void *p2);
-    size_t tsize();
-    void swap(void *p1, void *p2);
-};
-
-TypeInfo_Abuf ti_abuf;
-
-const char* TypeInfo_Abuf::toString()
-{
-    return "Abuf";
-}
-
-hash_t TypeInfo_Abuf::getHash(void *p)
-{
-    Abuf a = *(Abuf *)p;
-
-    hash_t hash = 0;
-    for (size_t i = 0; i < a.length; i++)
-        hash = hash * 11 + a.buf[i];
-
-    return hash;
-}
-
-int TypeInfo_Abuf::equals(void *p1, void *p2)
-{
-    Abuf a1 = *(Abuf*)p1;
-    Abuf a2 = *(Abuf*)p2;
-
-    return a1.length == a2.length &&
-        memcmp(a1.buf, a2.buf, a1.length) == 0;
-}
-
-int TypeInfo_Abuf::compare(void *p1, void *p2)
-{
-    Abuf a1 = *(Abuf*)p1;
-    Abuf a2 = *(Abuf*)p2;
-
-    if (a1.length == a2.length)
-        return memcmp(a1.buf, a2.buf, a1.length);
-    else if (a1.length < a2.length)
-        return -1;
-    else
-        return 1;
-}
-
-size_t TypeInfo_Abuf::tsize()
-{
-    return sizeof(Abuf);
-}
-
-void TypeInfo_Abuf::swap(void *p1, void *p2)
-{
-    assert(0);
-}
 
 #pragma pack(1)
 struct DebugInfoHeader
-{   unsigned total_length;
-    unsigned short version;
-    unsigned abbrev_offset;
-    unsigned char address_size;
+{   uint total_length;
+    ushort version;
+    uint abbrev_offset;
+    ubyte address_size;
 };
 #pragma pack()
 
@@ -621,15 +555,15 @@ static size_t linebuf_filetab_end;
 
 #pragma pack(1)
 struct DebugLineHeader
-{   unsigned total_length;
-    unsigned short version;
-    unsigned prologue_length;
-    unsigned char minimum_instruction_length;
-    unsigned char default_is_stmt;
+{   uint total_length;
+    ushort version;
+    uint prologue_length;
+    ubyte minimum_instruction_length;
+    ubyte default_is_stmt;
     signed char line_base;
-    unsigned char line_range;
-    unsigned char opcode_base;
-    unsigned char standard_opcode_lengths[9];
+    ubyte line_range;
+    ubyte opcode_base;
+    ubyte standard_opcode_lengths[9];
 };
 #pragma pack()
 
@@ -647,7 +581,7 @@ static DebugLineHeader debugline_init =
 
 static DebugLineHeader debugline;
 
-unsigned typidx_tab[TYMAX];
+uint typidx_tab[TYMAX];
 
 /*****************************************
  * Append .debug_frame header to buf.
@@ -659,14 +593,14 @@ void writeDebugFrameHeader(Outbuffer *buf)
     #pragma pack(1)
     struct DebugFrameHeader
     {
-        unsigned length;
-        unsigned CIE_id;
-        unsigned char version;
-        unsigned char augmentation;
-        unsigned char code_alignment_factor;
-        unsigned char data_alignment_factor;
-        unsigned char return_address_register;
-        unsigned char opcodes[11];
+        uint length;
+        uint CIE_id;
+        ubyte version;
+        ubyte augmentation;
+        ubyte code_alignment_factor;
+        ubyte data_alignment_factor;
+        ubyte return_address_register;
+        ubyte opcodes[11];
     };
     #pragma pack()
     static DebugFrameHeader debugFrameHeader =
@@ -711,7 +645,7 @@ void writeDebugFrameHeader(Outbuffer *buf)
  * See_Also:
  *      https://refspecs.linuxfoundation.org/LSB_3.0.0/LSB-PDA/LSB-PDA/ehframechpt.html
  */
-static unsigned writeEhFrameHeader(IDXSEC dfseg, Outbuffer *buf, Symbol *personality, bool ehunwind)
+static uint writeEhFrameHeader(IDXSEC dfseg, Outbuffer *buf, Symbol *personality, bool ehunwind)
 {
     /* Augmentation string:
      *  z = first character, means Augmentation Data field is present
@@ -729,17 +663,17 @@ static unsigned writeEhFrameHeader(IDXSEC dfseg, Outbuffer *buf, Symbol *persona
      * EH code: "zPLR"
      */
 
-    const unsigned startsize = buf->size();
+    const uint startsize = buf->size();
 
     // Length of CIE, not including padding
-    const unsigned cielen = 4 + 4 + 1 +
+    const uint cielen = 4 + 4 + 1 +
         (ehunwind ? 5 : 3) +
         1 + 1 + 1 +
         (ehunwind ? 8 : 2) +
         5;
 
-    const unsigned pad = -cielen & (I64 ? 7 : 3);      // pad to addressing unit size boundary
-    const unsigned length = cielen + pad - 4;
+    const uint pad = -cielen & (I64 ? 7 : 3);      // pad to addressing unit size boundary
+    const uint length = cielen + pad - 4;
 
     buf->reserve(length + 4);
     buf->write32(length);       // length of CIE, not including length and extended length fields
@@ -756,20 +690,20 @@ static unsigned writeEhFrameHeader(IDXSEC dfseg, Outbuffer *buf, Symbol *persona
     if (ehunwind)
     {
 #if ELFOBJ
-        const unsigned char personality_pointer_encoding = config.flags3 & CFG3pic
+        const ubyte personality_pointer_encoding = config.flags3 & CFG3pic
                 ? DW_EH_PE_indirect | DW_EH_PE_pcrel | DW_EH_PE_sdata4
                 : DW_EH_PE_absptr | DW_EH_PE_udata4;
-        const unsigned char LSDA_pointer_encoding = config.flags3 & CFG3pic
+        const ubyte LSDA_pointer_encoding = config.flags3 & CFG3pic
                 ? DW_EH_PE_pcrel | DW_EH_PE_sdata4
                 : DW_EH_PE_absptr | DW_EH_PE_udata4;
-        const unsigned char address_pointer_encoding =
+        const ubyte address_pointer_encoding =
                 DW_EH_PE_pcrel | DW_EH_PE_sdata4;
 #elif MACHOBJ
-        const unsigned char personality_pointer_encoding =
+        const ubyte personality_pointer_encoding =
                 DW_EH_PE_indirect | DW_EH_PE_pcrel | DW_EH_PE_sdata4;
-        const unsigned char LSDA_pointer_encoding =
+        const ubyte LSDA_pointer_encoding =
                 DW_EH_PE_pcrel | DW_EH_PE_ptr;
-        const unsigned char address_pointer_encoding =
+        const ubyte address_pointer_encoding =
                 DW_EH_PE_pcrel | DW_EH_PE_ptr;
 #endif
         buf->writeByten(7);                                  // Augmentation Length
@@ -812,7 +746,7 @@ static unsigned writeEhFrameHeader(IDXSEC dfseg, Outbuffer *buf, Symbol *persona
         buf->writeByten(1);
     }
 
-    for (unsigned i = 0; i < pad; ++i)
+    for (uint i = 0; i < pad; ++i)
         buf->writeByten(DW_CFA_nop);
 
     assert(startsize + length + 4 == buf->size());
@@ -832,8 +766,8 @@ void writeDebugFrameFDE(IDXSEC dfseg, Symbol *sfunc)
         #pragma pack(1)
         struct DebugFrameFDE
         {
-            unsigned length;
-            unsigned CIE_pointer;
+            uint length;
+            uint CIE_pointer;
             unsigned long long initial_location;
             unsigned long long address_range;
         };
@@ -846,7 +780,7 @@ void writeDebugFrameFDE(IDXSEC dfseg, Symbol *sfunc)
         };
 
         // Pad to 8 byte boundary
-        for (unsigned n = (-cfa_buf.size() & 7); n; n--)
+        for (uint n = (-cfa_buf.size() & 7); n; n--)
             cfa_buf.writeByte(DW_CFA_nop);
 
         debugFrameFDE.length = 20 + cfa_buf.size();
@@ -855,7 +789,7 @@ void writeDebugFrameFDE(IDXSEC dfseg, Symbol *sfunc)
         //debugFrameFDE.initial_location = sfunc->Soffset;
 
         Outbuffer *debug_frame_buf = SegData[dfseg]->SDbuf;
-        unsigned debug_frame_buf_offset = debug_frame_buf->p - debug_frame_buf->buf;
+        uint debug_frame_buf_offset = debug_frame_buf->p - debug_frame_buf->buf;
         debug_frame_buf->reserve(1000);
         debug_frame_buf->writen(&debugFrameFDE,sizeof(debugFrameFDE));
         debug_frame_buf->write(&cfa_buf);
@@ -871,10 +805,10 @@ void writeDebugFrameFDE(IDXSEC dfseg, Symbol *sfunc)
         #pragma pack(1)
         struct DebugFrameFDE
         {
-            unsigned length;
-            unsigned CIE_pointer;
-            unsigned initial_location;
-            unsigned address_range;
+            uint length;
+            uint CIE_pointer;
+            uint initial_location;
+            uint address_range;
         };
         #pragma pack()
         static DebugFrameFDE debugFrameFDE =
@@ -885,7 +819,7 @@ void writeDebugFrameFDE(IDXSEC dfseg, Symbol *sfunc)
         };
 
         // Pad to 4 byte boundary
-        for (unsigned n = (-cfa_buf.size() & 3); n; n--)
+        for (uint n = (-cfa_buf.size() & 3); n; n--)
             cfa_buf.writeByte(DW_CFA_nop);
 
         debugFrameFDE.length = 12 + cfa_buf.size();
@@ -894,7 +828,7 @@ void writeDebugFrameFDE(IDXSEC dfseg, Symbol *sfunc)
         //debugFrameFDE.initial_location = sfunc->Soffset;
 
         Outbuffer *debug_frame_buf = SegData[dfseg]->SDbuf;
-        unsigned debug_frame_buf_offset = debug_frame_buf->p - debug_frame_buf->buf;
+        uint debug_frame_buf_offset = debug_frame_buf->p - debug_frame_buf->buf;
         debug_frame_buf->reserve(1000);
         debug_frame_buf->writen(&debugFrameFDE,sizeof(debugFrameFDE));
         debug_frame_buf->write(&cfa_buf);
@@ -915,10 +849,10 @@ void writeDebugFrameFDE(IDXSEC dfseg, Symbol *sfunc)
  *      ehunwind = will have EH unwind table
  *      CIE_offset = offset of enclosing CIE
  */
-void writeEhFrameFDE(IDXSEC dfseg, Symbol *sfunc, bool ehunwind, unsigned CIE_offset)
+void writeEhFrameFDE(IDXSEC dfseg, Symbol *sfunc, bool ehunwind, uint CIE_offset)
 {
     Outbuffer *buf = SegData[dfseg]->SDbuf;
-    const unsigned startsize = buf->size();
+    const uint startsize = buf->size();
 
 #if MACHOBJ
     /* Create symbol named "funcname.eh" for the start of the FDE
@@ -952,17 +886,18 @@ void writeEhFrameFDE(IDXSEC dfseg, Symbol *sfunc, bool ehunwind, unsigned CIE_of
     }
 
     // Length of FDE, not including padding
-    const unsigned fdelen = 4 + 4
 #if ELFOBJ
+    const uint fdelen = 4 + 4
         + 4 + 4
         + (ehunwind ? 5 : 1) + cfa_buf.size();
 #elif MACHOBJ
+    const uint fdelen = 4 + 4
         + (I64 ? 8 + 8 : 4 + 4)                         // PC_Begin + PC_Range
         + (ehunwind ? (I64 ? 9 : 5) : 1) + cfa_buf.size();
 #endif
 
-    const unsigned pad = -fdelen & (I64 ? 7 : 3);      // pad to addressing unit size boundary
-    const unsigned length = fdelen + pad - 4;
+    const uint pad = -fdelen & (I64 ? 7 : 3);      // pad to addressing unit size boundary
+    const uint length = fdelen + pad - 4;
 
     buf->reserve(length + 4);
     buf->write32(length);                               // Length (no Extended Length)
@@ -1005,7 +940,7 @@ void writeEhFrameFDE(IDXSEC dfseg, Symbol *sfunc, bool ehunwind, unsigned CIE_of
 
     buf->write(&cfa_buf);
 
-    for (unsigned i = 0; i < pad; ++i)
+    for (uint i = 0; i < pad; ++i)
         buf->writeByten(DW_CFA_nop);
 
     assert(startsize + length + 4 == buf->size());
@@ -1019,7 +954,7 @@ void dwarf_initfile(const char *filename)
         except_table_seg = 0;
         except_table_num = 0;
         eh_frame_seg = 0;
-        eh_frame_sym = NULL;
+        eh_frame_sym = null;
 #endif
         CIE_offset_unwind = ~0;
         CIE_offset_no_unwind = ~0;
@@ -1045,15 +980,15 @@ void dwarf_initfile(const char *filename)
 
     if (reset_symbuf)
     {
-        symbol **p = (symbol **)reset_symbuf->buf;
-        const size_t n = reset_symbuf->size() / sizeof(symbol *);
+        Symbol **p = (Symbol **)reset_symbuf->buf;
+        const size_t n = reset_symbuf->size() / sizeof(Symbol *);
         for (size_t i = 0; i < n; ++i)
             symbol_reset(p[i]);
         reset_symbuf->setsize(0);
     }
     else
     {
-        reset_symbuf = new Outbuffer(10 * sizeof(symbol *));
+        reset_symbuf = new Outbuffer(10 * sizeof(Symbol *));
     }
 
     /* ======================================== */
@@ -1072,8 +1007,9 @@ void dwarf_initfile(const char *filename)
     /* ======================================== */
 
     if (infoFileName_table)
-    {   delete infoFileName_table;
-        infoFileName_table = NULL;
+    {
+        AAchars::destroy(infoFileName_table);
+        infoFileName_table = null;
     }
 
     debug_line.initialize();
@@ -1106,11 +1042,12 @@ void dwarf_initfile(const char *filename)
 
     // Free only if starting another file. Waste of time otherwise.
     if (abbrev_table)
-    {   delete abbrev_table;
-        abbrev_table = NULL;
+    {
+        AApair::destroy(abbrev_table);
+        abbrev_table = null;
     }
 
-    static unsigned char abbrevHeader[] =
+    static ubyte abbrevHeader[] =
     {
         1,                      // abbreviation code
         DW_TAG_compile_unit,
@@ -1157,7 +1094,7 @@ void dwarf_initfile(const char *filename)
     debug_info.buf->writeString(filename);             // DW_AT_name
 #if 0
     // This relies on an extension to POSIX.1 not always implemented
-    char *cwd = getcwd(NULL, 0);
+    char *cwd = getcwd(null, 0);
 #else
     char *cwd;
     size_t sz = 80;
@@ -1236,15 +1173,11 @@ void dwarf_initfile(const char *filename)
 int dwarf_line_addfile(const char* filename)
 {
     if (!infoFileName_table) {
-        infoFileName_table = new AArray(&ti_abuf, sizeof(unsigned));
+        infoFileName_table = AAchars::create();
         linebuf_filetab_end = debug_line.buf->size();
     }
 
-    Abuf abuf;
-    abuf.buf = (const unsigned char*)filename;
-    abuf.length = strlen(filename);
-
-    unsigned *pidx = (unsigned *)infoFileName_table->get(&abuf);
+    uint *pidx = infoFileName_table->get(filename, strlen(filename));
     if (!*pidx)                 // if no idx assigned yet
     {
         *pidx = infoFileName_table->length(); // assign newly computed idx
@@ -1264,7 +1197,7 @@ void dwarf_initmodule(const char *filename, const char *modname)
 {
     if (modname)
     {
-        static unsigned char abbrevModule[] =
+        static ubyte abbrevModule[] =
         {
             DW_TAG_module,
             //1,                // one children
@@ -1304,11 +1237,11 @@ void dwarf_termfile()
     // Put out line number info
 
     // file_names
-    unsigned last_filenumber = 0;
-    const char* last_filename = NULL;
-    for (unsigned seg = 1; seg <= seg_count; seg++)
+    uint last_filenumber = 0;
+    const char* last_filename = null;
+    for (uint seg = 1; seg <= seg_count; seg++)
     {
-        for (unsigned i = 0; i < SegData[seg]->SDlinnum_count; i++)
+        for (uint i = 0; i < SegData[seg]->SDlinnum_count; i++)
         {
             linnum_data *ld = &SegData[seg]->SDlinnum_data[i];
             const char *filename;
@@ -1340,11 +1273,11 @@ void dwarf_termfile()
 
     debugline.prologue_length = debug_line.buf->size() - 10;
 
-    for (unsigned seg = 1; seg <= seg_count; seg++)
+    for (uint seg = 1; seg <= seg_count; seg++)
     {
         seg_data *sd = SegData[seg];
-        unsigned addressmax = 0;
-        unsigned linestart = ~0;
+        uint addressmax = 0;
+        uint linestart = ~0;
 
         if (!sd->SDlinnum_count)
             continue;
@@ -1365,9 +1298,9 @@ void dwarf_termfile()
             dwarf_appreladdr(debug_line.seg,debug_line.buf,seg,0);
 
             // Dwarf2 6.2.2 State machine registers
-            unsigned address = 0;       // instruction address
-            unsigned file = ld->filenumber;
-            unsigned line = 1;          // line numbers beginning with 1
+            uint address = 0;       // instruction address
+            uint file = ld->filenumber;
+            uint line = 1;          // line numbers beginning with 1
 
             debug_line.buf->writeByte(DW_LNS_set_file);
             debug_line.buf->writeuLEB128(file);
@@ -1390,7 +1323,7 @@ void dwarf_termfile()
                 if (address >= addressmax)
                     addressmax = address + 1;
                 if (lininc >= debugline.line_base && lininc < debugline.line_base + debugline.line_range)
-                {   unsigned opcode = lininc - debugline.line_base +
+                {   uint opcode = lininc - debugline.line_base +
                                     debugline.line_range * addinc +
                                     debugline.opcode_base;
 
@@ -1407,7 +1340,7 @@ void dwarf_termfile()
                 if (addinc)
                 {
                     debug_line.buf->writeByte(DW_LNS_advance_pc);
-                    debug_line.buf->writeuLEB128((unsigned long)addinc);
+                    debug_line.buf->writeuLEB128(cast(uint)addinc);
                 }
                 if (lininc || addinc)
                     debug_line.buf->writeByte(DW_LNS_copy);
@@ -1415,7 +1348,7 @@ void dwarf_termfile()
 
             // Write DW_LNS_advance_pc to cover the function prologue
             debug_line.buf->writeByte(DW_LNS_advance_pc);
-            debug_line.buf->writeuLEB128((unsigned long)(sd->SDbuf->size() - address));
+            debug_line.buf->writeuLEB128(cast(uint)(sd->SDbuf->size() - address));
 
             // Write DW_LNE_end_sequence
             debug_line.buf->writeByte(0);
@@ -1452,8 +1385,8 @@ void dwarf_termfile()
     debug_pubnames.buf->write32(0);
 
     // Plug final sizes into header
-    *(unsigned *)debug_pubnames.buf->buf = debug_pubnames.buf->size() - 4;
-    *(unsigned *)(debug_pubnames.buf->buf + 10) = debug_info.buf->size();
+    *cast(uint *)debug_pubnames.buf->buf = debug_pubnames.buf->size() - 4;
+    *cast(uint *)(debug_pubnames.buf->buf + 10) = debug_info.buf->size();
 
     /* ================================================= */
 
@@ -1462,7 +1395,7 @@ void dwarf_termfile()
     append_addr(debug_aranges.buf, 0);
 
     // Plug final sizes into header
-    *(unsigned *)debug_aranges.buf->buf = debug_aranges.buf->size() - 4;
+    *cast(uint *)debug_aranges.buf->buf = debug_aranges.buf->size() - 4;
 
     /* ================================================= */
 
@@ -1474,12 +1407,14 @@ void dwarf_termfile()
 
     // Free only if starting another file. Waste of time otherwise.
     if (type_table)
-    {   delete type_table;
-        type_table = NULL;
+    {
+        AApair::destroy(type_table);
+        type_table = null;
     }
     if (functype_table)
-    {   delete functype_table;
-        functype_table = NULL;
+    {
+        AApair::destroy(functype_table);
+        functype_table = null;
     }
     if (functypebuf)
         functypebuf->setsize(0);
@@ -1518,9 +1453,9 @@ void dwarf_func_term(Symbol *sfunc)
         Outbuffer *buf = SegData[dfseg]->SDbuf;
         buf->reserve(1000);
 
-        unsigned *poffset = ehunwind ? &CIE_offset_unwind : &CIE_offset_no_unwind;
+        uint *poffset = ehunwind ? &CIE_offset_unwind : &CIE_offset_no_unwind;
         if (*poffset == ~0)
-            *poffset = writeEhFrameHeader(dfseg, buf, getRtlsym(RTLSYM_PERSONALITY), ehunwind);
+            *poffset = writeEhFrameHeader(dfseg, buf, getRtlsymPersonality(), ehunwind);
 
         writeEhFrameFDE(dfseg, sfunc, ehunwind, *poffset);
     }
@@ -1534,7 +1469,7 @@ void dwarf_func_term(Symbol *sfunc)
         return;
 #endif
 
-    unsigned funcabbrevcode;
+    uint funcabbrevcode;
 
     if (ehmethod(sfunc) == EH_DM)
     {
@@ -1556,22 +1491,22 @@ void dwarf_func_term(Symbol *sfunc)
     int filenum = 1;
 #endif
 
-        unsigned ret_type = dwarf_typidx(sfunc->Stype->Tnext);
+        uint ret_type = dwarf_typidx(sfunc->Stype->Tnext);
         if (tybasic(sfunc->Stype->Tnext->Tty) == TYvoid)
             ret_type = 0;
 
         // See if there are any parameters
         int haveparameters = 0;
-        unsigned formalcode = 0;
-        unsigned autocode = 0;
+        uint formalcode = 0;
+        uint autocode = 0;
         for (SYMIDX si = 0; si < globsym.top; si++)
         {
-            symbol *sa = globsym.tab[si];
+            Symbol *sa = globsym.tab[si];
 #if MARS
             if (sa->Sflags & SFLnodebug) continue;
 #endif
 
-            static unsigned char formal[] =
+            static ubyte formal[] =
             {
                 DW_TAG_formal_parameter,
                 0,
@@ -1583,7 +1518,8 @@ void dwarf_func_term(Symbol *sfunc)
             };
 
             switch (sa->Sclass)
-            {   case SCparameter:
+            {
+                case SCparameter:
                 case SCregpar:
                 case SCfastpar:
                     dwarf_typidx(sa->Stype);
@@ -1602,6 +1538,9 @@ void dwarf_func_term(Symbol *sfunc)
                     if (!autocode)
                         autocode = dwarf_abbrev_code(formal,sizeof(formal));
                     haveparameters = 1;
+                    break;
+
+                default:
                     break;
             }
         }
@@ -1636,10 +1575,10 @@ void dwarf_func_term(Symbol *sfunc)
 
         funcabbrevcode = dwarf_abbrev_code(abuf.buf, abuf.size());
 
-        unsigned idxsibling = 0;
-        unsigned siblingoffset;
+        uint idxsibling = 0;
+        uint siblingoffset;
 
-        unsigned infobuf_offset = debug_info.buf->size();
+        uint infobuf_offset = debug_info.buf->size();
         debug_info.buf->writeuLEB128(funcabbrevcode);  // abbreviation code
         if (haveparameters)
         {
@@ -1679,12 +1618,12 @@ void dwarf_func_term(Symbol *sfunc)
         {
             for (SYMIDX si = 0; si < globsym.top; si++)
             {
-                symbol *sa = globsym.tab[si];
+                Symbol *sa = globsym.tab[si];
 #if MARS
                 if (sa->Sflags & SFLnodebug) continue;
 #endif
 
-                unsigned vcode;
+                uint vcode;
 
                 switch (sa->Sclass)
                 {
@@ -1700,8 +1639,8 @@ void dwarf_func_term(Symbol *sfunc)
                         vcode = autocode;
                     L1:
                     {
-                        unsigned soffset;
-                        unsigned tidx = dwarf_typidx(sa->Stype);
+                        uint soffset;
+                        uint tidx = dwarf_typidx(sa->Stype);
 
                         debug_info.buf->writeuLEB128(vcode);           // abbreviation code
                         debug_info.buf->writeString(sa->Sident);       // DW_AT_name
@@ -1722,7 +1661,7 @@ void dwarf_func_term(Symbol *sfunc)
                             struct_t *st = sa->Sscope->Stype->Tnext->Ttag->Sstruct; // Sscope is __closptr
                             for (symlist_t sl = st->Sfldlst; sl; sl = list_next(sl))
                             {
-                                symbol *sf = list_symbol(sl);
+                                Symbol *sf = list_symbol(sl);
                                 if (sf->Sclass == SCmember)
                                 {
                                     if(strcmp(sa->Sident, sf->Sident) == 0)
@@ -1759,12 +1698,15 @@ void dwarf_func_term(Symbol *sfunc)
                         debug_info.buf->buf[soffset] = debug_info.buf->size() - soffset - 1;
                         break;
                     }
+
+                    default:
+                        break;
                 }
             }
             debug_info.buf->writeByte(0);              // end of parameter children
 
             idxsibling = debug_info.buf->size();
-            *(unsigned *)(debug_info.buf->buf + siblingoffset) = idxsibling;
+            *cast(uint *)(debug_info.buf->buf + siblingoffset) = idxsibling;
         }
 
         /* ============= debug_pubnames =========================== */
@@ -1800,8 +1742,8 @@ void dwarf_func_term(Symbol *sfunc)
 
         assert(Para.size >= 2 * REGSIZE);
         assert(Para.size < 63); // avoid sLEB128 encoding
-        unsigned short op_size = 0x0002;
-        unsigned short loc_op;
+        ushort op_size = 0x0002;
+        ushort loc_op;
 
         // set the entry for this function in .debug_loc segment
         // after call
@@ -1835,7 +1777,7 @@ void dwarf_func_term(Symbol *sfunc)
  * Write out symbol table for current function.
  */
 
-void cv_outsym(symbol *s)
+void cv_outsym(Symbol *s)
 {
     //printf("cv_outsym('%s')\n",s->Sident);
     //symbol_print(s);
@@ -1852,9 +1794,9 @@ void cv_outsym(symbol *s)
         return;
 
     Outbuffer abuf;
-    unsigned code;
-    unsigned typidx;
-    unsigned soffset;
+    uint code;
+    uint typidx;
+    uint soffset;
     switch (s->Sclass)
     {
         case SCglobal:
@@ -1895,14 +1837,21 @@ void cv_outsym(symbol *s)
                     debug_info.buf->write32(0);
                 }
                 debug_info.buf->writeByte(DW_OP_GNU_push_tls_address);
-            } else
-#endif
+            }
+            else
             {
                 debug_info.buf->writeByte(DW_OP_addr);
                 dwarf_appreladdr(debug_info.seg, debug_info.buf, s->Sseg, s->Soffset); // address of global
             }
+#else
+            debug_info.buf->writeByte(DW_OP_addr);
+            dwarf_appreladdr(debug_info.seg, debug_info.buf, s->Sseg, s->Soffset); // address of global
+#endif
 
             debug_info.buf->buf[soffset] = debug_info.buf->size() - soffset - 1;
+            break;
+
+        default:
             break;
     }
 }
@@ -1927,76 +1876,7 @@ void cv_func(Funcsym *s)
 
 /* =================== Cached Types in debug_info ================= */
 
-struct Atype
-{
-    Outbuffer *buf;
-    size_t start;
-    size_t end;
-};
-
-struct TypeInfo_Atype : TypeInfo
-{
-    const char* toString();
-    hash_t getHash(void *p);
-    int equals(void *p1, void *p2);
-    int compare(void *p1, void *p2);
-    size_t tsize();
-    void swap(void *p1, void *p2);
-};
-
-TypeInfo_Atype ti_atype;
-
-const char* TypeInfo_Atype::toString()
-{
-    return "Atype";
-}
-
-hash_t TypeInfo_Atype::getHash(void *p)
-{
-    hash_t hash = 0;
-
-    Atype a = *(Atype *)p;
-    for (size_t i = a.start; i < a.end; i++)
-    {
-        hash = hash * 11 + a.buf->buf[i];
-    }
-    return hash;
-}
-
-int TypeInfo_Atype::equals(void *p1, void *p2)
-{
-    Atype a1 = *(Atype*)p1;
-    Atype a2 = *(Atype*)p2;
-    size_t len = a1.end - a1.start;
-
-    return len == a2.end - a2.start &&
-        memcmp(a1.buf->buf + a1.start, a2.buf->buf + a2.start, len) == 0;
-}
-
-int TypeInfo_Atype::compare(void *p1, void *p2)
-{
-    Atype a1 = *(Atype*)p1;
-    Atype a2 = *(Atype*)p2;
-    size_t len = a1.end - a1.start;
-    if (len == a2.end - a2.start)
-        return memcmp(a1.buf->buf + a1.start, a2.buf->buf + a2.start, len);
-    else if (len < a2.end - a2.start)
-        return -1;
-    else
-        return 1;
-}
-
-size_t TypeInfo_Atype::tsize()
-{
-    return sizeof(Atype);
-}
-
-void TypeInfo_Atype::swap(void *p1, void *p2)
-{
-    assert(0);
-}
-
-unsigned char dwarf_classify_struct(unsigned long sflags)
+ubyte dwarf_classify_struct(uint sflags)
 {
     if (sflags & STRclass)
         return DW_TAG_class_type;
@@ -2009,17 +1889,17 @@ unsigned char dwarf_classify_struct(unsigned long sflags)
 
 /* ======================= Type Index ============================== */
 
-unsigned dwarf_typidx(type *t)
-{   unsigned idx = 0;
-    unsigned nextidx;
-    unsigned keyidx;
-    unsigned pvoididx;
-    unsigned code;
+uint dwarf_typidx(type *t)
+{   uint idx = 0;
+    uint nextidx;
+    uint keyidx;
+    uint pvoididx;
+    uint code;
     type *tnext;
     type *tbase;
     const char *p;
 
-    static unsigned char abbrevTypeBasic[] =
+    static ubyte abbrevTypeBasic[] =
     {
         DW_TAG_base_type,
         0,                      // no children
@@ -2028,7 +1908,7 @@ unsigned dwarf_typidx(type *t)
         DW_AT_encoding,         DW_FORM_data1,
         0,                      0,
     };
-    static unsigned char abbrevWchar[] =
+    static ubyte abbrevWchar[] =
     {
         DW_TAG_typedef,
         0,                      // no children
@@ -2038,47 +1918,47 @@ unsigned dwarf_typidx(type *t)
         DW_AT_decl_line,        DW_FORM_data2,
         0,                      0,
     };
-    static unsigned char abbrevTypePointer[] =
+    static ubyte abbrevTypePointer[] =
     {
         DW_TAG_pointer_type,
         0,                      // no children
         DW_AT_type,             DW_FORM_ref4,
         0,                      0,
     };
-    static unsigned char abbrevTypePointerVoid[] =
+    static ubyte abbrevTypePointerVoid[] =
     {
         DW_TAG_pointer_type,
         0,                      // no children
         0,                      0,
     };
-    static unsigned char abbrevTypeRef[] =
+    static ubyte abbrevTypeRef[] =
     {
         DW_TAG_reference_type,
         0,                      // no children
         DW_AT_type,             DW_FORM_ref4,
         0,                      0,
     };
-    static unsigned char abbrevTypeConst[] =
+    static ubyte abbrevTypeConst[] =
     {
         DW_TAG_const_type,
         0,                      // no children
         DW_AT_type,             DW_FORM_ref4,
         0,                      0,
     };
-    static unsigned char abbrevTypeConstVoid[] =
+    static ubyte abbrevTypeConstVoid[] =
     {
         DW_TAG_const_type,
         0,                      // no children
         0,                      0,
     };
-    static unsigned char abbrevTypeVolatile[] =
+    static ubyte abbrevTypeVolatile[] =
     {
         DW_TAG_volatile_type,
         0,                      // no children
         DW_AT_type,             DW_FORM_ref4,
         0,                      0,
     };
-    static unsigned char abbrevTypeVolatileVoid[] =
+    static ubyte abbrevTypeVolatileVoid[] =
     {
         DW_TAG_volatile_type,
         0,                      // no children
@@ -2094,7 +1974,7 @@ unsigned dwarf_typidx(type *t)
         // loop if the type references the const version of itself somehow,
         // we need to set TFforward here, because setting TFforward during
         // member generation of dwarf_typidx(tnext) has no effect on t itself.
-        unsigned short old_flags = t->Tflags;
+        ushort old_flags = t->Tflags;
         t->Tflags |= TFforward;
 
         tnext = type_copy(t);
@@ -2135,7 +2015,7 @@ unsigned dwarf_typidx(type *t)
             return idx;
     }
 
-    unsigned char ate;
+    ubyte ate;
     ate = tyuns(t->Tty) ? DW_ATE_unsigned : DW_ATE_signed;
     switch (tybasic(t->Tty))
     {
@@ -2153,11 +2033,11 @@ unsigned dwarf_typidx(type *t)
         case TYullong:
         case TYucent:
             if (!t->Tnext)
-            {   p = (tybasic(t->Tty) == TYullong) ? "unsigned long long" : "ucent";
+            {   p = (tybasic(t->Tty) == TYullong) ? "uint long long" : "ucent";
                 goto Lsigned;
             }
 
-            static unsigned char abbrevTypeStruct[] =
+            static ubyte abbrevTypeStruct[] =
             {
                 DW_TAG_structure_type,
                 1,                      // children
@@ -2166,7 +2046,7 @@ unsigned dwarf_typidx(type *t)
                 0,                      0,
             };
 
-            static unsigned char abbrevTypeMember[] =
+            static ubyte abbrevTypeMember[] =
             {
                 DW_TAG_member,
                 0,                      // no children
@@ -2180,7 +2060,7 @@ unsigned dwarf_typidx(type *t)
              * element type
              */
             {
-            unsigned lenidx = I64 ? dwarf_typidx(tsulong) : dwarf_typidx(tsuns);
+            uint lenidx = I64 ? dwarf_typidx(tsulong) : dwarf_typidx(tsuns);
 
             {
                 type *tdata = type_alloc(TYnptr);
@@ -2331,13 +2211,13 @@ unsigned dwarf_typidx(type *t)
         case TYbool:        p = "_Bool";         ate = DW_ATE_boolean;       goto Lsigned;
         case TYchar:        p = "char";          ate = (config.flags & CFGuchar) ? DW_ATE_unsigned_char : DW_ATE_signed_char;   goto Lsigned;
         case TYschar:       p = "signed char";   ate = DW_ATE_signed_char;   goto Lsigned;
-        case TYuchar:       p = "unsigned char"; ate = DW_ATE_unsigned_char; goto Lsigned;
+        case TYuchar:       p = "ubyte"; ate = DW_ATE_unsigned_char; goto Lsigned;
         case TYshort:       p = "short";                goto Lsigned;
-        case TYushort:      p = "unsigned short";       goto Lsigned;
+        case TYushort:      p = "ushort";       goto Lsigned;
         case TYint:         p = "int";                  goto Lsigned;
-        case TYuint:        p = "unsigned";             goto Lsigned;
+        case TYuint:        p = "uint";             goto Lsigned;
         case TYlong:        p = "long";                 goto Lsigned;
-        case TYulong:       p = "unsigned long";        goto Lsigned;
+        case TYulong:       p = "uint long";        goto Lsigned;
         case TYdchar:       p = "dchar";                goto Lsigned;
         case TYfloat:       p = "float";        ate = DW_ATE_float;     goto Lsigned;
         case TYdouble_alias:
@@ -2373,10 +2253,10 @@ unsigned dwarf_typidx(type *t)
             Outbuffer tmpbuf;
             nextidx = dwarf_typidx(t->Tnext);                   // function return type
             tmpbuf.write32(nextidx);
-            unsigned params = 0;
+            uint params = 0;
             for (param_t *p = t->Tparamtypes; p; p = p->Pnext)
             {   params = 1;
-                unsigned paramidx = dwarf_typidx(p->Ptype);
+                uint paramidx = dwarf_typidx(p->Ptype);
                 //printf("1: paramidx = %d\n", paramidx);
 #ifdef DEBUG
                 if (!paramidx) type_print(p->Ptype);
@@ -2387,17 +2267,13 @@ unsigned dwarf_typidx(type *t)
 
             if (!functypebuf)
                 functypebuf = new Outbuffer();
-            unsigned functypebufidx = functypebuf->size();
+            uint functypebufidx = functypebuf->size();
             functypebuf->write(tmpbuf.buf, tmpbuf.size());
             /* If it's in the cache already, return the existing typidx
              */
             if (!functype_table)
-                functype_table = new AArray(&ti_atype, sizeof(unsigned));
-            Atype functype;
-            functype.buf = functypebuf;
-            functype.start = functypebufidx;
-            functype.end = functypebuf->size();
-            unsigned *pidx = (unsigned *)functype_table->get(&functype);
+                functype_table = AApair::create(&functypebuf->buf);
+            uint *pidx = cast(uint *)functype_table->get(functypebufidx, functypebuf->size());
             if (*pidx)
             {   // Reuse existing typidx
                 functypebuf->setsize(functypebufidx);
@@ -2420,7 +2296,7 @@ unsigned dwarf_typidx(type *t)
             abuf.writeByte(0);                  abuf.writeByte(0);
             code = dwarf_abbrev_code(abuf.buf, abuf.size());
 
-            unsigned paramcode;
+            uint paramcode;
             if (params)
             {   abuf.reset();
                 abuf.writeByte(DW_TAG_formal_parameter);
@@ -2437,12 +2313,12 @@ unsigned dwarf_typidx(type *t)
                 debug_info.buf->write32(nextidx);      // DW_AT_type
 
             if (params)
-            {   unsigned *pparamidx = (unsigned *)(functypebuf->buf + functypebufidx);
+            {   uint *pparamidx = cast(uint *)(functypebuf->buf + functypebufidx);
                 //printf("2: functypebufidx = %x, pparamidx = %p, size = %x\n", functypebufidx, pparamidx, functypebuf->size());
                 for (param_t *p = t->Tparamtypes; p; p = p->Pnext)
                 {   debug_info.buf->writeuLEB128(paramcode);
-                    //unsigned x = dwarf_typidx(p->Ptype);
-                    unsigned paramidx = *++pparamidx;
+                    //uint x = dwarf_typidx(p->Ptype);
+                    uint paramidx = *++pparamidx;
                     //printf("paramidx = %d\n", paramidx);
                     assert(paramidx);
                     debug_info.buf->write32(paramidx);        // DW_AT_type
@@ -2455,20 +2331,20 @@ unsigned dwarf_typidx(type *t)
         }
 
         case TYarray:
-        {   static unsigned char abbrevTypeArray[] =
+        {   static ubyte abbrevTypeArray[] =
             {
                 DW_TAG_array_type,
                 1,                      // child (the subrange type)
                 DW_AT_type,             DW_FORM_ref4,
                 0,                      0,
             };
-            static unsigned char abbrevTypeArrayVoid[] =
+            static ubyte abbrevTypeArrayVoid[] =
             {
                 DW_TAG_array_type,
                 1,                      // child (the subrange type)
                 0,                      0,
             };
-            static unsigned char abbrevTypeSubrange[] =
+            static ubyte abbrevTypeSubrange[] =
             {
                 DW_TAG_subrange_type,
                 0,                      // no children
@@ -2476,19 +2352,19 @@ unsigned dwarf_typidx(type *t)
                 DW_AT_upper_bound,      DW_FORM_data4,
                 0,                      0,
             };
-            static unsigned char abbrevTypeSubrange2[] =
+            static ubyte abbrevTypeSubrange2[] =
             {
                 DW_TAG_subrange_type,
                 0,                      // no children
                 DW_AT_type,             DW_FORM_ref4,
                 0,                      0,
             };
-            unsigned code2 = (t->Tflags & TFsizeunknown)
+            uint code2 = (t->Tflags & TFsizeunknown)
                 ? dwarf_abbrev_code(abbrevTypeSubrange2, sizeof(abbrevTypeSubrange2))
                 : dwarf_abbrev_code(abbrevTypeSubrange, sizeof(abbrevTypeSubrange));
-            unsigned idxbase = dwarf_typidx(tssize);
+            uint idxbase = dwarf_typidx(tssize);
             nextidx = dwarf_typidx(t->Tnext);
-            unsigned code1 = nextidx ? dwarf_abbrev_code(abbrevTypeArray, sizeof(abbrevTypeArray))
+            uint code1 = nextidx ? dwarf_abbrev_code(abbrevTypeArray, sizeof(abbrevTypeArray))
                                      : dwarf_abbrev_code(abbrevTypeArrayVoid, sizeof(abbrevTypeArrayVoid));
             idx = debug_info.buf->size();
 
@@ -2538,7 +2414,7 @@ unsigned dwarf_typidx(type *t)
         case TYullong2:  tbase = tsullong; goto Lvector;
         Lvector:
         {
-            static unsigned char abbrevTypeArray[] =
+            static ubyte abbrevTypeArray[] =
             {
                 DW_TAG_array_type,
                 1,                      // child (the subrange type)
@@ -2546,7 +2422,7 @@ unsigned dwarf_typidx(type *t)
                 DW_AT_type,             DW_FORM_ref4,
                 0,                      0,
             };
-            static unsigned char abbrevSubRange[] =
+            static ubyte abbrevSubRange[] =
             {
                 DW_TAG_subrange_type,
                 0,                                // no children
@@ -2554,8 +2430,8 @@ unsigned dwarf_typidx(type *t)
                 0,                 0,
             };
 
-            unsigned code = dwarf_abbrev_code(abbrevTypeArray, sizeof(abbrevTypeArray));
-            unsigned idxbase = dwarf_typidx(tbase);
+            uint code = dwarf_abbrev_code(abbrevTypeArray, sizeof(abbrevTypeArray));
+            uint idxbase = dwarf_typidx(tbase);
 
             idx = debug_info.buf->size();
 
@@ -2566,7 +2442,7 @@ unsigned dwarf_typidx(type *t)
             // vector length stored as subrange type
             code = dwarf_abbrev_code(abbrevSubRange, sizeof(abbrevSubRange));
             debug_info.buf->writeuLEB128(code);        // DW_TAG_subrange_type
-            unsigned char dim = tysize(t->Tty) / tysize(tbase->Tty);
+            ubyte dim = tysize(t->Tty) / tysize(tbase->Tty);
             debug_info.buf->writeByte(dim - 1);        // DW_AT_upper_bound
 
             debug_info.buf->writeByte(0);              // no more children
@@ -2575,8 +2451,8 @@ unsigned dwarf_typidx(type *t)
 
         case TYwchar_t:
         {
-            unsigned code = dwarf_abbrev_code(abbrevWchar, sizeof(abbrevWchar));
-            unsigned typebase = dwarf_typidx(tsint);
+            uint code = dwarf_abbrev_code(abbrevWchar, sizeof(abbrevWchar));
+            uint typebase = dwarf_typidx(tsint);
             idx = debug_info.buf->size();
             debug_info.buf->writeuLEB128(code);        // abbreviation code
             debug_info.buf->writeString("wchar_t");    // DW_AT_name
@@ -2596,7 +2472,7 @@ unsigned dwarf_typidx(type *t)
             if (s->Stypidx)
                 return s->Stypidx;
 
-            static unsigned char abbrevTypeStruct0[] =
+            static ubyte abbrevTypeStruct0[] =
             {
                 DW_TAG_structure_type,
                 0,                      // no children
@@ -2604,7 +2480,7 @@ unsigned dwarf_typidx(type *t)
                 DW_AT_byte_size,        DW_FORM_data1,
                 0,                      0,
             };
-            static unsigned char abbrevTypeStruct1[] =
+            static ubyte abbrevTypeStruct1[] =
             {
                 DW_TAG_structure_type,
                 0,                      // no children
@@ -2627,10 +2503,10 @@ unsigned dwarf_typidx(type *t)
             Outbuffer fieldidx;
 
             // Count number of fields
-            unsigned nfields = 0;
+            uint nfields = 0;
             t->Tflags |= TFforward;
             for (symlist_t sl = st->Sfldlst; sl; sl = list_next(sl))
-            {   symbol *sf = list_symbol(sl);
+            {   Symbol *sf = list_symbol(sl);
 
                 switch (sf->Sclass)
                 {
@@ -2671,7 +2547,7 @@ unsigned dwarf_typidx(type *t)
 
                 code = dwarf_abbrev_code(abuf.buf, abuf.size());
 
-                unsigned membercode;
+                uint membercode;
                 abuf.reset();
                 abuf.writeByte(DW_TAG_member);
                 abuf.writeByte(0);              // no children
@@ -2696,9 +2572,9 @@ unsigned dwarf_typidx(type *t)
                     debug_info.buf->write32(sz);       // DW_AT_byte_size
 
                 s->Stypidx = idx;
-                unsigned n = 0;
+                uint n = 0;
                 for (symlist_t sl = st->Sfldlst; sl; sl = list_next(sl))
-                {   symbol *sf = list_symbol(sl);
+                {   Symbol *sf = list_symbol(sl);
                     size_t soffset;
 
                     switch (sf->Sclass)
@@ -2707,7 +2583,7 @@ unsigned dwarf_typidx(type *t)
                             debug_info.buf->writeuLEB128(membercode);
                             debug_info.buf->writeString(sf->Sident);
                             //debug_info.buf->write32(dwarf_typidx(sf->Stype));
-                            unsigned fi = ((unsigned *)fieldidx.buf)[n];
+                            uint fi = (cast(uint *)fieldidx.buf)[n];
                             debug_info.buf->write32(fi);
                             n++;
                             soffset = debug_info.buf->size();
@@ -2727,7 +2603,7 @@ unsigned dwarf_typidx(type *t)
         }
 
         case TYenum:
-        {   static unsigned char abbrevTypeEnum[] =
+        {   static ubyte abbrevTypeEnum[] =
             {
                 DW_TAG_enumeration_type,
                 1,                      // child (the subrange type)
@@ -2735,7 +2611,7 @@ unsigned dwarf_typidx(type *t)
                 DW_AT_byte_size,        DW_FORM_data1,
                 0,                      0,
             };
-            static unsigned char abbrevTypeEnumMember[] =
+            static ubyte abbrevTypeEnumMember[] =
             {
                 DW_TAG_enumerator,
                 0,                      // no children
@@ -2744,10 +2620,10 @@ unsigned dwarf_typidx(type *t)
                 0,                      0,
             };
 
-            symbol *s = t->Ttag;
+            Symbol *s = t->Ttag;
             enum_t *se = s->Senum;
             type *tbase = s->Stype->Tnext;
-            unsigned sz = type_size(tbase);
+            uint sz = type_size(tbase);
             symlist_t sl;
 
             if (s->Stypidx)
@@ -2755,7 +2631,7 @@ unsigned dwarf_typidx(type *t)
 
             if (se->SEflags & SENforward)
             {
-                static unsigned char abbrevTypeEnumForward[] =
+                static ubyte abbrevTypeEnumForward[] =
                 {
                     DW_TAG_enumeration_type,
                     0,                  // no children
@@ -2775,7 +2651,7 @@ unsigned dwarf_typidx(type *t)
             abuf.write(abbrevTypeEnum, sizeof(abbrevTypeEnum));
             code = dwarf_abbrev_code(abuf.buf, abuf.size());
 
-            unsigned membercode;
+            uint membercode;
             abuf.reset();
             abuf.writeByte(DW_TAG_enumerator);
             abuf.writeByte(0);
@@ -2796,8 +2672,8 @@ unsigned dwarf_typidx(type *t)
             debug_info.buf->writeByte(sz);             // DW_AT_byte_size
 
             for (symlist_t sl = s->Senumlist; sl; sl = list_next(sl))
-            {   symbol *sf = (symbol *)list_ptr(sl);
-                unsigned long value = el_tolongt(sf->Svalue);
+            {   Symbol *sf = (Symbol *)list_ptr(sl);
+                uint value = el_tolongt(sf->Svalue);
 
                 debug_info.buf->writeuLEB128(membercode);
                 debug_info.buf->writeString(sf->Sident);
@@ -2821,19 +2697,13 @@ Lret:
     /* If debug_info.buf->buf[idx .. size()] is already in debug_info.buf,
      * discard this one and use the previous one.
      */
-    Atype atype;
-    atype.buf = debug_info.buf;
-    atype.start = idx;
-    atype.end = debug_info.buf->size();
-
     if (!type_table)
-        /* unsigned[Adata] type_table;
+        /* uint[Adata] type_table;
          * where the table values are the type indices
          */
-        type_table = new AArray(&ti_atype, sizeof(unsigned));
+        type_table = AApair::create(&debug_info.buf->buf);
 
-    unsigned *pidx;
-    pidx = (unsigned *)type_table->get(&atype);
+    uint *pidx = type_table->get(idx, debug_info.buf->size());
     if (!*pidx)                 // if no idx assigned yet
     {
         *pidx = idx;            // assign newly computed idx
@@ -2848,102 +2718,30 @@ Lret:
 
 /* ======================= Abbreviation Codes ====================== */
 
-struct Adata
-{
-    size_t start;
-    size_t end;
-};
 
-struct TypeInfo_Adata : TypeInfo
-{
-    const char* toString();
-    hash_t getHash(void *p);
-    int equals(void *p1, void *p2);
-    int compare(void *p1, void *p2);
-    size_t tsize();
-    void swap(void *p1, void *p2);
-};
-
-TypeInfo_Adata ti_adata;
-
-const char* TypeInfo_Adata::toString()
-{
-    return "Adata";
-}
-
-hash_t TypeInfo_Adata::getHash(void *p)
-{
-    hash_t hash = 0;
-
-    Adata a = *(Adata *)p;
-    for (size_t i = a.start; i < a.end; i++)
-    {
-        //printf("%02x ", debug_abbrev.buf->buf[i]);
-        hash = hash * 11 + debug_abbrev.buf->buf[i];
-    }
-    //printf("\nhash = %x, length = %d\n", hash, a.end - a.start);
-    return hash;
-}
-
-int TypeInfo_Adata::equals(void *p1, void *p2)
-{
-    Adata a1 = *(Adata*)p1;
-    Adata a2 = *(Adata*)p2;
-    size_t len = a1.end - a1.start;
-
-    return len == a2.end - a2.start &&
-        memcmp(debug_abbrev.buf->buf + a1.start, debug_abbrev.buf->buf + a2.start, len) == 0;
-}
-
-int TypeInfo_Adata::compare(void *p1, void *p2)
-{
-    Adata a1 = *(Adata*)p1;
-    Adata a2 = *(Adata*)p2;
-    size_t len = a1.end - a1.start;
-    if (len == a2.end - a2.start)
-        return memcmp(debug_abbrev.buf->buf + a1.start, debug_abbrev.buf->buf + a2.start, len);
-    else if (len < a2.end - a2.start)
-        return -1;
-    else
-        return 1;
-}
-
-size_t TypeInfo_Adata::tsize()
-{
-    return sizeof(Adata);
-}
-
-void TypeInfo_Adata::swap(void *p1, void *p2)
-{
-    assert(0);
-}
-
-
-unsigned dwarf_abbrev_code(unsigned char *data, size_t nbytes)
+uint dwarf_abbrev_code(ubyte *data, size_t nbytes)
 {
     if (!abbrev_table)
-        /* unsigned[Adata] abbrev_table;
+        /* uint[Adata] abbrev_table;
          * where the table values are the abbreviation codes.
          */
-        abbrev_table = new AArray(&ti_adata, sizeof(unsigned));
+        abbrev_table = AApair::create(&debug_abbrev.buf->buf);
 
     /* Write new entry into debug_abbrev.buf
      */
-    Adata adata;
 
-    unsigned idx = debug_abbrev.buf->size();
+    uint idx = debug_abbrev.buf->size();
     abbrevcode++;
     debug_abbrev.buf->writeuLEB128(abbrevcode);
-    adata.start = debug_abbrev.buf->size();
+    size_t start = debug_abbrev.buf->size();
     debug_abbrev.buf->write(data, nbytes);
-    adata.end = debug_abbrev.buf->size();
+    size_t end = debug_abbrev.buf->size();
 
     /* If debug_abbrev.buf->buf[idx .. size()] is already in debug_abbrev.buf,
      * discard this one and use the previous one.
      */
 
-    unsigned *pcode;
-    pcode = (unsigned *)abbrev_table->get(&adata);
+    uint *pcode = abbrev_table->get(start, end);
     if (!*pcode)                // if no code assigned yet
     {
         *pcode = abbrevcode;    // assign newly computed code
@@ -2963,7 +2761,7 @@ unsigned dwarf_abbrev_code(unsigned char *data, size_t nbytes)
  *      startoffset = size of function prolog
  *      retoffset = offset from start of function to epilog
  */
-void dwarf_except_gentables(Funcsym *sfunc, unsigned startoffset, unsigned retoffset)
+void dwarf_except_gentables(Funcsym *sfunc, uint startoffset, uint retoffset)
 {
     if (!doUnwindEhFrame())
         return;
@@ -2991,9 +2789,9 @@ void dwarf_except_gentables(Funcsym *sfunc, unsigned startoffset, unsigned retof
 }
 
 #else
-void dwarf_CFA_set_loc(size_t location) { }
+void dwarf_CFA_set_loc(uint location) { }
 void dwarf_CFA_set_reg_offset(int reg, int offset) { }
 void dwarf_CFA_offset(int reg, int offset) { }
-void dwarf_except_gentables(Funcsym *sfunc, unsigned startoffset, unsigned retoffset) { }
+void dwarf_except_gentables(Funcsym *sfunc, uint startoffset, uint retoffset) { }
 #endif
 #endif

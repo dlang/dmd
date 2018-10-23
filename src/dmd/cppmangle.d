@@ -940,7 +940,7 @@ private final class CppMangleVisitor : Visitor
             if (t.ty == Tsarray)
             {
                 // Static arrays in D are passed by value; no counterpart in C++
-                t.error(loc, "Internal Compiler Error: unable to pass static array `%s` to extern(C++) function, use pointer instead",
+                .error(loc, "Internal Compiler Error: unable to pass static array `%s` to extern(C++) function, use pointer instead",
                     t.toChars());
                 fatal();
             }
@@ -968,7 +968,7 @@ private final class CppMangleVisitor : Visitor
             p = "`shared` ";
         else
             p = "";
-        t.error(loc, "Internal Compiler Error: %stype `%s` can not be mapped to C++\n", p, t.toChars());
+        .error(loc, "Internal Compiler Error: %stype `%s` can not be mapped to C++\n", p, t.toChars());
         fatal(); //Fatal, because this error should be handled in frontend
     }
 
@@ -1045,7 +1045,7 @@ private final class CppMangleVisitor : Visitor
             }
             if (!substitute(s))
             {
-                cpp_mangle_name(s, t.isConst());
+                cpp_mangle_name(s, false);
             }
         }
         if (t.isConst())
@@ -1091,7 +1091,7 @@ private final class CppMangleVisitor : Visitor
 
         if (!substitute(t.sym))
         {
-            cpp_mangle_name(t.sym, t.isConst());
+            cpp_mangle_name(t.sym, false);
         }
         if (t.isConst())
             append(null);  // C++ would have an extra type here

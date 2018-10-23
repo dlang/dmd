@@ -17,6 +17,7 @@ import core.stdc.string;
 import dmd.arraytypes;
 import dmd.complex;
 import dmd.constfold;
+import dmd.compiler;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dinterpret;
@@ -30,7 +31,6 @@ import dmd.mtype;
 import dmd.root.ctfloat;
 import dmd.root.port;
 import dmd.root.rmem;
-import dmd.target;
 import dmd.tokens;
 import dmd.visitor;
 
@@ -111,31 +111,6 @@ extern (C++) final class ClassReferenceExp : Expression
             }
         }
         return -1;
-    }
-
-    override void accept(Visitor v)
-    {
-        v.visit(this);
-    }
-}
-
-/***********************************************************
- * An uninitialized value
- */
-extern (C++) final class VoidInitExp : Expression
-{
-    VarDeclaration var;
-
-    extern (D) this(VarDeclaration var)
-    {
-        super(var.loc, TOK.void_, __traits(classInstanceSize, VoidInitExp));
-        this.var = var;
-        this.type = var.type;
-    }
-
-    override const(char)* toChars() const
-    {
-        return "void";
     }
 
     override void accept(Visitor v)
@@ -232,22 +207,22 @@ extern (C++) final class CTFEExp : Expression
         }
     }
 
-    extern (C++) __gshared CTFEExp cantexp;
-    extern (C++) __gshared CTFEExp voidexp;
-    extern (C++) __gshared CTFEExp breakexp;
-    extern (C++) __gshared CTFEExp continueexp;
-    extern (C++) __gshared CTFEExp gotoexp;
+    extern (D) __gshared CTFEExp cantexp;
+    extern (D) __gshared CTFEExp voidexp;
+    extern (D) __gshared CTFEExp breakexp;
+    extern (D) __gshared CTFEExp continueexp;
+    extern (D) __gshared CTFEExp gotoexp;
     /* Used when additional information is needed regarding
      * a ctfe error.
      */
-    extern (C++) __gshared CTFEExp showcontext;
+    extern (D) __gshared CTFEExp showcontext;
 
-    static bool isCantExp(const Expression e)
+    extern (D) static bool isCantExp(const Expression e)
     {
         return e && e.op == TOK.cantExpression;
     }
 
-    static bool isGotoExp(const Expression e)
+    extern (D) static bool isGotoExp(const Expression e)
     {
         return e && e.op == TOK.goto_;
     }
@@ -1031,7 +1006,7 @@ Expression paintFloatInt(Expression fromVal, Type to)
     if (exceptionOrCantInterpret(fromVal))
         return fromVal;
     assert(to.size() == 4 || to.size() == 8);
-    return Target.paintAsType(fromVal, to);
+    return Compiler.paintAsType(fromVal, to);
 }
 
 /******** Constant folding, with support for CTFE ***************************/

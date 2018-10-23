@@ -27,6 +27,7 @@ import dmd.backend.code;
 import dmd.backend.dlist;
 import dmd.backend.el;
 import dmd.backend.el : elem;
+import dmd.backend.memh;
 import dmd.backend.type;
 //import dmd.backend.obj;
 
@@ -56,7 +57,6 @@ enum LF = '\n';             // \n into \r and \r into \n.  The translator versio
 enum CR_STR = "\r";
 enum LF_STR = "\n";
 
-enum SCMAX_ = SCMAX; // workaround gdc build failure (can be removed if gdc > 2.068)
 extern __gshared
 {
     uint[32] mask;                  // bit masks
@@ -69,7 +69,7 @@ extern __gshared
     symtab_t globsym;
 
 //    Config config;                  // precompiled part of configuration
-    char[SCMAX_] sytab;
+    char[SCMAX] sytab;
 
     extern (C) /*volatile*/ int controlc_saw;    // a control C was seen
     uint maxblks;                   // array max for all block stuff
@@ -142,10 +142,10 @@ int ispow2(uint64_t);
 
 version (Posix)
 {
-//#define util_malloc(n,size) mem_malloc((n)*(size))
-//#define util_calloc(n,size) mem_calloc((n)*(size))
-//#define util_free       mem_free
-//#define util_realloc(oldp,n,size) mem_realloc(oldp,(n)*(size))
+void* util_malloc(uint n,uint size) { return mem_malloc(n * size); }
+void* util_calloc(uint n,uint size) { return mem_calloc(n * size); }
+void util_free(void *p) { mem_free(p); }
+void *util_realloc(void *oldp,uint n,uint size) { return mem_realloc(oldp, n * size); }
 //#define parc_malloc     mem_malloc
 //#define parc_calloc     mem_calloc
 //#define parc_realloc    mem_realloc
@@ -395,9 +395,6 @@ Symbol *out_readonly_sym(tym_t ty, void *p, int len);
 Symbol *out_string_literal(const(char)* str, uint len, uint sz);
 
 /* blockopt.c */
-// Workaround 2.066.x bug by resolving the TYMAX value before using it as dimension.
-static if (__VERSION__ <= 2066)
-    private enum computeEnumValue = BCMAX;
 extern __gshared uint[BCMAX] bc_goal;
 
 block* block_calloc();
@@ -524,7 +521,7 @@ void rtlsym_term();
 extern(C) char *id_compress(char *id, int idlen, size_t *plen);
 
 // Dwarf
-void dwarf_CFA_set_loc(size_t location);
+void dwarf_CFA_set_loc(uint location);
 void dwarf_CFA_set_reg_offset(int reg, int offset);
 void dwarf_CFA_offset(int reg, int offset);
 void dwarf_CFA_args_size(size_t sz);

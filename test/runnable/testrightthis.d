@@ -468,7 +468,7 @@ void test7()
 }
 
 /********************************************************/
-// 4350
+// https://issues.dlang.org/show_bug.cgi?id=4350
 
 template Mix4350() { int b; }
 
@@ -503,7 +503,7 @@ void test4350()
 }
 
 /********************************************************/
-// 6430
+// https://issues.dlang.org/show_bug.cgi?id=6430
 
 auto bug6430(int a)
 {
@@ -522,7 +522,7 @@ auto bug6430(int a, int b)
 }
 
 /********************************************************/
-// 9619
+// https://issues.dlang.org/show_bug.cgi?id=9619
 
 struct Foo9619 { int x; }
 void test9619()
@@ -534,7 +534,7 @@ void test9619()
 }
 
 /********************************************************/
-// 9633
+// https://issues.dlang.org/show_bug.cgi?id=9633
 
 class Foo9633
 {
@@ -567,7 +567,7 @@ void test9633()
 }
 
 /********************************************************/
-// 11245
+// https://issues.dlang.org/show_bug.cgi?id=11245
 
 struct Vec11245
 {
@@ -584,7 +584,7 @@ class Bar11245
 }
 
 /********************************************************/
-// 11614
+// https://issues.dlang.org/show_bug.cgi?id=11614
 
 struct Tuple11614(T...)
 {
@@ -608,7 +608,7 @@ struct Foo11614
 }
 
 /********************************************************/
-// 11993
+// https://issues.dlang.org/show_bug.cgi?id=11993
 
 struct S11993
 {
@@ -629,7 +629,7 @@ void test11993()
 }
 
 /********************************************************/
-// 15934
+// https://issues.dlang.org/show_bug.cgi?id=15934
 
 class B15934
 {

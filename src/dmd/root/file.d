@@ -74,7 +74,11 @@ nothrow:
         return name.toString();
     }
 
-    /*************************************
+    /**
+     * Read the full content of a file
+     *
+     * Returns:
+     *   `true` if there was an error
      */
     extern (C++) bool read()
     {

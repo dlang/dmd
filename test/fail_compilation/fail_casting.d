@@ -93,11 +93,11 @@ void test11485()
     class C {}
     interface I {}
 
-    // 11485 TypeBasic --> Tclass
+    // https://issues.dlang.org/show_bug.cgi?id=11485 TypeBasic --> Tclass
     { int x; auto y = cast(C)x; }
     { int x; auto y = cast(I)x; }
 
-    //  7472 TypeBasic <-- Tclass
+    // https://issues.dlang.org/show_bug.cgi?id=7472 TypeBasic <-- Tclass
     { C x; auto y = cast(int)x; }
     { I x; auto y = cast(int)x; }
 }

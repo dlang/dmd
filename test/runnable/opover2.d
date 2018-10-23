@@ -468,7 +468,7 @@ int bug4913()
 static assert(bug4913() == 83);
 
 /**************************************/
-// 5551
+// https://issues.dlang.org/show_bug.cgi?id=5551
 
 struct Foo11 {
     Foo11 opUnary(string op:"++")() {
@@ -486,7 +486,7 @@ void test11()
 }
 
 /**************************************/
-// 4099
+// https://issues.dlang.org/show_bug.cgi?id=4099
 
 struct X4099
 {
@@ -672,7 +672,7 @@ void test17()
 }
 
 /**************************************/
-// 3789
+// https://issues.dlang.org/show_bug.cgi?id=3789
 
 bool test3789()
 {
@@ -790,7 +790,7 @@ bool test3789()
 static assert(test3789());
 
 /**************************************/
-// 10037
+// https://issues.dlang.org/show_bug.cgi?id=10037
 
 struct S10037
 {
@@ -826,7 +826,7 @@ void test10037()
 }
 
 /**************************************/
-// 5810
+// https://issues.dlang.org/show_bug.cgi?id=5810
 
 struct Bug5810
 {
@@ -840,7 +840,7 @@ struct Foo5810
 }
 
 /**************************************/
-// 6798
+// https://issues.dlang.org/show_bug.cgi?id=6798
 
 struct Tuple6798(T...)
 {
@@ -1013,7 +1013,7 @@ void test6798()
 }
 
 /**************************************/
-// 12382
+// https://issues.dlang.org/show_bug.cgi?id=12382
 
 struct S12382
 {
@@ -1041,7 +1041,7 @@ void test12382()
 }
 
 /**************************************/
-// 12904
+// https://issues.dlang.org/show_bug.cgi?id=12904
 
 struct S12904
 {
@@ -1080,7 +1080,7 @@ void test12904()
 }
 
 /**************************************/
-// 7641
+// https://issues.dlang.org/show_bug.cgi?id=7641
 
 mixin template Proxy7641(alias a)
 {
@@ -1110,7 +1110,7 @@ void test7641()
 }
 
 /**************************************/
-// 8434
+// https://issues.dlang.org/show_bug.cgi?id=8434
 
 void test8434()
 {
@@ -1338,7 +1338,7 @@ void test19()
 }
 
 /**************************************/
-// 9453
+// https://issues.dlang.org/show_bug.cgi?id=9453
 
 struct Foo9453
 {
@@ -1360,7 +1360,7 @@ void test9453()
 }
 
 /**************************************/
-// 9496
+// https://issues.dlang.org/show_bug.cgi?id=9496
 
 struct S9496
 {
@@ -1392,7 +1392,7 @@ void test9496()
 }
 
 /**************************************/
-// 9689
+// https://issues.dlang.org/show_bug.cgi?id=9689
 
 struct B9689(T)
 {
@@ -1418,7 +1418,7 @@ void test9689()
 }
 
 /**************************************/
-// 9694
+// https://issues.dlang.org/show_bug.cgi?id=9694
 
 struct S9694
 {
@@ -1438,7 +1438,7 @@ void test9694()
 }
 
 /**************************************/
-// 10064
+// https://issues.dlang.org/show_bug.cgi?id=10064
 
 void test10064()
 {
@@ -1465,7 +1465,7 @@ void test10064()
 }
 
 /**************************************/
-// 12585
+// https://issues.dlang.org/show_bug.cgi?id=12585
 
 void test12585()
 {
@@ -1504,7 +1504,7 @@ void test12585()
 }
 
 /**************************************/
-// 10394
+// https://issues.dlang.org/show_bug.cgi?id=10394
 
 void test10394()
 {
@@ -1533,7 +1533,7 @@ void test10394()
 }
 
 /**************************************/
-// 10597
+// https://issues.dlang.org/show_bug.cgi?id=10597
 
 struct R10597
 {
@@ -1577,7 +1577,7 @@ void test10597()
 }
 
 /**************************************/
-// 10567
+// https://issues.dlang.org/show_bug.cgi?id=10567
 
 // doesn't require thunk
 struct S10567x1n { int value; int opCmp(ref const S10567x1n rhs) const { return 0; } }
@@ -1690,7 +1690,7 @@ void test10567()
 }
 
 /**************************************/
-// 11062
+// https://issues.dlang.org/show_bug.cgi?id=11062
 
 struct S11062ia
 {
@@ -1734,7 +1734,7 @@ void test11062()
 }
 
 /**************************************/
-// 11311
+// https://issues.dlang.org/show_bug.cgi?id=11311
 
 void test11311()
 {
@@ -1791,7 +1791,7 @@ void test11311()
 }
 
 /**************************************/
-// 12193
+// https://issues.dlang.org/show_bug.cgi?id=12193
 
 void test12193()
 {
@@ -1810,7 +1810,7 @@ void test12193()
 }
 
 /**************************************/
-// 14057
+// https://issues.dlang.org/show_bug.cgi?id=14057
 
 struct W14057
 {
@@ -1936,7 +1936,7 @@ void test20d()
 }
 
 /**************************************/
-// 14624
+// https://issues.dlang.org/show_bug.cgi?id=14624
 
 void test14624()
 {
@@ -1981,7 +1981,7 @@ void test14624()
 }
 
 /**************************************/
-// 14625
+// https://issues.dlang.org/show_bug.cgi?id=14625
 
 void test14625()
 {

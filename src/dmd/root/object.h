@@ -28,7 +28,7 @@ enum DYNCAST
     DYNCAST_TUPLE,
     DYNCAST_PARAMETER,
     DYNCAST_STATEMENT,
-    DYNCAST_TEMPLATEPARAMETER,
+    DYNCAST_TEMPLATEPARAMETER
 };
 
 /*
@@ -50,8 +50,6 @@ public:
     /**
      * Pretty-print an Object. Useful for debugging the old-fashioned way.
      */
-    virtual void print();
-
     virtual const char *toChars();
     /// This function is `extern(D)` and should not be called from C++,
     /// as the ABI does not match on some platforms

@@ -401,9 +401,19 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         {
             if (vd._init)
             {
+                if (vd._init.isVoidInitializer())
+                    /* Treat as 0 for the purposes of putting the initializer
+                     * in the BSS segment, or doing a mass set to 0
+                     */
+                    continue;
+
+                // Zero size fields are zero initialized
+                if (vd.type.size(vd.loc) == 0)
+                    continue;
+
                 // Examine init to see if it is all 0s.
                 auto exp = vd.getConstInitializer();
-                if (!exp || !_isZeroInit(vd.type.toBasetype(), exp))
+                if (!exp || !_isZeroInit(exp))
                 {
                     zeroInit = false;
                     break;
@@ -594,92 +604,93 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     }
 }
 
-private bool _isZeroInit(Type type, Expression exp)
+/**********************************
+ * Determine if exp is all binary zeros.
+ * Params:
+ *      exp = expression to check
+ * Returns:
+ *      true if it's all binary 0
+ */
+private bool _isZeroInit(Expression exp)
 {
-    if (type.ty == Tsarray)
+    switch (exp.op)
     {
-        auto sarrayType = cast(TypeSArray) type;
-        const dim = cast(size_t) sarrayType.dim.toInteger();
-        auto elementType = type.baseElemOf().toBasetype();
-        if (exp.op == TOK.arrayLiteral)
+        case TOK.int64:
+            return exp.toInteger() == 0;
+
+        case TOK.null_:
+        case TOK.false_:
+            return true;
+
+        case TOK.structLiteral:
         {
-            auto arrayExp = cast(ArrayLiteralExp) exp;
-            foreach (i; 0 .. dim)
+            auto sle = cast(StructLiteralExp) exp;
+            foreach (i; 0 .. sle.sd.fields.dim)
             {
-                auto ei = arrayExp.getElement(i);
-                if (ei is null || !_isZeroInit(elementType, ei))
+                auto field = sle.sd.fields[i];
+                if (field.type.size(field.loc))
                 {
-                    return false;
+                    auto e = (*sle.elements)[i];
+                    if (e ? !_isZeroInit(e)
+                          : !field.type.isZeroInit(field.loc))
+                        return false;
                 }
             }
             return true;
         }
-        else if (auto stringExp = exp.toStringExp())
+
+        case TOK.arrayLiteral:
         {
-            foreach (i; 0 .. stringExp.len)
-                if (stringExp.getCodeUnit(i) != 0)
+            auto ale = cast(ArrayLiteralExp)exp;
+
+            const dim = ale.elements ? ale.elements.dim : 0;
+
+            if (ale.type.toBasetype().ty == Tarray) // if initializing a dynamic array
+                return dim == 0;
+
+            foreach (i; 0 .. dim)
+            {
+                if (!_isZeroInit(ale.getElement(i)))
                     return false;
+            }
+
+            /* Note that true is returned for all T[0]
+             */
             return true;
         }
-        else
+
+        case TOK.string_:
         {
-            // Can this happen?
-            return dim == 0;
-        }
-    }
-    else if (type.ty == Tstruct)
-    {
-        // FIXME: is anything special necessary for unions?
-        if (exp.op == TOK.structLiteral)
-        {
-            auto structLiteralExp = cast(StructLiteralExp) exp;
-            foreach (i; 0 .. structLiteralExp.sd.fields.dim)
+            StringExp se = cast(StringExp)exp;
+
+            if (se.type.toBasetype().ty == Tarray) // if initializing a dynamic array
+                return se.len == 0;
+
+            foreach (i; 0 .. se.len)
             {
-                auto field = structLiteralExp.sd.fields[i];
-                if ((*structLiteralExp.elements)[i] is null
-                        ? !field.type.toBasetype().isZeroInit(field.loc)
-                        : !_isZeroInit(field.type.toBasetype(), (*structLiteralExp.elements)[i]))
+                if (se.getCodeUnit(i))
                     return false;
             }
             return true;
         }
-        else
+
+        case TOK.vector:
         {
-            // Can this happen?
+            auto ve = cast(VectorExp) exp;
+            return _isZeroInit(ve.e1);
+        }
+
+        case TOK.float64:
+        case TOK.complex80:
+        {
+            import dmd.root.ctfloat : CTFloat;
+            return (exp.toReal()      is CTFloat.zero) &&
+                   (exp.toImaginary() is CTFloat.zero);
+        }
+
+        default:
             return false;
-        }
     }
-    else if (type.ty == Tvector)
-    {
-        auto vectorType = cast(TypeVector) type;
-        if (exp.op == TOK.vector)
-        {
-            auto vectorExp = cast(VectorExp) exp;
-            auto e1 = vectorExp.e1;
-            return e1 !is null && e1.type !is null && _isZeroInit(e1.type, e1);
-        }
-        else
-        {
-            // Can this happen?
-            return false;
-        }
-    }
-    else if (exp.op == TOK.arrayLiteral)
-    {
-        // Not sure what's going on here but this gets reached with a
-        // LHS that can't be initialized from an array literal when
-        // testing Bug10483 in tests/runnable/interpret.d.
-        return false;
-    }
-    else if (type.isintegral) return exp.toInteger() == 0;
-    else if (type.isfloating)
-    {
-        import dmd.root.ctfloat : CTFloat;
-        return (exp.toReal() is CTFloat.zero) && (exp.toImaginary() is CTFloat.zero);
-    }
-    else if (exp.op == TOK.null_ || exp.op == TOK.false_) return true;
-    // Nothing else applied.
-    else return false;
 }
 
 /***********************************************************

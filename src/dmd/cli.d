@@ -169,6 +169,16 @@ struct Usage
         Option("c",
             "compile only, do not link"
         ),
+        Option("checkaction=D|C|halt",
+            "behavior on assert/boundscheck/finalswitch failure",
+            `Sets behavior when an assert fails, and array boundscheck fails,
+             or a final switch errors.
+                $(UL
+                    $(LI $(I D): Default behavior, which throws an unrecoverable $(D Error).)
+                    $(LI $(I C): Calls the C runtime library assert failure function.)
+                    $(LI $(I halt): Executes a halt instruction, terminating the program.)
+                )`
+        ),
         Option("color",
             "turn colored console output on"
         ),
@@ -211,15 +221,15 @@ dmd -cov -unittest myprog.d
             "write documentation file to filename"
         ),
         Option("d",
-            "silently allow deprecated features",
+            "silently allow deprecated features and symbols",
             `Silently allow $(DDLINK deprecate,deprecate,deprecated features) and use of symbols with
             $(DDSUBLINK $(ROOT_DIR)spec/attribute, deprecated, deprecated attributes).`,
         ),
         Option("dw",
-            "show use of deprecated features as warnings (default)"
+            "issue a message when deprecated features or symbols are used (default)"
         ),
         Option("de",
-            "show use of deprecated features as errors (halt compilation)"
+            "issue an error when deprecated features or symbols are used (halt compilation)"
         ),
         Option("debug",
             "compile in debug code",
@@ -605,6 +615,8 @@ dmd -cov -unittest myprog.d
             "list all non-mutable fields which occupy an object instance"),
         Transition("10378", "import", "bug10378",
             "revert to single phase name lookup"),
+        Transition("14246", "dtorfields", "dtorFields",
+            "destruct fields of partially constructed objects"),
         Transition(null, "checkimports", "check10378",
             "give deprecation messages about 10378 anomalies"),
         Transition("14488", "complex", "vcomplex",

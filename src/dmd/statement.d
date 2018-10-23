@@ -38,6 +38,7 @@ import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
+import dmd.dinterpret;
 import dmd.mtype;
 import dmd.parse;
 import dmd.root.outbuffer;
@@ -57,6 +58,18 @@ TypeIdentifier getThrowable()
     auto tid = new TypeIdentifier(Loc.initial, Id.empty);
     tid.addIdent(Id.object);
     tid.addIdent(Id.Throwable);
+    return tid;
+}
+
+/**
+ * Returns:
+ *      TypeIdentifier corresponding to `object.Exception`
+ */
+TypeIdentifier getException()
+{
+    auto tid = new TypeIdentifier(Loc.initial, Id.empty);
+    tid.addIdent(Id.object);
+    tid.addIdent(Id.Exception);
     return tid;
 }
 
@@ -100,12 +113,6 @@ extern (C++) abstract class Statement : RootObject
             }
         }
         return b;
-    }
-
-    override final void print()
-    {
-        fprintf(stderr, "%s\n", toChars());
-        fflush(stderr);
     }
 
     override final const(char)* toChars()
@@ -301,7 +308,6 @@ extern (C++) abstract class Statement : RootObject
     Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
     {
         //printf("Statement::scopeCode()\n");
-        //print();
         *sentry = null;
         *sexception = null;
         *sfinally = null;
@@ -479,7 +485,7 @@ extern (C++) final class PeelStatement : Statement
 /***********************************************************
  * Convert TemplateMixin members (== Dsymbols) to Statements.
  */
-extern (C++) Statement toStatement(Dsymbol s)
+private Statement toStatement(Dsymbol s)
 {
     extern (C++) final class ToStmt : Visitor
     {
@@ -661,7 +667,6 @@ extern (C++) class ExpStatement : Statement
     override final Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
     {
         //printf("ExpStatement::scopeCode()\n");
-        //print();
 
         *sentry = null;
         *sexception = null;
@@ -675,7 +680,6 @@ extern (C++) class ExpStatement : Statement
             {
                 if (v.needsScopeDtor())
                 {
-                    //printf("dtor is: "); v.edtor.print();
                     *sfinally = new DtorExpStatement(loc, v.edtor, v);
                     v.storage_class |= STC.nodtor; // don't add in dtor again
                 }
@@ -767,17 +771,24 @@ extern (C++) final class DtorExpStatement : ExpStatement
  */
 extern (C++) final class CompileStatement : Statement
 {
-    Expression exp;
+    Expressions* exps;
 
     extern (D) this(const ref Loc loc, Expression exp)
     {
+        Expressions* exps = new Expressions();
+        exps.push(exp);
+        this(loc, exps);
+    }
+
+    extern (D) this(const ref Loc loc, Expressions* exps)
+    {
         super(loc);
-        this.exp = exp;
+        this.exps = exps;
     }
 
     override Statement syntaxCopy()
     {
-        return new CompileStatement(loc, exp.syntaxCopy());
+        return new CompileStatement(loc, Expression.arraySyntaxCopy(exps));
     }
 
     private Statements* compileIt(Scope* sc)
@@ -791,13 +802,39 @@ extern (C++) final class CompileStatement : Statement
             return a;
         }
 
-        auto se = semanticString(sc, exp, "argument to mixin");
-        if (!se)
-            return errorStatements();
-        se = se.toUTF8(sc);
 
-        uint errors = global.errors;
-        scope p = new Parser!ASTCodegen(loc, sc._module, se.toStringz(), false);
+        OutBuffer buf;
+        if (exps)
+        {
+            foreach (ex; *exps)
+            {
+                sc = sc.startCTFE();
+                auto e = ex.expressionSemantic(sc);
+                e = resolveProperties(sc, e);
+                sc = sc.endCTFE();
+
+                // allowed to contain types as well as expressions
+                e = ctfeInterpretForPragmaMsg(e);
+                if (e.op == TOK.error)
+                {
+                    //errorSupplemental(exp.loc, "while evaluating `mixin(%s)`", ex.toChars());
+                    return errorStatements();
+                }
+                StringExp se = e.toStringExp();
+                if (se)
+                {
+                    se = se.toUTF8(sc);
+                    buf.printf("%.*s", cast(int)se.len, se.string);
+                }
+                else
+                    buf.printf("%s", e.toChars());
+            }
+        }
+
+        const errors = global.errors;
+        const len = buf.offset;
+        const str = buf.extractString()[0 .. len];
+        scope p = new Parser!ASTCodegen(loc, sc._module, str, false);
         p.nextToken();
 
         auto a = new Statements();
@@ -1588,7 +1625,7 @@ extern (C++) final class SwitchStatement : Statement
      * Returns:
      *  true if error
      */
-    bool checkLabel()
+    extern (D) bool checkLabel()
     {
         /*
          * Checks the scope of a label for existing variable declaration.
@@ -2079,7 +2116,6 @@ extern (C++) final class OnScopeStatement : Statement
     override Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
     {
         //printf("OnScopeStatement::scopeCode()\n");
-        //print();
         *sentry = null;
         *sexception = null;
         *sfinally = null;
@@ -2214,7 +2250,7 @@ extern (C++) final class GotoStatement : Statement
         return new GotoStatement(loc, ident);
     }
 
-    bool checkLabel()
+    extern (D) bool checkLabel()
     {
         if (!label.statement)
         {

@@ -141,7 +141,7 @@ private bool writeToEnv(StringTable* environment, char* nameEqValue)
  */
 void updateRealEnvironment(StringTable* environment)
 {
-    extern (C++) static int envput(const(StringValue)* sv)
+    static int envput(const(StringValue)* sv)
     {
         const name = sv.toDchars();
         const namelen = strlen(name);

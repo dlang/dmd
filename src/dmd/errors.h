@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include "globals.h"
+struct Loc;
 
 bool isConsoleColorSupported();
 

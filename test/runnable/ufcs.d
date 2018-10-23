@@ -422,7 +422,7 @@ class C5 : B5
 }
 
 /*******************************************/
-// 662
+// https://issues.dlang.org/show_bug.cgi?id=662
 
 import std.stdio,std.string, std.conv;
 
@@ -465,7 +465,7 @@ void test682()
 }
 
 /*******************************************/
-// 3382
+// https://issues.dlang.org/show_bug.cgi?id=3382
 
 import std.range, std.algorithm;
 
@@ -488,7 +488,7 @@ void test3382()
 }
 
 /*******************************************/
-// 6185
+// https://issues.dlang.org/show_bug.cgi?id=6185
 
 void test6185()
 {
@@ -502,7 +502,7 @@ void test6185()
 }
 
 /*******************************************/
-// 6070
+// https://issues.dlang.org/show_bug.cgi?id=6070
 
 enum test6070a = ["test"].foo6070();
 enum test6070b = foo6070(["test"]);
@@ -510,7 +510,7 @@ enum test6070b = foo6070(["test"]);
 string foo6070(string[] s) { return ""; }
 
 /*******************************************/
-// 7670
+// https://issues.dlang.org/show_bug.cgi?id=7670
 
 struct A7670
 {
@@ -528,7 +528,7 @@ void test7670()
 }
 
 /*******************************************/
-// 7703
+// https://issues.dlang.org/show_bug.cgi?id=7703
 void f7703(T)(T a) { }
 
 void test7703()
@@ -541,7 +541,7 @@ void test7703()
 }
 
 /*******************************************/
-// 7773
+// https://issues.dlang.org/show_bug.cgi?id=7773
 
 //import std.stdio;
 void writeln7773(int n){}
@@ -552,7 +552,7 @@ void test7773()
 }
 
 /*******************************************/
-// 7943
+// https://issues.dlang.org/show_bug.cgi?id=7943
 
 struct Foo7943
 {
@@ -570,7 +570,7 @@ void test7943()
 }
 
 /*******************************************/
-// 8180
+// https://issues.dlang.org/show_bug.cgi?id=8180
 
 int writeln8180(T...)(T args) { return 1; }
 
@@ -587,7 +587,7 @@ void test8180()
 }
 
 /*******************************************/
-// 8245
+// https://issues.dlang.org/show_bug.cgi?id=8245
 
           string toStr8245(immutable(char)* p) { return null; }
 @property string asStr8245(immutable(char)* p) { return null; }
@@ -600,7 +600,7 @@ void test8245()
 }
 
 /*******************************************/
-// 8252
+// https://issues.dlang.org/show_bug.cgi?id=8252
 
 bool f(int x) { return !x; }
 
@@ -611,7 +611,7 @@ void test8252()
 }
 
 /*******************************************/
-// 8453
+// https://issues.dlang.org/show_bug.cgi?id=8453
 
 T[] sort8453(T)(T[] a) { return a; }
 
@@ -623,7 +623,7 @@ void test8453()
 }
 
 /*******************************************/
-// 8503
+// https://issues.dlang.org/show_bug.cgi?id=8503
 
 void α8503(int i) {}
 
@@ -634,7 +634,7 @@ void test8503()
 }
 
 /*******************************************/
-// 9014
+// https://issues.dlang.org/show_bug.cgi?id=9014
 
 @property ref int foo9014(int[] a)
 {
@@ -649,7 +649,7 @@ void test9014()
 }
 
 /*******************************************/
-// 9590
+// https://issues.dlang.org/show_bug.cgi?id=9590
 
 auto func9590(E)(lazy E expr) { }
 
@@ -666,7 +666,7 @@ void test9590()
 }
 
 /*******************************************/
-// 9946
+// https://issues.dlang.org/show_bug.cgi?id=9946
 
 size_t count9946(alias x)(int[] haystack)
 {
@@ -682,7 +682,7 @@ void test9946()
 }
 
 /*******************************************/
-// 10618
+// https://issues.dlang.org/show_bug.cgi?id=10618
 
 template Temp10618(T)
 {
@@ -695,7 +695,7 @@ void test10618()
 }
 
 /*******************************************/
-// 10003
+// https://issues.dlang.org/show_bug.cgi?id=10003
 
 void foo10003(void *p) {}
 void test10003()
@@ -705,7 +705,7 @@ void test10003()
 }
 
 /*******************************************/
-// 10041
+// https://issues.dlang.org/show_bug.cgi?id=10041
 
 auto writeln10041(T...)(T args) { return typeof(args[0]).stringof; }
 
@@ -717,7 +717,7 @@ void test10041()
 }
 
 /*******************************************/
-// 10047
+// https://issues.dlang.org/show_bug.cgi?id=10047
 
 struct Typedef10047(T)
 {
@@ -737,7 +737,7 @@ void test10047()
 }
 
 /*******************************************/
-// 10166
+// https://issues.dlang.org/show_bug.cgi?id=10166
 
 auto foo10166()
 {
@@ -752,7 +752,7 @@ void bar10166(alias handler, T)(T t, int i)
 void buzz10166() {}
 
 /*******************************************/
-// 10526
+// https://issues.dlang.org/show_bug.cgi?id=10526
 
 struct S10526
 {
@@ -781,7 +781,7 @@ void test10526()
 }
 
 /********************************************************/
-// 10609
+// https://issues.dlang.org/show_bug.cgi?id=10609
 
 int foo10609(int x) { return x; }
 
@@ -794,7 +794,7 @@ void test10609()
 }
 
 /*******************************************/
-// 11312
+// https://issues.dlang.org/show_bug.cgi?id=11312
 
 struct S11312;
 
@@ -809,7 +809,7 @@ void test11312()
 }
 
 /*******************************************/
-// 15123
+// https://issues.dlang.org/show_bug.cgi?id=15123
 
 auto keys15123(K, V)(V[K] aa) { return [1]; }
 auto values15123(K, V)(V[K] aa) { return [2]; }

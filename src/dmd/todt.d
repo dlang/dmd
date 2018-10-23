@@ -63,154 +63,148 @@ alias Dts = Array!(dt_t*);
 
 extern (C++) void Initializer_toDt(Initializer init, DtBuilder dtb)
 {
-    extern (C++) class InitToDt : Visitor
+    void visitError(ErrorInitializer)
     {
-        DtBuilder dtb;
-
-        this(DtBuilder dtb)
-        {
-            this.dtb = dtb;
-        }
-
-        alias visit = Visitor.visit;
-
-        override void visit(Initializer)
-        {
-            assert(0);
-        }
-
-        override void visit(VoidInitializer vi)
-        {
-            /* Void initializers are set to 0, just because we need something
-             * to set them to in the static data segment.
-             */
-            dtb.nzeros(cast(uint)vi.type.size());
-        }
-
-        override void visit(StructInitializer si)
-        {
-            //printf("StructInitializer.toDt('%s')\n", si.toChars());
-            assert(0);
-        }
-
-        override void visit(ArrayInitializer ai)
-        {
-            //printf("ArrayInitializer.toDt('%s')\n", ai.toChars());
-            Type tb = ai.type.toBasetype();
-            if (tb.ty == Tvector)
-                tb = (cast(TypeVector)tb).basetype;
-
-            Type tn = tb.nextOf().toBasetype();
-
-            //printf("\tdim = %d\n", ai.dim);
-            Dts dts;
-            dts.setDim(ai.dim);
-            dts.zero();
-
-            uint size = cast(uint)tn.size();
-
-            uint length = 0;
-            for (size_t i = 0; i < ai.index.dim; i++)
-            {
-                Expression idx = ai.index[i];
-                if (idx)
-                    length = cast(uint)idx.toInteger();
-                //printf("\tindex[%d] = %p, length = %u, dim = %u\n", i, idx, length, ai.dim);
-
-                assert(length < ai.dim);
-                scope dtb = new DtBuilder();
-                Initializer_toDt(ai.value[i], dtb);
-                if (dts[length])
-                    error(ai.loc, "duplicate initializations for index `%d`", length);
-                dts[length] = dtb.finish();
-                length++;
-            }
-
-            Expression edefault = tb.nextOf().defaultInit(Loc.initial);
-
-            const n = tn.numberOfElems(ai.loc);
-
-            dt_t* dtdefault = null;
-
-            scope dtbarray = new DtBuilder();
-            for (size_t i = 0; i < ai.dim; i++)
-            {
-                if (dts[i])
-                    dtbarray.cat(dts[i]);
-                else
-                {
-                    if (!dtdefault)
-                    {
-                        scope dtb = new DtBuilder();
-                        Expression_toDt(edefault, dtb);
-                        dtdefault = dtb.finish();
-                    }
-                    dtbarray.repeat(dtdefault, n);
-                }
-            }
-            switch (tb.ty)
-            {
-                case Tsarray:
-                {
-                    TypeSArray ta = cast(TypeSArray)tb;
-                    size_t tadim = cast(size_t)ta.dim.toInteger();
-                    if (ai.dim < tadim)
-                    {
-                        if (edefault.isBool(false))
-                        {
-                            // pad out end of array
-                            dtbarray.nzeros(cast(uint)(size * (tadim - ai.dim)));
-                        }
-                        else
-                        {
-                            if (!dtdefault)
-                            {
-                                scope dtb = new DtBuilder();
-                                Expression_toDt(edefault, dtb);
-                                dtdefault = dtb.finish();
-                            }
-
-                            const m = n * (tadim - ai.dim);
-                            assert(m <= uint.max);
-                            dtbarray.repeat(dtdefault, cast(uint)m);
-                        }
-                    }
-                    else if (ai.dim > tadim)
-                    {
-                        error(ai.loc, "too many initializers, %d, for array[%d]", ai.dim, tadim);
-                    }
-                    dtb.cat(dtbarray);
-                    break;
-                }
-
-                case Tpointer:
-                case Tarray:
-                {
-                    if (tb.ty == Tarray)
-                        dtb.size(ai.dim);
-                    Symbol* s = dtb.dtoff(dtbarray.finish(), 0);
-                    if (tn.isMutable())
-                        for (int i = 0; i < ai.dim; i++)
-                            write_pointers(tn, s, size * i);
-                    break;
-                }
-
-                default:
-                    assert(0);
-            }
-            dt_free(dtdefault);
-        }
-
-        override void visit(ExpInitializer ei)
-        {
-            //printf("ExpInitializer.toDt() %s\n", ei.exp.toChars());
-            ei.exp = ei.exp.optimize(WANTvalue);
-            Expression_toDt(ei.exp, dtb);
-        }
+        assert(0);
     }
 
-    scope v = new InitToDt(dtb);
-    init.accept(v);
+    void visitVoid(VoidInitializer vi)
+    {
+        /* Void initializers are set to 0, just because we need something
+         * to set them to in the static data segment.
+         */
+        dtb.nzeros(cast(uint)vi.type.size());
+    }
+
+    void visitStruct(StructInitializer si)
+    {
+        //printf("StructInitializer.toDt('%s')\n", si.toChars());
+        assert(0);
+    }
+
+    void visitArray(ArrayInitializer ai)
+    {
+        //printf("ArrayInitializer.toDt('%s')\n", ai.toChars());
+        Type tb = ai.type.toBasetype();
+        if (tb.ty == Tvector)
+            tb = (cast(TypeVector)tb).basetype;
+
+        Type tn = tb.nextOf().toBasetype();
+
+        //printf("\tdim = %d\n", ai.dim);
+        Dts dts;
+        dts.setDim(ai.dim);
+        dts.zero();
+
+        uint size = cast(uint)tn.size();
+
+        uint length = 0;
+        for (size_t i = 0; i < ai.index.dim; i++)
+        {
+            Expression idx = ai.index[i];
+            if (idx)
+                length = cast(uint)idx.toInteger();
+            //printf("\tindex[%d] = %p, length = %u, dim = %u\n", i, idx, length, ai.dim);
+
+            assert(length < ai.dim);
+            scope dtb = new DtBuilder();
+            Initializer_toDt(ai.value[i], dtb);
+            if (dts[length])
+                error(ai.loc, "duplicate initializations for index `%d`", length);
+            dts[length] = dtb.finish();
+            length++;
+        }
+
+        Expression edefault = tb.nextOf().defaultInit(Loc.initial);
+
+        const n = tn.numberOfElems(ai.loc);
+
+        dt_t* dtdefault = null;
+
+        scope dtbarray = new DtBuilder();
+        for (size_t i = 0; i < ai.dim; i++)
+        {
+            if (dts[i])
+                dtbarray.cat(dts[i]);
+            else
+            {
+                if (!dtdefault)
+                {
+                    scope dtb = new DtBuilder();
+                    Expression_toDt(edefault, dtb);
+                    dtdefault = dtb.finish();
+                }
+                dtbarray.repeat(dtdefault, n);
+            }
+        }
+        switch (tb.ty)
+        {
+            case Tsarray:
+            {
+                TypeSArray ta = cast(TypeSArray)tb;
+                size_t tadim = cast(size_t)ta.dim.toInteger();
+                if (ai.dim < tadim)
+                {
+                    if (edefault.isBool(false))
+                    {
+                        // pad out end of array
+                        dtbarray.nzeros(cast(uint)(size * (tadim - ai.dim)));
+                    }
+                    else
+                    {
+                        if (!dtdefault)
+                        {
+                            scope dtb = new DtBuilder();
+                            Expression_toDt(edefault, dtb);
+                            dtdefault = dtb.finish();
+                        }
+
+                        const m = n * (tadim - ai.dim);
+                        assert(m <= uint.max);
+                        dtbarray.repeat(dtdefault, cast(uint)m);
+                    }
+                }
+                else if (ai.dim > tadim)
+                {
+                    error(ai.loc, "too many initializers, %d, for array[%d]", ai.dim, tadim);
+                }
+                dtb.cat(dtbarray);
+                break;
+            }
+
+            case Tpointer:
+            case Tarray:
+            {
+                if (tb.ty == Tarray)
+                    dtb.size(ai.dim);
+                Symbol* s = dtb.dtoff(dtbarray.finish(), 0);
+                if (tn.isMutable())
+                    for (int i = 0; i < ai.dim; i++)
+                        write_pointers(tn, s, size * i);
+                break;
+            }
+
+            default:
+                assert(0);
+        }
+        dt_free(dtdefault);
+    }
+
+    void visitExp(ExpInitializer ei)
+    {
+        //printf("ExpInitializer.toDt() %s\n", ei.exp.toChars());
+        ei.exp = ei.exp.optimize(WANTvalue);
+        Expression_toDt(ei.exp, dtb);
+    }
+
+    final switch (init.kind)
+    {
+        case InitKind.void_:   return visitVoid  (cast(  VoidInitializer)init);
+        case InitKind.error:   return visitError (cast( ErrorInitializer)init);
+        case InitKind.struct_: return visitStruct(cast(StructInitializer)init);
+        case InitKind.array:   return visitArray (cast( ArrayInitializer)init);
+        case InitKind.exp:     return visitExp   (cast(   ExpInitializer)init);
+    }
 }
 
 /* ================================================================ */
@@ -233,7 +227,6 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
             version (none)
             {
                 printf("Expression.toDt() %d\n", e.op);
-                print();
             }
             e.error("non-constant expression `%s`", e.toChars());
             dtb.nzeros(1);
@@ -326,8 +319,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
                 }
 
                 default:
-                    printf("%s\n", e.toChars());
-                    e.type.print();
+                    printf("%s, e.type=%s\n", e.toChars(), e.type.toChars());
                     assert(0);
             }
         }

@@ -405,6 +405,7 @@ immutable Msgtable[] msgtable =
     { "getPointerBitmap" },
     { "isReturnOnStack" },
     { "isZeroInit" },
+    { "getTargetInfo" },
 
     // For C++ mangling
     { "allocator" },

@@ -6,39 +6,33 @@
  *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/util2.c, backend/util2.c)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/util2.d, backend/util2.d)
  */
+
+// Only used for DMD
+
+module dmd.backend.util2;
 
 // Utility subroutines
 
-#include        <stdio.h>
-#include        <ctype.h>
-#include        <string.h>
-#include        <stdint.h>
-#include        <stdlib.h>
-#include        <time.h>
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
+import core.stdc.stdint : uint64_t;
 
-#include        "cc.h"
-#include        "global.h"
-#include        "mem.h"
-#include        "token.h"
-#if SCPP || MARS
-#include        "el.h"
-#endif
+import dmd.backend.cc;
+import dmd.backend.cdef;
+import dmd.backend.global;
+import dmd.backend.memh;
 
-#if _WIN32 && __DMC__
-#include        <controlc.h>
-#endif
-
-static char __file__[] = __FILE__;      /* for tassert.h                */
-#include        "tassert.h"
+extern (C++):
 
 void *ph_malloc(size_t nbytes);
 void *ph_calloc(size_t nbytes);
 void ph_free(void *p);
 void *ph_realloc(void *p , size_t nbytes);
 
-extern "C" void printInternalFailure(FILE* stream); // from dmd/mars.d
+extern (C) void printInternalFailure(FILE* stream); // from dmd/mars.d
 
 
 void util_exit(int exitcode);
@@ -51,15 +45,15 @@ void file_progress()
  * Alternative assert failure.
  */
 
-void util_assert(const char *file, int line)
+void util_assert(const(char)* file, int line)
 {
     fflush(stdout);
     printInternalFailure(stdout);
     printf("Internal error: %s %d\n",file,line);
     err_exit();
-#if __clang__
-    __builtin_unreachable();
-#endif
+//#if __clang__
+//    __builtin_unreachable();
+//#endif
 }
 
 /****************************
@@ -90,16 +84,16 @@ void util_exit(int exitcode)
     exit(exitcode);                     /* terminate abnormally         */
 }
 
+version (CRuntime_DigitalMars)
+{
 
-#if _WIN32 && !_MSC_VER
-
-volatile int controlc_saw;
+extern (C) extern __gshared int controlc_saw;
 
 /********************************
  * Control C interrupts go here.
  */
 
-static void __cdecl controlc_handler(void)
+private extern (C) void controlc_handler()
 {
     //printf("saw controlc\n");
     controlc_saw = 1;
@@ -109,12 +103,20 @@ static void __cdecl controlc_handler(void)
  * Trap control C interrupts.
  */
 
-#if !MARS
+version (MARS) { } else
+{
+
+extern (C)
+{
+void controlc_open();
+void controlc_close();
+alias _controlc_handler_t = void function();
+extern __gshared _controlc_handler_t _controlc_handler;
 
 void _STI_controlc()
 {
     //printf("_STI_controlc()\n");
-    _controlc_handler = controlc_handler;
+    _controlc_handler = &controlc_handler;
     controlc_open();                    /* trap control C               */
 }
 
@@ -123,8 +125,10 @@ void _STD_controlc()
     //printf("_STD_controlc()\n");
     controlc_close();
 }
+}
 
-#endif
+}
+}
 
 /***********************************
  * Send progress report.
@@ -132,32 +136,31 @@ void _STD_controlc()
 
 void util_progress()
 {
-    if (controlc_saw)
-        err_break();
+    version (MARS) { } else {
+    version (CRuntime_DigitalMars)
+    {
+        if (controlc_saw)
+            err_break();
+    }
+    }
 }
 
 void util_progress(int linnum)
 {
-    if (controlc_saw)
-        err_break();
+    version (MARS) { } else {
+    version (CRuntime_DigitalMars)
+    {
+        if (controlc_saw)
+            err_break();
+    }
+    }
 }
 
-#endif
-
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __DragonFly__ || __sun || _MSC_VER
-void util_progress()
-{
-}
-
-void util_progress(int linnum)
-{
-}
-#endif
 
 /**********************************
  * Binary string search.
  * Input:
- *      p ->    string of characters
+ *      p .    string of characters
  *      tab     array of pointers to strings
  *      n =     number of pointers in the array
  * Returns:
@@ -165,63 +168,63 @@ void util_progress(int linnum)
  *      else -1
  */
 
-#if TX86 && __DMC__ && !_DEBUG_TRACE
+version (X86) version (CRuntime_DigitalMars)
+    version = X86asm;
 
-int binary(const char *p, const char **table,int high)
+int binary(const(char)* p, const(char)*  *table,int high)
 {
-#define len high        // reuse parameter storage
-    _asm
+version (X86asm)
+{
+    alias len = high;        // reuse parameter storage
+    asm
     {
 
-;First find the length of the identifier.
-        xor     EAX,EAX         ;Scan for a 0.
-        mov     EDI,p
-        mov     ECX,EAX
-        dec     ECX             ;Longest possible string.
-        repne   scasb
-        mov     EDX,high        ;EDX = high
-        not     ECX             ;length of the id including '/0', stays in ECX
-        dec     EDX             ;high--
-        js      short Lnotfound
-        dec     EAX             ;EAX = -1, so that eventually EBX = low (0)
-        mov     len,ECX
+// First find the length of the identifier.
+        xor     EAX,EAX         ; // Scan for a 0.
+        mov     EDI,p           ;
+        mov     ECX,EAX         ;
+        dec     ECX             ; // Longest possible string.
+        repne                   ;
+        scasb                   ;
+        mov     EDX,high        ; // EDX = high
+        not     ECX             ; // length of the id including '/0', stays in ECX
+        dec     EDX             ; // high--
+        js      short Lnotfound ;
+        dec     EAX             ; // EAX = -1, so that eventually EBX = low (0)
+        mov     len,ECX         ;
 
-        even
-L4D:    mov     EBX,EAX         ;EBX (low) = mid
-        inc     EBX             ;low = mid + 1
-        cmp     EBX,EDX
-        jg      Lnotfound
+        even                    ;
+L4D:    lea     EBX,[EAX + 1]   ; // low = mid + 1
+        cmp     EBX,EDX         ;
+        jg      Lnotfound       ;
 
-        even
-L15:    lea     EAX,[EBX + EDX] ;EAX = EBX + EDX
+        even                    ;
+L15:    lea     EAX,[EBX + EDX] ; // EAX = low + high
 
-;Do the string compare.
+// Do the string compare.
 
-        mov     EDI,table
-        sar     EAX,1           ;mid = (low + high) >> 1;
-        mov     ESI,p
-        mov     EDI,DS:[4*EAX+EDI] ;Load table[mid]
-        mov     ECX,len         ;length of id
-        repe    cmpsb
+        mov     EDI,table       ;
+        sar     EAX,1           ; // mid = (low + high) >> 1
+        mov     ESI,p           ;
+        mov     EDI,[4*EAX+EDI] ; // Load table[mid]
+        mov     ECX,len         ; // length of id
+        repe                    ;
+        cmpsb                   ;
 
-        je      short L63       ;return mid if equal
-        jns     short L4D       ;if (cond < 0)
-        lea     EDX,-1[EAX]     ;high = mid - 1
-        cmp     EBX,EDX
-        jle     L15
+        je      short L63       ; // return mid if equal
+        jns     short L4D       ; // if (cond < 0)
+        lea     EDX,-1[EAX]     ; // high = mid - 1
+        cmp     EBX,EDX         ;
+        jle     L15             ;
 
 Lnotfound:
-        mov     EAX,-1          ;Return -1.
+        mov     EAX,-1          ; // Return -1.
 
-        even
-L63:
+        even                    ;
+L63:                            ;
     }
-#undef len
 }
-
-#else
-
-int binary(const char *p, const char ** table, int high)
+else
 {
     int low = 0;
     char cp = *p;
@@ -232,7 +235,6 @@ int binary(const char *p, const char ** table, int high)
     {
         int mid = (low + high) >> 1;
         int cond = table[mid][0] - cp;
-
         if (cond == 0)
             cond = strcmp(table[mid] + 1,p);
         if (cond > 0)
@@ -244,11 +246,11 @@ int binary(const char *p, const char ** table, int high)
     }
     return -1;
 }
+}
 
-#endif
 
 // search table[0 .. high] for p[0 .. len] (where p.length not necessairily equal to len)
-int binary(const char *p, size_t len, const char ** table, int high)
+int binary(const(char)* p, size_t len, const(char)** table, int high)
 {
     int low = 0;
     char cp = *p;
@@ -289,101 +291,130 @@ int ispow2(uint64_t c)
             i = -1;
         else
             for (i = 0; c >>= 1; i++)
-                ;
+            { }
         return i;
 }
 
 /***************************
  */
 
-#define UTIL_PH 1
+enum UTIL_PH = true;
 
-#if _WIN32
-void *util_malloc(unsigned n,unsigned size)
+version (MEM_DEBUG)
+    enum MEM_DEBUG = false; //true;
+else
+    enum MEM_DEBUG = false;
+
+version (Windows)
 {
-#if 0 && MEM_DEBUG
+void *util_malloc(uint n,uint size)
+{
+static if (MEM_DEBUG)
+{
     void *p;
 
     p = mem_malloc(n * size);
     //dbg_printf("util_calloc(%d) = %p\n",n * size,p);
     return p;
-#elif UTIL_PH
+}
+else static if (UTIL_PH)
+{
     return ph_malloc(n * size);
-#else
-    size_t nbytes = (size_t)n * (size_t)size;
+}
+else
+{
+    size_t nbytes = cast(size_t)n * cast(size_t)size;
     void *p = malloc(nbytes);
     if (!p && nbytes)
         err_nomem();
     return p;
-#endif
 }
-#endif
+}
+}
 
 /***************************
  */
 
-#if _WIN32
-void *util_calloc(unsigned n,unsigned size)
+version (Windows)
 {
-#if 0 && MEM_DEBUG
+void *util_calloc(uint n,uint size)
+{
+static if (MEM_DEBUG)
+{
     void *p;
 
     p = mem_calloc(n * size);
     //dbg_printf("util_calloc(%d) = %p\n",n * size,p);
     return p;
-#elif UTIL_PH
+}
+else static if (UTIL_PH)
+{
     return ph_calloc(n * size);
-#else
-    size_t nbytes = (size_t) n * (size_t) size;
+}
+else
+{
+    size_t nbytes = cast(size_t) n * cast(size_t) size;
     void *p = calloc(n,size);
     if (!p && nbytes)
         err_nomem();
     return p;
-#endif
 }
-#endif
+}
+}
 
 /***************************
  */
 
-#if _WIN32
+version (Windows)
+{
 void util_free(void *p)
 {
     //dbg_printf("util_free(%p)\n",p);
-#if 0 && MEM_DEBUG
+static if (MEM_DEBUG)
+{
     mem_free(p);
-#elif UTIL_PH
-    ph_free(p);
-#else
-    free(p);
-#endif
 }
-#endif
+else static if (UTIL_PH)
+{
+    ph_free(p);
+}
+else
+{
+    free(p);
+}
+}
+}
 
 /***************************
  */
 
-#if _WIN32
-void *util_realloc(void *oldp,unsigned n,unsigned size)
+version (Windows)
 {
-#if 0 && MEM_DEBUG
+void *util_realloc(void *oldp,uint n,uint size)
+{
+static if (MEM_DEBUG)
+{
     //dbg_printf("util_realloc(%p,%d)\n",oldp,n * size);
     return mem_realloc(oldp,n * size);
-#elif UTIL_PH
+}
+else static if (UTIL_PH)
+{
     return ph_realloc(oldp,n * size);
-#else
-    size_t nbytes = (size_t) n * (size_t) size;
+}
+else
+{
+    size_t nbytes = cast(size_t) n * cast(size_t) size;
     void *p = realloc(oldp,nbytes);
     if (!p && nbytes)
         err_nomem();
     return p;
-#endif
 }
-#endif
+}
+}
 
 /*****************************
  */
-void *mem_malloc2(unsigned size)
+void *mem_malloc2(uint size)
 {
     return mem_malloc(size);
 }

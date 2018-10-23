@@ -76,7 +76,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
      * If the returned scope != sc, the caller should pop
      * the scope after it used.
      */
-    static Scope* createNewScope(Scope* sc, StorageClass stc, LINK linkage,
+    extern (D) static Scope* createNewScope(Scope* sc, StorageClass stc, LINK linkage,
         CPPMANGLE cppmangle, Prot protection, int explicitProtection,
         AlignDeclaration aligndecl, PINLINE inlining)
     {
@@ -1219,25 +1219,26 @@ extern(C++) final class ForwardingAttribDeclaration: AttribDeclaration
 /***********************************************************
  * Mixin declarations, like:
  *      mixin("int x");
+ * https://dlang.org/spec/module.html#mixin-declaration
  */
 extern (C++) final class CompileDeclaration : AttribDeclaration
 {
-    Expression exp;
+    Expressions* exps;
     ScopeDsymbol scopesym;
     bool compiled;
 
-    extern (D) this(const ref Loc loc, Expression exp)
+    extern (D) this(const ref Loc loc, Expressions* exps)
     {
         super(null);
         //printf("CompileDeclaration(loc = %d)\n", loc.linnum);
         this.loc = loc;
-        this.exp = exp;
+        this.exps = exps;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         //printf("CompileDeclaration::syntaxCopy('%s')\n", toChars());
-        return new CompileDeclaration(loc, exp.syntaxCopy());
+        return new CompileDeclaration(loc, Expression.arraySyntaxCopy(exps));
     }
 
     override void addMember(Scope* sc, ScopeDsymbol sds)
@@ -1305,7 +1306,7 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
         return AttribDeclaration.setScope(sc);
     }
 
-    static Expressions* concat(Expressions* udas1, Expressions* udas2)
+    extern (D) static Expressions* concat(Expressions* udas1, Expressions* udas2)
     {
         Expressions* udas;
         if (!udas1 || udas1.dim == 0)

@@ -151,7 +151,7 @@ fail_compilation/fail13902.d(172): Error: escaping reference to stack allocated 
 fail_compilation/fail13902.d(173): Error: escaping reference to stack allocated value returned by `makeS()`
 ---
 */
-int[] testEscape4(int[3] sa1)       // Bugzilla 9279
+int[] testEscape4(int[3] sa1)       // https://issues.dlang.org/show_bug.cgi?id=9279
 {
     if (0) return sa1;                      // error <- no error
     if (0) return cast(int[])sa1;           // error <- no error

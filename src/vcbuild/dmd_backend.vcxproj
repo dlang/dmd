@@ -85,36 +85,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\dmd\backend\backconfig.c" />
-    <ClCompile Include="..\dmd\backend\cv8.c" />
-    <ClCompile Include="..\dmd\backend\pdata.c" />
-    <ClCompile Include="..\dmd\backend\ph2.c" />
-    <ClCompile Include="..\dmd\backend\util2.c" />
     <ClCompile Include="..\dmd\backend\varstats.c" />
     <ClCompile Include="..\dmd\backend\tk.c" />
-    <ClCompile Include="..\dmd\backend\aa.c" />
-    <ClCompile Include="..\dmd\backend\cgcod.c" />
-    <ClCompile Include="..\dmd\backend\cgcv.c" />
     <ClCompile Include="..\dmd\backend\cgen.c" />
     <ClCompile Include="..\dmd\backend\cgobj.c" />
-    <ClCompile Include="..\dmd\backend\cod3.c" />
     <ClCompile Include="..\dmd\backend\dt.c" />
     <ClCompile Include="..\dmd\backend\dwarf.c" />
     <ClCompile Include="..\dmd\backend\elfobj.c" />
     <ClCompile Include="..\dmd\backend\fp.c" />
     <ClCompile Include="..\dmd\backend\machobj.c" />
-    <ClCompile Include="..\dmd\backend\md5.c" />
     <ClCompile Include="..\dmd\backend\mscoffobj.c" />
-    <ClCompile Include="..\dmd\backend\newman.c" />
     <ClCompile Include="..\dmd\backend\os.c" />
-    <ClCompile Include="..\dmd\backend\out.c" />
     <ClCompile Include="..\dmd\backend\outbuf.c" />
-    <ClCompile Include="..\dmd\backend\ptrntab.c" />
-    <ClCompile Include="..\dmd\backend\rtlsym.c" />
+    <ClCompile Include="..\dmd\backend\sizecheck.c" />
     <ClCompile Include="..\dmd\backend\strtold.c" />
-    <ClCompile Include="..\dmd\backend\ti_achar.c" />
-    <ClCompile Include="..\dmd\backend\ti_pvoid.c" />
-    <ClCompile Include="..\dmd\backend\var.c" />
     <ClCompile Include="..\dmd\tk\filespec.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
@@ -122,16 +106,16 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\dmd\root\newdelete.c" />
-    <CustomBuild Include="..\dmd\backend\optabgen.c">
+    <CustomBuild Include="..\dmd\backend\optabgen.d">
       <Message>Building and running $(IntDir)%(Filename).exe</Message>
-      <Command>cl /TP /I..\dmd\tk /I..\dmd\root /I. /I.. /FIwarnings.h /Fo"$(IntDir)%(Filename).obj" /Fe"$(IntDir)generated\%(Filename).exe" "%(FullPath)"
+      <Command>$(DMDBinDir)\dmd.exe -I.. -version=MARS -of"$(IntDir)generated\%(Filename).exe" "%(FullPath)"
 if errorlevel 1 exit /B %ERRORLEVEL%
 pushd $(IntDir)generated
 "%(Filename).exe"
 if errorlevel 1 exit /B %ERRORLEVEL%
 popd</Command>
-      <Outputs>$(IntDir)generated\optab.c;$(IntDir)generated\debtab.c;$(IntDir)generated\cdxxx.c;$(IntDir)generated\elxxx.d;$(IntDir)generated\tytab.c;$(IntDir)generated\\fltables.c;%(Outputs)</Outputs>
-      <AdditionalInputs>..\dmd\backend\cc.h;..\dmd\backend\oper.h;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs>$(IntDir)generated\optab.d;$(IntDir)generated\debtab.d;$(IntDir)generated\cdxxx.d;$(IntDir)generated\elxxx.d;$(IntDir)generated\tytab.d;$(IntDir)generated\\fltables.d;%(Outputs)</Outputs>
+      <AdditionalInputs>..\dmd\backend\cc.d;..\dmd\backend\cdef.d;..\dmd\backend\oper.d;..\dmd\backend\ty.d;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
@@ -201,7 +185,6 @@ popd</Command>
     <ClInclude Include="..\dmd\root\port.h" />
     <ClInclude Include="..\dmd\root\rmem.h" />
     <ClInclude Include="..\dmd\root\root.h" />
-    <ClInclude Include="..\dmd\root\stringtable.h" />
     <ClInclude Include="..\vcbuild\alloca.h" />
     <ClInclude Include="..\vcbuild\fenv.h" />
     <ClInclude Include="..\vcbuild\stdint.h" />

@@ -23,16 +23,15 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 import dmd.arraytypes;
-import dmd.astcodegen;
 import dmd.gluelayer;
 import dmd.builtin;
 import dmd.cond;
 import dmd.console;
+import dmd.compiler;
 import dmd.dinifile;
 import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.doc;
-import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.errors;
@@ -47,7 +46,6 @@ import dmd.lib;
 import dmd.link;
 import dmd.mtype;
 import dmd.objc;
-import dmd.parse;
 import dmd.root.array;
 import dmd.root.file;
 import dmd.root.filename;
@@ -59,7 +57,6 @@ import dmd.root.stringtable;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.target;
-import dmd.tokens;
 import dmd.utils;
 
 /**
@@ -113,67 +110,6 @@ Where:
   @<cmdfile>       read arguments from cmdfile
 %.*s", FileName.canonicalName(global.inifilename), help.length, &help[0]);
 }
-
-/// DMD-generated module `__entrypoint` where the C main resides
-extern (C++) __gshared Module entrypoint = null;
-/// Module in which the D main is
-extern (C++) __gshared Module rootHasMain = null;
-
-
-/**
- * Generate C main() in response to seeing D main().
- *
- * This function will generate a module called `__entrypoint`,
- * and set the globals `entrypoint` and `rootHasMain`.
- *
- * This used to be in druntime, but contained a reference to _Dmain
- * which didn't work when druntime was made into a dll and was linked
- * to a program, such as a C++ program, that didn't have a _Dmain.
- *
- * Params:
- *   sc = Scope which triggered the generation of the C main,
- *        used to get the module where the D main is.
- */
-extern (C++) void genCmain(Scope* sc)
-{
-    if (entrypoint)
-        return;
-    /* The D code to be generated is provided as D source code in the form of a string.
-     * Note that Solaris, for unknown reasons, requires both a main() and an _main()
-     */
-    immutable cmaincode =
-    q{
-        extern(C)
-        {
-            int _d_run_main(int argc, char **argv, void* mainFunc);
-            int _Dmain(char[][] args);
-            int main(int argc, char **argv)
-            {
-                return _d_run_main(argc, argv, &_Dmain);
-            }
-            version (Solaris) int _main(int argc, char** argv) { return main(argc, argv); }
-        }
-    };
-    Identifier id = Id.entrypoint;
-    auto m = new Module("__entrypoint.d", id, 0, 0);
-    scope p = new Parser!ASTCodegen(m, cmaincode, false);
-    p.scanloc = Loc.initial;
-    p.nextToken();
-    m.members = p.parseModule();
-    assert(p.token.value == TOK.endOfFile);
-    assert(!p.errors); // shouldn't have failed to parse it
-    bool v = global.params.verbose;
-    global.params.verbose = false;
-    m.importedFrom = m;
-    m.importAll(null);
-    m.dsymbolSemantic(null);
-    m.semantic2(null);
-    m.semantic3(null);
-    global.params.verbose = v;
-    entrypoint = m;
-    rootHasMain = sc._module;
-}
-
 
 /**
  * DMD's real entry point
@@ -494,7 +430,6 @@ private int tryMain(size_t argc, const(char)** argv)
     Type._init();
     Id.initialize();
     Module._init();
-    Module.onImport = &marsOnImport;
     Target._init();
     Expression._init();
     Objc._init();
@@ -790,17 +725,10 @@ private int tryMain(size_t argc, const(char)** argv)
         {
             auto buf = OutBuffer();
             buf.doindent = 1;
-            scope HdrGenState hgs;
-            hgs.fullDump = 1;
-            scope PrettyPrintVisitor ppv = new PrettyPrintVisitor(&buf, &hgs);
-            mod.accept(ppv);
+            moduleToBuffer(&buf, mod);
 
             // write the output to $(filename).cg
-            auto modFilename = mod.srcfile.toChars();
-            auto modFilenameLength = strlen(modFilename);
-            auto cgFilename = cast(char*)allocmemory(modFilenameLength + 4);
-            memcpy(cgFilename, modFilename, modFilenameLength);
-            cgFilename[modFilenameLength .. modFilenameLength + 4] = ".cg\0";
+            auto cgFilename = FileName.addExt(mod.srcfile.toString(), "cg");
             auto cgFile = File(cgFilename);
             cgFile.setbuffer(buf.data, buf.offset);
             cgFile._ref = 1;
@@ -1501,13 +1429,27 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
         if (arg == "-allinst")               // https://dlang.org/dmd.html#switch-allinst
             params.allInst = true;
         else if (arg == "-de")               // https://dlang.org/dmd.html#switch-de
-            params.useDeprecated = 0;
+            params.useDeprecated = Diagnostic.error;
         else if (arg == "-d")                // https://dlang.org/dmd.html#switch-d
-            params.useDeprecated = 1;
+            params.useDeprecated = Diagnostic.off;
         else if (arg == "-dw")               // https://dlang.org/dmd.html#switch-dw
-            params.useDeprecated = 2;
+            params.useDeprecated = Diagnostic.inform;
         else if (arg == "-c")                // https://dlang.org/dmd.html#switch-c
             params.link = false;
+        else if (startsWith(p + 1, "checkaction=")) // https://dlang.org/dmd.html#switch-checkaction
+        {
+            /* Parse:
+             *    -checkaction=D|C|halt
+             */
+            if (strcmp(p + 13, "D") == 0)
+                params.checkAction = CHECKACTION.D;
+            else if (strcmp(p + 13, "C") == 0)
+                params.checkAction = CHECKACTION.C;
+            else if (strcmp(p + 13, "halt") == 0)
+                params.checkAction = CHECKACTION.halt;
+            else
+                goto Lerror;
+        }
         else if (startsWith(p + 1, "color")) // https://dlang.org/dmd.html#switch-color
         {
             params.color = true;
@@ -1767,9 +1709,9 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 goto Lerror;
         }
         else if (arg == "-w")   // https://dlang.org/dmd.html#switch-w
-            params.warnings = 1;
+            params.warnings = Diagnostic.error;
         else if (arg == "-wi")  // https://dlang.org/dmd.html#switch-wi
-            params.warnings = 2;
+            params.warnings = Diagnostic.inform;
         else if (arg == "-O")   // https://dlang.org/dmd.html#switch-O
             params.optimize = true;
         else if (p[1] == 'o')
@@ -2150,272 +2092,6 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
         }
     }
     return errors;
-}
-
-
-private __gshared bool includeImports = false;
-// array of module patterns used to include/exclude imported modules
-private __gshared Array!(const(char)*) includeModulePatterns;
-private __gshared Modules compiledImports;
-private extern(C++) bool marsOnImport(Module m)
-{
-    if (includeImports)
-    {
-        Identifiers empty;
-        if (includeImportedModuleCheck(ModuleComponentRange(
-            (m.md && m.md.packages) ? m.md.packages : &empty, m.ident, m.isPackageFile)))
-        {
-            if (global.params.verbose)
-                message("compileimport (%s)", m.srcfile.toChars);
-            compiledImports.push(m);
-            return true; // this import will be compiled
-        }
-    }
-    return false; // this import will not be compiled
-}
-
-// A range of component identifiers for a module
-private struct ModuleComponentRange
-{
-    Identifiers* packages;
-    Identifier name;
-    bool isPackageFile;
-    size_t index;
-    @property auto totalLength() const { return packages.dim + 1 + (isPackageFile ? 1 : 0); }
-
-    @property auto empty() { return index >= totalLength(); }
-    @property auto front() const
-    {
-        if (index < packages.dim)
-            return (*packages)[index];
-        if (index == packages.dim)
-            return name;
-        else
-            return Identifier.idPool("package");
-    }
-    void popFront() { index++; }
-}
-
-/*
- * Determines if the given module should be included in the compilation.
- * Returns:
- *  True if the given module should be included in the compilation.
- */
-private bool includeImportedModuleCheck(ModuleComponentRange components)
-    in { assert(includeImports); } body
-{
-    createMatchNodes();
-    size_t nodeIndex = 0;
-    while (nodeIndex < matchNodes.dim)
-    {
-        //printf("matcher ");printMatcher(nodeIndex);printf("\n");
-        auto info = matchNodes[nodeIndex++];
-        if (info.depth <= components.totalLength())
-        {
-            size_t nodeOffset = 0;
-            for (auto range = components;;range.popFront())
-            {
-                if (range.empty || nodeOffset >= info.depth)
-                {
-                    // MATCH
-                    //printf("matcher ");printMatcher(nodeIndex - 1);
-                    //printf(" MATCHES module '");components.print();printf("'\n");
-                    return !info.isExclude;
-                }
-                if (!range.front.equals(matchNodes[nodeIndex + nodeOffset].id))
-                {
-                    break;
-                }
-                nodeOffset++;
-            }
-        }
-        //printf("matcher ");printMatcher(nodeIndex-1);
-        //printf(" does not match module '");components.print();printf("'\n");
-        nodeIndex += info.depth;
-    }
-    assert(nodeIndex == matchNodes.dim, "code bug");
-    return includeByDefault;
-}
-
-// Matching module names is done with an array of matcher nodes.
-// The nodes are sorted by "component depth" from largest to smallest
-// so that the first match is always the longest (best) match.
-private struct MatcherNode
-{
-    union
-    {
-        struct
-        {
-            ushort depth;
-            bool isExclude;
-        }
-        Identifier id;
-    }
-    this(Identifier id) { this.id = id; }
-    this(bool isExclude, ushort depth)
-    {
-        this.depth = depth;
-        this.isExclude = isExclude;
-    }
-}
-
-/*
- * $(D includeByDefault) determines whether to include/exclude modules when they don't
- * match any pattern. This setting changes depending on if the user provided any "inclusive" module
- * patterns. When a single "inclusive" module pattern is given, it likely means the user only
- * intends to include modules they've "included", however, if no module patterns are given or they
- * are all "exclusive", then it is likely they intend to include everything except modules
- * that have been excluded. i.e.
- * ---
- * -i=-foo // include everything except modules that match "foo*"
- * -i=foo  // only include modules that match "foo*" (exclude everything else)
- * ---
- * Note that this default behavior can be overriden using the '.' module pattern. i.e.
- * ---
- * -i=-foo,-.  // this excludes everything
- * -i=foo,.    // this includes everything except the default exclusions (-std,-core,-etc.-object)
- * ---
-*/
-private __gshared bool includeByDefault = true;
-private __gshared Array!MatcherNode matchNodes;
-
-/*
- * Creates the global list of match nodes used to match module names
- * given strings provided by the -i commmand line option.
- */
-private void createMatchNodes()
-{
-    static size_t findSortedIndexToAddForDepth(size_t depth)
-    {
-        size_t index = 0;
-        while (index < matchNodes.dim)
-        {
-            auto info = matchNodes[index];
-            if (depth > info.depth)
-                break;
-            index += 1 + info.depth;
-        }
-        return index;
-    }
-
-    if (matchNodes.dim == 0)
-    {
-        foreach (modulePattern; includeModulePatterns)
-        {
-            auto depth = parseModulePatternDepth(modulePattern);
-            auto entryIndex = findSortedIndexToAddForDepth(depth);
-            matchNodes.split(entryIndex, depth + 1);
-            parseModulePattern(modulePattern, &matchNodes[entryIndex], depth);
-            // if at least 1 "include pattern" is given, then it is assumed the
-            // user only wants to include modules that were explicitly given, which
-            // changes the default behavior from inclusion to exclusion.
-            if (includeByDefault && !matchNodes[entryIndex].isExclude)
-            {
-                //printf("Matcher: found 'include pattern', switching default behavior to exclusion\n");
-                includeByDefault = false;
-            }
-        }
-
-        // Add the default 1 depth matchers
-        MatcherNode[8] defaultDepth1MatchNodes = [
-            MatcherNode(true, 1), MatcherNode(Id.std),
-            MatcherNode(true, 1), MatcherNode(Id.core),
-            MatcherNode(true, 1), MatcherNode(Id.etc),
-            MatcherNode(true, 1), MatcherNode(Id.object),
-        ];
-        {
-            auto index = findSortedIndexToAddForDepth(1);
-            matchNodes.split(index, defaultDepth1MatchNodes.length);
-            matchNodes.data[index .. index + defaultDepth1MatchNodes.length] = defaultDepth1MatchNodes[];
-        }
-    }
-}
-
-/*
- * Determines the depth of the given module pattern.
- * Params:
- *  modulePattern = The module pattern to determine the depth of.
- * Returns:
- *  The component depth of the given module pattern.
- */
-private ushort parseModulePatternDepth(const(char)* modulePattern)
-{
-    if (modulePattern[0] == '-')
-        modulePattern++;
-
-    // handle special case
-    if (modulePattern[0] == '.' && modulePattern[1] == '\0')
-        return 0;
-
-    ushort depth = 1;
-    for (;; modulePattern++)
-    {
-        auto c = *modulePattern;
-        if (c == '.')
-            depth++;
-        if (c == '\0')
-            return depth;
-    }
-}
-unittest
-{
-    assert(".".parseModulePatternDepth == 0);
-    assert("-.".parseModulePatternDepth == 0);
-    assert("abc".parseModulePatternDepth == 1);
-    assert("-abc".parseModulePatternDepth == 1);
-    assert("abc.foo".parseModulePatternDepth == 2);
-    assert("-abc.foo".parseModulePatternDepth == 2);
-}
-
-/*
- * Parses a 'module pattern', which is the "include import" components
- * given on the command line, i.e. "-i=<module_pattern>,<module_pattern>,...".
- * Params:
- *  modulePattern = The module pattern to parse.
- *  dst = the data structure to save the parsed module pattern to.
- *  depth = the depth of the module pattern previously retrieved from $(D parseModulePatternDepth).
- */
-private void parseModulePattern(const(char)* modulePattern, MatcherNode* dst, ushort depth)
-{
-    bool isExclude = false;
-    if (modulePattern[0] == '-')
-    {
-        isExclude = true;
-        modulePattern++;
-    }
-
-    *dst = MatcherNode(isExclude, depth);
-    dst++;
-
-    // Create and add identifiers for each component in the modulePattern
-    if (depth > 0)
-    {
-        auto idStart = modulePattern;
-        auto lastNode = dst + depth - 1;
-        for (; dst < lastNode; dst++)
-        {
-            for (;; modulePattern++)
-            {
-                if (*modulePattern == '.')
-                {
-                    assert(modulePattern > idStart, "empty module pattern");
-                    *dst = MatcherNode(Identifier.idPool(idStart, cast(uint)(modulePattern - idStart)));
-                    modulePattern++;
-                    idStart = modulePattern;
-                    break;
-                }
-            }
-        }
-        for (;; modulePattern++)
-        {
-            if (*modulePattern == '\0')
-            {
-                assert(modulePattern > idStart, "empty module pattern");
-                *lastNode = MatcherNode(Identifier.idPool(idStart, cast(uint)(modulePattern - idStart)));
-                break;
-            }
-        }
-    }
 }
 
 /**

@@ -75,11 +75,6 @@ public:
     }
 
 nothrow:
-    override void print() const
-    {
-        fprintf(stderr, "%.*s", cast(int)name.length, name.ptr);
-    }
-
     override const(char)* toChars() const pure
     {
         return name.ptr;
@@ -133,7 +128,7 @@ nothrow:
         return DYNCAST.identifier;
     }
 
-    extern (C++) __gshared StringTable stringtable;
+    private extern (D) __gshared StringTable stringtable;
 
     /**
        A secondary string table is used to guarantee that we generate unique
@@ -145,7 +140,7 @@ nothrow:
        https://issues.dlang.org/show_bug.cgi?id=18868
        https://issues.dlang.org/show_bug.cgi?id=19058.
      */
-    private extern (C++) __gshared StringTable fullPathStringTable;
+    private extern (D) __gshared StringTable fullPathStringTable;
 
     static Identifier generateId(const(char)* prefix)
     {
@@ -282,15 +277,24 @@ nothrow:
      */
     static bool isValidIdentifier(const(char)* p)
     {
-        size_t len;
-        size_t idx;
         if (!p || !*p)
+            return false;
+        return isValidIdentifier(p.toDString);
+    }
+
+    /**********************************
+     * ditto
+     */
+    extern (D) static bool isValidIdentifier(const(char)[] str)
+    {
+        const(char)* p = str.ptr;
+        size_t len = str.length;
+        size_t idx = 0;
+        if (!p || len == 0)
             goto Linvalid;
         if (*p >= '0' && *p <= '9') // beware of isdigit() on signed chars
             goto Linvalid;
-        len = strlen(p);
-        idx = 0;
-        while (p[idx])
+        while (idx < len)
         {
             dchar dc;
             const q = utf_decodeChar(p, len, idx, dc);
@@ -304,7 +308,7 @@ nothrow:
         return false;
     }
 
-    static Identifier lookup(const(char)* s, size_t len)
+    extern (D) static Identifier lookup(const(char)* s, size_t len)
     {
         auto sv = stringtable.lookup(s, len);
         if (!sv)
@@ -312,7 +316,7 @@ nothrow:
         return cast(Identifier)sv.ptrvalue;
     }
 
-    static void initTable()
+    extern (D) static void initTable()
     {
         enum size = 28_000;
         stringtable._init(size);
