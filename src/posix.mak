@@ -215,14 +215,16 @@ OS_UPCASE := $(shell echo $(OS) | tr '[a-z]' '[A-Z]')
 MMD=-MMD -MF $(basename $@).deps
 
 # Default compiler flags for all source files
+# -fno-rtti is valid for C++/ObjC++ but not for C
 CXXFLAGS := $(WARNINGS) \
-	-fno-exceptions -fno-rtti \
+	-fno-exceptions\
 	-D__pascal= -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 \
 	$(MODEL_FLAG) $(PIC)
 # GCC Specific
 ifeq ($(CXX_KIND), g++)
-CXXFLAGS += \
-    -std=gnu++98
+#is valid for C++/ObjC++ but not for C
+#CXXFLAGS += \
+	#-std=gnu++98
 endif
 # Clang Specific
 ifeq ($(CXX_KIND), clang++)
@@ -231,18 +233,76 @@ CXXFLAGS += \
 endif
 
 DFLAGS=
-override DFLAGS += -version=MARS $(PIC) -J$G
+# DMD Specific
+ifeq ($(HOST_DMD_KIND), dmd)
+	override DFLAGS += -version=MARS $(PIC) -J$G
+endif
+# GDC Specific
+ifeq ($(HOST_DMD_KIND), gdc)
+	override DFLAGS += -fversion=MARS $(PIC) -J$G
+endif
+# LDC Specific
+ifeq ($(HOST_DMD_KIND), ldc)
+	override DFLAGS += -d-version=MARS $(PIC) -J$G
+endif
+
+VTLS=
+ifeq ($(HOST_DMD_KIND), dmd)
+	override VTLS += -vtls
+endif
+
+
 # Enable D warnings
-override DFLAGS += -w -de
+override DFLAGS += -w
+# DMD Specific
+ifeq ($(HOST_DMD_KIND), dmd)
+	override DFLAGS +=  -de
+endif
+# GDC Specific
+ifeq ($(HOST_DMD_KIND), gdc)
+	override DFLAGS += -Wdeprecated
+endif
+# LDC Specific
+ifeq ($(HOST_DMD_KIND), ldc)
+	override DFLAGS +=  -de
+endif
+
+
 
 # Append different flags for debugging, profiling and release.
 ifdef ENABLE_DEBUG
 CXXFLAGS += -g -g3 -DDEBUG=1 -DUNITTEST
-override DFLAGS += -g -debug
+
+	# DMD Specific
+	ifeq ($(HOST_DMD_KIND), dmd)
+		override DFLAGS += -g -debug
+	endif
+	# GDC Specific
+	ifeq ($(HOST_DMD_KIND), gdc)
+	#TODO
+		override DFLAGS += -g -debug
+	endif
+	# LDC Specific
+	ifeq ($(HOST_DMD_KIND), ldc)
+		override DFLAGS += -g -d-debug
+	endif
 endif
 ifdef ENABLE_RELEASE
 CXXFLAGS += -O2
-override DFLAGS += -O -release -inline
+
+	# DMD Specific
+	ifeq ($(HOST_DMD_KIND), dmd)
+		override DFLAGS += -O -release -inline
+	endif
+	# GDC Specific
+	ifeq ($(HOST_DMD_KIND), gdc)
+	#TODO
+		override DFLAGS += -O3 -frelease
+	endif
+	# LDC Specific
+	ifeq ($(HOST_DMD_KIND), ldc)
+		override DFLAGS += -O3 -release 
+	endif
 else
 # Add debug symbols for all non-release builds
 override DFLAGS += -g
@@ -462,18 +522,18 @@ $G/lexer.a: $(LEXER_SRCS) $(LEXER_ROOT) $(HOST_DMD_PATH) $(SRC_MAKE)
 	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -J$G -L-lstdc++ $(DFLAGS) $(LEXER_SRCS) $(LEXER_ROOT)
 
 $G/dmd_frontend: $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) $(VTLS) -J$G -J$(RES) -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
 
 ifdef ENABLE_LTO
 $G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(G_OBJS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $G/dmd.conf
-	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $G/dmd.conf,$^)
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) $(VTLS) -J$G -J$(RES) -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $G/dmd.conf,$^)
 else
 $G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/backend.a $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $G/dmd.conf
-	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $(LEXER_ROOT) $G/dmd.conf,$^)
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) $(VTLS) -J$G -J$(RES) -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $(LEXER_ROOT) $G/dmd.conf,$^)
 endif
 
 $G/dmd-unittest: $(DMD_SRCS) $(ROOT_SRCS) $(LEXER_SRCS) $G/newdelete.o $(G_OBJS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) -L-lstdc++ $(DFLAGS) -g -unittest -main -version=NoMain $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
+	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) $(VTLS) -J$G -J$(RES) -L-lstdc++ $(DFLAGS) -g -unittest -main -version=NoMain $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 
 unittest: $G/dmd-unittest
 	$<
