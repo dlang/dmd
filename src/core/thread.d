@@ -1859,8 +1859,9 @@ private:
     do
     {
         // Thread was already removed earlier, might happen b/c of thread_detachInstance
-        if (!t.next && !t.prev)
+        if (!t.next && !t.prev && (sm_tbeg !is t))
             return;
+
         slock.lock_nothrow();
         {
             // NOTE: When a thread is removed from the global thread list its
