@@ -7384,6 +7384,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(AssignExp exp)
     {
+        printf("AssignExp::semantic('%s')\n", exp.toChars());
         static if (LOGSEMANTIC)
         {
             printf("AssignExp::semantic('%s')\n", exp.toChars());
