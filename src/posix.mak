@@ -408,12 +408,12 @@ BACK_SRC = \
 	$C/obj.h $C/pdata.d $C/cv8.d $C/backconfig.d $C/sizecheck.c $C/divcoeff.d \
 	$C/dvarstats.d $C/dvec.d \
 	$C/md5.d $C/md5.h \
-	$C/ph2.d $C/util2.d $C/dwarfeh.d $C/goh.d $C/memh.d \
+	$C/ph2.d $C/util2.d $C/dwarfeh.d $C/goh.d $C/memh.d $C/filespec.d \
 	$(TARGET_CH)
 
 TK_SRC = \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
-	$(TK)/filespec.c $(TK)/mem.c
+	$(TK)/mem.c
 
 ######## CXX header files (only needed for cxx-unittest)
 

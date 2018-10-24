@@ -16,7 +16,6 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
 #include        "mem.h"
-#include        "filespec.c"
 
 #if 0
 #define malloc          ph_malloc
