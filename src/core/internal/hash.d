@@ -129,7 +129,7 @@ private template canBitwiseHash(T)
     }
 }
 
-private template UnqualUnsigned(T) if (__traits(isIntegral, T))
+private template UnqualUnsigned(T) if (__traits(isIntegral, T) && !is(T == __vector))
 {
     static if (T.sizeof == ubyte.sizeof) alias UnqualUnsigned = ubyte;
     else static if (T.sizeof == ushort.sizeof) alias UnqualUnsigned = ushort;
@@ -342,7 +342,7 @@ if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStati
 //arithmetic type hash
 @trusted @nogc nothrow pure
 size_t hashOf(T)(scope const T val) if (!is(T == enum) && __traits(isArithmetic, T)
-    && __traits(isIntegral, T) && T.sizeof <= size_t.sizeof)
+    && __traits(isIntegral, T) && T.sizeof <= size_t.sizeof && !is(T == __vector))
 {
     return cast(UnqualUnsigned!T) val;
 }
@@ -350,7 +350,7 @@ size_t hashOf(T)(scope const T val) if (!is(T == enum) && __traits(isArithmetic,
 //arithmetic type hash
 @trusted @nogc nothrow pure
 size_t hashOf(T)(scope const T val, size_t seed) if (!is(T == enum) && __traits(isArithmetic, T)
-    && __traits(isIntegral, T) && T.sizeof <= size_t.sizeof)
+    && __traits(isIntegral, T) && T.sizeof <= size_t.sizeof && !is(T == __vector))
 {
     static if (size_t.sizeof < ulong.sizeof)
     {
@@ -381,7 +381,7 @@ size_t hashOf(T)(scope const T val, size_t seed) if (!is(T == enum) && __traits(
 //arithmetic type hash
 @trusted @nogc nothrow pure
 size_t hashOf(T)(scope const T val, size_t seed = 0) if (!is(T == enum) && __traits(isArithmetic, T)
-    && (!__traits(isIntegral, T) || T.sizeof > size_t.sizeof))
+    && (!__traits(isIntegral, T) || T.sizeof > size_t.sizeof) && !is(T == __vector))
 {
     static if (__traits(isFloating, val))
     {
@@ -420,6 +420,28 @@ size_t hashOf(T)(scope const T val, size_t seed = 0) if (!is(T == enum) && __tra
         static foreach (i; 0 .. T.sizeof / size_t.sizeof)
             seed = hashOf(cast(size_t) (val >>> (size_t.sizeof * 8 * i)), seed);
         return seed;
+    }
+}
+
+size_t hashOf(T)(scope const auto ref T val, size_t seed = 0) @safe @nogc nothrow pure
+if (is(T == __vector) && !is(T == enum))
+{
+    static if (__traits(isFloating, T) && (floatCoalesceZeroes || floatCoalesceNaNs))
+    {
+        if (__ctfe)
+        {
+            // Workaround for CTFE bug.
+            alias E = Unqual!(typeof(val[0]));
+            E[T.sizeof / E.sizeof] array;
+            foreach (i; 0 .. T.sizeof / E.sizeof)
+                array[i] = val[i];
+            return hashOf(array, seed);
+        }
+        return hashOf(val.array, seed);
+    }
+    else
+    {
+        return bytesHashAlignedBy!T(toUbyte(val), seed);
     }
 }
 
