@@ -1128,10 +1128,10 @@ else version (Posix)
         static void moduleinfo(Symbol *scc);
         static int comdat(Symbol *);
         static int comdatsize(Symbol *, targ_size_t symsize);
-        int readonly_comdat(Symbol *s);
+        static int readonly_comdat(Symbol *s);
         static void setcodeseg(int seg);
-        seg_data *tlsseg();
-        seg_data *tlsseg_bss();
+        static seg_data *tlsseg();
+        static seg_data *tlsseg_bss();
         static seg_data *tlsseg_data();
         static int  fardata(char *name, targ_size_t size, targ_size_t *poffset);
         static void export_symbol(Symbol *s, uint argsize);
@@ -1172,37 +1172,22 @@ else version (Posix)
         static  uint addstr(Outbuffer *strtab, const(char)* );
         static Symbol *getGOTsym();
         static void refGOTsym();
-    }
 
-    version (OSX)
-    {
-        class MachObj : Obj
+        version (OSX)
         {
-          public:
             static int getsegment(const(char)* sectname, const(char)* segname,
-                int  _align, int flags);
+                                  int  _align, int flags);
             static void addrel(int seg, targ_size_t offset, Symbol *targsym,
-                 uint targseg, int rtype, int val = 0);
+                               uint targseg, int rtype, int val = 0);
         }
-
-        class MachObj64 : MachObj
+        else
         {
-          public:
-            override seg_data *tlsseg();
-            override seg_data *tlsseg_bss();
-        }
-    }
-    else
-    {
-        class ElfObj : Obj
-        {
-          public:
             static int getsegment(const(char)* name, const(char)* suffix,
-                int type, int flags, int  _align);
+                                  int type, int flags, int  _align);
             static void addrel(int seg, targ_size_t offset, uint type,
-                                uint symidx, targ_size_t val);
+                               uint symidx, targ_size_t val);
             static size_t writerel(int targseg, size_t offset, uint type,
-                                    uint symidx, targ_size_t val);
+                                   uint symidx, targ_size_t val);
         }
     }
 }
