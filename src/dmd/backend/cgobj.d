@@ -954,7 +954,7 @@ static if (TERMCODE)
 void OmfObj_linnum(Srcpos srcpos,int seg,targ_size_t offset)
 {
 version (MARS)
-    varStats.recordLineOffset(srcpos, offset);
+    varStats_recordLineOffset(srcpos, offset);
 
     uint linnum = srcpos.Slinnum;
 
@@ -2635,7 +2635,7 @@ void OmfObj_func_start(Symbol *sfunc)
     sfunc.Soffset = Offset(cseg);       // offset of start of function
 
 version (MARS)
-    varStats.startFunction();
+    varStats_startFunction();
 }
 
 /*******************************

@@ -363,7 +363,7 @@ void cv8_func_start(Symbol *sfunc)
         currentfuncdata.f1fixup = cast(Outbuffer*)mem_calloc(Outbuffer.sizeof);
         currentfuncdata.f1fixup.enlarge(128);
     }
-    varStats.startFunction();
+    varStats_startFunction();
 }
 
 void cv8_func_term(Symbol *sfunc)
@@ -492,7 +492,7 @@ void cv8_func_term(Symbol *sfunc)
             buf.writeWord(S_END);
         }
     }
-    varStats.writeSymbolTable(&globsym, &cv8_outsym, &cv8.endArgs, &cv8.beginBlock, &cv8.endBlock);
+    varStats_writeSymbolTable(&globsym, &cv8_outsym, &cv8.endArgs, &cv8.beginBlock, &cv8.endBlock);
 
     /* Put out function return record S_RETURN
      * (VC doesn't, so we won't bother, either.)
@@ -528,7 +528,7 @@ void cv8_linnum(Srcpos srcpos, uint offset)
         currentfuncdata.srcfileoff  = cv8_addfile(srcpos.Sfilename);
     }
 
-    varStats.recordLineOffset(srcpos, offset);
+    varStats_recordLineOffset(srcpos, offset);
 
     __gshared uint lastoffset;
     __gshared uint lastlinnum;

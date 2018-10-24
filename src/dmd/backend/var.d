@@ -25,10 +25,6 @@ import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-version (MARS)
-{
-    import dmd.backend.varstats;
-}
 version (SPP)
 {
     import parser;
@@ -292,8 +288,4 @@ type *chartype;                 /* default 'char' type                  */
 
 Obj objmod = null;
 
-version (MARS)
-{
-VarStatistics varStats;
-}
 

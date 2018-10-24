@@ -35,6 +35,20 @@ struct LineOffset
     uint diffNextOffset;
 }
 
+
+version (none)
+{
+    /* LDC cannot deal with .di files, failing with:
+
+        ..\dmd\backend\varstats.di(42): error : Function type does not match previously declared function
+        with the same mangled name:
+        `?writeSymbolTable@VarStatistics@@QAEXPAUsymtab_t@@P6AXPAUSymbol@@@ZP6AXXZP6AXHH@Z3@Z`
+        [C:\projects\dmd\src\vcbuild\dmd.vcxproj]
+
+        https://github.com/dlang/dmd/pull/8783
+
+        So we abandon this version and go with free functions.
+    */
 struct VarStatistics
 {
     //this();
@@ -74,3 +88,16 @@ private:
 
 extern __gshared VarStatistics varStats;
 
+}
+else
+{
+    /* Free function version:
+     */
+
+    void varStats_writeSymbolTable(symtab_t* symtab,
+                          void function(Symbol*) fnWriteVar, void function() fnEndArgs,
+                          void function(int off,int len) fnBeginBlock, void function() fnEndBlock);
+
+    void varStats_startFunction();
+    void varStats_recordLineOffset(Srcpos src, targ_size_t off);
+}
