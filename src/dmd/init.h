@@ -31,8 +31,6 @@ public:
     Loc loc;
     unsigned char kind;
 
-    virtual Initializer *syntaxCopy() = 0;
-
     const char *toChars();
 
     ErrorInitializer   *isErrorInitializer();
@@ -49,16 +47,12 @@ class VoidInitializer : public Initializer
 public:
     Type *type;         // type that this will initialize to
 
-    Initializer *syntaxCopy();
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class ErrorInitializer : public Initializer
 {
 public:
-    Initializer *syntaxCopy();
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -68,7 +62,6 @@ public:
     Identifiers field;  // of Identifier *'s
     Initializers value; // parallel array of Initializer *'s
 
-    Initializer *syntaxCopy();
     void addInit(Identifier *field, Initializer *value);
 
     void accept(Visitor *v) { v->visit(this); }
@@ -83,7 +76,6 @@ public:
     Type *type;         // type that array will be used to initialize
     bool sem;           // true if semantic() is run
 
-    Initializer *syntaxCopy();
     void addInit(Expression *index, Initializer *value);
     bool isAssociativeArray();
     Expression *toAssocArrayLiteral();
@@ -94,12 +86,13 @@ public:
 class ExpInitializer : public Initializer
 {
 public:
-    Expression *exp;
     bool expandTuples;
-
-    Initializer *syntaxCopy();
+    Expression *exp;
 
     void accept(Visitor *v) { v->visit(this); }
 };
 
 Expression *initializerToExpression(Initializer *init, Type *t = NULL);
+
+Initializer *syntaxCopy(Initializer *inx);
+
