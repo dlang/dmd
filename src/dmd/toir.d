@@ -414,7 +414,7 @@ int intrinsic_op(FuncDeclaration fd)
         OPyl2xp1,
     ];
 
-    __gshared immutable char*[62] core_namearray =
+    __gshared immutable char*[70] core_namearray =
     [
         //cos
         "4math3cosFNaNbNiNfdZd",
@@ -464,11 +464,12 @@ int intrinsic_op(FuncDeclaration fd)
         "4simd6__simdFNaNbNiNfEQBbQz3XMMfZNhG16v",
         "4simd9__simd_ibFNaNbNiNfEQBeQBc3XMMNhG16vhZQi",
 
+        // @deprecated volatileLoad
         "5bitop12volatileLoadFNbNiNfPhZh",
         "5bitop12volatileLoadFNbNiNfPkZk",
         "5bitop12volatileLoadFNbNiNfPmZm",
         "5bitop12volatileLoadFNbNiNfPtZt",
-
+        // @deprecated volatileStore
         "5bitop13volatileStoreFNbNiNfPhhZv",
         "5bitop13volatileStoreFNbNiNfPkkZv",
         "5bitop13volatileStoreFNbNiNfPmmZv",
@@ -492,8 +493,18 @@ int intrinsic_op(FuncDeclaration fd)
         "5bitop7_popcntFNaNbNiNfkZi",
         "5bitop7_popcntFNaNbNiNfmxx", // don't find 64 bit version in 32 bit code
         "5bitop7_popcntFNaNbNiNftZt",
+        // volatileLoad
+        "8volatile12volatileLoadFNbNiNfPhZh",
+        "8volatile12volatileLoadFNbNiNfPkZk",
+        "8volatile12volatileLoadFNbNiNfPmZm",
+        "8volatile12volatileLoadFNbNiNfPtZt",
+        // volatileStore
+        "8volatile13volatileStoreFNbNiNfPhhZv",
+        "8volatile13volatileStoreFNbNiNfPkkZv",
+        "8volatile13volatileStoreFNbNiNfPmmZv",
+        "8volatile13volatileStoreFNbNiNfPttZv",
     ];
-    __gshared immutable char*[62] core_namearray64 =
+    __gshared immutable char*[70] core_namearray64 =
     [
         //cos
         "4math3cosFNaNbNiNfdZd",
@@ -543,11 +554,12 @@ int intrinsic_op(FuncDeclaration fd)
         "4simd6__simdFNaNbNiNfEQBbQz3XMMfZNhG16v",
         "4simd9__simd_ibFNaNbNiNfEQBeQBc3XMMNhG16vhZQi",
 
+        // @deprecated volatileLoad
         "5bitop12volatileLoadFNbNiNfPhZh",
         "5bitop12volatileLoadFNbNiNfPkZk",
         "5bitop12volatileLoadFNbNiNfPmZm",
         "5bitop12volatileLoadFNbNiNfPtZt",
-
+        // @deprecated volatileStore
         "5bitop13volatileStoreFNbNiNfPhhZv",
         "5bitop13volatileStoreFNbNiNfPkkZv",
         "5bitop13volatileStoreFNbNiNfPmmZv",
@@ -571,8 +583,18 @@ int intrinsic_op(FuncDeclaration fd)
         "5bitop7_popcntFNaNbNiNfkZi",
         "5bitop7_popcntFNaNbNiNfmZi",
         "5bitop7_popcntFNaNbNiNftZt",
+        // volatileLoad
+        "8volatile12volatileLoadFNbNiNfPhZh",
+        "8volatile12volatileLoadFNbNiNfPkZk",
+        "8volatile12volatileLoadFNbNiNfPmZm",
+        "8volatile12volatileLoadFNbNiNfPtZt",
+        // volatileStore
+        "8volatile13volatileStoreFNbNiNfPhhZv",
+        "8volatile13volatileStoreFNbNiNfPkkZv",
+        "8volatile13volatileStoreFNbNiNfPmmZv",
+        "8volatile13volatileStoreFNbNiNfPttZv",
     ];
-    __gshared immutable ubyte[62] core_ioptab =
+    __gshared immutable ubyte[70] core_ioptab =
     [
         OPcos,
         OPcos,
@@ -650,6 +672,16 @@ int intrinsic_op(FuncDeclaration fd)
         OPpopcnt,
         OPpopcnt,
         OPpopcnt,
+
+        OPind,
+        OPind,
+        OPind,
+        OPind,
+
+        OPeq,
+        OPeq,
+        OPeq,
+        OPeq,
     ];
 
     static assert(std_namearray.length == std_namearray64.length);
@@ -705,7 +737,7 @@ int intrinsic_op(FuncDeclaration fd)
         return (i == -1) ? i : std_ioptab[i];
     }
     if (length > 12 &&
-        (name[8] == 'm' || name[8] == 'b' || name[8] == 's') &&
+        (name[8] == 'm' || name[8] == 'b' || name[8] == 's' || name[8] == 'v') &&
         !memcmp(name, "_D4core".ptr, 7))
     {
         int i = binary(name + 7,
