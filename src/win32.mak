@@ -200,7 +200,7 @@ GBACKOBJ= $G/go.obj $G/gdag.obj $G/gother.obj $G/gflow.obj $G/gloop.obj $G/var.o
 	$G/cgcod.obj $G/cod1.obj $G/cod2.obj $G/cod3.obj $G/cod4.obj $G/cod5.obj $G/outbuf.obj \
 	$G/bcomplex.obj $G/ptrntab.obj $G/md5.obj \
 	$G/mscoffobj.obj $G/pdata.obj $G/cv8.obj $G/backconfig.obj $G/sizecheck.obj \
-	$G/divcoeff.obj $G/dwarf.obj $G/compress.obj $G/dvarstats.obj \
+	$G/divcoeff.obj $G/dwarfdbginf.obj $G/compress.obj $G/dvarstats.obj \
 	$G/ph2.obj $G/util2.obj $G/tk.obj $G/gsroa.obj $G/dvec.obj $G/filespec.obj \
 
 # Root package
@@ -239,7 +239,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.d \
 	$C\dtype.d $C\melf.h $C\mach.h $C\mscoff.h $C\bcomplex.h \
 	$C\outbuf.h $C\token.h $C\tassert.h \
 	$C\elfobj.c $C\cv4.h $C\dwarf2.h $C\exh.h $C\go.h \
-	$C\dwarf.c $C\dwarf.h $C\machobj.c $C\aarray.d \
+	$C\dwarfdbginf.d $C\dwarf.h $C\machobj.c $C\aarray.d \
 	$C\strtold.c $C\aa.h \
 	$C\md5.h $C\md5.d $C\ph2.d $C\util2.d \
 	$C\mscoffobj.c $C\obj.h $C\pdata.d $C\cv8.d $C\backconfig.d $C\sizecheck.c \
@@ -536,8 +536,8 @@ $G/dt.obj : $C\dt.h $C\dt.c
 $G/dvec.obj : $C\dvec.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\dvec
 
-$G/dwarf.obj : $C\dwarf.h $C\dwarf.c
-	$(CC) -c -o$@ $(MFLAGS) $C\dwarf
+$G/dwarfdbginf.obj : $C\dwarf.d $C\dwarfdbginf.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\dwarfdbginf
 
 $G/ee.obj : $C\ee.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\ee

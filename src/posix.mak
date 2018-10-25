@@ -352,7 +352,7 @@ BACK_OBJS = \
 	dt.o \
 	outbuf.o \
 	sizecheck.o \
-	dwarf.o \
+	\
 	tk.o strtold.o \
 	$(TARGET_OBJS)
 
@@ -361,7 +361,7 @@ BACK_DOBJS = bcomplex.o evalu8.o divcoeff.o dvec.o go.o gsroa.o glocal.o gdag.o 
 	gloop.o compress.o cgelem.o cgcs.o ee.o cod4.o cod5.o nteh.o blockopt.o memh.o cg.o cgreg.o \
 	dtype.o debugprint.o symbol.o elem.o dcode.o cgsched.o cg87.o cgxmm.o cgcod.o cod1.o cod2.o \
 	cod3.o cv8.o dcgcv.o pdata.o util2.o var.o md5.o backconfig.o ph2.o drtlsym.o dwarfeh.o ptrntab.o \
-	aarray.o dvarstats.o
+	aarray.o dvarstats.o dwarfdbginf.o
 
 G_OBJS  = $(addprefix $G/, $(BACK_OBJS))
 G_DOBJS = $(addprefix $G/, $(BACK_DOBJS))
@@ -402,7 +402,7 @@ BACK_SRC = \
 	$C/dtype.d $C/melf.h $C/mach.h $C/mscoff.h $C/bcomplex.h \
 	$C/outbuf.h $C/token.h $C/tassert.h \
 	$C/elfobj.c $C/cv4.h $C/dwarf2.h $C/exh.h $C/go.h \
-	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aarray.d \
+	$C/dwarfdbginf.d $C/dwarf.h $C/aa.h $C/aarray.d \
 	$C/platform_stub.c $C/code_x86.h $C/code_stub.h \
 	$C/machobj.c $C/mscoffobj.c \
 	$C/obj.h $C/pdata.d $C/cv8.d $C/backconfig.d $C/sizecheck.c $C/divcoeff.d \
