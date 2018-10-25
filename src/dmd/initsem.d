@@ -122,42 +122,18 @@ extern (C++) Expression initializerToExpression(Initializer init, Type t = null)
  */
 extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t, NeedInterpret needInterpret)
 {
-    scope v = new InitializerSemanticVisitor(sc, t, needInterpret);
-    init.accept(v);
-    return v.result;
-}
-
-/* ****************************** Implementation ************************ */
-
-
-private extern(C++) final class InitializerSemanticVisitor : Visitor
-{
-    alias visit = Visitor.visit;
-
-    Initializer result;
-    Scope* sc;
-    Type t;
-    NeedInterpret needInterpret;
-
-    this(Scope* sc, Type t, NeedInterpret needInterpret)
-    {
-        this.sc = sc;
-        this.t = t;
-        this.needInterpret = needInterpret;
-    }
-
-    override void visit(VoidInitializer i)
+    Initializer visitVoid(VoidInitializer i)
     {
         i.type = t;
-        result = i;
+        return i;
     }
 
-    override void visit(ErrorInitializer i)
+    Initializer visitError(ErrorInitializer i)
     {
-        result = i;
+        return i;
     }
 
-    override void visit(StructInitializer i)
+    Initializer visitStruct(StructInitializer i)
     {
         //printf("StructInitializer::semantic(t = %s) %s\n", t.toChars(), toChars());
         t = t.toBasetype();
@@ -169,14 +145,12 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             if (sd.ctor)
             {
                 error(i.loc, "%s `%s` has constructors, cannot use `{ initializers }`, use `%s( initializers )` instead", sd.kind(), sd.toChars(), sd.toChars());
-                result = new ErrorInitializer();
-                return;
+                return new ErrorInitializer();
             }
             sd.size(i.loc);
             if (sd.sizeok != Sizeok.done)
             {
-                result = new ErrorInitializer();
-                return;
+                return new ErrorInitializer();
             }
             size_t nfields = sd.fields.dim - sd.isNested();
             //expandTuples for non-identity arguments?
@@ -199,8 +173,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                             error(initLoc, "`%s` is not a member of `%s`, did you mean %s `%s`?", id.toChars(), sd.toChars(), s.kind(), s.toChars());
                         else
                             error(initLoc, "`%s` is not a member of `%s`", id.toChars(), sd.toChars());
-                        result = new ErrorInitializer();
-                        return;
+                        return new ErrorInitializer();
                     }
                     s = s.toAlias();
                     // Find out which field index it is
@@ -209,8 +182,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                         if (fieldi >= nfields)
                         {
                             error(i.loc, "`%s.%s` is not a per-instance initializable field", sd.toChars(), s.toChars());
-                            result = new ErrorInitializer();
-                            return;
+                            return new ErrorInitializer();
                         }
                         if (s == sd.fields[fieldi])
                             break;
@@ -219,8 +191,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                 else if (fieldi >= nfields)
                 {
                     error(i.loc, "too many initializers for `%s`", sd.toChars());
-                    result = new ErrorInitializer();
-                    return;
+                    return new ErrorInitializer();
                 }
                 VarDeclaration vd = sd.fields[fieldi];
                 if ((*elements)[fieldi])
@@ -265,19 +236,16 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             }
             if (errors)
             {
-                result = new ErrorInitializer();
-                return;
+                return new ErrorInitializer();
             }
             auto sle = new StructLiteralExp(i.loc, sd, elements, t);
             if (!sd.fill(i.loc, elements, false))
             {
-                result = new ErrorInitializer();
-                return;
+                return new ErrorInitializer();
             }
             sle.type = t;
             auto ie = new ExpInitializer(i.loc, sle);
-            result = ie.initializerSemantic(sc, t, needInterpret);
-            return;
+            return ie.initializerSemantic(sc, t, needInterpret);
         }
         else if ((t.ty == Tdelegate || t.ty == Tpointer && t.nextOf().ty == Tfunction) && i.value.dim == 0)
         {
@@ -291,15 +259,13 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             fd.endloc = i.loc;
             Expression e = new FuncExp(i.loc, fd);
             auto ie = new ExpInitializer(i.loc, e);
-            result = ie.initializerSemantic(sc, t, needInterpret);
-            return;
+            return ie.initializerSemantic(sc, t, needInterpret);
         }
         error(i.loc, "a struct is not a valid initializer for a `%s`", t.toChars());
-        result = new ErrorInitializer();
-        return;
+        return new ErrorInitializer();
     }
 
-    override void visit(ArrayInitializer i)
+    Initializer visitArray(ArrayInitializer i)
     {
         uint length;
         const(uint) amax = 0x80000000;
@@ -307,8 +273,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
         //printf("ArrayInitializer::semantic(%s)\n", t.toChars());
         if (i.sem) // if semantic() already run
         {
-            result = i;
-            return;
+            return i;
         }
         i.sem = true;
         t = t.toBasetype();
@@ -336,8 +301,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                     goto Lerr;
                 }
                 auto ei = new ExpInitializer(e.loc, e);
-                result = ei.initializerSemantic(sc, t, needInterpret);
-                return;
+                return ei.initializerSemantic(sc, t, needInterpret);
             }
         case Tpointer:
             if (t.nextOf().ty != Tfunction)
@@ -425,14 +389,13 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                 error(i.loc, "array dimension %llu exceeds max of %llu", ulong(i.dim), ulong(amax / sz));
                 goto Lerr;
             }
-            result = i;
-            return;
+            return i;
         }
     Lerr:
-        result = new ErrorInitializer();
+        return new ErrorInitializer();
     }
 
-    override void visit(ExpInitializer i)
+    Initializer visitExp(ExpInitializer i)
     {
         //printf("ExpInitializer::semantic(%s), type = %s\n", i.exp.toChars(), t.toChars());
         if (needInterpret)
@@ -443,8 +406,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             sc = sc.endCTFE();
         if (i.exp.op == TOK.error)
         {
-            result = new ErrorInitializer();
-            return;
+            return new ErrorInitializer();
         }
         uint olderrors = global.errors;
         if (needInterpret)
@@ -458,8 +420,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             }
             if (!global.gag && olderrors != global.errors)
             {
-                result = i;
-                return;
+                return i;
             }
             i.exp = i.exp.ctfeInterpret();
         }
@@ -469,8 +430,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
         }
         if (!global.gag && olderrors != global.errors)
         {
-            result = i; // Failed, suppress duplicate error messages
-            return;
+            return i; // Failed, suppress duplicate error messages
         }
         if (i.exp.type.ty == Ttuple && (cast(TypeTuple)i.exp.type).arguments.dim == 0)
         {
@@ -481,22 +441,19 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
         if (i.exp.op == TOK.type)
         {
             i.exp.error("initializer must be an expression, not `%s`", i.exp.toChars());
-            result = new ErrorInitializer();
-            return;
+            return new ErrorInitializer();
         }
         // Make sure all pointers are constants
         if (needInterpret && hasNonConstPointers(i.exp))
         {
             i.exp.error("cannot use non-constant CTFE pointer in an initializer `%s`", i.exp.toChars());
-            result = new ErrorInitializer();
-            return;
+            return new ErrorInitializer();
         }
         Type tb = t.toBasetype();
         Type ti = i.exp.type.toBasetype();
         if (i.exp.op == TOK.tuple && i.expandTuples && !i.exp.implicitConvTo(t))
         {
-            result = new ExpInitializer(i.loc, i.exp);
-            return;
+            return new ExpInitializer(i.loc, i.exp);
         }
         /* Look for case of initializing a static array with a too-short
          * string literal, such as:
@@ -579,15 +536,23 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
     L1:
         if (i.exp.op == TOK.error)
         {
-            result = i;
-            return;
+            return i;
         }
         if (needInterpret)
             i.exp = i.exp.ctfeInterpret();
         else
             i.exp = i.exp.optimize(WANTvalue);
         //printf("-ExpInitializer::semantic(): "); i.exp.print();
-        result = i;
+        return i;
+    }
+
+    final switch (init.kind)
+    {
+        case InitKind.void_:   return visitVoid  (cast(  VoidInitializer)init);
+        case InitKind.error:   return visitError (cast( ErrorInitializer)init);
+        case InitKind.struct_: return visitStruct(cast(StructInitializer)init);
+        case InitKind.array:   return visitArray (cast( ArrayInitializer)init);
+        case InitKind.exp:     return visitExp   (cast(   ExpInitializer)init);
     }
 }
 
