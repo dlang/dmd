@@ -128,45 +128,38 @@ template dtorIsNothrow(T)
     enum dtorIsNothrow = is(typeof(function{T t=void;}) : void function() nothrow);
 }
 
-/*
-Tests whether all given items satisfy a template predicate, i.e. evaluates to
-$(D F!(T[0]) && F!(T[1]) && ... && F!(T[$ - 1])).
-*/
+// taken from std.meta.allSatisfy
 package(core.internal)
 template allSatisfy(alias F, T...)
 {
-    static if (T.length == 0)
+    static foreach (Ti; T)
+    {
+        static if (!is(typeof(allSatisfy) == bool) && // not yet defined
+                   !F!(Ti))
+        {
+            enum allSatisfy = false;
+        }
+    }
+    static if (!is(typeof(allSatisfy) == bool)) // if not yet defined
     {
         enum allSatisfy = true;
     }
-    else static if (T.length == 1)
-    {
-        enum allSatisfy = F!(T[0]);
-    }
-    else
-    {
-        static if (allSatisfy!(F, T[0  .. $/2]))
-            enum allSatisfy = allSatisfy!(F, T[$/2 .. $]);
-        else
-            enum allSatisfy = false;
-    }
 }
 
+// taken from std.meta.anySatisfy
 template anySatisfy(alias F, T...)
 {
-    static if (T.length == 0)
+    static foreach (Ti; T)
+    {
+        static if (!is(typeof(anySatisfy) == bool) && // not yet defined
+                   F!(Ti))
+        {
+            enum anySatisfy = true;
+        }
+    }
+    static if (!is(typeof(anySatisfy) == bool)) // if not yet defined
     {
         enum anySatisfy = false;
-    }
-    else static if (T.length == 1)
-    {
-        enum anySatisfy = F!(T[0]);
-    }
-    else
-    {
-        enum anySatisfy =
-            anySatisfy!(F, T[ 0  .. $/2]) ||
-            anySatisfy!(F, T[$/2 ..  $ ]);
     }
 }
 
