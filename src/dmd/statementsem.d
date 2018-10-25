@@ -3084,6 +3084,16 @@ else
             if (rs.exp.op == TOK.type)
                 rs.exp = resolveAliasThis(sc, rs.exp);
 
+            if (rs.exp.op == TOK.scope_)
+            {
+                ScopeExp e = cast(ScopeExp)rs.exp;
+                if (e.sds.isPackage())
+                {
+                    auto aliasExp = checkAliasThis(rs.exp.loc, sc, e.sds.ident);
+                    rs.exp = aliasExp ? aliasExp : rs.exp;
+                }
+            }
+
             rs.exp = resolveProperties(sc, rs.exp);
             if (rs.exp.checkType())
                 rs.exp = new ErrorExp();

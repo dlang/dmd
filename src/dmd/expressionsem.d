@@ -2200,6 +2200,37 @@ private Module loadStdMath()
     return impStdMath.mod;
 }
 
+/**
+ * Check if the identifier `ident` can be resolved using the alias this
+ * of the current struct/class scope. Constructs `this.aliasthis.ident`,
+ * where `aliasthis` is the alias this symbol of the current struct/class
+ * scope.
+ *
+ * Params:
+ *  loc = location of the expression where `ident` is encountered
+ *  sc  = the scope where ident is encountered
+ *  ident = the identifier to be resolved
+ *
+ * Returns:
+ *  The `this.aliasthis.ident` expression if the identifier can be resolved
+ *  through alias this, `null` otherwise.
+ */
+Expression checkAliasThis(Loc loc, Scope* sc, Identifier ident)
+{
+    if (!hasThis(sc))
+        return null;
+
+    AggregateDeclaration ad = sc.getStructClassScope();
+    if (!ad || !ad.aliasthis)
+        return null;
+
+    Expression e;
+    e = new ThisExp(loc);
+    e = new DotIdExp(loc, e, ad.aliasthis.ident);
+    e = new DotIdExp(loc, e, ident);
+    return e.trySemantic(sc);
+}
+
 private extern (C++) final class ExpressionSemanticVisitor : Visitor
 {
     alias visit = Visitor.visit;
@@ -2351,22 +2382,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        if (hasThis(sc))
+        Expression ex = checkAliasThis(exp.loc, sc, exp.ident);
+        if (ex)
         {
-            AggregateDeclaration ad = sc.getStructClassScope();
-            if (ad && ad.aliasthis)
-            {
-                Expression e;
-                e = new ThisExp(exp.loc);
-                e = new DotIdExp(exp.loc, e, ad.aliasthis.ident);
-                e = new DotIdExp(exp.loc, e, exp.ident);
-                e = e.trySemantic(sc);
-                if (e)
-                {
-                    result = e;
-                    return;
-                }
-            }
+            result = ex;
+            return;
         }
 
         if (exp.ident == Id.ctfe)
