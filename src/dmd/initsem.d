@@ -79,21 +79,6 @@ Lno:
 }
 
 /***********************
- * Translate init to an `Expression` in order to infer the type.
- * Params:
- *      init = `Initializer` AST node
- *      sc = context
- * Returns:
- *      an equivalent `ExpInitializer` if successful, or `ErrorInitializer` if it cannot be translated
- */
-Initializer inferType(Initializer init, Scope* sc)
-{
-    scope v = new InferTypeVisitor(sc);
-    init.accept(v);
-    return v.result;
-}
-
-/***********************
  * Translate init to an `Expression`.
  * Params:
  *      init = `Initializer` AST node
@@ -556,36 +541,34 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
     }
 }
 
-private extern(C++) final class InferTypeVisitor : Visitor
+/***********************
+ * Translate init to an `Expression` in order to infer the type.
+ * Params:
+ *      init = `Initializer` AST node
+ *      sc = context
+ * Returns:
+ *      an equivalent `ExpInitializer` if successful, or `ErrorInitializer` if it cannot be translated
+ */
+Initializer inferType(Initializer init, Scope* sc)
 {
-    alias visit = Visitor.visit;
-
-    Initializer result;
-    Scope* sc;
-
-    this(Scope* sc)
-    {
-        this.sc = sc;
-    }
-
-    override void visit(VoidInitializer i)
+    Initializer visitVoid(VoidInitializer i)
     {
         error(i.loc, "cannot infer type from void initializer");
-        result = new ErrorInitializer();
+        return new ErrorInitializer();
     }
 
-    override void visit(ErrorInitializer i)
+    Initializer visitError(ErrorInitializer i)
     {
-        result = i;
+        return i;
     }
 
-    override void visit(StructInitializer i)
+    Initializer visitStruct(StructInitializer i)
     {
         error(i.loc, "cannot infer type from struct initializer");
-        result = new ErrorInitializer();
+        return new ErrorInitializer();
     }
 
-    override void visit(ArrayInitializer init)
+    Initializer visitArray(ArrayInitializer init)
     {
         //printf("ArrayInitializer::inferType() %s\n", toChars());
         Expressions* keys = null;
@@ -606,8 +589,7 @@ private extern(C++) final class InferTypeVisitor : Visitor
                 iz = iz.inferType(sc);
                 if (iz.isErrorInitializer())
                 {
-                    result = iz;
-                    return;
+                    return iz;
                 }
                 assert(iz.isExpInitializer());
                 (*values)[i] = (cast(ExpInitializer)iz).exp;
@@ -615,8 +597,7 @@ private extern(C++) final class InferTypeVisitor : Visitor
             }
             Expression e = new AssocArrayLiteralExp(init.loc, keys, values);
             auto ei = new ExpInitializer(init.loc, e);
-            result = ei.inferType(sc);
-            return;
+            return ei.inferType(sc);
         }
         else
         {
@@ -631,8 +612,7 @@ private extern(C++) final class InferTypeVisitor : Visitor
                 iz = iz.inferType(sc);
                 if (iz.isErrorInitializer())
                 {
-                    result = iz;
-                    return;
+                    return iz;
                 }
                 assert(iz.isExpInitializer());
                 (*elements)[i] = (cast(ExpInitializer)iz).exp;
@@ -640,8 +620,7 @@ private extern(C++) final class InferTypeVisitor : Visitor
             }
             Expression e = new ArrayLiteralExp(init.loc, null, elements);
             auto ei = new ExpInitializer(init.loc, e);
-            result = ei.inferType(sc);
-            return;
+            return ei.inferType(sc);
         }
     Lno:
         if (keys)
@@ -652,10 +631,10 @@ private extern(C++) final class InferTypeVisitor : Visitor
         {
             error(init.loc, "cannot infer type from array initializer");
         }
-        result = new ErrorInitializer();
+        return new ErrorInitializer();
     }
 
-    override void visit(ExpInitializer init)
+    Initializer visitExp(ExpInitializer init)
     {
         //printf("ExpInitializer::inferType() %s\n", toChars());
         init.exp = init.exp.expressionSemantic(sc);
@@ -673,8 +652,7 @@ private extern(C++) final class InferTypeVisitor : Visitor
                 se.error("cannot infer type from %s `%s`, possible circular dependency", se.sds.kind(), se.toChars());
             else
                 se.error("cannot infer type from %s `%s`", se.sds.kind(), se.toChars());
-            result = new ErrorInitializer();
-            return;
+            return new ErrorInitializer();
         }
 
         // Give error for overloaded function addresses
@@ -683,14 +661,12 @@ private extern(C++) final class InferTypeVisitor : Visitor
         {
             if (f.checkForwardRef(init.loc))
             {
-                result = new ErrorInitializer();
-                return;
+                return new ErrorInitializer();
             }
             if (hasOverloads && !f.isUnique())
             {
                 init.exp.error("cannot infer type from overloaded function symbol `%s`", init.exp.toChars());
-                result = new ErrorInitializer();
-                return;
+                return new ErrorInitializer();
             }
         }
         if (init.exp.op == TOK.address)
@@ -699,21 +675,27 @@ private extern(C++) final class InferTypeVisitor : Visitor
             if (ae.e1.op == TOK.overloadSet)
             {
                 init.exp.error("cannot infer type from overloaded function symbol `%s`", init.exp.toChars());
-                result = new ErrorInitializer();
-                return;
+                return new ErrorInitializer();
             }
         }
         if (init.exp.op == TOK.error)
         {
-            result = new ErrorInitializer();
-            return;
+            return new ErrorInitializer();
         }
         if (!init.exp.type)
         {
-            result = new ErrorInitializer();
-            return;
+            return new ErrorInitializer();
         }
-        result = init;
+        return init;
+    }
+
+    final switch (init.kind)
+    {
+        case InitKind.void_:   return visitVoid  (cast(  VoidInitializer)init);
+        case InitKind.error:   return visitError (cast( ErrorInitializer)init);
+        case InitKind.struct_: return visitStruct(cast(StructInitializer)init);
+        case InitKind.array:   return visitArray (cast( ArrayInitializer)init);
+        case InitKind.exp:     return visitExp   (cast(   ExpInitializer)init);
     }
 }
 
