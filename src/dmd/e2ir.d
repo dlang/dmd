@@ -3328,18 +3328,6 @@ elem *toElem(Expression e, IRState *irs)
         /***************************************
          */
 
-        override void visit(PowAssignExp e)
-        {
-            Type tb1 = e.e1.type.toBasetype();
-            assert(tb1.ty != Tarray && tb1.ty != Tsarray);
-
-            e.error("`^^` operator is not supported");
-            result = el_long(totym(e.type), 0);  // error recovery
-        }
-
-        /***************************************
-         */
-
         override void visit(LogicalExp aae)
         {
             tym_t tym = totym(aae.type);
@@ -3361,18 +3349,6 @@ elem *toElem(Expression e, IRState *irs)
         override void visit(XorExp e)
         {
             result = toElemBin(e, OPxor);
-        }
-
-        /***************************************
-         */
-
-        override void visit(PowExp e)
-        {
-            Type tb1 = e.e1.type.toBasetype();
-            assert(tb1.ty != Tarray && tb1.ty != Tsarray);
-
-            e.error("`^^` operator is not supported");
-            result = el_long(totym(e.type), 0);  // error recovery
         }
 
         /***************************************
