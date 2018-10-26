@@ -97,9 +97,6 @@
     <ClCompile Include="..\dmd\backend\outbuf.c" />
     <ClCompile Include="..\dmd\backend\sizecheck.c" />
     <ClCompile Include="..\dmd\backend\strtold.c" />
-    <ClCompile Include="..\dmd\tk\filespec.c">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="..\dmd\tk\mem.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>

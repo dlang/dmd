@@ -201,7 +201,7 @@ GBACKOBJ= $G/go.obj $G/gdag.obj $G/gother.obj $G/gflow.obj $G/gloop.obj $G/var.o
 	$G/bcomplex.obj $G/ptrntab.obj $G/md5.obj \
 	$G/mscoffobj.obj $G/pdata.obj $G/cv8.obj $G/backconfig.obj $G/sizecheck.obj \
 	$G/divcoeff.obj $G/dwarf.obj $G/compress.obj $G/dvarstats.obj \
-	$G/ph2.obj $G/util2.obj $G/tk.obj $G/gsroa.obj $G/dvec.obj \
+	$G/ph2.obj $G/util2.obj $G/tk.obj $G/gsroa.obj $G/dvec.obj $G/filespec.obj \
 
 # Root package
 ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/ctfloat.d $(ROOT)/file.d \
@@ -244,10 +244,10 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.d \
 	$C\md5.h $C\md5.d $C\ph2.d $C\util2.d \
 	$C\mscoffobj.c $C\obj.h $C\pdata.d $C\cv8.d $C\backconfig.d $C\sizecheck.c \
 	$C\divcoeff.d $C\dwarfeh.d $C\dvarstats.d \
-	$C\dvec.d $C\backend.txt
+	$C\dvec.d $C\filespec.d $C\backend.txt
 
 # Toolkit
-TKSRCC=	$(TK)\filespec.c $(TK)\mem.c
+TKSRCC=	$(TK)\mem.c
 TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h \
 	$(TKSRCC)
 
@@ -547,6 +547,9 @@ $G/elem.obj : $C\rtlsym.d $C\el.d $C\elem.d
 
 $G/evalu8.obj : $C\evalu8.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\evalu8
+
+$G/filespec.obj : $C\filespec.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\filespec
 
 $G/fp.obj : $C\fp.c
 	$(CC) -c -o$@ $(MFLAGS) $C\fp
