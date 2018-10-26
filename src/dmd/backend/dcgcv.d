@@ -2515,6 +2515,8 @@ else
             case_auto:
                 base = Auto.size;
             L1:
+                if (s.Sscope) // local variables moved into the closure cannot be emitted directly
+                    goto Lret;
                 TOWORD(debsym + 2,I32 ? S_BPREL32 : S_BPREL16);
                 if (config.fulltypes == CV4)
                 {   TOOFFSET(debsym + 4,s.Soffset + base + BPoff);

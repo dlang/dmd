@@ -949,6 +949,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     {
         assert(!fd.vthis.csym);
         sthis = toSymbol(fd.vthis);
+        sthis.Stype = getParentClosureType(sthis, fd);
         irs.sthis = sthis;
         if (!(f.Fflags3 & Fnested))
             f.Fflags3 |= Fmember;
