@@ -2384,6 +2384,14 @@ struct Gcx
      */
     size_t fullcollect(bool nostack = false) nothrow
     {
+        // It is possible that `fullcollect` will be called from a thread which
+        // is not yet registered in runtime (because allocating `new Thread` is
+        // part of `thread_attachThis` implementation). In that case it is
+        // better not to try actually collecting anything
+
+        if (Thread.getThis() is null)
+            return 0;
+
         MonoTime start, stop, begin;
 
         if (config.profile)
