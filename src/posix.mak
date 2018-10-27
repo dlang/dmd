@@ -404,7 +404,7 @@ BACK_SRC = \
 	$C/elfobj.c $C/cv4.h $C/dwarf2.h $C/exh.h $C/go.h \
 	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aarray.d \
 	$C/platform_stub.c $C/code_x86.h $C/code_stub.h \
-	$C/machobj.c $C/mscoffobj.c \
+	$C/machobj.c $C/mscoffobj.d \
 	$C/obj.h $C/pdata.d $C/cv8.d $C/backconfig.d $C/sizecheck.c $C/divcoeff.d \
 	$C/dvarstats.d $C/dvec.d \
 	$C/md5.d $C/md5.h \

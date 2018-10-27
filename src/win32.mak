@@ -242,7 +242,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.d \
 	$C\dwarf.c $C\dwarf.h $C\machobj.c $C\aarray.d \
 	$C\strtold.c $C\aa.h \
 	$C\md5.h $C\md5.d $C\ph2.d $C\util2.d \
-	$C\mscoffobj.c $C\obj.h $C\pdata.d $C\cv8.d $C\backconfig.d $C\sizecheck.c \
+	$C\mscoffobj.d $C\obj.h $C\pdata.d $C\cv8.d $C\backconfig.d $C\sizecheck.c \
 	$C\divcoeff.d $C\dwarfeh.d $C\dvarstats.d \
 	$C\dvec.d $C\filespec.d $C\backend.txt
 
@@ -578,8 +578,8 @@ $G/gsroa.obj : $C\gsroa.d
 $G/md5.obj : $C\md5.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\md5
 
-$G/mscoffobj.obj : $C\mscoff.h $C\mscoffobj.c
-	$(CC) -c -o$@ $(MFLAGS) -I$D;$(ROOT) -I$G $C\mscoffobj
+$G/mscoffobj.obj : $C\mscoffobj.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\mscoffobj
 
 $G/newman.obj : $(CH) $C\newman.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\newman
