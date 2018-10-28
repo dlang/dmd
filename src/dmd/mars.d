@@ -912,7 +912,7 @@ int main()
  *   envvalue = The content of an environment variable
  *   args     = Array to append the flags to, if any.
  */
-private void getenv_setargv(const(char)* envvalue, Strings* args)
+void getenv_setargv(const(char)* envvalue, Strings* args)
 {
     if (!envvalue)
         return;
@@ -999,7 +999,7 @@ private void getenv_setargv(const(char)* envvalue, Strings* args)
  *   "32", "64" or "32mscoff" if the "-m32", "-m64", "-m32mscoff" flags were passed,
  *   respectively. If they weren't, return `arch`.
  */
-private const(char)* parse_arch_arg(Strings* args, const(char)* arch)
+const(char)* parse_arch_arg(Strings* args, const(char)* arch)
 {
     foreach (const p; *args)
     {
@@ -1024,7 +1024,7 @@ private const(char)* parse_arch_arg(Strings* args, const(char)* arch)
  * Returns:
  *   The 'path' in -conf=path, which is the path to the config file to use
  */
-private const(char)* parse_conf_arg(Strings* args)
+const(char)* parse_conf_arg(Strings* args)
 {
     const(char)* conf = null;
     foreach (const p; *args)
@@ -1346,7 +1346,7 @@ private void setTargetCPU(ref Param params)
  *      true if errors in command line
  */
 
-private bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param params, ref Strings files)
+bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param params, ref Strings files)
 {
     bool errors;
 
