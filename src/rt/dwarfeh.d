@@ -142,6 +142,9 @@ extern(C) Throwable __dmd_begin_catch(_Unwind_Exception* exceptionObject)
     //printf("__dmd_begin_catch(%p), object = %p\n", eh, eh.object);
 
     auto o = eh.object;
+    // Remove our reference to the exception. We should not decrease its refcount,
+    // because we pass the object on to the caller.
+    eh.object = null;
 
     // Pop off of chain
     if (eh != ExceptionHeader.pop())
