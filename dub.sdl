@@ -29,7 +29,8 @@ subPackage {
     "src/dmd/tokens.d" \
     "src/dmd/utf.d"
 
-  preGenerateCommands `cd "$${DUB_PACKAGE_DIR}" && ./config.sh generated/dub VERSION /etc`
+  preGenerateCommands `"$${DC}" -run "$${DUB_PACKAGE_DIR}/config.d" "$${DUB_PACKAGE_DIR}/generated/dub" "$${DUB_PACKAGE_DIR}/VERSION" /etc` platform="posix"
+  preGenerateCommands `"%DC%" -run "%DUB_PACKAGE_DIR%/config.d" "%DUB_PACKAGE_DIR%/generated/dub" "%DUB_PACKAGE_DIR%/VERSION"` platform="windows"
   stringImportPaths "generated/dub"
 
   dependency "dmd:root" version="*"
@@ -53,7 +54,8 @@ subPackage {
 subPackage {
   name "frontend"
   targetType "library"
-  preGenerateCommands `cd "$${DUB_PACKAGE_DIR}" && ./config.sh generated/dub VERSION /etc`
+  preGenerateCommands `"$${DC}" -run "$${DUB_PACKAGE_DIR}/config.d" "$${DUB_PACKAGE_DIR}/generated/dub" "$${DUB_PACKAGE_DIR}/VERSION" /etc` platform="posix"
+  preGenerateCommands `"%DC%" -run "%DUB_PACKAGE_DIR%/config.d" "%DUB_PACKAGE_DIR%/generated/dub" "%DUB_PACKAGE_DIR%/VERSION"` platform="windows"
   stringImportPaths "generated/dub"
   stringImportPaths "res"
   versions "NoBackend"
