@@ -47,6 +47,13 @@
 #include        "mach.h"
 #include        "dwarf.h"
 
+typedef unsigned char ubyte;
+typedef unsigned short ushort;
+typedef unsigned uint;
+#define null NULL
+#define private static
+#define cast
+
 // for x86_64
 enum
 {
@@ -62,18 +69,13 @@ enum
     X86_64_RELOC_TLV              = 9, // for thread local variables
 };
 
-static Outbuffer *fobjbuf;
+private Outbuffer *fobjbuf;
 
 static char __file__[] = __FILE__;      // for tassert.h
 #include        "tassert.h"
 
 #define DEST_LEN (IDMAX + IDOHD + 1)
 char *obj_mangle2(Symbol *s,char *dest);
-
-#if MARS
-// C++ name mangling is handled by front end
-#define cpp_mangle(s) ((s)->Sident)
-#endif
 
 extern int except_table_seg;        // segment of __gcc_except_tab
 extern int eh_frame_seg;            // segment of __eh_frame
@@ -82,10 +84,10 @@ extern int eh_frame_seg;            // segment of __eh_frame
 /******************************************
  */
 
-symbol *GOTsym; // global offset table reference
-symbol *tlv_bootstrap_sym;
+Symbol *GOTsym; // global offset table reference
+Symbol *tlv_bootstrap_sym;
 
-symbol *Obj::getGOTsym()
+Symbol *Obj::getGOTsym()
 {
     if (!GOTsym)
     {
@@ -94,19 +96,19 @@ symbol *Obj::getGOTsym()
     return GOTsym;
 }
 
-static void objfile_write(FILE *fd, void *buffer, unsigned len);
+private void objfile_write(FILE *fd, void *buffer, uint len);
 
-STATIC char * objmodtoseg (const char *modname);
-STATIC void objfixupp (struct FIXUP *);
-STATIC void ledata_new (int seg,targ_size_t offset);
+private char * objmodtoseg (const char *modname);
+private void objfixupp (struct FIXUP *);
+private void ledata_new (int seg,targ_size_t offset);
 
-static long elf_align(targ_size_t size, long offset);
+private int elf_align(targ_size_t size, int offset);
 
 // The object file is built is several separate pieces
 
 
 // String Table  - String table for all other names
-static Outbuffer *symtab_strings;
+private Outbuffer *symtab_strings;
 
 // Section Headers
 Outbuffer  *SECbuf;             // Buffer to build section table in
@@ -117,7 +119,7 @@ Outbuffer  *SECbuf;             // Buffer to build section table in
 // Try matching the order gcc output them
 // This means defining the sections and then removing them if they are
 // not used.
-static int section_cnt;         // Number of sections in table
+private int section_cnt;         // Number of sections in table
 #define SEC_TAB_INIT 16         // Initial number of sections in buffer
 #define SEC_TAB_INC  4          // Number of sections to increment buffer by
 
@@ -128,32 +130,32 @@ static int section_cnt;         // Number of sections in table
  * are grouped into 3 different types (and a 4th for comdef's).
  */
 
-static Outbuffer *local_symbuf;
-static Outbuffer *public_symbuf;
-static Outbuffer *extern_symbuf;
+private Outbuffer *local_symbuf;
+private Outbuffer *public_symbuf;
+private Outbuffer *extern_symbuf;
 
-static void reset_symbols(Outbuffer *buf)
+private void reset_symbols(Outbuffer *buf)
 {
-    symbol **p = (symbol **)buf->buf;
-    const size_t n = buf->size() / sizeof(symbol *);
+    Symbol **p = cast(Symbol **)buf->buf;
+    const size_t n = buf->size() / sizeof(Symbol *);
     for (size_t i = 0; i < n; ++i)
         symbol_reset(p[i]);
 }
 
-struct Comdef { symbol *sym; targ_size_t size; int count; };
-static Outbuffer *comdef_symbuf;        // Comdef's are stored here
+struct Comdef { Symbol *sym; targ_size_t size; int count; };
+private Outbuffer *comdef_symbuf;        // Comdef's are stored here
 
-static Outbuffer *indirectsymbuf1;      // indirect symbol table of Symbol*'s
-static int jumpTableSeg;                // segment index for __jump_table
+private Outbuffer *indirectsymbuf1;      // indirect symbol table of Symbol*'s
+private int jumpTableSeg;                // segment index for __jump_table
 
-static Outbuffer *indirectsymbuf2;      // indirect symbol table of Symbol*'s
-static int pointersSeg;                 // segment index for __pointers
+private Outbuffer *indirectsymbuf2;      // indirect symbol table of Symbol*'s
+private int pointersSeg;                 // segment index for __pointers
 
 /* If an Obj::external_def() happens, set this to the string index,
  * to be added last to the symbol table.
  * Obviously, there can be only one.
  */
-static IDXSTR extdef;
+private IDXSTR extdef;
 
 #if 0
 enum
@@ -241,13 +243,13 @@ enum
 struct Relocation
 {   // Relocations are attached to the struct seg_data they refer to
     targ_size_t offset; // location in segment to be fixed up
-    symbol *funcsym;    // function in which offset lies, if any
-    symbol *targsym;    // if !=NULL, then location is to be fixed up
+    Symbol *funcsym;    // function in which offset lies, if any
+    Symbol *targsym;    // if !=null, then location is to be fixed up
                         // to address of this symbol
-    unsigned targseg;   // if !=0, then location is to be fixed up
+    uint targseg;   // if !=0, then location is to be fixed up
                         // to address of start of this segment
-    unsigned char rtype;   // RELxxxx
-    unsigned char flag; // 1: emit SUBTRACTOR/UNSIGNED pair
+    ubyte rtype;   // RELxxxx
+    ubyte flag; // 1: emit SUBTRACTOR/UNSIGNED pair
     short val;          // 0, -1, -2, -4
 };
 
@@ -279,13 +281,13 @@ IDXSTR Obj::addstr(Outbuffer *strtab, const char *str)
  * Returns index into the specified string table or 0.
  */
 
-static IDXSTR elf_findstr(Outbuffer *strtab, const char *str, const char *suffix)
+private IDXSTR elf_findstr(Outbuffer *strtab, const char *str, const char *suffix)
 {
     const char *ent = (char *)strtab->buf+1;
     const char *pend = ent+strtab->size() - 1;
     const char *s = str;
     const char *sx = suffix;
-    int len = strlen(str);
+    size_t len = strlen(str);
 
     if (suffix)
         len += strlen(suffix);
@@ -309,7 +311,7 @@ static IDXSTR elf_findstr(Outbuffer *strtab, const char *str, const char *suffix
         {                               // matched first string
             s = sx+1;                   // switch to suffix
             ent++;
-            sx = NULL;
+            sx = null;
         }
         else                            // continue comparing
         {
@@ -339,13 +341,12 @@ static IDXSTR elf_findstr(Outbuffer *strtab, const char *str, const char *suffix
  * Returns index into the table.
  */
 
-static IDXSTR elf_addmangled(Symbol *s)
+private IDXSTR elf_addmangled(Symbol *s)
 {
     //printf("elf_addmangled(%s)\n", s->Sident);
     char dest[DEST_LEN];
     char *destr;
     const char *name;
-    int len;
     IDXSTR namidx;
 
     namidx = symtab_strings->size();
@@ -377,12 +378,15 @@ static IDXSTR elf_addmangled(Symbol *s)
                 if (strcmp(name,"__nw__FPUI") == 0)
                     name = "__builtin_new";
                 break;
+
+            default:
+                break;
         }
 #endif
     }
     else if (tyfunc(s->ty()) && s->Sfunc && s->Sfunc->Fredirect)
         name = s->Sfunc->Fredirect;
-    len = strlen(name);
+    size_t len = strlen(name);
     symtab_strings->reserve(len+1);
     strcpy((char *)symtab_strings->p,name);
     symtab_strings->setsize(namidx+len+1);
@@ -397,9 +401,9 @@ static IDXSTR elf_addmangled(Symbol *s)
  *
  */
 
-symbol * Obj::sym_cdata(tym_t ty,char *p,int len)
+Symbol * Obj::sym_cdata(tym_t ty,char *p,int len)
 {
-    symbol *s;
+    Symbol *s;
 
 #if 0
     if (I64)
@@ -410,17 +414,17 @@ symbol * Obj::sym_cdata(tym_t ty,char *p,int len)
         s->Sseg = DATA;
         s->Soffset = Offset(DATA);   // Remember its offset into DATA section
         Offset(DATA) += len;
+
+        s->Sfl = /*(config.flags3 & CFG3pic) ? FLgotoff :*/ FLextern;
+        return s;
     }
-    else
 #endif
-    {
-        //printf("Obj::sym_cdata(ty = %x, p = %x, len = %d, Offset(CDATA) = %x)\n", ty, p, len, Offset(CDATA));
-        alignOffset(CDATA, tysize(ty));
-        s = symboldata(Offset(CDATA), ty);
-        s->Sseg = CDATA;
-        //Obj::pubdef(CDATA, s, Offset(CDATA));
-        Obj::bytes(CDATA, Offset(CDATA), len, p);
-    }
+    //printf("Obj::sym_cdata(ty = %x, p = %x, len = %d, Offset(CDATA) = %x)\n", ty, p, len, Offset(CDATA));
+    alignOffset(CDATA, tysize(ty));
+    s = symboldata(Offset(CDATA), ty);
+    s->Sseg = CDATA;
+    //Obj::pubdef(CDATA, s, Offset(CDATA));
+    Obj::bytes(CDATA, Offset(CDATA), len, p);
 
     s->Sfl = /*(config.flags3 & CFG3pic) ? FLgotoff :*/ FLextern;
     return s;
@@ -456,7 +460,7 @@ int Obj::data_readonly(char *p, int len)
  * Returns:
  *    segment index
  */
-int Obj::string_literal_segment(unsigned sz)
+int Obj::string_literal_segment(uint sz)
 {
     if (sz == 1)
     {
@@ -481,21 +485,29 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
     seg_tlsseg = UNKNOWN;
     seg_tlsseg_bss = UNKNOWN;
     seg_tlsseg_data = UNKNOWN;
-    GOTsym = NULL;
-    tlv_bootstrap_sym = NULL;
+    GOTsym = null;
+    tlv_bootstrap_sym = null;
 
     // Initialize buffers
 
     if (symtab_strings)
         symtab_strings->setsize(1);
     else
-    {   symtab_strings = new Outbuffer(1024);
+    {
+        symtab_strings = cast(Outbuffer*) calloc(1, sizeof(Outbuffer));
+        assert(symtab_strings);
+        symtab_strings->enlarge(1024);
+
         symtab_strings->reserve(2048);
         symtab_strings->writeByte(0);
     }
 
     if (!local_symbuf)
-        local_symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
+    {
+        local_symbuf = cast(Outbuffer*) calloc(1, sizeof(Outbuffer));
+        assert(local_symbuf);
+        local_symbuf->enlarge(sizeof(Symbol *) * SYM_TAB_INIT);
+    }
     local_symbuf->setsize(0);
 
     if (public_symbuf)
@@ -504,7 +516,11 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
         public_symbuf->setsize(0);
     }
     else
-        public_symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
+    {
+        public_symbuf = cast(Outbuffer*) calloc(1, sizeof(Outbuffer));
+        assert(public_symbuf);
+        public_symbuf->enlarge(sizeof(Symbol *) * SYM_TAB_INIT);
+    }
 
     if (extern_symbuf)
     {
@@ -512,10 +528,18 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
         extern_symbuf->setsize(0);
     }
     else
-        extern_symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
+    {
+        extern_symbuf = cast(Outbuffer*) calloc(1, sizeof(Outbuffer));
+        assert(extern_symbuf);
+        extern_symbuf->enlarge(sizeof(Symbol *) * SYM_TAB_INIT);
+    }
 
     if (!comdef_symbuf)
-        comdef_symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
+    {
+        comdef_symbuf = cast(Outbuffer*) calloc(1, sizeof(Outbuffer));
+        assert(comdef_symbuf);
+        comdef_symbuf->enlarge(sizeof(Symbol *) * SYM_TAB_INIT);
+    }
     comdef_symbuf->setsize(0);
 
     extdef = 0;
@@ -536,7 +560,10 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
     }
     else
     {
-        SECbuf = new Outbuffer(SYM_TAB_INC * struct_section_size);
+        SECbuf = cast(Outbuffer*) calloc(1, sizeof(Outbuffer));
+        assert(SECbuf);
+        SECbuf->enlarge(SYM_TAB_INC * struct_section_size);
+
         SECbuf->reserve(SEC_TAB_INIT * struct_section_size);
         // Ignore the first section - section numbers start at 1
         SECbuf->writezeros(struct_section_size);
@@ -603,7 +630,7 @@ int32_t *patchAddr64(int seg, targ_size_t offset)
 
 void patch(seg_data *pseg, targ_size_t offset, int seg, targ_size_t value)
 {
-    //printf("patch(offset = x%04x, seg = %d, value = x%llx)\n", (unsigned)offset, seg, value);
+    //printf("patch(offset = x%04x, seg = %d, value = x%llx)\n", (uint)offset, seg, value);
     if (I64)
     {
         int32_t *p = (int32_t *)(fobjbuf->buf + SecHdrTab64[pseg->SDshtidx].offset + offset);
@@ -645,23 +672,23 @@ void mach_numbersyms()
     int n = 0;
 
     int dim;
-    dim = local_symbuf->size() / sizeof(symbol *);
+    dim = local_symbuf->size() / sizeof(Symbol *);
     for (int i = 0; i < dim; i++)
-    {   symbol *s = ((symbol **)local_symbuf->buf)[i];
+    {   Symbol *s = (cast(Symbol **)local_symbuf->buf)[i];
         s->Sxtrnnum = n;
         n++;
     }
 
-    dim = public_symbuf->size() / sizeof(symbol *);
+    dim = public_symbuf->size() / sizeof(Symbol *);
     for (int i = 0; i < dim; i++)
-    {   symbol *s = ((symbol **)public_symbuf->buf)[i];
+    {   Symbol *s = (cast(Symbol **)public_symbuf->buf)[i];
         s->Sxtrnnum = n;
         n++;
     }
 
-    dim = extern_symbuf->size() / sizeof(symbol *);
+    dim = extern_symbuf->size() / sizeof(Symbol *);
     for (int i = 0; i < dim; i++)
-    {   symbol *s = ((symbol **)extern_symbuf->buf)[i];
+    {   Symbol *s = (cast(Symbol **)extern_symbuf->buf)[i];
         s->Sxtrnnum = n;
         n++;
     }
@@ -697,10 +724,12 @@ void Obj::term(const char *objfilename)
     //printf("Obj::term()\n");
 #if SCPP
     if (!errcnt)
-#endif
     {
         outfixlist();           // backpatches
     }
+#else
+    outfixlist();           // backpatches
+#endif
 
     if (configv.addlinenumbers)
     {
@@ -726,9 +755,9 @@ void Obj::term(const char *objfilename)
      *  indirect symbol table
      */
 
-    unsigned foffset;
-    unsigned headersize;
-    unsigned sizeofcmds;
+    uint foffset;
+    uint headersize;
+    uint sizeofcmds;
 
     // Write out the bytes for the header
     if (I64)
@@ -848,7 +877,7 @@ void Obj::term(const char *objfilename)
         segment_cmd64.fileoff = foffset;
     else
         segment_cmd.fileoff = foffset;
-    unsigned vmaddr = 0;
+    uint vmaddr = 0;
 
     //printf("Setup offsets and sizes foffset %d\n\tsection_cnt %d, seg_count %d\n",foffset,section_cnt,seg_count);
     // Zero filled segments go at the end, so go through segments twice
@@ -962,8 +991,8 @@ void Obj::term(const char *objfilename)
     for (int seg = 1; seg <= seg_count; seg++)
     {
         seg_data *pseg = SegData[seg];
-        struct section *psechdr = NULL;
-        struct section_64 *psechdr64 = NULL;
+        struct section *psechdr = null;
+        struct section_64 *psechdr64 = null;
         if (I64)
         {
             psechdr64 = &SecHdrTab64[pseg->SDshtidx];   // corresponding section
@@ -975,13 +1004,13 @@ void Obj::term(const char *objfilename)
             //printf("psechdr->addr = x%x\n", psechdr->addr);
         }
         foffset = elf_align(I64 ? 8 : 4, foffset);
-        unsigned reloff = foffset;
-        unsigned nreloc = 0;
+        uint reloff = foffset;
+        uint nreloc = 0;
         if (pseg->SDrel)
         {   Relocation *r = (Relocation *)pseg->SDrel->buf;
             Relocation *rend = (Relocation *)(pseg->SDrel->buf + pseg->SDrel->size());
             for (; r != rend; r++)
-            {   symbol *s = r->targsym;
+            {   Symbol *s = r->targsym;
                 const char *rs = r->rtype == RELaddr ? "addr" : "rel";
                 //printf("%d:x%04llx : tseg %d tsym %s REL%s\n", seg, r->offset, r->targseg, s ? s->Sident : "0", rs);
                 relocation_info rel;
@@ -1303,11 +1332,11 @@ void Obj::term(const char *objfilename)
     foffset = elf_align(I64 ? 8 : 4, foffset);
     symtab_cmd.symoff = foffset;
     dysymtab_cmd.ilocalsym = 0;
-    dysymtab_cmd.nlocalsym  = local_symbuf->size() / sizeof(symbol *);
+    dysymtab_cmd.nlocalsym  = local_symbuf->size() / sizeof(Symbol *);
     dysymtab_cmd.iextdefsym = dysymtab_cmd.nlocalsym;
-    dysymtab_cmd.nextdefsym = public_symbuf->size() / sizeof(symbol *);
+    dysymtab_cmd.nextdefsym = public_symbuf->size() / sizeof(Symbol *);
     dysymtab_cmd.iundefsym = dysymtab_cmd.iextdefsym + dysymtab_cmd.nextdefsym;
-    int nexterns = extern_symbuf->size() / sizeof(symbol *);
+    int nexterns = extern_symbuf->size() / sizeof(Symbol *);
     int ncomdefs = comdef_symbuf->size() / sizeof(Comdef);
     dysymtab_cmd.nundefsym  = nexterns + ncomdefs;
     symtab_cmd.nsyms =  dysymtab_cmd.nlocalsym +
@@ -1315,7 +1344,7 @@ void Obj::term(const char *objfilename)
                         dysymtab_cmd.nundefsym;
     fobjbuf->reserve(symtab_cmd.nsyms * (I64 ? sizeof(struct nlist_64) : sizeof(struct nlist)));
     for (int i = 0; i < dysymtab_cmd.nlocalsym; i++)
-    {   symbol *s = ((symbol **)local_symbuf->buf)[i];
+    {   Symbol *s = (cast(Symbol **)local_symbuf->buf)[i];
         struct nlist_64 sym;
         sym.n_un.n_strx = elf_addmangled(s);
         sym.n_type = N_SECT;
@@ -1340,7 +1369,7 @@ void Obj::term(const char *objfilename)
         }
     }
     for (int i = 0; i < dysymtab_cmd.nextdefsym; i++)
-    {   symbol *s = ((symbol **)public_symbuf->buf)[i];
+    {   Symbol *s = (cast(Symbol **)public_symbuf->buf)[i];
 
         //printf("Writing public symbol %d:x%x %s\n", s->Sseg, s->Soffset, s->Sident);
         struct nlist_64 sym;
@@ -1369,7 +1398,7 @@ void Obj::term(const char *objfilename)
         }
     }
     for (int i = 0; i < nexterns; i++)
-    {   symbol *s = ((symbol **)extern_symbuf->buf)[i];
+    {   Symbol *s = (cast(Symbol **)extern_symbuf->buf)[i];
         struct nlist_64 sym;
         sym.n_un.n_strx = elf_addmangled(s);
         sym.n_value = s->Soffset;
@@ -1459,7 +1488,7 @@ void Obj::term(const char *objfilename)
     if (indirectsymbuf1)
     {   dysymtab_cmd.nindirectsyms += indirectsymbuf1->size() / sizeof(Symbol *);
         for (int i = 0; i < dysymtab_cmd.nindirectsyms; i++)
-        {   Symbol *s = ((Symbol **)indirectsymbuf1->buf)[i];
+        {   Symbol *s = (cast(Symbol **)indirectsymbuf1->buf)[i];
             fobjbuf->write32(s->Sxtrnnum);
         }
     }
@@ -1467,7 +1496,7 @@ void Obj::term(const char *objfilename)
     {   int n = indirectsymbuf2->size() / sizeof(Symbol *);
         dysymtab_cmd.nindirectsyms += n;
         for (int i = 0; i < n; i++)
-        {   Symbol *s = ((Symbol **)indirectsymbuf2->buf)[i];
+        {   Symbol *s = (cast(Symbol **)indirectsymbuf2->buf)[i];
             fobjbuf->write32(s->Sxtrnnum);
         }
     }
@@ -1539,9 +1568,9 @@ void Obj::linnum(Srcpos srcpos, int seg, targ_size_t offset)
         {   // Create new entry
             if (pseg->SDlinnum_count == pseg->SDlinnum_max)
             {   // Enlarge array
-                unsigned newmax = pseg->SDlinnum_max * 2 + 1;
+                uint newmax = pseg->SDlinnum_max * 2 + 1;
                 //printf("realloc %d\n", newmax * sizeof(linnum_data));
-                pseg->SDlinnum_data = (linnum_data *)mem_realloc(
+                pseg->SDlinnum_data = cast(linnum_data *)mem_realloc(
                     pseg->SDlinnum_data, newmax * sizeof(linnum_data));
                 memset(pseg->SDlinnum_data + pseg->SDlinnum_max, 0,
                     (newmax - pseg->SDlinnum_max) * sizeof(linnum_data));
@@ -1558,11 +1587,12 @@ void Obj::linnum(Srcpos srcpos, int seg, targ_size_t offset)
         }
 #if MARS
         if (pseg->SDlinnum_data[i].filename == srcpos.Sfilename)
+            break;
 #endif
 #if SCPP
         if (pseg->SDlinnum_data[i].filptr == sf)
-#endif
             break;
+#endif
     }
 
     linnum_data *ld = &pseg->SDlinnum_data[i];
@@ -1572,7 +1602,7 @@ void Obj::linnum(Srcpos srcpos, int seg, targ_size_t offset)
         if (!ld->linoff_max)
             ld->linoff_max = 8;
         ld->linoff_max *= 2;
-        ld->linoff = (unsigned (*)[2])mem_realloc(ld->linoff, ld->linoff_max * sizeof(unsigned) * 2);
+        ld->linoff = cast(uint (*)[2])mem_realloc(ld->linoff, ld->linoff_max * sizeof(uint) * 2);
     }
     ld->linoff[ld->linoff_count][0] = srcpos.Slinnum;
     ld->linoff[ld->linoff_count][1] = offset;
@@ -1724,7 +1754,7 @@ void Obj::setModuleCtorDtor(Symbol *sfunc, bool isCtor)
  *      length of function
  */
 
-void Obj::ehtables(Symbol *sfunc,unsigned size,Symbol *ehsym)
+void Obj::ehtables(Symbol *sfunc,uint size,Symbol *ehsym)
 {
     //dbg_printf("Obj::ehtables(%s) \n",sfunc->Sident);
 
@@ -1872,7 +1902,7 @@ int Obj::getsegment(const char *sectname, const char *segname,
     if (seg_count >= seg_max)
     {                           // need more room in segment table
         seg_max += 10;
-        SegData = (seg_data **)mem_realloc(SegData,seg_max * sizeof(seg_data *));
+        SegData = cast(seg_data **)mem_realloc(SegData,seg_max * sizeof(seg_data *));
         memset(&SegData[seg_count], 0, (seg_max - seg_count) * sizeof(seg_data *));
     }
     assert(seg_count < seg_max);
@@ -1890,10 +1920,14 @@ int Obj::getsegment(const char *sectname, const char *segname,
     }
     else
     {
-        seg_data *pseg = (seg_data *)mem_calloc(sizeof(seg_data));
+        seg_data *pseg = cast(seg_data *)mem_calloc(sizeof(seg_data));
         SegData[seg] = pseg;
         if (flags != S_ZEROFILL)
-        {   pseg->SDbuf = new Outbuffer(4096);
+        {
+            pseg->SDbuf = cast(Outbuffer*) calloc(1, sizeof(Outbuffer));
+            assert(pseg->SDbuf);
+            pseg->SDbuf->enlarge(4096);
+
             pseg->SDbuf->reserve(4096);
         }
     }
@@ -1944,7 +1978,7 @@ void Obj::setcodeseg(int seg)
 /********************************
  * Define a new code segment.
  * Input:
- *      name            name of segment, if NULL then revert to default
+ *      name            name of segment, if null then revert to default
  *      suffix  0       use name as is
  *              1       append "_TEXT" to name
  * Output:
@@ -1958,7 +1992,7 @@ int Obj::codeseg(char *name,int suffix)
 {
     //dbg_printf("Obj::codeseg(%s,%x)\n",name,suffix);
 #if 0
-    const char *sfx = (suffix) ? "_TEXT" : NULL;
+    const char *sfx = (suffix) ? "_TEXT" : null;
 
     if (!name)                          // returning to default code segment
     {
@@ -2065,17 +2099,17 @@ void Obj::_alias(const char *n1,const char *n2)
     //printf("Obj::_alias(%s,%s)\n",n1,n2);
     assert(0);
 #if NOT_DONE
-    unsigned len;
+    uint len;
     char *buffer;
 
-    buffer = (char *) alloca(strlen(n1) + strlen(n2) + 2 * ONS_OHD);
+    buffer = cast(char *) alloca(strlen(n1) + strlen(n2) + 2 * ONS_OHD);
     len = obj_namestring(buffer,n1);
     len += obj_namestring(buffer + len,n2);
     objrecord(ALIAS,buffer,len);
 #endif
 }
 
-char *unsstr (unsigned value)
+char *unsstr (uint value)
 {
     static char buffer [64];
 
@@ -2100,7 +2134,8 @@ char *obj_mangle2(Symbol *s,char *dest)
 #if SCPP
     name = CPP ? cpp_mangle(s) : s->Sident;
 #elif MARS
-    name = cpp_mangle(s);
+    // C++ name mangling is handled by front end
+    name = s->Sident;
 #else
     name = s->Sident;
 #endif
@@ -2111,35 +2146,39 @@ char *obj_mangle2(Symbol *s,char *dest)
         case mTYman_pas:                // if upper case
         case mTYman_for:
             if (len >= DEST_LEN)
-                dest = (char *)mem_malloc(len + 1);
+                dest = cast(char *)mem_malloc(len + 1);
             memcpy(dest,name,len + 1);  // copy in name and ending 0
             for (char *p = dest; *p; p++)
                 *p = toupper(*p);
             break;
         case mTYman_std:
+        {
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
-            if (tyfunc(s->ty()) && !variadic(s->Stype))
+            bool cond = (tyfunc(s->ty()) && !variadic(s->Stype));
 #else
-            if (!(config.flags4 & CFG4oldstdmangle) &&
+            bool cond = (!(config.flags4 & CFG4oldstdmangle) &&
                 config.exe == EX_WIN32 && tyfunc(s->ty()) &&
-                !variadic(s->Stype))
+                !variadic(s->Stype));
 #endif
+            if (cond)
             {
                 char *pstr = unsstr(type_paramsize(s->Stype));
                 size_t pstrlen = strlen(pstr);
                 size_t destlen = len + 1 + pstrlen + 1;
 
                 if (destlen > DEST_LEN)
-                    dest = (char *)mem_malloc(destlen);
+                    dest = cast(char *)mem_malloc(destlen);
                 memcpy(dest,name,len);
                 dest[len] = '@';
                 memcpy(dest + 1 + len, pstr, pstrlen + 1);
                 break;
             }
+            // goto case;
+        }
         case mTYman_sys:
         case 0:
             if (len >= DEST_LEN)
-                dest = (char *)mem_malloc(len + 1);
+                dest = cast(char *)mem_malloc(len + 1);
             memcpy(dest,name,len+1);// copy in name and trailing 0
             break;
 
@@ -2147,7 +2186,7 @@ char *obj_mangle2(Symbol *s,char *dest)
         case mTYman_cpp:
         case mTYman_d:
             if (len >= DEST_LEN - 1)
-                dest = (char *)mem_malloc(1 + len + 1);
+                dest = cast(char *)mem_malloc(1 + len + 1);
             dest[0] = '_';
             memcpy(dest + 1,name,len+1);// copy in name and trailing 0
             break;
@@ -2169,7 +2208,7 @@ char *obj_mangle2(Symbol *s,char *dest)
  * Export a function name.
  */
 
-void Obj::export_symbol(Symbol *s,unsigned argsize)
+void Obj::export_symbol(Symbol *s,uint argsize)
 {
     //dbg_printf("Obj::export_symbol(%s,%d)\n",s->Sident,argsize);
 }
@@ -2295,7 +2334,7 @@ void Obj::pubdef(int seg, Symbol *s, targ_size_t offset)
                 public_symbuf->write(&s, sizeof(s));
                 break;
             }
-            // fallthrough
+            // goto default;
         default:
             local_symbuf->write(&s, sizeof(s));
             break;
@@ -2405,7 +2444,7 @@ void Obj::lidata(int seg,targ_size_t offset,targ_size_t count)
     }
     else
     {
-        Obj::bytes(seg, offset, count, NULL);
+        Obj::bytes(seg, offset, count, null);
     }
 }
 
@@ -2413,7 +2452,7 @@ void Obj::lidata(int seg,targ_size_t offset,targ_size_t count)
  * Append byte to segment.
  */
 
-void Obj::write_byte(seg_data *pseg, unsigned byte)
+void Obj::write_byte(seg_data *pseg, uint byte)
 {
     Obj::_byte(pseg->SDseg, pseg->SDoffset, byte);
 }
@@ -2422,7 +2461,7 @@ void Obj::write_byte(seg_data *pseg, unsigned byte)
  * Output byte to object file.
  */
 
-void Obj::_byte(int seg,targ_size_t offset,unsigned byte)
+void Obj::_byte(int seg,targ_size_t offset,uint byte)
 {
     Outbuffer *buf = SegData[seg]->SDbuf;
     int save = buf->size();
@@ -2440,7 +2479,7 @@ void Obj::_byte(int seg,targ_size_t offset,unsigned byte)
  * Append bytes to segment.
  */
 
-void Obj::write_bytes(seg_data *pseg, unsigned nbytes, void *p)
+void Obj::write_bytes(seg_data *pseg, uint nbytes, void *p)
 {
     Obj::bytes(pseg->SDseg, pseg->SDoffset, nbytes, p);
 }
@@ -2451,7 +2490,7 @@ void Obj::write_bytes(seg_data *pseg, unsigned nbytes, void *p)
  *      nbytes
  */
 
-unsigned Obj::bytes(int seg, targ_size_t offset, unsigned nbytes, void *p)
+uint Obj::bytes(int seg, targ_size_t offset, uint nbytes, void *p)
 {
 #if 0
     if (!(seg >= 0 && seg <= seg_count))
@@ -2461,12 +2500,12 @@ unsigned Obj::bytes(int seg, targ_size_t offset, unsigned nbytes, void *p)
 #endif
     assert(seg >= 0 && seg <= seg_count);
     Outbuffer *buf = SegData[seg]->SDbuf;
-    if (buf == NULL)
+    if (buf == null)
     {
         //dbg_printf("Obj::bytes(seg=%d, offset=x%llx, nbytes=%d, p=%p)\n", seg, offset, nbytes, p);
         //raise(SIGSEGV);
 if (!buf) halt();
-        assert(buf != NULL);
+        assert(buf != null);
     }
     int save = buf->size();
     //dbg_printf("Obj::bytes(seg=%d, offset=x%lx, nbytes=%d, p=x%x)\n",
@@ -2491,8 +2530,8 @@ if (!buf) halt();
  * Add a relocation entry for seg/offset.
  */
 
-void Obj::addrel(int seg, targ_size_t offset, symbol *targsym,
-        unsigned targseg, int rtype, int val)
+void Obj::addrel(int seg, targ_size_t offset, Symbol *targsym,
+        uint targseg, int rtype, int val)
 {
     Relocation rel;
     rel.offset = offset;
@@ -2504,7 +2543,10 @@ void Obj::addrel(int seg, targ_size_t offset, symbol *targsym,
     rel.val = val;
     seg_data *pseg = SegData[seg];
     if (!pseg->SDrel)
-        pseg->SDrel = new Outbuffer();
+    {
+        pseg->SDrel = cast(Outbuffer*) calloc(1, sizeof(Outbuffer));
+        assert(pseg->SDrel);
+    }
     pseg->SDrel->write(&rel, sizeof(rel));
 }
 
@@ -2513,7 +2555,7 @@ void Obj::addrel(int seg, targ_size_t offset, symbol *targsym,
  */
 
 #if __DMC__
-static int __cdecl rel_fp(const void *e1, const void *e2)
+private int __cdecl rel_fp(const void *e1, const void *e2)
 {   Relocation *r1 = (Relocation *)e1;
     Relocation *r2 = (Relocation *)e2;
 
@@ -2521,7 +2563,7 @@ static int __cdecl rel_fp(const void *e1, const void *e2)
 }
 #else
 extern "C" {
-static int rel_fp(const void *e1, const void *e2)
+private int rel_fp(const void *e1, const void *e2)
 {   Relocation *r1 = (Relocation *)e1;
     Relocation *r2 = (Relocation *)e2;
 
@@ -2549,7 +2591,7 @@ void mach_relsort(Outbuffer *buf)
  */
 
 void Obj::reftodatseg(int seg,targ_size_t offset,targ_size_t val,
-        unsigned targetdatum,int flags)
+        uint targetdatum,int flags)
 {
     Outbuffer *buf = SegData[seg]->SDbuf;
     int save = buf->size();
@@ -2563,7 +2605,7 @@ void Obj::reftodatseg(int seg,targ_size_t offset,targ_size_t val,
     {
         assert(0);
     }
-    Obj::addrel(seg, offset, NULL, targetdatum, RELaddr);
+    Obj::addrel(seg, offset, null, targetdatum, RELaddr);
     if (I64)
     {
         if (flags & CFoffset64)
@@ -2591,7 +2633,7 @@ void Obj::reftodatseg(int seg,targ_size_t offset,targ_size_t val,
 
 void Obj::reftocodeseg(int seg,targ_size_t offset,targ_size_t val)
 {
-    //printf("Obj::reftocodeseg(seg=%d, offset=x%lx, val=x%lx )\n",seg,(unsigned long)offset,(unsigned long)val);
+    //printf("Obj::reftocodeseg(seg=%d, offset=x%lx, val=x%lx )\n",seg,cast(uint)offset,cast(uint)val);
     assert(seg > 0);
     Outbuffer *buf = SegData[seg]->SDbuf;
     int save = buf->size();
@@ -2628,7 +2670,7 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
     int retsize = (flags & CFoffset64) ? 8 : 4;
 #if 0
     dbg_printf("\nObj::reftoident('%s' seg %d, offset x%llx, val x%llx, flags x%x)\n",
-        s->Sident,seg,(unsigned long long)offset,(unsigned long long)val,flags);
+        s->Sident,seg,cast(ulong)offset,cast(ulong)val,flags);
     printf("retsize = %d\n", retsize);
     //dbg_printf("Sseg = %d, Sxtrnnum = %d\n",s->Sseg,s->Sxtrnnum);
     symbol_print(s);
@@ -2673,11 +2715,14 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                     SecHdrTab[pseg->SDshtidx].reserved2 = 5;
 
                 if (!indirectsymbuf1)
-                    indirectsymbuf1 = new Outbuffer();
+                {
+                    indirectsymbuf1 = cast(Outbuffer*) calloc(1, sizeof(Outbuffer));
+                    assert(indirectsymbuf1);
+                }
                 else
                 {   // Look through indirectsym to see if it is already there
                     int n = indirectsymbuf1->size() / sizeof(Symbol *);
-                    Symbol **psym = (Symbol **)indirectsymbuf1->buf;
+                    Symbol **psym = cast(Symbol **)indirectsymbuf1->buf;
                     for (int i = 0; i < n; i++)
                     {   // Linear search, pretty pathetic
                         if (s == psym[i])
@@ -2695,14 +2740,14 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                 indirectsymbuf1->write(&s, sizeof(Symbol *));
              L1:
                 val -= offset + 4;
-                Obj::addrel(seg, offset, NULL, jumpTableSeg, RELrel);
+                Obj::addrel(seg, offset, null, jumpTableSeg, RELrel);
             }
             else if (SegData[seg]->isCode() &&
                      !(flags & CFindirect) &&
                     ((s->Sclass != SCextern && SegData[s->Sseg]->isCode()) || s->Sclass == SClocstat || s->Sclass == SCstatic))
             {
                 val += s->Soffset;
-                Obj::addrel(seg, offset, NULL, s->Sseg, RELaddr);
+                Obj::addrel(seg, offset, null, s->Sseg, RELaddr);
             }
             else if ((flags & CFindirect) ||
                      SegData[seg]->isCode() && !tyfunc(s->ty()))
@@ -2715,11 +2760,14 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                 seg_data *pseg = SegData[pointersSeg];
 
                 if (!indirectsymbuf2)
-                    indirectsymbuf2 = new Outbuffer();
+                {
+                    indirectsymbuf2 = cast(Outbuffer*) calloc(1, sizeof(Outbuffer));
+                    assert(indirectsymbuf2);
+                }
                 else
                 {   // Look through indirectsym to see if it is already there
                     int n = indirectsymbuf2->size() / sizeof(Symbol *);
-                    Symbol **psym = (Symbol **)indirectsymbuf2->buf;
+                    Symbol **psym = cast(Symbol **)indirectsymbuf2->buf;
                     for (int i = 0; i < n; i++)
                     {   // Linear search, pretty pathetic
                         if (s == psym[i])
@@ -2741,19 +2789,22 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                 {
                     Relocation rel;
                     rel.offset = offset;
-                    rel.targsym = NULL;
+                    rel.targsym = null;
                     rel.targseg = pointersSeg;
                     rel.rtype = RELaddr;
                     rel.flag = 0;
-                    rel.funcsym = NULL;
+                    rel.funcsym = null;
                     rel.val = 0;
                     seg_data *pseg = SegData[seg];
                     if (!pseg->SDrel)
-                        pseg->SDrel = new Outbuffer();
+                    {
+                        pseg->SDrel = cast(Outbuffer*) calloc(1, sizeof(Outbuffer));
+                        assert(pseg->SDrel);
+                    }
                     pseg->SDrel->write(&rel, sizeof(rel));
                 }
                 else
-                    Obj::addrel(seg, offset, NULL, pointersSeg, RELaddr);
+                    Obj::addrel(seg, offset, null, pointersSeg, RELaddr);
             }
             else
             {   //val -= s->Soffset;
@@ -2813,23 +2864,23 @@ void objfile_term()
 {
 #if TERMCODE
     mem_free(fobjname);
-    fobjname = NULL;
+    fobjname = null;
 #endif
 }
 
 /**********************************
   * Write to the object file
   */
-void objfile_write(FILE *fd, void *buffer, unsigned len)
+void objfile_write(FILE *fd, void *buffer, uint len)
 {
     fobjbuf->write(buffer, len);
 }
 
-long elf_align(targ_size_t size, long foffset)
+int elf_align(targ_size_t size, int foffset)
 {
     if (size <= 1)
         return foffset;
-    long offset = (foffset + size - 1) & ~(size - 1);
+    int offset = (foffset + size - 1) & ~(size - 1);
     if (offset > foffset)
         fobjbuf->writezeros(offset - foffset);
     return offset;
@@ -2851,10 +2902,10 @@ void Obj::moduleinfo(Symbol *scc)
 #if 0
     type *t = type_fake(TYint);
     t->Tmangle = mTYman_c;
-    char *p = (char *)malloc(5 + strlen(scc->Sident) + 1);
+    char *p = cast(char *)malloc(5 + strlen(scc->Sident) + 1);
     strcpy(p, "SUPER");
     strcpy(p + 5, scc->Sident);
-    symbol *s_minfo_beg = symbol_name(p, SCglobal, t);
+    Symbol *s_minfo_beg = symbol_name(p, SCglobal, t);
     Obj::pubdef(seg, s_minfo_beg, 0);
 #endif
 
@@ -2869,7 +2920,7 @@ void Obj::moduleinfo(Symbol *scc)
 /*************************************
  */
 
-void Obj::gotref(symbol *s)
+void Obj::gotref(Symbol *s)
 {
     //printf("Obj::gotref(%x '%s', %d)\n",s,s->Sident, s->Sclass);
     switch(s->Sclass)
@@ -2898,7 +2949,7 @@ void Obj::gotref(symbol *s)
  * It's used as a placeholder in the TLV descriptors. The dynamic linker will
  * replace the placeholder with a real function at load time.
  */
-symbol *Obj::tlv_bootstrap()
+Symbol *Obj::tlv_bootstrap()
 {
     if (!tlv_bootstrap_sym)
         tlv_bootstrap_sym = symbol_name("__tlv_bootstrap", SCextern, type_fake(TYnfunc));
@@ -2906,7 +2957,7 @@ symbol *Obj::tlv_bootstrap()
 }
 
 
-void Obj::write_pointerRef(Symbol* s, unsigned off)
+void Obj::write_pointerRef(Symbol* s, uint off)
 {
 }
 
@@ -2976,7 +3027,10 @@ int dwarf_eh_frame_fixup(int dfseg, targ_size_t offset, Symbol *s, targ_size_t v
     rel.val = 0;
     seg_data *pseg = SegData[dfseg];
     if (!pseg->SDrel)
-        pseg->SDrel = new Outbuffer();
+    {
+        pseg->SDrel = cast(Outbuffer*) calloc(1, sizeof(Outbuffer));
+        assert(pseg->SDrel);
+    }
     pseg->SDrel->write(&rel, sizeof(rel));
 
     return I64 ? 8 : 4;
