@@ -1,6 +1,5 @@
 
 /* Copyright (C) 2010-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved, written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -174,20 +173,3 @@ void dmd_aaRehash(AA** paa)
         }
     }
 }
-
-
-#if UNITTEST
-
-void unittest_aa()
-{
-    AA* aa = NULL;
-    Value v = dmd_aaGetRvalue(aa, NULL);
-    assert(!v);
-    Value *pv = dmd_aaGet(&aa, NULL);
-    assert(pv);
-    *pv = (void *)3;
-    v = dmd_aaGetRvalue(aa, NULL);
-    assert(v == (void *)3);
-}
-
-#endif

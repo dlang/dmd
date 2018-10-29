@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -16,10 +15,11 @@
 #include <math.h>
 #include <new>
 
-#include "rmem.h"
-#include "root.h"
-#include "port.h"
+#include "root/rmem.h"
+#include "root/root.h"
+#include "root/port.h"
 
+#include "errors.h"
 #include "mtype.h"
 #include "expression.h"
 #include "aggregate.h"
@@ -27,8 +27,6 @@
 #include "utf.h"
 #include "ctfe.h"
 #include "target.h"
-
-#define LOG 0
 
 int RealEquals(real_t x1, real_t x2);
 
@@ -127,9 +125,6 @@ UnionExp Add(Loc loc, Type *type, Expression *e1, Expression *e2)
 {
     UnionExp ue;
 
-#if LOG
-    printf("Add(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
-#endif
     if (type->isreal())
     {
         new(&ue) RealExp(loc, e1->toReal() + e2->toReal(), type);
@@ -1416,15 +1411,6 @@ UnionExp Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
     UnionExp ue;
     Loc loc = e1->loc;
 
-#if LOG
-    printf("Slice()\n");
-    if (lwr)
-    {
-        printf("\te1 = %s\n", e1->toChars());
-        printf("\tlwr = %s\n", lwr->toChars());
-        printf("\tupr = %s\n", upr->toChars());
-    }
-#endif
     if (e1->op == TOKstring && lwr->op == TOKint64 && upr->op == TOKint64)
     {
         StringExp *es1 = (StringExp *)e1;

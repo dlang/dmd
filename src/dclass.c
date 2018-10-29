@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -14,9 +13,10 @@
 #include <assert.h>
 #include <string.h>                     // mem{cpy|set}()
 
-#include "root.h"
-#include "rmem.h"
+#include "root/root.h"
+#include "root/rmem.h"
 
+#include "errors.h"
 #include "enum.h"
 #include "init.h"
 #include "attrib.h"
@@ -855,10 +855,6 @@ Lancestorsdone:
     {
         // https://issues.dlang.org/show_bug.cgi?id=17492
         ClassDeclaration *cd = ((TypeClass *)type)->sym;
-#if 0
-        printf("this = %p %s\n", this, this->toPrettyChars());
-        printf("type = %d sym = %p, %s\n", type->ty, cd, cd->toPrettyChars());
-#endif
         error("already exists at %s. Perhaps in another function with the same name?", cd->loc.toChars());
     }
 
@@ -951,7 +947,7 @@ bool ClassDeclaration::isBaseInfoComplete()
     return baseok >= BASEOKdone;
 }
 
-Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *ClassDeclaration::search(const Loc &loc, Identifier *ident, int flags)
 {
     //printf("%s.ClassDeclaration::search('%s', flags=x%x)\n", toChars(), ident->toChars(), flags);
 
@@ -1732,13 +1728,6 @@ Lancestorsdone:
         type = Type::terror;
     }
 
-#if 0
-    if (type->ty == Tclass && ((TypeClass *)type)->sym != this)
-    {
-        printf("this = %p %s\n", this, this->toChars());
-        printf("type = %d sym = %p\n", type->ty, ((TypeClass *)type)->sym);
-      }
-#endif
     assert(type->ty != Tclass || ((TypeClass *)type)->sym == this);
 }
 

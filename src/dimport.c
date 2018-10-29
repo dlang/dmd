@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -12,7 +11,8 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "root.h"
+#include "root/root.h"
+#include "mars.h"
 #include "dsymbol.h"
 #include "import.h"
 #include "identifier.h"
@@ -31,18 +31,6 @@ Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *alias
     : Dsymbol(NULL)
 {
     assert(id);
-#if 0
-    printf("Import::Import(");
-    if (packages && packages->dim)
-    {
-        for (size_t i = 0; i < packages->dim; i++)
-        {
-            Identifier *id = (*packages)[i];
-            printf("%s.", id->toChars());
-        }
-    }
-    printf("%s)\n", id->toChars());
-#endif
     this->loc = loc;
     this->packages = packages;
     this->id = id;
@@ -112,15 +100,6 @@ void Import::load(Scope *sc)
 
     // See if existing module
     DsymbolTable *dst = Package::resolve(packages, NULL, &pkg);
-#if 0
-    if (pkg && pkg->isModule())
-    {
-        ::error(loc, "can only import from a module, not from a member of module %s. Did you mean `import %s : %s`?",
-             pkg->toChars(), pkg->toPrettyChars(), id->toChars());
-        mod = pkg->isModule(); // Error recovery - treat as import of that module
-        return;
-    }
-#endif
     Dsymbol *s = dst->lookup(id);
     if (s)
     {
@@ -472,7 +451,7 @@ void Import::setScope(Scope *sc)
     }
 }
 
-Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *Import::search(const Loc &loc, Identifier *ident, int flags)
 {
     //printf("%s.Import::search(ident = '%s', flags = x%x)\n", toChars(), ident->toChars(), flags);
 

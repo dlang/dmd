@@ -66,7 +66,7 @@ void Global::_init()
 #include "verstr.h"
     ;
 
-    compiler.vendor = "Digital Mars D";
+    vendor = "Digital Mars D";
     stdmsg = stdout;
 
     main_d = "__main.d";

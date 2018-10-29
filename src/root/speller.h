@@ -1,11 +1,12 @@
 
 /* Copyright (C) 2010-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved, written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
  * https://github.com/D-Programming-Language/dmd/blob/master/src/root/speller.h
  */
+
+#pragma once
 
 typedef void *(fp_speller_t)(void *, const char *, int*);
 

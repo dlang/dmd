@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -13,9 +12,11 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>                     // mem{cpy|set}()
+#include <new>
 
-#include "rmem.h"
+#include "root/rmem.h"
 
+#include "mars.h"
 #include "statement.h"
 #include "expression.h"
 #include "cond.h"
@@ -45,12 +46,11 @@ bool walkPostorder(Expression *e, StoppableVisitor *v);
 Expression *interpret(Statement *s, InterState *istate);
 Expression *interpret(Expression *e, InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
 Expression *semantic(Expression *e, Scope *sc);
-Expression *initializerToExpression(Initializer *i, Type *t = NULL);
 Initializer *semantic(Initializer *init, Scope *sc, Type *t, NeedInterpret needInterpret);
 
-#define LOG     0
-#define LOGASSIGN 0
-#define LOGCOMPILE 0
+static Expression *interpret(UnionExp *pue, Expression *e, InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
+static Expression *interpret(UnionExp *pue, Statement *s, InterState *istate);
+
 #define SHOWPERFORMANCE 0
 
 // Maximum allowable recursive function calls in CTFE
@@ -396,26 +396,17 @@ public:
 
     void visit(Statement *)
     {
-    #if LOGCOMPILE
-        printf("%s Statement::ctfeCompile %s\n", s->loc.toChars(), s->toChars());
-    #endif
         assert(0);
     }
 
     void visit(ExpStatement *s)
     {
-    #if LOGCOMPILE
-        printf("%s ExpStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
         if (s->exp)
             ccf->onExpression(s->exp);
     }
 
     void visit(CompoundStatement *s)
     {
-    #if LOGCOMPILE
-        printf("%s CompoundStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
         for (size_t i = 0; i < s->statements->dim; i++)
         {
             Statement *sx = (*s->statements)[i];
@@ -426,9 +417,6 @@ public:
 
     void visit(UnrolledLoopStatement *s)
     {
-    #if LOGCOMPILE
-        printf("%s UnrolledLoopStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
         for (size_t i = 0; i < s->statements->dim; i++)
         {
             Statement *sx = (*s->statements)[i];
@@ -439,10 +427,6 @@ public:
 
     void visit(IfStatement *s)
     {
-    #if LOGCOMPILE
-        printf("%s IfStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
-
         ccf->onExpression(s->condition);
         if (s->ifbody)
             ctfeCompile(s->ifbody);
@@ -452,27 +436,18 @@ public:
 
     void visit(ScopeStatement *s)
     {
-    #if LOGCOMPILE
-        printf("%s ScopeStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
         if (s->statement)
             ctfeCompile(s->statement);
     }
 
     void visit(OnScopeStatement *)
     {
-    #if LOGCOMPILE
-        printf("%s OnScopeStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
         // rewritten to try/catch/finally
         assert(0);
     }
 
     void visit(DoStatement *s)
     {
-    #if LOGCOMPILE
-        printf("%s DoStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
         ccf->onExpression(s->condition);
         if (s->_body)
             ctfeCompile(s->_body);
@@ -480,19 +455,12 @@ public:
 
     void visit(WhileStatement *)
     {
-    #if LOGCOMPILE
-        printf("%s WhileStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
         // rewritten to ForStatement
         assert(0);
     }
 
     void visit(ForStatement *s)
     {
-    #if LOGCOMPILE
-        printf("%s ForStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
-
         if (s->_init)
             ctfeCompile(s->_init);
         if (s->condition)
@@ -505,18 +473,12 @@ public:
 
     void visit(ForeachStatement *)
     {
-    #if LOGCOMPILE
-        printf("%s ForeachStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
         // rewritten for ForStatement
         assert(0);
     }
 
     void visit(SwitchStatement *s)
     {
-    #if LOGCOMPILE
-        printf("%s SwitchStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
         ccf->onExpression(s->condition);
         // Note that the body contains the the Case and Default
         // statements, so we only need to compile the expressions
@@ -530,71 +492,44 @@ public:
 
     void visit(CaseStatement *s)
     {
-    #if LOGCOMPILE
-        printf("%s CaseStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
         if (s->statement)
             ctfeCompile(s->statement);
     }
 
     void visit(DefaultStatement *s)
     {
-    #if LOGCOMPILE
-        printf("%s DefaultStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
         if (s->statement)
             ctfeCompile(s->statement);
     }
 
     void visit(GotoDefaultStatement *)
     {
-    #if LOGCOMPILE
-        printf("%s GotoDefaultStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
     }
 
     void visit(GotoCaseStatement *)
     {
-    #if LOGCOMPILE
-        printf("%s GotoCaseStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
     }
 
     void visit(SwitchErrorStatement *)
     {
-    #if LOGCOMPILE
-        printf("%s SwitchErrorStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
     }
 
     void visit(ReturnStatement *s)
     {
-    #if LOGCOMPILE
-        printf("%s ReturnStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
         if (s->exp)
             ccf->onExpression(s->exp);
     }
 
     void visit(BreakStatement *)
     {
-    #if LOGCOMPILE
-        printf("%s BreakStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
     }
 
     void visit(ContinueStatement *)
     {
-    #if LOGCOMPILE
-        printf("%s ContinueStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
     }
 
     void visit(WithStatement *s)
     {
-    #if LOGCOMPILE
-        printf("%s WithStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
         // If it is with(Enum) {...}, just execute the body.
         if (s->exp->op == TOKscope || s->exp->op == TOKtype)
         {
@@ -610,9 +545,6 @@ public:
 
     void visit(TryCatchStatement *s)
     {
-    #if LOGCOMPILE
-        printf("%s TryCatchStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
         if (s->_body)
             ctfeCompile(s->_body);
         for (size_t i = 0; i < s->catches->dim; i++)
@@ -627,9 +559,6 @@ public:
 
     void visit(TryFinallyStatement *s)
     {
-    #if LOGCOMPILE
-        printf("%s TryFinallyStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
         if (s->_body)
             ctfeCompile(s->_body);
         if (s->finalbody)
@@ -638,50 +567,32 @@ public:
 
     void visit(ThrowStatement *s)
     {
-    #if LOGCOMPILE
-        printf("%s ThrowStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
         ccf->onExpression(s->exp);
     }
 
     void visit(GotoStatement *)
     {
-    #if LOGCOMPILE
-        printf("%s GotoStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
     }
 
     void visit(LabelStatement *s)
     {
-    #if LOGCOMPILE
-        printf("%s LabelStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
         if (s->statement)
             ctfeCompile(s->statement);
     }
 
     void visit(ImportStatement *)
     {
-    #if LOGCOMPILE
-        printf("%s ImportStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
         // Contains no variables or executable code
     }
 
     void visit(ForeachRangeStatement *)
     {
-    #if LOGCOMPILE
-        printf("%s ForeachRangeStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
         // rewritten for ForStatement
         assert(0);
     }
 
     void visit(AsmStatement *)
     {
-    #if LOGCOMPILE
-        printf("%s AsmStatement::ctfeCompile\n", s->loc.toChars());
-    #endif
         // we can't compile asm statements
     }
 
@@ -697,9 +608,6 @@ public:
  */
 void ctfeCompile(FuncDeclaration *fd)
 {
-#if LOGCOMPILE
-    printf("\n%s FuncDeclaration::ctfeCompile %s\n", fd->loc.toChars(), fd->toChars());
-#endif
     assert(!fd->ctfeCode);
     assert(!fd->semantic3Errors);
     assert(fd->semanticRun == PASSsemantic3done);
@@ -815,11 +723,8 @@ Expression *ctfeInterpretForPragmaMsg(Expression *e)
  * or CTFEExp if function returned void.
  */
 
-Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *arguments, Expression *thisarg)
+static Expression *interpretFunction(FuncDeclaration *fd, InterState *istate, Expressions *arguments, Expression *thisarg)
 {
-#if LOG
-    printf("\n********\n%s FuncDeclaration::interpret(istate = %p) %s\n", fd->loc.toChars(), istate, fd->toChars());
-#endif
     if (fd->semanticRun == PASSsemantic3)
     {
         fd->error("circular dependency. Functions cannot be interpreted while being compiled");
@@ -938,9 +843,6 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
         Expression *earg = eargs[i];
         Parameter *fparam = Parameter::getNth(tf->parameters, i);
         VarDeclaration *v = (*fd->parameters)[i];
-#if LOG
-        printf("arg[%d] = %s\n", i, earg->toChars());
-#endif
         ctfeStack.push(v);
 
         if ((fparam->storageClass & (STCout | STCref)) &&
@@ -980,10 +882,6 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
             // Value parameters and non-trivial references
             setValueWithoutChecking(v, earg);
         }
-#if LOG || LOGASSIGN
-        printf("interpreted arg[%d] = %s\n", i, earg->toChars());
-        showCtfeExpr(earg);
-#endif
     }
 
     if (fd->vresult)
@@ -1006,12 +904,6 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
             break;
         }
         e = interpret(fd->fbody, &istatex);
-        if (CTFEExp::isCantExp(e))
-        {
-#if LOG
-            printf("function body failed to interpret\n");
-#endif
-        }
 
         if (istatex.start)
         {
@@ -1065,9 +957,10 @@ public:
     CtfeGoal goal;
 
     Expression *result;
+    UnionExp *pue;              // storage for `result`
 
-    Interpreter(InterState *istate, CtfeGoal goal)
-        : istate(istate), goal(goal)
+    Interpreter(UnionExp *pue, InterState *istate, CtfeGoal goal)
+        : istate(istate), goal(goal), pue(pue)
     {
         result = NULL;
     }
@@ -1078,7 +971,8 @@ public:
     {
         if (exceptionOrCantInterpret(e))
         {
-            result = e;
+            // Make sure e is not pointing to a stack temporary
+            result = (e->op == TOKcantexp) ? CTFEExp::cantexp : e;
             return true;
         }
         return false;
@@ -1101,9 +995,6 @@ public:
 
     void visit(Statement *s)
     {
-    #if LOG
-        printf("%s Statement::interpret()\n", s->loc.toChars());
-    #endif
         if (istate->start)
         {
             if (istate->start != s)
@@ -1117,9 +1008,6 @@ public:
 
     void visit(ExpStatement *s)
     {
-    #if LOG
-        printf("%s ExpStatement::interpret(%s)\n", s->loc.toChars(), s->exp ? s->exp->toChars() : "");
-    #endif
         if (istate->start)
         {
             if (istate->start != s)
@@ -1127,45 +1015,36 @@ public:
             istate->start = NULL;
         }
 
-        Expression *e = interpret(s->exp, istate, ctfeNeedNothing);
+        Expression *e = interpret(pue, s->exp, istate, ctfeNeedNothing);
         if (exceptionOrCant(e))
             return;
     }
 
     void visit(CompoundStatement *s)
     {
-    #if LOG
-        printf("%s CompoundStatement::interpret()\n", s->loc.toChars());
-    #endif
         if (istate->start == s)
             istate->start = NULL;
 
-        size_t dim = s->statements ? s->statements->dim : 0;
+        const size_t dim = s->statements ? s->statements->dim : 0;
         for (size_t i = 0; i < dim; i++)
         {
             Statement *sx = (*s->statements)[i];
-            result = interpret(sx, istate);
+            result = interpret(pue, sx, istate);
             if (result)
                 break;
         }
-    #if LOG
-        printf("%s -CompoundStatement::interpret() %p\n", s->loc.toChars(), result);
-    #endif
     }
 
     void visit(UnrolledLoopStatement *s)
     {
-    #if LOG
-        printf("%s UnrolledLoopStatement::interpret()\n", s->loc.toChars());
-    #endif
         if (istate->start == s)
             istate->start = NULL;
 
-        size_t dim = s->statements ? s->statements->dim : 0;
+        const size_t dim = s->statements ? s->statements->dim : 0;
         for (size_t i = 0; i < dim; i++)
         {
             Statement *sx = (*s->statements)[i];
-            Expression *e = interpret(sx, istate);
+            Expression *e = interpret(pue, sx, istate);
             if (!e)                 // suceeds to interpret, or goto target
                 continue;           // was not fonnd when istate->start != NULL
             if (exceptionOrCant(e))
@@ -1200,9 +1079,6 @@ public:
 
     void visit(IfStatement *s)
     {
-    #if LOG
-        printf("%s IfStatement::interpret(%s)\n", s->loc.toChars(), s->condition->toChars());
-    #endif
         if (istate->start == s)
             istate->start = NULL;
         if (istate->start)
@@ -1215,15 +1091,16 @@ public:
             return;
         }
 
-        Expression *e = interpret(s->condition, istate);
+        UnionExp ue;
+        Expression *e = interpret(&ue, s->condition, istate);
         assert(e);
         if (exceptionOrCant(e))
             return;
 
         if (isTrueBool(e))
-            result = interpret(s->ifbody, istate);
+            result = interpret(pue, s->ifbody, istate);
         else if (e->isBool(false))
-            result = interpret(s->elsebody, istate);
+            result = interpret(pue, s->elsebody, istate);
         else
         {
             // no error, or assert(0)?
@@ -1233,23 +1110,21 @@ public:
 
     void visit(ScopeStatement *s)
     {
-    #if LOG
-        printf("%s ScopeStatement::interpret()\n", s->loc.toChars());
-    #endif
         if (istate->start == s)
             istate->start = NULL;
 
-        result = interpret(s->statement, istate);
+        result = interpret(pue, s->statement, istate);
     }
 
     /**
       Given an expression e which is about to be returned from the current
       function, generate an error if it contains pointers to local variables.
-      Return true if it is safe to return, false if an error was generated.
 
       Only checks expressions passed by value (pointers to local variables
       may already be stored in members of classes, arrays, or AAs which
       were passed as mutable function parameters).
+      Returns:
+         true if it is safe to return, false if an error was generated.
     */
 
     static bool stopPointersEscaping(Loc loc, Expression *e)
@@ -1318,9 +1193,6 @@ public:
 
     void visit(ReturnStatement *s)
     {
-    #if LOG
-        printf("%s ReturnStatement::interpret(%s)\n", s->loc.toChars(), s->exp ? s->exp->toChars() : "");
-    #endif
         if (istate->start)
         {
             if (istate->start != s)
@@ -1342,7 +1214,7 @@ public:
          */
         if (tf->isref)
         {
-            result = interpret(s->exp, istate, ctfeNeedLvalue);
+            result = interpret(pue, s->exp, istate, ctfeNeedLvalue);
             return;
         }
         if (tf->next && tf->next->ty == Tdelegate && istate->fd->closureVars.dim > 0)
@@ -1356,7 +1228,7 @@ public:
 
         // We need to treat pointers specially, because TOKsymoff can be used to
         // return a value OR a pointer
-        Expression *e = interpret(s->exp, istate);
+        Expression *e = interpret(pue, s->exp, istate);
         if (exceptionOrCant(e))
             return;
 
@@ -1369,10 +1241,6 @@ public:
 
         if (needToCopyLiteral(e))
             e = copyLiteral(e).copy();
-    #if LOGASSIGN
-        printf("RETURN %s\n", s->loc.toChars());
-        showCtfeExpr(e);
-    #endif
         result = e;
     }
 
@@ -1391,9 +1259,6 @@ public:
 
     void visit(BreakStatement *s)
     {
-    #if LOG
-        printf("%s BreakStatement::interpret()\n", s->loc.toChars());
-    #endif
         if (istate->start)
         {
             if (istate->start != s)
@@ -1407,9 +1272,6 @@ public:
 
     void visit(ContinueStatement *s)
     {
-    #if LOG
-        printf("%s ContinueStatement::interpret()\n", s->loc.toChars());
-    #endif
         if (istate->start)
         {
             if (istate->start != s)
@@ -1423,17 +1285,11 @@ public:
 
     void visit(WhileStatement *)
     {
-    #if LOG
-        printf("WhileStatement::interpret()\n");
-    #endif
         assert(0);                  // rewritten to ForStatement
     }
 
     void visit(DoStatement *s)
     {
-    #if LOG
-        printf("%s DoStatement::interpret()\n", s->loc.toChars());
-    #endif
         if (istate->start == s)
             istate->start = NULL;
 
@@ -1472,7 +1328,8 @@ public:
                 return;
             }
 
-            e = interpret(s->condition, istate);
+            UnionExp ue;
+            e = interpret(&ue, s->condition, istate);
             if (exceptionOrCant(e))
                 return;
             if (!e->isConst())
@@ -1489,13 +1346,11 @@ public:
 
     void visit(ForStatement *s)
     {
-    #if LOG
-        printf("%s ForStatement::interpret()\n", s->loc.toChars());
-    #endif
         if (istate->start == s)
             istate->start = NULL;
 
-        Expression *ei = interpret(s->_init, istate);
+        UnionExp ueinit;
+        Expression *ei = interpret(&ueinit, s->_init, istate);
         if (exceptionOrCant(ei))
             return;
         assert(!ei); // s->init never returns from function, or jumps out from it
@@ -1504,7 +1359,8 @@ public:
         {
             if (s->condition && !istate->start)
             {
-                Expression *e = interpret(s->condition, istate);
+                UnionExp ue;
+                Expression *e = interpret(&ue, s->condition, istate);
                 if (exceptionOrCant(e))
                     return;
                 if (e->isBool(false))
@@ -1512,7 +1368,7 @@ public:
                 assert(isTrueBool(e));
             }
 
-            Expression *e = interpret(s->_body, istate);
+            Expression *e = interpret(pue, s->_body, istate);
             if (!e && istate->start)    // goto target was not found
                 return;
             assert(!istate->start);
@@ -1545,7 +1401,8 @@ public:
                 return;
             }
 
-            e = interpret(s->increment, istate, ctfeNeedNothing);
+            UnionExp uei;
+            e = interpret(&uei, s->increment, istate, ctfeNeedNothing);
             if (exceptionOrCant(e))
                 return;
         }
@@ -1564,9 +1421,6 @@ public:
 
     void visit(SwitchStatement *s)
     {
-    #if LOG
-        printf("%s SwitchStatement::interpret()\n", s->loc.toChars());
-    #endif
         if (istate->start == s)
             istate->start = NULL;
         if (istate->start)
@@ -1590,7 +1444,8 @@ public:
             return;
         }
 
-        Expression *econdition = interpret(s->condition, istate);
+        UnionExp uecond;
+        Expression *econdition = interpret(&uecond, s->condition, istate);
         if (exceptionOrCant(econdition))
             return;
 
@@ -1599,7 +1454,8 @@ public:
         for (size_t i = 0; i < dim; i++)
         {
             CaseStatement *cs = (*s->cases)[i];
-            Expression *ecase = interpret(cs->exp, istate);
+            UnionExp uecase;
+            Expression *ecase = interpret(&uecase, cs->exp, istate);
             if (exceptionOrCant(ecase))
                 return;
             if (ctfeEqual(cs->exp->loc, TOKequal, econdition, ecase))
@@ -1620,7 +1476,7 @@ public:
         /* Jump to scase
          */
         istate->start = scase;
-        Expression *e = interpret(s->_body, istate);
+        Expression *e = interpret(pue, s->_body, istate);
         assert(!istate->start); // jump must not fail
         if (e && e->op == TOKbreak)
         {
@@ -1637,31 +1493,22 @@ public:
 
     void visit(CaseStatement *s)
     {
-    #if LOG
-        printf("%s CaseStatement::interpret(%s) this = %p\n", s->loc.toChars(), s->exp->toChars(), s);
-    #endif
         if (istate->start == s)
             istate->start = NULL;
 
-        result = interpret(s->statement, istate);
+        result = interpret(pue, s->statement, istate);
     }
 
     void visit(DefaultStatement *s)
     {
-    #if LOG
-        printf("%s DefaultStatement::interpret()\n", s->loc.toChars());
-    #endif
         if (istate->start == s)
             istate->start = NULL;
 
-        result = interpret(s->statement, istate);
+        result = interpret(pue, s->statement, istate);
     }
 
     void visit(GotoStatement *s)
     {
-    #if LOG
-        printf("%s GotoStatement::interpret()\n", s->loc.toChars());
-    #endif
         if (istate->start)
         {
             if (istate->start != s)
@@ -1676,9 +1523,6 @@ public:
 
     void visit(GotoCaseStatement *s)
     {
-    #if LOG
-        printf("%s GotoCaseStatement::interpret()\n", s->loc.toChars());
-    #endif
         if (istate->start)
         {
             if (istate->start != s)
@@ -1693,9 +1537,6 @@ public:
 
     void visit(GotoDefaultStatement *s)
     {
-    #if LOG
-        printf("%s GotoDefaultStatement::interpret()\n", s->loc.toChars());
-    #endif
         if (istate->start)
         {
             if (istate->start != s)
@@ -1710,26 +1551,20 @@ public:
 
     void visit(LabelStatement *s)
     {
-    #if LOG
-        printf("%s LabelStatement::interpret()\n", s->loc.toChars());
-    #endif
         if (istate->start == s)
             istate->start = NULL;
 
-        result = interpret(s->statement, istate);
+        result = interpret(pue, s->statement, istate);
     }
 
     void visit(TryCatchStatement *s)
     {
-    #if LOG
-        printf("%s TryCatchStatement::interpret()\n", s->loc.toChars());
-    #endif
         if (istate->start == s)
             istate->start = NULL;
         if (istate->start)
         {
             Expression *e = NULL;
-            e = interpret(s->_body, istate);
+            e = interpret(pue, s->_body, istate);
             for (size_t i = 0; i < s->catches->dim; i++)
             {
                 if (e || !istate->start)    // goto target was found
@@ -1741,7 +1576,7 @@ public:
             return;
         }
 
-        Expression *e = interpret(s->_body, istate);
+        Expression *e = interpret(pue, s->_body, istate);
 
         // An exception was thrown
         if (e && e->op == TOKthrownexception)
@@ -1795,9 +1630,6 @@ public:
 
     static ThrownExceptionExp *chainExceptions(ThrownExceptionExp *oldest, ThrownExceptionExp *newest)
     {
-    #if LOG
-        printf("Collided exceptions %s %s\n", oldest->thrown->toChars(), newest->thrown->toChars());
-    #endif
         // Little sanity check to make sure it's really a Throwable
         ClassReferenceExp *boss = oldest->thrown;
         assert((*boss->value->elements)[4]->type->ty == Tclass);    // Throwable.next
@@ -1820,15 +1652,12 @@ public:
 
     void visit(TryFinallyStatement *s)
     {
-    #if LOG
-        printf("%s TryFinallyStatement::interpret()\n", s->loc.toChars());
-    #endif
         if (istate->start == s)
             istate->start = NULL;
         if (istate->start)
         {
             Expression *e = NULL;
-            e = interpret(s->_body, istate);
+            e = interpret(pue, s->_body, istate);
             // Jump into/out from finalbody is disabled in semantic analysis.
             // and jump inside will be handled by the ScopeStatement == finalbody.
             result = e;
@@ -1882,9 +1711,6 @@ public:
 
     void visit(ThrowStatement *s)
     {
-    #if LOG
-        printf("%s ThrowStatement::interpret()\n", s->loc.toChars());
-    #endif
         if (istate->start)
         {
             if (istate->start != s)
@@ -1907,9 +1733,6 @@ public:
 
     void visit(WithStatement *s)
     {
-    #if LOG
-        printf("%s WithStatement::interpret()\n", s->loc.toChars());
-    #endif
         if (istate->start == s)
             istate->start = NULL;
         if (istate->start)
@@ -1921,7 +1744,7 @@ public:
         // If it is with(Enum) {...}, just execute the body.
         if (s->exp->op == TOKscope || s->exp->op == TOKtype)
         {
-            result = interpret(s->_body, istate);
+            result = interpret(pue, s->_body, istate);
             return;
         }
 
@@ -1931,8 +1754,7 @@ public:
 
         if (s->wthis->type->ty == Tpointer && s->exp->type->ty != Tpointer)
         {
-            e = new AddrExp(s->loc, e);
-            e->type = s->wthis->type;
+            e = new AddrExp(s->loc, e, s->wthis->type);
         }
         ctfeStack.push(s->wthis);
         setValue(s->wthis, e);
@@ -1961,9 +1783,6 @@ public:
 
     void visit(AsmStatement *s)
     {
-    #if LOG
-        printf("%s AsmStatement::interpret()\n", s->loc.toChars());
-    #endif
         if (istate->start)
         {
             if (istate->start != s)
@@ -1977,9 +1796,6 @@ public:
 
     void visit(ImportStatement *s)
     {
-    #if LOG
-        printf("ImportStatement::interpret()\n");
-    #endif
         if (istate->start)
         {
             if (istate->start != s)
@@ -1992,20 +1808,12 @@ public:
 
     void visit(Expression *e)
     {
-    #if LOG
-        printf("%s Expression::interpret() '%s' %s\n", e->loc.toChars(), Token::toChars(e->op), e->toChars());
-        printf("type = %s\n", e->type->toChars());
-        e->print();
-    #endif
         e->error("cannot interpret %s at compile time", e->toChars());
         result = CTFEExp::cantexp;
     }
 
     void visit(ThisExp *e)
     {
-    #if LOG
-        printf("%s ThisExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
         if (goal == ctfeNeedLvalue)
         {
             // We might end up here with istate being zero (see bugzilla 16382)
@@ -2037,17 +1845,11 @@ public:
 
     void visit(IntegerExp *e)
     {
-    #if LOG
-        printf("%s IntegerExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
         result = e;
     }
 
     void visit(RealExp *e)
     {
-    #if LOG
-        printf("%s RealExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
         result = e;
     }
 
@@ -2058,9 +1860,6 @@ public:
 
     void visit(StringExp *e)
     {
-    #if LOG
-        printf("%s StringExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
         /* Attempts to modify string literals are prevented
          * in BinExp::interpretAssignCommon.
          */
@@ -2069,17 +1868,11 @@ public:
 
     void visit(FuncExp *e)
     {
-    #if LOG
-        printf("%s FuncExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
         result = e;
     }
 
     void visit(SymOffExp *e)
     {
-    #if LOG
-        printf("%s SymOffExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
         if (e->var->isFuncDeclaration() && e->offset == 0)
         {
             result = e;
@@ -2131,8 +1924,8 @@ public:
             if (val->type->ty == Tsarray && pointee->ty == Tarray &&
                 elemsize == pointee->nextOf()->size())
             {
-                result = new AddrExp(e->loc, val);
-                result->type = e->type;
+                new(pue) AddrExp(e->loc, val, e->type);
+                result = pue->exp();
                 return;
             }
 
@@ -2145,10 +1938,10 @@ public:
                 Expression *eupr = new IntegerExp(e->loc, e->offset / elemsize + d, Type::tsize_t);
 
                 // Create a CTFE pointer &val[ofs..ofs+d]
-                result = new SliceExp(e->loc, val, elwr, eupr);
-                result->type = pointee;
-                result = new AddrExp(e->loc, result);
-                result->type = e->type;
+                SliceExp *se = new SliceExp(e->loc, val, elwr, eupr);
+                se->type = pointee;
+                new(pue) AddrExp(e->loc, se, e->type);
+                result = pue->exp();
                 return;
             }
 
@@ -2158,10 +1951,10 @@ public:
                 if (e->offset == 0 && isSafePointerCast(e->var->type, pointee))
                 {
                     // Create a CTFE pointer &var
-                    result = new VarExp(e->loc, e->var);
-                    result->type = elemtype;
-                    result = new AddrExp(e->loc, result);
-                    result->type = e->type;
+                    VarExp *ve = new VarExp(e->loc, e->var);
+                    ve->type = elemtype;
+                    new(pue) AddrExp(e->loc, ve, e->type);
+                    result = pue->exp();
                     return;
                 }
                 e->error("reinterpreting cast from %s to %s is not supported in CTFE",
@@ -2170,7 +1963,7 @@ public:
                 return;
             }
 
-            dinteger_t sz = pointee->size();
+            const dinteger_t sz = pointee->size();
             dinteger_t indx = e->offset / sz;
             assert(sz * indx == e->offset);
             Expression *aggregate = NULL;
@@ -2181,17 +1974,18 @@ public:
             else if (val->op == TOKslice)
             {
                 aggregate = ((SliceExp *)val)->e1;
-                Expression *lwr = interpret(((SliceExp *)val)->lwr, istate);
+                UnionExp uelwr;
+                Expression *lwr = interpret(&uelwr, ((SliceExp *)val)->lwr, istate);
                 indx += lwr->toInteger();
             }
             if (aggregate)
             {
                 // Create a CTFE pointer &aggregate[ofs]
                 IntegerExp *ofs = new IntegerExp(e->loc, indx, Type::tsize_t);
-                result = new IndexExp(e->loc, aggregate, ofs);
-                result->type = elemtype;
-                result = new AddrExp(e->loc, result);
-                result->type = e->type;
+                IndexExp *ei = new IndexExp(e->loc, aggregate, ofs);
+                ei->type = elemtype;
+                new(pue) AddrExp(e->loc, ei, e->type);
+                result = pue->exp();
                 return;
             }
         }
@@ -2200,8 +1994,8 @@ public:
             // Create a CTFE pointer &var
             VarExp *ve = new VarExp(e->loc, e->var);
             ve->type = e->var->type;
-            result = new AddrExp(e->loc, ve);
-            result->type = e->type;
+            new(pue) AddrExp(e->loc, ve, e->type);
+            result = pue->exp();
             return;
         }
 
@@ -2211,9 +2005,6 @@ public:
 
     void visit(AddrExp *e)
     {
-    #if LOG
-        printf("%s AddrExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
         if (e->e1->op == TOKvar && ((VarExp *)e->e1)->var->isDataseg())
         {
             // Normally this is already done by optimize()
@@ -2222,22 +2013,19 @@ public:
             result->type = e->type;
             return;
         }
-        result = interpret(e->e1, istate, ctfeNeedLvalue);
-        if (result->op == TOKvar && ((VarExp *)result)->var == istate->fd->vthis)
-            result = interpret(result, istate);
-        if (exceptionOrCant(result))
+        Expression *er = interpret(e->e1, istate, ctfeNeedLvalue);
+        if (er->op == TOKvar && ((VarExp *)er)->var == istate->fd->vthis)
+            er = interpret(er, istate);
+        if (exceptionOrCant(er))
             return;
 
         // Return a simplified address expression
-        result = new AddrExp(e->loc, result);
-        result->type = e->type;
+        new(pue) AddrExp(e->loc, er, e->type);
+        result = pue->exp();
     }
 
     void visit(DelegateExp *e)
     {
-    #if LOG
-        printf("%s DelegateExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
         // TODO: Really we should create a CTFE-only delegate expression
         // of a pointer and a funcptr.
 
@@ -2249,17 +2037,18 @@ public:
             return;
         }
 
-        result = interpret(e->e1, istate);
-        if (exceptionOrCant(result))
+        Expression *er = interpret(e->e1, istate);
+        if (exceptionOrCant(er))
             return;
-        if (result == e->e1)
+        if (er == e->e1)
         {
             // If it has already been CTFE'd, just return it
             result = e;
         }
         else
         {
-            result = new DelegateExp(e->loc, result, e->func, false);
+            new(pue) DelegateExp(e->loc, er, e->func, false);
+            result = pue->exp();
             result->type = e->type;
         }
     }
@@ -2400,9 +2189,6 @@ public:
 
     void visit(VarExp *e)
     {
-    #if LOG
-        printf("%s VarExp::interpret() %s, goal = %d\n", e->loc.toChars(), e->toChars(), goal);
-    #endif
         if (e->var->isFuncDeclaration())
         {
             result = e;
@@ -2431,11 +2217,9 @@ public:
             {
                 // Strip off the nest of ref variables
                 Expression *ev = getValue(v);
-                if (ev->op == TOKvar ||
-                    ev->op == TOKindex ||
-                    ev->op == TOKdotvar)
+                if (ev->op == TOKvar || ev->op == TOKindex || ev->op == TOKdotvar)
                 {
-                    result = interpret(ev, istate, goal);
+                    result = interpret(pue, ev, istate, goal);
                     return;
                 }
             }
@@ -2463,9 +2247,6 @@ public:
 
     void visit(DeclarationExp *e)
     {
-    #if LOG
-        printf("%s DeclarationExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
         Dsymbol *s = e->declaration;
         if (VarDeclaration *v = s->isVarDeclaration())
         {
@@ -2576,16 +2357,10 @@ public:
 
         // Others should not contain executable code, so are trivial to evaluate
         result = NULL;
-    #if LOG
-        printf("-DeclarationExp::interpret(%s): %p\n", e->toChars(), result);
-    #endif
     }
 
     void visit(TypeidExp *e)
     {
-    #if LOG
-        printf("%s TypeidExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
         if (isType(e->obj))
         {
             result = e;
@@ -2613,7 +2388,8 @@ public:
             ClassDeclaration *cd = ((ClassReferenceExp *)result)->originalClass();
             assert(cd);
 
-            result = new TypeidExp(e->loc, cd->type);
+            new(pue) TypeidExp(e->loc, cd->type);
+            result = pue->exp();
             result->type = e->type;
             return;
         }
@@ -2622,10 +2398,6 @@ public:
 
     void visit(TupleExp *e)
     {
-    #if LOG
-        printf("%s TupleExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
-
         if (exceptionOrCant(interpret(e->e0, istate, ctfeNeedNothing)))
             return;
 
@@ -2657,9 +2429,9 @@ public:
         if (expsx != e->exps)
         {
             expandTuples(expsx);
-            TupleExp *te = new TupleExp(e->loc, expsx);
-            te->type = new TypeTuple(te->exps);
-            result = te;
+            new(pue) TupleExp(e->loc, expsx);
+            result = pue->exp();
+            result->type = new TypeTuple(expsx);
         }
         else
             result = e;
@@ -2667,9 +2439,6 @@ public:
 
     void visit(ArrayLiteralExp *e)
     {
-    #if LOG
-        printf("%s ArrayLiteralExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
         if (e->ownedByCtfe >= OWNEDctfe)    // We've already interpreted all the elements
         {
             result = e;
@@ -2729,7 +2498,8 @@ public:
                 result = CTFEExp::cantexp;
                 return;
             }
-            ArrayLiteralExp *ale = new ArrayLiteralExp(e->loc, basis, expsx);
+            new(pue) ArrayLiteralExp(e->loc, basis, expsx);
+            ArrayLiteralExp *ale = (ArrayLiteralExp *)pue->exp();
             ale->type = e->type;
             ale->ownedByCtfe = OWNEDctfe;
             result = ale;
@@ -2745,9 +2515,6 @@ public:
 
     void visit(AssocArrayLiteralExp *e)
     {
-    #if LOG
-        printf("%s AssocArrayLiteralExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
         if (e->ownedByCtfe >= OWNEDctfe)    // We've already interpreted all the elements
         {
             result = e;
@@ -2828,9 +2595,6 @@ public:
 
     void visit(StructLiteralExp *e)
     {
-    #if LOG
-        printf("%s StructLiteralExp::interpret() %s ownedByCtfe = %d\n", e->loc.toChars(), e->toChars(), e->ownedByCtfe);
-    #endif
         if (e->ownedByCtfe >= OWNEDctfe)
         {
             result = e;
@@ -2898,9 +2662,11 @@ public:
                 result = CTFEExp::cantexp;
                 return;
             }
-            StructLiteralExp *sle = new StructLiteralExp(e->loc, e->sd, expsx);
+            new(pue) StructLiteralExp(e->loc, e->sd, expsx);
+            StructLiteralExp *sle = (StructLiteralExp *)pue->exp();
             sle->type = e->type;
             sle->ownedByCtfe = OWNEDctfe;
+            sle->origin = e->origin;
             result = sle;
         }
         else
@@ -2949,10 +2715,6 @@ public:
 
     void visit(NewExp *e)
     {
-    #if LOG
-        printf("%s NewExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
-
         if (e->allocator)
         {
             e->error("member allocators not supported by CTFE");
@@ -2977,7 +2739,7 @@ public:
                 se = interpret(se, istate);
                 if (exceptionOrCant(se))
                     return;
-                result = interpret(e->member, istate, e->arguments, se);
+                result = interpretFunction(e->member, istate, e->arguments, se);
 
                 // Repaint as same as CallExp::interpret() does.
                 result->loc = e->loc;
@@ -3008,8 +2770,8 @@ public:
             }
             if (exceptionOrCant(result))
                 return;
-            result = new AddrExp(e->loc, result);
-            result->type = e->type;
+            new(pue) AddrExp(e->loc, result, e->type);
+            result = pue->exp();
             return;
         }
         if (e->newtype->toBasetype()->ty == Tclass)
@@ -3070,7 +2832,7 @@ public:
                     result = CTFEExp::cantexp;
                     return;
                 }
-                Expression *ctorfail = interpret(e->member, istate, e->arguments, eref);
+                Expression *ctorfail = interpretFunction(e->member, istate, e->arguments, eref);
                 if (exceptionOrCant(ctorfail))
                     return;
 
@@ -3102,10 +2864,10 @@ public:
             ae->type = e->newtype->arrayOf();
             ae->ownedByCtfe = OWNEDctfe;
 
-            result = new IndexExp(e->loc, ae, new IntegerExp(Loc(), 0, Type::tsize_t));
-            result->type = e->newtype;
-            result = new AddrExp(e->loc, result);
-            result->type = e->type;
+            IndexExp *ei = new IndexExp(e->loc, ae, new IntegerExp(Loc(), 0, Type::tsize_t));
+            ei->type = e->newtype;
+            new(pue) AddrExp(e->loc, ei, e->type);
+            result = pue->exp();
             return;
         }
         e->error("cannot interpret %s at compile time", e->toChars());
@@ -3114,30 +2876,25 @@ public:
 
     void visit(UnaExp *e)
     {
-    #if LOG
-        printf("%s UnaExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
-        Expression *e1 = interpret(e->e1, istate);
+        UnionExp ue;
+        Expression *e1 = interpret(&ue, e->e1, istate);
         if (exceptionOrCant(e1))
             return;
-        UnionExp ue;
         switch (e->op)
         {
-            case TOKneg:    ue = Neg(e->type, e1);  break;
-            case TOKtilde:  ue = Com(e->type, e1);  break;
-            case TOKnot:    ue = Not(e->type, e1);  break;
+            case TOKneg:    *pue = Neg(e->type, e1);  break;
+            case TOKtilde:  *pue = Com(e->type, e1);  break;
+            case TOKnot:    *pue = Not(e->type, e1);  break;
             case TOKvector: result = e;             return; // do nothing
             default:        assert(0);
         }
-        result = ue.copy();
+        result = (*pue).exp();
     }
 
     void visit(DotTypeExp *e)
     {
-    #if LOG
-        printf("%s DotTypeExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
-        Expression *e1 = interpret(e->e1, istate);
+        UnionExp ue;
+        Expression *e1 = interpret(&ue, e->e1, istate);
         if (exceptionOrCant(e1))
             return;
 
@@ -3145,14 +2902,15 @@ public:
             result = e;  // optimize: reuse this CTFE reference
         else
         {
-            result = e->copy();
-            ((DotTypeExp *)result)->e1 = e1;
+            DotTypeExp *edt = (DotTypeExp *)e->copy();
+            edt->e1 = (e1 == ue.exp()) ? e1->copy() : e1; // don't return pointer to ue
+            result = edt;
         }
     }
 
-    bool evalOperand(Expression *e, Expression *ex, Expression *&er)
+    bool evalOperand(UnionExp *pue, Expression *e, Expression *ex, Expression *&er)
     {
-        er = interpret(ex, istate);
+        er = interpret(pue, ex, istate);
         if (exceptionOrCant(er))
             return false;
         if (er->isConst() != 1)
@@ -3170,40 +2928,46 @@ public:
 
     void interpretCommon(BinExp *e, fp_t fp)
     {
-    #if LOG
-        printf("%s BinExp::interpretCommon() %s\n", e->loc.toChars(), e->toChars());
-    #endif
         if (e->e1->type->ty == Tpointer && e->e2->type->ty == Tpointer && e->op == TOKmin)
         {
-            Expression *e1 = interpret(e->e1, istate);
+            UnionExp ue1;
+            Expression *e1 = interpret(&ue1, e->e1, istate);
             if (exceptionOrCant(e1))
                 return;
-            Expression *e2 = interpret(e->e2, istate);
+            UnionExp ue2;
+            Expression *e2 = interpret(&ue2, e->e2, istate);
             if (exceptionOrCant(e2))
                 return;
-            result = pointerDifference(e->loc, e->type, e1, e2).copy();
+            *pue = pointerDifference(e->loc, e->type, e1, e2);
+            result = (*pue).exp();
             return;
         }
         if (e->e1->type->ty == Tpointer && e->e2->type->isintegral())
         {
-            Expression *e1 = interpret(e->e1, istate);
+            UnionExp ue1;
+            Expression *e1 = interpret(&ue1, e->e1, istate);
             if (exceptionOrCant(e1))
                 return;
-            Expression *e2 = interpret(e->e2, istate);
+            UnionExp ue2;
+            Expression *e2 = interpret(&ue2, e->e2, istate);
             if (exceptionOrCant(e2))
                 return;
-            result = pointerArithmetic(e->loc, e->op, e->type, e1, e2).copy();
+            *pue = pointerArithmetic(e->loc, e->op, e->type, e1, e2);
+            result = (*pue).exp();
             return;
         }
         if (e->e2->type->ty == Tpointer && e->e1->type->isintegral() && e->op == TOKadd)
         {
-            Expression *e1 = interpret(e->e1, istate);
+            UnionExp ue1;
+            Expression *e1 = interpret(&ue1, e->e1, istate);
             if (exceptionOrCant(e1))
                 return;
-            Expression *e2 = interpret(e->e2, istate);
+            UnionExp ue2;
+            Expression *e2 = interpret(&ue2, e->e2, istate);
             if (exceptionOrCant(e2))
                 return;
-            result = pointerArithmetic(e->loc, e->op, e->type, e2, e1).copy();
+            *pue = pointerArithmetic(e->loc, e->op, e->type, e2, e1);
+            result = (*pue).exp();
             return;
         }
         if (e->e1->type->ty == Tpointer || e->e2->type->ty == Tpointer)
@@ -3213,17 +2977,19 @@ public:
             return;
         }
 
+        UnionExp ue1;
         Expression *e1;
-        if (!evalOperand(e, e->e1, e1))
+        if (!evalOperand(&ue1, e, e->e1, e1))
             return;
+        UnionExp ue2;
         Expression *e2;
-        if (!evalOperand(e, e->e2, e2))
+        if (!evalOperand(&ue2, e, e->e2, e2))
             return;
 
         if (e->op == TOKshr || e->op == TOKshl || e->op == TOKushr)
         {
-            sinteger_t i2 = e2->toInteger();
-            d_uns64 sz = e1->type->size() * 8;
+            const sinteger_t i2 = e2->toInteger();
+            const d_uns64 sz = e1->type->size() * 8;
             if (i2 < 0 || (d_uns64)i2 >= sz)
             {
                 e->error("shift by %lld is outside the range 0..%llu", i2, (ulonglong)sz - 1);
@@ -3231,22 +2997,22 @@ public:
                 return;
             }
         }
-        result = (*fp)(e->loc, e->type, e1, e2).copy();
+        *pue = (*fp)(e->loc, e->type, e1, e2);
+        result = (*pue).exp();
         if (CTFEExp::isCantExp(result))
             e->error("%s cannot be interpreted at compile time", e->toChars());
     }
 
     void interpretCompareCommon(BinExp *e, fp2_t fp)
     {
-    #if LOG
-        printf("%s BinExp::interpretCompareCommon() %s\n", e->loc.toChars(), e->toChars());
-    #endif
+        UnionExp ue1;
+        UnionExp ue2;
         if (e->e1->type->ty == Tpointer && e->e2->type->ty == Tpointer)
         {
-            Expression *e1 = interpret(e->e1, istate);
+            Expression *e1 = interpret(&ue1, e->e1, istate);
             if (exceptionOrCant(e1))
                 return;
-            Expression *e2 = interpret(e->e2, istate);
+            Expression *e2 = interpret(&ue2, e->e2, istate);
             if (exceptionOrCant(e2))
                 return;
             //printf("e1 = %s %s, e2 = %s %s\n", e1->type->toChars(), e1->toChars(), e2->type->toChars(), e2->toChars());
@@ -3254,7 +3020,7 @@ public:
             Expression *agg1 = getAggregateFromPointer(e1, &ofs1);
             Expression *agg2 = getAggregateFromPointer(e2, &ofs2);
             //printf("agg1 = %p %s, agg2 = %p %s\n", agg1, agg1->toChars(), agg2, agg2->toChars());
-            int cmp = comparePointers(e->op, agg1, ofs1, agg2, ofs2);
+            const int cmp = comparePointers(e->op, agg1, ofs1, agg2, ofs2);
             if (cmp == -1)
             {
                 char dir = (e->op == TOKgt || e->op == TOKge) ? '<' : '>';
@@ -3265,10 +3031,11 @@ public:
                 result = CTFEExp::cantexp;
                 return;
             }
-            result = new IntegerExp(e->loc, cmp, e->type);
+            new(pue) IntegerExp(e->loc, cmp, e->type);
+            result = (*pue).exp();
             return;
         }
-        Expression *e1 = interpret(e->e1, istate);
+        Expression *e1 = interpret(&ue1, e->e1, istate);
         if (exceptionOrCant(e1))
             return;
         if (!isCtfeComparable(e1))
@@ -3277,7 +3044,7 @@ public:
             result = CTFEExp::cantexp;
             return;
         }
-        Expression *e2 = interpret(e->e2, istate);
+        Expression *e2 = interpret(&ue2, e->e2, istate);
         if (exceptionOrCant(e2))
             return;
         if (!isCtfeComparable(e2))
@@ -3286,8 +3053,9 @@ public:
             result = CTFEExp::cantexp;
             return;
         }
-        int cmp = (*fp)(e->loc, e->op, e1, e2);
-        result = new IntegerExp(e->loc, cmp, e->type);
+        const int cmp = (*fp)(e->loc, e->op, e1, e2);
+        new(pue) IntegerExp(e->loc, cmp, e->type);
+        result = (*pue).exp();
     }
 
     void visit(BinExp *e)
@@ -3356,9 +3124,6 @@ public:
 
     void interpretAssignCommon(BinExp *e, fp_t fp, int post = 0)
     {
-    #if LOG
-        printf("%s BinExp::interpretAssignCommon() %s\n", e->loc.toChars(), e->toChars());
-    #endif
         result = CTFEExp::cantexp;
         Expression *e1 = e->e1;
         if (!istate)
@@ -3482,7 +3247,8 @@ public:
                     Expression *ekey = interpret(xe->e2, istate);
                     if (exceptionOrCant(ekey))
                         return;
-                    ekey = resolveSlice(ekey);  // only happens with AA assignment
+                    UnionExp ekeyTmp;
+                    ekey = resolveSlice(ekey, &ekeyTmp);  // only happens with AA assignment
 
                     // Look up this index in it up in the existing AA, to get the next level of AA.
                     AssocArrayLiteralExp *newAA = (AssocArrayLiteralExp *)findKeyInAA(e->loc, existingAA, ekey);
@@ -3764,11 +3530,6 @@ public:
         }
         if (exceptionOrCant(newval))
             return;
-
-    #if LOGASSIGN
-        printf("ASSIGN: %s=%s\n", e1->toChars(), newval->toChars());
-        showCtfeExpr(newval);
-    #endif
 
         /* Block assignment or element-wise assignment.
          */
@@ -4460,17 +4221,10 @@ public:
 
     void visit(PostExp *e)
     {
-    #if LOG
-        printf("%s PostExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
         if (e->op == TOKplusplus)
             interpretAssignCommon(e, &Add, 1);
         else
             interpretAssignCommon(e, &Min, 1);
-    #if LOG
-        if (CTFEExp::isCantExp(result))
-            printf("PostExp::interpret() CANT\n");
-    #endif
     }
 
     /* Return 1 if e is a p1 > p2 or p1 >= p2 pointer comparison;
@@ -4661,10 +4415,6 @@ public:
 
     void visit(AndAndExp *e)
     {
-    #if LOG
-        printf("%s AndAndExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
-
         // Check for an insidePointer expression, evaluate it if so
         interpretFourPointerRelation(e);
         if (result)
@@ -4679,7 +4429,8 @@ public:
             res = 0;
         else if (isTrueBool(result))
         {
-            result = interpret(e->e2, istate);
+            UnionExp ue2;
+            result = interpret(&ue2, e->e2, istate);
             if (exceptionOrCant(result))
                 return;
             if (result->op == TOKvoidexp)
@@ -4706,15 +4457,14 @@ public:
             return;
         }
         if (goal != ctfeNeedNothing)
-            result = new IntegerExp(e->loc, res, e->type);
+        {
+            new(pue) IntegerExp(e->loc, res, e->type);
+            result = pue->exp();
+        }
     }
 
     void visit(OrOrExp *e)
     {
-    #if LOG
-        printf("%s OrOrExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
-
         // Check for an insidePointer expression, evaluate it if so
         interpretFourPointerRelation(e);
         if (result)
@@ -4729,7 +4479,8 @@ public:
             res = 1;
         else if (result->isBool(false))
         {
-            result = interpret(e->e2, istate);
+            UnionExp ue2;
+            result = interpret(&ue2, e->e2, istate);
             if (exceptionOrCant(result))
                 return;
             if (result->op == TOKvoidexp)
@@ -4756,7 +4507,10 @@ public:
             return;
         }
         if (goal != ctfeNeedNothing)
-            result = new IntegerExp(e->loc, res, e->type);
+        {
+            new(pue) IntegerExp(e->loc, res, e->type);
+            result = pue->exp();
+        }
     }
 
     // Print a stack trace, starting from callingExp which called fd.
@@ -4810,10 +4564,6 @@ public:
 
     void visit(CallExp *e)
     {
-    #if LOG
-        printf("%s CallExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
-
         Expression *pthis = NULL;
         FuncDeclaration *fd = NULL;
 
@@ -4962,7 +4712,7 @@ public:
             return;
         }
 
-        result = interpret(fd, istate, e->arguments, pthis);
+        result = interpretFunction(fd, istate, e->arguments, pthis);
         if (result->op == TOKvoidexp)
             return;
         if (!exceptionOrCantInterpret(result))
@@ -4979,12 +4729,15 @@ public:
             showCtfeBackTrace(e, fd);   // Print a stack trace.
     }
 
+    void endTempStackFrame(InterState *pistateComma)
+    {
+        // If we created a temporary stack frame, end it now.
+        if (istate == pistateComma)
+            ctfeStack.endFrame();
+    }
+
     void visit(CommaExp *e)
     {
-    #if LOG
-        printf("%s CommaExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
-
         CommaExp *firstComma = e;
         while (firstComma->e1->op == TOKcomma)
             firstComma = (CommaExp *)firstComma->e1;
@@ -5021,63 +4774,57 @@ public:
                 // through a reference parameter instead).
                 newval = interpret(newval, istate);
                 if (exceptionOrCant(newval))
-                    goto Lfin;
+                    return endTempStackFrame(&istateComma);
                 if (newval->op != TOKvoidexp)
                 {
                     // v isn't necessarily null.
                     setValueWithoutChecking(v, copyLiteral(newval).copy());
                 }
             }
-            result = interpret(e->e2, istate, goal);
         }
         else
         {
-            result = interpret(e->e1, istate, ctfeNeedNothing);
-            if (exceptionOrCant(result))
-                goto Lfin;
-            result = interpret(e->e2, istate, goal);
+            UnionExp ue;
+            Expression *e1 = interpret(&ue, e->e1, istate, ctfeNeedNothing);
+            if (exceptionOrCant(e1))
+                return endTempStackFrame(&istateComma);
         }
-    Lfin:
-        // If we created a temporary stack frame, end it now.
-        if (istate == &istateComma)
-            ctfeStack.endFrame();
+        result = interpret(pue, e->e2, istate, goal);
+        return endTempStackFrame(&istateComma);
     }
 
     void visit(CondExp *e)
     {
-    #if LOG
-        printf("%s CondExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
+        UnionExp uecond;
+        Expression *econd;
+        econd = interpret(&uecond, e->econd, istate);
+        if (exceptionOrCant(econd))
+            return;
+
         if (isPointer(e->econd->type))
         {
-            result = interpret(e->econd, istate);
-            if (exceptionOrCant(result))
-                return;
-            if (result->op != TOKnull)
-                result = new IntegerExp(e->loc, 1, Type::tbool);
+            if (econd->op != TOKnull)
+            {
+                new(&uecond) IntegerExp(e->loc, 1, Type::tbool);
+                econd = uecond.exp();
+            }
         }
-        else
-            result = interpret(e->econd, istate);
-        if (exceptionOrCant(result))
-            return;
-        if (isTrueBool(result))
-            result = interpret(e->e1, istate, goal);
-        else if (result->isBool(false))
-            result = interpret(e->e2, istate, goal);
+
+        if (isTrueBool(econd))
+            result = interpret(pue, e->e1, istate, goal);
+        else if (econd->isBool(false))
+            result = interpret(pue, e->e2, istate, goal);
         else
         {
-            e->error("%s does not evaluate to boolean result at compile time",
-                e->econd->toChars());
+            e->error("%s does not evaluate to boolean result at compile time", e->econd->toChars());
             result = CTFEExp::cantexp;
         }
     }
 
     void visit(ArrayLengthExp *e)
     {
-    #if LOG
-        printf("%s ArrayLengthExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
-        Expression *e1 = interpret(e->e1, istate);
+        UnionExp ue1;
+        Expression *e1 = interpret(&ue1, e->e1, istate);
         assert(e1);
         if (exceptionOrCant(e1))
             return;
@@ -5090,15 +4837,13 @@ public:
             result = CTFEExp::cantexp;
             return;
         }
-        result = new IntegerExp(e->loc, resolveArrayLength(e1), e->type);
+        new(pue) IntegerExp(e->loc, resolveArrayLength(e1), e->type);
+        result = pue->exp();
     }
 
     void visit(DelegatePtrExp *e)
     {
-    #if LOG
-        printf("%s DelegatePtrExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
-        Expression *e1 = interpret(e->e1, istate);
+        Expression *e1 = interpret(pue, e->e1, istate);
         assert(e1);
         if (exceptionOrCant(e1))
             return;
@@ -5108,10 +4853,7 @@ public:
 
     void visit(DelegateFuncptrExp *e)
     {
-    #if LOG
-        printf("%s DelegateFuncptrExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
-        Expression *e1 = interpret(e->e1, istate);
+        Expression *e1 = interpret(pue, e->e1, istate);
         assert(e1);
         if (exceptionOrCant(e1))
             return;
@@ -5251,9 +4993,6 @@ public:
 
     void visit(IndexExp *e)
     {
-    #if LOG
-        printf("%s IndexExp::interpret() %s, goal = %d\n", e->loc.toChars(), e->toChars(), goal);
-    #endif
         if (e->e1->type->toBasetype()->ty == Tpointer)
         {
             Expression *agg;
@@ -5269,8 +5008,8 @@ public:
                 {
                     // if we need a reference, IndexExp shouldn't be interpreting
                     // the expression to a value, it should stay as a reference
-                    result = new IndexExp(e->loc, agg,
-                        new IntegerExp(e->e2->loc, indexToAccess, e->e2->type));
+                    new(pue) IndexExp(e->loc, agg, new IntegerExp(e->e2->loc, indexToAccess, e->e2->type));
+                    result = pue->exp();
                     result->type = e->type;
                     return;
                 }
@@ -5315,19 +5054,20 @@ public:
                     result = e;
                 else
                 {
-                    result = new IndexExp(e->loc, e1, e2);
+                    new(pue) IndexExp(e->loc, e1, e2);
+                    result = pue->exp();
                     result->type = e->type;
                 }
                 return;
             }
 
             assert(e1->op == TOKassocarrayliteral);
-            e2 = resolveSlice(e2);
+            UnionExp e2tmp;
+            e2 = resolveSlice(e2, &e2tmp);
             result = findKeyInAA(e->loc, (AssocArrayLiteralExp *)e1, e2);
             if (!result)
             {
-                e->error("key %s not found in associative array %s",
-                    e2->toChars(), e->e1->toChars());
+                e->error("key %s not found in associative array %s", e2->toChars(), e->e1->toChars());
                 result = CTFEExp::cantexp;
             }
             return;
@@ -5344,7 +5084,8 @@ public:
         if (goal == ctfeNeedLvalue)
         {
             Expression *e2 = new IntegerExp(e->e2->loc, indexToAccess, Type::tsize_t);
-            result = new IndexExp(e->loc, agg, e2);
+            new(pue) IndexExp(e->loc, agg, e2);
+            result = pue->exp();
             result->type = e->type;
             return;
         }
@@ -5364,10 +5105,6 @@ public:
 
     void visit(SliceExp *e)
     {
-    #if LOG
-        printf("%s SliceExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
-
         if (e->e1->type->toBasetype()->ty == Tpointer)
         {
             // Slicing a pointer. Note that there is no $ in this case.
@@ -5376,8 +5113,7 @@ public:
                 return;
             if (e1->op == TOKint64)
             {
-                e->error("cannot slice invalid pointer %s of value %s",
-                    e->e1->toChars(), e1->toChars());
+                e->error("cannot slice invalid pointer %s of value %s", e->e1->toChars(), e1->toChars());
                 result = CTFEExp::cantexp;
                 return;
             }
@@ -5417,8 +5153,7 @@ public:
             }
             if (agg->op != TOKarrayliteral && agg->op != TOKstring)
             {
-                e->error("pointer %s cannot be sliced at compile time (it does not point to an array)",
-                    e->e1->toChars());
+                e->error("pointer %s cannot be sliced at compile time (it does not point to an array)", e->e1->toChars());
                 result = CTFEExp::cantexp;
                 return;
             }
@@ -5427,8 +5162,7 @@ public:
             //Type *pointee = ((TypePointer *)agg->type)->next;
             if (iupr > (len + 1) || iupr < ilwr)
             {
-                e->error("pointer slice [%lld..%lld] exceeds allocated memory block [0..%lld]",
-                    ilwr, iupr, len);
+                e->error("pointer slice [%lld..%lld] exceeds allocated memory block [0..%lld]", ilwr, iupr, len);
                 result = CTFEExp::cantexp;
                 return;
             }
@@ -5437,7 +5171,8 @@ public:
                 lwr = new IntegerExp(e->loc, ilwr, lwr->type);
                 upr = new IntegerExp(e->loc, iupr, upr->type);
             }
-            result = new SliceExp(e->loc, agg, lwr, upr);
+            new(pue) SliceExp(e->loc, agg, lwr, upr);
+            result = pue->exp();
             result->type = e->type;
             return;
         }
@@ -5454,10 +5189,7 @@ public:
 
         /* Set the $ variable
          */
-        if (e1->op != TOKarrayliteral &&
-            e1->op != TOKstring &&
-            e1->op != TOKnull &&
-            e1->op != TOKslice)
+        if (e1->op != TOKarrayliteral && e1->op != TOKstring && e1->op != TOKnull && e1->op != TOKslice)
         {
             e->error("cannot determine length of %s at compile time", e1->toChars());
             result = CTFEExp::cantexp;
@@ -5512,16 +5244,14 @@ public:
             uinteger_t up1 = se->upr->toInteger();
             if (ilwr > iupr || iupr > up1 - lo1)
             {
-                e->error("slice[%llu..%llu] exceeds array bounds[%llu..%llu]",
-                    ilwr, iupr, lo1, up1);
+                e->error("slice[%llu..%llu] exceeds array bounds[%llu..%llu]", ilwr, iupr, lo1, up1);
                 result = CTFEExp::cantexp;
                 return;
             }
             ilwr += lo1;
             iupr += lo1;
-            result = new SliceExp(e->loc, se->e1,
-                    new IntegerExp(e->loc, ilwr, lwr->type),
-                    new IntegerExp(e->loc, iupr, upr->type));
+            new(pue) SliceExp(e->loc, se->e1, new IntegerExp(e->loc, ilwr, lwr->type), new IntegerExp(e->loc, iupr, upr->type));
+            result = pue->exp();
             result->type = e->type;
             return;
         }
@@ -5534,15 +5264,13 @@ public:
                 return;
             }
         }
-        result = new SliceExp(e->loc, e1, lwr, upr);
+        new(pue) SliceExp(e->loc, e1, lwr, upr);
+        result = pue->exp();
         result->type = e->type;
     }
 
     void visit(InExp *e)
     {
-    #if LOG
-        printf("%s InExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
         Expression *e1 = interpret(e->e1, istate);
         if (exceptionOrCant(e1))
             return;
@@ -5551,7 +5279,8 @@ public:
             return;
         if (e2->op == TOKnull)
         {
-            result = new NullExp(e->loc, e->type);
+            new(pue) NullExp(e->loc, e->type);
+            result = pue->exp();
             return;
         }
         if (e2->op != TOKassocarrayliteral)
@@ -5560,37 +5289,38 @@ public:
             result = CTFEExp::cantexp;
             return;
         }
+
         e1 = resolveSlice(e1);
         result = findKeyInAA(e->loc, (AssocArrayLiteralExp *)e2, e1);
         if (exceptionOrCant(result))
             return;
         if (!result)
         {
-            result = new NullExp(e->loc, e->type);
+            new(pue) NullExp(e->loc, e->type);
+            result = pue->exp();
         }
         else
         {
             // Create a CTFE pointer &aa[index]
             result = new IndexExp(e->loc, e2, e1);
             result->type = e->type->nextOf();
-            result = new AddrExp(e->loc, result);
-            result->type = e->type;
+            new(pue) AddrExp(e->loc, result, e->type);
+            result = pue->exp();
         }
     }
 
     void visit(CatExp *e)
     {
-    #if LOG
-        printf("%s CatExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
         Expression *e1 = interpret(e->e1, istate);
         if (exceptionOrCant(e1))
             return;
         Expression *e2 = interpret(e->e2, istate);
         if (exceptionOrCant(e2))
             return;
-        e1 = resolveSlice(e1);
-        e2 = resolveSlice(e2);
+        UnionExp e1tmp;
+        e1 = resolveSlice(e1, &e1tmp);
+        UnionExp e2tmp;
+        e2 = resolveSlice(e2, &e2tmp);
         result = ctfeCat(e->loc, e->type, e1, e2).copy();
         if (CTFEExp::isCantExp(result))
         {
@@ -5617,9 +5347,6 @@ public:
 
     void visit(DeleteExp *e)
     {
-    #if LOG
-        printf("%s DeleteExp::interpret() %s\n", e->loc->toChars(), e->toChars());
-    #endif
         result = interpret(e->e1, istate);
         if (exceptionOrCant(result))
             return;
@@ -5653,7 +5380,7 @@ public:
 
             if (cd->dtor)
             {
-                result = interpret(cd->dtor, istate, NULL, cre);
+                result = interpretFunction(cd->dtor, istate, NULL, cre);
                 if (exceptionOrCant(result))
                     return;
             }
@@ -5684,7 +5411,7 @@ public:
 
                 if (sd->dtor)
                 {
-                    result = interpret(sd->dtor, istate, NULL, sle);
+                    result = interpretFunction(sd->dtor, istate, NULL, sle);
                     if (exceptionOrCant(result))
                         return;
                 }
@@ -5718,7 +5445,7 @@ public:
                     for (size_t i = 0; i < ale->elements->dim; i++)
                     {
                         Expression *el = (*ale->elements)[i];
-                        result = interpret(sd->dtor, istate, NULL, el);
+                        result = interpretFunction(sd->dtor, istate, NULL, el);
                         if (exceptionOrCant(result))
                             return;
                     }
@@ -5735,9 +5462,6 @@ public:
 
     void visit(CastExp *e)
     {
-    #if LOG
-        printf("%s CastExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
         Expression *e1 = interpret(e->e1, istate, goal);
         if (exceptionOrCant(e1))
             return;
@@ -5803,19 +5527,19 @@ public:
                     return;
                 }
                 // Create a CTFE pointer &aggregate[1..2]
-                result = new IndexExp(e->loc, ((SliceExp *)e1)->e1, ((SliceExp *)e1)->lwr);
-                result->type = e->type->nextOf();
-                result = new AddrExp(e->loc, result);
-                result->type = e->type;
+                IndexExp *ei = new IndexExp(e->loc, ((SliceExp *)e1)->e1, ((SliceExp *)e1)->lwr);
+                ei->type = e->type->nextOf();
+                new(pue) AddrExp(e->loc, ei, e->type);
+                result = pue->exp();
                 return;
             }
             if (e1->op == TOKarrayliteral || e1->op == TOKstring)
             {
                 // Create a CTFE pointer &[1,2,3][0] or &"abc"[0]
-                result = new IndexExp(e->loc, e1, new IntegerExp(e->loc, 0, Type::tsize_t));
-                result->type = e->type->nextOf();
-                result = new AddrExp(e->loc, result);
-                result->type = e->type;
+                IndexExp *ei = new IndexExp(e->loc, e1, new IntegerExp(e->loc, 0, Type::tsize_t));
+                ei->type = e->type->nextOf();
+                new(pue) AddrExp(e->loc, ei, e->type);
+                result = pue->exp();
                 return;
             }
             if (e1->op == TOKindex && !((IndexExp *)e1)->e1->type->equals(e1->type))
@@ -5828,24 +5552,27 @@ public:
                     // get the original type. For strings, it's just the type...
                     Type *origType = ie->e1->type->nextOf();
                     // ..but for arrays of type void*, it's the type of the element
-                    Expression *xx = NULL;
                     if (ie->e1->op == TOKarrayliteral && ie->e2->op == TOKint64)
                     {
                         ArrayLiteralExp *ale = (ArrayLiteralExp *)ie->e1;
                         size_t indx = (size_t)ie->e2->toInteger();
                         if (indx < ale->elements->dim)
-                            xx = (*ale->elements)[indx];
+                        {
+                            Expression *xx = (*ale->elements)[indx];
+                            if (xx)
+                            {
+                                if (xx->op == TOKindex)
+                                    origType = ((IndexExp *)xx)->e1->type->nextOf();
+                                else if (xx->op == TOKaddress)
+                                    origType= ((AddrExp *)xx)->e1->type;
+                                else if (xx->op == TOKvar)
+                                    origType = ((VarExp *)xx)->var->type;
+                            }
+                        }
                     }
-                    if (xx && xx->op == TOKindex)
-                        origType = ((IndexExp *)xx)->e1->type->nextOf();
-                    else if (xx && xx->op == TOKaddress)
-                        origType= ((AddrExp *)xx)->e1->type;
-                    else if (xx && xx->op == TOKvar)
-                        origType = ((VarExp *)xx)->var->type;
                     if (!isSafePointerCast(origType, pointee))
                     {
-                        e->error("using void* to reinterpret cast from %s* to %s* is not supported in CTFE",
-                            origType->toChars(), pointee->toChars());
+                        e->error("using void* to reinterpret cast from %s* to %s* is not supported in CTFE", origType->toChars(), pointee->toChars());
                         result = CTFEExp::cantexp;
                         return;
                     }
@@ -5858,12 +5585,11 @@ public:
                 Type *origType = ((AddrExp *)e1)->e1->type;
                 if (isSafePointerCast(origType, pointee))
                 {
-                    result = new AddrExp(e->loc, ((AddrExp *)e1)->e1);
-                    result->type = e->type;
+                    new(pue) AddrExp(e->loc, ((AddrExp *)e1)->e1, e->type);
+                    result = pue->exp();
                     return;
                 }
-                if (castToSarrayPointer && pointee->toBasetype()->ty == Tsarray &&
-                    ((AddrExp *)e1)->e1->op == TOKindex)
+                if (castToSarrayPointer && pointee->toBasetype()->ty == Tsarray && ((AddrExp *)e1)->e1->op == TOKindex)
                 {
                     // &val[idx]
                     dinteger_t dim = ((TypeSArray *)pointee->toBasetype())->dim->toInteger();
@@ -5872,10 +5598,10 @@ public:
                     Expression *upr = new IntegerExp(ie->e2->loc, ie->e2->toInteger() + dim, Type::tsize_t);
 
                     // Create a CTFE pointer &val[idx..idx+dim]
-                    result = new SliceExp(e->loc, ie->e1, lwr, upr);
-                    result->type = pointee;
-                    result = new AddrExp(e->loc, result);
-                    result->type = e->type;
+                    SliceExp *er = new SliceExp(e->loc, ie->e1, lwr, upr);
+                    er->type = pointee;
+                    new(pue) AddrExp(e->loc, er, e->type);
+                    result = pue->exp();
                     return;
                 }
             }
@@ -5885,15 +5611,15 @@ public:
                 Type *origType = ((SymbolExp *)e1)->var->type;
                 if (castBackFromVoid && !isSafePointerCast(origType, pointee))
                 {
-                    e->error("using void* to reinterpret cast from %s* to %s* is not supported in CTFE",
-                        origType->toChars(), pointee->toChars());
+                    e->error("using void* to reinterpret cast from %s* to %s* is not supported in CTFE", origType->toChars(), pointee->toChars());
                     result = CTFEExp::cantexp;
                     return;
                 }
                 if (e1->op == TOKvar)
-                    result = new VarExp(e->loc, ((VarExp *)e1)->var);
+                    new(pue) VarExp(e->loc, ((VarExp *)e1)->var);
                 else
-                    result = new SymOffExp(e->loc, ((SymOffExp *)e1)->var, ((SymOffExp *)e1)->offset);
+                    new(pue) SymOffExp(e->loc, ((SymOffExp *)e1)->var, ((SymOffExp *)e1)->offset);
+                result = pue->exp();
                 result->type = e->to;
                 return;
             }
@@ -5902,8 +5628,7 @@ public:
             e1 = interpret(e1, istate);
             if (e1->op != TOKnull)
             {
-                e->error("pointer cast from %s to %s is not supported at compile time",
-                    e1->type->toChars(), e->to->toChars());
+                e->error("pointer cast from %s to %s is not supported at compile time", e1->type->toChars(), e->to->toChars());
                 result = CTFEExp::cantexp;
                 return;
             }
@@ -5924,21 +5649,18 @@ public:
             SliceExp *se = (SliceExp *)e1;
             if (!isSafePointerCast(se->e1->type->nextOf(), e->to->nextOf()))
             {
-                e->error("array cast from %s to %s is not supported at compile time",
-                     se->e1->type->toChars(), e->to->toChars());
+                e->error("array cast from %s to %s is not supported at compile time", se->e1->type->toChars(), e->to->toChars());
                 result = CTFEExp::cantexp;
                 return;
             }
-            e1 = new SliceExp(e1->loc, se->e1, se->lwr, se->upr);
-            e1->type = e->to;
-            result = e1;
+            new(pue) SliceExp(e1->loc, se->e1, se->lwr, se->upr);
+            result = pue->exp();
+            result->type = e->to;
             return;
         }
         // Disallow array type painting, except for conversions between built-in
         // types of identical size.
-        if ((e->to->ty == Tsarray || e->to->ty == Tarray) &&
-            (e1->type->ty == Tsarray || e1->type->ty == Tarray) &&
-            !isSafePointerCast(e1->type->nextOf(), e->to->nextOf()))
+        if ((e->to->ty == Tsarray || e->to->ty == Tarray) && (e1->type->ty == Tsarray || e1->type->ty == Tarray) && !isSafePointerCast(e1->type->nextOf(), e->to->nextOf()))
         {
             e->error("array cast from %s to %s is not supported at compile time", e1->type->toChars(), e->to->toChars());
             result = CTFEExp::cantexp;
@@ -5948,7 +5670,8 @@ public:
             e1 = resolveSlice(e1);
         if (e->to->toBasetype()->ty == Tbool && e1->type->ty == Tpointer)
         {
-            result = new IntegerExp(e->loc, e1->op != TOKnull, e->to);
+            new(pue) IntegerExp(e->loc, e1->op != TOKnull, e->to);
+            result = pue->exp();
             return;
         }
         result = ctfeCast(e->loc, e->type, e->to, e1);
@@ -5956,10 +5679,7 @@ public:
 
     void visit(AssertExp *e)
     {
-    #if LOG
-        printf("%s AssertExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
-        Expression *e1 = interpret(e->e1, istate);
+        Expression *e1 = interpret(pue, e->e1, istate);
         if (exceptionOrCant(e1))
             return;
         if (isTrueBool(e1))
@@ -5969,7 +5689,8 @@ public:
         {
             if (e->msg)
             {
-                result = interpret(e->msg, istate);
+                UnionExp ue;
+                result = interpret(&ue, e->msg, istate);
                 if (exceptionOrCant(result))
                     return;
                 e->error("%s", result->toChars());
@@ -5991,14 +5712,8 @@ public:
 
     void visit(PtrExp *e)
     {
-    #if LOG
-        printf("%s PtrExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
-
         // Check for int<->float and long<->double casts.
-        if (e->e1->op == TOKsymoff && ((SymOffExp *)e->e1)->offset == 0 &&
-            ((SymOffExp *)e->e1)->var->isVarDeclaration() &&
-            isFloatIntPaint(e->type, ((SymOffExp *)e->e1)->var->type))
+        if (e->e1->op == TOKsymoff && ((SymOffExp *)e->e1)->offset == 0 && ((SymOffExp *)e->e1)->var->isVarDeclaration() && isFloatIntPaint(e->type, ((SymOffExp *)e->e1)->var->type))
         {
             // *(cast(int*)&v), where v is a float variable
             result = paintFloatInt(getVarExp(e->loc, istate, ((SymOffExp *)e->e1)->var, ctfeNeedRvalue), e->type);
@@ -6078,19 +5793,10 @@ public:
         result = interpret(result, istate, goal);
         if (exceptionOrCant(result))
             return;
-
-    #if LOG
-        if (CTFEExp::isCantExp(result))
-            printf("PtrExp::interpret() %s = CTFEExp::cantexp\n", e->toChars());
-    #endif
     }
 
     void visit(DotVarExp *e)
     {
-    #if LOG
-        printf("%s DotVarExp::interpret() %s, goal = %d\n", e->loc.toChars(), e->toChars(), goal);
-    #endif
-
         Expression *ex = interpret(e->e1, istate);
         if (exceptionOrCant(ex))
             return;
@@ -6101,7 +5807,8 @@ public:
                 result = e; // optimize: reuse this CTFE reference
             else
             {
-                result = new DotVarExp(e->loc, ex, f, false);
+                new(pue) DotVarExp(e->loc, ex, f, false);
+                result = pue->exp();
                 result->type = e->type;
             }
             return;
@@ -6162,7 +5869,8 @@ public:
                 result = e;
             else
             {
-                result = new DotVarExp(e->loc, ex, v);
+                new(pue) DotVarExp(e->loc, ex, v);
+                result = pue->exp();
                 result->type = e->type;
             }
             return;
@@ -6198,17 +5906,10 @@ public:
             result = createBlockDuplicatedArrayLiteral(ex->loc, v->type, ex, len);
             (*se->elements)[i] = result;
         }
-    #if LOG
-        if (CTFEExp::isCantExp(result))
-            printf("DotVarExp::interpret() %s = CTFEExp::cantexp\n", e->toChars());
-    #endif
     }
 
     void visit(RemoveExp *e)
     {
-    #if LOG
-        printf("%s RemoveExp::interpret() %s\n", e->loc.toChars(), e->toChars());
-    #endif
         Expression *agg = interpret(e->e1, istate);
         if (exceptionOrCant(agg))
             return;
@@ -6239,7 +5940,8 @@ public:
         }
         valuesx->dim = valuesx->dim - removed;
         keysx->dim = keysx->dim - removed;
-        result = new IntegerExp(e->loc, removed ? 1 : 0, Type::tbool);
+        new(pue) IntegerExp(e->loc, removed ? 1 : 0, Type::tbool);
+        result = pue->exp();
     }
 
     void visit(ClassReferenceExp *e)
@@ -6263,32 +5965,66 @@ public:
 
 };
 
-Expression *interpret(Expression *e, InterState *istate, CtfeGoal goal)
+/********************************************
+ * Interpret the expression.
+ * Params:
+ *    pue = non-null pointer to temporary storage that can be used to store the return value
+ *    e = Expression to interpret
+ *    istate = context
+ *    goal = what the result will be used for
+ * Returns:
+ *    resulting expression
+ */
+
+static Expression *interpret(UnionExp *pue, Expression *e, InterState *istate, CtfeGoal goal)
 {
     if (!e)
         return NULL;
-    Interpreter v(istate, goal);
+    Interpreter v(pue, istate, goal);
     e->accept(&v);
     Expression *ex = v.result;
     assert(goal == ctfeNeedNothing || ex != NULL);
     return ex;
 }
 
+///
+Expression *interpret(Expression *e, InterState *istate, CtfeGoal goal)
+{
+    UnionExp ue;
+    Expression *result = interpret(&ue, e, istate, goal);
+    if (result == ue.exp())
+        result = ue.copy();
+    return result;
+}
+
 /***********************************
  * Interpret the statement.
+ * Params:
+ *    pue = non-null pointer to temporary storage that can be used to store the return value
+ *    s = Statement to interpret
+ *    istate = context
  * Returns:
  *      NULL    continue to next statement
  *      TOKcantexp      cannot interpret statement at compile time
  *      !NULL   expression from return statement, or thrown exception
  */
 
-Expression *interpret(Statement *s, InterState *istate)
+static Expression *interpret(UnionExp *pue, Statement *s, InterState *istate)
 {
     if (!s)
         return NULL;
-    Interpreter v(istate, ctfeNeedNothing);
+    Interpreter v(pue, istate, ctfeNeedNothing);
     s->accept(&v);
     return v.result;
+}
+
+Expression *interpret(Statement *s, InterState *istate)
+{
+    UnionExp ue;
+    Expression *result = interpret(&ue, s, istate);
+    if (result == ue.exp())
+        result = ue.copy();
+    return result;
 }
 
 Expression *scrubArray(Loc loc, Expressions *elems, bool structlit = false);
@@ -6490,9 +6226,6 @@ Expression *interpret_length(InterState *istate, Expression *earg)
 
 Expression *interpret_keys(InterState *istate, Expression *earg, Type *returnType)
 {
-#if LOG
-    printf("interpret_keys()\n");
-#endif
     earg = interpret(earg, istate);
     if (exceptionOrCantInterpret(earg))
         return earg;
@@ -6510,9 +6243,6 @@ Expression *interpret_keys(InterState *istate, Expression *earg, Type *returnTyp
 
 Expression *interpret_values(InterState *istate, Expression *earg, Type *returnType)
 {
-#if LOG
-    printf("interpret_values()\n");
-#endif
     earg = interpret(earg, istate);
     if (exceptionOrCantInterpret(earg))
         return earg;
@@ -6531,9 +6261,6 @@ Expression *interpret_values(InterState *istate, Expression *earg, Type *returnT
 
 Expression *interpret_dup(InterState *istate, Expression *earg)
 {
-#if LOG
-    printf("interpret_dup()\n");
-#endif
     earg = interpret(earg, istate);
     if (exceptionOrCantInterpret(earg))
         return earg;
@@ -6603,7 +6330,7 @@ Expression *interpret_aaApply(InterState *istate, Expression *aa, Expression *de
         args[numParams - 1] = evalue;
         if (numParams == 2) args[0] = ekey;
 
-        eresult = interpret(fd, istate, &args, pthis);
+        eresult = interpretFunction(fd, istate, &args, pthis);
         if (exceptionOrCantInterpret(eresult))
             return eresult;
 
@@ -6628,9 +6355,6 @@ Type *returnedArrayType(FuncDeclaration *fd)
  */
 Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *deleg, bool rvs)
 {
-#if LOG
-    printf("foreachApplyUtf(%s, %s)\n", str->toChars(), deleg->toChars());
-#endif
     FuncDeclaration *fd = NULL;
     Expression *pthis = NULL;
     if (deleg->op == TOKdelegate)
@@ -6865,7 +6589,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
 
             args[numParams - 1] = val;
 
-            eresult = interpret(fd, istate, &args, pthis);
+            eresult = interpretFunction(fd, istate, &args, pthis);
             if (exceptionOrCantInterpret(eresult))
                 return eresult;
             assert(eresult->op == TOKint64);
@@ -7004,7 +6728,7 @@ Expression *evaluatePostblit(InterState *istate, Expression *e)
     if (e->op == TOKstructliteral)
     {
         // e.__postblit()
-        e = interpret(sd->postblit, istate, NULL, e);
+        e = interpretFunction(sd->postblit, istate, NULL, e);
         if (exceptionOrCantInterpret(e))
             return e;
         return NULL;
@@ -7031,7 +6755,7 @@ Expression *evaluateDtor(InterState *istate, Expression *e)
     else if (e->op == TOKstructliteral)
     {
         // e.__dtor()
-        e = interpret(sd->dtor, istate, NULL, e);
+        e = interpretFunction(sd->dtor, istate, NULL, e);
     }
     else
         assert(0);
@@ -7070,14 +6794,6 @@ void setValueWithoutChecking(VarDeclaration *vd, Expression *newval)
 
 void setValue(VarDeclaration *vd, Expression *newval)
 {
-#if 0
-    if (! ((vd->storage_class & (STCout | STCref))
-            ? isCtfeReferenceValid(newval)
-            : isCtfeValueValid(newval)) )
-    {
-        printf("[%s] vd = %s %s, newval = %s\n", vd->loc.toChars(), vd->type->toChars(), vd->toChars(), newval->toChars());
-    }
-#endif
     assert((vd->storage_class & (STCout | STCref))
             ? isCtfeReferenceValid(newval)
             : isCtfeValueValid(newval));

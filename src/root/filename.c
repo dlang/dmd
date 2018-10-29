@@ -1,6 +1,5 @@
 
 /* Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved, written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -137,12 +136,6 @@ Strings *FileName::splitPath(const char *path)
                     }
 #endif
 
-#if 0
-                    case ' ':
-                    case '\t':          // tabs in filenames?
-                        if (!instring)  // if not in string
-                            break;      // treat as end of path
-#endif
                     default:
                         buf.writeByte(c);
                         continue;

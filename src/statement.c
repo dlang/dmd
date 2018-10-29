@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -14,6 +13,7 @@
 #include <assert.h>
 
 #include "statement.h"
+#include "errors.h"
 #include "expression.h"
 #include "cond.h"
 #include "init.h"
@@ -455,14 +455,6 @@ Statements *ExpStatement::flatten(Scope *sc)
             assert(tm->members);
 
             Statement *s = toStatement(tm);
-        #if 0
-            OutBuffer buf;
-            buf.doindent = 1;
-            HdrGenState hgs;
-            hgs.hdrgen = true;
-            toCBuffer(s, &buf, &hgs);
-            printf("tm ==> s = %s\n", buf.peekString());
-        #endif
             Statements *a = new Statements();
             a->push(s);
             return a;
@@ -1576,6 +1568,19 @@ AsmStatement::AsmStatement(Loc loc, Token *tokens)
     : Statement(loc)
 {
     this->tokens = tokens;
+}
+
+Statement *AsmStatement::syntaxCopy()
+{
+    return new AsmStatement(loc, tokens);
+}
+
+
+/************************ InlineAsmStatement **********************************/
+
+InlineAsmStatement::InlineAsmStatement(Loc loc, Token *tokens)
+    : AsmStatement(loc, tokens)
+{
     asmcode = NULL;
     asmalign = 0;
     refparam = false;
@@ -1583,9 +1588,31 @@ AsmStatement::AsmStatement(Loc loc, Token *tokens)
     regs = 0;
 }
 
-Statement *AsmStatement::syntaxCopy()
+Statement *InlineAsmStatement::syntaxCopy()
 {
-    return new AsmStatement(loc, tokens);
+    return new InlineAsmStatement(loc, tokens);
+}
+
+
+/************************ GccAsmStatement ***************************************/
+
+GccAsmStatement::GccAsmStatement(Loc loc, Token *tokens)
+        : AsmStatement(loc, tokens)
+{
+    this->stc = STCundefined;
+    this->insn = NULL;
+    this->args = NULL;
+    this->outputargs = 0;
+    this->names = NULL;
+    this->constraints = NULL;
+    this->clobbers = NULL;
+    this->labels = NULL;
+    this->gotos = NULL;
+}
+
+Statement *GccAsmStatement::syntaxCopy()
+{
+    return new GccAsmStatement(loc, tokens);
 }
 
 /************************ CompoundAsmStatement ***************************************/

@@ -1,22 +1,19 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/mars.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/errors.h
  */
 
-#ifndef DMD_ERRORS_H
-#define DMD_ERRORS_H
-
-#ifdef __DMC__
 #pragma once
-#endif
 
-#include "mars.h"
+#include <stdarg.h>
+#include <stddef.h>
+
+#include "globals.h"
 
 bool isConsoleColorSupported();
 
@@ -39,6 +36,9 @@ D_ATTRIBUTE_FORMAT(2, 0) void vwarning(const Loc& loc, const char *format, va_li
 D_ATTRIBUTE_FORMAT(2, 0) void vwarningSupplemental(const Loc& loc, const char *format, va_list ap);
 D_ATTRIBUTE_FORMAT(2, 0) void vdeprecation(const Loc& loc, const char *format, va_list ap, const char *p1 = NULL, const char *p2 = NULL);
 D_ATTRIBUTE_FORMAT(2, 0) void vdeprecationSupplemental(const Loc& loc, const char *format, va_list ap);
+D_ATTRIBUTE_FORMAT(1, 2) void message(const char *format, ...);
+D_ATTRIBUTE_FORMAT(2, 3) void message(const Loc& loc, const char *format, ...);
+D_ATTRIBUTE_FORMAT(2, 0) void vmessage(const Loc& loc, const char *format, va_list);
 
 #if defined(__GNUC__) || defined(__clang__)
 #define D_ATTRIBUTE_NORETURN __attribute__((noreturn))
@@ -51,5 +51,3 @@ D_ATTRIBUTE_FORMAT(2, 0) void vdeprecationSupplemental(const Loc& loc, const cha
 // Called after printing out fatal error messages.
 D_ATTRIBUTE_NORETURN void fatal();
 D_ATTRIBUTE_NORETURN void halt();
-
-#endif /* DMD_ERRORS_H */

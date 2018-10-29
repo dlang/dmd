@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -15,8 +14,9 @@
 #include <string.h>                     // mem{cpy|set}()
 #include <new>
 
-#include "rmem.h"
+#include "root/rmem.h"
 
+#include "mars.h"
 #include "expression.h"
 #include "declaration.h"
 #include "aggregate.h"
@@ -25,7 +25,6 @@
 #include "utf.h"
 #include "template.h"
 #include "ctfe.h"
-#include "target.h"
 
 int RealEquals(real_t x1, real_t x2);
 
@@ -130,7 +129,8 @@ const char *ThrownExceptionExp::toChars()
 // Generate an error message when this exception is not caught
 void ThrownExceptionExp::generateUncaughtError()
 {
-    Expression *e = resolveSlice((*thrown->value->elements)[0]);
+    UnionExp ue;
+    Expression *e = resolveSlice((*thrown->value->elements)[0], &ue);
     StringExp *se = e->toStringExp();
     thrown->error("uncaught CTFE exception %s(%s)", thrown->type->toChars(), se ? se->toChars() : e->toChars());
 
@@ -480,14 +480,28 @@ UnionExp paintTypeOntoLiteralCopy(Type *type, Expression *lit)
     return ue;
 }
 
-Expression *resolveSlice(Expression *e)
+/*************************************
+ * If e is a SliceExp, constant fold it.
+ * Params:
+ *      e = expression to resolve
+ *      pue = if not null, store resulting expression here
+ * Returns:
+ *      resulting expression
+ */
+Expression *resolveSlice(Expression *e, UnionExp *pue)
 {
     if (e->op != TOKslice)
         return e;
     SliceExp *se = (SliceExp *)e;
     if (se->e1->op == TOKnull)
         return se->e1;
-    return Slice(e->type, se->e1, se->lwr, se->upr).copy();
+    if (pue)
+    {
+        *pue = Slice(e->type, se->e1, se->lwr, se->upr);
+        return pue->exp();
+    }
+    else
+        return Slice(e->type, se->e1, se->lwr, se->upr).copy();
 }
 
 /* Determine the array length, without interpreting it.
@@ -981,7 +995,7 @@ Expression *paintFloatInt(Expression *fromVal, Type *to)
         return fromVal;
 
     assert(to->size() == 4 || to->size() == 8);
-    return Target::paintAsType(fromVal, to);
+    return Compiler::paintAsType(fromVal, to);
 }
 
 /******** Constant folding, with support for CTFE ***************************/

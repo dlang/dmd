@@ -1,6 +1,5 @@
 
 /* Copyright (C) 2010-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved, written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -239,57 +238,3 @@ void *speller(const char *seed, fp_speller_t fp, void *fparg, const char *charse
     }
     return NULL;   // didn't find it
 }
-
-
-#if UNITTEST
-
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
-
-void *speller_test(void *fparg, const char *s, int* cost)
-{
-    //printf("speller_test(%s, %s)\n", fparg, s);
-    *cost = 0;
-    if (strcmp((char *)fparg, s) == 0)
-        return fparg;
-    return NULL;
-}
-
-void unittest_speller()
-{
-    static const char *cases[][3] =
-    {
-        { "hello", "hell",  "y" },
-        { "hello", "hel",   "y" },
-        { "hello", "ello",  "y" },
-        { "hello", "llo",   "y" },
-        { "hello", "hellox",  "y" },
-        { "hello", "helloxy",  "y" },
-        { "hello", "xhello",  "y" },
-        { "hello", "xyhello",  "y" },
-        { "hello", "ehllo",  "y" },
-        { "hello", "helol",  "y" },
-        { "hello", "abcd",  "n" },
-        { "hello", "helxxlo", "y" },
-        { "hello", "ehlxxlo", "n" },
-        { "hello", "heaao", "y" },
-        { "_123456789_123456789_123456789_123456789", "_123456789_123456789_123456789_12345678", "y" },
-        { NULL, NULL, NULL }
-    };
-    //printf("unittest_speller()\n");
-    const void *p = speller("hello", &speller_test, (void *)"hell", idchars);
-    assert(p != NULL);
-    for (int i = 0; cases[i][0]; i++)
-    {
-        //printf("case [%d]\n", i);
-        void *p2 = speller(cases[i][0], &speller_test, (void *)cases[i][1], idchars);
-        if (p2)
-            assert(cases[i][2][0] == 'y');
-        else
-            assert(cases[i][2][0] == 'n');
-    }
-    //printf("unittest_speller() success\n");
-}
-
-#endif

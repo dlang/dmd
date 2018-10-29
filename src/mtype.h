@@ -1,24 +1,18 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/mtype.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/mtype.h
  */
 
-#ifndef DMD_MTYPE_H
-#define DMD_MTYPE_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
-#include "root.h"
-#include "stringtable.h"
-#include "rmem.h" // for d_size_t
+#include "root/root.h"
+#include "root/stringtable.h"
+#include "root/rmem.h" // for d_size_t
 
 #include "arraytypes.h"
 #include "expression.h"
@@ -564,7 +558,7 @@ public:
 enum RET
 {
     RETregs     = 1,    // returned in registers
-    RETstack    = 2,    // returned on stack
+    RETstack    = 2     // returned on stack
 };
 
 enum TRUST
@@ -572,7 +566,7 @@ enum TRUST
     TRUSTdefault = 0,
     TRUSTsystem = 1,    // @system (same as TRUSTdefault)
     TRUSTtrusted = 2,   // @trusted
-    TRUSTsafe = 3,      // @safe
+    TRUSTsafe = 3       // @safe
 };
 
 // in hdrgen.c
@@ -582,7 +576,7 @@ const char *trustToChars(TRUST trust);
 enum TRUSTformat
 {
     TRUSTformatDefault,  // do not emit @system when trust == TRUSTdefault
-    TRUSTformatSystem,   // emit @system when trust == TRUSTdefault
+    TRUSTformatSystem    // emit @system when trust == TRUSTdefault
 };
 
 enum PURE
@@ -591,7 +585,7 @@ enum PURE
     PUREfwdref = 1,     // it's pure, but not known which level yet
     PUREweak = 2,       // no mutable globals are read or written
     PUREconst = 3,      // parameters are values or const
-    PUREstrong = 4,     // parameters are values or immutable
+    PUREstrong = 4      // parameters are values or immutable
 };
 
 class TypeFunction : public TypeNext
@@ -754,7 +748,7 @@ enum AliasThisRec
     RECtypeMask = 3,// mask to read no/yes/fwdref
 
     RECtracing = 0x4, // mark in progress of implicitConvTo/deduceWild
-    RECtracingDT = 0x8, // mark in progress of deduceType
+    RECtracingDT = 0x8  // mark in progress of deduceType
 };
 
 class TypeStruct : public Type
@@ -938,5 +932,3 @@ public:
 
 bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
 bool arrayTypeCompatibleWithoutCasting(Type *t1, Type *t2);
-
-#endif /* DMD_MTYPE_H */

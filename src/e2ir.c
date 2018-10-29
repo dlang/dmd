@@ -41,6 +41,7 @@
 #include        "type.h"
 #include        "toir.h"
 #include        "ctfe.h"
+#include        "errors.h"
 
 typedef Array<elem *> Elems;
 RET retStyle(TypeFunction *tf);

@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -14,6 +13,7 @@
 
 #include "checkedint.h"
 
+#include "errors.h"
 #include "init.h"
 #include "declaration.h"
 #include "attrib.h"
@@ -33,7 +33,6 @@
 bool checkNestedRef(Dsymbol *s, Dsymbol *p);
 VarDeclaration *copyToTemp(StorageClass stc, const char *name, Expression *e);
 Expression *semantic(Expression *e, Scope *sc);
-Expression *initializerToExpression(Initializer *i, Type *t = NULL);
 Initializer *inferType(Initializer *init, Scope *sc);
 Initializer *semantic(Initializer *init, Scope *sc, Type *t, NeedInterpret needInterpret);
 
@@ -114,7 +113,7 @@ bool Declaration::isThreadlocal()
     return false;
 }
 
-bool Declaration::isCodeseg()
+bool Declaration::isCodeseg() const
 {
     return false;
 }
@@ -158,7 +157,7 @@ int Declaration::checkModify(Loc loc, Scope *sc, Type *, Expression *e1, int fla
     return 1;
 }
 
-Dsymbol *Declaration::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *Declaration::search(const Loc &loc, Identifier *ident, int flags)
 {
     Dsymbol *s = Dsymbol::search(loc, ident, flags);
     if (!s && type)
@@ -227,15 +226,7 @@ Type *TupleDeclaration::getType()
         {
             Type *t = (*types)[i];
             //printf("type = %s\n", t->toChars());
-#if 0
-            buf.printf("_%s_%d", ident->toChars(), i);
-            size_t len = buf.offset;
-            const char *name = (char *)buf.extractData();
-            Identifier *id = new Identifier(name, len);
-            Parameter *arg = new Parameter(STCin, t, id, NULL);
-#else
             Parameter *arg = new Parameter(0, t, NULL, NULL);
-#endif
             (*args)[i] = arg;
             if (!t->deco)
                 hasdeco = 0;
@@ -815,13 +806,6 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
 {
     //printf("VarDeclaration('%s')\n", id->toChars());
     assert(id);
-#ifdef DEBUG
-    if (!type && !init)
-    {
-        printf("VarDeclaration('%s')\n", id->toChars());
-        //*(char*)0=0;
-    }
-#endif
     assert(type || init);
     this->type = type;
     this->_init = init;
@@ -863,15 +847,6 @@ Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
 
 void VarDeclaration::semantic(Scope *sc)
 {
-#if 0
-    printf("VarDeclaration::semantic('%s', parent = '%s') sem = %d\n", toChars(), sc->parent ? sc->parent->toChars() : NULL, sem);
-    printf(" type = %s\n", type ? type->toChars() : "null");
-    printf(" stc = x%x\n", sc->stc);
-    printf(" storage_class = x%llx\n", storage_class);
-    printf("linkage = %d\n", sc->linkage);
-    //if (strcmp(toChars(), "mul") == 0) halt();
-#endif
-
 //    if (semanticRun > PASSinit)
 //      return;
 //    semanticRun = PASSsemantic;
@@ -1232,9 +1207,8 @@ Lnomatch:
             if (global.params.vfield &&
                 storage_class & (STCconst | STCimmutable) && _init && !_init->isVoidInitializer())
             {
-                const char *p = loc.toChars();
                 const char *s = (storage_class & STCimmutable) ? "immutable" : "const";
-                fprintf(global.stdmsg, "%s: %s.%s is %s field\n", p ? p : "", ad->toPrettyChars(), toChars(), s);
+                message(loc, "`%s.%s` is `%s` field", ad->toPrettyChars(), toChars(), s);
             }
             storage_class |= STCfield;
             if (tbn->ty == Tstruct && ((TypeStruct *)tbn)->sym->noDefaultCtor)
@@ -1643,14 +1617,6 @@ void VarDeclaration::semantic2(Scope *sc)
     if (_init && !toParent()->isFuncDeclaration())
     {
         inuse++;
-#if 0
-        ExpInitializer *ei = _init->isExpInitializer();
-        if (ei)
-        {
-            ei->exp->print();
-            printf("type = %p\n", ei->exp->type);
-        }
-#endif
         // Bugzilla 14166: Don't run CTFE for the temporary variables inside typeof
         _init = ::semantic(_init, sc, type, sc->intypeof == 1 ? INITnointerpret : INITinterpret);
         inuse--;
@@ -1844,12 +1810,12 @@ bool VarDeclaration::needThis()
     return isField();
 }
 
-bool VarDeclaration::isExport()
+bool VarDeclaration::isExport() const
 {
     return protection.kind == PROTexport;
 }
 
-bool VarDeclaration::isImportedSymbol()
+bool VarDeclaration::isImportedSymbol() const
 {
     if (protection.kind == PROTexport && !_init &&
         (storage_class & STCstatic || parent->isModule()))
@@ -2026,12 +1992,6 @@ bool VarDeclaration::canTakeAddressOf()
 
 bool VarDeclaration::isDataseg()
 {
-#if 0
-    printf("VarDeclaration::isDataseg(%p, '%s')\n", this, toChars());
-    printf("%llx, isModule: %p, isTemplateInstance: %p, isNspace: %p\n",
-           storage_class & (STCstatic | STCconst), parent->isModule(), parent->isTemplateInstance(), parent->isNspace());
-    printf("parent = '%s'\n", parent->toChars());
-#endif
     if (isdataseg == 0) // the value is not cached
     {
         isdataseg = 2; // The Variables does not go into the datasegment

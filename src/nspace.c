@@ -86,9 +86,6 @@ void Nspace::semantic(Scope *sc)
 {
     if (semanticRun != PASSinit)
         return;
-#if LOG
-    printf("+Nspace::semantic('%s')\n", toChars());
-#endif
     if (_scope)
     {
         sc = _scope;
@@ -115,17 +112,11 @@ void Nspace::semantic(Scope *sc)
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (*members)[i];
-#if LOG
-            printf("\tmember '%s', kind = '%s'\n", s->toChars(), s->kind());
-#endif
             s->semantic(sc);
         }
         sc->pop();
     }
     semanticRun = PASSsemanticdone;
-#if LOG
-    printf("-Nspace::semantic('%s')\n", toChars());
-#endif
 }
 
 void Nspace::semantic2(Scope *sc)
@@ -133,9 +124,6 @@ void Nspace::semantic2(Scope *sc)
     if (semanticRun >= PASSsemantic2)
         return;
     semanticRun = PASSsemantic2;
-#if LOG
-    printf("+Nspace::semantic2('%s')\n", toChars());
-#endif
     if (members)
     {
         assert(sc);
@@ -144,16 +132,10 @@ void Nspace::semantic2(Scope *sc)
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (*members)[i];
-#if LOG
-            printf("\tmember '%s', kind = '%s'\n", s->toChars(), s->kind());
-#endif
             s->semantic2(sc);
         }
         sc->pop();
     }
-#if LOG
-    printf("-Nspace::semantic2('%s')\n", toChars());
-#endif
 }
 
 void Nspace::semantic3(Scope *sc)
@@ -161,9 +143,6 @@ void Nspace::semantic3(Scope *sc)
     if (semanticRun >= PASSsemantic3)
         return;
     semanticRun = PASSsemantic3;
-#if LOG
-    printf("Nspace::semantic3('%s')\n", toChars());
-#endif
     if (members)
     {
         sc = sc->push(this);
@@ -187,7 +166,7 @@ bool Nspace::oneMember(Dsymbol **ps, Identifier *ident)
     return Dsymbol::oneMember(ps, ident);
 }
 
-Dsymbol *Nspace::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *Nspace::search(const Loc &loc, Identifier *ident, int flags)
 {
     //printf("%s::Nspace::search('%s')\n", toChars(), ident->toChars());
     if (_scope && !symtab)

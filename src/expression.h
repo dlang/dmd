@@ -1,25 +1,24 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/expression.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/expression.h
  */
 
-#ifndef DMD_EXPRESSION_H
-#define DMD_EXPRESSION_H
+#pragma once
 
-#include "mars.h"
+#include "complex_t.h"
+#include "globals.h"
 #include "identifier.h"
 #include "arraytypes.h"
 #include "intrange.h"
 #include "visitor.h"
 #include "tokens.h"
 
-#include "rmem.h"
+#include "root/rmem.h"
 
 class Type;
 class TypeVector;
@@ -116,7 +115,7 @@ enum OwnedBy
 {
     OWNEDcode,      // normal code expression in AST
     OWNEDctfe,      // value expression for CTFE
-    OWNEDcache,     // constant value cached for CTFE
+    OWNEDcache      // constant value cached for CTFE
 };
 
 #define WANTvalue   0   // default
@@ -883,6 +882,7 @@ class AddrExp : public UnaExp
 {
 public:
     AddrExp(Loc loc, Expression *e);
+    AddrExp(Loc loc, Expression *e, Type *t);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1111,7 +1111,7 @@ public:
 enum MemorySet
 {
     blockAssign     = 1,    // setting the contents of an array
-    referenceInit   = 2,    // setting the reference of STCref variable
+    referenceInit   = 2     // setting the reference of STCref variable
 };
 
 class AssignExp : public BinExp
@@ -1557,6 +1557,3 @@ void sliceAssignStringFromString(StringExp *existingSE, StringExp *newstr, size_
 
 int sliceCmpStringWithString(StringExp *se1, StringExp *se2, size_t lo1, size_t lo2, size_t len);
 int sliceCmpStringWithArray(StringExp *se1, ArrayLiteralExp *ae2, size_t lo1, size_t lo2, size_t len);
-
-
-#endif /* DMD_EXPRESSION_H */

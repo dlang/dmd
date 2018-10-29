@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -21,8 +20,9 @@
 #include <assert.h>
 #include <time.h>       // for time() and ctime()
 
-#include "rmem.h"
+#include "root/rmem.h"
 
+#include "mars.h"
 #include "lexer.h"
 #include "utf.h"
 #include "identifier.h"
@@ -153,7 +153,7 @@ void Lexer::deprecation(const char *format, ...)
     va_start(ap, format);
     ::vdeprecation(token.loc, format, ap);
     va_end(ap);
-    if (global.params.useDeprecated == 0)
+    if (global.params.useDeprecated == DIAGNOSTICerror)
         errors = true;
 }
 
@@ -410,7 +410,7 @@ void Lexer::scan(Token *t)
                     }
                     else if (id == Id::VENDOR)
                     {
-                        t->ustring = (utf8_t *)const_cast<char *>(global.compiler.vendor);
+                        t->ustring = (utf8_t *)const_cast<char *>(global.vendor);
                         goto Lstr;
                     }
                     else if (id == Id::TIMESTAMP)
@@ -1894,9 +1894,6 @@ Ldone:
             break;
 
         default:
-            #ifdef DEBUG
-                printf("%x\n",flags);
-            #endif
             assert(0);
     }
     t->uns64value = n;
@@ -1913,9 +1910,6 @@ Ldone:
 TOK Lexer::inreal(Token *t)
 {
     //printf("Lexer::inreal()\n");
-#ifdef DEBUG
-    assert(*p == '.' || isdigit(*p));
-#endif
     bool isWellformedString = true;
     stringbuffer.reset();
     const utf8_t *pstart = p;
@@ -2057,21 +2051,6 @@ TOK Lexer::inreal(Token *t)
         const char *suffix = (result == TOKfloat32v || result == TOKimaginary32v) ? "f" : "";
         error(scanloc, "number '%s%s' is not representable", (char *)stringbuffer.data, suffix);
     }
-#ifdef DEBUG
-    switch (result)
-    {
-        case TOKfloat32v:
-        case TOKfloat64v:
-        case TOKfloat80v:
-        case TOKimaginary32v:
-        case TOKimaginary64v:
-        case TOKimaginary80v:
-            break;
-
-        default:
-            assert(0);
-    }
-#endif
     return result;
 }
 

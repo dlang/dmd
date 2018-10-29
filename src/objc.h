@@ -1,19 +1,17 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 2015-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Michel Fortin
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/objc.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/objc.h
  */
 
-#ifndef DMD_OBJC_H
-#define DMD_OBJC_H
+#pragma once
 
-#include "root.h"
-#include "stringtable.h"
+#include "root/root.h"
+#include "root/stringtable.h"
 
 class Identifier;
 class FuncDeclaration;
@@ -53,5 +51,3 @@ public:
     virtual void validateSelector(FuncDeclaration* fd) = 0;
     virtual void checkLinkage(FuncDeclaration* fd) = 0;
 };
-
-#endif /* DMD_OBJC_H */

@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -15,10 +14,11 @@
 #include <assert.h>
 #include <math.h>
 
-#include "rmem.h"
-#include "aav.h"
-#include "checkedint.h"
+#include "root/rmem.h"
+#include "root/aav.h"
 
+#include "checkedint.h"
+#include "errors.h"
 #include "mtype.h"
 #include "init.h"
 #include "expression.h"
@@ -36,9 +36,7 @@
 #include "module.h"
 #include "attrib.h"
 #include "parse.h"
-#include "speller.h"
-
-#define LOGSEMANTIC     0
+#include "root/speller.h"
 
 typedef int (*ForeachDg)(void *ctx, size_t idx, Dsymbol *s);
 int ScopeDsymbol_foreach(Scope *sc, Dsymbols *members, ForeachDg dg, void *ctx, size_t *pn = NULL);
@@ -499,9 +497,6 @@ static Expression *dimError(TraitsExp *e, int expected, int dim)
 
 Expression *semanticTraits(TraitsExp *e, Scope *sc)
 {
-#if LOGSEMANTIC
-    printf("TraitsExp::semantic() %s\n", e->toChars());
-#endif
     if (e->ident != Id::compiles && e->ident != Id::isSame &&
         e->ident != Id::identifier && e->ident != Id::getProtection)
     {
@@ -912,14 +907,6 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         Dsymbol *s = getDsymbol(o);
         if (!s)
         {
-        #if 0
-            Expression *x = isExpression(o);
-            Type *t = isType(o);
-            if (x)
-                printf("e = %s %s\n", Token::toChars(x->op), x->toChars());
-            if (t)
-                printf("t = %d %s\n", t->ty, t->toChars());
-        #endif
             e->error("first argument is not a symbol");
             return new ErrorExp();
         }
@@ -1235,10 +1222,6 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                         Identifier *id = (*idents)[j];
                         if (id == sm->ident)
                             return 0;
-#ifdef DEBUG
-                        // Avoid using strcmp in the first place due to the performance impact in an O(N^2) loop.
-                        assert(strcmp(id->toChars(), sm->ident->toChars()) != 0);
-#endif
                     }
 
                     idents->push(sm->ident);
@@ -1378,22 +1361,6 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         Dsymbol *s1 = getDsymbol(o1);
         Dsymbol *s2 = getDsymbol(o2);
         //printf("isSame: %s, %s\n", o1->toChars(), o2->toChars());
-#if 0
-        printf("o1: %p\n", o1);
-        printf("o2: %p\n", o2);
-        if (!s1)
-        {
-            Expression *ea = isExpression(o1);
-            if (ea)
-                printf("%s\n", ea->toChars());
-            Type *ta = isType(o1);
-            if (ta)
-                printf("%s\n", ta->toChars());
-            return False(e);
-        }
-        else
-            printf("%s %s\n", s1->kind(), s1->toChars());
-#endif
         if (!s1 && !s2)
         {
             Expression *ea1 = isExpression(o1);

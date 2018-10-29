@@ -1,25 +1,19 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/dsymbol.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/dsymbol.h
  */
 
-#ifndef DMD_DSYMBOL_H
-#define DMD_DSYMBOL_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
-#include "root.h"
-#include "stringtable.h"
+#include "root/root.h"
+#include "root/stringtable.h"
 
-#include "mars.h"
+#include "globals.h"
 #include "arraytypes.h"
 #include "visitor.h"
 
@@ -89,9 +83,6 @@ struct Ungag
     ~Ungag() { global.gag = oldgag; }
 };
 
-const char *mangleExact(FuncDeclaration *fd);
-void mangleToBuffer(Dsymbol *s, OutBuffer* buf);
-
 enum PROTKIND
 {
     PROTundefined,
@@ -100,7 +91,7 @@ enum PROTKIND
     PROTpackage,
     PROTprotected,
     PROTpublic,
-    PROTexport,
+    PROTexport
 };
 
 struct Prot
@@ -133,7 +124,7 @@ enum PASS
     PASSsemantic3done,  // semantic3() done
     PASSinline,         // inline started
     PASSinlinedone,     // inline done
-    PASSobj,            // toObjFile() run
+    PASSobj             // toObjFile() run
 };
 
 /* Flags for symbol search
@@ -150,7 +141,7 @@ enum
                                     // meaning don't search imports in that scope,
                                     // because qualified module searches search
                                     // their imports
-    IgnoreSymbolVisibility  = 0x80, // also find private and package protected symbols
+    IgnoreSymbolVisibility  = 0x80  // also find private and package protected symbols
 };
 
 typedef int (*Dsymbol_apply_ft_t)(Dsymbol *, void *);
@@ -212,15 +203,15 @@ public:
     virtual void semantic(Scope *sc);
     virtual void semantic2(Scope *sc);
     virtual void semantic3(Scope *sc);
-    virtual Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
+    virtual Dsymbol *search(const Loc &loc, Identifier *ident, int flags = IgnoreNone);
     Dsymbol *search_correct(Identifier *id);
     Dsymbol *searchX(Loc loc, Scope *sc, RootObject *id);
     virtual bool overloadInsert(Dsymbol *s);
     virtual d_uns64 size(Loc loc);
     virtual bool isforwardRef();
     virtual AggregateDeclaration *isThis();     // is a 'this' required to access the member
-    virtual bool isExport();                    // is Dsymbol exported?
-    virtual bool isImportedSymbol();            // is Dsymbol imported?
+    virtual bool isExport() const;              // is Dsymbol exported?
+    virtual bool isImportedSymbol() const;      // is Dsymbol imported?
     virtual bool isDeprecated();                // is Dsymbol deprecated?
     virtual bool isOverloadable();
     virtual LabelDsymbol *isLabel();            // is this a LabelDsymbol?
@@ -311,7 +302,7 @@ public:
     ScopeDsymbol();
     ScopeDsymbol(Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
+    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
     OverloadSet *mergeOverloadSet(Identifier *ident, OverloadSet *os, Dsymbol *s);
     virtual void importScope(Dsymbol *s, Prot protection);
     void addAccessiblePackage(Package *p, Prot protection);
@@ -340,7 +331,7 @@ public:
     WithStatement *withstate;
 
     WithScopeSymbol(WithStatement *withstate);
-    Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
+    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
 
     WithScopeSymbol *isWithScopeSymbol() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -359,7 +350,7 @@ public:
     ArrayScopeSymbol(Scope *sc, Expression *e);
     ArrayScopeSymbol(Scope *sc, TypeTuple *t);
     ArrayScopeSymbol(Scope *sc, TupleDeclaration *td);
-    Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
+    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = IgnoreNone);
 
     ArrayScopeSymbol *isArrayScopeSymbol() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -413,5 +404,3 @@ public:
     Dsymbol *update(Dsymbol *s);
     Dsymbol *insert(Identifier const * const ident, Dsymbol *s);     // when ident and s are not the same
 };
-
-#endif /* DMD_DSYMBOL_H */

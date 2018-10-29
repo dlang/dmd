@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -12,7 +11,8 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "root.h"
+#include "root/root.h"
+#include "errors.h"
 #include "enum.h"
 #include "mtype.h"
 #include "scope.h"
@@ -61,15 +61,6 @@ void EnumDeclaration::setScope(Scope *sc)
 
 void EnumDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
 {
-#if 0
-    printf("EnumDeclaration::addMember() %s\n", toChars());
-    for (size_t i = 0; i < members->dim; i++)
-    {
-        EnumMember *em = (*members)[i]->isEnumMember();
-        printf("    member %s\n", em->toChars());
-    }
-#endif
-
     /* Anonymous enum members get added to enclosing scope.
      */
     ScopeDsymbol *scopesym = isAnonymous() ? sds : this;
@@ -303,6 +294,13 @@ Expression *EnumDeclaration::getMaxMinValue(Loc loc, Identifier *id)
         goto Lerrors;
     if (semanticRun == PASSinit || !members)
     {
+        if (isSpecial())
+        {
+            /* Allow these special enums to not need a member list
+             */
+            return memtype->getProperty(loc, id, 0);
+        }
+
         error("is forward referenced looking for .%s", id->toChars());
         goto Lerrors;
     }
@@ -365,6 +363,20 @@ Lerrors:
     return *pval;
 }
 
+/****************
+ * Determine if enum is a 'special' one.
+ * Returns:
+ *  true if special
+ */
+bool EnumDeclaration::isSpecial() const
+{
+    return (ident == Id::__c_long ||
+            ident == Id::__c_ulong ||
+            ident == Id::__c_longlong ||
+            ident == Id::__c_ulonglong ||
+            ident == Id::__c_long_double) && memtype;
+}
+
 Expression *EnumDeclaration::getDefaultValue(Loc loc)
 {
     //printf("EnumDeclaration::getDefaultValue() %p %s\n", this, toChars());
@@ -377,6 +389,13 @@ Expression *EnumDeclaration::getDefaultValue(Loc loc)
         goto Lerrors;
     if (semanticRun == PASSinit || !members)
     {
+        if (isSpecial())
+        {
+            /* Allow these special enums to not need a member list
+             */
+            return memtype->defaultInit(loc);
+        }
+
         error(loc, "forward reference of %s.init", toChars());
         goto Lerrors;
     }
@@ -453,7 +472,7 @@ Prot EnumDeclaration::prot()
     return protection;
 }
 
-Dsymbol *EnumDeclaration::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *EnumDeclaration::search(const Loc &loc, Identifier *ident, int flags)
 {
     //printf("%s.EnumDeclaration::search('%s')\n", toChars(), ident->toChars());
     if (_scope)

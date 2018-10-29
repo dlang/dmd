@@ -1,18 +1,12 @@
 
 /* Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved, written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
- * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
- * https://github.com/dlang/dmd/blob/master/src/root/stringtable.h
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/dlang/dmd/blob/master/src/dmd/root/stringtable.h
  */
 
-#ifndef STRINGTABLE_H
-#define STRINGTABLE_H
-
-#if __SC__
 #pragma once
-#endif
 
 #include "root.h"
 #include "rmem.h"   // for d_size_t
@@ -61,5 +55,3 @@ private:
     size_t findSlot(hash_t hash, const char *s, size_t len);
     void grow();
 };
-
-#endif

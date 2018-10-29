@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -12,9 +11,10 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "rmem.h"
+#include "root/rmem.h"
 #include "checkedint.h"
 
+#include "errors.h"
 #include "statement.h"
 #include "expression.h"
 #include "cond.h"
@@ -127,16 +127,6 @@ public:
     void visit(CompoundStatement *cs)
     {
         //printf("CompoundStatement::semantic(this = %p, sc = %p)\n", cs, sc);
-
-#if 0
-        for (size_t i = 0; i < cs->statements->dim; i++)
-        {
-            Statement *s = (*cs->statements)[i];
-            if (s)
-                printf("[%d]: %s", i, s->toChars());
-        }
-#endif
-
         for (size_t i = 0; i < cs->statements->dim; )
         {
             Statement *s = (*cs->statements)[i];
@@ -1134,11 +1124,6 @@ public:
                         {
                             Parameter *p = (*fs->parameters)[i];
                             Expression *exp = (*exps)[i];
-#if 0
-                            printf("[%d] p = %s %s, exp = %s %s\n", i,
-                                   p->type ? p->type->toChars() : "?", p->ident->toChars(),
-                                   exp->type->toChars(), exp->toChars());
-#endif
                             if (!p->type)
                                 p->type = exp->type;
                             p->type = p->type->addStorageClass(p->storageClass)->semantic(loc, sc2);
@@ -1158,12 +1143,6 @@ public:
                     s = new ForStatement(loc, init, condition, increment, forbody, fs->endloc);
                     if (LabelStatement *ls = checkLabeledLoop(sc, fs))
                         ls->gotoTarget = s;
-#if 0
-                    printf("init: %s\n", init->toChars());
-                    printf("condition: %s\n", condition->toChars());
-                    printf("increment: %s\n", increment->toChars());
-                    printf("body: %s\n", forbody->toChars());
-#endif
                     s = semantic(s, sc2);
                     break;
 
@@ -1846,44 +1825,10 @@ public:
         }
         else if (ps->ident == Id::lib)
         {
-#if 1
             /* Should this be allowed?
             */
             ps->error("pragma(lib) not allowed as statement");
             goto Lerror;
-#else
-            if (!ps->args || ps->args->dim != 1)
-            {
-                ps->error("string expected for library name");
-                goto Lerror;
-            }
-            else
-            {
-                Expression *e = (*ps->args)[0];
-
-                sc = sc->startCTFE();
-                e = semantic(e, sc);
-                e = resolveProperties(sc, e);
-                sc = sc->endCTFE();
-
-                e = e->ctfeInterpret();
-                (*ps->args)[0] = e;
-                StringExp *se = e->toStringExp();
-                if (!se)
-                {
-                    ps->error("string expected for library name, not '%s'", e->toChars());
-                    goto Lerror;
-                }
-                else if (global.params.verbose)
-                {
-                    char *name = (char *)mem.malloc(se->len + 1);
-                    memcpy(name, se->string, se->len);
-                    name[se->len] = 0;
-                    fprintf(global.stdmsg, "library   %s\n", name);
-                    mem.free(name);
-                }
-            }
-#endif
         }
         else if (ps->ident == Id::startaddress)
         {
@@ -2981,7 +2926,6 @@ public:
                 ss->exp = semantic(ss->exp, sc);
             }
 
-#if 1
             /* Rewrite as:
              *  auto tmp = exp;
              *  _d_monitorenter(tmp);
@@ -3010,7 +2954,6 @@ public:
             s = new CompoundStatement(ss->loc, cs);
             result = semantic(s, sc);
             return;
-#endif
         }
         else
         {
@@ -3455,6 +3398,10 @@ public:
 
     void visit(CompoundAsmStatement *cas)
     {
+        // Apply postfix attributes of the asm block to each statement.
+        sc = sc->push();
+        sc->stc |= cas->stc;
+
         for (size_t i = 0; i < cas->statements->dim; i++)
         {
             Statement *s = (*cas->statements)[i];
@@ -3471,6 +3418,7 @@ public:
         if (!(cas->stc & (STCtrusted|STCsafe)) && sc->func->setUnsafe())
             cas->error("asm statement is assumed to be @system - mark it with '@trusted' if it is not");
 
+        sc->pop();
         result = cas;
     }
 

@@ -1,20 +1,14 @@
 
 /* Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved, written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
  * https://github.com/dlang/dmd/blob/master/src/root/object.h
  */
 
-#ifndef OBJECT_H
-#define OBJECT_H
-
 #define POSIX (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
 
-#if __DMC__
 #pragma once
-#endif
 
 #include <stddef.h>
 
@@ -64,5 +58,3 @@ public:
      */
     virtual int dyncast() const;
 };
-
-#endif

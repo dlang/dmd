@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -14,9 +13,9 @@
 #include <assert.h>
 #include <limits.h>
 
-#include "rmem.h"
-#include "speller.h"
-#include "aav.h"
+#include "root/rmem.h"
+#include "root/speller.h"
+#include "root/aav.h"
 
 #include "mars.h"
 #include "dsymbol.h"
@@ -473,7 +472,7 @@ void Dsymbol::semantic3(Scope *)
  *  NULL if not found
  */
 
-Dsymbol *Dsymbol::search(Loc, Identifier *, int)
+Dsymbol *Dsymbol::search(const Loc &, Identifier *, int)
 {
     //printf("Dsymbol::search(this=%p,%s, ident='%s')\n", this, toChars(), ident->toChars());
     return NULL;
@@ -598,12 +597,12 @@ AggregateDeclaration *Dsymbol::isThis()
     return NULL;
 }
 
-bool Dsymbol::isExport()
+bool Dsymbol::isExport() const
 {
     return false;
 }
 
-bool Dsymbol::isImportedSymbol()
+bool Dsymbol::isImportedSymbol() const
 {
     return false;
 }
@@ -736,7 +735,7 @@ void Dsymbol::deprecation(const char *format, ...)
 
 void Dsymbol::checkDeprecated(Loc loc, Scope *sc)
 {
-    if (global.params.useDeprecated != 1 && isDeprecated())
+    if (global.params.useDeprecated != DIAGNOSTICoff && isDeprecated())
     {
         // Don't complain if we're inside a deprecated symbol's scope
         for (Dsymbol *sp = sc->parent; sp; sp = sp->parent)
@@ -968,7 +967,7 @@ void ScopeDsymbol::semantic(Scope *)
  * Be very, very careful about slowing it down.
  */
 
-Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *ScopeDsymbol::search(const Loc &loc, Identifier *ident, int flags)
 {
     //printf("%s->ScopeDsymbol::search(ident='%s', flags=x%x)\n", toChars(), ident->toChars(), flags);
     //if (strcmp(ident->toChars(),"c") == 0) *(char*)0=0;
@@ -1258,11 +1257,6 @@ bool ScopeDsymbol::isforwardRef()
 
 void ScopeDsymbol::multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2)
 {
-#if 0
-    printf("ScopeDsymbol::multiplyDefined()\n");
-    printf("s1 = %p, '%s' kind = '%s', parent = %s\n", s1, s1->toChars(), s1->kind(), s1->parent ? s1->parent->toChars() : "");
-    printf("s2 = %p, '%s' kind = '%s', parent = %s\n", s2, s2->toChars(), s2->kind(), s2->parent ? s2->parent->toChars() : "");
-#endif
     if (loc.filename)
     {   ::error(loc, "%s at %s conflicts with %s at %s",
             s1->toPrettyChars(),
@@ -1416,23 +1410,6 @@ FuncDeclaration *ScopeDsymbol::findGetMembers()
     Dsymbol *s = search_function(this, Id::getmembers);
     FuncDeclaration *fdx = s ? s->isFuncDeclaration() : NULL;
 
-#if 0  // Finish
-    static TypeFunction *tfgetmembers;
-
-    if (!tfgetmembers)
-    {
-        Scope sc;
-        Parameters *parameters = new Parameters;
-        Parameters *p = new Parameter(STCin, Type::tchar->constOf()->arrayOf(), NULL, NULL);
-        parameters->push(p);
-
-        Type *tret = NULL;
-        tfgetmembers = new TypeFunction(parameters, tret, 0, LINKd);
-        tfgetmembers = (TypeFunction *)tfgetmembers->semantic(Loc(), &sc);
-    }
-    if (fdx)
-        fdx = fdx->overloadExactMatch(tfgetmembers);
-#endif
     if (fdx && fdx->isVirtual())
         fdx = NULL;
 
@@ -1448,7 +1425,7 @@ WithScopeSymbol::WithScopeSymbol(WithStatement *withstate)
     this->withstate = withstate;
 }
 
-Dsymbol *WithScopeSymbol::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *WithScopeSymbol::search(const Loc &loc, Identifier *ident, int flags)
 {
     //printf("WithScopeSymbol::search(%s)\n", ident->toChars());
     if (flags & SearchImportsOnly)
@@ -1513,7 +1490,7 @@ ArrayScopeSymbol::ArrayScopeSymbol(Scope *sc, TupleDeclaration *s)
     this->sc = sc;
 }
 
-Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int)
+Dsymbol *ArrayScopeSymbol::search(const Loc &loc, Identifier *ident, int)
 {
     //printf("ArrayScopeSymbol::search('%s', flags = %d)\n", ident->toChars(), flags);
     if (ident == Id::dollar)

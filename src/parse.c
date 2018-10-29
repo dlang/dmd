@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -15,7 +14,8 @@
 #include <assert.h>
 #include <string.h>                     // strlen(),memcpy()
 
-#include "rmem.h"
+#include "root/rmem.h"
+#include "mars.h"
 #include "lexer.h"
 #include "parse.h"
 #include "init.h"
@@ -39,16 +39,6 @@
 #include "hdrgen.h"
 
 Expression *typeToExpression(Type *t);
-Expression *initializerToExpression(Initializer *i, Type *t = NULL);
-
-// How multiple declarations are parsed.
-// If 1, treat as C.
-// If 0, treat:
-//      int *p, i;
-// as:
-//      int* p;
-//      int* i;
-#define CDECLSYNTAX     0
 
 // Support C cast syntax:
 //      (type)(expression)
@@ -82,6 +72,7 @@ Parser::Parser(Loc loc, Module *module, const utf8_t *base, size_t length, bool 
     //printf("Parser::Parser()\n");
     scanloc = loc;
 
+#ifndef IN_GCC
     if (loc.filename)
     {
         /* Create a pseudo-filename for the mixin string, as it may not even exist
@@ -91,6 +82,7 @@ Parser::Parser(Loc loc, Module *module, const utf8_t *base, size_t length, bool 
         sprintf(filename, "%s-mixin-%d", loc.filename, (int)loc.linnum);
         scanloc.filename = filename;
     }
+#endif
 
     mod = module;
     md = NULL;
@@ -1996,33 +1988,6 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
                     storageClass = appendStorageClass(storageClass, stc);
                     continue;
 
-#if 0
-                case TOKstatic:    stc = STCstatic;             goto L2;
-                case TOKauto:   storageClass = STCauto;         goto L4;
-                case TOKalias:  storageClass = STCalias;        goto L4;
-                L4:
-                    nextToken();
-                    if (token.value == TOKidentifier)
-                    {   ai = token.ident;
-                        nextToken();
-                    }
-                    else
-                        ai = NULL;
-                    at = NULL;          // no type
-                    ae = NULL;          // no default argument
-                    if (token.value == TOKassign)       // = defaultArg
-                    {   nextToken();
-                        ae = parseDefaultInitExp();
-                        hasdefault = 1;
-                    }
-                    else
-                    {   if (hasdefault)
-                            error("default argument expected for alias %s",
-                                    ai ? ai->toChars() : "");
-                    }
-                    goto L3;
-#endif
-
                 default:
                 Ldefault:
                 {   stc = storageClass & (STCin | STCout | STCref | STClazy);
@@ -3725,23 +3690,6 @@ Dsymbols *Parser::parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, con
             addComment(s, comment);
             return a;
         }
-#if 0
-        /* Look for:
-         *  alias this = identifier;
-         */
-        if (token.value == TOKthis && peekNext() == TOKassign && peekNext2() == TOKidentifier)
-        {
-            check(TOKthis);
-            check(TOKassign);
-            AliasThis *s = new AliasThis(loc, token.ident);
-            nextToken();
-            check(TOKsemicolon);
-            Dsymbols *a = new Dsymbols();
-            a->push(s);
-            addComment(s, comment);
-            return a;
-        }
-#endif
         /* Look for:
          *  alias identifier = type;
          *  alias identifier(...) = type;
@@ -4345,33 +4293,6 @@ L1:
             f->fbody = parseStatement(PScurly);
             f->endloc = endloc;
             break;
-
-#if 0   // Do we want this for function declarations, so we can do:
-    // int x, y, foo(), z;
-        case TOKcomma:
-            nextToken();
-            continue;
-#endif
-
-#if 0 // Dumped feature
-        case TOKthrow:
-            if (!f->fthrows)
-                f->fthrows = new Types();
-            nextToken();
-            check(TOKlparen);
-            while (1)
-            {
-                Type *tb = parseBasicType();
-                f->fthrows->push(tb);
-                if (token.value == TOKcomma)
-                {   nextToken();
-                    continue;
-                }
-                break;
-            }
-            check(TOKrparen);
-            goto L1;
-#endif
 
         case TOKin:
             nextToken();
@@ -5771,6 +5692,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr, Loc *pEndloc
                         /* { */
                         error("matching '}' expected, not end of file");
                         goto Lerror;
+                        /* fall through */
 
                     default:
                     Ldefault:
@@ -6322,22 +6244,6 @@ bool Parser::isParameters(Token **pt)
                     goto L2;
                 }
                 goto L1;
-
-#if 0
-            case TOKstatic:
-                continue;
-            case TOKauto:
-            case TOKalias:
-                t = peek(t);
-                if (t->value == TOKidentifier)
-                    t = peek(t);
-                if (t->value == TOKassign)
-                {   t = peek(t);
-                    if (!isExpression(&t))
-                        return false;
-                }
-                goto L3;
-#endif
 
             default:
             {   if (!isBasicType(&t))
@@ -7428,13 +7334,6 @@ Expression *Parser::parseUnaryExp()
                     case TOKwcharv:
                     case TOKdcharv:
                     case TOKstring:
-#if 0
-                    case TOKtilde:
-                    case TOKand:
-                    case TOKmul:
-                    case TOKmin:
-                    case TOKadd:
-#endif
                     case TOKfunction:
                     case TOKdelegate:
                     case TOKtypeof:
@@ -8049,12 +7948,6 @@ PrecedenceInitializer::PrecedenceInitializer()
     precedence[TOKue] = PREC_rel;
     precedence[TOKin] = PREC_rel;
 
-#if 0
-    precedence[TOKequal] = PREC_equal;
-    precedence[TOKnotequal] = PREC_equal;
-    precedence[TOKidentity] = PREC_equal;
-    precedence[TOKnotidentity] = PREC_equal;
-#else
     /* Note that we changed precedence, so that < and != have the same
      * precedence. This change is in the parser, too.
      */
@@ -8062,7 +7955,6 @@ PrecedenceInitializer::PrecedenceInitializer()
     precedence[TOKnotequal] = PREC_rel;
     precedence[TOKidentity] = PREC_rel;
     precedence[TOKnotidentity] = PREC_rel;
-#endif
 
     precedence[TOKand] = PREC_and;
 

@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -13,7 +12,7 @@
 #include <assert.h>
 #include <new>
 
-#include "root.h"
+#include "root/root.h"
 #include "aggregate.h"
 #include "scope.h"
 #include "mtype.h"
@@ -599,43 +598,8 @@ FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
     }
     else
     {
-#if 0   // FIXME: doesn't work for recursive alias this
-        /* Check opCmp member exists.
-         * Consider 'alias this', but except opDispatch.
-         */
-        Expression *e = new DsymbolExp(sd->loc, sd);
-        e = new DotIdExp(sd->loc, e, Id::cmp);
-        Scope *sc2 = sc->push();
-        e = e->trySemantic(sc2);
-        sc2->pop();
-        if (e)
-        {
-            Dsymbol *s = NULL;
-            switch (e->op)
-            {
-                case TOKoverloadset:    s = ((OverExp *)e)->vars;       break;
-                case TOKscope:          s = ((ScopeExp *)e)->sds;       break;
-                case TOKvar:            s = ((VarExp *)e)->var;         break;
-                default:                break;
-            }
-            if (!s || s->ident != Id::cmp)
-                e = NULL;   // there's no valid member 'opCmp'
-        }
-        if (!e)
-            return NULL;    // bitwise comparison would work
-        /* Essentially, a struct which does not define opCmp is not comparable.
-         * At this time, typeid(S).compare might be correct that throwing "not implement" Error.
-         * But implementing it would break existing code, such as:
-         *
-         * struct S { int value; }  // no opCmp
-         * int[S] aa;   // Currently AA key uses bitwise comparison
-         *              // (It's default behavior of TypeInfo_Strust.compare).
-         *
-         * Not sure we should fix this inconsistency, so just keep current behavior.
-         */
-#else
+        // FIXME: doesn't work for recursive alias this
         return NULL;
-#endif
     }
 
     if (!sd->xerrcmp)
@@ -664,7 +628,11 @@ FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
     fop->generated = true;
     Expression *e1 = new IdentifierExp(loc, Id::p);
     Expression *e2 = new IdentifierExp(loc, Id::q);
+#ifdef IN_GCC
+    Expression *e = new CallExp(loc, new DotIdExp(loc, e1, Id::cmp), e2);
+#else
     Expression *e = new CallExp(loc, new DotIdExp(loc, e2, Id::cmp), e1);
+#endif
 
     fop->fbody = new ReturnStatement(loc, e);
 

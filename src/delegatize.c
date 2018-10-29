@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -28,7 +27,6 @@ bool walkPostorder(Expression *e, StoppableVisitor *v);
 void lambdaSetParent(Expression *e, Scope *sc);
 bool lambdaCheckForNestedRef(Expression *e, Scope *sc);
 Expression *semantic(Expression *e, Scope *sc);
-Expression *initializerToExpression(Initializer *i, Type *t = NULL);
 
 /********************************************
  * Convert from expression to delegate that returns the expression,

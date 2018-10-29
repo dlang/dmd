@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -15,9 +14,10 @@
 #include <math.h>
 #include <assert.h>
 
-#include "rmem.h"
-#include "root.h"
+#include "root/rmem.h"
+#include "root/root.h"
 
+#include "errors.h"
 #include "mtype.h"
 #include "init.h"
 #include "expression.h"
@@ -36,7 +36,7 @@
 #include "hdrgen.h"
 #include "parse.h"
 #include "doc.h"
-#include "aav.h"
+#include "root/aav.h"
 #include "nspace.h"
 #include "ctfe.h"
 #include "target.h"
@@ -57,8 +57,6 @@ Expression *semanticY(DotIdExp *exp, Scope *sc, int flag);
 Expression *semanticY(DotTemplateInstanceExp *exp, Scope *sc, int flag);
 Expression *resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
 bool checkUnsafeAccess(Scope *sc, Expression *e, bool readonly, bool printmsg);
-
-#define LOGSEMANTIC     0
 
 /*************************************************************
  * Given var, we need to get the
@@ -1102,14 +1100,6 @@ int expandAliasThisTuples(Expressions *exps, size_t starti)
                 e->type = d->type;
                 exps->insert(u + i, e);
             }
-    #if 0
-            printf("expansion ->\n");
-            for (size_t i = 0; i<exps->dim; ++i)
-            {
-                Expression *e = (*exps)[i];
-                printf("\texps[%d] e = %s %s\n", i, Token::tochars[e->op], e->toChars());
-            }
-    #endif
             return (int)u;
         }
     }
@@ -2053,11 +2043,6 @@ Expression *Expression::copy()
     Expression *e;
     if (!size)
     {
-#ifdef DEBUG
-        fprintf(stderr, "No expression copy for: %s\n", toChars());
-        printf("op = %d\n", op);
-        print();
-#endif
         assert(0);
     }
     void *pe = mem.xmalloc(size);
@@ -2754,13 +2739,6 @@ bool Expression::checkReadModifyWrite(TOK rmwOp, Expression *ex)
 Expression *Expression::toBoolean(Scope *sc)
 {
     // Default is 'yes' - do nothing
-
-#ifdef DEBUG
-    if (!type)
-        print();
-    assert(type);
-#endif
-
     Expression *e = this;
     Type *t = type;
     Type *tb = type->toBasetype();
@@ -2809,9 +2787,6 @@ Lagain:
 Expression *Expression::addressOf()
 {
     //printf("Expression::addressOf()\n");
-#ifdef DEBUG
-    assert(op == TOKerror || isLvalue());
-#endif
     Expression *e = new AddrExp(loc, this);
     e->type = type->pointerTo();
     return e;
@@ -3205,10 +3180,6 @@ DsymbolExp::DsymbolExp(Loc loc, Dsymbol *s, bool hasOverloads)
  */
 Expression *resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads)
 {
-#if LOGSEMANTIC
-    printf("DsymbolExp::resolve(%s %s)\n", s->kind(), s->toChars());
-#endif
-
 Lagain:
     Expression *e;
 
@@ -5412,12 +5383,6 @@ int DotVarExp::checkModifiable(Scope *sc, int flag)
 
 Expression *DotVarExp::modifiableLvalue(Scope *sc, Expression *e)
 {
-#if 0
-    printf("DotVarExp::modifiableLvalue(%s)\n", toChars());
-    printf("e1->type = %s\n", e1->type->toChars());
-    printf("var->type = %s\n", var->type->toChars());
-#endif
-
     return Expression::modifiableLvalue(sc, e);
 }
 
@@ -5451,9 +5416,6 @@ Expression *DotTemplateInstanceExp::syntaxCopy()
 
 bool DotTemplateInstanceExp::findTempDecl(Scope *sc)
 {
-#if LOGSEMANTIC
-    printf("DotTemplateInstanceExp::findTempDecl('%s')\n", toChars());
-#endif
     if (ti->tempdecl)
         return true;
 
@@ -5659,6 +5621,12 @@ FuncDeclaration *isFuncAddress(Expression *e, bool *hasOverloads = NULL)
 AddrExp::AddrExp(Loc loc, Expression *e)
         : UnaExp(loc, TOKaddress, sizeof(AddrExp), e)
 {
+}
+
+AddrExp::AddrExp(Loc loc, Expression *e, Type *t)
+        : UnaExp(loc, TOKaddress, sizeof(AddrExp), e)
+{
+    type = t;
 }
 
 /************************************************************/

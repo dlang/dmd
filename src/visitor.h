@@ -1,15 +1,13 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 2013-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/visitor.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/visitor.h
  */
 
-#ifndef DMD_VISITOR_H
-#define DMD_VISITOR_H
+#pragma once
 
 #include <assert.h>
 
@@ -54,6 +52,8 @@ class DebugStatement;
 class GotoStatement;
 class LabelStatement;
 class AsmStatement;
+class InlineAsmStatement;
+class GccAsmStatement;
 class CompoundAsmStatement;
 class ImportStatement;
 
@@ -343,6 +343,8 @@ public:
     virtual void visit(GotoStatement *s) { visit((Statement *)s); }
     virtual void visit(LabelStatement *s) { visit((Statement *)s); }
     virtual void visit(AsmStatement *s) { visit((Statement *)s); }
+    virtual void visit(InlineAsmStatement *s) { visit((AsmStatement *)s); }
+    virtual void visit(GccAsmStatement *s) { visit((AsmStatement *)s); }
     virtual void visit(CompoundAsmStatement *s) { visit((CompoundStatement *)s); }
     virtual void visit(ImportStatement *s) { visit((Statement *)s); }
 
@@ -595,5 +597,3 @@ public:
     bool stop;
     StoppableVisitor() : stop(false) {}
 };
-
-#endif /* DMD_VISITOR_H */

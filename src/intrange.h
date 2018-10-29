@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by KennyTM
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -9,10 +8,9 @@
  * https://github.com/dlang/dmd/blob/master/src/intrange.h
  */
 
-#ifndef DMD_SXNUM_H
-#define DMD_SXNUM_H
+#pragma once
 
-#include "mars.h"   // for uinteger_t
+#include "globals.h"   // for uinteger_t
 class Type;
 class Expression;
 
@@ -149,5 +147,3 @@ struct IntRange
     void splitBySign(IntRange& negRange, bool& hasNegRange,
                      IntRange& nonNegRange, bool& hasNonNegRange) const;
 };
-
-#endif

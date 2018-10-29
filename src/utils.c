@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -9,11 +8,11 @@
  */
 
 #include <string.h>
-#include "errors.h"
+#include "mars.h"
 #include "globals.h"
-#include "file.h"
-#include "filename.h"
-#include "outbuffer.h"
+#include "root/file.h"
+#include "root/filename.h"
+#include "root/outbuffer.h"
 
 /**
  * Normalize path by turning forward slashes into backslashes
