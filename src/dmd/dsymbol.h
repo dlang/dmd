@@ -65,6 +65,7 @@ class WithScopeSymbol;
 class ArrayScopeSymbol;
 class SymbolDeclaration;
 class Expression;
+class ExpressionDsymbol;
 class DeleteDeclaration;
 class OverloadSet;
 struct AA;
@@ -250,6 +251,7 @@ public:
     virtual InvariantDeclaration *isInvariantDeclaration() { return NULL; }
     virtual UnitTestDeclaration *isUnitTestDeclaration() { return NULL; }
     virtual NewDeclaration *isNewDeclaration() { return NULL; }
+    virtual ExpressionDsymbol *isExpressionDsymbol() { return NULL; }
     virtual VarDeclaration *isVarDeclaration() { return NULL; }
     virtual ClassDeclaration *isClassDeclaration() { return NULL; }
     virtual StructDeclaration *isStructDeclaration() { return NULL; }
@@ -358,6 +360,13 @@ class ForwardingScopeDsymbol : public ScopeDsymbol
     const char *kind() const;
 
     ForwardingScopeDsymbol *isForwardingScopeDsymbol() { return this; }
+};
+
+class ExpressionDsymbol : public Dsymbol
+{
+    Expression *exp;
+
+    ExpressionDsymbol *isExpressionDsymbol() { return this; }
 };
 
 // Table of Dsymbol's
