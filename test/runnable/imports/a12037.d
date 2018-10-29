@@ -35,7 +35,7 @@ private:
         // Convert F to the correct binary type.
         static typeof(get) opCall(F value)
         {
-            ToBinary r;
+            ToBinary!F r;
             r.set = value;
             return r.get;
         }

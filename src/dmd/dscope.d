@@ -24,6 +24,7 @@ import dmd.doc;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
+import dmd.expression;
 import dmd.errors;
 import dmd.func;
 import dmd.globals;
@@ -365,6 +366,70 @@ struct Scope
             return null;
         }
 
+        Dsymbol checkAliasThis(AggregateDeclaration ad, Identifier ident, int flags, Expression* exp)
+        {
+            import dmd.mtype;
+            if (!ad || !ad.aliasthis)
+                return null;
+
+            Declaration decl = ad.aliasthis.isDeclaration();
+            if (!decl)
+                return null;
+
+            Type t = decl.type;
+            ScopeDsymbol sds;
+            TypeClass tc;
+            TypeStruct ts;
+            switch(t.ty)
+            {
+                case Tstruct:
+                    ts = cast(TypeStruct)t;
+                    sds = ts.sym;
+                    break;
+                case Tclass:
+                    tc = cast(TypeClass)t;
+                    sds = tc.sym;
+                    break;
+                case Tinstance:
+                    sds = (cast(TypeInstance)t).tempinst;
+                    break;
+                case Tenum:
+                    sds = (cast(TypeEnum)t).sym;
+                    break;
+                default: break;
+            }
+
+            if (!sds)
+                return null;
+
+            Dsymbol ret = sds.search(loc, ident, flags);
+            if (ret)
+            {
+                *exp = new DotIdExp(loc, *exp, ad.aliasthis.ident);
+                *exp = new DotIdExp(loc, *exp, ident);
+                return ret;
+            }
+
+            if (!ts && !tc)
+                return null;
+
+            Dsymbol s;
+            *exp = new DotIdExp(loc, *exp, ad.aliasthis.ident);
+            if (ts && !(ts.att & AliasThisRec.tracing))
+            {
+                ts.att = cast(AliasThisRec)(ts.att | AliasThisRec.tracing);
+                s = checkAliasThis(sds.isAggregateDeclaration(), ident, flags, exp);
+                ts.att = cast(AliasThisRec)(ts.att & ~AliasThisRec.tracing);
+            }
+            else if(tc && !(tc.att & AliasThisRec.tracing))
+            {
+                tc.att = cast(AliasThisRec)(tc.att | AliasThisRec.tracing);
+                s = checkAliasThis(sds.isAggregateDeclaration(), ident, flags, exp);
+                tc.att = cast(AliasThisRec)(tc.att & ~AliasThisRec.tracing);
+            }
+            return s;
+        }
+
         Dsymbol searchScopes(int flags)
         {
             for (Scope* sc = &this; sc; sc = sc.enclosing)
@@ -390,6 +455,18 @@ struct Scope
                         *pscopesym = sc.scopesym;
                     return s;
                 }
+
+                Expression exp = new ThisExp(loc);
+                Dsymbol aliasSym = checkAliasThis(sc.scopesym.isAggregateDeclaration(), ident, flags, &exp);
+                //printf("exp = %s\n", exp.toChars());
+                if (aliasSym)
+                {
+                    //printf("found aliassym: %s\n", aliasSym.toChars());
+                    if (pscopesym)
+                        *pscopesym = new ExpressionDsymbol(exp);
+                    return aliasSym;
+                }
+
                 // Stop when we hit a module, but keep going if that is not just under the global scope
                 if (sc.scopesym.isModule() && !(sc.enclosing && !sc.enclosing.enclosing))
                     break;
