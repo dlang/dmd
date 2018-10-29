@@ -1,4 +1,4 @@
-fix Issue 14246 - RAII - proper destruction of partically constructed objects
+fix Issue 14246 - RAII - proper destruction of partially constructed objects
 
 Since destructors for object fields can now get called by the constructor for that
 object if the constructor fails, the attributes of the destructors must be covariant
