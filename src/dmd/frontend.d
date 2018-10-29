@@ -101,9 +101,13 @@ Returns: full path to the found `dmd.conf`, `null` otherwise.
 string findDMDConfig(const(char)[] dmdFilePath)
 {
     import dmd.dinifile : findConfFile;
-    import std.string : fromStringz, toStringz;
 
-    return findConfFile(dmdFilePath, "dmd.conf").idup;
+    version (Windows)
+        enum configFile = "sc.ini";
+    else
+        enum configFile = "dmd.conf";
+
+    return findConfFile(dmdFilePath, configFile).idup;
 }
 
 /**
