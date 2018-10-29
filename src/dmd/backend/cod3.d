@@ -1912,19 +1912,19 @@ void outswitab(block *b)
     objmod.lidata(seg,*poffset,alignbytes);  // any alignment bytes necessary
     assert(*poffset == offset + alignbytes);
 
-  uint sz = _tysize[TYint];
-  assert(SegData[seg].SDseg == seg);
-  for (uint n = 0; n < ncases; n++)          // send out value table
-  {
+    uint sz = _tysize[TYint];
+    assert(SegData[seg].SDseg == seg);
+    for (uint n = 0; n < ncases; n++)          // send out value table
+    {
         //printf("\tcase %d, offset = x%x\n", n, *poffset);
         objmod.write_bytes(SegData[seg],sz,p);
         p++;
-  }
-  offset += alignbytes + sz * ncases;
-  assert(*poffset == offset);
+    }
+    offset += alignbytes + sz * ncases;
+    assert(*poffset == offset);
 
-  if (b.Btablesize == ncases * (REGSIZE * 2 + tysize(TYnptr)))
-  {
+    if (b.Btablesize == ncases * (REGSIZE * 2 + tysize(TYnptr)))
+    {
         // Send out MSW table
         p -= ncases;
         for (uint n = 0; n < ncases; n++)
@@ -1935,15 +1935,16 @@ void outswitab(block *b)
         }
         offset += REGSIZE * ncases;
         assert(*poffset == offset);
-  }
+    }
 
-  list_t bl = b.Bsucc;
-  for (uint n = 0; n < ncases; n++)          // send out address table
-  {     bl = list_next(bl);
+    list_t bl = b.Bsucc;
+    for (uint n = 0; n < ncases; n++)          // send out address table
+    {
+        bl = list_next(bl);
         objmod.reftocodeseg(seg,*poffset,list_block(bl).Boffset);
         *poffset += tysize(TYnptr);
-  }
-  assert(*poffset == offset + ncases * tysize(TYnptr));
+    }
+    assert(*poffset == offset + ncases * tysize(TYnptr));
 }
 
 /*****************************
@@ -1951,9 +1952,10 @@ void outswitab(block *b)
  */
 
 int jmpopcode(elem *e)
-{ tym_t tym;
-  int zero,i,jp,op;
-  static immutable ubyte[6][2][2] jops =
+{
+    tym_t tym;
+    int zero,i,jp,op;
+    static immutable ubyte[6][2][2] jops =
     [   /* <=  >   <   >=  ==  !=    <=0 >0  <0  >=0 ==0 !=0    */
        [ [JLE,JG ,JL ,JGE,JE ,JNE],[JLE,JG ,JS ,JNS,JE ,JNE] ], /* signed   */
        [ [JBE,JA ,JB ,JAE,JE ,JNE],[JE ,JNE,JB ,JAE,JE ,JNE] ], /* uint */
@@ -1978,29 +1980,31 @@ int jmpopcode(elem *e)
         XP|JA,JE,JBE,JB, XP|JAE,XP|JA, JNP,JE, JP,  JA,  JNC,XNP|JB, XNP|JBE,JNE        ], /* 8087     */
     ];
 
-  assert(e);
-  while (e.Eoper == OPcomma ||
+    assert(e);
+    while (e.Eoper == OPcomma ||
         /* The OTleaf(e.EV.E1.Eoper) is to line up with the case in cdeq() where  */
         /* we decide if mPSW is passed on when evaluating E2 or not.    */
          (e.Eoper == OPeq && OTleaf(e.EV.E1.Eoper)))
+    {
         e = e.EV.E2;                      /* right operand determines it  */
+    }
 
-  op = e.Eoper;
-  tym_t tymx = tybasic(e.Ety);
-  bool needsNanCheck = tyfloating(tymx) && config.inline8087 &&
-    (tymx == TYldouble || tymx == TYildouble || tymx == TYcldouble ||
-     tymx == TYcdouble || tymx == TYcfloat ||
-     op == OPind ||
-     (OTcall(op) && (regmask(tymx, tybasic(e.EV.E1.Eoper)) & (mST0 | XMMREGS))));
-  if (e.Ecount != e.Ecomsub)          // comsubs just get Z bit set
-  {
+    op = e.Eoper;
+    tym_t tymx = tybasic(e.Ety);
+    bool needsNanCheck = tyfloating(tymx) && config.inline8087 &&
+        (tymx == TYldouble || tymx == TYildouble || tymx == TYcldouble ||
+         tymx == TYcdouble || tymx == TYcfloat ||
+         op == OPind ||
+         (OTcall(op) && (regmask(tymx, tybasic(e.EV.E1.Eoper)) & (mST0 | XMMREGS))));
+    if (e.Ecount != e.Ecomsub)          // comsubs just get Z bit set
+    {
         if (needsNanCheck) // except for floating point values that need a NaN check
             return XP|JNE;
         else
             return JNE;
-  }
-  if (!OTrel(op))                       // not relational operator
-  {
+    }
+    if (!OTrel(op))                       // not relational operator
+    {
         if (needsNanCheck)
             return XP|JNE;
 
@@ -2008,16 +2012,16 @@ int jmpopcode(elem *e)
         if (op == OPu16_32) { e = e.EV.E1; op = e.Eoper; }
         if (op == OPu8_16) op = e.EV.E1.Eoper;
         return ((op >= OPbt && op <= OPbts) || op == OPbtst) ? JC : JNE;
-  }
+    }
 
-  if (e.EV.E2.Eoper == OPconst)
+    if (e.EV.E2.Eoper == OPconst)
         zero = !boolres(e.EV.E2);
-  else
+    else
         zero = 0;
 
-  tym = e.EV.E1.Ety;
-  if (tyfloating(tym))
-  {
+    tym = e.EV.E1.Ety;
+    if (tyfloating(tym))
+    {
 static if (1)
 {
         i = 0;
@@ -2066,39 +2070,39 @@ else
 {
         i = (config.inline8087) ? (3 + cmporder87(e.EV.E2)) : 2;
 }
-  }
-  else if (tyuns(tym) || tyuns(e.EV.E2.Ety))
+    }
+    else if (tyuns(tym) || tyuns(e.EV.E2.Ety))
         i = 1;
-  else if (tyintegral(tym) || typtr(tym))
+    else if (tyintegral(tym) || typtr(tym))
         i = 0;
-  else
-  {
+    else
+    {
         debug
         elem_print(e);
         WRTYxx(tym);
         assert(0);
-  }
+    }
 
-  jp = jops[i][zero][op - OPle];        /* table starts with OPle       */
+    jp = jops[i][zero][op - OPle];        /* table starts with OPle       */
 
-  /* Try to rewrite uint comparisons so they rely on just the Carry flag
-   */
-  if (i == 1 && (jp == JA || jp == JBE) &&
-      (e.EV.E2.Eoper != OPconst && e.EV.E2.Eoper != OPrelconst))
-  {
+    /* Try to rewrite uint comparisons so they rely on just the Carry flag
+     */
+    if (i == 1 && (jp == JA || jp == JBE) &&
+        (e.EV.E2.Eoper != OPconst && e.EV.E2.Eoper != OPrelconst))
+    {
         jp = (jp == JA) ? JC : JNC;
-  }
+    }
 
 L1:
-  debug
-  if ((jp & 0xF0) != 0x70)
-  {
+    debug
+    if ((jp & 0xF0) != 0x70)
+    {
         WROP(op);
         printf("i %d zero %d op x%x jp x%x\n",i,zero,op,jp);
-  }
+    }
 
-  assert((jp & 0xF0) == 0x70);
-  return jp;
+    assert((jp & 0xF0) == 0x70);
+    return jp;
 }
 
 /**********************************
@@ -2161,7 +2165,8 @@ void cod3_ptrchk(ref CodeBuilder cdb,code *pcs,regm_t keepmsk)
     code *cs2 = null;
     regm_t tosave = used & (keepmsk | idxregs);
     for (int i = 0; tosave; i++)
-    {   regm_t mi = mask(i);
+    {
+        regm_t mi = mask(i);
 
         assert(i < REGMAX);
         if (mi & tosave)        /* i = register to save                 */
@@ -2185,7 +2190,8 @@ void cod3_ptrchk(ref CodeBuilder cdb,code *pcs,regm_t keepmsk)
 
     // For 16 bit models, push a far pointer
     if (I16)
-    {   int segreg;
+    {
+        int segreg;
 
         switch (pcs.Iflags & (CFes | CFss | CFcs | CFds | CFfs | CFgs))
         {   case CFes:  segreg = 0x06;  break;
@@ -2200,7 +2206,8 @@ void cod3_ptrchk(ref CodeBuilder cdb,code *pcs,regm_t keepmsk)
         // (Happens when BP is part of the addressing mode)
         if (segreg == 0x1E && (rm & 0xC0) != 0xC0 &&
             rm & 2 && (rm & 7) != 7)
-        {   segreg = 0x16;
+        {
+            segreg = 0x16;
             if (config.wflags & WFssneds)
                 pcs.Iflags |= CFss;    // because BP won't be there anymore
         }
@@ -2288,7 +2295,8 @@ Lcant:
  */
 
 bool cse_simple(code *c, elem *e)
-{   regm_t regm;
+{
+    regm_t regm;
     uint reg;
     int sz = tysize(e.Ety);
 
@@ -2389,47 +2397,47 @@ void cdframeptr(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 
 void cdgot(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
-static if (TARGET_OSX)
-{
-    regm_t retregs = *pretregs & allregs;
-    if  (!retregs)
-        retregs = allregs;
-    uint reg;
-    allocreg(cdb,&retregs, &reg, TYnptr);
+    static if (TARGET_OSX)
+    {
+        regm_t retregs = *pretregs & allregs;
+        if  (!retregs)
+            retregs = allregs;
+        uint reg;
+        allocreg(cdb,&retregs, &reg, TYnptr);
 
-    cdb.genc(CALL,0,0,0,FLgot,0);     //     CALL L1
-    cdb.gen1(0x58 + reg);             // L1: POP reg
+        cdb.genc(CALL,0,0,0,FLgot,0);     //     CALL L1
+        cdb.gen1(0x58 + reg);             // L1: POP reg
 
-    fixresult(cdb,e,retregs,pretregs);
-}
-else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-    regm_t retregs = *pretregs & allregs;
-    if  (!retregs)
-        retregs = allregs;
-    uint reg;
-    allocreg(cdb,&retregs, &reg, TYnptr);
+        fixresult(cdb,e,retregs,pretregs);
+    }
+    else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+    {
+        regm_t retregs = *pretregs & allregs;
+        if  (!retregs)
+            retregs = allregs;
+        uint reg;
+        allocreg(cdb,&retregs, &reg, TYnptr);
 
-    cdb.genc2(CALL,0,0);        //     CALL L1
-    cdb.gen1(0x58 + reg);       // L1: POP reg
+        cdb.genc2(CALL,0,0);        //     CALL L1
+        cdb.gen1(0x58 + reg);       // L1: POP reg
 
-                                //     ADD reg,_GLOBAL_OFFSET_TABLE_+3
-    Symbol *gotsym = Obj.getGOTsym();
-    cdb.gencs(0x81,modregrm(3,0,reg),FLextern,gotsym);
-    /* Because the 2:3 offset from L1: is hardcoded,
-     * this sequence of instructions must not
-     * have any instructions in between,
-     * so set CFvolatile to prevent the scheduler from rearranging it.
-     */
-    code *cgot = cdb.last();
-    cgot.Iflags = CFoff | CFvolatile;
-    cgot.IEV2.Voffset = (reg == AX) ? 2 : 3;
+                                    //     ADD reg,_GLOBAL_OFFSET_TABLE_+3
+        Symbol *gotsym = Obj.getGOTsym();
+        cdb.gencs(0x81,modregrm(3,0,reg),FLextern,gotsym);
+        /* Because the 2:3 offset from L1: is hardcoded,
+         * this sequence of instructions must not
+         * have any instructions in between,
+         * so set CFvolatile to prevent the scheduler from rearranging it.
+         */
+        code *cgot = cdb.last();
+        cgot.Iflags = CFoff | CFvolatile;
+        cgot.IEV2.Voffset = (reg == AX) ? 2 : 3;
 
-    makeitextern(gotsym);
-    fixresult(cdb,e,retregs,pretregs);
-}
-else
-    assert(0);
+        makeitextern(gotsym);
+        fixresult(cdb,e,retregs,pretregs);
+    }
+    else
+        assert(0);
 }
 
 /**************************************************
@@ -2438,28 +2446,28 @@ else
 
 void load_localgot(ref CodeBuilder cdb)
 {
-static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-    if (config.flags3 & CFG3pic && I32)
+    static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
     {
-        if (localgot && !(localgot.Sflags & SFLdead))
+        if (config.flags3 & CFG3pic && I32)
         {
-            localgot.Sflags &= ~GTregcand;     // because this hack doesn't work with reg allocator
-            elem *e = el_var(localgot);
-            regm_t retregs = mBX;
-            codelem(cdb,e,&retregs,false);
-            el_free(e);
-        }
-        else
-        {
-            elem *e = el_long(TYnptr, 0);
-            e.Eoper = OPgot;
-            regm_t retregs = mBX;
-            codelem(cdb,e,&retregs,false);
-            el_free(e);
+            if (localgot && !(localgot.Sflags & SFLdead))
+            {
+                localgot.Sflags &= ~GTregcand;     // because this hack doesn't work with reg allocator
+                elem *e = el_var(localgot);
+                regm_t retregs = mBX;
+                codelem(cdb,e,&retregs,false);
+                el_free(e);
+            }
+            else
+            {
+                elem *e = el_long(TYnptr, 0);
+                e.Eoper = OPgot;
+                regm_t retregs = mBX;
+                codelem(cdb,e,&retregs,false);
+                el_free(e);
+            }
         }
     }
-}
 }
 
 static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
@@ -2484,7 +2492,8 @@ private int obj_namestring(char *p,const(char)* name)
         len += ONS_OHD;
     }
     else
-    {   p[0] = cast(char)len;
+    {
+        p[0] = cast(char)len;
         memcpy(p + 1,name,len);
         len++;
     }
@@ -2493,7 +2502,9 @@ private int obj_namestring(char *p,const(char)* name)
 }
 
 void genregs(ref CodeBuilder cdb,uint op,uint dstreg,uint srcreg)
-{ return cdb.gen2(op,modregxrmx(3,dstreg,srcreg)); }
+{
+    return cdb.gen2(op,modregxrmx(3,dstreg,srcreg));
+}
 
 void gentstreg(ref CodeBuilder cdb, uint t)
 {
@@ -2523,7 +2534,8 @@ void gensavereg(ref CodeBuilder cdb, ref uint reg, targ_uns slot)
     // MOV i[BP],reg
     uint op = 0x89;              // normal mov
     if (reg == ES)
-    {   reg = 0;            // the real reg number
+    {
+        reg = 0;            // the real reg number
         op = 0x8C;          // segment reg mov
     }
     cdb.genc1(op,modregxrm(2, reg, BPRM),FLcs,slot);
@@ -2548,20 +2560,20 @@ void genmovreg(ref CodeBuilder cdb,uint to,uint from)
 {
     debug
         if (to > ES || from > ES)
-                printf("genmovreg(to = %d, from = %d)\n",to,from);
+            printf("genmovreg(to = %d, from = %d)\n",to,from);
 
-        assert(to <= ES && from <= ES);
-        if (to != from)
-        {
-                if (to == ES)
-                        genregs(cdb,0x8E,0,from);
-                else if (from == ES)
-                        genregs(cdb,0x8C,0,to);
-                else
-                        genregs(cdb,0x89,from,to);
-                if (I64)
-                        code_orrex(cdb.last(), REX_W);
-        }
+    assert(to <= ES && from <= ES);
+    if (to != from)
+    {
+        if (to == ES)
+            genregs(cdb,0x8E,0,from);
+        else if (from == ES)
+            genregs(cdb,0x8C,0,to);
+        else
+            genregs(cdb,0x89,from,to);
+        if (I64)
+            code_orrex(cdb.last(), REX_W);
+    }
 }
 
 /***************************************
@@ -2602,15 +2614,15 @@ void genmulimm(ref CodeBuilder cdb,uint r1,uint r2,targ_int imm)
 
 void genshift(ref CodeBuilder cdb)
 {
-version (SCPP)
-{
-    // Set up ahshift to trick ourselves into giving the right fixup,
-    // which must be seg-relative, external frame, external target.
-    cdb.gencs(0xC7,modregrm(3,0,CX),FLfunc,getRtlsym(RTLSYM_AHSHIFT));
-    cdb.last().Iflags |= CFoff;
-}
-else
-    assert(0);
+    version (SCPP)
+    {
+        // Set up ahshift to trick ourselves into giving the right fixup,
+        // which must be seg-relative, external frame, external target.
+        cdb.gencs(0xC7,modregrm(3,0,CX),FLfunc,getRtlsym(RTLSYM_AHSHIFT));
+        cdb.last().Iflags |= CFoff;
+    }
+    else
+        assert(0);
 }
 
 /******************************
@@ -2632,7 +2644,8 @@ else
  */
 
 void movregconst(ref CodeBuilder cdb,uint reg,targ_size_t value,regm_t flags)
-{   uint r;
+{
+    uint r;
     regm_t mreg;
 
     //printf("movregconst(reg=%s, value= %lld (%llx), flags=%x)\n", regm_str(mask(reg)), value, value, flags);
@@ -2668,14 +2681,16 @@ void movregconst(ref CodeBuilder cdb,uint reg,targ_size_t value,regm_t flags)
             if (mreg & 1)
             {
                 if ((regcon.immed.value[r] & 0xFF) == value)
-                {   genregs(cdb,0x8A,reg,r);          // MOV regL,rL
+                {
+                    genregs(cdb,0x8A,reg,r);          // MOV regL,rL
                     if (I64 && reg >= 4 || r >= 4)
                         code_orrex(cdb.last(), REX);
                     goto L2;
                 }
                 if (!(I64 && reg >= 4) &&
                     r < 4 && ((regcon.immed.value[r] >> 8) & 0xFF) == value)
-                {   genregs(cdb,0x8A,reg,r | 4);      // MOV regL,rH
+                {
+                    genregs(cdb,0x8A,reg,r | 4);      // MOV regL,rH
                     goto L2;
                 }
             }
@@ -2686,7 +2701,8 @@ void movregconst(ref CodeBuilder cdb,uint reg,targ_size_t value,regm_t flags)
         {
             if (!(flags & 4) &&                 // if we can set the whole register
                 !(flags & 16 && reg & 4))       // and reg is not an H register
-            {   genregs(cdb,0x31,reg,reg);      // XOR reg,reg
+            {
+                genregs(cdb,0x31,reg,reg);      // XOR reg,reg
                 regimmed_set(reg,value);
                 regv = 0;
             }
@@ -2695,7 +2711,8 @@ void movregconst(ref CodeBuilder cdb,uint reg,targ_size_t value,regm_t flags)
             flags &= ~mPSW;                     // flags already set by XOR
         }
         else
-        {   cdb.genc2(0xC6,modregrmx(3,0,reg),value);  // MOV regL,value
+        {
+            cdb.genc2(0xC6,modregrmx(3,0,reg),value);  // MOV regL,value
             if (reg >= 4 && I64)
             {
                 code_orrex(cdb.last(), REX);
@@ -2740,7 +2757,8 @@ L1:
 
     // If we already have the right value in the right register
     if (regm && (regv & 0xFFFFFFFF) == (value & 0xFFFFFFFF) && !(flags & 64))
-    {   if (flags & mPSW)
+    {
+        if (flags & mPSW)
             gentstreg(cdb,reg);
     }
     else if (flags & 64 && regm && regv == value)
@@ -2756,19 +2774,23 @@ L1:
         if (flags & mPSW)
         {
             switch (value)
-            {   case 0:
+            {
+                case 0:
                     genregs(cdb,0x31,reg,reg);
                     break;
+
                 case 1:
                     if (I64)
                         goto L4;
                     genregs(cdb,0x31,reg,reg);
                     goto inc;
+
                 case ~cast(targ_size_t)0:
                     if (I64)
                         goto L4;
                     genregs(cdb,0x31,reg,reg);
                     goto dec;
+
                 default:
                 L4:
                     if (flags & 64)
@@ -2792,15 +2814,18 @@ L1:
             if (regcon.immed.mval & mAX)
             {
                 if (I32)
-                {   if (reg == AX && value == cast(targ_short) regv)
-                    {   cdb.gen1(0x98);               // CWDE
+                {
+                    if (reg == AX && value == cast(targ_short) regv)
+                    {
+                        cdb.gen1(0x98);               // CWDE
                         goto done;
                     }
                     if (reg == DX &&
                         value == (regcon.immed.value[AX] & 0x80000000 ? 0xFFFFFFFF : 0) &&
                         !(config.flags4 & CFG4speed && config.target_cpu >= TARGET_Pentium)
                        )
-                    {   cdb.gen1(0x99);               // CDQ
+                    {
+                        cdb.gen1(0x99);               // CDQ
                         goto done;
                     }
                 }
@@ -2808,7 +2833,8 @@ L1:
                 {
                     if (reg == AX &&
                         cast(targ_short) value == cast(byte) regv)
-                    {   cdb.gen1(0x98);               // CBW
+                    {
+                        cdb.gen1(0x98);               // CBW
                         goto done;
                     }
 
@@ -2816,7 +2842,8 @@ L1:
                         cast(targ_short) value == (regcon.immed.value[AX] & 0x8000 ? cast(targ_short) 0xFFFF : cast(targ_short) 0) &&
                         !(config.flags4 & CFG4speed && config.target_cpu >= TARGET_Pentium)
                        )
-                    {   cdb.gen1(0x99);               // CWD
+                    {
+                        cdb.gen1(0x99);               // CWD
                         goto done;
                     }
                 }
@@ -2828,7 +2855,8 @@ L1:
             }
 
             if (!I64 && regm && !(flags & 8))
-            {   if (regv + 1 == value ||
+            {
+                if (regv + 1 == value ||
                     // Catch case of (0xFFFF+1 == 0) for 16 bit compiles
                     (I16 && cast(targ_short)(regv + 1) == cast(targ_short)value))
                 {
@@ -2852,7 +2880,8 @@ L1:
                 assert(!I16 || regcon.immed.value[r] == cast(targ_short)regcon.immed.value[r]);
 
                 if (mreg & 1 && regcon.immed.value[r] == value)
-                {   genmovreg(cdb,reg,r);
+                {
+                    genmovreg(cdb,reg,r);
                     goto done;
                 }
                 r++;
@@ -2869,13 +2898,15 @@ L1:
                    )
                 {
                     if ((regv & ~cast(targ_size_t)0xFF) == (value & ~cast(targ_size_t)0xFF))
-                    {   movregconst(cdb,reg,value,(flags & 8) |4|1);  // load regL
+                    {
+                        movregconst(cdb,reg,value,(flags & 8) |4|1);  // load regL
                         return;
                     }
                     if (regm & (mAX|mBX|mCX|mDX) &&
                         (regv & ~cast(targ_size_t)0xFF00) == (value & ~cast(targ_size_t)0xFF00) &&
                         !I64)
-                    {   movregconst(cdb,4|reg,value >> 8,(flags & 8) |4|1|16); // load regH
+                    {
+                        movregconst(cdb,4|reg,value >> 8,(flags & 8) |4|1|16); // load regH
                         return;
                     }
                 }
@@ -2924,6 +2955,7 @@ void genjmp(ref CodeBuilder cdb,uint op,uint fltarg,block *targ)
             cs.Iop = JP;
             cdb.gen(&cs);
             break;
+
         case JNP << 8:
         {
             // Do a JP around the jump instruction
@@ -2933,10 +2965,12 @@ void genjmp(ref CodeBuilder cdb,uint op,uint fltarg,block *targ)
             cdb.append(cnop);
             break;
         }
+
         case 1 << 8:                    // toggled no jump
         case 0 << 8:
             cdb.gen(&cs);
             break;
+
         default:
             debug
             printf("jop = x%x\n",op);
@@ -2998,7 +3032,8 @@ void prolog_16bit_windows_farfunc(ref CodeBuilder cdb, tym_t* tyf, bool* pushds)
 
     int segreg;
     switch (wflags & (WFdgroup | WFds | WFss))
-    {   case WFdgroup:                      // MOV  AX,DGROUP
+    {
+        case WFdgroup:                      // MOV  AX,DGROUP
         {
             if (wflags & WFreduced)
                 *tyf &= ~mTYloadds;          // remove redundancy
@@ -3008,9 +3043,11 @@ void prolog_16bit_windows_farfunc(ref CodeBuilder cdb, tym_t* tyf, bool* pushds)
             c.Iflags ^= CFseg | CFoff;     // turn off CFoff, on CFseg
             break;
         }
+
         case WFss:
             segreg = 2;                     // SS
             goto Lmovax;
+
         case WFds:
             segreg = 3;                     // DS
         Lmovax:
@@ -3018,8 +3055,10 @@ void prolog_16bit_windows_farfunc(ref CodeBuilder cdb, tym_t* tyf, bool* pushds)
             if (wflags & WFds)
                 cdb.gen1(0x90);             // NOP
             break;
+
         case 0:
             break;
+
         default:
             debug
             printf("config.wflags = x%x\n",config.wflags);
@@ -3030,7 +3069,8 @@ void prolog_16bit_windows_farfunc(ref CodeBuilder cdb, tym_t* tyf, bool* pushds)
     cdb.gen1(0x50 + BP);                  // PUSH BP
     genregs(cdb,0x8B,BP,SP); // MOV  BP,SP
     if (wflags & (WFsaveds | WFds | WFss | WFdgroup))
-    {   cdb.gen1(0x1E);                       // PUSH DS
+    {
+        cdb.gen1(0x1E);                       // PUSH DS
         *pushds = true;
         BPoff = -REGSIZE;
     }
@@ -3099,7 +3139,8 @@ static if (NTEXCEPTIONS == 2)
 }
         if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D ||
             config.ehmethod == EHmethod.EH_DWARF)
-        {   int off = 2 * REGSIZE;      // 1 for the return address + 1 for the PUSH EBP
+        {
+            int off = 2 * REGSIZE;      // 1 for the return address + 1 for the PUSH EBP
             dwarf_CFA_set_loc(1);           // address after PUSH EBP
             dwarf_CFA_set_reg_offset(SP, off); // CFA is now 8[ESP]
             dwarf_CFA_offset(BP, -off);       // EBP is at 0[ESP]
@@ -3177,7 +3218,8 @@ else
             assert(!(config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D)); // didn't emit Dwarf data
         }
         else if (xlocalsize == REGSIZE && config.flags4 & CFG4optimized)
-        {   cdb. gen1(0x50 + pushallocreg);    // PUSH AX
+        {
+            cdb. gen1(0x50 + pushallocreg);    // PUSH AX
             // Do this to prevent an -x[EBP] to be moved in
             // front of the push.
             code_orflag(cdb.last(),CFvolatile);
@@ -3192,11 +3234,13 @@ void prolog_frameadj2(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool* pus
 {
     uint pushallocreg = (tyf == TYmfunc) ? CX : AX;
     if (xlocalsize == REGSIZE)
-    {   cdb.gen1(0x50 + pushallocreg);      // PUSH AX
+    {
+        cdb.gen1(0x50 + pushallocreg);      // PUSH AX
         *pushalloc = true;
     }
     else if (xlocalsize == 2 * REGSIZE)
-    {   cdb.gen1(0x50 + pushallocreg);      // PUSH AX
+    {
+        cdb.gen1(0x50 + pushallocreg);      // PUSH AX
         cdb.gen1(0x50 + pushallocreg);      // PUSH AX
         *pushalloc = true;
     }
@@ -3419,35 +3463,37 @@ void prolog_trace(ref CodeBuilder cdb, bool farfunc, uint* regsaved)
     /* Embedding the function name inline after the call works, but it
      * makes disassembling the code annoying.
      */
-static if (ELFOBJ || MACHOBJ)
-{
-    // Generate length prefixed name that is recognized by profiler
-    size_t len = strlen(funcsym_p.Sident);
-    char *buffer = cast(char *)malloc(len + 4);
-    assert(buffer);
-    if (len <= 254)
-    {   buffer[0] = len;
-        memcpy(buffer + 1, funcsym_p.Sident, len);
-        len++;
+    static if (ELFOBJ || MACHOBJ)
+    {
+        // Generate length prefixed name that is recognized by profiler
+        size_t len = strlen(funcsym_p.Sident);
+        char *buffer = cast(char *)malloc(len + 4);
+        assert(buffer);
+        if (len <= 254)
+        {
+            buffer[0] = len;
+            memcpy(buffer + 1, funcsym_p.Sident, len);
+            len++;
+        }
+        else
+        {
+            buffer[0] = 0xFF;
+            buffer[1] = 0;
+            buffer[2] = len & 0xFF;
+            buffer[3] = len >> 8;
+            memcpy(buffer + 4, funcsym_p.Sident, len);
+            len += 4;
+        }
+        cdb.genasm(buffer, len);         // append func name
+        free(buffer);
     }
     else
-    {   buffer[0] = 0xFF;
-        buffer[1] = 0;
-        buffer[2] = len & 0xFF;
-        buffer[3] = len >> 8;
-        memcpy(buffer + 4, funcsym_p.Sident, len);
-        len += 4;
+    {
+        char [IDMAX+IDOHD+1] name = void;
+        size_t len = objmod.mangle(funcsym_p,name.ptr);
+        assert(len < name.length);
+        cdb.genasm(name.ptr,len);             // append func name
     }
-    cdb.genasm(buffer, len);         // append func name
-    free(buffer);
-}
-else
-{
-    char [IDMAX+IDOHD+1] name = void;
-    size_t len = objmod.mangle(funcsym_p,name.ptr);
-    assert(len < name.length);
-    cdb.genasm(name.ptr,len);             // append func name
-}
     *regsaved = s.Sregsaved;
 }
 }
@@ -3508,7 +3554,8 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t* namedargs)
     {
         uint r = regs[i];
         if (!(mask(r) & *namedargs))         // named args are already dealt with
-        {   uint ea = (REX_W << 16) | modregxrm(2,r,BPRM);
+        {
+            uint ea = (REX_W << 16) | modregxrm(2,r,BPRM);
             if (!hasframe)
                 ea = (REX_W << 16) | (modregrm(0,4,SP) << 8) | modregxrm(2,r,4);
             cdb.genc1(0x89,ea,FLconst,voff + i*8);
@@ -3543,7 +3590,8 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t* namedargs)
     uint offset_regs = 0;
     uint offset_fpregs = vregnum * 8;
     for (int i = AX; i <= XMM7; i++)
-    {   regm_t m = mask(i);
+    {
+        regm_t m = mask(i);
         if (m & *namedargs)
         {
             if (m & (mDI|mSI|mDX|mCX|mR8|mR9))
@@ -3599,7 +3647,8 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, regm_t* n
     //printf("prolog_loadparams()\n");
     debug
     for (SYMIDX si = 0; si < globsym.top; si++)
-    {   Symbol *s = globsym.tab[si];
+    {
+        Symbol *s = globsym.tab[si];
         if (debugr && (s.Sclass == SCfastpar || s.Sclass == SCshadowreg))
         {
             printf("symbol '%s' is fastpar in register [%s,%s]\n", s.Sident.ptr,
@@ -3617,7 +3666,8 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, regm_t* n
      */
     regm_t shadowregm = 0;
     for (SYMIDX si = 0; si < globsym.top; si++)
-    {   Symbol *s = globsym.tab[si];
+    {
+        Symbol *s = globsym.tab[si];
         uint sz = cast(uint)type_size(s.Stype);
 
         if ((s.Sclass == SCfastpar || s.Sclass == SCshadowreg) && s.Sfl != FLreg)
@@ -3626,7 +3676,8 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, regm_t* n
             type *t = s.Stype;
             type *t2 = null;
             if (tybasic(t.Tty) == TYstruct && config.exe != EX_WIN64)
-            {   type *targ1 = t.Ttag.Sstruct.Sarg1type;
+            {
+                type *targ1 = t.Ttag.Sstruct.Sarg1type;
                 t2 = t.Ttag.Sstruct.Sarg2type;
                 if (targ1)
                     t = targ1;
@@ -3740,7 +3791,8 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, regm_t* n
      */
     regm_t assignregs = 0;
     for (SYMIDX si = 0; si < globsym.top; si++)
-    {   Symbol *s = globsym.tab[si];
+    {
+        Symbol *s = globsym.tab[si];
         uint sz = cast(uint)type_size(s.Stype);
 
         if (s.Sclass == SCfastpar || s.Sclass == SCshadowreg)
@@ -3794,7 +3846,8 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, regm_t* n
      * the register.
      */
     for (SYMIDX si = 0; si < globsym.top; si++)
-    {   Symbol *s = globsym.tab[si];
+    {
+        Symbol *s = globsym.tab[si];
         uint sz = cast(uint)type_size(s.Stype);
 
         if ((s.Sclass == SCregpar || s.Sclass == SCparameter) &&
@@ -3886,7 +3939,8 @@ void epilog(block *b)
         return;
 
     if (tym == TYifunc)
-    {   static immutable ubyte[5] ops2 = [ 0x07,0x1F,0x61,0xCF,0 ];
+    {
+        static immutable ubyte[5] ops2 = [ 0x07,0x1F,0x61,0xCF,0 ];
         static immutable ubyte[12] ops0 = [ 0x07,0x1F,0x5F,0x5E,
                                         0x5D,0x5B,0x5B,0x5A,
                                         0x59,0x58,0xCF,0 ];
@@ -3922,7 +3976,8 @@ void epilog(block *b)
 
     cpopds = null;
     if (tyf & mTYloadds)
-    {   cdbx.gen1(0x1F);             // POP DS
+    {
+        cdbx.gen1(0x1F);             // POP DS
         cpopds = cdbx.last();
     }
 
@@ -3933,17 +3988,17 @@ void epilog(block *b)
     topop = fregsaved & ~mfuncreg;
     epilog_restoreregs(cdbx, topop);
 
-version (MARS)
-{
-    if (usednteh & NTEHjmonitor)
+    version (MARS)
     {
-        regm_t retregs = 0;
-        if (b.BC == BCretexp)
-            retregs = regmask(b.Belem.Ety, tym);
-        nteh_monitor_epilog(cdbx,retregs);
-        xlocalsize += 8;
+        if (usednteh & NTEHjmonitor)
+        {
+            regm_t retregs = 0;
+            if (b.BC == BCretexp)
+                retregs = regmask(b.Belem.Ety, tym);
+            nteh_monitor_epilog(cdbx,retregs);
+            xlocalsize += 8;
+        }
     }
-}
 
     if (config.wflags & WFwindows && farfunc)
     {
@@ -3960,7 +4015,8 @@ version (MARS)
             cdbx.genc1(LEA,modregrm(1,SP,6),FLconst,cast(targ_uns)-2); /* LEA SP,-2[BP] */
         }
         if (wflags & (WFsaveds | WFds | WFss | WFdgroup))
-        {   if (cpopds)
+        {
+            if (cpopds)
                 cpopds.Iop = NOP;              // don't need previous one
             cdbx.gen1(0x1F);                    // POP DS
         }
@@ -4026,7 +4082,8 @@ version (MARS)
                     cdbx.gen1(0x58 + BP);      // POP BP
                 }
                 else
-                {   genregs(cdbx,0x8B,SP,BP);  // MOV SP,BP
+                {
+                    genregs(cdbx,0x8B,SP,BP);  // MOV SP,BP
                     if (I64)
                         code_orrex(cdbx.last(), REX_W);   // MOV RSP,RBP
                     cdbx.gen1(0x58 + BP);      // POP BP
@@ -4038,7 +4095,8 @@ version (MARS)
                 cdbx.gen1(0x48 + BP);              // DEC BP
         }
         else if (xlocalsize == REGSIZE && (!I16 || b.BC == BCret))
-        {   mfuncreg &= ~mask(regx);
+        {
+            mfuncreg &= ~mask(regx);
             cdbx.gen1(0x58 + regx);                    // POP regx
         }
         else if (xlocalsize)
@@ -4050,12 +4108,13 @@ Lret:
         op = tyfarfunc(tym) ? 0xCA : 0xC2;
         if (tym == TYhfunc)
         {
-            cdbx.genc2(0xC2,0,4);                      // RET 4
+            cdbx.genc2(0xC2,0,4);                       // RET 4
         }
         else if (!typfunc(tym) ||                       // if caller cleans the stack
                  config.exe == EX_WIN64 ||
-                 Para.offset == 0)                          // or nothing pushed on the stack anyway
-        {   op++;                                       // to a regular RET
+                 Para.offset == 0)                      // or nothing pushed on the stack anyway
+        {
+            op++;                                       // to a regular RET
             cdbx.gen1(op);
         }
         else
@@ -4099,7 +4158,8 @@ Lopt:
                )
                 cr.Iop = NOP;
             else if (c.Iop == 0x58 + BP)                       // if POP BP
-            {   cr.Iop = 0x8B;
+            {
+                cr.Iop = 0x8B;
                 cr.Irm = modregrm(3,SP,BP);                    // MOV SP,BP
             }
         }
@@ -4110,11 +4170,13 @@ static if (0)
         // These optimizations don't work if the called function
         // cleans off the stack.
         if (c.Iop == 0xC3 && cr.Iop == CALL)     // CALL near
-        {   cr.Iop = 0xE9;                             // JMP near
+        {
+            cr.Iop = 0xE9;                             // JMP near
             c.Iop = NOP;
         }
         else if (c.Iop == 0xCB && cr.Iop == 0x9A)     // CALL far
-        {   cr.Iop = 0xEA;                             // JMP far
+        {
+            cr.Iop = 0xEA;                             // JMP far
             c.Iop = NOP;
         }
 }
@@ -4283,7 +4345,6 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
 
     if ((i & 0xFFFF) != 0xFFFF)                 // if virtual call
     {
-
         const bool FARTHIS = (tysize(thisty) > REGSIZE);
         const bool FARVPTR = FARTHIS;
 
@@ -4345,7 +4406,8 @@ static if (0)
         localgot = null;                // no local variables
         code *c1 = load_localgot();
         if (c1)
-        {   assignaddrc(c1);
+        {
+            assignaddrc(c1);
             cdb.append(c1);
         }
 }
@@ -4362,15 +4424,15 @@ static if (0)
     sthunk.Soffset = thunkoffset;
     sthunk.Ssize = Offset(seg) - thunkoffset; // size of thunk
     sthunk.Sseg = seg;
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-    objmod.pubdef(seg,sthunk,sthunk.Soffset);
-}
-static if (TARGET_WINDOS)
-{
-    if (config.objfmt == OBJ_MSCOFF)
+    static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+    {
         objmod.pubdef(seg,sthunk,sthunk.Soffset);
-}
+    }
+    static if (TARGET_WINDOS)
+    {
+        if (config.objfmt == OBJ_MSCOFF)
+            objmod.pubdef(seg,sthunk,sthunk.Soffset);
+    }
     searchfixlist(sthunk);              // resolve forward refs
 }
 
@@ -4380,11 +4442,12 @@ static if (TARGET_WINDOS)
 
 void makeitextern(Symbol *s)
 {
-        if (s.Sxtrnnum == 0)
-        {       s.Sclass = SCextern;           /* external             */
-                /*printf("makeitextern(x%x)\n",s);*/
-                objmod.external(s);
-        }
+    if (s.Sxtrnnum == 0)
+    {
+        s.Sclass = SCextern;           /* external             */
+        /*printf("makeitextern(x%x)\n",s);*/
+        objmod.external(s);
+    }
 }
 
 
@@ -4401,20 +4464,22 @@ void makeitextern(Symbol *s)
  */
 
 int branch(block *bl,int flag)
-{ int bytesaved;
-  code* c,cn,ct;
-  targ_size_t offset,disp;
-  targ_size_t csize;
+{
+    int bytesaved;
+    code* c,cn,ct;
+    targ_size_t offset,disp;
+    targ_size_t csize;
 
-  if (!flag)
-      bl.Bflags |= BFLjmpoptdone;      // assume this will be all
-  c = bl.Bcode;
-  if (!c)
+    if (!flag)
+        bl.Bflags |= BFLjmpoptdone;      // assume this will be all
+    c = bl.Bcode;
+    if (!c)
         return 0;
-  bytesaved = 0;
-  offset = bl.Boffset;                 /* offset of start of block     */
-  while (1)
-  {     ubyte op;
+    bytesaved = 0;
+    offset = bl.Boffset;                 /* offset of start of block     */
+    while (1)
+    {
+        ubyte op;
 
         csize = calccodsize(c);
         cn = code_next(c);
@@ -4455,7 +4520,8 @@ int branch(block *bl,int flag)
                     break;
 
                 case FLcode:
-                {   code *cr;
+                {
+                    code *cr;
 
                     disp = 0;
 
@@ -4486,14 +4552,17 @@ int branch(block *bl,int flag)
                     {
                         /* Propagate branch forward past junk   */
                         while (1)
-                        {   if (ct.Iop == NOP ||
+                        {
+                            if (ct.Iop == NOP ||
                                 ct.Iop == (ESCAPE | ESClinnum))
-                            {   ct = code_next(ct);
+                            {
+                                ct = code_next(ct);
                                 if (!ct)
                                     goto L2;
                             }
                             else
-                            {   c.IEV2.Vcode = ct;
+                            {
+                                c.IEV2.Vcode = ct;
                                 ct.Iflags |= CFtarg;
                                 break;
                             }
@@ -4502,7 +4571,8 @@ int branch(block *bl,int flag)
                         /* And eliminate jmps to jmps   */
                         if ((op == ct.Iop || ct.Iop == JMP) &&
                             (op == JMP || c.Iflags & CFjmp16))
-                        {   c.IFL2 = ct.IFL2;
+                        {
+                            c.IFL2 = ct.IFL2;
                             c.IEV2.Vcode = ct.IEV2.Vcode;
                             /*printf("eliminating branch\n");*/
                             goto L1;
@@ -4518,7 +4588,8 @@ int branch(block *bl,int flag)
             }
 
             if (disp == 0)                      // bra to next instruction
-            {   bytesaved += csize;
+            {
+                bytesaved += csize;
                 c.Iop = NOP;                   // del branch instruction
                 c.IEV2.Vcode = null;
                 c = cn;
@@ -4530,11 +4601,13 @@ int branch(block *bl,int flag)
                      cast(targ_size_t)cast(targ_schar)disp == disp)
             {
                 if (op == JMP)
-                {   c.Iop = JMPS;              // JMP SHORT
+                {
+                    c.Iop = JMPS;              // JMP SHORT
                     bytesaved += I16 ? 1 : 3;
                 }
                 else                            // else Jcond
-                {   c.Iflags &= ~CFjmp16;      // a branch is ok
+                {
+                    c.Iflags &= ~CFjmp16;      // a branch is ok
                     bytesaved += I16 ? 3 : 4;
 
                     // Replace a cond jump around a call to a function that
@@ -4556,12 +4629,13 @@ int branch(block *bl,int flag)
 
                         // If nobody else points to ct, we can remove the CFtarg
                         if (flag && ct)
-                        {   code *cx;
-
+                        {
+                            code *cx;
                             for (cx = bl.Bcode; 1; cx = code_next(cx))
                             {
                                 if (!cx)
-                                {   ct.Iflags &= ~CFtarg;
+                                {
+                                    ct.Iflags &= ~CFtarg;
                                     break;
                                 }
                                 if (cx.IEV2.Vcode == ct)
@@ -4577,15 +4651,17 @@ int branch(block *bl,int flag)
         }
 L3:
         if (cn)
-        {   offset += csize;
+        {
+            offset += csize;
             c = cn;
         }
         else
             break;
-  }
-  //printf("bytesaved = x%x\n",bytesaved);
-  return bytesaved;
+    }
+    //printf("bytesaved = x%x\n",bytesaved);
+    return bytesaved;
 }
+
 
 /************************************************
  * Adjust all Soffset's of stack variables so they
@@ -4595,11 +4671,13 @@ L3:
 version (MARS)
 {
 void cod3_adjSymOffsets()
-{   SYMIDX si;
+{
+    SYMIDX si;
 
     //printf("cod3_adjSymOffsets()\n");
     for (si = 0; si < globsym.top; si++)
-    {   //printf("\tglobsym.tab[%d] = %p\n",si,globsym.tab[si]);
+    {
+        //printf("\tglobsym.tab[%d] = %p\n",si,globsym.tab[si]);
         Symbol *s = globsym.tab[si];
 
         switch (s.Sclass)
@@ -4609,18 +4687,20 @@ void cod3_adjSymOffsets()
             case SCshadowreg:
 //printf("s = '%s', Soffset = x%x, Para.size = x%x, EBPtoESP = x%x\n", s.Sident, s.Soffset, Para.size, EBPtoESP);
                 s.Soffset += Para.size;
-if (0 && !(funcsym_p.Sfunc.Fflags3 & Fmember))
-{
-    if (!hasframe)
-        s.Soffset += EBPtoESP;
-    if (funcsym_p.Sfunc.Fflags3 & Fnested)
-        s.Soffset += REGSIZE;
-}
+                if (0 && !(funcsym_p.Sfunc.Fflags3 & Fmember))
+                {
+                    if (!hasframe)
+                        s.Soffset += EBPtoESP;
+                    if (funcsym_p.Sfunc.Fflags3 & Fnested)
+                        s.Soffset += REGSIZE;
+                }
                 break;
+
             case SCfastpar:
 //printf("\tfastpar %s %p Soffset %x Fast.size %x BPoff %x\n", s.Sident, s, (int)s.Soffset, (int)Fast.size, (int)BPoff);
                 s.Soffset += Fast.size + BPoff;
                 break;
+
             case SCauto:
             case SCregister:
             case_auto:
@@ -4631,16 +4711,18 @@ if (0 && !(funcsym_p.Sfunc.Fflags3 & Fmember))
 //              if (!(funcsym_p.Sfunc.Fflags3 & Fnested))
                     s.Soffset += Auto.size + BPoff;
                 break;
+
             case SCbprel:
                 break;
+
             default:
                 continue;
         }
-static if (0)
-{
-        if (!hasframe)
-            s.Soffset += EBPtoESP;
-}
+        static if (0)
+        {
+            if (!hasframe)
+                s.Soffset += EBPtoESP;
+        }
     }
 }
 
@@ -4657,7 +4739,8 @@ void assignaddr(block *bl)
     int hasframesave = hasframe;
 
     if (bl.Bflags & BFLoutsideprolog)
-    {   EBPtoESP = -REGSIZE;
+    {
+        EBPtoESP = -REGSIZE;
         hasframe = 0;
     }
     assignaddrc(bl.Bcode);
@@ -4767,14 +4850,14 @@ void assignaddrc(code *c)
             case FLdata:
                 if (config.objfmt == OBJ_OMF && s.Sclass != SCcomdat)
                 {
-version (MARS)
-{
-                    c.IEV1.Vseg = s.Sseg;
-}
-else
-{
-                    c.IEV1.Vseg = DATA;
-}
+                    version (MARS)
+                    {
+                        c.IEV1.Vseg = s.Sseg;
+                    }
+                    else
+                    {
+                        c.IEV1.Vseg = DATA;
+                    }
                     c.IEV1.Vpointer += s.Soffset;
                     c.IFL1 = FLdatseg;
                 }
@@ -4785,14 +4868,14 @@ else
             case FLudata:
                 if (config.objfmt == OBJ_OMF)
                 {
-version (MARS)
-{
-                    c.IEV1.Vseg = s.Sseg;
-}
-else
-{
-                    c.IEV1.Vseg = UDATA;
-}
+                    version (MARS)
+                    {
+                        c.IEV1.Vseg = s.Sseg;
+                    }
+                    else
+                    {
+                        c.IEV1.Vseg = UDATA;
+                    }
                     c.IEV1.Vpointer += s.Soffset;
                     c.IFL1 = FLdatseg;
                 }
@@ -4804,6 +4887,7 @@ else
                 if (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH)
                     c.IFL1 = FLextern;
                 goto do2;
+
             case FLdatseg:
                 //c.IEV1.Vseg = DATA;
                 goto do2;
@@ -4822,31 +4906,36 @@ else
             case FLfast:
                 soff = Fast.size;
                 goto L1;
+
             case FLreg:
             case FLauto:
                 soff = Auto.size;
             L1:
                 if (Symbol_Sisdead(s, anyiasm))
-                {   c.Iop = NOP;               // remove references to it
+                {
+                    c.Iop = NOP;               // remove references to it
                     continue;
                 }
                 if (s.Sfl == FLreg && c.IEV1.Vpointer < 2)
-                {       int reg = s.Sreglsw;
+                {
+                    int reg = s.Sreglsw;
 
-                        assert(!(s.Sregm & ~mask(reg)));
-                        if (c.IEV1.Vpointer == 1)
-                        {   assert(reg < 4);    /* must be a BYTEREGS   */
-                            reg |= 4;           /* convert to high byte reg */
-                        }
-                        if (reg & 8)
-                        {   assert(I64);
-                            c.Irex |= REX_B;
-                            reg &= 7;
-                        }
-                        c.Irm = (c.Irm & modregrm(0,7,0))
-                                | modregrm(3,0,reg);
-                        assert(c.Iop != LES && c.Iop != LEA);
-                        goto do2;
+                    assert(!(s.Sregm & ~mask(reg)));
+                    if (c.IEV1.Vpointer == 1)
+                    {
+                        assert(reg < 4);    /* must be a BYTEREGS   */
+                        reg |= 4;           /* convert to high byte reg */
+                    }
+                    if (reg & 8)
+                    {
+                        assert(I64);
+                        c.Irex |= REX_B;
+                        reg &= 7;
+                    }
+                    c.Irm = (c.Irm & modregrm(0,7,0))
+                            | modregrm(3,0,reg);
+                    assert(c.Iop != LES && c.Iop != LEA);
+                    goto do2;
                 }
                 else
                 {   c.IEV1.Vpointer += s.Soffset + soff + BPoff;
@@ -4874,49 +4963,61 @@ else
                     }
                 }
                 break;
+
             case FLpara:
                 soff = Para.size - BPoff;    // cancel out add of BPoff
                 goto L1;
+
             case FLfltreg:
                 c.IEV1.Vpointer += Foff + BPoff;
                 c.Iflags |= CFunambig;
                 goto L2;
+
             case FLallocatmp:
                 c.IEV1.Vpointer += Alloca.offset + BPoff;
                 goto L2;
+
             case FLfuncarg:
                 c.IEV1.Vpointer += cgstate.funcarg.offset + BPoff;
                 goto L2;
+
             case FLbprel:
                 c.IEV1.Vpointer += s.Soffset;
                 break;
+
             case FLcs:
                 sn = c.IEV1.Vuns;
                 if (!CSE_loaded(sn))            // if never loaded
-                {       c.Iop = NOP;
-                        continue;
+                {
+                    c.Iop = NOP;
+                    continue;
                 }
                 c.IEV1.Vpointer = sn * REGSIZE + CSoff + BPoff;
                 c.Iflags |= CFunambig;
                 goto L2;
+
             case FLregsave:
                 sn = c.IEV1.Vuns;
                 c.IEV1.Vpointer = sn + regsave.off + BPoff;
                 c.Iflags |= CFunambig;
                 goto L2;
+
             case FLndp:
-version (MARS)
-{
-                assert(c.IEV1.Vuns < NDP.savetop);
-}
+                version (MARS)
+                {
+                    assert(c.IEV1.Vuns < NDP.savetop);
+                }
                 c.IEV1.Vpointer = c.IEV1.Vuns * tysize(TYldouble) + NDPoff + BPoff;
                 c.Iflags |= CFunambig;
                 goto L2;
+
             case FLoffset:
                 break;
+
             case FLlocalsize:
                 c.IEV1.Vpointer += localsize;
                 break;
+
             case FLconst:
             default:
                 goto do2;
@@ -4980,24 +5081,31 @@ version (MARS)
             case FLpseudo:
                 assert(0);
                 /* NOTREACHED */
+
             case FLfast:
                 c.IEV2.Vpointer += s.Soffset + Fast.size + BPoff;
                 break;
+
             case FLauto:
                 c.IEV2.Vpointer += s.Soffset + Auto.size + BPoff;
                 break;
+
             case FLpara:
                 c.IEV2.Vpointer += s.Soffset + Para.size;
                 break;
+
             case FLfltreg:
                 c.IEV2.Vpointer += Foff + BPoff;
                 break;
+
             case FLallocatmp:
                 c.IEV2.Vpointer += Alloca.offset + BPoff;
                 break;
+
             case FLfuncarg:
                 c.IEV2.Vpointer += cgstate.funcarg.offset + BPoff;
                 break;
+
             case FLbprel:
                 c.IEV2.Vpointer += s.Soffset;
                 break;
@@ -5032,7 +5140,8 @@ version (MARS)
  */
 
 targ_size_t cod3_bpoffset(Symbol *s)
-{   targ_size_t offset;
+{
+    targ_size_t offset;
 
     symbol_debug(s);
     offset = s.Soffset;
@@ -5041,12 +5150,15 @@ targ_size_t cod3_bpoffset(Symbol *s)
         case FLpara:
             offset += Para.size;
             break;
+
         case FLfast:
             offset += Fast.size + BPoff;
             break;
+
         case FLauto:
             offset += Auto.size + BPoff;
             break;
+
         default:
             WRFL(cast(FL)s.Sfl);
             symbol_print(s);
@@ -5073,40 +5185,43 @@ targ_size_t cod3_bpoffset(Symbol *s)
  */
 
 void pinholeopt(code *c,block *b)
-{ targ_size_t a;
-  uint op,mod;
-  ubyte ins;
-  int usespace;
-  int useopsize;
-  int space;
-  block *bn;
-
-debug
 {
-    __gshared int tested; if (!tested) { tested++; pinholeopt_unittest(); }
-}
+    targ_size_t a;
+    uint op,mod;
+    ubyte ins;
+    int usespace;
+    int useopsize;
+    int space;
+    block *bn;
 
-debug
-{
-  code *cstart = c;
-  if (debugc)
-  {
-      printf("+pinholeopt(%p)\n",c);
-  }
-}
+    debug
+    {
+        __gshared int tested; if (!tested) { tested++; pinholeopt_unittest(); }
+    }
 
-  if (b)
-  {     bn = b.Bnext;
+    debug
+    {
+        code *cstart = c;
+        if (debugc)
+        {
+            printf("+pinholeopt(%p)\n",c);
+        }
+    }
+
+    if (b)
+    {
+        bn = b.Bnext;
         usespace = (config.flags4 & CFG4space && b.BC != BCasm);
         useopsize = (I16 || (config.flags4 & CFG4space && b.BC != BCasm));
-  }
-  else
-  {     bn = null;
+    }
+    else
+    {
+        bn = null;
         usespace = (config.flags4 & CFG4space);
         useopsize = (I16 || config.flags4 & CFG4space);
-  }
-  for (; c; c = code_next(c))
-  {
+    }
+    for (; c; c = code_next(c))
+    {
     L1:
         op = c.Iop;
         if (c.Iflags & CFvex && c.Ivex.pfx == 0xC4)
@@ -5118,7 +5233,8 @@ debug
         else
             ins = inssize[op & 0xFF];
         if (ins & M)            // if modregrm byte
-        {   int shortop = (c.Iflags & CFopsize) ? !I16 : I16;
+        {
+            int shortop = (c.Iflags & CFopsize) ? !I16 : I16;
             int local_BPRM = BPRM;
 
             if (c.Iflags & CFaddrsize)
@@ -5146,11 +5262,12 @@ debug
                 if ((op & 0xFE) == 0x80 &&              // 80 is CMP R8,imm8; 81 is CMP reg,imm
                     rm >= modregrm(3,7,AX) &&
                     u == 0)
-                {       c.Iop = (op & 1) | 0x84;
-                        c.Irm = modregrm(3,ereg,ereg);
-                        if (c.Irex & REX_B)
-                            c.Irex |= REX_R;
-                        goto L1;
+                {
+                    c.Iop = (op & 1) | 0x84;
+                    c.Irm = modregrm(3,ereg,ereg);
+                    if (c.Irex & REX_B)
+                        c.Irex |= REX_R;
+                    goto L1;
                 }
 
                 /* Optimize ANDs with an immediate constant             */
@@ -5159,16 +5276,18 @@ debug
                     if (rm >= modregrm(3,4,AX))         // AND reg,imm
                     {
                         if (u == 0)
-                        {       /* Replace with XOR reg,reg     */
-                                c.Iop = 0x30 | (op & 1);
-                                c.Irm = modregrm(3,ereg,ereg);
-                                if (c.Irex & REX_B)
-                                    c.Irex |= REX_R;
-                                goto L1;
+                        {
+                            /* Replace with XOR reg,reg     */
+                            c.Iop = 0x30 | (op & 1);
+                            c.Irm = modregrm(3,ereg,ereg);
+                            if (c.Irex & REX_B)
+                                c.Irex |= REX_R;
+                            goto L1;
                         }
                         if (u == 0xFFFFFFFF && !flags)
-                        {       c.Iop = NOP;
-                                goto L1;
+                        {
+                            c.Iop = NOP;
+                            goto L1;
                         }
                     }
                     if (op == 0x81 && !flags)
@@ -5183,8 +5302,10 @@ debug
                             if ((u & 0xFFFFFF00) == 0xFFFFFF00)
                                 goto L2;
                             else if (rm < modregrm(3,0,0) || (!c.Irex && ereg < 4))
-                            {   if (!shortop)
-                                {   if ((u & 0xFFFF00FF) == 0xFFFF00FF)
+                            {
+                                if (!shortop)
+                                {
+                                    if ((u & 0xFFFF00FF) == 0xFFFF00FF)
                                         goto L3;
                                 }
                                 else
@@ -5197,11 +5318,13 @@ debug
                         if (!shortop && useopsize)
                         {
                             if ((u & 0xFFFF0000) == 0xFFFF0000)
-                            {   c.Iflags ^= CFopsize;
+                            {
+                                c.Iflags ^= CFopsize;
                                 goto L1;
                             }
                             if ((u & 0xFFFF) == 0xFFFF && rm < modregrm(3,4,AX))
-                            {   c.IEV1.Voffset += 2; /* address MSW      */
+                            {
+                                c.IEV1.Voffset += 2; /* address MSW      */
                                 c.IEV2.Vuns >>= 16;
                                 c.Iflags ^= CFopsize;
                                 goto L1;
@@ -5209,14 +5332,16 @@ debug
                             if (rm >= modregrm(3,4,AX))
                             {
                                 if (u == 0xFF && (rm <= modregrm(3,4,BX) || I64))
-                                {   c.Iop = 0x0FB6;     // MOVZX
+                                {
+                                    c.Iop = 0x0FB6;     // MOVZX
                                     c.Irm = modregrm(3,ereg,ereg);
                                     if (c.Irex & REX_B)
                                         c.Irex |= REX_R;
                                     goto L1;
                                 }
                                 if (u == 0xFFFF)
-                                {   c.Iop = 0x0FB7;     // MOVZX
+                                {
+                                    c.Iop = 0x0FB7;     // MOVZX
                                     c.Irm = modregrm(3,ereg,ereg);
                                     if (c.Irex & REX_B)
                                         c.Irex |= REX_R;
@@ -5234,25 +5359,26 @@ debug
                      reg == modregrm(0,5,0) || reg == modregrm(0,6,0))    // SUB, XOR
                    )
                 {
-                        if (u == 0)
-                        {
-                                c.Iop = NOP;
-                                goto L1;
-                        }
-                        if (u == ~0 && reg == modregrm(0,6,0))  /* XOR  */
-                        {
-                                c.Iop = 0xF6 | (op & 1);       /* NOT  */
-                                c.Irm ^= modregrm(0,6^2,0);
-                                goto L1;
-                        }
-                        if (!shortop &&
-                            useopsize &&
-                            op == 0x81 &&
-                            (u & 0xFFFF0000) == 0 &&
-                            (reg == modregrm(0,6,0) || reg == modregrm(0,1,0)))
-                        {    c.Iflags ^= CFopsize;
-                             goto L1;
-                        }
+                    if (u == 0)
+                    {
+                        c.Iop = NOP;
+                        goto L1;
+                    }
+                    if (u == ~0 && reg == modregrm(0,6,0))  /* XOR  */
+                    {
+                        c.Iop = 0xF6 | (op & 1);       /* NOT  */
+                        c.Irm ^= modregrm(0,6^2,0);
+                        goto L1;
+                    }
+                    if (!shortop &&
+                        useopsize &&
+                        op == 0x81 &&
+                        (u & 0xFFFF0000) == 0 &&
+                        (reg == modregrm(0,6,0) || reg == modregrm(0,1,0)))
+                    {
+                        c.Iflags ^= CFopsize;
+                        goto L1;
+                    }
                 }
 
                 /* Look for TEST or OR or XOR with an immediate constant */
@@ -5265,13 +5391,16 @@ debug
                     // (avoid for 32 bit instructions, because CFopsize
                     //  is too slow)
                     if (!shortop && useopsize)
-                    {   if ((u & 0xFFFF0000) == 0)
-                        {   c.Iflags ^= CFopsize;
+                    {
+                        if ((u & 0xFFFF0000) == 0)
+                        {
+                            c.Iflags ^= CFopsize;
                             goto L1;
                         }
                         /* If memory (not register) addressing mode     */
                         if ((u & 0xFFFF) == 0 && rm < modregrm(3,0,AX))
-                        {   c.IEV1.Voffset += 2; /* address MSW  */
+                        {
+                            c.IEV1.Voffset += 2; /* address MSW  */
                             c.IEV2.Vuns >>= 16;
                             c.Iflags ^= CFopsize;
                             goto L1;
@@ -5316,30 +5445,35 @@ debug
 
                 // Try to replace TEST reg,-1 with TEST reg,reg
                 if (op == 0xF6 && rm >= modregrm(3,0,AX) && rm <= modregrm(3,0,7)) // TEST regL,immed8
-                {       if ((u & 0xFF) == 0xFF)
-                        {
-                           L4:  c.Iop = 0x84;          // TEST regL,regL
-                                c.Irm = modregrm(3,ereg,ereg);
-                                if (c.Irex & REX_B)
-                                    c.Irex |= REX_R;
-                                c.Iflags &= ~CFopsize;
-                                goto L1;
-                        }
+                {
+                    if ((u & 0xFF) == 0xFF)
+                    {
+                      L4:
+                        c.Iop = 0x84;          // TEST regL,regL
+                        c.Irm = modregrm(3,ereg,ereg);
+                        if (c.Irex & REX_B)
+                            c.Irex |= REX_R;
+                        c.Iflags &= ~CFopsize;
+                        goto L1;
+                    }
                 }
                 if (op == 0xF7 && rm >= modregrm(3,0,AX) && rm <= modregrm(3,0,7) && (I64 || ereg < 4))
-                {       if (u == 0xFF)
-                                goto L4;
-                        if ((u & 0xFFFF) == 0xFF00 && shortop && !c.Irex && ereg < 4)
-                        {       ereg |= 4;                /* to regH      */
-                                goto L4;
-                        }
+                {
+                    if (u == 0xFF)
+                        goto L4;
+                    if ((u & 0xFFFF) == 0xFF00 && shortop && !c.Irex && ereg < 4)
+                    {
+                        ereg |= 4;                /* to regH      */
+                        goto L4;
+                    }
                 }
 
                 /* Look for sign extended immediate data */
                 if (cast(byte) u == u)
                 {
                     if (op == 0x81)
-                    {   if (reg != 0x08 && reg != 0x20 && reg != 0x30)
+                    {
+                        if (reg != 0x08 && reg != 0x20 && reg != 0x30)
                             c.Iop = op = 0x83;         /* 8 bit sgn ext */
                     }
                     else if (op == 0x69)                /* IMUL rw,ew,dw */
@@ -5354,18 +5488,20 @@ debug
 
             /* Look for AX short form */
             if (ins & A)
-            {   if (rm == modregrm(0,AX,local_BPRM) &&
+            {
+                if (rm == modregrm(0,AX,local_BPRM) &&
                     !(c.Irex & REX_R) &&               // and it's AX, not R8
                     (op & ~3) == 0x88 &&
                     !I64)
-                {       op = ((op & 3) + 0xA0) ^ 2;
-                        /* 8A. A0 */
-                        /* 8B. A1 */
-                        /* 88. A2 */
-                        /* 89. A3 */
-                        c.Iop = op;
-                        c.IFL2 = c.IFL1;
-                        c.IEV2 = c.IEV1;
+                {
+                    op = ((op & 3) + 0xA0) ^ 2;
+                    /* 8A. A0 */
+                    /* 8B. A1 */
+                    /* 88. A2 */
+                    /* 89. A3 */
+                    c.Iop = op;
+                    c.IFL2 = c.IFL1;
+                    c.IEV2 = c.IEV1;
                 }
 
                 /* Replace MOV REG1,REG2 with MOV EREG1,EREG2   */
@@ -5378,30 +5514,36 @@ debug
 
                 // If rm is AX
                 else if ((rm & modregrm(3,0,7)) == modregrm(3,0,AX) && !(c.Irex & (REX_R | REX_B)))
-                {       switch (op)
-                        {   case 0x80:  op = reg | 4; break;
-                            case 0x81:  op = reg | 5; break;
-                            case 0x87:  op = 0x90 + (reg>>3); break;    // XCHG
-                            case 0xF6:
-                                if (reg == 0)
-                                    op = 0xA8;  /* TEST AL,immed8       */
-                                break;
-                            case 0xF7:
-                                if (reg == 0)
-                                    op = 0xA9;  /* TEST AX,immed16      */
-                                break;
+                {
+                    switch (op)
+                    {
+                        case 0x80:  op = reg | 4; break;
+                        case 0x81:  op = reg | 5; break;
+                        case 0x87:  op = 0x90 + (reg>>3); break;    // XCHG
 
-                            default:
-                                break;
-                        }
-                        c.Iop = op;
+                        case 0xF6:
+                            if (reg == 0)
+                                op = 0xA8;  /* TEST AL,immed8       */
+                            break;
+
+                        case 0xF7:
+                            if (reg == 0)
+                                op = 0xA9;  /* TEST AX,immed16      */
+                            break;
+
+                        default:
+                            break;
+                    }
+                    c.Iop = op;
                 }
             }
 
             /* Look for reg short form */
             if ((ins & R) && (rm & 0xC0) == 0xC0)
-            {   switch (op)
-                {   case 0xC6:  op = 0xB0 + ereg; break;
+            {
+                switch (op)
+                {
+                    case 0xC6:  op = 0xB0 + ereg; break;
                     case 0xC7: // if no sign extension
                         if (!(c.Irex & REX_W && c.IEV2.Vint < 0))
                         {
@@ -5410,6 +5552,7 @@ debug
                             op = 0xB8 + ereg;
                         }
                         break;
+
                     case 0xFF:
                         switch (reg)
                         {   case 6<<3: op = 0x50+ereg; break;/* PUSH*/
@@ -5418,6 +5561,7 @@ debug
                             default: break;
                         }
                         break;
+
                     case 0x8F:  op = 0x58 + ereg; break;
                     case 0x87:
                         if (reg == 0 && !(c.Irex & (REX_R | REX_B))) // Issue 12968: Needed to ensure it's referencing RAX, not R8
@@ -5476,7 +5620,8 @@ debug
 
             /* Look for LEA reg,[ireg], replace with MOV reg,ireg       */
             if (op == LEA)
-            {   rm = c.Irm & 7;
+            {
+                rm = c.Irm & 7;
                 mod = c.Irm & modregrm(3,0,0);
                 if (mod == 0)
                 {
@@ -5487,6 +5632,7 @@ debug
                             case 4:
                             case 5:
                                 break;
+
                             default:
                                 c.Irm |= modregrm(3,0,0);
                                 c.Iop = 0x8B;
@@ -5513,8 +5659,9 @@ debug
                 /* replace LEA reg,0[BP] with MOV reg,BP        */
                 else if (mod == modregrm(1,0,0) && rm == local_BPRM &&
                         c.IFL1 == FLconst && c.IEV1.Vpointer == 0)
-                {       c.Iop = 0x8B;          /* MOV reg,BP   */
-                        c.Irm = cast(ubyte)(modregrm(3,0,BP) + reg);
+                {
+                    c.Iop = 0x8B;          /* MOV reg,BP   */
+                    c.Irm = cast(ubyte)(modregrm(3,0,BP) + reg);
                 }
             }
 
@@ -5554,25 +5701,31 @@ debug
 
                 case JMP:
                     switch (c.IFL2)
-                    {   case FLcode:
-                                if (c.IEV2.Vcode == code_next(c))
-                                {       c.Iop = NOP;
-                                        continue;
-                                }
-                                break;
+                    {
+                        case FLcode:
+                            if (c.IEV2.Vcode == code_next(c))
+                            {
+                                c.Iop = NOP;
+                                continue;
+                            }
+                            break;
+
                         case FLblock:
-                                if (!code_next(c) && c.IEV2.Vblock == bn)
-                                {       c.Iop = NOP;
-                                        continue;
-                                }
-                                break;
+                            if (!code_next(c) && c.IEV2.Vblock == bn)
+                            {
+                                c.Iop = NOP;
+                                continue;
+                            }
+                            break;
+
                         case FLconst:
                         case FLfunc:
                         case FLextern:
-                                break;
+                            break;
+
                         default:
-                                WRFL(cast(FL)c.IFL2);
-                                assert(0);
+                            WRFL(cast(FL)c.IFL2);
+                            assert(0);
                     }
                     break;
 
@@ -5587,30 +5740,33 @@ debug
                                 c.Iop = 0x6A;          // PUSH immed8
                         }
                         else // PUSH 16 bit operand
-                        {   if (cast(short)u == cast(byte) u)
+                        {
+                            if (cast(short)u == cast(byte) u)
                                 c.Iop = 0x6A;          // PUSH immed8
                         }
                     }
                     break;
             }
         }
-  }
+    }
 
-  debug
-  if (debugc) {
-      printf("-pinholeopt(%p)\n",cstart);
+    debug
+    if (debugc)
+    {
+        printf("-pinholeopt(%p)\n",cstart);
         for (c = cstart; c; c = code_next(c))
             code_print(c);
-  }
-
+    }
 }
+
 
 debug
 {
 private void pinholeopt_unittest()
 {
     //printf("pinholeopt_unittest()\n");
-    static struct CS {
+    static struct CS
+    {
         uint model,op,ea;
         targ_size_t ev1,ev2;
         uint flags;
@@ -5724,67 +5880,72 @@ void simplify_code(code* c)
  */
 
 void jmpaddr(code *c)
-{ code* ci,cn,ctarg,cstart;
-  targ_size_t ad;
-  uint op;
+{
+    code* ci,cn,ctarg,cstart;
+    targ_size_t ad;
+    uint op;
 
-  //printf("jmpaddr()\n");
-  cstart = c;                           /* remember start of code       */
-  while (c)
-  {
+    //printf("jmpaddr()\n");
+    cstart = c;                           /* remember start of code       */
+    while (c)
+    {
         op = c.Iop;
         if (op <= 0xEB &&
             inssize[op] & T &&   // if second operand
             c.IFL2 == FLcode &&
             ((op & ~0x0F) == 0x70 || op == JMP || op == JMPS || op == JCXZ || op == CALL))
-        {       ci = code_next(c);
-                ctarg = c.IEV2.Vcode;  /* target code                  */
-                ad = 0;                 /* IP displacement              */
-                while (ci && ci != ctarg)
+        {
+            ci = code_next(c);
+            ctarg = c.IEV2.Vcode;  /* target code                  */
+            ad = 0;                 /* IP displacement              */
+            while (ci && ci != ctarg)
+            {
+                ad += calccodsize(ci);
+                ci = code_next(ci);
+            }
+            if (!ci)
+                goto Lbackjmp;      // couldn't find it
+            if (!I16 || op == JMP || op == JMPS || op == JCXZ || op == CALL)
+                c.IEV2.Vpointer = ad;
+            else                    /* else conditional             */
+            {
+                if (!(c.Iflags & CFjmp16))     /* if branch    */
+                    c.IEV2.Vpointer = ad;
+                else            /* branch around a long jump    */
                 {
-                        ad += calccodsize(ci);
-                        ci = code_next(ci);
+                    cn = code_next(c);
+                    c.next = code_calloc();
+                    code_next(c).next = cn;
+                    c.Iop = op ^ 1;        /* converse jmp */
+                    c.Iflags &= ~CFjmp16;
+                    c.IEV2.Vpointer = I16 ? 3 : 5;
+                    cn = code_next(c);
+                    cn.Iop = JMP;          /* long jump    */
+                    cn.IFL2 = FLconst;
+                    cn.IEV2.Vpointer = ad;
                 }
-                if (!ci)
-                    goto Lbackjmp;      // couldn't find it
-                if (!I16 || op == JMP || op == JMPS || op == JCXZ || op == CALL)
-                        c.IEV2.Vpointer = ad;
-                else                    /* else conditional             */
-                {       if (!(c.Iflags & CFjmp16))     /* if branch    */
-                                c.IEV2.Vpointer = ad;
-                        else            /* branch around a long jump    */
-                        {       cn = code_next(c);
-                                c.next = code_calloc();
-                                code_next(c).next = cn;
-                                c.Iop = op ^ 1;        /* converse jmp */
-                                c.Iflags &= ~CFjmp16;
-                                c.IEV2.Vpointer = I16 ? 3 : 5;
-                                cn = code_next(c);
-                                cn.Iop = JMP;          /* long jump    */
-                                cn.IFL2 = FLconst;
-                                cn.IEV2.Vpointer = ad;
-                        }
-                }
-                c.IFL2 = FLconst;
+            }
+            c.IFL2 = FLconst;
         }
         if (op == LOOP && c.IFL2 == FLcode)    /* backwards refs       */
         {
-            Lbackjmp:
-                ctarg = c.IEV2.Vcode;
-                for (ci = cstart; ci != ctarg; ci = code_next(ci))
-                        if (!ci || ci == c)
-                                assert(0);
-                ad = 2;                 /* - IP displacement            */
-                while (ci != c)
-                {       assert(ci);
-                        ad += calccodsize(ci);
-                        ci = code_next(ci);
-                }
-                c.IEV2.Vpointer = (-ad) & 0xFF;
-                c.IFL2 = FLconst;
+          Lbackjmp:
+            ctarg = c.IEV2.Vcode;
+            for (ci = cstart; ci != ctarg; ci = code_next(ci))
+                if (!ci || ci == c)
+                    assert(0);
+            ad = 2;                 /* - IP displacement            */
+            while (ci != c)
+            {
+                assert(ci);
+                ad += calccodsize(ci);
+                ci = code_next(ci);
+            }
+            c.IEV2.Vpointer = (-ad) & 0xFF;
+            c.IFL2 = FLconst;
         }
         c = code_next(c);
-  }
+    }
 }
 
 /*******************************
@@ -5792,15 +5953,15 @@ void jmpaddr(code *c)
  */
 
 uint calcblksize(code *c)
-{   uint size;
-
+{
+    uint size;
     for (size = 0; c; c = code_next(c))
     {
         uint sz = calccodsize(c);
         //printf("off=%02x, sz = %d, code %p: op=%02x\n", size, sz, c, c.Iop);
         size += sz;
     }
-//printf("calcblksize(c = x%x) = %d\n", c, size);
+    //printf("calcblksize(c = x%x) = %d\n", c, size);
     return size;
 }
 
@@ -5812,7 +5973,8 @@ uint calcblksize(code *c)
  */
 
 uint calccodsize(code *c)
-{   uint size;
+{
+    uint size;
     uint op;
     ubyte rm,mod,ins;
     uint iflags;
@@ -5945,7 +6107,8 @@ uint calccodsize(code *c)
 
 Lmodrm:
     if ((op & ~0x0F) == 0x70)
-    {   if (iflags & CFjmp16)           // if long branch
+    {
+        if (iflags & CFjmp16)           // if long branch
             size += I16 ? 3 : 4;        // + 3(4) bytes for JMP
     }
     else if (ins & M)                   // if modregrm byte
@@ -5968,9 +6131,11 @@ Lmodrm:
                          */
                         assert(0);
                     break;
+
                 case 0x40:
                     size++;             /* disp8                        */
                     break;
+
                 case 0x80:
                     size += 4;          /* disp32                       */
                     break;
@@ -5990,7 +6155,8 @@ Lmodrm:
 
 Lret:
     if (!(iflags & CFvex) && c.Irex)
-    {   size++;
+    {
+        size++;
         if (c.Irex & REX_W && (op & ~7) == 0xB8)
             size += 4;
     }
@@ -6007,7 +6173,8 @@ static if (0)
 {
 
 int code_match(code *c1,code *c2)
-{   code cs1,cs2;
+{
+    code cs1,cs2;
     ubyte ins;
 
     if (c1 == c2)
@@ -6111,7 +6278,7 @@ struct MiniCodeBuf
     size_t index;
     size_t offset;
     int seg;
-    char[100] bytes;
+    char[100] bytes; // = void;
 
     this(int seg)
     {
@@ -6145,23 +6312,24 @@ private void do32bit(MiniCodeBuf *pbuf, FL, evc *,int,int = 0);
 private void do64bit(MiniCodeBuf *pbuf, FL, evc *,int);
 
 uint codout(int seg, code *c)
-{ uint op;
-  ubyte rm,mod;
-  ubyte ins;
-  code *cn;
-  uint flags;
-  Symbol *s;
+{
+    uint op;
+    ubyte rm,mod;
+    ubyte ins;
+    code *cn;
+    uint flags;
+    Symbol *s;
 
-  debug
-  if (debugc) printf("codout(%p), Coffset = x%llx\n",c,cast(ulong)Offset(seg));
+    debug
+    if (debugc) printf("codout(%p), Coffset = x%llx\n",c,cast(ulong)Offset(seg));
 
     MiniCodeBuf ggen = void;
     ggen.index = 0;
     ggen.offset = cast(size_t)Offset(seg);
     ggen.seg = seg;
 
-  for (; c; c = code_next(c))
-  {
+    for (; c; c = code_next(c))
+    {
         debug
         {
         if (debugc) { printf("off=%02lx, sz=%ld, ",cast(int)ggen.getOffset(),cast(int)calccodsize(c)); code_print(c); }
@@ -6171,7 +6339,8 @@ uint codout(int seg, code *c)
         op = c.Iop;
         ins = inssize[op & 0xFF];
         switch (op & 0xFF)
-        {   case ESCAPE:
+        {
+            case ESCAPE:
                 /* Check for SSE4 opcode v/pmaxuw xmm1,xmm2/m128 */
                 if(op == 0x660F383E || c.Iflags & CFvex) break;
 
@@ -6190,6 +6359,7 @@ static if (1)
                         if (config.exe != EX_WIN32)
                             except_pair_setoffset(c,ggen.getOffset() - funcoffset);
                         break;
+
                     case ESCmark:
                     case ESCrelease:
                     case ESCmark2:
@@ -6201,12 +6371,15 @@ else
                     case ESCctor:
                         except_push(ggen.getOffset() - funcoffset,c.IEV1.Vtor,null);
                         break;
+
                     case ESCdtor:
                         except_pop(ggen.getOffset() - funcoffset,c.IEV1.Vtor,null);
                         break;
+
                     case ESCmark:
                         except_mark();
                         break;
+
                     case ESCrelease:
                         except_release();
                         break;
@@ -6224,6 +6397,7 @@ else
                 assert(calccodsize(c) == 0);
 
                 continue;
+
             case NOP:                   /* don't send them out          */
                 if (op != NOP)
                     break;
@@ -6231,6 +6405,7 @@ else
                 assert(calccodsize(c) == 0);
 
                 continue;
+
             case ASM:
                 if (op != ASM)
                     break;
@@ -6259,7 +6434,8 @@ else
 
         // see if we need to put out prefix bytes
         if (flags & (CFwait | CFPREFIX | CFjmp16))
-        {   int override_;
+        {
+            int override_;
 
             if (flags & CFwait)
                 ggen.gen(0x9B);                      // FWAIT
@@ -6398,9 +6574,11 @@ else
                 if (issib(rm))
                     ggen.gen(c.Isib);
                 switch (rm & 0xC0)
-                {   case 0x40:
+                {
+                    case 0x40:
                         do8bit(&ggen, cast(FL) c.IFL1,&c.IEV1);     // 8 bit
                         break;
+
                     case 0:
                         if (!(issib(rm) && (c.Isib & 7) == 5 ||
                               (rm & 7) == 5))
@@ -6450,6 +6628,7 @@ static if (TARGET_OSX || TARGET_WINDOS)
                 {   case 0x40:
                         do8bit(&ggen, cast(FL) c.IFL1,&c.IEV1);     // 8 bit
                         break;
+
                     case 0:
                         if ((rm & 7) != 6)
                             break;
@@ -6471,135 +6650,142 @@ static if (TARGET_OSX || TARGET_WINDOS)
         }
         flags &= CFseg | CFoff | CFselfrel;
         if (ins & T)                    /* if second operand            */
-        {       if (ins & E)            /* if data-8                    */
-                    do8bit(&ggen, cast(FL) c.IFL2,&c.IEV2);
-                else if (!I16)
+        {
+            if (ins & E)            /* if data-8                    */
+                do8bit(&ggen, cast(FL) c.IFL2,&c.IEV2);
+            else if (!I16)
+            {
+                switch (op)
                 {
-                    switch (op)
-                    {   case 0xC2:              /* RETN imm16           */
-                        case 0xCA:              /* RETF imm16           */
-                        do16:
-                            do16bit(&ggen, cast(FL)c.IFL2,&c.IEV2,flags);
+                    case 0xC2:              /* RETN imm16           */
+                    case 0xCA:              /* RETF imm16           */
+                    do16:
+                        do16bit(&ggen, cast(FL)c.IFL2,&c.IEV2,flags);
+                        break;
+
+                    case 0xA1:
+                    case 0xA3:
+                        if (I64 && c.Irex)
+                        {
+                    do64:
+                            do64bit(&ggen, cast(FL)c.IFL2,&c.IEV2,flags);
                             break;
+                        }
+                        goto case 0xA0;
 
-                        case 0xA1:
-                        case 0xA3:
-                            if (I64 && c.Irex)
-                            {
-                        do64:
-                                do64bit(&ggen, cast(FL)c.IFL2,&c.IEV2,flags);
-                                break;
-                            }
-                            goto case 0xA0;
+                    case 0xA0:              /* MOV AL,byte ptr []   */
+                    case 0xA2:
+                        if (c.Iflags & CFaddrsize && !I64)
+                            goto do16;
+                        else
+                    do32:
+                            do32bit(&ggen, cast(FL)c.IFL2,&c.IEV2,flags);
+                        break;
 
-                        case 0xA0:              /* MOV AL,byte ptr []   */
-                        case 0xA2:
-                            if (c.Iflags & CFaddrsize && !I64)
-                                goto do16;
-                            else
-                        do32:
-                                do32bit(&ggen, cast(FL)c.IFL2,&c.IEV2,flags);
-                            break;
-                        case 0x9A:
-                        case 0xEA:
-                            if (c.Iflags & CFopsize)
-                                goto ptr1616;
-                            else
-                                goto ptr1632;
+                    case 0x9A:
+                    case 0xEA:
+                        if (c.Iflags & CFopsize)
+                            goto ptr1616;
+                        else
+                            goto ptr1632;
 
-                        case 0x68:              // PUSH immed32
-                            if (cast(FL)c.IFL2 == FLblock)
-                            {
-                                c.IFL2 = FLblockoff;
-                                goto do32;
-                            }
-                            else
-                                goto case_default;
-
-                        case CALL:              // CALL rel
-                        case JMP:               // JMP  rel
-                            flags |= CFselfrel;
+                    case 0x68:              // PUSH immed32
+                        if (cast(FL)c.IFL2 == FLblock)
+                        {
+                            c.IFL2 = FLblockoff;
+                            goto do32;
+                        }
+                        else
                             goto case_default;
 
-                        default:
-                            if ((op|0xF) == 0x0F8F) // Jcc rel16 rel32
-                                flags |= CFselfrel;
-                            if (I64 && (op & ~7) == 0xB8 && c.Irex & REX_W)
-                                goto do64;
-                        case_default:
-                            if (c.Iflags & CFopsize)
-                                goto do16;
-                            else
-                                goto do32;
-                    }
-                }
-                else
-                {
-                    switch (op) {
-                        case 0xC2:
-                        case 0xCA:
-                            goto do16;
-                        case 0xA0:
-                        case 0xA1:
-                        case 0xA2:
-                        case 0xA3:
-                            if (c.Iflags & CFaddrsize)
-                                goto do32;
-                            else
-                                goto do16;
+                    case CALL:              // CALL rel
+                    case JMP:               // JMP  rel
+                        flags |= CFselfrel;
+                        goto case_default;
 
-                        case 0x9A:
-                        case 0xEA:
-                            if (c.Iflags & CFopsize)
-                                goto ptr1632;
-                            else
-                                goto ptr1616;
-
-                        ptr1616:
-                        ptr1632:
-                            //assert(c.IFL2 == FLfunc);
-                            ggen.flush();
-                            if (c.IFL2 == FLdatseg)
-                            {
-                                objmod.reftodatseg(seg,ggen.offset,c.IEV2.Vpointer,
-                                        c.IEV2.Vseg,flags);
-                                ggen.offset += 4;
-                            }
-                            else
-                            {
-                                s = c.IEV2.Vsym;
-                                ggen.offset += objmod.reftoident(seg,ggen.offset,s,0,flags);
-                            }
-                            break;
-
-                        case 0x68:              // PUSH immed16
-                            if (cast(FL)c.IFL2 == FLblock)
-                            {   c.IFL2 = FLblockoff;
-                                goto do16;
-                            }
-                            else
-                                goto case_default16;
-
-                        case CALL:
-                        case JMP:
+                    default:
+                        if ((op|0xF) == 0x0F8F) // Jcc rel16 rel32
                             flags |= CFselfrel;
-                            goto default;
-
-                        default:
-                        case_default16:
-                            if (c.Iflags & CFopsize)
-                                goto do32;
-                            else
-                                goto do16;
-                    }
+                        if (I64 && (op & ~7) == 0xB8 && c.Irex & REX_W)
+                            goto do64;
+                    case_default:
+                        if (c.Iflags & CFopsize)
+                            goto do16;
+                        else
+                            goto do32;
                 }
+            }
+            else
+            {
+                switch (op)
+                {
+                    case 0xC2:
+                    case 0xCA:
+                        goto do16;
+
+                    case 0xA0:
+                    case 0xA1:
+                    case 0xA2:
+                    case 0xA3:
+                        if (c.Iflags & CFaddrsize)
+                            goto do32;
+                        else
+                            goto do16;
+
+                    case 0x9A:
+                    case 0xEA:
+                        if (c.Iflags & CFopsize)
+                            goto ptr1632;
+                        else
+                            goto ptr1616;
+
+                    ptr1616:
+                    ptr1632:
+                        //assert(c.IFL2 == FLfunc);
+                        ggen.flush();
+                        if (c.IFL2 == FLdatseg)
+                        {
+                            objmod.reftodatseg(seg,ggen.offset,c.IEV2.Vpointer,
+                                    c.IEV2.Vseg,flags);
+                            ggen.offset += 4;
+                        }
+                        else
+                        {
+                            s = c.IEV2.Vsym;
+                            ggen.offset += objmod.reftoident(seg,ggen.offset,s,0,flags);
+                        }
+                        break;
+
+                    case 0x68:              // PUSH immed16
+                        if (cast(FL)c.IFL2 == FLblock)
+                        {   c.IFL2 = FLblockoff;
+                            goto do16;
+                        }
+                        else
+                            goto case_default16;
+
+                    case CALL:
+                    case JMP:
+                        flags |= CFselfrel;
+                        goto default;
+
+                    default:
+                    case_default16:
+                        if (c.Iflags & CFopsize)
+                            goto do32;
+                        else
+                            goto do16;
+                }
+            }
         }
         else if (op == 0xF6)            /* TEST mem8,immed8             */
-        {       if ((rm & (7<<3)) == 0)
-                        do8bit(&ggen, cast(FL)c.IFL2,&c.IEV2);
+        {
+            if ((rm & (7<<3)) == 0)
+                do8bit(&ggen, cast(FL)c.IFL2,&c.IEV2);
         }
         else if (op == 0xF7)
-        {   if ((rm & (7<<3)) == 0)     /* TEST mem16/32,immed16/32     */
+        {
+            if ((rm & (7<<3)) == 0)     /* TEST mem16/32,immed16/32     */
             {
                 if ((I32 || I64) ^ ((c.Iflags & CFopsize) != 0))
                     do32bit(&ggen, cast(FL)c.IFL2,&c.IEV2,flags);
@@ -6624,7 +6810,8 @@ static if (TARGET_OSX || TARGET_WINDOS)
 
 
 private void do64bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
-{   char *p;
+{
+    char *p;
     Symbol *s;
     targ_size_t ad;
 
@@ -6636,14 +6823,17 @@ private void do64bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
         L1:
             pbuf.genp(8,&ad);
             return;
+
         case FLdatseg:
             pbuf.flush();
             objmod.reftodatseg(pbuf.seg,pbuf.offset,uev.Vpointer,uev.Vseg,CFoffset64 | flags);
             break;
+
         case FLframehandler:
             framehandleroffset = pbuf.getOffset();
             ad = 0;
             goto L1;
+
         case FLswitch:
             pbuf.flush();
             ad = uev.Vswitch.Btableoffset;
@@ -6707,252 +6897,267 @@ static if (TARGET_OSX)
 
 
 private void do32bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags, int val)
-{ char *p;
-  Symbol *s;
-  targ_size_t ad;
+{
+    char *p;
+    Symbol *s;
+    targ_size_t ad;
 
-  //printf("do32bit(flags = x%x)\n", flags);
-  switch (fl)
-  {
-    case FLconst:
-        assert(targ_size_t.sizeof == 4 || targ_size_t.sizeof == 8);
-        ad = * cast(targ_size_t *) uev;
-    L1:
-        pbuf.genp(4,&ad);
-        return;
-    case FLdatseg:
-        pbuf.flush();
-        objmod.reftodatseg(pbuf.seg,pbuf.offset,uev.Vpointer,uev.Vseg,flags);
-        break;
-    case FLframehandler:
-        framehandleroffset = pbuf.getOffset();
-        ad = 0;
-        goto L1;
-    case FLswitch:
-        pbuf.flush();
-        ad = uev.Vswitch.Btableoffset;
-        if (config.flags & CFGromable)
-        {
-static if (TARGET_OSX)
-{
-            // These are magic values based on the exact code generated for the switch jump
-            if (I64)
-                uev.Vswitch.Btablebase = pbuf.getOffset() + 4;
-            else
-                uev.Vswitch.Btablebase = pbuf.getOffset() + 4 - 8;
-            ad -= uev.Vswitch.Btablebase;
+    //printf("do32bit(flags = x%x)\n", flags);
+    switch (fl)
+    {
+        case FLconst:
+            assert(targ_size_t.sizeof == 4 || targ_size_t.sizeof == 8);
+            ad = * cast(targ_size_t *) uev;
+        L1:
+            pbuf.genp(4,&ad);
+            return;
+
+        case FLdatseg:
+            pbuf.flush();
+            objmod.reftodatseg(pbuf.seg,pbuf.offset,uev.Vpointer,uev.Vseg,flags);
+            break;
+
+        case FLframehandler:
+            framehandleroffset = pbuf.getOffset();
+            ad = 0;
             goto L1;
-}
-else static if (TARGET_WINDOS)
-{
-            if (I64)
+
+        case FLswitch:
+            pbuf.flush();
+            ad = uev.Vswitch.Btableoffset;
+            if (config.flags & CFGromable)
             {
-                uev.Vswitch.Btablebase = pbuf.getOffset() + 4;
-                ad -= uev.Vswitch.Btablebase;
+                static if (TARGET_OSX)
+                {
+                    // These are magic values based on the exact code generated for the switch jump
+                    if (I64)
+                        uev.Vswitch.Btablebase = pbuf.getOffset() + 4;
+                    else
+                        uev.Vswitch.Btablebase = pbuf.getOffset() + 4 - 8;
+                    ad -= uev.Vswitch.Btablebase;
+                    goto L1;
+                }
+                else static if (TARGET_WINDOS)
+                {
+                    if (I64)
+                    {
+                        uev.Vswitch.Btablebase = pbuf.getOffset() + 4;
+                        ad -= uev.Vswitch.Btablebase;
+                        goto L1;
+                    }
+                    else
+                        objmod.reftocodeseg(pbuf.seg,pbuf.offset,ad);
+                }
+                else
+                {
+                    objmod.reftocodeseg(pbuf.seg,pbuf.offset,ad);
+                }
+            }
+            else
+                    objmod.reftodatseg(pbuf.seg,pbuf.offset,ad,objmod.jmpTableSegment(funcsym_p),CFoff);
+            break;
+
+        case FLcode:
+            //assert(JMPJMPTABLE);            // the only use case
+            pbuf.flush();
+            ad = *cast(targ_size_t *) uev + pbuf.getOffset();
+            objmod.reftocodeseg(pbuf.seg,pbuf.offset,ad);
+            break;
+
+        case FLcsdata:
+        case FLfardata:
+            //symbol_print(uev.Vsym);
+
+            // NOTE: In ELFOBJ all symbol refs have been tagged FLextern
+            // strings and statics are treated like offsets from a
+            // un-named external with is the start of .rodata or .data
+        case FLextern:                      /* external data symbol         */
+        case FLtlsdata:
+    static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+    {
+        case FLgot:
+        case FLgotoff:
+    }
+            pbuf.flush();
+            s = uev.Vsym;               /* symbol pointer               */
+            if (TARGET_WINDOS && I64 && (flags & CFpc32))
+            {
+                /* This is for those funky fixups where the location to be fixed up
+                 * is a 'val' amount back from the current RIP, biased by adding 4.
+                 */
+                assert(val >= -5 && val <= 0);
+                flags |= (-val & 7) << 24;          // set CFREL value
+                assert(CFREL == (7 << 24));
+                objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset,flags);
+            }
+            else
+                objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset + val,flags);
+            break;
+
+    static if (TARGET_OSX)
+    {
+        case FLgot:
+            funcsym_p.Slocalgotoffset = pbuf.getOffset();
+            ad = 0;
+            goto L1;
+    }
+
+        case FLfunc:                        /* function call                */
+            s = uev.Vsym;               /* symbol pointer               */
+            if (tyfarfunc(s.ty()))
+            {   /* Large code references are always absolute    */
+                pbuf.flush();
+                pbuf.offset += objmod.reftoident(pbuf.seg,pbuf.offset,s,0,flags) - 4;
+            }
+            else if (s.Sseg == pbuf.seg &&
+                     (s.Sclass == SCstatic || s.Sclass == SCglobal) &&
+                     s.Sxtrnnum == 0 && flags & CFselfrel)
+            {   /* if we know it's relative address     */
+                ad = s.Soffset - pbuf.getOffset() - 4;
                 goto L1;
             }
             else
-                objmod.reftocodeseg(pbuf.seg,pbuf.offset,ad);
-}
-else
-{
-            objmod.reftocodeseg(pbuf.seg,pbuf.offset,ad);
-}
-        }
-        else
-                objmod.reftodatseg(pbuf.seg,pbuf.offset,ad,objmod.jmpTableSegment(funcsym_p),CFoff);
-        break;
-    case FLcode:
-        //assert(JMPJMPTABLE);            // the only use case
-        pbuf.flush();
-        ad = *cast(targ_size_t *) uev + pbuf.getOffset();
-        objmod.reftocodeseg(pbuf.seg,pbuf.offset,ad);
-        break;
-
-    case FLcsdata:
-    case FLfardata:
-        //symbol_print(uev.Vsym);
-
-        // NOTE: In ELFOBJ all symbol refs have been tagged FLextern
-        // strings and statics are treated like offsets from a
-        // un-named external with is the start of .rodata or .data
-    case FLextern:                      /* external data symbol         */
-    case FLtlsdata:
-static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-    case FLgot:
-    case FLgotoff:
-}
-        pbuf.flush();
-        s = uev.Vsym;               /* symbol pointer               */
-        if (TARGET_WINDOS && I64 && (flags & CFpc32))
-        {
-            /* This is for those funky fixups where the location to be fixed up
-             * is a 'val' amount back from the current RIP, biased by adding 4.
-             */
-            assert(val >= -5 && val <= 0);
-            flags |= (-val & 7) << 24;          // set CFREL value
-            assert(CFREL == (7 << 24));
-            objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset,flags);
-        }
-        else
-            objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset + val,flags);
-        break;
-
-static if (TARGET_OSX)
-{
-    case FLgot:
-        funcsym_p.Slocalgotoffset = pbuf.getOffset();
-        ad = 0;
-        goto L1;
-}
-
-    case FLfunc:                        /* function call                */
-        s = uev.Vsym;               /* symbol pointer               */
-        if (tyfarfunc(s.ty()))
-        {       /* Large code references are always absolute    */
-                pbuf.flush();
-                pbuf.offset += objmod.reftoident(pbuf.seg,pbuf.offset,s,0,flags) - 4;
-        }
-        else if (s.Sseg == pbuf.seg &&
-                 (s.Sclass == SCstatic || s.Sclass == SCglobal) &&
-                 s.Sxtrnnum == 0 && flags & CFselfrel)
-        {       /* if we know it's relative address     */
-                ad = s.Soffset - pbuf.getOffset() - 4;
-                goto L1;
-        }
-        else
-        {
+            {
                 assert(TARGET_SEGMENTED || !tyfarfunc(s.ty()));
                 pbuf.flush();
                 objmod.reftoident(pbuf.seg,pbuf.offset,s,val,flags);
-        }
-        break;
+            }
+            break;
 
-    case FLblock:                       /* displacement to another block */
-        ad = uev.Vblock.Boffset - pbuf.getOffset() - 4;
-        //printf("FLblock: funcoffset = %x, pbuf.getOffset = %x, Boffset = %x, ad = %x\n", funcoffset, pbuf.getOffset(), uev.Vblock.Boffset, ad);
-        goto L1;
+        case FLblock:                       /* displacement to another block */
+            ad = uev.Vblock.Boffset - pbuf.getOffset() - 4;
+            //printf("FLblock: funcoffset = %x, pbuf.getOffset = %x, Boffset = %x, ad = %x\n", funcoffset, pbuf.getOffset(), uev.Vblock.Boffset, ad);
+            goto L1;
 
-    case FLblockoff:
-        pbuf.flush();
-        assert(uev.Vblock);
-        //printf("FLblockoff: offset = %x, Boffset = %x, funcoffset = %x\n", pbuf.offset, uev.Vblock.Boffset, funcoffset);
-        objmod.reftocodeseg(pbuf.seg,pbuf.offset,uev.Vblock.Boffset);
-        break;
+        case FLblockoff:
+            pbuf.flush();
+            assert(uev.Vblock);
+            //printf("FLblockoff: offset = %x, Boffset = %x, funcoffset = %x\n", pbuf.offset, uev.Vblock.Boffset, funcoffset);
+            objmod.reftocodeseg(pbuf.seg,pbuf.offset,uev.Vblock.Boffset);
+            break;
 
-    default:
-        WRFL(fl);
-        assert(0);
-  }
-  pbuf.offset += 4;
+        default:
+            WRFL(fl);
+            assert(0);
+    }
+    pbuf.offset += 4;
 }
 
 
 private void do16bit(MiniCodeBuf *pbuf, FL fl, evc *uev,int flags)
-{ char *p;
-  Symbol *s;
-  targ_size_t ad;
+{
+    char *p;
+    Symbol *s;
+    targ_size_t ad;
 
-  switch (fl)
-  {
-    case FLconst:
-        pbuf.genp(2,cast(char *) uev);
-        return;
-    case FLdatseg:
-        pbuf.flush();
-        objmod.reftodatseg(pbuf.seg,pbuf.offset,uev.Vpointer,uev.Vseg,flags);
-        break;
-    case FLswitch:
-        pbuf.flush();
-        ad = uev.Vswitch.Btableoffset;
-        if (config.flags & CFGromable)
+    switch (fl)
+    {
+        case FLconst:
+            pbuf.genp(2,cast(char *) uev);
+            return;
+
+        case FLdatseg:
+            pbuf.flush();
+            objmod.reftodatseg(pbuf.seg,pbuf.offset,uev.Vpointer,uev.Vseg,flags);
+            break;
+
+        case FLswitch:
+            pbuf.flush();
+            ad = uev.Vswitch.Btableoffset;
+            if (config.flags & CFGromable)
                 objmod.reftocodeseg(pbuf.seg,pbuf.offset,ad);
-        else
+            else
                 objmod.reftodatseg(pbuf.seg,pbuf.offset,ad,objmod.jmpTableSegment(funcsym_p),CFoff);
-        break;
+            break;
 
-    case FLcsdata:
-    case FLfardata:
-    case FLextern:                      /* external data symbol         */
-    case FLtlsdata:
-        //assert(SIXTEENBIT || TARGET_SEGMENTED);
-        pbuf.flush();
-        s = uev.Vsym;               /* symbol pointer               */
-        objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset,flags);
-        break;
-    case FLfunc:                        /* function call                */
-        //assert(SIXTEENBIT || TARGET_SEGMENTED);
-        s = uev.Vsym;               /* symbol pointer               */
-        if (tyfarfunc(s.ty()))
-        {       /* Large code references are always absolute    */
+        case FLcsdata:
+        case FLfardata:
+        case FLextern:                      /* external data symbol         */
+        case FLtlsdata:
+            //assert(SIXTEENBIT || TARGET_SEGMENTED);
+            pbuf.flush();
+            s = uev.Vsym;               /* symbol pointer               */
+            objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset,flags);
+            break;
+
+        case FLfunc:                        /* function call                */
+            //assert(SIXTEENBIT || TARGET_SEGMENTED);
+            s = uev.Vsym;               /* symbol pointer               */
+            if (tyfarfunc(s.ty()))
+            {   /* Large code references are always absolute    */
                 pbuf.flush();
                 pbuf.offset += objmod.reftoident(pbuf.seg,pbuf.offset,s,0,flags) - 2;
-        }
-        else if (s.Sseg == pbuf.seg &&
-                 (s.Sclass == SCstatic || s.Sclass == SCglobal) &&
-                 s.Sxtrnnum == 0 && flags & CFselfrel)
-        {       /* if we know it's relative address     */
+            }
+            else if (s.Sseg == pbuf.seg &&
+                     (s.Sclass == SCstatic || s.Sclass == SCglobal) &&
+                     s.Sxtrnnum == 0 && flags & CFselfrel)
+            {   /* if we know it's relative address     */
                 ad = s.Soffset - pbuf.getOffset() - 2;
                 goto L1;
-        }
-        else
-        {       pbuf.flush();
+            }
+            else
+            {
+                pbuf.flush();
                 objmod.reftoident(pbuf.seg,pbuf.offset,s,0,flags);
-        }
-        break;
-    case FLblock:                       /* displacement to another block */
-        ad = uev.Vblock.Boffset - pbuf.getOffset() - 2;
-        debug
-        {
-            targ_ptrdiff_t delta = uev.Vblock.Boffset - pbuf.getOffset() - 2;
-            assert(cast(short)delta == delta);
-        }
-    L1:
-        pbuf.genp(2,&ad);                    // displacement
-        return;
+            }
+            break;
 
-    case FLblockoff:
-        pbuf.flush();
-        objmod.reftocodeseg(pbuf.seg,pbuf.offset,uev.Vblock.Boffset);
-        break;
+        case FLblock:                       /* displacement to another block */
+            ad = uev.Vblock.Boffset - pbuf.getOffset() - 2;
+            debug
+            {
+                targ_ptrdiff_t delta = uev.Vblock.Boffset - pbuf.getOffset() - 2;
+                assert(cast(short)delta == delta);
+            }
+        L1:
+            pbuf.genp(2,&ad);                    // displacement
+            return;
 
-    default:
-        WRFL(fl);
-        assert(0);
-  }
-  pbuf.offset += 2;
+        case FLblockoff:
+            pbuf.flush();
+            objmod.reftocodeseg(pbuf.seg,pbuf.offset,uev.Vblock.Boffset);
+            break;
+
+        default:
+            WRFL(fl);
+            assert(0);
+    }
+    pbuf.offset += 2;
 }
+
 
 private void do8bit(MiniCodeBuf *pbuf, FL fl, evc *uev)
-{ char c;
-  targ_ptrdiff_t delta;
-
-  switch (fl)
-  {
-    case FLconst:
-        c = cast(char)uev.Vuns;
-        break;
-    case FLblock:
-        delta = uev.Vblock.Boffset - pbuf.getOffset() - 1;
-        if (cast(byte)delta != delta)
-        {
-version (MARS)
 {
-            if (uev.Vblock.Bsrcpos.Slinnum)
-                printf("%s(%d): ", uev.Vblock.Bsrcpos.Sfilename, uev.Vblock.Bsrcpos.Slinnum);
-}
-            printf("block displacement of %lld exceeds the maximum offset of -128 to 127.\n", cast(long)delta);
-            err_exit();
-        }
-        c = cast(char)delta;
-        debug assert(uev.Vblock.Boffset > pbuf.getOffset() || c != 0x7F);
-        break;
-    default:
-        debug printf("fl = %d\n",fl);
-        assert(0);
-  }
-  pbuf.gen(c);
+    char c;
+    targ_ptrdiff_t delta;
+
+    switch (fl)
+    {
+        case FLconst:
+            c = cast(char)uev.Vuns;
+            break;
+
+        case FLblock:
+            delta = uev.Vblock.Boffset - pbuf.getOffset() - 1;
+            if (cast(byte)delta != delta)
+            {
+                version (MARS)
+                {
+                    if (uev.Vblock.Bsrcpos.Slinnum)
+                        printf("%s(%d): ", uev.Vblock.Bsrcpos.Sfilename, uev.Vblock.Bsrcpos.Slinnum);
+                }
+                printf("block displacement of %lld exceeds the maximum offset of -128 to 127.\n", cast(long)delta);
+                err_exit();
+            }
+            c = cast(char)delta;
+            debug assert(uev.Vblock.Boffset > pbuf.getOffset() || c != 0x7F);
+            break;
+
+        default:
+            debug printf("fl = %d\n",fl);
+            assert(0);
+    }
+    pbuf.gen(c);
 }
 
 
@@ -7037,6 +7242,7 @@ void code_hydrate(code **pc)
                 symbol_hydrate(&c.IEV1.Vsym);
                 symbol_debug(c.IEV1.Vsym);
                 break;
+
             case FLdatseg:
             case FLfltreg:
             case FLallocatmp:
@@ -7048,9 +7254,11 @@ void code_hydrate(code **pc)
             case FLframehandler:
                 assert(!flinsymtab[fl]);
                 break;
+
             case FLcode:
                 ph_hydrate(cast(void**)&c.IEV1.Vcode);
                 break;
+
             case FLblock:
             case FLblockoff:
                 ph_hydrate(cast(void**)&c.IEV1.Vblock);
@@ -7065,6 +7273,7 @@ version (SCPP)
             case FLasm:
                 ph_hydrate(cast(void**)&c.IEV1.bytes);
                 break;
+
             default:
                 WRFL(fl);
                 assert(0);
@@ -7094,6 +7303,7 @@ version (SCPP)
                 symbol_hydrate(&c.IEV2.Vsym);
                 symbol_debug(c.IEV2.Vsym);
                 break;
+
             case FLdatseg:
             case FLfltreg:
             case FLallocatmp:
@@ -7105,13 +7315,16 @@ version (SCPP)
             case FLframehandler:
                 assert(!flinsymtab[fl]);
                 break;
+
             case FLcode:
                 ph_hydrate(cast(void**)&c.IEV2.Vcode);
                 break;
+
             case FLblock:
             case FLblockoff:
                 ph_hydrate(cast(void**)&c.IEV2.Vblock);
                 break;
+
             default:
                 WRFL(fl);
                 assert(0);
@@ -7203,6 +7416,7 @@ void code_dehydrate(code **pc)
                 assert(flinsymtab[fl]);
                 symbol_dehydrate(&c.IEV1.Vsym);
                 break;
+
             case FLdatseg:
             case FLfltreg:
             case FLallocatmp:
@@ -7214,9 +7428,11 @@ void code_dehydrate(code **pc)
             case FLframehandler:
                 assert(!flinsymtab[fl]);
                 break;
+
             case FLcode:
                 ph_dehydrate(&c.IEV1.Vcode);
                 break;
+
             case FLblock:
             case FLblockoff:
                 ph_dehydrate(&c.IEV1.Vblock);
@@ -7231,6 +7447,7 @@ version (SCPP)
             case FLasm:
                 ph_dehydrate(&c.IEV1.bytes);
                 break;
+
             default:
                 WRFL(fl);
                 assert(0);
@@ -7260,6 +7477,7 @@ version (SCPP)
                 assert(flinsymtab[fl]);
                 symbol_dehydrate(&c.IEV2.Vsym);
                 break;
+
             case FLdatseg:
             case FLfltreg:
             case FLallocatmp:
@@ -7271,13 +7489,16 @@ version (SCPP)
             case FLframehandler:
                 assert(!flinsymtab[fl]);
                 break;
+
             case FLcode:
                 ph_dehydrate(&c.IEV2.Vcode);
                 break;
+
             case FLblock:
             case FLblockoff:
                 ph_dehydrate(&c.IEV2.Vblock);
                 break;
+
             default:
                 WRFL(fl);
                 assert(0);
@@ -7295,7 +7516,8 @@ version (SCPP)
  */
 
 void WRcodlst(code *c)
-{ for (; c; c = code_next(c))
+{
+    for (; c; c = code_next(c))
         code_print(c);
 }
 
@@ -7305,7 +7527,8 @@ extern (C) void code_print(code* c)
     ubyte rexb;
 
     if (c == null)
-    {   printf("code 0\n");
+    {
+        printf("code 0\n");
         return;
     }
 
@@ -7324,7 +7547,8 @@ extern (C) void code_print(code* c)
     if (c.Iflags & CFvex)
     {
         if (c.Iflags & CFvex3)
-        {   printf("vex=0xC4");
+        {
+            printf("vex=0xC4");
             printf(" 0x%02X", VEX3_B1(c.Ivex));
             printf(" 0x%02X", VEX3_B2(c.Ivex));
             rexb =
@@ -7334,7 +7558,8 @@ extern (C) void code_print(code* c)
                 (!c.Ivex.b ? REX_B : 0);
         }
         else
-        {   printf("vex=0xC5");
+        {
+            printf("vex=0xC5");
             printf(" 0x%02X", VEX2_B1(c.Ivex));
             rexb = !c.Ivex.r ? REX_R : 0;
         }
@@ -7344,7 +7569,8 @@ extern (C) void code_print(code* c)
         rexb = c.Irex;
 
     if (rexb)
-    {   printf("rex=0x%02X ", c.Irex);
+    {
+        printf("rex=0x%02X ", c.Irex);
         if (rexb & REX_W)
             printf("W");
         if (rexb & REX_R)
@@ -7357,20 +7583,24 @@ extern (C) void code_print(code* c)
     }
     printf("op=0x%02X",op);
 
-  if ((op & 0xFF) == ESCAPE)
-  {     if ((op & 0xFF00) == ESClinnum)
-        {   printf(" linnum = %d\n",c.IEV1.Vsrcpos.Slinnum);
+    if ((op & 0xFF) == ESCAPE)
+    {
+        if ((op & 0xFF00) == ESClinnum)
+        {
+            printf(" linnum = %d\n",c.IEV1.Vsrcpos.Slinnum);
             return;
         }
         printf(" ESCAPE %d",c.Iop >> 8);
-  }
-  if (c.Iflags)
+    }
+    if (c.Iflags)
         printf(" flg=%x",c.Iflags);
-  if (ins & M)
-  {     uint rm = c.Irm;
+    if (ins & M)
+    {
+        uint rm = c.Irm;
         printf(" rm=0x%02X=%d,%d,%d",rm,(rm>>6)&3,(rm>>3)&7,rm&7);
         if (!I16 && issib(rm))
-        {   ubyte sib = c.Isib;
+        {
+            ubyte sib = c.Isib;
             printf(" sib=%02x=%d,%d,%d",sib,(sib>>6)&3,(sib>>3)&7,sib&7);
         }
         if ((rm & 0xC7) == BPRM || (rm & 0xC0) == 0x80 || (rm & 0xC0) == 0x40)
@@ -7381,18 +7611,22 @@ extern (C) void code_print(code* c)
                 case FLoffset:
                     printf(" int = %4d",c.IEV1.Vuns);
                     break;
+
                 case FLblock:
                     printf(" block = %p",c.IEV1.Vblock);
                     break;
+
                 case FLswitch:
                 case FLblockoff:
                 case FLlocalsize:
                 case FLframehandler:
                 case 0:
                     break;
+
                 case FLdatseg:
                     printf(" %d.%llx",c.IEV1.Vseg,cast(ulong)c.IEV1.Vpointer);
                     break;
+
                 case FLauto:
                 case FLfast:
                 case FLreg:
@@ -7403,34 +7637,42 @@ extern (C) void code_print(code* c)
                 case FLtlsdata:
                     printf(" sym='%s'",c.IEV1.Vsym.Sident.ptr);
                     break;
+
                 case FLextern:
                     printf(" FLextern offset = %4d",cast(int)c.IEV1.Voffset);
                     break;
+
                 default:
                     WRFL(cast(FL)c.IFL1);
                     break;
             }
         }
-  }
-  if (ins & T)
-  {     printf(" "); WRFL(cast(FL)c.IFL2);
+    }
+    if (ins & T)
+    {
+        printf(" ");
+        WRFL(cast(FL)c.IFL2);
         switch (c.IFL2)
         {
             case FLconst:
                 printf(" int = %4d",c.IEV2.Vuns);
                 break;
+
             case FLblock:
                 printf(" block = %p",c.IEV2.Vblock);
                 break;
+
             case FLswitch:
             case FLblockoff:
             case 0:
             case FLlocalsize:
             case FLframehandler:
                 break;
+
             case FLdatseg:
                 printf(" %d.%llx",c.IEV2.Vseg,cast(ulong)c.IEV2.Vpointer);
                 break;
+
             case FLauto:
             case FLfast:
             case FLreg:
@@ -7442,15 +7684,17 @@ extern (C) void code_print(code* c)
             case FLtlsdata:
                 printf(" sym='%s'",c.IEV2.Vsym.Sident.ptr);
                 break;
+
             case FLcode:
                 printf(" code = %p",c.IEV2.Vcode);
                 break;
+
             default:
                 WRFL(cast(FL)c.IFL2);
                 break;
         }
-  }
-  printf("\n");
+    }
+    printf("\n");
 }
 
 }
