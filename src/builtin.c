@@ -26,6 +26,7 @@
 #include "module.h"
 #include "root/port.h"
 #include "tokens.h"
+#include "mangle.h"
 
 StringTable builtins;
 

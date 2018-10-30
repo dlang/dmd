@@ -1,20 +1,14 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/scope.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/scope.h
  */
 
-#ifndef DMD_SCOPE_H
-#define DMD_SCOPE_H
-
-#ifdef __DMC__
 #pragma once
-#endif
 
 class Dsymbol;
 class ScopeDsymbol;
@@ -37,7 +31,7 @@ class TemplateInstance;
 
 #if __GNUC__
 // Requires a full definition for LINK
-#include "mars.h"
+#include "globals.h"
 #else
 enum LINK;
 enum PINLINE;
@@ -162,5 +156,3 @@ struct Scope
 
     structalign_t alignment();
 };
-
-#endif /* DMD_SCOPE_H */

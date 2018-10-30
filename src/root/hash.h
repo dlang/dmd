@@ -8,6 +8,8 @@
  * Source:    $(DMDSRC root/_hash.h)
  */
 
+#pragma once
+
 #include <stdint.h>                     // uint{8|16|32}_t
 #include <stdlib.h>
 

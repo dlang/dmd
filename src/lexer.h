@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -9,15 +8,10 @@
  * https://github.com/D-Programming-Language/dmd/blob/master/src/lexer.h
  */
 
-#ifndef DMD_LEXER_H
-#define DMD_LEXER_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
-#include "root.h"
-#include "mars.h"
+#include "root/root.h"
+#include "globals.h"
 #include "tokens.h"
 
 struct StringTable;
@@ -79,5 +73,3 @@ public:
 private:
     void endOfLine();
 };
-
-#endif /* DMD_LEXER_H */

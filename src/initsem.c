@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -9,6 +8,7 @@
  */
 
 #include "checkedint.h"
+#include "mars.h"
 #include "init.h"
 #include "expression.h"
 #include "statement.h"
@@ -21,7 +21,6 @@
 
 FuncDeclaration *isFuncAddress(Expression *e, bool *hasOverloads = NULL);
 Expression *semantic(Expression *e, Scope *sc);
-Expression *initializerToExpression(Initializer *i, Type *t = NULL);
 Initializer *inferType(Initializer *init, Scope *sc);
 Initializer *semantic(Initializer *init, Scope *sc, Type *t, NeedInterpret needInterpret);
 bool hasNonConstPointers(Expression *e);

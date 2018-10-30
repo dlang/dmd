@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -13,8 +12,9 @@
 #include <assert.h>
 #include <string.h>                     // mem{set|cpy}()
 
-#include "rmem.h"
+#include "root/rmem.h"
 
+#include "mars.h"
 #include "expression.h"
 #include "mtype.h"
 #include "utf.h"
@@ -185,10 +185,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
         void visit(Expression *e)
         {
-        #if 0
-            printf("Expression::implicitConvTo(this=%s, type=%s, t=%s)\n",
-                e->toChars(), e->type->toChars(), t->toChars());
-        #endif
             //static int nest; if (++nest == 10) halt();
             if (t == Type::terror)
                 return;
@@ -288,10 +284,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
         void visit(AddExp *e)
         {
-        #if 0
-            printf("AddExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
-                e->toChars(), e->type->toChars(), t->toChars());
-        #endif
             visit((Expression *)e);
             if (result == MATCHnomatch)
                 result = implicitConvToAddMin(e, t);
@@ -299,10 +291,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
         void visit(MinExp *e)
         {
-        #if 0
-            printf("MinExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
-                e->toChars(), e->type->toChars(), t->toChars());
-        #endif
             visit((Expression *)e);
             if (result == MATCHnomatch)
                 result = implicitConvToAddMin(e, t);
@@ -310,10 +298,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
         void visit(IntegerExp *e)
         {
-        #if 0
-            printf("IntegerExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
-                e->toChars(), e->type->toChars(), t->toChars());
-        #endif
             MATCH m = e->type->implicitConvTo(t);
             if (m >= MATCHconst)
             {
@@ -506,10 +490,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
         void visit(NullExp *e)
         {
-        #if 0
-            printf("NullExp::implicitConvTo(this=%s, type=%s, t=%s, committed = %d)\n",
-                e->toChars(), e->type->toChars(), t->toChars(), e->committed);
-        #endif
             if (e->type->equals(t))
             {
                 result = MATCHexact;
@@ -531,10 +511,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
         void visit(StructLiteralExp *e)
         {
-        #if 0
-            printf("StructLiteralExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
-                e->toChars(), e->type->toChars(), t->toChars());
-        #endif
             visit((Expression *)e);
             if (result != MATCHnomatch)
                 return;
@@ -559,10 +535,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
         void visit(StringExp *e)
         {
-        #if 0
-            printf("StringExp::implicitConvTo(this=%s, committed=%d, type=%s, t=%s)\n",
-                e->toChars(), e->committed, e->type->toChars(), t->toChars());
-        #endif
             if (!e->committed && t->ty == Tpointer && t->nextOf()->ty == Tvoid)
                 return;
 
@@ -678,10 +650,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
         void visit(ArrayLiteralExp *e)
         {
-        #if 0
-            printf("ArrayLiteralExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
-                e->toChars(), e->type->toChars(), t->toChars());
-        #endif
             Type *typeb = e->type->toBasetype();
             Type *tb = t->toBasetype();
             if ((tb->ty == Tarray || tb->ty == Tsarray) &&
@@ -798,12 +766,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
         void visit(CallExp *e)
         {
-#define LOG 0
-        #if LOG
-            printf("CallExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
-                e->toChars(), e->type->toChars(), t->toChars());
-        #endif
-
             visit((Expression *)e);
             if (result != MATCHnomatch)
                 return;
@@ -872,9 +834,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 if (ti)
                     mod = ti->mod;
             }
-#if LOG
-            printf("mod = x%x\n", mod);
-#endif
             if (mod & MODwild)
                 return;                 // not sure what to do with this
 
@@ -897,9 +856,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
             {
                 Expression *earg = (*e->arguments)[i];
                 Type *targ = earg->type->toBasetype();
-#if LOG
-                printf("[%d] earg: %s, targ: %s\n", (int)i, earg->toChars(), targ->toChars());
-#endif
                 if (i - j < nparams)
                 {
                     Parameter *fparam = Parameter::getNth(tf->parameters, i - j);
@@ -916,9 +872,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
                     }
                 }
 
-#if LOG
-                printf("[%d] earg: %s, targm: %s\n", (int)i, earg->toChars(), targ->addMod(mod)->toChars());
-#endif
                 if (implicitMod(earg, targ, mod) == MATCHnomatch)
                     return;
             }
@@ -926,15 +879,10 @@ MATCH implicitConvTo(Expression *e, Type *t)
             /* Success
              */
             result = MATCHconst;
-#undef LOG
         }
 
         void visit(AddrExp *e)
         {
-        #if 0
-            printf("AddrExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
-                e->toChars(), e->type->toChars(), t->toChars());
-        #endif
             result = e->type->implicitConvTo(t);
             //printf("\tresult = %d\n", result);
 
@@ -987,10 +935,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
         void visit(SymOffExp *e)
         {
-        #if 0
-            printf("SymOffExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
-                e->toChars(), e->type->toChars(), t->toChars());
-        #endif
             result = e->type->implicitConvTo(t);
             //printf("\tresult = %d\n", result);
             if (result != MATCHnomatch)
@@ -1019,10 +963,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
         void visit(DelegateExp *e)
         {
-        #if 0
-            printf("DelegateExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
-                e->toChars(), e->type->toChars(), t->toChars());
-        #endif
             result = e->type->implicitConvTo(t);
             if (result != MATCHnomatch)
                 return;
@@ -1092,10 +1032,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
         void visit(CastExp *e)
         {
-        #if 0
-            printf("CastExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
-                e->toChars(), e->type->toChars(), t->toChars());
-        #endif
             result = e->type->implicitConvTo(t);
             if (result != MATCHnomatch)
                 return;
@@ -1110,10 +1046,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
         void visit(NewExp *e)
         {
-        #if 0
-            printf("NewExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
-                e->toChars(), e->type->toChars(), t->toChars());
-        #endif
             visit((Expression *)e);
             if (result != MATCHnomatch)
                 return;
@@ -1139,9 +1071,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
             MOD mod = tb->mod;
             if (Type *ti = getIndirection(t))
                 mod = ti->mod;
-#if LOG
-            printf("mod = x%x\n", mod);
-#endif
             if (mod & MODwild)
                 return;                 // not sure what to do with this
 
@@ -1191,9 +1120,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 {
                     Expression *earg = (*args)[i];
                     Type *targ = earg->type->toBasetype();
-#if LOG
-                    printf("[%d] earg: %s, targ: %s\n", (int)i, earg->toChars(), targ->toChars());
-#endif
                     if (i - j < nparams)
                     {
                         Parameter *fparam = Parameter::getNth(tf->parameters, i - j);
@@ -1210,9 +1136,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
                         }
                     }
 
-#if LOG
-                    printf("[%d] earg: %s, targm: %s\n", (int)i, earg->toChars(), targ->addMod(mod)->toChars());
-#endif
                     if (implicitMod(earg, targ, mod) == MATCHnomatch)
                         return;
                 }
@@ -1229,10 +1152,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
                     if (!earg)  // Bugzilla 14853: if it's on overlapped field
                         continue;
                     Type *targ = earg->type->toBasetype();
-#if LOG
-                    printf("[%d] earg: %s, targ: %s\n", (int)i, earg->toChars(), targ->toChars());
-                    printf("[%d] earg: %s, targm: %s\n", (int)i, earg->toChars(), targ->addMod(mod)->toChars());
-#endif
                     if (implicitMod(earg, targ, mod) == MATCHnomatch)
                         return;
                 }
@@ -1428,10 +1347,6 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
         void visit(Expression *e)
         {
             //printf("Expression::castTo(this=%s, t=%s)\n", e->toChars(), t->toChars());
-        #if 0
-            printf("Expression::castTo(this=%s, type=%s, t=%s)\n",
-                e->toChars(), e->type->toChars(), t->toChars());
-        #endif
             if (e->type->equals(t))
             {
                 result = e;
@@ -1463,8 +1378,8 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
              */
 
             // Fat Value types
-            const bool tob_isFV = (tob->ty == Tstruct || tob->ty == Tsarray);
-            const bool t1b_isFV = (t1b->ty == Tstruct || t1b->ty == Tsarray);
+            const bool tob_isFV = (tob->ty == Tstruct || tob->ty == Tsarray || tob->ty == Tvector);
+            const bool t1b_isFV = (t1b->ty == Tstruct || t1b->ty == Tsarray || t1b->ty == Tvector);
 
             // Fat Reference types
             const bool tob_isFR = (tob->ty == Tarray || tob->ty == Tdelegate);
@@ -1475,8 +1390,8 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
             const bool t1b_isR = (t1b_isFR || t1b->ty == Tpointer || t1b->ty == Taarray || t1b->ty == Tclass);
 
             // Arithmetic types (== valueable basic types)
-            const bool tob_isA = (tob->isintegral() || tob->isfloating());
-            const bool t1b_isA = (t1b->isintegral() || t1b->isfloating());
+            const bool tob_isA = ((tob->isintegral() || tob->isfloating()) && tob->ty != Tvector);
+            const bool t1b_isA = ((t1b->isintegral() || t1b->isfloating()) && t1b->ty != Tvector);
 
             if (AggregateDeclaration *t1ad = isAggregate(t1b))
             {
@@ -1560,8 +1475,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 {
                     // T[n] sa;
                     // cast(U*)sa; // ==> cast(U*)sa.ptr;
-                    result = new AddrExp(e->loc, e);
-                    result->type = t;
+                    result = new AddrExp(e->loc, e, t);
                     return;
                 }
                 if (tob->ty == Tarray && t1b->ty == Tsarray)
@@ -1965,10 +1879,6 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
         {
             Type *tb;
 
-        #if 0
-            printf("AddrExp::castTo(this=%s, type=%s, t=%s)\n",
-                e->toChars(), e->type->toChars(), t->toChars());
-        #endif
             result = e;
 
             tb = t->toBasetype();
@@ -2025,8 +1935,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                         {
                             result = new VarExp(e->loc, f, false);
                             result->type = f->type;
-                            result = new AddrExp(e->loc, result);
-                            result->type = t;
+                            result = new AddrExp(e->loc, result, t);
                             return;
                         }
                     }
@@ -2079,10 +1988,6 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
 
         void visit(ArrayLiteralExp *e)
         {
-        #if 0
-            printf("ArrayLiteralExp::castTo(this=%s, type=%s, => %s)\n",
-                e->toChars(), e->type->toChars(), t->toChars());
-        #endif
             if (e->type == t)
             {
                 result = e;
@@ -2211,10 +2116,6 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
 
         void visit(SymOffExp *e)
         {
-        #if 0
-            printf("SymOffExp::castTo(this=%s, type=%s, t=%s)\n",
-                e->toChars(), e->type->toChars(), t->toChars());
-        #endif
             if (e->type == t && !e->hasOverloads)
             {
                 result = e;
@@ -2289,10 +2190,6 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
 
         void visit(DelegateExp *e)
         {
-        #if 0
-            printf("DelegateExp::castTo(this=%s, type=%s, t=%s)\n",
-                e->toChars(), e->type->toChars(), t->toChars());
-        #endif
             static const char msg[] = "cannot form delegate due to covariant return type";
 
             Type *tb = t->toBasetype();
@@ -2727,9 +2624,6 @@ bool typeMerge(Scope *sc, TOK op, Type **pt, Expression **pe1, Expression **pe2)
 
     //if (t1) printf("\tt1 = %s\n", t1->toChars());
     //if (t2) printf("\tt2 = %s\n", t2->toChars());
-#ifdef DEBUG
-    if (!t2) printf("\te2 = '%s'\n", e2->toChars());
-#endif
     assert(t2);
 
     if (t1->mod != t2->mod &&
@@ -3346,12 +3240,6 @@ Lret:
         *pt = t;
     *pe1 = e1;
     *pe2 = e2;
-#if 0
-    printf("-typeMerge() %s op %s\n", e1->toChars(), e2->toChars());
-    if (e1->type) printf("\tt1 = %s\n", e1->type->toChars());
-    if (e2->type) printf("\tt2 = %s\n", e2->type->toChars());
-    printf("\ttype = %s\n", t->toChars());
-#endif
     //print();
     return true;
 

@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -17,10 +16,10 @@
 #include <ctype.h>
 #include <assert.h>
 
-#include "rmem.h"
-#include "root.h"
-#include "port.h"
-#include "aav.h"
+#include "root/rmem.h"
+#include "root/root.h"
+#include "root/port.h"
+#include "root/aav.h"
 
 #include "attrib.h"
 #include "cond.h"
@@ -374,7 +373,6 @@ void gendocfile(Module *m)
     size_t end = buf2.offset;
     m->macrotable->expand(&buf2, 0, &end, NULL, 0);
 
-#if 1
     /* Remove all the escape sequences from buf2,
      * and make CR-LF the newline.
      */
@@ -411,31 +409,6 @@ void gendocfile(Module *m)
     m->docfile->ref = 1;
     ensurePathToNameExists(Loc(), m->docfile->toChars());
     writeFile(m->loc, m->docfile);
-#else
-    /* Remove all the escape sequences from buf2
-     */
-    {
-        size_t i = 0;
-        utf8_t *p = buf2.data;
-        for (size_t j = 0; j < buf2.offset; j++)
-        {
-            if (p[j] == 0xFF && j + 1 < buf2.offset)
-            {
-                j++;
-                continue;
-            }
-            p[i] = p[j];
-            i++;
-        }
-        buf2.setsize(i);
-    }
-
-    // Transfer image to file
-    m->docfile->setbuffer(buf2.data, buf2.offset);
-    m->docfile->ref = 1;
-    ensurePathToNameExists(Loc(), m->docfile->toChars());
-    writeFile(m->loc, m->docfile);
-#endif
 }
 
 /****************************************************
@@ -505,14 +478,6 @@ void escapeStrayParenthesis(Loc loc, OutBuffer *buf, size_t start)
                 else
                     par_open--;
                 break;
-#if 0
-            // For this to work, loc must be set to the beginning of the passed
-            // text which is currently not possible
-            // (loc is set to the Loc of the Dsymbol)
-            case '\n':
-                loc.linnum++;
-                break;
-#endif
         }
     }
 
@@ -1154,9 +1119,6 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
             if (!ad->ident)
                 return;
 
-        #if 0
-            emitProtection(buf, ad->protection);
-        #endif
             buf->printf("%s %s", ad->kind(), ad->toChars());
             buf->writestring(";\n");
         }
@@ -1167,9 +1129,6 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
             if (!sd->ident)
                 return;
 
-        #if 0
-            emitProtection(buf, sd->protection);
-        #endif
             if (TemplateDeclaration *td = getEponymousParent(sd))
             {
                 toDocBuffer(td, buf, sc);
@@ -1187,9 +1146,6 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
             if (!cd->ident)
                 return;
 
-        #if 0
-            emitProtection(buf, cd->protection);
-        #endif
             if (TemplateDeclaration *td = getEponymousParent(cd))
             {
                 toDocBuffer(td, buf, sc);
@@ -2707,29 +2663,9 @@ void highlightCode2(Scope *sc, Dsymbols *a, OutBuffer *buf, size_t offset)
 
 const char *Escape::escapeChar(unsigned c)
 {
-#if 1
     assert(c < 256);
     //printf("escapeChar('%c') => %p, %p\n", c, strings, strings[c]);
     return strings[c];
-#else
-    const char *s;
-    switch (c)
-    {
-        case '<':
-            s = "&lt;";
-            break;
-        case '>':
-            s = "&gt;";
-            break;
-        case '&':
-            s = "&amp;";
-            break;
-        default:
-            s = NULL;
-            break;
-    }
-    return s;
-#endif
 }
 
 /****************************************

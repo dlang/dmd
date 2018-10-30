@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -28,7 +27,7 @@
 #include "hdrgen.h"
 #include "target.h"
 #include "parse.h"
-#include "rmem.h"
+#include "root/rmem.h"
 #include "visitor.h"
 #include "objc.h"
 
@@ -43,7 +42,6 @@ Expression *semantic(Expression *e, Scope *sc);
 int blockExit(Statement *s, FuncDeclaration *func, bool mustNotThrow);
 TypeIdentifier *getThrowable();
 
-void genCmain(Scope *sc);
 RET retStyle(TypeFunction *tf);
 void MODtoBuffer(OutBuffer *buf, MOD mod);
 char *MODtoChars(MOD mod);
@@ -444,14 +442,6 @@ void FuncDeclaration::semantic(Scope *sc)
     AggregateDeclaration *ad;
     InterfaceDeclaration *id;
 
-#if 0
-    printf("FuncDeclaration::semantic(sc = %p, this = %p, '%s', linkage = %d)\n", sc, this, toPrettyChars(), sc->linkage);
-    if (isFuncLiteralDeclaration())
-        printf("\tFuncLiteralDeclaration()\n");
-    printf("sc->parent = %s, parent = %s\n", sc->parent->toChars(), parent ? parent->toChars() : "");
-    printf("type: %p, %s\n", type, type->toChars());
-#endif
-
     if (semanticRun != PASSinit && isFuncLiteralDeclaration())
     {
         /* Member functions that have return types that are
@@ -746,21 +736,6 @@ void FuncDeclaration::semantic(Scope *sc)
 
     if (isAbstract() && isFinalFunc())
         error("cannot be both final and abstract");
-#if 0
-    if (isAbstract() && fbody)
-        error("abstract functions cannot have bodies");
-#endif
-
-#if 0
-    if (isStaticConstructor() || isStaticDestructor())
-    {
-        if (!isStatic() || type->nextOf()->ty != Tvoid)
-            error("static constructors / destructors must be static void");
-        if (f->arguments && f->arguments->dim)
-            error("static constructors / destructors must have empty parameter list");
-        // BUG: check for invalid storage classes
-    }
-#endif
 
     id = parent->isInterfaceDeclaration();
     if (id)
@@ -1216,12 +1191,12 @@ Ldone:
         {
             printedMain = true;
             const char *name = FileName::searchPath(global.path, mod->srcfile->toChars(), true);
-            fprintf(global.stdmsg, "entry     %-10s\t%s\n", type, name);
+            message("entry     %-10s\t%s", type, name);
         }
     }
 
     if (fbody && isMain() && sc->_module->isRoot())
-        genCmain(sc);
+        Compiler::genCmain(sc);
 
     assert(type->ty != Terror || errors);
 }
@@ -2923,27 +2898,6 @@ bool FuncDeclaration::overloadInsert(Dsymbol *s)
     if (!fd)
         return false;
 
-#if 0
-    /* Disable this check because:
-     *  const void foo();
-     * semantic() isn't run yet on foo(), so the const hasn't been
-     * applied yet.
-     */
-    if (type)
-    {   printf("type = %s\n", type->toChars());
-        printf("fd->type = %s\n", fd->type->toChars());
-    }
-    // fd->type can be NULL for overloaded constructors
-    if (type && fd->type &&
-        fd->type->covariant(type) &&
-        fd->type->mod == type->mod &&
-        !isFuncAliasDeclaration())
-    {
-        //printf("\tfalse: conflict %s\n", kind());
-        return false;
-    }
-#endif
-
     if (overnext)
     {
         td = overnext->isTemplateDeclaration();
@@ -3312,13 +3266,6 @@ TemplateDeclaration *FuncDeclaration::findTemplateDeclRoot()
 
 MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
 {
-#define LOG_LEASTAS     0
-
-#if LOG_LEASTAS
-    printf("%s.leastAsSpecialized(%s)\n", toChars(), g->toChars());
-    printf("%s, %s\n", type->toChars(), g->type->toChars());
-#endif
-
     /* This works by calling g() with f()'s parameters, and
      * if that is possible, then f() is at least as specialized
      * as g() is.
@@ -3372,15 +3319,9 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
         if (tf->varargs && !tg->varargs)
             goto L1;    // less specialized
 
-#if LOG_LEASTAS
-        printf("  matches %d, so is least as specialized\n", m);
-#endif
         return m;
     }
   L1:
-#if LOG_LEASTAS
-    printf("  doesn't match, so is not as specialized\n");
-#endif
     return MATCHnomatch;
 }
 
@@ -3501,20 +3442,6 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
 {
     if (!s)
         return NULL;                    // no match
-
-#if 0
-    printf("resolveFuncCall('%s')\n", s->toChars());
-    if (fargs)
-    {
-        for (size_t i = 0; i < fargs->dim; i++)
-        {
-            Expression *arg = (*fargs)[i];
-            assert(arg->type);
-            printf("\t%s: ", arg->toChars());
-            arg->type->print();
-        }
-    }
-#endif
 
     if ((tiargs && arrayObjectIsError(tiargs)) ||
         (fargs  && arrayObjectIsError((Objects *)fargs)))
@@ -3772,15 +3699,8 @@ bool FuncDeclaration::isCMain()
 bool FuncDeclaration::isWinMain()
 {
     //printf("FuncDeclaration::isWinMain() %s\n", toChars());
-#if 0
-    bool x = ident == Id::WinMain &&
-        linkage != LINKc && !isMember();
-    printf("%s\n", x ? "yes" : "no");
-    return x;
-#else
     return ident == Id::WinMain &&
         linkage != LINKc && !isMember();
-#endif
 }
 
 bool FuncDeclaration::isDllMain()
@@ -3789,12 +3709,12 @@ bool FuncDeclaration::isDllMain()
         linkage != LINKc && !isMember();
 }
 
-bool FuncDeclaration::isExport()
+bool FuncDeclaration::isExport() const
 {
     return protection.kind == PROTexport;
 }
 
-bool FuncDeclaration::isImportedSymbol()
+bool FuncDeclaration::isImportedSymbol() const
 {
     //printf("isImportedSymbol()\n");
     //printf("protection = %d\n", protection);
@@ -3809,15 +3729,6 @@ bool FuncDeclaration::isVirtual()
         return toAliasFunc()->isVirtual();
 
     Dsymbol *p = toParent();
-#if 0
-    printf("FuncDeclaration::isVirtual(%s)\n", toChars());
-    printf("isMember:%p isStatic:%d private:%d ctor:%d !Dlinkage:%d\n", isMember(), isStatic(), protection == PROTprivate, isCtorDeclaration(), linkage != LINKd);
-    printf("result is %d\n",
-        isMember() &&
-        !(isStatic() || protection == PROTprivate || protection == PROTpackage) &&
-        p->isClassDeclaration() &&
-        !(p->isInterfaceDeclaration() && isFinalFunc()));
-#endif
     return isMember() &&
         !(isStatic() || protection.kind == PROTprivate || protection.kind == PROTpackage) &&
         p->isClassDeclaration() &&
@@ -3848,22 +3759,12 @@ bool FuncDeclaration::isFinalFunc()
         return toAliasFunc()->isFinalFunc();
 
     ClassDeclaration *cd;
-#if 0
-    printf("FuncDeclaration::isFinalFunc(%s), %x\n", toChars(), Declaration::isFinal());
-    printf("%p %d %d %d\n", isMember(), isStatic(), Declaration::isFinal(), ((cd = toParent()->isClassDeclaration()) != NULL && cd->storage_class & STCfinal));
-    printf("result is %d\n",
-        isMember() &&
-        (Declaration::isFinal() ||
-         ((cd = toParent()->isClassDeclaration()) != NULL && cd->storage_class & STCfinal)));
-    if (cd)
-        printf("\tmember of %s\n", cd->toChars());
-#endif
     return isMember() &&
         (Declaration::isFinal() ||
          ((cd = toParent()->isClassDeclaration()) != NULL && cd->storage_class & STCfinal));
 }
 
-bool FuncDeclaration::isCodeseg()
+bool FuncDeclaration::isCodeseg() const
 {
     return true;                // functions are always in the code segment
 }
@@ -5537,21 +5438,6 @@ void UnitTestDeclaration::semantic(Scope *sc)
         FuncDeclaration::semantic(sc2);
         sc2->pop();
     }
-
-#if 0
-    // We're going to need ModuleInfo even if the unit tests are not
-    // compiled in, because other modules may import this module and refer
-    // to this ModuleInfo.
-    // (This doesn't make sense to me?)
-    Module *m = getModule();
-    if (!m)
-        m = sc->_module;
-    if (m)
-    {
-        //printf("module3 %s needs moduleinfo\n", m->toChars());
-        m->needmoduleinfo = 1;
-    }
-#endif
 }
 
 AggregateDeclaration *UnitTestDeclaration::isThis()

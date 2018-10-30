@@ -32,6 +32,7 @@
 #include "ctfe.h"
 #include "rmem.h"
 #include "target.h"
+#include "mangle.h"
 
 // Back end
 #include "cc.h"

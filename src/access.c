@@ -1,6 +1,5 @@
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -12,9 +11,10 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "root.h"
-#include "rmem.h"
+#include "root/root.h"
+#include "root/rmem.h"
 
+#include "errors.h"
 #include "enum.h"
 #include "aggregate.h"
 #include "init.h"
@@ -27,8 +27,6 @@
 #include "expression.h"
 #include "module.h"
 #include "template.h"
-
-#define LOG 0
 
 /* Code to do access checks
  */
@@ -45,11 +43,6 @@ static Dsymbol *mostVisibleOverload(Dsymbol *s);
 Prot getAccess(AggregateDeclaration *ad, Dsymbol *smember)
 {
     Prot access_ret = Prot(PROTnone);
-
-#if LOG
-    printf("+AggregateDeclaration::getAccess(this = '%s', smember = '%s')\n",
-        ad->toChars(), smember->toChars());
-#endif
 
     assert(ad->isStructDeclaration() || ad->isClassDeclaration());
     if (smember->toParent() == ad)
@@ -95,10 +88,6 @@ Prot getAccess(AggregateDeclaration *ad, Dsymbol *smember)
         }
     }
 
-#if LOG
-    printf("-AggregateDeclaration::getAccess(this = '%s', smember = '%s') = %d\n",
-        ad->toChars(), smember->toChars(), access_ret);
-#endif
     return access_ret;
 }
 
@@ -116,12 +105,6 @@ static bool isAccessible(
 {
     assert(dthis);
 
-#if 0
-    printf("isAccessible for %s.%s in function %s() in scope %s\n",
-        dthis->toChars(), smember->toChars(),
-        sfunc ? sfunc->toChars() : "NULL",
-        cdscope ? cdscope->toChars() : "NULL");
-#endif
     if (hasPrivateAccess(dthis, sfunc) ||
         isFriendOf(dthis, cdscope))
     {
@@ -170,19 +153,9 @@ bool checkAccess(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember)
     FuncDeclaration *f = sc->func;
     AggregateDeclaration *cdscope = sc->getStructClassScope();
 
-#if LOG
-    printf("AggregateDeclaration::checkAccess() for %s.%s in function %s() in scope %s\n",
-        ad->toChars(), smember->toChars(),
-        f ? f->toChars() : NULL,
-        cdscope ? cdscope->toChars() : NULL);
-#endif
-
     Dsymbol *smemberparent = smember->toParent();
     if (!smemberparent || !smemberparent->isAggregateDeclaration())
     {
-#if LOG
-        printf("not an aggregate member\n");
-#endif
         return false;                   // then it is accessible
     }
 
@@ -199,30 +172,18 @@ bool checkAccess(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember)
                  isFriendOf(ad, cdscope) ||
                  (access.kind == PROTpackage && hasPackageAccess(sc, smember)) ||
                  ad->getAccessModule() == sc->_module;
-#if LOG
-        printf("result1 = %d\n", result);
-#endif
     }
     else if ((access = getAccess(ad, smember)).kind >= PROTpublic)
     {
         result = true;
-#if LOG
-        printf("result2 = %d\n", result);
-#endif
     }
     else if (access.kind == PROTpackage && hasPackageAccess(sc, ad))
     {
         result = true;
-#if LOG
-        printf("result3 = %d\n", result);
-#endif
     }
     else
     {
         result = isAccessible(smember, f, ad, cdscope);
-#if LOG
-        printf("result4 = %d\n", result);
-#endif
     }
     if (!result)
     {
@@ -239,9 +200,6 @@ bool checkAccess(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember)
  */
 bool isFriendOf(AggregateDeclaration *ad, AggregateDeclaration *cd)
 {
-#if LOG
-    printf("AggregateDeclaration::isFriendOf(this = '%s', cd = '%s')\n", ad->toChars(), cd ? cd->toChars() : "null");
-#endif
     if (ad == cd)
         return true;
 
@@ -249,15 +207,9 @@ bool isFriendOf(AggregateDeclaration *ad, AggregateDeclaration *cd)
     //if (toParent() == cd->toParent())
     if (cd && ad->getAccessModule() == cd->getAccessModule())
     {
-#if LOG
-        printf("\tin same module\n");
-#endif
         return true;
     }
 
-#if LOG
-    printf("\tnot friend\n");
-#endif
     return false;
 }
 
@@ -271,12 +223,6 @@ bool hasPackageAccess(Scope *sc, Dsymbol *s)
 
 bool hasPackageAccess(Module *mod, Dsymbol *s)
 {
-#if LOG
-    printf("hasPackageAccess(s = '%s', mod = '%s', s->protection.pkg = '%s')\n",
-            s->toChars(), mod->toChars(),
-            s->prot().pkg ? s->prot().pkg->toChars() : "NULL");
-#endif
-
     Package *pkg = NULL;
 
     if (s->prot().pkg)
@@ -303,25 +249,15 @@ bool hasPackageAccess(Module *mod, Dsymbol *s)
                 break;
         }
     }
-#if LOG
-    if (pkg)
-        printf("\tsymbol access binds to package '%s'\n", pkg->toChars());
-#endif
 
     if (pkg)
     {
         if (pkg == mod->parent)
         {
-#if LOG
-            printf("\tsc is in permitted package for s\n");
-#endif
             return true;
         }
         if (pkg->isPackageMod() == mod)
         {
-#if LOG
-            printf("\ts is in same package.d module as sc\n");
-#endif
             return true;
         }
         Dsymbol* ancestor = mod->parent;
@@ -329,17 +265,11 @@ bool hasPackageAccess(Module *mod, Dsymbol *s)
         {
             if (ancestor == pkg)
             {
-#if LOG
-                printf("\tsc is in permitted ancestor package for s\n");
-#endif
                 return true;
             }
         }
     }
 
-#if LOG
-    printf("\tno package access\n");
-#endif
     return false;
 }
 
@@ -374,16 +304,8 @@ bool hasPrivateAccess(AggregateDeclaration *ad, Dsymbol *smember)
         if (smemberparent)
             cd = smemberparent->isAggregateDeclaration();
 
-#if LOG
-        printf("AggregateDeclaration::hasPrivateAccess(class %s, member %s)\n",
-                ad->toChars(), smember->toChars());
-#endif
-
         if (ad == cd)         // smember is a member of this class
         {
-#if LOG
-            printf("\tyes 1\n");
-#endif
             return true;           // so we get private access
         }
 
@@ -398,22 +320,13 @@ bool hasPrivateAccess(AggregateDeclaration *ad, Dsymbol *smember)
         }
         if (!cd && ad->toParent() == smember->toParent())
         {
-#if LOG
-            printf("\tyes 2\n");
-#endif
             return true;
         }
         if (!cd && ad->getAccessModule() == smember->getAccessModule())
         {
-#if LOG
-            printf("\tyes 3\n");
-#endif
             return true;
         }
     }
-#if LOG
-    printf("\tno\n");
-#endif
     return false;
 }
 
@@ -426,17 +339,6 @@ bool checkAccess(Loc loc, Scope *sc, Expression *e, Declaration *d)
     if (sc->flags & SCOPEnoaccesscheck)
         return false;
 
-#if LOG
-    if (e)
-    {
-        printf("checkAccess(%s . %s)\n", e->toChars(), d->toChars());
-        printf("\te->type = %s\n", e->type->toChars());
-    }
-    else
-    {
-        printf("checkAccess(%s)\n", d->toPrettyChars());
-    }
-#endif
     if (d->isUnitTestDeclaration())
     {
         // Unittests are always accessible.

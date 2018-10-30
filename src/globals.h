@@ -1,27 +1,31 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/mars.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/globals.h
  */
 
-#ifndef DMD_GLOBALS_H
-#define DMD_GLOBALS_H
-
-#ifdef __DMC__
 #pragma once
-#endif
 
-#include "ctfloat.h"
-#include "outbuffer.h"
-#include "filename.h"
+#include "root/dcompat.h"
+#include "root/ctfloat.h"
+#include "root/outbuffer.h"
+#include "root/filename.h"
+#include "compiler.h"
 
 // Can't include arraytypes.h here, need to declare these directly.
 template <typename TYPE> struct Array;
+
+typedef unsigned char Diagnostic;
+enum
+{
+    DIAGNOSTICerror,  // generate an error
+    DIAGNOSTICinform, // generate a warning
+    DIAGNOSTICoff     // disable diagnostic
+};
 
 // The state of array bounds checking
 enum BOUNDSCHECK
@@ -84,10 +88,7 @@ struct Param
     bool isSolaris;     // generate code for Solaris
     bool hasObjectiveC; // target supports Objective-C
     bool mscoff;        // for Win32: write COFF object files instead of OMF
-    // 0: don't allow use of deprecated features
-    // 1: silently allow use of deprecated features
-    // 2: warn about the use of deprecated features
-    char useDeprecated;
+    Diagnostic useDeprecated;
     bool useAssert;     // generate runtime code for assert()'s
     bool useInvariants; // generate class invariant checks
     bool useIn;         // generate precondition checks
@@ -99,10 +100,7 @@ struct Param
     bool useDIP25;      // implement http://wiki.dlang.org/DIP25
     bool release;       // build release version
     bool preservePaths; // true means don't strip path from source file
-    // 0: disable warnings
-    // 1: warnings as errors
-    // 2: informational warnings (no errors)
-    char warnings;
+    Diagnostic warnings;
     bool pic;           // generate position-independent-code for shared libs
     bool color;         // use ANSI colors in console output
     bool cov;           // generate code coverage data
@@ -177,11 +175,6 @@ struct Param
     const char *mapfile;
 };
 
-struct Compiler
-{
-    const char *vendor;     // Compiler backend name
-};
-
 typedef unsigned structalign_t;
 // magic value means "match whatever the underlying C compiler does"
 // other values are all powers of 2
@@ -207,9 +200,9 @@ struct Global
     Array<const char *> *path;        // Array of char*'s which form the import lookup path
     Array<const char *> *filePath;    // Array of char*'s which form the file import lookup path
 
-    const char *version;
+    const char *version;     // Compiler version string
+    const char *vendor;      // Compiler backend name
 
-    Compiler compiler;
     Param params;
     unsigned errors;       // number of errors reported so far
     unsigned warnings;     // number of warnings reported so far
@@ -267,14 +260,6 @@ typedef uint32_t                d_uns32;
 typedef int64_t                 d_int64;
 typedef uint64_t                d_uns64;
 
-// Represents a D [ ] array
-template<typename T>
-struct DArray
-{
-    size_t length;
-    T *ptr;
-};
-
 // file location
 struct Loc
 {
@@ -304,14 +289,14 @@ enum LINK
     LINKwindows,
     LINKpascal,
     LINKobjc,
-    LINKsystem,
+    LINKsystem
 };
 
 enum CPPMANGLE
 {
     CPPMANGLEdefault,
     CPPMANGLEstruct,
-    CPPMANGLEclass,
+    CPPMANGLEclass
 };
 
 enum MATCH
@@ -330,5 +315,3 @@ enum PINLINE
 };
 
 typedef uinteger_t StorageClass;
-
-#endif /* DMD_GLOBALS_H */

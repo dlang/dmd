@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -9,15 +8,14 @@
  * https://github.com/D-Programming-Language/dmd/blob/master/src/macro.h
  */
 
-#ifndef DMD_MACRO_H
-#define DMD_MACRO_H 1
+#pragma once
 
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 #include <ctype.h>
 
-#include "root.h"
+#include "root/root.h"
 
 
 struct Macro
@@ -42,5 +40,3 @@ struct Macro
     void expand(OutBuffer *buf, size_t start, size_t *pend,
         const utf8_t *arg, size_t arglen);
 };
-
-#endif

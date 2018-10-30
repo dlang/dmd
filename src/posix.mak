@@ -244,7 +244,7 @@ DMD_OBJS = \
 	id.o \
 	identifier.o impcnvtab.o dimport.o inifile.o init.o initsem.o inline.o inlinecost.o \
 	lexer.o link.o dmangle.o mars.o dmodule.o mtype.o \
-	cppmangle.o opover.o optimize.o \
+	compiler.o cppmangle.o opover.o optimize.o \
 	parse.o dscope.o statement.o \
 	dstruct.o dtemplate.o \
 	dversion.o utf.o staticassert.o staticcond.o \
@@ -266,7 +266,7 @@ ROOT_OBJS = \
 GLUE_OBJS = \
 	glue.o msc.o s2ir.o todt.o e2ir.o tocsym.o \
 	toobj.o toctype.o toelfdebug.o toir.o \
-	irstate.o typinf.o iasm.o
+	irstate.o typinf.o iasm.o iasmdmd.o
 
 
 ifeq ($(D_OBJC),1)

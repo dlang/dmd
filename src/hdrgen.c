@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Dave Fladebo
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -11,17 +10,14 @@
 
 // Routines to emit header files
 
-#define TEST_EMIT_ALL  0        // For Testing
-
-#define LOG 0
-
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 
-#include "rmem.h"
+#include "root/rmem.h"
 
+#include "mars.h"
 #include "id.h"
 #include "init.h"
 
@@ -71,6 +67,19 @@ void genhdrfile(Module *m)
 
     ensurePathToNameExists(Loc(), m->hdrfile->toChars());
     writeFile(m->loc, m->hdrfile);
+}
+
+/**
+ * Dumps the full contents of module `m` to `buf`.
+ * Params:
+ *   buf = buffer to write to.
+ *   m = module to visit all members of.
+ */
+void moduleToBuffer(OutBuffer *buf, Module *m)
+{
+    HdrGenState hgs;
+    hgs.fullDump = true;
+    toCBuffer(m, buf, &hgs);
 }
 
 class PrettyPrintVisitor : public Visitor
@@ -1373,10 +1382,6 @@ public:
 
     void visit(TemplateDeclaration *d)
     {
-    #if 0 // Should handle template functions for doc generation
-        if (onemember && onemember->isFuncDeclaration())
-            buf->writestring("foo ");
-    #endif
         if ((hgs->hdrgen || hgs->fullDump) && visitEponymousMember(d))
             return;
 
@@ -1652,9 +1657,6 @@ public:
         }
         else
         {
-    #ifdef DEBUG
-            printf("bad Object = %p\n", oarg);
-    #endif
             assert(0);
         }
     }
@@ -2176,10 +2178,6 @@ public:
      */
     void expToBuffer(Expression *e, PREC pr)
     {
-    #ifdef DEBUG
-        if (precedence[e->op] == PREC_zero)
-            printf("precedence not defined for token '%s'\n", Token::tochars[e->op]);
-    #endif
         assert(precedence[e->op] != PREC_zero);
         assert(pr != PREC_zero);
 
@@ -2315,9 +2313,6 @@ public:
                      */
                     if (!global.errors)
                     {
-    #ifdef DEBUG
-                        t->print();
-    #endif
                         assert(0);
                     }
                     break;

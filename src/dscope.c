@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -13,9 +12,9 @@
 #include <assert.h>
 #include <string.h>                     // strlen()
 
-#include "root.h"
-#include "rmem.h"
-#include "speller.h"
+#include "root/root.h"
+#include "root/rmem.h"
+#include "root/speller.h"
 
 #include "mars.h"
 #include "init.h"
@@ -157,15 +156,6 @@ Scope *Scope::push()
     s->scopesym = NULL;
     s->sds = NULL;
     s->enclosing = this;
-#ifdef DEBUG
-    if (enclosing)
-        assert(!(enclosing->flags & SCOPEfree));
-    if (s == enclosing)
-    {
-        printf("this = %p, enclosing = %p, enclosing->enclosing = %p\n", s, this, enclosing);
-    }
-    assert(s != enclosing);
-#endif
     s->slabel = NULL;
     s->nofree = 0;
     s->fieldinit = saveFieldInit();
@@ -220,26 +210,6 @@ Scope *Scope::startCTFE()
 {
     Scope *sc = this->push();
     sc->flags = this->flags | SCOPEctfe;
-#if 0
-    /* TODO: Currently this is not possible, because we need to
-     * unspeculative some types and symbols if they are necessary for the
-     * final executable. Consider:
-     *
-     * struct S(T) {
-     *   string toString() const { return "instantiated"; }
-     * }
-     * enum x = S!int();
-     * void main() {
-     *   // To call x.toString in runtime, compiler should unspeculative S!int.
-     *   assert(x.toString() == "instantiated");
-     * }
-     */
-
-    // If a template is instantiated from CT evaluated expression,
-    // compiler can elide its code generation.
-    sc->tinst = NULL;
-    sc->minst = NULL;
-#endif
     return sc;
 }
 
@@ -425,9 +395,6 @@ static Dsymbol *searchScopes(Scope *scope, Loc loc, Identifier *ident, Dsymbol *
             {
                 warning(s->loc, "array 'length' hides other 'length' name in outer scope");
             }
-#ifdef LOGSEARCH
-            printf("\tfound %s.%s, kind = '%s'\n", s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
-#endif
             if (pscopesym)
                 *pscopesym = sc->scopesym;
             return s;
@@ -454,17 +421,6 @@ static Dsymbol *searchScopes(Scope *scope, Loc loc, Identifier *ident, Dsymbol *
  */
 Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flags)
 {
-#ifdef LOGSEARCH
-    printf("Scope::search(%p, '%s' flags=x%x)\n", this, ident->toChars(), flags);
-    // Print scope chain
-    for (Scope *sc = this; sc; sc = sc->enclosing)
-    {
-        if (!sc->scopesym)
-            continue;
-        printf("\tscope %s\n", sc->scopesym->toChars());
-    }
-#endif
-
     // This function is called only for unqualified lookup
     assert(!(flags & (SearchLocalsOnly | SearchImportsOnly)));
 
@@ -481,9 +437,6 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flag
 
             if (Dsymbol *s = sc->scopesym->isModule())
             {
-#ifdef LOGSEARCH
-                printf("\tfound %s.%s, kind = '%s'\n", s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
-#endif
                 if (pscopesym)
                     *pscopesym = sc->scopesym;
                 return s;
@@ -510,21 +463,10 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flag
 
     // First look in local scopes
     Dsymbol *s = searchScopes(this, loc, ident, pscopesym, flags | SearchLocalsOnly);
-#ifdef LOGSEARCH
-    if (s)
-        printf("\t-Scope::search() found local %s.%s, kind = '%s'\n",
-               s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
-#endif
     if (!s)
     {
         // Second look in imported modules
         s = searchScopes(this, loc, ident, pscopesym, flags | SearchImportsOnly);
-#ifdef LOGSEARCH
-        if (s)
-            printf("\t-Scope::search() found import %s.%s, kind = '%s'\n",
-                   s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
-#endif
-
         /** Still find private symbols, so that symbols that weren't access
          * checked by the compiler remain usable.  Once the deprecation is over,
          * this should be moved to search_correct instead.
@@ -537,11 +479,6 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flag
 
             if (s && !(flags & IgnoreErrors))
                 ::deprecation(loc, "%s is not visible from module %s", s->toPrettyChars(), _module->toChars());
-#ifdef LOGSEARCH
-            if (s)
-                printf("\t-Scope::search() found imported private symbol%s.%s, kind = '%s'\n",
-                       s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
-#endif
         }
     }
 

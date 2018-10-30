@@ -1441,7 +1441,7 @@ public:
     /****************************************
      */
 
-    void visit(AsmStatement *s)
+    void visit(InlineAsmStatement *s)
     {
         block *bpre;
         block *basm;
@@ -1449,7 +1449,7 @@ public:
         Symbol *sym;
         Blockx *blx = irs->blx;
 
-        //printf("AsmStatement::toIR(asmcode = %x)\n", asmcode);
+        //printf("InlineAsmStatement::toIR(asmcode = %x)\n", asmcode);
         bpre = blx->curblock;
         block_next(blx,BCgoto,NULL);
         basm = blx->curblock;

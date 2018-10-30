@@ -1,22 +1,16 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/template.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/template.h
  */
 
-#ifndef DMD_TEMPLATE_H
-#define DMD_TEMPLATE_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
-#include "root.h"
+#include "root/root.h"
 #include "arraytypes.h"
 #include "dsymbol.h"
 
@@ -173,6 +167,7 @@ public:
  */
 class TemplateTypeParameter : public TemplateParameter
 {
+    using TemplateParameter::matchArg;
 public:
     Type *specType;     // type parameter: if !=NULL, this is the type specialization
     Type *defaultType;
@@ -212,6 +207,7 @@ public:
  */
 class TemplateValueParameter : public TemplateParameter
 {
+    using TemplateParameter::matchArg;
 public:
     Type *valType;
     Expression *specValue;
@@ -239,6 +235,7 @@ public:
  */
 class TemplateAliasParameter : public TemplateParameter
 {
+    using TemplateParameter::matchArg;
 public:
     Type *specType;
     RootObject *specAlias;
@@ -398,5 +395,3 @@ Type *getType(RootObject *o);
 Dsymbol *getDsymbol(RootObject *o);
 
 RootObject *objectSyntaxCopy(RootObject *o);
-
-#endif /* DMD_TEMPLATE_H */

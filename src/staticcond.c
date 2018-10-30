@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -9,6 +8,7 @@
  * https://github.com/D-Programming-Language/dmd/blob/master/src/staticcond.c
  */
 
+#include "mars.h"
 #include "expression.h"
 #include "mtype.h"
 #include "scope.h"

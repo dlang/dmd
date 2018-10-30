@@ -1,20 +1,14 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/mars.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/mars.h
  */
 
-#ifndef DMD_MARS_H
-#define DMD_MARS_H
-
-#ifdef __DMC__
 #pragma once
-#endif
 
 /*
 It is very important to use version control macros correctly - the
@@ -77,7 +71,7 @@ struct OutBuffer;
 
 #include "globals.h"
 
-#include "ctfloat.h"
+#include "root/ctfloat.h"
 
 #include "complex_t.h"
 
@@ -99,5 +93,3 @@ void ensurePathToNameExists(Loc loc, const char *name);
 const char *importHint(const char *s);
 /// Little helper function for writing out deps.
 void escapePath(OutBuffer *buf, const char *fname);
-
-#endif /* DMD_MARS_H */

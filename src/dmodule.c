@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -24,7 +23,6 @@
 #include "expression.h"
 #include "lexer.h"
 #include "attrib.h"
-#include "target.h"
 
 // For getcwd()
 #if _WIN32
@@ -282,21 +280,23 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
 
     if (global.params.verbose)
     {
-        fprintf(global.stdmsg, "import    ");
+        OutBuffer buf;
         if (packages)
         {
             for (size_t i = 0; i < packages->dim; i++)
             {
                 Identifier *pid = (*packages)[i];
-                fprintf(global.stdmsg, "%s.", pid->toChars());
+                buf.writestring(pid->toChars());
+                buf.writeByte('.');
             }
         }
-        fprintf(global.stdmsg, "%s\t(%s)\n", ident->toChars(), m->srcfile->toChars());
+        buf.printf("%s\t(%s)", ident->toChars(), m->srcfile->toChars());
+        message("import    %s", buf.peekString());
     }
 
     m = m->parse();
 
-    Target::loadModule(m);
+    Compiler::loadModule(m);
 
     return m;
 }
@@ -912,7 +912,7 @@ int Module::needModuleInfo()
     return needmoduleinfo || global.params.cov;
 }
 
-Dsymbol *Module::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *Module::search(const Loc &loc, Identifier *ident, int flags)
 {
     /* Since modules can be circularly referenced,
      * need to stop infinite recursive searches.
@@ -1109,13 +1109,6 @@ void Module::runDeferredSemantic3()
 int Module::imports(Module *m)
 {
     //printf("%s Module::imports(%s)\n", toChars(), m->toChars());
-#if 0
-    for (size_t i = 0; i < aimports.dim; i++)
-    {
-        Module *mi = (Module *)aimports.data[i];
-        printf("\t[%d] %s\n", i, mi->toChars());
-    }
-#endif
     for (size_t i = 0; i < aimports.dim; i++)
     {
         Module *mi = aimports[i];
@@ -1332,7 +1325,7 @@ DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package
     return dst;
 }
 
-Dsymbol *Package::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *Package::search(const Loc &loc, Identifier *ident, int flags)
 {
     //printf("%s Package::search('%s', flags = x%x)\n", toChars(), ident->toChars(), flags);
     flags &= ~SearchLocalsOnly;  // searching an import is always transitive

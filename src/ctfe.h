@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -9,12 +8,7 @@
  * https://github.com/dlang/dmd/blob/master/src/ctfe.h
  */
 
-#ifndef DMD_CTFE_H
-#define DMD_CTFE_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
 #include "arraytypes.h"
 #include "tokens.h"
@@ -143,7 +137,7 @@ Expression *paintTypeOntoLiteral(Type *type, Expression *lit);
 UnionExp paintTypeOntoLiteralCopy(Type *type, Expression *lit);
 
 /// Convert from a CTFE-internal slice, into a normal Expression
-Expression *resolveSlice(Expression *e);
+Expression *resolveSlice(Expression *e, UnionExp *pue = NULL);
 
 /// Determine the array length, without interpreting the expression.
 uinteger_t resolveArrayLength(Expression *e);
@@ -271,6 +265,3 @@ Expression *ctfeIndex(Loc loc, Type *type, Expression *e1, uinteger_t indx);
 
 /// Cast 'e' of type 'type' to type 'to'.
 Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e);
-
-
-#endif /* DMD_CTFE_H */

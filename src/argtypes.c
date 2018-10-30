@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 2010-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -199,9 +198,6 @@ TypeTuple *toArgTypes(Type *t)
                     t = Type::tint64;
                     break;
                 default:
-        #ifdef DEBUG
-                    printf("mergeFloatToInt() %s\n", t->toChars());
-        #endif
                     assert(0);
             }
             return t;
@@ -372,7 +368,6 @@ TypeTuple *toArgTypes(Type *t)
             }
             if (global.params.is64bit && t->sym->fields.dim)
             {
-        #if 1
                 t1 = NULL;
                 for (size_t i = 0; i < t->sym->fields.dim; i++)
                 {
@@ -458,20 +453,6 @@ TypeTuple *toArgTypes(Type *t)
                     {
                     }
                 }
-        #else
-                if (t->sym->fields.dim == 1)
-                {
-                    VarDeclaration *f = t->sym->fields[0];
-                    //printf("f->type = %s\n", f->type->toChars());
-                    TypeTuple *tup = toArgTypes(f->type);
-                    if (tup)
-                    {
-                        size_t dim = tup->arguments->dim;
-                        if (dim == 1)
-                            t1 = (*tup->arguments)[0]->type;
-                    }
-                }
-        #endif
             }
 
             //printf("\ttoArgTypes() %s => [%s,%s]\n", t->toChars(), t1 ? t1->toChars() : "", t2 ? t2->toChars() : "");

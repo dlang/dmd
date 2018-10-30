@@ -1,22 +1,16 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/module.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/module.h
  */
 
-#ifndef DMD_MODULE_H
-#define DMD_MODULE_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
-#include "root.h"
+#include "root/root.h"
 #include "dsymbol.h"
 
 class ClassDeclaration;
@@ -30,7 +24,7 @@ enum PKG
 {
     PKGunknown, // not yet determined whether it's a package.d or not
     PKGmodule,  // already determined that's an actual package.d
-    PKGpackage, // already determined that's an actual package
+    PKGpackage  // already determined that's an actual package
 };
 
 class Package : public ScopeDsymbol
@@ -50,7 +44,7 @@ public:
     bool isAncestorPackageOf(const Package * const pkg) const;
 
     void semantic(Scope *);
-    Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
+    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
     void accept(Visitor *v) { v->visit(this); }
 
     Module *isPackageMod();
@@ -133,7 +127,7 @@ public:
     void semantic2(Scope *);   // pass 2 semantic analysis
     void semantic3(Scope *);   // pass 3 semantic analysis
     int needModuleInfo();
-    Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
+    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
     bool isPackageAccessible(Package *p, Prot protection, int flags = 0);
     Dsymbol *symtabInsert(Dsymbol *s);
     void deleteObjFile();
@@ -183,5 +177,3 @@ struct ModuleDeclaration
 
     const char *toChars();
 };
-
-#endif /* DMD_MODULE_H */

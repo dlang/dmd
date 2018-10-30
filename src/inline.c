@@ -36,7 +36,6 @@ static void expandInline(Loc callLoc, FuncDeclaration *fd, FuncDeclaration *pare
     Expression **eresult, Statement **sresult, bool *again);
 bool walkPostorder(Expression *e, StoppableVisitor *v);
 bool canInline(FuncDeclaration *fd, int hasthis, int hdrscan, bool statementsToo);
-Expression *initializerToExpression(Initializer *i, Type *t = NULL);
 int inlineCostExpression(Expression *e);
 int inlineCostFunction(FuncDeclaration *fd, bool hasthis, bool hdrscan);
 bool tooCostly(int cost);

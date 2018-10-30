@@ -168,6 +168,37 @@ void deprecationSupplemental(const Loc& loc, const char *format, ...)
     va_end( ap );
 }
 
+
+/**
+ * Print a verbose message.
+ * Doesn't prefix or highlight messages.
+ * Params:
+ *      loc    = location of message
+ *      format = printf-style format specification
+ *      ...    = printf-style variadic arguments
+ */
+void message(const Loc &loc, const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    vmessage(loc, format, ap);
+    va_end(ap);
+}
+
+/**
+ * Same as above, but doesn't take a location argument.
+ * Params:
+ *      format = printf-style format specification
+ *      ...    = printf-style variadic arguments
+ */
+void message(const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    vmessage(Loc(), format, ap);
+    va_end(ap);
+}
+
 // Just print, doesn't care about gagging
 void verrorPrint(const Loc& loc, COLOR headerColor, const char *header, const char *format, va_list ap,
                 const char *p1 = NULL, const char *p2 = NULL)
@@ -246,6 +277,28 @@ void vdeprecation(const Loc& loc, const char *format, va_list ap,
         verror(loc, format, ap, p1, p2, header);
     else if (global.params.useDeprecated == 2 && !global.gag)
         verrorPrint(loc, COLOR_BLUE, header, format, ap, p1, p2);
+}
+
+/**
+ * Same as $(D message), but takes a va_list parameter.
+ * Params:
+ *      loc       = location of message
+ *      format    = printf-style format specification
+ *      ap        = printf-style variadic arguments
+ */
+void vmessage(const Loc &loc, const char *format, va_list ap)
+{
+    const char *p = loc.toChars();
+    if (*p)
+    {
+        fprintf(stdout, "%s: ", p);
+        mem.xfree((void*)p);
+    }
+    OutBuffer tmp;
+    tmp.vprintf(format, ap);
+    fputs(tmp.peekString(), stdout);
+    fputc('\n', stdout);
+    fflush(stdout);     // ensure it gets written out in case of compiler aborts
 }
 
 void vdeprecationSupplemental(const Loc& loc, const char *format, va_list ap)

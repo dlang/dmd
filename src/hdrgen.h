@@ -1,13 +1,14 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Dave Fladebo
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/expression.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/hdrgen.h
  */
+
+#pragma once
 
 #include <string.h>                     // memset()
 
@@ -43,6 +44,8 @@ void functionToBufferWithIdent(TypeFunction *t, OutBuffer *buf, const char *iden
 void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments);
 
 void arrayObjectsToBuffer(OutBuffer *buf, Objects *objects);
+
+void moduleToBuffer(OutBuffer *buf, Module *m);
 
 const char *parametersTypeToChars(Parameters *parameters, int varargs);
 

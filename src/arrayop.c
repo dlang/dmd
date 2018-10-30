@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -13,10 +12,10 @@
 #include <string.h>
 #include <assert.h>
 
-#include "rmem.h"
+#include "root/rmem.h"
+#include "root/aav.h"
 
-#include "aav.h"
-
+#include "mars.h"
 #include "expression.h"
 #include "statement.h"
 #include "mtype.h"

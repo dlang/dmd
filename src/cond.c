@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -13,6 +12,7 @@
 #include <assert.h>
 #include <string.h>                     // strcmp()
 
+#include "mars.h"
 #include "id.h"
 #include "init.h"
 #include "declaration.h"
@@ -324,13 +324,6 @@ Condition *StaticIfCondition::syntaxCopy()
 
 int StaticIfCondition::include(Scope *sc, ScopeDsymbol *sds)
 {
-#if 0
-    printf("StaticIfCondition::include(sc = %p, sds = %p) this=%p inc = %d\n", sc, sds, this, inc);
-    if (sds)
-    {
-        printf("\ts = '%s', kind = %s\n", sds->toChars(), sds->kind());
-    }
-#endif
     if (inc == 0)
     {
         if (exp->op == TOKerror || nest > 100)

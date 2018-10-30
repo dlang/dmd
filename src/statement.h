@@ -1,22 +1,16 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/statement.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/statement.h
  */
 
-#ifndef DMD_STATEMENT_H
-#define DMD_STATEMENT_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
-#include "root.h"
+#include "root/root.h"
 
 #include "arraytypes.h"
 #include "dsymbol.h"
@@ -69,7 +63,7 @@ enum BE
     BEbreak =    0x20,
     BEcontinue = 0x40,
     BEerrthrow = 0x80,
-    BEany = (BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt),
+    BEany = (BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt)
 };
 
 class Statement : public RootObject
@@ -725,15 +719,42 @@ class AsmStatement : public Statement
 {
 public:
     Token *tokens;
+
+    AsmStatement(Loc loc, Token *tokens);
+    Statement *syntaxCopy();
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class InlineAsmStatement : public AsmStatement
+{
+public:
     code *asmcode;
     unsigned asmalign;          // alignment of this statement
     unsigned regs;              // mask of registers modified (must match regm_t in back end)
     bool refparam;              // true if function parameter is referenced
     bool naked;                 // true if function is to be naked
 
-    AsmStatement(Loc loc, Token *tokens);
+    InlineAsmStatement(Loc loc, Token *tokens);
     Statement *syntaxCopy();
+    void accept(Visitor *v) { v->visit(this); }
+};
 
+// A GCC asm statement - assembler instructions with D expression operands
+class GccAsmStatement : public AsmStatement
+{
+public:
+    StorageClass stc;           // attributes of the asm {} block
+    Expression *insn;           // string expression that is the template for assembler code
+    Expressions *args;          // input and output operands of the statement
+    unsigned outputargs;        // of the operands in 'args', the number of output operands
+    Identifiers *names;         // list of symbolic names for the operands
+    Expressions *constraints;   // list of string constants specifying constraints on operands
+    Expressions *clobbers;      // list of string constants specifying clobbers and scratch registers
+    Identifiers *labels;        // list of goto labels
+    GotoStatements *gotos;      // of the goto labels, the equivalent statements they represent
+
+    GccAsmStatement(Loc loc, Token *tokens);
+    Statement *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -760,5 +781,3 @@ public:
 
     void accept(Visitor *v) { v->visit(this); }
 };
-
-#endif /* DMD_STATEMENT_H */

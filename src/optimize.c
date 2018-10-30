@@ -123,13 +123,7 @@ Expression *expandVar(int result, VarDeclaration *v)
             }
             else
             {
-#if 1
                 goto L1;
-#else
-                // BUG: what if const is initialized in constructor?
-                e = v->type->defaultInit();
-                e->loc = e1->loc;
-#endif
             }
             if (e->type != v->type)
             {
@@ -348,8 +342,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             if (e->e1->op == TOKcomma)
             {
                 CommaExp *ce = (CommaExp *)e->e1;
-                AddrExp *ae = new AddrExp(e->loc, ce->e2);
-                ae->type = e->type;
+                AddrExp *ae = new AddrExp(e->loc, ce->e2, e->type);
                 ret = new CommaExp(ce->loc, ce->e1, ae);
                 ret->type = e->type;
                 return;

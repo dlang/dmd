@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -13,8 +12,8 @@
 #include <ctype.h>
 
 #include "tokens.h"
-#include "rmem.h"
-#include "outbuffer.h"
+#include "root/rmem.h"
+#include "root/outbuffer.h"
 #include "id.h"
 #include "identifier.h"
 #include "utf.h"
@@ -43,13 +42,6 @@ void Token::free()
     next = freelist;
     freelist = this;
 }
-
-#ifdef DEBUG
-void Token::print()
-{
-    fprintf(stderr, "%s\n", toChars());
-}
-#endif
 
 const char *Token::toChars() const
 {

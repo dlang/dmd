@@ -33,6 +33,7 @@
 #include        "init.h"
 #include        "template.h"
 #include        "target.h"
+#include        "mangle.h"
 
 #include        "mem.h" // for mem_malloc
 

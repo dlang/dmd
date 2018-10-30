@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -31,7 +30,7 @@ void FuncDeclaration::printGCUsage(Loc loc, const char* warn)
     Module *m = getModule();
     if (m && m->isRoot() && !inUnittest())
     {
-        fprintf(global.stdmsg, "%s: vgc: %s\n", loc.toChars(), warn);
+        message(loc, "vgc: %s", warn);
     }
 }
 

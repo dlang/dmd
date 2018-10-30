@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -12,7 +11,8 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "root.h"
+#include "root/root.h"
+#include "errors.h"
 #include "aggregate.h"
 #include "scope.h"
 #include "mtype.h"
@@ -297,7 +297,7 @@ void AggregateDeclaration::semantic3(Scope *sc)
     // don't do it for unused deprecated types
     // or error types
     if (!getRTInfo && Type::rtinfo &&
-        (!isDeprecated() || global.params.useDeprecated) &&
+        (!isDeprecated() || global.params.useDeprecated != DIAGNOSTICerror) &&
         (type && type->ty != Terror))
     {
         // Evaluate: RTinfo!type
@@ -539,7 +539,7 @@ bool AggregateDeclaration::isDeprecated()
     return isdeprecated;
 }
 
-bool AggregateDeclaration::isExport()
+bool AggregateDeclaration::isExport() const
 {
     return protection.kind == PROTexport;
 }
@@ -1206,17 +1206,10 @@ void StructDeclaration::semantic(Scope *sc)
         deferred->semantic3(sc);
     }
 
-#if 0
-    if (type->ty == Tstruct && ((TypeStruct *)type)->sym != this)
-    {
-        printf("this = %p %s\n", this, this->toChars());
-        printf("type = %d sym = %p\n", type->ty, ((TypeStruct *)type)->sym);
-    }
-#endif
     assert(type->ty != Tstruct || ((TypeStruct *)type)->sym == this);
 }
 
-Dsymbol *StructDeclaration::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *StructDeclaration::search(const Loc &loc, Identifier *ident, int flags)
 {
     //printf("%s.StructDeclaration::search('%s', flags = x%x)\n", toChars(), ident->toChars(), flags);
 

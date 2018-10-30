@@ -33,6 +33,7 @@
 #include        "arraytypes.h"
 #include        "visitor.h"
 #include        "template.h"
+#include        "errors.h"
 // Back end
 #include        "dt.h"
 

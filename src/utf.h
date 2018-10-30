@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 2003-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -9,8 +8,7 @@
  * https://github.com/D-Programming-Language/dmd/blob/master/src/utf.h
  */
 
-#ifndef DMD_UTF_H
-#define DMD_UTF_H
+#pragma once
 
 #include <stdlib.h>
 
@@ -117,5 +115,3 @@ void utf_encode(int sz, void *s, dchar_t c);
 
 const char *utf_decodeChar(utf8_t const *s, size_t len, size_t *pidx, dchar_t *presult);
 const char *utf_decodeWchar(utf16_t const *s, size_t len, size_t *pidx, dchar_t *presult);
-
-#endif  // DMD_UTF_H

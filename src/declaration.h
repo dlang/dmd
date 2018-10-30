@@ -1,20 +1,14 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/declaration.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/declaration.h
  */
 
-#ifndef DMD_DECLARATION_H
-#define DMD_DECLARATION_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
 #include "dsymbol.h"
 #include "mtype.h"
@@ -32,6 +26,7 @@ class StructDeclaration;
 struct InterState;
 struct CompiledCtfeFunction;
 struct ObjcSelector;
+struct IntRange;
 
 enum LINK;
 enum TOK;
@@ -136,13 +131,13 @@ public:
     d_uns64 size(Loc loc);
     int checkModify(Loc loc, Scope *sc, Type *t, Expression *e1, int flag);
 
-    Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
+    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
 
     bool isStatic() { return (storage_class & STCstatic) != 0; }
     virtual bool isDelete();
     virtual bool isDataseg();
     virtual bool isThreadlocal();
-    virtual bool isCodeseg();
+    virtual bool isCodeseg() const;
     bool isCtorinit()     { return (storage_class & STCctorinit) != 0; }
     bool isFinal()        { return (storage_class & STCfinal) != 0; }
     bool isAbstract()     { return (storage_class & STCabstract) != 0; }
@@ -277,8 +272,8 @@ public:
     const char *kind();
     AggregateDeclaration *isThis();
     bool needThis();
-    bool isExport();
-    bool isImportedSymbol();
+    bool isExport() const;
+    bool isImportedSymbol() const;
     bool isDataseg();
     bool isThreadlocal();
     bool isCTFE();
@@ -488,7 +483,7 @@ enum ILS
 {
     ILSuninitialized,   // not computed yet
     ILSno,              // cannot inline
-    ILSyes,             // can inline
+    ILSyes              // can inline
 };
 
 /**************************************************************/
@@ -497,7 +492,7 @@ enum BUILTIN
 {
     BUILTINunknown = -1,        // not known if this is a builtin
     BUILTINno,                  // this is not a builtin
-    BUILTINyes,                 // this is a builtin
+    BUILTINyes                  // this is a builtin
 };
 
 Expression *eval_builtin(Loc loc, FuncDeclaration *fd, Expressions *arguments);
@@ -632,9 +627,9 @@ public:
     bool isCMain();
     bool isWinMain();
     bool isDllMain();
-    bool isExport();
-    bool isImportedSymbol();
-    bool isCodeseg();
+    bool isExport() const;
+    bool isImportedSymbol() const;
+    bool isCodeseg() const;
     bool isOverloadable();
     PURE isPure();
     PURE isPureBypassingInference();
@@ -902,5 +897,3 @@ public:
     DeleteDeclaration *isDeleteDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
-
-#endif /* DMD_DECLARATION_H */

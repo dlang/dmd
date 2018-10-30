@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
  * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -258,7 +257,7 @@ bool discardValue(Expression *e)
         }
         case TOKcall:
             /* Issue 3882: */
-            if (global.params.warnings && !global.gag)
+            if (global.params.warnings != DIAGNOSTICoff && !global.gag)
             {
                 CallExp *ce = (CallExp *)e;
                 if (e->type->ty == Tvoid)

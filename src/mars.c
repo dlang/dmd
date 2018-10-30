@@ -42,6 +42,7 @@
 #include "hdrgen.h"
 #include "doc.h"
 #include "objc.h"
+#include "compiler.h"
 
 bool response_expand(Strings *arguments);
 
@@ -173,55 +174,6 @@ Usage:\n\
 }
 
 extern signed char tyalignsize[];
-
-static Module *entrypoint = NULL;
-static Module *rootHasMain = NULL;
-
-/************************************
- * Generate C main() in response to seeing D main().
- * This used to be in druntime, but contained a reference to _Dmain
- * which didn't work when druntime was made into a dll and was linked
- * to a program, such as a C++ program, that didn't have a _Dmain.
- */
-
-void genCmain(Scope *sc)
-{
-    if (entrypoint)
-        return;
-
-    /* The D code to be generated is provided as D source code in the form of a string.
-     * Note that Solaris, for unknown reasons, requires both a main() and an _main()
-     */
-    static const utf8_t cmaincode[] = "extern(C) {\n\
-        int _d_run_main(int argc, char **argv, void* mainFunc);\n\
-        int _Dmain(char[][] args);\n\
-        int main(int argc, char **argv) { return _d_run_main(argc, argv, &_Dmain); }\n\
-        version (Solaris) int _main(int argc, char** argv) { return main(argc, argv); }\n\
-        }\n\
-        ";
-
-    Identifier *id = Id::entrypoint;
-    Module *m = new Module("__entrypoint.d", id, 0, 0);
-
-    Parser p(m, cmaincode, strlen((const char *)cmaincode), 0);
-    p.scanloc = Loc();
-    p.nextToken();
-    m->members = p.parseModule();
-    assert(p.token.value == TOKeof);
-    assert(!p.errors);                  // shouldn't have failed to parse it
-
-    bool v = global.params.verbose;
-    global.params.verbose = false;
-    m->importedFrom = m;
-    m->importAll(NULL);
-    m->semantic(NULL);
-    m->semantic2(NULL);
-    m->semantic3(NULL);
-    global.params.verbose = v;
-
-    entrypoint = m;
-    rootHasMain = sc->_module;
-}
 
 int tryMain(size_t argc, const char *argv[])
 {
