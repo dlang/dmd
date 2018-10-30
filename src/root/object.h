@@ -6,7 +6,7 @@
  * https://github.com/dlang/dmd/blob/master/src/root/object.h
  */
 
-#define POSIX (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
+#define POSIX (__linux__ || __GLIBC__ || __gnu_hurd__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
 
 #pragma once
 
