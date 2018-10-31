@@ -69,7 +69,7 @@ else version (OSX)
     {
         int aio_filedes;
         off_t aio_offset;
-        void* aio_buf;
+        void* aio_buf;   // volatile
         size_t aio_nbytes;
         int reqprio;
         sigevent aio_sigevent;
