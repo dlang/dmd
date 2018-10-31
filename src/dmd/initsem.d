@@ -37,7 +37,6 @@ import dmd.statement;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.visitor;
 
 /********************************
  * If possible, convert array initializer to associative array initializer.
@@ -76,21 +75,6 @@ Expression toAssocArrayLiteral(ArrayInitializer ai)
 Lno:
     error(ai.loc, "not an associative array initializer");
     return new ErrorExp();
-}
-
-/***********************
- * Translate init to an `Expression`.
- * Params:
- *      init = `Initializer` AST node
- *      t = if not `null`, type to coerce expression to
- * Returns:
- *      `Expression` created, `null` if cannot, `ErrorExp` for other errors
- */
-extern (C++) Expression initializerToExpression(Initializer init, Type t = null)
-{
-    scope v = new InitToExpressionVisitor(t);
-    init.accept(v);
-    return v.result;
 }
 
 /******************************************
@@ -699,26 +683,24 @@ Initializer inferType(Initializer init, Scope* sc)
     }
 }
 
-private extern(C++) final class InitToExpressionVisitor : Visitor
+/***********************
+ * Translate init to an `Expression`.
+ * Params:
+ *      init = `Initializer` AST node
+ *      itype = if not `null`, type to coerce expression to
+ * Returns:
+ *      `Expression` created, `null` if cannot, `ErrorExp` for other errors
+ */
+extern (C++) Expression initializerToExpression(Initializer init, Type itype = null)
 {
-    alias visit = Visitor.visit;
-
-    Expression result;
-    Type itype;
-
-    this(Type itype)
+    Expression visitVoid(VoidInitializer)
     {
-        this.itype = itype;
+        return null;
     }
 
-    override void visit(VoidInitializer)
+    Expression visitError(ErrorInitializer)
     {
-        result = null;
-    }
-
-    override void visit(ErrorInitializer)
-    {
-        result = new ErrorExp();
+        return new ErrorExp();
     }
 
     /***************************************
@@ -726,17 +708,17 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
      * a struct literal. In the future, the two should be the
      * same thing.
      */
-    override void visit(StructInitializer)
+    Expression visitStruct(StructInitializer)
     {
         // cannot convert to an expression without target 'ad'
-        result = null;
+        return null;
     }
 
     /********************************
      * If possible, convert array initializer to array literal.
      * Otherwise return NULL.
      */
-    override void visit(ArrayInitializer init)
+    Expression visitArray(ArrayInitializer init)
     {
         //printf("ArrayInitializer::toExpression(), dim = %d\n", dim);
         //static int i; if (++i == 2) assert(0);
@@ -748,8 +730,7 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
         {
             if (init.type == Type.terror)
             {
-                result = new ErrorExp();
-                return;
+                return new ErrorExp();
             }
             t = init.type.toBasetype();
             switch (t.ty)
@@ -858,20 +839,18 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
                 Expression e = (*elements)[i];
                 if (e.op == TOK.error)
                 {
-                    result = e;
-                    return;
+                    return e;
                 }
             }
 
             Expression e = new ArrayLiteralExp(init.loc, init.type, elements);
-            result = e;
-            return;
+            return e;
         }
     Lno:
-        result = null;
+        return null;
     }
 
-    override void visit(ExpInitializer i)
+    Expression visitExp(ExpInitializer i)
     {
         if (itype)
         {
@@ -886,10 +865,19 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
                 for (size_t j = 0; j < d; j++)
                     (*elements)[j] = e;
                 auto ae = new ArrayLiteralExp(e.loc, itype, elements);
-                result = ae;
-                return;
+                return ae;
             }
         }
-        result = i.exp;
+        return i.exp;
+    }
+
+
+    final switch (init.kind)
+    {
+        case InitKind.void_:   return visitVoid  (cast(  VoidInitializer)init);
+        case InitKind.error:   return visitError (cast( ErrorInitializer)init);
+        case InitKind.struct_: return visitStruct(cast(StructInitializer)init);
+        case InitKind.array:   return visitArray (cast( ArrayInitializer)init);
+        case InitKind.exp:     return visitExp   (cast(   ExpInitializer)init);
     }
 }
