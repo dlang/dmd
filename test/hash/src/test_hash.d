@@ -9,6 +9,7 @@ void main()
     issue19204();
     issue19262();
     issue19282();
+    issue19332(); // Support might be removed in the future!
     testTypeInfoArrayGetHash1();
     testTypeInfoArrayGetHash2();
     pr2243();
@@ -133,6 +134,20 @@ void issue19282()
     Issue19282CppClass c = new Issue19282CppClass();
     size_t h = hashOf(c);
     h = hashOf(c, h);
+}
+
+/// Ensure hashOf works for const struct that has non-const toHash & has all
+/// fields bitwise-hashable. (Support might be removed in the future!)
+void issue19332()
+{
+    static struct HasNonConstToHash
+    {
+        int a;
+        size_t toHash() { return a; }
+    }
+    const HasNonConstToHash val;
+    size_t h = hashOf(val);
+    h = hashOf!(const HasNonConstToHash)(val); // Ensure doesn't match more than one overload.
 }
 
 /// Tests ensure TypeInfo_Array.getHash uses element hash functions instead
