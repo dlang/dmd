@@ -2869,6 +2869,7 @@ private size_t relsize64(uint type)
 
         default:
             assert(0);
+            return 0;
     }
 }
 
@@ -2911,6 +2912,7 @@ private size_t relsize32(uint type)
 
         default:
             assert(0);
+            return 0;
     }
 }
 
