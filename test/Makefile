@@ -146,7 +146,10 @@ compilable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(compilabl
 fail_compilation_tests=$(wildcard fail_compilation/*.d) $(wildcard fail_compilation/*.html)
 fail_compilation_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(fail_compilation_tests)))
 
-all: run_tests
+# Disable D2 testsuite for DMD.
+#all: run_tests
+all:
+	$(QUIET) echo "Auto-tester tests disabled"
 
 $(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(EXE) $(DMD)
 	$(QUIET) $(RESULTS_DIR)/d_do_test $(<D) $* d
