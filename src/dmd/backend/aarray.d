@@ -415,7 +415,7 @@ public struct TinfoChars
 }
 
 // Interface for C++ code
-extern (C++) struct AAchars
+public extern (C++) struct AAchars
 {
     alias AA = AArray!(TinfoChars, uint);
     AA aa;
@@ -479,7 +479,7 @@ public struct TinfoPair
 }
 
 // Interface for C++ code
-extern (C++) struct AApair
+public extern (C++) struct AApair
 {
     alias AA = AArray!(TinfoPair, uint);
     AA aa;
