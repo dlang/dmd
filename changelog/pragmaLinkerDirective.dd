@@ -1,8 +1,0 @@
-Add `pragma(linkerDirective)`, to emit linker directives into object files.
-
-Emits a custom linker directive to the object file, eg:
----
-pragma(linkerDirective, "/alternatename:_pWeakValue=_pDefaultWeakValue");
----
-
-This is only supported for MS-COFF output.
