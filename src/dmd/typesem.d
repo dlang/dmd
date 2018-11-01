@@ -1153,6 +1153,13 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
 
         bool errors = false;
 
+        if (mtype.inuse > 500)
+        {
+            mtype.inuse = 0;
+            .error(loc, "recursive type");
+            return error();
+        }
+
         /* Copy in order to not mess up original.
          * This can produce redundant copies if inferring return type,
          * as semantic() will get called again on this.
@@ -1257,10 +1264,9 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             for (size_t i = 0; i < dim; i++)
             {
                 Parameter fparam = Parameter.getNth(tf.parameters, i);
-                tf.inuse++;
+                mtype.inuse++;
                 fparam.type = fparam.type.typeSemantic(loc, argsc);
-                if (tf.inuse == 1)
-                    tf.inuse--;
+                mtype.inuse--;
                 if (fparam.type.ty == Terror)
                 {
                     errors = true;
@@ -1499,13 +1505,6 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             errors = true;
         }
         tf.iswild = wildparams;
-
-        if (tf.inuse)
-        {
-            .error(loc, "recursive type");
-            tf.inuse = 0;
-            errors = true;
-        }
 
         if (tf.isproperty && (tf.varargs || Parameter.dim(tf.parameters) > 2))
         {
