@@ -167,6 +167,10 @@ struct Param
     const char *jsonfilename; // write JSON file to jsonfilename
     unsigned jsonFieldFlags;  // JSON field flags to include
 
+    OutBuffer *mixinOut;                // write expanded mixins for debugging
+    const char *mixinFile;             // .mixin file output name
+    int mixinLines;                     // Number of lines in writeMixins
+
     unsigned debuglevel;   // debug level
     Array<const char *> *debugids;     // debug identifiers
 

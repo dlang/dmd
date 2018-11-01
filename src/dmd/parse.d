@@ -218,6 +218,46 @@ private StorageClass getStorageClass(AST)(PrefixAttributes!(AST)* pAttrs)
     return stc;
 }
 
+/**************************************
+ * dump mixin expansion to file for better debugging
+ */
+bool writeMixin(const(char)[] s, ref Loc loc)
+{
+    if (!global.params.mixinOut)
+        return false;
+
+    OutBuffer* ob = global.params.mixinOut;
+
+    ob.writestring("// expansion at ");
+    ob.writestring(loc.toChars());
+    ob.writenl();
+
+    global.params.mixinLines++;
+
+    loc.filename = global.params.mixinFile;
+    loc.linnum = global.params.mixinLines + 1;
+
+    // write by line to create consistent line endings
+    size_t lastpos = 0;
+    foreach (i,c; s)
+    {
+        if(c == '\n')
+        {
+            ob.writestring(s[lastpos .. i]);
+            ob.writenl();
+            global.params.mixinLines++;
+            lastpos = i + 1;
+        }
+    }
+
+    if(lastpos < s.length)
+        ob.writestring(s[lastpos .. $]);
+    ob.writenl();
+
+    global.params.mixinLines++;
+    return true;
+}
+
 /***********************************************************
  */
 final class Parser(AST) : Lexer
@@ -242,7 +282,7 @@ final class Parser(AST) : Lexer
         //printf("Parser::Parser()\n");
         scanloc = loc;
 
-        if (loc.filename)
+        if (!writeMixin(input, scanloc) && loc.filename)
         {
             /* Create a pseudo-filename for the mixin string, as it may not even exist
              * in the source file.
