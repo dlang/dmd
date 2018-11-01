@@ -5448,6 +5448,13 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 
     bool errors = false;
 
+    if (inuse > 500)
+    {
+        inuse = 0;
+        ::error(loc, "recursive type");
+        return Type::terror;
+    }
+
     /* Copy in order to not mess up original.
      * This can produce redundant copies if inferring return type,
      * as semantic() will get called again on this.
@@ -5532,9 +5539,9 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         for (size_t i = 0; i < dim; i++)
         {
             Parameter *fparam = Parameter::getNth(tf->parameters, i);
-            tf->inuse++;
+            inuse++;
             fparam->type = fparam->type->semantic(loc, argsc);
-            if (tf->inuse == 1) tf->inuse--;
+            inuse--;
 
             if (fparam->type->ty == Terror)
             {
@@ -5775,13 +5782,6 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         errors = true;
     }
     tf->iswild = wildparams;
-
-    if (tf->inuse)
-    {
-        error(loc, "recursive type");
-        tf->inuse = 0;
-        errors = true;
-    }
 
     if (tf->isproperty && (tf->varargs || Parameter::dim(tf->parameters) > 2))
     {
