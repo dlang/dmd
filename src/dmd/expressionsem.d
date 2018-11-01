@@ -2349,19 +2349,39 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     }
                 }
 
-                ExpressionDsymbol expDsym = scopesym.isExpressionDsymbol();
-                if (expDsym)
+                if (global.params.fixAliasThis)
                 {
-                    //printf("expDsym = %s\n", expDsym.exp.toChars());
-                    result = expDsym.exp.expressionSemantic(sc);
-                    return;
+                    ExpressionDsymbol expDsym = scopesym.isExpressionDsymbol();
+                    if (expDsym)
+                    {
+                        //printf("expDsym = %s\n", expDsym.exp.toChars());
+                        result = expDsym.exp.expressionSemantic(sc);
+                        return;
+                    }
                 }
-
                 // Haven't done overload resolution yet, so pass 1
                 e = resolve(exp.loc, sc, s, true);
             }
             result = e;
             return;
+        }
+
+        if (!global.params.fixAliasThis && hasThis(sc))
+        {
+            AggregateDeclaration ad = sc.getStructClassScope();
+            if (ad && ad.aliasthis)
+            {
+                Expression e;
+                e = new ThisExp(exp.loc);
+                e = new DotIdExp(exp.loc, e, ad.aliasthis.ident);
+                e = new DotIdExp(exp.loc, e, exp.ident);
+                e = e.trySemantic(sc);
+                if (e)
+                {
+                    result = e;
+                    return;
+                }
+            }
         }
 
         if (exp.ident == Id.ctfe)

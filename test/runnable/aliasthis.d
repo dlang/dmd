@@ -1,4 +1,3 @@
-module aliasthis;
 
 extern (C) int printf(const(char*) fmt, ...);
 import core.vararg;
@@ -2058,73 +2057,6 @@ void test19284()
     assert(t.x == 5);
 }
 
-// https://issues.dlang.org/show_bug.cgi?id=16086
-import std.range;
-
-struct S16086
-{
-    struct Inner2
-    {
-        Inner a;
-        alias a this;
-    }
-
-    struct Inner
-    {
-        int unique_identifier_name;
-        int tail = 2;
-    }
-
-    Inner2 inner;
-    alias inner this;
-
-    auto works()
-    {
-        return unique_identifier_name;
-    }
-
-    auto fails()
-    {
-        int a = tail;
-        return tail; // Line 22
-        // The workaround:  return this.tail;
-    }
-}
-
-void test16086()
-{
-    S16086 s;
-    assert(s.fails == 2);
-}
-
-// https://issues.dlang.org/show_bug.cgi?id=16082
-struct S16082
-{
-    struct Inner
-    {
-        int any_name_but_modulename;
-        int aliasthis = 5;
-    }
-
-    Inner inner;
-    alias inner this;
-
-    auto works()
-    {
-        return any_name_but_modulename;
-    }
-    auto fails()
-    {
-        return aliasthis;  // Line 20
-    }
-}
-
-void test16082()
-{
-    S16082 s;
-    assert(s.fails == 5);
-}
-
 int main()
 {
     test1();
@@ -2182,8 +2114,6 @@ int main()
     test11355();
     test14806();
     test19284();
-    test16086();
-    test16082();
 
     printf("Success\n");
     return 0;

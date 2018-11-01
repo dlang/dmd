@@ -456,15 +456,17 @@ struct Scope
                     return s;
                 }
 
-                Expression exp = new ThisExp(loc);
-                Dsymbol aliasSym = checkAliasThis(sc.scopesym.isAggregateDeclaration(), ident, flags, &exp);
-                //printf("exp = %s\n", exp.toChars());
-                if (aliasSym)
+                if (global.params.fixAliasThis)
                 {
-                    //printf("found aliassym: %s\n", aliasSym.toChars());
-                    if (pscopesym)
-                        *pscopesym = new ExpressionDsymbol(exp);
-                    return aliasSym;
+                    Expression exp = new ThisExp(loc);
+                    Dsymbol aliasSym = checkAliasThis(sc.scopesym.isAggregateDeclaration(), ident, flags, &exp);
+                    if (aliasSym)
+                    {
+                        //printf("found aliassym: %s\n", aliasSym.toChars());
+                        if (pscopesym)
+                            *pscopesym = new ExpressionDsymbol(exp);
+                        return aliasSym;
+                    }
                 }
 
                 // Stop when we hit a module, but keep going if that is not just under the global scope

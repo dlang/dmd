@@ -625,6 +625,8 @@ dmd -cov -unittest myprog.d
             "fix integral promotions for unary + - ~ operators"),
         Transition(null, "tls", "vtls",
             "list all variables going into thread local storage"),
+        Transition(null, "fixAliasThis", "fixAliasThis",
+            "when a symbol is resolved, check alias this scope before going to upper scopes"),
     ];
 }
 
