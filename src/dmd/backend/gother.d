@@ -1067,276 +1067,286 @@ private int loopcheck(block *start,block *inc,block *rel)
  * in go.expnod[].
  */
 
-__gshared int recalc;
 
 void copyprop()
 {
     out_regcand(&globsym);
     if (debugc) printf("copyprop()\n");
     assert(dfo);
-Lagain:
-    flowcp();               /* compute available copy statements    */
-    if (go.exptop <= 1)
-            return;                 /* none available               */
-    static if (0)
+
+Louter:
+    while (1)
     {
-        for (uint i = 1; i < go.exptop; i++)
+        flowcp();               /* compute available copy statements    */
+        if (go.exptop <= 1)
+            return;             // none available
+        static if (0)
         {
-            printf("go.expnod[%d] = (",i);
-            WReqn(go.expnod[i]);
-            printf(");\n");
+            foreach (i; 1 .. go.exptop)
+            {
+                printf("go.expnod[%d] = (",i);
+                WReqn(go.expnod[i]);
+                printf(");\n");
+            }
         }
-    }
-    recalc = 0;
-    for (uint i = 0; i < dfotop; i++)    // for each block
-    {
-        block *b = dfo[i];
-        if (b.Belem)
+        foreach (i, b; dfo[0 .. dfotop])    // for each block
         {
-            static if (0)
+            if (b.Belem)
             {
-                printf("B%d, elem (",i);
-                WReqn(b.Belem); printf(")\nBin  ");
-                vec_println(b.Bin);
-                cpwalk(b.Belem,b.Bin);
-                printf("Bino ");
-                vec_println(b.Bin);
-                printf("Bout ");
-                vec_println(b.Bout);
+                bool recalc;
+                static if (0)
+                {
+                    printf("B%d, elem (",i);
+                    WReqn(b.Belem); printf(")\nBin  ");
+                    vec_println(b.Bin);
+                    recalc = copyPropWalk(b.Belem,b.Bin);
+                    printf("Bino ");
+                    vec_println(b.Bin);
+                    printf("Bout ");
+                    vec_println(b.Bout);
+                }
+                else
+                {
+                    recalc = copyPropWalk(b.Belem,b.Bin);
+                }
+                /*assert(vec_equal(b.Bin,b.Bout));              */
+                /* The previous assert() is correct except      */
+                /* for the following case:                      */
+                /*      a=b; d=a; a=b;                          */
+                /* The vectors don't match because the          */
+                /* equations changed to:                        */
+                /*      a=b; d=b; a=b;                          */
+                /* and the d=b copy elem now reaches the end    */
+                /* of the block (the d=a elem didn't).          */
+                if (recalc)
+                    continue Louter;
             }
-            else
-            {
-                cpwalk(b.Belem,b.Bin);
-            }
-            /*assert(vec_equal(b.Bin,b.Bout));              */
-            /* The previous assert() is correct except      */
-            /* for the following case:                      */
-            /*      a=b; d=a; a=b;                          */
-            /* The vectors don't match because the          */
-            /* equations changed to:                        */
-            /*      a=b; d=b; a=b;                          */
-            /* and the d=b copy elem now reaches the end    */
-            /* of the block (the d=a elem didn't).          */
         }
-        if (recalc)
-            goto Lagain;
+        return;
     }
 }
 
 /*****************************
  * Walk tree n, doing copy propagation as we go.
  * Keep IN up to date.
+ * Params:
+ *      n = tree to walk & do copy propagation in
+ *      IN = vector of live copy expressions, updated as progress is made
+ * Returns:
+ *      true if need to recalculate data flow equations and try again
  */
 
-private void cpwalk(elem *n,vec_t IN)
+private bool copyPropWalk(elem *n,vec_t IN)
 {
-    uint op;
-    elem *t;
-    vec_t L;
+    bool recalc = false;
+    int nocp = 0;
 
-    __gshared int nocp;
+    void cpwalk(elem* n, vec_t IN)
+    {
+        assert(n && IN);
+        /*chkvecdim(go.exptop,0);*/
+        if (recalc)
+            return;
 
-    assert(n && IN);
-    /*chkvecdim(go.exptop,0);*/
-    if (recalc)
-        return;
-    op = n.Eoper;
-    if (op == OPcolon || op == OPcolon2)
-    {
-        L = vec_clone(IN);
-        cpwalk(n.EV.E1,L);
-        cpwalk(n.EV.E2,IN);
-        vec_andass(IN,L);               // IN = L & R
-        vec_free(L);
-    }
-    else if (op == OPandand || op == OPoror)
-    {
-        cpwalk(n.EV.E1,IN);
-        L = vec_clone(IN);
-        cpwalk(n.EV.E2,L);
-        vec_andass(IN,L);               // IN = L & R
-        vec_free(L);
-    }
-    else if (OTunary(op))
-    {
-        t = n.EV.E1;
-        if (OTassign(op))
+        elem *t;
+        const op = n.Eoper;
+        if (op == OPcolon || op == OPcolon2)
         {
+            vec_t L = vec_clone(IN);
+            cpwalk(n.EV.E1,L);
+            cpwalk(n.EV.E2,IN);
+            vec_andass(IN,L);               // IN = L & R
+            vec_free(L);
+        }
+        else if (op == OPandand || op == OPoror)
+        {
+            cpwalk(n.EV.E1,IN);
+            vec_t L = vec_clone(IN);
+            cpwalk(n.EV.E2,L);
+            vec_andass(IN,L);               // IN = L & R
+            vec_free(L);
+        }
+        else if (OTunary(op))
+        {
+            t = n.EV.E1;
+            if (OTassign(op))
+            {
+                if (t.Eoper == OPind)
+                    cpwalk(t.EV.E1,IN);
+            }
+            else if (op == OPctor || op == OPdtor)
+            {
+                /* This kludge is necessary because in except_pop()
+                 * an el_match is done on the lvalue. If copy propagation
+                 * changes the OPctor but not the corresponding OPdtor,
+                 * then the match won't happen and except_pop()
+                 * will fail.
+                 */
+                nocp++;
+                cpwalk(t,IN);
+                nocp--;
+            }
+            else
+                cpwalk(t,IN);
+        }
+        else if (OTassign(op))
+        {
+            cpwalk(n.EV.E2,IN);
+            t = n.EV.E1;
             if (t.Eoper == OPind)
-                cpwalk(t.EV.E1,IN);
-        }
-        else if (op == OPctor || op == OPdtor)
-        {
-            /* This kludge is necessary because in except_pop()
-             * an el_match is done on the lvalue. If copy propagation
-             * changes the OPctor but not the corresponding OPdtor,
-             * then the match won't happen and except_pop()
-             * will fail.
-             */
-            nocp++;
-            cpwalk(t,IN);
-            nocp--;
-        }
-        else
-            cpwalk(t,IN);
-    }
-    else if (OTassign(op))
-    {
-        cpwalk(n.EV.E2,IN);
-        t = n.EV.E1;
-        if (t.Eoper == OPind)
-            cpwalk(t,IN);
-        else
-        {
-            debug if (t.Eoper != OPvar) elem_print(n);
-            assert(t.Eoper == OPvar);
-        }
-    }
-    else if (ERTOL(n))
-    {
-        cpwalk(n.EV.E2,IN);
-        cpwalk(n.EV.E1,IN);
-    }
-    else if (OTbinary(op))
-    {
-        cpwalk(n.EV.E1,IN);
-        cpwalk(n.EV.E2,IN);
-    }
-
-    if (OTdef(op))                  // if definition elem
-    {
-        int ambig;              /* true if ambiguous def        */
-
-        ambig = !OTassign(op) || t.Eoper == OPind;
-        uint i;
-        for (i = 0; (i = cast(uint) vec_index(i, IN)) < go.exptop; ++i) // for each active copy elem
-        {
-            Symbol *v;
-
-            if (op == OPasm)
-                goto clr;
-
-            /* If this elem could kill the lvalue or the rvalue, */
-            /*      Clear bit in IN.                        */
-            v = go.expnod[i].EV.E1.EV.Vsym;
-            if (ambig)
-            {
-                if (!(v.Sflags & SFLunambig))
-                    goto clr;
-            }
+                cpwalk(t,IN);
             else
             {
-                if (v == t.EV.Vsym)
-                    goto clr;
+                debug if (t.Eoper != OPvar) elem_print(n);
+                assert(t.Eoper == OPvar);
             }
-            v = go.expnod[i].EV.E2.EV.Vsym;
-            if (ambig)
-            {
-                if (!(v.Sflags & SFLunambig))
-                    goto clr;
-            }
-            else
-            {
-                if (v == t.EV.Vsym)
-                    goto clr;
-            }
-            continue;
-
-        clr:                        /* this copy elem is not available */
-            vec_clearbit(i,IN);     /* so remove it from the vector */
-        } /* foreach */
-
-        /* If this is a copy elem in go.expnod[]   */
-        /*      Set bit in IN.                     */
-        if ((op == OPeq || op == OPstreq) && n.EV.E1.Eoper == OPvar &&
-            n.EV.E2.Eoper == OPvar && n.Eexp)
-            vec_setbit(n.Eexp,IN);
-    }
-    else if (op == OPvar && !nocp)  // if reference to variable v
-    {
-        Symbol *v = n.EV.Vsym;
-        Symbol *f;
-        elem *foundelem = null;
-        tym_t ty;
-
-        //printf("Checking copyprop for '%s', ty=x%x\n",v.Sident,n.Ety);
-        symbol_debug(v);
-        ty = n.Ety;
-        uint sz = tysize(n.Ety);
-        if (sz == -1 && !tyfunc(n.Ety))
-            sz = cast(uint)type_size(v.Stype);
-
-        uint i;
-        for (i = 0; (i = cast(uint) vec_index(i, IN)) < go.exptop; ++i) // for all active copy elems
+        }
+        else if (ERTOL(n))
         {
-            elem *c;
+            cpwalk(n.EV.E2,IN);
+            cpwalk(n.EV.E1,IN);
+        }
+        else if (OTbinary(op))
+        {
+            cpwalk(n.EV.E1,IN);
+            cpwalk(n.EV.E2,IN);
+        }
 
-            c = go.expnod[i];
-            assert(c);
+        if (OTdef(op))                  // if definition elem
+        {
+            int ambig;              /* true if ambiguous def        */
 
-            uint csz = tysize(c.EV.E1.Ety);
-            if (c.Eoper == OPstreq)
-                csz = cast(uint)type_size(c.ET);
-            assert(cast(int)csz >= 0);
-
-            //printf("looking at: ("); WReqn(c); printf("), ty=x%x\n",c.EV.E1.Ety);
-            /* Not only must symbol numbers match, but      */
-            /* offsets too (in case of arrays) and sizes    */
-            /* (in case of unions).                         */
-            if (v == c.EV.E1.EV.Vsym &&
-                n.EV.Voffset >= c.EV.E1.EV.Voffset &&
-                n.EV.Voffset + sz <= c.EV.E1.EV.Voffset + csz)
+            ambig = !OTassign(op) || t.Eoper == OPind;
+            uint i;
+            for (i = 0; (i = cast(uint) vec_index(i, IN)) < go.exptop; ++i) // for each active copy elem
             {
-                if (foundelem)
+                Symbol *v;
+
+                if (op == OPasm)
+                    goto clr;
+
+                /* If this elem could kill the lvalue or the rvalue, */
+                /*      Clear bit in IN.                        */
+                v = go.expnod[i].EV.E1.EV.Vsym;
+                if (ambig)
                 {
-                    if (c.EV.E2.EV.Vsym != f)
-                        goto noprop;
+                    if (!(v.Sflags & SFLunambig))
+                        goto clr;
                 }
                 else
                 {
-                    foundelem = c;
-                    f = foundelem.EV.E2.EV.Vsym;
+                    if (v == t.EV.Vsym)
+                        goto clr;
                 }
-            }
-        }
-        if (foundelem)          /* if we can do the copy prop   */
-        {
-            debug if (debugc)
-            {
-                printf("Copyprop, from '%s'(%d) to '%s'(%d)\n",
-                    (v.Sident[0]) ? cast(char *)v.Sident.ptr : "temp".ptr, v.Ssymnum,
-                    (f.Sident[0]) ? cast(char *)f.Sident.ptr : "temp".ptr, f.Ssymnum);
-            }
-
-            type *nt = n.ET;
-            targ_size_t noffset = n.EV.Voffset;
-            el_copy(n,foundelem.EV.E2);
-            n.Ety = ty;    // retain original type
-            n.ET = nt;
-            n.EV.Voffset += noffset - foundelem.EV.E1.EV.Voffset;
-
-            /* original => rewrite
-             *  v = f
-             *  g = v   => g = f
-             *  f = x
-             *  d = g   => d = f !!error
-             * Therefore, if n appears as an rvalue in go.expnod[], then recalc
-             */
-            for (size_t j = 1; j < go.exptop; ++j)
-            {
-                //printf("go.expnod[%d]: ", j); elem_print(go.expnod[j]);
-                if (go.expnod[j].EV.E2 == n)
+                v = go.expnod[i].EV.E2.EV.Vsym;
+                if (ambig)
                 {
-                    ++recalc;
-                    break;
+                    if (!(v.Sflags & SFLunambig))
+                        goto clr;
+                }
+                else
+                {
+                    if (v == t.EV.Vsym)
+                        goto clr;
+                }
+                continue;
+
+            clr:                        /* this copy elem is not available */
+                vec_clearbit(i,IN);     /* so remove it from the vector */
+            } /* foreach */
+
+            /* If this is a copy elem in go.expnod[]   */
+            /*      Set bit in IN.                     */
+            if ((op == OPeq || op == OPstreq) && n.EV.E1.Eoper == OPvar &&
+                n.EV.E2.Eoper == OPvar && n.Eexp)
+                vec_setbit(n.Eexp,IN);
+        }
+        else if (op == OPvar && !nocp)  // if reference to variable v
+        {
+            Symbol *v = n.EV.Vsym;
+
+            //printf("Checking copyprop for '%s', ty=x%x\n",v.Sident,n.Ety);
+            symbol_debug(v);
+            const ty = n.Ety;
+            uint sz = tysize(n.Ety);
+            if (sz == -1 && !tyfunc(n.Ety))
+                sz = cast(uint)type_size(v.Stype);
+
+            elem *foundelem = null;
+            Symbol *f;
+            for (uint i = 0; (i = cast(uint) vec_index(i, IN)) < go.exptop; ++i) // for all active copy elems
+            {
+                elem* c = go.expnod[i];
+                assert(c);
+
+                uint csz = tysize(c.EV.E1.Ety);
+                if (c.Eoper == OPstreq)
+                    csz = cast(uint)type_size(c.ET);
+                assert(cast(int)csz >= 0);
+
+                //printf("looking at: ("); WReqn(c); printf("), ty=x%x\n",c.EV.E1.Ety);
+                /* Not only must symbol numbers match, but      */
+                /* offsets too (in case of arrays) and sizes    */
+                /* (in case of unions).                         */
+                if (v == c.EV.E1.EV.Vsym &&
+                    n.EV.Voffset >= c.EV.E1.EV.Voffset &&
+                    n.EV.Voffset + sz <= c.EV.E1.EV.Voffset + csz)
+                {
+                    if (foundelem)
+                    {
+                        if (c.EV.E2.EV.Vsym != f)
+                            goto noprop;
+                    }
+                    else
+                    {
+                        foundelem = c;
+                        f = foundelem.EV.E2.EV.Vsym;
+                    }
                 }
             }
+            if (foundelem)          /* if we can do the copy prop   */
+            {
+                debug if (debugc)
+                {
+                    printf("Copyprop, from '%s'(%d) to '%s'(%d)\n",
+                        (v.Sident[0]) ? cast(char *)v.Sident.ptr : "temp".ptr, v.Ssymnum,
+                        (f.Sident[0]) ? cast(char *)f.Sident.ptr : "temp".ptr, f.Ssymnum);
+                }
 
-            go.changes++;
+                type *nt = n.ET;
+                targ_size_t noffset = n.EV.Voffset;
+                el_copy(n,foundelem.EV.E2);
+                n.Ety = ty;    // retain original type
+                n.ET = nt;
+                n.EV.Voffset += noffset - foundelem.EV.E1.EV.Voffset;
+
+                /* original => rewrite
+                 *  v = f
+                 *  g = v   => g = f
+                 *  f = x
+                 *  d = g   => d = f !!error
+                 * Therefore, if n appears as an rvalue in go.expnod[], then recalc
+                 */
+                for (size_t j = 1; j < go.exptop; ++j)
+                {
+                    //printf("go.expnod[%d]: ", j); elem_print(go.expnod[j]);
+                    if (go.expnod[j].EV.E2 == n)
+                    {
+                        recalc = true;
+                        break;
+                    }
+                }
+
+                go.changes++;
+            }
+            //else printf("not found\n");
+        noprop:
+            {   }
         }
-        //else printf("not found\n");
-    noprop:
     }
+
+    cpwalk(n, IN);
+    return recalc;
 }
 
 /********************************
