@@ -623,6 +623,19 @@ Initializer inferType(Initializer init, Scope* sc)
         //printf("ExpInitializer::inferType() %s\n", toChars());
         init.exp = init.exp.expressionSemantic(sc);
 
+        /* https://issues.dlang.org/show_bug.cgi?id=13552
+         * If a value is initialized with a struct that has a disabled
+         * postblit and an alias this, infer the type to be the type
+         * of the alias this.
+         */
+        if (init.exp.type && init.exp.type.ty == Tstruct && init.exp.isLvalue())
+        {
+            TypeStruct tstruct = cast(TypeStruct)init.exp.type;
+            StructDeclaration sd = tstruct.sym;
+            if (sd.postblit && sd.postblit.isDisabled() && sd.aliasthis)
+                init.exp = resolveAliasThis(sc, init.exp);
+        }
+
         // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
         if (init.exp.op == TOK.type)
             init.exp = resolveAliasThis(sc, init.exp);
