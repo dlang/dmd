@@ -371,10 +371,10 @@ attributes in documents predating $(LINK2 http://wiki.dlang.org/DIP22, DIP22).)
         or defaults to $(D private) if a module is not nested in a package.
         )
 
-        $(P $(D package) may have an optional parameter, dot-separated identifier
-        list which is resolved as the qualified package name. If this optional
-        parameter is present, the symbol will be visible by this package and
-        all its descendants.
+        $(P $(D package) may have an optional parameter in the form of a dot-separated identifier
+        list which is resolved as the qualified package name. The package must be either the module's
+        parent package or one of its anscestors. If this optional parameter is present, the symbol
+        will be visible in the specified package and all of its descendants.
         )
 
         $(P $(D protected) only applies inside classes (and templates as they can be mixed in)
