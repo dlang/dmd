@@ -198,6 +198,101 @@ version (Windows)
     int  MsCoffObj_seg_debugS_comdat(Symbol *sfunc);
 }
 
+version (Posix)
+{
+    Obj Obj_init(Outbuffer *, const(char)* filename, const(char)* csegname);
+    void Obj_initfile(const(char)* filename, const(char)* csegname, const(char)* modname);
+    void Obj_termfile();
+    void Obj_term(const(char)* objfilename);
+    void Obj_compiler();
+    void Obj_exestr(const(char)* p);
+    void Obj_dosseg();
+    void Obj_startaddress(Symbol *);
+    bool Obj_includelib(const(char)* );
+    bool Obj_linkerdirective(const(char)* p);
+    size_t Obj_mangle(Symbol *s,char *dest);
+    void Obj_alias(const(char)* n1,const(char)* n2);
+    void Obj_user(const(char)* p);
+
+    void Obj_import(elem *e);
+    void Obj_linnum(Srcpos srcpos, int seg, targ_size_t offset);
+    int Obj_codeseg(char *name,int suffix);
+    bool Obj_allowZeroSize();
+    void Obj_wkext(Symbol *,Symbol *);
+    void Obj_lzext(Symbol *,Symbol *);
+    void Obj_theadr(const(char)* modname);
+    void Obj_segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize);
+    void Obj_staticctor(Symbol *s,int dtor,int seg);
+    void Obj_staticdtor(Symbol *s);
+    void Obj_setModuleCtorDtor(Symbol *s, bool isCtor);
+    void Obj_ehtables(Symbol *sfunc,uint size,Symbol *ehsym);
+    void Obj_ehsections();
+    void Obj_moduleinfo(Symbol *scc);
+    int Obj_comdat(Symbol *);
+    int Obj_comdatsize(Symbol *, targ_size_t symsize);
+    int Obj_readonly_comdat(Symbol *s);
+    void Obj_setcodeseg(int seg);
+    seg_data* Obj_tlsseg();
+    seg_data* Obj_tlsseg_bss();
+    seg_data* Obj_tlsseg_data();
+    int Obj_fardata(char *name, targ_size_t size, targ_size_t *poffset);
+    void Obj_export_symbol(Symbol *s, uint argsize);
+    void Obj_pubdef(int seg, Symbol *s, targ_size_t offset);
+    void Obj_pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize);
+    int Obj_external_def(const(char)* );
+    int Obj_data_start(Symbol *sdata, targ_size_t datasize, int seg);
+    int Obj_external(Symbol *);
+    int Obj_common_block(Symbol *s, targ_size_t size, targ_size_t count);
+    int Obj_common_block(Symbol *s, int flag, targ_size_t size, targ_size_t count);
+    void Obj_lidata(int seg, targ_size_t offset, targ_size_t count);
+    void Obj_write_zeros(seg_data *pseg, targ_size_t count);
+    void Obj_write_byte(seg_data *pseg, uint _byte);
+    void Obj_write_bytes(seg_data *pseg, uint nbytes, void *p);
+    void Obj_byte(int seg, targ_size_t offset, uint _byte);
+    uint Obj_bytes(int seg, targ_size_t offset, uint nbytes, void *p);
+    void Obj_ledata(int seg, targ_size_t offset, targ_size_t data, uint lcfd, uint idx1, uint idx2);
+    void Obj_write_long(int seg, targ_size_t offset, uint data, uint lcfd, uint idx1, uint idx2);
+    void Obj_reftodatseg(int seg, targ_size_t offset, targ_size_t val, uint targetdatum, int flags);
+    void Obj_reftofarseg(int seg, targ_size_t offset, targ_size_t val, int farseg, int flags);
+    void Obj_reftocodeseg(int seg, targ_size_t offset, targ_size_t val);
+    int Obj_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val, int flags);
+    void Obj_far16thunk(Symbol *s);
+    void Obj_fltused();
+    int Obj_data_readonly(char *p, int len, int *pseg);
+    int Obj_data_readonly(char *p, int len);
+    int Obj_string_literal_segment(uint sz);
+    Symbol* Obj_sym_cdata(tym_t, char *, int);
+    void Obj_func_start(Symbol *sfunc);
+    void Obj_func_term(Symbol *sfunc);
+    void Obj_write_pointerRef(Symbol* s, uint off);
+    int Obj_jmpTableSegment(Symbol* s);
+
+    Symbol* Obj_tlv_bootstrap();
+
+    void Obj_gotref(Symbol *s);
+
+    uint Obj_addstr(Outbuffer *strtab, const(char)* );
+    Symbol* Obj_getGOTsym();
+    void Obj_refGOTsym();
+
+    version (OSX)
+    {
+        int Obj_getsegment(const(char)* sectname, const(char)* segname,
+                              int  _align, int flags);
+        void Obj_addrel(int seg, targ_size_t offset, Symbol *targsym,
+                           uint targseg, int rtype, int val = 0);
+    }
+    else
+    {
+        int Obj_getsegment(const(char)* name, const(char)* suffix,
+                              int type, int flags, int  _align);
+        void Obj_addrel(int seg, targ_size_t offset, uint type,
+                           uint symidx, targ_size_t val);
+        size_t Obj_writerel(int targseg, size_t offset, uint type,
+                               uint symidx, targ_size_t val);
+    }
+}
+
 version (OMF)
 {
     class Obj
@@ -1093,7 +1188,7 @@ else version (OMFandMSCOFF)
       }
     }
 }
-else version (Posix)
+else version (OSX)
 {
     class Obj
     {
@@ -1188,6 +1283,401 @@ else version (Posix)
                                uint symidx, targ_size_t val);
             static size_t writerel(int targseg, size_t offset, uint type,
                                    uint symidx, targ_size_t val);
+        }
+    }
+}
+else version (Posix)
+{
+    class Obj
+    {
+      static:
+
+        Obj init(Outbuffer* objbuf, const(char)* filename, const(char)* csegname)
+        {
+            return Obj_init(objbuf, filename, csegname);
+        }
+
+        void initfile(const(char)* filename, const(char)* csegname, const(char)* modname)
+        {
+            return Obj_initfile(filename, csegname, modname);
+        }
+
+        void termfile()
+        {
+            return Obj_termfile();
+        }
+
+        void term(const(char)* objfilename)
+        {
+            return Obj_term(objfilename);
+        }
+
+        /+size_t mangle(Symbol *s,char *dest)
+        {
+            return Obj_mangle(s, dest);
+        }+/
+
+        /+void _import(elem *e)
+        {
+            return Obj_import(e);
+        }+/
+
+        void linnum(Srcpos srcpos, int seg, targ_size_t offset)
+        {
+            return Obj_linnum(srcpos, seg, offset);
+        }
+
+        int codeseg(char *name,int suffix)
+        {
+            return Obj_codeseg(name, suffix);
+        }
+
+        /+void dosseg()
+        {
+            return Obj_dosseg();
+        }+/
+
+        void startaddress(Symbol *s)
+        {
+            return Obj_startaddress(s);
+        }
+
+        bool includelib(const(char)* name)
+        {
+            return Obj_includelib(name);
+        }
+
+        bool linkerdirective(const(char)* p)
+        {
+            return Obj_linkerdirective(p);
+        }
+
+        bool allowZeroSize()
+        {
+            return Obj_allowZeroSize();
+        }
+
+        void exestr(const(char)* p)
+        {
+            return Obj_exestr(p);
+        }
+
+        void user(const(char)* p)
+        {
+            return Obj_user(p);
+        }
+
+        void compiler()
+        {
+            return Obj_compiler();
+        }
+
+        void wkext(Symbol* s1, Symbol* s2)
+        {
+            return Obj_wkext(s1, s2);
+        }
+
+        /+void lzext(Symbol* s1, Symbol* s2)
+        {
+            return Obj_lzext(s1, s2);
+        }+/
+
+        void _alias(const(char)* n1,const(char)* n2)
+        {
+            return Obj_alias(n1, n2);
+        }
+
+        /+void theadr(const(char)* modname)
+        {
+            return Obj_theadr(modname);
+        }+/
+
+        /+void segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize)
+        {
+            return Obj_segment_group(codesize, datasize, cdatasize, udatasize);
+        }+/
+
+        void staticctor(Symbol *s,int dtor,int seg)
+        {
+            return Obj_staticctor(s, dtor, seg);
+        }
+
+        void staticdtor(Symbol *s)
+        {
+            return Obj_staticdtor(s);
+        }
+
+        void setModuleCtorDtor(Symbol *s, bool isCtor)
+        {
+            return Obj_setModuleCtorDtor(s, isCtor);
+        }
+
+        void ehtables(Symbol *sfunc,uint size,Symbol *ehsym)
+        {
+            return Obj_ehtables(sfunc, size, ehsym);
+        }
+
+        void ehsections()
+        {
+            return Obj_ehsections();
+        }
+
+        void moduleinfo(Symbol *scc)
+        {
+            return Obj_moduleinfo(scc);
+        }
+
+        int comdat(Symbol *s)
+        {
+            return Obj_comdat(s);
+        }
+
+        int comdatsize(Symbol *s, targ_size_t symsize)
+        {
+            return Obj_comdatsize(s, symsize);
+        }
+
+        int readonly_comdat(Symbol *s)
+        {
+            return Obj_comdat(s);
+        }
+
+        void setcodeseg(int seg)
+        {
+            return Obj_setcodeseg(seg);
+        }
+
+        seg_data *tlsseg()
+        {
+            return Obj_tlsseg();
+        }
+
+        seg_data *tlsseg_bss()
+        {
+            return Obj_tlsseg_bss();
+        }
+
+        seg_data *tlsseg_data()
+        {
+            return Obj_tlsseg_data();
+        }
+
+        /+int fardata(char *name, targ_size_t size, targ_size_t *poffset)
+        {
+            return Obj_fardata(name, size, poffset);
+        }+/
+
+        void export_symbol(Symbol *s, uint argsize)
+        {
+            return Obj_export_symbol(s, argsize);
+        }
+
+        void pubdef(int seg, Symbol *s, targ_size_t offset)
+        {
+            return Obj_pubdef(seg, s, offset);
+        }
+
+        void pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize)
+        {
+            return Obj_pubdefsize(seg, s, offset, symsize);
+        }
+
+        int external_def(const(char)* name)
+        {
+            return Obj_external_def(name);
+        }
+
+        int data_start(Symbol *sdata, targ_size_t datasize, int seg)
+        {
+            return Obj_data_start(sdata, datasize, seg);
+        }
+
+        int external(Symbol *s)
+        {
+            return Obj_external(s);
+        }
+
+        int common_block(Symbol *s, targ_size_t size, targ_size_t count)
+        {
+            return Obj_common_block(s, size, count);
+        }
+
+        int common_block(Symbol *s, int flag, targ_size_t size, targ_size_t count)
+        {
+            return Obj_common_block(s, flag, size, count);
+        }
+
+        void lidata(int seg, targ_size_t offset, targ_size_t count)
+        {
+            return Obj_lidata(seg, offset, count);
+        }
+
+        void write_zeros(seg_data *pseg, targ_size_t count)
+        {
+            return Obj_write_zeros(pseg, count);
+        }
+
+        void write_byte(seg_data *pseg, uint _byte)
+        {
+            return Obj_write_byte(pseg, _byte);
+        }
+
+        void write_bytes(seg_data *pseg, uint nbytes, void *p)
+        {
+            return Obj_write_bytes(pseg, nbytes, p);
+        }
+
+        void _byte(int seg, targ_size_t offset, uint _byte)
+        {
+            return Obj_byte(seg, offset, _byte);
+        }
+
+        uint bytes(int seg, targ_size_t offset, uint nbytes, void *p)
+        {
+            return Obj_bytes(seg, offset, nbytes, p);
+        }
+
+        /+void ledata(int seg, targ_size_t offset, targ_size_t data, uint lcfd, uint idx1, uint idx2)
+        {
+            return Obj_ledata(seg, offset, data, lcfd, idx1, idx2);
+        }+/
+
+        /+void write_long(int seg, targ_size_t offset, uint data, uint lcfd, uint idx1, uint idx2)
+        {
+            return Obj_write_long(seg, offset, data, lcfd, idx1, idx2);
+        }+/
+
+        void reftodatseg(int seg, targ_size_t offset, targ_size_t val, uint targetdatum, int flags)
+        {
+            return Obj_reftodatseg(seg, offset, val, targetdatum, flags);
+        }
+
+        /+void reftofarseg(int seg, targ_size_t offset, targ_size_t val, int farseg, int flags)
+        {
+            return Obj_reftofarseg(seg, offset, val, farseg, flags);
+        }+/
+
+        void reftocodeseg(int seg, targ_size_t offset, targ_size_t val)
+        {
+            return Obj_reftocodeseg(seg, offset, val);
+        }
+
+        int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val, int flags)
+        {
+            return Obj_reftoident(seg, offset, s, val, flags);
+        }
+
+        void far16thunk(Symbol *s)
+        {
+            return Obj_far16thunk(s);
+        }
+
+        void fltused()
+        {
+            return Obj_fltused();
+        }
+
+        int data_readonly(char *p, int len, int *pseg)
+        {
+            return Obj_data_readonly(p, len, pseg);
+        }
+
+        int data_readonly(char *p, int len)
+        {
+            return Obj_data_readonly(p, len);
+        }
+
+        int string_literal_segment(uint sz)
+        {
+            return Obj_string_literal_segment(sz);
+        }
+
+        Symbol *sym_cdata(tym_t ty, char *p, int len)
+        {
+            return Obj_sym_cdata(ty, p, len);
+        }
+
+        void func_start(Symbol *sfunc)
+        {
+            return Obj_func_start(sfunc);
+        }
+
+        void func_term(Symbol *sfunc)
+        {
+            return Obj_func_term(sfunc);
+        }
+
+        void write_pointerRef(Symbol* s, uint off)
+        {
+            return Obj_write_pointerRef(s, off);
+        }
+
+        int jmpTableSegment(Symbol* s)
+        {
+            return Obj_jmpTableSegment(s);
+        }
+
+        Symbol *tlv_bootstrap()
+        {
+            return Obj_tlv_bootstrap();
+        }
+
+        void gotref(Symbol *s)
+        {
+            return Obj_gotref(s);
+        }
+
+        uint addstr(Outbuffer *strtab, const(char)* p)
+        {
+            return Obj_addstr(strtab, p);
+        }
+
+        Symbol *getGOTsym()
+        {
+            return Obj_getGOTsym();
+        }
+
+        void refGOTsym()
+        {
+            return Obj_refGOTsym();
+        }
+
+
+        version (OSX)
+        {
+            int getsegment(const(char)* sectname, const(char)* segname,
+                                  int align_, int flags)
+            {
+                return Obj_getsegment(sectname, segname, align_, flags);
+            }
+
+            void addrel(int seg, targ_size_t offset, Symbol *targsym,
+                               uint targseg, int rtype, int val = 0)
+            {
+                return Obj_addrel(seg, offset, targsym, targseg, rtype, val);
+            }
+
+        }
+        else
+        {
+            int getsegment(const(char)* name, const(char)* suffix,
+                                  int type, int flags, int  align_)
+            {
+                return Obj_getsegment(name, suffix, type, flags, align_);
+            }
+
+            void addrel(int seg, targ_size_t offset, uint type,
+                               uint symidx, targ_size_t val)
+            {
+                return Obj_addrel(seg, offset, type, symidx, val);
+            }
+
+            size_t writerel(int targseg, size_t offset, uint type,
+                                   uint symidx, targ_size_t val)
+            {
+                return Obj_writerel(targseg, offset, type, symidx, val);
+            }
+
         }
     }
 }
