@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include <stddef.h>
+
 /// Represents a D [ ] array
 template<typename T>
 struct DArray

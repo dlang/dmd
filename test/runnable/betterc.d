@@ -26,6 +26,7 @@ extern (C) void main()
     test(1);
     test18472();
     testRuntimeLowerings();
+    test18457();
 }
 
 /*******************************************/
@@ -156,3 +157,31 @@ void testRuntimeLowerings()
             break;
     }
 }
+
+/**********************************************/
+// https://issues.dlang.org/show_bug.cgi?id=18457
+
+__gshared int dtor;
+
+struct S18457
+{
+    int a = 3;
+    ~this() { a = 0; ++dtor; }
+}
+
+S18457 myFunction()
+{
+    S18457 s = S18457();
+    return s;
+}
+
+void test18457()
+{
+    {
+        S18457 s = myFunction();
+        assert(s.a == 3);
+        assert(dtor == 0);
+    }
+    assert(dtor == 1);
+}
+
