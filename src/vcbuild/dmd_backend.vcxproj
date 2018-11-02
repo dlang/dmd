@@ -91,7 +91,6 @@
     <ClCompile Include="..\dmd\backend\elfobj.c" />
     <ClCompile Include="..\dmd\backend\fp.c" />
     <ClCompile Include="..\dmd\backend\machobj.c" />
-    <ClCompile Include="..\dmd\backend\mscoffobj.c" />
     <ClCompile Include="..\dmd\backend\os.c" />
     <ClCompile Include="..\dmd\backend\outbuf.c" />
     <ClCompile Include="..\dmd\backend\sizecheck.c" />

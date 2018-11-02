@@ -244,7 +244,7 @@ struct seg_data
         int classidx;                   // lname idx of class name
         uint attr;                      // segment attribute
         targ_size_t origsize;           // original size
-        long seek;                      // seek position in output file
+        int seek;                       // seek position in output file
         void* ledata;                   // (Ledatarec) current one we're filling in
     }
 
@@ -269,10 +269,13 @@ struct seg_data
     uint             SDlinnum_max;
     linnum_data     *SDlinnum_data;     // array of line number / offset data
 
-    int isCode();
+    version (Windows)
+        int isCode() { return seg_data_isCode(this); }
+    else
+        int isCode();
 }
 
-
+extern int seg_data_isCode(const ref seg_data sd);
 
 struct linnum_data
 {

@@ -680,7 +680,7 @@ segidx_t OmfObj_seg_debugT()
 Obj OmfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
 {
         //printf("OmfObj_init()\n");
-        Obj mobj = cast(Obj)mem_calloc((void*[2]).sizeof);
+        Obj mobj = cast(Obj)mem_calloc(__traits(classInstanceSize, Obj));
 
         Outbuffer *reset_symbuf = obj.reset_symbuf;
         if (reset_symbuf)
@@ -1532,7 +1532,7 @@ private void objheader(char *csegname)
     __gshared char[78] lnames =
         "\0\06DGROUP\05_TEXT\04CODE\05_DATA\04DATA\05CONST\04_BSS\03BSS" ~
         "\07$$TYPES\06DEBTYP\011$$SYMBOLS\06DEBSYM";
-    assert(lnames[lnames.length - 1] == 'M');
+    assert(lnames[lnames.length - 2] == 'M');
 
   // Include debug segment names if inserting type information
   int lnamesize = config.fulltypes ? lnames.sizeof - 1 : lnames.sizeof - 1 - 32;
@@ -2331,7 +2331,7 @@ private int obj_newfarseg(targ_size_t size,int classidx)
 {
     seg_data *f = getsegment();
     f.isfarseg = true;
-    f.seek = obj.buf.size();
+    f.seek = cast(int)obj.buf.size();
     f.attr = obj.fdsegattr;
     f.origsize = size;
     f.SDoffset = size;
