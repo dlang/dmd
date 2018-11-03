@@ -504,7 +504,8 @@ struct UnionExp
     }
 
 private:
-    union __AnonStruct__u
+    // Ensure that the union is suitably aligned.
+    align(8) union __AnonStruct__u
     {
         char[__traits(classInstanceSize, Expression)] exp;
         char[__traits(classInstanceSize, IntegerExp)] integerexp;
@@ -521,8 +522,6 @@ private:
         char[__traits(classInstanceSize, AddrExp)] addrexp;
         char[__traits(classInstanceSize, IndexExp)] indexexp;
         char[__traits(classInstanceSize, SliceExp)] sliceexp;
-        // Ensure that the union is suitably aligned.
-        real_t for_alignment_only;
     }
 
     __AnonStruct__u u;
