@@ -1475,60 +1475,67 @@ private void unmarkall(elem *e)
 
 
 /********************************
- * Return true if there are any refs of v in n before nstop is encountered.
- * Input:
- *      refstop = -1
+ * Search for references to v in tree n before nstop is encountered.
+ * Params:
+ *      v = symbol to search for
+ *      n = tree to search
+ *      nstop = stop searching tree when reaching this elem
+ * Returns:
+ *    true if there are any refs of v in n before nstop is encountered
  */
-
-private __gshared int refstop;                     // flag to stop refs()
 
 private bool refs(Symbol *v,elem *n,elem *nstop)
 {
-    bool f;
-    uint op;
-
     symbol_debug(v);
-    elem_debug(n);
     assert(symbol_isintab(v));
     assert(v.Ssymnum < globsym.top);
-    assert(n);
+    bool stop = false;
 
-    op = n.Eoper;
-    if (refstop == 0)
-        return false;
-    f = false;
-    if (OTunary(op))
-        f = refs(v,n.EV.E1,nstop);
-    else if (OTbinary(op))
+    // Walk tree in evaluation order
+    bool walk(elem* n)
     {
-        if (ERTOL(n))                   /* watch order of evaluation    */
+        elem_debug(n);
+        assert(n);
+
+        if (stop)
+            return false;
+        bool f = false;
+        const op = n.Eoper;
+        if (OTunary(op))
+            f = walk(n.EV.E1);
+        else if (OTbinary(op))
         {
-            /* Note that (OPvar = e) is not a ref of OPvar, whereas     */
-            /* ((OPbit OPvar) = e) is a ref of OPvar, and (OPvar op= e) is */
-            /* a ref of OPvar, etc.                                     */
-            f = refs(v,n.EV.E2,nstop);
-            if (!f)
+            if (ERTOL(n))                   /* watch order of evaluation    */
             {
-                if (op == OPeq)
+                /* Note that (OPvar = e) is not a ref of OPvar, whereas     */
+                /* ((OPbit OPvar) = e) is a ref of OPvar, and (OPvar op= e) is */
+                /* a ref of OPvar, etc.                                     */
+                f = walk(n.EV.E2);
+                if (!f)
                 {
-                    if (n.EV.E1.Eoper != OPvar)
-                        f = refs(v,n.EV.E1.EV.E1,nstop);
+                    if (op == OPeq)
+                    {
+                        if (n.EV.E1.Eoper != OPvar)
+                            f = walk(n.EV.E1.EV.E1);
+                    }
+                    else
+                        f = walk(n.EV.E1);
                 }
-                else
-                    f = refs(v,n.EV.E1,nstop);
             }
+            else
+                f = walk(n.EV.E1) || walk(n.EV.E2);
         }
-        else
-            f = refs(v,n.EV.E1,nstop) || refs(v,n.EV.E2,nstop);
+
+        if (n == nstop)
+            stop = true;
+        else if (n.Eoper == OPvar)           /* if variable reference        */
+            return v == n.EV.Vsym;
+        else if (op == OPasm)                /* everything is referenced     */
+            return true;
+        return f;
     }
 
-    if (n == nstop)
-        refstop = 0;
-    else if (n.Eoper == OPvar)           /* if variable reference        */
-        return v == n.EV.Vsym;
-    else if (op == OPasm)                /* everything is referenced     */
-        return true;
-    return f;
+    return walk(n);
 }
 
 /*************************
@@ -1656,7 +1663,6 @@ Lnextlis:
                     {
                         if (go.defnod[j].DNelem == n)
                             continue;
-                        refstop = -1;
                         if (dfo[i].Belem &&
                             refs(v,dfo[i].Belem,cast(elem *)null)) //if refs of v
                         {
@@ -1679,7 +1685,6 @@ Lnextlis:
                 {
                     if (go.defnod[j].DNelem == n)
                         continue;
-                    refstop = -1;
                     if (b.Belem && refs(v,b.Belem,n))
                     {
                         vec_free(tmp);
