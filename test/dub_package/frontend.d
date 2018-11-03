@@ -24,7 +24,7 @@ void main()
     assert(!t.diagnostics.hasWarnings);
 
     t.module_.fullSemantic;
-    auto generated = t.module_.prettyPrint;
+    auto generated = t.module_.prettyPrint.toUnixLineEndings();
 
     auto expected =q{import object;
 void foo()
@@ -40,4 +40,16 @@ void foo()
 }
 };
     assert(expected == generated, generated);
+}
+
+/**
+Converts Windows line endings (`\r\n`) to Unix line endings (`\n`).
+
+This is required because this file is stored with Unix line endings but the
+`prettyPrint` function outputs Windows line endings on Windows.
+*/
+string toUnixLineEndings(string str)
+{
+    import std.string : replace;
+    return str.replace("\r\n", "\n");
 }
