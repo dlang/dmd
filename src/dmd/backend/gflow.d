@@ -575,7 +575,7 @@ private void aecpgenkill()
         if (b.Belem)
         {
             if (flowxx == CP)
-                numcpelems(b.Belem);
+                go.exptop += numcpelems(b.Belem);
             else // AE || VBE
                 numaeelems(b.Belem);
         }
@@ -750,35 +750,54 @@ private int numaeelems(elem *n)
 
 
 /****************************
- * Compute number of cp elems into go.exptop.
+ * Compute number of cp (copy propagation) elems.
  * Mark cp elems by setting NFLaecp flag.
+ * Returns:
+ *      number of cp elems
  */
 
-private void numcpelems(elem *n)
+private int numcpelems(elem *n)
 {
-    const uint op = n.Eoper;
-    if (OTunary(op))
-        numcpelems(n.EV.E1);
-    else if (OTbinary(op))
+    while (1)
     {
-        numcpelems(n.EV.E1);
-        numcpelems(n.EV.E2);
-
-        /* look for elem of the form OPvar=OPvar, where they aren't the */
-        /* same variable.                                               */
-        if ((op == OPeq || op == OPstreq) &&
-            n.EV.E1.Eoper == OPvar &&
-            n.EV.E2.Eoper == OPvar &&
-            !((n.EV.E1.Ety | n.EV.E2.Ety) & mTYvolatile) &&
-            n.EV.E1.EV.Vsym != n.EV.E2.EV.Vsym)
+        const op = n.Eoper;
+        if (OTunary(op))
         {
-            go.exptop++;
-            n.Nflags |= NFLaecp;
-            return;
+            n.Nflags &= ~NFLaecp;
+            n = n.EV.E1;
+            continue;
+        }
+        else if (OTbinary(op))
+        {
+            /* look for elem of the form OPvar=OPvar, where they aren't the */
+            /* same variable.                                               */
+            if ((op == OPeq || op == OPstreq) &&
+                n.EV.E1.Eoper == OPvar &&
+                n.EV.E2.Eoper == OPvar &&
+                !((n.EV.E1.Ety | n.EV.E2.Ety) & mTYvolatile) &&
+                n.EV.E1.EV.Vsym != n.EV.E2.EV.Vsym)
+            {
+                n.Nflags |= NFLaecp;
+                return numcpelems(n.EV.E1) +
+                       numcpelems(n.EV.E2) +
+                       1;
+
+            }
+            n.Nflags &= ~NFLaecp;
+            int num = numcpelems(n.EV.E2);
+            if (num)
+                return num + numcpelems(n.EV.E1);
+            n = n.EV.E1;
+            continue;
+        }
+        else
+        {
+            n.Nflags &= ~NFLaecp;
+            return 0;
         }
     }
-    n.Nflags &= ~NFLaecp;
 }
+
 
 /********************************
  * Assign ae (or cp) elems to go.expnod[] (in order of evaluation).
