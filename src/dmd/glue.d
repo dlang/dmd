@@ -1234,6 +1234,9 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     }
 
     writefunc(s);
+
+    buildCapture(fd);
+
     // Restore symbol table
     cstate.CSpsymtab = symtabsave;
 
