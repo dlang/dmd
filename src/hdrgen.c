@@ -10,11 +10,7 @@
 
 // Routines to emit header files
 
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-
+#include "root/dsystem.h"
 #include "root/rmem.h"
 
 #include "mars.h"

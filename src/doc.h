@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include <stddef.h>
+#include "root/dsystem.h"
 
 class Module;
 struct OutBuffer;

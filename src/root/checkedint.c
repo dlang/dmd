@@ -27,8 +27,7 @@
  * Source:    https://github.com/D-Programming-Language/dmd/blob/master/src/root/checkedint.c
  */
 
-#include <assert.h>
-
+#include "dsystem.h"
 #include "checkedint.h"
 
 #ifdef __DMC__

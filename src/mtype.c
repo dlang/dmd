@@ -8,21 +8,7 @@
  * https://github.com/D-Programming-Language/dmd/blob/master/src/mtype.c
  */
 
-#define __C99FEATURES__ 1       // Needed on Solaris for NaN and more
-#define __USE_ISOC99 1          // so signbit() gets defined
-
-#include <math.h>
-#include <stdio.h>
-#include <assert.h>
-#include <float.h>
-
-#if _MSC_VER
-#include <malloc.h>
-#include <limits>
-#elif __MINGW32__
-#include <malloc.h>
-#endif
-
+#include "root/dsystem.h"
 #include "root/checkedint.h"
 #include "root/rmem.h"
 

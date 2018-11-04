@@ -8,10 +8,7 @@
  * https://github.com/D-Programming-Language/dmd/blob/master/src/optimize.c
  */
 
-#include <stdio.h>
-#include <ctype.h>
-#include <assert.h>
-#include <math.h>
+#include "root/dsystem.h"
 
 #include "root/checkedint.h"
 #include "lexer.h"

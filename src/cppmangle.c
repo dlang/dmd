@@ -21,9 +21,7 @@
  *  enter `C++, mangling` as the keywords.
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
+#include "root/dsystem.h"
 
 #include "mars.h"
 #include "dsymbol.h"

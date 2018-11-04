@@ -14,7 +14,7 @@
 #pragma once
 #endif
 
-#include <stddef.h>
+#include "dsystem.h"
 
 struct File;
 

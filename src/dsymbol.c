@@ -8,11 +8,7 @@
  * https://github.com/D-Programming-Language/dmd/blob/master/src/dsymbol.c
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
-#include <limits.h>
-
+#include "root/dsystem.h"
 #include "root/rmem.h"
 #include "root/speller.h"
 #include "root/aav.h"
@@ -291,7 +287,7 @@ const char *Dsymbol::locToChars()
     return getLoc().toChars();
 }
 
-const char *Dsymbol::kind()
+const char *Dsymbol::kind() const
 {
     return "symbol";
 }
@@ -919,7 +915,7 @@ void OverloadSet::push(Dsymbol *s)
     a.push(s);
 }
 
-const char *OverloadSet::kind()
+const char *OverloadSet::kind() const
 {
     return "overloadset";
 }
@@ -1271,7 +1267,7 @@ void ScopeDsymbol::multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2)
     }
 }
 
-const char *ScopeDsymbol::kind()
+const char *ScopeDsymbol::kind() const
 {
     return "ScopeDsymbol";
 }

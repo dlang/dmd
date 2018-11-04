@@ -7,7 +7,7 @@
  * http://www.boost.org/LICENSE_1_0.txt
  */
 
-#include <string.h>
+#include "root/dsystem.h"
 #include "mars.h"
 #include "globals.h"
 #include "root/file.h"
