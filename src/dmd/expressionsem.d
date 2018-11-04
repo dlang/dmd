@@ -530,7 +530,48 @@ private Expression resolveUFCS(Scope* sc, CallExp ce)
                     return null;
             }
         }
+
+        /* https://issues.dlang.org/show_bug.cgi?id=13953
+         *
+         * If a struct has an alias this to an associative array
+         * and remove is used on a struct instance, we have to
+         * check first if there is a remove function that can be called
+         * on the struct. If not we must check the alias this.
+         *
+         * struct A
+         * {
+         *      string[string] a;
+         *      alias a this;
+         * }
+         *
+         * void fun()
+         * {
+         *      A s;
+         *      s.remove("foo");
+         * }
+         */
+        const errors = global.startGagging();
         e = searchUFCS(sc, die, ident);
+        // if there were any errors and the identifier was remove
+        if (global.endGagging(errors))
+        {
+            if (ident == Id.remove)
+            {
+                // check alias this
+                Expression alias_e = resolveAliasThis(sc, die.e1, 1);
+                if (alias_e && alias_e != die.e1)
+                {
+                    die.e1 = alias_e;
+                    CallExp ce2 = cast(CallExp)ce.syntaxCopy();
+                    ce2.e1 = die;
+                    e = cast(CallExp)ce2.trySemantic(sc);
+                    if (e)
+                        return e;
+                }
+            }
+            // if alias this did not work out, print the initial errors
+            searchUFCS(sc, die, ident);
+        }
     }
     else if (ce.e1.op == TOK.dotTemplateInstance)
     {
