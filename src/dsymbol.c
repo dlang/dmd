@@ -241,9 +241,7 @@ const char *Dsymbol::toPrettyChars(bool QualifyTypes)
         ++complength;
 
     // Allocate temporary array comp[]
-    const char **comp = (const char **)malloc(complength * sizeof(char**));
-    if (!comp)
-        Mem::error();
+    const char **comp = (const char **)mem.xmalloc(complength * sizeof(char**));
 
     // Fill in comp[] and compute length of final result
     size_t length = 0;
