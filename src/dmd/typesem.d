@@ -3435,16 +3435,12 @@ private extern(C++) final class DotExpVisitor : Visitor
 
             /* See if we should forward to the alias this.
              */
-            if (sym.aliasthis)
+            auto alias_e = resolveAliasThis(sc, e, gagError);
+            if (alias_e && alias_e != e)
             {
                 /* Rewrite e.ident as:
                  *  e.aliasthis.ident
                  */
-                auto alias_e = resolveAliasThis(sc, e, gagError);
-
-                if (!alias_e)
-                    return returnExp(null);
-
                 auto die = new DotIdExp(e.loc, alias_e, ident);
 
                 auto errors = gagError ? 0 : global.startGagging();
