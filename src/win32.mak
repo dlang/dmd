@@ -238,7 +238,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.d \
 	$C\nteh.d $C\os.c $C\out.d $C\outbuf.c $C\ptrntab.d $C\drtlsym.d \
 	$C\dtype.d $C\melf.h $C\mach.h $C\mscoff.h $C\bcomplex.h \
 	$C\outbuf.h $C\token.h $C\tassert.h \
-	$C\elfobj.c $C\cv4.h $C\dwarf2.h $C\exh.h $C\go.h \
+	$C\elfobj.d $C\cv4.h $C\dwarf2.h $C\exh.h $C\go.h \
 	$C\dwarfdbginf.d $C\dwarf.h $C\machobj.c $C\aarray.d \
 	$C\strtold.c $C\aa.h \
 	$C\md5.h $C\md5.d $C\ph2.d $C\util2.d \

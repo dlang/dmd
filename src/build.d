@@ -800,7 +800,7 @@ auto sourceFiles()
             dirEntries(env["C"], "*.d", SpanMode.shallow)
                 .map!(e => e.name)
                 .filter!(e => !e.canFind("dt.d", "obj.d"))
-                .array,
+                .array ~ buildPath(env["C"], "elfobj.d"),
         backendHeaders: [
             // can't be built with -betterC
             "dt",
