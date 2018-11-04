@@ -462,7 +462,7 @@ toolchain-info:
 $G/backend.a: $(G_OBJS) $(G_DOBJS) $(SRC_MAKE)
 	$(AR) rcs $@ $(G_OBJS) $(G_DOBJS)
 
-$G/lexer.a: $(LEXER_SRCS) $(LEXER_ROOT) $(HOST_DMD_PATH) $(SRC_MAKE)
+$G/lexer.a: $(LEXER_SRCS) $(LEXER_ROOT) $(HOST_DMD_PATH) $(SRC_MAKE) $(STRING_IMPORT_FILES)
 	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -J$G -L-lstdc++ $(DFLAGS) $(LEXER_SRCS) $(LEXER_ROOT)
 
 $G/dmd_frontend: $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
@@ -545,8 +545,21 @@ $(optabgen_files): optabgen.out
 optabgen.out : $G/optabgen
 
 ######## VERSION
+########################################################################
+# The version file should be updated on every build
+# However, the version check script only touches the VERSION file if it
+# actually has changed.
 
-$(shell ../config.sh "$G" ../VERSION $(SYSCONFDIR))
+$G/version_check: ../config.d $(HOST_DMD_PATH)
+	@echo "  (HOST_DMD_RUN)  $<  $<"
+	$(HOST_DMD_RUN) $< -of$@
+
+$G/VERSION: $G/version_check ../VERSION FORCE
+	@$< $G ../VERSION $(SYSCONFDIR)
+
+$G/SYSCONFDIR.imp: $G/VERSION
+
+FORCE: ;
 
 # Generic rules for all source files
 ########################################################################
