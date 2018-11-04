@@ -99,7 +99,7 @@ $(GNAME FunctionLiteralBody):
 $(GNAME SpecifiedFunctionBody):
     $(D do)$(OPT) $(GLINK2 statement, BlockStatement)
     $(GLINK FunctionContracts)$(OPT) $(GLINK InOutContractExpression) $(D do)$(OPT) $(GLINK2 statement, BlockStatement)
-    $(GLINK FunctionContracts)$(OPT) $(GLINK InOutStatement) $(D do)$(OPT) $(GLINK2 statement, BlockStatement)
+    $(GLINK FunctionContracts)$(OPT) $(GLINK InOutStatement) $(D do) $(GLINK2 statement, BlockStatement)
 
 $(GNAME MissingFunctionBody):
     $(D ;)
