@@ -142,7 +142,7 @@ void Obj_refGOTsym()
     }
 }
 
-private void objfile_write(FILE *fd, void *buffer, uint len);
+//private void objfile_write(FILE *fd, void *buffer, uint len);
 
 // The object file is built is several separate pieces
 
