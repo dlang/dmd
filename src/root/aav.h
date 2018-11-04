@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <stddef.h>
+
 typedef void* Value;
 typedef void* Key;
 

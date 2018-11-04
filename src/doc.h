@@ -10,5 +10,10 @@
 
 #pragma once
 
+#include <stddef.h>
+
+class Module;
+struct OutBuffer;
+
 void escapeDdocString(OutBuffer *buf, size_t start);
 void gendocfile(Module *m);
