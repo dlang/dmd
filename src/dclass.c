@@ -1389,7 +1389,7 @@ int ClassDeclaration::vtblOffset() const
 /****************************************
  */
 
-const char *ClassDeclaration::kind()
+const char *ClassDeclaration::kind() const
 {
     return "class";
 }
@@ -1827,7 +1827,7 @@ bool InterfaceDeclaration::isCPPinterface() const
 /*******************************************
  */
 
-const char *InterfaceDeclaration::kind()
+const char *InterfaceDeclaration::kind() const
 {
     return "interface";
 }

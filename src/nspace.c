@@ -156,7 +156,7 @@ void Nspace::semantic3(Scope *sc)
     }
 }
 
-const char *Nspace::kind()
+const char *Nspace::kind() const
 {
     return "namespace";
 }

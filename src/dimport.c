@@ -70,7 +70,7 @@ void Import::addAlias(Identifier *name, Identifier *alias)
     aliases.push(alias);
 }
 
-const char *Import::kind()
+const char *Import::kind() const
 {
     return isstatic ? "static import" : "import";
 }

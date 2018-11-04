@@ -163,7 +163,7 @@ void AliasThis::semantic(Scope *sc)
     semanticRun = PASSsemanticdone;
 }
 
-const char *AliasThis::kind()
+const char *AliasThis::kind() const
 {
     return "alias this";
 }

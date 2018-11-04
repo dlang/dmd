@@ -195,7 +195,7 @@ void Module::deleteObjFile()
         docfile->remove();
 }
 
-const char *Module::kind()
+const char *Module::kind() const
 {
     return "module";
 }
@@ -1221,7 +1221,7 @@ Package::Package(Identifier *ident)
 }
 
 
-const char *Package::kind()
+const char *Package::kind() const
 {
     return "package";
 }

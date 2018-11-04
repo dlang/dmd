@@ -457,7 +457,7 @@ Type *EnumDeclaration::getType()
     return type;
 }
 
-const char *EnumDeclaration::kind()
+const char *EnumDeclaration::kind() const
 {
     return "enum";
 }
@@ -515,7 +515,7 @@ Dsymbol *EnumMember::syntaxCopy(Dsymbol *s)
         origType ? origType->syntaxCopy() : NULL);
 }
 
-const char *EnumMember::kind()
+const char *EnumMember::kind() const
 {
     return "enum member";
 }

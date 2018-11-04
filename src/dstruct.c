@@ -1438,7 +1438,7 @@ bool StructDeclaration::isPOD()
     return (ispod == ISPODyes);
 }
 
-const char *StructDeclaration::kind()
+const char *StructDeclaration::kind() const
 {
     return "struct";
 }
@@ -1457,7 +1457,7 @@ Dsymbol *UnionDeclaration::syntaxCopy(Dsymbol *s)
     return StructDeclaration::syntaxCopy(ud);
 }
 
-const char *UnionDeclaration::kind()
+const char *UnionDeclaration::kind() const
 {
     return "union";
 }

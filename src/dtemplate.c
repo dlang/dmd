@@ -689,7 +689,7 @@ void TemplateDeclaration::semantic(Scope *sc)
      */
 }
 
-const char *TemplateDeclaration::kind()
+const char *TemplateDeclaration::kind() const
 {
     return (onemember && onemember->isAggregateDeclaration())
                 ? onemember->kind()
@@ -7844,7 +7844,7 @@ Dsymbol *TemplateInstance::toAlias()
     return inst;
 }
 
-const char *TemplateInstance::kind()
+const char *TemplateInstance::kind() const
 {
     return "template instance";
 }
@@ -8530,7 +8530,7 @@ void TemplateMixin::semantic3(Scope *sc)
     }
 }
 
-const char *TemplateMixin::kind()
+const char *TemplateMixin::kind() const
 {
     return "mixin";
 }

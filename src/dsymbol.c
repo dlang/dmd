@@ -291,7 +291,7 @@ const char *Dsymbol::locToChars()
     return getLoc().toChars();
 }
 
-const char *Dsymbol::kind()
+const char *Dsymbol::kind() const
 {
     return "symbol";
 }
@@ -919,7 +919,7 @@ void OverloadSet::push(Dsymbol *s)
     a.push(s);
 }
 
-const char *OverloadSet::kind()
+const char *OverloadSet::kind() const
 {
     return "overloadset";
 }
@@ -1271,7 +1271,7 @@ void ScopeDsymbol::multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2)
     }
 }
 
-const char *ScopeDsymbol::kind()
+const char *ScopeDsymbol::kind() const
 {
     return "ScopeDsymbol";
 }

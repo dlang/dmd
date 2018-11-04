@@ -98,7 +98,7 @@ bool StaticAssert::oneMember(Dsymbol **ps, Identifier *)
     return true;
 }
 
-const char *StaticAssert::kind()
+const char *StaticAssert::kind() const
 {
     return "static assert";
 }

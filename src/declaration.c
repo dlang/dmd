@@ -87,7 +87,7 @@ void Declaration::semantic(Scope *)
 {
 }
 
-const char *Declaration::kind()
+const char *Declaration::kind() const
 {
     return "declaration";
 }
@@ -188,7 +188,7 @@ Dsymbol *TupleDeclaration::syntaxCopy(Dsymbol *)
     return NULL;
 }
 
-const char *TupleDeclaration::kind()
+const char *TupleDeclaration::kind() const
 {
     return "tuple";
 }
@@ -575,7 +575,7 @@ bool AliasDeclaration::overloadInsert(Dsymbol *s)
     return true;
 }
 
-const char *AliasDeclaration::kind()
+const char *AliasDeclaration::kind() const
 {
     return "alias";
 }
@@ -705,7 +705,7 @@ OverDeclaration::OverDeclaration(Identifier *ident, Dsymbol *s, bool hasOverload
     }
 }
 
-const char *OverDeclaration::kind()
+const char *OverDeclaration::kind() const
 {
     return "overload alias";    // todo
 }
@@ -1770,7 +1770,7 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
     //printf(" addField '%s' to '%s' at offset %d, size = %d\n", toChars(), ad->toChars(), offset, memsize);
 }
 
-const char *VarDeclaration::kind()
+const char *VarDeclaration::kind() const
 {
     return "variable";
 }

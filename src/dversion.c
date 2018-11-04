@@ -106,7 +106,7 @@ void DebugSymbol::semantic(Scope *)
         semanticRun = PASSsemanticdone;
 }
 
-const char *DebugSymbol::kind()
+const char *DebugSymbol::kind() const
 {
     return "debug";
 }
@@ -196,7 +196,7 @@ void VersionSymbol::semantic(Scope *)
         semanticRun = PASSsemanticdone;
 }
 
-const char *VersionSymbol::kind()
+const char *VersionSymbol::kind() const
 {
     return "version";
 }
