@@ -45,9 +45,9 @@ class CppMangleVisitor : public Visitor
 {
     Objects components;         // array of components available for substitution
     OutBuffer *buf;             // append the mangling to buf[]
+  public:
     Loc loc;                    // location for use in error messages
 
-    public:
     // Write <seq-id> to buf
     void write_seq_id(size_t i)
     {

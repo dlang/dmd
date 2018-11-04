@@ -63,3 +63,11 @@
 #elif __MINGW32__
 #include <malloc.h>
 #endif
+
+// If not present, dmc will error 'number is not representable'.
+#ifdef __DMC__
+#undef UINT64_MAX
+#define UINT64_MAX      18446744073709551615ULL
+#undef UINT32_MAX
+#define UINT32_MAX      4294967295U
+#endif

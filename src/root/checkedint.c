@@ -30,14 +30,6 @@
 #include "dsystem.h"
 #include "checkedint.h"
 
-#ifdef __DMC__
-#undef UINT64_MAX
-#define UINT64_MAX      18446744073709551615ULL
-#undef UINT32_MAX
-#define UINT32_MAX      4294967295U
-#endif
-
-
 
 /*******************************
  * Add two signed integers, checking for overflow.

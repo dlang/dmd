@@ -1592,7 +1592,8 @@ static void expandInline(Loc callLoc, FuncDeclaration *fd, FuncDeclaration *pare
         Expression *eret, Expression *ethis, Expressions *arguments, bool asStatements,
         Expression **eresult, Statement **sresult, bool *again)
 {
-    InlineDoState ids = {};
+    InlineDoState ids;
+    memset(&ids, 0, sizeof(ids));
     TypeFunction *tf = (TypeFunction*)fd->type;
 
 #define EXPANDINLINE_LOG 0
@@ -1925,7 +1926,8 @@ Expression *inlineCopy(Expression *e, Scope *sc)
         e->error("cannot inline default argument %s", e->toChars());
         return new ErrorExp();
     }
-    InlineDoState ids = {};
+    InlineDoState ids;
+    memset(&ids, 0, sizeof(ids));
     ids.parent = sc->parent;
     return doInline(e, &ids);
 }

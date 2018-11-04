@@ -9333,20 +9333,23 @@ bool Parameter::isCovariantScope(bool returnByRef, StorageClass from, StorageCla
         static unsigned buildSR(bool returnByRef, StorageClass stc)
         {
             unsigned result;
-            switch (stc & (STCref | STCscope | STCreturn))
-            {
-                case 0:                    result = SRNone;        break;
-                case STCref:               result = SRRef;         break;
-                case STCscope:             result = SRScope;       break;
-                case STCreturn | STCref:   result = SRReturnRef;   break;
-                case STCreturn | STCscope: result = SRReturnScope; break;
-                case STCref    | STCscope: result = SRRefScope;    break;
-                case STCreturn | STCref | STCscope:
-                    result = returnByRef ? SRReturnRef_Scope : SRRef_ReturnScope;
-                    break;
-                default:
-                    assert(0);
-            }
+            StorageClass stc2 = stc & (STCref | STCscope | STCreturn);
+            if (stc2 == 0)
+                result = SRNone;
+            else if (stc2 == STCref)
+                result = SRRef;
+            else if (stc2 == STCscope)
+                result = SRScope;
+            else if (stc2 == (STCscope | STCreturn))
+                result = SRReturnScope;
+            else if (stc2 == (STCref | STCreturn))
+                result = SRReturnRef;
+            else if (stc2 == (STCscope | STCref))
+                result = SRRefScope;
+            else if (stc2 == (STCscope | STCref | STCreturn))
+                result = returnByRef ? SRReturnRef_Scope : SRRef_ReturnScope;
+            else
+                assert(0);
             return result;
         }
 

@@ -18,7 +18,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "root.h"
+#include "root/root.h"
 #include "mars.h"
 
 #define LOG 0

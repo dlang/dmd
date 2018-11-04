@@ -9,14 +9,20 @@
  * https://github.com/D-Programming-Language/dmd/blob/master/src/target.c
  */
 
-#include <assert.h>
+#include "root/dsystem.h"
+
+#if defined(__GNUC__) || defined(__clang__)
 #include <limits> // for std::numeric_limits
+#else
+#include <math.h>
+#include <float.h>
+#endif
 
 #include "target.h"
 #include "aggregate.h"
 #include "mars.h"
 #include "mtype.h"
-#include "outbuffer.h"
+#include "root/outbuffer.h"
 
 const char *toCppMangleItanium(Dsymbol *);
 const char *cppTypeInfoMangleItanium(Dsymbol *);
@@ -53,6 +59,7 @@ template <typename T> d_int64 Target::FPTypeProperties<T>::min_10_exp;
 template <typename T, typename V>
 static void initFloatConstants()
 {
+#if defined(__GNUC__) || defined(__clang__)
     T::max = std::numeric_limits<V>::max();
     T::min_normal = std::numeric_limits<V>::min();
 
@@ -72,6 +79,64 @@ static void initFloatConstants()
     T::min_exp = std::numeric_limits<V>::min_exponent;
     T::max_10_exp = std::numeric_limits<V>::max_exponent10;
     T::min_10_exp = std::numeric_limits<V>::min_exponent10;
+#else
+    union
+    {   unsigned int ui[4];
+        real_t ld;
+    } snan = {{ 0, 0xA0000000, 0x7FFF, 0 }};
+
+    if (sizeof(V) == sizeof(float))
+    {
+        T::max = FLT_MAX;
+        T::min_normal = FLT_MIN;
+
+        T::nan = NAN;
+        T::snan = snan.ld;
+        T::infinity = INFINITY;
+
+        T::epsilon = FLT_EPSILON;
+        T::dig = FLT_DIG;
+        T::mant_dig = FLT_MANT_DIG;
+        T::max_exp = FLT_MAX_EXP;
+        T::min_exp = FLT_MIN_EXP;
+        T::max_10_exp = FLT_MAX_10_EXP;
+        T::min_10_exp = FLT_MIN_10_EXP;
+    }
+    else if (sizeof(V) == sizeof(double))
+    {
+        T::max = DBL_MAX;
+        T::min_normal = DBL_MIN;
+
+        T::nan = NAN;
+        T::snan = snan.ld;
+        T::infinity = INFINITY;
+
+        T::epsilon = DBL_EPSILON;
+        T::dig = DBL_DIG;
+        T::mant_dig = DBL_MANT_DIG;
+        T::max_exp = DBL_MAX_EXP;
+        T::min_exp = DBL_MIN_EXP;
+        T::max_10_exp = DBL_MAX_10_EXP;
+        T::min_10_exp = DBL_MIN_10_EXP;
+    }
+    else
+    {
+        T::max = LDBL_MAX;
+        T::min_normal = LDBL_MIN;
+
+        T::nan = NAN;
+        T::snan = snan.ld;
+        T::infinity = INFINITY;
+
+        T::epsilon = LDBL_EPSILON;
+        T::dig = LDBL_DIG;
+        T::mant_dig = LDBL_MANT_DIG;
+        T::max_exp = LDBL_MAX_EXP;
+        T::min_exp = LDBL_MIN_EXP;
+        T::max_10_exp = LDBL_MAX_10_EXP;
+        T::min_10_exp = LDBL_MIN_10_EXP;
+    }
+#endif
 }
 
 void Target::_init()
