@@ -13,7 +13,7 @@
 #include <assert.h>
 #include <math.h>
 
-#include "checkedint.h"
+#include "root/checkedint.h"
 #include "lexer.h"
 #include "mtype.h"
 #include "expression.h"

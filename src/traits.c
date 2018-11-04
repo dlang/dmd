@@ -16,8 +16,8 @@
 
 #include "root/rmem.h"
 #include "root/aav.h"
+#include "root/checkedint.h"
 
-#include "checkedint.h"
 #include "errors.h"
 #include "mtype.h"
 #include "init.h"
