@@ -735,8 +735,8 @@ private uint writeField(ubyte* p, const char* id, uint attr, uint typidx, uint o
         TOWORD(p,LF_MEMBER_V3);
         TOWORD(p + 2,attr);
         TOLONG(p + 4,typidx);
-        cv4_storenumeric(p + 8, offset);
-        uint len = 8 + cv4_numericbytes(offset);
+        cv4_storesignednumeric(p + 8, offset);
+        uint len = 8 + cv4_signednumericbytes(offset);
         len += cv_namestring(p + len, id);
         return cv_align(p + len, len);
     }
@@ -745,8 +745,8 @@ private uint writeField(ubyte* p, const char* id, uint attr, uint typidx, uint o
         TOWORD(p,LF_MEMBER);
         TOWORD(p + 2,typidx);
         TOWORD(p + 4,attr);
-        cv4_storenumeric(p + 6, offset);
-        uint len = 6 + cv4_numericbytes(offset);
+        cv4_storesignednumeric(p + 6, offset);
+        uint len = 6 + cv4_signednumericbytes(offset);
         return len + cv_namestring(p + len, id);
     }
 }
@@ -793,7 +793,7 @@ void toDebugClosure(Symbol* closstru)
     {
         Symbol *sf = list_symbol(sl);
         uint thislen = (config.fulltypes == CV8 ? 8 : 6);
-        thislen += cv4_numericbytes(cast(uint)sf.Smemoff);
+        thislen += cv4_signednumericbytes(cast(uint)sf.Smemoff);
         thislen += cv_stringbytes(sf.Sident.ptr);
         thislen = cv_align(null, thislen);
 

@@ -1092,6 +1092,52 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
     }
 }
 
+/*************************************
+ * build a debug info struct for variables captured by nested functions,
+ * but not in a closure.
+ * must be called after generating the function to fill stack offsets
+ * Params:
+ *      fd = function
+ */
+void buildCapture(FuncDeclaration fd)
+{
+    if (!global.params.symdebug)
+        return;
+    if (!global.params.mscoff)  // toDebugClosure only implemented for CodeView,
+        return;                 //  but optlink crashes for negative field offsets
+
+    if (fd.closureVars.dim && !fd.needsClosure)
+    {
+        /* Generate type name for struct with captured variables */
+        const char *name1 = "CAPTURE.";
+        const char *name2 = fd.toPrettyChars();
+        size_t namesize = strlen(name1)+strlen(name2)+1;
+        char *capturename = cast(char *) calloc(namesize, char.sizeof);
+        strcat(strcat(capturename, name1), name2);
+
+        /* Build type for struct */
+        type *capturestru = type_struct_class(capturename, Target.ptrsize, 0, null, null, false, false, true, false);
+        free(capturename);
+
+        foreach (v; fd.closureVars)
+        {
+            Symbol *vsym = toSymbol(v);
+
+            /* Add variable as capture type member */
+            symbol_struct_addField(capturestru.Ttag, &vsym.Sident[0], vsym.Stype, cast(uint)vsym.Soffset);
+            //printf("capture field %s: offset: %i\n", &vsym.Sident[0], v.offset);
+        }
+
+        // generate pseudo symbol to put into functions' Sscope
+        Symbol *scapture = symbol_name("__captureptr", SCalias, type_pointer(capturestru));
+        scapture.Sflags |= SFLtrue | SFLfree;
+        //symbol_add(scapture);
+        fd.csym.Sscope = scapture;
+
+        toDebugClosure(capturestru.Ttag);
+    }
+}
+
 
 /***************************
  * Determine return style of function - whether in registers or

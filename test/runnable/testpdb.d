@@ -215,6 +215,34 @@ void test19307(IDiaSession session, IDiaSymbol globals)
 }
 
 ///////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=19318
+// variables captured from outer functions not visible in debugger
+int foo19318(int z) @nogc
+{
+	int x = 7;
+	auto nested() scope
+	{
+		int nested2()
+		{
+			return x + z;
+		}
+		return nested2();
+	}
+	return nested();
+}
+
+void test19318(IDiaSession session, IDiaSymbol globals)
+{
+    foo19318(5);
+
+    testClosureVar(globals, "testpdb.foo19318", "x");
+    testClosureVar(globals, "testpdb.foo19318.nested", "this", "x");
+    testClosureVar(globals, "testpdb.foo19318.nested", "this", "z");
+    testClosureVar(globals, "testpdb.foo19318.nested.nested2", "this", "x");
+    testClosureVar(globals, "testpdb.foo19318.nested.nested2", "this", "z");
+}
+
+///////////////////////////////////////////////
 import core.stdc.stdio;
 import core.stdc.wchar_;
 
