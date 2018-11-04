@@ -2336,8 +2336,7 @@ Identifier *Type::getTypeInfoIdent()
     // Allocate buffer on stack, fail over to using malloc()
     char namebuf[128];
     size_t namelen = 19 + sizeof(len) * 3 + len + 1;
-    char *name = namelen <= sizeof(namebuf) ? namebuf : (char *)malloc(namelen);
-    assert(name);
+    char *name = namelen <= sizeof(namebuf) ? namebuf : (char *)mem.xmalloc(namelen);
 
     sprintf(name, "_D%lluTypeInfo_%s6__initZ", (unsigned long long) 9 + len, buf.data);
     //printf("%p, deco = %s, name = %s\n", this, deco, name);

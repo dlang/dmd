@@ -13,6 +13,7 @@
 #include "root/file.h"
 #include "root/filename.h"
 #include "root/outbuffer.h"
+#include "root/rmem.h"
 
 /**
  * Normalize path by turning forward slashes into backslashes
@@ -28,7 +29,7 @@ const char * toWinPath(const char *src)
     if (src == NULL)
         return NULL;
 
-    char *result = strdup(src);
+    char *result = mem.xstrdup(src);
     char *p = result;
     while (*p != '\0')
     {

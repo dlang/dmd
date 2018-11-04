@@ -12,6 +12,8 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#include "root/rmem.h"
+
 #include "mars.h"
 #include "module.h"
 #include "parse.h"
@@ -1043,8 +1045,7 @@ void Module::runDeferredSemantic()
         }
         else
         {
-            todo = (Dsymbol **)malloc(len * sizeof(Dsymbol *));
-            assert(todo);
+            todo = (Dsymbol **)mem.xmalloc(len * sizeof(Dsymbol *));
             todoalloc = todo;
         }
         memcpy(todo, deferred.tdata(), len * sizeof(Dsymbol *));
