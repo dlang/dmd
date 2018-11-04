@@ -558,6 +558,10 @@ struct DebugInfoHeader
     uint abbrev_offset;
     ubyte address_size;
 }
+// Workaround https://issues.dlang.org/show_bug.cgi?id=16563
+// Struct alignment is ignored due to 2.072 regression.
+static assert((DebugInfoHeader.alignof == 1 && DebugInfoHeader.sizeof == 11) ||
+              (DebugInfoHeader.alignof == 4 && DebugInfoHeader.sizeof == 12));
 
 DebugInfoHeader debuginfo_init =
 {       0,      // total_length
@@ -584,6 +588,7 @@ struct DebugLineHeader
     ubyte opcode_base;
     ubyte[9] standard_opcode_lengths;
 }
+static assert(DebugLineHeader.sizeof == 24);
 
 DebugLineHeader debugline_init =
 {       0,      // total_length
@@ -621,6 +626,7 @@ void writeDebugFrameHeader(Outbuffer *buf)
         ubyte return_address_register;
         ubyte[11] opcodes;
     }
+    static assert(DebugFrameHeader.sizeof == 24);
 
     __gshared DebugFrameHeader debugFrameHeader =
     {   16,             // length
@@ -793,6 +799,7 @@ void writeDebugFrameFDE(IDXSEC dfseg, Symbol *sfunc)
             ulong initial_location;
             ulong address_range;
         }
+        static assert(DebugFrameFDE64.sizeof == 24);
 
         __gshared DebugFrameFDE64 debugFrameFDE64 =
         {   20,             // length
@@ -832,6 +839,7 @@ static if (ELFOBJ)
             uint initial_location;
             uint address_range;
         }
+        static assert(DebugFrameFDE32.sizeof == 16);
 
         __gshared DebugFrameFDE32 debugFrameFDE32 =
         {   12,             // length
@@ -1105,7 +1113,17 @@ version (MARS) version (none)
     if (I64)
         debuginfo.address_size = 8;
 
-    debug_info.buf.write(&debuginfo, debuginfo.sizeof);
+    // Workaround https://issues.dlang.org/show_bug.cgi?id=16563
+    // Struct alignment is ignored due to 2.072 regression.
+    static if (debuginfo.alignof == 1)
+        debug_info.buf.write(&debuginfo, debuginfo.sizeof);
+    else
+    {
+        debug_info.buf.write(&debuginfo.total_length, 4);
+        debug_info.buf.write(&debuginfo.version_, 2);
+        debug_info.buf.write(&debuginfo.abbrev_offset, 4);
+        debug_info.buf.write(&debuginfo.address_size, 1);
+    }
 static if (ELFOBJ)
     dwarf_addrel(debug_info.seg,6,debug_abbrev.seg);
 
@@ -1421,7 +1439,17 @@ static if (ELFOBJ)
     debug_info.buf.writeByte(0);      // ending abbreviation code
 
     debuginfo.total_length = cast(uint)debug_info.buf.size() - 4;
-    memcpy(debug_info.buf.buf, &debuginfo, debuginfo.sizeof);
+    // Workaround https://issues.dlang.org/show_bug.cgi?id=16563
+    // Struct alignment is ignored due to 2.072 regression.
+    static if (debuginfo.alignof == 1)
+        memcpy(debug_info.buf.buf, &debuginfo, debuginfo.sizeof);
+    else
+    {
+        memcpy(debug_info.buf.buf, &debuginfo.total_length, 4);
+        memcpy(debug_info.buf.buf+4, &debuginfo.version_, 2);
+        memcpy(debug_info.buf.buf+6, &debuginfo.abbrev_offset, 4);
+        memcpy(debug_info.buf.buf+10, &debuginfo.address_size, 1);
+    }
 
     /* ================================================= */
 
