@@ -8,10 +8,7 @@
  * https://github.com/D-Programming-Language/dmd/blob/master/src/module.c
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-
+#include "root/dsystem.h"
 #include "root/rmem.h"
 
 #include "mars.h"
@@ -25,14 +22,6 @@
 #include "expression.h"
 #include "lexer.h"
 #include "attrib.h"
-
-// For getcwd()
-#if _WIN32
-#include <direct.h>
-#endif
-#if POSIX
-#include <unistd.h>
-#endif
 
 AggregateDeclaration *Module::moduleinfo;
 

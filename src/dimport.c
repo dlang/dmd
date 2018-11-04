@@ -8,10 +8,9 @@
  * https://github.com/D-Programming-Language/dmd/blob/master/src/import.c
  */
 
-#include <stdio.h>
-#include <assert.h>
-
+#include "root/dsystem.h"
 #include "root/root.h"
+
 #include "mars.h"
 #include "dsymbol.h"
 #include "import.h"

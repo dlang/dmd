@@ -8,12 +8,11 @@
  * https://github.com/D-Programming-Language/dmd/blob/master/src/constfold.c
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <string.h>                     // mem{cpy|set|cmp}()
+#include "root/dsystem.h"               // mem{cpy|set|cmp}()
+
+#ifndef IN_GCC
 #include <math.h>
-#include <new>
+#endif
 
 #include "root/rmem.h"
 #include "root/root.h"

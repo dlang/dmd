@@ -8,10 +8,9 @@
  * https://github.com/D-Programming-Language/dmd/blob/master/src/struct.c
  */
 
-#include <stdio.h>
-#include <assert.h>
-
+#include "root/dsystem.h"
 #include "root/root.h"
+
 #include "errors.h"
 #include "aggregate.h"
 #include "scope.h"

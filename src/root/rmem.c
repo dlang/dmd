@@ -6,10 +6,7 @@
  * https://github.com/D-Programming-Language/dmd/blob/master/src/root/rmem.c
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
+#include "dsystem.h"
 #include "rmem.h"
 
 /* This implementation of the storage allocator uses the standard C allocation package.

@@ -8,9 +8,7 @@
  * https://github.com/D-Programming-Language/dmd/blob/master/src/version.c
  */
 
-#include <stdio.h>
-#include <assert.h>
-
+#include "root/dsystem.h"
 #include "root/root.h"
 
 #include "identifier.h"

@@ -8,9 +8,7 @@
  * https://github.com/D-Programming-Language/dmd/blob/master/src/declaration.c
  */
 
-#include <stdio.h>
-#include <assert.h>
-
+#include "root/dsystem.h"
 #include "root/checkedint.h"
 
 #include "errors.h"

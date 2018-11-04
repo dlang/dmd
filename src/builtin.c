@@ -9,9 +9,7 @@
  * https://github.com/D-Programming-Language/dmd/blob/master/src/builtin.c
  */
 
-#include <stdio.h>
-#include <assert.h>
-#include <string.h>                     // strcmp()
+#include "root/dsystem.h"               // strcmp()
 #include <math.h>
 
 #include "mars.h"

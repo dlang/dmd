@@ -9,8 +9,7 @@
  * https://github.com/D-Programming-Language/dmd/blob/master/src/compiler.c
  */
 
-#include <assert.h>
-#include <limits> // for std::numeric_limits
+#include "root/dsystem.h" // for std::numeric_limits
 
 #include "expression.h"
 #include "id.h"

@@ -8,10 +8,9 @@
  * https://github.com/D-Programming-Language/dmd/blob/master/src/enum.c
  */
 
-#include <stdio.h>
-#include <assert.h>
-
+#include "root/dsystem.h"
 #include "root/root.h"
+
 #include "errors.h"
 #include "enum.h"
 #include "mtype.h"

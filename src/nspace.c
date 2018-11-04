@@ -6,9 +6,7 @@
 // Source: https://github.com/D-Programming-Language/dmd/blob/master/src/nspace.c
 
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
+#include "root/dsystem.h"
 
 #include "mars.h"
 #include "dsymbol.h"

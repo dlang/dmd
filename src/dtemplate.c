@@ -10,9 +10,7 @@
 
 // Handle template implementation
 
-#include <stdio.h>
-#include <assert.h>
-
+#include "root/dsystem.h"
 #include "root/root.h"
 #include "root/aav.h"
 #include "root/rmem.h"
