@@ -14,6 +14,9 @@
 #pragma once
 #endif
 
+#include <stddef.h>
+
+struct File;
 
 /*******************
  * Simple interface to read files asynchronously in another
