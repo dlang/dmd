@@ -8,10 +8,7 @@
  * https://github.com/D-Programming-Language/dmd/blob/master/src/root/checkedint.h
  */
 
-#ifndef __STDC_LIMIT_MACROS
-#define __STDC_LIMIT_MACROS 1
-#endif
-#include <stdint.h>
+#include "dsystem.h"
 
 
 int adds(int x, int y, bool& overflow);

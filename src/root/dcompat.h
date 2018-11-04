@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include <stddef.h>
+#include "dsystem.h"
 
 /// Represents a D [ ] array
 template<typename T>
