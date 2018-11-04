@@ -20,7 +20,11 @@ char *Mem::xstrdup(const char *s)
 
     if (s)
     {
+#ifdef IN_GCC
+        p = ::xstrdup(s);
+#else
         p = strdup(s);
+#endif
         if (p)
             return p;
         error();
@@ -35,7 +39,11 @@ void *Mem::xmalloc(size_t size)
         p = NULL;
     else
     {
+#ifdef IN_GCC
+        p = ::xmalloc(size);
+#else
         p = malloc(size);
+#endif
         if (!p)
             error();
     }
@@ -49,7 +57,11 @@ void *Mem::xcalloc(size_t size, size_t n)
         p = NULL;
     else
     {
+#ifdef IN_GCC
+        p = ::xcalloc(size, n);
+#else
         p = calloc(size, n);
+#endif
         if (!p)
             error();
     }
@@ -67,14 +79,22 @@ void *Mem::xrealloc(void *p, size_t size)
     }
     else if (!p)
     {
+#ifdef IN_GCC
+        p = ::xmalloc(size);
+#else
         p = malloc(size);
+#endif
         if (!p)
             error();
     }
     else
     {
         void *psave = p;
+#ifdef IN_GCC
+        p = ::xrealloc(psave, size);
+#else
         p = realloc(psave, size);
+#endif
         if (!p)
         {   xfree(psave);
             error();
@@ -96,7 +116,11 @@ void *Mem::xmallocdup(void *o, size_t size)
         p = NULL;
     else
     {
+#ifdef IN_GCC
+        p = ::xmalloc(size);
+#else
         p = malloc(size);
+#endif
         if (!p)
             error();
         else
@@ -140,7 +164,11 @@ extern "C" void *allocmemory(size_t m_size)
 
     if (m_size > CHUNK_SIZE)
     {
+#ifdef IN_GCC
+        void *p = xmalloc(m_size);
+#else
         void *p = malloc(m_size);
+#endif
         if (p)
             return p;
         printf("Error: out of memory\n");
@@ -149,7 +177,11 @@ extern "C" void *allocmemory(size_t m_size)
     }
 
     heapleft = CHUNK_SIZE;
+#ifdef IN_GCC
+    heapp = xmalloc(CHUNK_SIZE);
+#else
     heapp = malloc(CHUNK_SIZE);
+#endif
     if (!heapp)
     {
         printf("Error: out of memory\n");

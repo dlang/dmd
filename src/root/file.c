@@ -89,7 +89,11 @@ bool File::read()
         goto err2;
     }
     size = (size_t)buf.st_size;
+#ifdef IN_GCC
+    buffer = (unsigned char *) ::xmalloc(size + 2);
+#else
     buffer = (unsigned char *) ::malloc(size + 2);
+#endif
     if (!buffer)
     {
         printf("\tmalloc error, errno = %d\n",errno);
@@ -140,7 +144,11 @@ err1:
     ref = 0;
 
     size = GetFileSize(h,NULL);
+#ifdef IN_GCC
+    buffer = (unsigned char *) ::xmalloc(size + 2);
+#else
     buffer = (unsigned char *) ::malloc(size + 2);
+#endif
     if (!buffer)
         goto err2;
 
