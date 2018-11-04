@@ -239,7 +239,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.d \
 	$C\dtype.d $C\melf.h $C\mach.h $C\mscoff.h $C\bcomplex.h \
 	$C\outbuf.h $C\token.h $C\tassert.h \
 	$C\elfobj.d $C\cv4.h $C\dwarf2.h $C\exh.h $C\go.h \
-	$C\dwarfdbginf.d $C\dwarf.h $C\machobj.c $C\aarray.d \
+	$C\dwarfdbginf.d $C\dwarf.h $C\machobj.d $C\aarray.d \
 	$C\strtold.c $C\aa.h \
 	$C\md5.h $C\md5.d $C\ph2.d $C\util2.d \
 	$C\mscoffobj.d $C\obj.h $C\pdata.d $C\cv8.d $C\backconfig.d $C\sizecheck.c \
