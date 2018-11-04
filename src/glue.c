@@ -29,7 +29,7 @@
 #include "lib.h"
 #include "target.h"
 
-#include "rmem.h"
+#include "root/rmem.h"
 #include "cc.h"
 #include "global.h"
 #include "oper.h"

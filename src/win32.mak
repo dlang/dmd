@@ -139,7 +139,7 @@ FRONTOBJ= denum.obj dstruct.obj dsymbol.obj dimport.obj id.obj \
 	staticassert.obj staticcond.obj identifier.obj mtype.obj expression.obj \
 	optimize.obj dtemplate.obj lexer.obj declaration.obj dcast.obj \
 	init.obj initsem.obj func.obj nogc.obj utf.obj parse.obj statement.obj \
-	constfold.obj dversion.obj inifile.obj cppmangle.obj \
+	constfold.obj dversion.obj inifile.obj compiler.obj cppmanglewin.obj \
 	dmodule.obj dscope.obj cond.obj inline.obj inlinecost.obj opover.obj \
 	entity.obj dclass.obj dmangle.obj attrib.obj impcnvtab.obj \
 	link.obj access.obj doc.obj dmacro.obj hdrgen.obj delegatize.obj \
@@ -147,14 +147,14 @@ FRONTOBJ= denum.obj dstruct.obj dsymbol.obj dimport.obj id.obj \
 	builtin.obj clone.obj arrayop.obj \
 	json.obj unittests.obj imphint.obj argtypes.obj apply.obj sapply.obj \
 	safe.obj sideeffect.obj intrange.obj blockexit.obj canthrow.obj target.obj nspace.obj \
-	errors.obj escape.obj tokens.obj globals.obj \
+	objc.obj errors.obj escape.obj tokens.obj globals.obj \
 	utils.obj expressionsem.obj statementsem.obj typesem.obj
 
 # Glue layer
 GLUEOBJ=glue.obj msc.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
 	toobj.obj toctype.obj tocvdebug.obj toir.obj \
 	libmscoff.obj scanmscoff.obj irstate.obj typinf.obj \
-	libomf.obj scanomf.obj iasm.obj objc_glue_stubs.obj
+	libomf.obj scanomf.obj iasm.obj iasmdmd.obj objc_glue_stubs.obj
 
 #GLUEOBJ=gluestub.obj
 
@@ -184,13 +184,13 @@ SRCS= mars.c denum.c dstruct.c dsymbol.c dimport.c idgen.c impcnvgen.c utf.h \
 	cond.h cond.c link.c aggregate.h staticassert.h parse.c statement.c \
 	constfold.c version.h dversion.c inifile.c staticassert.c staticcond.c \
 	dmodule.c dscope.c init.h init.c initsem.c attrib.h attrib.c opover.c \
-	dclass.c dmangle.c func.c nogc.c inline.c inlinecost.c access.c complex_t.h cppmangle.c \
-	identifier.h parse.h scope.h enum.h import.h \
+	dclass.c dmangle.c func.c nogc.c inline.c inlinecost.c access.c complex_t.h \
+	compiler.c cppmanglewin.c identifier.h parse.h scope.h enum.h import.h \
 	mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h statement.h doc.h doc.c \
 	macro.h dmacro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c dinterpret.c ctfeexpr.c traits.c builtin.c \
-	clone.c lib.h arrayop.c nspace.h nspace.c errors.h errors.c escape.c \
+	clone.c lib.h arrayop.c nspace.h nspace.c objc.c errors.h errors.c escape.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
 	apply.c sapply.c safe.c sideeffect.c ctfe.h \
 	intrange.h intrange.c blockexit.c canthrow.c target.c target.h visitor.h \
@@ -200,7 +200,7 @@ SRCS= mars.c denum.c dstruct.c dsymbol.c dimport.c idgen.c impcnvgen.c utf.h \
 # Glue layer
 GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	toobj.c toctype.c tocvdebug.c toir.h toir.c \
-	libmscoff.c scanmscoff.c irstate.h irstate.c typinf.c iasm.c \
+	libmscoff.c scanmscoff.c irstate.h irstate.c typinf.c iasm.c iasmdmd.c \
 	toelfdebug.c libomf.c scanomf.c libelf.c scanelf.c libmach.c scanmach.c \
 	tk.c eh.c gluestub.c objc_glue_stubs.c objc_glue.c
 
@@ -414,6 +414,9 @@ impcnvtab.obj : mtype.h impcnvtab.c
 
 iasm.obj : $(CH) $(TOTALH) $C\iasm.h iasm.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) -Ae iasm
+
+iasmdmd.obj : $(CH) $(TOTALH) $C\iasm.h iasmdmd.c
+	$(CC) -c $(MFLAGS) -I$(ROOT) -Ae iasmdmd
 
 # D front/back end
 bcomplex.obj : $C\bcomplex.c
@@ -711,7 +714,8 @@ dclass.obj : $(TOTALH) enum.h dclass.c
 clone.obj : $(TOTALH) clone.c
 constfold.obj : $(TOTALH) expression.h constfold.c
 cond.obj : $(TOTALH) identifier.h declaration.h cond.h cond.c
-cppmangle.obj : $(TOTALH) mtype.h declaration.h mars.h
+compiler.obj : $(TOTALH) compiler.c
+cppmanglewin.obj : $(TOTALH) mtype.h declaration.h mars.h
 declaration.obj : $(TOTALH) identifier.h attrib.h declaration.h declaration.c expression.h
 delegatize.obj : $(TOTALH) delegatize.c
 doc.obj : $(TOTALH) doc.h doc.c
@@ -741,6 +745,7 @@ link.obj : $(TOTALH) link.c
 dmacro.obj : $(TOTALH) macro.h dmacro.c
 dmangle.obj : $(TOTALH) dsymbol.h declaration.h dmangle.c
 nspace.obj : $(TOTALH) nspace.c
+objc.obj : $(TOTALH) objc.c
 objc_glue_stubs.obj : $(TOTALH) objc.h objc_glue_stubs.c
 opover.obj : $(TOTALH) expression.h opover.c
 optimize.obj : $(TOTALH) expression.h optimize.c

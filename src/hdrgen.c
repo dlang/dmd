@@ -2332,7 +2332,8 @@ public:
         (ie, 8 chars more than mantissa). Plus one for trailing \0.
         Plus one for rounding. */
         const size_t BUFFER_LEN = sizeof(value) * 3 + 8 + 1 + 1;
-        char buffer[BUFFER_LEN] = {};
+        char buffer[BUFFER_LEN];
+        memset(buffer, 0, BUFFER_LEN);
         CTFloat::sprint(buffer, 'g', value);
         assert(strlen(buffer) < BUFFER_LEN);
 

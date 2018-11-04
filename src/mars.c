@@ -20,13 +20,13 @@
 #include <errno.h>
 #endif
 
-#include "rmem.h"
-#include "root.h"
-#include "async.h"
+#include "root/rmem.h"
+#include "root/root.h"
+#include "root/async.h"
 #include "target.h"
-#include "file.h"
-#include "filename.h"
-#include "stringtable.h"
+#include "root/file.h"
+#include "root/filename.h"
+#include "root/stringtable.h"
 
 #include "mars.h"
 #include "module.h"

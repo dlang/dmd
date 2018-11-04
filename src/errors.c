@@ -23,8 +23,8 @@
 #endif
 
 #include "errors.h"
-#include "outbuffer.h"
-#include "rmem.h"
+#include "root/outbuffer.h"
+#include "root/rmem.h"
 
 enum COLOR
 {

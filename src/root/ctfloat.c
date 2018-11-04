@@ -17,7 +17,6 @@
 #include <fp.h>
 #include <string.h>
 #include <errno.h>
-#include <limits> // for std::numeric_limits
 
 real_t CTFloat::zero = real_t(0);
 real_t CTFloat::one = real_t(1);
@@ -107,8 +106,8 @@ int CTFloat::sprint(char* str, char fmt, real_t x)
 size_t CTFloat::hash(real_t a)
 {
     if (isNaN(a))
-        a = std::numeric_limits<real_t>::quiet_NaN();
-    size_t sz = (std::numeric_limits<real_t>::digits == 64) ? 10 : sizeof(real_t);
+        a = NAN;
+    size_t sz = (LDBL_DIG == 64) ? 10 : sizeof(real_t);
     return calcHash((uint8_t *) &a, sz);
 }
 

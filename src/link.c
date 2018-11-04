@@ -39,11 +39,11 @@
     #define HAS_POSIX_SPAWN 0
 #endif
 
-#include        "root.h"
+#include        "root/root.h"
 
 #include        "mars.h"
 
-#include        "rmem.h"
+#include        "root/rmem.h"
 
 #include        "arraytypes.h"
 

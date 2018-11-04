@@ -35,7 +35,7 @@
 #include        "global.h"
 #include        "dt.h"
 
-#include        "rmem.h"
+#include        "root/rmem.h"
 #include        "target.h"
 #include        "visitor.h"
 

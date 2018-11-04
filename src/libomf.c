@@ -18,9 +18,9 @@
 #include <assert.h>
 #include <string.h>                     // str{len|dup}(),memcpy()
 
-#include "rmem.h"
-#include "root.h"
-#include "stringtable.h"
+#include "root/rmem.h"
+#include "root/root.h"
+#include "root/stringtable.h"
 
 #include "mars.h"
 #include "lib.h"
@@ -163,7 +163,7 @@ void LibOMF::addSymbol(ObjModule *om, const char *name, int pickAny)
 #if LOG
     printf("LibOMF::addSymbol(%s, %s, %d)\n", om->name, name, pickAny);
 #endif
-    StringValue *s = tab.insert(name, strlen(name));
+    StringValue *s = tab.insert(name, strlen(name), NULL);
     if (!s)
     {   // already in table
         if (!pickAny)

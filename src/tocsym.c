@@ -30,7 +30,7 @@
 #include "dsymbol.h"
 #include "id.h"
 #include "ctfe.h"
-#include "rmem.h"
+#include "root/rmem.h"
 #include "target.h"
 #include "mangle.h"
 

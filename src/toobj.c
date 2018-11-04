@@ -29,7 +29,7 @@
 #include "nspace.h"
 #include "hdrgen.h"
 
-#include "rmem.h"
+#include "root/rmem.h"
 #include "target.h"
 #include "cc.h"
 #include "global.h"
