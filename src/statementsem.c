@@ -12,7 +12,7 @@
 #include <assert.h>
 
 #include "root/rmem.h"
-#include "checkedint.h"
+#include "root/checkedint.h"
 
 #include "errors.h"
 #include "statement.h"

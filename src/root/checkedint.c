@@ -24,7 +24,7 @@
  * Copyright: Copyright (C) 2014-2018 by The D Language Foundation, All Rights Reserved
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Authors:   Walter Bright
- * Source:    https://github.com/D-Programming-Language/dmd/blob/master/src/root/port.c
+ * Source:    https://github.com/D-Programming-Language/dmd/blob/master/src/root/checkedint.c
  */
 
 #include <assert.h>
@@ -61,26 +61,6 @@ int adds(int x, int y, bool& overflow)
     return (int)r;
 }
 
-#ifdef DEBUG
-void unittest1()
-{
-    bool overflow = false;
-    assert(adds(2, 3, overflow) == 5);
-    assert(!overflow);
-    assert(adds(1, INT32_MAX - 1, overflow) == INT32_MAX);
-    assert(!overflow);
-    assert(adds(INT32_MIN + 1, -1, overflow) == INT32_MIN);
-    assert(!overflow);
-    assert(adds(INT32_MAX, 1, overflow) == INT32_MIN);
-    assert(overflow);
-    overflow = false;
-    assert(adds(INT32_MIN, -1, overflow) == INT32_MAX);
-    assert(overflow);
-    assert(adds(0, 0, overflow) == 0);
-    assert(overflow);                   // sticky
-}
-#endif
-
 /// ditto
 int64_t adds(int64_t x, int64_t y, bool& overflow)
 {
@@ -90,27 +70,6 @@ int64_t adds(int64_t x, int64_t y, bool& overflow)
         overflow = true;
     return r;
 }
-
-#ifdef DEBUG
-void unittest2()
-{
-    bool overflow = false;
-    assert(adds((int64_t)2, (int64_t)3, overflow) == 5);
-    assert(!overflow);
-    assert(adds((int64_t)1, INT64_MAX - 1, overflow) == INT64_MAX);
-    assert(!overflow);
-    assert(adds(INT64_MIN + 1, (int64_t)-1, overflow) == INT64_MIN);
-    assert(!overflow);
-    assert(adds(INT64_MAX, (int64_t)1, overflow) == INT64_MIN);
-    assert(overflow);
-    overflow = false;
-    assert(adds(INT64_MIN, (int64_t)-1, overflow) == INT64_MAX);
-    assert(overflow);
-    assert(adds((int64_t)0, (int64_t)0, overflow) == 0);
-    assert(overflow);                   // sticky
-}
-#endif
-
 
 /*******************************
  * Add two unsigned integers, checking for overflow (aka carry).
@@ -133,26 +92,6 @@ unsigned addu(unsigned x, unsigned y, bool& overflow)
     return r;
 }
 
-#ifdef DEBUG
-void unittest3()
-{
-    bool overflow = false;
-    assert(addu(2U, 3U, overflow) == 5);
-    assert(!overflow);
-    assert(addu(1U, UINT32_MAX - 1U, overflow) == UINT32_MAX);
-    assert(!overflow);
-    assert(addu(0U, -1U, overflow) == UINT32_MAX);
-    assert(!overflow);
-    assert(addu(UINT32_MAX, 1U, overflow) == 0);
-    assert(overflow);
-    overflow = false;
-    assert(addu(0U + 1U, -1U, overflow) == 0);
-    assert(overflow);
-    assert(addu(0U, 0U, overflow) == 0);
-    assert(overflow);                   // sticky
-}
-#endif
-
 /// ditto
 uint64_t addu(uint64_t x, uint64_t y, bool& overflow)
 {
@@ -161,27 +100,6 @@ uint64_t addu(uint64_t x, uint64_t y, bool& overflow)
         overflow = true;
     return r;
 }
-
-#ifdef DEBUG
-void unittest4()
-{
-    bool overflow = false;
-    assert(addu((uint64_t)2, (uint64_t)3, overflow) == 5);
-    assert(!overflow);
-    assert(addu((uint64_t)1, UINT64_MAX - 1, overflow) == UINT64_MAX);
-    assert(!overflow);
-    assert(addu((uint64_t)0, (uint64_t)-1, overflow) == UINT64_MAX);
-    assert(!overflow);
-    assert(addu(UINT64_MAX, (uint64_t)1, overflow) == 0);
-    assert(overflow);
-    overflow = false;
-    assert(addu((uint64_t)0 + 1, (uint64_t)-1, overflow) == 0);
-    assert(overflow);
-    assert(addu((uint64_t)0, (uint64_t)0, overflow) == 0);
-    assert(overflow);                   // sticky
-}
-#endif
-
 
 /*******************************
  * Subtract two signed integers, checking for overflow.
@@ -204,26 +122,6 @@ int subs(int x, int y, bool& overflow)
     return (int)r;
 }
 
-#ifdef DEBUG
-void unittest5()
-{
-    bool overflow = false;
-    assert(subs(2, -3, overflow) == 5);
-    assert(!overflow);
-    assert(subs(1, -INT32_MAX + 1, overflow) == INT32_MAX);
-    assert(!overflow);
-    assert(subs(INT32_MIN + 1, 1, overflow) == INT32_MIN);
-    assert(!overflow);
-    assert(subs(INT32_MAX, -1, overflow) == INT32_MIN);
-    assert(overflow);
-    overflow = false;
-    assert(subs(INT32_MIN, 1, overflow) == INT32_MAX);
-    assert(overflow);
-    assert(subs(0, 0, overflow) == 0);
-    assert(overflow);                   // sticky
-}
-#endif
-
 /// ditto
 int64_t subs(int64_t x, int64_t y, bool& overflow)
 {
@@ -233,28 +131,6 @@ int64_t subs(int64_t x, int64_t y, bool& overflow)
         overflow = true;
     return r;
 }
-
-#ifdef DEBUG
-void unittest6()
-{
-    bool overflow = false;
-    assert(subs((int64_t)2, (int64_t)-3, overflow) == 5);
-    assert(!overflow);
-    assert(subs((int64_t)1, -INT64_MAX + (int64_t)1, overflow) == INT64_MAX);
-    assert(!overflow);
-    assert(subs(INT64_MIN + 1, (int64_t)1, overflow) == INT64_MIN);
-    assert(!overflow);
-    assert(subs((int64_t)-1, INT64_MIN, overflow) == INT64_MAX);
-    assert(!overflow);
-    assert(subs(INT64_MAX, (int64_t)-1, overflow) == INT64_MIN);
-    assert(overflow);
-    overflow = false;
-    assert(subs(INT64_MIN, (int64_t)1, overflow) == INT64_MAX);
-    assert(overflow);
-    assert(subs((int64_t)0, (int64_t)0, overflow) == 0);
-    assert(overflow);                   // sticky
-}
-#endif
 
 /*******************************
  * Subtract two unsigned integers, checking for overflow (aka borrow).
@@ -276,27 +152,6 @@ unsigned subu(unsigned x, unsigned y, bool& overflow)
     return x - y;
 }
 
-#ifdef DEBUG
-void unittest7()
-{
-    bool overflow = false;
-    assert(subu(3U, 2U, overflow) == 1);
-    assert(!overflow);
-    assert(subu(UINT32_MAX, 1U, overflow) == UINT32_MAX - 1);
-    assert(!overflow);
-    assert(subu(1U, 1U, overflow) == 0);
-    assert(!overflow);
-    assert(subu(0U, 1U, overflow) == UINT32_MAX);
-    assert(overflow);
-    overflow = false;
-    assert(subu(UINT32_MAX - 1U, UINT32_MAX, overflow) == UINT32_MAX);
-    assert(overflow);
-    assert(subu(0U, 0U, overflow) == 0);
-    assert(overflow);                   // sticky
-}
-#endif
-
-
 /// ditto
 uint64_t subu(uint64_t x, uint64_t y, bool& overflow)
 {
@@ -304,27 +159,6 @@ uint64_t subu(uint64_t x, uint64_t y, bool& overflow)
         overflow = true;
     return x - y;
 }
-
-#ifdef DEBUG
-void unittest8()
-{
-    bool overflow = false;
-    assert(subu((uint64_t)3, (uint64_t)2, overflow) == 1);
-    assert(!overflow);
-    assert(subu(UINT64_MAX, (uint64_t)1, overflow) == UINT64_MAX - 1);
-    assert(!overflow);
-    assert(subu((uint64_t)1, (uint64_t)1, overflow) == 0);
-    assert(!overflow);
-    assert(subu((uint64_t)0, (uint64_t)1, overflow) == UINT64_MAX);
-    assert(overflow);
-    overflow = false;
-    assert(subu(UINT64_MAX - 1, UINT64_MAX, overflow) == UINT64_MAX);
-    assert(overflow);
-    assert(subu((uint64_t)0, (uint64_t)0, overflow) == 0);
-    assert(overflow);                   // sticky
-}
-#endif
-
 
 /***********************************************
  * Negate an integer.
@@ -343,23 +177,6 @@ int negs(int x, bool& overflow)
     return -x;
 }
 
-#ifdef DEBUG
-void unittest9()
-{
-    bool overflow = false;
-    assert(negs(0, overflow) == -0);
-    assert(!overflow);
-    assert(negs(1234, overflow) == -1234);
-    assert(!overflow);
-    assert(negs(-5678, overflow) == 5678);
-    assert(!overflow);
-    assert(negs((int)INT32_MIN, overflow) == -INT32_MIN);
-    assert(overflow);
-    assert(negs(0, overflow) == -0);
-    assert(overflow);                   // sticky
-}
-#endif
-
 /// ditto
 int64_t negs(int64_t x, bool& overflow)
 {
@@ -367,24 +184,6 @@ int64_t negs(int64_t x, bool& overflow)
         overflow = true;
     return -x;
 }
-
-#ifdef DEBUG
-void unittest10()
-{
-    bool overflow = false;
-    assert(negs((int64_t)0, overflow) == -0);
-    assert(!overflow);
-    assert(negs((int64_t)1234, overflow) == -1234);
-    assert(!overflow);
-    assert(negs((int64_t)-5678, overflow) == 5678);
-    assert(!overflow);
-    assert(negs(INT64_MIN, overflow) == -INT64_MIN);
-    assert(overflow);
-    assert(negs((int64_t)0, overflow) == -0);
-    assert(overflow);                   // sticky
-}
-#endif
-
 
 /*******************************
  * Multiply two signed integers, checking for overflow.
@@ -407,28 +206,6 @@ int muls(int x, int y, bool& overflow)
     return (int)r;
 }
 
-#ifdef DEBUG
-void unittest11()
-{
-    bool overflow = false;
-    assert(muls(2, 3, overflow) == 6);
-    assert(!overflow);
-    assert(muls(-200, 300, overflow) == -60000);
-    assert(!overflow);
-    assert(muls(1, INT32_MAX, overflow) == INT32_MAX);
-    assert(!overflow);
-    assert(muls(INT32_MIN, 1, overflow) == INT32_MIN);
-    assert(!overflow);
-    assert(muls(INT32_MAX, 2, overflow) == (INT32_MAX * 2));
-    assert(overflow);
-    overflow = false;
-    assert(muls(INT32_MIN, -1, overflow) == INT32_MIN);
-    assert(overflow);
-    assert(muls(0, 0, overflow) == 0);
-    assert(overflow);                   // sticky
-}
-#endif
-
 /// ditto
 int64_t muls(int64_t x, int64_t y, bool& overflow)
 {
@@ -438,32 +215,6 @@ int64_t muls(int64_t x, int64_t y, bool& overflow)
         overflow = true;
     return r;
 }
-
-#ifdef DEBUG
-void unittest12()
-{
-    bool overflow = false;
-    assert(muls((int64_t)2, (int64_t)3, overflow) == 6);
-    assert(!overflow);
-    assert(muls((int64_t)-200, (int64_t)300, overflow) == -60000);
-    assert(!overflow);
-    assert(muls((int64_t)1, INT64_MAX, overflow) == INT64_MAX);
-    assert(!overflow);
-    assert(muls(INT64_MIN, (int64_t)1, overflow) == INT64_MIN);
-    assert(!overflow);
-    assert(muls(INT64_MAX, (int64_t)2, overflow) == (INT64_MAX * 2));
-    assert(overflow);
-    overflow = false;
-    assert(muls((int64_t)-1, INT64_MIN, overflow) == INT64_MIN);
-    assert(overflow);
-    overflow = false;
-    assert(muls(INT64_MIN, (int64_t)-1, overflow) == INT64_MIN);
-    assert(overflow);
-    assert(muls((int64_t)0, (int64_t)0, overflow) == 0);
-    assert(overflow);                   // sticky
-}
-#endif
-
 
 /*******************************
  * Multiply two unsigned integers, checking for overflow (aka carry).
@@ -486,27 +237,6 @@ unsigned mulu(unsigned x, unsigned y, bool& overflow)
     return (unsigned)r;
 }
 
-#ifdef DEBUG
-void unittest13()
-{
-    bool overflow = false;
-    assert(mulu(2U, 3U, overflow) == 6);
-    assert(!overflow);
-    assert(mulu(1U, UINT32_MAX, overflow) == UINT32_MAX);
-    assert(!overflow);
-    assert(mulu(0U, 1U, overflow) == 0);
-    assert(!overflow);
-    assert(mulu(UINT32_MAX, 2U, overflow) == (unsigned)(UINT32_MAX * 2));
-    assert(overflow);
-    overflow = false;
-    assert(mulu(0U, -1U, overflow) == 0);
-    assert(!overflow);
-    overflow = true;
-    assert(mulu(0U, 0U, overflow) == 0);
-    assert(overflow);                   // sticky
-}
-#endif
-
 /// ditto
 uint64_t mulu(uint64_t x, uint64_t y, bool& overflow)
 {
@@ -515,50 +245,3 @@ uint64_t mulu(uint64_t x, uint64_t y, bool& overflow)
         overflow = true;
     return r;
 }
-
-#ifdef DEBUG
-void unittest14()
-{
-    bool overflow = false;
-    assert(mulu((uint64_t)2, (uint64_t)3, overflow) == 6);
-    assert(!overflow);
-    assert(mulu(1, UINT64_MAX, overflow) == UINT64_MAX);
-    assert(!overflow);
-    assert(mulu((uint64_t)0, 1, overflow) == 0);
-    assert(!overflow);
-    assert(mulu(UINT64_MAX, 2, overflow) == (UINT64_MAX * 2));
-    assert(overflow);
-    overflow = false;
-    assert(mulu((uint64_t)0, -1, overflow) == 0);
-    assert(!overflow);
-    overflow = true;
-    assert(mulu((uint64_t)0, (uint64_t)0, overflow) == 0);
-    assert(overflow);                   // sticky
-}
-#endif
-
-#ifdef DEBUG
-struct CheckedintUnittest
-{
-    CheckedintUnittest()
-    {
-        unittest1();
-        unittest2();
-        unittest3();
-        unittest4();
-        unittest5();
-        unittest6();
-        unittest7();
-        unittest8();
-        unittest9();
-        unittest10();
-        unittest11();
-        unittest12();
-        unittest13();
-    }
-};
-
-static CheckedintUnittest unittest;
-#endif
-
-//void main() { }

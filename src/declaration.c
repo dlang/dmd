@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "checkedint.h"
+#include "root/checkedint.h"
 
 #include "errors.h"
 #include "init.h"

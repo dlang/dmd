@@ -23,7 +23,7 @@
 #include <malloc.h>
 #endif
 
-#include "checkedint.h"
+#include "root/checkedint.h"
 #include "root/rmem.h"
 
 #include "mars.h"
