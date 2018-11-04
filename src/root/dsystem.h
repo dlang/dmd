@@ -12,7 +12,7 @@
 
 // Get common system includes from the host.
 
-#define POSIX (__linux__ || __GLIBC__ || __gnu_hurd__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
+#define POSIX (__linux__ || __GLIBC__ || __gnu_hurd__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __DragonFly__  || __sun)
 
 #define __C99FEATURES__ 1       // Needed on Solaris for NaN and more
 #define __USE_ISOC99 1          // so signbit() gets defined
