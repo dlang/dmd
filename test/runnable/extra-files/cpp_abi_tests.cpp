@@ -61,6 +61,18 @@ double             passthrough_ref(double             &value) { return value; }
 S                  passthrough_ref(S                  &value) { return value; }
 std::test19248     passthrough_ref(const std::test19248 &value) { return value; }
 
+namespace ns1
+{
+    // D: `char*, const(char)**`
+    int constFunction1(const char*, const char**) { return 1; }
+    // D: `const(char)*, const(char*)*`
+    int constFunction2(const char*, const char* const*) { return 2; }
+    // D: `const(char*), const(char**)*`
+    int constFunction3(const char* const, const char* const* const*) { return 3; }
+    // D: `const(char*), const(char***)`
+    int constFunction4(const char* const, const char* const* const* const) { return 42; }
+};
+
 // Uncomment when mangling is fixed
 // typedef void(*fn0)();
 // fn0            passthrough_fn0   (fn0 value) { return value; }

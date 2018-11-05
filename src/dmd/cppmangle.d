@@ -1359,9 +1359,13 @@ extern(C++):
         if (t.isImmutable() || t.isShared())
             return error(t);
 
+        // Check for const - Since we cannot represent C++'s `char* const`,
+        // and `const char* const` (a.k.a `const(char*)` in D) is mangled
+        // the same as `const char*` (`const(char)*` in D), we need to add
+        // an extra `K` if `nextOf()` is `const`, before substitution
+        CV_qualifiers(t);
         if (substitute(t))
             return;
-        CV_qualifiers(t);
         buf.writeByte('P');
         auto prev = this.context.push(this.context.res.asType().nextOf());
         scope (exit) this.context.pop(prev);
