@@ -89,6 +89,7 @@ public:
     virtual real_t toImaginary();
     virtual complex_t toComplex();
     virtual StringExp *toStringExp();
+    virtual TupleExp *toTupleExp();
     virtual bool isLvalue();
     virtual Expression *toLvalue(Scope *sc, Expression *e);
     virtual Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -282,6 +283,7 @@ public:
      */
     Expressions *exps;
 
+    TupleExp *toTupleExp();
     Expression *syntaxCopy();
     bool equals(RootObject *o);
 

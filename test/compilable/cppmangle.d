@@ -935,3 +935,41 @@ version (Posix) extern (C++)
     static assert(func16479_17_1!int.mangleof == `_Z14func16479_17_1IiEPN7fakestd3__111vector16479IT_NS1_14allocator16479IS3_EEEEv`);
     static assert(func16479_17_2!int.mangleof == `_Z14func16479_17_2IiEPN7fakestd3__111vector16479IT_NS1_14allocator16479IS3_EEEEv`);
 }
+
+/**************************************/
+// https://issues.dlang.org/show_bug.cgi?id=19278
+// extern(C++, "name") doesn't accept expressions
+
+extern(C++, "hello" ~ "world")
+{
+    void test19278();
+}
+enum NS = "lookup";
+extern(C++, (NS))
+{
+    void test19278_2();
+}
+alias AliasSeq(Args...) = Args;
+alias Tup = AliasSeq!("hello", "world");
+extern(C++, (Tup))
+{
+    void test19278_3();
+}
+extern(C++, (AliasSeq!(Tup, "yay")))
+{
+    void test19278_4();
+}
+version(Win64)
+{
+    static assert(test19278.mangleof == "?test19278@helloworld@@YAXXZ");
+    static assert(test19278_2.mangleof == "?test19278_2@lookup@@YAXXZ");
+    static assert(test19278_3.mangleof == "?test19278_3@world@hello@@YAXXZ");
+    static assert(test19278_4.mangleof == "?test19278_4@yay@world@hello@@YAXXZ");
+}
+else version(Posix)
+{
+    static assert(test19278.mangleof == "_ZN10helloworld9test19278Ev");
+    static assert(test19278_2.mangleof == "_ZN6lookup11test19278_2Ev");
+    static assert(test19278_3.mangleof == "_ZN5hello5world11test19278_3Ev");
+    static assert(test19278_4.mangleof == "_ZN5hello5world3yay11test19278_4Ev");
+}

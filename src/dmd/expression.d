@@ -839,6 +839,11 @@ extern (C++) abstract class Expression : RootObject
         return null;
     }
 
+    TupleExp toTupleExp()
+    {
+        return null;
+    }
+
     /***************************************
      * Return !=0 if expression is an lvalue.
      */
@@ -2535,6 +2540,11 @@ extern (C++) final class TupleExp : Expression
                 error("`%s` is not an expression", o.toChars());
             }
         }
+    }
+
+    override TupleExp toTupleExp()
+    {
+        return this;
     }
 
     override Expression syntaxCopy()

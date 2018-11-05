@@ -1164,11 +1164,17 @@ struct ASTBase
          */
         bool mangleOnly;
 
-        extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* members, bool mangleOnly)
+        /**
+         * Namespace identifier resolved during semantic.
+         */
+        Expression identExp;
+
+        extern (D) this(const ref Loc loc, Identifier ident, Expression identExp, Dsymbols* members, bool mangleOnly)
         {
             super(ident);
             this.loc = loc;
             this.members = members;
+            this.identExp = identExp;
             this.mangleOnly = mangleOnly;
         }
 
