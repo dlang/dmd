@@ -1179,7 +1179,7 @@ void test()
     int i = s; // i == 4
 }
 ---
-        $(P $(GLINK2 attribute, Attribute)s are ignored for $(AliasThis).
+        $(P $(GLINK2 attribute, Attribute)s are ignored for $(D AliasThis).
         )
 
         $(P Multiple $(I AliasThis) are allowed. For implicit conversions
