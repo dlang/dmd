@@ -1043,6 +1043,11 @@ extern (C++) class Dsymbol : RootObject
         return null;
     }
 
+    inout(ExpressionDsymbol) isExpressionDsymbol() inout
+    {
+        return null;
+    }
+
     inout(ThisDeclaration) isThisDeclaration() inout
     {
         return null;
@@ -2049,6 +2054,26 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
         return this;
     }
 
+}
+
+/**
+ * Class that holds an expression in a Dsymbol wraper.
+ * This is not an AST node, but a class used to pass
+ * an expression as a function parameter of type Dsymbol.
+ */
+extern (C++) final class ExpressionDsymbol : Dsymbol
+{
+    Expression exp;
+    this(Expression exp)
+    {
+        super();
+        this.exp = exp;
+    }
+
+    override inout(ExpressionDsymbol) isExpressionDsymbol() inout
+    {
+        return this;
+    }
 }
 
 
