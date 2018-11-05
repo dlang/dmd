@@ -2057,6 +2057,25 @@ void test19284()
     assert(t.x == 5);
 }
 
+// 16633
+
+class Item
+{
+    alias children this;
+    Item[] children;
+    void populate()
+    {
+        children ~= new Item(); // Item is seen as []
+        assert(children.length == 1);
+    }
+}
+
+void test16633()
+{
+    Item root = new Item();
+    root.populate;
+}
+
 int main()
 {
     test1();
@@ -2114,6 +2133,7 @@ int main()
     test11355();
     test14806();
     test19284();
+    test16633();
 
     printf("Success\n");
     return 0;
