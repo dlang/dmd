@@ -67,16 +67,16 @@ struct EXTENSION_CONTROL_BLOCK {
     DWORD  cbAvailable;
     LPBYTE lpbData;
     LPSTR  lpszContentType;
-    extern(Pascal) BOOL function(HCONN, LPSTR, LPVOID, LPDWORD)
-      GetServerVariable;
-    extern(Pascal) BOOL function(HCONN, LPVOID, LPDWORD, DWORD) WriteClient;
-    extern(Pascal) BOOL function(HCONN, LPVOID, LPDWORD) ReadClient;
-    extern(Pascal) BOOL function(HCONN, DWORD, LPVOID, LPDWORD, LPDWORD)
-      ServerSupportFunction;
+    extern (Windows) {
+        BOOL function(HCONN, LPSTR, LPVOID, LPDWORD) GetServerVariable;
+        BOOL function(HCONN, LPVOID, LPDWORD, DWORD) WriteClient;
+        BOOL function(HCONN, LPVOID, LPDWORD) ReadClient;
+        BOOL function(HCONN, DWORD, LPVOID, LPDWORD, LPDWORD) ServerSupportFunction;
+    }
 }
 alias EXTENSION_CONTROL_BLOCK* LPEXTENSION_CONTROL_BLOCK;
 
-extern (Pascal) {
+extern (Windows) {
     alias BOOL function(HSE_VERSION_INFO*) PFN_GETEXTENSIONVERSION;
     alias DWORD function(EXTENSION_CONTROL_BLOCK*) PFN_HTTPEXTENSIONPROC;
     alias BOOL function(DWORD) PFN_TERMINATEEXTENSION;
@@ -107,7 +107,7 @@ struct HSE_SEND_HEADER_EX_INFO {
 }
 alias HSE_SEND_HEADER_EX_INFO* LPHSE_SEND_HEADER_EX_INF;
 
-extern (Pascal) {
+extern (Windows) {
     BOOL GetExtensionVersion(HSE_VERSION_INFO*);
     DWORD HttpExtensionProc(EXTENSION_CONTROL_BLOCK*);
     BOOL TerminateExtension(DWORD);
