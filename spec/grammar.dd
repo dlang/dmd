@@ -28,6 +28,5 @@ Macros:
         PSCURLY_PSSCOPE=$(GLINK ScopeBlockStatement)
         PSCURLYSCOPE=$(GLINK NonEmptyOrScopeBlockStatement)
         TRAITS_LINK2=$(LINK2 traits.html#$1, $(D $1))
-        GLINK_LEX=$(GLINK2 lex, $1)
         GLINK2=$(GLINK $2)
         GRAMMAR_SUMMARY=$0
