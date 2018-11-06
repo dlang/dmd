@@ -10,7 +10,7 @@ $(HEADERNAV_TOC)
 
 $(GRAMMAR
 $(GNAME TemplateDeclaration):
-    $(D template) $(I Identifier) $(GLINK TemplateParameters) $(GLINK Constraint)$(OPT) $(D {) $(GLINK2 module, DeclDefs)$(OPT) $(D })
+    $(D template) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(GLINK Constraint)$(OPT) $(D {) $(GLINK2 module, DeclDefs)$(OPT) $(D })
 
 $(GNAME TemplateParameters):
     $(D $(LPAREN)) $(GLINK TemplateParameterList)$(OPT) $(D $(RPAREN))
@@ -60,7 +60,7 @@ $(H2 $(LNAME2 explicit_tmp_instantiation, Explicit Template Instantiation))
 
 $(GRAMMAR
 $(GNAME TemplateInstance):
-    $(I Identifier) $(GLINK TemplateArguments)
+    $(GLINK_LEX Identifier) $(GLINK TemplateArguments)
 
 $(GNAME TemplateArguments):
     $(D ! $(LPAREN)) $(GLINK TemplateArgumentList)$(OPT) $(D $(RPAREN))
@@ -81,13 +81,13 @@ $(GNAME Symbol):
     $(D .) $(GLINK SymbolTail)
 
 $(GNAME SymbolTail):
-    $(I Identifier)
-    $(I Identifier) $(D .) $(I SymbolTail)
+    $(GLINK_LEX Identifier)
+    $(GLINK_LEX Identifier) $(D .) $(I SymbolTail)
     $(GLINK TemplateInstance)
     $(GLINK TemplateInstance) $(D .) $(I SymbolTail)
 
 $(GNAME TemplateSingleArgument):
-    $(I Identifier)
+    $(GLINK_LEX Identifier)
     $(GLINK2 declaration, BasicTypeX)
     $(GLINK_LEX CharacterLiteral)
     $(GLINK_LEX StringLiteral)
@@ -303,10 +303,10 @@ $(H2 $(LNAME2 template_type_parameters, Template Type Parameters))
 
 $(GRAMMAR
 $(GNAME TemplateTypeParameter):
-    $(I Identifier)
-    $(I Identifier) $(GLINK TemplateTypeParameterSpecialization)
-    $(I Identifier) $(GLINK TemplateTypeParameterDefault)
-    $(I Identifier) $(GLINK TemplateTypeParameterSpecialization) $(GLINK TemplateTypeParameterDefault)
+    $(GLINK_LEX Identifier)
+    $(GLINK_LEX Identifier) $(GLINK TemplateTypeParameterSpecialization)
+    $(GLINK_LEX Identifier) $(GLINK TemplateTypeParameterDefault)
+    $(GLINK_LEX Identifier) $(GLINK TemplateTypeParameterSpecialization) $(GLINK TemplateTypeParameterDefault)
 
 $(GNAME TemplateTypeParameterSpecialization):
     $(D :) $(GLINK2 declaration, Type)
@@ -492,7 +492,7 @@ $(H2 $(LNAME2 aliasparameters, Template Alias Parameters))
 
 $(GRAMMAR
 $(GNAME TemplateAliasParameter):
-    $(D alias) $(I Identifier) $(GLINK TemplateAliasParameterSpecialization)$(OPT) $(GLINK TemplateAliasParameterDefault)$(OPT)
+    $(D alias) $(GLINK_LEX Identifier) $(GLINK TemplateAliasParameterSpecialization)$(OPT) $(GLINK TemplateAliasParameterDefault)$(OPT)
     $(D alias) $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator) $(GLINK TemplateAliasParameterSpecialization)$(OPT) $(GLINK TemplateAliasParameterDefault)$(OPT)
 
 $(GNAME TemplateAliasParameterSpecialization):
@@ -728,7 +728,7 @@ $(H2 $(LNAME2 variadic-templates, Template Sequence Parameters))
 
 $(GRAMMAR
 $(GNAME TemplateSequenceParameter):
-    $(I Identifier) $(D ...)
+    $(GLINK_LEX Identifier) $(D ...)
 )
 
     $(P If the last template parameter in the $(I TemplateParameterList)
@@ -947,18 +947,18 @@ $(H2 $(LNAME2 aggregate_templates, Aggregate Templates))
 
 $(GRAMMAR
 $(GNAME ClassTemplateDeclaration):
-    $(D class) $(I Identifier) $(GLINK TemplateParameters) $(GLINK Constraint)$(OPT) $(GLINK2 class, BaseClassList)$(OPT) $(GLINK2 struct, AggregateBody)
-    $(D class) $(I Identifier) $(GLINK TemplateParameters) $(GLINK2 class, BaseClassList)$(OPT) $(GLINK Constraint)$(OPT) $(GLINK2 struct, AggregateBody)
+    $(D class) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(GLINK Constraint)$(OPT) $(GLINK2 class, BaseClassList)$(OPT) $(GLINK2 struct, AggregateBody)
+    $(D class) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(GLINK2 class, BaseClassList)$(OPT) $(GLINK Constraint)$(OPT) $(GLINK2 struct, AggregateBody)
 
 $(GNAME InterfaceTemplateDeclaration):
-    $(D interface) $(I Identifier) $(GLINK TemplateParameters) $(GLINK Constraint)$(OPT) $(GLINK2 interface, BaseInterfaceList)$(OPT) $(GLINK2 struct, AggregateBody)
-    $(D interface) $(I Identifier) $(GLINK TemplateParameters) $(GLINK2 interface, BaseInterfaceList) $(GLINK Constraint) $(GLINK2 struct, AggregateBody)
+    $(D interface) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(GLINK Constraint)$(OPT) $(GLINK2 interface, BaseInterfaceList)$(OPT) $(GLINK2 struct, AggregateBody)
+    $(D interface) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(GLINK2 interface, BaseInterfaceList) $(GLINK Constraint) $(GLINK2 struct, AggregateBody)
 
 $(GNAME StructTemplateDeclaration):
-    $(D struct) $(I Identifier) $(GLINK TemplateParameters) $(GLINK Constraint)$(OPT) $(GLINK2 struct, AggregateBody)
+    $(D struct) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(GLINK Constraint)$(OPT) $(GLINK2 struct, AggregateBody)
 
 $(GNAME UnionTemplateDeclaration):
-    $(D union) $(I Identifier) $(GLINK TemplateParameters) $(GLINK Constraint)$(OPT) $(GLINK2 struct, AggregateBody)
+    $(D union) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(GLINK Constraint)$(OPT) $(GLINK2 struct, AggregateBody)
 )
 
     $(P If a template declares exactly one member, and that member is a class

@@ -59,7 +59,7 @@ $(H2 $(LNAME2 version, Version Condition))
 $(GRAMMAR
 $(GNAME VersionCondition):
     $(D version $(LPAREN)) $(GLINK_LEX IntegerLiteral) $(D $(RPAREN))
-    $(D version $(LPAREN)) $(I Identifier) $(D $(RPAREN))
+    $(D version $(LPAREN)) $(GLINK_LEX Identifier) $(D $(RPAREN))
     $(D version $(LPAREN)) $(D unittest) $(D $(RPAREN))
     $(D version $(LPAREN)) $(D assert) $(D $(RPAREN))
 )
@@ -117,7 +117,7 @@ $(H2 $(LEGACY_LNAME2 VersionSpecification, version-specification, Version Specif
 
 $(GRAMMAR
 $(GNAME VersionSpecification):
-    $(D version =) $(I Identifier) $(D ;)
+    $(D version =) $(GLINK_LEX Identifier) $(D ;)
     $(D version =) $(GLINK_LEX IntegerLiteral) $(D ;)
 )
 
@@ -393,7 +393,7 @@ $(GRAMMAR
 $(GNAME DebugCondition):
     $(D debug)
     $(D debug $(LPAREN)) $(GLINK_LEX IntegerLiteral) $(D $(RPAREN))
-    $(D debug $(LPAREN)) $(I Identifier) $(D $(RPAREN))
+    $(D debug $(LPAREN)) $(GLINK_LEX Identifier) $(D $(RPAREN))
 )
 
         $(P Two versions of programs are commonly built,
@@ -450,7 +450,7 @@ $(H2 $(LNAME2 debug_specification, Debug Specification))
 
 $(GRAMMAR
 $(GNAME DebugSpecification):
-    $(D debug =) $(I Identifier) $(D ;)
+    $(D debug =) $(GLINK_LEX Identifier) $(D ;)
     $(D debug =) $(GLINK_LEX IntegerLiteral) $(D ;)
 )
 

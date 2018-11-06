@@ -17,8 +17,8 @@ $(GNAME AggregateDeclaration):
     $(GLINK UnionDeclaration)
 
 $(GNAME StructDeclaration):
-    $(D struct) $(I Identifier) $(D ;)
-    $(D struct) $(I Identifier) $(GLINK AggregateBody)
+    $(D struct) $(GLINK_LEX Identifier) $(D ;)
+    $(D struct) $(GLINK_LEX Identifier) $(GLINK AggregateBody)
     $(GLINK2 template, StructTemplateDeclaration)
     $(GLINK AnonStructDeclaration)
 
@@ -26,8 +26,8 @@ $(GNAME AnonStructDeclaration):
     $(D struct) $(GLINK AggregateBody)
 
 $(GNAME UnionDeclaration):
-    $(D union) $(I Identifier) $(D ;)
-    $(D union) $(I Identifier) $(GLINK AggregateBody)
+    $(D union) $(GLINK_LEX Identifier) $(D ;)
+    $(D union) $(GLINK_LEX Identifier) $(GLINK AggregateBody)
     $(GLINK2 template, UnionTemplateDeclaration)
     $(GLINK AnonUnionDeclaration)
 

@@ -103,14 +103,14 @@ $(GNAME ModuleFullyQualifiedName):
     $(I Packages) $(D .) $(I ModuleName)
 
 $(GNAME ModuleName):
-    $(I Identifier)
+    $(GLINK_LEX Identifier)
 
 $(GNAME Packages):
     $(I PackageName)
     $(I Packages) $(D .) $(I PackageName)
 
 $(GNAME PackageName):
-    $(I Identifier)
+    $(GLINK_LEX Identifier)
 )
 
 $(P The $(I Identifier)s preceding the rightmost are the $(I Packages) that the
@@ -209,7 +209,7 @@ $(GNAME ImportBindList):
 
 $(GNAME ImportBind):
     $(GLINK_LEX Identifier)
-    $(GLINK_LEX Identifier) = $(I Identifier)
+    $(GLINK_LEX Identifier) = $(GLINK_LEX Identifier)
 
 $(GNAME ModuleAliasIdentifier):
     $(GLINK_LEX Identifier)

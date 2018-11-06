@@ -141,9 +141,9 @@ $(P     Statements can be labeled. A label is an identifier that
 
 $(GRAMMAR
 $(GNAME LabeledStatement):
-    $(I Identifier) $(D :)
-    $(I Identifier) $(D :) $(PSSEMI)
-    $(I Identifier) $(D :) $(PSSEMI_PSCURLYSCOPE)
+    $(GLINK_LEX Identifier) $(D :)
+    $(GLINK_LEX Identifier) $(D :) $(PSSEMI)
+    $(GLINK_LEX Identifier) $(D :) $(PSSEMI_PSCURLYSCOPE)
 )
 
 $(P
@@ -240,8 +240,8 @@ $(GNAME IfStatement):
 
 $(GNAME IfCondition):
     $(EXPRESSION)
-    $(D auto) $(I Identifier) $(D =) $(EXPRESSION)
-    $(GLINK2 declaration, TypeCtors) $(I Identifier) $(D =) $(EXPRESSION)
+    $(D auto) $(GLINK_LEX Identifier) $(D =) $(EXPRESSION)
+    $(GLINK2 declaration, TypeCtors) $(GLINK_LEX Identifier) $(D =) $(EXPRESSION)
     $(GLINK2 declaration, TypeCtors)$(OPT) $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator) $(D =) $(EXPRESSION)
 
 $(GNAME ThenStatement):
@@ -446,8 +446,8 @@ $(GNAME ForeachTypeList):
 
 $(GNAME ForeachType):
     $(GLINK ForeachTypeAttributes)$(OPT) $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator)
-    $(GLINK ForeachTypeAttributes)$(OPT) $(I Identifier)
-    $(GLINK ForeachTypeAttributes)$(OPT) $(D alias) $(I Identifier)
+    $(GLINK ForeachTypeAttributes)$(OPT) $(GLINK_LEX Identifier)
+    $(GLINK ForeachTypeAttributes)$(OPT) $(D alias) $(GLINK_LEX Identifier)
 
 $(GNAME ForeachTypeAttributes)
     $(GLINK ForeachTypeAttribute)
@@ -1196,7 +1196,7 @@ $(H2 $(LEGACY_LNAME2 ContinueStatement, continue-statement, Continue Statement))
 
 $(GRAMMAR
 $(GNAME ContinueStatement):
-    $(D continue) $(I Identifier)$(OPT) $(D ;)
+    $(D continue) $(GLINK_LEX Identifier)$(OPT) $(D ;)
 )
 
 $(P `continue` aborts the current iteration of its enclosing loop statement, and
@@ -1230,7 +1230,7 @@ $(H2 $(LEGACY_LNAME2 BreakStatement, break-statement, Break Statement))
 
 $(GRAMMAR
 $(GNAME BreakStatement):
-    $(D break) $(I Identifier)$(OPT) $(D ;)
+    $(D break) $(GLINK_LEX Identifier)$(OPT) $(D ;)
 )
 
 $(P `break` exits the innermost enclosing while, for, foreach, do, or switch
@@ -1307,7 +1307,7 @@ $(H2 $(LEGACY_LNAME2 GotoStatement, goto-statement, Goto Statement))
 
 $(GRAMMAR
 $(GNAME GotoStatement):
-    $(D goto) $(I Identifier) $(D ;)
+    $(D goto) $(GLINK_LEX Identifier) $(D ;)
     $(D goto) $(D default) $(D ;)
     $(D goto) $(D case) $(D ;)
     $(D goto) $(D case) $(EXPRESSION) $(D ;)
@@ -1571,7 +1571,7 @@ $(GNAME Catch):
     $(D catch $(LPAREN)) $(GLINK CatchParameter) $(D $(RPAREN)) $(PS0)
 
 $(GNAME CatchParameter):
-    $(GLINK2 declaration, BasicType) $(I Identifier)
+    $(GLINK2 declaration, BasicType) $(GLINK_LEX Identifier)
 
 $(GNAME FinallyStatement):
     $(D finally) $(PS0)

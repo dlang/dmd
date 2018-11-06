@@ -14,10 +14,10 @@ $(GNAME FuncDeclaration):
     $(GLINK AutoFuncDeclaration)
 
 $(GNAME AutoFuncDeclaration):
-    $(GLINK2 declaration, StorageClasses) $(I Identifier) $(GLINK FuncDeclaratorSuffix) $(GLINK FunctionBody)
+    $(GLINK2 declaration, StorageClasses) $(GLINK_LEX Identifier) $(GLINK FuncDeclaratorSuffix) $(GLINK FunctionBody)
 
 $(GNAME FuncDeclarator):
-    $(GLINK2 declaration, BasicType2)$(OPT) $(I Identifier) $(GLINK FuncDeclaratorSuffix)
+    $(GLINK2 declaration, BasicType2)$(OPT) $(GLINK_LEX Identifier) $(GLINK FuncDeclaratorSuffix)
 
 $(GNAME FuncDeclaratorSuffix):
     $(GLINK Parameters) $(GLINK MemberFunctionAttributes)$(OPT)
@@ -131,14 +131,14 @@ $(GNAME InContractExpression):
 
 $(GNAME OutContractExpression):
     $(D out $(LPAREN) ;) $(GLINK2 expression, AssertArguments) $(D $(RPAREN))
-    $(D out $(LPAREN)) $(I Identifier) $(D ;) $(GLINK2 expression, AssertArguments) $(D $(RPAREN))
+    $(D out $(LPAREN)) $(GLINK_LEX Identifier) $(D ;) $(GLINK2 expression, AssertArguments) $(D $(RPAREN))
 
 $(GNAME InStatement):
     $(D in) $(GLINK2 statement, BlockStatement)
 
 $(GNAME OutStatement):
     $(D out) $(GLINK2 statement, BlockStatement)
-    $(D out) $(D $(LPAREN)) $(I Identifier) $(D $(RPAREN)) $(GLINK2 statement, BlockStatement)
+    $(D out) $(D $(LPAREN)) $(GLINK_LEX Identifier) $(D $(RPAREN)) $(GLINK2 statement, BlockStatement)
 )
 
 $(H2 $(LNAME2 contracts, Contracts))

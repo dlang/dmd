@@ -62,7 +62,7 @@ $(H2 $(LNAME2 asminstruction, Asm instruction))
 
 $(GRAMMAR
 $(GNAME AsmInstruction):
-    $(I Identifier) $(D :) $(I AsmInstruction)
+    $(GLINK_LEX Identifier) $(D :) $(I AsmInstruction)
     $(D align) $(GLINK IntegerExpression)
     $(D even)
     $(D naked)
@@ -110,7 +110,7 @@ $(H2 $(LNAME2 align, align $(I IntegerExpression)))
 $(GRAMMAR
 $(GNAME IntegerExpression):
     $(GLINK_LEX IntegerLiteral)
-    $(I Identifier)
+    $(GLINK_LEX Identifier)
 )
 
     $(P Causes the assembler to emit NOP instructions to align the next
@@ -348,8 +348,8 @@ $(GNAME AsmPrimaryExp):
     $(D this)
 
 $(GNAME DotIdentifier):
-    $(I Identifier)
-    $(I Identifier) $(D .) $(I DotIdentifier)
+    $(GLINK_LEX Identifier)
+    $(GLINK_LEX Identifier) $(D .) $(I DotIdentifier)
 )
 
     $(P The operand syntax more or less follows the Intel CPU documentation
