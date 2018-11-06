@@ -2904,7 +2904,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             foreach (s; *ns.members)
             {
                 if (repopulateMembers)
+                {
+                    s.addMember(sc, sc.scopesym);
                     s.setScope(sc);
+                }
                 s.importAll(sc);
             }
             foreach (s; *ns.members)
