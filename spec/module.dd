@@ -115,7 +115,7 @@ $(GNAME PackageName):
 
 $(P The $(I Identifier)s preceding the rightmost are the $(I Packages) that the
 module is in. The packages correspond to directory names in the source file
-path. Package and module names cannot be $(GLINK2 lex, Keyword)s.)
+path. Package and module names cannot be $(GLINK_LEX Keyword)s.)
 
 $(P If present, the $(I ModuleDeclaration) appears syntactically first in the
 source file, and there can be only one per source file.)
@@ -178,7 +178,7 @@ import foo;  // Deprecated: module foo is deprecated - Please use foo2 instead.
     characters lower case letters, digits or `_` to ensure maximum portability and compatibility with
     various file systems.)
     $(LI The file names for packages and modules should also be composed of
-    the ASCII characters lower case letters, digits or `_` and should not be a $(GLINK2 lex, Keyword).)
+    the ASCII characters lower case letters, digits or `_` and should not be a $(GLINK_LEX Keyword).)
     ))
 
 $(H2 $(LEGACY_LNAME2 ImportDeclaration, import-declaration, Import Declaration))
@@ -208,11 +208,11 @@ $(GNAME ImportBindList):
     $(GLINK ImportBind) $(D ,) $(I ImportBindList)
 
 $(GNAME ImportBind):
-    $(GLINK2 lex, Identifier)
-    $(GLINK2 lex, Identifier) = $(I Identifier)
+    $(GLINK_LEX Identifier)
+    $(GLINK_LEX Identifier) = $(I Identifier)
 
 $(GNAME ModuleAliasIdentifier):
-    $(GLINK2 lex, Identifier)
+    $(GLINK_LEX Identifier)
 )
 
 $(P There are several forms of the $(I ImportDeclaration), from generalized to

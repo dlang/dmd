@@ -73,12 +73,12 @@ $(GNAME AsmInstruction):
     $(D df) $(I Operands)
     $(D dd) $(I Operands)
     $(D de) $(I Operands)
-    $(D db) $(GLINK2 lex, StringLiteral)
-    $(D ds) $(GLINK2 lex, StringLiteral)
-    $(D di) $(GLINK2 lex, StringLiteral)
-    $(D dl) $(GLINK2 lex, StringLiteral)
-    $(D dw) $(GLINK2 lex, StringLiteral)
-    $(D dq) $(GLINK2 lex, StringLiteral)
+    $(D db) $(GLINK_LEX StringLiteral)
+    $(D ds) $(GLINK_LEX StringLiteral)
+    $(D di) $(GLINK_LEX StringLiteral)
+    $(D dl) $(GLINK_LEX StringLiteral)
+    $(D dw) $(GLINK_LEX StringLiteral)
+    $(D dq) $(GLINK_LEX StringLiteral)
     $(I Opcode)
     $(I Opcode Operands)
 
@@ -109,7 +109,7 @@ $(H2 $(LNAME2 align, align $(I IntegerExpression)))
 
 $(GRAMMAR
 $(GNAME IntegerExpression):
-    $(GLINK2 lex, IntegerLiteral)
+    $(GLINK_LEX IntegerLiteral)
     $(I Identifier)
 )
 
@@ -336,8 +336,8 @@ $(GNAME AsmUnaExp):
     $(I AsmPrimaryExp)
 
 $(GNAME AsmPrimaryExp):
-    $(GLINK2 lex, IntegerLiteral)
-    $(GLINK2 lex, FloatLiteral)
+    $(GLINK_LEX IntegerLiteral)
+    $(GLINK_LEX FloatLiteral)
     $(D __LOCAL_SIZE)
     $(D $)
     $(GLINK Register)

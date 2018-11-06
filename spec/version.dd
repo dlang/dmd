@@ -58,7 +58,7 @@ $(H2 $(LNAME2 version, Version Condition))
 
 $(GRAMMAR
 $(GNAME VersionCondition):
-    $(D version $(LPAREN)) $(GLINK2 lex, IntegerLiteral) $(D $(RPAREN))
+    $(D version $(LPAREN)) $(GLINK_LEX IntegerLiteral) $(D $(RPAREN))
     $(D version $(LPAREN)) $(I Identifier) $(D $(RPAREN))
     $(D version $(LPAREN)) $(D unittest) $(D $(RPAREN))
     $(D version $(LPAREN)) $(D assert) $(D $(RPAREN))
@@ -118,7 +118,7 @@ $(H2 $(LEGACY_LNAME2 VersionSpecification, version-specification, Version Specif
 $(GRAMMAR
 $(GNAME VersionSpecification):
     $(D version =) $(I Identifier) $(D ;)
-    $(D version =) $(GLINK2 lex, IntegerLiteral) $(D ;)
+    $(D version =) $(GLINK_LEX IntegerLiteral) $(D ;)
 )
 
         $(P The version specification makes it straightforward to group
@@ -392,7 +392,7 @@ $(H2 $(LNAME2 debug, Debug Condition))
 $(GRAMMAR
 $(GNAME DebugCondition):
     $(D debug)
-    $(D debug $(LPAREN)) $(GLINK2 lex, IntegerLiteral) $(D $(RPAREN))
+    $(D debug $(LPAREN)) $(GLINK_LEX IntegerLiteral) $(D $(RPAREN))
     $(D debug $(LPAREN)) $(I Identifier) $(D $(RPAREN))
 )
 
@@ -451,7 +451,7 @@ $(H2 $(LNAME2 debug_specification, Debug Specification))
 $(GRAMMAR
 $(GNAME DebugSpecification):
     $(D debug =) $(I Identifier) $(D ;)
-    $(D debug =) $(GLINK2 lex, IntegerLiteral) $(D ;)
+    $(D debug =) $(GLINK_LEX IntegerLiteral) $(D ;)
 )
 
         $(P Debug identifiers and levels are set either by the command line switch
