@@ -877,7 +877,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 args2[0] = e.e2;
                 expandTuples(&args2);
                 argsset = 1;
-                Match m;
+                Match m, m1;
                 m.last = MATCH.nomatch;
                 if (s)
                 {
@@ -891,13 +891,34 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 FuncDeclaration lastf = m.lastf;
                 if (s_r)
                 {
-                    functionResolve(&m, s_r, e.loc, sc, tiargs, e.e2.type, &args1);
-                    if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
+                    functionResolve(&m1, s_r, e.loc, sc, tiargs, e.e2.type, &args1);
+                    if (m1.lastf && (m1.lastf.errors || m1.lastf.semantic3Errors))
                     {
                         result = new ErrorExp();
                         return;
                     }
                 }
+
+                /* https://issues.dlang.org/show_bug.cgi?id=17674
+                 *
+                 * `Match m` cannot be used to check both `s` and `s_r`
+                 * because the opBinary functions may have different parameters.
+                 * To fix this, two Match instances are used and merged into `m`.
+                 */
+                if (m.count && m1.count)
+                {
+                    // if both m1 and m have found overloads, check which is the better match
+                    if (m.last > m1.last)
+                        m = m1;
+                    else if (m1.last == m.last)
+                    {
+                        m.count += m1.count;
+                        m.nextf = m1.lastf;
+                    }
+                }
+                else if (!m.count && m1.count)
+                    m = m1;
+
                 if (m.count > 1)
                 {
                     // Error, ambiguous
@@ -909,6 +930,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     if (tiargs)
                         goto L1;
                 }
+
                 if (e.op == TOK.plusPlus || e.op == TOK.minusMinus)
                 {
                     // Kludge because operator overloading regards e++ and e--
