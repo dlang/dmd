@@ -954,6 +954,7 @@ alias Tup = AliasSeq!("hello", "world");
 extern(C++, (Tup))
 {
     void test19278_3();
+    __gshared size_t test19278_var;
 }
 extern(C++, (AliasSeq!(Tup, "yay")))
 {
@@ -965,6 +966,7 @@ version(Win64)
     static assert(test19278_2.mangleof == "?test19278_2@lookup@@YAXXZ");
     static assert(test19278_3.mangleof == "?test19278_3@world@hello@@YAXXZ");
     static assert(test19278_4.mangleof == "?test19278_4@yay@world@hello@@YAXXZ");
+    static assert(test19278_var.mangleof == "?test19278_var@world@hello@@3_KA");
 }
 else version(Posix)
 {
@@ -972,4 +974,5 @@ else version(Posix)
     static assert(test19278_2.mangleof == "_ZN6lookup11test19278_2Ev");
     static assert(test19278_3.mangleof == "_ZN5hello5world11test19278_3Ev");
     static assert(test19278_4.mangleof == "_ZN5hello5world3yay11test19278_4Ev");
+    static assert(test19278_var.mangleof == "_ZN5hello5world13test19278_varE");
 }
