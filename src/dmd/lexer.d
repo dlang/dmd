@@ -2392,9 +2392,9 @@ class Lexer : ErrorHandler
     {
         const s = p;
         assert(*s & 0x80);
-        // Check length of remaining string up to 6 UTF-8 characters
+        // Check length of remaining string up to 4 UTF-8 characters
         size_t len;
-        for (len = 1; len < 6 && s[len]; len++)
+        for (len = 1; len < 4 && s[len]; len++)
         {
         }
         size_t idx = 0;
