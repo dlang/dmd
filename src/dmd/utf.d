@@ -760,9 +760,9 @@ immutable(char*) utf_decodeWchar(const(wchar)* s, size_t len, ref size_t ridx, o
     assert(s !is null);
     size_t i = ridx++;
     assert(i < len);
-    // Pre-stage results for ASCII and error cases
+    // Pre-stage results for single wchar and error cases
     dchar u = rresult = s[i];
-    if (u < 0x80) // ASCII
+    if (u < 0xD800) // Single wchar codepoint
         return UTF16_DECODE_OK;
     if (0xD800 <= u && u <= 0xDBFF) // Surrogate pair
     {
