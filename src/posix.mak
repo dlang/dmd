@@ -369,7 +369,7 @@ G_DOBJS = $(addprefix $G/, $(BACK_DOBJS))
 #$(info $$G_OBJS is [${G_OBJS}])
 
 ifeq (osx,$(OS))
-	BACK_OBJS += machobj.o
+	BACK_DOBJS += machobj.o
 else
 #	BACK_DOBJS += elfobj.o
 endif
@@ -405,7 +405,7 @@ BACK_SRC = \
 	$C/elfobj.d $C/cv4.h $C/dwarf2.h $C/exh.h $C/go.h \
 	$C/dwarfdbginf.d $C/dwarf.h $C/aa.h $C/aarray.d \
 	$C/platform_stub.c $C/code_x86.h $C/code_stub.h \
-	$C/machobj.c $C/mscoffobj.d \
+	$C/machobj.d $C/mscoffobj.d \
 	$C/obj.h $C/pdata.d $C/cv8.d $C/backconfig.d $C/sizecheck.c $C/divcoeff.d \
 	$C/dvarstats.d $C/dvec.d \
 	$C/md5.d $C/md5.h \
