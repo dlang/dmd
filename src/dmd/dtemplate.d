@@ -1979,9 +1979,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         // Partially instantiate function for constraint and fd.leastAsSpecialized()
         {
-            assert(paramsym);
+            assert(paramscope.scopesym);
             Scope* sc2 = _scope;
-            sc2 = sc2.push(paramsym);
+            sc2 = sc2.push(paramscope.scopesym);
             sc2 = sc2.push(ti);
             sc2.parent = ti;
             sc2.tinst = ti;
