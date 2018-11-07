@@ -374,7 +374,7 @@ void genObjFile(Module m, bool multiobj)
 //#else
                 Symbol *sref = symbol_generate(SCstatic, type_fake(TYnptr));
                 sref.Sfl = FLdata;
-                scope dtb = new DtBuilder();
+                auto dtb = DtBuilder(0);
                 dtb.xoff(s, 0, TYnptr);
                 sref.Sdt = dtb.finish();
                 outdata(sref);
@@ -393,7 +393,7 @@ void genObjFile(Module m, bool multiobj)
         m.cov.Stype.Tmangle = mTYman_d;
         m.cov.Sfl = FLdata;
 
-        scope dtb = new DtBuilder();
+        auto dtb = DtBuilder(0);
         dtb.nzeros(4 * m.numlines);
         m.cov.Sdt = dtb.finish();
 
@@ -419,7 +419,7 @@ void genObjFile(Module m, bool multiobj)
         bcov.Sclass = SCstatic;
         bcov.Sfl = FLdata;
 
-        scope dtb = new DtBuilder();
+        auto dtb = DtBuilder(0);
         dtb.nbytes((m.numlines + 32) / 32 * (*m.covb).sizeof, cast(char *)m.covb);
         bcov.Sdt = dtb.finish();
 

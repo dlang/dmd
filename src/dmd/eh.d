@@ -90,7 +90,7 @@ Symbol *except_gentables()
 void except_fillInEHTable(Symbol *s)
 {
     uint fsize = NPTRSIZE;             // target size of function pointer
-    scope dtb = new DtBuilder();
+    auto dtb = DtBuilder(0);
 
     /*
         void*           pointer to start of function (Windows)
