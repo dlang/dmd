@@ -796,20 +796,19 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
     /******************************
      * Create a scope for the parameters of the TemplateInstance
-     * ti in the parent scope sc from the ScopeDsymbol paramsym.
+     * `ti` in the parent scope sc from the ScopeDsymbol paramsym.
      *
      * If paramsym is null a new ScopeDsymbol is used in place of
      * paramsym.
      * Params:
-     *      ti         = the TemplateInstance whose parameters to generate the scope for.
-     *      sc         = the parent scope of ti
-     *      paramsym   = the ScopeDsymbol to create the scope under
+     *      ti = the TemplateInstance whose parameters to generate the scope for.
+     *      sc = the parent scope of ti
      * Returns:
      *      a scope for the parameters of ti
      */
-    Scope* scopeForTemplateParameters(TemplateInstance ti, Scope* sc, ScopeDsymbol paramsym)
+    Scope* scopeForTemplateParameters(TemplateInstance ti, Scope* sc)
     {
-        if (!paramsym) paramsym = new ScopeDsymbol();
+        ScopeDsymbol paramsym = new ScopeDsymbol();
         paramsym.parent = _scope.parent;
         Scope* paramscope = _scope.push(paramsym);
         paramscope.tinst = ti;
@@ -870,8 +869,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         assert(_scope);
 
         // Set up scope for template parameters
-        auto paramsym = new ScopeDsymbol();
-        Scope* paramscope = scopeForTemplateParameters(ti,sc,paramsym);
+        Scope* paramscope = scopeForTemplateParameters(ti,sc);
 
         // Attempt type deduction
         m = MATCH.exact;
@@ -1143,8 +1141,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             return MATCH.nomatch;
 
         // Set up scope for parameters
-        auto paramsym = new ScopeDsymbol();
-        Scope* paramscope = scopeForTemplateParameters(ti,sc,paramsym);
+        Scope* paramscope = scopeForTemplateParameters(ti,sc);
 
         TemplateTupleParameter tp = isVariadic();
         Tuple declaredTuple = null;
