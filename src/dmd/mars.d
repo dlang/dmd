@@ -1331,6 +1331,23 @@ private void setTargetCPU(ref Param params)
         params.cpu = CPU.x87;   // cannot support other instruction sets
 }
 
+/**************************************
+ * we want to write the mixin expansion file also on error, but there
+ * are too many ways to terminate dmd (e.g. fatal() which calls exit(EXIT_FAILURE)),
+ * so we cant use scope(exit) ...
+ * so we do it with atexit(&flushMixins);
+ */
+extern(C) void flushMixins()
+{
+    if (!global.params.mixinOut)
+        return;
+
+    assert(global.params.mixinFile);
+    auto f = File(global.params.mixinFile);
+    OutBuffer* ob = global.params.mixinOut;
+    f.setbuffer(cast(void*)ob.data, ob.offset);
+    f.write();
+}
 
 /****************************************************
  * Parse command line arguments.
@@ -1508,6 +1525,17 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.map = true;
         else if (arg == "-multiobj")
             params.multiobj = true;
+        else if (startsWith(p + 1, "mixin="))
+        {
+            auto tmp = p + 6 + 1;
+            if (!tmp[0])
+                goto Lnoarg;
+            // The following are usedin atexit, so we can't rely on main's argv...
+            params.mixinFile = mem.xstrdup(tmp);
+            // ... or the GC's memory being valid.
+            params.mixinOut = cast(OutBuffer*)calloc(1, OutBuffer.sizeof);
+            atexit(&flushMixins);
+        }
         else if (arg == "-g") // https://dlang.org/dmd.html#switch-g
             params.symdebug = 1;
         else if (arg == "-gf")

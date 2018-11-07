@@ -456,6 +456,9 @@ dmd -cov -unittest myprog.d
         Option("mcpu=?",
             "list all architecture options"
         ),
+        Option("mixin=<filename>",
+            "expand and save mixins to file specified by <filename>"
+        ),
         Option("mscrtlib=<name>",
             "MS C runtime library to reference from main/WinMain/DllMain",
             "If building MS-COFF object files with -m64 or -m32mscoff, embed a reference to
