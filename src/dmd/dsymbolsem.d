@@ -1681,11 +1681,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     goto Lnodecl;
                 (*pd.args)[0] = se;
 
-                auto name = cast(char*)mem.xmalloc(se.len + 1);
-                memcpy(name, se.string, se.len);
-                name[se.len] = 0;
+                auto name = se.string[0 .. se.len].xarraydup;
                 if (global.params.verbose)
-                    message("library   %s", name);
+                    message("library   %s", name.ptr);
                 if (global.params.moduleDeps && !global.params.moduleDepsFile)
                 {
                     OutBuffer* ob = global.params.moduleDeps;
@@ -1698,7 +1696,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     ob.writestring(name);
                     ob.writenl();
                 }
-                mem.xfree(name);
+                mem.xfree(name.ptr);
             }
             goto Lnodecl;
         }
@@ -1842,10 +1840,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     assert(pd.args && pd.args.dim == 1);
                     if (auto se = (*pd.args)[0].toStringExp())
                     {
-                        char* name = cast(char*)mem.xmalloc(se.len + 1);
-                        memcpy(name, se.string, se.len);
-                        name[se.len] = 0;
-                        uint cnt = setMangleOverride(s, name[0 .. se.len]);
+                        const name = se.string[0 .. se.len].xarraydup;
+                        uint cnt = setMangleOverride(s, name);
                         if (cnt > 1)
                             pd.error("can only apply to a single declaration");
                     }
