@@ -296,8 +296,8 @@ private final class ParamSection : Section
             size_t pcount = (tf.parameters ? tf.parameters.dim : 0) + cast(int)(tf.varargs == 1);
             if (pcount != paramcount)
             {
-                warning(s.loc, "Ddoc: parameter count mismatch, expected %d, got %d", paramcount, pcount);
-                if (pcount == 0)
+                warning(s.loc, "Ddoc: parameter count mismatch, expected %d, got %d", pcount, paramcount);
+                if (paramcount == 0)
                 {
                     // Chances are someone messed up the format
                     warningSupplemental(s.loc, "Note that the format is `param = description`");

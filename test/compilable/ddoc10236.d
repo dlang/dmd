@@ -4,12 +4,12 @@
 /*
 TEST_OUTPUT:
 ---
-compilable/ddoc10236.d(35): Warning: Ddoc: parameter count mismatch, expected 1, got 2
+compilable/ddoc10236.d(35): Warning: Ddoc: parameter count mismatch, expected 2, got 1
 compilable/ddoc10236.d(47): Warning: Ddoc: function declaration has no parameter 'y'
 compilable/ddoc10236.d(59): Warning: Ddoc: function declaration has no parameter 'y'
-compilable/ddoc10236.d(59): Warning: Ddoc: parameter count mismatch, expected 2, got 1
+compilable/ddoc10236.d(59): Warning: Ddoc: parameter count mismatch, expected 1, got 2
 compilable/ddoc10236.d(71): Warning: Ddoc: parameter count mismatch, expected 2, got 0
-compilable/ddoc10236.d(71):        Note: format is `param = description`
+compilable/ddoc10236.d(71):        Note that the format is `param = description`
 ---
 */
 
