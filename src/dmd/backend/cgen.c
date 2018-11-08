@@ -28,25 +28,6 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 dt_t *dt_get_nzeros(unsigned n);
 
-/*********************************
- */
-CodeBuilder::CodeBuilder(code *c)
-{
-    head = c;
-    pTail = c ? &code_last(c)->next : &head;
-}
-
-/*************************************
- * Handy function to answer the question: who the heck is generating this piece of code?
- */
-inline void ccheck(code *cs)
-{
-//    if (cs->Iop == LEA && (cs->Irm & 0x3F) == 0x34 && cs->Isib == 7) *(char*)0=0;
-//    if (cs->Iop == 0x31) *(char*)0=0;
-//    if (cs->Irm == 0x3D) *(char*)0=0;
-//    if (cs->Iop == LEA && cs->Irm == 0xCB) *(char*)0=0;
-}
-
 /*****************************
  * Find last code in list.
  */
@@ -137,57 +118,6 @@ code *cat(code *c1,code *c2)
 #endif
 
 
-/************************************
- * Concatenate code.
- */
-void CodeBuilder::append(CodeBuilder& cdb)
-{
-    if (cdb.head)
-    {
-        *pTail = cdb.head;
-        pTail = cdb.pTail;
-    }
-}
-
-void CodeBuilder::append(CodeBuilder& cdb1, CodeBuilder& cdb2)
-{
-    append(cdb1);
-    append(cdb2);
-}
-
-void CodeBuilder::append(CodeBuilder& cdb1, CodeBuilder& cdb2, CodeBuilder& cdb3)
-{
-    append(cdb1);
-    append(cdb2);
-    append(cdb3);
-}
-
-void CodeBuilder::append(CodeBuilder& cdb1, CodeBuilder& cdb2, CodeBuilder& cdb3, CodeBuilder& cdb4)
-{
-    append(cdb1);
-    append(cdb2);
-    append(cdb3);
-    append(cdb4);
-}
-
-void CodeBuilder::append(CodeBuilder& cdb1, CodeBuilder& cdb2, CodeBuilder& cdb3, CodeBuilder& cdb4, CodeBuilder& cdb5)
-{
-    append(cdb1);
-    append(cdb2);
-    append(cdb3);
-    append(cdb4);
-    append(cdb5);
-}
-
-void CodeBuilder::append(code *c)
-{
-    if (c)
-    {
-        CodeBuilder cdb(c);
-        append(cdb);
-    }
-}
-
 /*****************************
  * Add code to end of linked list.
  * Note that unused operands are garbage.
@@ -210,7 +140,7 @@ code *gen(code *c,code *cs)
     code* ce = code_malloc();
     *ce = *cs;
     //printf("ce = %p %02x\n", ce, ce->Iop);
-    ccheck(ce);
+    //ccheck(ce);
     simplify_code(ce);
     code_next(ce) = CNIL;
     if (c)
@@ -222,31 +152,12 @@ code *gen(code *c,code *cs)
     return ce;
 }
 
-void CodeBuilder::gen(code *cs)
-{
-#ifdef DEBUG                            /* this is a high usage routine */
-    assert(cs);
-#endif
-#if TX86
-    assert(I64 || cs->Irex == 0);
-#endif
-    code* ce = code_malloc();
-    *ce = *cs;
-    //printf("ce = %p %02x\n", ce, ce->Iop);
-    ccheck(ce);
-    simplify_code(ce);
-    code_next(ce) = CNIL;
-
-    *pTail = ce;
-    pTail = &ce->next;
-}
-
 code *gen1(code *c,unsigned op)
 { code *ce,*cstart;
 
   ce = code_calloc();
   ce->Iop = op;
-  ccheck(ce);
+  //ccheck(ce);
 #if TX86
   assert(op != LEA);
 #endif
@@ -259,19 +170,6 @@ code *gen1(code *c,unsigned op)
   return ce;
 }
 
-void CodeBuilder::gen1(unsigned op)
-{
-    code *ce = code_calloc();
-    ce->Iop = op;
-    ccheck(ce);
-#if TX86
-    assert(op != LEA);
-#endif
-
-    *pTail = ce;
-    pTail = &ce->next;
-}
-
 #if TX86
 code *gen2(code *c,unsigned op,unsigned rm)
 { code *ce,*cstart;
@@ -280,7 +178,7 @@ code *gen2(code *c,unsigned op,unsigned rm)
   /*cxcalloc++;*/
   ce->Iop = op;
   ce->Iea = rm;
-  ccheck(ce);
+  //ccheck(ce);
   if (c)
   {     cstart = c;
         while (code_next(c)) c = code_next(c);  /* find end of list     */
@@ -289,26 +187,6 @@ code *gen2(code *c,unsigned op,unsigned rm)
   return cstart;
 }
 
-void CodeBuilder::gen2(unsigned op, unsigned rm)
-{
-    code *ce = code_calloc();
-    ce->Iop = op;
-    ce->Iea = rm;
-    ccheck(ce);
-
-    *pTail = ce;
-    pTail = &ce->next;
-}
-
-/***************************************
- * Generate floating point instruction.
- */
-
-void CodeBuilder::genf2(unsigned op, unsigned rm)
-{
-    genfwait(*this);
-    gen2(op, rm);
-}
 
 code *gen2sib(code *c,unsigned op,unsigned rm,unsigned sib)
 { code *ce,*cstart;
@@ -321,7 +199,7 @@ code *gen2sib(code *c,unsigned op,unsigned rm,unsigned sib)
   ce->Irex = (rm | (sib & (REX_B << 16))) >> 16;
   if (sib & (REX_R << 16))
         ce->Irex |= REX_X;
-  ccheck(ce);
+  //ccheck(ce);
   if (c)
   {     cstart = c;
         while (code_next(c)) c = code_next(c);  /* find end of list     */
@@ -330,119 +208,20 @@ code *gen2sib(code *c,unsigned op,unsigned rm,unsigned sib)
   return cstart;
 }
 
-void CodeBuilder::gen2sib(unsigned op, unsigned rm, unsigned sib)
-{
-    code *ce = code_calloc();
-    ce->Iop = op;
-    ce->Irm = rm;
-    ce->Isib = sib;
-    ce->Irex = (rm | (sib & (REX_B << 16))) >> 16;
-    if (sib & (REX_R << 16))
-        ce->Irex |= REX_X;
-    ccheck(ce);
-
-    *pTail = ce;
-    pTail = &ce->next;
-}
 #endif
 
-/********************************
- * Generate an ASM sequence.
- */
-
-void CodeBuilder::genasm(char *s, unsigned slen)
-{
-    code *ce = code_calloc();
-    ce->Iop = ASM;
-    ce->IFL1 = FLasm;
-    ce->IEV1.as.len = slen;
-    ce->IEV1.as.bytes = (char *) mem_malloc(slen);
-    memcpy(ce->IEV1.as.bytes,s,slen);
-
-    *pTail = ce;
-    pTail = &ce->next;
-}
-
-void CodeBuilder::genasm(_LabelDsymbol *label)
-{
-    code *ce = code_calloc();
-    ce->Iop = ASM;
-    ce->Iflags = CFaddrsize;
-    ce->IFL1 = FLblockoff;
-    ce->IEVlsym1 = label;
-
-    *pTail = ce;
-    pTail = &ce->next;
-}
-
-void CodeBuilder::genasm(block *label)
-{
-    code *ce = code_calloc();
-    ce->Iop = ASM;
-    ce->Iflags = CFaddrsize;
-    ce->IFL1 = FLblockoff;
-    ce->IEV1.Vblock = label;
-    label->Bflags |= BFLlabel;
-
-    *pTail = ce;
-    pTail = &ce->next;
-}
-
 #if TX86
-void CodeBuilder::gencs(unsigned op, unsigned ea, unsigned FL2, symbol *s)
-{
-    code cs;
-    cs.Iop = op;
-    cs.Iea = ea;
-    ccheck(&cs);
-    cs.IFL2 = FL2;
-    cs.IEVsym2 = s;
-    cs.IEVoffset2 = 0;
-
-    gen(&cs);
-}
 
 code *genc2(code *c,unsigned op,unsigned ea,targ_size_t EV2)
 {   code cs;
 
     cs.Iop = op;
     cs.Iea = ea;
-    ccheck(&cs);
+    //ccheck(&cs);
     cs.Iflags = CFoff;
     cs.IFL2 = FLconst;
     cs.IEV2.Vsize_t = EV2;
     return gen(c,&cs);
-}
-
-void CodeBuilder::genc2(unsigned op, unsigned ea, targ_size_t EV2)
-{
-    code cs;
-    cs.Iop = op;
-    cs.Iea = ea;
-    ccheck(&cs);
-    cs.Iflags = CFoff;
-    cs.IFL2 = FLconst;
-    cs.IEV2.Vsize_t = EV2;
-
-    gen(&cs);
-}
-
-/*****************
- * Generate code.
- */
-
-void CodeBuilder::genc1(unsigned op, unsigned ea, unsigned FL1, targ_size_t EV1)
-{
-    code cs;
-    assert(FL1 < FLMAX);
-    cs.Iop = op;
-    cs.Iflags = CFoff;
-    cs.Iea = ea;
-    ccheck(&cs);
-    cs.IFL1 = FL1;
-    cs.IEV1.Vsize_t = EV1;
-
-    gen(&cs);
 }
 
 /*****************
@@ -455,7 +234,7 @@ code *genc(code *c,unsigned op,unsigned ea,unsigned FL1,targ_size_t EV1,unsigned
     assert(FL1 < FLMAX);
     cs.Iop = op;
     cs.Iea = ea;
-    ccheck(&cs);
+    //ccheck(&cs);
     cs.Iflags = CFoff;
     cs.IFL1 = FL1;
     cs.IEV1.Vsize_t = EV1;
@@ -465,22 +244,6 @@ code *genc(code *c,unsigned op,unsigned ea,unsigned FL1,targ_size_t EV1,unsigned
     return gen(c,&cs);
 }
 
-void CodeBuilder::genc(unsigned op, unsigned ea, unsigned FL1, targ_size_t EV1, unsigned FL2, targ_size_t EV2)
-{
-    code cs;
-    assert(FL1 < FLMAX);
-    cs.Iop = op;
-    cs.Iea = ea;
-    ccheck(&cs);
-    cs.Iflags = CFoff;
-    cs.IFL1 = FL1;
-    cs.IEV1.Vsize_t = EV1;
-    assert(FL2 < FLMAX);
-    cs.IFL2 = FL2;
-    cs.IEV2.Vsize_t = EV2;
-
-    gen(&cs);
-}
 #endif
 
 /********************************
@@ -496,15 +259,6 @@ code *genlinnum(code *c,Srcpos srcpos)
     return gen(c,&cs);
 }
 
-void CodeBuilder::genlinnum(Srcpos srcpos)
-{
-    code cs;
-    //srcpos.print("genlinnum");
-    cs.Iop = ESCAPE | ESClinnum;
-    cs.IEV1.Vsrcpos = srcpos;
-    gen(&cs);
-}
-
 /*****************************
  * Prepend line number to existing code.
  */
@@ -512,22 +266,6 @@ void CodeBuilder::genlinnum(Srcpos srcpos)
 void cgen_prelinnum(code **pc,Srcpos srcpos)
 {
     *pc = cat(genlinnum(NULL,srcpos),*pc);
-}
-
-/********************************
- * Generate 'instruction' which tells the address resolver that the stack has
- * changed.
- */
-
-void CodeBuilder::genadjesp(int offset)
-{
-    if (!I16 && offset)
-    {
-        code cs;
-        cs.Iop = ESCAPE | ESCadjesp;
-        cs.IEV1.Vint = offset;
-        gen(&cs);
-    }
 }
 
 #if TX86
@@ -549,16 +287,6 @@ code *genadjfpu(code *c, int offset)
         return c;
 }
 
-void CodeBuilder::genadjfpu(int offset)
-{
-    if (!I16 && offset)
-    {
-        code cs;
-        cs.Iop = ESCAPE | ESCadjfpu;
-        cs.IEV1.Vint = offset;
-        gen(&cs);
-    }
-}
 #endif
 
 /********************************
@@ -570,33 +298,6 @@ code *gennop(code *c)
     return gen1(c,NOP);
 }
 
-void CodeBuilder::gennop()
-{
-    gen1(NOP);
-}
-
-
-/**************************
- * Generate code to deal with floatreg.
- */
-
-void CodeBuilder::genfltreg(unsigned opcode,unsigned reg,targ_size_t offset)
-{
-    floatreg = TRUE;
-    reflocal = TRUE;
-    if ((opcode & ~7) == 0xD8)
-        genfwait(*this);
-    genc1(opcode,modregxrm(2,reg,BPRM),FLfltreg,offset);
-}
-
-void CodeBuilder::genxmmreg(unsigned opcode,unsigned xreg,targ_size_t offset, tym_t tym)
-{
-    assert(xreg >= XMM0);
-    floatreg = TRUE;
-    reflocal = TRUE;
-    genc1(opcode,modregxrm(2,xreg - XMM0,BPRM),FLfltreg,offset);
-    checkSetVex(last(), tym);
-}
 
 /****************************************
  * Clean stack after call to codelem().
