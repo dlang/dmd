@@ -94,7 +94,7 @@ void win64_pdata(Symbol *sf)
      *  3. pointer to unwind data
      */
 
-    scope dtb = new DtBuilder();
+    auto dtb = DtBuilder(0);
     dtb.xoff(sf,0,TYint);       // Note the TYint, these are 32 bit fixups
     dtb.xoff(sf,cast(uint)(retoffset + retsize),TYint);
     dtb.xoff(sunwind,0,TYint);
@@ -283,7 +283,7 @@ static if (1)
 
     ui.UnwindCode[ui.CountOfCodes-1].FrameOffset = setUnwindCode(1, UWOP.PUSH_NONVOL, BP);
 
-    scope dtb = new DtBuilder();
+    auto dtb = DtBuilder(0);
     dtb.nbytes(4 + ((ui.CountOfCodes + 1) & ~1) * 2,cast(char *)&ui);
     return dtb.finish();
 }

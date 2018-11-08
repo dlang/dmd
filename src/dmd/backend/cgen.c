@@ -9,7 +9,7 @@
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgen.c, backend/cgen.c)
  */
 
-#if !SPP
+#if (SCPP && !HTOD) || MARS
 
 #include        <stdio.h>
 #include        <stdlib.h>
@@ -21,11 +21,12 @@
 #include        "code.h"
 #include        "type.h"
 #include        "global.h"
-#include        "aa.h"
 #include        "dt.h"
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
+
+dt_t *dt_get_nzeros(unsigned n);
 
 /*********************************
  */
@@ -388,7 +389,6 @@ void CodeBuilder::genasm(block *label)
 }
 
 #if TX86
-
 void CodeBuilder::gencs(unsigned op, unsigned ea, unsigned FL2, symbol *s)
 {
     code cs;
@@ -818,9 +818,7 @@ static void outfixup(const Fixup &f)
             // Put it in BSS
             f.sym->Sclass = SCstatic;
             f.sym->Sfl = FLunde;
-            DtBuilder dtb;
-            dtb.nzeros(type_size(f.sym->Stype));
-            f.sym->Sdt = dtb.finish();
+            f.sym->Sdt = dt_get_nzeros(type_size(f.sym->Stype));
             outdata(f.sym);
         }
         else if (f.sym->Sclass != SCsinline)

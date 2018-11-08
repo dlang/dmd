@@ -146,7 +146,7 @@ else
      *  handler address
      */
     uint fsize = 4;             // target size of function pointer
-    scope dtb = new DtBuilder();
+    auto dtb = DtBuilder(0);
     int sz = 0;                     // size so far
 
     foreach (b; BlockRange(startblock))

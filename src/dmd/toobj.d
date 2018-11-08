@@ -97,7 +97,7 @@ void genModuleInfo(Module m)
     m.csym.Sclass = SCglobal;
     m.csym.Sfl = FLdata;
 
-    scope dtb = new DtBuilder();
+    auto dtb = DtBuilder(0);
     ClassDeclarations aclasses;
 
     //printf("members.dim = %d\n", members.dim);
@@ -373,7 +373,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             {
                 sinit.Sclass = scclass;
                 sinit.Sfl = FLdata;
-                scope dtb = new DtBuilder();
+                auto dtb = DtBuilder(0);
                 ClassDeclaration_toDt(cd, dtb);
                 sinit.Sdt = dtb.finish();
                 out_readonly(sinit);
@@ -396,7 +396,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             // Put out the vtbl[]
             //printf("putting out %s.vtbl[]\n", toChars());
-            scope dtbv = new DtBuilder();
+            auto dtbv = DtBuilder(0);
             if (cd.vtblOffset())
                 dtbv.xoff(cd.csym, 0, TYnptr);           // first entry is ClassInfo reference
             foreach (i; cd.vtblOffset() .. cd.vtbl.dim)
@@ -510,7 +510,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 }
 
                 sd.sinit.Sfl = FLdata;
-                scope dtb = new DtBuilder();
+                auto dtb = DtBuilder(0);
                 StructDeclaration_toDt(sd, dtb);
                 sd.sinit.Sdt = dtb.finish();
                 out_readonly(sd.sinit);    // put in read-only segment
@@ -596,7 +596,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             if (!sz && vd.type.toBasetype().ty != Tsarray)
                 assert(0); // this shouldn't be possible
 
-            scope dtb = new DtBuilder();
+            auto dtb = DtBuilder(0);
             if (config.objfmt == OBJ_MACH && global.params.is64bit && (s.Stype.Tty & mTYLINK) == mTYthread)
             {
                 tlsToDt(vd, s, sz, dtb);
@@ -674,7 +674,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 toInitializer(ed);
                 ed.sinit.Sclass = scclass;
                 ed.sinit.Sfl = FLdata;
-                scope dtb = new DtBuilder();
+                auto dtb = DtBuilder(0);
                 Expression_toDt(tc.sym.defaultval, dtb);
                 ed.sinit.Sdt = dtb.finish();
                 outdata(ed.sinit);
@@ -701,7 +701,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             s.Sclass = SCcomdat;
             s.Sfl = FLdata;
 
-            scope dtb = new DtBuilder();
+            auto dtb = DtBuilder(0);
             TypeInfo_toDt(dtb, tid);
             s.Sdt = dtb.finish();
 
@@ -888,7 +888,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
         }
 
     private:
-        static void initializerToDt(VarDeclaration vd, DtBuilder dtb)
+        static void initializerToDt(VarDeclaration vd, ref DtBuilder dtb)
         {
             Initializer_toDt(vd._init, dtb);
 
@@ -939,12 +939,12 @@ void toObjFile(Dsymbol ds, bool multiobj)
          *      sz = data size of s
          *      dtb = where to put the data
          */
-        static void tlsToDt(VarDeclaration vd, Symbol *s, uint sz, DtBuilder dtb)
+        static void tlsToDt(VarDeclaration vd, Symbol *s, uint sz, ref DtBuilder dtb)
         {
             assert(config.objfmt == OBJ_MACH && global.params.is64bit && (s.Stype.Tty & mTYLINK) == mTYthread);
 
             Symbol *tlvInit = createTLVDataSymbol(vd, s);
-            scope tlvInitDtb = new DtBuilder();
+            auto tlvInitDtb = DtBuilder(0);
 
             if (sz == 0)
                 tlvInitDtb.nzeros(1);
@@ -1251,7 +1251,7 @@ private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
         }
     }
 
-    scope dtb = new DtBuilder();
+    auto dtb = DtBuilder(0);
 
     if (Type.typeinfoclass)            // vtbl for TypeInfo_Class : ClassInfo
         dtb.xoff(toVtblSymbol(Type.typeinfoclass), 0, TYnptr);
@@ -1480,7 +1480,7 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
             //TypeInfo typeinfo;
        }
      */
-    scope dtb = new DtBuilder();
+    auto dtb = DtBuilder(0);
 
     if (Type.typeinfoclass)
         dtb.xoff(toVtblSymbol(Type.typeinfoclass), 0, TYnptr); // vtbl for ClassInfo
