@@ -308,7 +308,8 @@ extern (C++) final class Module : Package
     File* docfile;              // output documentation file
     uint errors;                // if any errors in file
     uint numlines;              // number of lines in source file
-    int isDocFile;              // if it is a documentation input file, not D source
+    bool isHdrFile;             // if it is a header (.di) file
+    bool isDocFile;             // if it is a documentation input file, not D source
     bool isPackageFile;         // if it is a package.d
     Strings contentImportedFiles; // array of files whose content was imported
     int needmoduleinfo;
@@ -812,7 +813,7 @@ extern (C++) final class Module : Package
         if (buflen >= 4 && memcmp(buf, cast(char*)"Ddoc", 4) == 0)
         {
             comment = buf + 4;
-            isDocFile = 1;
+            isDocFile = true;
             if (!docfile)
                 setDocfile();
             return this;
@@ -825,10 +826,16 @@ extern (C++) final class Module : Package
         if (FileName.equalsExt(arg, "dd"))
         {
             comment = buf; // the optional Ddoc, if present, is handled above.
-            isDocFile = 1;
+            isDocFile = true;
             if (!docfile)
                 setDocfile();
             return this;
+        }
+        /* If it has the extension ".di", it is a "header" file.
+         */
+        if (FileName.equalsExt(arg, "di"))
+        {
+            isHdrFile = true;
         }
         {
             scope p = new Parser!ASTCodegen(this, buf[0 .. buflen], docfile !is null);

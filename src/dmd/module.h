@@ -66,7 +66,8 @@ public:
     File *docfile;      // output documentation file
     unsigned errors;    // if any errors in file
     unsigned numlines;  // number of lines in source file
-    int isDocFile;      // if it is a documentation input file, not D source
+    bool isHdrFile;     // if it is a header (.di) file
+    bool isDocFile;     // if it is a documentation input file, not D source
     bool isPackageFile; // if it is a package.d
     Strings contentImportedFiles;  // array of files whose content was imported
     int needmoduleinfo;
