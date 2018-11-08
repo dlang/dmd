@@ -540,6 +540,20 @@ private int tryMain(size_t argc, const(char)** argv)
             }
         }
         m.parse();
+        if (m.isHdrFile)
+        {
+            // Remove m's object file from list of object files
+            for (size_t j = 0; j < global.params.objfiles.dim; j++)
+            {
+                if (m.objfile.name.toChars() == global.params.objfiles[j])
+                {
+                    global.params.objfiles.remove(j);
+                    break;
+                }
+            }
+            if (global.params.objfiles.dim == 0)
+                global.params.link = false;
+        }
         if (m.isDocFile)
         {
             anydocfiles = true;
@@ -581,6 +595,8 @@ private int tryMain(size_t argc, const(char)** argv)
          */
         foreach (m; modules)
         {
+            if (m.isHdrFile)
+                continue;
             if (global.params.verbose)
                 message("import    %s", m.toChars());
             genhdrfile(m);
@@ -740,25 +756,33 @@ private int tryMain(size_t argc, const(char)** argv)
     }
     else if (global.params.oneobj)
     {
-        if (modules.dim)
-            obj_start(modules[0].srcfile.toChars());
+        Module firstm;    // first module we generate code for
         foreach (m; modules)
         {
+            if (m.isHdrFile)
+                continue;
+            if (!firstm)
+            {
+                firstm = m;
+                obj_start(cast(char*)m.srcfile.toChars());
+            }
             if (global.params.verbose)
                 message("code      %s", m.toChars());
             genObjFile(m, false);
             if (entrypoint && m == rootHasMain)
                 genObjFile(entrypoint, false);
         }
-        if (!global.errors && modules.dim)
+        if (!global.errors && firstm)
         {
-            obj_end(library, modules[0].objfile);
+            obj_end(library, firstm.objfile);
         }
     }
     else
     {
         foreach (m; modules)
         {
+            if (m.isHdrFile)
+                continue;
             if (global.params.verbose)
                 message("code      %s", m.toChars());
             obj_start(m.srcfile.toChars());
