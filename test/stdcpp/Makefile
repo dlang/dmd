@@ -14,9 +14,9 @@ $(ROOT)/%: $(SRC)/%_test.d $(SRC)/%.cpp
 	mkdir -p $(dir $@)
 	# osx32 does not link properly, nobody uses it anyway...
 	ifneq ($(OS)$(MODEL), osx32)
-            $(QUIET)$(CXX) $(CXXFLAGS) -c -o $(ROOT)/$*_cpp.o $(SRC)/$*.cpp
-            $(QUIET)$(DMD) $(DFLAGS) -main -unittest -of$@ $< $(ROOT)/$*_cpp.o
-        endif
+	$(QUIET)$(CXX) $(CXXFLAGS) -c -o $(ROOT)/$*_cpp.o $(SRC)/$*.cpp
+	$(QUIET)$(DMD) $(DFLAGS) -main -unittest -of$@ $< $(ROOT)/$*_cpp.o
+	endif
 
 clean:
 	rm -rf $(GENERATED)
