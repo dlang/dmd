@@ -370,6 +370,7 @@ struct Global
         }
         _version = (import("VERSION") ~ '\0').ptr;
         vendor = "Digital Mars D";
+        params.mscoff = params.is64bit;
     }
 
     /**
