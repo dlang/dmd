@@ -372,6 +372,14 @@ extern (C++) class Dsymbol : RootObject
         return null;
     }
 
+    /*****
+     * `pastMixin` returns the enclosing symbol if this is a template mixin.
+     *
+     * `pastMixinAndNspace` does likewise, additionally skipping over Nspaces that 
+     * are mangleOnly.
+     *
+     * See also `parent`, `toParent`, `toParent2` and `toParent3`. 
+     */
     final inout(Dsymbol) pastMixin() inout
     {
         //printf("Dsymbol::pastMixin() %s\n", toChars());
@@ -382,6 +390,7 @@ extern (C++) class Dsymbol : RootObject
         return parent.pastMixin();
     }
 
+    /// ditto
     final inout(Dsymbol) pastMixinAndNspace() inout
     {
         //printf("Dsymbol::pastMixin() %s\n", toChars());
@@ -439,6 +448,7 @@ extern (C++) class Dsymbol : RootObject
         return parent.toParent2;
     }
 
+    /// ditto
     final inout(Dsymbol) toParent3() inout
     {
         return parent ? parent.pastMixin() : null;
