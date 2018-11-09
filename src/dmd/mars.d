@@ -156,9 +156,12 @@ private int tryMain(size_t argc, const(char)** argv)
     // Set default values
     global.params.argv0 = arguments[0].toDString;
 
-    // Temporary: Use 32 bits as the default on Windows, for config parsing
+    // Temporary: Use 32 bits OMF as the default on Windows, for config parsing
     static if (TARGET.Windows)
+    {
         global.params.is64bit = false;
+        global.params.mscoff = false;
+    }
 
     global.inifilename = parse_conf_arg(&arguments);
     if (global.inifilename)
