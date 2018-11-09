@@ -368,6 +368,10 @@ struct Global
         {
             static assert(0, "fix this");
         }
+        static if (TARGET.Windows)
+        {
+            params.mscoff = params.is64bit;
+        }
         _version = (import("VERSION") ~ '\0').ptr;
         vendor = "Digital Mars D";
     }
