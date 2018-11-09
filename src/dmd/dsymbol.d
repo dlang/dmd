@@ -378,7 +378,7 @@ extern (C++) class Dsymbol : RootObject
      * `pastMixinAndNspace` does likewise, additionally skipping over Nspaces that
      * are mangleOnly.
      *
-     * See also `parent`, `toParent`, `toParent2` and `toParent3`. 
+     * See also `parent`, `toParent`, `toParent2` and `toParent3`.
      */
     final inout(Dsymbol) pastMixin() inout
     {
