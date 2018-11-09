@@ -86,7 +86,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\dmd\backend\tk.c" />
-    <ClCompile Include="..\dmd\backend\cgen.c" />
     <ClCompile Include="..\dmd\backend\fp.c" />
     <ClCompile Include="..\dmd\backend\os.c" />
     <ClCompile Include="..\dmd\backend\outbuf.c" />
