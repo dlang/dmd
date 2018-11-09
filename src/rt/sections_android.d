@@ -107,43 +107,14 @@ void scanTLSRanges(void[]* rng, scope void delegate(void* pbeg, void* pend) noth
  *       the corresponding address in the TLS dynamic per-thread data.
  */
 
-version (X86)
+extern(C) void* __tls_get_addr( void* p ) nothrow @nogc
 {
-    // NB: the compiler mangles this function as '___tls_get_addr'
-    // even though it is extern(D)
-    extern(D) void* ___tls_get_addr( void* p ) nothrow @nogc
-    {
-        debug(PRINTF) printf("  ___tls_get_addr input - %p\n", p);
-        immutable offset = cast(size_t)(p - cast(void*)&_tlsstart);
-        auto tls = getTLSBlockAlloc();
-        assert(offset < tls.length);
-        return tls.ptr + offset;
-    }
+    debug(PRINTF) printf("  __tls_get_addr input - %p\n", p);
+    immutable offset = cast(size_t)(p - cast(void*)&_tlsstart);
+    auto tls = getTLSBlockAlloc();
+    assert(offset < tls.length);
+    return tls.ptr + offset;
 }
-else version (ARM)
-{
-    extern(C) void* __tls_get_addr( void** p ) nothrow @nogc
-    {
-        debug(PRINTF) printf("  __tls_get_addr input - %p\n", *p);
-        immutable offset = cast(size_t)(*p - cast(void*)&_tlsstart);
-        auto tls = getTLSBlockAlloc();
-        assert(offset < tls.length);
-        return tls.ptr + offset;
-    }
-}
-else version (AArch64)
-{
-    extern(C) void* __tls_get_addr( void* p ) nothrow @nogc
-    {
-        debug(PRINTF) printf("  __tls_get_addr input - %p\n", p);
-        immutable offset = cast(size_t)(p - cast(void*)&_tlsstart);
-        auto tls = getTLSBlockAlloc();
-        assert(offset < tls.length);
-        return tls.ptr + offset;
-    }
-}
-else
-    static assert( false, "Android architecture not supported." );
 
 private:
 
