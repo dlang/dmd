@@ -6,27 +6,46 @@
  *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgen.c, backend/cgen.c)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgen.d, backend/cgen.d)
  */
 
-#if (SCPP && !HTOD) || MARS
+module dmd.backend.cgen;
 
-#include        <stdio.h>
-#include        <stdlib.h>
-#include        <string.h>
-#include        <time.h>
-#include        "cc.h"
-#include        "el.h"
-#include        "oper.h"
-#include        "code.h"
-#include        "type.h"
-#include        "global.h"
-#include        "dt.h"
+version (SCPP)
+    version = COMPILE;
+version (MARS)
+    version = COMPILE;
 
-static char __file__[] = __FILE__;      /* for tassert.h                */
-#include        "tassert.h"
+version (COMPILE)
+{
 
-dt_t *dt_get_nzeros(unsigned n);
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
+
+import dmd.backend.cc;
+import dmd.backend.cdef;
+import dmd.backend.code;
+import dmd.backend.code_x86;
+import dmd.backend.codebuilder;
+import dmd.backend.memh;
+import dmd.backend.el;
+import dmd.backend.global;
+import dmd.backend.obj;
+import dmd.backend.ty;
+import dmd.backend.type;
+
+version (SCPP)
+{
+    import msgs2;
+}
+
+extern (C++):
+
+
+dt_t *dt_get_nzeros(uint n);
+
+extern __gshared CGstate cgstate;
 
 /*****************************
  * Find last code in list.
@@ -35,8 +54,8 @@ dt_t *dt_get_nzeros(unsigned n);
 code *code_last(code *c)
 {
     if (c)
-    {   while (c->next)
-            c = c->next;
+    {   while (c.next)
+            c = c.next;
     }
     return c;
 }
@@ -45,77 +64,43 @@ code *code_last(code *c)
  * Set flag bits on last code in list.
  */
 
-void code_orflag(code *c,unsigned flag)
+void code_orflag(code *c,uint flag)
 {
     if (flag && c)
-    {   while (c->next)
-            c = c->next;
-        c->Iflags |= flag;
+    {   while (c.next)
+            c = c.next;
+        c.Iflags |= flag;
     }
 }
 
-#if TX86
 /*****************************
  * Set rex bits on last code in list.
  */
 
-void code_orrex(code *c,unsigned rex)
+void code_orrex(code *c,uint rex)
 {
     if (rex && c)
-    {   while (c->next)
-            c = c->next;
-        c->Irex |= rex;
+    {   while (c.next)
+            c = c.next;
+        c.Irex |= rex;
     }
 }
-#endif
 
-/**************************************
- * Set the opcode fields in cs.
- */
-code *setOpcode(code *c, code *cs, unsigned op)
-{
-    cs->Iop = op;
-    return c;
-}
 
 /*****************************
  * Concatenate two code lists together. Return pointer to result.
  */
 
-#if TX86 && __INTSIZE == 4 && __DMC__
-__declspec(naked) code *cat(code *c1,code *c2)
-{
-    _asm
-    {
-        mov     EAX,c1-4[ESP]
-        mov     ECX,c2-4[ESP]
-        test    EAX,EAX
-        jne     L6D
-        mov     EAX,ECX
-        ret
-
-L6D:    mov     EDX,EAX
-        cmp     dword ptr [EAX],0
-        je      L7B
-L74:    mov     EDX,[EDX]
-        cmp     dword ptr [EDX],0
-        jne     L74
-L7B:    mov     [EDX],ECX
-        ret
-    }
-}
-#else
 code *cat(code *c1,code *c2)
 {   code **pc;
 
     if (!c1)
         return c2;
-    for (pc = &code_next(c1); *pc; pc = &code_next(*pc))
-        ;
+    for (pc = &c1.next; *pc; pc = &(*pc).next)
+    { }
     *pc = c2;
     return c1;
 }
-#endif
 
 
 /*****************************
@@ -131,88 +116,84 @@ code *cat(code *c1,code *c2)
 
 code *gen(code *c,code *cs)
 {
-#ifdef DEBUG                            /* this is a high usage routine */
-    assert(cs);
-#endif
-#if TX86
-    assert(I64 || cs->Irex == 0);
-#endif
+    debug assert(cs);
+    assert(I64 || cs.Irex == 0);
     code* ce = code_malloc();
     *ce = *cs;
-    //printf("ce = %p %02x\n", ce, ce->Iop);
+    //printf("ce = %p %02x\n", ce, ce.Iop);
     //ccheck(ce);
     simplify_code(ce);
-    code_next(ce) = CNIL;
+    ce.next = null;
     if (c)
     {   code* cstart = c;
         while (code_next(c)) c = code_next(c);  /* find end of list     */
-        code_next(c) = ce;                      /* link into list       */
+        c.next = ce;                      /* link into list       */
         return cstart;
     }
     return ce;
 }
 
-code *gen1(code *c,unsigned op)
-{ code *ce,*cstart;
+code *gen1(code *c,uint op)
+{
+    code* ce;
+    code* cstart;
 
   ce = code_calloc();
-  ce->Iop = op;
+  ce.Iop = op;
   //ccheck(ce);
-#if TX86
   assert(op != LEA);
-#endif
   if (c)
   {     cstart = c;
         while (code_next(c)) c = code_next(c);  /* find end of list     */
-        code_next(c) = ce;                      /* link into list       */
+        c.next = ce;                      /* link into list       */
         return cstart;
   }
   return ce;
 }
 
-#if TX86
-code *gen2(code *c,unsigned op,unsigned rm)
-{ code *ce,*cstart;
+code *gen2(code *c,uint op,uint rm)
+{
+    code* ce;
+    code* cstart;
 
   cstart = ce = code_calloc();
   /*cxcalloc++;*/
-  ce->Iop = op;
-  ce->Iea = rm;
+  ce.Iop = op;
+  ce.Iea = rm;
   //ccheck(ce);
   if (c)
   {     cstart = c;
         while (code_next(c)) c = code_next(c);  /* find end of list     */
-        code_next(c) = ce;                      /* link into list       */
+        c.next = ce;                      /* link into list       */
   }
   return cstart;
 }
 
 
-code *gen2sib(code *c,unsigned op,unsigned rm,unsigned sib)
-{ code *ce,*cstart;
+code *gen2sib(code *c,uint op,uint rm,uint sib)
+{
+    code* ce;
+    code* cstart;
 
   cstart = ce = code_calloc();
   /*cxcalloc++;*/
-  ce->Iop = op;
-  ce->Irm = rm;
-  ce->Isib = sib;
-  ce->Irex = (rm | (sib & (REX_B << 16))) >> 16;
+  ce.Iop = op;
+  ce.Irm = cast(ubyte)rm;
+  ce.Isib = cast(ubyte)sib;
+  ce.Irex = cast(ubyte)((rm | (sib & (REX_B << 16))) >> 16);
   if (sib & (REX_R << 16))
-        ce->Irex |= REX_X;
+        ce.Irex |= REX_X;
   //ccheck(ce);
   if (c)
   {     cstart = c;
         while (code_next(c)) c = code_next(c);  /* find end of list     */
-        code_next(c) = ce;                      /* link into list       */
+        c.next = ce;                      /* link into list       */
   }
   return cstart;
 }
 
-#endif
 
-#if TX86
-
-code *genc2(code *c,unsigned op,unsigned ea,targ_size_t EV2)
+code *genc2(code *c,uint op,uint ea,targ_size_t EV2)
 {   code cs;
 
     cs.Iop = op;
@@ -228,7 +209,7 @@ code *genc2(code *c,unsigned op,unsigned ea,targ_size_t EV2)
  * Generate code.
  */
 
-code *genc(code *c,unsigned op,unsigned ea,unsigned FL1,targ_size_t EV1,unsigned FL2,targ_size_t EV2)
+code *genc(code *c,uint op,uint ea,uint FL1,targ_size_t EV1,uint FL2,targ_size_t EV2)
 {   code cs;
 
     assert(FL1 < FLMAX);
@@ -236,15 +217,14 @@ code *genc(code *c,unsigned op,unsigned ea,unsigned FL1,targ_size_t EV1,unsigned
     cs.Iea = ea;
     //ccheck(&cs);
     cs.Iflags = CFoff;
-    cs.IFL1 = FL1;
+    cs.IFL1 = cast(ubyte)FL1;
     cs.IEV1.Vsize_t = EV1;
     assert(FL2 < FLMAX);
-    cs.IFL2 = FL2;
+    cs.IFL2 = cast(ubyte)FL2;
     cs.IEV2.Vsize_t = EV2;
     return gen(c,&cs);
 }
 
-#endif
 
 /********************************
  * Generate 'instruction' which is actually a line number.
@@ -265,10 +245,9 @@ code *genlinnum(code *c,Srcpos srcpos)
 
 void cgen_prelinnum(code **pc,Srcpos srcpos)
 {
-    *pc = cat(genlinnum(NULL,srcpos),*pc);
+    *pc = cat(genlinnum(null,srcpos),*pc);
 }
 
-#if TX86
 /********************************
  * Generate 'instruction' which tells the scheduler that the fpu stack has
  * changed.
@@ -287,7 +266,6 @@ code *genadjfpu(code *c, int offset)
         return c;
 }
 
-#endif
 
 /********************************
  * Generate 'nop'
@@ -303,11 +281,11 @@ code *gennop(code *c)
  * Clean stack after call to codelem().
  */
 
-void gencodelem(CodeBuilder& cdb,elem *e,regm_t *pretregs,bool constflag)
+void gencodelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,bool constflag)
 {
     if (e)
     {
-        unsigned stackpushsave;
+        uint stackpushsave;
         int stackcleansave;
 
         stackpushsave = stackpush;
@@ -325,21 +303,21 @@ void gencodelem(CodeBuilder& cdb,elem *e,regm_t *pretregs,bool constflag)
  * If so, return !=0 and set *preg to which register it is.
  */
 
-bool reghasvalue(regm_t regm,targ_size_t value,unsigned *preg)
+bool reghasvalue(regm_t regm,targ_size_t value,uint *preg)
 {
-    //printf("reghasvalue(%s, %llx)\n", regm_str(regm), (unsigned long long)value);
+    //printf("reghasvalue(%s, %llx)\n", regm_str(regm), cast(ulong)value);
     /* See if another register has the right value      */
-    unsigned r = 0;
+    uint r = 0;
     for (regm_t mreg = regcon.immed.mval; mreg; mreg >>= 1)
     {
         if (mreg & regm & 1 && regcon.immed.value[r] == value)
         {   *preg = r;
-            return TRUE;
+            return true;
         }
         r++;
         regm >>= 1;
     }
-    return FALSE;
+    return false;
 }
 
 /**************************************
@@ -348,10 +326,10 @@ bool reghasvalue(regm_t regm,targ_size_t value,unsigned *preg)
  *      *preg   the register selected
  */
 
-void regwithvalue(CodeBuilder& cdb,regm_t regm,targ_size_t value,unsigned *preg,regm_t flags)
+void regwithvalue(ref CodeBuilder cdb,regm_t regm,targ_size_t value,uint *preg,regm_t flags)
 {
     //printf("regwithvalue(value = %lld)\n", (long long)value);
-    unsigned reg;
+    uint reg;
     if (!preg)
         preg = &reg;
 
@@ -372,28 +350,23 @@ void regwithvalue(CodeBuilder& cdb,regm_t regm,targ_size_t value,unsigned *preg,
  */
 struct Fixup
 {
-    symbol      *sym;       // the referenced symbol
+    Symbol      *sym;       // the referenced Symbol
     int         seg;        // where the fixup is going (CODE or DATA, never UDATA)
     int         flags;      // CFxxxx
-    targ_size_t offset;     // addr of reference to symbol
+    targ_size_t offset;     // addr of reference to Symbol
     targ_size_t val;        // value to add into location
-#if TARGET_OSX
-    symbol      *funcsym;   // function the symbol goes in
-#endif
-};
+static if (TARGET_OSX)
+{
+    Symbol      *funcsym;   // function the Symbol goes in
+}
+}
 
 struct FixupArray
 {
     Fixup *ptr;
     size_t dim, cap;
 
-    FixupArray()
-    : ptr(NULL)
-    , dim(0)
-    , cap(0)
-    {}
-
-    void push(const Fixup &e)
+    void push(ref Fixup e)
     {
         if (dim == cap)
         {
@@ -401,12 +374,12 @@ struct FixupArray
             cap = cap
                 ? (3 * cap) / 2 // use 'Tau' of 1.5
                 : 0x800;
-            ptr = (Fixup *)::mem_realloc(ptr, cap * sizeof(Fixup));
+            ptr = cast(Fixup *)mem_realloc(ptr, cap * Fixup.sizeof);
         }
         ptr[dim++] = e;
     }
 
-    const Fixup& operator[](size_t idx) const
+    ref Fixup opIndex(size_t idx)
     {
         assert(idx < dim);
         return ptr[idx];
@@ -416,19 +389,19 @@ struct FixupArray
     {
         dim = 0;
     }
-};
+}
 
-static FixupArray fixups;
+private __gshared FixupArray fixups;
 
 /****************************
  * Add to the fix list.
  */
 
-size_t addtofixlist(symbol *s,targ_size_t offset,int seg,targ_size_t val,int flags)
+size_t addtofixlist(Symbol *s,targ_size_t offset,int seg,targ_size_t val,int flags)
 {
-        static char zeros[8];
+        static immutable ubyte[8] zeros = 0;
 
-        //printf("addtofixlist(%p '%s')\n",s,s->Sident);
+        //printf("addtofixlist(%p '%s')\n",s,s.Sident);
         assert(I32 || flags);
         Fixup f;
         f.sym = s;
@@ -436,13 +409,15 @@ size_t addtofixlist(symbol *s,targ_size_t offset,int seg,targ_size_t val,int fla
         f.seg = seg;
         f.flags = flags;
         f.val = val;
-#if TARGET_OSX
+static if (TARGET_OSX)
+{
         f.funcsym = funcsym_p;
-#endif
+}
         fixups.push(f);
 
         size_t numbytes;
-#if TARGET_SEGMENTED
+static if (TARGET_SEGMENTED)
+{
         switch (flags & (CFoff | CFseg))
         {
             case CFoff:         numbytes = tysize(TYnptr);      break;
@@ -450,100 +425,111 @@ size_t addtofixlist(symbol *s,targ_size_t offset,int seg,targ_size_t val,int fla
             case CFoff | CFseg: numbytes = tysize(TYfptr);      break;
             default:            assert(0);
         }
-#else
+}
+else
+{
         numbytes = tysize(TYnptr);
         if (I64 && !(flags & CFoffset64))
             numbytes = 4;
 
-#if TARGET_WINDOS
+static if (TARGET_WINDOS)
+{
         /* This can happen when generating CV8 data
          */
         if (flags & CFseg)
             numbytes += 2;
-#endif
-#endif
-#ifdef DEBUG
-        assert(numbytes <= sizeof(zeros));
-#endif
-        objmod->bytes(seg,offset,numbytes,zeros);
+}
+}
+        debug assert(numbytes <= zeros.sizeof);
+        objmod.bytes(seg,offset,cast(uint)numbytes,cast(ubyte*)zeros.ptr);
         return numbytes;
 }
 
-#if 0
-void searchfixlist (symbol *s )
+static if (0)
 {
-    //printf("searchfixlist(%s)\n", s->Sident);
+void searchfixlist (Symbol *s )
+{
+    //printf("searchfixlist(%s)\n", s.Sident);
 }
-#endif
+}
 
 /****************************
- * Output fixups as references to external or static symbol.
- * First emit data for still undefined static symbols or mark non-static symbols as SCextern.
+ * Output fixups as references to external or static Symbol.
+ * First emit data for still undefined static Symbols or mark non-static Symbols as SCextern.
  */
-static void outfixup(const Fixup &f)
+private void outfixup(ref Fixup f)
 {
     symbol_debug(f.sym);
-    //printf("outfixup '%s' offset %04x\n", f.sym->Sident, f.offset);
+    //printf("outfixup '%s' offset %04x\n", f.sym.Sident, f.offset);
 
-#if TARGET_SEGMENTED
-    if (tybasic(f.sym->ty()) == TYf16func)
+static if (TARGET_SEGMENTED)
+{
+    if (tybasic(f.sym.ty()) == TYf16func)
     {
-        Obj::far16thunk(f.sym);          /* make it into a thunk         */
+        Obj.far16thunk(f.sym);          /* make it into a thunk         */
+        objmod.reftoident(f.seg, f.offset, f.sym, f.val, f.flags);
+        return;
     }
-    else
-#endif
-    if (f.sym->Sxtrnnum == 0)
+}
+
+    if (f.sym.Sxtrnnum == 0)
     {
-        if (f.sym->Sclass == SCstatic)
+        if (f.sym.Sclass == SCstatic)
         {
-#if SCPP
-            if (f.sym->Sdt)
+version (SCPP)
+{
+            if (f.sym.Sdt)
             {
                 outdata(f.sym);
             }
-            else if (f.sym->Sseg == UNKNOWN)
+            else if (f.sym.Sseg == UNKNOWN)
                 synerr(EM_no_static_def,prettyident(f.sym)); // no definition found for static
-#else // MARS
-            // OBJ_OMF does not set Sxtrnnum for static symbols, so check
-            // whether the symbol was assigned to a segment instead, compare
-            // outdata(symbol *s)
-            if (f.sym->Sseg == UNKNOWN)
+}
+else // MARS
+{
+            // OBJ_OMF does not set Sxtrnnum for static Symbols, so check
+            // whether the Symbol was assigned to a segment instead, compare
+            // outdata(Symbol *s)
+            if (f.sym.Sseg == UNKNOWN)
             {
                 printf("Error: no definition for static %s\n", prettyident(f.sym)); // no definition found for static
                 err_exit(); // BUG: do better
             }
-#endif
+}
         }
-        else if (f.sym->Sflags & SFLwasstatic)
+        else if (f.sym.Sflags & SFLwasstatic)
         {
             // Put it in BSS
-            f.sym->Sclass = SCstatic;
-            f.sym->Sfl = FLunde;
-            f.sym->Sdt = dt_get_nzeros(type_size(f.sym->Stype));
+            f.sym.Sclass = SCstatic;
+            f.sym.Sfl = FLunde;
+            f.sym.Sdt = dt_get_nzeros(cast(uint)type_size(f.sym.Stype));
             outdata(f.sym);
         }
-        else if (f.sym->Sclass != SCsinline)
+        else if (f.sym.Sclass != SCsinline)
         {
-            f.sym->Sclass = SCextern;   /* make it external             */
-            objmod->external(f.sym);
-            if (f.sym->Sflags & SFLweak)
-                objmod->wkext(f.sym, NULL);
+            f.sym.Sclass = SCextern;   /* make it external             */
+            objmod.external(f.sym);
+            if (f.sym.Sflags & SFLweak)
+                objmod.wkext(f.sym, null);
         }
     }
 
-#if TARGET_OSX
-    symbol *funcsymsave = funcsym_p;
+static if (TARGET_OSX)
+{
+    Symbol *funcsymsave = funcsym_p;
     funcsym_p = f.funcsym;
-    objmod->reftoident(f.seg, f.offset, f.sym, f.val, f.flags);
+    objmod.reftoident(f.seg, f.offset, f.sym, f.val, f.flags);
     funcsym_p = funcsymsave;
-#else
-    objmod->reftoident(f.seg, f.offset, f.sym, f.val, f.flags);
-#endif
+}
+else
+{
+    objmod.reftoident(f.seg, f.offset, f.sym, f.val, f.flags);
+}
 }
 
 /****************************
  * End of module. Output fixups as references
- * to external symbols.
+ * to external Symbols.
  */
 void outfixlist()
 {
@@ -552,4 +538,4 @@ void outfixlist()
     fixups.clear();
 }
 
-#endif // !SPP
+}
