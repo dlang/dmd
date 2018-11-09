@@ -292,6 +292,7 @@ endif
 # Unique extra flags if necessary
 DMD_FLAGS  := -I$D -Wuninitialized
 BACK_FLAGS := -I$(ROOT) -I$(TK) -I$C -I$G -I$D -DDMDV2=1
+BACK_DFLAGS := -version=DMDV2
 ROOT_FLAGS := -I$(ROOT)
 
 ifeq ($(OS), osx)
@@ -301,7 +302,8 @@ endif
 endif
 
 ifneq (gdc, $(HOST_DMD_KIND))
-  BACK_BETTERC = -mv=dmd.backend=$C -betterC
+  BACK_MV = -mv=dmd.backend=$C
+  BACK_BETTERC = $(BACK_MV) -betterC
 endif
 
 ######## DMD frontend source files
@@ -335,7 +337,7 @@ DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 
 ifeq (X86,$(TARGET_CPU))
     TARGET_CH = $C/code_x86.h
-    TARGET_OBJS = ptrntab.o
+    TARGET_OBJS =
 else
     ifeq (stub,$(TARGET_CPU))
         TARGET_CH = $C/code_stub.h
@@ -345,29 +347,30 @@ else
     endif
 endif
 
-BACK_OBJS = var.o \
+BACK_OBJS = \
 	os.o fp.o \
-	rtlsym.o cgen.o out.o \
-	dt.o \
+	cgen.o \
 	outbuf.o \
-	aa.o ti_achar.o \
-	ti_pvoid.o pdata.o cv8.o backconfig.o \
-	dwarf.o dwarfeh.o varstats.o \
-	ph2.o util2.o tk.o strtold.o md5.o \
+	sizecheck.o \
+	\
+	tk.o strtold.o \
 	$(TARGET_OBJS)
 
 BACK_DOBJS = bcomplex.o evalu8.o divcoeff.o dvec.o go.o gsroa.o glocal.o gdag.o gother.o gflow.o \
+	out.o \
 	gloop.o compress.o cgelem.o cgcs.o ee.o cod4.o cod5.o nteh.o blockopt.o memh.o cg.o cgreg.o \
-	dtype.o debugprint.o symbol.o elem.o dcode.o cgsched.o cg87.o cgxmm.o cgcod.o cod1.o cod2.o cod3.o
+	dtype.o debugprint.o symbol.o elem.o dcode.o cgsched.o cg87.o cgxmm.o cgcod.o cod1.o cod2.o \
+	cod3.o cv8.o dcgcv.o pdata.o util2.o var.o md5.o backconfig.o ph2.o drtlsym.o dwarfeh.o ptrntab.o \
+	aarray.o dvarstats.o dwarfdbginf.o elfobj.o
 
 G_OBJS  = $(addprefix $G/, $(BACK_OBJS))
 G_DOBJS = $(addprefix $G/, $(BACK_DOBJS))
 #$(info $$G_OBJS is [${G_OBJS}])
 
 ifeq (osx,$(OS))
-	BACK_OBJS += machobj.o
+	BACK_DOBJS += machobj.o
 else
-	BACK_OBJS += elfobj.o
+#	BACK_DOBJS += elfobj.o
 endif
 
 ######## DMD glue layer and backend
@@ -378,39 +381,39 @@ GLUE_SRC = \
 	objc_glue.d)
 
 BACK_HDRS=$C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
-	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d $C/iasm.d \
-	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/md5.di $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d \
-	$C/dlist.d $C/melf.d
+	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d $C/iasm.d $C/codebuilder.d \
+	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d \
+	$C/dlist.d $C/melf.d $C/varstats.di $C/dt.d
 
 TK_HDRS=
 
 BACK_SRC = \
-	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
+	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.d \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
-	$C/el.h $C/iasm.h $C/rtlsym.h \
+	$C/el.h \
 	$C/bcomplex.d $C/blockopt.d $C/cg.d $C/cg87.d $C/cgxmm.d \
-	$C/cgcod.d $C/cgcs.d $C/cgcv.c $C/cgelem.d $C/cgen.c $C/cgobj.c \
-	$C/compress.d $C/cgreg.d $C/var.c $C/strtold.c \
+	$C/cgcod.d $C/cgcs.d $C/dcgcv.d $C/cgelem.d $C/cgen.c $C/cgobj.d \
+	$C/compress.d $C/cgreg.d $C/var.d $C/strtold.c \
 	$C/cgsched.d $C/cod1.d $C/cod2.d $C/cod3.d $C/cod4.d $C/cod5.d \
-	$C/dcode.d $C/symbol.d $C/debugprint.d $C/dt.c $C/ee.d $C/elem.d \
+	$C/dcode.d $C/symbol.d $C/debugprint.d $C/dt.d $C/ee.d $C/elem.d \
 	$C/evalu8.d $C/fp.c $C/go.d $C/gflow.d $C/gdag.d \
-	$C/gother.d $C/glocal.d $C/gloop.d $C/gsroa.d $C/newman.c \
-	$C/nteh.d $C/os.c $C/out.c $C/outbuf.c $C/ptrntab.c $C/rtlsym.c \
+	$C/gother.d $C/glocal.d $C/gloop.d $C/gsroa.d $C/newman.d \
+	$C/nteh.d $C/os.c $C/out.d $C/outbuf.c $C/ptrntab.d $C/drtlsym.d \
 	$C/dtype.d $C/melf.h $C/mach.h $C/mscoff.h $C/bcomplex.h \
 	$C/outbuf.h $C/token.h $C/tassert.h \
-	$C/elfobj.c $C/cv4.h $C/dwarf2.h $C/exh.h $C/go.h \
-	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aa.c $C/tinfo.h $C/ti_achar.c \
-	$C/ti_pvoid.c $C/platform_stub.c $C/code_x86.h $C/code_stub.h \
-	$C/machobj.c $C/mscoffobj.c \
-	$C/xmm.h $C/obj.h $C/pdata.c $C/cv8.c $C/backconfig.c $C/divcoeff.d \
-	$C/varstats.c $C/varstats.h $C/dvec.d \
-	$C/md5.c $C/md5.h \
-	$C/ph2.c $C/util2.c $C/dwarfeh.c $C/goh.d $C/memh.d \
+	$C/elfobj.d $C/cv4.h $C/dwarf2.h $C/exh.h $C/go.h \
+	$C/dwarfdbginf.d $C/dwarf.h $C/aa.h $C/aarray.d \
+	$C/platform_stub.c $C/code_x86.h $C/code_stub.h \
+	$C/machobj.d $C/mscoffobj.d \
+	$C/obj.h $C/pdata.d $C/cv8.d $C/backconfig.d $C/sizecheck.c $C/divcoeff.d \
+	$C/dvarstats.d $C/dvec.d \
+	$C/md5.d $C/md5.h \
+	$C/ph2.d $C/util2.d $C/dwarfeh.d $C/goh.d $C/memh.d $C/filespec.d \
 	$(TARGET_CH)
 
 TK_SRC = \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
-	$(TK)/filespec.c $(TK)/mem.c
+	$(TK)/mem.c
 
 ######## CXX header files (only needed for cxx-unittest)
 
@@ -425,7 +428,7 @@ SRC = $(addprefix $D/, aggregate.h aliasthis.h arraytypes.h	\
 
 ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h dcompat.h file.h filename.h \
 	longdouble.h newdelete.c object.h outbuffer.h port.h \
-	rmem.h root.h stringtable.h)
+	rmem.h root.h)
 
 ######## Additional files
 
@@ -458,7 +461,7 @@ toolchain-info:
 $G/backend.a: $(G_OBJS) $(G_DOBJS) $(SRC_MAKE)
 	$(AR) rcs $@ $(G_OBJS) $(G_DOBJS)
 
-$G/lexer.a: $(LEXER_SRCS) $(LEXER_ROOT) $(HOST_DMD_PATH) $(SRC_MAKE)
+$G/lexer.a: $(LEXER_SRCS) $(LEXER_ROOT) $(HOST_DMD_PATH) $(SRC_MAKE) $(STRING_IMPORT_FILES)
 	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -J$G -L-lstdc++ $(DFLAGS) $(LEXER_SRCS) $(LEXER_ROOT)
 
 $G/dmd_frontend: $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
@@ -528,10 +531,10 @@ $G/dmd.conf: $(SRC_MAKE)
 	echo "$$DEFAULT_DMD_CONF" > $@
 
 ######## optabgen generates some source
-optabgen_output = debtab.d optab.c cdxxx.d elxxx.d fltables.d tytab.c
+optabgen_output = debtab.d optab.d cdxxx.d elxxx.d fltables.d tytab.d
 
-$G/optabgen: $C/optabgen.c $C/cc.h $C/oper.h
-	$(HOST_CXX) $(CXXFLAGS) -I$(TK) $< -o $G/optabgen
+$G/optabgen: $C/optabgen.d $C/cc.d $C/oper.d $(HOST_DMD_PATH)
+	$(HOST_DMD_RUN) -of$@ $(DFLAGS) $(MODEL_FLAG) $(BACK_MV) $<
 	$G/optabgen
 	mv $(optabgen_output) $G
 
@@ -541,8 +544,21 @@ $(optabgen_files): optabgen.out
 optabgen.out : $G/optabgen
 
 ######## VERSION
+########################################################################
+# The version file should be updated on every build
+# However, the version check script only touches the VERSION file if it
+# actually has changed.
 
-$(shell ../config.sh "$G" ../VERSION $(SYSCONFDIR))
+$G/version_check: ../config.d $(HOST_DMD_PATH)
+	@echo "  (HOST_DMD_RUN)  $<  $<"
+	$(HOST_DMD_RUN) $< -of$@
+
+$G/VERSION: $G/version_check ../VERSION FORCE
+	@$< $G ../VERSION $(SYSCONFDIR)
+
+$G/SYSCONFDIR.imp: $G/VERSION
+
+FORCE: ;
 
 # Generic rules for all source files
 ########################################################################
@@ -558,7 +574,7 @@ $(G_OBJS): $G/%.o: $C/%.c $(optabgen_files) $(SRC_MAKE)
 
 $(G_DOBJS): $G/%.o: $C/%.d $(optabgen_files) posix.mak $(HOST_DMD_PATH)
 	@echo "  (HOST_DMD_RUN)  BACK_DOBJS  $<"
-	$(HOST_DMD_RUN) -c -of$@ $(DFLAGS) $(MODEL_FLAG) $(BACK_BETTERC) $<
+	$(HOST_DMD_RUN) -c -of$@ $(DFLAGS) $(MODEL_FLAG) $(BACK_BETTERC) $(BACK_DFLAGS) $<
 
 $G/newdelete.o: $G/%.o: $(ROOT)/%.c $(SRC_MAKE)
 	@echo "  (CC)  ROOT_OBJS  $<"

@@ -24,6 +24,7 @@ import dmd.doc;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
+import dmd.expression;
 import dmd.errors;
 import dmd.func;
 import dmd.globals;
@@ -125,9 +126,9 @@ struct Scope
     uint[void*] anchorCounts;  /// lookup duplicate anchor name count
     Identifier prevAnchor;     /// qualified symbol name of last doc anchor
 
-    extern (C++) __gshared Scope* freelist;
+    extern (D) __gshared Scope* freelist;
 
-    extern (C++) static Scope* alloc()
+    extern (D) static Scope* alloc()
     {
         if (freelist)
         {
@@ -141,7 +142,7 @@ struct Scope
         return new Scope();
     }
 
-    extern (C++) static Scope* createGlobal(Module _module)
+    extern (D) static Scope* createGlobal(Module _module)
     {
         Scope* sc = Scope.alloc();
         *sc = Scope.init;
@@ -365,6 +366,70 @@ struct Scope
             return null;
         }
 
+        Dsymbol checkAliasThis(AggregateDeclaration ad, Identifier ident, int flags, Expression* exp)
+        {
+            import dmd.mtype;
+            if (!ad || !ad.aliasthis)
+                return null;
+
+            Declaration decl = ad.aliasthis.isDeclaration();
+            if (!decl)
+                return null;
+
+            Type t = decl.type;
+            ScopeDsymbol sds;
+            TypeClass tc;
+            TypeStruct ts;
+            switch(t.ty)
+            {
+                case Tstruct:
+                    ts = cast(TypeStruct)t;
+                    sds = ts.sym;
+                    break;
+                case Tclass:
+                    tc = cast(TypeClass)t;
+                    sds = tc.sym;
+                    break;
+                case Tinstance:
+                    sds = (cast(TypeInstance)t).tempinst;
+                    break;
+                case Tenum:
+                    sds = (cast(TypeEnum)t).sym;
+                    break;
+                default: break;
+            }
+
+            if (!sds)
+                return null;
+
+            Dsymbol ret = sds.search(loc, ident, flags);
+            if (ret)
+            {
+                *exp = new DotIdExp(loc, *exp, ad.aliasthis.ident);
+                *exp = new DotIdExp(loc, *exp, ident);
+                return ret;
+            }
+
+            if (!ts && !tc)
+                return null;
+
+            Dsymbol s;
+            *exp = new DotIdExp(loc, *exp, ad.aliasthis.ident);
+            if (ts && !(ts.att & AliasThisRec.tracing))
+            {
+                ts.att = cast(AliasThisRec)(ts.att | AliasThisRec.tracing);
+                s = checkAliasThis(sds.isAggregateDeclaration(), ident, flags, exp);
+                ts.att = cast(AliasThisRec)(ts.att & ~AliasThisRec.tracing);
+            }
+            else if(tc && !(tc.att & AliasThisRec.tracing))
+            {
+                tc.att = cast(AliasThisRec)(tc.att | AliasThisRec.tracing);
+                s = checkAliasThis(sds.isAggregateDeclaration(), ident, flags, exp);
+                tc.att = cast(AliasThisRec)(tc.att & ~AliasThisRec.tracing);
+            }
+            return s;
+        }
+
         Dsymbol searchScopes(int flags)
         {
             for (Scope* sc = &this; sc; sc = sc.enclosing)
@@ -390,6 +455,20 @@ struct Scope
                         *pscopesym = sc.scopesym;
                     return s;
                 }
+
+                if (global.params.fixAliasThis)
+                {
+                    Expression exp = new ThisExp(loc);
+                    Dsymbol aliasSym = checkAliasThis(sc.scopesym.isAggregateDeclaration(), ident, flags, &exp);
+                    if (aliasSym)
+                    {
+                        //printf("found aliassym: %s\n", aliasSym.toChars());
+                        if (pscopesym)
+                            *pscopesym = new ExpressionDsymbol(exp);
+                        return aliasSym;
+                    }
+                }
+
                 // Stop when we hit a module, but keep going if that is not just under the global scope
                 if (sc.scopesym.isModule() && !(sc.enclosing && !sc.enclosing.enclosing))
                     break;
@@ -450,7 +529,7 @@ struct Scope
 
     /* A helper function to show deprecation message for new name lookup rule.
      */
-    extern (C++) static void deprecation10378(Loc loc, Dsymbol sold, Dsymbol snew)
+    extern (D) static void deprecation10378(Loc loc, Dsymbol sold, Dsymbol snew)
     {
         // https://issues.dlang.org/show_bug.cgi?id=15857
         //
@@ -534,7 +613,7 @@ struct Scope
      * Returns:
      *  D identifier string if found, null if not
      */
-    extern (C++) static const(char)* search_correct_C(Identifier ident)
+    extern (D) static const(char)* search_correct_C(Identifier ident)
     {
         TOK tok;
         if (ident == Id.NULL)

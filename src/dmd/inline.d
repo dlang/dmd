@@ -1811,7 +1811,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
     if (ethis)
     {
         Expression e0;
-        ethis = Expression.extractLast(ethis, &e0);
+        ethis = Expression.extractLast(ethis, e0);
         if (ethis.op == TOK.variable)
         {
             vthis = (cast(VarExp)ethis).var.isVarDeclaration();
@@ -2007,9 +2007,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
             e.type = Type.tvoid;
         }
 
-        eresult = Expression.combine(eresult, eret);
-        eresult = Expression.combine(eresult, ethis);
-        eresult = Expression.combine(eresult, eparams);
+        eresult = Expression.combine(eresult, eret, ethis, eparams);
         eresult = Expression.combine(eresult, e);
 
         static if (EXPANDINLINE_LOG)

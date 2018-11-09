@@ -1,4 +1,4 @@
-// Bugzilla 8150: nothrow check doesn't work for constructor
+// https://issues.dlang.org/show_bug.cgi?id=8150: nothrow check doesn't work for constructor
 
 struct Foo
 {

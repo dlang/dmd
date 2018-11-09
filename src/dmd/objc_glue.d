@@ -193,7 +193,7 @@ struct Segments
 
         version (OSX)
         {
-            segmentsPtr[id] = MachObj.getsegment(
+            segmentsPtr[id] = Obj.getsegment(
                 seg.sectionName,
                 seg.segmentName,
                 seg.alignment,
@@ -320,7 +320,7 @@ static:
         hasSymbols_ = true;
 
         // create data
-        scope dtb = new DtBuilder();
+        auto dtb = DtBuilder(0);
         dtb.nbytes(cast(uint)(str.length + 1), str.ptr);
 
         // find segment
@@ -390,7 +390,7 @@ static:
         if (imageInfo)
             return imageInfo;
 
-        scope dtb = new DtBuilder();
+        auto dtb = DtBuilder(0);
         dtb.dword(0); // version
         dtb.dword(64); // flags
 
@@ -406,7 +406,7 @@ static:
     {
         assert(!moduleInfo); // only allow once per object file
 
-        scope dtb = new DtBuilder();
+        auto dtb = DtBuilder(0);
 
         Symbol* symbol = symbol_name("L_OBJC_LABEL_CLASS_$", SCstatic, type_allocn(TYarray, tstypes[TYchar]));
         symbol.Sdt = dtb.finish();
@@ -458,7 +458,7 @@ static:
         if (symbol)
             return symbol;
 
-        scope dtb = new DtBuilder();
+        auto dtb = DtBuilder(0);
         auto className = getClassName(classDeclaration);
         dtb.xoff(className, 0, TYnptr);
 
@@ -487,7 +487,7 @@ static:
         if (refSymbol is null)
         {
             // create data
-            scope dtb = new DtBuilder();
+            auto dtb = DtBuilder(0);
             auto selector = getMethVarName(name);
             dtb.xoff(selector, 0, TYnptr);
 

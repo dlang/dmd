@@ -10,13 +10,10 @@
 
 #pragma once
 
+#include "root/port.h"
 #include "dsymbol.h"
 
 class Expression;
-class Statement;
-class LabelDsymbol;
-class Initializer;
-class Module;
 class Condition;
 class StaticForeach;
 
@@ -29,9 +26,6 @@ public:
 
     virtual Dsymbols *include(Scope *sc);
     int apply(Dsymbol_apply_ft_t fp, void *param);
-    static Scope *createNewScope(Scope *sc,
-        StorageClass newstc, LINK linkage, CPPMANGLE cppmangle, Prot protection,
-        int explicitProtection, AlignDeclaration *aligndecl, PINLINE inlining);
     virtual Scope *newScope(Scope *sc);
     void addMember(Scope *sc, ScopeDsymbol *sds);
     void setScope(Scope *sc);
@@ -217,7 +211,7 @@ public:
 class CompileDeclaration : public AttribDeclaration
 {
 public:
-    Expression *exp;
+    Expressions *exps;
 
     ScopeDsymbol *scopesym;
     bool compiled;
@@ -241,7 +235,6 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     void setScope(Scope *sc);
-    static Expressions *concat(Expressions *udas1, Expressions *udas2);
     Expressions *getAttributes();
     const char *kind() const;
     void accept(Visitor *v) { v->visit(this); }

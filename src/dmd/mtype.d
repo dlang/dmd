@@ -159,60 +159,54 @@ MOD MODmerge(MOD mod1, MOD mod2) pure nothrow @nogc @safe
  */
 void MODtoBuffer(OutBuffer* buf, MOD mod) nothrow
 {
-    switch (mod)
-    {
-    case 0:
-        break;
-
-    case MODFlags.immutable_:
-        buf.writestring(Token.toString(TOK.immutable_));
-        break;
-
-    case MODFlags.shared_:
-        buf.writestring(Token.toString(TOK.shared_));
-        break;
-
-    case MODFlags.shared_ | MODFlags.const_:
-        buf.writestring(Token.toString(TOK.shared_));
-        buf.writeByte(' ');
-        goto case; /+ fall through +/
-    case MODFlags.const_:
-        buf.writestring(Token.toString(TOK.const_));
-        break;
-
-    case MODFlags.shared_ | MODFlags.wild:
-        buf.writestring(Token.toString(TOK.shared_));
-        buf.writeByte(' ');
-        goto case; /+ fall through +/
-    case MODFlags.wild:
-        buf.writestring(Token.toString(TOK.inout_));
-        break;
-
-    case MODFlags.shared_ | MODFlags.wildconst:
-        buf.writestring(Token.toString(TOK.shared_));
-        buf.writeByte(' ');
-        goto case; /+ fall through +/
-    case MODFlags.wildconst:
-        buf.writestring(Token.toString(TOK.inout_));
-        buf.writeByte(' ');
-        buf.writestring(Token.toString(TOK.const_));
-        break;
-
-    default:
-        assert(0);
-    }
+    buf.writestring(MODtoString(mod));
 }
 
 /*********************************
- * Return modifier name.
+ * Returns:
+ *   a human readable representation of `mod`,
+ *   which is the token `mod` corresponds to
  */
-char* MODtoChars(MOD mod) nothrow
+const(char)* MODtoChars(MOD mod) nothrow
 {
-    OutBuffer buf;
-    buf.reserve(16);
-    MODtoBuffer(&buf, mod);
-    return buf.extractString();
+    /// Works because we return a literal
+    return MODtoString(mod).ptr;
 }
+
+/// Ditto
+string MODtoString(MOD mod) nothrow
+{
+    final switch (mod)
+    {
+    case 0:
+        return "";
+
+    case MODFlags.immutable_:
+        return "immutable";
+
+    case MODFlags.shared_:
+        return "shared";
+
+    case MODFlags.shared_ | MODFlags.const_:
+        return "shared const";
+
+    case MODFlags.const_:
+        return "const";
+
+    case MODFlags.shared_ | MODFlags.wild:
+        return "shared inout";
+
+    case MODFlags.wild:
+        return "inout";
+
+    case MODFlags.shared_ | MODFlags.wildconst:
+        return "shared inout const";
+
+    case MODFlags.wildconst:
+        return "inout const";
+    }
+}
+
 
 /************************************
  * Convert MODxxxx to STCxxx
@@ -454,9 +448,9 @@ extern (C++) abstract class Type : RootObject
     extern (C++) __gshared TemplateDeclaration rtinfo;
 
     extern (C++) __gshared Type[TMAX] basic;
-    extern (C++) __gshared StringTable stringtable;
 
-    extern (C++) __gshared ubyte[TMAX] sizeTy = ()
+    extern (D) __gshared StringTable stringtable;
+    extern (D) private __gshared ubyte[TMAX] sizeTy = ()
         {
             ubyte[TMAX] sizeTy = __traits(classInstanceSize, TypeBasic);
             sizeTy[Tsarray] = __traits(classInstanceSize, TypeSArray);
@@ -974,24 +968,6 @@ extern (C++) abstract class Type : RootObject
         buf.reserve(16);
         modToBuffer(&buf);
         return buf.extractString();
-    }
-
-    /** For each active modifier (MODFlags.const_, MODFlags.immutable_, etc) call fp with a
-     void* for the work param and a string representation of the attribute. */
-    final int modifiersApply(void* param, int function(void*, const(char)*) fp)
-    {
-        immutable ubyte[4] modsArr = [MODFlags.const_, MODFlags.immutable_, MODFlags.wild, MODFlags.shared_];
-
-        foreach (modsarr; modsArr)
-        {
-            if (mod & modsarr)
-            {
-                if (int res = fp(param, MODtoChars(modsarr)))
-                    return res;
-            }
-        }
-
-        return 0;
     }
 
     bool isintegral()
@@ -2072,7 +2048,7 @@ extern (C++) abstract class Type : RootObject
         return null;
     }
 
-    final bool checkAliasThisRec()
+    extern (D) final bool checkAliasThisRec()
     {
         Type tb = toBasetype();
         AliasThisRec* pflag;
@@ -2647,7 +2623,7 @@ extern (C++) abstract class Type : RootObject
      *  loc = The source location.
      *  sc = scope of the type
      */
-    final bool checkComplexTransition(const ref Loc loc, Scope* sc)
+    extern (D) final bool checkComplexTransition(const ref Loc loc, Scope* sc)
     {
         if (sc.isDeprecated())
             return false;
@@ -2697,22 +2673,6 @@ extern (C++) abstract class Type : RootObject
             }
         }
         return false;
-    }
-
-    static void error(const ref Loc loc, const(char)* format, ...)
-    {
-        va_list ap;
-        va_start(ap, format);
-        .verror(loc, format, ap);
-        va_end(ap);
-    }
-
-    static void warning(const ref Loc loc, const(char)* format, ...)
-    {
-        va_list ap;
-        va_start(ap, format);
-        .vwarning(loc, format, ap);
-        va_end(ap);
     }
 
     // For eliminating dynamic_cast
@@ -4553,60 +4513,6 @@ extern (C++) final class TypeFunction : TypeNext
         return t;
     }
 
-    /** For each active attribute (ref/const/nogc/etc) call fp with a void* for the
-     work param and a string representation of the attribute. */
-    int attributesApply(void* param, int function(void*, const(char)*) fp, TRUSTformat trustFormat = TRUSTformatDefault)
-    {
-        int res = 0;
-        if (purity)
-            res = fp(param, "pure");
-        if (res)
-            return res;
-
-        if (isnothrow)
-            res = fp(param, "nothrow");
-        if (res)
-            return res;
-
-        if (isnogc)
-            res = fp(param, "@nogc");
-        if (res)
-            return res;
-
-        if (isproperty)
-            res = fp(param, "@property");
-        if (res)
-            return res;
-
-        if (isref)
-            res = fp(param, "ref");
-        if (res)
-            return res;
-
-        if (isreturn)
-            res = fp(param, "return");
-        if (res)
-            return res;
-
-        if (isscope && !isscopeinferred)
-            res = fp(param, "scope");
-        if (res)
-            return res;
-
-        TRUST trustAttrib = trust;
-
-        if (trustAttrib == TRUST.default_)
-        {
-            // Print out "@system" when trust equals TRUST.default_ (if desired).
-            if (trustFormat == TRUSTformatSystem)
-                trustAttrib = TRUST.system;
-            else
-                return res; // avoid calling with an empty string
-        }
-
-        return fp(param, trustToChars(trustAttrib));
-    }
-
     override Type substWildTo(uint)
     {
         if (!iswild && !(mod & MODFlags.wild))
@@ -4680,7 +4586,7 @@ extern (C++) final class TypeFunction : TypeNext
      * Returns:
      *      MATCHxxxx
      */
-    MATCH callMatch(Type tthis, Expressions* args, int flag = 0, const(char)** pMessage = null)
+    extern (D) MATCH callMatch(Type tthis, Expressions* args, int flag = 0, const(char)** pMessage = null)
     {
         //printf("TypeFunction::callMatch() %s\n", toChars());
         MATCH match = MATCH.exact; // assume exact match
@@ -4956,7 +4862,7 @@ extern (C++) final class TypeFunction : TypeNext
         return MATCH.nomatch;
     }
 
-    bool checkRetType(const ref Loc loc)
+    extern (D) bool checkRetType(const ref Loc loc)
     {
         Type tb = next.toBasetype();
         if (tb.ty == Tfunction)
@@ -6295,7 +6201,7 @@ extern (C++) final class Parameter : RootObject
         v.visit(this);
     }
 
-    static Parameters* arraySyntaxCopy(Parameters* parameters)
+    extern (D) static Parameters* arraySyntaxCopy(Parameters* parameters)
     {
         Parameters* params = null;
         if (parameters)
@@ -6411,7 +6317,7 @@ extern (C++) final class Parameter : RootObject
         return isCovariantScope(returnByRef, this.storageClass, p.storageClass);
     }
 
-    static bool isCovariantScope(bool returnByRef, StorageClass from, StorageClass to) pure nothrow @nogc @safe
+    extern (D) private static bool isCovariantScope(bool returnByRef, StorageClass from, StorageClass to) pure nothrow @nogc @safe
     {
         if (from == to)
             return true;
@@ -6450,7 +6356,7 @@ extern (C++) final class Parameter : RootObject
 
     /* Classification of 'scope-return-ref' possibilities
      */
-    enum SR
+    private enum SR
     {
         None,
         Scope,
@@ -6462,7 +6368,7 @@ extern (C++) final class Parameter : RootObject
         Ref_ReturnScope,
     }
 
-    static bool[SR.max + 1][SR.max + 1] covariantInit() pure nothrow @nogc @safe
+    extern (D) private static bool[SR.max + 1][SR.max + 1] covariantInit() pure nothrow @nogc @safe
     {
         /* Initialize covariant[][] with this:
 
@@ -6497,7 +6403,7 @@ extern (C++) final class Parameter : RootObject
         return covariant;
     }
 
-    extern (D) static immutable bool[SR.max + 1][SR.max + 1] covariant = covariantInit();
+    extern (D) private static immutable bool[SR.max + 1][SR.max + 1] covariant = covariantInit();
 }
 
 /*************************************************************
@@ -6520,4 +6426,81 @@ const(char*)[2] toAutoQualChars(Type t1, Type t2)
         s2 = t2.toPrettyChars(true);
     }
     return [s1, s2];
+}
+
+
+/**
+ * For each active modifier (MODFlags.const_, MODFlags.immutable_, etc) call `fp` with a
+ * void* for the work param and a string representation of the attribute.
+ */
+int modifiersApply(TypeFunction tf, void* param, int function(void*, string) fp)
+{
+    immutable ubyte[4] modsArr = [MODFlags.const_, MODFlags.immutable_, MODFlags.wild, MODFlags.shared_];
+
+    foreach (modsarr; modsArr)
+    {
+        if (tf.mod & modsarr)
+        {
+            if (int res = fp(param, MODtoString(modsarr)))
+                return res;
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * For each active attribute (ref/const/nogc/etc) call `fp` with a void* for the
+ * work param and a string representation of the attribute.
+ */
+int attributesApply(TypeFunction tf, void* param, int function(void*, string) fp, TRUSTformat trustFormat = TRUSTformatDefault)
+{
+    int res = 0;
+    if (tf.purity)
+        res = fp(param, "pure");
+    if (res)
+        return res;
+
+    if (tf.isnothrow)
+        res = fp(param, "nothrow");
+    if (res)
+        return res;
+
+    if (tf.isnogc)
+        res = fp(param, "@nogc");
+    if (res)
+        return res;
+
+    if (tf.isproperty)
+        res = fp(param, "@property");
+    if (res)
+        return res;
+
+    if (tf.isref)
+        res = fp(param, "ref");
+    if (res)
+        return res;
+
+    if (tf.isreturn)
+        res = fp(param, "return");
+    if (res)
+        return res;
+
+    if (tf.isscope && !tf.isscopeinferred)
+        res = fp(param, "scope");
+    if (res)
+        return res;
+
+    TRUST trustAttrib = tf.trust;
+
+    if (trustAttrib == TRUST.default_)
+    {
+        // Print out "@system" when trust equals TRUST.default_ (if desired).
+        if (trustFormat == TRUSTformatSystem)
+            trustAttrib = TRUST.system;
+        else
+            return res; // avoid calling with an empty string
+    }
+
+    return fp(param, trustToString(trustAttrib));
 }

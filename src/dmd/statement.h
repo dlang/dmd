@@ -10,14 +10,11 @@
 
 #pragma once
 
-#include "root/root.h"
-
 #include "arraytypes.h"
 #include "dsymbol.h"
 #include "visitor.h"
 #include "tokens.h"
 
-struct OutBuffer;
 struct Scope;
 class Expression;
 class LabelDsymbol;
@@ -27,8 +24,6 @@ class ExpStatement;
 class DefaultStatement;
 class VarDeclaration;
 class Condition;
-class Module;
-struct Token;
 class ErrorStatement;
 class ReturnStatement;
 class CompoundStatement;
@@ -63,7 +58,7 @@ enum BE
     BEbreak =    0x20,
     BEcontinue = 0x40,
     BEerrthrow = 0x80,
-    BEany = (BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt),
+    BEany = (BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt)
 };
 
 class Statement : public RootObject
@@ -157,7 +152,7 @@ public:
 class CompileStatement : public Statement
 {
 public:
-    Expression *exp;
+    Expressions *exps;
 
     Statement *syntaxCopy();
     Statements *flatten(Scope *sc);
@@ -296,7 +291,6 @@ public:
     ScopeStatements *gotos;     // forward referenced goto's go here
 
     Statement *syntaxCopy();
-    bool checkForArgTypes();
     bool hasBreak();
     bool hasContinue();
 
@@ -401,7 +395,6 @@ public:
 
     Statement *syntaxCopy();
     bool hasBreak();
-    bool checkLabel();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -629,7 +622,6 @@ public:
     VarDeclaration *lastVar;
 
     Statement *syntaxCopy();
-    bool checkLabel();
 
     void accept(Visitor *v) { v->visit(this); }
 };

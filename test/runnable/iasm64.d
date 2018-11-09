@@ -6601,7 +6601,7 @@ void test9965()
         0x40, 0xB5, 0x01,       // mov  BPL,1
         0x40, 0xB4, 0x01,       // mov  SPL,1
         0x41, 0xB0, 0x01,       // mov  R8B,1
-        0x40, 0x80, 0xE6, 0x01, // and  SIL,1 (issue 12971)
+        0x40, 0x80, 0xE6, 0x01, // and  SIL,1 (https://issues.dlang.org/show_bug.cgi?id=12971)
     ];
 
     asm

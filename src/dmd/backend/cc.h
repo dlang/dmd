@@ -1628,20 +1628,6 @@ struct EEcontext
 
 extern EEcontext eecontext;
 
-#include "rtlsym.h"
-
-#undef SYMBOL_Z
-#define SYMBOL_Z(e,fl,saved,n,flags,ty)         RTLSYM_##e,
-
-enum
-{
-    RTLSYMS
-
-    RTLSYM_MAX
-};
-
-extern Symbol *rtlsym[RTLSYM_MAX];
-
 // Different goals for el_optimize()
 typedef unsigned goal_t;
 enum

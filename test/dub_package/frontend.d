@@ -13,15 +13,18 @@ void main()
     initDMD;
     findImportPaths.each!addImport;
 
-    auto m = parseModule("test.d", q{
+    auto t = parseModule("test.d", q{
         void foo()
         {
             foreach (i; 0..10) {}
         }
     });
 
-    m.fullSemantic;
-    auto generated = m.prettyPrint;
+    assert(!t.diagnostics.hasErrors);
+    assert(!t.diagnostics.hasWarnings);
+
+    t.module_.fullSemantic;
+    auto generated = t.module_.prettyPrint.toUnixLineEndings();
 
     auto expected =q{import object;
 void foo()
@@ -37,4 +40,16 @@ void foo()
 }
 };
     assert(expected == generated, generated);
+}
+
+/**
+Converts Windows line endings (`\r\n`) to Unix line endings (`\n`).
+
+This is required because this file is stored with Unix line endings but the
+`prettyPrint` function outputs Windows line endings on Windows.
+*/
+string toUnixLineEndings(string str)
+{
+    import std.string : replace;
+    return str.replace("\r\n", "\n");
 }

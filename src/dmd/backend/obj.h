@@ -34,11 +34,11 @@ struct seg_data;
 #endif
 
 
-#if OMF
+#if OMF || OMFandMSCOFF
     class Obj
     {
       public:
-        static Obj *init(Outbuffer *, const char *filename, const char *csegname);
+//        static Obj *init(Outbuffer *, const char *filename, const char *csegname);
         static void initfile(const char *filename, const char *csegname, const char *modname);
         static void termfile();
         static void term(const char *objfilename);
@@ -65,9 +65,9 @@ struct seg_data;
         static void ehtables(Symbol *sfunc,unsigned size,Symbol *ehsym);
         static void ehsections();
         static void moduleinfo(Symbol *scc);
-        int  comdat(Symbol *);
-        int  comdatsize(Symbol *, targ_size_t symsize);
-        int readonly_comdat(Symbol *s);
+        static int  comdat(Symbol *);
+        static int  comdatsize(Symbol *, targ_size_t symsize);
+        static int readonly_comdat(Symbol *s);
         static void setcodeseg(int seg);
         static seg_data *tlsseg();
         static seg_data *tlsseg_bss();
@@ -152,12 +152,12 @@ class Obj
     VIRTUAL void ehtables(Symbol *sfunc,unsigned size,Symbol *ehsym);
     VIRTUAL void ehsections();
     VIRTUAL void moduleinfo(Symbol *scc);
-    virtual int  comdat(Symbol *);
-    virtual int  comdatsize(Symbol *, targ_size_t symsize);
-    virtual int readonly_comdat(Symbol *s);
+    VIRTUAL int  comdat(Symbol *);
+    VIRTUAL int  comdatsize(Symbol *, targ_size_t symsize);
+    VIRTUAL int readonly_comdat(Symbol *s);
     VIRTUAL void setcodeseg(int seg);
-    virtual seg_data *tlsseg();
-    virtual seg_data *tlsseg_bss();
+    VIRTUAL seg_data *tlsseg();
+    VIRTUAL seg_data *tlsseg_bss();
     VIRTUAL seg_data *tlsseg_data();
     static int  fardata(char *name, targ_size_t size, targ_size_t *poffset);
     VIRTUAL void export_symbol(Symbol *s, unsigned argsize);
@@ -204,33 +204,21 @@ class Obj
 #if TARGET_WINDOS
     VIRTUAL int seg_debugT();           // where the symbolic debug type data goes
 #endif
-};
 
-class ElfObj : public Obj
-{
-  public:
+#if TARGET_OSX
+    static int getsegment(const char *sectname, const char *segname,
+                          int align, int flags);
+    static void addrel(int seg, targ_size_t offset, symbol *targsym,
+                       unsigned targseg, int rtype, int val = 0);
+#endif
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     static int getsegment(const char *name, const char *suffix,
-        int type, int flags, int align);
+                          int type, int flags, int align);
     static void addrel(int seg, targ_size_t offset, unsigned type,
                        unsigned symidx, targ_size_t val);
     static size_t writerel(int targseg, size_t offset, unsigned type,
                            unsigned symidx, targ_size_t val);
-};
-
-class MachObj : public Obj
-{
-  public:
-    static int getsegment(const char *sectname, const char *segname,
-        int align, int flags);
-    static void addrel(int seg, targ_size_t offset, symbol *targsym,
-        unsigned targseg, int rtype, int val = 0);
-};
-
-class MachObj64 : public MachObj
-{
-  public:
-    seg_data *tlsseg();
-    seg_data *tlsseg_bss();
+#endif
 };
 
 class MsCoffObj : public Obj
@@ -266,7 +254,7 @@ class MsCoffObj : public Obj
     VIRTUAL void moduleinfo(Symbol *scc);
     virtual int  comdat(Symbol *);
     virtual int  comdatsize(Symbol *, targ_size_t symsize);
-    virtual int readonly_comdat(Symbol *s);
+    VIRTUAL int readonly_comdat(Symbol *s);
     VIRTUAL void setcodeseg(int seg);
     virtual seg_data *tlsseg();
     virtual seg_data *tlsseg_bss();

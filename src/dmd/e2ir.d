@@ -1928,11 +1928,7 @@ elem *toElem(Expression e, IRState *irs)
 
         override void visit(HaltExp he)
         {
-            elem *e = el_calloc();
-            e.Ety = TYvoid;
-            e.Eoper = OPhalt;
-            elem_setLoc(e,he.loc);
-            result = e;
+            result = genHalt(he.loc);
         }
 
         /********************************************
@@ -1949,6 +1945,19 @@ elem *toElem(Expression e, IRState *irs)
                 {
                     auto econd = toElem(ae.e1, irs);
                     auto ea = callCAssert(irs, ae.e1.loc, ae.e1, ae.msg, null);
+                    auto eo = el_bin(OPoror, TYvoid, econd, ea);
+                    elem_setLoc(eo, ae.loc);
+                    result = eo;
+                    return;
+                }
+
+                if (irs.params.checkAction == CHECKACTION.halt)
+                {
+                    /* Generate:
+                     *  ae.e1 || halt
+                     */
+                    auto econd = toElem(ae.e1, irs);
+                    auto ea = genHalt(ae.loc);
                     auto eo = el_bin(OPoror, TYvoid, econd, ea);
                     elem_setLoc(eo, ae.loc);
                     result = eo;
@@ -3319,18 +3328,6 @@ elem *toElem(Expression e, IRState *irs)
         /***************************************
          */
 
-        override void visit(PowAssignExp e)
-        {
-            Type tb1 = e.e1.type.toBasetype();
-            assert(tb1.ty != Tarray && tb1.ty != Tsarray);
-
-            e.error("`^^` operator is not supported");
-            result = el_long(totym(e.type), 0);  // error recovery
-        }
-
-        /***************************************
-         */
-
         override void visit(LogicalExp aae)
         {
             tym_t tym = totym(aae.type);
@@ -3352,18 +3349,6 @@ elem *toElem(Expression e, IRState *irs)
         override void visit(XorExp e)
         {
             result = toElemBin(e, OPxor);
-        }
-
-        /***************************************
-         */
-
-        override void visit(PowExp e)
-        {
-            Type tb1 = e.e1.type.toBasetype();
-            assert(tb1.ty != Tarray && tb1.ty != Tsarray);
-
-            e.error("`^^` operator is not supported");
-            result = el_long(totym(e.type), 0);  // error recovery
         }
 
         /***************************************
@@ -5798,7 +5783,7 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
             if (buf.offset >= 32 + 2)
             {   // Replace long string with hash of that string
                 import dmd.backend.md5;
-                MD5_CTX mdContext;
+                MD5_CTX mdContext = void;
                 MD5Init(&mdContext);
                 MD5Update(&mdContext, cast(ubyte*)buf.peekString(), cast(uint)buf.offset);
                 MD5Final(&mdContext);
@@ -5900,6 +5885,10 @@ elem *buildArrayBoundsError(IRState *irs, const ref Loc loc)
     if (irs.params.checkAction == CHECKACTION.C)
     {
         return callCAssert(irs, loc, null, null, "array overflow");
+    }
+    if (irs.params.checkAction == CHECKACTION.halt)
+    {
+        return genHalt(loc);
     }
     auto eassert = el_var(getRtlsym(RTLSYM_DARRAYP));
     auto efile = toEfilenamePtr(cast(Module)irs.blx._module);
@@ -6056,6 +6045,22 @@ elem *callCAssert(IRState *irs, const ref Loc loc, Expression exp, Expression em
         ea = el_bin(OPcall, TYvoid, eassert, el_params(eline, efilename, elmsg, null));
     }
     return ea;
+}
+
+/********************************************
+ * Generate HALT instruction.
+ * Params:
+ *      loc = location to use for debug info
+ * Returns:
+ *      generated instruction
+ */
+elem *genHalt(const ref Loc loc)
+{
+    elem *e = el_calloc();
+    e.Ety = TYvoid;
+    e.Eoper = OPhalt;
+    elem_setLoc(e, loc);
+    return e;
 }
 
 /*************************************************

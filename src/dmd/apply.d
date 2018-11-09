@@ -147,7 +147,7 @@ public:
     }
 }
 
-extern (C++) bool walkPostorder(Expression e, StoppableVisitor v)
+bool walkPostorder(Expression e, StoppableVisitor v)
 {
     scope PostorderExpressionVisitor pv = new PostorderExpressionVisitor(v);
     e.accept(pv);

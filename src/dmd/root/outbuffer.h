@@ -13,7 +13,6 @@
 #include <stdarg.h>
 #include <string.h>
 #include <assert.h>
-#include "port.h"
 #include "rmem.h"
 
 class RootObject;

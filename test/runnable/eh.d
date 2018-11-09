@@ -699,7 +699,7 @@ void test9()
 }
 
 /****************************************************/
-// 10964
+// https://issues.dlang.org/show_bug.cgi?id=10964
 
 void test10964()
 {

@@ -527,25 +527,7 @@ class Lexer : ErrorHandler
                         }
                         else if (id == Id.VENDOR)
                         {
-                            t.ustring = global.compiler.vendor;
-                            goto Lstr;
-                        }
-                        else if (id == Id.CXXLIB)
-                        {
-                            // TODO: other targets might also like to populate this with knowledge for library authors
-                            //       additional plumbing required...
-                            if (!global.params.mscrtlib)
-                            {
-                                t.ustring = "";
-                            }
-                            else
-                            {
-                                size_t len = strlen(global.params.mscrtlib) + 1;
-                                char* lower = cast(char*)mem.xmalloc(len);
-                                foreach (i; 0 .. len)
-                                    lower[i] = cast(char)tolower(global.params.mscrtlib[i]);
-                                t.ustring = lower;
-                            }
+                            t.ustring = global.vendor;
                             goto Lstr;
                         }
                         else if (id == Id.TIMESTAMP)
@@ -1821,7 +1803,7 @@ class Lexer : ErrorHandler
         int d;
         bool err = false;
         bool overflow = false;
-        bool anyBinaryDigitsUS = false;
+        bool anyBinaryDigitsNoSingleUS = false;
         bool anyHexDigitsNoSingleUS = false;
         dchar c = *p;
         if (c == '0')
@@ -1932,7 +1914,6 @@ class Lexer : ErrorHandler
                 p = start;
                 return inreal(t);
             case '_':
-                anyBinaryDigitsUS = true;
                 ++p;
                 continue;
             default:
@@ -1940,7 +1921,7 @@ class Lexer : ErrorHandler
             }
             // got a digit here, set any necessary flags, check for errors
             anyHexDigitsNoSingleUS = true;
-            anyBinaryDigitsUS = true;
+            anyBinaryDigitsNoSingleUS = true;
             if (!err && d >= base)
             {
                 error("%s digit expected, not `%c`", base == 2 ? "binary".ptr :
@@ -1968,7 +1949,7 @@ class Lexer : ErrorHandler
         // Deprecated in 2018-06.
         // Change to error in 2019-06.
         // @@@DEPRECATED_2019-06@@@
-        if ((base == 2 && !anyBinaryDigitsUS) ||
+        if ((base == 2 && !anyBinaryDigitsNoSingleUS) ||
             (base == 16 && !anyHexDigitsNoSingleUS))
             deprecation("`%.*s` isn't a valid integer literal, use `%.*s0` instead", cast(int)(p - start), start, 2, start);
         enum FLAGS : int
@@ -2290,7 +2271,7 @@ class Lexer : ErrorHandler
         va_start(ap, format);
         .vdeprecation(token.loc, format, ap);
         va_end(ap);
-        if (global.params.useDeprecated == 0)
+        if (global.params.useDeprecated == Diagnostic.error)
             errors = true;
     }
 
@@ -2411,9 +2392,9 @@ class Lexer : ErrorHandler
     {
         const s = p;
         assert(*s & 0x80);
-        // Check length of remaining string up to 6 UTF-8 characters
+        // Check length of remaining string up to 4 UTF-8 characters
         size_t len;
-        for (len = 1; len < 6 && s[len]; len++)
+        for (len = 1; len < 4 && s[len]; len++)
         {
         }
         size_t idx = 0;

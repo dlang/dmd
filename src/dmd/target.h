@@ -22,8 +22,7 @@ class Expression;
 class Parameter;
 class Type;
 class TypeTuple;
-class Module;
-struct OutBuffer;
+class TypeFunction;
 
 struct Target
 {
@@ -74,10 +73,7 @@ struct Target
     static Type *va_listType();  // get type of va_list
     static int isVectorTypeSupported(int sz, Type *type);
     static bool isVectorOpSupported(Type *type, TOK op, Type *t2 = NULL);
-    // CTFE support for cross-compilation.
-    static Expression *paintAsType(Expression *e, Type *type);
     // ABI and backend.
-    static void loadModule(Module *m);
     static const char *toCppMangle(Dsymbol *s);
     static const char *cppTypeInfoMangle(ClassDeclaration *cd);
     static const char *cppTypeMangle(Type *t);
@@ -86,4 +82,5 @@ struct Target
     static TypeTuple *toArgTypes(Type *t);
     static bool isReturnOnStack(TypeFunction *tf, bool needsThis);
     static d_uns64 parameterSize(const Loc& loc, Type *t);
+    static Expression *getTargetInfo(const char* name, const Loc& loc);
 };

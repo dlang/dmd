@@ -212,7 +212,7 @@ public:
     }
 }
 
-extern (C++) Expression checkGC(Scope* sc, Expression e)
+Expression checkGC(Scope* sc, Expression e)
 {
     FuncDeclaration f = sc.func;
     if (e && e.op != TOK.error && f && sc.intypeof != 1 && !(sc.flags & SCOPE.ctfe) &&

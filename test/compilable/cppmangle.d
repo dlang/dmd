@@ -1,6 +1,9 @@
 
 // Test C++ name mangling.
-// See Bugs 4059, 5148, 7024, 10058
+// https://issues.dlang.org/show_bug.cgi?id=4059
+// https://issues.dlang.org/show_bug.cgi?id=5148
+// https://issues.dlang.org/show_bug.cgi?id=7024
+// https://issues.dlang.org/show_bug.cgi?id=10058
 
 import core.stdc.stdio;
 
@@ -224,7 +227,7 @@ version (linux)
 }
 
 /****************************************/
-// 4059
+// https://issues.dlang.org/show_bug.cgi?id=4059
 
 struct elem9 { }
 
@@ -242,7 +245,7 @@ version (linux)
 }
 
 /****************************************/
-// 5148
+// https://issues.dlang.org/show_bug.cgi?id=5148
 
 extern (C++)
 {
@@ -270,7 +273,7 @@ void test10()
 }
 
 /**************************************/
-// 10058
+// https://issues.dlang.org/show_bug.cgi?id=10058
 
 extern (C++)
 {
@@ -305,7 +308,7 @@ version (linux)
 }
 
 /**************************************/
-// 11696
+// https://issues.dlang.org/show_bug.cgi?id=11696
 
 class Expression;
 struct Loc {}
@@ -328,7 +331,7 @@ version (linux)
 }
 
 /**************************************/
-// 13337
+// https://issues.dlang.org/show_bug.cgi?id=13337
 
 extern(C++, N13337a.N13337b.N13337c)
 {
@@ -342,7 +345,7 @@ version (linux)
 }
 
 /**************************************/
-// 15789
+// https://issues.dlang.org/show_bug.cgi?id=15789
 
 extern (C++) void test15789a(T...)(T args);
 
@@ -352,7 +355,7 @@ void test15789()
 }
 
 /**************************************/
-// 7030
+// https://issues.dlang.org/show_bug.cgi?id=7030
 
 extern(C++)
 {
@@ -412,6 +415,8 @@ extern (C++, std)
     {
         uint foof();
     }
+
+    struct vector (T);
 
     struct test18957 {}
 }
@@ -768,3 +773,206 @@ version(Windows)
       "??$test19043b@U?$test19043@$$CBD@@@@YAXU?$test19043@$$CBD@@@Z");
 }
 
+// https://issues.dlang.org/show_bug.cgi?id=16479
+//  Missing substitution while mangling C++ template parameter for functions
+version (Posix) extern (C++)
+{
+    // Make sure aliases are still resolved
+    alias Alias16479 = int;
+    Alias16479 func16479_0 (FuncT1) (FuncT1, Alias16479);
+    static assert(func16479_0!(int).mangleof == `_Z11func16479_0IiEiT_i`);
+
+    // Simple substitution on return type
+    FuncT1* func16479_1 (FuncT1) ();
+    static assert(func16479_1!(int).mangleof == `_Z11func16479_1IiEPT_v`);
+
+    // Simple substitution on parameter
+    void    func16479_2 (FuncT1) (FuncT1);
+    static assert(func16479_2!(int).mangleof == `_Z11func16479_2IiEvT_`);
+
+    // Make sure component substition is prefered over template parameter
+    FuncT1* func16479_3 (FuncT1) (FuncT1);
+    static assert(func16479_3!(int).mangleof == `_Z11func16479_3IiEPT_S0_`);
+
+    struct Array16479 (Arg) { Arg* data; }
+    struct Array16479_2 (Arg, int Size) { Arg[Size] data; }
+    struct Value16479 (int Value1, int Value2) { int data; }
+
+    // Make sure template parameter substitution happens on templated return
+    Array16479!(FuncT2) func16479_4 (FuncT1, FuncT2) (FuncT1);
+    static assert(func16479_4!(int, float).mangleof
+                  == `_Z11func16479_4IifE10Array16479IT0_ET_`);
+
+    // Make sure template parameter substitution happens with values
+    Value16479!(Value2, Value1)* func16479_5 (int Value1, int Value2) ();
+    static assert(func16479_5!(1, 1).mangleof
+                  == `_Z11func16479_5ILi1ELi1EEP10Value16479IXT0_EXT_EEv`);
+
+    // But make sure it's not substituting *too many* values
+    Value16479!(1, 1)* func16479_6 (int Value1, int Value2) ();
+    static assert(func16479_6!(1, 1).mangleof
+                  == `_Z11func16479_6ILi1ELi1EEP10Value16479ILi1ELi1EEv`);
+
+    // Or too many types
+    Array16479!(int) func16479_7 (FuncT1, FuncT2) (FuncT1);
+    static assert(func16479_7!(int, int).mangleof
+                  == `_Z11func16479_7IiiE10Array16479IiET_`);
+
+    // Also must check the parameters for template param substitution
+    void func16479_8 (FuncT1) (Array16479!(FuncT1));
+    static assert(func16479_8!(int).mangleof
+                  == `_Z11func16479_8IiEv10Array16479IT_E`);
+
+    // And non-substitution
+    void func16479_9 (FuncT1) (Array16479!(int));
+    static assert(func16479_9!(int).mangleof
+                  == `_Z11func16479_9IiEv10Array16479IiE`);
+
+    // Now let's have a bit of fun with alias parameters,
+    // starting with C functions
+    // TODO: Why is this mangled by g++:
+    /*
+      extern "C"
+      {
+        void externC16479 (int);
+      }
+
+      template<void (*Print)(int)>
+      void func16479_10 ();
+
+      void foo () { func16479_10<externC16479>(); }
+     */
+    extern (C) void externC16479 (int);
+    void func16479_10 (alias Print) ();
+    static assert(func16479_10!(externC16479).mangleof
+                  == `_Z12func16479_10IXadL_Z12externC16479EEEvv`);
+
+    /**
+     * Let's not exclude C++ functions
+     * Note:
+     *   Passing a function as template parameter has an implicit
+     *   `&` operator prepended to it, so the following code:
+     * ---
+     * void CPPPrinter16479(const char*);
+     * template<void (*Print)(const char*)> void func16479_11 ();
+     * void foo () { func16479_11<CPPPrinter16479>(); }
+     * ---
+     * Gets mangled as `func16479_11<&CPPPrinter16479>()` would,
+     * which means the expression part of the template argument is
+     * mangled as `XadL_Z[...]E` not `XL_Z[...]E`
+     * (expressions always begin with a code anyway).
+     */
+    extern(C++) void CPPPrinter16479(const(char)*);
+    extern(C++, Namespace16479) void CPPPrinterNS16479(const(char)*);
+    void func16479_11 (alias Print) ();
+    static assert(func16479_11!(CPPPrinter16479).mangleof
+                  == `_Z12func16479_11IXadL_Z15CPPPrinter16479PKcEEEvv`);
+    static assert(func16479_11!(CPPPrinterNS16479).mangleof
+                  == `_Z12func16479_11IXadL_ZN14Namespace1647917CPPPrinterNS16479EPKcEEEvv`);
+
+    // Functions are fine, but templates are finer
+    // ---
+    // template<template<typename, int> class Container, typename T, int Val>
+    // Container<T, Val> func16479_12 ();
+    // ---
+    Container!(T, Val) func16479_12 (alias Container, T, int Val) ();
+    static assert(func16479_12!(Array16479_2, int, 42).mangleof
+                  == `_Z12func16479_12I12Array16479_2iLi42EET_IT0_XT1_EEv`);
+
+    // Substitution needs to happen on the most specialized type
+    // Iow, `ref T identity (T) (ref T v);` should be mangled as
+    // `_Z8identityIiET_*S1_*`, not as `_Z8identityIiET_*RS0_*`
+    ref FuncT1 func16479_13_1 (FuncT1) (ref FuncT1);
+    FuncT1*    func16479_13_2 (FuncT1) (FuncT1*);
+    void       func16479_13_3 (FuncT1) (FuncT1*, FuncT1*);
+    FuncT1**   func16479_13_4 (FuncT1) (FuncT1*, FuncT1);
+    FuncT1     func16479_13_5 (FuncT1) (FuncT1*, FuncT1**);
+    static assert(func16479_13_1!(int).mangleof == `_Z14func16479_13_1IiERT_S1_`);
+    static assert(func16479_13_2!(float).mangleof == `_Z14func16479_13_2IfEPT_S1_`);
+    static assert(func16479_13_3!(int).mangleof == `_Z14func16479_13_3IiEvPT_S1_`);
+    static assert(func16479_13_4!(int).mangleof == `_Z14func16479_13_4IiEPPT_S1_S0_`);
+    static assert(func16479_13_5!(int).mangleof == `_Z14func16479_13_5IiET_PS0_PS1_`);
+
+    // Opaque types result in a slightly different AST
+    vector!T* func16479_14 (T) (T v);
+    static assert(func16479_14!(int).mangleof == `_Z12func16479_14IiEPSt6vectorIT_ES1_`);
+
+    struct Foo16479_15 (T);
+    struct Baguette16479_15 (T);
+    struct Bar16479_15 (T);
+    struct FooBar16479_15 (A, B);
+    void inst16479_15_2 (A, B) ();
+    void inst16479_15_3 (A, B, C) ();
+
+    static assert(inst16479_15_2!(Bar16479_15!int, int).mangleof
+                  == `_Z14inst16479_15_2I11Bar16479_15IiEiEvv`);
+    static assert(inst16479_15_2!(int, Bar16479_15!int).mangleof
+                  == `_Z14inst16479_15_2Ii11Bar16479_15IiEEvv`);
+    static assert(inst16479_15_2!(Bar16479_15!int, FooBar16479_15!(Bar16479_15!int, Foo16479_15!(Bar16479_15!(Foo16479_15!int)))).mangleof
+                  == `_Z14inst16479_15_2I11Bar16479_15IiE14FooBar16479_15IS1_11Foo16479_15IS0_IS3_IiEEEEEvv`);
+    static assert(inst16479_15_3!(int, Bar16479_15!int, FooBar16479_15!(Bar16479_15!int, Foo16479_15!(Bar16479_15!(Foo16479_15!int)))).mangleof
+                  == `_Z14inst16479_15_3Ii11Bar16479_15IiE14FooBar16479_15IS1_11Foo16479_15IS0_IS3_IiEEEEEvv`);
+
+    static import cppmangle2;
+    cppmangle2.Struct18922* func16479_16_1 (T) (T*);
+    static assert(func16479_16_1!int.mangleof == `_Z14func16479_16_1IiEPN14Namespace1892211Struct18922EPT_`);
+    T* func16479_16_2 (T) (T*);
+    static assert(func16479_16_2!int.mangleof == `_Z14func16479_16_2IiEPT_S1_`);
+    static assert(func16479_16_2!(cppmangle2.vector!int).mangleof == `_Z14func16479_16_2ISt6vectorIiEEPT_S3_`);
+    static assert(func16479_16_2!(cppmangle2.vector!int).mangleof
+                  == func16479_16_2!(cppmangle2.vector!int).mangleof);
+    cppmangle2.vector!T* func16479_16_3 (T) (T*);
+    static assert(func16479_16_3!int.mangleof == `_Z14func16479_16_3IiEPSt6vectorIiEPT_`);
+
+    extern(C++, `fakestd`) {
+        extern (C++, `__1`) {
+            struct allocator16479 (T);
+            struct vector16479(T, alloc = allocator16479!T);
+        }
+    }
+    vector16479!(T, allocator16479!T)* func16479_17_1(T)();
+    vector16479!(T)* func16479_17_2(T)();
+    static assert(func16479_17_1!int.mangleof == `_Z14func16479_17_1IiEPN7fakestd3__111vector16479IT_NS1_14allocator16479IS3_EEEEv`);
+    static assert(func16479_17_2!int.mangleof == `_Z14func16479_17_2IiEPN7fakestd3__111vector16479IT_NS1_14allocator16479IS3_EEEEv`);
+}
+
+/**************************************/
+// https://issues.dlang.org/show_bug.cgi?id=19278
+// extern(C++, "name") doesn't accept expressions
+
+extern(C++, "hello" ~ "world")
+{
+    void test19278();
+}
+enum NS = "lookup";
+extern(C++, (NS))
+{
+    void test19278_2();
+}
+alias AliasSeq(Args...) = Args;
+alias Tup = AliasSeq!("hello", "world");
+extern(C++, (Tup))
+{
+    void test19278_3();
+    __gshared size_t test19278_var;
+}
+extern(C++, (AliasSeq!(Tup, "yay")))
+{
+    void test19278_4();
+}
+version(Win64)
+{
+    static assert(test19278.mangleof == "?test19278@helloworld@@YAXXZ");
+    static assert(test19278_2.mangleof == "?test19278_2@lookup@@YAXXZ");
+    static assert(test19278_3.mangleof == "?test19278_3@world@hello@@YAXXZ");
+    static assert(test19278_4.mangleof == "?test19278_4@yay@world@hello@@YAXXZ");
+    static assert(test19278_var.mangleof == "?test19278_var@world@hello@@3_KA");
+}
+else version(Posix)
+{
+    static assert(test19278.mangleof == "_ZN10helloworld9test19278Ev");
+    static assert(test19278_2.mangleof == "_ZN6lookup11test19278_2Ev");
+    static assert(test19278_3.mangleof == "_ZN5hello5world11test19278_3Ev");
+    static assert(test19278_4.mangleof == "_ZN5hello5world3yay11test19278_4Ev");
+    static assert(test19278_var.mangleof == "_ZN5hello5world13test19278_varE");
+}

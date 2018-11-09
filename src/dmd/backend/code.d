@@ -16,6 +16,7 @@ module dmd.backend.code;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code_x86;
+import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.el : elem;
 import dmd.backend.oper : OPMAX;
 import dmd.backend.outbuf;
@@ -82,6 +83,18 @@ void code_free(code *);
 void code_term();
 
 code *code_next(code *c) { return c.next; }
+
+code *code_chunk_alloc();
+extern __gshared code *code_list;
+
+code *code_malloc()
+{
+    //printf("code %d\n", sizeof(code));
+    code *c = code_list ? code_list : code_chunk_alloc();
+    code_list = code_next(c);
+    //printf("code_malloc: %p\n",c);
+    return c;
+}
 
 extern __gshared con_t regcon;
 
@@ -244,7 +257,7 @@ struct seg_data
         int classidx;                   // lname idx of class name
         uint attr;                      // segment attribute
         targ_size_t origsize;           // original size
-        long seek;                      // seek position in output file
+        int seek;                       // seek position in output file
         void* ledata;                   // (Ledatarec) current one we're filling in
     }
 
@@ -269,10 +282,13 @@ struct seg_data
     uint             SDlinnum_max;
     linnum_data     *SDlinnum_data;     // array of line number / offset data
 
-    int isCode();
+    version (Windows)
+        int isCode() { return seg_data_isCode(this); }
+    version (OSX)
+        int isCode() { return seg_data_isCode(this); }
 }
 
-
+extern int seg_data_isCode(const ref seg_data sd);
 
 struct linnum_data
 {
@@ -656,64 +672,6 @@ void regimmed_set(int reg, targ_size_t e)
 }
 
 
-extern (C++) struct CodeBuilder
-{
-  private:
-
-    code *head;
-    code **pTail;
-
-  public:
-    //this() { pTail = &head; }
-    //this(code *c);
-    void ctor() { pTail = &head; }
-
-  extern (C++):
-  final:
-    code *finish() { return head; }
-    code *peek() { return head; }       // non-destructively look at the list
-    void reset() { head = null; pTail = &head; }
-
-    void append(ref CodeBuilder cdb);
-    void append(ref CodeBuilder cdb1, ref CodeBuilder cdb2);
-    void append(ref CodeBuilder cdb1, ref CodeBuilder cdb2, ref CodeBuilder cdb3);
-    void append(ref CodeBuilder cdb1, ref CodeBuilder cdb2, ref CodeBuilder cdb3, ref CodeBuilder cdb4);
-    void append(ref CodeBuilder cdb1, ref CodeBuilder cdb2, ref CodeBuilder cdb3, ref CodeBuilder cdb4, ref CodeBuilder cdb5);
-
-    void append(code *c);
-
-    void gen(code *cs);
-    void gen1(uint op);
-    void gen2(uint op, uint rm);
-    void genf2(uint op, uint rm);
-    void gen2sib(uint op, uint rm, uint sib);
-    void genasm(char *s, uint slen);
-    void genasm(_LabelDsymbol *label);
-    void genasm(block *label);
-    void gencsi(uint op, uint rm, uint FL2, SYMIDX si);
-    void gencs(uint op, uint rm, uint FL2, Symbol *s);
-    void genc2(uint op, uint rm, targ_size_t EV2);
-    void genc1(uint op, uint rm, uint FL1, targ_size_t EV1);
-    void genc(uint op, uint rm, uint FL1, targ_size_t EV1, uint FL2, targ_size_t EV2);
-    void genlinnum(Srcpos);
-    void genadjesp(int offset);
-    void genadjfpu(int offset);
-    void gennop();
-    void genfltreg(uint opcode,uint reg,targ_size_t offset);
-    void genxmmreg(uint opcode,uint xreg,targ_size_t offset, tym_t tym);
-
-    /*****************
-     * Returns:
-     *  code that pTail points to
-     */
-    code *last()
-    {
-        // g++ and clang++ complain about offsetof() because of the code::code() constructor.
-        // return (code *)((char *)pTail - offsetof(code, next));
-        // So do our own.
-        return cast(code *)(cast(void *)pTail - (cast(void*)&(*pTail).next - cast(void*)*pTail));
-    }
-}
 
 
 

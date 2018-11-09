@@ -9,7 +9,7 @@
 
 #pragma once
 
-#define POSIX (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __DragonFly__ || __sun)
+#define POSIX (__linux__ || __GLIBC__ || __gnu_hurd__ || __APPLE__ || __FreeBSD__ || __DragonFly__ || __OpenBSD__ || __sun)
 
 #include "dcompat.h"
 #include <stddef.h>
@@ -28,7 +28,7 @@ enum DYNCAST
     DYNCAST_TUPLE,
     DYNCAST_PARAMETER,
     DYNCAST_STATEMENT,
-    DYNCAST_TEMPLATEPARAMETER,
+    DYNCAST_TEMPLATEPARAMETER
 };
 
 /*

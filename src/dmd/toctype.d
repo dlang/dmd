@@ -75,6 +75,7 @@ public:
     override void visit(TypeAArray t)
     {
         t.ctype = type_assoc_array(Type_toCtype(t.index), Type_toCtype(t.next));
+        t.ctype.Tident = t.toPrettyChars(true);
     }
 
     override void visit(TypePointer t)

@@ -1379,7 +1379,7 @@ MATCH implicitConvTo(Expression e, Type t)
     return v.result;
 }
 
-extern (C++) Type toStaticArrayType(SliceExp e)
+Type toStaticArrayType(SliceExp e)
 {
     if (e.lwr && e.upr)
     {
@@ -2485,7 +2485,7 @@ Expression castTo(Expression e, Scope* sc, Type t)
  *      t       Target type
  *      flag    1: don't put an error when inference fails
  */
-extern (C++) Expression inferType(Expression e, Type t, int flag = 0)
+Expression inferType(Expression e, Type t, int flag = 0)
 {
     extern (C++) final class InferType : Visitor
     {
@@ -2587,7 +2587,7 @@ extern (C++) Expression inferType(Expression e, Type t, int flag = 0)
 /****************************************
  * Scale addition/subtraction to/from pointer.
  */
-extern (C++) Expression scaleFactor(BinExp be, Scope* sc)
+Expression scaleFactor(BinExp be, Scope* sc)
 {
     Type t1b = be.e1.type.toBasetype();
     Type t2b = be.e2.type.toBasetype();
@@ -2679,7 +2679,7 @@ private bool isVoidArrayLiteral(Expression e, Type other)
  *      true    success
  *      false   failed
  */
-extern (C++) bool typeMerge(Scope* sc, TOK op, Type* pt, Expression* pe1, Expression* pe2)
+bool typeMerge(Scope* sc, TOK op, Type* pt, Expression* pe1, Expression* pe2)
 {
     //printf("typeMerge() %s op %s\n", pe1.toChars(), pe2.toChars());
 
@@ -3337,7 +3337,7 @@ Lt2:
  * Returns:
  *    null on success, ErrorExp if error occurs
  */
-extern (C++) Expression typeCombine(BinExp be, Scope* sc)
+Expression typeCombine(BinExp be, Scope* sc)
 {
     Expression errorReturn()
     {
@@ -3376,7 +3376,7 @@ extern (C++) Expression typeCombine(BinExp be, Scope* sc)
  * Do integral promotions (convertchk).
  * Don't convert <array of> to <pointer to>
  */
-extern (C++) Expression integralPromotions(Expression e, Scope* sc)
+Expression integralPromotions(Expression e, Scope* sc)
 {
     //printf("integralPromotions %s %s\n", e.toChars(), e.type.toChars());
     switch (e.type.toBasetype().ty)
@@ -3488,7 +3488,7 @@ extern (C++) bool arrayTypeCompatibleWithoutCasting(Type t1, Type t2)
  * This is used to determine if implicit narrowing conversions will
  * be allowed.
  */
-extern (C++) IntRange getIntRange(Expression e)
+IntRange getIntRange(Expression e)
 {
     extern (C++) final class IntRangeVisitor : Visitor
     {

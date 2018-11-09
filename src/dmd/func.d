@@ -98,8 +98,17 @@ public:
     {
         DtorExpStatement des;
         if (fd.nrvo_can && s.finalbody && (des = s.finalbody.isDtorExpStatement()) !is null &&
-            fd.nrvo_var == des.var && global.params.useExceptions && ClassDeclaration.throwable)
+            fd.nrvo_var == des.var)
         {
+            if (!(global.params.useExceptions && ClassDeclaration.throwable))
+            {
+                /* Don't need to call destructor at all, since it is nrvo
+                 */
+                replaceCurrent(s._body);
+                s._body.accept(this);
+                return;
+            }
+
             /* Normally local variable dtors are called regardless exceptions.
              * But for nrvo_var, its dtor should be called only when exception is thrown.
              *
@@ -406,7 +415,7 @@ extern (C++) class FuncDeclaration : Declaration
      * Check that this function type is properly resolved.
      * If not, report "forward reference error" and return true.
      */
-    final bool checkForwardRef(const ref Loc loc)
+    extern (D) final bool checkForwardRef(const ref Loc loc)
     {
         if (!functionSemantic())
             return true;
@@ -1670,7 +1679,7 @@ extern (C++) class FuncDeclaration : Declaration
      *    then mark it as a delegate.
      * Returns true if error occurs.
      */
-    final bool checkNestedReference(Scope* sc, const ref Loc loc)
+    extern (D) final bool checkNestedReference(Scope* sc, const ref Loc loc)
     {
         //printf("FuncDeclaration::checkNestedReference() %s\n", toPrettyChars());
 
@@ -1840,7 +1849,7 @@ extern (C++) class FuncDeclaration : Declaration
      * Returns:
      *      true if any errors occur.
      */
-    final bool checkClosure()
+    extern (D) final bool checkClosure()
     {
         if (!needsClosure())
             return false;
@@ -2327,7 +2336,7 @@ extern (C++) class FuncDeclaration : Declaration
      * Check parameters and return type of D main() function.
      * Issue error messages.
      */
-    final void checkDmain()
+    extern (D) final void checkDmain()
     {
         TypeFunction tf = type.toTypeFunction();
         const nparams = Parameter.dim(tf.parameters);
@@ -2377,7 +2386,7 @@ extern (C++) class FuncDeclaration : Declaration
  * Returns:
  *      void expression that calls the invariant
  */
-extern (C++) Expression addInvariant(const ref Loc loc, Scope* sc, AggregateDeclaration ad, VarDeclaration vthis)
+Expression addInvariant(const ref Loc loc, Scope* sc, AggregateDeclaration ad, VarDeclaration vthis)
 {
     Expression e = null;
     // Call invariant directly only if it exists
@@ -2522,11 +2531,6 @@ extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg, Sco
     return 0;
 }
 
-extern (C++) int overloadApply(Dsymbol fstart, void* param, int function(void*, Dsymbol) fp)
-{
-    return overloadApply(fstart, s => (*fp)(param, s));
-}
-
 /**
 Checks for mismatching modifiers between `lhsMod` and `rhsMod` and prints the
 mismatching modifiers to `buf`.
@@ -2630,7 +2634,7 @@ private const(char)* prependSpace(const(char)* str)
  * Returns:
  *      if match is found, then function symbol, else null
  */
-extern (C++) FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
+FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     Objects* tiargs, Type tthis, Expressions* fargs, int flags = 0)
 {
     if (!s)
@@ -2719,25 +2723,7 @@ extern (C++) FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymb
                 td.kind(), td.parent.toPrettyChars(), td.ident.toChars(),
                 tiargsBuf.peekString(), fargsBuf.peekString());
 
-            // Display candidate templates (even if there are no multiple overloads)
-            int numToDisplay = numOverloadsDisplay;
-            overloadApply(td, (Dsymbol s)
-            {
-                auto td = s.isTemplateDeclaration();
-                if (!td)
-                    return 0;
-                .errorSupplemental(td.loc, "`%s`", td.toPrettyChars());
-                if (global.params.verbose || --numToDisplay != 0 || !td.overnext)
-                    return 0;
-
-                // Too many overloads to sensibly display.
-                // Just show count of remaining overloads.
-                int num = 0;
-                overloadApply(td.overnext, (s) { ++num; return 0; });
-                if (num > 0)
-                    .errorSupplemental(loc, "... (%d more, -v to show) ...", num);
-                return 1;   // stop iterating
-            });
+            printCandidates(loc, td);
         }
         else if (od)
         {
@@ -2797,36 +2783,8 @@ extern (C++) FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymb
                 }
             }
 
-            // Display candidate functions
-            int numToDisplay = numOverloadsDisplay;
-            overloadApply(hasOverloads ? fd : null, (Dsymbol s)
-            {
-                auto fd = s.isFuncDeclaration();
-                auto td = s.isTemplateDeclaration();
-                if (fd)
-                {
-                    if (fd.errors || fd.type.ty == Terror)
-                        return 0;
-
-                    auto tf = cast(TypeFunction)fd.type;
-                    .errorSupplemental(fd.loc, "`%s%s`", fd.toPrettyChars(),
-                        parametersTypeToChars(tf.parameters, tf.varargs));
-                }
-                else
-                {
-                    .errorSupplemental(td.loc, "`%s`", td.toPrettyChars());
-                }
-
-                if (global.params.verbose || --numToDisplay != 0 || !fd)
-                    return 0;
-
-                // Too many overloads to sensibly display.
-                int num = 0;
-                overloadApply(fd.overnext, (s){ ++num; return 0; });
-                if (num > 0)
-                    .errorSupplemental(loc, "... (%d more, -v to show) ...", num);
-                return 1;   // stop iterating
-            }, sc);
+            if (hasOverloads)
+                printCandidates(loc, fd);
         }
     }
     else if (m.nextf)
@@ -2848,10 +2806,56 @@ extern (C++) FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymb
     return null;
 }
 
+/*******************************************
+ * Prints template and function overload candidates as supplemental errors.
+ * Params:
+ *      loc =           instantiation location
+ *      declaration =   the declaration to print overload candidates for
+ */
+private void printCandidates(Decl)(const ref Loc loc, Decl declaration)
+if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
+{
+    // max num of overloads to print (-v overrides this).
+    int numToDisplay = 5;
+
+    overloadApply(declaration, (Dsymbol s)
+    {
+        Dsymbol nextOverload;
+
+        if (auto fd = s.isFuncDeclaration())
+        {
+            if (fd.errors || fd.type.ty == Terror)
+                return 0;
+
+            auto tf = cast(TypeFunction) fd.type;
+            .errorSupplemental(fd.loc, "`%s%s`", fd.toPrettyChars(),
+                parametersTypeToChars(tf.parameters, tf.varargs));
+            nextOverload = fd.overnext;
+        }
+        else if (auto td = s.isTemplateDeclaration())
+        {
+            .errorSupplemental(td.loc, "`%s`", td.toPrettyChars());
+            nextOverload = td.overnext;
+        }
+
+        if (global.params.verbose || --numToDisplay != 0)
+            return 0;
+
+        // Too many overloads to sensibly display.
+        // Just show count of remaining overloads.
+        int num = 0;
+        overloadApply(nextOverload, (s) { ++num; return 0; });
+
+        if (num > 0)
+            .errorSupplemental(loc, "... (%d more, -v to show) ...", num);
+        return 1;   // stop iterating
+    });
+}
+
 /**************************************
  * Returns an indirect type one step from t.
  */
-extern (C++) Type getIndirection(Type t)
+Type getIndirection(Type t)
 {
     t = t.baseElemOf();
     if (t.ty == Tarray || t.ty == Tpointer)

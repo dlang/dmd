@@ -81,6 +81,19 @@ extern (C++) void genhdrfile(Module m)
     writeFile(m.loc, m.hdrfile);
 }
 
+/**
+ * Dumps the full contents of module `m` to `buf`.
+ * Params:
+ *   buf = buffer to write to.
+ *   m = module to visit all members of.
+ */
+extern (C++) void moduleToBuffer(OutBuffer* buf, Module m)
+{
+    HdrGenState hgs;
+    hgs.fullDump = true;
+    toCBuffer(m, buf, &hgs);
+}
+
 extern (C++) final class PrettyPrintVisitor : Visitor
 {
     alias visit = Visitor.visit;
@@ -127,7 +140,7 @@ public:
     override void visit(CompileStatement s)
     {
         buf.writestring("mixin(");
-        s.exp.accept(this);
+        argsToBuffer(s.exps, null);
         buf.writestring(");");
         if (!hgs.forStmtInit)
             buf.writenl();
@@ -858,11 +871,11 @@ public:
         bool isPostfixStyle;
         bool isCtor;
 
-        extern (C++) static int fp(void* param, const(char)* str)
+        extern (D) static int fp(void* param, string str)
         {
             PrePostAppendStrings* p = cast(PrePostAppendStrings*)param;
             // don't write 'ref' for ctors
-            if (p.isCtor && strcmp(str, "ref") == 0)
+            if (p.isCtor && str == "ref")
                 return 0;
             if (p.isPostfixStyle)
                 p.buf.writeByte(' ');
@@ -921,9 +934,9 @@ public:
         }
         t.inuse++;
         PrePostAppendStrings pas;
-        extern(C++) int ignoreReturn(void* param, const(char)* name)
+        extern (D) static int ignoreReturn(void* param, string name)
         {
-            if (strcmp(name, "return") != 0)
+            if (name != "return")
                 PrePostAppendStrings.fp(param, name);
             return 0;
         }
@@ -1398,7 +1411,7 @@ public:
     override void visit(CompileDeclaration d)
     {
         buf.writestring("mixin(");
-        d.exp.accept(this);
+        argsToBuffer(d.exps, null);
         buf.writestring(");");
         buf.writenl();
     }
@@ -2795,7 +2808,7 @@ public:
     override void visit(CompileExp e)
     {
         buf.writestring("mixin(");
-        expToBuffer(e.e1, PREC.assign);
+        argsToBuffer(e.exps, null);
         buf.writeByte(')');
     }
 
@@ -3223,26 +3236,26 @@ public:
     }
 }
 
-extern (C++) void toCBuffer(Statement s, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(Statement s, OutBuffer* buf, HdrGenState* hgs)
 {
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
     s.accept(v);
 }
 
-extern (C++) void toCBuffer(Type t, OutBuffer* buf, Identifier ident, HdrGenState* hgs)
+void toCBuffer(Type t, OutBuffer* buf, Identifier ident, HdrGenState* hgs)
 {
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
     v.typeToBuffer(t, ident);
 }
 
-extern (C++) void toCBuffer(Dsymbol s, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(Dsymbol s, OutBuffer* buf, HdrGenState* hgs)
 {
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
     s.accept(v);
 }
 
 // used from TemplateInstance::toChars() and TemplateMixin::toChars()
-extern (C++) void toCBufferInstance(TemplateInstance ti, OutBuffer* buf, bool qualifyTypes = false)
+void toCBufferInstance(TemplateInstance ti, OutBuffer* buf, bool qualifyTypes = false)
 {
     HdrGenState hgs;
     hgs.fullQual = qualifyTypes;
@@ -3250,13 +3263,13 @@ extern (C++) void toCBufferInstance(TemplateInstance ti, OutBuffer* buf, bool qu
     v.visit(ti);
 }
 
-extern (C++) void toCBuffer(Initializer iz, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(Initializer iz, OutBuffer* buf, HdrGenState* hgs)
 {
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
     iz.accept(v);
 }
 
-extern (C++) bool stcToBuffer(OutBuffer* buf, StorageClass stc)
+bool stcToBuffer(OutBuffer* buf, StorageClass stc)
 {
     bool result = false;
     if ((stc & (STC.return_ | STC.scope_)) == (STC.return_ | STC.scope_))
@@ -3471,7 +3484,7 @@ extern (D) string protectionToString(Prot.Kind kind)
 }
 
 // Print the full function signature with correct ident, attributes and template args
-extern (C++) void functionToBufferFull(TypeFunction tf, OutBuffer* buf, Identifier ident, HdrGenState* hgs, TemplateDeclaration td)
+void functionToBufferFull(TypeFunction tf, OutBuffer* buf, Identifier ident, HdrGenState* hgs, TemplateDeclaration td)
 {
     //printf("TypeFunction::toCBuffer() this = %p\n", this);
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
@@ -3479,14 +3492,14 @@ extern (C++) void functionToBufferFull(TypeFunction tf, OutBuffer* buf, Identifi
 }
 
 // ident is inserted before the argument list and will be "function" or "delegate" for a type
-extern (C++) void functionToBufferWithIdent(TypeFunction tf, OutBuffer* buf, const(char)* ident)
+void functionToBufferWithIdent(TypeFunction tf, OutBuffer* buf, const(char)* ident)
 {
     HdrGenState hgs;
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, &hgs);
     v.visitFuncIdentWithPostfix(tf, ident);
 }
 
-extern (C++) void toCBuffer(Expression e, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(Expression e, OutBuffer* buf, HdrGenState* hgs)
 {
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
     e.accept(v);
@@ -3495,7 +3508,7 @@ extern (C++) void toCBuffer(Expression e, OutBuffer* buf, HdrGenState* hgs)
 /**************************************************
  * Write out argument types to buf.
  */
-extern (C++) void argExpTypesToCBuffer(OutBuffer* buf, Expressions* arguments)
+void argExpTypesToCBuffer(OutBuffer* buf, Expressions* arguments)
 {
     if (!arguments || !arguments.dim)
         return;
@@ -3509,13 +3522,13 @@ extern (C++) void argExpTypesToCBuffer(OutBuffer* buf, Expressions* arguments)
     }
 }
 
-extern (C++) void toCBuffer(TemplateParameter tp, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(TemplateParameter tp, OutBuffer* buf, HdrGenState* hgs)
 {
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
     tp.accept(v);
 }
 
-extern (C++) void arrayObjectsToBuffer(OutBuffer* buf, Objects* objects)
+void arrayObjectsToBuffer(OutBuffer* buf, Objects* objects)
 {
     if (!objects || !objects.dim)
         return;
@@ -3553,7 +3566,7 @@ extern (C++) const(char)* parametersTypeToChars(Parameters* parameters, int vara
  *  fullQual = whether to fully qualify types.
  * Returns: Null-terminated string representing parameters.
  */
-extern (C++) const(char)* parameterToChars(Parameter parameter, TypeFunction tf, bool fullQual)
+const(char)* parameterToChars(Parameter parameter, TypeFunction tf, bool fullQual)
 {
     OutBuffer buf;
     HdrGenState hgs;

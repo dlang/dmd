@@ -207,16 +207,17 @@ DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@
 /// Returns: the dependency that builds and executes the optabgen utility
 auto opTabGen()
 {
-    auto opTabFiles = ["debtab.d", "optab.c", "cdxxx.d", "elxxx.d", "fltables.d", "tytab.c"];
+    auto opTabFiles = ["debtab.d", "optab.d", "cdxxx.d", "elxxx.d", "fltables.d", "tytab.d"];
     auto opTabFilesBin = opTabFiles.map!(e => env["G"].buildPath(e)).array;
     auto opTabBin = env["G"].buildPath("optabgen").exeName;
-    auto opTabSourceFile = env["C"].buildPath("optabgen.c");
+    auto opTabSourceFile = env["C"].buildPath("optabgen.d");
 
     auto commandFunction = (){
-        auto args = [env["HOST_CXX"], "-I"~env["TK"], opTabSourceFile, "-o", opTabBin];
-        args ~= flags["CXXFLAGS"];
+        auto args = [env["HOST_DMD_RUN"], opTabSourceFile, "-of" ~ opTabBin];
+        args ~= flags["DFLAGS"];
 
         writefln("(CC) BUILD_OPTABGEN");
+        writeln(args);
         args.runCanThrow;
 
         writefln("(CC) RUN_OPTABBIN %-(%s, %)", opTabFiles);
@@ -799,7 +800,7 @@ auto sourceFiles()
             dirEntries(env["C"], "*.d", SpanMode.shallow)
                 .map!(e => e.name)
                 .filter!(e => !e.canFind("dt.d", "obj.d"))
-                .array,
+                .array ~ buildPath(env["C"], "elfobj.d"),
         backendHeaders: [
             // can't be built with -betterC
             "dt",

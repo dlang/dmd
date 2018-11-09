@@ -114,7 +114,7 @@ void test1()
 }
 
 /*******************************************/
-// 7722
+// https://issues.dlang.org/show_bug.cgi?id=7722
 
 class Foo7722 {}
 void spam7722(Foo7722 f) {}
@@ -247,7 +247,7 @@ void test7722b()
 }
 
 /*******************************************/
-// 7174
+// https://issues.dlang.org/show_bug.cgi?id=7174
 
 void test7174()
 {
@@ -256,7 +256,7 @@ void test7174()
 }
 
 /***************************************************/
-// 7274
+// https://issues.dlang.org/show_bug.cgi?id=7274
 
 @property foo7274(){ return "test"; }
 @property bar7274(){ return "kernel32.lib"; }
@@ -271,7 +271,7 @@ void test7274()
 }
 
 /***************************************************/
-// 7275
+// https://issues.dlang.org/show_bug.cgi?id=7275
 
 void test7275()
 {
@@ -288,7 +288,7 @@ void test7275()
 }
 
 /*****************************************/
-// 7538
+// https://issues.dlang.org/show_bug.cgi?id=7538
 
 void test7538()
 {
@@ -433,7 +433,7 @@ void test7538()
 }
 
 /*****************************************/
-// 8251
+// https://issues.dlang.org/show_bug.cgi?id=8251
 
 struct S8251
 {
@@ -470,13 +470,13 @@ void test8251()
 }
 
 /*****************************************/
-// 9063
+// https://issues.dlang.org/show_bug.cgi?id=9063
 
 @property bool foo9063(){ return true; }
 static assert(foo9063);
 
 /*****************************************/
-// 9234
+// https://issues.dlang.org/show_bug.cgi?id=9234
 
 class Fizz9234
 {
@@ -488,7 +488,7 @@ struct Foo9234(alias F) {}
 struct Foo9234(string thunk) {}
 
 /*****************************************/
-// 10103
+// https://issues.dlang.org/show_bug.cgi?id=10103
 
 mixin template Getter10103()
 {
@@ -532,7 +532,7 @@ void test10103()
 }
 
 /*****************************************/
-// 10197
+// https://issues.dlang.org/show_bug.cgi?id=10197
 
 template OriginalType10197(T)
 {

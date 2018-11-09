@@ -27,6 +27,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.code_x86;
+import dmd.backend.codebuilder;
 import dmd.backend.memh;
 import dmd.backend.el;
 import dmd.backend.global;
@@ -288,7 +289,7 @@ private void opnegassdbl(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 // Load EA into DOUBLEREGS
                 getregs(cdb,DOUBLEREGS_32);
                 cs.Iop = 0x8B;
-                cs.Irm &= ~modregrm(0,7,0);
+                cs.Irm &= ~cast(uint)modregrm(0,7,0);
                 cs.Irm |= modregrm(0,AX,0);
                 cdb.gen(&cs);
                 cs.Irm |= modregrm(0,DX,0);

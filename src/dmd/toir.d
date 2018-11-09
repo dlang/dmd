@@ -50,6 +50,7 @@ import dmd.id;
 import dmd.irstate;
 import dmd.mtype;
 import dmd.target;
+import dmd.tocvdebug;
 import dmd.tocsym;
 
 alias toSymbol = dmd.tocsym.toSymbol;
@@ -413,7 +414,7 @@ int intrinsic_op(FuncDeclaration fd)
         OPyl2xp1,
     ];
 
-    __gshared immutable char*[62] core_namearray =
+    __gshared immutable char*[70] core_namearray =
     [
         //cos
         "4math3cosFNaNbNiNfdZd",
@@ -463,11 +464,12 @@ int intrinsic_op(FuncDeclaration fd)
         "4simd6__simdFNaNbNiNfEQBbQz3XMMfZNhG16v",
         "4simd9__simd_ibFNaNbNiNfEQBeQBc3XMMNhG16vhZQi",
 
+        // @deprecated volatileLoad
         "5bitop12volatileLoadFNbNiNfPhZh",
         "5bitop12volatileLoadFNbNiNfPkZk",
         "5bitop12volatileLoadFNbNiNfPmZm",
         "5bitop12volatileLoadFNbNiNfPtZt",
-
+        // @deprecated volatileStore
         "5bitop13volatileStoreFNbNiNfPhhZv",
         "5bitop13volatileStoreFNbNiNfPkkZv",
         "5bitop13volatileStoreFNbNiNfPmmZv",
@@ -491,8 +493,18 @@ int intrinsic_op(FuncDeclaration fd)
         "5bitop7_popcntFNaNbNiNfkZi",
         "5bitop7_popcntFNaNbNiNfmxx", // don't find 64 bit version in 32 bit code
         "5bitop7_popcntFNaNbNiNftZt",
+        // volatileLoad
+        "8volatile12volatileLoadFNbNiNfPhZh",
+        "8volatile12volatileLoadFNbNiNfPkZk",
+        "8volatile12volatileLoadFNbNiNfPmZm",
+        "8volatile12volatileLoadFNbNiNfPtZt",
+        // volatileStore
+        "8volatile13volatileStoreFNbNiNfPhhZv",
+        "8volatile13volatileStoreFNbNiNfPkkZv",
+        "8volatile13volatileStoreFNbNiNfPmmZv",
+        "8volatile13volatileStoreFNbNiNfPttZv",
     ];
-    __gshared immutable char*[62] core_namearray64 =
+    __gshared immutable char*[70] core_namearray64 =
     [
         //cos
         "4math3cosFNaNbNiNfdZd",
@@ -542,11 +554,12 @@ int intrinsic_op(FuncDeclaration fd)
         "4simd6__simdFNaNbNiNfEQBbQz3XMMfZNhG16v",
         "4simd9__simd_ibFNaNbNiNfEQBeQBc3XMMNhG16vhZQi",
 
+        // @deprecated volatileLoad
         "5bitop12volatileLoadFNbNiNfPhZh",
         "5bitop12volatileLoadFNbNiNfPkZk",
         "5bitop12volatileLoadFNbNiNfPmZm",
         "5bitop12volatileLoadFNbNiNfPtZt",
-
+        // @deprecated volatileStore
         "5bitop13volatileStoreFNbNiNfPhhZv",
         "5bitop13volatileStoreFNbNiNfPkkZv",
         "5bitop13volatileStoreFNbNiNfPmmZv",
@@ -570,8 +583,18 @@ int intrinsic_op(FuncDeclaration fd)
         "5bitop7_popcntFNaNbNiNfkZi",
         "5bitop7_popcntFNaNbNiNfmZi",
         "5bitop7_popcntFNaNbNiNftZt",
+        // volatileLoad
+        "8volatile12volatileLoadFNbNiNfPhZh",
+        "8volatile12volatileLoadFNbNiNfPkZk",
+        "8volatile12volatileLoadFNbNiNfPmZm",
+        "8volatile12volatileLoadFNbNiNfPtZt",
+        // volatileStore
+        "8volatile13volatileStoreFNbNiNfPhhZv",
+        "8volatile13volatileStoreFNbNiNfPkkZv",
+        "8volatile13volatileStoreFNbNiNfPmmZv",
+        "8volatile13volatileStoreFNbNiNfPttZv",
     ];
-    __gshared immutable ubyte[62] core_ioptab =
+    __gshared immutable ubyte[70] core_ioptab =
     [
         OPcos,
         OPcos,
@@ -649,6 +672,16 @@ int intrinsic_op(FuncDeclaration fd)
         OPpopcnt,
         OPpopcnt,
         OPpopcnt,
+
+        OPind,
+        OPind,
+        OPind,
+        OPind,
+
+        OPeq,
+        OPeq,
+        OPeq,
+        OPeq,
     ];
 
     static assert(std_namearray.length == std_namearray64.length);
@@ -704,7 +737,7 @@ int intrinsic_op(FuncDeclaration fd)
         return (i == -1) ? i : std_ioptab[i];
     }
     if (length > 12 &&
-        (name[8] == 'm' || name[8] == 'b' || name[8] == 's') &&
+        (name[8] == 'm' || name[8] == 'b' || name[8] == 's' || name[8] == 'v') &&
         !memcmp(name, "_D4core".ptr, 7))
     {
         int i = binary(name + 7,
@@ -788,6 +821,35 @@ elem *resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
     return einit;
 }
 
+/*************************************
+ * for a nested function 'fd' return the type of the closure
+ * of an outer function or aggregate. If the function is a member function
+ * the 'this' type is expected to be stored in 'sthis.Sthis'.
+ * It is always returned if it is not a void pointer.
+ * buildClosure() must have been called on the outer function before.
+ *
+ * Params:
+ *      sthis = the symbol of the current 'this' derived from fd.vthis
+ *      fd = the nested function
+ */
+TYPE* getParentClosureType(Symbol* sthis, FuncDeclaration fd)
+{
+    if (sthis)
+    {
+        // only replace void*
+        if (sthis.Stype.Tty != TYnptr || sthis.Stype.Tnext.Tty != TYvoid)
+            return sthis.Stype;
+    }
+    for (Dsymbol sym = fd.toParent2(); sym; sym = sym.toParent2())
+    {
+        if (auto fn = sym.isFuncDeclaration())
+            if (fn.csym && fn.csym.Sscope)
+                return fn.csym.Sscope.Stype;
+        if (sym.isAggregateDeclaration())
+            break;
+    }
+    return sthis ? sthis.Stype : Type_toCtype(Type.tvoidptr);
+}
 
 /**************************************
  * Go through the variables in function fd that are
@@ -904,7 +966,8 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         /* Build type for closure */
         type *Closstru = type_struct_class(closname, Target.ptrsize, 0, null, null, false, false, true, false);
         free(closname);
-        symbol_struct_addField(Closstru.Ttag, "__chain", Type_toCtype(Type.tvoidptr), 0);
+        auto chaintype = getParentClosureType(irs.sthis, fd);
+        symbol_struct_addField(Closstru.Ttag, "__chain", chaintype, 0);
 
         Symbol *sclosure;
         sclosure = symbol_name("__closptr", SCauto, type_pointer(Closstru));
@@ -961,6 +1024,10 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         //printf("structsize = %d\n", cast(uint)structsize);
 
         Closstru.Ttag.Sstruct.Sstructsize = cast(uint)structsize;
+        fd.csym.Sscope = sclosure;
+
+        if (global.params.symdebug)
+            toDebugClosure(Closstru.Ttag);
 
         // Allocate memory for the closure
         elem *e = el_long(TYsize_t, structsize);
@@ -1022,6 +1089,52 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         }
 
         block_appendexp(irs.blx.curblock, e);
+    }
+}
+
+/*************************************
+ * build a debug info struct for variables captured by nested functions,
+ * but not in a closure.
+ * must be called after generating the function to fill stack offsets
+ * Params:
+ *      fd = function
+ */
+void buildCapture(FuncDeclaration fd)
+{
+    if (!global.params.symdebug)
+        return;
+    if (!global.params.mscoff)  // toDebugClosure only implemented for CodeView,
+        return;                 //  but optlink crashes for negative field offsets
+
+    if (fd.closureVars.dim && !fd.needsClosure)
+    {
+        /* Generate type name for struct with captured variables */
+        const char *name1 = "CAPTURE.";
+        const char *name2 = fd.toPrettyChars();
+        size_t namesize = strlen(name1)+strlen(name2)+1;
+        char *capturename = cast(char *) calloc(namesize, char.sizeof);
+        strcat(strcat(capturename, name1), name2);
+
+        /* Build type for struct */
+        type *capturestru = type_struct_class(capturename, Target.ptrsize, 0, null, null, false, false, true, false);
+        free(capturename);
+
+        foreach (v; fd.closureVars)
+        {
+            Symbol *vsym = toSymbol(v);
+
+            /* Add variable as capture type member */
+            symbol_struct_addField(capturestru.Ttag, &vsym.Sident[0], vsym.Stype, cast(uint)vsym.Soffset);
+            //printf("capture field %s: offset: %i\n", &vsym.Sident[0], v.offset);
+        }
+
+        // generate pseudo symbol to put into functions' Sscope
+        Symbol *scapture = symbol_name("__captureptr", SCalias, type_pointer(capturestru));
+        scapture.Sflags |= SFLtrue | SFLfree;
+        //symbol_add(scapture);
+        fd.csym.Sscope = scapture;
+
+        toDebugClosure(capturestru.Ttag);
     }
 }
 

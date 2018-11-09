@@ -116,6 +116,6 @@ void main()
 {
     OpAssignCases!TestOpAssign();
     OpAssignCases!TestOpAssignAssign(); // was once disabled due to bug 7436
-    OpAssignCases!TestOpAssignAuto(); // 5181
+    OpAssignCases!TestOpAssignAuto(); // https://issues.dlang.org/show_bug.cgi?id=5181
     OpReAssignCases!TestOpAndAssign();
 }

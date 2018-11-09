@@ -10,8 +10,6 @@
 
 #pragma once
 
-class Dsymbol;
-class ScopeDsymbol;
 class Identifier;
 class Module;
 class Statement;
@@ -28,14 +26,6 @@ struct AA;
 class TemplateInstance;
 
 #include "dsymbol.h"
-
-#if __GNUC__
-// Requires a full definition for LINK
-#include "globals.h"
-#else
-enum LINK;
-enum PINLINE;
-#endif
 
 #define CSXthis_ctor    1       // called this()
 #define CSXsuper_ctor   2       // called super()
@@ -120,10 +110,6 @@ struct Scope
     AA *anchorCounts;           // lookup duplicate anchor name count
     Identifier *prevAnchor;     // qualified symbol name of last doc anchor
 
-    static Scope *freelist;
-    static Scope *alloc();
-    static Scope *createGlobal(Module *module);
-
     Scope();
 
     Scope *copy();
@@ -143,9 +129,7 @@ struct Scope
     Module *instantiatingModule();
 
     Dsymbol *search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flags = IgnoreNone);
-    static void deprecation10378(Loc loc, Dsymbol *sold, Dsymbol *snew);
     Dsymbol *search_correct(Identifier *ident);
-    static const char *search_correct_C(Identifier *ident);
     Dsymbol *insert(Dsymbol *s);
 
     ClassDeclaration *getClassScope();

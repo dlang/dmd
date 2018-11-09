@@ -1188,7 +1188,7 @@ Symbol * symbol_copy(Symbol *s)
     scopy.Ssymnum = -1;
     if (scopy.Sdt)
     {
-        scope dtb = new DtBuilder();
+        auto dtb = DtBuilder(0);
         dtb.nzeros(cast(uint)type_size(scopy.Stype));
         scopy.Sdt = dtb.finish();
     }

@@ -10,21 +10,17 @@
 
 #pragma once
 
-#include "root/root.h"
 #include "dsymbol.h"
 
-class ClassDeclaration;
 struct ModuleDeclaration;
 struct Macro;
 struct Escape;
-class VarDeclaration;
-class Library;
 
 enum PKG
 {
     PKGunknown, // not yet determined whether it's a package.d or not
     PKGmodule,  // already determined that's an actual package.d
-    PKGpackage, // already determined that's an actual package
+    PKGpackage  // already determined that's an actual package
 };
 
 class Package : public ScopeDsymbol
@@ -36,13 +32,11 @@ public:
 
     const char *kind() const;
 
-    static DsymbolTable *resolve(Identifiers *packages, Dsymbol **pparent, Package **ppkg);
-
     Package *isPackage() { return this; }
 
     bool isAncestorPackageOf(const Package * const pkg) const;
 
-    Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
+    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
     void accept(Visitor *v) { v->visit(this); }
 
     Module *isPackageMod();
@@ -58,12 +52,7 @@ public:
     static Dsymbols deferred2;  // deferred Dsymbol's needing semantic2() run on them
     static Dsymbols deferred3;  // deferred Dsymbol's needing semantic3() run on them
     static unsigned dprogress;  // progress resolving the deferred list
-    /**
-     * A callback function that is called once an imported module is
-     * parsed. If the callback returns true, then it tells the
-     * frontend that the driver intends on compiling the import.
-     */
-    static bool (*onImport)(Module);
+
     static void _init();
 
     static AggregateDeclaration *moduleinfo;
@@ -77,7 +66,8 @@ public:
     File *docfile;      // output documentation file
     unsigned errors;    // if any errors in file
     unsigned numlines;  // number of lines in source file
-    int isDocFile;      // if it is a documentation input file, not D source
+    bool isHdrFile;     // if it is a header (.di) file
+    bool isDocFile;     // if it is a documentation input file, not D source
     bool isPackageFile; // if it is a package.d
     Strings contentImportedFiles;  // array of files whose content was imported
     int needmoduleinfo;
@@ -126,7 +116,7 @@ public:
     Module *parse();    // syntactic parse
     void importAll(Scope *sc);
     int needModuleInfo();
-    Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
+    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
     bool isPackageAccessible(Package *p, Prot protection, int flags = 0);
     Dsymbol *symtabInsert(Dsymbol *s);
     void deleteObjFile();

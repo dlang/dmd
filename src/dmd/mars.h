@@ -92,6 +92,5 @@ void readFile(Loc loc, File *f);
 void writeFile(Loc loc, File *f);
 void ensurePathToNameExists(Loc loc, const char *name);
 
-const char *importHint(const char *s);
 /// Little helper function for writing out deps.
 void escapePath(OutBuffer *buf, const char *fname);

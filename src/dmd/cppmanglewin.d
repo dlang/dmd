@@ -64,7 +64,7 @@ private bool checkImmutableShared(Type type)
 {
     if (type.isImmutable() || type.isShared())
     {
-        type.error(Loc.initial, "Internal Compiler Error: `shared` or `immutable` types can not be mapped to C++ (%s)", type.toChars());
+        error(Loc.initial, "Internal Compiler Error: `shared` or `immutable` types can not be mapped to C++ (%s)", type.toChars());
         fatal();
         return true;
     }
@@ -128,7 +128,7 @@ public:
         if (checkImmutableShared(type))
             return;
 
-        type.error(Loc.initial, "Internal Compiler Error: type `%s` can not be mapped to C++\n", type.toChars());
+        error(Loc.initial, "Internal Compiler Error: type `%s` can not be mapped to C++\n", type.toChars());
         fatal(); //Fatal, because this error should be handled in frontend
     }
 
@@ -1288,8 +1288,8 @@ private:
                 }
                 if (t.ty == Tsarray)
                 {
-                    t.error(Loc.initial, "Internal Compiler Error: unable to pass static array to `extern(C++)` function.");
-                    t.error(Loc.initial, "Use pointer instead.");
+                    error(Loc.initial, "Internal Compiler Error: unable to pass static array to `extern(C++)` function.");
+                    error(Loc.initial, "Use pointer instead.");
                     assert(0);
                 }
                 tmp.flags &= ~IS_NOT_TOP_TYPE;

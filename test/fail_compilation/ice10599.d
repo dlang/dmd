@@ -1,4 +1,5 @@
-﻿// 10599 ICE(interpret.c) 
+﻿// https://issues.dlang.org/show_bug.cgi?id=10599
+// ICE(interpret.c)
 
 struct Bug {
     int val = 3.45;

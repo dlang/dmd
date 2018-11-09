@@ -250,7 +250,24 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         sexception = sexception.statementSemantic(sc);
                     if (sexception)
                     {
-                        if (i + 1 == cs.statements.dim && !sfinally)
+                        /* Returns: true if statements[] are empty statements
+                         */
+                        static bool isEmpty(const Statement[] statements)
+                        {
+                            foreach (s; statements)
+                            {
+                                if (const cs = s.isCompoundStatement())
+                                {
+                                    if (!isEmpty((*cs.statements)[]))
+                                        return false;
+                                }
+                                else
+                                    return false;
+                            }
+                            return true;
+                        }
+
+                        if (!sfinally && isEmpty((*cs.statements)[i + 1 .. cs.statements.dim]))
                         {
                         }
                         else
@@ -2554,20 +2571,31 @@ else
             CompoundStatement cs;
             Statement s;
 
-            if (global.params.useSwitchError == CHECKENABLE.on)
+            if (global.params.useSwitchError == CHECKENABLE.on &&
+                global.params.checkAction != CHECKACTION.halt)
             {
-                Expression sl = new IdentifierExp(ss.loc, Id.empty);
-                sl = new DotIdExp(ss.loc, sl, Id.object);
-                sl = new DotIdExp(ss.loc, sl, Id.__switch_error);
+                if (global.params.checkAction == CHECKACTION.C)
+                {
+                    /* Rewrite as an assert(0) and let e2ir generate
+                     * the call to the C assert failure function
+                     */
+                    s = new ExpStatement(ss.loc, new AssertExp(ss.loc, new IntegerExp(ss.loc, 0, Type.tint32)));
+                }
+                else
+                {
+                    Expression sl = new IdentifierExp(ss.loc, Id.empty);
+                    sl = new DotIdExp(ss.loc, sl, Id.object);
+                    sl = new DotIdExp(ss.loc, sl, Id.__switch_error);
 
-                Expressions* args = new Expressions();
-                args.push(new StringExp(ss.loc, cast(char*) ss.loc.filename));
-                args.push(new IntegerExp(ss.loc.linnum));
+                    Expressions* args = new Expressions();
+                    args.push(new StringExp(ss.loc, cast(char*) ss.loc.filename));
+                    args.push(new IntegerExp(ss.loc.linnum));
 
-                sl = new CallExp(ss.loc, sl, args);
-                sl.expressionSemantic(sc);
+                    sl = new CallExp(ss.loc, sl, args);
+                    sl.expressionSemantic(sc);
 
-                s = new SwitchErrorStatement(ss.loc, sl);
+                    s = new SwitchErrorStatement(ss.loc, sl);
+                }
             }
             else
                 s = new ExpStatement(ss.loc, new HaltExp(ss.loc));
@@ -3068,7 +3096,7 @@ else
                 rs.exp = new ErrorExp();
 
             // Extract side-effect part
-            rs.exp = Expression.extractLast(rs.exp, &e0);
+            rs.exp = Expression.extractLast(rs.exp, e0);
             if (rs.exp.op == TOK.call)
                 rs.exp = valueNoDtor(rs.exp);
 

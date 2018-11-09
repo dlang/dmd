@@ -325,7 +325,7 @@ struct ASTBase
             return true;
         }
 
-        static bool oneMembers(Dsymbols* members, Dsymbol* ps, Identifier ident)
+        extern (D) static bool oneMembers(Dsymbols* members, Dsymbol* ps, Identifier ident)
         {
             Dsymbol s = null;
             if (members)
@@ -1164,11 +1164,17 @@ struct ASTBase
          */
         bool mangleOnly;
 
-        extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* members, bool mangleOnly)
+        /**
+         * Namespace identifier resolved during semantic.
+         */
+        Expression identExp;
+
+        extern (D) this(const ref Loc loc, Identifier ident, Expression identExp, Dsymbols* members, bool mangleOnly)
         {
             super(ident);
             this.loc = loc;
             this.members = members;
+            this.identExp = identExp;
             this.mangleOnly = mangleOnly;
         }
 
@@ -1180,13 +1186,13 @@ struct ASTBase
 
     extern (C++) final class CompileDeclaration : AttribDeclaration
     {
-        Expression exp;
+        Expressions* exps;
 
-        extern (D) this(const ref Loc loc, Expression exp)
+        extern (D) this(const ref Loc loc, Expressions* exps)
         {
             super(null);
             this.loc = loc;
-            this.exp = exp;
+            this.exps = exps;
         }
 
         override void accept(Visitor v)
@@ -1205,7 +1211,7 @@ struct ASTBase
             this.atts = atts;
         }
 
-        static Expressions* concat(Expressions* udas1, Expressions* udas2)
+        extern (D) static Expressions* concat(Expressions* udas1, Expressions* udas2)
         {
             Expressions* udas;
             if (!udas1 || udas1.dim == 0)
@@ -1961,12 +1967,12 @@ struct ASTBase
 
     extern (C++) final class CompileStatement : Statement
     {
-        Expression exp;
+        Expressions* exps;
 
-        final extern (D) this(const ref Loc loc, Expression exp)
+        final extern (D) this(const ref Loc loc, Expressions* exps)
         {
             super(loc);
-            this.exp = exp;
+            this.exps = exps;
         }
 
         override void accept(Visitor v)
@@ -5222,11 +5228,14 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class CompileExp : UnaExp
+    extern (C++) final class CompileExp : Expression
     {
-        extern (D) this(const ref Loc loc, Expression e)
+        Expressions* exps;
+
+        extern (D) this(const ref Loc loc, Expressions* exps)
         {
-            super(loc, TOK.mixin_, __traits(classInstanceSize, CompileExp), e);
+            super(loc, TOK.mixin_, __traits(classInstanceSize, CompileExp));
+            this.exps = exps;
         }
 
         override void accept(Visitor v)
@@ -6038,13 +6047,24 @@ struct ASTBase
         }
     }
 
+    enum InitKind : ubyte
+    {
+        void_,
+        error,
+        struct_,
+        array,
+        exp,
+    }
+
     extern (C++) class Initializer : RootObject
     {
         Loc loc;
+        InitKind kind;
 
-        final extern (D) this(const ref Loc loc)
+        final extern (D) this(const ref Loc loc, InitKind kind)
         {
             this.loc = loc;
+            this.kind = kind;
         }
 
         // this should be abstract and implemented in child classes
@@ -6053,9 +6073,9 @@ struct ASTBase
             return null;
         }
 
-        ExpInitializer isExpInitializer()
+        final ExpInitializer isExpInitializer()
         {
-            return null;
+            return kind == InitKind.exp ? cast(ExpInitializer)cast(void*)this : null;
         }
 
         void accept(Visitor v)
@@ -6070,13 +6090,8 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Expression exp)
         {
-            super(loc);
+            super(loc, InitKind.exp);
             this.exp = exp;
-        }
-
-        override ExpInitializer isExpInitializer()
-        {
-            return this;
         }
 
         override void accept(Visitor v)
@@ -6092,7 +6107,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc)
         {
-            super(loc);
+            super(loc, InitKind.struct_);
         }
 
         void addInit(Identifier field, Initializer value)
@@ -6116,7 +6131,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc)
         {
-            super(loc);
+            super(loc, InitKind.array);
         }
 
         void addInit(Expression index, Initializer value)
@@ -6137,7 +6152,7 @@ struct ASTBase
     {
         extern (D) this(const ref Loc loc)
         {
-            super(loc);
+            super(loc, InitKind.void_);
         }
 
         override void accept(Visitor v)

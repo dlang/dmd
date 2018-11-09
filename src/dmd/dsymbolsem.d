@@ -22,6 +22,7 @@ import dmd.astcodegen;
 import dmd.attrib;
 import dmd.blockexit;
 import dmd.clone;
+import dmd.compiler;
 import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
@@ -46,7 +47,6 @@ import dmd.identifier;
 import dmd.init;
 import dmd.initsem;
 import dmd.hdrgen;
-import dmd.mars;
 import dmd.mtype;
 import dmd.nogc;
 import dmd.nspace;
@@ -80,7 +80,7 @@ enum LOG = false;
  * Note the close similarity with AggregateDeclaration::buildDtor(),
  * and the ordering changes (runs forward instead of backwards).
  */
-private extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
+private FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
 {
     //printf("StructDeclaration::buildPostBlit() %s\n", sd.toChars());
     if (sd.isUnionDeclaration())
@@ -1681,11 +1681,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     goto Lnodecl;
                 (*pd.args)[0] = se;
 
-                auto name = cast(char*)mem.xmalloc(se.len + 1);
-                memcpy(name, se.string, se.len);
-                name[se.len] = 0;
+                auto name = se.string[0 .. se.len].xarraydup;
                 if (global.params.verbose)
-                    message("library   %s", name);
+                    message("library   %s", name.ptr);
                 if (global.params.moduleDeps && !global.params.moduleDepsFile)
                 {
                     OutBuffer* ob = global.params.moduleDeps;
@@ -1698,7 +1696,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     ob.writestring(name);
                     ob.writenl();
                 }
-                mem.xfree(name);
+                mem.xfree(name.ptr);
             }
             goto Lnodecl;
         }
@@ -1842,10 +1840,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     assert(pd.args && pd.args.dim == 1);
                     if (auto se = (*pd.args)[0].toStringExp())
                     {
-                        char* name = cast(char*)mem.xmalloc(se.len + 1);
-                        memcpy(name, se.string, se.len);
-                        name[se.len] = 0;
-                        uint cnt = setMangleOverride(s, name[0 .. se.len]);
+                        const name = se.string[0 .. se.len].xarraydup;
+                        uint cnt = setMangleOverride(s, name);
                         if (cnt > 1)
                             pd.error("can only apply to a single declaration");
                     }
@@ -1877,13 +1873,38 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     private Dsymbols* compileIt(CompileDeclaration cd)
     {
         //printf("CompileDeclaration::compileIt(loc = %d) %s\n", cd.loc.linnum, cd.exp.toChars());
-        auto se = semanticString(sc, cd.exp, "argument to mixin");
-        if (!se)
-            return null;
-        se = se.toUTF8(sc);
+        OutBuffer buf;
+        if (cd.exps)
+        {
+            foreach (ex; *cd.exps)
+            {
+                sc = sc.startCTFE();
+                auto e = ex.expressionSemantic(sc);
+                e = resolveProperties(sc, e);
+                sc = sc.endCTFE();
 
-        uint errors = global.errors;
-        scope p = new Parser!ASTCodegen(cd.loc, sc._module, se.toStringz(), false);
+                // allowed to contain types as well as expressions
+                e = ctfeInterpretForPragmaMsg(e);
+                if (e.op == TOK.error)
+                {
+                    //errorSupplemental(exp.loc, "while evaluating `mixin(%s)`", ex.toChars());
+                    return null;
+                }
+                StringExp se = e.toStringExp();
+                if (se)
+                {
+                    se = se.toUTF8(sc);
+                    buf.printf("%.*s", cast(int)se.len, se.string);
+                }
+                else
+                    buf.printf("%s", e.toChars());
+            }
+        }
+
+        const errors = global.errors;
+        const len = buf.offset;
+        const str = buf.extractString()[0 .. len];
+        scope p = new Parser!ASTCodegen(cd.loc, sc._module, str, false);
         p.nextToken();
 
         auto d = p.parseDeclDefs(0);
@@ -1894,12 +1915,15 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
         if (p.token.value != TOK.endOfFile)
         {
-            cd.exp.error("incomplete mixin declaration `%s`", se.toChars());
+            cd.error("incomplete mixin declaration `%s`", str.ptr);
             return null;
         }
         return d;
     }
 
+    /***********************************************************
+     * https://dlang.org/spec/module.html#mixin-declaration
+     */
     override void visit(CompileDeclaration cd)
     {
         //printf("CompileDeclaration::semantic()\n");
@@ -2803,6 +2827,68 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (!sc)
             return;
 
+        bool repopulateMembers = false;
+        if (ns.identExp)
+        {
+            // resolve the namespace identifier
+            sc = sc.startCTFE();
+            Expression resolved = ns.identExp.expressionSemantic(sc);
+            resolved = resolveProperties(sc, resolved);
+            sc = sc.endCTFE();
+            resolved = resolved.ctfeInterpret();
+            StringExp name = resolved.toStringExp();
+            TupleExp tup = name ? null : resolved.toTupleExp();
+            if (!tup && !name)
+            {
+                error(ns.loc, "expected string expression for namespace name, got `%s`", ns.identExp.toChars());
+                return;
+            }
+            ns.identExp = resolved; // we don't need to keep the old AST around
+            if (name)
+            {
+                const(char)[] ident = name.toStringz();
+                if (ident.length == 0 || !Identifier.isValidIdentifier(ident))
+                {
+                    error(ns.loc, "expected valid identifer for C++ namespace but got `%.*s`", cast(int)ident.length, ident.ptr);
+                    return;
+                }
+                ns.ident = Identifier.idPool(ident);
+            }
+            else
+            {
+                // create namespace stack from the tuple
+                Nspace parentns = ns;
+                foreach (i, exp; *tup.exps)
+                {
+                    name = exp.toStringExp();
+                    if (!name)
+                    {
+                        error(ns.loc, "expected string expression for namespace name, got `%s`", exp.toChars());
+                        return;
+                    }
+                    const(char)[] ident = name.toStringz();
+                    if (ident.length == 0 || !Identifier.isValidIdentifier(ident))
+                    {
+                        error(ns.loc, "expected valid identifer for C++ namespace but got `%.*s`", cast(int)ident.length, ident.ptr);
+                        return;
+                    }
+                    if (i == 0)
+                    {
+                        ns.ident = Identifier.idPool(ident);
+                    }
+                    else
+                    {
+                        // insert the new namespace
+                        Nspace childns = new Nspace(ns.loc, Identifier.idPool(ident), null, parentns.members, ns.mangleOnly);
+                        parentns.members = new Dsymbols;
+                        parentns.members.push(childns);
+                        parentns = childns;
+                        repopulateMembers = true;
+                    }
+                }
+            }
+        }
+
         ns.semanticRun = PASS.semantic;
         ns.parent = sc.parent;
         if (ns.members)
@@ -2813,6 +2899,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sc.parent = ns;
             foreach (s; *ns.members)
             {
+                if (repopulateMembers)
+                {
+                    s.addMember(sc, sc.scopesym);
+                    s.setScope(sc);
+                }
                 s.importAll(sc);
             }
             foreach (s; *ns.members)
@@ -3609,7 +3700,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         if (funcdecl.fbody && funcdecl.isMain() && sc._module.isRoot())
-            genCmain(sc);
+            Compiler.genCmain(sc);
 
         assert(funcdecl.type.ty != Terror || funcdecl.errors);
 

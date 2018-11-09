@@ -1,4 +1,4 @@
-// 5435
+// https://issues.dlang.org/show_bug.cgi?id=5435
 
 template Tuple5435(E...) { alias E Tuple5435; }
 enum Enum5435 { A, B, C };

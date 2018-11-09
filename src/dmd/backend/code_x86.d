@@ -16,6 +16,7 @@ module dmd.backend.code_x86;
 import dmd.backend.cdef;
 import dmd.backend.cc : config;
 import dmd.backend.code;
+import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.el : elem;
 import dmd.backend.ty : I64;
 

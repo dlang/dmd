@@ -564,23 +564,47 @@ public int runLINK()
             argv.push("-Xlinker");
             argv.push("--gc-sections");
         }
-        /* Add each library, prefixing it with "-l".
-         * The order of libraries passed is:
-         *  1. any libraries passed with -L command line switch
-         *  2. libraries specified on the command line
-         *  3. libraries specified by pragma(lib), which were appended
-         *     to global.params.libfiles.
-         *  4. link switches, that may also contain -l libraries
-         *  5. standard libraries.
+        /* Add libraries. The order of libraries passed is:
+         *  1. link switches others than with -L command line switch,
+               e.g. --whole-archive "lib.a" --no-whole-archive     (global.params.linkswitches)
+         *  2. static libraries ending with *.a     (global.params.libfiles)
+         *  3. link switches passed with -L command line switch  (global.params.linkswitches)
+         *  4. libraries specified by pragma(lib), which were appended
+         *     to global.params.libfiles. These are prefixed with "-l"
+         *  5. dynamic libraries passed to the command line (global.params.dllfiles)
+         *  6. standard libraries.
          */
-        for (size_t i = 0; i < global.params.libfiles.dim; i++)
+        foreach (p; global.params.linkswitches)
         {
-            const(char)* p = global.params.libfiles[i];
-            size_t plen = strlen(p);
-            if (plen > 2 && p[plen - 2] == '.' && p[plen - 1] == 'a')
-                argv.push(p);
-            else
+            if (p && p[0] && !(p[0] == '-' && (p[1] == 'l' || p[1] == 'L')))
             {
+                argv.push("-Xlinker");
+                argv.push(p);
+            }
+        }
+        foreach (p; global.params.libfiles)
+        {
+            if (FileName.equalsExt(p, "a"))
+                argv.push(p);
+        }
+        foreach (p; global.params.linkswitches)
+        {
+            if (!p || !p[0])
+            {
+                // Don't need -Xlinker if switch starts with -l or -L.
+                // Eliding -Xlinker is significant for -L since it allows our paths
+                // to take precedence over gcc defaults.
+                // All other link switches were already added in step 1.
+                argv.push("-Xlinker");
+            }
+            if (!p || !p[0] || p[0] == '-' && (p[1] == 'l' || p[1] == 'L'))
+                argv.push(p);
+        }
+        foreach (p; global.params.libfiles)
+        {
+            if (!FileName.equalsExt(p, "a"))
+            {
+                const plen = strlen(p);
                 char* s = cast(char*)mem.xmalloc(plen + 3);
                 s[0] = '-';
                 s[1] = 'l';
@@ -588,21 +612,8 @@ public int runLINK()
                 argv.push(s);
             }
         }
-        for (size_t i = 0; i < global.params.dllfiles.dim; i++)
+        foreach (p; global.params.dllfiles)
         {
-            const(char)* p = global.params.dllfiles[i];
-            argv.push(p);
-        }
-        for (size_t i = 0; i < global.params.linkswitches.dim; i++)
-        {
-            const(char)* p = global.params.linkswitches[i];
-            if (!p || !p[0] || !(p[0] == '-' && (p[1] == 'l' || p[1] == 'L')))
-            {
-                // Don't need -Xlinker if switch starts with -l or -L.
-                // Eliding -Xlinker is significant for -L since it allows our paths
-                // to take precedence over gcc defaults.
-                argv.push("-Xlinker");
-            }
             argv.push(p);
         }
         /* D runtime libraries must go after user specified libraries
@@ -1364,7 +1375,6 @@ version (Windows)
         static const(char)* findLatestSDKDir(const(char)* baseDir, const(char)* testfile)
         {
             auto allfiles = FileName.combine(baseDir, "*");
-            static if (!is(WIN32_FIND_DATAA)) alias WIN32_FIND_DATAA = WIN32_FIND_DATA; // support dmd 2.068
             WIN32_FIND_DATAA fileinfo;
             HANDLE h = FindFirstFileA(allfiles, &fileinfo);
             if (h == INVALID_HANDLE_VALUE)

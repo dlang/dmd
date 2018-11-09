@@ -1,8 +1,0 @@
-Add `__CXXLIB__` built-in enum.
-
-Query the C++ library version for the compilation target at compile time, eg:
----
-static if (__CXXLIB__ == "libcmtd") { ... }
----
-
-Currently only supported for MS-COFF output, and will be an empty string for other targets.
