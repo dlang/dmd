@@ -476,8 +476,8 @@ extern (C++) class FuncDeclaration : Declaration
              * enclosing function's stack frame.
              * Note that nested functions and member functions are disjoint.
              */
-            VarDeclaration v = new ThisDeclaration(loc, Type.tvoid.pointerTo());
-            v.storage_class |= STC.parameter;
+            VarDeclaration v = new VarDeclaration(loc, Type.tvoid.pointerTo(), Id.capture, null);
+            v.storage_class |= STC.parameter | STC.nodtor;
             if (type.ty == Tfunction)
             {
                 TypeFunction tf = cast(TypeFunction)type;
