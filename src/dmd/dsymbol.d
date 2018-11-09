@@ -372,10 +372,10 @@ extern (C++) class Dsymbol : RootObject
         return null;
     }
 
-    /*****
+    /**
      * `pastMixin` returns the enclosing symbol if this is a template mixin.
      *
-     * `pastMixinAndNspace` does likewise, additionally skipping over Nspaces that 
+     * `pastMixinAndNspace` does likewise, additionally skipping over Nspaces that
      * are mangleOnly.
      *
      * See also `parent`, `toParent`, `toParent2` and `toParent3`. 
