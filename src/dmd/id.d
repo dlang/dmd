@@ -76,6 +76,7 @@ immutable Msgtable[] msgtable =
     { "unitTest", "__unitTest" },
     { "require", "__require" },
     { "ensure", "__ensure" },
+    { "capture", "__capture" },
     { "_init", "init" },
     { "__sizeof", "sizeof" },
     { "__xalignof", "alignof" },
