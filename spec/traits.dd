@@ -112,25 +112,117 @@ $(H2 $(GNAME isFloating))
         $(P Works like $(D isArithmetic), except it's for floating
         point types (including imaginary and complex types).)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import core.simd : float4;
+
+enum E : float { a, b }
+
+static assert(__traits(isFloating, float));
+static assert(__traits(isFloating, idouble));
+static assert(__traits(isFloating, creal));
+static assert(__traits(isFloating, E));
+static assert(__traits(isFloating, float4));
+
+static assert(!__traits(isFloating, float[4]));
+---
+)
+
 $(H2 $(GNAME isIntegral))
 
         $(P Works like $(D isArithmetic), except it's for integral
         types (including character types).)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import core.simd : int4;
+
+enum E { a, b }
+
+static assert(__traits(isIntegral, bool));
+static assert(__traits(isIntegral, char));
+static assert(__traits(isIntegral, int));
+static assert(__traits(isIntegral, E));
+static assert(__traits(isIntegral, int4));
+
+static assert(!__traits(isIntegral, float));
+static assert(!__traits(isIntegral, int[4]));
+static assert(!__traits(isIntegral, void*));
+---
+)
 
 $(H2 $(GNAME isScalar))
 
         $(P Works like $(D isArithmetic), except it's for scalar
         types.)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import core.simd : int4, void16;
+
+enum E { a, b }
+
+static assert(__traits(isScalar, bool));
+static assert(__traits(isScalar, char));
+static assert(__traits(isScalar, int));
+static assert(__traits(isScalar, float));
+static assert(__traits(isScalar, E));
+static assert(__traits(isScalar, int4));
+static assert(__traits(isScalar, void*)); // Includes pointers!
+
+static assert(!__traits(isScalar, int[4]));
+static assert(!__traits(isScalar, void16));
+static assert(!__traits(isScalar, void));
+static assert(!__traits(isScalar, typeof(null)));
+static assert(!__traits(isScalar, Object));
+---
+)
+
 $(H2 $(GNAME isUnsigned))
 
         $(P Works like $(D isArithmetic), except it's for unsigned
         types.)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import core.simd : uint4;
+
+enum SignedEnum { a, b }
+enum UnsignedEnum : uint { a, b)
+
+static assert(__traits(isUnsigned, bool));
+static assert(__traits(isUnsigned, char));
+static assert(__traits(isUnsigned, uint));
+static assert(__traits(isUnsigned, UnsignedEnum));
+static assert(__traits(isUnsigned, uint4));
+
+static assert(!__traits(isUnsigned, int));
+static assert(!__traits(isUnsigned, float));
+static assert(!__traits(isUnsigned, SignedEnum));
+static assert(!__traits(isUnsigned, uint[4]));
+static assert(!__traits(isUnsigned, void*));
+---
+)
+
 $(H2 $(GNAME isStaticArray))
 
         $(P Works like $(D isArithmetic), except it's for static array
         types.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import core.simd : int4;
+
+enum E : int[4] { a = [1, 2, 3, 4] }
+
+static array = [1, 2, 3]; // Not a static array.
+
+static assert(__traits(isStaticArray, void[0]));
+static assert(__traits(isStaticArray, E));
+static assert(!__traits(isStaticArray, int4));
+static assert(!__traits(isStaticArray, array));
+---
+)
 
 $(H2 $(GNAME isAssociativeArray))
 
