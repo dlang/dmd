@@ -630,6 +630,10 @@ dmd -cov -unittest myprog.d
             "list all variables going into thread local storage"),
         Transition(null, "fixAliasThis", "fixAliasThis",
             "when a symbol is resolved, check alias this scope before going to upper scopes"),
+        Transition(null, "markdown", "markdown",
+            "enable Markdown replacements in Ddoc"),
+        Transition(null, "vmarkdown", "vmarkdown",
+            "list instances of Markdown replacements in Ddoc"),
     ];
 }
 
