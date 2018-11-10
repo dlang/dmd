@@ -12,13 +12,17 @@
 
 module dmd.backend.outbuf;
 
+import core.stdc.stdio;
+import core.stdc.stdlib;
 import core.stdc.string;
 
 // Output buffer
 
-// (This used to be called OutBuffer, we renamed it to avoid name conflicts with Mars.)
+// (This used to be called OutBuffer, renamed to avoid name conflicts with Mars.)
 
 extern (C++):
+
+private nothrow void err_nomem();
 
 struct Outbuffer
 {
@@ -27,16 +31,27 @@ struct Outbuffer
     ubyte *p;           // current position in buffer
     ubyte *origbuf;     // external buffer
 
-    //this();
-
-    this(size_t initialSize); // : buf(null), pend(null), p(null), origbuf(null) { }
+  nothrow:
+    this(size_t initialSize)
+    {
+        enlarge(cast(uint)initialSize);
+    }
 
     this(ubyte *bufx, size_t bufxlen, uint incx)
     {
         buf = bufx; pend = bufx + bufxlen; p = bufx; origbuf = bufx;
     }
 
-    //~this();
+    //~this() { dtor(); }
+
+    void dtor()
+    {
+        if (buf != origbuf)
+        {
+            if (buf)
+                free(buf);
+        }
+    }
 
     void reset()
     {
@@ -51,7 +66,35 @@ struct Outbuffer
     }
 
     // Reserve nbytes in buffer
-    void enlarge(uint nbytes);
+    void enlarge(uint nbytes)
+    {
+        const size_t oldlen = pend - buf;
+        const size_t used = p - buf;
+
+        size_t len = used + nbytes;
+        if (len <= oldlen)
+            return;
+
+        const size_t newlen = oldlen + (oldlen >> 1);   // oldlen * 1.5
+        if (len < newlen)
+            len = newlen;
+        len = (len + 15) & ~15;
+
+        if (buf == origbuf && origbuf)
+        {
+            buf = cast(ubyte*) malloc(len);
+            if (buf)
+                memcpy(buf, origbuf, used);
+        }
+        else
+            buf = cast(ubyte*) realloc(buf,len);
+        if (!buf)
+            err_nomem();
+
+        pend = buf + len;
+        p = buf + used;
+    }
+
 
     // Write n zeros; return pointer to start of zeros
     void *writezeros(uint n)
