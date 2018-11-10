@@ -197,7 +197,7 @@ GBACKOBJ= $G/go.obj $G/gdag.obj $G/gother.obj $G/gflow.obj $G/gloop.obj $G/var.o
 	$G/drtlsym.obj $G/cgelem.obj $G/cgen.obj $G/cgreg.obj $G/out.obj \
 	$G/blockopt.obj $G/cgobj.obj $G/cg.obj $G/dcgcv.obj $G/dtype.obj \
 	$G/debugprint.obj $G/dcode.obj $G/cg87.obj $G/cgxmm.obj $G/cgsched.obj $G/ee.obj $G/symbol.obj \
-	$G/cgcod.obj $G/cod1.obj $G/cod2.obj $G/cod3.obj $G/cod4.obj $G/cod5.obj $G/outbuf.obj \
+	$G/cgcod.obj $G/cod1.obj $G/cod2.obj $G/cod3.obj $G/cod4.obj $G/cod5.obj \
 	$G/bcomplex.obj $G/ptrntab.obj $G/md5.obj \
 	$G/mscoffobj.obj $G/pdata.obj $G/cv8.obj $G/backconfig.obj $G/sizecheck.obj \
 	$G/divcoeff.obj $G/dwarfdbginf.obj $G/compress.obj $G/dvarstats.obj \
@@ -235,9 +235,9 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.d \
 	$C\dcode.d $C\symbol.d $C\debugprint.d $C\ee.d $C\elem.d \
 	$C\evalu8.d $C\fp.c $C\go.d $C\gflow.d $C\gdag.d \
 	$C\gother.d $C\glocal.d $C\gloop.d $C\gsroa.d $C\newman.d \
-	$C\nteh.d $C\os.c $C\out.d $C\outbuf.c $C\ptrntab.d $C\drtlsym.d \
+	$C\nteh.d $C\os.c $C\out.d $C\ptrntab.d $C\drtlsym.d \
 	$C\dtype.d $C\melf.h $C\mach.h $C\mscoff.h $C\bcomplex.h \
-	$C\outbuf.h $C\token.h $C\tassert.h \
+	$C\token.h $C\tassert.h \
 	$C\elfobj.d $C\cv4.h $C\dwarf2.h $C\exh.h $C\go.h \
 	$C\dwarfdbginf.d $C\dwarf.h $C\machobj.d $C\aarray.d \
 	$C\strtold.c $C\aa.h \
@@ -592,9 +592,6 @@ $G/os.obj : $C\os.c
 
 $G/out.obj : $C\out.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\out
-
-$G/outbuf.obj : $C\outbuf.h $C\outbuf.c
-	$(CC) -c -o$@ $(MFLAGS) $C\outbuf
 
 $G/pdata.obj : $C\pdata.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\pdata

@@ -349,7 +349,6 @@ endif
 
 BACK_OBJS = \
 	os.o fp.o \
-	outbuf.o \
 	sizecheck.o \
 	\
 	tk.o strtold.o \
@@ -397,9 +396,9 @@ BACK_SRC = \
 	$C/dcode.d $C/symbol.d $C/debugprint.d $C/dt.d $C/ee.d $C/elem.d \
 	$C/evalu8.d $C/fp.c $C/go.d $C/gflow.d $C/gdag.d \
 	$C/gother.d $C/glocal.d $C/gloop.d $C/gsroa.d $C/newman.d \
-	$C/nteh.d $C/os.c $C/out.d $C/outbuf.c $C/ptrntab.d $C/drtlsym.d \
+	$C/nteh.d $C/os.c $C/out.d $C/ptrntab.d $C/drtlsym.d \
 	$C/dtype.d $C/melf.h $C/mach.h $C/mscoff.h $C/bcomplex.h \
-	$C/outbuf.h $C/token.h $C/tassert.h \
+	$C/token.h $C/tassert.h \
 	$C/elfobj.d $C/cv4.h $C/dwarf2.h $C/exh.h $C/go.h \
 	$C/dwarfdbginf.d $C/dwarf.h $C/aa.h $C/aarray.d \
 	$C/platform_stub.c $C/code_x86.h $C/code_stub.h \
