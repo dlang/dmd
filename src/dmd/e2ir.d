@@ -2433,7 +2433,7 @@ elem *toElem(Expression e, IRState *irs)
                     e = el_bin(ee.op == TOK.equal ? OPoror : OPandand, TYint, esizecheck, e);
 
                     if (t1.ty == Tsarray && t2.ty == Tsarray)
-                        assert(t1.size() == t2.size());
+                        assert(t1.size() == t2.size(), t1.toString() ~ ":" ~ t2.toString());
                     else
                     {
                         elem *elencmp = el_bin(eop, TYint, elen1, elen2);
