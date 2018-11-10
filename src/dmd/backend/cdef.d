@@ -723,9 +723,6 @@ struct Config
     bool useModuleInfo;         // implement ModuleInfo
     bool useTypeInfo;           // implement TypeInfo
     bool useExceptions;         // implement exception handling
-
-    static uint sizeCheck();
-    unittest { assert(sizeCheck() == Config.sizeof); }
 }
 
 enum THRESHMAX = 0xFFFF;
@@ -750,9 +747,6 @@ struct Configv
     char* deflibname;           // default library name
     LANG language;              // message language
     int errmax;                 // max error count
-
-    static uint sizeCheck();
-    unittest { assert(sizeCheck() == Configv.sizeof); }
 }
 
 alias reg_t = ubyte;            // register number
@@ -887,9 +881,6 @@ union eve
             elem* Eleft2;       // left child for OPddtor
             void* Edecl;        // VarDeclaration being constructed
         }                       // OPdctor,OPddtor
-
-    static uint sizeCheck();
-    unittest { assert(sizeCheck() == eve.sizeof); }
 }                               // variants for each type of elem
 
 // Symbols

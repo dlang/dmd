@@ -199,7 +199,7 @@ GBACKOBJ= $G/go.obj $G/gdag.obj $G/gother.obj $G/gflow.obj $G/gloop.obj $G/var.o
 	$G/debugprint.obj $G/dcode.obj $G/cg87.obj $G/cgxmm.obj $G/cgsched.obj $G/ee.obj $G/symbol.obj \
 	$G/cgcod.obj $G/cod1.obj $G/cod2.obj $G/cod3.obj $G/cod4.obj $G/cod5.obj \
 	$G/bcomplex.obj $G/ptrntab.obj $G/md5.obj \
-	$G/mscoffobj.obj $G/pdata.obj $G/cv8.obj $G/backconfig.obj $G/sizecheck.obj \
+	$G/mscoffobj.obj $G/pdata.obj $G/cv8.obj $G/backconfig.obj \
 	$G/divcoeff.obj $G/dwarfdbginf.obj $G/compress.obj $G/dvarstats.obj \
 	$G/ph2.obj $G/util2.obj $G/tk.obj $G/gsroa.obj $G/dvec.obj $G/filespec.obj \
 
@@ -242,7 +242,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.d \
 	$C\dwarfdbginf.d $C\dwarf.h $C\machobj.d $C\aarray.d \
 	$C\strtold.c $C\aa.h \
 	$C\md5.h $C\md5.d $C\ph2.d $C\util2.d \
-	$C\mscoffobj.d $C\obj.h $C\pdata.d $C\cv8.d $C\backconfig.d $C\sizecheck.c \
+	$C\mscoffobj.d $C\obj.h $C\pdata.d $C\cv8.d $C\backconfig.d \
 	$C\divcoeff.d $C\dwarfeh.d $C\dvarstats.d \
 	$C\dvec.d $C\filespec.d $C\backend.txt
 
@@ -604,9 +604,6 @@ $G/ptrntab.obj : $C\iasm.d $C\ptrntab.d
 
 $G/drtlsym.obj : $C\rtlsym.d $C\drtlsym.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\drtlsym
-
-$G/sizecheck.obj : $C\sizecheck.c
-	$(CC) -c -o$@ $(MFLAGS) $C\sizecheck
 
 $G/strtold.obj : $C\strtold.c
 	$(CC) -c -o$@ -cpp $C\strtold
