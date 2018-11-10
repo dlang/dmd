@@ -322,7 +322,6 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
                 (command line switch $(DDSUBLINK dmd, switch-m64, $(TT -m64))). (Do not confuse this with C's LP64 model)))
         $(TROW $(ARGS $(D D_X32)) , $(ARGS Pointers are 32 bits, but words are still 64 bits (x32 ABI) (This can be defined in parallel to $(D X86_64))))
         $(TROW $(ARGS $(D D_HardFloat)) , $(ARGS The target hardware has a floating point unit))
-        $(TROW $(ARGS $(D D_HardDoubleFloat)) , $(ARGS The target hardware has a floating point unit and supports double-precision operations))
         $(TROW $(ARGS $(D D_SoftFloat)) , $(ARGS The target hardware does not have a floating point unit))
         $(TROW $(ARGS $(D D_PIC)) , $(ARGS Position Independent Code
                 (command line switch $(DDSUBLINK dmd-linux, switch-fPIC, $(TT -fPIC))) is being generated))
