@@ -385,7 +385,7 @@ BACK_HDRS=$C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/glob
 TK_HDRS=
 
 BACK_SRC = \
-	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.d \
+	$C/cc.h $C/oper.h $C/ty.h $C/optabgen.d \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h \
 	$C/bcomplex.d $C/blockopt.d $C/cg.d $C/cg87.d $C/cgxmm.d \

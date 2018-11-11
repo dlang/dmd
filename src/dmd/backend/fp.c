@@ -35,8 +35,11 @@
 #include        <fp.h>
 #endif
 
-#include        "cc.h"
-
+#if _MSC_VER
+#include        "longdouble.h"
+#else
+typedef long double longdouble;
+#endif
 
 #if __DMC__
     #define HAVE_FLOAT_EXCEPT 1
@@ -66,7 +69,7 @@
     {
         feclearexcept(FE_ALL_EXCEPT);
     }
-#elif defined _MSC_VER && TX86
+#elif defined _MSC_VER /*&& TX86*/
     #define HAVE_FLOAT_EXCEPT 1
 
     int statusFE() { return 0; }
@@ -94,7 +97,7 @@ bool have_float_except() { return HAVE_FLOAT_EXCEPT; }
  * Helper to do % for long doubles.
  */
 
-targ_ldouble _modulo(targ_ldouble x, targ_ldouble y)
+longdouble _modulo(longdouble x, longdouble y)
 {
 #if __DMC__
     short sw;
