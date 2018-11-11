@@ -438,8 +438,8 @@ int intrinsic_op(FuncDeclaration fd)
     
     const bool isFirstArgUlong = fd.parameters && (*fd.parameters)[0].type == Type.tuns64;
     if (!global.params.is64bit &&
-        (op == OPbsf && strcmp(mangleExact(fd), "_D4core5bitop3bsfFNaNbNiNfmZi") ||
-         op == OPbsr && strcmp(mangleExact(fd), "_D4core5bitop3bsrFNaNbNiNfmZi") /*&&
+         (op == OPbsf && strcmp(mangleExact(fd), "_D4core5bitop3bsfFNaNbNiNfmZi") ||
+         (op == OPbsr && strcmp(mangleExact(fd), "_D4core5bitop3bsrFNaNbNiNfmZi")) /*&&
          isFirstArgUlong*/)
     {
         // Don't recognize 64 bit bsf() / bsr() in 32 bit mode
