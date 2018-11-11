@@ -34,12 +34,7 @@
 #include        <windows.h>
 #endif
 
-#if __DMC__ || __GNUC__ || _MSC_VER
-static char __file__[] = __FILE__;      /* for tassert.h                */
-#include        "tassert.h"
-#else
 #include        <assert.h>
-#endif
 
 #if _MSC_VER
 #include <alloca.h>
@@ -67,7 +62,7 @@ void os_error(int line)
 #if _WIN32
     dbg_printf("System error: %ldL\n",GetLastError());
 #endif
-    local_assert(line);
+    assert(0);
 }
 
 #if 1
