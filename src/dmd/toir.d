@@ -362,417 +362,106 @@ elem *setEthis(const ref Loc loc, IRState *irs, elem *ey, AggregateDeclaration a
  */
 int intrinsic_op(FuncDeclaration fd)
 {
+    int op = -1;
     fd = fd.toAliasFunc();
-    const char *name = mangleExact(fd);
-    //printf("intrinsic_op(%s)\n", name);
-    __gshared immutable char*[11] std_namearray =
-    [
-        /* The names are mangled differently because of the pure and
-         * nothrow attributes.
-         */
-        "4math3cosFNaNbNiNfeZe",
-        "4math3sinFNaNbNiNfeZe",
-        "4math4fabsFNaNbNiNfeZe",
-        "4math4rintFNaNbNiNfeZe",
-        "4math4sqrtFNaNbNiNfdZd",
-        "4math4sqrtFNaNbNiNfeZe",
-        "4math4sqrtFNaNbNiNffZf",
-        "4math4yl2xFNaNbNiNfeeZe",
-        "4math5ldexpFNaNbNiNfeiZe",
-        "4math6rndtolFNaNbNiNfeZl",
-        "4math6yl2xp1FNaNbNiNfeeZe",
-    ];
-    __gshared immutable char*[11] std_namearray64 =
-    [
-        /* The names are mangled differently because of the pure and
-         * nothrow attributes.
-         */
-        "4math3cosFNaNbNiNfeZe",
-        "4math3sinFNaNbNiNfeZe",
-        "4math4fabsFNaNbNiNfeZe",
-        "4math4rintFNaNbNiNfeZe",
-        "4math4sqrtFNaNbNiNfdZd",
-        "4math4sqrtFNaNbNiNfeZe",
-        "4math4sqrtFNaNbNiNffZf",
-        "4math4yl2xFNaNbNiNfeeZe",
-        "4math5ldexpFNaNbNiNfeiZe",
-        "4math6rndtolFNaNbNiNfeZl",
-        "4math6yl2xp1FNaNbNiNfeeZe",
-    ];
-    __gshared immutable ubyte[11] std_ioptab =
-    [
-        OPcos,
-        OPsin,
-        OPabs,
-        OPrint,
-        OPsqrt,
-        OPsqrt,
-        OPsqrt,
-        OPyl2x,
-        OPscale,
-        OPrndtol,
-        OPyl2xp1,
-    ];
+    
+     if (fd.isDeprecated())
+         return op;
+    // Look for [core|std].module.function as id3.id2.id1 ...
+    const Identifier id3 = fd.ident;
+     auto m = fd.getModule();
+     if (!m || !m.md)
+         return op;
 
-    __gshared immutable char*[70] core_namearray =
-    [
-        //cos
-        "4math3cosFNaNbNiNfdZd",
-        "4math3cosFNaNbNiNfeZe",
-        "4math3cosFNaNbNiNffZf",
-        //sin
-        "4math3sinFNaNbNiNfdZd",
-        "4math3sinFNaNbNiNfeZe",
-        "4math3sinFNaNbNiNffZf",
-        //fabs
-        "4math4fabsFNaNbNiNfdZd",
-        "4math4fabsFNaNbNiNfeZe",
-        "4math4fabsFNaNbNiNffZf",
-        //rint
-        "4math4rintFNaNbNiNfdZd",
-        "4math4rintFNaNbNiNfeZe",
-        "4math4rintFNaNbNiNffZf",
-        //sqrt
-        "4math4sqrtFNaNbNiNfdZd",
-        "4math4sqrtFNaNbNiNfeZe",
-        "4math4sqrtFNaNbNiNffZf",
-        //yl2x
-        "4math4yl2xFNaNbNiNfddZd",
-        "4math4yl2xFNaNbNiNfeeZe",
-        "4math4yl2xFNaNbNiNfffZf",
-        //ldexp
-        "4math5ldexpFNaNbNiNfdiZd",
-        "4math5ldexpFNaNbNiNfeiZe",
-        "4math5ldexpFNaNbNiNffiZf",
-        //rndtol
-        "4math6rndtolFNaNbNiNfdZl",
-        "4math6rndtolFNaNbNiNfeZl",
-        "4math6rndtolFNaNbNiNffZl",
-        //yl2xp1
-        "4math6yl2xp1FNaNbNiNfddZd",
-        "4math6yl2xp1FNaNbNiNfeeZe",
-        "4math6yl2xp1FNaNbNiNfffZf",
+     auto md = m.md;
 
-        "4simd10__prefetchFNaNbNiNfxPvhZv",
-        "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMNhG16vQgZQj",
-        "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMdNhG16vZQh",
-        "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMfNhG16vZQh",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMNhG16vQgZQj",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMNhG16vQghZQk",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMNhG16vZQh",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMdZNhG16v",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMfZNhG16v",
-        "4simd9__simd_ibFNaNbNiNfEQBeQBc3XMMNhG16vhZQi",
+     const Identifier id2 = md.id;
 
-        // @deprecated volatileLoad
-        "5bitop12volatileLoadFNbNiNfPhZh",
-        "5bitop12volatileLoadFNbNiNfPkZk",
-        "5bitop12volatileLoadFNbNiNfPmZm",
-        "5bitop12volatileLoadFNbNiNfPtZt",
-        // @deprecated volatileStore
-        "5bitop13volatileStoreFNbNiNfPhhZv",
-        "5bitop13volatileStoreFNbNiNfPkkZv",
-        "5bitop13volatileStoreFNbNiNfPmmZv",
-        "5bitop13volatileStoreFNbNiNfPttZv",
+     if (!md.packages)
+         return op;
 
-        "5bitop3bsfFNaNbNiNfkZi",
-        "5bitop3bsfFNaNbNiNfmZi",
-        "5bitop3bsrFNaNbNiNfkZi",
-        "5bitop3bsrFNaNbNiNfmZi",
-        "5bitop3btcFNaNbNiPkkZi",
-        "5bitop3btrFNaNbNiPkkZi",
-        "5bitop3btsFNaNbNiPkkZi",
-        "5bitop3inpFNbNikZh",
-        "5bitop4inplFNbNikZk",
-        "5bitop4inpwFNbNikZt",
-        "5bitop4outpFNbNikhZh",
-        "5bitop5bswapFNaNbNiNfkZk",
-        "5bitop5outplFNbNikkZk",
-        "5bitop5outpwFNbNiktZt",
+     const Identifier id1 = (*md.packages)[0];
+     // ... except core.stdc.stdarg.va_start
+     if (md.packages.dim == 2)
+         goto Lva_start;
 
-        "5bitop7_popcntFNaNbNiNfkZi",
-        "5bitop7_popcntFNaNbNiNfmxx", // don't find 64 bit version in 32 bit code
-        "5bitop7_popcntFNaNbNiNftZt",
-        // volatileLoad
-        "8volatile12volatileLoadFNbNiNfPhZh",
-        "8volatile12volatileLoadFNbNiNfPkZk",
-        "8volatile12volatileLoadFNbNiNfPmZm",
-        "8volatile12volatileLoadFNbNiNfPtZt",
-        // volatileStore
-        "8volatile13volatileStoreFNbNiNfPhhZv",
-        "8volatile13volatileStoreFNbNiNfPkkZv",
-        "8volatile13volatileStoreFNbNiNfPmmZv",
-        "8volatile13volatileStoreFNbNiNfPttZv",
-    ];
-    __gshared immutable char*[70] core_namearray64 =
-    [
-        //cos
-        "4math3cosFNaNbNiNfdZd",
-        "4math3cosFNaNbNiNfeZe",
-        "4math3cosFNaNbNiNffZf",
-        //sin
-        "4math3sinFNaNbNiNfdZd",
-        "4math3sinFNaNbNiNfeZe",
-        "4math3sinFNaNbNiNffZf",
-        //fabs
-        "4math4fabsFNaNbNiNfdZd",
-        "4math4fabsFNaNbNiNfeZe",
-        "4math4fabsFNaNbNiNffZf",
-        //rint
-        "4math4rintFNaNbNiNfdZd",
-        "4math4rintFNaNbNiNfeZe",
-        "4math4rintFNaNbNiNffZf",
-        //sqrt
-        "4math4sqrtFNaNbNiNfdZd",
-        "4math4sqrtFNaNbNiNfeZe",
-        "4math4sqrtFNaNbNiNffZf",
-        //yl2x
-        "4math4yl2xFNaNbNiNfddZd",
-        "4math4yl2xFNaNbNiNfeeZe",
-        "4math4yl2xFNaNbNiNfffZf",
-        //ldexp
-        "4math5ldexpFNaNbNiNfdiZd",
-        "4math5ldexpFNaNbNiNfeiZe",
-        "4math5ldexpFNaNbNiNffiZf",
-        //rndtol
-        "4math6rndtolFNaNbNiNfdZl",
-        "4math6rndtolFNaNbNiNfeZl",
-        "4math6rndtolFNaNbNiNffZl",
-        //yl2xp1
-        "4math6yl2xp1FNaNbNiNfddZd",
-        "4math6yl2xp1FNaNbNiNfeeZe",
-        "4math6yl2xp1FNaNbNiNfffZf",
-
-        "4simd10__prefetchFNaNbNiNfxPvhZv",
-        "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMNhG16vQgZQj",
-        "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMdNhG16vZQh",
-        "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMfNhG16vZQh",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMNhG16vQgZQj",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMNhG16vQghZQk",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMNhG16vZQh",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMdZNhG16v",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMfZNhG16v",
-        "4simd9__simd_ibFNaNbNiNfEQBeQBc3XMMNhG16vhZQi",
-
-        // @deprecated volatileLoad
-        "5bitop12volatileLoadFNbNiNfPhZh",
-        "5bitop12volatileLoadFNbNiNfPkZk",
-        "5bitop12volatileLoadFNbNiNfPmZm",
-        "5bitop12volatileLoadFNbNiNfPtZt",
-        // @deprecated volatileStore
-        "5bitop13volatileStoreFNbNiNfPhhZv",
-        "5bitop13volatileStoreFNbNiNfPkkZv",
-        "5bitop13volatileStoreFNbNiNfPmmZv",
-        "5bitop13volatileStoreFNbNiNfPttZv",
-
-        "5bitop3bsfFNaNbNiNfkZi",
-        "5bitop3bsfFNaNbNiNfmZi",
-        "5bitop3bsrFNaNbNiNfkZi",
-        "5bitop3bsrFNaNbNiNfmZi",
-        "5bitop3btcFNaNbNiPmmZi",
-        "5bitop3btrFNaNbNiPmmZi",
-        "5bitop3btsFNaNbNiPmmZi",
-        "5bitop3inpFNbNikZh",
-        "5bitop4inplFNbNikZk",
-        "5bitop4inpwFNbNikZt",
-        "5bitop4outpFNbNikhZh",
-        "5bitop5bswapFNaNbNiNfkZk",
-        "5bitop5outplFNbNikkZk",
-        "5bitop5outpwFNbNiktZt",
-
-        "5bitop7_popcntFNaNbNiNfkZi",
-        "5bitop7_popcntFNaNbNiNfmZi",
-        "5bitop7_popcntFNaNbNiNftZt",
-        // volatileLoad
-        "8volatile12volatileLoadFNbNiNfPhZh",
-        "8volatile12volatileLoadFNbNiNfPkZk",
-        "8volatile12volatileLoadFNbNiNfPmZm",
-        "8volatile12volatileLoadFNbNiNfPtZt",
-        // volatileStore
-        "8volatile13volatileStoreFNbNiNfPhhZv",
-        "8volatile13volatileStoreFNbNiNfPkkZv",
-        "8volatile13volatileStoreFNbNiNfPmmZv",
-        "8volatile13volatileStoreFNbNiNfPttZv",
-    ];
-    __gshared immutable ubyte[70] core_ioptab =
-    [
-        OPcos,
-        OPcos,
-        OPcos,
-
-        OPsin,
-        OPsin,
-        OPsin,
-
-        OPabs,
-        OPabs,
-        OPabs,
-
-        OPrint,
-        OPrint,
-        OPrint,
-
-        OPsqrt,
-        OPsqrt,
-        OPsqrt,
-
-        OPyl2x,
-        OPyl2x,
-        OPyl2x,
-
-        OPscale,
-        OPscale,
-        OPscale,
-
-        OPrndtol,
-        OPrndtol,
-        OPrndtol,
-
-        OPyl2xp1,
-        OPyl2xp1,
-        OPyl2xp1,
-
-        OPprefetch,
-        OPvector,
-        OPvector,
-        OPvector,
-        OPvector,
-        OPvector,
-        OPvector,
-        OPvector,
-        OPvector,
-        OPvector,
-
-        OPind,
-        OPind,
-        OPind,
-        OPind,
-
-        OPeq,
-        OPeq,
-        OPeq,
-        OPeq,
-
-        OPbsf,
-        OPbsf,
-        OPbsr,
-        OPbsr,
-        OPbtc,
-        OPbtr,
-        OPbts,
-        OPinp,
-        OPinp,
-        OPinp,
-        OPoutp,
-
-        OPbswap,
-        OPoutp,
-        OPoutp,
-
-        OPpopcnt,
-        OPpopcnt,
-        OPpopcnt,
-
-        OPind,
-        OPind,
-        OPind,
-        OPind,
-
-        OPeq,
-        OPeq,
-        OPeq,
-        OPeq,
-    ];
-
-    static assert(std_namearray.length == std_namearray64.length);
-    static assert(std_namearray.length == std_ioptab.length);
-    static assert(core_namearray.length == core_namearray64.length);
-    static assert(core_namearray.length == core_ioptab.length);
-    debug
+    if (id1 == Id.std && id2 == Id.math)
     {
-        for (size_t i = 0; i < std_namearray.length - 1; i++)
+         Lmath:
+              if (id3 == Id.cos)    op = OPcos;
+         else if (id3 == Id.sin)    op = OPsin;
+         else if (id3 == Id.fabs)   op = OPabs;
+         else if (id3 == Id.rint)   op = OPrint;
+         else if (id3 == Id._sqrt)  op = OPsqrt;
+         else if (id3 == Id.yl2x)   op = OPyl2x;
+         else if (id3 == Id.ldexp)  op = OPscale;
+         else if (id3 == Id.rndtol) op = OPrndtol;
+         else if (id3 == Id.yl2xp1) op = OPyl2xp1;
+    }
+    else if (id1 == Id.core)
+    {
+        if (id2 == Id.math)
         {
-            if (strcmp(std_namearray[i], std_namearray[i + 1]) >= 0)
-            {
-                printf("std_namearray[%ld] = '%s'\n", cast(long)i, std_namearray[i]);
-                assert(0);
-            }
+            goto Lmath;
         }
-        for (size_t i = 0; i < std_namearray64.length - 1; i++)
+        else if (id2 == Id.simd)
         {
-            if (strcmp(std_namearray64[i], std_namearray64[i + 1]) >= 0)
-            {
-                printf("std_namearray64[%ld] = '%s'\n", cast(long)i, std_namearray64[i]);
-                assert(0);
-            }
+                 if (id3 == Id.__prefetch) op = OPprefetch;
+            else if (id3 == Id.__simd_sto) op = OPvector;
+            else if (id3 == Id.__simd)     op = OPvector;
+            else if (id3 == Id.__simd_ib)  op = OPvector;
         }
-        for (size_t i = 0; i < core_namearray.length - 1; i++)
+        else if (id2 == Id.bitop)
         {
-            //printf("test1 %s %s %d\n", core_namearray[i], core_namearray[i + 1], strcmp(core_namearray[i], core_namearray[i + 1]));
-            if (strcmp(core_namearray[i], core_namearray[i + 1]) >= 0)
-            {
-                printf("core_namearray[%ld] = '%s'\n", cast(long)i, core_namearray[i]);
-                assert(0);
-            }
-        }
-        for (size_t i = 0; i < core_namearray64.length - 1; i++)
-        {
-            if (strcmp(core_namearray64[i], core_namearray64[i + 1]) >= 0)
-            {
-                printf("core_namearray64[%ld] = '%s'\n", cast(long)i, core_namearray64[i]);
-                assert(0);
-            }
+                 if (id3 == Id.volatileLoad)  op = OPind;
+            else if (id3 == Id.volatileStore) op = OPeq;
+
+            else if (id3 == Id.bsf) op = OPbsf;
+            else if (id3 == Id.bsr) op = OPbsr;
+            else if (id3 == Id.btc) op = OPbtc;
+            else if (id3 == Id.btr) op = OPbtr;
+            else if (id3 == Id.bts) op = OPbts;
+
+            else if (id3 == Id.inp)  op = OPinp;
+            else if (id3 == Id.inpl) op = OPinp;
+            else if (id3 == Id.inpw) op = OPinp;
+
+            else if (id3 == Id.outp)  op = OPoutp;
+            else if (id3 == Id.outpl) op = OPoutp;
+            else if (id3 == Id.outpw) op = OPoutp;
+
+            else if (id3 == Id.bswap)   op = OPbswap;
+            else if (id3 == Id._popcnt) op = OPpopcnt;
         }
     }
-
-    size_t length = strlen(name);
-
-    if (length > 10 &&
-        (name[7] == 'm' || name[7] == 'i') &&
-        !memcmp(name, "_D3std".ptr, 6))
+    //if (op != -1) printf("intrinsic_op %d\n", op);
+    if (!global.params.is64bit &&
+        (op == OPbsf || op == OPbsr) &&
+         fd.parameters && (*fd.parameters)[0].type == Type.tuns64)
     {
-        int i = binary(name + 6,
-            cast(const(char)**)(global.params.is64bit ? std_namearray64.ptr : std_namearray.ptr),
-            cast(int)std_namearray.length);
-        return (i == -1) ? i : std_ioptab[i];
+        // Don't recognize 64 bit bsf() / bsr() in 32 bit mode
+        return -1;
     }
-    if (length > 12 &&
-        (name[8] == 'm' || name[8] == 'b' || name[8] == 's' || name[8] == 'v') &&
-        !memcmp(name, "_D4core".ptr, 7))
+    if (op == OPbswap && fd.parameters && (*fd.parameters)[0].type == Type.tuns64)
     {
-        int i = binary(name + 7,
-            cast(const(char)**)(global.params.is64bit ? core_namearray64.ptr : core_namearray.ptr),
-            cast(int)core_namearray.length);
-        if (i != -1)
-        {
-            int op = core_ioptab[i];
-            if (!global.params.is64bit &&
-                (op == OPbsf || op == OPbsr) &&
-                op == core_ioptab[i - 1])
-            {
-                // Don't recognize 64 bit bsf() / bsr() in 32 bit mode
-                op = -1;
-            }
-            return op;
-        }
-
-        if (global.params.is64bit &&
-            fd.toParent().isTemplateInstance() &&
-            fd.ident == Id.va_start)
-        {
-            OutBuffer buf;
-            mangleToBuffer(fd.getModule(), &buf);
-            const s = buf.peekString();
-            if (!strcmp(s, "4core4stdc6stdarg"))
-            {
-                return OPva_start;
-            }
-        }
-
         return -1;
     }
 
-    return -1;
+    return op;
+Lva_start:
+    if (global.params.is64bit &&
+        fd.toParent().isTemplateInstance() &&
+        fd.ident == Id.va_start)
+    {
+        OutBuffer buf;
+        mangleToBuffer(fd.getModule(), &buf);
+        const s = buf.peekString();
+        if (!strcmp(s, "4core4stdc6stdarg"))
+        {
+            return OPva_start;
+        }
+    }
+    return op;
 }
 
 /**************************************
