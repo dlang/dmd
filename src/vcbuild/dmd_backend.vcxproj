@@ -139,7 +139,6 @@ popd</Command>
     <ClInclude Include="..\dmd\backend\aa.h" />
     <ClInclude Include="..\dmd\backend\bcomplex.h" />
     <ClInclude Include="..\dmd\backend\cc.h" />
-    <ClInclude Include="..\dmd\backend\cdef.h" />
     <ClInclude Include="..\dmd\backend\cgcv.h" />
     <ClInclude Include="..\dmd\backend\code.h" />
     <ClInclude Include="..\dmd\backend\cv4.h" />
