@@ -336,7 +336,7 @@ DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 ######## DMD backend source files
 
 ifeq (X86,$(TARGET_CPU))
-    TARGET_CH = $C/code_x86.h
+    TARGET_CH =
     TARGET_OBJS =
 else
     ifeq (stub,$(TARGET_CPU))
@@ -385,9 +385,7 @@ BACK_HDRS=$C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/glob
 TK_HDRS=
 
 BACK_SRC = \
-	$C/cc.h $C/oper.h $C/ty.h $C/optabgen.d \
-	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
-	$C/el.h \
+	$C/optabgen.d \
 	$C/bcomplex.d $C/blockopt.d $C/cg.d $C/cg87.d $C/cgxmm.d \
 	$C/cgcod.d $C/cgcs.d $C/dcgcv.d $C/cgelem.d $C/cgen.d $C/cgobj.d \
 	$C/compress.d $C/cgreg.d $C/var.d $C/strtold.c \
@@ -396,15 +394,15 @@ BACK_SRC = \
 	$C/evalu8.d $C/fp.c $C/go.d $C/gflow.d $C/gdag.d \
 	$C/gother.d $C/glocal.d $C/gloop.d $C/gsroa.d $C/newman.d \
 	$C/nteh.d $C/os.c $C/out.d $C/ptrntab.d $C/drtlsym.d \
-	$C/dtype.d $C/melf.h $C/mach.h $C/mscoff.h $C/bcomplex.h \
-	$C/token.h $C/tassert.h \
-	$C/elfobj.d $C/cv4.h $C/dwarf2.h $C/exh.h $C/go.h \
-	$C/dwarfdbginf.d $C/dwarf.h $C/aa.h $C/aarray.d \
-	$C/platform_stub.c $C/code_x86.h $C/code_stub.h \
+	$C/dtype.d \
+	$C/token.h \
+	$C/elfobj.d \
+	$C/dwarfdbginf.d $C/aarray.d \
+	$C/platform_stub.c $C/code_stub.h \
 	$C/machobj.d $C/mscoffobj.d \
-	$C/obj.h $C/pdata.d $C/cv8.d $C/backconfig.d $C/divcoeff.d \
+	$C/pdata.d $C/cv8.d $C/backconfig.d $C/divcoeff.d \
 	$C/dvarstats.d $C/dvec.d \
-	$C/md5.d $C/md5.h \
+	$C/md5.d \
 	$C/ph2.d $C/util2.d $C/dwarfeh.d $C/goh.d $C/memh.d $C/filespec.d \
 	$(TARGET_CH)
 

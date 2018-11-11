@@ -224,10 +224,8 @@ GLUESRC= \
 	$(GLUE_SRCS)
 
 # D back end
-BACKSRC= $C\cc.h $C\oper.h $C\ty.h $C\optabgen.d \
-	$C\global.h $C\code.h $C\code_x86.h $C/code_stub.h $C/platform_stub.c \
-	$C\type.h $C\dt.h $C\cgcv.h \
-	$C\el.h \
+BACKSRC= $C\optabgen.d \
+	$C/code_stub.h $C/platform_stub.c \
 	$C\bcomplex.d $C\blockopt.d $C\cg.d $C\cg87.d $C\cgxmm.d \
 	$C\cgcod.d $C\cgcs.d $C\dcgcv.d $C\cgelem.d $C\cgen.d $C\cgobj.d \
 	$C\compress.d $C\cgreg.d $C\var.d \
@@ -236,13 +234,12 @@ BACKSRC= $C\cc.h $C\oper.h $C\ty.h $C\optabgen.d \
 	$C\evalu8.d $C\fp.c $C\go.d $C\gflow.d $C\gdag.d \
 	$C\gother.d $C\glocal.d $C\gloop.d $C\gsroa.d $C\newman.d \
 	$C\nteh.d $C\os.c $C\out.d $C\ptrntab.d $C\drtlsym.d \
-	$C\dtype.d $C\melf.h $C\mach.h $C\mscoff.h $C\bcomplex.h \
-	$C\token.h $C\tassert.h \
-	$C\elfobj.d $C\cv4.h $C\dwarf2.h $C\exh.h $C\go.h \
-	$C\dwarfdbginf.d $C\dwarf.h $C\machobj.d $C\aarray.d \
-	$C\strtold.c $C\aa.h \
-	$C\md5.h $C\md5.d $C\ph2.d $C\util2.d \
-	$C\mscoffobj.d $C\obj.h $C\pdata.d $C\cv8.d $C\backconfig.d \
+	$C\dtype.d \
+	$C\elfobj.d \
+	$C\dwarfdbginf.d $C\machobj.d $C\aarray.d \
+	$C\strtold.c \
+	$C\md5.d $C\ph2.d $C\util2.d \
+	$C\mscoffobj.d $C\pdata.d $C\cv8.d $C\backconfig.d \
 	$C\divcoeff.d $C\dwarfeh.d $C\dvarstats.d \
 	$C\dvec.d $C\filespec.d $C\backend.txt
 
@@ -267,8 +264,7 @@ ROOTSRC= $(ROOT)\root.h \
 #	$(ROOT)\gc\win32.c
 
 # Header files
-CH= $C\cc.h $C\global.h $C\oper.h $C\code.h $C\code_x86.h $C\type.h $C\dt.h $C\cgcv.h \
-	$C\el.h $C\obj.h
+CH=
 
 # Makefiles
 MAKEFILES=win32.mak posix.mak osmodel.mak
@@ -408,7 +404,7 @@ pvs:
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(TK) /Tp $(TKSRCC) --source-file $(TKSRCC)
 
 checkwhitespace: $(TOOLS_DIR)\checkwhitespace.d
-	$(HOST_DC) -run $(TOOLS_DIR)\checkwhitespace $(SRCS) $(GLUESRC) $(ROOTSRC) $(TKSRC) $(BACKSRC) $(CH)
+	$(HOST_DC) -run $(TOOLS_DIR)\checkwhitespace $(SRCS) $(GLUESRC) $(ROOTSRC) $(TKSRC) $(BACKSRC)
 
 # Extra test here, wine attempts to execute git even if file already exists
 $(TOOLS_DIR)\checkwhitespace.d:
@@ -581,7 +577,7 @@ $G/md5.obj : $C\md5.d
 $G/mscoffobj.obj : $C\mscoffobj.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\mscoffobj
 
-$G/newman.obj : $(CH) $C\newman.d
+$G/newman.obj : $C\newman.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\newman
 
 $G/nteh.obj : $C\rtlsym.d $C\nteh.d
