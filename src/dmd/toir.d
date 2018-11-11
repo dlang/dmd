@@ -435,14 +435,17 @@ int intrinsic_op(FuncDeclaration fd)
         }
     }
     //if (op != -1) printf("intrinsic_op %d\n", op);
+    
+    const bool isFirstArgUlong = fd.parameters && (*fd.parameters)[0].type == Type.tuns64;
     if (!global.params.is64bit &&
-        (op == OPbsf || op == OPbsr) &&
-         fd.parameters && (*fd.parameters)[0].type == Type.tuns64)
+        (op == OPbsf && strcmp(mangleExact(fd), "_D4core5bitop3bsfFNaNbNiNfmZi") ||
+         op == OPbsr && strcmp(mangleExact(fd), "_D4core5bitop3bsrFNaNbNiNfmZi") /*&&
+         isFirstArgUlong*/)
     {
         // Don't recognize 64 bit bsf() / bsr() in 32 bit mode
         return -1;
     }
-    if (op == OPbswap && fd.parameters && (*fd.parameters)[0].type == Type.tuns64)
+    if (op == OPbswap && strcmp(mangleExact(fd), "_D4core5bitop5bswapFNaNbNiNfkZk")/* && isFirstArgUlong*/)
     {
         return -1;
     }
