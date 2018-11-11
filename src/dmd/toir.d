@@ -435,7 +435,6 @@ int intrinsic_op(FuncDeclaration fd)
         }
     }
     //if (op != -1) printf("intrinsic_op %d\n", op);
-    
     //const bool isFirstArgUlong = fd.parameters && (*fd.parameters)[0].type == Type.tuns64;
     if (!global.params.is64bit &&
          (op == OPbsf && strcmp(mangleExact(fd), "_D4core5bitop3bsfFNaNbNiNfmZi") ||
