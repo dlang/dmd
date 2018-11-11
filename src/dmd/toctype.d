@@ -155,12 +155,6 @@ public:
         {
             // Create a new backend type
             StructDeclaration sym = t.sym;
-            if (sym.ident == Id.__c_long_double)
-            {
-                t.ctype = type_fake(TYdouble);
-                t.ctype.Tcount++;
-                return;
-            }
             t.ctype = type_struct_class(sym.toPrettyChars(true), sym.alignsize, sym.structsize, sym.arg1type ? Type_toCtype(sym.arg1type) : null, sym.arg2type ? Type_toCtype(sym.arg2type) : null, sym.isUnionDeclaration() !is null, false, sym.isPOD() != 0, sym.hasNoFields);
             /* Add in fields of the struct
              * (after setting ctype to avoid infinite recursion)
