@@ -364,26 +364,26 @@ int intrinsic_op(FuncDeclaration fd)
 {
     int op = -1;
     fd = fd.toAliasFunc();
-    
-     if (fd.isDeprecated())
-         return op;
+
+    if (fd.isDeprecated())
+        return op;
     // Look for [core|std].module.function as id3.id2.id1 ...
     const Identifier id3 = fd.ident;
-     auto m = fd.getModule();
-     if (!m || !m.md)
-         return op;
+    auto m = fd.getModule();
+    if (!m || !m.md)
+        return op;
 
-     auto md = m.md;
+    auto md = m.md;
 
-     const Identifier id2 = md.id;
+    const Identifier id2 = md.id;
 
-     if (!md.packages)
-         return op;
+    if (!md.packages)
+        return op;
 
-     const Identifier id1 = (*md.packages)[0];
-     // ... except core.stdc.stdarg.va_start
-     if (md.packages.dim == 2)
-         goto Lva_start;
+    const Identifier id1 = (*md.packages)[0];
+    // ... except core.stdc.stdarg.va_start
+    if (md.packages.dim == 2)
+        goto Lva_start;
 
     if (id1 == Id.std && id2 == Id.math)
     {
