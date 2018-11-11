@@ -142,6 +142,7 @@ public:
     void visit(AST.TypeStruct t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeNext t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeQualified t) { visit(cast(AST.Type)t); }
+    void visit(AST.TypeTraits t) { visit(cast(AST.Type)t); }
 
     // TypeNext
     void visit(AST.TypeReference t) { visit(cast(AST.TypeNext)t); }

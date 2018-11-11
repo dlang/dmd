@@ -1645,6 +1645,20 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         result = t;
     }
 
+    override void visit(TypeTraits mtype)
+    {
+        import dmd.traits : semanticTraits;
+
+        result = null;
+        if (Expression e = semanticTraits(mtype.exp, sc))
+        {
+            if (Dsymbol ds = getDsymbol(e))
+                mtype.sym = ds;
+            else if (Type t = getType(e))
+                result = t.addMod(mtype.mod);
+        }
+    }
+
     override void visit(TypeReturn mtype)
     {
         //printf("TypeReturn::semantic() %s\n", toChars());

@@ -568,6 +568,7 @@ final class Parser(AST) : Lexer
             case TOK.union_:
             case TOK.class_:
             case TOK.interface_:
+            case TOK.traits:
             Ldeclaration:
                 a = parseDeclarations(false, pAttrs, pAttrs.comment);
                 if (a && a.dim)
@@ -3719,6 +3720,27 @@ final class Parser(AST) : Lexer
             t = parseVector();
             break;
 
+        case TOK.traits:
+        {
+            AST.TraitsExp te = cast(AST.TraitsExp) parsePrimaryExp();
+            if (!te)
+            {
+                // error already emitted while parsing primary
+                t = new AST.TypeError;
+            }
+            else if (te.ident != Id.getMember)
+            {
+                // even if this is not a grammar error, it's not worth continuing.
+                error("invalid `__traits`, only `getMember` can give types and symbols");
+                t = new AST.TypeError;
+            }
+            else
+            {
+                t = new AST.TypeTraits(loc, te);
+            }
+            break;
+        }
+
         case TOK.const_:
             // const(type)
             nextToken();
@@ -5394,6 +5416,7 @@ final class Parser(AST) : Lexer
         case TOK.dot:
         case TOK.typeof_:
         case TOK.vector:
+        case TOK.traits:
             /* https://issues.dlang.org/show_bug.cgi?id=15163
              * If tokens can be handled as
              * old C-style declaration or D expression, prefer the latter.
@@ -5442,7 +5465,6 @@ final class Parser(AST) : Lexer
         case TOK.typeid_:
         case TOK.is_:
         case TOK.leftBracket:
-        case TOK.traits:
         case TOK.file:
         case TOK.fileFullPath:
         case TOK.line:
@@ -6905,6 +6927,25 @@ final class Parser(AST) : Lexer
                 goto Lfalse;
             goto L3;
 
+        case TOK.traits:
+            // __traits(getMember
+            t = peek(t);
+            if (t.value != TOK.leftParentheses)
+                goto Lfalse;
+            auto lp = t;
+            t = peek(t);
+            if (t.value != TOK.identifier || t.ident != Id.getMember)
+                goto Lfalse;
+            if (!skipParens(lp, &lp))
+                goto Lfalse;
+            // we are in a lookup for decl VS statement
+            // so we expect a declarator following __trait if it's a type.
+            // other usages wont be ambiguous (alias, template instance, type qual, etc.)
+            if (lp.value != TOK.identifier)
+                goto Lfalse;
+
+            break;
+
         case TOK.const_:
         case TOK.immutable_:
         case TOK.shared_:
@@ -8303,6 +8344,7 @@ final class Parser(AST) : Lexer
                         case TOK.function_:
                         case TOK.delegate_:
                         case TOK.typeof_:
+                        case TOK.traits:
                         case TOK.vector:
                         case TOK.file:
                         case TOK.fileFullPath:
