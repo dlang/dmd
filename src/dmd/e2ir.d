@@ -2438,6 +2438,7 @@ elem *toElem(Expression e, IRState *irs)
                         {
                             printf("EqualExp.toElem(fail) %s\n", ee.toChars());
                             assert(0);
+                        }
                     }
                     else
                     {
