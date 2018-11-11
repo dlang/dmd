@@ -13,6 +13,8 @@ ESCAPES =
 
 B = <b>$0</b>
 I = <i>$0</i>
+EM = <em>$0</em>
+STRONG = <strong>$0</strong>
 U = <u>$0</u>
 P = <p>$0</p>
 DL = <dl>$0</dl>
