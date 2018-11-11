@@ -3725,6 +3725,13 @@ static if (0)
         // If stack needs cleanup
         if  (s && s.Sflags & SFLexit)
         {
+            if (config.fulltypes && TARGET_WINDOS)
+            {
+                // the stack walker evaluates the return address, not a byte of the
+                // call instruction, so ensure there is an instruction byte after
+                // the call that still has the same line number information
+                cdb.gen1(config.target_cpu >= TARGET_80286 ? UD2 : INT3);
+            }
             /* Function never returns, so don't need to generate stack
              * cleanup code. But still need to log the stack cleanup
              * as if it did return.
