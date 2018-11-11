@@ -1650,12 +1650,44 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         import dmd.traits : semanticTraits;
 
         result = null;
+        if (mtype.ty == Terror)
+        {
+            result = mtype;
+            return;
+        }
+        if (mtype.exp.ident != Id.allMembers &&
+            mtype.exp.ident != Id.derivedMembers &&
+            mtype.exp.ident != Id.getMember &&
+            mtype.exp.ident != Id.parent &&
+            mtype.exp.ident != Id.getOverloads &&
+            mtype.exp.ident != Id.getVirtualFunctions &&
+            mtype.exp.ident != Id.getVirtualMethods &&
+            mtype.exp.ident != Id.getAttributes &&
+            mtype.exp.ident != Id.getUnitTests)
+        {
+            static immutable (const(char)*)[2] ctxt = ["as type", "in alias"];
+            .error(mtype.loc, "trait `%s` is either invalid or not supported %s",
+                 mtype.exp.ident.toChars, ctxt[mtype.inAliasDeclaration]);
+            result = mtype;
+            mtype.ty = Terror;
+            return;
+        }
         if (Expression e = semanticTraits(mtype.exp, sc))
         {
-            if (Dsymbol ds = getDsymbol(e))
+            if (TupleExp te = e.toTupleExp)
+                mtype.sym = new TupleDeclaration(mtype.loc,
+                    Identifier.generateId("__aliastup"), cast(Objects*) te.exps);
+            else if (Dsymbol ds = getDsymbol(e))
                 mtype.sym = ds;
             else if (Type t = getType(e))
                 result = t.addMod(mtype.mod);
+        }
+        if (!mtype.inAliasDeclaration && !result)
+        {
+            if (!global.errors)
+                .error(mtype.loc, "`%s` does not give a valid type", mtype.toChars);
+            result = mtype;
+            mtype.ty = Terror;
         }
     }
 

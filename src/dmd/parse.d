@@ -3721,25 +3721,11 @@ final class Parser(AST) : Lexer
             break;
 
         case TOK.traits:
-        {
-            AST.TraitsExp te = cast(AST.TraitsExp) parsePrimaryExp();
-            if (!te)
-            {
-                // error already emitted while parsing primary
-                t = new AST.TypeError;
-            }
-            else if (te.ident != Id.getMember)
-            {
-                // even if this is not a grammar error, it's not worth continuing.
-                error("invalid `__traits`, only `getMember` can give types and symbols");
-                t = new AST.TypeError;
-            }
+            if (AST.TraitsExp te = cast(AST.TraitsExp) parsePrimaryExp())
+                t = new AST.TypeTraits(token.loc, te);
             else
-            {
-                t = new AST.TypeTraits(loc, te);
-            }
+                t = new AST.TypeError;
             break;
-        }
 
         case TOK.const_:
             // const(type)
