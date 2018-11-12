@@ -1442,6 +1442,8 @@ extern(C++):
             return writeBasicType(t, 0, 'l');
         else if (id == Id.__c_ulong)
             return writeBasicType(t, 0, 'm');
+        else if (id == Id.__c_wchar_t)
+            return writeBasicType(t, 0, 'w');
         else if (id == Id.__c_longlong)
             return writeBasicType(t, 0, 'x');
         else if (id == Id.__c_ulonglong)
