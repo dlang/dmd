@@ -3386,10 +3386,11 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             if (preg2 != NOREG)
             {
                 // BUG: still doesn't handle case of mXMM0|mAX or mAX|mXMM0
-                assert(ep.Eoper != OPstrthis);
                 if (mask(preg2) & XMMREGS)
-                {
                     ++xmmcnt;
+                assert(ep.Eoper != OPstrthis);
+                if (mask(preg) & XMMREGS)
+                {
                     lreg = XMM0;
                     mreg = XMM1;
                 }
