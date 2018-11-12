@@ -17,6 +17,7 @@ import core.stdc.stdio;
 import dmd.arraytypes;
 import dmd.cppmangle : isPrimaryDtor, isCppOperator, CppOperator;
 import dmd.declaration;
+import dmd.denum : isSpecialEnumIdent;
 import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.errors;
@@ -413,6 +414,11 @@ public:
             c = "_J"; // VC++ long long
         else if (id == Id.__c_ulonglong)
             c = "_K"; // VC++ unsigned long long
+        else if (id == Id.__c_wchar_t)
+        {
+            c = (flags & IS_DMC) ? "_Y" : "_W";
+        }
+
         if (c.length)
         {
             if (checkImmutableShared(type))
@@ -1231,8 +1237,7 @@ private:
             else if (rettype.ty == Tenum)
             {
                 const id = rettype.toDsymbol(null).ident;
-                if (id != Id.__c_long_double && id != Id.__c_long && id != Id.__c_ulong &&
-                    id != Id.__c_longlong && id != Id.__c_ulonglong)
+                if (!isSpecialEnumIdent(id))
                 {
                     tmp.buf.writeByte('?');
                     tmp.buf.writeByte('A');

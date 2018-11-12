@@ -31,6 +31,16 @@ import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
 
+bool isSpecialEnumIdent(const Identifier ident) @nogc nothrow
+{
+    return  ident == Id.__c_long ||
+            ident == Id.__c_ulong ||
+            ident == Id.__c_longlong ||
+            ident == Id.__c_ulonglong ||
+            ident == Id.__c_long_double ||
+            ident == Id.__c_wchar_t;
+}
+
 /***********************************************************
  */
 extern (C++) final class EnumDeclaration : ScopeDsymbol
@@ -266,11 +276,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
      */
     bool isSpecial() const nothrow @nogc
     {
-        return (ident == Id.__c_long ||
-                ident == Id.__c_ulong ||
-                ident == Id.__c_longlong ||
-                ident == Id.__c_ulonglong ||
-                ident == Id.__c_long_double) && memtype;
+        return isSpecialEnumIdent(ident) && memtype;
     }
 
     Expression getDefaultValue(const ref Loc loc)
