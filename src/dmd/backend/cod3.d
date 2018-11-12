@@ -1111,7 +1111,28 @@ static if (NTEXCEPTIONS)
 }
 
         case BCretexp:
-            retregs = regmask(e.Ety, funcsym_p.ty());
+            reg_t reg1, reg2, lreg, mreg;
+            retregs = allocretregs(e.Ety, e.ET, funcsym_p.ty(), &reg1, &reg2);
+            assert(reg1 != NOREG || !retregs);
+
+            lreg = mreg = NOREG;
+            if (reg1 == NOREG)
+            {}
+            else if (mask(reg1) & (mST0 | mST01))
+                lreg = reg1;
+            else if (reg2 == NOREG)
+                lreg = reg1;
+            else if (mask(reg1) & XMMREGS)
+            {
+                lreg = XMM0;
+                mreg = XMM1;
+            }
+            else
+            {
+                lreg = mask(reg1) & mLSW ? reg1 : AX;
+                mreg = mask(reg2) & mMSW ? reg2 : DX;
+            }
+            retregs = (mask(lreg) | mask(mreg)) & ~mask(NOREG);
 
             // For the final load into the return regs, don't set regcon.used,
             // so that the optimizer can potentially use retregs for register
@@ -1142,6 +1163,25 @@ static if (NTEXCEPTIONS)
             {
                 gencodelem(cdb,e,&retregs,true);
             }
+
+            if (reg1 == NOREG)
+            {
+            }
+            else if ((mask(reg1) | mask(reg2)) & (mST0 | mST01))
+            {
+                assert(reg1 == lreg && reg2 == NOREG);
+            }
+            // fix return registers
+            else if (reg2 == NOREG)
+                assert(lreg == reg1);
+            else for (int v = 0; v < 2; v++)
+            {
+                if (v ^ (reg1 != mreg))
+                    genmovreg(cdb, reg1, lreg);
+                else
+                    genmovreg(cdb, reg2, mreg);
+            }
+            retregs = (mask(reg1) | mask(reg2)) & ~mask(NOREG);
             goto L4;
 
         case BCret:
