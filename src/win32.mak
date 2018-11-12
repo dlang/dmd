@@ -233,7 +233,7 @@ BACKSRC= $C\optabgen.d \
 	$C\dcode.d $C\symbol.d $C\debugprint.d $C\ee.d $C\elem.d \
 	$C\evalu8.d $C\fp.c $C\go.d $C\gflow.d $C\gdag.d \
 	$C\gother.d $C\glocal.d $C\gloop.d $C\gsroa.d $C\newman.d \
-	$C\nteh.d $C\os.c $C\out.d $C\ptrntab.d $C\drtlsym.d \
+	$C\nteh.d $C\os.d $C\out.d $C\ptrntab.d $C\drtlsym.d \
 	$C\dtype.d \
 	$C\elfobj.d \
 	$C\dwarfdbginf.d $C\machobj.d $C\aarray.d \
@@ -583,8 +583,8 @@ $G/newman.obj : $C\newman.d
 $G/nteh.obj : $C\rtlsym.d $C\nteh.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\nteh
 
-$G/os.obj : $C\os.c
-	$(CC) -c -o$@ $(MFLAGS) $C\os
+$G/os.obj : $C\os.d
+    $(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\os
 
 $G/out.obj : $C\out.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\out
