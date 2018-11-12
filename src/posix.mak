@@ -348,7 +348,7 @@ else
 endif
 
 BACK_OBJS = \
-	os.o fp.o \
+    fp.o \
 	\
 	tk.o strtold.o \
 	$(TARGET_OBJS)
@@ -358,7 +358,7 @@ BACK_DOBJS = bcomplex.o evalu8.o divcoeff.o dvec.o go.o gsroa.o glocal.o gdag.o 
 	gloop.o compress.o cgelem.o cgcs.o ee.o cod4.o cod5.o nteh.o blockopt.o memh.o cg.o cgreg.o \
 	dtype.o debugprint.o symbol.o elem.o dcode.o cgsched.o cg87.o cgxmm.o cgcod.o cod1.o cod2.o \
 	cod3.o cv8.o dcgcv.o pdata.o util2.o var.o md5.o backconfig.o ph2.o drtlsym.o dwarfeh.o ptrntab.o \
-	aarray.o dvarstats.o dwarfdbginf.o elfobj.o cgen.o
+	aarray.o dvarstats.o dwarfdbginf.o elfobj.o cgen.o os.o
 
 G_OBJS  = $(addprefix $G/, $(BACK_OBJS))
 G_DOBJS = $(addprefix $G/, $(BACK_DOBJS))
@@ -393,7 +393,7 @@ BACK_SRC = \
 	$C/dcode.d $C/symbol.d $C/debugprint.d $C/dt.d $C/ee.d $C/elem.d \
 	$C/evalu8.d $C/fp.c $C/go.d $C/gflow.d $C/gdag.d \
 	$C/gother.d $C/glocal.d $C/gloop.d $C/gsroa.d $C/newman.d \
-	$C/nteh.d $C/os.c $C/out.d $C/ptrntab.d $C/drtlsym.d \
+	$C/nteh.d $C/os.d $C/out.d $C/ptrntab.d $C/drtlsym.d \
 	$C/dtype.d \
 	$C/token.h \
 	$C/elfobj.d \

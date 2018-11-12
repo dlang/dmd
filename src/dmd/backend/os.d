@@ -6,54 +6,64 @@
  *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/os.c, backend/os.c)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/os.d, backend/os.d)
  */
 
 /*
  * Operating system specific routines.
  * Placed here to avoid cluttering
- * up code with OS .h files.
+ * up code with OS files.
  */
 
-#include <stdio.h>
-#include <time.h>
-#include <stdlib.h>
-#include <string.h>
+import core.stdc.stdio;
+import core.stdc.time;
+import core.stdc.stdlib;
+import core.stdc.string;
 
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __DragonFly__ || __sun
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <unistd.h>
-#include <pthread.h>
-#define GetLastError() errno
-#elif _WIN32
-#include <dos.h>
-#include <sys\stat.h>
-#include        <windows.h>
-#endif
+version (Posix)
+{
+    import core.stdc.errno;
+    import core.sys.posix.fcntl;
+    import core.sys.posix.pthread;
+    import core.sys.posix.sys.stat;
+    import core.sys.posix.sys.types;
+    import core.sys.posix.unistd;
+    //#define GetLastError() errno
+}
+else version (Windows)
+{
+    import core.sys.windows.stat;
+    import core.sys.windows.windows;
 
-#include        <assert.h>
+}
 
-#if _MSC_VER
-#include <alloca.h>
-#endif
+version (CRuntime_Microsoft)
+    enum NEEDS_WIN32_NON_MS = false;
+else version (Win32)
+    enum NEEDS_WIN32_NON_MS = true;
+else
+    enum NEEDS_WIN32_NON_MS = false;
 
-// prep for conversion
-#define cast
-#define null NULL
-#define private static
-#define __gshared
-typedef unsigned long  ulong;
-typedef unsigned uint;
+version (Win64)
+    enum NEEDS_WIN32_NOT_WIN64 = false;
+else version (Win32)
+    enum NEEDS_WIN32_NOT_WIN64 = true;
+else
+    enum NEEDS_WIN32_NOT_WIN64 = false;
 
-#if _WINDLL
-extern void dll_printf(const char *format,...);
-#define dbg_printf dll_printf
-#else
-#define dbg_printf printf
-#endif
+
+extern(C++):
+
+version (CRuntime_Microsoft)
+{
+    import core.stdc.stdlib;
+}
+//debug = printf;
+version (Windows)
+{
+    extern(C++) void dll_printf(const char *format,...);
+    alias printf = dll_printf;
+}
 
 int file_createdirs(char *name);
 
@@ -61,39 +71,22 @@ int file_createdirs(char *name);
  * Called when there is an error returned by the operating system.
  * This function does not return.
  */
-
-#if _MSC_VER
-__declspec(noreturn)
-#endif
-void os_error(int line)
+void os_error(int line = __LINE__)
 {
-#if _WIN32
-    dbg_printf("System error: %ldL\n",GetLastError());
-#endif
+    version(Windows)
+        debug(printf) printf("System error: %ldL\n", GetLastError());
     assert(0);
 }
 
-#if 1
-#undef dbg_printf
-#define dbg_printf      (void)
-#endif
-
-#define os_error() os_error(__LINE__)
-#if __DMC__
-#pragma noreturn(os_error)
-#endif
-
-#if _WIN32 && !_WIN64
-/*********************************
- * Allocate a chunk of memory from the operating system.
- * Bypass malloc and friends.
- */
+static if (NEEDS_WIN32_NOT_WIN64)
+{
 
 private __gshared HANDLE hHeap;
 
 void *globalrealloc(void *oldp,size_t newsize)
 {
-#if 0
+static if (0)
+{
     void *p;
 
     // Initialize heap
@@ -116,7 +109,9 @@ void *globalrealloc(void *oldp,size_t newsize)
     }
     else
         p = HeapReAlloc(hHeap,0,oldp,newsize);
-#elif 1
+}
+else static if (1)
+{
     MEMORY_BASIC_INFORMATION query;
     void *p;
     BOOL bSuccess;
@@ -125,7 +120,7 @@ void *globalrealloc(void *oldp,size_t newsize)
         p = VirtualAlloc (null, newsize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     else
     {
-        VirtualQuery (oldp, &query, sizeof(query));
+        VirtualQuery (oldp, &query, query.sizeof);
         if (!newsize)
         {
             p = null;
@@ -149,19 +144,21 @@ void *globalrealloc(void *oldp,size_t newsize)
             }
         }
     }
-#else
+}
+else
+{
     void *p;
 
     if (!oldp)
-        p = (void *)GlobalAlloc (0, newsize);
+        p = cast(void *)GlobalAlloc (0, newsize);
     else if (!newsize)
     {   GlobalFree(oldp);
         p = null;
     }
     else
         p = cast(void *)GlobalReAlloc(oldp,newsize,0);
-#endif
-    dbg_printf("globalrealloc(oldp = %p, size = x%x) = %p\n",oldp,newsize,p);
+}
+    debug(printf) printf("globalrealloc(oldp = %p, size = x%x) = %p\n",oldp,newsize,p);
     return p;
 }
 
@@ -169,18 +166,21 @@ void *globalrealloc(void *oldp,size_t newsize)
  * Functions to manage allocating a single virtual address space.
  */
 
-void *vmem_reserve(void *ptr,ulong size)
+void *vmem_reserve(void *ptr,uint size)
 {   void *p;
 
-#if 1
+version(none)
+{
     p = VirtualAlloc(ptr,size,MEM_RESERVE,PAGE_READWRITE);
-    dbg_printf("vmem_reserve(ptr = %p, size = x%lx) = %p\n",ptr,size,p);
-#else
-    dbg_printf("vmem_reserve(ptr = %p, size = x%lx) = %p\n",ptr,size,p);
+    debug(printf) printf("vmem_reserve(ptr = %p, size = x%lx) = %p\n",ptr,size,p);
+}
+else
+{
+    debug(printf) printf("vmem_reserve(ptr = %p, size = x%lx) = %p\n",ptr,size,p);
     p = VirtualAlloc(ptr,size,MEM_RESERVE,PAGE_READWRITE);
     if (!p)
         os_error();
-#endif
+}
     return p;
 }
 
@@ -191,28 +191,28 @@ void *vmem_reserve(void *ptr,ulong size)
  *      !=0     success
  */
 
-int vmem_commit(void *ptr, ulong size)
+int vmem_commit(void *ptr, uint size)
 {   int i;
 
-    dbg_printf("vmem_commit(ptr = %p,size = x%lx)\n",ptr,size);
+    debug(printf) printf("vmem_commit(ptr = %p,size = x%lx)\n",ptr,size);
     i = cast(int) VirtualAlloc(ptr,size,MEM_COMMIT,PAGE_READWRITE);
     if (i == 0)
-        dbg_printf("failed to commit\n");
+        debug(printf) printf("failed to commit\n");
     return i;
 }
 
-void vmem_decommit(void *ptr,ulong size)
+void vmem_decommit(void *ptr,uint size)
 {
-    dbg_printf("vmem_decommit(ptr = %p, size = x%lx)\n",ptr,size);
+    debug(printf) printf("vmem_decommit(ptr = %p, size = x%lx)\n",ptr,size);
     if (ptr)
     {   if (!VirtualFree(ptr, size, MEM_DECOMMIT))
             os_error();
     }
 }
 
-void vmem_release(void *ptr, ulong size)
+void vmem_release(void *ptr, uint size)
 {
-    dbg_printf("vmem_release(ptr = %p, size = x%lx)\n",ptr,size);
+    debug(printf) printf("vmem_release(ptr = %p, size = x%lx)\n",ptr,size);
     if (ptr)
     {
         if (!VirtualFree(ptr, 0, MEM_RELEASE))
@@ -239,21 +239,22 @@ private __gshared void *pview;
 private __gshared void *preserve;
 private __gshared size_t preserve_size;
 
-void *vmem_mapfile(const char *filename,void *ptr, ulong size,int flag)
+void *vmem_mapfile(const char *filename,void *ptr, uint size,int flag)
 {
     OSVERSIONINFO OsVerInfo;
 
-    OsVerInfo.dwOSVersionInfoSize = sizeof(OsVerInfo);
+    OsVerInfo.dwOSVersionInfoSize = OsVerInfo.sizeof;
     GetVersionEx(&OsVerInfo);
 
-    dbg_printf("vmem_mapfile(filename = '%s', ptr = %p, size = x%lx, flag = %d)\n",filename,ptr,size,flag);
+    debug(printf) printf("vmem_mapfile(filename = '%s', ptr = %p, size = x%lx, flag = %d)\n",
+                         filename,ptr,size,flag);
 
     hFile = CreateFileA(filename, GENERIC_READ | GENERIC_WRITE,
                         FILE_SHARE_READ | FILE_SHARE_WRITE, null,
                         OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null);
     if (hFile == INVALID_HANDLE_VALUE)
         goto L1;                        // failure
-    dbg_printf(" file created\n");
+    debug(printf) printf(" file created\n");
 
     // Windows 95 does not implement PAGE_WRITECOPY (unfortunately treating
     // it just like PAGE_READWRITE).
@@ -265,11 +266,12 @@ void *vmem_mapfile(const char *filename,void *ptr, ulong size,int flag)
 
     if (hFileMap == null)               // mapping failed
     {
-#if 1
+version(all)
+{
         // Win32s seems to always fail here.
         DWORD nbytes;
 
-        dbg_printf(" mapping failed\n");
+        debug(printf) printf(" mapping failed\n");
         // If it was NT failing, assert.
         assert(OsVerInfo.dwPlatformId != VER_PLATFORM_WIN32_NT);
 
@@ -292,14 +294,17 @@ void *vmem_mapfile(const char *filename,void *ptr, ulong size,int flag)
             os_error();
         hFile = INVALID_HANDLE_VALUE;
         return preserve;
-#else
+}
+else
+{
         // Instead of working around, we should find out why it failed.
         os_error();
-#endif
+}
+
     }
     else
     {
-        dbg_printf(" mapping created\n");
+        debug(printf) printf(" mapping created\n");
         pview = MapViewOfFileEx(hFileMap,flag ? FILE_MAP_COPY : FILE_MAP_WRITE,
                 0,0,size,ptr);
         if (pview == null)                      // mapping view failed
@@ -307,7 +312,7 @@ void *vmem_mapfile(const char *filename,void *ptr, ulong size,int flag)
             goto L3;
         }
     }
-    dbg_printf(" pview = %p\n",pview);
+    debug(printf) printf(" pview = %p\n",pview);
 
     return pview;
 
@@ -331,7 +336,7 @@ L1:
  * Set size of mapped file.
  */
 
-void vmem_setfilesize(ulong size)
+void vmem_setfilesize(uint size)
 {
     if (hFile != INVALID_HANDLE_VALUE)
     {   if (SetFilePointer(hFile,size,null,FILE_BEGIN) == 0xFFFFFFFF)
@@ -347,28 +352,31 @@ void vmem_setfilesize(ulong size)
 
 void vmem_unmapfile()
 {
-    dbg_printf("vmem_unmapfile()\n");
+    debug(printf) printf("vmem_unmapfile()\n");
 
     vmem_decommit(preserve,preserve_size);
     vmem_release(preserve,preserve_size);
     preserve = null;
     preserve_size = 0;
 
-#if 0
+version(none)
+{
     if (pview)
     {   int i;
 
         i = UnmapViewOfFile(pview);
-        dbg_printf("i = x%x\n",i);
+        debug(printf) printf("i = x%x\n",i);
         if (i == false)
             os_error();
     }
-#else
+}
+else
+{
     // Note that under Windows 95, UnmapViewOfFile() seems to return random
     // values, not TRUE or FALSE.
     if (pview && UnmapViewOfFile(pview) == false)
         os_error();
-#endif
+}
     pview = null;
 
     if (hFileMap != null && CloseHandle(hFileMap) != true)
@@ -389,7 +397,7 @@ void *vmem_baseaddr()
     OSVERSIONINFO OsVerInfo;
     void *p;
 
-    OsVerInfo.dwOSVersionInfoSize = sizeof(OsVerInfo);
+    OsVerInfo.dwOSVersionInfoSize = OsVerInfo.sizeof;
     GetVersionEx(&OsVerInfo);
 
     // These values for the address were determined by trial and error.
@@ -422,25 +430,25 @@ void *vmem_baseaddr()
  * *psize downwards.
  */
 
-void vmem_reservesize(ulong *psize)
+void vmem_reservesize(uint *psize)
 {
     MEMORYSTATUS ms;
     OSVERSIONINFO OsVerInfo;
 
-    unsigned long size;
+    uint size;
 
-    ms.dwLength = sizeof(ms);
+    ms.dwLength = ms.sizeof;
     GlobalMemoryStatus(&ms);
-    dbg_printf("dwMemoryLoad    x%lx\n",ms.dwMemoryLoad);
-    dbg_printf("dwTotalPhys     x%lx\n",ms.dwTotalPhys);
-    dbg_printf("dwAvailPhys     x%lx\n",ms.dwAvailPhys);
-    dbg_printf("dwTotalPageFile x%lx\n",ms.dwTotalPageFile);
-    dbg_printf("dwAvailPageFile x%lx\n",ms.dwAvailPageFile);
-    dbg_printf("dwTotalVirtual  x%lx\n",ms.dwTotalVirtual);
-    dbg_printf("dwAvailVirtual  x%lx\n",ms.dwAvailVirtual);
+    debug(printf) printf("dwMemoryLoad    x%lx\n",ms.dwMemoryLoad);
+    debug(printf) printf("dwTotalPhys     x%lx\n",ms.dwTotalPhys);
+    debug(printf) printf("dwAvailPhys     x%lx\n",ms.dwAvailPhys);
+    debug(printf) printf("dwTotalPageFile x%lx\n",ms.dwTotalPageFile);
+    debug(printf) printf("dwAvailPageFile x%lx\n",ms.dwAvailPageFile);
+    debug(printf) printf("dwTotalVirtual  x%lx\n",ms.dwTotalVirtual);
+    debug(printf) printf("dwAvailVirtual  x%lx\n",ms.dwAvailVirtual);
 
 
-    OsVerInfo.dwOSVersionInfoSize = sizeof(OsVerInfo);
+    OsVerInfo.dwOSVersionInfoSize = OsVerInfo.sizeof;
     GetVersionEx(&OsVerInfo);
 
     switch (OsVerInfo.dwPlatformId)
@@ -452,7 +460,7 @@ void vmem_reservesize(ulong *psize)
                 ? ms.dwAvailPageFile
                 : ms.dwAvailVirtual;
             size = cast(ulong)size * 8 / 10;
-            size &= ~0xFFFFL;
+            size &= ~0xFFFF;
             if (size < *psize)
                 *psize = size;
             break;
@@ -468,11 +476,11 @@ void vmem_reservesize(ulong *psize)
  * Return amount of physical memory.
  */
 
-unsigned long vmem_physmem()
+uint vmem_physmem()
 {
     MEMORYSTATUS ms;
 
-    ms.dwLength = sizeof(ms);
+    ms.dwLength = ms.sizeof;
     GlobalMemoryStatus(&ms);
     return ms.dwTotalPhys;
 }
@@ -487,7 +495,7 @@ private __gshared HINSTANCE hdll;
 
 void os_loadlibrary(const char *dllname)
 {
-    hdll = LoadLibrary((LPCTSTR) dllname);
+    hdll = LoadLibrary(cast(LPCTSTR) dllname);
     if (!hdll)
         os_error();
 }
@@ -513,7 +521,7 @@ void *os_getprocaddress(const char *funcname)
 
     //printf("getprocaddress('%s')\n",funcname);
     assert(hdll);
-    fp = cast(void *)GetProcAddress(hdll,(LPCSTR)funcname);
+    fp = cast(void *)GetProcAddress(hdll,cast(LPCSTR)funcname);
     if (!fp)
         os_error();
     return fp;
@@ -541,13 +549,14 @@ void os_term()
  * Do our own storage allocator (being suspicious of the library one).
  */
 
-#if 1
-
+version(all)
+{
 void os_heapinit() { }
 void os_heapterm() { }
 
-#else
-
+}
+else
+{
 static HANDLE hHeap;
 
 void os_heapinit()
@@ -565,25 +574,25 @@ void os_heapterm()
     }
 }
 
-void *  __cdecl calloc(size_t x,size_t y)
+extern(Windows) void * calloc(size_t x,size_t y)
 {   size_t size;
 
     size = x * y;
     return size ? HeapAlloc(hHeap,HEAP_ZERO_MEMORY,size) : null;
 }
 
-void    __cdecl free(void *p)
+extern(Windows) void free(void *p)
 {
     if (p && HeapFree(hHeap,0,p) == false)
         os_error();
 }
 
-void *  __cdecl malloc(size_t size)
+extern(Windows) void * malloc(size_t size)
 {
     return size ? HeapAlloc(hHeap,0,size) : null;
 }
 
-void *  __cdecl realloc(void *p,size_t newsize)
+extern(Windows) void * realloc(void *p,size_t newsize)
 {
     if (newsize == 0)
         free(p);
@@ -594,21 +603,21 @@ void *  __cdecl realloc(void *p,size_t newsize)
     return p;
 }
 
-#endif
+}
 
 //////////////////////////////////////////
 // Return a value that will hopefully be unique every time
 // we call it.
 
-unsigned long os_unique()
+uint os_unique()
 {
     ulong x;
 
     QueryPerformanceCounter(cast(LARGE_INTEGER *)&x);
-    return x;
+    return cast(uint)x;
 }
 
-#endif
+} // Win32
 
 /*******************************************
  * Return !=0 if file exists.
@@ -619,7 +628,8 @@ unsigned long os_unique()
 
 int os_file_exists(const char *name)
 {
-#if _WIN32
+version(Windows)
+{
     DWORD dw;
     int result;
 
@@ -631,33 +641,47 @@ int os_file_exists(const char *name)
     else
         result = 1;
     return result;
-#elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __DragonFly__ || __sun
-    struct stat buf;
+}
+else version(Posix)
+{
+    stat_t buf;
 
     return stat(name,&buf) == 0;        /* file exists if stat succeeded */
 
-#else
+}
+else
+{
     return filesize(name) != -1L;
-#endif
+}
 }
 
 /**************************************
  * Get file size of open file. Return -1L on error.
  */
 
-#if _WIN32 && !_MSC_VER
-extern "C" void * __cdecl _osfhnd[];
-#endif
+static if(NEEDS_WIN32_NON_MS)
+{
+    extern extern (C) void*[] _osfhnd;
+}
 
 long os_file_size(int fd)
 {
-#if _WIN32 && !_MSC_VER
-    return GetFileSize(_osfhnd[fd],null);
-#else
-    struct stat buf;
-
-    return (fstat(fd,&buf)) ? -1L : buf.st_size;
-#endif
+    static if (NEEDS_WIN32_NON_MS)
+    {
+        return GetFileSize(_osfhnd[fd],null);
+    }
+    else
+    {
+        version(Windows)
+        {
+            return GetFileSize(cast(void*)_get_osfhandle(fd),null);
+        }
+        else
+        {
+            stat_t buf;
+            return (fstat(fd,&buf)) ? -1L : buf.st_size;
+        }
+    }
 }
 
 /**************************************************
@@ -666,14 +690,14 @@ long os_file_size(int fd)
  *      malloc'd string, NULL if none
  */
 
-#if _WIN32
-
+version(Windows)
+{
 char *file_8dot3name(const char *filename)
 {
     HANDLE h;
     WIN32_FIND_DATAA fileinfo;
     char *buf;
-    int i;
+    size_t i;
 
     h = FindFirstFileA(filename,&fileinfo);
     if (h == INVALID_HANDLE_VALUE)
@@ -685,11 +709,11 @@ char *file_8dot3name(const char *filename)
             {   i++;
                 break;
             }
-        buf = (char *) malloc(i + 14);
+        buf = cast(char *) malloc(i + 14);
         if (buf)
         {
             memcpy(buf,filename,i);
-            strcpy(buf + i,fileinfo.cAlternateFileName);
+            strcpy(buf + i,fileinfo.cAlternateFileName.ptr);
         }
     }
     else
@@ -697,8 +721,7 @@ char *file_8dot3name(const char *filename)
     FindClose(h);
     return buf;
 }
-
-#endif
+}
 
 /**********************************************
  * Write a file.
@@ -706,9 +729,10 @@ char *file_8dot3name(const char *filename)
  *      0       success
  */
 
-int file_write(char *name, void *buffer, unsigned len)
+int file_write(char *name, void *buffer, uint len)
 {
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __DragonFly__ || __sun
+version(Posix)
+{
     int fd;
     ssize_t numwritten;
 
@@ -717,7 +741,7 @@ int file_write(char *name, void *buffer, unsigned len)
     if (fd == -1)
         goto err;
 
-    numwritten = ::write(fd, buffer, len);
+    numwritten = .write(fd, buffer, len);
     if (len != numwritten)
         goto err2;
 
@@ -730,12 +754,13 @@ err2:
     close(fd);
 err:
     return 1;
-#endif
-#if _WIN32
+}
+else version(Windows)
+{
     HANDLE h;
     DWORD numwritten;
 
-    h = CreateFileA((LPCSTR)name,GENERIC_WRITE,0,null,CREATE_ALWAYS,
+    h = CreateFileA(cast(LPCSTR)name,GENERIC_WRITE,0,null,CREATE_ALWAYS,
         FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,null);
     if (h == INVALID_HANDLE_VALUE)
     {
@@ -743,7 +768,7 @@ err:
         {
             if (!file_createdirs(name))
             {
-                h = CreateFileA((LPCSTR)name, GENERIC_WRITE, 0, null, CREATE_ALWAYS,
+                h = CreateFileA(cast(LPCSTR)name, GENERIC_WRITE, 0, null, CREATE_ALWAYS,
                     FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,null);
                 if (h != INVALID_HANDLE_VALUE)
                     goto Lok;
@@ -767,7 +792,7 @@ err2:
     CloseHandle(h);
 err:
     return 1;
-#endif
+}
 }
 
 /********************************
@@ -781,12 +806,14 @@ err:
 
 int file_createdirs(char *name)
 {
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __DragonFly__ || __sun
+version(Posix)
+{
     return 1;
-#endif
-#if _WIN32
-    int len = strlen(name);
-    char *path = (char *)alloca(len + 1);
+}
+else version(Windows)
+{
+    auto len = strlen(name);
+    char *path = cast(char *)alloca(len + 1);
     char *p;
 
     memcpy(path, name, len + 1);
@@ -801,20 +828,22 @@ int file_createdirs(char *name)
             case '/':
             case '\\':
                 *p = 0;
-                if (!CreateDirectory((LPTSTR)path, null))
+                if (!CreateDirectory(cast(LPTSTR)path, null))
                 {   // Failed
                     if (file_createdirs(path))
                         goto Lfail;
-                    if (!CreateDirectory((LPTSTR)path, null))
+                    if (!CreateDirectory(cast(LPTSTR)path, null))
                         goto Lfail;
                 }
                 return 0;
+            default:
+                continue;
         }
     }
 
 Lfail:
     return 1;
-#endif
+}
 }
 
 /***********************************
@@ -824,7 +853,7 @@ Lfail:
 
 int os_clock()
 {
-    return clock();
+    return cast(int) clock();
 }
 
 /***********************************
@@ -834,9 +863,10 @@ int os_clock()
  * sizes.
  */
 
-#if DMDV1
 
-#if _WIN32
+
+version(Windows)
+{
 int os_critsecsize32()
 {
     return 24;  // sizeof(CRITICAL_SECTION) for 32 bit Windows
@@ -846,9 +876,9 @@ int os_critsecsize64()
 {
     return 40;  // sizeof(CRITICAL_SECTION) for 64 bit Windows
 }
-#endif
-
-#if __linux__
+}
+else version(linux)
+{
 int os_critsecsize32()
 {
     return 24; // sizeof(pthread_mutex_t) on 32 bit
@@ -858,9 +888,10 @@ int os_critsecsize64()
 {
     return 40; // sizeof(pthread_mutex_t) on 64 bit
 }
-#endif
+}
 
-#if __FreeBSD__
+else version(FreeBSD)
+{
 int os_critsecsize32()
 {
     return 4; // sizeof(pthread_mutex_t) on 32 bit
@@ -870,9 +901,10 @@ int os_critsecsize64()
 {
     return 8; // sizeof(pthread_mutex_t) on 64 bit
 }
-#endif
+}
 
-#if __OpenBSD__
+else version(OpenBSD)
+{
 int os_critsecsize32()
 {
     return 4; // sizeof(pthread_mutex_t) on 32 bit
@@ -883,9 +915,9 @@ int os_critsecsize64()
     assert(0);
     return 8; // sizeof(pthread_mutex_t) on 64 bit
 }
-#endif
-
-#if __DragonFlyBSD__
+}
+else version(DragonFlyBSD)
+{
 int os_critsecsize32()
 {
     return 4; // sizeof(pthread_mutex_t) on 32 bit
@@ -895,16 +927,20 @@ int os_critsecsize64()
 {
     return 8; // sizeof(pthread_mutex_t) on 64 bit
 }
-#endif
+}
 
-#if __APPLE__
+else version (OSX)
+{
 int os_critsecsize32()
 {
-#if __LP64__    // check for bit rot
-    assert(sizeof(pthread_mutex_t) == 64);
-#else
-    assert(sizeof(pthread_mutex_t) == 44);
-#endif
+    version(X86_64)
+    {
+        assert(pthread_mutex_t.sizeof == 64);
+    }
+    else
+    {
+        assert(pthread_mutex_t.sizeof == 44);
+    }
     return 44;
 }
 
@@ -912,10 +948,10 @@ int os_critsecsize64()
 {
     return 64;
 }
-#endif
+}
 
-
-#if __sun
+else version(Solaris)
+{
 int os_critsecsize32()
 {
     return sizeof(pthread_mutex_t);
@@ -926,9 +962,9 @@ int os_critsecsize64()
     assert(0);
     return 0;
 }
-#endif
+}
 
-/* This is the magic program to get the size on Posix systems: */
+/* This is the magic program to get the size on Posix systems:
 
 #if 0
 #include <stdio.h>
@@ -942,3 +978,4 @@ int main()
 #endif
 
 #endif
+*/
