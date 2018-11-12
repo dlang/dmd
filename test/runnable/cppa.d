@@ -1,4 +1,4 @@
-// PERMUTE_ARGS: -g -version=PULL8152
+// PERMUTE_ARGS: -g
 // EXTRA_CPP_SOURCES: cppb.cpp
 
 import core.stdc.stdio;
@@ -603,19 +603,7 @@ extern(C++)
 
 version (CRuntime_Microsoft)
 {
-    version (PULL8152)
-    {
-        enum __c_long_double : double;
-    }
-    else
-    {
-        struct __c_long_double
-        {
-            this(double d) { ld = d; }
-            double ld;
-            alias ld this;
-        }
-    }
+    enum __c_long_double : double;
     alias __c_long_double myld;
 }
 else
@@ -652,28 +640,8 @@ else
   }
 }
 
-version (PULL8152)
-{
-    enum __c_long : x_long;
-    enum __c_ulong : x_ulong;
-}
-else
-{
-    struct __c_long
-    {
-        this(x_long d) { ld = d; }
-        x_long ld;
-        alias ld this;
-    }
-
-    struct __c_ulong
-    {
-        this(x_ulong d) { ld = d; }
-        x_ulong ld;
-        alias ld this;
-    }
-}
-
+enum __c_long : x_long;
+enum __c_ulong : x_ulong;
 alias __c_long mylong;
 alias __c_ulong myulong;
 
@@ -695,51 +663,48 @@ void test16()
     assert(ld == 5 + myulong.sizeof);
   }
 
-    version (PULL8152)
-    {
-        static if (__c_long.sizeof == long.sizeof)
-        {
-            static assert(__c_long.max == long.max);
-            static assert(__c_long.min == long.min);
-            static assert(__c_long.init == long.init);
+  static if (__c_long.sizeof == long.sizeof)
+  {
+    static assert(__c_long.max == long.max);
+    static assert(__c_long.min == long.min);
+    static assert(__c_long.init == long.init);
 
-            static assert(__c_ulong.max == ulong.max);
-            static assert(__c_ulong.min == ulong.min);
-            static assert(__c_ulong.init == ulong.init);
+    static assert(__c_ulong.max == ulong.max);
+    static assert(__c_ulong.min == ulong.min);
+    static assert(__c_ulong.init == ulong.init);
 
-            __c_long cl = 0;
-            cl = cl + 1;
-            long l = cl;
-            cl = l;
+    __c_long cl = 0;
+    cl = cl + 1;
+    long l = cl;
+    cl = l;
 
-            __c_ulong cul = 0;
-            cul = cul + 1;
-            ulong ul = cul;
-            cul = ul;
-        }
-        else static if (__c_long.sizeof == int.sizeof)
-        {
-            static assert(__c_long.max == int.max);
-            static assert(__c_long.min == int.min);
-            static assert(__c_long.init == int.init);
+    __c_ulong cul = 0;
+    cul = cul + 1;
+    ulong ul = cul;
+    cul = ul;
+  }
+  else static if (__c_long.sizeof == int.sizeof)
+  {
+    static assert(__c_long.max == int.max);
+    static assert(__c_long.min == int.min);
+    static assert(__c_long.init == int.init);
 
-            static assert(__c_ulong.max == uint.max);
-            static assert(__c_ulong.min == uint.min);
-            static assert(__c_ulong.init == uint.init);
+    static assert(__c_ulong.max == uint.max);
+    static assert(__c_ulong.min == uint.min);
+    static assert(__c_ulong.init == uint.init);
 
-            __c_long cl = 0;
-            cl = cl + 1;
-            int i = cl;
-            cl = i;
+    __c_long cl = 0;
+    cl = cl + 1;
+    int i = cl;
+    cl = i;
 
-            __c_ulong cul = 0;
-            cul = cul + 1;
-            uint u = cul;
-            cul = u;
-        }
-        else
-            static assert(0);
-    }
+    __c_ulong cul = 0;
+    cul = cul + 1;
+    uint u = cul;
+    cul = u;
+  }
+  else
+    static assert(0);
 }
 
 

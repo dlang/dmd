@@ -385,41 +385,15 @@ public:
 
     override void visit(TypeStruct type)
     {
-        const id = type.sym.ident;
-        char c;
-        if (id == Id.__c_long_double)
-            c = 'O'; // VC++ long double
-        else if (id == Id.__c_long)
-            c = 'J'; // VC++ long
-        else if (id == Id.__c_ulong)
-            c = 'K'; // VC++ unsigned long
+        if (checkTypeSaved(type))
+            return;
+        //printf("visit(TypeStruct); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
+        mangleModifier(type);
+        if (type.sym.isUnionDeclaration())
+            buf.writeByte('T');
         else
-            c = 0;
-        if (c)
-        {
-            if (checkImmutableShared(type))
-                return;
-
-            if (type.isConst() && ((flags & IS_NOT_TOP_TYPE) || (flags & IS_DMC)))
-            {
-                if (checkTypeSaved(type))
-                    return;
-            }
-            mangleModifier(type);
-            buf.writeByte(c);
-        }
-        else
-        {
-            if (checkTypeSaved(type))
-                return;
-            //printf("visit(TypeStruct); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
-            mangleModifier(type);
-            if (type.sym.isUnionDeclaration())
-                buf.writeByte('T');
-            else
-                buf.writeByte(type.cppmangle == CPPMANGLE.asClass ? 'V' : 'U');
-            mangleIdent(type.sym);
-        }
+            buf.writeByte(type.cppmangle == CPPMANGLE.asClass ? 'V' : 'U');
+        mangleIdent(type.sym);
         flags &= ~IS_NOT_TOP_TYPE;
         flags &= ~IGNORE_CONST;
     }
@@ -1249,7 +1223,12 @@ private:
             if (type.isref)
                 rettype = rettype.referenceTo();
             flags &= ~IGNORE_CONST;
-            if (rettype.ty == Tstruct || rettype.ty == Tenum)
+            if (rettype.ty == Tstruct)
+            {
+                tmp.buf.writeByte('?');
+                tmp.buf.writeByte('A');
+            }
+            else if (rettype.ty == Tenum)
             {
                 const id = rettype.toDsymbol(null).ident;
                 if (id != Id.__c_long_double && id != Id.__c_long && id != Id.__c_ulong &&

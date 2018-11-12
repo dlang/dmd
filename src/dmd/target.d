@@ -559,8 +559,6 @@ struct Target
             if (tns.ty == Tstruct)
             {
                 StructDeclaration sd = (cast(TypeStruct)tns).sym;
-                if (sd.ident == Id.__c_long_double)
-                    return false;
                 if (tf.linkage == LINK.cpp && needsThis)
                     return true;
                 if (!sd.isPOD() || sz > 8)
@@ -577,9 +575,6 @@ struct Target
             Type tb = tns.baseElemOf();
             if (tb.ty == Tstruct)
             {
-                StructDeclaration sd = (cast(TypeStruct)tb).sym;
-                if (sd.ident == Id.__c_long_double)
-                    return false;
                 if (tf.linkage == LINK.cpp && needsThis)
                     return true;
             }
@@ -621,9 +616,6 @@ struct Target
             StructDeclaration sd = (cast(TypeStruct)tns).sym;
             if (global.params.isLinux && tf.linkage != LINK.d && !global.params.is64bit)
             {
-                if (sd.ident == Id.__c_long || sd.ident == Id.__c_ulong)
-                    return false;
-
                 //printf("  2 true\n");
                 return true;            // 32 bit C/C++ structs always on stack
             }
@@ -631,9 +623,6 @@ struct Target
                      sd.isPOD() && sd.ctor)
             {
                 // win32 returns otherwise POD structs with ctors via memory
-                // unless it's not really a struct
-                if (sd.ident == Id.__c_long || sd.ident == Id.__c_ulong)
-                    return false;
                 return true;
             }
             if (sd.arg1type && !sd.arg2type)

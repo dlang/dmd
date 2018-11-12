@@ -1445,8 +1445,6 @@ uint totym(Type tx)
 
         case Tstruct:
             t = TYstruct;
-            if (tx.toDsymbol(null).ident == Id.__c_long_double)
-                t = TYdouble;
             break;
 
         case Tenum:
