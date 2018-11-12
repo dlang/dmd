@@ -40,6 +40,14 @@
 #include <alloca.h>
 #endif
 
+// prep for conversion
+#define cast
+#define null NULL
+#define private static
+#define __gshared
+typedef unsigned long  ulong;
+typedef unsigned uint;
+
 #if _WINDLL
 extern void dll_printf(const char *format,...);
 #define dbg_printf dll_printf
@@ -81,7 +89,7 @@ void os_error(int line)
  * Bypass malloc and friends.
  */
 
-static HANDLE hHeap;
+private __gshared HANDLE hHeap;
 
 void *globalrealloc(void *oldp,size_t newsize)
 {
@@ -98,13 +106,13 @@ void *globalrealloc(void *oldp,size_t newsize)
     newsize = (newsize + 3) & ~3L;      // round up to dwords
     if (newsize == 0)
     {
-        if (oldp && HeapFree(hHeap,0,oldp) == FALSE)
+        if (oldp && HeapFree(hHeap,0,oldp) == false)
             os_error();
         p = NULL;
     }
     else if (!oldp)
     {
-        p = newsize ? HeapAlloc(hHeap,0,newsize) : NULL;
+        p = newsize ? HeapAlloc(hHeap,0,newsize) : null;
     }
     else
         p = HeapReAlloc(hHeap,0,oldp,newsize);
@@ -114,13 +122,13 @@ void *globalrealloc(void *oldp,size_t newsize)
     BOOL bSuccess;
 
     if (!oldp)
-        p = VirtualAlloc (NULL, newsize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+        p = VirtualAlloc (null, newsize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     else
     {
         VirtualQuery (oldp, &query, sizeof(query));
         if (!newsize)
         {
-            p = NULL;
+            p = null;
             goto L1;
         }
         else
@@ -129,7 +137,7 @@ void *globalrealloc(void *oldp,size_t newsize)
             if (query.RegionSize >= newsize)
                 p = oldp;
             else
-            {   p = VirtualAlloc(NULL,newsize,MEM_COMMIT | MEM_RESERVE,PAGE_READWRITE);
+            {   p = VirtualAlloc(null,newsize,MEM_COMMIT | MEM_RESERVE,PAGE_READWRITE);
                 if (p)
                     memcpy(p,oldp,query.RegionSize);
             L1:
@@ -148,10 +156,10 @@ void *globalrealloc(void *oldp,size_t newsize)
         p = (void *)GlobalAlloc (0, newsize);
     else if (!newsize)
     {   GlobalFree(oldp);
-        p = NULL;
+        p = null;
     }
     else
-        p = (void *)GlobalReAlloc(oldp,newsize,0);
+        p = cast(void *)GlobalReAlloc(oldp,newsize,0);
 #endif
     dbg_printf("globalrealloc(oldp = %p, size = x%x) = %p\n",oldp,newsize,p);
     return p;
@@ -161,7 +169,7 @@ void *globalrealloc(void *oldp,size_t newsize)
  * Functions to manage allocating a single virtual address space.
  */
 
-void *vmem_reserve(void *ptr,unsigned long size)
+void *vmem_reserve(void *ptr,ulong size)
 {   void *p;
 
 #if 1
@@ -183,17 +191,17 @@ void *vmem_reserve(void *ptr,unsigned long size)
  *      !=0     success
  */
 
-int vmem_commit(void *ptr, unsigned long size)
+int vmem_commit(void *ptr, ulong size)
 {   int i;
 
     dbg_printf("vmem_commit(ptr = %p,size = x%lx)\n",ptr,size);
-    i = (int) VirtualAlloc(ptr,size,MEM_COMMIT,PAGE_READWRITE);
+    i = cast(int) VirtualAlloc(ptr,size,MEM_COMMIT,PAGE_READWRITE);
     if (i == 0)
         dbg_printf("failed to commit\n");
     return i;
 }
 
-void vmem_decommit(void *ptr,unsigned long size)
+void vmem_decommit(void *ptr,ulong size)
 {
     dbg_printf("vmem_decommit(ptr = %p, size = x%lx)\n",ptr,size);
     if (ptr)
@@ -202,7 +210,7 @@ void vmem_decommit(void *ptr,unsigned long size)
     }
 }
 
-void vmem_release(void *ptr,unsigned long size)
+void vmem_release(void *ptr, ulong size)
 {
     dbg_printf("vmem_release(ptr = %p, size = x%lx)\n",ptr,size);
     if (ptr)
@@ -225,13 +233,13 @@ void vmem_release(void *ptr,unsigned long size)
  *      ptr     pointer to start of mapped file
  */
 
-static HANDLE hFile = INVALID_HANDLE_VALUE;
-static HANDLE hFileMap = NULL;
-static void *pview;
-static void *preserve;
-static size_t preserve_size;
+private __gshared HANDLE hFile = INVALID_HANDLE_VALUE;
+private __gshared HANDLE hFileMap = null;
+private __gshared void *pview;
+private __gshared void *preserve;
+private __gshared size_t preserve_size;
 
-void *vmem_mapfile(const char *filename,void *ptr,unsigned long size,int flag)
+void *vmem_mapfile(const char *filename,void *ptr, ulong size,int flag)
 {
     OSVERSIONINFO OsVerInfo;
 
@@ -241,8 +249,8 @@ void *vmem_mapfile(const char *filename,void *ptr,unsigned long size,int flag)
     dbg_printf("vmem_mapfile(filename = '%s', ptr = %p, size = x%lx, flag = %d)\n",filename,ptr,size,flag);
 
     hFile = CreateFileA(filename, GENERIC_READ | GENERIC_WRITE,
-                        FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
-                        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+                        FILE_SHARE_READ | FILE_SHARE_WRITE, null,
+                        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null);
     if (hFile == INVALID_HANDLE_VALUE)
         goto L1;                        // failure
     dbg_printf(" file created\n");
@@ -250,12 +258,12 @@ void *vmem_mapfile(const char *filename,void *ptr,unsigned long size,int flag)
     // Windows 95 does not implement PAGE_WRITECOPY (unfortunately treating
     // it just like PAGE_READWRITE).
     if (flag == 1 && OsVerInfo.dwPlatformId == 1)       // Windows 95, 98, ME
-        hFileMap = NULL;
+        hFileMap = null;
     else
-        hFileMap = CreateFileMappingA(hFile,NULL,
-                (flag == 1) ? PAGE_WRITECOPY : PAGE_READWRITE,0,size,NULL);
+        hFileMap = CreateFileMappingA(hFile,null,
+                (flag == 1) ? PAGE_WRITECOPY : PAGE_READWRITE,0,size,null);
 
-    if (hFileMap == NULL)               // mapping failed
+    if (hFileMap == null)               // mapping failed
     {
 #if 1
         // Win32s seems to always fail here.
@@ -273,14 +281,14 @@ void *vmem_mapfile(const char *filename,void *ptr,unsigned long size,int flag)
         if (!vmem_commit(preserve,size))
         {
             vmem_release(preserve,size);
-            preserve = NULL;
+            preserve = null;
             goto L2;
         }
         preserve_size = size;
-        if (!ReadFile(hFile,preserve,size,&nbytes,NULL))
+        if (!ReadFile(hFile,preserve,size,&nbytes,null))
             os_error();
         assert(nbytes == size);
-        if (CloseHandle(hFile) != TRUE)
+        if (CloseHandle(hFile) != true)
             os_error();
         hFile = INVALID_HANDLE_VALUE;
         return preserve;
@@ -294,7 +302,7 @@ void *vmem_mapfile(const char *filename,void *ptr,unsigned long size,int flag)
         dbg_printf(" mapping created\n");
         pview = MapViewOfFileEx(hFileMap,flag ? FILE_MAP_COPY : FILE_MAP_WRITE,
                 0,0,size,ptr);
-        if (pview == NULL)                      // mapping view failed
+        if (pview == null)                      // mapping view failed
         {   //os_error();
             goto L3;
         }
@@ -304,31 +312,31 @@ void *vmem_mapfile(const char *filename,void *ptr,unsigned long size,int flag)
     return pview;
 
 Terminate:
-    if (UnmapViewOfFile(pview) == FALSE)
+    if (UnmapViewOfFile(pview) == false)
         os_error();
-    pview = NULL;
+    pview = null;
 L3:
-    if (CloseHandle(hFileMap) != TRUE)
+    if (CloseHandle(hFileMap) != true)
         os_error();
-    hFileMap = NULL;
+    hFileMap = null;
 L2:
-    if (CloseHandle(hFile) != TRUE)
+    if (CloseHandle(hFile) != true)
         os_error();
     hFile = INVALID_HANDLE_VALUE;
 L1:
-    return NULL;                        // failure
+    return null;                        // failure
 }
 
 /*****************************
  * Set size of mapped file.
  */
 
-void vmem_setfilesize(unsigned long size)
+void vmem_setfilesize(ulong size)
 {
     if (hFile != INVALID_HANDLE_VALUE)
-    {   if (SetFilePointer(hFile,size,NULL,FILE_BEGIN) == 0xFFFFFFFF)
+    {   if (SetFilePointer(hFile,size,null,FILE_BEGIN) == 0xFFFFFFFF)
             os_error();
-        if (SetEndOfFile(hFile) == FALSE)
+        if (SetEndOfFile(hFile) == false)
             os_error();
     }
 }
@@ -343,7 +351,7 @@ void vmem_unmapfile()
 
     vmem_decommit(preserve,preserve_size);
     vmem_release(preserve,preserve_size);
-    preserve = NULL;
+    preserve = null;
     preserve_size = 0;
 
 #if 0
@@ -352,22 +360,22 @@ void vmem_unmapfile()
 
         i = UnmapViewOfFile(pview);
         dbg_printf("i = x%x\n",i);
-        if (i == FALSE)
+        if (i == false)
             os_error();
     }
 #else
     // Note that under Windows 95, UnmapViewOfFile() seems to return random
     // values, not TRUE or FALSE.
-    if (pview && UnmapViewOfFile(pview) == FALSE)
+    if (pview && UnmapViewOfFile(pview) == false)
         os_error();
 #endif
-    pview = NULL;
+    pview = null;
 
-    if (hFileMap != NULL && CloseHandle(hFileMap) != TRUE)
+    if (hFileMap != null && CloseHandle(hFileMap) != true)
         os_error();
-    hFileMap = NULL;
+    hFileMap = null;
 
-    if (hFile != INVALID_HANDLE_VALUE && CloseHandle(hFile) != TRUE)
+    if (hFile != INVALID_HANDLE_VALUE && CloseHandle(hFile) != true)
         os_error();
     hFile = INVALID_HANDLE_VALUE;
 }
@@ -390,19 +398,19 @@ void *vmem_baseaddr()
         case VER_PLATFORM_WIN32s:               // Win32s
             // The fact that this is a different address than other
             // WIN32 implementations causes us a lot of grief.
-            p = (void *) 0xC0000000;
+            p = cast(void *) 0xC0000000;
             break;
 
         case 1: //VER_PLATFORM_WIN32_WINDOWS:   // Windows 95
             // I've found 0x90000000..0xB work. All others fail.
         default:                                // unknown
-            p = (void *) 0x90000000;
+            p = cast(void *) 0x90000000;
             break;
 
         case VER_PLATFORM_WIN32_NT:             // Windows NT
             // Pick a value that is not coincident with the base address
             // of any commonly used system DLLs.
-            p = (void *) 0x38000000;
+            p = cast(void *) 0x38000000;
             break;
     }
 
@@ -414,7 +422,7 @@ void *vmem_baseaddr()
  * *psize downwards.
  */
 
-void vmem_reservesize(unsigned long *psize)
+void vmem_reservesize(ulong *psize)
 {
     MEMORYSTATUS ms;
     OSVERSIONINFO OsVerInfo;
@@ -443,7 +451,7 @@ void vmem_reservesize(unsigned long *psize)
             size = (ms.dwAvailPageFile < ms.dwAvailVirtual)
                 ? ms.dwAvailPageFile
                 : ms.dwAvailVirtual;
-            size = (unsigned long long)size * 8 / 10;
+            size = cast(ulong)size * 8 / 10;
             size &= ~0xFFFFL;
             if (size < *psize)
                 *psize = size;
@@ -475,7 +483,7 @@ unsigned long vmem_physmem()
  * Load library.
  */
 
-static HINSTANCE hdll;
+private __gshared HINSTANCE hdll;
 
 void os_loadlibrary(const char *dllname)
 {
@@ -491,9 +499,9 @@ void os_freelibrary()
 {
     if (hdll)
     {
-        if (FreeLibrary(hdll) != TRUE)
+        if (FreeLibrary(hdll) != true)
             os_error();
-        hdll = NULL;
+        hdll = null;
     }
 }
 
@@ -505,7 +513,7 @@ void *os_getprocaddress(const char *funcname)
 
     //printf("getprocaddress('%s')\n",funcname);
     assert(hdll);
-    fp = (void *)GetProcAddress(hdll,(LPCSTR)funcname);
+    fp = cast(void *)GetProcAddress(hdll,(LPCSTR)funcname);
     if (!fp)
         os_error();
     return fp;
@@ -520,11 +528,11 @@ void *os_getprocaddress(const char *funcname)
 void os_term()
 {
     if (hHeap)
-    {   if (HeapDestroy(hHeap) == FALSE)
-        {   hHeap = NULL;
+    {   if (HeapDestroy(hHeap) == false)
+        {   hHeap = null;
             os_error();
         }
-        hHeap = NULL;
+        hHeap = null;
     }
     os_freelibrary();
 }
@@ -552,7 +560,7 @@ void os_heapinit()
 void os_heapterm()
 {
     if (hHeap)
-    {   if (HeapDestroy(hHeap) == FALSE)
+    {   if (HeapDestroy(hHeap) == false)
             os_error();
     }
 }
@@ -561,18 +569,18 @@ void *  __cdecl calloc(size_t x,size_t y)
 {   size_t size;
 
     size = x * y;
-    return size ? HeapAlloc(hHeap,HEAP_ZERO_MEMORY,size) : NULL;
+    return size ? HeapAlloc(hHeap,HEAP_ZERO_MEMORY,size) : null;
 }
 
 void    __cdecl free(void *p)
 {
-    if (p && HeapFree(hHeap,0,p) == FALSE)
+    if (p && HeapFree(hHeap,0,p) == false)
         os_error();
 }
 
 void *  __cdecl malloc(size_t size)
 {
-    return size ? HeapAlloc(hHeap,0,size) : NULL;
+    return size ? HeapAlloc(hHeap,0,size) : null;
 }
 
 void *  __cdecl realloc(void *p,size_t newsize)
@@ -594,9 +602,9 @@ void *  __cdecl realloc(void *p,size_t newsize)
 
 unsigned long os_unique()
 {
-    unsigned long long x;
+    ulong x;
 
-    QueryPerformanceCounter((LARGE_INTEGER *)&x);
+    QueryPerformanceCounter(cast(LARGE_INTEGER *)&x);
     return x;
 }
 
@@ -644,7 +652,7 @@ extern "C" void * __cdecl _osfhnd[];
 long os_file_size(int fd)
 {
 #if _WIN32 && !_MSC_VER
-    return GetFileSize(_osfhnd[fd],NULL);
+    return GetFileSize(_osfhnd[fd],null);
 #else
     struct stat buf;
 
@@ -669,7 +677,7 @@ char *file_8dot3name(const char *filename)
 
     h = FindFirstFileA(filename,&fileinfo);
     if (h == INVALID_HANDLE_VALUE)
-        return NULL;
+        return null;
     if (fileinfo.cAlternateFileName[0])
     {
         for (i = strlen(filename); i > 0; i--)
@@ -727,16 +735,16 @@ err:
     HANDLE h;
     DWORD numwritten;
 
-    h = CreateFileA((LPCSTR)name,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,
-        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
+    h = CreateFileA((LPCSTR)name,GENERIC_WRITE,0,null,CREATE_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,null);
     if (h == INVALID_HANDLE_VALUE)
     {
         if (GetLastError() == ERROR_PATH_NOT_FOUND)
         {
             if (!file_createdirs(name))
             {
-                h = CreateFileA((LPCSTR)name, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
-                    FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
+                h = CreateFileA((LPCSTR)name, GENERIC_WRITE, 0, null, CREATE_ALWAYS,
+                    FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,null);
                 if (h != INVALID_HANDLE_VALUE)
                     goto Lok;
             }
@@ -745,7 +753,7 @@ err:
     }
 
 Lok:
-    if (WriteFile(h,buffer,len,&numwritten,NULL) != TRUE)
+    if (WriteFile(h,buffer,len,&numwritten,null) != true)
         goto err2;
 
     if (len != numwritten)
@@ -793,11 +801,11 @@ int file_createdirs(char *name)
             case '/':
             case '\\':
                 *p = 0;
-                if (!CreateDirectory((LPTSTR)path, NULL))
+                if (!CreateDirectory((LPTSTR)path, null))
                 {   // Failed
                     if (file_createdirs(path))
                         goto Lfail;
-                    if (!CreateDirectory((LPTSTR)path, NULL))
+                    if (!CreateDirectory((LPTSTR)path, null))
                         goto Lfail;
                 }
                 return 0;
