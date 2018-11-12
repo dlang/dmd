@@ -3403,18 +3403,18 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             reg_t mreg,lreg;
             if (preg2 != NOREG)
             {
-                // BUG: still doesn't handle case of mXMM0|mAX or mAX|mXMM0
                 assert(ep.Eoper != OPstrthis);
                 if (mask(preg2) & XMMREGS)
-                {
                     ++xmmcnt;
-                    lreg = XMM0;
-                    mreg = XMM1;
-                }
-                else
+                if (tyrelax(ep.Ety) == TYcent)
                 {
                     lreg = mask(preg ) & mLSW ? cast(reg_t)preg  : AX;
                     mreg = mask(preg2) & mMSW ? cast(reg_t)preg2 : DX;
+                }
+                else
+                {
+                    lreg = XMM0;
+                    mreg = XMM1;
                 }
                 retregs = mask(mreg) | mask(lreg);
 
@@ -3852,7 +3852,9 @@ static if (0)
     }
 }
 
-    retregs = regmask(e.Ety, tym1);
+    reg_t reg1, reg2;
+    retregs = allocretregs(e.Ety, e.ET, tym1, &reg1, &reg2);
+    assert(retregs || !*pretregs);
 
     if (!usefuncarg)
     {
@@ -3929,6 +3931,37 @@ static if (0)
             // Pop unused result off 8087 stack
             cdb.gen2(0xDD, modregrm(3, 3, 0));           // FPOP
             cdb.gen2(0xDD, modregrm(3, 3, 0));           // FPOP
+        }
+    }
+
+    /* Special handling for functions that return one part
+       in XMM0 and the other part in AX
+     */
+    if (*pretregs && retregs)
+    {
+        if (reg1 == NOREG || reg2 == NOREG)
+        {}
+        else if ((0 == (mask(reg1) & XMMREGS)) ^ (0 == (mask(reg2) & XMMREGS)))
+        {
+            reg_t lreg, mreg;
+            if (mask(reg1) & XMMREGS)
+            {
+                lreg = XMM0;
+                mreg = XMM1;
+            }
+            else
+            {
+                lreg = mask(reg1) & mLSW ? reg1 : AX;
+                mreg = mask(reg2) & mMSW ? reg2 : DX;
+            }
+            for (int v = 0; v < 2; v++)
+            {
+                if (v ^ (reg2 != lreg))
+                    genmovreg(cdb,lreg,reg1);
+                else
+                    genmovreg(cdb,mreg,reg2);
+            }
+            retregs = mask(lreg) | mask(mreg);
         }
     }
 
