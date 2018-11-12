@@ -525,6 +525,7 @@ void gen_testcse(ref CodeBuilder cdb, tym_t tym, uint sz, size_t i);
 void gen_loadcse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot);
 code *genmovreg(uint to, uint from);
 void genmovreg(ref CodeBuilder cdb, uint to, uint from);
+void genmovreg(ref CodeBuilder cdb, uint to, uint from, tym_t tym);
 void genmulimm(ref CodeBuilder cdb,uint r1,uint r2,targ_int imm);
 void genshift(ref CodeBuilder cdb);
 void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags);
