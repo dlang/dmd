@@ -11,6 +11,12 @@ ESCAPES =
   />/&gt;/
   /&/&amp;/
 
+H1 = <h1>$0</h1>
+H2 = <h2>$0</h2>
+H3 = <h3>$0</h3>
+H4 = <h4>$0</h4>
+H5 = <h5>$0</h5>
+H6 = <h6>$0</h6>
 B = <b>$0</b>
 I = <i>$0</i>
 EM = <em>$0</em>
@@ -83,6 +89,13 @@ DDOC =
         padding: 0;
         vertical-align: baseline;
       }
+
+      h1 { font-size: 200%; }
+      h2 { font-size: 160%; }
+      h3 { font-size: 120%; }
+      h4 { font-size: 100%; }
+      h5 { font-size: 80%; }
+      h6 { font-size: 80%; font-weight: normal; }
 
       .color_red { color: #dc322f; }
       .color_blue { color: #268bd2; }
@@ -171,7 +184,7 @@ DDOC =
         border-radius: 5px;
       }
 
-      #ddoc_main .ddoc_decl .section h4, #ddoc_main .section.ddoc_sections h4 {
+      #ddoc_main .ddoc_decl .section h4:first-of-type, #ddoc_main .section.ddoc_sections h4:first-of-type {
         font-size: 13px;
         line-height: 1.5;
         margin-top: 21px;

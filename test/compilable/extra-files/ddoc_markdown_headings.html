@@ -3,7 +3,7 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>ddoc8739</title>
+    <title>ddoc_markdown_headings</title>
     <style type="text/css" media="screen">
       html, body, div, span, object, iframe, h1, h2, h3, h4, h5, h6, p,
       blockquote, pre, a, abbr, address, cite, code, del, dfn, em, figure,
@@ -470,114 +470,74 @@
   <body id="ddoc_main" class="ddoc dlang">
     <div class="content_wrapper">
       <article class="module">
-        <h1 class="module_name">ddoc8739</h1>
-        <section id="module_content">
-<section class="section ddoc_module_members_section">
-  <div class="ddoc_module_members">
-    <ul class="ddoc_members">
-  <li class="ddoc_member">
-  <div class="ddoc_member_header">
-  <div class="ddoc_header_anchor">
-  <a href="#dg" id="dg"><code class="code">dg</code></a>
-</div>
-</div><div class="ddoc_decl">
-  <section class="section">
-    <div class="declaration">
-      <h4>Declaration</h4>
-      <div class="dlang">
-        <p class="para">
-          <code class="code">
-            <span class="ddoc_anchor" id="dg"></span>void delegate(int a) <code class="code">dg</code>;
+        <h1 class="module_name">ddoc_markdown_headings</h1>
+        <section id="module_content"><section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    <h1>ATX-Style Headings</h1>
 
-          </code>
-        </p>
-      </div>
-    </div>
-  </section>
+  </p>
 </div>
-<div class="ddoc_decl">
-  
+<div class="ddoc_description">
+  <h4>Discussion</h4>
+  <p class="para">
+    <h1>H1</h1>
+<h2>H2</h2>
+<h3>H3</h3>
+<h4>H4</h4>
+<h5>H5</h5>
+<h6>H6</h6>
 
-</div>
+<h3>headings</h3>
+<h2>with initial</h2>
+<h1>spaces</h1>
 
-</li><li class="ddoc_member">
-  <div class="ddoc_member_header">
-  <div class="ddoc_header_anchor">
-  <a href="#dg2" id="dg2"><code class="code">dg2</code></a>
-</div>
-</div><div class="ddoc_decl">
-  <section class="section">
-    <div class="declaration">
-      <h4>Declaration</h4>
-      <div class="dlang">
-        <p class="para">
-          <code class="code">
-            <span class="ddoc_anchor" id="dg2"></span>void delegate(int b) <code class="code">dg2</code>;
+<h2>heading with <em>emphasis</em></h2>
 
-          </code>
-        </p>
-      </div>
-    </div>
-  </section>
-</div>
-<div class="ddoc_decl">
-  
+<h2>heading with trailing <code class="code">#</code>'s</h2>
+<h2>heading with trailing literal ##'s</h2>
+<h2>heading with another trailing literal#</h2>
+<h2>heading with backslash-escaped trailing ###</h2>
 
-</div>
+<h2>Some empty headers:</h2>
+<h2></h2>
+<h1></h1>
+<h3></h3>
 
-</li><li class="ddoc_member">
-  <div class="ddoc_member_header">
-  <div class="ddoc_header_anchor">
-  <a href="#dg3" id="dg3"><code class="code">dg3</code></a>
-</div>
-</div><div class="ddoc_decl">
-  <section class="section">
-    <div class="declaration">
-      <h4>Declaration</h4>
-      <div class="dlang">
-        <p class="para">
-          <code class="code">
-            <span class="ddoc_anchor" id="dg3"></span>void delegate(int c)[] <code class="code">dg3</code>;
+<h1>Setext-Style Headings</h1>
 
-          </code>
-        </p>
-      </div>
-    </div>
-  </section>
-</div>
-<div class="ddoc_decl">
-  
+<h1>H1</h1>
+<p><h1>H1</h1>
 
+<h2>H2</h2>
+</p>
+<br><br>
+<h2>Multi-<em>line
+heading</em></h2>
+
+<h2>heading with initial spaces</h2>
+and text directly after
+<br><br>
+
+<h1>Not Headings</h1>
+
+#hashtag not a heading because there's no space after the <code class="code">#</code>
+<br><br>
+####### Not a heading because it has more than 6 <code class="code">#</code>'s
+<br><br>
+## Not a heading because of the preceeding backslash
+<br><br>
+Not a heading because of spaces within
+= =
+<br><br>
+Not a heading because of spaces within
+*** *
+<br><br>
+Not a heading because backslash-escaped
+***
+  </p>
 </div>
 
-</li><li class="ddoc_member">
-  <div class="ddoc_member_header">
-  <div class="ddoc_header_anchor">
-  <a href="#dg4" id="dg4"><code class="code">dg4</code></a>
-</div>
-</div><div class="ddoc_decl">
-  <section class="section">
-    <div class="declaration">
-      <h4>Declaration</h4>
-      <div class="dlang">
-        <p class="para">
-          <code class="code">
-            <span class="ddoc_anchor" id="dg4"></span>void delegate(int d)* <code class="code">dg4</code>;
-
-          </code>
-        </p>
-      </div>
-    </div>
-  </section>
-</div>
-<div class="ddoc_decl">
-  
-
-</div>
-
-</li>
-</ul>
-  </div>
 </section>
 </section>
       </article>
