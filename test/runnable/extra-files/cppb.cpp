@@ -407,35 +407,19 @@ wchar_t f13289_cpp_wchar_t(wchar_t ch)
     }
 }
 
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun || __NetBSD__ || __DragonFly__
-unsigned short f13289_d_wchar(unsigned short ch);
-wchar_t f13289_d_dchar(wchar_t ch);
-#elif _WIN32
-wchar_t f13289_d_wchar(wchar_t ch);
-unsigned int f13289_d_dchar(unsigned int ch);
-#endif
-
+char16_t f13289_d_wchar(char16_t ch);
+char32_t f13289_d_dchar(char32_t ch);
 wchar_t f13289_d_wchar_t(wchar_t ch);
 
 bool f13289_cpp_test()
 {
     if (!(f13289_d_wchar_t(L'e') == L'E')) return false;
     if (!(f13289_d_wchar_t(L'F') == L'F')) return false;
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun || __NetBSD__ || __DragonFly__
-    if (!(f13289_d_wchar((unsigned short)'c') == (unsigned short)'C')) return false;
-    if (!(f13289_d_wchar((unsigned short)'D') == (unsigned short)'D')) return false;
-    if (!(f13289_d_dchar(L'e') == L'E')) return false;
-    if (!(f13289_d_dchar(L'F') == L'F')) return false;
+    if (!(f13289_d_wchar(u'c') == u'C')) return false;
+    if (!(f13289_d_wchar(u'D') == u'D')) return false;
+    if (!(f13289_d_dchar(U'e') == U'E')) return false;
+    if (!(f13289_d_dchar(U'F') == U'F')) return false;
     return true;
-#elif _WIN32
-    if (!(f13289_d_wchar(L'c') == L'C')) return false;
-    if (!(f13289_d_wchar(L'D') == L'D')) return false;
-    if (!(f13289_d_dchar((unsigned int)'e') == (unsigned int)'E')) return false;
-    if (!(f13289_d_dchar((unsigned int)'F') == (unsigned int)'F')) return false;
-    return true;
-#else
-    return false;
-#endif
 }
 
 /******************************************/
@@ -593,14 +577,8 @@ void fuzz2_cppvararg(uint64_t arg10, uint64_t arg11, bool arg12)
     fuzz2_checkValues(arg10, arg11, arg12);
 }
 
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun || __NetBSD__ || __DragonFly__
-#define wchar unsigned short
-#elif _WIN32
-#define wchar wchar_t
-#endif
-
-void fuzz3_checkValues(wchar arg10, wchar arg11, bool arg12);
-void fuzz3_cppvararg(wchar arg10, wchar arg11, bool arg12)
+void fuzz3_checkValues(char16_t arg10, char32_t arg11, bool arg12);
+void fuzz3_cppvararg(char16_t arg10, char32_t arg11, bool arg12)
 {
     fuzz3_checkValues(arg10, arg11, arg12);
 }

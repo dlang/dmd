@@ -976,3 +976,22 @@ else version(Posix)
     static assert(test19278_4.mangleof == "_ZN5hello5world3yay11test19278_4Ev");
     static assert(test19278_var.mangleof == "_ZN5hello5world13test19278_varE");
 }
+
+/**************************************/
+// https://issues.dlang.org/show_bug.cgi?id=18958
+// Issue 18958 - extern(C++) wchar, dchar mangling not correct
+
+version(Posix)
+    enum __c_wchar_t : dchar;
+else version(Windows)
+    enum __c_wchar_t : wchar;
+alias wchar_t = __c_wchar_t;
+extern (C++) void test_char_mangling(char, wchar, dchar, wchar_t);
+version (Posix)
+{
+    static assert(test_char_mangling.mangleof == "_Z18test_char_manglingcDsDiw");
+}
+version (Win64)
+{
+    static assert(test_char_mangling.mangleof == "?test_char_mangling@@YAXD_S_U_W@Z");
+}

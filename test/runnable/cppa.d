@@ -1,5 +1,6 @@
 // PERMUTE_ARGS: -g
 // EXTRA_CPP_SOURCES: cppb.cpp
+// CXXFLAGS: -std=c++11
 
 import core.stdc.stdio;
 import core.stdc.stdarg;
@@ -915,13 +916,13 @@ void fuzz2()
 }
 
 ////////
-extern(C++) void fuzz3_cppvararg(wchar arg10, wchar arg11, bool arg12);
-extern(C++) void fuzz3_dvararg(wchar arg10, wchar arg11, bool arg12)
+extern(C++) void fuzz3_cppvararg(wchar arg10, dchar arg11, bool arg12);
+extern(C++) void fuzz3_dvararg(wchar arg10, dchar arg11, bool arg12)
 {
     fuzz2_checkValues(arg10, arg11, arg12);
 }
 
-extern(C++) void fuzz3_checkValues(wchar arg10, wchar arg11, bool arg12)
+extern(C++) void fuzz3_checkValues(wchar arg10, dchar arg11, bool arg12)
 {
     assert(arg10 == 103);
     assert(arg11 == 104);
@@ -931,7 +932,7 @@ extern(C++) void fuzz3_checkValues(wchar arg10, wchar arg11, bool arg12)
 void fuzz3()
 {
     wchar arg10 = 103;
-    wchar arg11 = 104;
+    dchar arg11 = 104;
     bool arg12 = false;
     fuzz3_dvararg(arg10, arg11, arg12);
     fuzz3_cppvararg(arg10, arg11, arg12);
