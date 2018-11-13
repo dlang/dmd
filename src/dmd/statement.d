@@ -804,32 +804,8 @@ extern (C++) final class CompileStatement : Statement
 
 
         OutBuffer buf;
-        if (exps)
-        {
-            foreach (ex; *exps)
-            {
-                sc = sc.startCTFE();
-                auto e = ex.expressionSemantic(sc);
-                e = resolveProperties(sc, e);
-                sc = sc.endCTFE();
-
-                // allowed to contain types as well as expressions
-                e = ctfeInterpretForPragmaMsg(e);
-                if (e.op == TOK.error)
-                {
-                    //errorSupplemental(exp.loc, "while evaluating `mixin(%s)`", ex.toChars());
-                    return errorStatements();
-                }
-                StringExp se = e.toStringExp();
-                if (se)
-                {
-                    se = se.toUTF8(sc);
-                    buf.printf("%.*s", cast(int)se.len, se.string);
-                }
-                else
-                    buf.printf("%s", e.toChars());
-            }
-        }
+        if (expressionsToString(buf, sc, exps))
+            return errorStatements();
 
         const errors = global.errors;
         const len = buf.offset;

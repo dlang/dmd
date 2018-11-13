@@ -73,6 +73,45 @@ import dmd.visitor;
 
 enum LOGSEMANTIC = false;
 
+/********************************************************
+ * Perform semantic analysis and CTFE on expressions to produce
+ * a string.
+ * Params:
+ *      buf = append generated string to buffer
+ *      sc = context
+ *      exps = array of Expressions
+ * Returns:
+ *      true on error
+ */
+bool expressionsToString(ref OutBuffer buf, Scope* sc, Expressions* exps)
+{
+    if (!exps)
+        return false;
+
+    foreach (ex; *exps)
+    {
+        if (!ex)
+            continue;
+        auto sc2 = sc.startCTFE();
+        auto e2 = ex.expressionSemantic(sc2);
+        auto e3 = resolveProperties(sc2, e2);
+        sc2.endCTFE();
+
+        // allowed to contain types as well as expressions
+        auto e4 = ctfeInterpretForPragmaMsg(e3);
+        if (e4.op == TOK.error)
+            return true;
+
+        StringExp se = e4.toStringExp();
+        if (se)
+            buf.writestring(se.toUTF8(sc).peekSlice());
+        else
+            buf.writestring(e4.toString());
+    }
+    return false;
+}
+
+
 /***********************************************************
  * Resolve `exp` as a compile-time known string.
  * Params:
@@ -5350,32 +5389,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     private Expression compileIt(CompileExp exp)
     {
         OutBuffer buf;
-        if (exp.exps)
-        {
-            foreach (ex; *exp.exps)
-            {
-                sc = sc.startCTFE();
-                auto e = ex.expressionSemantic(sc);
-                e = resolveProperties(sc, e);
-                sc = sc.endCTFE();
-
-                // allowed to contain types as well as expressions
-                e = ctfeInterpretForPragmaMsg(e);
-                if (e.op == TOK.error)
-                {
-                    //errorSupplemental(exp.loc, "while evaluating `mixin(%s)`", ex.toChars());
-                    return null;
-                }
-                StringExp se = e.toStringExp();
-                if (se)
-                {
-                    se = se.toUTF8(sc);
-                    buf.printf("%.*s", cast(int)se.len, se.string);
-                }
-                else
-                    buf.printf("%s", e.toChars());
-            }
-        }
+        if (expressionsToString(buf, sc, exp.exps))
+            return null;
 
         uint errors = global.errors;
         const len = buf.offset;
