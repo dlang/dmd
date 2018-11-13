@@ -372,6 +372,14 @@ extern (C++) class Dsymbol : RootObject
         return null;
     }
 
+    /**
+     * `pastMixin` returns the enclosing symbol if this is a template mixin.
+     *
+     * `pastMixinAndNspace` does likewise, additionally skipping over Nspaces that
+     * are mangleOnly.
+     *
+     * See also `parent`, `toParent`, `toParent2` and `toParent3`.
+     */
     final inout(Dsymbol) pastMixin() inout
     {
         //printf("Dsymbol::pastMixin() %s\n", toChars());
@@ -382,15 +390,30 @@ extern (C++) class Dsymbol : RootObject
         return parent.pastMixin();
     }
 
+    /// ditto
+    final inout(Dsymbol) pastMixinAndNspace() inout
+    {
+        //printf("Dsymbol::pastMixin() %s\n", toChars());
+        auto nspace = isNspace();
+        if (!(nspace && nspace.mangleOnly) && !isTemplateMixin() && !isForwardingAttribDeclaration())
+            return this;
+        if (!parent)
+            return null;
+        return parent.pastMixinAndNspace();
+    }
+
     /**********************************
      * `parent` field returns a lexically enclosing scope symbol this is a member of.
      *
      * `toParent()` returns a logically enclosing scope symbol this is a member of.
-     * It skips over TemplateMixin's.
+     * It skips over TemplateMixin's and Nspaces that are mangleOnly.
      *
      * `toParent2()` returns an enclosing scope symbol this is living at runtime.
      * It skips over both TemplateInstance's and TemplateMixin's.
      * It's used when looking for the 'this' pointer of the enclosing function/class.
+     *
+     * `toParent3()` returns a logically enclosing scope symbol this is a member of.
+     * It skips over TemplateMixin's.
      *
      * Examples:
      *  module mod;
@@ -414,7 +437,7 @@ extern (C++) class Dsymbol : RootObject
      */
     final inout(Dsymbol) toParent() inout
     {
-        return parent ? parent.pastMixin() : null;
+        return parent ? parent.pastMixinAndNspace() : null;
     }
 
     /// ditto
@@ -423,6 +446,12 @@ extern (C++) class Dsymbol : RootObject
         if (!parent || !parent.isTemplateInstance && !parent.isForwardingAttribDeclaration())
             return parent;
         return parent.toParent2;
+    }
+
+    /// ditto
+    final inout(Dsymbol) toParent3() inout
+    {
+        return parent ? parent.pastMixin() : null;
     }
 
     final inout(TemplateInstance) isInstantiated() inout
