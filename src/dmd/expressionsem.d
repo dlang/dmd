@@ -661,6 +661,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
                             }
                             else
                                 a = a.implicitCastTo(sc, tbn);
+                            a = a.addDtorHook(sc);
                             (*elements)[u] = a;
                         }
                         // https://issues.dlang.org/show_bug.cgi?id=14395
