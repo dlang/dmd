@@ -2957,6 +2957,7 @@ FuncParamRegs FuncParamRegs_create(tym_t tyf)
  * Allocate parameter of type t and ty to registers *preg1 and *preg2.
  * Params:
  *      t = type, valid only if ty is TYstruct or TYarray
+ *      vararg = this is an unnamed argument to a vararg function
  * Returns:
  *      false       not allocated to any register
  *      true        *preg1, *preg2 set to allocated register pair
@@ -2985,6 +2986,12 @@ private bool type_jparam2(type* t, tym_t ty)
 int FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, reg_t* preg1, reg_t* preg2)
 {
     //printf("FuncParamRegs::alloc(ty: TY%sm t: %p)\n", tystring[tybasic(ty)], t);
+    return FuncParamRegs_alloc(fpr, t, ty, false, preg1, preg2);
+}
+
+int FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, bool vararg, reg_t* preg1, reg_t* preg2)
+{
+    //printf("FuncParamRegs::alloc(ty = TY%s)\n", tystring[tybasic(ty)]);
     //if (t) type_print(t);
 
     *preg1 = NOREG;
@@ -3069,6 +3076,11 @@ int FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, reg_t* preg1, 
             *preg2 = fpr.floatregs[fpr.xmmcnt + 1];
             fpr.xmmcnt += 2;
             return 1;
+        }
+
+        if (vararg && tysimd(ty) && tysize(ty) >= 32)
+        {
+            return 0;
         }
     }
 
@@ -3184,7 +3196,8 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             psize = REGSIZE;
         }
         //printf("[%d] size = %u, numpara = %d ", i, psize, numpara); WRTYxx(ep.Ety); printf("\n");
-        if (FuncParamRegs_alloc(fpr, ep.ET, ep.Ety, &parameters[i].reg, &parameters[i].reg2))
+        bool va = ep.Eflags & EFLAGS_variadic;
+        if (FuncParamRegs_alloc(fpr, ep.ET, ep.Ety, va, &parameters[i].reg, &parameters[i].reg2))
         {
             if (config.exe == EX_WIN64)
                 numpara += REGSIZE;             // allocate stack space for it anyway

@@ -304,6 +304,9 @@ struct FuncParamRegs
     int alloc(type *t, tym_t ty, ubyte *reg1, ubyte *reg2)
     { return FuncParamRegs_alloc(this, t, ty, reg1, reg2); }
 
+    int alloc(type *t, tym_t ty, bool vararg, ubyte *reg1, ubyte *reg2)
+    { return FuncParamRegs_alloc(this, t, ty, vararg, reg1, reg2); }
+
   private:
   public: // for the moment
     tym_t tyf;                  // type of function
@@ -318,6 +321,7 @@ struct FuncParamRegs
 
 extern FuncParamRegs FuncParamRegs_create(tym_t tyf);
 extern int FuncParamRegs_alloc(ref FuncParamRegs fpr, type *t, tym_t ty, reg_t *preg1, reg_t *preg2);
+extern int FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, bool vararg, reg_t* preg1, reg_t* preg2);
 
 extern __gshared
 {
