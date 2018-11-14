@@ -731,6 +731,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                     return 0;
                 }
             }
+
             foreach (sm; *members)
             {
                 sm.apply(&SearchCtor.fp, null);
