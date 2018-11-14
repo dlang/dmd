@@ -129,7 +129,6 @@ template dtorIsNothrow(T)
 }
 
 // taken from std.meta.allSatisfy
-package(core.internal)
 template allSatisfy(alias F, T...)
 {
     static foreach (Ti; T)
