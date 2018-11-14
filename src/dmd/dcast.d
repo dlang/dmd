@@ -547,116 +547,117 @@ MATCH implicitConvTo(Expression e, Type t)
             if (!e.committed && t.ty == Tpointer && t.nextOf().ty == Tvoid)
                 return;
 
-            if (e.type.ty == Tsarray || e.type.ty == Tarray || e.type.ty == Tpointer)
-            {
-                TY tyn = e.type.nextOf().ty;
-                if (tyn == Tchar || tyn == Twchar || tyn == Tdchar)
-                {
-                    switch (t.ty)
-                    {
-                    case Tsarray:
-                        if (e.type.ty == Tsarray)
-                        {
-                            TY tynto = t.nextOf().ty;
-                            if (tynto == tyn)
-                            {
-                                if ((cast(TypeSArray)e.type).dim.toInteger() == (cast(TypeSArray)t).dim.toInteger())
-                                {
-                                    result = MATCH.exact;
-                                }
-                                return;
-                            }
-                            if (tynto == Tchar || tynto == Twchar || tynto == Tdchar)
-                            {
-                                if (e.committed && tynto != tyn)
-                                    return;
-                                size_t fromlen = e.numberOfCodeUnits(tynto);
-                                size_t tolen = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
-                                if (tolen < fromlen)
-                                    return;
-                                if (tolen != fromlen)
-                                {
-                                    // implicit length extending
-                                    result = MATCH.convert;
-                                    return;
-                                }
-                            }
-                            if (!e.committed && (tynto == Tchar || tynto == Twchar || tynto == Tdchar))
-                            {
-                                result = MATCH.exact;
-                                return;
-                            }
-                        }
-                        else if (e.type.ty == Tarray)
-                        {
-                            TY tynto = t.nextOf().ty;
-                            if (tynto == Tchar || tynto == Twchar || tynto == Tdchar)
-                            {
-                                if (e.committed && tynto != tyn)
-                                    return;
-                                size_t fromlen = e.numberOfCodeUnits(tynto);
-                                size_t tolen = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
-                                if (tolen < fromlen)
-                                    return;
-                                if (tolen != fromlen)
-                                {
-                                    // implicit length extending
-                                    result = MATCH.convert;
-                                    return;
-                                }
-                            }
-                            if (tynto == tyn)
-                            {
-                                result = MATCH.exact;
-                                return;
-                            }
-                            if (!e.committed && (tynto == Tchar || tynto == Twchar || tynto == Tdchar))
-                            {
-                                result = MATCH.exact;
-                                return;
-                            }
-                        }
-                        goto case; /+ fall through +/
-                    case Tarray:
-                    case Tpointer:
-                        Type tn = t.nextOf();
-                        MATCH m = MATCH.exact;
-                        if (e.type.nextOf().mod != tn.mod)
-                        {
-                            // https://issues.dlang.org/show_bug.cgi?id=16183
-                            if (!tn.isConst() && !tn.isImmutable())
-                                return;
-                            m = MATCH.constant;
-                        }
-                        if (!e.committed)
-                        {
-                            switch (tn.ty)
-                            {
-                            case Tchar:
-                                if (e.postfix == 'w' || e.postfix == 'd')
-                                    m = MATCH.convert;
-                                result = m;
-                                return;
-                            case Twchar:
-                                if (e.postfix != 'w')
-                                    m = MATCH.convert;
-                                result = m;
-                                return;
-                            case Tdchar:
-                                if (e.postfix != 'd')
-                                    m = MATCH.convert;
-                                result = m;
-                                return;
-                            default:
-                                break;
-                            }
-                        }
-                        break;
+            if (!(e.type.ty == Tsarray || e.type.ty == Tarray || e.type.ty == Tpointer))
+                return visit(cast(Expression)e);
 
+            TY tyn = e.type.nextOf().ty;
+
+            if (!(tyn == Tchar || tyn == Twchar || tyn == Tdchar))
+                return visit(cast(Expression)e);
+
+            switch (t.ty)
+            {
+            case Tsarray:
+                if (e.type.ty == Tsarray)
+                {
+                    TY tynto = t.nextOf().ty;
+                    if (tynto == tyn)
+                    {
+                        if ((cast(TypeSArray)e.type).dim.toInteger() == (cast(TypeSArray)t).dim.toInteger())
+                        {
+                            result = MATCH.exact;
+                        }
+                        return;
+                    }
+                    if (tynto == Tchar || tynto == Twchar || tynto == Tdchar)
+                    {
+                        if (e.committed && tynto != tyn)
+                            return;
+                        size_t fromlen = e.numberOfCodeUnits(tynto);
+                        size_t tolen = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
+                        if (tolen < fromlen)
+                            return;
+                        if (tolen != fromlen)
+                        {
+                            // implicit length extending
+                            result = MATCH.convert;
+                            return;
+                        }
+                    }
+                    if (!e.committed && (tynto == Tchar || tynto == Twchar || tynto == Tdchar))
+                    {
+                        result = MATCH.exact;
+                        return;
+                    }
+                }
+                else if (e.type.ty == Tarray)
+                {
+                    TY tynto = t.nextOf().ty;
+                    if (tynto == Tchar || tynto == Twchar || tynto == Tdchar)
+                    {
+                        if (e.committed && tynto != tyn)
+                            return;
+                        size_t fromlen = e.numberOfCodeUnits(tynto);
+                        size_t tolen = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
+                        if (tolen < fromlen)
+                            return;
+                        if (tolen != fromlen)
+                        {
+                            // implicit length extending
+                            result = MATCH.convert;
+                            return;
+                        }
+                    }
+                    if (tynto == tyn)
+                    {
+                        result = MATCH.exact;
+                        return;
+                    }
+                    if (!e.committed && (tynto == Tchar || tynto == Twchar || tynto == Tdchar))
+                    {
+                        result = MATCH.exact;
+                        return;
+                    }
+                }
+                goto case; /+ fall through +/
+            case Tarray:
+            case Tpointer:
+                Type tn = t.nextOf();
+                MATCH m = MATCH.exact;
+                if (e.type.nextOf().mod != tn.mod)
+                {
+                    // https://issues.dlang.org/show_bug.cgi?id=16183
+                    if (!tn.isConst() && !tn.isImmutable())
+                        return;
+                    m = MATCH.constant;
+                }
+                if (!e.committed)
+                {
+                    switch (tn.ty)
+                    {
+                    case Tchar:
+                        if (e.postfix == 'w' || e.postfix == 'd')
+                            m = MATCH.convert;
+                        result = m;
+                        return;
+                    case Twchar:
+                        if (e.postfix != 'w')
+                            m = MATCH.convert;
+                        result = m;
+                        return;
+                    case Tdchar:
+                        if (e.postfix != 'd')
+                            m = MATCH.convert;
+                        result = m;
+                        return;
                     default:
                         break;
                     }
                 }
+                break;
+
+            default:
+                break;
             }
 
             visit(cast(Expression)e);
@@ -759,28 +760,25 @@ MATCH implicitConvTo(Expression e, Type t)
             Type tb = t.toBasetype();
             Type typeb = e.type.toBasetype();
 
-            if (tb.ty == Taarray && typeb.ty == Taarray)
+            if (!(tb.ty == Taarray && typeb.ty == Taarray))
+                return visit(cast(Expression)e);
+
+            result = MATCH.exact;
+            for (size_t i = 0; i < e.keys.dim; i++)
             {
-                result = MATCH.exact;
-                for (size_t i = 0; i < e.keys.dim; i++)
-                {
-                    Expression el = (*e.keys)[i];
-                    MATCH m = el.implicitConvTo((cast(TypeAArray)tb).index);
-                    if (m < result)
-                        result = m; // remember worst match
-                    if (result == MATCH.nomatch)
-                        break; // no need to check for worse
-                    el = (*e.values)[i];
-                    m = el.implicitConvTo(tb.nextOf());
-                    if (m < result)
-                        result = m; // remember worst match
-                    if (result == MATCH.nomatch)
-                        break; // no need to check for worse
-                }
-                return;
+                Expression el = (*e.keys)[i];
+                MATCH m = el.implicitConvTo((cast(TypeAArray)tb).index);
+                if (m < result)
+                    result = m; // remember worst match
+                if (result == MATCH.nomatch)
+                    break; // no need to check for worse
+                el = (*e.values)[i];
+                m = el.implicitConvTo(tb.nextOf());
+                if (m < result)
+                    result = m; // remember worst match
+                if (result == MATCH.nomatch)
+                    break; // no need to check for worse
             }
-            else
-                visit(cast(Expression)e);
         }
 
         override void visit(CallExp e)
