@@ -257,7 +257,7 @@ if (!is(T == enum) && __traits(isStaticArray, T) && canBitwiseHash!T)
     //else static if (T.length == 1)
     //    return hashOf(val[0], seed);
     //else
-    //    /+ hash like a dynamic array +/
+    //    return bytesHashWithExactSizeAndAlignment!T(toUbyte(val), seed);
     //
     // ... but that's inefficient when using a runtime TypeInfo (introduces a branch)
     // and PR #2243 wants typeid(T).getHash(&val) to produce the same result as
@@ -412,7 +412,7 @@ size_t hashOf(T)(scope const T val, size_t seed = 0) if (!is(T == enum) && __tra
         else static if (T.mant_dig == double.mant_dig && T.sizeof == ulong.sizeof)
             return hashOf(*cast(const ulong*) &data, seed);
         else
-            return bytesHashAlignedBy!T(toUbyte(data), seed);
+            return bytesHashWithExactSizeAndAlignment!T(toUbyte(data), seed);
     }
     else
     {
@@ -534,25 +534,76 @@ q{
         }
         else static if ((is(T == struct) && !canBitwiseHash!T) || T.tupleof.length == 1)
         {
+            static if (isChained) size_t h = seed;
             static foreach (i, F; typeof(val.tupleof))
             {
-                static if (i != 0)
-                    h = hashOf(val.tupleof[i], h);
-                else static if (isChained)
-                    size_t h = hashOf(val.tupleof[i], seed);
+                static if (__traits(isStaticArray, F))
+                {
+                    static if (i == 0 && !isChained) size_t h = 0;
+                    static if (F.sizeof > 0 && canBitwiseHash!F)
+                        // May use smallBytesHash instead of bytesHash.
+                        h = bytesHashWithExactSizeAndAlignment!F(toUbyte(val.tupleof[i]), h);
+                    else
+                        // We can avoid the "double hashing" the top-level version uses
+                        // for consistency with TypeInfo.getHash.
+                        foreach (ref e; val.tupleof[i])
+                            h = hashOf(e, h);
+                }
+                else static if (is(F == struct) || is(F == union))
+                {
+                    static if (hasCallableToHash!F)
+                    {
+                        static if (i == 0 && !isChained)
+                            size_t h = val.tupleof[i].toHash();
+                        else
+                            h = hashOf(cast(size_t) val.tupleof[i].toHash(), h);
+                    }
+                    else static if (F.tupleof.length == 1)
+                    {
+                        // Handle the single member case separately to avoid unnecessarily using bytesHash.
+                        static if (i == 0 && !isChained)
+                            size_t h = hashOf(val.tupleof[i].tupleof[0]);
+                        else
+                            h = hashOf(val.tupleof[i].tupleof[0], h);
+                    }
+                    else static if (canBitwiseHash!F)
+                    {
+                        // May use smallBytesHash instead of bytesHash.
+                        static if (i == 0 && !isChained) size_t h = 0;
+                        h = bytesHashWithExactSizeAndAlignment!F(toUbyte(val.tupleof[i]), h);
+                    }
+                    else
+                    {
+                        // Nothing special happening.
+                        static if (i == 0 && !isChained)
+                            size_t h = hashOf(val.tupleof[i]);
+                        else
+                            h = hashOf(val.tupleof[i], h);
+                    }
+                }
                 else
-                    size_t h = hashOf(val.tupleof[i]);
+                {
+                    // Nothing special happening.
+                    static if (i == 0 && !isChained)
+                        size_t h = hashOf(val.tupleof[i]);
+                    else
+                        h = hashOf(val.tupleof[i], h);
+                }
             }
             return h;
         }
         else static if (is(typeof(toUbyte(val)) == const(ubyte)[]))//CTFE ready for structs without reference fields
         {
+            // Not using bytesHashWithExactSizeAndAlignment here because
+            // the result may differ from typeid(T).hashOf(&val).
             return bytesHashAlignedBy!T(toUbyte(val), seed);
         }
         else // CTFE unsupported
         {
-            assert(!__ctfe, "unable to compute hash of "~T.stringof);
+            assert(!__ctfe, "unable to compute hash of "~T.stringof~" at compile time");
             const(ubyte)[] bytes = (() @trusted => (cast(const(ubyte)*)&val)[0 .. T.sizeof])();
+            // Not using bytesHashWithExactSizeAndAlignment here because
+            // the result may differ from typeid(T).hashOf(&val).
             return bytesHashAlignedBy!T(bytes, seed);
         }
     }
@@ -596,9 +647,9 @@ if (!is(T == enum) && (is(T == struct) || is(T == union))
 @trusted @nogc nothrow pure
 size_t hashOf(T)(scope const T val, size_t seed = 0) if (!is(T == enum) && is(T == delegate))
 {
-    assert(!__ctfe, "unable to compute hash of "~T.stringof);
+    assert(!__ctfe, "unable to compute hash of "~T.stringof~" at compile time");
     const(ubyte)[] bytes = (cast(const(ubyte)*)&val)[0 .. T.sizeof];
-    return bytesHashAlignedBy!T(bytes, seed);
+    return bytesHashWithExactSizeAndAlignment!T(bytes, seed);
 }
 
 //address-based class hash. CTFE only if null.
@@ -684,6 +735,31 @@ private template bytesHashAlignedBy(AlignType)
 {
     alias bytesHashAlignedBy = bytesHash!(AlignType.alignof >= uint.alignof);
 }
+
+private template bytesHashWithExactSizeAndAlignment(SizeAndAlignType)
+{
+    static if (SizeAndAlignType.alignof < uint.alignof
+            ? SizeAndAlignType.sizeof <= 12
+            : SizeAndAlignType.sizeof <= 10)
+        alias bytesHashWithExactSizeAndAlignment = smallBytesHash;
+    else
+        alias bytesHashWithExactSizeAndAlignment = bytesHashAlignedBy!SizeAndAlignType;
+}
+
+// Fowler/Noll/Vo hash. http://www.isthe.com/chongo/tech/comp/fnv/
+private size_t fnv()(scope const(ubyte)[] bytes, size_t seed) @nogc nothrow pure @safe
+{
+    static if (size_t.max <= uint.max)
+        enum prime = (1U << 24) + (1U << 8) + 0x93U;
+    else static if (size_t.max <= ulong.max)
+        enum prime = (1UL << 40) + (1UL << 8) + 0xb3UL;
+    else
+        enum prime = (size_t(1) << 88) + (size_t(1) << 8) + size_t(0x3b);
+    foreach (b; bytes)
+        seed = (seed ^ b) * prime;
+    return seed;
+}
+private alias smallBytesHash = fnv;
 
 //-----------------------------------------------------------------------------
 // Block read - if your platform needs to do endian-swapping or can only
