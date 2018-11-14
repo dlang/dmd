@@ -650,6 +650,16 @@ MATCH implicitConvTo(Expression e, Type t)
                             m = MATCH.convert;
                         result = m;
                         return;
+                    case Tenum:
+                        if ((cast(TypeEnum)tn).sym.isSpecial())
+                        {
+                            /* Allow string literal -> const(wchar_t)[]
+                             */
+                            if (TypeBasic tob = tn.toBasetype().isTypeBasic())
+                            result = tn.implicitConvTo(tob);
+                            return;
+                        }
+                        break;
                     default:
                         break;
                     }
