@@ -163,46 +163,50 @@ template anySatisfy(alias F, T...)
     }
 }
 
-// Somehow fails for non-static nested structs without support for aliases
-template hasElaborateDestructor(T...)
+// std.traits.Fields
+private template Fields(T)
 {
-    static if (is(T[0]))
-        alias S = T[0];
+    static if (is(T == struct) || is(T == union))
+        alias Fields = typeof(T.tupleof[0 .. $ - __traits(isNested, T)]);
+    else static if (is(T == class))
+        alias Fields = typeof(T.tupleof);
     else
-        alias S = typeof(T[0]);
+        alias Fields = TypeTuple!T;
+}
 
-    static if (is(S : E[n], E, size_t n) && S.length)
+// std.traits.hasElaborateDestructor
+template hasElaborateDestructor(S)
+{
+    static if (__traits(isStaticArray, S) && S.length)
     {
-        enum bool hasElaborateDestructor = hasElaborateDestructor!E;
+        enum bool hasElaborateDestructor = hasElaborateDestructor!(typeof(S.init[0]));
     }
     else static if (is(S == struct))
     {
         enum hasElaborateDestructor = __traits(hasMember, S, "__dtor")
-            || anySatisfy!(.hasElaborateDestructor, S.tupleof);
+            || anySatisfy!(.hasElaborateDestructor, Fields!S);
     }
     else
+    {
         enum bool hasElaborateDestructor = false;
+    }
 }
 
-// Somehow fails for non-static nested structs without support for aliases
-template hasElaborateCopyConstructor(T...)
+// std.traits.hasElaborateCopyDestructor
+template hasElaborateCopyConstructor(S)
 {
-    static if (is(T[0]))
-        alias S = T[0];
-    else
-        alias S = typeof(T[0]);
-
-    static if (is(S : E[n], E, size_t n) && S.length)
+    static if (__traits(isStaticArray, S) && S.length)
     {
-        enum bool hasElaborateCopyConstructor = hasElaborateCopyConstructor!E;
+        enum bool hasElaborateCopyConstructor = hasElaborateCopyConstructor!(typeof(S.init[0]));
     }
     else static if (is(S == struct))
     {
-        enum hasElaborateCopyConstructor = __traits(hasMember, S, "__postblit")
-            || anySatisfy!(.hasElaborateCopyConstructor, S.tupleof);
+        enum hasElaborateCopyConstructor = __traits(hasMember, S, "__xpostblit");
     }
     else
+    {
         enum bool hasElaborateCopyConstructor = false;
+    }
 }
 
 // std.meta.Filter
