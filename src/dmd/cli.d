@@ -182,11 +182,12 @@ struct Usage
         Option("color",
             "turn colored console output on"
         ),
-        Option("color=[on|off]",
+        Option("color=[auto|on|off]",
             "force colored console output on or off",
             `Show colored console output. The default depends on terminal capabilities.
             $(UL
-                $(LI $(B on): always use colored output. Same as $(B -color))
+                $(LI $(B auto): use colored output if a tty is detected)
+                $(LI $(B on): always use colored output.)
                 $(LI $(B off): never use colored output.)
             )`
         ),
