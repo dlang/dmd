@@ -501,7 +501,7 @@ private IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
         sym.st_info = cast(ubyte)ELF64_ST_INFO(cast(ubyte)bind,cast(ubyte)typ);
         sym.st_other = visibility;
         sym.st_shndx = cast(ushort)sec;
-        SYMbuf.write(&sym,sym.sizeof);
+        SYMbuf.write((&sym)[0 .. 1]);
     }
     else
     {
@@ -520,7 +520,7 @@ private IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
         sym.st_info = ELF32_ST_INFO(cast(ubyte)bind,cast(ubyte)typ);
         sym.st_other = visibility;
         sym.st_shndx = cast(ushort)sec;
-        SYMbuf.write(&sym,sym.sizeof);
+        SYMbuf.write((&sym)[0 .. 1]);
     }
     if (bind == STB_LOCAL)
         local_cnt++;
@@ -1375,7 +1375,7 @@ debug
             s.sh_info      = p.sh_info;
             s.sh_addralign = p.sh_addralign;
             s.sh_entsize   = p.sh_entsize;
-            fobjbuf.write(&s, s.sizeof);
+            fobjbuf.write((&s)[0 .. 1]);
         }
         foffset += sz;
     }
@@ -1760,7 +1760,7 @@ static if (!ELF_COMDAT)
 }
 else
 {
-        reset_symbuf.write(&s, s.sizeof);
+        reset_symbuf.write((&s)[0 .. 1]);
 
         const(char)* p = cpp_mangle2(s);
 
@@ -2468,7 +2468,7 @@ void Obj_pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize)
     //symbol_print(s);
 
     symbol_debug(s);
-    reset_symbuf.write(&s, s.sizeof);
+    reset_symbuf.write((&s)[0 .. 1]);
     IDXSTR namidx = elf_addmangled(s);
     //printf("\tnamidx %d,section %d\n",namidx,MAP_SEG2SECIDX(seg));
     if (tyfunc(s.ty()))
@@ -2521,7 +2521,7 @@ int Obj_external(Symbol *s)
 
     //dbg_printf("Obj_external('%s') %x\n",s.Sident.ptr,s.Svalue);
     symbol_debug(s);
-    reset_symbuf.write(&s, s.sizeof);
+    reset_symbuf.write((&s)[0 .. 1]);
     IDXSTR namidx = elf_addmangled(s);
 
 version (SCPP)

@@ -2057,7 +2057,7 @@ static int generate_comdat(Symbol *s, bool is_readonly_comdat)
     tym_t ty;
 
     symbol_debug(s);
-    obj.reset_symbuf.write(&s, s.sizeof);
+    obj.reset_symbuf.write((&s)[0 .. 1]);
     ty = s.ty();
     isfunc = tyfunc(ty) != 0 || is_readonly_comdat;
 
@@ -2668,7 +2668,7 @@ void OmfObj_pubdef(int seg,Symbol *s,targ_size_t offset)
     uint ti;
 
     assert(offset < 100000000);
-    obj.reset_symbuf.write(&s, s.sizeof);
+    obj.reset_symbuf.write((&s)[0 .. 1]);
 
     int idx = SegData[seg].segidx;
     if (obj.pubdatai + 1 + (IDMAX + IDOHD) + 4 + 2 > obj.pubdata.sizeof ||
@@ -2741,7 +2741,7 @@ int OmfObj_external(Symbol *s)
 {
     //printf("OmfObj_external('%s', %d)\n",s.Sident.ptr, obj.extidx + 1);
     symbol_debug(s);
-    obj.reset_symbuf.write(&s, s.sizeof);
+    obj.reset_symbuf.write((&s)[0 .. 1]);
     if (obj.extdatai + (IDMAX + IDOHD) + 3 > obj.extdata.sizeof)
         outextdata();
 
@@ -2808,7 +2808,7 @@ int OmfObj_common_block(Symbol *s,int flag,targ_size_t size,targ_size_t count)
   uint ti;
 
     //printf("OmfObj_common_block('%s',%d,%d,%d, %d)\n",s.Sident.ptr,flag,size,count, obj.extidx + 1);
-    obj.reset_symbuf.write(&s, s.sizeof);
+    obj.reset_symbuf.write((&s)[0 .. 1]);
     outextdata();               // borrow the extdata[] storage
     i = cast(uint)OmfObj_mangle(s,obj.extdata.ptr);
 
@@ -2944,7 +2944,7 @@ private void obj_modend()
         // Turn startaddress into a fixup.
         // Borrow heavilly from OmfObj_reftoident()
 
-        obj.reset_symbuf.write(&s, s.sizeof);
+        obj.reset_symbuf.write((&s)[0 .. 1]);
         symbol_debug(s);
         offset = 0;
         ty = s.ty();

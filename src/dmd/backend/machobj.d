@@ -1066,7 +1066,7 @@ version (SCPP)
                             srel.r_pcrel = 0;
                             srel.r_length = 2;
                             srel.r_value = targ_address;
-                            fobjbuf.write(&srel, srel.sizeof);
+                            fobjbuf.write((&srel)[0 .. 1]);
                             foffset += srel.sizeof;
                             ++nreloc;
 
@@ -2345,21 +2345,21 @@ void Obj_pubdef(int seg, Symbol *s, targ_size_t offset)
     {
         case SCglobal:
         case SCinline:
-            public_symbuf.write(&s, s.sizeof);
+            public_symbuf.write((&s)[0 .. 1]);
             break;
         case SCcomdat:
         case SCcomdef:
-            public_symbuf.write(&s, s.sizeof);
+            public_symbuf.write((&s)[0 .. 1]);
             break;
         case SCstatic:
             if (s.Sflags & SFLhidden)
             {
-                public_symbuf.write(&s, s.sizeof);
+                public_symbuf.write((&s)[0 .. 1]);
                 break;
             }
             goto default;
         default:
-            local_symbuf.write(&s, s.sizeof);
+            local_symbuf.write((&s)[0 .. 1]);
             break;
     }
     //printf("%p\n", *cast(void**)public_symbuf.buf);
@@ -2400,7 +2400,7 @@ int Obj_external(Symbol *s)
 {
     //printf("Obj_external('%s') %x\n",s.Sident.ptr,s.Svalue);
     symbol_debug(s);
-    extern_symbuf.write(&s, s.sizeof);
+    extern_symbuf.write((&s)[0 .. 1]);
     s.Sxtrnnum = 1;
     return 0;
 }
@@ -2753,7 +2753,7 @@ static if (0)
                 pseg.SDbuf.write(halts.ptr, 5);
 
                 // Add symbol s to indirectsymbuf1
-                indirectsymbuf1.write(&s, (Symbol *).sizeof);
+                indirectsymbuf1.write((&s)[0 .. 1]);
              L1:
                 val -= offset + 4;
                 Obj_addrel(seg, offset, null, jumpTableSeg, RELrel);
@@ -2797,7 +2797,7 @@ static if (0)
                 pseg.SDbuf.writezeros(_tysize[TYnptr]);
 
                 // Add symbol s to indirectsymbuf2
-                indirectsymbuf2.write(&s, (Symbol *).sizeof);
+                indirectsymbuf2.write((&s)[0 .. 1]);
 
              L2:
                 //printf("Obj_reftoident: seg = %d, offset = x%x, s = %s, val = x%x, pointersSeg = %d\n", seg, (int)offset, s.Sident.ptr, (int)val, pointersSeg);

@@ -34,7 +34,7 @@ struct Outbuffer
   nothrow:
     this(size_t initialSize)
     {
-        enlarge(cast(uint)initialSize);
+        enlarge(initialSize);
     }
 
     this(ubyte *bufx, size_t bufxlen, uint incx)
@@ -59,14 +59,14 @@ struct Outbuffer
     }
 
     // Reserve nbytes in buffer
-    void reserve(uint nbytes)
+    void reserve(size_t nbytes)
     {
         if (pend - p < nbytes)
             enlarge(nbytes);
     }
 
     // Reserve nbytes in buffer
-    void enlarge(uint nbytes)
+    void enlarge(size_t nbytes)
     {
         const size_t oldlen = pend - buf;
         const size_t used = p - buf;
@@ -97,7 +97,7 @@ struct Outbuffer
 
 
     // Write n zeros; return pointer to start of zeros
-    void *writezeros(uint n)
+    void *writezeros(size_t n)
     {
         if (pend - p < n)
             reserve(n);
@@ -111,7 +111,7 @@ struct Outbuffer
     {
         if (offset + nbytes > pend - buf)
         {
-            enlarge(cast(uint)(offset + nbytes - (p - buf)));
+            enlarge(offset + nbytes - (p - buf));
         }
         p = buf + offset;
 
@@ -130,20 +130,26 @@ struct Outbuffer
     // Clear bytes, no reserve check
     void clearn(size_t len)
     {
-        for (size_t i = 0; i < len; i++)
+        foreach (i; 0 .. len)
             *p++ = 0;
     }
 
     // Write an array to the buffer.
-    void write(const(void)* b, uint len)
+    extern (D)
+    void write(const(void)[] b)
     {
-        if (pend - p < len)
-            reserve(len);
-        memcpy(p,b,len);
-        p += len;
+        if (pend - p < b.length)
+            reserve(b.length);
+        memcpy(p, b.ptr, b.length);
+        p += b.length;
     }
 
-    void write(Outbuffer *b) { write(b.buf,cast(uint)(b.p - b.buf)); }
+    void write(const(void)* b, size_t len)
+    {
+        write(b[0 .. len]);
+    }
+
+    void write(Outbuffer *b) { write(b.buf[0 .. b.p - b.buf]); }
 
     /**
      * Flushes the stream. This will write any buffered
@@ -268,7 +274,7 @@ struct Outbuffer
      */
     void write(const(char)* s)
     {
-        write(s,cast(uint)strlen(s));
+        write(s[0 .. strlen(s)]);
     }
 
     /**
@@ -276,7 +282,7 @@ struct Outbuffer
      */
     void write(const(ubyte)* s)
     {
-        write(s,cast(uint)strlen(cast(const(char)*)s));
+        write(cast(const(char)*)s);
     }
 
     /**
@@ -284,7 +290,7 @@ struct Outbuffer
      */
     void writeString(const(char)* s)
     {
-        write(s,cast(uint)strlen(s)+1);
+        write(s[0 .. strlen(s)+1]);
     }
 
     /**
@@ -292,7 +298,7 @@ struct Outbuffer
      */
     void prependBytes(const(char)* s)
     {
-        prepend(s, cast(uint)strlen(s));
+        prepend(s, strlen(s));
     }
 
     /**
@@ -300,7 +306,7 @@ struct Outbuffer
      */
     void prepend(const(void)* b, size_t len)
     {
-        reserve(cast(uint)len);
+        reserve(len);
         memmove(buf + len,buf,p - buf);
         memcpy(buf,b,len);
         p += len;
@@ -342,7 +348,7 @@ struct Outbuffer
      * Set current size of buffer.
      */
 
-    void setsize(uint size)
+    void setsize(size_t size)
     {
         p = buf + size;
         //debug assert(buf <= p);

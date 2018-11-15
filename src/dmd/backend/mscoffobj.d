@@ -567,7 +567,7 @@ void write_sym(SymbolTable32* sym, bool bigobj)
     assert((*sym).sizeof == 20);
     if (bigobj)
     {
-        syment_buf.write(sym, (*sym).sizeof);
+        syment_buf.write(sym[0 .. 1]);
     }
     else
     {
@@ -842,12 +842,12 @@ version (SCPP)
     // Write the header
     if (bigobj)
     {
-        fobjbuf.write(&header, (header).sizeof);
+        fobjbuf.write((&header)[0 .. 1]);
         foffset = (header).sizeof;
     }
     else
     {
-        fobjbuf.write(&header_old, (header_old).sizeof);
+        fobjbuf.write((&header_old)[0 .. 1]);
         foffset = (header_old).sizeof;
     }
 
@@ -1040,7 +1040,7 @@ version (SCPP)
                 //assert(rel.r_symndx <= 20000);
 
                 assert(rel.r_type <= 0x14);
-                fobjbuf.write(&rel, (rel).sizeof);
+                fobjbuf.write((&rel)[0 .. 1]);
                 foffset += (rel).sizeof;
             }
         }
@@ -1271,7 +1271,7 @@ private void emitSectionBrace(const(char)* segname, const(char)* symname, int at
     Symbol *beg = symbol_name(name.ptr, SCglobal, tspvoid);
     beg.Sseg = seg_bg;
     beg.Soffset = 0;
-    symbuf.write(&beg, beg.sizeof);
+    symbuf.write((&beg)[0 .. 1]);
     if (coffZeroBytes) // unnecessary, but required by current runtime
         MsCoffObj_bytes(seg_bg, 0, I64 ? 8 : 4, null);
 
@@ -1281,7 +1281,7 @@ private void emitSectionBrace(const(char)* segname, const(char)* symname, int at
     Symbol *end = symbol_name(name.ptr, SCglobal, tspvoid);
     end.Sseg = seg_en;
     end.Soffset = 0;
-    symbuf.write(&end, (end).sizeof);
+    symbuf.write((&end)[0 .. 1]);
     if (coffZeroBytes) // unnecessary, but required by current runtime
         MsCoffObj_bytes(seg_en, 0, I64 ? 8 : 4, null);
 }
@@ -1329,7 +1329,7 @@ static if (0)
     Symbol *minfo_beg = symbol_name("_tlsstart", SCglobal, tspvoid);
     minfo_beg.Sseg = segbg;
     minfo_beg.Soffset = 0;
-    symbuf.write(&minfo_beg, (minfo_beg).sizeof);
+    symbuf.write((&minfo_beg)[0 .. 1]);
     MsCoffObj_bytes(segbg, 0, I64 ? 8 : 4, null);
 
     /* Create symbol _minfo_end that sits just after the .tls$AAB section
@@ -1337,7 +1337,7 @@ static if (0)
     Symbol *minfo_end = symbol_name("_tlsend", SCglobal, tspvoid);
     minfo_end.Sseg = segen;
     minfo_end.Soffset = 0;
-    symbuf.write(&minfo_end, (minfo_end).sizeof);
+    symbuf.write((&minfo_end)[0 .. 1]);
     MsCoffObj_bytes(segen, 0, I64 ? 8 : 4, null);
   }
 }
@@ -1945,14 +1945,14 @@ void MsCoffObj_pubdef(segidx_t seg, Symbol *s, targ_size_t offset)
     {
         case SCglobal:
         case SCinline:
-            symbuf.write(&s, (s).sizeof);
+            symbuf.write((&s)[0 .. 1]);
             break;
         case SCcomdat:
         case SCcomdef:
-            symbuf.write(&s, (s).sizeof);
+            symbuf.write((&s)[0 .. 1]);
             break;
         default:
-            symbuf.write(&s, (s).sizeof);
+            symbuf.write((&s)[0 .. 1]);
             break;
     }
     //printf("%p\n", *(void**)symbuf.buf);
@@ -1979,7 +1979,7 @@ int MsCoffObj_external_def(const(char)* name)
     //printf("MsCoffObj_external_def('%s')\n",name);
     assert(name);
     Symbol *s = symbol_name(name, SCextern, tspvoid);
-    symbuf.write(&s, (s).sizeof);
+    symbuf.write((&s)[0 .. 1]);
     return 0;
 }
 
@@ -1998,7 +1998,7 @@ int MsCoffObj_external(Symbol *s)
 {
     //printf("MsCoffObj_external('%s') %x\n",s.Sident.ptr,s.Svalue);
     symbol_debug(s);
-    symbuf.write(&s, (s).sizeof);
+    symbuf.write((&s)[0 .. 1]);
     s.Sxtrnnum = 1;
     return 1;
 }
@@ -2170,7 +2170,7 @@ void MsCoffObj_addrel(segidx_t seg, targ_size_t offset, Symbol *targsym,
         targsym = symbol_generate(SCstatic, tstypes[TYint]);
         targsym.Sseg = targseg;
         targsym.Soffset = val;
-        symbuf.write(&targsym, (targsym).sizeof);
+        symbuf.write((&targsym)[0 .. 1]);
     }
 
     Relocation rel = void;
@@ -2186,7 +2186,7 @@ void MsCoffObj_addrel(segidx_t seg, targ_size_t offset, Symbol *targsym,
         pseg.SDrel = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(pseg.SDrel);
     }
-    pseg.SDrel.write(&rel, (rel).sizeof);
+    pseg.SDrel.write((&rel)[0 .. 1]);
 }
 
 /****************************************
@@ -2385,7 +2385,7 @@ static if (0)
                 pseg.SDbuf.writezeros(_tysize[TYnptr]);
 
                 // Add symbol s to indirectsymbuf2
-                indirectsymbuf2.write(&s, (Symbol *).sizeof);
+                indirectsymbuf2.write((&s)[0 .. 1]);
 
              L2:
                 //printf("MsCoffObj_reftoident: seg = %d, offset = x%x, s = %s, val = x%x, pointersSeg = %d\n", seg, offset, s.Sident.ptr, val, pointersSeg);
@@ -2520,7 +2520,7 @@ void MsCoffObj_write_pointerRef(Symbol* s, uint soff)
     }
 
     // defer writing pointer references until the symbols are written out
-    ptrref_buf.write(&s, (s).sizeof);
+    ptrref_buf.write((&s)[0 .. 1]);
     ptrref_buf.write32(soff);
 }
 

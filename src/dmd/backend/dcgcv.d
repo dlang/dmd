@@ -1142,7 +1142,7 @@ printf("fwd struct ref\n");
         s.Stypidx = cv_debtyp(d);
         d.length = cast(ushort)len;    // restore length
     }
-    reset_symbuf.write(&s, (s).sizeof);
+    reset_symbuf.write((&s)[0 .. 1]);
 
     if (refonly)                        // if reference only
     {
@@ -1689,7 +1689,7 @@ static if (SYMDEB_TDB)
         s.Stypidx = cv_debtyp(d);
         d.length = cast(ushort)len;           // restore length
     }
-    reset_symbuf.write(&s, (s).sizeof);
+    reset_symbuf.write((&s)[0 .. 1]);
 
     // Compute the number of fields, and the length of the fieldlist record
     nfields = 0;
@@ -2682,7 +2682,7 @@ static if (1)
 {
             case SCtypedef:
                 s.Stypidx = typidx;
-                reset_symbuf.write(&s, (s).sizeof);
+                reset_symbuf.write((&s)[0 .. 1]);
                 goto L4;
 
             case SCstruct:
