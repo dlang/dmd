@@ -81,7 +81,7 @@ struct Console
                 static assert(0, "Unsupported Windows runtime.");
             }
         }
-        
+
         /*********************************
          * Create an instance of Console connected to stream fp.
          * Params:
