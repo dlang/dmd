@@ -519,7 +519,6 @@ $(GNAME CallConvention):
     $(B F)       $(GREEN // D)
     $(B U)       $(GREEN // C)
     $(B W)       $(GREEN // Windows)
-    $(B V)       $(GREEN // Pascal)
     $(B R)       $(GREEN // C++)
     $(B Y)       $(GREEN // Objective-C)
 

@@ -83,7 +83,6 @@ $(GNAME LinkageType):
     $(D C++)
     $(D D)
     $(D Windows)
-    $(D Pascal)
     $(D System)
     $(D Objective-C)
 )
@@ -101,7 +100,7 @@ $(GNAME LinkageType):
         $(D System) is the same as $(D Windows) on Windows platforms,
         and $(D C) on other platforms.
         $(D Implementation Note:)
-        for Win32 platforms, $(D Windows) and $(D Pascal) should exist.
+        for Win32 platforms, $(D Windows) should exist.
         )
 
         $(P C function calling conventions are
