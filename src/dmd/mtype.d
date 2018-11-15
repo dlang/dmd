@@ -5670,9 +5670,13 @@ extern (C++) final class TypeEnum : Type
         return sym.getMemtype(loc).size(loc);
     }
 
+    Type memType(const ref Loc loc = Loc.initial)
+    {
+        return sym.getMemtype(loc);
+    }
     override uint alignsize()
     {
-        Type t = sym.getMemtype(Loc.initial);
+        Type t = memType();
         if (t.ty == Terror)
             return 4;
         return t.alignsize();
@@ -5685,62 +5689,62 @@ extern (C++) final class TypeEnum : Type
 
     override bool isintegral()
     {
-        return sym.getMemtype(Loc.initial).isintegral();
+        return memType().isintegral();
     }
 
     override bool isfloating()
     {
-        return sym.getMemtype(Loc.initial).isfloating();
+        return memType().isfloating();
     }
 
     override bool isreal()
     {
-        return sym.getMemtype(Loc.initial).isreal();
+        return memType().isreal();
     }
 
     override bool isimaginary()
     {
-        return sym.getMemtype(Loc.initial).isimaginary();
+        return memType().isimaginary();
     }
 
     override bool iscomplex()
     {
-        return sym.getMemtype(Loc.initial).iscomplex();
+        return memType().iscomplex();
     }
 
     override bool isscalar()
     {
-        return sym.getMemtype(Loc.initial).isscalar();
+        return memType().isscalar();
     }
 
     override bool isunsigned()
     {
-        return sym.getMemtype(Loc.initial).isunsigned();
+        return memType().isunsigned();
     }
 
     override bool isBoolean()
     {
-        return sym.getMemtype(Loc.initial).isBoolean();
+        return memType().isBoolean();
     }
 
     override bool isString()
     {
-        return sym.getMemtype(Loc.initial).isString();
+        return memType().isString();
     }
 
     override bool isAssignable()
     {
-        return sym.getMemtype(Loc.initial).isAssignable();
+        return memType().isAssignable();
     }
 
     override bool needsDestruction()
     {
-        return sym.getMemtype(Loc.initial).needsDestruction();
+        return memType().needsDestruction();
     }
 
     override bool needsNested()
     {
-        return sym.getMemtype(Loc.initial).needsNested();
+        return memType().needsNested();
     }
 
     override MATCH implicitConvTo(Type to)
@@ -5780,17 +5784,17 @@ extern (C++) final class TypeEnum : Type
 
     override bool hasPointers()
     {
-        return sym.getMemtype(Loc.initial).hasPointers();
+        return memType().hasPointers();
     }
 
     override bool hasVoidInitPointers()
     {
-        return sym.getMemtype(Loc.initial).hasVoidInitPointers();
+        return memType().hasVoidInitPointers();
     }
 
     override Type nextOf()
     {
-        return sym.getMemtype(Loc.initial).nextOf();
+        return memType().nextOf();
     }
 
     override void accept(Visitor v)
