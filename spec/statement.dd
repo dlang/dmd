@@ -1419,7 +1419,7 @@ with (Foo)
 
         $(P Use of with object symbols that shadow local symbols with
         the same identifier are not allowed.
-        This is to reduce the risk of inadvertant breakage of with
+        This is to reduce the risk of inadvertent breakage of with
         statements when new members are added to the object declaration.
         )
 ---
