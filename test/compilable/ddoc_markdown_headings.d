@@ -28,28 +28,6 @@
 #
 ### ###
 
-Setext-Style Headings
-=====================
-
-H1
-==
-$(P
-H1
-=
-
-H2
-**
-)
-
-Multi-*line
-heading*
-***
-
-heading with initial spaces
-   ***
-and text directly after
-
-
 # Not Headings
 
 #hashtag not a heading because there's no space after the `#`
@@ -57,15 +35,5 @@ and text directly after
 ####### Not a heading because it has more than 6 `#`'s
 
 \## Not a heading because of the preceeding backslash
-
-Not a heading because of spaces within
-= =
-
-Not a heading because of spaces within
-*** *
-
-Not a heading because backslash-escaped
-\***
-
 +/
 module ddoc_markdown_headings;

@@ -2100,59 +2100,12 @@ private void removeAnyAtxHeadingSuffix(OutBuffer *buf, size_t i)
         buf.remove(iWhitespaceStart, j - iWhitespaceStart);
 }
 
-/**
- * Strip the underline from a setext-style heading, e.g. remove all `=`'s and
- * surrounding whitespace from:
- *
- * This is a heading
- * =================
- *
- * Params:
- *  buf               = an OutBuffer containing the DDoc
- *  i                 = the index within `buf` of the first underline character
- *  iLineStart        = the index within `buf` of the start of this line
- *  iParagraphStart   = the index within `buf` of the most recent paragraph. May
- *                      be adjusted upon function return to point to the start
- *                      of the line before this underline, if it is empty.
- * Returns: the new index of `i` after stripping the underline, or `i` if not at
- *          a setext-style underline
- */
-private size_t stripSetextUnderline(OutBuffer *buf, size_t i, size_t iLineStart, ref size_t iParagraphStart)
-{
-    if (!global.params.markdown)
-        return i;
-
-    // skip the underline chars and then trailing whitespace
-    const underlineChar = buf.data[i];
-    size_t iAfterUnderline = skipChars(buf, i, [underlineChar]);
-    iAfterUnderline = skipChars(buf, iAfterUnderline, " \t\r");
-
-    // if there's anything else on the line, it isn't a setext heading
-    if (iAfterUnderline < buf.offset && buf.data[iAfterUnderline] != '\n')
-        return i;
-
-    // skip backwards to the previous text
-    size_t iBeforeNewline = iLineStart;
-    while (iBeforeNewline > 0 && (buf.data[iBeforeNewline-1] == '\r' || buf.data[iBeforeNewline-1] == '\n'))
-        --iBeforeNewline;
-
-    // if there were any blank lines, it isn't a setext heading
-    if (iBeforeNewline <= iParagraphStart)
-    {
-        iParagraphStart = iAfterUnderline;
-        return i;
-    }
-
-    buf.remove(iBeforeNewline, iAfterUnderline - iBeforeNewline);
-    return iBeforeNewline;
-}
-
 /****************************************************
  * Wrap text in a Markdown heading macro, e.g. `$(H2 heading text`).
  * Params:
  *  buf           = an OutBuffer containing the DDoc
  *  iStart        = the index within `buf` that the Markdown heading starts at
- *  i             = the index within `buf` of the character after the last
+ *  iEnd          = the index within `buf` of the character after the last
  *                  heading character. Is incremented by the length of the
  *                  inserted heading macro when this function ends.
  *  loc           = the location of the Ddoc within the file
@@ -2510,7 +2463,6 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
     int inCode = 0;
     int inBacktick = 0;
     int macroLevel = 0;
-    int previousMacroLevel = 0;
     int parenLevel = 0;
     size_t iCodeStart = 0; // start of code section
     size_t codeIndent = 0;
@@ -2564,11 +2516,6 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
             iLineStart = i + 1;
             loc.linnum += incrementLoc;
 
-            // update the paragraph start if we just entered a macro, to avoid
-            // incorrectly wrapping the macro in a setext heading
-            if (previousMacroLevel < macroLevel && iParagraphStart < iLineStart)
-                iParagraphStart = iLineStart;
-            previousMacroLevel = macroLevel;
             break;
 
         case '<':
@@ -2820,50 +2767,10 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
             }
             break;
 
-        case '=':
-        {
-            /* A line consisting solely of == indicates a Setext-style heading on the previous line. */
-            if (!leadingBlank || inCode || !global.params.markdown)
-                break;
-
-            leadingBlank = false;
-
-            const iHeadingEnd = stripSetextUnderline(buf, i, iLineStart, iParagraphStart);
-            if (iHeadingEnd == i)
-                break;
-
-            i = iHeadingEnd + replaceMarkdownEmphasis(buf, loc, inlineDelimiters);
-            iLineStart = i;
-
-            headingLevel = 1;
-            endMarkdownHeading(buf, iParagraphStart, i, loc, headingLevel);
-
-            iParagraphStart = skipChars(buf, i+1, " \t\r\n");
-            break;
-        }
-
         case '*':
         {
             if (inCode || inBacktick || !global.params.markdown)
                 break;
-
-            if (leadingBlank)
-            {
-                /* A line consisting solely of ** indicates a Setext-style heading on the previous line. */
-                leadingBlank = false;
-                const iHeadingEnd = stripSetextUnderline(buf, i, iLineStart, iParagraphStart);
-                if (iHeadingEnd != i)
-                {
-                    i = iHeadingEnd + replaceMarkdownEmphasis(buf, loc, inlineDelimiters);
-                    iLineStart = i;
-
-                    headingLevel = 2;
-                    endMarkdownHeading(buf, iParagraphStart, i, loc, headingLevel);
-
-                    iParagraphStart = skipChars(buf, i+1, " \t\r\n");
-                    break;
-                }
-            }
 
             // Markdown emphasis
             const leftC = i > offset ? buf.data[i-1] : '\0';

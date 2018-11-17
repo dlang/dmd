@@ -5,19 +5,11 @@
 /*
 TEST_OUTPUT:
 ----
-compilable/ddoc_markdown_headings_verbose.d(23): Ddoc: added heading 'Heading'
-compilable/ddoc_markdown_headings_verbose.d(23): Ddoc: added heading 'Another Heading'
-compilable/ddoc_markdown_headings_verbose.d(23): Ddoc: added heading 'And Another'
+compilable/ddoc_markdown_headings_verbose.d(15): Ddoc: added heading 'Heading'
 ----
 */
 
 /++
 # Heading
-
-Another Heading
-===============
-
-And Another
-***********
 +/
 module ddoc_markdown_headings_verbose;
