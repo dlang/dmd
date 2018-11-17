@@ -54,6 +54,8 @@ COPY=\
 	$(IMPDIR)\core\stdcpp\typeinfo.d \
 	$(IMPDIR)\core\stdcpp\xutility.d \
 	\
+	$(IMPDIR)\core\sys\darwin\crt_externs.d \
+	$(IMPDIR)\core\sys\darwin\dlfcn.d \
 	$(IMPDIR)\core\sys\darwin\execinfo.d \
 	$(IMPDIR)\core\sys\darwin\pthread.d \
 	\
