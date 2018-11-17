@@ -851,7 +851,7 @@ pure nothrow @system @nogc unittest
     version (BigEndian)
     {
         const ubyte[7] a = [99, 4, 3, 2, 1, 5, 88];
-        const uint[2] b = [0x01_02_03_04, 0x05_ff_ff_ff];
+        const uint[2] b = [0x04_03_02_01, 0x05_ff_ff_ff];
     }
     else
     {
