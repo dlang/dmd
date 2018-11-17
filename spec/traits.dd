@@ -553,6 +553,7 @@ $(H2 $(GNAME isReturnOnStack))
         parameter to the function.
     )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     struct S { int[20] a; }
     int test1();
@@ -561,6 +562,7 @@ $(H2 $(GNAME isReturnOnStack))
     static assert(__traits(isReturnOnStack, test1) == false);
     static assert(__traits(isReturnOnStack, test2) == true);
     ---
+)
 
     $(IMPLEMENTATION_DEFINED
         This is determined by the function ABI calling convention in use,
@@ -614,6 +616,7 @@ $(H2 $(GNAME identifier))
         $(P Takes one argument, a symbol. Returns the identifier
         for that symbol as a string literal.
         )
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 import std.stdio;
 
@@ -623,6 +626,7 @@ pragma(msg, typeof(__traits(identifier, var))); // string
 writeln(var);                                   // 123
 writeln(__traits(identifier, var));             // "var"
 ---
+)
 
 $(H2 $(GNAME getAliasThis))
 
