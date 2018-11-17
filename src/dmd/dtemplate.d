@@ -1930,7 +1930,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                             ntargs <= dedargs.dim - 1)
                         {
                             // make tuple argument an empty tuple
-                            oded = cast(RootObject)new Tuple();
+                            oded = new Tuple();
                         }
                         else
                             goto Lnomatch;
