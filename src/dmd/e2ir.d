@@ -1988,14 +1988,14 @@ elem *toElem(Expression e, IRState *irs)
                 FuncDeclaration inv;
 
                 // If e1 is a class object, call the class invariant on it
-                if (irs.params.useInvariants && t1.ty == Tclass &&
+                if (irs.params.useInvariants == CHECKENABLE.on && t1.ty == Tclass &&
                     !(cast(TypeClass)t1).sym.isInterfaceDeclaration() &&
                     !(cast(TypeClass)t1).sym.isCPPclass())
                 {
                     ts = symbol_genauto(Type_toCtype(t1));
                     einv = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DINVARIANT)), el_var(ts));
                 }
-                else if (irs.params.useInvariants &&
+                else if (irs.params.useInvariants == CHECKENABLE.on &&
                     t1.ty == Tpointer &&
                     t1.nextOf().ty == Tstruct &&
                     (inv = (cast(TypeStruct)t1.nextOf()).sym.inv) !is null)

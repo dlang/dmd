@@ -124,9 +124,6 @@ struct Param
     bool hasObjectiveC;     // target supports Objective-C
     bool mscoff = false;    // for Win32: write MsCoff object files instead of OMF
     Diagnostic useDeprecated = Diagnostic.inform;  // how use of deprecated features are handled
-    bool useInvariants = true;  // generate class invariant checks
-    bool useIn = true;          // generate precondition checks
-    bool useOut = true;         // generate postcondition checks
     bool stackstomp;            // add stack stomping code
     bool useUnitTests;          // generate unittest code
     bool useInline = false;     // inline expand functions
@@ -172,10 +169,14 @@ struct Param
 
     CPU cpu = CPU.baseline; // CPU instruction set to target
 
+    CHECKENABLE useInvariants  = CHECKENABLE._default;  // generate class invariant checks
+    CHECKENABLE useIn          = CHECKENABLE._default;  // generate precondition checks
+    CHECKENABLE useOut         = CHECKENABLE._default;  // generate postcondition checks
     CHECKENABLE useArrayBounds = CHECKENABLE._default;  // when to generate code for array bounds checks
     CHECKENABLE useAssert      = CHECKENABLE._default;  // when to generate code for assert()'s
     CHECKENABLE useSwitchError = CHECKENABLE._default;  // check for switches without a default
-    CHECKACTION checkAction;       // action to take when bounds, asserts or switch defaults are violated
+
+    CHECKACTION checkAction = CHECKACTION.D; // action to take when bounds, asserts or switch defaults are violated
 
     uint errorLimit = 20;
 
