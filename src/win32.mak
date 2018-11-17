@@ -180,7 +180,7 @@ GLUE_SRCS=$D/irstate.d $D/toctype.d $D/glue.d $D/gluelayer.d $D/todt.d $D/tocsym
 BACK_HDRS=$C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
 	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d $C/iasm.d $C/codebuilder.d \
 	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d \
-	$C/dlist.d $C/goh.d $C/memh.d $C/melf.d $C/varstats.di
+	$C/dlist.d $C/goh.d $C/memh.d $C/melf.d $C/varstats.di $C/barray.d
 
 TK_HDRS=
 
@@ -198,7 +198,7 @@ GBACKOBJ= $G/go.obj $G/gdag.obj $G/gother.obj $G/gflow.obj $G/gloop.obj $G/var.o
 	$G/blockopt.obj $G/cgobj.obj $G/cg.obj $G/dcgcv.obj $G/dtype.obj \
 	$G/debugprint.obj $G/dcode.obj $G/cg87.obj $G/cgxmm.obj $G/cgsched.obj $G/ee.obj $G/symbol.obj \
 	$G/cgcod.obj $G/cod1.obj $G/cod2.obj $G/cod3.obj $G/cod4.obj $G/cod5.obj \
-	$G/bcomplex.obj $G/ptrntab.obj $G/md5.obj \
+	$G/bcomplex.obj $G/ptrntab.obj $G/md5.obj $G/barray.obj $G/goh.obj \
 	$G/mscoffobj.obj $G/pdata.obj $G/cv8.obj $G/backconfig.obj \
 	$G/divcoeff.obj $G/dwarfdbginf.obj $G/compress.obj $G/dvarstats.obj \
 	$G/ph2.obj $G/util2.obj $G/tk.obj $G/gsroa.obj $G/dvec.obj $G/filespec.obj \
@@ -236,7 +236,7 @@ BACKSRC= $C\optabgen.d \
 	$C\nteh.d $C\os.d $C\out.d $C\ptrntab.d $C\drtlsym.d \
 	$C\dtype.d \
 	$C\elfobj.d \
-	$C\dwarfdbginf.d $C\machobj.d $C\aarray.d \
+	$C\dwarfdbginf.d $C\machobj.d $C\aarray.d $C\barray.d \
 	$C\strtold.c \
 	$C\md5.d $C\ph2.d $C\util2.d \
 	$C\mscoffobj.d $C\pdata.d $C\cv8.d $C\backconfig.d \
@@ -454,6 +454,9 @@ $G\VERSION : ..\VERSION $G
 $G/backconfig.obj : $C\backconfig.d
 	$(HOST_DC) -c -betterC -of$@ $(DFLAGS) -mv=dmd.backend=$C $C\backconfig
 
+$G/barray.obj : $C\barray.d
+	$(HOST_DC) -c -betterC -of$@ $(DFLAGS) -mv=dmd.backend=$C $C\barray
+
 $G/bcomplex.obj : $C\bcomplex.d
 	$(HOST_DC) -c -betterC -of$@ $(DFLAGS) -mv=dmd.backend=$C $C\bcomplex
 
@@ -552,6 +555,9 @@ $G/fp.obj : $C\fp.c
 
 $G/go.obj : $C\go.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\go
+
+$G/goh.obj : $C\goh.d
+	$(HOST_DC) -c -betterC -of$@ $(DFLAGS) -mv=dmd.backend=$C $C\goh
 
 $G/gflow.obj : $C\gflow.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\gflow

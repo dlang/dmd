@@ -35,6 +35,7 @@ import dmd.backend.outbuf;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.backend.barray;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 
@@ -171,13 +172,9 @@ private void rdgenkill()
      */
     const size_t numbits = go.deftop;
     const size_t dim = (numbits + (VECBITS - 1)) >> VECSHIFT;
-    const uint sz = cast(uint)((dim + 2) * num_unambig_def);
-    if (sz > go.dnunambigmax)
-    {
-        go.dnunambigmax = sz;
-        go.dnunambig = cast(vec_base_t *) util_realloc(go.dnunambig, sz, vec_base_t.sizeof);
-    }
-    memset(go.dnunambig, 0, go.dnunambigmax * vec_base_t.sizeof);
+    const sz = (dim + 2) * num_unambig_def;
+    go.dnunambig.setLength(sz);
+    go.dnunambig[] = 0;
 
     const uint deftopsave = go.deftop;
     go.deftop = 0;
@@ -297,7 +294,7 @@ private void initDNunambigVectors()
             go.defnod[i].DNunambig = v;
         }
     }
-    assert(j <= go.dnunambigmax);
+    assert(j <= go.dnunambig.length);
 }
 
 /*************************************
