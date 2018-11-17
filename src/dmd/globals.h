@@ -99,9 +99,6 @@ struct Param
     bool hasObjectiveC; // target supports Objective-C
     bool mscoff;        // for Win32: write COFF object files instead of OMF
     Diagnostic useDeprecated;
-    bool useInvariants; // generate class invariant checks
-    bool useIn;         // generate precondition checks
-    bool useOut;        // generate postcondition checks
     bool stackstomp;    // add stack stomping code
     bool useUnitTests;  // generate unittest code
     bool useInline;     // inline expand functions
@@ -138,9 +135,13 @@ struct Param
 
     CPU cpu;                // CPU instruction set to target
 
+    CHECKENABLE useInvariants;     // generate class invariant checks
+    CHECKENABLE useIn;             // generate precondition checks
+    CHECKENABLE useOut;            // generate postcondition checks
     CHECKENABLE useArrayBounds;    // when to generate code for array bounds checks
     CHECKENABLE useAssert;         // when to generate code for assert()'s
     CHECKENABLE useSwitchError;    // check for switches without a default
+
     CHECKACTION checkAction;       // action to take when bounds, asserts or switch defaults are violated
 
     unsigned errorLimit;

@@ -1629,14 +1629,14 @@ extern (C++) class FuncDeclaration : Declaration
     {
         auto ad = isThis();
         ClassDeclaration cd = ad ? ad.isClassDeclaration() : null;
-        return (ad && !(cd && cd.isCPPclass()) && global.params.useInvariants && (protection.kind == Prot.Kind.protected_ || protection.kind == Prot.Kind.public_ || protection.kind == Prot.Kind.export_) && !naked);
+        return (ad && !(cd && cd.isCPPclass()) && global.params.useInvariants == CHECKENABLE.on && (protection.kind == Prot.Kind.protected_ || protection.kind == Prot.Kind.public_ || protection.kind == Prot.Kind.export_) && !naked);
     }
 
     bool addPostInvariant()
     {
         auto ad = isThis();
         ClassDeclaration cd = ad ? ad.isClassDeclaration() : null;
-        return (ad && !(cd && cd.isCPPclass()) && ad.inv && global.params.useInvariants && (protection.kind == Prot.Kind.protected_ || protection.kind == Prot.Kind.public_ || protection.kind == Prot.Kind.export_) && !naked);
+        return (ad && !(cd && cd.isCPPclass()) && ad.inv && global.params.useInvariants == CHECKENABLE.on && (protection.kind == Prot.Kind.protected_ || protection.kind == Prot.Kind.public_ || protection.kind == Prot.Kind.export_) && !naked);
     }
 
     override const(char)* kind() const
@@ -3281,7 +3281,7 @@ extern (C++) final class CtorDeclaration : FuncDeclaration
 
     override bool addPostInvariant()
     {
-        return (isThis() && vthis && global.params.useInvariants);
+        return (isThis() && vthis && global.params.useInvariants == CHECKENABLE.on);
     }
 
     override inout(CtorDeclaration) isCtorDeclaration() inout
@@ -3323,7 +3323,7 @@ extern (C++) final class PostBlitDeclaration : FuncDeclaration
 
     override bool addPostInvariant()
     {
-        return (isThis() && vthis && global.params.useInvariants);
+        return (isThis() && vthis && global.params.useInvariants == CHECKENABLE.on);
     }
 
     override bool overloadInsert(Dsymbol s)
@@ -3382,7 +3382,7 @@ extern (C++) final class DtorDeclaration : FuncDeclaration
 
     override bool addPreInvariant()
     {
-        return (isThis() && vthis && global.params.useInvariants);
+        return (isThis() && vthis && global.params.useInvariants == CHECKENABLE.on);
     }
 
     override bool addPostInvariant()

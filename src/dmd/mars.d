@@ -337,9 +337,14 @@ private int tryMain(size_t argc, const(char)** argv)
     }
     if (global.params.release)
     {
-        global.params.useInvariants = false;
-        global.params.useIn = false;
-        global.params.useOut = false;
+        if (global.params.useInvariants == CHECKENABLE._default)
+            global.params.useInvariants = CHECKENABLE.off;
+
+        if (global.params.useIn == CHECKENABLE._default)
+            global.params.useIn = CHECKENABLE.off;
+
+        if (global.params.useOut == CHECKENABLE._default)
+            global.params.useOut = CHECKENABLE.off;
 
         if (global.params.useArrayBounds == CHECKENABLE._default)
             global.params.useArrayBounds = CHECKENABLE.safeonly;
@@ -350,6 +355,30 @@ private int tryMain(size_t argc, const(char)** argv)
         if (global.params.useSwitchError == CHECKENABLE._default)
             global.params.useSwitchError = CHECKENABLE.off;
     }
+    else
+    {
+        if (global.params.useInvariants == CHECKENABLE._default)
+            global.params.useInvariants = CHECKENABLE.on;
+
+        if (global.params.useIn == CHECKENABLE._default)
+            global.params.useIn = CHECKENABLE.on;
+
+        if (global.params.useOut == CHECKENABLE._default)
+            global.params.useOut = CHECKENABLE.on;
+
+        if (global.params.useArrayBounds == CHECKENABLE._default)
+            global.params.useArrayBounds = CHECKENABLE.on;
+
+        if (global.params.useAssert == CHECKENABLE._default)
+            global.params.useAssert = CHECKENABLE.on;
+
+        if (global.params.useSwitchError == CHECKENABLE._default)
+            global.params.useSwitchError = CHECKENABLE.on;
+    }
+
+    if (global.params.useUnitTests)
+        global.params.useAssert = CHECKENABLE.on;
+
     if (global.params.betterC)
     {
         global.params.checkAction = CHECKACTION.C;
@@ -357,17 +386,7 @@ private int tryMain(size_t argc, const(char)** argv)
         global.params.useTypeInfo = false;
         global.params.useExceptions = false;
     }
-    if (global.params.useUnitTests)
-        global.params.useAssert = CHECKENABLE.on;
 
-    if (global.params.useArrayBounds == CHECKENABLE._default)
-        global.params.useArrayBounds = CHECKENABLE.on;
-
-    if (global.params.useAssert == CHECKENABLE._default)
-        global.params.useAssert = CHECKENABLE.on;
-
-    if (global.params.useSwitchError == CHECKENABLE._default)
-        global.params.useSwitchError = CHECKENABLE.on;
 
     if (!global.params.obj || global.params.lib)
         global.params.link = false;
