@@ -87,7 +87,7 @@ private __gshared
 void flowrd()
 {
     rdgenkill();            /* Compute Bgen and Bkill for RDs       */
-    if (go.deftop == 0)     /* if no definition elems               */
+    if (go.defnod.length == 0)     /* if no definition elems               */
         return;             /* no analysis to be done               */
 
     /* The transfer equation is:                                    */
@@ -99,7 +99,7 @@ void flowrd()
         vec_copy(b.Boutrd, b.Bgen);
 
     bool anychng;
-    vec_t tmp = vec_calloc(go.deftop);
+    vec_t tmp = vec_calloc(go.defnod.length);
     do
     {
         anychng = false;
@@ -131,7 +131,7 @@ void flowrd()
         dbg_printf("Reaching definitions\n");
         foreach (i, b; dfo[0 .. dfotop])    // for each block
         {
-            assert(vec_numbits(b.Binrd) == go.deftop);
+            assert(vec_numbits(b.Binrd) == go.defnod.length);
             dbg_printf("B%d Bin ", cast(int)i); vec_println(b.Binrd);
             dbg_printf("  Bgen "); vec_println(b.Bgen);
             dbg_printf(" Bkill "); vec_println(b.Bkill);
@@ -148,40 +148,33 @@ private void rdgenkill()
 {
     /* Compute number of definition elems. */
     uint num_unambig_def = 0;
-    go.deftop = 0;
+    uint deftop = 0;
     foreach (b; dfo[0 .. dfotop])    // for each block
         if (b.Belem)
         {
-            go.deftop += numdefelems(b.Belem, &num_unambig_def);
+            deftop += numdefelems(b.Belem, &num_unambig_def);
         }
-    if (go.deftop == 0)
-        return;
 
     /* Allocate array of pointers to all definition elems   */
     /*      The elems are in dfo order.                     */
     /*      go.defnod[]s consist of a elem pointer and a pointer */
     /*      to the enclosing block.                         */
-    if (go.deftop > go.defmax)
-    {
-        go.defmax = go.deftop;
-        go.defnod = cast(DefNode *) util_realloc(go.defnod, go.defmax, DefNode.sizeof);
-    }
-    memset(go.defnod, 0, go.deftop * DefNode.sizeof);
+    go.defnod.setLength(deftop);
+    if (deftop == 0)
+        return;
 
     /* Allocate buffer for the DNunambig vectors
      */
-    const size_t numbits = go.deftop;
-    const size_t dim = (numbits + (VECBITS - 1)) >> VECSHIFT;
+    const size_t dim = (deftop + (VECBITS - 1)) >> VECSHIFT;
     const sz = (dim + 2) * num_unambig_def;
     go.dnunambig.setLength(sz);
     go.dnunambig[] = 0;
 
-    const uint deftopsave = go.deftop;
-    go.deftop = 0;
+    go.defnod.setLength(0);
     foreach (b; dfo[0 .. dfotop])    // for each block
         if (b.Belem)
-            asgdefelems(b, b.Belem);
-    assert(go.deftop == deftopsave);
+            asgdefelems(b, b.Belem);    // fill in go.defnod[]
+    assert(go.defnod.length == deftop);
 
     initDNunambigVectors();
 
@@ -200,8 +193,8 @@ private void rdgenkill()
             vec_clear(b.Bkill);        // KILL nothing
             vec_set(b.Bgen);           // GEN everything
         }
-        b.Binrd = vec_calloc(go.deftop);
-        b.Boutrd = vec_calloc(go.deftop);
+        b.Binrd = vec_calloc(deftop);
+        b.Boutrd = vec_calloc(deftop);
     }
 }
 
@@ -260,10 +253,8 @@ private void asgdefelems(block *b,elem *n)
         asgdefelems(b,n.EV.E1);
     if (OTdef(op))
     {
-        const uint i = go.deftop++;
-        go.defnod[i].DNblock = b;
-        go.defnod[i].DNelem = n;
-        n.Edef = i;
+        n.Edef = cast(uint)go.defnod.length;
+        go.defnod.push(DefNode(n, b, null));
     }
     else
         n.Edef = ~0;       // just to ensure it is not in the array
@@ -276,11 +267,11 @@ private void asgdefelems(block *b,elem *n)
 private void initDNunambigVectors()
 {
     //printf("initDNunambigVectors()\n");
-    const size_t numbits = go.deftop;
+    const size_t numbits = go.defnod.length;
     const size_t dim = (numbits + (VECBITS - 1)) >> VECSHIFT;
 
     uint j = 0;
-    foreach (uint i; 0 .. go.deftop)
+    foreach (const i; 0 .. go.defnod.length)
     {
         elem *e = go.defnod[i].DNelem;
         if (OTassign(e.Eoper) && e.EV.E1.Eoper == OPvar)
@@ -304,8 +295,8 @@ private void initDNunambigVectors()
 private void rdelem(vec_t *pgen,vec_t *pkill,   /* where to put result          */
         elem *n)                                /* tree to evaluate for GEN and KILL */
 {
-    *pgen = vec_calloc(go.deftop);
-    *pkill = vec_calloc(go.deftop);
+    *pgen = vec_calloc(go.defnod.length);
+    *pkill = vec_calloc(go.defnod.length);
     if (n)
         accumrd(*pgen,*pkill,n);
 }

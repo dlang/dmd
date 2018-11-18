@@ -77,9 +77,7 @@ struct GlobalOptimizer
     mftype mfoptim;
     uint changes;       // # of optimizations performed
 
-    DefNode *defnod;    // array of definition elems
-    uint deftop;        // # of entries in defnod[]
-    uint defmax;        // capacity of defnod[]
+    Barray!DefNode defnod;    // array of definition elems
     uint unambigtop;    // number of unambiguous defininitions ( <= deftop )
 
     Barray!(vec_base_t) dnunambig;  // pool to allocate DNunambig vectors from

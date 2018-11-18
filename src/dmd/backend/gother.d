@@ -143,7 +143,7 @@ private void rd_compute()
     if (debugc) printf("constprop()\n");
     assert(dfo);
     flowrd();               /* compute reaching definitions (rd)    */
-    if (go.deftop == 0)     /* if no reaching defs                  */
+    if (go.defnod.length == 0)     /* if no reaching defs                  */
         return;
     assert(rellist == null && inclist == null && eqeqlist == null);
     block_clearvisit();
@@ -224,7 +224,6 @@ private void conpropwalk(elem *n,vec_t IN)
     elem *t;
 
     assert(n && IN);
-    /*chkvecdim(go.deftop,0);*/
     //printf("conpropwalk()\n"),elem_print(n);
     op = n.Eoper;
     if (op == OPcolon || op == OPcolon2)
@@ -643,7 +642,7 @@ extern (C) list_t listrds(vec_t IN,elem *e,vec_t f)
     unambig = s.Sflags & SFLunambig;
     if (f)
         vec_clear(f);
-    for (i = 0; (i = cast(uint) vec_index(i, IN)) < go.deftop; ++i)
+    for (i = 0; (i = cast(uint) vec_index(i, IN)) < go.defnod.length; ++i)
     {
         elem *d = go.defnod[i].DNelem;
         //printf("\tlooking at "); WReqn(d); printf("\n");

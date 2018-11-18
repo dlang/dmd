@@ -299,7 +299,7 @@ void WRblocklist(list_t bl)
 void WRdefnod()
 { int i;
 
-  for (i = 0; i < go.deftop; i++)
+  for (i = 0; i < go.defnod.length; i++)
   {     printf("defnod[%d] in B%d = (", go.defnod[i].DNblock.Bdfoidx, i);
         WReqn(go.defnod[i].DNelem);
         printf(");\n");

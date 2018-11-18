@@ -863,7 +863,7 @@ restart:
             flowlv();               /* compute live variables        */
             flowae();               // compute available expressions
             doflow = false;         /* no need to redo it           */
-            if (go.deftop == 0)     /* if no definition elems       */
+            if (go.defnod.length == 0)     /* if no definition elems       */
                 break;              /* no need to optimize          */
         }
         lv = l.Lloop;
@@ -876,7 +876,7 @@ restart:
 
         /* Find & mark all LIs   */
         gin = vec_clone(l.Lpreheader.Bout);
-        rd = vec_calloc(go.deftop);        /* allocate our running RD vector */
+        rd = vec_calloc(go.defnod.length);        /* allocate our running RD vector */
         for (i = 0; (i = cast(uint) vec_index(i, lv)) < dfotop; ++i) // for each block in loop
         {
             block *b = dfo[i];
@@ -889,7 +889,7 @@ restart:
                 {
                     printf("i = %d\n",i);
                     {
-                        for (int j = 0; j < go.deftop; j++)
+                        for (int j = 0; j < go.defnod.length; j++)
                             elem_print(go.defnod[j].DNelem);
                     }
                     printf("rd    : "); vec_println(rd);
@@ -903,7 +903,7 @@ restart:
                 {
                     printf("B%d\n", i);
                     {
-                        foreach (j; 0 .. go.deftop)
+                        foreach (j; 0 .. go.defnod.length)
                         {
                             printf("  [%2d] ", j);
                             WReqn(go.defnod[j].DNelem);
@@ -982,7 +982,7 @@ private void markinvar(elem *n,vec_t rd)
     elem *n1;
 
     assert(n && rd);
-    assert(vec_numbits(rd) == go.deftop);
+    assert(vec_numbits(rd) == go.defnod.length);
     switch (n.Eoper)
     {
         case OPaddass:  case OPminass:  case OPmulass:  case OPandass:
@@ -1172,10 +1172,10 @@ private void markinvar(elem *n,vec_t rd)
                 v = n1.EV.Vsym;
                 if (v.Sflags & SFLunambig)
                 {
-                    tmp = vec_calloc(go.deftop);
+                    tmp = vec_calloc(go.defnod.length);
                     //filterrd(tmp,rd,v);
                     listrds(rd,n1,tmp);
-                    for (i = 0; (i = cast(uint) vec_index(i, tmp)) < go.deftop; ++i)
+                    for (i = 0; (i = cast(uint) vec_index(i, tmp)) < go.defnod.length; ++i)
                         if (go.defnod[i].DNelem != n &&
                             vec_testbit(go.defnod[i].DNblock.Bdfoidx,lv))
                                 goto L3;
@@ -1231,13 +1231,13 @@ private void markinvar(elem *n,vec_t rd)
                     // check for the a[j].length was skipped.
                     else if (n.Ejty)
                     {
-                        tmp = vec_calloc(go.deftop);
+                        tmp = vec_calloc(go.defnod.length);
                         filterrdind(tmp,rd,n);  // only the RDs pertaining to n
 
                         // if (no RDs within loop)
                         //      then it's loop invariant
 
-                        for (i = 0; (i = cast(uint) vec_index(i, tmp)) < go.deftop; ++i)  // for each RD
+                        for (i = 0; (i = cast(uint) vec_index(i, tmp)) < go.defnod.length; ++i)  // for each RD
                             if (vec_testbit(go.defnod[i].DNblock.Bdfoidx,lv))
                                 goto L10;       // found a RD in the loop
 
@@ -1279,14 +1279,14 @@ private void markinvar(elem *n,vec_t rd)
             v = n.EV.Vsym;
             if (v.Sflags & SFLunambig)     // must be unambiguous to be LI
             {
-                tmp = vec_calloc(go.deftop);
+                tmp = vec_calloc(go.defnod.length);
                 //filterrd(tmp,rd,v);       // only the RDs pertaining to v
                 listrds(rd,n,tmp);  // only the RDs pertaining to v
 
                 // if (no RDs within loop)
                 //  then it's loop invariant
 
-                for (i = 0; (i = cast(uint) vec_index(i, tmp)) < go.deftop; ++i)  // for each RD
+                for (i = 0; (i = cast(uint) vec_index(i, tmp)) < go.defnod.length; ++i)  // for each RD
                     if (vec_testbit(go.defnod[i].DNblock.Bdfoidx,lv))
                         goto L1;    // found a RD in the loop
                 makeLI(n);
@@ -1359,7 +1359,7 @@ void fillInDNunambig(vec_t v, elem *e)
 
 
     // for all unambig defs in go.defnod[]
-    foreach (uint i; 0 .. go.deftop)
+    foreach (const i; 0 .. go.defnod.length)
     {
         elem *tn = go.defnod[i].DNelem;
         elem *tn1;
@@ -1379,7 +1379,7 @@ void fillInDNunambig(vec_t v, elem *e)
         if (toff <= tn1.EV.Voffset &&
             tn1.EV.Voffset + tn1size <= ttop)
         {
-            vec_setbit(i, v);
+            vec_setbit(cast(uint)i, v);
         }
     }
 }
@@ -1392,7 +1392,7 @@ void fillInDNunambig(vec_t v, elem *e)
  *      rd      reaching def vector to update
  *              (clear bits for defs we kill, set bit for n (which is the
  *               def we are genning))
- *      vecdim  go.deftop
+ *      vecdim  go.defnod.length
  */
 
 extern (C) {
@@ -1424,7 +1424,7 @@ void updaterd(elem *n,vec_t GEN,vec_t KILL)
             if (OTassign(op) && t.Eoper != OPvar && t.Ejty)
             {
                 // for all unambig defs in go.defnod[]
-                foreach (uint i; 0 .. go.deftop)
+                foreach (uint i; 0 .. go.defnod.length)
                 {
                     elem *tn = go.defnod[i].DNelem;
                     elem *tn1;
@@ -1645,7 +1645,7 @@ Lnextlis:
                     }
                 }
 
-                tmp = vec_calloc(go.deftop);
+                tmp = vec_calloc(go.defnod.length);
                 uint i;
                 for (i = 0; (i = cast(uint) vec_index(i, l.Lloop)) < dfotop; ++i)  // for each block in loop
                 {
@@ -1659,7 +1659,7 @@ Lnextlis:
                     //filterrd(tmp,dfo[i].Binrd,v);
                     listrds(dfo[i].Binrd,n.EV.E1,tmp);
                     uint j;
-                    for (j = 0; (j = cast(uint) vec_index(j, tmp)) < go.deftop; ++j)  // for each RD of v in Binrd
+                    for (j = 0; (j = cast(uint) vec_index(j, tmp)) < go.defnod.length; ++j)  // for each RD of v in Binrd
                     {
                         if (go.defnod[j].DNelem == n)
                             continue;
@@ -1681,7 +1681,7 @@ Lnextlis:
                 //filterrd(tmp,b.Binrd,v);
                 listrds(b.Binrd,n.EV.E1,tmp);
                 uint j;
-                for (j = 0; (j = cast(uint) vec_index(j, tmp)) < go.deftop; ++j)  // for each RD of v in Binrd
+                for (j = 0; (j = cast(uint) vec_index(j, tmp)) < go.defnod.length; ++j)  // for each RD of v in Binrd
                 {
                     if (go.defnod[j].DNelem == n)
                         continue;
@@ -2150,7 +2150,7 @@ private void findbasivs(loop *l)
 
     /* for each def in go.defnod[] that is within loop l     */
 
-    foreach (uint i; 0 .. go.deftop)
+    foreach (const i; 0 .. go.defnod.length)
     {
         if (!vec_testbit(go.defnod[i].DNblock.Bdfoidx,l.Lloop))
             continue;               /* def is not in the loop       */
@@ -2244,7 +2244,7 @@ private void findbasivs(loop *l)
         /* the parent of the increment elem for it.                     */
 
         /* First find the go.defnod[]      */
-        foreach (j; 0 .. go.deftop)
+        foreach (j; 0 .. go.defnod.length)
         {
             /* If go.defnod is a def of i and it is in the loop        */
             if (go.defnod[j].DNelem.EV.E1 &&     /* OPasm are def nodes  */
@@ -2293,7 +2293,7 @@ private void findopeqs(loop *l)
 
     // for each def in go.defnod[] that is within loop l
 
-    foreach (i; 0 .. go.deftop)
+    foreach (i; 0 .. go.defnod.length)
     {
         if (!vec_testbit(go.defnod[i].DNblock.Bdfoidx,l.Lloop))
             continue;               // def is not in the loop
@@ -2386,7 +2386,7 @@ private void findopeqs(loop *l)
         // the parent of the increment elem for it.
 
         // First find the go.defnod[]
-        foreach (j; 0 .. go.deftop)
+        foreach (j; 0 .. go.defnod.length)
         {
             // If go.defnod is a def of i and it is in the loop
             if (go.defnod[j].DNelem.EV.E1 &&     // OPasm are def nodes
