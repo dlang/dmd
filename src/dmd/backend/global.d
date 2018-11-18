@@ -78,9 +78,6 @@ extern __gshared
 
     block** dfo;                    // array of depth first order
     uint dfotop;                    // # of items in dfo[]
-    block** labelarr;               // dynamically allocated array, index is label #
-    uint labelmax;                  // size of labelarr[]
-    uint labeltop;                  // # of used entries in labelarr[]
     block* curblock;                // current block being read in
     block* block_last;
 
