@@ -435,22 +435,6 @@ style: $(GENERATED)/build
 
 cxx-unittest: $(GENERATED)/build
 	$(RUN_BUILD) $@
-#=======
-#$G/dtoh: $D/dtoh.d $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	#CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) -version=NoBackend -version=NoMain $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
-
-#$D/frontend.h: $G/dtoh
-	#$G/dtoh > $D/frontend.h
-
-#$G/cxxfrontend.o: $G/%.o: tests/%.c $D/frontend.h $(SRC) $(ROOT_SRC)
-	#$(CXX) -c -o$@ $(CXXFLAGS) $(DMD_FLAGS) $(MMD) $<
-
-#$G/cxx-unittest: $G/cxxfrontend.o $(DMD_SRCS) $(ROOT_SRCS) $G/lexer.a $G/backend.o $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	#CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) -L-lstdc++ $(DFLAGS) -version=NoMain $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
-
-#cxx-unittest: $G/cxx-unittest
-	#$<
-#>>>>>>> Use generated frontend.h in C++ test
 
 ######################################################
 
