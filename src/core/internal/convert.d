@@ -232,6 +232,7 @@ private struct Float
 
 private template FloatTraits(T) if (floatFormat!T == FloatFormat.Float)
 {
+    enum DATASIZE = 4;
     enum EXPONENT = 8;
     enum MANTISSA = 23;
     enum ZERO     = Float(0, 0, 0);
@@ -244,6 +245,7 @@ private template FloatTraits(T) if (floatFormat!T == FloatFormat.Float)
 
 private template FloatTraits(T) if (floatFormat!T == FloatFormat.Double)
 {
+    enum DATASIZE = 8;
     enum EXPONENT = 11;
     enum MANTISSA = 52;
     enum ZERO     = Float(0, 0, 0);
@@ -256,6 +258,7 @@ private template FloatTraits(T) if (floatFormat!T == FloatFormat.Double)
 
 private template FloatTraits(T) if (floatFormat!T == FloatFormat.Real80)
 {
+    enum DATASIZE = 10;
     enum EXPONENT = 15;
     enum MANTISSA = 64;
     enum ZERO     = Float(0, 0, 0);
@@ -268,6 +271,7 @@ private template FloatTraits(T) if (floatFormat!T == FloatFormat.Real80)
 
 private template FloatTraits(T) if (floatFormat!T == FloatFormat.DoubleDouble) //Unsupported in CTFE
 {
+    enum DATASIZE = 16;
     enum EXPONENT = 11;
     enum MANTISSA = 106;
     enum ZERO     = Float(0, 0, 0);
@@ -280,6 +284,7 @@ private template FloatTraits(T) if (floatFormat!T == FloatFormat.DoubleDouble) /
 
 private template FloatTraits(T) if (floatFormat!T == FloatFormat.Quadruple)
 {
+    enum DATASIZE = 16;
     enum EXPONENT = 15;
     enum MANTISSA = 112;
     enum ZERO     = Float(0, 0, 0);
@@ -565,6 +570,11 @@ template floatFormat(T) if (is(T:real) || is(T:ireal))
     else
         static assert(0);
 
+}
+
+package template floatSize(T) if (is(T:real) || is(T:ireal))
+{
+    enum floatSize = FloatTraits!(T).DATASIZE;
 }
 
 //  all toUbyte functions must be evaluable at compile time
