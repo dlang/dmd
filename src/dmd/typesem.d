@@ -1452,8 +1452,20 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                                 stc = stc1 | (stc & ~(STC.ref_ | STC.out_ | STC.lazy_));
                             }
 
+                            /* https://issues.dlang.org/show_bug.cgi?id=18572
+                             *
+                             * If a tuple parameter has a default argument, when expanding the parameter
+                             * tuple the default argument tuple must also be expanded.
+                             */
+                            Expression paramDefaultArg = narg.defaultArg;
+                            if (fparam.defaultArg)
+                            {
+                                auto te = cast(TupleExp)(fparam.defaultArg);
+                                paramDefaultArg = (*te.exps)[j];
+                            }
+
                             (*newparams)[j] = new Parameter(
-                                stc, narg.type, narg.ident, narg.defaultArg, narg.userAttribDecl);
+                                stc, narg.type, narg.ident, paramDefaultArg, narg.userAttribDecl);
                         }
                         fparam.type = new TypeTuple(newparams);
                     }
