@@ -3896,6 +3896,8 @@ static if (0)
             push87(cdb);
             push87(cdb);                // two items on 8087 stack
             fixresult_complex87(cdb, e, retregs, pretregs);
+            if (I64 && *pretregs & mST01)
+                cdb.genf2(0xD9,0xC8 + 1);   // FXCH ST(1)
             return;
         }
         else
