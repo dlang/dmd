@@ -6,7 +6,7 @@ $(HEADERNAV_TOC)
 
         $(P A D implementation that conforms to the D ABI (Application Binary
         Interface)
-        will be able to generate libraries, DLL's, etc., that can interoperate
+        will be able to generate libraries, DLLs, etc., that can interoperate
         with
         D binaries built by other implementations.
         )
@@ -77,7 +77,7 @@ $(H2 $(LNAME2 classes, Classes))
     $(THEAD size, property, contents)
     $(TROW $(I ptrsize), $(D .__vptr), pointer to vtable)
     $(TROW $(I ptrsize), $(D .__monitor), monitor)
-    $(TROW $(I ptrsize)..., $(NBSP), $(ARGS vptr's for any interfaces implemented by this class in left to right, most to least derived, order))
+    $(TROW $(I ptrsize)..., $(NBSP), $(ARGS vptrs for any interfaces implemented by this class in left to right, most to least derived, order))
     $(TROW $(D ...), $(D ...), $(ARGS super's non-static fields and super's interface vptrs, from least to most derived))
     $(TROW $(D ...), named fields, non-static fields)
     )
@@ -177,7 +177,7 @@ type[dimension] array;
 ---------
 
         $(P Thus, a static array always has the dimension statically available as part of the type, and
-        so it is implemented like in C. Static array's and Dynamic arrays can be easily converted back
+        so it is implemented like in C. Static arrays and Dynamic arrays can be easily converted back
         and forth to each other.
         )
 
