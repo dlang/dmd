@@ -52,6 +52,34 @@ struct Barray(T)
             array = array.ptr[0 .. length];
     }
 
+    /*******************
+     * Append element t to array.
+     * Params:
+     *  t = element to append
+     */
+    void push(T t)
+    {
+        const i = length;
+        setLength(i + 1);
+        array[i] = t;
+    }
+
+    /**********************
+     * Move the last element from the array into [i].
+     * Reduce the array length by one.
+     * Params:
+     *  i = index of element to remove
+     */
+    void remove(size_t i)
+    {
+        const len = length - 1;
+        if (i != len)
+        {
+            array[i] = array[len];
+        }
+        setLength(len);
+    }
+
     /******************
      * Release all memory used.
      */
