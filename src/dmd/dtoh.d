@@ -148,7 +148,7 @@ int main(string[] args)
     
     version(Windows) // delete LIB entry in [Environment] (necessary for optlink) to allow inheriting environment for MS-COFF
     if (is64bit || strcmp(arch, "32mscoff") == 0)
-    environment.update("LIB", 3).ptrvalue = null;
+        environment.update("LIB", 3).ptrvalue = null;
     
     // read from DFLAGS in [Environment{arch}] section
     char[80] envsection = void;
@@ -167,13 +167,13 @@ int main(string[] args)
     }
     
 
-    version(BUILD_COMPILER)
+    /*version(BUILD_COMPILER)
     {
         global.path.push(druntimeFullPath.toStringz());
         //TODO: fixme for LDC
         global.filePath.push(__FILE_FULL_PATH__.dirName.buildPath("../../").toStringz());
         global.filePath.push(__FILE_FULL_PATH__.dirName.buildPath("../../res/").toStringz());
-    }
+    }*/
     
     DMDType._init();
     version(BUILD_COMPILER)
@@ -242,17 +242,32 @@ void setVersions()
     }
 }
 
+string dirName(string path)
+{
+    version (Windows)
+        enum char separator = '\\';
+    else
+        enum char separator = '/';
+
+    for (size_t i = path.length - 1; i > 0; i--)
+    {
+        if (path[i] == separator)
+        return path[0..i];
+    }
+    return path;
+}
+
 struct DMDType
 {
-    static Identifier c_long;
-    static Identifier c_ulong;
-    static Identifier c_longlong;
-    static Identifier c_ulonglong;
-    static Identifier c_long_double;
+    __gshared static Identifier c_long;
+    __gshared static Identifier c_ulong;
+    __gshared static Identifier c_longlong;
+    __gshared static Identifier c_ulonglong;
+    __gshared static Identifier c_long_double;
     version(BUILD_COMPILER)
     {
-        static Identifier AssocArray;
-        static Identifier Array;
+        __gshared static Identifier AssocArray;
+        __gshared static Identifier Array;
     }
     static void _init()
     {
@@ -273,14 +288,14 @@ version(BUILD_COMPILER)
 {
     struct DMDModule
     {
-        static Identifier identifier;
-        static Identifier root;
-        static Identifier visitor;
-        static Identifier parsetimevisitor;
-        static Identifier permissivevisitor;
-        static Identifier strictvisitor;
-        static Identifier transitivevisitor;
-        static Identifier dmd;
+        __gshared static Identifier identifier;
+        __gshared static Identifier root;
+        __gshared static Identifier visitor;
+        __gshared static Identifier parsetimevisitor;
+        __gshared static Identifier permissivevisitor;
+        __gshared static Identifier strictvisitor;
+        __gshared static Identifier transitivevisitor;
+        __gshared static Identifier dmd;
         static void _init()
         {
             identifier          = Identifier.idPool("identifier");
@@ -295,10 +310,10 @@ version(BUILD_COMPILER)
     }
     struct DMDClass
     {
-        static Identifier ID; ////Identifier
-        static Identifier Visitor;
-        static Identifier ParseTimeVisitor;
-        static void _init()
+        __gshared static Identifier ID; ////Identifier
+        __gshared static Identifier Visitor;
+        __gshared static Identifier ParseTimeVisitor;
+        __gshared static void _init()
         {
             ID                  = Identifier.idPool("Identifier");
             Visitor             = Identifier.idPool("Visitor");
@@ -320,8 +335,8 @@ version(BUILD_COMPILER)
     {
         for (auto cdb = cd; cdb; cdb = cdb.baseClass)
         {
-            if (cdb.ident == DMClass.Visitor ||
-                cdb.ident == DMClass.ParseTimeVisitor)
+            if (cdb.ident == DMDClass.Visitor ||
+                cdb.ident == DMDClass.ParseTimeVisitor)
             return true;
         }
         return false;
@@ -356,7 +371,7 @@ version(BUILD_COMPILER)
                 (m.parent.parent.ident == DMDModule.dmd && !m.parent.parent.parent));
     }
     
-    string druntimeFullPath()
+    /*string druntimeFullPath()
     {
         version (IN_LLVM)
             string path = "../runtime/druntime/src";
@@ -364,7 +379,7 @@ version(BUILD_COMPILER)
             string path = "../../../druntime/src/";
         
         return __FILE_FULL_PATH__.dirName.buildPath(path);
-    }
+    }*/
 }
 
 /****************************************************
