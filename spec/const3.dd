@@ -52,7 +52,7 @@ $(H2 $(LNAME2 immutable_storage_class, Immutable Storage Class))
 ---
 immutable int x = 3;  // x is set to 3
 x = 4;        // error, x is immutable
-char[x] s;    // s is an array of 3 char's
+char[x] s;    // s is an array of 3 chars
 ---
 
         $(P The type can be inferred from the initializer:

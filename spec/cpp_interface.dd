@@ -720,7 +720,7 @@ $(H2 $(LNAME2 packing-and-alignment, Packing and Alignment))
 
     $(P C code often adjusts the alignment and packing of struct members
     with a command line switch or with various implementation specific
-    $(HASH)pragma's. D supports explicit alignment attributes that correspond
+    $(HASH)pragmas. D supports explicit alignment attributes that correspond
     to the C compiler's rules. Check what alignment the C code is using,
     and explicitly set it for the D struct declaration.
     )

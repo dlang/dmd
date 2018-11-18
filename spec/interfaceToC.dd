@@ -89,7 +89,7 @@ $(H2 $(LNAME2 storage_allocation, Storage Allocation))
         $(LINK2 http://www.digitalmars.com/rtl/stdlib.html#malloc, malloc()) and
         $(LINK2 http://www.digitalmars.com/rtl/stdlib.html#free, free()).
         D allocates memory using the D garbage collector,
-        so no explicit free's are necessary.
+        so no explicit frees are necessary.
         )
 
         $(P D can still explicitly allocate memory using core.stdc.stdlib.malloc()
@@ -132,7 +132,7 @@ $(H2 $(LNAME2 storage_allocation, Storage Allocation))
 
         $(P The garbage collector does not scan the stacks of threads not
         created by the D Thread interface. Nor does it scan the data
-        segments of other DLL's, etc.
+        segments of other DLLs, etc.
         )
 
 $(H2 $(LNAME2 data_type_compat, Data Type Compatibility))
@@ -244,7 +244,7 @@ $(H2 $(LNAME2 structs_and_unions, Structs and Unions))
 
         $(P C code often adjusts the alignment and packing of struct members
         with a command line switch or with various implementation specific
-        $(HASH)pragma's. D supports explicit alignment attributes that correspond
+        $(HASH)pragmas. D supports explicit alignment attributes that correspond
         to the C compiler's rules. Check what alignment the C code is using,
         and explicitly set it for the D struct declaration.
         )

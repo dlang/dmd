@@ -13,7 +13,7 @@ $(TROW $(D float.nan),  yields the floating point nan (Not A Number) value)
 $(TROW $(D (float).nan),        yields the floating point nan value)
 $(TROW $(D (3).sizeof), yields 4 (because 3 is an int))
 
-$(TROW $(D int.init),   default initializer for int's)
+$(TROW $(D int.init),   default initializer for ints)
 $(TROW $(D int.mangleof),       yields the string "i")
 $(TROW $(D int.stringof),       yields the string "int")
 $(TROW $(D (1+2).stringof),     yields the string "1 + 2")

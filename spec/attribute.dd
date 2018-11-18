@@ -719,13 +719,13 @@ struct Bar
 ---
 @(1)
 {
-    @(2) int a;         // has UDA's (1, 2)
-    @("string") int b;  // has UDA's (1, "string")
+    @(2) int a;         // has UDAs (1, 2)
+    @("string") int b;  // has UDAs (1, "string")
 }
 ---
 
         $(P
-            UDA's can be extracted into an expression tuple using $(D __traits):
+            UDAs can be extracted into an expression tuple using $(D __traits):
         )
 
 ---
@@ -771,7 +771,7 @@ pragma(msg, __traits(getAttributes, typeof(a))); // prints tuple("hello")
 ---
 
         $(P
-            Of course, the real value of UDA's is to be able to create user-defined types with
+            Of course, the real value of UDAs is to be able to create user-defined types with
             specific values. Having attribute values of basic types does not scale.
             The attribute tuples can be manipulated like any other tuple, and can be passed as
             the argument list to a template.

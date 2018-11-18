@@ -339,7 +339,7 @@ void[] readFile(char[] filename) { ... }
 ------------------------------------
 
 $(DT  $(B See$(UNDERSCORE)Also:))
-$(DD List of other symbols and URL's to related items.)
+$(DD List of other symbols and URLs to related items.)
 ------------------------------------
 /**
  * See_Also:
@@ -605,7 +605,7 @@ $(P
     The documentation comment processor includes a simple macro
     text preprocessor.
     When a $(DOLLAR)($(I NAME)) appears
-    in section text it is replaced with $(I NAME)'s corresponding
+    in section text it is replaced with $(I NAME)s corresponding
     replacement text.)
 
     For example:

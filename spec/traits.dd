@@ -521,7 +521,7 @@ $(H2 $(GNAME getAliasThis))
 $(SECTION2 $(GNAME getAttributes),
     $(P
         Takes one argument, a symbol. Returns a tuple of all attached user-defined attributes.
-        If no UDA's exist it will return an empty tuple.
+        If no UDAs exist it will return an empty tuple.
     )
 
     $(P
@@ -923,7 +923,7 @@ $(H2 $(GNAME getUnitTests))
                 The result is a tuple of all the unit test functions of that aggregate.
                 The functions returned are like normal nested static functions,
                 $(DDSUBLINK glossary, ctfe, CTFE) will work and
-                $(DDSUBLINK spec/attribute, uda, UDA's) will be accessible.
+                $(DDSUBLINK spec/attribute, uda, UDAs) will be accessible.
         )
 
         $(H3 Note:)
