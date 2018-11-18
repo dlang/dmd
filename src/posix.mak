@@ -623,7 +623,7 @@ dscanner: $(DSCANNER_DIR)/dsc
 
 ######################################################
 
-$G/dtoh: $D/dtoh.d $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+$G/dtoh: $D/dtoh.d $D/frontend.d $(FRONT_SRCS) $D/gluelayer.d $(filter-out $(LEXER_ROOT), $(ROOT_SRCS)) $G/newdelete.o $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) -version=NoBackend -version=BUILD_COMPILER -version=NoMain $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 
 $D/frontend.h: $G/dtoh
