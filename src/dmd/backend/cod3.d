@@ -1121,6 +1121,8 @@ static if (NTEXCEPTIONS)
             lreg = mreg = NOREG;
             if (reg1 == NOREG)
             {}
+            else if (tybasic(e.Ety) == TYcfloat)
+                lreg = ST01;
             else if (mask(reg1) & (mST0 | mST01))
                 lreg = reg1;
             else if (reg2 == NOREG)
@@ -1175,6 +1177,39 @@ static if (NTEXCEPTIONS)
                 assert(reg1 == lreg && reg2 == NOREG);
             }
             // fix return registers
+            else if (tybasic(e.Ety) == TYcfloat)
+            {
+                assert(lreg == ST01);
+                if (I64)
+                {
+                    assert(reg2 == NOREG);
+                    // spill
+                    pop87();
+                    pop87();
+                    cdb.genfltreg(0xD9, 3, tysize(TYfloat));
+                    genfwait(cdb);
+                    cdb.genfltreg(0xD9, 3, 0);
+                    genfwait(cdb);
+                    // reload
+                    if (config.exe == EX_WIN64)
+                    {
+                        assert(reg1 == AX);
+                        cdb.genfltreg(LOD, reg1, 0);
+                        code_orrex(cdb.last(), REX_W);
+                    }
+                    else
+                    {
+                        assert(reg1 == XMM0);
+                        cdb.genxmmreg(xmmload(TYdouble), reg1, 0, TYdouble);
+                    }
+                }
+                else
+                {
+                    assert(reg1 == AX && reg2 == DX);
+                    regm_t pretregs = mask(reg1) | mask(reg2);
+                    fixresult_complex87(cdb, e, retregs, &pretregs);
+                }
+            }
             else if (reg2 == NOREG)
                 assert(lreg == reg1);
             else for (int v = 0; v < 2; v++)
