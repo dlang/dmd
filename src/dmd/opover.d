@@ -1617,12 +1617,35 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id)
         if (lastf && m.lastf == lastf || !s_r && m.last <= MATCH.nomatch)
         {
             // Rewrite (e1 op e2) as e1.opfunc(e2)
+            uint errors = global.startGagging();
+            result = build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s);
+            if (global.endGagging(errors))
+            {
+                result = checkAliasThisForLhs(ad1, sc, e);
+                if (result)
+                    return result;
+                result = checkAliasThisForRhs(ad2, sc, e);
+                if (result)
+                    return result;
+            }
             result = build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s);
         }
         else
         {
             // Rewrite (e1 op e2) as e2.opfunc_r(e1)
+            uint errors = global.startGagging();
             result = build_overload(e.loc, sc, e.e2, e.e1, m.lastf ? m.lastf : s_r);
+            if (global.endGagging(errors))
+            {
+                result = checkAliasThisForLhs(ad1, sc, e);
+                if (result)
+                    return result;
+                result = checkAliasThisForRhs(ad2, sc, e);
+                if (result)
+                    return result;
+            }
+            result = build_overload(e.loc, sc, e.e2, e.e1, m.lastf ? m.lastf : s_r);
+
             // When reversing operands of comparison operators,
             // need to reverse the sense of the op
             switch (e.op)
