@@ -84,7 +84,7 @@ struct GlobalOptimizer
 
     Barray!(elem*) expnod;      // array of expression elems
     uint exptop;        // top of expnod[]
-    block **expblk;     // parallel array of block pointers
+    Barray!(block*) expblk;     // parallel array of block pointers
 
     vec_t defkill;      // vector of AEs killed by an ambiguous definition
     vec_t starkill;     // vector of AEs killed by a definition of something that somebody could be
