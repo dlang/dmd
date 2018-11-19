@@ -180,7 +180,7 @@ public:
     Ungag ungagSpeculative();
 
     // kludge for template.isSymbol()
-    int dyncast() const { return DYNCAST_DSYMBOL; }
+    DYNCAST dyncast() const { return DYNCAST_DSYMBOL; }
 
     virtual Identifier *getIdent();
     virtual const char *toPrettyChars(bool QualifyTypes = false);

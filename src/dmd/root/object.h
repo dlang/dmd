@@ -60,5 +60,5 @@ public:
      * Used as a replacement for dynamic_cast. Returns a unique number
      * defined by the library user. For Object, the return value is 0.
      */
-    virtual int dyncast() const;
+    virtual DYNCAST dyncast() const;
 };
