@@ -553,9 +553,7 @@ private __gshared block *this_block;
 
 private void aecpgenkill()
 {
-    util_free(go.expnod);              /* dump any existing one        */
-
-    go.expnod = null;
+    go.expnod.setLength(0);             // dump any existing one
 
     /* Compute number of expressions */
     go.exptop = 1;                     /* start at 1                   */
@@ -574,7 +572,9 @@ private void aecpgenkill()
     /* (The elems are in order. Also, these expressions must not    */
     /* have any side effects, and possibly should not be machine    */
     /* dependent primitive addressing modes.)                       */
-    go.expnod = cast(elem **) util_calloc((elem *).sizeof,go.exptop);
+    go.expnod.setLength(go.exptop);
+    go.expnod[0] = null;
+
     util_free(go.expblk);
     go.expblk = (flowxx == VBE)
             ? cast(block **) util_calloc((block *).sizeof, go.exptop) : null;
