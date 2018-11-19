@@ -735,7 +735,6 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 int sum(int x, int y) pure nothrow { return x + y; }
 
-// prints ("pure", "nothrow", "@system")
 pragma(msg, __traits(getFunctionAttributes, sum));
 
 struct S
@@ -743,18 +742,34 @@ struct S
     void test() const @system { }
 }
 
-// prints ("const", "@system")
 pragma(msg, __traits(getFunctionAttributes, S.test));
+
+void main(){}
 ---
+)
+
+        Prints:
+
+$(CONSOLE
+tuple("pure", "nothrow", "@system")
+tuple("const", "@system")
 )
 
     $(P Note that some attributes can be inferred. For example:)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
-// prints ("pure", "nothrow", "@nogc", "@trusted")
 pragma(msg, __traits(getFunctionAttributes, (int x) @trusted { return x * 2; }));
+
+void main(){}
 ---
+)
+
+        Prints:
+
+$(CONSOLE
+tuple("pure", "nothrow", "@nogc", "@trusted")
+)
 )
 )
 
