@@ -175,6 +175,7 @@ struct Param
     CHECKENABLE useArrayBounds = CHECKENABLE._default;  // when to generate code for array bounds checks
     CHECKENABLE useAssert      = CHECKENABLE._default;  // when to generate code for assert()'s
     CHECKENABLE useSwitchError = CHECKENABLE._default;  // check for switches without a default
+    CHECKENABLE boundscheck    = CHECKENABLE._default;  // state of -boundscheck switch
 
     CHECKACTION checkAction = CHECKACTION.D; // action to take when bounds, asserts or switch defaults are violated
 

@@ -169,14 +169,30 @@ struct Usage
         Option("c",
             "compile only, do not link"
         ),
+        Option("check=[assert|bounds|in|invariant|out|switch][=[on|off]]",
+            "Enable or disable specific checks",
+            `Overrides default, -boundscheck, -release and -unittest options to enable or disable specific checks.
+                $(UL
+                    $(LI $(B assert): assertion checking)
+                    $(LI $(B bounds): array bounds)
+                    $(LI $(B in): in contracts)
+                    $(LI $(B invariant): class/struct invariants)
+                    $(LI $(B out): out contracts)
+                    $(LI $(B switch): switch default)
+                )
+                $(UL
+                    $(LI $(B on) or not specified: specified check is enabled.)
+                    $(LI $(B off): specified check is disabled.)
+                )`
+        ),
         Option("checkaction=D|C|halt",
             "behavior on assert/boundscheck/finalswitch failure",
             `Sets behavior when an assert fails, and array boundscheck fails,
              or a final switch errors.
                 $(UL
-                    $(LI $(I D): Default behavior, which throws an unrecoverable $(D Error).)
-                    $(LI $(I C): Calls the C runtime library assert failure function.)
-                    $(LI $(I halt): Executes a halt instruction, terminating the program.)
+                    $(LI $(B D): Default behavior, which throws an unrecoverable $(D Error).)
+                    $(LI $(B C): Calls the C runtime library assert failure function.)
+                    $(LI $(B halt): Executes a halt instruction, terminating the program.)
                 )`
         ),
         Option("color",

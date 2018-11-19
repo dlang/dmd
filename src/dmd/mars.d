@@ -335,6 +335,19 @@ private int tryMain(size_t argc, const(char)** argv)
             global.params.mscrtlib = vsopt.defaultRuntimeLibrary(global.params.is64bit);
         }
     }
+
+    if (global.params.boundscheck != CHECKENABLE._default)
+    {
+        if (global.params.useArrayBounds == CHECKENABLE._default)
+            global.params.useArrayBounds = global.params.boundscheck;
+    }
+
+    if (global.params.useUnitTests)
+    {
+        if (global.params.useAssert == CHECKENABLE._default)
+            global.params.useAssert = CHECKENABLE.on;
+    }
+
     if (global.params.release)
     {
         if (global.params.useInvariants == CHECKENABLE._default)
@@ -375,9 +388,6 @@ private int tryMain(size_t argc, const(char)** argv)
         if (global.params.useSwitchError == CHECKENABLE._default)
             global.params.useSwitchError = CHECKENABLE.on;
     }
-
-    if (global.params.useUnitTests)
-        global.params.useAssert = CHECKENABLE.on;
 
     if (global.params.betterC)
     {
@@ -1499,6 +1509,42 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.useDeprecated = Diagnostic.inform;
         else if (arg == "-c")                // https://dlang.org/dmd.html#switch-c
             params.link = false;
+        else if (startsWith(p + 1, "check=")) // https://dlang.org/dmd.html#switch-check
+        {
+            /* Parse:
+             *    -check=[assert|bounds|in|invariant|out|switch][=[on|off]]
+             */
+
+            // Check for legal option string; return true if so
+            static bool check(const(char)* p, string name, ref CHECKENABLE ce)
+            {
+                p += "-check=".length;
+                if (startsWith(p, name))
+                {
+                    p += name.length;
+                    if (*p == 0 ||
+                        strcmp(p, "=on") == 0)
+                    {
+                        ce = CHECKENABLE.on;
+                        return true;
+                    }
+                    else if (strcmp(p, "=off") == 0)
+                    {
+                        ce = CHECKENABLE.off;
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            if (!(check(p, "assert",    params.useAssert     ) ||
+                  check(p, "bounds",    params.useArrayBounds) ||
+                  check(p, "in",        params.useIn         ) ||
+                  check(p, "invariant", params.useInvariants ) ||
+                  check(p, "out",       params.useOut        ) ||
+                  check(p, "switch",    params.useSwitchError)))
+                goto Lerror;
+        }
         else if (startsWith(p + 1, "checkaction=")) // https://dlang.org/dmd.html#switch-checkaction
         {
             /* Parse:
@@ -1956,7 +2002,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.betterC = true;
         else if (arg == "-noboundscheck") // https://dlang.org/dmd.html#switch-noboundscheck
         {
-            params.useArrayBounds = CHECKENABLE.off;
+            params.boundscheck = CHECKENABLE.off;
         }
         else if (startsWith(p + 1, "boundscheck")) // https://dlang.org/dmd.html#switch-boundscheck
         {
@@ -1966,15 +2012,15 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             {
                 if (strcmp(p + 13, "on") == 0)
                 {
-                    params.useArrayBounds = CHECKENABLE.on;
+                    params.boundscheck = CHECKENABLE.on;
                 }
                 else if (strcmp(p + 13, "safeonly") == 0)
                 {
-                    params.useArrayBounds = CHECKENABLE.safeonly;
+                    params.boundscheck = CHECKENABLE.safeonly;
                 }
                 else if (strcmp(p + 13, "off") == 0)
                 {
-                    params.useArrayBounds = CHECKENABLE.off;
+                    params.boundscheck = CHECKENABLE.off;
                 }
                 else
                     goto Lerror;

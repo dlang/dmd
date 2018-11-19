@@ -1,0 +1,18 @@
+Added -check switch to turn on and off each category of runtime checks.
+
+        Option("check=[assert|bounds|in|invariant|out|switch][=[on|off]]",
+            `Overrides default, -boundscheck, -release and -unittest options to enable or disable specific checks.
+                $(UL
+                    $(LI $(B assert): assertion checking)
+                    $(LI $(B bounds): array bounds)
+                    $(LI $(B in): in contracts)
+                    $(LI $(B invariant): class/struct invariants)
+                    $(LI $(B out): out contracts)
+                    $(LI $(B switch): switch default)
+                )
+                $(UL
+                    $(LI $(B on) or not specified: specified check is enabled.)
+                    $(LI $(B off): specified check is disabled.)
+                )`
+        )
+
