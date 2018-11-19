@@ -83,7 +83,7 @@ void builddags()
     aetype = Aetype.cse;
 
     debug
-        foreach (i, e; go.expnod[0 .. go.exptop])
+        foreach (i, e; go.expnod[])
         {
             //printf("go.expnod[%d] = %p\n",i,e);
             if (e)

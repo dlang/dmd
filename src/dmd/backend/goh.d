@@ -82,7 +82,7 @@ struct GlobalOptimizer
 
     Barray!(vec_base_t) dnunambig;  // pool to allocate DNunambig vectors from
 
-    elem **expnod;      // array of expression elems
+    Barray!(elem*) expnod;      // array of expression elems
     uint exptop;        // top of expnod[]
     block **expblk;     // parallel array of block pointers
 
