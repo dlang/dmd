@@ -1375,7 +1375,15 @@ regm_t allocretregs(tym_t ty, type *t, tym_t tyf, reg_t *reg1, reg_t *reg2)
             break;
 
         case TYarray:
-            return 0;
+            type* targ1, targ2;
+            argtypes(t, targ1, targ2);
+            if (targ1)
+                ty1 = targ1.Tty;
+            else
+                return 0;
+            if (targ2)
+                ty2 = targ2.Tty;
+            break;
 
         case TYstruct:
             assert(t);
@@ -4051,12 +4059,14 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
 
             // This logic is same as FuncParamRegs_alloc function at src/dmd/backend/cod1.d
             //
-            // Treat array of 1 the same as its element type
+            // Find suitable SROA based on the element type
             // (Don't put volatile parameters in registers)
-            if (tyb == TYarray && t.Tdim == 1 && !(t.Tty & mTYvolatile))
+            if (tyb == TYarray && !(t.Tty & mTYvolatile))
             {
-                t = t.Tnext;
-                tyb = tybasic(t.Tty);
+                type *targ1;
+                argtypes(t, targ1, t2);
+                if (targ1)
+                    t = targ1;
             }
 
             // If struct just wraps another type
@@ -4087,7 +4097,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
                     offset += EBPtoESP;
 
                 reg_t preg = s.Spreg;
-                for (int i = 0; i < 2; ++i)     // twice, once for each possible parameter register
+                foreach (i; 0 .. 2)     // twice, once for each possible parameter register
                 {
                     shadowregm |= mask(preg);
                     opcode_t op = 0x89;                  // MOV x[EBP],preg

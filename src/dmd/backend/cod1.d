@@ -3039,8 +3039,20 @@ int FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, reg_t* preg1, 
         }
         else
         {
-            type* targ1 = t.Ttag.Sstruct.Sarg1type;
-            type* targ2 = t.Ttag.Sstruct.Sarg2type;
+            type* targ1, targ2;
+            if (tybasic(t.Tty) == TYstruct)
+            {
+                targ1 = t.Ttag.Sstruct.Sarg1type;
+                targ2 = t.Ttag.Sstruct.Sarg2type;
+            }
+            else if (tybasic(t.Tty) == TYarray)
+            {
+                if (I64)
+                    argtypes(t, targ1, targ2);
+            }
+            else
+                assert(0);
+
             if (targ1)
             {
                 t = targ1;
@@ -3133,6 +3145,108 @@ int FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, reg_t* preg1, 
         ty = ty2;
     }
     return 1;
+}
+
+/***************************************
+ * Finds replacemnt types for register passing of aggregates.
+ */
+void argtypes(type* t, ref type* arg1type, ref type* arg2type)
+{
+    if (!t) return;
+
+    tym_t ty = t.Tty;
+
+    if (!tyaggregate(ty))
+        return;
+
+    arg1type = arg2type = null;
+
+    if (tybasic(ty) == TYarray)
+    {
+        size_t sz = cast(size_t) type_size(t);
+        if (sz == 0)
+            return;
+
+        if ((I32 || config.exe == EX_WIN64) && (sz & (sz - 1)))  // power of 2
+            return;
+
+        if (config.exe == EX_WIN64 && sz > REGSIZE)
+            return;
+
+        if (sz <= 2 * REGSIZE)
+        {
+            type** argtype = &arg1type;
+            size_t argsz = sz < REGSIZE ? sz : REGSIZE;
+            foreach (v; 0 .. (sz > REGSIZE) + 1)
+            {
+                *argtype = argsz == 1 ? tstypes[TYchar]
+                         : argsz == 2 ? tstypes[TYshort]
+                         : argsz <= 4 ? tstypes[TYlong]
+                         : tstypes[TYllong];
+                argtype = &arg2type;
+                argsz = sz - REGSIZE;
+            }
+        }
+
+        if (I64 && config.exe != EX_WIN64)
+        {
+            type* tn = t.Tnext;
+            tym_t tyn = tn.Tty;
+            while (tyn == TYarray)
+            {
+                tn = tn.Tnext;
+                assert(tn);
+                tyn = tybasic(tn.Tty);
+            }
+
+            if (tybasic(tyn) == TYstruct)
+            {
+                if (type_size(tn) == sz) // array(s) of size 1
+                {
+                    arg1type = tn.Ttag.Sstruct.Sarg1type;
+                    arg2type = tn.Ttag.Sstruct.Sarg2type;
+                    return;
+                }
+
+                type* t1 = tn.Ttag.Sstruct.Sarg1type;
+                if (t1)
+                {
+                    tn = t1;
+                    tyn = tn.Tty;
+                }
+            }
+
+            if (sz == tysize(tyn))
+            {
+                if (tysimd(tyn))
+                {
+                    type* ts = type_fake(tybasic(tyn));
+                    ts.Tcount = 1;
+                    arg1type = ts;
+                    return;
+                }
+                else if (tybasic(tyn) == TYldouble || tybasic(tyn) == TYildouble)
+                {
+                    arg1type = tstypes[tybasic(tyn)];
+                    return;
+                }
+            }
+
+            if (sz <= 16)
+            {
+                if (tyfloating(tyn))
+                {
+                    arg1type = sz <= 4 ? tstypes[TYfloat] : tstypes[TYdouble];
+                    if (sz > 8)
+                        arg2type = (sz - 8) <= 4 ? tstypes[TYfloat] : tstypes[TYdouble];
+                }
+            }
+        }
+    }
+    else if (tybasic(ty) == TYstruct)
+    {
+        // TODO: Move code from `cgelem.d:elstruct()` here
+    }
 }
 
 /*******************************
