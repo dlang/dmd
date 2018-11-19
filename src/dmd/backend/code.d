@@ -490,6 +490,7 @@ void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs);
 void callclib(ref CodeBuilder cdb, elem *e, uint clib, regm_t *pretregs, regm_t keepmask);
 void pushParams(ref CodeBuilder cdb,elem *, uint, tym_t tyf);
 void offsetinreg(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
+void argtypes(type *t, type **arg1type, type **arg2type);
 
 /* cod2.c */
 bool movOnly(const elem *e);
