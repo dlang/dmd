@@ -575,9 +575,7 @@ private void aecpgenkill()
     go.expnod.setLength(go.exptop);
     go.expnod[0] = null;
 
-    util_free(go.expblk);
-    go.expblk = (flowxx == VBE)
-            ? cast(block **) util_calloc((block *).sizeof, go.exptop) : null;
+    go.expblk.setLength(flowxx == VBE ? go.exptop : 0);
 
     const uint exptopsave = go.exptop;
     go.exptop = 1;
@@ -811,7 +809,7 @@ private void asgexpelems(elem *n)
     {
         n.Eexp = go.exptop;              /* remember index into go.expnod[] */
         go.expnod[go.exptop] = n;
-        if (go.expblk)
+        if (go.expblk.length)
             go.expblk[go.exptop] = this_block;
         go.exptop++;
     }

@@ -1847,7 +1847,7 @@ void verybusyexp()
     if (debugc) printf("verybusyexp()\n");
     flowvbe();                      /* compute VBEs                 */
     if (go.exptop <= 1) return;        /* if no VBEs                   */
-    assert(go.expblk);
+    assert(go.expblk.length);
     if (blockinit())
         return;                     // can't handle ASM blocks
     compdom();                      /* compute dominators           */
