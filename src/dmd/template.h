@@ -34,7 +34,7 @@ public:
     Objects objects;
 
     // kludge for template.isType()
-    int dyncast() const { return DYNCAST_TUPLE; }
+    DYNCAST dyncast() const { return DYNCAST_TUPLE; }
 
     const char *toChars() { return objects.toChars(); }
 };

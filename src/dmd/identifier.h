@@ -26,7 +26,7 @@ public:
     const char *toChars();
     int getValue() const;
     const char *toHChars2();
-    int dyncast() const;
+    DYNCAST dyncast() const;
 
     static Identifier *generateId(const char *prefix);
     static Identifier *generateId(const char *prefix, size_t i);
