@@ -31,14 +31,12 @@ struct Barray(T)
      */
     void setLength(size_t length)
     {
-        if (capacity < length)
+        static void enlarge(ref Barray barray, size_t length)
         {
-            if (capacity == 0)
-                capacity = length;
-            else
-                capacity = length + (length >> 1);
-            capacity = (capacity + 15) & ~15;
-            T* p = cast(T*)realloc(array.ptr, capacity * T.sizeof);
+            pragma(inline, false);
+            auto newcap = (barray.capacity == 0) ? length : length + (length >> 1);
+            barray.capacity = (newcap + 15) & ~15;
+            T* p = cast(T*)realloc(barray.array.ptr, barray.capacity * T.sizeof);
             if (length && !p)
             {
                 version (unittest)
@@ -46,11 +44,15 @@ struct Barray(T)
                 else
                     err_nomem();
             }
-            array = p[0 .. length];
+            barray.array = p[0 .. length];
         }
+
+        if (length <= capacity)
+            array = array.ptr[0 .. length];     // the fast path
         else
-            array = array.ptr[0 .. length];
+            enlarge(this, length);              // the slow path
     }
+
 
     /*******************
      * Append element t to array.
