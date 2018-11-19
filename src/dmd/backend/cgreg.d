@@ -34,6 +34,7 @@ import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.backend.barray;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 
@@ -47,7 +48,7 @@ private __gshared
 
     vec_t[REGMAX] regrange;
 
-    int *weights;
+    Barray!int weights;
 }
 
 ref int WEIGHTS(int bi, int si) { return weights[bi * globsym.top + si]; }
@@ -62,8 +63,8 @@ void cgreg_init()
 
     // Use calloc() instead because sometimes the alloc is too large
     //printf("1weights: dfotop = %d, globsym.top = %d\n", dfotop, globsym.top);
-    weights = cast(int *) calloc(1,dfotop * globsym.top * (weights[0]).sizeof);
-    assert(weights);
+    weights.setLength(dfotop * globsym.top);
+    weights[] = 0;
 
     nretblocks = 0;
     for (int bi = 0; bi < dfotop; bi++)
@@ -168,8 +169,7 @@ void cgreg_term()
             }
         }
 
-        free(weights);
-        weights = null;
+        // weights.dtor();   // save allocation for next time
     }
 }
 
