@@ -30,6 +30,7 @@ import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.backend.barray;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 
@@ -49,13 +50,11 @@ struct HCS
 
 private __gshared
 {
-    HCS *hcstab = null;              /* array of hcs's               */
-    uint hcsmax = 0;             /* max index into hcstab[]      */
+    Barray!HCS hcstab;           /* array of hcs's               */
 }
 
 struct HCSArray
 {
-    uint top;                  // # of entries in hcstab[]
     uint touchstari;
     uint[2] touchfunci;
 }
@@ -119,7 +118,7 @@ version (SCPP)
                 bln = blc.Bnext;
         }
         vec_clear(csvec);
-        hcsarray.top = 0;
+        hcstab.setLength(0);
         hcsarray.touchstari = 0;
         hcsarray.touchfunci[0] = 0;
         hcsarray.touchfunci[1] = 0;
@@ -147,10 +146,7 @@ void cgcs_term()
     vec_free(csvec);
     csvec = null;
     debug debugw && printf("freeing hcstab\n");
-    //util_free(hcstab);
-    free(hcstab);
-    hcstab = null;
-    hcsmax = 0;
+    //hcstab.dtor();  // cache allocation for next iteration
 }
 
 /*************************
@@ -158,8 +154,7 @@ void cgcs_term()
  */
 
 private void ecom(elem **pe)
-{ int i,op;
-  HCSArray hcsarraySave;
+{ int op;
   uint hash;
   elem *e;
   elem *ehash;
@@ -237,20 +232,29 @@ private void ecom(elem **pe)
 
     case OPandand:
     case OPoror:
+    {
         ecom(&e.EV.E1);
-        hcsarraySave = hcsarray;
+        const lengthSave = hcstab.length;
+        auto hcsarraySave = hcsarray;
         ecom(&e.EV.E2);
         hcsarray = hcsarraySave;        // no common subs by E2
+        hcstab.setLength(lengthSave);
         return;                         /* if comsub then logexp() will */
-                                        /* break                        */
+    }
+
     case OPcond:
+    {
         ecom(&e.EV.E1);
-        hcsarraySave = hcsarray;
+        const lengthSave = hcstab.length;
+        auto hcsarraySave = hcsarray;
         ecom(&e.EV.E2.EV.E1);               // left condition
         hcsarray = hcsarraySave;        // no common subs by E2
+        hcstab.setLength(lengthSave);
         ecom(&e.EV.E2.EV.E2);               // right condition
         hcsarray = hcsarraySave;        // no common subs by E2
+        hcstab.setLength(lengthSave);
         return;                         // can't be a common sub
+    }
 
     case OPcall:
     case OPcallns:
@@ -402,13 +406,13 @@ private void ecom(elem **pe)
   int csveci = hash % CSVECDIM;
   if (vec_testbit(csveci,csvec))
   {
-    for (i = hcsarray.top; i--;)
+    foreach_reverse (i, ref hcs; hcstab[])
     {
         debug if (debugx)
             printf("i: %2d Hhash: %6d Helem: %p\n",
-                i,hcstab[i].Hhash,hcstab[i].Helem);
+                i,hcs.Hhash,hcs.Helem);
 
-        if (hash == hcstab[i].Hhash && (ehash = hcstab[i].Helem) != null)
+        if (hash == hcs.Hhash && (ehash = hcs.Helem) != null)
         {
             /* if elems are the same and we still have room for more    */
             if (el_match(e,ehash) && ehash.Ecount < 0xFF)
@@ -466,26 +470,11 @@ private uint cs_comphash(elem *e)
 
 /****************************
  * Add an elem to the common subexpression table.
- * Recompute hash if it is 0.
  */
 
 private void addhcstab(elem *e,int hash)
-{ uint h = hcsarray.top;
-
-  if (h >= hcsmax)                      /* need to reallocate table     */
-  {
-        assert(h == hcsmax);
-        // With 32 bit compiles, we've got memory to burn
-        hcsmax += hcsmax + 128;
-        assert(h < hcsmax);
-        //hcstab = cast(HCS *) util_realloc(hcstab,hcsmax,HCS.sizeof);
-        hcstab = cast(HCS *) realloc(hcstab,hcsmax * HCS.sizeof);
-        assert(!hcsmax || hcstab);
-        //printf("hcstab = %p; hcsarray.top = %d, hcsmax = %d\n",hcstab,hcsarray.top,hcsmax);
-  }
-  hcstab[h].Helem = e;
-  hcstab[h].Hhash = hash;
-  hcsarray.top++;
+{
+    hcstab.push(HCS(e, hash));
 }
 
 /***************************
@@ -508,10 +497,11 @@ private void touchlvalue(elem *e)
         return;
   }
 
-    for (int i = hcsarray.top; --i >= 0;)
-    {   if (hcstab[i].Helem &&
-            hcstab[i].Helem.EV.Vsym == e.EV.Vsym)
-                hcstab[i].Helem = null;
+    foreach_reverse (ref hcs; hcstab[])
+    {
+        if (hcs.Helem &&
+            hcs.Helem.EV.Vsym == e.EV.Vsym)
+                hcs.Helem = null;
     }
 
     if (!(e.Eoper == OPvar || e.Eoper == OPrelconst))
@@ -564,10 +554,10 @@ private void touchfunc(int flag)
 {
 
     //printf("touchfunc(%d)\n", flag);
-    HCS *petop = &hcstab[hcsarray.top];
+    HCS *petop = hcstab.ptr + hcstab.length;
     //pe = &hcstab[0]; printf("pe = %p, petop = %p\n",pe,petop);
-    assert(hcsarray.touchfunci[flag] <= hcsarray.top);
-    for (HCS *pe = &hcstab[hcsarray.touchfunci[flag]]; pe < petop; pe++)
+    assert(hcsarray.touchfunci[flag] <= hcstab.length);
+    for (HCS *pe = hcstab.ptr + hcsarray.touchfunci[flag]; pe < petop; pe++)
     {
         elem *he = pe.Helem;
         if (!he)
@@ -625,7 +615,7 @@ private void touchfunc(int flag)
                 break;
         }
     }
-    hcsarray.touchfunci[flag] = hcsarray.top;
+    hcsarray.touchfunci[flag] = cast(uint)hcstab.length;
 }
 
 
@@ -635,15 +625,14 @@ private void touchfunc(int flag)
  */
 
 private void touchstar()
-{ int i;
-  elem *e;
-
-  for (i = hcsarray.touchstari; i < hcsarray.top; i++)
-  {     e = hcstab[i].Helem;
+{
+    foreach (ref hcs; hcstab[hcsarray.touchstari .. $])
+    {
+        auto e = hcs.Helem;
         if (e && (e.Eoper == OPind || e.Eoper == OPbt) )
-                hcstab[i].Helem = null;
-  }
-  hcsarray.touchstari = hcsarray.top;
+            hcs.Helem = null;
+    }
+    hcsarray.touchstari = cast(uint)hcstab.length;
 }
 
 /*******************************
@@ -652,13 +641,13 @@ private void touchstar()
 
 private void touchall()
 {
-    for (uint i = 0; i < hcsarray.top; i++)
+    foreach (ref hcs; hcstab[])
     {
-        hcstab[i].Helem = null;
+        hcs.Helem = null;
     }
-    hcsarray.touchstari = hcsarray.top;
-    hcsarray.touchfunci[0] = hcsarray.top;
-    hcsarray.touchfunci[1] = hcsarray.top;
+    hcsarray.touchstari    = cast(uint)hcstab.length;
+    hcsarray.touchfunci[0] = cast(uint)hcstab.length;
+    hcsarray.touchfunci[1] = cast(uint)hcstab.length;
 }
 
 /*****************************************
@@ -667,17 +656,16 @@ private void touchall()
  */
 
 private void touchaccess(elem *ev)
-{ int i;
-  elem *e;
-
-  ev = ev.EV.E1;
-  for (i = 0; i < hcsarray.top; i++)
-  {     e = hcstab[i].Helem;
+{
+    ev = ev.EV.E1;
+    foreach (ref hcs; hcstab[])
+    {
+        auto e = hcs.Helem;
         /* Invalidate any previous handle pointer accesses that */
         /* are not accesses of ev.                              */
         if (e && (e.Eoper == OPvp_fp || e.Eoper == OPcvp_fp) && e.EV.E1 != ev)
-            hcstab[i].Helem = null;
-  }
+            hcs.Helem = null;
+    }
 }
 
 }
