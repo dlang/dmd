@@ -98,26 +98,7 @@ code *code_malloc()
 
 extern __gshared con_t regcon;
 
-/****************************
- * Table of common subexpressions stored on the stack.
- *      csextab[]       array of info on saved CSEs
- *      CSEpe           pointer to saved elem
- *      CSEregm         mask of register that was saved (so for multi-
- *                      register variables we know which part we have)
- */
-
-enum CSEload       = 1;       // set if the CSE was ever loaded
-enum CSEsimple     = 2;       // CSE can be regenerated easily
-
-struct CSE
-{       elem    *e;             // pointer to elem
-        code    csimple;        // if CSEsimple, this is the code to regenerate it
-        regm_t  regm;           // mask of register stored there
-        char    flags;          // flag bytes
-}
-
-// != 0 if CSE was ever loaded
-char CSE_loaded(int i) { return csextab[i].flags & CSEload; }
+bool CSE_loaded(int i);
 
 /************************************
  * Register save state.
@@ -366,7 +347,6 @@ enum
 }
 
 extern __gshared int dfoidx;
-extern __gshared CSE *csextab;
 extern __gshared bool floatreg;
 extern __gshared targ_size_t prolog_allocoffset;
 extern __gshared targ_size_t startoffset;

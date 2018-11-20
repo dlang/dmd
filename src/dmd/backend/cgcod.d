@@ -44,6 +44,8 @@ import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.xmm;
 
+import dmd.backend.barray;
+
 version (SCPP)
 {
     import parser;
@@ -130,9 +132,7 @@ regm_t mfuncreg;        // Mask of registers preserved by a function
 regm_t allregs;                // ALLREGS optionally including mBP
 
 int dfoidx;                     /* which block we are in                */
-CSE *csextab = null;            /* CSE table (allocated for each function) */
-size_t cstop;                   // # of entries in CSE table (csextab[])
-size_t csmax;                   // amount of space in csextab[]
+private Barray!CSE csextab;     /* CSE table (allocated for each function) */
 
 targ_size_t     funcoffset;     // offset of start of function
 targ_size_t     prolog_allocoffset;     // offset past adj of stack allocation
@@ -143,6 +143,33 @@ targ_size_t     retsize;        /* size of function return              */
 private regm_t lastretregs,last2retregs,last3retregs,last4retregs,last5retregs;
 
 }
+
+/****************************
+ * Table of common subexpressions stored on the stack.
+ *      csextab[]       array of info on saved CSEs
+ *      CSEpe           pointer to saved elem
+ *      CSEregm         mask of register that was saved (so for multi-
+ *                      register variables we know which part we have)
+ */
+
+enum CSEload       = 1;       // set if the CSE was ever loaded
+enum CSEsimple     = 2;       // CSE can be regenerated easily
+
+struct CSE
+{       elem    *e;             // pointer to elem
+        code    csimple;        // if CSEsimple, this is the code to regenerate it
+        regm_t  regm;           // mask of register stored there
+        char    flags;          // flag bytes
+}
+
+
+// Returns: true if CSE was ever loaded
+bool CSE_loaded(int i)
+{
+    return i < csextab.length &&   // array could be shrunk for non-CSEload entries
+           (csextab[i].flags & CSEload);
+}
+
 
 /*********************************
  * Generate code for a function.
@@ -166,8 +193,7 @@ void codgen(Symbol *sfunc)
     assert(cseg == funcsym_p.Sseg);
 
     cgreg_init();
-    csmax = 64;
-    csextab = cast(CSE *) util_calloc(CSE.sizeof,cast(uint)csmax);
+    csextab.setLength(64);      // reserve some space
     tym_t functy = tybasic(sfunc.ty());
     cod3_initregs();
     allregs = ALLREGS;
@@ -234,7 +260,7 @@ tryagain:
 
     floatreg = false;
     assert(stackused == 0);             /* nobody in 8087 stack         */
-    cstop = 0;                          /* no entries in table yet      */
+    csextab.setLength(0);               /* no entries in table yet      */
     memset(&regcon,0,regcon.sizeof);
     regcon.cse.mval = regcon.cse.mops = 0;      // no common subs yet
     msavereg = 0;
@@ -341,9 +367,11 @@ tryagain:
     stackoffsets(1);            // compute addresses of stack variables
     cod5_prol_epi();            // see where to place prolog/epilog
 
-    // Get rid of unused cse temporaries
-    while (cstop != 0 && (csextab[cstop - 1].flags & CSEload) == 0)
-        cstop--;
+    /* Get rid of unused cse temporaries by shrinking the array.
+     * see CSE_load() implementation
+     */
+    while (csextab.length != 0 && (csextab[csextab.length - 1].flags & CSEload) == 0)
+        csextab.setLength(csextab.length - 1);
 
     if (configv.addlinenumbers)
         objmod.linnum(sfunc.Sfunc.Fstartline,sfunc.Sseg,Offset(sfunc.Sseg));
@@ -653,8 +681,7 @@ tryagain:
     // BUG: do interrupt functions save BP?
     sfunc.Sregsaved = (functy == TYifunc) ? cast(regm_t) mBP : (mfuncreg | fregsaved);
 
-    util_free(csextab);
-    csextab = null;
+    //csextab.dtor();  // save the allocation for next function
 
     debug
     if (stackused != 0)
@@ -860,7 +887,7 @@ Lagain:
     Alloca.alignment = REGSIZE;
     Alloca.offset = alignsection(Foff - Alloca.size, Alloca.alignment, bias);
 
-    CSoff = alignsection(Alloca.offset - cstop * REGSIZE, REGSIZE, bias);
+    CSoff = alignsection(Alloca.offset - csextab.length * REGSIZE, REGSIZE, bias);
 
     NDPoff = alignsection(CSoff - NDP.savetop * tysize(TYldouble), REGSIZE, bias);
 
@@ -895,7 +922,7 @@ Lagain:
     localsize = -cgstate.funcarg.offset;
 
     //printf("Alloca.offset = x%llx, cstop = x%llx, CSoff = x%llx, NDPoff = x%llx, localsize = x%llx\n",
-        //(long long)Alloca.offset, (long long)cstop, (long long)CSoff, (long long)NDPoff, (long long)localsize);
+        //(long long)Alloca.offset, (long long)csextab.length, (long long)CSoff, (long long)NDPoff, (long long)localsize);
     assert(cast(targ_ptrdiff_t)localsize >= 0);
 
     // Keep the stack aligned by 8 for any subsequent function calls
@@ -1801,10 +1828,10 @@ void freenode(elem *e)
                 regcon.cse.mops &= ~mask(cast(uint)i);    /* free masks                   */
             }
         }
-        for (size_t i = 0; i < cstop; i++)
+        foreach (ref cse; csextab[])
         {
-            if (csextab[i].e == e)
-                csextab[i].e = null;
+            if (cse.e == e)
+                cse.e = null;
         }
     }
 }
@@ -2199,22 +2226,22 @@ private void cse_save(ref CodeBuilder cdb, regm_t ms)
         if (regm & ms)
         {
             elem *e = regcon.cse.value[findreg(regm)];
-            for (size_t i = 0; i < csmax; i++)
+            foreach (const ref cse; csextab[])
             {
-                if (csextab[i].e == e)
+                if (cse.e == e)
                 {
                     tym_t tym = e.Ety;
                     uint sz = tysize(tym);
                     if (sz <= REGSIZE ||
                         sz <= 2 * REGSIZE &&
-                            (regm & mMSW && csextab[i].regm & mMSW ||
-                             regm & mLSW && csextab[i].regm & mLSW) ||
-                        sz == 4 * REGSIZE && regm == csextab[i].regm
+                            (regm & mMSW && cse.regm & mMSW ||
+                             regm & mLSW && cse.regm & mLSW) ||
+                        sz == 4 * REGSIZE && regm == cse.regm
                        )
                     {
                         ms &= ~regm;
                         if (!ms)
-                            goto Lret;
+                            return;
                         break;
                     }
                 }
@@ -2222,43 +2249,29 @@ private void cse_save(ref CodeBuilder cdb, regm_t ms)
         }
     }
 
-    for (size_t i = cstop; ms; i++)
+    for (size_t i = 0; ms; ++i)
     {
-        if (i >= csmax)                 /* array overflow               */
-        {
-            size_t cseinc;
 
-            debug
-                cseinc = 8;                 /* flush out reallocation bugs  */
-            else
-                cseinc = csmax + 32;
+        if (i == csextab.length)
+        {
+            CSE cse = void;
+            memset(&cse, 0, cse.sizeof);
+            csextab.push(cse);
+        }
 
-            csextab = cast(CSE *) util_realloc(csextab,
-                cast(uint)(csmax + cseinc), csextab[0].sizeof);
-            memset(&csextab[csmax],0,cseinc * csextab[0].sizeof);
-            csmax += cseinc;
-            goto L1;
-        }
-        if (i >= cstop)
+        auto cse = &csextab[i];
+        if (cse.e == null)
         {
-            memset(&csextab[cstop],0,csextab[0].sizeof);
-            goto L1;
-        }
-        if (csextab[i].e == null || i >= cstop)
-        {
-        L1:
             uint reg = findreg(ms);          /* the register to save         */
-            csextab[i].e = regcon.cse.value[reg];
-            csextab[i].regm = mask(reg);
-            csextab[i].flags &= CSEload;
-            if (i >= cstop)
-                cstop = i + 1;
+            cse.e = regcon.cse.value[reg];
+            cse.regm = mask(reg);
+            cse.flags &= CSEload;
 
             ms &= ~mask(reg);           /* turn off reg bit in ms       */
 
             // If we can simply reload the CSE, we don't need to save it
-            if (cse_simple(&csextab[i].csimple, csextab[i].e))
-                csextab[i].flags |= CSEsimple;
+            if (cse_simple(&cse.csimple, cse.e))
+                cse.flags |= CSEsimple;
             else
             {
                 gensavereg(cdb, reg, cast(uint)i);
@@ -2266,8 +2279,6 @@ private void cse_save(ref CodeBuilder cdb, regm_t ms)
             }
         }
     }
-Lret:
-    { }
 }
 
 /******************************************
@@ -2477,12 +2488,12 @@ private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     /* create mask of what's in csextab[] */
     csemask = 0;
-    for (size_t i = 0; i < cstop; i++)
+    foreach (ref cse; csextab[])
     {
-        if (csextab[i].e)
-            elem_debug(csextab[i].e);
-        if (csextab[i].e == e)
-            csemask |= csextab[i].regm;
+        if (cse.e)
+            elem_debug(cse.e);
+        if (cse.e == e)
+            csemask |= cse.regm;
     }
     csemask &= ~emask;            /* stuff already in registers   */
 
@@ -2519,13 +2530,13 @@ private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
         if (OTleaf(e.Eoper))                  /* if not op or func            */
             goto reload;                      /* reload data                  */
-        for (size_t i = cstop; i--;)          /* look through saved comsubs   */
+        foreach_reverse (i, ref cse; csextab[])          /* look through saved comsubs   */
         {
-            if (csextab[i].e == e)  // found it
+            if (cse.e == e)  // found it
             {
                 regm_t retregs;
 
-                if (csextab[i].flags & CSEsimple)
+                if (cse.flags & CSEsimple)
                 {
                     retregs = *pretregs;
                     if (byte_ && !(retregs & BYTEREGS))
@@ -2533,9 +2544,9 @@ private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                     else if (!(retregs & allregs))
                         retregs = allregs;
                     allocreg(cdb,&retregs,&reg,tym);
-                    code *cr = &csextab[i].csimple;
+                    code *cr = &cse.csimple;
                     cr.setReg(reg);
-                    if (I64 && reg >= 4 && tysize(csextab[i].e.Ety) == 1)
+                    if (I64 && reg >= 4 && tysize(cse.e.Ety) == 1)
                         cr.Irex |= REX;
                     cdb.gen(cr);
                     goto L10;
@@ -2543,7 +2554,7 @@ private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 else
                 {
                     reflocal = true;
-                    csextab[i].flags |= CSEload;
+                    cse.flags |= CSEload;
                     if (*pretregs == mPSW)  // if result in CCs only
                     {   // CMP cs[BP],0
                         gen_testcse(cdb, sz, cast(uint)i);
@@ -2687,13 +2698,13 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 
 private void loadcse(ref CodeBuilder cdb,elem *e,uint reg,regm_t regm)
 {
-    for (size_t i = cstop; i--;)
+    foreach_reverse (i, ref cse; csextab[])
     {
-        //printf("csextab[%d] = %p, regm = %s\n", i, csextab[i].e, regm_str(csextab[i].regm));
-        if (csextab[i].e == e && csextab[i].regm & regm)
+        //printf("csextab[%d] = %p, regm = %s\n", i, cse.e, regm_str(cse.regm));
+        if (cse.e == e && cse.regm & regm)
         {
             reflocal = true;
-            csextab[i].flags |= CSEload;    /* it was loaded        */
+            cse.flags |= CSEload;    /* it was loaded        */
             regcon.cse.value[reg] = e;
             regcon.cse.mval |= mask(reg);
             getregs(cdb,mask(reg));
