@@ -1898,7 +1898,7 @@ void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs)
         *pretregs = retregs;
     else if (forregs)             // if return the result in registers
     {
-        if (forregs & (mST01 | mST0))
+        if ((forregs | retregs) & (mST01 | mST0))
         {
             fixresult87(cdb, e, retregs, pretregs);
             return;
