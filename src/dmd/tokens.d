@@ -292,15 +292,11 @@ enum TOK : int
 
 // Assert that all token enum members have consecutive values and
 // that none of them overlap
-static assert(() {
-    foreach (idx, enumName; __traits(allMembers, TOK)) {
-       static if (idx != __traits(getMember, TOK, enumName)) {
-           pragma(msg, "Error: Expected TOK.", enumName, " to be ", idx, " but is ", __traits(getMember, TOK, enumName));
-           static assert(0);
-       }
-    }
-    return true;
-}());
+static foreach (idx, enumName; __traits(allMembers, TOK))
+   static if (idx != __traits(getMember, TOK, enumName)) {
+       pragma(msg, "Error: Expected TOK.", enumName, " to be ", idx, " but is ", __traits(getMember, TOK, enumName));
+       static assert(0);
+   }
 
 
 /****************************************
@@ -699,11 +695,8 @@ extern (C++) struct Token
         TOK.objcClassReference: "class",
     ];
 
-    static assert(() {
-        foreach (s; tochars)
-            assert(s.length);
-        return true;
-    }());
+    static foreach (s; tochars)
+        static assert(s.length);
 
     shared static this()
     {
