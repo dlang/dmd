@@ -38,7 +38,7 @@ alias dstring = immutable(dchar)[];
 
 version (D_ObjectiveC) public import core.attribute : selector;
 
-int __cmp(T)(const T[] lhs, const T[] rhs) @trusted
+int __cmp(T)(scope const T[] lhs, scope const T[] rhs) @trusted
     if (__traits(isScalar, T))
 {
     // Compute U as the implementation type for T
@@ -69,6 +69,22 @@ int __cmp(T)(const T[] lhs, const T[] rhs) @trusted
     }
     else
     {
+        version (BigEndian)
+        static if (__traits(isUnsigned, T) ? !is(T == __vector) : is(T : P*, P))
+        {
+            if (!__ctfe)
+            {
+                import core.stdc.string : memcmp;
+                int c = memcmp(lhs.ptr, rhs.ptr, (lhs.length <= rhs.length ? lhs.length : rhs.length) * T.sizeof);
+                if (c)
+                    return c;
+                static if (size_t.sizeof <= uint.sizeof && T.sizeof >= 2)
+                    return cast(int) lhs.length - cast(int) rhs.length;
+                else
+                    return int(lhs.length > rhs.length) - int(lhs.length < rhs.length);
+            }
+        }
+
         immutable len = lhs.length <= rhs.length ? lhs.length : rhs.length;
         foreach (const u; 0 .. len)
         {
