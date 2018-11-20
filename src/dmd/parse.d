@@ -2194,7 +2194,10 @@ final class Parser(AST) : Lexer
             if (id == Id.Windows)
                 link = LINK.windows;
             else if (id == Id.Pascal)
+            {
+                deprecation("`extern(Pascal)` is deprecated. You might want to use `extern(Windows)` instead.");
                 link = LINK.pascal;
+            }
             else if (id == Id.D)
                 link = LINK.d;
             else if (id == Id.C)
