@@ -1358,7 +1358,6 @@ version (MARS)
     if (go.mfoptim)
     {   OPTIMIZER = 1;
         optfunc();                      /* optimize function            */
-        assert(dfo);
         OPTIMIZER = 0;
     }
     else
@@ -1613,8 +1612,7 @@ version (SCPP)
     globsym.top = 0;
 
     //printf("done with writefunc()\n");
-    util_free(dfo);
-    dfo = null;
+    //dfo.dtor();       // save allocation for next time
 }
 
 /*************************

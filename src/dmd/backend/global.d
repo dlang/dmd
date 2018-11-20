@@ -31,6 +31,8 @@ import dmd.backend.memh;
 import dmd.backend.type;
 //import dmd.backend.obj;
 
+import dmd.backend.barray;
+
 extern __gshared
 {
     char debuga;            // cg - watch assignaddr()
@@ -76,8 +78,9 @@ extern __gshared
     uint numblks;                   // number of basic blocks (if optimized)
     block* startblock;              // beginning block of function
 
-    block** dfo;                    // array of depth first order
+    Barray!(block*) dfo;            // array of depth first order
     uint dfotop;                    // # of items in dfo[]
+
     block* curblock;                // current block being read in
     block* block_last;
 
@@ -91,7 +94,10 @@ extern __gshared
     Symbol* tls_get_addr_sym;
 }
 
-__gshared Configv configv;                // non-ph part of configuration
+version (MARS)
+    __gshared Configv configv;                // non-ph part of configuration
+else
+    extern __gshared Configv configv;                // non-ph part of configuration
 
 // iasm.c
 Symbol *asm_define_label(const(char)* id);

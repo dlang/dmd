@@ -41,6 +41,8 @@ import dmd.backend.goh;
 import dmd.backend.code;
 import dmd.backend.ty;
 
+import dmd.backend.barray;
+
 version (COMPILE)
 {
     import parser;
@@ -74,7 +76,7 @@ __gshared
     block *startblock;      // beginning block of function
                             // (can have no predecessors)
 
-    block **dfo = null;     // array of depth first order
+    Barray!(block*) dfo;    // array of depth first order
     uint dfotop;            // # of items in dfo[]
 
     block *curblock;        // current block being read in
@@ -1133,8 +1135,8 @@ void compdfo()
     }
     assert(maxblks && maxblks >= numblks);
     debug assert(!PARSER);
-    dfo = cast(block **) util_realloc(dfo, (block *).sizeof,maxblks);
-    memset(dfo, 0, (block *).sizeof * maxblks);
+    dfo.setLength(maxblks);
+    dfo[] = null;
     dfotop = numblks;                     /* assign numbers backwards     */
     search(startblock);
     assert(dfotop <= numblks);
