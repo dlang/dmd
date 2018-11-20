@@ -3344,22 +3344,6 @@ elem * elstruct(elem *e, goal_t goal)
             goto Ldefault;
 
         case 16:
-            if (config.fpxmmregs && e.Eoper == OPstreq)
-            {
-                elem *e2 = e.EV.E2;
-                if (tybasic(e2.Ety) == TYstruct &&
-                    (OTbinary(e2.Eoper) || OTunary(e2.Eoper)) &&
-                    tysimd(e2.EV.E1.Ety))   // is a vector type
-                {   tym = tybasic(e2.EV.E1.Ety);
-
-                    /* This has problems if the destination is not aligned, as happens with
-                     *   float4 a,b;
-                     *   float[4] c;
-                     *   c = cast(float[4])(a + b);
-                     */
-                    goto L1;
-                }
-            }
             if (I64 && (ty == TYstruct || (ty == TYarray && config.exe == EX_WIN64)))
             {
                 tym = TYucent;

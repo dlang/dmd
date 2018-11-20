@@ -4237,6 +4237,8 @@ elem *toElem(Expression e, IRState *irs)
                 // Adjust for any type paints
                 Type t = ce.type.toBasetype();
                 e.Ety = totym(t);
+                if (tyaggregate(e.Ety))
+                    e.ET = Type_toCtype(t);
 
                 elem_setLoc(e, ce.loc);
                 return e;
@@ -4412,7 +4414,16 @@ elem *toElem(Expression e, IRState *irs)
             if (fty == Tvector && tty == Tsarray)
             {
                 if (tfrom.size() == t.size())
+                {
+                    if (e.Eoper != OPvar && e.Eoper != OPind)
+                    {
+                        // can't perform array ops on it unless it's in memory
+                        e = addressElem(e, tfrom);
+                        e = el_una(OPind, TYarray, e);
+                        e.ET = Type_toCtype(t);
+                    }
                     return Lret(ce, e);
+                }
             }
 
             ftym = tybasic(e.Ety);
