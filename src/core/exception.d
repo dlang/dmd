@@ -9,6 +9,39 @@
  */
 module core.exception;
 
+// Compiler lowers final switch default case to this (which is a runtime error)
+void __switch_errorT()(string file = __FILE__, size_t line = __LINE__) @trusted
+{
+    // Consider making this a compile time check.
+    version (D_Exceptions)
+        throw staticError!SwitchError(file, line, null);
+    else
+        assert(0, "No appropriate switch clause found");
+}
+
+version (D_BetterC)
+{
+    // When compiling with -betterC we use template functions so if they are
+    // used the bodies are copied into the user's program so there is no need
+    // for the D runtime during linking.
+
+    // In the future we might want to convert all functions in this module to
+    // templates even for ordinary builds instead of providing them as an
+    // extern(C) library.
+
+    void onOutOfMemoryError()(void* pretend_sideffect = null) @nogc nothrow pure @trusted
+    {
+        assert(0, "Memory allocation failed");
+    }
+    alias onOutOfMemoryErrorNoGC = onOutOfMemoryError;
+
+    void onInvalidMemoryOperationError()(void* pretend_sideffect = null) @nogc nothrow pure @trusted
+    {
+        assert(0, "Invalid memory operation");
+    }
+}
+else:
+
 /**
  * Thrown on a range error.
  */
@@ -576,16 +609,6 @@ extern (C) void onSwitchError( string file = __FILE__, size_t line = __LINE__ ) 
 {
     version (D_Exceptions)
         throw new SwitchError( file, line, null );
-    else
-        assert(0, "No appropriate switch clause found");
-}
-
-// Compiler lowers final switch default case to this (which is a runtime error)
-void __switch_errorT()(string file = __FILE__, size_t line = __LINE__) @trusted
-{
-    // Consider making this a compile time check.
-    version (D_Exceptions)
-        throw staticError!SwitchError(file, line, null);
     else
         assert(0, "No appropriate switch clause found");
 }
