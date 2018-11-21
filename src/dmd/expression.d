@@ -4601,13 +4601,9 @@ extern (C++) final class CallExp : UnaExp
     extern (D) this(const ref Loc loc, Expression e, Expression earg1)
     {
         super(loc, TOK.call, __traits(classInstanceSize, CallExp), e);
-        auto arguments = new Expressions();
+        this.arguments = new Expressions();
         if (earg1)
-        {
-            arguments.setDim(1);
-            (*arguments)[0] = earg1;
-        }
-        this.arguments = arguments;
+            this.arguments.push(earg1);
     }
 
     extern (D) this(const ref Loc loc, Expression e, Expression earg1, Expression earg2)
