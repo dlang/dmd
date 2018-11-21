@@ -4142,8 +4142,9 @@ struct ASTBase
     {
         TraitsExp exp;
         Loc loc;
+        bool inAliasDeclaration;
 
-        extern (D) this(Loc loc, TraitsExp exp)
+        extern (D) this(const ref Loc loc, TraitsExp exp)
         {
             super(Tident);
             this.loc = loc;
@@ -4153,6 +4154,14 @@ struct ASTBase
         override void accept(Visitor v)
         {
             v.visit(this);
+        }
+
+        override Type syntaxCopy()
+        {
+            TraitsExp te = cast(TraitsExp) exp.syntaxCopy();
+            TypeTraits tt = new TypeTraits(loc, te);
+            tt.mod = mod;
+            return tt;
         }
     }
 
