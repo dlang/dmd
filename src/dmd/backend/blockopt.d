@@ -1121,9 +1121,17 @@ private void brrear()
  * Compute depth first order (DFO).
  * Equivalent to Aho & Ullman Fig. 13.8.
  * Blocks not in dfo[] are unreachable.
+ * Params:
+ *      dfo = array to fill in in DFO
+ *      startblock = list of blocks
  */
 
 void compdfo()
+{
+    compdfo(dfo, startblock);
+}
+
+void compdfo(ref Barray!(block*) dfo, block* startblock)
 {
     debug if (debugc) printf("compdfo()\n");
     assert(OPTIMIZER);
@@ -1136,45 +1144,58 @@ void compdfo()
     assert(maxblks && maxblks >= numblks);
     debug assert(!PARSER);
     dfo.setLength(maxblks);
-    dfo[] = null;
-    dfotop = numblks;                     /* assign numbers backwards     */
-    search(startblock);
-    assert(dfotop <= numblks);
-    /* Ripple data to the bottom of the array     */
-    if (dfotop)                 // if not at bottom
+
+    /******************************
+     * Add b's successors to dfo[], then b
+     */
+    void walkDFO(block *b)
     {
-        for (uint i = 0; i < numblks - dfotop; i++)
+        assert(b);
+        b.Bflags |= BFLvisited;             // executed at least once
+
+        foreach (bl; ListRange(b.Bsucc))   // for each successor
         {
-            dfo[i] = dfo[i + dfotop];
-            dfo[i].Bdfoidx = i;
+            block *bs = list_block(bl);
+            assert(bs);
+            if ((bs.Bflags & BFLvisited) == 0) // if not visited
+                walkDFO(bs);
         }
+
+        dfo.push(b);
     }
-    dfotop = numblks - dfotop;
+
+
+    dfo.setLength(0);
+    walkDFO(startblock);
+
+    // Reverse the array
+    if (dfo.length)
+    {
+        size_t i = 0;
+        size_t k = dfo.length - 1;
+        while (i < k)
+        {
+            auto b = dfo[k];
+            dfo[k] = dfo[i];
+            dfo[i] = b;
+            ++i;
+            --k;
+        }
+
+        foreach (j, b; dfo[])
+            b.Bdfoidx = cast(uint)j;
+    }
+
+    dfotop = cast(uint)dfo.length;
+    assert(dfo.length <= numblks);
+
     static if(0)
     {
-        for (uint i = 0; i < dfotop; i++)
-            printf("dfo[%d] = %p\n",i,dfo[i]);
+        foreach (i, b; dfo[])
+            printf("dfo[%d] = %p\n", cast(int)i, b);
     }
 }
 
-/******************************
- * Add block to dfo[], then its successors.
- */
-
-private void search(block *b)
-{
-    assert(b);
-    b.Bflags |= BFLvisited;             // executed at least once
-    for (list_t l = b.Bsucc; l; l = list_next(l))   // for each successor
-    {
-        block *bs = list_block(l);
-        assert(bs);
-        if ((bs.Bflags & BFLvisited) == 0) // if not visited
-            search(bs);                 // search it
-    }
-    dfo[--dfotop] = b;                  // add to dfo[]
-    b.Bdfoidx = dfotop;                 // link back
-}
 
 /*************************
  * Remove blocks not marked as visited (they aren't in dfo[]).
