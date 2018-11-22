@@ -847,12 +847,10 @@ extern (C++) final class StaticIfCondition : Condition
                 return 0;
             }
 
-            sc = sc.push(sc.scopesym);
-
             import dmd.staticcond;
             bool errors;
             bool result = evalStaticCondition(sc, exp, exp, errors);
-            sc.pop();
+
             // Prevent repeated condition evaluation.
             // See: fail_compilation/fail7815.d
             if (inc != 0)
