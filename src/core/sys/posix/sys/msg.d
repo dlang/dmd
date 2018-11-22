@@ -8,8 +8,8 @@ module core.sys.posix.sys.msg;
 
 import core.sys.posix.config;
 import core.sys.posix.sys.ipc;
-public import core.sys.posix.sys.types;
-public import core.stdc.config;
+import core.sys.posix.sys.types;
+import core.stdc.config;
 
 version (CRuntime_Glibc):
 // Some of these may be from linux kernel headers.
@@ -32,12 +32,12 @@ version (SystemZ) version = IBMZ_Any;
 
 version (linux)
 {
-    public enum MSG_STAT = 11;
-    public enum MSG_INFO = 12;
+    enum MSG_STAT = 11;
+    enum MSG_INFO = 12;
 
-    public enum MSG_NOERROR = 1 << 12; // octal!10000
-    public enum  MSG_EXCEPT = 2 << 12; // octal!20000
-    public enum    MSG_COPY = 4 << 12; // octal!40000
+    enum MSG_NOERROR = 1 << 12; // octal!10000
+    enum  MSG_EXCEPT = 2 << 12; // octal!20000
+    enum    MSG_COPY = 4 << 12; // octal!40000
 
     struct msginfo
     {
