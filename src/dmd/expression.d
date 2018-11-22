@@ -3115,7 +3115,7 @@ extern (C++) final class TemplateExp : Expression
             return Expression.toLvalue(sc, e);
 
         assert(sc);
-        return resolve(loc, sc, fd, true);
+        return symbolToExp(fd, loc, sc, true);
     }
 
     override bool checkType()
