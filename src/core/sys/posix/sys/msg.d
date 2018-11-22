@@ -171,13 +171,6 @@ version (linux)
             ulong_t __glibc_reserved5;
         }
     }
-
-
-    public enum MSG_MEM_SCALE =  32;
-    public enum MSGMNI =     16;
-    public enum MSGMAX =   8192;
-    public enum MSGMNB =  16384;
-
 }
 else
 {
