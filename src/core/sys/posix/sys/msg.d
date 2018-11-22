@@ -40,13 +40,17 @@ struct msginfo
 }
 
 version (AArch64) version = GENERICMSQ;
+version (Alpha)   version = GENERICMSQ;
 version (ARM)     version = GENERICMSQ;
+version (IA64)    version = GENERICMSQ;
 version (RISCV32) version = GENERICMSQ;
 version (RISCV64) version = GENERICMSQ;
+version (S390)    version = GENERICMSQ;
+version (SystemZ) version = GENERICMSQ;
 
 version (GENERICMSQ)
 {
-    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/generic/bits/msq.h
+    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/bits/msq.h
     alias c_ulong msgqnum_t;
     alias c_ulong msglen_t;
 
@@ -86,27 +90,6 @@ version (GENERICMSQ)
             c_ulong __glibc_reserved4;
             c_ulong __glibc_reserved5;
         }
-    }
-}
-version (Alpha)
-{
-    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/alpha/bits/msq.h
-    alias c_ulong msgqnum_t;
-    alias c_ulong msglen_t;
-
-    struct msqid_ds
-    {
-        ipc_perm msg_perm;
-        time_t msg_stime;
-        time_t msg_rtime;
-        time_t msg_ctime;
-        c_ulong __msg_cbytes;
-        msgqnum_t msg_qnum;
-        msglen_t msg_qbytes;
-        pid_t msg_lspid;
-        pid_t msg_lrpid;
-        c_ulong __glibc_reserved1;
-        c_ulong __glibc_reserved2;
     }
 }
 else version (HPPA)
@@ -227,53 +210,6 @@ else version (PPC64)
         pid_t     msg_lrpid;
         c_ulong   __glibc_reserved4;
         c_ulong   __glibc_reserved5;
-    }
-}
-else version (S390)
-{
-    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/s390/bits/msq.h
-    alias c_ulong msgqnum_t;
-    alias c_ulong msglen_t;
-
-    // Assuming wordsize != 64
-    struct msqid_ds
-    {
-        ipc_perm msg_perm;
-        c_ulong __glibc_reserved1;
-        time_t          msg_stime;
-        c_ulong __glibc_reserved2;
-        time_t          msg_rtime;
-        c_ulong __glibc_reserved3;
-        time_t          msg_ctime;
-        c_ulong         __msg_cbytes;
-        msgqnum_t       msg_qnum;
-        msglen_t        msg_qbytes;
-        pid_t           msg_lspid;
-        pid_t           msg_lrpid;
-        c_ulong __glibc_reserved4;
-        c_ulong __glibc_reserved5;
-    }
-}
-else version (SystemZ)
-{
-    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/s390/bits/msq.h
-    alias c_ulong msgqnum_t;
-    alias c_ulong msglen_t;
-
-    // Assuming wordsize == 64
-    struct msqid_ds
-    {
-        ipc_perm msg_perm;
-        time_t          msg_stime;
-        time_t          msg_rtime;
-        time_t          msg_ctime;
-        c_ulong         __msg_cbytes;
-        msgqnum_t       msg_qnum;
-        msglen_t        msg_qbytes;
-        pid_t           msg_lspid;
-        pid_t           msg_lrpid;
-        c_ulong __glibc_reserved4;
-        c_ulong __glibc_reserved5;
     }
 }
 else version (SPARC)
