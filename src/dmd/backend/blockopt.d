@@ -77,7 +77,6 @@ __gshared
                             // (can have no predecessors)
 
     Barray!(block*) dfo;    // array of depth first order
-    uint dfotop;            // # of items in dfo[]
 
     block *curblock;        // current block being read in
     block *block_last;      // last block read in
@@ -633,7 +632,7 @@ void blockopt(int iter)
         int count = 0;
         do
         {
-            //printf("changes = %d, count = %d, dfotop = %d\n",go.changes,count,dfotop);
+            //printf("changes = %d, count = %d, dfo.length = %d\n",go.changes,count,dfo.length);
             go.changes = 0;
             bropt();                    // branch optimization
             brrear();                   // branch rearrangement
@@ -1186,7 +1185,6 @@ void compdfo(ref Barray!(block*) dfo, block* startblock)
             b.Bdfoidx = cast(uint)j;
     }
 
-    dfotop = cast(uint)dfo.length;
     assert(dfo.length <= numblks);
 
     static if(0)
@@ -1211,7 +1209,7 @@ private void elimblks()
             int n = 0;
             for (block *b = startblock; b; b = b.Bnext)
                   n++;
-            //printf("1 n = %d, numblks = %d, dfotop = %d\n",n,numblks,dfotop);
+            //printf("1 n = %d, numblks = %d, dfo.length = %d\n",n,numblks,dfo.length);
             assert(numblks == n);
         }
     }
@@ -1256,7 +1254,7 @@ private void elimblks()
     }
 
     debug if (debugc) printf("elimblks done\n");
-    assert(!OPTIMIZER || numblks == dfotop);
+    assert(!OPTIMIZER || numblks == dfo.length);
 }
 
 /**********************************
@@ -1277,9 +1275,8 @@ private int mergeblks()
 
     assert(OPTIMIZER);
     debug if (debugc) printf("mergeblks()\n");
-    for (int i = 0; i < dfotop; i++)
+    foreach (b; dfo[])
     {
-        block *b = dfo[i];
         if (b.BC == BCgoto)
         {   block *bL2 = list_block(b.Bsucc);
 

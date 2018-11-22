@@ -101,7 +101,7 @@ void builddags()
     {
         /* This is the 'correct' algorithm for CSEs. We can't use it    */
         /* till we fix the code generator.                              */
-        foreach (i, b; dfo[0 .. dfotop])
+        foreach (i, b; dfo[])
         {
             if (b.Belem)
             {
@@ -131,7 +131,7 @@ void builddags()
         /* the code generator can only track register contents          */
         /* properly across extended basic blocks.                       */
         aevec = vec_calloc(go.exptop);
-        foreach (i, b; dfo[0 .. dfotop])
+        foreach (i, b; dfo[])
         {
             /* if not first block and (there are more than one      */
             /* predecessor or the only predecessor is not the       */
@@ -155,7 +155,7 @@ void builddags()
 
     // Need 2 passes to converge on solution
     foreach (j; 0 .. 2)
-        foreach (b; dfo[0 .. dfotop])
+        foreach (b; dfo[])
         {
             if (b.Belem)
             {
@@ -583,7 +583,7 @@ void boolopt()
     vec_t aevecval;
 
     debug if (debugc) printf("boolopt()\n");
-    if (!dfo)
+    if (!dfo.length)
         compdfo();
     flowae();                       /* compute available expressions */
     if (go.exptop <= 1)             /* if no AEs                     */
@@ -618,9 +618,8 @@ void boolopt()
         }
     }
 
-    for (uint i = 0; i < dfotop; i++)
+    foreach (i, b; dfo[])
     {
-        block *b = dfo[i];
         /* if not first block and (there are more than one      */
         /* predecessor or the only predecessor is not the       */
         /* previous block), then zero out the available         */

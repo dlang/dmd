@@ -147,10 +147,8 @@ private void rd_compute()
         return;
     assert(rellist == null && inclist == null && eqeqlist == null);
     block_clearvisit();
-    for (uint i = 0; i < dfotop; i++)    // for each block
+    foreach (b; dfo[])    // for each block
     {
-        block *b = dfo[i];
-
         switch (b.BC)
         {
             case BCjcatch:
@@ -166,11 +164,8 @@ private void rd_compute()
         }
     }
 
-    for (uint i = 0; i < dfotop; i++)    // for each block
+    foreach (i, b; dfo[])    // for each block
     {
-        block *b;
-
-        b = dfo[i];
         thisblock = b;
 
         //printf("block %d Bin ",i); vec_println(b.Binrd);
@@ -437,8 +432,8 @@ private void chkrd(elem *n,list_t rdlist)
     }
 
     // If there are any asm blocks, don't print the message
-    for (uint i = 0; i < dfotop; i++)
-        if (dfo[i].BC == BCasm)
+    foreach (b; dfo[])
+        if (b.BC == BCasm)
             return;
 
     // If variable contains bit fields, don't print message (because if
@@ -1089,7 +1084,7 @@ Louter:
                 printf(");\n");
             }
         }
-        foreach (i, b; dfo[0 .. dfotop])    // for each block
+        foreach (i, b; dfo[])    // for each block
         {
             if (b.Belem)
             {
@@ -1366,7 +1361,7 @@ void rmdeadass()
 {
     if (debugc) printf("rmdeadass()\n");
     flowlv();                       /* compute live variables       */
-    foreach (b; dfo[0 .. dfotop])       // for each block b
+    foreach (b; dfo[])         // for each block b
     {
         if (!b.Belem)          /* if no elems at all           */
             continue;
@@ -1749,7 +1744,6 @@ void deadvar()
 
         /* First, mark each candidate as dead.  */
         /* Initialize vectors for live ranges.  */
-        /*setvecdim(dfotop);*/
         for (SYMIDX i = 0; i < globsym.top; i++)
         {
             Symbol *s = globsym.tab[i];
@@ -1766,9 +1760,9 @@ void deadvar()
         }
 
         /* Go through trees and "liven" each one we see.        */
-        for (uint i = 0; i < dfotop; i++)
-            if (dfo[i].Belem)
-                dvwalk(dfo[i].Belem,i);
+        foreach (i, b; dfo[])
+            if (b.Belem)
+                dvwalk(b.Belem,cast(uint)i);
 
         /* Compute live variables. Set bit for block in live range      */
         /* if variable is in the IN set for that block.                 */
@@ -1776,9 +1770,9 @@ void deadvar()
         for (SYMIDX i = 0; i < globsym.top; i++)
         {
             if (globsym.tab[i].Srange /*&& globsym.tab[i].Sclass != CLMOS*/)
-                for (uint j = 0; j < dfotop; j++)
-                    if (vec_testbit(i,dfo[j].Binlv))
-                        vec_setbit(j,globsym.tab[i].Srange);
+                foreach (j, b; dfo[])
+                    if (vec_testbit(i,b.Binlv))
+                        vec_setbit(cast(uint)j,globsym.tab[i].Srange);
         }
 
         /* Print results        */
@@ -1855,13 +1849,12 @@ void verybusyexp()
     genkillae();                    /* compute Bgen and Bkill for   */
                                     /* AEs                          */
     /*chkvecdim(go.exptop,0);*/
-    blockseen = vec_calloc(dfotop);
+    blockseen = vec_calloc(dfo.length);
 
     /* Go backwards through dfo so that VBEs are evaluated as       */
     /* close as possible to where they are used.                    */
-    for (int i = dfotop; --i >= 0;)     // for each block
+    foreach_reverse (i, b; dfo[])     // for each block
     {
-        block *b = dfo[i];
         int done;
 
         /* Do not hoist things to blocks that do not            */
