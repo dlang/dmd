@@ -2062,7 +2062,6 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
      * 2 and 3 are handled by doing the argument construction in 'eprefix' so that if a later argument throws, they are cleaned
      * up properly. Pushing arguments on the stack then cannot fail.
      */
-    if (1)
     {
         /* TODO: tackle problem 1)
          */
