@@ -111,8 +111,8 @@ version (linux)
         static assert(0, "unimplemented");
 
     // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/bits/msq.h
-    alias c_ulong msgqnum_t;
-    alias c_ulong msglen_t;
+    alias msgqnum_t = ulong_t;
+    alias msglen_t = ulong_t;
 
     static if (MSQ_PAD_BEFORE_TIME)
     {
@@ -125,13 +125,13 @@ version (linux)
             time_t          msg_rtime;
             c_ulong __glibc_reserved3;
             time_t          msg_ctime;
-            c_ulong         __msg_cbytes;
+            ulong_t         __msg_cbytes;
             msgqnum_t       msg_qnum;
             msglen_t        msg_qbytes;
             pid_t           msg_lspid;
             pid_t           msg_lrpid;
-            c_ulong __glibc_reserved4;
-            c_ulong __glibc_reserved5;
+            ulong_t __glibc_reserved4;
+            ulong_t __glibc_reserved5;
         }
     }
     else static if (MSQ_PAD_AFTER_TIME)
@@ -145,13 +145,13 @@ version (linux)
             c_ulong __glibc_reserved2;
             time_t          msg_ctime;
             c_ulong __glibc_reserved3;
-            c_ulong         __msg_cbytes;
+            ulong_t         __msg_cbytes;
             msgqnum_t       msg_qnum;
             msglen_t        msg_qbytes;
             pid_t           msg_lspid;
             pid_t           msg_lrpid;
-            c_ulong __glibc_reserved4;
-            c_ulong __glibc_reserved5;
+            ulong_t __glibc_reserved4;
+            ulong_t __glibc_reserved5;
         }
     }
     else
@@ -162,13 +162,13 @@ version (linux)
             time_t          msg_stime;
             time_t          msg_rtime;
             time_t          msg_ctime;
-            c_ulong         __msg_cbytes;
+            ulong_t         __msg_cbytes;
             msgqnum_t       msg_qnum;
             msglen_t        msg_qbytes;
             pid_t           msg_lspid;
             pid_t           msg_lrpid;
-            c_ulong __glibc_reserved4;
-            c_ulong __glibc_reserved5;
+            ulong_t __glibc_reserved4;
+            ulong_t __glibc_reserved5;
         }
     }
 
