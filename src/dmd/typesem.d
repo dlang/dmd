@@ -119,8 +119,8 @@ private void resolveTupleIndex(TypeQualified mt, const ref Loc loc, Scope* sc, D
         if (tindex)
             eindex = new TypeExp(loc, tindex);
         else if (sindex)
-            eindex = dmd.expressionsem.resolve(loc, sc, sindex, false);
-        Expression e = new IndexExp(loc, dmd.expressionsem.resolve(loc, sc, s, false), eindex);
+            eindex = symbolToExp(sindex, loc, sc, false);
+        Expression e = new IndexExp(loc, symbolToExp(s, loc, sc, false), eindex);
         e = e.expressionSemantic(sc);
         mt.resolveExp(e, pt, pe, ps);
         return;
@@ -130,7 +130,7 @@ private void resolveTupleIndex(TypeQualified mt, const ref Loc loc, Scope* sc, D
     if (tindex)
         tindex.resolve(loc, sc, &eindex, &tindex, &sindex);
     if (sindex)
-        eindex = dmd.expressionsem.resolve(loc, sc, sindex, false);
+        eindex = symbolToExp(sindex, loc, sc, false);
     if (!eindex)
     {
         .error(loc, "index `%s` is not an expression", oindex.toChars());
@@ -290,7 +290,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
                     VarDeclaration v = s.isVarDeclaration();
                     FuncDeclaration f = s.isFuncDeclaration();
                     if (intypeid || !v && !f)
-                        e = dmd.expressionsem.resolve(loc, sc, s, true);
+                        e = symbolToExp(s, loc, sc, true);
                     else
                         e = new VarExp(loc, s.isDeclaration(), true);
 
@@ -3721,7 +3721,7 @@ private extern(C++) final class DotExpVisitor : Visitor
 
         if (s.isImport() || s.isModule() || s.isPackage())
         {
-            e = dmd.expressionsem.resolve(e.loc, sc, s, false);
+            e = symbolToExp(s, e.loc, sc, false);
             result = e;
             return;
         }
@@ -4213,7 +4213,7 @@ private extern(C++) final class DotExpVisitor : Visitor
 
         if (s.isImport() || s.isModule() || s.isPackage())
         {
-            e = dmd.expressionsem.resolve(e.loc, sc, s, false);
+            e = symbolToExp(s, e.loc, sc, false);
             result = e;
             return;
         }

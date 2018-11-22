@@ -827,7 +827,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 return ex.expressionSemantic(sc);
             }
         }
-        return resolve(e.loc, sc, s, false);
+        return symbolToExp(s, e.loc, sc, false);
     }
     if (e.ident == Id.hasMember ||
         e.ident == Id.getMember ||

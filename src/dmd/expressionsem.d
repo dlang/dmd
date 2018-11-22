@@ -809,19 +809,19 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
 }
 
 /****************************************
- * Resolve a symbol `s` and wraps it in an expression object.
+ * Turn symbol `s` into the expression it represents.
  *
  * Params:
+ *      s = symbol to resolve
  *      loc = location of use of `s`
  *      sc = context
- *      s = symbol to resolve
  *      hasOverloads = applies if `s` represents a function.
  *          true means it's overloaded and will be resolved later,
  *          false means it's the exact function symbol.
  * Returns:
  *      `s` turned into an expression, `ErrorExp` if an error occurred
  */
-Expression resolve(const ref Loc loc, Scope *sc, Dsymbol s, bool hasOverloads)
+Expression symbolToExp(Dsymbol s, const ref Loc loc, Scope *sc, bool hasOverloads)
 {
     static if (LOGSEMANTIC)
     {
@@ -2440,7 +2440,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     }
                 }
                 // Haven't done overload resolution yet, so pass 1
-                e = resolve(exp.loc, sc, s, true);
+                e = symbolToExp(s, exp.loc, sc, true);
             }
             result = e;
             return;
@@ -2537,7 +2537,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(DsymbolExp e)
     {
-        result = resolve(e.loc, sc, e.s, e.hasOverloads);
+        result = symbolToExp(e.s, e.loc, sc, e.hasOverloads);
     }
 
     override void visit(ThisExp e)
@@ -2994,7 +2994,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         else if (s)
         {
             //printf("s = %s %s\n", s.kind(), s.toChars());
-            e = resolve(exp.loc, sc, s, true);
+            e = symbolToExp(s, exp.loc, sc, true);
         }
         else
             assert(0);
@@ -3120,7 +3120,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
 
             //printf("s = %s, '%s'\n", s.kind(), s.toChars());
-            auto e = resolve(exp.loc, sc, s, true);
+            auto e = symbolToExp(s, exp.loc, sc, true);
             //printf("-1ScopeExp::semantic()\n");
             result = e;
             return;
@@ -4887,7 +4887,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (ea)
         {
             if (auto sym = getDsymbol(ea))
-                ea = resolve(exp.loc, sc, sym, false);
+                ea = symbolToExp(sym, exp.loc, sc, false);
             else
                 ea = ea.expressionSemantic(sc);
             ea = resolveProperties(sc, ea);
@@ -5684,7 +5684,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (fd.isNested() || fd.isFuncLiteralDeclaration())
             {
                 // (e1, fd)
-                auto e = resolve(exp.loc, sc, fd, false);
+                auto e = symbolToExp(fd, exp.loc, sc, false);
                 result = Expression.combine(exp.e1, e);
                 return;
             }
