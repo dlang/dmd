@@ -1363,6 +1363,15 @@ elem *toElem(Expression e, IRState *irs)
                 FuncDeclaration fd = te.var.toParent2().isFuncDeclaration();
                 assert(fd);
                 ethis = getEthis(te.loc, irs, fd);
+                if (te.eoffset)
+                {
+                    /* Bugzilla 15984: If te is in interface contracts, ethis is a
+                     * reference to concrete class instance. Offset it in here
+                     * to get correct interface type reference.
+                     */
+                    elem* eo = toElem(te.eoffset, irs);
+                    ethis = el_bin(OPadd, ethis.Ety, ethis, eo);
+                }
             }
             else
                 ethis = el_var(irs.sthis);

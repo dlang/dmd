@@ -2043,8 +2043,18 @@ extern (C++) class FuncDeclaration : Declaration
                  *   try { __require(); }
                  *   catch (Throwable) { frequire; }
                  */
-                Expression eresult = null;
-                Expression e = new CallExp(loc, new VarExp(loc, fdv.fdrequire, false), eresult);
+                Expression eoffset;
+                if (auto id = fdv.isThis().isInterfaceDeclaration())
+                {
+                    auto cd = this.isThis().isClassDeclaration();
+                    int offset;
+                    id.isBaseOf(cd, &offset);
+                    assert(offset != ClassDeclaration.OFFSET_RUNTIME);
+                    eoffset = new IntegerExp(loc, offset, Type.tsize_t);
+                }
+
+                Expression e = new CallExp(loc,
+                new VarExp(loc, fdv.fdrequire, false), eoffset);
                 Statement s2 = new ExpStatement(loc, e);
 
                 auto c = new Catch(loc, getThrowable(), null, sf);
@@ -2152,15 +2162,24 @@ extern (C++) class FuncDeclaration : Declaration
              *   __require();
              */
             Loc loc = frequire.loc;
-            auto tf = new TypeFunction(null, Type.tvoid, 0, LINK.d);
+            auto fparams = new Parameters();
+            Expression eoffset = null;
+            if (parent.isInterfaceDeclaration())
+            {
+                fparams.push(new Parameter(0, Type.tsize_t, null, null, null));
+                eoffset = new IntegerExp(loc, 0, Type.tsize_t);
+            }
+            auto tf = new TypeFunction(fparams, Type.tvoid, 0, LINK.d);
             tf.isnothrow = f.isnothrow;
             tf.isnogc = f.isnogc;
             tf.purity = f.purity;
             tf.trust = f.trust;
+
             auto fd = new FuncDeclaration(loc, loc, Id.require, STC.undefined_, tf);
             fd.fbody = frequire;
+
             Statement s1 = new ExpStatement(loc, fd);
-            Expression e = new CallExp(loc, new VarExp(loc, fd, false), cast(Expressions*)null);
+            Expression e = new CallExp(loc, new VarExp(loc, fd, false), eoffset);
             Statement s2 = new ExpStatement(loc, e);
             frequire = new CompoundStatement(loc, s1, s2);
             fdrequire = fd;
@@ -2175,24 +2194,33 @@ extern (C++) class FuncDeclaration : Declaration
              */
             Loc loc = fensure.loc;
             auto fparams = new Parameters();
-            Parameter p = null;
+            Expression eresult;
+            Expression eoffset;
+
             if (canBuildResultVar())
             {
-                p = new Parameter(STC.ref_ | STC.const_, f.nextOf(), Id.result, null, null);
-                fparams.push(p);
+                fparams.push(new Parameter(STC.ref_ | STC.const_,
+                                           f.nextOf(), Id.result, null, null));
+                eresult = new IdentifierExp(loc, Id.result);
+            }
+            if (parent.isInterfaceDeclaration())
+            {
+                fparams.push(new Parameter(0, Type.tsize_t, null, null, null));
+                eoffset = new IntegerExp(loc, 0, Type.tsize_t);
             }
             auto tf = new TypeFunction(fparams, Type.tvoid, 0, LINK.d);
             tf.isnothrow = f.isnothrow;
             tf.isnogc = f.isnogc;
             tf.purity = f.purity;
             tf.trust = f.trust;
+
             auto fd = new FuncDeclaration(loc, loc, Id.ensure, STC.undefined_, tf);
             fd.fbody = fensure;
+
             Statement s1 = new ExpStatement(loc, fd);
-            Expression eresult = null;
             if (canBuildResultVar())
                 eresult = new IdentifierExp(loc, Id.result);
-            Expression e = new CallExp(loc, new VarExp(loc, fd, false), eresult);
+            Expression e = new CallExp(loc, new VarExp(loc, fd, false), eresult, eoffset);
             Statement s2 = new ExpStatement(loc, e);
             fensure = new CompoundStatement(loc, s1, s2);
             fdensure = fd;
@@ -2235,7 +2263,8 @@ extern (C++) class FuncDeclaration : Declaration
             {
                 //printf("fdv.fensure: %s\n", fdv.fensure.toChars());
                 // Make the call: __ensure(result)
-                Expression eresult = null;
+                Expression eresult;
+                Expression eoffset;
                 if (canBuildResultVar())
                 {
                     eresult = new IdentifierExp(loc, oid);
@@ -2257,7 +2286,17 @@ extern (C++) class FuncDeclaration : Declaration
                         eresult = new CommaExp(Loc.initial, de, ve);
                     }
                 }
-                Expression e = new CallExp(loc, new VarExp(loc, fdv.fdensure, false), eresult);
+                if (auto id = fdv.isThis().isInterfaceDeclaration())
+                {
+                    auto cd = this.isThis().isClassDeclaration();
+                    int offset;
+                    id.isBaseOf(cd, &offset);
+                    assert(offset != ClassDeclaration.OFFSET_RUNTIME);
+                    eoffset = new IntegerExp(loc, offset, Type.tsize_t);
+                }
+
+                Expression e = new CallExp(loc,
+                new VarExp(loc, fdv.fdensure, false), eresult, eoffset);
                 Statement s2 = new ExpStatement(loc, e);
 
                 if (sf)

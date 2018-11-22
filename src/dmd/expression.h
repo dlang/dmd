@@ -215,6 +215,7 @@ class ThisExp : public Expression
 {
 public:
     VarDeclaration *var;
+    Expression *eoffset;
 
     bool isBool(bool result);
     bool isLvalue();

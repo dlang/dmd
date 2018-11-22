@@ -2013,6 +2013,9 @@ extern (C++) class ThisExp : Expression
 {
     VarDeclaration var;
 
+    // Bugzilla 15984: It's used when ThisExp appears in interface contracts.
+    Expression eoffset;     // backend
+
     extern (D) this(const ref Loc loc)
     {
         super(loc, TOK.this_, __traits(classInstanceSize, ThisExp));
@@ -4613,10 +4616,9 @@ extern (C++) final class CallExp : UnaExp
     extern (D) this(const ref Loc loc, Expression e, Expression earg1, Expression earg2)
     {
         super(loc, TOK.call, __traits(classInstanceSize, CallExp), e);
-        auto arguments = new Expressions(2);
-        (*arguments)[0] = earg1;
-        (*arguments)[1] = earg2;
-        this.arguments = arguments;
+        this.arguments = new Expressions();
+        if (earg1) this.arguments.push(earg1);
+        if (earg2) this.arguments.push(earg2);
     }
 
     /***********************************************************

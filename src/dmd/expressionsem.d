@@ -2593,7 +2593,32 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (e.var.checkNestedReference(sc, e.loc))
             return setError();
+        // Bugzilla 15984
+        if (fd.isThis().isInterfaceDeclaration() && fd.isVirtual())
+        {
+            assert(fd.fdrequire || fd.fdensure);
 
+            FuncDeclaration fdc;
+            for (auto scx = sc; scx; scx = scx.enclosing)
+            {
+                if (scx.func.parent !is fd)
+                continue;
+                fdc = (scx.func.ident == Id.require) ? fd.fdrequire : fd.fdensure;
+                break;
+            }
+            assert(fdc && fdc.parameters && fdc.parameters.dim);
+
+            /* When fdc is called from a derived instance class C, the last
+             * parameter voffset is set to the offset from C to interface 'id'.
+             * See also:
+             *  FuncDeclaration.mergeFrequire, mergeFensure.
+             */
+            auto voffset = (*fdc.parameters)[fdc.parameters.dim - 1];
+            e.eoffset = new VarExp(Loc.initial, voffset);
+            e.eoffset = e.eoffset.expressionSemantic(sc);
+            assert(e.eoffset.op != TOK.error);
+            //printf("[%s] ThisExp eoffset = %s\n", loc.toChars(), eoffset.toChars());
+        }
         result = e;
         return;
 
@@ -2675,6 +2700,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (e.var.checkNestedReference(sc, e.loc))
             return setError();
+
+        // Bugzilla 15984: 'super' is always invalid inside interface contract.
 
         result = e;
         return;
