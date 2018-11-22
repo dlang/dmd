@@ -1220,7 +1220,36 @@ void main()
 ---
 )
 
-        $(P Unions may not have fields that have postblits.)
+        $(P Unions may have fields that have postblits. However, a union itself never has
+        a postblit. Copying a union does not result in postblit calls for any fields.
+        If those calls are desired, they must be inserted explicitly by the programmer:)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S
+{
+    int count;
+    this(this)
+    {
+        ++count;
+    }
+}
+
+union U
+{
+    S s;
+}
+
+void main()
+{
+    U a = U.init;
+    U b = a;
+    assert(b.s.count == 0);
+    b.s.__postblit;
+    assert(b.s.count == 1);
+}
+---
+)
 
 $(H2 $(LEGACY_LNAME2 StructDestructor, struct-destructor, Struct Destructors))
 
@@ -1229,7 +1258,46 @@ $(H2 $(LEGACY_LNAME2 StructDestructor, struct-destructor, Struct Destructors))
         object.
         )
 
-        $(P Unions may not have fields that have destructors.)
+        $(P Unions may have fields that have destructors. However, a union itself never has
+        a destructor. When a union goes out of scope, destructors for it's fields are not called.
+        If those calls are desired, they must be inserted explicitly by the programmer:)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S
+{
+    ~this()
+    {
+        import std.stdio;
+        writeln("S is being destructed");
+    }
+}
+
+union U
+{
+    S s;
+}
+
+void main()
+{
+    import std.stdio;
+    {
+        writeln("entering first scope");
+        U u = U.init;
+        scope (exit) writeln("exiting first scope");
+    }
+    {
+        writeln("entering second scope");
+        U u = U.init;
+        scope (exit)
+        {
+            writeln("exiting second scope");
+            destroy(u.s);
+        }
+    }
+}
+---
+)
 
 $(H2 $(LNAME2 StructInvariant, Struct Invariants))
 
