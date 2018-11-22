@@ -314,7 +314,7 @@ tryagain:
         assert(dfo);
 
         cgreg_reset();
-        for (dfoidx = 0; dfoidx < dfotop; dfoidx++)
+        for (dfoidx = 0; dfoidx < dfo.length; dfoidx++)
         {
             regcon.used = msavereg | regcon.cse.mval;   // registers already in use
             block* b = dfo[dfoidx];
@@ -1371,7 +1371,7 @@ void stackoffsets(int flags)
                     if (!vec_testbit(i,tbl))
                         continue;
                     Symbol *sp = autos[i];
-//printf("auto    s = '%s', sp = '%s', %d, %d, %d\n",s.Sident,sp.Sident,dfotop,vec_numbits(s.Srange),vec_numbits(sp.Srange));
+//printf("auto    s = '%s', sp = '%s', %d, %d, %d\n",s.Sident,sp.Sident,dfo.length,vec_numbits(s.Srange),vec_numbits(sp.Srange));
                     if (vec_disjoint(s.Srange,sp.Srange) &&
                         !(sp.Soffset & (alignsize - 1)) &&
                         sz <= type_size(sp.Stype))

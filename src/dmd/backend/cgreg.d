@@ -62,19 +62,19 @@ void cgreg_init()
         return;
 
     // Use calloc() instead because sometimes the alloc is too large
-    //printf("1weights: dfotop = %d, globsym.top = %d\n", dfotop, globsym.top);
-    weights.setLength(dfotop * globsym.top);
+    //printf("1weights: dfo.length = %d, globsym.top = %d\n", dfo.length, globsym.top);
+    weights.setLength(dfo.length * globsym.top);
     weights[] = 0;
 
     nretblocks = 0;
-    for (int bi = 0; bi < dfotop; bi++)
-    {   block *b = dfo[bi];
+    foreach (bi, b; dfo[])
+    {
         if (b.BC == BCret || b.BC == BCretexp)
             nretblocks++;
         if (b.Belem)
         {
             //printf("b.Bweight = x%x\n",b.Bweight);
-            el_weights(bi,b.Belem,b.Bweight);
+            el_weights(cast(int)bi,b.Belem,b.Bweight);
         }
     }
     memset(regrange.ptr, 0, regrange.sizeof);
@@ -87,7 +87,7 @@ void cgreg_init()
         //printf("considering candidate '%s' for register\n",s.Sident);
 
         if (s.Srange)
-            s.Srange = vec_realloc(s.Srange,dfotop);
+            s.Srange = vec_realloc(s.Srange,dfo.length);
 
         // Determine symbols that are not candidates
         if (!(s.Sflags & GTregcand) ||
@@ -138,10 +138,10 @@ void cgreg_init()
             s.Sflags |= GTbyte;
 
         if (!s.Slvreg)
-            s.Slvreg = vec_calloc(dfotop);
+            s.Slvreg = vec_calloc(dfo.length);
 
-        //printf("dfotop = %d, numbits = %d\n",dfotop,vec_numbits(s.Srange));
-        assert(vec_numbits(s.Srange) == dfotop);
+        //printf("dfo.length = %d, numbits = %d\n",dfo.length,vec_numbits(s.Srange));
+        assert(vec_numbits(s.Srange) == dfo.length);
     }
 }
 
@@ -180,7 +180,7 @@ void cgreg_reset()
 {
     for (size_t j = 0; j < regrange.length; j++)
         if (!regrange[j])
-            regrange[j] = vec_calloc(dfotop);
+            regrange[j] = vec_calloc(dfo.length);
         else
             vec_clear(regrange[j]);
 }
@@ -297,7 +297,7 @@ static if (1) // causes assert failure in std.range(4488) from std.parallelism's
     if (fregsaved & (1 << reg) & mfuncreg)
         benefit -= 1 + nretblocks;
 
-    for (bi = 0; (bi = cast(uint) vec_index(bi, s.Srange)) < dfotop; ++bi)
+    for (bi = 0; (bi = cast(uint) vec_index(bi, s.Srange)) < dfo.length; ++bi)
     {   int inoutp;
         int inout_;
 
@@ -420,7 +420,7 @@ static if (1) // causes assert failure in std.range(4488) from std.parallelism's
         benefit += benefit2;
     }
 
-    //printf("2weights: dfotop = %d, globsym.top = %d\n", dfotop, globsym.top);
+    //printf("2weights: dfo.length = %d, globsym.top = %d\n", dfo.length, globsym.top);
     debug if (benefit > s.Sweight + retsym_cnt + 1)
         printf("s = '%s', benefit = %d, Sweight = %d, retsym_cnt = x%x\n",s.Sident.ptr,benefit,s.Sweight, retsym_cnt);
 
@@ -827,7 +827,7 @@ int cgreg_assign(Symbol *retsym)
         }
     }
 
-    vec_t v = vec_calloc(dfotop);
+    vec_t v = vec_calloc(dfo.length);
 
     uint dst_integer_reg;
     uint dst_float_reg;

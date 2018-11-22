@@ -79,7 +79,6 @@ extern __gshared
     block* startblock;              // beginning block of function
 
     Barray!(block*) dfo;            // array of depth first order
-    uint dfotop;                    // # of items in dfo[]
 
     block* curblock;                // current block being read in
     block* block_last;
