@@ -37,7 +37,7 @@ void abort(scope string msg, scope string filename = __FILE__, size_t line = __L
         static assert(0, "Unsupported OS");
 
     import core.internal.string;
-    UnsignedStringBuf strbuff;
+    UnsignedStringBuf strbuff = void;
 
     // write an appropriate message, then abort the program
     writeStr("Aborting from ", filename, "(", line.unsignedToTempString(strbuff, 10), ") ", msg);
