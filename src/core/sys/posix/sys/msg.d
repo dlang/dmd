@@ -15,6 +15,21 @@ version (CRuntime_Glibc):
 // Some of these may be from linux kernel headers.
 extern (C):
 
+version (ARM)     version = ARM_Any;
+version (AArch64) version = ARM_Any;
+version (HPPA)    version = HPPA_Any;
+version (HPPA64)  version = HPPA_Any;
+version (MIPS32)  version = MIPS_Any;
+version (MIPS64)  version = MIPS_Any;
+version (PPC)     version = PPC_Any;
+version (PPC64)   version = PPC_Any;
+version (RISCV32) version = RISCV_Any;
+version (RISCV64) version = RISCV_Any;
+version (S390)    version = IBMZ_Any;
+version (SPARC)   version = SPARC_Any;
+version (SPARC64) version = SPARC_Any;
+version (SystemZ) version = IBMZ_Any;
+
 version (linux)
 {
     public enum MSG_STAT = 11;
@@ -36,14 +51,11 @@ version (linux)
         ushort msgseg;
     }
 
-    version (AArch64) version = GENERICMSQ;
-    version (Alpha)   version = GENERICMSQ;
-    version (ARM)     version = GENERICMSQ;
-    version (IA64)    version = GENERICMSQ;
-    version (RISCV32) version = GENERICMSQ;
-    version (RISCV64) version = GENERICMSQ;
-    version (S390)    version = GENERICMSQ;
-    version (SystemZ) version = GENERICMSQ;
+    version (Alpha)     version = GENERICMSQ;
+    version (ARM_Any)   version = GENERICMSQ;
+    version (IA64)      version = GENERICMSQ;
+    version (IBMZ_Any)  version = GENERICMSQ;
+    version (RISCV_Any) version = GENERICMSQ;
 
     version (GENERICMSQ)
     {
@@ -51,13 +63,13 @@ version (linux)
         private enum MSQ_PAD_AFTER_TIME = (__WORDSIZE == 32);
         private enum MSQ_PAD_BEFORE_TIME = false;
     }
-    else version (HPPA)
+    else version (HPPA_Any)
     {
         // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/hppa/bits/msq-pad.h
         private enum MSQ_PAD_AFTER_TIME = false;
         private enum MSQ_PAD_BEFORE_TIME = (__WORDSIZE == 32);
     }
-    else version (MIPS32)
+    else version (MIPS_Any)
     {
         // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/mips/bits/msq-pad.h
         version (LittleEndian)
@@ -71,39 +83,13 @@ version (linux)
             private enum MSQ_PAD_BEFORE_TIME = (__WORDSIZE == 32);
         }
     }
-    else version (MIPS64)
-    {
-        // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/mips/bits/msq-pad.h
-        version (LittleEndian)
-        {
-            private enum MSQ_PAD_AFTER_TIME = (__WORDSIZE == 32);
-            private enum MSQ_PAD_BEFORE_TIME = false;
-        }
-        else
-        {
-            private enum MSQ_PAD_AFTER_TIME = false;
-            private enum MSQ_PAD_BEFORE_TIME = (__WORDSIZE == 32);
-        }
-    }
-    else version (PPC)
+    else version (PPC_Any)
     {
         //  https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/powerpc/bits/msq-pad.h
         private enum MSQ_PAD_AFTER_TIME = false;
         private enum MSQ_PAD_BEFORE_TIME = (__WORDSIZE == 32);
     }
-    else version (PPC64)
-    {
-        //  https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/powerpc/bits/msq-pad.h
-        private enum MSQ_PAD_AFTER_TIME = false;
-        private enum MSQ_PAD_BEFORE_TIME = (__WORDSIZE == 32);
-    }
-    else version (SPARC)
-    {
-        // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/sparc/bits/msq-pad.h
-        private enum MSQ_PAD_AFTER_TIME = false;
-        private enum MSQ_PAD_BEFORE_TIME = (__WORDSIZE == 32);
-    }
-    else version (SPARC64)
+    else version (SPARC_Any)
     {
         // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/sparc/bits/msq-pad.h
         private enum MSQ_PAD_AFTER_TIME = false;
