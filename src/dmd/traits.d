@@ -82,7 +82,7 @@ struct PushAttributes
  * Returns:
  *      Dsymbol  the corresponding symbol for oarg
  */
-private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
+Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
 {
     if (auto e = isExpression(oarg))
     {
@@ -90,6 +90,8 @@ private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
             return (cast(DotVarExp)e).var;
         if (e.op == TOK.dotTemplateDeclaration)
             return (cast(DotTemplateExp)e).td;
+        if (e.op == TOK.scope_)
+            return (cast(ScopeExp)e).sds;
     }
     return getDsymbol(oarg);
 }

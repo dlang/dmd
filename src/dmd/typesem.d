@@ -1609,13 +1609,9 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
 
     Type visitTraits(TypeTraits mtype)
     {
-        import dmd.traits : semanticTraits;
-
-        Type result = null;
         if (mtype.ty == Terror)
-        {
             return mtype;
-        }
+
         if (mtype.exp.ident != Id.allMembers &&
             mtype.exp.ident != Id.derivedMembers &&
             mtype.exp.ident != Id.getMember &&
@@ -1624,7 +1620,8 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
             mtype.exp.ident != Id.getVirtualFunctions &&
             mtype.exp.ident != Id.getVirtualMethods &&
             mtype.exp.ident != Id.getAttributes &&
-            mtype.exp.ident != Id.getUnitTests)
+            mtype.exp.ident != Id.getUnitTests &&
+            mtype.exp.ident != Id.getAliasThis)
         {
             static immutable (const(char)*)[2] ctxt = ["as type", "in alias"];
             .error(mtype.loc, "trait `%s` is either invalid or not supported %s",
@@ -1632,6 +1629,10 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
             mtype.ty = Terror;
             return mtype;
         }
+
+        import dmd.traits : semanticTraits, getDsymbolWithoutExpCtx;
+        Type result;
+
         if (Expression e = semanticTraits(mtype.exp, sc))
         {
             if (TupleExp te = e.toTupleExp)
@@ -1639,9 +1640,12 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                     Identifier.generateId("__aliastup"), cast(Objects*) te.exps);
             else if (Dsymbol ds = getDsymbol(e))
                 mtype.sym = ds;
+            else if (Dsymbol ds = getDsymbolWithoutExpCtx(e))
+                mtype.sym = ds;
             else if (Type t = getType(e))
                 result = t.addMod(mtype.mod);
         }
+
         if (!mtype.inAliasDeclaration && !result)
         {
             if (!global.errors)
@@ -1649,6 +1653,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
             mtype.ty = Terror;
             return mtype;
         }
+
         return result;
     }
 

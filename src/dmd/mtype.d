@@ -4962,16 +4962,14 @@ extern (C++) final class TypeDelegate : TypeNext
  * This is a shell containing a TraitsExp that can be
  * either resolved to a type or to a symbol.
  *
- * The point is to allow AliasDeclarationY to use `__traits(getMember)`
- * directly (VS using a library helper in the past).
+ * The point is to allow AliasDeclarationY to use `__traits()`, see issue 7804.
  */
 extern (C++) final class TypeTraits : Type
 {
     Loc loc;
-
     /// The expression to resolve as type or symbol.
     TraitsExp exp;
-    /// The symbol when exp doesn't represent a type.
+    /// After `typeSemantic` the symbol when `exp` doesn't represent a type.
     Dsymbol sym;
     /// Indicates wether we are in an alias or not.
     bool inAliasDeclaration;
