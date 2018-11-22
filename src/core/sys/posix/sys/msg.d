@@ -39,6 +39,55 @@ struct msginfo
     ushort msgseg;
 }
 
+version (AArch64) version = GENERICMSQ;
+version (ARM)     version = GENERICMSQ;
+version (RISCV32) version = GENERICMSQ;
+version (RISCV64) version = GENERICMSQ;
+
+version (GENERICMSQ)
+{
+    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/generic/bits/msq.h
+    alias c_ulong msgqnum_t;
+    alias c_ulong msglen_t;
+
+    version (D_LP64)
+    {
+        struct msqid_ds
+        {
+            ipc_perm        msg_perm;
+            time_t          msg_stime;
+            time_t          msg_rtime;
+            time_t          msg_ctime;
+            c_ulong         __msg_cbytes;
+            msgqnum_t       msg_qnum;
+            msglen_t        msg_qbytes;
+            pid_t           msg_lspid;
+            pid_t           msg_lrpid;
+            c_ulong __glibc_reserved4;
+            c_ulong __glibc_reserved5;
+        }
+    }
+    else
+    {
+        struct msqid_ds
+        {
+            ipc_perm        msg_perm;
+            c_ulong __glibc_reserved1;
+            time_t          msg_stime;
+            c_ulong __glibc_reserved2;
+            time_t          msg_rtime;
+            c_ulong __glibc_reserved3;
+            time_t          msg_ctime;
+            c_ulong         __msg_cbytes;
+            msgqnum_t       msg_qnum;
+            msglen_t        msg_qbytes;
+            pid_t           msg_lspid;
+            pid_t           msg_lrpid;
+            c_ulong __glibc_reserved4;
+            c_ulong __glibc_reserved5;
+        }
+    }
+}
 version (Alpha)
 {
     // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/alpha/bits/msq.h
@@ -178,51 +227,6 @@ else version (PPC64)
         pid_t     msg_lrpid;
         c_ulong   __glibc_reserved4;
         c_ulong   __glibc_reserved5;
-    }
-}
-else version (RISCV32)
-{
-    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/generic/bits/msq.h
-    alias c_ulong msgqnum_t;
-    alias c_ulong msglen_t;
-
-    struct msqid_ds
-    {
-        ipc_perm msg_perm;
-        c_ulong __glibc_reserved1;
-        time_t          msg_stime;
-        c_ulong __glibc_reserved2;
-        time_t          msg_rtime;
-        c_ulong __glibc_reserved3;
-        time_t          msg_ctime;
-        c_ulong         __msg_cbytes;
-        msgqnum_t       msg_qnum;
-        msglen_t        msg_qbytes;
-        pid_t           msg_lspid;
-        pid_t           msg_lrpid;
-        c_ulong __glibc_reserved4;
-        c_ulong __glibc_reserved5;
-    }
-}
-else version (RISCV64)
-{
-    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/generic/bits/msq.h
-    alias c_ulong msgqnum_t;
-    alias c_ulong msglen_t;
-
-    struct msqid_ds
-    {
-        ipc_perm msg_perm;
-        time_t          msg_stime;
-        time_t          msg_rtime;
-        time_t          msg_ctime;
-        c_ulong         __msg_cbytes;
-        msgqnum_t       msg_qnum;
-        msglen_t        msg_qbytes;
-        pid_t           msg_lspid;
-        pid_t           msg_lrpid;
-        c_ulong __glibc_reserved4;
-        c_ulong __glibc_reserved5;
     }
 }
 else version (S390)
@@ -367,51 +371,7 @@ else version (X86_64)
         c_ulong __glibc_reserved5;
     }
 }
-else version (AArch64)
-{
-    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/generic/bits/msq.h
-    alias c_ulong msgqnum_t;
-    alias c_ulong msglen_t;
-
-    struct msqid_ds
-    {
-        ipc_perm msg_perm;
-        time_t          msg_stime;
-        time_t          msg_rtime;
-        time_t          msg_ctime;
-        c_ulong         __msg_cbytes;
-        msgqnum_t       msg_qnum;
-        msglen_t        msg_qbytes;
-        pid_t           msg_lspid;
-        pid_t           msg_lrpid;
-        c_ulong __glibc_reserved4;
-        c_ulong __glibc_reserved5;
-    }
-}
-else version (ARM)
-{
-    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/generic/bits/msq.h
-    alias c_ulong msgqnum_t;
-    alias c_ulong msglen_t;
-
-    struct msqid_ds
-    {
-        ipc_perm msg_perm;
-        c_ulong __glibc_reserved1;
-        time_t          msg_stime;
-        c_ulong __glibc_reserved2;
-        time_t          msg_rtime;
-        c_ulong __glibc_reserved3;
-        time_t          msg_ctime;
-        c_ulong         __msg_cbytes;
-        msgqnum_t       msg_qnum;
-        msglen_t        msg_qbytes;
-        pid_t           msg_lspid;
-        pid_t           msg_lrpid;
-        c_ulong __glibc_reserved4;
-        c_ulong __glibc_reserved5;
-    }
-} else
+else
     static assert(0, "unimplemented");
 
 
