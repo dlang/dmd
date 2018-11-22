@@ -2749,7 +2749,8 @@ extern (C++) FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymb
         {
             assert(fd);
 
-            if (fd.checkDisabled(loc, sc))
+            // remove when deprecation period of class allocators and deallocators is over
+            if (fd.isNewDeclaration() && fd.checkDisabled(loc, sc))
                 return null;
 
             bool hasOverloads = fd.overnext !is null;
