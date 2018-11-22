@@ -27,6 +27,9 @@ version (X86_64)  version = X86_Any;
 public import core.sys.posix.sys.mman;
 import core.sys.linux.config;
 
+version (RISCV32) version = RISCV_Any;
+version (RISCV64) version = RISCV_Any;
+
 // <bits/mman.h>
 // http://sourceware.org/git/?p=glibc.git;a=blob;hb=51e945a8f950a6695754b11c1e6fba8bb750e100;f=sysdeps/unix/sysv/linux/powerpc/bits/mman.h
 version (PPC_Any)
@@ -44,6 +47,31 @@ version (PPC_Any)
         MAP_NONBLOCK = 0x10000,
         MAP_STACK = 0x20000,
         MAP_HUGETLB = 0x40000,
+    }
+
+    // in core.sys.posix.sys.mman
+    // enum
+    // {
+    //     MCL_CURRENT = 0x2000,
+    //     MCL_FUTURE = 0x4000,
+    // }
+}
+// https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/riscv/bits/mman.h
+else version (RISCV_Any)
+{
+    static if (__USE_MISC) enum
+    {
+        MAP_GROWSDOWN = 0x00100,
+        MAP_DENYWRITE = 0x00800,
+        MAP_EXECUTABLE = 0x01000,
+        MAP_LOCKED = 0x02000,
+        MAP_NORESERVE = 0x04000,
+        MAP_POPULATE = 0x08000,
+        MAP_NONBLOCK = 0x10000,
+        MAP_STACK = 0x20000,
+        MAP_HUGETLB = 0x40000,
+        MAP_SYNC = 0x80000,
+        MAP_FIXED_NOREPLACE = 0x100000,
     }
 
     // in core.sys.posix.sys.mman
