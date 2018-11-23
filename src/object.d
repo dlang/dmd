@@ -506,20 +506,21 @@ any GC memory.
 */
 void destroy(T)(ref T obj) if (is(T == struct))
 {
-    // We need to re-initialize `obj`.  Previously, the code
-    // `auto init = cast(ubyte[])typeid(T).initializer()` was used, but
-    // `typeid` is a runtime call and requires the `TypeInfo` object which is
-    // not usable when compiling with -betterC.  If we do `obj = T.init` then we
-    // end up needlessly calling postblits and destructors.  So, we create a
-    // static immutable lvalue that can be re-used with subsequent calls to `destroy`
-    shared static immutable T init = T.init;
+    // We need to re-initialize `obj`.  Previously, an immutable static
+    // and memcpy were used to hold an initializer. With improved unions, this is no longer
+    // needed.
+    union UntypedInit
+    {
+        T dummy;
+    }
+    static struct UntypedStorage
+    {
+        align(T.alignof) void[T.sizeof] dummy;
+    }
 
     _destructRecurse(obj);
     () @trusted {
-        import core.stdc.string : memcpy;
-        auto dest = (cast(ubyte*) &obj)[0 .. T.sizeof];
-        auto src = (cast(ubyte*) &init)[0 .. T.sizeof];
-        memcpy(dest.ptr, src.ptr, T.sizeof);
+        *cast(UntypedStorage*) &obj = cast(UntypedStorage) UntypedInit.init;
     } ();
 }
 
