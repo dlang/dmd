@@ -277,7 +277,7 @@ pure @safe:
     {
         import core.internal.string;
 
-        UnsignedStringBuf buf;
+        UnsignedStringBuf buf = void;
 
         auto s = unsignedToTempString(val, buf, 16);
         int slen = cast(int)s.length;
