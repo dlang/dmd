@@ -462,12 +462,13 @@ L1:
     {
         if (op == OPind)
         {
+            bool scaledIndex = I32 || I64;      // if scaled index addressing mode support
             elem *e1 = e.EV.E1;
             if (e1.Eoper == OPadd &&
-                e1.Ecount // == 1
+                e1.Ecount
                )
             {
-                if (I32)
+                if (scaledIndex)
                 {
                     e1 = delcse(&e.EV.E1);
                     if (e1.EV.E1.Ecount) // == 1)
@@ -475,8 +476,10 @@ L1:
                     if (e1.EV.E2.Ecount && e1.EV.E2.Eoper != OPind)
                         delcse(&e1.EV.E2);
                 }
-                // Look for *(var + const). The + and the const
-                // shouldn't be CSEs.
+                /* *(v +. c)
+                 * *(*pc +. c)
+                 * The + and the const shouldn't be CSEs.
+                 */
                 else if (e1.EV.E2.Eoper == OPconst &&
                     (e1.EV.E1.Eoper == OPvar || (e1.EV.E1.Eoper == OPind && e1.EV.E1.Ety & (mTYconst | mTYimmutable)))
                    )
@@ -485,7 +488,9 @@ L1:
                 }
             }
 
-            if (I32 && e1.Eoper == OPadd &&
+            /* *(((e <<. 3) + e) + e)
+             */
+            if (scaledIndex && e1.Eoper == OPadd &&
                 e1.EV.E1.Eoper == OPadd &&
                 e1.EV.E1.EV.E1.Ecount &&
                 e1.EV.E1.EV.E1.Eoper == OPshl &&
@@ -493,10 +498,12 @@ L1:
                 e1.EV.E1.EV.E1.EV.E2.EV.Vuns <= 3
                )
             {
-                delcse(&e1.EV.E1.EV.E1);
+                delcse(&e1.EV.E1.EV.E1);        // the <<. operator
             }
 
-            if (I32 && e1.Eoper == OPadd &&
+            /* *(((e << 3) +. e) + e)
+            */
+            if (scaledIndex && e1.Eoper == OPadd &&
                 e1.EV.E1.Eoper == OPadd &&
                 e1.EV.E1.Ecount &&
                 e1.EV.E1.EV.E1.Eoper == OPshl &&
@@ -504,17 +511,19 @@ L1:
                 e1.EV.E1.EV.E1.EV.E2.EV.Vuns <= 3
                )
             {
-                delcse(&e1.EV.E1);
+                delcse(&e1.EV.E1);              // the +. operator
             }
 
-            else if (I32 && e1.Eoper == OPadd &&
+            /* *((e <<. 3) + e)
+             */
+            else if (scaledIndex && e1.Eoper == OPadd &&
                 e1.EV.E1.Ecount &&
                 e1.EV.E1.Eoper == OPshl &&
                 e1.EV.E1.EV.E2.Eoper == OPconst &&
                 e1.EV.E1.EV.E2.EV.Vuns <= 3
                )
             {
-                delcse(&e1.EV.E1);
+                delcse(&e1.EV.E1);              // the <<. operator
             }
 
             // Remove *e1 where it's a double
@@ -522,7 +531,7 @@ L1:
                 e = delcse(pe);
         }
         // This CSE is too easy to regenerate
-        else if (op == OPu16_32 && !I32 && e.Ecount)
+        else if (op == OPu16_32 && I16 && e.Ecount)
             e = delcse(pe);
 
         // OPremquo is only worthwhile if its result is used more than once
