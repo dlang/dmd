@@ -2471,31 +2471,7 @@ private extern (C++) final class GetPropertyVisitor : Visitor
  */
 void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
 {
-    scope v = new ResolveVisitor(loc, sc, pe, pt, ps, intypeid);
-    mt.accept(v);
-}
-
-private extern(C++) final class ResolveVisitor : Visitor
-{
-    alias visit = typeof(super).visit;
-    Loc loc;
-    Scope* sc;
-    Expression* pe;
-    Type* pt;
-    Dsymbol* ps;
-    bool intypeid;
-
-    this(const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid)
-    {
-        this.loc = loc;
-        this.sc = sc;
-        this.pe = pe;
-        this.pt = pt;
-        this.ps = ps;
-        this.intypeid = intypeid;
-    }
-
-    override void visit(Type mt)
+    void visitType(Type mt)
     {
         //printf("Type::resolve() %s, %d\n", mt.toChars(), mt.ty);
         Type t = typeSemantic(mt, loc, sc);
@@ -2505,7 +2481,7 @@ private extern(C++) final class ResolveVisitor : Visitor
         *ps = null;
     }
 
-    override void visit(TypeSArray mt)
+    void visitSArray(TypeSArray mt)
     {
         //printf("TypeSArray::resolve() %s\n", mt.toChars());
         mt.next.resolve(loc, sc, pe, pt, ps, intypeid);
@@ -2584,12 +2560,12 @@ private extern(C++) final class ResolveVisitor : Visitor
             if ((*pt).ty != Terror)
                 mt.next = *pt; // prevent re-running semantic() on 'next'
         Ldefault:
-            visit(cast(Type)mt);
+            visitType(mt);
         }
 
     }
 
-    override void visit(TypeDArray mt)
+    void visitDArray(TypeDArray mt)
     {
         //printf("TypeDArray::resolve() %s\n", mt.toChars());
         mt.next.resolve(loc, sc, pe, pt, ps, intypeid);
@@ -2615,11 +2591,11 @@ private extern(C++) final class ResolveVisitor : Visitor
             if ((*pt).ty != Terror)
                 mt.next = *pt; // prevent re-running semantic() on 'next'
         Ldefault:
-            visit(cast(Type)mt);
+            visitType(mt);
         }
     }
 
-    override void visit(TypeAArray mt)
+    void visitAArray(TypeAArray mt)
     {
         //printf("TypeAArray::resolve() %s\n", mt.toChars());
         // Deal with the case where we thought the index was a type, but
@@ -2643,7 +2619,7 @@ private extern(C++) final class ResolveVisitor : Visitor
             else
                 .error(loc, "index is not a type or an expression");
         }
-        visit(cast(Type)mt);
+        visitType(mt);
     }
 
     /*************************************
@@ -2653,7 +2629,7 @@ private extern(C++) final class ResolveVisitor : Visitor
      *      if expression, *pe is set
      *      if type, *pt is set
      */
-    override void visit(TypeIdentifier mt)
+    void visitIdentifier(TypeIdentifier mt)
     {
         //printf("TypeIdentifier::resolve(sc = %p, idents = '%s')\n", sc, mt.toChars());
         if ((mt.ident.equals(Id._super) || mt.ident.equals(Id.This)) && !hasThis(sc))
@@ -2722,7 +2698,7 @@ private extern(C++) final class ResolveVisitor : Visitor
             (*pt) = (*pt).addMod(mt.mod);
     }
 
-    override void visit(TypeInstance mt)
+    void visitInstance(TypeInstance mt)
     {
         // Note close similarity to TypeIdentifier::resolve()
         *pe = null;
@@ -2743,7 +2719,7 @@ private extern(C++) final class ResolveVisitor : Visitor
         //if (*pt) printf("*pt = %d '%s'\n", (*pt).ty, (*pt).toChars());
     }
 
-    override void visit(TypeTypeof mt)
+    void visitTypeof(TypeTypeof mt)
     {
         *pe = null;
         *pt = null;
@@ -2848,7 +2824,7 @@ private extern(C++) final class ResolveVisitor : Visitor
         return;
     }
 
-    override void visit(TypeReturn mt)
+    void visitReturn(TypeReturn mt)
     {
         *pe = null;
         *pt = null;
@@ -2893,7 +2869,7 @@ private extern(C++) final class ResolveVisitor : Visitor
         *pt = Type.terror;
     }
 
-    override void visit(TypeSlice mt)
+    void visitSlice(TypeSlice mt)
     {
         mt.next.resolve(loc, sc, pe, pt, ps, intypeid);
         if (*pe)
@@ -2958,8 +2934,21 @@ private extern(C++) final class ResolveVisitor : Visitor
             if ((*pt).ty != Terror)
                 mt.next = *pt; // prevent re-running semantic() on 'next'
         Ldefault:
-            visit(cast(Type)mt);
+            visitType(mt);
         }
+    }
+
+    switch (mt.ty)
+    {
+        default:        visitType      (mt);                     break;
+        case Tsarray:   visitSArray    (cast(TypeSArray)mt);     break;
+        case Tarray:    visitDArray    (cast(TypeDArray)mt);     break;
+        case Taarray:   visitAArray    (cast(TypeAArray)mt);     break;
+        case Tident:    visitIdentifier(cast(TypeIdentifier)mt); break;
+        case Tinstance: visitInstance  (cast(TypeInstance)mt);   break;
+        case Ttypeof:   visitTypeof    (cast(TypeTypeof)mt);     break;
+        case Treturn:   visitReturn    (cast(TypeReturn)mt);     break;
+        case Tslice:    visitSlice     (cast(TypeSlice)mt);      break;
     }
 }
 
