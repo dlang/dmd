@@ -1921,30 +1921,12 @@ Type merge(Type type)
  *  loc = the location where the property is encountered
  *  ident = the identifier of the property
  *  flag = if flag & 1, don't report "not a property" error and just return NULL.
+ * Returns:
+ *      expression representing the property, or null if not a property and (flag & 1)
  */
 Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
 {
-    scope v = new GetPropertyVisitor(loc, ident, flag);
-    t.accept(v);
-    return  v.result;
-}
-
-private extern (C++) final class GetPropertyVisitor : Visitor
-{
-    alias visit = typeof(super).visit;
-    Loc loc;
-    Identifier ident;
-    int flag;
-    Expression result;
-
-    this(const ref Loc loc, Identifier ident, int flag)
-    {
-        this.loc = loc;
-        this.ident = ident;
-        this.flag = flag;
-    }
-
-    override void visit(Type mt)
+    Expression visitType(Type mt)
     {
         Expression e;
         static if (LOGDOTEXP)
@@ -1955,10 +1937,7 @@ private extern (C++) final class GetPropertyVisitor : Visitor
         {
             d_uns64 sz = mt.size(loc);
             if (sz == SIZE_INVALID)
-            {
-                result = new ErrorExp();
-                return;
-            }
+                return new ErrorExp();
             e = new IntegerExp(loc, sz, Type.tsize_t);
         }
         else if (ident == Id.__xalignof)
@@ -2001,8 +1980,7 @@ private extern (C++) final class GetPropertyVisitor : Visitor
         }
         else if (flag && mt != Type.terror)
         {
-            result = null;
-            return;
+            return null;
         }
         else
         {
@@ -2025,15 +2003,15 @@ private extern (C++) final class GetPropertyVisitor : Visitor
             }
             e = new ErrorExp();
         }
-        result = e;
+        return e;
     }
 
-    override void visit(TypeError)
+    Expression visitError(TypeError)
     {
-        result = new ErrorExp();
+        return new ErrorExp();
     }
 
-    override void visit(TypeBasic mt)
+    Expression visitBasic(TypeBasic mt)
     {
         Expression e;
         dinteger_t ivalue;
@@ -2365,13 +2343,10 @@ private extern (C++) final class GetPropertyVisitor : Visitor
                 break;
             }
         }
-        visit(cast(Type)mt);
-        return;
+        return visitType(mt);
 
     Livalue:
-        e = new IntegerExp(loc, ivalue, mt);
-        result = e;
-        return;
+        return new IntegerExp(loc, ivalue, mt);
 
     Lfvalue:
         if (mt.isreal() || mt.isimaginary())
@@ -2384,26 +2359,23 @@ private extern (C++) final class GetPropertyVisitor : Visitor
             //printf("\n");
             e = new ComplexExp(loc, cvalue, mt);
         }
-        result = e;
-        return;
+        return e;
 
     Lint:
-        e = new IntegerExp(loc, ivalue, Type.tint32);
-        result = e;
+        return new IntegerExp(loc, ivalue, Type.tint32);
     }
 
-    override void visit(TypeVector mt)
+    Expression visitVector(TypeVector mt)
     {
-        visit(cast(Type)mt);
+        return visitType(mt);
     }
 
-    override void visit(TypeEnum mt)
+    Expression visitEnum(TypeEnum mt)
     {
         Expression e;
         if (ident == Id.max || ident == Id.min)
         {
-            result = mt.sym.getMaxMinValue(loc, ident);
-            return;
+            return mt.sym.getMaxMinValue(loc, ident);
         }
         else if (ident == Id._init)
         {
@@ -2418,17 +2390,16 @@ private extern (C++) final class GetPropertyVisitor : Visitor
         }
         else if (ident == Id._mangleof)
         {
-            visit(cast(Type)mt);
-            e = result;
+            e = visitType(mt);
         }
         else
         {
             e = mt.toBasetype().getProperty(loc, ident, flag);
         }
-        result = e;
+        return e;
     }
 
-    override void visit(TypeTuple mt)
+    Expression visitTuple(TypeTuple mt)
     {
         Expression e;
         static if (LOGDOTEXP)
@@ -2452,7 +2423,19 @@ private extern (C++) final class GetPropertyVisitor : Visitor
             error(loc, "no property `%s` for tuple `%s`", ident.toChars(), mt.toChars());
             e = new ErrorExp();
         }
-        result = e;
+        return e;
+    }
+
+    switch (t.ty)
+    {
+        default:        return t.isTypeBasic() ?
+                                visitBasic(cast(TypeBasic)t) :
+                                visitType(t);
+
+        case Terror:    return visitError (cast(TypeError)t);
+        case Tvector:   return visitVector(cast(TypeVector)t);
+        case Tenum:     return visitEnum  (cast(TypeEnum)t);
+        case Ttuple:    return visitTuple (cast(TypeTuple)t);
     }
 }
 
