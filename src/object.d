@@ -3164,7 +3164,18 @@ inout(V) get(K, V)(inout(V[K])* aa, K key, lazy inout(V) defaultValue)
 ref V require(K, V)(ref V[K] aa, K key, lazy V value = V.init)
 {
     bool found;
-    auto p = cast(V*) _aaGetX(cast(void**)&aa, typeid(V[K]), V.sizeof, &key, found);
+    // if key is @safe-ly copyable, `require` can infer @safe
+    static if (isSafeCopyable!K)
+    {
+        auto p = () @trusted
+        {
+            return cast(V*) _aaGetX(cast(void**) &aa, typeid(V[K]), V.sizeof, &key, found);
+        } ();
+    }
+    else
+    {
+        auto p = cast(V*) _aaGetX(cast(void**) &aa, typeid(V[K]), V.sizeof, &key, found);
+    }
     return found ? *p : (*p = value);
 }
 
@@ -3193,6 +3204,9 @@ private
     }
 }
 
+// Tests whether T can be @safe-ly copied. Use a union to exclude destructor from the test.
+private enum bool isSafeCopyable(T) = is(typeof(() @safe { union U { T x; } T *x; auto u = U(*x); }));
+
 /***********************************
  * Looks up key; if it exists applies the update delegate else evaluates the
  * create delegate and adds it to the associative array
@@ -3206,11 +3220,52 @@ void update(K, V, C, U)(ref V[K] aa, K key, scope C create, scope U update)
 if (isCreateOperation!(C, V) && isUpdateOperation!(U, V))
 {
     bool found;
-    auto p = cast(V*) _aaGetX(cast(void**)&aa, typeid(V[K]), V.sizeof, &key, found);
+    // if key is @safe-ly copyable, `update` may infer @safe
+    static if (isSafeCopyable!K)
+    {
+        auto p = () @trusted
+        {
+            return cast(V*) _aaGetX(cast(void**) &aa, typeid(V[K]), V.sizeof, &key, found);
+        } ();
+    }
+    else
+    {
+        auto p = cast(V*) _aaGetX(cast(void**) &aa, typeid(V[K]), V.sizeof, &key, found);
+    }
     if (!found)
         *p = create();
     else
         *p = update(*p);
+}
+
+unittest
+{
+    static struct S
+    {
+        int x;
+    @nogc nothrow pure:
+        this(this) @system {}
+
+    @safe const:
+        // stubs
+        bool opEquals(S rhs) { assert(0); }
+        size_t toHash() { assert(0); }
+    }
+
+    int[string] aai;
+    static assert(is(typeof(() @safe { aai.require("a", 1234); })));
+    static assert(is(typeof(() @safe { aai.update("a", { return 1234; }, (ref int x) { x++; return x; }); })));
+
+    S[string] aas;
+    static assert(is(typeof(() { aas.require("a", S(1234)); })));
+    static assert(is(typeof(() { aas.update("a", { return S(1234); }, (ref S s) { s.x++; return s; }); })));
+    static assert(!is(typeof(() @safe { aas.update("a", { return S(1234); }, (ref S s) { s.x++; return s; }); })));
+
+    int[S] aais;
+    static assert(is(typeof(() { aais.require(S(1234), 1234); })));
+    static assert(is(typeof(() { aais.update(S(1234), { return 1234; }, (ref int x) { x++; return x; }); })));
+    static assert(!is(typeof(() @safe { aais.require(S(1234), 1234); })));
+    static assert(!is(typeof(() @safe { aais.update(S(1234), { return 1234; }, (ref int x) { x++; return x; }); })));
 }
 
 private void _destructRecurse(E, size_t n)(ref E[n] arr)
