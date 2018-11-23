@@ -822,35 +822,35 @@ struct GC
  *     $(LINK2 https://dlang.org/spec/function.html#pure-functions, D's rules for purity),
  *     which allow for memory allocation under specific circumstances.
  */
-void* pureMalloc(size_t size) @trusted pure @nogc nothrow
+void* pureMalloc()(size_t size) @trusted pure @nogc nothrow
 {
-    const errnosave = fakePureErrno();
+    const errnosave = fakePureErrno;
     void* ret = fakePureMalloc(size);
-    fakePureErrno() = errnosave;
+    fakePureErrno = errnosave;
     return ret;
 }
 /// ditto
-void* pureCalloc(size_t nmemb, size_t size) @trusted pure @nogc nothrow
+void* pureCalloc()(size_t nmemb, size_t size) @trusted pure @nogc nothrow
 {
-    const errnosave = fakePureErrno();
+    const errnosave = fakePureErrno;
     void* ret = fakePureCalloc(nmemb, size);
-    fakePureErrno() = errnosave;
+    fakePureErrno = errnosave;
     return ret;
 }
 /// ditto
-void* pureRealloc(void* ptr, size_t size) @system pure @nogc nothrow
+void* pureRealloc()(void* ptr, size_t size) @system pure @nogc nothrow
 {
-    const errnosave = fakePureErrno();
+    const errnosave = fakePureErrno;
     void* ret = fakePureRealloc(ptr, size);
-    fakePureErrno() = errnosave;
+    fakePureErrno = errnosave;
     return ret;
 }
 /// ditto
-void pureFree(void* ptr) @system pure @nogc nothrow
+void pureFree()(void* ptr) @system pure @nogc nothrow
 {
-    const errnosave = fakePureErrno();
+    const errnosave = fakePureErrno;
     fakePureFree(ptr);
-    fakePureErrno() = errnosave;
+    fakePureErrno = errnosave;
 }
 
 ///
@@ -900,6 +900,37 @@ void pureFree(void* ptr) @system pure @nogc nothrow
 
 // locally purified for internal use here only
 
+static import core.stdc.errno;
+static if (__traits(getOverloads, core.stdc.errno, "errno").length == 1
+    && __traits(getLinkage, core.stdc.errno.errno) == "C")
+{
+    extern(C) pragma(mangle, __traits(identifier, core.stdc.errno.errno))
+    private ref int fakePureErrno() @nogc nothrow pure @system;
+}
+else
+{
+    extern(C) private @nogc nothrow pure @system
+    {
+        pragma(mangle, __traits(identifier, core.stdc.errno.getErrno))
+        private int fakePureGetErrno();
+
+        pragma(mangle, __traits(identifier, core.stdc.errno.setErrno))
+        private int fakePureSetErrno(int);
+    }
+
+    private @property int fakePureErrno()() @nogc nothrow pure @system
+    {
+        return fakePureGetErrno();
+    }
+
+    private @property void fakePureErrno()(int newValue) @nogc nothrow pure @system
+    {
+        fakePureSetErrno(newValue);
+    }
+}
+
+version (D_BetterC) {}
+else // TODO: remove this function after Phobos no longer needs it.
 extern (C) private @system @nogc nothrow
 {
     ref int fakePureErrnoImpl()
@@ -911,8 +942,6 @@ extern (C) private @system @nogc nothrow
 
 extern (C) private pure @system @nogc nothrow
 {
-    pragma(mangle, "fakePureErrnoImpl") ref int fakePureErrno();
-
     pragma(mangle, "malloc") void* fakePureMalloc(size_t);
     pragma(mangle, "calloc") void* fakePureCalloc(size_t nmemb, size_t size);
     pragma(mangle, "realloc") void* fakePureRealloc(void* ptr, size_t size);
