@@ -74,6 +74,24 @@ else version (CRuntime_Musl)
         alias errno = __errno_location;
     }
 }
+else version (OpenBSD)
+{
+    // https://github.com/openbsd/src/blob/master/include/errno.h
+    extern (C)
+    {
+        ref int __errno();
+        alias errno = __errno;
+    }
+}
+else version (NetBSD)
+{
+    // https://github.com/NetBSD/src/blob/trunk/include/errno.h
+    extern (C)
+    {
+        ref int __errno();
+        alias errno = __errno;
+    }
+}
 else version (FreeBSD)
 {
     extern (C)
