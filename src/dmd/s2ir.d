@@ -837,9 +837,13 @@ private extern (C++) class S2irVisitor : Visitor
         Blockx *blx = irs.blx;
 
         //printf("ExpStatement.toIR(), exp = %s\n", s.exp ? s.exp.toChars() : "");
-        incUsage(irs, s.loc);
         if (s.exp)
+        {
+            if (s.exp.hasCode)
+                incUsage(irs, s.loc);
+
             block_appendexp(blx.curblock, toElemDtor(s.exp, irs));
+        }
     }
 
     /**************************************
