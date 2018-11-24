@@ -4332,37 +4332,7 @@ private extern(C++) final class DotExpVisitor : Visitor
  */
 Expression defaultInit(Type mt, const ref Loc loc)
 {
-    scope v = new DefaultInitVisitor(loc);
-    mt.accept(v);
-    return v.result;
-}
-
-private extern(C++) final class DefaultInitVisitor : Visitor
-{
-    alias visit = typeof(super).visit;
-    const Loc loc;
-    Expression result;
-
-    this(const ref Loc loc)
-    {
-        this.loc = loc;
-    }
-
-    override void visit(Type mt)
-    {
-        static if (LOGDEFAULTINIT)
-        {
-            printf("Type::defaultInit() '%s'\n", mt.toChars());
-        }
-        result = null;
-    }
-
-    override void visit(TypeError mt)
-    {
-        result = new ErrorExp();
-    }
-
-    override void visit(TypeBasic mt)
+    Expression visitBasic(TypeBasic mt)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -4387,8 +4357,7 @@ private extern(C++) final class DefaultInitVisitor : Visitor
         case Tfloat32:
         case Tfloat64:
         case Tfloat80:
-            result = new RealExp(loc, Target.RealProperties.snan, mt);
-            return;
+            return new RealExp(loc, Target.RealProperties.snan, mt);
 
         case Tcomplex32:
         case Tcomplex64:
@@ -4396,22 +4365,20 @@ private extern(C++) final class DefaultInitVisitor : Visitor
             {
                 // Can't use fvalue + I*fvalue (the im part becomes a quiet NaN).
                 const cvalue = complex_t(Target.RealProperties.snan, Target.RealProperties.snan);
-                result = new ComplexExp(loc, cvalue, mt);
-                return;
+                return new ComplexExp(loc, cvalue, mt);
             }
 
         case Tvoid:
             error(loc, "`void` does not have a default initializer");
-            result = new ErrorExp();
-            return;
+            return new ErrorExp();
 
         default:
             break;
         }
-        result = new IntegerExp(loc, value, mt);
+        return new IntegerExp(loc, value, mt);
     }
 
-    override void visit(TypeVector mt)
+    Expression visitVector(TypeVector mt)
     {
         //printf("TypeVector::defaultInit()\n");
         assert(mt.basetype.ty == Tsarray);
@@ -4419,73 +4386,28 @@ private extern(C++) final class DefaultInitVisitor : Visitor
         auto ve = new VectorExp(loc, e, mt);
         ve.type = mt;
         ve.dim = cast(int)(mt.basetype.size(loc) / mt.elementType().size(loc));
-        result = ve;
+        return ve;
     }
 
-    override void visit(TypeSArray mt)
+    Expression visitSArray(TypeSArray mt)
     {
         static if (LOGDEFAULTINIT)
         {
             printf("TypeSArray::defaultInit() '%s'\n", mt.toChars());
         }
         if (mt.next.ty == Tvoid)
-            result = mt.tuns8.defaultInit(loc);
+            return mt.tuns8.defaultInit(loc);
         else
-            result = mt.next.defaultInit(loc);
+            return mt.next.defaultInit(loc);
     }
 
-    override void visit(TypeDArray mt)
-    {
-        static if (LOGDEFAULTINIT)
-        {
-            printf("TypeDArray::defaultInit() '%s'\n", mt.toChars());
-        }
-        result = new NullExp(loc, mt);
-    }
-
-    override void visit(TypeAArray mt)
-    {
-        static if (LOGDEFAULTINIT)
-        {
-            printf("TypeAArray::defaultInit() '%s'\n", mt.toChars());
-        }
-        result = new NullExp(loc, mt);
-    }
-
-    override void visit(TypePointer mt)
-    {
-        static if (LOGDEFAULTINIT)
-        {
-            printf("TypePointer::defaultInit() '%s'\n", mt.toChars());
-        }
-        result = new NullExp(loc, mt);
-    }
-
-    override void visit(TypeReference mt)
-    {
-        static if (LOGDEFAULTINIT)
-        {
-            printf("TypeReference::defaultInit() '%s'\n", mt.toChars());
-        }
-        result = new NullExp(loc, mt);
-    }
-
-    override void visit(TypeFunction mt)
+    Expression visitFunction(TypeFunction mt)
     {
         error(loc, "`function` does not have a default initializer");
-        result = new ErrorExp();
+        return new ErrorExp();
     }
 
-    override void visit(TypeDelegate mt)
-    {
-        static if (LOGDEFAULTINIT)
-        {
-            printf("TypeDelegate::defaultInit() '%s'\n", mt.toChars());
-        }
-        result = new NullExp(loc, mt);
-    }
-
-    override void visit(TypeStruct mt)
+    Expression visitStruct(TypeStruct mt)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -4495,10 +4417,10 @@ private extern(C++) final class DefaultInitVisitor : Visitor
         assert(d);
         d.type = mt;
         d.storage_class |= STC.rvalue; // https://issues.dlang.org/show_bug.cgi?id=14398
-        result = new VarExp(mt.sym.loc, d);
+        return new VarExp(mt.sym.loc, d);
     }
 
-    override void visit(TypeEnum mt)
+    Expression visitEnum(TypeEnum mt)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -4509,19 +4431,10 @@ private extern(C++) final class DefaultInitVisitor : Visitor
         e = e.copy();
         e.loc = loc;
         e.type = mt; // to deal with const, immutable, etc., variants
-        result = e;
+        return e;
     }
 
-    override void visit(TypeClass mt)
-    {
-        static if (LOGDEFAULTINIT)
-        {
-            printf("TypeClass::defaultInit() '%s'\n", mt.toChars());
-        }
-        result = new NullExp(loc, mt);
-    }
-
-    override void visit(TypeTuple mt)
+    Expression visitTuple(TypeTuple mt)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -4535,16 +4448,35 @@ private extern(C++) final class DefaultInitVisitor : Visitor
             Expression e = p.type.defaultInitLiteral(loc);
             if (e.op == TOK.error)
             {
-                result = e;
-                return;
+                return e;
             }
             (*exps)[i] = e;
         }
-        result = new TupleExp(loc, exps);
+        return new TupleExp(loc, exps);
     }
 
-    override void visit(TypeNull mt)
+    switch (mt.ty)
     {
-        result = new NullExp(Loc.initial, Type.tnull);
+        case Tvector:   return visitVector  (cast(TypeVector)mt);
+        case Tsarray:   return visitSArray  (cast(TypeSArray)mt);
+        case Tfunction: return visitFunction(cast(TypeFunction)mt);
+        case Tstruct:   return visitStruct  (cast(TypeStruct)mt);
+        case Tenum:     return visitEnum    (cast(TypeEnum)mt);
+        case Ttuple:    return visitTuple   (cast(TypeTuple)mt);
+
+        case Tnull:     return new NullExp(Loc.initial, Type.tnull);
+
+        case Terror:    return new ErrorExp();
+
+        case Tarray:
+        case Taarray:
+        case Tpointer:
+        case Treference:
+        case Tdelegate:
+        case Tclass:    return new NullExp(loc, mt);
+
+        default:        return mt.isTypeBasic() ?
+                                visitBasic(cast(TypeBasic)mt) :
+                                null;
     }
 }
