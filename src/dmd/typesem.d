@@ -122,7 +122,7 @@ private void resolveTupleIndex(TypeQualified mt, const ref Loc loc, Scope* sc, D
             eindex = dmd.expressionsem.resolve(loc, sc, sindex, false);
         Expression e = new IndexExp(loc, dmd.expressionsem.resolve(loc, sc, s, false), eindex);
         e = e.expressionSemantic(sc);
-        mt.resolveExp(e, pt, pe, ps);
+        resolveExp(e, pt, pe, ps);
         return;
     }
 
@@ -160,7 +160,7 @@ private void resolveTupleIndex(TypeQualified mt, const ref Loc loc, Scope* sc, D
     if (*pt)
         *pt = (*pt).typeSemantic(loc, sc);
     if (*pe)
-        mt.resolveExp(*pe, pt, pe, ps);
+        resolveExp(*pe, pt, pe, ps);
 }
 
 /*************************************
@@ -218,7 +218,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
 
                 ex = typeToExpressionHelper(mt, ex, i + 1);
                 ex = ex.expressionSemantic(sc);
-                mt.resolveExp(ex, pt, pe, ps);
+                resolveExp(ex, pt, pe, ps);
                 return;
             }
 
@@ -296,7 +296,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
 
                     e = typeToExpressionHelper(mt, e, i);
                     e = e.expressionSemantic(sc);
-                    mt.resolveExp(e, pt, pe, ps);
+                    resolveExp(e, pt, pe, ps);
                     return;
                 }
                 else
@@ -2456,6 +2456,72 @@ private extern (C++) final class GetPropertyVisitor : Visitor
     }
 }
 
+/***************************************
+ * Normalize `e` as the result of resolve() process.
+ */
+private void resolveExp(Expression e, Type *pt, Expression *pe, Dsymbol* ps)
+{
+    *pt = null;
+    *pe = null;
+    *ps = null;
+
+    Dsymbol s;
+    switch (e.op)
+    {
+        case TOK.error:
+            *pt = Type.terror;
+            return;
+
+        case TOK.type:
+            *pt = e.type;
+            return;
+
+        case TOK.variable:
+            s = (cast(VarExp)e).var;
+            if (s.isVarDeclaration())
+                goto default;
+            //if (s.isOverDeclaration())
+            //    todo;
+            break;
+
+        case TOK.template_:
+            // TemplateDeclaration
+            s = (cast(TemplateExp)e).td;
+            break;
+
+        case TOK.scope_:
+            s = (cast(ScopeExp)e).sds;
+            // TemplateDeclaration, TemplateInstance, Import, Package, Module
+            break;
+
+        case TOK.function_:
+            s = getDsymbol(e);
+            break;
+
+        case TOK.dotTemplateDeclaration:
+            s = (cast(DotTemplateExp)e).td;
+            break;
+
+        //case TOK.this_:
+        //case TOK.super_:
+
+        //case TOK.tuple:
+
+        //case TOK.overloadSet:
+
+        //case TOK.dotVariable:
+        //case TOK.dotTemplateInstance:
+        //case TOK.dotType:
+        //case TOK.dotIdentifier:
+
+        default:
+            *pe = e;
+            return;
+    }
+
+    *ps = s;
+}
+
 /************************************
  * Resolve type 'mt' to either type, symbol, or expression.
  * If errors happened, resolved to Type.terror.
@@ -2839,7 +2905,7 @@ private extern(C++) final class ResolveVisitor : Visitor
             {
                 auto e = typeToExpressionHelper(mt, new TypeExp(loc, t));
                 e = e.expressionSemantic(sc);
-                mt.resolveExp(e, pt, pe, ps);
+                resolveExp(e, pt, pe, ps);
             }
         }
         if (*pt)
@@ -2882,7 +2948,7 @@ private extern(C++) final class ResolveVisitor : Visitor
             {
                 auto e = typeToExpressionHelper(mt, new TypeExp(loc, t));
                 e = e.expressionSemantic(sc);
-                mt.resolveExp(e, pt, pe, ps);
+                resolveExp(e, pt, pe, ps);
             }
         }
         if (*pt)
