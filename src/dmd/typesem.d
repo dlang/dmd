@@ -101,7 +101,7 @@ private Expression semanticLength(Scope* sc, TupleDeclaration tup, Expression ex
 /*************************************
  * Resolve a tuple index.
  */
-private void resolveTupleIndex(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymbol s, Expression* pe, Type* pt, Dsymbol* ps, RootObject oindex)
+private void resolveTupleIndex(const ref Loc loc, Scope* sc, Dsymbol s, Expression* pe, Type* pt, Dsymbol* ps, RootObject oindex)
 {
     *pt = null;
     *ps = null;
@@ -206,7 +206,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
                 Type tx;
                 Expression ex;
                 Dsymbol sx;
-                resolveTupleIndex(mt, loc, sc, s, &ex, &tx, &sx, id);
+                resolveTupleIndex(loc, sc, s, &ex, &tx, &sx, id);
                 if (sx)
                 {
                     s = sx.toAlias();
