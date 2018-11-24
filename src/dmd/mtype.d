@@ -2618,6 +2618,8 @@ extern (C++) abstract class Type : RootObject
         return null;
     }
 
+    final inout(TypeStruct) isTypeStruct() inout { return ty == Tstruct ? cast(inout(TypeStruct))this : null; }
+
     void accept(Visitor v)
     {
         v.visit(this);
@@ -4370,8 +4372,8 @@ extern (C++) final class TypeFunction : TypeNext
                 AggregateDeclaration ad;
                 if (tb.ty == Tclass)
                     ad = (cast(TypeClass)tb).sym;
-                else if (tb.ty == Tstruct)
-                    ad = (cast(TypeStruct)tb).sym;
+                else if (auto ts = tb.isTypeStruct())
+                    ad = ts.sym;
                 else
                     assert(0);
                 foreach (VarDeclaration v; ad.fields)
@@ -4814,11 +4816,13 @@ extern (C++) final class TypeFunction : TypeNext
         }
         if (!isref && (tb.ty == Tstruct || tb.ty == Tsarray))
         {
-            Type tb2 = tb.baseElemOf();
-            if (tb2.ty == Tstruct && !(cast(TypeStruct)tb2).sym.members)
+            if (auto ts = tb.baseElemOf().isTypeStruct())
             {
-                error(loc, "functions cannot return opaque type `%s` by value", tb.toChars());
-                next = Type.terror;
+                if (!ts.sym.members)
+                {
+                    error(loc, "functions cannot return opaque type `%s` by value", tb.toChars());
+                    next = Type.terror;
+                }
             }
         }
         if (tb.ty == Terror)
