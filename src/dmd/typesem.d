@@ -2503,14 +2503,38 @@ private void resolveExp(Expression e, Type *pt, Expression *pe, Dsymbol* ps)
  */
 void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
 {
+    void returnExp(Expression e)
+    {
+        *pt = null;
+        *pe = e;
+        *ps = null;
+    }
+
+    void returnType(Type t)
+    {
+        *pt = t;
+        *pe = null;
+        *ps = null;
+    }
+
+    void returnSymbol(Dsymbol s)
+    {
+        *pt = null;
+        *pe = null;
+        *ps = s;
+    }
+
+    void returnError()
+    {
+        returnType(Type.terror);
+    }
+
     void visitType(Type mt)
     {
         //printf("Type::resolve() %s, %d\n", mt.toChars(), mt.ty);
         Type t = typeSemantic(mt, loc, sc);
         assert(t);
-        *pt = t;
-        *pe = null;
-        *ps = null;
+        returnType(t);
     }
 
     void visitSArray(TypeSArray mt)
@@ -2523,7 +2547,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
             // It's really an index expression
             if (Dsymbol s = getDsymbol(*pe))
                 *pe = new DsymbolExp(loc, s);
-            *pe = new ArrayExp(loc, *pe, mt.dim);
+            returnExp(new ArrayExp(loc, *pe, mt.dim));
         }
         else if (*ps)
         {
@@ -2533,46 +2557,31 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
                 mt.dim = semanticLength(sc, tup, mt.dim);
                 mt.dim = mt.dim.ctfeInterpret();
                 if (mt.dim.op == TOK.error)
-                {
-                    *ps = null;
-                    *pt = Type.terror;
-                    return;
-                }
-                uinteger_t d = mt.dim.toUInteger();
+                    return returnError();
+
+                const d = mt.dim.toUInteger();
                 if (d >= tup.objects.dim)
                 {
                     error(loc, "tuple index `%llu` exceeds length %u", d, tup.objects.dim);
-                    *ps = null;
-                    *pt = Type.terror;
-                    return;
+                    return returnError();
                 }
 
                 RootObject o = (*tup.objects)[cast(size_t)d];
                 if (o.dyncast() == DYNCAST.dsymbol)
                 {
-                    *ps = cast(Dsymbol)o;
-                    return;
+                    return returnSymbol(cast(Dsymbol)o);
                 }
                 if (o.dyncast() == DYNCAST.expression)
                 {
                     Expression e = cast(Expression)o;
                     if (e.op == TOK.dSymbol)
-                    {
-                        *ps = (cast(DsymbolExp)e).s;
-                        *pe = null;
-                    }
+                        return returnSymbol((cast(DsymbolExp)e).s);
                     else
-                    {
-                        *ps = null;
-                        *pe = e;
-                    }
-                    return;
+                        return returnExp(e);
                 }
                 if (o.dyncast() == DYNCAST.type)
                 {
-                    *ps = null;
-                    *pt = (cast(Type)o).addMod(mt.mod);
-                    return;
+                    return returnType((cast(Type)o).addMod(mt.mod));
                 }
 
                 /* Create a new TupleDeclaration which
@@ -2582,16 +2591,15 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
                  */
                 auto objects = new Objects(1);
                 (*objects)[0] = o;
-                *ps = new TupleDeclaration(loc, tup.ident, objects);
+                return returnSymbol(new TupleDeclaration(loc, tup.ident, objects));
             }
             else
-                goto Ldefault;
+                return visitType(mt);
         }
         else
         {
             if ((*pt).ty != Terror)
                 mt.next = *pt; // prevent re-running semantic() on 'next'
-        Ldefault:
             visitType(mt);
         }
 
@@ -2607,7 +2615,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
             // It's really a slice expression
             if (Dsymbol s = getDsymbol(*pe))
                 *pe = new DsymbolExp(loc, s);
-            *pe = new ArrayExp(loc, *pe);
+            returnExp(new ArrayExp(loc, *pe));
         }
         else if (*ps)
         {
@@ -2616,13 +2624,12 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
                 // keep *ps
             }
             else
-                goto Ldefault;
+                visitType(mt);
         }
         else
         {
             if ((*pt).ty != Terror)
                 mt.next = *pt; // prevent re-running semantic() on 'next'
-        Ldefault:
             visitType(mt);
         }
     }
@@ -2676,11 +2683,9 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
             {
                 deprecation(mt.loc, "Using `this` as a type is deprecated. Use `typeof(this)` instead");
             }
-            AggregateDeclaration ad = sc.getStructClassScope();
-            if (ad)
+            if (AggregateDeclaration ad = sc.getStructClassScope())
             {
-                ClassDeclaration cd = ad.isClassDeclaration();
-                if (cd)
+                if (ClassDeclaration cd = ad.isClassDeclaration())
                 {
                     if (mt.ident.equals(Id.This))
                         mt.ident = cd.ident;
@@ -2698,10 +2703,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
         if (mt.ident == Id.ctfe)
         {
             error(loc, "variable `__ctfe` cannot be read at compile time");
-            *pe = null;
-            *ps = null;
-            *pt = Type.terror;
-            return;
+            return returnError();
         }
 
         Dsymbol scopesym;
@@ -2733,17 +2735,11 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
     void visitInstance(TypeInstance mt)
     {
         // Note close similarity to TypeIdentifier::resolve()
-        *pe = null;
-        *pt = null;
-        *ps = null;
 
         //printf("TypeInstance::resolve(sc = %p, tempinst = '%s')\n", sc, mt.tempinst.toChars());
         mt.tempinst.dsymbolSemantic(sc);
         if (!global.gag && mt.tempinst.errors)
-        {
-            *pt = Type.terror;
-            return;
-        }
+            return returnError();
 
         mt.resolveHelper(loc, sc, mt.tempinst, null, pe, pt, ps, intypeid);
         if (*pt)
@@ -2753,26 +2749,20 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
 
     void visitTypeof(TypeTypeof mt)
     {
-        *pe = null;
-        *pt = null;
-        *ps = null;
-
         //printf("TypeTypeof::resolve(this = %p, sc = %p, idents = '%s')\n", mt, sc, mt.toChars());
         //static int nest; if (++nest == 50) *(char*)0=0;
         if (sc is null)
         {
-            *pt = Type.terror;
             error(loc, "Invalid scope.");
-            return;
+            return returnError();
         }
         if (mt.inuse)
         {
             mt.inuse = 2;
             error(loc, "circular `typeof` definition");
         Lerr:
-            *pt = Type.terror;
             mt.inuse--;
-            return;
+            return returnError();
         }
         mt.inuse++;
 
@@ -2838,7 +2828,9 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
             goto Lerr;
         }
         if (mt.idents.dim == 0)
-            *pt = t;
+        {
+            returnType(t.addMod(mt.mod));
+        }
         else
         {
             if (Dsymbol s = t.toDsymbol(sc))
@@ -2849,19 +2841,14 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
                 e = e.expressionSemantic(sc);
                 resolveExp(e, pt, pe, ps);
             }
+            if (*pt)
+                (*pt) = (*pt).addMod(mt.mod);
         }
-        if (*pt)
-            (*pt) = (*pt).addMod(mt.mod);
         mt.inuse--;
-        return;
     }
 
     void visitReturn(TypeReturn mt)
     {
-        *pe = null;
-        *pt = null;
-        *ps = null;
-
         //printf("TypeReturn::resolve(sc = %p, idents = '%s')\n", sc, mt.toChars());
         Type t;
         {
@@ -2869,7 +2856,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
             if (!func)
             {
                 error(loc, "`typeof(return)` must be inside function");
-                goto Lerr;
+                return returnError();
             }
             if (func.fes)
                 func = func.fes.func;
@@ -2877,28 +2864,26 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
             if (!t)
             {
                 error(loc, "cannot use `typeof(return)` inside function `%s` with inferred return type", sc.func.toChars());
-                goto Lerr;
+                return returnError();
             }
         }
         if (mt.idents.dim == 0)
-            *pt = t;
+        {
+            return returnType(t.addMod(mt.mod));
+        }
         else
         {
             if (Dsymbol s = t.toDsymbol(sc))
-               mt.resolveHelper(loc, sc, s, null, pe, pt, ps, intypeid);
+                mt.resolveHelper(loc, sc, s, null, pe, pt, ps, intypeid);
             else
             {
                 auto e = typeToExpressionHelper(mt, new TypeExp(loc, t));
                 e = e.expressionSemantic(sc);
                 resolveExp(e, pt, pe, ps);
             }
+            if (*pt)
+                (*pt) = (*pt).addMod(mt.mod);
         }
-        if (*pt)
-            (*pt) = (*pt).addMod(mt.mod);
-        return;
-
-    Lerr:
-        *pt = Type.terror;
     }
 
     void visitSlice(TypeSlice mt)
@@ -2909,7 +2894,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
             // It's really a slice expression
             if (Dsymbol s = getDsymbol(*pe))
                 *pe = new DsymbolExp(loc, s);
-            *pe = new ArrayExp(loc, *pe, new IntervalExp(loc, mt.lwr, mt.upr));
+            return returnExp(new ArrayExp(loc, *pe, new IntervalExp(loc, mt.lwr, mt.upr)));
         }
         else if (*ps)
         {
@@ -2930,20 +2915,17 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
 
                 mt.lwr = mt.lwr.ctfeInterpret();
                 mt.upr = mt.upr.ctfeInterpret();
-                uinteger_t i1 = mt.lwr.toUInteger();
-                uinteger_t i2 = mt.upr.toUInteger();
+                const i1 = mt.lwr.toUInteger();
+                const i2 = mt.upr.toUInteger();
                 if (!(i1 <= i2 && i2 <= td.objects.dim))
                 {
                     error(loc, "slice `[%llu..%llu]` is out of range of [0..%u]", i1, i2, td.objects.dim);
-                    *ps = null;
-                    *pt = Type.terror;
-                    return;
+                    return returnError();
                 }
 
                 if (i1 == 0 && i2 == td.objects.dim)
                 {
-                    *ps = td;
-                    return;
+                    return returnSymbol(td);
                 }
 
                 /* Create a new TupleDeclaration which
@@ -2955,17 +2937,15 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
                     (*objects)[i] = (*td.objects)[cast(size_t)i1 + i];
                 }
 
-                auto tds = new TupleDeclaration(loc, td.ident, objects);
-                *ps = tds;
+                return returnSymbol(new TupleDeclaration(loc, td.ident, objects));
             }
             else
-                goto Ldefault;
+                visitType(mt);
         }
         else
         {
             if ((*pt).ty != Terror)
                 mt.next = *pt; // prevent re-running semantic() on 'next'
-        Ldefault:
             visitType(mt);
         }
     }
