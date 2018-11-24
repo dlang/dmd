@@ -518,84 +518,50 @@ private Type stripDefaultArgs(Type t)
 }
 
 /******************************************
- * Perform semantic analysis on a type.
+ * We've mistakenly parsed `t` as a type.
+ * Redo `t` as an Expression.
  * Params:
- *      t = Type AST node
- *      loc = the location of the type
- *      sc = context
+ *      t = mistaken type
  * Returns:
- *      `Type` with completed semantic analysis, `Terror` if errors
- *      were encountered
- */
-extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
-{
-    scope v = new TypeSemanticVisitor(loc, sc);
-    t.accept(v);
-    return  v.result;
-}
-
-private extern (C++) final class TypeToExpressionVisitor : Visitor
-{
-    alias visit = Visitor.visit;
-
-    Expression result;
-    Type itype;
-
-    this() {}
-
-    this(Type itype)
-    {
-        this.itype = itype;
-    }
-
-    override void visit(Type t)
-    {
-        result = null;
-    }
-
-    override void visit(TypeSArray t)
-    {
-        Expression e = t.next.typeToExpression();
-        if (e)
-            e = new ArrayExp(t.dim.loc, e, t.dim);
-        result = e;
-    }
-
-    override void visit(TypeAArray t)
-    {
-        Expression e = t.next.typeToExpression();
-        if (e)
-        {
-            Expression ei = t.index.typeToExpression();
-            if (ei)
-            {
-                result = new ArrayExp(t.loc, e, ei);
-                return;
-            }
-        }
-        result = null;
-    }
-
-    override void visit(TypeIdentifier t)
-    {
-        result = typeToExpressionHelper(t, new IdentifierExp(t.loc, t.ident));
-    }
-
-    override void visit(TypeInstance t)
-    {
-        result = typeToExpressionHelper(t, new ScopeExp(t.loc, t.tempinst));
-    }
-}
-
-/* We've mistakenly parsed this as a type.
- * Redo it as an Expression.
- * NULL if cannot.
+ *      t redone as Expression, null if cannot
  */
 Expression typeToExpression(Type t)
 {
-    scope v = new TypeToExpressionVisitor();
-    t.accept(v);
-    return v.result;
+    static Expression visitSArray(TypeSArray t)
+    {
+        if (auto e = t.next.typeToExpression())
+            return new ArrayExp(t.dim.loc, e, t.dim);
+        return null;
+    }
+
+    static Expression visitAArray(TypeAArray t)
+    {
+        if (auto e = t.next.typeToExpression())
+        {
+            if (auto ei = t.index.typeToExpression())
+                return new ArrayExp(t.loc, e, ei);
+        }
+        return null;
+    }
+
+    static Expression visitIdentifier(TypeIdentifier t)
+    {
+        return typeToExpressionHelper(t, new IdentifierExp(t.loc, t.ident));
+    }
+
+    static Expression visitInstance(TypeInstance t)
+    {
+        return typeToExpressionHelper(t, new ScopeExp(t.loc, t.tempinst));
+    }
+
+    switch (t.ty)
+    {
+        case Tsarray:   return visitSArray(cast(TypeSArray) t);
+        case Taarray:   return visitAArray(cast(TypeAArray) t);
+        case Tident:    return visitIdentifier(cast(TypeIdentifier) t);
+        case Tinstance: return visitInstance(cast(TypeInstance) t);
+        default:        return null;
+    }
 }
 
 /* Helper function for `typeToExpression`. Contains common code
@@ -642,6 +608,23 @@ Expression typeToExpressionHelper(TypeQualified t, Expression e, size_t i = 0)
         }
     }
     return e;
+}
+
+/******************************************
+ * Perform semantic analysis on a type.
+ * Params:
+ *      t = Type AST node
+ *      loc = the location of the type
+ *      sc = context
+ * Returns:
+ *      `Type` with completed semantic analysis, `Terror` if errors
+ *      were encountered
+ */
+extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
+{
+    scope v = new TypeSemanticVisitor(loc, sc);
+    t.accept(v);
+    return  v.result;
 }
 
 private extern (C++) final class TypeSemanticVisitor : Visitor
