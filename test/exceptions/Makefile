@@ -63,7 +63,7 @@ $(ROOT)/rt_trap_exceptions.done: STDERR_EXP2="src/rt_trap_exceptions.d:8 main"
 $(ROOT)/%.done: $(ROOT)/%
 	@echo Testing $*
 	$(NEGATE) $(QUIET)$(TIMELIMIT)$(ROOT)/$* $(RUN_ARGS) 2>&1 1>/dev/null | grep -qF $(STDERR_EXP)
-	if [ ! -z "$(STDERR_EXP2)" ] ; then \
+	if [ ! -z $(STDERR_EXP2) ] ; then \
 		$(NEGATE) $(QUIET)$(TIMELIMIT)$(ROOT)/$* $(RUN_ARGS) 2>&1 1>/dev/null | grep -qF $(STDERR_EXP2); \
 	fi
 	@touch $@
@@ -75,7 +75,7 @@ $(ROOT)/rt_trap_exceptions_drt.done: NEGATE=!
 
 $(ROOT)/rt_trap_exceptions_drt_gdb.done: $(ROOT)/rt_trap_exceptions_drt
 	@echo Testing rt_trap_exceptions_drt_gdb
-	$(QUIET)$(TIMELIMIT) $(GDB) -ex run -ex 'bt full' -ex q --args $< --DRT-trapExceptions=0 \
+	$(QUIET)$(TIMELIMIT) $(GDB) -ex 'set confirm off' -ex run -ex 'bt full' -ex q --args $< --DRT-trapExceptions=0 \
 		> $(ROOT)/rt_trap_exceptions_drt_gdb.output 2>&1 || true
 	cat $(ROOT)/rt_trap_exceptions_drt_gdb.output
 	grep "in D main (args=...) at src/rt_trap_exceptions_drt.d:9" > /dev/null < $(ROOT)/rt_trap_exceptions_drt_gdb.output
