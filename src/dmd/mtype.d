@@ -2618,7 +2618,28 @@ extern (C++) abstract class Type : RootObject
         return null;
     }
 
-    final inout(TypeStruct) isTypeStruct() inout { return ty == Tstruct ? cast(inout(TypeStruct))this : null; }
+    final pure inout nothrow @nogc
+    {
+        inout(TypeError)      isTypeError()      { return ty == Terror     ? cast(typeof(return))this : null; }
+        inout(TypeVector)     isTypeVector()     { return ty == Tvector    ? cast(typeof(return))this : null; }
+        inout(TypeSArray)     isTypeSArray()     { return ty == Tsarray    ? cast(typeof(return))this : null; }
+        inout(TypeDArray)     isTypeDArray()     { return ty == Tarray     ? cast(typeof(return))this : null; }
+        inout(TypeAArray)     isTypeAArray()     { return ty == Taarray    ? cast(typeof(return))this : null; }
+        inout(TypePointer)    isTypePointer()    { return ty == Tpointer   ? cast(typeof(return))this : null; }
+        inout(TypeReference)  isTypeReference()  { return ty == Treference ? cast(typeof(return))this : null; }
+        inout(TypeFunction)   isTypeFunction()   { return ty == Tfunction  ? cast(typeof(return))this : null; }
+        inout(TypeDelegate)   isTypeDelegate()   { return ty == Tdelegate  ? cast(typeof(return))this : null; }
+        inout(TypeIdentifier) isTypeIdentifier() { return ty == Tident     ? cast(typeof(return))this : null; }
+        inout(TypeInstance)   isTypeInstance()   { return ty == Tinstance  ? cast(typeof(return))this : null; }
+        inout(TypeTypeof)     isTypeTypeof()     { return ty == Ttypeof    ? cast(typeof(return))this : null; }
+        inout(TypeReturn)     isTypeReturn()     { return ty == Treturn    ? cast(typeof(return))this : null; }
+        inout(TypeStruct)     isTypeStruct()     { return ty == Tstruct    ? cast(typeof(return))this : null; }
+        inout(TypeEnum)       isTypeEnum()       { return ty == Tenum      ? cast(typeof(return))this : null; }
+        inout(TypeClass)      isTypeClass()      { return ty == Tclass     ? cast(typeof(return))this : null; }
+        inout(TypeTuple)      isTypeTuple()      { return ty == Ttuple     ? cast(typeof(return))this : null; }
+        inout(TypeSlice)      isTypeSlice()      { return ty == Tslice     ? cast(typeof(return))this : null; }
+        inout(TypeNull)       isTypeNull()       { return ty == Tnull      ? cast(typeof(return))this : null; }
+    }
 
     void accept(Visitor v)
     {
@@ -3262,12 +3283,14 @@ extern (C++) final class TypeBasic : Type
             TypeVector tv = cast(TypeVector)to;
             tob = tv.elementType();
         }
-        else if (to.ty == Tenum)
+        else if (auto te = to.isTypeEnum())
         {
-            EnumDeclaration ed = (cast(TypeEnum)to).sym;
+            EnumDeclaration ed = te.sym;
             if (ed.isSpecial())
             {
-                /* Special enums that allow implicit conversions to them.  */
+                /* Special enums that allow implicit conversions to them
+                 * with a MATCH.convert
+                 */
                 tob = to.toBasetype().isTypeBasic();
                 if (tob)
                     return implicitConvTo(tob);
@@ -3469,7 +3492,7 @@ extern (C++) final class TypeVector : Type
 
 /***********************************************************
  */
-extern (C++) class TypeArray : TypeNext
+extern (C++) abstract class TypeArray : TypeNext
 {
     final extern (D) this(TY ty, Type next)
     {
@@ -3549,9 +3572,8 @@ extern (C++) final class TypeSArray : TypeArray
 
     override MATCH constConv(Type to)
     {
-        if (to.ty == Tsarray)
+        if (auto tsa = to.isTypeSArray())
         {
-            TypeSArray tsa = cast(TypeSArray)to;
             if (!dim.equals(tsa.dim))
                 return MATCH.nomatch;
         }
@@ -3561,9 +3583,8 @@ extern (C++) final class TypeSArray : TypeArray
     override MATCH implicitConvTo(Type to)
     {
         //printf("TypeSArray::implicitConvTo(to = %s) this = %s\n", to.toChars(), toChars());
-        if (to.ty == Tarray)
+        if (auto ta = to.isTypeDArray())
         {
-            TypeDArray ta = cast(TypeDArray)to;
             if (!MODimplicitConv(next.mod, ta.next.mod))
                 return MATCH.nomatch;
 
@@ -3581,12 +3602,11 @@ extern (C++) final class TypeSArray : TypeArray
             }
             return MATCH.nomatch;
         }
-        if (to.ty == Tsarray)
+        if (auto tsa = to.isTypeSArray())
         {
             if (this == to)
                 return MATCH.exact;
 
-            TypeSArray tsa = cast(TypeSArray)to;
             if (dim.equals(tsa.dim))
             {
                 /* Since static arrays are value types, allow
@@ -3726,10 +3746,8 @@ extern (C++) final class TypeDArray : TypeArray
         if (equals(to))
             return MATCH.exact;
 
-        if (to.ty == Tarray)
+        if (auto ta = to.isTypeDArray())
         {
-            TypeDArray ta = cast(TypeDArray)to;
-
             if (!MODimplicitConv(next.mod, ta.next.mod))
                 return MATCH.nomatch; // not const-compatible
 
@@ -3826,10 +3844,8 @@ extern (C++) final class TypeAArray : TypeArray
         if (equals(to))
             return MATCH.exact;
 
-        if (to.ty == Taarray)
+        if (auto ta = to.isTypeAArray())
         {
-            TypeAArray ta = cast(TypeAArray)to;
-
             if (!MODimplicitConv(next.mod, ta.next.mod))
                 return MATCH.nomatch; // not const-compatible
 
@@ -3848,9 +3864,8 @@ extern (C++) final class TypeAArray : TypeArray
 
     override MATCH constConv(Type to)
     {
-        if (to.ty == Taarray)
+        if (auto taa = to.isTypeAArray())
         {
-            TypeAArray taa = cast(TypeAArray)to;
             MATCH mindex = index.constConv(taa.index);
             MATCH mkey = next.constConv(taa.next);
             // Pick the worst match
@@ -3910,9 +3925,8 @@ extern (C++) final class TypePointer : TypeNext
 
         if (next.ty == Tfunction)
         {
-            if (to.ty == Tpointer)
+            if (auto tp = to.isTypePointer())
             {
-                TypePointer tp = cast(TypePointer)to;
                 if (tp.next.ty == Tfunction)
                 {
                     if (next.equals(tp.next))
@@ -3945,9 +3959,8 @@ extern (C++) final class TypePointer : TypeNext
             }
             return MATCH.nomatch;
         }
-        else if (to.ty == Tpointer)
+        else if (auto tp = to.isTypePointer())
         {
-            TypePointer tp = cast(TypePointer)to;
             assert(tp.next);
 
             if (!MODimplicitConv(next.mod, tp.next.mod))
@@ -4370,8 +4383,8 @@ extern (C++) final class TypeFunction : TypeNext
             {
                 auto tb = tthis.toBasetype();
                 AggregateDeclaration ad;
-                if (tb.ty == Tclass)
-                    ad = (cast(TypeClass)tb).sym;
+                if (auto tc = tb.isTypeClass())
+                    ad = tc.sym;
                 else if (auto ts = tb.isTypeStruct())
                     ad = ts.sym;
                 else
@@ -6007,9 +6020,8 @@ extern (C++) final class TypeTuple : Type
         //printf("TypeTuple::equals(%s, %s)\n", toChars(), t.toChars());
         if (this == t)
             return true;
-        if (t.ty == Ttuple)
+        if (auto tt = t.isTypeTuple())
         {
-            TypeTuple tt = cast(TypeTuple)t;
             if (arguments.dim == tt.arguments.dim)
             {
                 for (size_t i = 0; i < tt.arguments.dim; i++)
@@ -6168,9 +6180,8 @@ extern (C++) final class Parameter : RootObject
         if (tb.ty == Tsarray || tb.ty == Tarray)
         {
             Type tel = (cast(TypeArray)tb).next.toBasetype();
-            if (tel.ty == Tdelegate)
+            if (auto td = tel.isTypeDelegate())
             {
-                TypeDelegate td = cast(TypeDelegate)tel;
                 TypeFunction tf = td.next.toTypeFunction();
                 if (!tf.varargs && Parameter.dim(tf.parameters) == 0)
                 {
@@ -6268,9 +6279,8 @@ extern (C++) final class Parameter : RootObject
             Parameter p = (*parameters)[i];
             Type t = p.type.toBasetype();
 
-            if (t.ty == Ttuple)
+            if (auto tu = t.isTypeTuple())
             {
-                TypeTuple tu = cast(TypeTuple)t;
                 result = _foreach(tu.arguments, dg, &n);
             }
             else
