@@ -63,7 +63,7 @@ $(ROOT)/rt_trap_exceptions.done: STDERR_EXP2="src/rt_trap_exceptions.d:8 main"
 $(ROOT)/%.done: $(ROOT)/%
 	@echo Testing $*
 	$(NEGATE) $(QUIET)$(TIMELIMIT)$(ROOT)/$* $(RUN_ARGS) 2>&1 1>/dev/null | grep -qF $(STDERR_EXP)
-	if [ ! -z "$(STDERR_EXP2)" ] ; then \
+	if [ ! -z $(STDERR_EXP2) ] ; then \
 		$(NEGATE) $(QUIET)$(TIMELIMIT)$(ROOT)/$* $(RUN_ARGS) 2>&1 1>/dev/null | grep -qF $(STDERR_EXP2); \
 	fi
 	@touch $@
