@@ -113,7 +113,7 @@ void flowrd()
                  * i = 0;
                  * try { i = 1; throw; } catch () { x = i; }
                  */
-                for (list_t bp = b.Bpred; bp; bp = list_next(bp))
+                foreach (bp; ListRange(b.Bpred))
                     vec_orass(b.Binrd,list_block(bp).Boutrd);
             }
             /* Bout = (Bin - Bkill) | Bgen */

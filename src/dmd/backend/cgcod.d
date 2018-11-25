@@ -1418,7 +1418,7 @@ private void blcodgen(block *bl)
     assert(bl.Bregcon.immed.mval == 0);
     regcon.immed.mval = 0;      // assume no previous contents in registers
 //    regcon.cse.mval = 0;
-    for (list_t bpl = bl.Bpred; bpl; bpl = list_next(bpl))
+    foreach (bpl; ListRange(bl.Bpred))
     {
         block *bp = list_block(bpl);
 
@@ -1689,9 +1689,9 @@ private void cgcod_eh()
 
         // Set starting index for each of the successors
         int i = 0;
-        for (list_t list = b.Bsucc; list; list = list_next(list))
+        foreach (bl; ListRange(b.Bsucc))
         {
-            block *bs = list_block(list);
+            block *bs = list_block(bl);
             if (b.BC == BCtry)
             {
                 switch (i)
@@ -1735,9 +1735,9 @@ private void cgcod_eh()
         {
             if (/*!b.Bcount ||*/ b.BC == BCtry)
                 continue;
-            for (list_t list = b.Bpred; list; list = list_next(list))
+            foreach (bl; ListRange(b.Bpred))
             {
-                int pi = list_block(list).Bendindex;
+                int pi = list_block(bl).Bendindex;
                 if (b.Bindex != pi)
                 {
                     CodeBuilder cdb; cdb.ctor();

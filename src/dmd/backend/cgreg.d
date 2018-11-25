@@ -337,7 +337,7 @@ static if (1) // causes assert failure in std.range(4488) from std.parallelism's
     L2:
         inoutp = 0;
         benefit2 = 0;
-        for (list_t bl = b.Bpred; bl; bl = list_next(bl))
+        foreach (bl; ListRange(b.Bpred))
         {
             block *bp = list_block(bl);
             int bpi = bp.Bdfoidx;
@@ -449,7 +449,7 @@ int cgreg_gotoepilog(block *b,Symbol *s)
     // Look at predecessors to see if we need to load in/out of register
     int gotoepilog = 0;
     int inoutp = 0;
-    for (list_t bl = b.Bpred; bl; bl = list_next(bl))
+    foreach (bl; ListRange(b.Bpred))
     {
         block *bp = list_block(bl);
         int bpi = bp.Bdfoidx;
@@ -614,7 +614,7 @@ void cgreg_spillreg_epilog(block *b,Symbol *s,ref CodeBuilder cdbstore, ref Code
         inoutp = -1;
 
     // Look at successors to see if we need to load in/out of register
-    for (list_t bl = b.Bsucc; bl; bl = list_next(bl))
+    foreach (bl; ListRange(b.Bsucc))
     {
         block *bp = list_block(bl);
         int bpi = bp.Bdfoidx;
