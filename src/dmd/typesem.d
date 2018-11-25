@@ -622,30 +622,12 @@ Expression typeToExpressionHelper(TypeQualified t, Expression e, size_t i = 0)
  */
 extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
 {
-    scope v = new TypeSemanticVisitor(loc, sc);
-    t.accept(v);
-    return  v.result;
-}
-
-private extern (C++) final class TypeSemanticVisitor : Visitor
-{
-    alias visit = Visitor.visit;
-    Loc loc;
-    Scope* sc;
-    Type result;
-
-    this(Loc loc, Scope* sc)
+    static Type error()
     {
-        this.loc = loc;
-        this.sc = sc;
+        return Type.terror;
     }
 
-    void error()
-    {
-        result = Type.terror;
-    }
-
-    override void visit(Type t)
+    Type visitType(Type t)
     {
         if (t.ty == Tint128 || t.ty == Tuns128)
         {
@@ -653,12 +635,12 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             return error();
         }
 
-        result = t.merge();
+        return t.merge();
     }
 
-    override void visit(TypeVector mtype)
+    Type visitVector(TypeVector mtype)
     {
-        uint errors = global.errors;
+        const errors = global.errors;
         mtype.basetype = mtype.basetype.typeSemantic(loc, sc);
         if (errors != global.errors)
             return error();
@@ -697,10 +679,10 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             }
             break;
         }
-        result = merge(mtype);
+        return merge(mtype);
     }
 
-    override void visit(TypeSArray mtype)
+    Type visitSArray(TypeSArray mtype)
     {
         //printf("TypeSArray::semantic() %s\n", toChars());
         Type t;
@@ -728,8 +710,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                 .error(loc, "`%s` is not a type", mtype.toChars());
                 return error();
             }
-            result = (cast(Type)o).addMod(mtype.mod);
-            return;
+            return (cast(Type)o).addMod(mtype.mod);
         }
 
         Type tn = mtype.next.typeSemantic(loc, sc);
@@ -767,7 +748,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             if (mtype.dim.op == TOK.error)
                 return error();
 
-            void overflowError()
+            Type overflowError()
             {
                 .error(loc, "`%s` size %llu * %llu exceeds 0x%llx size limit for static array",
                         mtype.toChars(), cast(ulong)tbn.size(loc), cast(ulong)d1, Target.maxStaticDataSize);
@@ -808,8 +789,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                     return error();
                 }
                 Type telem = (*tt.arguments)[cast(size_t)d].type;
-                result = telem.addMod(mtype.mod);
-                return;
+                return telem.addMod(mtype.mod);
             }
 
         case Tfunction:
@@ -831,18 +811,17 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
          */
         mtype.next = tn;
         mtype.transitive();
-        result = mtype.addMod(tn.mod).merge();
+        return mtype.addMod(tn.mod).merge();
     }
 
-    override void visit(TypeDArray mtype)
+    Type visitDArray(TypeDArray mtype)
     {
         Type tn = mtype.next.typeSemantic(loc, sc);
         Type tbn = tn.toBasetype();
         switch (tbn.ty)
         {
         case Ttuple:
-            result = tbn;
-            return;
+            return tbn;
 
         case Tfunction:
         case Tnone:
@@ -862,16 +841,15 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         }
         mtype.next = tn;
         mtype.transitive();
-        result = merge(mtype);
+        return merge(mtype);
     }
 
-    override void visit(TypeAArray mtype)
+    Type visitAArray(TypeAArray mtype)
     {
         //printf("TypeAArray::semantic() %s index.ty = %d\n", mtype.toChars(), mtype.index.ty);
         if (mtype.deco)
         {
-            result = mtype;
-            return;
+            return mtype;
         }
 
         mtype.loc = loc;
@@ -892,8 +870,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                 // It was an expression -
                 // Rewrite as a static array
                 auto tsa = new TypeSArray(mtype.next, e);
-                result = tsa.typeSemantic(loc, sc);
-                return;
+                return tsa.typeSemantic(loc, sc);
             }
             else if (t)
                 mtype.index = t.typeSemantic(loc, sc);
@@ -1062,16 +1039,15 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             .error(loc, "cannot have array of scope `%s`", mtype.next.toChars());
             return error();
         }
-        result = merge(mtype);
+        return merge(mtype);
     }
 
-    override void visit(TypePointer mtype)
+    Type visitPointer(TypePointer mtype)
     {
         //printf("TypePointer::semantic() %s\n", toChars());
         if (mtype.deco)
         {
-            result = mtype;
-            return;
+            return mtype;
         }
         Type n = mtype.next.typeSemantic(loc, sc);
         switch (n.toBasetype().ty)
@@ -1092,13 +1068,11 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         if (mtype.next.ty != Tfunction)
         {
             mtype.transitive();
-            result = merge(mtype);
-            return;
+            return merge(mtype);
         }
         version (none)
         {
-            result = merge(mtype);
-            return;
+            return merge(mtype);
         }
         else
         {
@@ -1107,12 +1081,11 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
              * can be different
              * even though the types match
              */
-            result = mtype;
-            return;
+            return mtype;
         }
     }
 
-    override void visit(TypeReference mtype)
+    Type visitReference(TypeReference mtype)
     {
         //printf("TypeReference::semantic()\n");
         Type n = mtype.next.typeSemantic(loc, sc);
@@ -1120,16 +1093,15 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
            mtype.deco = null;
         mtype.next = n;
         mtype.transitive();
-        result = merge(mtype);
+        return merge(mtype);
     }
 
-    override void visit(TypeFunction mtype)
+    Type visitFunction(TypeFunction mtype)
     {
         if (mtype.deco) // if semantic() already run
         {
             //printf("already done\n");
-            result = mtype;
-            return;
+            return mtype;
         }
         //printf("TypeFunction::semantic() this = %p\n", this);
         //printf("TypeFunction::semantic() %s, sc.stc = %llx, fargs = %p\n", toChars(), sc.stc, fargs);
@@ -1523,17 +1495,16 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
          * can be different
          * even though the types match
          */
-        result = tf;
+        return tf;
     }
 
-    override void visit(TypeDelegate mtype)
+    Type visitDelegate(TypeDelegate mtype)
     {
         //printf("TypeDelegate::semantic() %s\n", toChars());
         if (mtype.deco) // if semantic() already run
         {
             //printf("already done\n");
-            result = mtype;
-            return;
+            return mtype;
         }
         mtype.next = mtype.next.typeSemantic(loc, sc);
         if (mtype.next.ty != Tfunction)
@@ -1545,8 +1516,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
          */
         version (none)
         {
-            result = mtype.merge();
-            return;
+            return mtype.merge();
         }
         else
         {
@@ -1555,11 +1525,11 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
              * even though the types match
              */
             mtype.deco = mtype.merge().deco;
-            result = mtype;
+            return mtype;
         }
     }
 
-    override void visit(TypeIdentifier mtype)
+    Type visitIdentifier(TypeIdentifier mtype)
     {
         Type t;
         Expression e;
@@ -1569,7 +1539,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         if (t)
         {
             //printf("\tit's a type %d, %s, %s\n", t.ty, t.toChars(), t.deco);
-            result = t.addMod(mtype.mod);
+            return t.addMod(mtype.mod);
         }
         else
         {
@@ -1590,7 +1560,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         }
     }
 
-    override void visit(TypeInstance mtype)
+    Type visitInstance(TypeInstance mtype)
     {
         Type t;
         Expression e;
@@ -1602,10 +1572,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             mtype.resolve(loc, sc, &e, &t, &s);
             // if we had an error evaluating the symbol, suppress further errors
             if (!t && errors != global.errors)
-            {
-                result = Type.terror;
-                return;
-            }
+                return error();
         }
 
         if (!t)
@@ -1620,10 +1587,10 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                .error(loc, "`%s` is used as a type", mtype.toChars());
             return error();
         }
-        result = t;
+        return t;
     }
 
-    override void visit(TypeTypeof mtype)
+    Type visitTypeof(TypeTypeof mtype)
     {
         //printf("TypeTypeof::semantic() %s\n", toChars());
         Expression e;
@@ -1637,18 +1604,17 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             .error(loc, "`%s` is used as a type", mtype.toChars());
             return error();
         }
-        result = t;
+        return t;
     }
 
-    override void visit(TypeTraits mtype)
+    Type visitTraits(TypeTraits mtype)
     {
         import dmd.traits : semanticTraits;
 
-        result = null;
+        Type result = null;
         if (mtype.ty == Terror)
         {
-            result = mtype;
-            return;
+            return mtype;
         }
         if (mtype.exp.ident != Id.allMembers &&
             mtype.exp.ident != Id.derivedMembers &&
@@ -1663,9 +1629,8 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             static immutable (const(char)*)[2] ctxt = ["as type", "in alias"];
             .error(mtype.loc, "trait `%s` is either invalid or not supported %s",
                  mtype.exp.ident.toChars, ctxt[mtype.inAliasDeclaration]);
-            result = mtype;
             mtype.ty = Terror;
-            return;
+            return mtype;
         }
         if (Expression e = semanticTraits(mtype.exp, sc))
         {
@@ -1681,12 +1646,13 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         {
             if (!global.errors)
                 .error(mtype.loc, "`%s` does not give a valid type", mtype.toChars);
-            result = mtype;
             mtype.ty = Terror;
+            return mtype;
         }
+        return result;
     }
 
-    override void visit(TypeReturn mtype)
+    Type visitReturn(TypeReturn mtype)
     {
         //printf("TypeReturn::semantic() %s\n", toChars());
         Expression e;
@@ -1700,10 +1666,10 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             .error(loc, "`%s` is used as a type", mtype.toChars());
             return error();
         }
-        result = t;
+        return t;
     }
 
-    override void visit(TypeStruct mtype)
+    Type visitStruct(TypeStruct mtype)
     {
         //printf("TypeStruct::semantic('%s')\n", mtype.toChars());
         if (mtype.deco)
@@ -1713,8 +1679,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                 if (mtype.cppmangle == CPPMANGLE.def)
                     mtype.cppmangle = sc.cppmangle;
             }
-            result = mtype;
-            return;
+            return mtype;
         }
 
         /* Don't semantic for sym because it should be deferred until
@@ -1731,16 +1696,16 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         else
             mtype.cppmangle = CPPMANGLE.asStruct;
 
-        result = merge(mtype);
+        return merge(mtype);
     }
 
-    override void visit(TypeEnum mtype)
+    Type visitEnum(TypeEnum mtype)
     {
         //printf("TypeEnum::semantic() %s\n", toChars());
-        result = mtype.deco ? mtype : merge(mtype);
+        return mtype.deco ? mtype : merge(mtype);
     }
 
-    override void visit(TypeClass mtype)
+    Type visitClass(TypeClass mtype)
     {
         //printf("TypeClass::semantic(%s)\n", mtype.toChars());
         if (mtype.deco)
@@ -1750,8 +1715,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                 if (mtype.cppmangle == CPPMANGLE.def)
                     mtype.cppmangle = sc.cppmangle;
             }
-            result = mtype;
-            return;
+            return mtype;
         }
 
         /* Don't semantic for sym because it should be deferred until
@@ -1768,10 +1732,10 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         else
             mtype.cppmangle = CPPMANGLE.asClass;
 
-        result = merge(mtype);
+        return merge(mtype);
     }
 
-    override void visit(TypeTuple mtype)
+    Type visitTuple(TypeTuple mtype)
     {
         //printf("TypeTuple::semantic(this = %p)\n", this);
         //printf("TypeTuple::semantic() %p, %s\n", this, toChars());
@@ -1781,10 +1745,10 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         /* Don't return merge(), because a tuple with one type has the
          * same deco as that type.
          */
-        result = mtype;
+        return mtype;
     }
 
-    override void visit(TypeSlice mtype)
+    Type visitSlice(TypeSlice mtype)
     {
         //printf("TypeSlice::semantic() %s\n", toChars());
         Type tn = mtype.next.typeSemantic(loc, sc);
@@ -1824,9 +1788,31 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             args.push(arg);
         }
         Type t = new TypeTuple(args);
-        result = t.typeSemantic(loc, sc);
+        return t.typeSemantic(loc, sc);
     }
 
+    switch (t.ty)
+    {
+        default:         return visitType(t);
+        case Tvector:    return visitVector(cast(TypeVector)t);
+        case Tsarray:    return visitSArray(cast(TypeSArray)t);
+        case Tarray:     return visitDArray(cast(TypeDArray)t);
+        case Taarray:    return visitAArray(cast(TypeAArray)t);
+        case Tpointer:   return visitPointer(cast(TypePointer)t);
+        case Treference: return visitReference(cast(TypeReference)t);
+        case Tfunction:  return visitFunction(cast(TypeFunction)t);
+        case Tdelegate:  return visitDelegate(cast(TypeDelegate)t);
+        case Tident:     return visitIdentifier(cast(TypeIdentifier)t);
+        case Tinstance:  return visitInstance(cast(TypeInstance)t);
+        case Ttypeof:    return visitTypeof(cast(TypeTypeof)t);
+        case Ttraits:    return visitTraits(cast(TypeTraits)t);
+        case Treturn:    return visitReturn(cast(TypeReturn)t);
+        case Tstruct:    return visitStruct(cast(TypeStruct)t);
+        case Tenum:      return visitEnum(cast(TypeEnum)t);
+        case Tclass:     return visitClass(cast(TypeClass)t);
+        case Ttuple:     return visitTuple (cast(TypeTuple)t);
+        case Tslice:     return visitSlice(cast(TypeSlice)t);
+    }
 }
 
 /************************************
