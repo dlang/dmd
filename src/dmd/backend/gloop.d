@@ -371,7 +371,7 @@ private extern (D) void findloops(block*[] dfo, loop **ploops)
                                    // loops are found first)
     {
         assert(b);
-        for (list_t bl = b.Bsucc; bl; bl = list_next(bl))
+        foreach (bl; ListRange(b.Bsucc))
         {
             block *s = list_block(bl);      // each successor s to b
             assert(s);
@@ -461,7 +461,7 @@ L1:
             vec_setbit(i,l.Lexit); /* ret blocks are exit blocks */
         else
         {
-            for (list_t bl = dfo[i].Bsucc; bl; bl = list_next(bl))
+            foreach (bl; ListRange(dfo[i].Bsucc))
                 if (!vec_testbit(list_block(bl).Bdfoidx,l.Lloop))
                 {
                     vec_setbit(i,l.Lexit);
@@ -508,7 +508,7 @@ private void insert(block *b, vec_t lv)
     {
         vec_setbit(b.Bdfoidx,lv);       /* add block to loop            */
         b.Bweight = loop_weight(b.Bweight,1);   // *10 usage count
-        for (list_t bl = b.Bpred; bl; bl = list_next(bl))
+        foreach (bl; ListRange(b.Bpred))
             insert(list_block(bl),lv);  /* insert all its predecessors  */
     }
 }
@@ -801,7 +801,7 @@ restart:
                     bl = h.Bpred;      /* dunno what subtract did      */
 
                     /* Fix up successors of predecessors        */
-                    for (list_t bls = b.Bsucc; bls; bls = list_next(bls))
+                    foreach (bls; ListRange(b.Bsucc))
                         if (list_block(bls) == h)
                                 bls.ptr = cast(void *)p;
                 }
@@ -3267,7 +3267,7 @@ private void elimopeqs(loop *l)
             uint i;
             for (i = 0; (i = cast(uint) vec_index(i, l.Lexit)) < dfo.length; ++i)  // for each exit block
             {
-                for (list_t bl = dfo[i].Bsucc; bl; bl = list_next(bl))
+                foreach (bl; ListRange(dfo[i].Bsucc))
                 {   // for each successor
                     block *b = list_block(bl);
                     if (vec_testbit(b.Bdfoidx,l.Lloop))

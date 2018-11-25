@@ -408,7 +408,7 @@ private void chkrd(elem *n,list_t rdlist)
     if (sv.ty() & mTYvolatile)
         return;
     unambig = sv.Sflags & SFLunambig;
-    for (list_t l = rdlist; l; l = list_next(l))
+    foreach (l; ListRange(rdlist))
     {   elem *d = cast(elem *) list_ptr(l);
 
         elem_debug(d);
@@ -526,7 +526,7 @@ private elem * chkprop(elem *n,list_t rdlist)
     nsize = cast(uint)size(nty);
     noff = n.EV.Voffset;
     unambig = sv.Sflags & SFLunambig;
-    for (list_t l = rdlist; l; l = list_next(l))
+    foreach (l; ListRange(rdlist))
     {
         elem *d = cast(elem *) list_ptr(l);
 
@@ -698,7 +698,7 @@ private void eqeqranges()
         c = el_tolong(e.EV.E2);
 
         result = -1;                    // result not known yet
-        for (list_t rdl = rel.rdlist; rdl; rdl = list_next(rdl))
+        foreach (rdl; ListRange(rel.rdlist))
         {
             elem *erd = cast(elem *) list_ptr(rdl);
             elem *erd1;
@@ -1046,7 +1046,7 @@ private int loopcheck(block *start,block *inc,block *rel)
 {
     if (!(start.Bflags & BFLvisited))
     {   start.Bflags |= BFLvisited;    /* guarantee eventual termination */
-        for (list_t list = start.Bsucc; list; list = list_next(list))
+        foreach (list; ListRange(start.Bsucc))
         {
             block *b = cast(block *) list_ptr(list);
             if (b != rel && (b == inc || loopcheck(b,inc,rel)))
@@ -1921,7 +1921,7 @@ void verybusyexp()
         for (j = 0; (j = cast(uint) vec_index(j, b.Bout)) < go.exptop; ++j)
         {
             vec_clear(blockseen);
-            for (list_t bl = go.expblk[j].Bpred; bl; bl = list_next(bl))
+            foreach (bl; ListRange(go.expblk[j].Bpred))
             {
                 if (killed(j,list_block(bl),b))
                 {
@@ -1944,7 +1944,7 @@ void verybusyexp()
         for (j = 0; (j = cast(uint) vec_index(j, b.Bout)) < go.exptop; ++j)
         {
             vec_clear(blockseen);
-            for (list_t bl = go.expblk[j].Bpred; bl; bl = list_next(bl))
+            foreach (bl; ListRange(go.expblk[j].Bpred))
             {
                 if (ispath(j,list_block(bl),b))
                     goto L2;
@@ -2020,7 +2020,7 @@ private int killed(uint j,block *bp,block *b)
     if (vec_testbit(j,bp.Bkill))
         return true;
     vec_setbit(bp.Bdfoidx,blockseen);      /* mark as visited              */
-    for (list_t bl = bp.Bpred; bl; bl = list_next(bl))
+    foreach (bl; ListRange(bp.Bpred))
         if (killed(j,list_block(bl),b))
             return true;
     return false;
@@ -2054,7 +2054,7 @@ private int ispath(uint j,block *bp,block *b)
 
     /* Not used in bp, see if there is a path through a predecessor */
     /* of bp                                                        */
-    for (list_t bl = bp.Bpred; bl; bl = list_next(bl))
+    foreach (bl; ListRange(bp.Bpred))
         if (ispath(j,list_block(bl),b))
             return true;
 
