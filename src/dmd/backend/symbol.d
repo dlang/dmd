@@ -1213,14 +1213,14 @@ version (SCPP_HTOD)
 {
 
 Symbol * symbol_searchlist(symlist_t sl,const(char)* vident)
-{   Symbol *s;
-
+{
     debug
     int count = 0;
 
     //printf("searchlist(%s)\n",vident);
-    for (; sl; sl = list_next(sl))
-    {   s = list_symbol(sl);
+    foreach (sln; ListRange(sl))
+    {
+        Symbol* s = list_symbol(sln);
         symbol_debug(s);
         /*printf("\tcomparing with %s\n",s.Sident.ptr);*/
         if (strcmp(vident,s.Sident.ptr) == 0)
@@ -2338,16 +2338,17 @@ struct Paramblock       // to minimize stack usage in helper function
 }
 
 private void membersearchx(Paramblock *p,Symbol *s)
-{   Symbol *sm;
-    list_t sl;
-
+{
     while (s)
-    {   symbol_debug(s);
+    {
+        symbol_debug(s);
 
         switch (s.Sclass)
-        {   case SCstruct:
-                for (sl = s.Sstruct.Sfldlst; sl; sl = list_next(sl))
-                {   sm = list_symbol(sl);
+        {
+            case SCstruct:
+                foreach (sl; ListRange(s.Sstruct.Sfldlst))
+                {
+                    Symbol* sm = list_symbol(sl);
                     symbol_debug(sm);
                     if ((sm.Sclass == SCmember || sm.Sclass == SCfield) &&
                         strcmp(p.id,sm.Sident.ptr) == 0)
