@@ -443,7 +443,9 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
         size_t j = 0;
         foreach (arg; args)
         {
-            if (arg.length < 6 || arg[0..6] != "--DRT-") // skip D runtime options
+            import rt.config : rt_cmdline_enabled;
+
+            if (!rt_cmdline_enabled!() || arg.length < 6 || arg[0..6] != "--DRT-") // skip D runtime options
             {
                 argsCopy[j++] = (argBuff[0 .. arg.length] = arg[]);
                 argBuff += arg.length;
