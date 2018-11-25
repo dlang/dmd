@@ -1737,7 +1737,7 @@ version (MARS)
                             /* find member offset in closure */
                             targ_size_t memb_off = 0;
                             struct_t *st = sa.Sscope.Stype.Tnext.Ttag.Sstruct; // Sscope is __closptr
-                            for (symlist_t sl = st.Sfldlst; sl; sl = list_next(sl))
+                            foreach (sl; ListRange(st.Sfldlst))
                             {
                                 Symbol *sf = list_symbol(sl);
                                 if (sf.Sclass == SCmember)
@@ -2594,9 +2594,9 @@ uint dwarf_typidx(type *t)
             // Count number of fields
             uint nfields = 0;
             t.Tflags |= TFforward;
-            for (symlist_t sl = st.Sfldlst; sl; sl = list_next(sl))
-            {   Symbol *sf = list_symbol(sl);
-
+            foreach (sl; ListRange(st.Sfldlst))
+            {
+                Symbol *sf = list_symbol(sl);
                 switch (sf.Sclass)
                 {
                     case SCmember:
@@ -2665,8 +2665,9 @@ uint dwarf_typidx(type *t)
 
                 s.Stypidx = idx;
                 uint n = 0;
-                for (symlist_t sl = st.Sfldlst; sl; sl = list_next(sl))
-                {   Symbol *sf = list_symbol(sl);
+                foreach (sl; ListRange(st.Sfldlst))
+                {
+                    Symbol *sf = list_symbol(sl);
                     size_t soffset;
 
                     switch (sf.Sclass)
@@ -2766,9 +2767,10 @@ uint dwarf_typidx(type *t)
             debug_info.buf.writeString(s.Sident.ptr);    // DW_AT_name
             debug_info.buf.writeByte(sz);             // DW_AT_byte_size
 
-            for (symlist_t sl2 = s.Senum.SEenumlist; sl2; sl2 = list_next(sl2))
-            {   Symbol *sf = cast(Symbol *)list_ptr(sl2);
-                uint value = cast(uint)el_tolongt(sf.Svalue);
+            foreach (sl2; ListRange(s.Senum.SEenumlist))
+            {
+                Symbol *sf = cast(Symbol *)list_ptr(sl2);
+                const value = cast(uint)el_tolongt(sf.Svalue);
 
                 debug_info.buf.writeuLEB128(membercode);
                 debug_info.buf.writeString(sf.Sident.ptr);

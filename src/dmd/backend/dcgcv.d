@@ -889,7 +889,6 @@ idx_t cv4_struct(Classsym *s,int flags)
     uint nfields,fnamelen;
     idx_t typidx;
     type *t;
-    symlist_t sl;
     struct_t *st;
     char *id;
 version (SCPP)
@@ -1038,12 +1037,9 @@ version (SCPP)
 version (SCPP)
 {
             debtyp_t *vshape;
-            uint n;
             ubyte descriptor;
-            list_t vl;
 
-            vl = st.Svirtual;
-            n = list_nitems(vl);
+            const n = list_nitems(st.Svirtual);
             if (n == 0)                         // if no virtual functions
             {
                 if (config.fulltypes == CV4)
@@ -1057,9 +1053,9 @@ version (SCPP)
                 TOWORD(vshape.data.ptr,LF_VTSHAPE);
                 TOWORD(vshape.data.ptr + 2,1);
 
-                n = 0;
+                uint n2 = 0;
                 descriptor = 0;
-                for (; vl; vl = list_next(vl))
+                foreach (vl; ListRange(st.Svirtual))
                 {   mptr_t *m;
                     tym_t ty;
 
@@ -1071,9 +1067,9 @@ version (SCPP)
                         descriptor |= 5;
                     if (tyfarfunc(ty))
                         descriptor++;
-                    vshape.data.ptr[4 + n / 2] = descriptor;
+                    vshape.data.ptr[4 + n2 / 2] = descriptor;
                     descriptor <<= 4;
-                    n++;
+                    n2++;
                 }
                 if (config.fulltypes == CV4)
                     TOWORD(d.data.ptr + 10,cv_debtyp(vshape));     // vshape
@@ -1180,7 +1176,7 @@ version (SCPP)
     fnamelen += i * ((config.fulltypes == CV4) ? 4 : 8);
 
     // Now friend functions
-    for (sl = st.Sfriendfuncs; sl; sl = list_next(sl))
+    foreach (sl; ListRange(st.Sfriendfuncs))
     {   Symbol *sf = list_symbol(sl);
 
         symbol_debug(sf);
@@ -1193,7 +1189,7 @@ version (SCPP)
     }
 }
     count = nfields;
-    for (sl = st.Sfldlst; sl; sl = list_next(sl))
+    foreach (sl; ListRange(st.Sfldlst))
     {   Symbol *sf = list_symbol(sl);
         targ_size_t offset;
 
@@ -1382,7 +1378,7 @@ version (SCPP)
     } while (i != LF_VBCLASS);
 
     // Now friend classes
-    for (sl = s.Sstruct.Sfriendclass; sl; sl = list_next(sl))
+    foreach (sl; ListRange(s.Sstruct.Sfriendclass))
     {   Symbol *sf = list_symbol(sl);
 
         symbol_debug(sf);
@@ -1400,7 +1396,7 @@ version (SCPP)
     }
 
     // Now friend functions
-    for (sl = s.Sstruct.Sfriendfuncs; sl; sl = list_next(sl))
+    foreach (sl; ListRange(s.Sstruct.Sfriendfuncs))
     {   Symbol *sf = list_symbol(sl);
 
         symbol_debug(sf);
@@ -1420,7 +1416,7 @@ version (SCPP)
     }
     }
 }
-    for (sl = s.Sstruct.Sfldlst; sl; sl = list_next(sl))
+    foreach (sl; ListRange(s.Sstruct.Sfldlst))
     {   Symbol *sf = list_symbol(sl);
         targ_size_t offset;
 
@@ -1614,7 +1610,6 @@ private uint cv4_enum(Symbol *s)
     uint len;
     type *t;
     type *tbase;
-    symlist_t sl;
     uint property;
     uint attribute;
     int i;
@@ -1678,7 +1673,7 @@ static if (SYMDEB_TDB)
     // Compute the number of fields, and the length of the fieldlist record
     nfields = 0;
     fnamelen = 2;
-    for (sl = s.Senum.SEenumlist; sl; sl = list_next(sl))
+    foreach (sl; ListRange(s.Senum.SEenumlist))
     {   Symbol *sf = list_symbol(sl);
         uint value;
 
@@ -1703,7 +1698,7 @@ static if (SYMDEB_TDB)
 
     // And fill it in
     i = 2;
-    for (sl = s.Senum.SEenumlist; sl; sl = list_next(sl))
+    foreach (sl; ListRange(s.Senum.SEenumlist))
     {   Symbol *sf = list_symbol(sl);
         uint value;
 
