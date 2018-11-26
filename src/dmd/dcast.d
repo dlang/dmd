@@ -81,6 +81,46 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
                     result.type = t;
                     return;
                 }
+
+                auto ad = isAggregate(e.type);
+                if (ad && ad.aliasthis)
+                {
+                    MATCH adMatch;
+                    if (ad.type.ty == Tstruct)
+                        adMatch = (cast(TypeStruct)(ad.type)).implicitConvToWithoutAliasThis(t);
+                    else
+                        adMatch = (cast(TypeClass)(ad.type)).implicitConvToWithoutAliasThis(t);
+
+                    if (!adMatch)
+                    {
+                        Type tob = t.toBasetype();
+                        Type t1b = e.type.toBasetype();
+                        AggregateDeclaration toad = isAggregate(tob);
+                        if (ad != toad)
+                        {
+                            if (t1b.ty == Tclass && tob.ty == Tclass)
+                            {
+                                ClassDeclaration t1cd = t1b.isClassHandle();
+                                ClassDeclaration tocd = tob.isClassHandle();
+                                int offset;
+                                if (tocd.isBaseOf(t1cd, &offset))
+                                {
+                                    result = new CastExp(e.loc, e, t);
+                                    result.type = t;
+                                    return;
+                                }
+                            }
+
+                            /* Forward the cast to our alias this member, rewrite to:
+                             *   cast(to)e1.aliasthis
+                             */
+                            result = resolveAliasThis(sc, e);
+                            result = result.castTo(sc, t);
+                            return;
+                       }
+                    }
+                }
+
                 result = e.castTo(sc, t);
                 return;
             }
@@ -1410,6 +1450,27 @@ Type toStaticArrayType(SliceExp e)
     return null;
 }
 
+// Try casting the alias this member. Return the expression if it succeeds, null otherwise.
+private Expression tryAliasThisCast(Expression e, Scope* sc, Type tob, Type t1b, Type t)
+{
+    Expression result;
+    AggregateDeclaration t1ad = isAggregate(t1b);
+    if (!t1ad)
+        return null;
+
+    AggregateDeclaration toad = isAggregate(tob);
+    if (t1ad == toad || !t1ad.aliasthis)
+        return null;
+
+    /* Forward the cast to our alias this member, rewrite to:
+     *   cast(to)e1.aliasthis
+     */
+    result = resolveAliasThis(sc, e);
+    const errors = global.startGagging();
+    result = result.castTo(sc, t);
+    return global.endGagging(errors) ? null : result;
+}
+
 /**************************************
  * Do an explicit cast.
  * Assume that the 'this' expression does not have any indirections.
@@ -1490,6 +1551,7 @@ Expression castTo(Expression e, Scope* sc, Type t)
             const(bool) tob_isA = (tob.isintegral() || tob.isfloating());
             const(bool) t1b_isA = (t1b.isintegral() || t1b.isfloating());
 
+            bool hasAliasThis;
             if (AggregateDeclaration t1ad = isAggregate(t1b))
             {
                 AggregateDeclaration toad = isAggregate(tob);
@@ -1503,13 +1565,7 @@ Expression castTo(Expression e, Scope* sc, Type t)
                         if (tocd.isBaseOf(t1cd, &offset))
                             goto Lok;
                     }
-
-                    /* Forward the cast to our alias this member, rewrite to:
-                     *   cast(to)e1.aliasthis
-                     */
-                    result = resolveAliasThis(sc, e);
-                    result = result.castTo(sc, t);
-                    return;
+                    hasAliasThis = true;
                 }
             }
             else if (tob.ty == Tvector && t1b.ty != Tvector)
@@ -1556,6 +1612,14 @@ Expression castTo(Expression e, Scope* sc, Type t)
             {
                 if (t1b.size(e.loc) == tob.size(e.loc))
                     goto Lok;
+
+                if (hasAliasThis)
+                {
+                    result = tryAliasThisCast(e, sc, tob, t1b, t);
+                    if (result)
+                        return;
+                }
+
                 auto ts = toAutoQualChars(e.type, t);
                 e.error("cannot cast expression `%s` of type `%s` to `%s` because of different sizes",
                     e.toChars(), ts[0], ts[1]);
@@ -1633,6 +1697,15 @@ Expression castTo(Expression e, Scope* sc, Type t)
             if (t1b.ty == Tvoid && tob.ty != Tvoid)
             {
             Lfail:
+                /* if the cast cannot be performed, maybe there is an alias
+                 * this that can be used for casting.
+                 */
+                if (hasAliasThis)
+                {
+                    result = tryAliasThisCast(e, sc, tob, t1b, t);
+                    if (result)
+                        return;
+                }
                 e.error("cannot cast expression `%s` of type `%s` to `%s`", e.toChars(), e.type.toChars(), t.toChars());
                 result = new ErrorExp();
                 return;
