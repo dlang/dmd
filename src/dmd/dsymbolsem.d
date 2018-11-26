@@ -5954,11 +5954,11 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
     //printf("AliasDeclaration::semantic() %s\n", ds.toChars());
     if (ds.type && ds.type.ty == Ttraits)
     {
-        // TypeTraits is itself a kind of nested alias so its semantic is called
-        // manually, beforehand.
+        // TypeTraits is not a valid type, it's semantic is called manually to
+        // have either a symbol or a valid type to alias.
         TypeTraits tt = cast(TypeTraits) ds.type;
         tt.inAliasDeclaration = true;
-        if (auto t = typeSemantic(tt, tt.loc, sc))
+        if (Type t = typeSemantic(tt, tt.loc, sc))
             ds.type = t;
         else if (tt.sym)
             ds.aliassym = tt.sym;

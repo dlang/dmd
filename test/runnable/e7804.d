@@ -19,6 +19,8 @@ void declVsStatementSupport()
     __traits(getMember, Foo, "MyInt") i1 = 1;
     const(__traits(getMember, Foo, "MyInt")) i2 = 1;
     assert(i1 == i2);
+    __traits(getMember, Foo, "MyInt") i3 = __traits(getMember, Foo, "MyInt").max;
+    assert(i3 == int.max);
 }
 
 
@@ -94,6 +96,47 @@ struct UnitTests
     }
 }
 
+
+class One
+{
+    void foo(){}
+    void foo(int){}
+}
+
+class Two : One
+{
+    void test()
+    {
+        alias Seq(T...) = T;
+        alias p1 = Seq!(__traits(getMember, super, "foo"))[0];
+        alias p2 = __traits(getMember, super, "foo");
+        static assert(__traits(isSame, p1, p2));
+    }
+}
+
+
+class SingleSymTuple
+{
+    int foo(){return 42;}
+    void test()
+    {
+        alias f = __traits(getMember, this, "foo");
+        assert(f() == 42);
+    }
+}
+
+
+struct WithAliasThis
+{
+    auto getter(){return 42;}
+    alias getter this;
+    void test()
+    {
+        alias getterCall = __traits(getAliasThis, typeof(this));
+        assert(mixin(getterCall[0]) == 42);
+    }
+}
+
 void main()
 {
     declVsStatementSupport();
@@ -108,4 +151,7 @@ void main()
     assert(ovlds[1](42) == 42);
     (new Class).test();
     UnitTests.test();
+    (new WithAliasThis).test();
+    (new Two).test();
+    (new SingleSymTuple).test();
 }

@@ -2,7 +2,7 @@ Aliases can be created directly from a `__trait`.
 
 Aliases can be created directly from the traits that return symbol(s) or tuples.
 This includes `getMember`, `allMembers`, `derivedMembers`, `parent`, `getOverloads`,
-`getVirtualFunctions`, `getVirtualMethods`, `getUnitTests` and finally `getAttributes`.
+`getVirtualFunctions`, `getVirtualMethods`, `getUnitTests`, `getAttributes` and finally `getAliasThis`.
 Previously an `AliasSeq` was necessary in order to alias their return.
 Now the grammar allows to write shorter declarations:
 
