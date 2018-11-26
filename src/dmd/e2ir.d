@@ -2727,7 +2727,7 @@ elem *toElem(Expression e, IRState *irs)
                         c1 = el_bin(OPandand, TYint, c1, c2);
 
                         // Construct: (c1 || arrayBoundsError)
-                        auto ea = buildArrayBoundsError(irs, ae.loc);
+                        auto ea = buildArrayBoundsError(irs, ae.loc, el_copytree(elwr), el_copytree(eupr), el_copytree(enbytesx));
                         elem *eb = el_bin(OPoror,TYvoid,c1,ea);
                         einit = el_combine(einit, eb);
                     }
@@ -2823,7 +2823,7 @@ elem *toElem(Expression e, IRState *irs)
                             }
 
                             // Construct: (c || arrayBoundsError)
-                            echeck = el_bin(OPoror, TYvoid, c, buildArrayBoundsError(irs, ae.loc));
+                            echeck = el_bin(OPoror, TYvoid, c, buildArrayBoundsError(irs, ae.loc, null, el_copytree(eleny), el_copytree(elen)));
                         }
                         else
                         {
@@ -4818,12 +4818,12 @@ elem *toElem(Expression e, IRState *irs)
                     //  lwr <= upr
 
                     elem *c1 = null;
+                    elem *elen;
                     if (!se.upperIsInBounds)
                     {
                         eupr2 = el_same(&eupr);
                         eupr2.Ety = TYsize_t;  // make sure unsigned comparison
 
-                        elem *elen;
                         if (t1.ty == Tsarray)
                         {
                             TypeSArray tsa = cast(TypeSArray)t1;
@@ -4863,7 +4863,7 @@ elem *toElem(Expression e, IRState *irs)
                     if (c1)
                     {
                         // Construct: (c1 || arrayBoundsError)
-                        auto ea = buildArrayBoundsError(irs, se.loc);
+                        auto ea = buildArrayBoundsError(irs, se.loc, el_copytree(elwr2), el_copytree(eupr2), el_copytree(elen));
                         elem *eb = el_bin(OPoror, TYvoid, c1, ea);
 
                         elwr = el_combine(elwr, eb);
@@ -4966,7 +4966,7 @@ elem *toElem(Expression e, IRState *irs)
                     elem *n = el_same(&e);
 
                     // Construct: ((e || arrayBoundsError), n)
-                    auto ea = buildArrayBoundsError(irs, ie.loc);
+                    auto ea = buildArrayBoundsError(irs, ie.loc, null, null, null); // FIXME
                     e = el_bin(OPoror,TYvoid,e,ea);
                     e = el_bin(OPcomma, TYnptr, e, n);
                 }
@@ -5002,7 +5002,7 @@ elem *toElem(Expression e, IRState *irs)
                         n2x = el_bin(OPlt, TYint, n2x, elength);
 
                         // Construct: (n2x || arrayBoundsError)
-                        auto ea = buildArrayBoundsError(irs, ie.loc);
+                        auto ea = buildArrayBoundsError(irs, ie.loc, null, el_copytree(n2), el_copytree(elength));
                         eb = el_bin(OPoror,TYvoid,n2x,ea);
                     }
                 }
@@ -5937,10 +5937,13 @@ private elem *filelinefunction(IRState *irs, const ref Loc loc)
  * Params:
  *      irs = to get function from
  *      loc = to get file/line from
+ *      lwr = lower bound passed, if slice (array[lwr .. upr]). null otherwise.
+ *      upr = upper bound passed if slice (array[lwr .. upr]), index if not a slice (array[upr])
+ *      elength = length of array
  * Returns:
  *      elem generated
  */
-elem *buildArrayBoundsError(IRState *irs, const ref Loc loc)
+elem *buildArrayBoundsError(IRState *irs, const ref Loc loc, elem* lwr, elem* upr, elem* elength)
 {
     if (irs.params.checkAction == CHECKACTION.C)
     {
@@ -5953,7 +5956,19 @@ elem *buildArrayBoundsError(IRState *irs, const ref Loc loc)
     auto eassert = el_var(getRtlsym(RTLSYM_DARRAYP));
     auto efile = toEfilenamePtr(cast(Module)irs.blx._module);
     auto eline = el_long(TYint, loc.linnum);
-    return el_bin(OPcall, TYvoid, eassert, el_param(eline, efile));
+    if(upr is null)
+    {
+        upr = el_long(TYsize_t, 0);
+    }
+    if(lwr is null)
+    {
+        lwr = el_long(TYsize_t, 0);
+    }
+    if(elength is null)
+    {
+        elength = el_long(TYsize_t, 0);
+    }
+    return el_bin(OPcall, TYvoid, eassert, el_params(elength, upr, lwr, eline, efile, null));
 }
 
 /******************************************************
