@@ -258,7 +258,45 @@ void test6()
 
 /********************************************************/
 
-void test7()
+void test7a()
+{
+    assert(__traits(isDynamicArray) == false);
+    assert(__traits(isDynamicArray, S) == false);
+    assert(__traits(isDynamicArray, C) == false);
+    assert(__traits(isDynamicArray, E) == false);
+    assert(__traits(isDynamicArray, void*) == false);
+    assert(__traits(isDynamicArray, void[]) == true);
+    assert(__traits(isDynamicArray, void[3]) == false);
+    assert(__traits(isDynamicArray, int[char]) == false);
+    assert(__traits(isDynamicArray, float, float) == false);
+    assert(__traits(isDynamicArray, float, S) == false);
+
+    assert(__traits(isDynamicArray, void) == false);
+    assert(__traits(isDynamicArray, byte) == false);
+    assert(__traits(isDynamicArray, ubyte) == false);
+    assert(__traits(isDynamicArray, short) == false);
+    assert(__traits(isDynamicArray, ushort) == false);
+    assert(__traits(isDynamicArray, int) == false);
+    assert(__traits(isDynamicArray, uint) == false);
+    assert(__traits(isDynamicArray, long) == false);
+    assert(__traits(isDynamicArray, ulong) == false);
+    assert(__traits(isDynamicArray, float) == false);
+    assert(__traits(isDynamicArray, double) == false);
+    assert(__traits(isDynamicArray, real) == false);
+    assert(__traits(isDynamicArray, ifloat) == false);
+    assert(__traits(isDynamicArray, idouble) == false);
+    assert(__traits(isDynamicArray, ireal) == false);
+    assert(__traits(isDynamicArray, cfloat) == false);
+    assert(__traits(isDynamicArray, cdouble) == false);
+    assert(__traits(isDynamicArray, creal) == false);
+    assert(__traits(isDynamicArray, char) == false);
+    assert(__traits(isDynamicArray, wchar) == false);
+    assert(__traits(isDynamicArray, dchar) == false);
+}
+
+/********************************************************/
+
+void test7b()
 {
     assert(__traits(isStaticArray) == false);
     assert(__traits(isStaticArray, S) == false);
@@ -1559,7 +1597,8 @@ int main()
     test4();
     test5();
     test6();
-    test7();
+    test7a();
+    test7b();
     test8();
     test9();
     test10();
