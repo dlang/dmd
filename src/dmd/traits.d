@@ -105,6 +105,7 @@ shared static this()
         "isFloating",
         "isIntegral",
         "isScalar",
+        "isDynamicArray",
         "isStaticArray",
         "isUnsigned",
         "isVirtualFunction",
@@ -583,6 +584,10 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident == Id.isFuture)
     {
        return isDeclX(t => t.isFuture());
+    }
+    if (e.ident == Id.isDynamicArray)
+    {
+        return isTypeX(t => (t.toBasetype().ty == Tarray));
     }
     if (e.ident == Id.isStaticArray)
     {

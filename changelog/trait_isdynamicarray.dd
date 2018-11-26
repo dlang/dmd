@@ -1,0 +1,9 @@
+Added new builtin trait `__traits(isDynamicArray, T)`.
+
+A new trait
+
+---
+__traits(isDynamicArray, T)
+---
+
+has been added that checks whether a type `T` is a dynamic array (slice) or not.
