@@ -499,29 +499,35 @@ unittest
 }
 
 /**
-Destroys the given object and sets it back to its initial state. It's used to
+Destroys the given object and optionally resets to initial state. It's used to
 _destroy an object, calling its destructor or finalizer so it no longer
 references any other objects. It does $(I not) initiate a GC cycle or free
 any GC memory.
+If `initialize` is supplied `false`, the object is considered invalid after
+destruction, and should not be referenced.
 */
-void destroy(T)(ref T obj) if (is(T == struct))
+void destroy(bool initialize = true, T)(ref T obj) if (is(T == struct))
 {
-    // We need to re-initialize `obj`.  Previously, an immutable static
-    // and memcpy were used to hold an initializer. With improved unions, this is no longer
-    // needed.
-    union UntypedInit
-    {
-        T dummy;
-    }
-    static struct UntypedStorage
-    {
-        align(T.alignof) void[T.sizeof] dummy;
-    }
-
     _destructRecurse(obj);
-    () @trusted {
-        *cast(UntypedStorage*) &obj = cast(UntypedStorage) UntypedInit.init;
-    } ();
+
+    static if (initialize)
+    {
+        // We need to re-initialize `obj`.  Previously, an immutable static
+        // and memcpy were used to hold an initializer. With improved unions, this is no longer
+        // needed.
+        union UntypedInit
+        {
+            T dummy;
+        }
+        static struct UntypedStorage
+        {
+            align(T.alignof) void[T.sizeof] dummy;
+        }
+
+        () @trusted {
+            *cast(UntypedStorage*) &obj = cast(UntypedStorage) UntypedInit.init;
+        } ();
+    }
 }
 
 private void _destructRecurse(S)(ref S s)
@@ -539,6 +545,8 @@ nothrow @safe @nogc unittest
         struct A { string s = "A";  }
         A a;
         a.s = "asd";
+        destroy!false(a);
+        assert(a.s == "asd");
         destroy(a);
         assert(a.s == "A");
     }
@@ -565,8 +573,12 @@ nothrow @safe @nogc unittest
         B a;
         a.s = "asd";
         a.c.s = "jkl";
-        destroy(a);
+        destroy!false(a);
         assert(destroyed == 2);
+        assert(a.s == "asd");
+        assert(a.c.s == "jkl" );
+        destroy(a);
+        assert(destroyed == 4);
         assert(a.s == "B");
         assert(a.c.s == "C" );
     }
@@ -574,23 +586,28 @@ nothrow @safe @nogc unittest
 
 
     /// ditto
-    void destroy(T)(T obj) if (is(T == class))
+    void destroy(bool initialize = true, T)(T obj) if (is(T == class))
     {
         static if (__traits(getLinkage, T) == "C++")
         {
             obj.__xdtor();
 
-            enum classSize = __traits(classInstanceSize, T);
-            (cast(void*)obj)[0 .. classSize] = typeid(T).initializer[];
+            static if (initialize)
+            {
+                enum classSize = __traits(classInstanceSize, T);
+                (cast(void*)obj)[0 .. classSize] = typeid(T).initializer[];
+            }
         }
         else
             rt_finalize(cast(void*)obj);
     }
 
     /// ditto
-    void destroy(T)(T obj) if (is(T == interface))
+    void destroy(bool initialize = true, T)(T obj) if (is(T == interface))
     {
-        destroy(cast(Object)obj);
+        static assert(__traits(getLinkage, T) == "D", "Invalid call to destroy() on extern(" ~ __traits(getLinkage, T) ~ ") interface");
+
+        destroy!initialize(cast(Object)obj);
     }
 
     /// Reference type demonstration
@@ -653,10 +670,15 @@ nothrow @safe @nogc unittest
         cpp.s = "T";
         cpp.a.x = 30;
         assert(cpp.s == "T");         // `cpp.s` is `"T"`
-        destroy(cpp);
+        destroy!false(cpp);           // destroy without initialization
         assert(cpp.dtorCount == 1);   // `cpp`'s destructor was called
-        assert(cpp.s == "S");         // `cpp.s` is back to its inital state, `"S"`
+        assert(cpp.s == "T");         // `cpp.s` is not initialized
         assert(cpp.a.dtorCount == 1); // `cpp.a`'s destructor was called
+        assert(cpp.a.x == 30);        // `cpp.a.x` is not initialized
+        destroy(cpp);
+        assert(cpp.dtorCount == 2);   // `cpp`'s destructor was called again
+        assert(cpp.s == "S");         // `cpp.s` is back to its inital state, `"S"`
+        assert(cpp.a.dtorCount == 2); // `cpp.a`'s destructor was called again
         assert(cpp.a.x == 10);        // `cpp.a.x` is back to its inital state, `10`
     }
 
@@ -667,6 +689,8 @@ nothrow @safe @nogc unittest
         assert(i == 0);           // `i`'s initial state is `0`
         i = 1;
         assert(i == 1);           // `i` changed to `1`
+        destroy!false(i);
+        assert(i == 1);           // `i` was not initialized
         destroy(i);
         assert(i == 0);           // `i` is back to its initial state `0`
     }
@@ -766,6 +790,8 @@ nothrow @safe @nogc unittest
             struct A { string s = "A";  }
             A a;
             a.s = "asd";
+            destroy!false(a);
+            assert(a.s == "asd");
             destroy(a);
             assert(a.s == "A");
         }
@@ -792,18 +818,22 @@ nothrow @safe @nogc unittest
             B a;
             a.s = "asd";
             a.c.s = "jkl";
-            destroy(a);
+            destroy!false(a);
             assert(destroyed == 2);
+            assert(a.s == "asd");
+            assert(a.c.s == "jkl" );
+            destroy(a);
+            assert(destroyed == 4);
             assert(a.s == "B");
             assert(a.c.s == "C" );
         }
     }
 
     /// ditto
-    void destroy(T : U[n], U, size_t n)(ref T obj) if (!is(T == struct))
+    void destroy(bool initialize = true, T : U[n], U, size_t n)(ref T obj) if (!is(T == struct))
     {
         foreach_reverse (ref e; obj[])
-            destroy(e);
+            destroy!initialize(e);
     }
 
     unittest
@@ -811,6 +841,8 @@ nothrow @safe @nogc unittest
         int[2] a;
         a[0] = 1;
         a[1] = 2;
+        destroy!false(a);
+        assert(a == [ 1, 2 ]);
         destroy(a);
         assert(a == [ 0, 0 ]);
     }
@@ -823,7 +855,7 @@ nothrow @safe @nogc unittest
         }
 
         vec2f v;
-        destroy!vec2f(v);
+        destroy!(true, vec2f)(v);
     }
 
     unittest
@@ -864,10 +896,11 @@ nothrow @safe @nogc unittest
     }
 
     /// ditto
-    void destroy(T)(ref T obj)
+    void destroy(bool initialize = true, T)(ref T obj)
         if (!is(T == struct) && !is(T == interface) && !is(T == class) && !_isStaticArray!T)
     {
-        obj = T.init;
+        static if (initialize)
+            obj = T.init;
     }
 
     template _isStaticArray(T : U[N], U, size_t N)
@@ -884,11 +917,15 @@ nothrow @safe @nogc unittest
     {
         {
             int a = 42;
+            destroy!false(a);
+            assert(a == 42);
             destroy(a);
             assert(a == 0);
         }
         {
             float a = 42;
+            destroy!false(a);
+            assert(a == 42);
             destroy(a);
             assert(isnan(a));
         }
