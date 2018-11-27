@@ -1071,14 +1071,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto o = (*e.args)[0];
         auto s = getDsymbol(o);
         auto ad = s ? s.isAggregateDeclaration() : null;
-        if (!ad)
-        {
-            e.error("argument is not an aggregate type");
-            return new ErrorExp();
-        }
 
         auto exps = new Expressions();
-        if (ad.aliasthis)
+        if (ad && ad.aliasthis)
             exps.push(new StringExp(e.loc, cast(char*)ad.aliasthis.ident.toChars()));
         Expression ex = new TupleExp(e.loc, exps);
         ex = ex.expressionSemantic(sc);

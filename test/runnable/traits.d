@@ -1456,6 +1456,10 @@ void test11711()
     static assert(__traits(getAliasThis, S2) == TypeTuple!("var"));
     static assert(is(typeof(__traits(getMember, S2.init, __traits(getAliasThis, S2)[0]))
                 == TypeTuple!(int, string)));
+
+    // https://issues.dlang.org/show_bug.cgi?id=19439
+    // Return empty tuple for non-aggregate types.
+    static assert(__traits(getAliasThis, int).length == 0);
 }
 
 
