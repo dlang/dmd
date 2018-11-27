@@ -576,15 +576,18 @@ nothrow @safe @nogc unittest
     /// ditto
     void destroy(T)(T obj) if (is(T == class))
     {
+        // go through void** to avoid `alias this` preferring alias
+        // this should not be necessary when @@@BUG6777@@@ is fixed
+        auto ptr = () @trusted { return *cast(void**) &obj; } ();
         static if (__traits(getLinkage, T) == "C++")
         {
             obj.__xdtor();
 
             enum classSize = __traits(classInstanceSize, T);
-            (cast(void*)obj)[0 .. classSize] = typeid(T).initializer[];
+            ptr[0 .. classSize] = typeid(T).initializer[];
         }
         else
-            rt_finalize(cast(void*)obj);
+            rt_finalize(ptr);
     }
 
     /// ditto
@@ -669,6 +672,40 @@ nothrow @safe @nogc unittest
         assert(i == 1);           // `i` changed to `1`
         destroy(i);
         assert(i == 0);           // `i` is back to its initial state `0`
+    }
+
+    unittest
+    {
+        // class with an `alias this`
+        class A
+        {
+            static int dtorCount;
+            ~this()
+            {
+                dtorCount++;
+            }
+        }
+
+        class B
+        {
+            A a;
+            alias a this;
+            this()
+            {
+                a = new A;
+            }
+            static int dtorCount;
+            ~this()
+            {
+                dtorCount++;
+            }
+        }
+        auto b = new B;
+        assert(A.dtorCount == 0);
+        assert(B.dtorCount == 0);
+        destroy(b);
+        assert(A.dtorCount == 0);
+        assert(B.dtorCount == 1);
     }
 
     unittest
