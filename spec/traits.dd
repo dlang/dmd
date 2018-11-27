@@ -630,11 +630,34 @@ writeln(__traits(identifier, var));             // "var"
 
 $(H2 $(GNAME getAliasThis))
 
-    $(P Takes one argument, a symbol of aggregate type.
-        If the given aggregate type has $(D alias this), returns a list of
-        $(D alias this) names, by a tuple of $(D string)s.
-        Otherwise returns an empty tuple.
+    $(P Takes one argument, a type. If the type has `alias this` declarations,
+        returns a sequence of the names (as `string`s) of the members used in
+        those declarations. Otherwise returns an empty sequence.
     )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+alias AliasSeq(T...) = T;
+
+struct S1
+{
+    string var;
+    alias var this;
+}
+static assert(__traits(getAliasThis, S1) == AliasSeq!("var"));
+static assert(__traits(getAliasThis, int).length == 0);
+
+pragma(msg, __traits(getAliasThis, S1));
+pragma(msg, __traits(getAliasThis, int));
+---
+)
+
+        Prints:
+
+$(CONSOLE
+tuple("var")
+tuple()
+)
 
 $(SECTION2 $(GNAME getAttributes),
     $(P
