@@ -31,6 +31,7 @@ import dmd.backend.dlist;
 import dmd.backend.global;
 import dmd.backend.memh;
 import dmd.backend.ty;
+import dmd.backend.barray;
 
 extern (C++):
 
@@ -2239,7 +2240,7 @@ struct Schedule
     Cinfo[TBLMAX] cinfo;
     int cinfomax;
 
-    list_t stagelist;           // list of instructions in staging area
+    Barray!(Cinfo*) stagelist;  // list of instructions in staging area
 
     int fpustackused;           // number of slots in FPU stack that are used
 
@@ -2249,6 +2250,11 @@ void initialize(int fpustackinit)          // initialize scheduler
     memset(&this,0,Schedule.sizeof);
     fpustackused = fpustackinit;
 }
+
+    void dtor()
+    {
+        stagelist.dtor();
+    }
 
 code **assemble(code **pc)  // reassemble scheduled instructions
 {
@@ -2260,10 +2266,12 @@ code **assemble(code **pc)  // reassemble scheduled instructions
     assert(!*pc);
 
     // Try to insert the rest of the staged instructions
-    list_t l;
-    for (l = stagelist; l; l = list_next(l))
+    size_t sli;
+    for (sli = 0; sli < stagelist.length; ++sli)
     {
-        Cinfo* ci = cast(Cinfo *)list_ptr(l);
+        Cinfo* ci = stagelist[sli];
+        if (!ci)
+            continue;
         if (!insert(ci))
             break;
     }
@@ -2344,8 +2352,10 @@ code **assemble(code **pc)  // reassemble scheduled instructions
     }
 
     // Just append any instructions left in the staging area
-    for (; l; l = list_next(l))
-    {   Cinfo *ci = cast(Cinfo *)list_ptr(l);
+    foreach (ci; stagelist[sli .. stagelist.length])
+    {
+        if (!ci)
+            continue;
 
         debug
         if (debugs) { printf("appending: "); ci.c.print(); }
@@ -2359,7 +2369,7 @@ code **assemble(code **pc)  // reassemble scheduled instructions
         fpustackused += ci.fpuadjust;
         //printf("stage()2: fpustackused = %d\n", fpustackused);
     }
-    list_free(&stagelist);
+    stagelist.setLength(0);
 
     return pc;
 }
@@ -2673,8 +2683,8 @@ Linsert:
  */
 
 int stage(code *c)
-{   Cinfo *ci;
-    list_t ln;
+{
+    Cinfo *ci;
     int agi;
 
     //printf("stage: "); c.print();
@@ -2686,60 +2696,62 @@ int stage(code *c)
     if (c.Iflags & (CFtarg | CFtarg2 | CFvolatile | CFvex))
     {
         // Insert anything in stagelist
-        for (list_t l = stagelist; l; l = ln)
+        foreach (i; 0 .. stagelist.length)
         {
-            ln = list_next(l);
-            Cinfo* cs = cast(Cinfo *)list_ptr(l);
-            if (!insert(cs))
-                return 0;
-            list_subtract(&stagelist,cs);
+            if (auto cs = stagelist[i])
+            {
+                if (!insert(cs))
+                    return 0;
+                stagelist[i] = null;
+            }
         }
         return insert(ci);
     }
 
     // Look through stagelist, and insert any AGI conflicting instructions
     agi = 0;
-    for (list_t l = stagelist; l; l = ln)
+    foreach (i; 0 .. stagelist.length)
     {
-        ln = list_next(l);
-        Cinfo* cs = cast(Cinfo *)list_ptr(l);
-        if (pair_agi(cs,ci))
+        if (auto cs = stagelist[i])
         {
-            if (!insert(cs))
-                goto Lnostage;
-            list_subtract(&stagelist,cs);
-            agi = 1;                    // we put out an AGI
+            if (pair_agi(cs,ci))
+            {
+                if (!insert(cs))
+                    goto Lnostage;
+                stagelist[i] = null;
+                agi = 1;                    // we put out an AGI
+            }
         }
     }
 
     // Look through stagelist, and insert any other conflicting instructions
-    for (list_t l = stagelist; l; l = ln)
+    foreach (i; 0 .. stagelist.length)
     {
-        ln = list_next(l);
-        Cinfo* cs = cast(Cinfo *)list_ptr(l);
+        auto cs = stagelist[i];
+        if (!cs)
+            continue;
         if (conflict(cs,ci,0) &&                // if conflict
             !(cs.flags & ci.flags & CIFLpush))
         {
             if (cs.spadjust)
             {
                 // We need to insert all previous adjustments to ESP
-                list_t lan;
-
-                for (list_t la = stagelist; la != l; la = lan)
+                foreach (j; 0..i)
                 {
-                    lan = list_next(la);
-                    Cinfo* ca = cast(Cinfo *)list_ptr(la);
+                    auto ca = stagelist[j];
+                    if (!ca)
+                        continue;
                     if (ca.spadjust)
                     {   if (!insert(ca))
                             goto Lnostage;
-                        list_subtract(&stagelist,ca);
+                        stagelist[j] = null;
                     }
                 }
             }
 
             if (!insert(cs))
                 goto Lnostage;
-            list_subtract(&stagelist,cs);
+            stagelist[i] = null;
         }
     }
 
@@ -2751,7 +2763,7 @@ int stage(code *c)
         return 1;
     }
 
-    list_append(&stagelist,ci);         // append to staging list
+    stagelist.push(ci);         // append to staging list
     return 1;
 
 Lnostage:
@@ -2803,7 +2815,7 @@ private code *schedule(code *c,regm_t scratch)
 {
     code *cresult = null;
     code **pctail = &cresult;
-    Schedule sch;
+    Schedule sch = void;
 
     sch.initialize(0);                  // initialize scheduling table
     while (c)
@@ -2837,6 +2849,7 @@ private code *schedule(code *c,regm_t scratch)
         //printf("assem %d\n",sch.tblmax);
         pctail = sch.assemble(pctail);  // reassemble instruction stream
     }
+    sch.dtor();
 
     return cresult;
 }
