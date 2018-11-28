@@ -473,28 +473,30 @@ private void flowaecp()
         // For all blocks except startblock
         foreach (b; dfo[1 .. $])
         {
-            list_t bl = b.Bpred;
-
             // Bin = & of Bout of all predecessors
             // Bout = (Bin - Bkill) | Bgen
 
-            assert(bl);     // it must have predecessors
-            block* bp = list_block(bl);
-            if (bp.BC == BCiftrue && bp.nthSucc(0) != b)
-                vec_copy(b.Bin,bp.Bout2);
-            else
-                vec_copy(b.Bin,bp.Bout);
-            while (true)
+            bool first = true;
+            foreach (bl; ListRange(b.Bpred))
             {
-                bl = list_next(bl);
-                if (!bl)
-                    break;
-                bp = list_block(bl);
+                block* bp = list_block(bl);
                 if (bp.BC == BCiftrue && bp.nthSucc(0) != b)
-                    vec_andass(b.Bin,bp.Bout2);
+                {
+                    if (first)
+                        vec_copy(b.Bin,bp.Bout2);
+                    else
+                        vec_andass(b.Bin,bp.Bout2);
+                }
                 else
-                    vec_andass(b.Bin,bp.Bout);
+                {
+                    if (first)
+                        vec_copy(b.Bin,bp.Bout);
+                    else
+                        vec_andass(b.Bin,bp.Bout);
+                }
+                first = false;
             }
+            assert(!first);     // it must have had predecessors
 
             if (anychng)
             {
@@ -1299,18 +1301,19 @@ void flowlv()
         /* For each block B in reverse DFO order        */
         foreach_reverse (b; dfo[])
         {
-            list_t bl = b.Bsucc;
-
             /* Bout = union of Bins of all successors to B. */
-            if (bl)
+            bool first = true;
+            foreach (bl; ListRange(b.Bsucc))
             {
-                vec_copy(b.Boutlv,list_block(bl).Binlv);
-                while ((bl = list_next(bl)) != null)
-                {
-                    vec_orass(b.Boutlv,list_block(bl).Binlv);
-                }
+                const inlv = list_block(bl).Binlv;
+                if (first)
+                    vec_copy(b.Boutlv, inlv);
+                else
+                    vec_orass(b.Boutlv, inlv);
+                first = false;
             }
-            else /* no successors, Boutlv = livexit */
+
+            if (first) /* no successors, Boutlv = livexit */
             {   //assert(b.BC==BCret||b.BC==BCretexp||b.BC==BCexit);
                 vec_copy(b.Boutlv,livexit);
             }
@@ -1325,8 +1328,10 @@ void flowlv()
         cnt++;
         assert(cnt < 50);
     } while (anychng);
+
     vec_free(tmp);
     vec_free(livexit);
+
     static if (0)
     {
         printf("Live variables\n");
@@ -1623,19 +1628,22 @@ void flowvbe()
         foreach_reverse (b; dfo[])
         {
             if (b.BC == BCret || b.BC == BCretexp || b.BC == BCexit)
-                    continue;
+                continue;
 
             /* Bout = & of Bin of all successors */
-            list_t bl = b.Bsucc;
-            assert(bl);     /* must have successors         */
-            vec_copy(b.Bout,list_block(bl).Bin);
-            while (true)
+            bool first = true;
+            foreach (bl; ListRange(b.Bsucc))
             {
-                bl = list_next(bl);
-                if (!bl)
-                    break;
-                vec_andass(b.Bout,list_block(bl).Bin);
+                const vin = list_block(bl).Bin;
+                if (first)
+                    vec_copy(b.Bout, vin);
+                else
+                    vec_andass(b.Bout, vin);
+
+                first = false;
             }
+
+            assert(!first);     // must have successors
 
             /* Bin = (Bout - Bkill) | Bgen  */
             vec_sub(tmp,b.Bout,b.Bkill);
