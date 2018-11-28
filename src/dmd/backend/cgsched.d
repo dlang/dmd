@@ -2678,56 +2678,54 @@ Linsert:
 
 /******************************
  * Insert c into staging area.
+ * Params:
+ *      c = instruction to stage
  * Returns:
- *      0       could not be scheduled; have to start a new one
+ *      false if could not be scheduled; have to start a new one
  */
 
-int stage(code *c)
+bool stage(code *c)
 {
-    Cinfo *ci;
-    int agi;
-
     //printf("stage: "); c.print();
     if (cinfomax == TBLMAX)             // if out of space
-        goto Lnostage;
-    ci = &cinfo[cinfomax++];
+        return false;
+    auto ci = &cinfo[cinfomax++];
     getinfo(ci,c);
 
     if (c.Iflags & (CFtarg | CFtarg2 | CFvolatile | CFvex))
     {
         // Insert anything in stagelist
-        foreach (i; 0 .. stagelist.length)
+        foreach (ref cs;  stagelist[])
         {
-            if (auto cs = stagelist[i])
+            if (cs)
             {
                 if (!insert(cs))
-                    return 0;
-                stagelist[i] = null;
+                    return false;
+                cs = null;
             }
         }
-        return insert(ci);
+        return insert(ci) != 0;
     }
 
     // Look through stagelist, and insert any AGI conflicting instructions
-    agi = 0;
-    foreach (i; 0 .. stagelist.length)
+    bool agi = false;
+    foreach (ref cs; stagelist[])
     {
-        if (auto cs = stagelist[i])
+        if (cs)
         {
             if (pair_agi(cs,ci))
             {
                 if (!insert(cs))
                     goto Lnostage;
-                stagelist[i] = null;
-                agi = 1;                    // we put out an AGI
+                cs = null;
+                agi = true;                    // we put out an AGI
             }
         }
     }
 
     // Look through stagelist, and insert any other conflicting instructions
-    foreach (i; 0 .. stagelist.length)
+    foreach (i, ref cs; stagelist[])
     {
-        auto cs = stagelist[i];
         if (!cs)
             continue;
         if (conflict(cs,ci,0) &&                // if conflict
@@ -2736,22 +2734,20 @@ int stage(code *c)
             if (cs.spadjust)
             {
                 // We need to insert all previous adjustments to ESP
-                foreach (j; 0..i)
+                foreach (ref ca; stagelist[0 .. i])
                 {
-                    auto ca = stagelist[j];
-                    if (!ca)
-                        continue;
-                    if (ca.spadjust)
-                    {   if (!insert(ca))
+                    if (ca && ca.spadjust)
+                    {
+                        if (!insert(ca))
                             goto Lnostage;
-                        stagelist[j] = null;
+                        ca = null;
                     }
                 }
             }
 
             if (!insert(cs))
                 goto Lnostage;
-            stagelist[i] = null;
+            cs = null;
         }
     }
 
@@ -2760,14 +2756,14 @@ int stage(code *c)
     {
         if (!insert(ci))
             goto Lnostage;
-        return 1;
+        return true;
     }
 
     stagelist.push(ci);         // append to staging list
-    return 1;
+    return true;
 
 Lnostage:
-    return 0;
+    return false;
 }
 
 }
