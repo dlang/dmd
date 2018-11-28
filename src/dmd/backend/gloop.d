@@ -633,9 +633,9 @@ private int looprotate(loop *l)
                 *pbl = list_next(*pbl);
                 pbln = pbl;                     // don't skip this next one
                 (*pbl2).next = null;
-                list_t bl = list_block(*pbl2).Bsucc;
+                auto bsucc = list_block(*pbl2).Bsucc;
                 pbl2 = &((*pbl2).next);
-                for (; bl; bl = list_next(bl))
+                foreach (bl; ListRange(bsucc))
                     if (list_block(bl) == head)
                     {
                         bl.ptr = cast(void *)head2;
