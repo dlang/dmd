@@ -3,11 +3,11 @@
 fail_compilation/fail17491.d(24): Error: `(S17491).init` is not an lvalue and cannot be modified
 fail_compilation/fail17491.d(25): Error: `S17491(0)` is not an lvalue and cannot be modified
 fail_compilation/fail17491.d(27): Error: cannot modify constant `S17491(0).field`
-fail_compilation/fail17491.d(28): Error: cannot modify constant `*&S17491(0).field`
+fail_compilation/fail17491.d(28): Error: `S17491(0).field` is not an lvalue and cannot be modified
 fail_compilation/fail17491.d(33): Error: `S17491(0)` is not an lvalue and cannot be modified
 fail_compilation/fail17491.d(34): Error: `S17491(0)` is not an lvalue and cannot be modified
 fail_compilation/fail17491.d(36): Error: cannot modify constant `S17491(0).field`
-fail_compilation/fail17491.d(37): Error: cannot modify constant `*&S17491(0).field`
+fail_compilation/fail17491.d(37): Error: `S17491(0).field` is not an lvalue and cannot be modified
 ---
 */
 

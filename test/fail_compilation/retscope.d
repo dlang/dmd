@@ -8,7 +8,7 @@ fail_compilation/retscope.d(33): Error: returning `b ? nested1(& i) : nested2(& 
 fail_compilation/retscope.d(46): Error: scope variable `p` assigned to non-scope `q`
 fail_compilation/retscope.d(48): Error: address of variable `i` assigned to `q` with longer lifetime
 fail_compilation/retscope.d(49): Error: scope variable `a` assigned to non-scope `b`
-fail_compilation/retscope.d(50): Error: reference to stack allocated value returned by `(*fp2)()` assigned to non-scope `q`
+fail_compilation/retscope.d(50): Error: `(*fp2)().d` is not an lvalue and cannot be modified
 ---
 */
 
@@ -473,7 +473,7 @@ fail_compilation/retscope.d(1405): Error: reference to local variable `buf` assi
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(1509): Error: reference to stack allocated value returned by `(*fp15)()` assigned to non-scope parameter `unnamed`
+fail_compilation/retscope.d(1509): Error: `(*fp15)().d` is not an lvalue and cannot be modified
 ---
 */
 

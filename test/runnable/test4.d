@@ -1185,8 +1185,6 @@ void test50()
         C50 c = new C50();
         c.prop = true ? C50.prop : C50.prop;
         assert(c.prop.i == 0);
-        c.prop.i = 7;
-        assert(c.prop.i != 7);
 }
 
 /* ================================ */

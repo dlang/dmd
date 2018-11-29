@@ -3845,6 +3845,11 @@ extern (C++) final class TypeidExp : Expression
         return new TypeidExp(loc, objectSyntaxCopy(obj));
     }
 
+    override bool isLvalue()
+    {
+        return true;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -4526,7 +4531,13 @@ extern (C++) final class DotVarExp : UnaExp
 
     override bool isLvalue()
     {
-        return true;
+        if (!var.isField() || (var.isField && var.isStatic()))
+            return true;
+        if (e1.isLvalue())
+            return true;
+        else if (e1.type.ty == Tclass || e1.type.ty == Tpointer)
+            return true;
+        return false;
     }
 
     override Expression toLvalue(Scope* sc, Expression e)
@@ -4556,7 +4567,7 @@ extern (C++) final class DotVarExp : UnaExp
                 }
             }
         }
-        return this;
+        return isLvalue() ? this : Expression.toLvalue(sc, e);
     }
 
     override Expression modifiableLvalue(Scope* sc, Expression e)
