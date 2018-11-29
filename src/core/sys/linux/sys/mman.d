@@ -17,6 +17,8 @@ version (MIPS32)  version = MIPS_Any;
 version (MIPS64)  version = MIPS_Any;
 version (PPC)     version = PPC_Any;
 version (PPC64)   version = PPC_Any;
+version (RISCV32) version = RISCV_Any;
+version (RISCV64) version = RISCV_Any;
 version (S390)    version = IBMZ_Any;
 version (SPARC)   version = SPARC_Any;
 version (SPARC64) version = SPARC_Any;
@@ -26,9 +28,6 @@ version (X86_64)  version = X86_Any;
 
 public import core.sys.posix.sys.mman;
 import core.sys.linux.config;
-
-version (RISCV32) version = RISCV_Any;
-version (RISCV64) version = RISCV_Any;
 
 // <bits/mman.h>
 // http://sourceware.org/git/?p=glibc.git;a=blob;hb=51e945a8f950a6695754b11c1e6fba8bb750e100;f=sysdeps/unix/sysv/linux/powerpc/bits/mman.h
