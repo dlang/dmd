@@ -576,18 +576,15 @@ nothrow @safe @nogc unittest
     /// ditto
     void destroy(T)(T obj) if (is(T == class))
     {
-        // go through void** to avoid `alias this` preferring alias
-        // this should not be necessary when @@@BUG6777@@@ is fixed
-        auto ptr = () @trusted { return *cast(void**) &obj; } ();
         static if (__traits(getLinkage, T) == "C++")
         {
             obj.__xdtor();
 
             enum classSize = __traits(classInstanceSize, T);
-            ptr[0 .. classSize] = typeid(T).initializer[];
+            (cast(void*)obj)[0 .. classSize] = typeid(T).initializer[];
         }
         else
-            rt_finalize(ptr);
+            rt_finalize(cast(void*)obj);
     }
 
     /// ditto
