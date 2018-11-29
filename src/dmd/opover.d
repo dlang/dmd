@@ -828,10 +828,10 @@ Expression op_overload(Expression e, Scope* sc)
                     /* Rewrite op(e1) as:
                      *      op(e1.aliasthis)
                      */
-                    Expression e1 = new DotIdExp(e.loc, e.e1, ad.aliasthis.ident);
+                    Expression e1 = resolveAliasThis(sc, e.e1);
                     result = e.copy();
                     (cast(UnaExp)result).e1 = e1;
-                    result = result.trySemantic(sc);
+                    result = result.op_overload(sc);
                     return;
                 }
             }
