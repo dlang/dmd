@@ -513,7 +513,7 @@ Lcant:
 }
 
 /**********************************
- * Determine block prolog code - it's either
+ * Determine block prolog code for `s` - it's either
  * assignments to register, or storing register back in memory.
  * Params:
  *      b = block to generate prolog code for
@@ -528,65 +528,63 @@ void cgreg_spillreg_prolog(block *b,Symbol *s,ref CodeBuilder cdbstore,ref CodeB
 
     //printf("cgreg_spillreg_prolog(block %d, s = '%s')\n",bi,s.Sident.ptr);
 
-    bool load = false;
-    int inoutp;
-    if (vec_testbit(bi,s.Slvreg))
-    {   inoutp = 1;
-        // If it's startblock, and it's a spilled parameter, we
-        // need to load it
-        if (s.Sflags & SFLspill && bi == 0 &&
-            (s.Sclass == SCparameter || s.Sclass == SCfastpar || s.Sclass == SCshadowreg))
-        {
-            load = true;
-        }
-    }
-    else
-        inoutp = -1;
-
-    if (!load)
+    // Load register from s
+    void load()
     {
-        if (cgreg_gotoepilog(b,s))
-            return;
-
-        // Look at predecessors to see if we need to load in/out of register
-        for (list_t bl = b.Bpred; 1; bl = list_next(bl))
+        debug if (debugr)
         {
-            if (!bl)
-                return;
-
-            block *bp = list_block(bl);
-            const int bpi = bp.Bdfoidx;
-
-            if (!vec_testbit(bpi,s.Srange))
-                continue;
-            if (vec_testbit(bpi,s.Slvreg))
-            {
-                if (inoutp != -1)
-                    continue;
-            }
-            else
-            {
-                if (inoutp != 1)
-                    continue;
-            }
-            break;
-        }
-    }
-
-    debug if (debugr)
-    {
-        int sz = cast(int)type_size(s.Stype);
-        if (inoutp == -1)
-            printf("B%d: prolog moving %s into '%s'\n",bi,regstring[s.Sreglsw],s.Sident.ptr);
-        else
             printf("B%d: prolog moving '%s' into %s:%s\n",
-                    bi, s.Sident.ptr, regstring[s.Sregmsw], sz > REGSIZE ? regstring[s.Sreglsw] : "");
+                    bi, s.Sident.ptr, regstring[s.Sregmsw],
+                    type_size(s.Stype) > REGSIZE ? regstring[s.Sreglsw] : "");
+        }
+        gen_spill_reg(cdbload, s, true);
     }
 
-    if (inoutp == -1)
+    // Store register to s
+    void store()
+    {
+        debug if (debugr)
+        {
+            printf("B%d: prolog moving %s into '%s'\n",bi,regstring[s.Sreglsw],s.Sident.ptr);
+        }
         gen_spill_reg(cdbstore, s, false);
-    else
-        gen_spill_reg(cdbload, s, true);
+    }
+
+    const live = vec_testbit(bi,s.Slvreg) != 0;   // if s is in a register in block b
+
+    // If it's startblock, and it's a spilled parameter, we
+    // need to load it
+    if (live && s.Sflags & SFLspill && bi == 0 &&
+        (s.Sclass == SCparameter || s.Sclass == SCfastpar || s.Sclass == SCshadowreg))
+    {
+        return load();
+    }
+
+    if (cgreg_gotoepilog(b,s))
+        return;
+
+    // Look at predecessors to see if we need to load in/out of register
+    foreach (bl; ListRange(b.Bpred))
+    {
+        const bpi = list_block(bl).Bdfoidx;
+
+        if (!vec_testbit(bpi,s.Srange))
+            continue;
+        if (vec_testbit(bpi,s.Slvreg))
+        {
+            if (!live)
+            {
+                return store();
+            }
+        }
+        else
+        {
+            if (live)
+            {
+                return load();
+            }
+        }
+    }
 }
 
 /**********************************
@@ -594,56 +592,47 @@ void cgreg_spillreg_prolog(block *b,Symbol *s,ref CodeBuilder cdbstore,ref CodeB
  * assignments to register, or storing register back in memory.
  * Params:
  *      b = block to generate prolog code for
- *      s = symbol in the block that may need prolog code
+ *      s = symbol in the block that may need epilog code
  *      cdbstore = append store code to this
  *      cdbload = append load code to this
  */
 
 void cgreg_spillreg_epilog(block *b,Symbol *s,ref CodeBuilder cdbstore, ref CodeBuilder cdbload)
 {
-    int bi = b.Bdfoidx;
+    const bi = b.Bdfoidx;
     //printf("cgreg_spillreg_epilog(block %d, s = '%s')\n",bi,s.Sident.ptr);
     //assert(b.BC == BCgoto);
     if (!cgreg_gotoepilog(b.nthSucc(0), s))
         return;
 
-    int inoutp;
-    if (vec_testbit(bi,s.Slvreg))
-        inoutp = 1;
-    else
-        inoutp = -1;
+    const live = vec_testbit(bi,s.Slvreg) != 0;
 
     // Look at successors to see if we need to load in/out of register
     foreach (bl; ListRange(b.Bsucc))
     {
-        block *bp = list_block(bl);
-        int bpi = bp.Bdfoidx;
+        const bpi = list_block(bl).Bdfoidx;
         if (!vec_testbit(bpi,s.Srange))
             continue;
         if (vec_testbit(bpi,s.Slvreg))
         {
-            if (inoutp != -1)
-                continue;
+            if (!live)
+            {
+                debug if (debugr)
+                    printf("B%d: epilog moving '%s' into %s\n",bi,s.Sident.ptr,regstring[s.Sreglsw]);
+                gen_spill_reg(cdbload, s, true);
+                return;
+            }
         }
         else
         {
-            if (inoutp != 1)
-                continue;
+            if (live)
+            {
+                debug if (debugr)
+                    printf("B%d: epilog moving %s into '%s'\n",bi,regstring[s.Sreglsw],s.Sident.ptr);
+                gen_spill_reg(cdbstore, s, false);
+                return;
+            }
         }
-
-        debug if (debugr)
-        {
-            if (inoutp == 1)
-                printf("B%d: epilog moving %s into '%s'\n",bi,regstring[s.Sreglsw],s.Sident.ptr);
-            else
-                printf("B%d: epilog moving '%s' into %s\n",bi,s.Sident.ptr,regstring[s.Sreglsw]);
-        }
-
-        if (inoutp == 1)
-            gen_spill_reg(cdbstore, s, false);
-        else
-            gen_spill_reg(cdbload, s, true);
-        break;
     }
 }
 
