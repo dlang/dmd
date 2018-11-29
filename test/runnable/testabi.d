@@ -318,7 +318,6 @@ void D_test2()
         assert( s2[0].i == 6 );
         assert( s2[1].i == 1 );
 
-/+      // These Fail on Mainline DMD64 ( Should pass! )
         assert( s3.length == 2 );
         assert( s3[0].i == 6 );
         assert( s3[1].i == 1 );
@@ -326,7 +325,7 @@ void D_test2()
         assert( s4.length == 2 );
         assert( s4[0].i == 6 );
         assert( s4[1].i == 1 );
-+/
+
         assert( s5.length == 2 );
         assert( s5[0].i == 6 );
         assert( s5[1].i == 1 );
