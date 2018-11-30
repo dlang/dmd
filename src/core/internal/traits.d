@@ -17,9 +17,9 @@ template TypeTuple(TList...)
 template FieldTypeTuple(T)
 {
     static if (is(T == struct) || is(T == union))
-    alias FieldTypeTuple = typeof(T.tupleof[0 .. $ - __traits(isNested, T)]);
+        alias FieldTypeTuple = typeof(T.tupleof[0 .. $ - __traits(isNested, T)]);
     else static if (is(T == class))
-    alias FieldTypeTuple = typeof(T.tupleof);
+        alias FieldTypeTuple = typeof(T.tupleof);
     else
     {
         alias FieldTypeTuple = TypeTuple!T;
@@ -153,14 +153,14 @@ template isInnerClass(T) if (is(T == class))
         template hasOuterMember(T...)
         {
             static if (T.length == 0)
-            enum hasOuterMember = false;
+                enum hasOuterMember = false;
             else
-            enum hasOuterMember = T[0] == "outer" || hasOuterMember!(T[1 .. $]);
+                enum hasOuterMember = T[0] == "outer" || hasOuterMember!(T[1 .. $]);
         }
         enum isInnerClass = __traits(isSame, typeof(T.outer), __traits(parent, T)) && !hasOuterMember!(__traits(allMembers, T));
     }
     else
-    enum isInnerClass = false;
+        enum isInnerClass = false;
 }
 
 template dtorIsNothrow(T)
@@ -206,11 +206,11 @@ template anySatisfy(alias F, T...)
 private template maxAlignment(U...)
 {
     static if (U.length == 0)
-    static assert(0);
+        static assert(0);
     else static if (U.length == 1)
-    enum maxAlignment = U[0].alignof;
+        enum maxAlignment = U[0].alignof;
     else static if (U.length == 2)
-    enum maxAlignment = U[0].alignof > U[1].alignof ? U[0].alignof : U[1].alignof;
+        enum maxAlignment = U[0].alignof > U[1].alignof ? U[0].alignof : U[1].alignof;
     else
     {
         enum a = maxAlignment!(U[0 .. ($+1)/2]);
@@ -274,8 +274,8 @@ template hasElaborateAssign(S)
     else static if (is(S == struct))
     {
         enum hasElaborateAssign = is(typeof(S.init.opAssign(rvalueOf!S))) ||
-        is(typeof(S.init.opAssign(lvalueOf!S))) ||
-        anySatisfy!(.hasElaborateAssign, FieldTypeTuple!S);
+                                  is(typeof(S.init.opAssign(lvalueOf!S))) ||
+                                  anySatisfy!(.hasElaborateAssign, FieldTypeTuple!S);
     }
     else
     {

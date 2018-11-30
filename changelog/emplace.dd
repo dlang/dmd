@@ -1,0 +1,3 @@
+Moved `std.conv.emplace` to core/lifetime.d
+
+`emplace` is the counterpart to `destroy`, so it has been moved to also live in druntime (core/lifetime.d) where it is accessible by projects that use a shallow runtime library stack.
