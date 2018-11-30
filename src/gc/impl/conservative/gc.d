@@ -510,7 +510,7 @@ class ConservativeGC : GC
     {
         assert(size != 0);
 
-        //debug(PRINTF) printf("GC::malloc(size = %d, gcx = %p)\n", size, gcx);
+        debug(PRINTF) printf("GC.mallocNoSync(size = %d)\n", size);
         assert(gcx);
         //debug(PRINTF) printf("gcx.self = %x, pthread_self() = %x\n", gcx.self, pthread_self());
 
@@ -526,6 +526,7 @@ class ConservativeGC : GC
         }
         gcx.log_malloc(p, size);
 
+        debug(PRINTF) printf("  => p = %p\n", p);
         return p;
     }
 
@@ -746,7 +747,7 @@ class ConservativeGC : GC
     }
     do
     {
-        //debug(PRINTF) printf("GC::extend(p = %p, minsize = %zu, maxsize = %zu)\n", p, minsize, maxsize);
+        debug(PRINTF) printf("GC::extend(p = %p, minsize = %zu, maxsize = %zu)\n", p, minsize, maxsize);
         debug (SENTINEL)
         {
             return 0;
@@ -855,7 +856,9 @@ class ConservativeGC : GC
         //  no action should be taken if p is an interior pointer
         if (bin > B_PAGE) // B_PAGEPLUS or B_FREE
             return;
-        if ((sentinel_sub(p) - pool.baseAddr) & (binsize[bin] - 1))
+        size_t off = (sentinel_sub(p) - pool.baseAddr);
+        size_t base = baseOffset(off, bin);
+        if (off != base)
             return;
 
         sentinel_Invariant(p);
@@ -1243,16 +1246,24 @@ enum
 {
     B_16,
     B_32,
+    B_48,
     B_64,
+    B_96,
     B_128,
+    B_176,
     B_256,
+    B_368,
     B_512,
+    B_816,
     B_1024,
+    B_1360,
     B_2048,
-    B_PAGE,             // start of large alloc
+    B_NUMSMALL,
+
+    B_PAGE = B_NUMSMALL,// start of large alloc
     B_PAGEPLUS,         // continuation of large alloc
     B_FREE,             // free page
-    B_MAX
+    B_MAX,
 }
 
 
@@ -1265,10 +1276,28 @@ struct List
     Pool *pool;
 }
 
+// non power of two sizes optimized for small remainder within page (<= 64 bytes)
+immutable short[B_NUMSMALL + 1] binsize = [ 16, 32, 48, 64, 96, 128, 176, 256, 368, 512, 816, 1024, 1360, 2048, 4096 ];
+immutable short[PAGESIZE / 16][B_NUMSMALL + 1] binbase = calcBinBase();
 
-immutable uint[B_MAX] binsize = [ 16,32,64,128,256,512,1024,2048,4096 ];
-immutable size_t[B_MAX] notbinsize = [ ~(16-1),~(32-1),~(64-1),~(128-1),~(256-1),
-                                ~(512-1),~(1024-1),~(2048-1),~(4096-1) ];
+short[PAGESIZE / 16][B_NUMSMALL + 1] calcBinBase()
+{
+    short[PAGESIZE / 16][B_NUMSMALL + 1] bin;
+
+    foreach (i, size; binsize)
+    {
+        short bsz = size / 16;
+        foreach (off; 0..PAGESIZE/16)
+            bin[i][off] = cast(short)((off - off % bsz) * 16);
+    }
+    return bin;
+}
+
+size_t baseOffset(size_t offset, Bins bin) @nogc nothrow
+{
+    assert(bin <= B_PAGE);
+    return (offset & ~(PAGESIZE - 1)) + binbase[bin][(offset & (PAGESIZE - 1)) >> 4];
+}
 
 alias PageBits = GCBits.wordtype[PAGESIZE / 16 / GCBits.BITS_PER_WORD];
 static assert(PAGESIZE % (GCBits.BITS_PER_WORD * 16) == 0);
@@ -1297,7 +1326,7 @@ struct Gcx
     @property size_t npools() pure const nothrow { return pooltable.length; }
     PoolTable!Pool pooltable;
 
-    List*[B_PAGE] bucket; // free list for each small size
+    List*[B_NUMSMALL] bucket; // free list for each small size
 
     // run a collection when reaching those thresholds (number of used pages)
     float smallCollectThreshold, largeCollectThreshold;
@@ -1402,7 +1431,7 @@ struct Gcx
             }
             rangesLock.unlock();
 
-            for (size_t i = 0; i < B_PAGE; i++)
+            for (size_t i = 0; i < B_NUMSMALL; i++)
             {
                 for (auto list = cast(List*)bucket[i]; list; list = list.next)
                 {
@@ -1542,9 +1571,13 @@ struct Gcx
             Bins   bin = cast(Bins)pool.pagetable[pn];
 
             // Adjust bit to be at start of allocated memory block
-            if (bin <= B_PAGE)
+            if (bin < B_NUMSMALL)
             {
-                return pool.baseAddr + (offset & notbinsize[bin]);
+                return pool.baseAddr + baseOffset(offset, bin);
+            }
+            else if (bin == B_PAGE)
+            {
+                return pool.baseAddr + (offset & (offset.max ^ (PAGESIZE-1)));
             }
             else if (bin == B_PAGEPLUS)
             {
@@ -2021,7 +2054,7 @@ struct Gcx
                 {
                     // We don't care abou setting pointsToBase correctly
                     // because it's ignored for small object pools anyhow.
-                    auto offsetBase = offset & notbinsize[bin];
+                    auto offsetBase = baseOffset(offset, cast(Bins)bin);
                     biti = offsetBase >> Pool.ShiftBy.Small;
                     //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
 
@@ -2313,7 +2346,7 @@ struct Gcx
     size_t recover() nothrow
     {
         // init tail list
-        List**[B_PAGE] tail = void;
+        List**[B_NUMSMALL] tail = void;
         foreach (i, ref next; tail)
             next = &bucket[i];
 
@@ -2356,7 +2389,7 @@ struct Gcx
 
                 Lnotfree:
                     p = pool.baseAddr + pn * PAGESIZE;
-                    for (u = 0; u < PAGESIZE; u += size)
+                    for (u = 0; u <= PAGESIZE - size; u += size)
                     {
                         biti = bitbase + u / 16;
                         if (!pool.freebits.test(biti))
@@ -2484,9 +2517,13 @@ struct Gcx
             auto pn = offset / PAGESIZE;
             auto bins = cast(Bins)pool.pagetable[pn];
             size_t biti = void;
-            if (bins <= B_PAGE)
+            if (bins < B_PAGE)
             {
-                biti = (offset & notbinsize[bins]) >> pool.shiftBy;
+                biti = baseOffset(offset, bins) >> pool.ShiftBy.Small;
+            }
+            else if (bins == B_PAGE)
+            {
+                biti = pn * (PAGESIZE >> pool.ShiftBy.Large);
             }
             else if (bins == B_PAGEPLUS)
             {
@@ -2604,7 +2641,7 @@ struct Gcx
                 size_t biti;
                 size_t pn = offset / PAGESIZE;
                 Bins bin = cast(Bins)pool.pagetable[pn];
-                biti = (offset & notbinsize[bin]);
+                biti = (offset & (PAGESIZE - 1)) >> pool.shiftBy;
                 debug(PRINTF) printf("\tbin = %d, offset = x%x, biti = x%x\n", bin, offset, biti);
             }
             else
@@ -3152,7 +3189,7 @@ struct SmallObjectPool
         if (bin >= B_PAGE)
             return info;
 
-        info.base = cast(void*)((cast(size_t)p) & notbinsize[bin]);
+        info.base = cast(void*)baseOffset(cast(size_t)p, bin);
         info.size = binsize[bin];
         offset = info.base - baseAddr;
         info.attr = getBits(cast(size_t)(offset >> ShiftBy.Small));
@@ -3228,10 +3265,10 @@ struct SmallObjectPool
         // Convert page to free list
         size_t size = binsize[bin];
         void* p = baseAddr + pn * PAGESIZE;
-        void* ptop = p + PAGESIZE - size;
+        void* ptop = p + PAGESIZE - 2 * size;
         auto first = cast(List*) p;
 
-        for (; p < ptop; p += size)
+        for (; p <= ptop; p += size)
         {
             (cast(List *)p).next = cast(List *)(p + size);
             (cast(List *)p).pool = &base;
