@@ -3,8 +3,7 @@
 version(Windows) {}
 else version(X86_64)
 {
-        /* uncomment to enable tests! */
-        //version = Run_X86_64_Tests;
+        version = Run_X86_64_Tests;
 }
 
 extern (C) int printf(const char*, ...);
@@ -582,6 +581,8 @@ TEST data2 = { 2, "RDI struct pointer" };
 
 T test2_asm( T, int n )( T t )
 {
+        typeof(.dump) dump = void;
+        enum m = T.sizeof < 4 ? mask(T.sizeof) : ~0LU;
         asm {
 
         mov [dump], RDI;
@@ -589,10 +590,12 @@ T test2_asm( T, int n )( T t )
         cmp EDI, 0; // TODO test RDI is a ptr to stack ? ?
         je L1;
 
-        leave; ret;
+        jmp Lret;
         }
 L1:
         data2.result[n] = true;
+Lret:
+        .dump = dump;
 }
 T test2f_asm( T, int n )( T t, int x )
 {
@@ -635,9 +638,12 @@ TEST data3 = { 3, "Check Return Register value" };
 
 void test3_run( T, int n )( )
 {
+        typeof(.dump) dump;
+
         test3_ret!T();
         mixin( gen_reg_capture!(n,`["RAX","RDX"]`)() );
 
+        //.dump = dump;
         //dbg!(T,n)( );
 
         enum len = RegValue[n].length;
@@ -669,8 +675,10 @@ TEST data4 = { 4, "Check Input Register value" };
 
 void test4_run( T, int n )( T t )
 {
+        typeof(.dump) dump = void;
         mixin( gen_reg_capture!(n,`["RDI","RSI"]`)() );
 
+        //.dump = dump;
         //dbg!(T,n)( );
 
         enum len = RegValue[n].length;
