@@ -131,8 +131,7 @@ alias tuple!(   b,bb,bbb,bbbb,bbbbb,
                 js,iss,si,ssi, sis,
                 ls,lss,sl,ssl, sls,
                 li,lii,il,iil, ili,
-                fi,fii,jf,iif, ifi,
-                ffi,ffii,iff,iiff,ifif, // INT_END
+                fi,fii,jf,ifi,ifif,                   // INT_END
 
                 // SSE registers only
                 f,ff,fff,ffff,fffff,
@@ -141,12 +140,13 @@ alias tuple!(   b,bb,bbb,bbbb,bbbbb,
                 df,dff,fd,ffd, fdf,     // SSE_END
 
                 // Int and SSE
+                ffi,ffii,iff,iiff,iif,
                 di,  dii,id, iid, idi,  // MIX_END
                 // ---
             ) ALL_T;
 
-enum INT_END = 65;
-enum SSE_END = 80;
+enum INT_END = 60;
+enum SSE_END = 75;
 enum MIX_END = ALL_T.length;
 
                 // x87
@@ -169,13 +169,13 @@ string[] ALL_S=[
                 "js","iss","si","ssi", "sis",
                 "ls","lss","sl","ssl", "sls",
                 "li","lii","il","iil", "ili",
-                "fi","fii","jf","iif", "ifi",
-                "ffi","ffii","iff","iiff","ifif",
+                "fi","fii","jf", "ifi","ifif",
                 // ---
                 "f","ff","fff","ffff","fffff",
                 "d","dd","ddd","dddd","ddddd",
                 "df","dff","fd","ffd", "dfd",
                 // ---
+                "ffi","ffii","iff","iiff","iif",
                 "di","dii","id","iid","idi",
                ];
 
@@ -352,6 +352,7 @@ struct TEST
  */
 immutable int[MIX_END] expected =
         [
+        // INT regs only
         1,1,1,1,1, // b
         1,1,1,1,1, // b6
         1,1,1,1,1, // b11
@@ -365,7 +366,6 @@ immutable int[MIX_END] expected =
         1,1,1,1,0, // sl
         1,1,1,1,0, // il
         1,1,1,1,1, // int and float
-        1,1,1,1,1, // int and float
 
         // SSE regs only
         1,1,1,1,0, // f
@@ -373,6 +373,7 @@ immutable int[MIX_END] expected =
         1,1,1,1,0, // float and double
 
         // SSE + INT regs
+        1,1,1,1,1, // int and float
         1,1,1,1,0, // int and double
         ];
 
@@ -382,6 +383,8 @@ immutable int[MIX_END] expected =
  *
  * null means do not test
  * ( because value is passed on the stack ).
+ *
+ * Note: Mixed register cases have the SSE register first
  */
 
 immutable long[][] RegValue =
@@ -446,32 +449,32 @@ immutable long[][] RegValue =
 /*  55  fi      */ [ 0x000000023f800000,                    ],
 /*  56  fii     */ [ 0x000000023f800000, 0x0000000000000003 ],
 /*  57  jf      */ [ 0x4000000000000001,                    ],
-/*  58  iif     */ [ 0x0000000200000001, 0x0000000040400000 ],
-/*  59  ifi     */ [ 0x4000000000000001, 0x0000000000000003 ],
+/*  58  ifi     */ [ 0x4000000000000001, 0x0000000000000003 ],
 
-/*  60  ffi     */ [ 0x0000000000000003, 0x400000003f800000 ],
-/*  61  ffii    */ [ 0x0000000400000003, 0x400000003f800000 ],
-/*  62  iff     */ [ 0x4000000000000001, 0x0000000040400000 ],
-/*  63  iiff    */ [ 0x0000000200000001, 0x4080000040400000 ],
-/*  64  ifif    */ [ 0x4000000000000001, 0x4080000000000003 ],
+/*  59  ifif    */ [ 0x4000000000000001, 0x4080000000000003 ],
 
-/*  65  f       */ [ 0x000000003f800000,                    ],
-/*  66  ff      */ [ 0x400000003f800000,                    ],
-/*  67  fff     */ [ 0x400000003f800000, 0x0000000040400000 ],
-/*  68  ffff    */ [ 0x400000003f800000, 0x4080000040400000 ],
-/*  69  fffff   */ null,
-/*  70  d       */ [ 0x3ff0000000000000,                    ],
-/*  71  dd      */ [ 0x3ff0000000000000, 0x4000000000000000 ],
-/*  72  ddd     */ null,
-/*  73  dddd    */ null,
-/*  74  ddddd   */ null,
+/*  60  f       */ [ 0x000000003f800000,                    ],
+/*  61  ff      */ [ 0x400000003f800000,                    ],
+/*  62  fff     */ [ 0x400000003f800000, 0x0000000040400000 ],
+/*  63  ffff    */ [ 0x400000003f800000, 0x4080000040400000 ],
+/*  64  fffff   */ null,
+/*  65  d       */ [ 0x3ff0000000000000,                    ],
+/*  66  dd      */ [ 0x3ff0000000000000, 0x4000000000000000 ],
+/*  67  ddd     */ null,
+/*  68  dddd    */ null,
+/*  69  ddddd   */ null,
 
-/*  75  df      */ [ 0x3ff0000000000000, 0x0000000040000000 ],
-/*  76  dff     */ [ 0x3ff0000000000000, 0x4040000040000000 ],
-/*  77  fd      */ [ 0x000000003f800000, 0x4000000000000000 ],
-/*  78  ffd     */ [ 0x400000003f800000, 0x4008000000000000 ],
-/*  79  fdf     */ null,
+/*  70  df      */ [ 0x3ff0000000000000, 0x0000000040000000 ],
+/*  71  dff     */ [ 0x3ff0000000000000, 0x4040000040000000 ],
+/*  72  fd      */ [ 0x000000003f800000, 0x4000000000000000 ],
+/*  73  ffd     */ [ 0x400000003f800000, 0x4008000000000000 ],
+/*  74  fdf     */ null,
 
+/*  75  ffi     */ [ 0x400000003f800000, 0x0000000000000003 ],
+/*  76  ffii    */ [ 0x400000003f800000, 0x0000000400000003 ],
+/*  77  iff     */ [ 0x0000000040400000, 0x4000000000000001 ],
+/*  78  iiff    */ [ 0x4080000040400000, 0x0000000200000001 ],
+/*  79  iif     */ [ 0x0000000040400000, 0x0000000200000001 ],
 /*  80  di      */ [ 0x3ff0000000000000, 0x0000000000000002 ],
 /*  81  dii     */ [ 0x3ff0000000000000, 0x0000000300000002 ],
 /*  82  id      */ [ 0x4000000000000000, 0x0000000000000001 ],
