@@ -1349,8 +1349,6 @@ unsigned totym(Type *tx)
 
         case Tstruct:
             t = TYstruct;
-            if (tx->toDsymbol(NULL)->ident == Id::__c_long_double)
-                t = TYdouble;
             break;
 
         case Tenum:
