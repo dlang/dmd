@@ -1,9 +1,16 @@
-// PERMUTE_ARGS: -release -g
+// PERMUTE_ARGS: -release -g -mcpu=native
+
+import core.simd;
 
 version(Windows) {}
 else version(X86_64)
 {
         version = Run_X86_64_Tests;
+}
+
+version (D_AVX2)
+{
+        version = Run_AVX_Tests;
 }
 
 extern (C) int printf(const char*, ...);
@@ -17,6 +24,12 @@ alias long   L;
 alias float  F;
 alias double D;
 alias real   R;
+
+version (D_SIMD)
+alias long2  X;
+
+version (Run_AVX_Tests)
+alias long4  Y;
 
 // Single Type
 
@@ -119,6 +132,25 @@ struct rf       { R a;   F b;   }
 struct fr       { F a;   R b;   }
 alias  c = creal;
 
+// SIMD
+version (D_SIMD)
+{
+struct x        { X a;          }
+struct xx       { X a,b;        }
+struct xb       { X a;   B b;   }
+struct xf       { X a;   F b;   }
+struct bx       { B a;   X b;   }
+
+version (Run_AVX_Tests)
+{
+struct y        { Y a;          }
+struct yy       { Y a,b;        }
+struct yb       { Y a;   B b;   }
+struct yf       { Y a;   F b;   }
+struct by       { B a;   Y b;   }
+} // Run_AVX_Tests
+} // D_SIMD
+
                 // Int Registers only
 alias tuple!(   b,bb,bbb,bbbb,bbbbb,
                 b6, b7, b8, b9, b10,
@@ -150,7 +182,10 @@ enum INT_END = 60;
 enum SSE_END = 75;
 enum MIX_END = ALL_T.length;
 enum R_END   = MIX_END + R_T.length;
-alias ALL_END = R_END;
+enum V16_END = R_END + V16_T.length;
+enum V32_END = V16_END + V32_T.length;
+alias V_END  = V32_END;
+alias ALL_END = V_END;
 
                 // x87
 alias tuple!(   r,rr,rb,rf,fr,c,
@@ -158,6 +193,25 @@ alias tuple!(   r,rr,rb,rf,fr,c,
             ) R_T;
 //"r","rr","rb","rf","fr",
 
+                // SIMD Vectors 16 bytes
+version (D_SIMD)
+        alias tuple!(
+                x,xx,xb,xf,bx,
+                // ---
+            ) V16_T;
+else
+        alias V16_T = tuple!();
+
+                // SIMD Vectors 32 bytes
+version (Run_AVX_Tests)
+        alias tuple!(
+                y,yy,yb,yf,by,
+                // ---
+            ) V32_T;
+else
+        alias V32_T = tuple!();
+
+alias V_T = tuple!( V16_T, V32_T, );
 
 string[] ALL_S=[
                 "b","bb","bbb","bbbb","bbbbb",
@@ -182,6 +236,9 @@ string[] ALL_S=[
                 "di","dii","id","iid","idi",
                 // ---
                 "r","rr","rb","rf","fr","c",
+                // ---
+                "x","xx","xb","xf","bx",
+                "y","yy","yb","yf","by",
                ];
 
 /* ***********************************************************************
@@ -247,6 +304,43 @@ void test1_call_inout(T : creal)( int n )
         if( t1 == t2 ) results_1[n] |= 2;
 }
 
+void test1_call_out_vec(T)( int n )
+{
+        T t1;
+        foreach( i, ref e; t1.tupleof ) e = i+1;
+        T t2 = test1_out!(T)();
+
+        results_1[n] = 1;
+        foreach( i, ref e; t1.tupleof )
+        {
+                import std.traits : isSIMDVector;
+
+                static if (isSIMDVector!(typeof(e)))
+                        results_1[n] &= e[] == t2.tupleof[i][];
+                else
+                        results_1[n] &= e == t2.tupleof[i];
+        }
+}
+void test1_call_inout_vec(T)( int n )
+{
+        T t1;
+        foreach( i, ref e; t1.tupleof ) e = i+1;
+        T t2 = test1_inout!(T)( t1 );
+        foreach( i, ref e; t1.tupleof ) e += 10;
+
+        bool r = true;
+        foreach( i, ref e; t1.tupleof )
+        {
+                import std.traits : isSIMDVector;
+
+                static if (isSIMDVector!(typeof(e)))
+                        r &= e[] == t2.tupleof[i][];
+                else
+                        r &= e == t2.tupleof[i];
+        }
+        if( r ) results_1[n] |= 2;
+}
+
 void D_test1( )
 {
         // Run Tests
@@ -254,6 +348,13 @@ void D_test1( )
         {
                 test1_call_out!(T)(n);
                 test1_call_inout!(T)(n);
+        }
+
+        results_1[R_END..V_END] = 0;
+        foreach( n, T; V_T )
+        {
+                test1_call_out_vec!(T)( n + R_END );
+                test1_call_inout_vec!(T)( n + R_END );
         }
 
         bool pass = true;
@@ -402,6 +503,10 @@ immutable int[] expected =
 
         // x87 (return)
         1,0,0,0,0,1, // r
+
+        // SIMD Vectors
+        1,0,0,0,0,   // x
+        1,0,0,0,0,   // y
         ];
 
 immutable int[R_T.length] expectedRIn = // x87 argument
@@ -518,6 +623,18 @@ immutable long[][] RegValue =
 /*  88  rf      */ null,
 /*  89  fr      */ null,
 /*  90  c       */ [ 0x8000000000000000, 0x0000000000003fff, 0x8000000000000000, 0x0000000000004000 ],
+
+/*  91  x       */ [ 0x0000000000000001, 0x0000000000000001 ],
+/*  92  xx      */ null,
+/*  93  xb      */ null,
+/*  94  xf      */ null,
+/*  95  bx      */ null,
+
+/*  96  y       */ [ 0x0000000000000001, 0x0000000000000001, 0x0000000000000001, 0x0000000000000001 ],
+/*  97  yy      */ null,
+/*  98  yb      */ null,
+/*  99  yf      */ null,
+/* 100  by      */ null,
         ];
 
 /**
@@ -626,6 +743,18 @@ immutable long[][] RegValueSize =
 /*  88  rf      */ null,
 /*  89  fr      */ null,
 /*  90  c       */ [ 8, 2, 8, 2 ],
+
+/*  91  x       */ [ 8, 8 ],
+/*  92  xx      */ null,
+/*  93  xb      */ null,
+/*  94  xf      */ null,
+/*  95  bx      */ null,
+
+/*  96  y       */ [ 8, 8, 8, 8 ],
+/*  97  yy      */ null,
+/*  98  yb      */ null,
+/*  99  yf      */ null,
+/* 100  by      */ null,
         ];
 
 /* Have to do it this way for OSX: Issue 7354 */
@@ -651,6 +780,9 @@ string gen_reg_capture( int n, string registers )( )
                 enum MODE = 4; // complex x87
         else static if (n < R_END)
                 enum MODE = 5; // x87
+        else static if (n < V16_END)
+                enum MODE = 6; // SIMD 16
+        else    enum MODE = 7; // SIMD 32
 
         /* Begin */
 
@@ -668,6 +800,10 @@ string gen_reg_capture( int n, string registers )( )
                               ~ "fstp real ptr [dump+16];\n";
                 break;
                 case 5: code ~= "fstp real ptr [dump];\n";
+                break;
+                case 6: code ~= "movdqu [dump], XMM0;\n";
+                break;
+                case 7: code ~= "vmovdqu [dump], YMM0;\n";
         }
 
         if( RegValue[n].length >= 2 )
@@ -680,6 +816,8 @@ string gen_reg_capture( int n, string registers )( )
                 break;
                 case 4:
                 case 5:
+                case 6:
+                case 7:
         } else {
                 code ~= "xor R8, R8;\n";
                 code ~= "mov [dump+8], R8;\n";
@@ -739,7 +877,7 @@ void test1()
 {
         printf("\nRunning iasm Test 1 ( %s )\n", data1.desc.ptr);
 
-        foreach( int n, T; tuple!( ALL_T, R_T  ) )
+        foreach( int n, T; tuple!( ALL_T, R_T, V_T  ) )
                 test1_asm!(T,n)(12);
 
         check( data1 );
@@ -845,7 +983,7 @@ void test3()
 {
         printf("\nRunning iasm Test 3 ( %s )\n", data3.desc.ptr);
 
-        foreach( int n, T; tuple!( ALL_T, R_T ) )
+        foreach( int n, T; tuple!( ALL_T, R_T, V_T ) )
                 test3_run!(T,n)( );
 
         check( data3 );
@@ -891,7 +1029,7 @@ void test4()
 {
         printf("\nRunning iasm Test 4 ( %s )\n", data4.desc.ptr);
 
-        foreach( int n, T; tuple!( ALL_T, R_T ) )
+        foreach( int n, T; tuple!( ALL_T, R_T, V_T ) )
         {
                 T t;
                 static if (is(T == creal))
@@ -902,6 +1040,7 @@ void test4()
 
         checkRange!( 0, MIX_END )( data4 );        // INT FLOAT MIX
         checkX!( expectedRIn, MIX_END )( data4 );  // real's in & out behaviors don't match
+        checkRange!( R_END, V_END )( data4 );      // SIMD
 }
 
 
