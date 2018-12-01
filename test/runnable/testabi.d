@@ -117,6 +117,7 @@ struct rr       { R a,b;        }
 struct rb       { R a;   B b;   }
 struct rf       { R a;   F b;   }
 struct fr       { F a;   R b;   }
+alias  c = creal;
 
                 // Int Registers only
 alias tuple!(   b,bb,bbb,bbbb,bbbbb,
@@ -148,9 +149,11 @@ alias tuple!(   b,bb,bbb,bbbb,bbbbb,
 enum INT_END = 60;
 enum SSE_END = 75;
 enum MIX_END = ALL_T.length;
+enum R_END   = MIX_END + R_T.length;
+alias ALL_END = R_END;
 
                 // x87
-alias tuple!(   r,rr,rb,rf,fr,
+alias tuple!(   r,rr,rb,rf,fr,c,
                 // ---
             ) R_T;
 //"r","rr","rb","rf","fr",
@@ -177,6 +180,8 @@ string[] ALL_S=[
                 // ---
                 "ffi","ffii","iff","iiff","iif",
                 "di","dii","id","iid","idi",
+                // ---
+                "r","rr","rb","rf","fr","c",
                ];
 
 /* ***********************************************************************
@@ -184,7 +189,7 @@ string[] ALL_S=[
  ************************************************************************/
 // test1 Struct passing and return
 
-int[MIX_END] results_1;
+int[ALL_END] results_1;
 
 T test1_out(T)( )
 {
@@ -196,6 +201,16 @@ T test1_inout(T)( T t)
 {
         foreach( i, ref e; t.tupleof )  e += 10;
         return t;
+}
+
+T test1_out(T : creal)( )
+{
+        T t = 1+2i;
+        return t;
+}
+T test1_inout(T : creal)( T t)
+{
+        return (t.re + 10) + (t.im + 10) * 1i;
 }
 
 void test1_call_out(T)( int n )
@@ -216,10 +231,26 @@ void test1_call_inout(T)( int n )
         if( t1 == t2 ) results_1[n] |= 2;
 }
 
+void test1_call_out(T : creal)( int n )
+{
+        T t1 = 1+2i;
+        T t2 = test1_out!(T)();
+
+        if( t1 == t2 ) results_1[n] |= 1;
+}
+void test1_call_inout(T : creal)( int n )
+{
+        T t1 = 1+2i;
+        T t2 = test1_inout!(T)( t1 );
+        t1 = (t1.re + 10) + (t1.im + 10) * 1i;
+
+        if( t1 == t2 ) results_1[n] |= 2;
+}
+
 void D_test1( )
 {
         // Run Tests
-        foreach( n, T; ALL_T )
+        foreach( n, T; tuple!( ALL_T, R_T ) )
         {
                 test1_call_out!(T)(n);
                 test1_call_inout!(T)(n);
@@ -240,13 +271,6 @@ void D_test1( )
                 }
         }
         assert( pass );
-
-        results_1[0..5] = 0;
-        foreach( n, T; R_T )
-        {
-                test1_call_out!(T)(n);
-                test1_call_inout!(T)(n);
-        }
 }
 
 /************************************************************************/
@@ -343,14 +367,14 @@ struct TEST
 {
         immutable int       num;
         immutable string    desc;
-        bool[MIX_END] result;
+        bool[ALL_END] result;
 }
 
 /**
  * 0 = Should Fail
  * 1 = Should Pass
  */
-immutable int[MIX_END] expected =
+immutable int[] expected =
         [
         // INT regs only
         1,1,1,1,1, // b
@@ -375,8 +399,15 @@ immutable int[MIX_END] expected =
         // SSE + INT regs
         1,1,1,1,1, // int and float
         1,1,1,1,0, // int and double
+
+        // x87 (return)
+        1,0,0,0,0,1, // r
         ];
 
+immutable int[R_T.length] expectedRIn = // x87 argument
+        [
+        0,0,0,0,0,0,  // r
+        ];
 
 /**
  * Describes value expected in registers
@@ -480,6 +511,13 @@ immutable long[][] RegValue =
 /*  82  id      */ [ 0x4000000000000000, 0x0000000000000001 ],
 /*  83  iid     */ [ 0x4008000000000000, 0x0000000200000001 ],
 /*  84  idi     */ null,
+
+/*  85  r       */ [ 0x8000000000000000, 0x0000000000003fff ],
+/*  86  rr      */ null,
+/*  87  rb      */ null,
+/*  88  rf      */ null,
+/*  89  fr      */ null,
+/*  90  c       */ [ 0x8000000000000000, 0x0000000000003fff, 0x8000000000000000, 0x0000000000004000 ],
         ];
 
 /**
@@ -581,10 +619,17 @@ immutable long[][] RegValueSize =
 /*  82  id      */ [ 8, 4 ],
 /*  83  iid     */ [ 8, 8 ],
 /*  84  idi     */ null,
+
+/*  85  r       */ [ 8, 2 ],
+/*  86  rr      */ null,
+/*  87  rb      */ null,
+/*  88  rf      */ null,
+/*  89  fr      */ null,
+/*  90  c       */ [ 8, 2, 8, 2 ],
         ];
 
 /* Have to do it this way for OSX: Issue 7354 */
-__gshared long[2] dump;
+__gshared long[4] dump;
 
 /**
  * Generate Register capture
@@ -600,7 +645,12 @@ string gen_reg_capture( int n, string registers )( )
                 enum MODE = 1; // Int
         else static if(n < SSE_END)
                 enum MODE = 2; // Float
-        else    enum MODE = 3; // Mix
+        else static if(n < MIX_END)
+                enum MODE = 3; // Mix
+        else static if (n < R_END && is(R_T[n - MIX_END] == creal))
+                enum MODE = 4; // complex x87
+        else static if (n < R_END)
+                enum MODE = 5; // x87
 
         /* Begin */
 
@@ -613,15 +663,23 @@ string gen_reg_capture( int n, string registers )( )
                 break;
                 case 2:
                 case 3: code ~= "movq [dump], XMM0;\n";
+                break;
+                case 4: code ~= "fstp real ptr [dump];\n"
+                              ~ "fstp real ptr [dump+16];\n";
+                break;
+                case 5: code ~= "fstp real ptr [dump];\n";
         }
 
-        if( RegValue[n].length == 2 )
+        if( RegValue[n].length >= 2 )
         final switch( MODE )
         {
                 case 1:
                 case 3: code ~= "mov [dump+8], "~REG[0]~";\n";
                 break;
                 case 2: code ~= "movq [dump+8], XMM1;\n";
+                break;
+                case 4:
+                case 5:
         } else {
                 code ~= "xor R8, R8;\n";
                 code ~= "mov [dump+8], R8;\n";
@@ -635,12 +693,22 @@ string gen_reg_capture( int n, string registers )( )
  */
 bool check( TEST data )
 {
+        return checkRange!( 0, ALL_END )( data );
+}
+
+bool checkRange( int beg, int end )( TEST data )
+{
+        return checkX!( expected[beg..end], beg )( data );
+}
+
+bool checkX( alias expected, int offset )( TEST data )
+{
         bool pass = true;
         foreach( i, e; expected )
         {
-                if( data.result[i] != (e & 1) )
+                if( data.result[i+offset] != (e & 1) )
                 {
-                        printf( "Test%d %s \tFail\n", data.num, ALL_S[i].ptr);
+                        printf( "Test%d %s \tFail\n", data.num, ALL_S[i+offset].ptr);
                         pass = false;
                 }
         }
@@ -671,7 +739,7 @@ void test1()
 {
         printf("\nRunning iasm Test 1 ( %s )\n", data1.desc.ptr);
 
-        foreach( int n, T; ALL_T )
+        foreach( int n, T; tuple!( ALL_T, R_T  ) )
                 test1_asm!(T,n)(12);
 
         check( data1 );
@@ -733,7 +801,7 @@ void test2()
                 test2f_asm!(T,n2)( T.init, 12 );
         }
 
-        check( data2 );
+        checkRange!( 0, MIX_END )( data2 );
 }
 
 /************************************************************************/
@@ -745,7 +813,10 @@ void test3_run( T, int n )( )
 {
         typeof(.dump) dump;
 
-        test3_ret!T();
+        alias test3_ret_inst = test3_ret!T;
+        asm {
+             call test3_ret_inst;  // DMD may pop st(0) otherwise
+        }
         mixin( gen_reg_capture!(n,`["RAX","RDX"]`)() );
 
         //.dump = dump;
@@ -764,11 +835,17 @@ T test3_ret( T )( )
         return t;
 }
 
+T test3_ret( T : creal )( )
+{
+        T t = 1+2i;
+        return t;
+}
+
 void test3()
 {
         printf("\nRunning iasm Test 3 ( %s )\n", data3.desc.ptr);
 
-        foreach( int n, T; ALL_T )
+        foreach( int n, T; tuple!( ALL_T, R_T ) )
                 test3_run!(T,n)( );
 
         check( data3 );
@@ -814,13 +891,17 @@ void test4()
 {
         printf("\nRunning iasm Test 4 ( %s )\n", data4.desc.ptr);
 
-        foreach( int n, T; ALL_T )
+        foreach( int n, T; tuple!( ALL_T, R_T ) )
         {
                 T t;
-                foreach( i, ref e; t.tupleof )  e = i+1;
+                static if (is(T == creal))
+                        t = 1+2i;
+                else    foreach( i, ref e; t.tupleof )  e = i+1;
                 test4_run!(T,n)( t );
         }
-        check( data4 );
+
+        checkRange!( 0, MIX_END )( data4 );        // INT FLOAT MIX
+        checkX!( expectedRIn, MIX_END )( data4 );  // real's in & out behaviors don't match
 }
 
 
