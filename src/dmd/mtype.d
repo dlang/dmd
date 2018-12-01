@@ -4529,6 +4529,15 @@ extern (C++) final class TypeFunction : TypeNext
         return buf.extractString();
     }
 
+    private extern(D) const(char)* getMatchError(A...)(const(char)* format, A args)
+    {
+        if (global.gag && !global.params.showGaggedErrors)
+            return null;
+        OutBuffer buf;
+        buf.printf(format, args);
+        return buf.extractString();
+    }
+
     /********************************
      * 'args' are being matched to function 'this'
      * Determine match level.
@@ -4575,13 +4584,15 @@ extern (C++) final class TypeFunction : TypeNext
 
         size_t nparams = Parameter.dim(parameters);
         size_t nargs = args ? args.dim : 0;
-        if (nparams == nargs)
-        {
-        }
-        else if (nargs > nparams)
+        if (nargs > nparams)
         {
             if (varargs == 0)
-                goto Nomatch;
+            {
+                // suppress early exit if an error message is wanted,
+                // so we can check any matching args are valid
+                if (!pMessage)
+                    goto Nomatch;
+            }
             // too many args; no match
             match = MATCH.convert; // match ... with a "conversion" match level
         }
@@ -4629,8 +4640,8 @@ extern (C++) final class TypeFunction : TypeNext
             {
                 if (p.defaultArg)
                     continue;
-                goto L1;
                 // try typesafe variadics
+                goto L1;
             }
             {
                 Expression arg = (*args)[u];
@@ -4748,7 +4759,19 @@ extern (C++) final class TypeFunction : TypeNext
                         tsa = cast(TypeSArray)tb;
                         sz = tsa.dim.toInteger();
                         if (sz != nargs - u)
+                        {
+                            if (pMessage)
+                                // Windows (Vista) OutBuffer.vprintf issue? 2nd argument always zero
+                                //*pMessage = getMatchError("expected %d variadic argument(s), not %d", sz, nargs - u);
+                            if (!global.gag || global.params.showGaggedErrors)
+                            {
+                                OutBuffer buf;
+                                buf.printf("expected %d variadic argument(s)", sz);
+                                buf.printf(", not %d", nargs - u);
+                                *pMessage = buf.extractString();
+                            }
                             goto Nomatch;
+                        }
                         goto case Tarray;
                     case Tarray:
                         {
@@ -4799,6 +4822,9 @@ extern (C++) final class TypeFunction : TypeNext
                 }
                 if (pMessage && u < nargs)
                     *pMessage = getParamError((*args)[u], p);
+                else if (pMessage)
+                    *pMessage = getMatchError("missing argument for parameter #%d: `%s`",
+                        u + 1, parameterToChars(p, this, false));
                 goto Nomatch;
             }
             if (m < match)
@@ -4806,6 +4832,12 @@ extern (C++) final class TypeFunction : TypeNext
         }
 
     Ldone:
+        if (pMessage && !varargs && nargs > nparams)
+        {
+            // all parameters had a match, but there are surplus args
+            *pMessage = getMatchError("expected %d argument(s), not %d", nparams, nargs);
+            goto Nomatch;
+        }
         //printf("match = %d\n", match);
         return match;
 
