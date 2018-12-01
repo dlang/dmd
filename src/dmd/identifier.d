@@ -53,10 +53,17 @@ public:
         this.value = value;
     }
 
+    extern (D) this(const(char)[] name, int value) nothrow
+    {
+        //printf("Identifier('%.*s', %d)\n", cast(int)name.length, name.ptr, value);
+        this.name = name;
+        this.value = value;
+    }
+
     extern (D) this(const(char)* name) nothrow
     {
         //printf("Identifier('%s', %d)\n", name, value);
-        this(name, strlen(name), TOK.identifier);
+        this(name[0 .. strlen(name)], TOK.identifier);
     }
 
     static Identifier create(const(char)* name) nothrow
@@ -244,18 +251,18 @@ nothrow:
     /********************************************
      * Create an identifier in the string table.
      */
-    extern (D) static Identifier idPool(const(char)[] s)
-    {
-        return idPool(s.ptr, cast(uint)s.length);
-    }
-
     static Identifier idPool(const(char)* s, uint len)
     {
-        StringValue* sv = stringtable.update(s, len);
+        return idPool(s[0 .. len]);
+    }
+
+    extern (D) static Identifier idPool(const(char)[] s)
+    {
+        StringValue* sv = stringtable.update(s);
         Identifier id = cast(Identifier)sv.ptrvalue;
         if (!id)
         {
-            id = new Identifier(sv.toDchars(), len, TOK.identifier);
+            id = new Identifier(sv.toString(), TOK.identifier);
             sv.ptrvalue = cast(char*)id;
         }
         return id;
@@ -263,23 +270,28 @@ nothrow:
 
     extern (D) static Identifier idPool(const(char)* s, size_t len, int value)
     {
-        auto sv = stringtable.insert(s, len, null);
+        return idPool(s[0 .. len], value);
+    }
+
+    extern (D) static Identifier idPool(const(char)[] s, int value)
+    {
+        auto sv = stringtable.insert(s, null);
         assert(sv);
-        auto id = new Identifier(sv.toDchars(), len, value);
+        auto id = new Identifier(sv.toString(), value);
         sv.ptrvalue = cast(char*)id;
         return id;
     }
 
     /**********************************
      * Determine if string is a valid Identifier.
+     * Params:
+     *      str = string to check
      * Returns:
-     *      0       invalid
+     *      false for invalid
      */
-    static bool isValidIdentifier(const(char)* p)
+    static bool isValidIdentifier(const(char)* str)
     {
-        if (!p || !*p)
-            return false;
-        return isValidIdentifier(p.toDString);
+        return str && isValidIdentifier(str.toDString);
     }
 
     /**********************************
@@ -287,30 +299,34 @@ nothrow:
      */
     extern (D) static bool isValidIdentifier(const(char)[] str)
     {
-        const(char)* p = str.ptr;
-        size_t len = str.length;
+        if (str.length == 0 ||
+            (str[0] >= '0' && str[0] <= '9')) // beware of isdigit() on signed chars
+        {
+            return false;
+        }
+
         size_t idx = 0;
-        if (!p || len == 0)
-            goto Linvalid;
-        if (*p >= '0' && *p <= '9') // beware of isdigit() on signed chars
-            goto Linvalid;
-        while (idx < len)
+        while (idx < str.length)
         {
             dchar dc;
-            const q = utf_decodeChar(p, len, idx, dc);
-            if (q)
-                goto Linvalid;
-            if (!((dc >= 0x80 && isUniAlpha(dc)) || isalnum(dc) || dc == '_'))
-                goto Linvalid;
+            const q = utf_decodeChar(str.ptr, str.length, idx, dc);
+            if (q ||
+                !((dc >= 0x80 && isUniAlpha(dc)) || isalnum(dc) || dc == '_'))
+            {
+                return false;
+            }
         }
         return true;
-    Linvalid:
-        return false;
     }
 
     extern (D) static Identifier lookup(const(char)* s, size_t len)
     {
-        auto sv = stringtable.lookup(s, len);
+        return lookup(s[0 .. len]);
+    }
+
+    extern (D) static Identifier lookup(const(char)[] s)
+    {
+        auto sv = stringtable.lookup(s);
         if (!sv)
             return null;
         return cast(Identifier)sv.ptrvalue;
