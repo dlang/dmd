@@ -745,6 +745,9 @@ void test3_run( T, int n )( )
 {
         typeof(.dump) dump;
 
+        if (RegValue[n] == null)
+                return;
+
         test3_ret!T();
         mixin( gen_reg_capture!(n,`["RAX","RDX"]`)() );
 
@@ -791,6 +794,9 @@ void test4_run( T, int n )( T t )
 {
         typeof(.dump) dump = void;
         mixin( gen_reg_capture!(n,`["RDI","RSI"]`)() );
+
+        if (RegValue[n] == null)
+                return;
 
         //.dump = dump;
         //dbg!(T,n)( );
