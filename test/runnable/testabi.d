@@ -951,6 +951,9 @@ void test3_run( T, int n )( )
 {
         typeof(.dump) dump;
 
+        if (RegValue[n] == null)
+                return;
+
         alias test3_ret_inst = test3_ret!T;
         asm {
              call test3_ret_inst;  // DMD may pop st(0) otherwise
@@ -1006,6 +1009,9 @@ void test4_run( T, int n )( T t )
 {
         typeof(.dump) dump;
         mixin( gen_reg_capture!(n,`["RDI","RSI"]`)() );
+
+        if (RegValue[n] == null)
+                return;
 
         //.dump = dump;
         //dbg!(T,n)( );
