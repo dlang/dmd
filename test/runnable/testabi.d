@@ -880,7 +880,7 @@ void test1()
         foreach( int n, T; tuple!( ALL_T, R_T, V_T  ) )
                 test1_asm!(T,n)(12);
 
-        check( data1 );
+        assert( check( data1 ) );
 }
 
 /************************************************************************/
@@ -939,7 +939,7 @@ void test2()
                 test2f_asm!(T,n2)( T.init, 12 );
         }
 
-        checkRange!( 0, MIX_END )( data2 );
+        assert( checkRange!( 0, MIX_END )( data2 ) );
 }
 
 /************************************************************************/
@@ -989,7 +989,7 @@ void test3()
         foreach( int n, T; tuple!( ALL_T, R_T, V_T ) )
                 test3_run!(T,n)( );
 
-        check( data3 );
+        assert( check( data3 ) );
 }
 
 // 0xFF n times
@@ -1044,9 +1044,9 @@ void test4()
                 test4_run!(T,n)( t );
         }
 
-        checkRange!( 0, MIX_END )( data4 );        // INT FLOAT MIX
-        checkX!( expectedRIn, MIX_END )( data4 );  // real's in & out behaviors don't match
-        checkRange!( R_END, V_END )( data4 );      // SIMD
+        assert( checkRange!( 0, MIX_END )( data4 ) );        // INT FLOAT MIX
+        assert( checkX!( expectedRIn, MIX_END )( data4 ) );  // real's in & out behaviors don't match
+        assert( checkRange!( R_END, V_END )( data4 ) );      // SIMD
 }
 
 
