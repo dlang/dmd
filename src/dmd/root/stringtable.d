@@ -121,18 +121,18 @@ public:
     Returns: the string's associated value, or `null` if the string doesn't
      exist in the string table
     */
-    inout(StringValue)* lookup(const(char)* s, size_t length) inout nothrow pure
+    inout(StringValue)* lookup(const(char)[] str) inout nothrow pure
     {
-        const(hash_t) hash = calcHash(s, length);
-        const(size_t) i = findSlot(hash, s, length);
-        // printf("lookup %.*s %p\n", (int)length, s, table[i].value ?: NULL);
+        const(hash_t) hash = calcHash(str.ptr, str.length);
+        const(size_t) i = findSlot(hash, str);
+        // printf("lookup %.*s %p\n", cast(int)str.length, str.ptr, table[i].value ?: null);
         return getValue(table[i].vptr);
     }
 
     /// ditto
-    inout(StringValue)* lookup(const(char)[] str) inout nothrow pure
+    inout(StringValue)* lookup(const(char)* s, size_t length) inout nothrow pure
     {
-        return lookup(str.ptr, str.length);
+        return lookup(s[0 .. length]);
     }
 
     /**
@@ -149,50 +149,50 @@ public:
     Returns: the newly inserted value, or `null` if the string table already
      contains the string
     */
-    StringValue* insert(const(char)* s, size_t length, void* ptrvalue) nothrow
+    StringValue* insert(const(char)[] str, void* ptrvalue) nothrow
     {
-        const(hash_t) hash = calcHash(s, length);
-        size_t i = findSlot(hash, s, length);
+        const(hash_t) hash = calcHash(str.ptr, str.length);
+        size_t i = findSlot(hash, str);
         if (table[i].vptr)
             return null; // already in table
         if (++count > tabledim * loadFactor)
         {
             grow();
-            i = findSlot(hash, s, length);
+            i = findSlot(hash, str);
         }
         table[i].hash = hash;
-        table[i].vptr = allocValue(s, length, ptrvalue);
-        // printf("insert %.*s %p\n", (int)length, s, table[i].value ?: NULL);
+        table[i].vptr = allocValue(str, ptrvalue);
+        // printf("insert %.*s %p\n", cast(int)str.length, str.ptr, table[i].value ?: NULL);
         return getValue(table[i].vptr);
     }
 
     /// ditto
-    StringValue* insert(const(char)[] str, void* value) nothrow
+    StringValue* insert(const(char)* s, size_t length, void* value) nothrow
     {
-        return insert(str.ptr, str.length, value);
+        return insert(s[0 .. length], value);
     }
 
-    StringValue* update(const(char)* s, size_t length) nothrow
+    StringValue* update(const(char)[] str) nothrow
     {
-        const(hash_t) hash = calcHash(s, length);
-        size_t i = findSlot(hash, s, length);
+        const(hash_t) hash = calcHash(str.ptr, str.length);
+        size_t i = findSlot(hash, str);
         if (!table[i].vptr)
         {
             if (++count > tabledim * loadFactor)
             {
                 grow();
-                i = findSlot(hash, s, length);
+                i = findSlot(hash, str);
             }
             table[i].hash = hash;
-            table[i].vptr = allocValue(s, length, null);
+            table[i].vptr = allocValue(str, null);
         }
-        // printf("update %.*s %p\n", (int)length, s, table[i].value ?: NULL);
+        // printf("update %.*s %p\n", (int)str.length, str.ptr, table[i].value ?: NULL);
         return getValue(table[i].vptr);
     }
 
-    StringValue* update(const(char)[] name) nothrow
+    StringValue* update(const(char)* s, size_t length) nothrow
     {
-        return update(name.ptr, name.length);
+        return update(s[0 .. length]);
     }
 
     /********************************
@@ -219,9 +219,9 @@ public:
 
 private:
 nothrow:
-    uint allocValue(const(char)* s, size_t length, void* ptrvalue)
+    uint allocValue(const(char)[] str, void* ptrvalue)
     {
-        const(size_t) nbytes = StringValue.sizeof + length + 1;
+        const(size_t) nbytes = StringValue.sizeof + str.length + 1;
         if (!npools || nfill + nbytes > POOL_SIZE)
         {
             pools = cast(ubyte**)mem.xrealloc(pools, ++npools * (pools[0]).sizeof);
@@ -230,9 +230,9 @@ nothrow:
         }
         StringValue* sv = cast(StringValue*)&pools[npools - 1][nfill];
         sv.ptrvalue = ptrvalue;
-        sv.length = length;
-        .memcpy(sv.lstring(), s, length);
-        sv.lstring()[length] = 0;
+        sv.length = str.length;
+        .memcpy(sv.lstring(), str.ptr, str.length);
+        sv.lstring()[str.length] = 0;
         const(uint) vptr = cast(uint)(npools << POOL_BITS | nfill);
         nfill += nbytes + (-nbytes & 7); // align to 8 bytes
         return vptr;
@@ -247,7 +247,7 @@ nothrow:
         return cast(inout(StringValue)*)&pools[idx][off];
     }
 
-    size_t findSlot(hash_t hash, const(char)* s, size_t length) const pure
+    size_t findSlot(hash_t hash, const(char)[] str) const pure
     {
         // quadratic probing using triangular numbers
         // http://stackoverflow.com/questions/2348187/moving-from-linear-probing-to-quadratic-probing-hash-collisons/2349774#2349774
@@ -255,7 +255,7 @@ nothrow:
         {
             const(StringValue)* sv;
             auto vptr = table[i].vptr;
-            if (!vptr || table[i].hash == hash && (sv = getValue(vptr)).length == length && .memcmp(s, sv.toDchars(), length) == 0)
+            if (!vptr || table[i].hash == hash && (sv = getValue(vptr)).length == str.length && .memcmp(str.ptr, sv.toDchars(), str.length) == 0)
                 return i;
             i = (i + j) & (tabledim - 1);
         }
@@ -272,7 +272,7 @@ nothrow:
             if (!se.vptr)
                 continue;
             const sv = getValue(se.vptr);
-            table[findSlot(se.hash, sv.toDchars(), sv.length)] = se;
+            table[findSlot(se.hash, sv.toString())] = se;
         }
         mem.xfree(otab);
     }
