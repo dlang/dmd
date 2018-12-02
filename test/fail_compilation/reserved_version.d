@@ -105,6 +105,7 @@ fail_compilation/reserved_version.d(206): Error: version identifier `CppRuntime_
 fail_compilation/reserved_version.d(207): Error: version identifier `CppRuntime_Gcc` is reserved and cannot be set
 fail_compilation/reserved_version.d(208): Error: version identifier `CppRuntime_Microsoft` is reserved and cannot be set
 fail_compilation/reserved_version.d(209): Error: version identifier `CppRuntime_Sun` is reserved and cannot be set
+fail_compilation/reserved_version.d(210): Error: version identifier `Cpp98` is reserved and cannot be set
 ---
 */
 
@@ -216,6 +217,7 @@ version = CppRuntime_DigitalMars;
 version = CppRuntime_Gcc;
 version = CppRuntime_Microsoft;
 version = CppRuntime_Sun;
+version = Cpp98;
 
 // This should work though
 debug = DigitalMars;
@@ -300,6 +302,7 @@ debug = CppRuntime_DigitalMars;
 debug = CppRuntime_Gcc;
 debug = CppRuntime_Microsoft;
 debug = CppRuntime_Sun;
+debug = Cpp98;
 debug = D_Coverage;
 debug = D_Ddoc;
 debug = D_InlineAsm_X86;

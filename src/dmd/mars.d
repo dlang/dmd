@@ -1122,6 +1122,9 @@ void addDefaultVersionIdentifiers(const ref Param params)
     VersionCondition.addPredefinedGlobalIdent("D_Version2");
     VersionCondition.addPredefinedGlobalIdent("all");
 
+    if (params.cpp98)
+        VersionCondition.addPredefinedGlobalIdent("Cpp98");
+
     if (params.cpu >= CPU.sse2)
     {
         VersionCondition.addPredefinedGlobalIdent("D_SIMD");
@@ -2054,6 +2057,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.manual = true;
             return false;
         }
+        else if (arg == "-std=c++98")        // https://dlang.org/dmd.html#switch-std
+        {
+            params.cpp98 = true;
+        }
         else if (arg == "-run")              // https://dlang.org/dmd.html#switch-run
         {
             params.run = true;
@@ -2189,6 +2196,14 @@ private void reconcileCommands(ref Param params, size_t numSrcFiles)
         params.useTypeInfo = false;
         params.useExceptions = false;
     }
+
+    /* TEMPORARILY set this to true until the runtime library is updated,
+     * in order to not leave the system in an unbuildable state.
+     */
+    params.cpp98 = true;
+
+    if (params.isWindows && !params.mscoff)
+        params.cpp98 = true;             // DMC++ is a C++98 compiler
 
 
     if (!params.obj || params.lib)

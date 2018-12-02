@@ -664,6 +664,7 @@ extern (C++) final class VersionCondition : DVCondition
             case "CppRuntime_Gcc":
             case "CppRuntime_Microsoft":
             case "CppRuntime_Sun":
+            case "Cpp98":
             case "unittest":
             case "assert":
             case "all":

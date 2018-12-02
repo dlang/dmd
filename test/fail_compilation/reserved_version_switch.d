@@ -82,6 +82,7 @@
 // REQUIRED_ARGS: -version=CppRuntime_Gcc
 // REQUIRED_ARGS: -version=CppRuntime_Microsoft
 // REQUIRED_ARGS: -version=CppRuntime_Sun
+// REQUIRED_ARGS: -version=Cpp98
 // REQUIRED_ARGS: -version=D_Coverage
 // REQUIRED_ARGS: -version=D_Ddoc
 // REQUIRED_ARGS: -version=D_InlineAsm_X86
@@ -178,6 +179,7 @@
 // REQUIRED_ARGS: -debug=CppRuntime_Gcc
 // REQUIRED_ARGS: -debug=CppRuntime_Microsoft
 // REQUIRED_ARGS: -debug=CppRuntime_Sun
+// REQUIRED_ARGS: -debug=Cpp98
 // REQUIRED_ARGS: -debug=D_Coverage
 // REQUIRED_ARGS: -debug=D_Ddoc
 // REQUIRED_ARGS: -debug=D_InlineAsm_X86
@@ -279,6 +281,7 @@ Error: version identifier `CppRuntime_DigitalMars` is reserved and cannot be set
 Error: version identifier `CppRuntime_Gcc` is reserved and cannot be set
 Error: version identifier `CppRuntime_Microsoft` is reserved and cannot be set
 Error: version identifier `CppRuntime_Sun` is reserved and cannot be set
+Error: version identifier `Cpp98` is reserved and cannot be set
 Error: version identifier `D_Coverage` is reserved and cannot be set
 Error: version identifier `D_Ddoc` is reserved and cannot be set
 Error: version identifier `D_InlineAsm_X86` is reserved and cannot be set
