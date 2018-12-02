@@ -936,8 +936,6 @@ RET retStyle(TypeFunction *tf)
         if (tns->ty == Tstruct)
         {
             StructDeclaration *sd = ((TypeStruct *)tns)->sym;
-            if (sd->ident == Id::__c_long_double)
-                return RETregs;
             if (!sd->isPOD() || sz > 8)
                 return RETstack;
             if (sd->fields.dim == 0)
@@ -946,16 +944,6 @@ RET retStyle(TypeFunction *tf)
         if (sz <= 16 && !(sz & (sz - 1)))
             return RETregs;
         return RETstack;
-    }
-    else if (global.params.isWindows && global.params.mscoff)
-    {
-        Type* tb = tns->baseElemOf();
-        if (tb->ty == Tstruct)
-        {
-            StructDeclaration *sd = ((TypeStruct *)tb)->sym;
-            if (sd->ident == Id::__c_long_double)
-                return RETregs;
-        }
     }
 
 Lagain:
@@ -994,9 +982,6 @@ L2:
         StructDeclaration *sd = ((TypeStruct *)tns)->sym;
         if (global.params.isLinux && tf->linkage != LINKd && !global.params.is64bit)
         {
-            if (sd->ident == Id::__c_long || sd->ident == Id::__c_ulong)
-                return RETregs;
-
             //printf("  2 RETstack\n");
             return RETstack;            // 32 bit C/C++ structs always on stack
         }
@@ -1004,9 +989,6 @@ L2:
                  sd->isPOD() && sd->ctor)
         {
             // win32 returns otherwise POD structs with ctors via memory
-            // unless it's not really a struct
-            if (sd->ident == Id::__c_long || sd->ident == Id::__c_ulong)
-                return RETregs;
             return RETstack;
         }
         if (sd->arg1type && !sd->arg2type)
