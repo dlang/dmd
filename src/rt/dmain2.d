@@ -1,7 +1,7 @@
 /**
  * Contains druntime startup and shutdown routines.
  *
- * Copyright: Copyright Digital Mars 2000 - 2013.
+ * Copyright: Copyright Digital Mars 2000 - 2018.
  * License: Distributed under the
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE)
@@ -110,7 +110,7 @@ version (Windows)
         return initLibrary(.LoadLibraryA(name));
     }
 
-    extern (C) void* rt_loadLibraryW(const wchar_t* name)
+    extern (C) void* rt_loadLibraryW(const WCHAR* name)
     {
         return initLibrary(.LoadLibraryW(name));
     }
@@ -382,10 +382,10 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
          * Then, reparse into wargc/wargs, and then use Windows API to convert
          * to UTF-8.
          */
-        const wchar_t* wCommandLine = GetCommandLineW();
+        const wCommandLine = GetCommandLineW();
         immutable size_t wCommandLineLength = wcslen(wCommandLine);
         int wargc;
-        wchar_t** wargs = CommandLineToArgvW(wCommandLine, &wargc);
+        auto wargs = CommandLineToArgvW(wCommandLine, &wargc);
         // assert(wargc == argc); /* argc can be broken by Unicode arguments */
 
         // Allocate args[] on the stack - use wargc
@@ -581,7 +581,7 @@ extern (C) void _d_print_throwable(Throwable t)
     {
         static struct WSink
         {
-            wchar_t* ptr; size_t len;
+            WCHAR* ptr; size_t len;
 
             void sink(in char[] s) scope nothrow
             {
@@ -590,8 +590,8 @@ extern (C) void _d_print_throwable(Throwable t)
                         CP_UTF8, 0, s.ptr, cast(int)s.length, null, 0);
                 if (!swlen) return;
 
-                auto newPtr = cast(wchar_t*)realloc(ptr,
-                        (this.len + swlen + 1) * wchar_t.sizeof);
+                auto newPtr = cast(WCHAR*)realloc(ptr,
+                        (this.len + swlen + 1) * WCHAR.sizeof);
                 if (!newPtr) return;
                 ptr = newPtr;
                 auto written = MultiByteToWideChar(
@@ -599,7 +599,7 @@ extern (C) void _d_print_throwable(Throwable t)
                 len += written;
             }
 
-            wchar_t* get() { if (ptr) ptr[len] = 0; return ptr; }
+            typeof(ptr) get() { if (ptr) ptr[len] = 0; return ptr; }
 
             void free() { .free(ptr); }
         }
