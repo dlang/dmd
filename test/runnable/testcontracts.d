@@ -1155,6 +1155,67 @@ class DIP1009_8
 }
 
 /*******************************************/
+// 15984
+
+I15984 i15984;
+C15984 c15984;
+
+void check15984(T)(const char* s, T this_, int i)
+{
+    printf("%s this = %p, i = %d\n", s, this_, i);
+    static if (is(T == I15984)) assert(this_ is i15984);
+    else static if (is(T == C15984)) assert(this_ is c15984);
+    else static assert(0);
+    assert(i == 5);
+}
+
+interface I15984
+{
+    void f1(int i)
+    in  { check15984("I.f1.i", this, i); assert(0); }
+    out { check15984("I.f1.o", this, i); }
+    
+    int[3] f2(int i)
+    in  { check15984("I.f2.i", this, i); assert(0); }
+    out { check15984("I.f2.o", this, i); }
+    
+    void f3(int i)
+    in  { void nested() { check15984("I.f3.i", this, i); } nested(); assert(0); }
+    out { void nested() { check15984("I.f3.o", this, i); } nested(); }
+}
+
+class C15984 : I15984
+{
+    void f1(int i)
+    in   { check15984("C.f1.i", this, i); }
+    out  { check15984("C.f1.o", this, i); }
+    body { check15984("C.f1  ", this, i); }
+    
+    int[3] f2(int i)
+    in   { check15984("C.f2.i", this, i); }
+    out  { check15984("C.f2.o", this, i); }
+    body { check15984("C.f2  ", this, i); return [0,0,0]; }
+    
+    void f3(int i)
+    in  { void nested() { check15984("C.f3.i", this, i); } nested(); }
+    out { void nested() { check15984("C.f3.o", this, i); } nested(); }
+    body { check15984("C.f3  ", this, i); }
+}
+
+void test15984()
+{
+    c15984 = new C15984;
+    i15984 = c15984;
+    printf("i = %p\n", i15984);
+    printf("c = %p\n", c15984);
+    printf("====\n");
+    i15984.f1(5);
+    printf("====\n");
+    i15984.f2(5);
+    printf("====\n");
+    i15984.f3(5);
+}
+/*******************************************/
 
 int main()
 {
@@ -1185,6 +1246,7 @@ int main()
     dip1009_6(1, 1);
     dip1009_7(3);
     new DIP1009_8().foo();
+    test15984();
 
     printf("Success\n");
     return 0;
