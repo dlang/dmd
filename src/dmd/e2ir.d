@@ -1363,6 +1363,32 @@ elem *toElem(Expression e, IRState *irs)
                 FuncDeclaration fd = te.var.toParent2().isFuncDeclaration();
                 assert(fd);
                 ethis = getEthis(te.loc, irs, fd);
+
+                /* Bugzilla 15984: If te is in interface contracts, ethis is a
+                 * reference to concrete class instance. Offset it in here
+                 * to get correct interface type reference.
+                 */
+                if (fd.ident == Id.ensure || fd.ident == Id.require)
+                {
+                    if (auto parentfd = fd.parent.isFuncDeclaration())
+                    {
+                        if (auto iface = parentfd.parent.isInterfaceDeclaration())
+                        {
+                            Type thistype = irs.getFunc().vthis.type;
+                            Type itype = iface.type;
+                            if (thistype != itype)
+                            {
+                                ClassDeclaration cdfrom = thistype.isClassHandle();
+                                ClassDeclaration cdto   = itype.isClassHandle();
+                                int offset;
+                                cdto.isBaseOf(cdfrom, &offset);
+                                assert(offset != ClassDeclaration.OFFSET_RUNTIME);
+                                assert(offset != ClassDeclaration.OFFSET_FWDREF);
+                                ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYsize_t, offset));
+                            }
+                        }
+                    }
+                }
             }
             else
                 ethis = el_var(irs.sthis);
