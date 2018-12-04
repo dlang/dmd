@@ -47,7 +47,7 @@ else:
  */
 class RangeError : Error
 {
-    @safe pure nothrow this( string file = __FILE__, size_t line = __LINE__, Throwable next = null )
+    this( string file = __FILE__, size_t line = __LINE__, Throwable next = null ) @nogc nothrow pure @safe
     {
         super( "Range violation", file, line, next );
     }
@@ -518,9 +518,9 @@ extern (C) void onUnittestErrorMsg( string file, size_t line, string msg ) nothr
  * Throws:
  *  $(LREF RangeError).
  */
-extern (C) void onRangeError( string file = __FILE__, size_t line = __LINE__ ) @safe pure nothrow
+extern (C) void onRangeError( string file = __FILE__, size_t line = __LINE__ ) @trusted pure nothrow @nogc
 {
-    throw new RangeError( file, line, null );
+    throw staticError!RangeError( file, line, null );
 }
 
 
