@@ -6275,7 +6275,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 return true;
             }
 
-            if (tnext && (tnext.minst || tnext.needsCodegen())) {
+            if (tnext && (tnext.minst || tnext.needsCodegen()))
+            {
                 minst = tnext.minst; // cache result
                 assert(minst);
                 return minst.isRoot() || minst.rootImports();
