@@ -102,8 +102,14 @@ else version (FreeBSD)
 }
 else version (DragonFlyBSD)
 {
-    pragma(mangle, "errno") extern int __errno;
-    ref int errno() { return __errno;}
+    extern (C)
+    {
+        pragma(mangle, "errno") int __errno;
+        ref int __error() {
+            return __errno;
+        }
+        alias errno = __error;
+    }
 }
 else version (CRuntime_Bionic)
 {
