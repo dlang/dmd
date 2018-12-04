@@ -6220,8 +6220,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         if (global.params.allInst)
         {
             //printf("%s minst = %s, enclosing (%s).isNonRoot = %d\n",
-            //    toPrettyChars(), minst ? minst.toChars() : NULL,
-            //    enclosing ? enclosing.toPrettyChars() : NULL, enclosing && enclosing.inNonRoot());
+            //    toPrettyChars(), minst ? minst.toChars() : null,
+            //    enclosing ? enclosing.toPrettyChars() : null, enclosing && enclosing.inNonRoot());
             if (enclosing)
             {
                 /* https://issues.dlang.org/show_bug.cgi?id=14588
@@ -6274,8 +6274,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 assert(minst.isRoot() || minst.rootImports());
                 return true;
             }
-            if (tnext && (tnext.needsCodegen() || tnext.minst))
-            {
+
+            if (tnext && (tnext.minst || tnext.needsCodegen())) {
                 minst = tnext.minst; // cache result
                 assert(minst);
                 return minst.isRoot() || minst.rootImports();
