@@ -36,13 +36,19 @@ import dmd.func;
 
 /***********************************************************
  */
+
+enum Include
+{
+    notComputed,        /// not computed yet
+    yes,                /// include the conditional code
+    no,                 /// do not include the conditional code
+}
+
 extern (C++) abstract class Condition : RootObject
 {
     Loc loc;
-    // 0: not computed yet
-    // 1: include
-    // 2: do not include
-    int inc;
+
+    Include inc;
 
     override final DYNCAST dyncast() const
     {
@@ -496,19 +502,19 @@ extern (C++) final class DebugCondition : DVCondition
     override int include(Scope* sc)
     {
         //printf("DebugCondition::include() level = %d, debuglevel = %d\n", level, global.params.debuglevel);
-        if (inc == 0)
+        if (inc == Include.notComputed)
         {
-            inc = 2;
+            inc = Include.no;
             bool definedInModule = false;
             if (ident)
             {
                 if (findCondition(mod.debugids, ident))
                 {
-                    inc = 1;
+                    inc = Include.yes;
                     definedInModule = true;
                 }
                 else if (findCondition(global.debugids, ident))
-                    inc = 1;
+                    inc = Include.yes;
                 else
                 {
                     if (!mod.debugidsNot)
@@ -517,11 +523,11 @@ extern (C++) final class DebugCondition : DVCondition
                 }
             }
             else if (level <= global.params.debuglevel || level <= mod.debuglevel)
-                inc = 1;
+                inc = Include.yes;
             if (!definedInModule)
                 printDepsConditional(sc, this, "depsDebug ");
         }
-        return (inc == 1);
+        return (inc == Include.yes);
     }
 
     override DebugCondition isDebugCondition()
@@ -768,19 +774,19 @@ extern (C++) final class VersionCondition : DVCondition
     {
         //printf("VersionCondition::include() level = %d, versionlevel = %d\n", level, global.params.versionlevel);
         //if (ident) printf("\tident = '%s'\n", ident.toChars());
-        if (inc == 0)
+        if (inc == Include.notComputed)
         {
-            inc = 2;
+            inc = Include.no;
             bool definedInModule = false;
             if (ident)
             {
                 if (findCondition(mod.versionids, ident))
                 {
-                    inc = 1;
+                    inc = Include.yes;
                     definedInModule = true;
                 }
                 else if (findCondition(global.versionids, ident))
-                    inc = 1;
+                    inc = Include.yes;
                 else
                 {
                     if (!mod.versionidsNot)
@@ -789,14 +795,14 @@ extern (C++) final class VersionCondition : DVCondition
                 }
             }
             else if (level <= global.params.versionlevel || level <= mod.versionlevel)
-                inc = 1;
+                inc = Include.yes;
             if (!definedInModule &&
                 (!ident || (!isReserved(ident.toString()) && ident != Id._unittest && ident != Id._assert)))
             {
                 printDepsConditional(sc, this, "depsVersion ");
             }
         }
-        return (inc == 1);
+        return (inc == Include.yes);
     }
 
     override void accept(Visitor v)
@@ -834,16 +840,16 @@ extern (C++) final class StaticIfCondition : Condition
         int errorReturn()
         {
             if (!global.gag)
-                inc = 2; // so we don't see the error message again
+                inc = Include.no; // so we don't see the error message again
             return 0;
         }
 
-        if (inc == 0)
+        if (inc == Include.notComputed)
         {
             if (!sc)
             {
                 error(loc, "`static if` conditional cannot be at global scope");
-                inc = 2;
+                inc = Include.no;
                 return 0;
             }
 
@@ -853,16 +859,16 @@ extern (C++) final class StaticIfCondition : Condition
 
             // Prevent repeated condition evaluation.
             // See: fail_compilation/fail7815.d
-            if (inc != 0)
-                return (inc == 1);
+            if (inc != Include.notComputed)
+                return (inc == Include.yes);
             if (errors)
                 return errorReturn();
             if (result)
-                inc = 1;
+                inc = Include.yes;
             else
-                inc = 2;
+                inc = Include.no;
         }
-        return (inc == 1);
+        return (inc == Include.yes);
     }
 
     override void accept(Visitor v)

@@ -17,6 +17,7 @@ import core.stdc.string;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.attrib;
+import dmd.cond;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
@@ -597,7 +598,7 @@ public:
 
     override void visit(ConditionalDeclaration d)
     {
-        if (d.condition.inc)
+        if (d.condition.inc != Include.notComputed)
         {
             visit(cast(AttribDeclaration)d);
         }
