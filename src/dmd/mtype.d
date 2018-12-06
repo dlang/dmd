@@ -574,14 +574,14 @@ extern (C++) abstract class Type : RootObject
 
         if (t1.parameters && t2.parameters)
         {
-            size_t dim = Parameter.dim(t1.parameters);
-            if (dim != Parameter.dim(t2.parameters))
+            size_t dim = t1.parameterList.length;
+            if (dim != t2.parameterList.length)
                 goto Ldistinct;
 
             for (size_t i = 0; i < dim; i++)
             {
-                Parameter fparam1 = Parameter.getNth(t1.parameters, i);
-                Parameter fparam2 = Parameter.getNth(t2.parameters, i);
+                Parameter fparam1 = t1.parameterList[i];
+                Parameter fparam2 = t2.parameterList[i];
 
                 if (!fparam1.type.equals(fparam2.type))
                 {
@@ -625,9 +625,7 @@ extern (C++) abstract class Type : RootObject
         }
         else if (t1.parameters != t2.parameters)
         {
-            size_t dim1 = !t1.parameters ? 0 : t1.parameters.dim;
-            size_t dim2 = !t2.parameters ? 0 : t2.parameters.dim;
-            if (dim1 || dim2)
+            if (t1.parameterList.length || t1.parameterList.length)
                 goto Ldistinct;
         }
 
@@ -4099,7 +4097,9 @@ extern (C++) final class TypeFunction : TypeNext
 {
     // .next is the return type
 
-    Parameters* parameters;     // function parameters
+    ParameterList parameterList;   // function parameters
+    alias parameters = parameterList;
+
     int varargs;                // 1: T t, ...) style for variable number of arguments
                                 // 2: T t ...) style for variable number of arguments
     bool isnothrow;             // true: nothrow
@@ -4122,7 +4122,7 @@ extern (C++) final class TypeFunction : TypeNext
         //if (!treturn) *(char*)0=0;
         //    assert(treturn);
         assert(0 <= varargs && varargs <= 2);
-        this.parameters = parameters;
+        this.parameterList.parameters = parameters;
         this.varargs = varargs;
         this.linkage = linkage;
 
@@ -4166,7 +4166,7 @@ extern (C++) final class TypeFunction : TypeNext
     override Type syntaxCopy()
     {
         Type treturn = next ? next.syntaxCopy() : null;
-        Parameters* params = Parameter.arraySyntaxCopy(parameters);
+        Parameters* params = Parameter.arraySyntaxCopy(parameterList.parameters);
         auto t = new TypeFunction(params, treturn, varargs, linkage);
         t.mod = mod;
         t.isnothrow = isnothrow;
@@ -4240,10 +4240,10 @@ extern (C++) final class TypeFunction : TypeNext
 
         /* Evaluate what kind of purity based on the modifiers for the parameters
          */
-        const dim = Parameter.dim(tf.parameters);
+        const dim = tf.parameterList.length;
     Lloop: foreach (i; 0 .. dim)
         {
-            Parameter fparam = Parameter.getNth(tf.parameters, i);
+            Parameter fparam = tf.parameterList[i];
             Type t = fparam.type;
             if (!t)
                 continue;
@@ -4288,10 +4288,10 @@ extern (C++) final class TypeFunction : TypeNext
      */
     bool hasLazyParameters()
     {
-        size_t dim = Parameter.dim(parameters);
+        size_t dim = parameterList.length;
         for (size_t i = 0; i < dim; i++)
         {
-            Parameter fparam = Parameter.getNth(parameters, i);
+            Parameter fparam = parameterList[i];
             if (fparam.storageClass & STC.lazy_)
                 return true;
         }
@@ -4353,10 +4353,10 @@ extern (C++) final class TypeFunction : TypeNext
         if (purity == PURE.weak)
         {
             // Check escaping through parameters
-            const dim = Parameter.dim(parameters);
+            const dim = parameterList.length;
             foreach (const i; 0 .. dim)
             {
-                Parameter fparam = Parameter.getNth(parameters, i);
+                Parameter fparam = parameterList[i];
                 if (fparam == p)
                     continue;
                 Type t = fparam.type;
@@ -4582,7 +4582,7 @@ extern (C++) final class TypeFunction : TypeNext
             }
         }
 
-        size_t nparams = Parameter.dim(parameters);
+        size_t nparams = parameterList.length;
         size_t nargs = args ? args.dim : 0;
         if (nargs > nparams)
         {
@@ -4601,7 +4601,7 @@ extern (C++) final class TypeFunction : TypeNext
         {
             if (u >= nparams)
                 break;
-            Parameter p = Parameter.getNth(parameters, u);
+            Parameter p = parameterList[u];
             Expression arg = (*args)[u];
             assert(arg);
             Type tprm = p.type;
@@ -4634,7 +4634,7 @@ extern (C++) final class TypeFunction : TypeNext
         {
             MATCH m;
 
-            Parameter p = Parameter.getNth(parameters, u);
+            Parameter p = parameterList[u];
             assert(p);
             if (u >= nargs)
             {
@@ -6182,6 +6182,27 @@ extern (C++) final class TypeNull : Type
         v.visit(this);
     }
 }
+
+/***********************************************************
+ * Encapsulate Parameters* so .length and [i] can be used on it.
+ */
+struct ParameterList
+{
+    Parameters* parameters;
+
+    size_t length()
+    {
+        return Parameter.dim(parameters);
+    }
+
+    Parameter opIndex(size_t i)
+    {
+        return Parameter.getNth(parameters, i);
+    }
+
+    alias parameters this;
+}
+
 
 /***********************************************************
  */
