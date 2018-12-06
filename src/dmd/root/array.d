@@ -326,3 +326,40 @@ unittest
     array[2] = 910;
     assert([123, 421, 910, 123, 1, 2, 8, 20, 4, 3] == array.asDArray);
 }
+
+/**
+ * Reverse an array in-place.
+ * Params:
+ *      a = array
+ * Returns:
+ *      reversed a[]
+ */
+T[] reverse(T)(T[] a)
+{
+    if (a.length > 1)
+    {
+        const mid = (a.length + 1) >> 1;
+        foreach (i; 0 .. mid)
+        {
+            T e = a[i];
+            a[i] = a[$ - 1 - i];
+            a[$ - 1 - i] = e;
+        }
+    }
+    return a;
+}
+
+unittest
+{
+    int[] a1 = [];
+    assert(reverse(a1) == []);
+    int[] a2 = [2];
+    assert(reverse(a2) == [2]);
+    int[] a3 = [2,3];
+    assert(reverse(a3) == [3,2]);
+    int[] a4 = [2,3,4];
+    assert(reverse(a4) == [4,3,2]);
+    int[] a5 = [2,3,4,5];
+    assert(reverse(a5) == [5,4,3,2]);
+}
+
