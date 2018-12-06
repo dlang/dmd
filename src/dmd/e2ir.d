@@ -246,18 +246,8 @@ private elem *callfunc(const ref Loc loc,
         }
 
         if (!left_to_right)   // swap order if right-to-left
-        {
-            auto i = 0;
-            auto k = n - 1;
-            while (i < k)
-            {
-                elem *tmp = elems[i];
-                elems[i] = elems[k];
-                elems[k] = tmp;
-                ++i;
-                --k;
-            }
-        }
+            reverse(elems[0 .. n]);
+
         ep = el_params(cast(void**)elems, cast(int)n);
 
         if (elems != elems_array.ptr)
