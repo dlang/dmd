@@ -20,6 +20,7 @@ import core.stdc.time;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.attrib;
+import dmd.cond;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
@@ -1108,7 +1109,7 @@ private void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
         override void visit(ConditionalDeclaration cd)
         {
             //printf("ConditionalDeclaration::emitComment(sc = %p)\n", sc);
-            if (cd.condition.inc)
+            if (cd.condition.inc != Include.notComputed)
             {
                 visit(cast(AttribDeclaration)cd);
                 return;
