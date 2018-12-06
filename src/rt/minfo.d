@@ -287,7 +287,7 @@ struct ModuleGroup
             else
                 enum EOL = "\n";
 
-            sink("Cyclic dependency between module ");
+            sink("Cyclic dependency between module constructors/destructors of ");
             sink(_modules[sourceIdx].name);
             sink(" and ");
             sink(_modules[cycleIdx].name);
