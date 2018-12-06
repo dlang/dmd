@@ -455,21 +455,6 @@ extern (C++) final class DebugCondition : DVCondition
      * Params:
      *   ident = identifier to add
      */
-    deprecated("Kept for C++ compat - Use the string overload instead")
-    static void addGlobalIdent(const(char)* ident)
-    {
-        addGlobalIdent(ident[0 .. ident.strlen]);
-    }
-
-    /// Ditto
-    extern(D) static void addGlobalIdent(string ident)
-    {
-        // Overload necessary for string literals
-        addGlobalIdent(cast(const(char)[])ident);
-    }
-
-
-    /// Ditto
     extern(D) static void addGlobalIdent(const(char)[] ident)
     {
         if (!global.debugids)
@@ -696,21 +681,6 @@ extern (C++) final class VersionCondition : DVCondition
      * Params:
      *   ident = identifier to add
      */
-    deprecated("Kept for C++ compat - Use the string overload instead")
-    static void addGlobalIdent(const(char)* ident)
-    {
-        addGlobalIdent(ident[0 .. ident.strlen]);
-    }
-
-    /// Ditto
-    extern(D) static void addGlobalIdent(string ident)
-    {
-        // Overload necessary for string literals
-        addGlobalIdent(cast(const(char)[])ident);
-    }
-
-
-    /// Ditto
     extern(D) static void addGlobalIdent(const(char)[] ident)
     {
         checkReserved(Loc.initial, ident);
@@ -727,21 +697,6 @@ extern (C++) final class VersionCondition : DVCondition
      * Params:
      *   ident = identifier to add (ident[$] must be '\0')
      */
-    deprecated("Kept for C++ compat - Use the string overload instead")
-    static void addPredefinedGlobalIdent(const(char)* ident)
-    {
-        addPredefinedGlobalIdent(ident[0 .. ident.strlen]);
-    }
-
-    /// Ditto
-    extern(D) static void addPredefinedGlobalIdent(string ident)
-    {
-        // Forward: Overload necessary for string literal
-        addPredefinedGlobalIdent(cast(const(char)[])ident);
-    }
-
-
-    /// Ditto
     extern(D) static void addPredefinedGlobalIdent(const(char)[] ident)
     {
         if (!global.versionids)
