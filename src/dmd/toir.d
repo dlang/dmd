@@ -356,9 +356,12 @@ elem *setEthis(const ref Loc loc, IRState *irs, elem *ey, AggregateDeclaration a
     return ey;
 }
 
+enum NotIntrinsic = -1;
+
 /*******************************************
  * Convert intrinsic function to operator.
- * Returns that operator, -1 if not an intrinsic function.
+ * Returns:
+ *      that operator, NotIntrinsic if not an intrinsic function.
  */
 int intrinsic_op(FuncDeclaration fd)
 {
@@ -734,7 +737,7 @@ int intrinsic_op(FuncDeclaration fd)
         int i = binary(name + 6,
             cast(const(char)**)(global.params.is64bit ? std_namearray64.ptr : std_namearray.ptr),
             cast(int)std_namearray.length);
-        return (i == -1) ? i : std_ioptab[i];
+        return (i == -1) ? NotIntrinsic : std_ioptab[i];
     }
     if (length > 12 &&
         (name[8] == 'm' || name[8] == 'b' || name[8] == 's' || name[8] == 'v') &&
@@ -751,7 +754,7 @@ int intrinsic_op(FuncDeclaration fd)
                 op == core_ioptab[i - 1])
             {
                 // Don't recognize 64 bit bsf() / bsr() in 32 bit mode
-                op = -1;
+                op = NotIntrinsic;
             }
             return op;
         }
@@ -769,10 +772,10 @@ int intrinsic_op(FuncDeclaration fd)
             }
         }
 
-        return -1;
+        return NotIntrinsic;
     }
 
-    return -1;
+    return NotIntrinsic;
 }
 
 /**************************************
