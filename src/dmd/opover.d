@@ -2020,12 +2020,12 @@ private bool matchParamsToOpApply(TypeFunction tf, Parameters* parameters, bool 
      * is a delegate that looks like:
      *     int opApply(int delegate(ref Type [, ...]) dg);
      */
-    if (Parameter.dim(tf.parameters) != 1)
+    if (tf.parameterList.length != 1)
         return nomatch;
 
     /* Get the type of opApply's dg parameter
      */
-    Parameter p0 = Parameter.getNth(tf.parameters, 0);
+    Parameter p0 = tf.parameterList[0];
     if (p0.type.ty != Tdelegate)
         return nomatch;
     TypeFunction tdg = cast(TypeFunction)p0.type.nextOf();
@@ -2035,13 +2035,13 @@ private bool matchParamsToOpApply(TypeFunction tf, Parameters* parameters, bool 
      * tdg's parameters must match that of the foreach arglist (i.e. parameters).
      * Fill in missing types in parameters.
      */
-    const nparams = Parameter.dim(tdg.parameters);
+    const nparams = tdg.parameterList.length;
     if (nparams == 0 || nparams != parameters.dim || tdg.varargs)
         return nomatch; // parameter mismatch
 
     foreach (u, p; *parameters)
     {
-        Parameter param = Parameter.getNth(tdg.parameters, u);
+        Parameter param = tdg.parameterList[u];
         if (p.type)
         {
             if (!p.type.equals(param.type))

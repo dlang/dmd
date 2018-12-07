@@ -994,10 +994,10 @@ private void inferReturn(FuncDeclaration fd, VarDeclaration v)
         // Perform 'return' inference on parameter
         if (tf.ty == Tfunction && tf.parameters)
         {
-            const dim = Parameter.dim(tf.parameters);
+            const dim = tf.parameterList.length;
             foreach (const i; 0 .. dim)
             {
-                Parameter p = Parameter.getNth(tf.parameters, i);
+                Parameter p = tf.parameterList[i];
                 if (p.ident == v.ident)
                 {
                     p.storageClass |= STC.return_;
@@ -1248,10 +1248,10 @@ private void escapeByValue(Expression e, EscapeByResults* er)
                 for (size_t i = j; i < e.arguments.dim; ++i)
                 {
                     Expression arg = (*e.arguments)[i];
-                    size_t nparams = Parameter.dim(tf.parameters);
+                    size_t nparams = tf.parameterList.length;
                     if (i - j < nparams && i >= j)
                     {
-                        Parameter p = Parameter.getNth(tf.parameters, i - j);
+                        Parameter p = tf.parameterList[i - j];
                         const stc = tf.parameterStorageClass(null, p);
                         if ((stc & (STC.scope_)) && (stc & STC.return_))
                             arg.accept(this);
@@ -1472,10 +1472,10 @@ private void escapeByRef(Expression e, EscapeByResults* er)
                     for (size_t i = j; i < e.arguments.dim; ++i)
                     {
                         Expression arg = (*e.arguments)[i];
-                        size_t nparams = Parameter.dim(tf.parameters);
+                        size_t nparams = tf.parameterList.length;
                         if (i - j < nparams && i >= j)
                         {
-                            Parameter p = Parameter.getNth(tf.parameters, i - j);
+                            Parameter p = tf.parameterList[i - j];
                             const stc = tf.parameterStorageClass(null, p);
                             if ((stc & (STC.out_ | STC.ref_)) && (stc & STC.return_))
                                 arg.accept(this);

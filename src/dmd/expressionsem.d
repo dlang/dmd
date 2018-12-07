@@ -1656,7 +1656,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
     assert(arguments);
     assert(fd || tf.next);
     size_t nargs = arguments ? arguments.dim : 0;
-    const size_t nparams = Parameter.dim(tf.parameters);
+    const size_t nparams = tf.parameterList.length;
     const olderrors = global.errors;
     bool err = false;
     *prettype = Type.terror;
@@ -1706,7 +1706,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 return true;
             }
 
-            Parameter p = Parameter.getNth(tf.parameters, i);
+            Parameter p = tf.parameterList[i];
 
             if (!arg)
             {
@@ -1885,7 +1885,8 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
         assert(arg);
         if (i < nparams)
         {
-            Parameter p = Parameter.getNth(tf.parameters, i);
+            Parameter p = tf.parameterList[i];
+
             if (!(p.storageClass & STC.lazy_ && p.type.ty == Tvoid))
             {
                 Type tprm = p.type.hasWild()
@@ -2087,7 +2088,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 lastthrow = i;
             if (firstdtor == -1 && arg.type.needsDestruction())
             {
-                Parameter p = (i >= nparams ? null : Parameter.getNth(tf.parameters, i));
+                Parameter p = (i >= nparams ? null : tf.parameterList[i]);
                 if (!(p && (p.storageClass & (STC.lazy_ | STC.ref_ | STC.out_))))
                     firstdtor = i;
             }
@@ -2117,7 +2118,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
         {
             Expression arg = (*arguments)[i];
 
-            Parameter parameter = (i >= nparams ? null : Parameter.getNth(tf.parameters, i));
+            Parameter parameter = (i >= nparams ? null : tf.parameterList[i]);
             const bool isRef = (parameter && (parameter.storageClass & (STC.ref_ | STC.out_)));
             const bool isLazy = (parameter && (parameter.storageClass & STC.lazy_));
 
@@ -3810,11 +3811,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.td.dsymbolSemantic(sc);
 
             TypeFunction tfl = cast(TypeFunction)exp.fd.type;
-            size_t dim = Parameter.dim(tfl.parameters);
+            size_t dim = tfl.parameterList.length;
             if (arguments.dim < dim)
             {
                 // Default arguments are always typed, so they don't need inference.
-                Parameter p = Parameter.getNth(tfl.parameters, arguments.dim);
+                Parameter p = tfl.parameterList[arguments.dim];
                 if (p.defaultArg)
                     dim = arguments.dim;
             }
@@ -3829,7 +3830,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     TemplateParameter tp = (*exp.td.parameters)[i];
                     for (size_t u = 0; u < dim; u++)
                     {
-                        Parameter p = Parameter.getNth(tfl.parameters, u);
+                        Parameter p = tfl.parameterList[u];
                         if (p.type.ty == Tident && (cast(TypeIdentifier)p.type).ident == tp.ident)
                         {
                             Expression e = (*arguments)[u];
@@ -5093,13 +5094,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     /* Generate tuple from function parameter types.
                      */
                     assert(tded.ty == Tfunction);
-                    Parameters* params = (cast(TypeFunction)tded).parameters;
-                    size_t dim = Parameter.dim(params);
+                    auto tdedf = tded.isTypeFunction();
+                    size_t dim = tdedf.parameterList.length;
                     auto args = new Parameters();
                     args.reserve(dim);
                     for (size_t i = 0; i < dim; i++)
                     {
-                        Parameter arg = Parameter.getNth(params, i);
+                        Parameter arg = tdedf.parameterList[i];
                         assert(arg && arg.type);
                         /* If one of the default arguments was an error,
                            don't return an invalid tuple

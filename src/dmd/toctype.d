@@ -86,7 +86,7 @@ public:
 
     override void visit(TypeFunction t)
     {
-        const nparams = Parameter.dim(t.parameters);
+        const nparams = t.parameterList.length;
         type*[10] tmp = void;
         type** ptypes = (nparams <= tmp.length)
                         ? tmp.ptr
@@ -94,7 +94,7 @@ public:
 
         foreach (i; 0 .. nparams)
         {
-            Parameter p = Parameter.getNth(t.parameters, i);
+            Parameter p = t.parameterList[i];
             type* tp = Type_toCtype(p.type);
             if (p.storageClass & (STC.out_ | STC.ref_))
                 tp = type_allocn(TYnref, tp);

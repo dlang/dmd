@@ -741,10 +741,10 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
             Parameters* fparameters = tf.parameters;
             int fvarargs = tf.varargs;
-            size_t nfparams = Parameter.dim(fparameters);
+            size_t nfparams = tf.parameterList.length;
             for (size_t i = 0; i < nfparams; i++)
             {
-                Parameter fparam = Parameter.getNth(fparameters, i);
+                Parameter fparam = tf.parameterList[i];
                 fparam.storageClass &= (STC.in_ | STC.out_ | STC.ref_ | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);
                 fparam.storageClass |= STC.parameter;
                 if (fvarargs == 2 && i + 1 == nfparams)
@@ -3637,8 +3637,8 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     }
                 }
 
-                size_t nfargs = Parameter.dim(t.parameters);
-                size_t nfparams = Parameter.dim(tp.parameters);
+                size_t nfargs = t.parameterList.length;
+                size_t nfparams = tp.parameterList.length;
 
                 /* See if tuple match
                  */
@@ -3647,7 +3647,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     /* See if 'A' of the template parameter matches 'A'
                      * of the type of the last function parameter.
                      */
-                    Parameter fparam = Parameter.getNth(tp.parameters, nfparams - 1);
+                    Parameter fparam = tp.parameterList[nfparams - 1];
                     assert(fparam);
                     assert(fparam.type);
                     if (fparam.type.ty != Tident)
@@ -3688,7 +3688,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                         }
                         for (size_t i = 0; i < tuple_dim; i++)
                         {
-                            Parameter arg = Parameter.getNth(t.parameters, nfparams - 1 + i);
+                            Parameter arg = t.parameterList[nfparams - 1 + i];
                             if (!arg.type.equals(tup.objects[i]))
                             {
                                 result = MATCH.nomatch;
@@ -3702,7 +3702,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                         auto tup = new Tuple(tuple_dim);
                         for (size_t i = 0; i < tuple_dim; i++)
                         {
-                            Parameter arg = Parameter.getNth(t.parameters, nfparams - 1 + i);
+                            Parameter arg = t.parameterList[nfparams - 1 + i];
                             tup.objects[i] = arg.type;
                         }
                         (*dedtypes)[tupi] = tup;
@@ -3720,8 +3720,8 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             L2:
                 for (size_t i = 0; i < nfparams; i++)
                 {
-                    Parameter a = Parameter.getNth(t.parameters, i);
-                    Parameter ap = Parameter.getNth(tp.parameters, i);
+                    Parameter a  = t .parameterList[i];
+                    Parameter ap = tp.parameterList[i];
 
                     if (!a.isCovariant(t.isref, ap) ||
                         !deduceType(a.type, sc, ap.type, parameters, dedtypes))
@@ -4522,9 +4522,9 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 TypeFunction tf = cast(TypeFunction)e.fd.type;
                 //printf("\ttof = %s\n", tof.toChars());
                 //printf("\ttf  = %s\n", tf.toChars());
-                size_t dim = Parameter.dim(tf.parameters);
+                size_t dim = tf.parameterList.length;
 
-                if (Parameter.dim(tof.parameters) != dim || tof.varargs != tf.varargs)
+                if (tof.parameterList.length != dim || tof.varargs != tf.varargs)
                     return;
 
                 auto tiargs = new Objects();
@@ -4536,14 +4536,14 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     size_t u = 0;
                     for (; u < dim; u++)
                     {
-                        Parameter p = Parameter.getNth(tf.parameters, u);
+                        Parameter p = tf.parameterList[u];
                         if (p.type.ty == Tident && (cast(TypeIdentifier)p.type).ident == tp.ident)
                         {
                             break;
                         }
                     }
                     assert(u < dim);
-                    Parameter pto = Parameter.getNth(tof.parameters, u);
+                    Parameter pto = tof.parameterList[u];
                     if (!pto)
                         break;
                     Type t = pto.type.syntaxCopy(); // https://issues.dlang.org/show_bug.cgi?id=11774
@@ -4667,10 +4667,10 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
 
         override void visit(TypeFunction t)
         {
-            size_t dim = Parameter.dim(t.parameters);
+            const dim = t.parameterList.length;
             for (size_t i = 0; i < dim; i++)
             {
-                Parameter fparam = Parameter.getNth(t.parameters, i);
+                Parameter fparam = t.parameterList[i];
                 fparam.type.accept(this);
                 if (result)
                     return;
@@ -7109,7 +7109,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                  */
                 //printf("tp = %p, td.parameters.dim = %d, tiargs.dim = %d\n", tp, td.parameters.dim, tiargs.dim);
                 auto tf = cast(TypeFunction)fd.type;
-                if (size_t dim = Parameter.dim(tf.parameters))
+                if (size_t dim = tf.parameterList.length)
                 {
                     auto tp = td.isVariadic();
                     if (tp && td.parameters.dim > 1)
@@ -7128,7 +7128,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     foreach (size_t i; 0 .. dim)
                     {
                         // 'auto ref' needs inference.
-                        if (Parameter.getNth(tf.parameters, i).storageClass & STC.auto_)
+                        if (tf.parameterList[i].storageClass & STC.auto_)
                             return 1;
                     }
                 }

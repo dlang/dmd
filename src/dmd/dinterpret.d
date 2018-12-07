@@ -804,7 +804,7 @@ private Expression interpretFunction(FuncDeclaration fd, InterState* istate, Exp
     for (size_t i = 0; i < dim; i++)
     {
         Expression earg = (*arguments)[i];
-        Parameter fparam = Parameter.getNth(tf.parameters, i);
+        Parameter fparam = tf.parameterList[i];
 
         if (fparam.storageClass & (STC.out_ | STC.ref_))
         {
@@ -869,7 +869,7 @@ private Expression interpretFunction(FuncDeclaration fd, InterState* istate, Exp
     for (size_t i = 0; i < dim; i++)
     {
         Expression earg = eargs[i];
-        Parameter fparam = Parameter.getNth(tf.parameters, i);
+        Parameter fparam = tf.parameterList[i];
         VarDeclaration v = (*fd.parameters)[i];
         debug (LOG)
         {
@@ -6645,7 +6645,7 @@ private Expression interpret_aaApply(InterState* istate, Expression aa, Expressi
     size_t numParams = fd.parameters.dim;
     assert(numParams == 1 || numParams == 2);
 
-    Parameter fparam = Parameter.getNth((cast(TypeFunction)fd.type).parameters, numParams - 1);
+    Parameter fparam = fd.type.isTypeFunction().parameterList[numParams - 1];
     bool wantRefValue = 0 != (fparam.storageClass & (STC.out_ | STC.ref_));
 
     Expressions args = Expressions(numParams);

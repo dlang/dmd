@@ -608,7 +608,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                 TypeFunction tf = cast(TypeFunction)t1;
                 for (size_t i = 0; i < e.arguments.dim; i++)
                 {
-                    Parameter p = Parameter.getNth(tf.parameters, i);
+                    Parameter p = tf.parameterList[i];
                     bool keep = p && (p.storageClass & (STC.ref_ | STC.out_)) != 0;
                     expOptimize((*e.arguments)[i], WANTvalue, keep);
                 }
