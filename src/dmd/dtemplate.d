@@ -1105,7 +1105,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         size_t fptupindex = IDX_NOTFOUND;
         MATCH match = MATCH.exact;
         MATCH matchTiargs = MATCH.exact;
-        Parameters* fparameters; // function parameter list
+        ParameterList fparameters; // function parameter list
         int fvarargs; // function varargs
         uint wildmatch = 0;
         size_t inferStart = 0;
@@ -1225,8 +1225,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             }
         }
 
-        fparameters = fd.getParameters(&fvarargs);
-        nfparams = Parameter.dim(fparameters); // number of function parameters
+        fparameters = fd.getParameterList(&fvarargs);
+        nfparams = fparameters.length; // number of function parameters
         nfargs = fargs ? fargs.dim : 0; // number of function arguments
 
         /* Check for match of function arguments with variadic template
@@ -1260,7 +1260,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                  */
                 for (fptupindex = 0; fptupindex < nfparams; fptupindex++)
                 {
-                    Parameter fparam = (*fparameters)[fptupindex];
+                    auto fparam = (*fparameters.parameters)[fptupindex]; // fparameters[fptupindex] ?
                     if (fparam.type.ty != Tident)
                         continue;
                     TypeIdentifier tid = cast(TypeIdentifier)fparam.type;
@@ -1344,7 +1344,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             size_t nfargs2 = nfargs; // nfargs + supplied defaultArgs
             for (size_t parami = 0; parami < nfparams; parami++)
             {
-                Parameter fparam = Parameter.getNth(fparameters, parami);
+                Parameter fparam = fparameters[parami];
 
                 // Apply function parameter storage classes to parameter types
                 Type prmtype = fparam.type.addStorageClass(fparam.storageClass);
@@ -1372,7 +1372,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         size_t rem = 0;
                         for (size_t j = parami + 1; j < nfparams; j++)
                         {
-                            Parameter p = Parameter.getNth(fparameters, j);
+                            Parameter p = fparameters[j];
                             if (p.defaultArg)
                             {
                                break;
@@ -6164,11 +6164,11 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         {
             if (!fd.errors)
             {
-                auto fparameters = fd.getParameters(null);
-                size_t nfparams = Parameter.dim(fparameters);   // Num function parameters
+                auto fparameters = fd.getParameterList(null);
+                size_t nfparams = fparameters.length;   // Num function parameters
                 for (size_t j = 0; j < nfparams; j++)
                 {
-                    Parameter fparam = Parameter.getNth(fparameters, j);
+                    Parameter fparam = fparameters[j];
                     if (fparam.storageClass & STC.autoref)       // if "auto ref"
                     {
                         if (!fargs)

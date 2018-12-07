@@ -1211,7 +1211,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 return new ErrorExp();
             }
             link = fd.linkage;
-            fd.getParameters(&varargs);
+            fd.getParameterList(&varargs);
         }
         string style;
         switch (varargs)
@@ -1241,20 +1241,16 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         FuncDeclaration fd;
         TypeFunction tf = toTypeFunction(o, fd);
 
-        Parameters* fparams;
+        ParameterList fparams;
         if (tf)
-        {
-            fparams = tf.parameters;
-        }
+            fparams = tf.parameterList;
+        else if (fd)
+            fparams = fd.getParameterList(null);
         else
         {
-            if (!fd)
-            {
-                e.error("first argument to `__traits(getParameterStorageClasses, %s, %s)` is not a function",
-                    o.toChars(), o1.toChars());
-                return new ErrorExp();
-            }
-            fparams = fd.getParameters(null);
+            e.error("first argument to `__traits(getParameterStorageClasses, %s, %s)` is not a function",
+                o.toChars(), o1.toChars());
+            return new ErrorExp();
         }
 
         StorageClass stc;
@@ -1269,14 +1265,14 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         ex = ex.ctfeInterpret();
         auto ii = ex.toUInteger();
-        if (ii >= Parameter.dim(fparams))
+        if (ii >= fparams.length)
         {
-            e.error("parameter index must be in range 0..%u not %s", cast(uint)Parameter.dim(fparams), ex.toChars());
+            e.error("parameter index must be in range 0..%u not %s", cast(uint)fparams.length, ex.toChars());
             return new ErrorExp();
         }
 
         uint n = cast(uint)ii;
-        Parameter p = Parameter.getNth(fparams, n);
+        Parameter p = fparams[n];
         stc = p.storageClass;
 
         // This mirrors hdrgen.visit(Parameter p)

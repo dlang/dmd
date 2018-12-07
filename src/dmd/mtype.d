@@ -6186,7 +6186,7 @@ extern (C++) final class TypeNull : Type
 /***********************************************************
  * Encapsulate Parameters* so .length and [i] can be used on it.
  */
-struct ParameterList
+extern (C++) struct ParameterList
 {
     Parameters* parameters;
 

@@ -1112,12 +1112,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 if (FuncDeclaration fd = sapplyOld.isFuncDeclaration())
                 {
                     int fvarargs; // ignored (opApply shouldn't take variadics)
-                    Parameters* fparameters = fd.getParameters(&fvarargs);
+                    auto fparameters = fd.getParameterList(&fvarargs);
 
-                    if (Parameter.dim(fparameters) == 1)
+                    if (fparameters.length == 1)
                     {
                         // first param should be the callback function
-                        Parameter fparam = Parameter.getNth(fparameters, 0);
+                        Parameter fparam = fparameters[0];
                         if ((fparam.type.ty == Tpointer ||
                              fparam.type.ty == Tdelegate) &&
                             fparam.type.nextOf().ty == Tfunction)

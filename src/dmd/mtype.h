@@ -525,12 +525,20 @@ enum PURE
     PUREstrong = 4      // parameters are values or immutable
 };
 
+struct ParameterList
+{
+    Parameters* parameters;
+
+    size_t length();
+    Parameter opIndex(size_t i);
+};
+
 class TypeFunction : public TypeNext
 {
 public:
     // .next is the return type
 
-    Parameters *parameters;     // function parameters
+    ParameterList parameterList;     // function parameters
     int varargs;        // 1: T t, ...) style for variable number of arguments
                         // 2: T t ...) style for variable number of arguments
     bool isnothrow;     // true: nothrow
