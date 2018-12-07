@@ -135,7 +135,6 @@ private elem *callfunc(const ref Loc loc,
         Expressions *arguments,
         elem *esel = null)      // selector for Objective-C methods (when not provided by fd)
 {
-    elem *e;
     elem *ethis = null;
     elem *eside = null;
     TypeFunction tf;
@@ -175,7 +174,7 @@ private elem *callfunc(const ref Loc loc,
     const left_to_right = tyrevfunc(ty);   // left-to-right parameter evaluation
                                            // (TYnpfunc, TYjfunc, TYfpfunc, TYf16func)
     elem* ep = null;
-    const op = fd ? intrinsic_op(fd) : -1;
+    const op = fd ? intrinsic_op(fd) : NotIntrinsic;
     if (arguments && arguments.dim)
     {
         if (op == OPvector)
@@ -188,48 +187,55 @@ private elem *callfunc(const ref Loc loc,
         /* Convert arguments[] to elems[] in left-to-right order
          */
         const n = arguments.dim;
-        elem*[5] elems_array = void;
+        debug
+            elem*[2] elems_array = void;
+        else
+            elem*[10] elems_array = void;
         import core.stdc.stdlib : malloc, free;
-        auto elems = (n <= 5) ? elems_array.ptr : cast(elem**)malloc(arguments.dim * (elem*).sizeof);
-        assert(elems);
+        auto pe = (n <= elems_array.length)
+                ? elems_array.ptr
+                : cast(elem**)malloc(arguments.dim * (elem*).sizeof);
+        assert(pe);
+        elem*[] elems = pe[0 .. n];
+
+        /* Fill elems[] with arguments converted to elems
+         */
 
         // j=1 if _arguments[] is first argument
-        int j = (tf.linkage == LINK.d && tf.varargs == 1);
+        const int j = (tf.linkage == LINK.d && tf.varargs == 1);
 
-        foreach (const i; 0 .. n)
+        foreach (const i, arg; *arguments)
         {
-            Expression arg = (*arguments)[i];
             elem *ea = toElem(arg, irs);
 
             //printf("\targ[%d]: %s\n", i, arg.toChars());
 
-            size_t nparams = tf.parameterList.length;
-            if (i - j < nparams && i >= j)
+            if (i - j < tf.parameterList.length &&
+                i >= j &&
+                tf.parameterList[i - j].storageClass & (STC.out_ | STC.ref_))
             {
-                Parameter p = tf.parameterList[i - j];
-
-                if (p.storageClass & (STC.out_ | STC.ref_))
-                {
-                    // Convert argument to a pointer
-                    ea = addressElem(ea, arg.type.pointerTo());
-                    goto L1;
-                }
+                /* `ref` and `out` parameters mean convert
+                 * corresponding argument to a pointer
+                 */
+                elems[i] = addressElem(ea, arg.type.pointerTo());
+                continue;
             }
-            if (config.exe == EX_WIN64 && arg.type.size(arg.loc) > REGSIZE && op == -1)
+
+            if (config.exe == EX_WIN64 && arg.type.size(arg.loc) > REGSIZE && op == NotIntrinsic)
             {
                 /* Copy to a temporary, and make the argument a pointer
                  * to that temporary.
                  */
-                ea = addressElem(ea, arg.type, true);
-                goto L1;
+                elems[i] = addressElem(ea, arg.type, true);
+                continue;
             }
+
             if (config.exe == EX_WIN64 && tybasic(ea.Ety) == TYcfloat)
             {
                 /* Treat a cfloat like it was a struct { float re,im; }
                  */
                 ea.Ety = TYllong;
             }
-        L1:
             elems[i] = ea;
         }
         if (!left_to_right)
@@ -238,20 +244,21 @@ private elem *callfunc(const ref Loc loc,
              * they were already working right from the olden days before this fix
              */
             if (!(ec.Eoper == OPvar && fd.isArrayOp))
-                eside = fixArgumentEvaluationOrder(elems[0 .. n]);
+                eside = fixArgumentEvaluationOrder(elems);
         }
-        foreach (const i; 0 .. n)
+
+        foreach (ref e; elems)
         {
-            elems[i] = useOPstrpar(elems[i]);
+            e = useOPstrpar(e);
         }
 
         if (!left_to_right)   // swap order if right-to-left
-            reverse(elems[0 .. n]);
+            reverse(elems);
 
-        ep = el_params(cast(void**)elems, cast(int)n);
+        ep = el_params(cast(void**)elems.ptr, cast(int)n);
 
-        if (elems != elems_array.ptr)
-            free(elems);
+        if (elems.ptr != elems_array.ptr)
+            free(elems.ptr);
     }
 
     objc.setupMethodSelector(fd, &esel);
@@ -302,7 +309,7 @@ private elem *callfunc(const ref Loc loc,
 
     if (fd && fd.isMember2())
     {
-        assert(op == -1);       // members should not be intrinsics
+        assert(op == NotIntrinsic);       // members should not be intrinsics
 
         AggregateDeclaration ad = fd.isThis();
         if (ad)
@@ -368,8 +375,9 @@ if (!irs.params.is64bit) assert(tysize(TYnptr) == 4);
 
     const tyret = totym(tret);
 
-    // Look for intrinsic functions
-    if (ec.Eoper == OPvar && op != -1)
+    // Look for intrinsic functions and construct result into e
+    elem *e;
+    if (ec.Eoper == OPvar && op != NotIntrinsic)
     {
         el_free(ec);
         if (OTbinary(op))
