@@ -924,7 +924,7 @@ MATCH implicitConvTo(Expression e, Type t)
              * and see if we can convert the function argument to the modded type
              */
 
-            size_t nparams = Parameter.dim(tf.parameters);
+            size_t nparams = tf.parameterList.length;
             size_t j = (tf.linkage == LINK.d && tf.varargs == 1); // if TypeInfoArray was prepended
             if (e.e1.op == TOK.dotVariable)
             {
@@ -945,7 +945,7 @@ MATCH implicitConvTo(Expression e, Type t)
                 }
                 if (i - j < nparams)
                 {
-                    Parameter fparam = Parameter.getNth(tf.parameters, i - j);
+                    Parameter fparam = tf.parameterList[i - j];
                     if (fparam.storageClass & STC.lazy_)
                         return; // not sure what to do with this
                     Type tparam = fparam.type;
@@ -1227,7 +1227,7 @@ MATCH implicitConvTo(Expression e, Type t)
 
                 Expressions* args = (fd == e.allocator) ? e.newargs : e.arguments;
 
-                size_t nparams = Parameter.dim(tf.parameters);
+                size_t nparams = tf.parameterList.length;
                 size_t j = (tf.linkage == LINK.d && tf.varargs == 1); // if TypeInfoArray was prepended
                 for (size_t i = j; i < e.arguments.dim; ++i)
                 {
@@ -1239,7 +1239,7 @@ MATCH implicitConvTo(Expression e, Type t)
                     }
                     if (i - j < nparams)
                     {
-                        Parameter fparam = Parameter.getNth(tf.parameters, i - j);
+                        Parameter fparam = tf.parameterList[i - j];
                         if (fparam.storageClass & STC.lazy_)
                             return; // not sure what to do with this
                         Type tparam = fparam.type;

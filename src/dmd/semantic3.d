@@ -389,7 +389,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     sc2.insert(_arguments);
                     _arguments.parent = funcdecl;
                 }
-                if (f.linkage == LINK.d || (f.parameters && Parameter.dim(f.parameters)))
+                if (f.linkage == LINK.d || f.parameterList.length)
                 {
                     // Declare _argptr
                     Type t = Type.tvalist;
@@ -405,7 +405,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             /* Declare all the function parameters as variables
              * and install them in parameters[]
              */
-            size_t nparams = Parameter.dim(f.parameters);
+            size_t nparams = f.parameterList.length;
             if (nparams)
             {
                 /* parameters[] has all the tuples removed, as the back end
@@ -415,7 +415,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 funcdecl.parameters.reserve(nparams);
                 for (size_t i = 0; i < nparams; i++)
                 {
-                    Parameter fparam = Parameter.getNth(f.parameters, i);
+                    Parameter fparam = f.parameterList[i];
                     Identifier id = fparam.ident;
                     StorageClass stc = 0;
                     if (!id)
@@ -1203,14 +1203,14 @@ private extern(C++) final class Semantic3Visitor : Visitor
         // Infer STC.scope_
         if (funcdecl.parameters && !funcdecl.errors)
         {
-            size_t nfparams = Parameter.dim(f.parameters);
+            size_t nfparams = f.parameterList.length;
             assert(nfparams == funcdecl.parameters.dim);
             foreach (u, v; *funcdecl.parameters)
             {
                 if (v.storage_class & STC.maybescope)
                 {
                     //printf("Inferring scope for %s\n", v.toChars());
-                    Parameter p = Parameter.getNth(f.parameters, u);
+                    Parameter p = f.parameterList[u];
                     notMaybeScope(v);
                     v.storage_class |= STC.scope_ | STC.scopeinferred;
                     p.storageClass |= STC.scope_ | STC.scopeinferred;

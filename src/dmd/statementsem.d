@@ -1123,7 +1123,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             fparam.type.nextOf().ty == Tfunction)
                         {
                             TypeFunction tf = cast(TypeFunction)fparam.type.nextOf();
-                            foreachParamCount = Parameter.dim(tf.parameters);
+                            foreachParamCount = tf.parameterList.length;
                             foundMismatch = true;
                         }
                     }
@@ -1620,7 +1620,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         //printf("tfld = %s\n", tfld.toChars());
                         if (tfld.parameters.dim == 1)
                         {
-                            Parameter p = Parameter.getNth(tfld.parameters, 0);
+                            Parameter p = tfld.parameterList[0];
                             if (p.type && p.type.ty == Tdelegate)
                             {
                                 auto t = p.type.typeSemantic(loc, sc2);
@@ -1914,7 +1914,7 @@ else
             p.type = p.type.addStorageClass(p.storageClass);
             if (tfld)
             {
-                Parameter prm = Parameter.getNth(tfld.parameters, i);
+                Parameter prm = tfld.parameterList[i];
                 //printf("\tprm = %s%s\n", (prm.storageClass&STC.ref_?"ref ":"").ptr, prm.ident.toChars());
                 stc = prm.storageClass & STC.ref_;
                 id = p.ident; // argument copy is not need.

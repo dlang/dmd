@@ -933,7 +933,7 @@ extern (C++) class FuncDeclaration : Declaration
 
         TypeFunction tf = type.toTypeFunction();
         TypeFunction tg = g.type.toTypeFunction();
-        size_t nfparams = Parameter.dim(tf.parameters);
+        size_t nfparams = tf.parameterList.length;
 
         /* If both functions have a 'this' pointer, and the mods are not
          * the same and g's is not const, then this is less specialized.
@@ -957,7 +957,7 @@ extern (C++) class FuncDeclaration : Declaration
         Expressions args = Expressions(nfparams);
         for (size_t u = 0; u < nfparams; u++)
         {
-            Parameter p = Parameter.getNth(tf.parameters, u);
+            Parameter p = tf.parameterList[u];
             Expression e;
             if (p.storageClass & (STC.ref_ | STC.out_))
             {
@@ -1466,10 +1466,10 @@ extern (C++) class FuncDeclaration : Declaration
 
         //printf("isTypeIsolatedIndirect(%s) t = %s\n", tf.toChars(), t.toChars());
 
-        size_t dim = Parameter.dim(tf.parameters);
+        size_t dim = tf.parameterList.length;
         for (size_t i = 0; i < dim; i++)
         {
-            Parameter fparam = Parameter.getNth(tf.parameters, i);
+            Parameter fparam = tf.parameterList[i];
             Type tp = fparam.type;
             if (!tp)
                 continue;
@@ -2339,11 +2339,11 @@ extern (C++) class FuncDeclaration : Declaration
     extern (D) final void checkDmain()
     {
         TypeFunction tf = type.toTypeFunction();
-        const nparams = Parameter.dim(tf.parameters);
+        const nparams = tf.parameterList.length;
         bool argerr;
         if (nparams == 1)
         {
-            auto fparam0 = Parameter.getNth(tf.parameters, 0);
+            auto fparam0 = tf.parameterList[0];
             auto t = fparam0.type.toBasetype();
             if (t.ty != Tarray ||
                 t.nextOf().ty != Tarray ||

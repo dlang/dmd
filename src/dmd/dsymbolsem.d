@@ -3747,7 +3747,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
          */
         if (ad && (!ctd.parent.isTemplateInstance() || ctd.parent.isTemplateMixin()))
         {
-            immutable dim = Parameter.dim(tf.parameters);
+            immutable dim = tf.parameterList.length;
 
             if (auto sd = ad.isStructDeclaration())
             {
@@ -3765,7 +3765,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 else if (dim == 0 && tf.varargs) // allow varargs only ctor
                 {
                 }
-                else if (dim && Parameter.getNth(tf.parameters, 0).defaultArg)
+                else if (dim && tf.parameterList[0].defaultArg)
                 {
                     // if the first parameter has a default argument, then the rest does as well
                     if (ctd.storage_class & STC.disable)
@@ -4148,13 +4148,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             // Check that there is at least one argument of type size_t
             TypeFunction tf = nd.type.toTypeFunction();
-            if (Parameter.dim(tf.parameters) < 1)
+            if (tf.parameterList.length < 1)
             {
                 nd.error("at least one argument of type `size_t` expected");
             }
             else
             {
-                Parameter fparam = Parameter.getNth(tf.parameters, 0);
+                Parameter fparam = tf.parameterList[0];
                 if (!fparam.type.equals(Type.tsize_t))
                     nd.error("first argument must be type `size_t`, not `%s`", fparam.type.toChars());
             }
@@ -4196,13 +4196,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         // Check that there is only one argument of type void*
         TypeFunction tf = deld.type.toTypeFunction();
-        if (Parameter.dim(tf.parameters) != 1)
+        if (tf.parameterList.length != 1)
         {
             deld.error("one argument of type `void*` expected");
         }
         else
         {
-            Parameter fparam = Parameter.getNth(tf.parameters, 0);
+            Parameter fparam = tf.parameterList[0];
             if (!fparam.type.equals(Type.tvoid.pointerTo()))
                 deld.error("one argument of type `void*` expected, not `%s`", fparam.type.toChars());
         }

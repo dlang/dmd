@@ -3643,9 +3643,9 @@ extern (C++) final class FuncExp : Expression
             TypeFunction tf = cast(TypeFunction)fd.type;
             //printf("\ttof = %s\n", tof.toChars());
             //printf("\ttf  = %s\n", tf.toChars());
-            size_t dim = Parameter.dim(tf.parameters);
+            size_t dim = tf.parameterList.length;
 
-            if (Parameter.dim(tof.parameters) != dim || tof.varargs != tf.varargs)
+            if (tof.parameterList.length != dim || tof.varargs != tf.varargs)
                 goto L1;
 
             auto tiargs = new Objects();
@@ -3656,14 +3656,14 @@ extern (C++) final class FuncExp : Expression
                 size_t u = 0;
                 for (; u < dim; u++)
                 {
-                    Parameter p = Parameter.getNth(tf.parameters, u);
+                    Parameter p = tf.parameterList[u];
                     if (p.type.ty == Tident && (cast(TypeIdentifier)p.type).ident == tp.ident)
                     {
                         break;
                     }
                 }
                 assert(u < dim);
-                Parameter pto = Parameter.getNth(tof.parameters, u);
+                Parameter pto = tof.parameterList[u];
                 Type t = pto.type;
                 if (t.ty == Terror)
                     goto L1;

@@ -1215,10 +1215,10 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
             argsc.protection = Prot(Prot.Kind.public_);
             argsc.func = null;
 
-            size_t dim = Parameter.dim(tf.parameters);
+            size_t dim = tf.parameterList.length;
             for (size_t i = 0; i < dim; i++)
             {
-                Parameter fparam = Parameter.getNth(tf.parameters, i);
+                Parameter fparam = tf.parameterList[i];
                 mtype.inuse++;
                 fparam.type = fparam.type.typeSemantic(loc, argsc);
                 mtype.inuse--;
@@ -1429,7 +1429,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                     /* Reset number of parameters, and back up one to do this fparam again,
                      * now that it is a tuple
                      */
-                    dim = Parameter.dim(tf.parameters);
+                    dim = tf.parameterList.length;
                     i--;
                     continue;
                 }
@@ -1473,13 +1473,13 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
         }
         tf.iswild = wildparams;
 
-        if (tf.isproperty && (tf.varargs || Parameter.dim(tf.parameters) > 2))
+        if (tf.isproperty && (tf.varargs || tf.parameterList.length > 2))
         {
             .error(loc, "properties can only have zero, one, or two parameter");
             errors = true;
         }
 
-        if (tf.varargs == 1 && tf.linkage != LINK.d && Parameter.dim(tf.parameters) == 0)
+        if (tf.varargs == 1 && tf.linkage != LINK.d && tf.parameterList.length == 0)
         {
             .error(loc, "variadic functions with non-D linkage must have at least one parameter");
             errors = true;
