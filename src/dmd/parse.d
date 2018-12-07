@@ -2465,10 +2465,10 @@ final class Parser(AST) : Lexer
 
         /* Just a regular constructor
          */
-        int varargs;
+        AST.VarArg varargs;
         AST.Parameters* parameters = parseParameters(&varargs);
         stc = parsePostfix(stc, &udas);
-        if (varargs != 0 || AST.Parameter.dim(parameters) != 0)
+        if (varargs != AST.VarArg.none || AST.Parameter.dim(parameters) != 0)
         {
             if (stc & AST.STC.static_)
                 error(loc, "constructor cannot be static");
@@ -2791,7 +2791,7 @@ final class Parser(AST) : Lexer
 
         nextToken();
 
-        int varargs;
+        AST.VarArg varargs;
         AST.Parameters* parameters = parseParameters(&varargs);
         auto f = new AST.NewDeclaration(loc, Loc.initial, stc, parameters, varargs);
         AST.Dsymbol s = parseContracts(f);
@@ -2810,9 +2810,9 @@ final class Parser(AST) : Lexer
 
         nextToken();
 
-        int varargs;
+        AST.VarArg varargs;
         AST.Parameters* parameters = parseParameters(&varargs);
-        if (varargs)
+        if (varargs != AST.VarArg.none)
             error("`...` not allowed in delete function parameter list");
         auto f = new AST.DeleteDeclaration(loc, Loc.initial, stc, parameters);
         AST.Dsymbol s = parseContracts(f);
@@ -2822,10 +2822,10 @@ final class Parser(AST) : Lexer
     /**********************************************
      * Parse parameter list.
      */
-    AST.Parameters* parseParameters(int* pvarargs, AST.TemplateParameters** tpl = null)
+    AST.Parameters* parseParameters(AST.VarArg* pvarargs, AST.TemplateParameters** tpl = null)
     {
         auto parameters = new AST.Parameters();
-        int varargs = 0;
+        AST.VarArg varargs = AST.VarArg.none;
         int hasdefault = 0;
 
         check(TOK.leftParentheses);
@@ -2846,7 +2846,7 @@ final class Parser(AST) : Lexer
                     break;
 
                 case TOK.dotDotDot:
-                    varargs = 1;
+                    varargs = AST.VarArg.variadic;
                     nextToken();
                     break;
 
@@ -3041,7 +3041,7 @@ final class Parser(AST) : Lexer
                              */
                             if (storageClass & (AST.STC.out_ | AST.STC.ref_))
                                 error("variadic argument cannot be `out` or `ref`");
-                            varargs = 2;
+                            varargs = AST.VarArg.typesafe;
                             parameters.push(param);
                             nextToken();
                             break;
@@ -3975,7 +3975,7 @@ final class Parser(AST) : Lexer
                     TOK save = token.value;
                     nextToken();
 
-                    int varargs;
+                    AST.VarArg varargs;
                     AST.Parameters* parameters = parseParameters(&varargs);
 
                     StorageClass stc = parsePostfix(AST.STC.undefined_, null);
@@ -4137,7 +4137,7 @@ final class Parser(AST) : Lexer
                         }
                     }
 
-                    int varargs;
+                    AST.VarArg varargs;
                     AST.Parameters* parameters = parseParameters(&varargs);
 
                     /* Parse const/immutable/shared/inout/nothrow/pure/return postfix
@@ -4825,7 +4825,7 @@ final class Parser(AST) : Lexer
         const loc = token.loc;
         AST.TemplateParameters* tpl = null;
         AST.Parameters* parameters = null;
-        int varargs = 0;
+        AST.VarArg varargs = AST.VarArg.none;
         AST.Type tret = null;
         StorageClass stc = 0;
         TOK save = TOK.reserved;

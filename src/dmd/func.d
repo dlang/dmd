@@ -2152,7 +2152,7 @@ extern (C++) class FuncDeclaration : Declaration
              *   __require();
              */
             Loc loc = frequire.loc;
-            auto tf = new TypeFunction(null, Type.tvoid, 0, LINK.d);
+            auto tf = new TypeFunction(null, Type.tvoid, VarArg.none, LINK.d);
             tf.isnothrow = f.isnothrow;
             tf.isnogc = f.isnogc;
             tf.purity = f.purity;
@@ -2181,7 +2181,7 @@ extern (C++) class FuncDeclaration : Declaration
                 p = new Parameter(STC.ref_ | STC.const_, f.nextOf(), Id.result, null, null);
                 fparams.push(p);
             }
-            auto tf = new TypeFunction(fparams, Type.tvoid, 0, LINK.d);
+            auto tf = new TypeFunction(fparams, Type.tvoid, VarArg.none, LINK.d);
             tf.isnothrow = f.isnothrow;
             tf.isnogc = f.isnogc;
             tf.purity = f.purity;
@@ -2275,7 +2275,7 @@ extern (C++) class FuncDeclaration : Declaration
      * Return the function's parameter list, and whether
      * it is variadic or not.
      */
-    final ParameterList getParameterList(int* pvarargs)
+    final ParameterList getParameterList(VarArg* pvarargs)
     {
         if (type)
         {
@@ -2286,7 +2286,7 @@ extern (C++) class FuncDeclaration : Declaration
         }
 
         if (pvarargs)
-            *pvarargs = 0;
+            *pvarargs = VarArg.none;
 
         return ParameterList();
     }
@@ -2321,7 +2321,7 @@ extern (C++) class FuncDeclaration : Declaration
         }
         else
         {
-            tf = new TypeFunction(fparams, treturn, 0, LINK.c, stc);
+            tf = new TypeFunction(fparams, treturn, VarArg.none, LINK.c, stc);
             fd = new FuncDeclaration(Loc.initial, Loc.initial, id, STC.static_, tf);
             fd.protection = Prot(Prot.Kind.public_);
             fd.linkage = LINK.c;
@@ -3678,9 +3678,9 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
 extern (C++) final class NewDeclaration : FuncDeclaration
 {
     Parameters* parameters;
-    int varargs;
+    VarArg varargs;
 
-    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Parameters* fparams, int varargs)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Parameters* fparams, VarArg varargs)
     {
         super(loc, endloc, Id.classNew, STC.static_ | stc, null);
         this.parameters = fparams;

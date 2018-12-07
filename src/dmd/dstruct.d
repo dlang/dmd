@@ -53,7 +53,7 @@ extern (C++) FuncDeclaration search_toString(StructDeclaration sd)
         __gshared TypeFunction tftostring;
         if (!tftostring)
         {
-            tftostring = new TypeFunction(null, Type.tstring, 0, LINK.d);
+            tftostring = new TypeFunction(null, Type.tstring, VarArg.none, LINK.d);
             tftostring = tftostring.merge().toTypeFunction();
         }
         fd = fd.overloadExactMatch(tftostring);

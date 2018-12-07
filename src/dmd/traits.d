@@ -1187,7 +1187,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return dimError(1);
 
         LINK link;
-        int varargs;
+        VarArg varargs;
         auto o = (*e.args)[0];
 
         FuncDeclaration fd;
@@ -1209,14 +1209,13 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             fd.getParameterList(&varargs);
         }
         string style;
-        switch (varargs)
+        final switch (varargs)
         {
-            case 0: style = "none";                       break;
-            case 1: style = (link == LINK.d) ? "argptr"
-                                             : "stdarg";  break;
-            case 2:     style = "typesafe";               break;
-            default:
-                assert(0);
+            case VarArg.none:     style = "none";           break;
+            case VarArg.variadic: style = (link == LINK.d)
+                                             ? "argptr"
+                                             : "stdarg";    break;
+            case VarArg.typesafe: style = "typesafe";       break;
         }
         auto se = new StringExp(e.loc, cast(char*)style);
         return se.expressionSemantic(sc);

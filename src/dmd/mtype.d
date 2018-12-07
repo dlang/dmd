@@ -359,6 +359,19 @@ enum DotExpFlag
     noDeref = 2,    // the use of the expression will not attempt a dereference
 }
 
+/***************
+ * Variadic argument lists
+ * https://dlang.org/spec/function.html#variadic
+ */
+enum VarArg
+{
+    none     = 0,  /// fixed number of arguments
+    variadic = 1,  /// (T t, ...)  can be C-style (core.stdc.stdarg) or D-style (core.vararg)
+    typesafe = 2,  /// (T t ...) typesafe https://dlang.org/spec/function.html#typesafe_variadic_functions
+                   ///   or https://dlang.org/spec/function.html#typesafe_variadic_functions
+}
+
+
 /***********************************************************
  */
 extern (C++) abstract class Type : RootObject
@@ -4099,9 +4112,8 @@ extern (C++) final class TypeFunction : TypeNext
 
     ParameterList parameterList;   // function parameters
     alias parameters = parameterList;
+    VarArg varargs;
 
-    int varargs;                // 1: T t, ...) style for variable number of arguments
-                                // 2: T t ...) style for variable number of arguments
     bool isnothrow;             // true: nothrow
     bool isnogc;                // true: is @nogc
     bool isproperty;            // can be called without parentheses
@@ -4116,12 +4128,12 @@ extern (C++) final class TypeFunction : TypeNext
     Expressions* fargs;         // function arguments
     int inuse;
 
-    extern (D) this(Parameters* parameters, Type treturn, int varargs, LINK linkage, StorageClass stc = 0)
+    extern (D) this(Parameters* parameters, Type treturn, VarArg varargs, LINK linkage, StorageClass stc = 0)
     {
         super(Tfunction, treturn);
         //if (!treturn) *(char*)0=0;
         //    assert(treturn);
-        assert(0 <= varargs && varargs <= 2);
+        assert(VarArg.none <= varargs && varargs <= VarArg.typesafe);
         this.parameterList.parameters = parameters;
         this.varargs = varargs;
         this.linkage = linkage;
@@ -4153,7 +4165,7 @@ extern (C++) final class TypeFunction : TypeNext
             this.trust = TRUST.trusted;
     }
 
-    static TypeFunction create(Parameters* parameters, Type treturn, int varargs, LINK linkage, StorageClass stc = 0)
+    static TypeFunction create(Parameters* parameters, Type treturn, VarArg varargs, LINK linkage, StorageClass stc = 0)
     {
         return new TypeFunction(parameters, treturn, varargs, linkage, stc);
     }
@@ -4586,7 +4598,7 @@ extern (C++) final class TypeFunction : TypeNext
         size_t nargs = args ? args.dim : 0;
         if (nargs > nparams)
         {
-            if (varargs == 0)
+            if (varargs == VarArg.none)
             {
                 // suppress early exit if an error message is wanted,
                 // so we can check any matching args are valid
@@ -4740,14 +4752,14 @@ extern (C++) final class TypeFunction : TypeNext
             /* prefer matching the element type rather than the array
              * type when more arguments are present with T[]...
              */
-            if (varargs == 2 && u + 1 == nparams && nargs > nparams)
+            if (varargs == VarArg.typesafe && u + 1 == nparams && nargs > nparams)
                 goto L1;
 
             //printf("\tm = %d\n", m);
             if (m == MATCH.nomatch) // if no match
             {
             L1:
-                if (varargs == 2 && u + 1 == nparams) // if last varargs param
+                if (varargs == VarArg.typesafe && u + 1 == nparams) // if last varargs param
                 {
                     Type tb = p.type.toBasetype();
                     TypeSArray tsa;
@@ -6253,7 +6265,7 @@ extern (C++) final class Parameter : RootObject
             if (auto td = tel.isTypeDelegate())
             {
                 TypeFunction tf = td.next.toTypeFunction();
-                if (!tf.varargs && Parameter.dim(tf.parameters) == 0)
+                if (tf.varargs == VarArg.none && tf.parameterList.length == 0)
                 {
                     return tf.next; // return type of delegate
                 }

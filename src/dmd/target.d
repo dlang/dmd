@@ -495,7 +495,7 @@ struct Target
         else if (p.storageClass & STC.lazy_)
         {
             // Mangle as delegate
-            Type td = new TypeFunction(null, t, 0, LINK.d);
+            Type td = new TypeFunction(null, t, VarArg.none, LINK.d);
             td = new TypeDelegate(td);
             t = merge(t);
         }

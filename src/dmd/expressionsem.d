@@ -1663,7 +1663,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
     Expression eprefix = null;
     *peprefix = null;
 
-    if (nargs > nparams && tf.varargs == 0)
+    if (nargs > nparams && tf.varargs == VarArg.none)
     {
         error(loc, "expected %llu arguments, not %llu for non-variadic function type `%s`", cast(ulong)nparams, cast(ulong)nargs, tf.toChars());
         return true;
@@ -1712,7 +1712,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             {
                 if (!p.defaultArg)
                 {
-                    if (tf.varargs == 2 && i + 1 == nparams)
+                    if (tf.varargs == VarArg.typesafe && i + 1 == nparams)
                         goto L2;
                     return errorArgs();
                 }
@@ -1732,7 +1732,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 }
             }
 
-            if (tf.varargs == 2 && i + 1 == nparams) // https://dlang.org/spec/function.html#variadic
+            if (tf.varargs == VarArg.typesafe && i + 1 == nparams) // https://dlang.org/spec/function.html#variadic
             {
                 //printf("\t\tvarargs == 2, p.type = '%s'\n", p.type.toChars());
                 {
@@ -1999,7 +1999,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 default:
                     break;
                 }
-                if (tf.varargs == 1)
+                if (tf.varargs == VarArg.variadic)
                 {
                     const(char)* p = tf.linkage == LINK.c ? "extern(C)" : "extern(C++)";
                     if (arg.type.ty == Tarray)
@@ -2210,7 +2210,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
     //if (eprefix) printf("eprefix: %s\n", eprefix.toChars());
 
     // If D linkage and variadic, add _arguments[] as first argument
-    if (tf.linkage == LINK.d && tf.varargs == 1)
+    if (tf.linkage == LINK.d && tf.varargs == VarArg.variadic)
     {
         assert(arguments.dim >= nparams);
 
@@ -3820,7 +3820,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     dim = arguments.dim;
             }
 
-            if ((!tfl.varargs && arguments.dim == dim) || (tfl.varargs && arguments.dim >= dim))
+            if ((tfl.varargs == VarArg.none && arguments.dim == dim) ||
+                (tfl.varargs != VarArg.none && arguments.dim >= dim))
             {
                 auto tiargs = new Objects();
                 tiargs.reserve(exp.td.parameters.dim);
@@ -4044,7 +4045,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     // lazy parameters can be called without violating purity and safety
                     Type tw = ve.var.type;
                     Type tc = ve.var.type.substWildTo(MODFlags.const_);
-                    auto tf = new TypeFunction(null, tc, 0, LINK.d, STC.safe | STC.pure_);
+                    auto tf = new TypeFunction(null, tc, VarArg.none, LINK.d, STC.safe | STC.pure_);
                     (tf = cast(TypeFunction)tf.typeSemantic(exp.loc, sc)).next = tw; // hack for bug7757
                     auto t = new TypeDelegate(tf);
                     ve.type = t.typeSemantic(exp.loc, sc);
