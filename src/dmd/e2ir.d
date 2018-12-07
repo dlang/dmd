@@ -1789,7 +1789,7 @@ elem *toElem(Expression e, IRState *irs)
                 else
                 {
                     // Multidimensional array allocations
-                    for (size_t i = 0; i < ne.arguments.dim; i++)
+                    foreach (i; 0 .. ne.arguments.dim)
                     {
                         assert(t.ty == Tarray);
                         t = t.nextOf();
@@ -2147,10 +2147,10 @@ elem *toElem(Expression e, IRState *irs)
 
                 ev = el_una(OPind, tym, ev);
 
-                for (size_t d = depth; d > 0; d--)
+                foreach (d; 0 .. depth)
                 {
                     e1 = be.e1;
-                    for (size_t i = 1; i < d; i++)
+                    foreach (i; 1 .. depth - d)
                         e1 = (cast(CastExp)e1).e1;
 
                     el = toElemCast(cast(CastExp)e1, el);
@@ -5033,9 +5033,8 @@ elem *toElem(Expression e, IRState *irs)
             elem *e = null;
             if (te.e0)
                 e = toElem(te.e0, irs);
-            for (size_t i = 0; i < te.exps.dim; i++)
+            foreach (el; *te.exps)
             {
-                Expression el = (*te.exps)[i];
                 elem *ep = toElem(el, irs);
                 e = el_combine(e, ep);
             }
@@ -5129,12 +5128,11 @@ elem *toElem(Expression e, IRState *irs)
             if (AttribDeclaration ad = s.isAttribDeclaration())
             {
                 Dsymbols *decl = ad.include(null);
-                if (decl && decl.dim)
+                if (decl)
                 {
-                    for (size_t i = 0; i < decl.dim; i++)
+                    foreach (d; *decl)
                     {
-                        s = (*decl)[i];
-                        e = el_combine(e, Dsymbol_toElem(s));
+                        e = el_combine(e, Dsymbol_toElem(d));
                     }
                 }
             }
@@ -5200,17 +5198,16 @@ elem *toElem(Expression e, IRState *irs)
                 //printf("%s\n", tm.toChars());
                 if (tm.members)
                 {
-                    for (size_t i = 0; i < tm.members.dim; i++)
+                    foreach (sm; *tm.members)
                     {
-                        Dsymbol sm = (*tm.members)[i];
                         e = el_combine(e, Dsymbol_toElem(sm));
                     }
                 }
             }
             else if (TupleDeclaration td = s.isTupleDeclaration())
             {
-                for (size_t i = 0; i < td.objects.dim; i++)
-                {   RootObject o = (*td.objects)[i];
+                foreach (o; *td.objects)
+                {
                     if (o.dyncast() == DYNCAST.expression)
                     {   Expression eo = cast(Expression)o;
                         if (eo.op == TOK.dSymbol)
@@ -5238,22 +5235,21 @@ elem *toElem(Expression e, IRState *irs)
         elem *ElemsToStaticArray(const ref Loc loc, Type telem, Elems *elems, Symbol **psym)
         {
             // Create a static array of type telem[dim]
-            size_t dim = elems.dim;
+            const dim = elems.dim;
             assert(dim);
 
             Type tsarray = telem.sarrayOf(dim);
-            targ_size_t szelem = telem.size();
+            const szelem = telem.size();
             .type *te = Type_toCtype(telem);   // stmp[] element type
 
             Symbol *stmp = symbol_genauto(Type_toCtype(tsarray));
             *psym = stmp;
 
             elem *e = null;
-            for (size_t i = 0; i < dim; i++)
+            foreach (i, ep; *elems)
             {
                 /* Generate: *(&stmp + i * szelem) = element[i]
                  */
-                elem *ep = (*elems)[i];
                 elem *ev = el_ptr(stmp);
                 ev = el_bin(OPadd, TYnptr, ev, el_long(TYsize_t, i * szelem));
                 ev = el_una(OPind, te.Tty, ev);
@@ -5271,11 +5267,11 @@ elem *toElem(Expression e, IRState *irs)
         elem *ExpressionsToStaticArray(const ref Loc loc, Expressions *exps, Symbol **psym, size_t offset = 0, Expression basis = null)
         {
             // Create a static array of type telem[dim]
-            size_t dim = exps.dim;
+            const dim = exps.dim;
             assert(dim);
 
             Type telem = ((*exps)[0] ? (*exps)[0] : basis).type;
-            targ_size_t szelem = telem.size();
+            const szelem = telem.size();
             .type *te = Type_toCtype(telem);   // stmp[] element type
 
             if (!*psym)
@@ -5471,6 +5467,13 @@ private elem *fillHole(Symbol *stmp, size_t *poffset, size_t offset2, size_t max
     return e;
 }
 
+/*************************************************
+ * Params:
+ *      op = TOK.assign, TOK.construct, TOK.blit
+ *      fillHoles = Fill in alignment holes with zero. Set to
+ *                  false if allocated by operator new, as the holes are already zeroed.
+ */
+
 private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol *sym, bool fillHoles)
 {
     //printf("[%s] StructLiteralExp.toElem() %s\n", sle.loc.toChars(), sle.toChars());
@@ -5478,6 +5481,8 @@ private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol
 
     if (sle.useStaticInit)
     {
+        /* Use the struct declaration's init symbol
+         */
         elem *e = el_var(toInitializer(sle.sd));
         e.ET = Type_toCtype(sle.sd.type);
         elem_setLoc(e, sle.loc);
@@ -5561,7 +5566,7 @@ private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol
         Lagain:
             size_t holeEnd = structsize;
             size_t offset2 = structsize;
-            for (size_t j = i + 1; j < vend; j++)
+            foreach (j; i + 1 .. vend)
             {
                 VarDeclaration vx = sle.sd.fields[j];
                 if (!vx.overlapped)
@@ -5594,9 +5599,8 @@ private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol
 
     // CTFE may fill the hidden pointer by NullExp.
     {
-        for (size_t i = 0; i < dim; i++)
+        foreach (i, el; *sle.elements)
         {
-            Expression el = (*sle.elements)[i];
             if (!el)
                 continue;
 
@@ -6004,16 +6008,18 @@ void toTraceGC(IRState *irs, elem *e, const ref Loc loc)
         assert(e.Eoper == OPcall);
         elem *e1 = e.EV.E1;
         assert(e1.Eoper == OPvar);
-        for (size_t i = 0; 1; ++i)
+
+        auto s = e1.EV.Vsym;
+        foreach (ref m; map)
         {
-            assert(i < map.length);
-            if (e1.EV.Vsym == getRtlsym(map[i][0]))
+            if (s == getRtlsym(m[0]))
             {
-                e1.EV.Vsym = getRtlsym(map[i][1]);
-                break;
+                e1.EV.Vsym = getRtlsym(m[1]);
+                e.EV.E2 = el_param(e.EV.E2, filelinefunction(irs, loc));
+                return;
             }
         }
-        e.EV.E2 = el_param(e.EV.E2, filelinefunction(irs, loc));
+        assert(0);
     }
 }
 
