@@ -253,7 +253,7 @@ SignExtendedNumber SignExtendedNumber::operator<<(const SignExtendedNumber& rhs)
 
 SignExtendedNumber SignExtendedNumber::operator>>(const SignExtendedNumber& rhs) const
 {
-    if (rhs.negative || rhs.value > 64)
+    if (rhs.negative || rhs.value > 63)
         return negative ? SignExtendedNumber(-1, true) : SignExtendedNumber(0);
     else if (isMinimum())
         return rhs.value == 0 ? *this : SignExtendedNumber(-1ULL << (64 - rhs.value), true);

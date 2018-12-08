@@ -19,18 +19,32 @@ void leftShift()
 
 void leftShiftFail()
 {
-    ubyte x, y;
-    ushort z;
-    static assert(!__traits(compiles, z = x << y));
-    // 1 << 31 surely overflows the range of 'ushort'.
+    {
+        ubyte x, y;
+        ushort z;
+        static assert(!__traits(compiles, z = x << y));
+        // 1 << 31 surely overflows the range of 'ushort'.
+    }
+    {
+        ulong a, b;
+        int res;
+        static assert(!__traits(compiles, res = a << (b % 65U)));
+    }
 }
 
 void rightShiftFail()
 {
-    short x;
-    byte y, z;
-    static assert(!__traits(compiles, z = x >> y));
-    // [this passes in 2.053.]
+    {
+        short x;
+        byte y, z;
+        static assert(!__traits(compiles, z = x >> y));
+        // [this passes in 2.053.]
+    }
+    {
+        ulong a, b;
+        int res;
+        static assert(!__traits(compiles, res = a >> (b % 65U)));
+    }
 }
 
 void rightShift()
