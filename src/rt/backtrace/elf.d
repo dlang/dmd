@@ -60,7 +60,7 @@ struct Image
             return null;
 
         auto dbgSection = ElfSection(file, dbgSectionHeader);
-        const sectionData = cast(const(ubyte)[]) dbgSection.get();
+        const sectionData = cast(const(ubyte)[]) dbgSection.data();
         // do not munmap() the section data to be returned
         import core.stdc.string;
         ElfSection initialSection;

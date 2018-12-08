@@ -19,6 +19,7 @@ else version (DragonFlyBSD) version = linux_or_bsd;
 
 version (linux_or_bsd):
 
+import core.stdc.string : strlen;
 import core.sys.posix.fcntl;
 import core.sys.posix.unistd;
 
@@ -108,7 +109,6 @@ struct SharedObject
         if (cstr[0] == 0)
             cstr = getprogname();
 
-        import core.stdc.string;
         return cstr[0 .. strlen(cstr)];
     }
 
@@ -163,7 +163,7 @@ struct ElfFile
         if (fd != -1)
         {
             // memory map header
-            this.ehdr = MMapRegion!Elf_Ehdr(fd, 0, Elf_Ehdr.sizeof);
+            this.ehdr = MMapRegion!Elf_Ehdr(fd, 0);
         }
     }
 
@@ -171,10 +171,11 @@ struct ElfFile
 
     ~this()
     {
-        if (fd != -1) close(fd);
+        if (fd != -1)
+            close(fd);
     }
 
-    int fd = -1;
+    private int fd = -1;
     MMapRegion!Elf_Ehdr ehdr;
 
     bool isValid() const
@@ -199,7 +200,8 @@ struct ElfFile
         foreach (i; 0 .. ehdr.e_shnum)
         {
             auto sectionHeader = ElfSectionHeader(this, i);
-            auto currentName = getSectionName(stringSection, sectionHeader.sh_name);
+            auto pCurrentName = cast(const(char)*) (stringSection.data.ptr + sectionHeader.sh_name);
+            auto currentName = pCurrentName[0 .. strlen(pCurrentName)];
             if (sectionName == currentName)
                 return i;
         }
@@ -217,8 +219,7 @@ struct ElfSectionHeader
         assert(Elf_Shdr.sizeof == file.ehdr.e_shentsize);
         shdr = MMapRegion!Elf_Shdr(
             file.fd,
-            file.ehdr.e_shoff + index * file.ehdr.e_shentsize,
-            file.ehdr.e_shentsize
+            file.ehdr.e_shoff + index * Elf_Shdr.sizeof
         );
     }
 
@@ -233,26 +234,22 @@ struct ElfSection
 @nogc nothrow:
     this(ref const ElfFile file, ref const ElfSectionHeader shdr)
     {
-        data = MMapRegion!void(
-            file.fd,
-            shdr.sh_offset,
-            shdr.sh_size,
-        );
-
-        length = shdr.sh_size;
+        mappedRegion = MMapRegion!void(file.fd, shdr.sh_offset, shdr.sh_size);
+        size = shdr.sh_size;
     }
 
     @disable this(this);
 
-    const(void)[] get() const
+    const(void)[] data() const
     {
-        return data.get()[0 .. length];
+        return mappedRegion.data[0 .. size];
     }
 
-    alias get this;
+    alias data this;
 
-    MMapRegion!void data;
-    size_t length;
+private:
+    MMapRegion!void mappedRegion;
+    size_t size;
 }
 
 private @nogc nothrow:
@@ -268,19 +265,6 @@ version (linux)
 else
 {
     extern(C) const(char)* getprogname();
-}
-
-const(char)[] getSectionName(ref const ElfSection stringSection, size_t nameIndex)
-{
-    const data = cast(const(ubyte[])) stringSection.get();
-
-    foreach (i; nameIndex .. data.length)
-    {
-        if (data[i] == 0)
-            return cast(const(char)[]) data[nameIndex .. i];
-    }
-
-    return null;
 }
 
 bool isValidElfHeader(ref const Elf_Ehdr ehdr)
@@ -310,32 +294,29 @@ struct MMapRegion(T)
     import core.sys.posix.sys.mman;
     import core.sys.posix.unistd;
 
-    this(int fd, size_t offset, size_t length)
+    this(int fd, size_t offset, size_t length = 1)
     {
-        auto pagesize = sysconf(_SC_PAGESIZE);
+        const pageSize = sysconf(_SC_PAGESIZE);
+        const pagedOffset = (offset / pageSize) * pageSize;
+        const offsetDiff = offset - pagedOffset;
+        const mappedSize = length * T.sizeof + offsetDiff;
 
-        auto realOffset = (offset / pagesize) * pagesize;
-        offsetDiff = offset - realOffset;
-        realLength = length + offsetDiff;
+        auto ptr = cast(ubyte*) mmap(null, mappedSize, PROT_READ, MAP_PRIVATE, fd, pagedOffset);
 
-        mptr = mmap(null, realLength, PROT_READ, MAP_PRIVATE, fd, realOffset);
+        mappedRegion = ptr[0 .. mappedSize];
+        data = cast(T*) (ptr + offsetDiff);
     }
 
     @disable this(this);
 
     ~this()
     {
-        if (mptr) munmap(mptr, realLength);
+        if (mappedRegion !is null)
+            munmap(mappedRegion.ptr, mappedRegion.length);
     }
 
-    const(T)* get() const
-    {
-        return cast(T*)(mptr + offsetDiff);
-    }
+    alias data this;
 
-    alias get this;
-
-    size_t realLength;
-    size_t offsetDiff;
-    void* mptr;
+    private ubyte[] mappedRegion;
+    const(T)* data;
 }
