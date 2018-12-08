@@ -580,7 +580,7 @@ struct IntRange
             auto maxAndPos = maxAnd(l, IntRange(SignExtendedNumber(0), r.imax));
 
             auto min = minAndNeg < minAndPos ? minAndNeg : minAndPos;
-            auto max = maxAndNeg > maxAndNeg ? maxAndNeg : maxAndPos;
+            auto max = maxAndNeg > maxAndPos ? maxAndNeg : maxAndPos;
 
             auto range = IntRange(min, max);
             return range;
@@ -627,8 +627,8 @@ struct IntRange
             auto maxOrNeg = maxOr(l, IntRange(r.imin, SignExtendedNumber(-1)));
             auto maxOrPos = maxOr(l, IntRange(SignExtendedNumber(0), r.imax));
 
-            auto min = minOrNeg.value < minOrPos.value ? minOrNeg : minOrPos;
-            auto max = maxOrNeg.value > maxOrNeg.value ? maxOrNeg : maxOrPos;
+            auto min = minOrNeg < minOrPos ? minOrNeg : minOrPos;
+            auto max = maxOrNeg > maxOrPos ? maxOrNeg : maxOrPos;
 
             auto range = IntRange(min, max);
             return range;

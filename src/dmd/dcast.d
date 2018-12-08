@@ -1094,6 +1094,19 @@ MATCH implicitConvTo(Expression e, Type t)
             visit(cast(Expression)e);
         }
 
+        override void visit(AndExp e)
+        {
+            visit(cast(Expression)e);
+            if (result != MATCH.nomatch)
+                return;
+
+            MATCH m1 = e.e1.implicitConvTo(t);
+            MATCH m2 = e.e2.implicitConvTo(t);
+
+            // Pick the worst match
+            result = (m1 < m2) ? m1 : m2;
+        }
+
         override void visit(OrExp e)
         {
             visit(cast(Expression)e);
