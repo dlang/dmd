@@ -51,77 +51,80 @@ int traceHandlerOpApplyImpl(const void*[] callstack, scope int delegate(ref size
     const char** frameList = backtrace_symbols(callstack.ptr, cast(int) callstack.length);
     scope(exit) free(cast(void*) frameList);
 
-    // find address -> file, line mapping using dwarf debug_line
-    Array!Location locations;
     auto image = Image.openSelf();
-    if (image.isValid)
-    {
-        auto debugLineSectionData = image.getDebugLineSectionData();
 
+    int processCallstack(const(ubyte)[] debugLineSectionData)
+    {
+        // find address -> file, line mapping using dwarf debug_line
+        Array!Location locations;
         if (debugLineSectionData)
         {
-            // resolve addresses
             locations.length = callstack.length;
             foreach (size_t i; 0 .. callstack.length)
                 locations[i].address = cast(size_t) callstack[i];
 
             resolveAddresses(debugLineSectionData, locations[], image.baseAddress);
         }
+
+        int ret = 0;
+        foreach (size_t i; 0 .. callstack.length)
+        {
+            char[1536] buffer = void;
+            size_t bufferLength = 0;
+
+            void appendToBuffer(Args...)(const(char)* format, Args args)
+            {
+                const count = snprintf(buffer.ptr + bufferLength, buffer.length - bufferLength, format, args);
+                assert(count >= 0);
+                bufferLength += count;
+                if (bufferLength >= buffer.length)
+                    bufferLength = buffer.length - 1;
+            }
+
+            if (locations.length > 0 && locations[i].line != -1)
+            {
+                appendToBuffer("%.*s:%d ", cast(int) locations[i].file.length, locations[i].file.ptr, locations[i].line);
+            }
+            else
+            {
+                buffer[0 .. 5] = "??:? ";
+                bufferLength = 5;
+            }
+
+            char[1024] symbolBuffer = void;
+            auto symbol = getDemangledSymbol(frameList[i][0 .. strlen(frameList[i])], symbolBuffer);
+            if (symbol.length > 0)
+                appendToBuffer("%.*s ", cast(int) symbol.length, symbol.ptr);
+
+            const addressLength = 20;
+            const maxBufferLength = buffer.length - addressLength;
+            if (bufferLength > maxBufferLength)
+            {
+                buffer[maxBufferLength-4 .. maxBufferLength] = "... ";
+                bufferLength = maxBufferLength;
+            }
+            static if (size_t.sizeof == 8)
+                appendToBuffer("[0x%llx]", callstack[i]);
+            else
+                appendToBuffer("[0x%x]", callstack[i]);
+
+            auto output = buffer[0 .. bufferLength];
+            auto pos = i;
+            ret = dg(pos, output);
+            if (ret || symbol == "_Dmain") break;
+        }
+
+        return ret;
     }
 
-    int ret = 0;
-    foreach (size_t i; 0 .. callstack.length)
-    {
-        char[1536] buffer = void;
-        size_t bufferLength = 0;
-
-        void appendToBuffer(Args...)(const(char)* format, Args args)
-        {
-            const count = snprintf(buffer.ptr + bufferLength, buffer.length - bufferLength, format, args);
-            assert(count >= 0);
-            bufferLength += count;
-            if (bufferLength >= buffer.length)
-                bufferLength = buffer.length - 1;
-        }
-
-        if (locations.length > 0 && locations[i].line != -1)
-        {
-            appendToBuffer("%.*s:%d ", cast(int) locations[i].file.length, locations[i].file.ptr, locations[i].line);
-        }
-        else
-        {
-            buffer[0 .. 5] = "??:? ";
-            bufferLength = 5;
-        }
-
-        char[1024] symbolBuffer = void;
-        auto symbol = getDemangledSymbol(frameList[i][0 .. strlen(frameList[i])], symbolBuffer);
-        if (symbol.length > 0)
-            appendToBuffer("%.*s ", cast(int) symbol.length, symbol.ptr);
-
-        const addressLength = 20;
-        const maxBufferLength = buffer.length - addressLength;
-        if (bufferLength > maxBufferLength)
-        {
-            buffer[maxBufferLength-4 .. maxBufferLength] = "... ";
-            bufferLength = maxBufferLength;
-        }
-        static if (size_t.sizeof == 8)
-            appendToBuffer("[0x%llx]", callstack[i]);
-        else
-            appendToBuffer("[0x%x]", callstack[i]);
-
-        auto output = buffer[0 .. bufferLength];
-        auto pos = i;
-        ret = dg(pos, output);
-        if (ret || symbol == "_Dmain") break;
-    }
-    return ret;
+    return image.isValid
+        ? image.processDebugLineSectionData(&processCallstack)
+        : processCallstack(null);
 }
 
 private:
 
-// the lifetime of the Location data is the lifetime of the mmapped ElfSection
+// the lifetime of the Location data is bound to the lifetime of debugLineSectionData
 void resolveAddresses(const(ubyte)[] debugLineSectionData, Location[] locations, size_t baseAddress) @nogc nothrow
 {
     debug(DwarfDebugMachine) import core.stdc.stdio;

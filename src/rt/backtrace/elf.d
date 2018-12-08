@@ -58,24 +58,19 @@ struct Image
         return file != ElfFile.init;
     }
 
-    const(ubyte)[] getDebugLineSectionData()
+    T processDebugLineSectionData(T)(scope T delegate(const(ubyte)[]) processor)
     {
         ElfSectionHeader dbgSectionHeader;
-        if (!file.findSectionHeaderByName(".debug_line", dbgSectionHeader))
-            return null;
+        ElfSection dbgSection;
 
-        // we don't support compressed debug sections
-        if ((dbgSectionHeader.shdr.sh_flags & SHF_COMPRESSED) != 0)
-            return null;
+        if (file.findSectionHeaderByName(".debug_line", dbgSectionHeader))
+        {
+            // we don't support compressed debug sections
+            if (!(dbgSectionHeader.shdr.sh_flags & SHF_COMPRESSED))
+                dbgSection = ElfSection(file, dbgSectionHeader);
+        }
 
-        auto dbgSection = ElfSection(file, dbgSectionHeader);
-        const sectionData = cast(const(ubyte)[]) dbgSection.data();
-        // do not munmap() the section data to be returned
-        import core.stdc.string;
-        ElfSection initialSection;
-        memcpy(&dbgSection, &initialSection, ElfSection.sizeof);
-
-        return sectionData;
+        return processor(cast(const(ubyte)[]) dbgSection.data());
     }
 
     @property size_t baseAddress()
