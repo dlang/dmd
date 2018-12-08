@@ -3,7 +3,7 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>ddoc9305</title>
+    <title>ddoc_markdown_lists</title>
     <style type="text/css" media="screen">
       html, body, div, span, object, iframe, h1, h2, h3, h4, h5, h6, p,
       blockquote, pre, a, abbr, address, cite, code, del, dfn, em, figure,
@@ -494,177 +494,95 @@
   <body id="ddoc_main" class="ddoc dlang">
     <div class="content_wrapper">
       <article class="module">
-        <h1 class="module_name">ddoc9305</h1>
-        <section id="module_content">
-<section class="section ddoc_module_members_section">
-  <div class="ddoc_module_members">
-    <ul class="ddoc_members">
-  <li class="ddoc_member">
-  <div class="ddoc_member_header">
-  <div class="ddoc_header_anchor">
-  <a href="#foo" id="foo"><code class="code">foo</code></a>
-</div>
-</div><div class="ddoc_decl">
-  <section class="section">
-    <div class="declaration">
-      <h4>Declaration</h4>
-      <div class="dlang">
-        <p class="para">
-          <code class="code">
-            <span class="ddoc_anchor" id="foo"></span>void <code class="code">foo</code>(alias p = (a) =&gt; a)();
-
-          </code>
-        </p>
-      </div>
-    </div>
-  </section>
-</div>
-<div class="ddoc_decl">
-  <section class="section ddoc_sections">
+        <h1 class="module_name">ddoc_markdown_lists</h1>
+        <section id="module_content"><section class="section ddoc_sections">
   <div class="ddoc_summary">
   <p class="para">
-    <code class="code">foo</code>()
+    <h1>Lists</h1>
+
+  </p>
+</div>
+<div class="ddoc_description">
+  <h4>Discussion</h4>
+  <p class="para">
+    <h2>Unordered</h2>
+
+<ul><li>item one
+<br><br>
+  <em>part of</em> item one
+<br><br>
+
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="comment">// code in item one
+</span></code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+</li>
+</ul>
+ <strong>not</strong> part of item one
+
+<ul><li>three</li>
+</ul>
+<ul><li>different</li>
+</ul>
+<ul><li>lists
+</li>
+</ul>
+<ul><li>list with</li>
+<li></li>
+<li>empty item
+</li>
+<li>parent item
+<ul><li>child item
+</li>
+</ul></li>
+<li>sibling item</li>
+<li>sibling item
+</li>
+</ul>
+After text:
+<ul><li><h3>heading</h3></li>
+<li>and item
+</li>
+</ul>
+<h2>Ordered</h2>
+
+<ol start="0"><li>zero</li>
+<li>one
+</li>
+</ol>
+List separator text
+
+<ol start="3"><li>list that starts with three
+</li>
+<li>parent item
+<ol><li>child item
+</li>
+</ol></li>
+<li>sibling item</li>
+<li>sibling item
+</li>
+</ol>
+<h2>Not Lists</h2>
+
+-no initial space
+<br><br>
+2.no initial space
+<br><br>
+1234567890. too many numbers
+<br><br>
+-1. negative
+<br><br>
+New lists must start with 1, not
+6. So this isn't a list.
   </p>
 </div>
 
-</section>
-
-</div>
-
-</li><li class="ddoc_member">
-  <div class="ddoc_member_header">
-  <div class="ddoc_header_anchor">
-  <a href="#X" id="X"><code class="code">X</code></a>
-</div>
-</div><div class="ddoc_decl">
-  <section class="section">
-    <div class="declaration">
-      <h4>Declaration</h4>
-      <div class="dlang">
-        <p class="para">
-          <code class="code">
-            <span class="ddoc_anchor" id="X"></span>template <code class="code">X</code>(alias pred = (x) =&gt; x)<br>
-template <code class="code">X</code>(alias pred = (x)
-{
-int y;
-return y;
-}
-)<br>
-template <code class="code">X</code>(alias pred = (int x) =&gt; x)<br>
-template <code class="code">X</code>(alias pred = (int x)
-{
-int y;
-return y;
-}
-)
-          </code>
-        </p>
-      </div>
-    </div>
-  </section>
-</div>
-<div class="ddoc_decl">
-  
-
-</div>
-
-</li><li class="ddoc_member">
-  <div class="ddoc_member_header">
-  <div class="ddoc_header_anchor">
-  <a href="#X" id="X"><code class="code">X</code></a>
-</div>
-</div><div class="ddoc_decl">
-  <section class="section">
-    <div class="declaration">
-      <h4>Declaration</h4>
-      <div class="dlang">
-        <p class="para">
-          <code class="code">
-            <span class="ddoc_anchor" id="X.2"></span>template <code class="code">X</code>(alias pred = function (x) =&gt; x)<br>
-template <code class="code">X</code>(alias pred = function (x)
-{
-return x + 1;
-}
-)<br>
-template <code class="code">X</code>(alias pred = function (int x) =&gt; x)<br>
-template <code class="code">X</code>(alias pred = function (int x)
-{
-return x + 1;
-}
-)<br>
-template <code class="code">X</code>(alias pred = function int(x) =&gt; x)<br>
-template <code class="code">X</code>(alias pred = function int(x)
-{
-return x + 1;
-}
-)<br>
-template <code class="code">X</code>(alias pred = function int(int x) =&gt; x)<br>
-template <code class="code">X</code>(alias pred = function int(int x)
-{
-return x + 1;
-}
-)
-          </code>
-        </p>
-      </div>
-    </div>
-  </section>
-</div>
-<div class="ddoc_decl">
-  
-
-</div>
-
-</li><li class="ddoc_member">
-  <div class="ddoc_member_header">
-  <div class="ddoc_header_anchor">
-  <a href="#X" id="X"><code class="code">X</code></a>
-</div>
-</div><div class="ddoc_decl">
-  <section class="section">
-    <div class="declaration">
-      <h4>Declaration</h4>
-      <div class="dlang">
-        <p class="para">
-          <code class="code">
-            <span class="ddoc_anchor" id="X.3"></span>template <code class="code">X</code>(alias pred = delegate (x) =&gt; x)<br>
-template <code class="code">X</code>(alias pred = delegate (x)
-{
-return x + 1;
-}
-)<br>
-template <code class="code">X</code>(alias pred = delegate (int x) =&gt; x)<br>
-template <code class="code">X</code>(alias pred = delegate (int x)
-{
-return x + 1;
-}
-)<br>
-template <code class="code">X</code>(alias pred = delegate int(x) =&gt; x)<br>
-template <code class="code">X</code>(alias pred = delegate int(x)
-{
-return x + 1;
-}
-)<br>
-template <code class="code">X</code>(alias pred = delegate int(int x) =&gt; x)<br>
-template <code class="code">X</code>(alias pred = delegate int(int x)
-{
-return x + 1;
-}
-)
-          </code>
-        </p>
-      </div>
-    </div>
-  </section>
-</div>
-<div class="ddoc_decl">
-  
-
-</div>
-
-</li>
-</ul>
-  </div>
 </section>
 </section>
       </article>

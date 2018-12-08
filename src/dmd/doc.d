@@ -1654,6 +1654,19 @@ struct DocComment
             p = skipwhitespace(p);
             pstart = p;
             pend = p;
+
+            // Undo indent if starting with a list item
+            if ((*p == '-' || *p == '+' || *p == '*') && (*(p+1) == ' ' || *(p+1) == '\t'))
+                pstart = pstart0;
+            else
+            {
+                const(char)* pitem = p;
+                while (*pitem >= '0' && *pitem <= '9')
+                    ++pitem;
+                if (pitem > p && *pitem == '.' && (*(pitem+1) == ' ' || *(pitem+1) == '\t'))
+                    pstart = pstart0;
+            }
+
             /* Find end of section, which is ended by one of:
              *      'identifier:' (but not inside a code section)
              *      '\0'
@@ -1907,6 +1920,26 @@ unittest {
 }
 
 /************************************************
+ * Get the indent from one index to another, counting tab stops as four spaces wide
+ * per the Markdown spec.
+ * Params:
+ *  buf   = an OutBuffer containing the DDoc
+ *  from  = the index within `buf` to start counting from, inclusive
+ *  to    = the index within `buf` to stop counting at, exclusive
+ * Returns: the indent
+ */
+private int getMarkdownIndent(OutBuffer* buf, size_t from, size_t to)
+{
+    const slice = buf.peekSlice();
+    if (to > slice.length)
+        to = slice.length;
+    int indent = 0;
+    foreach (const c; slice[from..to])
+        indent += (c == '\t') ? 4 - (indent % 4) : 1;
+    return indent;
+}
+
+/************************************************
  * Scan forward to one of:
  *      start of identifier
  *      beginning of next line
@@ -2019,7 +2052,7 @@ Lno:
  *  i             = an index within `buf`. If `i` is after `iAt` then it gets
  *                  reduced by the length of the removed macro.
  */
-private void removeBlankLineMacro(OutBuffer *buf, ref size_t iAt, ref size_t i)
+private void removeBlankLineMacro(OutBuffer* buf, ref size_t iAt, ref size_t i)
 {
     if (!iAt)
         return;
@@ -2041,7 +2074,7 @@ private void removeBlankLineMacro(OutBuffer *buf, ref size_t iAt, ref size_t i)
  *          the detected heading level from 1 to 6, or
  *          0 if not at an ATX heading
  */
-private int detectAtxHeadingLevel(OutBuffer *buf, const size_t i)
+private int detectAtxHeadingLevel(OutBuffer* buf, const size_t i)
 {
     if (!global.params.markdown)
         return 0;
@@ -2068,7 +2101,7 @@ private int detectAtxHeadingLevel(OutBuffer *buf, const size_t i)
  *  buf   = an OutBuffer containing the DDoc
  *  i     = the index within `buf` to start looking for a suffix at
  */
-private void removeAnyAtxHeadingSuffix(OutBuffer *buf, size_t i)
+private void removeAnyAtxHeadingSuffix(OutBuffer* buf, size_t i)
 {
     size_t j = i;
     size_t iSuffixStart = 0;
@@ -2113,7 +2146,7 @@ private void removeAnyAtxHeadingSuffix(OutBuffer *buf, size_t i)
  *  headingLevel  = the level (1-6) of heading to end. Is set to `0` when this
  *                  function ends.
  */
-private void endMarkdownHeading(OutBuffer *buf, size_t iStart, ref size_t iEnd, const ref Loc loc, ref int headingLevel)
+private void endMarkdownHeading(OutBuffer* buf, size_t iStart, ref size_t iEnd, const ref Loc loc, ref int headingLevel)
 {
     if (!global.params.markdown)
         return;
@@ -2144,7 +2177,7 @@ private void endMarkdownHeading(OutBuffer *buf, size_t iStart, ref size_t iEnd, 
  *  downToLevel       = the length within `inlineDelimiters`` to reduce emphasis to
  * Returns: the number of characters added to the buffer by the replacements
  */
-private size_t replaceMarkdownEmphasis(OutBuffer *buf, const ref Loc loc, ref MarkdownDelimiter[] inlineDelimiters, int downToLevel = 0)
+private size_t replaceMarkdownEmphasis(OutBuffer* buf, const ref Loc loc, ref MarkdownDelimiter[] inlineDelimiters, int downToLevel = 0)
 {
     if (!global.params.markdown)
         return 0;
@@ -2439,6 +2472,235 @@ private struct MarkdownDelimiter
     char type;      /// the type of delimiter, defined by its starting character
 }
 
+/****************************************************
+ * Info about a Markdown list.
+ */
+private struct MarkdownList
+{
+    string orderedStart;    /// an optional start number--if present then the list starts at this number
+    size_t iStart;          /// the index where the list item starts
+    size_t iContentStart;   /// the index where the content starts after the list delimiter
+    int delimiterIndent;    /// the level of indent the list delimiter starts at
+    int contentIndent;      /// the level of indent the content starts at
+    int macroLevel;         /// the count of nested DDoc macros when the list is started
+    char type;              /// the type of list, defined by its starting character
+
+    /// whether this describes a valid list
+    @property bool isValid() const { return type != type.init; }
+
+    /****************************************************
+     * Try to parse a list item, returning whether successful.
+     * Params:
+     *  buf           = an OutBuffer containing the DDoc
+     *  iLineStart    = the index within `buf` of the first character of the line
+     *  i             = the index within `buf` of the potential list item
+     * Returns: the parsed list item. Its `isValid` property describes whether parsing succeeded.
+     */
+    static MarkdownList parseItem(OutBuffer* buf, size_t iLineStart, size_t i)
+    {
+        if (!global.params.markdown)
+            return MarkdownList();
+
+        if (buf.data[i] == '+' || buf.data[i] == '-' || buf.data[i] == '*')
+            return parseUnorderedListItem(buf, iLineStart, i);
+        else
+            return parseOrderedListItem(buf, iLineStart, i);
+    }
+
+    /****************************************************
+     * Return whether the context is at a list item of the same type as this list.
+     * Params:
+     *  buf           = an OutBuffer containing the DDoc
+     *  iLineStart    = the index within `buf` of the first character of the line
+     *  i             = the index within `buf` of the list item
+     * Returns: whether `i` is at a list item of the same type as this list
+     */
+    private bool isAtItemInThisList(OutBuffer* buf, size_t iLineStart, size_t i)
+    {
+        MarkdownList item = (type == '.' || type == ')') ?
+            parseOrderedListItem(buf, iLineStart, i) :
+            parseUnorderedListItem(buf, iLineStart, i);
+        if (item.type == type)
+            return item.delimiterIndent < contentIndent && item.contentIndent > delimiterIndent;
+        return false;
+    }
+
+    /****************************************************
+     * Start a Markdown list item by creating/deleting nested lists and starting the item.
+     * Params:
+     *  buf           = an OutBuffer containing the DDoc
+     *  iLineStart    = the index within `buf` of the first character of the line. If this function succeeds it will be adjuested to equal `i`.
+     *  i             = the index within `buf` of the list item. If this function succeeds `i` will be adjusted to fit the inserted macro.
+     *  iPrecedingBlankLine = the index within `buf` of the preceeding blank line. If non-zero and a new list was started, the preceeding blank line is removed and this value is set to `0`.
+     *  nestedLists   = a set of nested lists. If this function succeeds it may contain a new nested list.
+     *  loc           = the location of the Ddoc within the file
+     * Returns: `true` if a list was created
+     */
+    bool startItem(OutBuffer* buf, ref size_t iLineStart, ref size_t i, ref size_t iPrecedingBlankLine, ref MarkdownList[] nestedLists, const ref Loc loc)
+    {
+        buf.remove(iStart, iContentStart - iStart);
+
+        if (!nestedLists.length ||
+            delimiterIndent >= nestedLists[$-1].contentIndent ||
+            buf.data[iLineStart - 4..iLineStart] == "$(LI")
+        {
+            // start a list macro
+            nestedLists ~= this;
+            if (type == '.')
+            {
+                if (orderedStart.length)
+                {
+                    iStart = buf.insert(iStart, "$(OL_START ");
+                    iStart = buf.insert(iStart, orderedStart);
+                    iStart = buf.insert(iStart, ",\n");
+                }
+                else
+                    iStart = buf.insert(iStart, "$(OL\n");
+            }
+            else
+                iStart = buf.insert(iStart, "$(UL\n");
+
+            removeBlankLineMacro(buf, iPrecedingBlankLine, iStart);
+        }
+        else if (nestedLists.length)
+        {
+            nestedLists[$-1].delimiterIndent = delimiterIndent;
+            nestedLists[$-1].contentIndent = contentIndent;
+        }
+
+        iStart = buf.insert(iStart, "$(LI\n");
+        i = iStart - 1;
+        iLineStart = i;
+
+        if (global.params.vmarkdown)
+        {
+            size_t iEnd = iStart;
+            while (iEnd < buf.offset && buf.data[iEnd] != '\r' && buf.data[iEnd] != '\n')
+                ++iEnd;
+            const s = buf.peekSlice()[iStart..iEnd];
+            message(loc, "Ddoc: starting list item '%.*s'", s.length, s.ptr);
+        }
+
+        return true;
+    }
+
+    /****************************************************
+     * End all nested Markdown lists.
+     * Params:
+     *  buf           = an OutBuffer containing the DDoc
+     *  i             = the index within `buf` to end lists at. If there were lists `i` will be adjusted to fit the macro endings.
+     *  nestedLists   = a set of nested lists. Upon return it will be empty.
+     * Returns: the amount that `i` changed
+     */
+    static size_t endAllNestedLists(OutBuffer* buf, ref size_t i, ref MarkdownList[] nestedLists)
+    {
+        const iStart = i;
+        for (; nestedLists.length; --nestedLists.length)
+            i = buf.insert(i, ")\n)");
+        return i - iStart;
+    }
+
+    /****************************************************
+     * Look for a sibling list item or the end of nested list(s).
+     * Params:
+     *  buf               = an OutBuffer containing the DDoc
+     *  i                 = the index within `buf` to end lists at. If there was a sibling or ending lists `i` will be adjusted to fit the macro endings.
+     *  iParagraphStart   = the index within `buf` to start the next paragraph at at. May be adjusted upon return.
+     *  nestedLists       = a set of nested lists. Some nested lists may have been removed from it upon return.
+     */
+    static void handleSiblingOrEndingList(OutBuffer* buf, ref size_t i, ref size_t iParagraphStart, ref MarkdownList[] nestedLists)
+    {
+        size_t iAfterSpaces = skipChars(buf, i + 1, " \t");
+
+        if (nestedLists[$-1].isAtItemInThisList(buf, i + 1, iAfterSpaces))
+        {
+            // end a sibling list item
+            i = buf.insert(i, ")");
+            iParagraphStart = skipChars(buf, i, " \t\r\n");
+        }
+        else if (iAfterSpaces >= buf.offset || (buf.data[iAfterSpaces] != '\r' && buf.data[iAfterSpaces] != '\n'))
+        {
+            // end nested lists that are indented more than this content
+            const indent = getMarkdownIndent(buf, i + 1, iAfterSpaces);
+            while (nestedLists.length && nestedLists[$-1].contentIndent > indent)
+            {
+                i = buf.insert(i, ")\n)");
+                --nestedLists.length;
+                iParagraphStart = skipChars(buf, i, " \t\r\n");
+
+                if (nestedLists.length && nestedLists[$-1].isAtItemInThisList(buf, i + 1, iParagraphStart))
+                {
+                    i = buf.insert(i, ")");
+                    ++iParagraphStart;
+                    break;
+                }
+            }
+        }
+    }
+
+    /****************************************************
+     * Parse an unordered list item at the current position
+     * Params:
+     *  buf           = an OutBuffer containing the DDoc
+     *  iLineStart    = the index within `buf` of the first character of the line
+     *  i             = the index within `buf` of the list item
+     * Returns: the parsed list item, or a list item with type `.init` if no list item is available
+     */
+    private static MarkdownList parseUnorderedListItem(OutBuffer* buf, size_t iLineStart, size_t i)
+    {
+        if (i+1 < buf.offset &&
+                (buf.data[i] == '-' ||
+                buf.data[i] == '*' ||
+                buf.data[i] == '+') &&
+            (buf.data[i+1] == ' ' ||
+                buf.data[i+1] == '\t' ||
+                buf.data[i+1] == '\r' ||
+                buf.data[i+1] == '\n'))
+        {
+            const iContentStart = skipChars(buf, i + 1, " \t");
+            const delimiterIndent = getMarkdownIndent(buf, iLineStart, i);
+            const contentIndent = getMarkdownIndent(buf, iLineStart, iContentStart);
+            auto list = MarkdownList(null, iLineStart, iContentStart, delimiterIndent, contentIndent, 0, buf.data[i]);
+            return list;
+        }
+        return MarkdownList();
+    }
+
+    /****************************************************
+     * Parse an ordered list item at the current position
+     * Params:
+     *  buf           = an OutBuffer containing the DDoc
+     *  iLineStart    = the index within `buf` of the first character of the line
+     *  i             = the index within `buf` of the list item
+     * Returns: the parsed list item, or a list item with type `.init` if no list item is available
+     */
+    private static MarkdownList parseOrderedListItem(OutBuffer* buf, size_t iLineStart, size_t i)
+    {
+        size_t iAfterNumbers = skipChars(buf, i, "0123456789");
+        if (iAfterNumbers - i > 0 &&
+            iAfterNumbers - i <= 9 &&
+            iAfterNumbers + 1 < buf.offset &&
+            buf.data[iAfterNumbers] == '.' &&
+            (buf.data[iAfterNumbers+1] == ' ' ||
+                buf.data[iAfterNumbers+1] == '\t' ||
+                buf.data[iAfterNumbers+1] == '\r' ||
+                buf.data[iAfterNumbers+1] == '\n'))
+        {
+            const iContentStart = skipChars(buf, iAfterNumbers + 1, " \t");
+            const delimiterIndent = getMarkdownIndent(buf, iLineStart, i);
+            const contentIndent = getMarkdownIndent(buf, iLineStart, iContentStart);
+            size_t iNumberStart = skipChars(buf, i, "0");
+            if (iNumberStart == iAfterNumbers)
+                --iNumberStart;
+            auto orderedStart = buf.peekSlice()[iNumberStart .. iAfterNumbers];
+            if (orderedStart == "1")
+                orderedStart = null;
+            return MarkdownList(orderedStart.idup, iLineStart, iContentStart, delimiterIndent, contentIndent, 0, buf.data[iAfterNumbers]);
+        }
+        return MarkdownList();
+    }
+}
+
 /**************************************************
  * Highlight text section.
  *
@@ -2460,6 +2722,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
     size_t iPrecedingBlankLine = 0;
     int headingLevel = 0;
     int headingMacroLevel = 0;
+    MarkdownList[] nestedLists;
     MarkdownDelimiter[] inlineDelimiters;
     int inCode = 0;
     int inBacktick = 0;
@@ -2498,6 +2761,10 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                 removeBlankLineMacro(buf, iPrecedingBlankLine, i);
                 ++i;
                 iParagraphStart = skipChars(buf, i, " \t\r\n");
+            }
+            if (!inCode && nestedLists.length)
+            {
+                MarkdownList.handleSiblingOrEndingList(buf, i, iParagraphStart, nestedLists);
             }
             iPrecedingBlankLine = 0;
             if (!inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
@@ -2678,6 +2945,13 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
              */
             if (leadingBlank)
             {
+                if (!inCode)
+                {
+                    const list = MarkdownList.parseItem(buf, iLineStart, i);
+                    if (list.isValid)
+                        goto case '+';
+                }
+
                 size_t istart = i;
                 size_t eollen = 0;
                 leadingBlank = 0;
@@ -2768,10 +3042,45 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
             }
             break;
 
+        case '+':
+        case '0':
+        ..
+        case '9':
+        {
+            if (leadingBlank && !inCode)
+            {
+                MarkdownList list = MarkdownList.parseItem(buf, iLineStart, i);
+                if (list.isValid)
+                {
+                    // Avoid starting a numbered list in the middle of a paragraph
+                    if (!nestedLists.length && list.orderedStart.length &&
+                        iParagraphStart < iLineStart)
+                    {
+                        i += list.orderedStart.length - 1;
+                        break;
+                    }
+
+                    list.macroLevel = macroLevel;
+                    list.startItem(buf, iLineStart, i, iPrecedingBlankLine, nestedLists, loc);
+                    break;
+                }
+            }
+            leadingBlank = false;
+            break;
+        }
+
         case '*':
         {
             if (inCode || inBacktick || !global.params.markdown)
                 break;
+
+            if (leadingBlank)
+            {
+                // An initial * indicates a Markdown list item
+                const list = MarkdownList.parseItem(buf, iLineStart, i);
+                if (list.isValid)
+                    goto case '+';
+            }
 
             // Markdown emphasis
             const leftC = i > offset ? buf.data[i-1] : '\0';
@@ -2862,6 +3171,11 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                     endMarkdownHeading(buf, iParagraphStart, i, loc, headingLevel);
                     removeBlankLineMacro(buf, iPrecedingBlankLine, i);
                 }
+                while (nestedLists.length && nestedLists[$-1].macroLevel >= macroLevel)
+                {
+                    i = buf.insert(i, ")\n)");
+                    --nestedLists.length;
+                }
 
                 --macroLevel;
             }
@@ -2937,6 +3251,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
         endMarkdownHeading(buf, iParagraphStart, i, loc, headingLevel);
         removeBlankLineMacro(buf, iPrecedingBlankLine, i);
     }
+    MarkdownList.endAllNestedLists(buf, i, nestedLists);
 }
 
 /**************************************************
