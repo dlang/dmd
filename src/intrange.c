@@ -739,7 +739,7 @@ SignExtendedNumber IntRange::maxOr(const IntRange& lhs, const IntRange& rhs)
         return SignExtendedNumber(-1, false);
     }
 
-    for (uinteger_t d = 1LU << (8 * sizeof(uinteger_t) - 1); d; d >>= 1)
+    for (uinteger_t d = 1ULL << (8 * sizeof(uinteger_t) - 1); d; d >>= 1)
     {
         if (xorvalue & d)
         {
@@ -790,7 +790,7 @@ SignExtendedNumber IntRange::maxAnd(const IntRange& lhs, const IntRange& rhs)
         sign = true;
     }
 
-    for (uinteger_t d = 1LU << (8 * sizeof(uinteger_t) - 1); d; d >>= 1)
+    for (uinteger_t d = 1ULL << (8 * sizeof(uinteger_t) - 1); d; d >>= 1)
     {
         if (lhsc.imax.value & rhsc.imax.value & d)
         {
