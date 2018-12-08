@@ -68,15 +68,15 @@ struct SignExtendedNumber
     SignExtendedNumber operator-() const;
 
     /// Compute the saturated binary and of two sign-extended number.
-    SignExtendedNumber operator&(const SignExtendedNumber& a) const;
+    SignExtendedNumber operator&(const SignExtendedNumber&) const;
     /// Compute the saturated binary or of two sign-extended number.
-    SignExtendedNumber operator|(const SignExtendedNumber& a) const;
+    SignExtendedNumber operator|(const SignExtendedNumber&) const;
     /// Compute the saturated binary xor of two sign-extended number.
-    SignExtendedNumber operator^(const SignExtendedNumber& a) const;
+    SignExtendedNumber operator^(const SignExtendedNumber&) const;
     /// Compute the saturated sum of two sign-extended number.
     SignExtendedNumber operator+(const SignExtendedNumber&) const;
     /// Compute the saturated difference of two sign-extended number.
-    SignExtendedNumber operator-(const SignExtendedNumber& a) const;
+    SignExtendedNumber operator-(const SignExtendedNumber&) const;
     /// Compute the saturated product of two sign-extended number.
     SignExtendedNumber operator*(const SignExtendedNumber&) const;
     /// Compute the saturated quotient of two sign-extended number.
@@ -156,22 +156,22 @@ struct IntRange
 
     /// Credits to Timon Gehr maxOr, minOr, maxAnd, minAnd
     /// https://github.com/tgehr/d-compiler/blob/master/vrange.d
-    static SignExtendedNumber maxOr(const IntRange& lhs, const IntRange& rhs);
-    static SignExtendedNumber minOr(const IntRange& lhs, const IntRange& rhs);
-    static SignExtendedNumber maxAnd(const IntRange& lhs, const IntRange& rhs);
-    static SignExtendedNumber minAnd(const IntRange& lhs, const IntRange& rhs);
-    static void swap(IntRange& a, IntRange& b);
+    static SignExtendedNumber maxOr(const IntRange&, const IntRange&);
+    static SignExtendedNumber minOr(const IntRange&, const IntRange&);
+    static SignExtendedNumber maxAnd(const IntRange&, const IntRange&);
+    static SignExtendedNumber minAnd(const IntRange&, const IntRange&);
+    static void swap(IntRange&, IntRange&);
 
     IntRange operator~() const;
     IntRange operator-() const;
-    IntRange operator&(const IntRange& a) const;
-    IntRange operator|(const IntRange& a) const;
-    IntRange operator^(const IntRange& a) const;
-    IntRange operator+(const IntRange& a) const;
-    IntRange operator-(const IntRange& a) const;
-    IntRange operator*(const IntRange& a) const;
-    IntRange operator/(const IntRange& a) const;
-    IntRange operator%(const IntRange& a) const;
-    IntRange operator<<(const IntRange& a) const;
-    IntRange operator>>(const IntRange& a) const;
+    IntRange operator&(const IntRange&) const;
+    IntRange operator|(const IntRange&) const;
+    IntRange operator^(const IntRange&) const;
+    IntRange operator+(const IntRange&) const;
+    IntRange operator-(const IntRange&) const;
+    IntRange operator*(const IntRange&) const;
+    IntRange operator/(const IntRange&) const;
+    IntRange operator%(const IntRange&) const;
+    IntRange operator<<(const IntRange&) const;
+    IntRange operator>>(const IntRange&) const;
 };
