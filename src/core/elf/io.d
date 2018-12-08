@@ -1,147 +1,36 @@
 /**
- * This code simplifies working with ELF binaries, e.g., iterating
- * over loaded shared objects & their segments as well as reading
- * headers and sections from ELF files.
+ * Provides (read-only) memory-mapped I/O for ELF files.
  *
  * Reference: http://www.dwarfstd.org/
  *
- * Copyright: Copyright Digital Mars 2015 - 2015.
+ * Copyright: Copyright Digital Mars 2015 - 2018.
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Yazan Dabain, Martin Kinkelin
- * Source: $(DRUNTIMESRC core/elf.d)
+ * Source: $(DRUNTIMESRC core/elf/io.d)
  */
 
-module core.elf;
+module core.elf.io;
 
-version (linux)             version = linux_or_bsd;
-else version (FreeBSD)      version = linux_or_bsd;
-else version (DragonFlyBSD) version = linux_or_bsd;
+version (Posix):
 
-version (linux_or_bsd):
-
-import core.stdc.string : strlen;
 import core.sys.posix.fcntl;
+import core.sys.posix.sys.mman;
 import core.sys.posix.unistd;
 
 version (linux)
 {
     import core.sys.linux.link;
-    import core.sys.linux.elf;
+    version = LinuxOrBSD;
 }
 else version (FreeBSD)
 {
     import core.sys.freebsd.sys.link_elf;
-    import core.sys.freebsd.sys.elf;
+    version = LinuxOrBSD;
 }
 else version (DragonFlyBSD)
 {
     import core.sys.dragonflybsd.sys.link_elf;
-    import core.sys.dragonflybsd.sys.elf;
-}
-
-alias Elf_Phdr = ElfW!"Phdr";
-alias Elf_Ehdr = ElfW!"Ehdr";
-alias Elf_Shdr = ElfW!"Shdr";
-
-/****
- * Enables iterating over the process' currently loaded shared objects.
- */
-struct SharedObjects
-{
-@nogc nothrow:
-    alias Callback = int delegate(SharedObject);
-
-    static int opApply(scope Callback dg)
-    {
-        extern(C) int nativeCallback(dl_phdr_info* info, size_t, void* data)
-        {
-            auto dg = *cast(Callback*) data;
-            return dg(SharedObject(*info));
-        }
-
-        return dl_iterate_phdr(&nativeCallback, &dg);
-    }
-}
-
-struct SharedObject
-{
-@nogc nothrow:
-    /****
-     * Finds the shared object containing the specified address in one of its segments.
-     */
-    static bool findForAddress(const scope void* address, out SharedObject result)
-    {
-        version (linux)       enum IterateManually = true;
-        else version (NetBSD) enum IterateManually = true;
-        else                  enum IterateManually = false;
-
-        static if (IterateManually)
-        {
-            foreach (object; SharedObjects)
-            {
-                const(Elf_Phdr)* segment;
-                if (object.findSegmentForAddress(address, segment))
-                {
-                    result = object;
-                    return true;
-                }
-            }
-            return false;
-        }
-        else
-        {
-            return !!_rtld_addr_phdr(address, &result.info);
-        }
-    }
-
-    dl_phdr_info info;
-
-    void* baseAddress() const
-    {
-        return cast(void*) info.dlpi_addr;
-    }
-
-    const(char)[] name() const
-    {
-        const(char)* cstr = info.dlpi_name;
-
-        // the main executable has an empty name
-        if (cstr[0] == 0)
-            cstr = getprogname();
-
-        return cstr[0 .. strlen(cstr)];
-    }
-
-    /****
-     * Iterates over this object's segments.
-     */
-    int opApply(scope int delegate(ref const Elf_Phdr) @nogc nothrow dg) const
-    {
-        foreach (ref phdr; info.dlpi_phdr[0 .. info.dlpi_phnum])
-        {
-            const r = dg(phdr);
-            if (r != 0)
-                return r;
-        }
-        return 0;
-    }
-
-    bool findSegmentForAddress(const scope void* address, out const(Elf_Phdr)* result) const
-    {
-        if (address < baseAddress())
-            return false;
-
-        foreach (ref phdr; this)
-        {
-            const begin = baseAddress() + phdr.p_vaddr;
-            if (cast(size_t)(address - begin) < phdr.p_memsz)
-            {
-                result = &phdr;
-                return true;
-            }
-        }
-        return false;
-    }
+    version = LinuxOrBSD;
 }
 
 /**
@@ -240,6 +129,8 @@ template ElfIO(Elf_Ehdr, Elf_Shdr, ubyte ELFCLASS)
 
         size_t findSectionIndexByName(const(char)[] sectionName) const
         {
+            import core.stdc.string : strlen;
+
             const stringSectionHeader = ElfSectionHeader(this, ehdr.e_shstrndx);
             const stringSection = ElfSection(this, stringSectionHeader);
 
@@ -302,37 +193,24 @@ template ElfIO(Elf_Ehdr, Elf_Shdr, ubyte ELFCLASS)
 enum ELFCLASS32 = 1;
 enum ELFCLASS64 = 2;
 
-version (D_LP64) alias ELFCLASS = ELFCLASS64;
-else             alias ELFCLASS = ELFCLASS32;
-
-alias NativeElfIO = ElfIO!(Elf_Ehdr, Elf_Shdr, ELFCLASS);
-
-// convenience aliases for native ELF files
-alias ElfFile = NativeElfIO.ElfFile;
-alias ElfSectionHeader = NativeElfIO.ElfSectionHeader;
-alias ElfSection = NativeElfIO.ElfSection;
-
-private @nogc nothrow:
-
-version (linux)
+// convenience aliases for the target platform
+version (LinuxOrBSD)
 {
-    const(char)* getprogname()
-    {
-        import core.sys.linux.errno;
-        return program_invocation_name;
-    }
-}
-else
-{
-    extern(C) const(char)* getprogname();
+    alias Elf_Ehdr = ElfW!"Ehdr";
+    alias Elf_Shdr = ElfW!"Shdr";
+
+    version (D_LP64) alias ELFCLASS = ELFCLASS64;
+    else             alias ELFCLASS = ELFCLASS32;
+
+    alias NativeElfIO = ElfIO!(Elf_Ehdr, Elf_Shdr, ELFCLASS);
+    alias ElfFile = NativeElfIO.ElfFile;
+    alias ElfSectionHeader = NativeElfIO.ElfSectionHeader;
+    alias ElfSection = NativeElfIO.ElfSection;
 }
 
-struct MMapRegion(T)
+private struct MMapRegion(T)
 {
 @nogc nothrow:
-    import core.sys.posix.sys.mman;
-    import core.sys.posix.unistd;
-
     this(int fd, size_t offset, size_t length = 1)
     {
         const pageSize = sysconf(_SC_PAGESIZE);

@@ -20,7 +20,7 @@ else enum SharedELF = false;
 static if (SharedELF):
 
 // debug = PRINTF;
-import core.elf;
+import core.elf.dl;
 import core.memory;
 import core.stdc.config;
 import core.stdc.stdio;
@@ -705,7 +705,7 @@ version (Shared)
         {
             if (phdr.p_type == PT_DYNAMIC)
             {
-                auto p = cast(ElfW!"Dyn"*)(object.baseAddress() + (phdr.p_vaddr & ~(size_t.sizeof - 1)));
+                auto p = cast(ElfW!"Dyn"*)(object.baseAddress + (phdr.p_vaddr & ~(size_t.sizeof - 1)));
                 dyns = p[0 .. phdr.p_memsz / ElfW!"Dyn".sizeof];
                 break;
             }
@@ -717,15 +717,15 @@ version (Shared)
             if (dyn.d_tag == DT_STRTAB)
             {
                 version (CRuntime_Musl)
-                    strtab = cast(const(char)*)(object.baseAddress() + dyn.d_un.d_ptr); // relocate
+                    strtab = cast(const(char)*)(object.baseAddress + dyn.d_un.d_ptr); // relocate
                 else version (linux)
                     strtab = cast(const(char)*)dyn.d_un.d_ptr;
                 else version (FreeBSD)
-                    strtab = cast(const(char)*)(object.baseAddress() + dyn.d_un.d_ptr); // relocate
+                    strtab = cast(const(char)*)(object.baseAddress + dyn.d_un.d_ptr); // relocate
                 else version (NetBSD)
-                    strtab = cast(const(char)*)(object.baseAddress() + dyn.d_un.d_ptr); // relocate
+                    strtab = cast(const(char)*)(object.baseAddress + dyn.d_un.d_ptr); // relocate
                 else version (DragonFlyBSD)
-                    strtab = cast(const(char)*)(object.baseAddress() + dyn.d_un.d_ptr); // relocate
+                    strtab = cast(const(char)*)(object.baseAddress + dyn.d_un.d_ptr); // relocate
                 else
                     static assert(0, "unimplemented");
                 break;
@@ -774,12 +774,12 @@ void scanSegments(const scope ref SharedObject object, DSO* pdso) nothrow @nogc
         case PT_LOAD:
             if (phdr.p_flags & PF_W) // writeable data segment
             {
-                auto beg = object.baseAddress() + (phdr.p_vaddr & ~(size_t.sizeof - 1));
+                auto beg = object.baseAddress + (phdr.p_vaddr & ~(size_t.sizeof - 1));
                 pdso._gcRanges.insertBack(beg[0 .. phdr.p_memsz]);
             }
             version (Shared) if (phdr.p_flags & PF_X) // code segment
             {
-                auto beg = object.baseAddress() + (phdr.p_vaddr & ~(size_t.sizeof - 1));
+                auto beg = object.baseAddress + (phdr.p_vaddr & ~(size_t.sizeof - 1));
                 pdso._codeSegments.insertBack(beg[0 .. phdr.p_memsz]);
             }
             break;

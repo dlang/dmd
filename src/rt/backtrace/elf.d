@@ -3,7 +3,7 @@
  *
  * Reference: http://www.dwarfstd.org/
  *
- * Copyright: Copyright Digital Mars 2015 - 2015.
+ * Copyright: Copyright Digital Mars 2015 - 2018.
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Yazan Dabain
  * Source: $(DRUNTIMESRC rt/backtrace/elf.d)
@@ -11,17 +11,26 @@
 
 module rt.backtrace.elf;
 
-version (linux) version = linux_or_bsd;
-else version (FreeBSD) version = linux_or_bsd;
-else version (DragonFlyBSD) version = linux_or_bsd;
+version (linux)
+{
+    import core.sys.linux.elf;
+    version = LinuxOrBSD;
+}
+else version (FreeBSD)
+{
+    import core.sys.freebsd.sys.elf;
+    version = LinuxOrBSD;
+}
+else version (DragonFlyBSD)
+{
+    import core.sys.dragonflybsd.sys.elf;
+    version = LinuxOrBSD;
+}
 
-version (linux_or_bsd):
+version (LinuxOrBSD):
 
-import core.elf;
-
-version (linux) import core.sys.linux.elf;
-version (FreeBSD) import core.sys.freebsd.sys.elf;
-version (DragonFlyBSD) import core.sys.dragonflybsd.sys.elf;
+import core.elf.dl;
+import core.elf.io;
 
 struct Image
 {
@@ -80,7 +89,7 @@ struct Image
         foreach (object; SharedObjects)
         {
             // only take the first address as this will be the main binary
-            base = cast(size_t) object.baseAddress();
+            base = cast(size_t) object.baseAddress;
             break;
         }
 
