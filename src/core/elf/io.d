@@ -63,6 +63,7 @@ template ElfIO(Elf_Ehdr, Elf_Shdr, ubyte ELFCLASS)
         /**
          * Constructs an instance based on the specified file descriptor.
          * Doesn't validate the file header.
+         * The file is closed when destructing the instance.
          */
         this(int fd)
         {
@@ -76,6 +77,7 @@ template ElfIO(Elf_Ehdr, Elf_Shdr, ubyte ELFCLASS)
 
         @disable this(this);
 
+        /// Closes the file.
         ~this()
         {
             if (fd != -1)
@@ -209,6 +211,7 @@ template ElfIO(Elf_Ehdr, Elf_Shdr, ubyte ELFCLASS)
         @disable this(this);
 
         /// Returns the memory-mapped section data.
+        /// The data is accessible as long as this ElfSection is alive.
         const(void)[] data() const
         {
             return mappedRegion.data[0 .. size];

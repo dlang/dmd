@@ -38,8 +38,10 @@ alias Elf_Phdr = ElfW!"Phdr";
 struct SharedObjects
 {
 @nogc nothrow:
+    ///
     alias Callback = int delegate(SharedObject);
 
+    ///
     static int opApply(scope Callback dg)
     {
         extern(C) int nativeCallback(dl_phdr_info* info, size_t, void* data)
@@ -87,6 +89,7 @@ struct SharedObject
         }
     }
 
+    /// OS-dependent info structure.
     dl_phdr_info info;
 
     /// Returns the base address of the object.
