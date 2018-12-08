@@ -625,7 +625,7 @@ extern (C++) abstract class Type : RootObject
         }
         else if (t1.parameters != t2.parameters)
         {
-            if (t1.parameterList.length || t1.parameterList.length)
+            if (t1.parameterList.length || t2.parameterList.length)
                 goto Ldistinct;
         }
 
