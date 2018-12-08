@@ -43,15 +43,27 @@ else version (DragonFlyBSD)
  */
 template ElfIO(Elf_Ehdr, Elf_Shdr, ubyte ELFCLASS)
 {
+    /**
+     * ELF file (with memory-mapped ELF header).
+     */
     struct ElfFile
     {
     @nogc nothrow:
+        /**
+         * Tries to open the specified file as ELF file matching the ElfIO
+         * template parameters.
+         * Returns: True on success.
+         */
         static bool open(const(char)* path, out ElfFile file)
         {
             file = ElfFile(.open(path, O_RDONLY));
             return file.isValid();
         }
 
+        /**
+         * Constructs an instance based on the specified file descriptor.
+         * Doesn't validate the file header.
+         */
         this(int fd)
         {
             this.fd = fd;
@@ -71,8 +83,10 @@ template ElfIO(Elf_Ehdr, Elf_Shdr, ubyte ELFCLASS)
         }
 
         private int fd = -1;
+        /// Memory-mapped ELF header.
         MMapRegion!Elf_Ehdr ehdr;
 
+        /// Returns true if the ELF file header matches the ElfIO template parameters.
         bool isValid() const
         {
             enum EI_MAG0 = 0;
@@ -118,6 +132,10 @@ template ElfIO(Elf_Ehdr, Elf_Shdr, ubyte ELFCLASS)
             return true;
         }
 
+        /**
+         * Tries to find the header of the section with the specified name.
+         * Returns: True on success.
+         */
         bool findSectionHeaderByName(const(char)[] sectionName, out ElfSectionHeader header) const
         {
             const index = findSectionIndexByName(sectionName);
@@ -127,6 +145,10 @@ template ElfIO(Elf_Ehdr, Elf_Shdr, ubyte ELFCLASS)
             return true;
         }
 
+        /**
+         * Tries to find the index of the section with the specified name.
+         * Returns: -1 if not found, otherwise 0-based section index.
+         */
         size_t findSectionIndexByName(const(char)[] sectionName) const
         {
             import core.stdc.string : strlen;
@@ -148,9 +170,13 @@ template ElfIO(Elf_Ehdr, Elf_Shdr, ubyte ELFCLASS)
         }
     }
 
+    /**
+     * Memory-mapped ELF section header.
+     */
     struct ElfSectionHeader
     {
     @nogc nothrow:
+        /// Constructs a new instance based on the specified file and section index.
         this(ref const ElfFile file, size_t index)
         {
             assert(Elf_Shdr.sizeof == file.ehdr.e_shentsize);
@@ -163,12 +189,17 @@ template ElfIO(Elf_Ehdr, Elf_Shdr, ubyte ELFCLASS)
         @disable this(this);
 
         alias shdr this;
+        /// Memory-mapped section header.
         MMapRegion!Elf_Shdr shdr;
     }
 
+    /**
+     * Memory-mapped ELF section data.
+     */
     struct ElfSection
     {
     @nogc nothrow:
+        /// Constructs a new instance based on the specified file and section header.
         this(ref const ElfFile file, ref const ElfSectionHeader shdr)
         {
             mappedRegion = MMapRegion!void(file.fd, shdr.sh_offset, shdr.sh_size);
@@ -177,6 +208,7 @@ template ElfIO(Elf_Ehdr, Elf_Shdr, ubyte ELFCLASS)
 
         @disable this(this);
 
+        /// Returns the memory-mapped section data.
         const(void)[] data() const
         {
             return mappedRegion.data[0 .. size];
@@ -190,21 +222,31 @@ template ElfIO(Elf_Ehdr, Elf_Shdr, ubyte ELFCLASS)
     }
 }
 
+/// ELF class for 32-bit ELF files.
 enum ELFCLASS32 = 1;
+/// ELF class for 64-bit ELF files.
 enum ELFCLASS64 = 2;
 
 // convenience aliases for the target platform
 version (LinuxOrBSD)
 {
+    /// Native ELF header type.
     alias Elf_Ehdr = ElfW!"Ehdr";
+    /// Native ELF section header type.
     alias Elf_Shdr = ElfW!"Shdr";
 
+    /// Native ELF class.
     version (D_LP64) alias ELFCLASS = ELFCLASS64;
     else             alias ELFCLASS = ELFCLASS32;
 
+    ///
     alias NativeElfIO = ElfIO!(Elf_Ehdr, Elf_Shdr, ELFCLASS);
+
+    /// Native ELF file.
     alias ElfFile = NativeElfIO.ElfFile;
+    /// Native ELF section header.
     alias ElfSectionHeader = NativeElfIO.ElfSectionHeader;
+    /// Native ELF section.
     alias ElfSection = NativeElfIO.ElfSection;
 }
 
@@ -213,6 +255,9 @@ private struct MMapRegion(T)
 @nogc nothrow:
     this(int fd, size_t offset, size_t length = 1)
     {
+        if (fd == -1)
+            return;
+
         const pageSize = sysconf(_SC_PAGESIZE);
         const pagedOffset = (offset / pageSize) * pageSize;
         const offsetDiff = offset - pagedOffset;
