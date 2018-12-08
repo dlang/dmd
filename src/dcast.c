@@ -986,6 +986,19 @@ MATCH implicitConvTo(Expression *e, Type *t)
             visit((Expression *)e);
         }
 
+        void visit(AndExp *e)
+        {
+            visit((Expression *)e);
+            if (result != MATCHnomatch)
+                return;
+
+            MATCH m1 = e->e1->implicitConvTo(t);
+            MATCH m2 = e->e2->implicitConvTo(t);
+
+            // Pick the worst match
+            result = (m1 < m2) ? m1 : m2;
+        }
+
         void visit(OrExp *e)
         {
             visit((Expression *)e);

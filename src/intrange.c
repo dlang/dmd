@@ -519,7 +519,7 @@ IntRange IntRange::operator&(const IntRange& rhs) const
         SignExtendedNumber maxAndPos = maxAnd(l, IntRange(SignExtendedNumber(0), r.imax));
 
         SignExtendedNumber min = minAndNeg < minAndPos ? minAndNeg : minAndPos;
-        SignExtendedNumber max = maxAndNeg > maxAndNeg ? maxAndNeg : maxAndPos;
+        SignExtendedNumber max = maxAndNeg > maxAndPos ? maxAndNeg : maxAndPos;
 
         return IntRange(min, max);
     }
@@ -563,8 +563,8 @@ IntRange IntRange::operator|(const IntRange& rhs) const
         SignExtendedNumber maxOrNeg = maxOr(l, IntRange(r.imin, SignExtendedNumber(-1)));
         SignExtendedNumber maxOrPos = maxOr(l, IntRange(SignExtendedNumber(0), r.imax));
 
-        SignExtendedNumber min = minOrNeg.value < minOrPos.value ? minOrNeg : minOrPos;
-        SignExtendedNumber max = maxOrNeg.value > maxOrNeg.value ? maxOrNeg : maxOrPos;
+        SignExtendedNumber min = minOrNeg < minOrPos ? minOrNeg : minOrPos;
+        SignExtendedNumber max = maxOrNeg > maxOrPos ? maxOrNeg : maxOrPos;
 
         return IntRange(min, max);
     }
