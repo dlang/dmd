@@ -474,14 +474,13 @@ IntRange IntRange::operator~() const
 
 IntRange IntRange::operator-() const
 {
-    // Not yet implemented
-    assert(0);
+    return IntRange(-imax, -imin);
 }
 
 IntRange IntRange::operator&(const IntRange& a) const
 {
     // unsigned or identical sign bits
-    if ((imin.value ^ imax.value) >= 0 && (a.imin.value ^ a.imax.value) >= 0)
+    if ((imin.negative ^ imax.negative) != 1 && (a.imin.negative ^ a.imax.negative) != 1)
     {
         return IntRange(minAnd(*this, a), maxAnd(*this, a));
     }
@@ -490,7 +489,7 @@ IntRange IntRange::operator&(const IntRange& a) const
     IntRange r = IntRange(a);
 
     // both intervals span [-1,0]
-    if ((l.imin.value ^ l.imax.value) < 0 && (r.imin.value ^ r.imax.value) < 0)
+    if ((l.imin.negative ^ l.imax.negative) != 1 && (r.imin.negative ^ r.imax.negative) != 1)
     {
         // cannot be larger than either l.max or r.max, set the other one to -1
         SignExtendedNumber max = l.imax.value > r.imax.value ? l.imax : r.imax;
@@ -521,7 +520,7 @@ IntRange IntRange::operator&(const IntRange& a) const
 IntRange IntRange::operator|(const IntRange& a) const
 {
     // unsigned or identical sign bits:
-    if ((imin.value ^ imax.value) >= 0 && (a.imin.value ^ a.imax.value) >= 0)
+    if ((imin.negative ^ imax.negative) == 0 && (a.imin.negative ^ a.imax.negative) == 0)
     {
         return IntRange(minOr(*this, a), maxOr(*this, a));
     }
@@ -530,7 +529,7 @@ IntRange IntRange::operator|(const IntRange& a) const
     IntRange r = IntRange(a);
 
     // both intervals span [-1,0]
-    if ((l.imin.value ^ l.imax.value) < 0 && (r.imin.value ^ r.imax.value) < 0)
+    if ((l.imin.negative ^ l.imax.negative) == 1 && (r.imin.negative ^ r.imax.negative) == 1)
     {
         // cannot be smaller than either l.min or r.min, set the other one to 0
         SignExtendedNumber min = l.imin.value < r.imin.value ? l.imin : r.imin;
@@ -544,15 +543,15 @@ IntRange IntRange::operator|(const IntRange& a) const
     else
     {
         // only one interval spans [-1,0]
-        if ((imin.value ^ imax.value) < 0) swap(l, r); // r spans [-1,0]
+        if ((imin.negative ^ imax.negative) == 1) swap(l, r); // r spans [-1,0]
 
         SignExtendedNumber minOrNeg = minOr(l, IntRange(r.imin, SignExtendedNumber(-1)));
         SignExtendedNumber minOrPos = minOr(l, IntRange(SignExtendedNumber(0), r.imax));
         SignExtendedNumber maxOrNeg = maxOr(l, IntRange(r.imin, SignExtendedNumber(-1)));
         SignExtendedNumber maxOrPos = maxOr(l, IntRange(SignExtendedNumber(0), r.imax));
 
-        SignExtendedNumber min = minOrNeg < minOrPos ? minOrNeg : minOrPos;
-        SignExtendedNumber max = maxOrNeg > maxOrNeg ? maxOrNeg : maxOrPos;
+        SignExtendedNumber min = minOrNeg.value < minOrPos.value ? minOrNeg : minOrPos;
+        SignExtendedNumber max = maxOrNeg.value > maxOrNeg.value ? maxOrNeg : maxOrPos;
 
         return IntRange(min, max);
     }
@@ -565,44 +564,118 @@ IntRange IntRange::operator^(const IntRange& a) const
 
 IntRange IntRange::operator+(const IntRange& a) const
 {
-    // Not yet implemented
-    assert(0);
+    return IntRange(imin + a.imin, imax + a.imax);
 }
 
 IntRange IntRange::operator-(const IntRange& a) const
 {
-    // Not yet implemented
-    assert(0);
+    return IntRange(imin - a.imax, imax - a.imin);
 }
 
 IntRange IntRange::operator*(const IntRange& a) const
 {
-    // Not yet implemented
-    assert(0);
+    // [a,b] * [c,d] = [min (ac, ad, bc, bd), max (ac, ad, bc, bd)]
+    SignExtendedNumber bdy[4];
+    bdy[0] = imin * a.imin;
+    bdy[1] = imin * a.imax;
+    bdy[2] = imax * a.imin;
+    bdy[3] = imax * a.imax;
+    return IntRange::fromNumbers4(bdy);
 }
 
 IntRange IntRange::operator/(const IntRange& a) const
 {
-    // Not yet implemented
-    assert(0);
+    // Handle divide by 0
+    if (a.imax.value == 0 && a.imin.value == 0) return widest();
+
+    IntRange ac = IntRange(a);
+
+    // Don't treat the whole range as divide by 0 if only one end of a range is 0.
+    // Issue 15289
+    if (ac.imax.value == 0) ac.imax.value--;
+    else if(ac.imin.value == 0) ac.imin.value++;
+
+    if (!imin.negative && !imax.negative && !ac.imin.negative && !ac.imax.negative)
+    {
+        IntRange res = IntRange(imin / ac.imax, imax / ac.imin);
+        return res;
+    }
+    else
+    {
+        // [a,b] / [c,d] = [min (a/c, a/d, b/c, b/d), max (a/c, a/d, b/c, b/d)]
+        SignExtendedNumber bdy[4];
+        bdy[0] = imin / ac.imin;
+        bdy[1] = imin / ac.imax;
+        bdy[2] = imax / ac.imin;
+        bdy[3] = imax / ac.imax;
+
+        IntRange res = IntRange::fromNumbers4(bdy);
+        //printf("%u %u %d\n", res.imin.value, res.imax.value);
+        return res;
+    }
 }
 
 IntRange IntRange::operator%(const IntRange& a) const
 {
-    // Not yet implemented
-    assert(0);
+    IntRange irNum = *this;
+    IntRange irDen = a.absNeg();
+
+    /*
+     due to the rules of D (C)'s % operator, we need to consider the cases
+     separately in different range of signs.
+
+         case 1. [500, 1700] % [7, 23] (numerator is always positive)
+             = [0, 22]
+         case 2. [-500, 1700] % [7, 23] (numerator can be negative)
+             = [-22, 22]
+         case 3. [-1700, -500] % [7, 23] (numerator is always negative)
+             = [-22, 0]
+
+     the number 22 is the maximum absolute value in the denomator's range. We
+     don't care about divide by zero.
+     */
+
+    irDen.imin = irDen.imin + SignExtendedNumber(1);
+    irDen.imax = -irDen.imin;
+
+    if (!irNum.imin.negative)
+        irNum.imin.value = 0;
+    else if (irNum.imin < irDen.imin)
+        irNum.imin = irDen.imin;
+
+    if (irNum.imax.negative)
+    {
+        irNum.imax.negative = false;
+        irNum.imax.value = 0;
+    }
+    else if (irNum.imax > irDen.imax)
+        irNum.imax = irDen.imax;
+
+    return irNum;
 }
 
 IntRange IntRange::operator<<(const IntRange& a) const
 {
-    // Not yet implemented
-    assert(0);
+    IntRange ac = IntRange(a);
+    if (ac.imin.negative)
+        ac = IntRange(SignExtendedNumber(0), SignExtendedNumber(64));
+
+    SignExtendedNumber lower = imin << (imin.negative ? ac.imax : ac.imin);
+    SignExtendedNumber upper = imax << (imax.negative ? ac.imin : ac.imax);
+
+    return IntRange(lower, upper);
 }
 
 IntRange IntRange::operator>>(const IntRange& a) const
 {
-    // Not yet implemented
-    assert(0);
+    IntRange ac = IntRange(a);
+    if (ac.imin.negative)
+        ac = IntRange(SignExtendedNumber(0), SignExtendedNumber(64));
+
+    SignExtendedNumber lower = imin >> (imin.negative ? ac.imin : ac.imax);
+    SignExtendedNumber upper = imax >> (imax.negative ? ac.imax : ac.imin);
+
+    return IntRange(lower, upper);
 }
 
 SignExtendedNumber IntRange::maxOr(const IntRange& lhs, const IntRange& rhs)
