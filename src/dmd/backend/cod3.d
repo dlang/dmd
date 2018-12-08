@@ -3743,6 +3743,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, regm_t* n
                             cdb.genc1(op,modregxrm(2,preg,BPRM),FLconst,offset);
                             if (XMM0 <= preg && preg <= XMM15)
                             {
+                                checkSetVex(cdb.last(), t.Tty);
                             }
                             else
                             {
@@ -3761,6 +3762,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, regm_t* n
                                        modregxrm(2,preg,4),FLconst,offset);
                             if (preg >= XMM0 && preg <= XMM15)
                             {
+                                checkSetVex(cdb.last(), t.Tty);
                             }
                             else
                             {
