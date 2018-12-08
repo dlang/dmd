@@ -126,6 +126,7 @@ struct Param
     bool ehnogc;        // use @nogc exception handling
     bool dtorFields;        // destruct fields of partially constructed objects
                             // https://issues.dlang.org/show_bug.cgi?id=14246
+    bool interpolateStrings;// Enable interpolated string support via the 'i' prefix on string literals
     bool showGaggedErrors;  // print gagged errors anyway
     bool manual;            // open browser on compiler manual
     bool usage;             // print usage and exit

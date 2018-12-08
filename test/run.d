@@ -54,10 +54,10 @@ Options:
 
     // allow overwrites from the environment
     resultsDir = environment.get("RESULTS_DIR", resultsDir);
-    hostDMD = environment.get("HOST_DMD", "dmd");
 
     // bootstrap all needed environment variables
     auto env = getEnvironment;
+    hostDMD = buildPath("..", "generated", env["OS"], env["BUILD"], env["MODEL"], "dmd" ~ env["EXE"]);
 
     // default target
     if (!args.length)
@@ -121,7 +121,7 @@ void ensureToolsExists()
             writefln("%s is already up-to-date", tool);
         else
         {
-            auto command = [hostDMD, "-of"~targetBin, sourceFile];
+            auto command = [hostDMD, "-of"~targetBin, "-transition=interpolate", sourceFile];
             writefln("Executing: %-(%s %)", command);
             spawnProcess(command).wait;
         }

@@ -635,6 +635,8 @@ dmd -cov -unittest myprog.d
             "enable Markdown replacements in Ddoc"),
         Transition(null, "vmarkdown", "vmarkdown",
             "list instances of Markdown replacements in Ddoc"),
+        Transition(null, "interpolate", "interpolateStrings",
+            "enable interpolated string support via the 'i' prefix on string literals"),
     ];
 }
 
