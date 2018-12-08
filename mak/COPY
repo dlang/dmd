@@ -21,6 +21,9 @@ COPY=\
 	$(IMPDIR)\core\vararg.d \
 	$(IMPDIR)\core\volatile.d \
 	\
+	$(IMPDIR)\core\elf\dl.d \
+	$(IMPDIR)\core\elf\io.d \
+	\
 	$(IMPDIR)\core\internal\abort.d \
 	$(IMPDIR)\core\internal\atomic.d \
 	$(IMPDIR)\core\internal\attributes.d \

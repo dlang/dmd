@@ -6,8 +6,6 @@ DOCS=\
 	$(DOCDIR)\core_checkedint.html \
 	$(DOCDIR)\core_cpuid.html \
 	$(DOCDIR)\core_demangle.html \
-	$(DOCDIR)\core_elf_dl.html \
-	$(DOCDIR)\core_elf_io.html \
 	$(DOCDIR)\core_exception.html \
 	$(DOCDIR)\core_lifetime.html \
 	$(DOCDIR)\core_math.html \
@@ -21,6 +19,9 @@ DOCS=\
 	$(DOCDIR)\core_gc_config.html \
 	$(DOCDIR)\core_gc_gcinterface.html \
 	$(DOCDIR)\core_gc_registry.html \
+	\
+	$(DOCDIR)\core_elf_dl.html \
+	$(DOCDIR)\core_elf_io.html \
 	\
 	$(DOCDIR)\core_stdc_assert_.html \
 	$(DOCDIR)\core_stdc_config.html \

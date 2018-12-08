@@ -7,8 +7,6 @@ SRCS=\
 	src\core\checkedint.d \
 	src\core\cpuid.d \
 	src\core\demangle.d \
-	src\core\elf\dl.d \
-	src\core\elf\io.d \
 	src\core\exception.d \
 	src\core\lifetime.d \
 	src\core\math.d \
@@ -22,6 +20,9 @@ SRCS=\
 	src\core\gc\config.d \
 	src\core\gc\gcinterface.d \
 	src\core\gc\registry.d \
+	\
+	src\core\elf\dl.d \
+	src\core\elf\io.d \
 	\
 	src\core\internal\abort.d \
 	src\core\internal\atomic.d \

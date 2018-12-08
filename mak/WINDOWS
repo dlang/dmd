@@ -110,6 +110,12 @@ $(IMPDIR)\core\vararg.d : src\core\vararg.d
 $(IMPDIR)\core\volatile.d : src\core\volatile.d
 	copy $** $@
 
+$(IMPDIR)\core\elf\dl.d : src\core\elf\dl.d
+	copy $** $@
+
+$(IMPDIR)\core\elf\io.d : src\core\elf\io.d
+	copy $** $@
+
 $(IMPDIR)\core\gc\config.d : src\core\gc\config.d
 	copy $** $@
 
