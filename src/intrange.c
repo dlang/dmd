@@ -54,12 +54,44 @@ SignExtendedNumber SignExtendedNumber::max()
     return SignExtendedNumber(UINT64_MAX, false);
 }
 
+SignExtendedNumber& SignExtendedNumber::operator++()
+{
+    if (value != UINT64_MAX)
+        ++value;
+    else if (negative)
+    {
+        value = 0;
+        negative = false;
+    }
+    return *this;
+}
+
+SignExtendedNumber SignExtendedNumber::operator~() const
+{
+    return SignExtendedNumber(~value);
+}
+
 SignExtendedNumber SignExtendedNumber::operator-() const
 {
     if (value == 0)
         return SignExtendedNumber(-negative);
     else
         return SignExtendedNumber(-value, !negative);
+}
+
+SignExtendedNumber SignExtendedNumber::operator&(const SignExtendedNumber& a) const
+{
+    return SignExtendedNumber(value & a.value);
+}
+
+SignExtendedNumber SignExtendedNumber::operator|(const SignExtendedNumber& a) const
+{
+    return SignExtendedNumber(value | a.value);
+}
+
+SignExtendedNumber SignExtendedNumber::operator^(const SignExtendedNumber& a) const
+{
+    return SignExtendedNumber(value ^ a.value);
 }
 
 SignExtendedNumber SignExtendedNumber::operator+(const SignExtendedNumber& a) const
@@ -81,7 +113,6 @@ SignExtendedNumber SignExtendedNumber::operator-(const SignExtendedNumber& a) co
     else
         return *this + (-a);
 }
-
 
 SignExtendedNumber SignExtendedNumber::operator*(const SignExtendedNumber& a) const
 {
@@ -184,18 +215,6 @@ SignExtendedNumber SignExtendedNumber::operator%(const SignExtendedNumber& a) co
 
     rvVal = copySign(rvVal, negative);
     return SignExtendedNumber(rvVal, rvVal != 0 && negative);
-}
-
-SignExtendedNumber& SignExtendedNumber::operator++()
-{
-    if (value != UINT64_MAX)
-        ++ value;
-    else if (negative)
-    {
-        value = 0;
-        negative = false;
-    }
-    return *this;
 }
 
 SignExtendedNumber SignExtendedNumber::operator<<(const SignExtendedNumber& a) const
@@ -448,6 +467,214 @@ void IntRange::splitBySign(IntRange& negRange, bool& hasNegRange,
     }
 }
 
+IntRange IntRange::operator~() const
+{
+    return IntRange(~imax, ~imin);
+}
+
+IntRange IntRange::operator-() const
+{
+    // Not yet implemented
+    assert(0);
+}
+
+IntRange IntRange::operator&(const IntRange& a) const
+{
+    // unsigned or identical sign bits
+    if ((imin.value ^ imax.value) >= 0 && (a.imin.value ^ a.imax.value) >= 0)
+    {
+        return IntRange(minAnd(*this, a), maxAnd(*this, a));
+    }
+
+    IntRange l = IntRange(*this);
+    IntRange r = IntRange(a);
+
+    // both intervals span [-1,0]
+    if ((l.imin.value ^ l.imax.value) < 0 && (r.imin.value ^ r.imax.value) < 0)
+    {
+        // cannot be larger than either l.max or r.max, set the other one to -1
+        SignExtendedNumber max = l.imax.value > r.imax.value ? l.imax : r.imax;
+
+        // only negative numbers for minimum
+        l.imax.value = -1;
+        r.imax.value = -1;
+
+        return IntRange(minAnd(l, r), max);
+    }
+    else
+    {
+        // only one interval spans [-1,0]
+        if ((l.imin.value ^ l.imax.value) < 0) swap(l, r); // r spans [-1,0]
+
+        SignExtendedNumber minAndNeg = minAnd(l, IntRange(r.imin, SignExtendedNumber(-1)));
+        SignExtendedNumber minAndPos = minAnd(l, IntRange(SignExtendedNumber(0), r.imax));
+        SignExtendedNumber maxAndNeg = maxAnd(l, IntRange(r.imin, SignExtendedNumber(-1)));
+        SignExtendedNumber maxAndPos = maxAnd(l, IntRange(SignExtendedNumber(0), r.imax));
+
+        SignExtendedNumber min = minAndNeg < minAndPos ? minAndNeg : minAndPos;
+        SignExtendedNumber max = maxAndNeg > maxAndNeg ? maxAndNeg : maxAndPos;
+
+        return IntRange(min, max);
+    }
+}
+
+IntRange IntRange::operator|(const IntRange& a) const
+{
+    // unsigned or identical sign bits:
+    if ((imin.value ^ imax.value) >= 0 && (a.imin.value ^ a.imax.value) >= 0)
+    {
+        return IntRange(minOr(*this, a), maxOr(*this, a));
+    }
+
+    IntRange l = IntRange(*this);
+    IntRange r = IntRange(a);
+
+    // both intervals span [-1,0]
+    if ((l.imin.value ^ l.imax.value) < 0 && (r.imin.value ^ r.imax.value) < 0)
+    {
+        // cannot be smaller than either l.min or r.min, set the other one to 0
+        SignExtendedNumber min = l.imin.value < r.imin.value ? l.imin : r.imin;
+
+        // only negative numbers for minimum
+        l.imin.value = 0;
+        r.imin.value = 0;
+
+        return IntRange(min, maxOr(l, r));
+    }
+    else
+    {
+        // only one interval spans [-1,0]
+        if ((imin.value ^ imax.value) < 0) swap(l, r); // r spans [-1,0]
+
+        SignExtendedNumber minOrNeg = minOr(l, IntRange(r.imin, SignExtendedNumber(-1)));
+        SignExtendedNumber minOrPos = minOr(l, IntRange(SignExtendedNumber(0), r.imax));
+        SignExtendedNumber maxOrNeg = maxOr(l, IntRange(r.imin, SignExtendedNumber(-1)));
+        SignExtendedNumber maxOrPos = maxOr(l, IntRange(SignExtendedNumber(0), r.imax));
+
+        SignExtendedNumber min = minOrNeg < minOrPos ? minOrNeg : minOrPos;
+        SignExtendedNumber max = maxOrNeg > maxOrNeg ? maxOrNeg : maxOrPos;
+
+        return IntRange(min, max);
+    }
+}
+
+IntRange IntRange::operator^(const IntRange& a) const
+{
+    return (*this & (~a)) | (~(*this) & a);
+}
+
+IntRange IntRange::operator+(const IntRange& a) const
+{
+    // Not yet implemented
+    assert(0);
+}
+
+IntRange IntRange::operator-(const IntRange& a) const
+{
+    // Not yet implemented
+    assert(0);
+}
+
+IntRange IntRange::operator*(const IntRange& a) const
+{
+    // Not yet implemented
+    assert(0);
+}
+
+IntRange IntRange::operator/(const IntRange& a) const
+{
+    // Not yet implemented
+    assert(0);
+}
+
+IntRange IntRange::operator%(const IntRange& a) const
+{
+    // Not yet implemented
+    assert(0);
+}
+
+IntRange IntRange::operator<<(const IntRange& a) const
+{
+    // Not yet implemented
+    assert(0);
+}
+
+IntRange IntRange::operator>>(const IntRange& a) const
+{
+    // Not yet implemented
+    assert(0);
+}
+
+SignExtendedNumber IntRange::maxOr(const IntRange& lhs, const IntRange& rhs)
+{
+    uinteger_t x = 0;
+    uinteger_t xorvalue = lhs.imax.value ^ rhs.imax.value;
+    uinteger_t andvalue = lhs.imax.value & rhs.imax.value;
+    IntRange lhsc = IntRange(lhs);
+    IntRange rhsc = IntRange(rhs);
+
+    for (uinteger_t d = 1LU << (8 * sizeof(uinteger_t) - 1); d; d >>= 1)
+    {
+        if (xorvalue & d)
+        {
+            x |= d;
+            if (lhsc.imax.value & d)
+            {
+                if (~lhsc.imin.value & d) lhsc.imin.value = 0;
+            }
+            else
+            {
+                if (~rhsc.imin.value & d) rhsc.imin.value = 0;
+            }
+        }
+        else if (lhsc.imin.value & rhsc.imin.value & d) x |= d;
+        else if (andvalue & d)
+        {
+            x |= (d << 1) - 1;
+            break;
+        }
+    }
+
+  return SignExtendedNumber(x);
+}
+
+SignExtendedNumber IntRange::minOr(const IntRange& lhs, const IntRange& rhs)
+{
+    return ~maxAnd(~lhs, ~rhs);
+}
+
+SignExtendedNumber IntRange::maxAnd(const IntRange& lhs, const IntRange& rhs)
+{
+    uinteger_t x = 0;
+    IntRange lhsc = IntRange(lhs);
+    IntRange rhsc = IntRange(rhs);
+
+    for (uinteger_t d = 1LU << (8 * sizeof(uinteger_t)-  1); d; d >>= 1)
+    {
+        if (lhsc.imax.value & rhsc.imax.value & d)
+        {
+            x |= d;
+            if (~lhsc.imin.value & d) lhsc.imin.value = 0;
+            if (~rhsc.imin.value & d) rhsc.imin.value = 0;
+        }
+        else if (~lhsc.imin.value & d && lhsc.imax.value & d) lhsc.imax.value |= d - 1;
+        else if (~rhsc.imin.value & d && rhsc.imax.value & d) rhsc.imax.value |= d - 1;
+    }
+
+    return SignExtendedNumber(x);
+}
+
+SignExtendedNumber IntRange::minAnd(const IntRange& lhs, const IntRange& rhs)
+{
+    return ~maxOr(~lhs, ~rhs);
+}
+
+void IntRange::swap(IntRange& a, IntRange& b)
+{
+    IntRange aux = a;
+    a = b;
+    b = aux;
+}
 
 const IntRange& IntRange::dump(const char* funcName, Expression *e) const
 {

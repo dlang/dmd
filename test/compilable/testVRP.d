@@ -329,3 +329,9 @@ void test13001(bool unknown)
         static assert(!__traits(compiles, b = i + 254));
     }
 }
+
+void test10310()
+{
+    int y;
+    ubyte x = ((y & 252) ^ 2) + 1;
+}

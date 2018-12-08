@@ -3381,74 +3381,6 @@ IntRange getIntRange(Expression *e)
 {
     class IntRangeVisitor : public Visitor
     {
-    private:
-        static uinteger_t getMask(uinteger_t v)
-        {
-            // Ref: http://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
-            v |= v >> 1;
-            v |= v >> 2;
-            v |= v >> 4;
-            v |= v >> 8;
-            v |= v >> 16;
-            v |= v >> 32;
-            return v;
-        }
-
-        // The algorithms for &, |, ^ are not yet the best! Sometimes they will produce
-        //  not the tightest bound. See
-        //      https://github.com/D-Programming-Language/dmd/pull/116
-        //  for detail.
-        static IntRange unsignedBitwiseAnd(const IntRange& a, const IntRange& b)
-        {
-            // the DiffMasks stores the mask of bits which are variable in the range.
-            uinteger_t aDiffMask = getMask(a.imin.value ^ a.imax.value);
-            uinteger_t bDiffMask = getMask(b.imin.value ^ b.imax.value);
-            // Since '&' computes the digitwise-minimum, the we could set all varying
-            //  digits to 0 to get a lower bound, and set all varying digits to 1 to get
-            //  an upper bound.
-            IntRange result;
-            result.imin.value = (a.imin.value & ~aDiffMask) & (b.imin.value & ~bDiffMask);
-            result.imax.value = (a.imax.value | aDiffMask) & (b.imax.value | bDiffMask);
-            // Sometimes the upper bound is overestimated. The upper bound will never
-            //  exceed the input.
-            if (result.imax.value > a.imax.value)
-                result.imax.value = a.imax.value;
-            if (result.imax.value > b.imax.value)
-                result.imax.value = b.imax.value;
-            result.imin.negative = result.imax.negative = a.imin.negative && b.imin.negative;
-            return result;
-        }
-        static IntRange unsignedBitwiseOr(const IntRange& a, const IntRange& b)
-        {
-            // the DiffMasks stores the mask of bits which are variable in the range.
-            uinteger_t aDiffMask = getMask(a.imin.value ^ a.imax.value);
-            uinteger_t bDiffMask = getMask(b.imin.value ^ b.imax.value);
-            // The imax algorithm by Adam D. Ruppe.
-            // http://www.digitalmars.com/pnews/read.php?server=news.digitalmars.com&group=digitalmars.D&artnum=108796
-            IntRange result;
-            result.imin.value = (a.imin.value & ~aDiffMask) | (b.imin.value & ~bDiffMask);
-            result.imax.value = a.imax.value | b.imax.value | getMask(a.imax.value & b.imax.value);
-            // Sometimes the lower bound is underestimated. The lower bound will never
-            //  less than the input.
-            if (result.imin.value < a.imin.value)
-                result.imin.value = a.imin.value;
-            if (result.imin.value < b.imin.value)
-                result.imin.value = b.imin.value;
-            result.imin.negative = result.imax.negative = a.imin.negative || b.imin.negative;
-            return result;
-        }
-        static IntRange unsignedBitwiseXor(const IntRange& a, const IntRange& b)
-        {
-            // the DiffMasks stores the mask of bits which are variable in the range.
-            uinteger_t aDiffMask = getMask(a.imin.value ^ a.imax.value);
-            uinteger_t bDiffMask = getMask(b.imin.value ^ b.imax.value);
-            IntRange result;
-            result.imin.value = (a.imin.value ^ b.imin.value) & ~(aDiffMask | bDiffMask);
-            result.imax.value = (a.imax.value ^ b.imax.value) | (aDiffMask | bDiffMask);
-            result.imin.negative = result.imax.negative = a.imin.negative != b.imin.negative;
-            return result;
-        }
-
     public:
         IntRange range;
 
@@ -3543,7 +3475,7 @@ IntRange getIntRange(Expression *e)
                 return;
             }
 
-            ++ irDen.imin;
+            irDen.imin = irDen.imin + SignExtendedNumber(1);
             irDen.imax = -irDen.imin;
 
             if (!irNum.imin.negative)
@@ -3564,50 +3496,19 @@ IntRange getIntRange(Expression *e)
 
         void visit(AndExp *e)
         {
-            IntRange ir1 = getIntRange(e->e1);
-            IntRange ir2 = getIntRange(e->e2);
-
-            IntRange ir1neg, ir1pos, ir2neg, ir2pos;
-            bool has1neg, has1pos, has2neg, has2pos;
-
-            ir1.splitBySign(ir1neg, has1neg, ir1pos, has1pos);
-            ir2.splitBySign(ir2neg, has2neg, ir2pos, has2pos);
-
             IntRange result;
             bool hasResult = false;
-            if (has1pos && has2pos)
-                result.unionOrAssign(unsignedBitwiseAnd(ir1pos, ir2pos), hasResult);
-            if (has1pos && has2neg)
-                result.unionOrAssign(unsignedBitwiseAnd(ir1pos, ir2neg), hasResult);
-            if (has1neg && has2pos)
-                result.unionOrAssign(unsignedBitwiseAnd(ir1neg, ir2pos), hasResult);
-            if (has1neg && has2neg)
-                result.unionOrAssign(unsignedBitwiseAnd(ir1neg, ir2neg), hasResult);
+            result.unionOrAssign(getIntRange(e->e1) & getIntRange(e->e2), hasResult);
+
             assert(hasResult);
             range = result.cast(e->type);
         }
 
         void visit(OrExp *e)
         {
-            IntRange ir1 = getIntRange(e->e1);
-            IntRange ir2 = getIntRange(e->e2);
-
-            IntRange ir1neg, ir1pos, ir2neg, ir2pos;
-            bool has1neg, has1pos, has2neg, has2pos;
-
-            ir1.splitBySign(ir1neg, has1neg, ir1pos, has1pos);
-            ir2.splitBySign(ir2neg, has2neg, ir2pos, has2pos);
-
             IntRange result;
             bool hasResult = false;
-            if (has1pos && has2pos)
-                result.unionOrAssign(unsignedBitwiseOr(ir1pos, ir2pos), hasResult);
-            if (has1pos && has2neg)
-                result.unionOrAssign(unsignedBitwiseOr(ir1pos, ir2neg), hasResult);
-            if (has1neg && has2pos)
-                result.unionOrAssign(unsignedBitwiseOr(ir1neg, ir2pos), hasResult);
-            if (has1neg && has2neg)
-                result.unionOrAssign(unsignedBitwiseOr(ir1neg, ir2neg), hasResult);
+            result.unionOrAssign(getIntRange(e->e1) | getIntRange(e->e2), hasResult);
 
             assert(hasResult);
             range = result.cast(e->type);
@@ -3615,25 +3516,9 @@ IntRange getIntRange(Expression *e)
 
         void visit(XorExp *e)
         {
-            IntRange ir1 = getIntRange(e->e1);
-            IntRange ir2 = getIntRange(e->e2);
-
-            IntRange ir1neg, ir1pos, ir2neg, ir2pos;
-            bool has1neg, has1pos, has2neg, has2pos;
-
-            ir1.splitBySign(ir1neg, has1neg, ir1pos, has1pos);
-            ir2.splitBySign(ir2neg, has2neg, ir2pos, has2pos);
-
             IntRange result;
             bool hasResult = false;
-            if (has1pos && has2pos)
-                result.unionOrAssign(unsignedBitwiseXor(ir1pos, ir2pos), hasResult);
-            if (has1pos && has2neg)
-                result.unionOrAssign(unsignedBitwiseXor(ir1pos, ir2neg), hasResult);
-            if (has1neg && has2pos)
-                result.unionOrAssign(unsignedBitwiseXor(ir1neg, ir2pos), hasResult);
-            if (has1neg && has2neg)
-                result.unionOrAssign(unsignedBitwiseXor(ir1neg, ir2neg), hasResult);
+            result.unionOrAssign(getIntRange(e->e1) ^ getIntRange(e->e2), hasResult);
 
             assert(hasResult);
             range = result.cast(e->type);
