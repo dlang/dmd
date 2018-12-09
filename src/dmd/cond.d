@@ -172,7 +172,7 @@ extern (C++) final class StaticForeach : RootObject
      */
     private extern(D) Expression wrapAndCall(const ref Loc loc, Statement s)
     {
-        auto tf = new TypeFunction(new Parameters(), null, 0, LINK.default_, 0);
+        auto tf = new TypeFunction(new Parameters(), null, VarArg.none, LINK.default_, 0);
         auto fd = new FuncLiteralDeclaration(loc, loc, tf, TOK.reserved, null);
         fd.fbody = s;
         auto fe = new FuncExp(loc, fd);

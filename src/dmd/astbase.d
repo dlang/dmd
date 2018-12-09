@@ -288,6 +288,14 @@ struct ASTBase
         tracingDT    = 0x8,  // mark in progress of deduceType
     }
 
+    enum VarArg
+    {
+        none     = 0,  /// fixed number of arguments
+        variadic = 1,  /// T t, ...)  can be C-style (core.stdc.stdarg) or D-style (core.vararg)
+        typesafe = 2,  /// T t ...) typesafe https://dlang.org/spec/function.html#typesafe_variadic_functions
+                       ///   or https://dlang.org/spec/function.html#typesafe_variadic_functions
+    }
+
     alias Visitor = ParseTimeVisitor!ASTBase;
 
     extern (C++) class Dsymbol : RootObject
@@ -877,9 +885,9 @@ struct ASTBase
     extern (C++) final class NewDeclaration : FuncDeclaration
     {
         Parameters* parameters;
-        int varargs;
+        VarArg varargs;
 
-        extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Parameters* fparams, int varargs)
+        extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Parameters* fparams, VarArg varargs)
         {
             super(loc, endloc, Id.classNew, STC.static_ | stc, null);
             this.parameters = fparams;
@@ -3857,8 +3865,8 @@ struct ASTBase
     extern (C++) class TypeFunction : TypeNext
     {
         Parameters* parameters;     // function parameters
-        int varargs;                // 1: T t, ...) style for variable number of arguments
-                                    // 2: T t ...) style for variable number of arguments
+        VarArg varargs;
+
         bool isnothrow;             // true: nothrow
         bool isnogc;                // true: is @nogc
         bool isproperty;            // can be called without parentheses
@@ -3872,10 +3880,10 @@ struct ASTBase
         ubyte iswild;
         Expressions* fargs;
 
-        extern (D) this(Parameters* parameters, Type treturn, int varargs, LINK linkage, StorageClass stc = 0)
+        extern (D) this(Parameters* parameters, Type treturn, VarArg varargs, LINK linkage, StorageClass stc = 0)
         {
             super(Tfunction, treturn);
-            assert(0 <= varargs && varargs <= 2);
+            assert(VarArg.none <= varargs && varargs <= VarArg.typesafe);
             this.parameters = parameters;
             this.varargs = varargs;
             this.linkage = linkage;

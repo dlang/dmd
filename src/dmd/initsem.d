@@ -222,7 +222,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
             /* Rewrite as empty delegate literal { }
              */
             auto parameters = new Parameters();
-            Type tf = new TypeFunction(parameters, null, 0, LINK.d);
+            Type tf = new TypeFunction(parameters, null, VarArg.none, LINK.d);
             auto fd = new FuncLiteralDeclaration(i.loc, Loc.initial, tf, tok, null);
             fd.fbody = new CompoundStatement(i.loc, new Statements());
             fd.endloc = i.loc;

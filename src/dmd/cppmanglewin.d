@@ -1199,7 +1199,7 @@ private:
                 tmp.buf.writeByte('A');
                 break;
             case LINK.cpp:
-                if (needthis && type.varargs != 1)
+                if (needthis && type.varargs != VarArg.variadic)
                     tmp.buf.writeByte('E'); // thiscall
                 else
                     tmp.buf.writeByte('A'); // cdecl
@@ -1249,7 +1249,7 @@ private:
         }
         if (!type.parameters || !type.parameters.dim)
         {
-            if (type.varargs == 1)
+            if (type.varargs == VarArg.variadic)
                 tmp.buf.writeByte('Z');
             else
                 tmp.buf.writeByte('X');
@@ -1266,7 +1266,7 @@ private:
                 else if (p.storageClass & STC.lazy_)
                 {
                     // Mangle as delegate
-                    Type td = new TypeFunction(null, t, 0, LINK.d);
+                    Type td = new TypeFunction(null, t, VarArg.none, LINK.d);
                     td = new TypeDelegate(td);
                     t = merge(t);
                 }
@@ -1283,7 +1283,7 @@ private:
             }
 
             Parameter._foreach(type.parameters, &mangleParameterDg);
-            if (type.varargs == 1)
+            if (type.varargs == VarArg.variadic)
             {
                 tmp.buf.writeByte('Z');
             }

@@ -1111,7 +1111,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             {
                 if (FuncDeclaration fd = sapplyOld.isFuncDeclaration())
                 {
-                    int fvarargs; // ignored (opApply shouldn't take variadics)
+                    VarArg fvarargs; // ignored (opApply shouldn't take variadics)
                     auto fparameters = fd.getParameterList(&fvarargs);
 
                     if (fparameters.length == 1)
@@ -1707,7 +1707,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
                         if (dim == 2)
                             dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
-                        fldeTy[i] = new TypeDelegate(new TypeFunction(dgparams, Type.tint32, 0, LINK.d));
+                        fldeTy[i] = new TypeDelegate(new TypeFunction(dgparams, Type.tint32, VarArg.none, LINK.d));
                         params.push(new Parameter(0, fldeTy[i], null, null, null));
                         fdapply[i] = FuncDeclaration.genCfunc(params, Type.tint32, name[i]);
                     }
@@ -1776,7 +1776,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
                     if (dim == 2)
                         dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
-                    dgty = new TypeDelegate(new TypeFunction(dgparams, Type.tint32, 0, LINK.d));
+                    dgty = new TypeDelegate(new TypeFunction(dgparams, Type.tint32, VarArg.none, LINK.d));
                     params.push(new Parameter(0, dgty, null, null, null));
                     fdapply = FuncDeclaration.genCfunc(params, Type.tint32, fdname.ptr);
 
@@ -1952,7 +1952,7 @@ else
         // https://issues.dlang.org/show_bug.cgi?id=13840
         // Throwable nested function inside nothrow function is acceptable.
         StorageClass stc = mergeFuncAttrs(STC.safe | STC.pure_ | STC.nogc, fs.func);
-        auto tf = new TypeFunction(params, Type.tint32, 0, LINK.d, stc);
+        auto tf = new TypeFunction(params, Type.tint32, VarArg.none, LINK.d, stc);
         fs.cases = new Statements();
         fs.gotos = new ScopeStatements();
         auto fld = new FuncLiteralDeclaration(fs.loc, fs.endloc, tf, TOK.delegate_, fs);

@@ -126,6 +126,14 @@ extern unsigned char impcnvType2[TMAX][TMAX];
 // If !=0, give warning on implicit conversion
 extern unsigned char impcnvWarn[TMAX][TMAX];
 
+enum VarArg
+{
+    none     = 0,  /// fixed number of arguments
+    variadic = 1,  /// T t, ...)  can be C-style (core.stdc.stdarg) or D-style (core.vararg)
+    typesafe = 2,  /// T t ...) typesafe https://dlang.org/spec/function.html#typesafe_variadic_functions
+                   ///   or https://dlang.org/spec/function.html#typesafe_variadic_functions
+};
+
 class Type : public RootObject
 {
 public:
@@ -539,8 +547,8 @@ public:
     // .next is the return type
 
     ParameterList parameterList;     // function parameters
-    int varargs;        // 1: T t, ...) style for variable number of arguments
-                        // 2: T t ...) style for variable number of arguments
+    VarArg varargs;
+
     bool isnothrow;     // true: nothrow
     bool isnogc;        // true: is @nogc
     bool isproperty;    // can be called without parentheses
@@ -556,7 +564,7 @@ public:
 
     int inuse;
 
-    static TypeFunction *create(Parameters *parameters, Type *treturn, int varargs, LINK linkage, StorageClass stc = 0);
+    static TypeFunction *create(Parameters *parameters, Type *treturn, VarArg varargs, LINK linkage, StorageClass stc = 0);
     const char *kind();
     Type *syntaxCopy();
     void purityLevel();

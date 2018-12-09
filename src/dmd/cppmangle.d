@@ -1012,7 +1012,7 @@ private final class CppMangleVisitor : Visitor
      *   parameters = Array of `Parameter` to mangle
      *   varargs = if != 0, this function has varargs parameters
      */
-    void mangleFunctionParameters(Parameters* parameters, int varargs)
+    void mangleFunctionParameters(Parameters* parameters, VarArg varargs)
     {
         int numparams = 0;
 
@@ -1038,7 +1038,7 @@ private final class CppMangleVisitor : Visitor
 
         if (parameters)
             Parameter._foreach(parameters, &paramsCppMangleDg);
-        if (varargs)
+        if (varargs == VarArg.variadic)
             buf.writeByte('z');
         else if (!numparams)
             buf.writeByte('v'); // encode (void) parameters

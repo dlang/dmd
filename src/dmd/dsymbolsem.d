@@ -3751,7 +3751,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (auto sd = ad.isStructDeclaration())
             {
-                if (dim == 0 && tf.varargs == 0) // empty default ctor w/o any varargs
+                if (dim == 0 && tf.varargs == VarArg.none) // empty default ctor w/o any varargs
                 {
                     if (ctd.fbody || !(ctd.storage_class & STC.disable))
                     {
@@ -3762,7 +3762,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     }
                     sd.noDefaultCtor = true;
                 }
-                else if (dim == 0 && tf.varargs) // allow varargs only ctor
+                else if (dim == 0 && tf.varargs != VarArg.none) // allow varargs only ctor
                 {
                 }
                 else if (dim && tf.parameterList[0].defaultArg)
@@ -3779,7 +3779,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                                     "but structs cannot have default constructors.");
                 }
             }
-            else if (dim == 0 && tf.varargs == 0)
+            else if (dim == 0 && tf.varargs == VarArg.none)
             {
                 ad.defaultCtor = ctd;
             }
@@ -3812,7 +3812,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (pbd.ident == Id.postblit && pbd.semanticRun < PASS.semantic)
             ad.postblits.push(pbd);
         if (!pbd.type)
-            pbd.type = new TypeFunction(null, Type.tvoid, false, LINK.d, pbd.storage_class);
+            pbd.type = new TypeFunction(null, Type.tvoid, VarArg.none, LINK.d, pbd.storage_class);
 
         sc = sc.push();
         sc.stc &= ~STC.static_; // not static
@@ -3849,7 +3849,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             ad.dtors.push(dd);
         if (!dd.type)
         {
-            dd.type = new TypeFunction(null, Type.tvoid, false, LINK.d, dd.storage_class);
+            dd.type = new TypeFunction(null, Type.tvoid, VarArg.none, LINK.d, dd.storage_class);
             if (ad.classKind == ClassKind.cpp && dd.ident == Id.dtor)
             {
                 if (auto cldec = ad.isClassDeclaration())
@@ -3904,7 +3904,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         }
         if (!scd.type)
-            scd.type = new TypeFunction(null, Type.tvoid, false, LINK.d, scd.storage_class);
+            scd.type = new TypeFunction(null, Type.tvoid, VarArg.none, LINK.d, scd.storage_class);
 
         /* If the static ctor appears within a template instantiation,
          * it could get called multiple times by the module constructors
@@ -3971,7 +3971,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         }
         if (!sdd.type)
-            sdd.type = new TypeFunction(null, Type.tvoid, false, LINK.d, sdd.storage_class);
+            sdd.type = new TypeFunction(null, Type.tvoid, VarArg.none, LINK.d, sdd.storage_class);
 
         /* If the static ctor appears within a template instantiation,
          * it could get called multiple times by the module constructors
@@ -4046,7 +4046,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
            )
             ad.invs.push(invd);
         if (!invd.type)
-            invd.type = new TypeFunction(null, Type.tvoid, false, LINK.d, invd.storage_class);
+            invd.type = new TypeFunction(null, Type.tvoid, VarArg.none, LINK.d, invd.storage_class);
 
         sc = sc.push();
         sc.stc &= ~STC.static_; // not a static invariant
@@ -4084,7 +4084,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (global.params.useUnitTests)
         {
             if (!utd.type)
-                utd.type = new TypeFunction(null, Type.tvoid, false, LINK.d, utd.storage_class);
+                utd.type = new TypeFunction(null, Type.tvoid, VarArg.none, LINK.d, utd.storage_class);
             Scope* sc2 = sc.push();
             sc2.linkage = LINK.d;
             funcDeclarationSemantic(utd);
@@ -4190,7 +4190,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         }
         if (!deld.type)
-            deld.type = new TypeFunction(deld.parameters, Type.tvoid, 0, LINK.d, deld.storage_class);
+            deld.type = new TypeFunction(deld.parameters, Type.tvoid, VarArg.none, LINK.d, deld.storage_class);
 
         deld.type = deld.type.typeSemantic(deld.loc, sc);
 
@@ -4966,7 +4966,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 //printf("Creating default this(){} for class %s\n", toChars());
                 auto btf = fd.type.toTypeFunction();
-                auto tf = new TypeFunction(null, null, 0, LINK.d, fd.storage_class);
+                auto tf = new TypeFunction(null, null, VarArg.none, LINK.d, fd.storage_class);
                 tf.mod       = btf.mod;
                 tf.purity    = btf.purity;
                 tf.isnothrow = btf.isnothrow;

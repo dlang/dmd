@@ -1595,7 +1595,7 @@ public:
                 Parameters* p = new Parameter(STC.in_, Type.tchar.constOf().arrayOf(), null, null);
                 parameters.push(p);
                 Type tret = null;
-                tfgetmembers = new TypeFunction(parameters, tret, 0, LINK.d);
+                tfgetmembers = new TypeFunction(parameters, tret, VarArg.none, LINK.d);
                 tfgetmembers = cast(TypeFunction)tfgetmembers.dsymbolSemantic(Loc.initial, &sc);
             }
             if (fdx)

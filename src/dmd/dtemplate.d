@@ -1106,7 +1106,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         MATCH match = MATCH.exact;
         MATCH matchTiargs = MATCH.exact;
         ParameterList fparameters; // function parameter list
-        int fvarargs; // function varargs
+        VarArg fvarargs; // function varargs
         uint wildmatch = 0;
         size_t inferStart = 0;
 
