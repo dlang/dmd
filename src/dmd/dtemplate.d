@@ -507,6 +507,9 @@ struct TemplatePrevious
 }
 
 /***********************************************************
+ * [mixin] template Identifier (parameters) [Constraint]
+ * https://dlang.org/spec/template.html
+ * https://dlang.org/spec/template-mixin.html
  */
 extern (C++) final class TemplateDeclaration : ScopeDsymbol
 {
@@ -525,7 +528,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     Dsymbol onemember;      // if !=null then one member of this template
 
     bool literal;           // this template declaration is a literal
-    bool ismixin;           // template declaration is only to be used as a mixin
+    bool ismixin;           // this is a mixin template declaration
     bool isstatic;          // this is static template declaration
     Prot protection;
     int inuse;              /// for recursive expansion detection
@@ -4995,6 +4998,7 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
 }
 
 /***********************************************************
+ * https://dlang.org/spec/template.html#TemplateParameter
  */
 extern (C++) class TemplateParameter : RootObject
 {
@@ -5111,6 +5115,7 @@ extern (C++) class TemplateParameter : RootObject
 }
 
 /***********************************************************
+ * https://dlang.org/spec/template.html#TemplateTypeParameter
  * Syntax:
  *  ident : specType = defaultType
  */
@@ -5279,6 +5284,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
 }
 
 /***********************************************************
+ * https://dlang.org/spec/template.html#TemplateThisParameter
  * Syntax:
  *  this ident : specType = defaultType
  */
@@ -5306,6 +5312,7 @@ extern (C++) final class TemplateThisParameter : TemplateTypeParameter
 }
 
 /***********************************************************
+ * https://dlang.org/spec/template.html#TemplateValueParameter
  * Syntax:
  *  valType ident : specValue = defaultValue
  */
@@ -5535,6 +5542,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
 }
 
 /***********************************************************
+ * https://dlang.org/spec/template.html#TemplateAliasParameter
  * Syntax:
  *  specType ident : specAlias = defaultAlias
  */
@@ -5753,6 +5761,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
 }
 
 /***********************************************************
+ * https://dlang.org/spec/template.html#TemplateSequenceParameter
  * Syntax:
  *  ident ...
  */
@@ -5887,6 +5896,7 @@ extern (C++) final class TemplateTupleParameter : TemplateParameter
 }
 
 /***********************************************************
+ * https://dlang.org/spec/template.html#explicit_tmp_instantiation
  * Given:
  *  foo!(args) =>
  *      name = foo
@@ -7611,6 +7621,9 @@ bool definitelyValueParameter(Expression e)
 }
 
 /***********************************************************
+ * https://dlang.org/spec/template-mixin.html
+ * Syntax:
+ *    mixin MixinTemplateName [TemplateArguments] [Identifier];
  */
 extern (C++) final class TemplateMixin : TemplateInstance
 {
