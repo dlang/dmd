@@ -466,6 +466,22 @@ $(H2 $(GNAME isStaticFunction))
         $(D true) is returned, otherwise $(D false).
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct A
+{
+    int foo() { return 3; }
+    static int boo(int a) { return a; }
+}
+
+void main()
+{
+    assert(__traits(isStaticFunction, A.boo));
+    assert(!__traits(isStaticFunction, A.foo));
+    assert(__traits(isStaticFunction, main));
+}
+---
+)
 
 $(H2 $(GNAME isRef), $(GNAME isOut), $(GNAME isLazy))
 
