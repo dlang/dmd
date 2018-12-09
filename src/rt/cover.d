@@ -14,7 +14,10 @@ module rt.cover;
 private
 {
     version (Windows)
-        import core.sys.windows.windows;
+    {
+        import core.sys.windows.basetsd /+: HANDLE+/;
+        import core.sys.windows.winbase /+: LOCKFILE_EXCLUSIVE_LOCK, LockFileEx, OVERLAPPED, SetEndOfFile+/;
+    }
     else version (Posix)
     {
         import core.sys.posix.fcntl;

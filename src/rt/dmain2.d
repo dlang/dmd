@@ -26,7 +26,14 @@ private
 version (Windows)
 {
     private import core.stdc.wchar_;
-    private import core.sys.windows.windows;
+    private import core.sys.windows.basetsd /+: HANDLE+/;
+    private import core.sys.windows.shellapi /+: CommandLineToArgvW+/;
+    private import core.sys.windows.winbase /+: FreeLibrary, GetCommandLineW, GetProcAddress,
+        IsDebuggerPresent, LoadLibraryA, LoadLibraryW, LocalFree, WriteFile+/;
+    private import core.sys.windows.wincon /+: CONSOLE_SCREEN_BUFFER_INFO, GetConsoleOutputCP, GetConsoleScreenBufferInfo+/;
+    private import core.sys.windows.winnls /+: CP_UTF8, MultiByteToWideChar, WideCharToMultiByte+/;
+    private import core.sys.windows.winnt /+: WCHAR+/;
+    private import core.sys.windows.winuser /+: MB_ICONERROR, MessageBoxW+/;
 
     pragma(lib, "shell32.lib"); // needed for CommandLineToArgvW
 }

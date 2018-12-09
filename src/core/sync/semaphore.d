@@ -29,7 +29,11 @@ else version (WatchOS)
 
 version (Windows)
 {
-    private import core.sys.windows.windows;
+    private import core.sys.windows.basetsd /+: HANDLE+/;
+    private import core.sys.windows.winbase /+: CloseHandle, CreateSemaphoreA, INFINITE,
+        ReleaseSemaphore, WAIT_OBJECT_0, WaitForSingleObject+/;
+    private import core.sys.windows.windef /+: BOOL, DWORD+/;
+    private import core.sys.windows.winerror /+: WAIT_TIMEOUT+/;
 }
 else version (Darwin)
 {

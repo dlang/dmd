@@ -10,7 +10,7 @@
 module core.sys.windows.comcat;
 version (Windows):
 
-import core.sys.windows.windows, core.sys.windows.ole2;
+import core.sys.windows.ole2;
 private import core.sys.windows.basetyps, core.sys.windows.cguid, core.sys.windows.objbase, core.sys.windows.unknwn,
   core.sys.windows.windef, core.sys.windows.wtypes;
 

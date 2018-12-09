@@ -17,7 +17,9 @@ import core.runtime;
 import core.stdc.stdlib;
 import core.stdc.string;
 import core.sys.windows.dbghelp;
-import core.sys.windows.windows;
+import core.sys.windows.imagehlp /+: ADDRESS_MODE+/;
+import core.sys.windows.winbase;
+import core.sys.windows.windef;
 
 //debug=PRINTF;
 debug(PRINTF) import core.stdc.stdio;
