@@ -4570,7 +4570,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                 //printf("tf = %s, args = %s\n", tf.deco, (*arguments)[0].type.deco);
                 .error(exp.loc, "%s `%s%s` is not callable using argument types `%s`",
-                    p, exp.e1.toChars(), parametersTypeToChars(tf.parameters, tf.varargs), buf.peekString());
+                    p, exp.e1.toChars(), parametersTypeToChars(tf.parameterList.parameters, tf.varargs), buf.peekString());
                 if (failMessage)
                     errorSupplemental(exp.loc, failMessage);
                 return setError();
@@ -4642,7 +4642,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                     //printf("tf = %s, args = %s\n", tf.deco, (*arguments)[0].type.deco);
                     .error(exp.loc, "%s `%s%s` is not callable using argument types `%s`",
-                        exp.f.kind(), exp.f.toPrettyChars(), parametersTypeToChars(tf.parameters, tf.varargs), buf.peekString());
+                        exp.f.kind(), exp.f.toPrettyChars(), parametersTypeToChars(tf.parameterList.parameters, tf.varargs), buf.peekString());
                     if (failMessage)
                         errorSupplemental(exp.loc, failMessage);
                     exp.f = null;

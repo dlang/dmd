@@ -849,7 +849,7 @@ private final class CppMangleVisitor : Visitor
             }
             // Template args accept extern "C" symbols with special mangling
             if (tf.linkage == LINK.cpp)
-                mangleFunctionParameters(tf.parameters, tf.varargs);
+                mangleFunctionParameters(tf.parameterList.parameters, tf.varargs);
         }
     }
 
@@ -875,7 +875,7 @@ private final class CppMangleVisitor : Visitor
             TypeFunction preSemantic = cast(TypeFunction)d.originalType;
             source_name(ti);
             this.mangleReturnType(preSemantic);
-            this.mangleFunctionParameters(preSemantic.parameters, tf.varargs);
+            this.mangleFunctionParameters(preSemantic.parameterList.parameters, tf.varargs);
             return;
         }
 
@@ -1000,7 +1000,7 @@ private final class CppMangleVisitor : Visitor
             if (appendReturnType)
                 headOfType(tf.nextOf());  // mangle return type
         }
-        mangleFunctionParameters(tf.parameters, tf.varargs);
+        mangleFunctionParameters(tf.parameterList.parameters, tf.varargs);
     }
 
     /**
@@ -1028,7 +1028,7 @@ private final class CppMangleVisitor : Visitor
             }
             auto prev = this.context.push({
                     auto tf = cast(TypeFunction)this.context.res.asFuncDecl().type;
-                    return (*tf.parameters)[n].type;
+                    return (*tf.parameterList.parameters)[n].type;
                 }());
             scope (exit) this.context.pop(prev);
             headOfType(t);
@@ -1416,7 +1416,7 @@ extern(C++):
         if (t.isref)
             tn = tn.referenceTo();
         tn.accept(this);
-        mangleFunctionParameters(t.parameters, t.varargs);
+        mangleFunctionParameters(t.parameterList.parameters, t.varargs);
         buf.writeByte('E');
         append(t);
     }

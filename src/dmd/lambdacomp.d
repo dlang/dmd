@@ -134,7 +134,7 @@ public:
             printf("FuncLiteralDeclaration: %s\n", fld.toChars());
 
         TypeFunction tf = cast(TypeFunction)fld.type;
-        uint dim = cast(uint)Parameter.dim(tf.parameters);
+        uint dim = cast(uint)Parameter.dim(tf.parameterList.parameters);
         // Start the serialization by printing the number of
         // arguments the lambda has.
         buf.printf("%d:", dim);
@@ -143,7 +143,7 @@ public:
         // For each argument
         foreach (i; 0 .. dim)
         {
-            auto fparam = Parameter.getNth(tf.parameters, i);
+            auto fparam = tf.parameterList[i];
             if (fparam.ident !is null)
             {
                 // the variable name is introduced into a hashtable

@@ -668,7 +668,7 @@ public:
         jsonProperties(d);
         TypeFunction tf = cast(TypeFunction)d.type;
         if (tf && tf.ty == Tfunction)
-            property("parameters", tf.parameters);
+            property("parameters", tf.parameterList.parameters);
         property("endline", "endchar", &d.endloc);
         if (d.foverrides.dim)
         {

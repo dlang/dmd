@@ -1618,7 +1618,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         tfld = cast(TypeFunction)tab.nextOf();
                     Lget:
                         //printf("tfld = %s\n", tfld.toChars());
-                        if (tfld.parameters.dim == 1)
+                        if (tfld.parameterList.parameters.dim == 1)
                         {
                             Parameter p = tfld.parameterList[0];
                             if (p.type && p.type.ty == Tdelegate)

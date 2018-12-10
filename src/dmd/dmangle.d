@@ -407,7 +407,7 @@ public:
         }
 
         // Write argument types
-        paramsToDecoBuffer(t.parameters);
+        paramsToDecoBuffer(t.parameterList.parameters);
         //if (buf.data[buf.offset - 1] == '@') assert(0);
         buf.writeByte('Z' - t.varargs); // mark end of arg list
         if (tret !is null)
@@ -1184,6 +1184,6 @@ void mangleToFuncSignature(ref OutBuffer buf, FuncDeclaration fd)
     scope Mangler v = new Mangler(&buf);
 
     MODtoDecoBuffer(&buf, tf.mod);
-    v.paramsToDecoBuffer(tf.parameters);
+    v.paramsToDecoBuffer(tf.parameterList.parameters);
     buf.writeByte('Z' - tf.varargs);
 }
