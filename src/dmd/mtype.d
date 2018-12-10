@@ -585,7 +585,7 @@ extern (C++) abstract class Type : RootObject
         if (t1.varargs != t2.varargs)
             goto Ldistinct;
 
-        if (t1.parameters && t2.parameters)
+        if (t1.parameterList.parameters && t2.parameterList.parameters)
         {
             size_t dim = t1.parameterList.length;
             if (dim != t2.parameterList.length)
@@ -636,7 +636,7 @@ extern (C++) abstract class Type : RootObject
                 notcovariant |= !fparam1.isCovariant(t1.isref, fparam2);
             }
         }
-        else if (t1.parameters != t2.parameters)
+        else if (t1.parameterList.parameters != t2.parameterList.parameters)
         {
             if (t1.parameterList.length || t2.parameterList.length)
                 goto Ldistinct;
@@ -4111,7 +4111,6 @@ extern (C++) final class TypeFunction : TypeNext
     // .next is the return type
 
     ParameterList parameterList;   // function parameters
-    alias parameters = parameterList;
     VarArg varargs;
 
     bool isnothrow;             // true: nothrow
@@ -4442,7 +4441,7 @@ extern (C++) final class TypeFunction : TypeNext
             (stc & STC.safe && t.trust < TRUST.trusted))
         {
             // Klunky to change these
-            auto tf = new TypeFunction(t.parameters, t.next, t.varargs, t.linkage, 0);
+            auto tf = new TypeFunction(t.parameterList.parameters, t.next, t.varargs, t.linkage, 0);
             tf.mod = t.mod;
             tf.fargs = fargs;
             tf.purity = t.purity;
@@ -4489,20 +4488,20 @@ extern (C++) final class TypeFunction : TypeNext
 
         assert(next);
         Type tret = next.substWildTo(m);
-        Parameters* params = parameters;
+        Parameters* params = parameterList.parameters;
         if (mod & MODFlags.wild)
-            params = parameters.copy();
+            params = parameterList.parameters.copy();
         for (size_t i = 0; i < params.dim; i++)
         {
             Parameter p = (*params)[i];
             Type t = p.type.substWildTo(m);
             if (t == p.type)
                 continue;
-            if (params == parameters)
-                params = parameters.copy();
+            if (params == parameterList.parameters)
+                params = parameterList.parameters.copy();
             (*params)[i] = new Parameter(p.storageClass, t, null, null, null);
         }
-        if (next == tret && params == parameters)
+        if (next == tret && params == parameterList.parameters)
             return this;
 
         // Similar to TypeFunction::syntaxCopy;

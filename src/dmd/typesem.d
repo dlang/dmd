@@ -481,11 +481,11 @@ private Type stripDefaultArgs(Type t)
     {
         TypeFunction tf = cast(TypeFunction)t;
         Type tret = stripDefaultArgs(tf.next);
-        Parameters* params = stripParams(tf.parameters);
-        if (tret == tf.next && params == tf.parameters)
+        Parameters* params = stripParams(tf.parameterList.parameters);
+        if (tret == tf.next && params == tf.parameterList.parameters)
             return t;
         TypeFunction tr = cast(TypeFunction)tf.copy();
-        tr.parameters = params;
+        tr.parameterList.parameters = params;
         tr.next = tret;
         //printf("strip %s\n   <- %s\n", tr.toChars(), t.toChars());
         return tr;
@@ -1120,14 +1120,14 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
          * as semantic() will get called again on this.
          */
         TypeFunction tf = mtype.copy().toTypeFunction();
-        if (mtype.parameters)
+        if (mtype.parameterList.parameters)
         {
-            tf.parameters = mtype.parameters.copy();
-            for (size_t i = 0; i < mtype.parameters.dim; i++)
+            tf.parameterList.parameters = mtype.parameterList.parameters.copy();
+            for (size_t i = 0; i < mtype.parameterList.parameters.dim; i++)
             {
                 Parameter p = cast(Parameter)mem.xmalloc(__traits(classInstanceSize, Parameter));
-                memcpy(cast(void*)p, cast(void*)(*mtype.parameters)[i], __traits(classInstanceSize, Parameter));
-                (*tf.parameters)[i] = p;
+                memcpy(cast(void*)p, cast(void*)(*mtype.parameterList.parameters)[i], __traits(classInstanceSize, Parameter));
+                (*tf.parameterList.parameters)[i] = p;
             }
         }
 
@@ -1206,7 +1206,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
         }
 
         ubyte wildparams = 0;
-        if (tf.parameters)
+        if (tf.parameterList.parameters)
         {
             /* Create a scope for evaluating the default arguments for the parameters
              */

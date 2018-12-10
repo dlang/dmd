@@ -4455,9 +4455,9 @@ final class Parser(AST) : Lexer
                             assert(tpl_ !is null && tpl_.members.dim == 1);
                             auto fd = cast(AST.FuncLiteralDeclaration) (*tpl_.members)[0];
                             auto tf = cast(AST.TypeFunction) fd.type;
-                            assert(tf.parameters.dim > 0);
+                            assert(tf.parameterList.parameters.dim > 0);
                             auto as = new AST.Dsymbols();
-                            (*tf.parameters)[0].userAttribDecl = new AST.UserAttributeDeclaration(udas, as);
+                            (*tf.parameterList.parameters)[0].userAttribDecl = new AST.UserAttributeDeclaration(udas, as);
                         }
 
                         v = new AST.AliasDeclaration(loc, ident, s);

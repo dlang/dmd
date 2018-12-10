@@ -88,7 +88,7 @@ struct ObjcSelector
         TypeFunction ftype = cast(TypeFunction)fdecl.type;
         const id = fdecl.ident.toString();
         // Special case: property setter
-        if (ftype.isproperty && ftype.parameters && ftype.parameters.dim == 1)
+        if (ftype.isproperty && ftype.parameterList.parameters && ftype.parameterList.parameters.dim == 1)
         {
             // rewrite "identifier" as "setIdentifier"
             char firstChar = id[0];
@@ -103,10 +103,10 @@ struct ObjcSelector
         // write identifier in selector
         buf.write(id.ptr, id.length);
         // add mangled type and colon for each parameter
-        if (ftype.parameters && ftype.parameters.dim)
+        if (ftype.parameterList.parameters && ftype.parameterList.parameters.dim)
         {
             buf.writeByte('_');
-            Parameters* arguments = ftype.parameters;
+            Parameters* arguments = ftype.parameterList.parameters;
             size_t dim = Parameter.dim(arguments);
             for (size_t i = 0; i < dim; i++)
             {
@@ -370,7 +370,7 @@ extern(C++) private final class Supported : Objc
         if (!fd.selector)
             return;
         TypeFunction tf = cast(TypeFunction)fd.type;
-        if (fd.selector.paramCount != tf.parameters.dim)
+        if (fd.selector.paramCount != tf.parameterList.parameters.dim)
             fd.error("number of colons in Objective-C selector must match number of parameters");
         if (fd.parent && fd.parent.isTemplateInstance())
             fd.error("template cannot have an Objective-C selector attached");

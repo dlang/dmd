@@ -1748,6 +1748,11 @@ struct ASTBase
         }
     }
 
+    extern (C++) struct ParameterList
+    {
+        Parameters* parameters;
+    }
+
     extern (C++) final class Parameter : RootObject
     {
         StorageClass storageClass;
@@ -3864,7 +3869,7 @@ struct ASTBase
 
     extern (C++) class TypeFunction : TypeNext
     {
-        Parameters* parameters;     // function parameters
+        ParameterList parameterList;  // function parameters
         VarArg varargs;
 
         bool isnothrow;             // true: nothrow
@@ -3884,7 +3889,7 @@ struct ASTBase
         {
             super(Tfunction, treturn);
             assert(VarArg.none <= varargs && varargs <= VarArg.typesafe);
-            this.parameters = parameters;
+            this.parameterList.parameters = parameters;
             this.varargs = varargs;
             this.linkage = linkage;
 
@@ -3916,7 +3921,7 @@ struct ASTBase
         override Type syntaxCopy()
         {
             Type treturn = next ? next.syntaxCopy() : null;
-            Parameters* params = Parameter.arraySyntaxCopy(parameters);
+            Parameters* params = Parameter.arraySyntaxCopy(parameterList.parameters);
             auto t = new TypeFunction(params, treturn, varargs, linkage);
             t.mod = mod;
             t.isnothrow = isnothrow;

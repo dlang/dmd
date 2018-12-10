@@ -3681,9 +3681,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         assert(funcdecl.type.ty != Terror || funcdecl.errors);
 
         // semantic for parameters' UDAs
-        foreach (i; 0 .. Parameter.dim(f.parameters))
+        foreach (i; 0 .. f.parameterList.length)
         {
-            Parameter param = Parameter.getNth(f.parameters, i);
+            Parameter param = f.parameterList[i];
             if (param && param.userAttribDecl)
                 param.userAttribDecl.dsymbolSemantic(sc);
         }

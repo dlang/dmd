@@ -666,7 +666,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             if (fd && fd.type)
             {
                 TypeFunction tf = cast(TypeFunction)fd.type;
-                buf.writestring(parametersTypeToChars(tf.parameters, tf.varargs));
+                buf.writestring(parametersTypeToChars(tf.parameterList.parameters, tf.varargs));
             }
         }
 
@@ -742,8 +742,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
             scx.parent = fd;
 
-            Parameters* fparameters = tf.parameters;
-            int fvarargs = tf.varargs;
+            Parameters* fparameters = tf.parameterList.parameters;
+            VarArg fvarargs = tf.varargs;
             size_t nfparams = tf.parameterList.length;
             for (size_t i = 0; i < nfparams; i++)
             {
@@ -951,8 +951,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 fd.inferRetType = true;
 
                 // Shouldn't run semantic on default arguments and return type.
-                for (size_t i = 0; i < tf.parameters.dim; i++)
-                    (*tf.parameters)[i].defaultArg = null;
+                for (size_t i = 0; i < tf.parameterList.parameters.dim; i++)
+                    (*tf.parameterList.parameters)[i].defaultArg = null;
                 tf.next = null;
 
                 // Resolve parameter types and 'auto ref's.
@@ -2164,8 +2164,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         Scope* scx = sc2.push();
 
         // Shouldn't run semantic on default arguments and return type.
-        for (size_t i = 0; i < tf.parameters.dim; i++)
-            (*tf.parameters)[i].defaultArg = null;
+        for (size_t i = 0; i < tf.parameterList.parameters.dim; i++)
+            (*tf.parameterList.parameters)[i].defaultArg = null;
         if (fd.isCtorDeclaration())
         {
             // For constructors, emitting return type is necessary for
@@ -3619,7 +3619,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     return;
                 }
 
-                foreach (fparam; *tp.parameters)
+                foreach (fparam; *tp.parameterList.parameters)
                 {
                     // https://issues.dlang.org/show_bug.cgi?id=2579
                     // Apply function parameter storage classes to parameter types

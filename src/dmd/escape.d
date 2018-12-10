@@ -992,7 +992,7 @@ private void inferReturn(FuncDeclaration fd, VarDeclaration v)
     else
     {
         // Perform 'return' inference on parameter
-        if (tf.ty == Tfunction && tf.parameters)
+        if (tf.ty == Tfunction)
         {
             const dim = tf.parameterList.length;
             foreach (const i; 0 .. dim)

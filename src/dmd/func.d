@@ -2773,7 +2773,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                 else
                 {
                     .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
-                        fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameters, tf.varargs),
+                        fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList.parameters, tf.varargs),
                         tf.modToChars(), fargsBuf.peekString());
                     // re-resolve to check for supplemental message
                     const(char)* failMessage;
@@ -2791,8 +2791,8 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     {
         TypeFunction tf1 = m.lastf.type.toTypeFunction();
         TypeFunction tf2 = m.nextf.type.toTypeFunction();
-        const(char)* lastprms = parametersTypeToChars(tf1.parameters, tf1.varargs);
-        const(char)* nextprms = parametersTypeToChars(tf2.parameters, tf2.varargs);
+        const(char)* lastprms = parametersTypeToChars(tf1.parameterList.parameters, tf1.varargs);
+        const(char)* nextprms = parametersTypeToChars(tf2.parameterList.parameters, tf2.varargs);
 
         const(char)* mod1 = prependSpace(MODtoChars(tf1.mod));
         const(char)* mod2 = prependSpace(MODtoChars(tf2.mod));
@@ -2829,7 +2829,7 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
 
             auto tf = cast(TypeFunction) fd.type;
             .errorSupplemental(fd.loc, "`%s%s`", fd.toPrettyChars(),
-                parametersTypeToChars(tf.parameters, tf.varargs));
+                parametersTypeToChars(tf.parameterList.parameters, tf.varargs));
             nextOverload = fd.overnext;
         }
         else if (auto td = s.isTemplateDeclaration())

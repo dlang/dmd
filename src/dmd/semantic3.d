@@ -463,11 +463,11 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
             // Declare the tuple symbols and put them in the symbol table,
             // but not in parameters[].
-            if (f.parameters)
+            if (f.parameterList.parameters)
             {
-                for (size_t i = 0; i < f.parameters.dim; i++)
+                for (size_t i = 0; i < f.parameterList.parameters.dim; i++)
                 {
-                    Parameter fparam = (*f.parameters)[i];
+                    Parameter fparam = (*f.parameterList.parameters)[i];
                     if (!fparam.ident)
                         continue; // never used, so ignore
                     if (fparam.type.ty == Ttuple)
