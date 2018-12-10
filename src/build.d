@@ -172,7 +172,6 @@ auto lexer()
             "-of$@",
             "-lib",
             "-J"~env["G"], "-J../res",
-            "-L-lstdc++",
         ].chain(flags["DFLAGS"], "$<".only).array
     };
     return dependency;
@@ -407,7 +406,6 @@ auto buildDMD(string[] extraFlags...)
             "-vtls",
             "-J"~env["G"],
             "-J../res",
-            "-L-lstdc++",
         ].chain(extraFlags).chain(flags["DFLAGS"], "$<".only).array
     };
     dependency.run;
