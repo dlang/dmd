@@ -157,4 +157,3 @@ DOCS=\
     $(DOCDIR)\rt_util_container_treap.html \
     $(DOCDIR)\rt_util_random.html \
     $(DOCDIR)\rt_util_typeinfo.html \
-    $(DOCDIR)\rt_util_utf.html \
