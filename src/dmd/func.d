@@ -2272,21 +2272,16 @@ extern (C++) class FuncDeclaration : Declaration
     }
 
     /*********************************************
-     * Return the function's parameter list, and whether
+     * Returns: the function's parameter list, and whether
      * it is variadic or not.
      */
-    final ParameterList getParameterList(VarArg* pvarargs)
+    final ParameterList getParameterList()
     {
         if (type)
         {
             TypeFunction fdtype = type.isTypeFunction();
-            if (pvarargs)
-                *pvarargs = fdtype.parameterList.varargs;
             return fdtype.parameterList;
         }
-
-        if (pvarargs)
-            *pvarargs = VarArg.none;
 
         return ParameterList(null, VarArg.none);
     }
