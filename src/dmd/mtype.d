@@ -582,7 +582,7 @@ extern (C++) abstract class Type : RootObject
         t1 = cast(TypeFunction)this;
         t2 = cast(TypeFunction)t;
 
-        if (t1.varargs != t2.varargs)
+        if (t1.parameterList.varargs != t2.parameterList.varargs)
             goto Ldistinct;
 
         if (t1.parameterList.parameters && t2.parameterList.parameters)
@@ -4111,7 +4111,6 @@ extern (C++) final class TypeFunction : TypeNext
     // .next is the return type
 
     ParameterList parameterList;   // function parameters
-    VarArg varargs;
 
     bool isnothrow;             // true: nothrow
     bool isnogc;                // true: is @nogc
@@ -4133,8 +4132,7 @@ extern (C++) final class TypeFunction : TypeNext
         //if (!treturn) *(char*)0=0;
         //    assert(treturn);
         assert(VarArg.none <= varargs && varargs <= VarArg.typesafe);
-        this.parameterList.parameters = parameters;
-        this.varargs = varargs;
+        this.parameterList = ParameterList(parameters, varargs);
         this.linkage = linkage;
 
         if (stc & STC.pure_)
@@ -4178,7 +4176,7 @@ extern (C++) final class TypeFunction : TypeNext
     {
         Type treturn = next ? next.syntaxCopy() : null;
         Parameters* params = Parameter.arraySyntaxCopy(parameterList.parameters);
-        auto t = new TypeFunction(params, treturn, varargs, linkage);
+        auto t = new TypeFunction(params, treturn, parameterList.varargs, linkage);
         t.mod = mod;
         t.isnothrow = isnothrow;
         t.isnogc = isnogc;
@@ -4441,7 +4439,7 @@ extern (C++) final class TypeFunction : TypeNext
             (stc & STC.safe && t.trust < TRUST.trusted))
         {
             // Klunky to change these
-            auto tf = new TypeFunction(t.parameterList.parameters, t.next, t.varargs, t.linkage, 0);
+            auto tf = new TypeFunction(t.parameterList.parameters, t.next, t.parameterList.varargs, t.linkage, 0);
             tf.mod = t.mod;
             tf.fargs = fargs;
             tf.purity = t.purity;
@@ -4505,7 +4503,7 @@ extern (C++) final class TypeFunction : TypeNext
             return this;
 
         // Similar to TypeFunction::syntaxCopy;
-        auto t = new TypeFunction(params, tret, varargs, linkage);
+        auto t = new TypeFunction(params, tret, parameterList.varargs, linkage);
         t.mod = ((mod & MODFlags.wild) ? (mod & ~MODFlags.wild) | MODFlags.const_ : mod);
         t.isnothrow = isnothrow;
         t.isnogc = isnogc;
@@ -4597,7 +4595,7 @@ extern (C++) final class TypeFunction : TypeNext
         size_t nargs = args ? args.dim : 0;
         if (nargs > nparams)
         {
-            if (varargs == VarArg.none)
+            if (parameterList.varargs == VarArg.none)
             {
                 // suppress early exit if an error message is wanted,
                 // so we can check any matching args are valid
@@ -4751,14 +4749,14 @@ extern (C++) final class TypeFunction : TypeNext
             /* prefer matching the element type rather than the array
              * type when more arguments are present with T[]...
              */
-            if (varargs == VarArg.typesafe && u + 1 == nparams && nargs > nparams)
+            if (parameterList.varargs == VarArg.typesafe && u + 1 == nparams && nargs > nparams)
                 goto L1;
 
             //printf("\tm = %d\n", m);
             if (m == MATCH.nomatch) // if no match
             {
             L1:
-                if (varargs == VarArg.typesafe && u + 1 == nparams) // if last varargs param
+                if (parameterList.varargs == VarArg.typesafe && u + 1 == nparams) // if last varargs param
                 {
                     Type tb = p.type.toBasetype();
                     TypeSArray tsa;
@@ -4843,7 +4841,7 @@ extern (C++) final class TypeFunction : TypeNext
         }
 
     Ldone:
-        if (pMessage && !varargs && nargs > nparams)
+        if (pMessage && !parameterList.varargs && nargs > nparams)
         {
             // all parameters had a match, but there are surplus args
             *pMessage = getMatchError("expected %d argument(s), not %d", nparams, nargs);
@@ -6200,6 +6198,7 @@ extern (C++) final class TypeNull : Type
 extern (C++) struct ParameterList
 {
     Parameters* parameters;
+    VarArg varargs;
 
     size_t length()
     {
@@ -6264,7 +6263,7 @@ extern (C++) final class Parameter : RootObject
             if (auto td = tel.isTypeDelegate())
             {
                 TypeFunction tf = td.next.toTypeFunction();
-                if (tf.varargs == VarArg.none && tf.parameterList.length == 0)
+                if (tf.parameterList.varargs == VarArg.none && tf.parameterList.length == 0)
                 {
                     return tf.next; // return type of delegate
                 }

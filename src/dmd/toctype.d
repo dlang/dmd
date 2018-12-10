@@ -106,7 +106,7 @@ public:
             }
             ptypes[i] = tp;
         }
-        t.ctype = type_function(totym(t), ptypes, nparams, t.varargs == 1, Type_toCtype(t.next));
+        t.ctype = type_function(totym(t), ptypes, nparams, t.parameterList.varargs == VarArg.variadic, Type_toCtype(t.next));
         if (nparams > tmp.length)
             free(ptypes);
     }

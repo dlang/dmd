@@ -3645,7 +3645,7 @@ extern (C++) final class FuncExp : Expression
             //printf("\ttf  = %s\n", tf.toChars());
             size_t dim = tf.parameterList.length;
 
-            if (tof.parameterList.length != dim || tof.varargs != tf.varargs)
+            if (tof.parameterList.length != dim || tof.parameterList.varargs != tf.parameterList.varargs)
                 goto L1;
 
             auto tiargs = new Objects();
@@ -3706,7 +3706,8 @@ extern (C++) final class FuncExp : Expression
              */
             convertMatch = true;
 
-            auto tfy = new TypeFunction(tfx.parameterList.parameters, tof.next, tfx.varargs, tfx.linkage, STC.undefined_);
+            auto tfy = new TypeFunction(tfx.parameterList.parameters, tof.next, tfx.parameterList.varargs,
+                        tfx.linkage, STC.undefined_);
             tfy.mod = tfx.mod;
             tfy.isnothrow = tfx.isnothrow;
             tfy.isnogc = tfx.isnogc;

@@ -1663,7 +1663,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
     Expression eprefix = null;
     *peprefix = null;
 
-    if (nargs > nparams && tf.varargs == VarArg.none)
+    if (nargs > nparams && tf.parameterList.varargs == VarArg.none)
     {
         error(loc, "expected %llu arguments, not %llu for non-variadic function type `%s`", cast(ulong)nparams, cast(ulong)nargs, tf.toChars());
         return true;
@@ -1712,7 +1712,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             {
                 if (!p.defaultArg)
                 {
-                    if (tf.varargs == VarArg.typesafe && i + 1 == nparams)
+                    if (tf.parameterList.varargs == VarArg.typesafe && i + 1 == nparams)
                         goto L2;
                     return errorArgs();
                 }
@@ -1732,7 +1732,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 }
             }
 
-            if (tf.varargs == VarArg.typesafe && i + 1 == nparams) // https://dlang.org/spec/function.html#variadic
+            if (tf.parameterList.varargs == VarArg.typesafe && i + 1 == nparams) // https://dlang.org/spec/function.html#variadic
             {
                 //printf("\t\tvarargs == 2, p.type = '%s'\n", p.type.toChars());
                 {
@@ -1999,7 +1999,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 default:
                     break;
                 }
-                if (tf.varargs == VarArg.variadic)
+                if (tf.parameterList.varargs == VarArg.variadic)
                 {
                     const(char)* p = tf.linkage == LINK.c ? "extern(C)" : "extern(C++)";
                     if (arg.type.ty == Tarray)
@@ -2210,7 +2210,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
     //if (eprefix) printf("eprefix: %s\n", eprefix.toChars());
 
     // If D linkage and variadic, add _arguments[] as first argument
-    if (tf.linkage == LINK.d && tf.varargs == VarArg.variadic)
+    if (tf.linkage == LINK.d && tf.parameterList.varargs == VarArg.variadic)
     {
         assert(arguments.dim >= nparams);
 
@@ -3820,8 +3820,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     dim = arguments.dim;
             }
 
-            if ((tfl.varargs == VarArg.none && arguments.dim == dim) ||
-                (tfl.varargs != VarArg.none && arguments.dim >= dim))
+            if ((tfl.parameterList.varargs == VarArg.none && arguments.dim == dim) ||
+                (tfl.parameterList.varargs != VarArg.none && arguments.dim >= dim))
             {
                 auto tiargs = new Objects();
                 tiargs.reserve(exp.td.parameters.dim);
@@ -4570,7 +4570,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                 //printf("tf = %s, args = %s\n", tf.deco, (*arguments)[0].type.deco);
                 .error(exp.loc, "%s `%s%s` is not callable using argument types `%s`",
-                    p, exp.e1.toChars(), parametersTypeToChars(tf.parameterList.parameters, tf.varargs), buf.peekString());
+                    p, exp.e1.toChars(), parametersTypeToChars(tf.parameterList.parameters, tf.parameterList.varargs), buf.peekString());
                 if (failMessage)
                     errorSupplemental(exp.loc, failMessage);
                 return setError();
@@ -4642,7 +4642,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                     //printf("tf = %s, args = %s\n", tf.deco, (*arguments)[0].type.deco);
                     .error(exp.loc, "%s `%s%s` is not callable using argument types `%s`",
-                        exp.f.kind(), exp.f.toPrettyChars(), parametersTypeToChars(tf.parameterList.parameters, tf.varargs), buf.peekString());
+                        exp.f.kind(), exp.f.toPrettyChars(), parametersTypeToChars(tf.parameterList.parameters, tf.parameterList.varargs), buf.peekString());
                     if (failMessage)
                         errorSupplemental(exp.loc, failMessage);
                     exp.f = null;

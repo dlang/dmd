@@ -771,7 +771,8 @@ private Expression interpretFunction(FuncDeclaration fd, InterState* istate, Exp
     Type tb = fd.type.toBasetype();
     assert(tb.ty == Tfunction);
     TypeFunction tf = cast(TypeFunction)tb;
-    if (tf.varargs && arguments && ((fd.parameters && arguments.dim != fd.parameters.dim) || (!fd.parameters && arguments.dim)))
+    if (tf.parameterList.varargs != VarArg.none && arguments &&
+        ((fd.parameters && arguments.dim != fd.parameters.dim) || (!fd.parameters && arguments.dim)))
     {
         fd.error("C-style variadic functions are not yet implemented in CTFE");
         return CTFEExp.cantexp;

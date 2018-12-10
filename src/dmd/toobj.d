@@ -1095,7 +1095,7 @@ private bool finishVtbl(ClassDeclaration cd)
             {
                 cd.error("use of `%s%s` is hidden by `%s`; use `alias %s = %s.%s;` to introduce base class overload set",
                     fd.toPrettyChars(),
-                    parametersTypeToChars(tf.parameterList.parameters, tf.varargs),
+                    parametersTypeToChars(tf.parameterList.parameters, tf.parameterList.varargs),
                     cd.toChars(),
                     fd.toChars(),
                     fd.parent.toChars(),

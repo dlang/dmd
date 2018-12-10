@@ -921,7 +921,7 @@ public:
             buf.writestring("auto ");
         if (ident)
             buf.writestring(ident);
-        parametersToBuffer(t.parameterList.parameters, t.varargs);
+        parametersToBuffer(t.parameterList.parameters, t.parameterList.varargs);
         /* Use postfix style for attributes
          */
         if (t.mod)
@@ -989,7 +989,7 @@ public:
             }
             buf.writeByte(')');
         }
-        parametersToBuffer(t.parameterList.parameters, t.varargs);
+        parametersToBuffer(t.parameterList.parameters, t.parameterList.varargs);
         if (t.isreturn)
         {
             PrePostAppendStrings.fp(&pas, " return");
@@ -2031,7 +2031,7 @@ public:
         // Don't print tf.mod, tf.trust, and tf.linkage
         if (!f.inferRetType && tf.next)
             typeToBuffer(tf.next, null);
-        parametersToBuffer(tf.parameterList.parameters, tf.varargs);
+        parametersToBuffer(tf.parameterList.parameters, tf.parameterList.varargs);
         CompoundStatement cs = f.fbody.isCompoundStatement();
         Statement s1;
         if (f.semanticRun >= PASS.semantic3done && cs)
@@ -3584,7 +3584,7 @@ const(char)* parameterToChars(Parameter parameter, TypeFunction tf, bool fullQua
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(&buf, &hgs);
 
     parameter.accept(v);
-    if (tf.varargs == 2 && parameter == tf.parameterList[tf.parameterList.parameters.dim - 1])
+    if (tf.parameterList.varargs == VarArg.typesafe && parameter == tf.parameterList[tf.parameterList.parameters.dim - 1])
     {
         buf.writestring("...");
     }

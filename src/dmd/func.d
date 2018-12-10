@@ -975,7 +975,7 @@ extern (C++) class FuncDeclaration : Declaration
             /* A variadic parameter list is less specialized than a
              * non-variadic one.
              */
-            if (tf.varargs && !tg.varargs)
+            if (tf.parameterList.varargs && !tg.parameterList.varargs)
                 goto L1; // less specialized
 
             static if (LOG_LEASTAS)
@@ -2281,14 +2281,14 @@ extern (C++) class FuncDeclaration : Declaration
         {
             TypeFunction fdtype = type.isTypeFunction();
             if (pvarargs)
-                *pvarargs = fdtype.varargs;
+                *pvarargs = fdtype.parameterList.varargs;
             return fdtype.parameterList;
         }
 
         if (pvarargs)
             *pvarargs = VarArg.none;
 
-        return ParameterList();
+        return ParameterList(null, VarArg.none);
     }
 
     /**********************************
@@ -2357,7 +2357,7 @@ extern (C++) class FuncDeclaration : Declaration
             error("must return `int` or `void`");
         else if (tf.nextOf().ty != Tint32 && tf.nextOf().ty != Tvoid)
             error("must return `int` or `void`, not `%s`", tf.nextOf().toChars());
-        else if (tf.varargs || nparams >= 2 || argerr)
+        else if (tf.parameterList.varargs || nparams >= 2 || argerr)
             error("parameters must be `main()` or `main(string[] args)`");
     }
 
@@ -2773,7 +2773,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                 else
                 {
                     .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
-                        fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList.parameters, tf.varargs),
+                        fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList.parameters, tf.parameterList.varargs),
                         tf.modToChars(), fargsBuf.peekString());
                     // re-resolve to check for supplemental message
                     const(char)* failMessage;
@@ -2791,8 +2791,8 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     {
         TypeFunction tf1 = m.lastf.type.toTypeFunction();
         TypeFunction tf2 = m.nextf.type.toTypeFunction();
-        const(char)* lastprms = parametersTypeToChars(tf1.parameterList.parameters, tf1.varargs);
-        const(char)* nextprms = parametersTypeToChars(tf2.parameterList.parameters, tf2.varargs);
+        const(char)* lastprms = parametersTypeToChars(tf1.parameterList.parameters, tf1.parameterList.varargs);
+        const(char)* nextprms = parametersTypeToChars(tf2.parameterList.parameters, tf2.parameterList.varargs);
 
         const(char)* mod1 = prependSpace(MODtoChars(tf1.mod));
         const(char)* mod2 = prependSpace(MODtoChars(tf2.mod));
@@ -2829,7 +2829,7 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
 
             auto tf = cast(TypeFunction) fd.type;
             .errorSupplemental(fd.loc, "`%s%s`", fd.toPrettyChars(),
-                parametersTypeToChars(tf.parameterList.parameters, tf.varargs));
+                parametersTypeToChars(tf.parameterList.parameters, tf.parameterList.varargs));
             nextOverload = fd.overnext;
         }
         else if (auto td = s.isTemplateDeclaration())
