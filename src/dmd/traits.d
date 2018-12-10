@@ -1206,7 +1206,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 return new ErrorExp();
             }
             link = fd.linkage;
-            fd.getParameterList(&varargs);
+            varargs = fd.getParameterList().varargs;
         }
         string style;
         final switch (varargs)
@@ -1239,7 +1239,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (tf)
             fparams = tf.parameterList;
         else if (fd)
-            fparams = fd.getParameterList(null);
+            fparams = fd.getParameterList();
         else
         {
             e.error("first argument to `__traits(getParameterStorageClasses, %s, %s)` is not a function",

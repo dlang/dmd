@@ -123,8 +123,7 @@ FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope* sc)
         {
             if (f.errors)
                 return null;
-            VarArg varargs;
-            auto fparams = f.getParameterList(&varargs);
+            auto fparams = f.getParameterList();
             if (fparams.length)
             {
                 auto fparam0 = fparams[0];

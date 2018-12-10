@@ -1111,8 +1111,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             {
                 if (FuncDeclaration fd = sapplyOld.isFuncDeclaration())
                 {
-                    VarArg fvarargs; // ignored (opApply shouldn't take variadics)
-                    auto fparameters = fd.getParameterList(&fvarargs);
+                    auto fparameters = fd.getParameterList();
 
                     if (fparameters.length == 1)
                     {

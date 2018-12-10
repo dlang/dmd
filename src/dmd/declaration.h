@@ -598,7 +598,7 @@ public:
     void buildResultVar(Scope *sc, Type *tret);
     Statement *mergeFrequire(Statement *);
     Statement *mergeFensure(Statement *, Identifier *oid);
-    ParameterList getParameterList(int *pvarargs);
+    ParameterList getParameterList();
 
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc=0);
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id, StorageClass stc=0);

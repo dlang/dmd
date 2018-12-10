@@ -743,14 +743,13 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             scx.parent = fd;
 
             Parameters* fparameters = tf.parameterList.parameters;
-            VarArg fvarargs = tf.parameterList.varargs;
             size_t nfparams = tf.parameterList.length;
             for (size_t i = 0; i < nfparams; i++)
             {
                 Parameter fparam = tf.parameterList[i];
                 fparam.storageClass &= (STC.in_ | STC.out_ | STC.ref_ | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);
                 fparam.storageClass |= STC.parameter;
-                if (fvarargs == 2 && i + 1 == nfparams)
+                if (tf.parameterList.varargs == VarArg.typesafe && i + 1 == nfparams)
                 {
                     fparam.storageClass |= STC.variadic;
                     /* Don't need to set STC.scope_ because this will only
@@ -1228,7 +1227,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             }
         }
 
-        fparameters = fd.getParameterList(&fvarargs);
+        fparameters = fd.getParameterList();
         nfparams = fparameters.length; // number of function parameters
         nfargs = fargs ? fargs.dim : 0; // number of function arguments
 
@@ -1270,7 +1269,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     if (!tp.ident.equals(tid.ident) || tid.idents.dim)
                         continue;
 
-                    if (fvarargs) // variadic function doesn't
+                    if (fparameters.varargs != VarArg.none) // variadic function doesn't
                         goto Lnomatch; // go with variadic template
 
                     goto L1;
@@ -1461,7 +1460,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         for (size_t j = 0; j < tt_dim; j++, ++argi)
                         {
                             Parameter p = (*tt.arguments)[j];
-                            if (j == tt_dim - 1 && fvarargs == 2 && parami + 1 == nfparams && argi < nfargs)
+                            if (j == tt_dim - 1 && fparameters.varargs == VarArg.typesafe &&
+                                parami + 1 == nfparams && argi < nfargs)
                             {
                                 prmtype = p.type;
                                 goto Lvarargs;
@@ -1658,7 +1658,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         }
                     }
 
-                    if (fvarargs == 2 && parami + 1 == nfparams && argi + 1 < nfargs)
+                    if (fparameters.varargs == VarArg.typesafe && parami + 1 == nfparams && argi + 1 < nfargs)
                         goto Lvarargs;
 
                     uint wm = 0;
@@ -1725,7 +1725,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 /* The following code for variadic arguments closely
                  * matches TypeFunction.callMatch()
                  */
-                if (!(fvarargs == 2 && parami + 1 == nfparams))
+                if (!(fparameters.varargs == VarArg.typesafe && parami + 1 == nfparams))
                     goto Lnomatch;
 
                 /* Check for match with function parameter T...
@@ -1861,7 +1861,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 assert(0);
             }
             //printf(". argi = %d, nfargs = %d, nfargs2 = %d\n", argi, nfargs, nfargs2);
-            if (argi != nfargs2 && !fvarargs)
+            if (argi != nfargs2 && fparameters.varargs == VarArg.none)
                 goto Lnomatch;
         }
 
@@ -6174,7 +6174,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         {
             if (!fd.errors)
             {
-                auto fparameters = fd.getParameterList(null);
+                auto fparameters = fd.getParameterList();
                 size_t nfparams = fparameters.length;   // Num function parameters
                 for (size_t j = 0; j < nfparams; j++)
                 {
