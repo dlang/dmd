@@ -804,16 +804,15 @@ auto sourceFiles()
             "obj",
         ].map!(e => env["C"].buildPath(e ~ ".d")).array,
         backendC:
-            // all backend files
-            dirEntries(env["C"], "*.{c,d,h}", SpanMode.shallow)
-                .map!(e => e.name)
-                .filter!(e => !e.canFind("stub", "optabgen.c"))
-                .chain(targetCH.only)
+            // all backend files in C
+            ["fp", "strtold", "tk"]
+                .map!(a => env["G"].buildPath(a).objName)
                 .array,
         backendObjects: ["fp", "strtold", "tk"]
                 .map!(a => env["G"].buildPath(a).objName)
                 .array,
     };
+    sources.backendC.writeln;
     sources.dmd = sources.frontend ~ sources.backendHeaders;
 
     return sources;
