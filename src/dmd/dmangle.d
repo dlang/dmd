@@ -409,7 +409,7 @@ public:
         // Write argument types
         paramsToDecoBuffer(t.parameterList.parameters);
         //if (buf.data[buf.offset - 1] == '@') assert(0);
-        buf.writeByte('Z' - t.varargs); // mark end of arg list
+        buf.writeByte('Z' - t.parameterList.varargs); // mark end of arg list
         if (tret !is null)
             visitWithMask(tret, 0);
         t.inuse--;
@@ -1185,5 +1185,5 @@ void mangleToFuncSignature(ref OutBuffer buf, FuncDeclaration fd)
 
     MODtoDecoBuffer(&buf, tf.mod);
     v.paramsToDecoBuffer(tf.parameterList.parameters);
-    buf.writeByte('Z' - tf.varargs);
+    buf.writeByte('Z' - tf.parameterList.varargs);
 }

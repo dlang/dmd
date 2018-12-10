@@ -202,7 +202,7 @@ private elem *callfunc(const ref Loc loc,
          */
 
         // j=1 if _arguments[] is first argument
-        const int j = (tf.linkage == LINK.d && tf.varargs == 1);
+        const int j = (tf.linkage == LINK.d && tf.parameterList.varargs == VarArg.variadic);
 
         foreach (const i, arg; *arguments)
         {
@@ -467,7 +467,7 @@ if (!irs.params.is64bit) assert(tysize(TYnptr) == 4);
         else
             e = el_una(ns ? OPucallns : OPucall, tyret, ec);
 
-        if (tf.varargs)
+        if (tf.parameterList.varargs != VarArg.none)
             e.Eflags |= EFLAGS_variadic;
     }
 

@@ -2036,7 +2036,7 @@ private bool matchParamsToOpApply(TypeFunction tf, Parameters* parameters, bool 
      * Fill in missing types in parameters.
      */
     const nparams = tdg.parameterList.length;
-    if (nparams == 0 || nparams != parameters.dim || tdg.varargs)
+    if (nparams == 0 || nparams != parameters.dim || tdg.parameterList.varargs != VarArg.none)
         return nomatch; // parameter mismatch
 
     foreach (u, p; *parameters)

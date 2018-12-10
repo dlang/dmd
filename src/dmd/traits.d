@@ -1196,7 +1196,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (tf)
         {
             link = tf.linkage;
-            varargs = tf.varargs;
+            varargs = tf.parameterList.varargs;
         }
         else
         {

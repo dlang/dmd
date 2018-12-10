@@ -3751,7 +3751,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (auto sd = ad.isStructDeclaration())
             {
-                if (dim == 0 && tf.varargs == VarArg.none) // empty default ctor w/o any varargs
+                if (dim == 0 && tf.parameterList.varargs == VarArg.none) // empty default ctor w/o any varargs
                 {
                     if (ctd.fbody || !(ctd.storage_class & STC.disable))
                     {
@@ -3762,7 +3762,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     }
                     sd.noDefaultCtor = true;
                 }
-                else if (dim == 0 && tf.varargs != VarArg.none) // allow varargs only ctor
+                else if (dim == 0 && tf.parameterList.varargs != VarArg.none) // allow varargs only ctor
                 {
                 }
                 else if (dim && tf.parameterList[0].defaultArg)
@@ -3779,7 +3779,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                                     "but structs cannot have default constructors.");
                 }
             }
-            else if (dim == 0 && tf.varargs == VarArg.none)
+            else if (dim == 0 && tf.parameterList.varargs == VarArg.none)
             {
                 ad.defaultCtor = ctd;
             }

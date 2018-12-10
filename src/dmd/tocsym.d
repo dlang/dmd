@@ -373,7 +373,7 @@ Symbol *toSymbol(Dsymbol s)
                         s.Sflags |= SFLpublic;
                         if (fd.isThis() && !global.params.is64bit && global.params.isWindows)
                         {
-                            if ((cast(TypeFunction)fd.type).varargs == 1)
+                            if ((cast(TypeFunction)fd.type).parameterList.varargs == VarArg.variadic)
                             {
                                 t.Tty = TYnfunc;
                             }

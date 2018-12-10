@@ -536,6 +536,7 @@ enum PURE
 struct ParameterList
 {
     Parameters* parameters;
+    VarArg varargs;
 
     size_t length();
     Parameter opIndex(size_t i);
@@ -547,7 +548,6 @@ public:
     // .next is the return type
 
     ParameterList parameterList;     // function parameters
-    VarArg varargs;
 
     bool isnothrow;     // true: nothrow
     bool isnogc;        // true: is @nogc

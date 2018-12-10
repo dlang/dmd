@@ -1473,13 +1473,13 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
         }
         tf.iswild = wildparams;
 
-        if (tf.isproperty && (tf.varargs || tf.parameterList.length > 2))
+        if (tf.isproperty && (tf.parameterList.varargs != VarArg.none || tf.parameterList.length > 2))
         {
             .error(loc, "properties can only have zero, one, or two parameter");
             errors = true;
         }
 
-        if (tf.varargs == 1 && tf.linkage != LINK.d && tf.parameterList.length == 0)
+        if (tf.parameterList.varargs == VarArg.variadic && tf.linkage != LINK.d && tf.parameterList.length == 0)
         {
             .error(loc, "variadic functions with non-D linkage must have at least one parameter");
             errors = true;

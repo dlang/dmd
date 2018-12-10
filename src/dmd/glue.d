@@ -1506,11 +1506,11 @@ uint totym(Type tx)
                 case LINK.windows:
                     if (global.params.is64bit)
                         goto Lc;
-                    t = (tf.varargs == 1) ? TYnfunc : TYnsfunc;
+                    t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYnsfunc;
                     break;
 
                 case LINK.pascal:
-                    t = (tf.varargs == 1) ? TYnfunc : TYnpfunc;
+                    t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYnpfunc;
                     break;
 
                 case LINK.c:
@@ -1526,7 +1526,7 @@ uint totym(Type tx)
                     break;
 
                 case LINK.d:
-                    t = (tf.varargs == 1) ? TYnfunc : TYjfunc;
+                    t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYjfunc;
                     break;
 
                 case LINK.default_:

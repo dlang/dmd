@@ -666,7 +666,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             if (fd && fd.type)
             {
                 TypeFunction tf = cast(TypeFunction)fd.type;
-                buf.writestring(parametersTypeToChars(tf.parameterList.parameters, tf.varargs));
+                buf.writestring(parametersTypeToChars(tf.parameterList.parameters, tf.parameterList.varargs));
             }
         }
 
@@ -743,7 +743,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             scx.parent = fd;
 
             Parameters* fparameters = tf.parameterList.parameters;
-            VarArg fvarargs = tf.varargs;
+            VarArg fvarargs = tf.parameterList.varargs;
             size_t nfparams = tf.parameterList.length;
             for (size_t i = 0; i < nfparams; i++)
             {
@@ -3613,7 +3613,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             if (tparam && tparam.ty == Tfunction)
             {
                 TypeFunction tp = cast(TypeFunction)tparam;
-                if (t.varargs != tp.varargs || t.linkage != tp.linkage)
+                if (t.parameterList.varargs != tp.parameterList.varargs || t.linkage != tp.linkage)
                 {
                     result = MATCH.nomatch;
                     return;
@@ -4527,7 +4527,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 //printf("\ttf  = %s\n", tf.toChars());
                 size_t dim = tf.parameterList.length;
 
-                if (tof.parameterList.length != dim || tof.varargs != tf.varargs)
+                if (tof.parameterList.length != dim || tof.parameterList.varargs != tf.parameterList.varargs)
                     return;
 
                 auto tiargs = new Objects();

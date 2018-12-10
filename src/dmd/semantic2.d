@@ -407,7 +407,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                     error(f2.loc, "%s `%s%s` cannot be overloaded with %s`extern(%s)` function at %s",
                             f2.kind(),
                             f2.toPrettyChars(),
-                            parametersTypeToChars(tf2.parameterList.parameters, tf2.varargs),
+                            parametersTypeToChars(tf2.parameterList.parameters, tf2.parameterList.varargs),
                             (f1.linkage == f2.linkage ? "another " : "").ptr,
                             linkageToChars(f1.linkage), f1.loc.toChars());
                     f2.type = Type.terror;
@@ -428,7 +428,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                     error(f2.loc, "%s `%s%s` conflicts with previous declaration at %s",
                             f2.kind(),
                             f2.toPrettyChars(),
-                            parametersTypeToChars(tf2.parameterList.parameters, tf2.varargs),
+                            parametersTypeToChars(tf2.parameterList.parameters, tf2.parameterList.varargs),
                             f1.loc.toChars());
                     f2.type = Type.terror;
                     f2.errors = true;
