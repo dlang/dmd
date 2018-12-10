@@ -216,7 +216,6 @@ auto opTabGen()
         args ~= flags["DFLAGS"];
 
         writefln("(DC) BUILD_OPTABGEN");
-        writeln(args);
         args.runCanThrow;
 
         writefln("(RUN) OPTABBIN %-(%s, %)", opTabFiles);
