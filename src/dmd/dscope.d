@@ -511,8 +511,6 @@ struct Scope
                 if (!s)
                     s = searchScopes(flags | SearchImportsOnly | IgnoreSymbolVisibility);
 
-                if (s && !(flags & IgnoreErrors))
-                    .deprecation(loc, "`%s` is not visible from module `%s`", s.toPrettyChars(), _module.toChars());
                 version (LOGSEARCH) if (s) printMsg("-Scope.search() found imported private symbol", s);
             }
         }
