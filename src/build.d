@@ -745,7 +745,7 @@ auto sourceFiles()
     struct Sources
     {
         string[] frontend, lexer, root, glue, dmd, backend;
-        string[] backendHeaders, backendC, tkC, backendObjects;
+        string[] backendHeaders, backendC, backendObjects;
     }
     string targetCH;
     string[] targetObjs;
@@ -811,15 +811,7 @@ auto sourceFiles()
                 .filter!(e => !e.canFind("stub", "optabgen.c"))
                 .chain(targetCH.only)
                 .array,
-        tkC:
-            dirEntries(env["C"], "*.{c,h}", SpanMode.shallow)
-            .map!(e => e.name)
-            .array,
-        backendObjects:
-            dirEntries(env["C"], "*.c", SpanMode.shallow)
-                .map!(e => e.baseName.stripExtension)
-                .filter!(e => !e.canFind("stub", "optabgen", "cgcv", "cgobj", "newman"))
-                .chain(targetObjs)
+        backendObjects: ["fp", "strtold", "tk"]
                 .map!(a => env["G"].buildPath(a).objName)
                 .array,
     };
