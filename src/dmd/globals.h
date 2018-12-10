@@ -141,6 +141,7 @@ struct Param
     CHECKENABLE useArrayBounds;    // when to generate code for array bounds checks
     CHECKENABLE useAssert;         // when to generate code for assert()'s
     CHECKENABLE useSwitchError;    // check for switches without a default
+    CHECKENABLE boundscheck;       // state of -boundscheck switch
 
     CHECKACTION checkAction;       // action to take when bounds, asserts or switch defaults are violated
 
