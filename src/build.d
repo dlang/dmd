@@ -166,7 +166,7 @@ auto lexer()
         target: env["G"].buildPath("lexer").libName,
         sources: sources.lexer,
         rebuildSources: configFiles,
-        name: "(CC) D_LEXER_OBJ",
+        name: "(DC) D_LEXER_OBJ",
         command: [
             env["HOST_DMD_RUN"],
             "-of$@",
@@ -216,11 +216,11 @@ auto opTabGen()
         auto args = [env["HOST_DMD_RUN"], opTabSourceFile, "-of" ~ opTabBin];
         args ~= flags["DFLAGS"];
 
-        writefln("(CC) BUILD_OPTABGEN");
+        writefln("(DC) BUILD_OPTABGEN");
         writeln(args);
         args.runCanThrow;
 
-        writefln("(CC) RUN_OPTABBIN %-(%s, %)", opTabFiles);
+        writefln("(RUN) OPTABBIN %-(%s, %)", opTabFiles);
         [opTabBin].runCanThrow;
 
         // move the generated files to the generated folder
@@ -292,7 +292,7 @@ auto dBackend()
     Dependency dependency = {
         target: env["G"].buildPath("dbackend").objName,
         sources: sources.backend,
-        name: "(CC) D_BACK_OBJS %-(%s %)".format(sources.backend),
+        name: "(DC) D_BACK_OBJS %-(%s %)".format(sources.backend),
         command: [
             env["HOST_DMD_RUN"],
             "-c",
@@ -400,7 +400,7 @@ auto buildDMD(string[] extraFlags...)
         // newdelete.o + lexer.a + backend.a
         sources: sources.dmd.chain(sources.root, dependencies[0].targets, dependencies[1].targets, backend.targets).array,
         target: env["DMD_PATH"],
-        name: "(CC) MAIN_DMD_BUILD",
+        name: "(DC) MAIN_DMD_BUILD",
         command: [
             env["HOST_DMD_RUN"],
             "-of$@",
