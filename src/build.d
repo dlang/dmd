@@ -147,18 +147,6 @@ will trigger a full rebuild.
 The function buildDMD defines the build order of its dependencies.
 */
 
-// TODO: newdelete is probably not needed anymore
-auto newDelete()
-{
-    Dependency dependency = {
-        target: env["G"].buildPath("newdelete").objName,
-        sources: [env["ROOT"].buildPath("newdelete.c")],
-        name: "(CC) NEW_DELETE",
-        command: [env["HOST_CXX"], "-c", "-o$@", "$<"]
-    };
-    return dependency;
-}
-
 /// Returns: the dependency that builds the lexer
 auto lexer()
 {
@@ -387,7 +375,7 @@ auto buildDMD(string[] extraFlags...)
     foreach (dependency; dependencies.parallel(1))
         dependency.run;
 
-    dependencies = [lexer, newDelete, dmdConf];
+    dependencies = [lexer, dmdConf];
     foreach (ref dependency; dependencies.parallel(1))
         dependency.run;
 
@@ -396,7 +384,7 @@ auto buildDMD(string[] extraFlags...)
     // Main DMD build dependency
     Dependency dependency = {
         // newdelete.o + lexer.a + backend.a
-        sources: sources.dmd.chain(sources.root, dependencies[0].targets, dependencies[1].targets, backend.targets).array,
+        sources: sources.dmd.chain(sources.root, dependencies[0].targets, backend.targets).array,
         target: env["DMD_PATH"],
         name: "(DC) MAIN_DMD_BUILD",
         command: [
