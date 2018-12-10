@@ -139,7 +139,8 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
                         s = sd.search_correct(id);
                         Loc initLoc = i.value[j].loc;
                         if (s)
-                            error(initLoc, "`%s` is not a member of `%s`, did you mean %s `%s`?", id.toChars(), sd.toChars(), s.kind(), s.toChars());
+                            error(i.loc, "`%s` is not a member of `%s`, did you mean %s%s `%s`?",
+                                id.toChars(), sd.toChars(), s.ident == id ? "non-visible ".ptr : "".ptr, s.kind(), s.toChars());
                         else
                             error(initLoc, "`%s` is not a member of `%s`", id.toChars(), sd.toChars());
                         return new ErrorInitializer();

@@ -1468,7 +1468,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     Dsymbol s = imp.mod.search_correct(imp.names[i]);
                     if (s)
-                        imp.mod.error(imp.loc, "import `%s` not found, did you mean %s `%s`?", imp.names[i].toChars(), s.kind(), s.toPrettyChars());
+                        imp.mod.error(imp.loc, "import `%s` not found, did you mean %s%s `%s`?",
+                            imp.names[i].toChars(), s.ident == imp.names[i] ? "non-visible ".ptr : "".ptr, s.kind(), s.toPrettyChars());
                     else
                         imp.mod.error(imp.loc, "import `%s` not found", imp.names[i].toChars());
                     ad.type = Type.terror;
@@ -3558,13 +3559,17 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         functionToBufferFull(cast(TypeFunction)(fd.type), &buf1,
                             new Identifier(fd.toPrettyChars()), &hgs, null);
 
-                        error(funcdecl.loc, "function `%s` does not override any function, did you mean to override `%s`?",
-                            funcdeclToChars, buf1.peekString());
+                        error(funcdecl.loc, "function `%s` does not override any function, did you mean to override %s%s `%s`?",
+                            funcdeclToChars,
+                            s.ident == funcdecl.ident ? "non-visible ".ptr : "".ptr,
+                            s.kind, buf1.peekString());
                     }
                     else
                     {
-                        error(funcdecl.loc, "function `%s` does not override any function, did you mean to override %s `%s`?",
-                            funcdeclToChars, s.kind, s.toPrettyChars());
+                        error(funcdecl.loc, "function `%s` does not override any function, did you mean to override %s%s `%s`?",
+                            funcdeclToChars,
+                            s.ident == funcdecl.ident ? "non-visible ".ptr : "".ptr,
+                            s.kind, s.toPrettyChars());
                         errorSupplemental(funcdecl.loc, "Functions are the only declarations that may be overriden");
                     }
                 }

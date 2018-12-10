@@ -699,6 +699,11 @@ extern (C++) class Dsymbol : RootObject
 
         if (global.gag)
             return null; // don't do it for speculative compiles; too time consuming
+
+        // search for exact name ignoring visibility first
+        if (auto s = search(Loc.initial, ident, IgnoreErrors | IgnoreSymbolVisibility))
+            return s;
+
         return cast(Dsymbol)speller(ident.toChars(), &symbol_search_fp, idchars);
     }
 
@@ -744,7 +749,8 @@ extern (C++) class Dsymbol : RootObject
                 {
                     sm = s.search_correct(ti.name);
                     if (sm)
-                        .error(loc, "template identifier `%s` is not a member of %s `%s`, did you mean %s `%s`?", ti.name.toChars(), s.kind(), s.toPrettyChars(), sm.kind(), sm.toChars());
+                        .error(loc, "template identifier `%s` is not a member of %s `%s`, did you mean %s%s `%s`?",
+                               ti.name.toChars(), s.kind(), s.toPrettyChars(), sm.ident == ti.name ? "non-visible ".ptr : "".ptr, sm.kind(), sm.toChars());
                     else
                         .error(loc, "template identifier `%s` is not a member of %s `%s`", ti.name.toChars(), s.kind(), s.toPrettyChars());
                     return null;
@@ -1348,10 +1354,9 @@ public:
                 {
                     if (flags & SearchImportsOnly)
                         continue;
-                    // compatibility with -transition=import
-                    // https://issues.dlang.org/show_bug.cgi?id=15925
-                    // SearchLocalsOnly should always get set for new lookup rules
-                    sflags |= (flags & SearchLocalsOnly);
+
+                    // only search locals, but not imports in mixin templates
+                    sflags |= SearchLocalsOnly;
                 }
 
                 /* Don't find private members if ss is a module

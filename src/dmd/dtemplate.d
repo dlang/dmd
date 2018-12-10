@@ -6422,7 +6422,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             {
                 s = sc.search_correct(id);
                 if (s)
-                    error("template `%s` is not defined, did you mean %s?", id.toChars(), s.toChars());
+                    error("template `%s` is not defined, did you mean %s`%s`?",
+                        id.toChars(), s.ident == id ? "non-visible ".ptr : "".ptr, s.toChars());
                 else
                     error("template `%s` is not defined", id.toChars());
                 return false;

@@ -127,6 +127,9 @@ void main()
 Language changes listed by \fB-transition=id\fR:`);
     foreach (transition; Usage.transitions)
     {
+        if (transition.deprecated_)
+            continue;
+
         string additionalOptions;
         if (transition.bugzillaNumber)
             additionalOptions = "," ~ transition.bugzillaNumber;

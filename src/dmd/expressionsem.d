@@ -413,45 +413,12 @@ private Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
     if (sc.flags & SCOPE.ignoresymbolvisibility)
         flags |= IgnoreSymbolVisibility;
 
-    Dsymbol sold = void;
-    if (global.params.bug10378 || global.params.check10378)
-    {
-        sold = searchScopes(flags | IgnoreSymbolVisibility);
-        if (!global.params.check10378)
-        {
-            s = sold;
-            goto Lsearchdone;
-        }
-    }
-
     // First look in local scopes
     s = searchScopes(flags | SearchLocalsOnly);
     if (!s)
     {
         // Second look in imported modules
         s = searchScopes(flags | SearchImportsOnly);
-
-        /** Still find private symbols, so that symbols that weren't access
-         * checked by the compiler remain usable.  Once the deprecation is over,
-         * this should be moved to search_correct instead.
-         */
-        if (!s && !(flags & IgnoreSymbolVisibility))
-        {
-            s = searchScopes(flags | SearchLocalsOnly | IgnoreSymbolVisibility);
-            if (!s)
-                s = searchScopes(flags | SearchImportsOnly | IgnoreSymbolVisibility);
-
-            if (s)
-                .deprecation(loc, "`%s` is not visible from module `%s`", s.toPrettyChars(), sc._module.toChars());
-        }
-    }
-    if (global.params.check10378)
-    {
-        alias snew = s;
-        if (sold !is snew)
-            Scope.deprecation10378(loc, sold, snew);
-        if (global.params.bug10378)
-            s = sold;
     }
 Lsearchdone:
 
@@ -2527,7 +2494,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (const n = importHint(exp.ident.toString()))
             exp.error("`%s` is not defined, perhaps `import %.*s;` is needed?", exp.ident.toChars(), cast(int)n.length, n.ptr);
         else if (auto s2 = sc.search_correct(exp.ident))
-            exp.error("undefined identifier `%s`, did you mean %s `%s`?", exp.ident.toChars(), s2.kind(), s2.toChars());
+            exp.error("undefined identifier `%s`, did you mean %s%s `%s`?",
+                exp.ident.toChars(), s2.ident == exp.ident ? "non-visible ".ptr : "".ptr, s2.kind(), s2.toChars());
         else if (const p = Scope.search_correct_C(exp.ident))
             exp.error("undefined identifier `%s`, did you mean `%s`?", exp.ident.toChars(), p);
         else
@@ -10816,11 +10784,8 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
          */
         if (s && !(sc.flags & SCOPE.ignoresymbolvisibility) && !symbolIsVisible(sc._module, s))
         {
-            if (s.isDeclaration())
-                error(exp.loc, "`%s` is not visible from module `%s`", s.toPrettyChars(), sc._module.toChars());
-            else
-                deprecation(exp.loc, "`%s` is not visible from module `%s`", s.toPrettyChars(), sc._module.toChars());
-            // s = null;
+            error(exp.loc, "`%s` is not visible from module `%s`", s.toPrettyChars(), sc._module.toChars());
+            s = null;
         }
         if (s)
         {
@@ -11000,7 +10965,8 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
             return null;
         s = ie.sds.search_correct(exp.ident);
         if (s)
-            exp.error("undefined identifier `%s` in %s `%s`, did you mean %s `%s`?", exp.ident.toChars(), ie.sds.kind(), ie.sds.toPrettyChars(), s.kind(), s.toChars());
+            exp.error("undefined identifier `%s` in %s `%s`, did you mean %s%s `%s`?",
+                exp.ident.toChars(), ie.sds.kind(), ie.sds.toPrettyChars(), s.ident == exp.ident ? "non-visible ".ptr : "".ptr, s.kind(), s.toChars());
         else
             exp.error("undefined identifier `%s` in %s `%s`", exp.ident.toChars(), ie.sds.kind(), ie.sds.toPrettyChars());
         return new ErrorExp();
