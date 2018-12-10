@@ -159,7 +159,7 @@ auto newDelete()
     return dependency;
 }
 
-/// Returns: the depedency that builds the lexer
+/// Returns: the dependency that builds the lexer
 auto lexer()
 {
     Dependency dependency = {
