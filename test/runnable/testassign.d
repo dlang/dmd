@@ -35,7 +35,6 @@ void test2()
 }
 
 /***************************************************/
-
 struct S31A
 {
     union
@@ -54,8 +53,9 @@ struct S31B
         int field2;
     }
 
-    enum result = true;
+    enum result = false;
 }
+
 struct S31C
 {
     union
@@ -64,7 +64,7 @@ struct S31C
         immutable int field2;
     }
 
-    enum result = true;
+    enum result = false;
 }
 struct S31D
 {
@@ -86,7 +86,7 @@ struct S32A
         int field2;
     }
 
-    enum result = true;
+    enum result = false;
 }
 struct S32B
 {
@@ -110,7 +110,7 @@ struct S32C
     }
     int dummy1;
 
-    enum result = true;
+    enum result = false;
 }
 struct S32D
 {

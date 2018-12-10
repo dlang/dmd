@@ -5442,7 +5442,6 @@ extern (C++) final class TypeStruct : Type
     override bool isAssignable()
     {
         bool assignable = true;
-        uint offset = ~0; // dead-store initialize to prevent spurious warning
 
         /* If any of the fields are const or immutable,
          * then one cannot assign this struct.
@@ -5451,25 +5450,9 @@ extern (C++) final class TypeStruct : Type
         {
             VarDeclaration v = sym.fields[i];
             //printf("%s [%d] v = (%s) %s, v.offset = %d, v.parent = %s", sym.toChars(), i, v.kind(), v.toChars(), v.offset, v.parent.kind());
-            if (i == 0)
-            {
-            }
-            else if (v.offset == offset)
-            {
-                /* If any fields of anonymous union are assignable,
-                 * then regard union as assignable.
-                 * This is to support unsafe things like Rebindable templates.
-                 */
-                if (assignable)
-                    continue;
-            }
-            else
-            {
-                if (!assignable)
-                    return false;
-            }
+            if (!assignable)
+                return false;
             assignable = v.type.isMutable() && v.type.isAssignable();
-            offset = v.offset;
             //printf(" -> assignable = %d\n", assignable);
         }
 
@@ -5550,24 +5533,11 @@ extern (C++) final class TypeStruct : Type
                     /* Check all the fields. If they can all be converted,
                      * allow the conversion.
                      */
-                    uint offset = ~0; // dead-store to prevent spurious warning
                     for (size_t i = 0; i < sym.fields.dim; i++)
                     {
                         VarDeclaration v = sym.fields[i];
-                        if (i == 0)
-                        {
-                        }
-                        else if (v.offset == offset)
-                        {
-                            if (m > MATCH.nomatch)
-                                continue;
-                        }
-                        else
-                        {
-                            if (m <= MATCH.nomatch)
-                                return m;
-                        }
-
+                        if (!m)
+                            return m;
                         // 'from' type
                         Type tvf = v.type.addMod(mod);
 
@@ -5582,7 +5552,6 @@ extern (C++) final class TypeStruct : Type
                             return mf;
                         if (mf < m) // if field match is worse
                             m = mf;
-                        offset = v.offset;
                     }
                 }
             }

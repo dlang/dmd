@@ -3534,23 +3534,6 @@ void test11226()
 }
 
 /************************************/
-// https://issues.dlang.org/show_bug.cgi?id=11257
-
-struct R11257
-{
-    union
-    {
-        const(Object) original;
-        Object stripped;
-    }
-}
-void test11257()
-{
-    const(R11257) cr;
-    R11257 mr = cr;  // Error: cannot implicitly convert expression (cr) of type const(R) to R
-}
-
-/************************************/
 // https://issues.dlang.org/show_bug.cgi?id=11215
 
 shared(inout(void)**) f11215(inout int);
