@@ -1866,6 +1866,8 @@ elem *toElem(Expression e, IRState *irs)
                     int rtl = tda.next.isZeroInit(Loc.initial) ? RTLSYM_NEWARRAYT : RTLSYM_NEWARRAYIT;
                     e = el_bin(OPcall,TYdarray,el_var(getRtlsym(rtl)),e);
                     toTraceGC(irs, e, ne.loc);
+                    if (config.exe == EX_WIN64)
+                        e = elHiddenParam(e);
                 }
                 else
                 {
@@ -1888,6 +1890,8 @@ elem *toElem(Expression e, IRState *irs)
                     int rtl = t.isZeroInit(Loc.initial) ? RTLSYM_NEWARRAYMTX : RTLSYM_NEWARRAYMITX;
                     e = el_bin(OPcall,TYdarray,el_var(getRtlsym(rtl)),e);
                     toTraceGC(irs, e, ne.loc);
+                    if (config.exe == EX_WIN64)
+                        e = elHiddenParam(e);
 
                     e = el_combine(earray, e);
                 }
@@ -2331,6 +2335,8 @@ elem *toElem(Expression e, IRState *irs)
                 ep = el_param(ep, getTypeInfo(ce.loc, ta, irs));
                 e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYCATNTX)), ep);
                 toTraceGC(irs, e, ce.loc);
+                if (config.exe == EX_WIN64)
+                    e = elHiddenParam(e);
                 e = el_combine(earr, e);
             }
             else
@@ -2340,6 +2346,8 @@ elem *toElem(Expression e, IRState *irs)
                 elem *ep = el_params(e2, e1, getTypeInfo(ce.loc, ta, irs), null);
                 e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYCATT)), ep);
                 toTraceGC(irs, e, ce.loc);
+                if (config.exe == EX_WIN64)
+                    e = elHiddenParam(e);
             }
             elem_setLoc(e,ce.loc);
             result = e;
@@ -2909,6 +2917,8 @@ elem *toElem(Expression e, IRState *irs)
                         elem *ep = el_params(eto, efrom, eti, null);
                         int rtl = (ae.op == TOK.construct) ? RTLSYM_ARRAYCTOR : RTLSYM_ARRAYASSIGN;
                         elem* e = el_bin(OPcall, totym(ae.type), el_var(getRtlsym(rtl)), ep);
+                        if (config.exe == EX_WIN64)
+                            e = elHiddenParam(e);
                         return setResult(e);
                     }
                     else
@@ -2923,6 +2933,8 @@ elem *toElem(Expression e, IRState *irs)
                         }
                         elem *ep = el_params(eto, efrom, esize, null);
                         elem* e = el_bin(OPcall, totym(ae.type), el_var(getRtlsym(RTLSYM_ARRAYCOPY)), ep);
+                        if (config.exe == EX_WIN64)
+                            e = elHiddenParam(e);
                         return setResult(e);
                     }
                 }
@@ -3206,6 +3218,8 @@ elem *toElem(Expression e, IRState *irs)
                     }
                     elem *ep = el_params(e1, e2, eti, null);
                     elem* e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYCTOR)), ep);
+                    if (config.exe == EX_WIN64)
+                        e = elHiddenParam(e);
                     return setResult2(e);
                 }
                 else
@@ -3230,6 +3244,8 @@ elem *toElem(Expression e, IRState *irs)
                     elem *ep = el_params(etmp, e1, e2, eti, null);
                     int rtl = lvalueElem ? RTLSYM_ARRAYASSIGN_L : RTLSYM_ARRAYASSIGN_R;
                     elem* e = el_bin(OPcall, TYdarray, el_var(getRtlsym(rtl)), ep);
+                    if (config.exe == EX_WIN64)
+                        e = elHiddenParam(e);
                     return setResult2(e);
                 }
             }
@@ -3291,6 +3307,8 @@ elem *toElem(Expression e, IRState *irs)
                     e = el_bin(OPcall, TYdarray, el_var(getRtlsym(rtl)), ep);
                     toTraceGC(irs, e, ce.loc);
                     elem_setLoc(e, ce.loc);
+                    if (config.exe == EX_WIN64)
+                        e = elHiddenParam(e);
                     break;
                 }
 
@@ -3309,6 +3327,8 @@ elem *toElem(Expression e, IRState *irs)
                     elem *ep = el_params(e2, e1, getTypeInfo(ce.e1.loc, ce.e1.type, irs), null);
                     e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYAPPENDT)), ep);
                     toTraceGC(irs, e, ce.loc);
+                    if (config.exe == EX_WIN64)
+                        e = elHiddenParam(e);
                     break;
                 }
 
@@ -3338,6 +3358,8 @@ elem *toElem(Expression e, IRState *irs)
                     ep = el_param(el_long(TYsize_t, 1), ep);
                     e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYAPPENDCTX)), ep);
                     toTraceGC(irs, e, ce.loc);
+                    if (config.exe == EX_WIN64)
+                        e = elHiddenParam(e);
                     Symbol *stmp = symbol_genauto(Type_toCtype(tb1));
                     e = el_bin(OPeq, TYdarray, el_var(stmp), e);
 
@@ -6400,4 +6422,41 @@ elem* setEthis2(const ref Loc loc, IRState* irs, FuncDeclaration fd, elem* ethis
     *eside = el_combine(eeq1, *eside);
 
     return ethis2;
+}
+
+/**************************************************
+ * Makes the "hidden" parameter for a function call.
+ * Params:
+ *      e = the function call
+ * Returns:
+ *      replacement elem for e
+ */
+elem *elHiddenParam(elem *e)
+{
+    tym_t ty = e.Ety;
+    type* t = e.ET;
+
+    elem* ep = OTbinary(e.Eoper) ? e.EV.E2 : null;
+    ubyte op = cast(ubyte) OTsideff(e.Eoper) ? OPcall : OPcallns;
+
+    Symbol* stmp = symbol_genauto(t ? t : type_fake(ty));
+    elem* ehidden = el_ptr(stmp);
+
+    if (tyrevfunc(e.EV.E1.Ety))
+        ep = el_param(ehidden, ep);
+    else
+        ep = el_param(ep, ehidden);
+
+    e.Ety = (config.exe & (EX_OSX | EX_OSX64)) ? TYvoid : TYnptr;
+    e.Eoper = op;
+    e.EV.E2 = ep;
+
+    elem* en;
+    if (config.exe & (EX_OSX | EX_OSX64))
+        en = el_combine(e, el_var(stmp));
+    else
+        en = el_una(OPind, ty, e);
+
+    en.ET = t;
+    return en;
 }
