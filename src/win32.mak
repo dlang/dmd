@@ -249,7 +249,7 @@ TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h \
 	$(TKSRCC)
 
 # Root package
-ROOTSRCC=$(ROOT)\newdelete.c
+ROOTSRCC=
 ROOTSRCD=$(ROOT)\rmem.d $(ROOT)\stringtable.d $(ROOT)\hash.d $(ROOT)\man.d $(ROOT)\port.d \
 	$(ROOT)\response.d $(ROOT)\rootobject.d $(ROOT)\speller.d $(ROOT)\aav.d \
 	$(ROOT)\ctfloat.d $(ROOT)\longdouble.d $(ROOT)\outbuffer.d $(ROOT)\filename.d \
@@ -332,12 +332,12 @@ example_avg: $G\libparser.lib examples\avg.d
 
 DMDFRONTENDEXE = $G\dmd_frontend.exe
 
-$(DMDFRONTENDEXE): $(FRONT_SRCS) $D\gluelayer.d $(ROOT_SRCS) $G\newdelete.obj $G\lexer.lib $(STRING_IMPORT_FILES)
-	$(HOST_DC) $(DSRC) -of$@ -vtls -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(LFLAGS) $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) newdelete.obj -version=NoBackend
+$(DMDFRONTENDEXE): $(FRONT_SRCS) $D\gluelayer.d $(ROOT_SRCS) $G\lexer.lib $(STRING_IMPORT_FILES)
+	$(HOST_DC) $(DSRC) -of$@ -vtls -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(LFLAGS) $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) -version=NoBackend
 	copy $(DMDFRONTENDEXE) .
 
-$(TARGETEXE): $(DMD_SRCS) $(ROOT_SRCS) $G\newdelete.obj $(LIBS) $(STRING_IMPORT_FILES)
-	$(HOST_DC) $(DSRC) -of$@ -vtls -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(LFLAGS) $(DMD_SRCS) $(ROOT_SRCS) $G\newdelete.obj $(LIBS)
+$(TARGETEXE): $(DMD_SRCS) $(ROOT_SRCS) $(LIBS) $(STRING_IMPORT_FILES)
+	$(HOST_DC) $(DSRC) -of$@ -vtls -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(LFLAGS) $(DMD_SRCS) $(ROOT_SRCS) $(LIBS)
 	copy $(TARGETEXE) .
 
 ############################ Maintenance Targets #############################
@@ -628,9 +628,6 @@ $G/tk.obj : $C\tk.c
 	$(CC) -c -o$@ $(MFLAGS) $C\tk.c
 
 # Root
-$G\newdelete.obj : $(ROOT)\newdelete.c
-	$(CC) -c -o$@ $(CFLAGS) $(ROOT)\newdelete.c
-
 $G/longdouble.obj : $(ROOT)\longdouble.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) $(ROOT)\longdouble.d
 
