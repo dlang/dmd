@@ -1179,8 +1179,6 @@ static if (NTEXCEPTIONS)
             else if ((mask(reg1) | mask(reg2)) & (mST0 | mST01))
             {
                 assert(reg1 == lreg && reg2 == NOREG);
-                if (reg1 == ST01 && I64)
-                    cdb.genf2(0xD9,0xC8 + 1);   // FXCH ST(1)
             }
             // fix return registers
             else if (tybasic(e.Ety) == TYcfloat)
