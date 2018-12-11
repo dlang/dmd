@@ -921,7 +921,7 @@ public:
             buf.writestring("auto ");
         if (ident)
             buf.writestring(ident);
-        parametersToBuffer(t.parameterList.parameters, t.parameterList.varargs);
+        parametersToBuffer(t.parameterList);
         /* Use postfix style for attributes
          */
         if (t.mod)
@@ -989,7 +989,7 @@ public:
             }
             buf.writeByte(')');
         }
-        parametersToBuffer(t.parameterList.parameters, t.parameterList.varargs);
+        parametersToBuffer(t.parameterList);
         if (t.isreturn)
         {
             PrePostAppendStrings.fp(&pas, " return");
@@ -1090,7 +1090,7 @@ public:
 
     override void visit(TypeTuple t)
     {
-        parametersToBuffer(t.arguments, 0);
+        parametersToBuffer(ParameterList(t.arguments, VarArg.none));
     }
 
     override void visit(TypeSlice t)
@@ -2031,7 +2031,7 @@ public:
         // Don't print tf.mod, tf.trust, and tf.linkage
         if (!f.inferRetType && tf.next)
             typeToBuffer(tf.next, null);
-        parametersToBuffer(tf.parameterList.parameters, tf.parameterList.varargs);
+        parametersToBuffer(tf.parameterList);
         CompoundStatement cs = f.fbody.isCompoundStatement();
         Statement s1;
         if (f.semanticRun >= PASS.semantic3done && cs)
@@ -2145,7 +2145,7 @@ public:
         if (stcToBuffer(buf, d.storage_class & ~STC.static_))
             buf.writeByte(' ');
         buf.writestring("new");
-        parametersToBuffer(d.parameters, d.varargs);
+        parametersToBuffer(ParameterList(d.parameters, d.varargs));
         bodyToBuffer(d);
     }
 
@@ -2154,7 +2154,7 @@ public:
         if (stcToBuffer(buf, d.storage_class & ~STC.static_))
             buf.writeByte(' ');
         buf.writestring("delete");
-        parametersToBuffer(d.parameters, 0);
+        parametersToBuffer(ParameterList(d.parameters, VarArg.none));
         bodyToBuffer(d);
     }
 
@@ -3189,25 +3189,29 @@ public:
         }
     }
 
-    void parametersToBuffer(Parameters* parameters, int varargs)
+    void parametersToBuffer(ParameterList pl)
     {
         buf.writeByte('(');
-        if (parameters)
+        foreach (i; 0 .. pl.length)
         {
-            size_t dim = Parameter.dim(parameters);
-            foreach (i; 0 .. dim)
-            {
-                if (i)
-                    buf.writestring(", ");
-                Parameter fparam = Parameter.getNth(parameters, i);
-                fparam.accept(this);
-            }
-            if (varargs)
-            {
-                if (parameters.dim && varargs == 1)
-                    buf.writestring(", ");
+            if (i)
+                buf.writestring(", ");
+            pl[i].accept(this);
+        }
+        final switch (pl.varargs)
+        {
+            case VarArg.none:
+                break;
+
+            case VarArg.variadic:
+                if (pl.length == 0)
+                    goto case VarArg.typesafe;
+                buf.writestring(", ...");
+                break;
+
+            case VarArg.typesafe:
                 buf.writestring("...");
-            }
+                break;
         }
         buf.writeByte(')');
     }
@@ -3555,16 +3559,15 @@ void arrayObjectsToBuffer(OutBuffer* buf, Objects* objects)
 /*************************************************************
  * Pretty print function parameters.
  * Params:
- *  parameters = parameters to print, such as TypeFunction.parameters.
- *  varargs = kind of varargs, see TypeFunction.varargs.
+ *  pl = parameter list to print
  * Returns: Null-terminated string representing parameters.
  */
-extern (C++) const(char)* parametersTypeToChars(Parameters* parameters, int varargs)
+extern (C++) const(char)* parametersTypeToChars(ParameterList pl)
 {
     OutBuffer buf;
     HdrGenState hgs;
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(&buf, &hgs);
-    v.parametersToBuffer(parameters, varargs);
+    v.parametersToBuffer(pl);
     return buf.extractString();
 }
 
