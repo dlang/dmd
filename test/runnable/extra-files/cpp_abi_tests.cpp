@@ -1,8 +1,42 @@
 #include <assert.h>
+#include <complex.h>
+
+#if !defined (__SSE__) && (defined (_M_X64) || (defined (_M_IX86_FP) && _M_IX86_FP >= 1))
+#define __SSE__ 1
+#endif
+
+#ifdef __SSE__
+#include <immintrin.h>
+#endif
+
+#ifdef _WIN32
+struct cfloat_t  { float re, im; };
+struct cdouble_t { double re, im; };
+struct creal_t   { long double re, im; };
+#else
+typedef _Complex float cfloat_t;
+typedef _Complex double cdouble_t;
+typedef _Complex long double creal_t;
+#endif
+
+#ifdef __SSE__
+typedef __m128 float4_t;
+#else
+struct float4_t { float v[4]; };
+#endif
+
+#ifdef __AVX2__
+typedef __m256 float8_t;
+#else
+struct float8_t { float v[8]; };
+#endif
 
 struct S{
     float a;
 };
+
+struct S8 { int a; float b; };
+struct S16 { int a, b; float c, d; };
 
 namespace std
 {
@@ -26,6 +60,9 @@ struct S18784
 
 S18784::S18784(int n) : i(n) {}
 
+struct S0 { };
+S0 passthrough(S0 s, int &i) { ++i; return s; }
+
 bool               passthrough(bool                value)     { return value; }
 signed char        passthrough(signed char         value)     { return value; }
 unsigned char      passthrough(unsigned char       value)     { return value; }
@@ -45,9 +82,16 @@ long long          passthrough(long long           value)     { return value; }
 unsigned long long passthrough(unsigned long long  value)     { return value; }
 float              passthrough(float               value)     { return value; }
 double             passthrough(double              value)     { return value; }
+cfloat_t           passthrough(cfloat_t            value)     { return value; }
+cdouble_t          passthrough(cdouble_t           value)     { return value; }
+creal_t            passthrough(creal_t             value)     { return value; }
+float4_t           passthrough(float4_t            value)     { return value; }
+float8_t           passthrough(float8_t            value)     { return value; }
 S                  passthrough(S                   value)     { return value; }
 std::test19248     passthrough(const std::test19248 value)    { return value; }
 std::test19248_    passthrough(const std::test19248_ value)   { return value; }
+S8                 passthrough(S8                  value)     { return value; }
+S16                passthrough(S16                 value)     { return value; }
 
 bool               passthrough_ptr(bool               *value) { return *value; }
 signed char        passthrough_ptr(signed char        *value) { return *value; }
@@ -68,9 +112,16 @@ long long          passthrough_ptr(long long          *value) { return *value; }
 unsigned long long passthrough_ptr(unsigned long long *value) { return *value; }
 float              passthrough_ptr(float              *value) { return *value; }
 double             passthrough_ptr(double             *value) { return *value; }
+cfloat_t           passthrough_ptr(cfloat_t           *value) { return *value; }
+cdouble_t          passthrough_ptr(cdouble_t          *value) { return *value; }
+creal_t            passthrough_ptr(creal_t            *value) { return *value; }
+float4_t           passthrough_ptr(float4_t           *value) { return *value; }
+float8_t           passthrough_ptr(float8_t           *value) { return *value; }
 S                  passthrough_ptr(S                  *value) { return *value; }
 std::test19248     passthrough_ptr(const std::test19248 *value) { return *value; }
 std::test19248_    passthrough_ptr(const std::test19248_ *value) { return *value; }
+S8                 passthrough_ptr(S8                 *value) { return *value; }
+S16                passthrough_ptr(S16                *value) { return *value; }
 
 bool               passthrough_ref(bool               &value) { return value; }
 signed char        passthrough_ref(signed char        &value) { return value; }
@@ -91,9 +142,16 @@ long long          passthrough_ref(long long          &value) { return value; }
 unsigned long long passthrough_ref(unsigned long long &value) { return value; }
 float              passthrough_ref(float              &value) { return value; }
 double             passthrough_ref(double             &value) { return value; }
+cfloat_t           passthrough_ref(cfloat_t           &value) { return value; }
+cdouble_t          passthrough_ref(cdouble_t          &value) { return value; }
+creal_t            passthrough_ref(creal_t            &value) { return value; }
+float4_t           passthrough_ref(float4_t           &value) { return value; }
+float8_t           passthrough_ref(float8_t           &value) { return value; }
 S                  passthrough_ref(S                  &value) { return value; }
 std::test19248     passthrough_ref(const std::test19248 &value) { return value; }
 std::test19248_    passthrough_ref(const std::test19248_ &value) { return value; }
+S8                 passthrough_ref(S8                 &value) { return value; }
+S16                passthrough_ref(S16                &value) { return value; }
 
 namespace ns1
 {

@@ -44,6 +44,7 @@ void main()
         auto a1 = an();
         auto a2 = an();
 
+        version(Win64) {} else // returns on stack in windows 64
         if (a1 !is a2) assert(0);
 
         auto o1 = on();

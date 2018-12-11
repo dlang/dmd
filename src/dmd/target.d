@@ -434,8 +434,14 @@ struct Target
         {
             // http://msdn.microsoft.com/en-us/library/7572ztz4.aspx
             if (tns.ty == Tcomplex32)
+                return false;
+            if (tns.iscomplex())
                 return true;
-            if (tns.isscalar())
+            if (tns.ty == Tvector)
+                return false;
+            if (tns.isfloating())
+                return false;
+            if (tns.isintegral() && sz <= 8)
                 return false;
 
             tns = tns.baseElemOf();
@@ -447,9 +453,9 @@ struct Target
                 if (!sd.isPOD() || sz > 8)
                     return true;
                 if (sd.fields.dim == 0)
-                    return true;
+                    return false;
             }
-            if (sz <= 16 && !(sz & (sz - 1)))
+            if (sz <= 8 && !(sz & (sz - 1)))
                 return false;
             return true;
         }
