@@ -3661,6 +3661,7 @@ private
 {
     return _d_arraysetcapacity(typeid(T[]), 0, cast(void[]*)&arr);
 }
+
 ///
 @safe unittest
 {
@@ -3696,6 +3697,7 @@ size_t reserve(T)(ref T[] arr, size_t newcapacity) pure nothrow @trusted
 {
     return _d_arraysetcapacity(typeid(T[]), newcapacity, cast(void[]*)&arr);
 }
+
 ///
 unittest
 {
@@ -3744,6 +3746,7 @@ auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow @system
     _d_arrayshrinkfit(typeid(T[]), *(cast(void[]*)&arr));
     return arr;
 }
+
 ///
 unittest
 {
