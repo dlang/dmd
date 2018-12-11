@@ -2152,7 +2152,7 @@ extern (C++) class FuncDeclaration : Declaration
              *   __require();
              */
             Loc loc = frequire.loc;
-            auto tf = new TypeFunction(null, Type.tvoid, VarArg.none, LINK.d);
+            auto tf = new TypeFunction(ParameterList(), Type.tvoid, LINK.d);
             tf.isnothrow = f.isnothrow;
             tf.isnogc = f.isnogc;
             tf.purity = f.purity;
@@ -2181,7 +2181,7 @@ extern (C++) class FuncDeclaration : Declaration
                 p = new Parameter(STC.ref_ | STC.const_, f.nextOf(), Id.result, null, null);
                 fparams.push(p);
             }
-            auto tf = new TypeFunction(fparams, Type.tvoid, VarArg.none, LINK.d);
+            auto tf = new TypeFunction(ParameterList(fparams), Type.tvoid, LINK.d);
             tf.isnothrow = f.isnothrow;
             tf.isnogc = f.isnogc;
             tf.purity = f.purity;
@@ -2316,7 +2316,7 @@ extern (C++) class FuncDeclaration : Declaration
         }
         else
         {
-            tf = new TypeFunction(fparams, treturn, VarArg.none, LINK.c, stc);
+            tf = new TypeFunction(ParameterList(fparams), treturn, LINK.c, stc);
             fd = new FuncDeclaration(Loc.initial, Loc.initial, id, STC.static_, tf);
             fd.protection = Prot(Prot.Kind.public_);
             fd.linkage = LINK.c;

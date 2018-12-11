@@ -1751,7 +1751,7 @@ struct ASTBase
     extern (C++) struct ParameterList
     {
         Parameters* parameters;
-        VarArg varargs;
+        VarArg varargs = VarArg.none;
     }
 
     extern (C++) final class Parameter : RootObject
@@ -3885,12 +3885,11 @@ struct ASTBase
         ubyte iswild;
         Expressions* fargs;
 
-        extern (D) this(Parameters* parameters, Type treturn, VarArg varargs, LINK linkage, StorageClass stc = 0)
+        extern (D) this(ParameterList pl, Type treturn, LINK linkage, StorageClass stc = 0)
         {
             super(Tfunction, treturn);
-            assert(VarArg.none <= varargs && varargs <= VarArg.typesafe);
-            this.parameterList.parameters = parameters;
-            this.parameterList.varargs = varargs;
+            assert(VarArg.none <= pl.varargs && pl.varargs <= VarArg.typesafe);
+            this.parameterList = pl;
             this.linkage = linkage;
 
             if (stc & STC.pure_)
@@ -3922,7 +3921,7 @@ struct ASTBase
         {
             Type treturn = next ? next.syntaxCopy() : null;
             Parameters* params = Parameter.arraySyntaxCopy(parameterList.parameters);
-            auto t = new TypeFunction(params, treturn, parameterList.varargs, linkage);
+            auto t = new TypeFunction(ParameterList(params, parameterList.varargs), treturn, linkage);
             t.mod = mod;
             t.isnothrow = isnothrow;
             t.isnogc = isnogc;

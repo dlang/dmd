@@ -3812,7 +3812,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (pbd.ident == Id.postblit && pbd.semanticRun < PASS.semantic)
             ad.postblits.push(pbd);
         if (!pbd.type)
-            pbd.type = new TypeFunction(null, Type.tvoid, VarArg.none, LINK.d, pbd.storage_class);
+            pbd.type = new TypeFunction(ParameterList(), Type.tvoid, LINK.d, pbd.storage_class);
 
         sc = sc.push();
         sc.stc &= ~STC.static_; // not static
@@ -3849,7 +3849,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             ad.dtors.push(dd);
         if (!dd.type)
         {
-            dd.type = new TypeFunction(null, Type.tvoid, VarArg.none, LINK.d, dd.storage_class);
+            dd.type = new TypeFunction(ParameterList(), Type.tvoid, LINK.d, dd.storage_class);
             if (ad.classKind == ClassKind.cpp && dd.ident == Id.dtor)
             {
                 if (auto cldec = ad.isClassDeclaration())
@@ -3904,7 +3904,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         }
         if (!scd.type)
-            scd.type = new TypeFunction(null, Type.tvoid, VarArg.none, LINK.d, scd.storage_class);
+            scd.type = new TypeFunction(ParameterList(), Type.tvoid, LINK.d, scd.storage_class);
 
         /* If the static ctor appears within a template instantiation,
          * it could get called multiple times by the module constructors
@@ -3971,7 +3971,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         }
         if (!sdd.type)
-            sdd.type = new TypeFunction(null, Type.tvoid, VarArg.none, LINK.d, sdd.storage_class);
+            sdd.type = new TypeFunction(ParameterList(), Type.tvoid, LINK.d, sdd.storage_class);
 
         /* If the static ctor appears within a template instantiation,
          * it could get called multiple times by the module constructors
@@ -4046,7 +4046,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
            )
             ad.invs.push(invd);
         if (!invd.type)
-            invd.type = new TypeFunction(null, Type.tvoid, VarArg.none, LINK.d, invd.storage_class);
+            invd.type = new TypeFunction(ParameterList(), Type.tvoid, LINK.d, invd.storage_class);
 
         sc = sc.push();
         sc.stc &= ~STC.static_; // not a static invariant
@@ -4084,7 +4084,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (global.params.useUnitTests)
         {
             if (!utd.type)
-                utd.type = new TypeFunction(null, Type.tvoid, VarArg.none, LINK.d, utd.storage_class);
+                utd.type = new TypeFunction(ParameterList(), Type.tvoid, LINK.d, utd.storage_class);
             Scope* sc2 = sc.push();
             sc2.linkage = LINK.d;
             funcDeclarationSemantic(utd);
@@ -4139,7 +4139,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
         Type tret = Type.tvoid.pointerTo();
         if (!nd.type)
-            nd.type = new TypeFunction(nd.parameters, tret, nd.varargs, LINK.d, nd.storage_class);
+            nd.type = new TypeFunction(ParameterList(nd.parameters, nd.varargs), tret, LINK.d, nd.storage_class);
 
         nd.type = nd.type.typeSemantic(nd.loc, sc);
 
@@ -4190,7 +4190,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         }
         if (!deld.type)
-            deld.type = new TypeFunction(deld.parameters, Type.tvoid, VarArg.none, LINK.d, deld.storage_class);
+            deld.type = new TypeFunction(ParameterList(deld.parameters), Type.tvoid, LINK.d, deld.storage_class);
 
         deld.type = deld.type.typeSemantic(deld.loc, sc);
 
@@ -4966,7 +4966,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 //printf("Creating default this(){} for class %s\n", toChars());
                 auto btf = fd.type.toTypeFunction();
-                auto tf = new TypeFunction(null, null, VarArg.none, LINK.d, fd.storage_class);
+                auto tf = new TypeFunction(ParameterList(), null, LINK.d, fd.storage_class);
                 tf.mod       = btf.mod;
                 tf.purity    = btf.purity;
                 tf.isnothrow = btf.isnothrow;

@@ -4045,7 +4045,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     // lazy parameters can be called without violating purity and safety
                     Type tw = ve.var.type;
                     Type tc = ve.var.type.substWildTo(MODFlags.const_);
-                    auto tf = new TypeFunction(null, tc, VarArg.none, LINK.d, STC.safe | STC.pure_);
+                    auto tf = new TypeFunction(ParameterList(), tc, LINK.d, STC.safe | STC.pure_);
                     (tf = cast(TypeFunction)tf.typeSemantic(exp.loc, sc)).next = tw; // hack for bug7757
                     auto t = new TypeDelegate(tf);
                     ve.type = t.typeSemantic(exp.loc, sc);
