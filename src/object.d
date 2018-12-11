@@ -927,7 +927,7 @@ nothrow @safe @nogc unittest
             destroy!false(a);
             assert(a == 42);
             destroy(a);
-            assert(isnan(a));
+            assert(a != a); // isnan
         }
     }
 
@@ -3630,14 +3630,6 @@ unittest
     catch (Exception) assert(false);
 
     assert(postblitRecurseOrder == order);
-}
-
-version (unittest)
-{
-    private bool isnan(float x)
-    {
-        return x != x;
-    }
 }
 
 private
