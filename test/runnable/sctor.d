@@ -447,6 +447,33 @@ void test15869()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=19389
+
+struct Foo19389 {
+    int x;
+
+    this(int dummy) { x = dummy; }
+}
+
+struct Bar19389 {
+    Foo19389 a;
+    Foo19389 b;
+
+    this(int dummy) {
+        a = (b = Foo19389(dummy));
+    }
+}
+
+
+void test19389()
+{
+    Bar19389 bar = Bar19389(7);
+    assert(bar.a.x == 7);
+    assert(bar.b.x == 7); // fails
+}
+
+
+/***************************************************/
 
 int main()
 {
@@ -458,6 +485,7 @@ int main()
     test14944();
     test15665();
     test15869();
+    test19389();
 
     printf("Success\n");
     return 0;

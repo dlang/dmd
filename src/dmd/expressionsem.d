@@ -7867,6 +7867,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     DotVarExp dve = (ce && ce.e1.op == TOK.dotVariable)
                         ? cast(DotVarExp)ce.e1 : null;
                     if (sd.ctor && ce && dve && dve.var.isCtorDeclaration() &&
+                        // https://issues.dlang.org/show_bug.cgi?id=19389
+                        dve.e1.op != TOK.dotVariable &&
                         e2y.type.implicitConvTo(t1))
                     {
                         /* Look for form of constructor call which is:
