@@ -666,7 +666,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             if (fd && fd.type)
             {
                 TypeFunction tf = cast(TypeFunction)fd.type;
-                buf.writestring(parametersTypeToChars(tf.parameterList.parameters, tf.parameterList.varargs));
+                buf.writestring(parametersTypeToChars(tf.parameterList));
             }
         }
 
