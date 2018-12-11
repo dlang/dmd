@@ -2483,7 +2483,7 @@ final class Parser(AST) : Lexer
 
         AST.Expression constraint = tpl ? parseConstraint() : null;
 
-        AST.Type tf = new AST.TypeFunction(parameters, null, varargs, linkage, stc); // RetrunType -> auto
+        AST.Type tf = new AST.TypeFunction(AST.ParameterList(parameters, varargs), null, linkage, stc); // RetrunType -> auto
         tf = tf.addSTC(stc);
 
         auto f = new AST.CtorDeclaration(loc, Loc.initial, stc, tf);
@@ -3979,7 +3979,7 @@ final class Parser(AST) : Lexer
                     AST.Parameters* parameters = parseParameters(&varargs);
 
                     StorageClass stc = parsePostfix(AST.STC.undefined_, null);
-                    auto tf = new AST.TypeFunction(parameters, t, varargs, linkage, stc);
+                    auto tf = new AST.TypeFunction(AST.ParameterList(parameters, varargs), t, linkage, stc);
                     if (stc & (AST.STC.const_ | AST.STC.immutable_ | AST.STC.shared_ | AST.STC.wild | AST.STC.return_))
                     {
                         if (save == TOK.function_)
@@ -4145,7 +4145,7 @@ final class Parser(AST) : Lexer
                     // merge prefix storage classes
                     StorageClass stc = parsePostfix(storageClass, pudas);
 
-                    AST.Type tf = new AST.TypeFunction(parameters, t, varargs, linkage, stc);
+                    AST.Type tf = new AST.TypeFunction(AST.ParameterList(parameters, varargs), t, linkage, stc);
                     tf = tf.addSTC(stc);
                     if (pdisable)
                         *pdisable = stc & AST.STC.disable ? 1 : 0;
@@ -4899,9 +4899,7 @@ final class Parser(AST) : Lexer
             assert(0);
         }
 
-        if (!parameters)
-            parameters = new AST.Parameters();
-        auto tf = new AST.TypeFunction(parameters, tret, varargs, linkage, stc);
+        auto tf = new AST.TypeFunction(AST.ParameterList(parameters, varargs), tret, linkage, stc);
         tf = cast(AST.TypeFunction)tf.addSTC(stc);
         auto fd = new AST.FuncLiteralDeclaration(loc, Loc.initial, tf, save, null);
 

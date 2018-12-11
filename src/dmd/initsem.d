@@ -221,8 +221,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
             TOK tok = (t.ty == Tdelegate) ? TOK.delegate_ : TOK.function_;
             /* Rewrite as empty delegate literal { }
              */
-            auto parameters = new Parameters();
-            Type tf = new TypeFunction(parameters, null, VarArg.none, LINK.d);
+            Type tf = new TypeFunction(ParameterList(), null, LINK.d);
             auto fd = new FuncLiteralDeclaration(i.loc, Loc.initial, tf, tok, null);
             fd.fbody = new CompoundStatement(i.loc, new Statements());
             fd.endloc = i.loc;

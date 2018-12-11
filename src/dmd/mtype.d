@@ -4126,13 +4126,13 @@ extern (C++) final class TypeFunction : TypeNext
     Expressions* fargs;         // function arguments
     int inuse;
 
-    extern (D) this(Parameters* parameters, Type treturn, VarArg varargs, LINK linkage, StorageClass stc = 0)
+    extern (D) this(ParameterList pl, Type treturn, LINK linkage, StorageClass stc = 0)
     {
         super(Tfunction, treturn);
         //if (!treturn) *(char*)0=0;
         //    assert(treturn);
-        assert(VarArg.none <= varargs && varargs <= VarArg.typesafe);
-        this.parameterList = ParameterList(parameters, varargs);
+        assert(VarArg.none <= pl.varargs && pl.varargs <= VarArg.typesafe);
+        this.parameterList = pl;
         this.linkage = linkage;
 
         if (stc & STC.pure_)
@@ -4164,7 +4164,7 @@ extern (C++) final class TypeFunction : TypeNext
 
     static TypeFunction create(Parameters* parameters, Type treturn, VarArg varargs, LINK linkage, StorageClass stc = 0)
     {
-        return new TypeFunction(parameters, treturn, varargs, linkage, stc);
+        return new TypeFunction(ParameterList(parameters, varargs), treturn, linkage, stc);
     }
 
     override const(char)* kind() const
@@ -4176,7 +4176,7 @@ extern (C++) final class TypeFunction : TypeNext
     {
         Type treturn = next ? next.syntaxCopy() : null;
         Parameters* params = Parameter.arraySyntaxCopy(parameterList.parameters);
-        auto t = new TypeFunction(params, treturn, parameterList.varargs, linkage);
+        auto t = new TypeFunction(ParameterList(params, parameterList.varargs), treturn, linkage);
         t.mod = mod;
         t.isnothrow = isnothrow;
         t.isnogc = isnogc;
@@ -4439,7 +4439,7 @@ extern (C++) final class TypeFunction : TypeNext
             (stc & STC.safe && t.trust < TRUST.trusted))
         {
             // Klunky to change these
-            auto tf = new TypeFunction(t.parameterList.parameters, t.next, t.parameterList.varargs, t.linkage, 0);
+            auto tf = new TypeFunction(t.parameterList, t.next, t.linkage, 0);
             tf.mod = t.mod;
             tf.fargs = fargs;
             tf.purity = t.purity;
@@ -4503,7 +4503,7 @@ extern (C++) final class TypeFunction : TypeNext
             return this;
 
         // Similar to TypeFunction::syntaxCopy;
-        auto t = new TypeFunction(params, tret, parameterList.varargs, linkage);
+        auto t = new TypeFunction(ParameterList(params, parameterList.varargs), tret, linkage);
         t.mod = ((mod & MODFlags.wild) ? (mod & ~MODFlags.wild) | MODFlags.const_ : mod);
         t.isnothrow = isnothrow;
         t.isnogc = isnogc;
@@ -6194,11 +6194,12 @@ extern (C++) final class TypeNull : Type
 
 /***********************************************************
  * Encapsulate Parameters* so .length and [i] can be used on it.
+ * https://dlang.org/spec/function.html#ParameterList
  */
 extern (C++) struct ParameterList
 {
     Parameters* parameters;
-    VarArg varargs;
+    VarArg varargs = VarArg.none;
 
     size_t length()
     {
