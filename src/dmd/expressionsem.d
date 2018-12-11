@@ -7473,36 +7473,42 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         //printf("exp.e1.op = %d, '%s'\n", exp.e1.op, Token.toChars(exp.e1.op));
         //printf("exp.e2.op = %d, '%s'\n", exp.e2.op, Token.toChars(exp.e2.op));
+
+        void setResult(Expression e, int line = __LINE__)
+        {
+            //printf("line %d\n", line);
+            result = e;
+        }
+
         if (exp.type)
         {
-            result = exp;
-            return;
+            return setResult(exp);
         }
 
         Expression e1old = exp.e1;
 
-        if (exp.e2.op == TOK.comma)
+        if (auto e2comma = exp.e2.isCommaExp())
         {
-            /* Rewrite to get rid of the comma from rvalue
-             */
-            if (!(cast(CommaExp)exp.e2).isGenerated)
+            if (!e2comma.isGenerated)
                 exp.error("Using the result of a comma expression is not allowed");
+
+            /* Rewrite to get rid of the comma from rvalue
+             *   e1=(e0,e2) => e0,(e1=e2)
+             */
             Expression e0;
-            exp.e2 = Expression.extractLast(exp.e2, e0);
+            exp.e2 = Expression.extractLast(e2comma, e0);
             Expression e = Expression.combine(e0, exp);
-            result = e.expressionSemantic(sc);
-            return;
+            return setResult(e.expressionSemantic(sc));
         }
 
         /* Look for operator overloading of a[arguments] = e2.
          * Do it before e1.expressionSemantic() otherwise the ArrayExp will have been
          * converted to unary operator overloading already.
          */
-        if (exp.e1.op == TOK.array)
+        if (auto ae = exp.e1.isArrayExp())
         {
             Expression res;
 
-            ArrayExp ae = cast(ArrayExp)exp.e1;
             ae.e1 = ae.e1.expressionSemantic(sc);
             ae.e1 = resolveProperties(sc, ae.e1);
             Expression ae1old = ae.e1;
@@ -7520,10 +7526,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             while (true)
             {
                 if (ae.e1.op == TOK.error)
-                {
-                    result = ae.e1;
-                    return;
-                }
+                    return setResult(ae.e1);
+
                 Expression e0 = null;
                 Expression ae1save = ae.e1;
                 ae.lengthVar = null;
@@ -7539,17 +7543,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     if (!res) // a[i..j] = e2 might be: a.opSliceAssign(e2, i, j)
                         goto Lfallback;
                     if (res.op == TOK.error)
-                    {
-                        result = res;
-                        return;
-                    }
+                        return setResult(res);
 
                     res = exp.e2.expressionSemantic(sc);
                     if (res.op == TOK.error)
-                    {
-                        result = res;
-                        return;
-                    }
+                        return setResult(res);
                     exp.e2 = res;
 
                     /* Rewrite (a[arguments] = e2) as:
@@ -7564,11 +7562,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     else
                         res = res.expressionSemantic(sc);
                     if (res)
-                    {
-                        res = Expression.combine(e0, res);
-                        result = res;
-                        return;
-                    }
+                        return setResult(Expression.combine(e0, res));
                 }
 
             Lfallback:
@@ -7577,17 +7571,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     // Deal with $
                     res = resolveOpDollar(sc, ae, ie, &e0);
                     if (res.op == TOK.error)
-                    {
-                        result = res;
-                        return;
-                    }
+                        return setResult(res);
 
                     res = exp.e2.expressionSemantic(sc);
                     if (res.op == TOK.error)
-                    {
-                        result = res;
-                        return;
-                    }
+                        return setResult(res);
+
                     exp.e2 = res;
 
                     /* Rewrite (a[i..j] = e2) as:
@@ -7603,9 +7592,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     res = new DotIdExp(exp.loc, ae.e1, Id.sliceass);
                     res = new CallExp(exp.loc, res, a);
                     res = res.expressionSemantic(sc);
-                    res = Expression.combine(e0, res);
-                    result = res;
-                    return;
+                    return setResult(Expression.combine(e0, res));
                 }
 
                 // No operator overloading member function found yet, but
@@ -7639,20 +7626,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              * or:
              *      .f(e) = value
              */
-            if (e1x.op == TOK.dotTemplateInstance)
+            if (auto dti = e1x.isDotTemplateInstanceExp())
             {
-                DotTemplateInstanceExp dti = cast(DotTemplateInstanceExp)e1x;
                 Expression e = dti.semanticY(sc, 1);
                 if (!e)
                 {
-                    result = resolveUFCSProperties(sc, e1x, exp.e2);
-                    return;
+                    return setResult(resolveUFCSProperties(sc, e1x, exp.e2));
                 }
                 e1x = e;
             }
-            else if (e1x.op == TOK.dotIdentifier)
+            else if (auto die = e1x.isDotIdExp())
             {
-                DotIdExp die = cast(DotIdExp)e1x;
                 Expression e = die.semanticY(sc, 1);
                 if (e && isDotOpDispatch(e))
                 {
@@ -7661,22 +7645,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     if (global.endGagging(errors))
                         e = null; /* fall down to UFCS */
                     else
-                    {
-                        result = e;
-                        return;
-                    }
+                        return setResult(e);
                 }
                 if (!e)
-                {
-                    result = resolveUFCSProperties(sc, e1x, exp.e2);
-                    return;
-                }
+                    return setResult(resolveUFCSProperties(sc, e1x, exp.e2));
                 e1x = e;
             }
             else
             {
-                if (e1x.op == TOK.slice)
-                    (cast(SliceExp)e1x).arrayop = true;
+                if (auto se = e1x.isSliceExp())
+                    se.arrayop = true;
 
                 e1x = e1x.expressionSemantic(sc);
             }
@@ -7688,12 +7666,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              *      f() = value
              */
             if (Expression e = resolvePropertiesX(sc, e1x, exp.e2))
-            {
-                result = e;
-                return;
-            }
+                return setResult(e);
+
             if (e1x.checkRightThis(sc))
+            {
                 return setError();
+            }
             exp.e1 = e1x;
             assert(exp.e1.type);
         }
@@ -7710,10 +7688,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (e2x.op == TOK.type)
                 e2x = resolveAliasThis(sc, e2x); //https://issues.dlang.org/show_bug.cgi?id=17684
             if (e2x.op == TOK.error)
-            {
-                result = e2x;
-                return;
-            }
+                return setResult(e2x);
             if (e2x.checkValue())
                 return setError();
             exp.e2 = e2x;
@@ -7753,8 +7728,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     }
                     e = new TupleExp(exp.loc, Expression.combine(tup1.e0, tup2.e0), exps);
                 }
-                result = e.expressionSemantic(sc);
-                return;
+                return setResult(e.expressionSemantic(sc));
             }
 
             /* Look for form: e1 = e2.aliasthis.
@@ -8205,14 +8179,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     uinteger_t dim1 = (cast(TypeSArray)t1).dim.toInteger();
                     uinteger_t dim2 = dim1;
-                    if (e2x.op == TOK.arrayLiteral)
+                    if (auto ale = e2x.isArrayLiteralExp())
                     {
-                        ArrayLiteralExp ale = cast(ArrayLiteralExp)e2x;
                         dim2 = ale.elements ? ale.elements.dim : 0;
                     }
-                    else if (e2x.op == TOK.slice)
+                    else if (auto se = e2x.isSliceExp())
                     {
-                        Type tx = toStaticArrayType(cast(SliceExp)e2x);
+                        Type tx = toStaticArrayType(se);
                         if (tx)
                             dim2 = (cast(TypeSArray)tx).dim.toInteger();
                     }
@@ -8236,15 +8209,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 e1x = sle.expressionSemantic(sc);
             }
             if (e1x.op == TOK.error)
-            {
-                result = e1x;
-                return;
-            }
+                return setResult(e1x);
             if (e2x.op == TOK.error)
-            {
-                result = e2x;
-                return;
-            }
+                return setResult(e2x);
 
             exp.e1 = e1x;
             exp.e2 = e2x;
@@ -8252,30 +8219,25 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         /* Check the mutability of e1.
          */
-        if (exp.e1.op == TOK.arrayLength)
+        if (auto ale = exp.e1.isArrayLengthExp())
         {
             // e1 is not an lvalue, but we let code generator handle it
-            ArrayLengthExp ale = cast(ArrayLengthExp)exp.e1;
 
-            Expression ale1x = ale.e1;
-            ale1x = ale1x.modifiableLvalue(sc, exp.e1);
+            auto ale1x = ale.e1.modifiableLvalue(sc, exp.e1);
             if (ale1x.op == TOK.error)
-            {
-                result = ale1x;
-                return;
-            }
+                return setResult(ale1x);
             ale.e1 = ale1x;
 
             Type tn = ale.e1.type.toBasetype().nextOf();
             checkDefCtor(ale.loc, tn);
             semanticTypeInfo(sc, tn);
         }
-        else if (exp.e1.op == TOK.slice)
+        else if (auto se = exp.e1.isSliceExp())
         {
-            Type tn = exp.e1.type.nextOf();
+            Type tn = se.type.nextOf();
             if (exp.op == TOK.assign && !tn.isMutable())
             {
-                exp.error("slice `%s` is not mutable", exp.e1.toChars());
+                exp.error("slice `%s` is not mutable", se.toChars());
                 return setError();
             }
 
@@ -8288,17 +8250,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
 
             // For conditional operator, both branches need conversion.
-            SliceExp se = cast(SliceExp)exp.e1;
             while (se.e1.op == TOK.slice)
                 se = cast(SliceExp)se.e1;
             if (se.e1.op == TOK.question && se.e1.type.toBasetype().ty == Tsarray)
             {
                 se.e1 = se.e1.modifiableLvalue(sc, exp.e1);
                 if (se.e1.op == TOK.error)
-                {
-                    result = se.e1;
-                    return;
-                }
+                    return setResult(se.e1);
             }
         }
         else
@@ -8368,12 +8326,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             SliceExp se1 = cast(SliceExp)exp.e1;
             TypeSArray tsa1 = cast(TypeSArray)toStaticArrayType(se1);
             TypeSArray tsa2 = null;
-            if (e2x.op == TOK.arrayLiteral)
-                tsa2 = cast(TypeSArray)t2.nextOf().sarrayOf((cast(ArrayLiteralExp)e2x).elements.dim);
-            else if (e2x.op == TOK.slice)
-                tsa2 = cast(TypeSArray)toStaticArrayType(cast(SliceExp)e2x);
-            else if (t2.ty == Tsarray)
-                tsa2 = cast(TypeSArray)t2;
+            if (auto ale = e2x.isArrayLiteralExp())
+                tsa2 = cast(TypeSArray)t2.nextOf().sarrayOf(ale.elements.dim);
+            else if (auto se = e2x.isSliceExp())
+                tsa2 = cast(TypeSArray)toStaticArrayType(se);
+            else
+                tsa2 = t2.isTypeSArray();
             if (tsa1 && tsa2)
             {
                 uinteger_t dim1 = tsa1.dim.toInteger();
@@ -8555,7 +8513,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         assert(exp.type);
         auto res = exp.op == TOK.assign ? exp.reorderSettingAAElem(sc) : exp;
         checkAssignEscape(sc, res, false);
-        result = res;
+        return setResult(res);
     }
 
     override void visit(PowAssignExp exp)
