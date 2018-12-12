@@ -1,0 +1,36 @@
+RangeError now has bounds information
+
+Errors resulting from bad indexing will now contain the length of
+the array that was sliced as well as the offending index for `arr[bad]`
+or for bad slices `arr[bad1 .. bad2]`. The associated runtime functions
+`onRangeError` and `_d_arraybounds[p]` have changed signature to match.
+
+For example, currently the following file:
+
+---
+void main()
+{
+    int[] a = [1,2,3];
+    int b = a[7];
+}
+---
+
+would yield this error when compiled and run:
+
+$(CONSOLE
+> dmd -run main.d
+core.exception.RangeError@onlineapp.d(4): Range violation
+$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)
+??:? _d_arrayboundsp [0xd1f573cd]
+onlineapp.d:4 _Dmain [0xd1f57334]
+)
+
+it now yields
+
+$(CONSOLE
+> dmd -run main.d
+core.exception.RangeError@onlineapp.d(4): Range violation: index [7] exceeds array length 3
+$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)
+??:? _d_arrayboundsp [0xd1f573cd]
+onlineapp.d:4 _Dmain [0xd1f57334]
+)
