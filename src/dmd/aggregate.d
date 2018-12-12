@@ -39,6 +39,7 @@ enum Sizeok : int
 {
     none,           // size of aggregate is not yet able to compute
     fwd,            // size of aggregate is ready to compute
+    inProcess,      // in the midst of computing the size
     done,           // size of aggregate is set correctly
 }
 
@@ -60,7 +61,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     uint structsize;        // size of struct
     uint alignsize;         // size of struct for alignment purposes
     VarDeclarations fields; // VarDeclaration fields
-    Sizeok sizeok;          // set when structsize contains valid data
+    Sizeok sizeok = Sizeok.none;  // set when structsize contains valid data
     Dsymbol deferred;       // any deferred semantic2() or semantic3() symbol
     bool isdeprecated;      // true if deprecated
 
