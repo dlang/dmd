@@ -187,10 +187,10 @@ elem *getEthis(const ref Loc loc, IRState *irs, Dsymbol fd)
                     /* https://issues.dlang.org/show_bug.cgi?id=7517: If fdp is declared in interface, offset the
                      * 'this' pointer to get correct interface type reference.
                      */
-                    Symbol *stmp = symbol_genauto(TYnptr);
+                    //Symbol *stmp = symbol_genauto(TYnptr);
                     ethis = el_bin(OPadd, TYnptr, el_var(irs.sthis), el_long(TYsize_t, offset));
-                    ethis = el_bin(OPeq, TYnptr, el_var(stmp), ethis);
-                    ethis = el_combine(ethis, el_ptr(stmp));
+                    //ethis = el_bin(OPeq, TYnptr, el_var(stmp), ethis);
+                    //ethis = el_combine(ethis, el_ptr(stmp));
                     //elem_print(ethis);
                 }
                 else
