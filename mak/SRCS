@@ -24,6 +24,7 @@ SRCS=\
 	src\core\internal\spinlock.d \
 	src\core\internal\string.d \
 	src\core\internal\traits.d \
+	src\core\internal\utf.d \
 	\
 	src\core\stdc\assert_.d \
 	src\core\stdc\complex.d \
@@ -367,7 +368,6 @@ SRCS=\
 	src\rt\util\array.d \
 	src\rt\util\random.d \
 	src\rt\util\typeinfo.d \
-	src\rt\util\utf.d \
 	src\rt\util\container\array.d \
 	src\rt\util\container\common.d \
 	src\rt\util\container\hashtab.d \

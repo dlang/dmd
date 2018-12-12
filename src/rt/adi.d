@@ -19,7 +19,7 @@ private
     import core.stdc.string;
     import core.stdc.stdlib;
     import core.memory;
-    import rt.util.utf;
+    import core.internal.utf;
 
     extern (C) void[] _adSort(void[] a, TypeInfo ti);
 }
