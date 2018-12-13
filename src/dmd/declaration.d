@@ -12,8 +12,10 @@
 
 module dmd.declaration;
 
+import core.stdc.stdio;
 import dmd.aggregate;
 import dmd.arraytypes;
+import dmd.ctorflow;
 import dmd.dclass;
 import dmd.delegatize;
 import dmd.dscope;
@@ -43,7 +45,7 @@ import dmd.visitor;
  * accessible from the current scope.
  * Returns true if error occurs.
  */
-extern (C++) bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, size_t iStart = 0)
+bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, size_t iStart = 0)
 {
     Dsymbol sparent = ad.toParent2();
     Dsymbol s = sc.func;
@@ -75,7 +77,7 @@ extern (C++) bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, 
  * Mark variable v as modified if it is inside a constructor that var
  * is a field in.
  */
-private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
+bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
 {
     //printf("modifyFieldVar(var = %s)\n", var.toChars());
     Dsymbol s = sc.func;
@@ -95,13 +97,13 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
             var.ctorinit = true;
             //printf("setting ctorinit\n");
 
-            if (var.isField() && sc.fieldinit && !sc.intypeof)
+            if (var.isField() && sc.ctorflow.fieldinit.length && !sc.intypeof)
             {
                 assert(e1);
                 auto mustInit = ((var.storage_class & STC.nodefaultctor) != 0 ||
                                  var.type.needsNested());
 
-                auto dim = sc.fieldinit_dim;
+                const dim = sc.ctorflow.fieldinit.length;
                 auto ad = fd.isMember2();
                 assert(ad);
                 size_t i;
@@ -111,7 +113,8 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                         break;
                 }
                 assert(i < dim);
-                uint fi = sc.fieldinit[i];
+                auto fieldInit = &sc.ctorflow.fieldinit[i];
+                const fi = fieldInit.csx;
 
                 if (fi & CSX.this_ctor)
                 {
@@ -120,10 +123,23 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                     else
                     {
                         const(char)* modStr = !var.type.isMutable() ? MODtoChars(var.type.mod) : MODtoChars(e1.type.mod);
-                        .error(loc, "%s field `%s` initialized multiple times", modStr, var.toChars());
+                        // Deprecated in 2018-04.
+                        // Change to error in 2019-04 by deleting the following
+                        // if-branch and the deprecate_18719 enum member in the
+                        // dmd.ctorflow.CSX enum.
+                        // @@@DEPRECATED_2019-01@@@.
+                        if (fi & CSX.deprecate_18719)
+                        {
+                            .deprecation(loc, "%s field `%s` was initialized in a previous constructor call", modStr, var.toChars());
+                        }
+                        else
+                        {
+                            .error(loc, "%s field `%s` initialized multiple times", modStr, var.toChars());
+                            .errorSupplemental(fieldInit.loc, "Previous initialization is here.");
+                        }
                     }
                 }
-                else if (sc.noctor || (fi & CSX.label))
+                else if (sc.inLoop || (fi & CSX.label))
                 {
                     if (!mustInit && var.type.isMutable() && e1.type.isMutable())
                         result = false;
@@ -134,7 +150,8 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                     }
                 }
 
-                sc.fieldinit[i] |= CSX.this_ctor;
+                fieldInit.csx |= CSX.this_ctor;
+                fieldInit.loc = e1.loc;
                 if (var.overlapped) // https://issues.dlang.org/show_bug.cgi?id=15258
                 {
                     foreach (j, v; ad.fields)
@@ -142,7 +159,7 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                         if (v is var || !var.isOverlappedWith(v))
                             continue;
                         v.ctorinit = true;
-                        sc.fieldinit[j] = CSX.this_ctor;
+                        sc.ctorflow.fieldinit[j].csx = CSX.this_ctor;
                     }
                 }
             }
@@ -182,7 +199,7 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
  */
 extern (C++) void ObjectNotFound(Identifier id)
 {
-    Type.error(Loc.initial, "`%s` not found. object.d may be incorrectly installed or corrupt.", id.toChars());
+    error(Loc.initial, "`%s` not found. object.d may be incorrectly installed or corrupt.", id.toChars());
     fatal();
 }
 
@@ -246,7 +263,7 @@ enum STC : long
     FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property | STC.safe | STC.trusted | STC.system),
 }
 
-extern (C++) __gshared const(StorageClass) STCStorageClass =
+enum STCStorageClass =
     (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.const_ | STC.final_ | STC.abstract_ | STC.synchronized_ |
      STC.deprecated_ | STC.future | STC.override_ | STC.lazy_ | STC.alias_ | STC.out_ | STC.in_ | STC.manifest |
      STC.immutable_ | STC.shared_ | STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls | STC.gshared |
@@ -273,7 +290,7 @@ extern (C++) abstract class Declaration : Dsymbol
     int inuse;          // used to detect cycles
 
     // overridden symbol with pragma(mangle, "...")
-    const(char)* mangleOverride;
+    const(char)[] mangleOverride;
 
     final extern (D) this(Identifier id)
     {
@@ -308,7 +325,7 @@ extern (C++) abstract class Declaration : Dsymbol
      * Returns:
      *   `true` if this `Declaration` is `@disable`d, `false` otherwise.
      */
-    final bool checkDisabled(Loc loc, Scope* sc, bool isAliasedDeclaration = false)
+    extern (D) final bool checkDisabled(Loc loc, Scope* sc, bool isAliasedDeclaration = false)
     {
         if (storage_class & STC.disable)
         {
@@ -331,7 +348,7 @@ extern (C++) abstract class Declaration : Dsymbol
                                     return false;
                         }
                     }
-                    error(loc, "is not callable because it is annotated with `@disable`");
+                    error(loc, "cannot be used because it is annotated with `@disable`");
                 }
             }
             return true;
@@ -344,7 +361,7 @@ extern (C++) abstract class Declaration : Dsymbol
      * Check to see if declaration can be modified in this context (sc).
      * Issue error if not.
      */
-    final int checkModify(Loc loc, Scope* sc, Type t, Expression e1, int flag)
+    extern (D) final int checkModify(Loc loc, Scope* sc, Expression e1, int flag)
     {
         VarDeclaration v = isVarDeclaration();
         if (v && v.canassign)
@@ -420,7 +437,7 @@ extern (C++) abstract class Declaration : Dsymbol
         return false;
     }
 
-    bool isCodeseg()
+    bool isCodeseg() const pure nothrow @nogc @safe
     {
         return false;
     }
@@ -475,7 +492,7 @@ extern (C++) abstract class Declaration : Dsymbol
         return (storage_class & STC.parameter) != 0;
     }
 
-    override final bool isDeprecated() const pure nothrow @nogc @safe
+    override final bool isDeprecated() pure nothrow @nogc @safe
     {
         return (storage_class & STC.deprecated_) != 0;
     }
@@ -544,7 +561,7 @@ extern (C++) final class TupleDeclaration : Declaration
     bool isexp;             // true: expression tuple
     TypeTuple tupletype;    // !=null if this is a type tuple
 
-    extern (D) this(Loc loc, Identifier id, Objects* objects)
+    extern (D) this(const ref Loc loc, Identifier id, Objects* objects)
     {
         super(id);
         this.loc = loc;
@@ -586,8 +603,7 @@ extern (C++) final class TupleDeclaration : Declaration
             /* We know it's a type tuple, so build the TypeTuple
              */
             Types* types = cast(Types*)objects;
-            auto args = new Parameters();
-            args.setDim(objects.dim);
+            auto args = new Parameters(objects.dim);
             OutBuffer buf;
             int hasdeco = 1;
             for (size_t i = 0; i < types.dim; i++)
@@ -604,7 +620,7 @@ extern (C++) final class TupleDeclaration : Declaration
                 }
                 else
                 {
-                    auto arg = new Parameter(0, t, null, null);
+                    auto arg = new Parameter(0, t, null, null, null);
                 }
                 (*args)[i] = arg;
                 if (!t.deco)
@@ -675,7 +691,7 @@ extern (C++) final class AliasDeclaration : Declaration
     Dsymbol overnext;   // next in overload list
     Dsymbol _import;    // !=null if unresolved internal alias for selective import
 
-    extern (D) this(Loc loc, Identifier id, Type type)
+    extern (D) this(const ref Loc loc, Identifier id, Type type)
     {
         super(id);
         //printf("AliasDeclaration(id = '%s', type = %p)\n", id.toChars(), type);
@@ -685,7 +701,7 @@ extern (C++) final class AliasDeclaration : Declaration
         assert(type);
     }
 
-    extern (D) this(Loc loc, Identifier id, Dsymbol s)
+    extern (D) this(const ref Loc loc, Identifier id, Dsymbol s)
     {
         super(id);
         //printf("AliasDeclaration(id = '%s', s = %p)\n", id.toChars(), s);
@@ -1079,7 +1095,9 @@ extern (C++) class VarDeclaration : Declaration
     Expression edtor;               // if !=null, does the destruction of the variable
     IntRange* range;                // if !=null, the variable is known to be within the range
 
-    final extern (D) this(Loc loc, Type type, Identifier id, Initializer _init, StorageClass storage_class = STC.undefined_)
+    VarDeclarations* maybes;        // STC.maybescope variables that are assigned to this STC.maybescope variable
+
+    final extern (D) this(const ref Loc loc, Type type, Identifier id, Initializer _init, StorageClass storage_class = STC.undefined_)
     {
         super(id);
         //printf("VarDeclaration('%s')\n", id.toChars());
@@ -1226,12 +1244,12 @@ extern (C++) class VarDeclaration : Declaration
         return isField();
     }
 
-    override final bool isExport()
+    override final bool isExport() const
     {
         return protection.kind == Prot.Kind.export_;
     }
 
-    override final bool isImportedSymbol()
+    override final bool isImportedSymbol() const
     {
         if (protection.kind == Prot.Kind.export_ && !_init && (storage_class & STC.static_ || parent.isModule()))
             return true;
@@ -1382,7 +1400,7 @@ extern (C++) class VarDeclaration : Declaration
             }
             else
             {
-                // _ArrayDtor(v[0 .. n])
+                // __ArrayDtor(v[0 .. n])
                 e = new VarExp(loc, this);
 
                 const sdsz = sd.type.size();
@@ -1397,7 +1415,7 @@ extern (C++) class VarDeclaration : Declaration
                 // This is a hack so we can call destructors on const/immutable objects.
                 e.type = sd.type.arrayOf();
 
-                e = new CallExp(loc, new IdentifierExp(loc, Id._ArrayDtor), e);
+                e = new CallExp(loc, new IdentifierExp(loc, Id.__ArrayDtor), e);
             }
             return e;
         }
@@ -1497,7 +1515,7 @@ extern (C++) class VarDeclaration : Declaration
      * rather than the current one.
      * Returns true if error occurs.
      */
-    final bool checkNestedReference(Scope* sc, Loc loc)
+    extern (D) final bool checkNestedReference(Scope* sc, Loc loc)
     {
         //printf("VarDeclaration::checkNestedReference() %s\n", toChars());
         if (sc.intypeof == 1 || (sc.flags & SCOPE.ctfe))
@@ -1623,6 +1641,23 @@ extern (C++) class VarDeclaration : Declaration
     {
         return sequenceNumber < v.sequenceNumber;
     }
+
+    /***************************************
+     * Add variable to maybes[].
+     * When a maybescope variable `v` is assigned to a maybescope variable `this`,
+     * we cannot determine if `this` is actually scope until the semantic
+     * analysis for the function is completed. Thus, we save the data
+     * until then.
+     * Params:
+     *  v = an STC.maybescope variable that was assigned to `this`
+     */
+    final void addMaybe(VarDeclaration v)
+    {
+        //printf("add %s to %s's list of dependencies\n", v.toChars(), toChars());
+        if (!maybes)
+            maybes = new VarDeclarations();
+        maybes.push(v);
+    }
 }
 
 /***********************************************************
@@ -1632,7 +1667,7 @@ extern (C++) final class SymbolDeclaration : Declaration
 {
     StructDeclaration dsym;
 
-    extern (D) this(Loc loc, StructDeclaration dsym)
+    extern (D) this(const ref Loc loc, StructDeclaration dsym)
     {
         super(dsym.ident);
         this.loc = loc;
@@ -2104,7 +2139,7 @@ extern (C++) final class TypeInfoVectorDeclaration : TypeInfoDeclaration
  */
 extern (C++) final class ThisDeclaration : VarDeclaration
 {
-    extern (D) this(Loc loc, Type t)
+    extern (D) this(const ref Loc loc, Type t)
     {
         super(loc, t, Id.This, null);
         storage_class |= STC.nodtor;

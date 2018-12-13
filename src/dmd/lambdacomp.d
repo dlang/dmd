@@ -23,6 +23,7 @@ import core.stdc.string;
 import dmd.declaration;
 import dmd.denum;
 import dmd.dsymbol;
+import dmd.dtemplate;
 import dmd.expression;
 import dmd.func;
 import dmd.dmangle;
@@ -33,6 +34,8 @@ import dmd.dscope;
 import dmd.statement;
 import dmd.tokens;
 import dmd.visitor;
+
+enum LOG = false;
 
 /**
  * The type of the visited expression.
@@ -45,7 +48,33 @@ private enum ExpType
 }
 
 /**
- * The serialize visitor computes the string representation of a
+ * Compares 2 lambda functions described by their serialization.
+ *
+ * Params:
+ *  l1 = first lambda to be compared
+ *  l2 = second lambda to be compared
+ *  sc = the scope where the lambdas are compared
+ *
+ * Returns:
+ *  `true` if the 2 lambda functions are equal, `false` otherwise
+ */
+bool isSameFuncLiteral(FuncLiteralDeclaration l1, FuncLiteralDeclaration l2, Scope* sc)
+{
+    if (auto ser1 = getSerialization(l1, sc))
+    {
+        //printf("l1 serialization: %s\n", &ser1[0]);
+        if (auto ser2 = getSerialization(l2, sc))
+        {
+            //printf("l2 serialization: %s\n", &ser2[0]);
+            if (ser1 == ser2)
+                return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Computes the string representation of a
  * lambda function described by the subtree starting from a
  * $(REF dmd, func, FuncLiteralDeclaration).
  *
@@ -56,8 +85,26 @@ private enum ExpType
  * variable or a template instance is encountered, the
  * serialization is dropped and the function is considered
  * uncomparable.
+ *
+ * Params:
+ *  fld = the starting AST node for the lambda function
+ *  sc = the scope in which the lambda function is located
+ *
+ * Returns:
+ *  The serielization of `fld`.
  */
-extern (C++) class SerializeVisitor : SemanticTimeTransitiveVisitor
+private string getSerialization(FuncLiteralDeclaration fld, Scope* sc)
+{
+    scope serVisitor = new SerializeVisitor(sc);
+    fld.accept(serVisitor);
+    const len = serVisitor.buf.offset;
+    if (len == 0)
+        return null;
+
+    return cast(string)serVisitor.buf.extractString()[0 .. len];
+}
+
+private extern (C++) class SerializeVisitor : SemanticTimeTransitiveVisitor
 {
 private:
     StringTable arg_hash;
@@ -83,6 +130,8 @@ public:
     override void visit(FuncLiteralDeclaration fld)
     {
         assert(fld.type.ty != Terror);
+        static if (LOG)
+            printf("FuncLiteralDeclaration: %s\n", fld.toChars());
 
         TypeFunction tf = cast(TypeFunction)fld.type;
         uint dim = cast(uint)Parameter.dim(tf.parameters);
@@ -111,17 +160,21 @@ public:
         }
 
         // Now the function body can be serialized.
-        CompoundStatement cs = fld.fbody.isCompoundStatement();
-        Statement s = !cs ? fld.fbody : null;
-        ReturnStatement rs = s ? s.isReturnStatement() : null;
+        ReturnStatement rs = fld.fbody.isReturnStatement();
         if (rs && rs.exp)
         {
             rs.exp.accept(this);
+        }
+        else
+        {
+            buf.offset = 0;
         }
     }
 
     override void visit(DotIdExp exp)
     {
+        static if (LOG)
+            printf("DotIdExp: %s\n", exp.toChars());
         if (buf.offset == 0)
             return;
 
@@ -156,13 +209,9 @@ public:
         }
     }
 
-    override void visit(IdentifierExp exp)
+    bool checkArgument(const(char)* id)
     {
-        if (buf.offset == 0)
-            return;
-
         // The identifier may be an argument
-        auto id = exp.ident.toChars;
         auto stringtable_value = arg_hash.lookup(id, strlen(id));
         if (stringtable_value)
         {
@@ -171,10 +220,25 @@ public:
             buf.writestring(gen_id);
             buf.writeByte('_');
             et = ExpType.Arg;
+            return true;
         }
-        else
+        return false;
+    }
+
+    override void visit(IdentifierExp exp)
+    {
+        static if (LOG)
+            printf("IdentifierExp: %s\n", exp.toChars());
+
+        if (buf.offset == 0)
+            return;
+
+        auto id = exp.ident.toChars();
+
+        // If it's not an argument
+        if (!checkArgument(id))
         {
-            // Or it may be something else
+            // we must check what the identifier expression is.
             Dsymbol scopesym;
             Dsymbol s = sc.search(exp.loc, exp.ident, &scopesym);
             if (s)
@@ -190,6 +254,10 @@ public:
                     d = em;
                     et = ExpType.EnumDecl;
                 }
+                else if (auto fd = s.isFuncDeclaration())
+                {
+                    writeMangledName(fd);
+                }
                 // For anything else, the function is deemed uncomparable
                 else
                 {
@@ -197,6 +265,63 @@ public:
                 }
             }
         }
+    }
+
+    override void visit(DotVarExp exp)
+    {
+        static if (LOG)
+            printf("DotVarExp: %s, var: %s, e1: %s\n", exp.toChars(),
+                    exp.var.toChars(), exp.e1.toChars());
+
+        exp.e1.accept(this);
+        if (buf.offset == 0)
+            return;
+
+        buf.setsize(buf.offset -1);
+        buf.writeByte('.');
+        buf.writestring(exp.var.toChars());
+        buf.writeByte('_');
+    }
+
+    override void visit(VarExp exp)
+    {
+        static if (LOG)
+            printf("VarExp: %s, var: %s\n", exp.toChars(), exp.var.toChars());
+
+        if (buf.offset == 0)
+            return;
+
+        auto id = exp.var.ident.toChars();
+        if (!checkArgument(id))
+        {
+            buf.offset = 0;
+        }
+    }
+
+    // serialize function calls
+    override void visit(CallExp exp)
+    {
+        static if (LOG)
+            printf("CallExp: %s\n", exp.toChars());
+
+        if (buf.offset == 0)
+            return;
+
+        if (!exp.f)
+        {
+            exp.e1.accept(this);
+        }
+        else
+        {
+            writeMangledName(exp.f);
+        }
+
+        buf.writeByte('(');
+        foreach (arg; *(exp.arguments))
+        {
+            arg.accept(this);
+        }
+        buf.writeByte(')');
     }
 
     override void visit(UnaExp exp)
@@ -216,14 +341,24 @@ public:
         if (buf.offset == 0)
             return;
 
-        exp.normalize();
-        auto val = exp.value;
-        buf.print(val);
+        buf.print(exp.toInteger());
+        buf.writeByte('_');
+    }
+
+    override void visit(RealExp exp)
+    {
+        if (buf.offset == 0)
+            return;
+
+        buf.writestring(exp.toChars());
         buf.writeByte('_');
     }
 
     override void visit(BinExp exp)
     {
+        static if (LOG)
+            printf("BinExp: %s\n", exp.toChars());
+
         if (buf.offset == 0)
             return;
 
@@ -247,11 +382,9 @@ public:
         buf.writeByte('_');
     }
 
-    override void visit(TypeIdentifier t)
+    void writeMangledName(Dsymbol s)
     {
-        Dsymbol scopesym;
-        Dsymbol s = sc.search(t.loc, t.ident, &scopesym);
-        if (s && s.semanticRun == PASS.semantic3done)
+        if (s)
         {
             OutBuffer mangledName;
             mangleToBuffer(s, &mangledName);
@@ -262,9 +395,33 @@ public:
             buf.reset();
     }
 
-    override void visit(TypeInstance t)
+    private bool checkTemplateInstance(T)(T t)
+        if (is(T == TypeStruct) || is(T == TypeClass))
     {
-        buf.reset();
+        if (t.sym.parent && t.sym.parent.isTemplateInstance())
+        {
+            buf.reset();
+            return true;
+        }
+        return false;
+    }
+
+    override void visit(TypeStruct t)
+    {
+        static if (LOG)
+            printf("TypeStruct: %s\n", t.toChars);
+
+        if (!checkTemplateInstance!TypeStruct(t))
+            writeMangledName(t.sym);
+    }
+
+    override void visit(TypeClass t)
+    {
+        static if (LOG)
+            printf("TypeClass: %s\n", t.toChars());
+
+        if (!checkTemplateInstance!TypeClass(t))
+            writeMangledName(t.sym);
     }
 
     override void visit(Parameter p)

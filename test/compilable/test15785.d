@@ -18,5 +18,5 @@ class Derived : Base, IBase2
         // IBase2.faz(); // doesn't work yet due to a bug in checkAccess
     }
 
-    super.T t;
+    typeof(super).T t;
 }

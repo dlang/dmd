@@ -204,8 +204,8 @@ class A15
         List2.rehash;
     }
   private:
-    int delegate(in int arg1) List1[char[]];
-    int  List2[char []];
+    int delegate(in int arg1)[char[]] List1;
+    int[char []]  List2;
 }
 
 void test15()
@@ -1042,9 +1042,9 @@ void test56()
 
 /************************************/
 
-void det(float mat[][])
+void det(float[][] mat)
 {
-    float newmat[][];
+    float[][] newmat;
 
     size_t i = newmat[0 .. (mat.length - 1)].length;
 }
@@ -1097,7 +1097,6 @@ void test59()
 class Foo60
 {
    int x;
-static:
    this() { x = 3; }
    ~this() { }
 }

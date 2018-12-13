@@ -3605,6 +3605,10 @@ void test50()
         0xCD, 0x67,     // int  067h
 //      0xCE,           // into
         0x66, 0xCF,     // iret
+        0x48, 0xCF,     // iretq
+        0x90, 0x90,     // nop;nop - put instructions above this or L10 changes
+                        //           address, which changes all the jump
+                        //           instructions and breaks the test case.
         0x77, 0xFC,     // ja   L30
         0x77, 0xFA,     // ja   L30
         0x73, 0xF8,     // jae  L30
@@ -3727,7 +3731,11 @@ void test50()
         int     3       ;
         int     0x67    ;
         //into          ;
-L10:    iret            ;
+        iret            ;
+        iretq           ;
+L10:    nop; nop;         // put instructions above this or L10 changes
+                          // address, which changes all the jump instructions
+                          // and breaks the test case.
         ja      L10     ;
         jnbe    L10     ;
         jae     L10     ;
@@ -6748,6 +6756,54 @@ L1:     pop     RAX;
 
 /****************************************************/
 
+void test18553()
+{
+    ubyte* p;
+
+    static ubyte[] data =
+    [
+        0x0F, 0x20, 0xC0,
+        0x0F, 0x20, 0xD0,
+        0x0F, 0x20, 0xD8,
+        0x0F, 0x20, 0xE0,
+
+        0x0F, 0x22, 0xC0,
+        0x0F, 0x22, 0xD0,
+        0x0F, 0x22, 0xD8,
+        0x0F, 0x22, 0xE0,
+
+        0x44, 0x0F, 0x22, 0xC0,
+        0x44, 0x0F, 0x20, 0xC0,
+    ];
+
+    asm
+    {
+        call  L1;
+
+        mov RAX, CR0;
+        mov RAX, CR2;
+        mov RAX, CR3;
+        mov RAX, CR4;
+        mov CR0, RAX;
+        mov CR2, RAX;
+        mov CR3, RAX;
+        mov CR4, RAX;
+
+        mov CR8, RAX;
+        mov RAX, CR8;
+
+L1:     pop     RAX;
+        mov     p[RBP],RAX;
+    }
+
+    foreach (ref i, b; data)
+    {
+        assert(p[i] == b);
+    }
+}
+
+/****************************************************/
+
 int main()
 {
     printf("Testing iasm64.d\n");
@@ -6822,6 +6878,7 @@ int main()
     test15999();
     testconst();
     test17027();
+    test18553();
 
     printf("Success\n");
     return 0;

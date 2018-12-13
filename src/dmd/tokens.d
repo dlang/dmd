@@ -81,9 +81,8 @@ enum TOK : int
     delegatePointer,
     delegateFunctionPointer,
 
-    // 54
     // Operators
-    lessThan,
+    lessThan = 54,
     greaterThan,
     lessOrEqual,
     greaterOrEqual,
@@ -94,20 +93,7 @@ enum TOK : int
     index,
     is_,
 
-    // 64
-    // NCEG floating point compares
-    // !<>=     <>    <>=    !>     !>=   !<     !<=   !<>
-    unord,
-    lg,
-    leg,
-    ule,
-    ul,
-    uge,
-    ug,
-    ue,
-
-    // 72
-    leftShift,
+    leftShift = 64,
     rightShift,
     leftShiftAssign,
     rightShiftAssign,
@@ -149,9 +135,8 @@ enum TOK : int
     prePlusPlus,
     preMinusMinus,
 
-    // 113
     // Numeric literals
-    int32Literal,
+    int32Literal = 105,
     uns32Literal,
     int64Literal,
     uns64Literal,
@@ -164,15 +149,13 @@ enum TOK : int
     imaginary64Literal,
     imaginary80Literal,
 
-    // 125
     // Char constants
-    charLiteral,
+    charLiteral = 117,
     wcharLiteral,
     dcharLiteral,
 
-    // 128
     // Leaf operators
-    identifier,
+    identifier = 120,
     string_,
     hexadecimalString,
     this_,
@@ -181,9 +164,8 @@ enum TOK : int
     tuple,
     error,
 
-    // 136
     // Basic types
-    void_,
+    void_ = 128,
     int8,
     uns8,
     int16,
@@ -208,9 +190,8 @@ enum TOK : int
     dchar_,
     bool_,
 
-    // 160
     // Aggregates
-    struct_,
+    struct_ = 152,
     class_,
     interface_,
     union_,
@@ -242,9 +223,8 @@ enum TOK : int
     manifest,
     immutable_,
 
-    // 191
     // Statements
-    if_,
+    if_ = 183,
     else_,
     while_,
     for_,
@@ -269,9 +249,8 @@ enum TOK : int
     onScopeFailure,
     onScopeSuccess,
 
-    // 215
     // Contracts
-    invariant_,
+    invariant_ = 207,
 
     // Testing
     unittest_,
@@ -281,8 +260,7 @@ enum TOK : int
     ref_,
     macro_,
 
-    // 221
-    parameters,
+    parameters = 212,
     traits,
     overloadSet,
     pure_,
@@ -302,13 +280,27 @@ enum TOK : int
     vector,
     pound,
 
-    // 239
-    interval,
+    interval = 231,
     voidExpression,
     cantExpression,
+    showCtfeContext,
+
+    objcClassReference,
 
     max_,
 }
+
+// Assert that all token enum members have consecutive values and
+// that none of them overlap
+static assert(() {
+    foreach (idx, enumName; __traits(allMembers, TOK)) {
+       static if (idx != __traits(getMember, TOK, enumName)) {
+           pragma(msg, "Error: Expected TOK.", enumName, " to be ", idx, " but is ", __traits(getMember, TOK, enumName));
+           static assert(0);
+       }
+    }
+    return true;
+}());
 
 
 /****************************************
@@ -573,7 +565,7 @@ extern (C++) struct Token
         TOK.shared_: "shared",
         TOK.immutable_: "immutable",
 
-        TOK.endOfFile: "EOF",
+        TOK.endOfFile: "End of File",
         TOK.leftCurly: "{",
         TOK.rightCurly: "}",
         TOK.leftParentheses: "(",
@@ -595,14 +587,6 @@ extern (C++) struct Token
         TOK.greaterOrEqual: ">=",
         TOK.equal: "==",
         TOK.notEqual: "!=",
-        TOK.unord: "!<>=",
-        TOK.ue: "!<>",
-        TOK.lg: "<>",
-        TOK.leg: "<>=",
-        TOK.ule: "!>",
-        TOK.ul: "!>=",
-        TOK.uge: "!<",
-        TOK.ug: "!<=",
         TOK.not: "!",
         TOK.leftShift: "<<",
         TOK.rightShift: ">>",
@@ -710,6 +694,9 @@ extern (C++) struct Token
         TOK.interval: "interval",
         TOK.voidExpression: "voidexp",
         TOK.cantExpression: "cantexp",
+        TOK.showCtfeContext : "showCtfeContext",
+
+        TOK.objcClassReference: "class",
     ];
 
     static assert(() {
@@ -728,9 +715,9 @@ extern (C++) struct Token
         }
     }
 
-    __gshared Token* freelist = null;
+    extern (D) private __gshared Token* freelist = null;
 
-    static Token* alloc()
+    extern (D) static Token* alloc()
     {
         if (Token.freelist)
         {
@@ -758,21 +745,13 @@ extern (C++) struct Token
         return 0;
     }
 
-    debug
-    {
-        void print()
-        {
-            fprintf(stderr, "%s\n", toChars());
-        }
-    }
-
     /****
      * Set to contents of ptr[0..length]
      * Params:
      *  ptr = pointer to string
      *  length = length of string
      */
-    final void setString(const(char)* ptr, size_t length)
+    void setString(const(char)* ptr, size_t length)
     {
         auto s = cast(char*)mem.xmalloc(length + 1);
         memcpy(s, ptr, length);
@@ -787,7 +766,7 @@ extern (C++) struct Token
      * Params:
      *  buf = string (not zero terminated)
      */
-    final void setString(const ref OutBuffer buf)
+    void setString(const ref OutBuffer buf)
     {
         setString(cast(const(char)*)buf.data, buf.offset);
     }
@@ -795,7 +774,7 @@ extern (C++) struct Token
     /****
      * Set to empty string
      */
-    final void setString()
+    void setString()
     {
         ustring = "";
         len = 0;
@@ -939,7 +918,7 @@ extern (C++) struct Token
         return p;
     }
 
-    static const(char)* toChars(TOK value)
+    extern (D) static const(char)* toChars(TOK value)
     {
         return toString(value).ptr;
     }

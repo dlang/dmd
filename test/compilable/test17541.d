@@ -1,4 +1,4 @@
-/* REQUIRED_ARGS: -c compilable/imports/test17541_2.d compilable/imports/test17541_3.d
+/* REQUIRED_ARGS: compilable/imports/test17541_2.d compilable/imports/test17541_3.d
  */
 
 // https://issues.dlang.org/show_bug.cgi?id=17541

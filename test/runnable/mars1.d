@@ -1,6 +1,6 @@
 /*
 REQUIRED_ARGS: -mcpu=native -transition=16997 -transition=intpromote
-PERMUTE_ARGS: -O -inline
+PERMUTE_ARGS: -O -inline -release
 */
 
 import core.stdc.stdio;
@@ -1244,6 +1244,19 @@ void test9449()
     if (arr[0].g != 4.0) assert(0);
 }
 
+struct Point9449x
+{
+    float  f = 0.0;
+    double g = 0.0;
+}
+
+void test9449x()
+{
+    Point9449x[1] arr;
+    if (arr[0].f != 0.0) assert(0);
+    if (arr[0].g != 0.0) assert(0);
+}
+
 ////////////////////////////////////////////////////////////////////////
 // https://issues.dlang.org/show_bug.cgi?id=12057
 
@@ -1677,6 +1690,23 @@ void testdivcmp()
 
 ////////////////////////////////////////////////////////////////////////
 
+// https://issues.dlang.org/show_bug.cgi?id=16189
+
+void test16189()
+{
+    ubyte[9][1] data;
+    uint a = 0;
+  loop:
+    data[0] = data[a];
+    a--;
+    bool b = false;
+    if (b) goto loop;
+    assert(a == -1); // was failing with -O
+}
+
+
+////////////////////////////////////////////////////////////////////////
+
 // https://issues.dlang.org/show_bug.cgi?id=16997
 
 void test16997()
@@ -1736,6 +1766,78 @@ void test18315() // https://issues.dlang.org/show_bug.cgi?id=18315
 
 ////////////////////////////////////////////////////////////////////////
 
+// https://issues.dlang.org/show_bug.cgi?id=18461
+
+void test18461()
+{
+    import core.bitop;
+
+    size_t test_val = 0b0001_0000;
+
+    if (bt(&test_val, 4) == 0)
+        assert(false);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+void test18730() // https://issues.dlang.org/show_bug.cgi?id=18730
+{
+    static if (size_t.sizeof == 8)
+    {
+        static int bt18730_64_64(in ulong* p, ulong bitnum) pure @system
+        {
+            return ((p[bitnum >> 6] & (1L << (bitnum & 63)))) != 0;
+        }
+        static int bt18730_64_32(in ulong* p, uint bitnum) pure @system
+        {
+            return ((p[bitnum >> 6] & (1L << (bitnum & 63)))) != 0;
+        }
+        static int bt18730_32_64(in uint* p, ulong bitnum) pure @system
+        {
+            return ((p[bitnum >> 5] & (1 << (bitnum & 31)))) != 0;
+        }
+
+        // Check that bt_64_64 uses a 64-bit register for the offset.
+        {
+            enum bitIndex = int.max + 1L;
+            auto a = new ulong[](bitIndex / 64 + 1);
+            a[bitIndex / 64] = 1;
+            assert(bt18730_64_64(a.ptr, bitIndex));
+            assert(!bt18730_64_64(a.ptr, bitIndex + 1));
+            assert(!bt18730_64_64(a.ptr, bitIndex - 1));
+        }
+        // Check that bt_64_32 uses a 32-bit register for the offset.
+        {
+            static int f(ulong* p, ulong bitnum)
+            {
+                return bt18730_64_32(p, cast(uint) bitnum);
+            }
+            enum bitIndex = uint.max + 1L;
+            assert(cast(uint) bitIndex == 0);
+            ulong s = 1;
+            assert(f(&s, bitIndex));
+        }
+        /* Check that bt_32_64 does not become a 64-bit bt instruction. Would lead
+        to a segfault when trying to load 8 bytes while only 4 are accessible. */
+        version (Posix)
+        {{
+            import core.sys.posix.sys.mman;
+            import core.sys.posix.unistd;
+            // Allocate two pages.
+            immutable sz = 2 * sysconf(_SC_PAGESIZE);
+            auto m = mmap(null, sz, PROT_READ, MAP_PRIVATE | MAP_ANON, -1, 0);
+            // Discard the higher page. It becomes unreadable.
+            munmap(m + sz / 2, sz / 2);
+            // Try looking at the last 4 bytes of the readable page.
+            uint* p = cast(uint*) (m + sz / 2 - uint.sizeof);
+            bt18730_32_64(p, 0);
+            munmap(m, sz / 2); // Free the readable page.
+        }}
+    }
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     testgoto();
@@ -1775,6 +1877,7 @@ int main()
     test13023(0x10_0000_0000);
     test12833();
     test9449();
+    test9449x();
     test12057();
     test13784();
     test14220();
@@ -1795,8 +1898,12 @@ int main()
     test6();
     testeqeqranges();
     testdivcmp();
+    test16189();
     test16997();
     test18315();
+    test18461();
+    test18730();
+
     printf("Success\n");
     return 0;
 }

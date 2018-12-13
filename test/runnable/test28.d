@@ -1,10 +1,10 @@
 module test;
 
+import core.stdc.stdio;
 import core.vararg;
 import std.stdio;
 import std.string;
 
-extern(C) int printf(const char*, ...);
 
 /*******************************************/
 
@@ -1248,6 +1248,49 @@ void test65()
 
 
 /*******************************************/
+// https://issues.dlang.org/show_bug.cgi?id=18576
+
+void delegate() callback;
+
+struct S66 {
+    int x;
+    @disable this(this);
+
+    this(int x) {
+        this.x = x;
+        callback = &inc;
+    }
+    void inc() {
+        x++;
+    }
+}
+
+auto f66()
+{
+    return g66();   // RVO should be done
+}
+
+auto g66()
+{
+    return h66();   // RVO should be done
+}
+
+auto h66()
+{
+    return S66(100);
+}
+
+void test18576()
+{
+    auto s = f66();
+    printf("%p vs %p\n", &s, callback.ptr);
+    callback();
+    printf("s.x = %d\n", s.x);
+    assert(s.x == 101);
+    assert(&s == callback.ptr);
+}
+
+/*******************************************/
 
 void main()
 {
@@ -1314,6 +1357,7 @@ void main()
     test63();
     test64();
     test65();
+    test18576();
 
     printf("Success\n");
 }

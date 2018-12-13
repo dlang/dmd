@@ -2,6 +2,7 @@
 // PERMUTE_ARGS:
 
 import core.time;
+import core.demangle;
 
 void main(string[] args)
 {
@@ -38,6 +39,8 @@ void main(string[] args)
 
         testLineNumbers(session, globals);
 
+        S18984 s = test18984(session, globals);
+
         source.Release();
         session.Release();
         globals.Release();
@@ -73,7 +76,7 @@ void testSymbolHasChildren(IDiaSymbol sym, string name)
 
 void testLineNumbers(IDiaSession session, IDiaSymbol globals)
 {
-    IDiaSymbol funcsym = searchSymbol(globals, test15432.mangleof);
+    IDiaSymbol funcsym = searchSymbol(globals, cPrefix ~ test15432.mangleof);
     assert(funcsym, "symbol test15432 not found");
     ubyte[] funcRange;
     Line[] lines = findSymbolLineNumbers(session, funcsym, &funcRange);
@@ -86,6 +89,47 @@ void testLineNumbers(IDiaSession session, IDiaSymbol globals)
     assert(codeByte == 0x48 || codeByte == 0x5d || codeByte == 0xc3); // should be one of "mov rsp,rbp", "pop rbp" or "ret"
 }
 
+///////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=18984
+// Debugging stack struct's which are returned causes incorrect debuginfo
+
+struct S18984
+{
+    int a, b, c;
+}
+
+S18984 test18984(IDiaSession session, IDiaSymbol globals)
+{
+    enum funcName = "testpdb.test18984";
+    IDiaSymbol funcsym = searchSymbol(globals, funcName);
+    funcsym || assert(false, funcName ~ " not found");
+    IDiaEnumSymbols enumSymbols;
+    HRESULT hr = funcsym.findChildren(SymTagEnum.SymTagNull, "s", NameSearchOptions.nsfCaseSensitive, &enumSymbols);
+    enumSymbols || assert(false, funcName ~ " no children");
+    ULONG fetched;
+    IDiaSymbol symbol;
+    enumSymbols.Next(1, &symbol, &fetched) == S_OK || assert(false, funcName ~ " no children");
+    symbol || assert(false, funcName ~ " no child symbol");
+    assert(enumSymbols);
+    DWORD loc;
+    symbol.get_locationType(&loc) == S_OK || assert(false, funcName ~ " no location type");
+    loc == LocationType.LocIsRegRel || assert(false, funcName ~ " 's' not relative to register");
+    LONG offset;
+    symbol.get_offset(&offset) == S_OK || assert(false, funcName ~ " cannot get variable offset");
+    version(Win64)
+        offset > 0 || assert(false, funcName ~ " 's' not pointing to hidden argument");
+    else // Win32 passes hidden argument in EAX, which is stored to [EBP-4] on function entry
+        offset == -4 || assert(false, funcName ~ " 's' not pointing to hidden argument");
+
+    symbol.Release();
+    enumSymbols.Release();
+
+    S18984 s = S18984(1, 2, 3);
+    s.a = 4;
+    return s; // NRVO
+}
+
+///////////////////////////////////////////////
 import core.stdc.stdio;
 import core.stdc.wchar_;
 

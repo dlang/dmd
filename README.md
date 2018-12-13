@@ -3,10 +3,11 @@ DMD
 
 [![GitHub tag](https://img.shields.io/github/tag/dlang/dmd.svg?maxAge=86400)](https://github.com/dlang/dmd/releases)
 [![Code coverage](https://img.shields.io/codecov/c/github/dlang/dmd.svg?maxAge=86400)](https://codecov.io/gh/dlang/dmd)
+[![Bugzilla Issues](https://img.shields.io/badge/issues-Bugzilla-green.svg)](https://issues.dlang.org/buglist.cgi?component=dmd&list_id=220151&product=D&resolution=---)
 [![license](https://img.shields.io/github/license/dlang/dmd.svg)](https://github.com/dlang/dmd/blob/master/LICENSE.txt)
 
 [![CircleCI](https://circleci.com/gh/dlang/dmd/tree/master.svg?style=svg)](https://circleci.com/gh/dlang/dmd/tree/master)
-[![SemaphoreCI](https://semaphoreci.com/api/v1/dlang/dmd-2/branches/master/badge.svg)](https://semaphoreci.com/wilzbach/dmd-2)
+[![SemaphoreCI](https://semaphoreci.com/api/v1/dlang/dmd-2/branches/master/badge.svg)](https://semaphoreci.com/dlang/dmd-2)
 [![AppVeyor](https://ci.appveyor.com/api/projects/status/mv0y9lqyk7jh0x8d?svg=true)](https://ci.appveyor.com/project/greenify/dmd)
 
 DMD is the reference compiler for the D programming language.

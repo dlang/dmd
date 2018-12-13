@@ -66,6 +66,8 @@ immutable Msgtable[] msgtable =
     { "__xdtor", "__xdtor" },
     { "__fieldDtor", "__fieldDtor" },
     { "__aggrDtor", "__aggrDtor" },
+    { "cppdtor", "__cppdtor" },
+    { "ticppdtor", "__ticppdtor" },
     { "postblit", "__postblit" },
     { "__xpostblit", "__xpostblit" },
     { "__fieldPostblit", "__fieldPostblit" },
@@ -110,6 +112,8 @@ immutable Msgtable[] msgtable =
     { "gate", "__gate" },
     { "__c_long" },
     { "__c_ulong" },
+    { "__c_longlong" },
+    { "__c_ulonglong" },
     { "__c_long_double" },
     { "cpp_type_info_ptr", "__cpp_type_info_ptr" },
     { "_assert", "assert" },
@@ -141,6 +145,8 @@ immutable Msgtable[] msgtable =
     { "xopEquals", "__xopEquals" },
     { "xopCmp", "__xopCmp" },
     { "xtoHash", "__xtoHash" },
+
+    { "Class" },
 
     { "LINE", "__LINE__" },
     { "FILE", "__FILE__" },
@@ -289,14 +295,16 @@ immutable Msgtable[] msgtable =
     { "monitorexit", "_d_monitorexit" },
     { "criticalenter", "_d_criticalenter" },
     { "criticalexit", "_d_criticalexit" },
-    { "_ArrayEq" },
-    { "_ArrayPostblit" },
-    { "_ArrayDtor" },
+    { "__ArrayEq" },
+    { "__ArrayPostblit" },
+    { "__ArrayDtor" },
     { "_d_delThrowable" },
+    { "dup" },
 
     // For pragma's
     { "Pinline", "inline" },
     { "lib" },
+    { "linkerDirective" },
     { "mangle" },
     { "msg" },
     { "startaddress" },
@@ -395,6 +403,9 @@ immutable Msgtable[] msgtable =
     { "getUnitTests" },
     { "getVirtualIndex" },
     { "getPointerBitmap" },
+    { "isReturnOnStack" },
+    { "isZeroInit" },
+    { "getTargetInfo" },
 
     // For C++ mangling
     { "allocator" },
@@ -412,6 +423,7 @@ immutable Msgtable[] msgtable =
     { "TRUE" },
     { "FALSE" },
     { "unsigned" },
+    { "wchar_t" },
 ];
 
 

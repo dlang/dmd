@@ -1,6 +1,6 @@
 // PERMUTE_ARGS: -unittest
-// REQUIRED_ARGS: -D -w -o- -c -Dd${RESULTS_DIR}/compilable -o-
-// POST_SCRIPT: compilable/extra-files/ddocAny-postscript.sh unittest
+// REQUIRED_ARGS: -D -w -o- -Dd${RESULTS_DIR}/compilable -o-
+// POST_SCRIPT: compilable/extra-files/ddocAny-postscript.sh
 
 module ddocunittest;
 

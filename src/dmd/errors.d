@@ -73,10 +73,7 @@ extern (D) void error(Loc loc, const(char)* format, ...)
  */
 extern (C++) void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...)
 {
-    Loc loc;
-    loc.filename = filename;
-    loc.linnum = linnum;
-    loc.charnum = charnum;
+    const loc = Loc(filename, linnum, charnum);
     va_list ap;
     va_start(ap, format);
     verror(loc, format, ap);
@@ -166,6 +163,21 @@ extern (C++) void deprecationSupplemental(const ref Loc loc, const(char)* format
  * Print a verbose message.
  * Doesn't prefix or highlight messages.
  * Params:
+ *      loc    = location of message
+ *      format = printf-style format specification
+ *      ...    = printf-style variadic arguments
+ */
+extern (C++) void message(const ref Loc loc, const(char)* format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    vmessage(loc, format, ap);
+    va_end(ap);
+}
+
+/**
+ * Same as above, but doesn't take a location argument.
+ * Params:
  *      format = printf-style format specification
  *      ...    = printf-style variadic arguments
  */
@@ -173,7 +185,7 @@ extern (C++) void message(const(char)* format, ...)
 {
     va_list ap;
     va_start(ap, format);
-    vmessage(format, ap);
+    vmessage(Loc.initial, format, ap);
     va_end(ap);
 }
 
@@ -284,12 +296,18 @@ extern (C++) void verrorSupplemental(const ref Loc loc, const(char)* format, va_
  */
 extern (C++) void vwarning(const ref Loc loc, const(char)* format, va_list ap)
 {
-    if (global.params.warnings && !global.gag)
+    if (global.params.warnings)
     {
-        verrorPrint(loc, Classification.warning, "Warning: ", format, ap);
-        //halt();
-        if (global.params.warnings == 1)
-            global.warnings++; // warnings don't count if gagged
+        if (!global.gag)
+        {
+            verrorPrint(loc, Classification.warning, "Warning: ", format, ap);
+            if (global.params.warnings == 1)
+                global.warnings++;
+        }
+        else
+        {
+            global.gaggedWarnings++;
+        }
     }
 }
 
@@ -317,21 +335,37 @@ extern (C++) void vwarningSupplemental(const ref Loc loc, const(char)* format, v
  */
 extern (C++) void vdeprecation(const ref Loc loc, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
 {
-    static __gshared const(char)* header = "Deprecation: ";
+    __gshared const(char)* header = "Deprecation: ";
     if (global.params.useDeprecated == 0)
         verror(loc, format, ap, p1, p2, header);
-    else if (global.params.useDeprecated == 2 && !global.gag)
-        verrorPrint(loc, Classification.deprecation, header, format, ap, p1, p2);
+    else if (global.params.useDeprecated == 2)
+    {
+        if (!global.gag)
+        {
+            verrorPrint(loc, Classification.deprecation, header, format, ap, p1, p2);
+        }
+        else
+        {
+            global.gaggedWarnings++;
+        }
+    }
 }
 
 /**
  * Same as $(D message), but takes a va_list parameter.
  * Params:
- *      format = printf-style format specification
- *      ap     = printf-style variadic arguments
+ *      loc       = location of message
+ *      format    = printf-style format specification
+ *      ap        = printf-style variadic arguments
  */
-extern (C++) void vmessage(const(char)* format, va_list ap)
+extern (C++) void vmessage(const ref Loc loc, const(char)* format, va_list ap)
 {
+    const p = loc.toChars();
+    if (*p)
+    {
+        fprintf(stdout, "%s: ", p);
+        mem.xfree(cast(void*)p);
+    }
     OutBuffer tmp;
     tmp.vprintf(format, ap);
     fputs(tmp.peekString(), stdout);

@@ -2,6 +2,11 @@ struct S{
     float a;
 };
 
+namespace std
+{
+    struct test19248 {int a;};
+};
+
 bool               passthrough(bool                value)     { return value; }
 signed char        passthrough(signed char         value)     { return value; }
 unsigned char      passthrough(unsigned char       value)     { return value; }
@@ -18,6 +23,7 @@ unsigned long long passthrough(unsigned long long  value)     { return value; }
 float              passthrough(float               value)     { return value; }
 double             passthrough(double              value)     { return value; }
 S                  passthrough(S                   value)     { return value; }
+std::test19248     passthrough(const std::test19248 value)     { return value; }
 
 bool               passthrough_ptr(bool               *value) { return *value; }
 signed char        passthrough_ptr(signed char        *value) { return *value; }
@@ -35,6 +41,7 @@ unsigned long long passthrough_ptr(unsigned long long *value) { return *value; }
 float              passthrough_ptr(float              *value) { return *value; }
 double             passthrough_ptr(double             *value) { return *value; }
 S                  passthrough_ptr(S                  *value) { return *value; }
+std::test19248     passthrough_ptr(const std::test19248 *value) { return *value; }
 
 bool               passthrough_ref(bool               &value) { return value; }
 signed char        passthrough_ref(signed char        &value) { return value; }
@@ -52,6 +59,7 @@ unsigned long long passthrough_ref(unsigned long long &value) { return value; }
 float              passthrough_ref(float              &value) { return value; }
 double             passthrough_ref(double             &value) { return value; }
 S                  passthrough_ref(S                  &value) { return value; }
+std::test19248     passthrough_ref(const std::test19248 &value) { return value; }
 
 // Uncomment when mangling is fixed
 // typedef void(*fn0)();

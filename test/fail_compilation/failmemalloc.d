@@ -1,7 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/failmemalloc.d(13): Error: member allocators not supported by CTFE
+fail_compilation/failmemalloc.d(11): Deprecation: class allocators have been deprecated, consider moving the allocation strategy outside of the class
+fail_compilation/failmemalloc.d(14): Error: member allocators not supported by CTFE
 ---
 */
 

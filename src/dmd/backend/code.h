@@ -198,7 +198,7 @@ extern  int BPRM;
 extern  regm_t FLOATREGS;
 extern  regm_t FLOATREGS2;
 extern  regm_t DOUBLEREGS;
-extern  const char datafl[],stackfl[],segfl[],flinsymtab[];
+extern  unsigned char datafl[],stackfl[],segfl[],flinsymtab[];
 extern  char needframe,gotref;
 extern  targ_size_t localsize,
         funcoffset,
@@ -243,22 +243,34 @@ extern  bool calledFinally;
 
 void stackoffsets(int);
 void codgen(Symbol *);
+
 #ifdef DEBUG
+#define FINDREG_DEBUG 1
+#elif __APPLE__
+#define FINDREG_DEBUG 0
+#else
+#define FINDREG_DEBUG 0
+#endif
+
+#if FINDREG_DEBUG
 unsigned findreg (regm_t regm , int line , const char *file );
 #define findreg(regm) findreg((regm),__LINE__,__FILE__)
 #else
 unsigned findreg (regm_t regm );
 #endif
+
 #define findregmsw(regm) findreg((regm) & mMSW)
 #define findreglsw(regm) findreg((regm) & (mLSW | mBP))
 void freenode (elem *e );
 int isregvar (elem *e , regm_t *pregm , unsigned *preg );
-#ifdef DEBUG
+
+#if FINDREG_DEBUG
 void allocreg(CodeBuilder& cdb, regm_t *pretregs, unsigned *preg, tym_t tym, int line, const char *file);
 #define allocreg(a,b,c,d) allocreg((a),(b),(c),(d),__LINE__,__FILE__)
 #else
 void allocreg(CodeBuilder& cdb, regm_t *pretregs, unsigned *preg, tym_t tym);
 #endif
+
 regm_t lpadregs();
 void useregs (regm_t regm );
 void getregs(CodeBuilder& cdb, regm_t r);
@@ -365,7 +377,7 @@ void fltregs(CodeBuilder& cdb, code *pcs, tym_t tym);
 void tstresult(CodeBuilder& cdb, regm_t regm, tym_t tym, unsigned saveflag);
 void fixresult(CodeBuilder& cdb, elem *e, regm_t retregs, regm_t *pretregs);
 void callclib(CodeBuilder& cdb, elem *e, unsigned clib, regm_t *pretregs, regm_t keepmask);
-void pushParams(CodeBuilder& cdb,elem *, unsigned);
+void pushParams(CodeBuilder& cdb,elem *, unsigned, tym_t tyf);
 void offsetinreg(CodeBuilder& cdb, elem *e, regm_t *pretregs);
 
 /* cod2.c */
@@ -670,12 +682,16 @@ struct FuncParamRegs
     const unsigned char* floatregs;     // map to fp register
 };
 
+FuncParamRegs FuncParamRegs_create(tym_t tyf);
+int FuncParamRegs_alloc(FuncParamRegs& fpr, type *t, tym_t ty, unsigned char *reg1, unsigned char *reg2);
+
+
 extern "C++" { extern const unsigned mask[32]; }
 
 inline regm_t Symbol::Spregm()
 {
     /*assert(Sclass == SCfastpar);*/
-    return mask[Spreg] | (Spreg2 == NOREG ? 0 : mask[Spreg2]);
+    return (1 << Spreg) | (Spreg2 == NOREG ? 0 : (1 << Spreg2));
 }
 
 

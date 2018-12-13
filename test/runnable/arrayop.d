@@ -627,14 +627,14 @@ void test9656()
 
     {
         int[] ma = [1,2,3];
-        immutable ia = ma.dup;
+        immutable ia = ma.idup;
     }
 
 
     {
         static struct V { int val; }
         V[] ma = [V(1), V(2)];
-        immutable ia = ma.dup;
+        immutable ia = ma.idup;
     }
 
     {

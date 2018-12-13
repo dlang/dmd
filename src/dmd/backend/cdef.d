@@ -13,19 +13,44 @@ module dmd.backend.cdef;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_cdef.html
 
-import dmd.backend.cc: Classsym, Symbol;
+import dmd.backend.cc: Classsym, Symbol, param_t, config;
 import dmd.backend.el;
+import dmd.backend.ty : I32;
 
-import dmd.tk.dlist;
+import dmd.backend.dlist;
 
 extern (C++):
 @nogc:
 nothrow:
 
-//struct Classsym;
-//struct Symbol;
-//struct LIST;
-struct param_t;
+enum VERSION = "9.00.0";        // for banner and imbedding in .OBJ file
+enum VERSIONHEX = "0x900";      // for __DMC__ macro
+enum VERSIONINT = 0x900;        // for precompiled headers and DLL version
+
+version (SCPP)
+    version = XVERSION;
+version (SPP)
+    version = XVERSION;
+version (HTOD)
+    version = XVERSION;
+version (MARS)
+    version = XVERSION;
+
+version (XVERSION)
+{
+    extern (D) template xversion(string s)
+    {
+        enum xversion = mixin(`{ version (` ~ s ~ `) return true; else return false; }`)();
+    }
+
+    enum TARGET_LINUX   = xversion!`linux`;
+    enum TARGET_OSX     = xversion!`OSX`;
+    enum TARGET_FREEBSD = xversion!`FreeBSD`;
+    enum TARGET_OPENBSD = xversion!`OpenBSD`;
+    enum TARGET_SOLARIS = xversion!`Solaris`;
+    enum TARGET_WINDOS  = xversion!`Windows`;
+    enum TARGET_DRAGONFLYBSD  = xversion!`DragonFlyBSD`;
+}
 
 
 //
@@ -58,6 +83,17 @@ enum
 //#define ATTR_CAN_IGNORE(a) (((a) & (ATTR_LINKMOD|ATTR_TYPEMOD|ATTR_FUNCINFO|ATTR_DATAINFO|ATTR_TRANSU)) == 0)
 //#define LNX_CHECK_ATTRIBUTES(a,x) assert(((a) & ~(x|ATTR_IGNORED|ATTR_WARNING)) == 0)
 
+version (_WINDLL)
+    enum SUFFIX = "nd";
+else version (_WIN64)
+    enum SUFFIX = "a";
+else version (Win32)
+    enum SUFFIX = "n";
+else
+    enum SUFFIX = "";
+
+// Generate cleanup code
+enum TERMCODE = 0;
 
 // C++ Language Features
 enum ANGLE_BRACKET_HACK = 0;       // >> means two template arglist closes
@@ -67,66 +103,23 @@ enum IMPLIED_PRAGMA_ONCE = 1;       // include guards count as #pragma once
 enum bool HEADER_LIST = true;
 
 // Support generating code for 16 bit memory models
-//#define SIXTEENBIT              (SCPP && TARGET_WINDOS)
+version (SCPP)
+    enum SIXTEENBIT = TARGET_WINDOS != 0;
+else
+    enum SIXTEENBIT = false;
 
 /* Set for supporting the FLAT memory model.
  * This is not quite the same as !SIXTEENBIT, as one could
  * have near/far with 32 bit code.
  */
-//#define TARGET_SEGMENTED     (!MARS && TARGET_WINDOS)
+version (MARS)
+    enum TARGET_SEGMENTED = false;
+else
+    enum TARGET_SEGMENTED = TARGET_WINDOS;
 
 
-//#if __GNUC__
-//#define LDOUBLE                 0       // no support for true long doubles
-//#else
-//#define LDOUBLE         (config.exe == EX_WIN32)   // support true long doubles
-//#endif
+bool LDOUBLE() { return config.exe == EX_WIN32; }   // support true long doubles
 
-
-// Precompiled header variations
-//#define MEMORYHX        (_WINDLL && _WIN32)     // HX and SYM files are cached in memory
-//#define MMFIO           (_WIN32 || __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __DragonFly__ || __sun)  // if memory mapped files
-//#define LINEARALLOC     _WIN32  // if we can reserve address ranges
-
-// H_STYLE takes on one of these precompiled header methods
-enum
-{
-    H_NONE    = 1,       // no hydration/dehydration necessary
-    H_BIT0    = 2,       // bit 0 of the pointer determines if pointer
-                         // is dehydrated, an offset is added to
-                         // hydrate it
-    H_OFFSET  = 4,       // the address range of the pointer determines
-                         // if pointer is dehydrated, and an offset is
-                         // added to hydrate it. No dehydration necessary.
-    H_COMPLEX = 8,       // dehydrated pointers have bit 0 set, hydrated
-                         // pointers are in non-contiguous buffers
-}
-
-// Do we need hydration code
-//#define HYDRATE         (H_STYLE & (H_BIT0 | H_OFFSET | H_COMPLEX))
-
-// Do we need dehydration code
-//#define DEHYDRATE       (H_STYLE & (H_BIT0 | H_COMPLEX))
-
-// Determine hydration style
-//      NT console:     H_NONE
-//      NT DLL:         H_OFFSET
-//      DOSX:           H_COMPLEX
-//#if MARS
-//#define H_STYLE         H_NONE                  // precompiled headers only used for C/C++ compiler
-//#else
-//#if MMFIO
-//#if _WINDLL
-//#define H_STYLE         H_OFFSET
-//#else
-//#define H_STYLE         H_OFFSET //H_NONE
-//#endif
-//#elif LINEARALLOC
-//#define H_STYLE         H_BIT0
-//#else
-//#define H_STYLE         H_COMPLEX
-//#endif
-//#endif
 
 // NT structured exception handling
 //      0: no support
@@ -248,6 +241,8 @@ enum EXIT_BREAK = 255;     // aborted compile with ^C
  * Target machine data types as they appear on the host.
  */
 
+import core.stdc.stdint : int64_t, uint64_t;
+
 alias targ_char = byte;
 alias targ_uchar = ubyte;
 alias targ_schar = byte;
@@ -255,14 +250,15 @@ alias targ_short = short;
 alias targ_ushort= ushort;
 alias targ_long = int;
 alias targ_ulong = uint;
-alias targ_llong = long;
-alias targ_ullong = ulong;
+alias targ_llong = int64_t;
+alias targ_ullong = uint64_t;
 alias targ_float = float;
 alias targ_double = double;
-alias targ_ldouble = real;
+public import dmd.root.longdouble : targ_ldouble = longdouble;
 
 // Extract most significant register from constant
-//#define MSREG(p)        ((REGSIZE == 2) ? (p) >> 16 : ((sizeof(targ_llong) == 8) ? (p) >> 32 : 0))
+int REGSIZE();
+ulong MSREG(ulong p) { return (REGSIZE == 2) ? p >> 16 : ((targ_llong.sizeof == 8) ? p >> 32 : 0); }
 
 alias targ_int = int;
 alias targ_uns = uint;
@@ -283,18 +279,33 @@ enum
 
 //#define intsize         _tysize[TYint]
 //#define REGSIZE         _tysize[TYnptr]
-//#define NPTRSIZE        _tysize[TYnptr]
+//@property @nogc nothrow auto NPTRSIZE() { return _tysize[TYnptr]; }
 //#define FPTRSIZE        _tysize[TYfptr]
-//#define REGMASK         0xFFFF
+enum REGMASK = 0xFFFF;
 
 // targ_llong is also used to store host pointers, so it should have at least their size
-//#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS || TARGET_OSX || MARS
-alias targ_ptrdiff_t = targ_llong;  // ptrdiff_t for target machine
-alias targ_size_t = targ_ullong;    // size_t for the target machine
-//#else
-//typedef targ_int        targ_ptrdiff_t; /* ptrdiff_t for target machine  */
-//typedef targ_uns        targ_size_t;    /* size_t for the target machine */
-//#endif
+version (SCPP)
+{
+    // No 64 bit support yet
+    alias targ_ptrdiff_t = targ_int;  // ptrdiff_t for target machine
+    alias targ_size_t = targ_uns;     // size_t for the target machine
+}
+else version (SPP)
+{
+    alias targ_ptrdiff_t = targ_int;  // ptrdiff_t for target machine
+    alias targ_size_t = targ_uns;     // size_t for the target machine
+}
+else version (HTOD)
+{
+    alias targ_ptrdiff_t = targ_int;  // ptrdiff_t for target machine
+    alias targ_size_t = targ_uns;     // size_t for the target machine
+}
+else
+{
+    // Support 64 bit targets
+    alias targ_ptrdiff_t = int64_t;  // ptrdiff_t for target machine
+    alias targ_size_t = uint64_t;    // size_t for the target machine
+}
 
 /* Enable/disable various features
    (Some features may no longer work the old way when compiled out,
@@ -302,38 +313,38 @@ alias targ_size_t = targ_ullong;    // size_t for the target machine
  */
 //#define NEWTEMPMANGLE   (!(config.flags4 & CFG4oldtmangle))     // do new template mangling
 //#define USEDLLSHELL     _WINDLL
-//#define MFUNC           (I32) //0 && config.exe == EX_WIN32)       // member functions are TYmfunc
-//#define CV3             0       // 1 means support CV3 debug format
+bool MFUNC() { return I32 != 0; } // && config.exe == EX_WIN32)       // member functions are TYmfunc
+enum CV3 = 0;          // 1 means support CV3 debug format
 
 /* Object module format
  */
 //#ifndef OMFOBJ
 //#define OMFOBJ          TARGET_WINDOS
 //#endif
-//#ifndef ELFOBJ
-//#define ELFOBJ          (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-//#endif
-//#ifndef MACHOBJ
-//#define MACHOBJ         TARGET_OSX
-//#endif
+enum ELFOBJ = TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS;
+enum MACHOBJ = TARGET_OSX;
 
-//#define SYMDEB_CODEVIEW TARGET_WINDOS
-//#define SYMDEB_DWARF    (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS || TARGET_OSX)
+version (XVERSION)
+{
+    enum SYMDEB_CODEVIEW = TARGET_WINDOS;
+    enum SYMDEB_DWARF = TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS || TARGET_OSX;
+}
 
 //#define TOOLKIT_H
 
-enum Smodel = 0;        // 64k code, 64k data, or flat model
+enum
+{
+    Smodel = 0,        // 64k code, 64k data, or flat model
+    Mmodel = 1,        // large code, 64k data
+    Cmodel = 2,        // 64k code, large data
+    Lmodel = 3,        // large code, large data
+    Vmodel = 4,        // large code, large data, vcm
+}
 
-//#ifndef MEMMODELS
-//#define LARGEDATA       (config.memmodel & 6)
-//#define LARGECODE       (config.memmodel & 5)
-//
-//#define Mmodel 1        /* large code, 64k data         */
-//#define Cmodel 2        /* 64k code, large data         */
-//#define Lmodel 3        /* large code, large data       */
-//#define Vmodel 4        /* large code, large data, vcm  */
-//#define MEMMODELS 5     /* number of memory models      */
-//#endif
+version (MARS)
+    enum MEMMODELS = 1; // number of memory models
+else
+    enum MEMMODELS = 5;
 
 /* Segments     */
 enum
@@ -352,32 +363,45 @@ enum REGMAX = 29;      // registers are numbered 0..10
 alias tym_t = uint;    // data type big enough for type masks
 alias SYMIDX = int;    // symbol table index
 
-//#define _chkstack()     (void)0
 
-//#if _WINDLL
-///* We reference the required Windows-1252 encoding of the copyright symbol
-//   by escaping its character code (0xA9) rather than directly embedding it in
-//   the source text. The character code is invalid in UTF-8, which causes some
-//   of our source-code preprocessing tools (e.g. tolf) to choke. */
-//#ifndef COPYRIGHT_SYMBOL
-//#define COPYRIGHT_SYMBOL "\xA9"
-//#endif
-//#define COPYRIGHT "Copyright " COPYRIGHT_SYMBOL " 2001-2018 by The D Language Foundation"
-//#else
-//#ifdef DEBUG
-//#define COPYRIGHT "Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved\n\
-//Written by Walter Bright\n\
-//*****BETA TEST VERSION*****"
-//#else
-//#if __linux__
-//#define COPYRIGHT "Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved\n\
-//Written by Walter Bright, Linux version by Pat Nelson"
-//#else
-//#define COPYRIGHT "Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved\n\
-//Written by Walter Bright"
-//#endif
-//#endif
-//#endif
+version (MARS)
+{
+}
+else
+{
+version (_WINDLL)
+{
+/* We reference the required Windows-1252 encoding of the copyright symbol
+   by escaping its character code (0xA9) rather than directly embedding it in
+   the source text. The character code is invalid in UTF-8, which causes some
+   of our source-code preprocessing tools (e.g. tolf) to choke.
+ */
+    enum COPYRIGHT_SYMBOL = "\xA9";
+    enum COPYRIGHT = "Copyright " ~ COPYRIGHT_SYMBOL ~ " 2001 Digital Mars";
+}
+else
+{
+    debug
+    {
+        enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2017.  All Rights Reserved.
+Written by Walter Bright
+*****BETA TEST VERSION*****";
+    }
+    else
+    {
+        version (linux)
+        {
+            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2017.  All Rights Reserved.
+Written by Walter Bright, Linux version by Pat Nelson";
+        }
+        else
+        {
+            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2017.  All Rights Reserved.
+Written by Walter Bright";
+        }
+    }
+}
+}
 
 /**********************************
  * Configuration
@@ -933,5 +957,5 @@ enum
 }
 
 int ClassInline(int c) { return c == SCinline || c == SCsinline || c == SCeinline; }
-//#define SymInline(s)   ClassInline((s).Sclass)
+int SymInline(Symbol* s) { return ClassInline(s.Sclass); }
 

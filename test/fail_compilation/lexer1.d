@@ -16,7 +16,7 @@ fail_compilation/lexer1.d(40): Error: declaration expected, not `65536U`
 fail_compilation/lexer1.d(41): Error: declaration expected, not `"ab\\c\"\u1234a\U00011100a"d`
 fail_compilation/lexer1.d(43): Error: declaration expected, not `module`
 fail_compilation/lexer1.d(45): Error: escape hex sequence has 1 hex digits instead of 2
-fail_compilation/lexer1.d(46): Error: undefined escape hex sequence \G
+fail_compilation/lexer1.d(46): Error: undefined escape hex sequence \xG
 fail_compilation/lexer1.d(47): Error: unnamed character entity &unnamedentity;
 fail_compilation/lexer1.d(48): Error: unterminated named entity &1;
 fail_compilation/lexer1.d(49): Error: unterminated named entity &*;

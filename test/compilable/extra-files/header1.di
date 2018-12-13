@@ -3,14 +3,33 @@ import core.vararg;
 import std.stdio;
 pragma (lib, "test");
 pragma (msg, "Hello World");
+pragma (linkerDirective, "/DEFAULTLIB:test2");
 static assert(true, "message");
 alias mydbl = double;
-alias fl = function ()
+alias fl1 = function ()
 in
+{
+}
+in (true)
+out (; true)
+out (r; true)
+out
+{
+}
+out(r)
 {
 }
 do
 {
+	return 2;
+}
+;
+alias fl2 = function ()
+in (true)
+out (; true)
+out (r; true)
+{
+	return 2;
 }
 ;
 int testmain();
@@ -452,7 +471,7 @@ class TestClass
 	{
 		return aa;
 	}
-	ref return retFunc()
+	ref retFunc() return
 	{
 		return aa;
 	}
@@ -491,9 +510,21 @@ struct SafeS
 {
 	@safe 
 	{
-		ref return SafeS foo();
-		return scope SafeS foo2();
-		ref return scope SafeS foo3();
+		ref SafeS foo() return;
+		scope SafeS foo2() return;
+		ref scope SafeS foo3() return;
 		int* p;
 	}
 }
+void test13x(@(10) int a, @(20) int, @(tuple(30), tuple(40)) int[] arr...);
+enum Test14UDA1 ;
+struct Test14UDA2
+{
+	string str;
+}
+Test14UDA2 test14uda3(string name);
+struct Test14UDA4(string v)
+{
+}
+void test14x(@(Test14UDA1) int, @Test14UDA2("1") int, @test14uda3("2") int, @(Test14UDA4!"3") int);
+void test15x(@(20) void delegate(int) @safe dg);

@@ -42,7 +42,7 @@ static assert(!__traits(compiles, (bool b)
     label: {}
         assert(!x);
     }
-    catch
+    catch(Throwable)
     {
     }
 }));
@@ -54,7 +54,7 @@ static assert(!__traits(compiles, (bool b)
     try
     {
     }
-    catch
+    catch(Throwable)
     {
         int x;
     label: {}

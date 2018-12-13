@@ -28,7 +28,7 @@ bool startsWithConsume(alias pred = "a == b", R1, R2)(ref R1 r1, R2 r2)
 
 uint bug = 1;
 
-int main(string args[]) {
+int main(string[] args) {
     getopt(args, "bug", &bug);
     enforce(bug <= 2);
     auto txt = readText("runnable/extra-files/untag.html");

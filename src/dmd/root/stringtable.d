@@ -43,19 +43,25 @@ struct StringValue
 
 nothrow:
 pure:
-    extern (C++) char* lstring()
+    char* lstring()
     {
         return cast(char*)(&this + 1);
     }
 
-    extern (C++) size_t len() const
+    size_t len() const
     {
         return length;
     }
 
-    extern (C++) const(char)* toDchars() const
+    const(char)* toDchars() const
     {
         return cast(const(char)*)(&this + 1);
+    }
+
+    /// Returns: The content of this entry as a D slice
+    inout(char)[] toString() inout
+    {
+        return (cast(inout(char)*)(&this + 1))[0 .. length];
     }
 }
 
@@ -70,7 +76,7 @@ private:
     size_t count;
 
 public:
-    extern (C++) void _init(size_t size = 0) nothrow
+    void _init(size_t size = 0) nothrow
     {
         size = nextpow2(cast(size_t)(size / loadFactor));
         if (size < 32)
@@ -82,7 +88,7 @@ public:
         count = 0;
     }
 
-    extern (C++) void reset(size_t size = 0) nothrow
+    void reset(size_t size = 0) nothrow
     {
         for (size_t i = 0; i < npools; ++i)
             mem.xfree(pools[i]);
@@ -93,7 +99,7 @@ public:
         _init(size);
     }
 
-    extern (C++) ~this() nothrow
+    ~this() nothrow
     {
         for (size_t i = 0; i < npools; ++i)
             mem.xfree(pools[i]);
@@ -103,7 +109,19 @@ public:
         pools = null;
     }
 
-    extern (C++) StringValue* lookup(const(char)* s, size_t length) nothrow pure
+    /**
+    Looks up the given string in the string table and returns its associated
+    value.
+
+    Params:
+     s = the string to look up
+     length = the length of $(D_PARAM s)
+     str = the string to look up
+
+    Returns: the string's associated value, or `null` if the string doesn't
+     exist in the string table
+    */
+    inout(StringValue)* lookup(const(char)* s, size_t length) inout nothrow pure
     {
         const(hash_t) hash = calcHash(s, length);
         const(size_t) i = findSlot(hash, s, length);
@@ -111,7 +129,27 @@ public:
         return getValue(table[i].vptr);
     }
 
-    extern (C++) StringValue* insert(const(char)* s, size_t length, void* ptrvalue) nothrow
+    /// ditto
+    inout(StringValue)* lookup(const(char)[] str) inout nothrow pure
+    {
+        return lookup(str.ptr, str.length);
+    }
+
+    /**
+    Inserts the given string and the given associated value into the string
+    table.
+
+    Params:
+     s = the string to insert
+     length = the length of $(D_PARAM s)
+     ptrvalue = the value to associate with the inserted string
+     str = the string to insert
+     value = the value to associate with the inserted string
+
+    Returns: the newly inserted value, or `null` if the string table already
+     contains the string
+    */
+    StringValue* insert(const(char)* s, size_t length, void* ptrvalue) nothrow
     {
         const(hash_t) hash = calcHash(s, length);
         size_t i = findSlot(hash, s, length);
@@ -128,7 +166,13 @@ public:
         return getValue(table[i].vptr);
     }
 
-    extern (C++) StringValue* update(const(char)* s, size_t length) nothrow
+    /// ditto
+    StringValue* insert(const(char)[] str, void* value) nothrow
+    {
+        return insert(str.ptr, str.length, value);
+    }
+
+    StringValue* update(const(char)* s, size_t length) nothrow
     {
         const(hash_t) hash = calcHash(s, length);
         size_t i = findSlot(hash, s, length);
@@ -146,6 +190,11 @@ public:
         return getValue(table[i].vptr);
     }
 
+    StringValue* update(const(char)[] name) nothrow
+    {
+        return update(name.ptr, name.length);
+    }
+
     /********************************
      * Walk the contents of the string table,
      * calling fp for each entry.
@@ -154,7 +203,7 @@ public:
      * Returns:
      *      last return value of fp call
      */
-    extern (C++) int apply(int function(const(StringValue)*) fp)
+    int apply(int function(const(StringValue)*) fp)
     {
         foreach (const se; table[0 .. tabledim])
         {
@@ -189,16 +238,16 @@ nothrow:
         return vptr;
     }
 
-    StringValue* getValue(uint vptr) pure
+    inout(StringValue)* getValue(uint vptr) inout pure
     {
         if (!vptr)
             return null;
         const(size_t) idx = (vptr >> POOL_BITS) - 1;
         const(size_t) off = vptr & POOL_SIZE - 1;
-        return cast(StringValue*)&pools[idx][off];
+        return cast(inout(StringValue)*)&pools[idx][off];
     }
 
-    size_t findSlot(hash_t hash, const(char)* s, size_t length) pure
+    size_t findSlot(hash_t hash, const(char)* s, size_t length) const pure
     {
         // quadratic probing using triangular numbers
         // http://stackoverflow.com/questions/2348187/moving-from-linear-probing-to-quadratic-probing-hash-collisons/2349774#2349774

@@ -1,24 +1,14 @@
 #!/usr/bin/env bash
 
-src=runnable${SEP}extra-files
-dir=${RESULTS_DIR}${SEP}runnable
-output_file=${dir}/link14198a.sh.out
 
-if [ $OS == "win32" -o  $OS == "win64" ]; then
-	LIBEXT=.lib
-else
-	LIBEXT=.a
-fi
-libname=${dir}${SEP}lib14198a${LIBEXT}
+libname=${OUTPUT_BASE}${LIBEXT}
+
 
 # build library
-$DMD -m${MODEL} -I${src} -of${libname} -lib ${src}${SEP}std14198${SEP}array.d ${src}${SEP}std14198${SEP}conv.d ${src}${SEP}std14198${SEP}format.d ${src}${SEP}std14198${SEP}uni.d || exit 1
+$DMD -m${MODEL} -I${EXTRA_FILES} -of${libname} -lib ${EXTRA_FILES}${SEP}std14198${SEP}array.d ${EXTRA_FILES}${SEP}std14198${SEP}conv.d ${EXTRA_FILES}${SEP}std14198${SEP}format.d ${EXTRA_FILES}${SEP}std14198${SEP}uni.d
 
 # Do not link failure with library file, regardless the semantic order.
-$DMD -m${MODEL} -I${src} -of${dir}${SEP}test14198a${EXE}                   ${src}${SEP}test14198.d ${libname} || exit 1
-$DMD -m${MODEL} -I${src} -of${dir}${SEP}test14198a${EXE} -version=bug14198 ${src}${SEP}test14198.d ${libname} || exit 1
+$DMD -m${MODEL} -I${EXTRA_FILES} -of${OUTPUT_BASE}${EXE}                   ${EXTRA_FILES}${SEP}test14198.d ${libname}
+$DMD -m${MODEL} -I${EXTRA_FILES} -of${OUTPUT_BASE}${EXE} -version=bug14198 ${EXTRA_FILES}${SEP}test14198.d ${libname}
 
-rm ${libname}
-rm ${dir}/{test14198a${OBJ},test14198a${EXE}}
-
-echo Success > ${output_file}
+rm ${OUTPUT_BASE}{${OBJ},${EXE}} ${libname}

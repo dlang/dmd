@@ -15,20 +15,28 @@ module dmd.root.aav;
 import core.stdc.string;
 import dmd.root.rmem;
 
-extern (C++) size_t hash(size_t a)
+private size_t hash(size_t a)
 {
     a ^= (a >> 20) ^ (a >> 12);
     return a ^ (a >> 7) ^ (a >> 4);
 }
 
+struct KeyValueTemplate(K,V)
+{
+    K key;
+    V value;
+}
+
 alias Key = void*;
 alias Value = void*;
+
+alias KeyValue = KeyValueTemplate!(Key, Value);
 
 struct aaA
 {
     aaA* next;
-    Key key;
-    Value value;
+    KeyValue keyValue;
+    alias keyValue this;
 }
 
 struct AA
@@ -43,7 +51,7 @@ struct AA
 /****************************************************
  * Determine number of entries in associative array.
  */
-extern (C++) size_t dmd_aaLen(const AA* aa) pure
+private size_t dmd_aaLen(const AA* aa) pure
 {
     return aa ? aa.nodes : 0;
 }
@@ -53,7 +61,7 @@ extern (C++) size_t dmd_aaLen(const AA* aa) pure
  * Add entry for key if it is not already there, returning a pointer to a null Value.
  * Create the associative array if it does not already exist.
  */
-extern (C++) Value* dmd_aaGet(AA** paa, Key key)
+private Value* dmd_aaGet(AA** paa, Key key)
 {
     //printf("paa = %p\n", paa);
     if (!*paa)
@@ -102,7 +110,7 @@ extern (C++) Value* dmd_aaGet(AA** paa, Key key)
  * Get value in associative array indexed by key.
  * Returns NULL if it is not already there.
  */
-extern (C++) Value dmd_aaGetRvalue(AA* aa, Key key)
+private Value dmd_aaGetRvalue(AA* aa, Key key)
 {
     //printf("_aaGetRvalue(key = %p)\n", key);
     if (aa)
@@ -121,10 +129,96 @@ extern (C++) Value dmd_aaGetRvalue(AA* aa, Key key)
     return null; // not found
 }
 
+debug
+{
+    /**
+    Gets a range of key/values for `aa`.
+
+    Returns: a range of key/values for `aa`.
+    */
+    @property auto asRange(AA* aa)
+    {
+        return AARange!(Key, Value)(aa);
+    }
+
+    private struct AARange(K,V)
+    {
+        AA* aa;
+        // current index into bucket array `aa.b`
+        size_t bIndex;
+        aaA* current;
+
+        this(AA* aa)
+        {
+            if (aa)
+            {
+                this.aa = aa;
+                toNext();
+            }
+        }
+
+        @property bool empty() const { return current is null; }
+
+        @property auto front() { return cast(KeyValueTemplate!(K,V))current.keyValue; }
+
+        void popFront()
+        {
+            if (current.next)
+                current = current.next;
+            else
+            {
+                bIndex++;
+                toNext();
+            }
+        }
+
+        private void toNext()
+        {
+            for (; bIndex < aa.b_length; bIndex++)
+            {
+                if (auto next = aa.b[bIndex])
+                {
+                    current = next;
+                    return;
+                }
+            }
+            current = null;
+        }
+    }
+    unittest
+    {
+        AA* aa = null;
+        foreach(keyValue; aa.asRange)
+            assert(0);
+
+        enum totalKeyLength = 50;
+        foreach (i; 1 .. totalKeyLength + 1)
+        {
+            auto key = cast(void*)i;
+            {
+                auto valuePtr = dmd_aaGet(&aa, key);
+                assert(valuePtr);
+                *valuePtr = key;
+            }
+            bool[totalKeyLength] found;
+            size_t rangeCount = 0;
+            foreach (keyValue; aa.asRange)
+            {
+                assert(keyValue.key <= key);
+                assert(keyValue.key == keyValue.value);
+                rangeCount++;
+                assert(!found[cast(size_t)keyValue.key - 1]);
+                found[cast(size_t)keyValue.key - 1] = true;
+            }
+            assert(rangeCount == i);
+        }
+    }
+}
+
 /********************************************
  * Rehash an array.
  */
-extern (C++) void dmd_aaRehash(AA** paa)
+private void dmd_aaRehash(AA** paa)
 {
     //printf("Rehash\n");
     if (*paa)
@@ -169,4 +263,71 @@ unittest
     *pv = cast(void*)3;
     v = dmd_aaGetRvalue(aa, null);
     assert(v == cast(void*)3);
+}
+
+struct AssocArray(K,V)
+{
+    private AA* aa;
+
+    /**
+    Returns: The number of key/value pairs.
+    */
+    @property size_t length() const { return dmd_aaLen(aa); }
+
+    /**
+    Lookup value associated with `key` and return the address to it. If the `key`
+    has not been added, it adds it and returns the address to the new value.
+
+    Params:
+        key = key to lookup the value for
+
+    Returns: the address to the value associated with `key`. If `key` does not exist, it
+             is added and the address to the new value is returned.
+    */
+    V* getLvalue(const(K) key)
+    {
+        return cast(V*)dmd_aaGet(&aa, cast(void*)key);
+    }
+
+    /**
+    Lookup and return the value associated with `key`, if the `key` has not been
+    added, it returns null.
+
+    Params:
+        key = key to lookup the value for
+
+    Returns: the value associated with `key` if present, otherwise, null.
+    */
+    V opIndex(const(K) key)
+    {
+        return cast(V)dmd_aaGetRvalue(aa, cast(void*)key);
+    }
+
+    debug
+    {
+        /**
+        Gets a range of key/values for `aa`.
+
+        Returns: a range of key/values for `aa`.
+        */
+        @property auto asRange() { return AARange!(K,V)(aa); }
+    }
+}
+
+///
+unittest
+{
+    auto foo = new Object();
+    auto bar = new Object();
+
+    AssocArray!(Object, Object) aa;
+
+    assert(aa[foo] is null);
+    assert(aa.length == 0);
+
+    auto fooValuePtr = aa.getLvalue(foo);
+    *fooValuePtr = bar;
+
+    assert(aa[foo] is bar);
+    assert(aa.length == 1);
 }

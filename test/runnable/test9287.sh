@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 
-src=runnable${SEP}extra-files
-dir=${RESULTS_DIR}${SEP}runnable
-output_file=${dir}/test9287.sh.out
+set -e
 
 echo 'import std.stdio; void main() { writeln("Success"); }' | \
-	$DMD -m${MODEL} -of${dir}${SEP}test9287a${EXE} - || exit 1
+	$DMD -m${MODEL} -of${OUTPUT_BASE}${EXE} -
 
-${RESULTS_DIR}/runnable/test9287a${EXE} > ${output_file}
+${OUTPUT_BASE}${EXE}
 
-\rm -f ${dir}/test9287a{${OBJ},${EXE}}
+rm -f ${OUTPUT_BASE}{${OBJ},${EXE}} || true

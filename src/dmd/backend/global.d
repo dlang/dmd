@@ -24,12 +24,12 @@ import dmd.backend.cc;
 import dmd.backend.cc : Symbol, block, Classsym, Blockx;
 import dmd.backend.code_x86 : code;
 import dmd.backend.code;
+import dmd.backend.dlist;
 import dmd.backend.el;
 import dmd.backend.el : elem;
+import dmd.backend.memh;
 import dmd.backend.type;
 //import dmd.backend.obj;
-
-import dmd.tk.dlist;
 
 extern __gshared
 {
@@ -57,6 +57,7 @@ enum LF = '\n';             // \n into \r and \r into \n.  The translator versio
 enum CR_STR = "\r";
 enum LF_STR = "\n";
 
+enum SCMAX_ = SCMAX; // workaround gdc build failure (can be removed if gdc > 2.068)
 extern __gshared
 {
     uint[32] mask;                  // bit masks
@@ -69,9 +70,9 @@ extern __gshared
     symtab_t globsym;
 
 //    Config config;                  // precompiled part of configuration
-//    char[SCMAX] sytab;
+    char[SCMAX_] sytab;
 
-    //volatile int controlc_saw;    // a control C was seen
+    extern (C) /*volatile*/ int controlc_saw;    // a control C was seen
     uint maxblks;                   // array max for all block stuff
     uint numblks;                   // number of basic blocks (if optimized)
     block* startblock;              // beginning block of function
@@ -100,11 +101,12 @@ __gshared Configv configv;                // non-ph part of configuration
 Symbol *asm_define_label(const(char)* id);
 
 // cpp.c
-//#if SCPP || MARS
-//char *cpp_mangle(Symbol* s);
-//#else
-//#define cpp_mangle(s)   ((s)->Sident)
-//#endif
+version (SCPP)
+    char* cpp_mangle(Symbol* s);
+else version (MARS)
+    char* cpp_mangle(Symbol* s);
+else
+    char* cpp_mangle(Symbol* s) { return &s.Sident[0]; }
 
 // ee.c
 void eecontext_convs(uint marksi);
@@ -139,17 +141,20 @@ void util_set32();
 void util_set64();
 int ispow2(uint64_t);
 
-//#if __GNUC__
-//#define util_malloc(n,size) mem_malloc((n)*(size))
-//#define util_calloc(n,size) mem_calloc((n)*(size))
-//#define util_free       mem_free
-//#define util_realloc(oldp,n,size) mem_realloc(oldp,(n)*(size))
+version (Posix)
+{
+void* util_malloc(uint n,uint size) { return mem_malloc(n * size); }
+void* util_calloc(uint n,uint size) { return mem_calloc(n * size); }
+void util_free(void *p) { mem_free(p); }
+void *util_realloc(void *oldp,uint n,uint size) { return mem_realloc(oldp, n * size); }
 //#define parc_malloc     mem_malloc
 //#define parc_calloc     mem_calloc
 //#define parc_realloc    mem_realloc
 //#define parc_strdup     mem_strdup
 //#define parc_free       mem_free
-//#else
+}
+else
+{
 void *util_malloc(uint n,uint size);
 void *util_calloc(uint n,uint size);
 void util_free(void *p);
@@ -159,7 +164,7 @@ void *parc_calloc(size_t len);
 void *parc_realloc(void *oldp,size_t len);
 char *parc_strdup(const(char)* s);
 void parc_free(void *p);
-//#endif
+}
 
 void swap(int *, int *);
 //void crlf(FILE *);
@@ -298,7 +303,9 @@ void os_heapterm();
 void os_term();
 uint os_unique();
 int os_file_exists(const(char)* name);
+int os_file_mtime(const(char)* name);
 int os_file_size(int fd);
+int os_file_size(const(char)* filename);
 char *file_8dot3name(const(char)* filename);
 int file_write(char *name, void *buffer, uint len);
 int file_createdirs(char *name);
@@ -312,7 +319,7 @@ extern __gshared
 }
 
 /* Symbol.c */
-Symbol **symtab_realloc(Symbol **tab, size_t symmax);
+extern (C) Symbol **symtab_realloc(Symbol **tab, size_t symmax);
 Symbol **symtab_malloc(size_t symmax);
 Symbol **symtab_calloc(size_t symmax);
 void symtab_free(Symbol **tab);
@@ -426,7 +433,7 @@ void compdfo();
 /* debug.c */
 extern __gshared const(char)*[32] regstring;
 
-void WRclass(SC c);
+void WRclass(int c);
 void WRTYxx(tym_t t);
 void WROP(uint oper);
 void WRBC(uint bc);
@@ -477,6 +484,30 @@ version (SCPP)
     void srcpos_hydrate(Srcpos *);
     void srcpos_dehydrate(Srcpos *);
 }
+version (SPP)
+{
+    extern __gshared Srcfiles srcfiles;
+    Sfile **filename_indirect(Sfile *sf);
+    Sfile  *filename_search(const(char)* name);
+    Sfile *filename_add(const(char)* name);
+    int filename_cmp(const(char)* f1,const(char)* f2);
+    void filename_translate(Srcpos *);
+}
+version (HTOD)
+{
+    extern __gshared Srcfiles srcfiles;
+    Sfile **filename_indirect(Sfile *sf);
+    Sfile  *filename_search(const(char)* name);
+    Sfile *filename_add(const(char)* name);
+    void filename_hydrate(Srcfiles *fn);
+    void filename_dehydrate(Srcfiles *fn);
+    void filename_merge(Srcfiles *fn);
+    void filename_mergefl(Sfile *sf);
+    int filename_cmp(const(char)* f1,const(char)* f2);
+    void filename_translate(Srcpos *);
+    void srcpos_hydrate(Srcpos *);
+    void srcpos_dehydrate(Srcpos *);
+}
 
 // tdb.c
 uint tdb_gettimestamp();
@@ -491,10 +522,10 @@ void rtlsym_reset();
 void rtlsym_term();
 
 // compress.c
-char *id_compress(char *id, int idlen, size_t *plen);
+extern(C) char *id_compress(char *id, int idlen, size_t *plen);
 
 // Dwarf
-void dwarf_CFA_set_loc(size_t location);
+void dwarf_CFA_set_loc(uint location);
 void dwarf_CFA_set_reg_offset(int reg, int offset);
 void dwarf_CFA_offset(int reg, int offset);
 void dwarf_CFA_args_size(size_t sz);

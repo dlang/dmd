@@ -243,6 +243,8 @@ extern (C++) class Dsymbol : RootObject
     {
         if (this == o)
             return true;
+        if (o.dyncast() != DYNCAST.dsymbol)
+            return false;
         Dsymbol s = cast(Dsymbol)o;
         // Overload sets don't have an ident
         if (s && ident && s.ident && ident.equals(s.ident))
@@ -466,7 +468,7 @@ extern (C++) class Dsymbol : RootObject
     /*************************************
      * Do syntax copy of an array of Dsymbol's.
      */
-    static Dsymbols* arraySyntaxCopy(Dsymbols* a)
+    extern (D) static Dsymbols* arraySyntaxCopy(Dsymbols* a)
     {
         Dsymbols* b = null;
         if (a)
@@ -767,13 +769,13 @@ extern (C++) class Dsymbol : RootObject
     }
 
     // is Dsymbol exported?
-    bool isExport()
+    bool isExport() const
     {
         return false;
     }
 
     // is Dsymbol imported?
-    bool isImportedSymbol()
+    bool isImportedSymbol() const
     {
         return false;
     }
@@ -846,7 +848,6 @@ extern (C++) class Dsymbol : RootObject
      */
     Dsymbol syntaxCopy(Dsymbol s)
     {
-        print();
         printf("%s %s\n", kind(), toChars());
         assert(0);
     }
@@ -868,7 +869,7 @@ extern (C++) class Dsymbol : RootObject
     /*****************************************
      * Same as Dsymbol::oneMember(), but look at an array of Dsymbols.
      */
-    static bool oneMembers(Dsymbols* members, Dsymbol* ps, Identifier ident)
+    extern (D) static bool oneMembers(Dsymbols* members, Dsymbol* ps, Identifier ident)
     {
         //printf("Dsymbol::oneMembers() %d\n", members ? members.dim : 0);
         Dsymbol s = null;
@@ -1487,6 +1488,10 @@ public:
 
     final void addAccessiblePackage(Package p, Prot protection)
     {
+        // https://issues.dlang.org/show_bug.cgi?id=17991
+        // An import of truly empty file/package can happen
+        if (p is null)
+            return;
         auto pary = protection.kind == Prot.Kind.private_ ? &privateAccessiblePackages : &accessiblePackages;
         if (pary.length <= p.tag)
             pary.length = p.tag + 1;
@@ -1548,7 +1553,7 @@ public:
         version (none)
         {
             // Finish
-            static __gshared TypeFunction tfgetmembers;
+            __gshared TypeFunction tfgetmembers;
             if (!tfgetmembers)
             {
                 Scope sc;
@@ -1597,47 +1602,6 @@ public:
             }
         }
         return false;
-    }
-
-    /***************************************
-     * Determine number of Dsymbols, folding in AttribDeclaration members.
-     */
-    static size_t dim(Dsymbols* members)
-    {
-        size_t n = 0;
-        int dimDg(size_t idx, Dsymbol s)
-        {
-            ++n;
-            return 0;
-        }
-
-        _foreach(null, members, &dimDg, &n);
-        return n;
-    }
-
-    /***************************************
-     * Get nth Dsymbol, folding in AttribDeclaration members.
-     * Returns:
-     *      Dsymbol*        nth Dsymbol
-     *      NULL            not found, *pn gets incremented by the number
-     *                      of Dsymbols
-     */
-    static Dsymbol getNth(Dsymbols* members, size_t nth, size_t* pn = null)
-    {
-        Dsymbol sym = null;
-
-        int getNthSymbolDg(size_t n, Dsymbol s)
-        {
-            if (n == nth)
-            {
-                sym = s;
-                return 1;
-            }
-            return 0;
-        }
-
-        int res = _foreach(null, members, &getNthSymbolDg);
-        return res ? sym : null;
     }
 
     extern (D) alias ForeachDg = int delegate(size_t idx, Dsymbol s);
@@ -2093,13 +2057,13 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
  */
 extern (C++) final class DsymbolTable : RootObject
 {
-    AA* tab;
+    AssocArray!(Identifier, Dsymbol) tab;
 
     // Look up Identifier. Return Dsymbol if found, NULL if not.
     Dsymbol lookup(const Identifier ident)
     {
-        //printf("DsymbolTable::lookup(%s)\n", (char*)ident.string);
-        return cast(Dsymbol)dmd_aaGetRvalue(tab, cast(void*)ident);
+        //printf("DsymbolTable::lookup(%s)\n", ident.toChars());
+        return tab[ident];
     }
 
     // Insert Dsymbol in table. Return NULL if already there.
@@ -2107,7 +2071,7 @@ extern (C++) final class DsymbolTable : RootObject
     {
         //printf("DsymbolTable::insert(this = %p, '%s')\n", this, s.ident.toChars());
         const ident = s.ident;
-        Dsymbol* ps = cast(Dsymbol*)dmd_aaGet(&tab, cast(void*)ident);
+        Dsymbol* ps = tab.getLvalue(ident);
         if (*ps)
             return null; // already in table
         *ps = s;
@@ -2118,7 +2082,7 @@ extern (C++) final class DsymbolTable : RootObject
     Dsymbol update(Dsymbol s)
     {
         const ident = s.ident;
-        Dsymbol* ps = cast(Dsymbol*)dmd_aaGet(&tab, cast(void*)ident);
+        Dsymbol* ps = tab.getLvalue(ident);
         *ps = s;
         return s;
     }
@@ -2127,7 +2091,7 @@ extern (C++) final class DsymbolTable : RootObject
     Dsymbol insert(const Identifier ident, Dsymbol s)
     {
         //printf("DsymbolTable::insert()\n");
-        Dsymbol* ps = cast(Dsymbol*)dmd_aaGet(&tab, cast(void*)ident);
+        Dsymbol* ps = tab.getLvalue(ident);
         if (*ps)
             return null; // already in table
         *ps = s;
@@ -2140,6 +2104,6 @@ extern (C++) final class DsymbolTable : RootObject
      */
     uint len() const pure
     {
-        return cast(uint)dmd_aaLen(tab);
+        return cast(uint)tab.length;
     }
 }

@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -c -Icompilable/extra-files
+// REQUIRED_ARGS: -Icompilable/extra-files
 
 // 6395
 

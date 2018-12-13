@@ -12,7 +12,7 @@
 
 module dmd.imphint;
 
-import core.stdc.string;
+import dmd.utils;
 
 /******************************************
  * Looks for undefined identifier s to see
@@ -21,9 +21,11 @@ import core.stdc.string;
  * Not meant to be a comprehensive list of names in each module,
  * just the most common ones.
  */
-extern (C++) const(char)* importHint(const(char)* s)
+const(char)[] importHint(const(char)[] s)
 {
-    return hints.get(cast(string) s[0..strlen(s)], null).ptr;
+    if (auto entry = s in hints)
+        return *entry;
+    return null;
 }
 
 private immutable string[string] hints;
@@ -32,9 +34,13 @@ shared static this()
 {
     // in alphabetic order
     hints = [
+        "calloc": "core.stdc.stdlib",
         "cos": "std.math",
         "fabs": "std.math",
+        "free": "core.stdc.stdlib",
+        "malloc": "core.stdc.stdlib",
         "printf": "core.stdc.stdio",
+        "realloc": "core.stdc.stdlib",
         "sin": "std.math",
         "sqrt": "std.math",
         "writefln": "std.stdio",
@@ -45,11 +51,7 @@ shared static this()
 
 unittest
 {
-    const(char)* p;
-    p = importHint("printf");
-    assert(p);
-    p = importHint("fabs");
-    assert(p);
-    p = importHint("xxxxx");
-    assert(!p);
+    assert(importHint("printf") !is null);
+    assert(importHint("fabs") !is null);
+    assert(importHint("xxxxx") is null);
 }

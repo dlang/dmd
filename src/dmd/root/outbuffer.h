@@ -3,23 +3,17 @@
  * All Rights Reserved, written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
- * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
- * https://github.com/dlang/dmd/blob/master/src/root/outbuffer.h
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/dlang/dmd/blob/master/src/dmd/root/outbuffer.h
  */
 
-#ifndef OUTBUFFER_H
-#define OUTBUFFER_H
+#pragma once
 
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 #include <assert.h>
-#include "port.h"
 #include "rmem.h"
-
-#if __DMC__
-#pragma once
-#endif
 
 class RootObject;
 
@@ -55,7 +49,6 @@ public:
     void setsize(size_t size);
     void reset();
     void write(const void *data, d_size_t nbytes);
-    void writebstring(utf8_t *string);
     void writestring(const char *string);
     void prependstring(const char *string);
     void writenl();                     // write newline
@@ -81,5 +74,3 @@ public:
     // Append terminating null if necessary and take ownership of data
     char *extractString();
 };
-
-#endif

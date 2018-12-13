@@ -66,7 +66,7 @@ extern (C++):
  * Convert D protection attribute to cv attribute.
  */
 
-uint PROTtoATTR(Prot.Kind prot)
+uint PROTtoATTR(Prot.Kind prot) pure nothrow @safe @nogc
 {
     uint attribute;
 
@@ -91,31 +91,25 @@ uint cv4_memfunctypidx(FuncDeclaration fd)
     //printf("cv4_memfunctypidx(fd = '%s')\n", fd.toChars());
 
     type *t = Type_toCtype(fd.type);
-    AggregateDeclaration ad = fd.isMember2();
-    if (ad)
+    if (AggregateDeclaration ad = fd.isMember2())
     {
         // It's a member function, which gets a special type record
 
-        idx_t thisidx;
-        if (fd.isStatic())
-            thisidx = dttab4[TYvoid];
-        else
-        {
-            assert(ad.handleType());
-            thisidx = cv4_typidx(Type_toCtype(ad.handleType()));
-        }
+        const idx_t thisidx = fd.isStatic()
+                    ? dttab4[TYvoid]
+                    : (ad.handleType() ? cv4_typidx(Type_toCtype(ad.handleType())) : 0);
+        assert(thisidx);
 
         uint nparam;
-        idx_t paramidx = cv4_arglist(t,&nparam);
+        const idx_t paramidx = cv4_arglist(t,&nparam);
 
-        ubyte call = cv4_callconv(t);
+        const ubyte call = cv4_callconv(t);
 
-        debtyp_t *d;
         switch (config.fulltypes)
         {
             case CV4:
             {
-                d = debtyp_alloc(18);
+                debtyp_t* d = debtyp_alloc(18);
                 ubyte *p = &d.data[0];
                 TOWORD(p,LF_MFUNCTION);
                 TOWORD(p + 2,cv4_typidx(t.Tnext));
@@ -126,11 +120,11 @@ uint cv4_memfunctypidx(FuncDeclaration fd)
                 TOWORD(p + 10,nparam);
                 TOWORD(p + 12,paramidx);
                 TOLONG(p + 14,0);                       // thisadjust
-                break;
+                return cv_debtyp(d);
             }
             case CV8:
             {
-                d = debtyp_alloc(26);
+                debtyp_t* d = debtyp_alloc(26);
                 ubyte *p = &d.data[0];
                 TOWORD(p,0x1009);
                 TOLONG(p + 2,cv4_typidx(t.Tnext));
@@ -141,12 +135,11 @@ uint cv4_memfunctypidx(FuncDeclaration fd)
                 TOWORD(p + 16,nparam);
                 TOLONG(p + 18,paramidx);
                 TOLONG(p + 22,0);                       // thisadjust
-                break;
+                return cv_debtyp(d);
             }
             default:
                 assert(0);
         }
-        return cv_debtyp(d);
     }
     return cv4_typidx(t);
 }
@@ -156,9 +149,9 @@ enum CV4_NAMELENMAX = 0x3b9f;                   // found by trial and error
 uint cv4_Denum(EnumDeclaration e)
 {
     //dbg_printf("cv4_Denum(%s)\n", e.toChars());
-    uint property = 0;
-    if (!e.members || !e.memtype || !e.memtype.isintegral())
-        property |= 0x80;               // enum is forward referenced or non-integer
+    const uint property = (!e.members || !e.memtype || !e.memtype.isintegral())
+        ? 0x80               // enum is forward referenced or non-integer
+        : 0;
 
     // Compute the number of fields, and the length of the fieldlist record
     uint nfields = 0;
@@ -169,8 +162,8 @@ uint cv4_Denum(EnumDeclaration e)
         {   EnumMember sf = (*e.members)[i].isEnumMember();
             if (sf)
             {
-                dinteger_t value = sf.value().toInteger();
-                uint fnamelen1 = fnamelen;
+                const value = sf.value().toInteger();
+                const fnamelen1 = fnamelen;
 
                 // store only member's simple name
                 fnamelen += 4 + cv4_numericbytes(cast(uint)value) + cv_stringbytes(sf.toChars());
@@ -192,10 +185,10 @@ uint cv4_Denum(EnumDeclaration e)
         }
     }
 
-    auto id = e.toPrettyChars();
+    const id = e.toPrettyChars();
     uint len;
     debtyp_t *d;
-    uint memtype = e.memtype ? cv4_typidx(Type_toCtype(e.memtype)) : 0;
+    const uint memtype = e.memtype ? cv4_typidx(Type_toCtype(e.memtype)) : 0;
     switch (config.fulltypes)
     {
         case CV8:
@@ -221,7 +214,7 @@ uint cv4_Denum(EnumDeclaration e)
     }
     const length_save = d.length;
     d.length = 0;                      // so cv_debtyp() will allocate new
-    idx_t typidx = cv_debtyp(d);
+    const idx_t typidx = cv_debtyp(d);
     d.length = length_save;            // restore length
 
     TOWORD(d.data.ptr + 2,nfields);
@@ -241,7 +234,7 @@ uint cv4_Denum(EnumDeclaration e)
 
             if (sf)
             {
-                fieldi++;
+                ++fieldi;
                 if (fieldi > nfields)
                     break;                  // chop off the rest
 
@@ -314,13 +307,13 @@ void toDebug(EnumDeclaration ed)
     // If it is a member, it is handled by cvMember()
     if (!ed.isMember())
     {
-        auto id = ed.toPrettyChars(true);
-        idx_t typidx = cv4_Denum(ed);
+        const id = ed.toPrettyChars(true);
+        const idx_t typidx = cv4_Denum(ed);
         if (config.fulltypes == CV8)
             cv8_udt(id, typidx);
         else
         {
-            auto len = strlen(id);
+            const len = strlen(id);
             ubyte *debsym = cast(ubyte *) alloca(39 + IDOHD + len);
 
             // Output a 'user-defined type' for the tag name
@@ -367,7 +360,7 @@ int cv_mem_p(Dsymbol s, void *param)
 
 void toDebug(StructDeclaration sd)
 {
-    idx_t typidx = 0;
+    idx_t typidx1 = 0;
 
     //printf("StructDeclaration::toDebug('%s')\n", sd.toChars());
 
@@ -375,8 +368,8 @@ void toDebug(StructDeclaration sd)
     if (sd.isAnonymous())
         return /*0*/;
 
-    if (typidx)                 // if reference already generated
-        return /*typidx*/;      // use already existing reference
+    if (typidx1)                 // if reference already generated
+        return /*typidx1*/;      // use already existing reference
 
     targ_size_t size;
     uint property = 0;
@@ -414,10 +407,10 @@ void toDebug(StructDeclaration sd)
         case LF_STRUCTURE_V3: numidx = 18;      break;
     }
 
-    uint len = numidx + cv4_numericbytes(cast(uint)size);
-    debtyp_t *d = debtyp_alloc(len + cv_stringbytes(id));
+    const len1 = numidx + cv4_numericbytes(cast(uint)size);
+    debtyp_t *d = debtyp_alloc(len1 + cv_stringbytes(id));
     cv4_storenumeric(d.data.ptr + numidx, cast(uint)size);
-    len += cv_namestring(d.data.ptr + len,id);
+    const uint len = len1 + cv_namestring(d.data.ptr + len1,id);
 
     if (leaf == LF_STRUCTURE)
     {
@@ -435,7 +428,7 @@ void toDebug(StructDeclaration sd)
     // references the same struct.
     const length_save = d.length;
     d.length = 0;                      // so cv_debtyp() will allocate new
-    typidx = cv_debtyp(d);
+    const idx_t typidx = cv_debtyp(d);
     d.length = length_save;            // restore length
 
     if (!sd.members)                       // if reference only
@@ -456,9 +449,7 @@ void toDebug(StructDeclaration sd)
     }
 
     // Compute the number of fields (nfields), and the length of the fieldlist record (fnamelen)
-    CvMemberCount mc;
-    mc.nfields = 0;
-    mc.fnamelen = 2;
+    CvMemberCount mc = CvMemberCount(0, 2);
     for (size_t i = 0; i < sd.members.dim; i++)
     {
         Dsymbol s = (*sd.members)[i];
@@ -466,13 +457,12 @@ void toDebug(StructDeclaration sd)
     }
     if (config.fulltypes != CV8 && mc.fnamelen > CV4_NAMELENMAX)
     {   // Too long, fail gracefully
-        mc.nfields = 0;
-        mc.fnamelen = 2;
+        mc = CvMemberCount(0, 2);
     }
-    uint nfields = mc.nfields;
-    uint fnamelen = mc.fnamelen;
+    const uint nfields = mc.nfields;
+    const uint fnamelen = mc.fnamelen;
 
-    int count = nfields;                  // COUNT field in LF_CLASS
+    const int count = nfields;                  // COUNT field in LF_CLASS
 
     // Generate fieldlist type record
     debtyp_t *dt = debtyp_alloc(fnamelen);
@@ -492,7 +482,7 @@ void toDebug(StructDeclaration sd)
 
     //dbg_printf("fnamelen = %d, p-dt.data.ptr = %d\n",fnamelen,p-dt.data.ptr);
     assert(p - dt.data.ptr == fnamelen);
-    idx_t fieldlist = cv_debtyp(dt);
+    const idx_t fieldlist = cv_debtyp(dt);
 
     TOWORD(d.data.ptr + 2,count);
     if (config.fulltypes == CV8)
@@ -512,7 +502,7 @@ void toDebug(StructDeclaration sd)
         cv8_udt(id, typidx);
     else
     {
-        size_t idlen = strlen(id);
+        const idlen = strlen(id);
         ubyte *debsym = cast(ubyte *) alloca(39 + IDOHD + idlen);
 
         // Output a 'user-defined type' for the tag name
@@ -532,7 +522,7 @@ void toDebug(StructDeclaration sd)
 
 void toDebug(ClassDeclaration cd)
 {
-    idx_t typidx = 0;
+    idx_t typidx1 = 0;
 
     //printf("ClassDeclaration::toDebug('%s')\n", cd.toChars());
 
@@ -540,8 +530,8 @@ void toDebug(ClassDeclaration cd)
     if (cd.isAnonymous())
         return /*0*/;
 
-    if (typidx)                 // if reference already generated
-        return /*typidx*/;      // use already existing reference
+    if (typidx1)                 // if reference already generated
+        return /*typidx1*/;      // use already existing reference
 
     targ_size_t size;
     uint property = 0;
@@ -564,26 +554,26 @@ void toDebug(ClassDeclaration cd)
 //    if (st.Sopeq && !(st.Sopeq.Sfunc.Fflags & Fnodebug))
 //      property |= 0x20;               // class has overloaded assignment
 
-    auto id = cd.isCPPinterface() ? cd.ident.toChars() : cd.toPrettyChars(true);
-    uint leaf = config.fulltypes == CV8 ? LF_CLASS_V3 : LF_CLASS;
+    const id = cd.isCPPinterface() ? cd.ident.toChars() : cd.toPrettyChars(true);
+    const uint leaf = config.fulltypes == CV8 ? LF_CLASS_V3 : LF_CLASS;
 
-    uint numidx = (leaf == LF_CLASS_V3) ? 18 : 12;
-    uint len = numidx + cv4_numericbytes(cast(uint)size);
-    debtyp_t *d = debtyp_alloc(len + cv_stringbytes(id));
+    const uint numidx = (leaf == LF_CLASS_V3) ? 18 : 12;
+    const uint len1 = numidx + cv4_numericbytes(cast(uint)size);
+    debtyp_t *d = debtyp_alloc(len1 + cv_stringbytes(id));
     cv4_storenumeric(d.data.ptr + numidx, cast(uint)size);
-    len += cv_namestring(d.data.ptr + len,id);
+    const uint len = len1 + cv_namestring(d.data.ptr + len1,id);
 
     idx_t vshapeidx = 0;
     if (1)
     {
-        size_t n = cd.vtbl.dim;                   // number of virtual functions
-        if (n)
+        const size_t dim = cd.vtbl.dim;              // number of virtual functions
+        if (dim)
         {   // 4 bits per descriptor
-            debtyp_t *vshape = debtyp_alloc(cast(uint)(4 + (n + 1) / 2));
+            debtyp_t *vshape = debtyp_alloc(cast(uint)(4 + (dim + 1) / 2));
             TOWORD(vshape.data.ptr,LF_VTSHAPE);
-            TOWORD(vshape.data.ptr + 2, cast(uint)n);
+            TOWORD(vshape.data.ptr + 2, cast(uint)dim);
 
-            n = 0;
+            size_t n = 0;
             ubyte descriptor = 0;
             for (size_t i = 0; i < cd.vtbl.dim; i++)
             {
@@ -613,7 +603,7 @@ void toDebug(ClassDeclaration cd)
     // references the same struct.
     const length_save = d.length;
     d.length = 0;                      // so cv_debtyp() will allocate new
-    typidx = cv_debtyp(d);
+    const idx_t typidx = cv_debtyp(d);
     d.length = length_save;            // restore length
 
     if (!cd.members)                       // if reference only
@@ -634,9 +624,7 @@ void toDebug(ClassDeclaration cd)
     }
 
     // Compute the number of fields (nfields), and the length of the fieldlist record (fnamelen)
-    CvMemberCount mc;
-    mc.nfields = 0;
-    mc.fnamelen = 2;
+    CvMemberCount mc = { nfields : 0, fnamelen : 2 };
 
     /* Adding in the base classes causes VS 2010 debugger to refuse to display any
      * of the fields. I have not been able to determine why.
@@ -649,11 +637,10 @@ void toDebug(ClassDeclaration cd)
         // Add in base classes
         for (size_t i = 0; i < cd.baseclasses.dim; i++)
         {
-            auto bc = (*cd.baseclasses)[i];
-            mc.nfields++;
-            uint elementlen = 4 + cgcv.sz_idx + cv4_numericbytes(bc.offset);
-            elementlen = cv_align(null, elementlen);
-            mc.fnamelen += elementlen;
+            const bc = (*cd.baseclasses)[i];
+            ++mc.nfields;
+            const uint elementlen = 4 + cgcv.sz_idx + cv4_numericbytes(bc.offset);
+            mc.fnamelen += cv_align(null, elementlen);
         }
     }
 
@@ -664,13 +651,12 @@ void toDebug(ClassDeclaration cd)
     }
     if (config.fulltypes != CV8 && mc.fnamelen > CV4_NAMELENMAX)
     {   // Too long, fail gracefully
-        mc.nfields = 0;
-        mc.fnamelen = 2;
+        mc = CvMemberCount(0, 2);
     }
-    uint nfields = mc.nfields;
-    uint fnamelen = mc.fnamelen;
+    const uint nfields = mc.nfields;
+    const uint fnamelen = mc.fnamelen;
 
-    int count = nfields;
+    const int count = nfields;
     TOWORD(d.data.ptr + 2,count);
 
     // Generate fieldlist type record
@@ -689,8 +675,8 @@ void toDebug(ClassDeclaration cd)
             for (size_t i = 0; i < cd.baseclasses.dim; i++)
             {
                 BaseClass *bc = (*cd.baseclasses)[i];
-                idx_t typidx2 = cv4_typidx(Type_toCtype(bc.sym.type).Tnext);
-                uint attribute = PROTtoATTR(Prot.Kind.public_);
+                const idx_t typidx2 = cv4_typidx(Type_toCtype(bc.sym.type).Tnext);
+                const uint attribute = PROTtoATTR(Prot.Kind.public_);
 
                 uint elementlen;
                 final switch (config.fulltypes)
@@ -712,8 +698,7 @@ void toDebug(ClassDeclaration cd)
 
                 cv4_storenumeric(p + elementlen, bc.offset);
                 elementlen += cv4_numericbytes(bc.offset);
-                elementlen = cv_align(p + elementlen, elementlen);
-                p += elementlen;
+                p += cv_align(p + elementlen, elementlen);
             }
         }
 
@@ -726,7 +711,7 @@ void toDebug(ClassDeclaration cd)
 
     //dbg_printf("fnamelen = %d, p-dt.data.ptr = %d\n",fnamelen,p-dt.data.ptr);
     assert(p - dt.data.ptr == fnamelen);
-    idx_t fieldlist = cv_debtyp(dt);
+    const idx_t fieldlist = cv_debtyp(dt);
 
     TOWORD(d.data.ptr + 2,count);
     if (config.fulltypes == CV8)
@@ -746,7 +731,7 @@ void toDebug(ClassDeclaration cd)
         cv8_udt(id, typidx);
     else
     {
-        size_t idlen = strlen(id);
+        const idlen = strlen(id);
         ubyte *debsym = cast(ubyte *) alloca(39 + IDOHD + idlen);
 
         // Output a 'user-defined type' for the tag name

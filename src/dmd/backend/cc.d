@@ -13,9 +13,9 @@ module dmd.backend.cc;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_cc.html
 
-import dmd.tk.dlist;
 import dmd.backend.cdef;        // host and target compiler definition
 import dmd.backend.code_x86;
+import dmd.backend.dlist;
 import dmd.backend.dt;
 import dmd.backend.el;
 import dmd.backend.type;
@@ -65,7 +65,6 @@ enum WM
     WM_undefined_inline = 30, // static inline not expanded or defined
 }
 
-/+
 static if (MEMMODELS == 1)
 {
     enum LARGEDATA = 0;     // don't want 48 bit pointers
@@ -76,7 +75,6 @@ else
     bool LARGEDATA() { return (config.memmodel & 6) != 0; }
     bool LARGECODE() { return (config.memmodel & 5) != 0; }
 }
-+/
 
 // Language for error messages
 enum LANG
@@ -231,7 +229,7 @@ struct Srcpos
         }
     }
 
-    void print(const(char)* func);
+    void print(const(char)* func) { Srcpos_print(this, func); }
 
     static uint sizeCheck();
     unittest { assert(sizeCheck() == Srcpos.sizeof); }
@@ -253,10 +251,11 @@ version (HTOD)
     static char* srcpos_name(Srcpos p)   { return srcpos_sfile(p).SFname; }
 }
 
+void Srcpos_print(ref Srcpos srcpos, const(char)* func);
 
 //#include "token.h"
 
-alias uint stflags_t;
+alias stflags_t = uint;
 enum
 {
     PFLpreprocessor  = 1,       // in preprocessor
@@ -280,7 +279,7 @@ enum
     PFLmfc           = 0x10000, // something will affect MFC compatibility
 }
 
-alias char sthflags_t;
+alias sthflags_t = char;
 enum
 {
     FLAG_INPLACE    = 0,       // in place hydration
@@ -296,27 +295,27 @@ enum
 
 struct Pstate
 {
-    char STinopeq;              // if in n2_createopeq()
-    char STinarglist;           // if !=0, then '>' is the end of a template
+    ubyte STinopeq;             // if in n2_createopeq()
+    ubyte STinarglist;          // if !=0, then '>' is the end of a template
                                 // argument list, not an operator
-    char STinsizeof;            // !=0 if in a sizeof expression. Useful to
+    ubyte STinsizeof;           // !=0 if in a sizeof expression. Useful to
                                 // prevent <array of> being converted to
                                 // <pointer to>.
-    char STintemplate;          // if !=0, then expanding a function template
+    ubyte STintemplate;         // if !=0, then expanding a function template
                                 // (do not expand template Symbols)
-    char STdeferDefaultArg;     // defer parsing of default arg for parameter
-    char STnoexpand;            // if !=0, don't expand template symbols
-    char STignoretal;           // if !=0 ignore template argument list
-    char STexplicitInstantiation;       // if !=0, then template explicit instantiation
-    char STexplicitSpecialization;      // if !=0, then template explicit specialization
-    char STinconstexp;          // if !=0, then parsing a constant expression
-    char STisaddr;              // is this a possible pointer to member expression?
+    ubyte STdeferDefaultArg;    // defer parsing of default arg for parameter
+    ubyte STnoexpand;           // if !=0, don't expand template symbols
+    ubyte STignoretal;          // if !=0 ignore template argument list
+    ubyte STexplicitInstantiation;      // if !=0, then template explicit instantiation
+    ubyte STexplicitSpecialization;     // if !=0, then template explicit specialization
+    ubyte STinconstexp;         // if !=0, then parsing a constant expression
+    ubyte STisaddr;             // is this a possible pointer to member expression?
     uint STinexp;               // if !=0, then in an expression
 
     static if (NTEXCEPTIONS)
     {
-        char STinfilter;        // if !=0 then in exception filter
-        char STinexcept;        // if !=0 then in exception handler
+        ubyte STinfilter;       // if !=0 then in exception filter
+        ubyte STinexcept;       // if !=0 then in exception handler
         block *STbfilter;       // current exception filter
     }
 
@@ -352,8 +351,8 @@ struct Pstate
                                 // functions to parse
     Classsym *STstag;           // returned by struct_searchmember() and with_search()
     SYMIDX STmarksi;            // to determine if temporaries are created
-    char STnoparse;             // add to classlist instead of parsing
-    char STdeferparse;          // defer member func parse
+    ubyte STnoparse;            // add to classlist instead of parsing
+    ubyte STdeferparse;         // defer member func parse
     SC STgclass;                // default function storage class
     int STdefertemps;           // defer allocation of temps
     int STdeferaccesscheck;     // defer access check for members (BUG: it
@@ -419,7 +418,7 @@ enum
 //char symbol_isintab(Symbol *s) { return sytab[s.Sclass] & SCSS; }
 
 //version (Windows)
-    alias char enum_SC;
+    alias enum_SC = char;
 //else
 //    alias SC enum_SC;
 
@@ -430,9 +429,9 @@ enum
  *      in a function. startblock heads the list.
  */
 
-alias void* ClassDeclaration_;
-alias void* Declaration_;
-alias void* Module_;
+alias ClassDeclaration_ = void*;
+alias Declaration_ = void*;
+alias Module_ = void*;
 
 struct Blockx
 {
@@ -456,7 +455,7 @@ struct Blockx
   }
 }
 
-alias ushort bflags_t;
+alias bflags_t = ushort;
 enum
 {
     BFLvisited       = 1,       // set if block is visited
@@ -553,6 +552,9 @@ struct block
             block *b_ret;               // EH_DWARF: associated BC_ret block
         }                               // finally
 
+        // add member mimicking the largest of the other elements of this union, so it can be copied
+        struct _BS { version (MARS) { Symbol *jcvar; } int Bscope_idx, Blast_idx; }
+        _BS BS;
     }
     Srcpos      Bsrcpos;        // line number (0 if not known)
     ubyte       BC;             // exit condition (enum BC)
@@ -569,18 +571,20 @@ struct block
     uint        Bnumber;        // sequence number of block
     union
     {
+        uint _BLU;              // start of the union
+
         // CPP
         struct
         {
-            SYMIDX      symstart;       // (symstart <= symnum < symend) Symbols
-            SYMIDX      symend;         // are declared in this block
-            block*      endscope;       // block that forms the end of the
+            SYMIDX      Bsymstart;      // (symstart <= symnum < symend) Symbols
+            SYMIDX      Bsymend;        // are declared in this block
+            block*      Bendscope;      // block that forms the end of the
                                         // scope for the declared Symbols
-            uint        blknum;         // position of block from startblock
+            uint        Bblknum;        // position of block from startblock
             Symbol*     Binitvar;       // !=NULL points to an auto variable with
                                         // an explicit or implicit initializer
-            block*      gotolist;       // BCtry, BCcatch: backward list of try scopes
-            block*      gotothread;     // BCgoto: threaded list of goto's to
+            block*      Bgotolist;      // BCtry, BCcatch: backward list of try scopes
+            block*      Bgotothread;    // BCgoto: threaded list of goto's to
                                         // unknown labels
         }
 
@@ -672,6 +676,26 @@ enum
     BCMAX
 }
 
+/********************************
+ * Range for blocks.
+ */
+struct BlockRange
+{
+  pure nothrow @nogc @safe:
+
+    this(block* b)
+    {
+        this.b = b;
+    }
+
+    block* front() return  { return b; }
+    void popFront() { b = b.Bnext; }
+    bool empty()    { return !b; }
+
+  private:
+    block* b;
+}
+
 /**********************************
  * Functions
  */
@@ -683,7 +707,7 @@ struct symtab_t
     Symbol **tab;               // local Symbol table
 }
 
-alias uint func_flags_t;
+alias func_flags_t = uint;
 enum
 {
     Fpending    = 1,           // if function has been queued for being written
@@ -718,7 +742,7 @@ enum
     Fsurrogate  = 0x4000000,   // surrogate call function
 }
 
-alias uint func_flags3_t;
+alias func_flags3_t = uint;
 enum
 {
     Fvtblgen         = 1,       // generate vtbl[] when this function is defined
@@ -825,7 +849,7 @@ struct meminit_t
                                 // called for it
 }
 
-alias uint baseclass_flags_t;
+alias baseclass_flags_t = uint;
 enum
 {
      BCFpublic     = 1,         // base class is public
@@ -875,7 +899,7 @@ void baseclass_free(baseclass_t *b) { }
  * For virtual tables.
  */
 
-alias char mptr_flags_t;
+alias mptr_flags_t = char;
 enum
 {
     MPTRvirtual     = 1,       // it's an offset to a virtual base
@@ -1009,7 +1033,7 @@ struct template_t
  * Special information for enums.
  */
 
-alias uint enum_flags_t;
+alias enum_flags_t = uint;
 enum
 {
     SENnotagname  = 1,       // no tag name for enum
@@ -1029,7 +1053,7 @@ struct enum_t
  * Special information for structs.
  */
 
-alias uint struct_flags_t;
+alias struct_flags_t = uint;
 enum
 {
     STRanonymous     = 1,          // set for unions with no tag names
@@ -1156,14 +1180,14 @@ struct struct_t
 }
 
 //struct_t* struct_calloc() { return cast(struct_t*) mem_fcalloc(struct_t.sizeof); }
-void struct_free(struct_t* st) { }
+//void struct_free(struct_t* st) { }
 
 /**********************************
  * Symbol Table
  */
 
 Symbol* list_symbol(list_t lst) { return cast(Symbol*) list_ptr(lst); }
-//void list_setsymbol(list_t lst, Symbol* s) { list_ptr(lst) = s; }
+void list_setsymbol(list_t lst, Symbol* s) { lst.ptr = s; }
 Classsym* list_Classsym(list_t lst) { return cast(Classsym*) list_ptr(lst); }
 
 enum
@@ -1244,7 +1268,10 @@ struct Symbol
     Symbol* Snext;              // next in threaded list
     dt_t* Sdt;                  // variables: initializer
     int Salignment;             // variables: alignment, 0 or -1 means default alignment
-    int Salignsize();           // variables: return alignment
+
+    int Salignsize()            // variables: return alignment
+    { return Symbol_Salignsize(&this); }
+
     type* Stype;                // type of Symbol
     tym_t ty() { return Stype.Tty; }
 
@@ -1349,7 +1376,10 @@ struct Symbol
         }
     }
 
-    regm_t Spregm();            // return mask of Spreg and Spreg2
+    regm_t Spregm()             // return mask of Spreg and Spreg2
+    {
+        return (1 << Spreg) | (Spreg2 == NOREG ? 0 : (1 << Spreg2));
+    }
 
 //#if SCPP || MARS
     Symbol *Sscope;             // enclosing scope (could be struct tag,
@@ -1424,8 +1454,11 @@ struct Symbol
 
     char[1] Sident;             // identifier string (dynamic array)
 
-    int needThis();             // !=0 if symbol needs a 'this' pointer
-    bool Sisdead(bool anyiasm); // if variable is not referenced
+    int needThis()              // !=0 if symbol needs a 'this' pointer
+    { return Symbol_needThis(&this); }
+
+    bool Sisdead(bool anyiasm)  // if variable is not referenced
+    { return Symbol_Sisdead(&this, anyiasm); }
 
     static uint sizeCheck();
     unittest { assert(sizeCheck() == Symbol.sizeof); }
@@ -1435,6 +1468,10 @@ void symbol_debug(Symbol* s)
 {
     debug assert(s.id == s.IDsymbol);
 }
+
+int Symbol_Salignsize(Symbol* s);
+bool Symbol_Sisdead(Symbol* s, bool anyInlineAsm);
+int Symbol_needThis(Symbol* s);
 
 bool isclassmember(Symbol* s) { return s.Sscope && s.Sscope.Sclass == SCstruct; }
 
@@ -1507,11 +1544,23 @@ version (MARS)
  *      Psym            SCtemplate for template-template-argument
  */
 
-alias uint pflags_t;
+alias pflags_t = uint;
 enum
 {
     PFexplicit = 1,       // this template argument was explicit, i.e. in < >
 }
+
+/************************
+ * Params:
+ *      f = function symbol
+ * Returns:
+ *      exception method for f
+ */
+EHmethod ehmethod(Symbol *f)
+{
+    return f.Sfunc.Fflags3 & Feh_none ? EHmethod.EH_NONE : config.ehmethod;
+}
+
 
 struct param_t
 {
@@ -1528,17 +1577,35 @@ struct param_t
     param_t* Pnext;             // next in list
     pflags_t Pflags;
 
-    param_t* createTal(param_t*); // create template-argument-list blank from
+    param_t* createTal(param_t* p) // create template-argument-list blank from
                                 // template-parameter-list
-    param_t* search(char* id);  // look for Pident matching id
+    { return param_t_createTal(&this, p); }
+
+    param_t* search(char* id)   // look for Pident matching id
+    { return param_t_search(&this, id); }
+
     int searchn(char* id);      // look for Pident matching id, return index
-    uint length();              // number of parameters in list
-    void print();               // print this param_t
-    void print_list();          // print this list of param_t's
+
+    uint length()               // number of parameters in list
+    { return param_t_length(&this); }
+
+    void print()                // print this param_t
+    { param_t_print(&this); }
+
+    void print_list()           // print this list of param_t's
+    { param_t_print_list(&this); }
 
     static uint sizeCheck();
     unittest { assert(sizeCheck() == param_t.sizeof); }
 }
+
+void param_t_print(param_t* p);
+void param_t_print_list(param_t* p);
+uint param_t_length(param_t* p);
+param_t *param_t_createTal(param_t* p, param_t *ptali);
+param_t *param_t_search(param_t* p, char *id);
+int param_t_searchn(param_t* p, char *id);
+
 
 void param_debug(param_t *p)
 {
@@ -1701,7 +1768,7 @@ extern __gshared EEcontext eecontext;
 
 
 // Different goals for el_optimize()
-alias uint goal_t;
+alias goal_t = uint;
 enum
 {
     GOALnone        = 0,       // evaluate for side effects only
@@ -1782,16 +1849,16 @@ struct dt_t
     }
 }
 
-//enum
-//{
-//    DT_abytes = 0,
-//    DT_azeros = 1,
-//    DT_xoff   = 2,
-//    DT_nbytes = 3,
-//    DT_common = 4,
-//    DT_coff   = 5,
-//    DT_ibytes = 6,
-//};
+enum
+{
+    DT_abytes = 0,
+    DT_azeros = 1,
+    DT_xoff   = 2,
+    DT_nbytes = 3,
+    DT_common = 4,
+    DT_coff   = 5,
+    DT_ibytes = 6,
+}
 
 // An efficient way to clear aligned memory
 //#define MEMCLEAR(p,sz)                  \

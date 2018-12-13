@@ -100,6 +100,11 @@ fail_compilation/reserved_version.d(201): Error: version identifier `none` is re
 fail_compilation/reserved_version.d(202): Error: version identifier `AsmJS` is reserved and cannot be set
 fail_compilation/reserved_version.d(203): Error: version identifier `Emscripten` is reserved and cannot be set
 fail_compilation/reserved_version.d(204): Error: version identifier `WebAssembly` is reserved and cannot be set
+fail_compilation/reserved_version.d(205): Error: version identifier `CppRuntime_Clang` is reserved and cannot be set
+fail_compilation/reserved_version.d(206): Error: version identifier `CppRuntime_DigitalMars` is reserved and cannot be set
+fail_compilation/reserved_version.d(207): Error: version identifier `CppRuntime_Gcc` is reserved and cannot be set
+fail_compilation/reserved_version.d(208): Error: version identifier `CppRuntime_Microsoft` is reserved and cannot be set
+fail_compilation/reserved_version.d(209): Error: version identifier `CppRuntime_Sun` is reserved and cannot be set
 ---
 */
 
@@ -206,6 +211,11 @@ version = none;
 version = AsmJS;
 version = Emscripten;
 version = WebAssembly;
+version = CppRuntime_Clang;
+version = CppRuntime_DigitalMars;
+version = CppRuntime_Gcc;
+version = CppRuntime_Microsoft;
+version = CppRuntime_Sun;
 
 // This should work though
 debug = DigitalMars;
@@ -285,6 +295,11 @@ debug = CRuntime_Glibc;
 debug = CRuntime_Microsoft;
 debug = CRuntime_Musl;
 debug = CRuntime_UClibc;
+debug = CppRuntime_Clang;
+debug = CppRuntime_DigitalMars;
+debug = CppRuntime_Gcc;
+debug = CppRuntime_Microsoft;
+debug = CppRuntime_Sun;
 debug = D_Coverage;
 debug = D_Ddoc;
 debug = D_InlineAsm_X86;

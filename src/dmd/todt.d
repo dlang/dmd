@@ -128,12 +128,7 @@ extern (C++) void Initializer_toDt(Initializer init, DtBuilder dtb)
 
             Expression edefault = tb.nextOf().defaultInit(Loc.initial);
 
-            size_t n = 1;
-            for (Type tbn = tn; tbn.ty == Tsarray; tbn = tbn.nextOf().toBasetype())
-            {
-                TypeSArray tsa = cast(TypeSArray)tbn;
-                n *= tsa.dim.toInteger();
-            }
+            const n = tn.numberOfElems(ai.loc);
 
             dt_t* dtdefault = null;
 
@@ -150,8 +145,7 @@ extern (C++) void Initializer_toDt(Initializer init, DtBuilder dtb)
                         Expression_toDt(edefault, dtb);
                         dtdefault = dtb.finish();
                     }
-                    assert(n <= uint.max);
-                    dtbarray.repeat(dtdefault, cast(uint)n);
+                    dtbarray.repeat(dtdefault, n);
                 }
             }
             switch (tb.ty)
@@ -239,7 +233,6 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
             version (none)
             {
                 printf("Expression.toDt() %d\n", e.op);
-                print();
             }
             e.error("non-constant expression `%s`", e.toChars());
             dtb.nzeros(1);
@@ -332,8 +325,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
                 }
 
                 default:
-                    printf("%s\n", e.toChars());
-                    e.type.print();
+                    printf("%s, e.type=%s\n", e.toChars(), e.type.toChars());
                     assert(0);
             }
         }
@@ -1336,7 +1328,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
             dtb.size(0);
 
         // StructFlags m_flags;
-        StructFlags.Type m_flags = 0;
+        StructFlags m_flags = StructFlags.none;
         if (tc.hasPointers()) m_flags |= StructFlags.hasPointers;
         dtb.size(m_flags);
 
@@ -1351,7 +1343,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         }
 
         // xdtor
-        FuncDeclaration sdtor = sd.dtor;
+        FuncDeclaration sdtor = sd.tidtor;
         if (sdtor)
             dtb.xoff(toSymbol(sdtor), 0);
         else

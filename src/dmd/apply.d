@@ -29,7 +29,7 @@ import dmd.visitor;
  */
 private extern (C++) final class PostorderExpressionVisitor : StoppableVisitor
 {
-    alias visit = super.visit;
+    alias visit = typeof(super).visit;
 public:
     StoppableVisitor v;
 
@@ -147,7 +147,7 @@ public:
     }
 }
 
-extern (C++) bool walkPostorder(Expression e, StoppableVisitor v)
+bool walkPostorder(Expression e, StoppableVisitor v)
 {
     scope PostorderExpressionVisitor pv = new PostorderExpressionVisitor(v);
     e.accept(pv);

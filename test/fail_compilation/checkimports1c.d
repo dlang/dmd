@@ -3,7 +3,7 @@
 TEST_OUTPUT:
 ---
 fail_compilation/checkimports1c.d(16): Deprecation: local import search method found struct `imports.diag12598a.lines` instead of variable `checkimports1c.C.lines`
-fail_compilation/checkimports1c.d(16): Error: struct `lines` is a type, not an lvalue
+fail_compilation/checkimports1c.d(16): Error: `lines` is a `struct` definition and cannot be modified
 ---
 */
 

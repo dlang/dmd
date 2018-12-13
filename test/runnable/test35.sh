@@ -1,38 +1,13 @@
 #!/usr/bin/env bash
 
-dir=${RESULTS_DIR}/runnable
-dmddir=${RESULTS_DIR}${SEP}runnable
-output_file=${dir}/test35.sh.out
 
-rm -f ${output_file}
 
-$DMD -m${MODEL} -Irunnable -od${dmddir} -c runnable/extra-files/test35.d >> ${output_file}
-if [ $? -ne 0 ]; then
-    cat ${output_file}
-    rm -f ${output_file}
-    exit 1
-fi
+$DMD -m${MODEL} -I${TEST_DIR} -od${RESULTS_TEST_DIR} -c ${EXTRA_FILES}/test35.d
 
-$DMD -m${MODEL} -od${dmddir} -c -release runnable/imports/test35a.d >> ${output_file}
-if [ $? -ne 0 ]; then
-    cat ${output_file}
-    rm -f ${output_file}
-    exit 1
-fi
+$DMD -m${MODEL} -od${RESULTS_TEST_DIR} -c -release ${TEST_DIR}/imports/test35a.d
 
-$DMD -m${MODEL} -of${dmddir}${SEP}test35${EXE} ${dir}/test35${OBJ} ${dir}/test35a${OBJ} >> ${output_file}
-if [ $? -ne 0 ]; then
-    cat ${output_file}
-    rm -f ${output_file}
-    exit 1
-fi
+$DMD -m${MODEL} -of${OUTPUT_BASE}${EXE} ${OUTPUT_BASE}${OBJ} ${OUTPUT_BASE}a${OBJ}
 
-${dir}/test35 >> ${output_file}
-if [ $? -ne 0 ]; then
-    cat ${output_file}
-    rm -f ${output_file}
-    exit 1
-fi
+${OUTPUT_BASE}${EXE}
 
-rm ${dir}/{test35${OBJ},test35a${OBJ},test35${EXE}}
-
+rm ${OUTPUT_BASE}{${OBJ},a${OBJ},${EXE}}

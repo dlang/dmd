@@ -17,7 +17,7 @@ extern (C++):
 @nogc:
 nothrow:
 
-alias int OPER;
+alias OPER = int;
 enum
 {
         OPunde,                 // place holder for undefined operator
