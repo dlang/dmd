@@ -134,7 +134,9 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     Scope* newScope(Scope* sc)
     {
         auto sc2 = sc.push(this);
-        sc2.stc &= STC.safe | STC.trusted | STC.system;
+        sc2.stc &= (
+                STC.safe | STC.trusted | STC.system |
+                STC.nogc | STC.pure_ | STC.nothrow_);
         sc2.parent = this;
         if (isUnionDeclaration())
             sc2.inunion = true;
