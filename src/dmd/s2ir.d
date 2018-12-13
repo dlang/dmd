@@ -48,14 +48,13 @@ import dmd.toir;
 import dmd.tokens;
 import dmd.visitor;
 
-import dmd.tk.dlist;
-
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
 import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.cv4;
+import dmd.backend.dlist;
 import dmd.backend.dt;
 import dmd.backend.el;
 import dmd.backend.global;
@@ -157,7 +156,7 @@ private block *labelToBlock(IRState *irs, const ref Loc loc, Blockx *blx, LabelD
 private void incUsage(IRState *irs, const ref Loc loc)
 {
 
-    if (global.params.cov && loc.linnum)
+    if (irs.params.cov && loc.linnum)
     {
         block_appendexp(irs.blx.curblock, incUsageElem(irs, loc));
     }
@@ -181,7 +180,6 @@ private extern (C++) class S2irVisitor : Visitor
 
     override void visit(Statement s)
     {
-        s.print();
         assert(0);
     }
 
@@ -719,7 +717,7 @@ private extern (C++) class S2irVisitor : Visitor
             assert(func.type.ty == Tfunction);
             TypeFunction tf = cast(TypeFunction)(func.type);
 
-            RET retmethod = retStyle(tf);
+            RET retmethod = retStyle(tf, func.needThis());
             if (retmethod == RET.stack)
             {
                 elem *es;
@@ -734,14 +732,26 @@ private extern (C++) class S2irVisitor : Visitor
                     sle.sym = irs.shidden;
                     writetohp = true;
                 }
-                /* Detect:
-                 *    structliteral.ctor(args)
+                /* Detect function call that returns the same struct
                  * and construct directly into *shidden
                  */
                 else if (s.exp.op == TOK.call)
                 {
                     auto ce = cast(CallExp)s.exp;
-                    if (ce.e1.op == TOK.dotVariable)
+                    if (ce.e1.op == TOK.variable || ce.e1.op == TOK.star)
+                    {
+                        Type t = ce.e1.type.toBasetype();
+                        if (t.ty == Tdelegate)
+                            t = t.nextOf();
+                        if (t.ty == Tfunction && retStyle(cast(TypeFunction)t, ce.f && ce.f.needThis()) == RET.stack)
+                        {
+                            irs.ehidden = el_var(irs.shidden);
+                            e = toElemDtor(s.exp, irs);
+                            e = el_una(OPaddr, TYnptr, e);
+                            goto L1;
+                        }
+                    }
+                    else if (ce.e1.op == TOK.dotVariable)
                     {
                         auto dve = cast(DotVarExp)ce.e1;
                         auto fd = dve.var.isFuncDeclaration();
@@ -753,6 +763,16 @@ private extern (C++) class S2irVisitor : Visitor
                                 sle.sym = irs.shidden;
                                 writetohp = true;
                             }
+                        }
+                        Type t = ce.e1.type.toBasetype();
+                        if (t.ty == Tdelegate)
+                            t = t.nextOf();
+                        if (t.ty == Tfunction && retStyle(cast(TypeFunction)t, fd && fd.needThis()) == RET.stack)
+                        {
+                            irs.ehidden = el_var(irs.shidden);
+                            e = toElemDtor(s.exp, irs);
+                            e = el_una(OPaddr, TYnptr, e);
+                            goto L1;
                         }
                     }
                 }
@@ -770,15 +790,8 @@ private extern (C++) class S2irVisitor : Visitor
                 {
                     // Return value via hidden pointer passed as parameter
                     // Write *shidden=exp; return shidden;
-                    int op;
-                    tym_t ety;
-
-                    ety = e.Ety;
-                    es = el_una(OPind,ety,el_var(irs.shidden));
-                    op = (tybasic(ety) == TYstruct) ? OPstreq : OPeq;
-                    es = el_bin(op, ety, es, e);
-                    if (op == OPstreq)
-                        es.ET = Type_toCtype(s.exp.type);
+                    es = el_una(OPind,e.Ety,el_var(irs.shidden));
+                    es = elAssign(es, e, s.exp.type, null);
                 }
                 e = el_var(irs.shidden);
                 e = el_bin(OPcomma, e.Ety, es, e);
@@ -794,9 +807,12 @@ private extern (C++) class S2irVisitor : Visitor
                 e = toElemDtor(s.exp, irs);
                 assert(e);
             }
+        L1:
             elem_setLoc(e, s.loc);
             block_appendexp(blx.curblock, e);
             bc = BCretexp;
+//            if (type_zeroCopy(Type_toCtype(s.exp.type)))
+//                bc = BCret;
         }
         else
             bc = BCret;
@@ -821,9 +837,13 @@ private extern (C++) class S2irVisitor : Visitor
         Blockx *blx = irs.blx;
 
         //printf("ExpStatement.toIR(), exp = %s\n", s.exp ? s.exp.toChars() : "");
-        incUsage(irs, s.loc);
         if (s.exp)
+        {
+            if (s.exp.hasCode)
+                incUsage(irs, s.loc);
+
             block_appendexp(blx.curblock, toElemDtor(s.exp, irs));
+        }
     }
 
     /**************************************
@@ -1363,8 +1383,31 @@ private extern (C++) class S2irVisitor : Visitor
              *  BC_ret
              *  breakblock
              */
-            blx.curblock.appendSucc(breakblock);
-            block_next(blx,BCgoto,finallyblock);
+            if (s.bodyFallsThru)
+            {
+                // BCgoto [breakblock]
+                blx.curblock.appendSucc(breakblock);
+                block_next(blx,BCgoto,finallyblock);
+            }
+            else
+            {
+                if (!irs.params.optimize)
+                {
+                    /* If this is reached at runtime, there's a bug
+                     * in the computation of s.bodyFallsThru. Inserting a HALT
+                     * makes it far easier to track down such failures.
+                     * But it makes for slower code, so only generate it for
+                     * non-optimized code.
+                     */
+                    elem *e = el_calloc();
+                    e.Ety = TYvoid;
+                    e.Eoper = OPhalt;
+                    elem_setLoc(e, s.loc);
+                    block_appendexp(blx.curblock, e);
+                }
+
+                block_next(blx,BCexit,finallyblock);
+            }
 
             block *landingPad = block_goto(blx,BC_finally,null);
             block_goto(blx,BC_lpad,null);               // lpad is [0]
@@ -1472,7 +1515,7 @@ private extern (C++) class S2irVisitor : Visitor
     /****************************************
      */
 
-    override void visit(AsmStatement s)
+    override void visit(InlineAsmStatement s)
 //    { .visit(irs, s); }
     {
         block *bpre;
@@ -1547,7 +1590,6 @@ private extern (C++) class S2irVisitor : Visitor
                 default:
                     break;
             }
-            //c.print();
         }
 
         basm.bIasmrefparam = s.refparam;             // are parameters reference?
@@ -1600,7 +1642,7 @@ void insertFinallyBlockCalls(block *startblock)
     {
         printf("------- before ----------\n");
         numberBlocks(startblock);
-        for (block *b = startblock; b; b = b.Bnext) WRblock(b);
+        foreach (b; BlockRange(startblock)) WRblock(b);
         printf("-------------------------\n");
     }
 
@@ -1647,16 +1689,7 @@ void insertFinallyBlockCalls(block *startblock)
                 }
                 b.BC = BCgoto;
                 b.appendSucc(bcretexp);
-
-                elem *eeq = el_bin(OPeq,e.Ety,el_var(stmp),e);
-                if (ty == TYstruct || ty == TYarray)
-                {
-                    eeq.Eoper = OPstreq;
-                    eeq.ET = e.ET;
-                    eeq.EV.E1.ET = e.ET;
-                }
-                b.Belem = eeq;
-
+                b.Belem = elAssign(el_var(stmp), e, null, e.ET);
                 goto case_goto;
             }
 
@@ -1759,7 +1792,7 @@ void insertFinallyBlockCalls(block *startblock)
     {
         printf("------- after ----------\n");
         numberBlocks(startblock);
-        for (block *b = startblock; b; b = b.Bnext) WRblock(b);
+        foreach (b; BlockRange(startblock)) WRblock(b);
         printf("-------------------------\n");
     }
 }
@@ -1787,7 +1820,7 @@ void insertFinallyBlockGotos(block *startblock)
      * Actually, just make them into no-ops and let the optimizer
      * delete them.
      */
-    for (block *b = startblock; b; b = b.Bnext)
+    foreach (b; BlockRange(startblock))
     {
         b.Btry = null;
         switch (b.BC)
@@ -1820,8 +1853,7 @@ void insertFinallyBlockGotos(block *startblock)
     {
         printf("------- after ----------\n");
         numberBlocks(startblock);
-        for (block *b = startblock; b; b = b.Bnext) WRblock(b);
+        foreach (b; BlockRange(startblock)) WRblock(b);
         printf("-------------------------\n");
     }
 }
-

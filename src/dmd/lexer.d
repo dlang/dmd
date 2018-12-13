@@ -96,44 +96,44 @@ enum CMzerosecond = 0x8;
 enum CMdigitsecond = 0x10;
 enum CMsinglechar = 0x20;
 
-bool isoctal(char c)
+bool isoctal(const char c)
 {
     return (cmtable[c] & CMoctal) != 0;
 }
 
-bool ishex(char c)
+bool ishex(const char c)
 {
     return (cmtable[c] & CMhex) != 0;
 }
 
-bool isidchar(char c)
+bool isidchar(const char c)
 {
     return (cmtable[c] & CMidchar) != 0;
 }
 
-bool isZeroSecond(char c)
+bool isZeroSecond(const char c)
 {
     return (cmtable[c] & CMzerosecond) != 0;
 }
 
-bool isDigitSecond(char c)
+bool isDigitSecond(const char c)
 {
     return (cmtable[c] & CMdigitsecond) != 0;
 }
 
-bool issinglechar(char c)
+bool issinglechar(const char c)
 {
     return (cmtable[c] & CMsinglechar) != 0;
 }
 
-private bool c_isxdigit(int c)
+private bool c_isxdigit(const int c)
 {
     return (( c >= '0' && c <= '9') ||
             ( c >= 'a' && c <= 'f') ||
             ( c >= 'A' && c <= 'F'));
 }
 
-private bool c_isalnum(int c)
+private bool c_isalnum(const int c)
 {
     return (( c >= '0' && c <= '9') ||
             ( c >= 'a' && c <= 'z') ||
@@ -194,9 +194,32 @@ unittest
     }
 }
 
+/**
+Handles error messages
+*/
+class ErrorHandler
+{
+    /**
+    Report an error message.
+    Params:
+        format = format string for error
+        ... = format string arguments
+    */
+    abstract void error(const(char)* format, ...);
+
+    /**
+    Report an error message.
+    Params:
+        loc = Location of error
+        format = format string for error
+        ... = format string arguments
+    */
+    abstract void error(Loc loc, const(char)* format, ...);
+}
+
 /***********************************************************
  */
-class Lexer
+class Lexer : ErrorHandler
 {
     __gshared OutBuffer stringbuffer;
 
@@ -374,7 +397,7 @@ class Lexer
                 p++;
                 goto case '`';
             case '`':
-                t.value = wysiwygStringConstant(t, *p);
+                wysiwygStringConstant(t);
                 return;
             case 'x':
                 if (p[1] != '"')
@@ -387,19 +410,19 @@ class Lexer
                 if (p[1] == '"')
                 {
                     p++;
-                    t.value = delimitedStringConstant(t);
+                    delimitedStringConstant(t);
                     return;
                 }
                 else if (p[1] == '{')
                 {
                     p++;
-                    t.value = tokenStringConstant(t);
+                    tokenStringConstant(t);
                     return;
                 }
                 else
                     goto case_ident;
             case '"':
-                t.value = escapeStringConstant(t, 0);
+                escapeStringConstant(t);
                 return;
             case 'a':
             case 'b':
@@ -471,7 +494,7 @@ class Lexer
                         }
                         break;
                     }
-                    Identifier id = Identifier.idPool(cast(char*)t.ptr, p - t.ptr);
+                    Identifier id = Identifier.idPool(cast(char*)t.ptr, cast(uint)(p - t.ptr));
                     t.ident = id;
                     t.value = cast(TOK)id.getValue();
                     anyToken = 1;
@@ -504,7 +527,7 @@ class Lexer
                         }
                         else if (id == Id.VENDOR)
                         {
-                            t.ustring = global.compiler.vendor;
+                            t.ustring = global.vendor;
                             goto Lstr;
                         }
                         else if (id == Id.TIMESTAMP)
@@ -517,27 +540,8 @@ class Lexer
                         }
                         else if (id == Id.VERSIONX)
                         {
-                            uint major = 0;
-                            uint minor = 0;
-                            bool point = false;
-                            for (const(char)* p = global._version + 1; 1; p++)
-                            {
-                                const c = *p;
-                                if (isdigit(cast(char)c))
-                                    minor = minor * 10 + c - '0';
-                                else if (c == '.')
-                                {
-                                    if (point)
-                                        break; // ignore everything after second '.'
-                                    point = true;
-                                    major = minor;
-                                    minor = 0;
-                                }
-                                else
-                                    break;
-                            }
                             t.value = TOK.int64Literal;
-                            t.unsvalue = major * 1000 + minor;
+                            t.unsvalue = global.versionNumber();
                         }
                         else if (id == Id.EOFX)
                         {
@@ -852,17 +856,6 @@ class Lexer
                     else
                         t.value = TOK.leftShift; // <<
                 }
-                else if (*p == '>')
-                {
-                    p++;
-                    if (*p == '=')
-                    {
-                        p++;
-                        t.value = TOK.leg; // <>=
-                    }
-                    else
-                        t.value = TOK.lg; // <>
-                }
                 else
                     t.value = TOK.lessThan; // <
                 return;
@@ -904,39 +897,6 @@ class Lexer
                 {
                     p++;
                     t.value = TOK.notEqual; // !=
-                }
-                else if (*p == '<')
-                {
-                    p++;
-                    if (*p == '>')
-                    {
-                        p++;
-                        if (*p == '=')
-                        {
-                            p++;
-                            t.value = TOK.unord; // !<>=
-                        }
-                        else
-                            t.value = TOK.ue; // !<>
-                    }
-                    else if (*p == '=')
-                    {
-                        p++;
-                        t.value = TOK.ug; // !<=
-                    }
-                    else
-                        t.value = TOK.uge; // !<
-                }
-                else if (*p == '>')
-                {
-                    p++;
-                    if (*p == '=')
-                    {
-                        p++;
-                        t.value = TOK.ul; // !>=
-                    }
-                    else
-                        t.value = TOK.ule; // !>
                 }
                 else
                     t.value = TOK.not; // !
@@ -1060,16 +1020,25 @@ class Lexer
                     p++;
                     Token n;
                     scan(&n);
-                    if (n.value == TOK.identifier && n.ident == Id.line)
+                    if (n.value == TOK.identifier)
                     {
-                        poundLine();
-                        continue;
+                        if (n.ident == Id.line)
+                        {
+                            poundLine();
+                            continue;
+                        }
+                        else
+                        {
+                            const locx = loc();
+                            warning(locx, "C preprocessor directive `#%s` is not supported", n.ident.toChars());
+                        }
                     }
-                    else
+                    else if (n.value == TOK.if_)
                     {
-                        t.value = TOK.pound;
-                        return;
+                        error("C preprocessor directive `#if` is not supported, use `version` or `static if`");
                     }
+                    t.value = TOK.pound;
+                    return;
                 }
             default:
                 {
@@ -1161,6 +1130,23 @@ class Lexer
      */
     final uint escapeSequence()
     {
+        return Lexer.escapeSequence(this, p);
+    }
+
+    /**
+    Parse the given string literal escape sequence into a single character.
+    Params:
+        handler = the error handler object
+        sequence = pointer to string with escape sequence to parse. this is a reference
+                   variable that is also used to return the position after the sequence
+    Returns:
+        the escaped sequence as a single character
+    */
+    static dchar escapeSequence(ErrorHandler handler, ref const(char)* sequence)
+    {
+        const(char)* p = sequence; // cache sequence reference on stack
+        scope(exit) sequence = p;
+
         uint c = *p;
         int ndigits;
         switch (c)
@@ -1222,19 +1208,22 @@ class Lexer
                         break;
                     if (!ishex(cast(char)c))
                     {
-                        error("escape hex sequence has %d hex digits instead of %d", n, ndigits);
+                        handler.error("escape hex sequence has %d hex digits instead of %d", n, ndigits);
                         break;
                     }
                 }
                 if (ndigits != 2 && !utf_isValidDchar(v))
                 {
-                    error("invalid UTF character \\U%08x", v);
+                    handler.error("invalid UTF character \\U%08x", v);
                     v = '?'; // recover with valid UTF character
                 }
                 c = v;
             }
             else
-                error("undefined escape hex sequence \\%c", c);
+            {
+                handler.error("undefined escape hex sequence \\%c%c", sequence[0], c);
+                p++;
+            }
             break;
         case '&':
             // named character entity
@@ -1246,15 +1235,16 @@ class Lexer
                     c = HtmlNamedEntity(idstart, p - idstart);
                     if (c == ~0)
                     {
-                        error("unnamed character entity &%.*s;", cast(int)(p - idstart), idstart);
-                        c = ' ';
+                        handler.error("unnamed character entity &%.*s;", cast(int)(p - idstart), idstart);
+                        c = '?';
                     }
                     p++;
                     break;
                 default:
                     if (isalpha(*p) || (p != idstart && isdigit(*p)))
                         continue;
-                    error("unterminated named entity &%.*s;", cast(int)(p - idstart + 1), idstart);
+                    handler.error("unterminated named entity &%.*s;", cast(int)(p - idstart + 1), idstart);
+                    c = '?';
                     break;
                 }
                 break;
@@ -1278,32 +1268,43 @@ class Lexer
                 while (++n < 3 && isoctal(cast(char)c));
                 c = v;
                 if (c > 0xFF)
-                    error("escape octal sequence \\%03o is larger than \\377", c);
+                    handler.error("escape octal sequence \\%03o is larger than \\377", c);
             }
             else
-                error("undefined escape sequence \\%c", c);
+            {
+                handler.error("undefined escape sequence \\%c", c);
+                p++;
+            }
             break;
         }
         return c;
     }
 
-    /**************************************
-     */
-    final TOK wysiwygStringConstant(Token* t, int tc)
+    /**
+    Lex a wysiwyg string. `p` must be pointing to the first character before the
+    contents of the string literal. The character pointed to by `p` will be used as
+    the terminating character (i.e. backtick or double-quote).
+    Params:
+        result = pointer to the token that accepts the result
+    */
+    final void wysiwygStringConstant(Token* result)
     {
+        result.value = TOK.string_;
         Loc start = loc();
+        auto terminator = p[0];
         p++;
         stringbuffer.reset();
         while (1)
         {
-            dchar c = *p++;
+            dchar c = p[0];
+            p++;
             switch (c)
             {
             case '\n':
                 endOfLine();
                 break;
             case '\r':
-                if (*p == '\n')
+                if (p[0] == '\n')
                     continue; // ignore
                 c = '\n'; // treat EndOfLine as \n character
                 endOfLine();
@@ -1311,21 +1312,18 @@ class Lexer
             case 0:
             case 0x1A:
                 error("unterminated string constant starting at %s", start.toChars());
-                t.setString();
-                // decrement `p`, because it needs to point to the next token (the 0 or 0x1A character is the TOK.endOfFile token).
+                result.setString();
+                // rewind `p` so it points to the EOF character
                 p--;
-                return TOK.string_;
-            case '"':
-            case '`':
-                if (c == tc)
-                {
-                    t.setString(stringbuffer);
-                    stringPostfix(t);
-                    return TOK.string_;
-                }
-                break;
+                return;
             default:
-                if (c & 0x80)
+                if (c == terminator)
+                {
+                    result.setString(stringbuffer);
+                    stringPostfix(result);
+                    return;
+                }
+                else if (c & 0x80)
                 {
                     p--;
                     const u = decodeUTF();
@@ -1419,19 +1417,23 @@ class Lexer
         assert(0); // see bug 15731
     }
 
-    /**************************************
-     * Lex delimited strings:
-     *      q"(foo(xxx))"   // "foo(xxx)"
-     *      q"[foo$(LPAREN)]"       // "foo$(LPAREN)"
-     *      q"/foo]/"       // "foo]"
-     *      q"HERE
-     *      foo
-     *      HERE"           // "foo\n"
-     * Input:
-     *      p is on the "
-     */
-    final TOK delimitedStringConstant(Token* t)
+    /**
+    Lex a delimited string. Some examples of delimited strings are:
+    ---
+    q"(foo(xxx))"      // "foo(xxx)"
+    q"[foo$(LPAREN)]"  // "foo$(LPAREN)"
+    q"/foo]/"          // "foo]"
+    q"HERE
+    foo
+    HERE"              // "foo\n"
+    ---
+    It is assumed that `p` points to the opening double-quote '"'.
+    Params:
+        result = pointer to the token that accepts the result
+    */
+    final void delimitedStringConstant(Token* result)
     {
+        result.value = TOK.string_;
         Loc start = loc();
         dchar delimleft = 0;
         dchar delimright = 0;
@@ -1471,10 +1473,10 @@ class Lexer
             case 0:
             case 0x1A:
                 error("unterminated delimited string constant starting at %s", start.toChars());
-                t.setString();
+                result.setString();
                 // decrement `p`, because it needs to point to the next token (the 0 or 0x1A character is the TOK.endOfFile token).
                 p--;
-                return TOK.string_;
+                return;
             default:
                 if (c & 0x80)
                 {
@@ -1573,21 +1575,25 @@ class Lexer
             error("delimited string must end in %s\"", hereid.toChars());
         else
             error("delimited string must end in %c\"", delimright);
-        t.setString(stringbuffer);
-        stringPostfix(t);
-        return TOK.string_;
+        result.setString(stringbuffer);
+        stringPostfix(result);
     }
 
-    /**************************************
-     * Lex delimited strings:
-     *      q{ foo(xxx) } // " foo(xxx) "
-     *      q{foo$(LPAREN)}       // "foo$(LPAREN)"
-     *      q{{foo}"}"}   // "{foo}"}""
-     * Input:
-     *      p is on the q
-     */
-    final TOK tokenStringConstant(Token* t)
+    /**
+    Lex a token string. Some examples of token strings are:
+    ---
+    q{ foo(xxx) }    // " foo(xxx) "
+    q{foo$(LPAREN)}  // "foo$(LPAREN)"
+    q{{foo}"}"}      // "{foo}"}""
+    ---
+    It is assumed that `p` points to the opening curly-brace '{'.
+    Params:
+        result = pointer to the token that accepts the result
+    */
+    final void tokenStringConstant(Token* result)
     {
+        result.value = TOK.string_;
+
         uint nest = 1;
         const start = loc();
         const pstart = ++p;
@@ -1603,25 +1609,33 @@ class Lexer
             case TOK.rightCurly:
                 if (--nest == 0)
                 {
-                    t.setString(pstart, p - 1 - pstart);
-                    stringPostfix(t);
-                    return TOK.string_;
+                    result.setString(pstart, p - 1 - pstart);
+                    stringPostfix(result);
+                    return;
                 }
                 continue;
             case TOK.endOfFile:
                 error("unterminated token string constant starting at %s", start.toChars());
-                t.setString();
-                return TOK.string_;
+                result.setString();
+                return;
             default:
                 continue;
             }
         }
     }
 
-    /**************************************
-     */
-    final TOK escapeStringConstant(Token* t, int wide)
+    /**
+    Scan a double-quoted string while building the processed string value by
+    handling escape sequences. The result is returned in the given `t` token.
+    This function assumes that `p` currently points to the opening double-quote
+    of the string.
+    Params:
+        t = the token to set the resulting string to
+    */
+    final void escapeStringConstant(Token* t)
     {
+        t.value = TOK.string_;
+
         const start = loc();
         p++;
         stringbuffer.reset();
@@ -1656,14 +1670,14 @@ class Lexer
             case '"':
                 t.setString(stringbuffer);
                 stringPostfix(t);
-                return TOK.string_;
+                return;
             case 0:
             case 0x1A:
                 // decrement `p`, because it needs to point to the next token (the 0 or 0x1A character is the TOK.endOfFile token).
                 p--;
                 error("unterminated string constant starting at %s", start.toChars());
                 t.setString();
-                return TOK.string_;
+                return;
             default:
                 if (c & 0x80)
                 {
@@ -1789,6 +1803,8 @@ class Lexer
         int d;
         bool err = false;
         bool overflow = false;
+        bool anyBinaryDigitsUS = false;
+        bool anyHexDigitsNoSingleUS = false;
         dchar c = *p;
         if (c == '0')
         {
@@ -1804,8 +1820,8 @@ class Lexer
             case '5':
             case '6':
             case '7':
-                n = c - '0';
-                ++p;
+            case '8':
+            case '9':
                 base = 8;
                 break;
             case 'x':
@@ -1847,31 +1863,15 @@ class Lexer
             {
             case '0':
             case '1':
-                ++p;
-                d = c - '0';
-                break;
             case '2':
             case '3':
             case '4':
             case '5':
             case '6':
             case '7':
-                if (base == 2 && !err)
-                {
-                    error("binary digit expected");
-                    err = true;
-                }
-                ++p;
-                d = c - '0';
-                break;
             case '8':
             case '9':
                 ++p;
-                if (base < 10 && !err)
-                {
-                    error("radix %d digit expected, not `%c`", base, c);
-                    err = true;
-                }
                 d = c - '0';
                 break;
             case 'a':
@@ -1891,11 +1891,6 @@ class Lexer
                 {
                     if (c == 'e' || c == 'E' || c == 'f' || c == 'F')
                         goto Lreal;
-                    if (!err)
-                    {
-                        error("radix %d digit expected, not `%c`", base, c);
-                        err = true;
-                    }
                 }
                 if (c >= 'a')
                     d = c + 10 - 'a';
@@ -1919,10 +1914,21 @@ class Lexer
                 p = start;
                 return inreal(t);
             case '_':
+                anyBinaryDigitsUS = true;
                 ++p;
                 continue;
             default:
                 goto Ldone;
+            }
+            // got a digit here, set any necessary flags, check for errors
+            anyHexDigitsNoSingleUS = true;
+            anyBinaryDigitsUS = true;
+            if (!err && d >= base)
+            {
+                error("%s digit expected, not `%c`", base == 2 ? "binary".ptr :
+                                                     base == 8 ? "octal".ptr :
+                                                     "decimal".ptr, c);
+                err = true;
             }
             // Avoid expensive overflow check if we aren't at risk of overflow
             if (n <= 0x0FFF_FFFF_FFFF_FFFFUL)
@@ -1941,6 +1947,12 @@ class Lexer
             error("integer overflow");
             err = true;
         }
+        // Deprecated in 2018-06.
+        // Change to error in 2019-06.
+        // @@@DEPRECATED_2019-06@@@
+        if ((base == 2 && !anyBinaryDigitsUS) ||
+            (base == 16 && !anyHexDigitsNoSingleUS))
+            deprecation("`%.*s` isn't a valid integer literal, use `%.*s0` instead", cast(int)(p - start), start, 2, start);
         enum FLAGS : int
         {
             none = 0,
@@ -1982,7 +1994,13 @@ class Lexer
             break;
         }
         if (base == 8 && n >= 8)
-            error("octal literals `0%llo%.*s` are no longer supported, use `std.conv.octal!%llo%.*s` instead", n, p - psuffix, psuffix, n, p - psuffix, psuffix);
+        {
+            if (err)
+                // can't translate invalid octal value, just show a generic message
+                error("octal literals larger than 7 are no longer supported");
+            else
+                error("octal literals `0%llo%.*s` are no longer supported, use `std.conv.octal!%llo%.*s` instead", n, p - psuffix, psuffix, n, p - psuffix, psuffix);
+        }
         TOK result;
         switch (flags)
         {
@@ -2230,7 +2248,7 @@ class Lexer
         return scanloc;
     }
 
-    final void error(const(char)* format, ...)
+    final override void error(const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
@@ -2239,7 +2257,7 @@ class Lexer
         errors = true;
     }
 
-    final void error(Loc loc, const(char)* format, ...)
+    final override void error(Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
@@ -2570,9 +2588,119 @@ class Lexer
     }
 
 private:
-    final void endOfLine()
+    void endOfLine()
     {
         scanloc.linnum++;
         line = p;
     }
+}
+
+unittest
+{
+    static class AssertErrorHandler : ErrorHandler
+    {
+        override final void error(const(char)* format, ...) { assert(0); }
+        override final void error(Loc loc, const(char)* format, ...) { assert(0); }
+    }
+    static void test(T)(string sequence, T expected)
+    {
+        scope assertOnError = new AssertErrorHandler();
+        auto p = cast(const(char)*)sequence.ptr;
+        assert(expected == Lexer.escapeSequence(assertOnError, p));
+        assert(p == sequence.ptr + sequence.length);
+    }
+
+    test(`'`, '\'');
+    test(`"`, '"');
+    test(`?`, '?');
+    test(`\`, '\\');
+    test(`0`, '\0');
+    test(`a`, '\a');
+    test(`b`, '\b');
+    test(`f`, '\f');
+    test(`n`, '\n');
+    test(`r`, '\r');
+    test(`t`, '\t');
+    test(`v`, '\v');
+
+    test(`x00`, 0x00);
+    test(`xff`, 0xff);
+    test(`xFF`, 0xff);
+    test(`xa7`, 0xa7);
+    test(`x3c`, 0x3c);
+    test(`xe2`, 0xe2);
+
+    test(`1`, '\1');
+    test(`42`, '\42');
+    test(`357`, '\357');
+
+    test(`u1234`, '\u1234');
+    test(`uf0e4`, '\uf0e4');
+
+    test(`U0001f603`, '\U0001f603');
+
+    test(`&quot;`, '"');
+    test(`&lt;`, '<');
+    test(`&gt;`, '>');
+}
+unittest
+{
+    static class ExpectErrorHandler : ErrorHandler
+    {
+        string expected;
+        bool gotError;
+        this(string expected) { this.expected = expected; }
+        override final void error(const(char)* format, ...)
+        {
+            gotError = true;
+            char[100] buffer;
+            va_list ap;
+            va_start(ap, format);
+            auto actual = buffer[0 .. vsprintf(buffer.ptr, format, ap)];
+            va_end(ap);
+            assert(expected == actual);
+        }
+        override final void error(Loc loc, const(char)* format, ...) { assert(0); }
+    }
+    static void test(string sequence, string expectedError, dchar expectedReturnValue, uint expectedScanLength)
+    {
+        scope handler = new ExpectErrorHandler(expectedError);
+        auto p = cast(const(char)*)sequence.ptr;
+        auto actualReturnValue = Lexer.escapeSequence(handler, p);
+        assert(handler.gotError);
+        assert(expectedReturnValue == actualReturnValue);
+
+        auto actualScanLength = p - sequence.ptr;
+        assert(expectedScanLength == actualScanLength);
+    }
+
+    test("c", `undefined escape sequence \c`, 'c', 1);
+    test("!", `undefined escape sequence \!`, '!', 1);
+
+    test("x1", `escape hex sequence has 1 hex digits instead of 2`, '\x01', 2);
+
+    test("u1"  , `escape hex sequence has 1 hex digits instead of 4`,   0x1, 2);
+    test("u12" , `escape hex sequence has 2 hex digits instead of 4`,  0x12, 3);
+    test("u123", `escape hex sequence has 3 hex digits instead of 4`, 0x123, 4);
+
+    test("U0"      , `escape hex sequence has 1 hex digits instead of 8`,       0x0, 2);
+    test("U00"     , `escape hex sequence has 2 hex digits instead of 8`,      0x00, 3);
+    test("U000"    , `escape hex sequence has 3 hex digits instead of 8`,     0x000, 4);
+    test("U0000"   , `escape hex sequence has 4 hex digits instead of 8`,    0x0000, 5);
+    test("U0001f"  , `escape hex sequence has 5 hex digits instead of 8`,   0x0001f, 6);
+    test("U0001f6" , `escape hex sequence has 6 hex digits instead of 8`,  0x0001f6, 7);
+    test("U0001f60", `escape hex sequence has 7 hex digits instead of 8`, 0x0001f60, 8);
+
+    test("ud800"    , `invalid UTF character \U0000d800`, '?', 5);
+    test("udfff"    , `invalid UTF character \U0000dfff`, '?', 5);
+    test("U00110000", `invalid UTF character \U00110000`, '?', 9);
+
+    test("xg0"      , `undefined escape hex sequence \xg`, 'g', 2);
+    test("ug000"    , `undefined escape hex sequence \ug`, 'g', 2);
+    test("Ug0000000", `undefined escape hex sequence \Ug`, 'g', 2);
+
+    test("&BAD;", `unnamed character entity &BAD;`  , '?', 5);
+    test("&quot", `unterminated named entity &quot;`, '?', 5);
+
+    test("400", `escape octal sequence \400 is larger than \377`, 0x100, 3);
 }

@@ -21,6 +21,7 @@ import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.expression;
+import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
 import dmd.hdrgen;
@@ -75,7 +76,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
      * If the returned scope != sc, the caller should pop
      * the scope after it used.
      */
-    static Scope* createNewScope(Scope* sc, StorageClass stc, LINK linkage,
+    extern (D) static Scope* createNewScope(Scope* sc, StorageClass stc, LINK linkage,
         CPPMANGLE cppmangle, Prot protection, int explicitProtection,
         AlignDeclaration aligndecl, PINLINE inlining)
     {
@@ -595,7 +596,7 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
         return buf.extractString();
     }
 
-    override final inout(ProtDeclaration) isProtDeclaration() inout
+    override inout(ProtDeclaration) isProtDeclaration() inout
     {
         return this;
     }
@@ -751,7 +752,7 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
         return (isunion ? "anonymous union" : "anonymous struct");
     }
 
-    override final inout(AnonDeclaration) isAnonDeclaration() inout
+    override inout(AnonDeclaration) isAnonDeclaration() inout
     {
         return this;
     }
@@ -928,7 +929,8 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
 extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
 {
     ScopeDsymbol scopesym;
-    bool addisdone;
+    private bool addisdone = false; // true if members have been added to scope
+    private bool onStack = false;   // true if a call to `include` is currently active
 
     extern (D) this(Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
     {
@@ -950,10 +952,12 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
     {
         //printf("StaticIfDeclaration::include(sc = %p) scope = %p\n", sc, scope);
 
-        if (errors)
+        if (errors || onStack)
             return null;
+        onStack = true;
+        scope(exit) onStack = false;
 
-        if (condition.inc == 0)
+        if (sc && condition.inc == 0)
         {
             assert(scopesym); // addMember is already done
             assert(_scope); // setScope is already done
@@ -1039,6 +1043,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
      of the first call.  We need both `cached` and `cache`, because
      `null` is a valid value for `cache`.
      +/
+    bool onStack = false;
     bool cached = false;
     Dsymbols* cache = null;
 
@@ -1056,7 +1061,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
             Dsymbol.arraySyntaxCopy(decl));
     }
 
-    override final bool oneMember(Dsymbol* ps, Identifier ident)
+    override bool oneMember(Dsymbol* ps, Identifier ident)
     {
         // Required to support IFTI on a template that contains a
         // `static foreach` declaration.  `super.oneMember` calls
@@ -1073,14 +1078,20 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 
     override Dsymbols* include(Scope* sc)
     {
-        if (errors)
+        if (errors || onStack)
             return null;
-
         if (cached)
         {
+            assert(!onStack);
             return cache;
         }
-        sfe.prepare(_scope); // lower static foreach aggregate
+        onStack = true;
+        scope(exit) onStack = false;
+
+        if (_scope)
+        {
+            sfe.prepare(_scope); // lower static foreach aggregate
+        }
         if (!sfe.ready())
         {
             return null; // TODO: ok?
@@ -1115,7 +1126,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
         this.scopesym = sds;
     }
 
-    override final void addComment(const(char)* comment)
+    override void addComment(const(char)* comment)
     {
         // do nothing
         // change this to give semantics to documentation comments on static foreach declarations
@@ -1208,25 +1219,26 @@ extern(C++) final class ForwardingAttribDeclaration: AttribDeclaration
 /***********************************************************
  * Mixin declarations, like:
  *      mixin("int x");
+ * https://dlang.org/spec/module.html#mixin-declaration
  */
 extern (C++) final class CompileDeclaration : AttribDeclaration
 {
-    Expression exp;
+    Expressions* exps;
     ScopeDsymbol scopesym;
     bool compiled;
 
-    extern (D) this(const ref Loc loc, Expression exp)
+    extern (D) this(const ref Loc loc, Expressions* exps)
     {
         super(null);
         //printf("CompileDeclaration(loc = %d)\n", loc.linnum);
         this.loc = loc;
-        this.exp = exp;
+        this.exps = exps;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         //printf("CompileDeclaration::syntaxCopy('%s')\n", toChars());
-        return new CompileDeclaration(loc, exp.syntaxCopy());
+        return new CompileDeclaration(loc, Expression.arraySyntaxCopy(exps));
     }
 
     override void addMember(Scope* sc, ScopeDsymbol sds)
@@ -1253,6 +1265,7 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
 
 /***********************************************************
  * User defined attributes look like:
+ *      @foo(args, ...)
  *      @(args, ...)
  */
 extern (C++) final class UserAttributeDeclaration : AttribDeclaration
@@ -1293,7 +1306,7 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
         return AttribDeclaration.setScope(sc);
     }
 
-    static Expressions* concat(Expressions* udas1, Expressions* udas2)
+    extern (D) static Expressions* concat(Expressions* udas1, Expressions* udas2)
     {
         Expressions* udas;
         if (!udas1 || udas1.dim == 0)

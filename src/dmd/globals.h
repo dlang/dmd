@@ -5,19 +5,15 @@
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/mars.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/globals.h
  */
 
-#ifndef DMD_GLOBALS_H
-#define DMD_GLOBALS_H
-
-#ifdef __DMC__
 #pragma once
-#endif
 
-#include "ctfloat.h"
-#include "outbuffer.h"
-#include "filename.h"
+#include "root/dcompat.h"
+#include "root/ctfloat.h"
+#include "root/outbuffer.h"
+#include "root/filename.h"
 #include "compiler.h"
 
 // Can't include arraytypes.h here, need to declare these directly.
@@ -37,7 +33,7 @@ typedef unsigned char CHECKACTION;
 enum
 {
     CHECKACTION_D,        // call D assert on failure
-    CHECKACTION_C,        // call C assert on failure
+    CHECKACTION_C         // call C assert on failure
 };
 
 enum CPU
@@ -74,7 +70,7 @@ struct Param
     bool vcg_ast;       // write-out codegen-ast
     bool showColumns;   // print character (column) numbers in diagnostics
     bool vtls;          // identify thread local variables
-    char vgc;           // identify gc usage
+    bool vgc;           // identify gc usage
     bool vfield;        // identify non-mutable field variables
     bool vcomplex;      // identify complex/imaginary type usage
     char symdebug;      // insert debug symbolic information
@@ -116,7 +112,6 @@ struct Param
     unsigned char covPercent;   // 0..100 code coverage percentage required
     bool nofloat;       // code should not pull in floating point support
     bool ignoreUnsupportedPragmas;      // rather than error on them
-    bool enforcePropertySyntax;
     bool useModuleInfo; // generate runtime module information
     bool useTypeInfo;   // generate runtime type information
     bool useExceptions; // support exception handling
@@ -129,6 +124,8 @@ struct Param
                         // https://issues.dlang.org/show_bug.cgi?id=16997
     bool vsafe;         // use enhanced @safe checking
     bool ehnogc;        // use @nogc exception handling
+    bool dtorFields;        // destruct fields of partially constructed objects
+                            // https://issues.dlang.org/show_bug.cgi?id=14246
     bool showGaggedErrors;  // print gagged errors anyway
     bool manual;            // open browser on compiler manual
     bool usage;             // print usage and exit
@@ -145,7 +142,7 @@ struct Param
 
     unsigned errorLimit;
 
-    const char *argv0;    // program name
+    DArray<const char>  argv0;    // program name
     Array<const char *> *modFileAliasStrings; // array of char*'s of -I module filename alias strings
     Array<const char *> *imppath;     // array of char*'s of where to look for import modules
     Array<const char *> *fileImppath; // array of char*'s of where to look for file import modules
@@ -227,14 +224,15 @@ struct Global
     Array<const char *> *path;        // Array of char*'s which form the import lookup path
     Array<const char *> *filePath;    // Array of char*'s which form the file import lookup path
 
-    const char *version;
+    const char *version;     // Compiler version string
+    const char *vendor;      // Compiler backend name
 
-    Compiler compiler;
     Param params;
-    unsigned errors;       // number of errors reported so far
-    unsigned warnings;     // number of warnings reported so far
-    unsigned gag;          // !=0 means gag reporting of errors & warnings
-    unsigned gaggedErrors; // number of errors reported while gagged
+    unsigned errors;         // number of errors reported so far
+    unsigned warnings;       // number of warnings reported so far
+    unsigned gag;            // !=0 means gag reporting of errors & warnings
+    unsigned gaggedErrors;   // number of errors reported while gagged
+    unsigned gaggedWarnings; // number of warnings reported while gagged
 
     void* console;         // opaque pointer to console for controlling text attributes
 
@@ -257,6 +255,11 @@ struct Global
     void increaseErrorCount();
 
     void _init();
+
+    /**
+    Returns: the version as the number that would be returned for __VERSION__
+    */
+    unsigned versionNumber();
 };
 
 extern Global global;
@@ -287,14 +290,6 @@ typedef uint32_t                d_uns32;
 typedef int64_t                 d_int64;
 typedef uint64_t                d_uns64;
 
-// Represents a D [ ] array
-template<typename T>
-struct DArray
-{
-    size_t length;
-    T *ptr;
-};
-
 // file location
 struct Loc
 {
@@ -312,7 +307,7 @@ struct Loc
     Loc(const char *filename, unsigned linnum, unsigned charnum);
 
     const char *toChars() const;
-    bool equals(const Loc& loc);
+    bool equals(const Loc& loc) const;
 };
 
 enum LINK
@@ -324,14 +319,14 @@ enum LINK
     LINKwindows,
     LINKpascal,
     LINKobjc,
-    LINKsystem,
+    LINKsystem
 };
 
 enum CPPMANGLE
 {
     CPPMANGLEdefault,
     CPPMANGLEstruct,
-    CPPMANGLEclass,
+    CPPMANGLEclass
 };
 
 enum MATCH
@@ -350,5 +345,3 @@ enum PINLINE
 };
 
 typedef uinteger_t StorageClass;
-
-#endif /* DMD_GLOBALS_H */

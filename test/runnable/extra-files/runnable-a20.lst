@@ -1,7 +1,7 @@
        |// EXTRA_SOURCES: imports/a20a.d
        |// PERMUTE_ARGS:
        |// REQUIRED_ARGS: -cov
-       |// POST_SCRIPT: runnable/extra-files/a20-postscript.sh
+       |// POST_SCRIPT: runnable/extra-files/coverage-postscript.sh
        |// EXECUTE_ARGS: ${RESULTS_DIR}/runnable
        |
        |import a20a;

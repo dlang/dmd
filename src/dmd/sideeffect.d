@@ -35,7 +35,7 @@ extern (C++) bool isTrivialExp(Expression e)
 {
     extern (C++) final class IsTrivialExp : StoppableVisitor
     {
-        alias visit = super.visit;
+        alias visit = typeof(super).visit;
     public:
         extern (D) this()
         {
@@ -68,7 +68,7 @@ extern (C++) bool hasSideEffect(Expression e)
 {
     extern (C++) final class LambdaHasSideEffect : StoppableVisitor
     {
-        alias visit = super.visit;
+        alias visit = typeof(super).visit;
     public:
         extern (D) this()
         {
@@ -92,7 +92,7 @@ extern (C++) bool hasSideEffect(Expression e)
  *      1   nothrow + constant purity
  *      2   nothrow + strong purity
  */
-extern (C++) int callSideEffectLevel(FuncDeclaration f)
+int callSideEffectLevel(FuncDeclaration f)
 {
     /* https://issues.dlang.org/show_bug.cgi?id=12760
      * ctor call always has side effects.
@@ -112,7 +112,7 @@ extern (C++) int callSideEffectLevel(FuncDeclaration f)
     return 0;
 }
 
-extern (C++) int callSideEffectLevel(Type t)
+int callSideEffectLevel(Type t)
 {
     t = t.toBasetype();
     TypeFunction tf;
@@ -123,6 +123,9 @@ extern (C++) int callSideEffectLevel(Type t)
         assert(t.ty == Tfunction);
         tf = cast(TypeFunction)t;
     }
+    if (!tf.isnothrow)  // function can throw
+        return 0;
+
     tf.purityLevel();
     PURE purity = tf.purity;
     if (t.ty == Tdelegate && purity > PURE.weak)
@@ -132,13 +135,11 @@ extern (C++) int callSideEffectLevel(Type t)
         else if (!tf.isImmutable())
             purity = PURE.const_;
     }
-    if (tf.isnothrow)
-    {
-        if (purity == PURE.strong)
-            return 2;
-        if (purity == PURE.const_)
-            return 1;
-    }
+
+    if (purity == PURE.strong)
+        return 2;
+    if (purity == PURE.const_)
+        return 1;
     return 0;
 }
 
@@ -217,7 +218,7 @@ private bool lambdaHasSideEffect(Expression e)
  * Returns:
  *      true if expression has no side effects
  */
-extern (C++) bool discardValue(Expression e)
+bool discardValue(Expression e)
 {
     if (lambdaHasSideEffect(e)) // check side-effect shallowly
         return false;
@@ -329,10 +330,8 @@ extern (C++) bool discardValue(Expression e)
              * no side effect).
              * See https://issues.dlang.org/show_bug.cgi?id=4231 for discussion
              */
-            CommaExp firstComma = ce;
-            while (firstComma.e1.op == TOK.comma)
-                firstComma = cast(CommaExp)firstComma.e1;
-            if (firstComma.e1.op == TOK.declaration && ce.e2.op == TOK.variable && (cast(DeclarationExp)firstComma.e1).declaration == (cast(VarExp)ce.e2).var)
+            auto fc = firstComma(ce);
+            if (fc.op == TOK.declaration && ce.e2.op == TOK.variable && (cast(DeclarationExp)fc).declaration == (cast(VarExp)ce.e2).var)
             {
                 return false;
             }
@@ -366,13 +365,11 @@ extern (C++) bool discardValue(Expression e)
  */
 VarDeclaration copyToTemp(StorageClass stc, const char* name, Expression e)
 {
-    assert(name && name[0] == '_' && name[1] == '_');
-    auto id = Identifier.generateId(name);
-    auto ez = new ExpInitializer(e.loc, e);
-    auto vd = new VarDeclaration(e.loc, e.type, id, ez);
-    vd.storage_class = stc;
-    vd.storage_class |= STC.temp;
-    vd.storage_class |= STC.ctfe; // temporary is always CTFEable
+    assert(name[0] == '_' && name[1] == '_');
+    auto vd = new VarDeclaration(e.loc, e.type,
+        Identifier.generateId(name),
+        new ExpInitializer(e.loc, e));
+    vd.storage_class = stc | STC.temp | STC.ctfe; // temporary is always CTFEable
     return vd;
 }
 
@@ -397,16 +394,11 @@ Expression extractSideEffect(Scope* sc, const char* name,
         return e;
 
     auto vd = copyToTemp(0, name, e);
-    if (e.isLvalue())
-        vd.storage_class |= STC.ref_;
-    else
-        vd.storage_class |= STC.rvalue;
+    vd.storage_class |= e.isLvalue() ? STC.ref_ : STC.rvalue;
 
-    Expression de = new DeclarationExp(vd.loc, vd);
-    Expression ve = new VarExp(vd.loc, vd);
-    de = de.expressionSemantic(sc);
-    ve = ve.expressionSemantic(sc);
+    e0 = Expression.combine(e0, new DeclarationExp(vd.loc, vd)
+                                .expressionSemantic(sc));
 
-    e0 = Expression.combine(e0, de);
-    return ve;
+    return new VarExp(vd.loc, vd)
+           .expressionSemantic(sc);
 }

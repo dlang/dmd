@@ -1,4 +1,4 @@
-/**
+/***
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -21,7 +21,7 @@ import core.stdc.string;
 nothrow:
 
 // Type used by the front-end for compile-time reals
-alias real_t = real;
+public import dmd.root.longdouble : real_t = longdouble;
 
 private
 {
@@ -29,9 +29,8 @@ private
 
     version(CRuntime_Microsoft) extern (C++)
     {
-        struct longdouble { real_t r; }
-        size_t ld_sprint(char* str, int fmt, longdouble x);
-        longdouble strtold_dm(const(char)* p, char** endp);
+        public import dmd.root.longdouble : longdouble_soft, ld_sprint;
+        longdouble_soft strtold_dm(const(char)* p, char** endp);
     }
 }
 
@@ -39,20 +38,15 @@ private
 extern (C++) struct CTFloat
 {
   nothrow:
-    version(DigitalMars)
-    {
-        static __gshared bool yl2x_supported = true;
-        static __gshared bool yl2xp1_supported = true;
-    }
+    version (GNU)
+        enum yl2x_supported = false;
     else
-    {
-        static __gshared bool yl2x_supported = false;
-        static __gshared bool yl2xp1_supported = false;
-    }
+        enum yl2x_supported = __traits(compiles, core.math.yl2x(1.0L, 2.0L));
+    enum yl2xp1_supported = yl2x_supported;
 
     static void yl2x(const real_t* x, const real_t* y, real_t* res)
     {
-        version(DigitalMars)
+        static if (yl2x_supported)
             *res = core.math.yl2x(*x, *y);
         else
             assert(0);
@@ -60,18 +54,66 @@ extern (C++) struct CTFloat
 
     static void yl2xp1(const real_t* x, const real_t* y, real_t* res)
     {
-        version(DigitalMars)
+        static if (yl2xp1_supported)
             *res = core.math.yl2xp1(*x, *y);
         else
             assert(0);
     }
 
-    static real_t sin(real_t x) { return core.math.sin(x); }
-    static real_t cos(real_t x) { return core.math.cos(x); }
-    static real_t tan(real_t x) { return core.stdc.math.tanl(x); }
-    static real_t sqrt(real_t x) { return core.math.sqrt(x); }
-    static real_t fabs(real_t x) { return core.math.fabs(x); }
-    static real_t ldexp(real_t n, int exp) { return core.math.ldexp(n, exp); }
+    static if (!is(real_t == real))
+    {
+        alias sin = dmd.root.longdouble.sinl;
+        alias cos = dmd.root.longdouble.cosl;
+        alias tan = dmd.root.longdouble.tanl;
+        alias sqrt = dmd.root.longdouble.sqrtl;
+        alias fabs = dmd.root.longdouble.fabsl;
+        alias ldexp = dmd.root.longdouble.ldexpl;
+    }
+    else
+    {
+        static real_t sin(real_t x) { return core.math.sin(x); }
+        static real_t cos(real_t x) { return core.math.cos(x); }
+        static real_t tan(real_t x) { return core.stdc.math.tanl(x); }
+        static real_t sqrt(real_t x) { return core.math.sqrt(x); }
+        static real_t fabs(real_t x) { return core.math.fabs(x); }
+        static real_t ldexp(real_t n, int exp) { return core.math.ldexp(n, exp); }
+    }
+
+    static if (!is(real_t == real))
+    {
+        static real_t round(real_t x) { return real_t(cast(double)core.stdc.math.roundl(cast(double)x)); }
+        static real_t floor(real_t x) { return real_t(cast(double)core.stdc.math.floor(cast(double)x)); }
+        static real_t ceil(real_t x) { return real_t(cast(double)core.stdc.math.ceil(cast(double)x)); }
+        static real_t trunc(real_t x) { return real_t(cast(double)core.stdc.math.trunc(cast(double)x)); }
+        static real_t log(real_t x) { return real_t(cast(double)core.stdc.math.logl(cast(double)x)); }
+        static real_t log2(real_t x) { return real_t(cast(double)core.stdc.math.log2l(cast(double)x)); }
+        static real_t log10(real_t x) { return real_t(cast(double)core.stdc.math.log10l(cast(double)x)); }
+        static real_t pow(real_t x, real_t y) { return real_t(cast(double)core.stdc.math.powl(cast(double)x, cast(double)y)); }
+        static real_t exp(real_t x) { return real_t(cast(double)core.stdc.math.expl(cast(double)x)); }
+        static real_t expm1(real_t x) { return real_t(cast(double)core.stdc.math.expm1l(cast(double)x)); }
+        static real_t exp2(real_t x) { return real_t(cast(double)core.stdc.math.exp2l(cast(double)x)); }
+        static real_t copysign(real_t x, real_t s) { return real_t(cast(double)core.stdc.math.copysignl(cast(double)x, cast(double)s)); }
+    }
+    else
+    {
+        static real_t round(real_t x) { return core.stdc.math.roundl(x); }
+        static real_t floor(real_t x) { return core.stdc.math.floor(x); }
+        static real_t ceil(real_t x) { return core.stdc.math.ceil(x); }
+        static real_t trunc(real_t x) { return core.stdc.math.trunc(x); }
+        static real_t log(real_t x) { return core.stdc.math.logl(x); }
+        static real_t log2(real_t x) { return core.stdc.math.log2l(x); }
+        static real_t log10(real_t x) { return core.stdc.math.log10l(x); }
+        static real_t pow(real_t x, real_t y) { return core.stdc.math.powl(x, y); }
+        static real_t exp(real_t x) { return core.stdc.math.expl(x); }
+        static real_t expm1(real_t x) { return core.stdc.math.expm1l(x); }
+        static real_t exp2(real_t x) { return core.stdc.math.exp2l(x); }
+        static real_t copysign(real_t x, real_t s) { return core.stdc.math.copysignl(x, s); }
+    }
+
+    static real_t fmin(real_t x, real_t y) { return x < y ? x : y; }
+    static real_t fmax(real_t x, real_t y) { return x > y ? x : y; }
+
+    static real_t fma(real_t x, real_t y, real_t z) { return (x * y) + z; }
 
     static bool isIdentical(real_t a, real_t b)
     {
@@ -103,10 +145,10 @@ extern (C++) struct CTFloat
     // the implementation of longdouble for MSVC is a struct, so mangling
     //  doesn't match with the C++ header.
     // add a wrapper just for isSNaN as this is the only function called from C++
-    version(CRuntime_Microsoft)
-        static bool isSNaN(longdouble ld)
+    version(CRuntime_Microsoft) static if (is(real_t == real))
+        static bool isSNaN(longdouble_soft ld)
         {
-            return isSNaN(ld.r);
+            return isSNaN(cast(real)ld);
         }
 
     static bool isInfinity(real_t r)
@@ -123,7 +165,9 @@ extern (C++) struct CTFloat
             __locale_decpoint = ".";
         }
         version(CRuntime_Microsoft)
-            auto r = strtold_dm(literal, null).r;
+        {
+            auto r = cast(real_t) strtold_dm(literal, null);
+        }
         else
             auto r = strtold(literal, null);
         version(CRuntime_DigitalMars) __locale_decpoint = save;
@@ -136,7 +180,7 @@ extern (C++) struct CTFloat
     {
         version(CRuntime_Microsoft)
         {
-            return cast(int)ld_sprint(str, fmt, longdouble(x));
+            return cast(int)ld_sprint(str, fmt, longdouble_soft(x));
         }
         else
         {
@@ -159,8 +203,16 @@ extern (C++) struct CTFloat
     }
 
     // Constant real values 0, 1, -1 and 0.5.
-    static __gshared real_t zero = real_t(0);
-    static __gshared real_t one = real_t(1);
-    static __gshared real_t minusone = real_t(-1);
-    static __gshared real_t half = real_t(0.5);
+    __gshared real_t zero;
+    __gshared real_t one;
+    __gshared real_t minusone;
+    __gshared real_t half;
+
+    static void initialize()
+    {
+        zero = real_t(0);
+        one = real_t(1);
+        minusone = real_t(-1);
+        half = real_t(0.5);
+    }
 }

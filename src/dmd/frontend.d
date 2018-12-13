@@ -32,13 +32,14 @@ void initDMD()
     import dmd.expression : Expression;
     import dmd.globals : global;
     import dmd.id : Id;
-    import dmd.mars : addDefaultVersionIdentifiers;
+    import dmd.mars : setTarget, addDefaultVersionIdentifiers;
     import dmd.mtype : Type;
     import dmd.objc : Objc;
     import dmd.target : Target;
 
     global._init();
-    addDefaultVersionIdentifiers();
+    setTarget(global.params);
+    addDefaultVersionIdentifiers(global.params);
 
     Type._init();
     Id.initialize();
@@ -54,7 +55,7 @@ Add import path to the `global.path`.
 Params:
     path = import to add
 */
-void addImport(string path)
+void addImport(const(char)[] path)
 {
     import dmd.globals : global;
     import dmd.arraytypes : Strings;
@@ -74,16 +75,12 @@ Params:
 
 Returns: full path to the found `dmd.conf`, `null` otherwise.
 */
-string findDMDConfig(string dmdFilePath)
+string findDMDConfig(const(char)[] dmdFilePath)
 {
     import dmd.dinifile : findConfFile;
     import std.string : fromStringz, toStringz;
 
-    auto f = findConfFile(dmdFilePath.toStringz, "dmd.conf");
-    if (f is null)
-        return null;
-
-    return f.fromStringz.idup;
+    return findConfFile(dmdFilePath, "dmd.conf").idup;
 }
 
 /**
@@ -94,7 +91,7 @@ Params:
 
 Returns: full path to the found `ldc2.conf`, `null` otherwise.
 */
-string findLDCConfig(string ldcFilePath)
+string findLDCConfig(const(char)[] ldcFilePath)
 {
     import std.file : getcwd;
     import std.path : buildPath, dirName;
@@ -153,7 +150,7 @@ Params:
 
 Returns: forward range of import paths found in `iniFile`
 */
-auto parseImportPathsFromConfig(string iniFile, string execDir)
+auto parseImportPathsFromConfig(const(char)[] iniFile, const(char)[] execDir)
 {
     import std.algorithm, std.range, std.regex;
     import std.stdio : File;
@@ -218,7 +215,7 @@ Params:
 
 Returns: the parsed module object
 */
-Module parseModule(string fileName, string code = null)
+Module parseModule(const(char)[] fileName, const(char)[] code = null)
 {
     import dmd.astcodegen : ASTCodegen;
     import dmd.globals : Loc;
@@ -227,7 +224,7 @@ Module parseModule(string fileName, string code = null)
     import dmd.tokens : TOK;
     import std.string : toStringz;
 
-    auto parse(Module m, string code)
+    static auto parse(Module m, const(char)[] code)
     {
         scope p = new Parser!ASTCodegen(m, code, false);
         p.nextToken; // skip the initial token

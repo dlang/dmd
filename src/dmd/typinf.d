@@ -22,6 +22,7 @@ import dmd.globals;
 import dmd.gluelayer;
 import dmd.mtype;
 import dmd.visitor;
+import core.stdc.stdio;
 
 /****************************************************
  * Generates the `TypeInfo` object associated with `torig` if it
@@ -31,19 +32,25 @@ import dmd.visitor;
  *      torig = the type to generate the `TypeInfo` object for
  *      sc    = the scope
  */
-extern (C++) void genTypeInfo(Loc loc, Type torig, Scope* sc)
+void genTypeInfo(Loc loc, Type torig, Scope* sc)
 {
-    //printf("Type::genTypeInfo() %p, %s\n", this, toChars());
+    // printf("genTypeInfo() %s\n", torig.toChars());
 
-    if (!global.params.useTypeInfo)
+    // Even when compiling without `useTypeInfo` (e.g. -betterC) we should
+    // still be able to evaluate `TypeInfo` at compile-time, just not at runtime.
+    // https://issues.dlang.org/show_bug.cgi?id=18472
+    if (!sc || !(sc.flags & SCOPE.ctfe))
     {
-        torig.error(loc, "`TypeInfo` cannot be used with -betterC");
-        fatal();
+        if (!global.params.useTypeInfo)
+        {
+            .error(loc, "`TypeInfo` cannot be used with -betterC");
+            fatal();
+        }
     }
 
     if (!Type.dtypeinfo)
     {
-        torig.error(loc, "`object.TypeInfo` could not be found, but is implicitly used");
+        .error(loc, "`object.TypeInfo` could not be found, but is implicitly used");
         fatal();
     }
 
@@ -101,7 +108,7 @@ extern (C++) Type getTypeInfoType(Loc loc, Type t, Scope* sc)
     return t.vtinfo.type;
 }
 
-extern (C++) TypeInfoDeclaration getTypeInfoDeclaration(Type t)
+private TypeInfoDeclaration getTypeInfoDeclaration(Type t)
 {
     //printf("Type::getTypeInfoDeclaration() %s\n", t.toChars());
     switch (t.ty)
@@ -137,7 +144,7 @@ extern (C++) TypeInfoDeclaration getTypeInfoDeclaration(Type t)
     }
 }
 
-extern (C++) bool isSpeculativeType(Type t)
+bool isSpeculativeType(Type t)
 {
     extern (C++) final class SpeculativeTypeVisitor : Visitor
     {

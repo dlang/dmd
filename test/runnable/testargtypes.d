@@ -77,8 +77,8 @@ version (X86_64)
         chkPair!(byte,float,long);
         chkPair!(float,short,long);
 
-        //struct S1 { long a; long b; }
-        //chkArgTypes!(S1, long, long)();
+        struct S1 { long a; long b; }
+        chkArgTypes!(S1, long, long)();
 
         struct S2 { union { long a; double d; }}
         chkArgTypes!(S2, long)();
@@ -93,13 +93,22 @@ version (X86_64)
         chkArgTypes!(S5)();
 
         struct S6 { align(1): int a; void* b; }
-        chkArgTypes!(S5)();
+        chkArgTypes!(S6)();
 
         struct S7 { union { void* p; real r; }}
         chkArgTypes!(S7)();
 
         struct S8 { union { real r; void* p; }}
         chkArgTypes!(S8)();
+
+        struct S9 { int a,b,c; }
+        chkArgTypes!(S9, long, int)();
+        chkArgTypes!(S9[1], long, int)();
+
+        struct S10 { int[3] a; }
+        chkArgTypes!(S10, long, int)();
+
+        chkArgTypes!(int[3], long, int)();
 
         return 0;
     }

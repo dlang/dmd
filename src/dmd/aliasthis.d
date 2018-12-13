@@ -32,7 +32,7 @@ extern (C++) final class AliasThis : Dsymbol
 {
     Identifier ident;
 
-    extern (D) this(Loc loc, Identifier ident)
+    extern (D) this(const ref Loc loc, Identifier ident)
     {
         super(null);    // it's anonymous (no identifier)
         this.loc = loc;
@@ -61,7 +61,7 @@ extern (C++) final class AliasThis : Dsymbol
     }
 }
 
-extern (C++) Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false)
+Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false)
 {
     AggregateDeclaration ad = isAggregate(e.type);
     if (ad && ad.aliasthis)

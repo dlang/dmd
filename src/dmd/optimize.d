@@ -38,7 +38,7 @@ import dmd.visitor;
  *      null if not,
  *      ErrorExp if error
  */
-extern (C++) Expression expandVar(int result, VarDeclaration v)
+Expression expandVar(int result, VarDeclaration v)
 {
     //printf("expandVar(result = %d, v = %p, %s)\n", result, v, v ? v.toChars() : "null");
 
@@ -262,7 +262,7 @@ package void setLengthVarIfKnown(VarDeclaration lengthVar, Type type)
  * Returns:
  *      Constant folded version of `e`
  */
-extern (C++) Expression Expression_optimize(Expression e, int result, bool keepLvalue)
+Expression Expression_optimize(Expression e, int result, bool keepLvalue)
 {
     extern (C++) final class OptimizeVisitor : Visitor
     {
@@ -426,8 +426,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (e.e1.op == TOK.comma)
             {
                 CommaExp ce = cast(CommaExp)e.e1;
-                auto ae = new AddrExp(e.loc, ce.e2);
-                ae.type = e.type;
+                auto ae = new AddrExp(e.loc, ce.e2, e.type);
                 ret = new CommaExp(ce.loc, ce.e1, ae);
                 ret.type = e.type;
                 return;
@@ -813,7 +812,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        void shift_optimize(BinExp e, UnionExp function(const ref Loc, Type, Expression, Expression) shift)
+        extern (D) void shift_optimize(BinExp e, UnionExp function(const ref Loc, Type, Expression, Expression) shift)
         {
             if (binOptimize(e, result))
                 return;

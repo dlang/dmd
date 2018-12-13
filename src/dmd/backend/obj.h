@@ -49,6 +49,7 @@ struct seg_data;
         static void dosseg(void);
         static void startaddress(Symbol *);
         static bool includelib(const char *);
+        static bool linkerdirective(const char *);
         static bool allowZeroSize();
         static void exestr(const char *p);
         static void user(const char *p);
@@ -135,6 +136,7 @@ class Obj
     VIRTUAL void dosseg(void);
     VIRTUAL void startaddress(Symbol *);
     VIRTUAL bool includelib(const char *);
+    VIRTUAL bool linkerdirective(const char *);
     VIRTUAL bool allowZeroSize();
     VIRTUAL void exestr(const char *p);
     VIRTUAL void user(const char *p);
@@ -150,8 +152,8 @@ class Obj
     VIRTUAL void ehtables(Symbol *sfunc,unsigned size,Symbol *ehsym);
     VIRTUAL void ehsections();
     VIRTUAL void moduleinfo(Symbol *scc);
-    virtual int  comdat(Symbol *);
-    virtual int  comdatsize(Symbol *, targ_size_t symsize);
+    VIRTUAL int  comdat(Symbol *);
+    VIRTUAL int  comdatsize(Symbol *, targ_size_t symsize);
     virtual int readonly_comdat(Symbol *s);
     VIRTUAL void setcodeseg(int seg);
     virtual seg_data *tlsseg();
@@ -246,6 +248,7 @@ class MsCoffObj : public Obj
 //    VIRTUAL void dosseg(void);
     VIRTUAL void startaddress(Symbol *);
     VIRTUAL bool includelib(const char *);
+    VIRTUAL bool linkerdirective(const char *);
     VIRTUAL bool allowZeroSize();
     VIRTUAL void exestr(const char *p);
     VIRTUAL void user(const char *p);

@@ -1396,6 +1396,10 @@ struct Aliassym : Symbol { };
 // Function symbol
 //struct Funcsym : Symbol { };
 
+int Symbol_Salignsize(Symbol* s);
+bool Symbol_Sisdead(Symbol* s, bool anyInlineAsm);
+int Symbol_needThis(Symbol* s);
+
 // Determine if this Symbol is stored in a COMDAT
 #if MARS
 #define symbol_iscomdat(s)      ((s)->Sclass == SCcomdat ||             \
@@ -1623,20 +1627,6 @@ struct EEcontext
 };
 
 extern EEcontext eecontext;
-
-#include "rtlsym.h"
-
-#undef SYMBOL_Z
-#define SYMBOL_Z(e,fl,saved,n,flags,ty)         RTLSYM_##e,
-
-enum
-{
-    RTLSYMS
-
-    RTLSYM_MAX
-};
-
-extern Symbol *rtlsym[RTLSYM_MAX];
 
 // Different goals for el_optimize()
 typedef unsigned goal_t;

@@ -12,6 +12,7 @@
 
 module dmd.initsem;
 
+import core.stdc.stdio;
 import core.checkedint;
 
 import dmd.aggregate;
@@ -33,8 +34,49 @@ import dmd.identifier;
 import dmd.init;
 import dmd.mtype;
 import dmd.statement;
+import dmd.target;
 import dmd.tokens;
+import dmd.typesem;
 import dmd.visitor;
+
+/********************************
+ * If possible, convert array initializer to associative array initializer.
+ *
+ *  Params:
+ *     ai = array initializer to be converted
+ *
+ *  Returns:
+ *     The converted associative array initializer or ErrorExp if `ai`
+ *     is not an associative array initializer.
+ */
+Expression toAssocArrayLiteral(ArrayInitializer ai)
+{
+    Expression e;
+    //printf("ArrayInitializer::toAssocArrayInitializer()\n");
+    //static int i; if (++i == 2) assert(0);
+    const dim = ai.value.dim;
+    auto keys = new Expressions(dim);
+    auto values = new Expressions(dim);
+    for (size_t i = 0; i < dim; i++)
+    {
+        e = ai.index[i];
+        if (!e)
+            goto Lno;
+        (*keys)[i] = e;
+        Initializer iz = ai.value[i];
+        if (!iz)
+            goto Lno;
+        e = iz.initializerToExpression();
+        if (!e)
+            goto Lno;
+        (*values)[i] = e;
+    }
+    e = new AssocArrayLiteralExp(ai.loc, keys, values);
+    return e;
+Lno:
+    error(ai.loc, "not an associative array initializer");
+    return new ErrorExp();
+}
 
 /***********************
  * Translate init to an `Expression` in order to infer the type.
@@ -44,7 +86,7 @@ import dmd.visitor;
  * Returns:
  *      an equivalent `ExpInitializer` if successful, or `ErrorInitializer` if it cannot be translated
  */
-extern (C++) Initializer inferType(Initializer init, Scope* sc)
+Initializer inferType(Initializer init, Scope* sc)
 {
     scope v = new InferTypeVisitor(sc);
     init.accept(v);
@@ -138,8 +180,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             }
             size_t nfields = sd.fields.dim - sd.isNested();
             //expandTuples for non-identity arguments?
-            auto elements = new Expressions();
-            elements.setDim(nfields);
+            auto elements = new Expressions(nfields);
             for (size_t j = 0; j < elements.dim; j++)
                 (*elements)[j] = null;
             // Run semantic for explicitly given initializers
@@ -153,10 +194,11 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                     if (!s)
                     {
                         s = sd.search_correct(id);
+                        Loc initLoc = i.value[j].loc;
                         if (s)
-                            error(i.loc, "`%s` is not a member of `%s`, did you mean %s `%s`?", id.toChars(), sd.toChars(), s.kind(), s.toChars());
+                            error(initLoc, "`%s` is not a member of `%s`, did you mean %s `%s`?", id.toChars(), sd.toChars(), s.kind(), s.toChars());
                         else
-                            error(i.loc, "`%s` is not a member of `%s`", id.toChars(), sd.toChars());
+                            error(initLoc, "`%s` is not a member of `%s`", id.toChars(), sd.toChars());
                         result = new ErrorInitializer();
                         return;
                     }
@@ -186,6 +228,17 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                     error(i.loc, "duplicate initializer for field `%s`", vd.toChars());
                     errors = true;
                     continue;
+                }
+                if (vd.type.hasPointers)
+                {
+                    if ((t.alignment() < Target.ptrsize ||
+                         (vd.offset & (Target.ptrsize - 1))) &&
+                        sc.func && sc.func.setUnsafe())
+                    {
+                        error(i.loc, "field `%s.%s` cannot assign to misaligned pointers in `@safe` code",
+                            sd.toChars(), vd.toChars());
+                        errors = true;
+                    }
                 }
                 for (size_t k = 0; k < nfields; k++)
                 {
@@ -381,7 +434,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
 
     override void visit(ExpInitializer i)
     {
-        //printf("ExpInitializer::semantic(%s), type = %s\n", exp.toChars(), t.toChars());
+        //printf("ExpInitializer::semantic(%s), type = %s\n", i.exp.toChars(), t.toChars());
         if (needInterpret)
             sc = sc.startCTFE();
         i.exp = i.exp.expressionSemantic(sc);
@@ -533,7 +586,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             i.exp = i.exp.ctfeInterpret();
         else
             i.exp = i.exp.optimize(WANTvalue);
-        //printf("-ExpInitializer::semantic(): "); exp.print();
+        //printf("-ExpInitializer::semantic(): "); i.exp.print();
         result = i;
     }
 }
@@ -574,10 +627,8 @@ private extern(C++) final class InferTypeVisitor : Visitor
         Expressions* values;
         if (init.isAssociativeArray())
         {
-            keys = new Expressions();
-            keys.setDim(init.value.dim);
-            values = new Expressions();
-            values.setDim(init.value.dim);
+            keys = new Expressions(init.value.dim);
+            values = new Expressions(init.value.dim);
             for (size_t i = 0; i < init.value.dim; i++)
             {
                 Expression e = init.index[i];
@@ -604,8 +655,7 @@ private extern(C++) final class InferTypeVisitor : Visitor
         }
         else
         {
-            auto elements = new Expressions();
-            elements.setDim(init.value.dim);
+            auto elements = new Expressions(init.value.dim);
             elements.zero();
             for (size_t i = 0; i < init.value.dim; i++)
             {
@@ -623,7 +673,7 @@ private extern(C++) final class InferTypeVisitor : Visitor
                 (*elements)[i] = (cast(ExpInitializer)iz).exp;
                 assert((*elements)[i].op != TOK.error);
             }
-            Expression e = new ArrayLiteralExp(init.loc, elements);
+            Expression e = new ArrayLiteralExp(init.loc, null, elements);
             auto ei = new ExpInitializer(init.loc, e);
             result = ei.inferType(sc);
             return;
@@ -798,8 +848,7 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
                     edim = cast(uint)(j + 1);
             }
         }
-        elements = new Expressions();
-        elements.setDim(edim);
+        elements = new Expressions(edim);
         elements.zero();
         for (size_t i = 0, j = 0; i < init.value.dim; i++, j++)
         {
@@ -846,12 +895,10 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
                     {
                         if (te.equals(e.type))
                         {
-                            auto elements2 = new Expressions();
-                            elements2.setDim(dim);
+                            auto elements2 = new Expressions(dim);
                             foreach (ref e2; *elements2)
                                 e2 = e;
-                            e = new ArrayLiteralExp(e.loc, elements2);
-                            e.type = tn;
+                            e = new ArrayLiteralExp(e.loc, tn, elements2);
                         }
                     }
                 }
@@ -869,8 +916,7 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
                 }
             }
 
-            Expression e = new ArrayLiteralExp(init.loc, elements);
-            e.type = init.type;
+            Expression e = new ArrayLiteralExp(init.loc, init.type, elements);
             result = e;
             return;
         }
@@ -882,19 +928,17 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
     {
         if (itype)
         {
-            //printf("ExpInitializer::toExpression(t = %s) exp = %s\n", t.toChars(), exp.toChars());
+            //printf("ExpInitializer::toExpression(t = %s) exp = %s\n", itype.toChars(), i.exp.toChars());
             Type tb = itype.toBasetype();
             Expression e = (i.exp.op == TOK.construct || i.exp.op == TOK.blit) ? (cast(AssignExp)i.exp).e2 : i.exp;
             if (tb.ty == Tsarray && e.implicitConvTo(tb.nextOf()))
             {
                 TypeSArray tsa = cast(TypeSArray)tb;
                 size_t d = cast(size_t)tsa.dim.toInteger();
-                auto elements = new Expressions();
-                elements.setDim(d);
+                auto elements = new Expressions(d);
                 for (size_t j = 0; j < d; j++)
                     (*elements)[j] = e;
-                auto ae = new ArrayLiteralExp(e.loc, elements);
-                ae.type = itype;
+                auto ae = new ArrayLiteralExp(e.loc, itype, elements);
                 result = ae;
                 return;
             }

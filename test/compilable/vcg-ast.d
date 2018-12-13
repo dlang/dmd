@@ -1,7 +1,7 @@
 module vcg;
 // REQUIRED_ARGS: -vcg-ast -o-
 // PERMUTE_ARGS:
-// POST_SCRIPT: compilable/extra-files/vcg-ast-postscript.sh compilable/vcg-ast.d.cg
+// POST_SCRIPT: compilable/extra-files/vcg-ast-postscript.sh
 
 template Seq(A...)
 {
@@ -29,5 +29,16 @@ void foo()
     static foreach(enum i; 0..3)
     {
         mixin("int a" ~ i.stringof ~ " = 1;");
+    }
+}
+
+class C
+{
+    invariant {}
+    invariant (true);
+
+    int foo() in{} out{} out(r){} in(true) out(; true) out(r; true)
+    {
+        return 2;
     }
 }

@@ -1,7 +1,3 @@
 #!/usr/bin/env bash
-set -euo pipefail
-dir=${RESULTS_DIR}/compilable
-output_file=${dir}/jsonNoOutFile.sh.out
-$DMD -c -od=${dir} -Xi=compilerInfo compilable/extra-files/emptymain.d > ${output_file}
-rm -f emptymain.json || true
-
+$DMD -c -od=${RESULTS_TEST_DIR} -Xi=compilerInfo ${EXTRA_FILES}/emptymain.d
+rm -f emptymain.json

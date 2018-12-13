@@ -13,19 +13,18 @@
 # -of=<objname>
 # -Xf=<filename>
 
-out_dir=${RESULTS_DIR}/runnable/test_switches
-src_file=${out_dir}/src.d
+src_file=${OUTPUT_BASE}/src.d
 
 clean()
 {
-    rm -rf ${out_dir} || true
+    rm -rf ${OUTPUT_BASE}
 }
 
 prepare()
 {
     clean;
-    mkdir ${out_dir}
-    echo "module mymod;" > ${out_dir}/mymod.d
+    mkdir -p ${OUTPUT_BASE}
+    echo "module mymod;" > ${OUTPUT_BASE}/mymod.d
     echo "module src; import mymod;" > ${src_file}
 }
 
@@ -42,11 +41,11 @@ checkFile()
 
 checkFiles()
 {
-    checkFile ${out_dir}/json.json
-    checkFile ${out_dir}/mymod.d
-    checkFile ${out_dir}/src.d
-    checkFile ${out_dir}/src.di
-    checkFile ${out_dir}/src.html
+    checkFile ${OUTPUT_BASE}/json.json
+    checkFile ${OUTPUT_BASE}/mymod.d
+    checkFile ${OUTPUT_BASE}/src.d
+    checkFile ${OUTPUT_BASE}/src.di
+    checkFile ${OUTPUT_BASE}/src.html
 }
 
 # @BUG@: -Df doesn't take -Dd into account when it's set
@@ -56,11 +55,11 @@ checkFiles()
 # as there's no common linker switch which all linkers support
 
 prepare;
-$DMD -c -of=mymod.o -od=${out_dir} -D -Df=${out_dir}/src.html -Hf=${out_dir}/src.di -I=${out_dir} -L=-v -Xf=${out_dir}/json.json ${src_file}
+$DMD -c -of=mymod.o -od=${OUTPUT_BASE} -D -Df=${OUTPUT_BASE}/src.html -Hf=${OUTPUT_BASE}/src.di -I=${OUTPUT_BASE} -L=-v -Xf=${OUTPUT_BASE}/json.json ${src_file}
 checkFiles;
 
 prepare;
-$DMD -c -of=mymod.o -od=${out_dir} -D -Dd=${out_dir} -Hd=${out_dir} -I=${out_dir} -L=-v -Xf=${out_dir}/json.json ${src_file}
+$DMD -c -of=mymod.o -od=${OUTPUT_BASE} -D -Dd=${OUTPUT_BASE} -Hd=${OUTPUT_BASE} -I=${OUTPUT_BASE} -L=-v -Xf=${OUTPUT_BASE}/json.json ${src_file}
 checkFiles;
 
 clean;

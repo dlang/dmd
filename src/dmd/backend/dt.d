@@ -41,7 +41,7 @@ private:
     dt_t** pTail;
 
 public:
-    this()
+    extern (D) this()
     {
         pTail = &head;
     }
@@ -75,5 +75,5 @@ else
     void repeat(dt_t* dt, uint count);
     uint length();
     bool isZeroLength();
-};
+}
 

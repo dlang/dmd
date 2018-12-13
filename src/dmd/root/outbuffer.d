@@ -85,11 +85,6 @@ struct OutBuffer
         offset += nbytes;
     }
 
-    extern (C++) void writebstring(char* string) nothrow
-    {
-        write(string, *string + 1);
-    }
-
     extern (C++) void writestring(const(char)* string) nothrow
     {
         write(string, strlen(string));
@@ -288,7 +283,7 @@ struct OutBuffer
         offset += nbytes;
     }
 
-    extern (C++) void vprintf(const(char)* format, va_list args) /*nothrow*/
+    extern (C++) void vprintf(const(char)* format, va_list args) nothrow
     {
         int count;
         if (doindent)
@@ -334,7 +329,7 @@ struct OutBuffer
         offset += count;
     }
 
-    extern (C++) void printf(const(char)* format, ...) /*nothrow*/
+    extern (C++) void printf(const(char)* format, ...) nothrow
     {
         va_list ap;
         va_start(ap, format);
@@ -459,4 +454,3 @@ char[] unsignedToTempString(ulong value, char[] buf, uint radix = 10) @safe
     } while (value);
     return buf[i .. $];
 }
-

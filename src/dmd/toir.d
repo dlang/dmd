@@ -413,19 +413,44 @@ int intrinsic_op(FuncDeclaration fd)
         OPyl2xp1,
     ];
 
-    __gshared immutable char*[46] core_namearray =
+    __gshared immutable char*[62] core_namearray =
     [
+        //cos
+        "4math3cosFNaNbNiNfdZd",
         "4math3cosFNaNbNiNfeZe",
+        "4math3cosFNaNbNiNffZf",
+        //sin
+        "4math3sinFNaNbNiNfdZd",
         "4math3sinFNaNbNiNfeZe",
+        "4math3sinFNaNbNiNffZf",
+        //fabs
+        "4math4fabsFNaNbNiNfdZd",
         "4math4fabsFNaNbNiNfeZe",
+        "4math4fabsFNaNbNiNffZf",
+        //rint
+        "4math4rintFNaNbNiNfdZd",
         "4math4rintFNaNbNiNfeZe",
+        "4math4rintFNaNbNiNffZf",
+        //sqrt
         "4math4sqrtFNaNbNiNfdZd",
         "4math4sqrtFNaNbNiNfeZe",
         "4math4sqrtFNaNbNiNffZf",
+        //yl2x
+        "4math4yl2xFNaNbNiNfddZd",
         "4math4yl2xFNaNbNiNfeeZe",
+        "4math4yl2xFNaNbNiNfffZf",
+        //ldexp
+        "4math5ldexpFNaNbNiNfdiZd",
         "4math5ldexpFNaNbNiNfeiZe",
+        "4math5ldexpFNaNbNiNffiZf",
+        //rndtol
+        "4math6rndtolFNaNbNiNfdZl",
         "4math6rndtolFNaNbNiNfeZl",
+        "4math6rndtolFNaNbNiNffZl",
+        //yl2xp1
+        "4math6yl2xp1FNaNbNiNfddZd",
         "4math6yl2xp1FNaNbNiNfeeZe",
+        "4math6yl2xp1FNaNbNiNfffZf",
 
         "4simd10__prefetchFNaNbNiNfxPvhZv",
         "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMNhG16vQgZQj",
@@ -467,19 +492,44 @@ int intrinsic_op(FuncDeclaration fd)
         "5bitop7_popcntFNaNbNiNfmxx", // don't find 64 bit version in 32 bit code
         "5bitop7_popcntFNaNbNiNftZt",
     ];
-    __gshared immutable char*[46] core_namearray64 =
+    __gshared immutable char*[62] core_namearray64 =
     [
+        //cos
+        "4math3cosFNaNbNiNfdZd",
         "4math3cosFNaNbNiNfeZe",
+        "4math3cosFNaNbNiNffZf",
+        //sin
+        "4math3sinFNaNbNiNfdZd",
         "4math3sinFNaNbNiNfeZe",
+        "4math3sinFNaNbNiNffZf",
+        //fabs
+        "4math4fabsFNaNbNiNfdZd",
         "4math4fabsFNaNbNiNfeZe",
+        "4math4fabsFNaNbNiNffZf",
+        //rint
+        "4math4rintFNaNbNiNfdZd",
         "4math4rintFNaNbNiNfeZe",
+        "4math4rintFNaNbNiNffZf",
+        //sqrt
         "4math4sqrtFNaNbNiNfdZd",
         "4math4sqrtFNaNbNiNfeZe",
         "4math4sqrtFNaNbNiNffZf",
+        //yl2x
+        "4math4yl2xFNaNbNiNfddZd",
         "4math4yl2xFNaNbNiNfeeZe",
+        "4math4yl2xFNaNbNiNfffZf",
+        //ldexp
+        "4math5ldexpFNaNbNiNfdiZd",
         "4math5ldexpFNaNbNiNfeiZe",
+        "4math5ldexpFNaNbNiNffiZf",
+        //rndtol
+        "4math6rndtolFNaNbNiNfdZl",
         "4math6rndtolFNaNbNiNfeZl",
+        "4math6rndtolFNaNbNiNffZl",
+        //yl2xp1
+        "4math6yl2xp1FNaNbNiNfddZd",
         "4math6yl2xp1FNaNbNiNfeeZe",
+        "4math6yl2xp1FNaNbNiNfffZf",
 
         "4simd10__prefetchFNaNbNiNfxPvhZv",
         "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMNhG16vQgZQj",
@@ -521,18 +571,42 @@ int intrinsic_op(FuncDeclaration fd)
         "5bitop7_popcntFNaNbNiNfmZi",
         "5bitop7_popcntFNaNbNiNftZt",
     ];
-    __gshared immutable ubyte[46] core_ioptab =
+    __gshared immutable ubyte[62] core_ioptab =
     [
         OPcos,
+        OPcos,
+        OPcos,
+
         OPsin,
+        OPsin,
+        OPsin,
+
         OPabs,
+        OPabs,
+        OPabs,
+
         OPrint,
+        OPrint,
+        OPrint,
+
         OPsqrt,
         OPsqrt,
         OPsqrt,
+
         OPyl2x,
+        OPyl2x,
+        OPyl2x,
+
         OPscale,
+        OPscale,
+        OPscale,
+
         OPrndtol,
+        OPrndtol,
+        OPrndtol,
+
+        OPyl2xp1,
+        OPyl2xp1,
         OPyl2xp1,
 
         OPprefetch,
@@ -828,7 +902,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         strcat(strcat(closname, name1), name2);
 
         /* Build type for closure */
-        type *Closstru = type_struct_class(closname, Target.ptrsize, 0, null, null, false, false, true);
+        type *Closstru = type_struct_class(closname, Target.ptrsize, 0, null, null, false, false, true, false);
         free(closname);
         symbol_struct_addField(Closstru.Ttag, "__chain", Type_toCtype(Type.tvoidptr), 0);
 
@@ -955,151 +1029,14 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
 /***************************
  * Determine return style of function - whether in registers or
  * through a hidden pointer to the caller's stack.
+ * Params:
+ *   tf = function type to check
+ *   needsThis = true if the function type is for a non-static member function
+ * Returns:
+ *   RET.stack if return value from function is on the stack, RET.regs otherwise
  */
-RET retStyle(TypeFunction tf)
+RET retStyle(TypeFunction tf, bool needsThis)
 {
     //printf("TypeFunction.retStyle() %s\n", toChars());
-    if (tf.isref)
-    {
-        //printf("  ref RET.regs\n");
-        return RET.regs;                 // returns a pointer
-    }
-
-    Type tn = tf.next.toBasetype();
-    //printf("tn = %s\n", tn.toChars());
-    d_uns64 sz = tn.size();
-    Type tns = tn;
-
-    if (global.params.isWindows && global.params.is64bit)
-    {
-        // http://msdn.microsoft.com/en-us/library/7572ztz4.aspx
-        if (tns.ty == Tcomplex32)
-            return RET.stack;
-        if (tns.isscalar())
-            return RET.regs;
-
-        tns = tns.baseElemOf();
-        if (tns.ty == Tstruct)
-        {
-            StructDeclaration sd = (cast(TypeStruct)tns).sym;
-            if (sd.ident == Id.__c_long_double)
-                return RET.regs;
-            if (!sd.isPOD() || sz > 8)
-                return RET.stack;
-            if (sd.fields.dim == 0)
-                return RET.stack;
-        }
-        if (sz <= 16 && !(sz & (sz - 1)))
-            return RET.regs;
-        return RET.stack;
-    }
-    else if (global.params.isWindows && global.params.mscoff)
-    {
-        Type tb = tns.baseElemOf();
-        if (tb.ty == Tstruct)
-        {
-            StructDeclaration sd = (cast(TypeStruct)tb).sym;
-            if (sd.ident == Id.__c_long_double)
-                return RET.regs;
-        }
-    }
-
-Lagain:
-    if (tns.ty == Tsarray)
-    {
-        tns = tns.baseElemOf();
-        if (tns.ty != Tstruct)
-        {
-L2:
-            if (global.params.isLinux && tf.linkage != LINK.d && !global.params.is64bit)
-            {
-                                                // 32 bit C/C++ structs always on stack
-            }
-            else
-            {
-                switch (sz)
-                {
-                    case 1:
-                    case 2:
-                    case 4:
-                    case 8:
-                        //printf("  sarray RET.regs\n");
-                        return RET.regs; // return small structs in regs
-                                            // (not 3 byte structs!)
-                    default:
-                        break;
-                }
-            }
-            //printf("  sarray RET.stack\n");
-            return RET.stack;
-        }
-    }
-
-    if (tns.ty == Tstruct)
-    {
-        StructDeclaration sd = (cast(TypeStruct)tns).sym;
-        if (global.params.isLinux && tf.linkage != LINK.d && !global.params.is64bit)
-        {
-            if (sd.ident == Id.__c_long || sd.ident == Id.__c_ulong)
-                return RET.regs;
-
-            //printf("  2 RET.stack\n");
-            return RET.stack;            // 32 bit C/C++ structs always on stack
-        }
-        if (global.params.isWindows && tf.linkage == LINK.cpp && !global.params.is64bit &&
-                 sd.isPOD() && sd.ctor)
-        {
-            // win32 returns otherwise POD structs with ctors via memory
-            // unless it's not really a struct
-            if (sd.ident == Id.__c_long || sd.ident == Id.__c_ulong)
-                return RET.regs;
-            return RET.stack;
-        }
-        if (sd.arg1type && !sd.arg2type)
-        {
-            tns = sd.arg1type;
-            if (tns.ty != Tstruct)
-                goto L2;
-            goto Lagain;
-        }
-        else if (global.params.is64bit && !sd.arg1type && !sd.arg2type)
-            return RET.stack;
-        else if (sd.isPOD())
-        {
-            switch (sz)
-            {
-                case 1:
-                case 2:
-                case 4:
-                case 8:
-                    //printf("  3 RET.regs\n");
-                    return RET.regs;     // return small structs in regs
-                                        // (not 3 byte structs!)
-                case 16:
-                    if (!global.params.isWindows && global.params.is64bit)
-                       return RET.regs;
-                    break;
-
-                default:
-                    break;
-            }
-        }
-        //printf("  3 RET.stack\n");
-        return RET.stack;
-    }
-    else if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isDragonFlyBSD || global.params.isSolaris) &&
-             tf.linkage == LINK.c &&
-             tns.iscomplex())
-    {
-        if (tns.ty == Tcomplex32)
-            return RET.regs;     // in EDX:EAX, not ST1:ST0
-        else
-            return RET.stack;
-    }
-    else
-    {
-        //assert(sz <= 16);
-        //printf("  4 RET.regs\n");
-        return RET.regs;
-    }
+    return Target.isReturnOnStack(tf, needsThis) ? RET.stack : RET.regs;
 }

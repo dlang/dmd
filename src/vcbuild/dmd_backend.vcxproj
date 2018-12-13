@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -85,89 +85,41 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\dmd\backend\backconfig.c" />
-    <ClCompile Include="..\dmd\backend\compress.c" />
-    <ClCompile Include="..\dmd\backend\cv8.c" />
-    <ClCompile Include="..\dmd\backend\gsroa.c" />
-    <ClCompile Include="..\dmd\backend\pdata.c" />
-    <ClCompile Include="..\dmd\backend\ph2.c" />
-    <ClCompile Include="..\dmd\backend\util2.c" />
     <ClCompile Include="..\dmd\backend\varstats.c" />
     <ClCompile Include="..\dmd\backend\tk.c" />
     <ClCompile Include="..\dmd\backend\aa.c" />
-    <ClCompile Include="..\dmd\backend\bcomplex.c" />
-    <ClCompile Include="..\dmd\backend\blockopt.c" />
-    <ClCompile Include="..\dmd\backend\cg.c" />
-    <ClCompile Include="..\dmd\backend\cg87.c" />
-    <ClCompile Include="..\dmd\backend\cgcod.c" />
-    <ClCompile Include="..\dmd\backend\cgcs.c" />
-    <ClCompile Include="..\dmd\backend\cgcv.c" />
-    <ClCompile Include="..\dmd\backend\cgelem.c" />
     <ClCompile Include="..\dmd\backend\cgen.c" />
     <ClCompile Include="..\dmd\backend\cgobj.c" />
-    <ClCompile Include="..\dmd\backend\cgreg.c" />
-    <ClCompile Include="..\dmd\backend\cgsched.c" />
-    <ClCompile Include="..\dmd\backend\cgxmm.c" />
-    <ClCompile Include="..\dmd\backend\cod1.c" />
-    <ClCompile Include="..\dmd\backend\cod2.c" />
-    <ClCompile Include="..\dmd\backend\cod3.c" />
-    <ClCompile Include="..\dmd\backend\cod4.c" />
-    <ClCompile Include="..\dmd\backend\cod5.c" />
-    <ClCompile Include="..\dmd\backend\code.c" />
-    <ClCompile Include="..\dmd\backend\debug.c" />
-    <ClCompile Include="..\dmd\backend\divcoeff.c" />
     <ClCompile Include="..\dmd\backend\dt.c" />
     <ClCompile Include="..\dmd\backend\dwarf.c" />
-    <ClCompile Include="..\dmd\backend\ee.c" />
-    <ClCompile Include="..\dmd\backend\el.c" />
     <ClCompile Include="..\dmd\backend\elfobj.c" />
-    <ClCompile Include="..\dmd\backend\evalu8.c" />
-    <ClCompile Include="..\dmd\backend\gdag.c" />
-    <ClCompile Include="..\dmd\backend\gflow.c" />
-    <ClCompile Include="..\dmd\backend\glocal.c" />
-    <ClCompile Include="..\dmd\backend\gloop.c" />
-    <ClCompile Include="..\dmd\backend\go.c" />
-    <ClCompile Include="..\dmd\backend\gother.c" />
+    <ClCompile Include="..\dmd\backend\fp.c" />
     <ClCompile Include="..\dmd\backend\machobj.c" />
-    <ClCompile Include="..\dmd\backend\md5.c" />
     <ClCompile Include="..\dmd\backend\mscoffobj.c" />
-    <ClCompile Include="..\dmd\backend\newman.c" />
-    <ClCompile Include="..\dmd\backend\nteh.c" />
     <ClCompile Include="..\dmd\backend\os.c" />
-    <ClCompile Include="..\dmd\backend\out.c" />
     <ClCompile Include="..\dmd\backend\outbuf.c" />
     <ClCompile Include="..\dmd\backend\ptrntab.c" />
-    <ClCompile Include="..\dmd\backend\rtlsym.c" />
+    <ClCompile Include="..\dmd\backend\sizecheck.c" />
     <ClCompile Include="..\dmd\backend\strtold.c" />
-    <ClCompile Include="..\dmd\backend\symbol.c" />
     <ClCompile Include="..\dmd\backend\ti_achar.c" />
     <ClCompile Include="..\dmd\backend\ti_pvoid.c" />
-    <ClCompile Include="..\dmd\backend\type.c" />
-    <ClCompile Include="..\dmd\backend\var.c" />
     <ClCompile Include="..\dmd\tk\filespec.c">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\dmd\tk\list.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\dmd\tk\mem.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\dmd\tk\vec.c">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\dmd\root\longdouble.c" />
     <ClCompile Include="..\dmd\root\newdelete.c" />
-    <CustomBuild Include="..\dmd\backend\optabgen.c">
+    <CustomBuild Include="..\dmd\backend\optabgen.d">
       <Message>Building and running $(IntDir)%(Filename).exe</Message>
-      <Command>cl /TP /I..\dmd\tk /I..\dmd\root /I. /I.. /FIwarnings.h /Fo"$(IntDir)%(Filename).obj" /Fe"$(IntDir)generated\%(Filename).exe" "%(FullPath)"
+      <Command>$(DMDBinDir)\dmd.exe -I.. -version=MARS -of"$(IntDir)generated\%(Filename).exe" "%(FullPath)"
 if errorlevel 1 exit /B %ERRORLEVEL%
 pushd $(IntDir)generated
 "%(Filename).exe"
 if errorlevel 1 exit /B %ERRORLEVEL%
 popd</Command>
-      <Outputs>$(IntDir)generated\optab.c;$(IntDir)generated\debtab.c;$(IntDir)generated\cdxxx.c;$(IntDir)generated\elxxx.c;$(IntDir)generated\tytab.c;$(IntDir)generated\\fltables.c;%(Outputs)</Outputs>
-      <AdditionalInputs>..\dmd\backend\cc.h;..\dmd\backend\oper.h;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs>$(IntDir)generated\optab.d;$(IntDir)generated\debtab.d;$(IntDir)generated\cdxxx.d;$(IntDir)generated\elxxx.d;$(IntDir)generated\tytab.d;$(IntDir)generated\\fltables.d;%(Outputs)</Outputs>
+      <AdditionalInputs>..\dmd\backend\cc.d;..\dmd\backend\cdef.d;..\dmd\backend\oper.d;..\dmd\backend\ty.d;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
@@ -188,7 +140,6 @@ popd</Command>
     <ClInclude Include="..\dmd\identifier.h" />
     <ClInclude Include="..\dmd\import.h" />
     <ClInclude Include="..\dmd\init.h" />
-    <ClInclude Include="..\dmd\intrange.h" />
     <ClInclude Include="..\dmd\json.h" />
     <ClInclude Include="..\dmd\mars.h" />
     <ClInclude Include="..\dmd\module.h" />
@@ -238,19 +189,10 @@ popd</Command>
     <ClInclude Include="..\dmd\root\port.h" />
     <ClInclude Include="..\dmd\root\rmem.h" />
     <ClInclude Include="..\dmd\root\root.h" />
-    <ClInclude Include="..\dmd\root\stringtable.h" />
     <ClInclude Include="..\vcbuild\alloca.h" />
     <ClInclude Include="..\vcbuild\fenv.h" />
     <ClInclude Include="..\vcbuild\stdint.h" />
     <ClInclude Include="..\vcbuild\warnings.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="..\vcbuild\ldfpu.asm">
-      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
-      <Message>Assembling $(IntDir)%(Filename)%(Extension)</Message>
-      <Command>ml64 -c -Zi "-Fl$(IntDir)%(Filename).lst" "-Fo$(IntDir)%(Filename).obj" "%(FullPath)"</Command>
-      <Outputs>$(IntDir)%(Filename).obj;%(Outputs)</Outputs>
-    </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

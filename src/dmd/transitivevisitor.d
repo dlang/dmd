@@ -43,7 +43,7 @@ package mixin template ParseVisitMethods(AST)
     override void visit(AST.CompileStatement s)
     {
         //printf("Visiting CompileStatement\n");
-        s.exp.accept(this);
+        visitArgs(s.exps);
     }
 
     override void visit(AST.CompoundStatement s)
@@ -560,7 +560,7 @@ package mixin template ParseVisitMethods(AST)
     override void visit(AST.CompileDeclaration d)
     {
         //printf("Visiting compileDeclaration\n");
-        d.exp.accept(this);
+        visitArgs(d.exps);
     }
 
     override void visit(AST.UserAttributeDeclaration d)
@@ -573,13 +573,24 @@ package mixin template ParseVisitMethods(AST)
     void visitFuncBody(AST.FuncDeclaration f)
     {
         //printf("Visiting funcBody\n");
-        if (!f.fbody)
-            return;
-        if (f.frequire)
-            f.frequire.accept(this);
-        if (f.fensure)
-            f.fensure.accept(this);
-        f.fbody.accept(this);
+        if (f.frequires)
+        {
+            foreach (frequire; *f.frequires)
+            {
+                frequire.accept(this);
+            }
+        }
+        if (f.fensures)
+        {
+            foreach (fensure; *f.fensures)
+            {
+                fensure.ensure.accept(this);
+            }
+        }
+        if (f.fbody)
+        {
+            f.fbody.accept(this);
+        }
     }
 
     void visitBaseClasses(AST.ClassDeclaration d)
@@ -991,7 +1002,7 @@ package mixin template ParseVisitMethods(AST)
     override void visit(AST.CompileExp e)
     {
         //printf("Visiting CompileExp\n");
-        e.e1.accept(this);
+        visitArgs(e.exps);
     }
 
     override void visit(AST.ImportExp e)

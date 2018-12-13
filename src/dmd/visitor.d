@@ -65,6 +65,7 @@ public:
     void visit(ASTCodegen.ErrorExp e) { visit(cast(ASTCodegen.Expression)e); }
     void visit(ASTCodegen.ComplexExp e) { visit(cast(ASTCodegen.Expression)e); }
     void visit(ASTCodegen.StructLiteralExp e) { visit(cast(ASTCodegen.Expression)e); }
+    void visit(ASTCodegen.ObjcClassReferenceExp e) { visit(cast(ASTCodegen.Expression)e); }
     void visit(ASTCodegen.SymOffExp e) { visit(cast(ASTCodegen.SymbolExp)e); }
     void visit(ASTCodegen.OverExp e) { visit(cast(ASTCodegen.Expression)e); }
     void visit(ASTCodegen.HaltExp e) { visit(cast(ASTCodegen.Expression)e); }

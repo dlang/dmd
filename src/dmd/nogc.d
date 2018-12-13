@@ -29,7 +29,7 @@ import dmd.visitor;
  */
 extern (C++) final class NOGCVisitor : StoppableVisitor
 {
-    alias visit = super.visit;
+    alias visit = typeof(super).visit;
 public:
     FuncDeclaration f;
     bool err;
@@ -212,7 +212,7 @@ public:
     }
 }
 
-extern (C++) Expression checkGC(Scope* sc, Expression e)
+Expression checkGC(Scope* sc, Expression e)
 {
     FuncDeclaration f = sc.func;
     if (e && e.op != TOK.error && f && sc.intypeof != 1 && !(sc.flags & SCOPE.ctfe) &&

@@ -5,23 +5,18 @@
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/init.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/init.h
  */
 
-#ifndef INIT_H
-#define INIT_H
+#pragma once
 
-#include "root.h"
-
-#include "mars.h"
+#include "globals.h"
 #include "arraytypes.h"
 #include "visitor.h"
 
 class Identifier;
 class Expression;
-struct Scope;
 class Type;
-class AggregateDeclaration;
 class ErrorInitializer;
 class VoidInitializer;
 class StructInitializer;
@@ -36,7 +31,6 @@ public:
     Loc loc;
 
     virtual Initializer *syntaxCopy() = 0;
-    static Initializers *arraySyntaxCopy(Initializers *ai);
 
     const char *toChars();
 
@@ -111,4 +105,4 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-#endif
+Expression *initializerToExpression(Initializer *init, Type *t = NULL);

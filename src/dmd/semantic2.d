@@ -41,13 +41,11 @@ import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
-import dmd.gluelayer;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
 import dmd.initsem;
 import dmd.hdrgen;
-import dmd.mars;
 import dmd.mtype;
 import dmd.nogc;
 import dmd.nspace;
@@ -237,18 +235,16 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
         //printf("VarDeclaration::semantic2('%s')\n", toChars());
 
+        if (vd.aliassym)        // if it's a tuple
+        {
+            vd.aliassym.accept(this);
+            vd.semanticRun = PASS.semantic2done;
+            return;
+        }
+
         if (vd._init && !vd.toParent().isFuncDeclaration())
         {
             vd.inuse++;
-            version (none)
-            {
-                ExpInitializer ei = vd._init.isExpInitializer();
-                if (ei)
-                {
-                    ei.exp.print();
-                    printf("type = %p\n", ei.exp.type);
-                }
-            }
             // https://issues.dlang.org/show_bug.cgi?id=14166
             // Don't run CTFE for the temporary variables inside typeof
             vd._init = vd._init.initializerSemantic(sc, vd.type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
@@ -348,7 +344,6 @@ private extern(C++) final class Semantic2Visitor : Visitor
         if (fd.semanticRun >= PASS.semantic2done)
             return;
         assert(fd.semanticRun <= PASS.semantic2);
-
         fd.semanticRun = PASS.semantic2;
 
         //printf("FuncDeclaration::semantic2 [%s] fd0 = %s %s\n", loc.toChars(), toChars(), type.toChars());
@@ -441,12 +436,24 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 return 0;
             });
         }
-
         objc.setSelector(fd, sc);
         objc.validateSelector(fd);
         if (ClassDeclaration cd = fd.parent.isClassDeclaration())
         {
             objc.checkLinkage(fd);
+        }
+        if (!fd.type || fd.type.ty != Tfunction)
+            return;
+        TypeFunction f = cast(TypeFunction) fd.type;
+        if (!f.parameters)
+            return;
+        size_t nparams = Parameter.dim(f.parameters);
+        //semantic for parameters' UDAs
+        foreach (i; 0..nparams)
+        {
+            Parameter param = Parameter.getNth(f.parameters, i);
+            if (param && param.userAttribDecl)
+                param.userAttribDecl.semantic2(sc);
         }
     }
 
@@ -563,7 +570,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
     override void visit(AggregateDeclaration ad)
     {
-        //printf("AggregateDeclaration::semantic2(%s) type = %s, errors = %d\n", toChars(), type.toChars(), errors);
+        //printf("AggregateDeclaration::semantic2(%s) type = %s, errors = %d\n", ad.toChars(), ad.type.toChars(), ad.errors);
         if (!ad.members)
             return;
 

@@ -68,7 +68,7 @@ enum BUILTIN : int
  */
 extern (C++) final class NrvoWalker : StatementRewriteWalker
 {
-    alias visit = super.visit;
+    alias visit = typeof(super).visit;
 public:
     FuncDeclaration fd;
     Scope* sc;
@@ -98,8 +98,17 @@ public:
     {
         DtorExpStatement des;
         if (fd.nrvo_can && s.finalbody && (des = s.finalbody.isDtorExpStatement()) !is null &&
-            fd.nrvo_var == des.var && global.params.useExceptions && ClassDeclaration.throwable)
+            fd.nrvo_var == des.var)
         {
+            if (!(global.params.useExceptions && ClassDeclaration.throwable))
+            {
+                /* Don't need to call destructor at all, since it is nrvo
+                 */
+                replaceCurrent(s._body);
+                s._body.accept(this);
+                return;
+            }
+
             /* Normally local variable dtors are called regardless exceptions.
              * But for nrvo_var, its dtor should be called only when exception is thrown.
              *
@@ -153,12 +162,47 @@ enum FUNCFLAG : uint
 }
 
 /***********************************************************
+ * Tuple of result identifier (possibly null) and statement.
+ * This is used to store out contracts: out(id){ ensure }
+ */
+extern (C++) struct Ensure
+{
+    Identifier id;
+    Statement ensure;
+
+    Ensure syntaxCopy()
+    {
+        return Ensure(id, ensure.syntaxCopy());
+    }
+
+    /*****************************************
+     * Do syntax copy of an array of Ensure's.
+     */
+    static Ensures* arraySyntaxCopy(Ensures* a)
+    {
+        Ensures* b = null;
+        if (a)
+        {
+            b = a.copy();
+            foreach (i, e; *a)
+            {
+                (*b)[i] = e.syntaxCopy();
+            }
+        }
+        return b;
+    }
+
+}
+
+/***********************************************************
  */
 extern (C++) class FuncDeclaration : Declaration
 {
     Types* fthrows;                     /// Array of Type's of exceptions (not used)
-    Statement frequire;                 /// in contract body
-    Statement fensure;                  /// out contract body
+    Statements* frequires;              /// in contracts
+    Ensures* fensures;                  /// out contracts
+    Statement frequire;                 /// lowered in contract
+    Statement fensure;                  /// lowered out contract
     Statement fbody;                    /// function body
 
     FuncDeclarations foverrides;        /// functions this function overrides
@@ -167,8 +211,7 @@ extern (C++) class FuncDeclaration : Declaration
 
     const(char)* mangleString;          /// mangled symbol created from mangleExact()
 
-    Identifier outId;                   /// identifier for out statement
-    VarDeclaration vresult;             /// variable corresponding to outId
+    VarDeclaration vresult;             /// result variable for out contracts
     LabelDsymbol returnLabel;           /// where the return goes
 
     // used to prevent symbols in different
@@ -192,7 +235,7 @@ extern (C++) class FuncDeclaration : Declaration
     ILS inlineStatusExp = ILS.uninitialized;
     PINLINE inlining = PINLINE.default_;
 
-    CompiledCtfeFunction* ctfeCode;     /// Compiled code for interpreter (not actually)
+    CompiledCtfeFunctionPimpl ctfeCode; /// Local data (i.e. CompileCtfeFunction*) for module dinterpret
     int inlineNest;                     /// !=0 if nested inline
     bool isArrayOp;                     /// true if array operation
     bool eh_none;                       /// true if no exception unwinding is needed
@@ -275,9 +318,8 @@ extern (C++) class FuncDeclaration : Declaration
     {
         //printf("FuncDeclaration::syntaxCopy('%s')\n", toChars());
         FuncDeclaration f = s ? cast(FuncDeclaration)s : new FuncDeclaration(loc, endloc, ident, storage_class, type.syntaxCopy());
-        f.outId = outId;
-        f.frequire = frequire ? frequire.syntaxCopy() : null;
-        f.fensure = fensure ? fensure.syntaxCopy() : null;
+        f.frequires = frequires ? Statement.arraySyntaxCopy(frequires) : null;
+        f.fensures = fensures ? Ensure.arraySyntaxCopy(fensures) : null;
         f.fbody = fbody ? fbody.syntaxCopy() : null;
         assert(!fthrows); // deprecated
         return f;
@@ -373,7 +415,7 @@ extern (C++) class FuncDeclaration : Declaration
      * Check that this function type is properly resolved.
      * If not, report "forward reference error" and return true.
      */
-    final bool checkForwardRef(const ref Loc loc)
+    extern (D) final bool checkForwardRef(const ref Loc loc)
     {
         if (!functionSemantic())
             return true;
@@ -634,7 +676,7 @@ extern (C++) class FuncDeclaration : Declaration
         {
             if (overnext)
                 return overnext.overloadInsert(ad);
-            if (!ad.aliassym && ad.type.ty != Tident && ad.type.ty != Tinstance)
+            if (!ad.aliassym && ad.type.ty != Tident && ad.type.ty != Tinstance && ad.type.ty != Ttypeof)
             {
                 //printf("\tad = '%s'\n", ad.type.toChars());
                 return false;
@@ -912,8 +954,7 @@ extern (C++) class FuncDeclaration : Declaration
 
         /* Create a dummy array of arguments out of the parameters to f()
          */
-        Expressions args;
-        args.setDim(nfparams);
+        Expressions args = Expressions(nfparams);
         for (size_t u = 0; u < nfparams; u++)
         {
             Parameter p = Parameter.getNth(tf.parameters, u);
@@ -1336,7 +1377,7 @@ extern (C++) class FuncDeclaration : Declaration
         Module m = getModule();
         if (m && m.isRoot() && !inUnittest())
         {
-            message("%s: vgc: %s", loc.toChars(), warn);
+            message(loc, "vgc: %s", warn);
         }
     }
 
@@ -1409,7 +1450,7 @@ extern (C++) class FuncDeclaration : Declaration
      *    which could have come from the function's parameters, mutable
      *    globals, or uplevel functions.
      */
-    private final bool isTypeIsolatedIndirect(Type t)
+    private bool isTypeIsolatedIndirect(Type t)
     {
         //printf("isTypeIsolatedIndirect(t: %s)\n", t.toChars());
         assert(t);
@@ -1518,7 +1559,7 @@ extern (C++) class FuncDeclaration : Declaration
     override inout(AggregateDeclaration) isThis() inout
     {
         //printf("+FuncDeclaration::isThis() '%s'\n", toChars());
-        auto ad = (storage_class & STC.static_) ? null : isMember2();
+        auto ad = (storage_class & STC.static_) ? objc.isThis(this) : isMember2();
         //printf("-FuncDeclaration::isThis() %p\n", ad);
         return ad;
     }
@@ -1638,7 +1679,7 @@ extern (C++) class FuncDeclaration : Declaration
      *    then mark it as a delegate.
      * Returns true if error occurs.
      */
-    final bool checkNestedReference(Scope* sc, const ref Loc loc)
+    extern (D) final bool checkNestedReference(Scope* sc, const ref Loc loc)
     {
         //printf("FuncDeclaration::checkNestedReference() %s\n", toPrettyChars());
 
@@ -1808,7 +1849,7 @@ extern (C++) class FuncDeclaration : Declaration
      * Returns:
      *      true if any errors occur.
      */
-    final bool checkClosure()
+    extern (D) final bool checkClosure()
     {
         if (!needsClosure())
             return false;
@@ -1892,6 +1933,18 @@ extern (C++) class FuncDeclaration : Declaration
     }
 
     /****************************************************
+     * Check whether result variable can be built.
+     * Returns:
+     *     `true` if the function has a return type that
+     *     is different from `void`.
+     */
+    extern (D) private bool canBuildResultVar()
+    {
+        auto f = cast(TypeFunction)type;
+        return f && f.nextOf() && f.nextOf().toBasetype().ty != Tvoid;
+    }
+
+    /****************************************************
      * Declare result variable lazily.
      */
     final void buildResultVar(Scope* sc, Type tret)
@@ -1904,11 +1957,8 @@ extern (C++) class FuncDeclaration : Declaration
              * So, in here it may be a temporary type for vresult, and after
              * fbody.dsymbolSemantic() running, vresult.type might be modified.
              */
-            vresult = new VarDeclaration(loc, tret, outId ? outId : Id.result, null);
-            vresult.storage_class |= STC.nodtor;
-
-            if (outId == Id.result)
-                vresult.storage_class |= STC.temp;
+            vresult = new VarDeclaration(loc, tret, Id.result, null);
+            vresult.storage_class |= STC.nodtor | STC.temp;
             if (!isVirtual())
                 vresult.storage_class |= STC.const_;
             vresult.storage_class |= STC.result;
@@ -1976,7 +2026,7 @@ extern (C++) class FuncDeclaration : Declaration
              * be completed before code generation occurs.
              * https://issues.dlang.org/show_bug.cgi?id=3602
              */
-            if (fdv.frequire && fdv.semanticRun != PASS.semantic3done)
+            if (fdv.frequires && fdv.semanticRun != PASS.semantic3done)
             {
                 assert(fdv._scope);
                 Scope* sc = fdv._scope.push();
@@ -2019,7 +2069,7 @@ extern (C++) class FuncDeclaration : Declaration
      */
     static bool needsFensure(FuncDeclaration fd)
     {
-        if (fd.fensure)
+        if (fd.fensures)
             return true;
 
         foreach (fdv; fd.foverrides)
@@ -2031,14 +2081,67 @@ extern (C++) class FuncDeclaration : Declaration
     }
 
     /****************************************************
-     * Rewrite contracts as nested functions, then call them. Doing it as nested
-     * functions means that overriding functions can call them.
+     * Rewrite contracts as statements.
      */
     final void buildEnsureRequire()
     {
+
+        if (frequires)
+        {
+            /*   in { statements1... }
+             *   in { statements2... }
+             *   ...
+             * becomes:
+             *   in { { statements1... } { statements2... } ... }
+             */
+            assert(frequires.dim);
+            auto loc = (*frequires)[0].loc;
+            auto s = new Statements;
+            foreach (r; *frequires)
+            {
+                s.push(new ScopeStatement(r.loc, r, r.loc));
+            }
+            frequire = new CompoundStatement(loc, s);
+        }
+
+        if (fensures)
+        {
+            /*   out(id1) { statements1... }
+             *   out(id2) { statements2... }
+             *   ...
+             * becomes:
+             *   out(__result) { { ref id1 = __result; { statements1... } }
+             *                   { ref id2 = __result; { statements2... } } ... }
+             */
+            assert(fensures.dim);
+            auto loc = (*fensures)[0].ensure.loc;
+            auto s = new Statements;
+            foreach (r; *fensures)
+            {
+                if (r.id && canBuildResultVar())
+                {
+                    auto rloc = r.ensure.loc;
+                    auto resultId = new IdentifierExp(rloc, Id.result);
+                    auto init = new ExpInitializer(rloc, resultId);
+                    auto stc = STC.ref_ | STC.temp | STC.result;
+                    auto decl = new VarDeclaration(rloc, null, r.id, init, stc);
+                    auto sdecl = new ExpStatement(rloc, decl);
+                    s.push(new ScopeStatement(rloc, new CompoundStatement(rloc, sdecl, r.ensure), rloc));
+                }
+                else
+                {
+                    s.push(r.ensure);
+                }
+            }
+            fensure = new CompoundStatement(loc, s);
+        }
+
         if (!isVirtual())
             return;
 
+        /* Rewrite contracts as nested functions, then call them. Doing it as nested
+         * functions means that overriding functions can call them.
+         */
         TypeFunction f = cast(TypeFunction) type;
 
         if (frequire)
@@ -2063,9 +2166,6 @@ extern (C++) class FuncDeclaration : Declaration
             fdrequire = fd;
         }
 
-        if (!outId && f.nextOf() && f.nextOf().toBasetype().ty != Tvoid)
-            outId = Id.result; // provide a default
-
         if (fensure)
         {
             /*   out (result) { ... }
@@ -2076,9 +2176,9 @@ extern (C++) class FuncDeclaration : Declaration
             Loc loc = fensure.loc;
             auto fparams = new Parameters();
             Parameter p = null;
-            if (outId)
+            if (canBuildResultVar())
             {
-                p = new Parameter(STC.ref_ | STC.const_, f.nextOf(), outId, null);
+                p = new Parameter(STC.ref_ | STC.const_, f.nextOf(), Id.result, null, null);
                 fparams.push(p);
             }
             auto tf = new TypeFunction(fparams, Type.tvoid, 0, LINK.d);
@@ -2090,8 +2190,8 @@ extern (C++) class FuncDeclaration : Declaration
             fd.fbody = fensure;
             Statement s1 = new ExpStatement(loc, fd);
             Expression eresult = null;
-            if (outId)
-                eresult = new IdentifierExp(loc, outId);
+            if (canBuildResultVar())
+                eresult = new IdentifierExp(loc, Id.result);
             Expression e = new CallExp(loc, new VarExp(loc, fd, false), eresult);
             Statement s2 = new ExpStatement(loc, e);
             fensure = new CompoundStatement(loc, s1, s2);
@@ -2136,7 +2236,7 @@ extern (C++) class FuncDeclaration : Declaration
                 //printf("fdv.fensure: %s\n", fdv.fensure.toChars());
                 // Make the call: __ensure(result)
                 Expression eresult = null;
-                if (outId)
+                if (canBuildResultVar())
                 {
                     eresult = new IdentifierExp(loc, oid);
 
@@ -2197,7 +2297,7 @@ extern (C++) class FuncDeclaration : Declaration
      */
     static FuncDeclaration genCfunc(Parameters* fparams, Type treturn, const(char)* name, StorageClass stc = 0)
     {
-        return genCfunc(fparams, treturn, Identifier.idPool(name, strlen(name)), stc);
+        return genCfunc(fparams, treturn, Identifier.idPool(name, cast(uint)strlen(name)), stc);
     }
 
     static FuncDeclaration genCfunc(Parameters* fparams, Type treturn, Identifier id, StorageClass stc = 0)
@@ -2205,7 +2305,7 @@ extern (C++) class FuncDeclaration : Declaration
         FuncDeclaration fd;
         TypeFunction tf;
         Dsymbol s;
-        static __gshared DsymbolTable st = null;
+        __gshared DsymbolTable st = null;
 
         //printf("genCfunc(name = '%s')\n", id.toChars());
         //printf("treturn\n\t"); treturn.print();
@@ -2236,7 +2336,7 @@ extern (C++) class FuncDeclaration : Declaration
      * Check parameters and return type of D main() function.
      * Issue error messages.
      */
-    final void checkDmain()
+    extern (D) final void checkDmain()
     {
         TypeFunction tf = type.toTypeFunction();
         const nparams = Parameter.dim(tf.parameters);
@@ -2286,7 +2386,7 @@ extern (C++) class FuncDeclaration : Declaration
  * Returns:
  *      void expression that calls the invariant
  */
-extern (C++) Expression addInvariant(const ref Loc loc, Scope* sc, AggregateDeclaration ad, VarDeclaration vthis)
+Expression addInvariant(const ref Loc loc, Scope* sc, AggregateDeclaration ad, VarDeclaration vthis)
 {
     Expression e = null;
     // Call invariant directly only if it exists
@@ -2431,13 +2531,33 @@ extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg, Sco
     return 0;
 }
 
-extern (C++) int overloadApply(Dsymbol fstart, void* param, int function(void*, Dsymbol) fp)
-{
-    return overloadApply(fstart, s => (*fp)(param, s));
-}
+/**
+Checks for mismatching modifiers between `lhsMod` and `rhsMod` and prints the
+mismatching modifiers to `buf`.
 
-void MODMatchToBuffer(OutBuffer* buf, ubyte lhsMod, ubyte rhsMod)
+The modifiers of the `lhsMod` mismatching the ones with the `rhsMod` are printed, i.e.
+lhs(shared) vs. rhs() prints "`shared`", wheras lhs() vs rhs(shared) prints "non-shared".
+
+Params:
+    buf = output buffer to write to
+    lhsMod = modifier on the left-hand side
+    lhsMod = modifier on the right-hand side
+
+Returns:
+
+A tuple with `isMutable` and `isNotShared` set
+if the `lhsMod` is missing those modifiers (compared to rhs).
+*/
+auto MODMatchToBuffer(OutBuffer* buf, ubyte lhsMod, ubyte rhsMod)
 {
+    static struct Mismatches
+    {
+        bool isNotShared;
+        bool isMutable;
+    }
+
+    Mismatches mismatches;
+
     bool bothMutable = ((lhsMod & rhsMod) == 0);
     bool sharedMismatch = ((lhsMod ^ rhsMod) & MODFlags.shared_) != 0;
     bool sharedMismatchOnly = ((lhsMod ^ rhsMod) == MODFlags.shared_);
@@ -2445,7 +2565,10 @@ void MODMatchToBuffer(OutBuffer* buf, ubyte lhsMod, ubyte rhsMod)
     if (lhsMod & MODFlags.shared_)
         buf.writestring("`shared` ");
     else if (sharedMismatch && !(lhsMod & MODFlags.immutable_))
+    {
         buf.writestring("non-shared ");
+        mismatches.isNotShared = true;
+    }
 
     if (bothMutable && sharedMismatchOnly)
     {
@@ -2457,7 +2580,36 @@ void MODMatchToBuffer(OutBuffer* buf, ubyte lhsMod, ubyte rhsMod)
     else if (lhsMod & MODFlags.wild)
         buf.writestring("`inout` ");
     else
+    {
         buf.writestring("mutable ");
+        mismatches.isMutable = true;
+    }
+
+    return mismatches;
+}
+
+///
+unittest
+{
+    OutBuffer buf;
+    auto mismatches = MODMatchToBuffer(&buf, MODFlags.shared_, 0);
+    assert(buf.peekSlice == "`shared` ");
+    assert(!mismatches.isNotShared);
+
+    buf.reset;
+    mismatches = MODMatchToBuffer(&buf, 0, MODFlags.shared_);
+    assert(buf.peekSlice == "non-shared ");
+    assert(mismatches.isNotShared);
+
+    buf.reset;
+    mismatches = MODMatchToBuffer(&buf, MODFlags.const_, 0);
+    assert(buf.peekSlice == "`const` ");
+    assert(!mismatches.isMutable);
+
+    buf.reset;
+    mismatches = MODMatchToBuffer(&buf, 0, MODFlags.const_);
+    assert(buf.peekSlice == "mutable ");
+    assert(mismatches.isMutable);
 }
 
 private const(char)* prependSpace(const(char)* str)
@@ -2482,7 +2634,7 @@ private const(char)* prependSpace(const(char)* str)
  * Returns:
  *      if match is found, then function symbol, else null
  */
-extern (C++) FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
+FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     Objects* tiargs, Type tthis, Expressions* fargs, int flags = 0)
 {
     if (!s)
@@ -2513,9 +2665,8 @@ extern (C++) FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymb
 
     Match m;
     m.last = MATCH.nomatch;
-
-    const(char)* failMessage;
-    functionResolve(&m, s, loc, sc, tiargs, tthis, fargs, &failMessage);
+    functionResolve(&m, s, loc, sc, tiargs, tthis, fargs, null);
+    auto orig_s = s;
 
     if (m.last > MATCH.nomatch && m.lastf)
     {
@@ -2572,25 +2723,7 @@ extern (C++) FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymb
                 td.kind(), td.parent.toPrettyChars(), td.ident.toChars(),
                 tiargsBuf.peekString(), fargsBuf.peekString());
 
-            // Display candidate templates (even if there are no multiple overloads)
-            int numToDisplay = numOverloadsDisplay;
-            overloadApply(td, (Dsymbol s)
-            {
-                auto td = s.isTemplateDeclaration();
-                if (!td)
-                    return 0;
-                .errorSupplemental(td.loc, "`%s`", td.toPrettyChars());
-                if (global.params.verbose || --numToDisplay != 0 || !td.overnext)
-                    return 0;
-
-                // Too many overloads to sensibly display.
-                // Just show count of remaining overloads.
-                int num = 0;
-                overloadApply(td.overnext, (s) { ++num; return 0; });
-                if (num > 0)
-                    .errorSupplemental(loc, "... (%d more, -v to show) ...", num);
-                return 1;   // stop iterating
-            });
+            printCandidates(loc, td);
         }
         else if (od)
         {
@@ -2601,13 +2734,17 @@ extern (C++) FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymb
         {
             assert(fd);
 
+            // remove when deprecation period of class allocators and deallocators is over
+            if (fd.isNewDeclaration() && fd.checkDisabled(loc, sc))
+                return null;
+
             bool hasOverloads = fd.overnext !is null;
             auto tf = fd.type.toTypeFunction();
             if (tthis && !MODimplicitConv(tthis.mod, tf.mod)) // modifier mismatch
             {
                 OutBuffer thisBuf, funcBuf;
                 MODMatchToBuffer(&thisBuf, tthis.mod, tf.mod);
-                MODMatchToBuffer(&funcBuf, tf.mod, tthis.mod);
+                auto mismatches = MODMatchToBuffer(&funcBuf, tf.mod, tthis.mod);
                 if (hasOverloads)
                 {
                     .error(loc, "none of the overloads of `%s` are callable using a %sobject, candidates are:",
@@ -2615,9 +2752,15 @@ extern (C++) FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymb
                 }
                 else
                 {
+                    auto fullFdPretty = fd.toPrettyChars();
                     .error(loc, "%smethod `%s` is not callable using a %sobject",
-                        funcBuf.peekString(), fd.toPrettyChars(),
+                        funcBuf.peekString(), fullFdPretty,
                         thisBuf.peekString());
+
+                    if (mismatches.isNotShared)
+                        .errorSupplemental(loc, "Consider adding `shared` to %s", fullFdPretty);
+                    else if (mismatches.isMutable)
+                        .errorSupplemental(loc, "Consider adding `const` or `inout` to %s", fullFdPretty);
                 }
             }
             else
@@ -2626,48 +2769,23 @@ extern (C++) FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymb
                 if (hasOverloads)
                 {
                     .error(loc, "none of the overloads of `%s` are callable using argument types `%s`, candidates are:",
-                        fd.ident.toChars(), fargsBuf.peekString());
+                        fd.toChars(), fargsBuf.peekString());
                 }
                 else
                 {
                     .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
                         fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameters, tf.varargs),
                         tf.modToChars(), fargsBuf.peekString());
+                    // re-resolve to check for supplemental message
+                    const(char)* failMessage;
+                    functionResolve(&m, orig_s, loc, sc, tiargs, tthis, fargs, &failMessage);
                     if (failMessage)
                         errorSupplemental(loc, failMessage);
                 }
             }
 
-            // Display candidate functions
-            int numToDisplay = numOverloadsDisplay;
-            overloadApply(hasOverloads ? fd : null, (Dsymbol s)
-            {
-                auto fd = s.isFuncDeclaration();
-                auto td = s.isTemplateDeclaration();
-                if (fd)
-                {
-                    if (fd.errors || fd.type.ty == Terror)
-                        return 0;
-
-                    auto tf = cast(TypeFunction)fd.type;
-                    .errorSupplemental(fd.loc, "`%s%s`", fd.toPrettyChars(),
-                        parametersTypeToChars(tf.parameters, tf.varargs));
-                }
-                else
-                {
-                    .errorSupplemental(td.loc, "`%s`", td.toPrettyChars());
-                }
-
-                if (global.params.verbose || --numToDisplay != 0 || !fd)
-                    return 0;
-
-                // Too many overloads to sensibly display.
-                int num = 0;
-                overloadApply(fd.overnext, (s){ ++num; return 0; });
-                if (num > 0)
-                    .errorSupplemental(loc, "... (%d more, -v to show) ...", num);
-                return 1;   // stop iterating
-            }, sc);
+            if (hasOverloads)
+                printCandidates(loc, fd);
         }
     }
     else if (m.nextf)
@@ -2689,10 +2807,56 @@ extern (C++) FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymb
     return null;
 }
 
+/*******************************************
+ * Prints template and function overload candidates as supplemental errors.
+ * Params:
+ *      loc =           instantiation location
+ *      declaration =   the declaration to print overload candidates for
+ */
+private void printCandidates(Decl)(const ref Loc loc, Decl declaration)
+if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
+{
+    // max num of overloads to print (-v overrides this).
+    int numToDisplay = 5;
+
+    overloadApply(declaration, (Dsymbol s)
+    {
+        Dsymbol nextOverload;
+
+        if (auto fd = s.isFuncDeclaration())
+        {
+            if (fd.errors || fd.type.ty == Terror)
+                return 0;
+
+            auto tf = cast(TypeFunction) fd.type;
+            .errorSupplemental(fd.loc, "`%s%s`", fd.toPrettyChars(),
+                parametersTypeToChars(tf.parameters, tf.varargs));
+            nextOverload = fd.overnext;
+        }
+        else if (auto td = s.isTemplateDeclaration())
+        {
+            .errorSupplemental(td.loc, "`%s`", td.toPrettyChars());
+            nextOverload = td.overnext;
+        }
+
+        if (global.params.verbose || --numToDisplay != 0)
+            return 0;
+
+        // Too many overloads to sensibly display.
+        // Just show count of remaining overloads.
+        int num = 0;
+        overloadApply(nextOverload, (s) { ++num; return 0; });
+
+        if (num > 0)
+            .errorSupplemental(loc, "... (%d more, -v to show) ...", num);
+        return 1;   // stop iterating
+    });
+}
+
 /**************************************
  * Returns an indirect type one step from t.
  */
-extern (C++) Type getIndirection(Type t)
+Type getIndirection(Type t)
 {
     t = t.baseElemOf();
     if (t.ty == Tarray || t.ty == Tpointer)
@@ -2952,13 +3116,6 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
     TOK tok;        // TOK.function_ or TOK.delegate_
     Type treq;      // target of return type inference
 
-    /**
-     * The serialization of this. It is used to compare
-     * lambda functions.
-     * != null only if tok == TOK.reserved.
-     */
-    const(char)* serialization;
-
     // backend
     bool deferToObj;
 
@@ -3023,7 +3180,7 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
 
         extern (C++) final class RetWalker : StatementRewriteWalker
         {
-            alias visit = super.visit;
+            alias visit = typeof(super).visit;
         public:
             Scope* sc;
             Type tret;
@@ -3219,8 +3376,9 @@ extern (C++) final class DtorDeclaration : FuncDeclaration
 
     override bool isVirtual() const
     {
-        // false so that dtor's don't get put into the vtbl[]
-        return false;
+        // D dtor's don't get put into the vtbl[]
+        // this is a hack so that extern(C++) destructors report as virtual, which are manually added to the vtable
+        return vtblIndex != -1;
     }
 
     override bool addPreInvariant()
@@ -3255,12 +3413,12 @@ extern (C++) class StaticCtorDeclaration : FuncDeclaration
 {
     extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc)
     {
-        super(loc, endloc, Identifier.generateId("_staticCtor"), STC.static_ | stc, null);
+        super(loc, endloc, Identifier.generateIdWithLoc("_staticCtor", loc), STC.static_ | stc, null);
     }
 
-    extern (D) this(const ref Loc loc, const ref Loc endloc, const(char)* name, StorageClass stc)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, string name, StorageClass stc)
     {
-        super(loc, endloc, Identifier.generateId(name), STC.static_ | stc, null);
+        super(loc, endloc, Identifier.generateIdWithLoc(name, loc), STC.static_ | stc, null);
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
@@ -3341,12 +3499,12 @@ extern (C++) class StaticDtorDeclaration : FuncDeclaration
 
     extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc)
     {
-        super(loc, endloc, Identifier.generateId("_staticDtor"), STC.static_ | stc, null);
+        super(loc, endloc, Identifier.generateIdWithLoc("_staticDtor", loc), STC.static_ | stc, null);
     }
 
-    extern (D) this(const ref Loc loc, const ref Loc endloc, const(char)* name, StorageClass stc)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, string name, StorageClass stc)
     {
-        super(loc, endloc, Identifier.generateId(name), STC.static_ | stc, null);
+        super(loc, endloc, Identifier.generateIdWithLoc(name, loc), STC.static_ | stc, null);
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
@@ -3474,7 +3632,7 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
 
     extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, char* codedoc)
     {
-        super(loc, endloc, createIdentifier(loc), stc, null);
+        super(loc, endloc, Identifier.generateIdWithLoc("__unittest", loc), stc, null);
         this.codedoc = codedoc;
     }
 
@@ -3483,17 +3641,6 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
         assert(!s);
         auto utd = new UnitTestDeclaration(loc, endloc, storage_class, codedoc);
         return FuncDeclaration.syntaxCopy(utd);
-    }
-
-    /***********************************************************
-     * Generate unique unittest function Id so we can have multiple
-     * instances per module.
-     */
-    private static Identifier createIdentifier(const ref Loc loc)
-    {
-        OutBuffer buf;
-        buf.printf("__unittest_L%u_C%u", loc.linnum, loc.charnum);
-        return Identifier.idPool(buf.peekSlice());
     }
 
     override inout(AggregateDeclaration) isThis() inout

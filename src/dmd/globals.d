@@ -16,7 +16,6 @@ import core.stdc.stdint;
 import dmd.root.array;
 import dmd.root.filename;
 import dmd.root.outbuffer;
-import dmd.compiler;
 import dmd.identifier;
 
 template xversion(string s)
@@ -139,7 +138,6 @@ struct Param
     ubyte covPercent;       // 0..100 code coverage percentage required
     bool nofloat;           // code should not pull in floating point support
     bool ignoreUnsupportedPragmas;  // rather than error on them
-    bool enforcePropertySyntax;
     bool useModuleInfo = true;   // generate runtime module information
     bool useTypeInfo = true;     // generate runtime type information
     bool useExceptions = true;   // support exception handling
@@ -152,6 +150,8 @@ struct Param
                             // https://issues.dlang.org/show_bug.cgi?id=16997
     bool vsafe;             // use enhanced @safe checking
     bool ehnogc;            // use @nogc exception handling
+    bool dtorFields;        // destruct fields of partially constructed objects
+                            // https://issues.dlang.org/show_bug.cgi?id=14246
     /** The --transition=safe switch should only be used to show code with
      * silent semantics changes related to @safe improvements.  It should not be
      * used to hide a feature that will have to go through deprecate-then-error
@@ -174,7 +174,7 @@ struct Param
 
     uint errorLimit = 20;
 
-    const(char)* argv0;                 // program name
+    const(char)[] argv0;                // program name
     Array!(const(char)*)* modFileAliasStrings; // array of char*'s of -I module filename alias strings
     Array!(const(char)*)* imppath;      // array of char*'s of where to look for import modules
     Array!(const(char)*)* fileImppath;  // array of char*'s of where to look for file import modules
@@ -258,13 +258,14 @@ struct Global
     Array!(const(char)*)* filePath;     // Array of char*'s which form the file import lookup path
 
     const(char)* _version;
+    const(char)* vendor;    // Compiler backend name
 
-    Compiler compiler;
     Param params;
     uint errors;            // number of errors reported so far
     uint warnings;          // number of warnings reported so far
     uint gag;               // !=0 means gag reporting of errors & warnings
     uint gaggedErrors;      // number of errors reported while gagged
+    uint gaggedWarnings;    // number of warnings reported while gagged
 
     void* console;         // opaque pointer to console for controlling text attributes
 
@@ -276,6 +277,7 @@ struct Global
     extern (C++) uint startGagging()
     {
         ++gag;
+        gaggedWarnings = 0;
         return gaggedErrors;
     }
 
@@ -360,7 +362,45 @@ struct Global
             static assert(0, "fix this");
         }
         _version = (import("VERSION") ~ '\0').ptr;
-        compiler.vendor = "Digital Mars D";
+        vendor = "Digital Mars D";
+    }
+
+    /**
+    Returns: the version as the number that would be returned for __VERSION__
+    */
+    extern(C++) uint versionNumber()
+    {
+        import core.stdc.ctype;
+        __gshared uint cached = 0;
+        if (cached == 0)
+        {
+            //
+            // parse _version
+            //
+            uint major = 0;
+            uint minor = 0;
+            bool point = false;
+            for (const(char)* p = _version + 1;; p++)
+            {
+                const c = *p;
+                if (isdigit(cast(char)c))
+                {
+                    minor = minor * 10 + c - '0';
+                }
+                else if (c == '.')
+                {
+                    if (point)
+                        break; // ignore everything after second '.'
+                    point = true;
+                    major = minor;
+                    minor = 0;
+                }
+                else
+                    break;
+            }
+            cached = major * 1000 + minor;
+        }
+        return cached;
     }
 }
 
@@ -395,7 +435,7 @@ struct Loc
     static immutable Loc initial;       /// use for default initialization of const ref Loc's
 
 nothrow:
-    extern (D) this(const(char)* filename, uint linnum, uint charnum)
+    extern (D) this(const(char)* filename, uint linnum, uint charnum) pure
     {
         this.linnum = linnum;
         this.charnum = charnum;

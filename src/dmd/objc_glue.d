@@ -17,8 +17,10 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 import dmd.aggregate;
+import dmd.dclass;
 import dmd.declaration;
 import dmd.dmodule;
+import dmd.expression;
 import dmd.func;
 import dmd.globals;
 import dmd.identifier;
@@ -61,6 +63,9 @@ extern(C++) abstract class ObjcGlue
     abstract void setupMethodCall(elem** ec, elem* ehidden, elem* ethis, TypeFunction tf);
     abstract void setupEp(elem* esel, elem** ep, int leftToRight);
     abstract void generateModuleInfo();
+
+    /// Returns: the given expression converted to an `elem` structure
+    abstract elem* toElem(ObjcClassReferenceExp e) const;
 }
 
 private:
@@ -85,6 +90,11 @@ extern(C++) final class Unsupported : ObjcGlue
     override void generateModuleInfo()
     {
         // noop
+    }
+
+    override elem* toElem(ObjcClassReferenceExp e) const
+    {
+        assert(0, "Should never be called when Objective-C is not supported");
     }
 }
 
@@ -127,7 +137,12 @@ extern(C++) final class Supported : ObjcGlue
     override void generateModuleInfo()
     {
         if (Symbols.hasSymbols)
-            Symbols.getModuleInfo();
+            Symbols.getImageInfo();
+    }
+
+    override elem* toElem(ObjcClassReferenceExp e) const
+    {
+        return el_var(Symbols.getClassReference(e.classDeclaration));
     }
 }
 
@@ -135,29 +150,36 @@ struct Segments
 {
     enum Id
     {
-        cString,
         imageInfo,
         methodName,
         moduleInfo,
-        selectorRefs
+        selectorRefs,
+        classRefs,
     }
 
     private
     {
-        __gshared static int[segmentData.length] segments;
+        __gshared int[segmentData.length] segments;
 
-        __gshared static Segments[__traits(allMembers, Id).length] segmentData = [
-            Segments("__cstring", "__TEXT", S_CSTRING_LITERALS),
-            Segments("__objc_imageinfo", "__DATA", S_REGULAR | S_ATTR_NO_DEAD_STRIP),
-            Segments("__objc_methname", "__TEXT", S_CSTRING_LITERALS),
-            Segments("__objc_classlist", "__DATA", S_REGULAR | S_ATTR_NO_DEAD_STRIP),
-            Segments("__objc_selrefs", "__DATA", S_ATTR_NO_DEAD_STRIP | S_LITERAL_POINTERS)
+        __gshared Segments[__traits(allMembers, Id).length] segmentData = [
+            Segments("__objc_imageinfo", "__DATA", S_REGULAR | S_ATTR_NO_DEAD_STRIP, 0),
+            Segments("__objc_methname", "__TEXT", S_CSTRING_LITERALS, 0),
+            Segments("__objc_classlist", "__DATA", S_REGULAR | S_ATTR_NO_DEAD_STRIP, 3),
+            Segments("__objc_selrefs", "__DATA", S_LITERAL_POINTERS | S_ATTR_NO_DEAD_STRIP, 3),
+            Segments("__objc_classrefs", "__DATA", S_REGULAR | S_ATTR_NO_DEAD_STRIP, 3)
         ];
 
-        const(char)* sectionName;
-        const(char)* segmentName;
-        int flags;
-        int alignment = 3;
+        static assert(segmentData.length == __traits(allMembers, Id).length);
+
+        immutable(char*) sectionName;
+        immutable(char*) segmentName;
+        immutable int flags;
+        immutable int alignment;
+
+        this(typeof(this.tupleof) tuple)
+        {
+            this.tupleof = tuple;
+        }
     }
 
     static int opIndex(Id id)
@@ -167,27 +189,27 @@ struct Segments
         if (segmentsPtr[id] != 0)
             return segmentsPtr[id];
 
-        foreach (i, seg ; segmentData)
+        auto seg = segmentData[id];
+
+        version (OSX)
         {
-            version (OSX)
-            {
-                segmentsPtr[i] = MachObj.getsegment(
-                    seg.sectionName,
-                    seg.segmentName,
-                    seg.alignment,
-                    seg.flags
-                );
-            }
-            else
-            {
-                // This should never happen. If the platform is not OSX an error
-                // should have occurred sooner which should have prevented the
-                // code from getting here.
-                assert(0);
-            }
+            segmentsPtr[id] = MachObj.getsegment(
+                seg.sectionName,
+                seg.segmentName,
+                seg.alignment,
+                seg.flags
+            );
+
+            return segmentsPtr[id];
         }
 
-        return segmentsPtr[id];
+        else
+        {
+            // This should never happen. If the platform is not OSX an error
+            // should have occurred sooner which should have prevented the
+            // code from getting here.
+            assert(0);
+        }
     }
 }
 
@@ -206,6 +228,12 @@ static:
 
         Symbol* imageInfo = null;
         Symbol* moduleInfo = null;
+
+        // Cache for `_OBJC_METACLASS_$_`/`_OBJC_CLASS_$_` symbols.
+        StringTable* classNameTable = null;
+
+        // Cache for `L_OBJC_CLASSLIST_REFERENCES_` symbols.
+        StringTable* classReferenceTable = null;
 
         StringTable* methVarNameTable = null;
         StringTable* methVarRefTable = null;
@@ -247,6 +275,44 @@ static:
         }
 
         return false;
+    }
+
+    /**
+     * Convenience wrapper around `dmd.backend.global.symbol_name`.
+     *
+     * Allows to pass the name of the symbol as a D string.
+     */
+    Symbol* symbolName(const(char)[] name, int sclass, type* t)
+    {
+        return symbol_name(name.ptr, cast(uint) name.length, sclass, t);
+    }
+
+    /**
+     * Gets a global symbol.
+     *
+     * Params:
+     *  name = the name of the symbol
+     *  t = the type of the symbol
+     *
+     * Returns: the symbol
+     */
+    Symbol* getGlobal(const(char)[] name, type* t = type_fake(TYnptr))
+    {
+        return symbolName(name, SCglobal, t);
+    }
+
+    /**
+     * Gets a static symbol.
+     *
+     * Params:
+     *  name = the name of the symbol
+     *  t = the type of the symbol
+     *
+     * Returns: the symbol
+     */
+    Symbol* getStatic(const(char)[] name, type* t = type_fake(TYnptr))
+    {
+        return symbolName(name, SCstatic, t);
     }
 
     Symbol* getCString(const(char)[] str, const(char)* symbolName, Segments.Id segment)
@@ -326,7 +392,7 @@ static:
 
         scope dtb = new DtBuilder();
         dtb.dword(0); // version
-        dtb.dword(0); // flags
+        dtb.dword(64); // flags
 
         imageInfo = symbol_name("L_OBJC_IMAGE_INFO", SCstatic, type_allocn(TYarray, tstypes[TYchar]));
         imageInfo.Sdt = dtb.finish();
@@ -350,6 +416,66 @@ static:
         getImageInfo(); // make sure we also generate image info
 
         return moduleInfo;
+    }
+
+    /*
+     * Returns: the `_OBJC_METACLASS_$_`/`_OBJC_CLASS_$_` symbol for the given
+     *  class declaration.
+     */
+    Symbol* getClassName(const ClassDeclaration classDeclaration)
+    {
+        hasSymbols_ = true;
+
+        auto isMeta = classDeclaration.objc.isMeta;
+        auto prefix = isMeta ? "_OBJC_METACLASS_$_" : "_OBJC_CLASS_$_";
+        auto name = prefix ~ classDeclaration.ident.toString();
+
+        auto stringValue = classNameTable.update(name);
+        auto symbol = cast(Symbol*) stringValue.ptrvalue;
+
+        if (symbol)
+            return symbol;
+
+        symbol = getGlobal(name);
+        stringValue.ptrvalue = symbol;
+
+        return symbol;
+    }
+
+    /*
+     * Returns: the `L_OBJC_CLASSLIST_REFERENCES_$_` symbol for the given class
+     *  declaration.
+     */
+    Symbol* getClassReference(const ClassDeclaration classDeclaration)
+    {
+        hasSymbols_ = true;
+
+        auto name = classDeclaration.ident.toString();
+
+        auto stringValue = classReferenceTable.update(name);
+        auto symbol = cast(Symbol*) stringValue.ptrvalue;
+
+        if (symbol)
+            return symbol;
+
+        scope dtb = new DtBuilder();
+        auto className = getClassName(classDeclaration);
+        dtb.xoff(className, 0, TYnptr);
+
+        auto segment = Segments[Segments.Id.classRefs];
+
+        __gshared size_t classReferenceCount = 0;
+
+        char[42] nameString;
+        auto result = format(nameString, "L_OBJC_CLASSLIST_REFERENCES_$_%lu", classReferenceCount++);
+        symbol = getStatic(result);
+        symbol.Sdt = dtb.finish();
+        symbol.Sseg = segment;
+        outdata(symbol);
+
+        stringValue.ptrvalue = symbol;
+
+        return symbol;
     }
 
     Symbol* getMethVarRef(const(char)[] name)
@@ -384,8 +510,34 @@ static:
         return refSymbol;
     }
 
-    Symbol* getMethVarRef(Identifier ident)
+    Symbol* getMethVarRef(const Identifier ident)
     {
         return getMethVarRef(ident.toString());
     }
+}
+
+private:
+
+/*
+ * Formats the given arguments into the given buffer.
+ *
+ * Convenience wrapper around `snprintf`.
+ *
+ * Params:
+ *  bufLength = length of the buffer
+ *  buffer = the buffer where to store the result
+ *  format = the format string
+ *  args = the arguments to format
+ *
+ * Returns: the formatted result, a slice of the given buffer
+ */
+char[] format(size_t bufLength, Args...)(return ref char[bufLength] buffer,
+    const(char)* format, const Args args)
+{
+    auto length = snprintf(buffer.ptr, buffer.length, format, args);
+
+    assert(length >= 0, "An output error occurred");
+    assert(length < buffer.length, "Output was truncated");
+
+    return buffer[0 .. length];
 }

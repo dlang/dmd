@@ -5,31 +5,22 @@
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/module.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/module.h
  */
 
-#ifndef DMD_MODULE_H
-#define DMD_MODULE_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
-#include "root.h"
 #include "dsymbol.h"
 
-class ClassDeclaration;
 struct ModuleDeclaration;
 struct Macro;
 struct Escape;
-class VarDeclaration;
-class Library;
 
 enum PKG
 {
     PKGunknown, // not yet determined whether it's a package.d or not
     PKGmodule,  // already determined that's an actual package.d
-    PKGpackage, // already determined that's an actual package
+    PKGpackage  // already determined that's an actual package
 };
 
 class Package : public ScopeDsymbol
@@ -41,13 +32,11 @@ public:
 
     const char *kind() const;
 
-    static DsymbolTable *resolve(Identifiers *packages, Dsymbol **pparent, Package **ppkg);
-
     Package *isPackage() { return this; }
 
     bool isAncestorPackageOf(const Package * const pkg) const;
 
-    Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
+    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
     void accept(Visitor *v) { v->visit(this); }
 
     Module *isPackageMod();
@@ -63,12 +52,7 @@ public:
     static Dsymbols deferred2;  // deferred Dsymbol's needing semantic2() run on them
     static Dsymbols deferred3;  // deferred Dsymbol's needing semantic3() run on them
     static unsigned dprogress;  // progress resolving the deferred list
-    /**
-     * A callback function that is called once an imported module is
-     * parsed. If the callback returns true, then it tells the
-     * frontend that the driver intends on compiling the import.
-     */
-    static bool (*onImport)(Module);
+
     static void _init();
 
     static AggregateDeclaration *moduleinfo;
@@ -131,7 +115,7 @@ public:
     Module *parse();    // syntactic parse
     void importAll(Scope *sc);
     int needModuleInfo();
-    Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
+    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
     bool isPackageAccessible(Package *p, Prot protection, int flags = 0);
     Dsymbol *symtabInsert(Dsymbol *s);
     void deleteObjFile();
@@ -177,7 +161,5 @@ struct ModuleDeclaration
     bool isdeprecated;  // if it is a deprecated module
     Expression *msg;
 
-    const char *toChars();
+    const char *toChars() const;
 };
-
-#endif /* DMD_MODULE_H */

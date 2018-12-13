@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-rm -f "$1"
+rm -f "${TEST_DIR}/${TEST_NAME}.d.cg"
