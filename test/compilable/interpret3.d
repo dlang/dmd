@@ -7738,3 +7738,37 @@ void test19074()
 {
     auto var = S19074b.data;
 }
+
+/************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=19447
+
+bool f19447()
+{
+    int[3] c=1;
+    assert(c[0]==1);
+    g19447(c[0..2]);
+    assert(c[0]!=1); //fails
+    assert(c[0]==2);
+    return true;
+}
+void g19447(ref int[2] a)
+{
+    int[2] b=2;
+    a=b;
+    //a[]=b;            // works
+    //a[] = b[];                // works
+    assert(a[0]==2);
+}
+static assert(f19447());
+
+/***/
+
+char[] mangle19447(char[] dst)
+{
+   dst.length = 10;
+   size_t i = "_D".length;
+   dst[0 .. i] = "_D";
+   return dst;
+}
+
+static char[] x19447 = mangle19447(null);
