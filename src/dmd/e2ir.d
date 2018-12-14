@@ -2607,17 +2607,20 @@ elem *toElem(Expression e, IRState *irs)
                 if (ae.op == TOK.assign)    printf("AssignExp.toElem('%s')\n", ae.toChars());
                 if (ae.op == TOK.construct) printf("ConstructExp.toElem('%s')\n", ae.toChars());
             }
+
+            void setResult(elem* e)
+            {
+                elem_setLoc(e, ae.loc);
+                result = e;
+            }
+
             Type t1b = ae.e1.type.toBasetype();
 
-            elem *e;
-
             // Look for array.length = n
-            if (ae.e1.op == TOK.arrayLength)
+            if (auto ale = ae.e1.isArrayLengthExp())
             {
                 // Generate:
                 //      _d_arraysetlength(e2, sizeelem, &ale.e1);
-
-                ArrayLengthExp ale = cast(ArrayLengthExp)ae.e1;
 
                 elem *p1 = toElem(ae.e2, irs);
                 elem *p3 = toElem(ale.e1, irs);
@@ -2629,18 +2632,15 @@ elem *toElem(Expression e, IRState *irs)
                 elem *ep = el_params(p3, p1, p2, null); // c function
                 int r = t1.nextOf().isZeroInit(Loc.initial) ? RTLSYM_ARRAYSETLENGTHT : RTLSYM_ARRAYSETLENGTHIT;
 
-                e = el_bin(OPcall, totym(ae.type), el_var(getRtlsym(r)), ep);
+                auto e = el_bin(OPcall, totym(ae.type), el_var(getRtlsym(r)), ep);
                 toTraceGC(irs, e, ae.loc);
 
-                elem_setLoc(e, ae.loc);
-                result = e;
-                return;
+                return setResult(e);
             }
 
             // Look for array[]=n
-            if (ae.e1.op == TOK.slice)
+            if (auto are = ae.e1.isSliceExp())
             {
-                SliceExp are = cast(SliceExp)ae.e1;
                 Type t1 = t1b;
                 Type ta = are.e1.type.toBasetype();
 
@@ -2742,10 +2742,11 @@ elem *toElem(Expression e, IRState *irs)
                     }
                     else
                         elength = el_copytree(enbytes);
-                    e = setArray(are.e1, n1, enbytes, tb, evalue, irs, ae.op);
+                    elem* e = setArray(are.e1, n1, enbytes, tb, evalue, irs, ae.op);
                     e = el_pair(TYdarray, elength, e);
                     e = el_combine(einit, e);
                     //elem_print(e);
+                    return setResult(e);
                 }
                 else
                 {
@@ -2778,7 +2779,7 @@ elem *toElem(Expression e, IRState *irs)
 
                         /* Returns: length of array ex
                          */
-                        static elem *getDotLength(elem *eto, elem *ex)
+                        static elem *getDotLength(IRState* irs, elem *eto, elem *ex)
                         {
                             if (eto.Eoper == OPpair &&
                                 eto.EV.E1.Eoper == OPconst)
@@ -2789,11 +2790,11 @@ elem *toElem(Expression e, IRState *irs)
                             else
                             {
                                 // It's not a constant, so pull it from the dynamic array
-                                return el_una(global.params.is64bit ? OP128_64 : OP64_32, TYsize_t, el_copytree(ex));
+                                return el_una(irs.params.is64bit ? OP128_64 : OP64_32, TYsize_t, el_copytree(ex));
                             }
                         }
 
-                        auto elen = getDotLength(eto, ex);
+                        auto elen = getDotLength(irs, eto, ex);
                         auto nbytes = el_bin(OPmul, TYsize_t, elen, esize);  // number of bytes to memcpy
                         auto epto = array_toPtr(ae.e1.type, ex);
 
@@ -2802,7 +2803,7 @@ elem *toElem(Expression e, IRState *irs)
                         if (irs.arrayBoundsCheck()) // check array lengths match and do not overlap
                         {
                             auto ey = el_same(&efrom);
-                            auto eleny = getDotLength(efrom, ey);
+                            auto eleny = getDotLength(irs, efrom, ey);
                             epfr = array_toPtr(ae.e2.type, ey);
 
                             // length check: (eleny == elen)
@@ -2833,13 +2834,14 @@ elem *toElem(Expression e, IRState *irs)
                         /* Construct:
                          *   memcpy(ex.ptr, ey.ptr, nbytes)[0..elen]
                          */
-                        e = el_params(nbytes, epfr, epto, null);
+                        elem* e = el_params(nbytes, epfr, epto, null);
                         e = el_bin(OPcall,TYnptr,el_var(getRtlsym(RTLSYM_MEMCPY)),e);
                         e = el_pair(eto.Ety, el_copytree(elen), e);
 
                         /* Combine: eto, efrom, echeck, e
                          */
                         e = el_combine(el_combine(eto, efrom), el_combine(echeck, e));
+                        return setResult(e);
                     }
                     else if ((postblit || destructor) && ae.op != TOK.blit)
                     {
@@ -2857,7 +2859,8 @@ elem *toElem(Expression e, IRState *irs)
                         }
                         elem *ep = el_params(eto, efrom, eti, null);
                         int rtl = (ae.op == TOK.construct) ? RTLSYM_ARRAYCTOR : RTLSYM_ARRAYASSIGN;
-                        e = el_bin(OPcall, totym(ae.type), el_var(getRtlsym(rtl)), ep);
+                        elem* e = el_bin(OPcall, totym(ae.type), el_var(getRtlsym(rtl)), ep);
+                        return setResult(e);
                     }
                     else
                     {
@@ -2870,47 +2873,48 @@ elem *toElem(Expression e, IRState *irs)
                             efrom = addressElem(efrom, Type.tvoid.arrayOf());
                         }
                         elem *ep = el_params(eto, efrom, esize, null);
-                        e = el_bin(OPcall, totym(ae.type), el_var(getRtlsym(RTLSYM_ARRAYCOPY)), ep);
+                        elem* e = el_bin(OPcall, totym(ae.type), el_var(getRtlsym(RTLSYM_ARRAYCOPY)), ep);
+                        return setResult(e);
                     }
                 }
-                elem_setLoc(e, ae.loc);
-                result = e;
-                return;
+                assert(0);
             }
 
-            /* Look for reference initializations
+            /* Look for initialization of an `out` or `ref` variable
              */
             if (ae.memset & MemorySet.referenceInit)
             {
                 assert(ae.op == TOK.construct || ae.op == TOK.blit);
-                assert(ae.e1.op == TOK.variable);
+                auto ve = ae.e1.isVarExp();
+                assert(ve);
+                assert(ve.var.storage_class & (STC.out_ | STC.ref_));
 
-                VarExp ve = cast(VarExp)ae.e1;
-                Declaration d = ve.var;
-                if (d.storage_class & (STC.out_ | STC.ref_))
-                {
-                    e = toElem(ae.e2, irs);
-                    e = addressElem(e, ae.e2.type);
-                    elem *es = toElem(ae.e1, irs);
-                    if (es.Eoper == OPind)
-                        es = es.EV.E1;
-                    else
-                        es = el_una(OPaddr, TYnptr, es);
-                    es.Ety = TYnptr;
-                    e = el_bin(OPeq, TYnptr, es, e);
-                    assert(!(t1b.ty == Tstruct && ae.e2.op == TOK.int64));
+                // It'll be initialized to an address
+                elem* e = toElem(ae.e2, irs);
+                e = addressElem(e, ae.e2.type);
+                elem *es = toElem(ae.e1, irs);
+                if (es.Eoper == OPind)
+                    es = es.EV.E1;
+                else
+                    es = el_una(OPaddr, TYnptr, es);
+                es.Ety = TYnptr;
+                e = el_bin(OPeq, TYnptr, es, e);
+                assert(!(t1b.ty == Tstruct && ae.e2.op == TOK.int64));
 
-                    elem_setLoc(e, ae.loc);
-                    result = e;
-                    return;
-                }
+                return setResult(e);
             }
 
             tym_t tym = totym(ae.type);
             elem *e1 = toElem(ae.e1, irs);
 
-            // Create a reference to e1.
             elem *e1x;
+
+            void setResult2(elem* e)
+            {
+                return setResult(el_combine(e, e1x));
+            }
+
+            // Create a reference to e1.
             if (e1.Eoper == OPvar)
                 e1x = el_same(&e1);
             else
@@ -2932,12 +2936,13 @@ elem *toElem(Expression e, IRState *irs)
             }
 
             // inlining may generate lazy variable initialization
-            if (ae.e1.op == TOK.variable && ((cast(VarExp)ae.e1).var.storage_class & STC.lazy_))
-            {
-                assert(ae.op == TOK.construct || ae.op == TOK.blit);
-                e = el_bin(OPeq, tym, e1, toElem(ae.e2, irs));
-                goto Lret;
-            }
+            if (auto ve = ae.e1.isVarExp())
+                if (ve.var.storage_class & STC.lazy_)
+                {
+                    assert(ae.op == TOK.construct || ae.op == TOK.blit);
+                    elem* e = el_bin(OPeq, tym, e1, toElem(ae.e2, irs));
+                    return setResult2(e);
+                }
 
             /* This will work if we can distinguish an assignment from
              * an initialization of the lvalue. It'll work if the latter.
@@ -2954,8 +2959,8 @@ elem *toElem(Expression e, IRState *irs)
                     ehidden = el_una(OPaddr, TYnptr, ehidden);
                     assert(!irs.ehidden);
                     irs.ehidden = ehidden;
-                    e = toElem(ae.e2, irs);
-                    goto Lret;
+                    elem* e = toElem(ae.e2, irs);
+                    return setResult2(e);
                 }
 
                 /* Look for:
@@ -2970,19 +2975,18 @@ elem *toElem(Expression e, IRState *irs)
                     auto fd = dve.var.isFuncDeclaration();
                     if (fd && fd.isCtorDeclaration())
                     {
-                        if (dve.e1.op == TOK.structLiteral)
+                        if (auto sle = dve.e1.isStructLiteralExp())
                         {
-                            auto sle = cast(StructLiteralExp)dve.e1;
                             sle.sym = toSymbol((cast(VarExp)ae.e1).var);
-                            e = toElem(ae.e2, irs);
-                            goto Lret;
+                            elem* e = toElem(ae.e2, irs);
+                            return setResult2(e);
                         }
                     }
                 }
             }
 
             //if (ae.op == TOK.construct) printf("construct\n");
-            if (t1b.ty == Tstruct)
+            if (auto t1s = t1b.isTypeStruct())
             {
                 if (ae.e2.op == TOK.int64)
                 {
@@ -2995,7 +2999,7 @@ elem *toElem(Expression e, IRState *irs)
                      */
                     elem *ey = null;
                     uint sz = cast(uint)ae.e1.type.size();
-                    StructDeclaration sd = (cast(TypeStruct)t1b).sym;
+                    StructDeclaration sd = t1s.sym;
                     if (sd.isNested() && ae.op == TOK.construct)
                     {
                         ey = el_una(OPaddr, TYnptr, e1);
@@ -3010,10 +3014,10 @@ elem *toElem(Expression e, IRState *irs)
 
                     if (!(sd.isNested() && ae.op == TOK.construct))
                         el = el_una(OPaddr, TYnptr, el);
-                    e = el_param(enbytes, evalue);
+                    elem* e = el_param(enbytes, evalue);
                     e = el_bin(OPmemset,TYnptr,el,e);
                     e = el_combine(ey, e);
-                    goto Lret;
+                    return setResult2(e);
                 }
 
                 //printf("toElemBin() '%s'\n", ae.toChars());
@@ -3026,9 +3030,9 @@ elem *toElem(Expression e, IRState *irs)
                     (ae.op == TOK.construct || ae.op == TOK.blit))
                 {
                     StructLiteralExp sle = cast(StructLiteralExp)ae.e2;
-                    e = toElemStructLit(sle, irs, ae.op, ex.EV.Vsym, true);
+                    elem* e = toElemStructLit(sle, irs, ae.op, ex.EV.Vsym, true);
                     el_free(e1);
-                    goto Lret;
+                    return setResult2(e);
                 }
 
                 /* Implement:
@@ -3036,7 +3040,8 @@ elem *toElem(Expression e, IRState *irs)
                  */
                 elem *e2 = toElem(ae.e2, irs);
 
-                e = elAssign(e1, e2, ae.e1.type, null);
+                elem* e = elAssign(e1, e2, ae.e1.type, null);
+                return setResult2(e);
             }
             else if (t1b.ty == Tsarray)
             {
@@ -3057,10 +3062,10 @@ elem *toElem(Expression e, IRState *irs)
 
                     if (!(sd.isNested() && ae.op == TOK.construct))
                         el = el_una(OPaddr, TYnptr, el);
-                    e = el_param(enbytes, evalue);
+                    elem* e = el_param(enbytes, evalue);
                     e = el_bin(OPmemset,TYnptr,el,e);
                     e = el_combine(ey, e);
-                    goto Lret;
+                    return setResult2(e);
                 }
 
                 /* Implement:
@@ -3089,6 +3094,7 @@ elem *toElem(Expression e, IRState *irs)
                     ae.e2.op == TOK.arrayLiteral)
                 {
                     ArrayLiteralExp ale = cast(ArrayLiteralExp)ae.e2;
+                    elem* e;
                     if (ale.elements.dim == 0)
                     {
                         e = e1;
@@ -3103,7 +3109,7 @@ elem *toElem(Expression e, IRState *irs)
                         e = ExpressionsToStaticArray(ale.loc, ale.elements, &stmp, 0, ale.basis);
                         e = el_combine(e1, e);
                     }
-                    goto Lret;
+                    return setResult2(e);
                 }
 
                 /* https://issues.dlang.org/show_bug.cgi?id=13661
@@ -3126,7 +3132,8 @@ elem *toElem(Expression e, IRState *irs)
                     ae.op == TOK.blit ||
                     type_size(e1.ET) == 0)
                 {
-                    e = elAssign(e1, e2, ae.e1.type, null);
+                    elem* e = elAssign(e1, e2, ae.e1.type, null);
+                    return setResult2(e);
                 }
                 else if (ae.op == TOK.construct)
                 {
@@ -3143,7 +3150,8 @@ elem *toElem(Expression e, IRState *irs)
                         e2 = addressElem(e2, Type.tvoid.arrayOf());
                     }
                     elem *ep = el_params(e1, e2, eti, null);
-                    e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYCTOR)), ep);
+                    elem* e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYCTOR)), ep);
+                    return setResult2(e);
                 }
                 else
                 {
@@ -3166,16 +3174,16 @@ elem *toElem(Expression e, IRState *irs)
                     }
                     elem *ep = el_params(etmp, e1, e2, eti, null);
                     int rtl = lvalueElem ? RTLSYM_ARRAYASSIGN_L : RTLSYM_ARRAYASSIGN_R;
-                    e = el_bin(OPcall, TYdarray, el_var(getRtlsym(rtl)), ep);
+                    elem* e = el_bin(OPcall, TYdarray, el_var(getRtlsym(rtl)), ep);
+                    return setResult2(e);
                 }
             }
             else
-                e = el_bin(OPeq, tym, e1, toElem(ae.e2, irs));
-
-        Lret:
-            e = el_combine(e, e1x);
-            elem_setLoc(e, ae.loc);
-            result = e;
+            {
+                elem* e = el_bin(OPeq, tym, e1, toElem(ae.e2, irs));
+                return setResult2(e);
+            }
+            assert(0);
         }
 
         /***************************************
