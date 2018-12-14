@@ -1975,6 +1975,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         exp.error("recursive expansion of %s `%s`", ti.kind(), ti.toPrettyChars());
                         return setError();
                     }
+                    v.checkDeprecated(exp.loc, sc);
                     auto e = v.expandInitializer(exp.loc);
                     ti.inuse++;
                     e = e.expressionSemantic(sc);
