@@ -10,10 +10,10 @@ $(HEADERNAV_TOC)
 
 $(GRAMMAR
 $(GNAME TemplateMixinDeclaration):
-    $(D mixin) $(D template) $(I Identifier) $(GLINK2 template, TemplateParameters) $(GLINK2 template, Constraint)$(OPT) $(D {) $(GLINK2 module, DeclDefs)$(OPT) $(D })
+    $(D mixin) $(D template) $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters) $(GLINK2 template, Constraint)$(OPT) $(D {) $(GLINK2 module, DeclDefs)$(OPT) $(D })
 
 $(GNAME TemplateMixin):
-    $(D mixin) $(GLINK MixinTemplateName) $(GLINK2 template, TemplateArguments)$(OPT) $(I Identifier)$(OPT) $(D ;)
+    $(D mixin) $(GLINK MixinTemplateName) $(GLINK2 template, TemplateArguments)$(OPT) $(GLINK_LEX Identifier)$(OPT) $(D ;)
 
 $(GNAME MixinTemplateName):
     $(D .) $(GLINK QualifiedIdentifierList)
@@ -21,8 +21,8 @@ $(GNAME MixinTemplateName):
     $(GLINK2 declaration, Typeof) $(D .) $(GLINK QualifiedIdentifierList)
 
 $(GNAME QualifiedIdentifierList):
-    $(I Identifier)
-    $(I Identifier) $(D .) $(I QualifiedIdentifierList)
+    $(GLINK_LEX Identifier)
+    $(GLINK_LEX Identifier) $(D .) $(I QualifiedIdentifierList)
     $(GLINK2 template, TemplateInstance) $(D .) $(I QualifiedIdentifierList)
 )
 

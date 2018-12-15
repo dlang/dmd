@@ -35,7 +35,7 @@ $(OL
         The source file is divided up into a sequence of tokens.
         $(DDSUBLINK spec/lex, specialtokens, Special tokens)
         are replaced with other tokens.
-        $(GLINK2 lex, SpecialTokenSequence)s
+        $(GLINK_LEX SpecialTokenSequence)s
         are processed and removed.
         )
 

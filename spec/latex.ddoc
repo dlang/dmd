@@ -94,6 +94,7 @@ _=
 GLINK=$(LINK2 $0, $(I $0))
 GLINK2=$(GLINK $2)
 GLINK2_ALTTEXT=$(LINK2 $2, $(I $3))
+GLINK_LEX=$(GLINK $1)
 GNAME={\fontshape{sl}\selectfont $0}
 _=
 

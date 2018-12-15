@@ -6,8 +6,8 @@ $(HEADERNAV_TOC)
 
 $(GRAMMAR
 $(GNAME Pragma):
-    $(D pragma) $(D $(LPAREN)) $(I Identifier) $(D $(RPAREN))
-    $(D pragma) $(D $(LPAREN)) $(I Identifier) $(D ,) $(GLINK2 expression, ArgumentList) $(D $(RPAREN))
+    $(D pragma) $(D $(LPAREN)) $(GLINK_LEX Identifier) $(D $(RPAREN))
+    $(D pragma) $(D $(LPAREN)) $(GLINK_LEX Identifier) $(D ,) $(GLINK2 expression, ArgumentList) $(D $(RPAREN))
 )
 
 

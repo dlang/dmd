@@ -83,7 +83,6 @@ $(GNAME LinkageType):
     $(D C++)
     $(D D)
     $(D Windows)
-    $(D Pascal)
     $(D System)
     $(D Objective-C)
 )
@@ -101,7 +100,7 @@ $(GNAME LinkageType):
         $(D System) is the same as $(D Windows) on Windows platforms,
         and $(D C) on other platforms.
         $(D Implementation Note:)
-        for Win32 platforms, $(D Windows) and $(D Pascal) should exist.
+        for Win32 platforms, $(D Windows) should exist.
         )
 
         $(P C function calling conventions are
@@ -371,10 +370,10 @@ attributes in documents predating $(LINK2 http://wiki.dlang.org/DIP22, DIP22).)
         or defaults to $(D private) if a module is not nested in a package.
         )
 
-        $(P $(D package) may have an optional parameter, dot-separated identifier
-        list which is resolved as the qualified package name. If this optional
-        parameter is present, the symbol will be visible by this package and
-        all its descendants.
+        $(P $(D package) may have an optional parameter in the form of a dot-separated identifier
+        list which is resolved as the qualified package name. The package must be either the module's
+        parent package or one of its anscestors. If this optional parameter is present, the symbol
+        will be visible in the specified package and all of its descendants.
         )
 
         $(P $(D protected) only applies inside classes (and templates as they can be mixed in)
@@ -682,8 +681,8 @@ $(H2 $(LNAME2 uda, User-Defined Attributes))
 $(GRAMMAR
 $(GNAME UserDefinedAttribute):
     $(D @ $(LPAREN)) $(GLINK2 expression, ArgumentList) $(D $(RPAREN))
-    $(D @) $(I Identifier)
-    $(D @) $(I Identifier) $(D $(LPAREN)) $(GLINK2 expression, ArgumentList)$(OPT) $(D $(RPAREN))
+    $(D @) $(GLINK_LEX Identifier)
+    $(D @) $(GLINK_LEX Identifier) $(D $(LPAREN)) $(GLINK2 expression, ArgumentList)$(OPT) $(D $(RPAREN))
     $(D @) $(GLINK2 template, TemplateInstance)
     $(D @) $(GLINK2 template, TemplateInstance) $(D $(LPAREN)) $(GLINK2 expression, ArgumentList)$(OPT) $(D $(RPAREN))
 )
@@ -720,13 +719,13 @@ struct Bar
 ---
 @(1)
 {
-    @(2) int a;         // has UDA's (1, 2)
-    @("string") int b;  // has UDA's (1, "string")
+    @(2) int a;         // has UDAs (1, 2)
+    @("string") int b;  // has UDAs (1, "string")
 }
 ---
 
         $(P
-            UDA's can be extracted into an expression tuple using $(D __traits):
+            UDAs can be extracted into an expression tuple using $(D __traits):
         )
 
 ---
@@ -772,7 +771,7 @@ pragma(msg, __traits(getAttributes, typeof(a))); // prints tuple("hello")
 ---
 
         $(P
-            Of course, the real value of UDA's is to be able to create user-defined types with
+            Of course, the real value of UDAs is to be able to create user-defined types with
             specific values. Having attribute values of basic types does not scale.
             The attribute tuples can be manipulated like any other tuple, and can be passed as
             the argument list to a template.

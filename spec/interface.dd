@@ -6,8 +6,8 @@ $(HEADERNAV_TOC)
 
 $(GRAMMAR
 $(GNAME InterfaceDeclaration):
-    $(D interface) $(I Identifier) $(D ;)
-    $(D interface) $(I Identifier) $(GLINK BaseInterfaceList)$(OPT) $(GLINK2 struct, AggregateBody)
+    $(D interface) $(GLINK_LEX Identifier) $(D ;)
+    $(D interface) $(GLINK_LEX Identifier) $(GLINK BaseInterfaceList)$(OPT) $(GLINK2 struct, AggregateBody)
     $(GLINK2 template, InterfaceTemplateDeclaration)
 
 $(GNAME BaseInterfaceList):

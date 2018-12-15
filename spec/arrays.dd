@@ -165,7 +165,10 @@ $(H2 $(LNAME2 slicing, Slicing))
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
-void foo(int);
+void foo(int value)
+{
+  writeln("value=", value);
+}
 
 int[10] a;   // declare array of 10 ints
 int[] b;
@@ -182,14 +185,20 @@ foo(b[1]);   // equivalent to foo(3)
         For example, the assignments to b:
         )
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
-int[10] a;
-int[] b;
+int[10] a = [ 1,2,3,4,5,6,7,8,9,10 ];
+int[] b1, b2, b3, b4;
 
-b = a;
-b = a[];
-b = a[0 .. a.length];
+b1 = a;
+b2 = a[];
+b3 = a[0 .. a.length];
+b4 = a[0 .. $];
+writeln(b1);
+writeln(b2);
+writeln(b3);
+writeln(b4);
+
 ---------
 )
 
@@ -201,10 +210,17 @@ b = a[0 .. a.length];
         but for converting pointers into bounds-checked arrays:
         )
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
-int* p;
+int[10] a = [ 1,2,3,4,5,6,7,8,9,10 ];
+
+int* p = &a[2];
 int[] b = p[0..8];
+writeln(b);
+writeln(p[7]);      // 10
+writeln(p[8]);      // undefined behaviour
+writeln(b[7]);      // 10
+//writeln(b[8]);    // range error
 ---------
 )
 

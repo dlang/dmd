@@ -1121,8 +1121,8 @@ $(GNAME PrimaryExpression):
     $(D true)
     $(D false)
     $(D $)
-    $(GLINK2 lex, IntegerLiteral)
-    $(GLINK2 lex, FloatLiteral)
+    $(GLINK_LEX IntegerLiteral)
+    $(GLINK_LEX FloatLiteral)
     $(GLINK CharacterLiteral)
     $(GLINK StringLiterals)
     $(GLINK ArrayLiteral)
@@ -1232,8 +1232,8 @@ $(H3 $(LNAME2 string_literals, String Literals))
 
 $(GRAMMAR
 $(GNAME StringLiterals):
-    $(GLINK2 lex, StringLiteral)
-    $(I StringLiterals) $(GLINK2 lex, StringLiteral)
+    $(GLINK_LEX StringLiteral)
+    $(I StringLiterals) $(GLINK_LEX StringLiteral)
 )
 
     $(P String literals can implicitly convert to any
@@ -2208,7 +2208,7 @@ $(SPEC_SUBNAV_PREV_NEXT pragma, Pragmas, statement, Statements)
 Macros:
         CHAPTER=10
         TITLE=Expressions
-        IDENTIFIER=$(GLINK2 lex, Identifier)
+        IDENTIFIER=$(GLINK_LEX Identifier)
         USUAL_ARITHMETIC_CONVERSIONS=$(DDSUBLINK spec/type, usual-arithmetic-conversions, Usual Arithmetic Conversions)
         INTEGER_PROMOTIONS=$(DDSUBLINK spec/type, integer-promotions, Integer Promotions)
         _=

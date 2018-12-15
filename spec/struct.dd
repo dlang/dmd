@@ -17,8 +17,8 @@ $(GNAME AggregateDeclaration):
     $(GLINK UnionDeclaration)
 
 $(GNAME StructDeclaration):
-    $(D struct) $(I Identifier) $(D ;)
-    $(D struct) $(I Identifier) $(GLINK AggregateBody)
+    $(D struct) $(GLINK_LEX Identifier) $(D ;)
+    $(D struct) $(GLINK_LEX Identifier) $(GLINK AggregateBody)
     $(GLINK2 template, StructTemplateDeclaration)
     $(GLINK AnonStructDeclaration)
 
@@ -26,8 +26,8 @@ $(GNAME AnonStructDeclaration):
     $(D struct) $(GLINK AggregateBody)
 
 $(GNAME UnionDeclaration):
-    $(D union) $(I Identifier) $(D ;)
-    $(D union) $(I Identifier) $(GLINK AggregateBody)
+    $(D union) $(GLINK_LEX Identifier) $(D ;)
+    $(D union) $(GLINK_LEX Identifier) $(GLINK AggregateBody)
     $(GLINK2 template, UnionTemplateDeclaration)
     $(GLINK AnonUnionDeclaration)
 
@@ -1144,10 +1144,10 @@ void main()
         $(P The postblits `__fieldPostblit` and `__aggrPostblit`
         are generated without any implicit qualifiers and are not considered
         struct members. This leads to the situation where qualifying an
-        entire struct declaration does not have any impact on the above
-        mentioned postblits. However, since `__xpostblit` is a member of
-        the struct and an alias of one of the other postblits, the qualifiers
-        applied to the struct will affect the aliased postblit:)
+        entire struct declaration with `const` or `immutable` does not have
+        any impact on the above-mentioned postblits. However, since `__xpostblit`
+        is a member of the struct and an alias of one of the other postblits,
+        the qualifiers applied to the struct will affect the aliased postblit.)
 
 $(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---
@@ -1186,33 +1186,70 @@ immutable struct C2
 {
     S a;
 }
-
-// Similar to B
-shared struct D
-{
-    // error: non-shared method S.__postblit is not callable using a shared object
-    // error: non-shared method D.__fieldPostblit is not callable using a shared object
-    S a;
-    this(this)
-    { }
-}
-
-// Unlike B2, this example also does not work due to additional restrictions on shared.
-shared struct D2
-{
-    // error: non-shared method S.__postblit is not callable using a shared object
-    S a;
-}
 ---
 )
 
         $(P In the above situations the errors do not contain line numbers because
-        the errors are regarding generated code. In the case of the `shared` struct,
-        the first error message can be suppressed by qualifying the postblit of `S`
-        with `shared`.
+        the errors are regarding generated code.
         )
 
-        $(P Unions may not have fields that have postblits.)
+        $(P Qualifying an entire struct as `shared` correctly propagates the attribute
+        to the generated postblits:)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+shared struct A
+{
+    this(this)
+    {
+        import std.stdio : writeln;
+        writeln("the shared postblit was called");
+    }
+}
+
+struct B
+{
+    A a;
+}
+
+void main()
+{
+    shared B b1;
+    auto b2 = b1;
+}
+---
+)
+
+        $(P Unions may have fields that have postblits. However, a union itself never has
+        a postblit. Copying a union does not result in postblit calls for any fields.
+        If those calls are desired, they must be inserted explicitly by the programmer:)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S
+{
+    int count;
+    this(this)
+    {
+        ++count;
+    }
+}
+
+union U
+{
+    S s;
+}
+
+void main()
+{
+    U a = U.init;
+    U b = a;
+    assert(b.s.count == 0);
+    b.s.__postblit;
+    assert(b.s.count == 1);
+}
+---
+)
 
 $(H2 $(LEGACY_LNAME2 StructDestructor, struct-destructor, Struct Destructors))
 
@@ -1221,7 +1258,46 @@ $(H2 $(LEGACY_LNAME2 StructDestructor, struct-destructor, Struct Destructors))
         object.
         )
 
-        $(P Unions may not have fields that have destructors.)
+        $(P Unions may have fields that have destructors. However, a union itself never has
+        a destructor. When a union goes out of scope, destructors for it's fields are not called.
+        If those calls are desired, they must be inserted explicitly by the programmer:)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S
+{
+    ~this()
+    {
+        import std.stdio;
+        writeln("S is being destructed");
+    }
+}
+
+union U
+{
+    S s;
+}
+
+void main()
+{
+    import std.stdio;
+    {
+        writeln("entering first scope");
+        U u = U.init;
+        scope (exit) writeln("exiting first scope");
+    }
+    {
+        writeln("entering second scope");
+        U u = U.init;
+        scope (exit)
+        {
+            writeln("exiting second scope");
+            destroy(u.s);
+        }
+    }
+}
+---
+)
 
 $(H2 $(LNAME2 StructInvariant, Struct Invariants))
 
