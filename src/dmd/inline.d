@@ -1173,9 +1173,32 @@ public:
 
         void inlineFd()
         {
-            if (fd && fd != parent && canInline(fd, false, false, asStatements))
+            if (!fd || fd == parent)
+                return;
+
+            /* If the arguments generate temporaries that need destruction, the destruction
+             * must be done after the function body is executed.
+             * The easiest way to accomplish that is to do the inlining as an Expression.
+             * https://issues.dlang.org/show_bug.cgi?id=16652
+             */
+            bool asStates = asStatements;
+            if (asStates)
             {
-                expandInline(e.loc, fd, parent, eret, null, e.arguments, asStatements, eresult, sresult, again);
+                if (fd.inlineStatusExp == ILS.yes)
+                    asStates = false;           // inline as expressions
+                                                // so no need to recompute argumentsNeedDtors()
+                else if (argumentsNeedDtors(e.arguments))
+                    asStates = false;
+            }
+
+            if (canInline(fd, false, false, asStates))
+            {
+                expandInline(e.loc, fd, parent, eret, null, e.arguments, asStates, eresult, sresult, again);
+                if (asStatements && eresult)
+                {
+                    sresult = new ExpStatement(eresult.loc, eresult);
+                    eresult = null;
+                }
             }
         }
 
@@ -2122,4 +2145,123 @@ bool onlyOneAssign(VarDeclaration v, FuncDeclaration fd)
     if (!v.type.isMutable())
         return true;            // currently the only case handled atm
     return false;
+}
+
+/************************************************************
+ * See if arguments to a function are creating temporaries that
+ * will need destruction after the function is executed.
+ * Params:
+ *      arguments = arguments to function
+ * Returns:
+ *      true if temporaries need destruction
+ */
+
+private bool argumentsNeedDtors(Expressions* arguments)
+{
+    if (arguments)
+    {
+        foreach (arg; *arguments)
+        {
+            if (argNeedsDtor(arg))
+                return true;
+        }
+    }
+    return false;
+}
+
+/************************************************************
+ * See if argument to a function is creating temporaries that
+ * will need destruction after the function is executed.
+ * Params:
+ *      arg = argument to function
+ * Returns:
+ *      true if temporaries need destruction
+ */
+
+private bool argNeedsDtor(Expression arg)
+{
+    extern (C++) final class NeedsDtor : StoppableVisitor
+    {
+        alias visit = typeof(super).visit;
+        Expression arg;
+
+    public:
+        extern (D) this(Expression arg)
+        {
+            this.arg = arg;
+        }
+
+        override void visit(Expression)
+        {
+        }
+
+        override void visit(DeclarationExp de)
+        {
+            if (de != arg)
+                Dsymbol_needsDtor(de.declaration);
+        }
+
+        void Dsymbol_needsDtor(Dsymbol s)
+        {
+            /* This mirrors logic of Dsymbol_toElem() in e2ir.d
+             * perhaps they can be combined.
+             */
+            if (auto vd = s.isVarDeclaration())
+            {
+                s = s.toAlias();
+                if (s != vd)
+                    return Dsymbol_needsDtor(s);
+                else if (vd.isStatic() || vd.storage_class & (STC.extern_ | STC.tls | STC.gshared | STC.manifest))
+                    return;
+                if (vd.needsScopeDtor())
+                {
+                    stop = true;
+                }
+            }
+            else if (TemplateMixin tm = s.isTemplateMixin())
+            {
+                //printf("%s\n", tm.toChars());
+                if (tm.members)
+                {
+                    foreach (sm; *tm.members)
+                    {
+                        Dsymbol_needsDtor(sm);
+                    }
+                }
+            }
+            else if (TupleDeclaration td = s.isTupleDeclaration())
+            {
+                foreach (o; *td.objects)
+                {
+                    import dmd.root.rootobject;
+
+                    if (o.dyncast() == DYNCAST.expression)
+                    {
+                        Expression eo = cast(Expression)o;
+                        if (eo.op == TOK.dSymbol)
+                        {
+                            DsymbolExp se = cast(DsymbolExp)eo;
+                            Dsymbol_needsDtor(se.s);
+                        }
+                    }
+                }
+            }
+            else if (AttribDeclaration ad = s.isAttribDeclaration())
+            {
+                Dsymbols *decl = ad.include(null);
+                if (decl)
+                {
+                    foreach (d; *decl)
+                    {
+                        Dsymbol_needsDtor(d);
+                    }
+                }
+            }
+
+
+        }
+    }
+
+    scope NeedsDtor ct = new NeedsDtor(arg);
+    return walkPostorder(arg, ct);
 }
