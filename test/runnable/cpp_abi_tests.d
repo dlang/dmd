@@ -146,6 +146,18 @@ T[] values(T)()
     return values;
 }
 
+extern(C++, `ns1`)
+ {
+    // C++: `const char*, const char**`
+    int constFunction1(const(char)*, const(char)**);
+    // C++: `const char*, const char* const*`
+    int constFunction2(const(char)*, const(char*)*);
+    // C++: `const char* const, const char* const* const*`
+    int constFunction3(const(char*), const(char**)*);
+    // C++: `const char* const, const char* const* const* const`
+    int constFunction4(const(char*), const(char***));
+}
+
 void main()
 {
     foreach(bool val; values!bool())     check(val);
@@ -163,4 +175,9 @@ void main()
     foreach(double val; values!double()) check(val);
     check(S());
     check(std.test19248());
+
+    assert(constFunction1(null, null) == 1);
+    assert(constFunction2(null, null) == 2);
+    assert(constFunction3(null, null) == 3);
+    assert(constFunction4(null, null) == 42);
 }

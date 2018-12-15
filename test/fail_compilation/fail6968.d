@@ -1,4 +1,4 @@
-// 6968
+// https://issues.dlang.org/show_bug.cgi?id=6968
 
 template Pred(A, B)
 {

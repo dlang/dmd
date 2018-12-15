@@ -79,7 +79,7 @@ void test3()
     j.f();
     K3 k = a;
     k.f();
-    assert(&j.f == &k.f); // Bugzilla 3706
+    assert(&j.f == &k.f); // https://issues.dlang.org/show_bug.cgi?id=3706
 }
 
 /*******************************************/

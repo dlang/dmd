@@ -97,18 +97,9 @@ void go_term()
     vec_free(go.defkill);
     vec_free(go.starkill);
     vec_free(go.vptrkill);
-version (Posix)
-{
-    mem_free(go.expnod);
-    mem_free(go.expblk);
-    mem_free(go.defnod);
-}
-else
-{
-    util_free(go.expnod);
-    util_free(go.expblk);
-    util_free(go.defnod);
-}
+    go.defnod.dtor();
+    go.expnod.dtor();
+    go.expblk.dtor();
 }
 
 debug

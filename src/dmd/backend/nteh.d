@@ -27,6 +27,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.code_x86;
+import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.dt;
 import dmd.backend.el;
 import dmd.backend.global;
@@ -146,7 +147,7 @@ else
      *  handler address
      */
     uint fsize = 4;             // target size of function pointer
-    scope dtb = new DtBuilder();
+    auto dtb = DtBuilder(0);
     int sz = 0;                     // size so far
 
     foreach (b; BlockRange(startblock))

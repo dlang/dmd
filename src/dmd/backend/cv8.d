@@ -223,7 +223,7 @@ void cv8_termfile(const(char)* objfilename)
     /* Write out the debug info sections.
      */
 
-    int seg = MsCoffObj.seg_debugS();
+    int seg = MsCoffObj_seg_debugS();
 
     uint value = 4;
     objmod.bytes(seg,0,4,&value);
@@ -269,7 +269,7 @@ void cv8_termfile(const(char)* objfilename)
         int f2seg = seg;
         if (symbol_iscomdat(fd.sfunc))
         {
-            f2seg = MsCoffObj.seg_debugS_comdat(fd.sfunc);
+            f2seg = MsCoffObj_seg_debugS_comdat(fd.sfunc);
             objmod.bytes(f2seg,0,4,&value);
         }
 
@@ -363,7 +363,7 @@ void cv8_func_start(Symbol *sfunc)
         currentfuncdata.f1fixup = cast(Outbuffer*)mem_calloc(Outbuffer.sizeof);
         currentfuncdata.f1fixup.enlarge(128);
     }
-    varStats.startFunction();
+    varStats_startFunction();
 }
 
 void cv8_func_term(Symbol *sfunc)
@@ -492,7 +492,7 @@ void cv8_func_term(Symbol *sfunc)
             buf.writeWord(S_END);
         }
     }
-    varStats.writeSymbolTable(&globsym, &cv8_outsym, &cv8.endArgs, &cv8.beginBlock, &cv8.endBlock);
+    varStats_writeSymbolTable(&globsym, &cv8_outsym, &cv8.endArgs, &cv8.beginBlock, &cv8.endBlock);
 
     /* Put out function return record S_RETURN
      * (VC doesn't, so we won't bother, either.)
@@ -528,7 +528,7 @@ void cv8_linnum(Srcpos srcpos, uint offset)
         currentfuncdata.srcfileoff  = cv8_addfile(srcpos.Sfilename);
     }
 
-    varStats.recordLineOffset(srcpos, offset);
+    varStats_recordLineOffset(srcpos, offset);
 
     __gshared uint lastoffset;
     __gshared uint lastlinnum;
@@ -705,6 +705,8 @@ void cv8_outsym(Symbol *s)
         case_auto:
             base = cast(uint)Auto.size;
         L1:
+            if (s.Sscope) // local variables moved into the closure cannot be emitted directly
+                break;
 static if (1)
 {
             // Register relative addressing
@@ -1164,7 +1166,7 @@ else
     TOLONG(f.data.ptr + 38, validx);
     idx_t fieldlist = cv_debtyp(f);
 
-    const(char)* id = "dAssocArray";
+    const(char)* id = t.Tident ? t.Tident : "dAssocArray";
     int idlen = cast(int)strlen(id);
     if (idlen > CV8_MAX_SYMBOL_LENGTH)
         idlen = CV8_MAX_SYMBOL_LENGTH;

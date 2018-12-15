@@ -17,6 +17,7 @@ import dmd.arraytypes;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
+import dmd.expression;
 import dmd.globals;
 import dmd.identifier;
 import dmd.visitor;
@@ -35,18 +36,24 @@ extern (C++) final class Nspace : ScopeDsymbol
      */
     bool mangleOnly;
 
-    extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* members, bool mangleOnly)
+    /**
+     * Namespace identifier resolved during semantic.
+     */
+    Expression identExp;
+
+    extern (D) this(const ref Loc loc, Identifier ident, Expression identExp, Dsymbols* members, bool mangleOnly)
     {
         super(ident);
         //printf("Nspace::Nspace(ident = %s)\n", ident.toChars());
         this.loc = loc;
         this.members = members;
+        this.identExp = identExp;
         this.mangleOnly = mangleOnly;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
-        auto ns = new Nspace(loc, ident, null, mangleOnly);
+        auto ns = new Nspace(loc, ident, identExp, null, mangleOnly);
         return ScopeDsymbol.syntaxCopy(ns);
     }
 

@@ -36,18 +36,31 @@ enum NeedInterpret : int
 alias INITnointerpret = NeedInterpret.INITnointerpret;
 alias INITinterpret = NeedInterpret.INITinterpret;
 
+/*************
+ * Discriminant for which kind of initializer
+ */
+enum InitKind : ubyte
+{
+    void_,
+    error,
+    struct_,
+    array,
+    exp,
+}
+
 /***********************************************************
  */
 extern (C++) class Initializer : RootObject
 {
     Loc loc;
+    InitKind kind;
 
-    extern (D) this(const ref Loc loc)
+
+    extern (D) this(const ref Loc loc, InitKind kind)
     {
         this.loc = loc;
+        this.kind = kind;
     }
-
-    abstract Initializer syntaxCopy();
 
     override final const(char)* toChars()
     {
@@ -57,29 +70,30 @@ extern (C++) class Initializer : RootObject
         return buf.extractString();
     }
 
-    ErrorInitializer isErrorInitializer()
+    final inout(ErrorInitializer) isErrorInitializer() inout pure
     {
-        return null;
+        // Use void* cast to skip dynamic casting call
+        return kind == InitKind.error ? cast(inout ErrorInitializer)cast(void*)this : null;
     }
 
-    VoidInitializer isVoidInitializer()
+    final inout(VoidInitializer) isVoidInitializer() inout pure
     {
-        return null;
+        return kind == InitKind.void_ ? cast(inout VoidInitializer)cast(void*)this : null;
     }
 
-    StructInitializer isStructInitializer()
+    final inout(StructInitializer) isStructInitializer() inout pure
     {
-        return null;
+        return kind == InitKind.struct_ ? cast(inout StructInitializer)cast(void*)this : null;
     }
 
-    ArrayInitializer isArrayInitializer()
+    final inout(ArrayInitializer) isArrayInitializer() inout pure
     {
-        return null;
+        return kind == InitKind.array ? cast(inout ArrayInitializer)cast(void*)this : null;
     }
 
-    ExpInitializer isExpInitializer()
+    final inout(ExpInitializer) isExpInitializer() inout pure
     {
-        return null;
+        return kind == InitKind.exp ? cast(inout ExpInitializer)cast(void*)this : null;
     }
 
     void accept(Visitor v)
@@ -96,17 +110,7 @@ extern (C++) final class VoidInitializer : Initializer
 
     extern (D) this(const ref Loc loc)
     {
-        super(loc);
-    }
-
-    override Initializer syntaxCopy()
-    {
-        return new VoidInitializer(loc);
-    }
-
-    override VoidInitializer isVoidInitializer()
-    {
-        return this;
+        super(loc, InitKind.void_);
     }
 
     override void accept(Visitor v)
@@ -121,17 +125,7 @@ extern (C++) final class ErrorInitializer : Initializer
 {
     extern (D) this()
     {
-        super(Loc.initial);
-    }
-
-    override Initializer syntaxCopy()
-    {
-        return this;
-    }
-
-    override ErrorInitializer isErrorInitializer()
-    {
-        return this;
+        super(Loc.initial, InitKind.error);
     }
 
     override void accept(Visitor v)
@@ -149,21 +143,7 @@ extern (C++) final class StructInitializer : Initializer
 
     extern (D) this(const ref Loc loc)
     {
-        super(loc);
-    }
-
-    override Initializer syntaxCopy()
-    {
-        auto ai = new StructInitializer(loc);
-        assert(field.dim == value.dim);
-        ai.field.setDim(field.dim);
-        ai.value.setDim(value.dim);
-        for (size_t i = 0; i < field.dim; i++)
-        {
-            ai.field[i] = field[i];
-            ai.value[i] = value[i].syntaxCopy();
-        }
-        return ai;
+        super(loc, InitKind.struct_);
     }
 
     void addInit(Identifier field, Initializer value)
@@ -171,11 +151,6 @@ extern (C++) final class StructInitializer : Initializer
         //printf("StructInitializer::addInit(field = %p, value = %p)\n", field, value);
         this.field.push(field);
         this.value.push(value);
-    }
-
-    override StructInitializer isStructInitializer()
-    {
-        return this;
     }
 
     override void accept(Visitor v)
@@ -196,22 +171,7 @@ extern (C++) final class ArrayInitializer : Initializer
 
     extern (D) this(const ref Loc loc)
     {
-        super(loc);
-    }
-
-    override Initializer syntaxCopy()
-    {
-        //printf("ArrayInitializer::syntaxCopy()\n");
-        auto ai = new ArrayInitializer(loc);
-        assert(index.dim == value.dim);
-        ai.index.setDim(index.dim);
-        ai.value.setDim(value.dim);
-        for (size_t i = 0; i < ai.value.dim; i++)
-        {
-            ai.index[i] = index[i] ? index[i].syntaxCopy() : null;
-            ai.value[i] = value[i].syntaxCopy();
-        }
-        return ai;
+        super(loc, InitKind.array);
     }
 
     void addInit(Expression index, Initializer value)
@@ -232,11 +192,6 @@ extern (C++) final class ArrayInitializer : Initializer
         return false;
     }
 
-    override ArrayInitializer isArrayInitializer()
-    {
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -247,23 +202,13 @@ extern (C++) final class ArrayInitializer : Initializer
  */
 extern (C++) final class ExpInitializer : Initializer
 {
-    Expression exp;
     bool expandTuples;
+    Expression exp;
 
     extern (D) this(const ref Loc loc, Expression exp)
     {
-        super(loc);
+        super(loc, InitKind.exp);
         this.exp = exp;
-    }
-
-    override Initializer syntaxCopy()
-    {
-        return new ExpInitializer(loc, exp.syntaxCopy());
-    }
-
-    override ExpInitializer isExpInitializer()
-    {
-        return this;
     }
 
     override void accept(Visitor v)
@@ -343,5 +288,53 @@ version (all)
             return true;
         }
         return false;
+    }
+}
+
+
+/****************************************
+ * Copy the AST for Initializer.
+ * Params:
+ *      inx = Initializer AST to copy
+ * Returns:
+ *      the copy
+ */
+Initializer syntaxCopy(Initializer inx)
+{
+    static Initializer copyStruct(StructInitializer vi)
+    {
+        auto si = new StructInitializer(vi.loc);
+        assert(vi.field.dim == vi.value.dim);
+        si.field.setDim(vi.field.dim);
+        si.value.setDim(vi.value.dim);
+        foreach (const i; 0 .. vi.field.dim)
+        {
+            si.field[i] = vi.field[i];
+            si.value[i] = vi.value[i].syntaxCopy();
+        }
+        return si;
+    }
+
+    static Initializer copyArray(ArrayInitializer vi)
+    {
+        auto ai = new ArrayInitializer(vi.loc);
+        assert(vi.index.dim == vi.value.dim);
+        ai.index.setDim(vi.index.dim);
+        ai.value.setDim(vi.value.dim);
+        foreach (const i; 0 .. vi.value.dim)
+        {
+            ai.index[i] = vi.index[i] ? vi.index[i].syntaxCopy() : null;
+            ai.value[i] = vi.value[i].syntaxCopy();
+        }
+        return ai;
+    }
+
+    final switch (inx.kind)
+    {
+        case InitKind.void_:   return new VoidInitializer(inx.loc);
+        case InitKind.error:   return inx;
+        case InitKind.struct_: return copyStruct(cast(StructInitializer)inx);
+        case InitKind.array:   return copyArray(cast(ArrayInitializer)inx);
+        case InitKind.exp:     return new ExpInitializer(inx.loc, (cast(ExpInitializer)inx).exp.syntaxCopy());
     }
 }

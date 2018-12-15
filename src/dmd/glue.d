@@ -257,8 +257,8 @@ void obj_start(const(char)* srcfile)
     {
         // Produce Ms COFF files for 64 bit code, OMF for 32 bit code
         assert(objbuf.size() == 0);
-        objmod = global.params.mscoff ? MsCoffObj.init(&objbuf, srcfile, null)
-                                      :       Obj.init(&objbuf, srcfile, null);
+        objmod = global.params.mscoff ? MsCoffObj_init(&objbuf, srcfile, null)
+                                      :    OmfObj_init(&objbuf, srcfile, null);
     }
     else
     {
@@ -374,7 +374,7 @@ void genObjFile(Module m, bool multiobj)
 //#else
                 Symbol *sref = symbol_generate(SCstatic, type_fake(TYnptr));
                 sref.Sfl = FLdata;
-                scope dtb = new DtBuilder();
+                auto dtb = DtBuilder(0);
                 dtb.xoff(s, 0, TYnptr);
                 sref.Sdt = dtb.finish();
                 outdata(sref);
@@ -393,7 +393,7 @@ void genObjFile(Module m, bool multiobj)
         m.cov.Stype.Tmangle = mTYman_d;
         m.cov.Sfl = FLdata;
 
-        scope dtb = new DtBuilder();
+        auto dtb = DtBuilder(0);
         dtb.nzeros(4 * m.numlines);
         m.cov.Sdt = dtb.finish();
 
@@ -420,7 +420,7 @@ void genObjFile(Module m, bool multiobj)
         bcov.Sclass = SCstatic;
         bcov.Sfl = FLdata;
 
-        scope dtb = new DtBuilder();
+        auto dtb = DtBuilder(0);
         dtb.nbytes((m.numlines + 32) / 32 * (*m.covb).sizeof, cast(char *)m.covb);
         bcov.Sdt = dtb.finish();
 
@@ -950,6 +950,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     {
         assert(!fd.vthis.csym);
         sthis = toSymbol(fd.vthis);
+        sthis.Stype = getParentClosureType(sthis, fd);
         irs.sthis = sthis;
         if (!(f.Fflags3 & Fnested))
             f.Fflags3 |= Fmember;
@@ -1234,6 +1235,9 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     }
 
     writefunc(s);
+
+    buildCapture(fd);
+
     // Restore symbol table
     cstate.CSpsymtab = symtabsave;
 
@@ -1442,8 +1446,6 @@ uint totym(Type tx)
 
         case Tstruct:
             t = TYstruct;
-            if (tx.toDsymbol(null).ident == Id.__c_long_double)
-                t = TYdouble;
             break;
 
         case Tenum:
@@ -1505,11 +1507,11 @@ uint totym(Type tx)
                 case LINK.windows:
                     if (global.params.is64bit)
                         goto Lc;
-                    t = (tf.varargs == 1) ? TYnfunc : TYnsfunc;
+                    t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYnsfunc;
                     break;
 
                 case LINK.pascal:
-                    t = (tf.varargs == 1) ? TYnfunc : TYnpfunc;
+                    t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYnpfunc;
                     break;
 
                 case LINK.c:
@@ -1525,7 +1527,7 @@ uint totym(Type tx)
                     break;
 
                 case LINK.d:
-                    t = (tf.varargs == 1) ? TYnfunc : TYjfunc;
+                    t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYjfunc;
                     break;
 
                 case LINK.default_:

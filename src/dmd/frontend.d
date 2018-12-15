@@ -17,9 +17,32 @@ module dmd.frontend;
 import dmd.dmodule : Module;
 import std.range.primitives : isInputRange, ElementType;
 import std.traits : isNarrowString;
+import std.typecons : Tuple;
 
 version (Windows) private enum sep = ";", exe = ".exe";
 version (Posix) private enum sep = ":", exe = "";
+
+/// Contains aggregated diagnostics information.
+immutable struct Diagnostics
+{
+    /// Number of errors diagnosed
+    uint errors;
+
+    /// Number of warnings diagnosed
+    uint warnings;
+
+    /// Returns: `true` if errors have been diagnosed
+    bool hasErrors()
+    {
+        return errors > 0;
+    }
+
+    /// Returns: `true` if warnings have been diagnosed
+    bool hasWarnings()
+    {
+        return warnings > 0;
+    }
+}
 
 /*
 Initializes the global variables of the DMD compiler.
@@ -78,9 +101,13 @@ Returns: full path to the found `dmd.conf`, `null` otherwise.
 string findDMDConfig(const(char)[] dmdFilePath)
 {
     import dmd.dinifile : findConfFile;
-    import std.string : fromStringz, toStringz;
 
-    return findConfFile(dmdFilePath, "dmd.conf").idup;
+    version (Windows)
+        enum configFile = "sc.ini";
+    else
+        enum configFile = "dmd.conf";
+
+    return findConfFile(dmdFilePath, configFile).idup;
 }
 
 /**
@@ -215,22 +242,23 @@ Params:
 
 Returns: the parsed module object
 */
-Module parseModule(const(char)[] fileName, const(char)[] code = null)
+Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(const(char)[] fileName, const(char)[] code = null)
 {
     import dmd.astcodegen : ASTCodegen;
-    import dmd.globals : Loc;
+    import dmd.globals : Loc, global;
     import dmd.parse : Parser;
     import dmd.identifier : Identifier;
     import dmd.tokens : TOK;
     import std.string : toStringz;
+    import std.typecons : tuple;
 
     static auto parse(Module m, const(char)[] code)
     {
         scope p = new Parser!ASTCodegen(m, code, false);
         p.nextToken; // skip the initial token
         auto members = p.parseModule;
-        assert(!p.errors, "Parsing error occurred.");
-        assert(p.token.value == TOK.endOfFile, "Didn't reach the end token. Did an error occur?");
+        if (p.errors)
+            ++global.errors;
         return members;
     }
 
@@ -244,7 +272,12 @@ Module parseModule(const(char)[] fileName, const(char)[] code = null)
         m.parse();
     }
 
-    return m;
+    Diagnostics diagnostics = {
+        errors: global.errors,
+        warnings: global.warnings
+    };
+
+    return typeof(return)(m, diagnostics);
 }
 
 /**

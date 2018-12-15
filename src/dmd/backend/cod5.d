@@ -10,7 +10,12 @@
  */
 module dmd.backend.cod5;
 
-version (SPP) {} else
+version (SCPP)
+    version = COMPILE;
+version (MARS)
+    version = COMPILE;
+
+version (COMPILE)
 {
 
 import core.stdc.stdio;
@@ -49,7 +54,6 @@ else
     tym_t tyf;
     block *b;
     block *bp;
-    list_t bl;
     int nepis;
 
     tyf = funcsym_p.ty();
@@ -95,7 +99,7 @@ else
         // If all predecessors are marked
         mark = 0;
         assert(b.Bpred);
-        for (bl = b.Bpred; bl; bl = list_next(bl))
+        foreach (bl; ListRange(b.Bpred))
         {
             if (list_block(bl).Bflags & BFLoutsideprolog)
             {
@@ -119,7 +123,7 @@ else
 
         // See if b is an epilog
         mark = 0;
-        for (bl = b.Bsucc; bl; bl = list_next(bl))
+        foreach (bl; ListRange(b.Bsucc))
         {
             if (list_block(bl).Bflags & BFLoutsideprolog)
             {
@@ -178,14 +182,13 @@ void cod5_noprol()
  */
 
 private void pe_add(block *b)
-{   list_t bl;
-
+{
     if (b.Bflags & BFLoutsideprolog ||
         need_prolog(b))
         return;
 
     b.Bflags |= BFLoutsideprolog;
-    for (bl = b.Bsucc; bl; bl = list_next(bl))
+    foreach (bl; ListRange(b.Bsucc))
         pe_add(list_block(bl));
 }
 

@@ -11,6 +11,21 @@ void test(int ij)
 }
 
 /*******************************************/
+// https://issues.dlang.org/show_bug.cgi?id=18010
+
+void test1()
+{
+    int[10] a1 = void;
+    int[10] a2 = void;
+    a1[] = a2[];
+}
+
+void test2(int[] a1, int[] a2)
+{
+    a1[] = a2[];
+}
+
+/*******************************************/
 // https://issues.dlang.org/show_bug.cgi?id=17843
 
 struct S

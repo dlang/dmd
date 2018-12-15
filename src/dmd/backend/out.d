@@ -539,7 +539,7 @@ void outcommon(Symbol *s,targ_size_t n)
             /* COMDEFs not supported in code segment
              * so put them out as initialized 0s
              */
-            scope dtb = new DtBuilder();
+            auto dtb = DtBuilder(0);
             dtb.nzeros(cast(uint)n);
             s.Sdt = dtb.finish();
             outdata(s);
@@ -561,7 +561,7 @@ version (SCPP)
                  * so put them out as COMDATs with initialized 0s
                  */
                 s.Sclass = SCcomdat;
-                scope dtb = new DtBuilder();
+                auto dtb = DtBuilder(0);
                 dtb.nzeros(cast(uint)n);
                 s.Sdt = dtb.finish();
                 outdata(s);
@@ -689,7 +689,7 @@ Symbol *out_string_literal(const(char)* str, uint len, uint sz)
             assert(0);
     }
 
-    scope dtb = new DtBuilder();
+    auto dtb = DtBuilder(0);
     dtb.nbytes(cast(uint)(len * sz), str);
     dtb.nzeros(cast(uint)sz);       // include terminating 0
     s.Sdt = dtb.finish();
@@ -1358,7 +1358,6 @@ version (MARS)
     if (go.mfoptim)
     {   OPTIMIZER = 1;
         optfunc();                      /* optimize function            */
-        assert(dfo);
         OPTIMIZER = 0;
     }
     else
@@ -1613,8 +1612,7 @@ version (SCPP)
     globsym.top = 0;
 
     //printf("done with writefunc()\n");
-    util_free(dfo);
-    dfo = null;
+    //dfo.dtor();       // save allocation for next time
 }
 
 /*************************

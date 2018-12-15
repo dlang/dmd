@@ -1,7 +1,7 @@
 extern(C) int printf(const char*, ...);
 
 /******************************************/
-// 12078
+// https://issues.dlang.org/show_bug.cgi?id=12078
 
 class B12078(T)
 {
@@ -26,7 +26,7 @@ void test12078()
 }
 
 /******************************************/
-// 12143
+// https://issues.dlang.org/show_bug.cgi?id=12143
 
 class Node12143
 {
@@ -39,7 +39,7 @@ class Type12143 : Node12143 {}
 class Class12143 : Type12143 {}
 
 /***************************************************/
-// 13353
+// https://issues.dlang.org/show_bug.cgi?id=13353
 
 interface Base13353(T)
 {
@@ -57,7 +57,7 @@ class Concrete13353 : Derived13353
 }
 
 /***************************************************/
-// 15733
+// https://issues.dlang.org/show_bug.cgi?id=15733
 
 class CStmt15733 : CNode15733 {}
 class CDecl15733 : CStmt15733 {}

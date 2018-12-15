@@ -25,6 +25,7 @@ import dmd.backend.el;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.backend.barray;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 
@@ -76,17 +77,14 @@ struct GlobalOptimizer
     mftype mfoptim;
     uint changes;       // # of optimizations performed
 
-    DefNode *defnod;    // array of definition elems
-    uint deftop;        // # of entries in defnod[]
-    uint defmax;        // capacity of defnod[]
+    Barray!DefNode defnod;    // array of definition elems
     uint unambigtop;    // number of unambiguous defininitions ( <= deftop )
 
-    vec_base_t *dnunambig;  // pool to allocate DNunambig vectors from
-    uint    dnunambigmax;   // capacity of dnunambig[]
+    Barray!(vec_base_t) dnunambig;  // pool to allocate DNunambig vectors from
 
-    elem **expnod;      // array of expression elems
+    Barray!(elem*) expnod;      // array of expression elems
     uint exptop;        // top of expnod[]
-    block **expblk;     // parallel array of block pointers
+    Barray!(block*) expblk;     // parallel array of block pointers
 
     vec_t defkill;      // vector of AEs killed by an ambiguous definition
     vec_t starkill;     // vector of AEs killed by a definition of something that somebody could be

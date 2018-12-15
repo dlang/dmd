@@ -608,7 +608,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                 TypeFunction tf = cast(TypeFunction)t1;
                 for (size_t i = 0; i < e.arguments.dim; i++)
                 {
-                    Parameter p = Parameter.getNth(tf.parameters, i);
+                    Parameter p = tf.parameterList[i];
                     bool keep = p && (p.storageClass & (STC.ref_ | STC.out_)) != 0;
                     expOptimize((*e.arguments)[i], WANTvalue, keep);
                 }
@@ -927,22 +927,8 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             // If e2 *could* have been an integer, make it one.
             if (e.e2.op == TOK.float64)
             {
-                version (all)
-                {
-                    // Work around redundant REX.W prefix breaking Valgrind
-                    // when built with affected versions of DMD.
-                    // https://issues.dlang.org/show_bug.cgi?id=14952
-                    // This can be removed once compiling with DMD 2.068 or
-                    // older is no longer supported.
-                    const r = e.e2.toReal();
-                    if (r == real_t(cast(sinteger_t)r))
-                        e.e2 = new IntegerExp(e.loc, e.e2.toInteger(), Type.tint64);
-                }
-                else
-                {
-                    if (e.e2.toReal() == cast(sinteger_t)e.e2.toReal())
-                        e.e2 = new IntegerExp(e.loc, e.e2.toInteger(), Type.tint64);
-                }
+                if (e.e2.toReal() == real_t(cast(sinteger_t)e.e2.toReal()))
+                    e.e2 = new IntegerExp(e.loc, e.e2.toInteger(), Type.tint64);
             }
             if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
             {

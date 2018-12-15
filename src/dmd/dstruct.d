@@ -53,7 +53,7 @@ extern (C++) FuncDeclaration search_toString(StructDeclaration sd)
         __gshared TypeFunction tftostring;
         if (!tftostring)
         {
-            tftostring = new TypeFunction(null, Type.tstring, 0, LINK.d);
+            tftostring = new TypeFunction(ParameterList(), Type.tstring, LINK.d);
             tftostring = tftostring.merge().toTypeFunction();
         }
         fd = fd.overloadExactMatch(tftostring);
@@ -410,6 +410,12 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         {
             if (vd._init)
             {
+                if (vd._init.isVoidInitializer())
+                    /* Treat as 0 for the purposes of putting the initializer
+                     * in the BSS segment, or doing a mass set to 0
+                     */
+                    continue;
+
                 // Zero size fields are zero initialized
                 if (vd.type.size(vd.loc) == 0)
                     continue;

@@ -504,7 +504,8 @@ struct UnionExp
     }
 
 private:
-    union __AnonStruct__u
+    // Ensure that the union is suitably aligned.
+    align(8) union __AnonStruct__u
     {
         char[__traits(classInstanceSize, Expression)] exp;
         char[__traits(classInstanceSize, IntegerExp)] integerexp;
@@ -521,8 +522,6 @@ private:
         char[__traits(classInstanceSize, AddrExp)] addrexp;
         char[__traits(classInstanceSize, IndexExp)] indexexp;
         char[__traits(classInstanceSize, SliceExp)] sliceexp;
-        // Ensure that the union is suitably aligned.
-        real_t for_alignment_only;
     }
 
     __AnonStruct__u u;
@@ -836,6 +835,11 @@ extern (C++) abstract class Expression : RootObject
     }
 
     StringExp toStringExp()
+    {
+        return null;
+    }
+
+    TupleExp toTupleExp()
     {
         return null;
     }
@@ -1546,6 +1550,121 @@ extern (C++) abstract class Expression : RootObject
         return true;
     }
 
+    final pure inout nothrow @nogc
+    {
+        inout(IntegerExp)   isIntegerExp() { return op == TOK.int64 ? cast(typeof(return))this : null; }
+        inout(ErrorExp)     isErrorExp() { return op == TOK.error ? cast(typeof(return))this : null; }
+        inout(VoidInitExp)  isVoidInitExp() { return op == TOK.void_ ? cast(typeof(return))this : null; }
+        inout(RealExp)      isRealExp() { return op == TOK.float64 ? cast(typeof(return))this : null; }
+        inout(ComplexExp)   isComplexExp() { return op == TOK.complex80 ? cast(typeof(return))this : null; }
+        inout(IdentifierExp) isIdentifierExp() { return op == TOK.identifier ? cast(typeof(return))this : null; }
+        inout(DollarExp)    isDollarExp() { return op == TOK.dollar ? cast(typeof(return))this : null; }
+        inout(DsymbolExp)   isDsymbolExp() { return op == TOK.dSymbol ? cast(typeof(return))this : null; }
+        inout(ThisExp)      isThisExp() { return op == TOK.this_ ? cast(typeof(return))this : null; }
+        inout(SuperExp)     isSuperExp() { return op == TOK.super_ ? cast(typeof(return))this : null; }
+        inout(NullExp)      isNullExp() { return op == TOK.null_ ? cast(typeof(return))this : null; }
+        inout(StringExp)    isStringExp() { return op == TOK.string_ ? cast(typeof(return))this : null; }
+        inout(TupleExp)     isTupleExp() { return op == TOK.tuple ? cast(typeof(return))this : null; }
+        inout(ArrayLiteralExp) isArrayLiteralExp() { return op == TOK.arrayLiteral ? cast(typeof(return))this : null; }
+        inout(AssocArrayLiteralExp) isAssocArrayLiteralExp() { return op == TOK.assocArrayLiteral ? cast(typeof(return))this : null; }
+        inout(StructLiteralExp) isStructLiteralExp() { return op == TOK.structLiteral ? cast(typeof(return))this : null; }
+        inout(TypeExp)      isTypeExp() { return op == TOK.type ? cast(typeof(return))this : null; }
+        inout(ScopeExp)     isScopeExp() { return op == TOK.scope_ ? cast(typeof(return))this : null; }
+        inout(TemplateExp)  isTemplateExp() { return op == TOK.template_ ? cast(typeof(return))this : null; }
+        inout(NewExp) isNewExp() { return op == TOK.new_ ? cast(typeof(return))this : null; }
+        inout(NewAnonClassExp) isNewAnonClassExp() { return op == TOK.newAnonymousClass ? cast(typeof(return))this : null; }
+        inout(SymOffExp)    isSymOffExp() { return op == TOK.symbolOffset ? cast(typeof(return))this : null; }
+        inout(VarExp)       isVarExp() { return op == TOK.variable ? cast(typeof(return))this : null; }
+        inout(OverExp)      isOverExp() { return op == TOK.overloadSet ? cast(typeof(return))this : null; }
+        inout(FuncExp)      isFuncExp() { return op == TOK.function_ ? cast(typeof(return))this : null; }
+        inout(DeclarationExp) isDeclarationExp() { return op == TOK.declaration ? cast(typeof(return))this : null; }
+        inout(TypeidExp)    isTypeidExp() { return op == TOK.typeid_ ? cast(typeof(return))this : null; }
+        inout(TraitsExp)    isTraitsExp() { return op == TOK.traits ? cast(typeof(return))this : null; }
+        inout(HaltExp)      isHaltExp() { return op == TOK.halt ? cast(typeof(return))this : null; }
+        inout(IsExp)        isExp() { return op == TOK.is_ ? cast(typeof(return))this : null; }
+        inout(CompileExp)   isCompileExp() { return op == TOK.mixin_ ? cast(typeof(return))this : null; }
+        inout(ImportExp)    isImportExp() { return op == TOK.import_ ? cast(typeof(return))this : null; }
+        inout(AssertExp)    isAssertExp() { return op == TOK.assert_ ? cast(typeof(return))this : null; }
+        inout(DotIdExp)     isDotIdExp() { return op == TOK.dotIdentifier ? cast(typeof(return))this : null; }
+        inout(DotTemplateExp) isDotTemplateExp() { return op == TOK.dotTemplateDeclaration ? cast(typeof(return))this : null; }
+        inout(DotVarExp)    isDotVarExp() { return op == TOK.dotVariable ? cast(typeof(return))this : null; }
+        inout(DotTemplateInstanceExp) isDotTemplateInstanceExp() { return op == TOK.dotTemplateInstance ? cast(typeof(return))this : null; }
+        inout(DelegateExp)  isDelegateExp() { return op == TOK.delegate_ ? cast(typeof(return))this : null; }
+        inout(DotTypeExp)   isDotTypeExp() { return op == TOK.dotType ? cast(typeof(return))this : null; }
+        inout(CallExp)      isCallExp() { return op == TOK.call ? cast(typeof(return))this : null; }
+        inout(AddrExp)      isAddrExp() { return op == TOK.address ? cast(typeof(return))this : null; }
+        inout(PtrExp)       isPtrExp() { return op == TOK.star ? cast(typeof(return))this : null; }
+        inout(NegExp)       isNegExp() { return op == TOK.negate ? cast(typeof(return))this : null; }
+        inout(UAddExp)      isUAddExp() { return op == TOK.uadd ? cast(typeof(return))this : null; }
+        inout(ComExp)       isComExp() { return op == TOK.tilde ? cast(typeof(return))this : null; }
+        inout(NotExp)       isNotExp() { return op == TOK.not ? cast(typeof(return))this : null; }
+        inout(DeleteExp)    isDeleteExp() { return op == TOK.delete_ ? cast(typeof(return))this : null; }
+        inout(CastExp)      isCastExp() { return op == TOK.cast_ ? cast(typeof(return))this : null; }
+        inout(VectorExp)    isVectorExp() { return op == TOK.vector ? cast(typeof(return))this : null; }
+        inout(SliceExp)     isSliceExp() { return op == TOK.slice ? cast(typeof(return))this : null; }
+        inout(ArrayLengthExp) isArrayLengthExp() { return op == TOK.arrayLength ? cast(typeof(return))this : null; }
+        inout(ArrayExp)     isArrayExp() { return op == TOK.array ? cast(typeof(return))this : null; }
+        inout(DotExp)       isDotExp() { return op == TOK.dot ? cast(typeof(return))this : null; }
+        inout(CommaExp)     isCommaExp() { return op == TOK.comma ? cast(typeof(return))this : null; }
+        inout(IntervalExp)  isIntervalExp() { return op == TOK.interval ? cast(typeof(return))this : null; }
+        inout(DelegatePtrExp)     isDelegatePtrExp() { return op == TOK.delegatePointer ? cast(typeof(return))this : null; }
+        inout(DelegateFuncptrExp) isDelegateFuncptrExp() { return op == TOK.delegateFunctionPointer ? cast(typeof(return))this : null; }
+        inout(IndexExp)     isIndexExp() { return op == TOK.index ? cast(typeof(return))this : null; }
+        inout(PostExp)      isPostExp()  { return (op == TOK.plusPlus || op == TOK.minusMinus) ? cast(typeof(return))this : null; }
+        inout(PreExp)       isPreExp()   { return (op == TOK.prePlusPlus || op == TOK.preMinusMinus) ? cast(typeof(return))this : null; }
+        inout(AssignExp)    isAssignExp()    { return op == TOK.assign ? cast(typeof(return))this : null; }
+        inout(ConstructExp) isConstructExp() { return op == TOK.construct ? cast(typeof(return))this : null; }
+        inout(BlitExp)      isBlitExp()      { return op == TOK.blit ? cast(typeof(return))this : null; }
+        inout(AddAssignExp) isAddAssignExp() { return op == TOK.addAssign ? cast(typeof(return))this : null; }
+        inout(MinAssignExp) isMinAssignExp() { return op == TOK.minAssign ? cast(typeof(return))this : null; }
+        inout(MulAssignExp) isMulAssignExp() { return op == TOK.mulAssign ? cast(typeof(return))this : null; }
+
+        inout(DivAssignExp) isDivAssignExp() { return op == TOK.divAssign ? cast(typeof(return))this : null; }
+        inout(ModAssignExp) isModAssignExp() { return op == TOK.modAssign ? cast(typeof(return))this : null; }
+        inout(AndAssignExp) isAndAssignExp() { return op == TOK.andAssign ? cast(typeof(return))this : null; }
+        inout(OrAssignExp)  isOrAssignExp()  { return op == TOK.orAssign ? cast(typeof(return))this : null; }
+        inout(XorAssignExp) isXorAssignExp() { return op == TOK.xorAssign ? cast(typeof(return))this : null; }
+        inout(PowAssignExp) isPowAssignExp() { return op == TOK.powAssign ? cast(typeof(return))this : null; }
+
+        inout(ShlAssignExp)  isShlAssignExp()  { return op == TOK.leftShiftAssign ? cast(typeof(return))this : null; }
+        inout(ShrAssignExp)  isShrAssignExp()  { return op == TOK.rightShiftAssign ? cast(typeof(return))this : null; }
+        inout(UshrAssignExp) isUshrAssignExp() { return op == TOK.unsignedRightShiftAssign ? cast(typeof(return))this : null; }
+
+        inout(CatAssignExp) isCatAssignExp() { return (op == TOK.concatenateAssign ||
+                                                       op == TOK.concatenateElemAssign ||
+                                                       op == TOK.concatenateDcharAssign)
+                                                ? cast(typeof(return))this
+                                                : null; }
+
+        inout(AddExp)      isAddExp() { return op == TOK.add ? cast(typeof(return))this : null; }
+        inout(MinExp)      isMinExp() { return op == TOK.min ? cast(typeof(return))this : null; }
+        inout(CatExp)      isCatExp() { return op == TOK.concatenate ? cast(typeof(return))this : null; }
+        inout(MulExp)      isMulExp() { return op == TOK.mul ? cast(typeof(return))this : null; }
+        inout(DivExp)      isDivExp() { return op == TOK.div ? cast(typeof(return))this : null; }
+        inout(ModExp)      isModExp() { return op == TOK.mod ? cast(typeof(return))this : null; }
+        inout(PowExp)      isPowExp() { return op == TOK.pow ? cast(typeof(return))this : null; }
+        inout(ShlExp)      isShlExp() { return op == TOK.leftShift ? cast(typeof(return))this : null; }
+        inout(ShrExp)      isShrExp() { return op == TOK.rightShift ? cast(typeof(return))this : null; }
+        inout(UshrExp)     isUshrExp() { return op == TOK.unsignedRightShift ? cast(typeof(return))this : null; }
+        inout(AndExp)      isAndExp() { return op == TOK.and ? cast(typeof(return))this : null; }
+        inout(OrExp)       isOrExp() { return op == TOK.or ? cast(typeof(return))this : null; }
+        inout(XorExp)      isXorExp() { return op == TOK.xor ? cast(typeof(return))this : null; }
+        inout(LogicalExp)  isLogicalExp() { return (op == TOK.andAnd || op == TOK.orOr) ? cast(typeof(return))this : null; }
+        //inout(CmpExp)    isCmpExp() { return op == TOK. ? cast(typeof(return))this : null; }
+        inout(InExp)       isInExp() { return op == TOK.in_ ? cast(typeof(return))this : null; }
+        inout(RemoveExp)   isRemoveExp() { return op == TOK.remove ? cast(typeof(return))this : null; }
+        inout(EqualExp)    isEqualExp() { return (op == TOK.equal || op == TOK.notEqual) ? cast(typeof(return))this : null; }
+        inout(IdentityExp) isIdentityExp() { return (op == TOK.identity || op == TOK.notIdentity) ? cast(typeof(return))this : null; }
+        inout(CondExp)     isCondExp() { return op == TOK.question ? cast(typeof(return))this : null; }
+
+        inout(DefaultInitExp)    isDefaultInitExp() { return op == TOK.default_ ? cast(typeof(return))this : null; }
+        inout(FileInitExp)       isFileInitExp() { return (op == TOK.file || op == TOK.fileFullPath) ? cast(typeof(return))this : null; }
+        inout(LineInitExp)       isLineInitExp() { return op == TOK.line ? cast(typeof(return))this : null; }
+        inout(ModuleInitExp)     isModuleInitExp() { return op == TOK.moduleString ? cast(typeof(return))this : null; }
+        inout(FuncInitExp)       isFuncInitExp() { return op == TOK.functionString ? cast(typeof(return))this : null; }
+        inout(PrettyFuncInitExp) isPrettyFuncInitExp() { return op == TOK.prettyFunction ? cast(typeof(return))this : null; }
+    }
+
     void accept(Visitor v)
     {
         v.visit(this);
@@ -1595,9 +1714,8 @@ extern (C++) final class IntegerExp : Expression
     {
         if (this == o)
             return true;
-        if ((cast(Expression)o).op == TOK.int64)
+        if (auto ne = (cast(Expression)o).isIntegerExp())
         {
-            IntegerExp ne = cast(IntegerExp)o;
             if (type.toHeadMutable().equals(ne.type.toHeadMutable()) && value == ne.value)
             {
                 return true;
@@ -1803,9 +1921,8 @@ extern (C++) final class RealExp : Expression
     {
         if (this == o)
             return true;
-        if ((cast(Expression)o).op == TOK.float64)
+        if (auto ne = (cast(Expression)o).isRealExp())
         {
-            RealExp ne = cast(RealExp)o;
             if (type.toHeadMutable().equals(ne.type.toHeadMutable()) && RealEquals(value, ne.value))
             {
                 return true;
@@ -1873,9 +1990,8 @@ extern (C++) final class ComplexExp : Expression
     {
         if (this == o)
             return true;
-        if ((cast(Expression)o).op == TOK.complex80)
+        if (auto ne = (cast(Expression)o).isComplexExp())
         {
-            ComplexExp ne = cast(ComplexExp)o;
             if (type.toHeadMutable().equals(ne.type.toHeadMutable()) && RealEquals(creall(value), creall(ne.value)) && RealEquals(cimagl(value), cimagl(ne.value)))
             {
                 return true;
@@ -2538,6 +2654,11 @@ extern (C++) final class TupleExp : Expression
         }
     }
 
+    override TupleExp toTupleExp()
+    {
+        return this;
+    }
+
     override Expression syntaxCopy()
     {
         return new TupleExp(loc, e0 ? e0.syntaxCopy() : null, arraySyntaxCopy(exps));
@@ -2547,9 +2668,8 @@ extern (C++) final class TupleExp : Expression
     {
         if (this == o)
             return true;
-        if ((cast(Expression)o).op == TOK.tuple)
+        if (auto te = (cast(Expression)o).isTupleExp())
         {
-            TupleExp te = cast(TupleExp)o;
             if (exps.dim != te.exps.dim)
                 return false;
             if (e0 && !e0.equals(te.e0) || !e0 && te.e0)
@@ -3106,7 +3226,7 @@ extern (C++) final class TemplateExp : Expression
             return Expression.toLvalue(sc, e);
 
         assert(sc);
-        return resolve(loc, sc, fd, true);
+        return symbolToExp(fd, loc, sc, true);
     }
 
     override bool checkType()
@@ -3280,9 +3400,8 @@ extern (C++) final class VarExp : SymbolExp
     {
         if (this == o)
             return true;
-        if ((cast(Expression)o).op == TOK.variable)
+        if (auto ne = (cast(Expression)o).isVarExp())
         {
-            VarExp ne = cast(VarExp)o;
             if (type.toHeadMutable().equals(ne.type.toHeadMutable()) && var == ne.var)
             {
                 return true;
@@ -3524,9 +3643,9 @@ extern (C++) final class FuncExp : Expression
             TypeFunction tf = cast(TypeFunction)fd.type;
             //printf("\ttof = %s\n", tof.toChars());
             //printf("\ttf  = %s\n", tf.toChars());
-            size_t dim = Parameter.dim(tf.parameters);
+            size_t dim = tf.parameterList.length;
 
-            if (Parameter.dim(tof.parameters) != dim || tof.varargs != tf.varargs)
+            if (tof.parameterList.length != dim || tof.parameterList.varargs != tf.parameterList.varargs)
                 goto L1;
 
             auto tiargs = new Objects();
@@ -3537,14 +3656,14 @@ extern (C++) final class FuncExp : Expression
                 size_t u = 0;
                 for (; u < dim; u++)
                 {
-                    Parameter p = Parameter.getNth(tf.parameters, u);
+                    Parameter p = tf.parameterList[u];
                     if (p.type.ty == Tident && (cast(TypeIdentifier)p.type).ident == tp.ident)
                     {
                         break;
                     }
                 }
                 assert(u < dim);
-                Parameter pto = Parameter.getNth(tof.parameters, u);
+                Parameter pto = tof.parameterList[u];
                 Type t = pto.type;
                 if (t.ty == Terror)
                     goto L1;
@@ -3587,7 +3706,8 @@ extern (C++) final class FuncExp : Expression
              */
             convertMatch = true;
 
-            auto tfy = new TypeFunction(tfx.parameters, tof.next, tfx.varargs, tfx.linkage, STC.undefined_);
+            auto tfy = new TypeFunction(tfx.parameterList, tof.next,
+                        tfx.linkage, STC.undefined_);
             tfy.mod = tfx.mod;
             tfy.isnothrow = tfx.isnothrow;
             tfy.isnogc = tfx.isnogc;
@@ -4592,13 +4712,9 @@ extern (C++) final class CallExp : UnaExp
     extern (D) this(const ref Loc loc, Expression e, Expression earg1)
     {
         super(loc, TOK.call, __traits(classInstanceSize, CallExp), e);
-        auto arguments = new Expressions();
+        this.arguments = new Expressions();
         if (earg1)
-        {
-            arguments.setDim(1);
-            (*arguments)[0] = earg1;
-        }
-        this.arguments = arguments;
+            this.arguments.push(earg1);
     }
 
     extern (D) this(const ref Loc loc, Expression e, Expression earg1, Expression earg2)

@@ -163,8 +163,9 @@ check_clean_git()
     # Remove temporary directory + install script
     rm -rf _generated
     rm -f install.sh
-    # auto-removal of this file doesn't work on CirleCi
+    # auto-removal of these files doesn't work on CirleCi
     rm -f test/compilable/vcg-ast.d.cg
+    rm -f test/test.mixin
     # Ensure that there are no untracked changes
     make -f posix.mak check-clean-git
 }

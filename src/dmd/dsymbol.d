@@ -299,7 +299,7 @@ extern (C++) class Dsymbol : RootObject
 
     final bool checkDeprecated(const ref Loc loc, Scope* sc)
     {
-        if (global.params.useDeprecated != 1 && isDeprecated())
+        if (global.params.useDeprecated != Diagnostic.off && isDeprecated())
         {
             // Don't complain if we're inside a deprecated symbol's scope
             if (sc.isDeprecated())
@@ -372,6 +372,14 @@ extern (C++) class Dsymbol : RootObject
         return null;
     }
 
+    /**
+     * `pastMixin` returns the enclosing symbol if this is a template mixin.
+     *
+     * `pastMixinAndNspace` does likewise, additionally skipping over Nspaces that
+     * are mangleOnly.
+     *
+     * See also `parent`, `toParent`, `toParent2` and `toParent3`.
+     */
     final inout(Dsymbol) pastMixin() inout
     {
         //printf("Dsymbol::pastMixin() %s\n", toChars());
@@ -382,15 +390,30 @@ extern (C++) class Dsymbol : RootObject
         return parent.pastMixin();
     }
 
+    /// ditto
+    final inout(Dsymbol) pastMixinAndNspace() inout
+    {
+        //printf("Dsymbol::pastMixin() %s\n", toChars());
+        auto nspace = isNspace();
+        if (!(nspace && nspace.mangleOnly) && !isTemplateMixin() && !isForwardingAttribDeclaration())
+            return this;
+        if (!parent)
+            return null;
+        return parent.pastMixinAndNspace();
+    }
+
     /**********************************
      * `parent` field returns a lexically enclosing scope symbol this is a member of.
      *
      * `toParent()` returns a logically enclosing scope symbol this is a member of.
-     * It skips over TemplateMixin's.
+     * It skips over TemplateMixin's and Nspaces that are mangleOnly.
      *
      * `toParent2()` returns an enclosing scope symbol this is living at runtime.
      * It skips over both TemplateInstance's and TemplateMixin's.
      * It's used when looking for the 'this' pointer of the enclosing function/class.
+     *
+     * `toParent3()` returns a logically enclosing scope symbol this is a member of.
+     * It skips over TemplateMixin's.
      *
      * Examples:
      *  module mod;
@@ -414,7 +437,7 @@ extern (C++) class Dsymbol : RootObject
      */
     final inout(Dsymbol) toParent() inout
     {
-        return parent ? parent.pastMixin() : null;
+        return parent ? parent.pastMixinAndNspace() : null;
     }
 
     /// ditto
@@ -423,6 +446,12 @@ extern (C++) class Dsymbol : RootObject
         if (!parent || !parent.isTemplateInstance && !parent.isForwardingAttribDeclaration())
             return parent;
         return parent.toParent2;
+    }
+
+    /// ditto
+    final inout(Dsymbol) toParent3() inout
+    {
+        return parent ? parent.pastMixin() : null;
     }
 
     final inout(TemplateInstance) isInstantiated() inout
@@ -1043,6 +1072,11 @@ extern (C++) class Dsymbol : RootObject
         return null;
     }
 
+    inout(ExpressionDsymbol) isExpressionDsymbol() inout
+    {
+        return null;
+    }
+
     inout(ThisDeclaration) isThisDeclaration() inout
     {
         return null;
@@ -1561,7 +1595,7 @@ public:
                 Parameters* p = new Parameter(STC.in_, Type.tchar.constOf().arrayOf(), null, null);
                 parameters.push(p);
                 Type tret = null;
-                tfgetmembers = new TypeFunction(parameters, tret, 0, LINK.d);
+                tfgetmembers = new TypeFunction(parameters, tret, VarArg.none, LINK.d);
                 tfgetmembers = cast(TypeFunction)tfgetmembers.dsymbolSemantic(Loc.initial, &sc);
             }
             if (fdx)
@@ -2049,6 +2083,26 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
         return this;
     }
 
+}
+
+/**
+ * Class that holds an expression in a Dsymbol wraper.
+ * This is not an AST node, but a class used to pass
+ * an expression as a function parameter of type Dsymbol.
+ */
+extern (C++) final class ExpressionDsymbol : Dsymbol
+{
+    Expression exp;
+    this(Expression exp)
+    {
+        super();
+        this.exp = exp;
+    }
+
+    override inout(ExpressionDsymbol) isExpressionDsymbol() inout
+    {
+        return this;
+    }
 }
 
 

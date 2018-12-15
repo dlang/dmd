@@ -333,7 +333,7 @@ package mixin template ParseVisitMethods(AST)
             foreach (p; *td.origParameters)
                 p.accept(this);
         }
-        visitParameters(t.parameters);
+        visitParameters(t.parameterList.parameters);
     }
 
     void visitParameters(AST.Parameters* parameters)
@@ -457,6 +457,11 @@ package mixin template ParseVisitMethods(AST)
         t.next.accept(this);
         t.lwr.accept(this);
         t.upr.accept(this);
+    }
+
+    override void visit(AST.TypeTraits t)
+    {
+        t.exp.accept(this);
     }
 
 //      Miscellaneous
@@ -793,7 +798,7 @@ package mixin template ParseVisitMethods(AST)
         AST.TypeFunction tf = cast(AST.TypeFunction)f.type;
         if (!f.inferRetType && tf.next)
             visitType(tf.next);
-        visitParameters(tf.parameters);
+        visitParameters(tf.parameterList.parameters);
         AST.CompoundStatement cs = f.fbody.isCompoundStatement();
         AST.Statement s = !cs ? f.fbody : null;
         AST.ReturnStatement rs = s ? s.isReturnStatement() : null;

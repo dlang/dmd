@@ -1,4 +1,4 @@
-// PERMUTE_ARGS: -g -version=PULL8152
+// PERMUTE_ARGS: -g
 // EXTRA_CPP_SOURCES: cppb.cpp
 
 import core.stdc.stdio;
@@ -192,7 +192,7 @@ void test8()
 }
 
 /****************************************/
-// 4059
+// https://issues.dlang.org/show_bug.cgi?id=4059
 
 struct elem9 { }
 
@@ -259,7 +259,7 @@ void test13956()
 }
 
 /****************************************/
-// 5148
+// https://issues.dlang.org/show_bug.cgi?id=5148
 
 extern (C++)
 {
@@ -336,7 +336,7 @@ void testvalist()
 }
 
 /****************************************/
-// 12825
+// https://issues.dlang.org/show_bug.cgi?id=12825
 
 extern(C++) class C12825
 {
@@ -499,7 +499,7 @@ extern (C++, std)
 
     class exception { }
 
-    // 14956
+    // https://issues.dlang.org/show_bug.cgi?id=14956
     extern(C++, N14956)
     {
         struct S14956 { }
@@ -562,18 +562,22 @@ void test13289()
     assert(f13289_cpp_test());
 }
 
+version(Posix)
+{
+    enum __c_wchar_t : dchar;
+}
+else version(Windows)
+{
+    enum __c_wchar_t : wchar;
+}
+alias wchar_t = __c_wchar_t;
 extern(C++)
 {
     bool f13289_cpp_test();
 
-    version(Posix)
-    {
-        dchar f13289_cpp_wchar_t(dchar);
-    }
-    else version(Windows)
-    {
-        wchar f13289_cpp_wchar_t(wchar);
-    }
+
+    wchar_t f13289_cpp_wchar_t(wchar_t);
+
 
     wchar f13289_d_wchar(wchar ch)
     {
@@ -597,25 +601,24 @@ extern(C++)
             return ch;
         }
     }
+    wchar_t f13289_d_wchar_t(wchar_t ch)
+    {
+        if (ch <= 'z' && ch >= 'a')
+        {
+            return cast(wchar_t)(ch - ('a' - 'A'));
+        }
+        else
+        {
+            return ch;
+        }
+    }
 }
 
 /****************************************/
 
 version (CRuntime_Microsoft)
 {
-    version (PULL8152)
-    {
-        enum __c_long_double : double;
-    }
-    else
-    {
-        struct __c_long_double
-        {
-            this(double d) { ld = d; }
-            double ld;
-            alias ld this;
-        }
-    }
+    enum __c_long_double : double;
     alias __c_long_double myld;
 }
 else
@@ -652,28 +655,8 @@ else
   }
 }
 
-version (PULL8152)
-{
-    enum __c_long : x_long;
-    enum __c_ulong : x_ulong;
-}
-else
-{
-    struct __c_long
-    {
-        this(x_long d) { ld = d; }
-        x_long ld;
-        alias ld this;
-    }
-
-    struct __c_ulong
-    {
-        this(x_ulong d) { ld = d; }
-        x_ulong ld;
-        alias ld this;
-    }
-}
-
+enum __c_long : x_long;
+enum __c_ulong : x_ulong;
 alias __c_long mylong;
 alias __c_ulong myulong;
 
@@ -695,51 +678,48 @@ void test16()
     assert(ld == 5 + myulong.sizeof);
   }
 
-    version (PULL8152)
-    {
-        static if (__c_long.sizeof == long.sizeof)
-        {
-            static assert(__c_long.max == long.max);
-            static assert(__c_long.min == long.min);
-            static assert(__c_long.init == long.init);
+  static if (__c_long.sizeof == long.sizeof)
+  {
+    static assert(__c_long.max == long.max);
+    static assert(__c_long.min == long.min);
+    static assert(__c_long.init == long.init);
 
-            static assert(__c_ulong.max == ulong.max);
-            static assert(__c_ulong.min == ulong.min);
-            static assert(__c_ulong.init == ulong.init);
+    static assert(__c_ulong.max == ulong.max);
+    static assert(__c_ulong.min == ulong.min);
+    static assert(__c_ulong.init == ulong.init);
 
-            __c_long cl = 0;
-            cl = cl + 1;
-            long l = cl;
-            cl = l;
+    __c_long cl = 0;
+    cl = cl + 1;
+    long l = cl;
+    cl = l;
 
-            __c_ulong cul = 0;
-            cul = cul + 1;
-            ulong ul = cul;
-            cul = ul;
-        }
-        else static if (__c_long.sizeof == int.sizeof)
-        {
-            static assert(__c_long.max == int.max);
-            static assert(__c_long.min == int.min);
-            static assert(__c_long.init == int.init);
+    __c_ulong cul = 0;
+    cul = cul + 1;
+    ulong ul = cul;
+    cul = ul;
+  }
+  else static if (__c_long.sizeof == int.sizeof)
+  {
+    static assert(__c_long.max == int.max);
+    static assert(__c_long.min == int.min);
+    static assert(__c_long.init == int.init);
 
-            static assert(__c_ulong.max == uint.max);
-            static assert(__c_ulong.min == uint.min);
-            static assert(__c_ulong.init == uint.init);
+    static assert(__c_ulong.max == uint.max);
+    static assert(__c_ulong.min == uint.min);
+    static assert(__c_ulong.init == uint.init);
 
-            __c_long cl = 0;
-            cl = cl + 1;
-            int i = cl;
-            cl = i;
+    __c_long cl = 0;
+    cl = cl + 1;
+    int i = cl;
+    cl = i;
 
-            __c_ulong cul = 0;
-            cul = cul + 1;
-            uint u = cul;
-            cul = u;
-        }
-        else
-            static assert(0);
-    }
+    __c_ulong cul = 0;
+    cul = cul + 1;
+    uint u = cul;
+    cul = u;
+  }
+  else
+    static assert(0);
 }
 
 
@@ -783,7 +763,7 @@ extern(C++, N13337.M13337)
 }
 
 /****************************************/
-// 14195
+// https://issues.dlang.org/show_bug.cgi?id=14195
 
 struct Delegate1(T) {}
 struct Delegate2(T1, T2) {}
@@ -809,7 +789,7 @@ void test14195()
 
 
 /****************************************/
-// 14200
+// https://issues.dlang.org/show_bug.cgi?id=14200
 
 template Tuple14200(T...)
 {
@@ -826,7 +806,7 @@ void test14200()
 }
 
 /****************************************/
-// 14956
+// https://issues.dlang.org/show_bug.cgi?id=14956
 
 extern(C++) void test14956(S14956 s);
 
@@ -1054,7 +1034,7 @@ void testeh3()
 }
 
 /****************************************/
-// 15576
+// https://issues.dlang.org/show_bug.cgi?id=15576
 
 extern (C++, ns15576)
 {
@@ -1072,7 +1052,7 @@ void test15576()
 }
 
 /****************************************/
-// 15579
+// https://issues.dlang.org/show_bug.cgi?id=15579
 
 extern (C++)
 {
@@ -1154,7 +1134,7 @@ void test15579()
 }
 
 /****************************************/
-// 15610
+// https://issues.dlang.org/show_bug.cgi?id=15610
 
 extern(C++) class Base2
 {
@@ -1180,7 +1160,7 @@ void test15610()
 }
 
 /******************************************/
-// 15455
+// https://issues.dlang.org/show_bug.cgi?id=15455
 
 struct X6
 {
@@ -1225,7 +1205,7 @@ void test15455()
 }
 
 /****************************************/
-// 15372
+// https://issues.dlang.org/show_bug.cgi?id=15372
 
 extern(C++) int foo15372(T)(int v);
 
@@ -1237,7 +1217,7 @@ void test15372()
 }
 
 /****************************************/
-// 15802
+// https://issues.dlang.org/show_bug.cgi?id=15802
 
 extern(C++) {
     template Foo15802(T) {
@@ -1253,7 +1233,8 @@ void test15802()
 }
 
 /****************************************/
-// 16536 - mangling mismatch on OSX
+// https://issues.dlang.org/show_bug.cgi?id=16536
+// mangling mismatch on OSX
 
 version(OSX) extern(C++) uint64_t pass16536(uint64_t);
 
@@ -1263,7 +1244,8 @@ void test16536()
 }
 
 /****************************************/
-// 15589 - extern(C++) virtual destructors are not put in vtbl[]
+// https://issues.dlang.org/show_bug.cgi?id=15589
+// extern(C++) virtual destructors are not put in vtbl[]
 
 extern(C++)
 {

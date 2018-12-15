@@ -19,7 +19,7 @@ class Module;
 void genhdrfile(Module *m);
 void moduleToBuffer(OutBuffer *buf, Module *m);
 
-const char *parametersTypeToChars(Parameters *parameters, int varargs);
+const char *parametersTypeToChars(ParameterList pl);
 const char *stcToChars(StorageClass& stc);
 void trustToBuffer(OutBuffer *buf, TRUST trust);
 const char *trustToChars(TRUST trust);

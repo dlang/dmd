@@ -6,8 +6,8 @@ fail_compilation/fail95.d(11):        `fail95.A(alias T)(T)`
 ---
 */
 
-// Issue 142 - Assertion failure: '0' on line 610 in file 'template.c'
-
+// https://issues.dlang.org/show_bug.cgi?id=142
+// Assertion failure: '0' on line 610 in file 'template.c'
 template A(alias T)
 {
     void A(T) { T = 2; }

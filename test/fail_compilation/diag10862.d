@@ -40,23 +40,23 @@ void test1()
     if (a = b) {}
     if ((a = b) = 0) {}
     if ((a = b) = (a = b)) {}
-    if (a = 0, b = 0) {}        // Bugzilla 15384
+    if (a = 0, b = 0) {}        // https://issues.dlang.org/show_bug.cgi?id=15384
     if (auto x = a = b) {}      // this is error, today
 
     while (a = b) {}
     while ((a = b) = 0) {}
     while ((a = b) = (a = b)) {}
-    while (a = 0, b = 0) {}     // Bugzilla 15384
+    while (a = 0, b = 0) {}     // https://issues.dlang.org/show_bug.cgi?id=15384
 
     do {} while (a = b);
     do {} while ((a = b) = 0);
     do {} while ((a = b) = (a = b));
-    do {} while (a = 0, b = 0); // Bugzilla 15384
+    do {} while (a = 0, b = 0); // https://issues.dlang.org/show_bug.cgi?id=15384
 
     for (;  a = b; ) {}
     for (;  (a = b) = 0; ) {}
     for (;  (a = b) = (a = b); ) {}
-    for (;  a = 0, b = 0; ) {}  // Bugzilla 15384
+    for (;  a = 0, b = 0; ) {}  // https://issues.dlang.org/show_bug.cgi?id=15384
 
     semanticError;
 }

@@ -82,7 +82,7 @@ struct PushAttributes
  * Returns:
  *      Dsymbol  the corresponding symbol for oarg
  */
-private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
+Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
 {
     if (auto e = isExpression(oarg))
     {
@@ -90,6 +90,8 @@ private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
             return (cast(DotVarExp)e).var;
         if (e.op == TOK.dotTemplateDeclaration)
             return (cast(DotTemplateExp)e).td;
+        if (e.op == TOK.scope_)
+            return (cast(ScopeExp)e).sds;
     }
     return getDsymbol(oarg);
 }
@@ -827,7 +829,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 return ex.expressionSemantic(sc);
             }
         }
-        return resolve(e.loc, sc, s, false);
+        return symbolToExp(s, e.loc, sc, false);
     }
     if (e.ident == Id.hasMember ||
         e.ident == Id.getMember ||
@@ -1069,14 +1071,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto o = (*e.args)[0];
         auto s = getDsymbol(o);
         auto ad = s ? s.isAggregateDeclaration() : null;
-        if (!ad)
-        {
-            e.error("argument is not an aggregate type");
-            return new ErrorExp();
-        }
 
         auto exps = new Expressions();
-        if (ad.aliasthis)
+        if (ad && ad.aliasthis)
             exps.push(new StringExp(e.loc, cast(char*)ad.aliasthis.ident.toChars()));
         Expression ex = new TupleExp(e.loc, exps);
         ex = ex.expressionSemantic(sc);
@@ -1190,7 +1187,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return dimError(1);
 
         LINK link;
-        int varargs;
+        VarArg varargs;
         auto o = (*e.args)[0];
 
         FuncDeclaration fd;
@@ -1199,7 +1196,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (tf)
         {
             link = tf.linkage;
-            varargs = tf.varargs;
+            varargs = tf.parameterList.varargs;
         }
         else
         {
@@ -1209,17 +1206,16 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 return new ErrorExp();
             }
             link = fd.linkage;
-            fd.getParameters(&varargs);
+            varargs = fd.getParameterList().varargs;
         }
         string style;
-        switch (varargs)
+        final switch (varargs)
         {
-            case 0: style = "none";                       break;
-            case 1: style = (link == LINK.d) ? "argptr"
-                                             : "stdarg";  break;
-            case 2:     style = "typesafe";               break;
-            default:
-                assert(0);
+            case VarArg.none:     style = "none";           break;
+            case VarArg.variadic: style = (link == LINK.d)
+                                             ? "argptr"
+                                             : "stdarg";    break;
+            case VarArg.typesafe: style = "typesafe";       break;
         }
         auto se = new StringExp(e.loc, cast(char*)style);
         return se.expressionSemantic(sc);
@@ -1239,20 +1235,16 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         FuncDeclaration fd;
         TypeFunction tf = toTypeFunction(o, fd);
 
-        Parameters* fparams;
+        ParameterList fparams;
         if (tf)
-        {
-            fparams = tf.parameters;
-        }
+            fparams = tf.parameterList;
+        else if (fd)
+            fparams = fd.getParameterList();
         else
         {
-            if (!fd)
-            {
-                e.error("first argument to `__traits(getParameterStorageClasses, %s, %s)` is not a function",
-                    o.toChars(), o1.toChars());
-                return new ErrorExp();
-            }
-            fparams = fd.getParameters(null);
+            e.error("first argument to `__traits(getParameterStorageClasses, %s, %s)` is not a function",
+                o.toChars(), o1.toChars());
+            return new ErrorExp();
         }
 
         StorageClass stc;
@@ -1267,14 +1259,14 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         ex = ex.ctfeInterpret();
         auto ii = ex.toUInteger();
-        if (ii >= Parameter.dim(fparams))
+        if (ii >= fparams.length)
         {
-            e.error("parameter index must be in range 0..%u not %s", cast(uint)Parameter.dim(fparams), ex.toChars());
+            e.error("parameter index must be in range 0..%u not %s", cast(uint)fparams.length, ex.toChars());
             return new ErrorExp();
         }
 
         uint n = cast(uint)ii;
-        Parameter p = Parameter.getNth(fparams, n);
+        Parameter p = fparams[n];
         stc = p.storageClass;
 
         // This mirrors hdrgen.visit(Parameter p)

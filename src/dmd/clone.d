@@ -123,11 +123,10 @@ FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope* sc)
         {
             if (f.errors)
                 return null;
-            int varargs;
-            auto fparams = f.getParameters(&varargs);
-            if (fparams.dim >= 1)
+            auto fparams = f.getParameterList();
+            if (fparams.length)
             {
-                auto fparam0 = Parameter.getNth(fparams, 0);
+                auto fparam0 = fparams[0];
                 if (fparam0.type.toDsymbol(null) != ad)
                     f = null;
             }
@@ -296,7 +295,7 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
 
     auto fparams = new Parameters();
     fparams.push(new Parameter(STC.nodtor, sd.type, Id.p, null, null));
-    auto tf = new TypeFunction(fparams, sd.handleType(), 0, LINK.d, stc | STC.ref_);
+    auto tf = new TypeFunction(ParameterList(fparams), sd.handleType(), LINK.d, stc | STC.ref_);
     auto fop = new FuncDeclaration(declLoc, Loc.initial, Id.assign, stc, tf);
     fop.storage_class |= STC.inference;
     fop.generated = true;
@@ -543,7 +542,7 @@ FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
                  */
                 auto parameters = new Parameters();
                 parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, null, null, null));
-                tfeqptr = new TypeFunction(parameters, Type.tbool, 0, LINK.d);
+                tfeqptr = new TypeFunction(ParameterList(parameters), Type.tbool, LINK.d);
                 tfeqptr.mod = MODFlags.const_;
                 tfeqptr = cast(TypeFunction)tfeqptr.typeSemantic(Loc.initial, &scx);
             }
@@ -569,7 +568,7 @@ FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
     auto parameters = new Parameters();
     parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.p, null, null));
     parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.q, null, null));
-    auto tf = new TypeFunction(parameters, Type.tbool, 0, LINK.d);
+    auto tf = new TypeFunction(ParameterList(parameters), Type.tbool, LINK.d);
     Identifier id = Id.xopEquals;
     auto fop = new FuncDeclaration(declLoc, Loc.initial, id, STC.static_, tf);
     fop.generated = true;
@@ -613,7 +612,7 @@ FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
                  */
                 auto parameters = new Parameters();
                 parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, null, null, null));
-                tfcmpptr = new TypeFunction(parameters, Type.tint32, 0, LINK.d);
+                tfcmpptr = new TypeFunction(ParameterList(parameters), Type.tint32, LINK.d);
                 tfcmpptr.mod = MODFlags.const_;
                 tfcmpptr = cast(TypeFunction)tfcmpptr.typeSemantic(Loc.initial, &scx);
             }
@@ -689,7 +688,7 @@ FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
     auto parameters = new Parameters();
     parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.p, null, null));
     parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.q, null, null));
-    auto tf = new TypeFunction(parameters, Type.tint32, 0, LINK.d);
+    auto tf = new TypeFunction(ParameterList(parameters), Type.tint32, LINK.d);
     Identifier id = Id.xopCmp;
     auto fop = new FuncDeclaration(declLoc, Loc.initial, id, STC.static_, tf);
     fop.generated = true;
@@ -777,7 +776,7 @@ FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
         __gshared TypeFunction tftohash;
         if (!tftohash)
         {
-            tftohash = new TypeFunction(null, Type.thash_t, 0, LINK.d);
+            tftohash = new TypeFunction(ParameterList(), Type.thash_t, LINK.d);
             tftohash.mod = MODFlags.const_;
             tftohash = cast(TypeFunction)tftohash.merge();
         }
@@ -796,7 +795,7 @@ FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
     Loc loc; // internal code should have no loc to prevent coverage
     auto parameters = new Parameters();
     parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.p, null, null));
-    auto tf = new TypeFunction(parameters, Type.thash_t, 0, LINK.d, STC.nothrow_ | STC.trusted);
+    auto tf = new TypeFunction(ParameterList(parameters), Type.thash_t, LINK.d, STC.nothrow_ | STC.trusted);
     Identifier id = Id.xtoHash;
     auto fop = new FuncDeclaration(declLoc, Loc.initial, id, STC.static_, tf);
     fop.generated = true;
@@ -1051,7 +1050,7 @@ private DtorDeclaration buildWindowsCppDtor(AggregateDeclaration ad, DtorDeclara
     Parameter delparam = new Parameter(STC.undefined_, Type.tuns32, Identifier.idPool("del"), new IntegerExp(dtor.loc, 0, Type.tuns32), null);
     Parameters* params = new Parameters;
     params.push(delparam);
-    auto ftype = new TypeFunction(params, Type.tvoidptr, false, LINK.cpp, dtor.storage_class);
+    auto ftype = new TypeFunction(ParameterList(params), Type.tvoidptr, LINK.cpp, dtor.storage_class);
     auto func = new DtorDeclaration(dtor.loc, dtor.loc, dtor.storage_class, Id.cppdtor);
     func.type = ftype;
     if (dtor.fbody)
@@ -1105,7 +1104,7 @@ DtorDeclaration buildExternDDtor(AggregateDeclaration ad, Scope* sc)
     // {
     //     Class.__dtor();
     // }
-    auto ftype = new TypeFunction(null, Type.tvoid, false, LINK.d, dtor.storage_class);
+    auto ftype = new TypeFunction(ParameterList(), Type.tvoid, LINK.d, dtor.storage_class);
     auto func = new DtorDeclaration(dtor.loc, dtor.loc, dtor.storage_class, Id.ticppdtor);
     func.type = ftype;
 

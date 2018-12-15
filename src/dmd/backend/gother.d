@@ -36,6 +36,7 @@ import dmd.backend.outbuf;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.backend.barray;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 
@@ -142,14 +143,12 @@ private void rd_compute()
     if (debugc) printf("constprop()\n");
     assert(dfo);
     flowrd();               /* compute reaching definitions (rd)    */
-    if (go.deftop == 0)     /* if no reaching defs                  */
+    if (go.defnod.length == 0)     /* if no reaching defs                  */
         return;
     assert(rellist == null && inclist == null && eqeqlist == null);
     block_clearvisit();
-    for (uint i = 0; i < dfotop; i++)    // for each block
+    foreach (b; dfo[])    // for each block
     {
-        block *b = dfo[i];
-
         switch (b.BC)
         {
             case BCjcatch:
@@ -165,11 +164,8 @@ private void rd_compute()
         }
     }
 
-    for (uint i = 0; i < dfotop; i++)    // for each block
+    foreach (i, b; dfo[])    // for each block
     {
-        block *b;
-
-        b = dfo[i];
         thisblock = b;
 
         //printf("block %d Bin ",i); vec_println(b.Binrd);
@@ -223,7 +219,6 @@ private void conpropwalk(elem *n,vec_t IN)
     elem *t;
 
     assert(n && IN);
-    /*chkvecdim(go.deftop,0);*/
     //printf("conpropwalk()\n"),elem_print(n);
     op = n.Eoper;
     if (op == OPcolon || op == OPcolon2)
@@ -413,7 +408,7 @@ private void chkrd(elem *n,list_t rdlist)
     if (sv.ty() & mTYvolatile)
         return;
     unambig = sv.Sflags & SFLunambig;
-    for (list_t l = rdlist; l; l = list_next(l))
+    foreach (l; ListRange(rdlist))
     {   elem *d = cast(elem *) list_ptr(l);
 
         elem_debug(d);
@@ -437,8 +432,8 @@ private void chkrd(elem *n,list_t rdlist)
     }
 
     // If there are any asm blocks, don't print the message
-    for (uint i = 0; i < dfotop; i++)
-        if (dfo[i].BC == BCasm)
+    foreach (b; dfo[])
+        if (b.BC == BCasm)
             return;
 
     // If variable contains bit fields, don't print message (because if
@@ -531,7 +526,7 @@ private elem * chkprop(elem *n,list_t rdlist)
     nsize = cast(uint)size(nty);
     noff = n.EV.Voffset;
     unambig = sv.Sflags & SFLunambig;
-    for (list_t l = rdlist; l; l = list_next(l))
+    foreach (l; ListRange(rdlist))
     {
         elem *d = cast(elem *) list_ptr(l);
 
@@ -642,7 +637,7 @@ extern (C) list_t listrds(vec_t IN,elem *e,vec_t f)
     unambig = s.Sflags & SFLunambig;
     if (f)
         vec_clear(f);
-    for (i = 0; (i = cast(uint) vec_index(i, IN)) < go.deftop; ++i)
+    for (i = 0; (i = cast(uint) vec_index(i, IN)) < go.defnod.length; ++i)
     {
         elem *d = go.defnod[i].DNelem;
         //printf("\tlooking at "); WReqn(d); printf("\n");
@@ -703,7 +698,7 @@ private void eqeqranges()
         c = el_tolong(e.EV.E2);
 
         result = -1;                    // result not known yet
-        for (list_t rdl = rel.rdlist; rdl; rdl = list_next(rdl))
+        foreach (rdl; ListRange(rel.rdlist))
         {
             elem *erd = cast(elem *) list_ptr(rdl);
             elem *erd1;
@@ -1051,7 +1046,7 @@ private int loopcheck(block *start,block *inc,block *rel)
 {
     if (!(start.Bflags & BFLvisited))
     {   start.Bflags |= BFLvisited;    /* guarantee eventual termination */
-        for (list_t list = start.Bsucc; list; list = list_next(list))
+        foreach (list; ListRange(start.Bsucc))
         {
             block *b = cast(block *) list_ptr(list);
             if (b != rel && (b == inc || loopcheck(b,inc,rel)))
@@ -1067,276 +1062,286 @@ private int loopcheck(block *start,block *inc,block *rel)
  * in go.expnod[].
  */
 
-__gshared int recalc;
 
 void copyprop()
 {
     out_regcand(&globsym);
     if (debugc) printf("copyprop()\n");
     assert(dfo);
-Lagain:
-    flowcp();               /* compute available copy statements    */
-    if (go.exptop <= 1)
-            return;                 /* none available               */
-    static if (0)
+
+Louter:
+    while (1)
     {
-        for (uint i = 1; i < go.exptop; i++)
+        flowcp();               /* compute available copy statements    */
+        if (go.exptop <= 1)
+            return;             // none available
+        static if (0)
         {
-            printf("go.expnod[%d] = (",i);
-            WReqn(go.expnod[i]);
-            printf(");\n");
+            foreach (i; 1 .. go.exptop)
+            {
+                printf("go.expnod[%d] = (",i);
+                WReqn(go.expnod[i]);
+                printf(");\n");
+            }
         }
-    }
-    recalc = 0;
-    for (uint i = 0; i < dfotop; i++)    // for each block
-    {
-        block *b = dfo[i];
-        if (b.Belem)
+        foreach (i, b; dfo[])    // for each block
         {
-            static if (0)
+            if (b.Belem)
             {
-                printf("B%d, elem (",i);
-                WReqn(b.Belem); printf(")\nBin  ");
-                vec_println(b.Bin);
-                cpwalk(b.Belem,b.Bin);
-                printf("Bino ");
-                vec_println(b.Bin);
-                printf("Bout ");
-                vec_println(b.Bout);
+                bool recalc;
+                static if (0)
+                {
+                    printf("B%d, elem (",i);
+                    WReqn(b.Belem); printf(")\nBin  ");
+                    vec_println(b.Bin);
+                    recalc = copyPropWalk(b.Belem,b.Bin);
+                    printf("Bino ");
+                    vec_println(b.Bin);
+                    printf("Bout ");
+                    vec_println(b.Bout);
+                }
+                else
+                {
+                    recalc = copyPropWalk(b.Belem,b.Bin);
+                }
+                /*assert(vec_equal(b.Bin,b.Bout));              */
+                /* The previous assert() is correct except      */
+                /* for the following case:                      */
+                /*      a=b; d=a; a=b;                          */
+                /* The vectors don't match because the          */
+                /* equations changed to:                        */
+                /*      a=b; d=b; a=b;                          */
+                /* and the d=b copy elem now reaches the end    */
+                /* of the block (the d=a elem didn't).          */
+                if (recalc)
+                    continue Louter;
             }
-            else
-            {
-                cpwalk(b.Belem,b.Bin);
-            }
-            /*assert(vec_equal(b.Bin,b.Bout));              */
-            /* The previous assert() is correct except      */
-            /* for the following case:                      */
-            /*      a=b; d=a; a=b;                          */
-            /* The vectors don't match because the          */
-            /* equations changed to:                        */
-            /*      a=b; d=b; a=b;                          */
-            /* and the d=b copy elem now reaches the end    */
-            /* of the block (the d=a elem didn't).          */
         }
-        if (recalc)
-            goto Lagain;
+        return;
     }
 }
 
 /*****************************
  * Walk tree n, doing copy propagation as we go.
  * Keep IN up to date.
+ * Params:
+ *      n = tree to walk & do copy propagation in
+ *      IN = vector of live copy expressions, updated as progress is made
+ * Returns:
+ *      true if need to recalculate data flow equations and try again
  */
 
-private void cpwalk(elem *n,vec_t IN)
+private bool copyPropWalk(elem *n,vec_t IN)
 {
-    uint op;
-    elem *t;
-    vec_t L;
+    bool recalc = false;
+    int nocp = 0;
 
-    __gshared int nocp;
+    void cpwalk(elem* n, vec_t IN)
+    {
+        assert(n && IN);
+        /*chkvecdim(go.exptop,0);*/
+        if (recalc)
+            return;
 
-    assert(n && IN);
-    /*chkvecdim(go.exptop,0);*/
-    if (recalc)
-        return;
-    op = n.Eoper;
-    if (op == OPcolon || op == OPcolon2)
-    {
-        L = vec_clone(IN);
-        cpwalk(n.EV.E1,L);
-        cpwalk(n.EV.E2,IN);
-        vec_andass(IN,L);               // IN = L & R
-        vec_free(L);
-    }
-    else if (op == OPandand || op == OPoror)
-    {
-        cpwalk(n.EV.E1,IN);
-        L = vec_clone(IN);
-        cpwalk(n.EV.E2,L);
-        vec_andass(IN,L);               // IN = L & R
-        vec_free(L);
-    }
-    else if (OTunary(op))
-    {
-        t = n.EV.E1;
-        if (OTassign(op))
+        elem *t;
+        const op = n.Eoper;
+        if (op == OPcolon || op == OPcolon2)
         {
+            vec_t L = vec_clone(IN);
+            cpwalk(n.EV.E1,L);
+            cpwalk(n.EV.E2,IN);
+            vec_andass(IN,L);               // IN = L & R
+            vec_free(L);
+        }
+        else if (op == OPandand || op == OPoror)
+        {
+            cpwalk(n.EV.E1,IN);
+            vec_t L = vec_clone(IN);
+            cpwalk(n.EV.E2,L);
+            vec_andass(IN,L);               // IN = L & R
+            vec_free(L);
+        }
+        else if (OTunary(op))
+        {
+            t = n.EV.E1;
+            if (OTassign(op))
+            {
+                if (t.Eoper == OPind)
+                    cpwalk(t.EV.E1,IN);
+            }
+            else if (op == OPctor || op == OPdtor)
+            {
+                /* This kludge is necessary because in except_pop()
+                 * an el_match is done on the lvalue. If copy propagation
+                 * changes the OPctor but not the corresponding OPdtor,
+                 * then the match won't happen and except_pop()
+                 * will fail.
+                 */
+                nocp++;
+                cpwalk(t,IN);
+                nocp--;
+            }
+            else
+                cpwalk(t,IN);
+        }
+        else if (OTassign(op))
+        {
+            cpwalk(n.EV.E2,IN);
+            t = n.EV.E1;
             if (t.Eoper == OPind)
-                cpwalk(t.EV.E1,IN);
-        }
-        else if (op == OPctor || op == OPdtor)
-        {
-            /* This kludge is necessary because in except_pop()
-             * an el_match is done on the lvalue. If copy propagation
-             * changes the OPctor but not the corresponding OPdtor,
-             * then the match won't happen and except_pop()
-             * will fail.
-             */
-            nocp++;
-            cpwalk(t,IN);
-            nocp--;
-        }
-        else
-            cpwalk(t,IN);
-    }
-    else if (OTassign(op))
-    {
-        cpwalk(n.EV.E2,IN);
-        t = n.EV.E1;
-        if (t.Eoper == OPind)
-            cpwalk(t,IN);
-        else
-        {
-            debug if (t.Eoper != OPvar) elem_print(n);
-            assert(t.Eoper == OPvar);
-        }
-    }
-    else if (ERTOL(n))
-    {
-        cpwalk(n.EV.E2,IN);
-        cpwalk(n.EV.E1,IN);
-    }
-    else if (OTbinary(op))
-    {
-        cpwalk(n.EV.E1,IN);
-        cpwalk(n.EV.E2,IN);
-    }
-
-    if (OTdef(op))                  // if definition elem
-    {
-        int ambig;              /* true if ambiguous def        */
-
-        ambig = !OTassign(op) || t.Eoper == OPind;
-        uint i;
-        for (i = 0; (i = cast(uint) vec_index(i, IN)) < go.exptop; ++i) // for each active copy elem
-        {
-            Symbol *v;
-
-            if (op == OPasm)
-                goto clr;
-
-            /* If this elem could kill the lvalue or the rvalue, */
-            /*      Clear bit in IN.                        */
-            v = go.expnod[i].EV.E1.EV.Vsym;
-            if (ambig)
-            {
-                if (!(v.Sflags & SFLunambig))
-                    goto clr;
-            }
+                cpwalk(t,IN);
             else
             {
-                if (v == t.EV.Vsym)
-                    goto clr;
+                debug if (t.Eoper != OPvar) elem_print(n);
+                assert(t.Eoper == OPvar);
             }
-            v = go.expnod[i].EV.E2.EV.Vsym;
-            if (ambig)
-            {
-                if (!(v.Sflags & SFLunambig))
-                    goto clr;
-            }
-            else
-            {
-                if (v == t.EV.Vsym)
-                    goto clr;
-            }
-            continue;
-
-        clr:                        /* this copy elem is not available */
-            vec_clearbit(i,IN);     /* so remove it from the vector */
-        } /* foreach */
-
-        /* If this is a copy elem in go.expnod[]   */
-        /*      Set bit in IN.                     */
-        if ((op == OPeq || op == OPstreq) && n.EV.E1.Eoper == OPvar &&
-            n.EV.E2.Eoper == OPvar && n.Eexp)
-            vec_setbit(n.Eexp,IN);
-    }
-    else if (op == OPvar && !nocp)  // if reference to variable v
-    {
-        Symbol *v = n.EV.Vsym;
-        Symbol *f;
-        elem *foundelem = null;
-        tym_t ty;
-
-        //printf("Checking copyprop for '%s', ty=x%x\n",v.Sident,n.Ety);
-        symbol_debug(v);
-        ty = n.Ety;
-        uint sz = tysize(n.Ety);
-        if (sz == -1 && !tyfunc(n.Ety))
-            sz = cast(uint)type_size(v.Stype);
-
-        uint i;
-        for (i = 0; (i = cast(uint) vec_index(i, IN)) < go.exptop; ++i) // for all active copy elems
+        }
+        else if (ERTOL(n))
         {
-            elem *c;
+            cpwalk(n.EV.E2,IN);
+            cpwalk(n.EV.E1,IN);
+        }
+        else if (OTbinary(op))
+        {
+            cpwalk(n.EV.E1,IN);
+            cpwalk(n.EV.E2,IN);
+        }
 
-            c = go.expnod[i];
-            assert(c);
+        if (OTdef(op))                  // if definition elem
+        {
+            int ambig;              /* true if ambiguous def        */
 
-            uint csz = tysize(c.EV.E1.Ety);
-            if (c.Eoper == OPstreq)
-                csz = cast(uint)type_size(c.ET);
-            assert(cast(int)csz >= 0);
-
-            //printf("looking at: ("); WReqn(c); printf("), ty=x%x\n",c.EV.E1.Ety);
-            /* Not only must symbol numbers match, but      */
-            /* offsets too (in case of arrays) and sizes    */
-            /* (in case of unions).                         */
-            if (v == c.EV.E1.EV.Vsym &&
-                n.EV.Voffset >= c.EV.E1.EV.Voffset &&
-                n.EV.Voffset + sz <= c.EV.E1.EV.Voffset + csz)
+            ambig = !OTassign(op) || t.Eoper == OPind;
+            uint i;
+            for (i = 0; (i = cast(uint) vec_index(i, IN)) < go.exptop; ++i) // for each active copy elem
             {
-                if (foundelem)
+                Symbol *v;
+
+                if (op == OPasm)
+                    goto clr;
+
+                /* If this elem could kill the lvalue or the rvalue, */
+                /*      Clear bit in IN.                        */
+                v = go.expnod[i].EV.E1.EV.Vsym;
+                if (ambig)
                 {
-                    if (c.EV.E2.EV.Vsym != f)
-                        goto noprop;
+                    if (!(v.Sflags & SFLunambig))
+                        goto clr;
                 }
                 else
                 {
-                    foundelem = c;
-                    f = foundelem.EV.E2.EV.Vsym;
+                    if (v == t.EV.Vsym)
+                        goto clr;
                 }
-            }
-        }
-        if (foundelem)          /* if we can do the copy prop   */
-        {
-            debug if (debugc)
-            {
-                printf("Copyprop, from '%s'(%d) to '%s'(%d)\n",
-                    (v.Sident[0]) ? cast(char *)v.Sident.ptr : "temp".ptr, v.Ssymnum,
-                    (f.Sident[0]) ? cast(char *)f.Sident.ptr : "temp".ptr, f.Ssymnum);
-            }
-
-            type *nt = n.ET;
-            targ_size_t noffset = n.EV.Voffset;
-            el_copy(n,foundelem.EV.E2);
-            n.Ety = ty;    // retain original type
-            n.ET = nt;
-            n.EV.Voffset += noffset - foundelem.EV.E1.EV.Voffset;
-
-            /* original => rewrite
-             *  v = f
-             *  g = v   => g = f
-             *  f = x
-             *  d = g   => d = f !!error
-             * Therefore, if n appears as an rvalue in go.expnod[], then recalc
-             */
-            for (size_t j = 1; j < go.exptop; ++j)
-            {
-                //printf("go.expnod[%d]: ", j); elem_print(go.expnod[j]);
-                if (go.expnod[j].EV.E2 == n)
+                v = go.expnod[i].EV.E2.EV.Vsym;
+                if (ambig)
                 {
-                    ++recalc;
-                    break;
+                    if (!(v.Sflags & SFLunambig))
+                        goto clr;
+                }
+                else
+                {
+                    if (v == t.EV.Vsym)
+                        goto clr;
+                }
+                continue;
+
+            clr:                        /* this copy elem is not available */
+                vec_clearbit(i,IN);     /* so remove it from the vector */
+            } /* foreach */
+
+            /* If this is a copy elem in go.expnod[]   */
+            /*      Set bit in IN.                     */
+            if ((op == OPeq || op == OPstreq) && n.EV.E1.Eoper == OPvar &&
+                n.EV.E2.Eoper == OPvar && n.Eexp)
+                vec_setbit(n.Eexp,IN);
+        }
+        else if (op == OPvar && !nocp)  // if reference to variable v
+        {
+            Symbol *v = n.EV.Vsym;
+
+            //printf("Checking copyprop for '%s', ty=x%x\n",v.Sident,n.Ety);
+            symbol_debug(v);
+            const ty = n.Ety;
+            uint sz = tysize(n.Ety);
+            if (sz == -1 && !tyfunc(n.Ety))
+                sz = cast(uint)type_size(v.Stype);
+
+            elem *foundelem = null;
+            Symbol *f;
+            for (uint i = 0; (i = cast(uint) vec_index(i, IN)) < go.exptop; ++i) // for all active copy elems
+            {
+                elem* c = go.expnod[i];
+                assert(c);
+
+                uint csz = tysize(c.EV.E1.Ety);
+                if (c.Eoper == OPstreq)
+                    csz = cast(uint)type_size(c.ET);
+                assert(cast(int)csz >= 0);
+
+                //printf("looking at: ("); WReqn(c); printf("), ty=x%x\n",c.EV.E1.Ety);
+                /* Not only must symbol numbers match, but      */
+                /* offsets too (in case of arrays) and sizes    */
+                /* (in case of unions).                         */
+                if (v == c.EV.E1.EV.Vsym &&
+                    n.EV.Voffset >= c.EV.E1.EV.Voffset &&
+                    n.EV.Voffset + sz <= c.EV.E1.EV.Voffset + csz)
+                {
+                    if (foundelem)
+                    {
+                        if (c.EV.E2.EV.Vsym != f)
+                            goto noprop;
+                    }
+                    else
+                    {
+                        foundelem = c;
+                        f = foundelem.EV.E2.EV.Vsym;
+                    }
                 }
             }
+            if (foundelem)          /* if we can do the copy prop   */
+            {
+                debug if (debugc)
+                {
+                    printf("Copyprop, from '%s'(%d) to '%s'(%d)\n",
+                        (v.Sident[0]) ? cast(char *)v.Sident.ptr : "temp".ptr, v.Ssymnum,
+                        (f.Sident[0]) ? cast(char *)f.Sident.ptr : "temp".ptr, f.Ssymnum);
+                }
 
-            go.changes++;
+                type *nt = n.ET;
+                targ_size_t noffset = n.EV.Voffset;
+                el_copy(n,foundelem.EV.E2);
+                n.Ety = ty;    // retain original type
+                n.ET = nt;
+                n.EV.Voffset += noffset - foundelem.EV.E1.EV.Voffset;
+
+                /* original => rewrite
+                 *  v = f
+                 *  g = v   => g = f
+                 *  f = x
+                 *  d = g   => d = f !!error
+                 * Therefore, if n appears as an rvalue in go.expnod[], then recalc
+                 */
+                for (size_t j = 1; j < go.exptop; ++j)
+                {
+                    //printf("go.expnod[%d]: ", j); elem_print(go.expnod[j]);
+                    if (go.expnod[j].EV.E2 == n)
+                    {
+                        recalc = true;
+                        break;
+                    }
+                }
+
+                go.changes++;
+            }
+            //else printf("not found\n");
+        noprop:
+            {   }
         }
-        //else printf("not found\n");
-    noprop:
     }
+
+    cpwalk(n, IN);
+    return recalc;
 }
 
 /********************************
@@ -1346,10 +1351,7 @@ private void cpwalk(elem *n,vec_t IN)
 
 private __gshared
 {
-    uint asstop,                /* # of assignment elems in assnod[]    */
-         assmax = 0,            /* size of assnod[]                     */
-         assnum;                /* current position in assnod[]         */
-    elem **assnod = null;       /* array of pointers to asg elems       */
+    Barray!(elem*) assnod;      /* array of pointers to asg elems       */
     vec_t ambigref;             /* vector of assignment elems that      */
                                 /* are referenced when an ambiguous     */
                                 /* reference is done (as in *p or call) */
@@ -1359,35 +1361,28 @@ void rmdeadass()
 {
     if (debugc) printf("rmdeadass()\n");
     flowlv();                       /* compute live variables       */
-    for (uint i = 0; i < dfotop; i++)    // for each block b
+    foreach (b; dfo[])         // for each block b
     {
-        block *b = dfo[i];
-
         if (!b.Belem)          /* if no elems at all           */
             continue;
         if (b.Btry)            // if in try-block guarded body
             continue;
-        asstop = numasg(b.Belem);      /* # of assignment elems */
-        if (asstop == 0)        /* if no assignment elems       */
+        const assnum = numasg(b.Belem);   // # of assignment elems
+        if (assnum == 0)                  // if no assignment elems
             continue;
-        if (asstop > assmax)    /* if we need to reallocate     */
-        {
-            assnod = cast(elem **)
-            realloc(assnod,(elem *).sizeof * asstop);
-            assert(assnod);
-            assmax = asstop;
-        }
-        /*setvecdim(asstop);*/
-        vec_t DEAD = vec_calloc(asstop);
-        vec_t POSS = vec_calloc(asstop);
-        ambigref = vec_calloc(asstop);
-        assnum = 0;
-        accumda(b.Belem,DEAD,POSS);    /* compute DEAD and POSS */
-        assert(assnum == asstop);
+
+        assnod.setLength(assnum);         // pre-allocate sufficient room
+        vec_t DEAD = vec_calloc(assnum);
+        vec_t POSS = vec_calloc(assnum);
+
+        ambigref = vec_calloc(assnum);
+        assnod.setLength(0);
+        accumda(b.Belem,DEAD,POSS);    // fill assnod[], compute DEAD and POSS
+        assert(assnum == assnod.length);
         vec_free(ambigref);
+
         vec_orass(POSS,DEAD);   /* POSS |= DEAD                 */
-        uint j;
-        for (j = 0; (j = cast(uint) vec_index(j, POSS)) < asstop; ++j) // for each possible dead asg.
+        for (uint j = 0; (j = cast(uint) vec_index(j, POSS)) < assnum; ++j) // for each possible dead asg.
         {
             Symbol *v;      /* v = target of assignment     */
             elem *n;
@@ -1423,9 +1418,6 @@ void rmdeadass()
         vec_free(DEAD);
         vec_free(POSS);
     } /* for */
-    free(assnod);
-    assnod = null;
-    assmax = 0;
 }
 
 /***************************
@@ -1530,27 +1522,24 @@ private uint numasg(elem *e)
 
 private void accumda(elem *n,vec_t DEAD, vec_t POSS)
 {
-    vec_t Pl,Pr,Dl,Dr;
-    uint op,vecdim;
-
-    /*chkvecdim(asstop,0);*/
     assert(n && DEAD && POSS);
-    op = n.Eoper;
+    const op = n.Eoper;
     switch (op)
     {
         case OPcolon:
         case OPcolon2:
-            Pl = vec_clone(POSS);
-            Pr = vec_clone(POSS);
-            Dl = vec_calloc(asstop);
-            Dr = vec_calloc(asstop);
+        {
+            vec_t Pl = vec_clone(POSS);
+            vec_t Pr = vec_clone(POSS);
+            vec_t Dl = vec_calloc(vec_numbits(POSS));
+            vec_t Dr = vec_calloc(vec_numbits(POSS));
             accumda(n.EV.E1,Dl,Pl);
             accumda(n.EV.E2,Dr,Pr);
 
             /* D |= P & (Dl & Dr) | ~P & (Dl | Dr)  */
             /* P = P & (Pl & Pr) | ~P & (Pl | Pr)   */
             /*   = Pl & Pr | ~P & (Pl | Pr)         */
-            vecdim = cast(uint)vec_dim(DEAD);
+            const vecdim = cast(uint)vec_dim(DEAD);
             for (uint i = 0; i < vecdim; i++)
             {
                 DEAD[i] |= (POSS[i] & Dl[i] & Dr[i]) |
@@ -1559,21 +1548,24 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
             }
             vec_free(Pl); vec_free(Pr); vec_free(Dl); vec_free(Dr);
             break;
+        }
 
         case OPandand:
         case OPoror:
+        {
             accumda(n.EV.E1,DEAD,POSS);
             // Substituting into the above equations Pl=P and Dl=0:
             // D |= Dr - P
             // P = Pr
-            Pr = vec_clone(POSS);
-            Dr = vec_calloc(asstop);
+            vec_t Pr = vec_clone(POSS);
+            vec_t Dr = vec_calloc(vec_numbits(POSS));
             accumda(n.EV.E2,Dr,Pr);
             vec_subass(Dr,POSS);
             vec_orass(DEAD,Dr);
             vec_copy(POSS,Pr);
             vec_free(Pr); vec_free(Dr);
             break;
+        }
 
         case OPvar:
         {
@@ -1584,7 +1576,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
             // We have a reference. Clear all bits in POSS that
             // could be referenced.
 
-            for (uint i = 0; i < assnum; i++)
+            foreach (const i; 0 .. cast(uint)assnod.length)
             {
                 elem *ti = assnod[i].EV.E1;
                 if (v == ti.EV.Vsym &&
@@ -1602,7 +1594,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
         }
 
         case OPasm:         // reference everything
-            for (uint i = 0; i < assnum; i++)
+            foreach (const i; 0 .. cast(uint)assnod.length)
                 vec_clearbit(i,POSS);
             break;
 
@@ -1678,7 +1670,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
                     uint tsz = tysize(t.Ety);
                     if (n.Eoper == OPstreq)
                         tsz = cast(uint)type_size(n.ET);
-                    for (uint i = 0; i < assnum; i++)
+                    foreach (const i; 0 .. cast(uint)assnod.length)
                     {
                         elem *ti = assnod[i].EV.E1;
 
@@ -1703,15 +1695,15 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
                 // if assignment operator, post this def to POSS
                 if (n.Nflags & NFLassign)
                 {
-                    assnod[assnum] = n;
-                    vec_setbit(assnum,POSS);
+                    const i = cast(uint)assnod.length;
+                    vec_setbit(i,POSS);
 
                     // if variable could be referenced by a pointer
                     // or a function call, mark the assignment in
                     // ambigref
                     if (!(t.EV.Vsym.Sflags & SFLunambig))
                     {
-                        vec_setbit(assnum,ambigref);
+                        vec_setbit(i,ambigref);
 
                         debug if (debugc)
                         {
@@ -1721,7 +1713,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
                         }
                     }
 
-                    assnum++;
+                    assnod.push(n);
                 }
             }
             else if (OTrtol(op))
@@ -1752,7 +1744,6 @@ void deadvar()
 
         /* First, mark each candidate as dead.  */
         /* Initialize vectors for live ranges.  */
-        /*setvecdim(dfotop);*/
         for (SYMIDX i = 0; i < globsym.top; i++)
         {
             Symbol *s = globsym.tab[i];
@@ -1769,9 +1760,9 @@ void deadvar()
         }
 
         /* Go through trees and "liven" each one we see.        */
-        for (uint i = 0; i < dfotop; i++)
-            if (dfo[i].Belem)
-                dvwalk(dfo[i].Belem,i);
+        foreach (i, b; dfo[])
+            if (b.Belem)
+                dvwalk(b.Belem,cast(uint)i);
 
         /* Compute live variables. Set bit for block in live range      */
         /* if variable is in the IN set for that block.                 */
@@ -1779,9 +1770,9 @@ void deadvar()
         for (SYMIDX i = 0; i < globsym.top; i++)
         {
             if (globsym.tab[i].Srange /*&& globsym.tab[i].Sclass != CLMOS*/)
-                for (uint j = 0; j < dfotop; j++)
-                    if (vec_testbit(i,dfo[j].Binlv))
-                        vec_setbit(j,globsym.tab[i].Srange);
+                foreach (j, b; dfo[])
+                    if (vec_testbit(i,b.Binlv))
+                        vec_setbit(cast(uint)j,globsym.tab[i].Srange);
         }
 
         /* Print results        */
@@ -1850,7 +1841,7 @@ void verybusyexp()
     if (debugc) printf("verybusyexp()\n");
     flowvbe();                      /* compute VBEs                 */
     if (go.exptop <= 1) return;        /* if no VBEs                   */
-    assert(go.expblk);
+    assert(go.expblk.length);
     if (blockinit())
         return;                     // can't handle ASM blocks
     compdom();                      /* compute dominators           */
@@ -1858,13 +1849,12 @@ void verybusyexp()
     genkillae();                    /* compute Bgen and Bkill for   */
                                     /* AEs                          */
     /*chkvecdim(go.exptop,0);*/
-    blockseen = vec_calloc(dfotop);
+    blockseen = vec_calloc(dfo.length);
 
     /* Go backwards through dfo so that VBEs are evaluated as       */
     /* close as possible to where they are used.                    */
-    for (int i = dfotop; --i >= 0;)     // for each block
+    foreach_reverse (i, b; dfo[])     // for each block
     {
-        block *b = dfo[i];
         int done;
 
         /* Do not hoist things to blocks that do not            */
@@ -1931,7 +1921,7 @@ void verybusyexp()
         for (j = 0; (j = cast(uint) vec_index(j, b.Bout)) < go.exptop; ++j)
         {
             vec_clear(blockseen);
-            for (list_t bl = go.expblk[j].Bpred; bl; bl = list_next(bl))
+            foreach (bl; ListRange(go.expblk[j].Bpred))
             {
                 if (killed(j,list_block(bl),b))
                 {
@@ -1954,7 +1944,7 @@ void verybusyexp()
         for (j = 0; (j = cast(uint) vec_index(j, b.Bout)) < go.exptop; ++j)
         {
             vec_clear(blockseen);
-            for (list_t bl = go.expblk[j].Bpred; bl; bl = list_next(bl))
+            foreach (bl; ListRange(go.expblk[j].Bpred))
             {
                 if (ispath(j,list_block(bl),b))
                     goto L2;
@@ -2030,7 +2020,7 @@ private int killed(uint j,block *bp,block *b)
     if (vec_testbit(j,bp.Bkill))
         return true;
     vec_setbit(bp.Bdfoidx,blockseen);      /* mark as visited              */
-    for (list_t bl = bp.Bpred; bl; bl = list_next(bl))
+    foreach (bl; ListRange(bp.Bpred))
         if (killed(j,list_block(bl),b))
             return true;
     return false;
@@ -2064,7 +2054,7 @@ private int ispath(uint j,block *bp,block *b)
 
     /* Not used in bp, see if there is a path through a predecessor */
     /* of bp                                                        */
-    for (list_t bl = bp.Bpred; bl; bl = list_next(bl))
+    foreach (bl; ListRange(bp.Bpred))
         if (ispath(j,list_block(bl),b))
             return true;
 

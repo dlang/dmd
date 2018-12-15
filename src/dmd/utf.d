@@ -18,16 +18,14 @@ nothrow pure @nogc:
 /// except the UTF-16 surrogate pairs in the range [0xD800,0xDFFF]
 bool utf_isValidDchar(dchar c)
 {
-    // TODO: Whether non-char code points should be rejected is pending review
-    // largest character code point
-    if (c > 0x10FFFF)
-        return false;
+    // TODO: Whether non-char code points should be rejected is pending review.
     // 0xFFFE and 0xFFFF are valid for internal use, like Phobos std.utf.isValidDChar
     // See also https://issues.dlang.org/show_bug.cgi?id=1357
-    // surrogate pairs
-    if (0xD800 <= c && c <= 0xDFFF)
-        return false;
-    return true;
+    if (c < 0xD800) // Almost all characters in a typical document.
+        return true;
+    if (c > 0xDFFF && c <= 0x10FFFF)
+        return true;
+    return false;
 }
 
 /*******************************
@@ -762,9 +760,9 @@ immutable(char*) utf_decodeWchar(const(wchar)* s, size_t len, ref size_t ridx, o
     assert(s !is null);
     size_t i = ridx++;
     assert(i < len);
-    // Pre-stage results for ASCII and error cases
+    // Pre-stage results for single wchar and error cases
     dchar u = rresult = s[i];
-    if (u < 0x80) // ASCII
+    if (u < 0xD800) // Single wchar codepoint
         return UTF16_DECODE_OK;
     if (0xD800 <= u && u <= 0xDBFF) // Surrogate pair
     {

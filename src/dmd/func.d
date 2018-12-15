@@ -476,8 +476,8 @@ extern (C++) class FuncDeclaration : Declaration
              * enclosing function's stack frame.
              * Note that nested functions and member functions are disjoint.
              */
-            VarDeclaration v = new ThisDeclaration(loc, Type.tvoid.pointerTo());
-            v.storage_class |= STC.parameter;
+            VarDeclaration v = new VarDeclaration(loc, Type.tvoid.pointerTo(), Id.capture, null);
+            v.storage_class |= STC.parameter | STC.nodtor;
             if (type.ty == Tfunction)
             {
                 TypeFunction tf = cast(TypeFunction)type;
@@ -933,7 +933,7 @@ extern (C++) class FuncDeclaration : Declaration
 
         TypeFunction tf = type.toTypeFunction();
         TypeFunction tg = g.type.toTypeFunction();
-        size_t nfparams = Parameter.dim(tf.parameters);
+        size_t nfparams = tf.parameterList.length;
 
         /* If both functions have a 'this' pointer, and the mods are not
          * the same and g's is not const, then this is less specialized.
@@ -957,7 +957,7 @@ extern (C++) class FuncDeclaration : Declaration
         Expressions args = Expressions(nfparams);
         for (size_t u = 0; u < nfparams; u++)
         {
-            Parameter p = Parameter.getNth(tf.parameters, u);
+            Parameter p = tf.parameterList[u];
             Expression e;
             if (p.storageClass & (STC.ref_ | STC.out_))
             {
@@ -975,7 +975,7 @@ extern (C++) class FuncDeclaration : Declaration
             /* A variadic parameter list is less specialized than a
              * non-variadic one.
              */
-            if (tf.varargs && !tg.varargs)
+            if (tf.parameterList.varargs && !tg.parameterList.varargs)
                 goto L1; // less specialized
 
             static if (LOG_LEASTAS)
@@ -1466,10 +1466,10 @@ extern (C++) class FuncDeclaration : Declaration
 
         //printf("isTypeIsolatedIndirect(%s) t = %s\n", tf.toChars(), t.toChars());
 
-        size_t dim = Parameter.dim(tf.parameters);
+        size_t dim = tf.parameterList.length;
         for (size_t i = 0; i < dim; i++)
         {
-            Parameter fparam = Parameter.getNth(tf.parameters, i);
+            Parameter fparam = tf.parameterList[i];
             Type tp = fparam.type;
             if (!tp)
                 continue;
@@ -1629,14 +1629,14 @@ extern (C++) class FuncDeclaration : Declaration
     {
         auto ad = isThis();
         ClassDeclaration cd = ad ? ad.isClassDeclaration() : null;
-        return (ad && !(cd && cd.isCPPclass()) && global.params.useInvariants && (protection.kind == Prot.Kind.protected_ || protection.kind == Prot.Kind.public_ || protection.kind == Prot.Kind.export_) && !naked);
+        return (ad && !(cd && cd.isCPPclass()) && global.params.useInvariants == CHECKENABLE.on && (protection.kind == Prot.Kind.protected_ || protection.kind == Prot.Kind.public_ || protection.kind == Prot.Kind.export_) && !naked);
     }
 
     bool addPostInvariant()
     {
         auto ad = isThis();
         ClassDeclaration cd = ad ? ad.isClassDeclaration() : null;
-        return (ad && !(cd && cd.isCPPclass()) && ad.inv && global.params.useInvariants && (protection.kind == Prot.Kind.protected_ || protection.kind == Prot.Kind.public_ || protection.kind == Prot.Kind.export_) && !naked);
+        return (ad && !(cd && cd.isCPPclass()) && ad.inv && global.params.useInvariants == CHECKENABLE.on && (protection.kind == Prot.Kind.protected_ || protection.kind == Prot.Kind.public_ || protection.kind == Prot.Kind.export_) && !naked);
     }
 
     override const(char)* kind() const
@@ -2152,7 +2152,7 @@ extern (C++) class FuncDeclaration : Declaration
              *   __require();
              */
             Loc loc = frequire.loc;
-            auto tf = new TypeFunction(null, Type.tvoid, 0, LINK.d);
+            auto tf = new TypeFunction(ParameterList(), Type.tvoid, LINK.d);
             tf.isnothrow = f.isnothrow;
             tf.isnogc = f.isnogc;
             tf.purity = f.purity;
@@ -2181,7 +2181,7 @@ extern (C++) class FuncDeclaration : Declaration
                 p = new Parameter(STC.ref_ | STC.const_, f.nextOf(), Id.result, null, null);
                 fparams.push(p);
             }
-            auto tf = new TypeFunction(fparams, Type.tvoid, 0, LINK.d);
+            auto tf = new TypeFunction(ParameterList(fparams), Type.tvoid, LINK.d);
             tf.isnothrow = f.isnothrow;
             tf.isnogc = f.isnogc;
             tf.purity = f.purity;
@@ -2272,24 +2272,18 @@ extern (C++) class FuncDeclaration : Declaration
     }
 
     /*********************************************
-     * Return the function's parameter list, and whether
+     * Returns: the function's parameter list, and whether
      * it is variadic or not.
      */
-    final Parameters* getParameters(int* pvarargs)
+    final ParameterList getParameterList()
     {
-        Parameters* fparameters = null;
-        int fvarargs = 0;
-
         if (type)
         {
-            TypeFunction fdtype = type.toTypeFunction();
-            fparameters = fdtype.parameters;
-            fvarargs = fdtype.varargs;
+            TypeFunction fdtype = type.isTypeFunction();
+            return fdtype.parameterList;
         }
-        if (pvarargs)
-            *pvarargs = fvarargs;
 
-        return fparameters;
+        return ParameterList(null, VarArg.none);
     }
 
     /**********************************
@@ -2322,7 +2316,7 @@ extern (C++) class FuncDeclaration : Declaration
         }
         else
         {
-            tf = new TypeFunction(fparams, treturn, 0, LINK.c, stc);
+            tf = new TypeFunction(ParameterList(fparams), treturn, LINK.c, stc);
             fd = new FuncDeclaration(Loc.initial, Loc.initial, id, STC.static_, tf);
             fd.protection = Prot(Prot.Kind.public_);
             fd.linkage = LINK.c;
@@ -2339,11 +2333,11 @@ extern (C++) class FuncDeclaration : Declaration
     extern (D) final void checkDmain()
     {
         TypeFunction tf = type.toTypeFunction();
-        const nparams = Parameter.dim(tf.parameters);
+        const nparams = tf.parameterList.length;
         bool argerr;
         if (nparams == 1)
         {
-            auto fparam0 = Parameter.getNth(tf.parameters, 0);
+            auto fparam0 = tf.parameterList[0];
             auto t = fparam0.type.toBasetype();
             if (t.ty != Tarray ||
                 t.nextOf().ty != Tarray ||
@@ -2358,7 +2352,7 @@ extern (C++) class FuncDeclaration : Declaration
             error("must return `int` or `void`");
         else if (tf.nextOf().ty != Tint32 && tf.nextOf().ty != Tvoid)
             error("must return `int` or `void`, not `%s`", tf.nextOf().toChars());
-        else if (tf.varargs || nparams >= 2 || argerr)
+        else if (tf.parameterList.varargs || nparams >= 2 || argerr)
             error("parameters must be `main()` or `main(string[] args)`");
     }
 
@@ -2774,7 +2768,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                 else
                 {
                     .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
-                        fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameters, tf.varargs),
+                        fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList),
                         tf.modToChars(), fargsBuf.peekString());
                     // re-resolve to check for supplemental message
                     const(char)* failMessage;
@@ -2792,8 +2786,8 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     {
         TypeFunction tf1 = m.lastf.type.toTypeFunction();
         TypeFunction tf2 = m.nextf.type.toTypeFunction();
-        const(char)* lastprms = parametersTypeToChars(tf1.parameters, tf1.varargs);
-        const(char)* nextprms = parametersTypeToChars(tf2.parameters, tf2.varargs);
+        const(char)* lastprms = parametersTypeToChars(tf1.parameterList);
+        const(char)* nextprms = parametersTypeToChars(tf2.parameterList);
 
         const(char)* mod1 = prependSpace(MODtoChars(tf1.mod));
         const(char)* mod2 = prependSpace(MODtoChars(tf2.mod));
@@ -2830,7 +2824,7 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
 
             auto tf = cast(TypeFunction) fd.type;
             .errorSupplemental(fd.loc, "`%s%s`", fd.toPrettyChars(),
-                parametersTypeToChars(tf.parameters, tf.varargs));
+                parametersTypeToChars(tf.parameterList));
             nextOverload = fd.overnext;
         }
         else if (auto td = s.isTemplateDeclaration())
@@ -3282,7 +3276,7 @@ extern (C++) final class CtorDeclaration : FuncDeclaration
 
     override bool addPostInvariant()
     {
-        return (isThis() && vthis && global.params.useInvariants);
+        return (isThis() && vthis && global.params.useInvariants == CHECKENABLE.on);
     }
 
     override inout(CtorDeclaration) isCtorDeclaration() inout
@@ -3324,7 +3318,7 @@ extern (C++) final class PostBlitDeclaration : FuncDeclaration
 
     override bool addPostInvariant()
     {
-        return (isThis() && vthis && global.params.useInvariants);
+        return (isThis() && vthis && global.params.useInvariants == CHECKENABLE.on);
     }
 
     override bool overloadInsert(Dsymbol s)
@@ -3383,7 +3377,7 @@ extern (C++) final class DtorDeclaration : FuncDeclaration
 
     override bool addPreInvariant()
     {
-        return (isThis() && vthis && global.params.useInvariants);
+        return (isThis() && vthis && global.params.useInvariants == CHECKENABLE.on);
     }
 
     override bool addPostInvariant()
@@ -3679,9 +3673,9 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
 extern (C++) final class NewDeclaration : FuncDeclaration
 {
     Parameters* parameters;
-    int varargs;
+    VarArg varargs;
 
-    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Parameters* fparams, int varargs)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Parameters* fparams, VarArg varargs)
     {
         super(loc, endloc, Id.classNew, STC.static_ | stc, null);
         this.parameters = fparams;

@@ -91,6 +91,7 @@ enum ENUMTY
     Tvector,
     Tint128,
     Tuns128,
+    TTraits,
     TMAX
 };
 typedef unsigned char TY;       // ENUMTY
@@ -124,6 +125,14 @@ extern unsigned char impcnvType2[TMAX][TMAX];
 
 // If !=0, give warning on implicit conversion
 extern unsigned char impcnvWarn[TMAX][TMAX];
+
+enum VarArg
+{
+    none     = 0,  /// fixed number of arguments
+    variadic = 1,  /// T t, ...)  can be C-style (core.stdc.stdarg) or D-style (core.vararg)
+    typesafe = 2,  /// T t ...) typesafe https://dlang.org/spec/function.html#typesafe_variadic_functions
+                   ///   or https://dlang.org/spec/function.html#typesafe_variadic_functions
+};
 
 class Type : public RootObject
 {
@@ -225,7 +234,7 @@ public:
     bool equals(RootObject *o);
     bool equivalent(Type *t);
     // kludge for template.isType()
-    int dyncast() const { return DYNCAST_TYPE; }
+    DYNCAST dyncast() const { return DYNCAST_TYPE; }
     int covariant(Type *t, StorageClass *pstc = NULL, bool fix17349 = true);
     const char *toChars();
     char *toPrettyChars(bool QualifyTypes = false);
@@ -524,14 +533,22 @@ enum PURE
     PUREstrong = 4      // parameters are values or immutable
 };
 
+struct ParameterList
+{
+    Parameters* parameters;
+    VarArg varargs;
+
+    size_t length();
+    Parameter opIndex(size_t i);
+};
+
 class TypeFunction : public TypeNext
 {
 public:
     // .next is the return type
 
-    Parameters *parameters;     // function parameters
-    int varargs;        // 1: T t, ...) style for variable number of arguments
-                        // 2: T t ...) style for variable number of arguments
+    ParameterList parameterList;     // function parameters
+
     bool isnothrow;     // true: nothrow
     bool isnogc;        // true: is @nogc
     bool isproperty;    // can be called without parentheses
@@ -547,7 +564,7 @@ public:
 
     int inuse;
 
-    static TypeFunction *create(Parameters *parameters, Type *treturn, int varargs, LINK linkage, StorageClass stc = 0);
+    static TypeFunction *create(Parameters *parameters, Type *treturn, VarArg varargs, LINK linkage, StorageClass stc = 0);
     const char *kind();
     Type *syntaxCopy();
     void purityLevel();
@@ -577,6 +594,19 @@ public:
     bool isBoolean() /*const*/;
     bool hasPointers() /*const*/;
 
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class TypeTraits : public Type
+{
+    Loc loc;
+    /// The expression to resolve as type or symbol.
+    TraitsExp *exp;
+    /// The symbol when exp doesn't represent a type.
+    Dsymbol *sym;
+    /// Indicates wether we are in an alias or not.
+    bool inAliasDeclaration;
+    Type *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -799,7 +829,7 @@ public:
     Parameter *syntaxCopy();
     Type *isLazyArray();
     // kludge for template.isType()
-    int dyncast() const { return DYNCAST_PARAMETER; }
+    DYNCAST dyncast() const { return DYNCAST_PARAMETER; }
     virtual void accept(Visitor *v) { v->visit(this); }
 
     static size_t dim(Parameters *parameters);

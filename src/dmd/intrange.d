@@ -276,7 +276,7 @@ struct SignExtendedNumber
 
     SignExtendedNumber opBinary(string op : ">>")(SignExtendedNumber rhs)
     {
-        if (rhs.negative || rhs.value > 64)
+        if (rhs.negative || rhs.value > 63)
             return negative ? SignExtendedNumber(-1, true) : SignExtendedNumber(0);
         else if (isMinimum())
             return rhs.value == 0 ? this : SignExtendedNumber(-1UL << (64 - rhs.value), true);
@@ -580,7 +580,7 @@ struct IntRange
             auto maxAndPos = maxAnd(l, IntRange(SignExtendedNumber(0), r.imax));
 
             auto min = minAndNeg < minAndPos ? minAndNeg : minAndPos;
-            auto max = maxAndNeg > maxAndNeg ? maxAndNeg : maxAndPos;
+            auto max = maxAndNeg > maxAndPos ? maxAndNeg : maxAndPos;
 
             auto range = IntRange(min, max);
             return range;
@@ -627,8 +627,8 @@ struct IntRange
             auto maxOrNeg = maxOr(l, IntRange(r.imin, SignExtendedNumber(-1)));
             auto maxOrPos = maxOr(l, IntRange(SignExtendedNumber(0), r.imax));
 
-            auto min = minOrNeg.value < minOrPos.value ? minOrNeg : minOrPos;
-            auto max = maxOrNeg.value > maxOrNeg.value ? maxOrNeg : maxOrPos;
+            auto min = minOrNeg < minOrPos ? minOrNeg : minOrPos;
+            auto max = maxOrNeg > maxOrPos ? maxOrNeg : maxOrPos;
 
             auto range = IntRange(min, max);
             return range;

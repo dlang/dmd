@@ -373,7 +373,7 @@ Symbol *toSymbol(Dsymbol s)
                         s.Sflags |= SFLpublic;
                         if (fd.isThis() && !global.params.is64bit && global.params.isWindows)
                         {
-                            if ((cast(TypeFunction)fd.type).varargs == 1)
+                            if ((cast(TypeFunction)fd.type).parameterList.varargs == VarArg.variadic)
                             {
                                 t.Tty = TYnfunc;
                             }
@@ -676,7 +676,7 @@ Symbol* toSymbol(StructLiteralExp sle)
     s.Sflags |= SFLnodebug;
     s.Stype = t;
     sle.sym = s;
-    scope DtBuilder dtb = new DtBuilder();
+    auto dtb = DtBuilder(0);
     Expression_toDt(sle, dtb);
     s.Sdt = dtb.finish();
     outdata(s);
@@ -695,7 +695,7 @@ Symbol* toSymbol(ClassReferenceExp cre)
     s.Sflags |= SFLnodebug;
     s.Stype = t;
     cre.value.sym = s;
-    scope DtBuilder dtb = new DtBuilder();
+    auto dtb = DtBuilder(0);
     ClassReferenceExp_toInstanceDt(cre, dtb);
     s.Sdt = dtb.finish();
     outdata(s);
@@ -724,7 +724,7 @@ Symbol* toSymbolCpp(ClassDeclaration cd)
         Symbol *s = toSymbolX(cd, "_cpp_type_info_ptr", SCcomdat, scpp.Stype, "");
         s.Sfl = FLdata;
         s.Sflags |= SFLnodebug;
-        scope DtBuilder dtb = new DtBuilder();
+        auto dtb = DtBuilder(0);
         cpp_type_info_ptr_toDt(cd, dtb);
         s.Sdt = dtb.finish();
         outdata(s);

@@ -45,6 +45,7 @@ import dmd.backend.cdef;
 import dmd.backend.cgcv;
 import dmd.backend.code;
 import dmd.backend.cv4;
+import dmd.backend.dlist;
 import dmd.backend.dt;
 import dmd.backend.global;
 import dmd.backend.obj;
@@ -292,6 +293,33 @@ uint cv_align(ubyte *p, uint n)
     return n;
 }
 
+/*************************************
+ * write a UDT record to the object file
+ * Params:
+ *      id = name of user defined type
+ *      typidx = type index
+ */
+void cv_udt(const char* id, uint typidx)
+{
+    if (config.fulltypes == CV8)
+        cv8_udt(id, typidx);
+    else
+    {
+        const len = strlen(id);
+        ubyte *debsym = cast(ubyte *) alloca(39 + IDOHD + len);
+
+        // Output a 'user-defined type' for the tag name
+        TOWORD(debsym + 2,S_UDT);
+        TOIDX(debsym + 4,typidx);
+        uint length = 2 + 2 + cgcv.sz_idx;
+        length += cv_namestring(debsym + length,id);
+        TOWORD(debsym,length - 2);
+
+        assert(length <= 40 + len);
+        objmod.write_bytes(SegData[DEBSYM],length,debsym);
+    }
+}
+
 /* ==================================================================== */
 
 /****************************
@@ -309,23 +337,7 @@ void toDebug(EnumDeclaration ed)
     {
         const id = ed.toPrettyChars(true);
         const idx_t typidx = cv4_Denum(ed);
-        if (config.fulltypes == CV8)
-            cv8_udt(id, typidx);
-        else
-        {
-            const len = strlen(id);
-            ubyte *debsym = cast(ubyte *) alloca(39 + IDOHD + len);
-
-            // Output a 'user-defined type' for the tag name
-            TOWORD(debsym + 2,S_UDT);
-            TOIDX(debsym + 4,typidx);
-            uint length = 2 + 2 + cgcv.sz_idx;
-            length += cv_namestring(debsym + length,id);
-            TOWORD(debsym,length - 2);
-
-            assert(length <= 40 + len);
-            objmod.write_bytes(SegData[DEBSYM],length,cast(void*)debsym);
-        }
+        cv_udt(id, typidx);
     }
 }
 
@@ -498,23 +510,7 @@ void toDebug(StructDeclaration sd)
 
 //    cv4_outsym(s);
 
-    if (config.fulltypes == CV8)
-        cv8_udt(id, typidx);
-    else
-    {
-        const idlen = strlen(id);
-        ubyte *debsym = cast(ubyte *) alloca(39 + IDOHD + idlen);
-
-        // Output a 'user-defined type' for the tag name
-        TOWORD(debsym + 2,S_UDT);
-        TOIDX(debsym + 4,typidx);
-        uint length = 2 + 2 + cgcv.sz_idx;
-        length += cv_namestring(debsym + length,id);
-        TOWORD(debsym,length - 2);
-
-        assert(length <= 40 + idlen);
-        objmod.write_bytes(SegData[DEBSYM],length,debsym);
-    }
+    cv_udt(id, typidx);
 
 //    return typidx;
 }
@@ -727,27 +723,120 @@ void toDebug(ClassDeclaration cd)
 
 //    cv4_outsym(s);
 
-    if (config.fulltypes == CV8)
-        cv8_udt(id, typidx);
-    else
-    {
-        const idlen = strlen(id);
-        ubyte *debsym = cast(ubyte *) alloca(39 + IDOHD + idlen);
-
-        // Output a 'user-defined type' for the tag name
-        TOWORD(debsym + 2,S_UDT);
-        TOIDX(debsym + 4,typidx);
-        uint length = 2 + 2 + cgcv.sz_idx;
-        length += cv_namestring(debsym + length,id);
-        TOWORD(debsym,length - 2);
-
-        assert(length <= 40 + idlen);
-        objmod.write_bytes(SegData[DEBSYM],length,debsym);
-    }
+    cv_udt(id, typidx);
 
 //    return typidx;
 }
 
+private uint writeField(ubyte* p, const char* id, uint attr, uint typidx, uint offset)
+{
+    if (config.fulltypes == CV8)
+    {
+        TOWORD(p,LF_MEMBER_V3);
+        TOWORD(p + 2,attr);
+        TOLONG(p + 4,typidx);
+        cv4_storesignednumeric(p + 8, offset);
+        uint len = 8 + cv4_signednumericbytes(offset);
+        len += cv_namestring(p + len, id);
+        return cv_align(p + len, len);
+    }
+    else
+    {
+        TOWORD(p,LF_MEMBER);
+        TOWORD(p + 2,typidx);
+        TOWORD(p + 4,attr);
+        cv4_storesignednumeric(p + 6, offset);
+        uint len = 6 + cv4_signednumericbytes(offset);
+        return len + cv_namestring(p + len, id);
+    }
+}
+
+void toDebugClosure(Symbol* closstru)
+{
+    //printf("toDebugClosure('%s')\n", fd.toChars());
+
+    assert(config.fulltypes >= CV4);
+
+    uint leaf = config.fulltypes == CV8 ? LF_STRUCTURE_V3 : LF_STRUCTURE;
+    uint numidx = leaf == LF_STRUCTURE ? 12 : 18;
+    uint structsize = cast(uint)(closstru.Sstruct.Sstructsize);
+    const char* closname = closstru.Sident.ptr;
+
+    const len1 = numidx + cv4_numericbytes(structsize);
+    debtyp_t *d = debtyp_alloc(len1 + cv_stringbytes(closname));
+    cv4_storenumeric(d.data.ptr + numidx, structsize);
+    const uint len = len1 + cv_namestring(d.data.ptr + len1, closname);
+
+    if (leaf == LF_STRUCTURE)
+    {
+        TOWORD(d.data.ptr + 8,0);          // dList
+        TOWORD(d.data.ptr + 10,0);         // vshape is 0 (no virtual functions)
+    }
+    else // LF_STRUCTURE_V3
+    {
+        TOLONG(d.data.ptr + 10,0);         // dList
+        TOLONG(d.data.ptr + 14,0);         // vshape is 0 (no virtual functions)
+    }
+    TOWORD(d.data.ptr,leaf);
+
+    // Assign a number to prevent infinite recursion if a struct member
+    // references the same struct.
+    const length_save = d.length;
+    d.length = 0;                      // so cv_debtyp() will allocate new
+    const idx_t typidx = cv_debtyp(d);
+    d.length = length_save;            // restore length
+
+    // Compute the number of fields (nfields), and the length of the fieldlist record (flistlen)
+    uint nfields = 0;
+    uint flistlen = 2;
+    for (auto sl = closstru.Sstruct.Sfldlst; sl; sl = list_next(sl))
+    {
+        Symbol *sf = list_symbol(sl);
+        uint thislen = (config.fulltypes == CV8 ? 8 : 6);
+        thislen += cv4_signednumericbytes(cast(uint)sf.Smemoff);
+        thislen += cv_stringbytes(sf.Sident.ptr);
+        thislen = cv_align(null, thislen);
+
+        if (config.fulltypes != CV8 && flistlen + thislen > CV4_NAMELENMAX)
+            break; // Too long, fail gracefully
+
+        flistlen += thislen;
+        nfields++;
+    }
+
+    // Generate fieldlist type record
+    debtyp_t *dt = debtyp_alloc(flistlen);
+    ubyte *p = dt.data.ptr;
+
+    // And fill it in
+    TOWORD(p, config.fulltypes == CV8 ? LF_FIELDLIST_V2 : LF_FIELDLIST);
+    uint flistoff = 2;
+    for (auto sl = closstru.Sstruct.Sfldlst; sl && flistoff < flistlen; sl = list_next(sl))
+    {
+        Symbol *sf = list_symbol(sl);
+        idx_t vtypidx = cv_typidx(sf.Stype);
+        flistoff += writeField(p + flistoff, sf.Sident.ptr, 3 /*public*/, vtypidx, cast(uint)sf.Smemoff);
+    }
+
+    //dbg_printf("fnamelen = %d, p-dt.data.ptr = %d\n",fnamelen,p-dt.data.ptr);
+    assert(flistoff == flistlen);
+    const idx_t fieldlist = cv_debtyp(dt);
+
+    uint property = 0;
+    TOWORD(d.data.ptr + 2, nfields);
+    if (config.fulltypes == CV8)
+    {
+        TOWORD(d.data.ptr + 4,property);
+        TOLONG(d.data.ptr + 6,fieldlist);
+    }
+    else
+    {
+        TOWORD(d.data.ptr + 4,fieldlist);
+        TOWORD(d.data.ptr + 6,property);
+    }
+
+    cv_udt(closname, typidx);
+}
 
 /* ===================================================================== */
 
@@ -1050,6 +1139,7 @@ else
     import dmd.denum;
     import dmd.dstruct;
     import dmd.dclass;
+    import dmd.backend.cc;
 
     /****************************
      * Stub them out.
@@ -1065,6 +1155,10 @@ else
     }
 
     extern (C++) void toDebug(ClassDeclaration cd)
+    {
+    }
+
+    extern (C++) void toDebugClosure(Symbol* closstru)
     {
     }
 }

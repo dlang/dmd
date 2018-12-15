@@ -113,6 +113,11 @@ private void sliceStructs_Gather(SymInfo *sia, elem *e)
                             {
                                 sia[si].canSlice = false;
                             }
+                            // Disable SROA on OSX32 (because XMM registers?)
+                            else if (!(config.exe & EX_OSX))
+                            {
+                                sliceStructs_Gather(sia, e.EV.E1);
+                            }
                         }
                         return;
                     }

@@ -1529,7 +1529,7 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
         TypeFunction tf = cast(TypeFunction)fd.type;
 
         // no variadic parameter lists
-        if (tf.varargs == 1)
+        if (tf.parameterList.varargs == VarArg.variadic)
             goto Lno;
 
         /* No lazy parameters when inlining by statement, as the inliner tries to

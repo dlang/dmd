@@ -34,6 +34,13 @@ enum TARGET : bool
     DragonFlyBSD = xversion!`DragonFlyBSD`,
 }
 
+enum Diagnostic : ubyte
+{
+    error,        // generate an error
+    inform,       // generate a warning
+    off,          // disable diagnostic
+}
+
 enum CHECKENABLE : ubyte
 {
     _default,     // initial value
@@ -46,6 +53,7 @@ enum CHECKACTION : ubyte
 {
     D,            // call D assert on failure
     C,            // call C assert on failure
+    halt,         // cause program halt on failure
 }
 
 enum CPU
@@ -115,25 +123,16 @@ struct Param
     bool isSolaris;         // generate code for Solaris
     bool hasObjectiveC;     // target supports Objective-C
     bool mscoff = false;    // for Win32: write MsCoff object files instead of OMF
-    // 0: don't allow use of deprecated features
-    // 1: silently allow use of deprecated features
-    // 2: warn about the use of deprecated features
-    byte useDeprecated = 2;
-    bool useInvariants = true;  // generate class invariant checks
-    bool useIn = true;          // generate precondition checks
-    bool useOut = true;         // generate postcondition checks
+    Diagnostic useDeprecated = Diagnostic.inform;  // how use of deprecated features are handled
     bool stackstomp;            // add stack stomping code
     bool useUnitTests;          // generate unittest code
     bool useInline = false;     // inline expand functions
     bool useDIP25;          // implement http://wiki.dlang.org/DIP25
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
-    // 0: disable warnings
-    // 1: warnings as errors
-    // 2: informational warnings (no errors)
-    byte warnings;
+    Diagnostic warnings = Diagnostic.off;  // how compiler warnings are handled
     bool pic;               // generate position-independent-code for shared libs
-    bool color = true;      // use ANSI colors in console output
+    bool color;             // use ANSI colors in console output
     bool cov;               // generate code coverage data
     ubyte covPercent;       // 0..100 code coverage percentage required
     bool nofloat;           // code should not pull in floating point support
@@ -148,6 +147,7 @@ struct Param
     bool bug10378;          // use pre- https://issues.dlang.org/show_bug.cgi?id=10378 search strategy
     bool fix16997;          // fix integral promotions for unary + - ~ operators
                             // https://issues.dlang.org/show_bug.cgi?id=16997
+    bool fixAliasThis;      // if the current scope has an alias this, check it before searching upper scopes
     bool vsafe;             // use enhanced @safe checking
     bool ehnogc;            // use @nogc exception handling
     bool dtorFields;        // destruct fields of partially constructed objects
@@ -157,6 +157,8 @@ struct Param
      * used to hide a feature that will have to go through deprecate-then-error
      * before becoming default.
      */
+    bool markdown;          // enable Markdown replacements in Ddoc
+    bool vmarkdown;         // list instances of Markdown replacements in Ddoc
 
     bool showGaggedErrors;  // print gagged errors anyway
     bool manual;            // open browser on compiler manual
@@ -167,10 +169,15 @@ struct Param
 
     CPU cpu = CPU.baseline; // CPU instruction set to target
 
+    CHECKENABLE useInvariants  = CHECKENABLE._default;  // generate class invariant checks
+    CHECKENABLE useIn          = CHECKENABLE._default;  // generate precondition checks
+    CHECKENABLE useOut         = CHECKENABLE._default;  // generate postcondition checks
     CHECKENABLE useArrayBounds = CHECKENABLE._default;  // when to generate code for array bounds checks
     CHECKENABLE useAssert      = CHECKENABLE._default;  // when to generate code for assert()'s
     CHECKENABLE useSwitchError = CHECKENABLE._default;  // check for switches without a default
-    CHECKACTION checkAction;       // action to take when bounds, asserts or switch defaults are violated
+    CHECKENABLE boundscheck    = CHECKENABLE._default;  // state of -boundscheck switch
+
+    CHECKACTION checkAction = CHECKACTION.D; // action to take when bounds, asserts or switch defaults are violated
 
     uint errorLimit = 20;
 
@@ -195,6 +202,10 @@ struct Param
     bool doJsonGeneration;              // write JSON file
     const(char)* jsonfilename;          // write JSON file to jsonfilename
     JsonFieldFlags jsonFieldFlags;      // JSON field flags to include
+
+    OutBuffer* mixinOut;                // write expanded mixins for debugging
+    const(char)* mixinFile;             // .mixin file output name
+    int mixinLines;                     // Number of lines in writeMixins
 
     uint debuglevel;                    // debug level
     Array!(const(char)*)* debugids;     // debug identifiers
@@ -361,8 +372,16 @@ struct Global
         {
             static assert(0, "fix this");
         }
+        static if (TARGET.Windows)
+        {
+            params.mscoff = params.is64bit;
+        }
         _version = (import("VERSION") ~ '\0').ptr;
         vendor = "Digital Mars D";
+
+        // -color=auto is the default value
+        import dmd.console : Console;
+        params.color = Console.detectTerminal();
     }
 
     /**

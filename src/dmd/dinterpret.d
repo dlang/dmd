@@ -740,12 +740,14 @@ private void ctfeCompile(FuncDeclaration fd)
 
 /*************************************
  * Attempt to interpret a function given the arguments.
- * Input:
- *      istate     state for calling function (NULL if none)
- *      arguments  function arguments
- *      thisarg    'this', if a needThis() function, NULL if not.
+ * Params:
+ *      fd        = function being called
+ *      istate    = state for calling function (NULL if none)
+ *      arguments = function arguments
+ *      thisarg   = 'this', if a needThis() function, NULL if not.
  *
- * Return result expression if successful, TOK.cantExpression if not,
+ * Returns:
+ * result expression if successful, TOK.cantExpression if not,
  * or CTFEExp if function returned void.
  */
 private Expression interpretFunction(FuncDeclaration fd, InterState* istate, Expressions* arguments, Expression thisarg)
@@ -771,7 +773,8 @@ private Expression interpretFunction(FuncDeclaration fd, InterState* istate, Exp
     Type tb = fd.type.toBasetype();
     assert(tb.ty == Tfunction);
     TypeFunction tf = cast(TypeFunction)tb;
-    if (tf.varargs && arguments && ((fd.parameters && arguments.dim != fd.parameters.dim) || (!fd.parameters && arguments.dim)))
+    if (tf.parameterList.varargs != VarArg.none && arguments &&
+        ((fd.parameters && arguments.dim != fd.parameters.dim) || (!fd.parameters && arguments.dim)))
     {
         fd.error("C-style variadic functions are not yet implemented in CTFE");
         return CTFEExp.cantexp;
@@ -804,7 +807,7 @@ private Expression interpretFunction(FuncDeclaration fd, InterState* istate, Exp
     for (size_t i = 0; i < dim; i++)
     {
         Expression earg = (*arguments)[i];
-        Parameter fparam = Parameter.getNth(tf.parameters, i);
+        Parameter fparam = tf.parameterList[i];
 
         if (fparam.storageClass & (STC.out_ | STC.ref_))
         {
@@ -869,7 +872,7 @@ private Expression interpretFunction(FuncDeclaration fd, InterState* istate, Exp
     for (size_t i = 0; i < dim; i++)
     {
         Expression earg = eargs[i];
-        Parameter fparam = Parameter.getNth(tf.parameters, i);
+        Parameter fparam = tf.parameterList[i];
         VarDeclaration v = (*fd.parameters)[i];
         debug (LOG)
         {
@@ -877,7 +880,8 @@ private Expression interpretFunction(FuncDeclaration fd, InterState* istate, Exp
         }
         ctfeStack.push(v);
 
-        if ((fparam.storageClass & (STC.out_ | STC.ref_)) && earg.op == TOK.variable && (cast(VarExp)earg).var.toParent2() == fd)
+        if ((fparam.storageClass & (STC.out_ | STC.ref_)) && earg.op == TOK.variable &&
+            (cast(VarExp)earg).var.toParent2() == fd)
         {
             VarDeclaration vx = (cast(VarExp)earg).var.isVarDeclaration();
             if (!vx)
@@ -2427,11 +2431,15 @@ public:
                 result = CTFEExp.cantexp;
                 return;
             }
+
             if (v && (v.storage_class & (STC.out_ | STC.ref_)) && hasValue(v))
             {
                 // Strip off the nest of ref variables
                 Expression ev = getValue(v);
-                if (ev.op == TOK.variable || ev.op == TOK.index || ev.op == TOK.dotVariable)
+                if (ev.op == TOK.variable ||
+                    ev.op == TOK.index ||
+                    ev.op == TOK.slice ||
+                    ev.op == TOK.dotVariable)
                 {
                     result = interpret(pue, ev, istate, goal);
                     return;
@@ -5234,13 +5242,19 @@ public:
             e1 = (cast(VectorExp)e1).e1;
 
         // Set the $ variable, and find the array literal to modify
-        if (e1.op != TOK.arrayLiteral && e1.op != TOK.string_ && e1.op != TOK.slice)
+        dinteger_t len;
+        if (e1.op == TOK.variable && e1.type.toBasetype().ty == Tsarray)
+            len = e1.type.toBasetype().isTypeSArray().dim.toInteger();
+        else
         {
-            e.error("cannot determine length of `%s` at compile time", e.e1.toChars());
-            return false;
+            if (e1.op != TOK.arrayLiteral && e1.op != TOK.string_ && e1.op != TOK.slice)
+            {
+                e.error("cannot determine length of `%s` at compile time", e.e1.toChars());
+                return false;
+            }
+            len = resolveArrayLength(e1);
         }
 
-        dinteger_t len = resolveArrayLength(e1);
         if (e.lengthVar)
         {
             Expression dollarExp = new IntegerExp(e.loc, len, Type.tsize_t);
@@ -5479,7 +5493,16 @@ public:
             return;
         }
 
-        Expression e1 = interpret(e.e1, istate);
+        CtfeGoal goal1 = ctfeNeedRvalue;
+        if (goal == ctfeNeedLvalue)
+        {
+            if (e.e1.type.toBasetype().ty == Tsarray)
+                if (auto ve = e.e1.isVarExp())
+                    if (auto vd = ve.var.isVarDeclaration())
+                        if (vd.storage_class & STC.ref_)
+                            goal1 = ctfeNeedLvalue;
+        }
+        Expression e1 = interpret(e.e1, istate, goal1);
         if (exceptionOrCant(e1))
             return;
 
@@ -5489,15 +5512,24 @@ public:
             return;
         }
 
+        /* Set dollar to the length of the array
+         */
+        uinteger_t dollar;
+        if (e1.op == TOK.variable && e1.type.toBasetype().ty == Tsarray)
+            dollar = e1.type.toBasetype().isTypeSArray().dim.toInteger();
+        else
+        {
+            if (e1.op != TOK.arrayLiteral && e1.op != TOK.string_ && e1.op != TOK.null_ && e1.op != TOK.slice)
+            {
+                e.error("cannot determine length of `%s` at compile time", e1.toChars());
+                result = CTFEExp.cantexp;
+                return;
+            }
+            dollar = resolveArrayLength(e1);
+        }
+
         /* Set the $ variable
          */
-        if (e1.op != TOK.arrayLiteral && e1.op != TOK.string_ && e1.op != TOK.null_ && e1.op != TOK.slice)
-        {
-            e.error("cannot determine length of `%s` at compile time", e1.toChars());
-            result = CTFEExp.cantexp;
-            return;
-        }
-        uinteger_t dollar = resolveArrayLength(e1);
         if (e.lengthVar)
         {
             auto dollarExp = new IntegerExp(e.loc, dollar, Type.tsize_t);
@@ -6645,7 +6677,7 @@ private Expression interpret_aaApply(InterState* istate, Expression aa, Expressi
     size_t numParams = fd.parameters.dim;
     assert(numParams == 1 || numParams == 2);
 
-    Parameter fparam = Parameter.getNth((cast(TypeFunction)fd.type).parameters, numParams - 1);
+    Parameter fparam = fd.type.isTypeFunction().parameterList[numParams - 1];
     bool wantRefValue = 0 != (fparam.storageClass & (STC.out_ | STC.ref_));
 
     Expressions args = Expressions(numParams);

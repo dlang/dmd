@@ -2282,7 +2282,7 @@ static assert(memtest8() == 6 + 17);
 
 // --------- CTFE REF PASSING TESTS --------
 
-// Bugzilla 1950 - CTFE doesn't work correctly for structs passed by ref
+// https://issues.dlang.org/show_bug.cgi?id=1950 - CTFE doesn't work correctly for structs passed by ref
 struct S1950
 {
     int x;
@@ -2394,7 +2394,8 @@ int nested2(int x)
 
 static assert(nested2(7) == 17 + 8 + 10);
 
-// 1605 D1 & D2. break in switch with goto breaks in ctfe
+// https://issues.dlang.org/show_bug.cgi?id=1605
+// D1 & D2. break in switch with goto breaks in ctfe
 int bug1605()
 {
     int i = 0;
@@ -2412,7 +2413,8 @@ int bug1605()
 
 static assert(bug1605() == 27);
 
-// 2564. D2 only. CTFE: the index in a tuple foreach is uninitialized (bogus error)
+// https://issues.dlang.org/show_bug.cgi?id=2564
+// D2 only. CTFE: the index in a tuple foreach is uninitialized (bogus error)
 // NOTE: Beware of optimizer bug 3264.
 
 int bug2564()
@@ -2426,7 +2428,8 @@ int bug2564()
 static int bug2564b = bug2564();
 
 
-// 1461 D1 + D2. Local variable as template alias parameter breaks CTFE
+// https://issues.dlang.org/show_bug.cgi?id=1461
+// D1 + D2. Local variable as template alias parameter breaks CTFE
 void bug1461()
 {
     int x;
@@ -2637,8 +2640,9 @@ static assert(lazyTest2(17) == 18);
 
 version(D_Version2)
 {
-// Bug 4020 and 4027 are D2 only
-
+// https://issues.dlang.org/show_bug.cgi?id=4020
+// https://issues.dlang.org/show_bug.cgi?id=4027
+// D2 only
 struct PostblitCrash
 {
     int x;
@@ -2796,7 +2800,7 @@ void bug4257b()
 }
 
 /************************************************/
-// 5117
+// https://issues.dlang.org/show_bug.cgi?id=5117
 
 static int dummy5117 = test5117();
 
@@ -2844,7 +2848,7 @@ struct S5117b
 }
 
 /************************************************/
-// 6439
+// https://issues.dlang.org/show_bug.cgi?id=6439
 
 struct A6439
 {
@@ -2884,7 +2888,7 @@ static assert(!is(typeof(Compileable!(
     }(3)
 ))));
 
-// 6504 regression
+// https://issues.dlang.org/show_bug.cgi?id=6504 regression
 void test6504()
 {
     for (int i = 0; i < 3; ++i)
@@ -2895,7 +2899,7 @@ void test6504()
     }
 }
 
-// 8818 regression
+// https://issues.dlang.org/show_bug.cgi?id=8818 regression
 void test8818()
 {
     static bool test()
@@ -3130,7 +3134,7 @@ void test108()
 }
 */
 
-/***** Bug 5678 *********************************/
+/***** https://issues.dlang.org/show_bug.cgi?id=5678 *****/
 
 /*
 struct Bug5678
@@ -3167,7 +3171,7 @@ struct Test110s { this(int, int, int){} }
 auto test110 = [Test110f(1, Test110s(1, 2, 3))];
 
 /************************************************/
-// 6907
+// https://issues.dlang.org/show_bug.cgi?id=6907
 
 int test6907()
 {
@@ -3201,7 +3205,7 @@ int test6907()
 static assert(test6907());
 
 /************************************************/
-// 9023
+// https://issues.dlang.org/show_bug.cgi?id=9023
 
 bool test9023()
 {
@@ -3226,7 +3230,7 @@ bool test9023()
 static assert(test9023());
 
 /************************************************/
-// 15817
+// https://issues.dlang.org/show_bug.cgi?id=15817
 
 S[] split15817(S)(S s)
 {
@@ -3274,7 +3278,7 @@ void test9954()
 }
 
 /************************************************/
-// 10483
+// https://issues.dlang.org/show_bug.cgi?id=10483
 
 struct Bug10483
 {
@@ -3322,7 +3326,7 @@ void test112()
 }
 
 /************************************************/
-// 10687
+// https://issues.dlang.org/show_bug.cgi?id=10687
 
 enum Foo10687 : uint { A, B, C, D, E }
 immutable uint[5][] m10687 = [[0, 1, 2, 3, 4]];
@@ -3381,7 +3385,7 @@ void test113()
 }
 
 /************************************************/
-// 14140
+// https://issues.dlang.org/show_bug.cgi?id=14140
 
 struct S14140
 {
@@ -3424,7 +3428,7 @@ void test14140()
 }
 
 /************************************************/
-// 14862
+// https://issues.dlang.org/show_bug.cgi?id=14862
 
 struct S14862
 {
@@ -3452,7 +3456,7 @@ void test14862()
 }
 
 /************************************************/
-// 15681
+// https://issues.dlang.org/show_bug.cgi?id=15681
 
 void test15681()
 {

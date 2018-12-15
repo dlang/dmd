@@ -1,7 +1,7 @@
 
 
 /**************************************/
-// 9361
+// https://issues.dlang.org/show_bug.cgi?id=9361
 
 /*
 TEST_OUTPUT:

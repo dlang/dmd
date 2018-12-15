@@ -1301,6 +1301,11 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2, bool ide
             {
                 Expression ee1 = (*es1.elements)[i];
                 Expression ee2 = (*es2.elements)[i];
+
+                // https://issues.dlang.org/show_bug.cgi?id=16284
+                if (ee1.op == TOK.void_ && ee2.op == TOK.void_) // if both are VoidInitExp
+                    continue;
+
                 if (ee1 == ee2)
                     continue;
                 if (!ee1 || !ee2)

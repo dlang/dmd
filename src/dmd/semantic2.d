@@ -407,7 +407,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                     error(f2.loc, "%s `%s%s` cannot be overloaded with %s`extern(%s)` function at %s",
                             f2.kind(),
                             f2.toPrettyChars(),
-                            parametersTypeToChars(tf2.parameters, tf2.varargs),
+                            parametersTypeToChars(tf2.parameterList),
                             (f1.linkage == f2.linkage ? "another " : "").ptr,
                             linkageToChars(f1.linkage), f1.loc.toChars());
                     f2.type = Type.terror;
@@ -428,7 +428,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                     error(f2.loc, "%s `%s%s` conflicts with previous declaration at %s",
                             f2.kind(),
                             f2.toPrettyChars(),
-                            parametersTypeToChars(tf2.parameters, tf2.varargs),
+                            parametersTypeToChars(tf2.parameterList),
                             f1.loc.toChars());
                     f2.type = Type.terror;
                     f2.errors = true;
@@ -445,13 +445,11 @@ private extern(C++) final class Semantic2Visitor : Visitor
         if (!fd.type || fd.type.ty != Tfunction)
             return;
         TypeFunction f = cast(TypeFunction) fd.type;
-        if (!f.parameters)
-            return;
-        size_t nparams = Parameter.dim(f.parameters);
+
         //semantic for parameters' UDAs
-        foreach (i; 0..nparams)
+        foreach (i; 0 .. f.parameterList.length)
         {
-            Parameter param = Parameter.getNth(f.parameters, i);
+            Parameter param = f.parameterList[i];
             if (param && param.userAttribDecl)
                 param.userAttribDecl.semantic2(sc);
         }

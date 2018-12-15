@@ -94,13 +94,13 @@ void win64_pdata(Symbol *sf)
      *  3. pointer to unwind data
      */
 
-    scope dtb = new DtBuilder();
+    auto dtb = DtBuilder(0);
     dtb.xoff(sf,0,TYint);       // Note the TYint, these are 32 bit fixups
     dtb.xoff(sf,cast(uint)(retoffset + retsize),TYint);
     dtb.xoff(sunwind,0,TYint);
     spdata.Sdt = dtb.finish();
 
-    spdata.Sseg = symbol_iscomdat3(sf) ? MsCoffObj.seg_pdata_comdat(sf) : MsCoffObj.seg_pdata();
+    spdata.Sseg = symbol_iscomdat3(sf) ? MsCoffObj_seg_pdata_comdat(sf) : MsCoffObj_seg_pdata();
     spdata.Salignment = 4;
     outdata(spdata);
 
@@ -129,7 +129,7 @@ Symbol *win64_unwind(Symbol *sf)
     symbol_debug(sunwind);
 
     sunwind.Sdt = unwind_data();
-    sunwind.Sseg = symbol_iscomdat3(sf) ? MsCoffObj.seg_xdata_comdat(sf) : MsCoffObj.seg_xdata();
+    sunwind.Sseg = symbol_iscomdat3(sf) ? MsCoffObj_seg_xdata_comdat(sf) : MsCoffObj_seg_xdata();
     sunwind.Salignment = 1;
     outdata(sunwind);
 
@@ -283,7 +283,7 @@ static if (1)
 
     ui.UnwindCode[ui.CountOfCodes-1].FrameOffset = setUnwindCode(1, UWOP.PUSH_NONVOL, BP);
 
-    scope dtb = new DtBuilder();
+    auto dtb = DtBuilder(0);
     dtb.nbytes(4 + ((ui.CountOfCodes + 1) & ~1) * 2,cast(char *)&ui);
     return dtb.finish();
 }

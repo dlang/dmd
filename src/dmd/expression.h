@@ -76,7 +76,7 @@ public:
     virtual Expression *syntaxCopy();
 
     // kludge for template.isExpression()
-    int dyncast() const { return DYNCAST_EXPRESSION; }
+    DYNCAST dyncast() const { return DYNCAST_EXPRESSION; }
 
     const char *toChars();
     void error(const char *format, ...) const;
@@ -89,6 +89,7 @@ public:
     virtual real_t toImaginary();
     virtual complex_t toComplex();
     virtual StringExp *toStringExp();
+    virtual TupleExp *toTupleExp();
     virtual bool isLvalue();
     virtual Expression *toLvalue(Scope *sc, Expression *e);
     virtual Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -282,6 +283,7 @@ public:
      */
     Expressions *exps;
 
+    TupleExp *toTupleExp();
     Expression *syntaxCopy();
     bool equals(RootObject *o);
 
@@ -1231,6 +1233,14 @@ struct UnionExp
     Expression *copy();
 
 private:
+    // Ensure that the union is suitably aligned.
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((aligned(8)))
+#elif defined(_MSC_VER)
+    __declspec(align(8))
+#elif defined(__DMC__)
+    #pragma pack(8)
+#endif
     union
     {
         char exp       [sizeof(Expression)];
@@ -1248,10 +1258,10 @@ private:
         char addrexp   [sizeof(AddrExp)];
         char indexexp  [sizeof(IndexExp)];
         char sliceexp  [sizeof(SliceExp)];
-
-        // Ensure that the union is suitably aligned.
-        real_t for_alignment_only;
     } u;
+#if defined(__DMC__)
+    #pragma pack()
+#endif
 };
 
 /****************************************************************/

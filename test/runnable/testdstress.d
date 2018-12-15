@@ -1,6 +1,6 @@
 // PERMUTE_ARGS:
 
-module dstress.run.module_01;
+module run.module_01;
 
 import core.memory;
 import core.exception;
@@ -170,9 +170,9 @@ int i;
 
 void test7()
 {
-        assert(dstress.run.module_01.i==0);
-        dstress.run.module_01.i++;
-        assert(dstress.run.module_01.i==1);
+        assert(run.module_01.i==0);
+        run.module_01.i++;
+        assert(run.module_01.i==1);
 }
 
 /* ================================ */
@@ -699,7 +699,7 @@ void test32()
         assert(!(ti is null));
         writefln("%s %d %d", ti.toString(), ti.tsize, (MyUnion32*).sizeof);
         assert(ti.tsize==(MyUnion32*).sizeof);
-        assert(ti.toString()=="dstress.run.module_01.MyUnion32*");
+        assert(ti.toString()=="run.module_01.MyUnion32*");
 }
 
 /* ================================ */

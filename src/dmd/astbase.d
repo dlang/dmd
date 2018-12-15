@@ -288,6 +288,14 @@ struct ASTBase
         tracingDT    = 0x8,  // mark in progress of deduceType
     }
 
+    enum VarArg
+    {
+        none     = 0,  /// fixed number of arguments
+        variadic = 1,  /// T t, ...)  can be C-style (core.stdc.stdarg) or D-style (core.vararg)
+        typesafe = 2,  /// T t ...) typesafe https://dlang.org/spec/function.html#typesafe_variadic_functions
+                       ///   or https://dlang.org/spec/function.html#typesafe_variadic_functions
+    }
+
     alias Visitor = ParseTimeVisitor!ASTBase;
 
     extern (C++) class Dsymbol : RootObject
@@ -877,9 +885,9 @@ struct ASTBase
     extern (C++) final class NewDeclaration : FuncDeclaration
     {
         Parameters* parameters;
-        int varargs;
+        VarArg varargs;
 
-        extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Parameters* fparams, int varargs)
+        extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Parameters* fparams, VarArg varargs)
         {
             super(loc, endloc, Id.classNew, STC.static_ | stc, null);
             this.parameters = fparams;
@@ -1164,11 +1172,17 @@ struct ASTBase
          */
         bool mangleOnly;
 
-        extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* members, bool mangleOnly)
+        /**
+         * Namespace identifier resolved during semantic.
+         */
+        Expression identExp;
+
+        extern (D) this(const ref Loc loc, Identifier ident, Expression identExp, Dsymbols* members, bool mangleOnly)
         {
             super(ident);
             this.loc = loc;
             this.members = members;
+            this.identExp = identExp;
             this.mangleOnly = mangleOnly;
         }
 
@@ -1732,6 +1746,12 @@ struct ASTBase
         {
             v.visit(this);
         }
+    }
+
+    extern (C++) struct ParameterList
+    {
+        Parameters* parameters;
+        VarArg varargs = VarArg.none;
     }
 
     extern (C++) final class Parameter : RootObject
@@ -3850,9 +3870,8 @@ struct ASTBase
 
     extern (C++) class TypeFunction : TypeNext
     {
-        Parameters* parameters;     // function parameters
-        int varargs;                // 1: T t, ...) style for variable number of arguments
-                                    // 2: T t ...) style for variable number of arguments
+        ParameterList parameterList;  // function parameters
+
         bool isnothrow;             // true: nothrow
         bool isnogc;                // true: is @nogc
         bool isproperty;            // can be called without parentheses
@@ -3866,12 +3885,11 @@ struct ASTBase
         ubyte iswild;
         Expressions* fargs;
 
-        extern (D) this(Parameters* parameters, Type treturn, int varargs, LINK linkage, StorageClass stc = 0)
+        extern (D) this(ParameterList pl, Type treturn, LINK linkage, StorageClass stc = 0)
         {
             super(Tfunction, treturn);
-            assert(0 <= varargs && varargs <= 2);
-            this.parameters = parameters;
-            this.varargs = varargs;
+            assert(VarArg.none <= pl.varargs && pl.varargs <= VarArg.typesafe);
+            this.parameterList = pl;
             this.linkage = linkage;
 
             if (stc & STC.pure_)
@@ -3902,8 +3920,8 @@ struct ASTBase
         override Type syntaxCopy()
         {
             Type treturn = next ? next.syntaxCopy() : null;
-            Parameters* params = Parameter.arraySyntaxCopy(parameters);
-            auto t = new TypeFunction(params, treturn, varargs, linkage);
+            Parameters* params = Parameter.arraySyntaxCopy(parameterList.parameters);
+            auto t = new TypeFunction(ParameterList(params, parameterList.varargs), treturn, linkage);
             t.mod = mod;
             t.isnothrow = isnothrow;
             t.isnogc = isnogc;
@@ -4129,6 +4147,33 @@ struct ASTBase
         override void accept(Visitor v)
         {
             v.visit(this);
+        }
+    }
+
+    extern (C++) class TypeTraits : Type
+    {
+        TraitsExp exp;
+        Loc loc;
+        bool inAliasDeclaration;
+
+        extern (D) this(const ref Loc loc, TraitsExp exp)
+        {
+            super(Tident);
+            this.loc = loc;
+            this.exp = exp;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+
+        override Type syntaxCopy()
+        {
+            TraitsExp te = cast(TraitsExp) exp.syntaxCopy();
+            TypeTraits tt = new TypeTraits(loc, te);
+            tt.mod = mod;
+            return tt;
         }
     }
 
@@ -6041,13 +6086,24 @@ struct ASTBase
         }
     }
 
+    enum InitKind : ubyte
+    {
+        void_,
+        error,
+        struct_,
+        array,
+        exp,
+    }
+
     extern (C++) class Initializer : RootObject
     {
         Loc loc;
+        InitKind kind;
 
-        final extern (D) this(const ref Loc loc)
+        final extern (D) this(const ref Loc loc, InitKind kind)
         {
             this.loc = loc;
+            this.kind = kind;
         }
 
         // this should be abstract and implemented in child classes
@@ -6056,9 +6112,9 @@ struct ASTBase
             return null;
         }
 
-        ExpInitializer isExpInitializer()
+        final ExpInitializer isExpInitializer()
         {
-            return null;
+            return kind == InitKind.exp ? cast(ExpInitializer)cast(void*)this : null;
         }
 
         void accept(Visitor v)
@@ -6073,13 +6129,8 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Expression exp)
         {
-            super(loc);
+            super(loc, InitKind.exp);
             this.exp = exp;
-        }
-
-        override ExpInitializer isExpInitializer()
-        {
-            return this;
         }
 
         override void accept(Visitor v)
@@ -6095,7 +6146,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc)
         {
-            super(loc);
+            super(loc, InitKind.struct_);
         }
 
         void addInit(Identifier field, Initializer value)
@@ -6119,7 +6170,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc)
         {
-            super(loc);
+            super(loc, InitKind.array);
         }
 
         void addInit(Expression index, Initializer value)
@@ -6140,7 +6191,7 @@ struct ASTBase
     {
         extern (D) this(const ref Loc loc)
         {
-            super(loc);
+            super(loc, InitKind.void_);
         }
 
         override void accept(Visitor v)

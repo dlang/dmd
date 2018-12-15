@@ -147,32 +147,19 @@ will trigger a full rebuild.
 The function buildDMD defines the build order of its dependencies.
 */
 
-// TODO: newdelete is probably not needed anymore
-auto newDelete()
-{
-    Dependency dependency = {
-        target: env["G"].buildPath("newdelete").objName,
-        sources: [env["ROOT"].buildPath("newdelete.c")],
-        name: "(CC) NEW_DELETE",
-        command: [env["HOST_CXX"], "-c", "-o$@", "$<"]
-    };
-    return dependency;
-}
-
-/// Returns: the depedency that builds the lexer
+/// Returns: the dependency that builds the lexer
 auto lexer()
 {
     Dependency dependency = {
         target: env["G"].buildPath("lexer").libName,
         sources: sources.lexer,
         rebuildSources: configFiles,
-        name: "(CC) D_LEXER_OBJ",
+        name: "(DC) D_LEXER_OBJ",
         command: [
             env["HOST_DMD_RUN"],
             "-of$@",
             "-lib",
             "-J"~env["G"], "-J../res",
-            "-L-lstdc++",
         ].chain(flags["DFLAGS"], "$<".only).array
     };
     return dependency;
@@ -216,11 +203,10 @@ auto opTabGen()
         auto args = [env["HOST_DMD_RUN"], opTabSourceFile, "-of" ~ opTabBin];
         args ~= flags["DFLAGS"];
 
-        writefln("(CC) BUILD_OPTABGEN");
-        writeln(args);
+        writefln("(DC) BUILD_OPTABGEN");
         args.runCanThrow;
 
-        writefln("(CC) RUN_OPTABBIN %-(%s, %)", opTabFiles);
+        writefln("(RUN) OPTABBIN %-(%s, %)", opTabFiles);
         [opTabBin].runCanThrow;
 
         // move the generated files to the generated folder
@@ -292,7 +278,7 @@ auto dBackend()
     Dependency dependency = {
         target: env["G"].buildPath("dbackend").objName,
         sources: sources.backend,
-        name: "(CC) D_BACK_OBJS %-(%s %)".format(sources.backend),
+        name: "(DC) D_BACK_OBJS %-(%s %)".format(sources.backend),
         command: [
             env["HOST_DMD_RUN"],
             "-c",
@@ -389,7 +375,7 @@ auto buildDMD(string[] extraFlags...)
     foreach (dependency; dependencies.parallel(1))
         dependency.run;
 
-    dependencies = [lexer, newDelete, dmdConf];
+    dependencies = [lexer, dmdConf];
     foreach (ref dependency; dependencies.parallel(1))
         dependency.run;
 
@@ -398,16 +384,15 @@ auto buildDMD(string[] extraFlags...)
     // Main DMD build dependency
     Dependency dependency = {
         // newdelete.o + lexer.a + backend.a
-        sources: sources.dmd.chain(sources.root, dependencies[0].targets, dependencies[1].targets, backend.targets).array,
+        sources: sources.dmd.chain(sources.root, dependencies[0].targets, backend.targets).array,
         target: env["DMD_PATH"],
-        name: "(CC) MAIN_DMD_BUILD",
+        name: "(DC) MAIN_DMD_BUILD",
         command: [
             env["HOST_DMD_RUN"],
             "-of$@",
             "-vtls",
             "-J"~env["G"],
             "-J../res",
-            "-L-lstdc++",
         ].chain(extraFlags).chain(flags["DFLAGS"], "$<".only).array
     };
     dependency.run;
@@ -747,7 +732,7 @@ auto sourceFiles()
     struct Sources
     {
         string[] frontend, lexer, root, glue, dmd, backend;
-        string[] backendHeaders, backendC, tkC, backendObjects;
+        string[] backendHeaders, backendC, backendObjects;
     }
     string targetCH;
     string[] targetObjs;
@@ -800,31 +785,22 @@ auto sourceFiles()
             dirEntries(env["C"], "*.d", SpanMode.shallow)
                 .map!(e => e.name)
                 .filter!(e => !e.canFind("dt.d", "obj.d"))
-                .array,
+                .array ~ buildPath(env["C"], "elfobj.d"),
         backendHeaders: [
             // can't be built with -betterC
             "dt",
             "obj",
         ].map!(e => env["C"].buildPath(e ~ ".d")).array,
         backendC:
-            // all backend files
-            dirEntries(env["C"], "*.{c,d,h}", SpanMode.shallow)
-                .map!(e => e.name)
-                .filter!(e => !e.canFind("stub", "optabgen.c"))
-                .chain(targetCH.only)
+            // all backend files in C
+            ["fp", "strtold", "tk"]
+                .map!(a => env["G"].buildPath(a).objName)
                 .array,
-        tkC:
-            dirEntries(env["C"], "*.{c,h}", SpanMode.shallow)
-            .map!(e => e.name)
-            .array,
-        backendObjects:
-            dirEntries(env["C"], "*.c", SpanMode.shallow)
-                .map!(e => e.baseName.stripExtension)
-                .filter!(e => !e.canFind("stub", "optabgen", "cgcv", "cgobj", "newman"))
-                .chain(targetObjs)
+        backendObjects: ["fp", "strtold", "tk"]
                 .map!(a => env["G"].buildPath(a).objName)
                 .array,
     };
+    sources.backendC.writeln;
     sources.dmd = sources.frontend ~ sources.backendHeaders;
 
     return sources;

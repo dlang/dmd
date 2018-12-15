@@ -31,6 +31,8 @@ import dmd.backend.memh;
 import dmd.backend.type;
 //import dmd.backend.obj;
 
+import dmd.backend.barray;
+
 extern __gshared
 {
     char debuga;            // cg - watch assignaddr()
@@ -57,7 +59,6 @@ enum LF = '\n';             // \n into \r and \r into \n.  The translator versio
 enum CR_STR = "\r";
 enum LF_STR = "\n";
 
-enum SCMAX_ = SCMAX; // workaround gdc build failure (can be removed if gdc > 2.068)
 extern __gshared
 {
     uint[32] mask;                  // bit masks
@@ -70,18 +71,15 @@ extern __gshared
     symtab_t globsym;
 
 //    Config config;                  // precompiled part of configuration
-    char[SCMAX_] sytab;
+    char[SCMAX] sytab;
 
     extern (C) /*volatile*/ int controlc_saw;    // a control C was seen
     uint maxblks;                   // array max for all block stuff
     uint numblks;                   // number of basic blocks (if optimized)
     block* startblock;              // beginning block of function
 
-    block** dfo;                    // array of depth first order
-    uint dfotop;                    // # of items in dfo[]
-    block** labelarr;               // dynamically allocated array, index is label #
-    uint labelmax;                  // size of labelarr[]
-    uint labeltop;                  // # of used entries in labelarr[]
+    Barray!(block*) dfo;            // array of depth first order
+
     block* curblock;                // current block being read in
     block* block_last;
 
@@ -95,7 +93,10 @@ extern __gshared
     Symbol* tls_get_addr_sym;
 }
 
-__gshared Configv configv;                // non-ph part of configuration
+version (MARS)
+    __gshared Configv configv;                // non-ph part of configuration
+else
+    extern __gshared Configv configv;                // non-ph part of configuration
 
 // iasm.c
 Symbol *asm_define_label(const(char)* id);
@@ -396,9 +397,6 @@ Symbol *out_readonly_sym(tym_t ty, void *p, int len);
 Symbol *out_string_literal(const(char)* str, uint len, uint sz);
 
 /* blockopt.c */
-// Workaround 2.066.x bug by resolving the TYMAX value before using it as dimension.
-static if (__VERSION__ <= 2066)
-    private enum computeEnumValue = BCMAX;
 extern __gshared uint[BCMAX] bc_goal;
 
 block* block_calloc();

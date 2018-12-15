@@ -285,21 +285,22 @@ void WReqn(elem *e)
 
 void WRblocklist(list_t bl)
 {
-        for (; bl; bl = list_next(bl))
-        {       block *b = list_block(bl);
+    foreach (bl2; ListRange(bl))
+    {
+        block *b = list_block(bl2);
 
-                if (b && b.Bweight)
-                        printf("B%d (%p) ",b.Bdfoidx,b);
-                else
-                        printf("%p ",b);
-        }
-        ferr("\n");
+        if (b && b.Bweight)
+            printf("B%d (%p) ",b.Bdfoidx,b);
+        else
+            printf("%p ",b);
+    }
+    ferr("\n");
 }
 
 void WRdefnod()
 { int i;
 
-  for (i = 0; i < go.deftop; i++)
+  for (i = 0; i < go.defnod.length; i++)
   {     printf("defnod[%d] in B%d = (", go.defnod[i].DNblock.Bdfoidx, i);
         WReqn(go.defnod[i].DNelem);
         printf(");\n");
@@ -411,7 +412,7 @@ version (MARS)
         if (b.Bpred)
         {
             printf("\tBpred:");
-            for (list_t bl = b.Bpred; bl; bl = list_next(bl))
+            foreach (bl; ListRange(b.Bpred))
                 printf(" B%d",list_block(bl).Bnumber);
             printf("\n");
         }
