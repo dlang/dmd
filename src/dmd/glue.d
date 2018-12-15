@@ -402,8 +402,9 @@ void genObjFile(Module m, bool multiobj)
         m.covb = cast(uint *)calloc((m.numlines + 32) / 32, (*m.covb).sizeof);
     }
 
-    foreach (member; *m.members)
+    for (int i = 0; i < m.members.dim; i++)
     {
+        auto member = (*m.members)[i];
         //printf("toObjFile %s %s\n", member.kind(), member.toChars());
         toObjFile(member, multiobj);
     }
