@@ -3726,9 +3726,12 @@ final class Parser(AST) : Lexer
 
         case TOK.traits:
             if (AST.TraitsExp te = cast(AST.TraitsExp) parsePrimaryExp())
-                t = new AST.TypeTraits(token.loc, te);
-            else
-                t = new AST.TypeError;
+                if (te.ident && te.args)
+                {
+                    t = new AST.TypeTraits(token.loc, te);
+                    break;
+                }
+            t = new AST.TypeError;
             break;
 
         case TOK.const_:

@@ -2759,7 +2759,8 @@ public:
     override void visit(TraitsExp e)
     {
         buf.writestring("__traits(");
-        buf.writestring(e.ident.toString());
+        if (e.ident)
+            buf.writestring(e.ident.toString());
         if (e.args)
         {
             foreach (arg; *e.args)
