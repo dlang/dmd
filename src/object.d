@@ -530,6 +530,15 @@ void destroy(bool initialize = true, T)(ref T obj) if (is(T == struct))
     }
 }
 
+@safe unittest
+{
+    struct A { string s = "A";  }
+    A a = {s: "B"};
+    assert(a.s == "B");
+    a.destroy;
+    assert(a.s == "A");
+}
+
 private void _destructRecurse(S)(ref S s)
     if (is(S == struct))
 {
@@ -1068,6 +1077,90 @@ bool opEquals(const Object lhs, const Object rhs)
 {
     // A hack for the moment.
     return opEquals(cast()lhs, cast()rhs);
+}
+
+/// If aliased to the same object or both null => equal
+@system unittest
+{
+    class F { int flag; this(int flag) { this.flag = flag; } }
+
+    F f;
+    assert(f == f); // both null
+    f = new F(1);
+    assert(f == f); // both aliased to the same object
+}
+
+/// If either is null => non-equal
+@system unittest
+{
+    class F { int flag; this(int flag) { this.flag = flag; } }
+    F f;
+    assert(!(new F(0) == f));
+    assert(!(f == new F(0)));
+}
+
+/// If same exact type => one call to method opEquals
+@system unittest
+{
+    class F
+    {
+        int flag;
+
+        this(int flag)
+        {
+            this.flag = flag;
+        }
+
+        override bool opEquals(const Object o)
+        {
+            return flag == (cast(F) o).flag;
+        }
+    }
+
+    F f;
+    assert(new F(0) == new F(0));
+    assert(!(new F(0) == new F(1)));
+}
+
+/// General case => symmetric calls to method opEquals
+@system unittest
+{
+    int fEquals, gEquals;
+
+    class Base
+    {
+        int flag;
+        this(int flag)
+        {
+            this.flag = flag;
+        }
+    }
+
+    class F : Base
+    {
+        this(int flag) { super(flag); }
+
+        override bool opEquals(const Object o)
+        {
+            fEquals++;
+            return flag == (cast(Base) o).flag;
+        }
+    }
+
+    class G : Base
+    {
+        this(int flag) { super(flag); }
+
+        override bool opEquals(const Object o)
+        {
+            gEquals++;
+            return flag == (cast(Base) o).flag;
+        }
+    }
+
+    assert(new F(1) == new G(1));
+    assert(fEquals == 1);
+    assert(gEquals == 1);
 }
 
 private extern(C) void _d_setSameMutex(shared Object ownee, shared Object owner) nothrow;
@@ -2773,6 +2866,22 @@ class Exception : Throwable
     }
 }
 
+///
+@safe unittest
+{
+    bool gotCaught;
+    try
+    {
+        throw new Exception("msg");
+    }
+    catch (Exception e)
+    {
+        gotCaught = true;
+        assert(e.msg == "msg");
+    }
+    assert(gotCaught);
+}
+
 unittest
 {
     {
@@ -2838,6 +2947,22 @@ class Error : Throwable
     /** The first $(D Exception) which was bypassed when this Error was thrown,
     or $(D null) if no $(D Exception)s were pending. */
     Throwable   bypassedException;
+}
+
+///
+@system unittest
+{
+    bool gotCaught;
+    try
+    {
+        throw new Error("msg");
+    }
+    catch (Error e)
+    {
+        gotCaught = true;
+        assert(e.msg == "msg");
+    }
+    assert(gotCaught);
 }
 
 unittest
@@ -2939,6 +3064,14 @@ void clear(T : Value[Key], Value, Key)(T* aa)
     _aaClear(*cast(void **) aa);
 }
 
+///
+@system unittest
+{
+    auto aa = ["k1": 2];
+    aa.clear;
+    assert("k1" !in aa);
+}
+
 /***********************************
  * Reorganizes the associative array in place so that lookups are more
  * efficient.
@@ -3022,6 +3155,15 @@ V[K] dup(T : V[K], K, V)(T* aa)
     return (*aa).dup;
 }
 
+///
+@safe unittest
+{
+    auto aa = ["k1": 2];
+    auto a2 = aa.dup;
+    aa["k2"] = 3;
+    assert("k2" !in a2);
+}
+
 // this should never be made public.
 private AARange _aaToRange(T: V[K], K, V)(ref T aa) pure nothrow @nogc @safe
 {
@@ -3068,6 +3210,17 @@ auto byKey(T : V[K], K, V)(T* aa) pure nothrow @nogc
     return (*aa).byKey();
 }
 
+///
+@safe unittest
+{
+    auto dict = [1: 0, 2: 0];
+    int sum;
+    foreach (v; dict.byKey)
+        sum += v;
+
+    assert(sum == 3);
+}
+
 /***********************************
  * Returns a forward range over the values of the associative array.
  * Params:
@@ -3101,6 +3254,17 @@ auto byValue(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
 auto byValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
 {
     return (*aa).byValue();
+}
+
+///
+@safe unittest
+{
+    auto dict = ["k1": 1, "k2": 2];
+    int sum;
+    foreach (v; dict.byValue)
+        sum += v;
+
+    assert(sum == 3);
 }
 
 /***********************************
@@ -3156,6 +3320,17 @@ auto byKeyValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
     return (*aa).byKeyValue();
 }
 
+///
+@safe unittest
+{
+    auto dict = ["k1": 1, "k2": 2];
+    int sum;
+    foreach (e; dict.byKeyValue)
+        sum += e.value;
+
+    assert(sum == 3);
+}
+
 /***********************************
  * Returns a dynamic array, the elements of which are the keys in the
  * associative array.
@@ -3176,6 +3351,17 @@ Key[] keys(T : Value[Key], Value, Key)(T aa) @property
 Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
 {
     return (*aa).keys;
+}
+
+///
+@system unittest
+{
+    auto aa = [1: "v1", 2: "v2"];
+    int sum;
+    foreach (k; aa.keys)
+        sum += k;
+
+    assert(sum == 3);
 }
 
 /***********************************
@@ -3200,6 +3386,17 @@ Value[] values(T : Value[Key], Value, Key)(T *aa) @property
     return (*aa).values;
 }
 
+///
+@system unittest
+{
+    auto aa = ["k1": 1, "k2": 2];
+    int sum;
+    foreach (e; aa.values)
+        sum += e;
+
+    assert(sum == 3);
+}
+
 /***********************************
  * Looks up key; if it exists returns corresponding value else evaluates and
  * returns defaultValue.
@@ -3220,6 +3417,13 @@ inout(V) get(K, V)(inout(V[K]) aa, K key, lazy inout(V) defaultValue)
 inout(V) get(K, V)(inout(V[K])* aa, K key, lazy inout(V) defaultValue)
 {
     return (*aa).get(key, defaultValue);
+}
+
+@safe unittest
+{
+    auto aa = ["k1": 1];
+    assert(aa.get("k1", 0) == 1);
+    assert(aa.get("k2", 0) == 0);
 }
 
 /***********************************
@@ -3248,6 +3452,15 @@ ref V require(K, V)(ref V[K] aa, K key, lazy V value = V.init)
         auto p = cast(V*) _aaGetX(cast(void**) &aa, typeid(V[K]), V.sizeof, &key, found);
     }
     return found ? *p : (*p = value);
+}
+
+///
+@safe unittest
+{
+    auto aa = ["k1": 1];
+    assert(aa.require("k1", 0) == 1);
+    assert(aa.require("k2", 0) == 0);
+    assert(aa["k2"] == 0);
 }
 
 // Constraints for aa update. Delegates, Functions or Functors (classes that
@@ -3307,6 +3520,26 @@ if (isCreateOperation!(C, V) && isUpdateOperation!(U, V))
         *p = create();
     else
         *p = update(*p);
+}
+
+///
+@system unittest
+{
+    auto aa = ["k1": 1];
+
+    aa.update("k1", {
+        return -1; // create (won't be executed
+    }, (ref int v) {
+        return v + 1; // update
+    });
+    assert(aa["k1"] == 2);
+
+    aa.update("k2", {
+        return 0; // create
+    }, (ref int v) {
+        return -1; // update (won't be executed)
+    });
+    assert(aa["k2"] == 0);
 }
 
 unittest
@@ -3653,6 +3886,7 @@ private
 {
     return _d_arraysetcapacity(typeid(T[]), 0, cast(void[]*)&arr);
 }
+
 ///
 @safe unittest
 {
@@ -3688,6 +3922,7 @@ size_t reserve(T)(ref T[] arr, size_t newcapacity) pure nothrow @trusted
 {
     return _d_arraysetcapacity(typeid(T[]), newcapacity, cast(void[]*)&arr);
 }
+
 ///
 unittest
 {
@@ -3736,6 +3971,7 @@ auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow @system
     _d_arrayshrinkfit(typeid(T[]), *(cast(void[]*)&arr));
     return arr;
 }
+
 ///
 unittest
 {
@@ -3856,6 +4092,12 @@ version (D_Ddoc)
     {
         static import core.internal.hash;
         return core.internal.hash.hashOf(arg);
+    }
+
+    @safe unittest
+    {
+        auto h1 = "my.string".hashOf;
+        assert(h1 == "my.string".hashOf);
     }
 }
 else
@@ -4162,6 +4404,16 @@ private size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) 
         return _dup!(T, Unconst!T)(a);
 }
 
+///
+@safe unittest
+{
+    auto arr = [1, 2];
+    auto arr2 = arr.dup;
+    arr[0] = 0;
+    assert(arr == [0, 2]);
+    assert(arr2 == [1, 2]);
+}
+
 /// ditto
 // const overload to support implicit conversion to immutable (unique result, see DIP29)
 @property T[] dup(T)(const(T)[] a)
@@ -4192,6 +4444,15 @@ private size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) 
 @property immutable(T)[] idup(T:void)(const(T)[] a)
 {
     return a.dup;
+}
+
+///
+@safe unittest
+{
+    char[] arr = ['a', 'b', 'c'];
+    string s = arr.idup;
+    arr[0] = '.';
+    assert(s == "abc");
 }
 
 private U[] _trustedDup(T, U)(T[] a) @trusted
