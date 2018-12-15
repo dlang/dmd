@@ -523,7 +523,5 @@ if (is(T == ClassDeclaration) || is(T == InterfaceDeclaration))
         objc.metaclass.storage_class |= STC.static_;
         objc.metaclass.classKind = ClassKind.objc;
         objc.metaclass.objc.isMeta = true;
-        objc.metaclass.members = new Dsymbols();
-        members.push(objc.metaclass);
     }
 }
