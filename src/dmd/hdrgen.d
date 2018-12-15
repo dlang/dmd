@@ -1948,6 +1948,11 @@ public:
             foreach (frequire; *f.frequires)
             {
                 buf.writestring("in");
+                if (!frequire)
+                {
+                    buf.writeByte(' ');
+                    continue;
+                }
                 if (auto es = frequire.isExpStatement())
                 {
                     assert(es.exp && es.exp.op == TOK.assert_);
@@ -1971,6 +1976,11 @@ public:
             foreach (fensure; *f.fensures)
             {
                 buf.writestring("out");
+                if (!fensure.ensure)
+                {
+                    buf.writeByte(' ');
+                    continue;
+                }
                 if (auto es = fensure.ensure.isExpStatement())
                 {
                     assert(es.exp && es.exp.op == TOK.assert_);
