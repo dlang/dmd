@@ -683,7 +683,6 @@ extern (C) hash_t _aaGetHash(in AA* aa, in TypeInfo tiRaw) nothrow
     auto valHash = &ti.value.getHash;
 
     size_t h;
-    import core.stdc.stdio;
     foreach (b; aa.buckets)
     {
         if (!b.filled)

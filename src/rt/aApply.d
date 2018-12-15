@@ -10,7 +10,7 @@
  */
 module rt.aApply;
 
-private import rt.util.utf : decode, toUTF8;
+import core.internal.utf : decode, toUTF8;
 
 /**********************************************/
 /* 1 argument versions */

@@ -28,6 +28,22 @@ else version (TVOS)
 else version (WatchOS)
     version = Darwin;
 
+version (ARM)     version = ARM_Any;
+version (AArch64) version = ARM_Any;
+version (HPPA)    version = HPPA_Any;
+version (MIPS32)  version = MIPS_Any;
+version (MIPS64)  version = MIPS_Any;
+version (PPC)     version = PPC_Any;
+version (PPC64)   version = PPC_Any;
+version (RISCV32) version = RISCV_Any;
+version (RISCV64) version = RISCV_Any;
+version (S390)    version = IBMZ_Any;
+version (SPARC)   version = SPARC_Any;
+version (SPARC64) version = SPARC_Any;
+version (SystemZ) version = IBMZ_Any;
+version (X86)     version = X86_Any;
+version (X86_64)  version = X86_Any;
+
 version (Posix):
 extern (C):
 
@@ -126,7 +142,7 @@ version (CRuntime_Glibc)
     enum F_UNLCK        = 2;
     enum F_WRLCK        = 1;
 
-    version (X86)
+    version (X86_Any)
     {
         enum O_CREAT        = 0x40;     // octal     0100
         enum O_EXCL         = 0x80;     // octal     0200
@@ -139,33 +155,20 @@ version (CRuntime_Glibc)
         enum O_DSYNC        = 0x1000;   // octal   010000
         enum O_RSYNC        = O_SYNC;
     }
-    else version (X86_64)
+    else version (HPPA_Any)
     {
-        enum O_CREAT        = 0x40;     // octal     0100
-        enum O_EXCL         = 0x80;     // octal     0200
-        enum O_NOCTTY       = 0x100;    // octal     0400
-        enum O_TRUNC        = 0x200;    // octal    01000
+        enum O_CREAT        = 0x00100;  // octal    04000
+        enum O_EXCL         = 0x00400;  // octal     0200
+        enum O_NOCTTY       = 0x20000;  // octal     0400
+        enum O_TRUNC        = 0x00200;  // octal    01000
 
-        enum O_APPEND       = 0x400;    // octal    02000
-        enum O_NONBLOCK     = 0x800;    // octal    04000
-        enum O_SYNC         = 0x101000; // octal 04010000
-        enum O_DSYNC        = 0x1000;   // octal   010000
-        enum O_RSYNC        = O_SYNC;
+        enum O_APPEND       = 0x00008;  // octal      010
+        enum O_NONBLOCK     = 0x10004;  // octal  0200004
+        enum O_SYNC         = 0x48000;  // octal 01100000
+        enum O_DSYNC        = 0x40000;  // octal 01000000
+        enum O_RSYNC        = 0x80000;  // octal 02000000
     }
-    else version (MIPS32)
-    {
-        enum O_CREAT        = 0x0100;
-        enum O_EXCL         = 0x0400;
-        enum O_NOCTTY       = 0x0800;
-        enum O_TRUNC        = 0x0200;
-
-        enum O_APPEND       = 0x0008;
-        enum O_DSYNC        = O_SYNC;
-        enum O_NONBLOCK     = 0x0080;
-        enum O_RSYNC        = O_SYNC;
-        enum O_SYNC         = 0x0010;
-    }
-    else version (MIPS64)
+    else version (MIPS_Any)
     {
         enum O_CREAT        = 0x0100;
         enum O_EXCL         = 0x0400;
@@ -178,7 +181,7 @@ version (CRuntime_Glibc)
         enum O_RSYNC        = O_SYNC;
         enum O_SYNC         = 0x4010;
     }
-    else version (PPC)
+    else version (PPC_Any)
     {
         enum O_CREAT        = 0x40;     // octal     0100
         enum O_EXCL         = 0x80;     // octal     0200
@@ -191,7 +194,7 @@ version (CRuntime_Glibc)
         enum O_DSYNC        = 0x1000;   // octal   010000
         enum O_RSYNC        = O_SYNC;
     }
-    else version (PPC64)
+    else version (ARM_Any)
     {
         enum O_CREAT        = 0x40;     // octal     0100
         enum O_EXCL         = 0x80;     // octal     0200
@@ -204,7 +207,7 @@ version (CRuntime_Glibc)
         enum O_DSYNC        = 0x1000;   // octal   010000
         enum O_RSYNC        = O_SYNC;
     }
-    else version (ARM)
+    else version (RISCV_Any)
     {
         enum O_CREAT        = 0x40;     // octal     0100
         enum O_EXCL         = 0x80;     // octal     0200
@@ -217,20 +220,7 @@ version (CRuntime_Glibc)
         enum O_DSYNC        = 0x1000;   // octal   010000
         enum O_RSYNC        = O_SYNC;
     }
-    else version (AArch64)
-    {
-        enum O_CREAT        = 0x40;     // octal     0100
-        enum O_EXCL         = 0x80;     // octal     0200
-        enum O_NOCTTY       = 0x100;    // octal     0400
-        enum O_TRUNC        = 0x200;    // octal    01000
-
-        enum O_APPEND       = 0x400;    // octal    02000
-        enum O_NONBLOCK     = 0x800;    // octal    04000
-        enum O_SYNC         = 0x101000; // octal 04010000
-        enum O_DSYNC        = 0x1000;   // octal   010000
-        enum O_RSYNC        = O_SYNC;
-    }
-    else version (SPARC64)
+    else version (SPARC_Any)
     {
         enum O_CREAT        = 0x200;
         enum O_EXCL         = 0x800;
@@ -243,7 +233,7 @@ version (CRuntime_Glibc)
         enum O_DSYNC        = 0x2000;
         enum O_RSYNC        = O_SYNC;
     }
-    else version (SystemZ)
+    else version (IBMZ_Any)
     {
         enum O_CREAT        = 0x40;     // octal     0100
         enum O_EXCL         = 0x80;     // octal     0200
@@ -744,42 +734,21 @@ else version (CRuntime_Bionic)
     enum F_WRLCK        = 1;
     enum F_UNLCK        = 2;
 
-    version (X86)
-    {
-        enum O_CREAT        = 0x40;     // octal     0100
-        enum O_EXCL         = 0x80;     // octal     0200
-        enum O_NOCTTY       = 0x100;    // octal     0400
-        enum O_TRUNC        = 0x200;    // octal    01000
+    enum O_CREAT        = 0x40;     // octal     0100
+    enum O_EXCL         = 0x80;     // octal     0200
+    enum O_NOCTTY       = 0x100;    // octal     0400
+    enum O_TRUNC        = 0x200;    // octal    01000
 
-        enum O_APPEND       = 0x400;    // octal    02000
-        enum O_NONBLOCK     = 0x800;    // octal    04000
-        enum O_SYNC         = 0x1000;   // octal   010000
-    }
-    else version (ARM)
-    {
-        enum O_CREAT        = 0x40;     // octal     0100
-        enum O_EXCL         = 0x80;     // octal     0200
-        enum O_NOCTTY       = 0x100;    // octal     0400
-        enum O_TRUNC        = 0x200;    // octal    01000
+    enum O_APPEND       = 0x400;    // octal    02000
+    enum O_NONBLOCK     = 0x800;    // octal    04000
 
-        enum O_APPEND       = 0x400;    // octal    02000
-        enum O_NONBLOCK     = 0x800;    // octal    04000
-        enum O_SYNC         = 0x1000;   // octal   010000
-    }
-    else version (AArch64)
+    version (D_LP64)
     {
-        enum O_CREAT        = 0x40;     // octal     0100
-        enum O_EXCL         = 0x80;     // octal     0200
-        enum O_NOCTTY       = 0x100;    // octal     0400
-        enum O_TRUNC        = 0x200;    // octal    01000
-
-        enum O_APPEND       = 0x400;    // octal    02000
-        enum O_NONBLOCK     = 0x800;    // octal    04000
-        enum O_SYNC         = 0x101000; // octal 04010000
+        enum O_SYNC     = 0x101000; // octal 04010000
     }
     else
     {
-        static assert(false, "Architecture not supported.");
+        enum O_SYNC     = 0x1000;   // octal   010000
     }
 
     enum O_ACCMODE      = 0x3;

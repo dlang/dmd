@@ -1,0 +1,3 @@
+Added `initialize` template argument to `object.destroy()`.
+
+`object.destroy()` now receives an `initialize` argument to specify whether to re-initialize the object after destruction.

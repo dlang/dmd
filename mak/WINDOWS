@@ -37,7 +37,6 @@ copydir: $(IMPDIR)
 	mkdir $(IMPDIR)\core\sys\freebsd\sys
 	mkdir $(IMPDIR)\core\sys\dragonflybsd\sys
 	mkdir $(IMPDIR)\core\sys\linux\sys
-	mkdir $(IMPDIR)\core\sys\osx\mach
 	mkdir $(IMPDIR)\core\sys\posix\arpa
 	mkdir $(IMPDIR)\core\sys\posix\net
 	mkdir $(IMPDIR)\core\sys\posix\netinet
@@ -118,6 +117,9 @@ $(IMPDIR)\core\internal\string.d : src\core\internal\string.d
 $(IMPDIR)\core\internal\traits.d : src\core\internal\traits.d
 	copy $** $@
 
+$(IMPDIR)\core\internal\utf.d : src\core\internal\utf.d
+	copy $** $@
+
 $(IMPDIR)\core\stdc\assert_.d : src\core\stdc\assert_.d
 	copy $** $@
 
@@ -187,7 +189,22 @@ $(IMPDIR)\core\stdc\wctype.d : src\core\stdc\wctype.d
 $(IMPDIR)\core\stdcpp\exception.d : src\core\stdcpp\exception.d
 	copy $** $@
 
+$(IMPDIR)\core\stdcpp\array.d : src\core\stdcpp\array.d
+	copy $** $@
+
+$(IMPDIR)\core\stdcpp\string_view.d : src\core\stdcpp\string_view.d
+	copy $** $@
+
 $(IMPDIR)\core\stdcpp\typeinfo.d : src\core\stdcpp\typeinfo.d
+	copy $** $@
+
+$(IMPDIR)\core\stdcpp\xutility.d : src\core\stdcpp\xutility.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\darwin\crt_externs.d : src\core\sys\darwin\crt_externs.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\darwin\dlfcn.d : src\core\sys\darwin\dlfcn.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\darwin\execinfo.d : src\core\sys\darwin\execinfo.d
@@ -413,39 +430,6 @@ $(IMPDIR)\core\sys\linux\sys\time.d : src\core\sys\linux\sys\time.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\openbsd\dlfcn.d : src\core\sys\openbsd\dlfcn.d
-	copy $** $@
-
-$(IMPDIR)\core\sys\osx\execinfo.d : src\core\sys\osx\execinfo.d
-	copy $** $@
-
-$(IMPDIR)\core\sys\osx\pthread.d : src\core\sys\osx\pthread.d
-	copy $** $@
-
-$(IMPDIR)\core\sys\osx\mach\dyld.d : src\core\sys\osx\mach\dyld.d
-	copy $** $@
-
-$(IMPDIR)\core\sys\osx\mach\getsect.d : src\core\sys\osx\mach\getsect.d
-	copy $** $@
-
-$(IMPDIR)\core\sys\osx\mach\kern_return.d : src\core\sys\osx\mach\kern_return.d
-	copy $** $@
-
-$(IMPDIR)\core\sys\osx\mach\loader.d : src\core\sys\osx\mach\loader.d
-	copy $** $@
-
-$(IMPDIR)\core\sys\osx\mach\port.d : src\core\sys\osx\mach\port.d
-	copy $** $@
-
-$(IMPDIR)\core\sys\osx\mach\semaphore.d : src\core\sys\osx\mach\semaphore.d
-	copy $** $@
-
-$(IMPDIR)\core\sys\osx\mach\thread_act.d : src\core\sys\osx\mach\thread_act.d
-	copy $** $@
-
-$(IMPDIR)\core\sys\osx\sys\cdefs.d : src\core\sys\osx\sys\cdefs.d
-	copy $** $@
-
-$(IMPDIR)\core\sys\osx\sys\mman.d : src\core\sys\osx\sys\mman.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\posix\arpa\inet.d : src\core\sys\posix\arpa\inet.d

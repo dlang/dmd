@@ -16,10 +16,10 @@
  * Copyright: Copyright Digital Mars 2003 - 2016.
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright, Sean Kelly
- * Source:    $(DRUNTIMESRC rt/util/_utf.d)
+ * Source:    $(DRUNTIMESRC core/internal/_utf.d)
  */
 
-module rt.util.utf;
+module core.internal.utf;
 
 extern (C) void onUnicodeError( string msg, size_t idx, string file = __FILE__, size_t line = __LINE__ ) @safe pure;
 

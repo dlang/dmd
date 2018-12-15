@@ -6,8 +6,10 @@ void main()
     issue18918();
     issue18925();
     issue19005();
+    issue19204();
     issue19262();
     issue19282();
+    issue19332(); // Support might be removed in the future!
     testTypeInfoArrayGetHash1();
     testTypeInfoArrayGetHash2();
     pr2243();
@@ -87,6 +89,35 @@ void issue19005() @nogc nothrow pure @safe
     auto hash = date.hashOf;
 }
 
+/// Accept SIMD vectors.
+void issue19204() @nogc nothrow pure @safe
+{
+    version (D_SIMD)
+    {
+        static import simd = core.simd;
+        static if (is(simd.int4)) // __traits(isArithmetic)
+        {{
+            enum simd.int4 val = [1,2,3,4];
+            enum ctfeHash = hashOf(val);
+            simd.int4 rtVal = val;
+            auto rtHash = hashOf(rtVal);
+            assert(ctfeHash == rtHash);
+        }}
+        static if (is(simd.void16)) // non __traits(isArithmetic)
+        {{
+            auto h = hashOf(simd.void16.init);
+        }}
+        static if (is(simd.float4)) // __traits(isArithmetic) and __traits(isFloating)
+        {{
+            enum simd.float4 val = [1.1f, 2.2f, 3.3f, 4.4f];
+            enum ctfeHash = hashOf(val);
+            simd.float4 rtVal = val;
+            auto rtHash = hashOf(rtVal);
+            assert(ctfeHash == rtHash);
+        }}
+    }
+}
+
 /// hashOf associative array should infer nothrow
 void issue19262() nothrow
 {
@@ -103,6 +134,20 @@ void issue19282()
     Issue19282CppClass c = new Issue19282CppClass();
     size_t h = hashOf(c);
     h = hashOf(c, h);
+}
+
+/// Ensure hashOf works for const struct that has non-const toHash & has all
+/// fields bitwise-hashable. (Support might be removed in the future!)
+void issue19332()
+{
+    static struct HasNonConstToHash
+    {
+        int a;
+        size_t toHash() { return a; }
+    }
+    const HasNonConstToHash val;
+    size_t h = hashOf(val);
+    h = hashOf!(const HasNonConstToHash)(val); // Ensure doesn't match more than one overload.
 }
 
 /// Tests ensure TypeInfo_Array.getHash uses element hash functions instead
@@ -373,7 +418,8 @@ void pr2243()
     assert(h32 == rth32);
     assert(h33 == rth33);
 
-    assert(hashOf(null, 0) != hashOf(null, 123456789)); // issue 18932
+    // https://issues.dlang.org/show_bug.cgi?id=18932
+    assert(hashOf(null, 0) != hashOf(null, 123456789));
 
     static size_t tiHashOf(T)(T var)
     {

@@ -23,7 +23,7 @@ private
     import core.stdc.config : c_long;
     import core.stdc.stdio;
     import core.stdc.stdlib;
-    import rt.util.utf;
+    import core.internal.utf;
 
     struct BitArray
     {
@@ -408,7 +408,7 @@ string chomp( string str, string delim = null )
 // open/create file for read/write, pointer at beginning
 FILE* openOrCreateFile(string name)
 {
-    import rt.util.utf : toUTF16z;
+    import core.internal.utf : toUTF16z;
 
     version (Windows)
         immutable fd = _wopen(toUTF16z(name), _O_RDWR | _O_CREAT | _O_BINARY, _S_IREAD | _S_IWRITE);
@@ -474,7 +474,7 @@ version (Windows) extern (C) int chsize(int fd, c_long size);
 
 bool readFile(string name, ref char[] buf)
 {
-    import rt.util.utf : toUTF16z;
+    import core.internal.utf : toUTF16z;
 
     version (Windows)
         auto file = _wfopen(toUTF16z(name), "rb"w.ptr);

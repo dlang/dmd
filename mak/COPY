@@ -24,6 +24,7 @@ COPY=\
 	$(IMPDIR)\core\internal\spinlock.d \
 	$(IMPDIR)\core\internal\string.d \
 	$(IMPDIR)\core\internal\traits.d \
+	$(IMPDIR)\core\internal\utf.d \
 	\
 	$(IMPDIR)\core\stdc\assert_.d \
 	$(IMPDIR)\core\stdc\complex.d \
@@ -48,9 +49,14 @@ COPY=\
 	$(IMPDIR)\core\stdc\wchar_.d \
 	$(IMPDIR)\core\stdc\wctype.d \
 	\
-	$(IMPDIR)\core\stdcpp\typeinfo.d \
+	$(IMPDIR)\core\stdcpp\array.d \
 	$(IMPDIR)\core\stdcpp\exception.d \
+	$(IMPDIR)\core\stdcpp\string_view.d \
+	$(IMPDIR)\core\stdcpp\typeinfo.d \
+	$(IMPDIR)\core\stdcpp\xutility.d \
 	\
+	$(IMPDIR)\core\sys\darwin\crt_externs.d \
+	$(IMPDIR)\core\sys\darwin\dlfcn.d \
 	$(IMPDIR)\core\sys\darwin\execinfo.d \
 	$(IMPDIR)\core\sys\darwin\pthread.d \
 	\
@@ -139,20 +145,6 @@ COPY=\
 	$(IMPDIR)\core\sys\linux\sys\prctl.d \
 	\
 	$(IMPDIR)\core\sys\openbsd\dlfcn.d \
-	\
-	$(IMPDIR)\core\sys\osx\execinfo.d \
-	$(IMPDIR)\core\sys\osx\pthread.d \
-	\
-	$(IMPDIR)\core\sys\osx\mach\dyld.d \
-	$(IMPDIR)\core\sys\osx\mach\getsect.d \
-	$(IMPDIR)\core\sys\osx\mach\kern_return.d \
-	$(IMPDIR)\core\sys\osx\mach\loader.d \
-	$(IMPDIR)\core\sys\osx\mach\port.d \
-	$(IMPDIR)\core\sys\osx\mach\semaphore.d \
-	$(IMPDIR)\core\sys\osx\mach\thread_act.d \
-	\
-	$(IMPDIR)\core\sys\osx\sys\cdefs.d \
-	$(IMPDIR)\core\sys\osx\sys\mman.d \
 	\
 	$(IMPDIR)\core\sys\posix\arpa\inet.d \
 	$(IMPDIR)\core\sys\posix\aio.d \

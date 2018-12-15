@@ -38,7 +38,7 @@ alias dstring = immutable(dchar)[];
 
 version (D_ObjectiveC) public import core.attribute : selector;
 
-int __cmp(T)(const T[] lhs, const T[] rhs) @trusted
+int __cmp(T)(scope const T[] lhs, scope const T[] rhs) @trusted
     if (__traits(isScalar, T))
 {
     // Compute U as the implementation type for T
@@ -69,6 +69,22 @@ int __cmp(T)(const T[] lhs, const T[] rhs) @trusted
     }
     else
     {
+        version (BigEndian)
+        static if (__traits(isUnsigned, T) ? !is(T == __vector) : is(T : P*, P))
+        {
+            if (!__ctfe)
+            {
+                import core.stdc.string : memcmp;
+                int c = memcmp(lhs.ptr, rhs.ptr, (lhs.length <= rhs.length ? lhs.length : rhs.length) * T.sizeof);
+                if (c)
+                    return c;
+                static if (size_t.sizeof <= uint.sizeof && T.sizeof >= 2)
+                    return cast(int) lhs.length - cast(int) rhs.length;
+                else
+                    return int(lhs.length > rhs.length) - int(lhs.length < rhs.length);
+            }
+        }
+
         immutable len = lhs.length <= rhs.length ? lhs.length : rhs.length;
         foreach (const u; 0 .. len)
         {
@@ -483,28 +499,44 @@ unittest
 }
 
 /**
-Destroys the given object and sets it back to its initial state. It's used to
+Destroys the given object and optionally resets to initial state. It's used to
 _destroy an object, calling its destructor or finalizer so it no longer
 references any other objects. It does $(I not) initiate a GC cycle or free
 any GC memory.
+If `initialize` is supplied `false`, the object is considered invalid after
+destruction, and should not be referenced.
 */
-void destroy(T)(ref T obj) if (is(T == struct))
+void destroy(bool initialize = true, T)(ref T obj) if (is(T == struct))
 {
-    // We need to re-initialize `obj`.  Previously, the code
-    // `auto init = cast(ubyte[])typeid(T).initializer()` was used, but
-    // `typeid` is a runtime call and requires the `TypeInfo` object which is
-    // not usable when compiling with -betterC.  If we do `obj = T.init` then we
-    // end up needlessly calling postblits and destructors.  So, we create a
-    // static immutable lvalue that can be re-used with subsequent calls to `destroy`
-    shared static immutable T init = T.init;
-
     _destructRecurse(obj);
-    () @trusted {
-        import core.stdc.string : memcpy;
-        auto dest = (cast(ubyte*) &obj)[0 .. T.sizeof];
-        auto src = (cast(ubyte*) &init)[0 .. T.sizeof];
-        memcpy(dest.ptr, src.ptr, T.sizeof);
-    } ();
+
+    static if (initialize)
+    {
+        // We need to re-initialize `obj`.  Previously, an immutable static
+        // and memcpy were used to hold an initializer. With improved unions, this is no longer
+        // needed.
+        union UntypedInit
+        {
+            T dummy;
+        }
+        static struct UntypedStorage
+        {
+            align(T.alignof) void[T.sizeof] dummy;
+        }
+
+        () @trusted {
+            *cast(UntypedStorage*) &obj = cast(UntypedStorage) UntypedInit.init;
+        } ();
+    }
+}
+
+@safe unittest
+{
+    struct A { string s = "A";  }
+    A a = {s: "B"};
+    assert(a.s == "B");
+    a.destroy;
+    assert(a.s == "A");
 }
 
 private void _destructRecurse(S)(ref S s)
@@ -522,6 +554,8 @@ nothrow @safe @nogc unittest
         struct A { string s = "A";  }
         A a;
         a.s = "asd";
+        destroy!false(a);
+        assert(a.s == "asd");
         destroy(a);
         assert(a.s == "A");
     }
@@ -548,8 +582,12 @@ nothrow @safe @nogc unittest
         B a;
         a.s = "asd";
         a.c.s = "jkl";
-        destroy(a);
+        destroy!false(a);
         assert(destroyed == 2);
+        assert(a.s == "asd");
+        assert(a.c.s == "jkl" );
+        destroy(a);
+        assert(destroyed == 4);
         assert(a.s == "B");
         assert(a.c.s == "C" );
     }
@@ -557,23 +595,28 @@ nothrow @safe @nogc unittest
 
 
     /// ditto
-    void destroy(T)(T obj) if (is(T == class))
+    void destroy(bool initialize = true, T)(T obj) if (is(T == class))
     {
         static if (__traits(getLinkage, T) == "C++")
         {
             obj.__xdtor();
 
-            enum classSize = __traits(classInstanceSize, T);
-            (cast(void*)obj)[0 .. classSize] = typeid(T).initializer[];
+            static if (initialize)
+            {
+                enum classSize = __traits(classInstanceSize, T);
+                (cast(void*)obj)[0 .. classSize] = typeid(T).initializer[];
+            }
         }
         else
             rt_finalize(cast(void*)obj);
     }
 
     /// ditto
-    void destroy(T)(T obj) if (is(T == interface))
+    void destroy(bool initialize = true, T)(T obj) if (is(T == interface))
     {
-        destroy(cast(Object)obj);
+        static assert(__traits(getLinkage, T) == "D", "Invalid call to destroy() on extern(" ~ __traits(getLinkage, T) ~ ") interface");
+
+        destroy!initialize(cast(Object)obj);
     }
 
     /// Reference type demonstration
@@ -636,10 +679,15 @@ nothrow @safe @nogc unittest
         cpp.s = "T";
         cpp.a.x = 30;
         assert(cpp.s == "T");         // `cpp.s` is `"T"`
-        destroy(cpp);
+        destroy!false(cpp);           // destroy without initialization
         assert(cpp.dtorCount == 1);   // `cpp`'s destructor was called
-        assert(cpp.s == "S");         // `cpp.s` is back to its inital state, `"S"`
+        assert(cpp.s == "T");         // `cpp.s` is not initialized
         assert(cpp.a.dtorCount == 1); // `cpp.a`'s destructor was called
+        assert(cpp.a.x == 30);        // `cpp.a.x` is not initialized
+        destroy(cpp);
+        assert(cpp.dtorCount == 2);   // `cpp`'s destructor was called again
+        assert(cpp.s == "S");         // `cpp.s` is back to its inital state, `"S"`
+        assert(cpp.a.dtorCount == 2); // `cpp.a`'s destructor was called again
         assert(cpp.a.x == 10);        // `cpp.a.x` is back to its inital state, `10`
     }
 
@@ -650,8 +698,44 @@ nothrow @safe @nogc unittest
         assert(i == 0);           // `i`'s initial state is `0`
         i = 1;
         assert(i == 1);           // `i` changed to `1`
+        destroy!false(i);
+        assert(i == 1);           // `i` was not initialized
         destroy(i);
         assert(i == 0);           // `i` is back to its initial state `0`
+    }
+
+    unittest
+    {
+        // class with an `alias this`
+        class A
+        {
+            static int dtorCount;
+            ~this()
+            {
+                dtorCount++;
+            }
+        }
+
+        class B
+        {
+            A a;
+            alias a this;
+            this()
+            {
+                a = new A;
+            }
+            static int dtorCount;
+            ~this()
+            {
+                dtorCount++;
+            }
+        }
+        auto b = new B;
+        assert(A.dtorCount == 0);
+        assert(B.dtorCount == 0);
+        destroy(b);
+        assert(A.dtorCount == 0);
+        assert(B.dtorCount == 1);
     }
 
     unittest
@@ -715,6 +799,8 @@ nothrow @safe @nogc unittest
             struct A { string s = "A";  }
             A a;
             a.s = "asd";
+            destroy!false(a);
+            assert(a.s == "asd");
             destroy(a);
             assert(a.s == "A");
         }
@@ -741,18 +827,22 @@ nothrow @safe @nogc unittest
             B a;
             a.s = "asd";
             a.c.s = "jkl";
-            destroy(a);
+            destroy!false(a);
             assert(destroyed == 2);
+            assert(a.s == "asd");
+            assert(a.c.s == "jkl" );
+            destroy(a);
+            assert(destroyed == 4);
             assert(a.s == "B");
             assert(a.c.s == "C" );
         }
     }
 
     /// ditto
-    void destroy(T : U[n], U, size_t n)(ref T obj) if (!is(T == struct))
+    void destroy(bool initialize = true, T : U[n], U, size_t n)(ref T obj) if (!is(T == struct))
     {
         foreach_reverse (ref e; obj[])
-            destroy(e);
+            destroy!initialize(e);
     }
 
     unittest
@@ -760,6 +850,8 @@ nothrow @safe @nogc unittest
         int[2] a;
         a[0] = 1;
         a[1] = 2;
+        destroy!false(a);
+        assert(a == [ 1, 2 ]);
         destroy(a);
         assert(a == [ 0, 0 ]);
     }
@@ -772,7 +864,7 @@ nothrow @safe @nogc unittest
         }
 
         vec2f v;
-        destroy!vec2f(v);
+        destroy!(true, vec2f)(v);
     }
 
     unittest
@@ -813,10 +905,11 @@ nothrow @safe @nogc unittest
     }
 
     /// ditto
-    void destroy(T)(ref T obj)
+    void destroy(bool initialize = true, T)(ref T obj)
         if (!is(T == struct) && !is(T == interface) && !is(T == class) && !_isStaticArray!T)
     {
-        obj = T.init;
+        static if (initialize)
+            obj = T.init;
     }
 
     template _isStaticArray(T : U[N], U, size_t N)
@@ -833,13 +926,17 @@ nothrow @safe @nogc unittest
     {
         {
             int a = 42;
+            destroy!false(a);
+            assert(a == 42);
             destroy(a);
             assert(a == 0);
         }
         {
             float a = 42;
+            destroy!false(a);
+            assert(a == 42);
             destroy(a);
-            assert(isnan(a));
+            assert(a != a); // isnan
         }
     }
 
@@ -980,6 +1077,90 @@ bool opEquals(const Object lhs, const Object rhs)
 {
     // A hack for the moment.
     return opEquals(cast()lhs, cast()rhs);
+}
+
+/// If aliased to the same object or both null => equal
+@system unittest
+{
+    class F { int flag; this(int flag) { this.flag = flag; } }
+
+    F f;
+    assert(f == f); // both null
+    f = new F(1);
+    assert(f == f); // both aliased to the same object
+}
+
+/// If either is null => non-equal
+@system unittest
+{
+    class F { int flag; this(int flag) { this.flag = flag; } }
+    F f;
+    assert(!(new F(0) == f));
+    assert(!(f == new F(0)));
+}
+
+/// If same exact type => one call to method opEquals
+@system unittest
+{
+    class F
+    {
+        int flag;
+
+        this(int flag)
+        {
+            this.flag = flag;
+        }
+
+        override bool opEquals(const Object o)
+        {
+            return flag == (cast(F) o).flag;
+        }
+    }
+
+    F f;
+    assert(new F(0) == new F(0));
+    assert(!(new F(0) == new F(1)));
+}
+
+/// General case => symmetric calls to method opEquals
+@system unittest
+{
+    int fEquals, gEquals;
+
+    class Base
+    {
+        int flag;
+        this(int flag)
+        {
+            this.flag = flag;
+        }
+    }
+
+    class F : Base
+    {
+        this(int flag) { super(flag); }
+
+        override bool opEquals(const Object o)
+        {
+            fEquals++;
+            return flag == (cast(Base) o).flag;
+        }
+    }
+
+    class G : Base
+    {
+        this(int flag) { super(flag); }
+
+        override bool opEquals(const Object o)
+        {
+            gEquals++;
+            return flag == (cast(Base) o).flag;
+        }
+    }
+
+    assert(new F(1) == new G(1));
+    assert(fEquals == 1);
+    assert(gEquals == 1);
 }
 
 private extern(C) void _d_setSameMutex(shared Object ownee, shared Object owner) nothrow;
@@ -2685,6 +2866,22 @@ class Exception : Throwable
     }
 }
 
+///
+@safe unittest
+{
+    bool gotCaught;
+    try
+    {
+        throw new Exception("msg");
+    }
+    catch (Exception e)
+    {
+        gotCaught = true;
+        assert(e.msg == "msg");
+    }
+    assert(gotCaught);
+}
+
 unittest
 {
     {
@@ -2750,6 +2947,22 @@ class Error : Throwable
     /** The first $(D Exception) which was bypassed when this Error was thrown,
     or $(D null) if no $(D Exception)s were pending. */
     Throwable   bypassedException;
+}
+
+///
+@system unittest
+{
+    bool gotCaught;
+    try
+    {
+        throw new Error("msg");
+    }
+    catch (Error e)
+    {
+        gotCaught = true;
+        assert(e.msg == "msg");
+    }
+    assert(gotCaught);
 }
 
 unittest
@@ -2851,6 +3064,14 @@ void clear(T : Value[Key], Value, Key)(T* aa)
     _aaClear(*cast(void **) aa);
 }
 
+///
+@system unittest
+{
+    auto aa = ["k1": 2];
+    aa.clear;
+    assert("k1" !in aa);
+}
+
 /***********************************
  * Reorganizes the associative array in place so that lookups are more
  * efficient.
@@ -2934,6 +3155,15 @@ V[K] dup(T : V[K], K, V)(T* aa)
     return (*aa).dup;
 }
 
+///
+@safe unittest
+{
+    auto aa = ["k1": 2];
+    auto a2 = aa.dup;
+    aa["k2"] = 3;
+    assert("k2" !in a2);
+}
+
 // this should never be made public.
 private AARange _aaToRange(T: V[K], K, V)(ref T aa) pure nothrow @nogc @safe
 {
@@ -2980,6 +3210,17 @@ auto byKey(T : V[K], K, V)(T* aa) pure nothrow @nogc
     return (*aa).byKey();
 }
 
+///
+@safe unittest
+{
+    auto dict = [1: 0, 2: 0];
+    int sum;
+    foreach (v; dict.byKey)
+        sum += v;
+
+    assert(sum == 3);
+}
+
 /***********************************
  * Returns a forward range over the values of the associative array.
  * Params:
@@ -3013,6 +3254,17 @@ auto byValue(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
 auto byValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
 {
     return (*aa).byValue();
+}
+
+///
+@safe unittest
+{
+    auto dict = ["k1": 1, "k2": 2];
+    int sum;
+    foreach (v; dict.byValue)
+        sum += v;
+
+    assert(sum == 3);
 }
 
 /***********************************
@@ -3068,6 +3320,17 @@ auto byKeyValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
     return (*aa).byKeyValue();
 }
 
+///
+@safe unittest
+{
+    auto dict = ["k1": 1, "k2": 2];
+    int sum;
+    foreach (e; dict.byKeyValue)
+        sum += e.value;
+
+    assert(sum == 3);
+}
+
 /***********************************
  * Returns a dynamic array, the elements of which are the keys in the
  * associative array.
@@ -3088,6 +3351,17 @@ Key[] keys(T : Value[Key], Value, Key)(T aa) @property
 Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
 {
     return (*aa).keys;
+}
+
+///
+@system unittest
+{
+    auto aa = [1: "v1", 2: "v2"];
+    int sum;
+    foreach (k; aa.keys)
+        sum += k;
+
+    assert(sum == 3);
 }
 
 /***********************************
@@ -3112,6 +3386,17 @@ Value[] values(T : Value[Key], Value, Key)(T *aa) @property
     return (*aa).values;
 }
 
+///
+@system unittest
+{
+    auto aa = ["k1": 1, "k2": 2];
+    int sum;
+    foreach (e; aa.values)
+        sum += e;
+
+    assert(sum == 3);
+}
+
 /***********************************
  * Looks up key; if it exists returns corresponding value else evaluates and
  * returns defaultValue.
@@ -3134,6 +3419,13 @@ inout(V) get(K, V)(inout(V[K])* aa, K key, lazy inout(V) defaultValue)
     return (*aa).get(key, defaultValue);
 }
 
+@safe unittest
+{
+    auto aa = ["k1": 1];
+    assert(aa.get("k1", 0) == 1);
+    assert(aa.get("k2", 0) == 0);
+}
+
 /***********************************
  * Looks up key; if it exists returns corresponding value else evaluates
  * value, adds it to the associative array and returns it.
@@ -3147,8 +3439,28 @@ inout(V) get(K, V)(inout(V[K])* aa, K key, lazy inout(V) defaultValue)
 ref V require(K, V)(ref V[K] aa, K key, lazy V value = V.init)
 {
     bool found;
-    auto p = cast(V*) _aaGetX(cast(void**)&aa, typeid(V[K]), V.sizeof, &key, found);
+    // if key is @safe-ly copyable, `require` can infer @safe
+    static if (isSafeCopyable!K)
+    {
+        auto p = () @trusted
+        {
+            return cast(V*) _aaGetX(cast(void**) &aa, typeid(V[K]), V.sizeof, &key, found);
+        } ();
+    }
+    else
+    {
+        auto p = cast(V*) _aaGetX(cast(void**) &aa, typeid(V[K]), V.sizeof, &key, found);
+    }
     return found ? *p : (*p = value);
+}
+
+///
+@safe unittest
+{
+    auto aa = ["k1": 1];
+    assert(aa.require("k1", 0) == 1);
+    assert(aa.require("k2", 0) == 0);
+    assert(aa["k2"] == 0);
 }
 
 // Constraints for aa update. Delegates, Functions or Functors (classes that
@@ -3176,6 +3488,9 @@ private
     }
 }
 
+// Tests whether T can be @safe-ly copied. Use a union to exclude destructor from the test.
+private enum bool isSafeCopyable(T) = is(typeof(() @safe { union U { T x; } T *x; auto u = U(*x); }));
+
 /***********************************
  * Looks up key; if it exists applies the update delegate else evaluates the
  * create delegate and adds it to the associative array
@@ -3189,11 +3504,72 @@ void update(K, V, C, U)(ref V[K] aa, K key, scope C create, scope U update)
 if (isCreateOperation!(C, V) && isUpdateOperation!(U, V))
 {
     bool found;
-    auto p = cast(V*) _aaGetX(cast(void**)&aa, typeid(V[K]), V.sizeof, &key, found);
+    // if key is @safe-ly copyable, `update` may infer @safe
+    static if (isSafeCopyable!K)
+    {
+        auto p = () @trusted
+        {
+            return cast(V*) _aaGetX(cast(void**) &aa, typeid(V[K]), V.sizeof, &key, found);
+        } ();
+    }
+    else
+    {
+        auto p = cast(V*) _aaGetX(cast(void**) &aa, typeid(V[K]), V.sizeof, &key, found);
+    }
     if (!found)
         *p = create();
     else
         *p = update(*p);
+}
+
+///
+@system unittest
+{
+    auto aa = ["k1": 1];
+
+    aa.update("k1", {
+        return -1; // create (won't be executed
+    }, (ref int v) {
+        return v + 1; // update
+    });
+    assert(aa["k1"] == 2);
+
+    aa.update("k2", {
+        return 0; // create
+    }, (ref int v) {
+        return -1; // update (won't be executed)
+    });
+    assert(aa["k2"] == 0);
+}
+
+unittest
+{
+    static struct S
+    {
+        int x;
+    @nogc nothrow pure:
+        this(this) @system {}
+
+    @safe const:
+        // stubs
+        bool opEquals(S rhs) { assert(0); }
+        size_t toHash() { assert(0); }
+    }
+
+    int[string] aai;
+    static assert(is(typeof(() @safe { aai.require("a", 1234); })));
+    static assert(is(typeof(() @safe { aai.update("a", { return 1234; }, (ref int x) { x++; return x; }); })));
+
+    S[string] aas;
+    static assert(is(typeof(() { aas.require("a", S(1234)); })));
+    static assert(is(typeof(() { aas.update("a", { return S(1234); }, (ref S s) { s.x++; return s; }); })));
+    static assert(!is(typeof(() @safe { aas.update("a", { return S(1234); }, (ref S s) { s.x++; return s; }); })));
+
+    int[S] aais;
+    static assert(is(typeof(() { aais.require(S(1234), 1234); })));
+    static assert(is(typeof(() { aais.update(S(1234), { return 1234; }, (ref int x) { x++; return x; }); })));
+    static assert(!is(typeof(() @safe { aais.require(S(1234), 1234); })));
+    static assert(!is(typeof(() @safe { aais.update(S(1234), { return 1234; }, (ref int x) { x++; return x; }); })));
 }
 
 private void _destructRecurse(E, size_t n)(ref E[n] arr)
@@ -3489,14 +3865,6 @@ unittest
     assert(postblitRecurseOrder == order);
 }
 
-version (unittest)
-{
-    private bool isnan(float x)
-    {
-        return x != x;
-    }
-}
-
 private
 {
     extern (C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow;
@@ -3518,6 +3886,7 @@ private
 {
     return _d_arraysetcapacity(typeid(T[]), 0, cast(void[]*)&arr);
 }
+
 ///
 @safe unittest
 {
@@ -3553,6 +3922,7 @@ size_t reserve(T)(ref T[] arr, size_t newcapacity) pure nothrow @trusted
 {
     return _d_arraysetcapacity(typeid(T[]), newcapacity, cast(void[]*)&arr);
 }
+
 ///
 unittest
 {
@@ -3596,11 +3966,12 @@ unittest
  * Returns:
  *   The input is returned.
  */
-auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow
+auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow @system
 {
     _d_arrayshrinkfit(typeid(T[]), *(cast(void[]*)&arr));
     return arr;
 }
+
 ///
 unittest
 {
@@ -3721,6 +4092,12 @@ version (D_Ddoc)
     {
         static import core.internal.hash;
         return core.internal.hash.hashOf(arg);
+    }
+
+    @safe unittest
+    {
+        auto h1 = "my.string".hashOf;
+        assert(h1 == "my.string".hashOf);
     }
 }
 else
@@ -4027,6 +4404,16 @@ private size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) 
         return _dup!(T, Unconst!T)(a);
 }
 
+///
+@safe unittest
+{
+    auto arr = [1, 2];
+    auto arr2 = arr.dup;
+    arr[0] = 0;
+    assert(arr == [0, 2]);
+    assert(arr2 == [1, 2]);
+}
+
 /// ditto
 // const overload to support implicit conversion to immutable (unique result, see DIP29)
 @property T[] dup(T)(const(T)[] a)
@@ -4057,6 +4444,15 @@ private size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) 
 @property immutable(T)[] idup(T:void)(const(T)[] a)
 {
     return a.dup;
+}
+
+///
+@safe unittest
+{
+    char[] arr = ['a', 'b', 'c'];
+    string s = arr.idup;
+    arr[0] = '.';
+    assert(s == "abc");
 }
 
 private U[] _trustedDup(T, U)(T[] a) @trusted

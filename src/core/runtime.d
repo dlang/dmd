@@ -4,17 +4,11 @@
  * Copyright: Copyright Sean Kelly 2005 - 2009.
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Authors:   Sean Kelly
- * Source:    $(DRUNTIMESRC core/_runtime.d)
+ * Source:    $(LINK2 https://github.com/dlang/druntime/blob/master/src/core/runtime.d, _runtime.d)
+ * Documentation: https://dlang.org/phobos/core_runtime.html
  */
 
-/*          Copyright Sean Kelly 2005 - 2009.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
 module core.runtime;
-
-version (Windows) import core.stdc.wchar_ : wchar_t;
 
 version (OSX)
     version = Darwin;
@@ -27,8 +21,7 @@ else version (WatchOS)
 
 /// C interface for Runtime.loadLibrary
 extern (C) void* rt_loadLibrary(const char* name);
-/// ditto
-version (Windows) extern (C) void* rt_loadLibraryW(const wchar_t* name);
+
 /// C interface for Runtime.unloadLibrary, returns 1/0 instead of bool
 extern (C) int rt_unloadLibrary(void* ptr);
 
@@ -243,7 +236,7 @@ struct Runtime
             if (len == 0)
                 return null;
 
-            auto buf = cast(wchar_t*)malloc((len+1) * wchar_t.sizeof);
+            auto buf = cast(WCHAR*)malloc((len+1) * WCHAR.sizeof);
             if (buf is null) return null;
             scope (exit) free(buf);
 

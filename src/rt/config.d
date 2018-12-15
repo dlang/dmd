@@ -4,8 +4,9 @@ Configuration options for druntime.
 The default way to configure the runtime is by passing command line arguments
 starting with `--DRT-` and followed by the option name, e.g. `--DRT-gcopt` to
 configure the GC.
-Command line options starting with `--DRT-` are filtered out before calling main,
-so the program will not see them. They are still available via `rt_args()`.
+When command line parsing is enabled, command line options starting
+with `--DRT-` are filtered out before calling main, so the program
+will not see them. They are still available via `rt_args()`.
 
 Configuration via the command line can be disabled by declaring a variable for the
 linker to pick up before using it's default from the runtime:

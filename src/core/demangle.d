@@ -277,7 +277,7 @@ pure @safe:
     {
         import core.internal.string;
 
-        UnsignedStringBuf buf;
+        UnsignedStringBuf buf = void;
 
         auto s = unsignedToTempString(val, buf, 16);
         int slen = cast(int)s.length;
@@ -2387,7 +2387,6 @@ private template hasPlainMangling(FT) if (is(FT == function))
 {
     static extern(D) void fooD();
     static extern(C) void fooC();
-    static extern(Pascal) void fooP();
     static extern(Windows) void fooW();
     static extern(C++) void fooCPP();
 
@@ -2398,13 +2397,11 @@ private template hasPlainMangling(FT) if (is(FT == function))
     }
     static assert(check!(typeof(fooD))(true, false, false));
     static assert(check!(typeof(fooC))(false, false, true));
-    static assert(check!(typeof(fooP))(false, false, true));
     static assert(check!(typeof(fooW))(false, false, true));
     static assert(check!(typeof(fooCPP))(false, true, false));
 
     static assert(__traits(compiles, mangleFunc!(typeof(&fooD))("")));
     static assert(__traits(compiles, mangleFunc!(typeof(&fooC))("")));
-    static assert(__traits(compiles, mangleFunc!(typeof(&fooP))("")));
     static assert(__traits(compiles, mangleFunc!(typeof(&fooW))("")));
     static assert(!__traits(compiles, mangleFunc!(typeof(&fooCPP))("")));
 }

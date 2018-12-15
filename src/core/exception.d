@@ -9,12 +9,45 @@
  */
 module core.exception;
 
+// Compiler lowers final switch default case to this (which is a runtime error)
+void __switch_errorT()(string file = __FILE__, size_t line = __LINE__) @trusted
+{
+    // Consider making this a compile time check.
+    version (D_Exceptions)
+        throw staticError!SwitchError(file, line, null);
+    else
+        assert(0, "No appropriate switch clause found");
+}
+
+version (D_BetterC)
+{
+    // When compiling with -betterC we use template functions so if they are
+    // used the bodies are copied into the user's program so there is no need
+    // for the D runtime during linking.
+
+    // In the future we might want to convert all functions in this module to
+    // templates even for ordinary builds instead of providing them as an
+    // extern(C) library.
+
+    void onOutOfMemoryError()(void* pretend_sideffect = null) @nogc nothrow pure @trusted
+    {
+        assert(0, "Memory allocation failed");
+    }
+    alias onOutOfMemoryErrorNoGC = onOutOfMemoryError;
+
+    void onInvalidMemoryOperationError()(void* pretend_sideffect = null) @nogc nothrow pure @trusted
+    {
+        assert(0, "Invalid memory operation");
+    }
+}
+else:
+
 /**
  * Thrown on a range error.
  */
 class RangeError : Error
 {
-    @safe pure nothrow this( string file = __FILE__, size_t line = __LINE__, Throwable next = null )
+    this( string file = __FILE__, size_t line = __LINE__, Throwable next = null ) @nogc nothrow pure @safe
     {
         super( "Range violation", file, line, next );
     }
@@ -485,9 +518,9 @@ extern (C) void onUnittestErrorMsg( string file, size_t line, string msg ) nothr
  * Throws:
  *  $(LREF RangeError).
  */
-extern (C) void onRangeError( string file = __FILE__, size_t line = __LINE__ ) @safe pure nothrow
+extern (C) void onRangeError( string file = __FILE__, size_t line = __LINE__ ) @trusted pure nothrow @nogc
 {
-    throw new RangeError( file, line, null );
+    throw staticError!RangeError( file, line, null );
 }
 
 
@@ -574,14 +607,10 @@ extern (C) void onInvalidMemoryOperationError(void* pretend_sideffect = null) @t
  */
 extern (C) void onSwitchError( string file = __FILE__, size_t line = __LINE__ ) @safe pure nothrow
 {
-    throw new SwitchError( file, line, null );
-}
-
-// Compiler lowers final switch default case to this (which is a runtime error)
-void __switch_errorT()(string file = __FILE__, size_t line = __LINE__) @trusted
-{
-    // Consider making this a compile time check.
-    throw staticError!SwitchError(file, line, null);
+    version (D_Exceptions)
+        throw new SwitchError( file, line, null );
+    else
+        assert(0, "No appropriate switch clause found");
 }
 
 /**

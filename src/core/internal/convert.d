@@ -232,6 +232,7 @@ private struct Float
 
 private template FloatTraits(T) if (floatFormat!T == FloatFormat.Float)
 {
+    enum DATASIZE = 4;
     enum EXPONENT = 8;
     enum MANTISSA = 23;
     enum ZERO     = Float(0, 0, 0);
@@ -244,6 +245,7 @@ private template FloatTraits(T) if (floatFormat!T == FloatFormat.Float)
 
 private template FloatTraits(T) if (floatFormat!T == FloatFormat.Double)
 {
+    enum DATASIZE = 8;
     enum EXPONENT = 11;
     enum MANTISSA = 52;
     enum ZERO     = Float(0, 0, 0);
@@ -256,6 +258,7 @@ private template FloatTraits(T) if (floatFormat!T == FloatFormat.Double)
 
 private template FloatTraits(T) if (floatFormat!T == FloatFormat.Real80)
 {
+    enum DATASIZE = 10;
     enum EXPONENT = 15;
     enum MANTISSA = 64;
     enum ZERO     = Float(0, 0, 0);
@@ -268,6 +271,7 @@ private template FloatTraits(T) if (floatFormat!T == FloatFormat.Real80)
 
 private template FloatTraits(T) if (floatFormat!T == FloatFormat.DoubleDouble) //Unsupported in CTFE
 {
+    enum DATASIZE = 16;
     enum EXPONENT = 11;
     enum MANTISSA = 106;
     enum ZERO     = Float(0, 0, 0);
@@ -280,6 +284,7 @@ private template FloatTraits(T) if (floatFormat!T == FloatFormat.DoubleDouble) /
 
 private template FloatTraits(T) if (floatFormat!T == FloatFormat.Quadruple)
 {
+    enum DATASIZE = 16;
     enum EXPONENT = 15;
     enum MANTISSA = 112;
     enum ZERO     = Float(0, 0, 0);
@@ -567,6 +572,11 @@ template floatFormat(T) if (is(T:real) || is(T:ireal))
 
 }
 
+package template floatSize(T) if (is(T:real) || is(T:ireal))
+{
+    enum floatSize = FloatTraits!(T).DATASIZE;
+}
+
 //  all toUbyte functions must be evaluable at compile time
 @trusted pure nothrow @nogc
 const(ubyte)[] toUbyte(T)(const T[] arr) if (T.sizeof == 1)
@@ -595,7 +605,7 @@ const(ubyte)[] toUbyte(T)(const T[] arr) if ((is(typeof(toUbyte(arr[0])) == cons
 }
 
 @trusted pure nothrow @nogc
-const(ubyte)[] toUbyte(T)(const ref T val) if (__traits(isIntegral, T) && !is(T == enum))
+const(ubyte)[] toUbyte(T)(const ref T val) if (__traits(isIntegral, T) && !is(T == enum) && !is(T == __vector))
 {
     static if (T.sizeof == 1)
     {
@@ -627,6 +637,28 @@ const(ubyte)[] toUbyte(T)(const ref T val) if (__traits(isIntegral, T) && !is(T 
     else
     {
         return (cast(const(ubyte)*)(&val))[0 .. T.sizeof];
+    }
+}
+
+@trusted pure nothrow @nogc
+const(ubyte)[] toUbyte(T)(const ref T val) if (is(T == __vector))
+{
+    if (!__ctfe)
+        return (cast(const ubyte*) &val)[0 .. T.sizeof];
+    else static if (is(typeof(val[0]) : void))
+        assert(0, "Unable to compute byte representation of " ~ T.stringof ~ " at compile time.");
+    else
+    {
+        // This code looks like it should work in CTFE but it segfaults:
+        //    auto a = val.array;
+        //    return toUbyte(a);
+        alias E = typeof(val[0]);
+        ubyte[] result = ctfe_alloc(T.sizeof);
+        for (size_t i = 0, j = 0; i < T.sizeof; i += E.sizeof, ++j)
+        {
+            result[i .. i + E.sizeof] = toUbyte(val[j]);
+        }
+        return result;
     }
 }
 
