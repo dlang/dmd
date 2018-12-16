@@ -1726,8 +1726,11 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
         /* Don't semantic for sym because it should be deferred until
          * sizeof needed or its members accessed.
          */
-        // instead, parent should be set correctly
-        assert(mtype.sym.parent);
+        // instead, parent should be set correctly, except for Objective-C
+        // metaclasses which don't have a parent since they're not directly
+        // accessible in the code.
+        assert((mtype.sym.classKind == ClassKind.objc && mtype.sym.objc.isMeta)
+            || mtype.sym.parent !is null);
 
         if (mtype.sym.type.ty == Terror)
             return error();
