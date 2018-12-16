@@ -335,7 +335,7 @@ $(DD Explains the return value of the function.
  * Returns: The contents of the file.
  */
 
-void[] readFile(string filename) { ... }
+void[] readFile(const(char)[] filename) { ... }
 ------------------------------------
 
 $(DT  $(B See$(UNDERSCORE)Also:))
