@@ -45,7 +45,8 @@ shared static this()
         "sqrt": "std.math",
         "writefln": "std.stdio",
         "writeln": "std.stdio",
-        "__va_argsave_t": "core.vararg",
+        "__va_argsave_t": "core.stdc.stdarg",
+        "__va_list_tag": "core.stdc.stdarg",
     ];
 }
 
