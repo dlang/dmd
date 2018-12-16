@@ -2216,19 +2216,43 @@ private void blassertsplit()
         foreach (el; ListRange(bel))
         {
             elem *e = list_elem(el);
-            if (e.Eoper == OPinfo)
+
+            int accumDctor(elem *e)
             {
-                if (e.EV.E1.Eoper == OPdctor)
-                    ++dctor;
-                else if (e.EV.E1.Eoper == OPddtor)
-                    --dctor;
+                while (1)
+                {
+                    if (OTunary(e.Eoper))
+                    {
+                        e = e.EV.E1;
+                        continue;
+                    }
+                    else if (OTbinary(e.Eoper))
+                    {
+                        accumDctor(e.EV.E1);
+                        e = e.EV.E2;
+                        continue;
+                    }
+                    else if (e.Eoper == OPdctor)
+                        ++dctor;
+                    else if (e.Eoper == OPddtor)
+                        --dctor;
+                    break;
+                }
+                return dctor;
             }
+
             if (dctor == 0 &&   // don't split block between a dctor..ddtor pair
                 e.Eoper == OPoror && e.EV.E2.Eoper == OPcall && e.EV.E2.EV.E1.Eoper == OPvar)
             {
                 Symbol *f = e.EV.E2.EV.E1.EV.Vsym;
                 if (f.Sflags & SFLexit)
                 {
+                    if (accumDctor(e.EV.E1))
+                    {
+                        accumDctor(e.EV.E2);
+                        continue;
+                    }
+
                     // Create exit block
                     ++numblks;
                     maxblks += 3;
@@ -2295,6 +2319,7 @@ private void blassertsplit()
                     goto L1;
                 }
             }
+            accumDctor(e);
         }
         b.Belem = bl_delist(list_reverse(bel));
     }
