@@ -212,7 +212,9 @@ bool isNeedThisScope(Scope* sc, Declaration d)
  */
 bool isDotOpDispatch(Expression e)
 {
-    return e.op == TOK.dotTemplateInstance && (cast(DotTemplateInstanceExp)e).ti.name == Id.opDispatch;
+    if (auto dtie = e.isDotTemplateInstanceExp())
+        return dtie.ti.name == Id.opDispatch;
+    return false;
 }
 
 /****************************************
@@ -234,12 +236,10 @@ extern (C++) void expandTuples(Expressions* exps)
                 continue;
 
             // Look for tuple with 0 members
-            if (arg.op == TOK.type)
+            if (auto e = arg.isTypeExp())
             {
-                TypeExp e = cast(TypeExp)arg;
-                if (e.type.toBasetype().ty == Ttuple)
+                if (auto tt = e.type.toBasetype().isTypeTuple())
                 {
-                    TypeTuple tt = cast(TypeTuple)e.type.toBasetype();
                     if (!tt.arguments || tt.arguments.dim == 0)
                     {
                         exps.remove(i);
@@ -367,7 +367,7 @@ Expression valueNoDtor(Expression e)
 {
     auto ex = lastComma(e);
 
-    if (ex.op == TOK.call)
+    if (auto ce = ex.isCallExp())
     {
         /* The struct value returned from the function is transferred
          * so do not call the destructor on it.
@@ -376,19 +376,15 @@ Expression valueNoDtor(Expression e)
          * and make sure the destructor is not called on _ctmp
          * BUG: if ex is a CommaExp, we should go down the right side.
          */
-        CallExp ce = cast(CallExp)ex;
-        if (ce.e1.op == TOK.dotVariable)
+        if (auto dve = ce.e1.isDotVarExp())
         {
-            DotVarExp dve = cast(DotVarExp)ce.e1;
             if (dve.var.isCtorDeclaration())
             {
                 // It's a constructor call
-                if (dve.e1.op == TOK.comma)
+                if (auto comma = dve.e1.isCommaExp())
                 {
-                    CommaExp comma = cast(CommaExp)dve.e1;
-                    if (comma.e2.op == TOK.variable)
+                    if (auto ve = comma.e2.isVarExp())
                     {
-                        VarExp ve = cast(VarExp)comma.e2;
                         VarDeclaration ctmp = ve.var.isVarDeclaration();
                         if (ctmp)
                         {
@@ -400,9 +396,9 @@ Expression valueNoDtor(Expression e)
             }
         }
     }
-    else if (ex.op == TOK.variable)
+    else if (auto ve = ex.isVarExp())
     {
-        auto vtmp = (cast(VarExp)ex).var.isVarDeclaration();
+        auto vtmp = ve.var.isVarDeclaration();
         if (vtmp && (vtmp.storage_class & STC.rvalue))
         {
             vtmp.storage_class |= STC.nodtor;
@@ -420,10 +416,9 @@ Expression valueNoDtor(Expression e)
  */
 private Expression callCpCtor(Scope* sc, Expression e)
 {
-    Type tv = e.type.baseElemOf();
-    if (tv.ty == Tstruct)
+    if (auto ts = e.type.baseElemOf().isTypeStruct())
     {
-        StructDeclaration sd = (cast(TypeStruct)tv).sym;
+        StructDeclaration sd = ts.sym;
         if (sd.postblit)
         {
             /* Create a variable tmp, and replace the argument e with:
@@ -450,9 +445,8 @@ private Expression callCpCtor(Scope* sc, Expression e)
  */
 Expression doCopyOrMove(Scope *sc, Expression e)
 {
-    if (e.op == TOK.question)
+    if (auto ce = e.isCondExp())
     {
-        auto ce = cast(CondExp)e;
         ce.e1 = doCopyOrMove(sc, ce.e1);
         ce.e2 = doCopyOrMove(sc, ce.e2);
     }
@@ -531,6 +525,12 @@ private:
  * Test to see if two reals are the same.
  * Regard NaN's as equivalent.
  * Regard +0 and -0 as different.
+ * Params:
+ *      x1 = first operand
+ *      x2 = second operand
+ * Returns:
+ *      1 if x1 is x2
+ *      else 0
  */
 int RealEquals(real_t x1, real_t x2)
 {
@@ -880,9 +880,9 @@ extern (C++) abstract class Expression : RootObject
             assert(type);
             if (!type.isMutable())
             {
-                if (op == TOK.dotVariable)
+                if (auto dve = this.isDotVarExp())
                 {
-                    if (isNeedThisScope(sc, (cast(DotVarExp) this).var))
+                    if (isNeedThisScope(sc, dve.var))
                         for (Dsymbol s = sc.func; s; s = s.toParent2())
                     {
                         FuncDeclaration ff = s.isFuncDeclaration();
@@ -1343,14 +1343,13 @@ extern (C++) abstract class Expression : RootObject
      */
     extern (D) final bool checkPostblit(Scope* sc, Type t)
     {
-        t = t.baseElemOf();
-        if (t.ty == Tstruct)
+        if (auto ts = t.baseElemOf().isTypeStruct())
         {
             // https://issues.dlang.org/show_bug.cgi?id=11395
             // Require TypeInfo generation for array concatenation
             semanticTypeInfo(sc, t);
 
-            StructDeclaration sd = (cast(TypeStruct)t).sym;
+            StructDeclaration sd = ts.sym;
             if (sd.postblit)
             {
                 if (sd.postblit.checkDisabled(loc, sc))
@@ -1444,9 +1443,9 @@ extern (C++) abstract class Expression : RootObject
         Type att = null;
     Lagain:
         // Structs can be converted to bool using opCast(bool)()
-        if (tb.ty == Tstruct)
+        if (auto ts = tb.isTypeStruct())
         {
-            AggregateDeclaration ad = (cast(TypeStruct)tb).sym;
+            AggregateDeclaration ad = ts.sym;
             /* Don't really need to check for opCast first, but by doing so we
              * get better error messages if it isn't there.
              */
