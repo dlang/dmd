@@ -1170,10 +1170,17 @@ private bool isArray(const Expression e)
     return e.op == TOK.arrayLiteral || e.op == TOK.string_ || e.op == TOK.slice || e.op == TOK.null_;
 }
 
-/* For strings, return <0 if e1 < e2, 0 if e1==e2, >0 if e1 > e2.
+/*****
+ * Params:
+ *      loc = source file location
+ *      e1 = left operand
+ *      e2 = right operand
+ *      identity = true for `is` identity comparisons
+ * Returns:
+ * For strings, return <0 if e1 < e2, 0 if e1==e2, >0 if e1 > e2.
  * For all other types, return 0 if e1 == e2, !=0 if e1 != e2.
  */
-private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2)
+private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2, bool identity = false)
 {
     if (e1.op == TOK.classReference || e2.op == TOK.classReference)
     {
@@ -1254,9 +1261,11 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2)
     {
         real_t r1 = e1.type.isreal() ? e1.toReal() : e1.toImaginary();
         real_t r2 = e1.type.isreal() ? e2.toReal() : e2.toImaginary();
+        if (identity)
+            return !RealEquals(r1, r2);
         if (CTFloat.isNaN(r1) || CTFloat.isNaN(r2)) // if unordered
         {
-            return 1;
+            return 1;   // they are not equal
         }
         else
         {
@@ -1265,7 +1274,13 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2)
     }
     else if (e1.type.iscomplex())
     {
-        return e1.toComplex() != e2.toComplex();
+        auto c1 = e1.toComplex();
+        auto c2 = e2.toComplex();
+        if (identity)
+        {
+            return !RealEquals(c1.re, c2.re) && !RealEquals(c1.im, c2.im);
+        }
+        return c1 != c2;
     }
     if (e1.op == TOK.structLiteral && e2.op == TOK.structLiteral)
     {
@@ -1295,7 +1310,7 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2)
                     continue;
                 if (!ee1 || !ee2)
                     return 1;
-                const int cmp = ctfeRawCmp(loc, ee1, ee2);
+                const int cmp = ctfeRawCmp(loc, ee1, ee2, identity);
                 if (cmp)
                     return 1;
             }
@@ -1321,13 +1336,13 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2)
                 if (used[j])
                     continue;
                 Expression k2 = (*es2.keys)[j];
-                if (ctfeRawCmp(loc, k1, k2))
+                if (ctfeRawCmp(loc, k1, k2, identity))
                     continue;
                 used[j] = true;
                 v2 = (*es2.values)[j];
                 break;
             }
-            if (!v2 || ctfeRawCmp(loc, v1, v2))
+            if (!v2 || ctfeRawCmp(loc, v1, v2, identity))
             {
                 mem.xfree(used);
                 return 1;
@@ -1349,6 +1364,7 @@ int ctfeEqual(const ref Loc loc, TOK op, Expression e1, Expression e2)
 /// Evaluate is, !is.  Resolves slices before comparing. Returns 0 or 1
 int ctfeIdentity(const ref Loc loc, TOK op, Expression e1, Expression e2)
 {
+    //printf("ctfeIdentity %s %s\n", e1.toChars(), e2.toChars());
     //printf("ctfeIdentity op = '%s', e1 = %s %s, e2 = %s %s\n", Token::toChars(op),
     //    Token::toChars(e1.op), e1.toChars(), Token::toChars(e2.op), e1.toChars());
     int cmp;
@@ -1377,7 +1393,9 @@ int ctfeIdentity(const ref Loc loc, TOK op, Expression e1, Expression e2)
         cmp = RealEquals(creall(v1), creall(v2)) && RealEquals(cimagl(v1), cimagl(v1));
     }
     else
-        cmp = !ctfeRawCmp(loc, e1, e2);
+    {
+        cmp = !ctfeRawCmp(loc, e1, e2, true);
+    }
     if (op == TOK.notIdentity || op == TOK.notEqual)
         cmp ^= 1;
     return cmp;

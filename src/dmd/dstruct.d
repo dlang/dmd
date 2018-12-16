@@ -350,6 +350,12 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         //printf("StructDeclaration::finalizeSize() %s, sizeok = %d\n", toChars(), sizeok);
         assert(sizeok != Sizeok.done);
 
+        if (sizeok == Sizeok.inProcess)
+        {
+            return;
+        }
+        sizeok = Sizeok.inProcess;
+
         //printf("+StructDeclaration::finalizeSize() %s, fields.dim = %d, sizeok = %d\n", toChars(), fields.dim, sizeok);
 
         fields.setDim(0);   // workaround
@@ -363,7 +369,10 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             s.setFieldOffset(this, &offset, isunion);
         }
         if (type.ty == Terror)
+        {
+            errors = true;
             return;
+        }
 
         // 0 sized struct's are set to 1 byte
         if (structsize == 0)
