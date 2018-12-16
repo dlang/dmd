@@ -40,7 +40,78 @@ import dmd.tokens;
 import dmd.visitor;
 import dmd.inlinecost;
 
+/***********************************************************
+ * Scan function implementations in Module m looking for functions that can be inlined,
+ * and inline them in situ.
+ *
+ * Params:
+ *    m = module to scan
+ */
+public void inlineScanModule(Module m)
+{
+    if (m.semanticRun != PASS.semantic3done)
+        return;
+    m.semanticRun = PASS.inline;
+
+    // Note that modules get their own scope, from scratch.
+    // This is so regardless of where in the syntax a module
+    // gets imported, it is unaffected by context.
+
+    //printf("Module = %p\n", m.sc.scopesym);
+
+    foreach (i; 0 .. m.members.dim)
+    {
+        Dsymbol s = (*m.members)[i];
+        //if (global.params.verbose)
+        //    message("inline scan symbol %s", s.toChars());
+        scope InlineScanVisitor v = new InlineScanVisitor();
+        s.accept(v);
+    }
+    m.semanticRun = PASS.inlinedone;
+}
+
+/***********************************************************
+ * Perform the "inline copying" of a default argument for a function parameter.
+ *
+ * Todo:
+ *  The hack for bugzilla 4820 case is still questionable. Perhaps would have to
+ *  handle a delegate expression with 'null' context properly in front-end.
+ */
+public Expression inlineCopy(Expression e, Scope* sc)
+{
+    /* See https://issues.dlang.org/show_bug.cgi?id=2935
+     * for explanation of why just a copy() is broken
+     */
+    //return e.copy();
+    if (e.op == TOK.delegate_)
+    {
+        DelegateExp de = cast(DelegateExp)e;
+        if (de.func.isNested())
+        {
+            /* https://issues.dlang.org/show_bug.cgi?id=4820
+             * Defer checking until later if we actually need the 'this' pointer
+             */
+            return de.copy();
+        }
+    }
+    int cost = inlineCostExpression(e);
+    if (cost >= COST_MAX)
+    {
+        e.error("cannot inline default argument `%s`", e.toChars());
+        return new ErrorExp();
+    }
+    scope ids = new InlineDoState(sc.parent, null);
+    return doInlineAs!Expression(e, ids);
+}
+
+
+
+
+
+
 private:
+
+
 
 enum LOG = false;
 enum CANINLINE_LOG = false;
@@ -56,7 +127,7 @@ enum EXPANDINLINE_LOG = false;
  *  The best would be to return a pair of result Expression and a bool value as foundReturn
  *  from doInlineAs function.
  */
-final class InlineDoState
+private final class InlineDoState
 {
     // inline context
     VarDeclaration vthis;
@@ -777,7 +848,7 @@ public:
 }
 
 /// ditto
-Result doInlineAs(Result)(Statement s, InlineDoState ids)
+private Result doInlineAs(Result)(Statement s, InlineDoState ids)
 {
     if (!s)
         return null;
@@ -788,7 +859,7 @@ Result doInlineAs(Result)(Statement s, InlineDoState ids)
 }
 
 /// ditto
-Result doInlineAs(Result)(Expression e, InlineDoState ids)
+private Result doInlineAs(Result)(Expression e, InlineDoState ids)
 {
     if (!e)
         return null;
@@ -1484,7 +1555,7 @@ public:
  *    no longer accepts calls of contextful function without valid 'this'.
  *  - Would be able to eliminate `hdrscan` parameter, because it's always false.
  */
-bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsToo)
+private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsToo)
 {
     int cost;
 
@@ -1704,36 +1775,6 @@ Lno:
         printf("\t2: no %s\n", fd.toChars());
     }
     return false;
-}
-
-/***********************************************************
- * Scan function implementations in Module m looking for functions that can be inlined,
- * and inline them in situ.
- *
- * Params:
- *    m = module to scan
- */
-public void inlineScanModule(Module m)
-{
-    if (m.semanticRun != PASS.semantic3done)
-        return;
-    m.semanticRun = PASS.inline;
-
-    // Note that modules get their own scope, from scratch.
-    // This is so regardless of where in the syntax a module
-    // gets imported, it is unaffected by context.
-
-    //printf("Module = %p\n", m.sc.scopesym);
-
-    foreach (i; 0 .. m.members.dim)
-    {
-        Dsymbol s = (*m.members)[i];
-        //if (global.params.verbose)
-        //    message("inline scan symbol %s", s.toChars());
-        scope InlineScanVisitor v = new InlineScanVisitor();
-        s.accept(v);
-    }
-    m.semanticRun = PASS.inlinedone;
 }
 
 /***********************************************************
@@ -2083,40 +2124,6 @@ private bool isConstruction(Expression e)
 
 
 /***********************************************************
- * Perform the "inline copying" of a default argument for a function parameter.
- *
- * Todo:
- *  The hack for bugzilla 4820 case is still questionable. Perhaps would have to
- *  handle a delegate expression with 'null' context properly in front-end.
- */
-public Expression inlineCopy(Expression e, Scope* sc)
-{
-    /* See https://issues.dlang.org/show_bug.cgi?id=2935
-     * for explanation of why just a copy() is broken
-     */
-    //return e.copy();
-    if (e.op == TOK.delegate_)
-    {
-        DelegateExp de = cast(DelegateExp)e;
-        if (de.func.isNested())
-        {
-            /* https://issues.dlang.org/show_bug.cgi?id=4820
-             * Defer checking until later if we actually need the 'this' pointer
-             */
-            return de.copy();
-        }
-    }
-    int cost = inlineCostExpression(e);
-    if (cost >= COST_MAX)
-    {
-        e.error("cannot inline default argument `%s`", e.toChars());
-        return new ErrorExp();
-    }
-    scope ids = new InlineDoState(sc.parent, null);
-    return doInlineAs!Expression(e, ids);
-}
-
-/***********************************************************
  * Determine if v is 'head const', meaning
  * that once it is initialized it is not changed
  * again.
@@ -2140,7 +2147,7 @@ public Expression inlineCopy(Expression e, Scope* sc)
  * Returns:
  *      true if v's initializer is the only value assigned to v
  */
-bool onlyOneAssign(VarDeclaration v, FuncDeclaration fd)
+private bool onlyOneAssign(VarDeclaration v, FuncDeclaration fd)
 {
     if (!v.type.isMutable())
         return true;            // currently the only case handled atm
