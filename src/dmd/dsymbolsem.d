@@ -3895,7 +3895,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         ctd.deprecation("all parameters have default arguments, "~
                                     "but structs cannot have default constructors.");
                 }
-                else if (dim == 1 && ctd.ident != Id.copyCtor)
+                else if ((dim == 1 || (dim > 1 && tf.parameterList[1].defaultArg)) &&
+                        ctd.ident != Id.copyCtor)
                 {
                     //printf("tf: %s\n", tf.toChars());
                     auto param = Parameter.getNth(tf.parameterList, 0);
