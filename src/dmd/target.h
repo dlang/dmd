@@ -65,7 +65,7 @@ struct Target
     typedef FPTypeProperties<double> DoubleProperties;
     typedef FPTypeProperties<real_t> RealProperties;
 
-    static void _init();
+    static void _init(const Param& params);
     // Type sizes and support.
     static unsigned alignsize(Type *type);
     static unsigned fieldalign(Type *type);

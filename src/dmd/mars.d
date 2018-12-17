@@ -462,7 +462,7 @@ private int tryMain(size_t argc, const(char)** argv)
     Type._init();
     Id.initialize();
     Module._init();
-    Target._init();
+    Target._init(global.params);
     Expression._init();
     Objc._init();
     builtin_init();
