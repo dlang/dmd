@@ -51,6 +51,34 @@ import dmd.statement;
 import dmd.tokens;
 import dmd.visitor;
 
+/***************************************
+ * Calls dg(Dsymbol *sym) for each Dsymbol.
+ * If dg returns !=0, stops and returns that value else returns 0.
+ * Params:
+ *    symbols = Dsymbols
+ *    dg = delegate to call for each Dsymbol
+ * Returns:
+ *    last value returned by dg()
+ */
+int foreachDsymbol(Dsymbols* symbols, scope int delegate(Dsymbol) dg)
+{
+    assert(dg);
+    if (symbols)
+    {
+        /* Do not use foreach, as the size of the array may expand during iteration
+         */
+        for (size_t i = 0; i < symbols.dim; ++i)
+        {
+            Dsymbol s = (*symbols)[i];
+            const result = dg(s);
+            if (result)
+                return result;
+        }
+    }
+    return 0;
+}
+
+
 struct Ungag
 {
     uint oldgag;
