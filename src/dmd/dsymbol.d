@@ -78,6 +78,27 @@ int foreachDsymbol(Dsymbols* symbols, scope int delegate(Dsymbol) dg)
     return 0;
 }
 
+/***************************************
+ * Calls dg(Dsymbol *sym) for each Dsymbol.
+ * Params:
+ *    symbols = Dsymbols
+ *    dg = delegate to call for each Dsymbol
+ */
+void foreachDsymbol(Dsymbols* symbols, scope void delegate(Dsymbol) dg)
+{
+    assert(dg);
+    if (symbols)
+    {
+        /* Do not use foreach, as the size of the array may expand during iteration
+         */
+        for (size_t i = 0; i < symbols.dim; ++i)
+        {
+            Dsymbol s = (*symbols)[i];
+            dg(s);
+        }
+    }
+}
+
 
 struct Ungag
 {

@@ -350,23 +350,21 @@ private FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
 
 private uint setMangleOverride(Dsymbol s, const(char)[] sym)
 {
-    AttribDeclaration ad = s.isAttribDeclaration();
-    if (ad)
-    {
-        Dsymbols* decls = ad.include(null);
-        uint nestedCount = 0;
-        if (decls && decls.dim)
-            for (size_t i = 0; i < decls.dim; ++i)
-                nestedCount += setMangleOverride((*decls)[i], sym);
-        return nestedCount;
-    }
-    else if (s.isFuncDeclaration() || s.isVarDeclaration())
+    if (s.isFuncDeclaration() || s.isVarDeclaration())
     {
         s.isDeclaration().mangleOverride = sym;
         return 1;
     }
-    else
-        return 0;
+
+    if (auto ad = s.isAttribDeclaration())
+    {
+        uint nestedCount = 0;
+
+        ad.include(null).foreachDsymbol( (s) { nestedCount += setMangleOverride(s, sym); } );
+
+        return nestedCount;
+    }
+    return 0;
 }
 
 /*************************************

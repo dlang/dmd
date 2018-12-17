@@ -7428,21 +7428,12 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
     extern (D) final void expandMembers(Scope* sc2)
     {
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            s.setScope(sc2);
-        }
+        members.foreachDsymbol( (s) { s.setScope (sc2); } );
 
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            s.importAll(sc2);
-        }
+        members.foreachDsymbol( (s) { s.importAll(sc2); } );
 
-        for (size_t i = 0; i < members.dim; i++)
+        void symbolDg(Dsymbol s)
         {
-            Dsymbol s = (*members)[i];
             //printf("\t[%d] semantic on '%s' %p kind %s in '%s'\n", i, s.toChars(), s, s.kind(), this.toChars());
             //printf("test: enclosing = %d, sc2.parent = %s\n", enclosing, sc2.parent.toChars());
             //if (enclosing)
@@ -7452,6 +7443,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             //printf("test4: enclosing = %d, s.parent = %s\n", enclosing, s.parent.toChars());
             Module.runDeferredSemantic();
         }
+
+        members.foreachDsymbol(&symbolDg);
     }
 
     extern (D) final void tryExpandMembers(Scope* sc2)
@@ -7659,37 +7652,14 @@ extern (C++) final class TemplateMixin : TemplateInstance
     {
         if (_scope) // if fwd reference
             dsymbolSemantic(this, null); // try to resolve it
-        if (members)
-        {
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                Dsymbol s = (*members)[i];
-                if (s)
-                {
-                    if (s.apply(fp, param))
-                        return 1;
-                }
-            }
-        }
-        return 0;
+
+        return members.foreachDsymbol( (s) { return s && s.apply(fp, param); } );
     }
 
     override bool hasPointers()
     {
         //printf("TemplateMixin.hasPointers() %s\n", toChars());
-        if (members)
-        {
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                Dsymbol s = (*members)[i];
-                //printf(" s = %s %s\n", s.kind(), s.toChars());
-                if (s.hasPointers())
-                {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return members.foreachDsymbol( (s) { return s.hasPointers(); } ) != 0;
     }
 
     override void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
@@ -7697,15 +7667,8 @@ extern (C++) final class TemplateMixin : TemplateInstance
         //printf("TemplateMixin.setFieldOffset() %s\n", toChars());
         if (_scope) // if fwd reference
             dsymbolSemantic(this, null); // try to resolve it
-        if (members)
-        {
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                Dsymbol s = (*members)[i];
-                //printf("\t%s\n", s.toChars());
-                s.setFieldOffset(ad, poffset, isunion);
-            }
-        }
+
+        members.foreachDsymbol( (s) { s.setFieldOffset(ad, poffset, isunion); } );
     }
 
     override const(char)* toChars()
