@@ -2157,7 +2157,7 @@ private void endMarkdownHeading(OutBuffer* buf, size_t iStart, ref size_t iEnd, 
         message(loc, "Ddoc: added heading '%.*s'", s.length, s.ptr);
     }
 
-    static char[5] heading = "$(H0 ";
+    char[5] heading = "$(H0 ";
     heading[3] = cast(char) ('0' + headingLevel);
     buf.insert(iStart, heading);
     iEnd += 5;
