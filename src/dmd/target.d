@@ -105,7 +105,7 @@ struct Target
     /**
      * Initialize the Target
      */
-    extern (C++) static void _init()
+    extern (C++) static void _init(ref const Param params)
     {
         FloatProperties._init();
         DoubleProperties._init();
@@ -124,12 +124,12 @@ struct Target
          */
         maxStaticDataSize = int.max;
 
-        if (global.params.isLP64)
+        if (params.isLP64)
         {
             ptrsize = 8;
             classinfosize = 0x98; // 152
         }
-        if (global.params.isLinux || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isDragonFlyBSD || global.params.isSolaris)
+        if (params.isLinux || params.isFreeBSD || params.isOpenBSD || params.isDragonFlyBSD || params.isSolaris)
         {
             realsize = 12;
             realpad = 2;
@@ -137,7 +137,7 @@ struct Target
             c_longsize = 4;
             twoDtorInVtable = true;
         }
-        else if (global.params.isOSX)
+        else if (params.isOSX)
         {
             realsize = 16;
             realpad = 6;
@@ -145,7 +145,7 @@ struct Target
             c_longsize = 4;
             twoDtorInVtable = true;
         }
-        else if (global.params.isWindows)
+        else if (params.isWindows)
         {
             realsize = 10;
             realpad = 0;
@@ -163,26 +163,26 @@ struct Target
         }
         else
             assert(0);
-        if (global.params.is64bit)
+        if (params.is64bit)
         {
-            if (global.params.isLinux || global.params.isFreeBSD || global.params.isDragonFlyBSD || global.params.isSolaris)
+            if (params.isLinux || params.isFreeBSD || params.isDragonFlyBSD || params.isSolaris)
             {
                 realsize = 16;
                 realpad = 6;
                 realalignsize = 16;
                 c_longsize = 8;
             }
-            else if (global.params.isOSX)
+            else if (params.isOSX)
             {
                 c_longsize = 8;
             }
         }
         c_long_doublesize = realsize;
-        if (global.params.is64bit && global.params.isWindows)
+        if (params.is64bit && params.isWindows)
             c_long_doublesize = 8;
 
-        cppExceptions = global.params.isLinux || global.params.isFreeBSD ||
-            global.params.isDragonFlyBSD || global.params.isOSX;
+        cppExceptions = params.isLinux || params.isFreeBSD ||
+            params.isDragonFlyBSD || params.isOSX;
     }
 
     /**
