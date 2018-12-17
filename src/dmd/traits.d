@@ -1698,7 +1698,7 @@ Lnext:
         {
             bool[void*] uniqueUnitTests;
 
-            int symbolDg(Dsymbol s)
+            void symbolDg(Dsymbol s)
             {
                 if (auto ad = s.isAttribDeclaration())
                 {
@@ -1707,7 +1707,7 @@ Lnext:
                 else if (auto ud = s.isUnitTestDeclaration())
                 {
                     if (cast(void*)ud in uniqueUnitTests)
-                        return 0;
+                        return;
 
                     uniqueUnitTests[cast(void*)ud] = true;
 
@@ -1717,7 +1717,6 @@ Lnext:
                     auto e = new DsymbolExp(Loc.initial, ad, false);
                     exps.push(e);
                 }
-                return 0;
             }
 
             sds.members.foreachDsymbol(&symbolDg);

@@ -341,14 +341,10 @@ void toObjFile(Dsymbol ds, bool multiobj)
             enum_SC scclass = SCcomdat;
 
             // Put out the members
-            for (size_t i = 0; i < cd.members.dim; i++)
-            {
-                Dsymbol member = (*cd.members)[i];
-                /* There might be static ctors in the members, and they cannot
-                 * be put in separate obj files.
-                 */
-                member.accept(this);
-            }
+            /* There might be static ctors in the members, and they cannot
+             * be put in separate obj files.
+             */
+            cd.members.foreachDsymbol( (s) { s.accept(this); } );
 
             // If something goes wrong during this pass don't bother with the
             // rest as we may have incomplete info
@@ -447,11 +443,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 toDebug(id);
 
             // Put out the members
-            for (size_t i = 0; i < id.members.dim; i++)
-            {
-                Dsymbol member = (*id.members)[i];
-                visitNoMultiObj(member);
-            }
+            id.members.foreachDsymbol( (s) { visitNoMultiObj(s); } );
 
             // Generate C symbols
             toSymbol(id);
@@ -517,14 +509,10 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 outdata(sd.sinit);
 
                 // Put out the members
-                for (size_t i = 0; i < sd.members.dim; i++)
-                {
-                    Dsymbol member = (*sd.members)[i];
-                    /* There might be static ctors in the members, and they cannot
-                     * be put in separate obj files.
-                     */
-                    member.accept(this);
-                }
+                /* There might be static ctors in the members, and they cannot
+                 * be put in separate obj files.
+                 */
+                sd.members.foreachDsymbol( (s) { s.accept(this); } );
 
                 if (sd.xeq && sd.xeq != StructDeclaration.xerreq)
                     sd.xeq.accept(this);
@@ -840,11 +828,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 }
                 else
                 {
-                    for (size_t i = 0; i < ti.members.dim; i++)
-                    {
-                        Dsymbol s = (*ti.members)[i];
-                        s.accept(this);
-                    }
+                    ti.members.foreachDsymbol( (s) { s.accept(this); } );
                 }
             }
         }
@@ -852,13 +836,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
         override void visit(TemplateMixin tm)
         {
             //printf("TemplateMixin.toObjFile('%s')\n", tm.toChars());
-            if (!isError(tm) && tm.members)
+            if (!isError(tm))
             {
-                for (size_t i = 0; i < tm.members.dim; i++)
-                {
-                    Dsymbol s = (*tm.members)[i];
-                    s.accept(this);
-                }
+                tm.members.foreachDsymbol( (s) { s.accept(this); } );
             }
         }
 
@@ -878,11 +858,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 }
                 else
                 {
-                    for (size_t i = 0; i < ns.members.dim; i++)
-                    {
-                        Dsymbol s = (*ns.members)[i];
-                        s.accept(this);
-                    }
+                    ns.members.foreachDsymbol( (s) { s.accept(this); } );
                 }
             }
         }
