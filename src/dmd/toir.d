@@ -1127,7 +1127,10 @@ void buildCapture(FuncDeclaration fd)
             Symbol *vsym = toSymbol(v);
 
             /* Add variable as capture type member */
-            symbol_struct_addField(capturestru.Ttag, &vsym.Sident[0], vsym.Stype, cast(uint)vsym.Soffset);
+            auto soffset = vsym.Soffset;
+            if (fd.vthis)
+                soffset -= toSymbol(fd.vthis).Soffset; // see toElem.ToElemVisitor.visit(SymbolExp)
+            symbol_struct_addField(capturestru.Ttag, &vsym.Sident[0], vsym.Stype, cast(uint)soffset);
             //printf("capture field %s: offset: %i\n", &vsym.Sident[0], v.offset);
         }
 
