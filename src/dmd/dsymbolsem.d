@@ -352,7 +352,8 @@ private CtorDeclaration generateCopyCtorDeclaration(StructDeclaration sd, const 
     auto fparams = new Parameters();
     auto structType = sd.type;
     fparams.push(new Parameter(paramStc | STC.ref_, structType, Id.p, null, null));
-    auto tf = new TypeFunction(fparams, structType, 0, LINK.d, STC.ref_);
+    ParameterList pList = ParameterList(fparams);
+    auto tf = new TypeFunction(pList, structType, LINK.d, STC.ref_);
     auto ccd = new CtorDeclaration(sd.loc, Loc.initial, STC.ref_, tf, true);
     ccd.storage_class |= funcStc;
     ccd.storage_class |= STC.inference;
@@ -395,6 +396,8 @@ private CtorDeclaration buildCopyCtor(StructDeclaration sd, Scope* sc)
         return null;
 
     Dsymbol s = sd.search(sd.loc, Id.copyCtor);
+    if (s)
+        return s.isCopyCtorDeclaration();
     bool[ModBits] copyCtorTable;      // hashtable used to store what copy constructors should be generated
     // see if any struct members define a copy constructor
     foreach (v; sd.fields)
@@ -415,7 +418,7 @@ private CtorDeclaration buildCopyCtor(StructDeclaration sd, Scope* sc)
                 auto ccd = s.isCopyCtorDeclaration();
                 assert(ccd);
                 TypeFunction tf = ccd.type.toTypeFunction();
-                Parameter param = Parameter.getNth(tf.parameters, 0);
+                Parameter param = Parameter.getNth(tf.parameterList, 0);
                 assert(param);
                 ModBits key = createModKey(param.type.mod, tf.mod);
                 if (key in sd.copyCtorTypes)        // we have a user defined copy constructor for this combination
@@ -3895,7 +3898,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 else if (dim == 1 && ctd.ident != Id.copyCtor)
                 {
                     //printf("tf: %s\n", tf.toChars());
-                    auto param = Parameter.getNth(tf.parameters, 0);
+                    auto param = Parameter.getNth(tf.parameterList, 0);
                     if (param.storageClass & STC.ref_ && param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
                     {
                         //printf("copy constructor\n");
