@@ -42,7 +42,9 @@ void main(string[] args)
         S18984 s = test18984(session, globals);
 
         test19307(session, globals);
-        
+      
+        test19318(session, globals);
+
         source.Release();
         session.Release();
         globals.Release();
@@ -219,16 +221,47 @@ void test19307(IDiaSession session, IDiaSymbol globals)
 // variables captured from outer functions not visible in debugger
 int foo19318(int z) @nogc
 {
-	int x = 7;
-	auto nested() scope
-	{
-		int nested2()
-		{
-			return x + z;
-		}
-		return nested2();
-	}
-	return nested();
+    int x = 7;
+    auto nested() scope
+    {
+        int nested2()
+        {
+            return x + z;
+        }
+        return nested2();
+    }
+    return nested();
+}
+
+__gshared void* C19318_capture;
+__gshared void* C19318_px;
+
+class C19318
+{
+    void foo()
+    {
+        int x = 0;
+        auto bar()
+        {
+            int y = 0;
+            x++;
+            C19318_px = &x;
+            y++;
+            version(D_InlineAsm_X86_64)
+                asm
+                {
+                    mov RAX,__capture;
+                    mov C19318_capture, RAX;
+                }
+            else version(D_InlineAsm_X86)
+                asm
+                {
+                    mov EAX,__capture;
+                    mov C19318_capture, EAX;
+                }
+        }
+        bar();
+    }
 }
 
 void test19318(IDiaSession session, IDiaSymbol globals)
@@ -240,6 +273,12 @@ void test19318(IDiaSession session, IDiaSymbol globals)
     testClosureVar(globals, "testpdb.foo19318.nested", "__capture", "z");
     testClosureVar(globals, "testpdb.foo19318.nested.nested2", "__capture", "x");
     testClosureVar(globals, "testpdb.foo19318.nested.nested2", "__capture", "z");
+
+    (new C19318).foo();
+    auto sym = testClosureVar(globals, "testpdb.C19318.foo.bar", "__capture", "x");
+    int off;
+    sym.get_offset(&off);
+    assert(off == C19318_px - C19318_capture);
 }
 
 ///////////////////////////////////////////////
