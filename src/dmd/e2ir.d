@@ -5132,10 +5132,9 @@ elem *toElem(Expression e, IRState *irs)
         {
             elem *e = null;
 
-            int symbolDg(Dsymbol s)
+            void symbolDg(Dsymbol s)
             {
                 e = el_combine(e, Dsymbol_toElem(s));
-                return 0;
             }
 
             //printf("Dsymbol_toElem() %s\n", s.toChars());

@@ -2214,10 +2214,9 @@ private bool argNeedsDtor(Expression arg)
              * perhaps they can be combined.
              */
 
-            int symbolDg(Dsymbol s)
+            void symbolDg(Dsymbol s)
             {
                 Dsymbol_needsDtor(s);
-                return 0;
             }
 
             if (auto vd = s.isVarDeclaration())
