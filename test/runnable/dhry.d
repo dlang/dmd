@@ -868,7 +868,7 @@ Boolean Func_3 (Enumeration Enum_Par_Val)
 
 version (Windows)
 {
-    import core.sys.windows.windows;
+    import core.sys.windows.winbase;
 
     double dtime()
     {

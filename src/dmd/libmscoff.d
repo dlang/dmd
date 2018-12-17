@@ -20,7 +20,6 @@ import core.stdc.time;
 import core.stdc.stdio;
 import core.stdc.string;
 
-import core.sys.windows.windows;
 import core.sys.windows.stat;
 
 import dmd.globals;

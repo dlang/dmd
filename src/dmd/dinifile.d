@@ -16,7 +16,8 @@ module dmd.dinifile;
 import core.stdc.ctype;
 import core.stdc.string;
 import core.sys.posix.stdlib;
-import core.sys.windows.windows;
+import core.sys.windows.winbase;
+import core.sys.windows.windef;
 
 import dmd.errors;
 import dmd.globals;

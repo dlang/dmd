@@ -46,7 +46,9 @@ struct Console
 {
     version (Windows)
     {
-        import core.sys.windows.windows;
+        import core.sys.windows.winbase;
+        import core.sys.windows.wincon;
+        import core.sys.windows.windef;
 
       private:
         CONSOLE_SCREEN_BUFFER_INFO sbi;
