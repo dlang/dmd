@@ -359,7 +359,8 @@ extern (C++) final class ToClassesVisitor : Visitor
                 else
                 {
                     assert(foffset % 8 == 0 ||
-                        fEightbyteEnd - fEightbyteStart <= 1,
+                        fEightbyteEnd - fEightbyteStart <= 1 ||
+                        !global.params.isLP64,
                         "Field not aligned at eightbyte boundary but contributing to multiple eightbytes?"
                     );
                     foreach (i, fclass; classify(ftype, fsize).slice())
