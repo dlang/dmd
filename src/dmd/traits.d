@@ -1698,34 +1698,29 @@ Lnext:
         {
             bool[void*] uniqueUnitTests;
 
-            void collectUnitTests(Dsymbols* a)
+            int symbolDg(Dsymbol s)
             {
-                if (!a)
-                    return;
-                foreach (s; *a)
+                if (auto ad = s.isAttribDeclaration())
                 {
-                    if (auto atd = s.isAttribDeclaration())
-                    {
-                        collectUnitTests(atd.include(null));
-                        continue;
-                    }
-                    if (auto ud = s.isUnitTestDeclaration())
-                    {
-                        if (cast(void*)ud in uniqueUnitTests)
-                            continue;
-
-                        auto ad = new FuncAliasDeclaration(ud.ident, ud, false);
-                        ad.protection = ud.protection;
-
-                        auto e = new DsymbolExp(Loc.initial, ad, false);
-                        exps.push(e);
-
-                        uniqueUnitTests[cast(void*)ud] = true;
-                    }
+                    ad.include(null).foreachDsymbol(&symbolDg);
                 }
+                else if (auto ud = s.isUnitTestDeclaration())
+                {
+                    if (cast(void*)ud in uniqueUnitTests)
+                        return 0;
+
+                    uniqueUnitTests[cast(void*)ud] = true;
+
+                    auto ad = new FuncAliasDeclaration(ud.ident, ud, false);
+                    ad.protection = ud.protection;
+
+                    auto e = new DsymbolExp(Loc.initial, ad, false);
+                    exps.push(e);
+                }
+                return 0;
             }
 
-            collectUnitTests(sds.members);
+            sds.members.foreachDsymbol(&symbolDg);
         }
         auto te = new TupleExp(e.loc, exps);
         return te.expressionSemantic(sc);
