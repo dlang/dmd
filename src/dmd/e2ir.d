@@ -5132,19 +5132,14 @@ elem *toElem(Expression e, IRState *irs)
         {
             elem *e = null;
 
-            //printf("Dsymbol_toElem() %s\n", s.toChars());
-            if (AttribDeclaration ad = s.isAttribDeclaration())
+            int symbolDg(Dsymbol s)
             {
-                Dsymbols *decl = ad.include(null);
-                if (decl)
-                {
-                    foreach (d; *decl)
-                    {
-                        e = el_combine(e, Dsymbol_toElem(d));
-                    }
-                }
+                e = el_combine(e, Dsymbol_toElem(s));
+                return 0;
             }
-            else if (VarDeclaration vd = s.isVarDeclaration())
+
+            //printf("Dsymbol_toElem() %s\n", s.toChars());
+            if (auto vd = s.isVarDeclaration())
             {
                 s = s.toAlias();
                 if (s != vd)
@@ -5160,10 +5155,7 @@ elem *toElem(Expression e, IRState *irs)
                     //printf("\tadding symbol '%s'\n", sp.Sident);
                     if (vd._init)
                     {
-                        ExpInitializer ie;
-
-                        ie = vd._init.isExpInitializer();
-                        if (ie)
+                        if (auto ie = vd._init.isExpInitializer())
                             e = toElem(ie.exp, irs);
                     }
 
@@ -5188,31 +5180,29 @@ elem *toElem(Expression e, IRState *irs)
                     }
                 }
             }
-            else if (ClassDeclaration cd = s.isClassDeclaration())
+            else if (auto cd = s.isClassDeclaration())
             {
                 irs.deferToObj.push(s);
             }
-            else if (StructDeclaration sd = s.isStructDeclaration())
+            else if (auto sd = s.isStructDeclaration())
             {
                 irs.deferToObj.push(sd);
             }
-            else if (FuncDeclaration fd = s.isFuncDeclaration())
+            else if (auto fd = s.isFuncDeclaration())
             {
                 //printf("function %s\n", fd.toChars());
                 irs.deferToObj.push(fd);
             }
-            else if (TemplateMixin tm = s.isTemplateMixin())
+            else if (auto ad = s.isAttribDeclaration())
+            {
+                ad.include(null).foreachDsymbol(&symbolDg);
+            }
+            else if (auto tm = s.isTemplateMixin())
             {
                 //printf("%s\n", tm.toChars());
-                if (tm.members)
-                {
-                    foreach (sm; *tm.members)
-                    {
-                        e = el_combine(e, Dsymbol_toElem(sm));
-                    }
-                }
+                tm.members.foreachDsymbol(&symbolDg);
             }
-            else if (TupleDeclaration td = s.isTupleDeclaration())
+            else if (auto td = s.isTupleDeclaration())
             {
                 foreach (o; *td.objects)
                 {
@@ -5225,11 +5215,11 @@ elem *toElem(Expression e, IRState *irs)
                     }
                 }
             }
-            else if (EnumDeclaration ed = s.isEnumDeclaration())
+            else if (auto ed = s.isEnumDeclaration())
             {
                 irs.deferToObj.push(ed);
             }
-            else if (TemplateInstance ti = s.isTemplateInstance())
+            else if (auto ti = s.isTemplateInstance())
             {
                 irs.deferToObj.push(ti);
             }

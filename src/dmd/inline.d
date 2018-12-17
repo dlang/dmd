@@ -2213,6 +2213,13 @@ private bool argNeedsDtor(Expression arg)
             /* This mirrors logic of Dsymbol_toElem() in e2ir.d
              * perhaps they can be combined.
              */
+
+            int symbolDg(Dsymbol s)
+            {
+                Dsymbol_needsDtor(s);
+                return 0;
+            }
+
             if (auto vd = s.isVarDeclaration())
             {
                 s = s.toAlias();
@@ -2225,18 +2232,15 @@ private bool argNeedsDtor(Expression arg)
                     stop = true;
                 }
             }
-            else if (TemplateMixin tm = s.isTemplateMixin())
+            else if (auto tm = s.isTemplateMixin())
             {
-                //printf("%s\n", tm.toChars());
-                if (tm.members)
-                {
-                    foreach (sm; *tm.members)
-                    {
-                        Dsymbol_needsDtor(sm);
-                    }
-                }
+                tm.members.foreachDsymbol(&symbolDg);
             }
-            else if (TupleDeclaration td = s.isTupleDeclaration())
+            else if (auto ad = s.isAttribDeclaration())
+            {
+                ad.include(null).foreachDsymbol(&symbolDg);
+            }
+            else if (auto td = s.isTupleDeclaration())
             {
                 foreach (o; *td.objects)
                 {
@@ -2250,17 +2254,6 @@ private bool argNeedsDtor(Expression arg)
                             DsymbolExp se = cast(DsymbolExp)eo;
                             Dsymbol_needsDtor(se.s);
                         }
-                    }
-                }
-            }
-            else if (AttribDeclaration ad = s.isAttribDeclaration())
-            {
-                Dsymbols *decl = ad.include(null);
-                if (decl)
-                {
-                    foreach (d; *decl)
-                    {
-                        Dsymbol_needsDtor(d);
                     }
                 }
             }
