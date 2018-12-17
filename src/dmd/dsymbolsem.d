@@ -1966,15 +1966,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             Scope.createGlobal(m); // create root scope
         }
+
         //printf("Module = %p, linkage = %d\n", sc.scopesym, sc.linkage);
         // Pass 1 semantic routines: do public side of the definition
-        for (size_t i = 0; i < m.members.dim; i++)
+        m.members.foreachDsymbol( (s)
         {
-            Dsymbol s = (*m.members)[i];
             //printf("\tModule('%s'): '%s'.dsymbolSemantic()\n", toChars(), s.toChars());
             s.dsymbolSemantic(sc);
             m.runDeferredSemantic();
-        }
+        });
+
         if (m.userAttribDecl)
         {
             m.userAttribDecl.dsymbolSemantic(sc);
@@ -2072,14 +2073,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (ed.memtype.ty == Terror)
             {
                 ed.errors = true;
-                if (ed.members)
-                {
-                    for (size_t i = 0; i < ed.members.dim; i++)
-                    {
-                        Dsymbol s = (*ed.members)[i];
-                        s.errors = true; // poison all the members
-                    }
-                }
+                // poison all the members
+                ed.members.foreachDsymbol( (s) { s.errors = true; } );
                 ed.semanticRun = PASS.semanticdone;
                 return;
             }
@@ -2112,12 +2107,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         /* Each enum member gets the sce scope
          */
-        for (size_t i = 0; i < ed.members.dim; i++)
+        ed.members.foreachDsymbol( (s)
         {
-            EnumMember em = (*ed.members)[i].isEnumMember();
+            EnumMember em = s.isEnumMember();
             if (em)
                 em._scope = sce;
-        }
+        });
 
         if (!ed.added)
         {
@@ -2148,23 +2143,23 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 scopesym = ed;
             }
 
-            for (size_t i = 0; i < ed.members.dim; i++)
+            ed.members.foreachDsymbol( (s)
             {
-                EnumMember em = (*ed.members)[i].isEnumMember();
+                EnumMember em = s.isEnumMember();
                 if (em)
                 {
                     em.ed = ed;
                     em.addMember(sc, scopesym);
                 }
-            }
+            });
         }
 
-        for (size_t i = 0; i < ed.members.dim; i++)
+        ed.members.foreachDsymbol( (s)
         {
-            EnumMember em = (*ed.members)[i].isEnumMember();
+            EnumMember em = s.isEnumMember();
             if (em)
                 em.dsymbolSemantic(em._scope);
-        }
+        });
         //printf("defaultval = %lld\n", defaultval);
 
         //if (defaultval) printf("defaultval: %s %s\n", defaultval.toChars(), defaultval.type.toChars());
@@ -2250,11 +2245,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                      * with the first member. If the following members were referenced
                      * during the first member semantic, their types should be unified.
                      */
-                    for (size_t i = 0; i < em.ed.members.dim; i++)
+                    em.ed.members.foreachDsymbol( (s)
                     {
-                        EnumMember enm = (*em.ed.members)[i].isEnumMember();
+                        EnumMember enm = s.isEnumMember();
                         if (!enm || enm == em || enm.semanticRun < PASS.semanticdone || enm.origType)
-                            continue;
+                            return;
 
                         //printf("[%d] em = %s, em.semanticRun = %d\n", i, toChars(), em.semanticRun);
                         Expression ev = enm.value;
@@ -2264,7 +2259,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         if (ev.op == TOK.error)
                             em.ed.errors = true;
                         enm.value = ev;
-                    }
+                    });
+
                     if (em.ed.errors)
                     {
                         em.ed.memtype = Type.terror;
@@ -2328,16 +2324,17 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
              * and set this to be the previous value + 1
              */
             EnumMember emprev = null;
-            for (size_t i = 0; i < em.ed.members.dim; i++)
+            em.ed.members.foreachDsymbol( (s)
             {
-                EnumMember enm = (*em.ed.members)[i].isEnumMember();
-                if (enm)
+                if (auto enm = s.isEnumMember())
                 {
                     if (enm == em)
-                        break;
+                        return 1;       // found
                     emprev = enm;
                 }
-            }
+                return 0;       // continue
+            });
+
             assert(emprev);
             if (emprev.semanticRun < PASS.semanticdone) // if forward reference
                 emprev.dsymbolSemantic(emprev._scope); // resolve it
@@ -2710,13 +2707,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         tm.declareParameters(argscope);
 
         // Add members to enclosing scope, as well as this scope
-        for (size_t i = 0; i < tm.members.dim; i++)
-        {
-            Dsymbol s = (*tm.members)[i];
-            s.addMember(argscope, tm);
-            //printf("sc.parent = %p, sc.scopesym = %p\n", sc.parent, sc.scopesym);
-            //printf("s.parent = %s\n", s.parent.toChars());
-        }
+        tm.members.foreachDsymbol(s => s.addMember(argscope, tm));
 
         // Do semantic() analysis on template instance members
         static if (LOG)
@@ -2735,23 +2726,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             fatal();
         }
 
-        for (size_t i = 0; i < tm.members.dim; i++)
-        {
-            Dsymbol s = (*tm.members)[i];
-            s.setScope(sc2);
-        }
+        tm.members.foreachDsymbol( s => s.setScope(sc2) );
 
-        for (size_t i = 0; i < tm.members.dim; i++)
-        {
-            Dsymbol s = (*tm.members)[i];
-            s.importAll(sc2);
-        }
+        tm.members.foreachDsymbol( s => s.importAll(sc2) );
 
-        for (size_t i = 0; i < tm.members.dim; i++)
-        {
-            Dsymbol s = (*tm.members)[i];
-            s.dsymbolSemantic(sc2);
-        }
+        tm.members.foreachDsymbol( s => s.dsymbolSemantic(sc2) );
 
         nest--;
 
@@ -4280,12 +4259,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             sd.symtab = new DsymbolTable();
 
-            for (size_t i = 0; i < sd.members.dim; i++)
-            {
-                auto s = (*sd.members)[i];
-                //printf("adding member '%s' to '%s'\n", s.toChars(), this.toChars());
-                s.addMember(sc, sd);
-            }
+            sd.members.foreachDsymbol( s => s.addMember(sc, sd) );
         }
 
         auto sc2 = sd.newScope(sc);
@@ -4293,25 +4267,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         /* Set scope so if there are forward references, we still might be able to
          * resolve individual members like enums.
          */
-        for (size_t i = 0; i < sd.members.dim; i++)
-        {
-            auto s = (*sd.members)[i];
-            //printf("struct: setScope %s %s\n", s.kind(), s.toChars());
-            s.setScope(sc2);
-        }
+        sd.members.foreachDsymbol( s => s.setScope(sc2) );
+        sd.members.foreachDsymbol( s => s.importAll(sc2) );
+        sd.members.foreachDsymbol( (s) { s.dsymbolSemantic(sc2); sd.errors |= s.errors; } );
 
-        for (size_t i = 0; i < sd.members.dim; i++)
-        {
-            auto s = (*sd.members)[i];
-            s.importAll(sc2);
-        }
-
-        for (size_t i = 0; i < sd.members.dim; i++)
-        {
-            auto s = (*sd.members)[i];
-            s.dsymbolSemantic(sc2);
-            sd.errors |= s.errors;
-        }
         if (sd.errors)
             sd.type = Type.terror;
 
@@ -4791,23 +4750,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
              * it can be resolved as a normal forward reference.
              * Call addMember() and setScope() to make this class members visible from the base classes.
              */
-            for (size_t i = 0; i < cldec.members.dim; i++)
-            {
-                auto s = (*cldec.members)[i];
-                s.addMember(sc, cldec);
-            }
+            cldec.members.foreachDsymbol( s => s.addMember(sc, cldec) );
 
             auto sc2 = cldec.newScope(sc);
 
             /* Set scope so if there are forward references, we still might be able to
              * resolve individual members like enums.
              */
-            for (size_t i = 0; i < cldec.members.dim; i++)
-            {
-                auto s = (*cldec.members)[i];
-                //printf("[%d] setScope %s %s, sc2 = %p\n", i, s.kind(), s.toChars(), sc2);
-                s.setScope(sc2);
-            }
+            cldec.members.foreachDsymbol( s => s.setScope(sc2) );
 
             sc2.pop();
         }
@@ -4892,18 +4842,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         auto sc2 = cldec.newScope(sc);
 
-        for (size_t i = 0; i < cldec.members.dim; ++i)
-        {
-            auto s = (*cldec.members)[i];
-            s.importAll(sc2);
-        }
+        cldec.members.foreachDsymbol( s => s.importAll(sc2) );
 
         // Note that members.dim can grow due to tuple expansion during semantic()
-        for (size_t i = 0; i < cldec.members.dim; ++i)
-        {
-            auto s = (*cldec.members)[i];
-            s.dsymbolSemantic(sc2);
-        }
+        cldec.members.foreachDsymbol( s => s.dsymbolSemantic(sc2) );
 
         if (!cldec.determineFields())
         {
@@ -5340,35 +5282,18 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
-        for (size_t i = 0; i < idec.members.dim; i++)
-        {
-            Dsymbol s = (*idec.members)[i];
-            s.addMember(sc, idec);
-        }
+        idec.members.foreachDsymbol( s => s.addMember(sc, idec) );
 
         auto sc2 = idec.newScope(sc);
 
         /* Set scope so if there are forward references, we still might be able to
          * resolve individual members like enums.
          */
-        for (size_t i = 0; i < idec.members.dim; i++)
-        {
-            Dsymbol s = (*idec.members)[i];
-            //printf("setScope %s %s\n", s.kind(), s.toChars());
-            s.setScope(sc2);
-        }
+        idec.members.foreachDsymbol( s => s.setScope(sc2) );
 
-        for (size_t i = 0; i < idec.members.dim; i++)
-        {
-            Dsymbol s = (*idec.members)[i];
-            s.importAll(sc2);
-        }
+        idec.members.foreachDsymbol( s => s.importAll(sc2) );
 
-        for (size_t i = 0; i < idec.members.dim; i++)
-        {
-            Dsymbol s = (*idec.members)[i];
-            s.dsymbolSemantic(sc2);
-        }
+        idec.members.foreachDsymbol( s => s.dsymbolSemantic(sc2) );
 
         Module.dprogress++;
         idec.semanticRun = PASS.semanticdone;
@@ -5648,15 +5573,16 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     // Add members of template instance to template instance symbol table
     //parent = scope.scopesym;
     tempinst.symtab = new DsymbolTable();
-    for (size_t i = 0; i < tempinst.members.dim; i++)
+
+    tempinst.members.foreachDsymbol( (s)
     {
-        Dsymbol s = (*tempinst.members)[i];
         static if (LOG)
         {
-            printf("\t[%d] adding member '%s' %p kind %s to '%s'\n", i, s.toChars(), s, s.kind(), tempinst.toChars());
+            printf("\t adding member '%s' %p kind %s to '%s'\n", s.toChars(), s, s.kind(), tempinst.toChars());
         }
         s.addMember(_scope, tempinst);
-    }
+    });
+
     static if (LOG)
     {
         printf("adding members done\n");
