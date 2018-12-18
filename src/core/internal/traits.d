@@ -14,6 +14,18 @@ template TypeTuple(TList...)
     alias TypeTuple = TList;
 }
 
+template FieldTypeTuple(T)
+{
+    static if (is(T == struct) || is(T == union))
+    alias FieldTypeTuple = typeof(T.tupleof[0 .. $ - __traits(isNested, T)]);
+    else static if (is(T == class))
+    alias FieldTypeTuple = typeof(T.tupleof);
+    else
+    {
+        alias FieldTypeTuple = TypeTuple!T;
+    }
+}
+
 T trustedCast(T, U)(auto ref U u) @trusted pure nothrow
 {
     return cast(T)u;
@@ -123,6 +135,34 @@ template staticIota(int beg, int end)
     }
 }
 
+private struct __InoutWorkaroundStruct {}
+@property T rvalueOf(T)(inout __InoutWorkaroundStruct = __InoutWorkaroundStruct.init);
+@property ref T lvalueOf(T)(inout __InoutWorkaroundStruct = __InoutWorkaroundStruct.init);
+
+// taken from std.traits.isAssignable
+template isAssignable(Lhs, Rhs = Lhs)
+{
+    enum isAssignable = __traits(compiles, lvalueOf!Lhs = rvalueOf!Rhs) && __traits(compiles, lvalueOf!Lhs = lvalueOf!Rhs);
+}
+
+// taken from std.traits.isInnerClass
+template isInnerClass(T) if (is(T == class))
+{
+    static if (is(typeof(T.outer)))
+    {
+        template hasOuterMember(T...)
+        {
+            static if (T.length == 0)
+            enum hasOuterMember = false;
+            else
+            enum hasOuterMember = T[0] == "outer" || hasOuterMember!(T[1 .. $]);
+        }
+        enum isInnerClass = __traits(isSame, typeof(T.outer), __traits(parent, T)) && !hasOuterMember!(__traits(allMembers, T));
+    }
+    else
+    enum isInnerClass = false;
+}
+
 template dtorIsNothrow(T)
 {
     enum dtorIsNothrow = is(typeof(function{T t=void;}) : void function() nothrow);
@@ -159,6 +199,23 @@ template anySatisfy(alias F, T...)
     static if (!is(typeof(anySatisfy) == bool)) // if not yet defined
     {
         enum anySatisfy = false;
+    }
+}
+
+// simplified from std.traits.maxAlignment
+private template maxAlignment(U...)
+{
+    static if (U.length == 0)
+    static assert(0);
+    else static if (U.length == 1)
+    enum maxAlignment = U[0].alignof;
+    else static if (U.length == 2)
+    enum maxAlignment = U[0].alignof > U[1].alignof ? U[0].alignof : U[1].alignof;
+    else
+    {
+        enum a = maxAlignment!(U[0 .. ($+1)/2]);
+        enum b = maxAlignment!(U[($+1)/2 .. $]);
+        enum maxAlignment = a > b ? a : b;
     }
 }
 
@@ -205,6 +262,24 @@ template hasElaborateCopyConstructor(S)
     else
     {
         enum bool hasElaborateCopyConstructor = false;
+    }
+}
+
+template hasElaborateAssign(S)
+{
+    static if (__traits(isStaticArray, S) && S.length)
+    {
+        enum bool hasElaborateAssign = hasElaborateAssign!(typeof(S.init[0]));
+    }
+    else static if (is(S == struct))
+    {
+        enum hasElaborateAssign = is(typeof(S.init.opAssign(rvalueOf!S))) ||
+        is(typeof(S.init.opAssign(lvalueOf!S))) ||
+        anySatisfy!(.hasElaborateAssign, FieldTypeTuple!S);
+    }
+    else
+    {
+        enum bool hasElaborateAssign = false;
     }
 }
 
