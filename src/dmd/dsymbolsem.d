@@ -3311,24 +3311,32 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     funcdecl.introducing = 1;
                     if (cd.classKind == ClassKind.cpp && Target.reverseCppOverloads)
                     {
-                        // with dmc, overloaded functions are grouped and in reverse order
+                        /* Overloaded functions with same name are grouped and in reverse order.
+                         * Search for first function of overload group, and insert
+                         * funcdecl into vtbl[] immediately before it.
+                         */
                         funcdecl.vtblIndex = cast(int)cd.vtbl.dim;
-                        for (size_t i = 0; i < cd.vtbl.dim; i++)
+                        bool found;
+                        foreach (const i, s; cd.vtbl)
                         {
-                            if (cd.vtbl[i].ident == funcdecl.ident && cd.vtbl[i].parent == parent)
+                            if (found)
+                                // the rest get shifted forward
+                                ++s.isFuncDeclaration().vtblIndex;
+                            else if (s.ident == funcdecl.ident && s.parent == parent)
                             {
+                                // found first function of overload group
                                 funcdecl.vtblIndex = cast(int)i;
-                                break;
+                                found = true;
+                                ++s.isFuncDeclaration().vtblIndex;
                             }
                         }
-                        // shift all existing functions back
-                        for (size_t i = cd.vtbl.dim; i > funcdecl.vtblIndex; i--)
-                        {
-                            FuncDeclaration fd = cd.vtbl[i - 1].isFuncDeclaration();
-                            assert(fd);
-                            fd.vtblIndex++;
-                        }
                         cd.vtbl.insert(funcdecl.vtblIndex, funcdecl);
+
+                        debug foreach (const i, s; cd.vtbl)
+                        {
+                            if (auto fd = s.isFuncDeclaration())
+                                assert(fd.vtblIndex == i);
+                        }
                     }
                     else
                     {
