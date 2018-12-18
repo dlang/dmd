@@ -2746,15 +2746,27 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                 }
                 else
                 {
-                    auto fullFdPretty = fd.toPrettyChars();
-                    .error(loc, "%smethod `%s` is not callable using a %sobject",
-                        funcBuf.peekString(), fullFdPretty,
-                        thisBuf.peekString());
+                    const(char)* failMessage;
+                    functionResolve(&m, orig_s, loc, sc, tiargs, tthis, fargs, &failMessage);
+                    if (failMessage)
+                    {
+                        .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
+                            fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList),
+                            tf.modToChars(), fargsBuf.peekString());
+                        errorSupplemental(loc, failMessage);
+                    }
+                    else
+                    {
+                        auto fullFdPretty = fd.toPrettyChars();
+                        .error(loc, "%smethod `%s` is not callable using a %sobject",
+                            funcBuf.peekString(), fullFdPretty,
+                            thisBuf.peekString());
 
-                    if (mismatches.isNotShared)
-                        .errorSupplemental(loc, "Consider adding `shared` to %s", fullFdPretty);
-                    else if (mismatches.isMutable)
-                        .errorSupplemental(loc, "Consider adding `const` or `inout` to %s", fullFdPretty);
+                        if (mismatches.isNotShared)
+                            .errorSupplemental(loc, "Consider adding `shared` to %s", fullFdPretty);
+                        else if (mismatches.isMutable)
+                            .errorSupplemental(loc, "Consider adding `const` or `inout` to %s", fullFdPretty);
+                    }
                 }
             }
             else
