@@ -14,7 +14,8 @@ version (Windows):
 
 version (ANSI) {} else version = Unicode;
 
-import core.sys.windows.windows;
+import core.sys.windows.windef;
+import core.sys.windows.imagehlp /+: ADDRESS_MODE+/;
 
 public import core.sys.windows.winnt : TCHAR;
 

@@ -15,7 +15,7 @@ pragma(lib, "wininet");
 
 // FIXME: check types and grouping of constants
 
-import core.sys.windows.windows;
+import core.sys.windows.winbase, core.sys.windows.windef;
 
 enum {
     INTERNET_INVALID_PORT_NUMBER =    0,

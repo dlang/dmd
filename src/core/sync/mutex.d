@@ -20,7 +20,9 @@ public import core.sync.exception;
 
 version (Windows)
 {
-    private import core.sys.windows.windows;
+    private import core.sys.windows.winbase /+: CRITICAL_SECTION, DeleteCriticalSection,
+        EnterCriticalSection, InitializeCriticalSection, LeaveCriticalSection,
+        TryEnterCriticalSection+/;
 }
 else version (Posix)
 {
