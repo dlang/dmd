@@ -301,8 +301,6 @@ private int tryMain(size_t argc, const(char)** argv)
     if (global.params.is64bit != is64bit)
         error(Loc.initial, "the architecture must not be changed in the %s section of %s", envsection.ptr, global.inifilename);
 
-    // Target uses 64bit pointers.
-    global.params.isLP64 = global.params.is64bit;
     if (global.errors)
     {
         fatal();
@@ -317,131 +315,8 @@ private int tryMain(size_t argc, const(char)** argv)
         usage();
         return EXIT_FAILURE;
     }
-    static if (TARGET.OSX)
-    {
-        global.params.pic = 1;
-    }
-    static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-    {
-        if (global.params.lib && global.params.dll)
-            error(Loc.initial, "cannot mix -lib and -shared");
-    }
-    static if (TARGET.Windows)
-    {
-        if (global.params.mscoff && !global.params.mscrtlib)
-        {
-            VSOptions vsopt;
-            vsopt.initialize();
-            global.params.mscrtlib = vsopt.defaultRuntimeLibrary(global.params.is64bit);
-        }
-    }
 
-    if (global.params.boundscheck != CHECKENABLE._default)
-    {
-        if (global.params.useArrayBounds == CHECKENABLE._default)
-            global.params.useArrayBounds = global.params.boundscheck;
-    }
-
-    if (global.params.useUnitTests)
-    {
-        if (global.params.useAssert == CHECKENABLE._default)
-            global.params.useAssert = CHECKENABLE.on;
-    }
-
-    if (global.params.release)
-    {
-        if (global.params.useInvariants == CHECKENABLE._default)
-            global.params.useInvariants = CHECKENABLE.off;
-
-        if (global.params.useIn == CHECKENABLE._default)
-            global.params.useIn = CHECKENABLE.off;
-
-        if (global.params.useOut == CHECKENABLE._default)
-            global.params.useOut = CHECKENABLE.off;
-
-        if (global.params.useArrayBounds == CHECKENABLE._default)
-            global.params.useArrayBounds = CHECKENABLE.safeonly;
-
-        if (global.params.useAssert == CHECKENABLE._default)
-            global.params.useAssert = CHECKENABLE.off;
-
-        if (global.params.useSwitchError == CHECKENABLE._default)
-            global.params.useSwitchError = CHECKENABLE.off;
-    }
-    else
-    {
-        if (global.params.useInvariants == CHECKENABLE._default)
-            global.params.useInvariants = CHECKENABLE.on;
-
-        if (global.params.useIn == CHECKENABLE._default)
-            global.params.useIn = CHECKENABLE.on;
-
-        if (global.params.useOut == CHECKENABLE._default)
-            global.params.useOut = CHECKENABLE.on;
-
-        if (global.params.useArrayBounds == CHECKENABLE._default)
-            global.params.useArrayBounds = CHECKENABLE.on;
-
-        if (global.params.useAssert == CHECKENABLE._default)
-            global.params.useAssert = CHECKENABLE.on;
-
-        if (global.params.useSwitchError == CHECKENABLE._default)
-            global.params.useSwitchError = CHECKENABLE.on;
-    }
-
-    if (global.params.betterC)
-    {
-        global.params.checkAction = CHECKACTION.C;
-        global.params.useModuleInfo = false;
-        global.params.useTypeInfo = false;
-        global.params.useExceptions = false;
-    }
-
-
-    if (!global.params.obj || global.params.lib)
-        global.params.link = false;
-    if (global.params.link)
-    {
-        global.params.exefile = global.params.objname;
-        global.params.oneobj = true;
-        if (global.params.objname)
-        {
-            /* Use this to name the one object file with the same
-             * name as the exe file.
-             */
-            global.params.objname = cast(char*)FileName.forceExt(global.params.objname, global.obj_ext);
-            /* If output directory is given, use that path rather than
-             * the exe file path.
-             */
-            if (global.params.objdir)
-            {
-                const(char)* name = FileName.name(global.params.objname);
-                global.params.objname = cast(char*)FileName.combine(global.params.objdir, name);
-            }
-        }
-    }
-    else if (global.params.run)
-    {
-        error(Loc.initial, "flags conflict with -run");
-        fatal();
-    }
-    else if (global.params.lib)
-    {
-        global.params.libname = global.params.objname;
-        global.params.objname = null;
-        // Haven't investigated handling these options with multiobj
-        if (!global.params.cov && !global.params.trace)
-            global.params.multiobj = true;
-    }
-    else
-    {
-        if (global.params.objname && files.dim > 1)
-        {
-            global.params.oneobj = true;
-            //error("multiple source files, but only one .obj name");
-            //fatal();
-        }
-    }
+    reconcileCommands(global.params, files.dim);
 
     // Add in command line versions
     if (global.params.versionids)
@@ -2215,6 +2090,145 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
     }
     return errors;
+}
+
+/***********************************************
+ * Adjust gathered command line switches and reconcile them.
+ * Params:
+ *      params = switches gathered from command line,
+ *               and update in place
+ *      numSrcFiles = number of source files
+ */
+private void reconcileCommands(ref Param params, size_t numSrcFiles)
+{
+    static if (TARGET.OSX)
+    {
+        params.pic = 1;
+    }
+    static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+    {
+        if (params.lib && params.dll)
+            error(Loc.initial, "cannot mix -lib and -shared");
+    }
+    static if (TARGET.Windows)
+    {
+        if (params.mscoff && !params.mscrtlib)
+        {
+            VSOptions vsopt;
+            vsopt.initialize();
+            params.mscrtlib = vsopt.defaultRuntimeLibrary(params.is64bit);
+        }
+    }
+
+    // Target uses 64bit pointers.
+    params.isLP64 = params.is64bit;
+
+    if (params.boundscheck != CHECKENABLE._default)
+    {
+        if (params.useArrayBounds == CHECKENABLE._default)
+            params.useArrayBounds = params.boundscheck;
+    }
+
+    if (params.useUnitTests)
+    {
+        if (params.useAssert == CHECKENABLE._default)
+            params.useAssert = CHECKENABLE.on;
+    }
+
+    if (params.release)
+    {
+        if (params.useInvariants == CHECKENABLE._default)
+            params.useInvariants = CHECKENABLE.off;
+
+        if (params.useIn == CHECKENABLE._default)
+            params.useIn = CHECKENABLE.off;
+
+        if (params.useOut == CHECKENABLE._default)
+            params.useOut = CHECKENABLE.off;
+
+        if (params.useArrayBounds == CHECKENABLE._default)
+            params.useArrayBounds = CHECKENABLE.safeonly;
+
+        if (params.useAssert == CHECKENABLE._default)
+            params.useAssert = CHECKENABLE.off;
+
+        if (params.useSwitchError == CHECKENABLE._default)
+            params.useSwitchError = CHECKENABLE.off;
+    }
+    else
+    {
+        if (params.useInvariants == CHECKENABLE._default)
+            params.useInvariants = CHECKENABLE.on;
+
+        if (params.useIn == CHECKENABLE._default)
+            params.useIn = CHECKENABLE.on;
+
+        if (params.useOut == CHECKENABLE._default)
+            params.useOut = CHECKENABLE.on;
+
+        if (params.useArrayBounds == CHECKENABLE._default)
+            params.useArrayBounds = CHECKENABLE.on;
+
+        if (params.useAssert == CHECKENABLE._default)
+            params.useAssert = CHECKENABLE.on;
+
+        if (params.useSwitchError == CHECKENABLE._default)
+            params.useSwitchError = CHECKENABLE.on;
+    }
+
+    if (params.betterC)
+    {
+        params.checkAction = CHECKACTION.C;
+        params.useModuleInfo = false;
+        params.useTypeInfo = false;
+        params.useExceptions = false;
+    }
+
+
+    if (!params.obj || params.lib)
+        params.link = false;
+    if (params.link)
+    {
+        params.exefile = params.objname;
+        params.oneobj = true;
+        if (params.objname)
+        {
+            /* Use this to name the one object file with the same
+             * name as the exe file.
+             */
+            params.objname = cast(char*)FileName.forceExt(params.objname, global.obj_ext);
+            /* If output directory is given, use that path rather than
+             * the exe file path.
+             */
+            if (params.objdir)
+            {
+                const(char)* name = FileName.name(params.objname);
+                params.objname = cast(char*)FileName.combine(params.objdir, name);
+            }
+        }
+    }
+    else if (params.run)
+    {
+        error(Loc.initial, "flags conflict with -run");
+        fatal();
+    }
+    else if (params.lib)
+    {
+        params.libname = params.objname;
+        params.objname = null;
+        // Haven't investigated handling these options with multiobj
+        if (!params.cov && !params.trace)
+            params.multiobj = true;
+    }
+    else
+    {
+        if (params.objname && numSrcFiles)
+        {
+            params.oneobj = true;
+            //error("multiple source files, but only one .obj name");
+            //fatal();
+        }
+    }
 }
 
 /**
