@@ -1459,7 +1459,7 @@ version (Windows)
             {
                 // running as a 32-bit process on a 64-bit host?
                 alias fnIsWow64Process = extern(Windows) BOOL function(HANDLE, PBOOL);
-                static fnIsWow64Process pIsWow64Process;
+                __gshared fnIsWow64Process pIsWow64Process;
 
                 if (!pIsWow64Process)
                 {
