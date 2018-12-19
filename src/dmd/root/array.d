@@ -79,15 +79,17 @@ public:
         }
     }
 
-    void push(T ptr) nothrow
+    ref Array push(T ptr) return nothrow
     {
         reserve(1);
         data[length++] = ptr;
+        return this;
     }
 
-    void append(typeof(this)* a) nothrow
+    ref Array append(typeof(this)* a) return nothrow
     {
         insert(length, a);
+        return this;
     }
 
     void reserve(size_t nentries) nothrow
@@ -305,8 +307,7 @@ unittest
     auto array = Array!int();
     array.split(0, 0);
     assert([] == array.asDArray);
-    array.push(1);
-    array.push(3);
+    array.push(1).push(3);
     array.split(1, 1);
     array[1] = 2;
     assert([1, 2, 3] == array.asDArray);
