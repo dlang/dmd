@@ -16,7 +16,8 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 import core.sys.posix.unistd;
-import core.sys.windows.windows;
+import core.sys.windows.shellapi;
+import core.sys.windows.winuser;
 
 version (Windows)
 {

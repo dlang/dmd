@@ -14,7 +14,7 @@ module dmd.scanmscoff;
 
 version(Windows):
 
-import core.stdc.string, core.stdc.stdlib, core.sys.windows.windows;
+import core.stdc.string, core.stdc.stdlib, core.sys.windows.winnt;
 import dmd.globals, dmd.errors;
 
 enum LOG = false;

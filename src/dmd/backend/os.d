@@ -33,8 +33,8 @@ version (Posix)
 else version (Windows)
 {
     import core.sys.windows.stat;
-    import core.sys.windows.windows;
-
+    import core.sys.windows.winbase;
+    import core.sys.windows.windef;
 }
 
 version (CRuntime_Microsoft)
