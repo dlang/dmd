@@ -4817,3 +4817,13 @@ TTo[] __ArrayCast(TFrom, TTo)(TFrom[] from) @nogc pure @trusted
     foreach (v; s)
         assert(v == cast(short) 0xabab);
 }
+
+// Allows customized assert error messages
+string _d_assert_fail(string comp, A, B)(A a, B b)
+{
+    import core.internal.dassert : invertCompToken, miniFormat;
+    auto valA = miniFormat(a);
+    auto valB = miniFormat(b);
+    enum token = invertCompToken(comp);
+    return valA ~ " " ~ token ~ " " ~ valB;
+}
