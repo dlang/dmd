@@ -281,10 +281,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                              *      { sexception; throw __o; }
                              */
                             auto a = new Statements();
-                            foreach (j; i + 1 .. cs.statements.dim)
-                            {
-                                a.push((*cs.statements)[j]);
-                            }
+                            a.pushSlice((*cs.statements)[i + 1 .. cs.statements.length]);
+                            cs.statements.setDim(i + 1);
+
                             Statement _body = new CompoundStatement(Loc.initial, a);
                             _body = new ScopeStatement(Loc.initial, _body, Loc.initial);
 
@@ -308,7 +307,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                                 s = new TryFinallyStatement(Loc.initial, s, sfinally);
                             s = s.statementSemantic(sc);
 
-                            cs.statements.setDim(i + 1);
                             cs.statements.push(s);
                             break;
                         }
@@ -327,14 +325,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                              *      s; try { s1; s2; } finally { sfinally; }
                              */
                             auto a = new Statements();
-                            foreach (j; i + 1 .. cs.statements.dim)
-                            {
-                                a.push((*cs.statements)[j]);
-                            }
+                            a.pushSlice((*cs.statements)[i + 1 .. cs.statements.length]);
+                            cs.statements.setDim(i + 1);
+
                             Statement _body = new CompoundStatement(Loc.initial, a);
                             s = new TryFinallyStatement(Loc.initial, _body, sfinally);
                             s = s.statementSemantic(sc);
-                            cs.statements.setDim(i + 1);
                             cs.statements.push(s);
                             break;
                         }
