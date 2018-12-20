@@ -88,31 +88,28 @@ public Expression ctfeInterpretForPragmaMsg(Expression e)
 
     // It's also OK for it to be a function declaration (happens only with
     // __traits(getOverloads))
-    if (e.op == TOK.variable && (cast(VarExp)e).var.isFuncDeclaration())
-    {
-        return e;
-    }
+    if (auto ve = e.isVarExp())
+        if (ve.var.isFuncDeclaration())
+        {
+            return e;
+        }
 
-    if (e.op != TOK.tuple)
+    auto tup = e.isTupleExp();
+    if (!tup)
         return e.ctfeInterpret();
 
     // Tuples need to be treated separately, since they are
     // allowed to contain a TypeExp in this case.
 
-    TupleExp tup = cast(TupleExp)e;
     Expressions* expsx = null;
-    for (size_t i = 0; i < tup.exps.dim; ++i)
+    foreach (i, g; *tup.exps)
     {
-        Expression g = (*tup.exps)[i];
-        Expression h = g;
-        h = ctfeInterpretForPragmaMsg(g);
+        auto h = ctfeInterpretForPragmaMsg(g);
         if (h != g)
         {
             if (!expsx)
             {
-                expsx = new Expressions(tup.exps.dim);
-                for (size_t j = 0; j < tup.exps.dim; j++)
-                    (*expsx)[j] = (*tup.exps)[j];
+                expsx = tup.exps.copy();
             }
             (*expsx)[i] = h;
         }
@@ -551,9 +548,9 @@ public:
         ccf.onExpression(s.condition);
         // Note that the body contains the the Case and Default
         // statements, so we only need to compile the expressions
-        for (size_t i = 0; i < s.cases.dim; i++)
+        foreach (cs; *s.cases)
         {
-            ccf.onExpression((*s.cases)[i].exp);
+            ccf.onExpression(cs.exp);
         }
         if (s._body)
             ctfeCompile(s._body);
@@ -646,9 +643,8 @@ public:
         }
         if (s._body)
             ctfeCompile(s._body);
-        for (size_t i = 0; i < s.catches.dim; i++)
+        foreach (ca; *s.catches)
         {
-            Catch ca = (*s.catches)[i];
             if (ca.var)
                 ccf.onDeclaration(ca.var);
             if (ca.handler)
@@ -724,11 +720,10 @@ private void ctfeCompile(FuncDeclaration fd)
     fd.ctfeCode = new CompiledCtfeFunction(fd);
     if (fd.parameters)
     {
-        Type tb = fd.type.toBasetype();
-        assert(tb.ty == Tfunction);
-        for (size_t i = 0; i < fd.parameters.dim; i++)
+        Type tb = fd.type.toBasetype().isTypeFunction();
+        assert(tb);
+        foreach (v; *fd.parameters)
         {
-            VarDeclaration v = (*fd.parameters)[i];
             fd.ctfeCode.onDeclaration(v);
         }
     }
