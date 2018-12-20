@@ -7021,8 +7021,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             {
                 Tuple va = isTuple(tdtypes[dim]);
                 assert(va);
-                for (size_t i = 0; i < va.objects.dim; i++)
-                    tiargs.push(va.objects[i]);
+                tiargs.pushSlice(va.objects[]);
             }
         }
         else if (errors && inst)

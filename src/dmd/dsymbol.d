@@ -2024,8 +2024,7 @@ extern (C++) final class OverloadSet : Dsymbol
         super(ident);
         if (os)
         {
-            for (size_t i = 0; i < os.a.dim; i++)
-                a.push(os.a[i]);
+            a.pushSlice(os.a[]);
         }
     }
 

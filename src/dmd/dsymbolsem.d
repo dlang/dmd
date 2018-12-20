@@ -5276,9 +5276,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     size_t d = b.sym.vtbl.dim;
                     if (d > 1)
                     {
-                        idec.vtbl.reserve(d - 1);
-                        for (size_t j = 1; j < d; j++)
-                            idec.vtbl.push(b.sym.vtbl[j]);
+                        idec.vtbl.pushSlice(b.sym.vtbl[1 .. d]);
                     }
                 }
                 else
