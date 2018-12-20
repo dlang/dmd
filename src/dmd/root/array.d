@@ -86,6 +86,14 @@ public:
         return this;
     }
 
+    extern (D) ref Array pushSlice(T[] a) return nothrow
+    {
+        const oldLength = length;
+        setDim(oldLength + a.length);
+        memcpy(data + oldLength, a.ptr, a.length * T.sizeof);
+        return this;
+    }
+
     ref Array append(typeof(this)* a) return nothrow
     {
         insert(length, a);
