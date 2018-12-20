@@ -302,12 +302,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             ctch.internalCatch = true;
                             catches.push(ctch);
 
-                            s = new TryCatchStatement(Loc.initial, _body, catches);
+                            Statement st = new TryCatchStatement(Loc.initial, _body, catches);
                             if (sfinally)
-                                s = new TryFinallyStatement(Loc.initial, s, sfinally);
-                            s = s.statementSemantic(sc);
+                                st = new TryFinallyStatement(Loc.initial, st, sfinally);
+                            st = st.statementSemantic(sc);
 
-                            cs.statements.push(s);
+                            cs.statements.push(st);
                             break;
                         }
                     }
@@ -328,10 +328,10 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             a.pushSlice((*cs.statements)[i + 1 .. cs.statements.length]);
                             cs.statements.setDim(i + 1);
 
-                            Statement _body = new CompoundStatement(Loc.initial, a);
-                            s = new TryFinallyStatement(Loc.initial, _body, sfinally);
-                            s = s.statementSemantic(sc);
-                            cs.statements.push(s);
+                            auto _body = new CompoundStatement(Loc.initial, a);
+                            Statement stf = new TryFinallyStatement(Loc.initial, _body, sfinally);
+                            stf = stf.statementSemantic(sc);
+                            cs.statements.push(stf);
                             break;
                         }
                     }
@@ -346,35 +346,46 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             }
             i++;
         }
-        foreach (i; 0 .. cs.statements.dim)
+
+        /* Flatten them in place
+         */
+        void flatten(Statements* statements)
         {
-        Lagain:
-            Statement s = (*cs.statements)[i];
+            for (size_t i = 0; i < statements.length;)
+            {
+                Statement s = (*statements)[i];
+                if (s)
+                {
+                    if (auto flt = s.flatten(sc))
+                    {
+                        statements.remove(i);
+                        statements.insert(i, flt);
+                        continue;
+                    }
+                }
+                ++i;
+            }
+        }
+
+        /* https://issues.dlang.org/show_bug.cgi?id=11653
+         * 'semantic' may return another CompoundStatement
+         * (eg. CaseRangeStatement), so flatten it here.
+         */
+        flatten(cs.statements);
+
+        foreach (s; *cs.statements)
+        {
             if (!s)
                 continue;
 
-            Statement se = s.isErrorStatement();
-            if (se)
+            if (auto se = s.isErrorStatement())
             {
                 result = se;
                 return;
             }
-
-            /* https://issues.dlang.org/show_bug.cgi?id=11653
-             * 'semantic' may return another CompoundStatement
-             * (eg. CaseRangeStatement), so flatten it here.
-             */
-            Statements* flt = s.flatten(sc);
-            if (flt)
-            {
-                cs.statements.remove(i);
-                cs.statements.insert(i, flt);
-                if (cs.statements.dim <= i)
-                    break;
-                goto Lagain;
-            }
         }
-        if (cs.statements.dim == 1)
+
+        if (cs.statements.length == 1)
         {
             result = (*cs.statements)[0];
             return;
