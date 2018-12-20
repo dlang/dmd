@@ -304,6 +304,7 @@ public:
     const char *kind() const;
 
     void addLocalClass(ClassDeclarations *);
+    void addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories);
 
     // Back end
     Dsymbol *vtblsym;

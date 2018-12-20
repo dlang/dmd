@@ -436,12 +436,6 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 return 0;
             });
         }
-        objc.setSelector(fd, sc);
-        objc.validateSelector(fd);
-        if (ClassDeclaration cd = fd.parent.isClassDeclaration())
-        {
-            objc.checkLinkage(fd);
-        }
         if (!fd.type || fd.type.ty != Tfunction)
             return;
         TypeFunction f = cast(TypeFunction) fd.type;

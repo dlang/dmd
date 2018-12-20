@@ -451,6 +451,12 @@ void builtin_init();
 class FuncDeclaration : public Declaration
 {
 public:
+    struct HiddenParameters
+    {
+        VarDeclaration* this_;
+        VarDeclaration* selector;
+    };
+
     Types *fthrows;                     // Array of Type's of exceptions (not used)
     Statements *frequires;              // in contracts
     Ensures *fensures;                  // out contracts
@@ -545,7 +551,7 @@ public:
     bool functionSemantic();
     bool functionSemantic3();
     // called from semantic3
-    VarDeclaration *declareThis(Scope *sc, AggregateDeclaration *ad);
+    HiddenParameters declareThis(Scope *sc, AggregateDeclaration *ad);
     bool equals(RootObject *o);
 
     int overrides(FuncDeclaration *fd);

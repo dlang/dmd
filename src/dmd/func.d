@@ -198,6 +198,22 @@ extern (C++) struct Ensure
  */
 extern (C++) class FuncDeclaration : Declaration
 {
+    /// All hidden parameters bundled.
+    static struct HiddenParameters
+    {
+        /**
+         * The `this` parameter for methods or nested functions.
+         *
+         * For methods, it would be the class object or struct value the
+         * method is called on. For nested functions it would be the enclosing
+         * function's stack frame.
+         */
+        VarDeclaration vthis;
+
+        /// The selector parameter for Objective-C methods.
+        VarDeclaration selectorParameter;
+    }
+
     Types* fthrows;                     /// Array of Type's of exceptions (not used)
     Statements* frequires;              /// in contracts
     Ensures* fensures;                  /// out contracts
@@ -220,6 +236,7 @@ extern (C++) class FuncDeclaration : Declaration
     VarDeclaration vthis;               /// 'this' parameter (member and nested)
     VarDeclaration v_arguments;         /// '_arguments' parameter
     ObjcSelector* selector;             /// Objective-C method selector (member function only)
+    VarDeclaration selectorParameter;   /// Objective-C implicit selector parameter
 
     VarDeclaration v_argptr;            /// '_argptr' variable
     VarDeclarations* parameters;        /// Array of VarDeclaration's for parameters
@@ -438,7 +455,13 @@ extern (C++) class FuncDeclaration : Declaration
     }
 
     // called from semantic3
-    final VarDeclaration declareThis(Scope* sc, AggregateDeclaration ad)
+    /**
+     * Creates and returns the hidden parameters for this function declaration.
+     *
+     * Hidden parameters include the `this` parameter of a class, struct or
+     * nested function and the selector parameter for Objective-C methods.
+     */
+    final HiddenParameters declareThis(Scope* sc, AggregateDeclaration ad)
     {
         if (ad)
         {
@@ -471,7 +494,7 @@ extern (C++) class FuncDeclaration : Declaration
             if (!sc.insert(v))
                 assert(0);
             v.parent = this;
-            return v;
+            return HiddenParameters(v, objc.createSelectorParameter(this, sc));
         }
         if (isNested())
         {
@@ -496,9 +519,9 @@ extern (C++) class FuncDeclaration : Declaration
             if (!sc.insert(v))
                 assert(0);
             v.parent = this;
-            return v;
+            return HiddenParameters(v);
         }
-        return null;
+        return HiddenParameters.init;
     }
 
     override final bool equals(RootObject o)
@@ -1597,13 +1620,20 @@ extern (C++) class FuncDeclaration : Declaration
             return toAliasFunc().isVirtual();
 
         auto p = toParent();
+
+        if (!isMember || !p.isClassDeclaration)
+            return false;
+
+        if (p.isClassDeclaration.classKind == ClassKind.objc)
+            return objc.isVirtual(this);
+
         version (none)
         {
             printf("FuncDeclaration::isVirtual(%s)\n", toChars());
             printf("isMember:%p isStatic:%d private:%d ctor:%d !Dlinkage:%d\n", isMember(), isStatic(), protection == Prot.Kind.private_, isCtorDeclaration(), linkage != LINK.d);
             printf("result is %d\n", isMember() && !(isStatic() || protection == Prot.Kind.private_ || protection == Prot.Kind.package_) && p.isClassDeclaration() && !(p.isInterfaceDeclaration() && isFinalFunc()));
         }
-        return isMember() && !(isStatic() || protection.kind == Prot.Kind.private_ || protection.kind == Prot.Kind.package_) && p.isClassDeclaration() && !(p.isInterfaceDeclaration() && isFinalFunc());
+        return !(isStatic() || protection.kind == Prot.Kind.private_ || protection.kind == Prot.Kind.package_) && !(p.isInterfaceDeclaration() && isFinalFunc());
     }
 
     final bool isFinalFunc() const

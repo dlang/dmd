@@ -68,7 +68,6 @@ void initDMD()
 
     Type._init();
     Id.initialize();
-    Identifier.initialize();
     Module._init();
     target._init(global.params);
     Expression._init();

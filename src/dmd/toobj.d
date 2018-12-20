@@ -215,7 +215,7 @@ void genModuleInfo(Module m)
         //printf("nameoffset = x%x\n", nameoffset);
     }
 
-    objc.generateModuleInfo();
+    objc.generateModuleInfo(m);
     m.csym.Sdt = dtb.finish();
     out_readonly(m.csym);
     outdata(m.csym);
@@ -345,6 +345,12 @@ void toObjFile(Dsymbol ds, bool multiobj)
              * be put in separate obj files.
              */
             cd.members.foreachDsymbol( (s) { s.accept(this); } );
+
+            if (cd.classKind == ClassKind.objc)
+            {
+                objc.toObjFile(cd);
+                return;
+            }
 
             // If something goes wrong during this pass don't bother with the
             // rest as we may have incomplete info

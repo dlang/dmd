@@ -17,11 +17,14 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 import dmd.aggregate;
+import dmd.arraytypes;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dmodule;
+import dmd.dsymbol;
 import dmd.expression;
 import dmd.func;
+import dmd.glue;
 import dmd.globals;
 import dmd.identifier;
 import dmd.mtype;
@@ -62,10 +65,31 @@ extern(C++) abstract class ObjcGlue
     abstract void setupMethodSelector(FuncDeclaration fd, elem** esel);
     abstract void setupMethodCall(elem** ec, elem* ehidden, elem* ethis, TypeFunction tf);
     abstract void setupEp(elem* esel, elem** ep, int leftToRight);
-    abstract void generateModuleInfo();
+    abstract void generateModuleInfo(Module module_);
 
     /// Returns: the given expression converted to an `elem` structure
     abstract elem* toElem(ObjcClassReferenceExp e) const;
+
+    /// Outputs the given Objective-C class to the object file.
+    abstract void toObjFile(ClassDeclaration classDeclaration) const;
+
+    /**
+     * Adds the selector parameter to the given list of parameters.
+     *
+     * For Objective-C methods the selector parameter is added. For
+     * non-Objective-C methods `parameters` is unchanged.
+     *
+     * Params:
+     *  functionDeclaration = the function declaration to add the selector
+     *      parameter from
+     *  parameters = the list of parameters to add the selector parameter to
+     *  parameterCount = the number of parameters
+     *
+     * Returns: the new number of parameters
+     */
+    abstract size_t addSelectorParameterSymbol(
+        FuncDeclaration functionDeclaration,
+        Symbol** parameters, size_t parameterCount) const;
 }
 
 private:
@@ -87,7 +111,7 @@ extern(C++) final class Unsupported : ObjcGlue
         // noop
     }
 
-    override void generateModuleInfo()
+    override void generateModuleInfo(Module)
     {
         // noop
     }
@@ -95,6 +119,17 @@ extern(C++) final class Unsupported : ObjcGlue
     override elem* toElem(ObjcClassReferenceExp e) const
     {
         assert(0, "Should never be called when Objective-C is not supported");
+    }
+
+    override void toObjFile(ClassDeclaration classDeclaration) const
+    {
+        assert(0, "Should never be called when Objective-C is not supported");
+    }
+
+    override size_t addSelectorParameterSymbol(FuncDeclaration, Symbol**,
+        size_t count) const
+    {
+        return count;
     }
 }
 
@@ -134,15 +169,50 @@ extern(C++) final class Supported : ObjcGlue
         }
     }
 
-    override void generateModuleInfo()
+    override void generateModuleInfo(Module module_)
     {
-        if (Symbols.hasSymbols)
-            Symbols.getImageInfo();
+        ClassDeclarations classes;
+        ClassDeclarations categories;
+
+        module_.members.foreachDsymbol(m => m.addObjcSymbols(&classes, &categories));
+
+        if (classes.length || categories.length || Symbols.hasSymbols)
+            Symbols.getModuleInfo(classes, categories);
     }
 
     override elem* toElem(ObjcClassReferenceExp e) const
     {
         return el_var(Symbols.getClassReference(e.classDeclaration));
+    }
+
+    override void toObjFile(ClassDeclaration classDeclaration) const
+    in
+    {
+        assert(classDeclaration.classKind == ClassKind.objc);
+    }
+    body
+    {
+        if (!classDeclaration.objc.isMeta)
+            ObjcClassDeclaration(classDeclaration, false).toObjFile();
+    }
+
+    override size_t addSelectorParameterSymbol(FuncDeclaration fd,
+        Symbol** params, size_t count) const
+    in
+    {
+        assert(fd);
+    }
+    body
+    {
+        if (!fd.selector)
+            return count;
+
+        assert(fd.selectorParameter);
+        auto selectorSymbol = fd.selectorParameter.toSymbol();
+        memmove(params + 1, params, count * params[0].sizeof);
+        params[0] = selectorSymbol;
+
+        return count + 1;
     }
 }
 
@@ -152,9 +222,16 @@ struct Segments
     {
         imageInfo,
         methodName,
+        methodType,
+        instanceMethod,
+        classMethod,
         moduleInfo,
         selectorRefs,
+        className,
         classRefs,
+        class_,
+        classRo,
+        metaclass
     }
 
     private
@@ -164,9 +241,16 @@ struct Segments
         __gshared Segments[__traits(allMembers, Id).length] segmentData = [
             Segments("__objc_imageinfo", "__DATA", S_REGULAR | S_ATTR_NO_DEAD_STRIP, 0),
             Segments("__objc_methname", "__TEXT", S_CSTRING_LITERALS, 0),
+            Segments("__objc_methtype", "__TEXT", S_CSTRING_LITERALS, 0),
+            Segments("__objc_const", "__DATA", S_REGULAR, 3),
+            Segments("__objc_const", "__DATA", S_REGULAR, 3),
             Segments("__objc_classlist", "__DATA", S_REGULAR | S_ATTR_NO_DEAD_STRIP, 3),
             Segments("__objc_selrefs", "__DATA", S_LITERAL_POINTERS | S_ATTR_NO_DEAD_STRIP, 3),
-            Segments("__objc_classrefs", "__DATA", S_REGULAR | S_ATTR_NO_DEAD_STRIP, 3)
+            Segments("__objc_classname", "__TEXT", S_CSTRING_LITERALS, 0),
+            Segments("__objc_classrefs", "__DATA", S_REGULAR | S_ATTR_NO_DEAD_STRIP, 3),
+            Segments("__objc_data", "__DATA", S_REGULAR, 3),
+            Segments("__objc_const", "__DATA", S_REGULAR, 3),
+            Segments("__objc_data", "__DATA", S_REGULAR, 3)
         ];
 
         static assert(segmentData.length == __traits(allMembers, Id).length);
@@ -229,6 +313,9 @@ static:
         Symbol* imageInfo = null;
         Symbol* moduleInfo = null;
 
+        Symbol* emptyCache = null;
+        Symbol* emptyVTable = null;
+
         // Cache for `_OBJC_METACLASS_$_`/`_OBJC_CLASS_$_` symbols.
         StringTable* classNameTable = null;
 
@@ -237,6 +324,7 @@ static:
 
         StringTable* methVarNameTable = null;
         StringTable* methVarRefTable = null;
+        StringTable* methVarTypeTable = null;
     }
 
     void initialize()
@@ -315,19 +403,19 @@ static:
         return symbolName(name, SCstatic, t);
     }
 
-    Symbol* getCString(const(char)[] str, const(char)* symbolName, Segments.Id segment)
+    Symbol* getCString(const(char)[] str, const(char)[] symbolName, Segments.Id segment)
     {
         hasSymbols_ = true;
 
         // create data
         auto dtb = DtBuilder(0);
-        dtb.nbytes(cast(uint)(str.length + 1), str.ptr);
+        dtb.nbytes(cast(uint) (str.length + 1), str.toStringz());
 
         // find segment
         auto seg = Segments[segment];
 
         // create symbol
-        auto s = symbol_name(symbolName, SCstatic, type_allocn(TYarray, tstypes[TYchar]));
+        auto s = getStatic(symbolName, type_allocn(TYarray, tstypes[TYchar]));
         s.Sdt = dtb.finish();
         s.Sseg = seg;
         return s;
@@ -343,9 +431,9 @@ static:
         if (!symbol)
         {
             __gshared size_t classNameCount = 0;
-            char[42] nameString;
-            sprintf(nameString.ptr, "L_OBJC_METH_VAR_NAME_%lu", classNameCount++);
-            symbol = getCString(name, nameString.ptr, Segments.Id.methodName);
+            char[42] buffer;
+            const symbolName = format(buffer, "L_OBJC_METH_VAR_NAME_%lu", classNameCount++);
+            symbol = getCString(name, symbolName, Segments.Id.methodName);
             stringValue.ptrvalue = symbol;
         }
 
@@ -402,11 +490,18 @@ static:
         return imageInfo;
     }
 
-    Symbol* getModuleInfo()
+    Symbol* getModuleInfo(/*const*/ ref ClassDeclarations classes,
+        /*const*/ ref ClassDeclarations categories)
     {
         assert(!moduleInfo); // only allow once per object file
 
         auto dtb = DtBuilder(0);
+
+        foreach (c; classes)
+            dtb.xoff(getClassName(c), 0);
+
+        foreach (c; categories)
+            dtb.xoff(getClassName(c), 0);
 
         Symbol* symbol = symbol_name("L_OBJC_LABEL_CLASS_$", SCstatic, type_allocn(TYarray, tstypes[TYchar]));
         symbol.Sdt = dtb.finish();
@@ -418,17 +513,16 @@ static:
         return moduleInfo;
     }
 
-    /*
+    /**
      * Returns: the `_OBJC_METACLASS_$_`/`_OBJC_CLASS_$_` symbol for the given
      *  class declaration.
      */
-    Symbol* getClassName(const ClassDeclaration classDeclaration)
+    Symbol* getClassName(ObjcClassDeclaration objcClass)
     {
         hasSymbols_ = true;
 
-        auto isMeta = classDeclaration.objc.isMeta;
-        auto prefix = isMeta ? "_OBJC_METACLASS_$_" : "_OBJC_CLASS_$_";
-        auto name = prefix ~ classDeclaration.ident.toString();
+        const prefix = objcClass.isMeta ? "_OBJC_METACLASS_$_" : "_OBJC_CLASS_$_";
+        auto name = prefix ~ objcClass.classDeclaration.objc.identifier.toString();
 
         auto stringValue = classNameTable.update(name);
         auto symbol = cast(Symbol*) stringValue.ptrvalue;
@@ -442,15 +536,21 @@ static:
         return symbol;
     }
 
+    /// ditto
+    Symbol* getClassName(ClassDeclaration classDeclaration, bool isMeta = false)
+    {
+        return getClassName(ObjcClassDeclaration(classDeclaration, isMeta));
+    }
+
     /*
      * Returns: the `L_OBJC_CLASSLIST_REFERENCES_$_` symbol for the given class
      *  declaration.
      */
-    Symbol* getClassReference(const ClassDeclaration classDeclaration)
+    Symbol* getClassReference(ClassDeclaration classDeclaration)
     {
         hasSymbols_ = true;
 
-        auto name = classDeclaration.ident.toString();
+        auto name = classDeclaration.objc.identifier.toString();
 
         auto stringValue = classReferenceTable.update(name);
         auto symbol = cast(Symbol*) stringValue.ptrvalue;
@@ -514,9 +614,443 @@ static:
     {
         return getMethVarRef(ident.toString());
     }
+
+    /**
+     * Returns the Objective-C type encoding for the given type.
+     *
+     * The available type encodings are documented by Apple, available at
+     * $(LINK2 https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html#//apple_ref/doc/uid/TP40008048-CH100, Type Encoding).
+     * The type encodings can also be obtained by running an Objective-C
+     * compiler and using the `@encode()` compiler directive.
+     *
+     * Params:
+     *  type = the type to return the type encoding for
+     *
+     * Returns: a string containing the type encoding
+     */
+    string getTypeEncoding(Type type)
+    in
+    {
+        assert(type !is null);
+    }
+    body
+    {
+        enum assertMessage = "imaginary types are not supported by Objective-C";
+
+        with (ENUMTY) switch (type.ty)
+        {
+            case Tvoid: return "v";
+            case Tbool: return "B";
+            case Tint8: return "c";
+            case Tuns8: return "C";
+            case Tchar: return "C";
+            case Tint16: return "s";
+            case Tuns16: return "S";
+            case Twchar: return "S";
+            case Tint32: return "i";
+            case Tuns32: return "I";
+            case Tdchar: return "I";
+            case Tint64: return "q";
+            case Tuns64: return "Q";
+            case Tfloat32: return "f";
+            case Tcomplex32: return "jf";
+            case Tfloat64: return "d";
+            case Tcomplex64: return "jd";
+            case Tfloat80: return "D";
+            case Tcomplex80: return "jD";
+            case Timaginary32: assert(false, assertMessage);
+            case Timaginary64: assert(false, assertMessage);
+            case Timaginary80: assert(false, assertMessage);
+            default: return "?"; // unknown
+            // TODO: add "*" char*, "#" Class, "@" id, ":" SEL
+            // TODO: add "^"<type> indirection and "^^" double indirection
+        }
+    }
+
+    /**
+     * Returns: the `L_OBJC_METH_VAR_TYPE_` symbol containing the given
+     * type encoding.
+     */
+    Symbol* getMethVarType(const(char)[] typeEncoding)
+    {
+        hasSymbols_ = true;
+
+        auto stringValue = methVarTypeTable.update(typeEncoding);
+        auto symbol = cast(Symbol*) stringValue.ptrvalue;
+
+        if (symbol)
+            return symbol;
+
+        __gshared size_t count = 0;
+        char[42] nameString;
+        const symbolName = format(nameString, "L_OBJC_METH_VAR_TYPE_%lu", count++);
+        symbol = getCString(typeEncoding, symbolName, Segments.Id.methodType);
+
+        stringValue.ptrvalue = symbol;
+        outdata(symbol);
+
+        return symbol;
+    }
+
+    /// ditto
+    Symbol* getMethVarType(Type[] types)
+    {
+        string typeCode;
+        typeCode.reserve(types.length);
+
+        foreach (type; types)
+            typeCode ~= getTypeEncoding(type);
+
+        return getMethVarType(typeCode);
+    }
+
+    /// ditto
+    Symbol* getMethVarType(FuncDeclaration func)
+    {
+        Type[] types = [func.type.nextOf]; // return type first
+
+        if (func.parameters)
+        {
+            types.reserve(func.parameters.length);
+
+            foreach (e; *func.parameters)
+                types ~= e.type;
+        }
+
+        return getMethVarType(types);
+    }
+
+    /// Returns: the externally defined `__objc_empty_cache` symbol
+    Symbol* getEmptyCache()
+    {
+        return emptyCache = emptyCache ? emptyCache : getGlobal("__objc_empty_cache");
+    }
+
+    /// Returns: the externally defined `__objc_empty_vtable` symbol
+    Symbol* getEmptyVTable()
+    {
+        return emptyVTable = emptyVTable ? emptyVTable : getGlobal("__objc_empty_vtable");
+    }
+
+    /// Returns: the `L_OBJC_CLASS_NAME_` symbol for a class with the given name
+    Symbol* getClassNameRo(const(char)[] name)
+    {
+        hasSymbols_ = true;
+
+        auto stringValue = classNameTable.update(name);
+        auto symbol = cast(Symbol*) stringValue.ptrvalue;
+
+        __gshared size_t count = 0;
+        char[42] nameString;
+        const symbolName = format(nameString, "L_OBJC_CLASS_NAME_%lu", count++);
+        symbol = getCString(name, symbolName, Segments.Id.className);
+        stringValue.ptrvalue = symbol;
+
+        return symbol;
+    }
+
+    /// ditto
+    Symbol* getClassNameRo(const Identifier ident)
+    {
+        return getClassNameRo(ident.toString());
+    }
 }
 
 private:
+
+/**
+ * Functionality for outputting symbols for a specific Objective-C class
+ * declaration.
+ */
+struct ObjcClassDeclaration
+{
+    /// Indicates what kind of class this is.
+    private enum Flags
+    {
+        /// Regular class.
+        regular = 0x00000,
+
+        /// Meta class.
+        meta = 0x00001,
+
+        /// Root class. A class without any base class.
+        root = 0x00002
+    }
+
+    /// The class declaration
+    ClassDeclaration classDeclaration;
+
+    /// `true` if this class is a metaclass.
+    bool isMeta;
+
+    this(ClassDeclaration classDeclaration, bool isMeta)
+    in
+    {
+        assert(classDeclaration !is null);
+    }
+    body
+    {
+        this.classDeclaration = classDeclaration;
+        this.isMeta = isMeta;
+    }
+
+    /**
+     * Outputs the class declaration to the object file.
+     *
+     * Returns: the exported symbol, that is, `_OBJC_METACLASS_$_` or
+     * `_OBJC_CLASS_$_`
+     */
+    Symbol* toObjFile()
+    {
+        if (classDeclaration.objc.isExtern)
+            return null; // only a declaration for an externally-defined class
+
+        const segmentId = isMeta ? Segments.Id.metaclass : Segments.Id.class_;
+
+        auto dtb = DtBuilder(0);
+        toDt(dtb);
+
+        auto symbol = Symbols.getClassName(this);
+        symbol.Sdt = dtb.finish();
+        symbol.Sseg = Segments[segmentId];
+        outdata(symbol);
+
+        return symbol;
+    }
+
+private:
+
+    /**
+     * Outputs the class declaration to the object file.
+     *
+     * Params:
+     *  dtb = the `DtBuilder` to output the class declaration to
+     */
+    void toDt(ref DtBuilder dtb)
+    {
+        auto baseClassSymbol = Symbols.getClassName(classDeclaration.baseClass,
+            isMeta);
+
+        dtb.xoff(getMetaclass(), 0); // pointer to metaclass
+        dtb.xoff(baseClassSymbol, 0); // pointer to base class
+        dtb.xoff(Symbols.getEmptyCache(), 0);
+        dtb.xoff(Symbols.getEmptyVTable(), 0);
+        dtb.xoff(getClassRo(), 0);
+    }
+
+    /// Returns: the name of the metaclass of this class declaration
+    Symbol* getMetaclass()
+    {
+        if (isMeta)
+        {
+            // metaclass: return root class's name
+            // (will be replaced with metaclass reference at load)
+
+            auto metaclassDeclaration = classDeclaration;
+
+            while (metaclassDeclaration.baseClass)
+                metaclassDeclaration = metaclassDeclaration.baseClass;
+
+            return Symbols.getClassName(metaclassDeclaration, true);
+        }
+
+        else
+        {
+            // regular class: return metaclass with the same name
+            return ObjcClassDeclaration(classDeclaration, true).toObjFile();
+        }
+    }
+
+    /**
+     * Returns: the `l_OBJC_CLASS_RO_$_`/`l_OBJC_METACLASS_RO_$_` symbol for
+     * this class declaration
+     */
+    Symbol* getClassRo()
+    {
+        auto dtb = DtBuilder(0);
+
+        dtb.dword(flags);
+        dtb.dword(instanceStart);
+        dtb.dword(instanceSize);
+        dtb.dword(0); // reserved
+
+        dtb.size(0); // ivar layout
+        dtb.xoff(Symbols.getClassNameRo(classDeclaration.ident), 0); // name of the class
+
+        dtb.xoffOrNull(getMethodList()); // instance method list
+        dtb.xoffOrNull(getProtocolList()); // protocol list
+
+        if (isMeta)
+        {
+            dtb.size(0); // instance variable list
+            dtb.size(0); // weak ivar layout
+            dtb.size(0); // properties
+        }
+
+        else
+        {
+            auto ivars = getIVarList();
+
+            if (ivars && !isMeta)
+                dtb.xoff(ivars, 0); // instance variable list
+            else
+                dtb.size(0); // or null if no ivar
+
+            dtb.size(0); // weak ivar layout
+            dtb.xoffOrNull(getPropertyList()); // properties
+        }
+
+        const prefix = isMeta ? "l_OBJC_METACLASS_RO_$_" : "l_OBJC_CLASS_RO_$_";
+        const symbolName = prefix ~ classDeclaration.objc.identifier.toString();
+        auto symbol = Symbols.getStatic(symbolName);
+
+        symbol.Sdt = dtb.finish();
+        symbol.Sseg = Segments[Segments.Id.classRo];
+        outdata(symbol);
+
+        return symbol;
+    }
+
+    /**
+     * Returns method list for this class declaration.
+     *
+     * This is a list of all methods defined in this class declaration, i.e.
+     * methods with a body.
+     *
+     * Returns: the symbol for the method list, `l_OBJC_$_CLASS_METHODS_` or
+     * `l_OBJC_$_INSTANCE_METHODS_`
+     */
+    Symbol* getMethodList()
+    {
+        /**
+         * Returns the number of methods that should be added to the binary.
+         *
+         * Only methods with a body should be added.
+         *
+         * Params:
+         *  members = the members of the class declaration
+         */
+        static int methodCount(Dsymbols* members)
+        {
+            int count;
+
+            members.foreachDsymbol((member) {
+                const func = member.isFuncDeclaration;
+
+                if (func && func.fbody)
+                    count++;
+            });
+
+            return count;
+        }
+
+        auto methods = isMeta ? classDeclaration.objc.metaclass.objc.methodList :
+            classDeclaration.objc.methodList;
+
+        const count = methodCount(methods);
+
+        if (count == 0)
+            return null;
+
+        auto dtb = DtBuilder(0);
+
+        dtb.dword(24); // _objc_method.sizeof
+        dtb.dword(count); // method count
+
+        methods.foreachDsymbol((method) {
+            auto func = method.isFuncDeclaration;
+
+            if (func && func.fbody)
+            {
+                assert(func.selector);
+                dtb.xoff(func.selector.toNameSymbol(), 0); // method name
+                dtb.xoff(Symbols.getMethVarType(func), 0); // method type string
+                dtb.xoff(func.toSymbol(), 0); // function implementation
+            }
+        });
+
+        const prefix = isMeta ? "l_OBJC_$_CLASS_METHODS_" : "l_OBJC_$_INSTANCE_METHODS_";
+        const segmentId = isMeta ? Segments.Id.metaclass : Segments.Id.class_;
+        const symbolName = prefix ~ classDeclaration.objc.identifier.toString();
+        auto symbol = Symbols.getStatic(symbolName);
+
+        symbol.Sdt = dtb.finish();
+        symbol.Sseg = Segments[segmentId];
+
+        return symbol;
+    }
+
+    Symbol* getProtocolList()
+    {
+        // protocols are not supported yet
+        return null;
+    }
+
+    Symbol* getIVarList()
+    {
+        // ivars are not supported yet
+        return null;
+    }
+
+    Symbol* getPropertyList()
+    {
+        // properties are not supported yet
+        return null;
+    }
+
+    /**
+     * Returns the flags for this class declaration.
+     *
+     * That is, if this is a regular class, a metaclass and/or a root class.
+     *
+     * Returns: the flags
+     */
+    uint flags() const
+    {
+        uint flags = isMeta ? Flags.meta : Flags.regular;
+
+        if (classDeclaration.objc.isRootClass)
+            flags |= Flags.root;
+
+        return flags;
+    }
+
+    /**
+     * Returns the offset of where an instance of this class starts.
+     *
+     * For a metaclass this is always `40`. For a class with no instance
+     * variables this is the size of the class declaration. For a class with
+     * instance variables it's the offset of the first instance variable.
+     *
+     * Returns: the instance start
+     */
+    int instanceStart()
+    {
+        if (isMeta)
+            return 40;
+
+        const start = cast(uint) classDeclaration.size(classDeclaration.loc);
+
+        if (!classDeclaration.members || classDeclaration.members.length == 0)
+            return start;
+
+        foreach (member; *classDeclaration.members)
+        {
+            auto var = member.isVarDeclaration;
+
+            if (var && var.isField)
+                return var.offset;
+        }
+
+        return start;
+    }
+
+    /// Returns: the size of an instance of this class
+    int instanceSize()
+    {
+        return isMeta ? 40 : cast(int) classDeclaration.size(classDeclaration.loc);
+    }
+}
 
 /*
  * Formats the given arguments into the given buffer.
@@ -540,4 +1074,65 @@ char[] format(size_t bufLength, Args...)(return ref char[bufLength] buffer,
     assert(length < buffer.length, "Output was truncated");
 
     return buffer[0 .. length];
+}
+
+/// Returns: the symbol of the given selector
+Symbol* toNameSymbol(const ObjcSelector* selector)
+{
+    return Symbols.getMethVarName(selector.toString());
+}
+
+/**
+ * Adds a reference to the given `symbol` or null if the symbol is null.
+ *
+ * Params:
+ *  dtb = the dt builder to add the symbol to
+ *  symbol = the symbol to add
+ */
+void xoffOrNull(ref DtBuilder dtb, Symbol* symbol)
+{
+    if (symbol)
+        dtb.xoff(symbol, 0);
+    else
+        dtb.size(0);
+}
+
+/**
+ * Converts the given D string to a null terminated C string.
+ *
+ * Asserts if `str` is longer than `maxLength`, with assertions enabled. With
+ * assertions disabled it will truncate the result to `maxLength`.
+ *
+ * Params:
+ *  maxLength = the max length of `str`
+ *  str = the string to convert
+ *  buf = the buffer where to allocate the result. By default this will be
+ *      allocated in the caller scope using `alloca`. If the buffer is created
+ *      by the callee it needs to be able to fit at least `str.length + 1` bytes
+ *
+ * Returns: the given string converted to a C string, a slice of `str` or the
+ *  given buffer `buffer`
+ */
+const(char)* toStringz(size_t maxLength = 4095)(in const(char)[] str,
+    scope return void[] buffer = alloca(maxLength + 1)[0 .. maxLength + 1]) pure
+in
+{
+    assert(maxLength >= str.length);
+}
+out(result)
+{
+    assert(str.length == result.strlen);
+}
+body
+{
+    if (str.length == 0)
+        return "".ptr;
+
+    const maxLength = buffer.length - 1;
+    const len = str.length > maxLength ? maxLength : str.length;
+    auto buf = cast(char[]) buffer[0 .. len + 1];
+    buf[0 .. len] = str[0 .. len];
+    buf[len] = '\0';
+
+    return cast(const(char)*) buf.ptr;
 }

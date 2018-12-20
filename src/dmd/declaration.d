@@ -1097,14 +1097,14 @@ extern (C++) class VarDeclaration : Declaration
 
     VarDeclarations* maybes;        // STC.maybescope variables that are assigned to this STC.maybescope variable
 
-    private bool isAnonymous_;
+    private bool _isAnonymous;
 
     final extern (D) this(const ref Loc loc, Type type, Identifier id, Initializer _init, StorageClass storage_class = STC.undefined_)
     {
         if (id is Identifier.anonymous)
         {
             id = Identifier.generateId("__anonvar");
-            isAnonymous_ = true;
+            _isAnonymous = true;
         }
         //printf("VarDeclaration('%s')\n", id.toChars());
         assert(id);
@@ -1253,7 +1253,7 @@ extern (C++) class VarDeclaration : Declaration
 
     override final bool isAnonymous()
     {
-        return isAnonymous_;
+        return _isAnonymous;
     }
 
     override final bool isExport() const

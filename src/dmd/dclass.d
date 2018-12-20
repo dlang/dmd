@@ -225,6 +225,8 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
     final extern (D) this(const ref Loc loc, Identifier id, BaseClasses* baseclasses, Dsymbols* members, bool inObject)
     {
+        objc = ObjcClassDeclaration(this);
+
         if (!id)
         {
             id = Identifier.generateId("__anonclass");
@@ -955,7 +957,13 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
      */
     override final void addLocalClass(ClassDeclarations* aclasses)
     {
-        aclasses.push(this);
+        if (classKind != ClassKind.objc)
+            aclasses.push(this);
+    }
+
+    override final void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)
+    {
+        .objc.addSymbols(this, classes, categories);
     }
 
     // Back end
