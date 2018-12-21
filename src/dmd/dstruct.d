@@ -136,7 +136,7 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
                 // https://issues.dlang.org/show_bug.cgi?id=15149
                 // if the typeid operand type comes from a
                 // result of auto function, it may be yet speculative.
-                unSpeculative(sc, sd);
+                // unSpeculative(sc, sd);
             }
 
             /* Step 2: If the TypeInfo generation requires sd.semantic3, run it later.
