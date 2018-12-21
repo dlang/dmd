@@ -1171,7 +1171,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return new ErrorExp();
         }
 
-        bool value = Target.isReturnOnStack(tf, fd && fd.needThis());
+        bool value = target.isReturnOnStack(tf, fd && fd.needThis());
         return new IntegerExp(e.loc, value, Type.tbool);
     }
     if (e.ident == Id.getFunctionVariadicStyle)
@@ -1777,7 +1777,7 @@ Lnext:
         }
         se = se.toUTF8(sc);
 
-        Expression r = Target.getTargetInfo(se.toPtr(), e.loc);
+        Expression r = target.getTargetInfo(se.toPtr(), e.loc);
         if (!r)
         {
             e.error("`getTargetInfo` key `\"%s\"` not supported by this implementation", se.toPtr());

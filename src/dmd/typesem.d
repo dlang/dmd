@@ -652,7 +652,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
         }
         TypeSArray t = cast(TypeSArray)mtype.basetype;
         const sz = cast(int)t.size(loc);
-        final switch (Target.isVectorTypeSupported(sz, t.nextOf()))
+        final switch (target.isVectorTypeSupported(sz, t.nextOf()))
         {
         case 0:
             // valid
@@ -751,7 +751,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
             Type overflowError()
             {
                 .error(loc, "`%s` size %llu * %llu exceeds 0x%llx size limit for static array",
-                        mtype.toChars(), cast(ulong)tbn.size(loc), cast(ulong)d1, Target.maxStaticDataSize);
+                        mtype.toChars(), cast(ulong)tbn.size(loc), cast(ulong)d1, target.maxStaticDataSize);
                 return error();
             }
 
@@ -771,7 +771,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                  * run on them for the size, since they may be forward referenced.
                  */
                 bool overflow = false;
-                if (mulu(tbn.size(loc), d2, overflow) >= Target.maxStaticDataSize || overflow)
+                if (mulu(tbn.size(loc), d2, overflow) >= target.maxStaticDataSize || overflow)
                     return overflowError();
             }
         }
@@ -2037,17 +2037,17 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             case Tcomplex32:
             case Timaginary32:
             case Tfloat32:
-                fvalue = Target.FloatProperties.max;
+                fvalue = target.FloatProperties.max;
                 goto Lfvalue;
             case Tcomplex64:
             case Timaginary64:
             case Tfloat64:
-                fvalue = Target.DoubleProperties.max;
+                fvalue = target.DoubleProperties.max;
                 goto Lfvalue;
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                fvalue = Target.RealProperties.max;
+                fvalue = target.RealProperties.max;
                 goto Lfvalue;
             default:
                 break;
@@ -2105,17 +2105,17 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             case Tcomplex32:
             case Timaginary32:
             case Tfloat32:
-                fvalue = Target.FloatProperties.min_normal;
+                fvalue = target.FloatProperties.min_normal;
                 goto Lfvalue;
             case Tcomplex64:
             case Timaginary64:
             case Tfloat64:
-                fvalue = Target.DoubleProperties.min_normal;
+                fvalue = target.DoubleProperties.min_normal;
                 goto Lfvalue;
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                fvalue = Target.RealProperties.min_normal;
+                fvalue = target.RealProperties.min_normal;
                 goto Lfvalue;
             default:
                 break;
@@ -2134,7 +2134,7 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             case Tfloat32:
             case Tfloat64:
             case Tfloat80:
-                fvalue = Target.RealProperties.nan;
+                fvalue = target.RealProperties.nan;
                 goto Lfvalue;
             default:
                 break;
@@ -2153,7 +2153,7 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             case Tfloat32:
             case Tfloat64:
             case Tfloat80:
-                fvalue = Target.RealProperties.infinity;
+                fvalue = target.RealProperties.infinity;
                 goto Lfvalue;
             default:
                 break;
@@ -2166,17 +2166,17 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             case Tcomplex32:
             case Timaginary32:
             case Tfloat32:
-                ivalue = Target.FloatProperties.dig;
+                ivalue = target.FloatProperties.dig;
                 goto Lint;
             case Tcomplex64:
             case Timaginary64:
             case Tfloat64:
-                ivalue = Target.DoubleProperties.dig;
+                ivalue = target.DoubleProperties.dig;
                 goto Lint;
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                ivalue = Target.RealProperties.dig;
+                ivalue = target.RealProperties.dig;
                 goto Lint;
             default:
                 break;
@@ -2189,17 +2189,17 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             case Tcomplex32:
             case Timaginary32:
             case Tfloat32:
-                fvalue = Target.FloatProperties.epsilon;
+                fvalue = target.FloatProperties.epsilon;
                 goto Lfvalue;
             case Tcomplex64:
             case Timaginary64:
             case Tfloat64:
-                fvalue = Target.DoubleProperties.epsilon;
+                fvalue = target.DoubleProperties.epsilon;
                 goto Lfvalue;
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                fvalue = Target.RealProperties.epsilon;
+                fvalue = target.RealProperties.epsilon;
                 goto Lfvalue;
             default:
                 break;
@@ -2212,17 +2212,17 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             case Tcomplex32:
             case Timaginary32:
             case Tfloat32:
-                ivalue = Target.FloatProperties.mant_dig;
+                ivalue = target.FloatProperties.mant_dig;
                 goto Lint;
             case Tcomplex64:
             case Timaginary64:
             case Tfloat64:
-                ivalue = Target.DoubleProperties.mant_dig;
+                ivalue = target.DoubleProperties.mant_dig;
                 goto Lint;
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                ivalue = Target.RealProperties.mant_dig;
+                ivalue = target.RealProperties.mant_dig;
                 goto Lint;
             default:
                 break;
@@ -2235,17 +2235,17 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             case Tcomplex32:
             case Timaginary32:
             case Tfloat32:
-                ivalue = Target.FloatProperties.max_10_exp;
+                ivalue = target.FloatProperties.max_10_exp;
                 goto Lint;
             case Tcomplex64:
             case Timaginary64:
             case Tfloat64:
-                ivalue = Target.DoubleProperties.max_10_exp;
+                ivalue = target.DoubleProperties.max_10_exp;
                 goto Lint;
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                ivalue = Target.RealProperties.max_10_exp;
+                ivalue = target.RealProperties.max_10_exp;
                 goto Lint;
             default:
                 break;
@@ -2258,17 +2258,17 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             case Tcomplex32:
             case Timaginary32:
             case Tfloat32:
-                ivalue = Target.FloatProperties.max_exp;
+                ivalue = target.FloatProperties.max_exp;
                 goto Lint;
             case Tcomplex64:
             case Timaginary64:
             case Tfloat64:
-                ivalue = Target.DoubleProperties.max_exp;
+                ivalue = target.DoubleProperties.max_exp;
                 goto Lint;
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                ivalue = Target.RealProperties.max_exp;
+                ivalue = target.RealProperties.max_exp;
                 goto Lint;
             default:
                 break;
@@ -2281,17 +2281,17 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             case Tcomplex32:
             case Timaginary32:
             case Tfloat32:
-                ivalue = Target.FloatProperties.min_10_exp;
+                ivalue = target.FloatProperties.min_10_exp;
                 goto Lint;
             case Tcomplex64:
             case Timaginary64:
             case Tfloat64:
-                ivalue = Target.DoubleProperties.min_10_exp;
+                ivalue = target.DoubleProperties.min_10_exp;
                 goto Lint;
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                ivalue = Target.RealProperties.min_10_exp;
+                ivalue = target.RealProperties.min_10_exp;
                 goto Lint;
             default:
                 break;
@@ -2304,17 +2304,17 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             case Tcomplex32:
             case Timaginary32:
             case Tfloat32:
-                ivalue = Target.FloatProperties.min_exp;
+                ivalue = target.FloatProperties.min_exp;
                 goto Lint;
             case Tcomplex64:
             case Timaginary64:
             case Tfloat64:
-                ivalue = Target.DoubleProperties.min_exp;
+                ivalue = target.DoubleProperties.min_exp;
                 goto Lint;
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                ivalue = Target.RealProperties.min_exp;
+                ivalue = target.RealProperties.min_exp;
                 goto Lint;
             default:
                 break;
@@ -4299,14 +4299,14 @@ Expression defaultInit(Type mt, const ref Loc loc)
         case Tfloat32:
         case Tfloat64:
         case Tfloat80:
-            return new RealExp(loc, Target.RealProperties.snan, mt);
+            return new RealExp(loc, target.RealProperties.snan, mt);
 
         case Tcomplex32:
         case Tcomplex64:
         case Tcomplex80:
             {
                 // Can't use fvalue + I*fvalue (the im part becomes a quiet NaN).
-                const cvalue = complex_t(Target.RealProperties.snan, Target.RealProperties.snan);
+                const cvalue = complex_t(target.RealProperties.snan, target.RealProperties.snan);
                 return new ComplexExp(loc, cvalue, mt);
             }
 

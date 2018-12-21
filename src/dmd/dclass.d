@@ -432,7 +432,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             /* This enables us to use COM objects under Linux and
              * work with things like XPCOM
              */
-            sc2.linkage = Target.systemLinkage();
+            sc2.linkage = target.systemLinkage();
         }
         return sc2;
     }
@@ -595,16 +595,16 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         {
             if (interfaces.length == 0)
             {
-                alignsize = Target.ptrsize;
-                structsize = Target.ptrsize;      // allow room for __vptr
+                alignsize = target.ptrsize;
+                structsize = target.ptrsize;      // allow room for __vptr
             }
         }
         else
         {
-            alignsize = Target.ptrsize;
-            structsize = Target.ptrsize;      // allow room for __vptr
+            alignsize = target.ptrsize;
+            structsize = target.ptrsize;      // allow room for __vptr
             if (classKind != ClassKind.cpp)
-                structsize += Target.ptrsize; // allow room for __monitor
+                structsize += target.ptrsize; // allow room for __monitor
         }
 
         //printf("finalizeSize() %s, sizeok = %d\n", toChars(), sizeok);
@@ -632,7 +632,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 assert(b.sym.sizeok == Sizeok.done);
 
                 if (!b.sym.alignsize)
-                    b.sym.alignsize = Target.ptrsize;
+                    b.sym.alignsize = target.ptrsize;
                 alignmember(b.sym.alignsize, b.sym.alignsize, &offset);
                 assert(bi < vtblInterfaces.dim);
 

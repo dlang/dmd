@@ -593,7 +593,7 @@ UnionExp Pow(const ref Loc loc, Type type, Expression e1, Expression e2)
         // x ^^ y for x < 0 and y not an integer is not defined; so set result as NaN
         if (e1.toReal() < CTFloat.zero)
         {
-            emplaceExp!(RealExp)(&ue, loc, Target.RealProperties.nan, type);
+            emplaceExp!(RealExp)(&ue, loc, target.RealProperties.nan, type);
         }
         else
             cantExp(ue);
