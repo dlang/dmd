@@ -53,6 +53,7 @@ void initDMD()
     import dmd.builtin : builtin_init;
     import dmd.dmodule : Module;
     import dmd.expression : Expression;
+    import dmd.filecache : FileCache;
     import dmd.globals : global;
     import dmd.id : Id;
     import dmd.mars : setTarget, addDefaultVersionIdentifiers;
@@ -71,6 +72,7 @@ void initDMD()
     Expression._init();
     Objc._init();
     builtin_init();
+    FileCache._init();
 }
 
 /**

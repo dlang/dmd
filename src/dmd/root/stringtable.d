@@ -217,6 +217,20 @@ public:
         return 0;
     }
 
+    extern(D) int opApply(scope int delegate(const(StringValue)*) dg)
+    {
+        foreach (const se; table[0 .. tabledim])
+        {
+            if (!se.vptr)
+                continue;
+            const sv = getValue(se.vptr);
+            int result = dg(sv);
+            if (result)
+                return result;
+        }
+        return 0;
+    }
+
 private:
 nothrow:
     uint allocValue(const(char)[] str, void* ptrvalue)

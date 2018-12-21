@@ -341,6 +341,8 @@ private int tryMain(size_t argc, const(char)** argv)
     Expression._init();
     Objc._init();
     builtin_init();
+    import dmd.filecache : FileCache;
+    FileCache._init();
 
     version(CRuntime_Microsoft)
     {
@@ -1597,6 +1599,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             else if (startsWith(p + 9, "spec"))
             {
                 params.showGaggedErrors = true;
+            }
+            else if (startsWith(p + 9, "context"))
+            {
+                params.printErrorContext = true;
             }
             else
                 goto Lerror;
