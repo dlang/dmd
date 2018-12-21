@@ -998,7 +998,7 @@ int cvMember(Dsymbol s, ubyte *p)
                     q += cgcv.sz_idx;
                     if (fd.introducing)
                     {
-                        TOLONG(q, fd.vtblIndex * Target.ptrsize);
+                        TOLONG(q, fd.vtblIndex * target.ptrsize);
                         q += 4;
                     }
                 }

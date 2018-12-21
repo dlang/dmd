@@ -1018,7 +1018,7 @@ private final class CppMangleVisitor : Visitor
 
         int paramsCppMangleDg(size_t n, Parameter fparam)
         {
-            Type t = Target.cppParameterType(fparam);
+            Type t = target.cppParameterType(fparam);
             if (t.ty == Tsarray)
             {
                 // Static arrays in D are passed by value; no counterpart in C++
@@ -1116,7 +1116,7 @@ private final class CppMangleVisitor : Visitor
         CV_qualifiers(t);
 
         // Handle any target-specific struct types.
-        if (auto tm = Target.cppTypeMangle(t))
+        if (auto tm = target.cppTypeMangle(t))
         {
             buf.writestring(tm);
         }
@@ -1272,10 +1272,10 @@ extern(C++):
             case Tuns32:                c = 'j';        break;
             case Tfloat32:              c = 'f';        break;
             case Tint64:
-                c = Target.c_longsize == 8 ? 'l' : 'x';
+                c = target.c_longsize == 8 ? 'l' : 'x';
                 break;
             case Tuns64:
-                c = Target.c_longsize == 8 ? 'm' : 'y';
+                c = target.c_longsize == 8 ? 'm' : 'y';
                 break;
             case Tint128:                c = 'n';       break;
             case Tuns128:                c = 'o';       break;
@@ -1294,7 +1294,7 @@ extern(C++):
 
             default:
                 // Handle any target-specific basic types.
-                if (auto tm = Target.cppTypeMangle(t))
+                if (auto tm = target.cppTypeMangle(t))
                 {
                     if (substitute(t))
                         return;
@@ -1320,7 +1320,7 @@ extern(C++):
         CV_qualifiers(t);
 
         // Handle any target-specific vector types.
-        if (auto tm = Target.cppTypeMangle(t))
+        if (auto tm = target.cppTypeMangle(t))
         {
             buf.writestring(tm);
         }

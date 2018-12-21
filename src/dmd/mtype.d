@@ -879,7 +879,7 @@ extern (C++) abstract class Type : RootObject
         tstring = tchar.immutableOf().arrayOf();
         twstring = twchar.immutableOf().arrayOf();
         tdstring = tdchar.immutableOf().arrayOf();
-        tvalist = Target.va_listType();
+        tvalist = target.va_listType();
 
         if (global.params.isLP64)
         {
@@ -3179,7 +3179,7 @@ extern (C++) final class TypeBasic : Type
 
         case Tfloat80:
         case Timaginary80:
-            size = Target.realsize;
+            size = target.realsize;
             break;
 
         case Tcomplex32:
@@ -3193,7 +3193,7 @@ extern (C++) final class TypeBasic : Type
             break;
 
         case Tcomplex80:
-            size = Target.realsize * 2;
+            size = target.realsize * 2;
             break;
 
         case Tvoid:
@@ -3226,7 +3226,7 @@ extern (C++) final class TypeBasic : Type
 
     override uint alignsize()
     {
-        return Target.alignsize(this);
+        return target.alignsize(this);
     }
 
     override bool isintegral()
@@ -3725,14 +3725,14 @@ extern (C++) final class TypeDArray : TypeArray
     override d_uns64 size(const ref Loc loc) const
     {
         //printf("TypeDArray::size()\n");
-        return Target.ptrsize * 2;
+        return target.ptrsize * 2;
     }
 
     override uint alignsize() const
     {
         // A DArray consists of two ptr-sized values, so align it on pointer size
         // boundary
-        return Target.ptrsize;
+        return target.ptrsize;
     }
 
     override bool isString()
@@ -3831,7 +3831,7 @@ extern (C++) final class TypeAArray : TypeArray
 
     override d_uns64 size(const ref Loc loc)
     {
-        return Target.ptrsize;
+        return target.ptrsize;
     }
 
     override bool isZeroInit(const ref Loc loc) const
@@ -3925,7 +3925,7 @@ extern (C++) final class TypePointer : TypeNext
 
     override d_uns64 size(const ref Loc loc) const
     {
-        return Target.ptrsize;
+        return target.ptrsize;
     }
 
     override MATCH implicitConvTo(Type to)
@@ -4058,7 +4058,7 @@ extern (C++) final class TypeReference : TypeNext
 
     override d_uns64 size(const ref Loc loc) const
     {
-        return Target.ptrsize;
+        return target.ptrsize;
     }
 
     override bool isZeroInit(const ref Loc loc) const
@@ -4949,12 +4949,12 @@ extern (C++) final class TypeDelegate : TypeNext
 
     override d_uns64 size(const ref Loc loc) const
     {
-        return Target.ptrsize * 2;
+        return target.ptrsize * 2;
     }
 
     override uint alignsize() const
     {
-        return Target.ptrsize;
+        return target.ptrsize;
     }
 
     override MATCH implicitConvTo(Type to)
@@ -5425,7 +5425,7 @@ extern (C++) final class TypeStruct : Type
         /* Copy from the initializer symbol for larger symbols,
          * otherwise the literals expressed as code get excessively large.
          */
-        if (size(loc) > Target.ptrsize * 4 && !needsNested())
+        if (size(loc) > target.ptrsize * 4 && !needsNested())
             structinit.useStaticInit = true;
 
         structinit.type = this;
@@ -5833,7 +5833,7 @@ extern (C++) final class TypeClass : Type
 
     override d_uns64 size(const ref Loc loc) const
     {
-        return Target.ptrsize;
+        return target.ptrsize;
     }
 
     override Type syntaxCopy()

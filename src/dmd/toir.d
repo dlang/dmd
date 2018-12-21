@@ -867,7 +867,7 @@ void setClosureVarOffset(FuncDeclaration fd)
 {
     if (fd.needsClosure())
     {
-        uint offset = Target.ptrsize;      // leave room for previous sthis
+        uint offset = target.ptrsize;      // leave room for previous sthis
 
         foreach (v; fd.closureVars)
         {
@@ -882,14 +882,14 @@ void setClosureVarOffset(FuncDeclaration fd)
                 /* Lazy variables are really delegates,
                  * so give same answers that TypeDelegate would
                  */
-                memsize = Target.ptrsize * 2;
+                memsize = target.ptrsize * 2;
                 memalignsize = memsize;
                 xalign = STRUCTALIGN_DEFAULT;
             }
             else if (v.storage_class & (STC.out_ | STC.ref_))
             {
                 // reference parameters are just pointers
-                memsize = Target.ptrsize;
+                memsize = target.ptrsize;
                 memalignsize = memsize;
                 xalign = STRUCTALIGN_DEFAULT;
             }
@@ -967,7 +967,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         strcat(strcat(closname, name1), name2);
 
         /* Build type for closure */
-        type *Closstru = type_struct_class(closname, Target.ptrsize, 0, null, null, false, false, true, false);
+        type *Closstru = type_struct_class(closname, target.ptrsize, 0, null, null, false, false, true, false);
         free(closname);
         auto chaintype = getParentClosureType(irs.sthis, fd);
         symbol_struct_addField(Closstru.Ttag, "__chain", chaintype, 0);
@@ -979,7 +979,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         irs.sclosure = sclosure;
 
         assert(fd.closureVars.dim);
-        assert(fd.closureVars[0].offset >= Target.ptrsize);
+        assert(fd.closureVars[0].offset >= target.ptrsize);
         foreach (v; fd.closureVars)
         {
             //printf("closure var %s\n", v.toChars());
@@ -1016,9 +1016,9 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         VarDeclaration  vlast = fd.closureVars[fd.closureVars.dim - 1];
         typeof(Type.size()) lastsize;
         if (vlast.storage_class & STC.lazy_)
-            lastsize = Target.ptrsize * 2;
+            lastsize = target.ptrsize * 2;
         else if (vlast.isRef() || vlast.isOut())
-            lastsize = Target.ptrsize;
+            lastsize = target.ptrsize;
         else
             lastsize = vlast.type.size();
         bool overflow;
@@ -1119,7 +1119,7 @@ void buildCapture(FuncDeclaration fd)
         strcat(strcat(capturename, name1), name2);
 
         /* Build type for struct */
-        type *capturestru = type_struct_class(capturename, Target.ptrsize, 0, null, null, false, false, true, false);
+        type *capturestru = type_struct_class(capturename, target.ptrsize, 0, null, null, false, false, true, false);
         free(capturename);
 
         foreach (v; fd.closureVars)
@@ -1157,5 +1157,5 @@ void buildCapture(FuncDeclaration fd)
 RET retStyle(TypeFunction tf, bool needsThis)
 {
     //printf("TypeFunction.retStyle() %s\n", toChars());
-    return Target.isReturnOnStack(tf, needsThis) ? RET.stack : RET.regs;
+    return target.isReturnOnStack(tf, needsThis) ? RET.stack : RET.regs;
 }

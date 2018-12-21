@@ -1041,7 +1041,7 @@ private extern (C++) class S2irVisitor : Visitor
              * BCjcatch:
              *  __hander = __RDX;
              *  __exception_object = __RAX;
-             *  jcatchvar = *(__exception_object - Target.ptrsize); // old way
+             *  jcatchvar = *(__exception_object - target.ptrsize); // old way
              *  jcatchvar = __dmd_catch_begin(__exception_object);   // new way
              *  switch (__handler)
              *      case 1:     // first catch handler
@@ -1069,8 +1069,8 @@ private extern (C++) class S2irVisitor : Visitor
 
             version (none)
             {
-                // jcatchvar = *(__exception_object - Target.ptrsize)
-                elem *e = el_bin(OPmin, TYnptr, el_var(seo), el_long(TYsize_t, Target.ptrsize));
+                // jcatchvar = *(__exception_object - target.ptrsize)
+                elem *e = el_bin(OPmin, TYnptr, el_var(seo), el_long(TYsize_t, target.ptrsize));
                 elem *e3 = el_bin(OPeq, TYvoid, el_var(tryblock.jcatchvar), el_una(OPind, TYnptr, e));
             }
             else

@@ -3624,7 +3624,7 @@ elem *toElem(Expression e, IRState *irs)
                     assert(cast(int)vindex >= 0);
 
                     // Build *(ep + vindex * 4)
-                    ep = el_bin(OPadd,TYnptr,ep,el_long(TYsize_t, vindex * Target.ptrsize));
+                    ep = el_bin(OPadd,TYnptr,ep,el_long(TYsize_t, vindex * target.ptrsize));
                     ep = el_una(OPind,TYnptr,ep);
                 }
 

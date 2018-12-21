@@ -58,7 +58,7 @@ void initDMD()
     import dmd.mars : setTarget, addDefaultVersionIdentifiers;
     import dmd.mtype : Type;
     import dmd.objc : Objc;
-    import dmd.target : Target;
+    import dmd.target : target;
 
     global._init();
     setTarget(global.params);
@@ -67,7 +67,7 @@ void initDMD()
     Type._init();
     Id.initialize();
     Module._init();
-    Target._init(global.params);
+    target._init(global.params);
     Expression._init();
     Objc._init();
     builtin_init();

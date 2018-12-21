@@ -1828,9 +1828,9 @@ extern (C++) final class IntegerExp : Expression
             break;
 
         case Tpointer:
-            if (Target.ptrsize == 4)
+            if (target.ptrsize == 4)
                 result = cast(d_uns32)value;
-            else if (Target.ptrsize == 8)
+            else if (target.ptrsize == 8)
                 result = cast(d_uns64)value;
             else
                 assert(0);

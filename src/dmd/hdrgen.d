@@ -2270,9 +2270,9 @@ public:
             if (cast(sinteger_t)uval >= 0)
             {
                 dinteger_t sizemax;
-                if (Target.ptrsize == 4)
+                if (target.ptrsize == 4)
                     sizemax = 0xFFFFFFFFU;
-                else if (Target.ptrsize == 8)
+                else if (target.ptrsize == 8)
                     sizemax = 0xFFFFFFFFFFFFFFFFUL;
                 else
                     assert(0);
@@ -2406,9 +2406,9 @@ public:
                 buf.writestring("cast(");
                 buf.writestring(t.toChars());
                 buf.writeByte(')');
-                if (Target.ptrsize == 4)
+                if (target.ptrsize == 4)
                     goto L3;
-                else if (Target.ptrsize == 8)
+                else if (target.ptrsize == 8)
                     goto L4;
                 else
                     assert(0);
