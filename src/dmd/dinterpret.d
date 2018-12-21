@@ -398,9 +398,8 @@ struct CompiledCtfeFunction
                 {
                     if (!td.objects)
                         return;
-                    for (size_t i = 0; i < td.objects.dim; ++i)
+                    foreach (o; *td.objects)
                     {
-                        RootObject o = td.objects.tdata()[i];
                         Expression ex = isExpression(o);
                         DsymbolExp s = (ex && ex.op == TOK.dSymbol) ? cast(DsymbolExp)ex : null;
                         assert(s);
@@ -1252,15 +1251,12 @@ public:
         return true;
     }
 
-    // Check all members of an array for escaping local variables. Return false if error
+    // Check all elements of an array for escaping local variables. Return false if error
     static bool stopPointersEscapingFromArray(const ref Loc loc, Expressions* elems)
     {
-        for (size_t i = 0; i < elems.dim; i++)
+        foreach (e; *elems)
         {
-            Expression m = (*elems)[i];
-            if (!m)
-                continue;
-            if (!stopPointersEscaping(loc, m))
+            if (e && !stopPointersEscaping(loc, e))
                 return false;
         }
         return true;
@@ -1558,20 +1554,19 @@ public:
             return;
 
         Statement scase = null;
-        size_t dim = s.cases ? s.cases.dim : 0;
-        for (size_t i = 0; i < dim; i++)
-        {
-            CaseStatement cs = (*s.cases)[i];
-            UnionExp uecase = void;
-            Expression ecase = interpret(&uecase, cs.exp, istate);
-            if (exceptionOrCant(ecase))
-                return;
-            if (ctfeEqual(cs.exp.loc, TOK.equal, econdition, ecase))
+        if (s.cases)
+            foreach (cs; *s.cases)
             {
-                scase = cs;
-                break;
+                UnionExp uecase = void;
+                Expression ecase = interpret(&uecase, cs.exp, istate);
+                if (exceptionOrCant(ecase))
+                    return;
+                if (ctfeEqual(cs.exp.loc, TOK.equal, econdition, ecase))
+                {
+                    scase = cs;
+                    break;
+                }
             }
-        }
         if (!scase)
         {
             if (s.hasNoDefault)
@@ -1701,11 +1696,10 @@ public:
         {
             Expression e = null;
             e = interpret(pue, s._body, istate);
-            for (size_t i = 0; i < s.catches.dim; i++)
+            foreach (ca; *s.catches)
             {
                 if (e || !istate.start) // goto target was found
                     break;
-                Catch ca = (*s.catches)[i];
                 e = interpret(pue, ca.handler, istate);
             }
             result = e;
@@ -1721,9 +1715,8 @@ public:
             Type extype = ex.thrown.originalClass().type;
 
             // Search for an appropriate catch clause.
-            for (size_t i = 0; i < s.catches.dim; i++)
+            foreach (ca; *s.catches)
             {
-                Catch ca = (*s.catches)[i];
                 Type catype = ca.type;
                 if (!catype.equals(extype) && !catype.isBaseOf(extype, null))
                     continue;
@@ -2477,9 +2470,8 @@ public:
                 // Reserve stack space for all tuple members
                 if (!td.objects)
                     return;
-                for (size_t i = 0; i < td.objects.dim; ++i)
+                foreach (o; *td.objects)
                 {
-                    RootObject o = (*td.objects)[i];
                     Expression ex = isExpression(o);
                     DsymbolExp ds = (ex && ex.op == TOK.dSymbol) ? cast(DsymbolExp)ex : null;
                     VarDeclaration v2 = ds ? ds.s.isVarDeclaration() : null;
@@ -2630,9 +2622,8 @@ public:
             return;
 
         auto expsx = e.exps;
-        for (size_t i = 0; i < expsx.dim; i++)
+        foreach (i, exp; *expsx)
         {
-            Expression exp = (*expsx)[i];
             Expression ex = interpret(exp, istate);
             if (exceptionOrCant(ex))
                 return;
@@ -2759,9 +2750,8 @@ public:
 
         auto keysx = e.keys;
         auto valuesx = e.values;
-        for (size_t i = 0; i < keysx.dim; i++)
+        foreach (i, ekey; *keysx)
         {
-            auto ekey = (*keysx)[i];
             auto evalue = (*valuesx)[i];
 
             auto ek = interpret(ekey, istate);
@@ -2929,8 +2919,8 @@ public:
                 return elem;
 
             auto elements = new Expressions(len);
-            for (size_t i = 0; i < len; i++)
-                (*elements)[i] = copyLiteral(elem).copy();
+            foreach (ref element; *elements)
+                element = copyLiteral(elem).copy();
             auto ae = new ArrayLiteralExp(loc, newtype, elements);
             ae.ownedByCtfe = OwnedBy.ctfe;
             return ae;
@@ -2992,9 +2982,8 @@ public:
                 if (e.arguments)
                 {
                     exps.setDim(e.arguments.dim);
-                    for (size_t i = 0; i < exps.dim; i++)
+                    foreach (i, ex; *e.arguments)
                     {
-                        Expression ex = (*e.arguments)[i];
                         ex = interpret(ex, istate);
                         if (exceptionOrCant(ex))
                             return;
@@ -3014,9 +3003,9 @@ public:
             result = pue.exp();
             return;
         }
-        if (e.newtype.toBasetype().ty == Tclass)
+        if (auto tc = e.newtype.toBasetype().isTypeClass())
         {
-            ClassDeclaration cd = (cast(TypeClass)e.newtype.toBasetype()).sym;
+            ClassDeclaration cd = tc.sym;
             size_t totalFieldCount = 0;
             for (ClassDeclaration c = cd; c; c = c.baseClass)
                 totalFieldCount += c.fields.dim;
@@ -3025,9 +3014,8 @@ public:
             for (ClassDeclaration c = cd; c; c = c.baseClass)
             {
                 fieldsSoFar -= c.fields.dim;
-                for (size_t i = 0; i < c.fields.dim; i++)
+                foreach (i, v; c.fields)
                 {
-                    VarDeclaration v = c.fields[i];
                     if (v.inuse)
                     {
                         e.error("circular reference to `%s`", v.toPrettyChars());
@@ -3546,7 +3534,7 @@ public:
                 {
                     // Walk the syntax tree to find the indexExp at this depth
                     IndexExp xe = cast(IndexExp)e1;
-                    for (int d = 0; d < depth; ++d)
+                    foreach (d; 0 .. depth)
                         xe = cast(IndexExp)xe.e1;
 
                     Expression ekey = interpret(xe.e2, istate);
