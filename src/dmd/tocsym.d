@@ -80,7 +80,7 @@ Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, int sclass, type *t, const(ch
     size_t suffixlen = strlen(suffix);
     size_t idlen = 2 + nlen + size_t.sizeof * 3 + prefixlen + suffixlen + 1;
 
-    char[64] idbuf;
+    char[64] idbuf = void;
     char *id = &idbuf[0];
     if (idlen > idbuf.sizeof)
     {
@@ -103,7 +103,7 @@ Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, int sclass, type *t, const(ch
     return s;
 }
 
-__gshared Symbol *scc;
+private __gshared Symbol *scc;
 
 /*************************************
  */
@@ -269,10 +269,12 @@ Symbol *toSymbol(Dsymbol s)
                 case LINK.d:
                     m = mTYman_d;
                     break;
+
                 case LINK.cpp:
                     s.Sflags |= SFLpublic;
                     m = mTYman_cpp;
                     break;
+
                 case LINK.default_:
                 case LINK.system:
                     printf("linkage = %d, vd = %s %s @ [%s]\n",
@@ -292,15 +294,13 @@ Symbol *toSymbol(Dsymbol s)
         {
             //printf("TypeInfoDeclaration.toSymbol(%s), linkage = %d\n", tid.toChars(), tid.linkage);
             assert(tid.tinfo.ty != Terror);
-            visit(cast(VarDeclaration)tid);
+            visit(tid.isVarDeclaration());
         }
 
         override void visit(TypeInfoClassDeclaration ticd)
         {
             //printf("TypeInfoClassDeclaration.toSymbol(%s), linkage = %d\n", ticd.toChars(), ticd.linkage);
-            assert(ticd.tinfo.ty == Tclass);
-            auto tc = cast(TypeClass)ticd.tinfo;
-            tc.sym.accept(this);
+            ticd.tinfo.isTypeClass().sym.accept(this);
         }
 
         override void visit(FuncAliasDeclaration fad)
@@ -401,16 +401,20 @@ Symbol *toSymbol(Dsymbol s)
             result = s;
         }
 
+        static type* getClassInfoCType()
+        {
+            if (!scc)
+                scc = fake_classsym(Id.ClassInfo);
+            return scc.Stype;
+        }
+
         /*************************************
          * Create the "ClassInfo" symbol
          */
 
         override void visit(ClassDeclaration cd)
         {
-            if (!scc)
-                scc = fake_classsym(Id.ClassInfo);
-
-            auto s = toSymbolX(cd, "__Class", SCextern, scc.Stype, "Z");
+            auto s = toSymbolX(cd, "__Class", SCextern, getClassInfoCType(), "Z");
             s.Sfl = FLextern;
             s.Sflags |= SFLnodebug;
             result = s;
@@ -422,10 +426,7 @@ Symbol *toSymbol(Dsymbol s)
 
         override void visit(InterfaceDeclaration id)
         {
-            if (!scc)
-                scc = fake_classsym(Id.ClassInfo);
-
-            auto s = toSymbolX(id, "__Interface", SCextern, scc.Stype, "Z");
+            auto s = toSymbolX(id, "__Interface", SCextern, getClassInfoCType(), "Z");
             s.Sfl = FLextern;
             s.Sflags |= SFLnodebug;
             result = s;
@@ -437,10 +438,7 @@ Symbol *toSymbol(Dsymbol s)
 
         override void visit(Module m)
         {
-            if (!scc)
-                scc = fake_classsym(Id.ClassInfo);
-
-            auto s = toSymbolX(m, "__ModuleInfo", SCextern, scc.Stype, "Z");
+            auto s = toSymbolX(m, "__ModuleInfo", SCextern, getClassInfoCType(), "Z");
             s.Sfl = FLextern;
             s.Sflags |= SFLnodebug;
             result = s;
@@ -525,7 +523,7 @@ Symbol *toThunkSymbol(FuncDeclaration fd, int offset)
         return s;
 
     __gshared int tmpnum;
-    char[6 + tmpnum.sizeof * 3 + 1] name;
+    char[6 + tmpnum.sizeof * 3 + 1] name = void;
 
     sprintf(name.ptr,"_THUNK%d",tmpnum++);
     auto sthunk = symbol_name(name.ptr,SCstatic,fd.csym.Stype);
@@ -636,9 +634,8 @@ Symbol *aaGetSymbol(TypeAArray taa, const(char)* func, int flags)
     const idlen = sprintf(id, "_aa%s", func);
 
     // See if symbol is already in sarray
-    foreach (i; 0 .. sarray.length)
+    foreach (s; sarray)
     {
-        auto s = sarray[i];
         if (strcmp(id, s.Sident.ptr) == 0)
         {
             return s;                       // use existing Symbol
