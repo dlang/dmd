@@ -1838,6 +1838,28 @@ void test18730() // https://issues.dlang.org/show_bug.cgi?id=18730
 
 ////////////////////////////////////////////////////////////////////////
 
+void test19497() // https://issues.dlang.org/show_bug.cgi?id=19497
+{
+    {
+        ubyte[1024] data;
+        ushort* ushortPtr = cast(ushort*) data.ptr;
+        *ushortPtr++ = 0xfe00;
+        printf("ushortPtr(%p)\n", ushortPtr);
+        fflush(stdout);
+    }
+
+    alias Seq(stuff ...) = stuff;
+    static foreach (T; Seq!(ubyte, ushort, uint, ulong, byte, short, int, long))
+    {{
+        T[2] data = 0x2A;
+        T* q = &data[0];
+        *q++ = cast(T) 0x1122334455667788;
+        if (*q != 0x2A) assert(false);
+    }}
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     testgoto();
@@ -1903,6 +1925,7 @@ int main()
     test18315();
     test18461();
     test18730();
+    test19497();
 
     printf("Success\n");
     return 0;

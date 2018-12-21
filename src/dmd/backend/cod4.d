@@ -443,7 +443,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 postinc = e11.EV.E2.EV.Vint;
                 if (e11.Eoper == OPpostdec)
                     postinc = -postinc;
-                getlvalue(cdb,&cs,e11,RMstore);
+                getlvalue(cdb,&cs,e1,RMstore);
                 freenode(e11.EV.E2);
             }
             else
