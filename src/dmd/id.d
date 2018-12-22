@@ -302,6 +302,8 @@ immutable Msgtable[] msgtable =
     { "__ArrayDtor" },
     { "_d_delThrowable" },
     { "dup" },
+    { "_aaApply" },
+    { "_aaApply2" },
 
     // For pragma's
     { "Pinline", "inline" },
