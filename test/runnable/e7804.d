@@ -70,7 +70,7 @@ TmpPrm!(__traits(getMember, Foo, "MyInt")) tpt = TmpPrm!(__traits(getMember, Foo
         assert(vm[0](42) == 42);
         alias attribs = __traits(getAttributes, Class);
         assert(attribs.length == 2);
-        assert(attribs[0] is Foo);
+        assert(is(attribs[0] == Foo));
         assert(attribs[1] == 1);
 
         alias objectAll = __traits(allMembers, Object);
