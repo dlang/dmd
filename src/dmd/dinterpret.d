@@ -6981,25 +6981,37 @@ private Expression evaluateIfBuiltin(InterState* istate, const ref Loc loc, Func
     }
     if (!pthis)
     {
-        Expression firstarg = nargs > 0 ? (*arguments)[0] : null;
-        if (firstarg && firstarg.type.toBasetype().ty == Taarray)
+        if (nargs == 1 || nargs == 3)
         {
-            TypeAArray firstAAtype = cast(TypeAArray)firstarg.type;
-            const id = fd.ident.toChars();
-            if (nargs == 1 && fd.ident == Id.aaLen)
-                return interpret_length(istate, firstarg);
-            if (nargs == 3 && !strcmp(id, "_aaApply"))
-                return interpret_aaApply(istate, firstarg, arguments.data[2]);
-            if (nargs == 3 && !strcmp(id, "_aaApply2"))
-                return interpret_aaApply(istate, firstarg, arguments.data[2]);
-            if (nargs == 1 && !strcmp(id, "keys") && !strcmp(fd.toParent2().ident.toChars(), "object"))
-                return interpret_keys(istate, firstarg, firstAAtype.index.arrayOf());
-            if (nargs == 1 && !strcmp(id, "values") && !strcmp(fd.toParent2().ident.toChars(), "object"))
-                return interpret_values(istate, firstarg, firstAAtype.nextOf().arrayOf());
-            if (nargs == 1 && !strcmp(id, "rehash") && !strcmp(fd.toParent2().ident.toChars(), "object"))
-                return interpret(firstarg, istate);
-            if (nargs == 1 && !strcmp(id, "dup") && !strcmp(fd.toParent2().ident.toChars(), "object"))
-                return interpret_dup(istate, firstarg);
+            Expression firstarg = (*arguments)[0];
+            if (auto firstAAtype = firstarg.type.toBasetype().isTypeAArray())
+            {
+                const id = fd.ident;
+                if (nargs == 1)
+                {
+                    if (id == Id.aaLen)
+                        return interpret_length(istate, firstarg);
+
+                    if (fd.toParent2().ident == Id.object)
+                    {
+                        if (id == Id.keys)
+                            return interpret_keys(istate, firstarg, firstAAtype.index.arrayOf());
+                        if (id == Id.values)
+                            return interpret_values(istate, firstarg, firstAAtype.nextOf().arrayOf());
+                        if (id == Id.rehash)
+                            return interpret(firstarg, istate);
+                        if (id == Id.dup)
+                            return interpret_dup(istate, firstarg);
+                    }
+                }
+                else // (nargs == 3)
+                {
+                    if (id == Id._aaApply)
+                        return interpret_aaApply(istate, firstarg, arguments.data[2]);
+                    if (id == Id._aaApply2)
+                        return interpret_aaApply(istate, firstarg, arguments.data[2]);
+                }
+            }
         }
     }
     if (pthis && !fd.fbody && fd.isCtorDeclaration() && fd.parent && fd.parent.parent && fd.parent.parent.ident == Id.object)
@@ -7037,7 +7049,10 @@ private Expression evaluateIfBuiltin(InterState* istate, const ref Loc loc, Func
             char s = id[idlen - 2]; // string width: 'c', 'w', or 'd'
             char n = id[idlen - 1]; // numParams: 1 or 2.
             // There are 12 combinations
-            if ((n == '1' || n == '2') && (c == 'c' || c == 'w' || c == 'd') && (s == 'c' || s == 'w' || s == 'd') && c != s)
+            if ((n == '1' || n == '2') &&
+                (c == 'c' || c == 'w' || c == 'd') &&
+                (s == 'c' || s == 'w' || s == 'd') &&
+                c != s)
             {
                 Expression str = (*arguments)[0];
                 str = interpret(str, istate);

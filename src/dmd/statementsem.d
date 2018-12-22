@@ -1699,7 +1699,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                      *  extern(C) int _aaApply2(void*, in size_t, int delegate(void*, void*))
                      *      _aaApply2(aggr, keysize, flde)
                      */
-                    __gshared const(char)** name = ["_aaApply", "_aaApply2"];
                     __gshared FuncDeclaration* fdapply = [null, null];
                     __gshared TypeDelegate* fldeTy = [null, null];
 
@@ -1715,7 +1714,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
                         fldeTy[i] = new TypeDelegate(new TypeFunction(ParameterList(dgparams), Type.tint32, LINK.d));
                         params.push(new Parameter(0, fldeTy[i], null, null, null));
-                        fdapply[i] = FuncDeclaration.genCfunc(params, Type.tint32, name[i]);
+                        fdapply[i] = FuncDeclaration.genCfunc(params, Type.tint32, i ? Id._aaApply2 : Id._aaApply);
                     }
 
                     auto exps = new Expressions();
