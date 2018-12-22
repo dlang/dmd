@@ -3303,8 +3303,6 @@ extern (C++) final class TypeBasic : Type
                  * with a MATCH.convert
                  */
                 tob = to.toBasetype().isTypeBasic();
-                if (tob)
-                    return implicitConvTo(tob);
             }
             else
                 return MATCH.nomatch;
