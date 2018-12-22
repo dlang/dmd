@@ -1204,7 +1204,7 @@ extern (C++) class VarDeclaration : Declaration
         const sz = t.size(loc);
         assert(sz != SIZE_INVALID && sz < uint.max);
         uint memsize = cast(uint)sz;                // size of member
-        uint memalignsize = Target.fieldalign(t);   // size of member for alignment purposes
+        uint memalignsize = target.fieldalign(t);   // size of member for alignment purposes
         offset = AggregateDeclaration.placeField(
             poffset,
             memsize, memalignsize, alignment,
@@ -1700,7 +1700,7 @@ extern (C++) class TypeInfoDeclaration : VarDeclaration
         storage_class = STC.static_ | STC.gshared;
         protection = Prot(Prot.Kind.public_);
         linkage = LINK.c;
-        alignment = Target.ptrsize;
+        alignment = target.ptrsize;
     }
 
     static TypeInfoDeclaration create(Type tinfo)

@@ -1722,8 +1722,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     auto keysize = taa.index.size();
                     if (keysize == SIZE_INVALID)
                         goto case Terror;
-                    assert(keysize < keysize.max - Target.ptrsize);
-                    keysize = (keysize + (Target.ptrsize - 1)) & ~(Target.ptrsize - 1);
+                    assert(keysize < keysize.max - target.ptrsize);
+                    keysize = (keysize + (target.ptrsize - 1)) & ~(target.ptrsize - 1);
                     // paint delegate argument to the type runtime expects
                     Expression fexp = flde;
                     if (!fldeTy[i].equals(flde.type))
@@ -3609,7 +3609,7 @@ else
              *  try { body } finally { _d_criticalexit(&__critsec[0]); }
              */
             auto id = Identifier.generateId("__critsec");
-            auto t = Type.tint8.sarrayOf(Target.ptrsize + Target.critsecsize());
+            auto t = Type.tint8.sarrayOf(target.ptrsize + target.critsecsize());
             auto tmp = new VarDeclaration(ss.loc, t, id, null);
             tmp.storage_class |= STC.temp | STC.shared_ | STC.static_;
             Expression tmpExp = new VarExp(ss.loc, tmp);
@@ -3648,7 +3648,7 @@ else
             result = s.statementSemantic(sc);
 
             // set the explicit __critsec alignment after semantic()
-            tmp.alignment = Target.ptrsize;
+            tmp.alignment = target.ptrsize;
         }
     }
 
@@ -4192,7 +4192,7 @@ void catchSemantic(Catch c, Scope* sc)
         }
         else if (cd.isCPPclass())
         {
-            if (!Target.cppExceptions)
+            if (!target.cppExceptions)
             {
                 error(c.loc, "catching C++ class objects not supported for this target");
                 c.errors = true;

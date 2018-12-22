@@ -200,7 +200,7 @@ struct Target
         case Tfloat80:
         case Timaginary80:
         case Tcomplex80:
-            return Target.realalignsize;
+            return target.realalignsize;
         case Tcomplex32:
             if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isOpenBSD ||
                 global.params.isDragonFlyBSD || global.params.isSolaris)
@@ -753,3 +753,5 @@ struct Target
         }
     }
 }
+
+extern (C++) __gshared Target target;

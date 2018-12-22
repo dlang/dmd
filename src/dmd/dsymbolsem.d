@@ -3309,7 +3309,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     //printf("\tintroducing function %s\n", toChars());
                     funcdecl.introducing = 1;
-                    if (cd.classKind == ClassKind.cpp && Target.reverseCppOverloads)
+                    if (cd.classKind == ClassKind.cpp && target.reverseCppOverloads)
                     {
                         /* Overloaded functions with same name are grouped and in reverse order.
                          * Search for first function of overload group, and insert
@@ -3850,7 +3850,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         // reserve the dtor slot for the destructor (which we'll create later)
                         cldec.cppDtorVtblIndex = cast(int)cldec.vtbl.dim;
                         cldec.vtbl.push(dd);
-                        if (Target.twoDtorInVtable)
+                        if (target.twoDtorInVtable)
                             cldec.vtbl.push(dd); // deleting destructor uses a second slot
                     }
                 }
@@ -4947,7 +4947,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             cldec.dtor.vtblIndex = cldec.cppDtorVtblIndex;
             cldec.vtbl[cldec.cppDtorVtblIndex] = cldec.dtor;
 
-            if (Target.twoDtorInVtable)
+            if (target.twoDtorInVtable)
             {
                 // TODO: create a C++ compatible deleting destructor (call out to `operator delete`)
                 //       for the moment, we'll call the non-deleting destructor and leak

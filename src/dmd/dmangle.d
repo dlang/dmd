@@ -558,7 +558,7 @@ public:
                     return d.ident.toString();
                 case LINK.cpp:
                 {
-                    const p = Target.toCppMangle(d);
+                    const p = target.toCppMangle(d);
                     return p[0 .. strlen(p)];
                 }
                 case LINK.default_:
