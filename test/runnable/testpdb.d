@@ -42,7 +42,9 @@ void main(string[] args)
         S18984 s = test18984(session, globals);
 
         test19307(session, globals);
-        
+
+        test19318(session, globals);
+
         source.Release();
         session.Release();
         globals.Release();
@@ -53,7 +55,7 @@ void main(string[] args)
 // https://issues.dlang.org/show_bug.cgi?id=15432
 void call15432(string col) {}
 
-int test15432() // line 8
+int test15432()
 {
     call15432(null);
     return 0;
