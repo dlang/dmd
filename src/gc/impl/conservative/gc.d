@@ -2284,14 +2284,14 @@ struct Gcx
                     {
                         immutable size = binsize[bin];
                         void *p = pool.baseAddr + pn * PAGESIZE;
-                        void *ptop = p + PAGESIZE;
+                        void *ptop = p + PAGESIZE - size;
                         immutable base = pn * (PAGESIZE/16);
                         immutable bitstride = size / 16;
 
                         bool freeBits;
                         PageBits toFree;
 
-                        for (size_t i; p < ptop; p += size, i += bitstride)
+                        for (size_t i; p <= ptop; p += size, i += bitstride)
                         {
                             immutable biti = base + i;
 
