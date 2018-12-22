@@ -942,25 +942,11 @@ class ConservativeGC : GC
         {
             p = sentinel_sub(p);
             size_t size = gcx.findSize(p);
-
-            // Check for interior pointer
-            // This depends on:
-            // 1) size is a power of 2 for less than PAGESIZE values
-            // 2) base of memory pool is aligned on PAGESIZE boundary
-            if (cast(size_t)p & (size - 1) & (PAGESIZE - 1))
-                size = 0;
             return size ? size - SENTINEL_EXTRA : 0;
         }
         else
         {
             size_t size = gcx.findSize(p);
-
-            // Check for interior pointer
-            // This depends on:
-            // 1) size is a power of 2 for less than PAGESIZE values
-            // 2) base of memory pool is aligned on PAGESIZE boundary
-            if (cast(size_t)p & (size - 1) & (PAGESIZE - 1))
-                return 0;
             return size;
         }
     }
@@ -3088,6 +3074,8 @@ struct LargeObjectPool
     }
     do
     {
+        if (cast(size_t)p & (PAGESIZE - 1)) // check for interior pointer
+            return 0;
         size_t pagenum = pagenumOf(p);
         Bins bin = cast(Bins)pagetable[pagenum];
         assert(bin == B_PAGE);
@@ -3176,6 +3164,8 @@ struct SmallObjectPool
         size_t pagenum = pagenumOf(p);
         Bins bin = cast(Bins)pagetable[pagenum];
         assert(bin < B_PAGE);
+        if (p != cast(void*)baseOffset(cast(size_t)p, bin)) // check for interior pointer
+            return 0;
         return binsize[bin];
     }
 
