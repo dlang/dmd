@@ -4723,7 +4723,7 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
         override void visit(TypeTypeof t)
         {
             //printf("TypeTypeof.reliesOnTident('%s')\n", t.toChars());
-            t.exp.accept(this);
+            result = t.exp.reliesOnTemplateParameters(tparams, iStart);
         }
 
         override void visit(TypeTuple t)
@@ -4739,15 +4739,51 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
                 }
             }
         }
+    }
+
+    if (!t)
+        return false;
+
+    assert(tparams);
+    scope ReliesOnTident v = new ReliesOnTident(tparams, iStart);
+    t.accept(v);
+    return v.result;
+}
+
+/***********************************************************
+ * Check whether the type t representation relies on one or more the template parameters.
+ * Params:
+ *      e           = Tested type, if null, returns false.
+ *      tparams     = Template parameters.
+ *      iStart      = Start index of tparams to limit the tested parameters. If it's
+ *                    nonzero, tparams[0..iStart] will be excluded from the test target.
+ * Returns:
+ *      true if it does
+ */
+private bool reliesOnTemplateParameters(Expression e, TemplateParameters* tparams = null, size_t iStart = 0)
+{
+    extern (C++) final class ReliesOnTemplateParameters : Visitor
+    {
+        alias visit = Visitor.visit;
+    public:
+        TemplateParameters* tparams;
+        size_t iStart;
+        bool result;
+
+        extern (D) this(TemplateParameters* tparams, size_t iStart)
+        {
+            this.tparams = tparams;
+            this.iStart = iStart;
+        }
 
         override void visit(Expression e)
         {
-            //printf("Expression.reliesOnTident('%s')\n", e.toChars());
+            //printf("Expression.reliesOnTemplateParameters('%s')\n", e.toChars());
         }
 
         override void visit(IdentifierExp e)
         {
-            //printf("IdentifierExp.reliesOnTident('%s')\n", e.toChars());
+            //printf("IdentifierExp.reliesOnTemplateParameters('%s')\n", e.toChars());
             for (size_t i = iStart; i < tparams.dim; i++)
             {
                 auto tp = (*tparams)[i];
@@ -4761,7 +4797,7 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
 
         override void visit(TupleExp e)
         {
-            //printf("TupleExp.reliesOnTident('%s')\n", e.toChars());
+            //printf("TupleExp.reliesOnTemplateParameters('%s')\n", e.toChars());
             if (e.exps)
             {
                 foreach (ea; *e.exps)
@@ -4775,7 +4811,7 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
 
         override void visit(ArrayLiteralExp e)
         {
-            //printf("ArrayLiteralExp.reliesOnTident('%s')\n", e.toChars());
+            //printf("ArrayLiteralExp.reliesOnTemplateParameters('%s')\n", e.toChars());
             if (e.elements)
             {
                 foreach (el; *e.elements)
@@ -4789,7 +4825,7 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
 
         override void visit(AssocArrayLiteralExp e)
         {
-            //printf("AssocArrayLiteralExp.reliesOnTident('%s')\n", e.toChars());
+            //printf("AssocArrayLiteralExp.reliesOnTemplateParameters('%s')\n", e.toChars());
             foreach (ek; *e.keys)
             {
                 ek.accept(this);
@@ -4806,7 +4842,7 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
 
         override void visit(StructLiteralExp e)
         {
-            //printf("StructLiteralExp.reliesOnTident('%s')\n", e.toChars());
+            //printf("StructLiteralExp.reliesOnTemplateParameters('%s')\n", e.toChars());
             if (e.elements)
             {
                 foreach (ea; *e.elements)
@@ -4820,13 +4856,13 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
 
         override void visit(TypeExp e)
         {
-            //printf("TypeExp.reliesOnTident('%s')\n", e.toChars());
-            e.type.accept(this);
+            //printf("TypeExp.reliesOnTemplateParameters('%s')\n", e.toChars());
+            result = e.type.reliesOnTident(tparams, iStart);
         }
 
         override void visit(NewExp e)
         {
-            //printf("NewExp.reliesOnTident('%s')\n", e.toChars());
+            //printf("NewExp.reliesOnTemplateParameters('%s')\n", e.toChars());
             if (e.thisexp)
                 e.thisexp.accept(this);
             if (!result && e.newargs)
@@ -4838,7 +4874,7 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
                         return;
                 }
             }
-            e.newtype.accept(this);
+            result = e.newtype.reliesOnTident(tparams, iStart);
             if (!result && e.arguments)
             {
                 foreach (ea; *e.arguments)
@@ -4852,28 +4888,28 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
 
         override void visit(NewAnonClassExp e)
         {
-            //printf("NewAnonClassExp.reliesOnTident('%s')\n", e.toChars());
+            //printf("NewAnonClassExp.reliesOnTemplateParameters('%s')\n", e.toChars());
             result = true;
         }
 
         override void visit(FuncExp e)
         {
-            //printf("FuncExp.reliesOnTident('%s')\n", e.toChars());
+            //printf("FuncExp.reliesOnTemplateParameters('%s')\n", e.toChars());
             result = true;
         }
 
         override void visit(TypeidExp e)
         {
-            //printf("TypeidExp.reliesOnTident('%s')\n", e.toChars());
+            //printf("TypeidExp.reliesOnTemplateParameters('%s')\n", e.toChars());
             if (auto ea = isExpression(e.obj))
                 ea.accept(this);
             else if (auto ta = isType(e.obj))
-                ta.accept(this);
+                result = ta.reliesOnTident(tparams, iStart);
         }
 
         override void visit(TraitsExp e)
         {
-            //printf("TraitsExp.reliesOnTident('%s')\n", e.toChars());
+            //printf("TraitsExp.reliesOnTemplateParameters('%s')\n", e.toChars());
             if (e.args)
             {
                 foreach (oa; *e.args)
@@ -4881,7 +4917,7 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
                     if (auto ea = isExpression(oa))
                         ea.accept(this);
                     else if (auto ta = isType(oa))
-                        ta.accept(this);
+                        result = ta.reliesOnTident(tparams, iStart);
                     if (result)
                         return;
                 }
@@ -4890,19 +4926,19 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
 
         override void visit(IsExp e)
         {
-            //printf("IsExp.reliesOnTident('%s')\n", e.toChars());
-            e.targ.accept(this);
+            //printf("IsExp.reliesOnTemplateParameters('%s')\n", e.toChars());
+            result = e.targ.reliesOnTident(tparams, iStart);
         }
 
         override void visit(UnaExp e)
         {
-            //printf("UnaExp.reliesOnTident('%s')\n", e.toChars());
+            //printf("UnaExp.reliesOnTemplateParameters('%s')\n", e.toChars());
             e.e1.accept(this);
         }
 
         override void visit(DotTemplateInstanceExp e)
         {
-            //printf("DotTemplateInstanceExp.reliesOnTident('%s')\n", e.toChars());
+            //printf("DotTemplateInstanceExp.reliesOnTemplateParameters('%s')\n", e.toChars());
             visit(cast(UnaExp)e);
             if (!result && e.ti.tiargs)
             {
@@ -4911,7 +4947,7 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
                     if (auto ea = isExpression(oa))
                         ea.accept(this);
                     else if (auto ta = isType(oa))
-                        ta.accept(this);
+                        result = ta.reliesOnTident(tparams, iStart);
                     if (result)
                         return;
                 }
@@ -4920,7 +4956,7 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
 
         override void visit(CallExp e)
         {
-            //printf("CallExp.reliesOnTident('%s')\n", e.toChars());
+            //printf("CallExp.reliesOnTemplateParameters('%s')\n", e.toChars());
             visit(cast(UnaExp)e);
             if (!result && e.arguments)
             {
@@ -4935,16 +4971,16 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
 
         override void visit(CastExp e)
         {
-            //printf("CallExp.reliesOnTident('%s')\n", e.toChars());
+            //printf("CallExp.reliesOnTemplateParameters('%s')\n", e.toChars());
             visit(cast(UnaExp)e);
             // e.to can be null for cast() with no type
             if (!result && e.to)
-                e.to.accept(this);
+                result = e.to.reliesOnTident(tparams, iStart);
         }
 
         override void visit(SliceExp e)
         {
-            //printf("SliceExp.reliesOnTident('%s')\n", e.toChars());
+            //printf("SliceExp.reliesOnTemplateParameters('%s')\n", e.toChars());
             visit(cast(UnaExp)e);
             if (!result && e.lwr)
                 e.lwr.accept(this);
@@ -4954,7 +4990,7 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
 
         override void visit(IntervalExp e)
         {
-            //printf("IntervalExp.reliesOnTident('%s')\n", e.toChars());
+            //printf("IntervalExp.reliesOnTemplateParameters('%s')\n", e.toChars());
             e.lwr.accept(this);
             if (!result)
                 e.upr.accept(this);
@@ -4962,7 +4998,7 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
 
         override void visit(ArrayExp e)
         {
-            //printf("ArrayExp.reliesOnTident('%s')\n", e.toChars());
+            //printf("ArrayExp.reliesOnTemplateParameters('%s')\n", e.toChars());
             visit(cast(UnaExp)e);
             if (!result && e.arguments)
             {
@@ -4973,7 +5009,7 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
 
         override void visit(BinExp e)
         {
-            //printf("BinExp.reliesOnTident('%s')\n", e.toChars());
+            //printf("BinExp.reliesOnTemplateParameters('%s')\n", e.toChars());
             e.e1.accept(this);
             if (!result)
                 e.e2.accept(this);
@@ -4981,19 +5017,16 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
 
         override void visit(CondExp e)
         {
-            //printf("BinExp.reliesOnTident('%s')\n", e.toChars());
+            //printf("BinExp.reliesOnTemplateParameters('%s')\n", e.toChars());
             e.econd.accept(this);
             if (!result)
                 visit(cast(BinExp)e);
         }
     }
 
-    if (!t)
-        return false;
-
     assert(tparams);
-    scope ReliesOnTident v = new ReliesOnTident(tparams, iStart);
-    t.accept(v);
+    scope ReliesOnTemplateParameters v = new ReliesOnTemplateParameters(tparams, iStart);
+    e.accept(v);
     return v.result;
 }
 
