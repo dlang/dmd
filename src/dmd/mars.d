@@ -724,9 +724,6 @@ private int tryMain(size_t argc, const(char)** argv)
     // So deps file generation should be moved after the inlinig stage.
     if (global.params.moduleDeps)
     {
-        foreach (i; 1 .. modules[0].aimports.dim)
-            semantic3OnDependencies(modules[0].aimports[i]);
-
         OutBuffer* ob = global.params.moduleDeps;
         if (global.params.moduleDepsFile)
         {
