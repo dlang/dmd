@@ -179,6 +179,10 @@ different `this` pointer. The `this` pointer should be a
 
 ### Linkages
 
+#### External Linkage
+
+Externally visible function.
+
 #### Internal Linkage
 
 Rename collisions when linking (static functions).
@@ -197,6 +201,81 @@ section data.
 | Section                                     | Linkage                      | Alignment |
 |---------------------------------------------|------------------------------|-----------|
 | [`__objc_methname`](#segments-and-sections) | [Private](#private-linkage)  | 1         |
+
+### `L_OBJC_METH_VAR_TYPE_`
+
+For each method that is defined, a symbol is generated in the resulting binary.
+The symbol has the name `L_OBJC_METH_VAR_TYPE_.<number>`, where `<number>` is an
+incrementing number. The section data contains the return type and the parameter
+types encoded as a null terminated C string as according to the [Type Encoding](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html#//apple_ref/doc/uid/TP40008048-CH100)
+documentation provided by Apple.
+
+| Section                                     | Linkage                      | Alignment |
+|---------------------------------------------|------------------------------|-----------|
+| [`__objc_methtype`](#segments-and-sections) | [Private](#private-linkage)  | 1         |
+
+### `l_OBJC_$_INSTANCE_METHODS_`/`l_OBJC_$_CLASS_METHODS_`
+
+For each class that is defined and contains at least a one class (static)
+method, a symbol is generated in the resulting binary. The symbol has the name
+`l_OBJC_$_CLASS_METHODS_<class_name>`, where `<class_name>` is the name of the
+class. For each class that is defined and contains at least one instance method,
+a symbol is generated with the name `l_OBJC_$_INSTANCE_METHODS_<class_name>`,
+where `<class_name>` is the name of the class. The section data that is stored
+corresponds to the following structs:
+
+```d
+struct __method_list_t
+{
+  int entsize;
+  int count;
+  _objc_method first;
+}
+```
+
+```d
+struct _objc_method
+{
+  char* name;
+  char* types;
+  void* imp;
+}
+```
+
+#### `__method_list_t`
+#####  `entsize`
+
+The size of `_objc_method` in bytes, always `24`.
+
+##### `count`
+
+The number of methods in the list.
+
+##### `first`
+
+The first method.
+
+#### `_objc_method`
+##### `name`
+
+The name of the method. This is stored as a reference to the
+`L_OBJC_METH_VAR_NAME_.<number>` symbol, where `<number>` is an incrementing
+number.
+
+##### `types`
+
+The type encoding of the method. This is stored as a reference to the
+`L_OBJC_METH_VAR_TYPE_.<number>` symbol, where `<number>` is an incrementing
+number.
+
+##### `imp`
+
+The actual method implementation. The address to the function that is the method
+implementation.
+
+| Section                                  | Linkage                      | Alignment |
+|------------------------------------------|------------------------------|-----------|
+| [`__objc_const`](#segments-and-sections) | [Private](#private-linkage)  | 8         |
 
 ### `L_OBJC_SELECTOR_REFERENCES_`
 
@@ -252,18 +331,187 @@ by default when no switches are specified.
 |----------------------------------------------|------------------------------|-----------|
 | [`__objc_imageinfo`](#segments-and-sections) | [Private](#private-linkage)  | 8         |
 
+### `L_OBJC_CLASS_NAME_`
+
+For each class defined, a symbol is generated in the resulting binary. The
+symbol has the name `L_OBJC_CLASS_NAME_.<number>`, where `<number>` is an
+incrementing number. The the name of the class is stored as a null terminated C
+string as the section data.
+
+| Section                                      | Linkage                      | Alignment |
+|----------------------------------------------|------------------------------|-----------|
+| [`__objc_classname`](#segments-and-sections) | [Private](#private-linkage)  | 8         |
+
+### `l_OBJC_CLASS_RO_$_`/`l_OBJC_METACLASS_RO_$_`
+
+For each class defined, two symbols is generated in the resulting binary. One
+symbols with the name `l_OBJC_CLASS_RO_$_<class_name>` and one with the name
+`l_OBJC_METACLASS_RO_$_<class_name>`, where `<class_name>` is the name of the
+class. The first symbol is for the class and the second symbol is for the
+metaclass. The section data that is stored corresponds to the following struct:
+
+```d
+struct _class_ro_t
+{
+    int flags;
+    int instanceStart = 40;
+    int instanceSize = 40;
+    byte* reserved;
+    byte* ivarLayout;
+    char* name;
+    __method_list_t* baseMethods;
+    _objc_protocol_list* baseProtocols;
+    _ivar_list_t* ivars;
+    byte* weakIvarLayout;
+    _prop_list_t* baseProperties;
+}
+```
+
+#### `flags`
+
+A bit field indicating if the class is a regular class, metaclass or root class.
+Possible flags:
+
+* regular class: `0`
+* metaclass: `0x00001`
+* root class: `0x00002`
+
+#### `instanceStart`
+
+The start of the instance, in bytes. For a metaclass this is always `40`. For a
+class without instance variables it's the size of the class declaration.
+Otherwise it's the offset of the first instance variable.
+
+#### `instanceSize`
+
+The size of an instance of this class, in bytes. For a metaclass this is always
+`40`.
+
+#### `reserved`
+
+Currently not used. Reserved for future use.
+
+#### `ivarLayout`
+
+Unknown. Seems to be `null`.
+
+#### `name`
+
+The name of the class. This is stored as a reference to the
+`L_OBJC_CLASS_NAME_<class_name>` symbol, where `<class_name>` is the name of the
+class.
+
+#### `baseMethods`
+
+A list of the class (static) methods this class contains. This is stored as a
+reference to the `l_OBJC_$_CLASS_METHODS_<class_name>` symbol, where
+`<class_name>` is the name of the class. If the class doesn't contain any class
+methods, `null` is stored instead.
+
+#### `baseProtocols`
+
+A list of the protocols this class implements.
+
+#### `ivars`
+
+A list of the instance variables this class contains. This is stored as a
+a reference to the `l_OBJC_$_INSTANCE_VARIABLES_<class_name>`, where
+`<class_name>` is the name of the class. For a metaclass or if the class doesn't
+have any instance variables, this will be `null`.
+
+#### `weakIvarLayout`
+
+Unknown. Seems to be `null`.
+
+#### `baseProperties`
+
+A list of the properties this class contains.
+
+| Section                                  | Linkage                      | Alignment |
+|------------------------------------------|------------------------------|-----------|
+| [`__objc_const`](#segments-and-sections) | [Private](#private-linkage)  | 8         |
+
+### `_OBJC_CLASS_$_`/`_OBJC_METACLASS_$_`
+
+For each class defined, two symbols is generated in the resulting binary. One
+symbols with the name `_OBJC_CLASS_$_<class_name>` and one with the name
+`_OBJC_METACLASS_$_<class_name>`, where `<class_name>` is the name of the
+class. The first symbol is for the class and the second symbol is for the
+metaclass. The section data that is stored corresponds to the following struct:
+
+```d
+struct _class_t
+{
+    _class_t* isa;
+    _class_t* superclass;
+    _objc_cache* cache;
+    void* vtable;
+    _class_ro_t* data;
+}
+```
+
+#### `isa`
+
+Pointer to the metaclass. This is stored as a reference to the
+`_OBJC_METACLASS_$_<class_name>` symbol, where `<class_name>` is the name of the
+class.
+
+#### `superclass`
+
+Pointer to the base class. This is stored as a reference to the
+`_OBJC_CLASS_$_<class_name>` symbol, where `<class_name>` is the name of the
+base class. Or a reference to the `_OBJC_METACLASS_$_<class_name>`, if this is a
+metaclass.
+
+#### `cache`
+
+Unknown. Usually a pointer to an empty cache object. This is stored as a
+reference to the externally defined `__objc_empty_cache` symbol.
+
+#### `vtable`
+
+Pointer to the vtable. For some selectors, as an optimization, a vtable can be
+used when calling the method, instead of the regular implementation. This
+applies to around 20 selectors that are very common to call but unlikely for
+these methods to be overridden.
+
+#### `data`
+
+A pointer to the class implementation. This is stored as a reference to the
+`l_OBJC_CLASS_RO_$_<class_name>` symbol, where `<class_name>` is the name of the
+class. Or a reference to the `l_OBJC_METACLASS_RO_$_<class_name>` symbol, if
+this class is metaclass.
+
+| Section                                 | Linkage                        | Alignment |
+|-----------------------------------------|--------------------------------|-----------|
+| [`__objc_data`](#segments-and-sections) | [External](#external-linkage)  | 8         |
+
+### `L_OBJC_LABEL_CLASS_$`
+
+Contains a list of `_class_t` pointers for each class that is defined. This is
+stored as a reference to the `_OBJC_CLASS_$_<class_name>` symbol, where
+`<class_name>` is the name of the class.
+
+| Section                                      | Linkage                      | Alignment |
+|----------------------------------------------|------------------------------|-----------|
+| [`__objc_classlist`](#segments-and-sections) | [Private](#private-linkage)  | 8         |
+
 ## Segments and Sections
 
 The following segments and sections are used to store data in the binary. This
 table also includes properties of these sections:
 
-| Section            | Segment   | Type                | Attribute       |  Alignment |
-|--------------------|-----------|---------------------|-----------------|------------|
-| `__objc_imageinfo` | `__DATA`  | `regular`           | `no_dead_strip` | 0          |
-| `__objc_methname`  | `__TEXT`  | `cstring_literals`  |                 | 0          |
-| `__objc_classlist` | `__DATA`  | `regular`           | `no_dead_strip` | 8          |
-| `__objc_selrefs`   | `__DATA`  | `literal_pointers`  | `no_dead_strip` | 8          |
-| `__objc_classrefs` | `__DATA`  | `regular`           | `no_dead_strip` | 8          |
+| Section            | Segment  | Type               | Attribute       | Alignment |
+|--------------------|----------|--------------------|-----------------|-----------|
+| `__objc_imageinfo` | `__DATA` | `regular`          | `no_dead_strip` | 0         |
+| `__objc_methname`  | `__TEXT` | `cstring_literals` |                 | 0         |
+| `__objc_classlist` | `__DATA` | `regular`          | `no_dead_strip` | 8         |
+| `__objc_selrefs`   | `__DATA` | `literal_pointers` | `no_dead_strip` | 8         |
+| `__objc_classrefs` | `__DATA` | `regular`          | `no_dead_strip` | 8         |
+| `__objc_classname` | `__TEXT` | `cstring_literals` |                 | 0         |
+| `__objc_const`     | `__DATA` | `regular`          |                 | 8         |
+| `__objc_data`      | `__DATA` | `regular`          |                 | 8         |
+| `__objc_methtype`  | `__TEXT` | `cstring_literals` |                 | 0        |
 
 For more information about the different section types and attributes, see
 the documentation for [Assembler Directives](https://developer.apple.com/library/content/documentation/DeveloperTools/Reference/Assembler/040-Assembler_Directives/asm_directives.html) from Apple.
