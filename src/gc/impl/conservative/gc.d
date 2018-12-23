@@ -650,7 +650,8 @@ class ConservativeGC : GC
                 if (pool.isLargeObject)
                 {
                     auto lpool = cast(LargeObjectPool*) pool;
-                    psize = lpool.getSize(p);     // get allocated size
+                    auto paligned = cast(void*)(cast(size_t)p & ~(PAGESIZE - 1)); // abused by std.file.readImpl
+                    psize = lpool.getSize(paligned);     // get allocated size
 
                     if (size <= PAGESIZE / 2)
                         goto Lmalloc; // switching from large object pool to small object pool
@@ -1013,7 +1014,6 @@ class ConservativeGC : GC
             Pool*  pool;
             size_t pagenum;
             Bins   bin;
-            size_t size;
 
             p = sentinel_sub(p);
             pool = gcx.findPool(p);
@@ -1021,8 +1021,7 @@ class ConservativeGC : GC
             pagenum = pool.pagenumOf(p);
             bin = cast(Bins)pool.pagetable[pagenum];
             assert(bin <= B_PAGE);
-            size = binsize[bin];
-            assert((cast(size_t)p & (size - 1)) == 0);
+            assert(p == cast(void*)baseOffset(cast(size_t)p, bin));
 
             debug (PTRCHECK2)
             {
@@ -2284,14 +2283,16 @@ struct Gcx
                     {
                         immutable size = binsize[bin];
                         void *p = pool.baseAddr + pn * PAGESIZE;
-                        void *ptop = p + PAGESIZE - size;
                         immutable base = pn * (PAGESIZE/16);
                         immutable bitstride = size / 16;
 
                         bool freeBits;
                         PageBits toFree;
 
-                        for (size_t i; p <= ptop; p += size, i += bitstride)
+                        // ensure that there are at least <size> bytes for every address
+                        //  below ptop even if unaligned
+                        void *ptop = p + PAGESIZE - size + 1;
+                        for (size_t i; p < ptop; p += size, i += bitstride)
                         {
                             immutable biti = base + i;
 
@@ -2358,7 +2359,7 @@ struct Gcx
                     size_t size = binsize[bin];
                     size_t bitstride = size / 16;
                     size_t bitbase = pn * (PAGESIZE / 16);
-                    size_t bittop = bitbase + (PAGESIZE / 16);
+                    size_t bittop = bitbase + (PAGESIZE / 16) - bitstride + 1;
                     void*  p;
 
                     biti = bitbase;
@@ -2375,7 +2376,8 @@ struct Gcx
 
                 Lnotfree:
                     p = pool.baseAddr + pn * PAGESIZE;
-                    for (u = 0; u <= PAGESIZE - size; u += size)
+                    const top = PAGESIZE - size + 1; // ensure <size> bytes available even if unaligned
+                    for (u = 0; u < top; u += size)
                     {
                         biti = bitbase + u / 16;
                         if (!pool.freebits.test(biti))
@@ -3197,7 +3199,7 @@ struct SmallObjectPool
 
             immutable size = binsize[bin];
             auto p = baseAddr + pn * PAGESIZE;
-            const ptop = p + PAGESIZE;
+            const ptop = p + PAGESIZE - size + 1;
             immutable base = pn * (PAGESIZE/16);
             immutable bitstride = size / 16;
 
@@ -3255,10 +3257,12 @@ struct SmallObjectPool
         // Convert page to free list
         size_t size = binsize[bin];
         void* p = baseAddr + pn * PAGESIZE;
-        void* ptop = p + PAGESIZE - 2 * size;
         auto first = cast(List*) p;
 
-        for (; p <= ptop; p += size)
+        // ensure 2 <size> bytes blocks are available below ptop, one
+        //  being set in the loop, and one for the tail block
+        void* ptop = p + PAGESIZE - 2 * size + 1;
+        for (; p < ptop; p += size)
         {
             (cast(List *)p).next = cast(List *)(p + size);
             (cast(List *)p).pool = &base;
