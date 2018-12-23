@@ -832,44 +832,24 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
 
 extern (C++) void Type_toDt(Type t, ref DtBuilder dtb)
 {
-    extern (C++) class TypeToDt : Visitor
+    switch (t.ty)
     {
-    public:
-        DtBuilder* dtb;
+        case Tvector:
+            toDtElem(t.isTypeVector().basetype.isTypeSArray(), dtb, null);
+            break;
 
-        this(ref DtBuilder dtb)
-        {
-            this.dtb = &dtb;
-        }
+        case Tsarray:
+            toDtElem(t.isTypeSArray(), dtb, null);
+            break;
 
-        alias visit = Visitor.visit;
+        case Tstruct:
+            StructDeclaration_toDt(t.isTypeStruct().sym, dtb);
+            break;
 
-        override void visit(Type t)
-        {
-            //printf("Type.toDt()\n");
-            Expression e = t.defaultInit(Loc.initial);
-            Expression_toDt(e, *dtb);
-        }
-
-        override void visit(TypeVector t)
-        {
-            assert(t.basetype.ty == Tsarray);
-            toDtElem(cast(TypeSArray)t.basetype, *dtb, null);
-        }
-
-        override void visit(TypeSArray t)
-        {
-            toDtElem(t, *dtb, null);
-        }
-
-        override void visit(TypeStruct t)
-        {
-            StructDeclaration_toDt(t.sym, *dtb);
-        }
+        default:
+            Expression_toDt(t.defaultInit(Loc.initial), dtb);
+            break;
     }
-
-    scope v = new TypeToDt(dtb);
-    t.accept(v);
 }
 
 private void toDtElem(TypeSArray tsa, ref DtBuilder dtb, Expression e)
