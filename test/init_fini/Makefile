@@ -10,12 +10,8 @@ $(ROOT)/%.done: $(ROOT)/%
 	$(QUIET)$(TIMELIMIT)$(ROOT)/$* $(RUN_ARGS)
 	@touch $@
 
-$(ROOT)/custom_gc: $(ROOT)/register_custom_gc.o
 $(ROOT)/%: $(SRC)/%.d
-	$(QUIET)$(DMD) $(DFLAGS) -of$@ $^
-
-$(ROOT)/register_custom_gc.o: $(SRC)/register_custom_gc.c
-	$(QUIET)$(CC) -c $(CFLAGS) -o $@ $^
+	$(QUIET)$(DMD) $(DFLAGS) -of$@ $<
 
 clean:
 	rm -rf $(ROOT)

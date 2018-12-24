@@ -6,9 +6,14 @@ static import core.memory;
 
 extern (C) __gshared string[] rt_options = ["gcopt=gc:malloc"];
 
-extern (C) void register_mygc()
+extern (C) pragma(crt_constructor) void register_mygc()
 {
     registerGCFactory("malloc", &MallocGC.initialize);
+}
+
+extern (C) void register_default_gcs()
+{
+    // remove default GCs
 }
 
 /** Simple GC that requires any pointers passed to it's API

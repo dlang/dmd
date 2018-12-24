@@ -13,8 +13,6 @@
  */
 module gc.proxy;
 
-import gc.impl.conservative.gc;
-import gc.impl.manual.gc;
 import gc.impl.proto.gc;
 import gc.config;
 import gc.gcinterface;
@@ -37,11 +35,27 @@ private
 
 extern (C)
 {
+    // do not import GC modules, they might add a dependency to this whole module
+    void _d_register_conservative_gc();
+    void _d_register_manual_gc();
+
+    // if you don't want to include the default GCs, replace during link by another implementation
+    void* register_default_gcs()
+    {
+        pragma(inline, false);
+        // do not call, they register implicitly through pragma(crt_constructor)
+        // avoid being optimized away
+        auto reg1 = &_d_register_conservative_gc;
+        auto reg2 = &_d_register_manual_gc;
+        return reg1 < reg2 ? reg1 : reg2;
+    }
+
     void gc_init()
     {
         instanceLock.lock();
         if (!isInstanceInit)
         {
+            register_default_gcs();
             config.initialize();
             auto protoInstance = instance;
             auto newInstance = createGCInstance(config.gc);
