@@ -1400,7 +1400,10 @@ public:
                     // compatibility with -transition=import
                     // https://issues.dlang.org/show_bug.cgi?id=15925
                     // SearchLocalsOnly should always get set for new lookup rules
-                    sflags |= (flags & SearchLocalsOnly);
+                    if (global.params.check10378)
+                        sflags |= (flags & SearchLocalsOnly);
+                    else
+                        sflags |= SearchLocalsOnly;
                 }
 
                 /* Don't find private members if ss is a module

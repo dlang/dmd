@@ -625,6 +625,7 @@ else
     alias c_long_double myld;
 
 extern (C++) myld testld(myld);
+extern (C++) myld testldld(myld, myld);
 
 
 void test15()
@@ -632,6 +633,10 @@ void test15()
     myld ld = 5.0;
     ld = testld(ld);
     assert(ld == 6.0);
+
+    myld ld2 = 5.0;
+    ld2 = testldld(ld2, ld2);
+    assert(ld2 == 6.0);
 }
 
 /****************************************/

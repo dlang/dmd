@@ -260,7 +260,7 @@ public:
 
         // Copy mutable version of backend type and add modifiers
         type* mctype = Type_toCtype(t.castMod(0));
-        t.ctype = type_alloc(tybasic(mctype.Tty)); // pointer to class instance
+        t.ctype = type_allocn(tybasic(mctype.Tty), mctype.Tnext); // pointer to class instance
         t.ctype.Tcount++;
         addMod(t);
     }
