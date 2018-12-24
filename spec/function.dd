@@ -198,11 +198,6 @@ $(H2 $(LNAME2 pure-functions, Pure Functions))
             Weakly `pure` functions are useful as reusable building blocks for strongly pure functions.
         )
 
-        $(P To control mutations, D has the `immutable` type qualifier. If all of
-            a $(D pure) function's parameters are `immutable` or copied values
-            without any indirections, it can guarantee that the pure function has
-            no side effects.
-        )
         $(P To prevent mutation, D offers the `immutable` type qualifier.
             If all of a `pure` function's parameters are `immutable` or
             copied values without any indirections (e.g. `int`),
