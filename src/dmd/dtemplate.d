@@ -4633,121 +4633,93 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
  */
 bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 0)
 {
-    extern (C++) final class ReliesOnTident : Visitor
+    bool visitVector(TypeVector t)
     {
-        alias visit = Visitor.visit;
-    public:
-        TemplateParameters* tparams;
-        size_t iStart;
-        bool result;
+        return t.basetype.reliesOnTident(tparams, iStart);
+    }
 
-        extern (D) this(TemplateParameters* tparams, size_t iStart)
+    bool visitAArray(TypeAArray t)
+    {
+        return t.next.reliesOnTident(tparams, iStart) ||
+               t.index.reliesOnTident(tparams, iStart);
+    }
+
+    bool visitFunction(TypeFunction t)
+    {
+        foreach (i;  0 .. t.parameterList.length)
         {
-            this.tparams = tparams;
-            this.iStart = iStart;
+            Parameter fparam = t.parameterList[i];
+            if (fparam.type.reliesOnTident(tparams, iStart))
+                return true;
+        }
+        return t.next.reliesOnTident(tparams, iStart);
+    }
+
+    bool visitIdentifier(TypeIdentifier t)
+    {
+        foreach (tp; (*tparams)[iStart .. tparams.dim])
+        {
+            if (tp.ident.equals(t.ident))
+                return true;
+        }
+        return false;
+    }
+
+    bool visitInstance(TypeInstance t)
+    {
+        foreach (tp; (*tparams)[iStart .. tparams.dim])
+        {
+            if (t.tempinst.name == tp.ident)
+                return true;
         }
 
-        override void visit(Type t)
-        {
-        }
-
-        override void visit(TypeNext t)
-        {
-            t.next.accept(this);
-        }
-
-        override void visit(TypeVector t)
-        {
-            t.basetype.accept(this);
-        }
-
-        override void visit(TypeAArray t)
-        {
-            visit(cast(TypeNext)t);
-            if (!result)
-                t.index.accept(this);
-        }
-
-        override void visit(TypeFunction t)
-        {
-            const dim = t.parameterList.length;
-            for (size_t i = 0; i < dim; i++)
+        if (t.tempinst.tiargs)
+            foreach (arg; *t.tempinst.tiargs)
             {
-                Parameter fparam = t.parameterList[i];
-                fparam.type.accept(this);
-                if (result)
-                    return;
-            }
-            if (t.next)
-                t.next.accept(this);
-        }
-
-        override void visit(TypeIdentifier t)
-        {
-            for (size_t i = iStart; i < tparams.dim; i++)
-            {
-                TemplateParameter tp = (*tparams)[i];
-                if (tp.ident.equals(t.ident))
+                if (Type ta = isType(arg))
                 {
-                    result = true;
-                    return;
+                    if (ta.reliesOnTident(tparams, iStart))
+                        return true;
                 }
             }
-        }
 
-        override void visit(TypeInstance t)
-        {
-            for (size_t i = iStart; i < tparams.dim; i++)
-            {
-                TemplateParameter tp = (*tparams)[i];
-                if (t.tempinst.name == tp.ident)
-                {
-                    result = true;
-                    return;
-                }
-            }
-            if (!t.tempinst.tiargs)
-                return;
-            for (size_t i = 0; i < t.tempinst.tiargs.dim; i++)
-            {
-                Type ta = isType((*t.tempinst.tiargs)[i]);
-                if (ta)
-                {
-                    ta.accept(this);
-                    if (result)
-                        return;
-                }
-            }
-        }
+        return false;
+    }
 
-        override void visit(TypeTypeof t)
-        {
-            //printf("TypeTypeof.reliesOnTident('%s')\n", t.toChars());
-            result = t.exp.reliesOnTemplateParameters(tparams, iStart);
-        }
+    bool visitTypeof(TypeTypeof t)
+    {
+        //printf("TypeTypeof.reliesOnTident('%s')\n", t.toChars());
+        return t.exp.reliesOnTemplateParameters(tparams, iStart);
+    }
 
-        override void visit(TypeTuple t)
-        {
-            if (t.arguments)
+    bool visitTuple(TypeTuple t)
+    {
+        if (t.arguments)
+            foreach (arg; *t.arguments)
             {
-                for (size_t i = 0; i < t.arguments.dim; i++)
-                {
-                    Parameter arg = (*t.arguments)[i];
-                    arg.type.accept(this);
-                    if (result)
-                        return;
-                }
+                if (arg.type.reliesOnTident(tparams, iStart))
+                    return true;
             }
-        }
+
+        return false;
     }
 
     if (!t)
         return false;
 
-    assert(tparams);
-    scope ReliesOnTident v = new ReliesOnTident(tparams, iStart);
-    t.accept(v);
-    return v.result;
+    Type tb = t.toBasetype();
+    switch (tb.ty)
+    {
+        case Tvector:   return visitVector(tb.isTypeVector());
+        case Taarray:   return visitAArray(tb.isTypeAArray());
+        case Tfunction: return visitFunction(tb.isTypeFunction());
+        case Tident:    return visitIdentifier(tb.isTypeIdentifier());
+        case Tinstance: return visitInstance(tb.isTypeInstance());
+        case Ttypeof:   return visitTypeof(tb.isTypeTypeof());
+        case Ttuple:    return visitTuple(tb.isTypeTuple());
+        case Tenum:     return false;
+        default:        return tb.nextOf().reliesOnTident(tparams, iStart);
+    }
 }
 
 /***********************************************************
