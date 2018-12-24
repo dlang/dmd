@@ -503,6 +503,19 @@ struct Target
     }
 
     /**
+     * Checks whether type is a vendor-specific fundamental type.
+     * Params:
+     *      t = type to inspect
+     *      isFundamental = where to store result
+     * Returns:
+     *      true if isFundamental was set by function
+     */
+    extern (C++) bool cppFundamentalType(const Type t, ref bool isFundamental)
+    {
+        return false;
+    }
+
+    /**
      * Default system linkage for the target.
      * Returns:
      *      `LINK` to use for `extern(System)`
