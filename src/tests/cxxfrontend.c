@@ -76,7 +76,7 @@ static void frontend_init()
     Module::_init();
     Expression::_init();
     Objc::_init();
-    Target::_init(global.params);
+    target._init(global.params);
 }
 
 /**********************************/
