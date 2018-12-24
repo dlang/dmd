@@ -1296,10 +1296,14 @@ extern(C++):
                 // Handle any target-specific basic types.
                 if (auto tm = target.cppTypeMangle(t))
                 {
-                    if (substitute(t))
-                        return;
-                    else
-                        append(t);
+                    // Only do substitution for mangles that are longer than 1 character.
+                    if (tm[1] != 0 || t.isConst())
+                    {
+                        if (substitute(t))
+                            return;
+                        else
+                            append(t);
+                    }
                     CV_qualifiers(t);
                     buf.writestring(tm);
                     return;

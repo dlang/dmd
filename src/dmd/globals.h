@@ -122,7 +122,7 @@ struct Param
     bool bug10378;      // use pre-bugzilla 10378 search strategy
     bool fix16997;      // fix integral promotions for unary + - ~ operators
                         // https://issues.dlang.org/show_bug.cgi?id=16997
-    bool fixAliasThis;      // if the current scope has an alias this, check it before searching upper scopes
+    bool fixAliasThis;  // if the current scope has an alias this, check it before searching upper scopes
     bool vsafe;         // use enhanced @safe checking
     bool ehnogc;        // use @nogc exception handling
     bool dtorFields;        // destruct fields of partially constructed objects

@@ -241,12 +241,13 @@ bool writeMixin(const(char)[] s, ref Loc loc)
     size_t lastpos = 0;
     foreach (i,c; s)
     {
-        if(c == '\n')
+        // detect LF and CRLF
+        if (c == '\n' || (c == '\r' && i+1 < s.length && s[i+1] == '\n'))
         {
             ob.writestring(s[lastpos .. i]);
             ob.writenl();
             global.params.mixinLines++;
-            lastpos = i + 1;
+            lastpos = i + (c == '\r' ? 2 : 1);
         }
     }
 

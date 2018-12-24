@@ -173,8 +173,10 @@ public:
     Module *getModule();
     Module *getAccessModule();
     Dsymbol *pastMixin();
+    Dsymbol *pastMixinAndNspace();
     Dsymbol *toParent();
     Dsymbol *toParent2();
+    Dsymbol *toParent3();
     TemplateInstance *isInstantiated();
     TemplateInstance *isSpeculative();
     Ungag ungagSpeculative();
@@ -232,6 +234,7 @@ public:
     virtual Nspace *isNspace() { return NULL; }
     virtual Declaration *isDeclaration() { return NULL; }
     virtual StorageClassDeclaration *isStorageClassDeclaration(){ return NULL; }
+    virtual ExpressionDsymbol *isExpressionDsymbol() { return NULL; }
     virtual ThisDeclaration *isThisDeclaration() { return NULL; }
     virtual TypeInfoDeclaration *isTypeInfoDeclaration() { return NULL; }
     virtual TupleDeclaration *isTupleDeclaration() { return NULL; }
@@ -251,7 +254,6 @@ public:
     virtual InvariantDeclaration *isInvariantDeclaration() { return NULL; }
     virtual UnitTestDeclaration *isUnitTestDeclaration() { return NULL; }
     virtual NewDeclaration *isNewDeclaration() { return NULL; }
-    virtual ExpressionDsymbol *isExpressionDsymbol() { return NULL; }
     virtual VarDeclaration *isVarDeclaration() { return NULL; }
     virtual ClassDeclaration *isClassDeclaration() { return NULL; }
     virtual StructDeclaration *isStructDeclaration() { return NULL; }
