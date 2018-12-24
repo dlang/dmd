@@ -42,6 +42,7 @@ extern (C)
         instanceLock.lock();
         if (!isInstanceInit)
         {
+            config.initialize();
             auto protoInstance = instance;
             auto newInstance = createGCInstance(config.gc);
             if (newInstance is null)
@@ -106,10 +107,8 @@ extern (C)
                     instance.runFinalizers((cast(ubyte*)null)[0 .. size_t.max]);
                     break;
             }
-
-        thread_term();
-
-        destroy(instance);
+            destroy(instance);
+        }
     }
 
     void gc_enable()

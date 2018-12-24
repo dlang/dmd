@@ -104,7 +104,7 @@ alias GC gc_t;
 /* ============================ GC =============================== */
 
 // register GC in C constructor (_STI_)
-extern(C) void _d_register_conservative_gc()
+extern(C) pragma(crt_constructor) void _d_register_conservative_gc()
 {
     import gc.registry;
     registerGCFactory("conservative", &initialize);

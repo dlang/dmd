@@ -36,9 +36,7 @@ struct Config
     {
         import gc.registry : registeredGCFactories;
 
-        version (unittest) if (inUnittest) return;
-
-        string s = "GC options are specified as white space separated assignments:
+        printf("GC options are specified as white space separated assignments:
     disable:0|1    - start disabled (%d)
     profile:0|1|2  - enable profiling with summary when terminating program (%d)
     gc:".ptr, disable, profile);
