@@ -327,6 +327,11 @@ public:
                     e2.type = Type.tvoid;
                     result.type = Type.tvoid;
                 }
+                if (!s.ifbody.isReturnStatement() && !s.elsebody.isReturnStatement())
+                {
+                    (cast(CondExp) result).e1 = Expression.combine(e1, new NullExp(e1.loc, Type.tvoid));
+                    (cast(CondExp) result).e2 = Expression.combine(e2, new NullExp(e2.loc, Type.tvoid));
+                }
             }
             else if (e1)
             {
