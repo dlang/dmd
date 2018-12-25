@@ -388,7 +388,7 @@ nothrow:
         // `const(char)[]`. To avoid bugs crippling in, we `\0` terminate
         // slices, but don't include it in the slice so `.ptr` can be used.
         f[len + name.length] = '\0';
-        return f[0 .. len + name.length];
+        return f[0 .. len + name.length - 1];
     }
 
     unittest
