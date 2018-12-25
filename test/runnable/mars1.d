@@ -1856,6 +1856,22 @@ void test19497() // https://issues.dlang.org/show_bug.cgi?id=19497
         *q++ = cast(T) 0x1122334455667788;
         if (*q != 0x2A) assert(false);
     }}
+
+    {
+        static int toStringz(string s) { return s.length > 0 ? s[0] : 0; }
+        static void toAStringz(in string[] a, int* az)
+        {
+            foreach (string s; a)
+            {
+                *az++ = toStringz(s);
+            }
+        }
+        string[1] sa = ["abc"];
+        int[2] tgt = 0x2a;
+        toAStringz(sa[], tgt.ptr);
+        if (tgt[0] != 'a') assert(false);
+        if (tgt[1] != 0x2a) assert(false);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////
