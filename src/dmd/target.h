@@ -37,6 +37,7 @@ struct Target
     // C ABI
     unsigned c_longsize;         // size of a C 'long' or 'unsigned long' type
     unsigned c_long_doublesize;  // size of a C 'long double'
+    unsigned criticalSectionSize; // size of os critical section
 
     // C++ ABI
     bool reverseCppOverloads;    // with dmc and cl, overloaded functions are grouped and in reverse order

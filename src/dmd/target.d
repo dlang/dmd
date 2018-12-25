@@ -54,6 +54,7 @@ struct Target
         // C ABI
         uint c_longsize;          /// size of a C `long` or `unsigned long` type
         uint c_long_doublesize;   /// size of a C `long double`
+        uint criticalSectionSize; /// size of os critical section
 
         // C++ ABI
         bool reverseCppOverloads; /// set if overloaded functions are grouped and in reverse order (such as in dmc and cl)
@@ -173,6 +174,8 @@ struct Target
         if (params.is64bit && params.isWindows)
             c_long_doublesize = 8;
 
+        criticalSectionSize = getCriticalSectionSize(params);
+
         cppExceptions = params.isLinux || params.isFreeBSD ||
             params.isDragonFlyBSD || params.isOSX;
     }
@@ -237,40 +240,45 @@ struct Target
      */
     extern (C++) uint critsecsize()
     {
-        if (global.params.isWindows)
+        return criticalSectionSize;
+    }
+
+    private static uint getCriticalSectionSize(ref const Param params) pure
+    {
+        if (params.isWindows)
         {
             // sizeof(CRITICAL_SECTION) for Windows.
-            return global.params.isLP64 ? 40 : 24;
+            return params.isLP64 ? 40 : 24;
         }
-        else if (global.params.isLinux)
+        else if (params.isLinux)
         {
             // sizeof(pthread_mutex_t) for Linux.
-            if (global.params.is64bit)
-                return global.params.isLP64 ? 40 : 32;
+            if (params.is64bit)
+                return params.isLP64 ? 40 : 32;
             else
-                return global.params.isLP64 ? 40 : 24;
+                return params.isLP64 ? 40 : 24;
         }
-        else if (global.params.isFreeBSD)
+        else if (params.isFreeBSD)
         {
             // sizeof(pthread_mutex_t) for FreeBSD.
-            return global.params.isLP64 ? 8 : 4;
+            return params.isLP64 ? 8 : 4;
         }
-        else if (global.params.isOpenBSD)
+        else if (params.isOpenBSD)
         {
             // sizeof(pthread_mutex_t) for OpenBSD.
-            return global.params.isLP64 ? 8 : 4;
+            return params.isLP64 ? 8 : 4;
         }
-        else if (global.params.isDragonFlyBSD)
+        else if (params.isDragonFlyBSD)
         {
             // sizeof(pthread_mutex_t) for DragonFlyBSD.
-            return global.params.isLP64 ? 8 : 4;
+            return params.isLP64 ? 8 : 4;
         }
-        else if (global.params.isOSX)
+        else if (params.isOSX)
         {
             // sizeof(pthread_mutex_t) for OSX.
-            return global.params.isLP64 ? 64 : 44;
+            return params.isLP64 ? 64 : 44;
         }
-        else if (global.params.isSolaris)
+        else if (params.isSolaris)
         {
             // sizeof(pthread_mutex_t) for Solaris.
             return 24;
