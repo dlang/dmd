@@ -1418,7 +1418,7 @@ version (SCPP)
 }
 else static if (TARGET_WINDOS)
 {
-                objmod.codeseg(cpp_mangle(funcsym_p),1);
+                objmod.codeseg(cast(char*)cpp_mangle(funcsym_p),1);
 }
 else
 {
