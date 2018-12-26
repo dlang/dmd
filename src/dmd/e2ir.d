@@ -973,7 +973,7 @@ Lagain:
             if (r == RTLSYM_MEMSETN)
             {
                 // void *_memsetn(void *p, void *value, int dim, int sizelem)
-                evalue = el_una(OPaddr, TYnptr, evalue);
+                evalue = addressElem(evalue, tb);
                 elem *esz = el_long(TYsize_t, sz);
                 elem *e = el_params(esz, edim, evalue, eptr, null);
                 e = el_bin(OPcall,TYnptr,el_var(getRtlsym(r)),e);
