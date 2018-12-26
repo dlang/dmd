@@ -502,6 +502,9 @@ char *cpp_typetostring(type *t,char *prefix)
     return mangle.buf.ptr;
 }
 
+version (MARS) { } else
+{
+
 /********************************
  * 'Mangle' a name for output.
  * Returns:
@@ -539,6 +542,7 @@ version (SCPPorHTOD)
     }
 }
 
+}
 ///////////////////////////////////////////////////////
 
 /*********************************

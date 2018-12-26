@@ -105,7 +105,7 @@ Symbol *asm_define_label(const(char)* id);
 version (SCPP)
     char* cpp_mangle(Symbol* s);
 else version (MARS)
-    char* cpp_mangle(Symbol* s);
+    const(char)* cpp_mangle(Symbol* s);
 else
     char* cpp_mangle(Symbol* s) { return &s.Sident[0]; }
 
