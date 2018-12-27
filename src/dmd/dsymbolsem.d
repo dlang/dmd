@@ -1327,6 +1327,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             else
                 dsym.edtor = dsym.edtor.expressionSemantic(sc);
 
+            // if the variable is global or static, store the destruction
+            // expression so it can be used in the static destructor of the
+            // module.
+            auto m = dsym.getModule();
+            if (dsym.isStatic || sc.parent == m)
+            {
+                Loc loc;   // generated code has no location
+                m.dtors.push(new ExpStatement(loc, dsym.edtor));
+            }
+
             version (none)
             {
                 // currently disabled because of std.stdio.stdin, stdout and stderr

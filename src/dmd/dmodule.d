@@ -315,6 +315,15 @@ extern (C++) final class Module : Package
     int needmoduleinfo;
     int selfimports;            // 0: don't know, 1: does not, 2: does
 
+    /**
+     * Global variables and static variables need to call their
+     * destructors when the thread ends its execution. To do so,
+     * the statements that destroy each such object are stored
+     * in the below defined array to be later used in a static
+     * destructor.
+     */
+    Statements dtors;
+
     /*************************************
      * Return true if module imports itself.
      */

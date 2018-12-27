@@ -200,6 +200,20 @@ private extern(C++) final class Semantic3Visitor : Visitor
         {
             mod.userAttribDecl.semantic3(sc);
         }
+
+        // create a static destructor for the module where static variables and
+        // global variables are destroyed.
+        if (mod.dtors.dim)
+        {
+            Loc loc;  // generated code has no location
+            auto staticDtorDecl = new StaticDtorDeclaration(loc, Loc.initial, 0);
+            staticDtorDecl.fbody = new CompoundStatement(loc, &mod.dtors);
+            mod.members.push(staticDtorDecl);
+            staticDtorDecl.dsymbolSemantic(sc);
+            staticDtorDecl.semantic2(sc);
+            staticDtorDecl.semantic3(sc);
+        }
+
         sc = sc.pop();
         sc.pop();
         mod.semanticRun = PASS.semantic3done;
