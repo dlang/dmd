@@ -23,14 +23,18 @@ class ForeachRangeStatement;
 
 int findCondition(Strings *ids, Identifier *ident);
 
+enum Include
+{
+    INCLUDEnotComputed, /// not computed yet
+    INCLUDEyes,         /// include the conditional code
+    INCLUDEno           /// do not include the conditional code
+};
+
 class Condition
 {
 public:
     Loc loc;
-    // 0: not computed yet
-    // 1: include
-    // 2: do not include
-    int inc;
+    Include inc;
 
     virtual Condition *syntaxCopy() = 0;
     virtual int include(Scope *sc) = 0;

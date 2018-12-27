@@ -770,7 +770,7 @@ class NewDeclaration : public FuncDeclaration
 {
 public:
     Parameters *parameters;
-    int varargs;
+    VarArg varargs;
 
     Dsymbol *syntaxCopy(Dsymbol *);
     const char *kind() const;
