@@ -702,6 +702,7 @@ struct Target
     private enum TargetInfoKeys
     {
         cppRuntimeLibrary,
+        cppStd,
         floatAbi,
         objectFormat,
     }
@@ -740,6 +741,9 @@ struct Target
                     return stringExp("snn");
                 }
                 return stringExp("");
+            case cppStd.stringof:
+                return new IntegerExp(cast(uint)global.params.cplusplus);
+
             default:
                 return null;
         }
