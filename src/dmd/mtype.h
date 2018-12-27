@@ -556,7 +556,9 @@ struct ParameterList
     VarArg varargs;
 
     size_t length();
-    Parameter opIndex(size_t i);
+    Parameter *opIndex(size_t i);
+
+    Parameter *operator[](size_t i) { return opIndex(i); }
 };
 
 class TypeFunction : public TypeNext
