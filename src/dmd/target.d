@@ -43,42 +43,42 @@ import dmd.root.outbuffer;
  */
 struct Target
 {
-        // D ABI
-        uint ptrsize;             /// size of a pointer in bytes
-        uint realsize;            /// size a real consumes in memory
-        uint realpad;             /// padding added to the CPU real size to bring it up to realsize
-        uint realalignsize;       /// alignment for reals
-        uint classinfosize;       /// size of `ClassInfo`
-        ulong maxStaticDataSize;  /// maximum size of static data
+    // D ABI
+    uint ptrsize;             /// size of a pointer in bytes
+    uint realsize;            /// size a real consumes in memory
+    uint realpad;             /// padding added to the CPU real size to bring it up to realsize
+    uint realalignsize;       /// alignment for reals
+    uint classinfosize;       /// size of `ClassInfo`
+    ulong maxStaticDataSize;  /// maximum size of static data
 
-        // C ABI
-        uint c_longsize;          /// size of a C `long` or `unsigned long` type
-        uint c_long_doublesize;   /// size of a C `long double`
-        uint criticalSectionSize; /// size of os critical section
+    // C ABI
+    uint c_longsize;          /// size of a C `long` or `unsigned long` type
+    uint c_long_doublesize;   /// size of a C `long double`
+    uint criticalSectionSize; /// size of os critical section
 
-        // C++ ABI
-        bool reverseCppOverloads; /// set if overloaded functions are grouped and in reverse order (such as in dmc and cl)
-        bool cppExceptions;       /// set if catching C++ exceptions is supported
-        bool twoDtorInVtable;     /// target C++ ABI puts deleting and non-deleting destructor into vtable
+    // C++ ABI
+    bool reverseCppOverloads; /// set if overloaded functions are grouped and in reverse order (such as in dmc and cl)
+    bool cppExceptions;       /// set if catching C++ exceptions is supported
+    bool twoDtorInVtable;     /// target C++ ABI puts deleting and non-deleting destructor into vtable
 
     /**
      * Values representing all properties for floating point types
      */
     extern (C++) struct FPTypeProperties(T)
     {
-            real_t max;                         /// largest representable value that's not infinity
-            real_t min_normal;                  /// smallest representable normalized value that's not 0
-            real_t nan;                         /// NaN value
-            real_t snan;                        /// signalling NaN value
-            real_t infinity;                    /// infinity value
-            real_t epsilon;                     /// smallest increment to the value 1
+        real_t max;                         /// largest representable value that's not infinity
+        real_t min_normal;                  /// smallest representable normalized value that's not 0
+        real_t nan;                         /// NaN value
+        real_t snan;                        /// signalling NaN value
+        real_t infinity;                    /// infinity value
+        real_t epsilon;                     /// smallest increment to the value 1
 
-            d_int64 dig = T.dig;                /// number of decimal digits of precision
-            d_int64 mant_dig = T.mant_dig;      /// number of bits in mantissa
-            d_int64 max_exp = T.max_exp;        /// maximum int value such that 2$(SUPERSCRIPT `max_exp-1`) is representable
-            d_int64 min_exp = T.min_exp;        /// minimum int value such that 2$(SUPERSCRIPT `min_exp-1`) is representable as a normalized value
-            d_int64 max_10_exp = T.max_10_exp;  /// maximum int value such that 10$(SUPERSCRIPT `max_10_exp` is representable)
-            d_int64 min_10_exp = T.min_10_exp;  /// minimum int value such that 10$(SUPERSCRIPT `min_10_exp`) is representable as a normalized value
+        d_int64 dig = T.dig;                /// number of decimal digits of precision
+        d_int64 mant_dig = T.mant_dig;      /// number of bits in mantissa
+        d_int64 max_exp = T.max_exp;        /// maximum int value such that 2$(SUPERSCRIPT `max_exp-1`) is representable
+        d_int64 min_exp = T.min_exp;        /// minimum int value such that 2$(SUPERSCRIPT `min_exp-1`) is representable as a normalized value
+        d_int64 max_10_exp = T.max_10_exp;  /// maximum int value such that 10$(SUPERSCRIPT `max_10_exp` is representable)
+        d_int64 min_10_exp = T.min_10_exp;  /// minimum int value such that 10$(SUPERSCRIPT `min_10_exp`) is representable as a normalized value
 
         void _init()
         {
