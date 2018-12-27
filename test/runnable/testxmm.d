@@ -1930,6 +1930,18 @@ void refIntrinsics()
 
 /*****************************************/
 
+void test6()
+{
+    version (D_AVX2)
+    {
+        // stack occasionally misaligned
+        long4 v;
+        v += 1;
+    }
+}
+
+/*****************************************/
+
 int main()
 {
     test1();
@@ -1969,6 +1981,8 @@ int main()
     test10447();
     test17344();
     test17356();
+
+    test6();
 
     return 0;
 }
