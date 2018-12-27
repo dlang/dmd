@@ -2568,6 +2568,8 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
         $(LI No explicit casting of shared objects to thread local.)
         $(LI No taking the address of a local variable or function parameter.)
         $(LI Cannot access $(D __gshared) variables.)
+        $(LI Cannot use $(D void) initializers for pointers.)
+        $(LI Cannot use $(D void) initializers for class or interface references.)
         )
 
         $(P When indexing and slicing an array, an out of bounds access
