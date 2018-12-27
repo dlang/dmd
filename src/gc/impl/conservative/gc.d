@@ -1265,9 +1265,15 @@ short[PAGESIZE / 16][B_NUMSMALL + 1] calcBinBase()
 
     foreach (i, size; binsize)
     {
+        short end = (PAGESIZE / size) * size;
         short bsz = size / 16;
         foreach (off; 0..PAGESIZE/16)
-            bin[i][off] = cast(short)((off - off % bsz) * 16);
+        {
+            // add the remainder to the last bin, so no check during scanning
+            //  is needed if a false pointer targets that area
+            const base = (off - off % bsz) * 16;
+            bin[i][off] = cast(short)(base < end ? base : end - size);
+        }
     }
     return bin;
 }
