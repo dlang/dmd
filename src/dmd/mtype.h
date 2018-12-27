@@ -38,8 +38,6 @@ typedef struct TYPE type;
 #endif
 
 void semanticTypeInfo(Scope *sc, Type *t);
-MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL, size_t inferStart = 0);
-StorageClass ModToStc(unsigned mod);
 
 enum ENUMTY
 {
@@ -128,10 +126,10 @@ extern unsigned char impcnvWarn[TMAX][TMAX];
 
 enum VarArg
 {
-    none     = 0,  /// fixed number of arguments
-    variadic = 1,  /// T t, ...)  can be C-style (core.stdc.stdarg) or D-style (core.vararg)
-    typesafe = 2,  /// T t ...) typesafe https://dlang.org/spec/function.html#typesafe_variadic_functions
-                   ///   or https://dlang.org/spec/function.html#typesafe_variadic_functions
+    VARARGnone     = 0,  /// fixed number of arguments
+    VARARGvariadic = 1,  /// T t, ...)  can be C-style (core.stdc.stdarg) or D-style (core.vararg)
+    VARARGtypesafe = 2   /// T t ...) typesafe https://dlang.org/spec/function.html#typesafe_variadic_functions
+                         ///   or https://dlang.org/spec/function.html#typesafe_variadic_functions
 };
 
 class Type : public RootObject
@@ -316,7 +314,6 @@ public:
     virtual Expression *defaultInitLiteral(const Loc &loc);
     virtual bool isZeroInit(const Loc &loc = Loc());                // if initializer is 0
     Identifier *getTypeInfoIdent();
-    void resolveExp(Expression *e, Type **pt, Expression **pe, Dsymbol **ps);
     virtual int hasWild() const;
     virtual bool hasPointers();
     virtual bool hasVoidInitPointers();
@@ -606,7 +603,9 @@ class TypeTraits : public Type
     Dsymbol *sym;
     /// Indicates wether we are in an alias or not.
     bool inAliasDeclaration;
+
     Type *syntaxCopy();
+    d_uns64 size(const Loc &loc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -708,6 +707,8 @@ public:
     bool needsNested();
     bool hasPointers();
     bool hasVoidInitPointers();
+    MATCH implicitConvToWithoutAliasThis(Type *to);
+    MATCH implicitConvToThroughAliasThis(Type *to);
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
     unsigned char deduceWild(Type *t, bool isRef);
@@ -725,6 +726,7 @@ public:
     Type *syntaxCopy();
     d_uns64 size(const Loc &loc);
     unsigned alignsize();
+    Type *memType(const Loc &loc = Loc());
     Dsymbol *toDsymbol(Scope *sc);
     bool isintegral();
     bool isfloating();
@@ -762,6 +764,8 @@ public:
     Dsymbol *toDsymbol(Scope *sc);
     ClassDeclaration *isClassHandle();
     bool isBaseOf(Type *t, int *poffset);
+    MATCH implicitConvToWithoutAliasThis(Type *to);
+    MATCH implicitConvToThroughAliasThis(Type *to);
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
     unsigned char deduceWild(Type *t, bool isRef);

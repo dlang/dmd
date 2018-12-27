@@ -31,7 +31,7 @@ enum Sizeok
     SIZEOKnone,         // size of aggregate is not yet able to compute
     SIZEOKfwd,          // size of aggregate is ready to compute
     SIZEOKinProcess,    // in the midst of computing the size
-    SIZEOKdone,         // size of aggregate is set correctly
+    SIZEOKdone          // size of aggregate is set correctly
 };
 
 enum Baseok
