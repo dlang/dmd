@@ -230,6 +230,7 @@ int tryMain(size_t argc, const char *argv[])
     global.params.useInline = false;
     global.params.obj = true;
     global.params.useDeprecated = 2;
+    global.params.cplusplus = CppStdRevisionCpp98;
 
     global.params.linkswitches = new Strings();
     global.params.libfiles = new Strings();
