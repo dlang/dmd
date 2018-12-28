@@ -1,0 +1,3 @@
+Added `core.sys.linux.sched.CPU_ISSET`.
+
+Added `core.sys.linux.sched.CPU_ISSET`, which tests to see if cpu is a member of set.
