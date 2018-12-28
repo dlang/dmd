@@ -1471,7 +1471,7 @@ $(H2 $(LEGACY_LNAME2 AssignOverload, assign-overload, Identity Assignment Overlo
             int[] buf;
             int a;
 
-            ref S opAssign(ref const S s)
+            ref S opAssign(ref const S s) return
             {
                 a = s.a;
                 return this;
