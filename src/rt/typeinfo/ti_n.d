@@ -55,4 +55,6 @@ class TypeInfo_n : TypeInfo
         //*cast(typeof(null)*)p1 = *cast(typeof(null)*)p2;
         //*cast(typeof(null)*)p2 = t;
     }
+
+    override @property immutable(void)* rtInfo() nothrow pure const @safe { return rtinfoNoPointers; }
 }

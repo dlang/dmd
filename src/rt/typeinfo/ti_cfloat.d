@@ -70,4 +70,6 @@ class TypeInfo_q : TypeInfo
         arg1 = typeid(double);
         return 0;
     }
+
+    override @property immutable(void)* rtInfo() nothrow pure const @safe { return rtinfoNoPointers; }
 }

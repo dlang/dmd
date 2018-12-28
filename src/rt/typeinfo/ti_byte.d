@@ -58,4 +58,6 @@ class TypeInfo_g : TypeInfo
         *cast(byte *)p1 = *cast(byte *)p2;
         *cast(byte *)p2 = t;
     }
+
+    override @property immutable(void)* rtInfo() nothrow pure const @safe { return rtinfoNoPointers; }
 }
