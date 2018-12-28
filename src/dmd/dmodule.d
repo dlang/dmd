@@ -323,6 +323,7 @@ extern (C++) final class Module : Package
      * destructor.
      */
     Statements dtors;
+    Statements sharedDtors;
 
     /*************************************
      * Return true if module imports itself.

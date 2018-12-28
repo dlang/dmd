@@ -1333,8 +1333,15 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             auto m = dsym.getModule();
             if (dsym.isStatic || sc.parent == m)
             {
-                Loc loc;   // generated code has no location
-                m.dtors.push(new ExpStatement(loc, dsym.edtor));
+                auto tv = dsym.type.baseElemOf();
+                if (tv.ty == Tstruct)
+                {
+                    Loc loc;   // generated code has no location
+                    if (dsym.storage_class & (STC.shared_ | STC.gshared | STC.static_))
+                        m.sharedDtors.push(new ExpStatement(loc, dsym.edtor));
+                    else
+                        m.dtors.push(new ExpStatement(loc, dsym.edtor));
+                }
             }
 
             version (none)

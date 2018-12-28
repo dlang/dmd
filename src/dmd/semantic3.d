@@ -213,6 +213,16 @@ private extern(C++) final class Semantic3Visitor : Visitor
             staticDtorDecl.semantic2(sc);
             staticDtorDecl.semantic3(sc);
         }
+        if (mod.sharedDtors.dim)
+        {
+            Loc loc;  // generated code has no location
+            auto staticDtorDecl = new SharedStaticDtorDeclaration(loc, Loc.initial, 0);
+            staticDtorDecl.fbody = new CompoundStatement(loc, &mod.sharedDtors);
+            mod.members.push(staticDtorDecl);
+            staticDtorDecl.dsymbolSemantic(sc);
+            staticDtorDecl.semantic2(sc);
+            staticDtorDecl.semantic3(sc);
+        }
 
         sc = sc.pop();
         sc.pop();
