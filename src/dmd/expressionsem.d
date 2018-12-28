@@ -10307,6 +10307,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (f1 || f2)
             return setError();
 
+        if (exp.e1.op == TOK.type || exp.e2.op == TOK.type)
+        {
+            result = exp.incompatibleTypes();
+            return;
+        }
+
         exp.type = Type.tbool;
 
         if (exp.e1.type != exp.e2.type && exp.e1.type.isfloating() && exp.e2.type.isfloating())
