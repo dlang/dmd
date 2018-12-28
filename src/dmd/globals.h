@@ -64,6 +64,12 @@ enum CPU
     native              // the machine the compiler is being run on
 };
 
+enum CppStdRevision
+{
+    CppStdRevisionCpp98 = 199711,
+    CppStdRevisionCpp11 = 201103
+};
+
 // Put command line switches in here
 struct Param
 {
@@ -127,6 +133,7 @@ struct Param
     bool ehnogc;        // use @nogc exception handling
     bool dtorFields;        // destruct fields of partially constructed objects
                             // https://issues.dlang.org/show_bug.cgi?id=14246
+    unsigned cplusplus;     // version of C++ name mangling to support
     bool markdown;          // enable Markdown replacements in Ddoc
     bool vmarkdown;         // list instances of Markdown replacements in Ddoc
     bool showGaggedErrors;  // print gagged errors anyway

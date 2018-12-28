@@ -561,6 +561,16 @@ dmd -cov -unittest myprog.d
             `$(UNIX Generate shared library)
              $(WINDOWS Generate DLL library)`,
         ),
+        Option("stdc++=<standard>",
+            "set c++ compatiblity with <standard>",
+            "Standards supported are:
+            $(UL
+                $(LI $(I c++98) (default): Use C++98 name mangling,
+                    Sets `__traits(getTargetInfo, \"cppStd\")` to `199711`)
+                $(LI $(I c++11): Use C++11 name mangling,
+                    Sets `__traits(getTargetInfo, \"cppStd\")` to `201103`)
+            )",
+        ),
         Option("transition=<id>",
             "help with language change identified by 'id'",
             `Show additional info about language change identified by $(I id)`,

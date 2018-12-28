@@ -89,6 +89,12 @@ enum JsonFieldFlags : uint
     semantics    = (1 << 3),
 }
 
+enum CppStdRevision : uint
+{
+    cpp98 = 199711,
+    cpp11 = 201103
+}
+
 // Put command line switches in here
 struct Param
 {
@@ -157,6 +163,9 @@ struct Param
     bool ehnogc;            // use @nogc exception handling
     bool dtorFields;        // destruct fields of partially constructed objects
                             // https://issues.dlang.org/show_bug.cgi?id=14246
+
+    CppStdRevision cplusplus = CppStdRevision.cpp98;    // version of C++ standard to support
+
     bool markdown;          // enable Markdown replacements in Ddoc
     bool vmarkdown;         // list instances of Markdown replacements in Ddoc
 
