@@ -117,7 +117,7 @@ nothrow @nogc pure:
 
     extern(D)
     {
-        ref longdouble_soft opAssign(longdouble_soft ld) { mantissa = ld.mantissa; exp_sign = ld.exp_sign; return this; }
+        ref longdouble_soft opAssign(longdouble_soft ld) return { mantissa = ld.mantissa; exp_sign = ld.exp_sign; return this; }
         ref longdouble_soft opAssign(T)(T rhs) { this = longdouble_soft(rhs); return this; }
 
         longdouble_soft opNeg() const { return longdouble_soft(mantissa, exp_sign ^ 0x8000); }

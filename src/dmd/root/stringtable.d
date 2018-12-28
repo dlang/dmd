@@ -43,7 +43,7 @@ struct StringValue
 
 nothrow:
 pure:
-    char* lstring()
+    char* lstring() return
     {
         return cast(char*)(&this + 1);
     }
@@ -53,7 +53,7 @@ pure:
         return length;
     }
 
-    const(char)* toDchars() const
+    const(char)* toDchars() const return
     {
         return cast(const(char)*)(&this + 1);
     }

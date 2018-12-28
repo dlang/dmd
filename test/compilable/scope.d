@@ -7,7 +7,7 @@ struct Cache
 {
     ubyte[1] v;
 
-    ubyte[] set(ubyte[1] v)
+    ubyte[] set(ubyte[1] v) return
     {
         return this.v[] = v[];
     }

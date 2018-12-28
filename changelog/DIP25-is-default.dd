@@ -1,0 +1,3 @@
+The -dip25 is now the default.
+
+To use the old behavior, use -transition=noDIP25.

@@ -244,7 +244,7 @@ struct MyRange
         return true;
     }
 
-    @property ref int front()
+    @property ref int front() return
     {
         return theOnlyOne;
     }

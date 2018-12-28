@@ -180,7 +180,7 @@ private bool hasUniqueIdentifier(symtab_t* symtab, SYMIDX si)
 
 // gather statistics about creation and destructions of variables that are
 //  used by the current function
-private symtab_t* calcLexicalScope(symtab_t* symtab)
+private symtab_t* calcLexicalScope(symtab_t* symtab) return
 {
     // make a copy of the symbol table
     // - arguments should be kept at the very beginning

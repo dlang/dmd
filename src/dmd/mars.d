@@ -2235,6 +2235,9 @@ private void reconcileCommands(ref Param params, size_t numSrcFiles)
             //fatal();
         }
     }
+
+    if (params.noDIP25)
+        params.useDIP25 = false;
 }
 
 /**
