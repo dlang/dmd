@@ -1054,9 +1054,10 @@ version (Windows)
 
             // try lld-link.exe alongside dmd.exe
             char[MAX_PATH + 1] dmdpath = void;
-            if (GetModuleFileNameA(null, dmdpath.ptr, dmdpath.length) <= MAX_PATH)
+            const len = GetModuleFileNameA(null, dmdpath.ptr, dmdpath.length);
+            if (len <= MAX_PATH)
             {
-                auto lldpath = FileName.replaceName(dmdpath, "lld-link.exe");
+                auto lldpath = FileName.replaceName(dmdpath[0 .. len], "lld-link.exe");
                 if (FileName.exists(lldpath))
                     return lldpath.ptr;
             }
