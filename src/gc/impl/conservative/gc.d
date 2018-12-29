@@ -608,7 +608,7 @@ class ConservativeGC : GC
             debug (SENTINEL)
             {
                 sentinel_Invariant(p);
-                psize = *sentinel_size(p);
+                psize = *sentinel_psize(p);
                 if (psize != size)
                 {
                     if (psize)
@@ -971,7 +971,7 @@ class ConservativeGC : GC
             if (info.base)
             {
                 info.base = sentinel_add(info.base);
-                info.size = *sentinel_size(info.base);
+                info.size = *sentinel_psize(info.base);
             }
         }
         return info;
@@ -2232,7 +2232,7 @@ struct Gcx
                         {
                             size_t size = pool.bPageOffsets[pn] * PAGESIZE - SENTINEL_EXTRA;
                             uint attr = pool.getBits(biti);
-                            rt_finalizeFromGC(q, size, attr);
+                            rt_finalizeFromGC(q, sentinel_size(q, size), attr);
                         }
 
                         pool.clrBits(biti, ~BlkAttr.NONE ^ BlkAttr.FINALIZE);
@@ -2296,7 +2296,7 @@ struct Gcx
                                 sentinel_Invariant(q);
 
                                 if (pool.finals.nbits && pool.finals.test(biti))
-                                    rt_finalizeFromGC(q, size - SENTINEL_EXTRA, pool.getBits(biti));
+                                    rt_finalizeFromGC(q, sentinel_size(q, size), pool.getBits(biti));
 
                                 freeBits = true;
                                 toFree.set(i);
@@ -3120,7 +3120,7 @@ struct LargeObjectPool
             if (!rt_hasFinalizerInSegment(p, size, attr, segment))
                 continue;
 
-            rt_finalizeFromGC(p, size, attr);
+            rt_finalizeFromGC(p, sentinel_size(p, size), attr);
 
             clrBits(biti, ~BlkAttr.NONE);
 
@@ -3213,7 +3213,7 @@ struct SmallObjectPool
                 if (!rt_hasFinalizerInSegment(q, size, attr, segment))
                     continue;
 
-                rt_finalizeFromGC(q, size, attr);
+                rt_finalizeFromGC(q, sentinel_size(q, size), attr);
 
                 freeBits = true;
                 toFree.set(i);
@@ -3267,6 +3267,7 @@ struct SmallObjectPool
     }
 }
 
+debug(SENTINEL) {} else // no additional capacity with SENTINEL
 unittest // bugzilla 14467
 {
     int[] arr = new int[10];
@@ -3331,19 +3332,23 @@ unittest // bugzilla 1180
 
 debug (SENTINEL)
 {
-    const size_t SENTINEL_PRE = cast(size_t) 0xF4F4F4F4F4F4F4F4UL; // 32 or 64 bits
+    // pre-sentinel must be smaller than 16 bytes so that the same GC bits
+    //  are used for the allocated pointer and the user pointer
+    // so use uint for both 32 and 64 bit platforms, limiting usage to < 4GB
+    const uint  SENTINEL_PRE = 0xF4F4F4F4;
     const ubyte SENTINEL_POST = 0xF5;           // 8 bits
-    const uint SENTINEL_EXTRA = 2 * size_t.sizeof + 1;
+    const uint  SENTINEL_EXTRA = 2 * uint.sizeof + 1;
 
 
-    inout(size_t*) sentinel_size(inout void *p) nothrow { return &(cast(inout size_t *)p)[-2]; }
-    inout(size_t*) sentinel_pre(inout void *p)  nothrow { return &(cast(inout size_t *)p)[-1]; }
-    inout(ubyte*) sentinel_post(inout void *p)  nothrow { return &(cast(inout ubyte *)p)[*sentinel_size(p)]; }
+    inout(uint*)  sentinel_psize(inout void *p) nothrow @nogc { return &(cast(inout uint *)p)[-2]; }
+    inout(uint*)  sentinel_pre(inout void *p)   nothrow @nogc { return &(cast(inout uint *)p)[-1]; }
+    inout(ubyte*) sentinel_post(inout void *p)  nothrow @nogc { return &(cast(inout ubyte *)p)[*sentinel_psize(p)]; }
 
 
-    void sentinel_init(void *p, size_t size) nothrow
+    void sentinel_init(void *p, size_t size) nothrow @nogc
     {
-        *sentinel_size(p) = size;
+        assert(size <= uint.max);
+        *sentinel_psize(p) = cast(uint)size;
         *sentinel_pre(p) = SENTINEL_PRE;
         *sentinel_post(p) = SENTINEL_POST;
     }
@@ -3360,16 +3365,20 @@ debug (SENTINEL)
             onInvalidMemoryOperationError(); // also trigger in release build
     }
 
+    size_t sentinel_size(const void *p, size_t alloc_size) nothrow @nogc
+    {
+        return *sentinel_psize(p);
+    }
 
     void *sentinel_add(void *p) nothrow @nogc
     {
-        return p + 2 * size_t.sizeof;
+        return p + 2 * uint.sizeof;
     }
 
 
     void *sentinel_sub(void *p) nothrow @nogc
     {
-        return p - 2 * size_t.sizeof;
+        return p - 2 * uint.sizeof;
     }
 }
 else
@@ -3377,7 +3386,7 @@ else
     const uint SENTINEL_EXTRA = 0;
 
 
-    void sentinel_init(void *p, size_t size) nothrow
+    void sentinel_init(void *p, size_t size) nothrow @nogc
     {
     }
 
@@ -3386,6 +3395,10 @@ else
     {
     }
 
+    size_t sentinel_size(const void *p, size_t alloc_size) nothrow @nogc
+    {
+        return alloc_size;
+    }
 
     void *sentinel_add(void *p) nothrow @nogc
     {
@@ -3439,6 +3452,7 @@ unittest
 }
 
 // improve predictability of coverage of code that is eventually not hit by other tests
+debug (SENTINEL) {} else // cannot extend with SENTINEL
 unittest
 {
     import core.memory;
