@@ -105,7 +105,10 @@ test_hash:
 test_stdcpp:
 	$(MAKE) -f test\stdcpp\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
 
-test_all:  test_uuid test_aa test_hash test_stdcpp
+test_gc:
+	$(MAKE) -f test\gc\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
+
+test_all:  test_uuid test_aa test_hash test_stdcpp test_gc
 
 ################### zip/install/clean ##########################
 
