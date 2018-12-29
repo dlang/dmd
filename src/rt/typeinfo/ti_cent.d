@@ -69,4 +69,6 @@ class TypeInfo_zi : TypeInfo
     {
         return cent.alignof;
     }
+
+    override @property immutable(void)* rtInfo() nothrow pure const @safe { return rtinfoNoPointers; }
 }

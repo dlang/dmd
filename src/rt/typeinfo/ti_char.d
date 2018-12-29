@@ -59,4 +59,6 @@ class TypeInfo_a : TypeInfo
 
         return (&c)[0 .. 1];
     }
+
+    override @property immutable(void)* rtInfo() nothrow pure const @safe { return rtinfoNoPointers; }
 }
