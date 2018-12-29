@@ -1362,8 +1362,8 @@ ref int gun(return ref int x) {
 }
 ---
 
-        $(P Ref methods marked with the `return` attribute ensure the returned
-        reference will not outlive the respective aggregate instance.
+        $(P Struct non-static methods marked with the `return` attribute ensure the returned
+        reference will not outlive the struct instance.
         )
 
 ---
@@ -1380,9 +1380,74 @@ ref int escape()
 }
 ---
 
-$(P Template functions and lambdas can deduce the `return` attribute.)
+        $(P Returning the address of a `ref` variable is also checked.)
+
+---
+int* pluto(ref int i)
+{
+    return &i; // error: returning &i escapes a reference to parameter i
+}
+
+int* mars(return ref int i)
+{
+    return &i;  // ok
+}
+---
+
+$(P If there are multiple `return ref` parameters, the lifetime of the return
+value is the smallest lifetime of the corresponding arguments.)
+
+$(P Neither the type of the `return ref` parameter(s) nor the type of the return
+value is considered when determining the lifetime of the return value.)
+
+$(P It is not an error if the return type does not contain any indirections.)
+
+---
+int mercury(return ref int i)
+{
+    return i; // ok
+}
+---
+
+$(P Template functions, auto functions, nested functions and lambdas can deduce the `return` attribute.)
+
+---
+ref int templateFunction()(ref int i)
+{
+    return i; // ok
+}
+
+ref auto autoFunction(ref int i)
+{
+    return i; // ok
+}
+
+void uranus()
+{
+    ref int nestedFunction(ref int i)
+    {
+        return i; // ok
+    }
+}
+
+void venus()
+{
+    auto lambdaFunction =
+        (ref int i)
+        {
+            return &i; // ok
+        };
+}
+---
 
 $(P `inout ref` parameters imply the `return` attribute.)
+
+---
+inout(int)* neptune(inout ref int i)
+{
+    return &i;  // ok
+}
+---
 
 
 $(H3 $(LNAME2 udas-parameters, User-Defined Attributes for Parameters))
