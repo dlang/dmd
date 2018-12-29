@@ -172,14 +172,14 @@ debug (LOGGING)
         size_t allocdim;
         Log *data;
 
-        void Dtor() nothrow
+        void Dtor() nothrow @nogc
         {
             if (data)
                 cstdlib.free(data);
             data = null;
         }
 
-        void reserve(size_t nentries) nothrow
+        void reserve(size_t nentries) nothrow @nogc
         {
             assert(dim <= allocdim);
             if (allocdim - dim < nentries)
@@ -206,20 +206,20 @@ debug (LOGGING)
         }
 
 
-        void push(Log log) nothrow
+        void push(Log log) nothrow @nogc
         {
             reserve(1);
             data[dim++] = log;
         }
 
-        void remove(size_t i) nothrow
+        void remove(size_t i) nothrow @nogc
         {
             memmove(data + i, data + i + 1, (dim - i) * Log.sizeof);
             dim--;
         }
 
 
-        size_t find(void *p) nothrow
+        size_t find(void *p) nothrow @nogc
         {
             for (size_t i = 0; i < dim; i++)
             {
@@ -230,7 +230,7 @@ debug (LOGGING)
         }
 
 
-        void copy(LogArray *from) nothrow
+        void copy(LogArray *from) nothrow @nogc
         {
             reserve(from.dim - dim);
             assert(from.dim <= allocdim);
@@ -652,12 +652,11 @@ class ConservativeGC : GC
                     auto lpool = cast(LargeObjectPool*) pool;
                     auto paligned = cast(void*)(cast(size_t)p & ~(PAGESIZE - 1)); // abused by std.file.readImpl
                     auto psz = lpool.getPages(paligned);     // get allocated size
+                    psize = psz * PAGESIZE;
 
                     if (size <= PAGESIZE / 2)
-                    {
-                        psize = psz * PAGESIZE;
                         goto Lmalloc; // switching from large object pool to small object pool
-                    }
+
                     auto newsz = lpool.numPages(size);
                     if (newsz == psz)
                     {
@@ -1323,8 +1322,8 @@ struct Gcx
     Treap!Root roots;
     Treap!Range ranges;
 
-    bool log; // turn on logging
     debug(INVARIANT) bool initialized;
+    debug(INVARIANT) bool inCollection;
     uint disabled; // turn off collections if >0
 
     import gc.pooltable;
@@ -1427,14 +1426,16 @@ struct Gcx
             //printf("Gcx.invariant(): this = %p\n", &this);
             pooltable.Invariant();
 
-            rangesLock.lock();
+            if (!inCollection)
+                (cast()rangesLock).lock();
             foreach (range; ranges)
             {
                 assert(range.pbot);
                 assert(range.ptop);
                 assert(range.pbot <= range.ptop);
             }
-            rangesLock.unlock();
+            if (!inCollection)
+                (cast()rangesLock).unlock();
 
             for (size_t i = 0; i < B_NUMSMALL; i++)
             {
@@ -2404,8 +2405,10 @@ struct Gcx
             // lock roots and ranges around suspending threads b/c they're not reentrant safe
             rangesLock.lock();
             rootsLock.lock();
+            debug(INVARIANT) inCollection = true;
             scope (exit)
             {
+                debug(INVARIANT) inCollection = false;
                 rangesLock.unlock();
                 rootsLock.unlock();
             }
@@ -2996,15 +2999,6 @@ struct Pool
     debug(INVARIANT)
     invariant()
     {
-        //mark.Invariant();
-        //scan.Invariant();
-        //freebits.Invariant();
-        //finals.Invariant();
-        //structFinals.Invariant();
-        //noscan.Invariant();
-        //appendable.Invariant();
-        //nointerior.Invariant();
-
         if (baseAddr)
         {
             //if (baseAddr + npages * PAGESIZE != topAddr)
@@ -3231,13 +3225,13 @@ struct LargeObjectPool
                 continue;
 
             auto p = sentinel_add(baseAddr + pn * PAGESIZE);
-            size_t size = getSize(pn) - SENTINEL_EXTRA;
+            size_t size = sentinel_size(p, getSize(pn));
             uint attr = getBits(biti);
 
             if (!rt_hasFinalizerInSegment(p, size, attr, segment))
                 continue;
 
-            rt_finalizeFromGC(p, sentinel_size(p, size), attr);
+            rt_finalizeFromGC(p, size, attr);
 
             clrBits(biti, ~BlkAttr.NONE);
 
@@ -3335,11 +3329,11 @@ struct SmallObjectPool
 
                 auto q = sentinel_add(p);
                 uint attr = getBits(biti);
-
-                if (!rt_hasFinalizerInSegment(q, size, attr, segment))
+                const ssize = sentinel_size(q, size);
+                if (!rt_hasFinalizerInSegment(q, ssize, attr, segment))
                     continue;
 
-                rt_finalizeFromGC(q, sentinel_size(q, size), attr);
+                rt_finalizeFromGC(q, ssize, attr);
 
                 freeBits = true;
                 toFree.set(i);
@@ -3542,11 +3536,11 @@ debug (MEMSTOMP)
 unittest
 {
     import core.memory;
-    auto p = cast(uint*)GC.malloc(uint.sizeof*3);
+    auto p = cast(uint*)GC.malloc(uint.sizeof*5);
     assert(*p == 0xF0F0F0F0);
     p[2] = 0; // First two will be used for free list
     GC.free(p);
-    assert(p[2] == 0xF2F2F2F2);
+    assert(p[4] == 0xF2F2F2F2); // skip List usage, for both 64-bit and 32-bit
 }
 
 debug (SENTINEL)
@@ -3619,6 +3613,7 @@ unittest
 
 // https://issues.dlang.org/show_bug.cgi?id=19281
 debug (SENTINEL) {} else // cannot allow >= 4 GB with SENTINEL
+debug (MEMSTOMP) {} else // might take too long to actually touch the memory
 version (D_LP64) unittest
 {
     static if (__traits(compiles, os_physical_mem))
