@@ -1838,6 +1838,44 @@ void test18730() // https://issues.dlang.org/show_bug.cgi?id=18730
 
 ////////////////////////////////////////////////////////////////////////
 
+void test19497() // https://issues.dlang.org/show_bug.cgi?id=19497
+{
+    {
+        ubyte[1024] data;
+        ushort* ushortPtr = cast(ushort*) data.ptr;
+        *ushortPtr++ = 0xfe00;
+        printf("ushortPtr(%p)\n", ushortPtr);
+        fflush(stdout);
+    }
+
+    alias Seq(stuff ...) = stuff;
+    static foreach (T; Seq!(ubyte, ushort, uint, ulong, byte, short, int, long))
+    {{
+        T[2] data = 0x2A;
+        T* q = &data[0];
+        *q++ = cast(T) 0x1122334455667788;
+        if (*q != 0x2A) assert(false);
+    }}
+
+    {
+        static int toStringz(string s) { return s.length > 0 ? s[0] : 0; }
+        static void toAStringz(in string[] a, int* az)
+        {
+            foreach (string s; a)
+            {
+                *az++ = toStringz(s);
+            }
+        }
+        string[1] sa = ["abc"];
+        int[2] tgt = 0x2a;
+        toAStringz(sa[], tgt.ptr);
+        if (tgt[0] != 'a') assert(false);
+        if (tgt[1] != 0x2a) assert(false);
+    }
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     testgoto();
@@ -1903,6 +1941,7 @@ int main()
     test18315();
     test18461();
     test18730();
+    test19497();
 
     printf("Success\n");
     return 0;

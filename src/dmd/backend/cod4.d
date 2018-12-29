@@ -443,7 +443,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 postinc = e11.EV.E2.EV.Vint;
                 if (e11.Eoper == OPpostdec)
                     postinc = -postinc;
-                getlvalue(cdb,&cs,e11,RMstore);
+                getlvalue(cdb,&cs,e1,RMstore);
                 freenode(e11.EV.E2);
             }
             else
@@ -710,10 +710,8 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         postinc = e11.EV.E2.EV.Vint;
         if (e11.Eoper == OPpostdec)
             postinc = -postinc;
-        getlvalue(cdb,&cs,e11,RMstore | retregs);
+        getlvalue(cdb,&cs,e1,RMstore | retregs);
         freenode(e11.EV.E2);
-        if (I64 && sz < 8)
-            cs.Irex &= ~REX_W;                  // incorrectly set by getlvalue()
     }
     else
     {
