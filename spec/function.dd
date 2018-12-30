@@ -1394,6 +1394,12 @@ int* mars(return ref int i)
 }
 ---
 
+$(P If the function returns `void`, and the first parameter is `ref` or `out`, then
+all subsequent `return ref` parameters are considered as being assigned to
+the first parameter for lifetime checking.
+The `this` reference parameter to a struct non-static member function is
+considered the first parameter.)
+
 $(P If there are multiple `return ref` parameters, the lifetime of the return
 value is the smallest lifetime of the corresponding arguments.)
 
