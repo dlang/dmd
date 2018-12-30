@@ -698,6 +698,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
             if (global.params.useDIP25 &&
                      sc._module && sc._module.isRoot())
             {
+                // https://dlang.org/spec/function.html#return-ref-parameters
                 // Only look for errors if in module listed on command line
 
                 if (p == sc.func)
@@ -924,6 +925,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
             else if (global.params.useDIP25 &&
                      sc._module && sc._module.isRoot())
             {
+                // https://dlang.org/spec/function.html#return-ref-parameters
                 // Only look for errors if in module listed on command line
 
                 if (p == sc.func)
