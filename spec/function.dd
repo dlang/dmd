@@ -2514,7 +2514,7 @@ $(H3 $(LNAME2 string-mixins, String Mixins and Compile Time Function Execution))
         depend on compile time values of the function. For example:)
 
 ---
-int foo(char[] s)
+int foo(string s)
 {
     return mixin(s);
 }

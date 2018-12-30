@@ -1014,7 +1014,7 @@ new Foo;
 ------
 class Foo
 {
-    this(char[] a) { ... }
+    this(string a) { ... }
 
     new(uint size, int x, int y)
     {

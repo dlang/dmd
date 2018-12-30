@@ -496,7 +496,7 @@ $(GNAME InExpression):
 $(P An associative array can be tested to see if an element is in the array:)
 
         -------------
-        int foo[char[]];
+        int foo[string];
         ...
         if ("hello" in foo)
             ...
@@ -2092,7 +2092,7 @@ import std.stdio, std.typecons;
 void main()
 {
     alias Tup = Tuple!(int, string);
-    alias AA = long[char[]];
+    alias AA = long[string];
 
     static if (is(Tup : Template!Args, alias Template, Args...))
     {
@@ -2102,10 +2102,10 @@ void main()
         writeln(typeid(Args[1]));  // immutable(char)[]
     }
 
-    static if (is(AA T : T[U], U : const char[]))
+    static if (is(AA T : T[U], U : string))
     {
         writeln(typeid(T));  // long
-        writeln(typeid(U));  // const char[]
+        writeln(typeid(U));  // string
     }
 
     static if (is(AA A : A[B], B : int))
