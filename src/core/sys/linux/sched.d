@@ -56,6 +56,13 @@ private // helpers
 
         return 0;
     }
+
+    bool __CPU_ISSET_S(size_t cpu, size_t setsize, cpu_set_t* cpusetp) pure
+    {
+        if (cpu < 8 * setsize)
+            return (cpusetp.__bits[__CPUELT(cpu)] & __CPUMASK(cpu)) != 0;
+        return false;
+    }
 }
 
 /// Type for array elements in 'cpu_set_t'.
@@ -74,7 +81,11 @@ cpu_mask CPU_SET(size_t cpu, cpu_set_t* cpusetp) pure
      return __CPU_SET_S(cpu, cpu_set_t.sizeof, cpusetp);
 }
 
+bool CPU_ISSET(size_t cpu, cpu_set_t* cpusetp) pure
+{
+    return __CPU_ISSET_S(cpu, cpu_set_t.sizeof, cpusetp);
+}
+
 /* Functions */
 int sched_setaffinity(pid_t pid, size_t cpusetsize, cpu_set_t *mask);
 int sched_getaffinity(pid_t pid, size_t cpusetsize, cpu_set_t *mask);
-
