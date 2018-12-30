@@ -236,7 +236,7 @@ Lerror:
 GccAsmStatement parseGccAsm(Parser)(Parser p, GccAsmStatement s)
 {
     s.insn = p.parseExpression();
-    if (p.token.value == TOK.semicolon)
+    if (p.token.value == TOK.semicolon || p.token.value == TOK.endOfFile)
         goto Ldone;
 
     // No semicolon followed after instruction template, treat as extended asm.
@@ -263,7 +263,7 @@ GccAsmStatement parseGccAsm(Parser)(Parser p, GccAsmStatement s)
                 break;
         }
 
-        if (p.token.value == TOK.semicolon)
+        if (p.token.value == TOK.semicolon || p.token.value == TOK.endOfFile)
             goto Ldone;
     }
 Ldone:
@@ -297,6 +297,7 @@ public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
         *ptoklist = null;
     }
     p.token = *toklist;
+    p.scanloc = s.loc;
 
     // Parse the gcc asm statement.
     s = p.parseGccAsm(s);
@@ -444,8 +445,29 @@ unittest
         } },
     ];
 
+    immutable string[] failAsmTests = [
+        // Found 'h' when expecting ';'
+        q{ asm { ""h;
+        } },
+
+        /+ Need a way to test without depending on Type._init()
+        // Expression expected, not ';'
+        q{ asm { ""[;
+        } },
+
+        // Expression expected, not ':'
+        q{ asm { ""
+               :
+               : "g" a ? b : : c;
+        } },
+        +/
+    ];
+
     foreach (test; passAsmTests)
         parseAsm(test, false);
+
+    foreach (test; failAsmTests)
+        parseAsm(test, true);
 
     global.endGagging(errors);
 }
