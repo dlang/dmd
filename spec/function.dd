@@ -1455,6 +1455,74 @@ inout(int)* neptune(inout ref int i)
 }
 ---
 
+$(H3 $(LNAME2 return-scope-parameters, Return Scope Parameters))
+
+        $(P Parameters marked as `return scope` that contain indirections
+        can only escape those indirections via the function's return value.)
+
+---
+int* gp;
+void thorin(scope int*);
+void gloin(int*);
+int* balin(return scope int* p, scope int* q, int* r)
+{
+     gp = p; // error, p escapes to global gp
+     gp = q; // error, q escapes to global gp
+     gp = r; // ok
+
+     thorin(p); // ok, p does not escape thorin()
+     thorin(q); // ok
+     thorin(r); // ok
+
+     gloin(p); // error, gloin() escapes p
+     gloin(q); // error, gloin() escapes q
+     gloin(r); // ok that gloin() escapes r
+
+     return p; // ok
+     return q; // error, cannot return 'scope' q
+     return r; // ok
+}
+---
+
+        $(P Class references are considered pointers that are subject to `scope`.)
+
+---
+class C { }
+C gp;
+void thorin(scope C);
+void gloin(C);
+C balin(return scope C p, scope C q, C r)
+{
+     gp = p; // error, p escapes to global gp
+     gp = q; // error, q escapes to global gp
+     gp = r; // ok
+
+     thorin(p); // ok, p does not escape thorin()
+     thorin(q); // ok
+     thorin(r); // ok
+
+     gloin(p); // error, gloin() escapes p
+     gloin(q); // error, gloin() escapes q
+     gloin(r); // ok that gloin() escapes r
+
+     return p; // ok
+     return q; // error, cannot return 'scope' q
+     return r; // ok
+}
+---
+
+        $(P `return scope` can be applied to the `this` of class and interface member functions.)
+
+---
+class C
+{
+    C bofur() return scope { return this; }
+}
+---
+
+        $(P Template functions, auto functions, nested functions and lambdas can deduce
+        the `return scope` attribute.)
+
 
 $(H3 $(LNAME2 udas-parameters, User-Defined Attributes for Parameters))
 
