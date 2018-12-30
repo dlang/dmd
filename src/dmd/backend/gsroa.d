@@ -366,14 +366,8 @@ void sliceStructs()
                 snew.Stype = type_fake(sia[si].ty1);
                 snew.Stype.Tcount++;
 
-                const sinew = symbol_add(snew);
-                for (int i = sinew; i > si + n + 1; --i)
-                {
-                    globsym.tab[i] = globsym.tab[i - 1];
-                    globsym.tab[i].Ssymnum += 1;
-                }
-                globsym.tab[si + n + 1] = snew;
-                snew.Ssymnum = si + n + 1;
+                // insert snew into globsym.tab[si + n + 1]
+                symbol_insert(&globsym, snew, si + n + 1);
 
                 sia2[si + n].canSlice = true;
                 sia2[si + n].si0 = si + n;

@@ -1099,6 +1099,11 @@ private void symbol_undef(Symbol *s)
  */
 
 SYMIDX symbol_add(Symbol *s)
+{
+    return symbol_add(cstate.CSpsymtab, s);
+}
+
+SYMIDX symbol_add(symtab_t* symtab, Symbol* s)
 {   SYMIDX sitop;
 
     //printf("symbol_add('%s')\n", s.Sident.ptr);
@@ -1114,27 +1119,45 @@ debug
     {   symbol_keep(s);
         return -1;
     }
-    debug assert(cstate.CSpsymtab);
-    sitop = cstate.CSpsymtab.top;
-    assert(sitop <= cstate.CSpsymtab.symmax);
-    if (sitop == cstate.CSpsymtab.symmax)
+    debug assert(symtab);
+    sitop = symtab.top;
+    assert(sitop <= symtab.symmax);
+    if (sitop == symtab.symmax)
     {
 debug
     enum SYMINC = 1;                       /* flush out reallocation bugs  */
 else
     enum SYMINC = 99;
 
-        cstate.CSpsymtab.symmax += (cstate.CSpsymtab == &globsym) ? SYMINC : 1;
-        //assert(cstate.CSpsymtab.symmax * (Symbol *).sizeof < 4096 * 4);
-        cstate.CSpsymtab.tab = symtab_realloc(cstate.CSpsymtab.tab, cstate.CSpsymtab.symmax);
+        symtab.symmax += (symtab == &globsym) ? SYMINC : 1;
+        //assert(symtab.symmax * (Symbol *).sizeof < 4096 * 4);
+        symtab.tab = symtab_realloc(symtab.tab, symtab.symmax);
     }
-    cstate.CSpsymtab.tab[sitop] = s;
+    symtab.tab[sitop] = s;
 
     debug if (debugy)
-        printf("symbol_add(%p '%s') = %d\n",s,s.Sident.ptr,cstate.CSpsymtab.top);
+        printf("symbol_add(%p '%s') = %d\n",s,s.Sident.ptr,symtab.top);
 
     assert(s.Ssymnum == -1);
-    return s.Ssymnum = cstate.CSpsymtab.top++;
+    return s.Ssymnum = symtab.top++;
+}
+
+/********************************************
+ * Insert s into symtab at position n.
+ * Returns:
+ *      position in table
+ */
+SYMIDX symbol_insert(symtab_t* symtab, Symbol* s, SYMIDX n)
+{
+    const sinew = symbol_add(s);        // added at end, have to move it
+    for (SYMIDX i = sinew; i > n; --i)
+    {
+        symtab.tab[i] = symtab.tab[i - 1];
+        symtab.tab[i].Ssymnum += 1;
+    }
+    globsym.tab[n] = s;
+    s.Ssymnum = n;
+    return n;
 }
 
 /****************************
