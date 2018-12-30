@@ -645,20 +645,19 @@ class ConservativeGC : GC
                 {
                     auto lpool = cast(LargeObjectPool*) pool;
                     auto paligned = cast(void*)(cast(size_t)p & ~(PAGESIZE - 1)); // abused by std.file.readImpl
-                    psize = lpool.getSize(paligned);     // get allocated size
+                    auto pagenum = lpool.pagenumOf(paligned);
+                    auto psz = lpool.getPages(paligned);     // get allocated size
+                    psize = psz * PAGESIZE;
 
                     if (size <= PAGESIZE / 2)
                         goto Lmalloc; // switching from large object pool to small object pool
 
-                    auto psz = psize / PAGESIZE;
-                    auto newsz = (size + PAGESIZE - 1) / PAGESIZE;
+                    auto newsz = lpool.numPages(size);
                     if (newsz == psz)
                     {
                         alloc_size = psize;
                         return p;
                     }
-
-                    auto pagenum = lpool.pagenumOf(p);
 
                     if (newsz < psz)
                     {   // Shrink in place
@@ -754,15 +753,12 @@ class ConservativeGC : GC
                 return 0;
 
             auto lpool = cast(LargeObjectPool*) pool;
-            auto psize = lpool.getSize(p);   // get allocated size
-            if (psize < PAGESIZE)
-                return 0;                   // cannot extend buckets
-
-            auto psz = psize / PAGESIZE;
-            auto minsz = (minsize + PAGESIZE - 1) / PAGESIZE;
-            auto maxsz = (maxsize + PAGESIZE - 1) / PAGESIZE;
-
             auto pagenum = lpool.pagenumOf(p);
+            if (lpool.pagetable[pagenum] != B_PAGE)
+                return 0;
+            auto psz = lpool.bPageOffsets[pagenum];   // get allocated pages
+            auto minsz = lpool.numPages(minsize);
+            auto maxsz = lpool.numPages(maxsize);
 
             size_t sz;
             for (sz = 0; sz < maxsz; sz++)
@@ -1566,7 +1562,7 @@ struct Gcx
             }
             else if (bin == B_PAGEPLUS)
             {
-                auto pageOffset = pool.bPageOffsets[pn];
+                size_t pageOffset = pool.bPageOffsets[pn];
                 offset -= pageOffset * PAGESIZE;
                 pn -= pageOffset;
 
@@ -1756,8 +1752,8 @@ struct Gcx
 
         LargeObjectPool* pool;
         size_t pn;
-        immutable npages = (size + PAGESIZE - 1) / PAGESIZE;
-        if (npages == 0)
+        immutable npages = LargeObjectPool.numPages(size);
+        if (npages == size_t.max)
             onOutOfMemoryErrorNoGC(); // size just below size_t.max requested
 
         bool tryAlloc() nothrow
@@ -2066,7 +2062,7 @@ struct Gcx
 
                     if (!pool.mark.set(biti) && !pool.noscan.test(biti))
                     {
-                        top = base + pool.bPageOffsets[pn] * PAGESIZE;
+                        top = base + (cast(LargeObjectPool*)pool).getSize(pn);
                         goto LaddRange;
                     }
                 }
@@ -2082,7 +2078,7 @@ struct Gcx
                     if (!pool.mark.set(biti) && !pool.noscan.test(biti))
                     {
                         base = pool.baseAddr + (pn * PAGESIZE);
-                        top = base + pool.bPageOffsets[pn] * PAGESIZE;
+                        top = base + (cast(LargeObjectPool*)pool).getSize(pn);
                         goto LaddRange;
                     }
                 }
@@ -2931,10 +2927,32 @@ struct Pool
         return npages == freepages;
     }
 
+    /**
+     * Return number of pages necessary for an allocation of the given size
+     *
+     * returns size_t.max if more than uint.max pages are requested
+     * (return type is still size_t to avoid truncation when being used
+     *  in calculations, e.g. npages * PAGESIZE)
+     */
+    static size_t numPages(size_t size) nothrow @nogc
+    {
+        version (D_LP64)
+        {
+            if (size > PAGESIZE * cast(size_t)uint.max)
+                return size_t.max;
+        }
+        else
+        {
+            if (size > size_t.max - PAGESIZE)
+                return size_t.max;
+        }
+        return (size + PAGESIZE - 1) / PAGESIZE;
+    }
+
     size_t slGetSize(void* p) nothrow @nogc
     {
         if (isLargeObject)
-            return (cast(LargeObjectPool*)&this).getSize(p);
+            return (cast(LargeObjectPool*)&this).getPages(p) * PAGESIZE;
         else
             return (cast(SmallObjectPool*)&this).getSize(p);
     }
@@ -3066,9 +3084,9 @@ struct LargeObjectPool
     }
 
     /**
-     * Get size of pointer p in pool.
+     * Get pages of allocation at pointer p in pool.
      */
-    size_t getSize(void *p) const nothrow @nogc
+    size_t getPages(void *p) const nothrow @nogc
     in
     {
         assert(p >= baseAddr);
@@ -3081,7 +3099,16 @@ struct LargeObjectPool
         size_t pagenum = pagenumOf(p);
         Bins bin = cast(Bins)pagetable[pagenum];
         assert(bin == B_PAGE);
-        return bPageOffsets[pagenum] * PAGESIZE;
+        return bPageOffsets[pagenum];
+    }
+
+    /**
+    * Get size of allocation at page pn in pool.
+    */
+    size_t getSize(size_t pn) const nothrow @nogc
+    {
+        assert(pagetable[pn] == B_PAGE);
+        return cast(size_t) bPageOffsets[pn] * PAGESIZE;
     }
 
     /**
@@ -3101,8 +3128,7 @@ struct LargeObjectPool
             return info;           // no info for free pages
 
         info.base = baseAddr + pn * PAGESIZE;
-        info.size = bPageOffsets[pn] * PAGESIZE;
-
+        info.size = getSize(pn);
         info.attr = getBits(pn);
         return info;
     }
@@ -3120,7 +3146,7 @@ struct LargeObjectPool
                 continue;
 
             auto p = sentinel_add(baseAddr + pn * PAGESIZE);
-            size_t size = bPageOffsets[pn] * PAGESIZE - SENTINEL_EXTRA;
+            size_t size = getSize(pn) - SENTINEL_EXTRA;
             uint attr = getBits(biti);
 
             if (!rt_hasFinalizerInSegment(p, size, attr, segment))
@@ -3497,3 +3523,28 @@ unittest
     GC.minimize(); // release huge pool
 }
 
+// https://issues.dlang.org/show_bug.cgi?id=19281
+debug (SENTINEL) {} else // cannot allow >= 4 GB with SENTINEL
+version (D_LP64) unittest
+{
+    static if (__traits(compiles, os_physical_mem))
+    {
+        // only run if the system has enough physical memory
+        size_t sz = 2L^^32;
+        //import core.stdc.stdio;
+        //printf("availphys = %lld", os_physical_mem());
+        if (os_physical_mem() > sz)
+        {
+            import core.memory;
+            auto stats = GC.stats();
+            auto ptr = GC.malloc(sz, BlkAttr.NO_SCAN);
+            auto info = GC.query(ptr);
+            //printf("info.size = %lld", info.size);
+            assert(info.size >= sz);
+            GC.free(ptr);
+            GC.minimize();
+            auto nstats = GC.stats();
+            assert(nstats == stats);
+        }
+    }
+}
