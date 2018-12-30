@@ -461,7 +461,7 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
             result |= finalresult & ~BE.fallthru;
         }
 
-        override void visit(OnScopeStatement s)
+        override void visit(ScopeGuardStatement s)
         {
             // At this point, this statement is just an empty placeholder
             result = BE.fallthru;

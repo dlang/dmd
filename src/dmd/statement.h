@@ -577,7 +577,7 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-class OnScopeStatement : public Statement
+class ScopeGuardStatement : public Statement
 {
 public:
     TOK tok;
@@ -618,7 +618,7 @@ public:
     Identifier *ident;
     LabelDsymbol *label;
     TryFinallyStatement *tf;
-    OnScopeStatement *os;
+    ScopeGuardStatement *os;
     VarDeclaration *lastVar;
 
     Statement *syntaxCopy();
@@ -632,7 +632,7 @@ public:
     Identifier *ident;
     Statement *statement;
     TryFinallyStatement *tf;
-    OnScopeStatement *os;
+    ScopeGuardStatement *os;
     VarDeclaration *lastVar;
     Statement *gotoTarget;      // interpret
 

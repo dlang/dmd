@@ -100,7 +100,7 @@ public:
     void visit(AST.ForeachRangeStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.ForeachStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.IfStatement s) { visit(cast(AST.Statement)s); }
-    void visit(AST.OnScopeStatement s) { visit(cast(AST.Statement)s); }
+    void visit(AST.ScopeGuardStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.ConditionalStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.StaticForeachStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.PragmaStatement s) { visit(cast(AST.Statement)s); }

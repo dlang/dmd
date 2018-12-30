@@ -199,7 +199,7 @@ extern (C++) abstract class Statement : RootObject
                 stop = true;
             }
 
-            override void visit(OnScopeStatement s)
+            override void visit(ScopeGuardStatement s)
             {
                 stop = true;
             }
@@ -2072,7 +2072,7 @@ extern (C++) final class TryFinallyStatement : Statement
 
 /***********************************************************
  */
-extern (C++) final class OnScopeStatement : Statement
+extern (C++) final class ScopeGuardStatement : Statement
 {
     TOK tok;
     Statement statement;
@@ -2086,12 +2086,12 @@ extern (C++) final class OnScopeStatement : Statement
 
     override Statement syntaxCopy()
     {
-        return new OnScopeStatement(loc, tok, statement.syntaxCopy());
+        return new ScopeGuardStatement(loc, tok, statement.syntaxCopy());
     }
 
     override Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
     {
-        //printf("OnScopeStatement::scopeCode()\n");
+        //printf("ScopeGuardStatement::scopeCode()\n");
         *sentry = null;
         *sexception = null;
         *sfinally = null;
@@ -2212,7 +2212,7 @@ extern (C++) final class GotoStatement : Statement
     Identifier ident;
     LabelDsymbol label;
     TryFinallyStatement tf;
-    OnScopeStatement os;
+    ScopeGuardStatement os;
     VarDeclaration lastVar;
 
     extern (D) this(const ref Loc loc, Identifier ident)
@@ -2298,7 +2298,7 @@ extern (C++) final class LabelStatement : Statement
     Identifier ident;
     Statement statement;
     TryFinallyStatement tf;
-    OnScopeStatement os;
+    ScopeGuardStatement os;
     VarDeclaration lastVar;
     Statement gotoTarget;       // interpret
     bool breaks;                // someone did a 'break ident'

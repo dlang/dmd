@@ -5887,7 +5887,7 @@ final class Parser(AST) : Lexer
                 nextToken();
                 check(TOK.rightParentheses);
                 AST.Statement st = parseStatement(ParseStatementFlags.scope_);
-                s = new AST.OnScopeStatement(loc, t, st);
+                s = new AST.ScopeGuardStatement(loc, t, st);
                 break;
             }
 
