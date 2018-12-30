@@ -25,6 +25,7 @@ import core.exception : onOutOfMemoryError;
 
 struct GCBits
 {
+@nogc:
     alias size_t wordtype;
 
     enum BITS_PER_WORD = (wordtype.sizeof * 8);
