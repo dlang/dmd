@@ -1309,7 +1309,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                  * Hopefully we can use this version someday when scope(failure) catches
                  * Exception instead of Throwable.
                  */
-                auto s = new OnScopeStatement(ctor.loc, TOK.onScopeFailure, ss);
+                auto s = new ScopeGuardStatement(ctor.loc, TOK.onScopeFailure, ss);
                 ctor.fbody = new CompoundStatement(ctor.loc, s, ctor.fbody);
             }
         }

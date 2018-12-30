@@ -156,7 +156,7 @@ public:
         doCond(s._body) || doCond(s.finalbody) || applyTo(s);
     }
 
-    override void visit(OnScopeStatement s)
+    override void visit(ScopeGuardStatement s)
     {
         doCond(s.statement) || applyTo(s);
     }

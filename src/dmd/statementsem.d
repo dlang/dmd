@@ -2187,7 +2187,7 @@ else
             if (ifs.match.edtor)
             {
                 Statement sdtor = new DtorExpStatement(ifs.loc, ifs.match.edtor, ifs.match);
-                sdtor = new OnScopeStatement(ifs.loc, TOK.onScopeExit, sdtor);
+                sdtor = new ScopeGuardStatement(ifs.loc, TOK.onScopeExit, sdtor);
                 ifs.ifbody = new CompoundStatement(ifs.loc, sdtor, ifs.ifbody);
                 ifs.match.storage_class |= STC.nodtor;
             }
@@ -3903,7 +3903,7 @@ else
         result = tfs;
     }
 
-    override void visit(OnScopeStatement oss)
+    override void visit(ScopeGuardStatement oss)
     {
         /* https://dlang.org/spec/statement.html#scope-guard-statement
          */

@@ -481,11 +481,11 @@ public:
             ctfeCompile(s.elsebody);
     }
 
-    override void visit(OnScopeStatement s)
+    override void visit(ScopeGuardStatement s)
     {
         debug (LOGCOMPILE)
         {
-            printf("%s OnScopeStatement::ctfeCompile\n", s.loc.toChars());
+            printf("%s ScopeGuardStatement::ctfeCompile\n", s.loc.toChars());
         }
         // rewritten to try/catch/finally
         assert(0);
@@ -1874,7 +1874,7 @@ public:
         result = new ThrownExceptionExp(s.loc, cast(ClassReferenceExp)e);
     }
 
-    override void visit(OnScopeStatement s)
+    override void visit(ScopeGuardStatement s)
     {
         assert(0);
     }

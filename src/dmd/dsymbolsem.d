@@ -193,7 +193,7 @@ private FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
             }
 
             // put destructor calls in a `scope(failure)` block
-            postblitCalls.push(new OnScopeStatement(loc, TOK.onScopeFailure, new CompoundStatement(loc, dtors)));
+            postblitCalls.push(new ScopeGuardStatement(loc, TOK.onScopeFailure, new CompoundStatement(loc, dtors)));
         }
 
         // perform semantic on the member postblit in order to

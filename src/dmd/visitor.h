@@ -46,7 +46,7 @@ class SynchronizedStatement;
 class WithStatement;
 class TryCatchStatement;
 class TryFinallyStatement;
-class OnScopeStatement;
+class ScopeGuardStatement;
 class ThrowStatement;
 class DebugStatement;
 class GotoStatement;
@@ -387,7 +387,7 @@ public:
     virtual void visit(ForeachRangeStatement *s) { visit((Statement *)s); }
     virtual void visit(ForeachStatement *s) { visit((Statement *)s); }
     virtual void visit(IfStatement *s) { visit((Statement *)s); }
-    virtual void visit(OnScopeStatement *s) { visit((Statement *)s); }
+    virtual void visit(ScopeGuardStatement *s) { visit((Statement *)s); }
     virtual void visit(ConditionalStatement *s) { visit((Statement *)s); }
     virtual void visit(StaticForeachStatement *s) { visit((Statement *)s); }
     virtual void visit(PragmaStatement *s) { visit((Statement *)s); }

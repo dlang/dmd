@@ -186,7 +186,7 @@ private extern (C++) class S2irVisitor : Visitor
     /*************************************
      */
 
-    override void visit(OnScopeStatement s)
+    override void visit(ScopeGuardStatement s)
     {
     }
 

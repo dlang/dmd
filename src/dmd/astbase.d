@@ -2135,7 +2135,7 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class OnScopeStatement : Statement
+    extern (C++) final class ScopeGuardStatement : Statement
     {
         TOK tok;
         Statement statement;

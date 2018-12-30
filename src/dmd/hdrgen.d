@@ -633,7 +633,7 @@ public:
         }
     }
 
-    override void visit(OnScopeStatement s)
+    override void visit(ScopeGuardStatement s)
     {
         buf.writestring(Token.toString(s.tok));
         buf.writeByte(' ');
