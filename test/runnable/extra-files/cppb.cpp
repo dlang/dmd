@@ -465,6 +465,20 @@ unsigned long testul(unsigned long ul)
 }
 
 /******************************************/
+/* FIXME: Requires C++11 compiler.
+void testnull(nullptr_t n)
+{
+  assert(n == NULL);
+}
+
+void testnullnull(nullptr_t n1, nullptr_t n2)
+{
+  assert(n1 == NULL);
+  assert(n2 == NULL);
+}
+*/
+
+/******************************************/
 
 struct S13707
 {

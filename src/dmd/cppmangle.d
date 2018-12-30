@@ -315,6 +315,40 @@ private final class CppMangleVisitor : Visitor
                 !getQualifier(s));      // at global level
     }
 
+    /************************
+     * Determine if type is a C++ fundamental type.
+     * Params:
+     *  t = type to check
+     * Returns:
+     *  true if it is a fundamental type
+     */
+    static bool isFundamentalType(Type t)
+    {
+        // First check the target whether some specific ABI is being followed.
+        bool isFundamental = void;
+        if (target.cppFundamentalType(t, isFundamental))
+            return isFundamental;
+
+        if (auto te = t.isTypeEnum())
+        {
+            // Peel off enum type from special types.
+            if (te.sym.isSpecial())
+                t = te.memType();
+        }
+
+        // Fundamental arithmetic types:
+        // 1. integral types: bool, char, int, ...
+        // 2. floating point types: float, double, real
+        // 3. void
+        // 4. null pointer: std::nullptr_t (since C++11)
+        if (t.ty == Tvoid || t.ty == Tbool)
+            return true;
+        else if (t.ty == Tnull && global.params.cplusplus >= CppStdRevision.cpp11)
+            return true;
+        else
+            return t.isTypeBasic() && (t.isintegral() || t.isreal());
+    }
+
     /******************************
      * Write the mangled representation of a template argument.
      * Params:
@@ -1090,7 +1124,8 @@ private final class CppMangleVisitor : Visitor
      */
     void writeBasicType(Type t, char p, char c)
     {
-        if (p || t.isConst())
+        // Only do substitutions for non-fundamental types.
+        if (!isFundamentalType(t) || t.isConst())
         {
             if (substitute(t))
                 return;
@@ -1296,8 +1331,8 @@ extern(C++):
                 // Handle any target-specific basic types.
                 if (auto tm = target.cppTypeMangle(t))
                 {
-                    // Only do substitution for mangles that are longer than 1 character.
-                    if (tm[1] != 0 || t.isConst())
+                    // Only do substitutions for non-fundamental types.
+                    if (!isFundamentalType(t) || t.isConst())
                     {
                         if (substitute(t))
                             return;

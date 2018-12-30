@@ -727,6 +727,19 @@ void test16()
     static assert(0);
 }
 
+/****************************************/
+/+ FIXME: Requires C++11 compiler.
+alias nullptr_t = typeof(null);
+
+extern (C++) void testnull(nullptr_t);
+extern (C++) void testnullnull(nullptr_t, nullptr_t);
+
+void test17()
+{
+    testnull(null);
+    testnullnull(null, null);
+}
++/
 
 /****************************************/
 
@@ -1611,6 +1624,7 @@ void main()
     test13289();
     test15();
     test16();
+    //test17();
     func13707();
     func13932(S13932!(-1)(0));
     foo13337(S13337());
