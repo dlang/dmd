@@ -2870,7 +2870,10 @@ public:
                     // Block assignment from inside struct literals
                     auto tsa = cast(TypeSArray)v.type;
                     auto len = cast(size_t)tsa.dim.toInteger();
-                    ex = createBlockDuplicatedArrayLiteral(ex.loc, v.type, ex, len);
+                    UnionExp ue = void;
+                    ex = createBlockDuplicatedArrayLiteral(&ue, ex.loc, v.type, ex, len);
+                    if (ex == ue.exp())
+                        ex = ue.copy();
                 }
             }
 
@@ -2935,7 +2938,11 @@ public:
         else
         {
             auto el = interpret(elemType.defaultInitLiteral(loc), istate);
-            return createBlockDuplicatedArrayLiteral(loc, newtype, el, len);
+            UnionExp ue = void;
+            Expression ex = createBlockDuplicatedArrayLiteral(&ue, loc, newtype, el, len);
+            if (ex == ue.exp())
+                ex = ue.copy();
+            return ex;
         }
     }
 
@@ -6247,7 +6254,10 @@ public:
             // Block assignment from inside struct literals
             auto tsa = cast(TypeSArray)v.type;
             auto len = cast(size_t)tsa.dim.toInteger();
-            result = createBlockDuplicatedArrayLiteral(ex.loc, v.type, ex, len);
+            UnionExp ue = void;
+            result = createBlockDuplicatedArrayLiteral(&ue, ex.loc, v.type, ex, len);
+            if (result == ue.exp())
+                result = ue.copy();
             (*se.elements)[i] = result;
         }
         debug (LOG)

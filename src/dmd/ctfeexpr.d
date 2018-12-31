@@ -292,7 +292,7 @@ private Expressions* copyLiteralArray(Expressions* oldelems, Expression basis = 
 // This value will be used for in-place modification.
 UnionExp copyLiteral(Expression e)
 {
-    UnionExp ue;
+    UnionExp ue = void;
     if (e.op == TOK.string_) // syntaxCopy doesn't make a copy for StringExp!
     {
         StringExp se = cast(StringExp)e;
@@ -360,7 +360,10 @@ UnionExp copyLiteral(Expression e)
                 {
                     auto tsa = cast(TypeSArray)v.type;
                     auto len = cast(size_t)tsa.dim.toInteger();
-                    m = createBlockDuplicatedArrayLiteral(e.loc, v.type, m, len);
+                    UnionExp uex = void;
+                    m = createBlockDuplicatedArrayLiteral(&uex, e.loc, v.type, m, len);
+                    if (m == uex.exp())
+                        m = uex.copy();
                 }
             }
             el = m;
@@ -579,6 +582,7 @@ uinteger_t resolveArrayLength(const Expression e)
  * Helper for NewExp
  * Create an array literal consisting of 'elem' duplicated 'dim' times.
  * Params:
+ *      pue = where to store result
  *      loc = source location where the interpretation occurs
  *      type = target type of the result
  *      elem = the source of array element, it will be owned by the result
@@ -586,14 +590,17 @@ uinteger_t resolveArrayLength(const Expression e)
  * Returns:
  *      Constructed ArrayLiteralExp
  */
-ArrayLiteralExp createBlockDuplicatedArrayLiteral(const ref Loc loc, Type type, Expression elem, size_t dim)
+ArrayLiteralExp createBlockDuplicatedArrayLiteral(UnionExp* pue, const ref Loc loc, Type type, Expression elem, size_t dim)
 {
     if (type.ty == Tsarray && type.nextOf().ty == Tsarray && elem.type.ty != Tsarray)
     {
         // If it is a multidimensional array literal, do it recursively
         auto tsa = cast(TypeSArray)type.nextOf();
         const len = cast(size_t)tsa.dim.toInteger();
-        elem = createBlockDuplicatedArrayLiteral(loc, type.nextOf(), elem, len);
+        UnionExp ue = void;
+        elem = createBlockDuplicatedArrayLiteral(&ue, loc, type.nextOf(), elem, len);
+        if (elem == ue.exp())
+            elem = ue.copy();
     }
 
     // Buzilla 15681
@@ -605,7 +612,8 @@ ArrayLiteralExp createBlockDuplicatedArrayLiteral(const ref Loc loc, Type type, 
     {
         el = mustCopy && i ? copyLiteral(elem).copy() : elem;
     }
-    auto ale = new ArrayLiteralExp(loc, type, elements);
+    emplaceExp!(ArrayLiteralExp)(pue, loc, type, elements);
+    auto ale = cast(ArrayLiteralExp)pue.exp();
     ale.ownedByCtfe = OwnedBy.ctfe;
     return ale;
 }
