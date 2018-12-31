@@ -2915,23 +2915,24 @@ public:
 
     // Create an array literal of type 'newtype' with dimensions given by
     // 'arguments'[argnum..$]
-    static Expression recursivelyCreateArrayLiteral(const ref Loc loc, Type newtype, InterState* istate, Expressions* arguments, int argnum)
+    static Expression recursivelyCreateArrayLiteral(UnionExp* pue, const ref Loc loc, Type newtype, InterState* istate, Expressions* arguments, int argnum)
     {
-        Expression lenExpr = interpret((*arguments)[argnum], istate);
+        Expression lenExpr = interpret(pue, (*arguments)[argnum], istate);
         if (exceptionOrCantInterpret(lenExpr))
             return lenExpr;
         size_t len = cast(size_t)lenExpr.toInteger();
         Type elemType = (cast(TypeArray)newtype).next;
         if (elemType.ty == Tarray && argnum < arguments.dim - 1)
         {
-            Expression elem = recursivelyCreateArrayLiteral(loc, elemType, istate, arguments, argnum + 1);
+            Expression elem = recursivelyCreateArrayLiteral(pue, loc, elemType, istate, arguments, argnum + 1);
             if (exceptionOrCantInterpret(elem))
                 return elem;
 
             auto elements = new Expressions(len);
             foreach (ref element; *elements)
                 element = copyLiteral(elem).copy();
-            auto ae = new ArrayLiteralExp(loc, newtype, elements);
+            emplaceExp!(ArrayLiteralExp)(pue, loc, newtype, elements);
+            auto ae = cast(ArrayLiteralExp)pue.exp();
             ae.ownedByCtfe = OwnedBy.ctfe;
             return ae;
         }
@@ -2940,20 +2941,12 @@ public:
         {
             const ch = cast(dchar)elemType.defaultInitLiteral(loc).toInteger();
             const sz = cast(ubyte)elemType.size();
-            UnionExp ue = void;
-            Expression ex = createBlockDuplicatedStringLiteral(&ue, loc, newtype, ch, len, sz);
-            if (ex == ue.exp())
-                ex = ue.copy();
-            return ex;
+            return createBlockDuplicatedStringLiteral(pue, loc, newtype, ch, len, sz);
         }
         else
         {
             auto el = interpret(elemType.defaultInitLiteral(loc), istate);
-            UnionExp ue = void;
-            Expression ex = createBlockDuplicatedArrayLiteral(&ue, loc, newtype, el, len);
-            if (ex == ue.exp())
-                ex = ue.copy();
-            return ex;
+            return createBlockDuplicatedArrayLiteral(pue, loc, newtype, el, len);
         }
     }
 
@@ -2976,7 +2969,7 @@ public:
 
         if (e.newtype.ty == Tarray && e.arguments)
         {
-            result = recursivelyCreateArrayLiteral(e.loc, e.newtype, istate, e.arguments, 0);
+            result = recursivelyCreateArrayLiteral(pue, e.loc, e.newtype, istate, e.arguments, 0);
             return;
         }
         if (e.newtype.toBasetype().ty == Tstruct)
