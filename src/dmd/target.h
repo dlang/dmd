@@ -79,6 +79,7 @@ struct Target
     const char *cppTypeInfoMangle(ClassDeclaration *cd);
     const char *cppTypeMangle(Type *t);
     Type *cppParameterType(Parameter *p);
+    bool cppFundamentalType(const Type *t, bool& isFundamental);
     LINK systemLinkage();
     TypeTuple *toArgTypes(Type *t);
     bool isReturnOnStack(TypeFunction *tf, bool needsThis);
