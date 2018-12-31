@@ -131,5 +131,5 @@ void verybusyexp();
 extern (C) list_t listrds(vec_t, elem *, vec_t);
 
 /* gslice.c */
-void sliceStructs();
+void sliceStructs(symtab_t* symtab, block* startblock);
 

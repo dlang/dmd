@@ -86,7 +86,7 @@ void verybusyexp();
 list_t listrds(vec_t, elem *, vec_t);
 
 /* gslice.c */
-void sliceStructs();
+void sliceStructs(symtab_t*, block*);
 
 /***************************************************************************/
 
@@ -312,7 +312,7 @@ else
 
         //printf("optelem\n");
         /* canonicalize the trees        */
-        for (block* b = startblock; b; b = b.Bnext)
+        foreach (b; BlockRange(startblock))
             if (b.Belem)
             {
                 debug if (debuge)
@@ -335,7 +335,7 @@ else
             blockopt(0);                // do block optimization
         out_regcand(&globsym);          // recompute register candidates
         go.changes = 0;                 // no changes yet
-        sliceStructs();
+        sliceStructs(&globsym, startblock);
         if (go.mfoptim & MFcnp)
             constprop();                /* make relationals unsigned     */
         if (go.mfoptim & (MFli | MFliv))
@@ -343,7 +343,7 @@ else
                                         /* induction vars                */
                                         /* do loop rotation              */
         else
-            for (block* b = startblock; b; b = b.Bnext)
+            foreach (b; BlockRange(startblock))
                 b.Bweight = 1;
         dbg_optprint("boolopt\n");
 
