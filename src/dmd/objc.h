@@ -56,6 +56,7 @@ public:
 
     virtual void setObjc(ClassDeclaration* cd) = 0;
     virtual void setObjc(InterfaceDeclaration*) = 0;
+    virtual void deprecate(InterfaceDeclaration*) const = 0;
 
     virtual void setSelector(FuncDeclaration*, Scope* sc) = 0;
     virtual void validateSelector(FuncDeclaration* fd) = 0;

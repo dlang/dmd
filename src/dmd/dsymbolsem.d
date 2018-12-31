@@ -5167,7 +5167,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 idec.classKind = ClassKind.cpp;
 
             if (sc.linkage == LINK.objc)
+            {
                 objc.setObjc(idec);
+                objc.deprecate(idec);
+            }
 
             // Check for errors, handle forward references
             for (size_t i = 0; i < idec.baseclasses.dim;)

@@ -24,6 +24,7 @@ import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
+import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
@@ -190,6 +191,21 @@ extern(C++) abstract class Objc
     abstract void setObjc(ClassDeclaration cd);
     abstract void setObjc(InterfaceDeclaration);
 
+    /**
+     * Deprecate the given Objective-C interface.
+     *
+     * Representing an Objective-C class as a D interface has been deprecated.
+     * Classes have now been properly implemented and the `class` keyword should
+     * be used instead.
+     *
+     * In the future, `extern(Objective-C)` interfaces will be used to represent
+     * Objective-C protocols.
+     *
+     * Params:
+     *  interfaceDeclaration = the interface declaration to deprecate
+     */
+    abstract void deprecate(InterfaceDeclaration interfaceDeclaration) const;
+
     abstract void setSelector(FuncDeclaration, Scope* sc);
     abstract void validateSelector(FuncDeclaration fd);
     abstract void checkLinkage(FuncDeclaration fd);
@@ -354,6 +370,11 @@ extern(C++) private final class Unsupported : Objc
         id.error("Objective-C interfaces not supported");
     }
 
+    override void deprecate(InterfaceDeclaration) const
+    {
+        // noop
+    }
+
     override void setSelector(FuncDeclaration, Scope*)
     {
         // noop
@@ -471,6 +492,24 @@ extern(C++) private final class Supported : Objc
     {
         id.classKind = ClassKind.objc;
         id.objc.isExtern = true;
+    }
+
+    override void deprecate(InterfaceDeclaration id) const
+    in
+    {
+        assert(id.classKind == ClassKind.objc);
+    }
+    body
+    {
+        // don't report deprecations for the metaclass to avoid duplicated
+        // messages.
+        if (id.objc.isMeta)
+            return;
+
+        id.deprecation("Objective-C interfaces have been deprecated");
+        deprecationSupplemental(id.loc, "Representing an Objective-C class " ~
+            "as a D interface has been deprecated. Please use the `class` "~
+            "keyword instead");
     }
 
     override void setSelector(FuncDeclaration fd, Scope* sc)
