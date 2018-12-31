@@ -56,6 +56,7 @@ void initDMD()
     import dmd.filecache : FileCache;
     import dmd.globals : global;
     import dmd.id : Id;
+    import dmd.identifier : Identifier;
     import dmd.mars : setTarget, addDefaultVersionIdentifiers;
     import dmd.mtype : Type;
     import dmd.objc : Objc;
@@ -67,6 +68,7 @@ void initDMD()
 
     Type._init();
     Id.initialize();
+    Identifier.initialize();
     Module._init();
     target._init(global.params);
     Expression._init();

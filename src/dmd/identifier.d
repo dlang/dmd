@@ -30,6 +30,8 @@ import dmd.utils;
 extern (C++) final class Identifier : RootObject
 {
 private:
+    __gshared Identifier anonymous_;
+
     const int value;
     const char[] name;
 
@@ -64,6 +66,17 @@ public:
     {
         //printf("Identifier('%s', %d)\n", name, value);
         this(name[0 .. strlen(name)], TOK.identifier);
+    }
+
+    static void initialize()
+    {
+        anonymous_ = new Identifier("__anonymous", TOK.identifier);
+    }
+
+    /// Placeholder for an anonymous identifier.
+    static Identifier anonymous() nothrow
+    {
+        return anonymous_;
     }
 
     static Identifier create(const(char)* name) nothrow
