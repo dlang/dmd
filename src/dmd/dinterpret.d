@@ -2933,7 +2933,11 @@ public:
         {
             const ch = cast(dchar)elemType.defaultInitLiteral(loc).toInteger();
             const sz = cast(ubyte)elemType.size();
-            return createBlockDuplicatedStringLiteral(loc, newtype, ch, len, sz);
+            UnionExp ue = void;
+            Expression ex = createBlockDuplicatedStringLiteral(&ue, loc, newtype, ch, len, sz);
+            if (ex == ue.exp())
+                ex = ue.copy();
+            return ex;
         }
         else
         {
