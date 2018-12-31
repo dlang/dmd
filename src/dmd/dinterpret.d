@@ -3852,7 +3852,7 @@ public:
         {
             // Note that slice assignments don't support things like ++, so
             // we don't need to remember 'returnValue'.
-            result = interpretAssignToSlice(e, e1, newval, isBlockAssignment);
+            result = interpretAssignToSlice(pue, e, e1, newval, isBlockAssignment);
             if (exceptionOrCant(result))
                 return;
             if (e.e1.op == TOK.slice)
@@ -4084,7 +4084,7 @@ public:
      * it returns aggregate[low..upp], except that as an optimisation,
      * if goal == ctfeNeedNothing, it will return NULL
      */
-    private Expression interpretAssignToSlice(BinExp e, Expression e1, Expression newval, bool isBlockAssignment)
+    private Expression interpretAssignToSlice(UnionExp* pue, BinExp e, Expression e1, Expression newval, bool isBlockAssignment)
     {
         dinteger_t lowerbound;
         dinteger_t upperbound;
@@ -4255,7 +4255,7 @@ public:
                 return null; // avoid creating an unused literal
             auto retslice = new SliceExp(e.loc, existingSE, new IntegerExp(e.loc, firstIndex, Type.tsize_t), new IntegerExp(e.loc, firstIndex + upperbound - lowerbound, Type.tsize_t));
             retslice.type = e.type;
-            return interpret(retslice, istate);
+            return interpret(pue, retslice, istate);
         }
         if (aggregate.op == TOK.arrayLiteral)
         {
@@ -4460,7 +4460,7 @@ public:
                 return null; // avoid creating an unused literal
             auto retslice = new SliceExp(e.loc, existingAE, new IntegerExp(e.loc, firstIndex, Type.tsize_t), new IntegerExp(e.loc, firstIndex + upperbound - lowerbound, Type.tsize_t));
             retslice.type = e.type;
-            return interpret(retslice, istate);
+            return interpret(pue, retslice, istate);
         }
 
         e.error("slice operation `%s = %s` cannot be evaluated at compile time", e1.toChars(), newval.toChars());
