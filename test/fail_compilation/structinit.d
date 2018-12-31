@@ -1,11 +1,14 @@
 /+
 TEST_OUTPUT:
 ---
-fail_compilation/structinit.d(21): Error: `z` is not a member of `Foo`
-fail_compilation/structinit.d(23): Error: duplicate initializer for field `a`
-fail_compilation/structinit.d(44): Error: constructor `structinit.FooDisabled.this` cannot be used because it is annotated with `@disable`
-fail_compilation/structinit.d(45): Error: constructor `structinit.FooDisabled.this` cannot be used because it is annotated with `@disable`
-fail_compilation/structinit.d(46): Error: constructor `structinit.FooDisabled.this` cannot be used because it is annotated with `@disable`
+fail_compilation/structinit.d(24): Error: `z` is not a member of `Foo`
+fail_compilation/structinit.d(26): Error: duplicate initializer for field `a`
+fail_compilation/structinit.d(47): Error: constructor `structinit.FooDisabled.this()` is not callable using argument types `(void)`
+fail_compilation/structinit.d(47):        expected 0 argument(s), not 1
+fail_compilation/structinit.d(48): Error: constructor `structinit.FooDisabled.this()` is not callable using argument types `(void)`
+fail_compilation/structinit.d(48):        expected 0 argument(s), not 1
+fail_compilation/structinit.d(49): Error: constructor `structinit.FooDisabled.this()` is not callable using argument types `(void)`
+fail_compilation/structinit.d(49):        expected 0 argument(s), not 1
 ---
 +/
 

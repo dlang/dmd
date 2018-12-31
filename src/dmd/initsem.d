@@ -412,6 +412,15 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
         //printf("-ExpInitializer::semantic(): "); i.exp.print();
         return i;
     }
+
+    final switch (init.kind)
+    {
+        case InitKind.void_:   return visitVoid  (cast(  VoidInitializer)init);
+        case InitKind.error:   return visitError (cast( ErrorInitializer)init);
+        case InitKind.struct_: return visitStruct(cast(StructInitializer)init);
+        case InitKind.array:   return visitArray (cast( ArrayInitializer)init);
+        case InitKind.exp:     return visitExp   (cast(   ExpInitializer)init);
+    }
 }
 
 package Initializer buildStruct(StructDeclaration sd, StructInitializer i,

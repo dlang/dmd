@@ -2934,6 +2934,7 @@ extern (C++) final class StructLiteralExp2 : Expression
 
     override Expression syntaxCopy()
     {
+        import dmd.init : syntaxCopy;
         return new StructLiteralExp2(loc, cast(StructInitializer) _init.syntaxCopy());
     }
 
