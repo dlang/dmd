@@ -5,7 +5,7 @@ MODEL=64
 DRUNTIMELIB=druntime64.lib
 CC=cl
 
-TESTS= array new
+TESTS= array allocator new
 
 test: $(TESTS)
 
