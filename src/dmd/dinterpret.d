@@ -4628,7 +4628,7 @@ public:
      *  relational sub-expressions can be negated, eg
      *  (!(q1 < p1) && p2 <= q2) is valid.
      */
-    private void interpretFourPointerRelation(BinExp e)
+    private void interpretFourPointerRelation(UnionExp* pue, BinExp e)
     {
         assert(e.op == TOK.andAnd || e.op == TOK.orOr);
 
@@ -4655,11 +4655,16 @@ public:
 
         //printf("FourPointerRelation %s\n", toChars());
 
+        UnionExp ue1 = void;
+        UnionExp ue2 = void;
+        UnionExp ue3 = void;
+        UnionExp ue4 = void;
+
         // Evaluate the first two pointers
-        p1 = interpret(p1, istate);
+        p1 = interpret(&ue1, p1, istate);
         if (exceptionOrCant(p1))
             return;
-        p2 = interpret(p2, istate);
+        p2 = interpret(&ue2, p2, istate);
         if (exceptionOrCant(p2))
             return;
         dinteger_t ofs1, ofs2;
@@ -4670,7 +4675,7 @@ public:
         {
             // Here it is either CANT_INTERPRET,
             // or an IsInside comparison returning false.
-            p3 = interpret(p3, istate);
+            p3 = interpret(&ue3, p3, istate);
             if (CTFEExp.isCantExp(p3))
                 return;
             // Note that it is NOT legal for it to throw an exception!
@@ -4679,7 +4684,7 @@ public:
                 except = p3;
             else
             {
-                p4 = interpret(p4, istate);
+                p4 = interpret(&ue4, p4, istate);
                 if (CTFEExp.isCantExp(p4))
                 {
                     result = p4;
@@ -4701,10 +4706,12 @@ public:
             // p1 > p2 && p3 > p4  (same direction, also for < && <)
             // p1 > p2 && p3 < p4  (different direction, also < && >)
             // Changing any > into >= doesn't affect the result
-            if ((dir1 == dir2 && pointToSameMemoryBlock(agg1, agg4) && pointToSameMemoryBlock(agg2, agg3)) || (dir1 != dir2 && pointToSameMemoryBlock(agg1, agg3) && pointToSameMemoryBlock(agg2, agg4)))
+            if ((dir1 == dir2 && pointToSameMemoryBlock(agg1, agg4) && pointToSameMemoryBlock(agg2, agg3)) ||
+                (dir1 != dir2 && pointToSameMemoryBlock(agg1, agg3) && pointToSameMemoryBlock(agg2, agg4)))
             {
                 // it's a legal two-sided comparison
-                result = new IntegerExp(e.loc, (e.op == TOK.andAnd) ? 0 : 1, e.type);
+                emplaceExp!(IntegerExp)(pue, e.loc, (e.op == TOK.andAnd) ? 0 : 1, e.type);
+                result = pue.exp();
                 return;
             }
             // It's an invalid four-pointer comparison. Either the second
@@ -4723,23 +4730,27 @@ public:
         // they have side-effects.
         bool nott = false;
         Expression ex = e.e1;
-        while (ex.op == TOK.not)
+        while (1)
         {
-            nott = !nott;
-            ex = (cast(NotExp)ex).e1;
+            if (auto ne = ex.isNotExp())
+            {
+                nott = !nott;
+                ex = ne.e1;
+            }
+            else
+                break;
         }
-        TOK cmpop = ex.op;
-        if (nott)
-            cmpop = reverseRelation(cmpop);
-        int cmp = comparePointers(cmpop, agg1, ofs1, agg2, ofs2);
+        const cmpop = nott ? reverseRelation(ex.op) : ex.op;
+        const cmp = comparePointers(cmpop, agg1, ofs1, agg2, ofs2);
         // We already know this is a valid comparison.
         assert(cmp >= 0);
         if (e.op == TOK.andAnd && cmp == 1 || e.op == TOK.orOr && cmp == 0)
         {
-            result = interpret(e.e2, istate);
+            result = interpret(pue, e.e2, istate);
             return;
         }
-        result = new IntegerExp(e.loc, (e.op == TOK.andAnd) ? 0 : 1, e.type);
+        emplaceExp!(IntegerExp)(pue, e.loc, (e.op == TOK.andAnd) ? 0 : 1, e.type);
+        result = pue.exp();
     }
 
     override void visit(LogicalExp e)
@@ -4749,7 +4760,7 @@ public:
             printf("%s LogicalExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
         // Check for an insidePointer expression, evaluate it if so
-        interpretFourPointerRelation(e);
+        interpretFourPointerRelation(pue, e);
         if (result)
             return;
 
