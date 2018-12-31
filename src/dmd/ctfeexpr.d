@@ -456,6 +456,14 @@ Expression paintTypeOntoLiteral(Type type, Expression lit)
     return paintTypeOntoLiteralCopy(type, lit).copy();
 }
 
+Expression paintTypeOntoLiteral(UnionExp* pue, Type type, Expression lit)
+{
+    if (lit.type.equals(type))
+        return lit;
+    *pue = paintTypeOntoLiteralCopy(type, lit);
+    return pue.exp();
+}
+
 private UnionExp paintTypeOntoLiteralCopy(Type type, Expression lit)
 {
     UnionExp ue;
