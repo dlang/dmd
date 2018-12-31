@@ -622,7 +622,7 @@ ArrayLiteralExp createBlockDuplicatedArrayLiteral(UnionExp* pue, const ref Loc l
  * Helper for NewExp
  * Create a string literal consisting of 'value' duplicated 'dim' times.
  */
-StringExp createBlockDuplicatedStringLiteral(const ref Loc loc, Type type, dchar value, size_t dim, ubyte sz)
+StringExp createBlockDuplicatedStringLiteral(UnionExp* pue, const ref Loc loc, Type type, dchar value, size_t dim, ubyte sz)
 {
     auto s = cast(char*)mem.xcalloc(dim, sz);
     foreach (elemi; 0 .. dim)
@@ -642,7 +642,8 @@ StringExp createBlockDuplicatedStringLiteral(const ref Loc loc, Type type, dchar
             assert(0);
         }
     }
-    auto se = new StringExp(loc, s, dim);
+    emplaceExp!(StringExp)(pue, loc, s, dim);
+    auto se= cast(StringExp)pue.exp();
     se.type = type;
     se.sz = sz;
     se.committed = true;
