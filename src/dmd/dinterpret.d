@@ -3773,7 +3773,7 @@ public:
             assignAssocArrayElement(e.loc, existingAA, lastIndex, newval);
 
             // Determine the return value
-            result = ctfeCast(e.loc, e.type, e.type, fp && post ? oldval : newval);
+            result = ctfeCast(pue, e.loc, e.type, e.type, fp && post ? oldval : newval);
             return;
         }
         if (e1.op == TOK.arrayLength)
@@ -3785,9 +3785,12 @@ public:
              */
 
             // Determine the return value
-            result = ctfeCast(e.loc, e.type, e.type, fp && post ? oldval : newval);
+            result = ctfeCast(pue, e.loc, e.type, e.type, fp && post ? oldval : newval);
             if (exceptionOrCant(result))
                 return;
+
+            if (result == pue.exp())
+                result = pue.copy();
 
             size_t oldlen = cast(size_t)oldval.toInteger();
             size_t newlen = cast(size_t)newval.toInteger();
@@ -3821,15 +3824,21 @@ public:
 
         if (!isBlockAssignment)
         {
-            newval = ctfeCast(e.loc, e.type, e.type, newval);
+            newval = ctfeCast(pue, e.loc, e.type, e.type, newval);
             if (exceptionOrCant(newval))
                 return;
+            if (newval == pue.exp())
+                newval = pue.copy();
 
             // Determine the return value
             if (goal == ctfeNeedLvalue) // https://issues.dlang.org/show_bug.cgi?id=14371
                 result = e1;
             else
-                result = ctfeCast(e.loc, e.type, e.type, fp && post ? oldval : newval);
+            {
+                result = ctfeCast(pue, e.loc, e.type, e.type, fp && post ? oldval : newval);
+                if (result == pue.exp())
+                    result = pue.copy();
+            }
             if (exceptionOrCant(result))
                 return;
         }
@@ -6030,7 +6039,7 @@ public:
             result = pue.exp();
             return;
         }
-        result = ctfeCast(e.loc, e.type, e.to, e1);
+        result = ctfeCast(pue, e.loc, e.type, e.to, e1);
     }
 
     override void visit(AssertExp e)
