@@ -56,10 +56,11 @@ struct SymInfo
 /********************************
  * Gather information about slice-able variables by scanning e.
  * Params:
+ *      symtab = symbol table
  *      e = expression to scan
  *      sia = where to put gathered information
  */
-extern (D) private void sliceStructs_Gather(SymInfo[] sia, const(elem)* e)
+extern (D) private void sliceStructs_Gather(const symtab_t* symtab, SymInfo[] sia, const(elem)* e)
 {
     while (1)
     {
@@ -70,7 +71,7 @@ extern (D) private void sliceStructs_Gather(SymInfo[] sia, const(elem)* e)
                 const si = e.EV.Vsym.Ssymnum;
                 if (si >= 0 && sia[si].canSlice)
                 {
-                    assert(si < globsym.top);
+                    assert(si < symtab.top);
                     const sz = tysize(e.Ety);
                     if (sz == 2 * REGSIZE && !tyfv(e.Ety))
                     {
@@ -104,7 +105,7 @@ extern (D) private void sliceStructs_Gather(SymInfo[] sia, const(elem)* e)
                 if (OTassign(e.Eoper))
                 {
                     if (OTbinary(e.Eoper))
-                        sliceStructs_Gather(sia, e.EV.E2);
+                        sliceStructs_Gather(symtab, sia, e.EV.E2);
 
                     // Assignment to a whole var will disallow SROA
                     if (e.EV.E1.Eoper == OPvar)
@@ -113,7 +114,7 @@ extern (D) private void sliceStructs_Gather(SymInfo[] sia, const(elem)* e)
                         const si = e1.EV.Vsym.Ssymnum;
                         if (si >= 0 && sia[si].canSlice)
                         {
-                            assert(si < globsym.top);
+                            assert(si < symtab.top);
                             if (tysize(e1.Ety) != REGSIZE ||
                                 (e1.EV.Voffset != 0 && e1.EV.Voffset != REGSIZE))
                             {
@@ -124,7 +125,7 @@ extern (D) private void sliceStructs_Gather(SymInfo[] sia, const(elem)* e)
                             // https://github.com/dlang/dmd/pull/8034
                             else if (!(config.exe & EX_OSX))
                             {
-                                sliceStructs_Gather(sia, e.EV.E1);
+                                sliceStructs_Gather(symtab, sia, e.EV.E1);
                             }
                         }
                         return;
@@ -139,7 +140,7 @@ extern (D) private void sliceStructs_Gather(SymInfo[] sia, const(elem)* e)
                 }
                 if (OTbinary(e.Eoper))
                 {
-                    sliceStructs_Gather(sia, e.EV.E2);
+                    sliceStructs_Gather(symtab, sia, e.EV.E2);
                     e = e.EV.E1;
                     break;
                 }
@@ -151,10 +152,11 @@ extern (D) private void sliceStructs_Gather(SymInfo[] sia, const(elem)* e)
 /***********************************
  * Rewrite expression tree e based on info in sia[].
  * Params:
+ *      symtab = symbol table
  *      sia = slicing info
  *      e = expression tree to rewrite in place
  */
-extern (D) private void sliceStructs_Replace(const SymInfo[] sia, elem *e)
+extern (D) private void sliceStructs_Replace(symtab_t* symtab, const SymInfo[] sia, elem *e)
 {
     while (1)
     {
@@ -177,7 +179,7 @@ extern (D) private void sliceStructs_Replace(const SymInfo[] sia, elem *e)
 
                         elem *e2 = el_calloc();
                         el_copy(e2, e);
-                        Symbol *s1 = globsym.tab[sia[si].si0 + 1]; // +1 for second slice
+                        Symbol *s1 = symtab.tab[sia[si].si0 + 1]; // +1 for second slice
                         e2.Ety = sia[si].ty1;
                         e2.EV.Vsym = s1;
                         e2.EV.Voffset = 0;
@@ -212,7 +214,7 @@ extern (D) private void sliceStructs_Replace(const SymInfo[] sia, elem *e)
                     }
                     else
                     {
-                        Symbol *s1 = globsym.tab[sia[si].si0 + 1]; // +1 for second slice
+                        Symbol *s1 = symtab.tab[sia[si].si0 + 1]; // +1 for second slice
                         e.EV.Vsym = s1;
                         e.EV.Voffset = 0;
                         //printf("replaced with:\n");
@@ -230,7 +232,7 @@ extern (D) private void sliceStructs_Replace(const SymInfo[] sia, elem *e)
                 }
                 if (OTbinary(e.Eoper))
                 {
-                    sliceStructs_Replace(sia, e.EV.E2);
+                    sliceStructs_Replace(symtab, sia, e.EV.E2);
                     e = e.EV.E1;
                     break;
                 }
@@ -239,10 +241,10 @@ extern (D) private void sliceStructs_Replace(const SymInfo[] sia, elem *e)
     }
 }
 
-void sliceStructs()
+void sliceStructs(symtab_t* symtab, block* startblock)
 {
     if (debugc) printf("sliceStructs()\n");
-    const sia_length = globsym.top;
+    const sia_length = symtab.top;
     /* 3 is because it is used for two arrays, sia[] and sia2[].
      * sia2[] can grow to twice the size of sia[], as symbols can get split into two.
      */
@@ -263,9 +265,9 @@ void sliceStructs()
     SymInfo[] sia2 = sip[sia_length .. sia_length * 3];
 
     bool anySlice = false;
-    foreach (si; 0 .. globsym.top)
+    foreach (si; 0 .. symtab.top)
     {
-        Symbol *s = globsym.tab[si];
+        Symbol *s = symtab.tab[si];
         //printf("slice1: %s\n", s.Sident);
 
         if ((s.Sflags & (GTregcand | SFLunambig)) != (GTregcand | SFLunambig))
@@ -321,7 +323,7 @@ void sliceStructs()
         if (b.BC == BCasm)
             goto Ldone;
         if (b.Belem)
-            sliceStructs_Gather(sia, b.Belem);
+            sliceStructs_Gather(symtab, sia, b.Belem);
     }
 
     {   // scope needed because of goto skipping declarations
@@ -342,7 +344,7 @@ void sliceStructs()
                 /* Split slice-able symbol sold into two symbols,
                  * (sold,snew) in adjacent slots in the symbol table.
                  */
-                Symbol *sold = globsym.tab[si + n];
+                Symbol *sold = symtab.tab[si + n];
 
                 const idlen = 2 + strlen(sold.Sident.ptr) + 2;
                 char *id = cast(char *)malloc(idlen + 1);
@@ -366,8 +368,8 @@ void sliceStructs()
                 snew.Stype = type_fake(sia[si].ty1);
                 snew.Stype.Tcount++;
 
-                // insert snew into globsym.tab[si + n + 1]
-                symbol_insert(&globsym, snew, si + n + 1);
+                // insert snew into symtab.tab[si + n + 1]
+                symbol_insert(symtab, snew, si + n + 1);
 
                 sia2[si + n].canSlice = true;
                 sia2[si + n].si0 = si + n;
@@ -381,16 +383,16 @@ void sliceStructs()
             goto Ldone;
     }
 
-    foreach (si; 0 .. globsym.top)
+    foreach (si; 0 .. symtab.top)
     {
-        Symbol *s = globsym.tab[si];
+        Symbol *s = symtab.tab[si];
         assert(s.Ssymnum == si);
     }
 
     foreach (b; BlockRange(startblock))
     {
         if (b.Belem)
-            sliceStructs_Replace(sia2, b.Belem);
+            sliceStructs_Replace(symtab, sia2, b.Belem);
     }
 
 Ldone:
