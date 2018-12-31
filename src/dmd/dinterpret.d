@@ -5838,7 +5838,7 @@ public:
             if (e1.op == TOK.int64)
             {
                 // Happens with Windows HANDLEs, for example.
-                result = paintTypeOntoLiteral(e.to, e1);
+                result = paintTypeOntoLiteral(pue, e.to, e1);
                 return;
             }
 
@@ -5850,8 +5850,8 @@ public:
                 // For slices, we need the type being sliced,
                 // since it may have already been type painted
                 Type elemtype = e1.type.nextOf();
-                if (e1.op == TOK.slice)
-                    elemtype = (cast(SliceExp)e1).e1.type.nextOf();
+                if (auto se = e1.isSliceExp())
+                    elemtype = se.e1.type.nextOf();
 
                 // Allow casts from X* to void *, and X** to void** for any X.
                 // But don't allow cast from X* to void**.
@@ -5879,15 +5879,15 @@ public:
                     castBackFromVoid = true;
             }
 
-            if (e1.op == TOK.slice)
+            if (auto se = e1.isSliceExp())
             {
-                if ((cast(SliceExp)e1).e1.op == TOK.null_)
+                if (se.e1.op == TOK.null_)
                 {
-                    result = paintTypeOntoLiteral(e.type, (cast(SliceExp)e1).e1);
+                    result = paintTypeOntoLiteral(pue, e.type, se.e1);
                     return;
                 }
                 // Create a CTFE pointer &aggregate[1..2]
-                auto ei = new IndexExp(e.loc, (cast(SliceExp)e1).e1, (cast(SliceExp)e1).lwr);
+                auto ei = new IndexExp(e.loc, se.e1, se.lwr);
                 ei.type = e.type.nextOf();
                 emplaceExp!(AddrExp)(pue, e.loc, ei, e.type);
                 result = pue.exp();
@@ -5906,7 +5906,6 @@ public:
             {
                 // type painting operation
                 IndexExp ie = cast(IndexExp)e1;
-                result = new IndexExp(e1.loc, ie.e1, ie.e2);
                 if (castBackFromVoid)
                 {
                     // get the original type. For strings, it's just the type...
@@ -5915,17 +5914,17 @@ public:
                     if (ie.e1.op == TOK.arrayLiteral && ie.e2.op == TOK.int64)
                     {
                         ArrayLiteralExp ale = cast(ArrayLiteralExp)ie.e1;
-                        size_t indx = cast(size_t)ie.e2.toInteger();
+                        const indx = cast(size_t)ie.e2.toInteger();
                         if (indx < ale.elements.dim)
                         {
                             if (Expression xx = (*ale.elements)[indx])
                             {
-                                if (xx.op == TOK.index)
-                                    origType = (cast(IndexExp)xx).e1.type.nextOf();
-                                else if (xx.op == TOK.address)
-                                    origType = (cast(AddrExp)xx).e1.type;
-                                else if (xx.op == TOK.variable)
-                                    origType = (cast(VarExp)xx).var.type;
+                                if (auto iex = xx.isIndexExp())
+                                    origType = iex.e1.type.nextOf();
+                                else if (auto ae = xx.isAddrExp())
+                                    origType = ae.e1.type;
+                                else if (auto ve = xx.isVarExp())
+                                    origType = ve.var.type;
                             }
                         }
                     }
@@ -5936,19 +5935,23 @@ public:
                         return;
                     }
                 }
+                emplaceExp!(IndexExp)(pue, e1.loc, ie.e1, ie.e2);
+                result = pue.exp();
                 result.type = e.type;
                 return;
             }
-            if (e1.op == TOK.address)
+
+            if (auto ae = e1.isAddrExp())
             {
-                Type origType = (cast(AddrExp)e1).e1.type;
+                Type origType = ae.e1.type;
                 if (isSafePointerCast(origType, pointee))
                 {
-                    emplaceExp!(AddrExp)(pue, e.loc, (cast(AddrExp)e1).e1, e.type);
+                    emplaceExp!(AddrExp)(pue, e.loc, ae.e1, e.type);
                     result = pue.exp();
                     return;
                 }
-                if (castToSarrayPointer && pointee.toBasetype().ty == Tsarray && (cast(AddrExp)e1).e1.op == TOK.index)
+
+                if (castToSarrayPointer && pointee.toBasetype().ty == Tsarray && ae.e1.op == TOK.index)
                 {
                     // &val[idx]
                     dinteger_t dim = (cast(TypeSArray)pointee.toBasetype()).dim.toInteger();
@@ -5964,6 +5967,7 @@ public:
                     return;
                 }
             }
+
             if (e1.op == TOK.variable || e1.op == TOK.symbolOffset)
             {
                 // type painting operation
