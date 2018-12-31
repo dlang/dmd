@@ -412,6 +412,8 @@ class ConservativeGC : GC
             if (pool)
             {
                 p = sentinel_sub(p);
+                if (p != pool.findBase(p))
+                    return 0;
                 auto biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
 
                 oldb = pool.getBits(biti);
@@ -438,6 +440,8 @@ class ConservativeGC : GC
             if (pool)
             {
                 p = sentinel_sub(p);
+                if (p != pool.findBase(p))
+                    return 0;
                 auto biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
 
                 oldb = pool.getBits(biti);
@@ -465,6 +469,8 @@ class ConservativeGC : GC
             if (pool)
             {
                 p = sentinel_sub(p);
+                if (p != pool.findBase(p))
+                    return 0;
                 auto biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
 
                 oldb = pool.getBits(biti);
@@ -854,12 +860,10 @@ class ConservativeGC : GC
 
         sentinel_Invariant(p);
         p = sentinel_sub(p);
-        biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
-
-        pool.clrBits(biti, ~BlkAttr.NONE);
 
         if (pool.isLargeObject)              // if large alloc
         {
+            biti = cast(size_t)(p - pool.baseAddr) >> pool.ShiftBy.Large;
             assert(bin == B_PAGE);
             auto lpool = cast(LargeObjectPool*) pool;
 
@@ -869,7 +873,11 @@ class ConservativeGC : GC
             lpool.freePages(pagenum, npages);
         }
         else
-        {   // Add to free list
+        {
+            biti = cast(size_t)(p - pool.baseAddr) >> pool.ShiftBy.Small;
+            if (pool.freebits.test (biti))
+                return;
+            // Add to free list
             List *list = cast(List*)p;
 
             debug (MEMSTOMP) memset(p, 0xF2, binsize[bin]);
@@ -877,7 +885,9 @@ class ConservativeGC : GC
             list.next = gcx.bucket[bin];
             list.pool = pool;
             gcx.bucket[bin] = list;
+            pool.freebits.set(biti);
         }
+        pool.clrBits(biti, ~BlkAttr.NONE);
 
         gcx.log_free(sentinel_add(p));
     }
@@ -1416,6 +1426,9 @@ struct Gcx
             {
                 for (auto list = cast(List*)bucket[i]; list; list = list.next)
                 {
+                    auto pool = list.pool;
+                    auto biti = cast(size_t)(cast(void*)list - pool.baseAddr) >> Pool.ShiftBy.Small;
+                    assert(pool.freebits.test(biti));
                 }
             }
         }
@@ -1546,35 +1559,7 @@ struct Gcx
 
         pool = findPool(p);
         if (pool)
-        {
-            size_t offset = cast(size_t)(p - pool.baseAddr);
-            size_t pn = offset / PAGESIZE;
-            Bins   bin = cast(Bins)pool.pagetable[pn];
-
-            // Adjust bit to be at start of allocated memory block
-            if (bin < B_NUMSMALL)
-            {
-                return pool.baseAddr + baseOffset(offset, bin);
-            }
-            else if (bin == B_PAGE)
-            {
-                return pool.baseAddr + (offset & (offset.max ^ (PAGESIZE-1)));
-            }
-            else if (bin == B_PAGEPLUS)
-            {
-                size_t pageOffset = pool.bPageOffsets[pn];
-                offset -= pageOffset * PAGESIZE;
-                pn -= pageOffset;
-
-                return pool.baseAddr + (offset & (offset.max ^ (PAGESIZE-1)));
-            }
-            else
-            {
-                // we are in a B_FREE page
-                assert(bin == B_FREE);
-                return null;
-            }
-        }
+            return pool.findBase(p);
         return null;
     }
 
@@ -1735,8 +1720,11 @@ struct Gcx
         // Return next item from free list
         bucket[bin] = (cast(List*)p).next;
         auto pool = (cast(List*)p).pool;
+        auto biti = (p - pool.baseAddr) >> pool.shiftBy;
+        assert(pool.freebits.test(biti));
+        pool.freebits.clear(biti);
         if (bits)
-            pool.setBits((p - pool.baseAddr) >> pool.shiftBy, bits);
+            pool.setBits(biti, bits);
         //debug(PRINTF) printf("\tmalloc => %p\n", p);
         debug (MEMSTOMP) memset(p, 0xF0, alloc_size);
         return p;
@@ -2141,38 +2129,15 @@ struct Gcx
     // collection step 1: prepare freebits and mark bits
     void prepare() nothrow
     {
-        size_t n;
-        Pool*  pool;
+        debug(COLLECT_PRINTF) printf("preparing mark.\n");
 
-        for (n = 0; n < npools; n++)
+        for (size_t n = 0; n < npools; n++)
         {
-            pool = pooltable[n];
-            pool.mark.zero();
-            if (!pool.isLargeObject) pool.freebits.zero();
-        }
-
-        debug(COLLECT_PRINTF) printf("Set bits\n");
-
-        // Mark each free entry, so it doesn't get scanned
-        for (n = 0; n < B_PAGE; n++)
-        {
-            for (List *list = bucket[n]; list; list = list.next)
-            {
-                pool = list.pool;
-                assert(pool);
-                pool.freebits.set(cast(size_t)(cast(void*)list - pool.baseAddr) / 16);
-            }
-        }
-
-        debug(COLLECT_PRINTF) printf("Marked free entries.\n");
-
-        for (n = 0; n < npools; n++)
-        {
-            pool = pooltable[n];
-            if (!pool.isLargeObject)
-            {
+            Pool* pool = pooltable[n];
+            if (pool.isLargeObject)
+                pool.mark.zero();
+            else
                 pool.mark.copy(&pool.freebits);
-            }
         }
     }
 
@@ -2488,7 +2453,7 @@ struct Gcx
      * Returns true if the addr lies within a marked block.
      *
      * Warning! This should only be called while the world is stopped inside
-     * the fullcollect function.
+     * the fullcollect function after all live objects have been marked, but before sweeping.
      */
     int isMarked(void *addr) scope nothrow
     {
@@ -2504,6 +2469,8 @@ struct Gcx
             if (bins < B_PAGE)
             {
                 biti = baseOffset(offset, bins) >> pool.ShiftBy.Small;
+                // doesn't need to check freebits because no pointer must exist
+                //  to a block that was free before starting the collection
             }
             else if (bins == B_PAGE)
             {
@@ -2719,6 +2686,7 @@ struct Pool
         if (!isLargeObject)
         {
             freebits.alloc(nbits);
+            freebits.setRange(0, nbits);
         }
 
         noscan.alloc(nbits);
@@ -2949,6 +2917,38 @@ struct Pool
         return (size + PAGESIZE - 1) / PAGESIZE;
     }
 
+    void* findBase(void* p) nothrow @nogc
+    {
+        size_t offset = cast(size_t)(p - baseAddr);
+        size_t pn = offset / PAGESIZE;
+        Bins   bin = cast(Bins)pagetable[pn];
+
+        // Adjust bit to be at start of allocated memory block
+        if (bin < B_NUMSMALL)
+        {
+            auto baseOff = baseOffset(offset, bin);
+            const biti = baseOff >> Pool.ShiftBy.Small;
+            if (freebits.test (biti))
+                return null;
+            return baseAddr + baseOff;
+        }
+        if (bin == B_PAGE)
+        {
+            return baseAddr + (offset & (offset.max ^ (PAGESIZE-1)));
+        }
+        if (bin == B_PAGEPLUS)
+        {
+            size_t pageOffset = bPageOffsets[pn];
+            offset -= pageOffset * PAGESIZE;
+            pn -= pageOffset;
+
+            return baseAddr + (offset & (offset.max ^ (PAGESIZE-1)));
+        }
+        // we are in a B_FREE page
+        assert(bin == B_FREE);
+        return null;
+    }
+
     size_t slGetSize(void* p) nothrow @nogc
     {
         if (isLargeObject)
@@ -3098,7 +3098,8 @@ struct LargeObjectPool
             return 0;
         size_t pagenum = pagenumOf(p);
         Bins bin = cast(Bins)pagetable[pagenum];
-        assert(bin == B_PAGE);
+        if (bin != B_PAGE)
+            return 0;
         return bPageOffsets[pagenum];
     }
 
@@ -3194,6 +3195,9 @@ struct SmallObjectPool
         assert(bin < B_PAGE);
         if (p != cast(void*)baseOffset(cast(size_t)p, bin)) // check for interior pointer
             return 0;
+        const biti = cast(size_t)(p - baseAddr) >> ShiftBy.Small;
+        if (freebits.test (biti))
+            return 0;
         return binsize[bin];
     }
 
@@ -3207,10 +3211,15 @@ struct SmallObjectPool
         if (bin >= B_PAGE)
             return info;
 
-        info.base = cast(void*)baseOffset(cast(size_t)p, bin);
+        auto base = cast(void*)baseOffset(cast(size_t)p, bin);
+        const biti = cast(size_t)(base - baseAddr) >> ShiftBy.Small;
+        if (freebits.test (biti))
+            return info;
+
+        info.base = base;
         info.size = binsize[bin];
         offset = info.base - baseAddr;
-        info.attr = getBits(cast(size_t)(offset >> ShiftBy.Small));
+        info.attr = getBits(biti);
 
         return info;
     }
@@ -3547,4 +3556,30 @@ version (D_LP64) unittest
             assert(nstats == stats);
         }
     }
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=19522
+unittest
+{
+    import core.memory;
+
+    void test(void* p)
+    {
+        assert(GC.getAttr(p) == BlkAttr.NO_SCAN);
+        assert(GC.setAttr(p + 4, BlkAttr.NO_SCAN) == 0); // interior pointer should fail
+        assert(GC.clrAttr(p + 4, BlkAttr.NO_SCAN) == 0); // interior pointer should fail
+        GC.free(p);
+        assert(GC.query(p).base == null);
+        assert(GC.query(p).size == 0);
+        assert(GC.addrOf(p) == null);
+        assert(GC.sizeOf(p) == 0); // fails
+        assert(GC.getAttr(p) == 0);
+        assert(GC.setAttr(p, BlkAttr.NO_SCAN) == 0);
+        assert(GC.clrAttr(p, BlkAttr.NO_SCAN) == 0);
+    }
+    void* large = GC.malloc(10000, BlkAttr.NO_SCAN);
+    test(large);
+
+    void* small = GC.malloc(100, BlkAttr.NO_SCAN);
+    test(small);
 }

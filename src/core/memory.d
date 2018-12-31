@@ -1076,7 +1076,7 @@ unittest
     assert(GC.addrOf(cast(void*) b) == null);
     // but be careful, a still points to it
     assert(a !is null);
-    assert(GC.addrOf(cast(void*) a) !is null);
+    assert(GC.addrOf(cast(void*) a) == null); // but not a valid GC pointer
 }
 
 /// Deleting interfaces
@@ -1143,7 +1143,7 @@ unittest
     assert(GC.addrOf(b.ptr) == null);
     // but be careful, a still points to it
     assert(a !is null);
-    assert(GC.addrOf(a.ptr) !is null);
+    assert(GC.addrOf(a.ptr) == null); // but not a valid GC pointer
 }
 
 /// Deleting arrays of structs
