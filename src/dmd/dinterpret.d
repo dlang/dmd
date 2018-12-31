@@ -2212,7 +2212,8 @@ public:
             if (decl.isDataseg()) {
                 // Normally this is already done by optimize()
                 // Do it here in case optimize(WANTvalue) wasn't run before CTFE
-                result = new SymOffExp(e.loc, (cast(VarExp)e.e1).var, 0);
+                emplaceExp!(SymOffExp)(pue, e.loc, (cast(VarExp)e.e1).var, 0);
+                result = pue.exp();
                 result.type = e.type;
                 return;
             }
@@ -2239,13 +2240,14 @@ public:
 
         // If it is &nestedfunc, just return it
         // TODO: We should save the context pointer
-        if (e.e1.op == TOK.variable && (cast(VarExp)e.e1).var == e.func)
-        {
-            result = e;
-            return;
-        }
+        if (auto ve1 = e.e1.isVarExp())
+            if (ve1.var == e.func)
+            {
+                result = e;
+                return;
+            }
 
-        auto er = interpret(e.e1, istate);
+        auto er = interpret(pue, e.e1, istate);
         if (exceptionOrCant(er))
             return;
         if (er == e.e1)
@@ -2255,6 +2257,7 @@ public:
         }
         else
         {
+            er = (er == pue.exp()) ? pue.copy() : er;
             emplaceExp!(DelegateExp)(pue, e.loc, er, e.func, false);
             result = pue.exp();
             result.type = e.type;
@@ -6066,36 +6069,37 @@ public:
             printf("%s PtrExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
         // Check for int<->float and long<->double casts.
-        if (e.e1.op == TOK.symbolOffset && (cast(SymOffExp)e.e1).offset == 0 && (cast(SymOffExp)e.e1).var.isVarDeclaration() && isFloatIntPaint(e.type, (cast(SymOffExp)e.e1).var.type))
-        {
-            // *(cast(int*)&v), where v is a float variable
-            result = paintFloatInt(getVarExp(e.loc, istate, (cast(SymOffExp)e.e1).var, ctfeNeedRvalue), e.type);
-            return;
-        }
-        if (e.e1.op == TOK.cast_ && (cast(CastExp)e.e1).e1.op == TOK.address)
-        {
-            // *(cast(int*)&x), where x is a float expression
-            Expression x = (cast(AddrExp)(cast(CastExp)e.e1).e1).e1;
-            if (isFloatIntPaint(e.type, x.type))
+        if (auto soe1 = e.e1.isSymOffExp())
+            if (soe1.offset == 0 && soe1.var.isVarDeclaration() && isFloatIntPaint(e.type, soe1.var.type))
             {
-                result = paintFloatInt(interpret(x, istate), e.type);
+                // *(cast(int*)&v), where v is a float variable
+                result = paintFloatInt(getVarExp(e.loc, istate, soe1.var, ctfeNeedRvalue), e.type);
                 return;
             }
-        }
+
+        if (auto ce1 = e.e1.isCastExp())
+            if (auto ae11 = ce1.e1.isAddrExp())
+            {
+                // *(cast(int*)&x), where x is a float expression
+                Expression x = ae11.e1;
+                if (isFloatIntPaint(e.type, x.type))
+                {
+                    result = paintFloatInt(interpret(x, istate), e.type);
+                    return;
+                }
+            }
 
         // Constant fold *(&structliteral + offset)
-        if (e.e1.op == TOK.add)
+        if (auto ae = e.e1.isAddExp())
         {
-            AddExp ae = cast(AddExp)e.e1;
             if (ae.e1.op == TOK.address && ae.e2.op == TOK.int64)
             {
                 AddrExp ade = cast(AddrExp)ae.e1;
                 Expression ex = interpret(ade.e1, istate);
                 if (exceptionOrCant(ex))
                     return;
-                if (ex.op == TOK.structLiteral)
+                if (auto se = ex.isStructLiteralExp())
                 {
-                    StructLiteralExp se = cast(StructLiteralExp)ex;
                     dinteger_t offset = ae.e2.toInteger();
                     result = se.getField(e.type, cast(uint)offset);
                     if (result)
@@ -6112,9 +6116,8 @@ public:
 
         if (result.op == TOK.function_)
             return;
-        if (result.op == TOK.symbolOffset)
+        if (auto soe = result.isSymOffExp())
         {
-            SymOffExp soe = cast(SymOffExp)result;
             if (soe.offset == 0 && soe.var.isFuncDeclaration())
                 return;
             e.error("cannot dereference pointer to static variable `%s` at compile time", soe.var.toChars());
@@ -6143,7 +6146,7 @@ public:
              */
             return;
         }
-        result = interpret(result, istate, goal);
+        result = interpret(pue, result, istate, goal);
         if (exceptionOrCant(result))
             return;
 
