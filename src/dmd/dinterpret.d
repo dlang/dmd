@@ -2457,7 +2457,7 @@ public:
              *  foo(s); // VarExp('s') will have const(S)
              */
             // A VarExp may include an implicit cast. It must be done explicitly.
-            result = paintTypeOntoLiteral(e.type, result);
+            result = paintTypeOntoLiteral(pue, e.type, result);
         }
     }
 
@@ -2591,7 +2591,7 @@ public:
         }
         if (Expression ex = isExpression(e.obj))
         {
-            result = interpret(ex, istate);
+            result = interpret(pue, ex, istate);
             if (exceptionOrCant(ex))
                 return;
 
