@@ -2740,7 +2740,10 @@ public:
             result = e;
         }
         else
-            result = copyLiteral(e).copy();
+        {
+            *pue = copyLiteral(e);
+            result = pue.exp();
+        }
     }
 
     override void visit(AssocArrayLiteralExp e)
@@ -2823,7 +2826,10 @@ public:
             result = aae;
         }
         else
-            result = copyLiteral(e).copy();
+        {
+            *pue = copyLiteral(e);
+            result = pue.exp();
+        }
     }
 
     override void visit(StructLiteralExp e)
@@ -2910,7 +2916,10 @@ public:
             result = sle;
         }
         else
-            result = copyLiteral(e).copy();
+        {
+            *pue = copyLiteral(e);
+            result = pue.exp();
+        }
     }
 
     // Create an array literal of type 'newtype' with dimensions given by
