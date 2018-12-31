@@ -735,6 +735,7 @@ private void ctfeCompile(FuncDeclaration fd)
 /*************************************
  * Attempt to interpret a function given the arguments.
  * Params:
+ *      pue       = storage for result
  *      fd        = function being called
  *      istate    = state for calling function (NULL if none)
  *      arguments = function arguments
@@ -744,12 +745,13 @@ private void ctfeCompile(FuncDeclaration fd)
  * result expression if successful, TOK.cantExpression if not,
  * or CTFEExp if function returned void.
  */
-private Expression interpretFunction(FuncDeclaration fd, InterState* istate, Expressions* arguments, Expression thisarg)
+private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterState* istate, Expressions* arguments, Expression thisarg)
 {
     debug (LOG)
     {
         printf("\n********\n%s FuncDeclaration::interpret(istate = %p) %s\n", fd.loc.toChars(), istate, fd.toChars());
     }
+    assert(pue);
     if (fd.semanticRun == PASS.semantic3)
     {
         fd.error("circular dependency. Functions cannot be interpreted while being compiled");
@@ -943,7 +945,7 @@ private Expression interpretFunction(FuncDeclaration fd, InterState* istate, Exp
             e = CTFEExp.cantexp;
             break;
         }
-        e = interpret(fd.fbody, &istatex);
+        e = interpret(pue, fd.fbody, &istatex);
         if (CTFEExp.isCantExp(e))
         {
             debug (LOG)
@@ -990,6 +992,8 @@ private Expression interpretFunction(FuncDeclaration fd, InterState* istate, Exp
     // If it generated an uncaught exception, report error.
     if (!istate && e.op == TOK.thrownException)
     {
+        if (e == pue.exp())
+            e = pue.copy();
         (cast(ThrownExceptionExp)e).generateUncaughtError();
         e = CTFEExp.cantexp;
     }
@@ -2980,7 +2984,7 @@ public:
                 se = interpret(se, istate);
                 if (exceptionOrCant(se))
                     return;
-                result = interpretFunction(e.member, istate, e.arguments, se);
+                result = interpretFunction(pue, e.member, istate, e.arguments, se);
 
                 // Repaint as same as CallExp::interpret() does.
                 result.loc = e.loc;
@@ -3070,7 +3074,7 @@ public:
                     result = CTFEExp.cantexp;
                     return;
                 }
-                Expression ctorfail = interpretFunction(e.member, istate, e.arguments, eref);
+                Expression ctorfail = interpretFunction(pue, e.member, istate, e.arguments, eref);
                 if (exceptionOrCant(ctorfail))
                     return;
 
@@ -5000,13 +5004,17 @@ public:
             return;
         }
 
-        result = interpretFunction(fd, istate, e.arguments, pthis);
+        result = interpretFunction(pue, fd, istate, e.arguments, pthis);
         if (result.op == TOK.voidExpression)
             return;
         if (!exceptionOrCantInterpret(result))
         {
-            if (goal != ctfeNeedLvalue) // Peel off CTFE reference if it's unnesessary
-                result = interpret(result, istate);
+            if (goal != ctfeNeedLvalue) // Peel off CTFE reference if it's unnecessary
+            {
+                if (result == pue.exp())
+                    result = pue.copy();
+                result = interpret(pue, result, istate);
+            }
         }
         if (!exceptionOrCantInterpret(result))
         {
@@ -5720,7 +5728,7 @@ public:
 
             if (cd.dtor)
             {
-                result = interpretFunction(cd.dtor, istate, null, cre);
+                result = interpretFunction(pue, cd.dtor, istate, null, cre);
                 if (exceptionOrCant(result))
                     return;
             }
@@ -5749,7 +5757,7 @@ public:
 
                 if (sd.dtor)
                 {
-                    result = interpretFunction(sd.dtor, istate, null, sle);
+                    result = interpretFunction(pue, sd.dtor, istate, null, sle);
                     if (exceptionOrCant(result))
                         return;
                 }
@@ -5780,7 +5788,7 @@ public:
                     auto ale = cast(ArrayLiteralExp)result;
                     foreach (el; *ale.elements)
                     {
-                        result = interpretFunction(sd.dtor, istate, null, el);
+                        result = interpretFunction(pue, sd.dtor, istate, null, el);
                         if (exceptionOrCant(result))
                             return;
                     }
@@ -6698,7 +6706,10 @@ private Expression interpret_aaApply(InterState* istate, Expression aa, Expressi
         if (numParams == 2)
             args[0] = ekey;
 
-        eresult = interpretFunction(fd, istate, &args, pthis);
+        UnionExp ue = void;
+        eresult = interpretFunction(&ue, fd, istate, &args, pthis);
+        if (eresult == ue.exp())
+            eresult = ue.copy();
         if (exceptionOrCantInterpret(eresult))
             return eresult;
 
@@ -6954,7 +6965,10 @@ private Expression foreachApplyUtf(InterState* istate, Expression str, Expressio
 
             args[numParams - 1] = val;
 
-            eresult = interpretFunction(fd, istate, &args, pthis);
+            UnionExp ue = void;
+            eresult = interpretFunction(&ue, fd, istate, &args, pthis);
+            if (eresult == ue.exp())
+                eresult = ue.copy();
             if (exceptionOrCantInterpret(eresult))
                 return eresult;
             assert(eresult.op == TOK.int64);
@@ -7100,7 +7114,10 @@ private Expression evaluatePostblit(InterState* istate, Expression e)
     if (e.op == TOK.structLiteral)
     {
         // e.__postblit()
-        e = interpretFunction(sd.postblit, istate, null, e);
+        UnionExp ue = void;
+        e = interpretFunction(&ue, sd.postblit, istate, null, e);
+        if (e == ue.exp())
+            e = ue.copy();
         if (exceptionOrCantInterpret(e))
             return e;
         return null;
@@ -7117,6 +7134,7 @@ private Expression evaluateDtor(InterState* istate, Expression e)
     if (!sd.dtor)
         return null;
 
+    UnionExp ue = void;
     if (auto ale = e.isArrayLiteralExp())
     {
         foreach_reverse (elem; *ale.elements)
@@ -7125,12 +7143,16 @@ private Expression evaluateDtor(InterState* istate, Expression e)
     else if (e.op == TOK.structLiteral)
     {
         // e.__dtor()
-        e = interpretFunction(sd.dtor, istate, null, e);
+        e = interpretFunction(&ue, sd.dtor, istate, null, e);
     }
     else
         assert(0);
     if (exceptionOrCantInterpret(e))
+    {
+        if (e == ue.exp())
+            e = ue.copy();
         return e;
+    }
     return null;
 }
 
