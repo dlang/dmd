@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2011-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2011-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     Brad Roberts
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/platform_stub.c, backend/platform_stub.c)
