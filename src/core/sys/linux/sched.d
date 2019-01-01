@@ -14,6 +14,7 @@
 
 module core.sys.linux.sched;
 
+import core.bitop : popcnt;
 import core.sys.posix.sched;
 import core.sys.posix.config;
 import core.sys.posix.sys.types;
@@ -63,6 +64,14 @@ private // helpers
             return (cpusetp.__bits[__CPUELT(cpu)] & __CPUMASK(cpu)) != 0;
         return false;
     }
+
+    int __CPU_COUNT_S(size_t setsize, cpu_set_t* cpusetp) pure
+    {
+        int s = 0;
+        foreach (i; cpusetp.__bits[0 .. (setsize / cpu_mask.sizeof)])
+            s += popcnt(i);
+        return s;
+    }
 }
 
 /// Type for array elements in 'cpu_set_t'.
@@ -84,6 +93,11 @@ cpu_mask CPU_SET(size_t cpu, cpu_set_t* cpusetp) pure
 bool CPU_ISSET(size_t cpu, cpu_set_t* cpusetp) pure
 {
     return __CPU_ISSET_S(cpu, cpu_set_t.sizeof, cpusetp);
+}
+
+int CPU_COUNT(cpu_set_t* cpusetp) pure
+{
+    return __CPU_COUNT_S(cpu_set_t.sizeof, cpusetp);
 }
 
 /* Functions */
