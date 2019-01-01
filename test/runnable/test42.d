@@ -2421,21 +2421,22 @@ bool foo150()
 
 void crash(int x)
 {
-  if (x==200) return;
-   asm { int 3; }
+    if (x==200) return;
+    assert(0);
 }
 
 void test151()
 {
-   int x;
-   bug3521(&x);
+    int x;
+    bug3521(&x);
 }
 
-void bug3521(int *a){
+void bug3521(int *a)
+{
     int c = 0;
     *a = 0;
     if ( *a || (*a != (c = 200)) )
-       crash(c);
+        crash(c);
 }
 
 /***************************************************/
@@ -4169,10 +4170,22 @@ void oddity4001()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=3809
 
-int bug3809() { asm { nop; } return 0; }
-struct BUG3809 { int xx; }
-void bug3809b() {
+int bug3809()
+{
+    static int a = 0;
+    return a;
+}
+
+struct BUG3809
+{
+    int xx;
+}
+
+void bug3809b()
+{
+    BUG3809 b = { bug3809() };
 }
 
 /***************************************************/
