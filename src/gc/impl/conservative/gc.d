@@ -651,13 +651,13 @@ class ConservativeGC : GC
                 {
                     auto lpool = cast(LargeObjectPool*) pool;
                     auto paligned = cast(void*)(cast(size_t)p & ~(PAGESIZE - 1)); // abused by std.file.readImpl
-                    auto pagenum = lpool.pagenumOf(paligned);
                     auto psz = lpool.getPages(paligned);     // get allocated size
-                    psize = psz * PAGESIZE;
 
                     if (size <= PAGESIZE / 2)
+                    {
+                        psize = psz * PAGESIZE;
                         goto Lmalloc; // switching from large object pool to small object pool
-
+                    }
                     auto newsz = lpool.numPages(size);
                     if (newsz == psz)
                     {
@@ -665,28 +665,39 @@ class ConservativeGC : GC
                         return p;
                     }
 
+                    auto pagenum = lpool.pagenumOf(p);
+
                     if (newsz < psz)
                     {   // Shrink in place
                         debug (MEMSTOMP) memset(p + size, 0xF2, psize - size);
                         lpool.freePages(pagenum + newsz, psz - newsz);
+                        lpool.mergeFreePageOffsets!(false, true)(pagenum + newsz, psz - newsz);
+                        lpool.bPageOffsets[pagenum] = cast(uint) newsz;
                     }
                     else if (pagenum + newsz <= pool.npages)
                     {   // Attempt to expand in place
-                        foreach (binsz; lpool.pagetable[pagenum + psz .. pagenum + newsz])
-                            if (binsz != B_FREE)
-                                goto Lmalloc;
+                        if (lpool.pagetable[pagenum + psz] != B_FREE)
+                            goto Lmalloc;
+                        auto newPages = newsz - psz;
+                        auto freesz = lpool.bPageOffsets[pagenum + psz];
+                        if (freesz < newPages)
+                            goto Lmalloc;
 
                         debug (MEMSTOMP) memset(p + psize, 0xF0, size - psize);
                         debug(PRINTF) printFreeInfo(pool);
-                        memset(&lpool.pagetable[pagenum + psz], B_PAGEPLUS, newsz - psz);
-                        gcx.usedLargePages += newsz - psz;
-                        lpool.freepages -= (newsz - psz);
+                        memset(&lpool.pagetable[pagenum + psz], B_PAGEPLUS, newPages);
+                        lpool.bPageOffsets[pagenum] = cast(uint) newsz;
+                        for (auto offset = psz + 1; offset < newsz; offset++)
+                            lpool.bPageOffsets[pagenum + offset] = cast(uint) offset;
+                        if (freesz > newPages)
+                            lpool.setFreePageOffsets(pagenum + newsz, freesz - newPages);
+                        gcx.usedLargePages += newPages;
+                        lpool.freepages -= newPages;
                         debug(PRINTF) printFreeInfo(pool);
                     }
                     else
                         goto Lmalloc; // does not fit into current pool
 
-                    lpool.updateOffsets(pagenum);
                     if (bits)
                     {
                         immutable biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
@@ -759,30 +770,32 @@ class ConservativeGC : GC
                 return 0;
 
             auto lpool = cast(LargeObjectPool*) pool;
-            auto pagenum = lpool.pagenumOf(p);
+            size_t pagenum = lpool.pagenumOf(p);
             if (lpool.pagetable[pagenum] != B_PAGE)
                 return 0;
-            auto psz = lpool.bPageOffsets[pagenum];   // get allocated pages
+
+            size_t psz = lpool.bPageOffsets[pagenum];
+            assert(psz > 0);
+
             auto minsz = lpool.numPages(minsize);
             auto maxsz = lpool.numPages(maxsize);
 
-            size_t sz;
-            for (sz = 0; sz < maxsz; sz++)
-            {
-                auto i = pagenum + psz + sz;
-                if (i == lpool.npages)
-                    break;
-                if (lpool.pagetable[i] != B_FREE)
-                {   if (sz < minsz)
-                        return 0;
-                    break;
-                }
-            }
-            if (sz < minsz)
+            if (pagenum + psz >= lpool.npages)
                 return 0;
+            if (lpool.pagetable[pagenum + psz] != B_FREE)
+                return 0;
+
+            size_t freesz = lpool.bPageOffsets[pagenum + psz];
+            if (freesz < minsz)
+                return 0;
+            size_t sz = freesz > maxsz ? maxsz : freesz;
             debug (MEMSTOMP) memset(pool.baseAddr + (pagenum + psz) * PAGESIZE, 0xF0, sz * PAGESIZE);
             memset(lpool.pagetable + pagenum + psz, B_PAGEPLUS, sz);
-            lpool.updateOffsets(pagenum);
+            lpool.bPageOffsets[pagenum] = cast(uint) (psz + sz);
+            for (auto offset = psz; offset < psz + sz; offset++)
+                lpool.bPageOffsets[pagenum + offset] = cast(uint) offset;
+            if (freesz > sz)
+                lpool.setFreePageOffsets(pagenum + psz + sz, freesz - sz);
             lpool.freepages -= sz;
             gcx.usedLargePages += sz;
             return (psz + sz) * PAGESIZE;
@@ -871,6 +884,7 @@ class ConservativeGC : GC
             size_t npages = lpool.bPageOffsets[pagenum];
             debug (MEMSTOMP) memset(p, 0xF2, npages * PAGESIZE);
             lpool.freePages(pagenum, npages);
+            lpool.mergeFreePageOffsets!(true, true)(pagenum, npages);
         }
         else
         {
@@ -1793,12 +1807,7 @@ struct Gcx
         assert(pool);
 
         debug(PRINTF) printFreeInfo(&pool.base);
-        pool.pagetable[pn] = B_PAGE;
-        if (npages > 1)
-            memset(&pool.pagetable[pn + 1], B_PAGEPLUS, npages - 1);
-        pool.updateOffsets(pn);
         usedLargePages += npages;
-        pool.freepages -= npages;
 
         debug(PRINTF) printFreeInfo(&pool.base);
 
@@ -2183,10 +2192,19 @@ struct Gcx
 
             if (pool.isLargeObject)
             {
-                for (pn = 0; pn < pool.npages; pn++)
+                auto lpool = cast(LargeObjectPool*)pool;
+                size_t numFree = 0;
+                size_t npages;
+                for (pn = 0; pn < pool.npages; pn += npages)
                 {
+                    npages = pool.bPageOffsets[pn];
                     Bins bin = cast(Bins)pool.pagetable[pn];
-                    if (bin > B_PAGE) continue;
+                    if (bin == B_FREE)
+                    {
+                        numFree += npages;
+                        continue;
+                    }
+                    assert(bin == B_PAGE);
                     size_t biti = pn;
 
                     if (!pool.mark.test(biti))
@@ -2197,7 +2215,7 @@ struct Gcx
 
                         if (pool.finals.nbits && pool.finals.clear(biti))
                         {
-                            size_t size = pool.bPageOffsets[pn] * PAGESIZE - SENTINEL_EXTRA;
+                            size_t size = npages * PAGESIZE - SENTINEL_EXTRA;
                             uint attr = pool.getBits(biti);
                             rt_finalizeFromGC(q, sentinel_size(q, size), attr);
                         }
@@ -2206,32 +2224,30 @@ struct Gcx
 
                         debug(COLLECT_PRINTF) printf("\tcollecting big %p\n", p);
                         log_free(q);
-                        pool.pagetable[pn] = B_FREE;
+                        pool.pagetable[pn..pn+npages] = B_FREE;
                         if (pn < pool.searchStart) pool.searchStart = pn;
-                        freedLargePages++;
-                        pool.freepages++;
+                        freedLargePages += npages;
+                        pool.freepages += npages;
+                        numFree += npages;
 
-                        debug (MEMSTOMP) memset(p, 0xF3, PAGESIZE);
-                        while (pn + 1 < pool.npages && pool.pagetable[pn + 1] == B_PAGEPLUS)
-                        {
-                            pn++;
-                            pool.pagetable[pn] = B_FREE;
+                        debug (MEMSTOMP) memset(p, 0xF3, npages * PAGESIZE);
+                        // Don't need to update searchStart here because
+                        // pn is guaranteed to be greater than last time
+                        // we updated it.
 
-                            // Don't need to update searchStart here because
-                            // pn is guaranteed to be greater than last time
-                            // we updated it.
-
-                            pool.freepages++;
-                            freedLargePages++;
-
-                            debug (MEMSTOMP)
-                            {   p += PAGESIZE;
-                                memset(p, 0xF3, PAGESIZE);
-                            }
-                        }
                         pool.largestFree = pool.freepages; // invalidate
                     }
+                    else
+                    {
+                        if (numFree > 0)
+                        {
+                            lpool.setFreePageOffsets(pn - numFree, numFree);
+                            numFree = 0;
+                        }
+                    }
                 }
+                if (numFree > 0)
+                    lpool.setFreePageOffsets(pn - numFree, numFree);
             }
             else
             {
@@ -2644,6 +2660,9 @@ struct Pool
     // a smaller address than a B_PAGEPLUS.  To save space, we use a uint.
     // This limits individual allocations to 16 terabytes, assuming a 4k
     // pagesize.
+    // For B_PAGE and B_FREE, this specifies the number of pages in this block.
+    // As an optimization, a contiguous range of free pages tracks this information
+    //  only for the first and the last page.
     uint* bPageOffsets;
 
     // This variable tracks a conservative estimate of where the first free
@@ -2696,11 +2715,14 @@ struct Pool
         if (!pagetable)
             onOutOfMemoryErrorNoGC();
 
-        if (isLargeObject)
+        if (isLargeObject && npages > 0)
         {
             bPageOffsets = cast(uint*)cstdlib.malloc(npages * uint.sizeof);
             if (!bPageOffsets)
                 onOutOfMemoryErrorNoGC();
+
+            bPageOffsets[0] = cast(uint)npages;
+            bPageOffsets[npages-1] = cast(uint)npages;
         }
 
         memset(pagetable, B_FREE, npages);
@@ -2735,7 +2757,10 @@ struct Pool
         }
 
         if (bPageOffsets)
+        {
             cstdlib.free(bPageOffsets);
+            bPageOffsets = null;
+        }
 
         mark.Dtor();
         if (isLargeObject)
@@ -3003,18 +3028,35 @@ struct LargeObjectPool
     Pool base;
     alias base this;
 
-    void updateOffsets(size_t fromWhere) nothrow
+    debug(INVARIANT)
+    void Invariant()
     {
-        assert(pagetable[fromWhere] == B_PAGE);
-        size_t pn = fromWhere + 1;
-        for (uint offset = 1; pn < npages; pn++, offset++)
+        //base.Invariant();
+        for (size_t n = 0; n < npages; )
         {
-            if (pagetable[pn] != B_PAGEPLUS) break;
-            bPageOffsets[pn] = offset;
-        }
+            uint np = bPageOffsets[n];
+            assert(np > 0 && np <= npages - n);
 
-        // Store the size of the block in bPageOffsets[fromWhere].
-        bPageOffsets[fromWhere] = cast(uint) (pn - fromWhere);
+            if (pagetable[n] == B_PAGE)
+            {
+                for (uint p = 1; p < np; p++)
+                {
+                    assert(pagetable[n + p] == B_PAGEPLUS);
+                    assert(bPageOffsets[n + p] == p);
+                }
+            }
+            else if (pagetable[n] == B_FREE)
+            {
+                for (uint p = 1; p < np; p++)
+                {
+                    assert(pagetable[n + p] == B_FREE);
+                }
+                assert(bPageOffsets[n + np - 1] == np);
+            }
+            else
+                assert(false);
+            n += np;
+        }
     }
 
     /**
@@ -3039,13 +3081,27 @@ struct LargeObjectPool
         for (size_t i = searchStart; i < npages; )
         {
             assert(pagetable[i] == B_FREE);
-            size_t p = 1;
-            while (p < n && i + p < npages && pagetable[i + p] == B_FREE)
-                p++;
 
+            auto p = bPageOffsets[i];
+            if (p > n)
+            {
+                setFreePageOffsets(i + n, p - n);
+                goto L_found;
+            }
             if (p == n)
+            {
+            L_found:
+                pagetable[i] = B_PAGE;
+                bPageOffsets[i] = cast(uint) n;
+                if (n > 1)
+                {
+                    memset(&pagetable[i + 1], B_PAGEPLUS, n - 1);
+                    for (auto offset = 1; offset < n; offset++)
+                        bPageOffsets[i + offset] = cast(uint) offset;
+                }
+                freepages -= n;
                 return i;
-
+            }
             if (p > largest)
                 largest = p;
 
@@ -3073,14 +3129,42 @@ struct LargeObjectPool
 
         for (size_t i = pagenum; i < npages + pagenum; i++)
         {
-            if (pagetable[i] < B_FREE)
-            {
-                freepages++;
-            }
-
+            assert(pagetable[i] < B_FREE);
             pagetable[i] = B_FREE;
         }
+        freepages += npages;
         largestFree = freepages; // invalidate
+    }
+
+    /**
+     * Set the first and the last entry of a B_FREE block to the size
+     */
+    void setFreePageOffsets(size_t page, size_t num) nothrow @nogc
+    {
+        assert(pagetable[page] == B_FREE);
+        assert(pagetable[page + num - 1] == B_FREE);
+        bPageOffsets[page] = cast(uint)num;
+        if (num > 1)
+            bPageOffsets[page + num - 1] = cast(uint)num;
+    }
+
+    void mergeFreePageOffsets(bool bwd, bool fwd)(size_t page, size_t num) nothrow @nogc
+    {
+        static if (bwd)
+        {
+            if (page > 0 && pagetable[page - 1] == B_FREE)
+            {
+                auto sz = bPageOffsets[page - 1];
+                page -= sz;
+                num += sz;
+            }
+        }
+        static if (fwd)
+        {
+            if (page + num < npages && pagetable[page + num] == B_FREE)
+                num += bPageOffsets[page + num];
+        }
+        setFreePageOffsets(page, num);
     }
 
     /**
@@ -3169,6 +3253,7 @@ struct LargeObjectPool
                     break;
             debug (MEMSTOMP) memset(baseAddr + pn * PAGESIZE, 0xF3, n * PAGESIZE);
             freePages(pn, n);
+            mergeFreePageOffsets!(true, true)(pn, n);
         }
     }
 }
