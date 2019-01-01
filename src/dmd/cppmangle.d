@@ -1264,6 +1264,22 @@ extern(C++):
         if (t.isImmutable() || t.isShared())
             return error(t);
 
+        // Handle any target-specific basic types.
+        if (auto tm = target.cppTypeMangle(t))
+        {
+            // Only do substitutions for non-fundamental types.
+            if (!isFundamentalType(t) || t.isConst())
+            {
+                if (substitute(t))
+                    return;
+                else
+                    append(t);
+            }
+            CV_qualifiers(t);
+            buf.writestring(tm);
+            return;
+        }
+
         /* <builtin-type>:
          * v        void
          * w        wchar_t
@@ -1328,21 +1344,6 @@ extern(C++):
             case Tcomplex80:    p = 'C'; c = 'e';       break;
 
             default:
-                // Handle any target-specific basic types.
-                if (auto tm = target.cppTypeMangle(t))
-                {
-                    // Only do substitutions for non-fundamental types.
-                    if (!isFundamentalType(t) || t.isConst())
-                    {
-                        if (substitute(t))
-                            return;
-                        else
-                            append(t);
-                    }
-                    CV_qualifiers(t);
-                    buf.writestring(tm);
-                    return;
-                }
                 return error(t);
         }
         writeBasicType(t, p, c);
