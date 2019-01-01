@@ -1430,7 +1430,7 @@ else version (Solaris)
     struct sockaddr
     {
         sa_family_t sa_family;
-        char[14] sa_data;
+        char[14] sa_data = 0;
     }
 
     alias double sockaddr_maxalign_t;
@@ -1446,9 +1446,9 @@ else version (Solaris)
     struct sockaddr_storage
     {
          sa_family_t ss_family;
-         char[_SS_PAD1SIZE] _ss_pad1;
+         char[_SS_PAD1SIZE] _ss_pad1 = void;
          sockaddr_maxalign_t _ss_align;
-         char[_SS_PAD2SIZE] _ss_pad2;
+         char[_SS_PAD2SIZE] _ss_pad2 = void;
     }
 
     struct msghdr

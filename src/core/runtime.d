@@ -823,7 +823,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                     int ret = 0;
                     for ( int i = FIRSTFRAME; i < numframes; ++i )
                     {
-                        char[4096] fixbuf;
+                        char[4096] fixbuf = void;
                         auto buf = framelist[i][0 .. strlen(framelist[i])];
                         auto pos = cast(size_t)(i - FIRSTFRAME);
                         buf = fixline( buf, fixbuf );

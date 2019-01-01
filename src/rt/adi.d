@@ -46,7 +46,7 @@ extern (C) char[] _adSortChar(char[] a)
         _adSort(*cast(void[]*)&da, typeid(da[0]));
         size_t i = 0;
         foreach (dchar d; da)
-        {   char[4] buf;
+        {   char[4] buf = void;
             auto t = toUTF8(buf, d);
             a[i .. i + t.length] = t[];
             i += t.length;
@@ -68,7 +68,7 @@ extern (C) wchar[] _adSortWchar(wchar[] a)
         _adSort(*cast(void[]*)&da, typeid(da[0]));
         size_t i = 0;
         foreach (dchar d; da)
-        {   wchar[2] buf;
+        {   wchar[2] buf = void;
             auto t = toUTF16(buf, d);
             a[i .. i + t.length] = t[];
             i += t.length;

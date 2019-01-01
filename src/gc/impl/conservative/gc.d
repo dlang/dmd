@@ -1358,7 +1358,7 @@ struct Gcx
             printf("\tGrand total GC time:  %lld milliseconds\n", gcTime);
             long pauseTime = (markTime + prepTime).total!("msecs");
 
-            char[30] apitxt;
+            char[30] apitxt = void;
             apitxt[0] = 0;
             debug(PROFILE_API) if (config.profile > 1)
             {

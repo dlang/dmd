@@ -34,7 +34,7 @@ version (CRuntime_Glibc)
         int __count;
         union ___value
         {
-            wint_t __wch;
+            wint_t __wch = 0;
             char[4] __wchb;
         }
         ___value __value;
@@ -44,7 +44,7 @@ else version (OpenBSD)
 {
     union __mbstate_t
     {
-        char[128] __mbstate8;
+        char[128] __mbstate8 = 0;
         int64_t   __mbstateL;
     }
     alias mbstate_t = __mbstate_t;
@@ -69,8 +69,8 @@ else version (CRuntime_UClibc)
     ///
     struct mbstate_t
     {
-        wchar_t __mask;
-        wchar_t __wc;
+        wchar_t __mask = 0;
+        wchar_t __wc = 0;
     }
 }
 else
