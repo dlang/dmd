@@ -6099,7 +6099,7 @@ public:
             if (soe1.offset == 0 && soe1.var.isVarDeclaration() && isFloatIntPaint(e.type, soe1.var.type))
             {
                 // *(cast(int*)&v), where v is a float variable
-                result = paintFloatInt(getVarExp(e.loc, istate, soe1.var, ctfeNeedRvalue), e.type);
+                result = paintFloatInt(pue, getVarExp(e.loc, istate, soe1.var, ctfeNeedRvalue), e.type);
                 return;
             }
 
@@ -6110,7 +6110,7 @@ public:
                 Expression x = ae11.e1;
                 if (isFloatIntPaint(e.type, x.type))
                 {
-                    result = paintFloatInt(interpret(x, istate), e.type);
+                    result = paintFloatInt(pue, interpret(x, istate), e.type);
                     return;
                 }
             }

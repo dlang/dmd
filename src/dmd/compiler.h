@@ -19,6 +19,7 @@ class Expression;
 class Module;
 class Type;
 struct Scope;
+struct UnionExp;
 
 // DMD-generated module `__entrypoint` where the C main resides
 extern Module *entrypoint;
@@ -33,7 +34,7 @@ extern Array<Module *> compiledImports;
 struct Compiler
 {
     // CTFE support for cross-compilation.
-    static Expression *paintAsType(Expression *, Type *);
+    static Expression *paintAsType(UnionExp *, Expression *, Type *);
     // Backend
     static void loadModule(Module *);
     static void genCmain(Scope *);

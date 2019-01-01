@@ -1018,12 +1018,12 @@ bool isFloatIntPaint(Type to, Type from)
 }
 
 // Reinterpret float/int value 'fromVal' as a float/integer of type 'to'.
-Expression paintFloatInt(Expression fromVal, Type to)
+Expression paintFloatInt(UnionExp* pue, Expression fromVal, Type to)
 {
     if (exceptionOrCantInterpret(fromVal))
         return fromVal;
     assert(to.size() == 4 || to.size() == 8);
-    return Compiler.paintAsType(fromVal, to);
+    return Compiler.paintAsType(pue, fromVal, to);
 }
 
 /******** Constant folding, with support for CTFE ***************************/
