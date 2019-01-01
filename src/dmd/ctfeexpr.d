@@ -1577,50 +1577,67 @@ Expression ctfeIndex(const ref Loc loc, Type type, Expression e1, uinteger_t ind
     }
 }
 
-Expression ctfeCast(const ref Loc loc, Type type, Type to, Expression e)
+Expression ctfeCast(UnionExp* pue, const ref Loc loc, Type type, Type to, Expression e)
 {
+    Expression paint()
+    {
+        return paintTypeOntoLiteral(pue, to, e);
+    }
+
     if (e.op == TOK.null_)
-        return paintTypeOntoLiteral(to, e);
+        return paint();
+
     if (e.op == TOK.classReference)
     {
         // Disallow reinterpreting class casts. Do this by ensuring that
         // the original class can implicitly convert to the target class
         ClassDeclaration originalClass = (cast(ClassReferenceExp)e).originalClass();
         if (originalClass.type.implicitConvTo(to.mutableOf()))
-            return paintTypeOntoLiteral(to, e);
+            return paint();
         else
-            return new NullExp(loc, to);
+        {
+            emplaceExp!(NullExp)(pue, loc, to);
+            return pue.exp();
+        }
     }
+
     // Allow TypeInfo type painting
     if (isTypeInfo_Class(e.type) && e.type.implicitConvTo(to))
-        return paintTypeOntoLiteral(to, e);
+        return paint();
+
     // Allow casting away const for struct literals
     if (e.op == TOK.structLiteral && e.type.toBasetype().castMod(0) == to.toBasetype().castMod(0))
-    {
-        return paintTypeOntoLiteral(to, e);
-    }
+        return paint();
+
     Expression r;
     if (e.type.equals(type) && type.equals(to))
     {
         // necessary not to change e's address for pointer comparisons
         r = e;
     }
-    else if (to.toBasetype().ty == Tarray && type.toBasetype().ty == Tarray && to.toBasetype().nextOf().size() == type.toBasetype().nextOf().size())
+    else if (to.toBasetype().ty == Tarray &&
+             type.toBasetype().ty == Tarray &&
+             to.toBasetype().nextOf().size() == type.toBasetype().nextOf().size())
     {
         // https://issues.dlang.org/show_bug.cgi?id=12495
         // Array reinterpret casts: eg. string to immutable(ubyte)[]
-        return paintTypeOntoLiteral(to, e);
+        return paint();
     }
     else
     {
-        r = Cast(loc, type, to, e).copy();
+        *pue = Cast(loc, type, to, e);
+        r = pue.exp();
     }
+
     if (CTFEExp.isCantExp(r))
         error(loc, "cannot cast `%s` to `%s` at compile time", e.toChars(), to.toChars());
-    if (e.op == TOK.arrayLiteral)
-        (cast(ArrayLiteralExp)e).ownedByCtfe = OwnedBy.ctfe;
-    if (e.op == TOK.string_)
-        (cast(StringExp)e).ownedByCtfe = OwnedBy.ctfe;
+
+    if (auto ae = e.isArrayLiteralExp())
+        ae.ownedByCtfe = OwnedBy.ctfe;
+
+    if (auto se = e.isStringExp())
+        se.ownedByCtfe = OwnedBy.ctfe;
+
     return r;
 }
 
