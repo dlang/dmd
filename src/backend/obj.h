@@ -1,4 +1,4 @@
-// Copyright (C) 2012-2018 by The D Language Foundation, All Rights Reserved
+// Copyright (C) 2012-2019 by The D Language Foundation, All Rights Reserved
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
