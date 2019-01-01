@@ -156,7 +156,7 @@ debug (LOGGING)
 
         void print() nothrow
         {
-            printf("    p = %p, size = %zd, parent = %p ", p, size, parent);
+            printf("    p = %p, size = %lld, parent = %p ", p, cast(ulong)size, parent);
             if (file)
             {
                 printf("%s(%u)", file, line);
@@ -232,7 +232,8 @@ debug (LOGGING)
 
         void copy(LogArray *from) nothrow @nogc
         {
-            reserve(from.dim - dim);
+            if (allocdim < from.dim)
+                reserve(from.dim - dim);
             assert(from.dim <= allocdim);
             memcpy(data, from.data, from.dim * Log.sizeof);
             dim = from.dim;
