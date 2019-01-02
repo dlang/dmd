@@ -772,10 +772,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 obj_linkerdirective(directive);
             }
-
-            visit(cast(AttribDeclaration)pd);
-
-            if (pd.ident == Id.crt_constructor || pd.ident == Id.crt_destructor)
+            else if (pd.ident == Id.crt_constructor || pd.ident == Id.crt_destructor)
             {
                 immutable isCtor = pd.ident == Id.crt_constructor;
 
@@ -794,7 +791,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     }
                     else if (auto f = s.isFuncDeclaration())
                     {
-                        objmod.setModuleCtorDtor(s.csym, isCtor);
+                        f.isCrtCtorDtor |= isCtor ? 1 : 2;
                         if (f.linkage != LINK.c)
                             f.error("must be `extern(C)` for `pragma(%s)`", isCtor ? "crt_constructor".ptr : "crt_destructor".ptr);
                         return 1;
@@ -807,6 +804,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 if (recurse(pd, isCtor) > 1)
                     pd.error("can only apply to a single declaration");
             }
+
+            visit(cast(AttribDeclaration)pd);
         }
 
         override void visit(TemplateInstance ti)
