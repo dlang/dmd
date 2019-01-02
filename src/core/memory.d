@@ -435,45 +435,54 @@ struct GC
 
 
     /**
-     * If sz is zero, the memory referenced by p will be deallocated as if
-     * by a call to free.  A new memory block of size sz will then be
-     * allocated as if by a call to malloc, or the implementation may instead
-     * resize the memory block in place.  The contents of the new memory block
-     * will be the same as the contents of the old memory block, up to the
-     * lesser of the new and old sizes.  Note that existing memory will only
-     * be freed by realloc if sz is equal to zero.  The garbage collector is
-     * otherwise expected to later reclaim the memory block if it is unused.
-     * If allocation fails, this function will call onOutOfMemory which is
-     * expected to throw an OutOfMemoryError.  If p references memory not
-     * originally allocated by this garbage collector, or if it points to the
-     * interior of a memory block, no action will be taken.  If ba is zero
-     * (the default) and p references the head of a valid, known memory block
-     * then any bits set on the current block will be set on the new block if a
-     * reallocation is required.  If ba is not zero and p references the head
-     * of a valid, known memory block then the bits in ba will replace those on
-     * the current memory block and will also be set on the new block if a
-     * reallocation is required.
+     * Extend, shrink or allocate a new block of memory keeping the contents of
+     * an existing block
+     *
+     * If `sz` is zero, the memory referenced by p will be deallocated as if
+     * by a call to `free`.
+     * If `p` is `null`, new memory will be allocated via `malloc`.
+     * If `p` is pointing to memory not allocated from the GC or to the interior
+     * of an allocated memory block, no operation is performed and null is returned.
+     *
+     * Otherwise, a new memory block of size `sz` will be allocated as if by a
+     * call to `malloc`, or the implementation may instead resize or shrink the memory
+     * block in place.
+     * The contents of the new memory block will be the same as the contents
+     * of the old memory block, up to the lesser of the new and old sizes.
+     *
+     * The caller guarantees that there are no other live pointers to the
+     * passed memory block, still it might not be freed immediately by `realloc`.
+     * The garbage collector can reclaim the memory block in a later
+     * collection if it is unused.
+     * If allocation fails, this function will throw an `OutOfMemoryError`.
+     *
+     * If `ba` is zero (the default) the attributes of the existing memory
+     * will be used for an allocation.
+     * If `ba` is not zero and no new memory is allocated, the bits in ba will
+     * replace those of the current memory block.
      *
      * Params:
-     *  p  = A pointer to the root of a valid memory block or to null.
+     *  p  = A pointer to the base of a valid memory block or to `null`.
      *  sz = The desired allocation size in bytes.
-     *  ba = A bitmask of the attributes to set on this block.
+     *  ba = A bitmask of the BlkAttr attributes to set on this block.
      *  ti = TypeInfo to describe the memory. The GC might use this information
      *       to improve scanning for pointers or to call finalizers.
      *
      * Returns:
-     *  A reference to the allocated memory on success or null if sz is
-     *  zero.  On failure, the original value of p is returned.
+     *  A reference to the allocated memory on success or `null` if `sz` is
+     *  zero or the pointer does not point to the base of an GC allocated
+     *  memory block.
      *
      * Throws:
-     *  OutOfMemoryError on allocation failure.
+     *  `OutOfMemoryError` on allocation failure.
      */
     static void* realloc( void* p, size_t sz, uint ba = 0, const TypeInfo ti = null ) pure nothrow
     {
         return gc_realloc( p, sz, ba, ti );
     }
 
-    /// Issue 13111
+    // https://issues.dlang.org/show_bug.cgi?id=13111
+    ///
     unittest
     {
         enum size1 = 1 << 11 + 1; // page in large object pool
@@ -482,7 +491,7 @@ struct GC
         auto data1 = cast(ubyte*)GC.calloc(size1);
         auto data2 = cast(ubyte*)GC.realloc(data1, size2);
 
-        BlkInfo info = query(data2);
+        GC.BlkInfo info = GC.query(data2);
         assert(info.size >= size2);
     }
 
@@ -1213,4 +1222,46 @@ unittest
     assert(GC.addrOf(y.ptr) == null);
 }
 
+// test realloc behaviour
+unittest
+{
+    static void set(int* p, size_t size)
+    {
+        foreach (i; 0 .. size)
+            *p++ = cast(int) i;
+    }
+    static void verify(int* p, size_t size)
+    {
+        foreach (i; 0 .. size)
+            assert(*p++ == i);
+    }
+    static void test(size_t memsize)
+    {
+        int* p = cast(int*) GC.malloc(memsize * int.sizeof);
+        assert(p);
+        set(p, memsize);
+        verify(p, memsize);
 
+        int* q = cast(int*) GC.realloc(p + 16, 2 * memsize * int.sizeof);
+        assert(q == null);
+
+        int* r = cast(int*) GC.realloc(p, 5 * memsize * int.sizeof);
+        verify(r, memsize);
+        set(r, 5 * memsize);
+
+        int* s = cast(int*) GC.realloc(r, 2 * memsize * int.sizeof);
+        verify(s, 2 * memsize);
+
+        assert(GC.realloc(s, 0) == null); // free
+        assert(GC.addrOf(p) == null);
+    }
+
+    test(16);
+    test(200);
+    test(800); // spans large and small pools
+    test(1200);
+    test(8000);
+
+    void* p = GC.malloc(100);
+    assert(GC.realloc(&p, 50) == null); // non-GC pointer
+}
