@@ -401,7 +401,7 @@ struct CompiledCtfeFunction
                     foreach (o; *td.objects)
                     {
                         Expression ex = isExpression(o);
-                        DsymbolExp s = (ex && ex.op == TOK.dSymbol) ? cast(DsymbolExp)ex : null;
+                        DsymbolExp s = ex ? ex.isDsymbolExp() : null;
                         assert(s);
                         VarDeclaration v2 = s.s.isVarDeclaration();
                         assert(v2);
@@ -826,13 +826,15 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
             /* Value parameters
              */
             Type ta = fparam.type.toBasetype();
-            if (ta.ty == Tsarray && earg.op == TOK.address)
-            {
-                /* Static arrays are passed by a simple pointer.
-                 * Skip past this to get at the actual arg.
-                 */
-                earg = (cast(AddrExp)earg).e1;
-            }
+            if (ta.ty == Tsarray)
+                if (auto eaddr = earg.isAddrExp())
+                {
+                    /* Static arrays are passed by a simple pointer.
+                     * Skip past this to get at the actual arg.
+                     */
+                    earg = eaddr.e1;
+                }
+
             earg = interpret(earg, istate);
             if (CTFEExp.isCantExp(earg))
                 return earg;
@@ -1213,16 +1215,16 @@ public:
         if (isPointer(e.type))
         {
             Expression x = e;
-            if (e.op == TOK.address)
-                x = (cast(AddrExp)e).e1;
+            if (auto eaddr = e.isAddrExp())
+                x = eaddr.e1;
             VarDeclaration v;
             while (x.op == TOK.variable && (v = (cast(VarExp)x).var.isVarDeclaration()) !is null)
             {
                 if (v.storage_class & STC.ref_)
                 {
                     x = getValue(v);
-                    if (e.op == TOK.address)
-                        (cast(AddrExp)e).e1 = x;
+                    if (auto eaddr = e.isAddrExp())
+                        eaddr.e1 = x;
                     continue;
                 }
                 if (ctfeStack.isInCurrentFrame(v))
@@ -1236,18 +1238,16 @@ public:
             // TODO: If it is a TOK.dotVariable or TOK.index, we should check that it is not
             // pointing to a local struct or static array.
         }
-        if (e.op == TOK.structLiteral)
+        if (auto se = e.isStructLiteralExp())
         {
-            StructLiteralExp se = cast(StructLiteralExp)e;
             return stopPointersEscapingFromArray(loc, se.elements);
         }
-        if (e.op == TOK.arrayLiteral)
+        if (auto ale = e.isArrayLiteralExp())
         {
-            return stopPointersEscapingFromArray(loc, (cast(ArrayLiteralExp)e).elements);
+            return stopPointersEscapingFromArray(loc, ale.elements);
         }
-        if (e.op == TOK.assocArrayLiteral)
+        if (auto aae = e.isAssocArrayLiteralExp())
         {
-            AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)e;
             if (!stopPointersEscapingFromArray(loc, aae.keys))
                 return false;
             return stopPointersEscapingFromArray(loc, aae.values);
@@ -2160,11 +2160,11 @@ public:
             {
                 aggregate = val;
             }
-            else if (val.op == TOK.slice)
+            else if (auto se = val.isSliceExp())
             {
-                aggregate = (cast(SliceExp)val).e1;
+                aggregate = se.e1;
                 UnionExp uelwr = void;
-                Expression lwr = interpret(&uelwr, (cast(SliceExp)val).lwr, istate);
+                Expression lwr = interpret(&uelwr, se.lwr, istate);
                 indx += lwr.toInteger();
             }
             if (aggregate)
@@ -2198,9 +2198,9 @@ public:
         {
             printf("%s AddrExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
-        if (e.e1.op == TOK.variable)
+        if (auto ve = e.e1.isVarExp())
         {
-            Declaration decl = (cast(VarExp)e.e1).var;
+            Declaration decl = ve.var;
 
             // We cannot take the address of an imported symbol at compile time
             if (decl.isImportedSymbol()) {
@@ -2219,8 +2219,10 @@ public:
             }
         }
         auto er = interpret(e.e1, istate, ctfeNeedLvalue);
-        if (er.op == TOK.variable && (cast(VarExp)er).var == istate.fd.vthis)
-            er = interpret(er, istate);
+        if (auto ve = er.isVarExp())
+            if (ve.var == istate.fd.vthis)
+                er = interpret(er, istate);
+
         if (exceptionOrCant(er))
             return;
 
@@ -2366,11 +2368,10 @@ public:
                     error(loc, "variable `%s` cannot be read at compile time", v.toChars());
                     return CTFEExp.cantexp;
                 }
-                if (e.op == TOK.void_)
+                if (auto vie = e.isVoidInitExp())
                 {
-                    VoidInitExp ve = cast(VoidInitExp)e;
                     error(loc, "cannot read uninitialized variable `%s` in ctfe", v.toPrettyChars());
-                    errorSupplemental(ve.var.loc, "`%s` was uninitialized and used before set", ve.var.toChars());
+                    errorSupplemental(vie.var.loc, "`%s` was uninitialized and used before set", vie.var.toChars());
                     return CTFEExp.cantexp;
                 }
                 if (goal != ctfeNeedLvalue && (v.isRef() || v.isOut()))
@@ -2480,7 +2481,7 @@ public:
                 foreach (o; *td.objects)
                 {
                     Expression ex = isExpression(o);
-                    DsymbolExp ds = (ex && ex.op == TOK.dSymbol) ? cast(DsymbolExp)ex : null;
+                    DsymbolExp ds = ex ? ex.isDsymbolExp() : null;
                     VarDeclaration v2 = ds ? ds.s.isVarDeclaration() : null;
                     assert(v2);
                     if (v2.isDataseg() && !v2.isCTFE())
@@ -2972,8 +2973,8 @@ public:
             return;
         }
 
-        result = interpret(e.argprefix, istate, ctfeNeedNothing);
-        if (exceptionOrCant(result))
+        Expression epre = interpret(pue, e.argprefix, istate, ctfeNeedNothing);
+        if (exceptionOrCant(epre))
             return;
 
         if (e.newtype.ty == Tarray && e.arguments)
@@ -2981,7 +2982,7 @@ public:
             result = recursivelyCreateArrayLiteral(pue, e.loc, e.newtype, istate, e.arguments, 0);
             return;
         }
-        if (e.newtype.toBasetype().ty == Tstruct)
+        if (auto ts = e.newtype.toBasetype().isTypeStruct())
         {
             if (e.member)
             {
@@ -2996,7 +2997,7 @@ public:
             }
             else
             {
-                StructDeclaration sd = (cast(TypeStruct)e.newtype.toBasetype()).sym;
+                StructDeclaration sd = ts.sym;
                 auto exps = new Expressions();
                 exps.reserve(sd.fields.dim);
                 if (e.arguments)
@@ -3015,11 +3016,12 @@ public:
                 auto se = new StructLiteralExp(e.loc, sd, exps, e.newtype);
                 se.type = e.newtype;
                 se.ownedByCtfe = OwnedBy.ctfe;
-                result = interpret(se, istate);
+                result = interpret(pue, se, istate);
             }
             if (exceptionOrCant(result))
                 return;
-            emplaceExp!(AddrExp)(pue, e.loc, result, e.type);
+            Expression ev = (result == pue.exp()) ? pue.copy() : result;
+            emplaceExp!(AddrExp)(pue, e.loc, ev, e.type);
             result = pue.exp();
             return;
         }
@@ -3061,7 +3063,8 @@ public:
             // We probably won't get away with this.
             auto se = new StructLiteralExp(e.loc, cast(StructDeclaration)cd, elems, e.newtype);
             se.ownedByCtfe = OwnedBy.ctfe;
-            Expression eref = new ClassReferenceExp(e.loc, se, e.type);
+            emplaceExp!(ClassReferenceExp)(pue, e.loc, se, e.type);
+            Expression eref = pue.exp();
             if (e.member)
             {
                 // Call constructor
@@ -3079,7 +3082,8 @@ public:
                     result = CTFEExp.cantexp;
                     return;
                 }
-                Expression ctorfail = interpretFunction(pue, e.member, istate, e.arguments, eref);
+                UnionExp ue = void;
+                Expression ctorfail = interpretFunction(&ue, e.member, istate, e.arguments, eref);
                 if (exceptionOrCant(ctorfail))
                     return;
 
@@ -3413,22 +3417,23 @@ public:
     {
         for (;;)
         {
-            if (e.op == TOK.variable)
-                break;
-            if (e.op == TOK.index)
-                e = (cast(IndexExp)e).e1;
-            else if (e.op == TOK.dotVariable)
-                e = (cast(DotVarExp)e).e1;
-            else if (e.op == TOK.dotTemplateInstance)
-                e = (cast(DotTemplateInstanceExp)e).e1;
-            else if (e.op == TOK.slice)
-                e = (cast(SliceExp)e).e1;
+            if (auto ve = e.isVarExp())
+            {
+                VarDeclaration v = ve.var.isVarDeclaration();
+                assert(v);
+                return v;
+            }
+            if (auto ie = e.isIndexExp())
+                e = ie.e1;
+            else if (auto dve = e.isDotVarExp())
+                e = dve.e1;
+            else if (auto dtie = e.isDotTemplateInstanceExp())
+                e = dtie.e1;
+            else if (auto se = e.isSliceExp())
+                e = se.e1;
             else
                 return null;
         }
-        VarDeclaration v = (cast(VarExp)e).var.isVarDeclaration();
-        assert(v);
-        return v;
     }
 
     extern (D) private void interpretAssignCommon(BinExp e, fp_t fp, int post = 0)
@@ -3538,10 +3543,8 @@ public:
             Expression aggregate = interpret(ie.e1, istate);
             if (exceptionOrCant(aggregate))
                 return;
-            if (aggregate.op == TOK.assocArrayLiteral)
+            if ((existingAA = aggregate.isAssocArrayLiteralExp()) !is null)
             {
-                existingAA = cast(AssocArrayLiteralExp)aggregate;
-
                 // Normal case, ultimate parent AA already exists
                 // We need to walk from the deepest index up, checking that an AA literal
                 // already exists on each level.
@@ -3650,9 +3653,9 @@ public:
             // only modifying part of the variable. So we need to make sure
             // that the parent variable exists.
             VarDeclaration ultimateVar = findParentVar(e1);
-            if (e1.op == TOK.variable)
+            if (auto ve = e1.isVarExp())
             {
-                VarDeclaration v = (cast(VarExp)e1).var.isVarDeclaration();
+                VarDeclaration v = ve.var.isVarDeclaration();
                 assert(v);
                 if (v.storage_class & STC.out_)
                     goto L1;
@@ -3873,12 +3876,11 @@ public:
             result = interpretAssignToSlice(pue, e, e1, newval, isBlockAssignment);
             if (exceptionOrCant(result))
                 return;
-            if (e.e1.op == TOK.slice)
+            if (auto se = e.e1.isSliceExp())
             {
-                Expression e1x = interpret((cast(SliceExp)e.e1).e1, istate, ctfeNeedLvalue);
-                if (e1x.op == TOK.dotVariable)
+                Expression e1x = interpret(se.e1, istate, ctfeNeedLvalue);
+                if (auto dve = e1x.isDotVarExp())
                 {
-                    auto dve = cast(DotVarExp)e1x;
                     auto ex = dve.e1;
                     auto sle = ex.op == TOK.structLiteral ? (cast(StructLiteralExp)ex)
                              : ex.op == TOK.classReference ? (cast(ClassReferenceExp)ex).value
@@ -3927,17 +3929,17 @@ public:
         Expression* payload = null; // dead-store to prevent spurious warning
         Expression oldval;
 
-        if (e1.op == TOK.variable)
+        if (auto ve = e1.isVarExp())
         {
-            vd = (cast(VarExp)e1).var.isVarDeclaration();
+            vd = ve.var.isVarDeclaration();
             oldval = getValue(vd);
         }
-        else if (e1.op == TOK.dotVariable)
+        else if (auto dve = e1.isDotVarExp())
         {
             /* Assignment to member variable of the form:
              *  e.v = newval
              */
-            auto ex = (cast(DotVarExp)e1).e1;
+            auto ex = dve.e1;
             auto sle = ex.op == TOK.structLiteral ? (cast(StructLiteralExp)ex)
                      : ex.op == TOK.classReference ? (cast(ClassReferenceExp)ex).value
                      : null;
@@ -3968,9 +3970,8 @@ public:
             payload = &(*sle.elements)[fieldi];
             oldval = *payload;
         }
-        else if (e1.op == TOK.index)
+        else if (auto ie = e1.isIndexExp())
         {
-            IndexExp ie = cast(IndexExp)e1;
             assert(ie.e1.type.toBasetype().ty != Taarray);
 
             Expression aggregate;
@@ -3981,9 +3982,8 @@ public:
             }
             size_t index = cast(size_t)indexToModify;
 
-            if (aggregate.op == TOK.string_)
+            if (auto existingSE = aggregate.isStringExp())
             {
-                StringExp existingSE = cast(StringExp)aggregate;
                 if (existingSE.ownedByCtfe != OwnedBy.ctfe)
                 {
                     e.error("cannot modify read-only string literal `%s`", ie.e1.toChars());
@@ -4110,15 +4110,14 @@ public:
 
         Expression aggregate;
 
-        if (e1.op == TOK.vector)
-            e1 = (cast(VectorExp)e1).e1;
-        if (e1.op == TOK.slice)
+        if (auto ve = e1.isVectorExp())
+            e1 = ve.e1;
+        if (auto se = e1.isSliceExp())
         {
             // ------------------------------
             //   aggregate[] = newval
             //   aggregate[low..upp] = newval
             // ------------------------------
-            SliceExp se = cast(SliceExp)e1;
             version (all) // should be move in interpretAssignCommon as the evaluation of e1
             {
                 Expression oldval = interpret(se.e1, istate);
@@ -4162,10 +4161,9 @@ public:
             aggregate = oldval;
             firstIndex = lowerbound;
 
-            if (aggregate.op == TOK.slice)
+            if (auto oldse = aggregate.isSliceExp())
             {
                 // Slice of a slice --> change the bounds
-                SliceExp oldse = cast(SliceExp)aggregate;
                 if (oldse.upr.toInteger() < upperbound + oldse.lwr.toInteger())
                 {
                     e.error("slice `[%llu..%llu]` exceeds array bounds `[0..%llu]`",
@@ -4178,15 +4176,15 @@ public:
         }
         else
         {
-            if (e1.op == TOK.arrayLiteral)
+            if (auto ale = e1.isArrayLiteralExp())
             {
                 lowerbound = 0;
-                upperbound = (cast(ArrayLiteralExp)e1).elements.dim;
+                upperbound = ale.elements.dim;
             }
-            else if (e1.op == TOK.string_)
+            else if (auto se = e1.isStringExp())
             {
                 lowerbound = 0;
-                upperbound = (cast(StringExp)e1).len;
+                upperbound = se.len;
             }
             else if (e1.op == TOK.null_)
             {
@@ -4214,18 +4212,16 @@ public:
             }
         }
 
-        if (aggregate.op == TOK.string_)
+        if (auto existingSE = aggregate.isStringExp())
         {
-            StringExp existingSE = cast(StringExp)aggregate;
             if (existingSE.ownedByCtfe != OwnedBy.ctfe)
             {
                 e.error("cannot modify read-only string literal `%s`", existingSE.toChars());
                 return CTFEExp.cantexp;
             }
 
-            if (newval.op == TOK.slice)
+            if (auto se = newval.isSliceExp())
             {
-                auto se = cast(SliceExp)newval;
                 auto aggr2 = se.e1;
                 const srclower = se.lwr.toInteger();
                 const srcupper = se.upr.toInteger();
@@ -4249,17 +4245,17 @@ public:
                 }
                 assert(newval.op != TOK.slice);
             }
-            if (newval.op == TOK.string_)
+            if (auto se = newval.isStringExp())
             {
-                sliceAssignStringFromString(existingSE, cast(StringExp)newval, cast(size_t)firstIndex);
+                sliceAssignStringFromString(existingSE, se, cast(size_t)firstIndex);
                 return newval;
             }
-            if (newval.op == TOK.arrayLiteral)
+            if (auto ale = newval.isArrayLiteralExp())
             {
                 /* Mixed slice: it was initialized as a string literal.
                  * Now a slice of it is being set with an array literal.
                  */
-                sliceAssignStringFromArrayLiteral(existingSE, cast(ArrayLiteralExp)newval, cast(size_t)firstIndex);
+                sliceAssignStringFromArrayLiteral(existingSE, ale, cast(size_t)firstIndex);
                 return newval;
             }
 
@@ -4275,9 +4271,8 @@ public:
             retslice.type = e.type;
             return interpret(pue, retslice, istate);
         }
-        if (aggregate.op == TOK.arrayLiteral)
+        if (auto existingAE = aggregate.isArrayLiteralExp())
         {
-            ArrayLiteralExp existingAE = cast(ArrayLiteralExp)aggregate;
             if (existingAE.ownedByCtfe != OwnedBy.ctfe)
             {
                 e.error("cannot modify read-only constant `%s`", existingAE.toChars());
