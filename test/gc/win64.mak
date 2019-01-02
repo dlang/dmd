@@ -4,12 +4,33 @@ DMD=dmd
 MODEL=64
 DRUNTIMELIB=druntime64.lib
 
-SRC = src/gc/impl/conservative/gc.d src/rt/lifetime.d src/object.d
+SRC_GC = src/gc/impl/conservative/gc.d
+SRC = $(SRC_GC) src/rt/lifetime.d src/object.d
 UDFLAGS = -m$(MODEL) -g -unittest -conf= -Isrc -defaultlib=$(DRUNTIMELIB) -main
 
-test: sentinel
+test: sentinel printf memstomp invariant logging
 
 sentinel:
 	$(DMD) -debug=SENTINEL $(UDFLAGS) -of$@.exe $(SRC)
-	$@.exe
-	del $@.exe $@.obj
+	.\$@.exe
+	del $@.exe $@.obj $@.ilk $@.pdb
+
+printf:
+	$(DMD) -debug=PRINTF -debug=PRINTF_TO_FILE -debug=COLLECT_PRINTF $(UDFLAGS) -of$@.exe $(SRC_GC)
+	.\$@.exe
+	del $@.exe $@.obj $@.ilk $@.pdb gcx.log
+
+memstomp:
+	$(DMD) -debug=MEMSTOMP $(UDFLAGS) -of$@.exe $(SRC)
+	.\$@.exe
+	del $@.exe $@.obj $@.ilk $@.pdb
+
+invariant:
+	$(DMD) -debug -debug=INVARIANT -debug=PTRCHECK -debug=PTRCHECK2 $(UDFLAGS) -of$@.exe $(SRC)
+	.\$@.exe
+	del $@.exe $@.obj $@.ilk $@.pdb
+
+logging:
+	$(DMD) -debug=LOGGING $(UDFLAGS) -of$@.exe $(SRC)
+	.\$@.exe
+	del $@.exe $@.obj $@.ilk $@.pdb
