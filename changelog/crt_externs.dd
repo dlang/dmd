@@ -1,3 +1,0 @@
-Add D header file $(REF_ALTTEXT `core.sys.darwin.crt_externs`, crt_externs, core, sys, darwin) for $(LINK2 https://opensource.apple.com/source/Libc/Libc-1244.30.3/include/crt_externs.h.auto.html, libc/crt_externs.h) on Darwin.
-
-Add D header file $(REF_ALTTEXT `core.sys.darwin.crt_externs`, crt_externs, core, sys, darwin) for $(LINK2 https://opensource.apple.com/source/Libc/Libc-1244.30.3/include/crt_externs.h.auto.html, libc/crt_externs.h) on Darwin.

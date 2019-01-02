@@ -21,6 +21,8 @@ else version (WatchOS)
 
 /// C interface for Runtime.loadLibrary
 extern (C) void* rt_loadLibrary(const char* name);
+/// ditto
+version (Windows) extern (C) void* rt_loadLibraryW(const wchar* name);
 
 /// C interface for Runtime.unloadLibrary, returns 1/0 instead of bool
 extern (C) int rt_unloadLibrary(void* ptr);
