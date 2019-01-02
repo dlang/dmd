@@ -1379,7 +1379,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                             {
                                break;
                             }
-                            if (!reliesOnTident(p.type, parameters, inferStart))
+                            if (!reliesOnTemplateParameters(p.type, (*parameters)[inferStart .. parameters.dim]))
                             {
                                 Type pt = p.type.syntaxCopy().typeSemantic(fd.loc, paramscope);
                                 rem += pt.ty == Ttuple ? (cast(TypeTuple)pt).arguments.dim : 1;
@@ -1448,7 +1448,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
                 // If parameter type doesn't depend on inferred template parameters,
                 // semantic it to get actual type.
-                if (!reliesOnTident(prmtype, parameters, inferStart))
+                if (!reliesOnTemplateParameters(prmtype, (*parameters)[inferStart .. parameters.dim]))
                 {
                     // should copy prmtype to avoid affecting semantic result
                     prmtype = prmtype.syntaxCopy().typeSemantic(fd.loc, paramscope);
@@ -3628,7 +3628,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
 
                     // https://issues.dlang.org/show_bug.cgi?id=15243
                     // Resolve parameter type if it's not related with template parameters
-                    if (!reliesOnTident(fparam.type, parameters, inferStart))
+                    if (!reliesOnTemplateParameters(fparam.type, (*parameters)[inferStart .. parameters.dim]))
                     {
                         auto tx = fparam.type.typeSemantic(Loc.initial, sc);
                         if (tx.ty == Terror)
@@ -4550,7 +4550,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     if (!pto)
                         break;
                     Type t = pto.type.syntaxCopy(); // https://issues.dlang.org/show_bug.cgi?id=11774
-                    if (reliesOnTident(t, parameters, inferStart))
+                    if (reliesOnTemplateParameters(t, (*parameters)[inferStart .. parameters.dim]))
                         return;
                     t = t.typeSemantic(e.loc, sc);
                     if (t.ty == Terror)
@@ -4615,11 +4615,13 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
     scope DeduceType v = new DeduceType(sc, tparam, parameters, dedtypes, wm, inferStart, ignoreAliasThis);
     if (Type t = isType(o))
         t.accept(v);
-    else
+    else if (Expression e = isExpression(o))
     {
-        assert(isExpression(o) && wm);
-        (cast(Expression)o).accept(v);
+        assert(wm);
+        e.accept(v);
     }
+    else
+        assert(0);
     return v.result;
 }
 
@@ -4631,17 +4633,28 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
  *      iStart      = Start index of tparams to limit the tested parameters. If it's
  *                    nonzero, tparams[0..iStart] will be excluded from the test target.
  */
-bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 0)
+bool reliesOnTident(Type t, TemplateParameters* tparams, size_t iStart = 0)
+{
+    return reliesOnTemplateParameters(t, (*tparams)[0 .. tparams.dim]);
+}
+
+/***********************************************************
+ * Check whether the type t representation relies on one or more the template parameters.
+ * Params:
+ *      t           = Tested type, if null, returns false.
+ *      tparams     = Template parameters.
+ */
+private bool reliesOnTemplateParameters(Type t, TemplateParameter[] tparams)
 {
     bool visitVector(TypeVector t)
     {
-        return t.basetype.reliesOnTident(tparams, iStart);
+        return t.basetype.reliesOnTemplateParameters(tparams);
     }
 
     bool visitAArray(TypeAArray t)
     {
-        return t.next.reliesOnTident(tparams, iStart) ||
-               t.index.reliesOnTident(tparams, iStart);
+        return t.next.reliesOnTemplateParameters(tparams) ||
+               t.index.reliesOnTemplateParameters(tparams);
     }
 
     bool visitFunction(TypeFunction t)
@@ -4649,15 +4662,15 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
         foreach (i;  0 .. t.parameterList.length)
         {
             Parameter fparam = t.parameterList[i];
-            if (fparam.type.reliesOnTident(tparams, iStart))
+            if (fparam.type.reliesOnTemplateParameters(tparams))
                 return true;
         }
-        return t.next.reliesOnTident(tparams, iStart);
+        return t.next.reliesOnTemplateParameters(tparams);
     }
 
     bool visitIdentifier(TypeIdentifier t)
     {
-        foreach (tp; (*tparams)[iStart .. tparams.dim])
+        foreach (tp; tparams)
         {
             if (tp.ident.equals(t.ident))
                 return true;
@@ -4667,7 +4680,7 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
 
     bool visitInstance(TypeInstance t)
     {
-        foreach (tp; (*tparams)[iStart .. tparams.dim])
+        foreach (tp; tparams)
         {
             if (t.tempinst.name == tp.ident)
                 return true;
@@ -4678,7 +4691,7 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
             {
                 if (Type ta = isType(arg))
                 {
-                    if (ta.reliesOnTident(tparams, iStart))
+                    if (ta.reliesOnTemplateParameters(tparams))
                         return true;
                 }
             }
@@ -4688,8 +4701,8 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
 
     bool visitTypeof(TypeTypeof t)
     {
-        //printf("TypeTypeof.reliesOnTident('%s')\n", t.toChars());
-        return t.exp.reliesOnTemplateParameters(tparams, iStart);
+        //printf("TypeTypeof.reliesOnTemplateParameters('%s')\n", t.toChars());
+        return t.exp.reliesOnTemplateParameters(tparams);
     }
 
     bool visitTuple(TypeTuple t)
@@ -4697,7 +4710,7 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
         if (t.arguments)
             foreach (arg; *t.arguments)
             {
-                if (arg.type.reliesOnTident(tparams, iStart))
+                if (arg.type.reliesOnTemplateParameters(tparams))
                     return true;
             }
 
@@ -4718,34 +4731,30 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
         case Ttypeof:   return visitTypeof(tb.isTypeTypeof());
         case Ttuple:    return visitTuple(tb.isTypeTuple());
         case Tenum:     return false;
-        default:        return tb.nextOf().reliesOnTident(tparams, iStart);
+        default:        return tb.nextOf().reliesOnTemplateParameters(tparams);
     }
 }
 
 /***********************************************************
- * Check whether the type t representation relies on one or more the template parameters.
+ * Check whether the expression representation relies on one or more the template parameters.
  * Params:
- *      e           = Tested type, if null, returns false.
+ *      e           = expression to test
  *      tparams     = Template parameters.
- *      iStart      = Start index of tparams to limit the tested parameters. If it's
- *                    nonzero, tparams[0..iStart] will be excluded from the test target.
  * Returns:
  *      true if it does
  */
-private bool reliesOnTemplateParameters(Expression e, TemplateParameters* tparams = null, size_t iStart = 0)
+private bool reliesOnTemplateParameters(Expression e, TemplateParameter[] tparams)
 {
     extern (C++) final class ReliesOnTemplateParameters : Visitor
     {
         alias visit = Visitor.visit;
     public:
-        TemplateParameters* tparams;
-        size_t iStart;
+        TemplateParameter[] tparams;
         bool result;
 
-        extern (D) this(TemplateParameters* tparams, size_t iStart)
+        extern (D) this(TemplateParameter[] tparams)
         {
             this.tparams = tparams;
-            this.iStart = iStart;
         }
 
         override void visit(Expression e)
@@ -4756,9 +4765,8 @@ private bool reliesOnTemplateParameters(Expression e, TemplateParameters* tparam
         override void visit(IdentifierExp e)
         {
             //printf("IdentifierExp.reliesOnTemplateParameters('%s')\n", e.toChars());
-            for (size_t i = iStart; i < tparams.dim; i++)
+            foreach (tp; tparams)
             {
-                auto tp = (*tparams)[i];
                 if (e.ident == tp.ident)
                 {
                     result = true;
@@ -4829,7 +4837,7 @@ private bool reliesOnTemplateParameters(Expression e, TemplateParameters* tparam
         override void visit(TypeExp e)
         {
             //printf("TypeExp.reliesOnTemplateParameters('%s')\n", e.toChars());
-            result = e.type.reliesOnTident(tparams, iStart);
+            result = e.type.reliesOnTemplateParameters(tparams);
         }
 
         override void visit(NewExp e)
@@ -4846,7 +4854,7 @@ private bool reliesOnTemplateParameters(Expression e, TemplateParameters* tparam
                         return;
                 }
             }
-            result = e.newtype.reliesOnTident(tparams, iStart);
+            result = e.newtype.reliesOnTemplateParameters(tparams);
             if (!result && e.arguments)
             {
                 foreach (ea; *e.arguments)
@@ -4876,7 +4884,7 @@ private bool reliesOnTemplateParameters(Expression e, TemplateParameters* tparam
             if (auto ea = isExpression(e.obj))
                 ea.accept(this);
             else if (auto ta = isType(e.obj))
-                result = ta.reliesOnTident(tparams, iStart);
+                result = ta.reliesOnTemplateParameters(tparams);
         }
 
         override void visit(TraitsExp e)
@@ -4889,7 +4897,7 @@ private bool reliesOnTemplateParameters(Expression e, TemplateParameters* tparam
                     if (auto ea = isExpression(oa))
                         ea.accept(this);
                     else if (auto ta = isType(oa))
-                        result = ta.reliesOnTident(tparams, iStart);
+                        result = ta.reliesOnTemplateParameters(tparams);
                     if (result)
                         return;
                 }
@@ -4899,7 +4907,7 @@ private bool reliesOnTemplateParameters(Expression e, TemplateParameters* tparam
         override void visit(IsExp e)
         {
             //printf("IsExp.reliesOnTemplateParameters('%s')\n", e.toChars());
-            result = e.targ.reliesOnTident(tparams, iStart);
+            result = e.targ.reliesOnTemplateParameters(tparams);
         }
 
         override void visit(UnaExp e)
@@ -4919,7 +4927,7 @@ private bool reliesOnTemplateParameters(Expression e, TemplateParameters* tparam
                     if (auto ea = isExpression(oa))
                         ea.accept(this);
                     else if (auto ta = isType(oa))
-                        result = ta.reliesOnTident(tparams, iStart);
+                        result = ta.reliesOnTemplateParameters(tparams);
                     if (result)
                         return;
                 }
@@ -4947,7 +4955,7 @@ private bool reliesOnTemplateParameters(Expression e, TemplateParameters* tparam
             visit(cast(UnaExp)e);
             // e.to can be null for cast() with no type
             if (!result && e.to)
-                result = e.to.reliesOnTident(tparams, iStart);
+                result = e.to.reliesOnTemplateParameters(tparams);
         }
 
         override void visit(SliceExp e)
@@ -4996,8 +5004,7 @@ private bool reliesOnTemplateParameters(Expression e, TemplateParameters* tparam
         }
     }
 
-    assert(tparams);
-    scope ReliesOnTemplateParameters v = new ReliesOnTemplateParameters(tparams, iStart);
+    scope ReliesOnTemplateParameters v = new ReliesOnTemplateParameters(tparams);
     e.accept(v);
     return v.result;
 }
