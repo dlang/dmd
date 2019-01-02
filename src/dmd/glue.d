@@ -762,7 +762,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (ud && !global.params.useUnitTests)
         return;
 
-    if (multiobj && !fd.isStaticDtorDeclaration() && !fd.isStaticCtorDeclaration())
+    if (multiobj && !fd.isStaticDtorDeclaration() && !fd.isStaticCtorDeclaration() && !fd.isCrtCtorDtor)
     {
         obj_append(fd);
         return;
@@ -1243,6 +1243,11 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
     if (fd.isExport())
         objmod.export_symbol(s, cast(uint)Para.offset);
+
+    if (fd.isCrtCtorDtor & 1)
+        objmod.setModuleCtorDtor(s, true);
+    if (fd.isCrtCtorDtor & 2)
+        objmod.setModuleCtorDtor(s, false);
 
     foreach (sd; *irs.deferToObj)
     {
