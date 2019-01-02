@@ -4880,21 +4880,19 @@ public:
         if (exceptionOrCant(ecall))
             return;
 
-        if (ecall.op == TOK.dotVariable)
+        if (auto dve = ecall.isDotVarExp())
         {
-            DotVarExp dve = cast(DotVarExp)ecall;
-
             // Calling a member function
             pthis = dve.e1;
             fd = dve.var.isFuncDeclaration();
             assert(fd);
 
-            if (pthis.op == TOK.dotType)
-                pthis = (cast(DotTypeExp)dve.e1).e1;
+            if (auto dte = pthis.isDotTypeExp())
+                pthis = dte.e1;
         }
-        else if (ecall.op == TOK.variable)
+        else if (auto ve = ecall.isVarExp())
         {
-            fd = (cast(VarExp)ecall).var.isFuncDeclaration();
+            fd = ve.var.isFuncDeclaration();
             assert(fd);
 
             if (fd.ident == Id.__ArrayPostblit || fd.ident == Id.__ArrayDtor)
@@ -4902,21 +4900,21 @@ public:
                 assert(e.arguments.dim == 1);
                 Expression ea = (*e.arguments)[0];
                 // printf("1 ea = %s %s\n", ea.type.toChars(), ea.toChars());
-                if (ea.op == TOK.slice)
-                    ea = (cast(SliceExp)ea).e1;
-                if (ea.op == TOK.cast_)
-                    ea = (cast(CastExp)ea).e1;
+                if (auto se = ea.isSliceExp())
+                    ea = se.e1;
+                if (auto ce = ea.isCastExp())
+                    ea = ce.e1;
 
                 // printf("2 ea = %s, %s %s\n", ea.type.toChars(), Token.toChars(ea.op), ea.toChars());
                 if (ea.op == TOK.variable || ea.op == TOK.symbolOffset)
                     result = getVarExp(e.loc, istate, (cast(SymbolExp)ea).var, ctfeNeedRvalue);
-                else if (ea.op == TOK.address)
-                    result = interpret((cast(AddrExp)ea).e1, istate);
+                else if (auto ae = ea.isAddrExp())
+                    result = interpret(ae.e1, istate);
 
                 // https://issues.dlang.org/show_bug.cgi?id=18871
                 // https://issues.dlang.org/show_bug.cgi?id=18819
-                else if (ea.op == TOK.arrayLiteral)
-                    result = interpret(cast(ArrayLiteralExp)ea, istate);
+                else if (auto ale = ea.isArrayLiteralExp())
+                    result = interpret(ale, istate);
 
                 else
                     assert(0);
@@ -4932,26 +4930,26 @@ public:
                 return;
             }
         }
-        else if (ecall.op == TOK.symbolOffset)
+        else if (auto soe = ecall.isSymOffExp())
         {
-            SymOffExp soe = cast(SymOffExp)ecall;
             fd = soe.var.isFuncDeclaration();
             assert(fd && soe.offset == 0);
         }
-        else if (ecall.op == TOK.delegate_)
+        else if (auto de = ecall.isDelegateExp())
         {
             // Calling a delegate
-            fd = (cast(DelegateExp)ecall).func;
-            pthis = (cast(DelegateExp)ecall).e1;
+            fd = de.func;
+            pthis = de.e1;
 
             // Special handling for: &nestedfunc --> DelegateExp(VarExp(nestedfunc), nestedfunc)
-            if (pthis.op == TOK.variable && (cast(VarExp)pthis).var == fd)
-                pthis = null; // context is not necessary for CTFE
+            if (auto ve = pthis.isVarExp())
+                if (ve.var == fd)
+                    pthis = null; // context is not necessary for CTFE
         }
-        else if (ecall.op == TOK.function_)
+        else if (auto fe = ecall.isFuncExp())
         {
             // Calling a delegate literal
-            fd = (cast(FuncExp)ecall).fd;
+            fd = fe.fd;
         }
         else
         {
@@ -5258,8 +5256,8 @@ public:
             e.error("cannot index null array `%s`", e.e1.toChars());
             return false;
         }
-        if (e1.op == TOK.vector)
-            e1 = (cast(VectorExp)e1).e1;
+        if (auto ve = e1.isVectorExp())
+            e1 = ve.e1;
 
         // Set the $ variable, and find the array literal to modify
         dinteger_t len;
@@ -5292,12 +5290,12 @@ public:
             return false;
         }
 
-        if (e1.op == TOK.slice)
+        if (auto se = e1.isSliceExp())
         {
             // Simplify index of slice: agg[lwr..upr][indx] --> agg[indx']
             uinteger_t index = e2.toInteger();
-            uinteger_t ilwr = (cast(SliceExp)e1).lwr.toInteger();
-            uinteger_t iupr = (cast(SliceExp)e1).upr.toInteger();
+            uinteger_t ilwr = se.lwr.toInteger();
+            uinteger_t iupr = se.upr.toInteger();
 
             if (index > iupr - ilwr)
             {
@@ -5589,9 +5587,8 @@ public:
             result = CTFEExp.cantexp;
             return;
         }
-        if (e1.op == TOK.slice)
+        if (auto se = e1.isSliceExp())
         {
-            SliceExp se = cast(SliceExp)e1;
             // Simplify slice of slice:
             //  aggregate[lo1..up1][lwr..upr] ---> aggregate[lwr'..upr']
             uinteger_t lo1 = se.lwr.toInteger();
@@ -5693,9 +5690,8 @@ public:
             return;
         }
         // We know we still own it, because we interpreted both e1 and e2
-        if (result.op == TOK.arrayLiteral)
+        if (auto ale = result.isArrayLiteralExp())
         {
-            ArrayLiteralExp ale = cast(ArrayLiteralExp)result;
             ale.ownedByCtfe = OwnedBy.ctfe;
 
             // https://issues.dlang.org/show_bug.cgi?id=14686
@@ -5706,8 +5702,8 @@ public:
                     return;
             }
         }
-        if (result.op == TOK.string_)
-            (cast(StringExp)result).ownedByCtfe = OwnedBy.ctfe;
+        if (auto se = result.isStringExp())
+            se.ownedByCtfe = OwnedBy.ctfe;
     }
 
     override void visit(DeleteExp e)
@@ -5961,7 +5957,7 @@ public:
                 {
                     // &val[idx]
                     dinteger_t dim = (cast(TypeSArray)pointee.toBasetype()).dim.toInteger();
-                    IndexExp ie = cast(IndexExp)(cast(AddrExp)e1).e1;
+                    IndexExp ie = cast(IndexExp)ae.e1;
                     Expression lwr = ie.e2;
                     Expression upr = new IntegerExp(ie.e2.loc, ie.e2.toInteger() + dim, Type.tsize_t);
 
@@ -5984,8 +5980,8 @@ public:
                     result = CTFEExp.cantexp;
                     return;
                 }
-                if (e1.op == TOK.variable)
-                    emplaceExp!(VarExp)(pue, e.loc, (cast(VarExp)e1).var);
+                if (auto ve = e1.isVarExp())
+                    emplaceExp!(VarExp)(pue, e.loc, ve.var);
                 else
                     emplaceExp!(SymOffExp)(pue, e.loc, (cast(SymOffExp)e1).var, (cast(SymOffExp)e1).offset);
                 result = pue.exp();
@@ -6009,7 +6005,7 @@ public:
             if (exceptionOrCant(e1))
                 return;
             assert(e1.op == TOK.vector);
-            e1 = (cast(VectorExp)e1).e1;
+            e1 = e1.isVectorExp().e1;
         }
         if (e.to.ty == Tarray && e1.op == TOK.slice)
         {
@@ -6270,10 +6266,9 @@ public:
             result = CTFEExp.cantexp;
             return;
         }
-        if (result.op == TOK.void_)
+        if (auto vie = result.isVoidInitExp())
         {
-            VoidInitExp ve = cast(VoidInitExp)result;
-            const(char)* s = ve.var.toChars();
+            const s = vie.var.toChars();
             if (v.overlapped)
             {
                 e.error("reinterpretation through overlapped field `%s` is not allowed in CTFE", s);
@@ -6321,8 +6316,7 @@ public:
             return;
         }
 
-        assert(agg.op == TOK.assocArrayLiteral);
-        AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)agg;
+        AssocArrayLiteralExp aae = agg.isAssocArrayLiteralExp();
         Expressions* keysx = aae.keys;
         Expressions* valuesx = aae.values;
         size_t removed = 0;
@@ -6443,15 +6437,16 @@ private Expression scrubReturnValue(const ref Loc loc, Expression e)
             se.stageflags = old;
         }
     }
-    if (e.op == TOK.void_)
+    else if (e.op == TOK.void_)
     {
         error(loc, "uninitialized variable `%s` cannot be returned from CTFE", (cast(VoidInitExp)e).var.toChars());
         return new ErrorExp();
     }
+
     e = resolveSlice(e);
-    if (e.op == TOK.structLiteral)
+
+    if (auto se = e.isStructLiteralExp())
     {
-        StructLiteralExp se = cast(StructLiteralExp)e;
         se.ownedByCtfe = OwnedBy.code;
         if (!(se.stageflags & stageScrub))
         {
@@ -6462,19 +6457,18 @@ private Expression scrubReturnValue(const ref Loc loc, Expression e)
             se.stageflags = old;
         }
     }
-    if (e.op == TOK.string_)
+    else if (auto se = e.isStringExp())
     {
-        (cast(StringExp)e).ownedByCtfe = OwnedBy.code;
+        se.ownedByCtfe = OwnedBy.code;
     }
-    if (e.op == TOK.arrayLiteral)
+    else if (auto ale = e.isArrayLiteralExp())
     {
-        (cast(ArrayLiteralExp)e).ownedByCtfe = OwnedBy.code;
-        if (Expression ex = scrubArray(loc, (cast(ArrayLiteralExp)e).elements))
+        ale.ownedByCtfe = OwnedBy.code;
+        if (Expression ex = scrubArray(loc, ale.elements))
             return ex;
     }
-    if (e.op == TOK.assocArrayLiteral)
+    else if (auto aae = e.isAssocArrayLiteralExp())
     {
-        AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)e;
         aae.ownedByCtfe = OwnedBy.code;
         if (Expression ex = scrubArray(loc, aae.keys))
             return ex;
@@ -6544,16 +6538,15 @@ private Expression scrubCacheValue(const ref Loc loc, Expression e)
         sle.ownedByCtfe = OwnedBy.cache;
         if (!(sle.stageflags & stageScrub))
         {
-            int old = sle.stageflags;
+            const old = sle.stageflags;
             sle.stageflags |= stageScrub;
             if (Expression ex = scrubArrayCache(loc, sle.elements))
                 return ex;
             sle.stageflags = old;
         }
     }
-    if (e.op == TOK.structLiteral)
+    else if (auto sle = e.isStructLiteralExp())
     {
-        StructLiteralExp sle = cast(StructLiteralExp)e;
         sle.ownedByCtfe = OwnedBy.cache;
         if (!(sle.stageflags & stageScrub))
         {
@@ -6564,19 +6557,18 @@ private Expression scrubCacheValue(const ref Loc loc, Expression e)
             sle.stageflags = old;
         }
     }
-    if (e.op == TOK.string_)
+    else if (auto se = e.isStringExp())
     {
-        (cast(StringExp)e).ownedByCtfe = OwnedBy.cache;
+        se.ownedByCtfe = OwnedBy.cache;
     }
-    if (e.op == TOK.arrayLiteral)
+    else if (auto ale = e.isArrayLiteralExp())
     {
-        (cast(ArrayLiteralExp)e).ownedByCtfe = OwnedBy.cache;
-        if (Expression ex = scrubArrayCache(loc, (cast(ArrayLiteralExp)e).elements))
+        ale.ownedByCtfe = OwnedBy.cache;
+        if (Expression ex = scrubArrayCache(loc, ale.elements))
             return ex;
     }
-    if (e.op == TOK.assocArrayLiteral)
+    else if (auto aae = e.isAssocArrayLiteralExp())
     {
-        AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)e;
         aae.ownedByCtfe = OwnedBy.cache;
         if (Expression ex = scrubArrayCache(loc, aae.keys))
             return ex;
@@ -6606,8 +6598,8 @@ private Expression interpret_length(InterState* istate, Expression earg)
     if (exceptionOrCantInterpret(earg))
         return earg;
     dinteger_t len = 0;
-    if (earg.op == TOK.assocArrayLiteral)
-        len = (cast(AssocArrayLiteralExp)earg).keys.dim;
+    if (auto aae = earg.isAssocArrayLiteralExp())
+        len = aae.keys.dim;
     else
         assert(earg.op == TOK.null_);
     Expression e = new IntegerExp(earg.loc, len, Type.tsize_t);
@@ -6627,8 +6619,7 @@ private Expression interpret_keys(InterState* istate, Expression earg, Type retu
         return new NullExp(earg.loc, returnType);
     if (earg.op != TOK.assocArrayLiteral && earg.type.toBasetype().ty != Taarray)
         return null;
-    assert(earg.op == TOK.assocArrayLiteral);
-    AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)earg;
+    AssocArrayLiteralExp aae = earg.isAssocArrayLiteralExp();
     auto ae = new ArrayLiteralExp(aae.loc, returnType, aae.keys);
     ae.ownedByCtfe = aae.ownedByCtfe;
     return copyLiteral(ae).copy();
@@ -6647,8 +6638,7 @@ private Expression interpret_values(InterState* istate, Expression earg, Type re
         return new NullExp(earg.loc, returnType);
     if (earg.op != TOK.assocArrayLiteral && earg.type.toBasetype().ty != Taarray)
         return null;
-    assert(earg.op == TOK.assocArrayLiteral);
-    AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)earg;
+    auto aae = earg.isAssocArrayLiteralExp();
     auto ae = new ArrayLiteralExp(aae.loc, returnType, aae.values);
     ae.ownedByCtfe = aae.ownedByCtfe;
     //printf("result is %s\n", e.toChars());
@@ -6668,8 +6658,7 @@ private Expression interpret_dup(InterState* istate, Expression earg)
         return new NullExp(earg.loc, earg.type);
     if (earg.op != TOK.assocArrayLiteral && earg.type.toBasetype().ty != Taarray)
         return null;
-    assert(earg.op == TOK.assocArrayLiteral);
-    AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)copyLiteral(earg).copy();
+    auto aae = copyLiteral(earg).copy().isAssocArrayLiteralExp();
     for (size_t i = 0; i < aae.keys.dim; i++)
     {
         if (Expression e = evaluatePostblit(istate, (*aae.keys)[i]))
@@ -6693,13 +6682,13 @@ private Expression interpret_aaApply(InterState* istate, Expression aa, Expressi
 
     FuncDeclaration fd = null;
     Expression pthis = null;
-    if (deleg.op == TOK.delegate_)
+    if (auto de = deleg.isDelegateExp())
     {
-        fd = (cast(DelegateExp)deleg).func;
-        pthis = (cast(DelegateExp)deleg).e1;
+        fd = de.func;
+        pthis = de.e1;
     }
-    else if (deleg.op == TOK.function_)
-        fd = (cast(FuncExp)deleg).fd;
+    else if (auto fe = deleg.isFuncExp())
+        fd = fe.fd;
 
     assert(fd && fd.fbody);
     assert(fd.parameters);
@@ -6737,8 +6726,7 @@ private Expression interpret_aaApply(InterState* istate, Expression aa, Expressi
         if (exceptionOrCantInterpret(eresult))
             return eresult;
 
-        assert(eresult.op == TOK.int64);
-        if ((cast(IntegerExp)eresult).getInteger() != 0)
+        if (eresult.isIntegerExp().getInteger() != 0)
             return eresult;
     }
     return eresult;
@@ -6755,13 +6743,13 @@ private Expression foreachApplyUtf(InterState* istate, Expression str, Expressio
     }
     FuncDeclaration fd = null;
     Expression pthis = null;
-    if (deleg.op == TOK.delegate_)
+    if (auto de = deleg.isDelegateExp())
     {
-        fd = (cast(DelegateExp)deleg).func;
-        pthis = (cast(DelegateExp)deleg).e1;
+        fd = de.func;
+        pthis = de.e1;
     }
-    else if (deleg.op == TOK.function_)
-        fd = (cast(FuncExp)deleg).fd;
+    else if (auto fe = deleg.isFuncExp())
+        fd = fe.fd;
 
     assert(fd && fd.fbody);
     assert(fd.parameters);
@@ -6775,13 +6763,9 @@ private Expression foreachApplyUtf(InterState* istate, Expression str, Expressio
 
     str = resolveSlice(str);
 
-    StringExp se = null;
-    ArrayLiteralExp ale = null;
-    if (str.op == TOK.string_)
-        se = cast(StringExp)str;
-    else if (str.op == TOK.arrayLiteral)
-        ale = cast(ArrayLiteralExp)str;
-    else
+    auto se = str.isStringExp();
+    auto ale = str.isArrayLiteralExp();
+    if (!se && !ale)
     {
         str.error("CTFE internal error: cannot foreach `%s`", str.toChars());
         return CTFEExp.cantexp;
@@ -6791,8 +6775,8 @@ private Expression foreachApplyUtf(InterState* istate, Expression str, Expressio
     Expression eresult = null; // ded-store to prevent spurious warning
 
     // Buffers for encoding; also used for decoding array literals
-    char[4] utf8buf;
-    wchar[2] utf16buf;
+    char[4] utf8buf = void;
+    wchar[2] utf16buf = void;
 
     size_t start = rvs ? len : 0;
     size_t end = rvs ? 0 : len;
@@ -6822,8 +6806,7 @@ private Expression foreachApplyUtf(InterState* istate, Expression str, Expressio
                     while (indx > 0 && buflen < 4)
                     {
                         Expression r = (*ale.elements)[indx];
-                        assert(r.op == TOK.int64);
-                        char x = cast(char)(cast(IntegerExp)r).getInteger();
+                        char x = cast(char)r.isIntegerExp().getInteger();
                         if ((x & 0xC0) != 0x80)
                             break;
                         ++buflen;
@@ -6834,8 +6817,7 @@ private Expression foreachApplyUtf(InterState* istate, Expression str, Expressio
                 for (size_t i = 0; i < buflen; ++i)
                 {
                     Expression r = (*ale.elements)[indx + i];
-                    assert(r.op == TOK.int64);
-                    utf8buf[i] = cast(char)(cast(IntegerExp)r).getInteger();
+                    utf8buf[i] = cast(char)r.isIntegerExp().getInteger();
                 }
                 n = 0;
                 errmsg = utf_decodeChar(&utf8buf[0], buflen, n, rawvalue);
@@ -6848,8 +6830,7 @@ private Expression foreachApplyUtf(InterState* istate, Expression str, Expressio
                     --indx;
                     buflen = 1;
                     Expression r = (*ale.elements)[indx];
-                    assert(r.op == TOK.int64);
-                    ushort x = cast(ushort)(cast(IntegerExp)r).getInteger();
+                    ushort x = cast(ushort)r.isIntegerExp().getInteger();
                     if (indx > 0 && x >= 0xDC00 && x <= 0xDFFF)
                     {
                         --indx;
@@ -6861,8 +6842,7 @@ private Expression foreachApplyUtf(InterState* istate, Expression str, Expressio
                 for (size_t i = 0; i < buflen; ++i)
                 {
                     Expression r = (*ale.elements)[indx + i];
-                    assert(r.op == TOK.int64);
-                    utf16buf[i] = cast(ushort)(cast(IntegerExp)r).getInteger();
+                    utf16buf[i] = cast(ushort)r.isIntegerExp().getInteger();
                 }
                 n = 0;
                 errmsg = utf_decodeWchar(&utf16buf[0], buflen, n, rawvalue);
@@ -6873,8 +6853,7 @@ private Expression foreachApplyUtf(InterState* istate, Expression str, Expressio
                     if (rvs)
                         --indx;
                     Expression r = (*ale.elements)[indx];
-                    assert(r.op == TOK.int64);
-                    rawvalue = cast(dchar)(cast(IntegerExp)r).getInteger();
+                    rawvalue = cast(dchar)r.isIntegerExp().getInteger();
                     n = 1;
                 }
                 break;
@@ -6995,8 +6974,7 @@ private Expression foreachApplyUtf(InterState* istate, Expression str, Expressio
                 eresult = ue.copy();
             if (exceptionOrCantInterpret(eresult))
                 return eresult;
-            assert(eresult.op == TOK.int64);
-            if ((cast(IntegerExp)eresult).getInteger() != 0)
+            if (eresult.isIntegerExp().getInteger() != 0)
                 return eresult;
         }
     }
