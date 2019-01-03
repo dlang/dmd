@@ -687,7 +687,7 @@ class ConservativeGC : GC
                         debug(PRINTF) printFreeInfo(pool);
                         memset(&lpool.pagetable[pagenum + psz], B_PAGEPLUS, newPages);
                         lpool.bPageOffsets[pagenum] = cast(uint) newsz;
-                        for (auto offset = psz + 1; offset < newsz; offset++)
+                        for (auto offset = psz; offset < newsz; offset++)
                             lpool.bPageOffsets[pagenum + offset] = cast(uint) offset;
                         if (freesz > newPages)
                             lpool.setFreePageOffsets(pagenum + newsz, freesz - newPages);
@@ -1426,6 +1426,10 @@ struct Gcx
         {
             //printf("Gcx.invariant(): this = %p\n", &this);
             pooltable.Invariant();
+
+            for (size_t p = 0; p < pooltable.length; p++)
+                if (pooltable.pools[p].isLargeObject)
+                    (cast(LargeObjectPool*)(pooltable.pools[p])).Invariant();
 
             if (!inCollection)
                 (cast()rangesLock).lock();
@@ -2521,7 +2525,7 @@ struct Gcx
         LogArray prev;
 
 
-        void log_init()
+        private void log_init()
         {
             //debug(PRINTF) printf("+log_init()\n");
             current.reserve(1000);
@@ -2530,7 +2534,7 @@ struct Gcx
         }
 
 
-        void log_malloc(void *p, size_t size) nothrow
+        private void log_malloc(void *p, size_t size) nothrow
         {
             //debug(PRINTF) printf("+log_malloc(p = %p, size = %zd)\n", p, size);
             Log log;
@@ -2549,7 +2553,7 @@ struct Gcx
         }
 
 
-        void log_free(void *p) nothrow @nogc
+        private void log_free(void *p) nothrow @nogc
         {
             //debug(PRINTF) printf("+log_free(%p)\n", p);
             auto i = current.find(p);
@@ -2563,7 +2567,7 @@ struct Gcx
         }
 
 
-        void log_collect() nothrow
+        private void log_collect() nothrow
         {
             //debug(PRINTF) printf("+log_collect()\n");
             // Print everything in current that is not in prev
@@ -2598,7 +2602,7 @@ struct Gcx
         }
 
 
-        void log_parent(void *p, void *parent) nothrow
+        private void log_parent(void *p, void *parent) nothrow
         {
             //debug(PRINTF) printf("+log_parent()\n");
             auto i = current.find(p);
@@ -2625,11 +2629,11 @@ struct Gcx
     }
     else
     {
-        void log_init() nothrow { }
-        void log_malloc(void *p, size_t size) nothrow { }
-        void log_free(void *p) nothrow @nogc { }
-        void log_collect() nothrow { }
-        void log_parent(void *p, void *parent) nothrow { }
+        private void log_init() nothrow { }
+        private void log_malloc(void *p, size_t size) nothrow { }
+        private void log_free(void *p) nothrow @nogc { }
+        private void log_collect() nothrow { }
+        private void log_parent(void *p, void *parent) nothrow { }
     }
 }
 
