@@ -457,21 +457,21 @@ $G/backend.a: $(G_OBJS) $(G_DOBJS) $(SRC_MAKE)
 	$(AR) rcs $@ $(G_OBJS) $(G_DOBJS)
 
 $G/lexer.a: $(LEXER_SRCS) $(LEXER_ROOT) $(HOST_DMD_PATH) $(SRC_MAKE) $(STRING_IMPORT_FILES)
-	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -J$G -L-lstdc++ $(DFLAGS) $(LEXER_SRCS) $(LEXER_ROOT)
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -J$G $(DFLAGS) $(LEXER_SRCS) $(LEXER_ROOT)
 
 $G/dmd_frontend: $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
 
 ifdef ENABLE_LTO
 $G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/lexer.a $(G_OBJS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $G/dmd.conf
-	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $G/dmd.conf,$^)
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $G/dmd.conf,$^)
 else
 $G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/backend.a $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $G/dmd.conf
-	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $(LEXER_ROOT) $G/dmd.conf,$^)
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $(LEXER_ROOT) $G/dmd.conf,$^)
 endif
 
 $G/dmd-unittest: $(DMD_SRCS) $(ROOT_SRCS) $(LEXER_SRCS) $(G_OBJS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) -L-lstdc++ $(DFLAGS) -g -unittest -main -version=NoMain $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
+	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) $(DFLAGS) -g -unittest -main -version=NoMain $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 
 unittest: $G/dmd-unittest
 	$<
@@ -482,7 +482,7 @@ EXAMPLES=$(addprefix $G/examples/, avg impvisitor)
 PARSER_SRCS=$(addsuffix .d, $(addprefix $D/,parse astbase parsetimevisitor transitivevisitor permissivevisitor strictvisitor utils))
 
 $G/parser.a: $(PARSER_SRCS) $(LEXER_SRCS) $(ROOT_SRCS) $G/dmd $G/dmd.conf $(SRC_MAKE)
-	CC="$(HOST_CXX)" $G/dmd -lib -of$@ $(MODEL_FLAG) -L-lstdc++ -J$G $(DFLAGS) $(PARSER_SRCS) $(LEXER_SRCS) $(ROOT_SRCS)
+	CC="$(HOST_CXX)" $G/dmd -lib -of$@ $(MODEL_FLAG) -J$G $(DFLAGS) $(PARSER_SRCS) $(LEXER_SRCS) $(ROOT_SRCS)
 
 $G/examples/%: $(EX)/%.d $G/parser.a $G/dmd
 	CC="$(HOST_CXX)" $G/dmd -of$@ $(MODEL_FLAG) $(DFLAGS) $G/parser.a $<
