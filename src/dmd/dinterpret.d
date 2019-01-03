@@ -3070,7 +3070,7 @@ public:
                 // Call constructor
                 if (!e.member.fbody)
                 {
-                    Expression ctorfail = evaluateIfBuiltin(istate, e.loc, e.member, e.arguments, eref);
+                    Expression ctorfail = evaluateIfBuiltin(pue, istate, e.loc, e.member, e.arguments, eref);
                     if (ctorfail)
                     {
                         if (exceptionOrCant(ctorfail))
@@ -5011,7 +5011,7 @@ public:
         }
 
         // Check for built-in functions
-        result = evaluateIfBuiltin(istate, e.loc, fd, e.arguments, pthis);
+        result = evaluateIfBuiltin(pue, istate, e.loc, fd, e.arguments, pthis);
         if (result)
             return;
 
@@ -6591,10 +6591,10 @@ private Expression scrubArrayCache(const ref Loc loc, Expressions* elems)
 
 /******************************* Special Functions ***************************/
 
-private Expression interpret_length(InterState* istate, Expression earg)
+private Expression interpret_length(UnionExp* pue, InterState* istate, Expression earg)
 {
     //printf("interpret_length()\n");
-    earg = interpret(earg, istate);
+    earg = interpret(pue, earg, istate);
     if (exceptionOrCantInterpret(earg))
         return earg;
     dinteger_t len = 0;
@@ -6602,60 +6602,71 @@ private Expression interpret_length(InterState* istate, Expression earg)
         len = aae.keys.dim;
     else
         assert(earg.op == TOK.null_);
-    Expression e = new IntegerExp(earg.loc, len, Type.tsize_t);
-    return e;
+    emplaceExp!(IntegerExp)(pue, earg.loc, len, Type.tsize_t);
+    return pue.exp();
 }
 
-private Expression interpret_keys(InterState* istate, Expression earg, Type returnType)
+private Expression interpret_keys(UnionExp* pue, InterState* istate, Expression earg, Type returnType)
 {
     debug (LOG)
     {
         printf("interpret_keys()\n");
     }
-    earg = interpret(earg, istate);
+    earg = interpret(pue, earg, istate);
     if (exceptionOrCantInterpret(earg))
         return earg;
     if (earg.op == TOK.null_)
-        return new NullExp(earg.loc, returnType);
+    {
+        emplaceExp!(NullExp)(pue, earg.loc, earg.type);
+        return pue.exp();
+    }
     if (earg.op != TOK.assocArrayLiteral && earg.type.toBasetype().ty != Taarray)
         return null;
     AssocArrayLiteralExp aae = earg.isAssocArrayLiteralExp();
     auto ae = new ArrayLiteralExp(aae.loc, returnType, aae.keys);
     ae.ownedByCtfe = aae.ownedByCtfe;
-    return copyLiteral(ae).copy();
+    *pue = copyLiteral(ae);
+    return pue.exp();
 }
 
-private Expression interpret_values(InterState* istate, Expression earg, Type returnType)
+private Expression interpret_values(UnionExp* pue, InterState* istate, Expression earg, Type returnType)
 {
     debug (LOG)
     {
         printf("interpret_values()\n");
     }
-    earg = interpret(earg, istate);
+    earg = interpret(pue, earg, istate);
     if (exceptionOrCantInterpret(earg))
         return earg;
     if (earg.op == TOK.null_)
-        return new NullExp(earg.loc, returnType);
+    {
+        emplaceExp!(NullExp)(pue, earg.loc, earg.type);
+        return pue.exp();
+    }
     if (earg.op != TOK.assocArrayLiteral && earg.type.toBasetype().ty != Taarray)
         return null;
     auto aae = earg.isAssocArrayLiteralExp();
     auto ae = new ArrayLiteralExp(aae.loc, returnType, aae.values);
     ae.ownedByCtfe = aae.ownedByCtfe;
     //printf("result is %s\n", e.toChars());
-    return copyLiteral(ae).copy();
+    *pue = copyLiteral(ae);
+    return pue.exp();
 }
 
-private Expression interpret_dup(InterState* istate, Expression earg)
+private Expression interpret_dup(UnionExp* pue, InterState* istate, Expression earg)
 {
     debug (LOG)
     {
         printf("interpret_dup()\n");
     }
-    earg = interpret(earg, istate);
+    earg = interpret(pue, earg, istate);
     if (exceptionOrCantInterpret(earg))
         return earg;
     if (earg.op == TOK.null_)
-        return new NullExp(earg.loc, earg.type);
+    {
+        emplaceExp!(NullExp)(pue, earg.loc, earg.type);
+        return pue.exp();
+    }
     if (earg.op != TOK.assocArrayLiteral && earg.type.toBasetype().ty != Taarray)
         return null;
     auto aae = copyLiteral(earg).copy().isAssocArrayLiteralExp();
@@ -6672,13 +6683,16 @@ private Expression interpret_dup(InterState* istate, Expression earg)
 }
 
 // signature is int delegate(ref Value) OR int delegate(ref Key, ref Value)
-private Expression interpret_aaApply(InterState* istate, Expression aa, Expression deleg)
+private Expression interpret_aaApply(UnionExp* pue, InterState* istate, Expression aa, Expression deleg)
 {
     aa = interpret(aa, istate);
     if (exceptionOrCantInterpret(aa))
         return aa;
     if (aa.op != TOK.assocArrayLiteral)
-        return new IntegerExp(deleg.loc, 0, Type.tsize_t);
+    {
+        emplaceExp!(IntegerExp)(pue, deleg.loc, 0, Type.tsize_t);
+        return pue.exp();
+    }
 
     FuncDeclaration fd = null;
     Expression pthis = null;
@@ -6735,7 +6749,7 @@ private Expression interpret_aaApply(InterState* istate, Expression aa, Expressi
 /* Decoding UTF strings for foreach loops. Duplicates the functionality of
  * the twelve _aApplyXXn functions in aApply.d in the runtime.
  */
-private Expression foreachApplyUtf(InterState* istate, Expression str, Expression deleg, bool rvs)
+private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression str, Expression deleg, bool rvs)
 {
     debug (LOG)
     {
@@ -6759,7 +6773,10 @@ private Expression foreachApplyUtf(InterState* istate, Expression str, Expressio
     Type indexType = numParams == 2 ? (*fd.parameters)[0].type : Type.tsize_t;
     size_t len = cast(size_t)resolveArrayLength(str);
     if (len == 0)
-        return new IntegerExp(deleg.loc, 0, indexType);
+    {
+        emplaceExp!(IntegerExp)(pue, deleg.loc, 0, indexType);
+        return pue.exp();
+    }
 
     str = resolveSlice(str);
 
@@ -6984,7 +7001,7 @@ private Expression foreachApplyUtf(InterState* istate, Expression str, Expressio
 /* If this is a built-in function, return the interpreted result,
  * Otherwise, return NULL.
  */
-private Expression evaluateIfBuiltin(InterState* istate, const ref Loc loc, FuncDeclaration fd, Expressions* arguments, Expression pthis)
+private Expression evaluateIfBuiltin(UnionExp* pue, InterState* istate, const ref Loc loc, FuncDeclaration fd, Expressions* arguments, Expression pthis)
 {
     Expression e = null;
     size_t nargs = arguments ? arguments.dim : 0;
@@ -7020,26 +7037,26 @@ private Expression evaluateIfBuiltin(InterState* istate, const ref Loc loc, Func
                 if (nargs == 1)
                 {
                     if (id == Id.aaLen)
-                        return interpret_length(istate, firstarg);
+                        return interpret_length(pue, istate, firstarg);
 
                     if (fd.toParent2().ident == Id.object)
                     {
                         if (id == Id.keys)
-                            return interpret_keys(istate, firstarg, firstAAtype.index.arrayOf());
+                            return interpret_keys(pue, istate, firstarg, firstAAtype.index.arrayOf());
                         if (id == Id.values)
-                            return interpret_values(istate, firstarg, firstAAtype.nextOf().arrayOf());
+                            return interpret_values(pue, istate, firstarg, firstAAtype.nextOf().arrayOf());
                         if (id == Id.rehash)
-                            return interpret(firstarg, istate);
+                            return interpret(pue, firstarg, istate);
                         if (id == Id.dup)
-                            return interpret_dup(istate, firstarg);
+                            return interpret_dup(pue, istate, firstarg);
                     }
                 }
                 else // (nargs == 3)
                 {
                     if (id == Id._aaApply)
-                        return interpret_aaApply(istate, firstarg, arguments.data[2]);
+                        return interpret_aaApply(pue, istate, firstarg, arguments.data[2]);
                     if (id == Id._aaApply2)
-                        return interpret_aaApply(istate, firstarg, arguments.data[2]);
+                        return interpret_aaApply(pue, istate, firstarg, arguments.data[2]);
                 }
             }
         }
@@ -7088,7 +7105,7 @@ private Expression evaluateIfBuiltin(InterState* istate, const ref Loc loc, Func
                 str = interpret(str, istate);
                 if (exceptionOrCantInterpret(str))
                     return str;
-                return foreachApplyUtf(istate, str, (*arguments)[1], rvs);
+                return foreachApplyUtf(pue, istate, str, (*arguments)[1], rvs);
             }
         }
     }
