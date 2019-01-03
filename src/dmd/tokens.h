@@ -31,7 +31,8 @@ class Identifier;
         ?       &&      ||
  */
 
-enum TOK
+typedef unsigned char TOK;
+enum
 {
         TOKreserved,
 
