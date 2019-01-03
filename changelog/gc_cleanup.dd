@@ -1,0 +1,26 @@
+GC cleanup can now be configured as a DRT GC option
+
+The default cleanup method for the GC is to unconditionally run a
+collection before runtime termination to finalize objects
+that are still alive and hold resources that affect system state outside
+the current process. This combines the worst of possible alternatives:
+it can cause a considerable delay and does not guarantee finalization
+of all objects as roots might still exist.
+
+The cleanup behaviour can now be configured by a DRT option to the
+$(LINK2 $(ROOT_DIR)spec/garbage.html, GC configuration),
+e.g. by passing `--DRT-gcopt=cleanup:none` on the command
+line. Three options are provided:
+
+$(UL
+  $(LI collect: run a collection (the default for backward compatibility))
+  $(LI none: do nothing)
+  $(LI finalize: all live objects are finalized unconditionally)
+)
+
+As usual, you can also embed the configuration into the application by
+redefining `rt_options`, e.g.
+
+-------
+extern(C) __gshared string[] rt_options = [ "gcopt=cleanup:none" ];
+-------

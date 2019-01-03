@@ -23,6 +23,7 @@ struct Config
     size_t maxPoolSize = 64; // maximum pool size (MB)
     size_t incPoolSize = 3;  // pool size increment (MB)
     float heapSizeFactor = 2.0; // heap size to used memory ratio
+    string cleanup = "collect"; // select gc cleanup method none|collect|finalize
 
 @nogc nothrow:
 
@@ -43,6 +44,7 @@ struct Config
     maxPoolSize:N  - maximum pool size in MB (%lld)
     incPoolSize:N  - pool size increment MB (%lld)
     heapSizeFactor:N - targeted heap size to used memory ratio (%g)
+    cleanup:none|collect|finalize - how to treat live objects when terminating (collect)
 ";
         printf(s.ptr, disable, profile, cast(long)initReserve, cast(long)minPoolSize,
                cast(long)maxPoolSize, cast(long)incPoolSize, heapSizeFactor);
