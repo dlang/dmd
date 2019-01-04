@@ -304,6 +304,8 @@ endif
 ifneq (gdc, $(HOST_DMD_KIND))
   BACK_MV = -mv=dmd.backend=$C
   BACK_BETTERC = $(BACK_MV) -betterC
+  # gdmd doesn't support -dip25
+  override DFLAGS  += -dip25
 endif
 
 ######## DMD frontend source files
