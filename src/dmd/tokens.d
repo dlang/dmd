@@ -22,7 +22,7 @@ import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.utf;
 
-enum TOK : int
+enum TOK : ubyte
 {
     reserved,
 
