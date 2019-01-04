@@ -68,9 +68,6 @@ void testStrings()
     char[] dlang = "dlang".dup;
     const(char)[] rust = "rust";
     test(dlang, rust, `"dlang" != "rust"`);
-
-    // TODO != with call expression isn't supported yet
-    //test!"!="("bar", "bar", `"bar" == "bar"`);
 }
 
 void testToString()()
@@ -86,7 +83,7 @@ void testToString()()
             return "Foo(" ~ payload ~ ")";
         }
     }
-    test(new Foo("a"), new Foo("b"), "Foo(a) != Foo(b)"); // TODO
+    test(new Foo("a"), new Foo("b"), "Foo(a) != Foo(b)");
 }
 
 
