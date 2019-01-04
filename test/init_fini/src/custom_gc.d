@@ -133,6 +133,11 @@ nothrow @nogc:
         return core.memory.GC.Stats.init;
     }
 
+    core.memory.GC.ProfileStats profileStats() nothrow
+    {
+        return typeof(return).init;
+    }
+
     void addRoot(void* p) nothrow @nogc
     {
     }
