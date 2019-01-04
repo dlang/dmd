@@ -161,6 +161,12 @@ class ProtoGC : GC
     }
 
 
+    core.memory.GC.ProfileStats profileStats() nothrow
+    {
+        return typeof(return).init;
+    }
+
+
     void addRoot(void* p) nothrow @nogc
     {
         roots.insertBack(Root(p));

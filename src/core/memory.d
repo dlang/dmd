@@ -139,6 +139,7 @@ private
 
     extern (C) BlkInfo_ gc_query( void* p ) pure nothrow;
     extern (C) GC.Stats gc_stats ( ) nothrow @nogc;
+    extern (C) GC.ProfileStats gc_profileStats ( ) nothrow @nogc @safe;
 
     extern (C) void gc_addRoot( in void* p ) nothrow @nogc;
     extern (C) void gc_addRange( in void* p, size_t sz, const TypeInfo ti = null ) nothrow @nogc;
@@ -168,6 +169,24 @@ struct GC
         size_t usedSize;
         /// number of free bytes on the GC heap (might only get updated after a collection)
         size_t freeSize;
+    }
+
+    /**
+     * Aggregation of current profile information
+     */
+    static struct ProfileStats
+    {
+        import core.time : Duration;
+        /// total number of GC cycles
+        size_t numCollections;
+        /// total time spent doing GC
+        Duration totalCollectionTime;
+        /// total time threads were paused doing GC
+        Duration totalPauseTime;
+        /// largest time threads were paused during one GC cycle
+        Duration maxPauseTime;
+        /// largest time spent doing one GC cycle
+        Duration maxCollectionTime;
     }
 
     /**
@@ -687,6 +706,15 @@ struct GC
     static Stats stats() nothrow
     {
         return gc_stats();
+    }
+
+    /**
+     * Returns runtime profile stats for currently active GC implementation
+     * See `core.memory.GC.ProfileStats` for list of available metrics.
+     */
+    static ProfileStats profileStats() nothrow @nogc @safe
+    {
+        return gc_profileStats();
     }
 
     /**
@@ -1264,4 +1292,13 @@ unittest
 
     void* p = GC.malloc(100);
     assert(GC.realloc(&p, 50) == null); // non-GC pointer
+}
+
+// test GC.profileStats
+unittest
+{
+    auto stats = GC.profileStats();
+    GC.collect();
+    auto nstats = GC.profileStats();
+    assert(nstats.numCollections > stats.numCollections);
 }

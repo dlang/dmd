@@ -100,7 +100,9 @@ __gshared Duration prepTime;
 __gshared Duration markTime;
 __gshared Duration sweepTime;
 __gshared Duration recoverTime;
+__gshared Duration pauseTime;
 __gshared Duration maxPauseTime;
+__gshared Duration maxCollectionTime;
 __gshared size_t numCollections;
 __gshared size_t maxPoolMemory;
 
@@ -1183,6 +1185,19 @@ class ConservativeGC : GC
         return ret;
     }
 
+
+    core.memory.GC.ProfileStats profileStats() nothrow
+    {
+        typeof(return) ret;
+
+        ret.numCollections = numCollections;
+        ret.totalCollectionTime = prepTime + markTime + sweepTime + recoverTime;
+        ret.totalPauseTime = pauseTime;
+        ret.maxCollectionTime = maxCollectionTime;
+        ret.maxPauseTime = maxPauseTime;
+
+        return ret;
+    }
 
     //
     //
@@ -2405,12 +2420,9 @@ struct Gcx
 
             prepare();
 
-            if (config.profile)
-            {
-                stop = currTime;
-                prepTime += (stop - start);
-                start = stop;
-            }
+            stop = currTime;
+            prepTime += (stop - start);
+            start = stop;
 
             markAll(nostack);
 
@@ -2418,15 +2430,13 @@ struct Gcx
             thread_resumeAll();
         }
 
-        if (config.profile)
-        {
-            stop = currTime;
-            markTime += (stop - start);
-            Duration pause = stop - begin;
-            if (pause > maxPauseTime)
-                maxPauseTime = pause;
-            start = stop;
-        }
+        stop = currTime;
+        markTime += (stop - start);
+        Duration pause = stop - begin;
+        if (pause > maxPauseTime)
+            maxPauseTime = pause;
+        pauseTime += pause;
+        start = stop;
 
         ConservativeGC._inFinalizer = true;
         size_t freedLargePages=void;
@@ -2436,21 +2446,19 @@ struct Gcx
             ConservativeGC._inFinalizer = false;
         }
 
-        if (config.profile)
-        {
-            stop = currTime;
-            sweepTime += (stop - start);
-            start = stop;
-        }
+        stop = currTime;
+        sweepTime += (stop - start);
+        start = stop;
 
         immutable freedSmallPages = recover();
 
-        if (config.profile)
-        {
-            stop = currTime;
-            recoverTime += (stop - start);
-            ++numCollections;
-        }
+        stop = currTime;
+        recoverTime += (stop - start);
+        Duration collectionTime = stop - begin;
+        if (collectionTime > maxCollectionTime)
+            maxCollectionTime = collectionTime;
+
+        ++numCollections;
 
         updateCollectThresholds();
 

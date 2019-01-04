@@ -149,6 +149,12 @@ interface GC
     core.memory.GC.Stats stats() nothrow;
 
     /**
+     * Retrieve profile statistics about garbage collection.
+     * Useful for debugging and tuning.
+     */
+    core.memory.GC.ProfileStats profileStats() nothrow;
+
+    /**
      * add p to list of roots
      */
     void addRoot(void* p) nothrow @nogc;
