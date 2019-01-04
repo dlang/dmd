@@ -72,6 +72,9 @@ $(IMPDIR)\core\demangle.d : src\core\demangle.d
 $(IMPDIR)\core\exception.d : src\core\exception.d
 	copy $** $@
 
+$(IMPDIR)\core\lifetime.d : src\core\lifetime.d
+	copy $** $@
+
 $(IMPDIR)\core\math.d : src\core\math.d
 	copy $** $@
 

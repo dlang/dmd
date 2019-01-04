@@ -7,6 +7,7 @@ DOCS=\
 	$(DOCDIR)\core_cpuid.html \
 	$(DOCDIR)\core_demangle.html \
 	$(DOCDIR)\core_exception.html \
+	$(DOCDIR)\core_lifetime.html \
 	$(DOCDIR)\core_math.html \
 	$(DOCDIR)\core_memory.html \
 	$(DOCDIR)\core_runtime.html \
