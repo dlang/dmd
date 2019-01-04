@@ -2104,6 +2104,8 @@ extern (C) void thread_term() @nogc
     _d_monitordelete_nogc(Thread.sm_main);
     if (typeid(Thread).initializer.ptr)
         _mainThreadStore[] = typeid(Thread).initializer[];
+    else
+        (cast(ubyte[])_mainThreadStore)[] = 0;
     Thread.sm_main = null;
 
     assert(Thread.sm_tbeg && Thread.sm_tlen == 1);
