@@ -127,7 +127,7 @@ struct Param
     bool stackstomp;            // add stack stomping code
     bool useUnitTests;          // generate unittest code
     bool useInline = false;     // inline expand functions
-    bool useDIP25 = true;   // implement http://wiki.dlang.org/DIP25
+    bool useDIP25;          // implement http://wiki.dlang.org/DIP25
     bool noDIP25;           // revert to pre-DIP25 behavior
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
