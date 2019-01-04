@@ -198,6 +198,9 @@ $(IMPDIR)\core\stdcpp\string_view.d : src\core\stdcpp\string_view.d
 $(IMPDIR)\core\stdcpp\typeinfo.d : src\core\stdcpp\typeinfo.d
 	copy $** $@
 
+$(IMPDIR)\core\stdcpp\type_traits.d : src\core\stdcpp\type_traits.d
+	copy $** $@
+
 $(IMPDIR)\core\stdcpp\xutility.d : src\core\stdcpp\xutility.d
 	copy $** $@
 

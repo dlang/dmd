@@ -49,6 +49,7 @@ SRCS=\
 	\
 	src\core\stdcpp\array.d \
 	src\core\stdcpp\string_view.d \
+	src\core\stdcpp\type_traits.d \
 	src\core\stdcpp\xutility.d \
 	\
 	src\core\sync\barrier.d \
