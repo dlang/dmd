@@ -37,6 +37,7 @@ LI = <li>$0</li>
 BIG = <span class="font_big">$0</span>
 SMALL = <small>$0</small>
 BR = <br>
+HR = <hr />
 LINK = <a href="$0">$0</a>
 LINK2 = <a href="$1">$+</a>
 DEPRECATED = $0
