@@ -60,8 +60,8 @@ private GC initialize()
 
 class ManualGC : GC
 {
-    __gshared Array!Root roots;
-    __gshared Array!Range ranges;
+    Array!Root roots;
+    Array!Range ranges;
 
     this()
     {
