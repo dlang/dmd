@@ -51,7 +51,7 @@ mixin DECLARE_HANDLE!("HCONN");
 
 struct HSE_VERSION_INFO {
     DWORD dwExtensionVersion;
-    CHAR[HSE_MAX_EXT_DLL_NAME_LEN] lpszExtensionDesc;
+    CHAR[HSE_MAX_EXT_DLL_NAME_LEN] lpszExtensionDesc = 0;
 }
 alias HSE_VERSION_INFO* LPHSE_VERSION_INFO;
 
@@ -60,7 +60,7 @@ struct EXTENSION_CONTROL_BLOCK {
     DWORD  dwVersion;
     HCONN  ConnID;
     DWORD  dwHttpStatusCode;
-    CHAR[HSE_LOG_BUFFER_LEN] lpszLogData;
+    CHAR[HSE_LOG_BUFFER_LEN] lpszLogData = 0;
     LPSTR  lpszMethod;
     LPSTR  lpszQueryString;
     LPSTR  lpszPathInfo;

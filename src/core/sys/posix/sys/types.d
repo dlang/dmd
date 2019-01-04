@@ -1049,7 +1049,7 @@ else version (CRuntime_Bionic)
         size_t  guard_size;
         int     sched_policy;
         int     sched_priority;
-        version (D_LP64) char[16] __reserved;
+        version (D_LP64) char[16] __reserved = 0;
     }
 
     struct pthread_cond_t

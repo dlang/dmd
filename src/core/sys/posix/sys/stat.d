@@ -1161,7 +1161,7 @@ else version (Solaris)
             }
             blksize_t st_blksize;
             blkcnt_t st_blocks;
-            char[_ST_FSTYPSZ] st_fstype;
+            char[_ST_FSTYPSZ] st_fstype = 0;
         }
 
         static if (__USE_LARGEFILE64) alias stat_t stat64_t;
@@ -1198,7 +1198,7 @@ else version (Solaris)
             }
             blksize_t st_blksize;
             blkcnt_t st_blocks;
-            char[_ST_FSTYPSZ] st_fstype;
+            char[_ST_FSTYPSZ] st_fstype = 0;
             c_long[8] st_pad4;
         }
 
@@ -1232,7 +1232,7 @@ else version (Solaris)
             }
             blksize_t st_blksize;
             blkcnt64_t st_blocks;
-            char[_ST_FSTYPSZ] st_fstype;
+            char[_ST_FSTYPSZ] st_fstype = 0;
             c_long[8] st_pad4;
         }
 

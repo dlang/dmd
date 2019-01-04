@@ -545,7 +545,7 @@ struct OLEUICHANGEICONW {
     HRSRC hResource;
     HGLOBAL hMetaPict;
     CLSID clsid;
-    WCHAR[MAX_PATH] szIconExe;
+    WCHAR[MAX_PATH] szIconExe = 0;
     int cchIconExe;
 }
 alias OLEUICHANGEICONW* POLEUICHANGEICONW, LPOLEUICHANGEICONW;
@@ -562,7 +562,7 @@ struct OLEUICHANGEICONA {
     HRSRC hResource;
     HGLOBAL hMetaPict;
     CLSID clsid;
-    CHAR[MAX_PATH] szIconExe;
+    CHAR[MAX_PATH] szIconExe = 0;
     int cchIconExe;
 }
 alias OLEUICHANGEICONA* POLEUICHANGEICONA, LPOLEUICHANGEICONA;

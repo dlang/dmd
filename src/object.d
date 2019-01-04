@@ -4072,7 +4072,7 @@ version (none)
 
     private void _bailOut(string file, int line, in char[] msg)
     {
-        char[21] buf;
+        char[21] buf = void;
         throw new Exception(cast(string)(file ~ "(" ~ ulongToString(buf[], line) ~ "): " ~ (msg ? msg : "Enforcement failed")));
     }
 }

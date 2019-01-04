@@ -2866,7 +2866,7 @@ struct MENUITEMTEMPLATEHEADER {
 struct MENUITEMTEMPLATE {
     WORD mtOption;
     WORD mtID;
-    WCHAR[1] mtString;
+    WCHAR[1] mtString = 0;
 }
 
 alias void MENUTEMPLATE, MENUTEMPLATEA, MENUTEMPLATEW;
@@ -3195,15 +3195,15 @@ alias DWORD HELPPOLY;
 
 struct MULTIKEYHELPA {
     DWORD mkSize;
-    CHAR mkKeylist;
-    CHAR[1] szKeyphrase;
+    CHAR mkKeylist = 0;
+    CHAR[1] szKeyphrase = 0;
 }
 alias MULTIKEYHELPA* PMULTIKEYHELPA, LPMULTIKEYHELPA;
 
 struct MULTIKEYHELPW {
     DWORD mkSize;
-    WCHAR mkKeylist;
-    WCHAR[1] szKeyphrase;
+    WCHAR mkKeylist = 0;
+    WCHAR[1] szKeyphrase = 0;
 }
 alias MULTIKEYHELPW* PMULTIKEYHELPW, LPMULTIKEYHELPW;
 
@@ -3214,7 +3214,7 @@ struct HELPWININFOA {
     int dx;
     int dy;
     int wMax;
-    CHAR[2] rgchMember;
+    CHAR[2] rgchMember = 0;
 }
 alias HELPWININFOA* PHELPWININFOA, LPHELPWININFOA;
 
@@ -3225,7 +3225,7 @@ struct HELPWININFOW {
     int dx;
     int dy;
     int wMax;
-    WCHAR[2] rgchMember;
+    WCHAR[2] rgchMember = 0;
 }
 alias HELPWININFOW* PHELPWININFOW, LPHELPWININFOW;
 
@@ -3345,7 +3345,7 @@ struct MONITORINFOEXA {
     RECT  rcMonitor;
     RECT  rcWork;
     DWORD dwFlags;
-    CHAR[CCHDEVICENAME] szDevice;
+    CHAR[CCHDEVICENAME] szDevice = 0;
 }
 alias MONITORINFOEXA* LPMONITORINFOEXA;
 
@@ -3354,7 +3354,7 @@ struct MONITORINFOEXW {
     RECT  rcMonitor;
     RECT  rcWork;
     DWORD dwFlags;
-    WCHAR[CCHDEVICENAME] szDevice;
+    WCHAR[CCHDEVICENAME] szDevice = 0;
 }
 alias MONITORINFOEXW* LPMONITORINFOEXW;
 
