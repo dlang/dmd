@@ -16,7 +16,7 @@ version(OSX):
 
 import core.stdc.string;
 import core.stdc.stdint;
-import core.sys.osx.mach.loader;
+import core.sys.darwin.mach.loader;
 import dmd.globals;
 import dmd.errors;
 
