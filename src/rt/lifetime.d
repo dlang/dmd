@@ -2434,12 +2434,22 @@ unittest
     // Bugzilla 3454 - Inconsistent flag setting in GC.realloc()
     static void test(size_t multiplier)
     {
-        auto p = GC.malloc(8 * multiplier, BlkAttr.NO_SCAN);
+        auto p = GC.malloc(8 * multiplier, 0);
+        assert(GC.getAttr(p) == 0);
+
+        // no move, set attr
+        p = GC.realloc(p, 8 * multiplier + 5, BlkAttr.NO_SCAN);
         assert(GC.getAttr(p) == BlkAttr.NO_SCAN);
-        p = GC.realloc(p, 2 * multiplier, BlkAttr.NO_SCAN);
+
+        // shrink, copy attr
+        p = GC.realloc(p, 2 * multiplier, 0);
+        assert(GC.getAttr(p) == BlkAttr.NO_SCAN);
+
+        // extend, copy attr
+        p = GC.realloc(p, 8 * multiplier, 0);
         assert(GC.getAttr(p) == BlkAttr.NO_SCAN);
     }
-    test(1);
+    test(16);
     test(1024 * 1024);
 }
 

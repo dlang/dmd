@@ -582,7 +582,7 @@ class ConservativeGC : GC
 
         p = runLocked!(reallocNoSync, mallocTime, numMallocs)(p, size, bits, localAllocSize, ti);
 
-        if (p !is oldp && !(bits & BlkAttr.NO_SCAN))
+        if (p && p !is oldp && !(bits & BlkAttr.NO_SCAN))
         {
             memset(p + size, 0, localAllocSize - size);
         }
@@ -597,146 +597,127 @@ class ConservativeGC : GC
     private void *reallocNoSync(void *p, size_t size, ref uint bits, ref size_t alloc_size, const TypeInfo ti = null) nothrow
     {
         if (!size)
-        {   if (p)
-            {   freeNoSync(p);
-                p = null;
-            }
-            alloc_size = 0;
-        }
-        else if (!p)
         {
-            p = mallocNoSync(size, bits, alloc_size, ti);
+            if (p)
+                freeNoSync(p);
+            alloc_size = 0;
+            return null;
+        }
+        if (!p)
+            return mallocNoSync(size, bits, alloc_size, ti);
+
+        debug(PRINTF) printf("GC::realloc(p = %p, size = %llu)\n", p, cast(ulong)size);
+
+        Pool *pool = gcx.findPool(p);
+        if (!pool)
+            return null;
+
+        size_t psize;
+        size_t biti;
+
+        debug(SENTINEL)
+        {
+            void* q = p;
+            p = sentinel_sub(p);
+            bool alwaysMalloc = true;
         }
         else
-        {   void *p2;
-            size_t psize;
+        {
+            alias q = p;
+            enum alwaysMalloc = false;
+        }
 
-            //debug(PRINTF) printf("GC::realloc(p = %p, size = %zu)\n", p, size);
+        void* doMalloc()
+        {
+            if (!bits)
+                bits = pool.getBits(biti);
+
+            void* p2 = mallocNoSync(size, bits, alloc_size, ti);
             debug (SENTINEL)
+                psize = sentinel_size(q, psize);
+            if (psize < size)
+                size = psize;
+            //debug(PRINTF) printf("\tcopying %d bytes\n",size);
+            memcpy(p2, q, size);
+            freeNoSync(q);
+            return p2;
+        }
+
+        if (pool.isLargeObject)
+        {
+            auto lpool = cast(LargeObjectPool*) pool;
+            auto psz = lpool.getPages(p);     // get allocated size
+            if (psz == 0)
+                return null;      // interior pointer
+            psize = psz * PAGESIZE;
+
+            alias pagenum = biti; // happens to be the same, but rename for clarity
+            pagenum = lpool.pagenumOf(p);
+
+            if (size <= PAGESIZE / 2 || alwaysMalloc)
+                return doMalloc(); // switching from large object pool to small object pool
+
+            auto newsz = lpool.numPages(size);
+            if (newsz == psz)
             {
-                sentinel_Invariant(p);
-                psize = *sentinel_psize(p);
-                if (psize != size)
-                {
-                    if (psize)
-                    {
-                        Pool *pool = gcx.findPool(p);
+                // nothing to do
+            }
+            else if (newsz < psz)
+            {
+                // Shrink in place
+                debug (MEMSTOMP) memset(p + size, 0xF2, psize - size);
+                lpool.freePages(pagenum + newsz, psz - newsz);
+                lpool.mergeFreePageOffsets!(false, true)(pagenum + newsz, psz - newsz);
+                lpool.bPageOffsets[pagenum] = cast(uint) newsz;
+            }
+            else if (pagenum + newsz <= pool.npages)
+            {
+                // Attempt to expand in place (TODO: merge with extend)
+                if (lpool.pagetable[pagenum + psz] != B_FREE)
+                    return doMalloc();
 
-                        if (pool)
-                        {
-                            auto biti = cast(size_t)(sentinel_sub(p) - pool.baseAddr) >> pool.shiftBy;
+                auto newPages = newsz - psz;
+                auto freesz = lpool.bPageOffsets[pagenum + psz];
+                if (freesz < newPages)
+                    return doMalloc(); // free range too small
 
-                            if (bits)
-                            {
-                                pool.clrBits(biti, ~BlkAttr.NONE);
-                                pool.setBits(biti, bits);
-                            }
-                            else
-                            {
-                                bits = pool.getBits(biti);
-                            }
-                        }
-                    }
-                    p2 = mallocNoSync(size, bits, alloc_size, ti);
-                    if (psize < size)
-                        size = psize;
-                    //debug(PRINTF) printf("\tcopying %d bytes\n",size);
-                    memcpy(p2, p, size);
-                    p = p2;
-                }
+                debug (MEMSTOMP) memset(p + psize, 0xF0, size - psize);
+                debug (PRINTF) printFreeInfo(pool);
+                memset(&lpool.pagetable[pagenum + psz], B_PAGEPLUS, newPages);
+                lpool.bPageOffsets[pagenum] = cast(uint) newsz;
+                for (auto offset = psz; offset < newsz; offset++)
+                    lpool.bPageOffsets[pagenum + offset] = cast(uint) offset;
+                if (freesz > newPages)
+                    lpool.setFreePageOffsets(pagenum + newsz, freesz - newPages);
+                gcx.usedLargePages += newPages;
+                lpool.freepages -= newPages;
+                debug (PRINTF) printFreeInfo(pool);
             }
             else
-            {
-                auto pool = gcx.findPool(p);
-                if (pool.isLargeObject)
-                {
-                    auto lpool = cast(LargeObjectPool*) pool;
-                    auto paligned = cast(void*)(cast(size_t)p & ~(PAGESIZE - 1)); // abused by std.file.readImpl
-                    auto psz = lpool.getPages(paligned);     // get allocated size
-                    psize = psz * PAGESIZE;
+                return doMalloc(); // does not fit into current pool
 
-                    if (size <= PAGESIZE / 2)
-                        goto Lmalloc; // switching from large object pool to small object pool
+            alloc_size = newsz * PAGESIZE;
+        }
+        else
+        {
+            psize = (cast(SmallObjectPool*) pool).getSize(p);   // get allocated bin size
+            if (psize == 0)
+                return null;    // interior pointer
+            biti = cast(size_t)(p - pool.baseAddr) >> Pool.ShiftBy.Small;
+            if (pool.freebits.test (biti))
+                return null;
 
-                    auto newsz = lpool.numPages(size);
-                    if (newsz == psz)
-                    {
-                        alloc_size = psize;
-                        return p;
-                    }
+            // allocate if new size is bigger or less than half
+            if (psize < size || psize > size * 2 || alwaysMalloc)
+                return doMalloc();
 
-                    auto pagenum = lpool.pagenumOf(p);
+            alloc_size = psize;
+        }
 
-                    if (newsz < psz)
-                    {   // Shrink in place
-                        debug (MEMSTOMP) memset(p + size, 0xF2, psize - size);
-                        lpool.freePages(pagenum + newsz, psz - newsz);
-                        lpool.mergeFreePageOffsets!(false, true)(pagenum + newsz, psz - newsz);
-                        lpool.bPageOffsets[pagenum] = cast(uint) newsz;
-                    }
-                    else if (pagenum + newsz <= pool.npages)
-                    {   // Attempt to expand in place
-                        if (lpool.pagetable[pagenum + psz] != B_FREE)
-                            goto Lmalloc;
-                        auto newPages = newsz - psz;
-                        auto freesz = lpool.bPageOffsets[pagenum + psz];
-                        if (freesz < newPages)
-                            goto Lmalloc;
-
-                        debug (MEMSTOMP) memset(p + psize, 0xF0, size - psize);
-                        debug(PRINTF) printFreeInfo(pool);
-                        memset(&lpool.pagetable[pagenum + psz], B_PAGEPLUS, newPages);
-                        lpool.bPageOffsets[pagenum] = cast(uint) newsz;
-                        for (auto offset = psz; offset < newsz; offset++)
-                            lpool.bPageOffsets[pagenum + offset] = cast(uint) offset;
-                        if (freesz > newPages)
-                            lpool.setFreePageOffsets(pagenum + newsz, freesz - newPages);
-                        gcx.usedLargePages += newPages;
-                        lpool.freepages -= newPages;
-                        debug(PRINTF) printFreeInfo(pool);
-                    }
-                    else
-                        goto Lmalloc; // does not fit into current pool
-
-                    if (bits)
-                    {
-                        immutable biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
-                        pool.clrBits(biti, ~BlkAttr.NONE);
-                        pool.setBits(biti, bits);
-                    }
-                    alloc_size = newsz * PAGESIZE;
-                    return p;
-                }
-
-                psize = (cast(SmallObjectPool*) pool).getSize(p);   // get allocated size
-                if (psize < size ||             // if new size is bigger
-                    psize > size * 2)           // or less than half
-                {
-                Lmalloc:
-                    if (psize && pool)
-                    {
-                        auto biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
-
-                        if (bits)
-                        {
-                            pool.clrBits(biti, ~BlkAttr.NONE);
-                            pool.setBits(biti, bits);
-                        }
-                        else
-                        {
-                            bits = pool.getBits(biti);
-                        }
-                    }
-                    p2 = mallocNoSync(size, bits, alloc_size, ti);
-                    if (psize < size)
-                        size = psize;
-                    //debug(PRINTF) printf("\tcopying %d bytes\n",size);
-                    memcpy(p2, p, size);
-                    p = p2;
-                }
-                else
-                    alloc_size = psize;
-            }
+        if (bits)
+        {
+            pool.clrBits(biti, ~BlkAttr.NONE);
+            pool.setBits(biti, bits);
         }
         return p;
     }
@@ -1426,6 +1407,9 @@ struct Gcx
         {
             //printf("Gcx.invariant(): this = %p\n", &this);
             pooltable.Invariant();
+            for (size_t p = 0; p < pooltable.length; p++)
+                if (pooltable.pools[p].isLargeObject)
+                    (cast(LargeObjectPool*)(pooltable.pools[p])).Invariant();
 
             for (size_t p = 0; p < pooltable.length; p++)
                 if (pooltable.pools[p].isLargeObject)
