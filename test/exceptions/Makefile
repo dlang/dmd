@@ -61,7 +61,7 @@ $(ROOT)/future_message.done: STDERR_EXP="exception I have a custom message. exce
 $(ROOT)/static_dtor.done: NEGATE=!
 $(ROOT)/rt_trap_exceptions.done: STDERR_EXP="object.Exception@src/rt_trap_exceptions.d(12): this will abort"
 $(ROOT)/rt_trap_exceptions.done: STDERR_EXP2="src/rt_trap_exceptions.d:8 main"
-$(ROOT)/assert_fail.done: STDERR_EXP="success"
+$(ROOT)/assert_fail.done: STDERR_EXP="success."
 $(ROOT)/%.done: $(ROOT)/%
 	@echo Testing $*
 	$(NEGATE) $(QUIET)$(TIMELIMIT)$(ROOT)/$* $(RUN_ARGS) 2>&1 1>/dev/null | grep -qF $(STDERR_EXP)

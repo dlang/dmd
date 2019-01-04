@@ -1,4 +1,4 @@
-import core.stdc.stdio : printf;
+import core.stdc.stdio : fprintf, printf, stderr;
 
 void test(string comp = "==", A, B)(A a, B b, string msg, size_t line = __LINE__)
 {
@@ -120,5 +120,5 @@ void main()
     testArray();
     testStruct();
     testAA();
-    printf("success.\n");
+    fprintf(stderr, "success.\n");
 }
