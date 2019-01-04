@@ -42,7 +42,8 @@ enum
 {
     CHECKACTION_D,        // call D assert on failure
     CHECKACTION_C,        // call C assert on failure
-    CHECKACTION_halt      // cause program halt on failure
+    CHECKACTION_halt,     // cause program halt on failure
+    CHECKACTION_context   // call D assert with the error context on failure
 };
 
 enum CPU

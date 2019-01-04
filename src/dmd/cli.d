@@ -185,7 +185,7 @@ struct Usage
                     $(LI $(B off): specified check is disabled.)
                 )`
         ),
-        Option("checkaction=D|C|halt",
+        Option("checkaction=D|C|halt|context",
             "behavior on assert/boundscheck/finalswitch failure",
             `Sets behavior when an assert fails, and array boundscheck fails,
              or a final switch errors.
@@ -193,6 +193,7 @@ struct Usage
                     $(LI $(B D): Default behavior, which throws an unrecoverable $(D Error).)
                     $(LI $(B C): Calls the C runtime library assert failure function.)
                     $(LI $(B halt): Executes a halt instruction, terminating the program.)
+                    $(LI $(B context): Prints the error context as part of the unrecoverable $(D Error).)
                 )`
         ),
         Option("color",
