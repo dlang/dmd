@@ -53,7 +53,7 @@ assert expression:
 void main()
 {
     int a, b = 2;
-    assert(a == b);
+    assert(a && a == b);
 }
 ---
 
