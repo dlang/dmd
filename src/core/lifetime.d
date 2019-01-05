@@ -1292,3 +1292,666 @@ pure nothrow @safe /* @nogc */ unittest
     static assert(!is(typeof(emplace!A(buf))));
 }
 // Bulk of emplace unittests ends here
+
+/**
+Forwards function arguments while keeping `out`, `ref`, and `lazy` on
+the parameters.
+
+Params:
+    args = a parameter list or an $(REF AliasSeq,std,meta).
+Returns:
+    An `AliasSeq` of `args` with `out`, `ref`, and `lazy` saved.
+*/
+template forward(args...)
+{
+    import core.internal.traits : AliasSeq;
+
+    static if (args.length)
+    {
+        alias arg = args[0];
+        // by ref || lazy || const/immutable
+        static if (__traits(isRef,  arg) ||
+                   __traits(isOut,  arg) ||
+                   __traits(isLazy, arg) ||
+                   !is(typeof(move(arg))))
+            alias fwd = arg;
+        // (r)value
+        else
+            @property auto fwd(){ return move(arg); }
+
+        static if (args.length == 1)
+            alias forward = fwd;
+        else
+            alias forward = AliasSeq!(fwd, forward!(args[1..$]));
+    }
+    else
+        alias forward = AliasSeq!();
+}
+
+///
+@safe unittest
+{
+    class C
+    {
+        static int foo(int n) { return 1; }
+        static int foo(ref int n) { return 2; }
+    }
+
+    // with forward
+    int bar()(auto ref int x) { return C.foo(forward!x); }
+
+    // without forward
+    int baz()(auto ref int x) { return C.foo(x); }
+
+    int i;
+    assert(bar(1) == 1);
+    assert(bar(i) == 2);
+
+    assert(baz(1) == 2);
+    assert(baz(i) == 2);
+}
+
+///
+@safe unittest
+{
+    void foo(int n, ref string s) { s = null; foreach (i; 0 .. n) s ~= "Hello"; }
+
+    // forwards all arguments which are bound to parameter tuple
+    void bar(Args...)(auto ref Args args) { return foo(forward!args); }
+
+    // forwards all arguments with swapping order
+    void baz(Args...)(auto ref Args args) { return foo(forward!args[$/2..$], forward!args[0..$/2]); }
+
+    string s;
+    bar(1, s);
+    assert(s == "Hello");
+    baz(s, 2);
+    assert(s == "HelloHello");
+}
+
+@safe unittest
+{
+    auto foo(TL...)(auto ref TL args)
+    {
+        string result = "";
+        foreach (i, _; args)
+        {
+            //pragma(msg, "[",i,"] ", __traits(isRef, args[i]) ? "L" : "R");
+            result ~= __traits(isRef, args[i]) ? "L" : "R";
+        }
+        return result;
+    }
+
+    string bar(TL...)(auto ref TL args)
+    {
+        return foo(forward!args);
+    }
+    string baz(TL...)(auto ref TL args)
+    {
+        int x;
+        return foo(forward!args[3], forward!args[2], 1, forward!args[1], forward!args[0], x);
+    }
+
+    struct S {}
+    S makeS(){ return S(); }
+    int n;
+    string s;
+    assert(bar(S(), makeS(), n, s) == "RRLL");
+    assert(baz(S(), makeS(), n, s) == "LLRRRL");
+}
+
+@safe unittest
+{
+    ref int foo(return ref int a) { return a; }
+    ref int bar(Args)(auto ref Args args)
+    {
+        return foo(forward!args);
+    }
+    static assert(!__traits(compiles, { auto x1 = bar(3); })); // case of NG
+    int value = 3;
+    auto x2 = bar(value); // case of OK
+}
+
+///
+@safe unittest
+{
+    struct X {
+        int i;
+        this(this)
+        {
+            ++i;
+        }
+    }
+
+    struct Y
+    {
+        private X x_;
+        this()(auto ref X x)
+        {
+            x_ = forward!x;
+        }
+    }
+
+    struct Z
+    {
+        private const X x_;
+        this()(auto ref X x)
+        {
+            x_ = forward!x;
+        }
+        this()(auto const ref X x)
+        {
+            x_ = forward!x;
+        }
+    }
+
+    X x;
+    const X cx;
+    auto constX = (){ const X x; return x; };
+    static assert(__traits(compiles, { Y y = x; }));
+    static assert(__traits(compiles, { Y y = X(); }));
+    static assert(!__traits(compiles, { Y y = cx; }));
+    static assert(!__traits(compiles, { Y y = constX(); }));
+    static assert(__traits(compiles, { Z z = x; }));
+    static assert(__traits(compiles, { Z z = X(); }));
+    static assert(__traits(compiles, { Z z = cx; }));
+    static assert(__traits(compiles, { Z z = constX(); }));
+
+
+    Y y1 = x;
+    // ref lvalue, copy
+    assert(y1.x_.i == 1);
+    Y y2 = X();
+    // rvalue, move
+    assert(y2.x_.i == 0);
+
+    Z z1 = x;
+    // ref lvalue, copy
+    assert(z1.x_.i == 1);
+    Z z2 = X();
+    // rvalue, move
+    assert(z2.x_.i == 0);
+    Z z3 = cx;
+    // ref const lvalue, copy
+    assert(z3.x_.i == 1);
+    Z z4 = constX();
+    // const rvalue, copy
+    assert(z4.x_.i == 1);
+}
+
+// lazy -> lazy
+@safe unittest
+{
+    int foo1(lazy int i) { return i; }
+    int foo2(A)(auto ref A i) { return foo1(forward!i); }
+    int foo3(lazy int i) { return foo2(i); }
+
+    int numCalls = 0;
+    assert(foo3({ ++numCalls; return 42; }()) == 42);
+    assert(numCalls == 1);
+}
+
+// lazy -> non-lazy
+@safe unittest
+{
+    int foo1(int a, int b) { return a + b; }
+    int foo2(A...)(auto ref A args) { return foo1(forward!args); }
+    int foo3(int a, lazy int b) { return foo2(a, b); }
+
+    int numCalls;
+    assert(foo3(11, { ++numCalls; return 31; }()) == 42);
+    assert(numCalls == 1);
+}
+
+// non-lazy -> lazy
+@safe unittest
+{
+    int foo1(int a, lazy int b) { return a + b; }
+    int foo2(A...)(auto ref A args) { return foo1(forward!args); }
+    int foo3(int a, int b) { return foo2(a, b); }
+
+    assert(foo3(11, 31) == 42);
+}
+
+// out
+@safe unittest
+{
+    void foo1(int a, out int b) { b = a; }
+    void foo2(A...)(auto ref A args) { foo1(forward!args); }
+    void foo3(int a, out int b) { foo2(a, b); }
+
+    int b;
+    foo3(42, b);
+    assert(b == 42);
+}
+
+// move
+/**
+Moves `source` into `target`, via a destructive copy when necessary.
+
+If `T` is a struct with a destructor or postblit defined, source is reset
+to its `.init` value after it is moved into target, otherwise it is
+left unchanged.
+
+Preconditions:
+If source has internal pointers that point to itself, it cannot be moved, and
+will trigger an assertion failure.
+
+Params:
+    source = Data to copy.
+    target = Where to copy into. The destructor, if any, is invoked before the
+        copy is performed.
+*/
+void move(T)(ref T source, ref T target)
+{
+    // test @safe destructible
+    static if (__traits(compiles, (T t) @safe {}))
+        trustedMoveImpl(source, target);
+    else
+        moveImpl(source, target);
+}
+
+/// For non-struct types, `move` just performs `target = source`:
+@safe unittest
+{
+    Object obj1 = new Object;
+    Object obj2 = obj1;
+    Object obj3;
+
+    move(obj2, obj3);
+    assert(obj3 is obj1);
+    // obj2 unchanged
+    assert(obj2 is obj1);
+}
+
+///
+pure nothrow @safe @nogc unittest
+{
+    // Structs without destructors are simply copied
+    struct S1
+    {
+        int a = 1;
+        int b = 2;
+    }
+    S1 s11 = { 10, 11 };
+    S1 s12;
+
+    move(s11, s12);
+
+    assert(s12 == S1(10, 11));
+    assert(s11 == s12);
+
+    // But structs with destructors or postblits are reset to their .init value
+    // after copying to the target.
+    struct S2
+    {
+        int a = 1;
+        int b = 2;
+
+        ~this() pure nothrow @safe @nogc { }
+    }
+    S2 s21 = { 3, 4 };
+    S2 s22;
+
+    move(s21, s22);
+
+    assert(s21 == S2(1, 2));
+    assert(s22 == S2(3, 4));
+}
+
+@safe unittest
+{
+    import core.internal.traits;
+
+    assertCTFEable!((){
+        Object obj1 = new Object;
+        Object obj2 = obj1;
+        Object obj3;
+        move(obj2, obj3);
+        assert(obj3 is obj1);
+
+        static struct S1 { int a = 1, b = 2; }
+        S1 s11 = { 10, 11 };
+        S1 s12;
+        move(s11, s12);
+        assert(s11.a == 10 && s11.b == 11 && s12.a == 10 && s12.b == 11);
+
+        static struct S2 { int a = 1; int * b; }
+        S2 s21 = { 10, null };
+        s21.b = new int;
+        S2 s22;
+        move(s21, s22);
+        assert(s21 == s22);
+    });
+    // Issue 5661 test(1)
+    static struct S3
+    {
+        static struct X { int n = 0; ~this(){n = 0;} }
+        X x;
+    }
+    static assert(hasElaborateDestructor!S3);
+    S3 s31, s32;
+    s31.x.n = 1;
+    move(s31, s32);
+    assert(s31.x.n == 0);
+    assert(s32.x.n == 1);
+
+    // Issue 5661 test(2)
+    static struct S4
+    {
+        static struct X { int n = 0; this(this){n = 0;} }
+        X x;
+    }
+    static assert(hasElaborateCopyConstructor!S4);
+    S4 s41, s42;
+    s41.x.n = 1;
+    move(s41, s42);
+    assert(s41.x.n == 0);
+    assert(s42.x.n == 1);
+
+    // Issue 13990 test
+    class S5;
+
+    S5 s51;
+    S5 s52 = s51;
+    S5 s53;
+    move(s52, s53);
+    assert(s53 is s51);
+}
+
+/// Ditto
+T move(T)(return scope ref T source)
+{
+    // test @safe destructible
+    static if (__traits(compiles, (T t) @safe {}))
+        return trustedMoveImpl(source);
+    else
+        return moveImpl(source);
+}
+
+/// Non-copyable structs can still be moved:
+pure nothrow @safe @nogc unittest
+{
+    struct S
+    {
+        int a = 1;
+        @disable this(this);
+        ~this() pure nothrow @safe @nogc {}
+    }
+    S s1;
+    s1.a = 2;
+    S s2 = move(s1);
+    assert(s1.a == 1);
+    assert(s2.a == 2);
+}
+
+private void trustedMoveImpl(T)(ref T source, ref T target) @trusted
+{
+    moveImpl(source, target);
+}
+
+private void moveImpl(T)(ref T source, ref T target)
+{
+    import core.internal.traits : hasElaborateDestructor;
+
+    static if (is(T == struct))
+    {
+        if (&source == &target) return;
+        // Destroy target before overwriting it
+        static if (hasElaborateDestructor!T) target.__xdtor();
+    }
+    // move and emplace source into target
+    moveEmplace(source, target);
+}
+
+private T trustedMoveImpl(T)(ref T source) @trusted
+{
+    return moveImpl(source);
+}
+
+private T moveImpl(T)(ref T source)
+{
+    T result = void;
+    moveEmplace(source, result);
+    return result;
+}
+
+@safe unittest
+{
+    import core.internal.traits;
+
+    assertCTFEable!((){
+        Object obj1 = new Object;
+        Object obj2 = obj1;
+        Object obj3 = move(obj2);
+        assert(obj3 is obj1);
+
+        static struct S1 { int a = 1, b = 2; }
+        S1 s11 = { 10, 11 };
+        S1 s12 = move(s11);
+        assert(s11.a == 10 && s11.b == 11 && s12.a == 10 && s12.b == 11);
+
+        static struct S2 { int a = 1; int * b; }
+        S2 s21 = { 10, null };
+        s21.b = new int;
+        S2 s22 = move(s21);
+        assert(s21 == s22);
+    });
+
+    // Issue 5661 test(1)
+    static struct S3
+    {
+        static struct X { int n = 0; ~this(){n = 0;} }
+        X x;
+    }
+    static assert(hasElaborateDestructor!S3);
+    S3 s31;
+    s31.x.n = 1;
+    S3 s32 = move(s31);
+    assert(s31.x.n == 0);
+    assert(s32.x.n == 1);
+
+    // Issue 5661 test(2)
+    static struct S4
+    {
+        static struct X { int n = 0; this(this){n = 0;} }
+        X x;
+    }
+    static assert(hasElaborateCopyConstructor!S4);
+    S4 s41;
+    s41.x.n = 1;
+    S4 s42 = move(s41);
+    assert(s41.x.n == 0);
+    assert(s42.x.n == 1);
+
+    // Issue 13990 test
+    class S5;
+
+    S5 s51;
+    S5 s52 = s51;
+    S5 s53;
+    s53 = move(s52);
+    assert(s53 is s51);
+}
+
+@system unittest
+{
+    static struct S { int n = 0; ~this() @system { n = 0; } }
+    S a, b;
+    static assert(!__traits(compiles, () @safe { move(a, b); }));
+    static assert(!__traits(compiles, () @safe { move(a); }));
+    a.n = 1;
+    () @trusted { move(a, b); }();
+    assert(a.n == 0);
+    a.n = 1;
+    () @trusted { move(a); }();
+    assert(a.n == 0);
+}
+/+ this can't be tested in druntime, tests are still run in phobos
+@safe unittest//Issue 6217
+{
+    import std.algorithm.iteration : map;
+    auto x = map!"a"([1,2,3]);
+    x = move(x);
+}
++/
+@safe unittest// Issue 8055
+{
+    static struct S
+    {
+        int x;
+        ~this()
+        {
+            assert(x == 0);
+        }
+    }
+    S foo(S s)
+    {
+        return move(s);
+    }
+    S a;
+    a.x = 0;
+    auto b = foo(a);
+    assert(b.x == 0);
+}
+
+@system unittest// Issue 8057
+{
+    int n = 10;
+    struct S
+    {
+        int x;
+        ~this()
+        {
+            // Access to enclosing scope
+            assert(n == 10);
+        }
+    }
+    S foo(S s)
+    {
+        // Move nested struct
+        return move(s);
+    }
+    S a;
+    a.x = 1;
+    auto b = foo(a);
+    assert(b.x == 1);
+
+    // Regression 8171
+    static struct Array(T)
+    {
+        // nested struct has no member
+        struct Payload
+        {
+            ~this() {}
+        }
+    }
+    Array!int.Payload x = void;
+    move(x);
+    move(x, x);
+}
+
+/**
+ * Similar to $(LREF move) but assumes `target` is uninitialized. This
+ * is more efficient because `source` can be blitted over `target`
+ * without destroying or initializing it first.
+ *
+ * Params:
+ *   source = value to be moved into target
+ *   target = uninitialized value to be filled by source
+ */
+void moveEmplace(T)(ref T source, ref T target) @system
+{
+    import core.stdc.string : memcpy, memset;
+    import core.internal.traits;
+
+    // TODO: this assert pulls in half of phobos. we need to work out an alternative assert strategy.
+//    static if (!is(T == class) && hasAliasing!T) if (!__ctfe)
+//    {
+//        import std.exception : doesPointTo;
+//        assert(!doesPointTo(source, source), "Cannot move object with internal pointer.");
+//    }
+
+    static if (is(T == struct))
+    {
+        assert(&source !is &target, "source and target must not be identical");
+
+        static if (hasElaborateAssign!T || !isAssignable!T)
+            memcpy(&target, &source, T.sizeof);
+        else
+            target = source;
+
+        // If the source defines a destructor or a postblit hook, we must obliterate the
+        // object in order to avoid double freeing and undue aliasing
+        static if (hasElaborateDestructor!T || hasElaborateCopyConstructor!T)
+        {
+            // If T is nested struct, keep original context pointer
+            static if (__traits(isNested, T))
+                enum sz = T.sizeof - (void*).sizeof;
+            else
+                enum sz = T.sizeof;
+
+            static if (__traits(isZeroInit, T))
+                memset(&source, 0, sz);
+            else
+            {
+                auto init = typeid(T).initializer();
+                memcpy(&source, init.ptr, sz);
+            }
+        }
+    }
+    else static if (__traits(isStaticArray, T))
+    {
+        for (size_t i = 0; i < source.length; ++i)
+            move(source[i], target[i]);
+    }
+    else
+    {
+        // Primitive data (including pointers and arrays) or class -
+        // assignment works great
+        target = source;
+    }
+}
+
+///
+pure nothrow @nogc @system unittest
+{
+    static struct Foo
+    {
+    pure nothrow @nogc:
+        this(int* ptr) { _ptr = ptr; }
+        ~this() { if (_ptr) ++*_ptr; }
+        int* _ptr;
+    }
+
+    int val;
+    Foo foo1 = void; // uninitialized
+    auto foo2 = Foo(&val); // initialized
+    assert(foo2._ptr is &val);
+
+    // Using `move(foo2, foo1)` would have an undefined effect because it would destroy
+    // the uninitialized foo1.
+    // moveEmplace directly overwrites foo1 without destroying or initializing it first.
+    moveEmplace(foo2, foo1);
+    assert(foo1._ptr is &val);
+    assert(foo2._ptr is null);
+    assert(val == 0);
+}
+
+// issue 18913
+@safe unittest
+{
+    static struct NoCopy
+    {
+        int payload;
+        ~this() { }
+        @disable this(this);
+    }
+
+    static void f(NoCopy[2]) { }
+
+    NoCopy[2] ncarray = [ NoCopy(1), NoCopy(2) ];
+
+    static assert(!__traits(compiles, f(ncarray)));
+    f(move(ncarray));
+}

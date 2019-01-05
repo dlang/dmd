@@ -13,6 +13,7 @@ template TypeTuple(TList...)
 {
     alias TypeTuple = TList;
 }
+alias AliasSeq = TypeTuple;
 
 template FieldTypeTuple(T)
 {
@@ -203,7 +204,7 @@ template anySatisfy(alias F, T...)
 }
 
 // simplified from std.traits.maxAlignment
-private template maxAlignment(U...)
+template maxAlignment(U...)
 {
     static if (U.length == 0)
         static assert(0);
@@ -220,7 +221,7 @@ private template maxAlignment(U...)
 }
 
 // std.traits.Fields
-private template Fields(T)
+template Fields(T)
 {
     static if (is(T == struct) || is(T == union))
         alias Fields = typeof(T.tupleof[0 .. $ - __traits(isNested, T)]);
@@ -324,4 +325,12 @@ template staticMap(alias F, T...)
                 staticMap!(F, T[ 0  .. $/2]),
                 staticMap!(F, T[$/2 ..  $ ]));
     }
+}
+
+// std.exception.assertCTFEable
+version (unittest) package(core)
+void assertCTFEable(alias dg)()
+{
+    static assert({ cast(void) dg(); return true; }());
+    cast(void) dg();
 }
