@@ -665,6 +665,8 @@ dmd -cov -unittest myprog.d
             "enable Markdown replacements in Ddoc"),
         Transition(null, "vmarkdown", "vmarkdown",
             "list instances of Markdown replacements in Ddoc"),
+        Transition(null, "noDIP25", "noDIP25",
+            "revert DIP25 changes https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md"),
     ];
 }
 

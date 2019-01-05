@@ -102,13 +102,13 @@ fail_compilation/fail13902.d(123): Error: Using the result of a comma expression
 ---
 */
 int* testEscape3(
-    ref int x, ref int y,
+    return ref int x, return ref int y,
     ref int[] da1,
     ref int[][] da2,
-    ref int[1] sa1,
-    ref int[1][1] sa2,
+    return ref int[1] sa1,
+    return ref int[1][1] sa2,
     ref int* ptr,
-    ref S1 s1,
+    return ref S1 s1,
     ref S2 s2,
     ref C  c,
 )
@@ -265,12 +265,12 @@ TEST_OUTPUT:
 ---
 */
 ref int testEscapeRef2(
-    ref int x,
+    return ref int x,
     ref int[] da1,
     ref int[][] da2,
-    ref int[1] sa1,
-    ref int[1][1] sa2,
-    ref S1 s1,
+    return ref int[1] sa1,
+    return ref int[1][1] sa2,
+    return ref S1 s1,
     ref C  c,
 )
 {

@@ -504,7 +504,7 @@ struct IntRange
         union_ = true;
     }
 
-    ref const(IntRange) dump(const(char)* funcName, Expression e) const
+    ref const(IntRange) dump(const(char)* funcName, Expression e) const return
     {
         printf("[(%c)%#018llx, (%c)%#018llx] @ %s ::: %s\n",
                imin.negative?'-':'+', cast(ulong)imin.value,

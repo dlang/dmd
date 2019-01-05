@@ -139,7 +139,7 @@ void test3()
 struct S4
 {
     private int _prop = 42;
-    ref int property() { return _prop; }
+    ref int property() return { return _prop; }
 }
 
 void test4()
@@ -157,11 +157,11 @@ struct S5
     int mX;
     string mY;
 
-    ref int x()
+    ref int x() return
     {
         return mX;
     }
-    ref string y()
+    ref string y() return
     {
         return mY;
     }
@@ -1146,7 +1146,7 @@ struct V15044
     {
     }
 
-    RC15044!V15044 dup()
+    RC15044!V15044 dup() return
     {
         return RC15044!V15044(&this);
     }
