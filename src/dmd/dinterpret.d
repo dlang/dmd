@@ -5670,20 +5670,38 @@ public:
         {
             printf("%s CatExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
-        {
-        Expression e1 = interpret(e.e1, istate);
+
+        UnionExp ue1 = void;
+        Expression e1 = interpret(&ue1, e.e1, istate);
         if (exceptionOrCant(e1))
             return;
-        Expression e2 = interpret(e.e2, istate);
+
+        UnionExp ue2 = void;
+        Expression e2 = interpret(&ue2, e.e2, istate);
         if (exceptionOrCant(e2))
             return;
 
         UnionExp e1tmp = void;
         e1 = resolveSlice(e1, &e1tmp);
+
         UnionExp e2tmp = void;
         e2 = resolveSlice(e2, &e2tmp);
-        result = ctfeCat(e.loc, e.type, e1, e2).copy();
+
+        /* e1 and e2 can't go on the stack because of x~[y] and [x]~y will
+         * result in [x,y] and then x or y is on the stack.
+         * But if they are both strings, we can, because it isn't the x~[y] case.
+         */
+        if (!(e1.op == TOK.string_ && e2.op == TOK.string_))
+        {
+            if (e1 == ue1.exp())
+                e1 = ue1.copy();
+            if (e2 == ue2.exp())
+                e2 = ue2.copy();
         }
+
+        *pue = ctfeCat(e.loc, e.type, e1, e2);
+        result = pue.exp();
+
         if (CTFEExp.isCantExp(result))
         {
             e.error("`%s` cannot be interpreted at compile time", e.toChars());
@@ -5702,7 +5720,7 @@ public:
                     return;
             }
         }
-        if (auto se = result.isStringExp())
+        else if (auto se = result.isStringExp())
             se.ownedByCtfe = OwnedBy.ctfe;
     }
 
