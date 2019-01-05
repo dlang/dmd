@@ -2317,7 +2317,7 @@ public:
                      * e is a value that is not yet owned by CTFE.
                      * Mark as "cached", and use it directly during interpretation.
                      */
-                    e = scrubCacheValue(v.loc, e);
+                    e = scrubCacheValue(e);
                     ctfeStack.saveGlobalConstant(v, e);
                 }
                 else
@@ -6418,44 +6418,105 @@ Expression interpret(Statement s, InterState* istate)
     return result;
 }
 
-/* All results destined for use outside of CTFE need to have their CTFE-specific
+/**
+ * All results destined for use outside of CTFE need to have their CTFE-specific
  * features removed.
- * In particular, all slices must be resolved.
+ * In particular,
+ * 1. all slices must be resolved.
+ * 2. all .ownedByCtfe set to OwnedBy.code
  */
 private Expression scrubReturnValue(const ref Loc loc, Expression e)
 {
+    /* Returns: true if e is void,
+     * or is an array literal or struct literal of void elements.
+     */
+    static bool isVoid(const Expression e) pure
+    {
+        if (e.op == TOK.void_)
+            return true;
+
+        static bool isEntirelyVoid(const Expressions* elems)
+        {
+            foreach (e; *elems)
+            {
+                // It can be NULL for performance reasons,
+                // see StructLiteralExp::interpret().
+                if (e && !isVoid(e))
+                    return false;
+            }
+            return true;
+        }
+
+        if (auto ale = e.isArrayLiteralExp())
+            return isEntirelyVoid(ale.elements);
+
+        if (auto sle = e.isStructLiteralExp())
+            return isEntirelyVoid(sle.elements);
+
+        return false;
+    }
+
+
+    /* Scrub all elements of elems[].
+     * Returns: null for success, error Expression for failure
+     */
+    Expression scrubArray(Expressions* elems, bool structlit = false)
+    {
+        foreach (ref e; *elems)
+        {
+            // It can be NULL for performance reasons,
+            // see StructLiteralExp::interpret().
+            if (!e)
+                continue;
+
+            // A struct .init may contain void members.
+            // Static array members are a weird special case https://issues.dlang.org/show_bug.cgi?id=10994
+            if (structlit && isVoid(e))
+            {
+                e = null;
+            }
+            else
+            {
+                e = scrubReturnValue(loc, e);
+                if (CTFEExp.isCantExp(e) || e.op == TOK.error)
+                    return e;
+            }
+        }
+        return null;
+    }
+
+    Expression scrubSE(StructLiteralExp sle)
+    {
+        sle.ownedByCtfe = OwnedBy.code;
+        if (!(sle.stageflags & stageScrub))
+        {
+            const old = sle.stageflags;
+            sle.stageflags |= stageScrub;       // prevent infinite recursion
+            if (auto ex = scrubArray(sle.elements, true))
+                return ex;
+            sle.stageflags = old;
+        }
+        return null;
+    }
+
     if (e.op == TOK.classReference)
     {
-        StructLiteralExp se = (cast(ClassReferenceExp)e).value;
-        se.ownedByCtfe = OwnedBy.code;
-        if (!(se.stageflags & stageScrub))
-        {
-            int old = se.stageflags;
-            se.stageflags |= stageScrub;
-            if (Expression ex = scrubArray(loc, se.elements, true))
-                return ex;
-            se.stageflags = old;
-        }
+        StructLiteralExp sle = (cast(ClassReferenceExp)e).value;
+        if (auto ex = scrubSE(sle))
+            return ex;
     }
-    else if (e.op == TOK.void_)
+    else if (auto vie = e.isVoidInitExp())
     {
-        error(loc, "uninitialized variable `%s` cannot be returned from CTFE", (cast(VoidInitExp)e).var.toChars());
+        error(loc, "uninitialized variable `%s` cannot be returned from CTFE", vie.var.toChars());
         return new ErrorExp();
     }
 
     e = resolveSlice(e);
 
-    if (auto se = e.isStructLiteralExp())
+    if (auto sle = e.isStructLiteralExp())
     {
-        se.ownedByCtfe = OwnedBy.code;
-        if (!(se.stageflags & stageScrub))
-        {
-            int old = se.stageflags;
-            se.stageflags |= stageScrub;
-            if (Expression ex = scrubArray(loc, se.elements, true))
-                return ex;
-            se.stageflags = old;
-        }
+        if (auto ex = scrubSE(sle))
+            return ex;
     }
     else if (auto se = e.isStringExp())
     {
@@ -6464,98 +6525,59 @@ private Expression scrubReturnValue(const ref Loc loc, Expression e)
     else if (auto ale = e.isArrayLiteralExp())
     {
         ale.ownedByCtfe = OwnedBy.code;
-        if (Expression ex = scrubArray(loc, ale.elements))
+        if (auto ex = scrubArray(ale.elements))
             return ex;
     }
     else if (auto aae = e.isAssocArrayLiteralExp())
     {
         aae.ownedByCtfe = OwnedBy.code;
-        if (Expression ex = scrubArray(loc, aae.keys))
+        if (auto ex = scrubArray(aae.keys))
             return ex;
-        if (Expression ex = scrubArray(loc, aae.values))
+        if (auto ex = scrubArray(aae.values))
             return ex;
         aae.type = toBuiltinAAType(aae.type);
     }
     return e;
 }
 
-// Return true if every element is either void,
-// or is an array literal or struct literal of void elements.
-private bool isEntirelyVoid(Expressions* elems)
+/**************************************
+ * Transitively set all .ownedByCtfe to OwnedBy.cache
+ */
+private Expression scrubCacheValue(Expression e)
 {
-    foreach (e; *elems)
-    {
-        // It can be NULL for performance reasons,
-        // see StructLiteralExp::interpret().
-        if (!e)
-            continue;
+    if (!e)
+        return e;
 
-        if (!(e.op == TOK.void_) &&
-            !(e.op == TOK.arrayLiteral && isEntirelyVoid((cast(ArrayLiteralExp)e).elements)) &&
-            !(e.op == TOK.structLiteral && isEntirelyVoid((cast(StructLiteralExp)e).elements)))
-        {
-            return false;
-        }
+    Expression scrubArrayCache(Expressions* elems)
+    {
+        foreach (ref e; *elems)
+            e = scrubCacheValue(e);
+        return null;
     }
-    return true;
-}
 
-// Scrub all members of an array. Return false if error
-private Expression scrubArray(const ref Loc loc, Expressions* elems, bool structlit = false)
-{
-    foreach (i, e; *elems)
+    Expression scrubSE(StructLiteralExp sle)
     {
-        // It can be NULL for performance reasons,
-        // see StructLiteralExp::interpret().
-        if (!e)
-            continue;
-
-        // A struct .init may contain void members.
-        // Static array members are a weird special case (bug 10994).
-        if (structlit &&
-            ((e.op == TOK.void_) ||
-             (e.op == TOK.arrayLiteral && e.type.ty == Tsarray && isEntirelyVoid((cast(ArrayLiteralExp)e).elements)) ||
-             (e.op == TOK.structLiteral && isEntirelyVoid((cast(StructLiteralExp)e).elements))))
-        {
-            e = null;
-        }
-        else
-        {
-            e = scrubReturnValue(loc, e);
-            if (CTFEExp.isCantExp(e) || e.op == TOK.error)
-                return e;
-        }
-        (*elems)[i] = e;
-    }
-    return null;
-}
-
-private Expression scrubCacheValue(const ref Loc loc, Expression e)
-{
-    if (e.op == TOK.classReference)
-    {
-        StructLiteralExp sle = (cast(ClassReferenceExp)e).value;
         sle.ownedByCtfe = OwnedBy.cache;
         if (!(sle.stageflags & stageScrub))
         {
             const old = sle.stageflags;
-            sle.stageflags |= stageScrub;
-            if (Expression ex = scrubArrayCache(loc, sle.elements))
+            sle.stageflags |= stageScrub;       // prevent infinite recursion
+            if (auto ex = scrubArrayCache(sle.elements))
                 return ex;
             sle.stageflags = old;
         }
+        return null;
+    }
+
+    if (e.op == TOK.classReference)
+    {
+        if (auto ex = scrubSE((cast(ClassReferenceExp)e).value))
+            return ex;
     }
     else if (auto sle = e.isStructLiteralExp())
     {
-        sle.ownedByCtfe = OwnedBy.cache;
-        if (!(sle.stageflags & stageScrub))
-        {
-            int old = sle.stageflags;
-            sle.stageflags |= stageScrub;
-            if (Expression ex = scrubArrayCache(loc, sle.elements))
-                return ex;
-            sle.stageflags = old;
-        }
+        if (auto ex = scrubSE(sle))
+            return ex;
     }
     else if (auto se = e.isStringExp())
     {
@@ -6564,29 +6586,18 @@ private Expression scrubCacheValue(const ref Loc loc, Expression e)
     else if (auto ale = e.isArrayLiteralExp())
     {
         ale.ownedByCtfe = OwnedBy.cache;
-        if (Expression ex = scrubArrayCache(loc, ale.elements))
+        if (Expression ex = scrubArrayCache(ale.elements))
             return ex;
     }
     else if (auto aae = e.isAssocArrayLiteralExp())
     {
         aae.ownedByCtfe = OwnedBy.cache;
-        if (Expression ex = scrubArrayCache(loc, aae.keys))
+        if (auto ex = scrubArrayCache(aae.keys))
             return ex;
-        if (Expression ex = scrubArrayCache(loc, aae.values))
+        if (auto ex = scrubArrayCache(aae.values))
             return ex;
     }
     return e;
-}
-
-private Expression scrubArrayCache(const ref Loc loc, Expressions* elems)
-{
-    foreach (ref e; *elems)
-    {
-        if (!e)
-            continue;
-        e = scrubCacheValue(loc, e);
-    }
-    return null;
 }
 
 /******************************* Special Functions ***************************/
