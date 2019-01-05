@@ -471,7 +471,7 @@ dmd -cov -unittest myprog.d
             $(DT native)$(DD use the architecture the compiler is running on)
             )`,
         ),
-        Option("mcpu=?",
+        Option("mcpu=h[elp]",
             "list all architecture options"
         ),
         Option("mixin=<filename>",
@@ -576,7 +576,7 @@ dmd -cov -unittest myprog.d
             "help with language change identified by 'id'",
             `Show additional info about language change identified by $(I id)`,
         ),
-        Option("transition=?",
+        Option("transition=h[elp]",
             "list all language changes"
         ),
         Option("unittest",
