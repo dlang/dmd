@@ -87,26 +87,26 @@ echo "$output" | grep "Error: unrecognized switch '-mcpuf'"
 
 for w in "transition" "transition=" ; do
     output="$(! $DMD "-${w}" 2>&1)"
-    echo "$output" | grep "Language changes listed by -transition=id:"
-    echo "$output" | grep "=markdown         enable Markdown replacements in Ddoc"
-    echo "$output" | grep "Error: \`-transition=<id>\` requires an id"
+    echo "$output" | grep "Language transitions listed by -transition=name:"
+    echo "$output" | grep "=vmarkdown        list instances of Markdown replacements in Ddoc"
+    echo "$output" | grep "Error: \`-transition=<name>\` requires a name"
 done
 
 for w in "transition=?" "transition=h" "transition=help" ; do
     output="$($DMD "-${w}")"
-    echo "$output" | grep "Language changes listed by -transition=id:"
-    echo "$output" | grep "=markdown         enable Markdown replacements in Ddoc"
+    echo "$output" | grep "Language transitions listed by -transition=name:"
+    echo "$output" | grep "=vmarkdown        list instances of Markdown replacements in Ddoc"
 done
 
 output="$(! $DMD -transition=foo 2>&1)"
 echo "$output" | grep "Error: Transition \`-transition=foo\` is invalid"
-echo "$output" | grep "Language changes listed by -transition=id:"
-echo "$output" | grep "=markdown         enable Markdown replacements in Ddoc"
+echo "$output" | grep "Language transitions listed by -transition=name:"
+echo "$output" | grep "=vmarkdown        list instances of Markdown replacements in Ddoc"
 
 output="$(! $DMD -transition=123 2>&1)"
 echo "$output" | grep "Error: Transition \`-transition=123\` is invalid"
-echo "$output" | grep "Language changes listed by -transition=id:"
-echo "$output" | grep "=markdown         enable Markdown replacements in Ddoc"
+echo "$output" | grep "Language transitions listed by -transition=name:"
+echo "$output" | grep "=vmarkdown        list instances of Markdown replacements in Ddoc"
 
 output="$(! $DMD -transitionf 2>&1)"
 echo "$output" |  grep "Error: unrecognized switch '-transitionf'"
