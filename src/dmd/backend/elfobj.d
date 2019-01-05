@@ -1959,9 +1959,12 @@ private int elf_addsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx)
     }
     assert(seg_count < seg_max);
     if (!SegData[seg])
-    {   SegData[seg] = cast(seg_data *)mem_calloc((seg_data).sizeof);
+    {
+        SegData[seg] = cast(seg_data *)mem_calloc(seg_data.sizeof);
         //printf("test2: SegData[%d] = %p\n", seg, SegData[seg]);
     }
+    else
+        memset(SegData[seg], 0, seg_data.sizeof);
 
     seg_data *pseg = SegData[seg];
     pseg.SDseg = seg;
