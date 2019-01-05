@@ -1647,11 +1647,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             else
                 goto Lerror;
         }
-        else if (startsWith(p + 1, "stdc++=")) // https://dlang.org/dmd.html#switch-std-c%2B%2B
+        else if (startsWith(p + 1, "std=")) // https://dlang.org/dmd.html#switch-std-c%2B%2B
         {
-            if (strcmp(p + 8, "c++98") == 0)
+            if (strcmp(p + 5, "c++98") == 0)
                 params.cplusplus = CppStdRevision.cpp98;
-            else if (strcmp(p + 8, "c++11") == 0)
+            else if (strcmp(p + 5, "c++11") == 0)
                 params.cplusplus = CppStdRevision.cpp11;
             else
                 goto Lerror;
