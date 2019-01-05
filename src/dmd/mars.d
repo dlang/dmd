@@ -1615,7 +1615,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             //      -mcpu=identifier
             if (p[5] == '=')
             {
-                if (strcmp(p + 6, "?") == 0)
+                if (isHelpOption(p + 6))
                 {
                     params.mcpuUsage = true;
                     return false;
@@ -1641,8 +1641,18 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                         goto Lerror;
                     }
                 }
+                else if (p[6] == 0)
+                {
+                    params.mcpuUsage = true;
+                    return false;
+                }
                 else
                     goto Lerror;
+            }
+            else if (p[5] == 0)
+            {
+                params.mcpuUsage = true;
+                return false;
             }
             else
                 goto Lerror;
@@ -1662,7 +1672,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             //      -transition=number
             if (p[11] == '=')
             {
-                if (strcmp(p + 12, "?") == 0)
+                if (isHelpOption(p + 12))
                 {
                     params.transitionUsage = true;
                     return false;
@@ -1717,8 +1727,17 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                         goto Lerror;
                     }
                 }
+                else if (p[12] == 0) {
+                    params.transitionUsage = true;
+                    return false;
+                }
                 else
                     goto Lerror;
+            }
+            else if (p[11] == 0)
+            {
+                params.transitionUsage = true;
+                return false;
             }
             else
                 goto Lerror;
@@ -2375,4 +2394,17 @@ Modules createModules(ref Strings files, ref Strings libmodules)
         }
     }
     return modules;
+}
+
+/*
+Checks whether the option pointer supplied is a request
+for the help page.
+
+Returns: `true` if `p` points to `?`, `h` or `help`, otherwise `false`.
+*/
+bool isHelpOption(const(char*) p)
+{
+    return strcmp(p, "?") == 0 ||
+           strcmp(p, "h") == 0 ||
+           strcmp(p, "help") == 0;
 }
