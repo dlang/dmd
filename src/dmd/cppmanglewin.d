@@ -137,6 +137,8 @@ public:
     {
         if (checkImmutableShared(type))
             return;
+        if (checkTypeSaved(type))
+            return;
 
         buf.writestring("$$T");
         flags &= ~IS_NOT_TOP_TYPE;
