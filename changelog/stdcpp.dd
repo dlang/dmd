@@ -4,7 +4,7 @@ $(H2 Transition to C++11 character types)
   
           With C++11 comes the advent of changed character type mangling.
           D's default behavior will be to conform to this after a one 
-          release transition period. A new switch -std={c++98,c++11} is 
+          release transition period. A new switch -stdc++={c++98,c++11} is 
           added to control the version that compatibility is set to.
           This switch sets `__traits(getTargetInfo, "cppStd")` to the value of 
           `__cplusplus` that the corresponding version of the C++ standard defines.

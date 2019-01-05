@@ -562,8 +562,8 @@ dmd -cov -unittest myprog.d
             `$(UNIX Generate shared library)
              $(WINDOWS Generate DLL library)`,
         ),
-        Option("std=<standard>",
-            "set compatiblity with <standard>",
+        Option("stdc++=<standard>",
+            "set c++ compatiblity with <standard>",
             "Standards supported are:
             $(UL
                 $(LI $(I c++98) (default): Use C++98 name mangling,
