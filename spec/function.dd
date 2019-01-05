@@ -1236,8 +1236,13 @@ int foo(in int x, out int y, ref int z, int q);
     $(TROW $(D scope), references in the parameter
     cannot be escaped (e.g. assigned to a global variable).
     Ignored for parameters with no references)
+    $(TROW $(D return), $(ARGS Parameter may be returned or copied to the first parameter,
+    but otherwise does not escape from the function.
+    Such copies are required not to outlive the argument(s) they were derived from.
+    Ignored for parameters with no references.
+    See $(DDSUBLINK spec/memory-safe-d, scope-return-params, Scope Parameters).))
     $(TROW $(D lazy), argument is evaluated by the called function and not by the caller)
-        $(TROW $(D const), argument is implicitly converted to a const type)
+    $(TROW $(D const), argument is implicitly converted to a const type)
     $(TROW $(D immutable), argument is implicitly converted to an immutable type)
     $(TROW $(D shared), argument is implicitly converted to a shared type)
     $(TROW $(D inout), argument is implicitly converted to an inout type)
