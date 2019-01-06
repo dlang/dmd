@@ -2382,6 +2382,7 @@ Modules createModules(ref Strings files, ref Strings libmodules)
     return modules;
 }
 
+version(NoMain) {} else
 private
 {
     version (GNU)
