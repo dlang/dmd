@@ -2384,7 +2384,7 @@ Modules createModules(ref Strings files, ref Strings libmodules)
 
 private
 {
-    version (GDC)
+    version (GNU)
     {
         // does not support pragma(crt_constructor) yet
         import gcc.attribute;
@@ -2401,7 +2401,7 @@ private
     else version (LDC)
     {
         // does not allow arguments on pragma(crt_constructor)
-        import ldc.attributes;
+        import ldc.attributes : section;
         @section(".ctors") auto pini = &initGC;
     }
     else
