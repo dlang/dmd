@@ -897,7 +897,8 @@ Lagain:
      * and the overriding function, and so bias should be the same too.
     */
 
-    int bias = cast(int)(Para.size + (needframe ? 0 : REGSIZE));
+    int bias = enforcealign ? 0 : cast(int)(Para.size + (needframe ? 0 : REGSIZE));
+
     if (Fast.alignment < REGSIZE)
         Fast.alignment = REGSIZE;
 
