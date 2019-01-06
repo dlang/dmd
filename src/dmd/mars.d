@@ -293,6 +293,12 @@ private int tryMain(size_t argc, const(char)** argv)
         return EXIT_SUCCESS;
     }
 
+    if (global.params.enableGC)
+    {
+        import core.memory;
+        GC.enable();
+    }
+
     if (global.params.color)
         global.console = Console.create(core.stdc.stdio.stderr);
 
@@ -798,13 +804,8 @@ int main()
     import core.memory;
     import core.runtime;
 
-    version (GC)
-    {
-    }
-    else
-    {
-        GC.disable();
-    }
+    GC.disable();
+
     version(D_Coverage)
     {
         // for now we need to manually set the source path
@@ -1520,6 +1521,8 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.alwaysframe = true;
         else if (arg == "-gx")  // https://dlang.org/dmd.html#switch-gx
             params.stackstomp = true;
+        else if (arg == "-GC")
+            params.enableGC = true;
         else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
         {
             static if (TARGET.DragonFlyBSD) {
@@ -2022,6 +2025,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.debugx = true;
         else if (arg == "--y")
             params.debugy = true;
+        else if (arg.length >= 6 && arg[0..6] == "--DRT-")
+        {
+            // skip druntime options, not filtered as we use C args here
+        }
         else if (p[1] == 'L')                        // https://dlang.org/dmd.html#switch-L
         {
             params.linkswitches.push(p + 2 + (p[2] == '='));

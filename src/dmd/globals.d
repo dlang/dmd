@@ -176,6 +176,7 @@ struct Param
     bool mcpuUsage;         // print help on -mcpu switch
     bool transitionUsage;   // print help on -transition switch
     bool logo;              // print compiler logo
+    bool enableGC;          // use garbage collection instead of bump-ptr allocation during compilation
 
     CPU cpu = CPU.baseline; // CPU instruction set to target
 
