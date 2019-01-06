@@ -232,6 +232,7 @@ tryagain:
     cgstate.stackclean = 1;
     cgstate.funcarg.init();
     cgstate.funcargtos = ~0;
+    STACKALIGN = TARGET_STACKALIGN;
 
     regsave.reset();
     memset(_8087elems.ptr,0,_8087elems.sizeof);

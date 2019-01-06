@@ -330,6 +330,7 @@ extern __gshared
         framehandleroffset;
     segidx_t cseg;
     int STACKALIGN;
+    int TARGET_STACKALIGN;
     LocalSection Para;
     LocalSection Fast;
     LocalSection Auto;

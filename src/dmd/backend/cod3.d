@@ -372,11 +372,11 @@ void cod3_set32()
 
 static if (TARGET_OSX)
 {
-    STACKALIGN = 16;   // 16 for OSX because OSX uses SIMD
+    TARGET_STACKALIGN = 16;   // 16 for OSX because OSX uses SIMD
 }
 else
 {
-    STACKALIGN = 4;
+    TARGET_STACKALIGN = 4;
 }
 }
 
@@ -403,7 +403,7 @@ else
     FLOATREGS = FLOATREGS_64;
     FLOATREGS2 = FLOATREGS2_64;
     DOUBLEREGS = DOUBLEREGS_64;
-    STACKALIGN = 16;
+    TARGET_STACKALIGN = 16;
 
     ALLREGS = mAX|mBX|mCX|mDX|mSI|mDI|  mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15;
     BYTEREGS = ALLREGS;
@@ -411,7 +411,7 @@ else
     for (uint i = 0x80; i < 0x90; i++)
         inssize2[i] = W|T|6;
 
-    STACKALIGN = 16;   // 16 rather than 8 because of SIMD alignment
+    TARGET_STACKALIGN = 16;   // 16 rather than 8 because of SIMD alignment
 }
 
 /*********************************
