@@ -24,7 +24,6 @@ version (GC)
 
     extern(C) void initGC(int argc, char **argv)
     {
-        bool disable = true;
         version(Windows)
         {
             import core.sys.windows.windows;
@@ -33,17 +32,15 @@ version (GC)
             auto argw = CommandLineToArgvW(GetCommandLineW(), &args);
             for (int i = 1; i < args; i++)
                 if (argw[i][0..wcslen(argw[i])] == "-GC")
-                    disable = false;
+                    Mem.enableGC();
             LocalFree(argw);
         }
         else
         {
             for (int i = 0; i < argc; i++)
                 if (argv[i][0..strlen(argv[i])] == "-GC")
-                    disable = false;
+                    Mem.enableGC();
         }
-        if (disable)
-            Mem.disableGC();
     }
 }
 
@@ -142,11 +139,11 @@ extern (C++) struct Mem
 
     version (GC)
     {
-        __gshared bool isGCEnabled = true;
+        __gshared bool isGCEnabled = false;
 
-        static void disableGC()
+        static void enableGC()
         {
-            isGCEnabled = false;
+            isGCEnabled = true;
         }
 
         static void addRange(const(void)* p, size_t size) nothrow
