@@ -3078,6 +3078,11 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         if (alignsize > stackalign &&
             (I64 || (alignsize == 16 && tyvector(ep.Ety))))
         {
+            if (tyvector(ep.Ety) && alignsize > STACKALIGN)
+            {
+                STACKALIGN = alignsize;
+                enforcealign = true;
+            }
             uint newnumpara = (numpara + (alignsize - 1)) & ~(alignsize - 1);
             parameters[i].numalign = newnumpara - numpara;
             numpara = newnumpara;
