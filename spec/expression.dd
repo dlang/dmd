@@ -1838,6 +1838,7 @@ $(GNAME TypeSpecialization):
     $(D class)
     $(D interface)
     $(D enum)
+    $(D __vector)
     $(D function)
     $(D delegate)
     $(D super)

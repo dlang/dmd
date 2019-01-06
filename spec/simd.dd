@@ -4,59 +4,39 @@ $(SPEC_S Vector Extensions,
 
 $(HEADERNAV_TOC)
 
-        $(P Modern CPUs often support specialized vector types and vector
-        operations, sometimes called "media instructions".
+        $(P CPUs often support specialized vector types and vector
+        operations (a.k.a. $(I media instructions)).
         Vector types are a fixed array of floating or integer types, and
-        vector operations operate simultaneously on them, thus achieving
-        great speed-ups.)
+        vector operations operate simultaneously on them.)
 
-        $(P When the compiler takes advantage of these instructions with standard D code
-        to speed up loops over arithmetic data, this is called auto-vectorization.
-        Auto-vectorization, however, has had only limited success and has not
-        been able to really take advantage of the richness (and often quirkiness)
-        of the native vector instructions.
+        $(P Specialized $(GLINK2 declaration, Vector) types provide access to them.)
+
+        $(P The $(GLINK2 declaration, VectorBaseType) must be a $(DDSUBLINK arrays, static-arrays, Static Array).
+        The $(GNAME VectorElementType) is the unqualified element type of the
+        static array.
+        The dimension of the static array is the number
+        of elements in the vector.
         )
 
-        $(P D has the array operation notation, such as:
+        $(IMPLEMENTATION_DEFINED Which vector types are supported depends
+        on the target. The implementation is expected to only support
+        the vector types that are implemented in the target's hardware.
         )
 
----
-int[] a,b;
-...
-a[] += b[];
----
-
-        $(P which can be vectorized by the compiler, but again success is limited
-        for the same reason auto-vectorization is.
-        )
-
-        $(P The difficulties with trying to use vector instructions on regular arrays
-        are:)
-
-        $(OL
-        $(LI The vector types have stringent alignment requirements that are not
-        and cannot be met by conventional arrays.)
-        $(LI C ABIs often have vector extensions and have special name mangling
-        for them, call/return conventions, and symbolic debug support.)
-        $(LI The only way to get at the full vector instruction set would be to use
-        inline assembler - but the compiler cannot do register allocation across
-        inline assembler blocks (or other optimizations), leading to poor code
-        performance.)
-        $(LI Interleaving conventional array code with vector operations on the same
-        data can unwittingly lead to extremely poor runtime performance.)
-        )
-
-        $(P These issues are cleared up by using special vector types.
+        $(BEST_PRACTICE Use the declarations in $(CORE_SIMD) instead of
+        the language $(GLINK2 declaration, Vector) grammar.
         )
 
 $(H2 $(LNAME2 core_simd, $(D core.simd)))
 
-        $(P Vector types and operations are introduced to D code by importing
+        $(P Vector types and operations are introduced by importing
         $(CORE_SIMD):)
 
 ---
 import core.simd;
 ---
+
+        $(IMPLEMENTATION_DEFINED
 
         $(P These types and operations will be the ones defined for the architecture
         the compiler is targeting. If a particular CPU family has varying
@@ -67,6 +47,7 @@ import core.simd;
 
         $(P Depending on the architecture, compiler flags may be required to
         activate support for SIMD types.
+        )
         )
 
         $(P The types defined will all follow the naming convention:)
@@ -87,12 +68,12 @@ $(H3 $(LNAME2 properties, Properties))
         $(TROW .array, Returns static array representation)
         )
 
-        $(P All the properties of the static array representation also work.)
+        $(P All the properties of the $(GLINK2 declaration, VectorBaseType) work.)
 
 $(H3 $(LNAME2 conversions, Conversions))
 
         $(P Vector types of the same size can be implicitly converted among
-        each other. Vector types can be cast to the static array representation.)
+        each other. Vector types can be cast to their $(GLINK2 declaration, VectorBaseType).)
 
         $(P Integers and floating point values can be implicitly converted
         to their vector equivalents:)
@@ -102,7 +83,7 @@ int4 v = 7;
 v = 3 + v;   // add 3 to each element in v
 ---
 
-$(H3 $(LNAME2 accessing_inidivual_elems, Accessing Individual Vector Elements))
+$(H3 $(LNAME2 accessing_individual_elems, Accessing Individual Vector Elements))
 
         $(P They cannot be accessed directly, but can be when converted to
         an array type:)
@@ -162,7 +143,9 @@ else
 
 $(H2 $(LNAME2 x86_64_vec, X86 And X86$(UNDERSCORE)64 Vector Extension Implementation))
 
-        $(P The rest of this document describes the specific implementation of the
+    $(IMPLEMENTATION_DEFINED
+
+        $(P The following describes the specific implementation of the
         vector types for the X86 and X86$(UNDERSCORE)64 architectures.
         )
 
@@ -244,6 +227,8 @@ $(H2 $(LNAME2 x86_64_vec, X86 And X86$(UNDERSCORE)64 Vector Extension Implementa
         )
 
         $(P Operators not listed are not supported at all.)
+
+    )
 
 $(H3 $(LNAME2 vector_op_intrinsics, Vector Operation Intrinsics))
 

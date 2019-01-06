@@ -106,8 +106,10 @@ $(GNAME BasicType):
     $(GLINK2 grammar, Traits)
 
 $(GNAME Vector):
-    $(D __vector)
-    $(D __vector) $(D $(LPAREN)) $(GLINK Type) $(D $(RPAREN))
+    $(D __vector) $(D $(LPAREN)) $(GLINK VectorBaseType) $(D $(RPAREN))
+
+$(GNAME VectorBaseType):
+    $(GLINK Type)
 
 $(GNAME BasicTypeX):
 $(MULTICOLS 5,
