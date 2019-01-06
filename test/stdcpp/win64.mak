@@ -5,8 +5,12 @@ MODEL=64
 DRUNTIMELIB=druntime64.lib
 CC=cl
 
-test:
-	"$(CC)" -c /Foarray_cpp.obj test\stdcpp\src\array.cpp /EHsc
-	"$(DMD)" -of=test.exe -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) -main -unittest test\stdcpp\src\array_test.d array_cpp.obj
-	test.exe
-	del test.exe test.obj array_cpp.obj
+TESTS= array new
+
+test: $(TESTS)
+
+$(TESTS):
+	"$(CC)" -c /Fo$@_cpp.obj test\stdcpp\src\$@.cpp /EHsc
+	"$(DMD)" -of=$@.exe -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) -main -unittest test\stdcpp\src\$@_test.d $@_cpp.obj
+	$@.exe
+	del $@.exe $@.obj $@_cpp.obj
