@@ -293,12 +293,6 @@ private int tryMain(size_t argc, const(char)** argv)
         return EXIT_SUCCESS;
     }
 
-    if (global.params.enableGC)
-    {
-        import core.memory;
-        GC.enable();
-    }
-
     if (global.params.color)
         global.console = Console.create(core.stdc.stdio.stderr);
 
@@ -791,6 +785,8 @@ private void generateJson(Modules* modules)
     }
 }
 
+version(NoMain) {} else
+extern(C) __gshared string[] rt_options = [ "gcopt=disable:1" ];
 
 /**
  * Entry point which forwards to `tryMain`.
@@ -803,8 +799,6 @@ int main()
 {
     import core.memory;
     import core.runtime;
-
-    GC.disable();
 
     version(D_Coverage)
     {
@@ -1521,8 +1515,6 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.alwaysframe = true;
         else if (arg == "-gx")  // https://dlang.org/dmd.html#switch-gx
             params.stackstomp = true;
-        else if (arg == "-GC")
-            params.enableGC = true;
         else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
         {
             static if (TARGET.DragonFlyBSD) {
@@ -2380,36 +2372,4 @@ Modules createModules(ref Strings files, ref Strings libmodules)
         }
     }
     return modules;
-}
-
-version(NoMain) {} else
-private
-{
-    version (GNU)
-    {
-        // does not support pragma(crt_constructor) yet
-        import gcc.attribute;
-        @attribute("section", ".ctors") auto pini = &initGC;
-    }
-    else version (Windows)
-    {
-        // no arguments
-        extern(C) pragma(crt_constructor) void crt_initGC()
-        {
-            initGC(0, null);
-        }
-    }
-    else version (LDC)
-    {
-        // does not allow arguments on pragma(crt_constructor)
-        import ldc.attributes : section;
-        @section(".ctors") auto pini = &initGC;
-    }
-    else
-    {
-        extern(C) pragma(crt_constructor) void crt_initGC(int argc, char **argv)
-        {
-            initGC(argc, argv);
-        }
-    }
 }

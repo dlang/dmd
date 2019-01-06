@@ -21,27 +21,6 @@ version = GC;
 version (GC)
 {
     import core.memory : GC;
-
-    extern(C) void initGC(int argc, char **argv)
-    {
-        version(Windows)
-        {
-            import core.sys.windows.windows;
-            import core.stdc.wchar_;
-            int args;
-            auto argw = CommandLineToArgvW(GetCommandLineW(), &args);
-            for (int i = 1; i < args; i++)
-                if (argw[i][0..wcslen(argw[i])] == "-GC")
-                    Mem.enableGC();
-            LocalFree(argw);
-        }
-        else
-        {
-            for (int i = 0; i < argc; i++)
-                if (argv[i][0..strlen(argv[i])] == "-GC")
-                    Mem.enableGC();
-        }
-    }
 }
 
 extern (C++) struct Mem
@@ -52,7 +31,7 @@ extern (C++) struct Mem
             return null;
 
         version (GC)
-            if (isGCEnabled)
+            if (!isGCDisabled)
                 return s[0 .. strlen(s) + 1].dup.ptr;
 
         auto p = .strdup(s);
@@ -67,7 +46,7 @@ extern (C++) struct Mem
             return;
 
         version (GC)
-            if (isGCEnabled)
+            if (!isGCDisabled)
                 return GC.free(p);
 
         .free(p);
@@ -79,7 +58,7 @@ extern (C++) struct Mem
             return null;
 
         version (GC)
-            if (isGCEnabled)
+            if (!isGCDisabled)
                 return GC.malloc(size);
 
         auto p = .malloc(size);
@@ -95,7 +74,7 @@ extern (C++) struct Mem
             return null;
 
         version (GC)
-            if (isGCEnabled)
+            if (!isGCDisabled)
                 return GC.calloc(totalSize);
 
         auto p = .calloc(size, n);
@@ -107,7 +86,7 @@ extern (C++) struct Mem
     static void* xrealloc(void* p, size_t size) nothrow
     {
         version (GC)
-            if (isGCEnabled)
+            if (!isGCDisabled)
                 return GC.realloc(p, size);
 
         if (!size)
@@ -139,22 +118,21 @@ extern (C++) struct Mem
 
     version (GC)
     {
-        __gshared bool isGCEnabled = false;
-
-        static void enableGC()
-        {
-            isGCEnabled = true;
-        }
+        // assume first byte of gc.config.config is "disable"
+        import core.demangle : mangle, reencodeMangled;
+        enum mgl_bool = mangle!bool("gc.config.config");
+        enum mgl_config = mgl_bool[0..$-1] ~ "SQnQm6Config"; // replace bool
+        extern __gshared pragma(mangle, mgl_config) bool isGCDisabled;
 
         static void addRange(const(void)* p, size_t size) nothrow
         {
-            if (isGCEnabled)
+            if (!isGCDisabled)
                 GC.addRange(p, size);
         }
 
         static void removeRange(const(void)* p) nothrow
         {
-            if (isGCEnabled)
+            if (!isGCDisabled)
                 GC.removeRange(p);
         }
     }
@@ -228,7 +206,7 @@ static if (OVERRIDE_MEMALLOC)
     extern (C) void* _d_allocmemory(size_t m_size) nothrow
     {
         version (GC)
-            if (mem.isGCEnabled)
+            if (!mem.isGCDisabled)
                 return GC.malloc(m_size);
 
         return allocmemory(m_size);
@@ -259,7 +237,7 @@ static if (OVERRIDE_MEMALLOC)
         const initializer = ci.initializer;
 
         version (GC)
-            auto p = mem.isGCEnabled ? allocClass(ci) : allocmemory(initializer.length);
+            auto p = !mem.isGCDisabled ? allocClass(ci) : allocmemory(initializer.length);
         else
             auto p = allocmemory(initializer.length);
 
@@ -272,7 +250,7 @@ static if (OVERRIDE_MEMALLOC)
         extern (C) Object _d_allocclass(const ClassInfo ci) nothrow
         {
             version (GC)
-                if (mem.isGCEnabled)
+                if (!mem.isGCDisabled)
                     return cast(Object) allocClass(ci);
 
             return cast(Object) allocmemory(ci.initializer.length);
@@ -282,7 +260,7 @@ static if (OVERRIDE_MEMALLOC)
     extern (C) void* _d_newitemT(TypeInfo ti) nothrow
     {
         version (GC)
-            auto p = mem.isGCEnabled ? _d_newitemU(ti) : allocmemory(ti.tsize);
+            auto p = !mem.isGCDisabled ? _d_newitemU(ti) : allocmemory(ti.tsize);
         else
             auto p = allocmemory(ti.tsize);
 
@@ -293,7 +271,7 @@ static if (OVERRIDE_MEMALLOC)
     extern (C) void* _d_newitemiT(TypeInfo ti) nothrow
     {
         version (GC)
-            auto p = mem.isGCEnabled ? _d_newitemU(ti) : allocmemory(ti.tsize);
+            auto p = !mem.isGCDisabled ? _d_newitemU(ti) : allocmemory(ti.tsize);
         else
             auto p = allocmemory(ti.tsize);
 

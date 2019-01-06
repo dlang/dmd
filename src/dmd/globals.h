@@ -143,7 +143,6 @@ struct Param
     bool mcpuUsage;         // print help on -mcpu switch
     bool transitionUsage;   // print help on -transition switch
     bool logo;              // print logo;
-    bool enableGC;          // use garbage collection instead of bump-ptr allocation during compilation
 
     CPU cpu;                // CPU instruction set to target
 
