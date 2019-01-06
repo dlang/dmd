@@ -3387,7 +3387,7 @@ void prolog_saveregs(ref CodeBuilder cdb, regm_t topush, int cfa_offset)
                     code *c = cdb.finish();
                     pinholeopt(c, null);
                     dwarf_CFA_set_loc(calcblksize(c));  // address after PUSH reg
-                    dwarf_CFA_offset(reg, -EBPtoESP - REGSIZE - cfa_offset);
+                    dwarf_CFA_offset(reg, -EBPtoESP - cfa_offset);
                     cdb.reset();
                     cdb.append(c);
                 }
@@ -4820,14 +4820,14 @@ void assignaddrc(code *c)
                 //printf("fix ESP\n");
                 if (hasframe)
                 {
-                    // LEA ESP,-EBPtoESP-REGSIZE[EBP]
+                    // LEA ESP,-EBPtoESP[EBP]
                     c.Iop = LEA;
                     if (c.Irm & 8)
                         c.Irex |= REX_R;
                     c.Irm = modregrm(2,SP,BP);
                     c.Iflags = CFoff;
                     c.IFL1 = FLconst;
-                    c.IEV1.Vuns = -EBPtoESP - REGSIZE;
+                    c.IEV1.Vuns = -EBPtoESP;
                 }
             }
             else if (c.Iop == (ESCAPE | ESCframeptr))

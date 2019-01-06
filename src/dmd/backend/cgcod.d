@@ -1075,6 +1075,8 @@ Lagain:
     else
         assert((localsize | Alloca.size) == 0 || (usednteh & NTEHjmonitor));
     EBPtoESP += xlocalsize;
+    if (hasframe)
+        EBPtoESP += REGSIZE;
 
     /* Win64 unwind needs the amount of code generated so far
      */
