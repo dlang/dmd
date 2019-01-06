@@ -20,7 +20,6 @@ version = GC;
 
 version (GC)
 {
-private:
     import core.memory : GC;
 
     extern(C) void initGC(int argc, char **argv)
@@ -45,19 +44,6 @@ private:
         }
         if (disable)
             Mem.disableGC();
-    }
-
-    version(GDC)
-    {
-        import gcc.attribute;
-        @attribute("section", ".ctors") auto pini = &initGC;
-    }
-    else
-    {
-        extern(C) pragma(crt_constructor) void crt_initGC(int argc, char **argv)
-        {
-            initGC(argc, argv);
-        }
     }
 }
 

@@ -2381,3 +2381,19 @@ Modules createModules(ref Strings files, ref Strings libmodules)
     }
     return modules;
 }
+
+private
+{
+    version(GDC)
+    {
+        import gcc.attribute;
+        @attribute("section", ".ctors") auto pini = &initGC;
+    }
+    else
+    {
+        extern(C) pragma(crt_constructor) void crt_initGC(int argc, char **argv)
+        {
+            initGC(argc, argv);
+        }
+    }
+}
