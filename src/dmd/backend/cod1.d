@@ -401,7 +401,7 @@ uint gensaverestore(regm_t regm,ref CodeBuilder cdbsave,ref CodeBuilder cdbresto
 void genstackclean(ref CodeBuilder cdb,uint numpara,regm_t keepmsk)
 {
     //dbg_printf("genstackclean(numpara = %d, stackclean = %d)\n",numpara,cgstate.stackclean);
-    if (numpara && (cgstate.stackclean || STACKALIGN == 16))
+    if (numpara && (cgstate.stackclean || STACKALIGN >= 16))
     {
 /+
         if (0 &&                                // won't work if operand of scodelem
@@ -2701,7 +2701,7 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, regm_t* pretregs, regm_t 
         int nalign = 0;
         int pushebx = (cinfo.flags & INFpushebx) != 0;
         int pushall = (cinfo.flags & INFpusheabcdx) != 0;
-        if (STACKALIGN == 16)
+        if (STACKALIGN >= 16)
         {   // Align the stack (assume no args on stack)
             int npush = (npushed + pushebx + 4 * pushall) * REGSIZE + stackpush;
             if (npush & (STACKALIGN - 1))
@@ -3161,7 +3161,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
     /* Adjust start of the stack so after all args are pushed,
      * the stack will be aligned.
      */
-    if (!usefuncarg && STACKALIGN == 16 && (numpara + stackpush) & (STACKALIGN - 1))
+    if (!usefuncarg && STACKALIGN >= 16 && (numpara + stackpush) & (STACKALIGN - 1))
     {
         numalign = STACKALIGN - ((numpara + stackpush) & (STACKALIGN - 1));
         cod3_stackadj(cdb, numalign);

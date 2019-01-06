@@ -961,7 +961,7 @@ Lagain:
 
     // Keep the stack aligned by 8 for any subsequent function calls
     if (!I16 && calledafunc &&
-        (STACKALIGN == 16 || config.flags4 & CFG4stackalign))
+        (STACKALIGN >= 16 || config.flags4 & CFG4stackalign))
     {
         int npush = numbitsset(topush);            // number of registers that need saving
         npush += numbitsset(topush & XMMREGS);     // XMM regs take 16 bytes, so count them twice
@@ -971,14 +971,11 @@ Lagain:
         //printf("npush = %d Para.size = x%x needframe = %d localsize = x%x\n",
                //npush, Para.size, needframe, localsize);
 
-        int sz = cast(int)(Para.size + (needframe ? 0 : -REGSIZE) + localsize + npush * REGSIZE);
-        if (STACKALIGN == 16)
-        {
-            if (sz & (8|4))
-                localsize += STACKALIGN - (sz & (8|4));
-        }
-        else if (sz & 4)
-            localsize += 4;
+        int sz = cast(int)(localsize + npush * REGSIZE);
+        if (!enforcealign)
+            sz += Para.size + (needframe ? 0 : -REGSIZE);
+        if (sz & (STACKALIGN - 1))
+            localsize += STACKALIGN - (sz & (STACKALIGN - 1));
     }
     cgstate.funcarg.offset = -localsize;
 
@@ -1103,8 +1100,10 @@ Lagain:
            )
         {
             uint spalign = 0;
-            int sz = Para.size + (needframe ? 0 : -REGSIZE) + localsize;
-            if (STACKALIGN == 16 && (sz & (STACKALIGN - 1)))
+            int sz = cast(int)localsize;
+            if (!enforcealign)
+                sz += Para.size + (needframe ? 0 : -REGSIZE);
+            if (STACKALIGN >= 16 && (sz & (STACKALIGN - 1)))
                 spalign = STACKALIGN - (sz & (STACKALIGN - 1));
 
             if (spalign)
@@ -3064,12 +3063,8 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
         // will throw off the 8 byte stack alignment.
         // We should *only* worry about this if a function
         // was called in the code generation by codelem().
-        int sz;
-        if (STACKALIGN == 16)
-            sz = -(adjesp & (STACKALIGN - 1)) & (STACKALIGN - 1);
-        else
-            sz = -(adjesp & 7) & 7;
-        if (calledafunc && !I16 && sz && (STACKALIGN == 16 || config.flags4 & CFG4stackalign))
+        int sz = -(adjesp & (STACKALIGN - 1)) & (STACKALIGN - 1);
+        if (calledafunc && !I16 && sz && (STACKALIGN >= 16 || config.flags4 & CFG4stackalign))
         {
             regm_t mval_save = regcon.immed.mval;
             regcon.immed.mval = 0;      // prevent reghasvalue() optimizations

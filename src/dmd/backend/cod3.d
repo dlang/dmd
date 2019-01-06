@@ -810,7 +810,7 @@ private code *callFinallyBlock(block *bf, regm_t retregs)
     calledFinally = true;
     uint npush = gensaverestore(retregs,cdbs,cdbr);
 
-    if (STACKALIGN == 16)
+    if (STACKALIGN >= 16)
     {   npush += REGSIZE;
         if (npush & (STACKALIGN - 1))
         {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
