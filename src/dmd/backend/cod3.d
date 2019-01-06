@@ -522,6 +522,20 @@ void cod3_stackadj(ref CodeBuilder cdb, int nbytes)
     cdb.genc2(0x81, grex | rm, nbytes);
 }
 
+/**********************************
+ * Generate code to align the stack pointer at `nbytes`
+ * Params:
+ *      cdb = code builder
+ *      nbytes = number of bytes to align stack pointer
+ */
+void cod3_stackalign(ref CodeBuilder cdb, int nbytes)
+{
+    //printf("cod3_stackalign(%d)\n", nbytes);
+    const grex = I64 ? REX_W << 16 : 0;
+    const rm = modregrm(3, 4, SP);             // AND ESP,-nbytes
+    cdb.genc2(0x81, grex | rm, -nbytes);
+}
+
 static if (ELFOBJ)
 {
 /* Constructor that links the ModuleReference to the head of
@@ -3156,6 +3170,23 @@ static if (NTEXCEPTIONS == 2)
     }
     else
         *enter = true;
+}
+
+/**********************************************
+ * Enforce stack alignment.
+ * Input:
+ *      cdb     code builder.
+ * Returns:
+ *      generated code
+ */
+void prolog_stackalign(ref CodeBuilder cdb)
+{
+    if (!enforcealign)
+        return;
+
+    const offset = (hasframe ? 2 : 1) * REGSIZE;   // 1 for the return address + 1 for the PUSH EBP
+    if (offset & (STACKALIGN - 1) || TARGET_STACKALIGN < STACKALIGN)
+        cod3_stackalign(cdb, STACKALIGN);
 }
 
 void prolog_frameadj(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool enter, bool* pushalloc)

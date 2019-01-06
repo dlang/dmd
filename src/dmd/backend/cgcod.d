@@ -70,6 +70,7 @@ __gshared
 bool floatreg;                  // !=0 if floating register is required
 
 int hasframe;                   // !=0 if this function has a stack frame
+bool enforcealign;              // enforced stack alignment
 targ_size_t spoff;
 targ_size_t Foff;               // BP offset of floating register
 targ_size_t CSoff;              // offset of common sub expressions
@@ -222,6 +223,7 @@ tryagain:
 
     // if no parameters, assume we don't need a stack frame
     needframe = 0;
+    enforcealign = false;
     gotref = 0;
     stackchanged = 0;
     stackpush = 0;
@@ -304,6 +306,36 @@ tryagain:
             }
         }
         regcon.params &= ~noparams;
+    }
+
+    // See if we need to enforce a particular stack alignment
+    foreach (i; 0 .. globsym.top)
+    {
+        Symbol *s = globsym.tab[i];
+
+        // only for vector types
+        if (!tyvector(s.Stype.Tty))
+            continue;
+
+        switch (s.Sclass)
+        {
+            case SCregister:
+            case SCauto:
+            case SCfastpar:
+                if (s.Sfl == FLreg)
+                    break;
+
+                const sz = type_alignsize(s.Stype);
+                if (sz > STACKALIGN)
+                {
+                    STACKALIGN = sz;
+                    enforcealign = true;
+                }
+                break;
+
+            default:
+                break;
+        }
     }
 
     if (config.flags4 & CFG4optimized)
@@ -1010,6 +1042,9 @@ Lagain:
         prolog_frame(cdbx, farfunc, &xlocalsize, &enter, &cfa_offset);
         hasframe = 1;
     }
+
+    /* Align the stack if necessary */
+    prolog_stackalign(cdbx);
 
     /* Subtract from stack pointer the size of the local stack frame
      */
