@@ -4828,6 +4828,20 @@ void assignaddrc(code *c)
                     c.Iflags = CFoff;
                     c.IFL1 = FLconst;
                     c.IEV1.Vuns = -EBPtoESP;
+                    if (enforcealign)
+                    {
+                        // AND ESP, -STACKALIGN
+                        code *cn = code_calloc();
+                        cn.Iop = 0x81;
+                        cn.Irm = modregrm(3, 4, SP);
+                        cn.Iflags = CFoff;
+                        cn.IFL2 = FLconst;
+                        cn.IEV2.Vsize_t = -STACKALIGN;
+                        if (I64)
+                            c.Irex |= REX_W;
+                        cn.next = c.next;
+                        c.next = cn;
+                    }
                 }
             }
             else if (c.Iop == (ESCAPE | ESCframeptr))
