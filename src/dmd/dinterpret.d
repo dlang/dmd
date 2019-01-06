@@ -54,8 +54,24 @@ import dmd.visitor;
  */
 public Expression ctfeInterpret(Expression e)
 {
-    if (e.op == TOK.error)
-        return e;
+    switch (e.op)
+    {
+        case TOK.int64:
+        case TOK.float64:
+        case TOK.complex80:
+        case TOK.null_:
+        case TOK.string_:
+            if (e.type.ty == Terror)
+                return new ErrorExp();
+            goto case TOK.error;
+
+        case TOK.error:
+            return e;
+
+        default:
+            break;
+    }
+
     assert(e.type); // https://issues.dlang.org/show_bug.cgi?id=14642
     //assert(e.type.ty != Terror);    // FIXME
     if (e.type.ty == Terror)
