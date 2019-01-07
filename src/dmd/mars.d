@@ -229,7 +229,8 @@ private int tryMain(size_t argc, const(char)** argv)
     if (parseCommandLine(arguments, argc, global.params, files))
     {
         Loc loc;
-        errorSupplemental(loc, "run 'dmd -man' to open browser on manual");
+        errorSupplemental(loc, "run `dmd` to print the compiler manual");
+        errorSupplemental(loc, "run `dmd -man` to open browser on manual");
         return EXIT_FAILURE;
     }
 
@@ -245,21 +246,45 @@ private int tryMain(size_t argc, const(char)** argv)
         return EXIT_SUCCESS;
     }
 
-    if (global.params.mcpuUsage)
+    /*
+    Prints a supplied usage text to the console and
+    returns the exit code for the help usage page.
+
+    Returns:
+        `EXIT_SUCCESS` if no errors occurred, `EXIT_FAILURE` otherwise
+    */
+    static int printHelpUsage(string help)
     {
-        import dmd.cli : CLIUsage;
-        auto help = CLIUsage.mcpu;
         printf("%.*s", cast(int)help.length, &help[0]);
-        return EXIT_SUCCESS;
+        return global.errors ? EXIT_FAILURE : EXIT_SUCCESS;
     }
 
-    if (global.params.transitionUsage)
+    /*
+    Generates code to check for all `params` whether any usage page
+    has been requested.
+    If so, the generated code will print the help page of the flag
+    and return with an exit code.
+
+    Params:
+        params = parameters with `Usage` suffices in `global.params` for which
+        their truthness should be checked.
+
+    Returns: generated code for checking the usage pages of the provided `params`.
+    */
+    static string generateUsageChecks(string[] params)
     {
-        import dmd.cli : CLIUsage;
-        auto help = CLIUsage.transitionUsage;
-        printf("%.*s", cast(int)help.length, &help[0]);
-        return EXIT_SUCCESS;
+        string s;
+        foreach (n; params)
+        {
+            s ~= q{
+                if (global.params.}~n~q{Usage)
+                    return printHelpUsage(CLIUsage.}~n~q{Usage);
+            };
+        }
+        return s;
     }
+    import dmd.cli : CLIUsage;
+    mixin(generateUsageChecks(["mcpu", "transition", "check", "checkAction", "externStd"]));
 
     if (global.params.manual)
     {
@@ -1345,6 +1370,78 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         return true;
     }
 
+    /**
+     * Print an error messsage about an invalid switch.
+     * If an optional supplemental message has been provided,
+     * it will be printed too.
+     *
+     * Params:
+     *  p = 0 terminated string
+     *  availableOptions = supplemental help message listing the available options
+     */
+    void errorInvalidSwitch(const(char)* p, string availableOptions = null)
+    {
+        error("Switch `%s` is invalid", p);
+        if (availableOptions !is null)
+            errorSupplemental(Loc.initial, "%.*s", cast(int)availableOptions.length, availableOptions.ptr);
+    }
+
+    enum CheckOptions { success, error, help }
+
+    /*
+    Checks whether the CLI options contains a valid argument or a help argument.
+    If a help argument has been used, it will set the `usageFlag`.
+
+    Params:
+        p = 0 terminated string
+        usageFlag = parameter for the usage help page to set (by `ref`)
+        missingMsg = error message to use when no argument has been provided
+
+    Returns:
+        `success` if a valid argument has been passed and it's not a help page
+        `error` if an error occurred (e.g. `-foobar`)
+        `help` if a help page has been request (e.g. `-flag` or `-flag=h`)
+    */
+    CheckOptions checkOptions(const(char)* p, ref bool usageFlag, string missingMsg)
+    {
+        // Checks whether a flag has no options (e.g. -foo or -foo=)
+        if (*p == 0 || *p == '=' && !p[1])
+        {
+            .error(Loc.initial, "%.*s", cast(int)missingMsg.length, missingMsg.ptr);
+            errors = true;
+            usageFlag = true;
+            return CheckOptions.help;
+        }
+        if (*p != '=')
+            return CheckOptions.error;
+        p++;
+        /* Checks whether the option pointer supplied is a request
+           for the help page, e.g. -foo=j */
+        if (((*p == 'h' || *p == '?') && !p[1]) || // -flag=h || -flag=?
+            strcmp(p, "help") == 0)
+        {
+            usageFlag = true;
+            return CheckOptions.help;
+        }
+        return CheckOptions.success;
+    }
+
+    static string checkOptionsMixin(string usageFlag, string missingMsg)
+    {
+        return q{
+            final switch (checkOptions(p + len - 1, params.}~usageFlag~","~
+                          `"`~missingMsg~`"`~q{))
+            {
+                case CheckOptions.error:
+                    goto Lerror;
+                case CheckOptions.help:
+                    return false;
+                case CheckOptions.success:
+                    break;
+            }
+        };
+    }
+
     version (none)
     {
         for (size_t i = 0; i < arguments.dim; i++)
@@ -1386,8 +1483,34 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.useDeprecated = Diagnostic.inform;
         else if (arg == "-c")                // https://dlang.org/dmd.html#switch-c
             params.link = false;
-        else if (startsWith(p + 1, "check=")) // https://dlang.org/dmd.html#switch-check
+        else if (startsWith(p + 1, "checkaction")) // https://dlang.org/dmd.html#switch-checkaction
         {
+            /* Parse:
+             *    -checkaction=D|C|halt|context
+             */
+            enum len = "-checkaction=".length;
+            mixin(checkOptionsMixin("checkActionUsage",
+                "`-check=<behavior>` requires a behavior"));
+            if (strcmp(p + len, "D") == 0)
+                params.checkAction = CHECKACTION.D;
+            else if (strcmp(p + len, "C") == 0)
+                params.checkAction = CHECKACTION.C;
+            else if (strcmp(p + len, "halt") == 0)
+                params.checkAction = CHECKACTION.halt;
+            else if (strcmp(p + len, "context") == 0)
+                params.checkAction = CHECKACTION.context;
+            else
+            {
+                errorInvalidSwitch(p);
+                params.checkActionUsage = true;
+                return false;
+            }
+        }
+        else if (startsWith(p + 1, "check")) // https://dlang.org/dmd.html#switch-check
+        {
+            enum len = "-check=".length;
+            mixin(checkOptionsMixin("checkUsage",
+                "`-check=<action>` requires an action"));
             /* Parse:
              *    -check=[assert|bounds|in|invariant|out|switch][=[on|off]]
              */
@@ -1395,7 +1518,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             // Check for legal option string; return true if so
             static bool check(const(char)* p, string name, ref CHECKENABLE ce)
             {
-                p += "-check=".length;
+                p += len;
                 if (startsWith(p, name))
                 {
                     p += name.length;
@@ -1420,23 +1543,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                   check(p, "invariant", params.useInvariants ) ||
                   check(p, "out",       params.useOut        ) ||
                   check(p, "switch",    params.useSwitchError)))
-                goto Lerror;
-        }
-        else if (startsWith(p + 1, "checkaction=")) // https://dlang.org/dmd.html#switch-checkaction
-        {
-            /* Parse:
-             *    -checkaction=D|C|halt
-             */
-            if (strcmp(p + 13, "D") == 0)
-                params.checkAction = CHECKACTION.D;
-            else if (strcmp(p + 13, "C") == 0)
-                params.checkAction = CHECKACTION.C;
-            else if (strcmp(p + 13, "halt") == 0)
-                params.checkAction = CHECKACTION.halt;
-            else if (strcmp(p + 13, "context") == 0)
-                params.checkAction = CHECKACTION.context;
-            else
-                goto Lerror;
+            {
+                errorInvalidSwitch(p);
+                params.checkUsage = true;
+                return false;
+            }
         }
         else if (startsWith(p + 1, "color")) // https://dlang.org/dmd.html#switch-color
         {
@@ -1450,7 +1561,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 else if (strcmp(p + 7, "off") == 0)
                     params.color = false;
                 else if (strcmp(p + 7, "auto") != 0)
-                    goto Lerror;
+                {
+                    errorInvalidSwitch(p, "Available options for `-color` are `on`, `off` and `auto`");
+                    return true;
+                }
             }
             else if (p[6])
                 goto Lerror;
@@ -1477,7 +1591,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     params.covPercent = cast(ubyte)percent;
                 }
                 else
-                    goto Lerror;
+                {
+                    errorInvalidSwitch(p, "Only a number can be passed to `-cov=<num>`");
+                    return true;
+                }
             }
             else if (p[4])
                 goto Lerror;
@@ -1572,7 +1689,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 if (strcmp(p + 9, "gc") == 0)
                     params.tracegc = true;
                 else
-                    goto Lerror;
+                {
+                    errorInvalidSwitch(p, "Only `gc` is allowed for `-profile`");
+                    return true;
+                }
             }
             else if (p[8])
                 goto Lerror;
@@ -1607,59 +1727,55 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 params.printErrorContext = true;
             }
             else
-                goto Lerror;
+            {
+                errorInvalidSwitch(p, "Only number, `spec`, or `context` are allowed for `-verrors`");
+                return true;
+            }
         }
         else if (startsWith(p + 1, "mcpu")) // https://dlang.org/dmd.html#switch-mcpu
         {
+            enum len = "-mcpu=".length;
             // Parse:
             //      -mcpu=identifier
-            if (p[5] == '=')
+            mixin(checkOptionsMixin("mcpuUsage",
+                "`-mcpu=<architecture>` requires an architecture"));
+            if (Identifier.isValidIdentifier(p + len))
             {
-                if (isHelpOption(p + 6))
+                const ident = p + len;
+                switch (ident[0 .. strlen(ident)])
                 {
+                case "baseline":
+                    params.cpu = CPU.baseline;
+                    break;
+                case "avx":
+                    params.cpu = CPU.avx;
+                    break;
+                case "avx2":
+                    params.cpu = CPU.avx2;
+                    break;
+                case "native":
+                    params.cpu = CPU.native;
+                    break;
+                default:
+                    error("Switch `%s` is invalid", p);
                     params.mcpuUsage = true;
                     return false;
                 }
-                else if (Identifier.isValidIdentifier(p + 6))
-                {
-                    const ident = p + 6;
-                    switch (ident[0 .. strlen(ident)])
-                    {
-                    case "baseline":
-                        params.cpu = CPU.baseline;
-                        break;
-                    case "avx":
-                        params.cpu = CPU.avx;
-                        break;
-                    case "avx2":
-                        params.cpu = CPU.avx2;
-                        break;
-                    case "native":
-                        params.cpu = CPU.native;
-                        break;
-                    default:
-                        goto Lerror;
-                    }
-                }
-                else if (p[6] == 0)
-                {
-                    params.mcpuUsage = true;
-                    return false;
-                }
-                else
-                    goto Lerror;
             }
-            else if (p[5] == 0)
+            else
             {
+                errorInvalidSwitch(p);
                 params.mcpuUsage = true;
                 return false;
             }
-            else
-                goto Lerror;
         }
-        else if (startsWith(p + 1, "extern-std=")) // https://dlang.org/dmd.html#switch-std-c%2B%2B
+        else if (startsWith(p + 1, "extern-std")) // https://dlang.org/dmd.html#switch-extern-std
         {
             enum len = "-extern-std=".length;
+            // Parse:
+            //      -extern-std=identifier
+            mixin(checkOptionsMixin("externStdUsage",
+                "`-extern-std=<standard>` requires a standard"));
             if (strcmp(p + len, "c++98") == 0)
                 params.cplusplus = CppStdRevision.cpp98;
             else if (strcmp(p + len, "c++11") == 0)
@@ -1669,83 +1785,79 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             else if (strcmp(p + len, "c++17") == 0)
                 params.cplusplus = CppStdRevision.cpp17;
             else
-                goto Lerror;
+            {
+                error("Switch `%s` is invalid", p);
+                params.externStdUsage = true;
+                return false;
+            }
         }
-        else if (startsWith(p + 1, "transition") ) // https://dlang.org/dmd.html#switch-transition
+        else if (startsWith(p + 1, "transition")) // https://dlang.org/dmd.html#switch-transition
         {
+            enum len = "-transition=".length;
             // Parse:
             //      -transition=number
-            if (p[11] == '=')
+            mixin(checkOptionsMixin("transitionUsage",
+                "`-transition=<id>` requires an id"));
+            if (isdigit(cast(char)p[len]))
             {
-                if (isHelpOption(p + 12))
-                {
-                    params.transitionUsage = true;
-                    return false;
-                }
-                if (isdigit(cast(char)p[12]))
-                {
-                    const num = parseDigits(p + 12, int.max);
-                    if (num == uint.max)
-                        goto Lerror;
-
-                    string generateTransitionsNumbers()
-                    {
-                        import dmd.cli : Usage;
-                        string buf;
-                        foreach (t; Usage.transitions)
-                        {
-                            if (t.bugzillaNumber !is null)
-                                buf ~= `case `~t.bugzillaNumber~`: params.`~t.paramName~` = true;break;`;
-                        }
-                        return buf;
-                    }
-
-                    // Bugzilla issue number
-                    switch (num)
-                    {
-                        mixin(generateTransitionsNumbers());
-                    default:
-                        goto Lerror;
-                    }
-                }
-                else if (Identifier.isValidIdentifier(p + 12))
-                {
-                    string generateTransitionsText()
-                    {
-                        import dmd.cli : Usage;
-                        string buf = `case "all":`;
-                        foreach (t; Usage.transitions)
-                            buf ~= `params.`~t.paramName~` = true;`;
-                        buf ~= "break;";
-
-                        foreach (t; Usage.transitions)
-                        {
-                            buf ~= `case "`~t.name~`": params.`~t.paramName~` = true;break;`;
-                        }
-                        return buf;
-                    }
-                    const ident = p + 12;
-                    switch (ident[0 .. strlen(ident)])
-                    {
-                        mixin(generateTransitionsText());
-                    default:
-                        goto Lerror;
-                    }
-                }
-                else if (p[12] == 0) {
-                    params.transitionUsage = true;
-                    return false;
-                }
-                else
+                const num = parseDigits(p + len, int.max);
+                if (num == uint.max)
                     goto Lerror;
+
+                string generateTransitionsNumbers()
+                {
+                    import dmd.cli : Usage;
+                    string buf;
+                    foreach (t; Usage.transitions)
+                    {
+                        if (t.bugzillaNumber !is null)
+                            buf ~= `case `~t.bugzillaNumber~`: params.`~t.paramName~` = true;break;`;
+                    }
+                    return buf;
+                }
+
+                // Bugzilla issue number
+                switch (num)
+                {
+                    mixin(generateTransitionsNumbers());
+                default:
+                    error("Transition `%s` is invalid", p);
+                    params.transitionUsage = true;
+                    return false;
+                }
             }
-            else if (p[11] == 0)
+            else if (Identifier.isValidIdentifier(p + len))
             {
+                string generateTransitionsText()
+                {
+                    import dmd.cli : Usage;
+                    string buf = `case "all":`;
+                    foreach (t; Usage.transitions)
+                        buf ~= `params.`~t.paramName~` = true;`;
+                    buf ~= "break;";
+
+                    foreach (t; Usage.transitions)
+                    {
+                        buf ~= `case "`~t.name~`": params.`~t.paramName~` = true;break;`;
+                    }
+                    return buf;
+                }
+                const ident = p + len;
+                switch (ident[0 .. strlen(ident)])
+                {
+                    mixin(generateTransitionsText());
+                default:
+                    error("Transition `%s` is invalid", p);
+                    params.transitionUsage = true;
+                    return false;
+                }
+            }
+            else
+            {
+                errorInvalidSwitch(p);
                 params.transitionUsage = true;
                 return false;
             }
-            else
-                goto Lerror;
         }
         else if (arg == "-w")   // https://dlang.org/dmd.html#switch-w
             params.warnings = Diagnostic.error;
@@ -2402,17 +2514,4 @@ Modules createModules(ref Strings files, ref Strings libmodules)
         }
     }
     return modules;
-}
-
-/*
-Checks whether the option pointer supplied is a request
-for the help page.
-
-Returns: `true` if `p` points to `?`, `h` or `help`, otherwise `false`.
-*/
-bool isHelpOption(const(char*) p)
-{
-    return strcmp(p, "?") == 0 ||
-           strcmp(p, "h") == 0 ||
-           strcmp(p, "help") == 0;
 }

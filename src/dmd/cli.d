@@ -169,7 +169,7 @@ struct Usage
         Option("c",
             "compile only, do not link"
         ),
-        Option("check=[assert|bounds|in|invariant|out|switch][=[on|off]]",
+        Option("check=[assert|bounds|in|invariant|out|switch|h|help|?][=[on|off]]",
             "Enable or disable specific checks",
             `Overrides default, -boundscheck, -release and -unittest options to enable or disable specific checks.
                 $(UL
@@ -178,22 +178,22 @@ struct Usage
                     $(LI $(B in): in contracts)
                     $(LI $(B invariant): class/struct invariants)
                     $(LI $(B out): out contracts)
-                    $(LI $(B switch): switch default)
+                    $(LI $(B switch): finalswitch failure checking)
                 )
                 $(UL
                     $(LI $(B on) or not specified: specified check is enabled.)
                     $(LI $(B off): specified check is disabled.)
                 )`
         ),
-        Option("checkaction=D|C|halt|context",
+        Option("checkaction=[D|C|halt|context|h|help|?]",
             "behavior on assert/boundscheck/finalswitch failure",
             `Sets behavior when an assert fails, and array boundscheck fails,
              or a final switch errors.
                 $(UL
-                    $(LI $(B D): Default behavior, which throws an unrecoverable $(D Error).)
+                    $(LI $(B D): Default behavior, which throws an unrecoverable $(D AssertError).)
                     $(LI $(B C): Calls the C runtime library assert failure function.)
                     $(LI $(B halt): Executes a halt instruction, terminating the program.)
-                    $(LI $(B context): Prints the error context as part of the unrecoverable $(D Error).)
+                    $(LI $(B context): Prints the error context as part of the unrecoverable $(D AssertError).)
                 )`
         ),
         Option("color",
@@ -294,6 +294,20 @@ dmd -cov -unittest myprog.d
         Option("dip1008",
             "implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1008.md",
             "implement $(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/DIP1008.md, DIP1008 (@nogc Throwable))"
+        ),
+        Option("extern-std=[<standard>|h|help|?]",
+            "set C++ name mangling compatiblity with <standard>",
+            "Standards supported are:
+            $(UL
+                $(LI $(I c++98) (default): Use C++98 name mangling,
+                    Sets `__traits(getTargetInfo, \"cppStd\")` to `199711`)
+                $(LI $(I c++11): Use C++11 name mangling,
+                    Sets `__traits(getTargetInfo, \"cppStd\")` to `201103`)
+                $(LI $(I c++14): Use C++14 name mangling,
+                    Sets `__traits(getTargetInfo, \"cppStd\")` to `201402`)
+                $(LI $(I c++17): Use C++17 name mangling,
+                    Sets `__traits(getTargetInfo, \"cppStd\")` to `201703`)
+            )",
         ),
         Option("fPIC",
             "generate position independent code",
@@ -460,7 +474,7 @@ dmd -cov -unittest myprog.d
             `Set the target architecture for code generation,
             where:
             $(DL
-            $(DT ?)$(DD list alternatives)
+            $(DT help)$(DD list alternatives)
             $(DT baseline)$(DD the minimum architecture for the target platform (default))
             $(DT avx)$(DD
             generate $(LINK2 https://en.wikipedia.org/wiki/Advanced_Vector_Extensions, AVX)
@@ -561,16 +575,6 @@ dmd -cov -unittest myprog.d
             "generate shared library (DLL)",
             `$(UNIX Generate shared library)
              $(WINDOWS Generate DLL library)`,
-        ),
-        Option("extern-std=<standard>",
-            "set compatiblity with <standard>",
-            "Standards supported are:
-            $(UL
-                $(LI $(I c++98) (default): Use C++98 name mangling,
-                    Sets `__traits(getTargetInfo, \"cppStd\")` to `199711`)
-                $(LI $(I c++11): Use C++11 name mangling,
-                    Sets `__traits(getTargetInfo, \"cppStd\")` to `201103`)
-            )",
         ),
         Option("transition=<id>",
             "help with language change identified by 'id'",
@@ -690,8 +694,8 @@ struct CLIUsage
                 {
                     buf ~= "  -";
                     buf ~= option.flag;
-                    // emulate current behavior of DMD
-                    if (option.flag == "defaultlib=<name>")
+                    // create new lines if the flag name is too long
+                    if (option.flag.length >= 17)
                     {
                             buf ~= "\n                    ";
                     }
@@ -714,17 +718,13 @@ struct CLIUsage
     }
 
     /// CPU architectures supported -mcpu=id
-    static string mcpu()
-    {
-        return "
-CPU architectures supported by -mcpu=id:
-  =?             list information on all architecture choices
+    enum mcpuUsage = "CPU architectures supported by -mcpu=id:
+  =[h|help|?]    list information on all available choices
   =baseline      use default architecture as determined by target
   =avx           use AVX 1 instructions
   =avx2          use AVX 2 instructions
   =native        use CPU architecture that this compiler is running on
 ";
-    }
 
     /// Language changes listed by -transition=id
     static string transitionUsage()
@@ -754,4 +754,36 @@ CPU architectures supported by -mcpu=id:
         }();
         return s;
     }
+
+    /// Options supported by -checkaction=
+    enum checkActionUsage = "Behavior on assert/boundscheck/finalswitch failure:
+  =[h|help|?]    List information on all available choices
+  =D             Usual D behavior of throwing an AssertError
+  =C             Call the C runtime library assert failure function
+  =halt          Halt the program execution (very lightweight)
+  =context       Use D assert with context information (when available)
+";
+
+    /// Options supported by -check
+    enum checkUsage = "Enable or disable specific checks:
+  =[h|help|?]           List information on all available choices
+  =assert[=[on|off]]    Assertion checking
+  =bounds[=[on|off]]    Array bounds checking
+  =in[=[on|off]]        Generate In contracts
+  =invariant[=[on|off]] Class/struct invariants
+  =out[=[on|off]]       Out contracts
+  =switch[=[on|off]]    Final switch failure checking
+  =on                   Enable all assertion checking
+                        (default for non-release builds)
+  =off                  Disable all assertion checking
+";
+
+    /// Options supported by -extern-std
+    enum externStdUsage = "Available C++ standards:
+  =[h|help|?]           List information on all available choices
+  =c++98                Sets `__traits(getTargetInfo, \"cppStd\")` to `199711`
+  =c++11                Sets `__traits(getTargetInfo, \"cppStd\")` to `201103`
+  =c++14                Sets `__traits(getTargetInfo, \"cppStd\")` to `201402`
+  =c++17                Sets `__traits(getTargetInfo, \"cppStd\")` to `201703`
+";
 }
