@@ -1,4 +1,4 @@
-/* REQUIRED_ARGS: -dip1000
+/* REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
 fail_compilation/test18554.d(15): Error: struct `imp18554.S` member `i` is not accessible from `@safe` code

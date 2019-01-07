@@ -1,6 +1,6 @@
 /*
  currently fails with extra safety checks
- PERMUTE_FIXME_ARGS: -dip1000
+ PERMUTE_FIXME_ARGS: -preview=dip1000
 */
 
 struct Cache

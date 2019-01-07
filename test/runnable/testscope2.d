@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -dip25
+// REQUIRED_ARGS: -preview=dip25
 
 import core.stdc.stdio;
 
