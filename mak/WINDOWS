@@ -189,10 +189,13 @@ $(IMPDIR)\core\stdc\wchar_.d : src\core\stdc\wchar_.d
 $(IMPDIR)\core\stdc\wctype.d : src\core\stdc\wctype.d
 	copy $** $@
 
+$(IMPDIR)\core\stdcpp\array.d : src\core\stdcpp\array.d
+	copy $** $@
+
 $(IMPDIR)\core\stdcpp\exception.d : src\core\stdcpp\exception.d
 	copy $** $@
 
-$(IMPDIR)\core\stdcpp\array.d : src\core\stdcpp\array.d
+$(IMPDIR)\core\stdcpp\new_.d : src\core\stdcpp\new_.d
 	copy $** $@
 
 $(IMPDIR)\core\stdcpp\string_view.d : src\core\stdcpp\string_view.d

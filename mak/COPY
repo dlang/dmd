@@ -52,6 +52,7 @@ COPY=\
 	\
 	$(IMPDIR)\core\stdcpp\array.d \
 	$(IMPDIR)\core\stdcpp\exception.d \
+	$(IMPDIR)\core\stdcpp\new_.d \
 	$(IMPDIR)\core\stdcpp\string_view.d \
 	$(IMPDIR)\core\stdcpp\typeinfo.d \
 	$(IMPDIR)\core\stdcpp\type_traits.d \
