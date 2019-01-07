@@ -313,10 +313,6 @@ tryagain:
     {
         Symbol *s = globsym.tab[i];
 
-        // only for vector types
-        if (!tyvector(s.Stype.Tty))
-            continue;
-
         switch (s.Sclass)
         {
             case SCregister:
@@ -326,7 +322,7 @@ tryagain:
                     break;
 
                 const sz = type_alignsize(s.Stype);
-                if (sz > STACKALIGN)
+                if (sz > STACKALIGN && (I64 || config.exe == EX_OSX))
                 {
                     STACKALIGN = sz;
                     enforcealign = true;
@@ -1354,13 +1350,10 @@ void stackoffsets(int flags)
                  * but are 4 byte aligned on the OSX 32 stack.
                  */
                 Para.offset = _align(REGSIZE,Para.offset); /* align on word stack boundary */
-                if (alignsize == 16 && (I64 || tyvector(s.ty())))
-                {
-                    if (Para.offset & 4)
-                        Para.offset += 4;
-                    if (Para.offset & 8)
-                        Para.offset += 8;
-                }
+                if (alignsize >= 16 &&
+                    (I64 || (config.exe == EX_OSX &&
+                         (tyaggregate(s.ty()) || tyvector(s.ty())))))
+                    Para.offset = (Para.offset + (alignsize - 1)) & ~(alignsize - 1);
                 s.Soffset = Para.offset;
                 //printf("%s param offset =  x%lx, alignsize = %d\n",s.Sident,(long)s.Soffset, (int)alignsize);
                 Para.offset += (s.Sflags & SFLdouble)

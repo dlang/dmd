@@ -3076,9 +3076,10 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         uint alignsize = el_alignsize(ep);
         parameters[i].numalign = 0;
         if (alignsize > stackalign &&
-            (I64 || (alignsize == 16 && tyvector(ep.Ety))))
+            (I64 || (alignsize >= 16 &&
+                (config.exe == EX_OSX && (tyaggregate(ep.Ety) || tyvector(ep.Ety))))))
         {
-            if (tyvector(ep.Ety) && alignsize > STACKALIGN)
+            if (alignsize > STACKALIGN)
             {
                 STACKALIGN = alignsize;
                 enforcealign = true;

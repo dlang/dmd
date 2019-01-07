@@ -926,6 +926,15 @@ Lagain:
                 default:     r = RTLSYM_MEMSETN;    break;
             }
 
+            if (sz == 16 && !irs.params.is64bit && irs.params.isOSX && tyaggregate(evalue.Ety))
+            {
+                // cast to cdouble to match the parameter type
+                // otherwise it may not get the proper alignment
+                const tym = TYcdouble | (evalue.Ety & ~mTYbasic);
+                evalue = addressElem(evalue, tb);
+                evalue = el_una(OPind, tym, evalue);
+            }
+
             /* Determine if we need to do postblit
              */
             if (op != TOK.blit)
