@@ -728,20 +728,6 @@ void test16()
 }
 
 /****************************************/
-/+ FIXME: Requires C++11 compiler.
-alias nullptr_t = typeof(null);
-
-extern (C++) void testnull(nullptr_t);
-extern (C++) void testnullnull(nullptr_t, nullptr_t);
-
-void test17()
-{
-    testnull(null);
-    testnullnull(null, null);
-}
-+/
-
-/****************************************/
 
 struct S13707
 {
@@ -1624,7 +1610,6 @@ void main()
     test13289();
     test15();
     test16();
-    //test17();
     func13707();
     func13932(S13932!(-1)(0));
     foo13337(S13337());
@@ -1650,6 +1635,6 @@ void main()
     test18966();
     test19134();
     test18955();
-    
+
     printf("Success\n");
 }
