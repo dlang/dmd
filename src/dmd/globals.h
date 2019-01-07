@@ -68,7 +68,9 @@ enum CPU
 enum CppStdRevision
 {
     CppStdRevisionCpp98 = 199711,
-    CppStdRevisionCpp11 = 201103
+    CppStdRevisionCpp11 = 201103,
+    CppStdRevisionCpp14 = 201402,
+    CppStdRevisionCpp17 = 201703
 };
 
 // Put command line switches in here
