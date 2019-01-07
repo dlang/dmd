@@ -422,8 +422,15 @@ for (int i = 0; i < 10; i++)
 }
 --------------
 
-$(P The $(I Initialize) may be omitted. $(I Test) may also be omitted, and if
-so, it is treated as if it evaluated to true.)
+    $(P The $(I Initialize) may be omitted (although the trailing $(D ;) is still required).
+    $(I Test) may also be omitted, and if
+    so, it is treated as if it evaluated to true.)
+
+    $(BEST_PRACTICE Consider replacing $(I ForStatements) with
+    $(DDSUBLINK spec/statement, foreach-statement, Foreach Statements) or
+    $(DDSUBLINK spec/statement, ForeachRangeStatement, Foreach Range Statements).
+    Foreach loops are easier to understand, less prone to error, and easier to refactor.
+    )
 
 $(H2 $(LEGACY_LNAME2 ForeachStatement, foreach-statement, Foreach Statement))
 
