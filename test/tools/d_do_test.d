@@ -634,13 +634,13 @@ int tryMain(string[] args)
         {
             case "dmd":
                 if(envData.os != "win32" && envData.os != "win64")
-                   testArgs.requiredArgs ~= " -L-lstdc++";
+                   testArgs.requiredArgs ~= " -L-lstdc++ -L--no-demangle";
                 break;
             case "ldc":
-                testArgs.requiredArgs ~= " -L-lstdc++";
+                testArgs.requiredArgs ~= " -L-lstdc++ -L--no-demangle";
                 break;
             case "gdc":
-                testArgs.requiredArgs ~= "-Xlinker -lstdc++";
+                testArgs.requiredArgs ~= "-Xlinker -lstdc++ -Xlinker --no-demangle";
                 break;
             default:
                 writeln("unknown compiler: "~envData.compiler);
