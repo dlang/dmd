@@ -437,10 +437,16 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
         if (v.isScope())
         {
-            if (vaIsFirstRef && v.isParameter())
+            if (vaIsFirstRef && v.isParameter() && v.storage_class & STC.return_)
             {
-                if (va.isScope() && v.storage_class & STC.return_)
+                if (va.isScope())
                     continue;
+
+                if (inferScope && !va.doNotInferScope)
+                {   //printf("inferring scope for %s\n", va.toChars());
+                    va.storage_class |= STC.scope_ | STC.scopeinferred;
+                    continue;
+                }
             }
 
             if (va && va.isScope() && va.storage_class & STC.return_ && !(v.storage_class & STC.return_) &&
