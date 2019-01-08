@@ -129,25 +129,6 @@ private template canBitwiseHash(T)
     }
 }
 
-private template UnqualUnsigned(T) if (__traits(isIntegral, T) && !is(T == __vector))
-{
-    static if (T.sizeof == ubyte.sizeof) alias UnqualUnsigned = ubyte;
-    else static if (T.sizeof == ushort.sizeof) alias UnqualUnsigned = ushort;
-    else static if (T.sizeof == uint.sizeof) alias UnqualUnsigned = uint;
-    else static if (T.sizeof == ulong.sizeof) alias UnqualUnsigned = ulong;
-    else static if (T.sizeof == ulong.sizeof * 2)
-    {
-        static assert(T.sizeof == ucent.sizeof);
-        alias UnqualUnsigned = ucent;
-    }
-    else
-    {
-        static assert(0, "No known unsigned equivalent of " ~ T.stringof);
-    }
-
-    static assert(UnqualUnsigned.sizeof == T.sizeof && __traits(isUnsigned, UnqualUnsigned));
-}
-
 // Overly restrictive for simplicity: has false negatives but no false positives.
 private template useScopeConstPassByValue(T)
 {
@@ -344,7 +325,7 @@ if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStati
 size_t hashOf(T)(scope const T val) if (!is(T == enum) && __traits(isArithmetic, T)
     && __traits(isIntegral, T) && T.sizeof <= size_t.sizeof && !is(T == __vector))
 {
-    return cast(UnqualUnsigned!T) val;
+    return val;
 }
 
 //arithmetic type hash
@@ -371,10 +352,10 @@ size_t hashOf(T)(scope const T val, size_t seed) if (!is(T == enum) && __traits(
         enum uint r1 = 31;
         enum uint r2 = 27;
     }
-    auto h = c1 * cast(UnqualUnsigned!T) val;
-    h = (h << r1) | (h >>> (typeof(h).sizeof * 8 - r1));
+    size_t h = c1 * val;
+    h = (h << r1) | (h >>> (size_t.sizeof * 8 - r1));
     h = (h * c2) ^ seed;
-    h = (h << r2) | (h >>> (typeof(h).sizeof * 8 - r2));
+    h = (h << r2) | (h >>> (size_t.sizeof * 8 - r2));
     return h * 5 + c3;
 }
 
