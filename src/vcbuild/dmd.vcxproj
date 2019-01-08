@@ -196,7 +196,7 @@
     </DCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <DCompile Include="../dmd/**/*.d" />
+    <DCompile Include="../dmd/**/*.d" Exclude="../dmd/backend/optabgen.d;../dmd/frontend.d;../dmd/asttypename.d"/>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="dmd_backend.vcxproj">
