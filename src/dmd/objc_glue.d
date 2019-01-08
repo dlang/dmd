@@ -90,6 +90,29 @@ extern(C++) abstract class ObjcGlue
     abstract size_t addSelectorParameterSymbol(
         FuncDeclaration functionDeclaration,
         Symbol** parameters, size_t parameterCount) const;
+
+    /**
+     * Returns the offset of the given variable declaration `var`.
+     *
+     * This is used in a `DotVarExp` to get the offset of the variable the
+     * expression is accessing.
+     *
+     * Instance variables in Objective-C are non-fragile. That means that the
+     * base class can change (add or remove instance variables) without the
+     * subclasses needing to recompile or relink. This is implemented instance
+     * variables having a dynamic offset. This is achieved by going through an
+     * indirection in the form of a symbol generated in the binary. The compiler
+     * outputs the static offset in the generated symbol. Then, at load time,
+     * the symbol is updated with the correct offset, if necessary.
+     *
+     * Params:
+     *  var = the variable declaration to return the offset of
+     *  type = the type of the `DotVarExp`
+     *  offset = the existing offset
+     *
+     * Returns: a symbol containing the offset of the variable declaration
+     */
+    abstract elem* getOffset(VarDeclaration var, Type type, elem* offset) const;
 }
 
 private:
@@ -130,6 +153,11 @@ extern(C++) final class Unsupported : ObjcGlue
         size_t count) const
     {
         return count;
+    }
+
+    override elem* getOffset(VarDeclaration var, Type type, elem* offset) const
+    {
+        return offset;
     }
 }
 
@@ -215,6 +243,16 @@ extern(C++) final class Supported : ObjcGlue
 
         return count + 1;
     }
+
+    override elem* getOffset(VarDeclaration var, Type type, elem* offset) const
+    {
+        auto typeClass = type.isTypeClass;
+
+        if (!typeClass || typeClass.sym.classKind != ClassKind.objc)
+            return offset;
+
+        return el_var(ObjcClassDeclaration(typeClass.sym, false).getIVarOffset(var));
+    }
 }
 
 struct Segments
@@ -227,6 +265,7 @@ struct Segments
         const_,
         data,
         imageinfo,
+        ivar,
         methname,
         methtype,
         selrefs
@@ -256,6 +295,7 @@ struct Segments
                 Id.const_: Segments("__objc_const", "__DATA", S_REGULAR, 3),
                 Id.data: Segments("__objc_data", "__DATA", S_REGULAR, 3),
                 Id.imageinfo: Segments("__objc_imageinfo", "__DATA", S_REGULAR | S_ATTR_NO_DEAD_STRIP, 0),
+                Id.ivar: Segments("__objc_ivar", "__DATA", S_REGULAR, 3),
                 Id.methname: Segments("__objc_methname", "__TEXT", S_CSTRING_LITERALS, 0),
                 Id.methtype: Segments("__objc_methtype", "__TEXT", S_CSTRING_LITERALS, 0),
                 Id.selrefs: Segments("__objc_selrefs", "__DATA", S_LITERAL_POINTERS | S_ATTR_NO_DEAD_STRIP, 3),
@@ -318,6 +358,9 @@ static:
         StringTable* methVarNameTable = null;
         StringTable* methVarRefTable = null;
         StringTable* methVarTypeTable = null;
+
+        // Cache for instance variable offsets
+        StringTable* ivarOffsetTable = null;
     }
 
     void initialize()
@@ -433,7 +476,7 @@ static:
         return symbol;
     }
 
-    Symbol* getMethVarName(Identifier* ident)
+    Symbol* getMethVarName(Identifier ident)
     {
         return getMethVarName(ident.toString());
     }
@@ -686,7 +729,7 @@ static:
     }
 
     /// ditto
-    Symbol* getMethVarType(Type[] types)
+    Symbol* getMethVarType(Type[] types ...)
     {
         string typeCode;
         typeCode.reserve(types.length);
@@ -746,6 +789,39 @@ static:
     Symbol* getClassNameRo(const Identifier ident)
     {
         return getClassNameRo(ident.toString());
+    }
+
+    Symbol* getIVarOffset(ClassDeclaration cd, VarDeclaration var, bool outputSymbol)
+    {
+        hasSymbols_ = true;
+
+        const className = cd.objc.identifier.toString;
+        const varName = var.ident.toString;
+        const name = "_OBJC_IVAR_$_" ~ className ~ '.' ~ varName;
+
+        auto stringValue = ivarOffsetTable.update(name);
+        auto symbol = cast(Symbol*) stringValue.ptrvalue;
+
+        if (!symbol)
+        {
+            symbol = getGlobal(name);
+            symbol.Sfl |= FLextern;
+            stringValue.ptrvalue = symbol;
+        }
+
+        if (!outputSymbol)
+            return symbol;
+
+        auto dtb = DtBuilder(0);
+        dtb.size(var.offset);
+
+        symbol.Sdt = dtb.finish();
+        symbol.Sseg = Segments[Segments.Id.ivar];
+        symbol.Sfl &= ~FLextern;
+
+        outdata(symbol);
+
+        return symbol;
     }
 }
 
@@ -880,13 +956,7 @@ private:
 
         else
         {
-            auto ivars = getIVarList();
-
-            if (ivars && !isMeta)
-                dtb.xoff(ivars, 0); // instance variable list
-            else
-                dtb.size(0); // or null if no ivar
-
+            dtb.xoffOrNull(getIVarList()); // instance variable list
             dtb.size(0); // weak ivar layout
             dtb.xoffOrNull(getPropertyList()); // properties
         }
@@ -978,14 +1048,54 @@ private:
 
     Symbol* getIVarList()
     {
-        // ivars are not supported yet
-        return null;
+        if (isMeta || classDeclaration.fields.length == 0)
+            return null;
+
+        auto dtb = DtBuilder(0);
+
+        dtb.dword(32); // entsize, _ivar_t.sizeof
+        dtb.dword(cast(int) classDeclaration.fields.length); // ivar count
+
+        foreach (field; classDeclaration.fields)
+        {
+            auto var = field.isVarDeclaration;
+            assert(var);
+            assert((var.storage_class & STC.static_) == 0);
+
+            dtb.xoff(Symbols.getIVarOffset(classDeclaration, var, true), 0); // pointer to ivar offset
+            dtb.xoff(Symbols.getMethVarName(var.ident), 0); // name
+            dtb.xoff(Symbols.getMethVarType(var.type), 0); // type string
+            dtb.dword(var.alignment);
+            dtb.dword(cast(int) var.size(var.loc));
+        }
+
+        enum prefix = "l_OBJC_$_INSTANCE_VARIABLES_";
+        const symbolName = prefix ~ classDeclaration.objc.identifier.toString();
+        auto symbol = Symbols.getStatic(symbolName);
+
+        symbol.Sdt = dtb.finish();
+        symbol.Sseg = Segments[Segments.Id.const_];
+
+        return symbol;
     }
 
     Symbol* getPropertyList()
     {
         // properties are not supported yet
         return null;
+    }
+
+    Symbol* getIVarOffset(VarDeclaration var)
+    {
+        if (var.toParent() is classDeclaration)
+            return Symbols.getIVarOffset(classDeclaration, var, false);
+
+        else if (classDeclaration.baseClass)
+            return ObjcClassDeclaration(classDeclaration.baseClass, false)
+                .getIVarOffset(var);
+
+        else
+            assert(false, "Trying to get the base class of a root class");
     }
 
     /**

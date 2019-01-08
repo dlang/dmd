@@ -3537,7 +3537,9 @@ elem *toElem(Expression e, IRState *irs)
             Type tb1 = dve.e1.type.toBasetype();
             if (tb1.ty != Tclass && tb1.ty != Tpointer)
                 e = addressElem(e, tb1);
-            e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, v.offset));
+            auto offset = el_long(TYsize_t, v.offset);
+            offset = objc.getOffset(v, tb1, offset);
+            e = el_bin(OPadd, TYnptr, e, offset);
             if (v.storage_class & (STC.out_ | STC.ref_))
                 e = el_una(OPind, TYnptr, e);
             e = el_una(OPind, totym(dve.type), e);
