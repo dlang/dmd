@@ -28,6 +28,7 @@ import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
+import dmd.objc;
 import dmd.root.outbuffer;
 import dmd.target;
 import dmd.tokens;
@@ -181,6 +182,11 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
     override final void addLocalClass(ClassDeclarations* aclasses)
     {
         include(null).foreachDsymbol( s => s.addLocalClass(aclasses) );
+    }
+
+    override final void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)
+    {
+        objc.addSymbols(this, classes, categories);
     }
 
     override final inout(AttribDeclaration) isAttribDeclaration() inout

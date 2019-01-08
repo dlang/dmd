@@ -66,6 +66,17 @@ public:
         this(name[0 .. strlen(name)], TOK.identifier);
     }
 
+    /// Sentinel for an anonymous identifier.
+    static Identifier anonymous() nothrow
+    {
+        __gshared Identifier anonymous;
+
+        if (anonymous)
+            return anonymous;
+
+        return anonymous = new Identifier("__anonymous", TOK.identifier);
+    }
+
     static Identifier create(const(char)* name) nothrow
     {
         return new Identifier(name);

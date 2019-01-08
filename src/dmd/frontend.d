@@ -56,6 +56,7 @@ void initDMD()
     import dmd.filecache : FileCache;
     import dmd.globals : global;
     import dmd.id : Id;
+    import dmd.identifier : Identifier;
     import dmd.mars : setTarget, addDefaultVersionIdentifiers;
     import dmd.mtype : Type;
     import dmd.objc : Objc;

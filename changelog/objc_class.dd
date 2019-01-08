@@ -1,0 +1,49 @@
+Add support for Objective-C classes
+
+Prior to this release D interfaces were used to represent Objective-C classes.
+Now proper support for Objective-C classes has been added and D classes can
+be used instead to represent Objective-C classes. It's preferred to use D
+classes to represent Objective-C classes.
+
+This release also adds support for implementing Objective-C subclasses and
+methods in D.
+
+To match the behavior in Objective-C some additional changes have been made:
+
+$(UL
+    $(LI `static` and `final` methods are virtual. Although `final` methods are
+         virtual it's not possible to override a `final` method in a subclass)
+    $(LI `static` methods are overridable in subclasses)
+)
+
+Example:
+
+---
+extern (Objective-C)
+class NSObject
+{
+    static NSObject alloc() @selector("alloc");
+    NSObject init() @selector("init");
+    void release() @selector("release");
+}
+
+extern (Objective-C)
+class Foo : NSObject
+{
+    override static Foo alloc() @selector("alloc");
+    override Foo init() @selector("init");
+
+    int bar(int a) @selector("bar:")
+    {
+        return a;
+    }
+}
+
+void main()
+{
+    auto foo = Foo.alloc.init;
+    scope (exit) foo.release();
+
+    assert(foo.bar(3) == 3);
+}
+---

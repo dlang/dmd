@@ -1027,6 +1027,10 @@ extern (C++) class Dsymbol : RootObject
     {
     }
 
+    void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)
+    {
+    }
+
     void checkCtorConstInit()
     {
     }

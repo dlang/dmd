@@ -3204,6 +3204,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (ClassDeclaration cd = parent.isClassDeclaration())
         {
+            parent = cd = objc.getParent(funcdecl, cd);
+
             if (funcdecl.isCtorDeclaration())
             {
                 goto Ldone;
@@ -3558,6 +3560,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
 
         L2:
+            objc.setSelector(funcdecl, sc);
+            objc.checkLinkage(funcdecl);
+            objc.addToClassMethodList(funcdecl, cd);
+
             /* Go through all the interface bases.
              * Disallow overriding any final functions in the interface(s).
              */
@@ -3595,6 +3601,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         else if (funcdecl.isOverride() && !parent.isTemplateInstance())
             funcdecl.error("`override` only applies to class member functions");
 
+        if (auto ti = parent.isTemplateInstance)
+            objc.setSelector(funcdecl, sc);
+
+        objc.validateSelector(funcdecl);
         // Reflect this.type to f because it could be changed by findVtblIndex
         f = funcdecl.type.toTypeFunction();
 
@@ -4410,7 +4420,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(ClassDeclaration cldec)
     {
-        //printf("ClassDeclaration.dsymbolSemantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
+        //printf("ClassDeclaration.dsymbolSemantic(%s), type = %p, sizeok = %d, this = %p\n", cldec.toChars(), cldec.type, cldec.sizeok, this);
         //printf("\tparent = %p, '%s'\n", sc.parent, sc.parent ? sc.parent.toChars() : "");
         //printf("sc.stc = %x\n", sc.stc);
 
@@ -4682,6 +4692,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
             cldec.baseok = Baseok.done;
 
+            if (cldec.classKind == ClassKind.objc || (cldec.baseClass && cldec.baseClass.classKind == ClassKind.objc))
+                cldec.classKind = ClassKind.objc; // Objective-C classes do not inherit from Object
+
             // If no base class, and this is not an Object, use Object as base class
             if (!cldec.baseClass && cldec.ident != Id.Object && cldec.object && cldec.classKind == ClassKind.d)
             {
@@ -4792,6 +4805,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (cldec.baseok == Baseok.done)
         {
             cldec.baseok = Baseok.semanticdone;
+            objc.setMetaclass(cldec, sc);
 
             // initialize vtbl
             if (cldec.baseClass)
@@ -5028,6 +5042,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(InterfaceDeclaration idec)
     {
+        /// Returns: `true` is this is an anonymous Objective-C metaclass
+        static bool isAnonymousMetaclass(InterfaceDeclaration idec)
+        {
+            return idec.classKind == ClassKind.objc &&
+                idec.objc.isMeta &&
+                idec.isAnonymous;
+        }
+
         //printf("InterfaceDeclaration.dsymbolSemantic(%s), type = %p\n", toChars(), type);
         if (idec.semanticRun >= PASS.semanticdone)
             return;
@@ -5048,7 +5070,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             assert(sc.parent && sc.func);
             idec.parent = sc.parent;
         }
-        assert(idec.parent && !idec.isAnonymous());
+        // Objective-C metaclasses are anonymous
+        assert(idec.parent && !idec.isAnonymous || isAnonymousMetaclass(idec));
 
         if (idec.errors)
             idec.type = Type.terror;
@@ -5144,7 +5167,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 idec.classKind = ClassKind.cpp;
 
             if (sc.linkage == LINK.objc)
+            {
                 objc.setObjc(idec);
+                objc.deprecate(idec);
+            }
 
             // Check for errors, handle forward references
             for (size_t i = 0; i < idec.baseclasses.dim;)
@@ -5254,7 +5280,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (idec.baseok == Baseok.done)
         {
             idec.baseok = Baseok.semanticdone;
-            objc.setMetaclass(idec);
+            objc.setMetaclass(idec, sc);
 
             // initialize vtbl
             if (idec.vtblOffset())

@@ -775,7 +775,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             }
             if (isstatic)
                 fd.storage_class |= STC.static_;
-            fd.vthis = fd.declareThis(scx, fd.isThis());
+            auto hiddenParams = fd.declareThis(scx, fd.isThis());
+            fd.vthis = hiddenParams.vthis;
+            fd.selectorParameter = hiddenParams.selectorParameter;
         }
 
         Expression e = constraint.syntaxCopy();
