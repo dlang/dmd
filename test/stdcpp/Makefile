@@ -22,7 +22,7 @@ $(ROOT)/%.done : $(ROOT)/%
 $(ROOT)/%: $(SRC)/%.cpp $(SRC)/%_test.d
 	mkdir -p $(dir $@)
 	$(QUIET)$(DMD) $(DFLAGS) -main -unittest -c -of=$(ROOT)/$*_d.o $(SRC)/$*_test.d
-	$(QUIET)$(CXX) $(CXXFLAGS) -o $@ $< $(ROOT)/$*_d.o $(DRUNTIME) -lpthread
+	$(QUIET)$(CXX) $(CXXFLAGS_BASE) -o $@ $< $(ROOT)/$*_d.o $(DRUNTIME) -lpthread
 
 clean:
 	rm -rf $(GENERATED)
