@@ -58,6 +58,11 @@
 
 ############################### Configuration ################################
 
+# fixed model for win32.mak
+MODEL=32
+BUILD=release
+OS=windows
+
 ##### Directories
 
 # DMC directory
@@ -72,6 +77,10 @@ INCLUDE=$(ROOT);$(DMCROOT)\include
 INSTALL=..\install
 # Where scp command copies to
 SCPDIR=..\backup
+
+# Generated files directory
+GEN = ..\generated
+G = $(GEN)\$(OS)\$(BUILD)\$(MODEL)
 
 ##### Tools
 
@@ -129,7 +138,7 @@ MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DTARGET_WINDOS=1 -DDM_TARG
 # D compile flags
 DFLAGS=$(DOPT) $(DDEBUG)
 # Recursive make
-DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT)
+DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) MODEL=$(MODEL) CC="$(CC)" LIB="$(LIB)"
 
 ############################### Rule Variables ###############################
 
@@ -268,17 +277,19 @@ MAKEFILES=win32.mak posix.mak osmodel.mak
 
 ############################## Release Targets ###############################
 
-defaulttarget: debdmd
+defaulttarget: $G debdmd
 
-auto-tester-build: dmd
+auto-tester-build: $G dmd
 
-dmd: reldmd
-ddmd: relddmd
+dmd: $G reldmd
 
 release:
 	$(DMDMAKE) clean
 	$(DMDMAKE) reldmd
 	$(DMDMAKE) clean
+
+$G :
+	if not exist "$G" mkdir $G
 
 debdmd:
 	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "DDEBUG=-debug -g" "DOPT=" "LFLAGS=-L/ma/co/la" $(TARGETEXE)
@@ -288,12 +299,6 @@ reldmd:
 
 trace:
 	$(DMDMAKE) "OPT=-o" "DEBUG=-gt -Nc" "DDEBUG=-debug -g" "DOPT=" "LFLAGS=-L/ma/co/delexe/la" $(TARGETEXE)
-
-debddmd:
-	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "DDEBUG=-debug -g" "DOPT=" "LFLAGS=-L/ma/co/la" ddmd.exe
-
-relddmd:
-	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=" "DOPT=-inline -O" "LFLAGS=-L/delexe/la" ddmd.exe
 
 ################################ Libraries ##################################
 
@@ -313,6 +318,7 @@ LIBS= frontend.lib glue.lib backend.lib root.lib
 
 $(TARGETEXE): mars.obj $(LIBS) win32.mak
 	$(CC) -o$(TARGETEXE) mars.obj $(LIBS) -cpp -mn -Ar -L/STACK:8388608 $(LFLAGS)
+	$(CP) $(TARGETEXE) $(G)\$(TARGETEXE)
 
 ############################ Maintenance Targets #############################
 
