@@ -545,6 +545,7 @@ $(H2 $(LNAME2 staticorder, Static Construction and Destruction))
         releaseSharedResource(y);
         releaseSharedResource(z);
     }
+    ---
 
     $(BEST_PRACTICE
     $(OL
@@ -553,7 +554,6 @@ $(H2 $(LNAME2 staticorder, Static Construction and Destruction))
     $(LI Non-shared static constructors and destructors are used to initialize and terminate
     thread local data.)
     ))
-    ---
 
 $(H2 $(LNAME2 order_of_static_ctor, Order of Static Construction))
 
