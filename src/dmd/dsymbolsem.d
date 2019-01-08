@@ -586,9 +586,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         dsym.semanticRun = PASS.semantic;
 
-        // store here, it might get cleared later
-        bool isScope = (dsym.storage_class & STC.scope_) != 0;
-
         /* Pick up storage classes from context, but except synchronized,
          * override, abstract, and final.
          */
@@ -1334,13 +1331,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             // expression so it can be used in the static destructor of the
             // module.
             auto m = dsym.getModule();
-            if ((dsym.isStatic || sc.parent == m) && isScope)
+            if (sc.parent == m)
             {
                 auto tv = dsym.type.baseElemOf();
                 if (tv.ty == Tstruct)
                 {
                     Loc loc;   // generated code has no location
-                    if (dsym.storage_class & (STC.shared_ | STC.gshared | STC.static_))
+                    if (dsym.storage_class & (STC.shared_ | STC.gshared))
                         m.sharedDtors.push(new ExpStatement(loc, dsym.edtor));
                     else
                         m.dtors.push(new ExpStatement(loc, dsym.edtor));

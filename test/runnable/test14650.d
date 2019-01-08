@@ -6,11 +6,10 @@ struct S
 
 static ~this()
 {
-    assert(a == 2);
+    assert(a == 1);
 }
 
 S s;
 void main()
 {
-    static S s;
-} 
+}
