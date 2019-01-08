@@ -5929,6 +5929,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     // [int, char, 100]
     Objects tdtypes;
 
+    // Modules imported by this template instance
+    Modules importedModules;
+
     Dsymbol tempdecl;           // referenced by foo.bar.abc
     Dsymbol enclosing;          // if referencing local symbols, this is the context
     Dsymbol aliasdecl;          // !=null if instance is an alias for its sole member
