@@ -5,8 +5,7 @@ auto-tester-build:
 	$(MAKE) -f win32.mak auto-tester-build
 	cd ..
 
+# Disable D2 testsuite for DMD.
 auto-tester-test:
-	cd test
-	$(MAKE)
-	cd ..
+	@echo "Auto-tester tests disabled"
 

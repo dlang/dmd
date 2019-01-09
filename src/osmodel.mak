@@ -1,5 +1,14 @@
-# This Makefile snippet detects the OS and the architecture MODEL
-# Keep this file in sync between druntime, phobos, and dmd repositories!
+#   osmodel.mak
+#
+# Detects and sets the macros:
+#
+#   OS         = one of {osx,linux,freebsd,openbsd,netbsd,dragonflybsd,solaris}
+#   MODEL      = one of { 32, 64 }
+#   MODEL_FLAG = one of { -m32, -m64 }
+#
+# Note:
+#   Keep this file in sync between druntime, phobos, and dmd repositories!
+# Source: https://github.com/dlang/dmd/blob/master/osmodel.mak
 
 ifeq (,$(OS))
   uname_S:=$(shell uname -s)
@@ -14,6 +23,12 @@ ifeq (,$(OS))
   endif
   ifeq (OpenBSD,$(uname_S))
     OS:=openbsd
+  endif
+  ifeq (NetBSD,$(uname_S))
+    OS:=netbsd
+  endif
+  ifeq (DragonFly,$(uname_S))
+    OS:=dragonflybsd
   endif
   ifeq (Solaris,$(uname_S))
     OS:=solaris
