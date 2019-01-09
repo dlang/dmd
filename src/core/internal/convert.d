@@ -705,6 +705,20 @@ nothrow pure @safe unittest
     enum ctfe_works = (() => { Month x = Month.jan; return toUbyte(x).length > 0; })();
 }
 
+@trusted pure nothrow @nogc
+const(ubyte)[] toUbyte(T)(const ref T val) if (is(T == delegate) || is(T : V*, V) && __traits(getAliasThis, T).length == 0)
+{
+    if (__ctfe)
+    {
+        if (val !is null) assert(0, "Unable to compute byte representation of non-null pointer at compile time");
+        return ctfe_alloc(T.sizeof);
+    }
+    else
+    {
+        return (cast(const(ubyte)*)&val)[0 .. T.sizeof];
+    }
+}
+
 package(core.internal) bool isNonReference(T)()
 {
     static if (is(T == struct) || is(T == union))
