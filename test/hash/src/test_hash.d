@@ -1,6 +1,6 @@
 void main()
 {
-    hashOfVoidPtrArray();
+    issue19562();
     issue15111();
     issues16654And16764();
     issue18918();
@@ -15,11 +15,15 @@ void main()
     pr2243();
 }
 
-/// Check that `hashOf` can be called on an array of void pointers.
-void hashOfVoidPtrArray() @nogc nothrow pure @system
+/// Check hashOf an array of void pointers or delegates is @safe.
+void issue19562() @nogc nothrow pure @safe
 {
-    void*[] val;
-    const _ = hashOf(val); // Check a PR doesn't break this.
+    void*[10] val;
+    size_t h = hashOf(val[]);
+
+    alias D = void delegate();
+    D[10] ds;
+    h = hashOf(ds[]);
 }
 
 /// hashOf was failing for structs that had an `alias this` to a dynamic array.
