@@ -17,6 +17,8 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+version = GC;
+
 version (GC)
 {
     import core.memory : GC;
