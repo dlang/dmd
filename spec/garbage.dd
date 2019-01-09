@@ -407,7 +407,14 @@ $(H2 $(LNAME2 gc_config, Configuring the Garbage Collector))
         $(LI maxPoolSize:N  - maximum pool size in MB)
         $(LI incPoolSize:N  - pool size increment MB)
         $(LI heapSizeFactor:N - targeted heap size to used memory ratio)
-        )
+        $(LI cleanup:none|collect|finalize - how to treat live objects when terminating
+          $(UL
+            $(LI collect: run a collection (the default for backward compatibility))
+            $(LI none: do nothing)
+            $(LI finalize: all live objects are finalized unconditionally)
+          )
+        ))
+
 
     $(P In addition, --DRT-gcopt=help will show the list of options and their current settings.
     )
