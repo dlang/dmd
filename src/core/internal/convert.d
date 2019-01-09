@@ -719,73 +719,23 @@ const(ubyte)[] toUbyte(T)(const ref T val) if (is(T == delegate) || is(T : V*, V
     }
 }
 
-package(core.internal) bool isNonReference(T)()
-{
-    static if (is(T == struct) || is(T == union))
-    {
-        return isNonReferenceStruct!T();
-    }
-    else static if (__traits(isStaticArray, T))
-    {
-        static if (T.length > 0)
-            return isNonReference!(typeof(T.init[0]))();
-        else
-            return true;
-    }
-    else static if (is(T E == enum))
-    {
-      return isNonReference!(E)();
-    }
-    else static if (!__traits(isScalar, T))
-    {
-        return false;
-    }
-    else static if (is(T V : V*))
-    {
-        return false;
-    }
-    else static if (is(T == function))
-    {
-        return false;
-    }
-    else
-    {
-        return true;
-    }
-}
-
-private bool isNonReferenceStruct(T)() if (is(T == struct) || is(T == union))
-{
-    static foreach (cur; T.tupleof)
-    {
-        if (!isNonReference!(typeof(cur))()) return false;
-    }
-
-    return true;
-}
-
 @trusted pure nothrow @nogc
 const(ubyte)[] toUbyte(T)(const ref T val) if (is(T == struct) || is(T == union))
 {
     if (__ctfe)
     {
         ubyte[] bytes = ctfe_alloc(T.sizeof);
-        foreach (key, cur; val.tupleof)
+        foreach (key, ref cur; val.tupleof)
         {
-            alias CUR_TYPE = typeof(cur);
-            static if (isNonReference!(CUR_TYPE)())
+            alias CurType = typeof(cur);
+            static if (is(CurType == struct) || is(CurType == union) || __traits(isStaticArray, CurType) || !is(typeof(cur is null)))
             {
-                bytes[val.tupleof[key].offsetof .. val.tupleof[key].offsetof + cur.sizeof] = toUbyte(cur)[];
-            }
-            else static if (is(typeof(val.tupleof[key] is null)))
-            {
-                assert(val.tupleof[key] is null, "Unable to compute byte representation of non-null reference field at compile time");
-                //skip, because val bytes are zeros
+                bytes[val.tupleof[key].offsetof .. val.tupleof[key].offsetof + CurType.sizeof] = toUbyte(cur)[];
             }
             else
             {
-                //pragma(msg, "is null: ", typeof(CUR_TYPE).stringof);
-                assert(0, "Unable to compute byte representation of "~typeof(CUR_TYPE).stringof~" field at compile time");
+                assert(cur is null, "Unable to compute byte representation of non-null reference field at compile time");
+                //skip, because val bytes are zeros
             }
         }
         return bytes;
