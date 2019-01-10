@@ -52,18 +52,18 @@ class RangeError : Error
     /// length of indexed array
     const size_t length;
 
-    this( string file = __FILE__, size_t line = __LINE__, Throwable next = null) @nogc nothrow pure @safe
+    this(string file = __FILE__, size_t line = __LINE__, Throwable next = null) @nogc nothrow pure @safe
     {
         this( 0, 0, 0, file, line, next);
     }
 
-    this( size_t lower, size_t upper, size_t length, string file = __FILE__,
-          size_t line = __LINE__, Throwable next = null) @nogc nothrow pure @safe
+    this(size_t lower, size_t upper, size_t length, string file = __FILE__,
+         size_t line = __LINE__, Throwable next = null) @nogc nothrow pure @safe
     {
         this.lower  = lower;
         this.upper  = upper;
         this.length = length;
-        super( "Range violation", file, line, next );
+        super("Range violation", file, line, next);
     }
 
     override void toString(scope void delegate(in char[]) sink) const
@@ -88,22 +88,7 @@ class RangeError : Error
             sink("] exceeds array length ");
             sink(unsignedToTempString(length, tmpBuff, 10));
         }
-
-        if (info)
-        {
-            try
-            {
-                sink("\n----------------");
-                foreach (t; info)
-                {
-                    sink("\n"); sink(t);
-                }
-            }
-            catch (Throwable)
-            {
-                // ignore more errors
-            }
-        }
+        formatStackTrace(sink);
     }
 }
 
@@ -129,7 +114,7 @@ unittest
         int[] a = [1, 2, 3];
         try
         {
-            // This is necessary becase the unittests are compiled with -release
+            // This is necessary because the unittests are compiled with -release
             // We need to ensure te compiler emit a call to _d_array_bounds[p] in order
             // to test it.
             () @safe
@@ -565,8 +550,8 @@ extern (C) void onUnittestErrorMsg( string file, size_t line, string msg ) nothr
  * A callback for array bounds errors in D.  A $(LREF RangeError) will be thrown.
  *
  * Params:
- *  lower  = the lower bound of the of the index passed of a slice
- *  upper  = the upper bound of the of the index passed of a slice of the index if not a slice
+ *  lower  = the lower bound of the index passed of a slice
+ *  upper  = the upper bound of the index passed of a slice or the index if not a slice
  *  length = length of the array
  *  file = The name of the file that signaled this error.
  *  line = The line number on which this error occurred.

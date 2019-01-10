@@ -1,8 +1,8 @@
 RangeError now has bounds information
 
 Errors resulting from bad indexing will now contain the length of
-the array that was sliced as well as the offending index for `arr[bad]`
-or for bad slices `arr[bad1 .. bad2]`. The associated runtime functions
+the array that was sliced, as well as the offending index for `arr[bad]`,
+or, for bad slices, `arr[bad1 .. bad2]`. The associated runtime functions
 `onRangeError` and `_d_arraybounds[p]` have changed signature to match.
 
 For example, currently the following file:
