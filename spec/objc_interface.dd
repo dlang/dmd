@@ -5,9 +5,9 @@ $(SPEC_S Interfacing to Objective-C,
 $(HEADERNAV_TOC)
 
     $(P
-        D has limited support for interfacing with Objective-C. It supports
-        external classes and calling instance and class methods. It is only
-        available on macOS, compiling for 64bit.
+        D has some support for interfacing with Objective-C. It supports
+        classes, instance and class methods. It is only available on macOS,
+        compiling for 64bit.
     )
 
     $(P
@@ -15,26 +15,69 @@ $(HEADERNAV_TOC)
         $(LINK2 #usage-example, the bottom).
     )
 
-    $(SECTION2 $(LNAME2 external-class, Declaring an External Class))
+    $(SECTION2 $(LNAME2 classes, Classes))
+
+    $(SECTION3 $(LNAME2 external-class, Declaring an External Class))
 
     ---
     extern (Objective-C)
-    interface NSString
+    class NSString
     {
         const(char)* UTF8String() @selector("UTF8String");
     }
     ---
 
     $(P
-        Currently all Objective-C classes need to be declared as interfaces in
-        D. All Objective-C classes that should be accessible from within D
-        need to be declared with the $(LINK2 #objc-linkage, Objective-C linkage).
+        All Objective-C classes that should be accessible from within D need to
+        be declared with the $(LINK2 #objc-linkage, Objective-C linkage). If all
+        methods inside an Objective-C class are without a body the class is
+        expected to be defined externally.
     )
 
     $(P
         The $(LINK2 #selector-attribute, `@selector`) attribute indicates which
-        Objective-C selector should be used when calling this method from D.
-        This attribute needs to be attached to all methods.
+        Objective-C selector should be used when calling this method.
+        This attribute needs to be attached to all methods with the
+        `Objective-C` linkage.
+    )
+
+    $(SECTION3 $(LNAME2 defining-class, Defining a Class))
+
+    ---
+    // externally defined
+    extern (Objective-C)
+    class NSObject
+    {
+        static NSObject alloc() @selector("alloc");
+        NSObject init() @selector("init");
+    }
+
+    extern (Objective-C)
+    class Foo : NSObject
+    {
+        override static Foo alloc() @selector("alloc");
+        override Foo init() @selector("init");
+
+        final int bar(int a) @selector("bar:")
+        {
+            return a;
+        }
+    }
+
+    void main()
+    {
+        assert(Foo.alloc.init.bar(3) == 3);
+    }
+    ---
+
+    $(P
+        Defining an Objective-C class is exactly the same as declaring an
+        external class but it needs to have at least one method with a body.
+    )
+
+    $(P
+        To match the Objective-C semantics, `static` and `final` methods are
+        virtual. `static` methods are overridable as well.
     )
 
     $(SECTION2 $(LNAME2 instance-method, Calling an Instance Method))
@@ -73,7 +116,7 @@ $(HEADERNAV_TOC)
 
     ---
     extern (Objective-C)
-    interface NSString
+    class NSString
     {
         NSString initWith(in char*) @selector("initWithUTF8String:");
         NSString initWith(NSString) @selector("initWithString:");
@@ -133,19 +176,19 @@ $(HEADERNAV_TOC)
 
     $(P
         Objective-C linkage is achieved by attaching the `extern (Objective-C)`
-        attribute to an interface. Example:
+        attribute to a class. Example:
     )
 
     ---
     extern (Objective-C)
-    interface NSObject
+    class NSObject
     {
         NSObject init() @selector("init");
     }
     ---
 
     $(P
-        All methods inside an interface declared as `extern (Objective-C)` will
+        All methods inside a class declared as `extern (Objective-C)` will
         get implicit Objective-C linkage.
     )
 
@@ -229,7 +272,7 @@ $(HEADERNAV_TOC)
 
     ---
     extern (Objective-C)
-    interface NSString
+    class NSString
     {
         static NSString alloc() @selector("alloc");
         NSString initWithUTF8String(in char* str) @selector("initWithUTF8String:");
@@ -295,7 +338,7 @@ $(HEADERNAV_TOC)
     module main;
 
     extern (Objective-C)
-    interface NSString
+    class NSString
     {
         static NSString alloc() @selector("alloc");
         NSString initWithUTF8String(in char* str) @selector("initWithUTF8String:");
