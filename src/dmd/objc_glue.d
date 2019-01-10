@@ -137,6 +137,7 @@ extern(C++) final class Supported : ObjcGlue
 {
     extern (D) this()
     {
+        Segments.initialize();
         Symbols.initialize();
     }
 
@@ -220,40 +221,21 @@ struct Segments
 {
     enum Id
     {
-        imageInfo,
-        methodName,
-        methodType,
-        instanceMethod,
-        classMethod,
-        moduleInfo,
-        selectorRefs,
-        className,
-        classRefs,
-        class_,
-        classRo,
-        metaclass
+        classlist,
+        classname,
+        classrefs,
+        const_,
+        data,
+        imageinfo,
+        methname,
+        methtype,
+        selrefs
     }
 
     private
     {
-        __gshared int[segmentData.length] segments;
-
-        __gshared Segments[__traits(allMembers, Id).length] segmentData = [
-            Segments("__objc_imageinfo", "__DATA", S_REGULAR | S_ATTR_NO_DEAD_STRIP, 0),
-            Segments("__objc_methname", "__TEXT", S_CSTRING_LITERALS, 0),
-            Segments("__objc_methtype", "__TEXT", S_CSTRING_LITERALS, 0),
-            Segments("__objc_const", "__DATA", S_REGULAR, 3),
-            Segments("__objc_const", "__DATA", S_REGULAR, 3),
-            Segments("__objc_classlist", "__DATA", S_REGULAR | S_ATTR_NO_DEAD_STRIP, 3),
-            Segments("__objc_selrefs", "__DATA", S_LITERAL_POINTERS | S_ATTR_NO_DEAD_STRIP, 3),
-            Segments("__objc_classname", "__TEXT", S_CSTRING_LITERALS, 0),
-            Segments("__objc_classrefs", "__DATA", S_REGULAR | S_ATTR_NO_DEAD_STRIP, 3),
-            Segments("__objc_data", "__DATA", S_REGULAR, 3),
-            Segments("__objc_const", "__DATA", S_REGULAR, 3),
-            Segments("__objc_data", "__DATA", S_REGULAR, 3)
-        ];
-
-        static assert(segmentData.length == __traits(allMembers, Id).length);
+        __gshared int[Id] segments;
+        __gshared Segments[Id] segmentData;
 
         immutable(char*) sectionName;
         immutable(char*) segmentName;
@@ -264,27 +246,38 @@ struct Segments
         {
             this.tupleof = tuple;
         }
+
+        static void initialize()
+        {
+            segmentData = [
+                Id.classlist: Segments("__objc_classlist", "__DATA", S_REGULAR | S_ATTR_NO_DEAD_STRIP, 3),
+                Id.classname: Segments("__objc_classname", "__TEXT", S_CSTRING_LITERALS, 0),
+                Id.classrefs: Segments("__objc_classrefs", "__DATA", S_REGULAR | S_ATTR_NO_DEAD_STRIP, 3),
+                Id.const_: Segments("__objc_const", "__DATA", S_REGULAR, 3),
+                Id.data: Segments("__objc_data", "__DATA", S_REGULAR, 3),
+                Id.imageinfo: Segments("__objc_imageinfo", "__DATA", S_REGULAR | S_ATTR_NO_DEAD_STRIP, 0),
+                Id.methname: Segments("__objc_methname", "__TEXT", S_CSTRING_LITERALS, 0),
+                Id.methtype: Segments("__objc_methtype", "__TEXT", S_CSTRING_LITERALS, 0),
+                Id.selrefs: Segments("__objc_selrefs", "__DATA", S_LITERAL_POINTERS | S_ATTR_NO_DEAD_STRIP, 3),
+            ];
+        }
     }
 
     static int opIndex(Id id)
     {
-        auto segmentsPtr = segments.ptr;
+        if (auto segment = id in segments)
+            return *segment;
 
-        if (segmentsPtr[id] != 0)
-            return segmentsPtr[id];
-
-        auto seg = segmentData[id];
+        const seg = segmentData[id];
 
         version (OSX)
         {
-            segmentsPtr[id] = Obj.getsegment(
+            return segments[id] = Obj.getsegment(
                 seg.sectionName,
                 seg.segmentName,
                 seg.alignment,
                 seg.flags
             );
-
-            return segmentsPtr[id];
         }
 
         else
@@ -433,7 +426,7 @@ static:
             __gshared size_t classNameCount = 0;
             char[42] buffer;
             const symbolName = format(buffer, "L_OBJC_METH_VAR_NAME_%lu", classNameCount++);
-            symbol = getCString(name, symbolName, Segments.Id.methodName);
+            symbol = getCString(name, symbolName, Segments.Id.methname);
             stringValue.ptrvalue = symbol;
         }
 
@@ -484,7 +477,7 @@ static:
 
         imageInfo = symbol_name("L_OBJC_IMAGE_INFO", SCstatic, type_allocn(TYarray, tstypes[TYchar]));
         imageInfo.Sdt = dtb.finish();
-        imageInfo.Sseg = Segments[Segments.Id.imageInfo];
+        imageInfo.Sseg = Segments[Segments.Id.imageinfo];
         outdata(imageInfo);
 
         return imageInfo;
@@ -505,7 +498,7 @@ static:
 
         Symbol* symbol = symbol_name("L_OBJC_LABEL_CLASS_$", SCstatic, type_allocn(TYarray, tstypes[TYchar]));
         symbol.Sdt = dtb.finish();
-        symbol.Sseg = Segments[Segments.Id.moduleInfo];
+        symbol.Sseg = Segments[Segments.Id.const_];
         outdata(symbol);
 
         getImageInfo(); // make sure we also generate image info
@@ -562,7 +555,7 @@ static:
         auto className = getClassName(classDeclaration);
         dtb.xoff(className, 0, TYnptr);
 
-        auto segment = Segments[Segments.Id.classRefs];
+        auto segment = Segments[Segments.Id.classrefs];
 
         __gshared size_t classReferenceCount = 0;
 
@@ -592,7 +585,7 @@ static:
             dtb.xoff(selector, 0, TYnptr);
 
             // find segment
-            auto seg = Segments[Segments.Id.selectorRefs];
+            auto seg = Segments[Segments.Id.selrefs];
 
             // create symbol
             __gshared size_t selectorCount = 0;
@@ -684,7 +677,7 @@ static:
         __gshared size_t count = 0;
         char[42] nameString;
         const symbolName = format(nameString, "L_OBJC_METH_VAR_TYPE_%lu", count++);
-        symbol = getCString(typeEncoding, symbolName, Segments.Id.methodType);
+        symbol = getCString(typeEncoding, symbolName, Segments.Id.methtype);
 
         stringValue.ptrvalue = symbol;
         outdata(symbol);
@@ -743,7 +736,7 @@ static:
         __gshared size_t count = 0;
         char[42] nameString;
         const symbolName = format(nameString, "L_OBJC_CLASS_NAME_%lu", count++);
-        symbol = getCString(name, symbolName, Segments.Id.className);
+        symbol = getCString(name, symbolName, Segments.Id.classname);
         stringValue.ptrvalue = symbol;
 
         return symbol;
@@ -805,14 +798,12 @@ struct ObjcClassDeclaration
         if (classDeclaration.objc.isExtern)
             return null; // only a declaration for an externally-defined class
 
-        const segmentId = isMeta ? Segments.Id.metaclass : Segments.Id.class_;
-
         auto dtb = DtBuilder(0);
         toDt(dtb);
 
         auto symbol = Symbols.getClassName(this);
         symbol.Sdt = dtb.finish();
-        symbol.Sseg = Segments[segmentId];
+        symbol.Sseg = Segments[Segments.Id.data];
         outdata(symbol);
 
         return symbol;
@@ -905,7 +896,7 @@ private:
         auto symbol = Symbols.getStatic(symbolName);
 
         symbol.Sdt = dtb.finish();
-        symbol.Sseg = Segments[Segments.Id.classRo];
+        symbol.Sseg = Segments[Segments.Id.const_];
         outdata(symbol);
 
         return symbol;
@@ -970,12 +961,11 @@ private:
         });
 
         const prefix = isMeta ? "l_OBJC_$_CLASS_METHODS_" : "l_OBJC_$_INSTANCE_METHODS_";
-        const segmentId = isMeta ? Segments.Id.metaclass : Segments.Id.class_;
         const symbolName = prefix ~ classDeclaration.objc.identifier.toString();
         auto symbol = Symbols.getStatic(symbolName);
 
         symbol.Sdt = dtb.finish();
-        symbol.Sseg = Segments[segmentId];
+        symbol.Sseg = Segments[Segments.Id.const_];
 
         return symbol;
     }
