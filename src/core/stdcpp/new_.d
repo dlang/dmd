@@ -12,6 +12,7 @@
 module core.stdcpp.new_;
 
 import core.stdcpp.xutility : __cpp_sized_deallocation, __cpp_aligned_new;
+import core.stdcpp.exception : exception;
 
 @nogc:
 
@@ -25,6 +26,14 @@ extern (C++, "std")
 
     ///
     enum align_val_t : size_t { defaultAlignment = __STDCPP_DEFAULT_NEW_ALIGNMENT__ };
+
+    ///
+    class bad_alloc : exception
+    {
+    @nogc:
+        ///
+        this() { super("bad allocation", 1); }
+    }
 }
 
 
