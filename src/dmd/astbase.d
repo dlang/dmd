@@ -4618,7 +4618,7 @@ struct ASTBase
                 assert(0);
         }
 
-        extern (D) final const(char)[] toStringz() const
+        extern (D) const(char)[] toStringz() const
         {
             auto nbytes = len * sz;
             char* s = cast(char*)mem.xmalloc(nbytes + sz);
@@ -4632,7 +4632,7 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class NewExp : Expression
+    extern (C++) class NewExp : Expression
     {
         Expression thisexp;         // if !=null, 'this' for class being allocated
         Expressions* newargs;       // Array of Expression's to call new operator

@@ -2296,7 +2296,7 @@ extern (C++) final class StringExp : Expression
      * Returns:
      *      number of code units
      */
-    final size_t numberOfCodeUnits(int tynto = 0) const
+    size_t numberOfCodeUnits(int tynto = 0) const
     {
         int encSize;
         switch (tynto)
@@ -2390,7 +2390,7 @@ extern (C++) final class StringExp : Expression
      * Returns:
      *  code unit at index i
      */
-    final dchar getCodeUnit(size_t i) const pure
+    dchar getCodeUnit(size_t i) const pure
     {
         assert(i < len);
         final switch (sz)
@@ -2410,7 +2410,7 @@ extern (C++) final class StringExp : Expression
      *  i = index
      *  c = code unit to set it to
      */
-    final void setCodeUnit(size_t i, dchar c)
+    void setCodeUnit(size_t i, dchar c)
     {
         assert(i < len);
         final switch (sz)
@@ -2568,7 +2568,7 @@ extern (C++) final class StringExp : Expression
      * Convert string contents to a 0 terminated string,
      * allocated by mem.xmalloc().
      */
-    extern (D) final const(char)[] toStringz() const
+    extern (D) const(char)[] toStringz() const
     {
         auto nbytes = len * sz;
         char* s = cast(char*)mem.xmalloc(nbytes + sz);
