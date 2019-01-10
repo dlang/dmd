@@ -496,6 +496,11 @@ bool compareOutput(string output, string refoutput)
 {
     import std.ascii : digits;
     import std.utf : byCodeUnit;
+
+    // If no output is expected, only check that nothing was captured.
+    if (refoutput.length == 0)
+        return (output.length == 0) ? true : false;
+
     for ( ; ; )
     {
         auto pos = refoutput.indexOf("$n$");
@@ -779,10 +784,17 @@ int tryMain(string[] args)
             m = std.regex.match(compile_output, `core.exception.AssertError@dmd.*`);
             enforce(!m, m.hit);
 
-            if (testArgs.compileOutput !is null)
+            if (!compareOutput(compile_output, testArgs.compileOutput))
             {
-                if(!compareOutput(compile_output, testArgs.compileOutput))
+                // Allow any messages to come from tests if TEST_OUTPUT wasn't given.
+                // This will be removed in future once all tests have been updated.
+                if (testArgs.compileOutput !is null ||
+                    (testArgs.mode != TestMode.COMPILE &&
+                     testArgs.mode != TestMode.FAIL_COMPILE &&
+                     testArgs.mode != TestMode.RUN))
+                {
                     throw new CompareException(testArgs.compileOutput, compile_output);
+                }
             }
 
             if (testArgs.mode == TestMode.RUN)

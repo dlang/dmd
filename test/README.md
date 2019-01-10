@@ -156,6 +156,8 @@ The following is a list of all available settings:
                          Some
                          Output
                          ---
+                         note: if not given, it is assumed that the compilation will be silent.
+                         default: (none)
 
     POST_SCRIPT:         name of script to execute after test run
                          note: arguments to the script may be included after the name.
