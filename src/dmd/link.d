@@ -157,8 +157,14 @@ version (Posix)
  */
 public int runLINK()
 {
+    const phobosLibname = global.params.betterC ? null :
+        global.params.symdebug ? global.params.debuglibname : global.params.defaultlibname;
+
     version (Windows)
     {
+        if (phobosLibname)
+            global.params.libfiles.push(phobosLibname);
+
         if (global.params.mscoff)
         {
             OutBuffer cmdbuf;
@@ -621,39 +627,38 @@ public int runLINK()
         /* D runtime libraries must go after user specified libraries
          * passed with -l.
          */
-        const(char)* libname = global.params.symdebug ? global.params.debuglibname : global.params.defaultlibname;
-        size_t slen = libname ? strlen(libname) : 0;
-        if (!global.params.betterC && slen)
+        const libname = phobosLibname.toDString();
+        if (libname.length)
         {
-            char* buf = cast(char*)malloc(3 + slen + 1);
-            strcpy(buf, "-l");
+            const bufsize = 2 + libname.length + 1;
+            auto buf = (cast(char*) malloc(bufsize))[0 .. bufsize];
+            buf[0 .. 2] = "-l";
 
-            if (slen > 3 + 2 && memcmp(libname, "lib".ptr, 3) == 0)
+            char* getbuf(const(char)[] suffix)
             {
-                if (memcmp(libname + slen - 2, ".a".ptr, 2) == 0)
+                buf[2 .. 2 + suffix.length] = suffix[];
+                buf[2 + suffix.length] = 0;
+                return buf.ptr;
+            }
+
+            if (libname.length > 3 + 2 && libname[0 .. 3] == "lib")
+            {
+                if (libname[$-2 .. $] == ".a")
                 {
                     argv.push("-Xlinker");
                     argv.push("-Bstatic");
-                    strncat(buf, libname + 3, slen - 3 - 2);
-                    argv.push(buf);
+                    argv.push(getbuf(libname[3 .. $-2]));
                     argv.push("-Xlinker");
                     argv.push("-Bdynamic");
                 }
-                else if (memcmp(libname + slen - 3, ".so".ptr, 3) == 0)
-                {
-                    strncat(buf, libname + 3, slen - 3 - 3);
-                    argv.push(buf);
-                }
+                else if (libname[$-3 .. $] == ".so")
+                    argv.push(getbuf(libname[3 .. $-3]));
                 else
-                {
-                    strcat(buf, libname);
-                    argv.push(buf);
-                }
+                    argv.push(getbuf(libname));
             }
             else
             {
-                strcat(buf, libname);
-                argv.push(buf);
+                argv.push(getbuf(libname));
             }
         }
         //argv.push("-ldruntime");
