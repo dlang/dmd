@@ -6,8 +6,8 @@ $(HEADERNAV_TOC)
 
     $(P
         D has some support for interfacing with Objective-C. It supports
-        classes, instance and class methods. It is only available on macOS,
-        compiling for 64bit.
+        classes, subclasses, instance variables, instance and class methods.
+        It is only available on macOS, compiling for 64bit.
     )
 
     $(P
@@ -78,6 +78,52 @@ $(HEADERNAV_TOC)
     $(P
         To match the Objective-C semantics, `static` and `final` methods are
         virtual. `static` methods are overridable as well.
+    )
+
+    $(SECTION2 $(LNAME2 instance-variables, Instance Variables))
+
+    ---
+    // externally defined
+    extern (Objective-C)
+    class NSObject
+    {
+        static NSObject alloc() @selector("alloc");
+        NSObject init() @selector("init");
+    }
+
+    extern (Objective-C)
+    class Foo : NSObject
+    {
+        int bar_;
+
+        override static Foo alloc() @selector("alloc");
+        override Foo init() @selector("init");
+
+        int bar() @selector("bar")
+        {
+            return bar_;
+        }
+    }
+
+    void main()
+    {
+        auto foo = Foo.alloc.init;
+        foo.bar_ = 3;
+        assert(foo.bar == 3);
+    }
+    ---
+
+    $(P
+        Declaring an instance variable looks exactly the same as for a regular
+        D class.
+    )
+
+    $(P
+        To solve the fragile base class problem, instance variables in
+        Objective-C has a dynamic offset. That means that the base class can
+        change (add or remove instance variables) without the subclasses needing
+        to recompile or relink. Thanks to this feature it's not necessary to
+        declare instance variables when creating bindings to Objective-C classes.
     )
 
     $(SECTION2 $(LNAME2 instance-method, Calling an Instance Method))
