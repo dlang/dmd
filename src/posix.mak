@@ -97,7 +97,7 @@ GENERATED = ../generated
 G = $(GENERATED)/$(OS)/$(BUILD)/$(MODEL)
 $(shell mkdir -p $G)
 
-DSCANNER_HASH=3a859d39c4b59822b1bc0452b3ddcd598ef390a2
+DSCANNER_HASH=383fcb84d892e5169c134e282878ee2c51e4265f
 DSCANNER_DIR=$G/dscanner-$(DSCANNER_HASH)
 
 ifeq (osx,$(OS))
