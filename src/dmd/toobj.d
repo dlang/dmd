@@ -309,7 +309,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
         override void visit(FuncDeclaration fd)
         {
             // in glue.c
-            FuncDeclaration_toObjFile(fd, multiobj);
+            if (fd.inlining != PINLINE.always)
+                FuncDeclaration_toObjFile(fd, multiobj);
         }
 
         override void visit(ClassDeclaration cd)
