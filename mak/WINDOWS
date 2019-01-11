@@ -105,6 +105,9 @@ $(IMPDIR)\core\internal\arrayop.d : src\core\internal\arrayop.d
 $(IMPDIR)\core\internal\convert.d : src\core\internal\convert.d
 	copy $** $@
 
+$(IMPDIR)\core\internal\dassert.d : src\core\internal\dassert.d
+	copy $** $@
+
 $(IMPDIR)\core\internal\hash.d : src\core\internal\hash.d
 	copy $** $@
 
