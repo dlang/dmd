@@ -143,6 +143,9 @@ bool findTestParameter(const ref EnvData envData, string file, string token, ref
             result ~= multiLineDelimiter ~ result2;
     }
 
+    // fix-up separators
+    result = result.unifyDirSep(envData.sep);
+
     return true;
 }
 
