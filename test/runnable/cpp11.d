@@ -1,5 +1,5 @@
 // DISABLED: win32
-// REQUIRED_ARGS: -stdc++=c++11
+// REQUIRED_ARGS: -extern-std=c++11
 // EXTRA_CPP_SOURCES: cpp11.cpp
 // CXXFLAGS: -std=c++11
 
