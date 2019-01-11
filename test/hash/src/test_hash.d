@@ -10,6 +10,7 @@ void main()
     issue19262();
     issue19282();
     issue19332(); // Support might be removed in the future!
+    issue19568();
     testTypeInfoArrayGetHash1();
     testTypeInfoArrayGetHash2();
     pr2243();
@@ -152,6 +153,46 @@ void issue19332()
     const HasNonConstToHash val;
     size_t h = hashOf(val);
     h = hashOf!(const HasNonConstToHash)(val); // Ensure doesn't match more than one overload.
+}
+
+/// hashOf should not unnecessarily call a struct's fields' postblits & dtors in CTFE
+void issue19568()
+{
+    static struct S1
+    {
+        @disable this(this);
+
+        ~this() @nogc nothrow
+        {
+            import core.stdc.stdio;
+            if (mptr) puts("impure");
+        }
+
+        size_t[2] pad;
+        void* mptr;
+    }
+
+    static struct S2
+    {
+        @disable this(this);
+
+        ~this() @nogc nothrow
+        {
+            import core.stdc.stdio;
+            if (fd != -1) puts("impure");
+        }
+
+        int fd = -1;
+        S1 s1;
+    }
+
+    static struct S3
+    {
+        private S2 s2;
+    }
+
+    S3 s3;
+    size_t h = ((ref S3 s3) pure => hashOf(s3))(s3);
 }
 
 /// Tests ensure TypeInfo_Array.getHash uses element hash functions instead
