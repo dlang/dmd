@@ -3007,17 +3007,16 @@ elem *toElem(Expression e, IRState *irs)
 
                 //printf("toElemBin() '%s'\n", ae.toChars());
 
-                elem *ex = e1;
-                if (e1.Eoper == OPind)
-                    ex = e1.EV.E1;
-                if (ae.e2.op == TOK.structLiteral &&
-                    ex.Eoper == OPvar && ex.EV.Voffset == 0 &&
-                    (ae.op == TOK.construct || ae.op == TOK.blit))
+                if (auto sle = ae.e2.isStructLiteralExp())
                 {
-                    StructLiteralExp sle = cast(StructLiteralExp)ae.e2;
-                    elem* e = toElemStructLit(sle, irs, ae.op, ex.EV.Vsym, true);
-                    el_free(e1);
-                    return setResult2(e);
+                    auto ex = e1.Eoper == OPind ? e1.EV.E1 : e1;
+                    if (ex.Eoper == OPvar && ex.EV.Voffset == 0 &&
+                        (ae.op == TOK.construct || ae.op == TOK.blit))
+                    {
+                        elem* e = toElemStructLit(sle, irs, ae.op, ex.EV.Vsym, true);
+                        el_free(e1);
+                        return setResult2(e);
+                    }
                 }
 
                 /* Implement:
@@ -3658,9 +3657,8 @@ elem *toElem(Expression e, IRState *irs)
 
                 fd = dve.var.isFuncDeclaration();
 
-                if (dve.e1.op == TOK.structLiteral)
+                if (auto sle = dve.e1.isStructLiteralExp())
                 {
-                    StructLiteralExp sle = cast(StructLiteralExp)dve.e1;
                     sle.useStaticInit = false;          // don't modify initializer
                 }
 
@@ -3843,9 +3841,8 @@ elem *toElem(Expression e, IRState *irs)
         override void visit(AddrExp ae)
         {
             //printf("AddrExp.toElem('%s')\n", ae.toChars());
-            if (ae.e1.op == TOK.structLiteral)
+            if (auto sle = ae.e1.isStructLiteralExp())
             {
-                StructLiteralExp sle = cast(StructLiteralExp)ae.e1;
                 //printf("AddrExp.toElem('%s') %d\n", ae.toChars(), ae);
                 //printf("StructLiteralExp(%p); origin:%p\n", sle, sle.origin);
                 //printf("sle.toSymbol() (%p)\n", sle.toSymbol());
