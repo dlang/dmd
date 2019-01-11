@@ -1,6 +1,13 @@
 // REQUIRED_ARGS: -o-
 // PERMUTE_ARGS:
 // COMPILED_IMPORTS: imports/test15117a.d
+/*
+TEST_OUTPUT:
+---
+compilable/test15177.d-mixin-20(20): Deprecation: `imports.test15117a.object` is not visible from module `test15177`
+compilable/test15177.d-mixin-20(20): Deprecation: `imports.test15117a.object` is not visible from module `test15177`
+---
+*/
 
 import users = imports.test15117a;
 
