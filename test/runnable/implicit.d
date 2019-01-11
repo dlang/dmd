@@ -1,3 +1,10 @@
+/*
+TEST_OUTPUT:
+---
+runnable/implicit.d(157): Deprecation: slice of static array temporary returned by `pureMaker3c()` assigned to longer lived variable `z1`
+runnable/implicit.d(158): Deprecation: slice of static array temporary returned by `pureMaker3c()` assigned to longer lived variable `z2`
+---
+*/
 
 import std.stdio;
 
@@ -187,7 +194,7 @@ void testDIP29_4()
 
 immutable int g14155;
 
-static this() { g14155 = 1; }
+shared static this() { g14155 = 1; }
 
              int*  make14155m (             int*  p) pure { return null; }
        const(int*) make14155c (       const(int*) p) pure { return &g14155; }

@@ -1,3 +1,22 @@
+/*
+TEST_OUTPUT:
+---
+true
+g
+&Test109S(&Test109S(<recursion>))
+runnable/interpret.d(3201): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3203): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3206): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3209): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3210): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3216): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3217): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3220): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+tfoo
+tfoo
+Crash!
+---
+*/
 
 import std.stdio;
 

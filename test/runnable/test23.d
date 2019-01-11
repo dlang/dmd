@@ -1,4 +1,9 @@
 // REQUIRED_ARGS:
+/*
+TEST_OUTPUT:
+---
+---
+*/
 
 module test;
 

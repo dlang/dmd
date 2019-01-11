@@ -1,3 +1,11 @@
+/*
+TEST_OUTPUT:
+---
+instantiating...
+instantiating...
+last instantiation!!!
+---
+*/
 
 import core.stdc.stdio;
 

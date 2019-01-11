@@ -1,3 +1,15 @@
+/*
+TEST_OUTPUT:
+---
+This actually gets evaluated!
+()
+(bool)
+(bool, short)
+(bool, short, int)
+Alias Test instantiated
+Alias Test instantiated
+---
+*/
 import std.stdio;
 import core.stdc.stdio;
 

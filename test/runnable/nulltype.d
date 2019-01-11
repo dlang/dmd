@@ -1,3 +1,11 @@
+/*
+TEST_OUTPUT:
+---
+pure nothrow @safe Object(bool b)
+pure nothrow @safe int*(bool b)
+pure nothrow @safe int[](bool b)
+---
+*/
 extern (C) int printf(const(char*) fmt, ...);
 
 alias typeof(null) null_t;
