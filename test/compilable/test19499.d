@@ -3,4 +3,4 @@
 enum __c_long_double : double;
 enum A(T : double) = true;
 enum A(T : __c_long_double) = false;
-pragma(msg, A!double);
+static assert(A!double == true);
