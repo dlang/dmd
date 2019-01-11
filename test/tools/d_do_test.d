@@ -587,6 +587,10 @@ int tryMain(string[] args)
     string output_file    = result_path ~ input_file ~ ".out";
     string test_app_dmd_base = output_dir ~ envData.sep ~ test_name ~ "_";
 
+    // envData.sep is required as the results_dir path can be `generated`
+    const absoluteResultDirPath = envData.results_dir.absolutePath ~ envData.sep;
+    const resultsDirReplacement = "{{RESULTS_DIR}}" ~ envData.sep;
+
     // running & linking costs time - for coverage builds we can save this
     if (envData.coverage_build && testArgs.mode == TestMode.RUN)
         testArgs.mode = TestMode.COMPILE;
@@ -755,6 +759,9 @@ int tryMain(string[] args)
             compile_output = compile_output.unifyNewLine();
             compile_output = std.regex.replace(compile_output, regex(`^DMD v2\.[0-9]+.*\n? DEBUG$`, "m"), "");
             compile_output = std.string.strip(compile_output);
+            // replace test_result path with fixed ones
+            compile_output = compile_output.replace(result_path, resultsDirReplacement);
+            compile_output = compile_output.replace(absoluteResultDirPath, resultsDirReplacement);
 
             auto m = std.regex.match(compile_output, `Internal error: .*$`);
             enforce(!m, m.hit);

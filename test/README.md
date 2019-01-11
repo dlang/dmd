@@ -218,3 +218,28 @@ Along with the environment variables provided by the Makefile (see above), an ad
 
     SOEXT              platform-specific extension for shared object files (aka. dynamic libraries),
                        e.g. .so, .dll or .dylib
+
+Test configuration variables
+----------------------------
+
+Sometimes test configuration arguments must be dynamic.
+For example, the output of all tests should be placed into `RESULTS_DIR`:
+
+```
+// REQUIRED_ARGS: -mixin=${RESULTS_DIR}/fail_compilation/mixin_test.mixin
+```
+
+Currently these variables are exposed:
+
+    RESULTS_DIR       Path to `test_results`
+
+`TEST_OUTPUT`
+-------------
+
+A few operations are done on the output of a test before the comparison with `TEST_OUTPUT`:
+
+- newlines get unified for consistent `TEST_OUTPUT` between platforms
+- DMD's debug message (e.g. `DMD v2.084.0-255-g86b608a15-dirty DEBUG`) gets stripped away
+- paths to `test_results` will be replaced with `{{RESULTS_DIR}}`
+
+Both stderr and stdout of the DMD are captured for output comparison.
