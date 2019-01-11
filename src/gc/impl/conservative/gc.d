@@ -178,7 +178,9 @@ class ConservativeGC : GC
             cstdlib.free(gcx);
             gcx = null;
         }
-        cstdlib.free(cast(void*) this);
+        // TODO: cannot free as memory is overwritten and
+        //  the monitor is still read in rt_finalize (called by destroy)
+        // cstdlib.free(cast(void*) this);
     }
 
 
