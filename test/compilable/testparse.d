@@ -4,7 +4,7 @@
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=6719
 
-pragma(msg, __traits(compiles, mixin("(const(A))[0..0]")));
+static assert(__traits(compiles, mixin("(const(A))[0..0]")) == false);
 
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=9232
