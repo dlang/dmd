@@ -9,7 +9,7 @@ import std.file;
 import std.format;
 import std.process;
 import std.random;
-import std.range : chain;
+import std.range : chain, drop;
 import std.regex;
 import std.path;
 import std.stdio;
@@ -487,26 +487,79 @@ bool collectExtraSources (in string input_dir, in string output_dir, in string[]
     return true;
 }
 
-// compare output string to reference string, but ignore places
-// marked by $n$ that contain compiler generated unique numbers
+// Compare output string to reference string, but ignore places marked by
+// special format specifiers that contain generated unique numbers or
+// platform specific values.
+// Recognized specifiers are:
+//  $n$ - Matches any digit [0-9]
+//  $h$ - Matches any hexdigit [0-9a-fA-F]
+// It is assumed that the format specifier is always 3 characters.
 bool compareOutput(string output, string refoutput)
 {
-    import std.ascii : digits;
-    import std.utf : byCodeUnit;
+    import std.ascii : digits, fullHexDigits;
     for ( ; ; )
     {
-        auto pos = refoutput.indexOf("$n$");
-        if (pos < 0)
-            return refoutput == output;
-        if (output.length < pos)
+        auto npos = refoutput.indexOf("$n$");
+        auto hpos = refoutput.indexOf("$h$");
+        if (npos >= 0 && npos < cast(size_t)hpos)
+        {
+            if (matchUpToPosition(output, refoutput, npos, digits))
+                continue;
             return false;
-        if (refoutput[0..pos] != output[0..pos])
+        }
+        if (hpos >= 0)
+        {
+            if (matchUpToPosition(output, refoutput, hpos, fullHexDigits))
+                continue;
             return false;
-        refoutput = refoutput[pos + 3 ..$];
-        output = output[pos..$];
-        auto p = output.byCodeUnit.countUntil!(e => !digits.canFind(e));
-        output = output[p..$];
+        }
+        break;
     }
+    return refoutput == output;
+}
+
+bool matchUpToPosition(ref string output, ref string refoutput, size_t pos, string match)
+{
+    import std.utf : byCodeUnit;
+    if (output.length < pos)
+        return false;
+    if (refoutput[0 .. pos] != output[0 .. pos])
+        return false;
+    if (!match.canFind(output[pos]))
+        return false;
+    refoutput = refoutput[pos + 3 .. $];
+    output = output[pos .. $];
+    auto p = output.byCodeUnit.countUntil!(e => !match.canFind(e));
+    output = output.drop(p);
+    return true;
+}
+
+unittest
+{
+    assert( compareOutput(null, null));
+    assert( compareOutput(`text`, `text`));
+    assert(!compareOutput(null, `text`));
+    assert(!compareOutput(`text`, null));
+    assert(!compareOutput(null, `with $n$ format`));
+
+    assert( compareOutput(`1029384756`, `$n$`));
+    assert(!compareOutput(`gzhyixjwkv`, `$n$`));
+    assert( compareOutput(`0x1f2e3d4c5b6a7089`, `0x$h$`));
+    assert(!compareOutput(`0xgzhyixjwkvlumtns`, `0x$h$`));
+
+    assert( compareOutput(`number 123 numxhex 0xabc`, `number $n$ numxhex $n$x$h$`));
+    assert( compareOutput(`0xhex 0xabc number 123`, `0xhex 0x$h$ number $n$`));
+
+    assert( compareOutput(`number 10UL`, `number $n$UL`));
+    assert(!compareOutput(`number UL`, `number $n$UL`));
+    assert(!compareOutput(`message`, `longer message`));
+    assert(!compareOutput(`message 123`, `longer message $n$`));
+    assert(!compareOutput(`unrecognized 123`, `unrecognized $N$`));
+
+    assert( compareOutput(`123abc`, `$n$$h$`));
+    assert( compareOutput(`123n$`, `$n$n$`));
+    assert( compareOutput(`123n123`, `$n$n$n$`));
+    assert( compareOutput(`123n123n$`, `$n$n$n$n$`));
 }
 
 string envGetRequired(in char[] name)

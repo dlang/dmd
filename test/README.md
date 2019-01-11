@@ -147,10 +147,9 @@ The following is a list of all available settings:
     LINK:                enables linking (used for the compilable and fail_compilable tests).
                          default: (none)
 
-    TEST_OUTPUT:         the output is expected from the compilation (if the
-                         output of the compilation doesn't match, the test
-                         fails). You can use the this format for multi-line
-                         output:
+    TEST_OUTPUT:         the output expected from the compilation (if the output of the
+                         compilation doesn't match, the test fails). You can use this
+                         format for multi-line output:
                          TEST_OUTPUT:
                          ---
                          Some
@@ -241,5 +240,19 @@ A few operations are done on the output of a test before the comparison with `TE
 - newlines get unified for consistent `TEST_OUTPUT` between platforms
 - DMD's debug message (e.g. `DMD v2.084.0-255-g86b608a15-dirty DEBUG`) gets stripped away
 - paths to `test_results` will be replaced with `{{RESULTS_DIR}}`
+
+`TEST_OUTPUT` accepts format specifiers for matching compilation output that is indeterminate
+between compiles or platforms. Recognized specifiers are:
+
+    $n$     Matches any digit "[0-9]"
+    $h$     Matches any hexdigit "[0-9A-Fa-f]"
+
+Example of using format specifiers:
+```
+TEST_OUTPUT:
+---
+Error: int[$n$] exceeds 0x$h$ size limit for static array
+---
+```
 
 Both stderr and stdout of the DMD are captured for output comparison.
