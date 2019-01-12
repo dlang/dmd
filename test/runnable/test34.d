@@ -707,7 +707,7 @@ void foo35()
         c = 3;
 
         xxx = cast(typeof(xxx))(a + b);
-        asm { int 3; }
+        throw new Exception("xxx");
         xxx( 4, 5, 6 );
 }
 

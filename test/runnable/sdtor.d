@@ -3511,6 +3511,7 @@ void test12686()
 struct S13089
 {
     @disable this(this);    // non nothrow
+    int val;
 }
 
 void* p13089;

@@ -68,6 +68,7 @@ void test2()
 
 /*****************************************************/
 
+version (DigitalMars)
 void test3()
 {   uint v;
     int b;
