@@ -483,28 +483,15 @@ static:
 
     Symbol* getMsgSend(Type returnType, bool hasHiddenArgument)
     {
-        static Symbol* setSymbol(string name)(tym_t ty = TYnfunc)
-        {
-            enum fieldName = name[1 .. $];
-
-            if (!mixin(fieldName))
-            {
-                mixin(fieldName) = symbol_name(name.ptr, name.length, SCglobal,
-                    type_fake(ty));
-            }
-
-            return mixin(fieldName);
-        }
-
         if (hasHiddenArgument)
-            return setSymbol!("_objc_msgSend_stret")(TYhfunc);
+            return setMsgSendSymbol!("_objc_msgSend_stret")(TYhfunc);
         // not sure if DMD can handle this
         else if (returnType.ty == Tcomplex80)
-            return setSymbol!("_objc_msgSend_fp2ret");
+            return setMsgSendSymbol!("_objc_msgSend_fp2ret");
         else if (returnType.ty == Tfloat80)
-            return setSymbol!("_objc_msgSend_fpret");
+            return setMsgSendSymbol!("_objc_msgSend_fpret");
         else
-            return setSymbol!("_objc_msgSend");
+            return setMsgSendSymbol!("_objc_msgSend");
 
         assert(0);
     }
@@ -822,6 +809,17 @@ static:
         outdata(symbol);
 
         return symbol;
+    }
+
+    private Symbol* setMsgSendSymbol(string name)(tym_t ty = TYnfunc)
+    {
+        alias This = typeof(this);
+        enum fieldName = name[1 .. $];
+
+        if (!__traits(getMember, This, fieldName))
+            __traits(getMember, This, fieldName) = getGlobal(name, type_fake(ty));
+
+        return __traits(getMember, This, fieldName);
     }
 }
 
