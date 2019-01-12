@@ -175,6 +175,18 @@ implemented exactly the same as messaging an instance method, it's just a
 different `this` pointer. The `this` pointer should be a
 [`L_OBJC_CLASSLIST_REFERENCES_$_`](#l_objc_classlist_references__) symbol.
 
+## Instance Variables
+
+To solve the fragile base class problem instance variables are accessed with an
+offset through a symbol generated in the binary. The compiler outputs the symbol
+containing a static offset and, if there's a need, at load time the offset will
+be updated to reflect the new offset if a base class has a different layout at
+runtime.
+
+The symbol has the name `_OBJC_IVAR_$_<class_name>.<ivar_name>` symbol,
+where `<class_name>` is the name of the class the instance variable belongs to
+and `<ivar_name>` is the name of the instance variable.
+
 ## Symbols
 
 ### Linkages
@@ -495,6 +507,77 @@ stored as a reference to the `_OBJC_CLASS_$_<class_name>` symbol, where
 | Section                                      | Linkage                      | Alignment |
 |----------------------------------------------|------------------------------|-----------|
 | [`__objc_classlist`](#segments-and-sections) | [Private](#private-linkage)  | 8         |
+
+### `l_OBJC_$_INSTANCE_VARIABLES_`
+
+For each class that is defined and contains at least one instance variable,
+a symbol is generated in the resulting binary. The symbol has the name
+`l_OBJC_$_INSTANCE_VARIABLES_<class_name>` where `<class_name>` is the name of
+the class. The section data that is stored corresponds to the following struct:
+
+```d
+struct _ivar_list_t
+{
+    int entsize;
+    int count;
+    _ivar_t[count] list;
+}
+
+struct _ivar_t
+{
+    long* offset;
+    char* name;
+    char* type;
+    int alignment;
+    int size;
+}
+```
+
+#### `_ivar_list_t`
+
+##### `entsize`
+
+The size of `_ivar_t` in bytes, always 32.
+
+##### `count`
+
+The number of instance variables in the list.
+
+##### `list`
+
+The list of instance variables.
+
+#### `_ivar_t`
+
+##### `offset`
+
+Offset to the instance variable. This is stored as a reference to the
+`_OBJC_IVAR_$_<class_name>.<ivar_name>` symbol, where `<class_name>` is the name
+of the class and `<ivar_name>` is the name of the instance variable.
+
+##### `name`
+
+The name of the instance variable. This is store as a reference to the
+`L_OBJC_METH_VAR_NAME_.<number>` symbol, where `<number>` is an incrementing
+number.
+
+##### `type`
+
+The type of the instance variable. This is store as a reference to the
+`L_OBJC_METH_VAR_TYPE_.<number>` symbol, where `<number>` is an incrementing
+number.
+
+##### `alignment`
+
+The alignment of the instance variable.
+
+##### `size`
+
+The size of the instance variable.
+
+| Section                                  | Linkage                      | Alignment |
+|------------------------------------------|------------------------------|-----------|
+| [`__objc_const`](#segments-and-sections) | [Private](#private-linkage)  | 8         |
 
 ## Segments and Sections
 
