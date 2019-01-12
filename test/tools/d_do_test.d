@@ -143,6 +143,9 @@ bool findTestParameter(const ref EnvData envData, string file, string token, ref
             result ~= multiLineDelimiter ~ result2;
     }
 
+    // fix-up separators
+    result = result.unifyDirSep(envData.sep);
+
     return true;
 }
 
@@ -416,12 +419,14 @@ string execute(ref File f, string command, bool expectpass, string result_path)
 
 string unifyNewLine(string str)
 {
-    return std.regex.replace(str, regex(`\r\n|\r|\n`, "g"), "\n");
+    static re = regex(`\r\n|\r|\n`, "g");
+    return std.regex.replace(str, re, "\n");
 }
 
 string unifyDirSep(string str, string sep)
 {
-    return std.regex.replace(str, regex(`(?<=[-\w][-\w]*)/(?=[-\w][-\w/]*\.di?\b)`, "g"), sep);
+    static re = regex(`(?<=[-\w{}][-\w{}]*)/(?=[-\w][-\w/]*\.(di?|mixin)\b)`, "g");
+    return std.regex.replace(str, re, sep);
 }
 unittest
 {
@@ -434,6 +439,9 @@ unittest
         == `fail_compilation\test.d(1) Error: at fail_compilation\imports\test.d(2)`);
     assert(`fail_compilation/diag.d(2): Error: fail_compilation/imports/fail.d must be imported`.unifyDirSep(`\`)
         == `fail_compilation\diag.d(2): Error: fail_compilation\imports\fail.d must be imported`);
+
+    assert(`{{RESULTS_DIR}}/fail_compilation/mixin_test.mixin(7): Error:`.unifyDirSep(`\`)
+        == `{{RESULTS_DIR}}\fail_compilation\mixin_test.mixin(7): Error:`);
 }
 
 bool collectExtraSources (in string input_dir, in string output_dir, in string[] extraSources,
@@ -586,6 +594,10 @@ int tryMain(string[] args)
     string output_dir     = result_path ~ input_dir;
     string output_file    = result_path ~ input_file ~ ".out";
     string test_app_dmd_base = output_dir ~ envData.sep ~ test_name ~ "_";
+
+    // envData.sep is required as the results_dir path can be `generated`
+    const absoluteResultDirPath = envData.results_dir.absolutePath ~ envData.sep;
+    const resultsDirReplacement = "{{RESULTS_DIR}}" ~ envData.sep;
 
     // running & linking costs time - for coverage builds we can save this
     if (envData.coverage_build && testArgs.mode == TestMode.RUN)
@@ -755,6 +767,9 @@ int tryMain(string[] args)
             compile_output = compile_output.unifyNewLine();
             compile_output = std.regex.replace(compile_output, regex(`^DMD v2\.[0-9]+.*\n? DEBUG$`, "m"), "");
             compile_output = std.string.strip(compile_output);
+            // replace test_result path with fixed ones
+            compile_output = compile_output.replace(result_path, resultsDirReplacement);
+            compile_output = compile_output.replace(absoluteResultDirPath, resultsDirReplacement);
 
             auto m = std.regex.match(compile_output, `Internal error: .*$`);
             enforce(!m, m.hit);
