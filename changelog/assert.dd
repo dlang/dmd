@@ -36,7 +36,7 @@ The new switch already supports a variety of assertion messages:
 
 ---
 string dlang = "d2";
-assert(dlang != dlang); // ERROR: "dlang" == "dlang"
+assert(dlang != dlang); // ERROR: "d2" == "d2"
 
 struct S { int s; }
 assert(S(0) == S(1)); // ERROR: "S(0) !is S(1)"
