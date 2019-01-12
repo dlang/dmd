@@ -1301,16 +1301,20 @@ $(H3 $(LNAME2 lazy-params, Lazy Parameters))
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
-void dotimes(int n, lazy void exp)
+import std.stdio : writeln;
+
+void main()
+{
+    int x;
+    3.times(writeln(x++));
+    writeln("-");
+    writeln(x);
+}
+
+void times(int n, lazy void exp)
 {
     while (n--)
         exp();
-}
-
-void test()
-{
-    int x;
-    dotimes(3, writeln(x++));
 }
 ---
 )
@@ -1321,6 +1325,8 @@ $(CONSOLE
 0
 1
 2
+$(MINUS)
+3
 )
 
         $(P A $(D lazy) parameter cannot be an lvalue.)
