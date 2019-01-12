@@ -143,6 +143,11 @@ void foo(B b)
         types, not classes.
         )
 
+        $(P Fields of `extern(Objective-C)` classes have a dynamic offset. That
+        means that the base class can change (add or remove instance variables)
+        without the subclasses needing to recompile or relink.
+        )
+
 $(H2 $(LNAME2 field_properties, Field Properties))
 
         $(P The $(D .offsetof) property gives the offset in bytes of the field
