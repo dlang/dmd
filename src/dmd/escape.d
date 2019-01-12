@@ -340,6 +340,15 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
     if (e1.op == TOK.slice)
         return false;
 
+    /* The struct literal case can arise from the S(e2) constructor call:
+     *    return S(e2);
+     * and appears in this function as:
+     *    structLiteral = e2;
+     * Such an assignment does not necessarily remove scope-ness.
+     */
+    if (e1.op == TOK.structLiteral)
+        return false;
+
     EscapeByResults er;
 
     escapeByValue(e2, &er);
@@ -443,7 +452,8 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                     continue;
 
                 if (inferScope && !va.doNotInferScope)
-                {   //printf("inferring scope for %s\n", va.toChars());
+                {
+                    if (log) printf("inferring scope for lvalue %s\n", va.toChars());
                     va.storage_class |= STC.scope_ | STC.scopeinferred;
                     continue;
                 }
@@ -542,7 +552,7 @@ ByRef:
             continue;
         }
 
-        if (va &&  v.storage_class & (STC.ref_ | STC.out_))
+        if (va && v.storage_class & (STC.ref_ | STC.out_))
         {
             Dsymbol pva = va.toParent2();
             for (Dsymbol pv = p; pv; )
