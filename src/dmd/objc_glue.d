@@ -54,6 +54,12 @@ ObjcGlue objc()
 // Should be an interface
 extern(C++) abstract class ObjcGlue
 {
+    static struct ElemResult
+    {
+        elem* ec;
+        elem* ethis;
+    }
+
     static void initialize()
     {
         if (global.params.isOSX && global.params.is64bit)
@@ -63,7 +69,10 @@ extern(C++) abstract class ObjcGlue
     }
 
     abstract void setupMethodSelector(FuncDeclaration fd, elem** esel);
-    abstract void setupMethodCall(elem** ec, elem* ehidden, elem* ethis, TypeFunction tf);
+
+    abstract ElemResult setupMethodCall(FuncDeclaration fd, TypeFunction tf,
+        bool directcall, elem* ec, elem* ehidden, elem* ethis);
+
     abstract void setupEp(elem* esel, elem** ep, int leftToRight);
     abstract void generateModuleInfo(Module module_);
 
@@ -124,7 +133,8 @@ extern(C++) final class Unsupported : ObjcGlue
         // noop
     }
 
-    override void setupMethodCall(elem** ec, elem* ehidden, elem* ethis, TypeFunction tf)
+    override ElemResult setupMethodCall(FuncDeclaration, TypeFunction, bool,
+        elem*, elem*, elem*)
     {
         assert(0, "Should never be called when Objective-C is not supported");
     }
@@ -177,12 +187,44 @@ extern(C++) final class Supported : ObjcGlue
         }
     }
 
-    override void setupMethodCall(elem** ec, elem* ehidden, elem* ethis, TypeFunction tf)
+    override ElemResult setupMethodCall(FuncDeclaration fd, TypeFunction tf,
+        bool directcall, elem* ec, elem* ehidden, elem* ethis)
     {
-        // make objc-style "virtual" call using dispatch function
-        assert(ethis);
-        Type tret = tf.next;
-        *ec = el_var(Symbols.getMsgSend(tret, ehidden !is null));
+        import dmd.e2ir : addressElem;
+
+        if (directcall) // super call
+        {
+            ElemResult result;
+            // call through Objective-C runtime dispatch
+            result.ec = el_var(Symbols.getMsgSendSuper(ehidden !is null));
+
+            // need to change this pointer to a pointer to an two-word
+            // objc_super struct of the form { this ptr, class ptr }.
+            auto cd = fd.isThis.isClassDeclaration;
+            assert(cd, "call to objc_msgSendSuper with no class declaration");
+
+            // faking objc_super type as delegate
+            auto classRef = el_var(Symbols.getClassReference(cd));
+            auto super_ = el_pair(TYdelegate, ethis, classRef);
+
+            result.ethis = addressElem(super_, tf);
+
+            return result;
+        }
+
+        else
+        {
+            // make objc-style "virtual" call using dispatch function
+            assert(ethis);
+            Type tret = tf.next;
+
+            ElemResult result = {
+                ec: el_var(Symbols.getMsgSend(tret, ehidden !is null)),
+                ethis: ethis
+            };
+
+            return result;
+        }
     }
 
     override void setupEp(elem* esel, elem** ep, int leftToRight)
@@ -343,6 +385,9 @@ static:
         Symbol* objc_msgSend_fpret = null;
         Symbol* objc_msgSend_fp2ret = null;
 
+        Symbol* objc_msgSendSuper = null;
+        Symbol* objc_msgSendSuper_stret = null;
+
         Symbol* imageInfo = null;
         Symbol* moduleInfo = null;
 
@@ -494,6 +539,14 @@ static:
             return setMsgSendSymbol!("_objc_msgSend");
 
         assert(0);
+    }
+
+    Symbol* getMsgSendSuper(bool hasHiddenArgument)
+    {
+        if (hasHiddenArgument)
+            return setMsgSendSymbol!("_objc_msgSendSuper_stret")(TYhfunc);
+        else
+            return setMsgSendSymbol!("_objc_msgSendSuper")(TYnfunc);
     }
 
     Symbol* getImageInfo()

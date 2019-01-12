@@ -335,7 +335,9 @@ private elem *callfunc(const ref Loc loc,
 
         if (esel)
         {
-            objc.setupMethodCall(&ec, ehidden, ethis, tf);
+            auto result = objc.setupMethodCall(fd, tf, directcall != 0, ec, ehidden, ethis);
+            ec = result.ec;
+            ethis = result.ethis;
         }
         else if (!fd.isVirtual() ||
             directcall ||               // BUG: fix
