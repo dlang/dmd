@@ -1935,6 +1935,7 @@ void test6()
     version (D_AVX2)
     {
         // stack occasionally misaligned
+        float f = 0;
         long4 v;
         v += 1;
     }
