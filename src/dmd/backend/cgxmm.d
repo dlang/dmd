@@ -1567,9 +1567,10 @@ bool xmmIsAligned(elem *e)
     if (tyvector(e.Ety) && e.Eoper == OPvar)
     {
         Symbol *s = e.EV.Vsym;
-        if (Symbol_Salignsize(s) < 16 ||
-            e.EV.Voffset & (16 - 1) ||
-            tysize(e.Ety) > STACKALIGN
+        const alignsz = tyalignsize(e.Ety);
+        if (Symbol_Salignsize(s) < alignsz ||
+            e.EV.Voffset & (alignsz - 1) ||
+            alignsz > STACKALIGN
            )
             return false;       // definitely not aligned
     }

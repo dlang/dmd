@@ -330,6 +330,7 @@ extern __gshared
         framehandleroffset;
     segidx_t cseg;
     int STACKALIGN;
+    int TARGET_STACKALIGN;
     LocalSection Para;
     LocalSection Fast;
     LocalSection Auto;
@@ -503,6 +504,7 @@ void cod3_align_bytes(int seg, size_t nbytes);
 void cod3_align(int seg);
 void cod3_buildmodulector(Outbuffer* buf, int codeOffset, int refOffset);
 void cod3_stackadj(ref CodeBuilder cdb, int nbytes);
+void cod3_stackalign(ref CodeBuilder cdb, int nbytes);
 regm_t regmask(tym_t tym, tym_t tyf);
 void cgreg_dst_regs(uint *dst_integer_reg, uint *dst_float_reg);
 void cgreg_set_priorities(tym_t ty, ubyte **pseq, ubyte **pseqmsw);
@@ -550,6 +552,7 @@ void code_dehydrate(code **pc);
 extern __gshared
 {
     int hasframe;            /* !=0 if this function has a stack frame */
+    bool enforcealign;       /* enforced stack alignment */
     targ_size_t spoff;
     targ_size_t Foff;        // BP offset of floating register
     targ_size_t CSoff;       // offset of common sub expressions
@@ -568,6 +571,7 @@ void prolog_frameadj(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool enter
 void prolog_frameadj2(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool* pushalloc);
 void prolog_setupalloca(ref CodeBuilder cdb);
 void prolog_saveregs(ref CodeBuilder cdb, regm_t topush, int cfa_offset);
+void prolog_stackalign(ref CodeBuilder cdb);
 void prolog_trace(ref CodeBuilder cdb, bool farfunc, uint* regsaved);
 void prolog_gen_win64_varargs(ref CodeBuilder cdb);
 void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t* namedargs);

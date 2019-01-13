@@ -5259,7 +5259,7 @@ void cdddtor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         if (config.flags3 & CFG3pic)
         {
             int nalign = 0;
-            if (STACKALIGN == 16)
+            if (STACKALIGN >= 16)
             {   nalign = STACKALIGN - REGSIZE;
                 cod3_stackadj(cdb, nalign);
             }

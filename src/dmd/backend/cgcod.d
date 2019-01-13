@@ -70,6 +70,7 @@ __gshared
 bool floatreg;                  // !=0 if floating register is required
 
 int hasframe;                   // !=0 if this function has a stack frame
+bool enforcealign;              // enforced stack alignment
 targ_size_t spoff;
 targ_size_t Foff;               // BP offset of floating register
 targ_size_t CSoff;              // offset of common sub expressions
@@ -222,6 +223,7 @@ tryagain:
 
     // if no parameters, assume we don't need a stack frame
     needframe = 0;
+    enforcealign = false;
     gotref = 0;
     stackchanged = 0;
     stackpush = 0;
@@ -232,6 +234,7 @@ tryagain:
     cgstate.stackclean = 1;
     cgstate.funcarg.init();
     cgstate.funcargtos = ~0;
+    STACKALIGN = TARGET_STACKALIGN;
 
     regsave.reset();
     memset(_8087elems.ptr,0,_8087elems.sizeof);
@@ -303,6 +306,32 @@ tryagain:
             }
         }
         regcon.params &= ~noparams;
+    }
+
+    // See if we need to enforce a particular stack alignment
+    foreach (i; 0 .. globsym.top)
+    {
+        Symbol *s = globsym.tab[i];
+
+        switch (s.Sclass)
+        {
+            case SCregister:
+            case SCauto:
+            case SCfastpar:
+                if (s.Sfl == FLreg)
+                    break;
+
+                const sz = type_alignsize(s.Stype);
+                if (sz > STACKALIGN && (I64 || config.exe == EX_OSX))
+                {
+                    STACKALIGN = sz;
+                    enforcealign = true;
+                }
+                break;
+
+            default:
+                break;
+        }
     }
 
     if (config.flags4 & CFG4optimized)
@@ -864,7 +893,8 @@ Lagain:
      * and the overriding function, and so bias should be the same too.
     */
 
-    int bias = cast(int)(Para.size + (needframe ? 0 : REGSIZE));
+    int bias = enforcealign ? 0 : cast(int)(Para.size + (needframe ? 0 : REGSIZE));
+
     if (Fast.alignment < REGSIZE)
         Fast.alignment = REGSIZE;
 
@@ -927,7 +957,7 @@ Lagain:
 
     // Keep the stack aligned by 8 for any subsequent function calls
     if (!I16 && calledafunc &&
-        (STACKALIGN == 16 || config.flags4 & CFG4stackalign))
+        (STACKALIGN >= 16 || config.flags4 & CFG4stackalign))
     {
         int npush = numbitsset(topush);            // number of registers that need saving
         npush += numbitsset(topush & XMMREGS);     // XMM regs take 16 bytes, so count them twice
@@ -937,14 +967,11 @@ Lagain:
         //printf("npush = %d Para.size = x%x needframe = %d localsize = x%x\n",
                //npush, Para.size, needframe, localsize);
 
-        int sz = cast(int)(Para.size + (needframe ? 0 : -REGSIZE) + localsize + npush * REGSIZE);
-        if (STACKALIGN == 16)
-        {
-            if (sz & (8|4))
-                localsize += STACKALIGN - (sz & (8|4));
-        }
-        else if (sz & 4)
-            localsize += 4;
+        int sz = cast(int)(localsize + npush * REGSIZE);
+        if (!enforcealign)
+            sz += Para.size + (needframe ? 0 : -REGSIZE);
+        if (sz & (STACKALIGN - 1))
+            localsize += STACKALIGN - (sz & (STACKALIGN - 1));
     }
     cgstate.funcarg.offset = -localsize;
 
@@ -1010,6 +1037,9 @@ Lagain:
         hasframe = 1;
     }
 
+    /* Align the stack if necessary */
+    prolog_stackalign(cdbx);
+
     /* Subtract from stack pointer the size of the local stack frame
      */
     if (config.flags & CFGstack)        // if stack overflow check
@@ -1038,6 +1068,8 @@ Lagain:
     else
         assert((localsize | Alloca.size) == 0 || (usednteh & NTEHjmonitor));
     EBPtoESP += xlocalsize;
+    if (hasframe)
+        EBPtoESP += REGSIZE;
 
     /* Win64 unwind needs the amount of code generated so far
      */
@@ -1064,8 +1096,10 @@ Lagain:
            )
         {
             uint spalign = 0;
-            int sz = Para.size + (needframe ? 0 : -REGSIZE) + localsize;
-            if (STACKALIGN == 16 && (sz & (STACKALIGN - 1)))
+            int sz = cast(int)localsize;
+            if (!enforcealign)
+                sz += Para.size + (needframe ? 0 : -REGSIZE);
+            if (STACKALIGN >= 16 && (sz & (STACKALIGN - 1)))
                 spalign = STACKALIGN - (sz & (STACKALIGN - 1));
 
             if (spalign)
@@ -1316,13 +1350,10 @@ void stackoffsets(int flags)
                  * but are 4 byte aligned on the OSX 32 stack.
                  */
                 Para.offset = _align(REGSIZE,Para.offset); /* align on word stack boundary */
-                if (alignsize == 16 && (I64 || tyvector(s.ty())))
-                {
-                    if (Para.offset & 4)
-                        Para.offset += 4;
-                    if (Para.offset & 8)
-                        Para.offset += 8;
-                }
+                if (alignsize >= 16 &&
+                    (I64 || (config.exe == EX_OSX &&
+                         (tyaggregate(s.ty()) || tyvector(s.ty())))))
+                    Para.offset = (Para.offset + (alignsize - 1)) & ~(alignsize - 1);
                 s.Soffset = Para.offset;
                 //printf("%s param offset =  x%lx, alignsize = %d\n",s.Sident,(long)s.Soffset, (int)alignsize);
                 Para.offset += (s.Sflags & SFLdouble)
@@ -3025,12 +3056,8 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
         // will throw off the 8 byte stack alignment.
         // We should *only* worry about this if a function
         // was called in the code generation by codelem().
-        int sz;
-        if (STACKALIGN == 16)
-            sz = -(adjesp & (STACKALIGN - 1)) & (STACKALIGN - 1);
-        else
-            sz = -(adjesp & 7) & 7;
-        if (calledafunc && !I16 && sz && (STACKALIGN == 16 || config.flags4 & CFG4stackalign))
+        int sz = -(adjesp & (STACKALIGN - 1)) & (STACKALIGN - 1);
+        if (calledafunc && !I16 && sz && (STACKALIGN >= 16 || config.flags4 & CFG4stackalign))
         {
             regm_t mval_save = regcon.immed.mval;
             regcon.immed.mval = 0;      // prevent reghasvalue() optimizations
