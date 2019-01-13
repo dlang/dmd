@@ -1942,6 +1942,28 @@ void test6()
 
 /*****************************************/
 
+version (D_AVX)
+{
+    double4 test7r(double4 v)
+    {
+        return v;
+    }
+}
+
+void test7()
+{
+    version (D_AVX)
+    {
+        // 32 bytes sliced down to 16 bytes
+        double4 v = 1;
+        double4 r = test7r(v);
+        assert(v[2] == r[2]);
+        assert(v[3] == r[3]);
+    }
+}
+
+/*****************************************/
+
 int main()
 {
     test1();
@@ -1983,6 +2005,7 @@ int main()
     test17356();
 
     test6();
+    test7();
 
     return 0;
 }
