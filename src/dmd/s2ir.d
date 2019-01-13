@@ -714,8 +714,8 @@ private extern (C++) class S2irVisitor : Visitor
 
             FuncDeclaration func = irs.getFunc();
             assert(func);
-            assert(func.type.ty == Tfunction);
-            TypeFunction tf = cast(TypeFunction)(func.type);
+            auto tf = func.type.isTypeFunction();
+            assert(tf);
 
             RET retmethod = retStyle(tf, func.needThis());
             if (retmethod == RET.stack)
@@ -726,18 +726,16 @@ private extern (C++) class S2irVisitor : Visitor
                 /* If returning struct literal, write result
                  * directly into return value
                  */
-                if (s.exp.op == TOK.structLiteral)
+                if (auto sle = s.exp.isStructLiteralExp())
                 {
-                    StructLiteralExp sle = cast(StructLiteralExp)s.exp;
                     sle.sym = irs.shidden;
                     writetohp = true;
                 }
                 /* Detect function call that returns the same struct
                  * and construct directly into *shidden
                  */
-                else if (s.exp.op == TOK.call)
+                else if (auto ce = s.exp.isCallExp())
                 {
-                    auto ce = cast(CallExp)s.exp;
                     if (ce.e1.op == TOK.variable || ce.e1.op == TOK.star)
                     {
                         Type t = ce.e1.type.toBasetype();
@@ -751,15 +749,13 @@ private extern (C++) class S2irVisitor : Visitor
                             goto L1;
                         }
                     }
-                    else if (ce.e1.op == TOK.dotVariable)
+                    else if (auto dve = ce.e1.isDotVarExp())
                     {
-                        auto dve = cast(DotVarExp)ce.e1;
                         auto fd = dve.var.isFuncDeclaration();
                         if (fd && fd.isCtorDeclaration())
                         {
-                            if (dve.e1.op == TOK.structLiteral)
+                            if (auto sle = dve.e1.isStructLiteralExp())
                             {
-                                auto sle = cast(StructLiteralExp)dve.e1;
                                 sle.sym = irs.shidden;
                                 writetohp = true;
                             }
@@ -931,12 +927,6 @@ private extern (C++) class S2irVisitor : Visitor
 
     override void visit(WithStatement s)
     {
-        Symbol *sp;
-        elem *e;
-        elem *ei;
-        ExpInitializer ie;
-        Blockx *blx = irs.blx;
-
         //printf("WithStatement.toIR()\n");
         if (s.exp.op == TOK.scope_ || s.exp.op == TOK.type)
         {
@@ -944,18 +934,18 @@ private extern (C++) class S2irVisitor : Visitor
         else
         {
             // Declare with handle
-            sp = toSymbol(s.wthis);
+            auto sp = toSymbol(s.wthis);
             symbol_add(sp);
 
             // Perform initialization of with handle
-            ie = s.wthis._init.isExpInitializer();
+            auto ie = s.wthis._init.isExpInitializer();
             assert(ie);
-            ei = toElemDtor(ie.exp, irs);
-            e = el_var(sp);
+            auto ei = toElemDtor(ie.exp, irs);
+            auto e = el_var(sp);
             e = el_bin(OPeq,e.Ety, e, ei);
             elem_setLoc(e, s.loc);
             incUsage(irs, s.loc);
-            block_appendexp(blx.curblock,e);
+            block_appendexp(irs.blx.curblock,e);
         }
         // Execute with block
         if (s._body)
