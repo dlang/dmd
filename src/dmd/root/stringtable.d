@@ -186,7 +186,7 @@ public:
             table[i].hash = hash;
             table[i].vptr = allocValue(str, null);
         }
-        // printf("update %.*s %p\n", (int)str.length, str.ptr, table[i].value ?: NULL);
+        // printf("update %.*s %p\n", cast(int)str.length, str.ptr, table[i].value ?: NULL);
         return getValue(table[i].vptr);
     }
 

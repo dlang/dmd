@@ -44,7 +44,7 @@ const(char)[] findConfFile(const(char)[] argv0, const(char)[] inifile)
     static if (LOG)
     {
         printf("findinifile(argv0 = '%.*s', inifile = '%.*s')\n",
-               argv0.length, argv0.ptr, inifile.length, inifile.ptr);
+               cast(int)argv0.length, argv0.ptr, cast(int)inifile.length, inifile.ptr);
     }
     if (FileName.absolute(inifile))
         return inifile;
