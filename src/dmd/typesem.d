@@ -65,9 +65,9 @@ import dmd.typesem;
  */
 private Expression semanticLength(Scope* sc, Type t, Expression exp)
 {
-    if (t.ty == Ttuple)
+    if (auto tt = t.isTypeTuple())
     {
-        ScopeDsymbol sym = new ArrayScopeSymbol(sc, cast(TypeTuple)t);
+        ScopeDsymbol sym = new ArrayScopeSymbol(sc, tt);
         sym.parent = sc.scopesym;
         sc = sc.push(sym);
         sc = sc.startCTFE();
@@ -388,13 +388,15 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
             *ps = s;
             return;
         }
-        if (t.ty == Tinstance && t != mt && !t.deco)
-        {
-            if (!(cast(TypeInstance)t).tempinst.errors)
-                error(loc, "forward reference to `%s`", t.toChars());
-            *pt = Type.terror;
-            return;
-        }
+
+        if (auto ti = t.isTypeInstance())
+            if (ti != mt && !ti.deco)
+            {
+                if (!ti.tempinst.errors)
+                    error(loc, "forward reference to `%s`", ti.toChars());
+                *pt = Type.terror;
+                return;
+            }
 
         if (t.ty == Ttuple)
             *pt = t;
@@ -477,9 +479,8 @@ private Type stripDefaultArgs(Type t)
     if (t is null)
         return t;
 
-    if (t.ty == Tfunction)
+    if (auto tf = t.isTypeFunction())
     {
-        TypeFunction tf = cast(TypeFunction)t;
         Type tret = stripDefaultArgs(tf.next);
         Parameters* params = stripParams(tf.parameterList.parameters);
         if (tret == tf.next && params == tf.parameterList.parameters)
@@ -490,9 +491,8 @@ private Type stripDefaultArgs(Type t)
         //printf("strip %s\n   <- %s\n", tr.toChars(), t.toChars());
         return tr;
     }
-    else if (t.ty == Ttuple)
+    else if (auto tt = t.isTypeTuple())
     {
-        TypeTuple tt = cast(TypeTuple)t;
         Parameters* args = stripParams(tt.arguments);
         if (args == tt.arguments)
             return t;
@@ -759,7 +759,8 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                 return overflowError();
 
             Type tbx = tbn.baseElemOf();
-            if (tbx.ty == Tstruct && !(cast(TypeStruct)tbx).sym.members || tbx.ty == Tenum && !(cast(TypeEnum)tbx).sym.members)
+            if (tbx.ty == Tstruct && !(cast(TypeStruct)tbx).sym.members ||
+                tbx.ty == Tenum && !(cast(TypeEnum)tbx).sym.members)
             {
                 /* To avoid meaningless error message, skip the total size limit check
                  * when the bottom of element type is opaque.
@@ -918,11 +919,11 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
         Type tbase = mtype.index.baseElemOf();
         while (tbase.ty == Tarray)
             tbase = tbase.nextOf().baseElemOf();
-        if (tbase.ty == Tstruct)
+        if (auto ts = tbase.isTypeStruct())
         {
             /* AA's need typeid(index).equals() and getHash(). Issue error if not correctly set up.
              */
-            StructDeclaration sd = (cast(TypeStruct)tbase).sym;
+            StructDeclaration sd = ts.sym;
             if (sd.semanticRun < PASS.semanticdone)
                 sd.dsymbolSemantic(null);
 
@@ -1306,9 +1307,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                     }
                     else
                     {
-                        Type tv = t;
-                        while (tv.ty == Tsarray)
-                            tv = tv.nextOf().toBasetype();
+                        Type tv = t.baseElemOf();
                         if (tv.ty == Tstruct && (cast(TypeStruct)tv).sym.noDefaultCtor)
                         {
                             .error(loc, "cannot have `out` parameter of type `%s` because the default construction is disabled", fparam.type.toChars());
@@ -1370,14 +1369,13 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                 /* If fparam after semantic() turns out to be a tuple, the number of parameters may
                  * change.
                  */
-                if (t.ty == Ttuple)
+                if (auto tt = t.isTypeTuple())
                 {
                     /* TypeFunction::parameter also is used as the storage of
                      * Parameter objects for FuncDeclaration. So we should copy
                      * the elements of TypeTuple::arguments to avoid unintended
                      * sharing of Parameter object among other functions.
                      */
-                    TypeTuple tt = cast(TypeTuple)t;
                     if (tt.arguments && tt.arguments.dim)
                     {
                         /* Propagate additional storage class from tuple parameters to their
@@ -1927,8 +1925,7 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             e = mt.defaultInitLiteral(loc);
             if (tb.ty == Tstruct && tb.needsNested())
             {
-                StructLiteralExp se = cast(StructLiteralExp)e;
-                se.useStaticInit = true;
+                e.isStructLiteralExp().useStaticInit = true;
             }
         }
         else if (ident == Id._mangleof)
@@ -3009,8 +3006,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                 e = mt.defaultInitLiteral(e.loc);
                 if (tb.ty == Tstruct && tb.needsNested())
                 {
-                    StructLiteralExp se = cast(StructLiteralExp)e;
-                    se.useStaticInit = true;
+                    e.isStructLiteralExp().useStaticInit = true;
                 }
                 goto Lreturn;
             }
