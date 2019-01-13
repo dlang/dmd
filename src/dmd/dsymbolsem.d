@@ -154,14 +154,7 @@ private FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
                 {
                     // _ArrayDtor((cast(S*)this.v.ptr)[0 .. n])
 
-                    uinteger_t length = 1;
-                    while (tv.ty == Tsarray)
-                    {
-                        length *= (cast(TypeSArray)tv).dim.toUInteger();
-                        tv = tv.nextOf().toBasetype();
-                    }
-                    //if (n == 0)
-                    //    continue;
+                    const length = tv.numberOfElems(loc);
 
                     ex = new ThisExp(loc);
                     ex = new DotVarExp(loc, ex, sf);
@@ -172,13 +165,13 @@ private FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
                     if (stc & STC.safe)
                         stc = (stc & ~STC.safe) | STC.trusted;
 
-                    ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
-                                            new IntegerExp(loc, length, Type.tsize_t));
+                    auto se = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
+                                                    new IntegerExp(loc, length, Type.tsize_t));
                     // Prevent redundant bounds check
-                    (cast(SliceExp)ex).upperIsInBounds = true;
-                    (cast(SliceExp)ex).lowerIsLessThanUpper = true;
+                    se.upperIsInBounds = true;
+                    se.lowerIsLessThanUpper = true;
 
-                    ex = new CallExp(loc, new IdentifierExp(loc, Id.__ArrayDtor), ex);
+                    ex = new CallExp(loc, new IdentifierExp(loc, Id.__ArrayDtor), se);
 
                     dtorCalls ~= ex;
                 }
@@ -236,12 +229,7 @@ private FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         {
             // _ArrayPostblit((cast(S*)this.v.ptr)[0 .. n])
 
-            uinteger_t length = 1;
-            while (tv.ty == Tsarray)
-            {
-                length *= (cast(TypeSArray)tv).dim.toUInteger();
-                tv = tv.nextOf().toBasetype();
-            }
+            const length = tv.numberOfElems(loc);
             if (length == 0)
                 continue;
 
@@ -254,12 +242,12 @@ private FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
             if (stc & STC.safe)
                 stc = (stc & ~STC.safe) | STC.trusted;
 
-            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
-                                       new IntegerExp(loc, length, Type.tsize_t));
+            auto se = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
+                                            new IntegerExp(loc, length, Type.tsize_t));
             // Prevent redundant bounds check
-            (cast(SliceExp)ex).upperIsInBounds = true;
-            (cast(SliceExp)ex).lowerIsLessThanUpper = true;
-            ex = new CallExp(loc, new IdentifierExp(loc, Id.__ArrayPostblit), ex);
+            se.upperIsInBounds = true;
+            se.lowerIsLessThanUpper = true;
+            ex = new CallExp(loc, new IdentifierExp(loc, Id.__ArrayPostblit), se);
         }
         postblitCalls.push(new ExpStatement(loc, ex)); // combine in forward order
 
@@ -698,9 +686,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dsym.type = Type.terror;
             tb = dsym.type;
         }
-        if (tb.ty == Tstruct)
+        if (auto ts = tb.isTypeStruct())
         {
-            TypeStruct ts = cast(TypeStruct)tb;
             if (!ts.sym.members)
             {
                 dsym.error("no definition of struct `%s`", ts.toChars());
@@ -709,12 +696,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if ((dsym.storage_class & STC.auto_) && !inferred)
             dsym.error("storage class `auto` has no effect if type is not inferred, did you mean `scope`?");
 
-        if (tb.ty == Ttuple)
+        if (auto tt = tb.isTypeTuple())
         {
             /* Instead, declare variables for each of the tuple elements
              * and add those.
              */
-            TypeTuple tt = cast(TypeTuple)tb;
             size_t nelems = Parameter.dim(tt.arguments);
             Expression ie = (dsym._init && !dsym._init.isVoidInitializer()) ? dsym._init.initializerToExpression() : null;
             if (ie)
@@ -931,11 +917,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     message(dsym.loc, "`%s.%s` is `%s` field", ad.toPrettyChars(), dsym.toChars(), s);
                 }
                 dsym.storage_class |= STC.field;
-                if (tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
-                {
-                    if (!dsym.isThisDeclaration() && !dsym._init)
-                        aad.noDefaultCtor = true;
-                }
+                if (auto ts = tbn.isTypeStruct())
+                    if (ts.sym.noDefaultCtor)
+                    {
+                        if (!dsym.isThisDeclaration() && !dsym._init)
+                            aad.noDefaultCtor = true;
+                    }
             }
 
             InterfaceDeclaration id = parent.isInterfaceDeclaration();
@@ -1002,7 +989,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
-        if (!(dsym.storage_class & (STC.ctfe | STC.ref_ | STC.result)) && tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
+        if (!(dsym.storage_class & (STC.ctfe | STC.ref_ | STC.result)) &&
+            tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
         {
             if (!dsym._init)
             {
@@ -1086,7 +1074,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                  * In StructLiteralExp::toElem(), it's calculated.
                  */
                 assert(tbn.ty == Tstruct);
-                checkFrameAccess(dsym.loc, sc, (cast(TypeStruct)tbn).sym);
+                checkFrameAccess(dsym.loc, sc, tbn.isTypeStruct().sym);
 
                 Expression e = tv.defaultInitLiteral(dsym.loc);
                 e = new BlitExp(dsym.loc, new VarExp(dsym.loc, dsym), e);
@@ -1265,9 +1253,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                          *  static assert(w.x == 55.0);
                          * because the postblit doesn't get run on the initialization of w.
                          */
-                        if (ti.ty == Tstruct)
+                        if (auto ts = ti.isTypeStruct())
                         {
-                            StructDeclaration sd = (cast(TypeStruct)ti).sym;
+                            StructDeclaration sd = ts.sym;
                             /* Look to see if initializer involves a copy constructor
                              * (which implies a postblit)
                              */
@@ -2064,9 +2052,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             /* Check to see if memtype is forward referenced
              */
-            if (ed.memtype.ty == Tenum)
+            if (auto te = ed.memtype.isTypeEnum())
             {
-                EnumDeclaration sym = cast(EnumDeclaration)ed.memtype.toDsymbol(sc);
+                EnumDeclaration sym = cast(EnumDeclaration)te.toDsymbol(sc);
                 if (!sym.memtype || !sym.members || !sym.symtab || sym._scope)
                 {
                     // memtype is forward referenced, so try again later
@@ -4250,12 +4238,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (sd.semanticRun == PASS.init)
             sd.type = sd.type.addSTC(sc.stc | sd.storage_class);
         sd.type = sd.type.typeSemantic(sd.loc, sc);
-        if (sd.type.ty == Tstruct && (cast(TypeStruct)sd.type).sym != sd)
-        {
-            auto ti = (cast(TypeStruct)sd.type).sym.isInstantiated();
-            if (ti && isError(ti))
-                (cast(TypeStruct)sd.type).sym = sd;
-        }
+        if (auto ts = sd.type.isTypeStruct())
+            if (ts.sym != sd)
+            {
+                auto ti = ts.sym.isInstantiated();
+                if (ti && isError(ti))
+                    ts.sym = sd;
+            }
 
         // Ungag errors when not speculative
         Ungag ungag = sd.ungagSpeculative();
@@ -4463,12 +4452,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (cldec.errors)
             cldec.type = Type.terror;
         cldec.type = cldec.type.typeSemantic(cldec.loc, sc);
-        if (cldec.type.ty == Tclass && (cast(TypeClass)cldec.type).sym != cldec)
-        {
-            auto ti = (cast(TypeClass)cldec.type).sym.isInstantiated();
-            if (ti && isError(ti))
-                (cast(TypeClass)cldec.type).sym = cldec;
-        }
+        if (auto tc = cldec.type.isTypeClass())
+            if (tc.sym != cldec)
+            {
+                auto ti = tc.sym.isInstantiated();
+                if (ti && isError(ti))
+                    tc.sym = cldec;
+            }
 
         // Ungag errors when not speculative
         Ungag ungag = cldec.ungagSpeculative();
@@ -4543,9 +4533,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 b.type = resolveBase(b.type.typeSemantic(cldec.loc, sc));
 
                 Type tb = b.type.toBasetype();
-                if (tb.ty == Ttuple)
+                if (auto tup = tb.isTypeTuple())
                 {
-                    TypeTuple tup = cast(TypeTuple)tb;
                     cldec.baseclasses.remove(i);
                     size_t dim = Parameter.dim(tup.arguments);
                     for (size_t j = 0; j < dim; j++)
@@ -4572,7 +4561,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 BaseClass* b = (*cldec.baseclasses)[0];
                 Type tb = b.type.toBasetype();
-                TypeClass tc = (tb.ty == Tclass) ? cast(TypeClass)tb : null;
+                TypeClass tc = tb.isTypeClass();
                 if (!tc)
                 {
                     if (b.type != Type.terror)
@@ -4631,7 +4620,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 BaseClass* b = (*cldec.baseclasses)[i];
                 Type tb = b.type.toBasetype();
-                TypeClass tc = (tb.ty == Tclass) ? cast(TypeClass)tb : null;
+                TypeClass tc = tb.isTypeClass();
                 if (!tc || !tc.sym.isInterfaceDeclaration())
                 {
                     // It's a class
@@ -4725,8 +4714,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 t = t.typeSemantic(cldec.loc, sc).toBasetype();
                 if (t.ty == Terror)
                     badObjectDotD();
-                assert(t.ty == Tclass);
-                TypeClass tc = cast(TypeClass)t;
+                TypeClass tc = t.isTypeClass();
+                assert(tc);
 
                 auto b = new BaseClass(tc);
                 cldec.baseclasses.shift(b);
@@ -4801,8 +4790,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             BaseClass* b = (*cldec.baseclasses)[i];
             Type tb = b.type.toBasetype();
-            assert(tb.ty == Tclass);
-            TypeClass tc = cast(TypeClass)tb;
+            TypeClass tc = tb.isTypeClass();
             if (tc.sym.semanticRun < PASS.semanticdone)
             {
                 // Forward referencee of one or more bases, try again later
@@ -5153,9 +5141,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 b.type = resolveBase(b.type.typeSemantic(idec.loc, sc));
 
                 Type tb = b.type.toBasetype();
-                if (tb.ty == Ttuple)
+                if (auto tup = tb.isTypeTuple())
                 {
-                    TypeTuple tup = cast(TypeTuple)tb;
                     idec.baseclasses.remove(i);
                     size_t dim = Parameter.dim(tup.arguments);
                     for (size_t j = 0; j < dim; j++)
@@ -5277,8 +5264,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             BaseClass* b = (*idec.baseclasses)[i];
             Type tb = b.type.toBasetype();
-            assert(tb.ty == Tclass);
-            TypeClass tc = cast(TypeClass)tb;
+            TypeClass tc = tb.isTypeClass();
             if (tc.sym.semanticRun < PASS.semanticdone)
             {
                 // Forward referencee of one or more bases, try again later
@@ -5659,15 +5645,14 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
      */
     if (fargs && tempinst.aliasdecl)
     {
-        FuncDeclaration fd = tempinst.aliasdecl.isFuncDeclaration();
-        if (fd)
+        if (auto fd = tempinst.aliasdecl.isFuncDeclaration())
         {
             /* Transmit fargs to type so that TypeFunction.dsymbolSemantic() can
              * resolve any "auto ref" storage classes.
              */
-            TypeFunction tf = cast(TypeFunction)fd.type;
-            if (tf && tf.ty == Tfunction)
-                tf.fargs = fargs;
+            if (fd.type)
+                if (auto tf = fd.type.isTypeFunction())
+                    tf.fargs = fargs;
         }
     }
 
