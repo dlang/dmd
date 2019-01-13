@@ -490,7 +490,6 @@ private extern (C++) class S2irVisitor : Visitor
      */
 
     override void visit(SwitchStatement s)
-//    { .visit(irs, s); }
     {
         Blockx *blx = irs.blx;
 
@@ -511,9 +510,7 @@ private extern (C++) class S2irVisitor : Visitor
          */
         mystate.defaultBlock = s.sdefault ? block_calloc(blx) : mystate.breakBlock;
 
-        size_t numcases = 0;
-        if (s.cases)
-            numcases = s.cases.dim;
+        const numcases = s.cases ? s.cases.dim : 0;
 
         incUsage(irs, s.loc);
         elem *econd = toElemDtor(s.condition, &mystate);
@@ -527,18 +524,18 @@ private extern (C++) class S2irVisitor : Visitor
                 econd = e.EV.E2;
             }
 
-            for (size_t i = 0; i < numcases; i++)
-            {   CaseStatement cs = (*s.cases)[i];
-
-                elem *ecase = toElemDtor(cs.exp, &mystate);
-                elem *e = el_bin(OPeqeq, TYbool, el_copytree(econd), ecase);
-                block *b = blx.curblock;
-                block_appendexp(b, e);
-                Label *clabel = getLabel(irs, blx, cs);
-                block_next(blx, BCiftrue, null);
-                b.appendSucc(clabel.lblock);
-                b.appendSucc(blx.curblock);
-            }
+            if (numcases)
+                foreach (cs; *s.cases)
+                {
+                    elem *ecase = toElemDtor(cs.exp, &mystate);
+                    elem *e = el_bin(OPeqeq, TYbool, el_copytree(econd), ecase);
+                    block *b = blx.curblock;
+                    block_appendexp(b, e);
+                    Label *clabel = getLabel(irs, blx, cs);
+                    block_next(blx, BCiftrue, null);
+                    b.appendSucc(clabel.lblock);
+                    b.appendSucc(blx.curblock);
+                }
 
             /* The final 'else' clause goes to the default
              */
@@ -566,22 +563,21 @@ private extern (C++) class S2irVisitor : Visitor
         block_next(blx,BCswitch,null);
 
         // Corresponding free is in block_free
-        targ_llong *pu = cast(targ_llong *)(.malloc(targ_llong.sizeof * (numcases + 1)));
+        alias TCase = typeof(mystate.switchBlock.Bswitch[0]);
+        auto pu = cast(TCase *)(.malloc(TCase.sizeof * (numcases + 1)));
         mystate.switchBlock.Bswitch = pu;
         /* First pair is the number of cases, and the default block
          */
         *pu++ = numcases;
         mystate.switchBlock.appendSucc(mystate.defaultBlock);
 
-        /* Fill in the first entry in each pair, which is the case value.
+        /* Fill in the first entry for each pair, which is the case value.
          * CaseStatement.toIR() will fill in
          * the second entry for each pair with the block.
          */
-        for (size_t i = 0; i < numcases; i++)
-        {
-            CaseStatement cs = (*s.cases)[i];
-            pu[i] = cs.exp.toInteger();
-        }
+        if (numcases)
+            foreach (cs; *s.cases)
+                *pu++ = cs.exp.toInteger();
 
         Statement_toIR(s._body, &mystate);
 
@@ -853,14 +849,10 @@ private extern (C++) class S2irVisitor : Visitor
     {
         if (s.statements)
         {
-            size_t dim = s.statements.dim;
-            for (size_t i = 0 ; i < dim ; i++)
+            foreach (s2; *s.statements)
             {
-                Statement s2 = (*s.statements)[i];
-                if (s2 !is null)
-                {
+                if (s2)
                     Statement_toIR(s2, irs);
-                }
             }
         }
     }
@@ -884,11 +876,9 @@ private extern (C++) class S2irVisitor : Visitor
 
         block *bdox;
 
-        size_t dim = s.statements.dim;
-        for (size_t i = 0 ; i < dim ; i++)
+        foreach (s2; *s.statements)
         {
-            Statement s2 = (*s.statements)[i];
-            if (s2 !is null)
+            if (s2)
             {
                 mystate.contBlock = block_calloc(blx);
 
@@ -1091,18 +1081,17 @@ private extern (C++) class S2irVisitor : Visitor
             bswitch.Belem = el_combine(el_combine(e1, e2),
                                         el_combine(e3, el_var(shandler)));
 
-            size_t numcases = s.catches.dim;
+            const numcases = s.catches.dim;
             bswitch.Bswitch = cast(targ_llong *) .malloc((targ_llong).sizeof * (numcases + 1));
             assert(bswitch.Bswitch);
             bswitch.Bswitch[0] = numcases;
             bswitch.appendSucc(defaultblock);
             block_next(blx, BCswitch, null);
 
-            for (size_t i = 0; i < numcases; ++i)
+            foreach (i, cs; *s.catches)
             {
                 bswitch.Bswitch[1 + i] = 1 + i;
 
-                Catch cs = (*s.catches)[i];
                 if (cs.var)
                     cs.var.csym = tryblock.jcatchvar;
 
@@ -1210,17 +1199,17 @@ private extern (C++) class S2irVisitor : Visitor
             /* Make a copy of the switch case table, which will later become the Action Table.
              * Need a copy since the bswitch may get rewritten by the optimizer.
              */
-            bcatch.actionTable = cast(uint*).malloc(uint.sizeof * (numcases + 1));
+            alias TAction = typeof(bcatch.actionTable[0]);
+            bcatch.actionTable = cast(TAction*).malloc(TAction.sizeof * (numcases + 1));
             assert(bcatch.actionTable);
-            for (size_t i = 0; i < numcases + 1; ++i)
-                bcatch.actionTable[i] = cast(uint)bswitch.Bswitch[i];
+            foreach (i; 0 .. numcases + 1)
+                bcatch.actionTable[i] = cast(TAction)bswitch.Bswitch[i];
 
         }
         else
         {
-            for (size_t i = 0 ; i < s.catches.dim; i++)
+            foreach (cs; *s.catches)
             {
-                Catch cs = (*s.catches)[i];
                 if (cs.var)
                     cs.var.csym = tryblock.jcatchvar;
                 block *bcatch = blx.curblock;
