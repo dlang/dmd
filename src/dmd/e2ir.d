@@ -137,7 +137,6 @@ private elem *callfunc(const ref Loc loc,
 {
     elem *ethis = null;
     elem *eside = null;
-    TypeFunction tf;
     elem *eresult = ehidden;
 
     version (none)
@@ -152,24 +151,22 @@ private elem *callfunc(const ref Loc loc,
     }
 
     t = t.toBasetype();
-    if (t.ty == Tdelegate)
+    TypeFunction tf = t.isTypeFunction();
+    if (!tf)
     {
+        assert(t.ty == Tdelegate);
         // A delegate consists of:
         //      { Object *this; Function *funcptr; }
         assert(!fd);
-        assert(t.nextOf().ty == Tfunction);
-        tf = cast(TypeFunction)(t.nextOf());
+        tf = t.nextOf().isTypeFunction();
+        assert(tf);
         ethis = ec;
         ec = el_same(&ethis);
         ethis = el_una(irs.params.is64bit ? OP128_64 : OP64_32, TYnptr, ethis); // get this
         ec = array_toPtr(t, ec);                // get funcptr
         ec = el_una(OPind, totym(tf), ec);
     }
-    else
-    {
-        assert(t.ty == Tfunction);
-        tf = cast(TypeFunction)(t);
-    }
+
     const ty = fd ? toSymbol(fd).Stype.Tty : ec.Ety;
     const left_to_right = tyrevfunc(ty);   // left-to-right parameter evaluation
                                            // (TYnpfunc, TYjfunc, TYfpfunc, TYf16func)
@@ -825,10 +822,9 @@ elem *getTypeInfo(Loc loc, Type t, IRState *irs)
  */
 StructDeclaration needsPostblit(Type t)
 {
-    t = t.baseElemOf();
-    if (t.ty == Tstruct)
+    if (auto ts = t.baseElemOf().isTypeStruct())
     {
-        StructDeclaration sd = (cast(TypeStruct)t).sym;
+        StructDeclaration sd = ts.sym;
         if (sd.postblit)
             return sd;
     }
@@ -840,10 +836,9 @@ StructDeclaration needsPostblit(Type t)
  */
 StructDeclaration needsDtor(Type t)
 {
-    t = t.baseElemOf();
-    if (t.ty == Tstruct)
+    if (auto ts = t.baseElemOf().isTypeStruct())
     {
-        StructDeclaration sd = (cast(TypeStruct)t).sym;
+        StructDeclaration sd = ts.sym;
         if (sd.dtor)
             return sd;
     }
@@ -1326,14 +1321,14 @@ elem *toElem(Expression e, IRState *irs)
             }
             if (Expression ex = isExpression(e.obj))
             {
-                Type t = ex.type.toBasetype();
-                assert(t.ty == Tclass);
+                auto tc = ex.type.toBasetype().isTypeClass();
+                assert(tc);
                 // generate **classptr to get the classinfo
                 result = toElem(ex, irs);
                 result = el_una(OPind,TYnptr,result);
                 result = el_una(OPind,TYnptr,result);
                 // Add extra indirection for interfaces
-                if ((cast(TypeClass)t).sym.isInterfaceDeclaration())
+                if (tc.sym.isInterfaceDeclaration())
                     result = el_una(OPind,TYnptr,result);
                 return;
             }
@@ -1556,9 +1551,8 @@ elem *toElem(Expression e, IRState *irs)
             Type ectype;
             if (t.ty == Tclass)
             {
-                t = ne.newtype.toBasetype();
-                assert(t.ty == Tclass);
-                TypeClass tclass = cast(TypeClass)t;
+                auto tclass = ne.newtype.toBasetype().isTypeClass();
+                assert(tclass);
                 ClassDeclaration cd = tclass.sym;
 
                 /* Things to do:
@@ -1689,8 +1683,7 @@ elem *toElem(Expression e, IRState *irs)
             else if (t.ty == Tpointer && t.nextOf().toBasetype().ty == Tstruct)
             {
                 t = ne.newtype.toBasetype();
-                assert(t.ty == Tstruct);
-                TypeStruct tclass = cast(TypeStruct)t;
+                TypeStruct tclass = t.isTypeStruct();
                 StructDeclaration sd = tclass.sym;
 
                 /* Things to do:
@@ -1761,10 +1754,8 @@ elem *toElem(Expression e, IRState *irs)
                 e = el_combine(e, ezprefix);
                 e = el_combine(e, ez);
             }
-            else if (t.ty == Tarray)
+            else if (auto tda = t.isTypeDArray())
             {
-                TypeDArray tda = cast(TypeDArray)t;
-
                 elem *ezprefix = ne.argprefix ? toElem(ne.argprefix, irs) : null;
 
                 assert(ne.arguments && ne.arguments.dim >= 1);
@@ -1806,9 +1797,8 @@ elem *toElem(Expression e, IRState *irs)
                 }
                 e = el_combine(ezprefix, e);
             }
-            else if (t.ty == Tpointer)
+            else if (auto tp = t.isTypePointer())
             {
-                TypePointer tp = cast(TypePointer)t;
                 elem *ezprefix = ne.argprefix ? toElem(ne.argprefix, irs) : null;
 
                 // call _d_newitemT(ti)
@@ -2574,9 +2564,8 @@ elem *toElem(Expression e, IRState *irs)
 
         override void visit(RemoveExp re)
         {
-            Type tb = re.e1.type.toBasetype();
-            assert(tb.ty == Taarray);
-            TypeAArray taa = cast(TypeAArray)tb;
+            auto taa = re.e1.type.toBasetype().isTypeAArray();
+            assert(taa);
             elem *ea = toElem(re.e1, irs);
             elem *ekey = toElem(re.e2, irs);
 
@@ -2655,9 +2644,8 @@ elem *toElem(Expression e, IRState *irs)
                     elem *enbytes;
                     elem *einit;
                     // Look for array[]=n
-                    if (ta.ty == Tsarray)
+                    if (auto ts = ta.isTypeSArray())
                     {
-                        TypeSArray ts = cast(TypeSArray)ta;
                         n1 = array_toPtr(ta, n1);
                         enbytes = toElem(ts.dim, irs);
                         n1x = n1;
@@ -3525,8 +3513,8 @@ elem *toElem(Expression e, IRState *irs)
             // https://issues.dlang.org/show_bug.cgi?id=12900
             Type txb = dve.type.toBasetype();
             Type tyb = v.type.toBasetype();
-            if (txb.ty == Tvector) txb = (cast(TypeVector)txb).basetype;
-            if (tyb.ty == Tvector) tyb = (cast(TypeVector)tyb).basetype;
+            if (auto tv = txb.isTypeVector()) txb = tv.basetype;
+            if (auto tv = tyb.isTypeVector()) tyb = tv.basetype;
 
             debug if (txb.ty != tyb.ty)
                 printf("[%s] dve = %s, dve.type = %s, v.type = %s\n", dve.loc.toChars(), dve.toChars(), dve.type.toChars(), v.type.toChars());
@@ -3913,10 +3901,9 @@ elem *toElem(Expression e, IRState *irs)
                      */
                     elem *et = null;
                     Type tv = tb.nextOf().baseElemOf();
-                    if (tv.ty == Tstruct)
+                    if (auto ts = tv.isTypeStruct())
                     {
                         // FIXME: ts can be non-mutable, but _d_delarray_t requests TypeInfo_Struct.
-                        TypeStruct ts = cast(TypeStruct)tv;
                         StructDeclaration sd = ts.sym;
                         if (sd.dtor)
                             et = getTypeInfo(de.e1.loc, tb.nextOf(), irs);
@@ -3950,9 +3937,8 @@ elem *toElem(Expression e, IRState *irs)
                     e = addressElem(e, de.e1.type);
                     rtl = RTLSYM_DELMEMORY;
                     tb = (cast(TypePointer)tb).next.toBasetype();
-                    if (tb.ty == Tstruct)
+                    if (auto ts = tb.isTypeStruct())
                     {
-                        TypeStruct ts = cast(TypeStruct)tb;
                         if (ts.sym.dtor)
                         {
                             rtl = RTLSYM_DELSTRUCT;
@@ -4823,9 +4809,8 @@ elem *toElem(Expression e, IRState *irs)
                         eupr2 = el_same(&eupr);
                         eupr2.Ety = TYsize_t;  // make sure unsigned comparison
 
-                        if (t1.ty == Tsarray)
+                        if (auto tsa = t1.isTypeSArray())
                         {
-                            TypeSArray tsa = cast(TypeSArray)t1;
                             elen = el_long(TYsize_t, tsa.dim.toInteger());
                         }
                         else if (t1.ty == Tarray)
@@ -4922,14 +4907,13 @@ elem *toElem(Expression e, IRState *irs)
 
             //printf("IndexExp.toElem() %s\n", ie.toChars());
             Type t1 = ie.e1.type.toBasetype();
-            if (t1.ty == Taarray)
+            if (auto taa = t1.isTypeAArray())
             {
                 // set to:
                 //      *aaGetY(aa, aati, valuesize, &key);
                 // or
                 //      *aaGetRvalueX(aa, keyti, valuesize, &key);
 
-                TypeAArray taa = cast(TypeAArray)t1;
                 uint vsize = cast(uint)taa.next.size();
 
                 // n2 becomes the index, also known as the key
@@ -4982,10 +4966,9 @@ elem *toElem(Expression e, IRState *irs)
                 {
                     elem *elength;
 
-                    if (t1.ty == Tsarray)
+                    if (auto tsa = t1.isTypeSArray())
                     {
-                        TypeSArray tsa = cast(TypeSArray)t1;
-                        dinteger_t length = tsa.dim.toInteger();
+                        const length = tsa.dim.toInteger();
 
                         elength = el_long(TYsize_t, length);
                         goto L1;
