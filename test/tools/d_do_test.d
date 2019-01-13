@@ -703,7 +703,7 @@ int tryMain(string[] args)
             string[] toCleanup;
 
             auto thisRunName = genTempFilename(result_path);
-            auto fThisRun = File(thisRunName, "w");
+            auto fThisRun = File(thisRunName, "wb");
             scope(exit)
             {
                 fThisRun.close();
