@@ -14,6 +14,15 @@
 
 module core.stdc.limits;
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 private import core.stdc.config;
 
 extern (C):
@@ -67,6 +76,20 @@ enum ULLONG_MAX     = ulong.max;
 //
 // File system limits
 //
+
+version (Darwin)
+{
+    ///
+    enum MAX_CANON      = 1024;
+    ///
+    enum MAX_INPUT      = 1024;
+    ///
+    enum NAME_MAX       = 255;
+    ///
+    enum PATH_MAX       = 1024;
+    ///
+    enum PIPE_BUF       = 512;
+}
 
 version (DragonFlyBSD)
 {
