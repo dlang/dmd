@@ -11,6 +11,7 @@ void main()
     issue19282();
     issue19332(); // Support might be removed in the future!
     issue19568();
+    issue19582();
     testTypeInfoArrayGetHash1();
     testTypeInfoArrayGetHash2();
     pr2243();
@@ -193,6 +194,30 @@ void issue19568()
 
     S3 s3;
     size_t h = ((ref S3 s3) pure => hashOf(s3))(s3);
+}
+
+/// Check core.internal.convert.toUbyte in CTFE for arrays works with
+/// reference type elements and doesn't call postblits/dtors.
+void issue19582()
+{
+    import core.internal.convert : toUbyte;
+    final static class C : Object {}
+    enum b1 = (() @nogc nothrow pure @safe { C[10] o; return toUbyte(o[])[0]; })();
+
+    static struct S
+    {
+        int x;
+        @disable this(this);
+        ~this() @nogc nothrow
+        {
+            import core.stdc.stdio : puts;
+            if (x) puts("impure");
+        }
+    }
+    enum b2 = () {
+            S[10] a;
+            return ((const S[] a) @nogc nothrow pure @safe => toUbyte(a))(a);
+        }();
 }
 
 /// Tests ensure TypeInfo_Array.getHash uses element hash functions instead
