@@ -41,7 +41,11 @@ auto miniFormat(V)(auto ref V v)
 {
     import core.stdc.stdio : sprintf;
     import core.stdc.string : strlen;
-    static if (__traits(isIntegral, V))
+    static if (is(V : bool))
+    {
+        return v ? "true" : "false";
+    }
+    else static if (__traits(isIntegral, V))
     {
         enum printfFormat = getPrintfFormat!V;
         char[20] val;

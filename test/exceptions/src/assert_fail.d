@@ -108,6 +108,8 @@ void testStruct()()
 void testAA()()
 {
     test([1:"one"], [2: "two"], `[1: "one"] != [2: "two"]`);
+    test!"in"(1, [2: 3], "1 !in [2: 3]");
+    test!"in"("foo", ["bar": true], `"foo" !in ["bar": true]`);
 }
 
 void main()
