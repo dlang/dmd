@@ -68,6 +68,7 @@ extern (C) Object _d_newclass(const ClassInfo ci)
     import core.stdc.stdlib;
     import core.exception : onOutOfMemoryError;
     void* p;
+    auto init = ci.initializer;
 
     debug(PRINTF) printf("_d_newclass(ci = %p, %s)\n", ci, cast(char *)ci.name);
     if (ci.m_flags & TypeInfo_Class.ClassFlags.isCOMclass)
@@ -76,7 +77,7 @@ extern (C) Object _d_newclass(const ClassInfo ci)
          * function called by Release() when Release()'s reference count goes
          * to zero.
      */
-        p = malloc(ci.initializer.length);
+        p = malloc(init.length);
         if (!p)
             onOutOfMemoryError();
     }
@@ -90,26 +91,26 @@ extern (C) Object _d_newclass(const ClassInfo ci)
             attr |= BlkAttr.FINALIZE;
         if (ci.m_flags & TypeInfo_Class.ClassFlags.noPointers)
             attr |= BlkAttr.NO_SCAN;
-        p = GC.malloc(ci.initializer.length, attr, ci);
+        p = GC.malloc(init.length, attr, ci);
         debug(PRINTF) printf(" p = %p\n", p);
     }
 
     debug(PRINTF)
     {
         printf("p = %p\n", p);
-        printf("ci = %p, ci.init.ptr = %p, len = %llu\n", ci, ci.initializer.ptr, cast(ulong)ci.initializer.length);
-        printf("vptr = %p\n", *cast(void**) ci.initializer);
-        printf("vtbl[0] = %p\n", (*cast(void***) ci.initializer)[0]);
-        printf("vtbl[1] = %p\n", (*cast(void***) ci.initializer)[1]);
-        printf("init[0] = %x\n", (cast(uint*) ci.initializer)[0]);
-        printf("init[1] = %x\n", (cast(uint*) ci.initializer)[1]);
-        printf("init[2] = %x\n", (cast(uint*) ci.initializer)[2]);
-        printf("init[3] = %x\n", (cast(uint*) ci.initializer)[3]);
-        printf("init[4] = %x\n", (cast(uint*) ci.initializer)[4]);
+        printf("ci = %p, ci.init.ptr = %p, len = %llu\n", ci, init.ptr, cast(ulong)init.length);
+        printf("vptr = %p\n", *cast(void**) init);
+        printf("vtbl[0] = %p\n", (*cast(void***) init)[0]);
+        printf("vtbl[1] = %p\n", (*cast(void***) init)[1]);
+        printf("init[0] = %x\n", (cast(uint*) init)[0]);
+        printf("init[1] = %x\n", (cast(uint*) init)[1]);
+        printf("init[2] = %x\n", (cast(uint*) init)[2]);
+        printf("init[3] = %x\n", (cast(uint*) init)[3]);
+        printf("init[4] = %x\n", (cast(uint*) init)[4]);
     }
 
     // initialize it
-    p[0 .. ci.initializer.length] = ci.initializer[];
+    p[0 .. init.length] = init[];
 
     debug(PRINTF) printf("initialization done\n");
     return cast(Object) p;
