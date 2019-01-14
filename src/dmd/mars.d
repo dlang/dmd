@@ -124,7 +124,7 @@ Where:
  * Returns:
  *   Application return code
  */
-private int tryMain(size_t argc, const(char)** argv)
+private int tryMain(size_t argc, const(char)** argv, ref Param params)
 {
     Strings files;
     Strings libmodules;
@@ -154,13 +154,13 @@ private int tryMain(size_t argc, const(char)** argv)
     //for (size_t i = 0; i < arguments.dim; ++i) printf("arguments[%d] = '%s'\n", i, arguments[i]);
     files.reserve(arguments.dim - 1);
     // Set default values
-    global.params.argv0 = arguments[0].toDString;
+    params.argv0 = arguments[0].toDString;
 
     // Temporary: Use 32 bits OMF as the default on Windows, for config parsing
     static if (TARGET.Windows)
     {
-        global.params.is64bit = false;
-        global.params.mscoff = false;
+        params.is64bit = false;
+        params.mscoff = false;
     }
 
     global.inifilename = parse_conf_arg(&arguments);
@@ -174,11 +174,11 @@ private int tryMain(size_t argc, const(char)** argv)
     {
         version (Windows)
         {
-            global.inifilename = findConfFile(global.params.argv0, "sc.ini").ptr;
+            global.inifilename = findConfFile(params.argv0, "sc.ini").ptr;
         }
         else version (Posix)
         {
-            global.inifilename = findConfFile(global.params.argv0, "dmd.conf").ptr;
+            global.inifilename = findConfFile(params.argv0, "dmd.conf").ptr;
         }
         else
         {
@@ -200,7 +200,7 @@ private int tryMain(size_t argc, const(char)** argv)
     sections.push("Environment");
     parseConfFile(&environment, global.inifilename, inifilepath, inifile.len, inifile.buffer, &sections);
 
-    const(char)* arch = global.params.is64bit ? "64" : "32"; // use default
+    const(char)* arch = params.is64bit ? "64" : "32"; // use default
     arch = parse_arch_arg(&arguments, arch);
 
     // parse architecture from DFLAGS read from [Environment] section
@@ -226,7 +226,7 @@ private int tryMain(size_t argc, const(char)** argv)
     updateRealEnvironment(&environment);
     environment.reset(1); // don't need environment cache any more
 
-    if (parseCommandLine(arguments, argc, global.params, files))
+    if (parseCommandLine(arguments, argc, params, files))
     {
         Loc loc;
         errorSupplemental(loc, "run `dmd` to print the compiler manual");
@@ -234,13 +234,13 @@ private int tryMain(size_t argc, const(char)** argv)
         return EXIT_FAILURE;
     }
 
-    if (global.params.usage)
+    if (params.usage)
     {
         usage();
         return EXIT_SUCCESS;
     }
 
-    if (global.params.logo)
+    if (params.logo)
     {
         logo();
         return EXIT_SUCCESS;
@@ -266,7 +266,7 @@ private int tryMain(size_t argc, const(char)** argv)
     and return with an exit code.
 
     Params:
-        params = parameters with `Usage` suffices in `global.params` for which
+        params = parameters with `Usage` suffices in `params` for which
         their truthness should be checked.
 
     Returns: generated code for checking the usage pages of the provided `params`.
@@ -277,7 +277,7 @@ private int tryMain(size_t argc, const(char)** argv)
         foreach (n; params)
         {
             s ~= q{
-                if (global.params.}~n~q{Usage)
+                if (params.}~n~q{Usage)
                     return printHelpUsage(CLIUsage.}~n~q{Usage);
             };
         }
@@ -286,7 +286,7 @@ private int tryMain(size_t argc, const(char)** argv)
     import dmd.cli : CLIUsage;
     mixin(generateUsageChecks(["mcpu", "transition", "check", "checkAction", "externStd"]));
 
-    if (global.params.manual)
+    if (params.manual)
     {
         version (Windows)
         {
@@ -318,12 +318,12 @@ private int tryMain(size_t argc, const(char)** argv)
         return EXIT_SUCCESS;
     }
 
-    if (global.params.color)
+    if (params.color)
         global.console = Console.create(core.stdc.stdio.stderr);
 
-    setTarget(global.params);           // set target operating system
-    setTargetCPU(global.params);
-    if (global.params.is64bit != is64bit)
+    setTarget(params);           // set target operating system
+    setTargetCPU(params);
+    if (params.is64bit != is64bit)
         error(Loc.initial, "the architecture must not be changed in the %s section of %s", envsection.ptr, global.inifilename);
 
     if (global.errors)
@@ -332,7 +332,7 @@ private int tryMain(size_t argc, const(char)** argv)
     }
     if (files.dim == 0)
     {
-        if (global.params.jsonFieldFlags)
+        if (params.jsonFieldFlags)
         {
             generateJson(null);
             return EXIT_SUCCESS;
@@ -341,20 +341,20 @@ private int tryMain(size_t argc, const(char)** argv)
         return EXIT_FAILURE;
     }
 
-    reconcileCommands(global.params, files.dim);
+    reconcileCommands(params, files.dim);
 
     // Add in command line versions
-    if (global.params.versionids)
-        foreach (charz; *global.params.versionids)
+    if (params.versionids)
+        foreach (charz; *params.versionids)
             VersionCondition.addGlobalIdent(charz[0 .. strlen(charz)]);
-    if (global.params.debugids)
-        foreach (charz; *global.params.debugids)
+    if (params.debugids)
+        foreach (charz; *params.debugids)
             DebugCondition.addGlobalIdent(charz[0 .. strlen(charz)]);
 
-    setTarget(global.params);
+    setTarget(params);
 
     // Predefined version identifiers
-    addDefaultVersionIdentifiers(global.params);
+    addDefaultVersionIdentifiers(params);
 
     setDefaultLibrary();
 
@@ -362,7 +362,7 @@ private int tryMain(size_t argc, const(char)** argv)
     Type._init();
     Id.initialize();
     Module._init();
-    target._init(global.params);
+    target._init(params);
     Expression._init();
     Objc._init();
     builtin_init();
@@ -377,7 +377,7 @@ private int tryMain(size_t argc, const(char)** argv)
     import dmd.root.ctfloat : CTFloat;
     CTFloat.initialize();
 
-    if (global.params.verbose)
+    if (params.verbose)
     {
         stdout.printPredefinedVersions();
         stdout.printGlobalConfigs();
@@ -405,10 +405,10 @@ private int tryMain(size_t argc, const(char)** argv)
         return result;
     }
 
-    global.path = buildPath(global.params.imppath);
-    global.filePath = buildPath(global.params.fileImppath);
+    global.path = buildPath(params.imppath);
+    global.filePath = buildPath(params.fileImppath);
 
-    if (global.params.addMain)
+    if (params.addMain)
     {
         files.push(global.main_d); // a dummy name, we never actually look up this file
     }
@@ -417,7 +417,7 @@ private int tryMain(size_t argc, const(char)** argv)
     // Read files
     /* Start by "reading" the dummy main.d file
      */
-    if (global.params.addMain)
+    if (params.addMain)
     {
         bool added = false;
         foreach (m; modules)
@@ -458,12 +458,12 @@ private int tryMain(size_t argc, const(char)** argv)
     for (size_t filei = 0, modi = 0; filei < filecount; filei++, modi++)
     {
         Module m = modules[modi];
-        if (global.params.verbose)
+        if (params.verbose)
             message("parse     %s", m.toChars());
         if (!Module.rootModule)
             Module.rootModule = m;
         m.importedFrom = m; // m.isRoot() == true
-        if (!global.params.oneobj || modi == 0 || m.isDocFile)
+        if (!params.oneobj || modi == 0 || m.isDocFile)
             m.deleteObjFile();
         static if (ASYNCREAD)
         {
@@ -477,16 +477,16 @@ private int tryMain(size_t argc, const(char)** argv)
         if (m.isHdrFile)
         {
             // Remove m's object file from list of object files
-            for (size_t j = 0; j < global.params.objfiles.dim; j++)
+            for (size_t j = 0; j < params.objfiles.dim; j++)
             {
-                if (m.objfile.name.toChars() == global.params.objfiles[j])
+                if (m.objfile.name.toChars() == params.objfiles[j])
                 {
-                    global.params.objfiles.remove(j);
+                    params.objfiles.remove(j);
                     break;
                 }
             }
-            if (global.params.objfiles.dim == 0)
-                global.params.link = false;
+            if (params.objfiles.dim == 0)
+                params.link = false;
         }
         if (m.isDocFile)
         {
@@ -496,23 +496,23 @@ private int tryMain(size_t argc, const(char)** argv)
             modules.remove(modi);
             modi--;
             // Remove m's object file from list of object files
-            for (size_t j = 0; j < global.params.objfiles.dim; j++)
+            for (size_t j = 0; j < params.objfiles.dim; j++)
             {
-                if (m.objfile.name.toChars() == global.params.objfiles[j])
+                if (m.objfile.name.toChars() == params.objfiles[j])
                 {
-                    global.params.objfiles.remove(j);
+                    params.objfiles.remove(j);
                     break;
                 }
             }
-            if (global.params.objfiles.dim == 0)
-                global.params.link = false;
+            if (params.objfiles.dim == 0)
+                params.link = false;
         }
     }
     static if (ASYNCREAD)
     {
         AsyncRead.dispose(aw);
     }
-    if (anydocfiles && modules.dim && (global.params.oneobj || global.params.objname))
+    if (anydocfiles && modules.dim && (params.oneobj || params.objname))
     {
         error(Loc.initial, "conflicting Ddoc and obj generation options");
         fatal();
@@ -520,7 +520,7 @@ private int tryMain(size_t argc, const(char)** argv)
     if (global.errors)
         fatal();
 
-    if (global.params.doHdrGeneration)
+    if (params.doHdrGeneration)
     {
         /* Generate 'header' import files.
          * Since 'header' import files must be independent of command
@@ -531,7 +531,7 @@ private int tryMain(size_t argc, const(char)** argv)
         {
             if (m.isHdrFile)
                 continue;
-            if (global.params.verbose)
+            if (params.verbose)
                 message("import    %s", m.toChars());
             genhdrfile(m);
         }
@@ -542,7 +542,7 @@ private int tryMain(size_t argc, const(char)** argv)
     // load all unconditional imports for better symbol resolving
     foreach (m; modules)
     {
-        if (global.params.verbose)
+        if (params.verbose)
             message("importall %s", m.toChars());
         m.importAll(null);
     }
@@ -554,7 +554,7 @@ private int tryMain(size_t argc, const(char)** argv)
     // Do semantic analysis
     foreach (m; modules)
     {
-        if (global.params.verbose)
+        if (params.verbose)
             message("semantic  %s", m.toChars());
         m.dsymbolSemantic(null);
     }
@@ -575,7 +575,7 @@ private int tryMain(size_t argc, const(char)** argv)
     // Do pass 2 semantic analysis
     foreach (m; modules)
     {
-        if (global.params.verbose)
+        if (params.verbose)
             message("semantic2 %s", m.toChars());
         m.semantic2(null);
     }
@@ -586,7 +586,7 @@ private int tryMain(size_t argc, const(char)** argv)
     // Do pass 3 semantic analysis
     foreach (m; modules)
     {
-        if (global.params.verbose)
+        if (params.verbose)
             message("semantic3 %s", m.toChars());
         m.semantic3(null);
     }
@@ -598,7 +598,7 @@ private int tryMain(size_t argc, const(char)** argv)
         {
             auto m = compiledImports[i];
             assert(m.isRoot);
-            if (global.params.verbose)
+            if (params.verbose)
                 message("semantic3 %s", m.toChars());
             m.semantic3(null);
             modules.push(m);
@@ -609,11 +609,11 @@ private int tryMain(size_t argc, const(char)** argv)
         fatal();
 
     // Scan for functions to inline
-    if (global.params.useInline)
+    if (params.useInline)
     {
         foreach (m; modules)
         {
-            if (global.params.verbose)
+            if (params.verbose)
                 message("inline scan %s", m.toChars());
             inlineScanModule(m);
         }
@@ -624,15 +624,15 @@ private int tryMain(size_t argc, const(char)** argv)
 
     // inlineScan incrementally run semantic3 of each expanded functions.
     // So deps file generation should be moved after the inlinig stage.
-    if (global.params.moduleDeps)
+    if (params.moduleDeps)
     {
         foreach (i; 1 .. modules[0].aimports.dim)
             semantic3OnDependencies(modules[0].aimports[i]);
 
-        OutBuffer* ob = global.params.moduleDeps;
-        if (global.params.moduleDepsFile)
+        OutBuffer* ob = params.moduleDeps;
+        if (params.moduleDepsFile)
         {
-            auto deps = File(global.params.moduleDepsFile);
+            auto deps = File(params.moduleDepsFile);
             deps.setbuffer(cast(void*)ob.data, ob.offset);
             writeFile(Loc.initial, &deps);
         }
@@ -643,32 +643,32 @@ private int tryMain(size_t argc, const(char)** argv)
     printCtfePerformanceStats();
 
     Library library = null;
-    if (global.params.lib)
+    if (params.lib)
     {
-        if (global.params.objfiles.dim == 0)
+        if (params.objfiles.dim == 0)
         {
             error(Loc.initial, "no input files");
             return EXIT_FAILURE;
         }
         library = Library.factory();
-        library.setFilename(global.params.objdir, global.params.libname);
+        library.setFilename(params.objdir, params.libname);
         // Add input object and input library files to output library
         foreach (p; libmodules)
             library.addObject(p, null);
     }
     // Generate output files
-    if (global.params.doJsonGeneration)
+    if (params.doJsonGeneration)
     {
         generateJson(&modules);
     }
-    if (!global.errors && global.params.doDocComments)
+    if (!global.errors && params.doDocComments)
     {
         foreach (m; modules)
         {
             gendocfile(m);
         }
     }
-    if (global.params.vcg_ast)
+    if (params.vcg_ast)
     {
         import dmd.hdrgen;
         foreach (mod; modules)
@@ -685,10 +685,10 @@ private int tryMain(size_t argc, const(char)** argv)
             cgFile.write();
         }
     }
-    if (!global.params.obj)
+    if (!params.obj)
     {
     }
-    else if (global.params.oneobj)
+    else if (params.oneobj)
     {
         Module firstm;    // first module we generate code for
         foreach (m; modules)
@@ -700,7 +700,7 @@ private int tryMain(size_t argc, const(char)** argv)
                 firstm = m;
                 obj_start(cast(char*)m.srcfile.toChars());
             }
-            if (global.params.verbose)
+            if (params.verbose)
                 message("code      %s", m.toChars());
             genObjFile(m, false);
             if (entrypoint && m == rootHasMain)
@@ -717,34 +717,34 @@ private int tryMain(size_t argc, const(char)** argv)
         {
             if (m.isHdrFile)
                 continue;
-            if (global.params.verbose)
+            if (params.verbose)
                 message("code      %s", m.toChars());
             obj_start(m.srcfile.toChars());
-            genObjFile(m, global.params.multiobj);
+            genObjFile(m, params.multiobj);
             if (entrypoint && m == rootHasMain)
-                genObjFile(entrypoint, global.params.multiobj);
+                genObjFile(entrypoint, params.multiobj);
             obj_end(library, m.objfile);
             obj_write_deferred(library);
-            if (global.errors && !global.params.lib)
+            if (global.errors && !params.lib)
                 m.deleteObjFile();
         }
     }
-    if (global.params.lib && !global.errors)
+    if (params.lib && !global.errors)
         library.write();
     backend_term();
     if (global.errors)
         fatal();
     int status = EXIT_SUCCESS;
-    if (!global.params.objfiles.dim)
+    if (!params.objfiles.dim)
     {
-        if (global.params.link)
+        if (params.link)
             error(Loc.initial, "no object files to link");
     }
     else
     {
-        if (global.params.link)
+        if (params.link)
             status = runLINK();
-        if (global.params.run)
+        if (params.run)
         {
             if (!status)
             {
@@ -754,10 +754,10 @@ private int tryMain(size_t argc, const(char)** argv)
                 foreach (m; modules)
                 {
                     m.deleteObjFile();
-                    if (global.params.oneobj)
+                    if (params.oneobj)
                         break;
                 }
-                remove(global.params.exefile);
+                remove(params.exefile);
             }
         }
     }
@@ -855,7 +855,7 @@ int main()
     scope(failure) stderr.printInternalFailure;
 
     auto args = Runtime.cArgs();
-    return tryMain(args.argc, cast(const(char)**)args.argv);
+    return tryMain(args.argc, cast(const(char)**)args.argv, global.params);
 }
 
 
