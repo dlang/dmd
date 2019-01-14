@@ -140,6 +140,10 @@ string invertCompToken(string comp)
             return "!is";
         case "!is":
             return "is";
+        case "in":
+            return "!in";
+        case "!in":
+            return "in";
         default:
             assert(0, "Invalid comparison operator: " ~ comp);
     }
