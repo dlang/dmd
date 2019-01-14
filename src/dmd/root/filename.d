@@ -15,11 +15,6 @@ module dmd.root.filename;
 import core.stdc.ctype;
 import core.stdc.errno;
 import core.stdc.string;
-import core.sys.posix.stdlib;
-import core.sys.posix.sys.stat;
-import core.sys.windows.winbase;
-import core.sys.windows.windef;
-import core.sys.windows.winnls;
 import dmd.root.array;
 import dmd.root.file;
 import dmd.root.outbuffer;
@@ -28,14 +23,29 @@ import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.utils;
 
-nothrow
+version (Posix)
 {
-version (Windows) extern (Windows) DWORD GetFullPathNameW(LPCWSTR, DWORD, LPWSTR, LPWSTR*) @nogc;
-version (Windows) extern (Windows) void SetLastError(DWORD) @nogc;
-version (Windows) extern (C) char* getcwd(char* buffer, size_t maxlen);
-version (Posix) extern (C) char* canonicalize_file_name(const char*);
-version (Posix) import core.sys.posix.unistd : getcwd;
+    import core.sys.posix.stdlib;
+    import core.sys.posix.sys.stat;
+    import core.sys.posix.unistd : getcwd;
 }
+
+version (Windows)
+{
+    import core.sys.windows.winbase;
+    import core.sys.windows.windef;
+    import core.sys.windows.winnls;
+
+    extern (Windows) DWORD GetFullPathNameW(LPCWSTR, DWORD, LPWSTR, LPWSTR*) nothrow @nogc;
+    extern (Windows) void SetLastError(DWORD) nothrow @nogc;
+    extern (C) char* getcwd(char* buffer, size_t maxlen) nothrow;
+}
+
+version (CRuntime_Glibc)
+{
+    extern (C) char* canonicalize_file_name(const char*) nothrow;
+}
+
 alias Strings = Array!(const(char)*);
 alias Files = Array!(File*);
 
@@ -856,8 +866,45 @@ nothrow:
     {
         version (Posix)
         {
-            // NULL destination buffer is allowed and preferred
-            return name.toCStringThen!((n) => realpath(n.ptr, null)).toDString;
+            import core.stdc.limits;      // PATH_MAX
+            import core.sys.posix.unistd; // _PC_PATH_MAX
+
+            // Have realpath(), passing a NULL destination pointer may return an
+            // internally malloc'd buffer, however it is implementation defined
+            // as to what happens, so cannot rely on it.
+            static if (__traits(compiles, PATH_MAX))
+            {
+                // Have compile time limit on filesystem path, use it with realpath.
+                char[PATH_MAX] buf = void;
+                auto path = name.toCStringThen!((n) => realpath(n.ptr, buf.ptr));
+                if (path !is null)
+                    return mem.xstrdup(path).toDString;
+            }
+            else static if (__traits(compiles, canonicalize_file_name))
+            {
+                // Have canonicalize_file_name, which malloc's memory.
+                auto path = name.toCStringThen!((n) => canonicalize_file_name(n.ptr));
+                if (path !is null)
+                    return path.toDString;
+            }
+            else static if (__traits(compiles, _PC_PATH_MAX))
+            {
+                // Panic! Query the OS for the buffer limit.
+                auto path_max = pathconf("/", _PC_PATH_MAX);
+                if (path_max > 0)
+                {
+                    char *buf = cast(char*)mem.xmalloc(path_max);
+                    scope(exit) mem.xfree(buf);
+                    auto path = name.toCStringThen!((n) => realpath(n.ptr, buf));
+                    if (path !is null)
+                        return mem.xstrdup(path).toDString;
+                }
+            }
+            // Give up trying to support this platform, just duplicate the filename
+            // unless there is nothing to copy from.
+            if (!name.length)
+                return null;
+            return mem.xstrdup(name.ptr)[0 .. name.length];
         }
         else version (Windows)
         {
@@ -1078,10 +1125,10 @@ version (Posix)
     */
     auto absPathThen(alias F)(const(char)[] fileName)
     {
-        import core.sys.posix.stdlib: realpath, free;
-        char* absPath = fileName.toCStringThen!((fn) => realpath(&fn[0], null /* realpath allocates */));
-        scope(exit) free(absPath);
-        return F(absPath.toDString());
+        import core.sys.posix.stdlib: free;
+        auto absPath = FileName.canonicalName(fileName);
+        scope(exit) free(cast(void*)absPath.ptr);
+        return F(cast(char[])absPath);
     }
 }
 else
