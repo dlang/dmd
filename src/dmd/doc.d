@@ -214,7 +214,7 @@ private final class ParamSection : Section
             {
                 // Output existing param
             L1:
-                //printf("param '%.*s' = '%.*s'\n", namelen, namestart, textlen, textstart);
+                //printf("param '%.*s' = '%.*s'\n", cast(int)namelen, namestart, cast(int)textlen, textstart);
                 ++paramcount;
                 HdrGenState hgs;
                 buf.writestring("$(DDOC_PARAM_ROW ");
@@ -247,7 +247,7 @@ private final class ParamSection : Section
                             }
                             else if (!fparam)
                             {
-                                warning(s.loc, "Ddoc: function declaration has no parameter '%.*s'", namelen, namestart);
+                                warning(s.loc, "Ddoc: function declaration has no parameter '%.*s'", cast(int)namelen, namestart);
                             }
                             buf.write(namestart, namelen);
                         }
@@ -386,7 +386,7 @@ extern(C++) void gendocfile(Module m)
             auto file = File(global.params.ddocfiles[i].toDString());
             readFile(m.loc, &file);
             // BUG: convert file contents to UTF-8 before use
-            //printf("file: '%.*s'\n", file.len, file.buffer);
+            //printf("file: '%.*s'\n", cast(int)file.len, file.buffer);
             mbuf.write(file.buffer, file.len);
         }
     }
@@ -444,7 +444,7 @@ extern(C++) void gendocfile(Module m)
         dc.writeSections(sc, &a, &buf);
         emitMemberComments(m, &buf, sc);
     }
-    //printf("BODY= '%.*s'\n", buf.offset, buf.data);
+    //printf("BODY= '%.*s'\n", cast(int)buf.offset, buf.data);
     Macro.define(&m.macrotable, "BODY", buf.peekSlice());
     OutBuffer buf2;
     buf2.writestring("$(DDOC)");
@@ -960,7 +960,7 @@ private void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                 }
                 buf.writestring(ddoc_decl_dd_e);
                 buf.writeByte(')');
-                //printf("buf.2 = [[%.*s]]\n", buf.offset - o0, buf.data + o0);
+                //printf("buf.2 = [[%.*s]]\n", cast(int)(buf.offset - o0), buf.data + o0);
             }
             if (s)
             {
@@ -1548,7 +1548,7 @@ struct DocComment
             {
                 // Output existing macro
             L1:
-                //printf("macro '%.*s' = '%.*s'\n", namelen, namestart, textlen, textstart);
+                //printf("macro '%.*s' = '%.*s'\n", cast(int)namelen, namestart, cast(int)textlen, textstart);
                 if (iequals("ESCAPES", namestart[0 .. namelen]))
                     parseEscapes(pescapetable, textstart, textlen);
                 else
@@ -1596,7 +1596,7 @@ struct DocComment
             memset(escapetable, 0, Escape.sizeof);
             *pescapetable = escapetable;
         }
-        //printf("parseEscapes('%.*s') pescapetable = %p\n", textlen, textstart, pescapetable);
+        //printf("parseEscapes('%.*s') pescapetable = %p\n", cast(int)textlen, textstart, pescapetable);
         const(char)* p = textstart;
         const(char)* pend = p + textlen;
         while (1)
@@ -1752,7 +1752,7 @@ struct DocComment
                 s._body = pstart;
                 s.bodylen = pend - pstart;
                 s.nooutput = 0;
-                //printf("Section: '%.*s' = '%.*s'\n", s.namelen, s.name, s.bodylen, s.body);
+                //printf("Section: '%.*s' = '%.*s'\n", cast(int)s.namelen, s.name, cast(int)s.bodylen, s.body);
                 sections.push(s);
                 if (!summary && !namelen)
                     summary = s;
@@ -1790,7 +1790,7 @@ struct DocComment
             Section sec = sections[i];
             if (sec.nooutput)
                 continue;
-            //printf("Section: '%.*s' = '%.*s'\n", sec.namelen, sec.name, sec.bodylen, sec.body);
+            //printf("Section: '%.*s' = '%.*s'\n", cast(int)sec.namelen, sec.name, cast(int)sec.bodylen, sec.body);
             if (!sec.namelen && i == 0)
             {
                 buf.writestring("$(DDOC_SUMMARY ");
@@ -2154,7 +2154,7 @@ private void endMarkdownHeading(OutBuffer* buf, size_t iStart, ref size_t iEnd, 
     if (global.params.vmarkdown)
     {
         const s = buf.peekSlice()[iStart..iEnd];
-        message(loc, "Ddoc: added heading '%.*s'", s.length, s.ptr);
+        message(loc, "Ddoc: added heading '%.*s'", cast(int)s.length, s.ptr);
     }
 
     char[5] heading = "$(H0 ";
@@ -2201,7 +2201,7 @@ private size_t replaceMarkdownEmphasis(OutBuffer* buf, const ref Loc loc, ref Ma
         if (global.params.vmarkdown)
         {
             const s = buf.peekSlice()[iStart + count..iEnd];
-            message(loc, "Ddoc: emphasized text '%.*s'", s.length, s.ptr);
+            message(loc, "Ddoc: emphasized text '%.*s'", cast(int)s.length, s.ptr);
         }
 
         buf.remove(iStart, count);
@@ -2579,7 +2579,7 @@ private struct MarkdownList
             while (iEnd < buf.offset && buf.data[iEnd] != '\r' && buf.data[iEnd] != '\n')
                 ++iEnd;
             const s = buf.peekSlice()[iStart..iEnd];
-            message(loc, "Ddoc: starting list item '%.*s'", s.length, s.ptr);
+            message(loc, "Ddoc: starting list item '%.*s'", cast(int)s.length, s.ptr);
         }
 
         return true;
@@ -3408,7 +3408,7 @@ private void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offse
     scope Lexer lex = new Lexer(null, cast(char*)buf.data, 0, buf.offset - 1, 0, 1);
     OutBuffer res;
     const(char)* lastp = cast(char*)buf.data;
-    //printf("highlightCode2('%.*s')\n", buf.offset - 1, buf.data);
+    //printf("highlightCode2('%.*s')\n", cast(int)(buf.offset - 1), buf.data);
     res.reserve(buf.offset);
     while (1)
     {

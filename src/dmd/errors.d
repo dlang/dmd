@@ -249,7 +249,7 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
             auto line = fllines.lines[loc.linnum - 1];
             if (loc.charnum < line.length)
             {
-                fprintf(stderr, "%.*s\n", line.length, line.ptr);
+                fprintf(stderr, "%.*s\n", cast(int)line.length, line.ptr);
                 foreach (_; 1 .. loc.charnum)
                     fputc(' ', stderr);
 
@@ -446,7 +446,7 @@ extern (C++) void halt()
  */
 private void colorSyntaxHighlight(OutBuffer* buf)
 {
-    //printf("colorSyntaxHighlight('%.*s')\n", buf.offset, buf.data);
+    //printf("colorSyntaxHighlight('%.*s')\n", cast(int)buf.offset, buf.data);
     bool inBacktick = false;
     size_t iCodeStart = 0;
     size_t offset = 0;
@@ -521,7 +521,7 @@ private void colorHighlightCode(OutBuffer* buf)
     scope Lexer lex = new Lexer(null, cast(char*)buf.data, 0, buf.offset - 1, 0, 1);
     OutBuffer res;
     const(char)* lastp = cast(char*)buf.data;
-    //printf("colorHighlightCode('%.*s')\n", buf.offset - 1, buf.data);
+    //printf("colorHighlightCode('%.*s')\n", cast(int)(buf.offset - 1), buf.data);
     res.reserve(buf.offset);
     res.writeByte(HIGHLIGHT.Escape);
     res.writeByte(HIGHLIGHT.Other);
@@ -566,7 +566,7 @@ private void colorHighlightCode(OutBuffer* buf)
     }
     res.writeByte(HIGHLIGHT.Escape);
     res.writeByte(HIGHLIGHT.Default);
-    //printf("res = '%.*s'\n", buf.offset, buf.data);
+    //printf("res = '%.*s'\n", cast(int)buf.offset, buf.data);
     buf.setsize(0);
     buf.write(&res);
     global.endGagging(gaggedErrorsSave);

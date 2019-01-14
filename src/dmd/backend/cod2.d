@@ -5105,7 +5105,7 @@ void cderr(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     //printf("op = %d, %d\n", e.Eoper, OPstring);
     //printf("string = %p, len = %d\n", e.EV.ss.Vstring, e.EV.ss.Vstrlen);
-    //printf("string = '%.*s'\n", e.EV.ss.Vstrlen, e.EV.ss.Vstring);
+    //printf("string = '%.*s'\n", cast(int)e.EV.ss.Vstrlen, e.EV.ss.Vstring);
     assert(0);
 }
 

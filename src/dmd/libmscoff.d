@@ -152,7 +152,7 @@ final class LibMSCoff : Library
                     return corrupt(__LINE__);
                 if (offset + size > buflen)
                     return corrupt(__LINE__);
-                //printf("header.object_name = '%.*s'\n", MSCOFF_OBJECT_NAME_SIZE, header.object_name);
+                //printf("header.object_name = '%.*s'\n", cast(int)MSCOFF_OBJECT_NAME_SIZE, header.object_name);
                 if (memcmp(cast(char*)header.object_name, cast(char*)"/               ", MSCOFF_OBJECT_NAME_SIZE) == 0)
                 {
                     if (!flm)

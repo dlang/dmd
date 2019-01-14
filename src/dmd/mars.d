@@ -108,7 +108,7 @@ Where:
 
 <option>:
   @<cmdfile>       read arguments from cmdfile
-%.*s", FileName.canonicalName(global.inifilename), help.length, &help[0]);
+%.*s", FileName.canonicalName(global.inifilename), cast(int)help.length, &help[0]);
 }
 
 /**
@@ -249,7 +249,7 @@ private int tryMain(size_t argc, const(char)** argv)
     {
         import dmd.cli : CLIUsage;
         auto help = CLIUsage.mcpu;
-        printf("%.*s", help.length, &help[0]);
+        printf("%.*s", cast(int)help.length, &help[0]);
         return EXIT_SUCCESS;
     }
 
@@ -257,7 +257,7 @@ private int tryMain(size_t argc, const(char)** argv)
     {
         import dmd.cli : CLIUsage;
         auto help = CLIUsage.transitionUsage;
-        printf("%.*s", help.length, &help[0]);
+        printf("%.*s", cast(int)help.length, &help[0]);
         return EXIT_SUCCESS;
     }
 
@@ -1195,7 +1195,7 @@ private void printPredefinedVersions(FILE* stream)
 
 extern(C) void printGlobalConfigs(FILE* stream)
 {
-    stream.fprintf("binary    %.*s\n", global.params.argv0.length, global.params.argv0.ptr);
+    stream.fprintf("binary    %.*s\n", cast(int)global.params.argv0.length, global.params.argv0.ptr);
     stream.fprintf("version   %s\n", global._version);
     stream.fprintf("config    %s\n", global.inifilename ? global.inifilename : "(none)");
     // Print DFLAGS environment variable
@@ -1225,7 +1225,7 @@ extern(C) void printGlobalConfigs(FILE* stream)
         }
 
         auto res = buf.peekSlice() ? buf.peekSlice()[0 .. $ - 1] : "(none)";
-        stream.fprintf("DFLAGS    %.*s\n", res.length, res.ptr);
+        stream.fprintf("DFLAGS    %.*s\n", cast(int)res.length, res.ptr);
     }
 }
 
