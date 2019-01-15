@@ -156,6 +156,9 @@ extern (C) targ_size_t _align(targ_size_t size, targ_size_t offset)
         case 2:
         case 4:
         case 8:
+        case 16:
+        case 32:
+        case 64:
             offset = (offset + size - 1) & ~(size - 1);
             break;
         default:
