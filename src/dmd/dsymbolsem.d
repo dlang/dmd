@@ -338,12 +338,6 @@ private FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
     return xpostblit;
 }
 
-// Concatenates 2 MODs(ubyte) into one ModBits(ushort)
-private ModBits createModKey(MOD mod1, MOD mod2)
-{
-    return ((mod1 << 8) | mod2);
-}
-
 /* Generates a copy constructor declaration with the specified storage
    class for the parameter and the function : this(ref paramSTC S p) funcStc;
 */
@@ -398,7 +392,8 @@ private CtorDeclaration buildCopyCtor(StructDeclaration sd, Scope* sc)
     Dsymbol s = sd.search(sd.loc, Id.copyCtor);
     if (s)
         return s.isCopyCtorDeclaration();
-    bool[ModBits] copyCtorTable;      // hashtable used to store what copy constructors should be generated
+
+    bool fieldCpCtor;
     // see if any struct members define a copy constructor
     foreach (v; sd.fields)
     {
@@ -412,54 +407,39 @@ private CtorDeclaration buildCopyCtor(StructDeclaration sd, Scope* sc)
         StructDeclaration sdv = (cast(TypeStruct)tv).sym;
         if (auto copyCtor = sdv.copyCtor)
         {
-            // store the type of the defined copy constructors for member v
-            overloadApply(copyCtor, (Dsymbol s)
-            {
-                auto ccd = s.isCopyCtorDeclaration();
-                assert(ccd);
-                TypeFunction tf = ccd.type.toTypeFunction();
-                Parameter param = Parameter.getNth(tf.parameterList, 0);
-                assert(param);
-                ModBits key = createModKey(param.type.mod, tf.mod);
-                if (key in sd.copyCtorTypes)        // we have a user defined copy constructor for this combination
-                    return 0;
-                copyCtorTable[key] = true;
-                return 0;
-            });
+            fieldCpCtor = true;
+            break;
         }
     }
 
     // if any field defines a copy constructor
-    if (copyCtorTable.length)
+    if (fieldCpCtor)
     {
         // generate the body that does memberwise initialization
+        const MOD paramMod = MODFlags.wild;
+        const MOD funcMod = MODFlags.wild;
+        auto ccd = generateCopyCtorDeclaration(sd, ModToStc(paramMod), ModToStc(funcMod));
+        //printf("generating for %s\n", ccd.type.toChars());
         auto copyCtorBody = generateCopyCtorBody(sd);
-        foreach (key; copyCtorTable.keys)
+        ccd.fbody = copyCtorBody.syntaxCopy();
+        sd.members.push(ccd);
+        ccd.addMember(sc, sd);
+        const errors = global.startGagging();
+        Scope* sc2 = sc.push();
+        sc2.stc = 0;
+        sc2.linkage = LINK.d;
+        ccd.dsymbolSemantic(sc2);
+        ccd.semantic2(sc2);
+        ccd.semantic3(sc2);
+        //printf("ccd semantic: %s\n", ccd.type.toChars());
+        sc2.pop();
+        if (global.endGagging(errors))
         {
-            const MOD paramMod = cast(MOD)(key >> 8);
-            const MOD funcMod = cast(MOD)key;
-            auto ccd = generateCopyCtorDeclaration(sd, ModToStc(paramMod), ModToStc(funcMod));
-            //printf("generating for %s\n", ccd.type.toChars());
-            ccd.fbody = copyCtorBody.syntaxCopy();
-            sd.members.push(ccd);
-            ccd.addMember(sc, sd);
-            const errors = global.startGagging();
-            Scope* sc2 = sc.push();
-            sc2.stc = 0;
-            sc2.linkage = LINK.d;
-            ccd.dsymbolSemantic(sc2);
-            ccd.semantic2(sc2);
-            ccd.semantic3(sc2);
-            //printf("ccd semantic: %s\n", ccd.type.toChars());
-            sc2.pop();
-            if (global.endGagging(errors))
-            {
-                ccd.storage_class |= STC.disable;
-                ccd.fbody = null;
-            }
-            if (!s)
-                s = ccd;
+            ccd.storage_class |= STC.disable;
+            ccd.fbody = null;
         }
+        if (!s)
+            s = ccd;
     }
 
     return s ? s.isCopyCtorDeclaration : null;
@@ -3907,11 +3887,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         cpCtor.fbody = ctd.fbody.syntaxCopy();
                         sd.members.push(cpCtor);
                         cpCtor.addMember(sc, sd);
-
-                        // store the source-destination type of the copy constructor;
-                        // this is needed when generating copy constructors for fields;
-                        ModBits key = createModKey(param.type.mod, tf.mod);
-                        sd.copyCtorTypes[key] = true;
                     }
                 }
             }

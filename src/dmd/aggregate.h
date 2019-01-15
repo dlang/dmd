@@ -165,7 +165,6 @@ public:
     FuncDeclaration *postblit;  // aggregate postblit
 
     CtorDeclaration *copyCtor;   // copy constructor
-    void *copyCtorTypes;             // hashtable of copy constructor types for this struct
 
     FuncDeclaration *xeq;       // TypeInfo_Struct.xopEquals
     FuncDeclaration *xcmp;      // TypeInfo_Struct.xopCmp

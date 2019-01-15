@@ -1321,7 +1321,21 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 ctor.fbody = new CompoundStatement(ctor.loc, s, ctor.fbody);
             }
         }
+
+        // copy constructors have the same body as their constructor
+        // counterpart, however semantic needs to be done separately
+        // because of context pointers. If there are any errors, then
+        // they will be spotted during the semantic analysis of the
+        // constructor body.
+        bool isCopyCtor = ctor.isCopyCtorDeclaration() !is null;
+        uint errors;
+        if (isCopyCtor)
+            errors = global.startGagging();
+
         visit(cast(FuncDeclaration)ctor);
+
+        if (isCopyCtor)
+            global.endGagging(errors);
     }
 
 
