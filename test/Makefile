@@ -116,7 +116,18 @@ DEBUG_FLAGS=$(PIC_FLAG) -g
 
 export DMD_TEST_COVERAGE=
 
-runnable_tests=$(wildcard runnable/*.d) $(wildcard runnable/*.sh)
+# List the tests that take longest to run first, so that parallel make
+# will test them sooner, because they are large, have many test
+# permutations, or typically are the last tests to finish.
+runnable_tests_long=runnable/test42.d \
+		    runnable/xtest46.d \
+		    runnable/test34.d \
+		    runnable/test23.d \
+		    runnable/hospital.d \
+		    runnable/testsignals.d \
+		    runnable/interpret.d
+
+runnable_tests=$(runnable_tests_long) $(wildcard runnable/*.d) $(wildcard runnable/*.sh)
 runnable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(runnable_tests)))
 
 compilable_tests=$(wildcard compilable/*.d) $(wildcard compilable/*.sh)
