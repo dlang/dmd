@@ -235,11 +235,16 @@ public:
 
     VarDeclarations *maybes;    // STCmaybescope variables that are assigned to this STCmaybescope variable
 
+private:
+    bool _isAnonymous;
+
+public:
     Dsymbol *syntaxCopy(Dsymbol *);
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     const char *kind() const;
     AggregateDeclaration *isThis();
     bool needThis();
+    bool isAnonymous();
     bool isExport() const;
     bool isImportedSymbol() const;
     bool isDataseg();
@@ -453,8 +458,8 @@ class FuncDeclaration : public Declaration
 public:
     struct HiddenParameters
     {
-        VarDeclaration* this_;
-        VarDeclaration* selector;
+        VarDeclaration *this_;
+        VarDeclaration *selector;
     };
 
     Types *fthrows;                     // Array of Type's of exceptions (not used)
@@ -478,7 +483,9 @@ public:
     DsymbolTable *localsymtab;
     VarDeclaration *vthis;              // 'this' parameter (member and nested)
     VarDeclaration *v_arguments;        // '_arguments' parameter
-    ObjcSelector* selector;             // Objective-C method selector (member function only)
+    ObjcSelector *selector;             // Objective-C method selector (member function only)
+    VarDeclaration *selectorParameter;  // Objective-C implicit selector parameter
+
     VarDeclaration *v_argptr;           // '_argptr' variable
     VarDeclarations *parameters;        // Array of VarDeclaration's for parameters
     DsymbolTable *labtab;               // statement label symbol table
