@@ -16,12 +16,10 @@
 class Identifier : public RootObject
 {
 private:
-    static Identifier* anonymous_;
     int value;
     DArray<const char> string;
 
 public:
-    static void initialize();
     static Identifier* anonymous();
     static Identifier* create(const char *string);
     bool equals(RootObject *o);
