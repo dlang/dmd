@@ -363,7 +363,7 @@ struct Target
      * Returns:
      *      true if the operation is supported or type is not a vector
      */
-    extern (C++) bool isVectorOpSupported(Type type, TOK op, Type t2 = null)
+    extern (C++) bool isVectorOpSupported(Type type, ubyte op, Type t2 = null)
     {
         import dmd.tokens;
 
@@ -427,7 +427,7 @@ struct Target
         default:
             // import std.stdio : stderr, writeln;
             // stderr.writeln(op);
-            assert(0, "unhandled op " ~ Token.toString(op));
+            assert(0, "unhandled op " ~ Token.toString(cast(TOK)op));
         }
         return supported;
     }

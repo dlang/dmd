@@ -241,6 +241,13 @@ void test_expression()
 
 /**********************************/
 
+void test_target()
+{
+    assert(target.isVectorOpSupported(Type::tint32, TOKpow));
+}
+
+/**********************************/
+
 int main(int argc, char **argv)
 {
     frontend_init();
@@ -248,6 +255,7 @@ int main(int argc, char **argv)
     test_visitors();
     test_semantic();
     test_expression();
+    test_target();
 
     frontend_term();
 
