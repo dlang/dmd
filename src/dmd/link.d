@@ -943,9 +943,8 @@ version (Windows)
         const(char)* UCRTSdkDir;
         const(char)* UCRTVersion;
         const(char)* VSInstallDir;
-        const(char)* VisualStudioVersion;
         const(char)* VCInstallDir;
-        const(char)* VCToolsInstallDir; // used by VS 2017
+        const(char)* VCToolsInstallDir; // used by VS 2017+
 
         /**
          * fill member variables from environment or registry
@@ -1140,33 +1139,25 @@ version (Windows)
         }
 
         /**
-         * detect VSInstallDir and VisualStudioVersion from environment or registry
+         * detect VSInstallDir from environment or registry
          */
         void detectVSInstallDir()
         {
             if (VSInstallDir is null)
                 VSInstallDir = getenv("VSINSTALLDIR");
 
-            if (VisualStudioVersion is null)
-                VisualStudioVersion = getenv("VisualStudioVersion");
+            if (VSInstallDir is null)
+                VSInstallDir = detectVSInstallDirViaCOM();
 
             if (VSInstallDir is null)
-            {
-                // VS2017
-                VSInstallDir = GetRegistryString(r"Microsoft\VisualStudio\SxS\VS7", "15.0");
-                if (VSInstallDir)
-                    VisualStudioVersion = "15.0";
-            }
+                VSInstallDir = GetRegistryString(r"Microsoft\VisualStudio\SxS\VS7", "15.0"); // VS2017
 
             if (VSInstallDir is null)
                 foreach (const(char)* ver; ["14.0".ptr, "12.0", "11.0", "10.0", "9.0"])
                 {
                     VSInstallDir = GetRegistryString(FileName.combine(r"Microsoft\VisualStudio", ver), "InstallDir");
                     if (VSInstallDir)
-                    {
-                        VisualStudioVersion = ver;
                         break;
-                    }
                 }
         }
 
@@ -1483,5 +1474,87 @@ version (Windows)
                 return bIsWow64 != 0;
             }
         }
+    }
+
+    ///////////////////////////////////////////////////////////////////////
+    // COM interfaces to find VS2017+ installations
+    import core.sys.windows.com;
+    import core.sys.windows.wtypes : BSTR;
+    import core.sys.windows.winnls : WideCharToMultiByte, CP_UTF8;
+    import core.sys.windows.oleauto : SysFreeString;
+
+    pragma(lib, "ole32.lib");
+    pragma(lib, "oleaut32.lib");
+
+    interface ISetupInstance : IUnknown
+    {
+        // static const GUID iid = uuid("B41463C3-8866-43B5-BC33-2B0676F7F42E");
+        static const GUID iid = { 0xB41463C3, 0x8866, 0x43B5, [ 0xBC, 0x33, 0x2B, 0x06, 0x76, 0xF7, 0xF4, 0x2E ] };
+
+        int GetInstanceId(BSTR* pbstrInstanceId);
+        int GetInstallDate(LPFILETIME pInstallDate);
+        int GetInstallationName(BSTR* pbstrInstallationName);
+        int GetInstallationPath(BSTR* pbstrInstallationPath);
+        int GetInstallationVersion(BSTR* pbstrInstallationVersion);
+        int GetDisplayName(LCID lcid, BSTR* pbstrDisplayName);
+        int GetDescription(LCID lcid, BSTR* pbstrDescription);
+        int ResolvePath(LPCOLESTR pwszRelativePath, BSTR* pbstrAbsolutePath);
+    }
+
+    interface IEnumSetupInstances : IUnknown
+    {
+        // static const GUID iid = uuid("6380BCFF-41D3-4B2E-8B2E-BF8A6810C848");
+
+        int Next(ULONG celt, ISetupInstance* rgelt, ULONG* pceltFetched);
+        int Skip(ULONG celt);
+        int Reset();
+        int Clone(IEnumSetupInstances* ppenum);
+    }
+
+    interface ISetupConfiguration : IUnknown
+    {
+        // static const GUID iid = uuid("42843719-DB4C-46C2-8E7C-64F1816EFD5B");
+        static const GUID iid = { 0x42843719, 0xDB4C, 0x46C2, [ 0x8E, 0x7C, 0x64, 0xF1, 0x81, 0x6E, 0xFD, 0x5B ] };
+
+        int EnumInstances(IEnumSetupInstances* ppEnumInstances) ;
+        int GetInstanceForCurrentProcess(ISetupInstance* ppInstance);
+        int GetInstanceForPath(LPCWSTR wzPath, ISetupInstance* ppInstance);
+    }
+
+    const GUID iid_SetupConfiguration = { 0x177F0C4A, 0x1CD3, 0x4DE7, [ 0xA3, 0x2C, 0x71, 0xDB, 0xBB, 0x9F, 0xA3, 0x6D ] };
+
+    const(char)* detectVSInstallDirViaCOM()
+    {
+        CoInitialize(null);
+        scope(exit) CoUninitialize();
+
+        ISetupConfiguration setup;
+        IEnumSetupInstances instances;
+        ISetupInstance instance;
+        DWORD fetched;
+
+        HRESULT hr = CoCreateInstance(&iid_SetupConfiguration, null, CLSCTX_ALL, &ISetupConfiguration.iid, cast(void**) &setup);
+        if (hr != S_OK || !setup)
+            return null;
+        scope(exit) setup.Release();
+
+        if (setup.EnumInstances(&instances) != S_OK)
+            return null;
+        scope(exit) instances.Release();
+
+        while (instances.Next(1, &instance, &fetched) == S_OK && fetched)
+        {
+            BSTR bstrInstallDir;
+            if (instance.GetInstallationPath(&bstrInstallDir) != S_OK)
+                continue;
+
+            char[260] path;
+            int len = WideCharToMultiByte(CP_UTF8, 0, bstrInstallDir, -1, path.ptr, 260, null, null);
+            SysFreeString(bstrInstallDir);
+
+            if (len > 0)
+                return path[0..len-1].idup.ptr;
+        }
+        return null;
     }
 }
