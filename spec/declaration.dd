@@ -155,6 +155,7 @@ $(GNAME IdentifierList):
     $(GLINK_LEX Identifier) $(D .) $(I IdentifierList)
     $(GLINK2 template, TemplateInstance)
     $(GLINK2 template, TemplateInstance) $(D .) $(I IdentifierList)
+    $(GLINK_LEX Identifier) $(D [) $(GLINK2 expression, AssignExpression) $(D])
     $(GLINK_LEX Identifier) $(D [) $(GLINK2 expression, AssignExpression) $(D].) $(I IdentifierList)
 )
 
