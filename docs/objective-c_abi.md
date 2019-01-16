@@ -111,6 +111,42 @@ struct Foo foo;
 objc_msgSend_stret(&foo, receiver, selector);
 ```
 
+### Super Calls
+
+Making a super call is similar as making a regular call to an instance method.
+Instead of the `objc_msgSend` family of functions, the `objc_msgSendSuper`
+family is used. There are two functions available:
+
+* `objc_msgSendSuper_stret` - Used for structs too large to be returned in
+registries
+* `objc_msgSendSuper` - For everything else
+
+The signature of `objc_msgSendSuper` is:
+
+```c
+id objc_msgSend(struct objc_super* super, SEL op, ...);
+```
+
+And for `objc_msgSendSuper_stret`:
+
+```c
+id objc_msgSend(void* stretAddr, struct objc_super* super, SEL op, ...);
+```
+
+The `objc_super` struct looks as follows:
+
+```c
+struct objc_super
+{
+    id receiver;
+    Class super_class;
+}
+```
+
+Where `receiver` is the `this` pointer and `super_class` is the super class to
+call. `super_class` should be a
+[`L_OBJC_CLASSLIST_REFERENCES_$_`](#l_objc_classlist_references__) symbol.
+
 ### Metaclass
 
 All classes in Objective-C are themselves objects. A class object is an

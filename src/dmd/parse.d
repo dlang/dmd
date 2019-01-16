@@ -49,6 +49,7 @@ __gshared PREC[TOK.max_] precedence =
 [
     TOK.type : PREC.expr,
     TOK.error : PREC.expr,
+    TOK.objcClassReference : PREC.expr, // Objective-C class reference, same as TOK.type
 
     TOK.typeof_ : PREC.primary,
     TOK.mixin_ : PREC.primary,
