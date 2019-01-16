@@ -3883,7 +3883,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     if (param.storageClass & STC.ref_ && param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
                     {
                         //printf("copy constructor\n");
-                        auto cpCtor = new CtorDeclaration(ctd.loc, ctd.endloc, ctd.storage_class, ctd.type, true);
+                        auto cpCtorTf = cast(TypeFunction)tf.syntaxCopy();
+                        cpCtorTf.linkage = LINK.d;
+                        auto cpCtor = new CtorDeclaration(ctd.loc, ctd.endloc, ctd.storage_class, cpCtorTf, true);
+                        cpCtor.generated = true;
                         cpCtor.fbody = ctd.fbody.syntaxCopy();
                         sd.members.push(cpCtor);
                         cpCtor.addMember(sc, sd);

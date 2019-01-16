@@ -124,8 +124,6 @@ int fun()
 
 void test4()
 {
-    import std.stdio : writeln;
-    writeln(fun());
     assert(fun() == 6);
 }
 
