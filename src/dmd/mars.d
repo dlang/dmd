@@ -124,7 +124,7 @@ Where:
  * Returns:
  *   Application return code
  */
-private int tryMain(size_t argc, const(char)** argv)
+private int tryMain(size_t argc, const(char)** argv, ref Param params)
 {
     Strings files;
     Strings libmodules;
@@ -154,13 +154,13 @@ private int tryMain(size_t argc, const(char)** argv)
     //for (size_t i = 0; i < arguments.dim; ++i) printf("arguments[%d] = '%s'\n", i, arguments[i]);
     files.reserve(arguments.dim - 1);
     // Set default values
-    global.params.argv0 = arguments[0].toDString;
+    params.argv0 = arguments[0].toDString;
 
     // Temporary: Use 32 bits OMF as the default on Windows, for config parsing
     static if (TARGET.Windows)
     {
-        global.params.is64bit = false;
-        global.params.mscoff = false;
+        params.is64bit = false;
+        params.mscoff = false;
     }
 
     global.inifilename = parse_conf_arg(&arguments);
@@ -174,11 +174,11 @@ private int tryMain(size_t argc, const(char)** argv)
     {
         version (Windows)
         {
-            global.inifilename = findConfFile(global.params.argv0, "sc.ini").ptr;
+            global.inifilename = findConfFile(params.argv0, "sc.ini").ptr;
         }
         else version (Posix)
         {
-            global.inifilename = findConfFile(global.params.argv0, "dmd.conf").ptr;
+            global.inifilename = findConfFile(params.argv0, "dmd.conf").ptr;
         }
         else
         {
@@ -200,7 +200,7 @@ private int tryMain(size_t argc, const(char)** argv)
     sections.push("Environment");
     parseConfFile(&environment, global.inifilename, inifilepath, inifile.len, inifile.buffer, &sections);
 
-    const(char)* arch = global.params.is64bit ? "64" : "32"; // use default
+    const(char)* arch = params.is64bit ? "64" : "32"; // use default
     arch = parse_arch_arg(&arguments, arch);
 
     // parse architecture from DFLAGS read from [Environment] section
@@ -226,42 +226,67 @@ private int tryMain(size_t argc, const(char)** argv)
     updateRealEnvironment(&environment);
     environment.reset(1); // don't need environment cache any more
 
-    if (parseCommandLine(arguments, argc, global.params, files))
+    if (parseCommandLine(arguments, argc, params, files))
     {
         Loc loc;
-        errorSupplemental(loc, "run 'dmd -man' to open browser on manual");
+        errorSupplemental(loc, "run `dmd` to print the compiler manual");
+        errorSupplemental(loc, "run `dmd -man` to open browser on manual");
         return EXIT_FAILURE;
     }
 
-    if (global.params.usage)
+    if (params.usage)
     {
         usage();
         return EXIT_SUCCESS;
     }
 
-    if (global.params.logo)
+    if (params.logo)
     {
         logo();
         return EXIT_SUCCESS;
     }
 
-    if (global.params.mcpuUsage)
+    /*
+    Prints a supplied usage text to the console and
+    returns the exit code for the help usage page.
+
+    Returns:
+        `EXIT_SUCCESS` if no errors occurred, `EXIT_FAILURE` otherwise
+    */
+    static int printHelpUsage(string help)
     {
-        import dmd.cli : CLIUsage;
-        auto help = CLIUsage.mcpu;
         printf("%.*s", cast(int)help.length, &help[0]);
-        return EXIT_SUCCESS;
+        return global.errors ? EXIT_FAILURE : EXIT_SUCCESS;
     }
 
-    if (global.params.transitionUsage)
-    {
-        import dmd.cli : CLIUsage;
-        auto help = CLIUsage.transitionUsage;
-        printf("%.*s", cast(int)help.length, &help[0]);
-        return EXIT_SUCCESS;
-    }
+    /*
+    Generates code to check for all `params` whether any usage page
+    has been requested.
+    If so, the generated code will print the help page of the flag
+    and return with an exit code.
 
-    if (global.params.manual)
+    Params:
+        params = parameters with `Usage` suffices in `params` for which
+        their truthness should be checked.
+
+    Returns: generated code for checking the usage pages of the provided `params`.
+    */
+    static string generateUsageChecks(string[] params)
+    {
+        string s;
+        foreach (n; params)
+        {
+            s ~= q{
+                if (params.}~n~q{Usage)
+                    return printHelpUsage(CLIUsage.}~n~q{Usage);
+            };
+        }
+        return s;
+    }
+    import dmd.cli : CLIUsage;
+    mixin(generateUsageChecks(["mcpu", "transition", "check", "checkAction", "externStd"]));
+
+    if (params.manual)
     {
         version (Windows)
         {
@@ -293,12 +318,12 @@ private int tryMain(size_t argc, const(char)** argv)
         return EXIT_SUCCESS;
     }
 
-    if (global.params.color)
+    if (params.color)
         global.console = Console.create(core.stdc.stdio.stderr);
 
-    setTarget(global.params);           // set target operating system
-    setTargetCPU(global.params);
-    if (global.params.is64bit != is64bit)
+    setTarget(params);           // set target operating system
+    setTargetCPU(params);
+    if (params.is64bit != is64bit)
         error(Loc.initial, "the architecture must not be changed in the %s section of %s", envsection.ptr, global.inifilename);
 
     if (global.errors)
@@ -307,7 +332,7 @@ private int tryMain(size_t argc, const(char)** argv)
     }
     if (files.dim == 0)
     {
-        if (global.params.jsonFieldFlags)
+        if (params.jsonFieldFlags)
         {
             generateJson(null);
             return EXIT_SUCCESS;
@@ -316,20 +341,20 @@ private int tryMain(size_t argc, const(char)** argv)
         return EXIT_FAILURE;
     }
 
-    reconcileCommands(global.params, files.dim);
+    reconcileCommands(params, files.dim);
 
     // Add in command line versions
-    if (global.params.versionids)
-        foreach (charz; *global.params.versionids)
+    if (params.versionids)
+        foreach (charz; *params.versionids)
             VersionCondition.addGlobalIdent(charz[0 .. strlen(charz)]);
-    if (global.params.debugids)
-        foreach (charz; *global.params.debugids)
+    if (params.debugids)
+        foreach (charz; *params.debugids)
             DebugCondition.addGlobalIdent(charz[0 .. strlen(charz)]);
 
-    setTarget(global.params);
+    setTarget(params);
 
     // Predefined version identifiers
-    addDefaultVersionIdentifiers(global.params);
+    addDefaultVersionIdentifiers(params);
 
     setDefaultLibrary();
 
@@ -337,7 +362,7 @@ private int tryMain(size_t argc, const(char)** argv)
     Type._init();
     Id.initialize();
     Module._init();
-    target._init(global.params);
+    target._init(params);
     Expression._init();
     Objc._init();
     builtin_init();
@@ -352,7 +377,7 @@ private int tryMain(size_t argc, const(char)** argv)
     import dmd.root.ctfloat : CTFloat;
     CTFloat.initialize();
 
-    if (global.params.verbose)
+    if (params.verbose)
     {
         stdout.printPredefinedVersions();
         stdout.printGlobalConfigs();
@@ -380,10 +405,10 @@ private int tryMain(size_t argc, const(char)** argv)
         return result;
     }
 
-    global.path = buildPath(global.params.imppath);
-    global.filePath = buildPath(global.params.fileImppath);
+    global.path = buildPath(params.imppath);
+    global.filePath = buildPath(params.fileImppath);
 
-    if (global.params.addMain)
+    if (params.addMain)
     {
         files.push(global.main_d); // a dummy name, we never actually look up this file
     }
@@ -392,7 +417,7 @@ private int tryMain(size_t argc, const(char)** argv)
     // Read files
     /* Start by "reading" the dummy main.d file
      */
-    if (global.params.addMain)
+    if (params.addMain)
     {
         bool added = false;
         foreach (m; modules)
@@ -433,12 +458,12 @@ private int tryMain(size_t argc, const(char)** argv)
     for (size_t filei = 0, modi = 0; filei < filecount; filei++, modi++)
     {
         Module m = modules[modi];
-        if (global.params.verbose)
+        if (params.verbose)
             message("parse     %s", m.toChars());
         if (!Module.rootModule)
             Module.rootModule = m;
         m.importedFrom = m; // m.isRoot() == true
-        if (!global.params.oneobj || modi == 0 || m.isDocFile)
+        if (!params.oneobj || modi == 0 || m.isDocFile)
             m.deleteObjFile();
         static if (ASYNCREAD)
         {
@@ -452,16 +477,16 @@ private int tryMain(size_t argc, const(char)** argv)
         if (m.isHdrFile)
         {
             // Remove m's object file from list of object files
-            for (size_t j = 0; j < global.params.objfiles.dim; j++)
+            for (size_t j = 0; j < params.objfiles.dim; j++)
             {
-                if (m.objfile.name.toChars() == global.params.objfiles[j])
+                if (m.objfile.name.toChars() == params.objfiles[j])
                 {
-                    global.params.objfiles.remove(j);
+                    params.objfiles.remove(j);
                     break;
                 }
             }
-            if (global.params.objfiles.dim == 0)
-                global.params.link = false;
+            if (params.objfiles.dim == 0)
+                params.link = false;
         }
         if (m.isDocFile)
         {
@@ -471,23 +496,23 @@ private int tryMain(size_t argc, const(char)** argv)
             modules.remove(modi);
             modi--;
             // Remove m's object file from list of object files
-            for (size_t j = 0; j < global.params.objfiles.dim; j++)
+            for (size_t j = 0; j < params.objfiles.dim; j++)
             {
-                if (m.objfile.name.toChars() == global.params.objfiles[j])
+                if (m.objfile.name.toChars() == params.objfiles[j])
                 {
-                    global.params.objfiles.remove(j);
+                    params.objfiles.remove(j);
                     break;
                 }
             }
-            if (global.params.objfiles.dim == 0)
-                global.params.link = false;
+            if (params.objfiles.dim == 0)
+                params.link = false;
         }
     }
     static if (ASYNCREAD)
     {
         AsyncRead.dispose(aw);
     }
-    if (anydocfiles && modules.dim && (global.params.oneobj || global.params.objname))
+    if (anydocfiles && modules.dim && (params.oneobj || params.objname))
     {
         error(Loc.initial, "conflicting Ddoc and obj generation options");
         fatal();
@@ -495,7 +520,7 @@ private int tryMain(size_t argc, const(char)** argv)
     if (global.errors)
         fatal();
 
-    if (global.params.doHdrGeneration)
+    if (params.doHdrGeneration)
     {
         /* Generate 'header' import files.
          * Since 'header' import files must be independent of command
@@ -506,7 +531,7 @@ private int tryMain(size_t argc, const(char)** argv)
         {
             if (m.isHdrFile)
                 continue;
-            if (global.params.verbose)
+            if (params.verbose)
                 message("import    %s", m.toChars());
             genhdrfile(m);
         }
@@ -517,7 +542,7 @@ private int tryMain(size_t argc, const(char)** argv)
     // load all unconditional imports for better symbol resolving
     foreach (m; modules)
     {
-        if (global.params.verbose)
+        if (params.verbose)
             message("importall %s", m.toChars());
         m.importAll(null);
     }
@@ -529,7 +554,7 @@ private int tryMain(size_t argc, const(char)** argv)
     // Do semantic analysis
     foreach (m; modules)
     {
-        if (global.params.verbose)
+        if (params.verbose)
             message("semantic  %s", m.toChars());
         m.dsymbolSemantic(null);
     }
@@ -550,7 +575,7 @@ private int tryMain(size_t argc, const(char)** argv)
     // Do pass 2 semantic analysis
     foreach (m; modules)
     {
-        if (global.params.verbose)
+        if (params.verbose)
             message("semantic2 %s", m.toChars());
         m.semantic2(null);
     }
@@ -561,7 +586,7 @@ private int tryMain(size_t argc, const(char)** argv)
     // Do pass 3 semantic analysis
     foreach (m; modules)
     {
-        if (global.params.verbose)
+        if (params.verbose)
             message("semantic3 %s", m.toChars());
         m.semantic3(null);
     }
@@ -573,7 +598,7 @@ private int tryMain(size_t argc, const(char)** argv)
         {
             auto m = compiledImports[i];
             assert(m.isRoot);
-            if (global.params.verbose)
+            if (params.verbose)
                 message("semantic3 %s", m.toChars());
             m.semantic3(null);
             modules.push(m);
@@ -584,11 +609,11 @@ private int tryMain(size_t argc, const(char)** argv)
         fatal();
 
     // Scan for functions to inline
-    if (global.params.useInline)
+    if (params.useInline)
     {
         foreach (m; modules)
         {
-            if (global.params.verbose)
+            if (params.verbose)
                 message("inline scan %s", m.toChars());
             inlineScanModule(m);
         }
@@ -599,15 +624,15 @@ private int tryMain(size_t argc, const(char)** argv)
 
     // inlineScan incrementally run semantic3 of each expanded functions.
     // So deps file generation should be moved after the inlinig stage.
-    if (global.params.moduleDeps)
+    if (params.moduleDeps)
     {
         foreach (i; 1 .. modules[0].aimports.dim)
             semantic3OnDependencies(modules[0].aimports[i]);
 
-        OutBuffer* ob = global.params.moduleDeps;
-        if (global.params.moduleDepsFile)
+        OutBuffer* ob = params.moduleDeps;
+        if (params.moduleDepsFile)
         {
-            auto deps = File(global.params.moduleDepsFile);
+            auto deps = File(params.moduleDepsFile);
             deps.setbuffer(cast(void*)ob.data, ob.offset);
             writeFile(Loc.initial, &deps);
         }
@@ -618,32 +643,32 @@ private int tryMain(size_t argc, const(char)** argv)
     printCtfePerformanceStats();
 
     Library library = null;
-    if (global.params.lib)
+    if (params.lib)
     {
-        if (global.params.objfiles.dim == 0)
+        if (params.objfiles.dim == 0)
         {
             error(Loc.initial, "no input files");
             return EXIT_FAILURE;
         }
         library = Library.factory();
-        library.setFilename(global.params.objdir, global.params.libname);
+        library.setFilename(params.objdir, params.libname);
         // Add input object and input library files to output library
         foreach (p; libmodules)
             library.addObject(p, null);
     }
     // Generate output files
-    if (global.params.doJsonGeneration)
+    if (params.doJsonGeneration)
     {
         generateJson(&modules);
     }
-    if (!global.errors && global.params.doDocComments)
+    if (!global.errors && params.doDocComments)
     {
         foreach (m; modules)
         {
             gendocfile(m);
         }
     }
-    if (global.params.vcg_ast)
+    if (params.vcg_ast)
     {
         import dmd.hdrgen;
         foreach (mod; modules)
@@ -660,10 +685,10 @@ private int tryMain(size_t argc, const(char)** argv)
             cgFile.write();
         }
     }
-    if (!global.params.obj)
+    if (!params.obj)
     {
     }
-    else if (global.params.oneobj)
+    else if (params.oneobj)
     {
         Module firstm;    // first module we generate code for
         foreach (m; modules)
@@ -675,7 +700,7 @@ private int tryMain(size_t argc, const(char)** argv)
                 firstm = m;
                 obj_start(cast(char*)m.srcfile.toChars());
             }
-            if (global.params.verbose)
+            if (params.verbose)
                 message("code      %s", m.toChars());
             genObjFile(m, false);
             if (entrypoint && m == rootHasMain)
@@ -692,34 +717,34 @@ private int tryMain(size_t argc, const(char)** argv)
         {
             if (m.isHdrFile)
                 continue;
-            if (global.params.verbose)
+            if (params.verbose)
                 message("code      %s", m.toChars());
             obj_start(m.srcfile.toChars());
-            genObjFile(m, global.params.multiobj);
+            genObjFile(m, params.multiobj);
             if (entrypoint && m == rootHasMain)
-                genObjFile(entrypoint, global.params.multiobj);
+                genObjFile(entrypoint, params.multiobj);
             obj_end(library, m.objfile);
             obj_write_deferred(library);
-            if (global.errors && !global.params.lib)
+            if (global.errors && !params.lib)
                 m.deleteObjFile();
         }
     }
-    if (global.params.lib && !global.errors)
+    if (params.lib && !global.errors)
         library.write();
     backend_term();
     if (global.errors)
         fatal();
     int status = EXIT_SUCCESS;
-    if (!global.params.objfiles.dim)
+    if (!params.objfiles.dim)
     {
-        if (global.params.link)
+        if (params.link)
             error(Loc.initial, "no object files to link");
     }
     else
     {
-        if (global.params.link)
+        if (params.link)
             status = runLINK();
-        if (global.params.run)
+        if (params.run)
         {
             if (!status)
             {
@@ -729,10 +754,10 @@ private int tryMain(size_t argc, const(char)** argv)
                 foreach (m; modules)
                 {
                     m.deleteObjFile();
-                    if (global.params.oneobj)
+                    if (params.oneobj)
                         break;
                 }
-                remove(global.params.exefile);
+                remove(params.exefile);
             }
         }
     }
@@ -830,7 +855,7 @@ int main()
     scope(failure) stderr.printInternalFailure;
 
     auto args = Runtime.cArgs();
-    return tryMain(args.argc, cast(const(char)**)args.argv);
+    return tryMain(args.argc, cast(const(char)**)args.argv, global.params);
 }
 
 
@@ -1345,6 +1370,78 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         return true;
     }
 
+    /**
+     * Print an error messsage about an invalid switch.
+     * If an optional supplemental message has been provided,
+     * it will be printed too.
+     *
+     * Params:
+     *  p = 0 terminated string
+     *  availableOptions = supplemental help message listing the available options
+     */
+    void errorInvalidSwitch(const(char)* p, string availableOptions = null)
+    {
+        error("Switch `%s` is invalid", p);
+        if (availableOptions !is null)
+            errorSupplemental(Loc.initial, "%.*s", cast(int)availableOptions.length, availableOptions.ptr);
+    }
+
+    enum CheckOptions { success, error, help }
+
+    /*
+    Checks whether the CLI options contains a valid argument or a help argument.
+    If a help argument has been used, it will set the `usageFlag`.
+
+    Params:
+        p = 0 terminated string
+        usageFlag = parameter for the usage help page to set (by `ref`)
+        missingMsg = error message to use when no argument has been provided
+
+    Returns:
+        `success` if a valid argument has been passed and it's not a help page
+        `error` if an error occurred (e.g. `-foobar`)
+        `help` if a help page has been request (e.g. `-flag` or `-flag=h`)
+    */
+    CheckOptions checkOptions(const(char)* p, ref bool usageFlag, string missingMsg)
+    {
+        // Checks whether a flag has no options (e.g. -foo or -foo=)
+        if (*p == 0 || *p == '=' && !p[1])
+        {
+            .error(Loc.initial, "%.*s", cast(int)missingMsg.length, missingMsg.ptr);
+            errors = true;
+            usageFlag = true;
+            return CheckOptions.help;
+        }
+        if (*p != '=')
+            return CheckOptions.error;
+        p++;
+        /* Checks whether the option pointer supplied is a request
+           for the help page, e.g. -foo=j */
+        if (((*p == 'h' || *p == '?') && !p[1]) || // -flag=h || -flag=?
+            strcmp(p, "help") == 0)
+        {
+            usageFlag = true;
+            return CheckOptions.help;
+        }
+        return CheckOptions.success;
+    }
+
+    static string checkOptionsMixin(string usageFlag, string missingMsg)
+    {
+        return q{
+            final switch (checkOptions(p + len - 1, params.}~usageFlag~","~
+                          `"`~missingMsg~`"`~q{))
+            {
+                case CheckOptions.error:
+                    goto Lerror;
+                case CheckOptions.help:
+                    return false;
+                case CheckOptions.success:
+                    break;
+            }
+        };
+    }
+
     version (none)
     {
         for (size_t i = 0; i < arguments.dim; i++)
@@ -1386,8 +1483,34 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.useDeprecated = Diagnostic.inform;
         else if (arg == "-c")                // https://dlang.org/dmd.html#switch-c
             params.link = false;
-        else if (startsWith(p + 1, "check=")) // https://dlang.org/dmd.html#switch-check
+        else if (startsWith(p + 1, "checkaction")) // https://dlang.org/dmd.html#switch-checkaction
         {
+            /* Parse:
+             *    -checkaction=D|C|halt|context
+             */
+            enum len = "-checkaction=".length;
+            mixin(checkOptionsMixin("checkActionUsage",
+                "`-check=<behavior>` requires a behavior"));
+            if (strcmp(p + len, "D") == 0)
+                params.checkAction = CHECKACTION.D;
+            else if (strcmp(p + len, "C") == 0)
+                params.checkAction = CHECKACTION.C;
+            else if (strcmp(p + len, "halt") == 0)
+                params.checkAction = CHECKACTION.halt;
+            else if (strcmp(p + len, "context") == 0)
+                params.checkAction = CHECKACTION.context;
+            else
+            {
+                errorInvalidSwitch(p);
+                params.checkActionUsage = true;
+                return false;
+            }
+        }
+        else if (startsWith(p + 1, "check")) // https://dlang.org/dmd.html#switch-check
+        {
+            enum len = "-check=".length;
+            mixin(checkOptionsMixin("checkUsage",
+                "`-check=<action>` requires an action"));
             /* Parse:
              *    -check=[assert|bounds|in|invariant|out|switch][=[on|off]]
              */
@@ -1395,7 +1518,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             // Check for legal option string; return true if so
             static bool check(const(char)* p, string name, ref CHECKENABLE ce)
             {
-                p += "-check=".length;
+                p += len;
                 if (startsWith(p, name))
                 {
                     p += name.length;
@@ -1420,23 +1543,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                   check(p, "invariant", params.useInvariants ) ||
                   check(p, "out",       params.useOut        ) ||
                   check(p, "switch",    params.useSwitchError)))
-                goto Lerror;
-        }
-        else if (startsWith(p + 1, "checkaction=")) // https://dlang.org/dmd.html#switch-checkaction
-        {
-            /* Parse:
-             *    -checkaction=D|C|halt
-             */
-            if (strcmp(p + 13, "D") == 0)
-                params.checkAction = CHECKACTION.D;
-            else if (strcmp(p + 13, "C") == 0)
-                params.checkAction = CHECKACTION.C;
-            else if (strcmp(p + 13, "halt") == 0)
-                params.checkAction = CHECKACTION.halt;
-            else if (strcmp(p + 13, "context") == 0)
-                params.checkAction = CHECKACTION.context;
-            else
-                goto Lerror;
+            {
+                errorInvalidSwitch(p);
+                params.checkUsage = true;
+                return false;
+            }
         }
         else if (startsWith(p + 1, "color")) // https://dlang.org/dmd.html#switch-color
         {
@@ -1450,7 +1561,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 else if (strcmp(p + 7, "off") == 0)
                     params.color = false;
                 else if (strcmp(p + 7, "auto") != 0)
-                    goto Lerror;
+                {
+                    errorInvalidSwitch(p, "Available options for `-color` are `on`, `off` and `auto`");
+                    return true;
+                }
             }
             else if (p[6])
                 goto Lerror;
@@ -1477,7 +1591,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     params.covPercent = cast(ubyte)percent;
                 }
                 else
-                    goto Lerror;
+                {
+                    errorInvalidSwitch(p, "Only a number can be passed to `-cov=<num>`");
+                    return true;
+                }
             }
             else if (p[4])
                 goto Lerror;
@@ -1572,7 +1689,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 if (strcmp(p + 9, "gc") == 0)
                     params.tracegc = true;
                 else
-                    goto Lerror;
+                {
+                    errorInvalidSwitch(p, "Only `gc` is allowed for `-profile`");
+                    return true;
+                }
             }
             else if (p[8])
                 goto Lerror;
@@ -1607,59 +1727,55 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 params.printErrorContext = true;
             }
             else
-                goto Lerror;
+            {
+                errorInvalidSwitch(p, "Only number, `spec`, or `context` are allowed for `-verrors`");
+                return true;
+            }
         }
         else if (startsWith(p + 1, "mcpu")) // https://dlang.org/dmd.html#switch-mcpu
         {
+            enum len = "-mcpu=".length;
             // Parse:
             //      -mcpu=identifier
-            if (p[5] == '=')
+            mixin(checkOptionsMixin("mcpuUsage",
+                "`-mcpu=<architecture>` requires an architecture"));
+            if (Identifier.isValidIdentifier(p + len))
             {
-                if (isHelpOption(p + 6))
+                const ident = p + len;
+                switch (ident[0 .. strlen(ident)])
                 {
+                case "baseline":
+                    params.cpu = CPU.baseline;
+                    break;
+                case "avx":
+                    params.cpu = CPU.avx;
+                    break;
+                case "avx2":
+                    params.cpu = CPU.avx2;
+                    break;
+                case "native":
+                    params.cpu = CPU.native;
+                    break;
+                default:
+                    error("Switch `%s` is invalid", p);
                     params.mcpuUsage = true;
                     return false;
                 }
-                else if (Identifier.isValidIdentifier(p + 6))
-                {
-                    const ident = p + 6;
-                    switch (ident[0 .. strlen(ident)])
-                    {
-                    case "baseline":
-                        params.cpu = CPU.baseline;
-                        break;
-                    case "avx":
-                        params.cpu = CPU.avx;
-                        break;
-                    case "avx2":
-                        params.cpu = CPU.avx2;
-                        break;
-                    case "native":
-                        params.cpu = CPU.native;
-                        break;
-                    default:
-                        goto Lerror;
-                    }
-                }
-                else if (p[6] == 0)
-                {
-                    params.mcpuUsage = true;
-                    return false;
-                }
-                else
-                    goto Lerror;
             }
-            else if (p[5] == 0)
+            else
             {
+                errorInvalidSwitch(p);
                 params.mcpuUsage = true;
                 return false;
             }
-            else
-                goto Lerror;
         }
-        else if (startsWith(p + 1, "extern-std=")) // https://dlang.org/dmd.html#switch-std-c%2B%2B
+        else if (startsWith(p + 1, "extern-std")) // https://dlang.org/dmd.html#switch-extern-std
         {
             enum len = "-extern-std=".length;
+            // Parse:
+            //      -extern-std=identifier
+            mixin(checkOptionsMixin("externStdUsage",
+                "`-extern-std=<standard>` requires a standard"));
             if (strcmp(p + len, "c++98") == 0)
                 params.cplusplus = CppStdRevision.cpp98;
             else if (strcmp(p + len, "c++11") == 0)
@@ -1669,83 +1785,79 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             else if (strcmp(p + len, "c++17") == 0)
                 params.cplusplus = CppStdRevision.cpp17;
             else
-                goto Lerror;
+            {
+                error("Switch `%s` is invalid", p);
+                params.externStdUsage = true;
+                return false;
+            }
         }
-        else if (startsWith(p + 1, "transition") ) // https://dlang.org/dmd.html#switch-transition
+        else if (startsWith(p + 1, "transition")) // https://dlang.org/dmd.html#switch-transition
         {
+            enum len = "-transition=".length;
             // Parse:
             //      -transition=number
-            if (p[11] == '=')
+            mixin(checkOptionsMixin("transitionUsage",
+                "`-transition=<id>` requires an id"));
+            if (isdigit(cast(char)p[len]))
             {
-                if (isHelpOption(p + 12))
-                {
-                    params.transitionUsage = true;
-                    return false;
-                }
-                if (isdigit(cast(char)p[12]))
-                {
-                    const num = parseDigits(p + 12, int.max);
-                    if (num == uint.max)
-                        goto Lerror;
-
-                    string generateTransitionsNumbers()
-                    {
-                        import dmd.cli : Usage;
-                        string buf;
-                        foreach (t; Usage.transitions)
-                        {
-                            if (t.bugzillaNumber !is null)
-                                buf ~= `case `~t.bugzillaNumber~`: params.`~t.paramName~` = true;break;`;
-                        }
-                        return buf;
-                    }
-
-                    // Bugzilla issue number
-                    switch (num)
-                    {
-                        mixin(generateTransitionsNumbers());
-                    default:
-                        goto Lerror;
-                    }
-                }
-                else if (Identifier.isValidIdentifier(p + 12))
-                {
-                    string generateTransitionsText()
-                    {
-                        import dmd.cli : Usage;
-                        string buf = `case "all":`;
-                        foreach (t; Usage.transitions)
-                            buf ~= `params.`~t.paramName~` = true;`;
-                        buf ~= "break;";
-
-                        foreach (t; Usage.transitions)
-                        {
-                            buf ~= `case "`~t.name~`": params.`~t.paramName~` = true;break;`;
-                        }
-                        return buf;
-                    }
-                    const ident = p + 12;
-                    switch (ident[0 .. strlen(ident)])
-                    {
-                        mixin(generateTransitionsText());
-                    default:
-                        goto Lerror;
-                    }
-                }
-                else if (p[12] == 0) {
-                    params.transitionUsage = true;
-                    return false;
-                }
-                else
+                const num = parseDigits(p + len, int.max);
+                if (num == uint.max)
                     goto Lerror;
+
+                string generateTransitionsNumbers()
+                {
+                    import dmd.cli : Usage;
+                    string buf;
+                    foreach (t; Usage.transitions)
+                    {
+                        if (t.bugzillaNumber !is null)
+                            buf ~= `case `~t.bugzillaNumber~`: params.`~t.paramName~` = true;break;`;
+                    }
+                    return buf;
+                }
+
+                // Bugzilla issue number
+                switch (num)
+                {
+                    mixin(generateTransitionsNumbers());
+                default:
+                    error("Transition `%s` is invalid", p);
+                    params.transitionUsage = true;
+                    return false;
+                }
             }
-            else if (p[11] == 0)
+            else if (Identifier.isValidIdentifier(p + len))
             {
+                string generateTransitionsText()
+                {
+                    import dmd.cli : Usage;
+                    string buf = `case "all":`;
+                    foreach (t; Usage.transitions)
+                        buf ~= `params.`~t.paramName~` = true;`;
+                    buf ~= "break;";
+
+                    foreach (t; Usage.transitions)
+                    {
+                        buf ~= `case "`~t.name~`": params.`~t.paramName~` = true;break;`;
+                    }
+                    return buf;
+                }
+                const ident = p + len;
+                switch (ident[0 .. strlen(ident)])
+                {
+                    mixin(generateTransitionsText());
+                default:
+                    error("Transition `%s` is invalid", p);
+                    params.transitionUsage = true;
+                    return false;
+                }
+            }
+            else
+            {
+                errorInvalidSwitch(p);
                 params.transitionUsage = true;
                 return false;
             }
-            else
-                goto Lerror;
         }
         else if (arg == "-w")   // https://dlang.org/dmd.html#switch-w
             params.warnings = Diagnostic.error;
@@ -2402,17 +2514,4 @@ Modules createModules(ref Strings files, ref Strings libmodules)
         }
     }
     return modules;
-}
-
-/*
-Checks whether the option pointer supplied is a request
-for the help page.
-
-Returns: `true` if `p` points to `?`, `h` or `help`, otherwise `false`.
-*/
-bool isHelpOption(const(char*) p)
-{
-    return strcmp(p, "?") == 0 ||
-           strcmp(p, "h") == 0 ||
-           strcmp(p, "help") == 0;
 }
