@@ -419,7 +419,10 @@ string execute(ref File f, string command, bool expectpass, string result_path)
 
 string unifyNewLine(string str)
 {
-    static re = regex(`\r\n|\r|\n`, "g");
+    // On Windows, Outbuffer.writenl() puts `\r\n` into the buffer,
+    // then fprintf() adds another `\r` when formatting the message.
+    // This is why there's a match for `\r\r\n` in this regex.
+    static re = regex(`\r\r\n|\r\n|\r|\n`, "g");
     return std.regex.replace(str, re, "\n");
 }
 
