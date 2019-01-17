@@ -19,6 +19,7 @@ module gc.impl.conservative.gc;
 
 //debug = PRINTF;               // turn on printf's
 //debug = COLLECT_PRINTF;       // turn on printf's
+//debug = MARK_PRINTF;          // turn on printf's
 //debug = PRINTF_TO_FILE;       // redirect printf's ouptut to file "gcx.log"
 //debug = LOGGING;              // log allocations / frees
 //debug = MEMSTOMP;             // stomp on memory
@@ -57,6 +58,7 @@ debug(PRINTF_TO_FILE)
 {
     private __gshared MonoTime gcStartTick;
     private __gshared FILE* gcx_fh;
+    private __gshared bool hadNewline = false;
 
     private int printf(ARGS...)(const char* fmt, ARGS args) nothrow
     {
@@ -70,7 +72,7 @@ debug(PRINTF_TO_FILE)
         {
             len = fprintf(gcx_fh, "before init: ");
         }
-        else
+        else if (hadNewline)
         {
             if (gcStartTick == MonoTime.init)
                 gcStartTick = MonoTime.currTime;
@@ -80,6 +82,8 @@ debug(PRINTF_TO_FILE)
         }
         len += fprintf(gcx_fh, fmt, args);
         fflush(gcx_fh);
+        import core.stdc.string;
+        hadNewline = fmt && fmt[0] && fmt[strlen(fmt) - 1] == '\n';
         return len;
     }
 }
@@ -246,6 +250,39 @@ debug (LOGGING)
 
 /* ============================ GC =============================== */
 
+
+debug(PRINTF)
+void printGCBits(GCBits* bits)
+{
+    for (size_t i = 0; i < bits.nwords; i++)
+    {
+        if (i % 32 == 0) printf("\n\t");
+        printf("%x ", bits.data[i]);
+    }
+    printf("\n");
+}
+
+// we can assume the name is always from a literal, so it is zero terminated
+debug(PRINTF)
+string debugTypeName(const(TypeInfo) ti) nothrow
+{
+    string name;
+    if (ti is null)
+        name = "null";
+    else if (auto ci = cast(TypeInfo_Class)ti)
+        name = ci.name;
+    else if (auto si = cast(TypeInfo_Struct)ti)
+        name = si.name;
+    else if (auto ci = cast(TypeInfo_Const)ti)
+        static if (__traits(compiles,ci.base)) // different whether compiled with object.di or object.d
+            return debugTypeName(ci.base);
+        else
+            return debugTypeName(ci.next);
+    else
+        name = ti.classinfo.name;
+    return name;
+}
+
 class ConservativeGC : GC
 {
     // For passing to debug code (not thread safe)
@@ -257,6 +294,7 @@ class ConservativeGC : GC
     import core.internal.spinlock;
     static gcLock = shared(AlignedSpinLock)(SpinLock.Contention.lengthy);
     static bool _inFinalizer;
+    __gshared bool isPrecise = false;
 
     // lock GC, throw InvalidMemoryOperationError on recursive locking during finalization
     static void lockNR() @nogc nothrow
@@ -271,8 +309,11 @@ class ConservativeGC : GC
     {
         import core.stdc.string: memcpy;
 
-        if (config.gc != "conservative")
-              return;
+        if ((config.gc != "precise") && (config.gc != "conservative"))
+            return;
+
+        if (config.gc == "precise")
+            isPrecise = true;
 
         auto p = cstdlib.malloc(__traits(classInstanceSize,ConservativeGC));
 
@@ -290,8 +331,8 @@ class ConservativeGC : GC
 
     static void finalize(ref GC gc)
     {
-        if (config.gc != "conservative")
-              return;
+        if ((config.gc != "precise") && (config.gc != "conservative"))
+            return;
 
         auto instance = cast(ConservativeGC) gc;
         instance.Dtor();
@@ -513,11 +554,13 @@ class ConservativeGC : GC
     {
         assert(size != 0);
 
-        debug(PRINTF) printf("GC.mallocNoSync(size = %d)\n", size);
+        debug(PRINTF)
+            printf("GC::malloc(gcx = %p, size = %d bits = %x, ti = %s)\n", gcx, size, bits, debugTypeName(ti).ptr);
+
         assert(gcx);
         //debug(PRINTF) printf("gcx.self = %x, pthread_self() = %x\n", gcx.self, pthread_self());
 
-        auto p = gcx.alloc(size + SENTINEL_EXTRA, alloc_size, bits);
+        auto p = gcx.alloc(size + SENTINEL_EXTRA, alloc_size, bits, ti);
         if (!p)
             onOutOfMemoryErrorNoGC();
 
@@ -714,12 +757,15 @@ class ConservativeGC : GC
                 return doMalloc();
 
             alloc_size = psize;
+            if (isPrecise)
+                pool.setPointerBitmapSmall(p, size, psize, bits, ti);
         }
 
         if (bits)
         {
             pool.clrBits(biti, ~BlkAttr.NONE);
             pool.setBits(biti, bits);
+
         }
         return p;
     }
@@ -1409,7 +1455,8 @@ struct Gcx
 
         roots.removeAll();
         ranges.removeAll();
-        toscan.reset();
+        toscanConservative.reset();
+        toscanPrecise.reset();
     }
 
 
@@ -1443,6 +1490,8 @@ struct Gcx
 
             for (size_t i = 0; i < B_NUMSMALL; i++)
             {
+                size_t j = 0;
+                List* prev, pprev, ppprev; // keep a short history to inspect in the debugger
                 for (auto list = cast(List*)bucket[i]; list; list = list.next)
                 {
                     auto pool = list.pool;
@@ -1689,14 +1738,15 @@ struct Gcx
         return isLowOnMem(mappedPages * PAGESIZE);
     }
 
-    void* alloc(size_t size, ref size_t alloc_size, uint bits) nothrow
+    void* alloc(size_t size, ref size_t alloc_size, uint bits, const TypeInfo ti) nothrow
     {
-        return size <= 2048 ? smallAlloc(binTable[size], alloc_size, bits)
-                            : bigAlloc(size, alloc_size, bits);
+        return size <= PAGESIZE/2 ? smallAlloc(size, alloc_size, bits, ti)
+                                  : bigAlloc(size, alloc_size, bits, ti);
     }
 
-    void* smallAlloc(Bins bin, ref size_t alloc_size, uint bits) nothrow
+    void* smallAlloc(size_t size, ref size_t alloc_size, uint bits, const TypeInfo ti) nothrow
     {
+        immutable bin = binTable[size];
         alloc_size = binsize[bin];
 
         void* p;
@@ -1746,6 +1796,14 @@ struct Gcx
             pool.setBits(biti, bits);
         //debug(PRINTF) printf("\tmalloc => %p\n", p);
         debug (MEMSTOMP) memset(p, 0xF0, alloc_size);
+
+        if (ConservativeGC.isPrecise)
+        {
+            debug(SENTINEL)
+                pool.setPointerBitmapSmall(sentinel_add(p), size - SENTINEL_EXTRA, size - SENTINEL_EXTRA, bits, ti);
+            else
+                pool.setPointerBitmapSmall(p, size, alloc_size, bits, ti);
+        }
         return p;
     }
 
@@ -1824,6 +1882,20 @@ struct Gcx
 
         if (bits)
             pool.setBits(pn, bits);
+
+        if (ConservativeGC.isPrecise)
+        {
+            // an array of classes is in fact an array of pointers
+            immutable(void)* rtinfo;
+            if (!ti)
+                rtinfo = rtinfoHasPointers;
+            else if ((bits & BlkAttr.APPENDABLE) && (typeid(ti) is typeid(TypeInfo_Class)))
+                rtinfo = rtinfoHasPointers;
+            else
+                rtinfo = ti.rtInfo();
+            pool.rtinfo[pn] = cast(immutable(size_t)*)rtinfo;
+        }
+
         return p;
     }
 
@@ -1906,13 +1978,19 @@ struct Gcx
         return null;
     }
 
-    static struct ScanRange
+    static struct ScanRange(bool precise)
     {
         void* pbot;
         void* ptop;
+        static if (precise)
+        {
+            void** pbase;      // start of memory described by ptrbitmap
+            size_t* ptrbmp;    // bits from is_pointer or rtinfo
+            size_t bmplength;  // number of valid bits
+        }
     }
 
-    static struct ToScanStack
+    static struct ToScanStack(RANGE)
     {
     nothrow:
         @disable this(this);
@@ -1920,25 +1998,28 @@ struct Gcx
         void reset()
         {
             _length = 0;
-            os_mem_unmap(_p, _cap * ScanRange.sizeof);
-            _p = null;
+            if (_p)
+            {
+                os_mem_unmap(_p, _cap * RANGE.sizeof);
+                _p = null;
+            }
             _cap = 0;
         }
 
-        void push(ScanRange rng)
+        void push(RANGE rng)
         {
             if (_length == _cap) grow();
             _p[_length++] = rng;
         }
 
-        ScanRange pop()
+        RANGE pop()
         in { assert(!empty); }
         do
         {
             return _p[--_length];
         }
 
-        ref inout(ScanRange) opIndex(size_t idx) inout
+        ref inout(RANGE) opIndex(size_t idx) inout
         in { assert(idx < _length); }
         do
         {
@@ -1954,40 +2035,52 @@ struct Gcx
             pragma(inline, false);
 
             enum initSize = 64 * 1024; // Windows VirtualAlloc granularity
-            immutable ncap = _cap ? 2 * _cap : initSize / ScanRange.sizeof;
-            auto p = cast(ScanRange*)os_mem_map(ncap * ScanRange.sizeof);
+            immutable ncap = _cap ? 2 * _cap : initSize / RANGE.sizeof;
+            auto p = cast(RANGE*)os_mem_map(ncap * RANGE.sizeof);
             if (p is null) onOutOfMemoryErrorNoGC();
             if (_p !is null)
             {
                 p[0 .. _length] = _p[0 .. _length];
-                os_mem_unmap(_p, _cap * ScanRange.sizeof);
+                os_mem_unmap(_p, _cap * RANGE.sizeof);
             }
             _p = p;
             _cap = ncap;
         }
 
         size_t _length;
-        ScanRange* _p;
+        RANGE* _p;
         size_t _cap;
     }
 
-    ToScanStack toscan;
+    ToScanStack!(ScanRange!false) toscanConservative;
+    ToScanStack!(ScanRange!true) toscanPrecise;
 
     /**
      * Search a range of memory values and mark any pointers into the GC pool.
      */
-    void mark(void *pbot, void *ptop) scope nothrow
+    void mark(bool precise)(void *pbot, void *ptop) scope nothrow
     {
+        static if (precise)
+            alias toscan = toscanPrecise;
+        else
+            alias toscan = toscanConservative;
+
+        debug(MARK_PRINTF)
+            printf("marking range: [%p..%p] (%#llx)\n", pbot, ptop, cast(long)(ptop - pbot));
+
         if (pbot >= ptop)
             return;
 
-        void **p1 = cast(void **)pbot;
-        void **p2 = cast(void **)ptop;
+        ScanRange!precise rng = void;
+        rng.pbot = cast(void **)pbot;
+        rng.ptop = cast(void **)ptop;
+        static if (precise)
+            rng.pbase = null; // always starting from a non-heap root
 
         // limit the amount of ranges added to the toscan stack
         enum FANOUT_LIMIT = 32;
         size_t stackPos;
-        ScanRange[FANOUT_LIMIT] stack = void;
+        ScanRange!precise[FANOUT_LIMIT] stack = void;
 
         size_t pcache = 0;
 
@@ -1996,41 +2089,61 @@ struct Gcx
         const highpool = pooltable.npools - 1;
         const minAddr = pooltable.minAddr;
         size_t memSize = pooltable.maxAddr - minAddr;
+        Pool* pool = null;
 
-        void* base = void;
-        void* top = void;
+        // properties of allocation pointed to
+        ScanRange!precise tgt = void;
 
-        //printf("marking range: [%p..%p] (%#zx)\n", p1, p2, cast(size_t)p2 - cast(size_t)p1);
         for (;;)
         {
-            auto p = *p1;
+            auto p = *cast(void**)(rng.pbot);
 
-            //if (log) debug(PRINTF) printf("\tmark %p\n", p);
+            debug(MARK_PRINTF) printf("\tmark %p: %p\n", rng.pbot, p);
+
             if (cast(size_t)(p - minAddr) < memSize &&
                 (cast(size_t)p & ~cast(size_t)(PAGESIZE-1)) != pcache)
             {
-                Pool* pool = void;
-                size_t low = 0;
-                size_t high = highpool;
-                while (true)
+                static if (precise) if (rng.pbase)
                 {
-                    size_t mid = (low + high) >> 1;
-                    pool = pools[mid];
-                    if (p < pool.baseAddr)
-                        high = mid - 1;
-                    else if (p >= pool.topAddr)
-                        low = mid + 1;
-                    else break;
-
-                    if (low > high)
+                    size_t bitpos = cast(void**)rng.pbot - rng.pbase;
+                    while (bitpos >= rng.bmplength)
+                    {
+                        bitpos -= rng.bmplength;
+                        rng.pbase += rng.bmplength;
+                    }
+                    import core.bitop;
+                    if (!core.bitop.bt(rng.ptrbmp, bitpos))
+                    {
+                        debug(MARK_PRINTF) printf("\t\tskipping non-pointer\n");
                         goto LnextPtr;
+                    }
+                }
+
+                if (!pool || p < pool.baseAddr || p >= pool.topAddr)
+                {
+                    size_t low = 0;
+                    size_t high = highpool;
+                    while (true)
+                    {
+                        size_t mid = (low + high) >> 1;
+                        pool = pools[mid];
+                        if (p < pool.baseAddr)
+                            high = mid - 1;
+                        else if (p >= pool.topAddr)
+                            low = mid + 1;
+                        else break;
+
+                        if (low > high)
+                            goto LnextPtr;
+                    }
                 }
                 size_t offset = cast(size_t)(p - pool.baseAddr);
                 size_t biti = void;
                 size_t pn = offset / PAGESIZE;
                 size_t bin = pool.pagetable[pn]; // not Bins to avoid multiple size extension instructions
 
-                //debug(PRINTF) printf("\t\tfound pool %p, base=%p, pn = %zd, bin = %d, biti = x%x\n", pool, pool.baseAddr, pn, bin, biti);
+                debug(MARK_PRINTF)
+                    printf("\t\tfound pool %p, base=%p, pn = %lld, bin = %d\n", pool, pool.baseAddr, cast(long)pn, bin);
 
                 // Adjust bit to be at start of allocated memory block
                 if (bin < B_PAGE)
@@ -2043,8 +2156,14 @@ struct Gcx
 
                     if (!pool.mark.set(biti) && !pool.noscan.test(biti))
                     {
-                        base = pool.baseAddr + offsetBase;
-                        top = base + binsize[bin];
+                        tgt.pbot = pool.baseAddr + offsetBase;
+                        tgt.ptop = tgt.pbot + binsize[bin];
+                        static if (precise)
+                        {
+                            tgt.pbase = cast(void**)pool.baseAddr;
+                            tgt.ptrbmp = pool.is_pointer.data;
+                            tgt.bmplength = size_t.max; // no repetition
+                        }
                         goto LaddRange;
                     }
                 }
@@ -2054,18 +2173,18 @@ struct Gcx
                     //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
 
                     pcache = cast(size_t)p & ~cast(size_t)(PAGESIZE-1);
-                    base = cast(void*)pcache;
+                    tgt.pbot = cast(void*)pcache;
 
                     // For the NO_INTERIOR attribute.  This tracks whether
                     // the pointer is an interior pointer or points to the
                     // base address of a block.
-                    if (base != sentinel_sub(p) && pool.nointerior.nbits && pool.nointerior.test(biti))
+                    if (tgt.pbot != sentinel_sub(p) && pool.nointerior.nbits && pool.nointerior.test(biti))
                         goto LnextPtr;
 
                     if (!pool.mark.set(biti) && !pool.noscan.test(biti))
                     {
-                        top = base + (cast(LargeObjectPool*)pool).getSize(pn);
-                        goto LaddRange;
+                        tgt.ptop = tgt.pbot + (cast(LargeObjectPool*)pool).getSize(pn);
+                        goto LaddLargeRange;
                     }
                 }
                 else if (bin == B_PAGEPLUS)
@@ -2079,8 +2198,42 @@ struct Gcx
 
                     if (!pool.mark.set(biti) && !pool.noscan.test(biti))
                     {
-                        base = pool.baseAddr + (pn * PAGESIZE);
-                        top = base + (cast(LargeObjectPool*)pool).getSize(pn);
+                        tgt.pbot = pool.baseAddr + (pn * PAGESIZE);
+                        tgt.ptop = tgt.pbot + (cast(LargeObjectPool*)pool).getSize(pn);
+                    LaddLargeRange:
+                        static if (precise)
+                        {
+                            auto rtinfo = pool.rtinfo[biti];
+                            if (rtinfo is rtinfoNoPointers)
+                                goto LnextPtr; // only if inconsistent with noscan
+                            if (rtinfo is rtinfoHasPointers)
+                            {
+                                tgt.pbase = null; // conservative
+                            }
+                            else
+                            {
+                                tgt.ptrbmp = cast(size_t*)rtinfo;
+                                size_t element_size = *tgt.ptrbmp++;
+                                tgt.bmplength = (element_size + (void*).sizeof - 1) / (void*).sizeof;
+                                assert(tgt.bmplength);
+
+                                debug(SENTINEL)
+                                    tgt.pbot = sentinel_add(tgt.pbot);
+                                if (pool.appendable.test(biti))
+                                {
+                                    // take advantage of knowing array layout in rt.lifetime
+                                    void* arrtop = tgt.pbot + 16 + *cast(size_t*)tgt.pbot;
+                                    assert (arrtop > tgt.pbot && arrtop <= tgt.ptop);
+                                    tgt.pbot += 16;
+                                    tgt.ptop = arrtop;
+                                }
+                                else
+                                {
+                                    tgt.ptop = tgt.pbot + element_size;
+                                }
+                                tgt.pbase = cast(void**)tgt.pbot;
+                            }
+                        }
                         goto LaddRange;
                     }
                 }
@@ -2091,22 +2244,20 @@ struct Gcx
                 }
             }
         LnextPtr:
-            if (++p1 < p2)
+            rng.pbot += (void*).sizeof;
+            if (rng.pbot < rng.ptop)
                 continue;
 
+        LnextRange:
             if (stackPos)
             {
                 // pop range from local stack and recurse
-                auto next = &stack[--stackPos];
-                p1 = cast(void**)next.pbot;
-                p2 = cast(void**)next.ptop;
+                rng = stack[--stackPos];
             }
             else if (!toscan.empty)
             {
                 // pop range from global stack and recurse
-                auto next = toscan.pop();
-                p1 = cast(void**)next.pbot;
-                p2 = cast(void**)next.ptop;
+                rng = toscan.pop();
             }
             else
             {
@@ -2114,30 +2265,41 @@ struct Gcx
                 break;
             }
             // printf("  pop [%p..%p] (%#zx)\n", p1, p2, cast(size_t)p2 - cast(size_t)p1);
-            pcache = 0;
-            continue;
+            goto LcontRange;
 
         LaddRange:
-            if (++p1 < p2)
+            rng.pbot += (void*).sizeof;
+            if (rng.pbot < rng.ptop)
             {
                 if (stackPos < stack.length)
                 {
-                    stack[stackPos].pbot = base;
-                    stack[stackPos].ptop = top;
+                    stack[stackPos] = tgt;
                     stackPos++;
                     continue;
                 }
-                toscan.push(ScanRange(p1, p2));
+                toscan.push(rng);
                 // reverse order for depth-first-order traversal
-                foreach_reverse (ref rng; stack)
-                    toscan.push(rng);
+                foreach_reverse (ref range; stack)
+                    toscan.push(range);
                 stackPos = 0;
             }
+        LendOfRange:
             // continue with last found range
-            p1 = cast(void**)base;
-            p2 = cast(void**)top;
+            rng = tgt;
+
+        LcontRange:
             pcache = 0;
         }
+    }
+
+    void markConservative(void *pbot, void *ptop) scope nothrow
+    {
+        mark!false(pbot, ptop);
+    }
+
+    void markPrecise(void *pbot, void *ptop) scope nothrow
+    {
+        mark!true(pbot, ptop);
     }
 
     // collection step 1: prepare freebits and mark bits
@@ -2156,20 +2318,20 @@ struct Gcx
     }
 
     // collection step 2: mark roots and heap
-    void markAll(bool nostack) nothrow
+    void markAll(alias markFn)(bool nostack) nothrow
     {
         if (!nostack)
         {
             debug(COLLECT_PRINTF) printf("\tscan stacks.\n");
             // Scan stacks and registers for each paused thread
-            thread_scanAll(&mark);
+            thread_scanAll(&markFn);
         }
 
         // Scan roots[]
         debug(COLLECT_PRINTF) printf("\tscan roots[]\n");
         foreach (root; roots)
         {
-            mark(cast(void*)&root.proot, cast(void*)(&root.proot + 1));
+            markFn(cast(void*)&root.proot, cast(void*)(&root.proot + 1));
         }
 
         // Scan ranges[]
@@ -2178,7 +2340,7 @@ struct Gcx
         foreach (range; ranges)
         {
             debug(COLLECT_PRINTF) printf("\t\t%p .. %p\n", range.pbot, range.ptop);
-            mark(range.pbot, range.ptop);
+            markFn(range.pbot, range.ptop);
         }
         //log--;
     }
@@ -2424,7 +2586,10 @@ struct Gcx
             prepTime += (stop - start);
             start = stop;
 
-            markAll(nostack);
+            if (ConservativeGC.isPrecise)
+                markAll!markPrecise(nostack);
+            else
+                markAll!markConservative(nostack);
 
             thread_processGCMarks(&isMarked);
             thread_resumeAll();
@@ -2643,6 +2808,7 @@ struct Pool
     GCBits appendable;  // entries that are appendable
     GCBits nointerior;  // interior pointers should be ignored.
                         // Only implemented for large object pools.
+    GCBits is_pointer;  // precise GC only: per-word, not per-block like the rest of them (SmallObjectPool only)
     size_t npages;
     size_t freepages;     // The number of pages not in use.
     ubyte* pagetable;
@@ -2659,11 +2825,14 @@ struct Pool
     // This tracks how far back we have to go to find the nearest B_PAGE at
     // a smaller address than a B_PAGEPLUS.  To save space, we use a uint.
     // This limits individual allocations to 16 terabytes, assuming a 4k
-    // pagesize.
+    // pagesize. (LargeObjectPool only)
     // For B_PAGE and B_FREE, this specifies the number of pages in this block.
     // As an optimization, a contiguous range of free pages tracks this information
     //  only for the first and the last page.
     uint* bPageOffsets;
+
+    // precise GC: TypeInfo.rtInfo for allocation (LargeObjectPool only)
+    immutable(size_t)** rtinfo;
 
     // This variable tracks a conservative estimate of where the first free
     // page in this pool is, so that if a lot of pages towards the beginning
@@ -2699,6 +2868,21 @@ struct Pool
         auto nbits = cast(size_t)poolsize >> shiftBy;
 
         mark.alloc(nbits);
+        if (ConservativeGC.isPrecise)
+        {
+            if (isLargeObject)
+            {
+                rtinfo = cast(immutable(size_t)**)cstdlib.malloc(npages * (size_t*).sizeof);
+                if (!rtinfo)
+                    onOutOfMemoryErrorNoGC();
+                memset(rtinfo, 0, npages * (size_t*).sizeof);
+            }
+            else
+            {
+                is_pointer.alloc(cast(size_t)poolsize/(void*).sizeof);
+                is_pointer.clrRange(0, is_pointer.nbits);
+            }
+        }
 
         // pagetable already keeps track of what's free for the large object
         // pool.
@@ -2763,6 +2947,13 @@ struct Pool
         }
 
         mark.Dtor();
+        if (ConservativeGC.isPrecise)
+        {
+            if (isLargeObject)
+                cstdlib.free(rtinfo);
+            else
+                is_pointer.Dtor();
+        }
         if (isLargeObject)
         {
             nointerior.Dtor();
@@ -3011,6 +3202,95 @@ struct Pool
                 assert(bin < B_MAX);
             }
         }
+    }
+
+    pragma(inline,true)
+    void setPointerBitmapSmall(void* p, size_t s, size_t allocSize, uint attr, const TypeInfo ti) nothrow
+    {
+        if (!(attr & BlkAttr.NO_SCAN))
+            setPointerBitmap(p, s, allocSize, ti, attr);
+    }
+
+    pragma(inline,false)
+    void setPointerBitmap(void* p, size_t s, size_t allocSize, const TypeInfo ti, uint attr) nothrow
+    {
+        size_t offset = p - baseAddr;
+        //debug(PRINTF) printGCBits(&pool.is_pointer);
+
+        debug(PRINTF)
+            printf("Setting a pointer bitmap for %s at %p + %llu\n", debugTypeName(ti).ptr, p, cast(ulong)s);
+
+        if (ti)
+        {
+            if (attr & BlkAttr.APPENDABLE)
+            {
+                // an array of classes is in fact an array of pointers
+                if (typeid(ti) is typeid(TypeInfo_Class))
+                    goto L_conservative;
+                s = allocSize;
+            }
+
+            auto rtInfo = cast(const(size_t)*)ti.rtInfo();
+
+            if (rtInfo is rtinfoNoPointers)
+            {
+                debug(PRINTF) printf("\tCompiler generated rtInfo: no pointers\n");
+                is_pointer.clrRange(offset/(void*).sizeof, s/(void*).sizeof);
+            }
+            else if (rtInfo is rtinfoHasPointers)
+            {
+                debug(PRINTF) printf("\tCompiler generated rtInfo: has pointers\n");
+                is_pointer.setRange(offset/(void*).sizeof, s/(void*).sizeof);
+            }
+            else
+            {
+                const(size_t)* bitmap = cast (size_t*) rtInfo;
+                //first element of rtInfo is the size of the object the bitmap encodes
+                size_t element_size = * bitmap;
+                bitmap++;
+                size_t tocopy;
+                if (attr & BlkAttr.APPENDABLE)
+                {
+                    tocopy = s/(void*).sizeof;
+                    is_pointer.copyRangeRepeating(offset/(void*).sizeof, tocopy, bitmap, element_size/(void*).sizeof);
+                }
+                else
+                {
+                    tocopy = (s < element_size ? s : element_size)/(void*).sizeof;
+                    is_pointer.copyRange(offset/(void*).sizeof, tocopy, bitmap);
+                }
+
+                debug(PRINTF) printf("\tSetting bitmap for new object (%s)\n\t\tat %p\t\tcopying from %p + %llu: ",
+                                     debugTypeName(ti).ptr, p, bitmap, cast(ulong)element_size);
+                debug(PRINTF)
+                    for (size_t i = 0; i < element_size/((void*).sizeof); i++)
+                        printf("%d", (bitmap[i/(8*size_t.sizeof)] >> (i%(8*size_t.sizeof))) & 1);
+                debug(PRINTF) printf("\n");
+
+                if (tocopy * (void*).sizeof < s) // better safe than sorry: if allocated more, assume pointers inside
+                {
+                    debug(PRINTF) printf("    Appending %d pointer bits\n", s/(void*).sizeof - tocopy);
+                    is_pointer.setRange(offset/(void*).sizeof + tocopy, s/(void*).sizeof - tocopy);
+                }
+            }
+
+            if (s < allocSize)
+            {
+                offset = (offset + s + (void*).sizeof - 1) & ~((void*).sizeof - 1);
+                is_pointer.clrRange(offset/(void*).sizeof, (allocSize - s)/(void*).sizeof);
+            }
+        }
+        else
+        {
+        L_conservative:
+            // limit pointers to actual size of allocation? might fail for arrays that append
+            // without notifying the GC
+            s = allocSize;
+
+            debug(PRINTF) printf("Allocating a block without TypeInfo\n");
+            is_pointer.setRange(offset/(void*).sizeof, s/(void*).sizeof);
+        }
+        //debug(PRINTF) printGCBits(&pool.is_pointer);
     }
 }
 
@@ -3570,6 +3850,7 @@ unittest
 
 // improve predictability of coverage of code that is eventually not hit by other tests
 debug (SENTINEL) {} else // cannot extend with SENTINEL
+debug (MARK_PRINTF) {} else // takes forever
 unittest
 {
     import core.memory;
@@ -3622,6 +3903,8 @@ version (D_LP64) unittest
         if (os_physical_mem() > sz)
         {
             import core.memory;
+            GC.collect();
+            GC.minimize();
             auto stats = GC.stats();
             auto ptr = GC.malloc(sz, BlkAttr.NO_SCAN);
             auto info = GC.query(ptr);

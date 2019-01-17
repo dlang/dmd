@@ -426,7 +426,7 @@ BlkInfo __arrayAlloc(size_t arrsize, const TypeInfo ti, const TypeInfo tinext) n
     uint attr = (!(tinext.flags & 1) ? BlkAttr.NO_SCAN : 0) | BlkAttr.APPENDABLE;
     if (typeInfoSize)
         attr |= BlkAttr.STRUCTFINAL | BlkAttr.FINALIZE;
-    return GC.qalloc(padded_size, attr, ti);
+    return GC.qalloc(padded_size, attr, tinext);
 }
 
 BlkInfo __arrayAlloc(size_t arrsize, ref BlkInfo info, const TypeInfo ti, const TypeInfo tinext)
@@ -443,7 +443,7 @@ BlkInfo __arrayAlloc(size_t arrsize, ref BlkInfo info, const TypeInfo ti, const 
         return BlkInfo();
     }
 
-    return GC.qalloc(padded_size, info.attr, ti);
+    return GC.qalloc(padded_size, info.attr, tinext);
 }
 
 /**
