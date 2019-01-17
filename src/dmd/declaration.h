@@ -673,7 +673,6 @@ public:
     bool addPostInvariant();
 
     CtorDeclaration *isCtorDeclaration() { return this; }
-    CtorDeclaration *isCopyCtorDeclaration() { return isCpCtor ? this : NULL; }
     void accept(Visitor *v) { v->visit(this); }
 };
 

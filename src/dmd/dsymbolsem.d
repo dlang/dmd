@@ -386,7 +386,7 @@ private CtorDeclaration buildCopyCtor(StructDeclaration sd, Scope* sc)
         return null;
 
     if (auto s = sd.search(sd.loc, Id.copyCtor))
-        return s.isCopyCtorDeclaration();
+        return s.isCtorDeclaration();
 
     bool fieldCpCtor;
     // see if any struct members define a copy constructor

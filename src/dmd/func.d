@@ -3374,13 +3374,6 @@ extern (C++) final class CtorDeclaration : FuncDeclaration
     {
         return this;
     }
-
-    override inout(CtorDeclaration) isCopyCtorDeclaration() inout
-    {
-        return isCpCtor ? this : null;
-    }
-
-
     override void accept(Visitor v)
     {
         v.visit(this);

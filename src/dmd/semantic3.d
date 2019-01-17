@@ -1327,7 +1327,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         // because of context pointers. If there are any errors, then
         // they will be spotted during the semantic analysis of the
         // constructor body.
-        bool isCopyCtor = ctor.isCopyCtorDeclaration() !is null;
+        bool isCopyCtor = ctor.isCpCtor;
         uint errors;
         if (isCopyCtor)
             errors = global.startGagging();
