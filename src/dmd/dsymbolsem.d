@@ -379,18 +379,13 @@ private Statement generateCopyCtorBody(StructDeclaration sd)
 }
 
 /* Generates copy constructors for the fields that define copy constructors.
-   The body of all generated copy constructors is the same and it does
-   memberwise initialization. If any initialization in a particular
-   generated copy constructor is not possible (through implicit conversion
-   or copy construction), the generated copy constructor is marked `@disable`.
  */
 private CtorDeclaration buildCopyCtor(StructDeclaration sd, Scope* sc)
 {
     if (sd.postblit)
         return null;
 
-    Dsymbol s = sd.search(sd.loc, Id.copyCtor);
-    if (s)
+    if (auto s = sd.search(sd.loc, Id.copyCtor))
         return s.isCopyCtorDeclaration();
 
     bool fieldCpCtor;
@@ -401,48 +396,45 @@ private CtorDeclaration buildCopyCtor(StructDeclaration sd, Scope* sc)
             continue;
         if (v.overlapped)
             continue;
-        Type tv = v.type.baseElemOf();
-        if (tv.ty != Tstruct)
+
+        auto ts = v.type.baseElemOf().isTypeStruct();
+        if (!ts)
             continue;
-        StructDeclaration sdv = (cast(TypeStruct)tv).sym;
-        if (auto copyCtor = sdv.copyCtor)
+        if (ts.sym.copyCtor)
         {
             fieldCpCtor = true;
             break;
         }
     }
 
-    // if any field defines a copy constructor
-    if (fieldCpCtor)
+    if (!fieldCpCtor)
+        return null;
+
+
+    //printf("generating copy constructor for %s\n", ccd.type.toChars());
+    const MOD paramMod = MODFlags.wild;
+    const MOD funcMod = MODFlags.wild;
+    auto ccd = generateCopyCtorDeclaration(sd, ModToStc(paramMod), ModToStc(funcMod));
+    auto copyCtorBody = generateCopyCtorBody(sd);
+    ccd.fbody = copyCtorBody;
+    sd.members.push(ccd);
+    ccd.addMember(sc, sd);
+    const errors = global.startGagging();
+    Scope* sc2 = sc.push();
+    sc2.stc = 0;
+    sc2.linkage = LINK.d;
+    ccd.dsymbolSemantic(sc2);
+    ccd.semantic2(sc2);
+    ccd.semantic3(sc2);
+    //printf("ccd semantic: %s\n", ccd.type.toChars());
+    sc2.pop();
+    if (global.endGagging(errors))
     {
-        // generate the body that does memberwise initialization
-        const MOD paramMod = MODFlags.wild;
-        const MOD funcMod = MODFlags.wild;
-        auto ccd = generateCopyCtorDeclaration(sd, ModToStc(paramMod), ModToStc(funcMod));
-        //printf("generating for %s\n", ccd.type.toChars());
-        auto copyCtorBody = generateCopyCtorBody(sd);
-        ccd.fbody = copyCtorBody.syntaxCopy();
-        sd.members.push(ccd);
-        ccd.addMember(sc, sd);
-        const errors = global.startGagging();
-        Scope* sc2 = sc.push();
-        sc2.stc = 0;
-        sc2.linkage = LINK.d;
-        ccd.dsymbolSemantic(sc2);
-        ccd.semantic2(sc2);
-        ccd.semantic3(sc2);
-        //printf("ccd semantic: %s\n", ccd.type.toChars());
-        sc2.pop();
-        if (global.endGagging(errors))
-        {
-            ccd.storage_class |= STC.disable;
-            ccd.fbody = null;
-        }
-        if (!s)
-            s = ccd;
+        ccd.storage_class |= STC.disable;
+        ccd.fbody = null;
     }
 
-    return s ? s.isCopyCtorDeclaration : null;
+    return ccd;
 }
 
 private uint setMangleOverride(Dsymbol s, const(char)[] sym)
