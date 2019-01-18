@@ -114,7 +114,7 @@ extern (D) private void sliceStructs_Gather(const symtab_t* symtab, SymInfo[] si
                         if (si >= 0 && sia[si].canSlice)
                         {
                             assert(si < symtab.top);
-                            if (nthSlice(e) == NOTSLICE)
+                            if (nthSlice(e1) == NOTSLICE)
                             {
                                 sia[si].canSlice = false;
                             }
@@ -266,7 +266,7 @@ void sliceStructs(symtab_t* symtab, block* startblock)
     foreach (si; 0 .. symtab.top)
     {
         Symbol *s = symtab.tab[si];
-        //printf("slice1: %s\n", s.Sident);
+        //printf("slice1: %s\n", s.Sident.ptr);
 
         if ((s.Sflags & (GTregcand | SFLunambig)) != (GTregcand | SFLunambig))
         {
