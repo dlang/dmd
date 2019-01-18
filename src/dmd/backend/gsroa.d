@@ -39,6 +39,9 @@ extern (C++):
 
 int REGSIZE();
 
+alias SLICESIZE = REGSIZE;  // slices are all register-sized
+enum MAXSLICES = 2;         // max # of pieces we can slice an aggregate into
+
 /* This 'slices' a two register wide aggregate into two separate register-sized variables,
  * enabling much better enregistering.
  * SROA (Scalar Replacement Of Aggregates) is the common term for this.
@@ -48,9 +51,8 @@ struct SymInfo
 {
     bool canSlice;
     bool accessSlice;   // if Symbol was accessed as a slice
-    tym_t ty0;          // type of first slice
-    tym_t ty1;          // type of second slice
-    SYMIDX si0;
+    tym_t[MAXSLICES] ty; // type of each slice
+    SYMIDX si0;          // index of first slice, the rest follow sequentially
 }
 
 /********************************
@@ -72,26 +74,23 @@ extern (D) private void sliceStructs_Gather(const symtab_t* symtab, SymInfo[] si
                 if (si >= 0 && sia[si].canSlice)
                 {
                     assert(si < symtab.top);
+                    const n = nthSlice(e);
                     const sz = tysize(e.Ety);
-                    if (sz == 2 * REGSIZE && !tyfv(e.Ety))
+                    if (sz == 2 * SLICESIZE && !tyfv(e.Ety))
                     {
                         // Rewritten as OPpair later
                     }
-                    else if (sz == REGSIZE &&
-                        (e.EV.Voffset == 0 || e.EV.Voffset == REGSIZE))
+                    else if (n != NOTSLICE)
                     {
                         if (!sia[si].accessSlice)
                         {
                             /* [1] default as pointer type
                              */
-                            sia[si].ty0 = TYnptr;
-                            sia[si].ty1 = TYnptr;
+                            foreach (ref ty; sia[si].ty)
+                                ty = TYnptr;
                         }
                         sia[si].accessSlice = true;
-                        if (e.EV.Voffset == 0)
-                            sia[si].ty0 = tybasic(e.Ety);
-                        else
-                            sia[si].ty1 = tybasic(e.Ety);
+                        sia[si].ty[n] = tybasic(e.Ety);
                     }
                     else
                     {
@@ -115,8 +114,7 @@ extern (D) private void sliceStructs_Gather(const symtab_t* symtab, SymInfo[] si
                         if (si >= 0 && sia[si].canSlice)
                         {
                             assert(si < symtab.top);
-                            if (tysize(e1.Ety) != REGSIZE ||
-                                (e1.EV.Voffset != 0 && e1.EV.Voffset != REGSIZE))
+                            if (nthSlice(e) == NOTSLICE)
                             {
                                 sia[si].canSlice = false;
                             }
@@ -170,17 +168,18 @@ extern (D) private void sliceStructs_Replace(symtab_t* symtab, const SymInfo[] s
                 //elem_print(e);
                 if (si >= 0 && sia[si].canSlice)
                 {
-                    if (tysize(e.Ety) == 2 * REGSIZE)
+                    const n = nthSlice(e);
+                    if (tysize(e.Ety) == 2 * SLICESIZE)
                     {
                         // Rewrite e as (si0 OPpair si0+1)
                         elem *e1 = el_calloc();
                         el_copy(e1, e);
-                        e1.Ety = sia[si].ty0;
+                        e1.Ety = sia[si].ty[0];
 
                         elem *e2 = el_calloc();
                         el_copy(e2, e);
                         Symbol *s1 = symtab.tab[sia[si].si0 + 1]; // +1 for second slice
-                        e2.Ety = sia[si].ty1;
+                        e2.Ety = sia[si].ty[1];
                         e2.EV.Vsym = s1;
                         e2.EV.Voffset = 0;
 
@@ -209,13 +208,12 @@ extern (D) private void sliceStructs_Replace(symtab_t* symtab, const SymInfo[] s
                                 e2.Ety = tyop;
                         }
                     }
-                    else if (e.EV.Voffset == 0)  // the first slice of the symbol is the same as the original
+                    else if (n == 0)  // the first slice of the symbol is the same as the original
                     {
                     }
-                    else
+                    else // the nth slice
                     {
-                        Symbol *s1 = symtab.tab[sia[si].si0 + 1]; // +1 for second slice
-                        e.EV.Vsym = s1;
+                        e.EV.Vsym = symtab.tab[sia[si].si0 + n];
                         e.EV.Voffset = 0;
                         //printf("replaced with:\n");
                         //elem_print(e);
@@ -277,7 +275,7 @@ void sliceStructs(symtab_t* symtab, block* startblock)
         }
 
         const sz = type_size(s.Stype);
-        if (sz != 2 * REGSIZE ||
+        if (sz != 2 * SLICESIZE ||
             tyfv(s.Stype.Tty) || tybasic(s.Stype.Tty) == TYhptr)    // because there is no TYseg
         {
             sia[si].canSlice = false;
@@ -349,7 +347,7 @@ void sliceStructs(symtab_t* symtab, block* startblock)
                 const idlen = 2 + strlen(sold.Sident.ptr) + 2;
                 char *id = cast(char *)malloc(idlen + 1);
                 assert(id);
-                sprintf(id, "__%s_%d", sold.Sident.ptr, REGSIZE);
+                sprintf(id, "__%s_%d", sold.Sident.ptr, SLICESIZE);
                 if (debugc) printf("creating slice symbol %s\n", id);
                 Symbol *snew = symbol_calloc(id, cast(uint)idlen);
                 free(id);
@@ -363,9 +361,9 @@ void sliceStructs(symtab_t* symtab, block* startblock)
                     sold.Spreg2 = NOREG;
                 }
                 type_free(sold.Stype);
-                sold.Stype = type_fake(sia[si].ty0);
+                sold.Stype = type_fake(sia[si].ty[0]);
                 sold.Stype.Tcount++;
-                snew.Stype = type_fake(sia[si].ty1);
+                snew.Stype = type_fake(sia[si].ty[1]);
                 snew.Stype.Tcount++;
 
                 // insert snew into symtab.tab[si + n + 1]
@@ -373,8 +371,7 @@ void sliceStructs(symtab_t* symtab, block* startblock)
 
                 sia2[si + n].canSlice = true;
                 sia2[si + n].si0 = si + n;
-                sia2[si + n].ty0 = sia[si].ty0;
-                sia2[si + n].ty1 = sia[si].ty1;
+                sia2[si + n].ty[] = sia[si].ty[];
                 ++n;
                 any = true;
             }
@@ -398,6 +395,28 @@ void sliceStructs(symtab_t* symtab, block* startblock)
 Ldone:
     if (sip != tmp.ptr)
         free(sip);
+}
+
+
+/*************************************
+ * Determine if `e` is a slice.
+ * Params:
+ *      e = elem that may be a slice
+ * Returns:
+ *      slice number if it is, NOTSLICE if not
+ */
+enum NOTSLICE = -1;
+int nthSlice(const(elem)* e)
+{
+    const sz = tysize(e.Ety);
+    if (sz == SLICESIZE)
+    {
+        if (e.EV.Voffset == 0)
+            return 0;
+        if (e.EV.Voffset == SLICESIZE)
+            return 1;
+    }
+    return NOTSLICE;
 }
 
 }
