@@ -18,7 +18,6 @@ private
     import core.stdc.stdio;
     import core.stdc.stdlib;
     import core.stdc.string;
-    import core.internal.string;
 
     version (CRuntime_Microsoft)
         alias core.stdc.stdlib._strtoui64 strtoull;
@@ -548,7 +547,10 @@ private Symbol* trace_addsym(Symbol** proot, const(char)[] id)
     auto rover = *parent;
     while (rover !is null)               // while we haven't run out of tree
     {
-        auto cmp = dstrcmp(id, rover.Sident);
+        immutable len = id.length <= rover.Sident.length ? id.length : rover.Sident.length;
+        int cmp = memcmp(id.ptr, rover.Sident.ptr, len);
+        if (!cmp)
+            cmp = id.length < rover.Sident.length ? -1 : (id.length > rover.Sident.length);
         if (cmp == 0)
         {
             return rover;
