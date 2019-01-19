@@ -36,13 +36,21 @@ source ci.sh
 # Always source a DMD instance
 ################################################################################
 
-# FIXME: v2.082.0 has a broken DUB which fails the CI
-# Remove this when a fixed v2.082.1 is released
-# See https://github.com/dlang/dub/issues/1551
-if [ "$DMD" == "dmd" ]; then
-    install_d "dmd-2.081.2"
-elif  [ "$DMD" == "ldc" ]; then
-    install_d "ldc-1.11.0"
+# Later versions of LDC causes a linker error.
+if  [ "$DMD" == "ldc" ]; then
+    LDC_VERSION=1.11.0
+    DUB_VERSION=1.13.0
+
+    install_d "ldc-$LDC_VERSION"
+    source ~/dlang/ldc-$LDC_VERSION/activate
+
+    # Older versions of LDC are shipped with a version of Dub that doesn't
+    # support the `DUB_EXE` environment variable
+    curl -o dub.tar.gz -L https://github.com/dlang/dub/releases/download/v$DUB_VERSION/dub-v$DUB_VERSION-linux-x86_64.tar.gz
+    tar xf dub.tar.gz
+    # Replace default dub with newer version
+    mv dub $(which dub)
+    deactivate
 else
     install_d "$DMD"
 fi

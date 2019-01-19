@@ -30,8 +30,8 @@ subPackage {
     "src/dmd/tokens.d" \
     "src/dmd/utf.d"
 
-  preGenerateCommands `"$${DC}" -run "$${DUB_PACKAGE_DIR}/config.d" "$${DUB_PACKAGE_DIR}/generated/dub" "$${DUB_PACKAGE_DIR}/VERSION" /etc` platform="posix"
-  preGenerateCommands `"%DC%" -run "%DUB_PACKAGE_DIR%/config.d" "%DUB_PACKAGE_DIR%/generated/dub" "%DUB_PACKAGE_DIR%/VERSION"` platform="windows"
+  preGenerateCommands `"$${DUB_EXE}" --arch=$${DUB_ARCH} --single "$${DUB_PACKAGE_DIR}config.d" -- "$${DUB_PACKAGE_DIR}generated/dub" "$${DUB_PACKAGE_DIR}VERSION" /etc` platform="posix"
+  preGenerateCommands `"%DUB_EXE%" --arch=%DUB_ARCH% --single "%DUB_PACKAGE_DIR%config.d" "%DUB_PACKAGE_DIR%generated/dub" "%DUB_PACKAGE_DIR%VERSION"` platform="windows"
   stringImportPaths "generated/dub"
 
   dependency "dmd:root" version="*"
@@ -55,9 +55,6 @@ subPackage {
 subPackage {
   name "frontend"
   targetType "library"
-  preGenerateCommands `"$${DC}" -run "$${DUB_PACKAGE_DIR}/config.d" "$${DUB_PACKAGE_DIR}/generated/dub" "$${DUB_PACKAGE_DIR}/VERSION" /etc` platform="posix"
-  preGenerateCommands `"%DC%" -run "%DUB_PACKAGE_DIR%/config.d" "%DUB_PACKAGE_DIR%/generated/dub" "%DUB_PACKAGE_DIR%/VERSION"` platform="windows"
-  stringImportPaths "generated/dub"
   stringImportPaths "res"
   versions "NoBackend"
   versions "GC"
@@ -66,4 +63,6 @@ subPackage {
   sourcePaths "src/dmd"
   excludedSourceFiles "src/dmd/backend/*"
   excludedSourceFiles "src/dmd/{dmsc,e2ir,eh,glue,iasm,iasmdmd,iasmgcc,objc_glue,s2ir,tocsym,toctype,toobj,todt,toir}.d"
+
+  dependency "dmd:parser" version="*"
 }

@@ -1125,9 +1125,8 @@ version (Posix)
     */
     auto absPathThen(alias F)(const(char)[] fileName)
     {
-        import core.sys.posix.stdlib: free;
         auto absPath = FileName.canonicalName(fileName);
-        scope(exit) free(cast(void*)absPath.ptr);
+        scope(exit) mem.xfree(cast(void*)absPath.ptr);
         return F(cast(char[])absPath);
     }
 }
