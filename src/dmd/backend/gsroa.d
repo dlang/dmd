@@ -268,7 +268,7 @@ void sliceStructs(symtab_t* symtab, block* startblock)
         Symbol *s = symtab.tab[si];
         //printf("slice1: %s\n", s.Sident);
 
-        if ((s.Sflags & (GTregcand | SFLunambig)) != (GTregcand | SFLunambig))
+        if (!(s.Sflags & SFLunambig))   // if somebody took the address of s
         {
             sia[si].canSlice = false;
             continue;
