@@ -2002,7 +2002,7 @@ void Obj_setcodeseg(int seg)
  *      segment index of newly created code segment
  */
 
-int Obj_codeseg(char *name,int suffix)
+int Obj_codeseg(const char *name,int suffix)
 {
     //dbg_printf("Obj_codeseg(%s,%x)\n",name,suffix);
 static if (0)

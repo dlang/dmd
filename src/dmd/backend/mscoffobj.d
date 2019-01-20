@@ -1575,7 +1575,7 @@ IDXSEC MsCoffObj_addScnhdr(const(char)* scnhdr_name, uint flags)
  *      segment index of newly created code segment
  */
 
-int MsCoffObj_codeseg(char *name,int suffix)
+int MsCoffObj_codeseg(const char *name,int suffix)
 {
     //dbg_printf("MsCoffObj_codeseg(%s,%x)\n",name,suffix);
     return 0;

@@ -2169,7 +2169,7 @@ void OmfObj_setcodeseg(int seg)
  *      segment index of newly created code segment
  */
 
-int OmfObj_codeseg(char *name,int suffix)
+int OmfObj_codeseg(const char *name,int suffix)
 {
     if (!name)
     {
@@ -2424,7 +2424,7 @@ else
 size_t OmfObj_mangle(Symbol *s,char *dest)
 {   size_t len;
     size_t ilen;
-    char *name;
+    const(char)* name;
     char *name2 = null;
 
     //printf("OmfObj_mangle('%s'), mangle = x%x\n",s.Sident.ptr,type_mangle(s.Stype));
@@ -2469,9 +2469,9 @@ version (MARS)
                 c2 += (c2 < 10) ? '0' : 'A' - 10;
                 name2[LIBIDMAX - 32 + i * 2 + 1] = c2;
             }
-            name = name2;
             len = LIBIDMAX;
-            name[len] = 0;
+            name2[len] = 0;
+            name = name2;
             //printf("name = '%s', len = %d, strlen = %d\n", name, len, strlen(name));
         }
         else
