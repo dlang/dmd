@@ -90,7 +90,7 @@ list_t list_next(list_t list) { return list.next; }
  *    ptr from list entry.
  */
 
-void* list_ptr(list_t list) { return list.ptr; }
+inout(void)* list_ptr(inout list_t list) { return list.ptr; }
 
 /********************************
  * Returns:
@@ -546,7 +546,7 @@ struct ListRange
 
     list_t front() return  { return li; }
     void popFront() { li = li.next; }
-    bool empty()    { return !li; }
+    bool empty() const { return !li; }
 
   private:
     list_t li;

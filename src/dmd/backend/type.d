@@ -65,7 +65,7 @@ void type_setIdent(type* t, char* ident);
 void symbol_struct_addField(Symbol* s, const(char)* name, type* t, uint offset);
 
 // Return true if type is a struct, class or union
-bool type_struct(type* t) { return tybasic(t.Tty) == TYstruct; }
+bool type_struct(const type* t) { return tybasic(t.Tty) == TYstruct; }
 
 struct TYPE
 {
@@ -107,16 +107,16 @@ struct typetemp_t
     Symbol *Tsym;               // primary class template symbol
 }
 
-void type_debug(type* t)
+void type_debug(const type* t)
 {
     debug assert(t.id == t.IDtype);
 }
 
 // Return name mangling of type
-mangle_t type_mangle(type *t) { return t.Tmangle; }
+mangle_t type_mangle(const type *t) { return t.Tmangle; }
 
 // Return true if function type has a variable number of arguments
-bool variadic(type *t) { return (t.Tflags & (TFprototype | TFfixed)) == TFprototype; }
+bool variadic(const type *t) { return (t.Tflags & (TFprototype | TFfixed)) == TFprototype; }
 
 extern __gshared type*[TYMAX] tstypes;
 extern __gshared type*[TYMAX] tsptr2types;
