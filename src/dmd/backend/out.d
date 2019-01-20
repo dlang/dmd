@@ -1747,7 +1747,7 @@ void out_readonly_comdat(Symbol *s, const(void)* p, uint len, uint nzeros)
     objmod.lidata(s.Sseg, len, nzeros);
 }
 
-void Srcpos_print(ref Srcpos srcpos, const(char)* func)
+void Srcpos_print(ref const Srcpos srcpos, const(char)* func)
 {
     printf("%s(", func);
 version (MARS)
@@ -1756,7 +1756,7 @@ version (MARS)
 }
 else
 {
-    Sfile *sf = srcpos.Sfilptr ? *srcpos.Sfilptr : null;
+    const sf = srcpos.Sfilptr ? *srcpos.Sfilptr : null;
     printf("Sfilptr = %p (filename = %s)", sf, sf ? sf.SFname : "null".ptr);
 }
     printf(", Slinnum = %u", srcpos.Slinnum);

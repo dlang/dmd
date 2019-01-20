@@ -122,22 +122,22 @@ struct elem
     Srcpos Esrcpos;      // source file position
 }
 
-void elem_debug(elem* e)
+void elem_debug(const elem* e)
 {
     debug assert(e.id == e.IDelem);
 }
 
 version (MARS)
-    tym_t typemask(elem* e) { return e.Ety; }
+    tym_t typemask(const elem* e) { return e.Ety; }
 else
-    tym_t typemask(elem* e) { return PARSER ? e.ET.Tty : e.Ety; }
+    tym_t typemask(const elem* e) { return PARSER ? e.ET.Tty : e.Ety; }
 
-FL el_fl(elem *e) { return cast(FL)e.EV.Vsym.Sfl; }
+FL el_fl(const elem* e) { return cast(FL)e.EV.Vsym.Sfl; }
 
 //#define Eoffset         EV.sp.Voffset
 //#define Esymnum         EV.sp.Vsymnum
 
-elem* list_elem(list_t list) { return cast(elem*)list_ptr(list); }
+inout(elem)* list_elem(inout list_t list) { return cast(inout(elem)*)list_ptr(list); }
 
 void list_setelem(list_t list, void* ptr) { list.ptr = cast(elem *)ptr; }
 
