@@ -131,6 +131,9 @@ extern int TYptrdiff, TYsize, TYsize_t;
 #define mTYfar          0x1000           // seg:offset style pointer
 #define mTYcs           0x2000           // in code segment
 #define mTYthread       0x4000
+
+/// Used for symbols going in the __thread_data section for TLS variables for Mach-O 64bit
+#define mTYthreadData   0x5000
 #define mTYLINK         0x7800           // all linkage bits
 
 #define mTYloadds       0x08000          // 16 bit Windows LOADDS attribute

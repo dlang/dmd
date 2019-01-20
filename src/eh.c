@@ -84,7 +84,7 @@ symbol *except_gentables()
 void except_fillInEHTable(symbol *s)
 {
     unsigned fsize = NPTRSIZE;             // target size of function pointer
-    dt_t **pdt = &s->Sdt;
+    DtBuilder dtb;
 
     /*
         void*           pointer to start of function (Windows)
@@ -117,7 +117,7 @@ void except_fillInEHTable(symbol *s)
     if (config.ehmethod == EH_WIN32)
     {
         symbol_debug(funcsym_p);
-        pdt = dtxoff(pdt,funcsym_p,0,TYnptr);
+        dtb.xoff(funcsym_p,0,TYnptr);
         sz += fsize;
     }
 
@@ -125,11 +125,11 @@ void except_fillInEHTable(symbol *s)
 
     // Get offset of ESP from EBP
     long spoff = cod3_spoff();
-    pdt = dtdword(pdt,spoff);
+    dtb.dword(spoff);
     sz += 4;
 
     // Offset from start of function to return code
-    pdt = dtdword(pdt,retoffset);
+    dtb.dword(retoffset);
     sz += 4;
 
     // First, calculate starting catch offset
@@ -152,7 +152,7 @@ void except_fillInEHTable(symbol *s)
 
     if (config.ehmethod == EH_DM)
     {
-        pdt = dtsize_t(pdt,guarddim + ndctors);
+        dtb.size(guarddim + ndctors);
         sz += NPTRSIZE;
     }
 
@@ -168,7 +168,7 @@ void except_fillInEHTable(symbol *s)
             assert(b->Bscope_index >= i);
             if (i < b->Bscope_index)
             {   int fillsize = (b->Bscope_index - i) * GUARD_SIZE;
-                pdt = dtnzeros(pdt, fillsize);
+                dtb.nzeros( fillsize);
                 sz += fillsize;
             }
             i = b->Bscope_index + 1;
@@ -178,7 +178,7 @@ void except_fillInEHTable(symbol *s)
             if (config.ehmethod == EH_DM)
             {
             //printf("DHandlerInfo: offset = %x", (int)(b->Boffset - startblock->Boffset));
-            pdt = dtdword(pdt,b->Boffset - startblock->Boffset);        // offset to start of block
+            dtb.dword(b->Boffset - startblock->Boffset);        // offset to start of block
 
             // Compute ending offset
             unsigned endoffset;
@@ -192,23 +192,23 @@ void except_fillInEHTable(symbol *s)
                 }
             }
             //printf(" endoffset = %x, prev_index = %d\n", endoffset, b->Blast_index);
-            pdt = dtdword(pdt,endoffset);               // offset past end of guarded block
+            dtb.dword(endoffset);               // offset past end of guarded block
             }
 
-            pdt = dtdword(pdt,b->Blast_index);          // parent index
+            dtb.dword(b->Blast_index);          // parent index
 
             if (b->jcatchvar)                           // if try-catch
             {
                 assert(catchoffset);
-                pdt = dtdword(pdt,catchoffset);
-                pdt = dtsize_t(pdt,0);                  // no finally handler
+                dtb.dword(catchoffset);
+                dtb.size(0);                  // no finally handler
 
                 catchoffset += NPTRSIZE + (nsucc - 1) * (3 * NPTRSIZE);
             }
             else                                        // else try-finally
             {
                 assert(nsucc == 2);
-                pdt = dtdword(pdt,0);           // no catch offset
+                dtb.dword(0);           // no catch offset
                 block *bhandler = b->nthSucc(1);
                 assert(bhandler->BC == BC_finally);
                 // To successor of BC_finally block
@@ -217,10 +217,10 @@ void except_fillInEHTable(symbol *s)
                 if (config.ehmethod == EH_DM)
                 {
                     assert(bhandler->Boffset > startblock->Boffset);
-                    pdt = dtsize_t(pdt,bhandler->Boffset - startblock->Boffset);    // finally handler offset
+                    dtb.size(bhandler->Boffset - startblock->Boffset);    // finally handler offset
                 }
                 else
-                    pdt = dtcoff(pdt,bhandler->Boffset);
+                    dtb.coff(bhandler->Boffset);
             }
             sz += GUARD_SIZE;
         }
@@ -254,7 +254,7 @@ void except_fillInEHTable(symbol *s)
                 if (config.ehmethod == EH_WIN32)
                     nteh_patchindex(c2, scopeindex);
                 if (config.ehmethod == EH_DM)
-                    pdt = dtdword(pdt,boffset - startblock->Boffset); // guard offset
+                    dtb.dword(boffset - startblock->Boffset); // guard offset
                 // Find corresponding ddtor instruction
                 int n = 0;
                 unsigned eoffset = boffset;
@@ -289,7 +289,7 @@ void except_fillInEHTable(symbol *s)
                             //cf = code_next(cf);
                             //foffset += calccodsize(cf);
                             if (config.ehmethod == EH_DM)
-                                pdt = dtdword(pdt,eoffset - startblock->Boffset); // guard offset
+                                dtb.dword(eoffset - startblock->Boffset); // guard offset
                             break;
                         }
                     }
@@ -301,15 +301,15 @@ void except_fillInEHTable(symbol *s)
                         eoffset += calccodsize(c2);
                 }
                 //printf("boffset = %x, eoffset = %x, foffset = %x\n", boffset, eoffset, foffset);
-                pdt = dtdword(pdt,stack[stacki - 1]);   // parent index
-                pdt = dtdword(pdt,0);           // no catch offset
+                dtb.dword(stack[stacki - 1]);   // parent index
+                dtb.dword(0);           // no catch offset
                 if (config.ehmethod == EH_DM)
                 {
                     assert(foffset > startblock->Boffset);
-                    pdt = dtsize_t(pdt,foffset - startblock->Boffset);    // finally handler offset
+                    dtb.size(foffset - startblock->Boffset);    // finally handler offset
                 }
                 else
-                    pdt = dtcoff(pdt,foffset);  // finally handler address
+                    dtb.coff(foffset);  // finally handler address
                 if (stacki == stackmax)
                 {   // stack[] is out of space; enlarge it
                     int *pi = (int *)malloc((stackmax + STACKINC) * sizeof(int));
@@ -343,30 +343,31 @@ void except_fillInEHTable(symbol *s)
         if (b->BC == BC_try && b->jcatchvar)         // if try-catch
         {
             int nsucc = b->numSucc();
-            pdt = dtsize_t(pdt,nsucc - 1);           // # of catch blocks
+            dtb.size(nsucc - 1);           // # of catch blocks
             sz += NPTRSIZE;
 
             for (int i = 1; i < nsucc; ++i)
             {
                 block *bcatch = b->nthSucc(i);
 
-                pdt = dtxoff(pdt,bcatch->Bcatchtype,0,TYnptr);
+                dtb.xoff(bcatch->Bcatchtype,0,TYnptr);
 
-                pdt = dtsize_t(pdt,cod3_bpoffset(b->jcatchvar));     // EBP offset
+                dtb.size(cod3_bpoffset(b->jcatchvar));     // EBP offset
 
                 // catch handler address
                 if (config.ehmethod == EH_DM)
                 {
                     assert(bcatch->Boffset > startblock->Boffset);
-                    pdt = dtsize_t(pdt,bcatch->Boffset - startblock->Boffset);  // catch handler offset
+                    dtb.size(bcatch->Boffset - startblock->Boffset);  // catch handler offset
                 }
                 else
-                    pdt = dtcoff(pdt,bcatch->Boffset);
+                    dtb.coff(bcatch->Boffset);
 
                 sz += 3 * NPTRSIZE;
             }
         }
     }
     assert(sz != 0);
+    s->Sdt = dtb.finish();
 }
 

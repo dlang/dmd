@@ -47,6 +47,11 @@ struct Loc
 void error(Loc loc, const char *format, ...);
 #endif
 
+#if MARS
+// C++ name mangling is handled by front end
+#define cpp_mangle(s) ((s)->Sident)
+#endif
+
 #if TARGET_WINDOS
 
 static char __file__[] = __FILE__;      // for tassert.h
@@ -2060,6 +2065,12 @@ seg_data *Obj::tlsseg()
     return SegData[obj.tlssegi];
 }
 
+seg_data *Obj::tlsseg_data()
+{
+    // specific for Mach-O
+    assert(0);
+    return NULL;
+}
 
 /********************************
  * Define a far data segment.
@@ -2325,6 +2336,7 @@ size_t Obj::mangle(Symbol *s,char *dest)
                 break;
             }
         case mTYman_c:
+        case mTYman_d:
             if (config.flags4 & CFG4underscore)
             {
                 dest[1] = '_';          // leading _ in name
@@ -2332,7 +2344,6 @@ size_t Obj::mangle(Symbol *s,char *dest)
                 len++;
                 break;
             }
-        case mTYman_d:
         case mTYman_sys:
             memcpy(dest + 1, name, len);        // no mangling
             dest[1 + len] = 0;
@@ -3677,6 +3688,12 @@ void Obj::fltused()
     }
 }
 
+symbol *Obj::tlv_bootstrap()
+{
+    // specific for Mach-O
+    assert(0);
+    return NULL;
+}
 
 /****************************************
  * Find longest match of pattern[] in dict[].

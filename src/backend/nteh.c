@@ -117,39 +117,40 @@ void nteh_gentables()
      *  handler address
      */
     unsigned fsize = 4;             // target size of function pointer
-    dt_t **pdt = &s->Sdt;
+    DtBuilder dtb;
     int sz = 0;                     // size so far
 
     for (block *b = startblock; b; b = b->Bnext)
     {
         if (b->BC == BC_try)
-        {   dt_t *dt;
+        {
             block *bhandler;
 
-            pdt = dtdword(pdt,b->Blast_index);  // parent index
+            dtb.dword(b->Blast_index);  // parent index
 
             // If try-finally
-            if (list_nitems(b->Bsucc) == 2)
+            if (b->numSucc() == 2)
             {
-                pdt = dtdword(pdt,0);           // filter address
-                bhandler = list_block(list_next(b->Bsucc));
+                dtb.dword(0);           // filter address
+                bhandler = b->nthSucc(1);
                 assert(bhandler->BC == BC_finally);
                 // To successor of BC_finally block
-                bhandler = list_block(bhandler->Bsucc);
+                bhandler = bhandler->nthSucc(0);
             }
             else // try-except
             {
-                bhandler = list_block(list_next(b->Bsucc));
+                bhandler = b->nthSucc(1);
                 assert(bhandler->BC == BC_filter);
-                pdt = dtcoff(pdt,bhandler->Boffset);    // filter address
-                bhandler = list_block(list_next(list_next(b->Bsucc)));
+                dtb.coff(bhandler->Boffset);    // filter address
+                bhandler = b->nthSucc(2);
                 assert(bhandler->BC == BC_except);
             }
-            pdt = dtcoff(pdt,bhandler->Boffset);        // handler address
+            dtb.coff(bhandler->Boffset);        // handler address
             sz += 4 + fsize * 2;
         }
     }
     assert(sz != 0);
+    s->Sdt = dtb.finish();
 #endif
 
     outdata(s);                 // output the scope table

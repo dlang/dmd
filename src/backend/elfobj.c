@@ -1955,6 +1955,13 @@ seg_data *Obj::tlsseg_bss()
     return SegData[seg_tlsseg_bss];
 }
 
+seg_data *Obj::tlsseg_data()
+{
+    // specific for Mach-O
+    assert(0);
+    return NULL;
+}
+
 
 /*******************************
  * Output an alias definition record.
@@ -3506,6 +3513,13 @@ void Obj::gotref(symbol *s)
         default:
             break;
     }
+}
+
+symbol *Obj::tlv_bootstrap()
+{
+    // specific for Mach-O
+    assert(0);
+    return NULL;
 }
 
 /******************************************

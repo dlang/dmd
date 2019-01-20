@@ -44,6 +44,11 @@ static char __file__[] = __FILE__;      // for tassert.h
 #define DEST_LEN (IDMAX + IDOHD + 1)
 char *obj_mangle2(Symbol *s,char *dest);
 
+#if MARS
+// C++ name mangling is handled by front end
+#define cpp_mangle(s) ((s)->Sident)
+#endif
+
 /******************************************
  */
 
@@ -1526,6 +1531,13 @@ seg_data *MsCoffObj::tlsseg_bss()
     return MsCoffObj::tlsseg();
 }
 
+seg_data *MsCoffObj::tlsseg_data()
+{
+    // specific for Mach-O
+    assert(0);
+    return NULL;
+}
+
 /*************************************
  * Return segment indices for .pdata and .xdata sections
  */
@@ -1680,7 +1692,6 @@ char *obj_mangle2(Symbol *s,char *dest)
             }
             // fall through
         case mTYman_cpp:
-        case mTYman_d:
         case mTYman_sys:
         case_mTYman_c64:
         case 0:
@@ -1690,6 +1701,7 @@ char *obj_mangle2(Symbol *s,char *dest)
             break;
 
         case mTYman_c:
+        case mTYman_d:
             if(I64)
                 goto case_mTYman_c64;
             // Prepend _ to identifier
@@ -2377,6 +2389,12 @@ void MsCoffObj::setcodeseg(int seg)
     cseg = seg;
 }
 
+symbol *MsCoffObj::tlv_bootstrap()
+{
+    // specific for Mach-O
+    assert(0);
+    return NULL;
+}
 
 #endif
 #endif

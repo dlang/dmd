@@ -49,9 +49,9 @@ typedef Array<struct Symbol *> Symbols;
 
 Classsym *fake_classsym(Identifier *id);
 type *Type_toCtype(Type *t);
-dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt);
-dt_t **Expression_toDt(Expression *e, dt_t **pdt);
-dt_t **cpp_type_info_ptr_toDt(ClassDeclaration *cd, dt_t **pdt);
+void ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, DtBuilder& dtb);
+void Expression_toDt(Expression *e, DtBuilder& dtb);
+void cpp_type_info_ptr_toDt(ClassDeclaration *cd, DtBuilder& dtb);
 Symbol *toInitializer(AggregateDeclaration *ad);
 
 /*************************************
@@ -186,6 +186,9 @@ Symbol *toSymbol(Dsymbol *s)
                     type_setty(&t, t->Tty | mTYthread);
                     ts->Tcount--;
 
+                    if (config.objfmt == OBJ_MACH && I64)
+                        s->Salignment = 2;
+
                     if (global.params.vtls)
                     {
                         const char *p = vd->loc.toChars();
@@ -236,6 +239,7 @@ Symbol *toSymbol(Dsymbol *s)
                     m = mTYman_pas;
                     break;
 
+                case LINKobjc:
                 case LINKc:
                     m = mTYman_c;
                     break;
@@ -245,7 +249,7 @@ Symbol *toSymbol(Dsymbol *s)
                     break;
                 case LINKcpp:
                     s->Sflags |= SFLpublic;
-                    m = mTYman_d;
+                    m = mTYman_cpp;
                     break;
                 default:
                     printf("linkage = %d, vd = %s %s @ [%s]\n",
@@ -353,7 +357,7 @@ Symbol *toSymbol(Dsymbol *s)
                                 t->Tty = TYmfunc;
                             }
                         }
-                        t->Tmangle = mTYman_d;
+                        t->Tmangle = mTYman_cpp;
                         break;
                     default:
                         printf("linkage = %d\n", fd->linkage);
@@ -634,9 +638,9 @@ Symbol* toSymbol(StructLiteralExp *sle)
     s->Sflags |= SFLnodebug;
     s->Stype = t;
     sle->sym = s;
-    dt_t *d = NULL;
-    Expression_toDt(sle, &d);
-    s->Sdt = d;
+    DtBuilder dtb;
+    Expression_toDt(sle, dtb);
+    s->Sdt = dtb.finish();
     outdata(s);
     return sle->sym;
 }
@@ -652,9 +656,9 @@ Symbol* toSymbol(ClassReferenceExp *cre)
     s->Sflags |= SFLnodebug;
     s->Stype = t;
     cre->value->sym = s;
-    dt_t *d = NULL;
-    ClassReferenceExp_toInstanceDt(cre, &d);
-    s->Sdt = d;
+    DtBuilder dtb;
+    ClassReferenceExp_toInstanceDt(cre, dtb);
+    s->Sdt = dtb.finish();
     outdata(s);
     return cre->value->sym;
 }
@@ -681,7 +685,9 @@ Symbol* toSymbolCpp(ClassDeclaration *cd)
         Symbol *s = toSymbolX(cd, "_cpp_type_info_ptr", SCcomdat, scpp->Stype, "");
         s->Sfl = FLdata;
         s->Sflags |= SFLnodebug;
-        cpp_type_info_ptr_toDt(cd, &s->Sdt);
+        DtBuilder dtb;
+        cpp_type_info_ptr_toDt(cd, dtb);
+        s->Sdt = dtb.finish();
         outdata(s);
         cd->cpp_type_info_ptr_sym = s;
     }

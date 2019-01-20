@@ -55,7 +55,6 @@ Symbol *toSymbol(Dsymbol *s);
 elem *toElem(Expression *e, IRState *irs);
 elem *toElemDtor(Expression *e, IRState *irs);
 elem *toElemStructLit(StructLiteralExp *sle, IRState *irs, Symbol *sym, bool fillHoles);
-dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 Symbol *toStringSymbol(const char *str, size_t len, size_t sz);
 Symbol *toStringSymbol(StringExp *se);
 void toObjFile(Dsymbol *ds, bool multiobj);
@@ -1856,13 +1855,7 @@ elem *toElem(Expression *e, IRState *irs)
                     !((TypeClass *)t1)->sym->isCPPclass())
                 {
                     ts = symbol_genauto(Type_toCtype(t1));
-                    int rtl;
-                    if (global.params.isLinux || global.params.isFreeBSD || global.params.isSolaris ||
-                        I64 && global.params.isWindows)
-                        rtl = RTLSYM__DINVARIANT;
-                    else
-                        rtl = RTLSYM_DINVARIANT;
-                    einv = el_bin(OPcall, TYvoid, el_var(getRtlsym(rtl)), el_var(ts));
+                    einv = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DINVARIANT)), el_var(ts));
                 }
                 else if (global.params.useInvariants &&
                     t1->ty == Tpointer &&
@@ -5650,9 +5643,12 @@ Symbol *toStringSymbol(const char *str, size_t len, size_t sz)
     {
         Symbol *si = symbol_generate(SCstatic,type_static_array(len * sz, tschar));
         si->Salignment = 1;
-        si->Sdt = NULL;
-        dt_t **pdt = dtnbytes(&si->Sdt, len * sz, str);
-        dtnzeros(pdt, sz);
+
+        DtBuilder dtb;
+        dtb.nbytes(len * sz, str);
+        dtb.nzeros(sz);
+        si->Sdt = dtb.finish();
+
         si->Sfl = FLdata;
         out_readonly(si);
         outdata(si);

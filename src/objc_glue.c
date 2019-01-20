@@ -112,8 +112,8 @@ Symbol *objc_getCString(const char *str, size_t len, const char *symbolName, Obj
     objc_hasSymbols = true;
 
     // create data
-    dt_t *dt = NULL;
-    dtnbytes(&dt, len + 1, str);
+    DtBuilder dtb;
+    dtb.nbytes(len + 1, str);
 
     // find segment
     int seg = objc_getSegment(segment);
@@ -121,7 +121,7 @@ Symbol *objc_getCString(const char *str, size_t len, const char *symbolName, Obj
     // create symbol
     Symbol *s;
     s = symbol_name(symbolName, SCstatic, type_allocn(TYarray, tschar));
-    s->Sdt = dt;
+    s->Sdt = dtb.finish();
     s->Sseg = seg;
     return s;
 }
@@ -186,12 +186,12 @@ Symbol *objc_getImageInfo()
     assert(!objc_simageInfo); // only allow once per object file
     objc_hasSymbols = true;
 
-    dt_t *dt = NULL;
-    dtdword(&dt, 0); // version
-    dtdword(&dt, 0); // flags
+    DtBuilder dtb;
+    dtb.dword(0); // version
+    dtb.dword(0); // flags
 
     objc_simageInfo = symbol_name("L_OBJC_IMAGE_INFO", SCstatic, type_allocn(TYarray, tschar));
-    objc_simageInfo->Sdt = dt;
+    objc_simageInfo->Sdt = dtb.finish();
     objc_simageInfo->Sseg = objc_getSegment(SEGimage_info);
     outdata(objc_simageInfo);
 
@@ -203,10 +203,10 @@ Symbol *objc_getModuleInfo()
     assert(!objc_smoduleInfo); // only allow once per object file
     objc_hasSymbols = true;
 
-    dt_t *dt = NULL;
+    DtBuilder dtb;
 
     Symbol* symbol = symbol_name("L_OBJC_LABEL_CLASS_$", SCstatic, type_allocn(TYarray, tschar));
-    symbol->Sdt = dt;
+    symbol->Sdt = dtb.finish();
     symbol->Sseg = objc_getSegment(SEGmodule_info);
     outdata(symbol);
 
@@ -234,9 +234,9 @@ Symbol *objc_getMethVarRef(const char *s, size_t len)
     if (refsymbol == NULL)
     {
         // create data
-        dt_t *dt = NULL;
+        DtBuilder dtb;
         Symbol *sselname = objc_getMethVarName(s, len);
-        dtxoff(&dt, sselname, 0, TYnptr);
+        dtb.xoff(sselname, 0, TYnptr);
 
         // find segment
         int seg = objc_getSegment(SEGselrefs);
@@ -247,7 +247,7 @@ Symbol *objc_getMethVarRef(const char *s, size_t len)
         sprintf(namestr, "L_OBJC_SELECTOR_REFERENCES_%lu", selcount);
         refsymbol = symbol_name(namestr, SCstatic, type_fake(TYnptr));
 
-        refsymbol->Sdt = dt;
+        refsymbol->Sdt = dtb.finish();
         refsymbol->Sseg = seg;
         outdata(refsymbol);
         sv->ptrvalue = refsymbol;

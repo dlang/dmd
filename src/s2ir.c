@@ -547,10 +547,10 @@ public:
             /* Create a sorted array of the case strings, and si
              * will be the symbol for it.
              */
-            dt_t *dt = NULL;
             Symbol *si = symbol_generate(SCstatic,type_fake(TYdarray));
-            dtsize_t(&dt, numcases);
-            dtxoff(&dt, si, Target::ptrsize * 2, TYnptr);
+            DtBuilder dtb;
+            dtb.size(numcases);
+            dtb.xoff(si, Target::ptrsize * 2, TYnptr);
 
             for (size_t i = 0; i < numcases; i++)
             {   CaseStatement *cs = (*s->cases)[i];
@@ -562,12 +562,12 @@ public:
                 {
                     StringExp *se = (StringExp *)(cs->exp);
                     Symbol *si = toStringSymbol(se);
-                    dtsize_t(&dt, se->numberOfCodeUnits());
-                    dtxoff(&dt, si, 0);
+                    dtb.size(se->numberOfCodeUnits());
+                    dtb.xoff(si, 0);
                 }
             }
 
-            si->Sdt = dt;
+            si->Sdt = dtb.finish();
             si->Sfl = FLdata;
             outdata(si);
 
