@@ -110,6 +110,12 @@ extern(C) pragma(crt_constructor) void _d_register_conservative_gc()
     registerGCFactory("conservative", &initialize);
 }
 
+extern(C) pragma(crt_constructor) void _d_register_precise_gc()
+{
+    import gc.registry;
+    registerGCFactory("precise", &initialize_precise);
+}
+
 private GC initialize()
 {
     import core.stdc.string: memcpy;
@@ -125,6 +131,12 @@ private GC initialize()
     instance.__ctor();
 
     return instance;
+}
+
+private GC initialize_precise()
+{
+    ConservativeGC.isPrecise = true;
+    return initialize();
 }
 
 class ConservativeGC : GC
