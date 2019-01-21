@@ -4024,6 +4024,12 @@ public:
             payload = &(*existingAE.elements)[index];
             oldval = *payload;
         }
+        else if (auto sle = e1.isStructLiteralExp())
+        {
+            //payload = &(sle.syntaxCopy());
+            oldval = sle;
+            payload = &oldval;
+        }
         else
         {
             e.error("`%s` cannot be evaluated at compile time", e.toChars());
