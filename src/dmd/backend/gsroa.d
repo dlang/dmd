@@ -76,7 +76,8 @@ extern (D) private void sliceStructs_Gather(const symtab_t* symtab, SymInfo[] si
                     assert(si < symtab.top);
                     const n = nthSlice(e);
                     const sz = tysize(e.Ety);
-                    if (sz == 2 * SLICESIZE && !tyfv(e.Ety))
+                    if (sz == 2 * SLICESIZE && !tyfv(e.Ety) &&
+                        tybasic(e.Ety) != TYldouble && tybasic(e.Ety) != TYildouble)
                     {
                         // Rewritten as OPpair later
                     }
@@ -88,9 +89,22 @@ extern (D) private void sliceStructs_Gather(const symtab_t* symtab, SymInfo[] si
                              */
                             foreach (ref ty; sia[si].ty)
                                 ty = TYnptr;
+
+                            const s = e.EV.Vsym;
+                            const t = s.Stype;
+                            if (tybasic(t.Tty) == TYstruct)
+                            {
+                                if (const targ1 = t.Ttag.Sstruct.Sarg1type)
+                                    if (const targ2 = t.Ttag.Sstruct.Sarg2type)
+                                    {
+                                        sia[si].ty[0] = targ1.Tty;
+                                        sia[si].ty[1] = targ2.Tty;
+                                    }
+                            }
                         }
                         sia[si].accessSlice = true;
-                        sia[si].ty[n] = tybasic(e.Ety);
+                        if (sz == SLICESIZE)
+                            sia[si].ty[n] = tybasic(e.Ety);
                     }
                     else
                     {
@@ -214,7 +228,7 @@ extern (D) private void sliceStructs_Replace(symtab_t* symtab, const SymInfo[] s
                     else // the nth slice
                     {
                         e.EV.Vsym = symtab.tab[sia[si].si0 + n];
-                        e.EV.Voffset = 0;
+                        e.EV.Voffset -= n * SLICESIZE;
                         //printf("replaced with:\n");
                         //elem_print(e);
                     }
@@ -241,7 +255,7 @@ extern (D) private void sliceStructs_Replace(symtab_t* symtab, const SymInfo[] s
 
 void sliceStructs(symtab_t* symtab, block* startblock)
 {
-    if (debugc) printf("sliceStructs()\n");
+    if (debugc) printf("sliceStructs() %s\n", funcsym_p.Sident.ptr);
     const sia_length = symtab.top;
     /* 3 is because it is used for two arrays, sia[] and sia2[].
      * sia2[] can grow to twice the size of sia[], as symbols can get split into two.
@@ -261,6 +275,12 @@ void sliceStructs(symtab_t* symtab, block* startblock)
     }
     SymInfo[] sia = sip[0 .. sia_length];
     SymInfo[] sia2 = sip[sia_length .. sia_length * 3];
+
+    if (0) foreach (si; 0 .. symtab.top)
+    {
+        Symbol *s = symtab.tab[si];
+        printf("[%d]: %p %d %s\n", si, s, cast(int)type_size(s.Stype), s.Sident.ptr);
+    }
 
     bool anySlice = false;
     foreach (si; 0 .. symtab.top)
@@ -409,13 +429,17 @@ enum NOTSLICE = -1;
 int nthSlice(const(elem)* e)
 {
     const sz = tysize(e.Ety);
-    if (sz == SLICESIZE)
-    {
-        if (e.EV.Voffset == 0)
-            return 0;
-        if (e.EV.Voffset == SLICESIZE)
-            return 1;
-    }
+    const sliceSize = SLICESIZE;
+
+    /* See if e fits in a slice
+     */
+    const lwr = e.EV.Voffset;
+    const upr = lwr + sz;
+    if (0 <= lwr && upr <= sliceSize)
+        return 0;
+    if (sliceSize <= lwr && upr <= sliceSize * 2)
+        return 1;
+
     return NOTSLICE;
 }
 

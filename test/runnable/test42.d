@@ -7,6 +7,7 @@ import std.stdio;
 import core.stdc.stdio;
 import std.string;
 import core.memory;
+import core.vararg;
 
 /***************************************************/
 
@@ -52,7 +53,7 @@ void test3()
 {
     auto i = mixin("__LINE__");
     writefln("%d", i);
-    assert(i == 53);
+    assert(i == 54);
 }
 
 /***************************************************/
@@ -3281,7 +3282,6 @@ void test201() {
 /***************************************************/
 // This was the original varargs example in std.vararg
 
-import core.vararg;
 
 void foo202(int x, ...) {
     printf("%d arguments\n", _arguments.length);
@@ -4508,6 +4508,7 @@ void test6997()
     auto x = S6997().foo();
 }
 
+
 /***************************************************/
 
 ubyte foo7026(uint n) {
@@ -5540,6 +5541,7 @@ void test14682b()
     { auto x = [[[[]]]] ~ a3;   static assert(is(typeof(x) == typeof(a3)[])); assert(x == r4b); } // fix
 }
 
+
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=9739
 
@@ -6156,6 +6158,7 @@ void test11472()
 {
     assert(x11472 == 10);
 }
+
 
 /***************************************************/
 
