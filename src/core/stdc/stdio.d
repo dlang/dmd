@@ -495,7 +495,7 @@ else version (Darwin)
 else version (FreeBSD)
 {
     // Need to import wchar_ now since __mbstate_t now resides there
-    private import core.stdc.wchar_ : __mbstate_t;
+    import core.stdc.wchar_ : mbstate_t;
 
     ///
     alias off_t fpos_t;
@@ -533,7 +533,7 @@ else version (FreeBSD)
         pthread_t       _fl_owner;
         int             _fl_count;
         int             _orientation;
-        __mbstate_t     _mbstate;
+        mbstate_t       _mbstate;
     }
 
     ///
