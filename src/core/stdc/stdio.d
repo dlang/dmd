@@ -198,12 +198,6 @@ else version (FreeBSD)
         ubyte *_base;
         int _size;
     }
-
-    union __mbstate_t // <sys/_types.h>
-    {
-        char[128]   _mbstate8 = 0;
-        long        _mbstateL;
-    }
 }
 else version (NetBSD)
 {
@@ -284,12 +278,6 @@ else version (DragonFlyBSD)
         SBUF_FINISHED   = 0x00020000,   // set by sbuf_finish()
         SBUF_DYNSTRUCT  = 0x00080000,   // sbuf must be freed
         SBUF_INSECTION  = 0x00100000,   // set by sbuf_start_section()
-    }
-
-    union __mbstate_t                   // <sys/stdint.h>
-    {
-        char[128]   _mbstate8 = 0;
-        long        _mbstateL;
     }
 }
 else version (Solaris)
@@ -506,6 +494,9 @@ else version (Darwin)
 }
 else version (FreeBSD)
 {
+    // Need to import wchar_ now since __mbstate_t now resides there
+    private import core.stdc.wchar_ : __mbstate_t;
+
     ///
     alias off_t fpos_t;
 
