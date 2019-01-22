@@ -228,12 +228,6 @@ else version (NetBSD)
         ubyte *_base;
         int _size;
     }
-
-    union __mbstate_t // <sys/_types.h>
-    {
-        char[128]   _mbstate8 = 0;
-        long        _mbstateL;
-    }
 }
 else version (OpenBSD)
 {
@@ -257,12 +251,6 @@ else version (OpenBSD)
     {
         ubyte *_base;
         int _size;
-    }
-
-    union __mbstate_t // <sys/_types.h>
-    {
-        char[128]   __mbstate8 = 0;
-        long        __mbstateL;
     }
 }
 else version (DragonFlyBSD)
