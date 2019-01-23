@@ -643,10 +643,7 @@ else version (DragonFlyBSD)
 }
 else version (Solaris)
 {
-    import core.stdc.wchar_ : __mbstate_t;
-
-    ///
-    alias mbstate_t = __mbstate_t;
+    import core.stdc.wchar_ : mbstate_t;
 
     ///
     alias c_long fpos_t;
