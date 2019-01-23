@@ -90,6 +90,9 @@ else version (Solaris)
             int[6] __filler;
         }
     }
+
+    ///
+    alias mbstate_t = __mbstate_t;
 }
 else version (CRuntime_UClibc)
 {
