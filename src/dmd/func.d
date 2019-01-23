@@ -2646,6 +2646,14 @@ private const(char)* prependSpace(const(char)* str)
     return (" " ~ str[0 .. strlen(str)] ~ "\0").ptr;
 }
 
+/// Flag used by $(LREF resolveFuncCall).
+enum FuncResolveFlag : ubyte
+{
+    stdandard = 0,      /// issue error messages, solve the call.
+    quiet = 1,          /// do not issue error message on no match, just return `null`.
+    overloadOnly = 2,   /// only resolve overloads.
+}
+
 /*******************************************
  * Given a symbol that could be either a FuncDeclaration or
  * a function template, resolve it to a function symbol.
@@ -2656,13 +2664,12 @@ private const(char)* prependSpace(const(char)* str)
  *      tiargs =        initial list of template arguments
  *      tthis =         if !NULL, the `this` argument type
  *      fargs =         arguments to function
- *      flags =         1: do not issue error message on no match, just return NULL
- *                      2: overloadResolve only
+ *      flags =         see $(LREF FuncResolveFlag).
  * Returns:
  *      if match is found, then function symbol, else null
  */
 FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
-    Objects* tiargs, Type tthis, Expressions* fargs, int flags = 0)
+    Objects* tiargs, Type tthis, Expressions* fargs, FuncResolveFlag flags)
 {
     if (!s)
         return null; // no match
@@ -2699,11 +2706,11 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     {
         if (m.count == 1) // exactly one match
         {
-            if (!(flags & 1))
+            if (!(flags & FuncResolveFlag.quiet))
                 m.lastf.functionSemantic();
             return m.lastf;
         }
-        if ((flags & 2) && !tthis && m.lastf.needThis())
+        if ((flags & FuncResolveFlag.overloadOnly) && !tthis && m.lastf.needThis())
         {
             return m.lastf;
         }
@@ -2719,7 +2726,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
             return m.lastf;
 
         // if do not print error messages
-        if (flags & 1)
+        if (flags & FuncResolveFlag.quiet)
             return null; // no match
     }
 
@@ -2742,7 +2749,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     // max num of overloads to print (-v overrides this).
     enum int numOverloadsDisplay = 5;
 
-    if (!m.lastf && !(flags & 1)) // no match
+    if (!m.lastf && !(flags & FuncResolveFlag.quiet)) // no match
     {
         if (td && !fd) // all of overloads are templates
         {

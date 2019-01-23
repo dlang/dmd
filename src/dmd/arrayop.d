@@ -137,7 +137,7 @@ Expression arrayOp(BinExp e, Scope* sc)
         arrayOp = (cast(TemplateExp)id).td;
     }
 
-    auto fd = resolveFuncCall(e.loc, sc, arrayOp, tiargs, null, args);
+    auto fd = resolveFuncCall(e.loc, sc, arrayOp, tiargs, null, args, FuncResolveFlag.stdandard);
     if (!fd || fd.errors)
         return new ErrorExp();
     return new CallExp(e.loc, new VarExp(e.loc, fd, false), args).expressionSemantic(sc);

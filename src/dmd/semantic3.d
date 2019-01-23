@@ -680,7 +680,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         sc2.ctorflow.callSuper = CSX.none;
 
                         // Insert implicit super() at start of fbody
-                        FuncDeclaration fd = resolveFuncCall(Loc.initial, sc2, cd.baseClass.ctor, null, funcdecl.vthis.type, null, 1);
+                        FuncDeclaration fd = resolveFuncCall(Loc.initial, sc2, cd.baseClass.ctor, null, funcdecl.vthis.type, null, FuncResolveFlag.quiet);
                         if (!fd)
                         {
                             funcdecl.error("no match for implicit `super()` call in constructor");

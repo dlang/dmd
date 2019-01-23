@@ -236,7 +236,7 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
 
             uint xerrors = global.startGagging();
             sc = sc.push();
-            FuncDeclaration fslice = resolveFuncCall(ae.loc, sc, slice, tiargs, ae.e1.type, fargs, 1);
+            FuncDeclaration fslice = resolveFuncCall(ae.loc, sc, slice, tiargs, ae.e1.type, fargs, FuncResolveFlag.quiet);
             sc = sc.pop();
             global.endGagging(xerrors);
             if (!fslice)
@@ -1156,8 +1156,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
 
             for (size_t i = 0; i < os.a.dim; i++)
             {
-                FuncDeclaration f = resolveFuncCall(loc, sc, os.a[i], tiargs, tthis, &a, 1);
-                if (f)
+                if (FuncDeclaration f = resolveFuncCall(loc, sc, os.a[i], tiargs, tthis, &a, FuncResolveFlag.quiet))
                 {
                     if (f.errors)
                         return new ErrorExp();
@@ -1174,8 +1173,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
         {
             for (size_t i = 0; i < os.a.dim; i++)
             {
-                FuncDeclaration f = resolveFuncCall(loc, sc, os.a[i], tiargs, tthis, null, 1);
-                if (f)
+                if (FuncDeclaration f = resolveFuncCall(loc, sc, os.a[i], tiargs, tthis, null, FuncResolveFlag.quiet))
                 {
                     if (f.errors)
                         return new ErrorExp();
@@ -1268,7 +1266,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
             Expressions a;
             a.push(e2);
 
-            FuncDeclaration fd = resolveFuncCall(loc, sc, s, tiargs, tthis, &a, 1);
+            FuncDeclaration fd = resolveFuncCall(loc, sc, s, tiargs, tthis, &a, FuncResolveFlag.quiet);
             if (fd && fd.type)
             {
                 if (fd.errors)
@@ -1279,7 +1277,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
             }
         }
         {
-            FuncDeclaration fd = resolveFuncCall(loc, sc, s, tiargs, tthis, null, 1);
+            FuncDeclaration fd = resolveFuncCall(loc, sc, s, tiargs, tthis, null, FuncResolveFlag.quiet);
             if (fd && fd.type)
             {
                 if (fd.errors)
@@ -3396,7 +3394,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     exp.newargs = new Expressions();
                 exp.newargs.shift(e);
 
-                FuncDeclaration f = resolveFuncCall(exp.loc, sc, cd.aggNew, null, tb, exp.newargs);
+                FuncDeclaration f = resolveFuncCall(exp.loc, sc, cd.aggNew, null, tb, exp.newargs, FuncResolveFlag.stdandard);
                 if (!f || f.errors)
                     return setError();
 
@@ -3422,7 +3420,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             if (cd.ctor)
             {
-                FuncDeclaration f = resolveFuncCall(exp.loc, sc, cd.ctor, null, tb, exp.arguments, 0);
+                FuncDeclaration f = resolveFuncCall(exp.loc, sc, cd.ctor, null, tb, exp.arguments, FuncResolveFlag.stdandard);
                 if (!f || f.errors)
                     return setError();
 
@@ -3470,7 +3468,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     exp.newargs = new Expressions();
                 exp.newargs.shift(e);
 
-                FuncDeclaration f = resolveFuncCall(exp.loc, sc, sd.aggNew, null, tb, exp.newargs);
+                FuncDeclaration f = resolveFuncCall(exp.loc, sc, sd.aggNew, null, tb, exp.newargs, FuncResolveFlag.stdandard);
                 if (!f || f.errors)
                     return setError();
 
@@ -3496,7 +3494,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             if (sd.ctor && nargs)
             {
-                FuncDeclaration f = resolveFuncCall(exp.loc, sc, sd.ctor, null, tb, exp.arguments, 0);
+                FuncDeclaration f = resolveFuncCall(exp.loc, sc, sd.ctor, null, tb, exp.arguments, FuncResolveFlag.stdandard);
                 if (!f || f.errors)
                     return setError();
 
@@ -4252,7 +4250,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 if (tiargs && s.isFuncDeclaration())
                     continue;
-                if (auto f2 = resolveFuncCall(loc, sc, s, tiargs, tthis, arguments, 1))
+                if (auto f2 = resolveFuncCall(loc, sc, s, tiargs, tthis, arguments, FuncResolveFlag.quiet))
                 {
                     if (f2.errors)
                         return null;
@@ -4306,7 +4304,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
 
             // Do overload resolution
-            exp.f = resolveFuncCall(exp.loc, sc, s, tiargs, ue1 ? ue1.type : null, exp.arguments);
+            exp.f = resolveFuncCall(exp.loc, sc, s, tiargs, ue1 ? ue1.type : null, exp.arguments, FuncResolveFlag.stdandard);
             if (!exp.f || exp.f.errors || exp.f.type.ty == Terror)
                 return setError();
 
@@ -4471,7 +4469,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (auto os = ctor.isOverloadSet())
                 exp.f = resolveOverloadSet(exp.loc, sc, os, null, tthis, exp.arguments);
             else
-                exp.f = resolveFuncCall(exp.loc, sc, ctor, null, tthis, exp.arguments, 0);
+                exp.f = resolveFuncCall(exp.loc, sc, ctor, null, tthis, exp.arguments, FuncResolveFlag.stdandard);
 
             if (!exp.f || exp.f.errors)
                 return setError();
@@ -4541,7 +4539,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             else if (exp.e1.op == TOK.dotVariable && (cast(DotVarExp)exp.e1).var.isOverDeclaration())
             {
                 DotVarExp dve = cast(DotVarExp)exp.e1;
-                exp.f = resolveFuncCall(exp.loc, sc, dve.var, tiargs, dve.e1.type, exp.arguments, 2);
+                exp.f = resolveFuncCall(exp.loc, sc, dve.var, tiargs, dve.e1.type, exp.arguments, FuncResolveFlag.overloadOnly);
                 if (!exp.f)
                     return setError();
                 if (exp.f.needThis())
@@ -4565,7 +4563,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 s = (cast(TemplateExp)exp.e1).td;
             L2:
-                exp.f = resolveFuncCall(exp.loc, sc, s, tiargs, null, exp.arguments);
+                exp.f = resolveFuncCall(exp.loc, sc, s, tiargs, null, exp.arguments, FuncResolveFlag.stdandard);
                 if (!exp.f || exp.f.errors)
                     return setError();
                 if (exp.f.needThis())
@@ -4661,7 +4659,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             tiargs = null;
 
             if (exp.f.overnext)
-                exp.f = resolveFuncCall(exp.loc, sc, exp.f, tiargs, null, exp.arguments, 2);
+                exp.f = resolveFuncCall(exp.loc, sc, exp.f, tiargs, null, exp.arguments, FuncResolveFlag.overloadOnly);
             else
             {
                 exp.f = exp.f.toAliasFunc();

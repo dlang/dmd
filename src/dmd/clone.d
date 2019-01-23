@@ -110,11 +110,11 @@ FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope* sc)
         sc.minst = null;
 
         a[0] = er;
-        auto f = resolveFuncCall(ad.loc, sc, assign, null, ad.type, &a, 1);
+        auto f = resolveFuncCall(ad.loc, sc, assign, null, ad.type, &a, FuncResolveFlag.quiet);
         if (!f)
         {
             a[0] = el;
-            f = resolveFuncCall(ad.loc, sc, assign, null, ad.type, &a, 1);
+            f = resolveFuncCall(ad.loc, sc, assign, null, ad.type, &a, FuncResolveFlag.quiet);
         }
 
         sc = sc.pop();
@@ -479,7 +479,7 @@ private FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope* sc)
             {
                 a[0] = (j == 0 ? er : el);
                 a[0].type = tthis;
-                f = resolveFuncCall(ad.loc, sc, eq, null, tthis, &a, 1);
+                f = resolveFuncCall(ad.loc, sc, eq, null, tthis, &a, FuncResolveFlag.quiet);
                 if (f)
                     break;
             }
