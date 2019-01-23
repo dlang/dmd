@@ -40,6 +40,15 @@ version (CRuntime_Glibc)
         ___value __value;
     }
 }
+else version (FreeBSD)
+{
+    union __mbstate_t // <sys/_types.h>
+    {
+        char[128]   _mbstate8 = 0;
+        long        _mbstateL;
+    }
+    alias mbstate_t = __mbstate_t;
+}
 else version (NetBSD)
 {
     union __mbstate_t
@@ -55,6 +64,15 @@ else version (OpenBSD)
     {
         char[128] __mbstate8 = 0;
         int64_t   __mbstateL;
+    }
+    alias mbstate_t = __mbstate_t;
+}
+else version (DragonFlyBSD)
+{
+    union __mbstate_t                   // <sys/stdint.h>
+    {
+        char[128]   _mbstate8 = 0;
+        long        _mbstateL;
     }
     alias mbstate_t = __mbstate_t;
 }
