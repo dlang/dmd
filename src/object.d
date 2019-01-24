@@ -2224,7 +2224,7 @@ class TypeInfo_Struct : TypeInfo
     immutable(void)* m_RTInfo;                // data for precise GC
 }
 
-@safe unittest
+@system unittest
 {
     struct S
     {
