@@ -2066,6 +2066,53 @@ private void removeBlankLineMacro(OutBuffer* buf, ref size_t iAt, ref size_t i)
 }
 
 /****************************************************
+ * Attempt to detect and replace a Markdown thematic break (HR). These are three
+ * or more of the same delimiter, optionally with spaces or tabs between any of
+ * them, e.g. `\n- - -\n` becomes `\n$(HR)\n`
+ * Params:
+ *  buf         = an OutBuffer containing the DDoc
+ *  i           = the index within `buf` of the first character of a potential
+ *                thematic break. If the replacement is made `i` changes to
+ *                point to the closing parenthesis of the `$(HR)` macro.
+ *  iLineStart  = the index within `buf` that the thematic break's line starts at
+ *  loc         = the current location within the file
+ * Returns: whether a thematic break was replaced
+ */
+private bool replaceMarkdownThematicBreak(OutBuffer* buf, ref size_t i, size_t iLineStart, const ref Loc loc)
+{
+    if (!global.params.markdown)
+        return false;
+
+    const slice = buf.peekSlice();
+    char c = buf.data[i];
+    size_t j = i + 1;
+    int repeat = 1;
+    for (; j < slice.length; j++)
+    {
+        if (buf.data[j] == c)
+            ++repeat;
+        else if (buf.data[j] != ' ' && buf.data[j] != '\t')
+            break;
+    }
+    if (repeat >= 3)
+    {
+        if (j >= buf.offset || buf.data[j] == '\n' || buf.data[j] == '\r')
+        {
+            if (global.params.vmarkdown)
+            {
+                const s = buf.peekSlice()[i..j];
+                message(loc, "Ddoc: converted '%.*s' to a thematic break", s.length, s.ptr);
+            }
+
+            buf.remove(iLineStart, j - iLineStart);
+            i = buf.insert(iLineStart, "$(HR)") - 1;
+            return true;
+        }
+    }
+    return false;
+}
+
+/****************************************************
  * Detect the level of an ATX-style heading, e.g. `## This is a heading` would
  * have a level of `2`.
  * Params:
@@ -2950,7 +2997,16 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                 {
                     const list = MarkdownList.parseItem(buf, iLineStart, i);
                     if (list.isValid)
-                        goto case '+';
+                    {
+                        if (replaceMarkdownThematicBreak(buf, i, iLineStart, loc))
+                        {
+                            removeBlankLineMacro(buf, iPrecedingBlankLine, i);
+                            iParagraphStart = skipChars(buf, i+1, " \t\r\n");
+                            break;
+                        }
+                        else
+                            goto case '+';
+                    }
                 }
 
                 size_t istart = i;
@@ -3043,6 +3099,17 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
             }
             break;
 
+        case '_':
+        {
+            if (leadingBlank && !inCode && replaceMarkdownThematicBreak(buf, i, iLineStart, loc))
+            {
+                removeBlankLineMacro(buf, iPrecedingBlankLine, i);
+                iParagraphStart = skipChars(buf, i+1, " \t\r\n");
+                break;
+            }
+            goto default;
+        }
+
         case '+':
         case '0':
         ..
@@ -3077,6 +3144,14 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
 
             if (leadingBlank)
             {
+                // Check for a thematic break
+                if (replaceMarkdownThematicBreak(buf, i, iLineStart, loc))
+                {
+                    removeBlankLineMacro(buf, iPrecedingBlankLine, i);
+                    iParagraphStart = skipChars(buf, i+1, " \t\r\n");
+                    break;
+                }
+
                 // An initial * indicates a Markdown list item
                 const list = MarkdownList.parseItem(buf, iLineStart, i);
                 if (list.isValid)
