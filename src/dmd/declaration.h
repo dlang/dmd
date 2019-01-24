@@ -227,6 +227,9 @@ public:
     VarDeclaration *lastVar;    // Linked list of variables for goto-skips-init detection
     unsigned endlinnum;         // line number of end of scope that this var lives in
 
+    /// it was declared in an anon union
+    bool isAnonUnionMember;
+
     // When interpreting, these point to the value (NULL if value not determinable)
     // The index of this variable on the CTFE stack, -1 if not allocated
     int ctfeAdrOnStack;
