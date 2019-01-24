@@ -1519,7 +1519,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     else if (auto td = sfront.isTemplateDeclaration())
                     {
                         Expressions a;
-                        if (auto f = resolveFuncCall(loc, sc, td, null, tab, &a, 1))
+                        if (auto f = resolveFuncCall(loc, sc, td, null, tab, &a, FuncResolveFlag.quiet))
                             tfront = f.type;
                     }
                     else if (auto d = sfront.isDeclaration())
