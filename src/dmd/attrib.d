@@ -584,6 +584,10 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
         super(decl);
         this.loc = loc;
         this.isunion = isunion;
+        if (isunion && decl)
+            foreach (d; *decl)
+                if (auto v = d.isVarDeclaration)
+                    v.isAnonUnionMember = true;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
