@@ -4999,7 +4999,10 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             forregs = mask(reg);
 
             if (debugr)
-                printf("%s is fastpar and using register %s\n", e.EV.Vsym.Sident.ptr, regm_str(forregs));
+                printf("%s.%d is fastpar and using register %s\n",
+                       e.EV.Vsym.Sident.ptr,
+                       cast(int)e.EV.Voffset,
+                       regm_str(forregs));
 
             mfuncreg &= ~forregs;
             regcon.used |= forregs;
