@@ -1918,7 +1918,7 @@ int isregvar(elem *e,regm_t *pregm,uint *preg)
                 {   refparam = true;
                     reflocal = true;
                 }
-                reg = s.Sreglsw;
+                reg = e.EV.Voffset == REGSIZE ? s.Sregmsw : s.Sreglsw;
                 regm = s.Sregm;
                 //assert(tyreg(s.ty()));
 static if (0)
