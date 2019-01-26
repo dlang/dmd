@@ -259,7 +259,7 @@ type *newref(type *);
 type *topointer(type *);
 type *type_ptr(elem *, type *);
 int type_chksize(uint);
-tym_t tym_conv(type *);
+tym_t tym_conv(const type *);
 type * type_arrayroot(type *);
 void chklvalue(elem *);
 int tolvalue(elem **);

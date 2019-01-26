@@ -89,9 +89,62 @@ __gshared
 
 /*******************************
  * Compute size of type in bytes.
+ * Mark size as known after error message if it is not known.
+ * Instantiate templates as needed to compute size.
+ * Params:
+ *      t = type
+ * Returns:
+ *      size
  */
 
-targ_size_t type_size(type *t)
+version (SCPP_HTOD)
+{
+targ_size_t type_size(type* t)
+{
+    switch (tybasic(t.Tty))
+    {
+        case TYarray:
+            if (t.Tflags & TFsizeunknown)
+            {
+                synerr(EM_unknown_size,"array".ptr);    /* size of array is unknown     */
+                t.Tflags &= ~TFsizeunknown;
+            }
+            type_size(t.Tnext);
+            break;
+
+        case TYstruct:
+            auto ts = t.Ttag.Stype;    // find main instance
+                                       // (for const struct X)
+            if (ts.Tflags & TFsizeunknown)
+            {
+                template_instantiate_forward(ts.Ttag);
+                if (ts.Tflags & TFsizeunknown)
+                    synerr(EM_unknown_size,ts.Tty & TYstruct ? prettyident(ts.Ttag) : "struct");
+                ts.Tflags &= ~TFsizeunknown;
+            }
+            break;
+
+        case TYenum:
+            if (t.Ttag.Senum.SEflags & SENforward)
+                synerr(EM_unknown_size, prettyident(t.Ttag));
+            type_size(t.Tnext);
+            break;
+
+        default:
+            break;
+    }
+    return type_size(cast(const)t);
+}
+}
+
+/***********************
+ * Compute size of type in bytes.
+ * Params:
+ *      t = type
+ * Returns:
+ *      size
+ */
+targ_size_t type_size(const type *t)
 {   targ_size_t s;
     tym_t tyb;
 
@@ -135,7 +188,6 @@ version (SCPP_HTOD)
 {
                     synerr(EM_unknown_size,"array".ptr);    /* size of array is unknown     */
 }
-                    t.Tflags &= ~TFsizeunknown;
                 }
                 if (t.Tflags & TFvla)
                 {
@@ -161,26 +213,18 @@ else
                 break;
             }
             case TYstruct:
-                t = t.Ttag.Stype;     /* find main instance           */
-                                        /* (for const struct X)         */
-                if (t.Tflags & TFsizeunknown)
-                {
-version (SCPP_HTOD)
-{
-                    template_instantiate_forward(t.Ttag);
-                    if (t.Tflags & TFsizeunknown)
-                        synerr(EM_unknown_size,t.Tty & TYstruct ? prettyident(t.Ttag) : "struct");
-                    t.Tflags &= ~TFsizeunknown;
-}
-                }
-                assert(t.Ttag);
-                s = t.Ttag.Sstruct.Sstructsize;
+            {
+                auto ts = t.Ttag.Stype;     // find main instance
+                                            // (for const struct X)
+                assert(ts.Ttag);
+                s = ts.Ttag.Sstruct.Sstructsize;
                 break;
+            }
 version (SCPP_HTOD)
 {
             case TYenum:
                 if (t.Ttag.Senum.SEflags & SENforward)
-                    synerr(EM_unknown_size, prettyident(t.Ttag));
+                    synerr(EM_unknown_size, prettyident(cast(Symbol*)t.Ttag));
                 s = type_size(t.Tnext);
                 break;
 }
