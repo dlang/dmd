@@ -7,6 +7,11 @@ namespace std
     struct test19248 {int a;};
 };
 
+struct S19563 {
+    int i;
+    S19563(S19563 &r) { i = r.i + 10; }
+};
+
 bool               passthrough(bool                value)     { return value; }
 signed char        passthrough(signed char         value)     { return value; }
 unsigned char      passthrough(unsigned char       value)     { return value; }
@@ -72,6 +77,11 @@ namespace ns1
     // D: `const(char*), const(char***)`
     int constFunction4(const char* const, const char* const* const* const) { return 42; }
 };
+
+bool test19563(int a, int b, S19563 s)
+{
+    return s.i == 10;
+}
 
 // Uncomment when mangling is fixed
 // typedef void(*fn0)();

@@ -12,6 +12,12 @@ extern(C++, std)
     struct test19248 {int a = 34;}
 }
 
+struct S19563
+{
+    int i;
+    this(this) { i += 10; }
+}
+
 bool   passthrough(bool   value);
 byte   passthrough(byte   value);
 ubyte  passthrough(ubyte  value);
@@ -59,6 +65,8 @@ float  passthrough_ref(ref float  value);
 double passthrough_ref(ref double value);
 S      passthrough_ref(ref S      value);
 std.test19248 passthrough_ref(ref const(std.test19248) value);
+
+bool test19563(int a, int b, S19563 s);
 }
 
 template IsSigned(T)
@@ -175,6 +183,9 @@ void main()
     foreach(double val; values!double()) check(val);
     check(S());
     check(std.test19248());
+
+    S19563 s;
+    assert(test19563(0, 0, s));
 
     assert(constFunction1(null, null) == 1);
     assert(constFunction2(null, null) == 2);
