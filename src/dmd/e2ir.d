@@ -89,17 +89,19 @@ void* mem_malloc2(uint);
  */
 bool ISREF(Declaration var)
 {
-    return (config.exe == EX_WIN64 && var.isParameter() &&
-            (var.type.size(Loc.initial) > REGSIZE || var.storage_class & STC.lazy_))
+    return (var.isParameter() &&
+            ((!global.params.isWindows && var.type.isTypeStruct() && !var.type.isTypeStruct().sym.isPOD()) ||
+            (config.exe == EX_WIN64 && (var.type.size(Loc.initial) > REGSIZE || var.storage_class & STC.lazy_))))
             || var.isOut() || var.isRef();
 }
 
-/* If variable var of type typ is a reference due to Win64 calling conventions
+/* If variable var of type typ is a reference due to x64 calling conventions
  */
-bool ISWIN64REF(Declaration var)
+bool ISX64REF(Declaration var)
 {
-    return (config.exe == EX_WIN64 && var.isParameter() &&
-            (var.type.size(Loc.initial) > REGSIZE || var.storage_class & STC.lazy_))
+    return (var.isParameter() &&
+            ((!global.params.isWindows && var.type.isTypeStruct() && !var.type.isTypeStruct().sym.isPOD()) ||
+            (config.exe == EX_WIN64 && (var.type.size(Loc.initial) > REGSIZE || var.storage_class & STC.lazy_))))
             && !(var.isOut() || var.isRef());
 }
 
@@ -218,7 +220,8 @@ private elem *callfunc(const ref Loc loc,
                 continue;
             }
 
-            if (config.exe == EX_WIN64 && arg.type.size(arg.loc) > REGSIZE && op == NotIntrinsic)
+            if ((config.exe == EX_WIN64 && arg.type.size(arg.loc) > REGSIZE && op == NotIntrinsic) ||
+                (!irs.params.isWindows && arg.type.isTypeStruct() && !arg.type.isTypeStruct().sym.isPOD()))
             {
                 /* Copy to a temporary, and make the argument a pointer
                  * to that temporary.
@@ -1164,7 +1167,7 @@ elem *toElem(Expression e, IRState *irs)
                     e = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, soffset));
                     if (se.op == TOK.variable)
                         e = el_una(OPind, TYnptr, e);
-                    if (ISREF(se.var) && !(ISWIN64REF(se.var) && v && v.offset && !forceStackAccess))
+                    if (ISREF(se.var) && !(ISX64REF(se.var) && v && v.offset && !forceStackAccess))
                         e = el_una(OPind, s.Stype.Tty, e);
                     else if (se.op == TOK.symbolOffset && nrvo)
                     {
@@ -1189,7 +1192,7 @@ elem *toElem(Expression e, IRState *irs)
                         e.ET = Type_toCtype(se.type);
                     elem_setLoc(e, se.loc);
                 }
-                if (ISREF(se.var) && !ISWIN64REF(se.var))
+                if (ISREF(se.var) && !ISX64REF(se.var))
                 {
                     e.Ety = TYnptr;
                     e = el_una(OPind, s.Stype.Tty, e);
