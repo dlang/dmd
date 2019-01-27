@@ -330,7 +330,7 @@ void symtab_free(Symbol **tab);
 //#define symbol_keep(s) (()(s))
 //#endif
 void symbol_keep(Symbol *s) { }
-void symbol_print(Symbol *s);
+void symbol_print(const Symbol* s);
 void symbol_term();
 char *symbol_ident(Symbol *s);
 Symbol *symbol_calloc(const(char)* id);

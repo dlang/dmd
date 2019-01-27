@@ -1232,7 +1232,7 @@ int type_isvla(type *t)
  * Pretty-print a type.
  */
 
-void type_print(type *t)
+void type_print(const type *t)
 {
   type_debug(t);
   printf("Tty="); WRTYxx(t.Tty);
@@ -1263,11 +1263,11 @@ void type_print(type *t)
             break;
         case TYtemplate:
             printf(" Tsym='%s'",(cast(typetemp_t *)t).Tsym.Sident.ptr);
-            {   param_t *p;
+            {
                 int i;
 
                 i = 1;
-                for (p = t.Tparamtypes; p; p = p.Pnext)
+                for (const(param_t)* p = t.Tparamtypes; p; p = p.Pnext)
                 {   printf("\nTP%d (%p): ",i++,p);
                     fflush(stdout);
 
@@ -1285,11 +1285,11 @@ printf("Pident=%p,Ptype=%p,Pelem=%p,Pnext=%p ",p.Pident,p.Ptype,p.Pelem,p.Pnext)
 
         default:
             if (tyfunc(t.Tty))
-            {   param_t *p;
+            {
                 int i;
 
                 i = 1;
-                for (p = t.Tparamtypes; p; p = p.Pnext)
+                for (const(param_t)* p = t.Tparamtypes; p; p = p.Pnext)
                 {   printf("\nP%d (%p): ",i++,p);
                     fflush(stdout);
 
@@ -1310,7 +1310,7 @@ printf("Pident=%p,Ptype=%p,Pelem=%p,Pnext=%p ",p.Pident,p.Ptype,p.Pelem,p.Pnext)
  * Pretty-print a param_t
  */
 
-void param_t_print(param_t* p)
+void param_t_print(const param_t* p)
 {
     printf("Pident=%p,Ptype=%p,Pelem=%p,Psym=%p,Pnext=%p\n",p.Pident,p.Ptype,p.Pelem,p.Psym,p.Pnext);
     if (p.Pident)

@@ -1563,7 +1563,7 @@ struct param_t
     { param_t_print_list(&this); }
 }
 
-void param_t_print(param_t* p);
+void param_t_print(const param_t* p);
 void param_t_print_list(param_t* p);
 uint param_t_length(param_t* p);
 param_t *param_t_createTal(param_t* p, param_t *ptali);

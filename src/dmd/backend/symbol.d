@@ -148,7 +148,7 @@ void symtab_free(Symbol **tab)
  * Type out symbol information.
  */
 
-void symbol_print(Symbol *s)
+void symbol_print(const Symbol *s)
 {
 debug
 {

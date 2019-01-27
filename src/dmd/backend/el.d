@@ -231,8 +231,8 @@ void el_opArray(elem ***parray, elem *e, uint op);
 void el_opFree(elem *e, uint op);
 extern (C) elem *el_opCombine(elem **args, size_t length, uint op, uint ty);
 
-void elem_print(elem *);
-void elem_print_const(elem *);
+void elem_print(const elem *);
+void elem_print_const(const elem *);
 void el_hydrate(elem **);
 void el_dehydrate(elem **);
 
