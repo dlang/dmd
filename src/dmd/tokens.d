@@ -286,6 +286,7 @@ enum TOK : ubyte
     showCtfeContext,
 
     objcClassReference,
+    vectorArray,
 
     max_,
 }
@@ -697,6 +698,7 @@ extern (C++) struct Token
         TOK.showCtfeContext : "showCtfeContext",
 
         TOK.objcClassReference: "class",
+        TOK.vectorArray: "vectorarray",
     ];
 
     static assert(() {

@@ -74,6 +74,7 @@ public:
     void visit(ASTCodegen.DelegateExp e) { visit(cast(ASTCodegen.UnaExp)e); }
     void visit(ASTCodegen.DotTypeExp e) { visit(cast(ASTCodegen.UnaExp)e); }
     void visit(ASTCodegen.VectorExp e) { visit(cast(ASTCodegen.UnaExp)e); }
+    void visit(ASTCodegen.VectorArrayExp e) { visit(cast(ASTCodegen.UnaExp)e); }
     void visit(ASTCodegen.SliceExp e) { visit(cast(ASTCodegen.UnaExp)e); }
     void visit(ASTCodegen.ArrayLengthExp e) { visit(cast(ASTCodegen.UnaExp)e); }
     void visit(ASTCodegen.DelegatePtrExp e) { visit(cast(ASTCodegen.UnaExp)e); }
@@ -182,6 +183,11 @@ extern (C++) class SemanticTimeTransitiveVisitor : SemanticTimePermissiveVisitor
     override void visit(ASTCodegen.VectorExp e)
     {
         visitType(e.to);
+        e.e1.accept(this);
+    }
+
+    override void visit(ASTCodegen.VectorArrayExp e)
+    {
         e.e1.accept(this);
     }
 
