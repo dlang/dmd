@@ -1,6 +1,12 @@
 // https://issues.dlang.org/show_bug.cgi?id=2920
 // recursive templates blow compiler stack
 // template_29_B.
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail281.d(15): Error: template instance `fail281.foo!4294966795u` recursive expansion
+---
+*/
 
 template foo(uint i)
 {
