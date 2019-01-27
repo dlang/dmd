@@ -3898,6 +3898,36 @@ elem *toElem(Expression *e, IRState *irs)
             result = e;
         }
 
+        void visit(VectorArrayExp *vae)
+        {
+            // Generate code for `vec.array`
+            if (vae->e1->op == TOKvector)
+            {
+                // https://issues.dlang.org/show_bug.cgi?id=19607
+                // When viewing a vector literal as an array, build the underlying array directly.
+                VectorExp *ve = (VectorExp *)vae->e1;
+                if (ve->e1->op == TOKarrayliteral)
+                    result = toElem(ve->e1, irs);
+                else
+                {
+                    // Generate: stmp[0 .. dim] = e1
+                    type *tarray = Type_toCtype(vae->type);
+                    Symbol *stmp = symbol_genauto(tarray);
+                    result = setArray(el_ptr(stmp), el_long(TYsize_t, tarray->Tdim),
+                                      ve->e1->type, toElem(ve->e1, irs), irs, TOKblit);
+                    result = el_combine(result, el_var(stmp));
+                    result->ET = tarray;
+                }
+            }
+            else
+            {
+                // For other vector expressions this just a paint operation.
+                result = toElem(vae->e1, irs);
+            }
+            result->Ety = totym(vae->type);
+            el_setLoc(result, vae->loc);
+        }
+
         void visit(CastExp *ce)
         {
         #if 0
