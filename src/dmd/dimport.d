@@ -20,6 +20,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.errors;
 import dmd.expression;
+import dmd.expressionsem;
 import dmd.globals;
 import dmd.identifier;
 import dmd.mtype;
@@ -213,6 +214,8 @@ extern (C++) final class Import : Dsymbol
                 if (mod.md && mod.md.isdeprecated)
                 {
                     Expression msg = mod.md.msg;
+                    if (msg)
+                        msg = semanticString(sc, msg, "deprecation message");
                     if (StringExp se = msg ? msg.toStringExp() : null)
                         mod.deprecation(loc, "is deprecated - %s", se.string);
                     else
