@@ -2804,6 +2804,7 @@ public:
     override void visit(UnaExp e)
     {
         buf.writestring(Token.toString(e.op));
+        buf.writeByte(' ');
         expToBuffer(e.e1, precedence[e.op]);
     }
 
