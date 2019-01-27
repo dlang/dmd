@@ -147,11 +147,8 @@ alias baselineCases = AliasSeq!(
     Code!(ubyte, "<", ubyte)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    sil,BYTE PTR [rbp-0x8]  */ 0x40, 0x3a, 0x75, 0xf8,
+        0x40, 0x3A, 0xF7,               // cmp  SIL,DIL
         /* setb   al                      */ 0x0f, 0x92, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
@@ -169,11 +166,8 @@ alias baselineCases = AliasSeq!(
     Code!(ubyte, "<=", ubyte)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    BYTE PTR [rbp-0x8],sil  */ 0x40, 0x38, 0x75, 0xf8,
+        0x40, 0x38, 0xF7,               // cmp  DIL,SIL
         /* setae  al                      */ 0x0f, 0x93, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
@@ -191,11 +185,8 @@ alias baselineCases = AliasSeq!(
     Code!(ubyte, "==", ubyte)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    sil,BYTE PTR [rbp-0x8]  */ 0x40, 0x3a, 0x75, 0xf8,
+        0x40, 0x3A, 0xF7,               // cmp  SIL,DIL
         /* sete   al                      */ 0x0f, 0x94, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
@@ -213,11 +204,8 @@ alias baselineCases = AliasSeq!(
     Code!(ubyte, "!=", ubyte)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    sil,BYTE PTR [rbp-0x8]  */ 0x40, 0x3a, 0x75, 0xf8,
+        0x40, 0x3A, 0xF7,               // cmp  SIL,DIL
         /* setne  al                      */ 0x0f, 0x95, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
@@ -231,11 +219,8 @@ alias baselineCases = AliasSeq!(
     Code!(ubyte, ">=", ubyte)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    sil,BYTE PTR [rbp-0x8]  */ 0x40, 0x3a, 0x75, 0xf8,
+        0x40, 0x3A, 0xF7,               // cmp  SIL,DIL
         /* setae  al                      */ 0x0f, 0x93, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
@@ -253,55 +238,41 @@ alias baselineCases = AliasSeq!(
     Code!(ubyte, ">", ubyte)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    BYTE PTR [rbp-0x8],sil  */ 0x40, 0x38, 0x75, 0xf8,
+        0x40, 0x38, 0xF7,               // cmp  DIL,SIL
         /* setb   al                      */ 0x0f, 0x92, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
+
     Code!(byte, "<", Zero!byte)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    BYTE PTR [rbp-0x8],0x0  */ 0x80, 0x7d, 0xf8, 0x00,
+        0x40, 0x84, 0xFF,               // test DIL,DIL
         /* sets   al                      */ 0x0f, 0x98, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
     Code!(byte, "<", byte)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    sil,BYTE PTR [rbp-0x8]  */ 0x40, 0x3a, 0x75, 0xf8,
+        0x40, 0x3A, 0xF7,               // cmp  SIL,DIL
         /* setl   al                      */ 0x0f, 0x9c, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
     Code!(byte, "<=", Zero!byte)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    BYTE PTR [rbp-0x8],0x0  */ 0x80, 0x7d, 0xf8, 0x00,
+        0x40, 0x84, 0xFF,               // test DIL,DIL
         /* setle  al                      */ 0x0f, 0x9e, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
     Code!(byte, "<=", byte)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    sil,BYTE PTR [rbp-0x8]  */ 0x40, 0x3a, 0x75, 0xf8,
+        0x40, 0x3A, 0xF7,               // cmp  SIL,DIL
         /* setle  al                      */ 0x0f, 0x9e, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
@@ -319,11 +290,8 @@ alias baselineCases = AliasSeq!(
     Code!(byte, "==", byte)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    sil,BYTE PTR [rbp-0x8]  */ 0x40, 0x3a, 0x75, 0xf8,
+        0x40, 0x3A, 0xF7,               // cmp  SIL,DIL
         /* sete   al                      */ 0x0f, 0x94, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
@@ -341,58 +309,45 @@ alias baselineCases = AliasSeq!(
     Code!(byte, "!=", byte)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    sil,BYTE PTR [rbp-0x8]  */ 0x40, 0x3a, 0x75, 0xf8,
+        0x40, 0x3A, 0xF7,               // cmp  SIL,DIL
         /* setne  al                      */ 0x0f, 0x95, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
     Code!(byte, ">=", Zero!byte)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    BYTE PTR [rbp-0x8],0x0  */ 0x80, 0x7d, 0xf8, 0x00,
+        0x40, 0x84, 0xFF,               // test DIL,DIL
         /* setns  al                      */ 0x0f, 0x99, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
     Code!(byte, ">=", byte)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    sil,BYTE PTR [rbp-0x8]  */ 0x40, 0x3a, 0x75, 0xf8,
+        0x40, 0x3A, 0xF7,               // cmp  SIL,DIL
         /* setge  al                      */ 0x0f, 0x9d, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
     Code!(byte, ">", Zero!byte)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    BYTE PTR [rbp-0x8],0x0  */ 0x80, 0x7d, 0xf8, 0x00,
+        0x40, 0x84, 0xFF,               // test DIL,DIL
         /* setg   al                      */ 0x0f, 0x9f, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
     Code!(byte, ">", byte)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    sil,BYTE PTR [rbp-0x8]  */ 0x40, 0x3a, 0x75, 0xf8,
+        0x40, 0x3A, 0xF7,               // cmp  SIL,DIL
         /* setg   al                      */ 0x0f, 0x9f, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
+
+
     Code!(ushort, "<", Zero!ushort)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
@@ -403,11 +358,8 @@ alias baselineCases = AliasSeq!(
     Code!(ushort, "<", ushort)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    si,WORD PTR [rbp-0x8]   */ 0x66, 0x3b, 0x75, 0xf8,
+0x66,   0x3B, 0xF7,                   // cmp     SI,DI
         /* setb   al                      */ 0x0f, 0x92, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
@@ -425,11 +377,8 @@ alias baselineCases = AliasSeq!(
     Code!(ushort, "<=", ushort)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    WORD PTR [rbp-0x8],si   */ 0x66, 0x39, 0x75, 0xf8,
+0x66,   0x39, 0xF7,                   // cmp     DI,SI
         /* setae  al                      */ 0x0f, 0x93, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
@@ -447,11 +396,8 @@ alias baselineCases = AliasSeq!(
     Code!(ushort, "==", ushort)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    si,WORD PTR [rbp-0x8]   */ 0x66, 0x3b, 0x75, 0xf8,
+0x66,   0x3B, 0xF7,                   // cmp     SI,DI
         /* sete   al                      */ 0x0f, 0x94, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
@@ -469,11 +415,8 @@ alias baselineCases = AliasSeq!(
     Code!(ushort, "!=", ushort)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    si,WORD PTR [rbp-0x8]   */ 0x66, 0x3b, 0x75, 0xf8,
+0x66,   0x3B, 0xF7,                   // cmp     SI,DI
         /* setne  al                      */ 0x0f, 0x95, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
@@ -487,11 +430,8 @@ alias baselineCases = AliasSeq!(
     Code!(ushort, ">=", ushort)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    si,WORD PTR [rbp-0x8]   */ 0x66, 0x3b, 0x75, 0xf8,
+0x66,   0x3B, 0xF7,                   // cmp     SI,DI
         /* setae  al                      */ 0x0f, 0x93, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
@@ -509,55 +449,41 @@ alias baselineCases = AliasSeq!(
     Code!(ushort, ">", ushort)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    WORD PTR [rbp-0x8],si   */ 0x66, 0x39, 0x75, 0xf8,
+0x66,   0x39, 0xF7,                   // cmp     DI,SI
         /* setb   al                      */ 0x0f, 0x92, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
+
     Code!(short, "<", Zero!short)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    WORD PTR [rbp-0x8],0x0  */ 0x66, 0x83, 0x7d, 0xf8, 0x00,
+0x66,   0x85, 0xFF,                   // test    DI,DI
         /* sets   al                      */ 0x0f, 0x98, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
     Code!(short, "<", short)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    si,WORD PTR [rbp-0x8]   */ 0x66, 0x3b, 0x75, 0xf8,
+0x66,   0x3B, 0xF7,                   // cmp     SI,DI
         /* setl   al                      */ 0x0f, 0x9c, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
     Code!(short, "<=", Zero!short)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    WORD PTR [rbp-0x8],0x0  */ 0x66, 0x83, 0x7d, 0xf8, 0x00,
+0x66,   0x85, 0xFF,                   // test    DI,DI
         /* setle  al                      */ 0x0f, 0x9e, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
     Code!(short, "<=", short)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    si,WORD PTR [rbp-0x8]   */ 0x66, 0x3b, 0x75, 0xf8,
+0x66,   0x3B, 0xF7,                   // cmp     SI,DI
         /* setle  al                      */ 0x0f, 0x9e, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
@@ -575,11 +501,8 @@ alias baselineCases = AliasSeq!(
     Code!(short, "==", short)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    si,WORD PTR [rbp-0x8]   */ 0x66, 0x3b, 0x75, 0xf8,
+0x66,   0x3B, 0xF7,                   // cmp     SI,DI
         /* sete   al                      */ 0x0f, 0x94, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
@@ -597,58 +520,44 @@ alias baselineCases = AliasSeq!(
     Code!(short, "!=", short)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    si,WORD PTR [rbp-0x8]   */ 0x66, 0x3b, 0x75, 0xf8,
+0x66,   0x3B, 0xF7,                   // cmp     SI,DI
         /* setne  al                      */ 0x0f, 0x95, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
     Code!(short, ">=", Zero!short)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    WORD PTR [rbp-0x8],0x0  */ 0x66, 0x83, 0x7d, 0xf8, 0x00,
+0x66,   0x85, 0xFF,                   // test    DI,DI
         /* setns  al                      */ 0x0f, 0x99, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
     Code!(short, ">=", short)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    si,WORD PTR [rbp-0x8]   */ 0x66, 0x3b, 0x75, 0xf8,
+0x66,   0x3B, 0xF7,                   // cmp     SI,DI
         /* setge  al                      */ 0x0f, 0x9d, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
     Code!(short, ">", Zero!short)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    WORD PTR [rbp-0x8],0x0  */ 0x66, 0x83, 0x7d, 0xf8, 0x00,
+0x66,   0x85, 0xFF,                   // test    DI,DI
         /* setg   al                      */ 0x0f, 0x9f, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
     Code!(short, ">", short)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    si,WORD PTR [rbp-0x8]   */ 0x66, 0x3b, 0x75, 0xf8,
+0x66,   0x3B, 0xF7,                   // cmp     SI,DI
         /* setg   al                      */ 0x0f, 0x9f, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
+
     Code!(uint, "<", Zero!uint)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
@@ -659,11 +568,8 @@ alias baselineCases = AliasSeq!(
     Code!(uint, "<", uint)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    esi,DWORD PTR [rbp-0x8] */ 0x3b, 0x75, 0xf8,
+        0x3B, 0xF7,                   // cmp     ESI,EDI
         /* setb   al                      */ 0x0f, 0x92, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
@@ -681,11 +587,8 @@ alias baselineCases = AliasSeq!(
     Code!(uint, "<=", uint)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    DWORD PTR [rbp-0x8],esi */ 0x39, 0x75, 0xf8,
+        0x39, 0xF7,                   // cmp     EDI,ESI
         /* setae  al                      */ 0x0f, 0x93, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
@@ -703,11 +606,8 @@ alias baselineCases = AliasSeq!(
     Code!(uint, "==", uint)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    esi,DWORD PTR [rbp-0x8] */ 0x3b, 0x75, 0xf8,
+        0x3B, 0xF7,                   // cmp     ESI,EDI
         /* sete   al                      */ 0x0f, 0x94, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
@@ -725,11 +625,8 @@ alias baselineCases = AliasSeq!(
     Code!(uint, "!=", uint)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    esi,DWORD PTR [rbp-0x8] */ 0x3b, 0x75, 0xf8,
+        0x3B, 0xF7,                   // cmp     ESI,EDI
         /* setne  al                      */ 0x0f, 0x95, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
@@ -743,11 +640,8 @@ alias baselineCases = AliasSeq!(
     Code!(uint, ">=", uint)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    esi,DWORD PTR [rbp-0x8] */ 0x3b, 0x75, 0xf8,
+        0x3B, 0xF7,                   // cmp     ESI,EDI
         /* setae  al                      */ 0x0f, 0x93, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
@@ -765,14 +659,13 @@ alias baselineCases = AliasSeq!(
     Code!(uint, ">", uint)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    DWORD PTR [rbp-0x8],esi */ 0x39, 0x75, 0xf8,
+        0x39, 0xF7,                   // cmp     EDI,ESI
         /* setb   al                      */ 0x0f, 0x92, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
+
+
     Code!(int, "<", Zero!int)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
@@ -784,11 +677,8 @@ alias baselineCases = AliasSeq!(
     Code!(int, "<", int)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    esi,DWORD PTR [rbp-0x8] */ 0x3b, 0x75, 0xf8,
+        0x3B, 0xF7,                     // cmp     ESI,EDI
         /* setl   al                      */ 0x0f, 0x9c, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
@@ -805,11 +695,8 @@ alias baselineCases = AliasSeq!(
     Code!(int, "<=", int)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    esi,DWORD PTR [rbp-0x8] */ 0x3b, 0x75, 0xf8,
+        0x3B, 0xF7,                     // cmp     ESI,EDI
         /* setle  al                      */ 0x0f, 0x9e, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
@@ -827,11 +714,8 @@ alias baselineCases = AliasSeq!(
     Code!(int, "==", int)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    esi,DWORD PTR [rbp-0x8] */ 0x3b, 0x75, 0xf8,
+        0x3B, 0xF7,                     // cmp     ESI,EDI
         /* sete   al                      */ 0x0f, 0x94, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
@@ -849,11 +733,8 @@ alias baselineCases = AliasSeq!(
     Code!(int, "!=", int)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    esi,DWORD PTR [rbp-0x8] */ 0x3b, 0x75, 0xf8,
+        0x3B, 0xF7,                     // cmp     ESI,EDI
         /* setne  al                      */ 0x0f, 0x95, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
@@ -870,11 +751,8 @@ alias baselineCases = AliasSeq!(
     Code!(int, ">=", int)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    esi,DWORD PTR [rbp-0x8] */ 0x3b, 0x75, 0xf8,
+        0x3B, 0xF7,                     // cmp     ESI,EDI
         /* setge  al                      */ 0x0f, 0x9d, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
@@ -892,14 +770,12 @@ alias baselineCases = AliasSeq!(
     Code!(int, ">", int)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* sub    rsp,0x10                */ 0x48, 0x83, 0xec, 0x10,
-        /* mov    DWORD PTR [rbp-0x8],edi */ 0x89, 0x7d, 0xf8,
-        /* cmp    esi,DWORD PTR [rbp-0x8] */ 0x3b, 0x75, 0xf8,
+        0x3B, 0xF7,                     // cmp     ESI,EDI
         /* setg   al                      */ 0x0f, 0x9f, 0xc0,
-        /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
     ]),
+
     Code!(ulong, "<", Zero!ulong)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
