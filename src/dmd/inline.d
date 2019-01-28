@@ -615,6 +615,10 @@ public:
                 return;
             }
 
+            // Prevent the copy of the aggregates allowed in inlineable funcs
+            if (isInlinableNestedAggregate(e))
+                return;
+
             /* This needs work, like DeclarationExp.toElem(), if we are
              * to handle TemplateMixin's. For now, we just don't inline them.
              */
