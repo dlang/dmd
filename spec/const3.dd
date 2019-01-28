@@ -262,14 +262,18 @@ char[] p = "world"; // error, cannot implicitly convert immutable
 
         $(P
         The second way is to cast data to immutable.
-        When doing so, it is up to the programmer to ensure that no
-        other mutable references to the same data exist.
+        When doing so, it is up to the programmer to ensure that any mutable
+        references to the same data are not used to modify the data after the
+        cast.
         )
 
 ---
-char[] s = ...;
-immutable(char)[] p = cast(immutable)s;     // undefined behavior
-immutable(char)[] p = cast(immutable)s.dup; // ok, unique reference
+char[] s = ['a'];
+s[0] = 'b'; // ok
+immutable(char)[] p = cast(immutable)s; // ok, if data is not mutated
+                                        // through s anymore
+s[0] = 'c'; // undefined behavior
+immutable(char)[] q = cast(immutable)s.dup; // always ok, unique reference
 ---
 
         $(P
