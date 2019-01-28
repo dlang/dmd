@@ -2751,14 +2751,16 @@ $(H3 $(LNAME2 trusted-functions, Trusted Functions))
 
         $(P Trusted functions are guaranteed by the programmer to not exhibit
         any undefined behavior if called by a safe function.
-        Generally, trusted functions should be kept small so that they are
-        easier to manually verify.
         )
 
         $(P Trusted functions may call safe, trusted, or system functions.
         )
 
         $(P Trusted functions are covariant with safe or system functions.)
+
+        $(BEST_PRACTICE Generally, trusted functions should be kept small so
+        that they are easier to manually verify.
+        )
 
 $(H3 $(LNAME2 system-functions, System Functions))
 
