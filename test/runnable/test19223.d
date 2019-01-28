@@ -17,9 +17,18 @@ version (D_SIMD)
         assert(fn(int4.init.array) == 0);
     }
 
+    // https://issues.dlang.org/show_bug.cgi?id=19607
+    void test19607()
+    {
+        int4 v1 = 1;
+        assert(fn(v1.array) == 4);
+        assert(fn(int4(2).array) == 8);
+    }
+
     void main ()
     {
         test19223();
+        test19607();
     }
 }
 else
