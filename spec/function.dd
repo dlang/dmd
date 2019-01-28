@@ -2756,6 +2756,40 @@ $(H3 $(LNAME2 trusted-functions, Trusted Functions))
         ensure that these guarantees are upheld.
         )
 
+        $(P Example:)
+
+        ---
+        immutable(int)* f(int* p) @trusted
+        {
+            version (none) p[2] = 13;
+            // Invalid. p[2] is out of bounds. This line would exhibit undefined
+            // behavior.
+
+            version (none) p[1] = 13;
+            // Invalid. In this program, p[1] happens to be in-bounds, so the
+            // line would not exhibit undefined behavior, but a trusted function
+            // is not allowed to rely on this.
+
+            version (none) return cast(immutable) p;
+            // Invalid. @safe code still has mutable access and could trigger
+            // undefined behavior by overwriting the value later on.
+
+            int* p2 = new int;
+            *p2 = 42;
+            return cast(immutable) p2;
+            // Valid. No @safe code can have knowledge of p2.
+        }
+
+        void main() @safe
+        {
+            int[2] a = [10, 20];
+            int* mp = &a[0];
+            immutable(int)* ip = f(mp);
+            assert(a[1] == 20); // Guaranteed. f cannot access a[1].
+            assert(ip !is mp); // Guaranteed. f cannot introduce unsafe aliasing.
+        }
+        ---
+
         $(P Trusted functions may call safe, trusted, or system functions.
         )
 
