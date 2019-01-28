@@ -1792,7 +1792,7 @@ void cdnot(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             {
                 iop = 0x0F94;   // SETZ rm8
             }
-            cdb.gen2(iop,grex | modregrmx(3,0,reg));
+            cdb.gen2(iop, modregrmx(3,0,reg));
             if (reg >= 4)
                 code_orrex(cdb.last(), REX);
             if (op == OPbool)
