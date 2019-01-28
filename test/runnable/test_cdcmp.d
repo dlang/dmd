@@ -131,19 +131,34 @@ struct Code(T_, string op_, T2_)
     alias op = op_;
     alias T2 = T2_;
     ubyte[] code;
+    void function() expected;
 }
+
+
+/* Set code[] to what is expected
+ */
+ubyte[] setCode(void function() expected)
+{
+    ubyte* pstart = cast(ubyte*)expected;
+    ubyte* p;
+    for (p = pstart; *p != 0xC3; ++p)       // advance to RET instruction
+    {   }
+    return pstart[0 .. p + 1 - pstart];
+}
+
 
 alias AliasSeq(Args...) = Args;
 
 // dfmt off
 alias baselineCases = AliasSeq!(
-    Code!(ubyte, "<", Zero!ubyte)([
-        /* push   rbp                     */ 0x55,
-        /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* xor    eax,eax                 */ 0x31, 0xc0,
-        /* pop    rbp                     */ 0x5d,
-        /* ret                            */ 0xc3,
-    ]),
+    Code!(ubyte, "<", Zero!ubyte)(null, function void() { asm { naked;
+        push    RBP;
+        // Unfortunately, inline asm generates 89 MOV, while code generator generates 8B MOV
+        db      0x48, 0x8B, 0xEC; //mov     RBP,RSP;
+        xor     EAX,EAX;
+        pop     RBP;
+        ret;
+    }}),
     Code!(ubyte, "<", ubyte)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
@@ -1326,16 +1341,19 @@ void main()
 {
     foreach (tc; testCases)
     (){ // workaround Issue 7157
-        auto code = (cast(ubyte*)&testee!(tc.T, tc.op, tc.T2))[0 .. tc.code.length];
+        const(ubyte)[] tc_code = tc.code;
+        if (tc.expected)
+            tc_code = setCode(tc.expected);
+        auto code = (cast(ubyte*)&testee!(tc.T, tc.op, tc.T2))[0 .. tc_code.length];
         bool failure;
-        if (!code.matches(tc.code))
+        if (!code.matches(tc_code))
         {
             fprintf(stderr, "Expected code sequence for testee!(%s, \"%s\", %s) not found.",
                 tc.T.stringof.ptr, tc.op.ptr, tc.T2.stringof.ptr);
             fprintf(stderr, "\n  Expected:");
-            foreach (i, d; tc.code)
+            foreach (i, d; tc_code)
             {
-                if (tc.code[i] != code[i])
+                if (tc_code[i] != code[i])
                     fprintf(stderr, " \033[32m0x%02x\033[0m", d);
                 else
                     fprintf(stderr, " 0x%02x", d);
@@ -1343,7 +1361,7 @@ void main()
             fprintf(stderr, "\n    Actual:");
             foreach (i, d; code)
             {
-                if (tc.code[i] != code[i])
+                if (tc_code[i] != code[i])
                     fprintf(stderr, " \033[31m0x%02x\033[0m", d);
                 else
                     fprintf(stderr, " 0x%02x", d);
