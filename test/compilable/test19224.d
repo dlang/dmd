@@ -12,4 +12,7 @@ version (D_SIMD)
 
     enum x = sum(float4.init.array);
     static assert(x is float.nan);
+
+    enum y = sum(float4(1).array);
+    static assert(y == 4);
 }
