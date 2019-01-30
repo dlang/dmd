@@ -213,6 +213,7 @@ version (linux)
             int __policy;
             int[16] __pad;
         }
+        struct __spawn_action;
         struct posix_spawn_file_actions_t
         {
             int __allocated;
