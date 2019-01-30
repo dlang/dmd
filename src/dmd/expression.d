@@ -422,7 +422,7 @@ private Expression callCpCtor(Scope* sc, Expression e, Type destinationType)
     if (auto ts = e.type.baseElemOf().isTypeStruct())
     {
         StructDeclaration sd = ts.sym;
-        if (sd.postblit || sd.copyCtor)
+        if (sd.postblit || sd.hasCopyCtor)
         {
             /* Create a variable tmp, and replace the argument e with:
              *      (tmp = e),tmp
@@ -431,7 +431,7 @@ private Expression callCpCtor(Scope* sc, Expression e, Type destinationType)
              * directly onto the stack.
              */
             auto tmp = copyToTemp(STC.rvalue, "__copytmp", e);
-            if (sd.copyCtor && destinationType)
+            if (sd.hasCopyCtor && destinationType)
                 tmp.type = destinationType;
             tmp.storage_class |= STC.nodtor;
             tmp.dsymbolSemantic(sc);

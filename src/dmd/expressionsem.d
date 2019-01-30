@@ -1917,7 +1917,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     ? p.type.substWildTo(wildmatch)
                     : p.type;
 
-                bool hasCopyCtor = (arg.type.ty == Tstruct) && (cast(TypeStruct)arg.type).sym.copyCtor !is null;
+                bool hasCopyCtor = (arg.type.ty == Tstruct) && (cast(TypeStruct)arg.type).sym.hasCopyCtor;
                 if (!(hasCopyCtor || tprm.equals(arg.type)))
                 {
                     //printf("arg.type = %s, p.type = %s\n", arg.type.toChars(), p.type.toChars());
@@ -8057,7 +8057,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         result = e;
                         return;
                     }
-                    if (sd.postblit || sd.copyCtor)
+                    if (sd.postblit || sd.hasCopyCtor)
                     {
                         /* We have a copy constructor for this
                          */
@@ -8076,7 +8076,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                         if (e2x.isLvalue())
                         {
-                            if (sd.copyCtor)
+                            if (sd.hasCopyCtor)
                             {
                                 /* Rewrite as:
                                  * e1 = init, e1.copyCtor(e2);
@@ -8085,7 +8085,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                                 einit.type = e1x.type;
 
                                 Expression e;
-                                e = new DotIdExp(exp.loc, e1x, Id.copyCtor);
+                                e = new DotIdExp(exp.loc, e1x, Id.ctor);
                                 e = new CallExp(exp.loc, e, e2x);
                                 e = new CommaExp(exp.loc, einit, e);
 

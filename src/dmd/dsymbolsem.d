@@ -86,8 +86,6 @@ private FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
     if (sd.isUnionDeclaration())
         return null;
 
-    bool hasCopyCtor = sd.copyCtor !is null;
-
     // by default, the storage class of the created postblit
     StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
     Loc declLoc = sd.postblits.dim ? sd.postblits[0].loc : sd.loc;
@@ -378,17 +376,59 @@ private Statement generateCopyCtorBody(StructDeclaration sd)
     return new CompoundStatement(loc, s1);
 }
 
-/* Generates copy constructors for the fields that define copy constructors.
+/* Generates copy constructor for the fields that define copy constructors.
  */
-private CtorDeclaration buildCopyCtor(StructDeclaration sd, Scope* sc)
+private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
 {
+    if (global.errors)
+        return false;
+
     if (sd.postblit)
-        return null;
+        return false;
 
-    if (auto s = sd.search(sd.loc, Id.copyCtor))
-        return s.isCtorDeclaration();
+    auto ctor = sd.search(sd.loc, Id.ctor);
+    if (!ctor)
+        return false;
+    else if (!ctor.isCtorDeclaration() && !ctor.isTemplateDeclaration())
+        return false;
 
-    bool fieldCpCtor;
+    CtorDeclaration cpCtor;
+    CtorDeclaration rvalueCtor;
+    overloadApply(ctor, (Dsymbol s)
+    {
+        if (s.isTemplateDeclaration())
+            return 0;
+        auto ctorDecl = s.isCtorDeclaration();
+        assert(ctorDecl);
+        if (ctorDecl.isCpCtor)
+        {
+            cpCtor = ctorDecl;
+            return 1;
+        }
+
+        auto tf = ctorDecl.type.toTypeFunction();
+        auto dim = Parameter.dim(tf.parameterList);
+        if (dim == 1)
+        {
+            auto param = Parameter.getNth(tf.parameterList, 0);
+            if (param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
+            {
+                rvalueCtor = ctorDecl;
+            }
+        }
+        return 0;
+    });
+
+    if (cpCtor && rvalueCtor)
+    {
+        .error(sd.loc, "`struct %s` may not define both a rvalue constructor (at line `%d`) and a copy constructor (at line `%d`)",
+                sd.toChars(), rvalueCtor.loc.linnum, cpCtor.loc.linnum);
+        return true;
+    }
+    else if (cpCtor)
+        return true;
+
+    VarDeclaration fieldWithCpCtor;
     // see if any struct members define a copy constructor
     foreach (v; sd.fields)
     {
@@ -400,15 +440,21 @@ private CtorDeclaration buildCopyCtor(StructDeclaration sd, Scope* sc)
         auto ts = v.type.baseElemOf().isTypeStruct();
         if (!ts)
             continue;
-        if (ts.sym.copyCtor)
+        if (ts.sym.hasCopyCtor)
         {
-            fieldCpCtor = true;
+            fieldWithCpCtor = v;
             break;
         }
     }
 
-    if (!fieldCpCtor)
-        return null;
+    if (fieldWithCpCtor && rvalueCtor)
+    {
+        .error(sd.loc, "`struct %s` may not define both a rvalue constructor (at line `%d`) and a field with a copy constructor (at line `%d`)",
+                sd.toChars, rvalueCtor.loc.linnum, fieldWithCpCtor.loc.linnum);
+        return false;
+    }
+    else if (!fieldWithCpCtor)
+        return false;
 
 
     //printf("generating copy constructor for %s\n", ccd.type.toChars());
@@ -434,7 +480,7 @@ private CtorDeclaration buildCopyCtor(StructDeclaration sd, Scope* sc)
         ccd.fbody = null;
     }
 
-    return ccd;
+    return true;
 }
 
 private uint setMangleOverride(Dsymbol s, const(char)[] sym)
@@ -3867,21 +3913,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         ctd.deprecation("all parameters have default arguments, "~
                                     "but structs cannot have default constructors.");
                 }
-                else if ((dim == 1 || (dim > 1 && tf.parameterList[1].defaultArg)) &&
-                        ctd.ident != Id.copyCtor)
+                else if ((dim == 1 || (dim > 1 && tf.parameterList[1].defaultArg)))
                 {
                     //printf("tf: %s\n", tf.toChars());
                     auto param = Parameter.getNth(tf.parameterList, 0);
                     if (param.storageClass & STC.ref_ && param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
                     {
                         //printf("copy constructor\n");
-                        auto cpCtorTf = cast(TypeFunction)tf.syntaxCopy();
-                        cpCtorTf.linkage = LINK.d;
-                        auto cpCtor = new CtorDeclaration(ctd.loc, ctd.endloc, ctd.storage_class, cpCtorTf, true);
-                        cpCtor.generated = true;
-                        cpCtor.fbody = ctd.fbody.syntaxCopy();
-                        sd.members.push(cpCtor);
-                        cpCtor.addMember(sc, sd);
+                        ctd.isCpCtor = true;
                     }
                 }
             }
@@ -4487,7 +4526,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         sd.dtor = buildDtor(sd, sc2);
         sd.tidtor = buildExternDDtor(sd, sc2);
         sd.postblit = buildPostBlit(sd, sc2);
-        sd.copyCtor = buildCopyCtor(sd, sc2);
+        sd.hasCopyCtor = buildCopyCtor(sd, sc2);
 
         buildOpAssign(sd, sc2);
         buildOpEquals(sd, sc2);

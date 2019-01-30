@@ -827,7 +827,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                                 exp = exp.castTo(sc2, exp.type.wildOf());
                         }
 
-                        const hasCopyCtor = exp.type.ty == Tstruct && (cast(TypeStruct)exp.type).sym.copyCtor !is null;
+                        const hasCopyCtor = exp.type.ty == Tstruct && (cast(TypeStruct)exp.type).sym.hasCopyCtor;
                         // if a copy constructor is present, the return type conversion will be handled by it
                         if (!hasCopyCtor)
                             exp = exp.implicitCastTo(sc2, tret);
@@ -1321,21 +1321,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 ctor.fbody = new CompoundStatement(ctor.loc, s, ctor.fbody);
             }
         }
-
-        // copy constructors have the same body as their constructor
-        // counterpart, however semantic needs to be done separately
-        // because of context pointers. If there are any errors, then
-        // they will be spotted during the semantic analysis of the
-        // constructor body.
-        bool isCopyCtor = ctor.isCpCtor;
-        uint errors;
-        if (isCopyCtor)
-            errors = global.startGagging();
-
         visit(cast(FuncDeclaration)ctor);
-
-        if (isCopyCtor)
-            global.endGagging(errors);
     }
 
 

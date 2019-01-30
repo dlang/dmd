@@ -74,7 +74,6 @@ immutable Msgtable[] msgtable =
     { "_super", "super" },
     { "ctor", "__ctor" },
     { "dtor", "__dtor" },
-    { "copyCtor", "__copyCtor" },
     { "__xdtor", "__xdtor" },
     { "__fieldDtor", "__fieldDtor" },
     { "__aggrDtor", "__aggrDtor" },

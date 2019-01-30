@@ -3333,7 +3333,7 @@ extern (C++) final class CtorDeclaration : FuncDeclaration
     bool isCpCtor;
     extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Type type, bool isCpCtor = false)
     {
-        super(loc, endloc, isCpCtor ? Id.copyCtor : Id.ctor, stc, type);
+        super(loc, endloc, Id.ctor, stc, type);
         this.isCpCtor = isCpCtor;
         //printf("CtorDeclaration(loc = %s) %s\n", loc.toChars(), toChars());
     }

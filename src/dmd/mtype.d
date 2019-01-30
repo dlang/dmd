@@ -4704,7 +4704,7 @@ extern (C++) final class TypeFunction : TypeNext
                         }
 
                         // check if the copy constructor may be called to copy the argument
-                        if (argStruct && argStruct == prmStruct && argStruct.copyCtor)
+                        if (argStruct && argStruct == prmStruct && argStruct.hasCopyCtor)
                         {
                             /* this is done by seeing if a call to the copy constructor can be made:
                              *
@@ -4714,7 +4714,7 @@ extern (C++) final class TypeFunction : TypeNext
                             auto tmp = new VarDeclaration(arg.loc, tprm, Identifier.generateId("__copytmp"), null);
                             tmp.dsymbolSemantic(sc);
                             Expression ve = new VarExp(arg.loc, tmp);
-                            Expression e = new DotIdExp(arg.loc, ve, Id.copyCtor);
+                            Expression e = new DotIdExp(arg.loc, ve, Id.ctor);
                             e = new CallExp(arg.loc, e, arg);
                             //printf("e = %s\n", e.toChars());
                             if(.trySemantic(e, sc))
