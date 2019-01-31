@@ -252,7 +252,7 @@ int Symbol_Salignsize(Symbol* s)
  *      true if symbol is dead.
  */
 
-bool Symbol_Sisdead(Symbol* s, bool anyInlineAsm)
+bool Symbol_Sisdead(const Symbol* s, bool anyInlineAsm)
 {
     version (MARS)
         enum vol = false;
@@ -278,7 +278,7 @@ bool Symbol_Sisdead(Symbol* s, bool anyInlineAsm)
  * Determine if symbol needs a 'this' pointer.
  */
 
-int Symbol_needThis(Symbol* s)
+int Symbol_needThis(const Symbol* s)
 {
     //printf("needThis() '%s'\n", Sident.ptr);
 
@@ -296,7 +296,7 @@ int Symbol_needThis(Symbol* s)
  * Get user name of symbol.
  */
 
-char *symbol_ident(Symbol *s)
+const(char)* symbol_ident(const Symbol *s)
 {
 version (SCPP_HTOD)
 {
@@ -304,14 +304,14 @@ version (SCPP_HTOD)
     switch (s.Sclass)
     {   case SCstruct:
             if (s.Sstruct.Salias)
-                s = s.Sstruct.Salias;
+                return s.Sstruct.Salias.Sident.ptr;
             else if (s.Sstruct.Sflags & STRnotagname)
                 return noname;
             break;
         case SCenum:
             if (CPP)
             {   if (s.Senum.SEalias)
-                    s = s.Senum.SEalias;
+                    return s.Senum.SEalias.Sident.ptr;
                 else if (s.Senum.SEflags & SENnotagname)
                     return noname;
             }
@@ -536,7 +536,7 @@ Symbol * defsy(const(char)* p,Symbol **parent)
 debug
 {
 
-void symbol_check(Symbol *s)
+void symbol_check(const Symbol *s)
 {
     //printf("symbol_check('%s',%p)\n",s.Sident.ptr,s);
     symbol_debug(s);
@@ -551,7 +551,7 @@ version (SCPP_HTOD)
 }
 }
 
-void symbol_tree_check(Symbol *s)
+void symbol_tree_check(const(Symbol)* s)
 {
     while (s)
     {   symbol_check(s);
