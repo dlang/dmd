@@ -71,7 +71,7 @@ enum STACK   = 26;      // top of stack
 enum ST0     = 27;      // 8087 top of stack register
 enum ST01    = 28;      // top two 8087 registers; for complex types
 
-enum NOREG   = 29;     // no register
+enum reg_t NOREG   = 29;     // no register
 
 enum
 {

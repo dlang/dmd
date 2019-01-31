@@ -367,17 +367,17 @@ void codgen(Symbol *);
 
 debug
 {
-    uint findreg(regm_t regm , int line, const(char)* file);
-    extern (D) uint findreg(regm_t regm , int line = __LINE__, string file = __FILE__)
+    reg_t findreg(regm_t regm , int line, const(char)* file);
+    extern (D) reg_t findreg(regm_t regm , int line = __LINE__, string file = __FILE__)
     { return findreg(regm, line, file.ptr); }
 }
 else
 {
-    uint findreg(regm_t regm);
+    reg_t findreg(regm_t regm);
 }
 
-uint findregmsw(uint regm) { return findreg(regm & mMSW); }
-uint findreglsw(uint regm) { return findreg(regm & (mLSW | mBP)); }
+reg_t findregmsw(uint regm) { return findreg(regm & mMSW); }
+reg_t findreglsw(uint regm) { return findreg(regm & (mLSW | mBP)); }
 void freenode(elem *e);
 int isregvar(elem *e, regm_t *pregm, uint *preg);
 void allocreg(ref CodeBuilder cdb, regm_t *pretregs, uint *preg, tym_t tym, int line, const(char)* file);
