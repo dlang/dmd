@@ -110,6 +110,13 @@ void testAA()()
     test([1:"one"], [2: "two"], `[1: "one"] != [2: "two"]`);
 }
 
+
+void testAttributes() @safe pure @nogc nothrow
+{
+    int a;
+    assert(a == 0);
+}
+
 void main()
 {
     testIntegers();
@@ -120,5 +127,6 @@ void main()
     testArray();
     testStruct();
     testAA();
+    testAttributes();
     fprintf(stderr, "success.\n");
 }

@@ -37,7 +37,7 @@ private template getPrintfFormat(T)
 Minimalistic formatting for use in _d_assert_fail to keep the compilation
 overhead small and avoid the use of Phobos.
 */
-auto miniFormat(V)(auto ref V v)
+auto miniFormat(V)(V v)
 {
     import core.stdc.stdio : sprintf;
     import core.stdc.string : strlen;
@@ -45,14 +45,14 @@ auto miniFormat(V)(auto ref V v)
     {
         enum printfFormat = getPrintfFormat!V;
         char[20] val;
-        sprintf(val.ptr, printfFormat, v);
-        return val.idup[0 .. strlen(val.ptr)];
+        const len = sprintf(&val[0], printfFormat, v);
+        return val.idup[0 .. len];
     }
     else static if (__traits(isFloating, V))
     {
         char[60] val;
-        sprintf(val.ptr, "%g", v);
-        return val.idup[0 .. strlen(val.ptr)];
+        const len = sprintf(&val[0], "%g", v);
+        return val.idup[0 .. len];
     }
     else static if (__traits(compiles, { string s = V.init.toString(); }))
     {
@@ -145,3 +145,26 @@ string invertCompToken(string comp)
     }
 }
 
+private auto assumeFakeAttributes(T)(T t) @trusted
+{
+    import core.internal.traits : Parameters, ReturnType;
+    alias RT = ReturnType!T;
+    alias P = Parameters!T;
+    alias type = RT function(P) nothrow @nogc @safe pure;
+    return cast(type) t;
+}
+
+auto miniFormatFakeAttributes(T)(T t)
+{
+    alias miniT = miniFormat!T;
+    return assumeFakeAttributes(&miniT)(t);
+}
+
+auto pureAlloc(size_t t)
+{
+    static auto alloc(size_t len)
+    {
+        return new ubyte[len];
+    }
+    return assumeFakeAttributes(&alloc)(t);
+}
