@@ -2,8 +2,8 @@
 // https://issues.dlang.org/show_bug.cgi?id=12790
 string get()
 {
-    return
-    q{int x;
+    return "int x =\n        123;\r\n" ~
+    q{
         int y;
         
         
