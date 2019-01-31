@@ -1296,7 +1296,13 @@ elem *toElem(Expression e, IRState *irs)
             elem *e = el_ptr(s);
             if (fld.isNested())
             {
-                elem *ethis = getEthis(fe.loc, irs, fld);
+                elem *ethis;
+                // Delegate literals report isNested() even if they are in global scope,
+                // so we need to check that the parent is a function.
+                if (!fld.toParent2().isFuncDeclaration())
+                    ethis = el_long(TYnptr, 0);
+                else
+                    ethis = getEthis(fe.loc, irs, fld);
                 e = el_pair(TYdelegate, ethis, e);
             }
             elem_setLoc(e, fe.loc);
