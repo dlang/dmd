@@ -22,7 +22,7 @@ $(GNAME UnitTest):
     }
     ---
 
-    $(P Individual tests are specified in the unit test using $(DDSUBLINK spec/expression, AssertExpression)s.
+    $(P Individual tests are specified in the unit test using $(DDSUBLINK spec/expression, AssertExpression, AssertExpressions).
     Unlike $(I AssertExpression)s used elsewhere, the assert is not assumed to hold, and upon assert
     failure the program is still in a defined state.
     )
