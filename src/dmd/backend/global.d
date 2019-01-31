@@ -103,11 +103,11 @@ Symbol *asm_define_label(const(char)* id);
 
 // cpp.c
 version (SCPP)
-    char* cpp_mangle(Symbol* s);
+    const(char)* cpp_mangle(Symbol* s);
 else version (MARS)
     const(char)* cpp_mangle(Symbol* s);
 else
-    char* cpp_mangle(Symbol* s) { return &s.Sident[0]; }
+    const(char)* cpp_mangle(Symbol* s) { return &s.Sident[0]; }
 
 // ee.c
 void eecontext_convs(uint marksi);
@@ -332,7 +332,7 @@ void symtab_free(Symbol **tab);
 void symbol_keep(Symbol *s) { }
 void symbol_print(const Symbol* s);
 void symbol_term();
-char *symbol_ident(Symbol *s);
+const(char)* symbol_ident(const Symbol *s);
 Symbol *symbol_calloc(const(char)* id);
 Symbol *symbol_calloc(const(char)* id, uint len);
 Symbol *symbol_name(const(char)* name, int sclass, type *t);

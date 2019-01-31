@@ -1437,8 +1437,8 @@ void symbol_debug(const Symbol* s)
 }
 
 int Symbol_Salignsize(Symbol* s);
-bool Symbol_Sisdead(Symbol* s, bool anyInlineAsm);
-int Symbol_needThis(Symbol* s);
+bool Symbol_Sisdead(const Symbol* s, bool anyInlineAsm);
+int Symbol_needThis(const Symbol* s);
 
 bool isclassmember(const Symbol* s) { return s.Sscope && s.Sscope.Sclass == SCstruct; }
 
@@ -1469,24 +1469,24 @@ alias Aliassym = Symbol;
 /* Format the identifier for presentation to the user   */
 version (SCPP)
 {
-    char *cpp_prettyident (Symbol *s);
-    char *prettyident(Symbol *s) { return CPP ? cpp_prettyident(s) : &s.Sident[0]; }
+    const(char)* cpp_prettyident (const Symbol *s);
+    const(char)* prettyident(const Symbol *s) { return CPP ? cpp_prettyident(s) : &s.Sident[0]; }
 }
 
 version (SPP)
 {
-    char *cpp_prettyident (Symbol *s);
-    char *prettyident(Symbol *s) { return &s.Sident[0]; }
+    const(char)* cpp_prettyident (const Symbol *s);
+    const(char)* prettyident(const Symbol *s) { return &s.Sident[0]; }
 }
 
 version (HTOD)
 {
-    char *cpp_prettyident (Symbol *s);
-    char *prettyident(Symbol *s) { return &s.Sident[0]; }
+    const(char)* cpp_prettyident (const Symbol *s);
+    const(char)* prettyident(const Symbol *s) { return &s.Sident[0]; }
 }
 
 version (MARS)
-    char *prettyident(Symbol *s) { return &s.Sident[0]; }
+    const(char)* prettyident(const Symbol *s) { return &s.Sident[0]; }
 
 
 /**********************************

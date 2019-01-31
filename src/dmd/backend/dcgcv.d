@@ -858,13 +858,12 @@ private int cv4_methodlist(Symbol *sf,int *pcount)
 version (SCPP)
 {
 
-private char * cv4_prettyident(Symbol *s)
+private const(char)* cv4_prettyident(Symbol *s)
 {   Symbol *stmp;
-    char *p;
 
     stmp = s.Sscope;
     s.Sscope = null;           // trick cpp_prettyident into leaving off ::
-    p = cpp_prettyident(s);
+    const p = cpp_prettyident(s);
     s.Sscope = cast(Classsym *)stmp;
     return p;
 }
@@ -890,7 +889,7 @@ idx_t cv4_struct(Classsym *s,int flags)
     idx_t typidx;
     type *t;
     struct_t *st;
-    char *id;
+    const(char)* id;
 version (SCPP)
 {
     baseclass_t *b;
@@ -1194,7 +1193,7 @@ version (SCPP)
         targ_size_t offset;
 
         symbol_debug(sf);
-        char *sfid = sf.Sident.ptr;
+        const(char)* sfid = sf.Sident.ptr;
         switch (sf.Sclass)
         {
             case SCmember:
@@ -1421,7 +1420,7 @@ version (SCPP)
         targ_size_t offset;
 
         symbol_debug(sf);
-        char *sfid = sf.Sident.ptr;
+        const(char)* sfid = sf.Sident.ptr;
         switch (sf.Sclass)
         {
             case SCfield:
