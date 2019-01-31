@@ -240,15 +240,17 @@ bool writeMixin(const(char)[] s, ref Loc loc)
 
     // write by line to create consistent line endings
     size_t lastpos = 0;
-    foreach (i,c; s)
+    for (size_t i = 0; i < s.length; i++)
     {
+        char c = s[i];
         // detect LF and CRLF
         if (c == '\n' || (c == '\r' && i+1 < s.length && s[i+1] == '\n'))
         {
             ob.writestring(s[lastpos .. i]);
             ob.writenl();
             global.params.mixinLines++;
-            lastpos = i + (c == '\r' ? 2 : 1);
+            i += (c == '\r' ? 1 : 0);
+            lastpos = i + 1;
         }
     }
 
