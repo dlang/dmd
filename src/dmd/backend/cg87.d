@@ -856,7 +856,7 @@ void fixresult87(ref CodeBuilder cdb,elem *e,regm_t retregs,regm_t *pretregs)
         pop87();
         cdb.genfltreg(ESC(mf,1),3,0);
         genfwait(cdb);
-        uint reg;
+        reg_t reg;
         allocreg(cdb,pretregs,&reg,(sz == FLOATSIZE) ? TYfloat : TYdouble);
         if (sz == FLOATSIZE)
         {
@@ -922,7 +922,7 @@ void fixresult87(ref CodeBuilder cdb,elem *e,regm_t retregs,regm_t *pretregs)
             cdb.genfltreg(ESC(mf,1),3,0);
             genfwait(cdb);
             // MOVD XMM?,floatreg
-            uint reg;
+            reg_t reg;
             allocreg(cdb,pretregs,&reg,(sz == FLOATSIZE) ? TYfloat : TYdouble);
             cdb.genxmmreg(xmmload(tym),reg,0,tym);
         }
@@ -1626,7 +1626,8 @@ void load87(ref CodeBuilder cdb,elem *e,uint eoffset,regm_t *pretregs,elem *elef
 {
     code cs;
     regm_t retregs;
-    uint reg,mf1;
+    reg_t reg;
+    uint mf1;
     ubyte ldop;
     int i;
 
@@ -2963,7 +2964,7 @@ void cdd_u64(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         retregs = *pretregs;
         if (!retregs)
             retregs = ALLREGS;
-        uint reg, reg2;
+        reg_t reg, reg2;
         allocreg(cdb,&retregs,&reg,tym);
         reg  = findreglsw(retregs);
         reg2 = findregmsw(retregs);
@@ -3047,10 +3048,10 @@ void cdd_u64(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         retregs = *pretregs;
         if (!retregs)
             retregs = ALLREGS;
-        uint reg;
+        reg_t reg;
         allocreg(cdb,&retregs,&reg,tym);
         regm_t regm2 = ALLREGS & ~retregs & ~mAX;
-        uint reg2;
+        reg_t reg2;
         allocreg(cdb,&regm2,&reg2,tym);
         movregconst(cdb,reg2,0x80000000,0);
         getregs(cdb,mask(reg2) | mAX);
@@ -3124,7 +3125,7 @@ void cdd_u32(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     retregs = *pretregs & ALLREGS;
     if (!retregs)
         retregs = ALLREGS;
-    uint reg;
+    reg_t reg;
     allocreg(cdb,&retregs,&reg,tym);
 
     cdb.genfltreg(0xC7,0,8);
@@ -3154,7 +3155,8 @@ void cdd_u32(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 void cnvt87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     regm_t retregs;
-    uint mf,rf,reg;
+    uint mf,rf;
+    reg_t reg;
     int clib;
 
     //printf("cnvt87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
@@ -3338,7 +3340,7 @@ void cdrndtol(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     retregs = *pretregs & (ALLREGS | mBP);
     if (!retregs)
         retregs = ALLREGS;
-    uint reg;
+    reg_t reg;
     allocreg(cdb,&retregs,&reg,tym);
     genfwait(cdb);                      // FWAIT
     if (tysize(tym) > REGSIZE)

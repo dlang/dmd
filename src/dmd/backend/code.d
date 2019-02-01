@@ -204,8 +204,8 @@ code *genlinnum(code *,Srcpos);
 void cgen_prelinnum(code **pc,Srcpos srcpos);
 code *gennop(code *);
 void gencodelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,bool constflag);
-bool reghasvalue (regm_t regm , targ_size_t value , uint *preg );
-void regwithvalue(ref CodeBuilder cdb, regm_t regm, targ_size_t value, uint *preg, regm_t flags);
+bool reghasvalue (regm_t regm , targ_size_t value , reg_t *preg );
+void regwithvalue(ref CodeBuilder cdb, regm_t regm, targ_size_t value, reg_t *preg, regm_t flags);
 
 // cgreg.c
 void cgreg_init();
@@ -379,9 +379,9 @@ else
 reg_t findregmsw(uint regm) { return findreg(regm & mMSW); }
 reg_t findreglsw(uint regm) { return findreg(regm & (mLSW | mBP)); }
 void freenode(elem *e);
-int isregvar(elem *e, regm_t *pregm, uint *preg);
-void allocreg(ref CodeBuilder cdb, regm_t *pretregs, uint *preg, tym_t tym, int line, const(char)* file);
-void allocreg(ref CodeBuilder cdb, regm_t *pretregs, uint *preg, tym_t tym);
+int isregvar(elem *e, regm_t *pregm, reg_t *preg);
+void allocreg(ref CodeBuilder cdb, regm_t *pretregs, reg_t *preg, tym_t tym, int line, const(char)* file);
+void allocreg(ref CodeBuilder cdb, regm_t *pretregs, reg_t *preg, tym_t tym);
 regm_t lpadregs();
 void useregs (regm_t regm);
 void getregs(ref CodeBuilder cdb, regm_t r);
@@ -580,7 +580,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, regm_t* n
 /* cod4.c */
 extern __gshared
 {
-const uint[4] dblreg;
+const reg_t[4] dblreg;
 int cdcmp_flag;
 }
 

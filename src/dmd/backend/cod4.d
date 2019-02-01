@@ -46,7 +46,7 @@ extern __gshared ubyte[FLMAX] datafl;
 private extern (D) uint mask(uint m) { return 1 << m; }
 
                         /*   AX,CX,DX,BX                */
-__gshared const uint[4] dblreg = [ BX,DX,cast(uint)-1,CX ];
+__gshared const reg_t[4] dblreg = [ BX,DX,NOREG,CX ];
 
 
 /*******************************
@@ -350,7 +350,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     elem *e11;
     bool regvar;                  // true means evaluate into register variable
     regm_t varregm;
-    uint varreg;
+    reg_t varreg;
     targ_int postinc;
 
     //printf("cdeq(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
@@ -463,7 +463,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                         // MOV reg,imm64
                         // MOV EA,reg
                         regm_t rregm = allregs & ~idxregm(&cs);
-                        uint regx;
+                        reg_t regx;
                         regwithvalue(cdb,rregm,e2.EV.Vpointer,&regx,64);
                         cs.Iop = 0x89;
                         cs.Irm |= modregrm(0,regx & 7,0);
@@ -478,7 +478,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                         // MOV reg,imm
                         // MOV EA,reg
                         regm_t rregm = allregs & ~idxregm(&cs);
-                        uint regx;
+                        reg_t regx;
                         regwithvalue(cdb,rregm,e2.EV.Vint,&regx,0);
                         cs.Iop = 0x89;
                         cs.Irm |= modregrm(0,regx & 7,0);
@@ -496,7 +496,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                         regm_t rregm = getscratch() & ~idxregm(&cs);
                         if (rregm)
                         {
-                            uint regx;
+                            reg_t regx;
                             regwithvalue(cdb,rregm,e2.EV.Vint,&regx,0);
                             cs.Iop = 0x89;
                             cs.Irm |= modregrm(0,regx,0);
@@ -570,7 +570,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                     // MOV reg,imm64
                     // MOV EA,reg
                     regm_t rregm = allregs & ~idxregm(&cs);
-                    uint regx;
+                    reg_t regx;
                     regwithvalue(cdb,rregm,*p,&regx,64);
                     cs.Iop = 0x89;
                     cs.Irm |= modregrm(0,regx & 7,0);
@@ -591,7 +591,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                         else if (I64 && sz == 16 && *p >= 0x80000000)
                         {
                             regm_t rregm = allregs & ~idxregm(&cs);
-                            uint regx;
+                            reg_t regx;
                             regwithvalue(cdb,rregm,*p,&regx,64);
                             cs.Iop = 0x89;
                             cs.Irm |= modregrm(0,regx & 7,0);
@@ -601,7 +601,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                         else
                         {
                             regm_t retregsx = (sz == 1) ? BYTEREGS : allregs;
-                            uint regx;
+                            reg_t regx;
                             if (reghasvalue(retregsx,*p,&regx))
                             {
                                 cs.Iop = (cs.Iop & 1) | 0x88;
@@ -876,11 +876,12 @@ void cdaddass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     // true if we want the result in a register
     uint wantres = forregs || (e1.Ecount && !OTleaf(e1.Eoper));
 
-    uint reg,op1,op2,mode;
+    reg_t reg;
+    uint op1,op2,mode;
     code cs;
     elem *e2;
     regm_t varregm;
-    uint varreg;
+    reg_t varreg;
     uint jop;
 
 
@@ -1379,7 +1380,8 @@ void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     code cs;
     regm_t retregs;
-    uint resreg,reg,opr,lib,isbyte;
+    reg_t resreg;
+    uint reg,opr,lib,isbyte;
 
     //printf("cdmulass(e=%p, *pretregs = %s)\n",e,regm_str(*pretregs));
     elem *e1 = e.EV.E1;
@@ -1635,7 +1637,8 @@ void cdshass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     code cs;
     regm_t retregs;
-    uint op1,op2,reg;
+    uint op1,op2;
+    reg_t reg;
 
     elem *e1 = e.EV.E1;
     elem *e2 = e.EV.E2;
@@ -1888,7 +1891,7 @@ void cdshass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 void cdcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     regm_t retregs,rretregs;
-    uint reg,rreg;
+    reg_t reg,rreg;
     int fl;
 
     //printf("cdcmp(e = %p, pretregs = %s)\n",e,regm_str(*pretregs));
@@ -2198,7 +2201,7 @@ void cdcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                                faster sequence
                              */
                             genregs(cdb,0xD1,0,reg);   // ROL reg,1
-                            uint regi;
+                            reg_t regi;
                             if (reghasvalue(allregs,1,&regi))
                                 genregs(cdb,0x23,reg,regi);  // AND reg,regi
                             else
@@ -2682,7 +2685,7 @@ void longcmp(ref CodeBuilder cdb,elem *e,bool jcond,uint fltarg,code *targ)
         case OPvar:
             if (!e1.Ecount && e1.Eoper == OPs32_64)
             {
-                uint msreg;
+                reg_t msreg;
 
                 retregs = allregs;
                 scodelem(cdb,e1.EV.E1,&retregs,0,true);
@@ -2834,7 +2837,7 @@ void cdcnvt(ref CodeBuilder cdb,elem *e, regm_t *pretregs)
                 {
                     regm_t retregsx = ALLREGS;
                     codelem(cdb,e.EV.E1, &retregsx, false);
-                    uint reg = findreg(retregsx);
+                    reg_t reg = findreg(retregsx);
                     cdb.genfltreg(0x89, reg, 0);
                     regwithvalue(cdb,ALLREGS,0,&reg,0);
                     cdb.genfltreg(0x89, reg, 4);
@@ -2948,7 +2951,7 @@ L1:
 
 void cdshtlng(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
-    uint reg;
+    reg_t reg;
     regm_t retregs;
 
     //printf("cdshtlng(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
@@ -3204,7 +3207,7 @@ void cdbyteint(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             code cs;
 
             regm_t retregsx = *pretregs;
-            uint reg;
+            reg_t reg;
             allocreg(cdb,&retregsx,&reg,TYint);
             if (config.flags4 & CFG4speed &&
                 op == OPu8_16 && mask(reg) & BYTEREGS &&
@@ -3517,7 +3520,7 @@ void cdfar16(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
                 ROL ereg,16
             L1: NOP
          */
-        uint rx;
+        reg_t rx;
 
         regm_t retregs = BYTEREGS & ~*pretregs;
         allocreg(cdb,&retregs,&rx,TYint);
@@ -3557,7 +3560,7 @@ void cdfar16(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 void cdbtst(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     regm_t retregs;
-    uint reg;
+    reg_t reg;
 
     //printf("cdbtst(e = %p, *pretregs = %s\n", e, regm_str(*pretregs));
 
@@ -3682,7 +3685,7 @@ void cdbt(ref CodeBuilder cdb,elem *e, regm_t *pretregs)
 {
     //printf("cdbt(%p, %s)\n", e, regm_str(*pretregs));
     regm_t retregs;
-    uint reg;
+    reg_t reg;
     int op;
     int mode;
 
@@ -3810,7 +3813,7 @@ void cdbscan(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     int sz = _tysize[tyml];
     assert(sz == 2 || sz == 4 || sz == 8);
     regm_t retregs;
-    uint reg;
+    reg_t reg;
     code cs;
 
     if ((e.EV.E1.Eoper == OPind && !e.EV.E1.Ecount) || e.EV.E1.Eoper == OPvar)
@@ -3885,7 +3888,7 @@ void cdpopcnt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     regm_t retregs = *pretregs & allregs;
     if  (!retregs)
         retregs = allregs;
-    uint reg;
+    reg_t reg;
     allocreg(cdb,&retregs, &reg, e.Ety);
 
     cs.Iop = POPCNT;            // POPCNT reg,EA
@@ -4054,7 +4057,7 @@ void cdcmpxchg(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     {
         assert(tysize(e.Ety) == 1);
         assert(I64 || retregs & BYTEREGS);
-        uint reg;
+        reg_t reg;
         allocreg(cdb,&retregs,&reg,TYint);
         uint ea = modregrmx(3,0,reg);
         if (I64 && reg >= 4)
