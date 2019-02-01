@@ -2045,7 +2045,7 @@ L1:
         //printf("L1: allregs = %s, *pretregs = %s\n", regm_str(allregs), regm_str(*pretregs));
         assert(++count < 20);           /* fail instead of hanging if blocked */
         assert(retregs);
-        uint msreg = -1, lsreg = -1;  /* no value assigned yet        */
+        uint msreg = NOREG, lsreg = NOREG;  /* no value assigned yet        */
 L3:
         //printf("L2: allregs = %s, *pretregs = %s\n", regm_str(allregs), regm_str(*pretregs));
         regm_t r = retregs & ~(msavereg | regcon.cse.mval | regcon.params);
@@ -2117,7 +2117,7 @@ L3:
                 r &= mLSW;                      /* see if there's an LSW also */
                 if (r)
                     lsreg = findreg(r);
-                else if (lsreg == -1)   /* if don't have LSW yet */
+                else if (lsreg == NOREG)   /* if don't have LSW yet */
                 {
                     retregs &= mLSW;
                     goto L3;
@@ -2132,7 +2132,7 @@ L3:
                     goto L1;
                 }
                 lsreg = findreglsw(r);
-                if (msreg == -1)
+                if (msreg == NOREG)
                 {
                     retregs &= mMSW;
                     assert(retregs);
@@ -2672,8 +2672,8 @@ private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         assert(I16);
         if (((csemask | emask) & DOUBLEREGS_16) == DOUBLEREGS_16)
         {
-            static const uint[4] dblreg = [ BX,DX,cast(uint)-1,CX ]; // duplicate of one in cod4.d
-            for (reg = 0; reg != -1; reg = dblreg[reg])
+            static const reg_t[4] dblreg = [ BX,DX,NOREG,CX ]; // duplicate of one in cod4.d
+            for (reg = 0; reg != NOREG; reg = dblreg[reg])
             {
                 assert(cast(int) reg >= 0 && reg <= 7);
                 if (mask(reg) & csemask)
