@@ -731,20 +731,20 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 /*******************************
  * setup register allocator parameters with platform specific data
  */
-void cgreg_dst_regs(uint *dst_integer_reg, uint *dst_float_reg)
+void cgreg_dst_regs(reg_t* dst_integer_reg, reg_t* dst_float_reg)
 {
     *dst_integer_reg = AX;
     *dst_float_reg   = XMM0;
 }
 
-void cgreg_set_priorities(tym_t ty, ubyte **pseq, ubyte **pseqmsw)
+void cgreg_set_priorities(tym_t ty, const(reg_t)** pseq, const(reg_t)** pseqmsw)
 {
-    uint sz = tysize(ty);
+    const sz = tysize(ty);
 
     if (tyxmmreg(ty))
     {
         static immutable ubyte[9] sequence = [XMM0,XMM1,XMM2,XMM3,XMM4,XMM5,XMM6,XMM7,NOREG];
-        *pseq = cast(ubyte*)sequence.ptr;
+        *pseq = sequence.ptr;
     }
     else if (I64)
     {
@@ -752,8 +752,8 @@ void cgreg_set_priorities(tym_t ty, ubyte **pseq, ubyte **pseqmsw)
         {
             static immutable ubyte[3] seqmsw1 = [CX,DX,NOREG];
             static immutable ubyte[5] seqlsw1 = [AX,BX,SI,DI,NOREG];
-            *pseq = cast(ubyte*)seqlsw1.ptr;
-            *pseqmsw = cast(ubyte*)seqmsw1.ptr;
+            *pseq = seqlsw1.ptr;
+            *pseqmsw = seqmsw1.ptr;
         }
         else
         {   // R10 is reserved for the static link
@@ -767,13 +767,13 @@ void cgreg_set_priorities(tym_t ty, ubyte **pseq, ubyte **pseqmsw)
         {
             static immutable ubyte[5] seqlsw3 = [AX,BX,SI,DI,NOREG];
             static immutable ubyte[3] seqmsw3 = [CX,DX,NOREG];
-            *pseq = cast(ubyte*)seqlsw3.ptr;
-            *pseqmsw = cast(ubyte*)seqmsw3.ptr;
+            *pseq = seqlsw3.ptr;
+            *pseqmsw = seqmsw3.ptr;
         }
         else
         {
             static immutable ubyte[8] sequence4 = [AX,CX,DX,BX,SI,DI,BP,NOREG];
-            *pseq = cast(ubyte*)sequence4.ptr;
+            *pseq = sequence4.ptr;
         }
     }
     else
@@ -782,13 +782,13 @@ void cgreg_set_priorities(tym_t ty, ubyte **pseq, ubyte **pseqmsw)
         {
             // For pointer types, try to pick index register first
             static immutable ubyte[8] seqidx5 = [BX,SI,DI,AX,CX,DX,BP,NOREG];
-            *pseq = cast(ubyte*)seqidx5.ptr;
+            *pseq = seqidx5.ptr;
         }
         else
         {
             // Otherwise, try to pick index registers last
             static immutable ubyte[8] sequence6 = [AX,CX,DX,BX,SI,DI,BP,NOREG];
-            *pseq = cast(ubyte*)sequence6.ptr;
+            *pseq = sequence6.ptr;
         }
     }
 }
