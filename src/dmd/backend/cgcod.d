@@ -1802,17 +1802,17 @@ int numbitsset(regm_t regm)
  * of the first register that fits.
  */
 
-uint findreg(regm_t regm)
+reg_t findreg(regm_t regm)
 {
     return findreg(regm, __LINE__, __FILE__);
 }
 
-uint findreg(regm_t regm, int line, const(char)* file)
+reg_t findreg(regm_t regm, int line, const(char)* file)
 {
     debug
     regm_t regmsave = regm;
 
-    int i = 0;
+    reg_t i = 0;
     while (1)
     {
         if (!(regm & 0xF))
