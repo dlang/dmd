@@ -1443,7 +1443,7 @@ void doswitch(ref CodeBuilder cdb, block *b)
             reg2 = NOREG;
         }
 
-        uint sreg = NOREG;                          // may need a scratch register
+        reg_t sreg = NOREG;                          // may need a scratch register
 
         // Put into casevals[0..ncases] so we can sort then slice
         CaseVal *casevals = cast(CaseVal *)malloc(ncases * CaseVal.sizeof);
@@ -1545,10 +1545,10 @@ static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYB
                  * LEA    R1,[R1][R2]           48 8D 04 02
                  * JMP    R1                    FF E0
                  */
-                uint r1;
+                reg_t r1;
                 regm_t scratchm = ALLREGS & ~mask(reg);
                 allocreg(cdb,&scratchm,&r1,TYint);
-                uint r2;
+                reg_t r2;
                 scratchm = ALLREGS & ~(mask(reg) | mask(r1));
                 allocreg(cdb,&scratchm,&r2,TYint);
 
@@ -1626,7 +1626,7 @@ else static if (TARGET_OSX)
              */
             // Allocate scratch register r1
             regm_t scratchm = ALLREGS & ~mask(reg);
-            uint r1;
+            reg_t r1;
             allocreg(cdb,&scratchm,&r1,TYint);
 
             cdb.genc2(CALL,0,0);                           //     CALL L1
@@ -1650,7 +1650,7 @@ else
 
                 // Allocate scratch register r1
                 regm_t scratchm = ALLREGS & ~(mask(reg) | mBX);
-                uint r1;
+                reg_t r1;
                 allocreg(cdb,&scratchm,&r1,TYint);
 
                 genmovreg(cdb,r1,BX);              // MOV R1,EBX
@@ -2134,7 +2134,7 @@ L1:
 void cod3_ptrchk(ref CodeBuilder cdb,code *pcs,regm_t keepmsk)
 {
     ubyte sib;
-    uint reg;
+    reg_t reg;
     uint flagsave;
     uint opsave;
 
@@ -2312,7 +2312,7 @@ Lcant:
 bool cse_simple(code *c, elem *e)
 {
     regm_t regm;
-    uint reg;
+    reg_t reg;
     int sz = tysize(e.Ety);
 
     if (!I16 &&                                  // don't bother with 16 bit code
@@ -2393,7 +2393,7 @@ void cdframeptr(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     regm_t retregs = *pretregs & allregs;
     if  (!retregs)
         retregs = allregs;
-    uint reg;
+    reg_t reg;
     allocreg(cdb,&retregs, &reg, TYint);
 
     code cs;
@@ -2417,7 +2417,7 @@ void cdgot(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         regm_t retregs = *pretregs & allregs;
         if  (!retregs)
             retregs = allregs;
-        uint reg;
+        reg_t reg;
         allocreg(cdb,&retregs, &reg, TYnptr);
 
         cdb.genc(CALL,0,0,0,FLgot,0);     //     CALL L1
@@ -2430,7 +2430,7 @@ void cdgot(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         regm_t retregs = *pretregs & allregs;
         if  (!retregs)
             retregs = allregs;
-        uint reg;
+        reg_t reg;
         allocreg(cdb,&retregs, &reg, TYnptr);
 
         cdb.genc2(CALL,0,0);        //     CALL L1
@@ -5904,7 +5904,7 @@ private void pinholeopt_unittest()
 
 void simplify_code(code* c)
 {
-    uint reg;
+    reg_t reg;
     if (config.flags4 & CFG4optimized &&
         (c.Iop == 0x81 || c.Iop == 0x80) &&
         c.IFL2 == FLconst &&

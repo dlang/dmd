@@ -1899,13 +1899,13 @@ private void resetEcomsub(elem *e)
  *      returns false
  */
 
-int isregvar(elem *e,regm_t *pregm,uint *preg)
+int isregvar(elem *e,regm_t *pregm,reg_t *preg)
 {
     Symbol *s;
     uint u;
     regm_t m;
     regm_t regm;
-    uint reg;
+    reg_t reg;
 
     elem_debug(e);
     if (e.Eoper == OPvar || e.Eoper == OPrelconst)
@@ -1994,15 +1994,15 @@ Lreg:
  *      stack.
  */
 
-void allocreg(ref CodeBuilder cdb,regm_t *pretregs,uint *preg,tym_t tym)
+void allocreg(ref CodeBuilder cdb,regm_t *pretregs,reg_t *preg,tym_t tym)
 {
     allocreg(cdb, pretregs, preg, tym, __LINE__, __FILE__);
 }
 
-void allocreg(ref CodeBuilder cdb,regm_t *pretregs,uint *preg,tym_t tym
+void allocreg(ref CodeBuilder cdb,regm_t *pretregs,reg_t *preg,tym_t tym
         ,int line,const(char)* file)
 {
-        uint reg;
+        reg_t reg;
 
 static if (0)
 {
@@ -2045,7 +2045,7 @@ L1:
         //printf("L1: allregs = %s, *pretregs = %s\n", regm_str(allregs), regm_str(*pretregs));
         assert(++count < 20);           /* fail instead of hanging if blocked */
         assert(retregs);
-        uint msreg = NOREG, lsreg = NOREG;  /* no value assigned yet        */
+        reg_t msreg = NOREG, lsreg = NOREG;  /* no value assigned yet        */
 L3:
         //printf("L2: allregs = %s, *pretregs = %s\n", regm_str(allregs), regm_str(*pretregs));
         regm_t r = retregs & ~(msavereg | regcon.cse.mval | regcon.params);
@@ -2475,7 +2475,8 @@ private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     tym_t tym;
     regm_t regm,emask,csemask;
-    uint reg,byte_,sz;
+    reg_t reg;
+    uint byte_,sz;
 
     //printf("comsub(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
     elem_debug(e);
@@ -2618,7 +2619,7 @@ private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     else                                  /* reg pair is req'd            */
     if (sz <= 2 * REGSIZE)
     {
-        uint msreg,lsreg;
+        reg_t msreg,lsreg;
 
         /* see if we have both  */
         if (!((emask | csemask) & mMSW && (emask | csemask) & (mLSW | mBP)))
@@ -2925,7 +2926,7 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
     if (constflag)
     {
         regm_t regm;
-        uint reg;
+        reg_t reg;
 
         if (isregvar(e,&regm,&reg) &&           // if e is a register variable
             (regm & *pretregs) == regm &&       // in one of the right regs
