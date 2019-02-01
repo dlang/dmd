@@ -261,7 +261,7 @@ private void el_weights(int bi,elem *e,uint weight)
  * A negative value means that s cannot or should not be assigned to reg.
  */
 
-int cgreg_benefit(Symbol *s,int reg, Symbol *retsym)
+private int cgreg_benefit(Symbol *s, reg_t reg, Symbol *retsym)
 {
     int benefit;
     int benefit2;
@@ -275,8 +275,8 @@ int cgreg_benefit(Symbol *s,int reg, Symbol *retsym)
     vec_sub(s.Slvreg,s.Srange,regrange[reg]);
     int si = s.Ssymnum;
 
-    regm_t dst_integer_reg;
-    regm_t dst_float_reg;
+    reg_t dst_integer_reg;
+    reg_t dst_float_reg;
     cgreg_dst_regs(&dst_integer_reg, &dst_float_reg);
 
 Lagain:
@@ -640,7 +640,7 @@ void cgreg_spillreg_epilog(block *b,Symbol *s,ref CodeBuilder cdbstore, ref Code
  * Map symbol s into registers [NOREG,reglsw] or [regmsw, reglsw].
  */
 
-void cgreg_map(Symbol *s, uint regmsw, uint reglsw)
+private void cgreg_map(Symbol *s, reg_t regmsw, reg_t reglsw)
 {
     //assert(I64 || reglsw < 8);
 
@@ -756,9 +756,9 @@ void cgreg_unregister(regm_t conflict)
 struct Reg              // data for trial register assignment
 {
     Symbol *sym;
-    int reglsw;
-    int regmsw;
     int benefit;
+    reg_t reglsw;
+    reg_t regmsw;
 }
 
 int cgreg_assign(Symbol *retsym)
@@ -818,8 +818,8 @@ int cgreg_assign(Symbol *retsym)
 
     vec_t v = vec_calloc(dfo.length);
 
-    uint dst_integer_reg;
-    uint dst_float_reg;
+    reg_t dst_integer_reg;
+    reg_t dst_float_reg;
     cgreg_dst_regs(&dst_integer_reg, &dst_float_reg);
     regm_t dst_integer_mask = 1 << dst_integer_reg;
     regm_t dst_float_mask = 1 << dst_float_reg;
@@ -882,14 +882,14 @@ int cgreg_assign(Symbol *retsym)
         }
 
         // Select sequence of registers to try to map s onto
-        ubyte *pseq;                     // sequence to try for LSW
-        ubyte *pseqmsw = null;           // sequence to try for MSW, null if none
+        const(reg_t)* pseq;                     // sequence to try for LSW
+        const(reg_t)* pseqmsw = null;           // sequence to try for MSW, null if none
         cgreg_set_priorities(ty, &pseq, &pseqmsw);
 
         u.benefit = 0;
         for (int i = 0; pseq[i] != NOREG; i++)
         {
-            uint reg = pseq[i];
+            reg_t reg = pseq[i];
 
             // Symbols used as return values should only be mapped into return value registers
             if (s == retsym && !(reg == dst_integer_reg || reg == dst_float_reg))
@@ -926,7 +926,7 @@ static if (0 && TARGET_LINUX)
 
             if (benefit > u.benefit)
             {   // successful assigning of lsw
-                uint regmsw = NOREG;
+                reg_t regmsw = NOREG;
 
                 // Now assign MSW
                 if (pseqmsw)
@@ -990,7 +990,7 @@ Ltried:
                 type_size(s.Stype) <= REGSIZE && // don't bother with register pairs
                 !tyfloating(s.ty()))             // don't assign floating regs to non-floating regs
             {
-                s.Sreglsw = cast(ubyte)findreg((mfuncreg & ~fregsaved) & ALLREGS);
+                s.Sreglsw = findreg((mfuncreg & ~fregsaved) & ALLREGS);
                 s.Sregm = 1 << s.Sreglsw;
                 flag = true;
 
