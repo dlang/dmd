@@ -2357,6 +2357,12 @@ enum foo11297 = function (int x)
         xmap!(y => x)(7);
    };
 
+enum goo11297 = delegate (int x)
+   {
+        //int bar(int y) { return x; } xmap!bar(7);
+        xmap!(y => x)(7);
+   };
+
 void xreduce(alias f)()
 {
     f(4);
@@ -2365,6 +2371,7 @@ void xreduce(alias f)()
 void test11297()
 {
     xreduce!foo11297();
+    xreduce!goo11297();
 }
 
 /*******************************************/
