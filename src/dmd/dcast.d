@@ -1847,11 +1847,21 @@ Expression castTo(Expression e, Scope* sc, Type t)
              */
             if (e.committed && tb.ty == Tsarray && typeb.ty == Tarray)
             {
-                se = cast(StringExp)e.copy();
                 d_uns64 szx = tb.nextOf().size();
                 assert(szx <= 255);
+                auto targetLength = cast(size_t)(cast(TypeSArray)tb).dim.toInteger();
+                auto sourceBytes = e.sz * e.len;
+                auto targetBytes = szx * targetLength;
+                if (sourceBytes < targetBytes)
+                {
+                    e.error("cannot cast expression `%s` of type `%s` to `%s` because of different sizes",
+                        e.toChars(), typeb.toChars(), t.toChars());
+                    result = new ErrorExp();
+                    return;
+                }
+                se = cast(StringExp)e.copy();
                 se.sz = cast(ubyte)szx;
-                se.len = cast(size_t)(cast(TypeSArray)tb).dim.toInteger();
+                se.len = targetLength;
                 se.committed = 1;
                 se.type = t;
 
@@ -1860,8 +1870,8 @@ Expression castTo(Expression e, Scope* sc, Type t)
                 if ((se.len + 1) * se.sz > (e.len + 1) * e.sz)
                 {
                     void* s = mem.xmalloc((se.len + 1) * se.sz);
-                    memcpy(s, se.string, se.len * se.sz);
-                    memset(s + se.len * se.sz, 0, se.sz);
+                    memcpy(s, e.string, e.len * e.sz);
+                    memset(s + e.len * e.sz, 0, e.sz);
                     se.string = cast(char*)s;
                 }
                 result = se;
