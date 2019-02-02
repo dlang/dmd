@@ -1488,6 +1488,19 @@ void test55()
 }
 
 /*******************************************/
+
+enum dg56 = delegate { return 5; };
+
+void test56()
+{
+    auto inner() {
+        return dg56();
+    }
+
+    assert(inner() == 5);
+}
+
+/*******************************************/
 // https://issues.dlang.org/show_bug.cgi?id=4401
 
 void test4401()
@@ -2770,6 +2783,7 @@ int main()
     test53();
     test54();
     test55();
+    test56();
     test4401();
     test7428();
     test4612();
