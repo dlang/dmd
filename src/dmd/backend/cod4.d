@@ -118,7 +118,7 @@ void modEA(ref CodeBuilder cdb,code *c)
 {
     if ((c.Irm & 0xC0) == 0xC0)        // addressing mode refers to a register
     {
-        uint reg = c.Irm & 7;
+        reg_t reg = c.Irm & 7;
         if (c.Irex & REX_B)
         {   reg |= 8;
             assert(I64);
@@ -1381,7 +1381,8 @@ void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     code cs;
     regm_t retregs;
     reg_t resreg;
-    uint reg,opr,lib,isbyte;
+    reg_t reg;
+    uint opr,lib,isbyte;
 
     //printf("cdmulass(e=%p, *pretregs = %s)\n",e,regm_str(*pretregs));
     elem *e1 = e.EV.E1;
@@ -2591,7 +2592,7 @@ void longcmp(ref CodeBuilder cdb,elem *e,bool jcond,uint fltarg,code *targ)
     code *ce = gennop(null);
     regm_t retregs = ALLREGS;
     regm_t rretregs;
-    uint reg,rreg;
+    reg_t reg,rreg;
 
     uint jop = jopmsw[op - OPle];
     if (!(jcond & 1)) jop ^= (JL ^ JG);                   // toggle jump condition
@@ -3253,7 +3254,7 @@ void cdbyteint(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     codelem(cdb1,e1,&retregs,false);
     code *c1 = cdb1.finish();
     cdb.append(cdb1);
-    uint reg = findreg(retregs);
+    reg_t reg = findreg(retregs);
     code *c;
     if (!c1)
         goto L1;
@@ -3491,7 +3492,7 @@ void cdfar16(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 
     assert(I32);
     codelem(cdb,e.EV.E1,pretregs,false);
-    uint reg = findreg(*pretregs);
+    reg_t reg = findreg(*pretregs);
     getregs(cdb,*pretregs);      // we will destroy the regs
 
     cs.Iop = 0xC1;
@@ -3943,7 +3944,7 @@ void cdpair(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     if (retregs & XMMREGS)
     {
         retregs &= XMMREGS;
-        uint reg = findreg(retregs);
+        const reg = findreg(retregs);
         regs1 = mask(reg);
         regs2 = mask(findreg(retregs & ~regs1));
     }
@@ -4044,7 +4045,7 @@ void cdcmpxchg(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         cs.Iop = 0x0FB1 ^ isbyte;                    // CMPXCHG EA,reg
         cs.Iflags |= CFpsw | word;
         cs.Irex |= rex;
-        uint reg = findreg(retregs);
+        reg_t reg = findreg(retregs);
         code_newreg(&cs,reg);
         cdb.gen(&cs);
 
@@ -4087,7 +4088,7 @@ void cdprefetch(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     assert(*pretregs == 0);
     assert(e.EV.E2.Eoper == OPconst);
     uint op;
-    uint reg;
+    reg_t reg;
     switch (e.EV.E2.EV.Vuns)
     {
         case 0: op = PREFETCH; reg = 1; break;  // PREFETCH0

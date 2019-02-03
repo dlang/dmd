@@ -750,7 +750,7 @@ uint getaddrmode(regm_t idxregs)
     }
     else
     {
-        uint reg = findreg(idxregs & (ALLREGS | mBP));
+        const reg = findreg(idxregs & (ALLREGS | mBP));
         if (reg == R12)
             mode = (REX_B << 16) | (modregrm(0,4,4) << 8) | modregrm(2,0,4);
         else
@@ -775,7 +775,7 @@ void getlvalue_msw(code *c)
 {
     if (c.IFL1 == FLreg)
     {
-        uint regmsw = c.IEV1.Vsym.Sregmsw;
+        const regmsw = c.IEV1.Vsym.Sregmsw;
         c.Irm = (c.Irm & ~7) | (regmsw & 7);
         if (regmsw & 8)
             c.Irex |= REX_B;
@@ -793,7 +793,7 @@ void getlvalue_lsw(code *c)
 {
     if (c.IFL1 == FLreg)
     {
-        uint reglsw = c.IEV1.Vsym.Sreglsw;
+        const reglsw = c.IEV1.Vsym.Sreglsw;
         c.Irm = (c.Irm & ~7) | (reglsw & 7);
         if (reglsw & 8)
             c.Irex |= REX_B;
@@ -1638,7 +1638,7 @@ void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, uint saveflag)
 
     assert(regm & (XMMREGS | mBP | ALLREGS));
     tym = tybasic(tym);
-    uint reg = findreg(regm);
+    reg_t reg = findreg(regm);
     uint sz = _tysize[tym];
     if (sz == 1)
     {
@@ -1801,7 +1801,7 @@ void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs)
     if (sz == 1)
     {
         assert(retregs & BYTEREGS);
-        uint reg = findreg(retregs);
+        const reg = findreg(retregs);
         if (e.Eoper == OPvar &&
             e.EV.Voffset == 1 &&
             e.EV.Vsym.Sfl == FLreg)
@@ -3434,7 +3434,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             regm_t retregs = mask(preg);
             if (retregs & XMMREGS)
             {
-                int reg;
+                reg_t reg;
                 switch (preg)
                 {
                     case XMM0: reg = CX; break;
@@ -3487,7 +3487,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 void cdstrthis(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 {
     assert(tysize(e.Ety) == REGSIZE);
-    uint reg = findreg(*pretregs & allregs);
+    const reg = findreg(*pretregs & allregs);
     getregs(cdb,mask(reg));
     // LEA reg,np[ESP]
     uint np = stackpush - e.EV.Vuns;        // stack delta to parameter
@@ -3583,8 +3583,8 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
             cdrelconst(cdbe,e1,&retregs);
             if (farfunc)
             {
-                uint reg = findregmsw(retregs);
-                uint lsreg = findreglsw(retregs);
+                const reg = findregmsw(retregs);
+                const lsreg = findreglsw(retregs);
                 floatreg = true;                // use float register
                 reflocal = true;
                 cdbe.genc1(0x89,                 // MOV floatreg+2,reg
@@ -3598,7 +3598,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
             }
             else
             {
-                uint reg = findreg(retregs);
+                const reg = findreg(retregs);
                 cdbe.gen2(0xFF, modregrmx(3, 2, reg));   // CALL reg
                 if (I64)
                     code_orrex(cdbe.last(), REX_W);
@@ -3675,8 +3675,8 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
             getregs(cdbe,desmsk);
             if (e11ty == TYfptr)
             {
-                uint reg = findregmsw(retregs);
-                uint lsreg = findreglsw(retregs);
+                const reg = findregmsw(retregs);
+                const lsreg = findreglsw(retregs);
                 floatreg = true;                // use float register
                 reflocal = true;
                 cdbe.genc1(0x89,                 // MOV floatreg+2,reg
@@ -3690,7 +3690,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
             }
             else
             {
-                uint reg = findreg(retregs);
+                const reg = findreg(retregs);
                 cdbe.gen2(0xFF, modregrmx(3, 2, reg));   // CALL reg
                 if (I64)
                     code_orrex(cdbe.last(), REX_W);
@@ -4251,7 +4251,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                     elem_print(e1);
                     assert(0);
             }
-            uint reg = findreglsw(retregs);
+            reg_t reg = findreglsw(retregs);
             rm = I16 ? regtorm[reg] : regtorm32[reg];
             if (op16)
                 seg |= CFopsize;            // operand size
