@@ -2293,7 +2293,7 @@ private void cse_save(ref CodeBuilder cdb, regm_t ms)
         auto cse = &csextab[i];
         if (cse.e == null)
         {
-            uint reg = findreg(ms);          /* the register to save         */
+            reg_t reg = findreg(ms);          /* the register to save         */
             cse.e = regcon.cse.value[reg];
             cse.regm = mask(reg);
             cse.flags &= CSEload;
@@ -2728,7 +2728,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
  *      pointer to the MOV instruction
  */
 
-private void loadcse(ref CodeBuilder cdb,elem *e,uint reg,regm_t regm)
+private void loadcse(ref CodeBuilder cdb,elem *e,reg_t reg,regm_t regm)
 {
     foreach_reverse (i, ref cse; csextab[])
     {

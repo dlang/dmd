@@ -472,7 +472,7 @@ void nteh_epilog(ref CodeBuilder cdb)
         mov     FS:__except_list,ECX
      */
     code cs;
-    uint reg;
+    reg_t reg;
 
 version (MARS)
     reg = CX;
@@ -751,9 +751,9 @@ void nteh_unwind(ref CodeBuilder cdb,regm_t saveregs,uint stop_index)
 {
     // Shouldn't this always be CX?
 version (SCPP)
-    const int reg = AX;
+    const reg_t reg = AX;
 else
-    const int reg = CX;
+    const reg_t reg = CX;
 
 version (MARS)
     // https://github.com/dlang/druntime/blob/master/src/rt/deh_win32.d#L924

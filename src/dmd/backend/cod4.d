@@ -345,7 +345,7 @@ private void opnegassdbl(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     tym_t tymll;
-    uint reg;
+    reg_t reg;
     code cs;
     elem *e11;
     bool regvar;                  // true means evaluate into register variable
@@ -545,7 +545,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 // Look for loading a register variable
                 if ((cs.Irm & 0xC0) == 0xC0)
                 {
-                    uint regx = cs.Irm & 7;
+                    reg_t regx = cs.Irm & 7;
 
                     if (cs.Irex & REX_B)
                         regx |= 8;
