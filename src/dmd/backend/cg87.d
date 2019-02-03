@@ -822,14 +822,14 @@ void fixresult87(ref CodeBuilder cdb,elem *e,regm_t retregs,regm_t *pretregs)
             push87(cdb);
             if (sz == REGSIZE || (I64 && sz == 4))
             {
-                uint reg = findreg(retregs);
+                const reg = findreg(retregs);
                 cdb.genfltreg(STO,reg,0);           // MOV fltreg,reg
                 cdb.genfltreg(0xD9,0,0);            // FLD float ptr fltreg
             }
             else
             {
-                uint msreg = findregmsw(retregs);
-                uint lsreg = findreglsw(retregs);
+                const msreg = findregmsw(retregs);
+                const lsreg = findreglsw(retregs);
                 cdb.genfltreg(STO,lsreg,0);         // MOV fltreg,lsreg
                 cdb.genfltreg(STO,msreg,4);         // MOV fltreg+4,msreg
                 cdb.genfltreg(0xDD,0,0);            // FLD double ptr fltreg
@@ -908,7 +908,7 @@ void fixresult87(ref CodeBuilder cdb,elem *e,regm_t retregs,regm_t *pretregs)
             assert(sz <= DOUBLESIZE);
             uint mf = (sz == FLOATSIZE) ? MFfloat : MFdouble;
             // MOVD floatreg,XMM?
-            uint reg = findreg(retregs);
+            const reg = findreg(retregs);
             cdb.genxmmreg(xmmstore(tym),reg,0,tym);
             push87(cdb);
             cdb.genfltreg(ESC(mf,1),0,0);                 // FLD float/double ptr fltreg
@@ -2848,7 +2848,7 @@ void post87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     uint op;
     uint op1;
-    uint reg;
+    reg_t reg;
 
     //printf("post87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
     code cs;
