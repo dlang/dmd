@@ -334,7 +334,7 @@ uint gensaverestore(regm_t regm,ref CodeBuilder cdbsave,ref CodeBuilder cdbresto
 
     code *[regm.sizeof * 8] restore;
 
-    int i;
+    reg_t i;
     for (i = 0; regm; i++)
     {
         if (regm & 1)
@@ -3251,7 +3251,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             msavereg &= ~keepmsk | overlap;
 
             // tosave is the mask to save and restore
-            for (int j = 0; tosave; j++)
+            for (reg_t j = 0; tosave; j++)
             {
                 regm_t mi = mask(j);
                 assert(j <= XMM7);
@@ -3315,7 +3315,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
                     regm_t tosave = keepmsk & retregs;
 
                     // tosave is the mask to save and restore
-                    for (int j = 0; tosave; j++)
+                    for (reg_t j = 0; tosave; j++)
                     {
                         regm_t mi = mask(j);
                         assert(j <= XMM7);
@@ -4432,7 +4432,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                     {
                         regm_t retregs;
                         offsetinreg(cdb, e, &retregs);
-                        uint reg = findreg(retregs);
+                        const reg = findreg(retregs);
                         genpush(cdb,reg);                    // PUSH reg
                         cdb.genadjesp(REGSIZE);
                     }
@@ -4749,7 +4749,8 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 {
     reg_t reg;
     reg_t nreg;
-    uint op, sreg;
+    reg_t sreg;
+    uint op;
     tym_t tym;
     code cs;
     regm_t flags, forregs, regm;

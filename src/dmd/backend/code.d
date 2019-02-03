@@ -112,12 +112,12 @@ struct REGSAVE
     int alignment;              // 8 or 16
 
     void reset() { off = 0; top = 0; idx = 0; alignment = _tysize[TYnptr]/*REGSIZE*/; }
-    void save(ref CodeBuilder cdb, int reg, uint *pidx) { REGSAVE_save(this, cdb, reg, pidx); }
-    void restore(ref CodeBuilder cdb, int reg, uint idx) { REGSAVE_restore(this, cdb, reg, idx); }
+    void save(ref CodeBuilder cdb, reg_t reg, uint *pidx) { REGSAVE_save(this, cdb, reg, pidx); }
+    void restore(ref CodeBuilder cdb, reg_t reg, uint idx) { REGSAVE_restore(this, cdb, reg, idx); }
 }
 
-void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, int reg, uint *pidx);
-void REGSAVE_restore(ref REGSAVE regsave, ref CodeBuilder cdb, int reg, uint index);
+void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, uint *pidx);
+void REGSAVE_restore(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, uint index);
 
 extern __gshared REGSAVE regsave;
 
@@ -390,7 +390,7 @@ void getregs_imm(ref CodeBuilder cdb, regm_t r);
 void cse_flush(ref CodeBuilder, int);
 bool cse_simple(code *c, elem *e);
 void gen_testcse(ref CodeBuilder cdb, uint sz, targ_uns i);
-void gen_loadcse(ref CodeBuilder cdb, uint reg, targ_uns i);
+void gen_loadcse(ref CodeBuilder cdb, reg_t reg, targ_uns i);
 bool cssave (elem *e , regm_t regm , uint opsflag );
 bool evalinregister(elem *e);
 regm_t getscratch();
@@ -490,7 +490,7 @@ int movOnly(elem *e);
 regm_t idxregm(code *c);
 void opdouble(ref CodeBuilder cdb, elem *e, regm_t *pretregs, uint clib);
 void WRcodlst(code *c);
-void getoffset(ref CodeBuilder cdb, elem *e, uint reg);
+void getoffset(ref CodeBuilder cdb, elem *e, reg_t reg);
 
 /* cod3.c */
 
@@ -515,14 +515,14 @@ int jmpopcode(elem *e);
 void cod3_ptrchk(ref CodeBuilder cdb,code *pcs,regm_t keepmsk);
 void genregs(ref CodeBuilder cdb, uint op, uint dstreg, uint srcreg);
 void gentstreg(ref CodeBuilder cdb, uint reg);
-void genpush(ref CodeBuilder cdb, uint reg);
-void genpop(ref CodeBuilder cdb, uint reg);
-void gensavereg(ref CodeBuilder cdb, ref uint reg, targ_uns slot);
+void genpush(ref CodeBuilder cdb, reg_t reg);
+void genpop(ref CodeBuilder cdb, reg_t reg);
+void gensavereg(ref CodeBuilder cdb, ref reg_t reg, targ_uns slot);
 code *genmovreg(uint to, uint from);
 void genmovreg(ref CodeBuilder cdb, uint to, uint from);
 void genmulimm(ref CodeBuilder cdb,uint r1,uint r2,targ_int imm);
 void genshift(ref CodeBuilder cdb);
-void movregconst(ref CodeBuilder cdb,uint reg,targ_size_t value,regm_t flags);
+void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags);
 void genjmp(ref CodeBuilder cdb, uint op, uint fltarg, block *targ);
 void prolog(ref CodeBuilder cdb);
 void epilog (block *b);
