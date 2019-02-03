@@ -1265,12 +1265,12 @@ version (MARS)
 }
 
     case OPpair:
-        switch (_tysize[tym])
+        switch (tysize(e.Ety))
         {
-            case 2:
+            case 4:
                 e.EV.Vlong = (i2 << 16) | (i1 & 0xFFFF);
                 break;
-            case 4:
+            case 8:
                 if (tyfloating(tym))
                 {
                     e.EV.Vcfloat.re = cast(float)d1;
@@ -1279,7 +1279,7 @@ version (MARS)
                 else
                     e.EV.Vllong = (l2 << 32) | (l1 & 0xFFFFFFFF);
                 break;
-            case 8:
+            case 16:
                 if (tyfloating(tym))
                 {
                     e.EV.Vcdouble.re = cast(double)d1;
@@ -1299,6 +1299,7 @@ version (MARS)
                 }
                 else
                 {
+                    elem_print(e);
                     assert(0);
                 }
                 break;
@@ -1306,12 +1307,12 @@ version (MARS)
         break;
 
     case OPrpair:
-        switch (_tysize[tym])
+        switch (tysize(e.Ety))
         {
-            case 2:
+            case 4:
                 e.EV.Vlong = (i1 << 16) | (i2 & 0xFFFF);
                 break;
-            case 4:
+            case 8:
                 e.EV.Vllong = (l1 << 32) | (l2 & 0xFFFFFFFF);
                 if (tyfloating(tym))
                 {
@@ -1321,7 +1322,7 @@ version (MARS)
                 else
                     e.EV.Vllong = (l1 << 32) | (l2 & 0xFFFFFFFF);
                 break;
-            case 8:
+            case 16:
                 if (tyfloating(tym))
                 {
                     e.EV.Vcdouble.re = cast(double)d2;
