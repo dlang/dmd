@@ -1080,16 +1080,56 @@ Expression op_overload(Expression e, Scope* sc)
                 }
             }
 
+            Expression tempResult;
             if (!(e.op == TOK.assign && ad2 && ad1 == ad2)) // https://issues.dlang.org/show_bug.cgi?id=2943
             {
                 result = checkAliasThisForLhs(ad1, sc, e);
                 if (result)
-                    return;
+                {
+                    /* https://issues.dlang.org/show_bug.cgi?id=19441
+                     *
+                     * alias this may not be used for partial assignment.
+                     * If a struct has a single member which is aliased this
+                     * directly or aliased to a ref getter function that returns
+                     * the mentioned member, then alias this may be
+                     * used since the object will be fully initialised.
+                     * If the struct is nested, the context pointer is considered
+                     * one of the members, hence the `ad1.fields.dim == 2 && ad1.vthis`
+                     * condition.
+                     */
+                    if (e.op != TOK.assign || e.e1.op == TOK.type)
+                        return;
+
+                    if (ad1.fields.dim == 1 || (ad1.fields.dim == 2 && ad1.vthis))
+                    {
+                        auto var = ad1.aliasthis.isVarDeclaration();
+                        if (var && var.type == ad1.fields[0].type)
+                            return;
+
+                        auto func = ad1.aliasthis.isFuncDeclaration();
+                        auto tf = cast(TypeFunction)(func.type);
+                        if (tf.isref && ad1.fields[0].type == tf.next)
+                            return;
+                    }
+                    tempResult = result;
+                }
             }
             if (!(e.op == TOK.assign && ad1 && ad1 == ad2)) // https://issues.dlang.org/show_bug.cgi?id=2943
             {
                 result = checkAliasThisForRhs(ad2, sc, e);
-                return;
+                if (result)
+                    return;
+            }
+
+            // @@@DEPRECATED_2019-02@@@
+            // 1. Deprecation for 1 year
+            // 2. Turn to error after
+            if (tempResult)
+            {
+                // move this line where tempResult is assigned to result and turn to error when derecation period is over
+                e.deprecation("Cannot use `alias this` to partially initialize variable `%s` of type `%s`. Use `%s`", e.e1.toChars(), ad1.toChars(), (cast(BinExp)tempResult).e1.toChars());
+                // delete this line when deprecation period is over
+                result = tempResult;
             }
         }
 
