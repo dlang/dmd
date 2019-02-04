@@ -20,6 +20,8 @@ import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.el : elem;
 import dmd.backend.ty : I64;
 
+alias opcode_t = uint;          // CPU opcode
+
 /* Register definitions */
 
 enum
@@ -313,7 +315,7 @@ struct code
 
     union
     {
-        uint Iop;
+        opcode_t Iop;
         struct Svex
         {
           align(1):
