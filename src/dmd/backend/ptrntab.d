@@ -25,6 +25,7 @@ version (SCPP) extern (C) char* strlwr(return char* s);
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
+import dmd.backend.code_x86;
 import dmd.backend.iasm;
 import dmd.backend.oper;
 import dmd.backend.code;
@@ -48,7 +49,7 @@ import dmd.backend.ty;
 immutable
 {
 
-template OPTABLE0(uint op, opflag_t mod)
+template OPTABLE0(opcode_t op, opflag_t mod)
 {
     immutable PTRNTAB0[1] OPTABLE0 = [ { op, mod }, ];
 }
@@ -193,7 +194,7 @@ PTRNTAB1[2] aptb1INVLPG = /* INVLPG */ [         // 486 only instruction
 ];
 
 
-template OPTABLE_J(uint op)
+template OPTABLE_J(opcode_t op)
 {
     immutable PTRNTAB1[4] OPTABLE_J =
     [
@@ -345,7 +346,7 @@ PTRNTAB1[4] aptb1SCAS = /* SCAS */ [
         { ASM_END }
 ];
 
-template OPTABLE_SET(uint op)
+template OPTABLE_SET(opcode_t op)
 {
     immutable PTRNTAB1[2] OPTABLE_SET =
     [
@@ -422,7 +423,7 @@ PTRNTAB1[2]  aptb1CMPXCH16B = /* CMPXCH16B */ [
         { ASM_END }
 ];
 
-template OPTABLE_ARITH(uint op, uint rr, uint m)
+template OPTABLE_ARITH(opcode_t op, uint rr, uint m)
 {
     immutable PTRNTAB2[20] OPTABLE_ARITH =
     [
@@ -729,7 +730,7 @@ PTRNTAB2[4]  aptb2OUTS = /* OUTS */ [
 ];
 
 
-template OPTABLE_SHIFT(uint op)
+template OPTABLE_SHIFT(opcode_t op)
 {
     immutable PTRNTAB2[9] OPTABLE_SHIFT =
     [
@@ -796,7 +797,7 @@ PTRNTAB2[13]  aptb2XCHG = /* XCHG */ [
 ];
 
 
-template OPTABLE_CMOV(uint op)
+template OPTABLE_CMOV(opcode_t op)
 {
     immutable PTRNTAB2[4] OPTABLE_CMOV =
     [

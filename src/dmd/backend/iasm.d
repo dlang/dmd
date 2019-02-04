@@ -14,6 +14,7 @@ module dmd.backend.iasm;
 // Online documentation: https://dlang.org/phobos/dmd_backend_iasm.html
 
 import dmd.backend.cc : block;
+import dmd.backend.code_x86 : opcode_t;
 
 extern (C++):
 @nogc:
@@ -89,30 +90,30 @@ enum
 }
 
 // translates opcode into equivalent vex encoding
-uint VEX_128_W0(uint op)            { return _VEX(op)|_VEX_NOO; }
-uint VEX_128_W1(uint op)            { return _VEX(op)|_VEX_NOO|_VEX_W; }
-uint VEX_128_WIG(uint op)           { return  VEX_128_W0(op); }
-uint VEX_256_W0(uint op)            { return _VEX(op)|_VEX_NOO|_VEX_L; }
-uint VEX_256_W1(uint op)            { return _VEX(op)|_VEX_NOO|_VEX_W|_VEX_L; }
-uint VEX_256_WIG(uint op)           { return  VEX_256_W0(op); }
-uint VEX_NDS_128_W0(uint op)        { return _VEX(op)|_VEX_NDS; }
-uint VEX_NDS_128_W1(uint op)        { return _VEX(op)|_VEX_NDS|_VEX_W; }
-uint VEX_NDS_128_WIG(uint op)       { return  VEX_NDS_128_W0(op); }
-uint VEX_NDS_256_W0(uint op)        { return _VEX(op)|_VEX_NDS|_VEX_L; }
-uint VEX_NDS_256_W1(uint op)        { return _VEX(op)|_VEX_NDS|_VEX_W|_VEX_L; }
-uint VEX_NDS_256_WIG(uint op)       { return  VEX_NDS_256_W0(op); }
-uint VEX_NDD_128_W0(uint op)        { return _VEX(op)|_VEX_NDD; }
-uint VEX_NDD_128_W1(uint op)        { return _VEX(op)|_VEX_NDD|_VEX_W; }
-uint VEX_NDD_128_WIG(uint op)       { return  VEX_NDD_128_W0(op); }
-uint VEX_NDD_256_W0(uint op)        { return _VEX(op)|_VEX_NDD|_VEX_L; }
-uint VEX_NDD_256_W1(uint op)        { return _VEX(op)|_VEX_NDD|_VEX_W|_VEX_L; }
-uint VEX_NDD_256_WIG(uint op)       { return  VEX_NDD_256_W0(op); }
-uint VEX_DDS_128_W0(uint op)        { return _VEX(op)|_VEX_DDS; }
-uint VEX_DDS_128_W1(uint op)        { return _VEX(op)|_VEX_DDS|_VEX_W; }
-uint VEX_DDS_128_WIG(uint op)       { return  VEX_DDS_128_W0(op); }
-uint VEX_DDS_256_W0(uint op)        { return _VEX(op)|_VEX_DDS|_VEX_L; }
-uint VEX_DDS_256_W1(uint op)        { return _VEX(op)|_VEX_DDS|_VEX_W|_VEX_L; }
-uint VEX_DDS_256_WIG(uint op)       { return  VEX_DDS_256_W0(op); }
+uint VEX_128_W0(opcode_t op)            { return _VEX(op)|_VEX_NOO; }
+uint VEX_128_W1(opcode_t op)            { return _VEX(op)|_VEX_NOO|_VEX_W; }
+uint VEX_128_WIG(opcode_t op)           { return  VEX_128_W0(op); }
+uint VEX_256_W0(opcode_t op)            { return _VEX(op)|_VEX_NOO|_VEX_L; }
+uint VEX_256_W1(opcode_t op)            { return _VEX(op)|_VEX_NOO|_VEX_W|_VEX_L; }
+uint VEX_256_WIG(opcode_t op)           { return  VEX_256_W0(op); }
+uint VEX_NDS_128_W0(opcode_t op)        { return _VEX(op)|_VEX_NDS; }
+uint VEX_NDS_128_W1(opcode_t op)        { return _VEX(op)|_VEX_NDS|_VEX_W; }
+uint VEX_NDS_128_WIG(opcode_t op)       { return  VEX_NDS_128_W0(op); }
+uint VEX_NDS_256_W0(opcode_t op)        { return _VEX(op)|_VEX_NDS|_VEX_L; }
+uint VEX_NDS_256_W1(opcode_t op)        { return _VEX(op)|_VEX_NDS|_VEX_W|_VEX_L; }
+uint VEX_NDS_256_WIG(opcode_t op)       { return  VEX_NDS_256_W0(op); }
+uint VEX_NDD_128_W0(opcode_t op)        { return _VEX(op)|_VEX_NDD; }
+uint VEX_NDD_128_W1(opcode_t op)        { return _VEX(op)|_VEX_NDD|_VEX_W; }
+uint VEX_NDD_128_WIG(opcode_t op)       { return  VEX_NDD_128_W0(op); }
+uint VEX_NDD_256_W0(opcode_t op)        { return _VEX(op)|_VEX_NDD|_VEX_L; }
+uint VEX_NDD_256_W1(opcode_t op)        { return _VEX(op)|_VEX_NDD|_VEX_W|_VEX_L; }
+uint VEX_NDD_256_WIG(opcode_t op)       { return  VEX_NDD_256_W0(op); }
+uint VEX_DDS_128_W0(opcode_t op)        { return _VEX(op)|_VEX_DDS; }
+uint VEX_DDS_128_W1(opcode_t op)        { return _VEX(op)|_VEX_DDS|_VEX_W; }
+uint VEX_DDS_128_WIG(opcode_t op)       { return  VEX_DDS_128_W0(op); }
+uint VEX_DDS_256_W0(opcode_t op)        { return _VEX(op)|_VEX_DDS|_VEX_L; }
+uint VEX_DDS_256_W1(opcode_t op)        { return _VEX(op)|_VEX_DDS|_VEX_W|_VEX_L; }
+uint VEX_DDS_256_WIG(opcode_t op)       { return  VEX_DDS_256_W0(op); }
 
 enum _VEX_W   = 0x8000;
 /* Don't encode LIG/LZ use 128 for these.
@@ -133,9 +134,9 @@ enum
     _VEX_DDS  = VEX_DDS << 11,
 }
 
-uint _VEX(uint op) { return (0xC4 << 24) | _VEX_MM(op >> 8) | (op & 0xFF); }
+uint _VEX(opcode_t op) { return (0xC4 << 24) | _VEX_MM(op >> 8) | (op & 0xFF); }
 
-uint _VEX_MM(uint op)
+uint _VEX_MM(opcode_t op)
 {
     return
         (op & 0x00FF) == 0x000F ? (0x1 << 16 | _VEX_PP(op >>  8)) :
@@ -144,7 +145,7 @@ uint _VEX_MM(uint op)
         _VEX_ASSERT0;
 }
 
-uint _VEX_PP(uint op)
+uint _VEX_PP(opcode_t op)
 {
     return
         op == 0x00 ? 0x00 << 8 :
@@ -428,7 +429,7 @@ void asm_process_fixup( block **ppblockLabels );
 
 struct PTRNTAB4
 {
-        int opcode;
+        opcode_t opcode;
         uint usFlags;
         opflag_t usOp1;
         opflag_t usOp2;
@@ -437,7 +438,7 @@ struct PTRNTAB4
 }
 
 struct PTRNTAB3 {
-        int opcode;
+        opcode_t opcode;
         uint usFlags;
         opflag_t usOp1;
         opflag_t usOp2;
@@ -445,14 +446,14 @@ struct PTRNTAB3 {
 }
 
 struct PTRNTAB2 {
-        int opcode;
+        opcode_t opcode;
         uint usFlags;
         opflag_t usOp1;
         opflag_t usOp2;
 }
 
 struct PTRNTAB1 {
-        int opcode;
+        opcode_t opcode;
         uint usFlags;
         opflag_t usOp1;
 }
@@ -460,7 +461,7 @@ struct PTRNTAB1 {
 enum ASM_END = 0xffff;      // special opcode meaning end of PTRNTABx table
 
 struct PTRNTAB0 {
-        int opcode;
+        opcode_t opcode;
         uint usFlags;
 }
 
