@@ -362,7 +362,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     if (tyxmmreg(tyml) && config.fpxmmregs)
     {
-        xmmeq(cdb, e, e.Eoper, e1, e2, pretregs);
+        xmmeq(cdb, e, CMP, e1, e2, pretregs);
         return;
     }
 
