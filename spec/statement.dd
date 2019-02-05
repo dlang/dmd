@@ -499,9 +499,10 @@ $(P
         If there are
         two variables declared, the first is said to be the $(I index)
         and the second is said to be the $(I value). The $(I index)
-        must be of `int`, `uint`, `long` or `ulong` type,
-        it cannot be `ref`,
-        and it is set to be the index of the array element.
+        must be of type `size_t` for dynamic arrays. Static arrays may use
+        any integral type that spans the length of the array.
+        $(I index) cannot be `ref`.
+        It is set to be the index of the array element.
 )
 --------------
 char[] a;
