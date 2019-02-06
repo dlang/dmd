@@ -1195,6 +1195,8 @@ version (Windows)
             if (VCToolsInstallDir is null && VCInstallDir)
             {
                 const(char)* defverFile = FileName.combine(VCInstallDir, r"Auxiliary\Build\Microsoft.VCToolsVersion.default.txt");
+                if (!FileName.exists(defverFile)) // file renamed with VS2019 Preview 2
+                    defverFile = FileName.combine(VCInstallDir, r"Auxiliary\Build\Microsoft.VCToolsVersion.v142.default.txt");
                 if (FileName.exists(defverFile))
                 {
                     // VS 2017
@@ -1553,7 +1555,7 @@ version (Windows)
             SysFreeString(bstrInstallDir);
 
             if (len > 0)
-                return path[0..len-1].idup.ptr;
+                return path[0..len].idup.ptr;
         }
         return null;
     }
