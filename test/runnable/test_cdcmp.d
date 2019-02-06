@@ -669,7 +669,7 @@ alias baselineCases = AliasSeq!(
     Code!(int, "<", Zero!int)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* mov    rax,rdi                 */ 0x48, 0x89, 0xf8,
+        /* mov    eax,edi                 */ 0x89, 0xf8,
         /* shr    eax,0x1f                */ 0xc1, 0xe8, 0x1f,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
@@ -685,7 +685,7 @@ alias baselineCases = AliasSeq!(
     Code!(int, "<=", Zero!int)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* mov    rax,rdi                 */ 0x48, 0x89, 0xf8,
+        /* mov    eax,edi                 */ 0x89, 0xf8,
         /* add    eax,0xffffffff          */ 0x83, 0xc0, 0xff,
         /* adc    eax,0x0                 */ 0x83, 0xd0, 0x00,
         /* shr    eax,0x1f                */ 0xc1, 0xe8, 0x1f,
@@ -741,7 +741,7 @@ alias baselineCases = AliasSeq!(
     Code!(int, ">=", Zero!int)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* mov    rax,rdi                 */ 0x48, 0x89, 0xf8,
+        /* mov    eax,edi                 */ 0x89, 0xf8,
         /* add    eax,eax                 */ 0x01, 0xc0,
         /* sbb    eax,eax                 */ 0x19, 0xc0,
         /* inc    eax                     */ 0xff, 0xc0,
@@ -759,13 +759,12 @@ alias baselineCases = AliasSeq!(
     Code!(int, ">", Zero!int)([
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
-        /* mov    rax,rdi                 */ 0x48, 0x89, 0xf8,
+        /* mov    eax,edi                 */ 0x89, 0xf8,
         /* neg    eax                     */ 0xf7, 0xd8,
         /* sbb    eax,0x0                 */ 0x83, 0xd8, 0x00,
         /* shr    eax,0x1f                */ 0xc1, 0xe8, 0x1f,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
-        /* add    BYTE PTR [rax],al       */ 0x00, 0x00,
     ]),
     Code!(int, ">", int)([
         /* push   rbp                     */ 0x55,
