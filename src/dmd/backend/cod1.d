@@ -1928,7 +1928,10 @@ void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs)
                 assert(!(retregs & XMMREGS));
                 assert(!(forregs & XMMREGS));
                 reg = findreg(retregs & (mBP | ALLREGS));
-                genmovreg(cdb, rreg, reg);    // MOV rreg,reg
+                if (I64 && sz <= 4)
+                    genregs(cdb, 0x89, reg, rreg);  // only move 32 bits, and zero the top 32 bits
+                else
+                    genmovreg(cdb, rreg, reg);    // MOV rreg,reg
             }
         }
         cssave(e,retregs | *pretregs,opsflag);
