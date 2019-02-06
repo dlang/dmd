@@ -5582,6 +5582,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tok == TOK.lessThan || tok == TOK.greaterThan ||
                 tok == TOK.lessOrEqual || tok == TOK.greaterOrEqual ||
                 tok == TOK.identity || tok == TOK.notIdentity ||
+                tok == TOK.in_ ||
                 isEqualsCallExpression)
             {
                 auto es = new Expressions();
