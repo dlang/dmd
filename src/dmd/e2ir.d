@@ -2354,23 +2354,10 @@ elem *toElem(Expression e, IRState *irs)
 
             //printf("EqualExp.toElem()\n");
             elem *e;
-            if (t1.ty == Tstruct && (cast(TypeStruct)t1).sym.fields.dim == 0)
+            if (t1.ty == Tstruct)
             {
-                // we can skip the compare if the structs are empty
-                e = el_long(TYbool, ee.op == TOK.equal);
-            }
-            else if (t1.ty == Tstruct)
-            {
-                // Do bit compare of struct's
-                elem *es1 = toElem(ee.e1, irs);
-                elem *es2 = toElem(ee.e2, irs);
-                es1 = addressElem(es1, t1);
-                es2 = addressElem(es2, t2);
-                e = el_param(es1, es2);
-                elem *ecount = el_long(TYsize_t, t1.size());
-                e = el_bin(OPmemcmp, TYint, e, ecount);
-                e = el_bin(eop, TYint, e, el_long(TYint, 0));
-                elem_setLoc(e, ee.loc);
+                // Rewritten to IdentityExp or memberwise-compare
+                assert(0);
             }
             else if ((t1.ty == Tarray || t1.ty == Tsarray) &&
                      (t2.ty == Tarray || t2.ty == Tsarray))
