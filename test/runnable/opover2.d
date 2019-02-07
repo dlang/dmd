@@ -1,5 +1,5 @@
 // PERMUTE_ARGS: -inline -O
-// REQUIRED_ARGS: -preview=dip25
+// REQUIRED_ARGS: -preview=dip25 -preview=fieldwise
 
 // Test operator overloading
 
@@ -728,7 +728,7 @@ bool test3789()
         auto ua2 = UnionA([1,2,3]);
         assert(ua1.u.x is ua2.u.x);
         assert(ua1.u.x != ua2.u.x);
-        assert(ua1 == ua2);
+        assert(ua1 != ua2);
         ua1.u.x = 1.0;
         ua2.u.x = 1.0;
         assert(ua1.u.x is ua2.u.x);
@@ -755,7 +755,7 @@ bool test3789()
         ub2.u.a = [1,2,3].dup;
         assert(ub1.u.a !is ub2.u.a);
         assert(ub1.u.a  == ub2.u.a);
-        assert(ub1 != ub2);
+        assert(ub1 == ub2);
         ub2.u.a = ub1.u.a;
         assert(ub1.u.a is ub2.u.a);
         assert(ub1.u.a == ub2.u.a);
