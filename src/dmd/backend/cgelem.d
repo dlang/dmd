@@ -652,19 +652,64 @@ private elem * elstrcmp(elem *e, goal_t goal)
 
 /****************************
  * For OPmemcmp
+ * memcmp(a, b, nbytes) => ((a param b) OPmemcmp nbytes)
  */
 
 private elem * elmemcmp(elem *e, goal_t goal)
 {
     elem_debug(e);
-    if (OPTIMIZER)
+    if (!OPTIMIZER)
+        return e;
+
+    /* Hoist comma operators in `a` out of OPmemcmp
+     */
     {
-        elem *ex = e.EV.E1;
-        if (ex.EV.E1.Eoper == OPnp_fp)
-            eltonear(&ex.EV.E1);
-        if (ex.EV.E2.Eoper == OPnp_fp)
-            eltonear(&ex.EV.E2);
+        elem* ec = e.EV.E1.EV.E1;
+        if (ec.Eoper == OPcomma)
+        {
+            /* Rewrite: (((a,b) param c) OPmemcmp nbytes)
+             * As: a,((b param c) OPmemcmp nbytes)
+             */
+            e.EV.E1.EV.E1 = ec.EV.E2;
+            e.EV.E1.EV.E1.Ety = ec.Ety;
+            e.EV.E1.EV.E1.ET = ec.ET;
+            ec.EV.E2 = e;
+            ec.Ety = e.Ety;
+            return optelem(ec, goal);
+        }
     }
+
+    /* Hoist comma operators in `b` out of OPmemcmp
+     */
+    {
+        elem* ec = e.EV.E1.EV.E2;
+        if (ec.Eoper == OPcomma)
+        {
+            /* Have: ((a param (b,c)) OPmemcmp nbytes)
+             */
+            elem* a = e.EV.E1.EV.E1;
+            elem* b = ec.EV.E1;
+            if (a.canHappenAfter(b))
+            {
+                /* Rewrite: ((a param (b,c)) OPmemcmp nbytes)
+                 * As: b,((a param c) OPmemcmp nbytes)
+                 */
+                e.EV.E1.EV.E2 = ec.EV.E2;
+                e.EV.E1.EV.E2.Ety = ec.Ety;
+                e.EV.E1.EV.E2.ET = ec.ET;
+                ec.EV.E2 = e;
+                ec.Ety = e.Ety;
+                return optelem(ec, goal);
+            }
+        }
+    }
+
+    elem *ex = e.EV.E1;
+    if (ex.EV.E1.Eoper == OPnp_fp)
+        eltonear(&ex.EV.E1);
+    if (ex.EV.E2.Eoper == OPnp_fp)
+        eltonear(&ex.EV.E2);
+
     return e;
 }
 
@@ -5428,14 +5473,7 @@ beg:
                 /* Swap only if order of evaluation can be proved
                  * to not matter, as we must evaluate Left-to-Right
                  */
-                && (e1.Eoper == OPconst ||
-                    e1.Eoper == OPrelconst ||
-                    /* Local variables that are not aliased
-                     * and are not assigned to in e2
-                     */
-                    (e1.Eoper == OPvar && e1.EV.Vsym.Sflags & SFLunambig && !el_appears(e2,e1.EV.Vsym)) ||
-                    !(el_sideeffect(e1) || el_sideeffect(e2))
-                   )
+                && e1.canHappenAfter(e2)
                  )
                  : cost(e2) > cost(e1)
                  )
@@ -5744,6 +5782,24 @@ private elem *elToPair(elem *e)
             break;
     }
     return e;
+}
+
+/******************************************
+ * Determine if `b` can be moved before `a` without disturbing
+ * order-of-evaluation semantics.
+ */
+
+private bool canHappenAfter(elem* a, elem* b)
+{
+    return a.Eoper == OPconst ||
+           a.Eoper == OPrelconst ||
+
+           /* a is a variable that is not aliased
+            * and is not assigned to in b
+            */
+           (a.Eoper == OPvar && a.EV.Vsym.Sflags & SFLunambig && !el_appears(b, a.EV.Vsym)) ||
+
+           !(el_sideeffect(a) || el_sideeffect(b));
 }
 
 }
