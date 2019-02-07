@@ -810,6 +810,7 @@ void fixresult87(ref CodeBuilder cdb,elem *e,regm_t retregs,regm_t *pretregs)
     /* if retregs needs to be transferred into the 8087 */
     if (*pretregs & mST0 && retregs & (mBP | ALLREGS))
     {
+        if (sz > DOUBLESIZE) elem_print(e);
         assert(sz <= DOUBLESIZE);
         if (!I16)
         {
