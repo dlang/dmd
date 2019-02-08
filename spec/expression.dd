@@ -300,39 +300,54 @@ $(GNAME EqualExpression):
 
     $(P Equality expressions compare the two operands for equality ($(D ==))
         or inequality ($(D !=)).
-        The type of the result is $(D bool). The operands
-        undergo the $(USUAL_ARITHMETIC_CONVERSIONS) to bring them to a common type before
-        comparison.
+        The type of the result is $(D bool).
     )
 
-    $(P If they are integral values or pointers, equality
-        is defined as the bit pattern of the type matches exactly.
+    $(P Inequality is defined as the logical negation of equality.)
+
+    $(P If the operands are integral values, the $(USUAL_ARITHMETIC_CONVERSIONS) are applied
+        to bring them to a common type before comparison. Equality is defined as the bit patterns
+        of the common type match exactly.
     )
 
-    $(P Equality for floating point types is more complicated. $(D -0) and
-        $(D +0) compare as equal. If either or both operands are NAN, then
-        both the $(D ==) returns false and $(D !=) returns $(D true). Otherwise, the bit
-        patterns are compared for equality.
+    $(P If the operands are pointers, equality is defined as the bit patterns of the operands
+        match exactly.
     )
 
-    $(P For complex numbers, equality is defined as equivalent to:)
+    $(P For float, double, and real values, the $(USUAL_ARITHMETIC_CONVERSIONS) are applied
+        to bring them to a common type before comparison.
+        The values $(D -0) and $(D +0) are considered equal.
+        If either or both operands are NAN, then $(D ==) returns false and $(D !=) returns $(D true).
+        Otherwise, the bit patterns of the common type are compared for equality.
+    )
+
+    $(P For complex numbers, equality is defined as equivalent to:
 
         ---
         x.re == y.re && x.im == y.im
         ---
+    )
 
-        and inequality is defined as equivalent to:
-
-        ---
-        x.re != y.re || x.im != y.im
-        ---
-
-    $(P Equality for struct objects means the logical product of all equality
+    $(P For struct objects, equality means the result of the
+        $(LINK2 https://dlang.org/spec/operatoroverloading.html#equals, `opEquals()` member function).
+        If an `opEquals()` is not provided, equality is defined as
+        the logical product of all equality
         results of the corresponding object fields.
-        If all struct fields use bitwise equality, the whole struct equality
-        could be optimized to one memory comparison operation (the existence of
-        alignment holes in the objects is accounted for, usually by setting them
-        all to 0 upon initialization).
+
+        $(IMPLEMENTATION_DEFINED The contents of any alignment gaps in the struct object.)
+
+        $(BEST_PRACTICE If there are overlapping fields, which happens with unions, the default
+        equality will compare each of the overlapping fields.
+        An `opEquals()` can account for which of the overlapping fields contains valid data.
+        An `opEquals()` can override the default behavior of floating point NaN values
+        always comparing as unequal.
+        Be careful using `memcmp()` to implement `opEquals()` if:
+        $(UL
+        $(LI there are any alignment gaps)
+        $(LI if any fields have an `opEquals()`)
+        $(LI there are any floating point fields that may contain NaN or `-0` values)
+        )
+        )
     )
 
     $(P For class and struct objects, the expression $(D (a == b))
