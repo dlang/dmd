@@ -72,6 +72,20 @@ bool isCurrentTargetOS(TargetOS os)
     return (os & targetOS) > 0;
 }
 
+/*
+Capitalize a word.
+Params:
+    w = word to capitalize
+Returns: capitalized word
+*/
+static auto capitalize(string w)
+{
+    import std.conv : text;
+    import std.range : dropOne, take;
+    import std.uni : asUpperCase;
+    return w.take(1).asUpperCase.text(w.dropOne);
+}
+
 /**
 Contains all available CLI $(LREF Usage.Option)s.
 
@@ -282,18 +296,6 @@ dmd -cov -unittest myprog.d
             (imports/file/version/debug/lib).
             With $(I filename), write module dependencies as text to $(I filename)
             (only imports).`,
-        ),
-        Option("dip25",
-            "implement https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md",
-            "implement $(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md, DIP25 (Sealed references))"
-        ),
-        Option("dip1000",
-            "implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1000.md",
-            "implement $(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/DIP1000.md, DIP1000 (Scoped Pointers))"
-        ),
-        Option("dip1008",
-            "implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1008.md",
-            "implement $(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/DIP1008.md, DIP1008 (@nogc Throwable))"
         ),
         Option("extern-std=[<standard>|h|help|?]",
             "set C++ name mangling compatiblity with <standard>",
@@ -545,6 +547,13 @@ dmd -cov -unittest myprog.d
             off when generating an object, interface, or Ddoc file
             name. $(SWLINK -op) will leave it on.`,
         ),
+        Option("preview=<id>",
+            "enable an upcoming language change identified by 'id'",
+            `Preview an upcoming language change identified by $(I id)`,
+        ),
+        Option("preview=?",
+            "list all upcoming language changes"
+        ),
         Option("profile",
             "profile runtime performance of generated code"
         ),
@@ -563,6 +572,13 @@ dmd -cov -unittest myprog.d
             checks for contracts and asserts. Array bounds checking is not
             done for system and trusted functions, and assertion failures
             are undefined behaviour.`
+        ),
+        Option("revert=<id>",
+            "revert language change identified by 'id'",
+            `Revert language change identified by $(I id)`,
+        ),
+        Option("revert=?",
+            "list all revertable language changes"
         ),
         Option("run <srcfile>",
             "compile, link, and run the program srcfile",
@@ -638,39 +654,50 @@ dmd -cov -unittest myprog.d
         ),
     ];
 
-    /// Representation of a CLI transition
-    struct Transition
+    /// Representation of a CLI feature
+    struct Feature
     {
-        string bugzillaNumber; /// bugzilla issue number (if existent)
-        string name; /// name of the transition
+        string name; /// name of the feature
         string paramName; // internal transition parameter name
-        string helpText; // detailed description of the transition
+        string helpText; // detailed description of the feature
+        bool documented = true; // whether this option should be shown in the documentation
     }
 
     /// Returns all available transitions
     static immutable transitions = [
-        Transition("3449", "field", "vfield",
+        Feature("field", "vfield",
             "list all non-mutable fields which occupy an object instance"),
-        Transition("10378", "import", "bug10378",
-            "revert to single phase name lookup"),
-        Transition("14246", "dtorfields", "dtorFields",
-            "destruct fields of partially constructed objects"),
-        Transition(null, "checkimports", "check10378",
+        Feature("checkimports", "check10378",
             "give deprecation messages about 10378 anomalies"),
-        Transition("14488", "complex", "vcomplex",
+        Feature("complex", "vcomplex",
             "give deprecation messages about all usages of complex or imaginary types"),
-        Transition("16997", "intpromote", "fix16997",
-            "fix integral promotions for unary + - ~ operators"),
-        Transition(null, "tls", "vtls",
+        Feature("tls", "vtls",
             "list all variables going into thread local storage"),
-        Transition(null, "fixAliasThis", "fixAliasThis",
-            "when a symbol is resolved, check alias this scope before going to upper scopes"),
-        Transition(null, "markdown", "markdown",
-            "enable Markdown replacements in Ddoc"),
-        Transition(null, "vmarkdown", "vmarkdown",
+        Feature("vmarkdown", "vmarkdown",
             "list instances of Markdown replacements in Ddoc"),
-        Transition(null, "noDIP25", "noDIP25",
-            "revert DIP25 changes https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md"),
+    ];
+
+    /// Returns all available reverts
+    static immutable reverts = [
+        Feature("dip25", "noDIP25", "revert DIP25 changes https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md"),
+        Feature("import", "bug10378", "revert to single phase name lookup"),
+    ];
+
+    /// Returns all available previews
+    static immutable previews = [
+        Feature("dip25", "useDIP25",
+            "implement https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md (Sealed references)"),
+        Feature("dip1000", "vsafe",
+            "implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1000.md (Scoped Pointers)"),
+        Feature("dip1008", "ehnogc",
+            "implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1008.md (@nogc Throwable)"),
+        Feature("markdown", "markdown", "enable Markdown replacements in Ddoc"),
+        Feature("fixAliasThis", "fixAliasThis",
+            "when a symbol is resolved, check alias this scope before going to upper scopes"),
+        Feature("intpromote", "fix16997",
+            "fix integral promotions for unary + - ~ operators"),
+        Feature("dtorfields", "dtorFields",
+            "destruct fields of partially constructed objects"),
     ];
 }
 
@@ -726,34 +753,36 @@ struct CLIUsage
   =native        use CPU architecture that this compiler is running on
 ";
 
-    /// Language changes listed by -transition=id
-    static string transitionUsage()
+    static string generateFeatureUsage(const Usage.Feature[] features, string flagName, string description)
     {
         enum maxFlagLength = 20;
-        enum s = () {
-            auto buf = "Language changes listed by -transition=id:
+        auto buf = description.capitalize ~ " listed by -"~flagName~"=name:
 ";
-            auto allTransitions = [Usage.Transition(null, "all", null,
-                "list information on all language changes")] ~ Usage.transitions;
-            foreach (t; allTransitions)
-            {
-                buf ~= "  =";
-                buf ~= t.name;
-                auto lineLength = 3 + t.name.length;
-                if (t.bugzillaNumber !is null)
-                {
-                    buf ~= "," ~ t.bugzillaNumber;
-                    lineLength += t.bugzillaNumber.length + 1;
-                }
-                foreach (i; 0 .. maxFlagLength - lineLength)
-                    buf ~= " ";
-                buf ~= t.helpText;
-                buf ~= "\n";
-            }
-            return buf;
-        }();
-        return s;
+        auto allTransitions = [Usage.Feature("all", null,
+            "list information on all " ~ description)] ~ features;
+        foreach (t; allTransitions)
+        {
+            if (!t.documented)
+                continue;
+            buf ~= "  =";
+            buf ~= t.name;
+            auto lineLength = 3 + t.name.length;
+            foreach (i; lineLength .. maxFlagLength)
+                buf ~= " ";
+            buf ~= t.helpText;
+            buf ~= "\n";
+        }
+        return buf;
     }
+
+    /// Language changes listed by -transition=id
+    enum transitionUsage = generateFeatureUsage(Usage.transitions, "transition", "language transitions");
+
+    /// Language changes listed by -revert
+    enum revertUsage = generateFeatureUsage(Usage.reverts, "revert", "revertable language changes");
+
+    /// Language previews listed by -preview
+    enum previewUsage = generateFeatureUsage(Usage.previews, "preview", "upcoming language changes");
 
     /// Options supported by -checkaction=
     enum checkActionUsage = "Behavior on assert/boundscheck/finalswitch failure:

@@ -148,6 +148,8 @@ struct Param
     bool transitionUsage;   // print help on -transition switch
     bool checkUsage;        // print help on -check switch
     bool checkActionUsage;  // print help on -checkaction switch
+    bool revertUsage;       // print help on -revert switch
+    bool previewUsage;      // print help on -preview switch
     bool externStdUsage;    // print help on -extern-std switch
     bool logo;              // print logo;
 

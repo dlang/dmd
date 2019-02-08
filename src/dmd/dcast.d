@@ -3529,7 +3529,7 @@ void fix16997(Scope* sc, UnaExp ue)
             case Tchar:
             case Twchar:
             case Tdchar:
-                ue.deprecation("integral promotion not done for `%s`, use '-transition=intpromote' switch or `%scast(int)(%s)`",
+                ue.deprecation("integral promotion not done for `%s`, use '-preview=intpromote' switch or `%scast(int)(%s)`",
                     ue.toChars(), Token.toChars(ue.op), ue.e1.toChars());
                 break;
 

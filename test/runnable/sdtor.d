@@ -1,5 +1,5 @@
 // PERMUTE_ARGS: -unittest -O -release -inline -fPIC -g
-// REQUIRED_ARGS: -transition=dtorfields
+// REQUIRED_ARGS: -preview=dtorfields
 
 import core.vararg;
 

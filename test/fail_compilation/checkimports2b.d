@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -transition=import -transition=checkimports -de
+// REQUIRED_ARGS: -revert=import -transition=checkimports -de
 /*
 TEST_OUTPUT:
 ---

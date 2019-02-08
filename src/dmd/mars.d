@@ -284,7 +284,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         return s;
     }
     import dmd.cli : CLIUsage;
-    mixin(generateUsageChecks(["mcpu", "transition", "check", "checkAction", "externStd"]));
+    mixin(generateUsageChecks(["mcpu", "transition", "check", "checkAction",
+        "preview", "revert", "externStd"]));
 
     if (params.manual)
     {
@@ -1442,6 +1443,39 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         };
     }
 
+    import dmd.cli : Usage;
+    bool parseCLIOption(string name, Usage.Feature[] features)(ref Param params, const(char)* p)
+    {
+        // Parse:
+        //      -<name>=<feature>
+        const ps = p + name.length + 1;
+        if (Identifier.isValidIdentifier(ps + 1))
+        {
+            string generateTransitionsText()
+            {
+                import dmd.cli : Usage;
+                string buf = `case "all":`;
+                foreach (t; features)
+                    buf ~= `params.`~t.paramName~` = true;`;
+                buf ~= "break;";
+
+                foreach (t; features)
+                {
+                    buf ~= `case "`~t.name~`": params.`~t.paramName~` = true; return true;`;
+                }
+                return buf;
+            }
+            const ident = ps + 1;
+            switch (ident[0 .. strlen(ident)])
+            {
+                mixin(generateTransitionsText());
+            default:
+                return false;
+            }
+        }
+        return false;
+    }
+
     version (none)
     {
         for (size_t i = 0; i < arguments.dim; i++)
@@ -1757,14 +1791,14 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     params.cpu = CPU.native;
                     break;
                 default:
-                    error("Switch `%s` is invalid", p);
+                    errorInvalidSwitch(p, "Only `baseline`, `avx`, `avx2` or `native` are allowed for `-mcpu`");
                     params.mcpuUsage = true;
                     return false;
                 }
             }
             else
             {
-                errorInvalidSwitch(p);
+                errorInvalidSwitch(p, "Only `baseline`, `avx`, `avx2` or `native` are allowed for `-mcpu`");
                 params.mcpuUsage = true;
                 return false;
             }
@@ -1797,67 +1831,107 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             // Parse:
             //      -transition=number
             mixin(checkOptionsMixin("transitionUsage",
-                "`-transition=<id>` requires an id"));
-            if (isdigit(cast(char)p[len]))
+                "`-transition=<name>` requires a name"));
+            if (!parseCLIOption!("transition", Usage.transitions)(params, p))
             {
-                const num = parseDigits(p + len, int.max);
-                if (num == uint.max)
-                    goto Lerror;
-
-                string generateTransitionsNumbers()
+                // Legacy -transition flags
+                // Before DMD 2.085, DMD `-transition` was used for all language flags
+                // These are kept for backwards compatibility, but no longer documented
+                if (isdigit(cast(char)p[len]))
                 {
-                    import dmd.cli : Usage;
-                    string buf;
-                    foreach (t; Usage.transitions)
+                    const num = parseDigits(p + len, int.max);
+                    if (num == uint.max)
+                        goto Lerror;
+
+                    // Bugzilla issue number
+                    switch (num)
                     {
-                        if (t.bugzillaNumber !is null)
-                            buf ~= `case `~t.bugzillaNumber~`: params.`~t.paramName~` = true;break;`;
+                        case 3449:
+                            params.vfield = true;
+                            break;
+                        case 10378:
+                            params.bug10378 = true;
+                            break;
+                        case 14246:
+                            params.dtorFields = true;
+                            break;
+                        case 14488:
+                            params.vcomplex = true;
+                            break;
+                        case 16997:
+                            params.fix16997 = true;
+                            break;
+                        default:
+                            error("Transition `%s` is invalid", p);
+                            params.transitionUsage = true;
+                            return false;
                     }
-                    return buf;
                 }
-
-                // Bugzilla issue number
-                switch (num)
+                else if (Identifier.isValidIdentifier(p + len))
                 {
-                    mixin(generateTransitionsNumbers());
-                default:
-                    error("Transition `%s` is invalid", p);
-                    params.transitionUsage = true;
-                    return false;
-                }
-            }
-            else if (Identifier.isValidIdentifier(p + len))
-            {
-                string generateTransitionsText()
-                {
-                    import dmd.cli : Usage;
-                    string buf = `case "all":`;
-                    foreach (t; Usage.transitions)
-                        buf ~= `params.`~t.paramName~` = true;`;
-                    buf ~= "break;";
-
-                    foreach (t; Usage.transitions)
+                    const ident = p + len;
+                    switch (ident[0 .. strlen(ident)])
                     {
-                        buf ~= `case "`~t.name~`": params.`~t.paramName~` = true;break;`;
+                        case "import":
+                            params.bug10378 = true;
+                            break;
+                        case "dtorfields":
+                            params.dtorFields = true;
+                            break;
+                        case "intpromote":
+                            params.fix16997 = true;
+                            break;
+                        case "markdown":
+                            params.markdown = true;
+                            break;
+                        default:
+                            error("Transition `%s` is invalid", p);
+                            params.transitionUsage = true;
+                            return false;
                     }
-                    return buf;
                 }
-                const ident = p + len;
-                switch (ident[0 .. strlen(ident)])
-                {
-                    mixin(generateTransitionsText());
-                default:
-                    error("Transition `%s` is invalid", p);
-                    params.transitionUsage = true;
-                    return false;
-                }
-            }
-            else
-            {
                 errorInvalidSwitch(p);
                 params.transitionUsage = true;
                 return false;
             }
+        }
+        else if (startsWith(p + 1, "preview") ) // https://dlang.org/dmd.html#switch-preview
+        {
+            enum len = "-preview=".length;
+            // Parse:
+            //      -preview=name
+            mixin(checkOptionsMixin("previewUsage",
+                "`-preview=<name>` requires a name"));
+
+            if (!parseCLIOption!("preview", Usage.previews)(params, p))
+            {
+                error("Preview `%s` is invalid", p);
+                params.previewUsage = true;
+                return false;
+            }
+
+            // copy previously standalone flags from -transition
+            // -preview=dip1000 implies -preview=dip25 too
+            if (params.vsafe)
+                params.useDIP25 = true;
+        }
+        else if (startsWith(p + 1, "revert") ) // https://dlang.org/dmd.html#switch-revert
+        {
+            enum len = "-revert=".length;
+            // Parse:
+            //      -revert=name
+            mixin(checkOptionsMixin("revertUsage",
+                "`-revert=<name>` requires a name"));
+
+            if (!parseCLIOption!("revert", Usage.reverts)(params, p))
+            {
+                error("Revert `%s` is invalid", p);
+                params.revertUsage = true;
+                return false;
+            }
+
+            if (params.noDIP25)
+                params.useDIP25 = false;
         }
         else if (arg == "-w")   // https://dlang.org/dmd.html#switch-w
             params.warnings = Diagnostic.error;

@@ -1,5 +1,5 @@
 // PERMUTE_ARGS: -inline -O
-// REQUIRED_ARGS: -dip25
+// REQUIRED_ARGS: -preview=dip25
 
 // Test operator overloading
 
