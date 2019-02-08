@@ -120,7 +120,7 @@ void main()
         if (C.dtors < 2) printf ("False DATA pointers? C.dtors = %d, 2 expected\n", C.dtors);
         assert(S.dtors <= 3);
         if (S.dtors < 3) printf ("False DATA pointers? S.dtors = %d, 2 expected\n", S.dtors);
-        assert(L.dtors == 1);
+        assert(L.dtors <= 1);
         if (L.dtors < 1) printf ("False DATA pointers? L.dtors = %d, 1 expected\n", L.dtors);
     }
 }
