@@ -2084,7 +2084,7 @@ private bool replaceMarkdownThematicBreak(OutBuffer* buf, ref size_t i, size_t i
         return false;
 
     const slice = buf.peekSlice();
-    char c = buf.data[i];
+    const c = buf.data[i];
     size_t j = i + 1;
     int repeat = 1;
     for (; j < slice.length; j++)
@@ -2101,7 +2101,7 @@ private bool replaceMarkdownThematicBreak(OutBuffer* buf, ref size_t i, size_t i
             if (global.params.vmarkdown)
             {
                 const s = buf.peekSlice()[i..j];
-                message(loc, "Ddoc: converted '%.*s' to a thematic break", s.length, s.ptr);
+                message(loc, "Ddoc: converted '%.*s' to a thematic break", cast(int)s.length, s.ptr);
             }
 
             buf.remove(iLineStart, j - iLineStart);
