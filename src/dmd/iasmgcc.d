@@ -291,7 +291,7 @@ public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
 
     for (Token *token = s.tokens; token; token = token.next)
     {
-        *ptoklist = Token.alloc();
+        *ptoklist = p.allocateToken();
         memcpy(*ptoklist, token, Token.sizeof);
         ptoklist = &(*ptoklist).next;
         *ptoklist = null;
@@ -390,7 +390,7 @@ unittest
         {
             if (p.token.value == TOK.rightCurly || p.token.value == TOK.endOfFile)
                 break;
-            *ptoklist = Token.alloc();
+            *ptoklist = p.allocateToken();
             memcpy(*ptoklist, &p.token, Token.sizeof);
             ptoklist = &(*ptoklist).next;
             *ptoklist = null;
