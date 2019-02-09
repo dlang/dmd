@@ -75,7 +75,7 @@ extern (D) private void sliceStructs_Gather(const symtab_t* symtab, SymInfo[] si
                 {
                     assert(si < symtab.top);
                     const n = nthSlice(e);
-                    const sz = tysize(e.Ety);
+                    const sz = getSize(e);
                     if (sz == 2 * SLICESIZE && !tyfv(e.Ety) &&
                         tybasic(e.Ety) != TYldouble && tybasic(e.Ety) != TYildouble)
                     {
@@ -183,7 +183,7 @@ extern (D) private void sliceStructs_Replace(symtab_t* symtab, const SymInfo[] s
                 if (si >= 0 && sia[si].canSlice)
                 {
                     const n = nthSlice(e);
-                    if (tysize(e.Ety) == 2 * SLICESIZE)
+                    if (getSize(e) == 2 * SLICESIZE)
                     {
                         // Rewrite e as (si0 OPpair si0+1)
                         elem *e1 = el_calloc();
@@ -428,7 +428,9 @@ Ldone:
 enum NOTSLICE = -1;
 int nthSlice(const(elem)* e)
 {
-    const sz = tysize(e.Ety);
+    const sz = tysize(e.Ety); // not getSize(e) because type_fake(TYstruct) doesn't work
+    if (sz == -1)
+        return NOTSLICE;
     const sliceSize = SLICESIZE;
 
     /* See if e fits in a slice
@@ -441,6 +443,17 @@ int nthSlice(const(elem)* e)
         return 1;
 
     return NOTSLICE;
+}
+
+/******************************************
+ * Get size of an elem e.
+ */
+private int getSize(const(elem)* e)
+{
+    int sz = tysize(e.Ety);
+    if (sz == -1 && e.ET && (tybasic(e.Ety) == TYstruct || tybasic(e.Ety) == TYarray))
+        sz = cast(int)type_size(e.ET);
+    return sz;
 }
 
 }

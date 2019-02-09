@@ -1781,20 +1781,19 @@ void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs)
     regm_t forccs = *pretregs & mPSW;
     regm_t forregs = *pretregs & (mST01 | mST0 | mBP | ALLREGS | mES | mSTACK | XMMREGS);
     tym_t tym = tybasic(e.Ety);
-    static if (TARGET_SEGMENTED)
+
+    if (tym == TYstruct)
     {
-        if (tym == TYstruct)
+        if (e.Eoper == OPpair || e.Eoper == OPrpair)
+        {
+            if (I64)
+                tym = TYucent;
+            else
+                tym = TYullong;
+        }
+        else
             // Hack to support cdstreq()
             tym = (forregs & mMSW) ? TYfptr : TYnptr;
-    }
-    else
-    {
-        if (tym == TYstruct)
-        {
-            // Hack to support cdstreq()
-            assert(!(forregs & mMSW));
-            tym = TYnptr;
-        }
     }
     int sz = _tysize[tym];
 
@@ -4249,6 +4248,50 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                     }
                     codelem(cdb, e1, &retregs, false);
                     break;
+
+                case OPpair:
+                    const op1 = e1.EV.E1.Eoper;
+                    const op2 = e1.EV.E2.Eoper;
+                    if ((op1 == OPvar || op1 == OPconst || op1 == OPrelconst) &&
+                        (op2 == OPvar || op2 == OPconst || op2 == OPrelconst))
+                    {
+                        pushParams(cdb, e1.EV.E2, stackalign, tyf);
+                        pushParams(cdb, e1.EV.E1, stackalign, tyf);
+                        freenode(e1);
+                    }
+                    else
+                    {
+                        regm_t regs = allregs;
+                        codelem(cdb, e1, &regs, false);
+                        genpush(cdb, findregmsw(regs)); // PUSH msreg
+                        genpush(cdb, findreglsw(regs)); // PUSH lsreg
+                        cdb.genadjesp(cast(int)sz);
+                        stackpush += sz;
+                    }
+                    freenode(e);
+                    return;
+
+                case OPrpair:
+                    const op1 = e1.EV.E1.Eoper;
+                    const op2 = e1.EV.E2.Eoper;
+                    if ((op1 == OPvar || op1 == OPconst || op1 == OPrelconst) &&
+                        (op2 == OPvar || op2 == OPconst || op2 == OPrelconst))
+                    {
+                        pushParams(cdb, e1.EV.E1, stackalign, tyf);
+                        pushParams(cdb, e1.EV.E2, stackalign, tyf);
+                        freenode(e1);
+                    }
+                    else
+                    {
+                        regm_t regs = allregs;
+                        codelem(cdb, e1, &regs, false);
+                        genpush(cdb, findreglsw(regs)); // PUSH lsreg
+                        genpush(cdb, findregmsw(regs)); // PUSH msreg
+                        cdb.genadjesp(cast(int)sz);
+                        stackpush += sz;
+                    }
+                    freenode(e);
+                    return;
 
                 default:
                     elem_print(e1);
