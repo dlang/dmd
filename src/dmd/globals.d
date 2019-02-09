@@ -167,6 +167,7 @@ struct Param
     bool ehnogc;            // use @nogc exception handling
     bool dtorFields;        // destruct fields of partially constructed objects
                             // https://issues.dlang.org/show_bug.cgi?id=14246
+    bool fieldwise;         // do struct equality testing field-wise rather than by memcmp()
 
     CppStdRevision cplusplus = CppStdRevision.cpp98;    // version of C++ standard to support
 

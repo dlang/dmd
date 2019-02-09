@@ -1241,7 +1241,7 @@ Expression op_overload(Expression e, Scope* sc)
                     return;
 
                 import dmd.clone : needOpEquals;
-                if (!needOpEquals(sd))
+                if (!global.params.fieldwise && !needOpEquals(sd))
                 {
                     // Use bitwise equality.
                     auto op2 = e.op == TOK.equal ? TOK.identity : TOK.notIdentity;
@@ -1251,6 +1251,7 @@ Expression op_overload(Expression e, Scope* sc)
                 }
 
                 /* Do memberwise equality.
+                 * https://dlang.org/spec/expression.html#equality_expressions
                  * Rewrite:
                  *      e1 == e2
                  * as:
