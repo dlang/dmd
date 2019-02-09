@@ -727,6 +727,7 @@ bool AggregateDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
                 {
                     vx->error(loc, "recursive initialization of field");
                     errors = true;
+                    e = NULL;
                 }
                 else
                     e = vx->getConstInitializer(false);
