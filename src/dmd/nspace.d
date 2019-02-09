@@ -59,8 +59,11 @@ extern (C++) final class Nspace : ScopeDsymbol
 
     override void addMember(Scope* sc, ScopeDsymbol sds)
     {
-        if(!mangleOnly)
+        if (mangleOnly)
+            parent = sds;
+        else
             ScopeDsymbol.addMember(sc, sds);
+
         if (members)
         {
             if (!symtab)
