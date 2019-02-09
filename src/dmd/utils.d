@@ -160,7 +160,6 @@ extern(D) static bool iequals(const(char)[] s1, const(char)[] s2)
     if (s1.length != s2.length)
         return false;
 
-    int result = 0;
     foreach (idx, c1; s1)
     {
         // Since we did a length check, it is safe to bypass bounds checking
