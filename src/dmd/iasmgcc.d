@@ -24,6 +24,7 @@ import dmd.expression;
 import dmd.expressionsem;
 import dmd.identifier;
 import dmd.globals;
+import dmd.lexer;
 import dmd.parse;
 import dmd.tokens;
 import dmd.statement;
@@ -283,7 +284,8 @@ Ldone:
 public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
 {
     //printf("GccAsmStatement.semantic()\n");
-    scope p = new Parser!ASTCodegen(sc._module, ";", false);
+    scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
+    scope p = new Parser!ASTCodegen(sc._module, ";", false, diagnosticReporter);
 
     // Make a safe copy of the token list before parsing.
     Token *toklist = null;
@@ -369,7 +371,8 @@ unittest
     static int semanticAsm(Token* tokens)
     {
         scope gas = new GccAsmStatement(Loc.initial, tokens);
-        scope p = new Parser!ASTCodegen(null, ";", false);
+        scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
+        scope p = new Parser!ASTCodegen(null, ";", false, diagnosticReporter);
         p.token = *tokens;
         p.parseGccAsm(gas);
         return p.errors;
@@ -379,7 +382,8 @@ unittest
     static void parseAsm(string input, bool expectError)
     {
         // Generate tokens from input test.
-        scope p = new Parser!ASTCodegen(null, input, false);
+        scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
+        scope p = new Parser!ASTCodegen(null, input, false, diagnosticReporter);
         p.nextToken();
 
         Token* toklist = null;

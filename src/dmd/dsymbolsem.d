@@ -47,6 +47,7 @@ import dmd.identifier;
 import dmd.init;
 import dmd.initsem;
 import dmd.hdrgen;
+import dmd.lexer;
 import dmd.mtype;
 import dmd.nogc;
 import dmd.nspace;
@@ -1880,7 +1881,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         const errors = global.errors;
         const len = buf.offset;
         const str = buf.extractString()[0 .. len];
-        scope p = new Parser!ASTCodegen(cd.loc, sc._module, str, false);
+        scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
+        scope p = new Parser!ASTCodegen(cd.loc, sc._module, str, false, diagnosticReporter);
         p.nextToken();
 
         auto d = p.parseDeclDefs(0);

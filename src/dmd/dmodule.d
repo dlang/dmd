@@ -32,6 +32,7 @@ import dmd.expressionsem;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
+import dmd.lexer;
 import dmd.parse;
 import dmd.root.file;
 import dmd.root.filename;
@@ -850,7 +851,8 @@ extern (C++) final class Module : Package
             isHdrFile = true;
         }
         {
-            scope p = new Parser!ASTCodegen(this, buf[0 .. buflen], docfile !is null);
+            scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
+            scope p = new Parser!ASTCodegen(this, buf[0 .. buflen], docfile !is null, diagnosticReporter);
             p.nextToken();
             members = p.parseModule();
             md = p.md;

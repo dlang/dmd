@@ -15,6 +15,8 @@
 module dmd.frontend;
 
 import dmd.dmodule : Module;
+import dmd.lexer : DiagnosticReporter;
+
 import std.range.primitives : isInputRange, ElementType;
 import std.traits : isNarrowString;
 import std.typecons : Tuple;
@@ -271,10 +273,21 @@ Parse a module from a string.
 Params:
     fileName = file to parse
     code = text to use instead of opening the file
+    diagnosticReporter = the diagnostic reporter to use. By default a
+        diagnostic reporter which prints to stderr will be used
 
 Returns: the parsed module object
 */
-Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(const(char)[] fileName, const(char)[] code = null)
+Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(
+    const(char)[] fileName,
+    const(char)[] code = null,
+    DiagnosticReporter diagnosticReporter = defaultDiagnosticReporter
+)
+in
+{
+    assert(diagnosticReporter !is null);
+}
+body
 {
     import dmd.astcodegen : ASTCodegen;
     import dmd.globals : Loc, global;
@@ -284,9 +297,9 @@ Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(const(char)[] 
     import std.string : toStringz;
     import std.typecons : tuple;
 
-    static auto parse(Module m, const(char)[] code)
+    static auto parse(Module m, const(char)[] code, DiagnosticReporter diagnosticReporter)
     {
-        scope p = new Parser!ASTCodegen(m, code, false);
+        scope p = new Parser!ASTCodegen(m, code, false, diagnosticReporter);
         p.nextToken; // skip the initial token
         auto members = p.parseModule;
         if (p.errors)
@@ -297,7 +310,7 @@ Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(const(char)[] 
     Identifier id = Identifier.idPool(fileName);
     auto m = new Module(fileName.toStringz, id, 0, 0);
     if (code !is null)
-        m.members = parse(m, code);
+        m.members = parse(m, code, diagnosticReporter);
     else
     {
         m.read(Loc.initial);
@@ -349,4 +362,12 @@ string prettyPrint(Module m)
 
     auto generated = buf.extractData.fromStringz.replace("\t", "    ");
     return generated.assumeUnique;
+}
+
+private DiagnosticReporter defaultDiagnosticReporter()
+{
+    import dmd.globals : global;
+    import dmd.lexer : StderrDiagnosticReporter;
+
+    return new StderrDiagnosticReporter(global.params.useDeprecated);
 }

@@ -39,6 +39,7 @@ import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.dinterpret;
+import dmd.lexer;
 import dmd.mtype;
 import dmd.parse;
 import dmd.root.outbuffer;
@@ -811,7 +812,8 @@ extern (C++) final class CompileStatement : Statement
         const errors = global.errors;
         const len = buf.offset;
         const str = buf.extractString()[0 .. len];
-        scope p = new Parser!ASTCodegen(loc, sc._module, str, false);
+        scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
+        scope p = new Parser!ASTCodegen(loc, sc._module, str, false, diagnosticReporter);
         p.nextToken();
 
         auto a = new Statements();

@@ -23,6 +23,7 @@ import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
+import dmd.lexer;
 import dmd.parse;
 import dmd.root.array;
 import dmd.root.ctfloat;
@@ -86,7 +87,8 @@ struct Compiler
         };
         Identifier id = Id.entrypoint;
         auto m = new Module("__entrypoint.d", id, 0, 0);
-        scope p = new Parser!ASTCodegen(m, cmaincode, false);
+        scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
+        scope p = new Parser!ASTCodegen(m, cmaincode, false, diagnosticReporter);
         p.scanloc = Loc.initial;
         p.nextToken();
         m.members = p.parseModule();
