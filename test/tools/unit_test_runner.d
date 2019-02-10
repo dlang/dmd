@@ -321,6 +321,9 @@ int main(string[] args)
     if (missingTestFiles(givenFiles))
         return 1;
 
+    const nrOfFiles = givenFiles.length ? givenFiles.length.to!string : "all";
+    stderr.writefln("[unit] Starting to build %s test files", nrOfFiles);
+
     enum runnerPath = resultsDir.buildPath("runner.d");
     const testFiles = givenFiles.testFiles;
 
@@ -336,5 +339,6 @@ int main(string[] args)
     buildStrtold();
     execute(dmdPath, "@" ~ cmdfilePath);
 
+    stderr.writefln("[unit] Starting to run %s test files", nrOfFiles);
     return spawnProcess(outputPath).wait();
 }
