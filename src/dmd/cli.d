@@ -72,18 +72,27 @@ bool isCurrentTargetOS(TargetOS os)
     return (os & targetOS) > 0;
 }
 
-/*
-Capitalize a word.
+/**
+Capitalize a the first character of a ASCII string.
 Params:
-    w = word to capitalize
-Returns: capitalized word
+    w = ASCII i string to capitalize
+Returns: capitalized string
 */
-static auto capitalize(string w)
+static string capitalize(string w)
 {
-    import std.conv : text;
-    import std.range : dropOne, take;
-    import std.uni : asUpperCase;
-    return w.take(1).asUpperCase.text(w.dropOne);
+    char[] result = cast(char[]) w;
+    char c1 = w.length ? w[0] : '\0';
+
+    if (c1 >= 'a' && c1 <= 'z')
+    {
+        enum adjustment = 'A' - 'a';
+
+        result = new char[] (w.length);
+        result[0] = cast(char) (c1 + adjustment);
+        result[1 .. $] = w[1 .. $];
+    }
+
+    return cast(string) result;
 }
 
 /**
