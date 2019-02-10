@@ -8,8 +8,8 @@ import std.exception : enforce;
 import std.file : dirEntries, exists, SpanMode, mkdirRecurse, write;
 import std.format : format;
 import std.getopt : getopt;
-import std.path : absolutePath, buildPath, dirSeparator, stripExtension,
-    setExtension;
+import std.path : absolutePath, buildPath, dirSeparator, relativePath,
+    setExtension, stripExtension;
 import std.process : environment, spawnProcess, spawnShell, wait;
 import std.range : empty;
 import std.stdio;
@@ -34,10 +34,9 @@ string[] testFiles(Range)(Range givenFiles)
 auto moduleNames(const string[] testFiles)
 {
     return testFiles
-        .map!(e => e[unitTestDir.length + 1 .. $])
-        .map!stripExtension
-        .array
-        .map!(e => e.substitute(dirSeparator, "."));
+        .map!(e => e.relativePath(unitTestDir)
+                    .stripExtension
+                    .substitute(dirSeparator, "."));
 }
 
 void writeRunnerFile(Range)(Range moduleNames, string path, string filter)
