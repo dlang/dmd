@@ -67,6 +67,7 @@ Examples:
     ./run.d runnable/template2962.d                              # runs a specific tests
     ./run.d runnable/template2962.d fail_compilation/fail282.d   # runs multiple specific tests
     ./run.d fail_compilation                                     # runs all tests in fail_compilation
+    ./run.d unit_tests                                           # runs all unit tests
     ./run.d all                                                  # runs all tests
     ./run.d clean                                                # remove all test results
     ./run.d -u -- unit/deinitialization.d -f Module              # runs the unit tests in the file "unit/deinitialization.d" with a UDA containing "Module"
@@ -273,6 +274,8 @@ auto predefinedTargets(string[] targets)
                 foreach (testDir; testDirs)
                     newTargets.put(findFiles(testDir).map!createTestTarget);
                 break;
+            case "unittest":
+            case "unittests":
             case "unit_tests":
                 newTargets ~= createUnitTestTarget();
                 break;
