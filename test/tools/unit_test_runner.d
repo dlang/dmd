@@ -19,6 +19,7 @@ import tools.paths;
 
 enum unitTestDir = testPath("unit");
 enum strtoldObjPath = resultsDir.buildPath("strtold.obj");
+enum dmdSrcDir = projectRootDir.buildPath("src");
 
 string[] testFiles(Range)(Range givenFiles)
 {
@@ -235,7 +236,7 @@ void writeCmdfile(string path, string runnerPath, string outputPath,
         "-unittest",
         "-J" ~ buildOutputPath,
         "-J" ~ projectRootDir.buildPath("res"),
-        "-I" ~ projectRootDir.buildPath("src"),
+        "-I" ~ dmdSrcDir,
         "-I" ~ unitTestDir,
         "-i",
         "-g",
@@ -288,10 +289,10 @@ void buildStrtold()
         "/EHsc",
         "/TP",
         "/c",
-        projectRootDir.buildPath("src", "dmd", "backend", "strtold.c"),
+        dmdSrcDir.buildPath("dmd", "backend", "strtold.c"),
         "/Fo" ~ strtoldObjPath,
         "/I",
-        projectRootDir.buildPath("src", "dmd", "root")
+        dmdSrcDir.buildPath("dmd", "root")
     ].join(" ");
 
     enforce(spawnShell(cmd).wait() == 0, "Failed to execute command: " ~ cmd);
