@@ -258,11 +258,11 @@ extern __gshared ubyte[RELOPMAX - RELOPMIN + 1]
         _rel_exception,
         _rel_unord;
 
-int rel_not(int op)       { return _rel_not      [op - RELOPMIN]; }
-int rel_swap(int op)      { return _rel_swap     [op - RELOPMIN]; }
-int rel_integral(int op)  { return _rel_integral [op - RELOPMIN]; }
-int rel_exception(int op) { return _rel_exception[op - RELOPMIN]; }
-int rel_unord(int op)     { return _rel_unord    [op - RELOPMIN]; }
+OPER rel_not(OPER op)       { return _rel_not      [op - RELOPMIN]; }
+OPER rel_swap(OPER op)      { return _rel_swap     [op - RELOPMIN]; }
+OPER rel_integral(OPER op)  { return _rel_integral [op - RELOPMIN]; }
+OPER rel_exception(OPER op) { return _rel_exception[op - RELOPMIN]; }
+OPER rel_unord(OPER op)     { return _rel_unord    [op - RELOPMIN]; }
 
 /****************************************
  * Conversion operators.
@@ -344,36 +344,36 @@ enum
     _OTboolnop      = 1,
 }
 
-ubyte OTbinary(int op)    { return optab1[op] & _OTbinary; }
-ubyte OTunary(int op)     { return optab1[op] & _OTunary; }
-bool  OTleaf(int op)      { return !(optab1[op] & (_OTunary|_OTbinary)); }
-ubyte OTcommut(int op)    { return optab1[op] & _OTcommut; }
-ubyte OTassoc(int op)     { return optab1[op] & _OTassoc; }
-ubyte OTassign(int op)    { return optab2[op]&_OTassign; }
-bool  OTpost(int op)      { return op == OPpostinc || op == OPpostdec; }
-ubyte OTeop0e(int op)     { return optab1[op] & _OTeop0e; }
-ubyte OTeop00(int op)     { return optab1[op] & _OTeop00; }
-ubyte OTeop1e(int op)     { return optab1[op] & _OTeop1e; }
-ubyte OTsideff(int op)    { return optab1[op] & _OTsideff; }
-bool  OTconv(int op)      { return op >= CNVOPMIN && op <= CNVOPMAX; }
-ubyte OTlogical(int op)   { return optab2[op] & _OTlogical; }
-ubyte OTwid(int op)       { return optab2[op] & _OTwid; }
-bool  OTopeq(int op)      { return op >= OPaddass && op <= OPashrass; }
-bool  OTop(int op)        { return op >= OPadd && op <= OPor; }
-ubyte OTcall(int op)      { return optab2[op] & _OTcall; }
-ubyte OTrtol(int op)      { return optab2[op] & _OTrtol; }
-bool  OTrel(int op)       { return op >= OPle && op <= OPnue; }
-bool  OTrel2(int op)      { return op >= OPle && op <= OPge; }
-ubyte OTdef(int op)       { return optab2[op] & _OTdef; }
-ubyte OTae(int op)        { return optab2[op] & _OTae; }
-ubyte OTboolnop(int op)   { return optab3[op] & _OTboolnop; }
-bool  OTcalldef(int op)   { return OTcall(op) || op == OPstrcpy || op == OPstrcat || op == OPmemcpy; }
+ubyte OTbinary(OPER op)    { return optab1[op] & _OTbinary; }
+ubyte OTunary(OPER op)     { return optab1[op] & _OTunary; }
+bool  OTleaf(OPER op)      { return !(optab1[op] & (_OTunary|_OTbinary)); }
+ubyte OTcommut(OPER op)    { return optab1[op] & _OTcommut; }
+ubyte OTassoc(OPER op)     { return optab1[op] & _OTassoc; }
+ubyte OTassign(OPER op)    { return optab2[op]&_OTassign; }
+bool  OTpost(OPER op)      { return op == OPpostinc || op == OPpostdec; }
+ubyte OTeop0e(OPER op)     { return optab1[op] & _OTeop0e; }
+ubyte OTeop00(OPER op)     { return optab1[op] & _OTeop00; }
+ubyte OTeop1e(OPER op)     { return optab1[op] & _OTeop1e; }
+ubyte OTsideff(OPER op)    { return optab1[op] & _OTsideff; }
+bool  OTconv(OPER op)      { return op >= CNVOPMIN && op <= CNVOPMAX; }
+ubyte OTlogical(OPER op)   { return optab2[op] & _OTlogical; }
+ubyte OTwid(OPER op)       { return optab2[op] & _OTwid; }
+bool  OTopeq(OPER op)      { return op >= OPaddass && op <= OPashrass; }
+bool  OTop(OPER op)        { return op >= OPadd && op <= OPor; }
+ubyte OTcall(OPER op)      { return optab2[op] & _OTcall; }
+ubyte OTrtol(OPER op)      { return optab2[op] & _OTrtol; }
+bool  OTrel(OPER op)       { return op >= OPle && op <= OPnue; }
+bool  OTrel2(OPER op)      { return op >= OPle && op <= OPge; }
+ubyte OTdef(OPER op)       { return optab2[op] & _OTdef; }
+ubyte OTae(OPER op)        { return optab2[op] & _OTae; }
+ubyte OTboolnop(OPER op)   { return optab3[op] & _OTboolnop; }
+bool  OTcalldef(OPER op)   { return OTcall(op) || op == OPstrcpy || op == OPstrcat || op == OPmemcpy; }
 
 /* Convert op= to op    */
-int opeqtoop(int opx)   { return opx - OPaddass + OPadd; }
+OPER opeqtoop(OPER opx)   { return opx - OPaddass + OPadd; }
 
 /* Convert op to op=    */
-int optoopeq(int opx)   { return opx - OPadd + OPaddass; }
+OPER optoopeq(OPER opx)   { return opx - OPadd + OPaddass; }
 
 /***************************
  * Determine properties of an elem.

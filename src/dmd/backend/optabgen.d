@@ -169,7 +169,7 @@ int main()
     return 0;
 }
 
-int cost(uint op)
+int cost(OPER op)
 {       uint c;
 
         c = 0;                          /* default cost                 */
