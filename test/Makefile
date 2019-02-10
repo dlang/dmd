@@ -158,7 +158,11 @@ $(RESULTS_DIR)/.created:
 	$(QUIET)if [ ! -d $(RESULTS_DIR)/fail_compilation ]; then mkdir $(RESULTS_DIR)/fail_compilation; fi
 	$(QUIET)touch $(RESULTS_DIR)/.created
 
-run_tests: start_runnable_tests start_compilable_tests start_fail_compilation_tests
+run_tests: unit_tests start_runnable_tests start_compilable_tests start_fail_compilation_tests
+
+unit_tests: $(RESULTS_DIR)/unit_test_runner$(EXE)
+	@echo "Running unit tests"
+	$<
 
 run_runnable_tests: $(runnable_test_results)
 
@@ -193,3 +197,9 @@ $(RESULTS_DIR)/sanitize_json$(EXE): tools/sanitize_json.d $(RESULTS_DIR)/.create
 	@echo "PIC: '$(PIC_FLAG)'"
 	$(DMD) -conf= $(MODEL_FLAG) $(DEBUG_FLAGS) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)sanitize_json$(EXE) -i $<
 
+$(RESULTS_DIR)/unit_test_runner$(EXE): tools/unit_test_runner.d $(RESULTS_DIR)/.created | $(DMD)
+	@echo "Building unit_test_runner tool"
+	@echo "OS: '$(OS)'"
+	@echo "MODEL: '$(MODEL)'"
+	@echo "PIC: '$(PIC_FLAG)'"
+	$(DMD) -conf= $(MODEL_FLAG) $(DEBUG_FLAGS) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)unit_test_runner$(EXE) -i $<
