@@ -1291,6 +1291,10 @@ version (MARS)
                     e.EV.Vcent.msw = l2;
                 }
                 break;
+
+            case -1:            // can happen for TYstruct
+                return e;       // don't const fold it
+
             default:
                 if (tyfloating(tym))
                 {
