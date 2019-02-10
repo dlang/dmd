@@ -715,13 +715,12 @@ struct CLIUsage
     {
         enum maxFlagLength = 18;
         enum s = () {
-            string buf;
+            char[] buf;
             foreach (option; Usage.options)
             {
                 if (option.os.isCurrentTargetOS)
                 {
-                    buf ~= "  -";
-                    buf ~= option.flag;
+                    buf ~= "  -" ~ option.flag;
                     // create new lines if the flag name is too long
                     if (option.flag.length >= 17)
                     {
@@ -729,8 +728,9 @@ struct CLIUsage
                     }
                     else if (option.flag.length <= maxFlagLength)
                     {
-                        foreach (i; 0 .. maxFlagLength - option.flag.length - 1)
-                            buf ~= " ";
+                        const spaces = maxFlagLength - option.flag.length - 1;
+                        buf.length += spaces;
+                        buf[$ - spaces .. $] = ' ';
                     }
                     else
                     {
@@ -740,7 +740,7 @@ struct CLIUsage
                     buf ~= "\n";
                 }
             }
-            return buf;
+            return cast(string) buf;
         }();
         return s;
     }
