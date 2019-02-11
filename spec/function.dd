@@ -2777,7 +2777,7 @@ $(H3 $(LNAME2 trusted-functions, Trusted Functions))
             int* p2 = new int;
             *p2 = 42;
             return cast(immutable) p2;
-            // Valid. No @safe code can have knowledge of p2.
+            // Valid. After f returns, no mutable aliases of p2 can exist.
         }
 
         void main() @safe
