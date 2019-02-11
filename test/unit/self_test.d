@@ -10,8 +10,8 @@ import support : afterEach, beforeEach, defaultImportPaths;
 
 @afterEach deinitializeFrontend()
 {
-    // import dmd.frontend : deinitializeDMD;
-    // deinitializeDMD();
+    import dmd.frontend : deinitializeDMD;
+    deinitializeDMD();
 }
 
 @("self test")

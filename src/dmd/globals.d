@@ -405,6 +405,17 @@ struct Global
     }
 
     /**
+     * Deinitializes the global state of the compiler.
+     *
+     * This can be used to restore the state set by `_init` to its original
+     * state.
+     */
+    void deinitialize()
+    {
+        this = this.init;
+    }
+
+    /**
     Returns: the version as the number that would be returned for __VERSION__
     */
     extern(C++) uint versionNumber()

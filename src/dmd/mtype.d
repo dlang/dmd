@@ -905,6 +905,17 @@ extern (C++) abstract class Type : RootObject
         thash_t = tsize_t;
     }
 
+    /**
+     * Deinitializes the global state of the compiler.
+     *
+     * This can be used to restore the state set by `_init` to its original
+     * state.
+     */
+    static void deinitialize()
+    {
+        stringtable = stringtable.init;
+    }
+
     final d_uns64 size()
     {
         return size(Loc.initial);

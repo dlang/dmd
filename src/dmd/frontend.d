@@ -77,6 +77,35 @@ void initDMD()
 }
 
 /**
+Deinitializes the global variables of the DMD compiler.
+
+This can be used to restore the state set by `initDMD` to its original state.
+Useful if there's a need for multiple sessions of the DMD compiler in the same
+application.
+*/
+void deinitializeDMD()
+{
+    import dmd.builtin : builtinDeinitialize;
+    import dmd.dmodule : Module;
+    import dmd.expression : Expression;
+    import dmd.globals : global;
+    import dmd.id : Id;
+    import dmd.mtype : Type;
+    import dmd.objc : Objc;
+    import dmd.target : target;
+
+    global.deinitialize();
+
+    Type.deinitialize();
+    Id.deinitialize();
+    Module.deinitialize();
+    target.deinitialize();
+    Expression.deinitialize();
+    Objc.deinitialize();
+    builtinDeinitialize();
+}
+
+/**
 Add import path to the `global.path`.
 Params:
     path = import to add

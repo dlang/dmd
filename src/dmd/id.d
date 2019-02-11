@@ -39,6 +39,17 @@ struct Id
     {
         mixin(msgtable.generate(&initializer));
     }
+
+    /**
+     * Deinitializes the global state of the compiler.
+     *
+     * This can be used to restore the state set by `initialize` to its original
+     * state.
+     */
+    void deinitialize()
+    {
+        mixin(msgtable.generate(&deinitializer));
+    }
 }
 
 private:
@@ -486,4 +497,10 @@ string identifier(Msgtable m)
 string initializer(Msgtable m)
 {
     return m.ident ~ ` = Identifier.idPool("` ~ m.name ~ `");`;
+}
+
+// Used to generate the code for each deinitializer.
+string deinitializer(Msgtable m)
+{
+    return m.ident ~ " = Identifier.init;";
 }

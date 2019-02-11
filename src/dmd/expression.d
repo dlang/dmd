@@ -640,6 +640,22 @@ extern (C++) abstract class Expression : RootObject
         CTFEExp.showcontext = new CTFEExp(TOK.showCtfeContext);
     }
 
+    /**
+     * Deinitializes the global state of the compiler.
+     *
+     * This can be used to restore the state set by `_init` to its original
+     * state.
+     */
+    static void deinitialize()
+    {
+        CTFEExp.cantexp = CTFEExp.cantexp.init;
+        CTFEExp.voidexp = CTFEExp.voidexp.init;
+        CTFEExp.breakexp = CTFEExp.breakexp.init;
+        CTFEExp.continueexp = CTFEExp.continueexp.init;
+        CTFEExp.gotoexp = CTFEExp.gotoexp.init;
+        CTFEExp.showcontext = CTFEExp.showcontext.init;
+    }
+
     /*********************************
      * Does *not* do a deep copy.
      */

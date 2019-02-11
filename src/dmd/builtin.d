@@ -425,6 +425,17 @@ public extern (C++) void builtin_init()
         add_builtin("_D4core5bitop7_popcntFNaNbNiNfmZi", &eval_popcnt);
 }
 
+/**
+ * Deinitializes the global state of the compiler.
+ *
+ * This can be used to restore the state set by `builtin_init` to its original
+ * state.
+ */
+public void builtinDeinitialize()
+{
+    builtins = builtins.init;
+}
+
 /**********************************
  * Determine if function is a builtin one that we can
  * evaluate at compile time.
