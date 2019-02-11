@@ -615,7 +615,7 @@ void loadea(ref CodeBuilder cdb,elem *e,code *cs,uint op,uint reg,targ_size_t of
     /* picked up by comsub().                                             */
     if (e.Ecount &&                      /* if cse                       */
         e.Ecount != e.Ecomsub &&        /* and cse was generated        */
-        op != 0x8D && op != 0xC4 &&       /* and not an LEA or LES        */
+        op != LEA && op != 0xC4 &&        /* and not an LEA or LES        */
         (op != 0xFF || reg != 3) &&       /* and not CALLF MEM16          */
         (op & 0xFFF8) != 0xD8)            // and not 8087 opcode
     {
@@ -691,7 +691,7 @@ void loadea(ref CodeBuilder cdb,elem *e,code *cs,uint op,uint reg,targ_size_t of
         if (reg == 6 && op == 0xFF ||             /* don't PUSH a word    */
             op == 0x0FB7 || op == 0x0FBF ||       /* MOVZX/MOVSX          */
             (op & 0xFFF8) == 0xD8 ||              /* 8087 instructions    */
-            op == 0x8D)                           /* LEA                  */
+            op == LEA)                            /* LEA                  */
         {
             cs.Iflags &= ~CFopsize;
             if (reg == 6 && op == 0xFF)         // if PUSH
@@ -988,7 +988,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                                 }
                             }
 
-                            cdb.gen2sib(0x8D, modregxrm(t, r, 4), modregrm(ss1, reg & 7 ,rbase & 7));
+                            cdb.gen2sib(LEA, modregxrm(t, r, 4), modregrm(ss1, reg & 7 ,rbase & 7));
                             if (reg & 8)
                                 code_orrex(cdb.last(), REX_X);
                             if (rbase & 8)
@@ -1091,7 +1091,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                     opsave = pcs.Iop;
                     flagsave = pcs.Iflags;
                     ubyte rexsave = pcs.Irex;
-                    pcs.Iop = 0x8D;
+                    pcs.Iop = LEA;
                     code_newreg(pcs, reg);
                     if (!I16)
                         pcs.Iflags &= ~CFopsize;
@@ -3493,7 +3493,7 @@ void cdstrthis(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
     getregs(cdb,mask(reg));
     // LEA reg,np[ESP]
     uint np = stackpush - e.EV.Vuns;        // stack delta to parameter
-    cdb.genc1(0x8D,(modregrm(0,4,SP) << 8) | modregxrm(2,reg,4),FLconst,np);
+    cdb.genc1(LEA,(modregrm(0,4,SP) << 8) | modregxrm(2,reg,4),FLconst,np);
     if (I64)
         code_orrex(cdb.last(), REX_W);
     fixresult(cdb, e, mask(reg), pretregs);
@@ -3572,7 +3572,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
             if (config.exe == EX_WIN64)
                 areg = DX;
             getregs(cdbe, mask(areg));
-            cdbe.genc(0x8D, modregrm(2, areg, BPRM), FLallocatmp, 0, 0, 0);  // LEA areg,&localsize[BP]
+            cdbe.genc(LEA, modregrm(2, areg, BPRM), FLallocatmp, 0, 0, 0);  // LEA areg,&localsize[BP]
             if (I64)
                 code_orrex(cdbe.last(), REX_W);
             Alloca.size = REGSIZE;

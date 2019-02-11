@@ -293,7 +293,7 @@ Lp:
             uint rm = cs.Irm & 7;
             if (cs.Irex & REX_B)
                 rm |= 8;
-            cdb.genc1(0x8D,buildModregrm(2,increg,rm),FLconst,postinc);
+            cdb.genc1(LEA,buildModregrm(2,increg,rm),FLconst,postinc);
             if (tysize(e11.EV.E1.Ety) == 8)
                 code_orrex(cdb.last(), REX_W);
         }
