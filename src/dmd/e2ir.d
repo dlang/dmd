@@ -4015,6 +4015,35 @@ elem *toElem(Expression e, IRState *irs)
             result = e;
         }
 
+        override void visit(VectorArrayExp vae)
+        {
+            // Generate code for `vec.array`
+            if (auto ve = vae.e1.isVectorExp())
+            {
+                // https://issues.dlang.org/show_bug.cgi?id=19607
+                // When viewing a vector literal as an array, build the underlying array directly.
+                if (ve.e1.op == TOK.arrayLiteral)
+                    result = toElem(ve.e1, irs);
+                else
+                {
+                    // Generate: stmp[0 .. dim] = e1
+                    type* tarray = Type_toCtype(vae.type);
+                    Symbol* stmp = symbol_genauto(tarray);
+                    result = setArray(ve.e1, el_ptr(stmp), el_long(TYsize_t, tarray.Tdim),
+                                      ve.e1.type, toElem(ve.e1, irs), irs, TOK.blit);
+                    result = el_combine(result, el_var(stmp));
+                    result.ET = tarray;
+                }
+            }
+            else
+            {
+                // For other vector expressions this just a paint operation.
+                result = toElem(vae.e1, irs);
+            }
+            result.Ety = totym(vae.type);
+            elem_setLoc(result, vae.loc);
+        }
+
         override void visit(CastExp ce)
         {
             version (none)

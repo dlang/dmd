@@ -554,7 +554,7 @@ uinteger_t resolveArrayLength(const Expression e)
     switch (e.op)
     {
         case TOK.vector:
-            return resolveArrayLength((cast(VectorExp)e).e1);
+            return (cast(VectorExp)e).dim;
 
         case TOK.null_:
             return 0;

@@ -93,6 +93,7 @@ __gshared PREC[TOK.max_] precedence =
     TOK.default_ : PREC.primary,
     TOK.overloadSet : PREC.primary,
     TOK.void_ : PREC.primary,
+    TOK.vectorArray : PREC.primary,
 
     // post
     TOK.dotTemplateInstance : PREC.primary,

@@ -2939,6 +2939,12 @@ public:
         expToBuffer(e.e1, precedence[e.op]);
     }
 
+    override void visit(VectorArrayExp e)
+    {
+        expToBuffer(e.e1, PREC.primary);
+        buf.writestring(".array");
+    }
+
     override void visit(SliceExp e)
     {
         expToBuffer(e.e1, precedence[e.op]);

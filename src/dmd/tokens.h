@@ -181,6 +181,7 @@ enum
         TOKshowctfecontext,
 
         TOKobjc_class_reference,
+        TOKvectorarray,
 
         TOKMAX
 };

@@ -169,6 +169,7 @@ public:
     DeleteExp* isDeleteExp();
     CastExp* isCastExp();
     VectorExp* isVectorExp();
+    VectorArrayExp* isVectorArrayExp();
     SliceExp* isSliceExp();
     ArrayLengthExp* isArrayLengthExp();
     ArrayExp* isArrayExp();
@@ -875,9 +876,18 @@ class VectorExp : public UnaExp
 public:
     TypeVector *to;             // the target vector type before semantic()
     unsigned dim;               // number of elements in the vector
+    OwnedBy ownedByCtfe;
 
     static VectorExp *create(Loc loc, Expression *e, Type *t);
     Expression *syntaxCopy();
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class VectorArrayExp : public UnaExp
+{
+public:
+    bool isLvalue();
+    Expression *toLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1363,6 +1373,7 @@ private:
         char addrexp   [sizeof(AddrExp)];
         char indexexp  [sizeof(IndexExp)];
         char sliceexp  [sizeof(SliceExp)];
+        char vectorexp [sizeof(VectorExp)];
     } u;
 #if defined(__DMC__)
     #pragma pack()

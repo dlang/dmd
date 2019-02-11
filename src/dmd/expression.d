@@ -516,6 +516,7 @@ private:
         char[__traits(classInstanceSize, AddrExp)] addrexp;
         char[__traits(classInstanceSize, IndexExp)] indexexp;
         char[__traits(classInstanceSize, SliceExp)] sliceexp;
+        char[__traits(classInstanceSize, VectorExp)] vectorexp;
     }
 
     __AnonStruct__u u;
@@ -1616,6 +1617,7 @@ extern (C++) abstract class Expression : RootObject
         inout(DeleteExp)    isDeleteExp() { return op == TOK.delete_ ? cast(typeof(return))this : null; }
         inout(CastExp)      isCastExp() { return op == TOK.cast_ ? cast(typeof(return))this : null; }
         inout(VectorExp)    isVectorExp() { return op == TOK.vector ? cast(typeof(return))this : null; }
+        inout(VectorArrayExp) isVectorArrayExp() { return op == TOK.vectorArray ? cast(typeof(return))this : null; }
         inout(SliceExp)     isSliceExp() { return op == TOK.slice ? cast(typeof(return))this : null; }
         inout(ArrayLengthExp) isArrayLengthExp() { return op == TOK.arrayLength ? cast(typeof(return))this : null; }
         inout(ArrayExp)     isArrayExp() { return op == TOK.array ? cast(typeof(return))this : null; }
@@ -5086,6 +5088,7 @@ extern (C++) final class VectorExp : UnaExp
 {
     TypeVector to;      // the target vector type before semantic()
     uint dim = ~0;      // number of elements in the vector
+    OwnedBy ownedByCtfe = OwnedBy.code;
 
     extern (D) this(const ref Loc loc, Expression e, Type t)
     {
@@ -5102,6 +5105,35 @@ extern (C++) final class VectorExp : UnaExp
     override Expression syntaxCopy()
     {
         return new VectorExp(loc, e1.syntaxCopy(), to.syntaxCopy());
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ * e1.array property for vectors.
+ *
+ * https://dlang.org/spec/simd.html#properties
+ */
+extern (C++) final class VectorArrayExp : UnaExp
+{
+    extern (D) this(const ref Loc loc, Expression e1)
+    {
+        super(loc, TOK.vectorArray, __traits(classInstanceSize, VectorArrayExp), e1);
+    }
+
+    override bool isLvalue()
+    {
+        return e1.isLvalue();
+    }
+
+    override Expression toLvalue(Scope* sc, Expression e)
+    {
+        e1 = e1.toLvalue(sc, e);
+        return this;
     }
 
     override void accept(Visitor v)

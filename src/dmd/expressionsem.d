@@ -6744,6 +6744,28 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = res ? new ErrorExp() : exp;
     }
 
+    override void visit(VectorArrayExp e)
+    {
+        static if (LOGSEMANTIC)
+        {
+            printf("VectorArrayExp::semantic('%s')\n", e.toChars());
+        }
+        if (!e.type)
+        {
+            unaSemantic(e, sc);
+            e.e1 = resolveProperties(sc, e.e1);
+
+            if (e.e1.op == TOK.error)
+            {
+                result = e.e1;
+                return;
+            }
+            assert(e.e1.type.ty == Tvector);
+            e.type = e.e1.type.isTypeVector().basetype;
+        }
+        result = e;
+    }
+
     override void visit(SliceExp exp)
     {
         static if (LOGSEMANTIC)

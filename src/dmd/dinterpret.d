@@ -3164,10 +3164,6 @@ public:
             *pue = Not(e.type, e1);
             break;
 
-        case TOK.vector:
-            result = e;
-            return; // do nothing
-
         default:
             assert(0);
         }
@@ -4126,8 +4122,6 @@ public:
 
         Expression aggregate;
 
-        if (auto ve = e1.isVectorExp())
-            e1 = ve.e1;
         if (auto se = e1.isSliceExp())
         {
             // ------------------------------
@@ -5178,6 +5172,85 @@ public:
         result = pue.exp();
     }
 
+    /**
+     * Interpret the vector expression as an array literal.
+     * Params:
+     *    pue = non-null pointer to temporary storage that can be used to store the return value
+     *    e = Expression to interpret
+     * Returns:
+     *    resulting array literal or 'e' if unable to interpret
+     */
+    static Expression interpretVectorToArray(UnionExp* pue, VectorExp e)
+    {
+        if (auto ale = e.e1.isArrayLiteralExp())
+            return ale;
+        if (e.e1.op == TOK.int64 || e.e1.op == TOK.float64)
+        {
+            // Convert literal __vector(int) -> __vector([array])
+            auto elements = new Expressions(e.dim);
+            foreach (ref element; *elements)
+                element = copyLiteral(e.e1).copy();
+            auto type = (e.type.ty == Tvector) ? e.type.isTypeVector().basetype : e.type.isTypeSArray();
+            assert(type);
+            emplaceExp!(ArrayLiteralExp)(pue, e.loc, type, elements);
+            auto ale = cast(ArrayLiteralExp)pue.exp();
+            ale.ownedByCtfe = OwnedBy.ctfe;
+            return ale;
+        }
+        return e;
+    }
+
+    override void visit(VectorExp e)
+    {
+        debug (LOG)
+        {
+            printf("%s VectorExp::interpret() %s\n", e.loc.toChars(), e.toChars());
+        }
+        if (e.ownedByCtfe >= OwnedBy.ctfe) // We've already interpreted all the elements
+        {
+            result = e;
+            return;
+        }
+        Expression e1 = interpret(pue, e.e1, istate);
+        assert(e1);
+        if (exceptionOrCant(e1))
+            return;
+        if (e1.op != TOK.arrayLiteral && e1.op != TOK.int64 && e1.op != TOK.float64)
+        {
+            e.error("`%s` cannot be evaluated at compile time", e.toChars());
+            result = CTFEExp.cantexp;
+            return;
+        }
+        if (e1 == pue.exp())
+            e1 = pue.copy();
+        emplaceExp!(VectorExp)(pue, e.loc, e1, e.to);
+        auto ve = cast(VectorExp)pue.exp();
+        ve.type = e.type;
+        ve.dim = e.dim;
+        ve.ownedByCtfe = OwnedBy.ctfe;
+        result = ve;
+    }
+
+    override void visit(VectorArrayExp e)
+    {
+        debug (LOG)
+        {
+            printf("%s VectorArrayExp::interpret() %s\n", e.loc.toChars(), e.toChars());
+        }
+        Expression e1 = interpret(pue, e.e1, istate);
+        assert(e1);
+        if (exceptionOrCant(e1))
+            return;
+        if (auto ve = e1.isVectorExp())
+        {
+            result = interpretVectorToArray(pue, ve);
+            if (result.op != TOK.vector)
+                return;
+        }
+        e.error("`%s` cannot be evaluated at compile time", e.toChars());
+        result = CTFEExp.cantexp;
+    }
+
     override void visit(DelegatePtrExp e)
     {
         debug (LOG)
@@ -5273,7 +5346,11 @@ public:
             return false;
         }
         if (auto ve = e1.isVectorExp())
-            e1 = ve.e1;
+        {
+            UnionExp ue = void;
+            e1 = interpretVectorToArray(&ue, ve);
+            e1 = (e1 == ue.exp()) ? ue.copy() : e1;
+        }
 
         // Set the $ variable, and find the array literal to modify
         dinteger_t len;
@@ -5281,7 +5358,7 @@ public:
             len = e1.type.toBasetype().isTypeSArray().dim.toInteger();
         else
         {
-            if (e1.op != TOK.arrayLiteral && e1.op != TOK.string_ && e1.op != TOK.slice)
+            if (e1.op != TOK.arrayLiteral && e1.op != TOK.string_ && e1.op != TOK.slice && e1.op != TOK.vector)
             {
                 e.error("cannot determine length of `%s` at compile time", e.e1.toChars());
                 return false;
@@ -5545,6 +5622,11 @@ public:
             result = paintTypeOntoLiteral(e.type, e1);
             return;
         }
+        if (auto ve = e1.isVectorExp())
+        {
+            e1 = interpretVectorToArray(pue, ve);
+            e1 = (e1 == pue.exp()) ? pue.copy() : e1;
+        }
 
         /* Set dollar to the length of the array
          */
@@ -5553,7 +5635,7 @@ public:
             dollar = e1.type.toBasetype().isTypeSArray().dim.toInteger();
         else
         {
-            if (e1.op != TOK.arrayLiteral && e1.op != TOK.string_ && e1.op != TOK.null_ && e1.op != TOK.slice)
+            if (e1.op != TOK.arrayLiteral && e1.op != TOK.string_ && e1.op != TOK.null_ && e1.op != TOK.slice && e1.op != TOK.vector)
             {
                 e.error("cannot determine length of `%s` at compile time", e1.toChars());
                 result = CTFEExp.cantexp;
@@ -6039,7 +6121,7 @@ public:
             if (exceptionOrCant(e1))
                 return;
             assert(e1.op == TOK.vector);
-            e1 = e1.isVectorExp().e1;
+            e1 = interpretVectorToArray(pue, e1.isVectorExp());
         }
         if (e.to.ty == Tarray && e1.op == TOK.slice)
         {
@@ -6571,6 +6653,16 @@ private Expression scrubReturnValue(const ref Loc loc, Expression e)
             return ex;
         aae.type = toBuiltinAAType(aae.type);
     }
+    else if (auto ve = e.isVectorExp())
+    {
+        ve.ownedByCtfe = OwnedBy.code;
+        if (auto ale = ve.e1.isArrayLiteralExp())
+        {
+            ale.ownedByCtfe = OwnedBy.code;
+            if (auto ex = scrubArray(ale.elements))
+                return ex;
+        }
+    }
     return e;
 }
 
@@ -6630,6 +6722,16 @@ private Expression scrubCacheValue(Expression e)
             return ex;
         if (auto ex = scrubArrayCache(aae.values))
             return ex;
+    }
+    else if (auto ve = e.isVectorExp())
+    {
+        ve.ownedByCtfe = OwnedBy.cache;
+        if (auto ale = ve.e1.isArrayLiteralExp())
+        {
+            ale.ownedByCtfe = OwnedBy.cache;
+            if (auto ex = scrubArrayCache(ale.elements))
+                return ex;
+        }
     }
     return e;
 }
