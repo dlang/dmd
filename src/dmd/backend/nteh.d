@@ -503,7 +503,7 @@ else
  * Set/Reset ESP from context.
  */
 
-void nteh_setsp(ref CodeBuilder cdb, int op)
+void nteh_setsp(ref CodeBuilder cdb, opcode_t op)
 {
     code cs;
     cs.Iop = op;
