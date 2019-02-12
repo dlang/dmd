@@ -133,7 +133,7 @@ code *gen(code *c,code *cs)
     return ce;
 }
 
-code *gen1(code *c,uint op)
+code *gen1(code *c,opcode_t op)
 {
     code* ce;
     code* cstart;
@@ -151,7 +151,7 @@ code *gen1(code *c,uint op)
   return ce;
 }
 
-code *gen2(code *c,uint op,uint rm)
+code *gen2(code *c,opcode_t op,uint rm)
 {
     code* ce;
     code* cstart;
@@ -170,7 +170,7 @@ code *gen2(code *c,uint op,uint rm)
 }
 
 
-code *gen2sib(code *c,uint op,uint rm,uint sib)
+code *gen2sib(code *c,opcode_t op,uint rm,uint sib)
 {
     code* ce;
     code* cstart;
@@ -193,7 +193,7 @@ code *gen2sib(code *c,uint op,uint rm,uint sib)
 }
 
 
-code *genc2(code *c,uint op,uint ea,targ_size_t EV2)
+code *genc2(code *c,opcode_t op,uint ea,targ_size_t EV2)
 {   code cs;
 
     cs.Iop = op;
@@ -209,7 +209,7 @@ code *genc2(code *c,uint op,uint ea,targ_size_t EV2)
  * Generate code.
  */
 
-code *genc(code *c,uint op,uint ea,uint FL1,targ_size_t EV1,uint FL2,targ_size_t EV2)
+code *genc(code *c,opcode_t op,uint ea,uint FL1,targ_size_t EV1,uint FL2,targ_size_t EV2)
 {   code cs;
 
     assert(FL1 < FLMAX);

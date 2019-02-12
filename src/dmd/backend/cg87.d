@@ -1623,7 +1623,7 @@ private void loadComplex(ref CodeBuilder cdb,elem *e)
  * Must follow same logic as cmporder87();
  */
 
-void load87(ref CodeBuilder cdb,elem *e,uint eoffset,regm_t *pretregs,elem *eleft,int op)
+void load87(ref CodeBuilder cdb,elem *e,uint eoffset,regm_t *pretregs,elem *eleft,OPER op)
 {
     code cs;
     regm_t retregs;
@@ -1642,7 +1642,7 @@ void load87(ref CodeBuilder cdb,elem *e,uint eoffset,regm_t *pretregs,elem *elef
     else
         cs.Iflags = 0;
     cs.Irex = 0;
-    int opr = oprev[op + 1];
+    OPER opr = oprev[op + 1];
     tym_t ty = tybasic(e.Ety);
     uint mf = (ty == TYfloat || ty == TYifloat || ty == TYcfloat) ? MFfloat : MFdouble;
     if ((ty == TYldouble || ty == TYildouble) &&
