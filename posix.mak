@@ -229,10 +229,6 @@ $(ROOT)/threadasm.o : src/core/threadasm.S
 	@mkdir -p $(dir $@)
 	$(CC) -c $(CFLAGS) $< -o$@
 
-$(ROOT)/gc/%.o : src/gc/%.c
-	@mkdir -p $(dir $@)
-	$(CC) -c $(CFLAGS) $< -o$@
-
 ######################## Create a shared library ##############################
 
 $(DRUNTIMESO) $(DRUNTIMESOLIB) dll: DFLAGS+=-version=Shared -fPIC
