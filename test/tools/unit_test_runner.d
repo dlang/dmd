@@ -228,7 +228,7 @@ Params:
 void writeCmdfile(string path, string runnerPath, string outputPath,
     const string[] testFiles)
 {
-    const commonFlags = [
+    auto flags = [
         "-version=NoBackend",
         "-version=GC",
         "-version=NoMain",
@@ -239,13 +239,17 @@ void writeCmdfile(string path, string runnerPath, string outputPath,
         "-I" ~ projectRootDir.buildPath("src"),
         "-I" ~ unitTestDir,
         "-i",
-        "-g",
         "-main",
         "-of" ~ outputPath,
         "-m" ~ model
     ] ~ testFiles ~ runnerPath;
 
-    const flags = needsStrtold ? commonFlags ~ ("-L" ~ strtoldObjPath) : commonFlags;
+    if (needsStrtold)
+        flags ~= ("-L" ~ strtoldObjPath);
+
+    // older versions of Optlink causes: "Error 45: Too Much DEBUG Data for Old CodeView format"
+    if (!usesOptlink)
+        flags ~= "-g";
 
     write(path, flags.join("\n"));
 }
@@ -296,6 +300,15 @@ void buildStrtold()
     ].join(" ");
 
     enforce(spawnShell(cmd).wait() == 0, "Failed to execute command: " ~ cmd);
+}
+
+bool usesOptlink()
+{
+    version (DigitalMars)
+        return os == "windows" && model == "32";
+
+    else
+        return false;
 }
 
 bool needsStrtold()
