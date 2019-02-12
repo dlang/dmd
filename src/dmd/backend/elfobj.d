@@ -3604,7 +3604,7 @@ debug
                 {
                     // lea RAX, sym[RIP]
                     buf.writeByte(REX | REX_W);
-                    buf.writeByte(0x8D);
+                    buf.writeByte(LEA);
                     buf.writeByte(modregrm(0,AX,5));
                     off += 3;
                     off += Obj_writerel(codseg, off, reltype, syms[i], -4);
@@ -3612,7 +3612,7 @@ debug
                 else
                 {
                     // lea EAX, sym[EBX]
-                    buf.writeByte(0x8D);
+                    buf.writeByte(LEA);
                     buf.writeByte(modregrm(2,AX,BX));
                     off += 2;
                     off += Obj_writerel(codseg, off, reltype, syms[i], 0);

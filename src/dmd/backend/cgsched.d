@@ -1780,7 +1780,7 @@ else
 Lret:
     if (ci.w & mSP)                    // if stack pointer is modified
         ci.w |= mMEM;                  // then we are implicitly writing to memory
-    if (op == 0x8D)                     // if LEA
+    if (op == LEA)                     // if LEA
         ci.r &= ~mMEM;                 // memory is not actually read
     ci.sz = cast(ubyte)sz;
 
