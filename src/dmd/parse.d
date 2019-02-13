@@ -4536,23 +4536,7 @@ final class Parser(AST) : Lexer
 
         parseStorageClasses(storage_class, link, setAlignment, ealign, udas);
 
-        if (token.value == TOK.enum_)
-        {
-            AST.Dsymbol d = parseEnum();
-            auto a = new AST.Dsymbols();
-            a.push(d);
-
-            if (udas)
-            {
-                d = new AST.UserAttributeDeclaration(udas, a);
-                a = new AST.Dsymbols();
-                a.push(d);
-            }
-
-            addComment(d, comment);
-            return a;
-        }
-        else if (token.value == TOK.struct_ ||
+        if (token.value == TOK.struct_ ||
             token.value == TOK.union_ ||
             token.value == TOK.class_ ||
             token.value == TOK.interface_)
