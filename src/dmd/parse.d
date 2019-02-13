@@ -6324,7 +6324,7 @@ final class Parser(AST) : Lexer
                         goto Lerror;
 
                     default:
-                        *ptoklist = Token.alloc();
+                        *ptoklist = allocateToken();
                         memcpy(*ptoklist, &token, Token.sizeof);
                         ptoklist = &(*ptoklist).next;
                         *ptoklist = null;

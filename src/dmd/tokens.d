@@ -717,26 +717,6 @@ extern (C++) struct Token
         }
     }
 
-    extern (D) private __gshared Token* freelist = null;
-
-    extern (D) static Token* alloc()
-    {
-        if (Token.freelist)
-        {
-            Token* t = freelist;
-            freelist = t.next;
-            t.next = null;
-            return t;
-        }
-        return new Token();
-    }
-
-    void free()
-    {
-        next = freelist;
-        freelist = &this;
-    }
-
     int isKeyword() const
     {
         foreach (kw; keywords)

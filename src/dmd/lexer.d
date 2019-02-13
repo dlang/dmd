@@ -237,6 +237,8 @@ class Lexer : ErrorHandler
     int lastDocLine;        // last line of previous doc comment
     bool errors;            // errors occurred during lexing or parsing
 
+    private Token* tokenFreelist;
+
     /*********************
      * Creates a Lexer for the source code base[begoffset..endoffset+1].
      * The last character, base[endoffset], must be null (0) or EOF (0x1A).
@@ -288,6 +290,26 @@ class Lexer : ErrorHandler
         }
     }
 
+    /// Returns: a newly allocated `Token`.
+    Token* allocateToken() pure nothrow @safe
+    {
+        if (tokenFreelist)
+        {
+            Token* t = tokenFreelist;
+            tokenFreelist = t.next;
+            t.next = null;
+            return t;
+        }
+        return new Token();
+    }
+
+    /// Frees the given token by returning it to the freelist.
+    void releaseToken(Token* token) pure nothrow @nogc @safe
+    {
+        token.next = tokenFreelist;
+        tokenFreelist = token;
+    }
+
     final TOK nextToken()
     {
         prevloc = token.loc;
@@ -295,7 +317,7 @@ class Lexer : ErrorHandler
         {
             Token* t = token.next;
             memcpy(&token, t, Token.sizeof);
-            t.free();
+            releaseToken(t);
         }
         else
         {
@@ -1074,7 +1096,7 @@ class Lexer : ErrorHandler
             t = ct.next;
         else
         {
-            t = Token.alloc();
+            t = allocateToken();
             scan(t);
             ct.next = t;
         }
