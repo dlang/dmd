@@ -1588,6 +1588,12 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 return True();
         }
 
+        // issue 12001, allow isSame, <BasicType>, <BasicType>
+        Type t1 = isType(o1);
+        Type t2 = isType(o2);
+        if (t1 && t2 && t1.equals(t2))
+            return True();
+
         auto s1 = getDsymbol(o1);
         auto s2 = getDsymbol(o2);
         //printf("isSame: %s, %s\n", o1.toChars(), o2.toChars());
