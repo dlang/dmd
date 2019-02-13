@@ -1,5 +1,7 @@
 module support;
 
+import dmd.lexer : DiagnosticReporter;
+
 /// UDA used to indicate a function should be run before each test.
 enum beforeEach;
 
@@ -20,4 +22,20 @@ string[] defaultImportPaths()
         environment.get("DRUNTIME_PATH", druntimeDir),
         environment.get("PHOBOS_PATH", phobosDir)
     ];
+}
+
+class NoopDiagnosticReporter : DiagnosticReporter
+{
+    import core.stdc.stdarg : va_list;
+    import dmd.globals : Loc;
+
+    override int errorCount() { return 0; }
+    override int warningCount() { return 0; }
+    override int deprecationCount() { return 0; }
+    override void error(const ref Loc loc, const(char)* format, va_list) {}
+    override void errorSupplemental(const ref Loc loc, const(char)* format, va_list) {}
+    override void warning(const ref Loc loc, const(char)* format, va_list) {}
+    override void warningSupplemental(const ref Loc loc, const(char)* format, va_list) {}
+    override void deprecation(const ref Loc loc, const(char)* format, va_list) {}
+    override void deprecationSupplemental(const ref Loc loc, const(char)* format, va_list) {}
 }

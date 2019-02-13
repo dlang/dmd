@@ -281,9 +281,10 @@ final class Parser(AST) : Lexer
      * Input:
      *      loc     location in source file of mixin
      */
-    extern (D) this(const ref Loc loc, AST.Module _module, const(char)[] input, bool doDocComment)
+    extern (D) this(const ref Loc loc, AST.Module _module, const(char)[] input,
+        bool doDocComment, DiagnosticReporter diagnosticReporter)
     {
-        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false);
+        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false, diagnosticReporter);
 
         //printf("Parser::Parser()\n");
         scanloc = loc;
@@ -303,9 +304,9 @@ final class Parser(AST) : Lexer
         //nextToken();              // start up the scanner
     }
 
-    extern (D) this(AST.Module _module, const(char)[] input, bool doDocComment)
+    extern (D) this(AST.Module _module, const(char)[] input, bool doDocComment, DiagnosticReporter diagnosticReporter)
     {
-        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false);
+        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false, diagnosticReporter);
 
         //printf("Parser::Parser()\n");
         mod = _module;

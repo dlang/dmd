@@ -48,6 +48,7 @@ import dmd.identifier;
 import dmd.imphint;
 import dmd.inline;
 import dmd.intrange;
+import dmd.lexer;
 import dmd.mtype;
 import dmd.nspace;
 import dmd.opover;
@@ -5435,7 +5436,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         uint errors = global.errors;
         const len = buf.offset;
         const str = buf.extractString()[0 .. len];
-        scope p = new Parser!ASTCodegen(exp.loc, sc._module, str, false);
+        scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
+        scope p = new Parser!ASTCodegen(exp.loc, sc._module, str, false, diagnosticReporter);
         p.nextToken();
         //printf("p.loc.linnum = %d\n", p.loc.linnum);
 
