@@ -8442,6 +8442,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.e1 = e1x;
         }
 
+        deprecation19402(exp.e1, exp.e2);
+
         /* Tweak e2 based on the type of e1.
          */
         Expression e2x = exp.e2;
@@ -8663,6 +8665,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         assert(exp.type);
         auto res = exp.op == TOK.assign ? exp.reorderSettingAAElem(sc) : exp;
         checkAssignEscape(sc, res, false);
+
         return setResult(res);
     }
 
@@ -9754,9 +9757,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = exp.incompatibleTypes();
             return;
         }
+
+        /*if (Expression ex = typeCombine(exp, sc))
+        {
+            result = ex;
+            return;
+        } */
+
         exp.e1 = integralPromotions(exp.e1, sc);
         if (exp.e2.type.toBasetype().ty != Tvector)
+        {
+            auto old = exp.e2.type;
             exp.e2 = exp.e2.castTo(sc, Type.tshiftcnt);
+            exp.pre19402Cast = exp.e2.type.size != old.size && old.size > 4;
+        }
 
         exp.type = exp.e1.type;
         result = exp;
@@ -9790,9 +9804,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = exp.incompatibleTypes();
             return;
         }
+
+        /*if (Expression ex = typeCombine(exp, sc))
+        {
+            result = ex;
+            return;
+        }*/
+
         exp.e1 = integralPromotions(exp.e1, sc);
         if (exp.e2.type.toBasetype().ty != Tvector)
+        {
+            auto old = exp.e2.type;
             exp.e2 = exp.e2.castTo(sc, Type.tshiftcnt);
+            exp.pre19402Cast = exp.e2.type.size != old.size && old.size > 4;
+        }
 
         exp.type = exp.e1.type;
         result = exp;
@@ -9826,9 +9851,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = exp.incompatibleTypes();
             return;
         }
+
+        /*if (Expression ex = typeCombine(exp, sc))
+        {
+            result = ex;
+            return;
+        }*/
+
         exp.e1 = integralPromotions(exp.e1, sc);
         if (exp.e2.type.toBasetype().ty != Tvector)
+        {
+            auto old = exp.e2.type;
             exp.e2 = exp.e2.castTo(sc, Type.tshiftcnt);
+            exp.pre19402Cast = exp.e2.type.size != old.size && old.size > 4;
+        }
 
         exp.type = exp.e1.type;
         result = exp;
@@ -11386,5 +11422,40 @@ private bool checkFunctionAttributes(Expression exp, Scope* sc, FuncDeclaration 
         error |= checkSafety(sc, f);
         error |= checkNogc(sc, f);
         return error;
+    }
+}
+
+// issue 19402: RHS of "<<", ">>" and ">>>" were always cast to int/uint,
+// preventing the promotion of the expression result to long/ulong, as per spec.
+private void deprecation19402(Expression assignLhs, Expression assignRhs)
+{
+
+    if (!assignLhs || !assignLhs.type || !assignRhs)
+        return;
+
+    const bool isLShift = assignRhs.op == TOK.leftShift;
+    const bool isRShift = assignRhs.op == TOK.rightShift;
+    const bool isURShift = assignRhs.op == TOK.unsignedRightShift;
+
+    if (!isLShift && !isRShift && !isURShift)
+        return;
+
+    const(char)* opStr = isLShift ? "<<".ptr : isRShift ? ">>".ptr : ">>>".ptr;
+
+    BinExp be = cast(BinExp) assignRhs;
+    if (!be || !be.e1 || !be.e2 || !be.e1.type || !be.e2.type)
+        return;
+
+    const rhsWasCast = isLShift ? (cast(ShlExp) assignRhs).pre19402Cast :
+                       isRShift ? (cast(ShrExp) assignRhs).pre19402Cast :
+                                  (cast(UshrExp)assignRhs).pre19402Cast ;
+
+    alias isSomeInt = (Type t) => t.isintegral || t.isunsigned;
+
+    if (isSomeInt(assignLhs.type) && assignLhs.type.size == 4 &&
+        isSomeInt(be.e1.type) && isSomeInt(be.e2.type) && rhsWasCast)
+    {
+        assignLhs.deprecation("unpromoted result of `%s` due to implicit `%s`",
+            opStr, be.e2.toChars());
     }
 }

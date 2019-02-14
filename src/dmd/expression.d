@@ -6041,6 +6041,10 @@ extern (C++) final class PowExp : BinExp
  */
 extern (C++) final class ShlExp : BinExp
 {
+    /// Indicates if an implicit cast was added on the RHS.
+    /// which used to be the trick used to prevent promotion
+    bool pre19402Cast;
+
     extern (D) this(const ref Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOK.leftShift, __traits(classInstanceSize, ShlExp), e1, e2);
@@ -6056,6 +6060,10 @@ extern (C++) final class ShlExp : BinExp
  */
 extern (C++) final class ShrExp : BinExp
 {
+    /// Indicates if an implicit cast was added on the RHS.
+    /// which used to be the trick used to prevent promotion
+    bool pre19402Cast;
+
     extern (D) this(const ref Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOK.rightShift, __traits(classInstanceSize, ShrExp), e1, e2);
@@ -6071,6 +6079,10 @@ extern (C++) final class ShrExp : BinExp
  */
 extern (C++) final class UshrExp : BinExp
 {
+    /// Indicates if an implicit cast was added on the RHS.
+    /// which used to be the trick used to prevent promotion
+    bool pre19402Cast;
+
     extern (D) this(const ref Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOK.unsignedRightShift, __traits(classInstanceSize, UshrExp), e1, e2);
