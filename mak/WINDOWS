@@ -96,6 +96,15 @@ $(IMPDIR)\core\time.d : src\core\time.d
 $(IMPDIR)\core\vararg.d : src\core\vararg.d
 	copy $** $@
 
+$(IMPDIR)\core\gc\config.d : src\core\gc\config.d
+	copy $** $@
+
+$(IMPDIR)\core\gc\gcinterface.d : src\core\gc\gcinterface.d
+	copy $** $@
+
+$(IMPDIR)\core\gc\registry.d : src\core\gc\registry.d
+	copy $** $@
+
 $(IMPDIR)\core\internal\abort.d : src\core\internal\abort.d
 	copy $** $@
 
