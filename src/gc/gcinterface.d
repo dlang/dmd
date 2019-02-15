@@ -38,12 +38,6 @@ struct Range
 
 interface GC
 {
-
-    /*
-     *
-     */
-    void Dtor();
-
     /**
      *
      */

@@ -34,10 +34,18 @@ struct Config
 
     void help() @nogc nothrow
     {
-        string s = "GC options are specified as whitespace separated assignments:
+        import gc.registry : registeredGCFactories;
+
+        printf("GC options are specified as white space separated assignments:
     disable:0|1    - start disabled (%d)
     profile:0|1|2  - enable profiling with summary when terminating program (%d)
-    gc:conservative|precise|manual - select gc implementation (default = conservative)
+    gc:".ptr, disable, profile);
+        foreach (i, entry; registeredGCFactories)
+        {
+            if (i) printf("|");
+            printf("%.*s", cast(int) entry.name.length, entry.name.ptr);
+        }
+        printf(" - select gc implementation (default = conservative)
 
     initReserve:N  - initial memory to reserve in MB (%lld)
     minPoolSize:N  - initial and minimum pool size in MB (%lld)
@@ -45,8 +53,8 @@ struct Config
     incPoolSize:N  - pool size increment MB (%lld)
     heapSizeFactor:N - targeted heap size to used memory ratio (%g)
     cleanup:none|collect|finalize - how to treat live objects when terminating (collect)
-";
-        printf(s.ptr, disable, profile, cast(long)initReserve, cast(long)minPoolSize,
+".ptr,
+               cast(long)initReserve, cast(long)minPoolSize,
                cast(long)maxPoolSize, cast(long)incPoolSize, heapSizeFactor);
     }
 

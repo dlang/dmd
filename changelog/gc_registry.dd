@@ -1,0 +1,7 @@
+User supplied garbage collectors can now be linked with the runtime
+
+A GC registry has been implemented that allows to add
+garbage collector implementations by just linking them into
+the binary.  See the
+$(LINK2 $(ROOT_DIR)spec/garbage.html#gc_registry, documentation)
+for details.

@@ -13,11 +13,10 @@
  */
 module gc.proxy;
 
-import gc.impl.conservative.gc;
-import gc.impl.manual.gc;
 import gc.impl.proto.gc;
 import gc.config;
 import gc.gcinterface;
+import gc.registry : createGCInstance;
 
 static import core.memory;
 
@@ -36,17 +35,31 @@ private
 
 extern (C)
 {
+    // do not import GC modules, they might add a dependency to this whole module
+    void _d_register_conservative_gc();
+    void _d_register_manual_gc();
+
+    // if you don't want to include the default GCs, replace during link by another implementation
+    void* register_default_gcs()
+    {
+        pragma(inline, false);
+        // do not call, they register implicitly through pragma(crt_constructor)
+        // avoid being optimized away
+        auto reg1 = &_d_register_conservative_gc;
+        auto reg2 = &_d_register_manual_gc;
+        return reg1 < reg2 ? reg1 : reg2;
+    }
+
     void gc_init()
     {
         instanceLock.lock();
         if (!isInstanceInit)
         {
-            auto protoInstance = instance;
+            register_default_gcs();
             config.initialize();
-            ManualGC.initialize(instance);
-            ConservativeGC.initialize(instance);
-
-            if (instance is protoInstance)
+            auto protoInstance = instance;
+            auto newInstance = createGCInstance(config.gc);
+            if (newInstance is null)
             {
                 import core.stdc.stdio : fprintf, stderr;
                 import core.stdc.stdlib : exit;
@@ -58,7 +71,7 @@ extern (C)
                 // Shouldn't get here.
                 assert(0);
             }
-
+            instance = newInstance;
             // Transfer all ranges and roots to the real GC.
             (cast(ProtoGC) protoInstance).term();
             isInstanceInit = true;
@@ -108,9 +121,7 @@ extern (C)
                     instance.runFinalizers((cast(ubyte*)null)[0 .. size_t.max]);
                     break;
             }
-
-            ManualGC.finalize(instance);
-            ConservativeGC.finalize(instance);
+            destroy(instance);
         }
     }
 
