@@ -1247,6 +1247,24 @@ void test6758() {
 
 /*************************************/
 
+real f18573() { return 1; }
+
+void test18573()
+{
+    cast(void) f18573();
+    cast(void) f18573();
+    cast(void) f18573();
+    cast(void) f18573();
+    cast(void) f18573();
+    cast(void) f18573();
+    cast(void) f18573();
+
+    real b = 2;
+    assert(b == 2); /* fails; should pass */
+}
+
+/*************************************/
+
 int main()
 {
     test1();
@@ -1304,6 +1322,7 @@ int main()
     test51();
     test52();
     test6758();
+    test18573();
 
     printf("Success\n");
     return 0;

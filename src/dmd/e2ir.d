@@ -3454,13 +3454,17 @@ elem *toElem(Expression e, IRState *irs)
             elem *ec = toElem(ce.econd, irs);
 
             elem *eleft = toElem(ce.e1, irs);
-            tym_t ty = eleft.Ety;
             if (irs.params.cov && ce.e1.loc.linnum)
                 eleft = el_combine(incUsageElem(irs, ce.e1.loc), eleft);
 
             elem *eright = toElem(ce.e2, irs);
             if (irs.params.cov && ce.e2.loc.linnum)
                 eright = el_combine(incUsageElem(irs, ce.e2.loc), eright);
+
+            tym_t ty = eleft.Ety;
+            if (ce.e1.type.toBasetype().ty == Tvoid ||
+                ce.e2.type.toBasetype().ty == Tvoid)
+                ty = TYvoid;
 
             elem *e = el_bin(OPcond, ty, ec, el_bin(OPcolon, ty, eleft, eright));
             if (tybasic(ty) == TYstruct)
@@ -4069,8 +4073,10 @@ elem *toElem(Expression e, IRState *irs)
 
             TY fty;
             TY tty;
-            if (t.equals(tfrom))
-                goto Lret;
+            if (t.equals(tfrom) ||
+                t.equals(Type.tvoid)) // https://issues.dlang.org/show_bug.cgi?id=18573
+                                      // Remember to pop value left on FPU stack
+                return e;
 
             fty = tfrom.ty;
             tty = t.ty;
