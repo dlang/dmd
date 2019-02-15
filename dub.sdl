@@ -22,6 +22,7 @@ subPackage {
     "src/dmd/console.d" \
     "src/dmd/entity.d" \
     "src/dmd/errors.d" \
+    "src/dmd/filecache.d" \
     "src/dmd/globals.d" \
     "src/dmd/id.d" \
     "src/dmd/identifier.d" \
@@ -29,8 +30,18 @@ subPackage {
     "src/dmd/tokens.d" \
     "src/dmd/utf.d"
 
-  preGenerateCommands `"$${DC}" -run "$${DUB_PACKAGE_DIR}/config.d" "$${DUB_PACKAGE_DIR}/generated/dub" "$${DUB_PACKAGE_DIR}/VERSION" /etc` platform="posix"
-  preGenerateCommands `"%DC%" -run "%DUB_PACKAGE_DIR%/config.d" "%DUB_PACKAGE_DIR%/generated/dub" "%DUB_PACKAGE_DIR%/VERSION"` platform="windows"
+  preGenerateCommands `
+    "$${DUB_EXE}" \
+    --arch=$${DUB_ARCH} \
+    --compiler=$${DC} \
+    --single "$${DUB_PACKAGE_DIR}config.d" \
+    -- "$${DUB_PACKAGE_DIR}generated/dub" \
+    "$${DUB_PACKAGE_DIR}VERSION" \
+    /etc
+   ` platform="posix"
+
+  preGenerateCommands `"%DUB_EXE%" --arch=%DUB_ARCH% --compiler="%DC%" --single "%DUB_PACKAGE_DIR%config.d" -- "%DUB_PACKAGE_DIR%generated/dub" "%DUB_PACKAGE_DIR%VERSION"` platform="windows"
+
   stringImportPaths "generated/dub"
 
   dependency "dmd:root" version="*"
@@ -54,15 +65,32 @@ subPackage {
 subPackage {
   name "frontend"
   targetType "library"
-  preGenerateCommands `"$${DC}" -run "$${DUB_PACKAGE_DIR}/config.d" "$${DUB_PACKAGE_DIR}/generated/dub" "$${DUB_PACKAGE_DIR}/VERSION" /etc` platform="posix"
-  preGenerateCommands `"%DC%" -run "%DUB_PACKAGE_DIR%/config.d" "%DUB_PACKAGE_DIR%/generated/dub" "%DUB_PACKAGE_DIR%/VERSION"` platform="windows"
-  stringImportPaths "generated/dub"
-  stringImportPaths "res"
-  versions "NoBackend"
-  versions "GC"
-  versions "NoMain"
-  versions "MARS"
   sourcePaths "src/dmd"
+  stringImportPaths "res"
+
+  versions \
+    "NoBackend" \
+    "GC" \
+    "NoMain" \
+    "MARS"
+
   excludedSourceFiles "src/dmd/backend/*"
-  excludedSourceFiles "src/dmd/{dmsc,e2ir,eh,glue,iasm,iasmdmd,iasmgcc,objc_glue,s2ir,tocsym,toctype,toobj,todt,toir}.d"
+  excludedSourceFiles "src/dmd/{\
+    dmsc,\
+    e2ir,\
+    eh,\
+    glue,\
+    iasm,\
+    iasmdmd,\
+    iasmgcc,\
+    objc_glue,\
+    s2ir,\
+    tocsym,\
+    toctype,\
+    toobj,\
+    todt,\
+    toir\
+  }.d"
+
+  dependency "dmd:parser" version="*"
 }

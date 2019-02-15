@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/semantic3.d, _semantic3.d)
@@ -365,7 +365,9 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
             // Declare 'this'
             auto ad = funcdecl.isThis();
-            funcdecl.vthis = funcdecl.declareThis(sc2, ad);
+            auto hiddenParams = funcdecl.declareThis(sc2, ad);
+            funcdecl.vthis = hiddenParams.vthis;
+            funcdecl.selectorParameter = hiddenParams.selectorParameter;
             //printf("[%s] ad = %p vthis = %p\n", loc.toChars(), ad, vthis);
             //if (vthis) printf("\tvthis.type = %s\n", vthis.type.toChars());
 
@@ -375,7 +377,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 if (f.linkage == LINK.d)
                 {
                     // Declare _arguments[]
-                    funcdecl.v_arguments = new VarDeclaration(Loc.initial, Type.typeinfotypelist.type, Id._arguments_typeinfo, null);
+                    funcdecl.v_arguments = new VarDeclaration(funcdecl.loc, Type.typeinfotypelist.type, Id._arguments_typeinfo, null);
                     funcdecl.v_arguments.storage_class |= STC.temp | STC.parameter;
                     funcdecl.v_arguments.dsymbolSemantic(sc2);
                     sc2.insert(funcdecl.v_arguments);
@@ -383,7 +385,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                     //Type *t = Type::typeinfo.type.constOf().arrayOf();
                     Type t = Type.dtypeinfo.type.arrayOf();
-                    _arguments = new VarDeclaration(Loc.initial, t, Id._arguments, null);
+                    _arguments = new VarDeclaration(funcdecl.loc, t, Id._arguments, null);
                     _arguments.storage_class |= STC.temp;
                     _arguments.dsymbolSemantic(sc2);
                     sc2.insert(_arguments);
@@ -394,7 +396,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     // Declare _argptr
                     Type t = Type.tvalist;
                     // Init is handled in FuncDeclaration_toObjFile
-                    funcdecl.v_argptr = new VarDeclaration(Loc.initial, t, Id._argptr, new VoidInitializer(funcdecl.loc));
+                    funcdecl.v_argptr = new VarDeclaration(funcdecl.loc, t, Id._argptr, new VoidInitializer(funcdecl.loc));
                     funcdecl.v_argptr.storage_class |= STC.temp;
                     funcdecl.v_argptr.dsymbolSemantic(sc2);
                     sc2.insert(funcdecl.v_argptr);
@@ -563,7 +565,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     }
                 }
 
-                if (!funcdecl.inferRetType && !Target.isReturnOnStack(f, funcdecl.needThis()))
+                if (!funcdecl.inferRetType && !target.isReturnOnStack(f, funcdecl.needThis()))
                     funcdecl.nrvo_can = 0;
 
                 bool inferRef = (f.isref && (funcdecl.storage_class & STC.auto_));
@@ -617,7 +619,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     if (funcdecl.storage_class & STC.auto_)
                         funcdecl.storage_class &= ~STC.auto_;
                 }
-                if (!Target.isReturnOnStack(f, funcdecl.needThis()))
+                if (!target.isReturnOnStack(f, funcdecl.needThis()))
                     funcdecl.nrvo_can = 0;
 
                 if (funcdecl.fbody.isErrorStatement())
@@ -678,7 +680,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         sc2.ctorflow.callSuper = CSX.none;
 
                         // Insert implicit super() at start of fbody
-                        FuncDeclaration fd = resolveFuncCall(Loc.initial, sc2, cd.baseClass.ctor, null, funcdecl.vthis.type, null, 1);
+                        FuncDeclaration fd = resolveFuncCall(Loc.initial, sc2, cd.baseClass.ctor, null, funcdecl.vthis.type, null, FuncResolveFlag.quiet);
                         if (!fd)
                         {
                             funcdecl.error("no match for implicit `super()` call in constructor");
@@ -1309,7 +1311,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                  * Hopefully we can use this version someday when scope(failure) catches
                  * Exception instead of Throwable.
                  */
-                auto s = new OnScopeStatement(ctor.loc, TOK.onScopeFailure, ss);
+                auto s = new ScopeGuardStatement(ctor.loc, TOK.onScopeFailure, ss);
                 ctor.fbody = new CompoundStatement(ctor.loc, s, ctor.fbody);
             }
         }

@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dsymbol.d, _dsymbol.d)
@@ -50,6 +50,55 @@ import dmd.root.speller;
 import dmd.statement;
 import dmd.tokens;
 import dmd.visitor;
+
+/***************************************
+ * Calls dg(Dsymbol *sym) for each Dsymbol.
+ * If dg returns !=0, stops and returns that value else returns 0.
+ * Params:
+ *    symbols = Dsymbols
+ *    dg = delegate to call for each Dsymbol
+ * Returns:
+ *    last value returned by dg()
+ */
+int foreachDsymbol(Dsymbols* symbols, scope int delegate(Dsymbol) dg)
+{
+    assert(dg);
+    if (symbols)
+    {
+        /* Do not use foreach, as the size of the array may expand during iteration
+         */
+        for (size_t i = 0; i < symbols.dim; ++i)
+        {
+            Dsymbol s = (*symbols)[i];
+            const result = dg(s);
+            if (result)
+                return result;
+        }
+    }
+    return 0;
+}
+
+/***************************************
+ * Calls dg(Dsymbol *sym) for each Dsymbol.
+ * Params:
+ *    symbols = Dsymbols
+ *    dg = delegate to call for each Dsymbol
+ */
+void foreachDsymbol(Dsymbols* symbols, scope void delegate(Dsymbol) dg)
+{
+    assert(dg);
+    if (symbols)
+    {
+        /* Do not use foreach, as the size of the array may expand during iteration
+         */
+        for (size_t i = 0; i < symbols.dim; ++i)
+        {
+            Dsymbol s = (*symbols)[i];
+            dg(s);
+        }
+    }
+}
+
 
 struct Ungag
 {
@@ -975,6 +1024,10 @@ extern (C++) class Dsymbol : RootObject
     }
 
     void addLocalClass(ClassDeclarations*)
+    {
+    }
+
+    void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)
     {
     }
 
@@ -1975,8 +2028,7 @@ extern (C++) final class OverloadSet : Dsymbol
         super(ident);
         if (os)
         {
-            for (size_t i = 0; i < os.a.dim; i++)
-                a.push(os.a[i]);
+            a.pushSlice(os.a[]);
         }
     }
 

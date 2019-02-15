@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 2015-2017 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (C) 2015-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     Rainer Schuetze
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt

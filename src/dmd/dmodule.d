@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmodule.d, _dmodule.d)
@@ -28,9 +28,11 @@ import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.errors;
 import dmd.expression;
+import dmd.expressionsem;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
+import dmd.lexer;
 import dmd.parse;
 import dmd.root.file;
 import dmd.root.filename;
@@ -298,6 +300,17 @@ extern (C++) final class Module : Package
         modules = new DsymbolTable();
     }
 
+    /**
+     * Deinitializes the global state of the compiler.
+     *
+     * This can be used to restore the state set by `_init` to its original
+     * state.
+     */
+    static void deinitialize()
+    {
+        modules = modules.init;
+    }
+
     extern (C++) __gshared AggregateDeclaration moduleinfo;
 
     const(char)* arg;           // original argument name
@@ -560,7 +573,7 @@ extern (C++) final class Module : Package
                 version (Posix)
                     import core.sys.posix.unistd : getpid;
                 else version (Windows)
-                    import core.sys.windows.windows : getpid = GetCurrentProcessId;
+                    import core.sys.windows.winbase : getpid = GetCurrentProcessId;
                 buf.printf("__stdin_%d.d", getpid());
                 arg = buf.peekSlice();
             }
@@ -838,7 +851,8 @@ extern (C++) final class Module : Package
             isHdrFile = true;
         }
         {
-            scope p = new Parser!ASTCodegen(this, buf[0 .. buflen], docfile !is null);
+            scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
+            scope p = new Parser!ASTCodegen(this, buf[0 .. buflen], docfile !is null, diagnosticReporter);
             p.nextToken();
             members = p.parseModule();
             md = p.md;
@@ -965,19 +979,17 @@ extern (C++) final class Module : Package
             error("is a Ddoc file, cannot import it");
             return;
         }
-        if (md && md.msg)
-        {
-            if (StringExp se = md.msg.toStringExp())
-                md.msg = se;
-            else
-                md.msg.error("string expected, not '%s'", md.msg.toChars());
-        }
+
         /* Note that modules get their own scope, from scratch.
          * This is so regardless of where in the syntax a module
          * gets imported, it is unaffected by context.
          * Ignore prevsc.
          */
         Scope* sc = Scope.createGlobal(this); // create root scope
+
+        if (md && md.msg)
+            md.msg = semanticString(sc, md.msg, "deprecation message");
+
         // Add import of "object", even for the "object" module.
         // If it isn't there, some compiler rewrites, like
         //    classinst == classinst -> .object.opEquals(classinst, classinst)

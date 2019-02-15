@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/codebuilder.d, backend/_codebuilder.d)
@@ -121,7 +121,7 @@ extern (C++) struct CodeBuilder
         pTail = &ce.next;
     }
 
-    void gen1(uint op)
+    void gen1(opcode_t op)
     {
         code *ce = code_calloc();
         ce.Iop = op;
@@ -132,7 +132,7 @@ extern (C++) struct CodeBuilder
         pTail = &ce.next;
     }
 
-    void gen2(uint op, uint rm)
+    void gen2(opcode_t op, uint rm)
     {
         code *ce = code_calloc();
         ce.Iop = op;
@@ -146,13 +146,13 @@ extern (C++) struct CodeBuilder
     /***************************************
      * Generate floating point instruction.
      */
-    void genf2(uint op, uint rm)
+    void genf2(opcode_t op, uint rm)
     {
         genfwait(this);
         gen2(op, rm);
     }
 
-    void gen2sib(uint op, uint rm, uint sib)
+    void gen2sib(opcode_t op, uint rm, uint sib)
     {
         code *ce = code_calloc();
         ce.Iop = op;
@@ -211,7 +211,7 @@ version (MARS)
         pTail = &ce.next;
     }
 
-    void gencs(uint op, uint ea, uint FL2, Symbol *s)
+    void gencs(opcode_t op, uint ea, uint FL2, Symbol *s)
     {
         code cs;
         cs.Iop = op;
@@ -225,7 +225,7 @@ version (MARS)
         gen(&cs);
     }
 
-    void genc2(uint op, uint ea, targ_size_t EV2)
+    void genc2(opcode_t op, uint ea, targ_size_t EV2)
     {
         code cs;
         cs.Iop = op;
@@ -239,7 +239,7 @@ version (MARS)
         gen(&cs);
     }
 
-    void genc1(uint op, uint ea, uint FL1, targ_size_t EV1)
+    void genc1(opcode_t op, uint ea, uint FL1, targ_size_t EV1)
     {
         code cs;
         assert(FL1 < FLMAX);
@@ -253,7 +253,7 @@ version (MARS)
         gen(&cs);
     }
 
-    void genc(uint op, uint ea, uint FL1, targ_size_t EV1, uint FL2, targ_size_t EV2)
+    void genc(opcode_t op, uint ea, uint FL1, targ_size_t EV1, uint FL2, targ_size_t EV2)
     {
         code cs;
         assert(FL1 < FLMAX);
@@ -326,7 +326,7 @@ version (MARS)
     /**************************
      * Generate code to deal with floatreg.
      */
-    void genfltreg(uint opcode,uint reg,targ_size_t offset)
+    void genfltreg(opcode_t opcode,uint reg,targ_size_t offset)
     {
         floatreg = true;
         reflocal = true;
@@ -335,7 +335,7 @@ version (MARS)
         genc1(opcode,modregxrm(2,reg,BPRM),FLfltreg,offset);
     }
 
-    void genxmmreg(uint opcode,uint xreg,targ_size_t offset, tym_t tym)
+    void genxmmreg(opcode_t opcode,uint xreg,targ_size_t offset, tym_t tym)
     {
         assert(xreg >= XMM0);
         floatreg = true;

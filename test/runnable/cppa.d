@@ -727,7 +727,6 @@ void test16()
     static assert(0);
 }
 
-
 /****************************************/
 
 struct S13707
@@ -1636,6 +1635,6 @@ void main()
     test18966();
     test19134();
     test18955();
-    
+
     printf("Success\n");
 }

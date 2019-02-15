@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/code_x86.c, backend/code_x86.c)
@@ -19,6 +19,9 @@ import dmd.backend.code;
 import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.el : elem;
 import dmd.backend.ty : I64;
+
+alias opcode_t = uint;          // CPU opcode
+enum opcode_t NoOpcode = 0xFFFF;              // not a valid opcode_t
 
 /* Register definitions */
 
@@ -71,7 +74,7 @@ enum STACK   = 26;      // top of stack
 enum ST0     = 27;      // 8087 top of stack register
 enum ST01    = 28;      // top two 8087 registers; for complex types
 
-enum NOREG   = 29;     // no register
+enum reg_t NOREG   = 29;     // no register
 
 enum
 {
@@ -313,7 +316,7 @@ struct code
 
     union
     {
-        uint Iop;
+        opcode_t Iop;
         struct Svex
         {
           align(1):
@@ -411,6 +414,7 @@ enum
     SEGFS   = 0x64,
     SEGGS   = 0x65,
 
+    CMP     = 0x3B,
     CALL    = 0xE8,
     JMP     = 0xE9,    // Intra-Segment Direct
     JMPS    = 0xEB,    // JMP SHORT

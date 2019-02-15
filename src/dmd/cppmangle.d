@@ -5,7 +5,7 @@
  * This is the POSIX side of the implementation.
  * It exports two functions to C++, `toCppMangleItanium` and `cppTypeInfoMangleItanium`.
  *
- * Copyright: Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cppmangle.d, _cppmangle.d)
@@ -313,6 +313,40 @@ private final class CppMangleVisitor : Visitor
                 s.ident == Id.std &&    // the right name
                 s.isNspace() &&         // g++ disallows global "std" for other than a namespace
                 !getQualifier(s));      // at global level
+    }
+
+    /************************
+     * Determine if type is a C++ fundamental type.
+     * Params:
+     *  t = type to check
+     * Returns:
+     *  true if it is a fundamental type
+     */
+    static bool isFundamentalType(Type t)
+    {
+        // First check the target whether some specific ABI is being followed.
+        bool isFundamental = void;
+        if (target.cppFundamentalType(t, isFundamental))
+            return isFundamental;
+
+        if (auto te = t.isTypeEnum())
+        {
+            // Peel off enum type from special types.
+            if (te.sym.isSpecial())
+                t = te.memType();
+        }
+
+        // Fundamental arithmetic types:
+        // 1. integral types: bool, char, int, ...
+        // 2. floating point types: float, double, real
+        // 3. void
+        // 4. null pointer: std::nullptr_t (since C++11)
+        if (t.ty == Tvoid || t.ty == Tbool)
+            return true;
+        else if (t.ty == Tnull && global.params.cplusplus >= CppStdRevision.cpp11)
+            return true;
+        else
+            return t.isTypeBasic() && (t.isintegral() || t.isreal());
     }
 
     /******************************
@@ -1018,7 +1052,7 @@ private final class CppMangleVisitor : Visitor
 
         int paramsCppMangleDg(size_t n, Parameter fparam)
         {
-            Type t = Target.cppParameterType(fparam);
+            Type t = target.cppParameterType(fparam);
             if (t.ty == Tsarray)
             {
                 // Static arrays in D are passed by value; no counterpart in C++
@@ -1090,7 +1124,8 @@ private final class CppMangleVisitor : Visitor
      */
     void writeBasicType(Type t, char p, char c)
     {
-        if (p || t.isConst())
+        // Only do substitutions for non-fundamental types.
+        if (!isFundamentalType(t) || t.isConst())
         {
             if (substitute(t))
                 return;
@@ -1116,7 +1151,7 @@ private final class CppMangleVisitor : Visitor
         CV_qualifiers(t);
 
         // Handle any target-specific struct types.
-        if (auto tm = Target.cppTypeMangle(t))
+        if (auto tm = target.cppTypeMangle(t))
         {
             buf.writestring(tm);
         }
@@ -1229,6 +1264,22 @@ extern(C++):
         if (t.isImmutable() || t.isShared())
             return error(t);
 
+        // Handle any target-specific basic types.
+        if (auto tm = target.cppTypeMangle(t))
+        {
+            // Only do substitutions for non-fundamental types.
+            if (!isFundamentalType(t) || t.isConst())
+            {
+                if (substitute(t))
+                    return;
+                else
+                    append(t);
+            }
+            CV_qualifiers(t);
+            buf.writestring(tm);
+            return;
+        }
+
         /* <builtin-type>:
          * v        void
          * w        wchar_t
@@ -1272,10 +1323,10 @@ extern(C++):
             case Tuns32:                c = 'j';        break;
             case Tfloat32:              c = 'f';        break;
             case Tint64:
-                c = Target.c_longsize == 8 ? 'l' : 'x';
+                c = target.c_longsize == 8 ? 'l' : 'x';
                 break;
             case Tuns64:
-                c = Target.c_longsize == 8 ? 'm' : 'y';
+                c = target.c_longsize == 8 ? 'm' : 'y';
                 break;
             case Tint128:                c = 'n';       break;
             case Tuns128:                c = 'o';       break;
@@ -1293,21 +1344,6 @@ extern(C++):
             case Tcomplex80:    p = 'C'; c = 'e';       break;
 
             default:
-                // Handle any target-specific basic types.
-                if (auto tm = Target.cppTypeMangle(t))
-                {
-                    // Only do substitution for mangles that are longer than 1 character.
-                    if (tm[1] != 0 || t.isConst())
-                    {
-                        if (substitute(t))
-                            return;
-                        else
-                            append(t);
-                    }
-                    CV_qualifiers(t);
-                    buf.writestring(tm);
-                    return;
-                }
                 return error(t);
         }
         writeBasicType(t, p, c);
@@ -1324,7 +1360,7 @@ extern(C++):
         CV_qualifiers(t);
 
         // Handle any target-specific vector types.
-        if (auto tm = Target.cppTypeMangle(t))
+        if (auto tm = target.cppTypeMangle(t))
         {
             buf.writestring(tm);
         }

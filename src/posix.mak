@@ -97,7 +97,7 @@ GENERATED = ../generated
 G = $(GENERATED)/$(OS)/$(BUILD)/$(MODEL)
 $(shell mkdir -p $G)
 
-DSCANNER_HASH=3a859d39c4b59822b1bc0452b3ddcd598ef390a2
+DSCANNER_HASH=383fcb84d892e5169c134e282878ee2c51e4265f
 DSCANNER_DIR=$G/dscanner-$(DSCANNER_HASH)
 
 ifeq (osx,$(OS))
@@ -304,6 +304,8 @@ endif
 ifneq (gdc, $(HOST_DMD_KIND))
   BACK_MV = -mv=dmd.backend=$C
   BACK_BETTERC = $(BACK_MV) -betterC
+  # gdmd doesn't support -dip25
+  override DFLAGS  += -dip25
 endif
 
 ######## DMD frontend source files
@@ -319,7 +321,7 @@ FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argt
 	typinf utils scanelf scanmach statement_rewrite_walker statementsem staticcond safe blockexit printast \
 	semantic2 semantic3))
 
-LEXER_SRCS=$(addsuffix .d, $(addprefix $D/, console entity errors globals id identifier lexer tokens utf))
+LEXER_SRCS=$(addsuffix .d, $(addprefix $D/, console entity errors filecache globals id identifier lexer tokens utf ))
 
 LEXER_ROOT=$(addsuffix .d, $(addprefix $(ROOT)/, array ctfloat file filename outbuffer port rmem \
 	rootobject stringtable hash))

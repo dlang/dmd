@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/traits.d, _traits.d)
@@ -1171,7 +1171,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return new ErrorExp();
         }
 
-        bool value = Target.isReturnOnStack(tf, fd && fd.needThis());
+        bool value = target.isReturnOnStack(tf, fd && fd.needThis());
         return new IntegerExp(e.loc, value, Type.tbool);
     }
     if (e.ident == Id.getFunctionVariadicStyle)
@@ -1588,6 +1588,12 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 return True();
         }
 
+        // issue 12001, allow isSame, <BasicType>, <BasicType>
+        Type t1 = isType(o1);
+        Type t2 = isType(o2);
+        if (t1 && t2 && t1.equals(t2))
+            return True();
+
         auto s1 = getDsymbol(o1);
         auto s2 = getDsymbol(o2);
         //printf("isSame: %s, %s\n", o1.toChars(), o2.toChars());
@@ -1698,34 +1704,28 @@ Lnext:
         {
             bool[void*] uniqueUnitTests;
 
-            void collectUnitTests(Dsymbols* a)
+            void symbolDg(Dsymbol s)
             {
-                if (!a)
-                    return;
-                foreach (s; *a)
+                if (auto ad = s.isAttribDeclaration())
                 {
-                    if (auto atd = s.isAttribDeclaration())
-                    {
-                        collectUnitTests(atd.include(null));
-                        continue;
-                    }
-                    if (auto ud = s.isUnitTestDeclaration())
-                    {
-                        if (cast(void*)ud in uniqueUnitTests)
-                            continue;
+                    ad.include(null).foreachDsymbol(&symbolDg);
+                }
+                else if (auto ud = s.isUnitTestDeclaration())
+                {
+                    if (cast(void*)ud in uniqueUnitTests)
+                        return;
 
-                        auto ad = new FuncAliasDeclaration(ud.ident, ud, false);
-                        ad.protection = ud.protection;
+                    uniqueUnitTests[cast(void*)ud] = true;
 
-                        auto e = new DsymbolExp(Loc.initial, ad, false);
-                        exps.push(e);
+                    auto ad = new FuncAliasDeclaration(ud.ident, ud, false);
+                    ad.protection = ud.protection;
 
-                        uniqueUnitTests[cast(void*)ud] = true;
-                    }
+                    auto e = new DsymbolExp(Loc.initial, ad, false);
+                    exps.push(e);
                 }
             }
 
-            collectUnitTests(sds.members);
+            sds.members.foreachDsymbol(&symbolDg);
         }
         auto te = new TupleExp(e.loc, exps);
         return te.expressionSemantic(sc);
@@ -1783,7 +1783,7 @@ Lnext:
         }
         se = se.toUTF8(sc);
 
-        Expression r = Target.getTargetInfo(se.toPtr(), e.loc);
+        Expression r = target.getTargetInfo(se.toPtr(), e.loc);
         if (!r)
         {
             e.error("`getTargetInfo` key `\"%s\"` not supported by this implementation", se.toPtr());

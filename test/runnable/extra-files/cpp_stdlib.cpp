@@ -30,24 +30,18 @@ std::array<T, N>* getArray(const T* ptr)
     return ret;
 }
 
-// This function should never be called
-void instantiate ()
-{
-    int i;
-    float f;
-    int* pi;
-    float* pf;
+// Explicit instantiations, so they are callable outside this compilation unit.
+template int** identityPP<int>(int**);
+template float** identityPP<float>(float**);
+template int& identity<int>(int&);
+template float& identity<float>(float&);
 
-    identityPP(&pi);
-    identityPP(&pf);
-    identity(i);
-    identity(f);
+template std::vector<int>* getVector<int>(size_t, const int*);
+template std::vector<float>* getVector<float>(size_t, const float*);
+//typedef std::vector<float> svf_t;
+//template std::vector<svf_t>* getVector<svf_t>(size_t, const svf_t*);
 
-    getVector<int>(0, 0);
-    getVector<float>(0, 0);
-    getVector<std::vector<float> >(0, 0);
-
-    getArray<int, 4>(0);
-    getArray<float, 4>(0);
-    //getArray<Foo<int, 42>, 4>(0);
-}
+template std::array<int, 4>* getArray<int, 4>(const int*);
+template std::array<float, 4>* getArray<float, 4>(const float*);
+//typedef Foo<int, 42> fi42_t;
+//template std::array<fi42_t, 4> getArray<fi42_t, 4>(const fi42_t*);

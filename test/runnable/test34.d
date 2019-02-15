@@ -697,18 +697,18 @@ void test34()
 
 void foo35()
 {
-        uint a;
-        uint b;
-        uint c;
-        extern (Windows) int function(int i, int j, int k) xxx;
+    uint a;
+    uint b;
+    uint c;
+    extern (Windows) int function(int i, int j, int k) xxx;
 
-        a = 1;
-        b = 2;
-        c = 3;
+    a = 1;
+    b = 2;
+    c = 3;
 
-        xxx = cast(typeof(xxx))(a + b);
-        asm { int 3; }
-        xxx( 4, 5, 6 );
+    xxx = cast(typeof(xxx))(a + b);
+    throw new Exception("xxx");
+    xxx( 4, 5, 6 );
 }
 
 void test35()

@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dcast.d, _dcast.d)
@@ -1844,6 +1844,7 @@ Expression castTo(Expression e, Scope* sc, Type t)
              *  cast(wchar[3])"abcd"c --> [\u6261, \u6463, \u0000]
              *  cast(wchar[2])"abcd"c --> [\u6261, \u6463]
              *  cast(wchar[1])"abcd"c --> [\u6261]
+             *  cast(char[4])"a" --> ['a', 0, 0, 0]
              */
             if (e.committed && tb.ty == Tsarray && typeb.ty == Tarray)
             {
@@ -1855,13 +1856,15 @@ Expression castTo(Expression e, Scope* sc, Type t)
                 se.committed = 1;
                 se.type = t;
 
-                /* Assure space for terminating 0
+                /* If larger than source, pad with zeros.
                  */
-                if ((se.len + 1) * se.sz > (e.len + 1) * e.sz)
+                const fullSize = (se.len + 1) * se.sz; // incl. terminating 0
+                if (fullSize > (e.len + 1) * e.sz)
                 {
-                    void* s = mem.xmalloc((se.len + 1) * se.sz);
-                    memcpy(s, se.string, se.len * se.sz);
-                    memset(s + se.len * se.sz, 0, se.sz);
+                    void* s = mem.xmalloc(fullSize);
+                    const srcSize = e.len * e.sz;
+                    memcpy(s, se.string, srcSize);
+                    memset(s + srcSize, 0, fullSize - srcSize);
                     se.string = cast(char*)s;
                 }
                 result = se;
@@ -3526,7 +3529,7 @@ void fix16997(Scope* sc, UnaExp ue)
             case Tchar:
             case Twchar:
             case Tdchar:
-                ue.deprecation("integral promotion not done for `%s`, use '-transition=intpromote' switch or `%scast(int)(%s)`",
+                ue.deprecation("integral promotion not done for `%s`, use '-preview=intpromote' switch or `%scast(int)(%s)`",
                     ue.toChars(), Token.toChars(ue.op), ue.e1.toChars());
                 break;
 

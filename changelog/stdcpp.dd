@@ -1,0 +1,63 @@
+Ddoc
+
+$(H2 Transition to C++11 character types)
+  
+          With C++11 comes the advent of changed character type mangling.
+          D's default behavior will be to conform to this after a one 
+          release transition period. A new switch -extern-std={c++98,c++11} is 
+          added to control the version that compatibility is set to.
+          This switch sets `__traits(getTargetInfo, "cppStd")` to the value of 
+          `__cplusplus` that the corresponding version of the C++ standard defines.
+  
+          Of particular note is the new difference between wchar and wchar_t on
+          Windows. This will manifest itself as compile errors when
+          interfacing wchar* with wchar_t* code when calling the Windows API.
+          A cast will resolve the issue.
+  
+          Going forward we recommend using WCHAR instead of wchar or wchar_t
+          when interfacing to Windows API functions. (WCHAR is Microsoft
+          Windows' 16 bit character type.)
+  
+   $(H3 C++ Type Equivalence)
+  
+   $(H4 c++98 behavior:)
+  
+   $(TABLE
+   $(THEAD D       , Posix           , DMC++ Windows   , VC++ Windows)
+  
+   $(TROW  wchar   , unsigned short  , wchar_t         , wchar_t)
+   $(TROW  dchar   , wchar_t         , unsigned        , unsigned)
+   $(TROW  wchar_t , wchar_t         , wchar_t         , wchar_t)
+   $(TROW  WCHAR   , --              , wchar_t         , wchar_t))
+  
+   $(H4 c++11:)
+  
+   $(TABLE
+   $(THEAD D       , Posix           , DMC++ Windows   , VC++ Windows)
+  
+   $(TROW  wchar   , char16_t        , wchar_t         , char16_t)
+   $(TROW  dchar   , char32_t        , unsigned        , char32_t)
+   $(TROW  wchar_t , wchar_t         , wchar           , wchar_t)
+   $(TROW  WCHAR   , --              , wchar           , wchar_t))
+  
+   
+   $(H3 Name Mangling:)
+  
+   $(H4 c++98 behavior:)
+  
+   $(TABLE
+   $(THEAD D       , Posix   , DMC++ Windows   , VC++ Windows)
+  
+   $(TROW  wchar   , t       , _Y              , _W)
+   $(TROW  dchar   , w       , I               , I)
+   $(TROW  wchar_t , w       , _Y              , _W))
+  
+   $(H4 c++11:)
+  
+   $(TABLE
+   $(THEAD D       , Posix   , DMC++ Windows   , VC++ Windows)
+  
+   $(TROW  wchar   , Ds      , _Y              , _S)
+   $(TROW  dchar   , Di      , I               , _U)
+   $(TROW  wchar_t , w       , _Y              , _W))
+

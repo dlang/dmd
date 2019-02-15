@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/opover.d, _opover.d)
@@ -1241,7 +1241,7 @@ Expression op_overload(Expression e, Scope* sc)
                     return;
 
                 import dmd.clone : needOpEquals;
-                if (!needOpEquals(sd))
+                if (!global.params.fieldwise && !needOpEquals(sd))
                 {
                     // Use bitwise equality.
                     auto op2 = e.op == TOK.equal ? TOK.identity : TOK.notIdentity;
@@ -1251,6 +1251,7 @@ Expression op_overload(Expression e, Scope* sc)
                 }
 
                 /* Do memberwise equality.
+                 * https://dlang.org/spec/expression.html#equality_expressions
                  * Rewrite:
                  *      e1 == e2
                  * as:

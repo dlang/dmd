@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/mtype.d, _mtype.d)
@@ -683,8 +683,16 @@ extern (C++) abstract class Type : RootObject
             }
             else if (t1n.ty == t2n.ty && t1n.implicitConvTo(t2n))
                 goto Lcovariant;
-            else if (t1n.ty == Tnull && t1n.implicitConvTo(t2n) && t1n.size() == t2n.size())
-                goto Lcovariant;
+            else if (t1n.ty == Tnull)
+            {
+                // NULL is covariant with any pointer type, but not with any
+                // dynamic arrays, associative arrays or delegates.
+                // https://issues.dlang.org/show_bug.cgi?id=8589
+                // https://issues.dlang.org/show_bug.cgi?id=19618
+                Type t2bn = t2n.toBasetype();
+                if (t2bn.ty == Tnull || t2bn.ty == Tpointer || t2bn.ty == Tclass)
+                    goto Lcovariant;
+            }
         }
         goto Lnotcovariant;
 
@@ -879,7 +887,7 @@ extern (C++) abstract class Type : RootObject
         tstring = tchar.immutableOf().arrayOf();
         twstring = twchar.immutableOf().arrayOf();
         tdstring = tdchar.immutableOf().arrayOf();
-        tvalist = Target.va_listType();
+        tvalist = target.va_listType();
 
         if (global.params.isLP64)
         {
@@ -895,6 +903,17 @@ extern (C++) abstract class Type : RootObject
         tsize_t = basic[Tsize_t];
         tptrdiff_t = basic[Tptrdiff_t];
         thash_t = tsize_t;
+    }
+
+    /**
+     * Deinitializes the global state of the compiler.
+     *
+     * This can be used to restore the state set by `_init` to its original
+     * state.
+     */
+    static void deinitialize()
+    {
+        stringtable = stringtable.init;
     }
 
     final d_uns64 size()
@@ -2025,7 +2044,7 @@ extern (C++) abstract class Type : RootObject
         }
         if (auto fd = s.isFuncDeclaration())
         {
-            fd = resolveFuncCall(Loc.initial, null, fd, null, this, null, 1);
+            fd = resolveFuncCall(Loc.initial, null, fd, null, this, null, FuncResolveFlag.quiet);
             if (!fd || fd.errors || !fd.functionSemantic())
                 return Type.terror;
 
@@ -2047,7 +2066,7 @@ extern (C++) abstract class Type : RootObject
         if (auto td = s.isTemplateDeclaration())
         {
             assert(td._scope);
-            auto fd = resolveFuncCall(Loc.initial, null, td, null, this, null, 1);
+            auto fd = resolveFuncCall(Loc.initial, null, td, null, this, null, FuncResolveFlag.quiet);
             if (!fd || fd.errors || !fd.functionSemantic())
                 return Type.terror;
 
@@ -3179,7 +3198,7 @@ extern (C++) final class TypeBasic : Type
 
         case Tfloat80:
         case Timaginary80:
-            size = Target.realsize;
+            size = target.realsize;
             break;
 
         case Tcomplex32:
@@ -3193,7 +3212,7 @@ extern (C++) final class TypeBasic : Type
             break;
 
         case Tcomplex80:
-            size = Target.realsize * 2;
+            size = target.realsize * 2;
             break;
 
         case Tvoid:
@@ -3226,7 +3245,7 @@ extern (C++) final class TypeBasic : Type
 
     override uint alignsize()
     {
-        return Target.alignsize(this);
+        return target.alignsize(this);
     }
 
     override bool isintegral()
@@ -3303,8 +3322,6 @@ extern (C++) final class TypeBasic : Type
                  * with a MATCH.convert
                  */
                 tob = to.toBasetype().isTypeBasic();
-                if (tob)
-                    return implicitConvTo(tob);
             }
             else
                 return MATCH.nomatch;
@@ -3725,14 +3742,14 @@ extern (C++) final class TypeDArray : TypeArray
     override d_uns64 size(const ref Loc loc) const
     {
         //printf("TypeDArray::size()\n");
-        return Target.ptrsize * 2;
+        return target.ptrsize * 2;
     }
 
     override uint alignsize() const
     {
         // A DArray consists of two ptr-sized values, so align it on pointer size
         // boundary
-        return Target.ptrsize;
+        return target.ptrsize;
     }
 
     override bool isString()
@@ -3831,7 +3848,7 @@ extern (C++) final class TypeAArray : TypeArray
 
     override d_uns64 size(const ref Loc loc)
     {
-        return Target.ptrsize;
+        return target.ptrsize;
     }
 
     override bool isZeroInit(const ref Loc loc) const
@@ -3925,7 +3942,7 @@ extern (C++) final class TypePointer : TypeNext
 
     override d_uns64 size(const ref Loc loc) const
     {
-        return Target.ptrsize;
+        return target.ptrsize;
     }
 
     override MATCH implicitConvTo(Type to)
@@ -4058,7 +4075,7 @@ extern (C++) final class TypeReference : TypeNext
 
     override d_uns64 size(const ref Loc loc) const
     {
-        return Target.ptrsize;
+        return target.ptrsize;
     }
 
     override bool isZeroInit(const ref Loc loc) const
@@ -4949,12 +4966,12 @@ extern (C++) final class TypeDelegate : TypeNext
 
     override d_uns64 size(const ref Loc loc) const
     {
-        return Target.ptrsize * 2;
+        return target.ptrsize * 2;
     }
 
     override uint alignsize() const
     {
-        return Target.ptrsize;
+        return target.ptrsize;
     }
 
     override MATCH implicitConvTo(Type to)
@@ -5425,7 +5442,7 @@ extern (C++) final class TypeStruct : Type
         /* Copy from the initializer symbol for larger symbols,
          * otherwise the literals expressed as code get excessively large.
          */
-        if (size(loc) > Target.ptrsize * 4 && !needsNested())
+        if (size(loc) > target.ptrsize * 4 && !needsNested())
             structinit.useStaticInit = true;
 
         structinit.type = this;
@@ -5833,7 +5850,7 @@ extern (C++) final class TypeClass : Type
 
     override d_uns64 size(const ref Loc loc) const
     {
-        return Target.ptrsize;
+        return target.ptrsize;
     }
 
     override Type syntaxCopy()

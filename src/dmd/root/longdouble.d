@@ -1,4 +1,4 @@
-/* Copyright (c) 1999-2017 by Digital Mars
+/* Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * All Rights Reserved, written by Rainer Schuetze
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -117,7 +117,7 @@ nothrow @nogc pure:
 
     extern(D)
     {
-        ref longdouble_soft opAssign(longdouble_soft ld) { mantissa = ld.mantissa; exp_sign = ld.exp_sign; return this; }
+        ref longdouble_soft opAssign(longdouble_soft ld) return { mantissa = ld.mantissa; exp_sign = ld.exp_sign; return this; }
         ref longdouble_soft opAssign(T)(T rhs) { this = longdouble_soft(rhs); return this; }
 
         longdouble_soft opNeg() const { return longdouble_soft(mantissa, exp_sign ^ 0x8000); }

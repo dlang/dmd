@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/expression.d, _expression.d)
@@ -212,7 +212,9 @@ bool isNeedThisScope(Scope* sc, Declaration d)
  */
 bool isDotOpDispatch(Expression e)
 {
-    return e.op == TOK.dotTemplateInstance && (cast(DotTemplateInstanceExp)e).ti.name == Id.opDispatch;
+    if (auto dtie = e.isDotTemplateInstanceExp())
+        return dtie.ti.name == Id.opDispatch;
+    return false;
 }
 
 /****************************************
@@ -234,12 +236,10 @@ extern (C++) void expandTuples(Expressions* exps)
                 continue;
 
             // Look for tuple with 0 members
-            if (arg.op == TOK.type)
+            if (auto e = arg.isTypeExp())
             {
-                TypeExp e = cast(TypeExp)arg;
-                if (e.type.toBasetype().ty == Ttuple)
+                if (auto tt = e.type.toBasetype().isTypeTuple())
                 {
-                    TypeTuple tt = cast(TypeTuple)e.type.toBasetype();
                     if (!tt.arguments || tt.arguments.dim == 0)
                     {
                         exps.remove(i);
@@ -367,7 +367,7 @@ Expression valueNoDtor(Expression e)
 {
     auto ex = lastComma(e);
 
-    if (ex.op == TOK.call)
+    if (auto ce = ex.isCallExp())
     {
         /* The struct value returned from the function is transferred
          * so do not call the destructor on it.
@@ -376,19 +376,15 @@ Expression valueNoDtor(Expression e)
          * and make sure the destructor is not called on _ctmp
          * BUG: if ex is a CommaExp, we should go down the right side.
          */
-        CallExp ce = cast(CallExp)ex;
-        if (ce.e1.op == TOK.dotVariable)
+        if (auto dve = ce.e1.isDotVarExp())
         {
-            DotVarExp dve = cast(DotVarExp)ce.e1;
             if (dve.var.isCtorDeclaration())
             {
                 // It's a constructor call
-                if (dve.e1.op == TOK.comma)
+                if (auto comma = dve.e1.isCommaExp())
                 {
-                    CommaExp comma = cast(CommaExp)dve.e1;
-                    if (comma.e2.op == TOK.variable)
+                    if (auto ve = comma.e2.isVarExp())
                     {
-                        VarExp ve = cast(VarExp)comma.e2;
                         VarDeclaration ctmp = ve.var.isVarDeclaration();
                         if (ctmp)
                         {
@@ -400,9 +396,9 @@ Expression valueNoDtor(Expression e)
             }
         }
     }
-    else if (ex.op == TOK.variable)
+    else if (auto ve = ex.isVarExp())
     {
-        auto vtmp = (cast(VarExp)ex).var.isVarDeclaration();
+        auto vtmp = ve.var.isVarDeclaration();
         if (vtmp && (vtmp.storage_class & STC.rvalue))
         {
             vtmp.storage_class |= STC.nodtor;
@@ -420,10 +416,9 @@ Expression valueNoDtor(Expression e)
  */
 private Expression callCpCtor(Scope* sc, Expression e)
 {
-    Type tv = e.type.baseElemOf();
-    if (tv.ty == Tstruct)
+    if (auto ts = e.type.baseElemOf().isTypeStruct())
     {
-        StructDeclaration sd = (cast(TypeStruct)tv).sym;
+        StructDeclaration sd = ts.sym;
         if (sd.postblit)
         {
             /* Create a variable tmp, and replace the argument e with:
@@ -450,9 +445,8 @@ private Expression callCpCtor(Scope* sc, Expression e)
  */
 Expression doCopyOrMove(Scope *sc, Expression e)
 {
-    if (e.op == TOK.question)
+    if (auto ce = e.isCondExp())
     {
-        auto ce = cast(CondExp)e;
         ce.e1 = doCopyOrMove(sc, ce.e1);
         ce.e2 = doCopyOrMove(sc, ce.e2);
     }
@@ -478,7 +472,7 @@ struct UnionExp
 
     /* Extract pointer to Expression
      */
-    extern (C++) Expression exp()
+    extern (C++) Expression exp() return
     {
         return cast(Expression)&u;
     }
@@ -522,6 +516,7 @@ private:
         char[__traits(classInstanceSize, AddrExp)] addrexp;
         char[__traits(classInstanceSize, IndexExp)] indexexp;
         char[__traits(classInstanceSize, SliceExp)] sliceexp;
+        char[__traits(classInstanceSize, VectorExp)] vectorexp;
     }
 
     __AnonStruct__u u;
@@ -531,6 +526,12 @@ private:
  * Test to see if two reals are the same.
  * Regard NaN's as equivalent.
  * Regard +0 and -0 as different.
+ * Params:
+ *      x1 = first operand
+ *      x2 = second operand
+ * Returns:
+ *      1 if x1 is x2
+ *      else 0
  */
 int RealEquals(real_t x1, real_t x2)
 {
@@ -601,7 +602,7 @@ VarDeclaration expToVariable(Expression e)
     }
 }
 
-enum OwnedBy : int
+enum OwnedBy : ubyte
 {
     code,          // normal code expression in AST
     ctfe,          // value expression for CTFE
@@ -616,11 +617,11 @@ enum WANTexpand = 1;    // expand const/immutable variables if possible
  */
 extern (C++) abstract class Expression : RootObject
 {
-    Loc loc;        // file location
-    Type type;      // !=null means that semantic() has been run
     TOK op;         // to minimize use of dynamic_cast
     ubyte size;     // # of bytes in Expression so we can copy() it
     ubyte parens;   // if this is a parenthesized expression
+    Type type;      // !=null means that semantic() has been run
+    Loc loc;        // file location
 
     extern (D) this(const ref Loc loc, TOK op, int size)
     {
@@ -638,6 +639,22 @@ extern (C++) abstract class Expression : RootObject
         CTFEExp.continueexp = new CTFEExp(TOK.continue_);
         CTFEExp.gotoexp = new CTFEExp(TOK.goto_);
         CTFEExp.showcontext = new CTFEExp(TOK.showCtfeContext);
+    }
+
+    /**
+     * Deinitializes the global state of the compiler.
+     *
+     * This can be used to restore the state set by `_init` to its original
+     * state.
+     */
+    static void deinitialize()
+    {
+        CTFEExp.cantexp = CTFEExp.cantexp.init;
+        CTFEExp.voidexp = CTFEExp.voidexp.init;
+        CTFEExp.breakexp = CTFEExp.breakexp.init;
+        CTFEExp.continueexp = CTFEExp.continueexp.init;
+        CTFEExp.gotoexp = CTFEExp.gotoexp.init;
+        CTFEExp.showcontext = CTFEExp.showcontext.init;
     }
 
     /*********************************
@@ -880,9 +897,9 @@ extern (C++) abstract class Expression : RootObject
             assert(type);
             if (!type.isMutable())
             {
-                if (op == TOK.dotVariable)
+                if (auto dve = this.isDotVarExp())
                 {
-                    if (isNeedThisScope(sc, (cast(DotVarExp) this).var))
+                    if (isNeedThisScope(sc, dve.var))
                         for (Dsymbol s = sc.func; s; s = s.toParent2())
                     {
                         FuncDeclaration ff = s.isFuncDeclaration();
@@ -1343,14 +1360,13 @@ extern (C++) abstract class Expression : RootObject
      */
     extern (D) final bool checkPostblit(Scope* sc, Type t)
     {
-        t = t.baseElemOf();
-        if (t.ty == Tstruct)
+        if (auto ts = t.baseElemOf().isTypeStruct())
         {
             // https://issues.dlang.org/show_bug.cgi?id=11395
             // Require TypeInfo generation for array concatenation
             semanticTypeInfo(sc, t);
 
-            StructDeclaration sd = (cast(TypeStruct)t).sym;
+            StructDeclaration sd = ts.sym;
             if (sd.postblit)
             {
                 if (sd.postblit.checkDisabled(loc, sc))
@@ -1444,9 +1460,9 @@ extern (C++) abstract class Expression : RootObject
         Type att = null;
     Lagain:
         // Structs can be converted to bool using opCast(bool)()
-        if (tb.ty == Tstruct)
+        if (auto ts = tb.isTypeStruct())
         {
-            AggregateDeclaration ad = (cast(TypeStruct)tb).sym;
+            AggregateDeclaration ad = ts.sym;
             /* Don't really need to check for opCast first, but by doing so we
              * get better error messages if it isn't there.
              */
@@ -1601,6 +1617,7 @@ extern (C++) abstract class Expression : RootObject
         inout(DeleteExp)    isDeleteExp() { return op == TOK.delete_ ? cast(typeof(return))this : null; }
         inout(CastExp)      isCastExp() { return op == TOK.cast_ ? cast(typeof(return))this : null; }
         inout(VectorExp)    isVectorExp() { return op == TOK.vector ? cast(typeof(return))this : null; }
+        inout(VectorArrayExp) isVectorArrayExp() { return op == TOK.vectorArray ? cast(typeof(return))this : null; }
         inout(SliceExp)     isSliceExp() { return op == TOK.slice ? cast(typeof(return))this : null; }
         inout(ArrayLengthExp) isArrayLengthExp() { return op == TOK.arrayLength ? cast(typeof(return))this : null; }
         inout(ArrayExp)     isArrayExp() { return op == TOK.array ? cast(typeof(return))this : null; }
@@ -1829,9 +1846,9 @@ extern (C++) final class IntegerExp : Expression
             break;
 
         case Tpointer:
-            if (Target.ptrsize == 4)
+            if (target.ptrsize == 4)
                 result = cast(d_uns32)value;
-            else if (Target.ptrsize == 8)
+            else if (target.ptrsize == 8)
                 result = cast(d_uns64)value;
             else
                 assert(0);
@@ -2297,7 +2314,7 @@ extern (C++) final class StringExp : Expression
      * Returns:
      *      number of code units
      */
-    final size_t numberOfCodeUnits(int tynto = 0) const
+    size_t numberOfCodeUnits(int tynto = 0) const
     {
         int encSize;
         switch (tynto)
@@ -2391,7 +2408,7 @@ extern (C++) final class StringExp : Expression
      * Returns:
      *  code unit at index i
      */
-    final dchar getCodeUnit(size_t i) const pure
+    dchar getCodeUnit(size_t i) const pure
     {
         assert(i < len);
         final switch (sz)
@@ -2411,7 +2428,7 @@ extern (C++) final class StringExp : Expression
      *  i = index
      *  c = code unit to set it to
      */
-    final void setCodeUnit(size_t i, dchar c)
+    void setCodeUnit(size_t i, dchar c)
     {
         assert(i < len);
         final switch (sz)
@@ -2569,7 +2586,7 @@ extern (C++) final class StringExp : Expression
      * Convert string contents to a 0 terminated string,
      * allocated by mem.xmalloc().
      */
-    extern (D) final const(char)[] toStringz() const
+    extern (D) const(char)[] toStringz() const
     {
         auto nbytes = len * sz;
         char* s = cast(char*)mem.xmalloc(nbytes + sz);
@@ -2925,10 +2942,7 @@ extern (C++) final class StructLiteralExp : Expression
     Expressions* elements;  /// parallels sd.fields[] with null entries for fields to skip
     Type stype;             /// final type of result (can be different from sd's type)
 
-    bool useStaticInit;     /// if this is true, use the StructDeclaration's init symbol
     Symbol* sym;            /// back end symbol to initialize with literal
-
-    OwnedBy ownedByCtfe = OwnedBy.code;
 
     /** pointer to the origin instance of the expression.
      * once a new expression is created, origin is set to 'this'.
@@ -2946,6 +2960,9 @@ extern (C++) final class StructLiteralExp : Expression
      * (with infinite recursion) of this expression.
      */
     int stageflags;
+
+    bool useStaticInit;     /// if this is true, use the StructDeclaration's init symbol
+    OwnedBy ownedByCtfe = OwnedBy.code;
 
     extern (D) this(const ref Loc loc, StructDeclaration sd, Expressions* elements, Type stype = null)
     {
@@ -3904,10 +3921,10 @@ extern (C++) final class IsExp : Expression
 {
     Type targ;
     Identifier id;      // can be null
-    TOK tok;            // ':' or '=='
     Type tspec;         // can be null
-    TOK tok2;           // 'struct', 'union', etc.
     TemplateParameters* parameters;
+    TOK tok;            // ':' or '=='
+    TOK tok2;           // 'struct', 'union', etc.
 
     extern (D) this(const ref Loc loc, Type targ, Identifier id, TOK tok, Type tspec, TOK tok2, TemplateParameters* parameters)
     {
@@ -5062,6 +5079,13 @@ extern (C++) final class CastExp : UnaExp
         return to ? new CastExp(loc, e1.syntaxCopy(), to.syntaxCopy()) : new CastExp(loc, e1.syntaxCopy(), mod);
     }
 
+    override Expression addDtorHook(Scope* sc)
+    {
+        if (to.toBasetype().ty == Tvoid)        // look past the cast(void)
+            e1 = e1.addDtorHook(sc);
+        return this;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -5074,6 +5098,7 @@ extern (C++) final class VectorExp : UnaExp
 {
     TypeVector to;      // the target vector type before semantic()
     uint dim = ~0;      // number of elements in the vector
+    OwnedBy ownedByCtfe = OwnedBy.code;
 
     extern (D) this(const ref Loc loc, Expression e, Type t)
     {
@@ -5090,6 +5115,35 @@ extern (C++) final class VectorExp : UnaExp
     override Expression syntaxCopy()
     {
         return new VectorExp(loc, e1.syntaxCopy(), to.syntaxCopy());
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ * e1.array property for vectors.
+ *
+ * https://dlang.org/spec/simd.html#properties
+ */
+extern (C++) final class VectorArrayExp : UnaExp
+{
+    extern (D) this(const ref Loc loc, Expression e1)
+    {
+        super(loc, TOK.vectorArray, __traits(classInstanceSize, VectorArrayExp), e1);
+    }
+
+    override bool isLvalue()
+    {
+        return e1.isLvalue();
+    }
+
+    override Expression toLvalue(Scope* sc, Expression e)
+    {
+        e1 = e1.toLvalue(sc, e);
+        return this;
     }
 
     override void accept(Visitor v)

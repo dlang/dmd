@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/doc.d, _doc.d)
@@ -214,7 +214,7 @@ private final class ParamSection : Section
             {
                 // Output existing param
             L1:
-                //printf("param '%.*s' = '%.*s'\n", namelen, namestart, textlen, textstart);
+                //printf("param '%.*s' = '%.*s'\n", cast(int)namelen, namestart, cast(int)textlen, textstart);
                 ++paramcount;
                 HdrGenState hgs;
                 buf.writestring("$(DDOC_PARAM_ROW ");
@@ -247,7 +247,7 @@ private final class ParamSection : Section
                             }
                             else if (!fparam)
                             {
-                                warning(s.loc, "Ddoc: function declaration has no parameter '%.*s'", namelen, namestart);
+                                warning(s.loc, "Ddoc: function declaration has no parameter '%.*s'", cast(int)namelen, namestart);
                             }
                             buf.write(namestart, namelen);
                         }
@@ -386,7 +386,7 @@ extern(C++) void gendocfile(Module m)
             auto file = File(global.params.ddocfiles[i].toDString());
             readFile(m.loc, &file);
             // BUG: convert file contents to UTF-8 before use
-            //printf("file: '%.*s'\n", file.len, file.buffer);
+            //printf("file: '%.*s'\n", cast(int)file.len, file.buffer);
             mbuf.write(file.buffer, file.len);
         }
     }
@@ -444,7 +444,7 @@ extern(C++) void gendocfile(Module m)
         dc.writeSections(sc, &a, &buf);
         emitMemberComments(m, &buf, sc);
     }
-    //printf("BODY= '%.*s'\n", buf.offset, buf.data);
+    //printf("BODY= '%.*s'\n", cast(int)buf.offset, buf.data);
     Macro.define(&m.macrotable, "BODY", buf.peekSlice());
     OutBuffer buf2;
     buf2.writestring("$(DDOC)");
@@ -960,7 +960,7 @@ private void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                 }
                 buf.writestring(ddoc_decl_dd_e);
                 buf.writeByte(')');
-                //printf("buf.2 = [[%.*s]]\n", buf.offset - o0, buf.data + o0);
+                //printf("buf.2 = [[%.*s]]\n", cast(int)(buf.offset - o0), buf.data + o0);
             }
             if (s)
             {
@@ -1548,7 +1548,7 @@ struct DocComment
             {
                 // Output existing macro
             L1:
-                //printf("macro '%.*s' = '%.*s'\n", namelen, namestart, textlen, textstart);
+                //printf("macro '%.*s' = '%.*s'\n", cast(int)namelen, namestart, cast(int)textlen, textstart);
                 if (iequals("ESCAPES", namestart[0 .. namelen]))
                     parseEscapes(pescapetable, textstart, textlen);
                 else
@@ -1596,7 +1596,7 @@ struct DocComment
             memset(escapetable, 0, Escape.sizeof);
             *pescapetable = escapetable;
         }
-        //printf("parseEscapes('%.*s') pescapetable = %p\n", textlen, textstart, pescapetable);
+        //printf("parseEscapes('%.*s') pescapetable = %p\n", cast(int)textlen, textstart, pescapetable);
         const(char)* p = textstart;
         const(char)* pend = p + textlen;
         while (1)
@@ -1752,7 +1752,7 @@ struct DocComment
                 s._body = pstart;
                 s.bodylen = pend - pstart;
                 s.nooutput = 0;
-                //printf("Section: '%.*s' = '%.*s'\n", s.namelen, s.name, s.bodylen, s.body);
+                //printf("Section: '%.*s' = '%.*s'\n", cast(int)s.namelen, s.name, cast(int)s.bodylen, s.body);
                 sections.push(s);
                 if (!summary && !namelen)
                     summary = s;
@@ -1790,7 +1790,7 @@ struct DocComment
             Section sec = sections[i];
             if (sec.nooutput)
                 continue;
-            //printf("Section: '%.*s' = '%.*s'\n", sec.namelen, sec.name, sec.bodylen, sec.body);
+            //printf("Section: '%.*s' = '%.*s'\n", cast(int)sec.namelen, sec.name, cast(int)sec.bodylen, sec.body);
             if (!sec.namelen && i == 0)
             {
                 buf.writestring("$(DDOC_SUMMARY ");
@@ -2066,6 +2066,53 @@ private void removeBlankLineMacro(OutBuffer* buf, ref size_t iAt, ref size_t i)
 }
 
 /****************************************************
+ * Attempt to detect and replace a Markdown thematic break (HR). These are three
+ * or more of the same delimiter, optionally with spaces or tabs between any of
+ * them, e.g. `\n- - -\n` becomes `\n$(HR)\n`
+ * Params:
+ *  buf         = an OutBuffer containing the DDoc
+ *  i           = the index within `buf` of the first character of a potential
+ *                thematic break. If the replacement is made `i` changes to
+ *                point to the closing parenthesis of the `$(HR)` macro.
+ *  iLineStart  = the index within `buf` that the thematic break's line starts at
+ *  loc         = the current location within the file
+ * Returns: whether a thematic break was replaced
+ */
+private bool replaceMarkdownThematicBreak(OutBuffer* buf, ref size_t i, size_t iLineStart, const ref Loc loc)
+{
+    if (!global.params.markdown)
+        return false;
+
+    const slice = buf.peekSlice();
+    const c = buf.data[i];
+    size_t j = i + 1;
+    int repeat = 1;
+    for (; j < slice.length; j++)
+    {
+        if (buf.data[j] == c)
+            ++repeat;
+        else if (buf.data[j] != ' ' && buf.data[j] != '\t')
+            break;
+    }
+    if (repeat >= 3)
+    {
+        if (j >= buf.offset || buf.data[j] == '\n' || buf.data[j] == '\r')
+        {
+            if (global.params.vmarkdown)
+            {
+                const s = buf.peekSlice()[i..j];
+                message(loc, "Ddoc: converted '%.*s' to a thematic break", cast(int)s.length, s.ptr);
+            }
+
+            buf.remove(iLineStart, j - iLineStart);
+            i = buf.insert(iLineStart, "$(HR)") - 1;
+            return true;
+        }
+    }
+    return false;
+}
+
+/****************************************************
  * Detect the level of an ATX-style heading, e.g. `## This is a heading` would
  * have a level of `2`.
  * Params:
@@ -2154,10 +2201,10 @@ private void endMarkdownHeading(OutBuffer* buf, size_t iStart, ref size_t iEnd, 
     if (global.params.vmarkdown)
     {
         const s = buf.peekSlice()[iStart..iEnd];
-        message(loc, "Ddoc: added heading '%.*s'", s.length, s.ptr);
+        message(loc, "Ddoc: added heading '%.*s'", cast(int)s.length, s.ptr);
     }
 
-    static char[5] heading = "$(H0 ";
+    char[5] heading = "$(H0 ";
     heading[3] = cast(char) ('0' + headingLevel);
     buf.insert(iStart, heading);
     iEnd += 5;
@@ -2201,7 +2248,7 @@ private size_t replaceMarkdownEmphasis(OutBuffer* buf, const ref Loc loc, ref Ma
         if (global.params.vmarkdown)
         {
             const s = buf.peekSlice()[iStart + count..iEnd];
-            message(loc, "Ddoc: emphasized text '%.*s'", s.length, s.ptr);
+            message(loc, "Ddoc: emphasized text '%.*s'", cast(int)s.length, s.ptr);
         }
 
         buf.remove(iStart, count);
@@ -2579,7 +2626,7 @@ private struct MarkdownList
             while (iEnd < buf.offset && buf.data[iEnd] != '\r' && buf.data[iEnd] != '\n')
                 ++iEnd;
             const s = buf.peekSlice()[iStart..iEnd];
-            message(loc, "Ddoc: starting list item '%.*s'", s.length, s.ptr);
+            message(loc, "Ddoc: starting list item '%.*s'", cast(int)s.length, s.ptr);
         }
 
         return true;
@@ -2950,7 +2997,16 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                 {
                     const list = MarkdownList.parseItem(buf, iLineStart, i);
                     if (list.isValid)
-                        goto case '+';
+                    {
+                        if (replaceMarkdownThematicBreak(buf, i, iLineStart, loc))
+                        {
+                            removeBlankLineMacro(buf, iPrecedingBlankLine, i);
+                            iParagraphStart = skipChars(buf, i+1, " \t\r\n");
+                            break;
+                        }
+                        else
+                            goto case '+';
+                    }
                 }
 
                 size_t istart = i;
@@ -3043,6 +3099,17 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
             }
             break;
 
+        case '_':
+        {
+            if (leadingBlank && !inCode && replaceMarkdownThematicBreak(buf, i, iLineStart, loc))
+            {
+                removeBlankLineMacro(buf, iPrecedingBlankLine, i);
+                iParagraphStart = skipChars(buf, i+1, " \t\r\n");
+                break;
+            }
+            goto default;
+        }
+
         case '+':
         case '0':
         ..
@@ -3077,6 +3144,14 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
 
             if (leadingBlank)
             {
+                // Check for a thematic break
+                if (replaceMarkdownThematicBreak(buf, i, iLineStart, loc))
+                {
+                    removeBlankLineMacro(buf, iPrecedingBlankLine, i);
+                    iParagraphStart = skipChars(buf, i+1, " \t\r\n");
+                    break;
+                }
+
                 // An initial * indicates a Markdown list item
                 const list = MarkdownList.parseItem(buf, iLineStart, i);
                 if (list.isValid)
@@ -3404,11 +3479,12 @@ private void highlightCode3(Scope* sc, OutBuffer* buf, const(char)* p, const(cha
  */
 private void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset)
 {
-    uint errorsave = global.errors;
-    scope Lexer lex = new Lexer(null, cast(char*)buf.data, 0, buf.offset - 1, 0, 1);
+    uint errorsave = global.startGagging();
+    scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
+    scope Lexer lex = new Lexer(null, cast(char*)buf.data, 0, buf.offset - 1, 0, 1, diagnosticReporter);
     OutBuffer res;
     const(char)* lastp = cast(char*)buf.data;
-    //printf("highlightCode2('%.*s')\n", buf.offset - 1, buf.data);
+    //printf("highlightCode2('%.*s')\n", cast(int)(buf.offset - 1), buf.data);
     res.reserve(buf.offset);
     while (1)
     {
@@ -3468,7 +3544,7 @@ private void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offse
     }
     buf.setsize(offset);
     buf.write(&res);
-    global.errors = errorsave;
+    global.endGagging(errorsave);
 }
 
 /****************************************

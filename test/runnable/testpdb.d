@@ -285,7 +285,10 @@ void test19318(IDiaSession session, IDiaSymbol globals)
 import core.stdc.stdio;
 import core.stdc.wchar_;
 
-import core.sys.windows.windows;
+import core.sys.windows.basetyps;
+import core.sys.windows.ole2;
+import core.sys.windows.winbase;
+import core.sys.windows.winnt;
 import core.sys.windows.wtypes;
 import core.sys.windows.objbase;
 import core.sys.windows.unknwn;

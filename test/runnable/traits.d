@@ -1317,7 +1317,7 @@ void test_getFunctionAttributes()
         int sharedF() shared { return 0; }
 
         int x;
-        ref int refF() { return x; }
+        ref int refF() return { return x; }
         int propertyF() @property { return 0; }
         int nothrowF() nothrow { return 0; }
         int nogcF() @nogc { return 0; }
@@ -1344,8 +1344,8 @@ void test_getFunctionAttributes()
     static assert(__traits(getFunctionAttributes, S.sharedF) == tuple!("shared", "@system"));
     static assert(__traits(getFunctionAttributes, typeof(S.sharedF)) == tuple!("shared", "@system"));
 
-    static assert(__traits(getFunctionAttributes, S.refF) == tuple!("ref", "@system"));
-    static assert(__traits(getFunctionAttributes, typeof(S.refF)) == tuple!("ref", "@system"));
+    static assert(__traits(getFunctionAttributes, S.refF) == tuple!("ref", "return", "@system"));
+    static assert(__traits(getFunctionAttributes, typeof(S.refF)) == tuple!("ref", "return", "@system"));
 
     static assert(__traits(getFunctionAttributes, S.propertyF) == tuple!("@property", "@system"));
     static assert(__traits(getFunctionAttributes, typeof(&S.propertyF)) == tuple!("@property", "@system"));

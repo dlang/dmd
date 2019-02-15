@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgen.d, backend/cgen.d)
@@ -133,7 +133,7 @@ code *gen(code *c,code *cs)
     return ce;
 }
 
-code *gen1(code *c,uint op)
+code *gen1(code *c,opcode_t op)
 {
     code* ce;
     code* cstart;
@@ -151,7 +151,7 @@ code *gen1(code *c,uint op)
   return ce;
 }
 
-code *gen2(code *c,uint op,uint rm)
+code *gen2(code *c,opcode_t op,uint rm)
 {
     code* ce;
     code* cstart;
@@ -170,7 +170,7 @@ code *gen2(code *c,uint op,uint rm)
 }
 
 
-code *gen2sib(code *c,uint op,uint rm,uint sib)
+code *gen2sib(code *c,opcode_t op,uint rm,uint sib)
 {
     code* ce;
     code* cstart;
@@ -193,7 +193,7 @@ code *gen2sib(code *c,uint op,uint rm,uint sib)
 }
 
 
-code *genc2(code *c,uint op,uint ea,targ_size_t EV2)
+code *genc2(code *c,opcode_t op,uint ea,targ_size_t EV2)
 {   code cs;
 
     cs.Iop = op;
@@ -209,7 +209,7 @@ code *genc2(code *c,uint op,uint ea,targ_size_t EV2)
  * Generate code.
  */
 
-code *genc(code *c,uint op,uint ea,uint FL1,targ_size_t EV1,uint FL2,targ_size_t EV2)
+code *genc(code *c,opcode_t op,uint ea,uint FL1,targ_size_t EV1,uint FL2,targ_size_t EV2)
 {   code cs;
 
     assert(FL1 < FLMAX);
@@ -303,11 +303,11 @@ void gencodelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,bool constflag)
  * If so, return !=0 and set *preg to which register it is.
  */
 
-bool reghasvalue(regm_t regm,targ_size_t value,uint *preg)
+bool reghasvalue(regm_t regm,targ_size_t value,reg_t *preg)
 {
     //printf("reghasvalue(%s, %llx)\n", regm_str(regm), cast(ulong)value);
     /* See if another register has the right value      */
-    uint r = 0;
+    reg_t r = 0;
     for (regm_t mreg = regcon.immed.mval; mreg; mreg >>= 1)
     {
         if (mreg & regm & 1 && regcon.immed.value[r] == value)
@@ -326,10 +326,10 @@ bool reghasvalue(regm_t regm,targ_size_t value,uint *preg)
  *      *preg   the register selected
  */
 
-void regwithvalue(ref CodeBuilder cdb,regm_t regm,targ_size_t value,uint *preg,regm_t flags)
+void regwithvalue(ref CodeBuilder cdb,regm_t regm,targ_size_t value,reg_t *preg,regm_t flags)
 {
     //printf("regwithvalue(value = %lld)\n", (long long)value);
-    uint reg;
+    reg_t reg;
     if (!preg)
         preg = &reg;
 

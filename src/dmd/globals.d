@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/globals.d, _globals.d)
@@ -54,6 +54,7 @@ enum CHECKACTION : ubyte
     D,            // call D assert on failure
     C,            // call C assert on failure
     halt,         // cause program halt on failure
+    context,      // call D assert with the error context on failure
 }
 
 enum CPU
@@ -87,6 +88,14 @@ enum JsonFieldFlags : uint
     buildInfo    = (1 << 1),
     modules      = (1 << 2),
     semantics    = (1 << 3),
+}
+
+enum CppStdRevision : uint
+{
+    cpp98 = 199711,
+    cpp11 = 201103,
+    cpp14 = 201402,
+    cpp17 = 201703
 }
 
 // Put command line switches in here
@@ -128,6 +137,7 @@ struct Param
     bool useUnitTests;          // generate unittest code
     bool useInline = false;     // inline expand functions
     bool useDIP25;          // implement http://wiki.dlang.org/DIP25
+    bool noDIP25;           // revert to pre-DIP25 behavior
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
     Diagnostic warnings = Diagnostic.off;  // how compiler warnings are handled
@@ -148,23 +158,33 @@ struct Param
     bool fix16997;          // fix integral promotions for unary + - ~ operators
                             // https://issues.dlang.org/show_bug.cgi?id=16997
     bool fixAliasThis;      // if the current scope has an alias this, check it before searching upper scopes
-    bool vsafe;             // use enhanced @safe checking
-    bool ehnogc;            // use @nogc exception handling
-    bool dtorFields;        // destruct fields of partially constructed objects
-                            // https://issues.dlang.org/show_bug.cgi?id=14246
     /** The --transition=safe switch should only be used to show code with
      * silent semantics changes related to @safe improvements.  It should not be
      * used to hide a feature that will have to go through deprecate-then-error
      * before becoming default.
      */
+    bool vsafe;             // use enhanced @safe checking
+    bool ehnogc;            // use @nogc exception handling
+    bool dtorFields;        // destruct fields of partially constructed objects
+                            // https://issues.dlang.org/show_bug.cgi?id=14246
+    bool fieldwise;         // do struct equality testing field-wise rather than by memcmp()
+
+    CppStdRevision cplusplus = CppStdRevision.cpp98;    // version of C++ standard to support
+
     bool markdown;          // enable Markdown replacements in Ddoc
     bool vmarkdown;         // list instances of Markdown replacements in Ddoc
 
     bool showGaggedErrors;  // print gagged errors anyway
+    bool printErrorContext;  // print errors with the error context (the error line in the source file)
     bool manual;            // open browser on compiler manual
     bool usage;             // print usage and exit
     bool mcpuUsage;         // print help on -mcpu switch
     bool transitionUsage;   // print help on -transition switch
+    bool checkUsage;        // print help on -check switch
+    bool checkActionUsage;  // print help on -checkaction switch
+    bool revertUsage;       // print help on -revert switch
+    bool previewUsage;      // print help on -preview switch
+    bool externStdUsage;    // print help on -extern-std switch
     bool logo;              // print compiler logo
 
     CPU cpu = CPU.baseline; // CPU instruction set to target
@@ -262,7 +282,7 @@ struct Global
     const(char)* map_ext = "map";       // for .map files
     bool run_noext;                     // allow -run sources without extensions.
 
-    const(char)* copyright = "Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved";
+    const(char)* copyright = "Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved";
     const(char)* written = "written by Walter Bright";
     const(char)* main_d = "__main.d";   // dummy filename for dummy main()
     Array!(const(char)*)* path;         // Array of char*'s which form the import lookup path
@@ -382,6 +402,17 @@ struct Global
         // -color=auto is the default value
         import dmd.console : Console;
         params.color = Console.detectTerminal();
+    }
+
+    /**
+     * Deinitializes the global state of the compiler.
+     *
+     * This can be used to restore the state set by `_init` to its original
+     * state.
+     */
+    void deinitialize()
+    {
+        this = this.init;
     }
 
     /**

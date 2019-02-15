@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -577,7 +577,7 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-class OnScopeStatement : public Statement
+class ScopeGuardStatement : public Statement
 {
 public:
     TOK tok;
@@ -618,7 +618,7 @@ public:
     Identifier *ident;
     LabelDsymbol *label;
     TryFinallyStatement *tf;
-    OnScopeStatement *os;
+    ScopeGuardStatement *os;
     VarDeclaration *lastVar;
 
     Statement *syntaxCopy();
@@ -632,7 +632,7 @@ public:
     Identifier *ident;
     Statement *statement;
     TryFinallyStatement *tf;
-    OnScopeStatement *os;
+    ScopeGuardStatement *os;
     VarDeclaration *lastVar;
     Statement *gotoTarget;      // interpret
 

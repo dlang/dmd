@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/semantic2.d, _semantic2.d)
@@ -435,12 +435,6 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 }
                 return 0;
             });
-        }
-        objc.setSelector(fd, sc);
-        objc.validateSelector(fd);
-        if (ClassDeclaration cd = fd.parent.isClassDeclaration())
-        {
-            objc.checkLinkage(fd);
         }
         if (!fd.type || fd.type.ty != Tfunction)
             return;

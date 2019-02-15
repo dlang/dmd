@@ -2135,7 +2135,7 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class OnScopeStatement : Statement
+    extern (C++) final class ScopeGuardStatement : Statement
     {
         TOK tok;
         Statement statement;
@@ -4283,10 +4283,10 @@ struct ASTBase
     extern (C++) abstract class Expression : RootObject
     {
         TOK op;
-        Loc loc;
-        Type type;
-        ubyte parens;
         ubyte size;
+        ubyte parens;
+        Type type;
+        Loc loc;
 
         final extern (D) this(const ref Loc loc, TOK op, int size)
         {
@@ -4464,10 +4464,10 @@ struct ASTBase
     {
         Type targ;
         Identifier id;      // can be null
-        TOK tok;            // ':' or '=='
         Type tspec;         // can be null
-        TOK tok2;           // 'struct', 'union', etc.
         TemplateParameters* parameters;
+        TOK tok;            // ':' or '=='
+        TOK tok2;           // 'struct', 'union', etc.
 
         extern (D) this(const ref Loc loc, Type targ, Identifier id, TOK tok, Type tspec, TOK tok2, TemplateParameters* parameters)
         {
@@ -4618,7 +4618,7 @@ struct ASTBase
                 assert(0);
         }
 
-        extern (D) final const(char)[] toStringz() const
+        extern (D) const(char)[] toStringz() const
         {
             auto nbytes = len * sz;
             char* s = cast(char*)mem.xmalloc(nbytes + sz);
@@ -4632,7 +4632,7 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class NewExp : Expression
+    extern (C++) class NewExp : Expression
     {
         Expression thisexp;         // if !=null, 'this' for class being allocated
         Expressions* newargs;       // Array of Expression's to call new operator

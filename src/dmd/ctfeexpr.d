@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/ctfeexpr.d, _ctfeexpr.d)
@@ -292,7 +292,7 @@ private Expressions* copyLiteralArray(Expressions* oldelems, Expression basis = 
 // This value will be used for in-place modification.
 UnionExp copyLiteral(Expression e)
 {
-    UnionExp ue;
+    UnionExp ue = void;
     if (e.op == TOK.string_) // syntaxCopy doesn't make a copy for StringExp!
     {
         StringExp se = cast(StringExp)e;
@@ -360,7 +360,10 @@ UnionExp copyLiteral(Expression e)
                 {
                     auto tsa = cast(TypeSArray)v.type;
                     auto len = cast(size_t)tsa.dim.toInteger();
-                    m = createBlockDuplicatedArrayLiteral(e.loc, v.type, m, len);
+                    UnionExp uex = void;
+                    m = createBlockDuplicatedArrayLiteral(&uex, e.loc, v.type, m, len);
+                    if (m == uex.exp())
+                        m = uex.copy();
                 }
             }
             el = m;
@@ -453,6 +456,14 @@ Expression paintTypeOntoLiteral(Type type, Expression lit)
     return paintTypeOntoLiteralCopy(type, lit).copy();
 }
 
+Expression paintTypeOntoLiteral(UnionExp* pue, Type type, Expression lit)
+{
+    if (lit.type.equals(type))
+        return lit;
+    *pue = paintTypeOntoLiteralCopy(type, lit);
+    return pue.exp();
+}
+
 private UnionExp paintTypeOntoLiteralCopy(Type type, Expression lit)
 {
     UnionExp ue;
@@ -543,7 +554,7 @@ uinteger_t resolveArrayLength(const Expression e)
     switch (e.op)
     {
         case TOK.vector:
-            return resolveArrayLength((cast(VectorExp)e).e1);
+            return (cast(VectorExp)e).dim;
 
         case TOK.null_:
             return 0;
@@ -579,6 +590,7 @@ uinteger_t resolveArrayLength(const Expression e)
  * Helper for NewExp
  * Create an array literal consisting of 'elem' duplicated 'dim' times.
  * Params:
+ *      pue = where to store result
  *      loc = source location where the interpretation occurs
  *      type = target type of the result
  *      elem = the source of array element, it will be owned by the result
@@ -586,14 +598,17 @@ uinteger_t resolveArrayLength(const Expression e)
  * Returns:
  *      Constructed ArrayLiteralExp
  */
-ArrayLiteralExp createBlockDuplicatedArrayLiteral(const ref Loc loc, Type type, Expression elem, size_t dim)
+ArrayLiteralExp createBlockDuplicatedArrayLiteral(UnionExp* pue, const ref Loc loc, Type type, Expression elem, size_t dim)
 {
     if (type.ty == Tsarray && type.nextOf().ty == Tsarray && elem.type.ty != Tsarray)
     {
         // If it is a multidimensional array literal, do it recursively
         auto tsa = cast(TypeSArray)type.nextOf();
         const len = cast(size_t)tsa.dim.toInteger();
-        elem = createBlockDuplicatedArrayLiteral(loc, type.nextOf(), elem, len);
+        UnionExp ue = void;
+        elem = createBlockDuplicatedArrayLiteral(&ue, loc, type.nextOf(), elem, len);
+        if (elem == ue.exp())
+            elem = ue.copy();
     }
 
     // Buzilla 15681
@@ -605,7 +620,8 @@ ArrayLiteralExp createBlockDuplicatedArrayLiteral(const ref Loc loc, Type type, 
     {
         el = mustCopy && i ? copyLiteral(elem).copy() : elem;
     }
-    auto ale = new ArrayLiteralExp(loc, type, elements);
+    emplaceExp!(ArrayLiteralExp)(pue, loc, type, elements);
+    auto ale = cast(ArrayLiteralExp)pue.exp();
     ale.ownedByCtfe = OwnedBy.ctfe;
     return ale;
 }
@@ -614,7 +630,7 @@ ArrayLiteralExp createBlockDuplicatedArrayLiteral(const ref Loc loc, Type type, 
  * Helper for NewExp
  * Create a string literal consisting of 'value' duplicated 'dim' times.
  */
-StringExp createBlockDuplicatedStringLiteral(const ref Loc loc, Type type, dchar value, size_t dim, ubyte sz)
+StringExp createBlockDuplicatedStringLiteral(UnionExp* pue, const ref Loc loc, Type type, dchar value, size_t dim, ubyte sz)
 {
     auto s = cast(char*)mem.xcalloc(dim, sz);
     foreach (elemi; 0 .. dim)
@@ -634,7 +650,8 @@ StringExp createBlockDuplicatedStringLiteral(const ref Loc loc, Type type, dchar
             assert(0);
         }
     }
-    auto se = new StringExp(loc, s, dim);
+    emplaceExp!(StringExp)(pue, loc, s, dim);
+    auto se= cast(StringExp)pue.exp();
     se.type = type;
     se.sz = sz;
     se.committed = true;
@@ -1001,12 +1018,12 @@ bool isFloatIntPaint(Type to, Type from)
 }
 
 // Reinterpret float/int value 'fromVal' as a float/integer of type 'to'.
-Expression paintFloatInt(Expression fromVal, Type to)
+Expression paintFloatInt(UnionExp* pue, Expression fromVal, Type to)
 {
     if (exceptionOrCantInterpret(fromVal))
         return fromVal;
     assert(to.size() == 4 || to.size() == 8);
-    return Compiler.paintAsType(fromVal, to);
+    return Compiler.paintAsType(pue, fromVal, to);
 }
 
 /******** Constant folding, with support for CTFE ***************************/
@@ -1560,50 +1577,67 @@ Expression ctfeIndex(const ref Loc loc, Type type, Expression e1, uinteger_t ind
     }
 }
 
-Expression ctfeCast(const ref Loc loc, Type type, Type to, Expression e)
+Expression ctfeCast(UnionExp* pue, const ref Loc loc, Type type, Type to, Expression e)
 {
+    Expression paint()
+    {
+        return paintTypeOntoLiteral(pue, to, e);
+    }
+
     if (e.op == TOK.null_)
-        return paintTypeOntoLiteral(to, e);
+        return paint();
+
     if (e.op == TOK.classReference)
     {
         // Disallow reinterpreting class casts. Do this by ensuring that
         // the original class can implicitly convert to the target class
         ClassDeclaration originalClass = (cast(ClassReferenceExp)e).originalClass();
         if (originalClass.type.implicitConvTo(to.mutableOf()))
-            return paintTypeOntoLiteral(to, e);
+            return paint();
         else
-            return new NullExp(loc, to);
+        {
+            emplaceExp!(NullExp)(pue, loc, to);
+            return pue.exp();
+        }
     }
+
     // Allow TypeInfo type painting
     if (isTypeInfo_Class(e.type) && e.type.implicitConvTo(to))
-        return paintTypeOntoLiteral(to, e);
+        return paint();
+
     // Allow casting away const for struct literals
     if (e.op == TOK.structLiteral && e.type.toBasetype().castMod(0) == to.toBasetype().castMod(0))
-    {
-        return paintTypeOntoLiteral(to, e);
-    }
+        return paint();
+
     Expression r;
     if (e.type.equals(type) && type.equals(to))
     {
         // necessary not to change e's address for pointer comparisons
         r = e;
     }
-    else if (to.toBasetype().ty == Tarray && type.toBasetype().ty == Tarray && to.toBasetype().nextOf().size() == type.toBasetype().nextOf().size())
+    else if (to.toBasetype().ty == Tarray &&
+             type.toBasetype().ty == Tarray &&
+             to.toBasetype().nextOf().size() == type.toBasetype().nextOf().size())
     {
         // https://issues.dlang.org/show_bug.cgi?id=12495
         // Array reinterpret casts: eg. string to immutable(ubyte)[]
-        return paintTypeOntoLiteral(to, e);
+        return paint();
     }
     else
     {
-        r = Cast(loc, type, to, e).copy();
+        *pue = Cast(loc, type, to, e);
+        r = pue.exp();
     }
+
     if (CTFEExp.isCantExp(r))
         error(loc, "cannot cast `%s` to `%s` at compile time", e.toChars(), to.toChars());
-    if (e.op == TOK.arrayLiteral)
-        (cast(ArrayLiteralExp)e).ownedByCtfe = OwnedBy.ctfe;
-    if (e.op == TOK.string_)
-        (cast(StringExp)e).ownedByCtfe = OwnedBy.ctfe;
+
+    if (auto ae = e.isArrayLiteralExp())
+        ae.ownedByCtfe = OwnedBy.ctfe;
+
+    if (auto se = e.isStringExp())
+        se.ownedByCtfe = OwnedBy.ctfe;
+
     return r;
 }
 

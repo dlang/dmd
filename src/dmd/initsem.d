@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/initsem.d, _initsem.d)
@@ -171,8 +171,8 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
                 }
                 if (vd.type.hasPointers)
                 {
-                    if ((t.alignment() < Target.ptrsize ||
-                         (vd.offset & (Target.ptrsize - 1))) &&
+                    if ((t.alignment() < target.ptrsize ||
+                         (vd.offset & (target.ptrsize - 1))) &&
                         sc.func && sc.func.setUnsafe())
                     {
                         error(i.loc, "field `%s.%s` cannot assign to misaligned pointers in `@safe` code",

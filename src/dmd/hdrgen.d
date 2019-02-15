@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/hdrgen.d, _hdrgen.d)
@@ -633,7 +633,7 @@ public:
         }
     }
 
-    override void visit(OnScopeStatement s)
+    override void visit(ScopeGuardStatement s)
     {
         buf.writestring(Token.toString(s.tok));
         buf.writeByte(' ');
@@ -2270,9 +2270,9 @@ public:
             if (cast(sinteger_t)uval >= 0)
             {
                 dinteger_t sizemax;
-                if (Target.ptrsize == 4)
+                if (target.ptrsize == 4)
                     sizemax = 0xFFFFFFFFU;
-                else if (Target.ptrsize == 8)
+                else if (target.ptrsize == 8)
                     sizemax = 0xFFFFFFFFFFFFFFFFUL;
                 else
                     assert(0);
@@ -2406,9 +2406,9 @@ public:
                 buf.writestring("cast(");
                 buf.writestring(t.toChars());
                 buf.writeByte(')');
-                if (Target.ptrsize == 4)
+                if (target.ptrsize == 4)
                     goto L3;
-                else if (Target.ptrsize == 8)
+                else if (target.ptrsize == 8)
                     goto L4;
                 else
                     assert(0);
@@ -2759,7 +2759,8 @@ public:
     override void visit(TraitsExp e)
     {
         buf.writestring("__traits(");
-        buf.writestring(e.ident.toString());
+        if (e.ident)
+            buf.writestring(e.ident.toString());
         if (e.args)
         {
             foreach (arg; *e.args)
@@ -2936,6 +2937,12 @@ public:
         typeToBuffer(e.to, null);
         buf.writeByte(')');
         expToBuffer(e.e1, precedence[e.op]);
+    }
+
+    override void visit(VectorArrayExp e)
+    {
+        expToBuffer(e.e1, PREC.primary);
+        buf.writestring(".array");
     }
 
     override void visit(SliceExp e)

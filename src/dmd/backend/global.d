@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/global.d, backend/global.d)
@@ -103,11 +103,11 @@ Symbol *asm_define_label(const(char)* id);
 
 // cpp.c
 version (SCPP)
-    char* cpp_mangle(Symbol* s);
+    const(char)* cpp_mangle(Symbol* s);
 else version (MARS)
-    char* cpp_mangle(Symbol* s);
+    const(char)* cpp_mangle(Symbol* s);
 else
-    char* cpp_mangle(Symbol* s) { return &s.Sident[0]; }
+    const(char)* cpp_mangle(Symbol* s) { return &s.Sident[0]; }
 
 // ee.c
 void eecontext_convs(uint marksi);
@@ -259,7 +259,7 @@ type *newref(type *);
 type *topointer(type *);
 type *type_ptr(elem *, type *);
 int type_chksize(uint);
-tym_t tym_conv(type *);
+tym_t tym_conv(const type *);
 type * type_arrayroot(type *);
 void chklvalue(elem *);
 int tolvalue(elem **);
@@ -330,9 +330,9 @@ void symtab_free(Symbol **tab);
 //#define symbol_keep(s) (()(s))
 //#endif
 void symbol_keep(Symbol *s) { }
-void symbol_print(Symbol *s);
+void symbol_print(const Symbol* s);
 void symbol_term();
-char *symbol_ident(Symbol *s);
+const(char)* symbol_ident(const Symbol *s);
 Symbol *symbol_calloc(const(char)* id);
 Symbol *symbol_calloc(const(char)* id, uint len);
 Symbol *symbol_name(const(char)* name, int sclass, type *t);
@@ -357,6 +357,8 @@ baseclass_t *baseclass_find_nest(baseclass_t *bm,Classsym *sbase);
 int baseclass_nitems(baseclass_t *b);
 void symbol_free(Symbol *s);
 SYMIDX symbol_add(Symbol *s);
+SYMIDX symbol_add(symtab_t*, Symbol *s);
+SYMIDX symbol_insert(symtab_t*, Symbol *s, SYMIDX n);
 void freesymtab(Symbol **stab, SYMIDX n1, SYMIDX n2);
 Symbol *symbol_copy(Symbol *s);
 Symbol *symbol_searchlist(symlist_t sl, const(char)* vident);
@@ -520,7 +522,7 @@ void rtlsym_reset();
 void rtlsym_term();
 
 // compress.c
-extern(C) char *id_compress(char *id, int idlen, size_t *plen);
+extern(C) char *id_compress(const char *id, int idlen, size_t *plen);
 
 // Dwarf
 void dwarf_CFA_set_loc(uint location);

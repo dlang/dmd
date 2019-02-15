@@ -7,6 +7,7 @@ import std.stdio;
 import core.stdc.stdio;
 import std.string;
 import core.memory;
+import core.vararg;
 
 /***************************************************/
 
@@ -52,7 +53,7 @@ void test3()
 {
     auto i = mixin("__LINE__");
     writefln("%d", i);
-    assert(i == 53);
+    assert(i == 54);
 }
 
 /***************************************************/
@@ -2421,21 +2422,22 @@ bool foo150()
 
 void crash(int x)
 {
-  if (x==200) return;
-   asm { int 3; }
+    if (x==200) return;
+    assert(0);
 }
 
 void test151()
 {
-   int x;
-   bug3521(&x);
+    int x;
+    bug3521(&x);
 }
 
-void bug3521(int *a){
+void bug3521(int *a)
+{
     int c = 0;
     *a = 0;
     if ( *a || (*a != (c = 200)) )
-       crash(c);
+        crash(c);
 }
 
 /***************************************************/
@@ -3280,7 +3282,6 @@ void test201() {
 /***************************************************/
 // This was the original varargs example in std.vararg
 
-import core.vararg;
 
 void foo202(int x, ...) {
     printf("%d arguments\n", _arguments.length);
@@ -4169,10 +4170,22 @@ void oddity4001()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=3809
 
-int bug3809() { asm { nop; } return 0; }
-struct BUG3809 { int xx; }
-void bug3809b() {
+int bug3809()
+{
+    static int a = 0;
+    return a;
+}
+
+struct BUG3809
+{
+    int xx;
+}
+
+void bug3809b()
+{
+    BUG3809 b = { bug3809() };
 }
 
 /***************************************************/
@@ -4495,6 +4508,7 @@ void test6997()
     auto x = S6997().foo();
 }
 
+
 /***************************************************/
 
 ubyte foo7026(uint n) {
@@ -4612,12 +4626,12 @@ void test7290()
     int add = 2;
     scope dg = (int a) => a + add;
 
-    // This will break with -dip1000 because a closure will no longer be allocated
+    // This will break with -preview=dip1000 because a closure will no longer be allocated
     assert(GC.addrOf(dg.ptr) == null);
 
     foo7290a!dg();
     foo7290b(dg);
-    foo7290c(dg); // this will fail with -dip1000 and @safe because a scope delegate gets
+    foo7290c(dg); // this will fail with -preview=dip1000 and @safe because a scope delegate gets
                   // assigned to @system delegate, but no closure was allocated
 }
 
@@ -5527,6 +5541,7 @@ void test14682b()
     { auto x = [[[[]]]] ~ a3;   static assert(is(typeof(x) == typeof(a3)[])); assert(x == r4b); } // fix
 }
 
+
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=9739
 
@@ -6143,6 +6158,7 @@ void test11472()
 {
     assert(x11472 == 10);
 }
+
 
 /***************************************************/
 

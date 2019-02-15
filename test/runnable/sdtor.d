@@ -1,5 +1,5 @@
 // PERMUTE_ARGS: -unittest -O -release -inline -fPIC -g
-// REQUIRED_ARGS: -transition=dtorfields
+// REQUIRED_ARGS: -preview=dtorfields
 
 import core.vararg;
 
@@ -883,7 +883,7 @@ void test34()
     for (int j = 0; j < xs.length; j++) {
         j++,j--;
         auto x = xs[j];
-        //foreach(x; xs) {
+        //foreach(x; xs)
         //printf("foreach x.i = %d\n", x[0].i);
         //assert(x[0].i == 1);
         printf("foreach x.i = %d\n", x.i);
@@ -4614,6 +4614,68 @@ class C66
 }
 
 /**********************************/
+// https://issues.dlang.org/show_bug.cgi?id=16652
+
+struct Vector
+{
+    this(ubyte a)
+    {
+        pragma(inline, false);
+        buf = a;
+    }
+
+    ~this()
+    {
+        pragma(inline, false);
+        buf = 0;
+    }
+
+    ubyte buf;
+}
+
+int bar16652(ubyte* v)
+{
+    pragma(inline, true);
+    assert(*v == 1);
+    return 0;
+}
+
+void test16652()
+{
+    bar16652(&Vector(1).buf);
+}
+
+
+/**********************************/
+// https://issues.dlang.org/show_bug.cgi?id=19676
+
+void test19676()
+{
+    static struct S
+    {
+        __gshared int count;
+        ~this() { ++count; }
+    }
+
+    static S foo() { return S(); }
+
+    static void test1()
+    {
+        cast(void)foo();
+    }
+
+    static void test2()
+    {
+        foo();
+    }
+
+    test1();
+    assert(S.count == 1);
+    test2();
+    assert(S.count == 2);
+}
+
+/**********************************/
 
 int main()
 {
@@ -4747,6 +4809,8 @@ int main()
     test65();
     test15661();
     test18045();
+    test16652();
+    test19676();
 
     printf("Success\n");
     return 0;

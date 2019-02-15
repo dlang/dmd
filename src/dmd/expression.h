@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -55,7 +55,8 @@ Expression *toDelegate(Expression *e, Type* t, Scope *sc);
 bool hasSideEffect(Expression *e);
 bool canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow);
 
-enum OwnedBy
+typedef unsigned char OwnedBy;
+enum
 {
     OWNEDcode,      // normal code expression in AST
     OWNEDctfe,      // value expression for CTFE
@@ -65,11 +66,11 @@ enum OwnedBy
 class Expression : public RootObject
 {
 public:
-    Loc loc;                    // file location
-    Type *type;                 // !=NULL means that semantic() has been run
     TOK op;                     // to minimize use of dynamic_cast
     unsigned char size;         // # of bytes in Expression so we can copy() it
     unsigned char parens;       // if this is a parenthesized expression
+    Type *type;                 // !=NULL means that semantic() has been run
+    Loc loc;                    // file location
 
     static void _init();
     Expression *copy();
@@ -118,6 +119,109 @@ public:
     {
         return true;
     }
+
+    IntegerExp* isIntegerExp();
+    ErrorExp* isErrorExp();
+    VoidInitExp* isVoidInitExp();
+    RealExp* isRealExp();
+    ComplexExp* isComplexExp();
+    IdentifierExp* isIdentifierExp();
+    DollarExp* isDollarExp();
+    DsymbolExp* isDsymbolExp();
+    ThisExp* isThisExp();
+    SuperExp* isSuperExp();
+    NullExp* isNullExp();
+    StringExp* isStringExp();
+    TupleExp* isTupleExp();
+    ArrayLiteralExp* isArrayLiteralExp();
+    AssocArrayLiteralExp* isAssocArrayLiteralExp();
+    StructLiteralExp* isStructLiteralExp();
+    TypeExp* isTypeExp();
+    ScopeExp* isScopeExp();
+    TemplateExp* isTemplateExp();
+    NewExp* isNewExp();
+    NewAnonClassExp* isNewAnonClassExp();
+    SymOffExp* isSymOffExp();
+    VarExp* isVarExp();
+    OverExp* isOverExp();
+    FuncExp* isFuncExp();
+    DeclarationExp* isDeclarationExp();
+    TypeidExp* isTypeidExp();
+    TraitsExp* isTraitsExp();
+    HaltExp* isHaltExp();
+    IsExp* isExp();
+    CompileExp* isCompileExp();
+    ImportExp* isImportExp();
+    AssertExp* isAssertExp();
+    DotIdExp* isDotIdExp();
+    DotTemplateExp* isDotTemplateExp();
+    DotVarExp* isDotVarExp();
+    DotTemplateInstanceExp* isDotTemplateInstanceExp();
+    DelegateExp* isDelegateExp();
+    DotTypeExp* isDotTypeExp();
+    CallExp* isCallExp();
+    AddrExp* isAddrExp();
+    PtrExp* isPtrExp();
+    NegExp* isNegExp();
+    UAddExp* isUAddExp();
+    ComExp* isComExp();
+    NotExp* isNotExp();
+    DeleteExp* isDeleteExp();
+    CastExp* isCastExp();
+    VectorExp* isVectorExp();
+    VectorArrayExp* isVectorArrayExp();
+    SliceExp* isSliceExp();
+    ArrayLengthExp* isArrayLengthExp();
+    ArrayExp* isArrayExp();
+    DotExp* isDotExp();
+    CommaExp* isCommaExp();
+    IntervalExp* isIntervalExp();
+    DelegatePtrExp* isDelegatePtrExp();
+    DelegateFuncptrExp* isDelegateFuncptrExp();
+    IndexExp* isIndexExp();
+    PostExp* isPostExp();
+    PreExp* isPreExp();
+    AssignExp* isAssignExp();
+    ConstructExp* isConstructExp();
+    BlitExp* isBlitExp();
+    AddAssignExp* isAddAssignExp();
+    MinAssignExp* isMinAssignExp();
+    MulAssignExp* isMulAssignExp();
+    DivAssignExp* isDivAssignExp();
+    ModAssignExp* isModAssignExp();
+    AndAssignExp* isAndAssignExp();
+    OrAssignExp* isOrAssignExp();
+    XorAssignExp* isXorAssignExp();
+    PowAssignExp* isPowAssignExp();
+    ShlAssignExp* isShlAssignExp();
+    ShrAssignExp* isShrAssignExp();
+    UshrAssignExp* isUshrAssignExp();
+    CatAssignExp* isCatAssignExp();
+    AddExp* isAddExp();
+    MinExp* isMinExp();
+    CatExp* isCatExp();
+    MulExp* isMulExp();
+    DivExp* isDivExp();
+    ModExp* isModExp();
+    PowExp* isPowExp();
+    ShlExp* isShlExp();
+    ShrExp* isShrExp();
+    UshrExp* isUshrExp();
+    AndExp* isAndExp();
+    OrExp* isOrExp();
+    XorExp* isXorExp();
+    LogicalExp* isLogicalExp();
+    InExp* isInExp();
+    RemoveExp* isRemoveExp();
+    EqualExp* isEqualExp();
+    IdentityExp* isIdentityExp();
+    CondExp* isCondExp();
+    DefaultInitExp* isDefaultInitExp();
+    FileInitExp* isFileInitExp();
+    LineInitExp* isLineInitExp();
+    ModuleInitExp* isModuleInitExp();
+    FuncInitExp* isFuncInitExp();
+    PrettyFuncInitExp* isPrettyFuncInitExp();
 
     virtual void accept(Visitor *v) { v->visit(this); }
 };
@@ -328,25 +432,27 @@ public:
     Expressions *elements;      // parallels sd->fields[] with NULL entries for fields to skip
     Type *stype;                // final type of result (can be different from sd's type)
 
-    bool useStaticInit;         // if this is true, use the StructDeclaration's init symbol
     Symbol *sym;                // back end symbol to initialize with literal
 
-    OwnedBy ownedByCtfe;
-
-    // pointer to the origin instance of the expression.
-    // once a new expression is created, origin is set to 'this'.
-    // anytime when an expression copy is created, 'origin' pointer is set to
-    // 'origin' pointer value of the original expression.
+    /** pointer to the origin instance of the expression.
+     * once a new expression is created, origin is set to 'this'.
+     * anytime when an expression copy is created, 'origin' pointer is set to
+     * 'origin' pointer value of the original expression.
+     */
     StructLiteralExp *origin;
 
     // those fields need to prevent a infinite recursion when one field of struct initialized with 'this' pointer.
     StructLiteralExp *inlinecopy;
 
-    // anytime when recursive function is calling, 'stageflags' marks with bit flag of
-    // current stage and unmarks before return from this function.
-    // 'inlinecopy' uses similar 'stageflags' and from multiple evaluation 'doInline'
-    // (with infinite recursion) of this expression.
+    /** anytime when recursive function is calling, 'stageflags' marks with bit flag of
+     * current stage and unmarks before return from this function.
+     * 'inlinecopy' uses similar 'stageflags' and from multiple evaluation 'doInline'
+     * (with infinite recursion) of this expression.
+     */
     int stageflags;
+
+    bool useStaticInit;         // if this is true, use the StructDeclaration's init symbol
+    OwnedBy ownedByCtfe;
 
     static StructLiteralExp *create(Loc loc, StructDeclaration *sd, void *elements, Type *stype = NULL);
     bool equals(RootObject *o);
@@ -545,10 +651,10 @@ public:
      */
     Type *targ;
     Identifier *id;     // can be NULL
-    TOK tok;       // ':' or '=='
     Type *tspec;        // can be NULL
-    TOK tok2;      // 'struct', 'union', etc.
     TemplateParameters *parameters;
+    TOK tok;       // ':' or '=='
+    TOK tok2;      // 'struct', 'union', etc.
 
     Expression *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
@@ -770,9 +876,18 @@ class VectorExp : public UnaExp
 public:
     TypeVector *to;             // the target vector type before semantic()
     unsigned dim;               // number of elements in the vector
+    OwnedBy ownedByCtfe;
 
     static VectorExp *create(Loc loc, Expression *e, Type *t);
     Expression *syntaxCopy();
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class VectorArrayExp : public UnaExp
+{
+public:
+    bool isLvalue();
+    Expression *toLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1258,6 +1373,7 @@ private:
         char addrexp   [sizeof(AddrExp)];
         char indexexp  [sizeof(IndexExp)];
         char sliceexp  [sizeof(SliceExp)];
+        char vectorexp [sizeof(VectorExp)];
     } u;
 #if defined(__DMC__)
     #pragma pack()

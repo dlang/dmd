@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgobj.d, backend/cgobj.d)
@@ -2169,7 +2169,7 @@ void OmfObj_setcodeseg(int seg)
  *      segment index of newly created code segment
  */
 
-int OmfObj_codeseg(char *name,int suffix)
+int OmfObj_codeseg(const char *name,int suffix)
 {
     if (!name)
     {
@@ -2424,7 +2424,7 @@ else
 size_t OmfObj_mangle(Symbol *s,char *dest)
 {   size_t len;
     size_t ilen;
-    char *name;
+    const(char)* name;
     char *name2 = null;
 
     //printf("OmfObj_mangle('%s'), mangle = x%x\n",s.Sident.ptr,type_mangle(s.Stype));
@@ -2469,9 +2469,9 @@ version (MARS)
                 c2 += (c2 < 10) ? '0' : 'A' - 10;
                 name2[LIBIDMAX - 32 + i * 2 + 1] = c2;
             }
-            name = name2;
             len = LIBIDMAX;
-            name[len] = 0;
+            name2[len] = 0;
+            name = name2;
             //printf("name = '%s', len = %d, strlen = %d\n", name, len, strlen(name));
         }
         else
@@ -3788,7 +3788,7 @@ void OmfObj_far16thunk(Symbol *s)
         0x8B,0xC4,                      //      MOV     EAX,ESP
         0x16,                           //      PUSH    SS
         0x50,                           //      PUSH    EAX
-        0x8D,0x75,0x08,                 //      LEA     ESI,8[EBP]
+        LEA,0x75,0x08,                  //      LEA     ESI,8[EBP]
         0x81,0xEC,0x00,0x00,0x00,0x00,  //      SUB     ESP,numparam
         0x8B,0xFC,                      //      MOV     EDI,ESP
         0xB9,0x00,0x00,0x00,0x00,       //      MOV     ECX,numparam

@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/statement.d, _statement.d)
@@ -39,6 +39,7 @@ import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.dinterpret;
+import dmd.lexer;
 import dmd.mtype;
 import dmd.parse;
 import dmd.root.outbuffer;
@@ -199,7 +200,7 @@ extern (C++) abstract class Statement : RootObject
                 stop = true;
             }
 
-            override void visit(OnScopeStatement s)
+            override void visit(ScopeGuardStatement s)
             {
                 stop = true;
             }
@@ -637,6 +638,7 @@ private Statement toStatement(Dsymbol s)
 }
 
 /***********************************************************
+ * https://dlang.org/spec/statement.html#ExpressionStatement
  */
 extern (C++) class ExpStatement : Statement
 {
@@ -810,7 +812,8 @@ extern (C++) final class CompileStatement : Statement
         const errors = global.errors;
         const len = buf.offset;
         const str = buf.extractString()[0 .. len];
-        scope p = new Parser!ASTCodegen(loc, sc._module, str, false);
+        scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
+        scope p = new Parser!ASTCodegen(loc, sc._module, str, false, diagnosticReporter);
         p.nextToken();
 
         auto a = new Statements();
@@ -1126,6 +1129,7 @@ extern (C++) final class ForwardingStatement : Statement
 
 
 /***********************************************************
+ * https://dlang.org/spec/statement.html#while-statement
  */
 extern (C++) final class WhileStatement : Statement
 {
@@ -1166,6 +1170,7 @@ extern (C++) final class WhileStatement : Statement
 }
 
 /***********************************************************
+ * https://dlang.org/spec/statement.html#do-statement
  */
 extern (C++) final class DoStatement : Statement
 {
@@ -1206,6 +1211,7 @@ extern (C++) final class DoStatement : Statement
 }
 
 /***********************************************************
+ * https://dlang.org/spec/statement.html#for-statement
  */
 extern (C++) final class ForStatement : Statement
 {
@@ -1324,6 +1330,7 @@ extern (C++) final class ForeachStatement : Statement
 }
 
 /***********************************************************
+ * https://dlang.org/spec/statement.html#foreach-range-statement
  */
 extern (C++) final class ForeachRangeStatement : Statement
 {
@@ -1369,6 +1376,7 @@ extern (C++) final class ForeachRangeStatement : Statement
 }
 
 /***********************************************************
+ * https://dlang.org/spec/statement.html#if-statement
  */
 extern (C++) final class IfStatement : Statement
 {
@@ -1411,6 +1419,7 @@ extern (C++) final class IfStatement : Statement
 }
 
 /***********************************************************
+ * https://dlang.org/spec/version.html#ConditionalStatement
  */
 extern (C++) final class ConditionalStatement : Statement
 {
@@ -1459,6 +1468,7 @@ extern (C++) final class ConditionalStatement : Statement
 }
 
 /***********************************************************
+ * https://dlang.org/spec/version.html#StaticForeachStatement
  * Static foreach statements, like:
  *      void main()
  *      {
@@ -1514,6 +1524,7 @@ extern (C++) final class StaticForeachStatement : Statement
 }
 
 /***********************************************************
+ * https://dlang.org/spec/statement.html#pragma-statement
  */
 extern (C++) final class PragmaStatement : Statement
 {
@@ -1541,6 +1552,7 @@ extern (C++) final class PragmaStatement : Statement
 }
 
 /***********************************************************
+ * https://dlang.org/spec/version.html#StaticAssert
  */
 extern (C++) final class StaticAssertStatement : Statement
 {
@@ -1564,12 +1576,13 @@ extern (C++) final class StaticAssertStatement : Statement
 }
 
 /***********************************************************
+ * https://dlang.org/spec/statement.html#switch-statement
  */
 extern (C++) final class SwitchStatement : Statement
 {
     Expression condition;           /// switch(condition)
     Statement _body;                ///
-    bool isFinal;                   ///
+    bool isFinal;                   /// https://dlang.org/spec/statement.html#final-switch-statement
 
     DefaultStatement sdefault;      /// default:
     TryFinallyStatement tf;         ///
@@ -1644,6 +1657,7 @@ extern (C++) final class SwitchStatement : Statement
 }
 
 /***********************************************************
+ * https://dlang.org/spec/statement.html#CaseStatement
  */
 extern (C++) final class CaseStatement : Statement
 {
@@ -1683,6 +1697,7 @@ extern (C++) final class CaseStatement : Statement
 }
 
 /***********************************************************
+ * https://dlang.org/spec/statement.html#CaseRangeStatement
  */
 extern (C++) final class CaseRangeStatement : Statement
 {
@@ -1710,6 +1725,7 @@ extern (C++) final class CaseRangeStatement : Statement
 }
 
 /***********************************************************
+ * https://dlang.org/spec/statement.html#DefaultStatement
  */
 extern (C++) final class DefaultStatement : Statement
 {
@@ -1739,6 +1755,7 @@ extern (C++) final class DefaultStatement : Statement
 }
 
 /***********************************************************
+ * https://dlang.org/spec/statement.html#GotoStatement
  */
 extern (C++) final class GotoDefaultStatement : Statement
 {
@@ -1766,6 +1783,7 @@ extern (C++) final class GotoDefaultStatement : Statement
 }
 
 /***********************************************************
+ * https://dlang.org/spec/statement.html#GotoStatement
  */
 extern (C++) final class GotoCaseStatement : Statement
 {
@@ -1818,6 +1836,7 @@ extern (C++) final class SwitchErrorStatement : Statement
 }
 
 /***********************************************************
+ * https://dlang.org/spec/statement.html#return-statement
  */
 extern (C++) final class ReturnStatement : Statement
 {
@@ -1847,6 +1866,7 @@ extern (C++) final class ReturnStatement : Statement
 }
 
 /***********************************************************
+ * https://dlang.org/spec/statement.html#break-statement
  */
 extern (C++) final class BreakStatement : Statement
 {
@@ -1875,6 +1895,7 @@ extern (C++) final class BreakStatement : Statement
 }
 
 /***********************************************************
+ * https://dlang.org/spec/statement.html#continue-statement
  */
 extern (C++) final class ContinueStatement : Statement
 {
@@ -1898,6 +1919,7 @@ extern (C++) final class ContinueStatement : Statement
 }
 
 /***********************************************************
+ * https://dlang.org/spec/statement.html#SynchronizedStatement
  */
 extern (C++) final class SynchronizedStatement : Statement
 {
@@ -1933,6 +1955,7 @@ extern (C++) final class SynchronizedStatement : Statement
 }
 
 /***********************************************************
+ * https://dlang.org/spec/statement.html#with-statement
  */
 extern (C++) final class WithStatement : Statement
 {
@@ -1961,6 +1984,7 @@ extern (C++) final class WithStatement : Statement
 }
 
 /***********************************************************
+ * https://dlang.org/spec/statement.html#try-statement
  */
 extern (C++) final class TryCatchStatement : Statement
 {
@@ -1996,6 +2020,7 @@ extern (C++) final class TryCatchStatement : Statement
 }
 
 /***********************************************************
+ * https://dlang.org/spec/statement.html#Catch
  */
 extern (C++) final class Catch : RootObject
 {
@@ -2028,6 +2053,7 @@ extern (C++) final class Catch : RootObject
 }
 
 /***********************************************************
+ * https://dlang.org/spec/statement.html#try-statement
  */
 extern (C++) final class TryFinallyStatement : Statement
 {
@@ -2071,8 +2097,9 @@ extern (C++) final class TryFinallyStatement : Statement
 }
 
 /***********************************************************
+ * https://dlang.org/spec/statement.html#scope-guard-statement
  */
-extern (C++) final class OnScopeStatement : Statement
+extern (C++) final class ScopeGuardStatement : Statement
 {
     TOK tok;
     Statement statement;
@@ -2086,12 +2113,12 @@ extern (C++) final class OnScopeStatement : Statement
 
     override Statement syntaxCopy()
     {
-        return new OnScopeStatement(loc, tok, statement.syntaxCopy());
+        return new ScopeGuardStatement(loc, tok, statement.syntaxCopy());
     }
 
     override Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
     {
-        //printf("OnScopeStatement::scopeCode()\n");
+        //printf("ScopeGuardStatement::scopeCode()\n");
         *sentry = null;
         *sexception = null;
         *sfinally = null;
@@ -2142,6 +2169,7 @@ extern (C++) final class OnScopeStatement : Statement
 }
 
 /***********************************************************
+ * https://dlang.org/spec/statement.html#throw-statement
  */
 extern (C++) final class ThrowStatement : Statement
 {
@@ -2206,13 +2234,14 @@ extern (C++) final class DebugStatement : Statement
 }
 
 /***********************************************************
+ * https://dlang.org/spec/statement.html#goto-statement
  */
 extern (C++) final class GotoStatement : Statement
 {
     Identifier ident;
     LabelDsymbol label;
     TryFinallyStatement tf;
-    OnScopeStatement os;
+    ScopeGuardStatement os;
     VarDeclaration lastVar;
 
     extern (D) this(const ref Loc loc, Identifier ident)
@@ -2292,13 +2321,14 @@ extern (C++) final class GotoStatement : Statement
 }
 
 /***********************************************************
+ * https://dlang.org/spec/statement.html#LabeledStatement
  */
 extern (C++) final class LabelStatement : Statement
 {
     Identifier ident;
     Statement statement;
     TryFinallyStatement tf;
-    OnScopeStatement os;
+    ScopeGuardStatement os;
     VarDeclaration lastVar;
     Statement gotoTarget;       // interpret
     bool breaks;                // someone did a 'break ident'
@@ -2390,6 +2420,7 @@ extern (C++) final class LabelDsymbol : Dsymbol
 }
 
 /***********************************************************
+ * https://dlang.org/spec/statement.html#asm
  */
 extern (C++) class AsmStatement : Statement
 {
@@ -2506,6 +2537,7 @@ extern (C++) final class CompoundAsmStatement : CompoundStatement
 }
 
 /***********************************************************
+ * https://dlang.org/spec/module.html#ImportDeclaration
  */
 extern (C++) final class ImportStatement : Statement
 {

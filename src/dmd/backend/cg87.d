@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1987-1995 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cg87.d, backend/cg87.d)
@@ -810,6 +810,7 @@ void fixresult87(ref CodeBuilder cdb,elem *e,regm_t retregs,regm_t *pretregs)
     /* if retregs needs to be transferred into the 8087 */
     if (*pretregs & mST0 && retregs & (mBP | ALLREGS))
     {
+        if (sz > DOUBLESIZE) elem_print(e);
         assert(sz <= DOUBLESIZE);
         if (!I16)
         {
@@ -822,14 +823,14 @@ void fixresult87(ref CodeBuilder cdb,elem *e,regm_t retregs,regm_t *pretregs)
             push87(cdb);
             if (sz == REGSIZE || (I64 && sz == 4))
             {
-                uint reg = findreg(retregs);
+                const reg = findreg(retregs);
                 cdb.genfltreg(STO,reg,0);           // MOV fltreg,reg
                 cdb.genfltreg(0xD9,0,0);            // FLD float ptr fltreg
             }
             else
             {
-                uint msreg = findregmsw(retregs);
-                uint lsreg = findreglsw(retregs);
+                const msreg = findregmsw(retregs);
+                const lsreg = findreglsw(retregs);
                 cdb.genfltreg(STO,lsreg,0);         // MOV fltreg,lsreg
                 cdb.genfltreg(STO,msreg,4);         // MOV fltreg+4,msreg
                 cdb.genfltreg(0xDD,0,0);            // FLD double ptr fltreg
@@ -856,7 +857,7 @@ void fixresult87(ref CodeBuilder cdb,elem *e,regm_t retregs,regm_t *pretregs)
         pop87();
         cdb.genfltreg(ESC(mf,1),3,0);
         genfwait(cdb);
-        uint reg;
+        reg_t reg;
         allocreg(cdb,pretregs,&reg,(sz == FLOATSIZE) ? TYfloat : TYdouble);
         if (sz == FLOATSIZE)
         {
@@ -908,7 +909,7 @@ void fixresult87(ref CodeBuilder cdb,elem *e,regm_t retregs,regm_t *pretregs)
             assert(sz <= DOUBLESIZE);
             uint mf = (sz == FLOATSIZE) ? MFfloat : MFdouble;
             // MOVD floatreg,XMM?
-            uint reg = findreg(retregs);
+            const reg = findreg(retregs);
             cdb.genxmmreg(xmmstore(tym),reg,0,tym);
             push87(cdb);
             cdb.genfltreg(ESC(mf,1),0,0);                 // FLD float/double ptr fltreg
@@ -922,7 +923,7 @@ void fixresult87(ref CodeBuilder cdb,elem *e,regm_t retregs,regm_t *pretregs)
             cdb.genfltreg(ESC(mf,1),3,0);
             genfwait(cdb);
             // MOVD XMM?,floatreg
-            uint reg;
+            reg_t reg;
             allocreg(cdb,pretregs,&reg,(sz == FLOATSIZE) ? TYfloat : TYdouble);
             cdb.genxmmreg(xmmload(tym),reg,0,tym);
         }
@@ -1622,11 +1623,12 @@ private void loadComplex(ref CodeBuilder cdb,elem *e)
  * Must follow same logic as cmporder87();
  */
 
-void load87(ref CodeBuilder cdb,elem *e,uint eoffset,regm_t *pretregs,elem *eleft,int op)
+void load87(ref CodeBuilder cdb,elem *e,uint eoffset,regm_t *pretregs,elem *eleft,OPER op)
 {
     code cs;
     regm_t retregs;
-    uint reg,mf1;
+    reg_t reg;
+    uint mf1;
     ubyte ldop;
     int i;
 
@@ -1640,7 +1642,7 @@ void load87(ref CodeBuilder cdb,elem *e,uint eoffset,regm_t *pretregs,elem *elef
     else
         cs.Iflags = 0;
     cs.Irex = 0;
-    int opr = oprev[op + 1];
+    OPER opr = oprev[op + 1];
     tym_t ty = tybasic(e.Ety);
     uint mf = (ty == TYfloat || ty == TYifloat || ty == TYcfloat) ? MFfloat : MFdouble;
     if ((ty == TYldouble || ty == TYildouble) &&
@@ -2847,7 +2849,7 @@ void post87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     uint op;
     uint op1;
-    uint reg;
+    reg_t reg;
 
     //printf("post87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
     code cs;
@@ -2963,7 +2965,7 @@ void cdd_u64(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         retregs = *pretregs;
         if (!retregs)
             retregs = ALLREGS;
-        uint reg, reg2;
+        reg_t reg, reg2;
         allocreg(cdb,&retregs,&reg,tym);
         reg  = findreglsw(retregs);
         reg2 = findregmsw(retregs);
@@ -3047,10 +3049,10 @@ void cdd_u64(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         retregs = *pretregs;
         if (!retregs)
             retregs = ALLREGS;
-        uint reg;
+        reg_t reg;
         allocreg(cdb,&retregs,&reg,tym);
         regm_t regm2 = ALLREGS & ~retregs & ~mAX;
-        uint reg2;
+        reg_t reg2;
         allocreg(cdb,&regm2,&reg2,tym);
         movregconst(cdb,reg2,0x80000000,0);
         getregs(cdb,mask(reg2) | mAX);
@@ -3124,7 +3126,7 @@ void cdd_u32(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     retregs = *pretregs & ALLREGS;
     if (!retregs)
         retregs = ALLREGS;
-    uint reg;
+    reg_t reg;
     allocreg(cdb,&retregs,&reg,tym);
 
     cdb.genfltreg(0xC7,0,8);
@@ -3154,7 +3156,8 @@ void cdd_u32(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 void cnvt87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     regm_t retregs;
-    uint mf,rf,reg;
+    uint mf,rf;
+    reg_t reg;
     int clib;
 
     //printf("cnvt87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
@@ -3338,7 +3341,7 @@ void cdrndtol(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     retregs = *pretregs & (ALLREGS | mBP);
     if (!retregs)
         retregs = ALLREGS;
-    uint reg;
+    reg_t reg;
     allocreg(cdb,&retregs,&reg,tym);
     genfwait(cdb);                      // FWAIT
     if (tysize(tym) > REGSIZE)

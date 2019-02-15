@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2009-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2009-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/machobj.d, backend/machobj.d)
@@ -2002,7 +2002,7 @@ void Obj_setcodeseg(int seg)
  *      segment index of newly created code segment
  */
 
-int Obj_codeseg(char *name,int suffix)
+int Obj_codeseg(const char *name,int suffix)
 {
     //dbg_printf("Obj_codeseg(%s,%x)\n",name,suffix);
 static if (0)

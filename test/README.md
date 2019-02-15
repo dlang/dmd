@@ -65,6 +65,64 @@ Note:
 - `AUTO_UPDATE` doesn't work with tests that have multiple `TEST_OUTPUT` segments
 - `AUTO_UPDATE` can be set as an environment variable or as Makefile-like argument assignment
 
+### Running the Unit Tests
+
+The unit tests will automatically run when all tests are run using `./run.d` or
+`make`. To only run the unit tests the `./run.d unit_tests` command can be used.
+For a more finer grain control over the unit tests the `./run.d -u` command can
+be used:
+
+To run all unit tests:
+
+```sh
+./run.d -u
+```
+
+To only run the unit tests in one or more specific files:
+
+```sh
+./run.d -u unit/deinitialization.d
+```
+
+To only run a subset of the unit tests in a single file:
+
+```sh
+./run.d -u unit/deinitialization.d --filter Expression
+```
+
+In the above example, the `--filter` flag will filter to only run the tests with
+a UDA matching the given value, in this case `Expression`.
+
+```d
+@("Target.deinitialize")
+unittest {}
+
+@("Expression.deinitialize")
+unittest {}
+```
+
+Of the above unit tests, only the second one will be run, since
+`--filter Expression` was specified.
+
+The `--filter` flag works when no files are specified as well.
+
+## Types of Tests
+
+There are two types of tests in the DMD test suite:
+
+* **End-to-end test**. These are tests that invokes the compiler as an external
+process in some kind of way. Then it asserts either the exit code or the output
+of the compiler. These tests are located in `compilable`, `fail_compilation` and
+`runnable`.
+
+* **Unit tests**. These tests are more of a unit test, integration or
+functional style tests. These tests are using the compiler as a library. They
+are more flexible because they can assert state internal to the compiler which
+the end-to-end tests would never have access to. The unit test runner will
+compile all files in the `unit` directory into a single executable and run the
+tests. This should make it quick to run the tests since only a single process
+need to be started.
+
 Makefile targets
 ----------------
 
@@ -74,6 +132,7 @@ Makefile targets
     run_runnable_tests:         run just the runnable tests
     run_compilable_tests:       run just the compilable tests
     run_fail_compilation_tests: run just the fail compilation tests
+    unit_test:                  run all unit tests (those in the "unit" directory)
 
     quick:              run all tests with no default permuted args
                         (individual test specified options still honored)
@@ -218,3 +277,28 @@ Along with the environment variables provided by the Makefile (see above), an ad
 
     SOEXT              platform-specific extension for shared object files (aka. dynamic libraries),
                        e.g. .so, .dll or .dylib
+
+Test configuration variables
+----------------------------
+
+Sometimes test configuration arguments must be dynamic.
+For example, the output of all tests should be placed into `RESULTS_DIR`:
+
+```
+// REQUIRED_ARGS: -mixin=${RESULTS_DIR}/fail_compilation/mixin_test.mixin
+```
+
+Currently these variables are exposed:
+
+    RESULTS_DIR       Path to `test_results`
+
+`TEST_OUTPUT`
+-------------
+
+A few operations are done on the output of a test before the comparison with `TEST_OUTPUT`:
+
+- newlines get unified for consistent `TEST_OUTPUT` between platforms
+- DMD's debug message (e.g. `DMD v2.084.0-255-g86b608a15-dirty DEBUG`) gets stripped away
+- paths to `test_results` will be replaced with `{{RESULTS_DIR}}`
+
+Both stderr and stdout of the DMD are captured for output comparison.

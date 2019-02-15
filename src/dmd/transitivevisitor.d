@@ -272,9 +272,9 @@ package mixin template ParseVisitMethods(AST)
         s.finalbody.accept(this);
     }
 
-    override void visit(AST.OnScopeStatement s)
+    override void visit(AST.ScopeGuardStatement s)
     {
-        //printf("Visiting OnScopeStatement\n");
+        //printf("Visiting ScopeGuardStatement\n");
         s.statement.accept(this);
     }
 

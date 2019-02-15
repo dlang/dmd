@@ -5,7 +5,7 @@
  *
  * This modules defines some utility functions for DMD.
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/utils.d, _utils.d)
@@ -160,7 +160,6 @@ extern(D) static bool iequals(const(char)[] s1, const(char)[] s2)
     if (s1.length != s2.length)
         return false;
 
-    int result = 0;
     foreach (idx, c1; s1)
     {
         // Since we did a length check, it is safe to bypass bounds checking

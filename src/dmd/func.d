@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/func.d, _func.d)
@@ -198,6 +198,22 @@ extern (C++) struct Ensure
  */
 extern (C++) class FuncDeclaration : Declaration
 {
+    /// All hidden parameters bundled.
+    static struct HiddenParameters
+    {
+        /**
+         * The `this` parameter for methods or nested functions.
+         *
+         * For methods, it would be the class object or struct value the
+         * method is called on. For nested functions it would be the enclosing
+         * function's stack frame.
+         */
+        VarDeclaration vthis;
+
+        /// The selector parameter for Objective-C methods.
+        VarDeclaration selectorParameter;
+    }
+
     Types* fthrows;                     /// Array of Type's of exceptions (not used)
     Statements* frequires;              /// in contracts
     Ensures* fensures;                  /// out contracts
@@ -220,6 +236,7 @@ extern (C++) class FuncDeclaration : Declaration
     VarDeclaration vthis;               /// 'this' parameter (member and nested)
     VarDeclaration v_arguments;         /// '_arguments' parameter
     ObjcSelector* selector;             /// Objective-C method selector (member function only)
+    VarDeclaration selectorParameter;   /// Objective-C implicit selector parameter
 
     VarDeclaration v_argptr;            /// '_argptr' variable
     VarDeclarations* parameters;        /// Array of VarDeclaration's for parameters
@@ -438,7 +455,13 @@ extern (C++) class FuncDeclaration : Declaration
     }
 
     // called from semantic3
-    final VarDeclaration declareThis(Scope* sc, AggregateDeclaration ad)
+    /**
+     * Creates and returns the hidden parameters for this function declaration.
+     *
+     * Hidden parameters include the `this` parameter of a class, struct or
+     * nested function and the selector parameter for Objective-C methods.
+     */
+    final HiddenParameters declareThis(Scope* sc, AggregateDeclaration ad)
     {
         if (ad)
         {
@@ -471,7 +494,7 @@ extern (C++) class FuncDeclaration : Declaration
             if (!sc.insert(v))
                 assert(0);
             v.parent = this;
-            return v;
+            return HiddenParameters(v, objc.createSelectorParameter(this, sc));
         }
         if (isNested())
         {
@@ -496,9 +519,9 @@ extern (C++) class FuncDeclaration : Declaration
             if (!sc.insert(v))
                 assert(0);
             v.parent = this;
-            return v;
+            return HiddenParameters(v);
         }
-        return null;
+        return HiddenParameters.init;
     }
 
     override final bool equals(RootObject o)
@@ -1597,13 +1620,20 @@ extern (C++) class FuncDeclaration : Declaration
             return toAliasFunc().isVirtual();
 
         auto p = toParent();
+
+        if (!isMember || !p.isClassDeclaration)
+            return false;
+                                                             // https://issues.dlang.org/show_bug.cgi?id=19654
+        if (p.isClassDeclaration.classKind == ClassKind.objc && !p.isInterfaceDeclaration)
+            return objc.isVirtual(this);
+
         version (none)
         {
             printf("FuncDeclaration::isVirtual(%s)\n", toChars());
             printf("isMember:%p isStatic:%d private:%d ctor:%d !Dlinkage:%d\n", isMember(), isStatic(), protection == Prot.Kind.private_, isCtorDeclaration(), linkage != LINK.d);
             printf("result is %d\n", isMember() && !(isStatic() || protection == Prot.Kind.private_ || protection == Prot.Kind.package_) && p.isClassDeclaration() && !(p.isInterfaceDeclaration() && isFinalFunc()));
         }
-        return isMember() && !(isStatic() || protection.kind == Prot.Kind.private_ || protection.kind == Prot.Kind.package_) && p.isClassDeclaration() && !(p.isInterfaceDeclaration() && isFinalFunc());
+        return !(isStatic() || protection.kind == Prot.Kind.private_ || protection.kind == Prot.Kind.package_) && !(p.isInterfaceDeclaration() && isFinalFunc());
     }
 
     final bool isFinalFunc() const
@@ -2616,6 +2646,14 @@ private const(char)* prependSpace(const(char)* str)
     return (" " ~ str[0 .. strlen(str)] ~ "\0").ptr;
 }
 
+/// Flag used by $(LREF resolveFuncCall).
+enum FuncResolveFlag : ubyte
+{
+    stdandard = 0,      /// issue error messages, solve the call.
+    quiet = 1,          /// do not issue error message on no match, just return `null`.
+    overloadOnly = 2,   /// only resolve overloads.
+}
+
 /*******************************************
  * Given a symbol that could be either a FuncDeclaration or
  * a function template, resolve it to a function symbol.
@@ -2626,13 +2664,12 @@ private const(char)* prependSpace(const(char)* str)
  *      tiargs =        initial list of template arguments
  *      tthis =         if !NULL, the `this` argument type
  *      fargs =         arguments to function
- *      flags =         1: do not issue error message on no match, just return NULL
- *                      2: overloadResolve only
+ *      flags =         see $(LREF FuncResolveFlag).
  * Returns:
  *      if match is found, then function symbol, else null
  */
 FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
-    Objects* tiargs, Type tthis, Expressions* fargs, int flags = 0)
+    Objects* tiargs, Type tthis, Expressions* fargs, FuncResolveFlag flags)
 {
     if (!s)
         return null; // no match
@@ -2669,11 +2706,11 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     {
         if (m.count == 1) // exactly one match
         {
-            if (!(flags & 1))
+            if (!(flags & FuncResolveFlag.quiet))
                 m.lastf.functionSemantic();
             return m.lastf;
         }
-        if ((flags & 2) && !tthis && m.lastf.needThis())
+        if ((flags & FuncResolveFlag.overloadOnly) && !tthis && m.lastf.needThis())
         {
             return m.lastf;
         }
@@ -2689,7 +2726,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
             return m.lastf;
 
         // if do not print error messages
-        if (flags & 1)
+        if (flags & FuncResolveFlag.quiet)
             return null; // no match
     }
 
@@ -2712,7 +2749,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     // max num of overloads to print (-v overrides this).
     enum int numOverloadsDisplay = 5;
 
-    if (!m.lastf && !(flags & 1)) // no match
+    if (!m.lastf && !(flags & FuncResolveFlag.quiet)) // no match
     {
         if (td && !fd) // all of overloads are templates
         {
@@ -2749,15 +2786,27 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                 }
                 else
                 {
-                    auto fullFdPretty = fd.toPrettyChars();
-                    .error(loc, "%smethod `%s` is not callable using a %sobject",
-                        funcBuf.peekString(), fullFdPretty,
-                        thisBuf.peekString());
+                    const(char)* failMessage;
+                    functionResolve(&m, orig_s, loc, sc, tiargs, tthis, fargs, &failMessage);
+                    if (failMessage)
+                    {
+                        .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
+                            fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList),
+                            tf.modToChars(), fargsBuf.peekString());
+                        errorSupplemental(loc, failMessage);
+                    }
+                    else
+                    {
+                        auto fullFdPretty = fd.toPrettyChars();
+                        .error(loc, "%smethod `%s` is not callable using a %sobject",
+                            funcBuf.peekString(), fullFdPretty,
+                            thisBuf.peekString());
 
-                    if (mismatches.isNotShared)
-                        .errorSupplemental(loc, "Consider adding `shared` to %s", fullFdPretty);
-                    else if (mismatches.isMutable)
-                        .errorSupplemental(loc, "Consider adding `const` or `inout` to %s", fullFdPretty);
+                        if (mismatches.isNotShared)
+                            .errorSupplemental(loc, "Consider adding `shared` to %s", fullFdPretty);
+                        else if (mismatches.isMutable)
+                            .errorSupplemental(loc, "Consider adding `const` or `inout` to %s", fullFdPretty);
+                    }
                 }
             }
             else

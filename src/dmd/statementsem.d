@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/statementsem.d, _statementsem.d)
@@ -281,10 +281,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                              *      { sexception; throw __o; }
                              */
                             auto a = new Statements();
-                            foreach (j; i + 1 .. cs.statements.dim)
-                            {
-                                a.push((*cs.statements)[j]);
-                            }
+                            a.pushSlice((*cs.statements)[i + 1 .. cs.statements.length]);
+                            cs.statements.setDim(i + 1);
+
                             Statement _body = new CompoundStatement(Loc.initial, a);
                             _body = new ScopeStatement(Loc.initial, _body, Loc.initial);
 
@@ -303,13 +302,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             ctch.internalCatch = true;
                             catches.push(ctch);
 
-                            s = new TryCatchStatement(Loc.initial, _body, catches);
+                            Statement st = new TryCatchStatement(Loc.initial, _body, catches);
                             if (sfinally)
-                                s = new TryFinallyStatement(Loc.initial, s, sfinally);
-                            s = s.statementSemantic(sc);
+                                st = new TryFinallyStatement(Loc.initial, st, sfinally);
+                            st = st.statementSemantic(sc);
 
-                            cs.statements.setDim(i + 1);
-                            cs.statements.push(s);
+                            cs.statements.push(st);
                             break;
                         }
                     }
@@ -327,15 +325,13 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                              *      s; try { s1; s2; } finally { sfinally; }
                              */
                             auto a = new Statements();
-                            foreach (j; i + 1 .. cs.statements.dim)
-                            {
-                                a.push((*cs.statements)[j]);
-                            }
-                            Statement _body = new CompoundStatement(Loc.initial, a);
-                            s = new TryFinallyStatement(Loc.initial, _body, sfinally);
-                            s = s.statementSemantic(sc);
+                            a.pushSlice((*cs.statements)[i + 1 .. cs.statements.length]);
                             cs.statements.setDim(i + 1);
-                            cs.statements.push(s);
+
+                            auto _body = new CompoundStatement(Loc.initial, a);
+                            Statement stf = new TryFinallyStatement(Loc.initial, _body, sfinally);
+                            stf = stf.statementSemantic(sc);
+                            cs.statements.push(stf);
                             break;
                         }
                     }
@@ -350,35 +346,46 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             }
             i++;
         }
-        foreach (i; 0 .. cs.statements.dim)
+
+        /* Flatten them in place
+         */
+        void flatten(Statements* statements)
         {
-        Lagain:
-            Statement s = (*cs.statements)[i];
+            for (size_t i = 0; i < statements.length;)
+            {
+                Statement s = (*statements)[i];
+                if (s)
+                {
+                    if (auto flt = s.flatten(sc))
+                    {
+                        statements.remove(i);
+                        statements.insert(i, flt);
+                        continue;
+                    }
+                }
+                ++i;
+            }
+        }
+
+        /* https://issues.dlang.org/show_bug.cgi?id=11653
+         * 'semantic' may return another CompoundStatement
+         * (eg. CaseRangeStatement), so flatten it here.
+         */
+        flatten(cs.statements);
+
+        foreach (s; *cs.statements)
+        {
             if (!s)
                 continue;
 
-            Statement se = s.isErrorStatement();
-            if (se)
+            if (auto se = s.isErrorStatement())
             {
                 result = se;
                 return;
             }
-
-            /* https://issues.dlang.org/show_bug.cgi?id=11653
-             * 'semantic' may return another CompoundStatement
-             * (eg. CaseRangeStatement), so flatten it here.
-             */
-            Statements* flt = s.flatten(sc);
-            if (flt)
-            {
-                cs.statements.remove(i);
-                cs.statements.insert(i, flt);
-                if (cs.statements.dim <= i)
-                    break;
-                goto Lagain;
-            }
         }
-        if (cs.statements.dim == 1)
+
+        if (cs.statements.length == 1)
         {
             result = (*cs.statements)[0];
             return;
@@ -1512,7 +1519,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     else if (auto td = sfront.isTemplateDeclaration())
                     {
                         Expressions a;
-                        if (auto f = resolveFuncCall(loc, sc, td, null, tab, &a, 1))
+                        if (auto f = resolveFuncCall(loc, sc, td, null, tab, &a, FuncResolveFlag.quiet))
                             tfront = f.type;
                     }
                     else if (auto d = sfront.isDeclaration())
@@ -1692,7 +1699,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                      *  extern(C) int _aaApply2(void*, in size_t, int delegate(void*, void*))
                      *      _aaApply2(aggr, keysize, flde)
                      */
-                    __gshared const(char)** name = ["_aaApply", "_aaApply2"];
                     __gshared FuncDeclaration* fdapply = [null, null];
                     __gshared TypeDelegate* fldeTy = [null, null];
 
@@ -1708,7 +1714,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
                         fldeTy[i] = new TypeDelegate(new TypeFunction(ParameterList(dgparams), Type.tint32, LINK.d));
                         params.push(new Parameter(0, fldeTy[i], null, null, null));
-                        fdapply[i] = FuncDeclaration.genCfunc(params, Type.tint32, name[i]);
+                        fdapply[i] = FuncDeclaration.genCfunc(params, Type.tint32, i ? Id._aaApply2 : Id._aaApply);
                     }
 
                     auto exps = new Expressions();
@@ -1716,8 +1722,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     auto keysize = taa.index.size();
                     if (keysize == SIZE_INVALID)
                         goto case Terror;
-                    assert(keysize < keysize.max - Target.ptrsize);
-                    keysize = (keysize + (Target.ptrsize - 1)) & ~(Target.ptrsize - 1);
+                    assert(keysize < keysize.max - target.ptrsize);
+                    keysize = (keysize + (target.ptrsize - 1)) & ~(target.ptrsize - 1);
                     // paint delegate argument to the type runtime expects
                     Expression fexp = flde;
                     if (!fldeTy[i].equals(flde.type))
@@ -2181,7 +2187,7 @@ else
             if (ifs.match.edtor)
             {
                 Statement sdtor = new DtorExpStatement(ifs.loc, ifs.match.edtor, ifs.match);
-                sdtor = new OnScopeStatement(ifs.loc, TOK.onScopeExit, sdtor);
+                sdtor = new ScopeGuardStatement(ifs.loc, TOK.onScopeExit, sdtor);
                 ifs.ifbody = new CompoundStatement(ifs.loc, sdtor, ifs.ifbody);
                 ifs.match.storage_class |= STC.nodtor;
             }
@@ -3603,7 +3609,7 @@ else
              *  try { body } finally { _d_criticalexit(&__critsec[0]); }
              */
             auto id = Identifier.generateId("__critsec");
-            auto t = Type.tint8.sarrayOf(Target.ptrsize + Target.critsecsize());
+            auto t = Type.tint8.sarrayOf(target.ptrsize + target.critsecsize());
             auto tmp = new VarDeclaration(ss.loc, t, id, null);
             tmp.storage_class |= STC.temp | STC.shared_ | STC.static_;
             Expression tmpExp = new VarExp(ss.loc, tmp);
@@ -3642,7 +3648,7 @@ else
             result = s.statementSemantic(sc);
 
             // set the explicit __critsec alignment after semantic()
-            tmp.alignment = Target.ptrsize;
+            tmp.alignment = target.ptrsize;
         }
     }
 
@@ -3897,7 +3903,7 @@ else
         result = tfs;
     }
 
-    override void visit(OnScopeStatement oss)
+    override void visit(ScopeGuardStatement oss)
     {
         /* https://dlang.org/spec/statement.html#scope-guard-statement
          */
@@ -4186,7 +4192,7 @@ void catchSemantic(Catch c, Scope* sc)
         }
         else if (cd.isCPPclass())
         {
-            if (!Target.cppExceptions)
+            if (!target.cppExceptions)
             {
                 error(c.loc, "catching C++ class objects not supported for this target");
                 c.errors = true;

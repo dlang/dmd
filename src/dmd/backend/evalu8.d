@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/evalu8.d, backend/evalu8.d)
@@ -1265,12 +1265,12 @@ version (MARS)
 }
 
     case OPpair:
-        switch (_tysize[tym])
+        switch (tysize(e.Ety))
         {
-            case 2:
+            case 4:
                 e.EV.Vlong = (i2 << 16) | (i1 & 0xFFFF);
                 break;
-            case 4:
+            case 8:
                 if (tyfloating(tym))
                 {
                     e.EV.Vcfloat.re = cast(float)d1;
@@ -1279,7 +1279,7 @@ version (MARS)
                 else
                     e.EV.Vllong = (l2 << 32) | (l1 & 0xFFFFFFFF);
                 break;
-            case 8:
+            case 16:
                 if (tyfloating(tym))
                 {
                     e.EV.Vcdouble.re = cast(double)d1;
@@ -1291,6 +1291,10 @@ version (MARS)
                     e.EV.Vcent.msw = l2;
                 }
                 break;
+
+            case -1:            // can happen for TYstruct
+                return e;       // don't const fold it
+
             default:
                 if (tyfloating(tym))
                 {
@@ -1299,6 +1303,7 @@ version (MARS)
                 }
                 else
                 {
+                    elem_print(e);
                     assert(0);
                 }
                 break;
@@ -1306,12 +1311,12 @@ version (MARS)
         break;
 
     case OPrpair:
-        switch (_tysize[tym])
+        switch (tysize(e.Ety))
         {
-            case 2:
+            case 4:
                 e.EV.Vlong = (i1 << 16) | (i2 & 0xFFFF);
                 break;
-            case 4:
+            case 8:
                 e.EV.Vllong = (l1 << 32) | (l2 & 0xFFFFFFFF);
                 if (tyfloating(tym))
                 {
@@ -1321,7 +1326,7 @@ version (MARS)
                 else
                     e.EV.Vllong = (l1 << 32) | (l2 & 0xFFFFFFFF);
                 break;
-            case 8:
+            case 16:
                 if (tyfloating(tym))
                 {
                     e.EV.Vcdouble.re = cast(double)d2;

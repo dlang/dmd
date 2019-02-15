@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/parse.d, _parse.d)
@@ -49,6 +49,7 @@ __gshared PREC[TOK.max_] precedence =
 [
     TOK.type : PREC.expr,
     TOK.error : PREC.expr,
+    TOK.objcClassReference : PREC.expr, // Objective-C class reference, same as TOK.type
 
     TOK.typeof_ : PREC.primary,
     TOK.mixin_ : PREC.primary,
@@ -92,6 +93,7 @@ __gshared PREC[TOK.max_] precedence =
     TOK.default_ : PREC.primary,
     TOK.overloadSet : PREC.primary,
     TOK.void_ : PREC.primary,
+    TOK.vectorArray : PREC.primary,
 
     // post
     TOK.dotTemplateInstance : PREC.primary,
@@ -279,9 +281,10 @@ final class Parser(AST) : Lexer
      * Input:
      *      loc     location in source file of mixin
      */
-    extern (D) this(const ref Loc loc, AST.Module _module, const(char)[] input, bool doDocComment)
+    extern (D) this(const ref Loc loc, AST.Module _module, const(char)[] input,
+        bool doDocComment, DiagnosticReporter diagnosticReporter)
     {
-        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false);
+        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false, diagnosticReporter);
 
         //printf("Parser::Parser()\n");
         scanloc = loc;
@@ -301,9 +304,9 @@ final class Parser(AST) : Lexer
         //nextToken();              // start up the scanner
     }
 
-    extern (D) this(AST.Module _module, const(char)[] input, bool doDocComment)
+    extern (D) this(AST.Module _module, const(char)[] input, bool doDocComment, DiagnosticReporter diagnosticReporter)
     {
-        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false);
+        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false, diagnosticReporter);
 
         //printf("Parser::Parser()\n");
         mod = _module;
@@ -3729,9 +3732,12 @@ final class Parser(AST) : Lexer
 
         case TOK.traits:
             if (AST.TraitsExp te = cast(AST.TraitsExp) parsePrimaryExp())
-                t = new AST.TypeTraits(token.loc, te);
-            else
-                t = new AST.TypeError;
+                if (te.ident && te.args)
+                {
+                    t = new AST.TypeTraits(token.loc, te);
+                    break;
+                }
+            t = new AST.TypeError;
             break;
 
         case TOK.const_:
@@ -5887,7 +5893,7 @@ final class Parser(AST) : Lexer
                 nextToken();
                 check(TOK.rightParentheses);
                 AST.Statement st = parseStatement(ParseStatementFlags.scope_);
-                s = new AST.OnScopeStatement(loc, t, st);
+                s = new AST.ScopeGuardStatement(loc, t, st);
                 break;
             }
 
@@ -6319,7 +6325,7 @@ final class Parser(AST) : Lexer
                         goto Lerror;
 
                     default:
-                        *ptoklist = Token.alloc();
+                        *ptoklist = allocateToken();
                         memcpy(*ptoklist, &token, Token.sizeof);
                         ptoklist = &(*ptoklist).next;
                         *ptoklist = null;

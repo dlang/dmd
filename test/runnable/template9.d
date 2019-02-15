@@ -758,7 +758,7 @@ void test2778get()
     static struct S
     {
         ubyte[] val = [1,2,3];
-        @property ref ubyte[] get(){ return val; }
+        @property ref ubyte[] get() return { return val; }
         alias get this;
     }
     S s;

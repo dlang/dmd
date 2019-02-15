@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/dtype.d
@@ -89,9 +89,62 @@ __gshared
 
 /*******************************
  * Compute size of type in bytes.
+ * Mark size as known after error message if it is not known.
+ * Instantiate templates as needed to compute size.
+ * Params:
+ *      t = type
+ * Returns:
+ *      size
  */
 
-targ_size_t type_size(type *t)
+version (SCPP_HTOD)
+{
+targ_size_t type_size(type* t)
+{
+    switch (tybasic(t.Tty))
+    {
+        case TYarray:
+            if (t.Tflags & TFsizeunknown)
+            {
+                synerr(EM_unknown_size,"array".ptr);    /* size of array is unknown     */
+                t.Tflags &= ~TFsizeunknown;
+            }
+            type_size(t.Tnext);
+            break;
+
+        case TYstruct:
+            auto ts = t.Ttag.Stype;    // find main instance
+                                       // (for const struct X)
+            if (ts.Tflags & TFsizeunknown)
+            {
+                template_instantiate_forward(ts.Ttag);
+                if (ts.Tflags & TFsizeunknown)
+                    synerr(EM_unknown_size,ts.Tty & TYstruct ? prettyident(ts.Ttag) : "struct");
+                ts.Tflags &= ~TFsizeunknown;
+            }
+            break;
+
+        case TYenum:
+            if (t.Ttag.Senum.SEflags & SENforward)
+                synerr(EM_unknown_size, prettyident(t.Ttag));
+            type_size(t.Tnext);
+            break;
+
+        default:
+            break;
+    }
+    return type_size(cast(const)t);
+}
+}
+
+/***********************
+ * Compute size of type in bytes.
+ * Params:
+ *      t = type
+ * Returns:
+ *      size
+ */
+targ_size_t type_size(const type *t)
 {   targ_size_t s;
     tym_t tyb;
 
@@ -135,7 +188,6 @@ version (SCPP_HTOD)
 {
                     synerr(EM_unknown_size,"array".ptr);    /* size of array is unknown     */
 }
-                    t.Tflags &= ~TFsizeunknown;
                 }
                 if (t.Tflags & TFvla)
                 {
@@ -161,26 +213,18 @@ else
                 break;
             }
             case TYstruct:
-                t = t.Ttag.Stype;     /* find main instance           */
-                                        /* (for const struct X)         */
-                if (t.Tflags & TFsizeunknown)
-                {
-version (SCPP_HTOD)
-{
-                    template_instantiate_forward(t.Ttag);
-                    if (t.Tflags & TFsizeunknown)
-                        synerr(EM_unknown_size,t.Tty & TYstruct ? prettyident(t.Ttag) : "struct");
-                    t.Tflags &= ~TFsizeunknown;
-}
-                }
-                assert(t.Ttag);
-                s = t.Ttag.Sstruct.Sstructsize;
+            {
+                auto ts = t.Ttag.Stype;     // find main instance
+                                            // (for const struct X)
+                assert(ts.Ttag);
+                s = ts.Ttag.Sstruct.Sstructsize;
                 break;
+            }
 version (SCPP_HTOD)
 {
             case TYenum:
                 if (t.Ttag.Senum.SEflags & SENforward)
-                    synerr(EM_unknown_size, prettyident(t.Ttag));
+                    synerr(EM_unknown_size, prettyident(cast(Symbol*)t.Ttag));
                 s = type_size(t.Tnext);
                 break;
 }
@@ -1188,7 +1232,7 @@ int type_isvla(type *t)
  * Pretty-print a type.
  */
 
-void type_print(type *t)
+void type_print(const type *t)
 {
   type_debug(t);
   printf("Tty="); WRTYxx(t.Tty);
@@ -1219,11 +1263,11 @@ void type_print(type *t)
             break;
         case TYtemplate:
             printf(" Tsym='%s'",(cast(typetemp_t *)t).Tsym.Sident.ptr);
-            {   param_t *p;
+            {
                 int i;
 
                 i = 1;
-                for (p = t.Tparamtypes; p; p = p.Pnext)
+                for (const(param_t)* p = t.Tparamtypes; p; p = p.Pnext)
                 {   printf("\nTP%d (%p): ",i++,p);
                     fflush(stdout);
 
@@ -1241,11 +1285,11 @@ printf("Pident=%p,Ptype=%p,Pelem=%p,Pnext=%p ",p.Pident,p.Ptype,p.Pelem,p.Pnext)
 
         default:
             if (tyfunc(t.Tty))
-            {   param_t *p;
+            {
                 int i;
 
                 i = 1;
-                for (p = t.Tparamtypes; p; p = p.Pnext)
+                for (const(param_t)* p = t.Tparamtypes; p; p = p.Pnext)
                 {   printf("\nP%d (%p): ",i++,p);
                     fflush(stdout);
 
@@ -1266,7 +1310,7 @@ printf("Pident=%p,Ptype=%p,Pelem=%p,Pnext=%p ",p.Pident,p.Ptype,p.Pelem,p.Pnext)
  * Pretty-print a param_t
  */
 
-void param_t_print(param_t* p)
+void param_t_print(const param_t* p)
 {
     printf("Pident=%p,Ptype=%p,Pelem=%p,Psym=%p,Pnext=%p\n",p.Pident,p.Ptype,p.Pelem,p.Psym,p.Pnext);
     if (p.Pident)

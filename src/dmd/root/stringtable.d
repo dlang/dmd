@@ -2,7 +2,7 @@
  * Compiler implementation of the D programming language
  * http://dlang.org
  *
- * Copyright: Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/stringtable.d, root/_stringtable.d)
@@ -43,7 +43,7 @@ struct StringValue
 
 nothrow:
 pure:
-    char* lstring()
+    char* lstring() return
     {
         return cast(char*)(&this + 1);
     }
@@ -53,7 +53,7 @@ pure:
         return length;
     }
 
-    const(char)* toDchars() const
+    const(char)* toDchars() const return
     {
         return cast(const(char)*)(&this + 1);
     }
@@ -186,7 +186,7 @@ public:
             table[i].hash = hash;
             table[i].vptr = allocValue(str, null);
         }
-        // printf("update %.*s %p\n", (int)str.length, str.ptr, table[i].value ?: NULL);
+        // printf("update %.*s %p\n", cast(int)str.length, str.ptr, table[i].value ?: NULL);
         return getValue(table[i].vptr);
     }
 
@@ -211,6 +211,20 @@ public:
                 continue;
             const sv = getValue(se.vptr);
             int result = (*fp)(sv);
+            if (result)
+                return result;
+        }
+        return 0;
+    }
+
+    extern(D) int opApply(scope int delegate(const(StringValue)*) dg)
+    {
+        foreach (const se; table[0 .. tabledim])
+        {
+            if (!se.vptr)
+                continue;
+            const sv = getValue(se.vptr);
+            int result = dg(sv);
             if (result)
                 return result;
         }

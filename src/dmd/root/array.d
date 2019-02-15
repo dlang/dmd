@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/array.d, root/_array.d)
@@ -79,15 +79,25 @@ public:
         }
     }
 
-    void push(T ptr) nothrow
+    ref Array push(T ptr) return nothrow
     {
         reserve(1);
         data[length++] = ptr;
+        return this;
     }
 
-    void append(typeof(this)* a) nothrow
+    extern (D) ref Array pushSlice(T[] a) return nothrow
+    {
+        const oldLength = length;
+        setDim(oldLength + a.length);
+        memcpy(data + oldLength, a.ptr, a.length * T.sizeof);
+        return this;
+    }
+
+    ref Array append(typeof(this)* a) return nothrow
     {
         insert(length, a);
+        return this;
     }
 
     void reserve(size_t nentries) nothrow
@@ -305,8 +315,7 @@ unittest
     auto array = Array!int();
     array.split(0, 0);
     assert([] == array.asDArray);
-    array.push(1);
-    array.push(3);
+    array.push(1).push(3);
     array.split(1, 1);
     array[1] = 2;
     assert([1, 2, 3] == array.asDArray);

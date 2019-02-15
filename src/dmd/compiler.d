@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/compiler.d, _compiler.d)
@@ -23,6 +23,7 @@ import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
+import dmd.lexer;
 import dmd.parse;
 import dmd.root.array;
 import dmd.root.ctfloat;
@@ -86,7 +87,8 @@ struct Compiler
         };
         Identifier id = Id.entrypoint;
         auto m = new Module("__entrypoint.d", id, 0, 0);
-        scope p = new Parser!ASTCodegen(m, cmaincode, false);
+        scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
+        scope p = new Parser!ASTCodegen(m, cmaincode, false, diagnosticReporter);
         p.scanloc = Loc.initial;
         p.nextToken();
         m.members = p.parseModule();
@@ -109,7 +111,7 @@ struct Compiler
      * as another type for use in CTFE.
      * This corresponds roughly to the idiom *(Type *)&e.
      */
-    extern (C++) static Expression paintAsType(Expression e, Type type)
+    extern (C++) static Expression paintAsType(UnionExp* pue, Expression e, Type type)
     {
         union U
         {
@@ -147,19 +149,28 @@ struct Compiler
         {
         case Tint32:
         case Tuns32:
-            return new IntegerExp(e.loc, u.int32value, type);
+            emplaceExp!(IntegerExp)(pue, e.loc, u.int32value, type);
+            break;
+
         case Tint64:
         case Tuns64:
-            return new IntegerExp(e.loc, u.int64value, type);
+            emplaceExp!(IntegerExp)(pue, e.loc, u.int64value, type);
+            break;
+
         case Tfloat32:
             r = u.float32value;
-            return new RealExp(e.loc, r, type);
+            emplaceExp!(RealExp)(pue, e.loc, r, type);
+            break;
+
         case Tfloat64:
             r = u.float64value;
-            return new RealExp(e.loc, r, type);
+            emplaceExp!(RealExp)(pue, e.loc, r, type);
+            break;
+
         default:
             assert(0, "Unsupported target type");
         }
+        return pue.exp();
     }
 
     /******************************

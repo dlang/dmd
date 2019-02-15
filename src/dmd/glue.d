@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/glue.d, _glue.d)
@@ -497,7 +497,7 @@ void genObjFile(Module m, bool multiobj)
 
     if (m.doppelganger)
     {
-        objc.generateModuleInfo();
+        objc.generateModuleInfo(m);
         objmod.termfile();
         return;
     }
@@ -960,7 +960,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     size_t pi = (fd.v_arguments !is null);
     if (fd.parameters)
         pi += fd.parameters.dim;
-
+    if (fd.selector)
+        pi++; // Extra argument for Objective-C selector
     // Create a temporary buffer, params[], to hold function parameters
     Symbol*[10] paramsbuf = void;
     Symbol **params = paramsbuf.ptr;    // allocate on stack if possible
@@ -1010,6 +1011,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         pi++;
     }
 
+    pi = objc.addSelectorParameterSymbol(fd, params, pi);
 
     if (sthis)
     {

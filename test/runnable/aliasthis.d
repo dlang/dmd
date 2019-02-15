@@ -106,7 +106,7 @@ struct Iter
     bool empty() { return true; }
     void popFront() { }
     ref Tup!(int, int) front() { return *new Tup!(int, int); }
-    ref Iter opSlice() { return this; }
+    ref Iter opSlice() return { return this; }
 }
 
 void test4()

@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/el.d, backend/el.d)
@@ -122,22 +122,22 @@ struct elem
     Srcpos Esrcpos;      // source file position
 }
 
-void elem_debug(elem* e)
+void elem_debug(const elem* e)
 {
     debug assert(e.id == e.IDelem);
 }
 
 version (MARS)
-    tym_t typemask(elem* e) { return e.Ety; }
+    tym_t typemask(const elem* e) { return e.Ety; }
 else
-    tym_t typemask(elem* e) { return PARSER ? e.ET.Tty : e.Ety; }
+    tym_t typemask(const elem* e) { return PARSER ? e.ET.Tty : e.Ety; }
 
-FL el_fl(elem *e) { return cast(FL)e.EV.Vsym.Sfl; }
+FL el_fl(const elem* e) { return cast(FL)e.EV.Vsym.Sfl; }
 
 //#define Eoffset         EV.sp.Voffset
 //#define Esymnum         EV.sp.Vsymnum
 
-elem* list_elem(list_t list) { return cast(elem*)list_ptr(list); }
+inout(elem)* list_elem(inout list_t list) { return cast(inout(elem)*)list_ptr(list); }
 
 void list_setelem(list_t list, void* ptr) { list.ptr = cast(elem *)ptr; }
 
@@ -231,8 +231,8 @@ void el_opArray(elem ***parray, elem *e, uint op);
 void el_opFree(elem *e, uint op);
 extern (C) elem *el_opCombine(elem **args, size_t length, uint op, uint ty);
 
-void elem_print(elem *);
-void elem_print_const(elem *);
+void elem_print(const elem *);
+void elem_print_const(const elem *);
 void el_hydrate(elem **);
 void el_dehydrate(elem **);
 

@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/nteh.d, backend/nteh.d)
@@ -472,7 +472,7 @@ void nteh_epilog(ref CodeBuilder cdb)
         mov     FS:__except_list,ECX
      */
     code cs;
-    uint reg;
+    reg_t reg;
 
 version (MARS)
     reg = CX;
@@ -503,7 +503,7 @@ else
  * Set/Reset ESP from context.
  */
 
-void nteh_setsp(ref CodeBuilder cdb, int op)
+void nteh_setsp(ref CodeBuilder cdb, opcode_t op)
 {
     code cs;
     cs.Iop = op;
@@ -751,9 +751,9 @@ void nteh_unwind(ref CodeBuilder cdb,regm_t saveregs,uint stop_index)
 {
     // Shouldn't this always be CX?
 version (SCPP)
-    const int reg = AX;
+    const reg_t reg = AX;
 else
-    const int reg = CX;
+    const reg_t reg = CX;
 
 version (MARS)
     // https://github.com/dlang/druntime/blob/master/src/rt/deh_win32.d#L924

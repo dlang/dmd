@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) ?-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/elfobj.d, backend/elfobj.d)
@@ -2089,7 +2089,7 @@ void Obj_setcodeseg(int seg)
  *      segment index of newly created code segment
  */
 
-int Obj_codeseg(char *name,int suffix)
+int Obj_codeseg(const char *name,int suffix)
 {
     int seg;
     const(char)* sfx;
@@ -3604,7 +3604,7 @@ debug
                 {
                     // lea RAX, sym[RIP]
                     buf.writeByte(REX | REX_W);
-                    buf.writeByte(0x8D);
+                    buf.writeByte(LEA);
                     buf.writeByte(modregrm(0,AX,5));
                     off += 3;
                     off += Obj_writerel(codseg, off, reltype, syms[i], -4);
@@ -3612,7 +3612,7 @@ debug
                 else
                 {
                     // lea EAX, sym[EBX]
-                    buf.writeByte(0x8D);
+                    buf.writeByte(LEA);
                     buf.writeByte(modregrm(2,AX,BX));
                     off += 2;
                     off += Obj_writerel(codseg, off, reltype, syms[i], 0);

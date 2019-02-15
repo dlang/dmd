@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _tocvdebug.d)
@@ -998,7 +998,7 @@ int cvMember(Dsymbol s, ubyte *p)
                     q += cgcv.sz_idx;
                     if (fd.introducing)
                     {
-                        TOLONG(q, fd.vtblIndex * Target.ptrsize);
+                        TOLONG(q, fd.vtblIndex * target.ptrsize);
                         q += 4;
                     }
                 }

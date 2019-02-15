@@ -1060,7 +1060,7 @@ void test11916()
 enum E13783 { a = 5 }
 
     inout(int) f(    inout(int) t) { return t * 2; }
-ref inout(int) f(ref inout(int) t) { return t; }
+ref inout(int) f(return ref inout(int) t) { return t; }
 
 void test13783()
 {

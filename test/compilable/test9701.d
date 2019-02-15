@@ -1,4 +1,11 @@
 // https://issues.dlang.org/show_bug.cgi?id=9701
+/*
+TEST_OUTPUT:
+---
+compilable/test9701.d(56): Deprecation: enum member `test9701.Enum.value7` is deprecated
+compilable/test9701.d(57): Deprecation: enum member `test9701.Enum.value8` is deprecated - message
+---
+*/
 
 template AliasSeq(TList...)
 {

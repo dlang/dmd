@@ -1,6 +1,6 @@
 #_ win32.mak
 #
-# Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+# Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
 # written by Walter Bright
 # http://www.digitalmars.com
 # Distributed under the Boost Software License, Version 1.0.
@@ -142,7 +142,7 @@ CFLAGS=-I$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp -DTARGET_WINDOS=1 -DDM_TARGET
 # Compile flags for modules with backend/toolkit dependencies
 MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1
 # D compile flags
-DFLAGS=$(DOPT) $(DMODEL) $(DDEBUG) -wi -version=MARS
+DFLAGS=$(DOPT) $(DMODEL) $(DDEBUG) -wi -version=MARS -dip25
 
 # Recursive make
 DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) MAKE="$(MAKE)" HOST_DC="$(HOST_DC)" MODEL=$(MODEL) CC="$(CC)" LIB="$(LIB)" OBJ_MSVC="$(OBJ_MSVC)"
@@ -165,7 +165,7 @@ FRONT_SRCS=$D/access.d $D/aggregate.d $D/aliasthis.d $D/apply.d $D/argtypes.d $D
 	$D/libmscoff.d $D/scanmscoff.d $D/statement_rewrite_walker.d $D/statementsem.d $D/staticcond.d \
 	$D/semantic2.d $D/semantic3.d
 
-LEXER_SRCS=$D/console.d $D/entity.d $D/errors.d $D/globals.d $D/id.d $D/identifier.d \
+LEXER_SRCS=$D/console.d $D/entity.d $D/errors.d $D/filecache.d $D/globals.d $D/id.d $D/identifier.d \
 	$D/lexer.d $D/tokens.d $D/utf.d
 
 LEXER_ROOT=$(ROOT)/array.d $(ROOT)/ctfloat.d $(ROOT)/file.d $(ROOT)/filename.d \

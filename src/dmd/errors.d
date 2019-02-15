@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/errors.d, _errors.d)
@@ -233,6 +233,32 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
     else
         fputs(tmp.peekString(), stderr);
     fputc('\n', stderr);
+
+    if (global.params.printErrorContext &&
+        // ignore invalid files
+        loc != Loc.initial &&
+        // ignore mixins for now
+        !loc.filename.strstr(".d-mixin-") &&
+        !global.params.mixinOut)
+    {
+        import dmd.filecache : FileCache;
+        auto fllines = FileCache.fileCache.addOrGetFile(loc.filename[0 .. strlen(loc.filename)]);
+
+        if (loc.linnum - 1 < fllines.lines.length)
+        {
+            auto line = fllines.lines[loc.linnum - 1];
+            if (loc.charnum < line.length)
+            {
+                fprintf(stderr, "%.*s\n", cast(int)line.length, line.ptr);
+                foreach (_; 1 .. loc.charnum)
+                    fputc(' ', stderr);
+
+                fputc('^', stderr);
+                fputc('\n', stderr);
+            }
+        }
+    }
+end:
     fflush(stderr);     // ensure it gets written out in case of compiler aborts
 }
 
@@ -420,7 +446,7 @@ extern (C++) void halt()
  */
 private void colorSyntaxHighlight(OutBuffer* buf)
 {
-    //printf("colorSyntaxHighlight('%.*s')\n", buf.offset, buf.data);
+    //printf("colorSyntaxHighlight('%.*s')\n", cast(int)buf.offset, buf.data);
     bool inBacktick = false;
     size_t iCodeStart = 0;
     size_t offset = 0;
@@ -492,10 +518,11 @@ private void colorHighlightCode(OutBuffer* buf)
     ++nested;
 
     auto gaggedErrorsSave = global.startGagging();
-    scope Lexer lex = new Lexer(null, cast(char*)buf.data, 0, buf.offset - 1, 0, 1);
+    scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
+    scope Lexer lex = new Lexer(null, cast(char*)buf.data, 0, buf.offset - 1, 0, 1, diagnosticReporter);
     OutBuffer res;
     const(char)* lastp = cast(char*)buf.data;
-    //printf("colorHighlightCode('%.*s')\n", buf.offset - 1, buf.data);
+    //printf("colorHighlightCode('%.*s')\n", cast(int)(buf.offset - 1), buf.data);
     res.reserve(buf.offset);
     res.writeByte(HIGHLIGHT.Escape);
     res.writeByte(HIGHLIGHT.Other);
@@ -540,7 +567,7 @@ private void colorHighlightCode(OutBuffer* buf)
     }
     res.writeByte(HIGHLIGHT.Escape);
     res.writeByte(HIGHLIGHT.Default);
-    //printf("res = '%.*s'\n", buf.offset, buf.data);
+    //printf("res = '%.*s'\n", cast(int)buf.offset, buf.data);
     buf.setsize(0);
     buf.write(&res);
     global.endGagging(gaggedErrorsSave);

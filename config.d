@@ -1,3 +1,8 @@
+/+
+dub.sdl:
+    name "config"
+    targetPath "generated/dub"
++/
 /**
 Generates the compiler version, the version printed with `dmd --version`.
 

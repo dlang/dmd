@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -257,6 +257,9 @@ public:
     // to TemplateDeclaration.parameters
     // [int, char, 100]
     Objects tdtypes;
+
+    // Modules imported by this template instance
+    Modules importedModules;
 
     Dsymbol *tempdecl;                  // referenced by foo.bar.abc
     Dsymbol *enclosing;                 // if referencing local symbols, this is the context

@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/constfold.d, _constfold.d)
@@ -593,7 +593,7 @@ UnionExp Pow(const ref Loc loc, Type type, Expression e1, Expression e2)
         // x ^^ y for x < 0 and y not an integer is not defined; so set result as NaN
         if (e1.toReal() < CTFloat.zero)
         {
-            emplaceExp!(RealExp)(&ue, loc, Target.RealProperties.nan, type);
+            emplaceExp!(RealExp)(&ue, loc, target.RealProperties.nan, type);
         }
         else
             cantExp(ue);

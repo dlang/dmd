@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -42,7 +42,8 @@ enum
 {
     CHECKACTION_D,        // call D assert on failure
     CHECKACTION_C,        // call C assert on failure
-    CHECKACTION_halt      // cause program halt on failure
+    CHECKACTION_halt,     // cause program halt on failure
+    CHECKACTION_context   // call D assert with the error context on failure
 };
 
 enum CPU
@@ -62,6 +63,14 @@ enum CPU
     // Special values that don't survive past the command line processing
     baseline,           // (default) the minimum capability CPU
     native              // the machine the compiler is being run on
+};
+
+enum CppStdRevision
+{
+    CppStdRevisionCpp98 = 199711,
+    CppStdRevisionCpp11 = 201103,
+    CppStdRevisionCpp14 = 201402,
+    CppStdRevisionCpp17 = 201703
 };
 
 // Put command line switches in here
@@ -103,6 +112,7 @@ struct Param
     bool useUnitTests;  // generate unittest code
     bool useInline;     // inline expand functions
     bool useDIP25;      // implement http://wiki.dlang.org/DIP25
+    bool noDIP25;       // revert to pre-DIP25 behavior
     bool release;       // build release version
     bool preservePaths; // true means don't strip path from source file
     Diagnostic warnings;
@@ -127,13 +137,21 @@ struct Param
     bool ehnogc;        // use @nogc exception handling
     bool dtorFields;        // destruct fields of partially constructed objects
                             // https://issues.dlang.org/show_bug.cgi?id=14246
+    bool fieldwise;         // do struct equality testing field-wise rather than by memcmp()
+    unsigned cplusplus;     // version of C++ name mangling to support
     bool markdown;          // enable Markdown replacements in Ddoc
     bool vmarkdown;         // list instances of Markdown replacements in Ddoc
     bool showGaggedErrors;  // print gagged errors anyway
+    bool printErrorContext;  // print errors with the error context (the error line in the source file)
     bool manual;            // open browser on compiler manual
     bool usage;             // print usage and exit
     bool mcpuUsage;         // print help on -mcpu switch
     bool transitionUsage;   // print help on -transition switch
+    bool checkUsage;        // print help on -check switch
+    bool checkActionUsage;  // print help on -checkaction switch
+    bool revertUsage;       // print help on -revert switch
+    bool previewUsage;      // print help on -preview switch
+    bool externStdUsage;    // print help on -extern-std switch
     bool logo;              // print logo;
 
     CPU cpu;                // CPU instruction set to target

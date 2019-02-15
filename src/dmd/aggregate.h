@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -31,7 +31,7 @@ enum Sizeok
     SIZEOKnone,         // size of aggregate is not yet able to compute
     SIZEOKfwd,          // size of aggregate is ready to compute
     SIZEOKinProcess,    // in the midst of computing the size
-    SIZEOKdone,         // size of aggregate is set correctly
+    SIZEOKdone          // size of aggregate is set correctly
 };
 
 enum Baseok
@@ -304,6 +304,7 @@ public:
     const char *kind() const;
 
     void addLocalClass(ClassDeclarations *);
+    void addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories);
 
     // Back end
     Dsymbol *vtblsym;

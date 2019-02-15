@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2011-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2011-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgxmm.d, backend/cgxmm.d)
@@ -49,7 +49,7 @@ uint mask(uint m);
  * Is operator a store operator?
  */
 
-bool isXMMstore(uint op)
+bool isXMMstore(opcode_t op)
 {
     switch (op)
     {
@@ -76,7 +76,7 @@ private void movxmmconst(ref CodeBuilder cdb, uint xreg, uint sz, targ_size_t va
     assert(sz == 4 || sz == 8);
     if (I32 && sz == 8)
     {
-        uint r;
+        reg_t r;
         regm_t rm = ALLREGS;
         allocreg(cdb,&rm,&r,TYint);         // allocate scratch register
         static union U { targ_size_t s; targ_long[2] l; }
@@ -89,12 +89,12 @@ private void movxmmconst(ref CodeBuilder cdb, uint xreg, uint sz, targ_size_t va
         movregconst(cdb,r,p[1],0);
         cdb.genfltreg(STO,r,4);                     // MOV floatreg+4,r
 
-        uint op = xmmload(TYdouble, true);
+        const op = xmmload(TYdouble, true);
         cdb.genxmmreg(op,xreg,0,TYdouble);          // MOVSD XMMreg,floatreg
     }
     else
     {
-        uint reg;
+        reg_t reg;
         regwithvalue(cdb,ALLREGS,value,&reg,(sz == 8) ? 64 : 0);
         cdb.gen2(LODD,modregxrmx(3,xreg-XMM0,reg));     // MOVD xreg,reg
         if (sz == 8)
@@ -122,12 +122,11 @@ void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         if (!retregs)
             retregs = XMMREGS;
 
-        uint reg;
         regm_t rretregs;
-        uint rreg;
+        reg_t rreg;
         if (tyreal(e1.Ety))
         {
-            reg = findreg(retregs);
+            const reg = findreg(retregs);
             rreg = findreg(retregs & ~mask(reg));
             retregs = mask(reg);
             rretregs = mask(rreg);
@@ -137,7 +136,7 @@ void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
             // Pick the second register, not the first
             rreg = findreg(retregs);
             rretregs = mask(rreg);
-            reg = findreg(retregs & ~rretregs);
+            const reg = findreg(retregs & ~rretregs);
             retregs = mask(reg);
         }
         assert(retregs && rretregs);
@@ -148,16 +147,16 @@ void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         retregs |= rretregs;
         if (e.Eoper == OPmin)
         {
-            uint nretregs = XMMREGS & ~retregs;
-            uint sreg; // hold sign bit
-            uint sz = tysize(e1.Ety);
+            regm_t nretregs = XMMREGS & ~retregs;
+            reg_t sreg; // hold sign bit
+            const uint sz = tysize(e1.Ety);
             allocreg(cdb,&nretregs,&sreg,e2.Ety);
             targ_size_t signbit = 0x80000000;
             if (sz == 8)
                 signbit = cast(targ_size_t)0x8000000000000000L;
             movxmmconst(cdb,sreg, sz, signbit, 0);
             getregs(cdb,nretregs);
-            uint xop = (sz == 8) ? XORPD : XORPS;       // XORPD/S rreg,sreg
+            const opcode_t xop = (sz == 8) ? XORPD : XORPS;       // XORPD/S rreg,sreg
             cdb.gen2(xop,modregxrmx(3,rreg-XMM0,sreg-XMM0));
         }
         if (retregs != *pretregs)
@@ -169,26 +168,24 @@ void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     if (!retregs)
         retregs = XMMREGS;
     codelem(cdb,e1,&retregs,false); // eval left leaf
-    uint reg = findreg(retregs);
+    const reg = findreg(retregs);
     regm_t rretregs = XMMREGS & ~retregs;
     scodelem(cdb, e2, &rretregs, retregs, true);  // eval right leaf
 
-    uint rreg = findreg(rretregs);
-    uint op = xmmoperator(e1.Ety, e.Eoper);
+    const rreg = findreg(rretregs);
+    const op = xmmoperator(e1.Ety, e.Eoper);
 
     /* We should take advantage of mem addressing modes for OP XMM,MEM
      * but we do not at the moment.
      */
     if (OTrel(e.Eoper))
     {
-        retregs = mPSW;
         cdb.gen2(op,modregxrmx(3,rreg-XMM0,reg-XMM0));
         checkSetVex(cdb.last(), e1.Ety);
         return;
     }
-    else
-        getregs(cdb,retregs);
 
+    getregs(cdb,retregs);
     cdb.gen2(op,modregxrmx(3,reg-XMM0,rreg-XMM0));
     checkSetVex(cdb.last(), e1.Ety);
     if (retregs != *pretregs)
@@ -198,22 +195,21 @@ void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 
 /************************
  * Generate code for an assignment using XMM registers.
+ * Params:
+ *      opcode = store opcode to use, CMP means generate one
  */
 
-void xmmeq(ref CodeBuilder cdb, elem *e, uint op, elem *e1, elem *e2,regm_t *pretregs)
+void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t *pretregs)
 {
     tym_t tymll;
-    uint reg;
     int i;
     code cs;
     elem *e11;
     bool regvar;                  /* true means evaluate into register variable */
     regm_t varregm;
-    uint varreg;
     targ_int postinc;
 
     //printf("xmmeq(e1 = %p, e2 = %p, *pretregs = %s)\n", e1, e2, regm_str(*pretregs));
-    int e2oper = e2.Eoper;
     tym_t tyml = tybasic(e1.Ety);              /* type of lvalue               */
     regm_t retregs = *pretregs;
 
@@ -221,20 +217,21 @@ void xmmeq(ref CodeBuilder cdb, elem *e, uint op, elem *e1, elem *e2,regm_t *pre
         retregs = XMMREGS;              // pick any XMM reg
 
     bool aligned = xmmIsAligned(e1);
-    cs.Iop = (op == OPeq) ? xmmstore(tyml, aligned) : op;
+    // If default, select store opcode
+    cs.Iop = (op == CMP) ? xmmstore(tyml, aligned) : op;
     regvar = false;
     varregm = 0;
     if (config.flags4 & CFG4optimized)
     {
         // Be careful of cases like (x = x+x+x). We cannot evaluate in
         // x if x is in a register.
+        reg_t varreg;
         if (isregvar(e1,&varregm,&varreg) &&    // if lvalue is register variable
             doinreg(e1.EV.Vsym,e2) &&           // and we can compute directly into it
             varregm & XMMREGS
            )
         {   regvar = true;
-            retregs = varregm;
-            reg = varreg;       /* evaluate directly in target register */
+            retregs = varregm;    // evaluate directly in target register
         }
     }
     if (*pretregs & mPSW && OTleaf(e1.Eoper))     // if evaluating e1 couldn't change flags
@@ -264,7 +261,7 @@ void xmmeq(ref CodeBuilder cdb, elem *e, uint op, elem *e1, elem *e2,regm_t *pre
 
     getregs_imm(cdb,regvar ? varregm : 0);
 
-    reg = findreg(retregs & XMMREGS);
+    const reg = findreg(retregs & XMMREGS);
     cs.Irm |= modregrm(0,(reg - XMM0) & 7,0);
     if ((reg - XMM0) & 8)
         cs.Irex |= REX_R;
@@ -290,13 +287,13 @@ void xmmeq(ref CodeBuilder cdb, elem *e, uint op, elem *e1, elem *e2,regm_t *pre
 Lp:
     if (postinc)
     {
-        uint increg = findreg(idxregm(&cs));  // the register to increment
+        const increg = findreg(idxregm(&cs));  // the register to increment
         if (*pretregs & mPSW)
         {   // Use LEA to avoid touching the flags
             uint rm = cs.Irm & 7;
             if (cs.Irex & REX_B)
                 rm |= 8;
-            cdb.genc1(0x8D,buildModregrm(2,increg,rm),FLconst,postinc);
+            cdb.genc1(LEA,buildModregrm(2,increg,rm),FLconst,postinc);
             if (tysize(e11.EV.E1.Ety) == 8)
                 code_orrex(cdb.last(), REX_W);
         }
@@ -336,7 +333,8 @@ Lp:
 
 void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
-    uint op=0, regs;
+    opcode_t op = NoOpcode;
+    regm_t regs;
     tym_t ty;
     ubyte rex = 0;
     bool zx = false; // zero extend uint
@@ -414,10 +412,10 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     default:
         assert(0);
     }
-    assert(op);
+    assert(op != NoOpcode);
 
     codelem(cdb,e1, &regs, false);
-    uint reg = findreg(regs);
+    reg_t reg = findreg(regs);
     if (reg >= XMM0)
         reg -= XMM0;
     else if (zx)
@@ -428,7 +426,7 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         code_orflag(cdb.last(),CFvolatile);
     }
 
-    uint retregs = *pretregs;
+    regm_t retregs = *pretregs;
     if (tyxmmreg(ty)) // target is XMM
     {   if (!(*pretregs & XMMREGS))
             retregs = XMMREGS;
@@ -439,7 +437,7 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             retregs = ALLREGS;
     }
 
-    uint rreg;
+    reg_t rreg;
     allocreg(cdb,&retregs,&rreg,ty);
     if (rreg >= XMM0)
         rreg -= XMM0;
@@ -461,23 +459,23 @@ void xmmopass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {   elem *e1 = e.EV.E1;
     elem *e2 = e.EV.E2;
     tym_t ty1 = tybasic(e1.Ety);
-    uint sz1 = _tysize[ty1];
+    const sz1 = _tysize[ty1];
     regm_t rretregs = XMMREGS & ~*pretregs;
     if (!rretregs)
         rretregs = XMMREGS;
 
     codelem(cdb,e2,&rretregs,false); // eval right leaf
-    uint rreg = findreg(rretregs);
+    reg_t rreg = findreg(rretregs);
 
     code cs;
     regm_t retregs;
-    uint reg;
+    reg_t reg;
     bool regvar = false;
     if (config.flags4 & CFG4optimized)
     {
         // Be careful of cases like (x = x+x+x). We cannot evaluate in
         // x if x is in a register.
-        uint varreg;
+        reg_t varreg;
         regm_t varregm;
         if (isregvar(e1,&varregm,&varreg) &&    // if lvalue is register variable
             doinreg(e1.EV.Vsym,e2)          // and we can compute directly into it
@@ -502,7 +500,7 @@ void xmmopass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         checkSetVex(cdb.last(), ty1);
     }
 
-    uint op = xmmoperator(e1.Ety, e.Eoper);
+    const op = xmmoperator(e1.Ety, e.Eoper);
     cdb.gen2(op,modregxrmx(3,reg-XMM0,rreg-XMM0));
     checkSetVex(cdb.last(), e1.Ety);
 
@@ -537,13 +535,13 @@ void xmmpost(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     tym_t ty1 = tybasic(e1.Ety);
 
     regm_t retregs;
-    uint reg;
+    reg_t reg;
     bool regvar = false;
     if (config.flags4 & CFG4optimized)
     {
         // Be careful of cases like (x = x+x+x). We cannot evaluate in
         // x if x is in a register.
-        uint varreg;
+        reg_t varreg;
         regm_t varregm;
         if (isregvar(e1,&varregm,&varreg) &&    // if lvalue is register variable
             doinreg(e1.EV.Vsym,e2)          // and we can compute directly into it
@@ -574,7 +572,7 @@ void xmmpost(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     regm_t resultregs = XMMREGS & *pretregs & ~retregs;
     if (!resultregs)
         resultregs = XMMREGS & ~retregs;
-    uint resultreg;
+    reg_t resultreg;
     allocreg(cdb,&resultregs, &resultreg, ty1);
 
     cdb.gen2(xmmload(ty1,true),modregxrmx(3,resultreg-XMM0,reg-XMM0));   // MOVSS/D resultreg,reg
@@ -584,9 +582,9 @@ void xmmpost(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     if (!rretregs)
         rretregs = XMMREGS & ~(retregs | resultregs);
     codelem(cdb,e2,&rretregs,false); // eval right leaf
-    uint rreg = findreg(rretregs);
+    const rreg = findreg(rretregs);
 
-    uint op = xmmoperator(e1.Ety, e.Eoper);
+    const op = xmmoperator(e1.Ety, e.Eoper);
     cdb.gen2(op,modregxrmx(3,reg-XMM0,rreg-XMM0));  // ADD reg,rreg
     checkSetVex(cdb.last(), e1.Ety);
 
@@ -633,9 +631,9 @@ void xmmneg(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
      */
     codelem(cdb,e.EV.E1,&retregs,false);
     getregs(cdb,retregs);
-    uint reg = findreg(retregs);
+    const reg = findreg(retregs);
     regm_t rretregs = XMMREGS & ~retregs;
-    uint rreg;
+    reg_t rreg;
     allocreg(cdb,&rretregs,&rreg,tyml);
     targ_size_t signbit = 0x80000000;
     if (sz == 8)
@@ -643,7 +641,7 @@ void xmmneg(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     movxmmconst(cdb,rreg, sz, signbit, 0);
 
     getregs(cdb,retregs);
-    uint op = (sz == 8) ? XORPD : XORPS;       // XORPD/S reg,rreg
+    const op = (sz == 8) ? XORPD : XORPS;       // XORPD/S reg,rreg
     cdb.gen2(op,modregxrmx(3,reg-XMM0,rreg-XMM0));
     fixresult(cdb,e,retregs,pretregs);
 }
@@ -657,8 +655,9 @@ void xmmneg(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  *      aligned = for vectors, true if aligned to 16 bytes
  */
 
-uint xmmload(tym_t tym, bool aligned)
-{   uint op;
+opcode_t xmmload(tym_t tym, bool aligned)
+{
+    opcode_t op;
     if (tysize(tym) == 32)
         aligned = false;
     switch (tybasic(tym))
@@ -708,8 +707,9 @@ uint xmmload(tym_t tym, bool aligned)
  * Get correct store operator based on type.
  */
 
-uint xmmstore(tym_t tym, bool aligned)
-{   uint op;
+opcode_t xmmstore(tym_t tym, bool aligned)
+{
+    opcode_t op;
     switch (tybasic(tym))
     {
         case TYuint:
@@ -758,10 +758,10 @@ uint xmmstore(tym_t tym, bool aligned)
  * Get correct XMM operator based on type and operator.
  */
 
-private uint xmmoperator(tym_t tym, uint oper)
+private opcode_t xmmoperator(tym_t tym, OPER oper)
 {
     tym = tybasic(tym);
-    uint op;
+    opcode_t op;
     switch (oper)
     {
         case OPadd:
@@ -1022,7 +1022,7 @@ void cdvector(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         exit(1);
     }
 
-    uint n = el_nparams(e.EV.E1);
+    const n = el_nparams(e.EV.E1);
     elem **params = cast(elem **)malloc(n * (elem *).sizeof);
     assert(params);
     elem **tmp = params;
@@ -1041,7 +1041,7 @@ static if (0)
     if (*pretregs == 0)
     {   /* Evaluate for side effects only
          */
-        for (int i = 0; i < n; i++)
+        foreach (i; 0 .. n)
         {
             codelem(cdb,params[i], pretregs, false);
             *pretregs = 0;      // in case they got set
@@ -1060,11 +1060,9 @@ static if (0)
         ty2 = tybasic(op2.Ety);
     }
 
-    uint op = cast(uint)el_tolong(eop);
+    auto op = cast(opcode_t)el_tolong(eop);
     debug assert(!isXMMstore(op));
     tym_t ty1 = tybasic(op1.Ety);
-    uint sz1 = _tysize[ty1];
-//    assert(sz1 == 16);       // float or double
 
     regm_t retregs;
     if (n == 3 && ty2 == TYuchar && op2.Eoper == OPconst)
@@ -1074,7 +1072,7 @@ static if (0)
         if (!retregs)
             retregs = XMMREGS;
         codelem(cdb,op1,&retregs,false); // eval left leaf
-        uint reg = findreg(retregs);
+        const reg = findreg(retregs);
         int r;
         switch (op)
         {
@@ -1110,7 +1108,7 @@ static if (0)
         {
             regm_t rretregs = XMMREGS;
             codelem(cdb,op1, &rretregs, false);
-            uint rreg = findreg(rretregs) - XMM0;
+            const rreg = findreg(rretregs) - XMM0;
             cs.Irm = modregrm(3,0,rreg & 7);
             cs.Iflags = 0;
             cs.Irex = 0;
@@ -1121,7 +1119,7 @@ static if (0)
         retregs = *pretregs & XMMREGS;
         if (!retregs)
             retregs = XMMREGS;
-        uint reg;
+        reg_t reg;
         allocreg(cdb,&retregs, &reg, e.Ety);
         code_newreg(&cs, reg - XMM0);
         cs.Iop = op;
@@ -1140,7 +1138,7 @@ static if (0)
         if (!retregs)
             retregs = XMMREGS;
         codelem(cdb,op1,&retregs,false); // eval left leaf
-        uint reg = findreg(retregs);
+        const reg = findreg(retregs);
 
         if ((op2.Eoper == OPind && !op2.Ecount) || op2.Eoper == OPvar)
         {
@@ -1148,9 +1146,9 @@ static if (0)
         }
         else
         {
-            uint rretregs = XMMREGS & ~retregs;
+            regm_t rretregs = XMMREGS & ~retregs;
             scodelem(cdb, op2, &rretregs, retregs, true);
-            uint rreg = findreg(rretregs) - XMM0;
+            const rreg = findreg(rretregs) - XMM0;
             cs.Irm = modregrm(3,0,rreg & 7);
             cs.Iflags = 0;
             cs.Irex = 0;
@@ -1215,7 +1213,7 @@ void cdvecsto(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     elem *op1 = e.EV.E1;
     elem *op2 = e.EV.E2.EV.E2;
     elem *eop = e.EV.E2.EV.E1;
-    uint op = cast(uint)el_tolong(eop);
+    const op = cast(opcode_t)el_tolong(eop);
     debug assert(isXMMstore(op));
     xmmeq(cdb, e, op, op1, op2, pretregs);
 }
@@ -1245,9 +1243,9 @@ static if (0)
     }
     else
     {
-        uint rretregs = XMMREGS & ~retregs;
+        regm_t rretregs = XMMREGS & ~retregs;
         cr = scodelem(op2, &rretregs, retregs, true);
-        uint rreg = findreg(rretregs) - XMM0;
+        const rreg = findreg(rretregs) - XMM0;
         cs.Irm = modregrm(3,0,rreg & 7);
         cs.Iflags = 0;
         cs.Irex = 0;
@@ -1256,11 +1254,7 @@ static if (0)
     }
 }
 
-    uint reg;
-    uint rreg;
-    uint varreg;
-    regm_t varregm;
-    tym_t ty = tybasic(e.Ety);
+    const ty = tybasic(e.Ety);
     switch (ty)
     {
         case TYfloat4:
@@ -1270,6 +1264,7 @@ static if (0)
                 // VBROADCASTSS X/YMM,MEM
                 getlvalue(cdb,&cs, e1, 0);         // get addressing mode
                 assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
+                reg_t reg;
                 allocreg(cdb,&retregs,&reg,ty);
                 cs.Iop = VBROADCASTSS;
                 cs.Irex &= ~REX_W;
@@ -1280,7 +1275,7 @@ static if (0)
             else
             {
                 codelem(cdb,e1,&retregs,false); // eval left leaf
-                reg = findreg(retregs) - XMM0;
+                const reg = cast(reg_t)(findreg(retregs) - XMM0);
                 getregs(cdb,retregs);
                 if (config.avx >= 2)
                 {
@@ -1310,6 +1305,7 @@ static if (0)
                 // VBROADCASTSD YMM,MEM
                 getlvalue(cdb,&cs, e1, 0);         // get addressing mode
                 assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
+                reg_t reg;
                 allocreg(cdb,&retregs,&reg,ty);
                 cs.Iop = VBROADCASTSD;
                 cs.Irex &= ~REX_W;
@@ -1320,7 +1316,7 @@ static if (0)
             else
             {
                 codelem(cdb,e1,&retregs,false); // eval left leaf
-                reg = findreg(retregs) - XMM0;
+                const reg = cast(reg_t)(findreg(retregs) - XMM0);
                 getregs(cdb,retregs);
                 if (config.avx >= 2 && tysize(ty) == 32)
                 {
@@ -1352,6 +1348,7 @@ static if (0)
                 // VPBROADCASTB X/YMM,MEM
                 getlvalue(cdb,&cs, e1, 0);         // get addressing mode
                 assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
+                reg_t reg;
                 allocreg(cdb,&retregs,&reg,ty);
                 cs.Iop = VPBROADCASTB;
                 cs.Irex &= ~REX_W;
@@ -1363,8 +1360,9 @@ static if (0)
             {
                 regm_t regm = ALLREGS;
                 codelem(cdb,e1,&regm,false); // eval left leaf
-                uint r = findreg(regm);
+                const r = findreg(regm);
 
+                reg_t reg;
                 allocreg(cdb,&retregs,&reg, e.Ety);
                 reg -= XMM0;
                 // (V)MOVD reg,r
@@ -1380,7 +1378,7 @@ static if (0)
                 {
                     if (config.avx)
                     {
-                        uint zeroreg;
+                        reg_t zeroreg;
                         regm = XMMREGS & ~retregs;
                         // VPXOR XMM1,XMM1,XMM1
                         allocreg(cdb,&regm,&zeroreg, ty);
@@ -1419,6 +1417,7 @@ static if (0)
                 // VPBROADCASTW X/YMM,MEM
                 getlvalue(cdb,&cs, e1, 0);         // get addressing mode
                 assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
+                reg_t reg;
                 allocreg(cdb,&retregs,&reg,ty);
                 cs.Iop = VPBROADCASTW;
                 cs.Irex &= ~REX_W;
@@ -1431,8 +1430,9 @@ static if (0)
             {
                 regm_t regm = ALLREGS;
                 codelem(cdb,e1,&regm,false); // eval left leaf
-                uint r = findreg(regm);
+                reg_t r = findreg(regm);
 
+                reg_t reg;
                 allocreg(cdb,&retregs,&reg, e.Ety);
                 reg -= XMM0;
                 // (V)MOVD reg,r
@@ -1471,6 +1471,7 @@ static if (0)
                 // VPBROADCASTD/VBROADCASTSS X/YMM,MEM
                 getlvalue(cdb,&cs, e1, 0);         // get addressing mode
                 assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
+                reg_t reg;
                 allocreg(cdb,&retregs,&reg,ty);
                 cs.Iop = config.avx >= 2 ? VPBROADCASTD : VBROADCASTSS;
                 cs.Irex &= ~REX_W;
@@ -1481,7 +1482,7 @@ static if (0)
             else
             {
                 codelem(cdb,e1,&retregs,false); // eval left leaf
-                reg = findreg(retregs) - XMM0;
+                const reg = cast(reg_t)(findreg(retregs) - XMM0);
                 getregs(cdb,retregs);
                 if (config.avx >= 2)
                 {
@@ -1513,6 +1514,7 @@ static if (0)
                 // VPBROADCASTQ/VBROADCASTSD/(V)PUNPCKLQDQ X/YMM,MEM
                 getlvalue(cdb,&cs, e1, 0);         // get addressing mode
                 assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
+                reg_t reg;
                 allocreg(cdb,&retregs,&reg,ty);
                 cs.Iop = config.avx >= 2 ? VPBROADCASTQ : tysize(ty) == 32 ? VBROADCASTSD : PUNPCKLQDQ;
                 cs.Irex &= ~REX_W;
@@ -1523,7 +1525,7 @@ static if (0)
             else
             {
                 codelem(cdb,e1,&retregs,false); // eval left leaf
-                reg = findreg(retregs) - XMM0;
+                const reg = cast(reg_t)(findreg(retregs) - XMM0);
                 getregs(cdb,retregs);
                 if (config.avx >= 2)
                 {
@@ -1567,9 +1569,10 @@ bool xmmIsAligned(elem *e)
     if (tyvector(e.Ety) && e.Eoper == OPvar)
     {
         Symbol *s = e.EV.Vsym;
-        if (Symbol_Salignsize(s) < 16 ||
-            e.EV.Voffset & (16 - 1) ||
-            tysize(e.Ety) > STACKALIGN
+        const alignsz = tyalignsize(e.Ety);
+        if (Symbol_Salignsize(s) < alignsz ||
+            e.EV.Voffset & (alignsz - 1) ||
+            alignsz > STACKALIGN
            )
             return false;       // definitely not aligned
     }
@@ -1667,7 +1670,7 @@ void checkSetVex(code *c, tym_t ty)
                 break;
         }
 
-        uint op = 0xC4000000 | (c.Iop & 0xFF);
+        opcode_t op = 0xC4000000 | (c.Iop & 0xFF);
         switch (c.Iop & 0xFFFFFF00)
         {
             static uint MM_PP(uint mm, uint pp) { return (mm << 16) | (pp << 8); }

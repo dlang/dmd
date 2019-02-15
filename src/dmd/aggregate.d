@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/aggregate.d, _aggregate.d)
@@ -327,7 +327,24 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         }
         bool errors = false;
 
-        // Fill in missing any elements with default initializers
+        // Using a dedicated flag in VarDecl we avoid the O(n^2) check in many cases.
+        // (note : anon unions are impl. as attribs so isAnonDecl. cant work here)
+        bool containsAnonUnionMembers;
+        foreach (const i; 0 .. nfields)
+        {
+            VarDeclaration vd = fields[i];
+            if (vd.errors)
+            {
+                errors = true;
+                break;
+            }
+            if ((containsAnonUnionMembers = vd.isAnonUnionMember) == true)
+                break;
+        }
+        if (!errors && !isUnionDeclaration() && !containsAnonUnionMembers)
+            return false;
+
+        // Set the members flags related to overlapping
         foreach (i; 0 .. nfields)
         {
             auto vd = fields[i];

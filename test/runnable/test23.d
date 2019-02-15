@@ -357,6 +357,13 @@ void test16()
 
 void test17()
 {
+    version(D_InlineAsm_X86_64)
+        enum AsmX86 = true;
+    else version(D_InlineAsm_X86)
+        enum AsmX86 = true;
+    else
+        enum AsmX86 = false;
+
     version (OSX)
     {
     }
@@ -365,9 +372,17 @@ void test17()
         const f = 1.2f;
         float g = void;
 
-        asm{
+        static if (AsmX86)
+        {
+            asm
+            {
                 fld f;  // doesn't work with PIC
                 fstp g;
+            }
+        }
+        else
+        {
+            g = f;
         }
         assert(g == 1.2f);
     }

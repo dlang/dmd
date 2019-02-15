@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
@@ -131,5 +131,5 @@ void verybusyexp();
 extern (C) list_t listrds(vec_t, elem *, vec_t);
 
 /* gslice.c */
-void sliceStructs();
+void sliceStructs(symtab_t* symtab, block* startblock);
 

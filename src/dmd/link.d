@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/link.d, _link.d)
@@ -18,7 +18,9 @@ import core.stdc.string;
 import core.sys.posix.stdio;
 import core.sys.posix.stdlib;
 import core.sys.posix.unistd;
-import core.sys.windows.windows;
+import core.sys.windows.winbase;
+import core.sys.windows.windef;
+import core.sys.windows.winreg;
 import dmd.errors;
 import dmd.globals;
 import dmd.root.file;
@@ -155,8 +157,14 @@ version (Posix)
  */
 public int runLINK()
 {
+    const phobosLibname = global.params.betterC ? null :
+        global.params.symdebug ? global.params.debuglibname : global.params.defaultlibname;
+
     version (Windows)
     {
+        if (phobosLibname)
+            global.params.libfiles.push(phobosLibname);
+
         if (global.params.mscoff)
         {
             OutBuffer cmdbuf;
@@ -619,39 +627,38 @@ public int runLINK()
         /* D runtime libraries must go after user specified libraries
          * passed with -l.
          */
-        const(char)* libname = global.params.symdebug ? global.params.debuglibname : global.params.defaultlibname;
-        size_t slen = libname ? strlen(libname) : 0;
-        if (!global.params.betterC && slen)
+        const libname = phobosLibname.toDString();
+        if (libname.length)
         {
-            char* buf = cast(char*)malloc(3 + slen + 1);
-            strcpy(buf, "-l");
+            const bufsize = 2 + libname.length + 1;
+            auto buf = (cast(char*) malloc(bufsize))[0 .. bufsize];
+            buf[0 .. 2] = "-l";
 
-            if (slen > 3 + 2 && memcmp(libname, "lib".ptr, 3) == 0)
+            char* getbuf(const(char)[] suffix)
             {
-                if (memcmp(libname + slen - 2, ".a".ptr, 2) == 0)
+                buf[2 .. 2 + suffix.length] = suffix[];
+                buf[2 + suffix.length] = 0;
+                return buf.ptr;
+            }
+
+            if (libname.length > 3 + 2 && libname[0 .. 3] == "lib")
+            {
+                if (libname[$-2 .. $] == ".a")
                 {
                     argv.push("-Xlinker");
                     argv.push("-Bstatic");
-                    strncat(buf, libname + 3, slen - 3 - 2);
-                    argv.push(buf);
+                    argv.push(getbuf(libname[3 .. $-2]));
                     argv.push("-Xlinker");
                     argv.push("-Bdynamic");
                 }
-                else if (memcmp(libname + slen - 3, ".so".ptr, 3) == 0)
-                {
-                    strncat(buf, libname + 3, slen - 3 - 3);
-                    argv.push(buf);
-                }
+                else if (libname[$-3 .. $] == ".so")
+                    argv.push(getbuf(libname[3 .. $-3]));
                 else
-                {
-                    strcat(buf, libname);
-                    argv.push(buf);
-                }
+                    argv.push(getbuf(libname));
             }
             else
             {
-                strcat(buf, libname);
-                argv.push(buf);
+                argv.push(getbuf(libname));
             }
         }
         //argv.push("-ldruntime");
@@ -936,9 +943,8 @@ version (Windows)
         const(char)* UCRTSdkDir;
         const(char)* UCRTVersion;
         const(char)* VSInstallDir;
-        const(char)* VisualStudioVersion;
         const(char)* VCInstallDir;
-        const(char)* VCToolsInstallDir; // used by VS 2017
+        const(char)* VCToolsInstallDir; // used by VS 2017+
 
         /**
          * fill member variables from environment or registry
@@ -1133,33 +1139,25 @@ version (Windows)
         }
 
         /**
-         * detect VSInstallDir and VisualStudioVersion from environment or registry
+         * detect VSInstallDir from environment or registry
          */
         void detectVSInstallDir()
         {
             if (VSInstallDir is null)
                 VSInstallDir = getenv("VSINSTALLDIR");
 
-            if (VisualStudioVersion is null)
-                VisualStudioVersion = getenv("VisualStudioVersion");
+            if (VSInstallDir is null)
+                VSInstallDir = detectVSInstallDirViaCOM();
 
             if (VSInstallDir is null)
-            {
-                // VS2017
-                VSInstallDir = GetRegistryString(r"Microsoft\VisualStudio\SxS\VS7", "15.0");
-                if (VSInstallDir)
-                    VisualStudioVersion = "15.0";
-            }
+                VSInstallDir = GetRegistryString(r"Microsoft\VisualStudio\SxS\VS7", "15.0"); // VS2017
 
             if (VSInstallDir is null)
                 foreach (const(char)* ver; ["14.0".ptr, "12.0", "11.0", "10.0", "9.0"])
                 {
                     VSInstallDir = GetRegistryString(FileName.combine(r"Microsoft\VisualStudio", ver), "InstallDir");
                     if (VSInstallDir)
-                    {
-                        VisualStudioVersion = ver;
                         break;
-                    }
                 }
         }
 
@@ -1197,6 +1195,8 @@ version (Windows)
             if (VCToolsInstallDir is null && VCInstallDir)
             {
                 const(char)* defverFile = FileName.combine(VCInstallDir, r"Auxiliary\Build\Microsoft.VCToolsVersion.default.txt");
+                if (!FileName.exists(defverFile)) // file renamed with VS2019 Preview 2
+                    defverFile = FileName.combine(VCInstallDir, r"Auxiliary\Build\Microsoft.VCToolsVersion.v142.default.txt");
                 if (FileName.exists(defverFile))
                 {
                     // VS 2017
@@ -1460,7 +1460,7 @@ version (Windows)
             {
                 // running as a 32-bit process on a 64-bit host?
                 alias fnIsWow64Process = extern(Windows) BOOL function(HANDLE, PBOOL);
-                static fnIsWow64Process pIsWow64Process;
+                __gshared fnIsWow64Process pIsWow64Process;
 
                 if (!pIsWow64Process)
                 {
@@ -1476,5 +1476,87 @@ version (Windows)
                 return bIsWow64 != 0;
             }
         }
+    }
+
+    ///////////////////////////////////////////////////////////////////////
+    // COM interfaces to find VS2017+ installations
+    import core.sys.windows.com;
+    import core.sys.windows.wtypes : BSTR;
+    import core.sys.windows.winnls : WideCharToMultiByte, CP_UTF8;
+    import core.sys.windows.oleauto : SysFreeString;
+
+    pragma(lib, "ole32.lib");
+    pragma(lib, "oleaut32.lib");
+
+    interface ISetupInstance : IUnknown
+    {
+        // static const GUID iid = uuid("B41463C3-8866-43B5-BC33-2B0676F7F42E");
+        static const GUID iid = { 0xB41463C3, 0x8866, 0x43B5, [ 0xBC, 0x33, 0x2B, 0x06, 0x76, 0xF7, 0xF4, 0x2E ] };
+
+        int GetInstanceId(BSTR* pbstrInstanceId);
+        int GetInstallDate(LPFILETIME pInstallDate);
+        int GetInstallationName(BSTR* pbstrInstallationName);
+        int GetInstallationPath(BSTR* pbstrInstallationPath);
+        int GetInstallationVersion(BSTR* pbstrInstallationVersion);
+        int GetDisplayName(LCID lcid, BSTR* pbstrDisplayName);
+        int GetDescription(LCID lcid, BSTR* pbstrDescription);
+        int ResolvePath(LPCOLESTR pwszRelativePath, BSTR* pbstrAbsolutePath);
+    }
+
+    interface IEnumSetupInstances : IUnknown
+    {
+        // static const GUID iid = uuid("6380BCFF-41D3-4B2E-8B2E-BF8A6810C848");
+
+        int Next(ULONG celt, ISetupInstance* rgelt, ULONG* pceltFetched);
+        int Skip(ULONG celt);
+        int Reset();
+        int Clone(IEnumSetupInstances* ppenum);
+    }
+
+    interface ISetupConfiguration : IUnknown
+    {
+        // static const GUID iid = uuid("42843719-DB4C-46C2-8E7C-64F1816EFD5B");
+        static const GUID iid = { 0x42843719, 0xDB4C, 0x46C2, [ 0x8E, 0x7C, 0x64, 0xF1, 0x81, 0x6E, 0xFD, 0x5B ] };
+
+        int EnumInstances(IEnumSetupInstances* ppEnumInstances) ;
+        int GetInstanceForCurrentProcess(ISetupInstance* ppInstance);
+        int GetInstanceForPath(LPCWSTR wzPath, ISetupInstance* ppInstance);
+    }
+
+    const GUID iid_SetupConfiguration = { 0x177F0C4A, 0x1CD3, 0x4DE7, [ 0xA3, 0x2C, 0x71, 0xDB, 0xBB, 0x9F, 0xA3, 0x6D ] };
+
+    const(char)* detectVSInstallDirViaCOM()
+    {
+        CoInitialize(null);
+        scope(exit) CoUninitialize();
+
+        ISetupConfiguration setup;
+        IEnumSetupInstances instances;
+        ISetupInstance instance;
+        DWORD fetched;
+
+        HRESULT hr = CoCreateInstance(&iid_SetupConfiguration, null, CLSCTX_ALL, &ISetupConfiguration.iid, cast(void**) &setup);
+        if (hr != S_OK || !setup)
+            return null;
+        scope(exit) setup.Release();
+
+        if (setup.EnumInstances(&instances) != S_OK)
+            return null;
+        scope(exit) instances.Release();
+
+        while (instances.Next(1, &instance, &fetched) == S_OK && fetched)
+        {
+            BSTR bstrInstallDir;
+            if (instance.GetInstallationPath(&bstrInstallDir) != S_OK)
+                continue;
+
+            char[260] path;
+            int len = WideCharToMultiByte(CP_UTF8, 0, bstrInstallDir, -1, path.ptr, 260, null, null);
+            SysFreeString(bstrInstallDir);
+
+            if (len > 0)
+                return path[0..len].idup.ptr;
+        }
+        return null;
     }
 }

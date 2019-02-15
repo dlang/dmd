@@ -127,7 +127,7 @@ struct T6
     S6 s;
     int b = 7;
 
-    S6* opDot()
+    S6* opDot() return
     {
         return &s;
     }
@@ -531,7 +531,7 @@ void test27()
 
 /***************************************************/
 
-ref int foo28(ref int x) { return x; }
+ref int foo28(return ref int x) { return x; }
 
 void test28()
 {
@@ -654,13 +654,13 @@ void test34()
 
 /***************************************************/
 
-ref int foo35(bool condition, ref int lhs, ref int rhs)
+ref int foo35(bool condition, return ref int lhs, return ref int rhs)
 {
         if ( condition ) return lhs;
         return rhs;
 }
 
-ref int bar35()(bool condition, ref int lhs, ref int rhs)
+ref int bar35()(bool condition, return ref int lhs, return ref int rhs)
 {
         if ( condition ) return lhs;
         return rhs;
@@ -2190,7 +2190,7 @@ void test104()
 
 /***************************************************/
 
-ref int bump105(ref int x) { return ++x; }
+ref int bump105(return ref int x) { return ++x; }
 
 void test105()
 {
@@ -3700,7 +3700,7 @@ B14348 test14348()
 struct S7295
 {
     int member;
-    @property ref int refCountedPayload() { return member; }
+    @property ref int refCountedPayload() return { return member; }
     alias refCountedPayload this;
 }
 

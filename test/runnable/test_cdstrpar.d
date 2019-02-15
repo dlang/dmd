@@ -123,7 +123,7 @@ alias baselineCases = AliasSeq!(
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
         /* call   9 <testee_ubyte_4+0x9>  */ 0xe8, 0x00, 0x00, 0x00, 0x00,
-        /* mov    rdi,rax                 */ 0x48, 0x89, 0xc7,
+        /* mov    edi,eax                 */ 0x89, 0xc7,
         /* call   11 <testee_ubyte_4+0x11> */ 0xe8, 0x00, 0x00, 0x00, 0x00,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,

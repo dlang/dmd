@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcod.d, backend/cgcod.d)
@@ -70,6 +70,7 @@ __gshared
 bool floatreg;                  // !=0 if floating register is required
 
 int hasframe;                   // !=0 if this function has a stack frame
+bool enforcealign;              // enforced stack alignment
 targ_size_t spoff;
 targ_size_t Foff;               // BP offset of floating register
 targ_size_t CSoff;              // offset of common sub expressions
@@ -222,6 +223,7 @@ tryagain:
 
     // if no parameters, assume we don't need a stack frame
     needframe = 0;
+    enforcealign = false;
     gotref = 0;
     stackchanged = 0;
     stackpush = 0;
@@ -232,6 +234,7 @@ tryagain:
     cgstate.stackclean = 1;
     cgstate.funcarg.init();
     cgstate.funcargtos = ~0;
+    STACKALIGN = TARGET_STACKALIGN;
 
     regsave.reset();
     memset(_8087elems.ptr,0,_8087elems.sizeof);
@@ -303,6 +306,32 @@ tryagain:
             }
         }
         regcon.params &= ~noparams;
+    }
+
+    // See if we need to enforce a particular stack alignment
+    foreach (i; 0 .. globsym.top)
+    {
+        Symbol *s = globsym.tab[i];
+
+        switch (s.Sclass)
+        {
+            case SCregister:
+            case SCauto:
+            case SCfastpar:
+                if (s.Sfl == FLreg)
+                    break;
+
+                const sz = type_alignsize(s.Stype);
+                if (sz > STACKALIGN && (I64 || config.exe == EX_OSX))
+                {
+                    STACKALIGN = sz;
+                    enforcealign = true;
+                }
+                break;
+
+            default:
+                break;
+        }
     }
 
     if (config.flags4 & CFG4optimized)
@@ -864,7 +893,8 @@ Lagain:
      * and the overriding function, and so bias should be the same too.
     */
 
-    int bias = cast(int)(Para.size + (needframe ? 0 : REGSIZE));
+    int bias = enforcealign ? 0 : cast(int)(Para.size + (needframe ? 0 : REGSIZE));
+
     if (Fast.alignment < REGSIZE)
         Fast.alignment = REGSIZE;
 
@@ -927,7 +957,7 @@ Lagain:
 
     // Keep the stack aligned by 8 for any subsequent function calls
     if (!I16 && calledafunc &&
-        (STACKALIGN == 16 || config.flags4 & CFG4stackalign))
+        (STACKALIGN >= 16 || config.flags4 & CFG4stackalign))
     {
         int npush = numbitsset(topush);            // number of registers that need saving
         npush += numbitsset(topush & XMMREGS);     // XMM regs take 16 bytes, so count them twice
@@ -937,14 +967,11 @@ Lagain:
         //printf("npush = %d Para.size = x%x needframe = %d localsize = x%x\n",
                //npush, Para.size, needframe, localsize);
 
-        int sz = cast(int)(Para.size + (needframe ? 0 : -REGSIZE) + localsize + npush * REGSIZE);
-        if (STACKALIGN == 16)
-        {
-            if (sz & (8|4))
-                localsize += STACKALIGN - (sz & (8|4));
-        }
-        else if (sz & 4)
-            localsize += 4;
+        int sz = cast(int)(localsize + npush * REGSIZE);
+        if (!enforcealign)
+            sz += Para.size + (needframe ? 0 : -REGSIZE);
+        if (sz & (STACKALIGN - 1))
+            localsize += STACKALIGN - (sz & (STACKALIGN - 1));
     }
     cgstate.funcarg.offset = -localsize;
 
@@ -1010,6 +1037,9 @@ Lagain:
         hasframe = 1;
     }
 
+    /* Align the stack if necessary */
+    prolog_stackalign(cdbx);
+
     /* Subtract from stack pointer the size of the local stack frame
      */
     if (config.flags & CFGstack)        // if stack overflow check
@@ -1038,6 +1068,8 @@ Lagain:
     else
         assert((localsize | Alloca.size) == 0 || (usednteh & NTEHjmonitor));
     EBPtoESP += xlocalsize;
+    if (hasframe)
+        EBPtoESP += REGSIZE;
 
     /* Win64 unwind needs the amount of code generated so far
      */
@@ -1064,8 +1096,10 @@ Lagain:
            )
         {
             uint spalign = 0;
-            int sz = Para.size + (needframe ? 0 : -REGSIZE) + localsize;
-            if (STACKALIGN == 16 && (sz & (STACKALIGN - 1)))
+            int sz = cast(int)localsize;
+            if (!enforcealign)
+                sz += Para.size + (needframe ? 0 : -REGSIZE);
+            if (STACKALIGN >= 16 && (sz & (STACKALIGN - 1)))
                 spalign = STACKALIGN - (sz & (STACKALIGN - 1));
 
             if (spalign)
@@ -1316,13 +1350,10 @@ void stackoffsets(int flags)
                  * but are 4 byte aligned on the OSX 32 stack.
                  */
                 Para.offset = _align(REGSIZE,Para.offset); /* align on word stack boundary */
-                if (alignsize == 16 && (I64 || tyvector(s.ty())))
-                {
-                    if (Para.offset & 4)
-                        Para.offset += 4;
-                    if (Para.offset & 8)
-                        Para.offset += 8;
-                }
+                if (alignsize >= 16 &&
+                    (I64 || (config.exe == EX_OSX &&
+                         (tyaggregate(s.ty()) || tyvector(s.ty())))))
+                    Para.offset = (Para.offset + (alignsize - 1)) & ~(alignsize - 1);
                 s.Soffset = Para.offset;
                 //printf("%s param offset =  x%lx, alignsize = %d\n",s.Sident,(long)s.Soffset, (int)alignsize);
                 Para.offset += (s.Sflags & SFLdouble)
@@ -1771,17 +1802,17 @@ int numbitsset(regm_t regm)
  * of the first register that fits.
  */
 
-uint findreg(regm_t regm)
+reg_t findreg(regm_t regm)
 {
     return findreg(regm, __LINE__, __FILE__);
 }
 
-uint findreg(regm_t regm, int line, const(char)* file)
+reg_t findreg(regm_t regm, int line, const(char)* file)
 {
     debug
     regm_t regmsave = regm;
 
-    int i = 0;
+    reg_t i = 0;
     while (1)
     {
         if (!(regm & 0xF))
@@ -1868,13 +1899,13 @@ private void resetEcomsub(elem *e)
  *      returns false
  */
 
-int isregvar(elem *e,regm_t *pregm,uint *preg)
+int isregvar(elem *e,regm_t *pregm,reg_t *preg)
 {
     Symbol *s;
     uint u;
     regm_t m;
     regm_t regm;
-    uint reg;
+    reg_t reg;
 
     elem_debug(e);
     if (e.Eoper == OPvar || e.Eoper == OPrelconst)
@@ -1887,7 +1918,7 @@ int isregvar(elem *e,regm_t *pregm,uint *preg)
                 {   refparam = true;
                     reflocal = true;
                 }
-                reg = s.Sreglsw;
+                reg = e.EV.Voffset == REGSIZE ? s.Sregmsw : s.Sreglsw;
                 regm = s.Sregm;
                 //assert(tyreg(s.ty()));
 static if (0)
@@ -1963,15 +1994,15 @@ Lreg:
  *      stack.
  */
 
-void allocreg(ref CodeBuilder cdb,regm_t *pretregs,uint *preg,tym_t tym)
+void allocreg(ref CodeBuilder cdb,regm_t *pretregs,reg_t *preg,tym_t tym)
 {
     allocreg(cdb, pretregs, preg, tym, __LINE__, __FILE__);
 }
 
-void allocreg(ref CodeBuilder cdb,regm_t *pretregs,uint *preg,tym_t tym
+void allocreg(ref CodeBuilder cdb,regm_t *pretregs,reg_t *preg,tym_t tym
         ,int line,const(char)* file)
 {
-        uint reg;
+        reg_t reg;
 
 static if (0)
 {
@@ -2014,7 +2045,7 @@ L1:
         //printf("L1: allregs = %s, *pretregs = %s\n", regm_str(allregs), regm_str(*pretregs));
         assert(++count < 20);           /* fail instead of hanging if blocked */
         assert(retregs);
-        uint msreg = -1, lsreg = -1;  /* no value assigned yet        */
+        reg_t msreg = NOREG, lsreg = NOREG;  /* no value assigned yet        */
 L3:
         //printf("L2: allregs = %s, *pretregs = %s\n", regm_str(allregs), regm_str(*pretregs));
         regm_t r = retregs & ~(msavereg | regcon.cse.mval | regcon.params);
@@ -2086,7 +2117,7 @@ L3:
                 r &= mLSW;                      /* see if there's an LSW also */
                 if (r)
                     lsreg = findreg(r);
-                else if (lsreg == -1)   /* if don't have LSW yet */
+                else if (lsreg == NOREG)   /* if don't have LSW yet */
                 {
                     retregs &= mLSW;
                     goto L3;
@@ -2101,7 +2132,7 @@ L3:
                     goto L1;
                 }
                 lsreg = findreglsw(r);
-                if (msreg == -1)
+                if (msreg == NOREG)
                 {
                     retregs &= mMSW;
                     assert(retregs);
@@ -2262,7 +2293,7 @@ private void cse_save(ref CodeBuilder cdb, regm_t ms)
         auto cse = &csextab[i];
         if (cse.e == null)
         {
-            uint reg = findreg(ms);          /* the register to save         */
+            reg_t reg = findreg(ms);          /* the register to save         */
             cse.e = regcon.cse.value[reg];
             cse.regm = mask(reg);
             cse.flags &= CSEload;
@@ -2444,7 +2475,8 @@ private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     tym_t tym;
     regm_t regm,emask,csemask;
-    uint reg,byte_,sz;
+    reg_t reg;
+    uint byte_,sz;
 
     //printf("comsub(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
     elem_debug(e);
@@ -2587,7 +2619,7 @@ private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     else                                  /* reg pair is req'd            */
     if (sz <= 2 * REGSIZE)
     {
-        uint msreg,lsreg;
+        reg_t msreg,lsreg;
 
         /* see if we have both  */
         if (!((emask | csemask) & mMSW && (emask | csemask) & (mLSW | mBP)))
@@ -2641,8 +2673,8 @@ private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         assert(I16);
         if (((csemask | emask) & DOUBLEREGS_16) == DOUBLEREGS_16)
         {
-            static const uint[4] dblreg = [ BX,DX,cast(uint)-1,CX ]; // duplicate of one in cod4.d
-            for (reg = 0; reg != -1; reg = dblreg[reg])
+            static const reg_t[4] dblreg = [ BX,DX,NOREG,CX ]; // duplicate of one in cod4.d
+            for (reg = 0; reg != NOREG; reg = dblreg[reg])
             {
                 assert(cast(int) reg >= 0 && reg <= 7);
                 if (mask(reg) & csemask)
@@ -2696,7 +2728,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
  *      pointer to the MOV instruction
  */
 
-private void loadcse(ref CodeBuilder cdb,elem *e,uint reg,regm_t regm)
+private void loadcse(ref CodeBuilder cdb,elem *e,reg_t reg,regm_t regm)
 {
     foreach_reverse (i, ref cse; csextab[])
     {
@@ -2894,7 +2926,7 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
     if (constflag)
     {
         regm_t regm;
-        uint reg;
+        reg_t reg;
 
         if (isregvar(e,&regm,&reg) &&           // if e is a register variable
             (regm & *pretregs) == regm &&       // in one of the right regs
@@ -3025,12 +3057,8 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
         // will throw off the 8 byte stack alignment.
         // We should *only* worry about this if a function
         // was called in the code generation by codelem().
-        int sz;
-        if (STACKALIGN == 16)
-            sz = -(adjesp & (STACKALIGN - 1)) & (STACKALIGN - 1);
-        else
-            sz = -(adjesp & 7) & 7;
-        if (calledafunc && !I16 && sz && (STACKALIGN == 16 || config.flags4 & CFG4stackalign))
+        int sz = -(adjesp & (STACKALIGN - 1)) & (STACKALIGN - 1);
+        if (calledafunc && !I16 && sz && (STACKALIGN >= 16 || config.flags4 & CFG4stackalign))
         {
             regm_t mval_save = regcon.immed.mval;
             regcon.immed.mval = 0;      // prevent reghasvalue() optimizations

@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dinifile.d, _dinifile.d)
@@ -16,7 +16,8 @@ module dmd.dinifile;
 import core.stdc.ctype;
 import core.stdc.string;
 import core.sys.posix.stdlib;
-import core.sys.windows.windows;
+import core.sys.windows.winbase;
+import core.sys.windows.windef;
 
 import dmd.errors;
 import dmd.globals;
@@ -43,7 +44,7 @@ const(char)[] findConfFile(const(char)[] argv0, const(char)[] inifile)
     static if (LOG)
     {
         printf("findinifile(argv0 = '%.*s', inifile = '%.*s')\n",
-               argv0.length, argv0.ptr, inifile.length, inifile.ptr);
+               cast(int)argv0.length, argv0.ptr, cast(int)inifile.length, inifile.ptr);
     }
     if (FileName.absolute(inifile))
         return inifile;

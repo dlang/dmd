@@ -3295,9 +3295,9 @@ struct X10758
 {
 static:
         inout(int)   screwUpVal(ref inout(int) wx) { return wx; }
-    ref inout(int)   screwUpRef(ref inout(int) wx) { return wx; }
-        inout(int)*  screwUpPtr(ref inout(int) wx) { return &wx; }
-        inout(int)[] screwUpArr(ref inout(int) wx) { return (&wx)[0 .. 1]; }
+    ref inout(int)   screwUpRef(return ref inout(int) wx) { return wx; }
+        inout(int)*  screwUpPtr(return ref inout(int) wx) { return &wx; }
+        inout(int)[] screwUpArr(return ref inout(int) wx) { return (&wx)[0 .. 1]; }
 }
 
 struct S10758
