@@ -779,13 +779,21 @@ $(GNAME ShiftExpression):
         $(LI $(D >)$(D >)$(D >) is an unsigned right shift.)
     )
 
-    $(P It's illegal to shift by the same or more bits than the size of the
-        quantity being shifted:)
+    $(IMPLEMENTATION_DEFINED
+    The result of a shift by a negative value or by the same or more bits
+    than the size of the quantity being shifted is undefined.
+    When the shift amount is known at compile time, doing this results in
+    a compile error.
 
         -------------
         int c;
-        auto x = c << 33;        // error
+
+        int s = -3;
+        auto y = c << s; // implementation defined value
+
+        auto x = c << 33;  // error, max shift count allowed is 31
         -------------
+    )
 
 $(H2 $(LNAME2 add_expressions, Add Expressions))
 
