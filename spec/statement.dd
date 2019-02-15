@@ -422,8 +422,15 @@ for (int i = 0; i < 10; i++)
 }
 --------------
 
-$(P The $(I Initialize) may be omitted. $(I Test) may also be omitted, and if
-so, it is treated as if it evaluated to true.)
+    $(P The $(I Initialize) may be omitted (although the trailing $(D ;) is still required).
+    $(I Test) may also be omitted, and if
+    so, it is treated as if it evaluated to true.)
+
+    $(BEST_PRACTICE Consider replacing $(I ForStatements) with
+    $(DDSUBLINK spec/statement, foreach-statement, Foreach Statements) or
+    $(DDSUBLINK spec/statement, ForeachRangeStatement, Foreach Range Statements).
+    Foreach loops are easier to understand, less prone to error, and easier to refactor.
+    )
 
 $(H2 $(LEGACY_LNAME2 ForeachStatement, foreach-statement, Foreach Statement))
 
@@ -492,9 +499,10 @@ $(P
         If there are
         two variables declared, the first is said to be the $(I index)
         and the second is said to be the $(I value). The $(I index)
-        must be of `int`, `uint`, `long` or `ulong` type,
-        it cannot be `ref`,
-        and it is set to be the index of the array element.
+        must be of type `size_t` for dynamic arrays. Static arrays may use
+        any integral type that spans the length of the array.
+        $(I index) cannot be `ref`.
+        It is set to be the index of the array element.
 )
 --------------
 char[] a;
@@ -1148,7 +1156,7 @@ switch (number)
         )
 
 --------------
-char[] name;
+string name;
 ...
 switch (name)
 {
@@ -1889,11 +1897,11 @@ void main()
             writeln(x + i, ++j);
         ");    // ok
 
-    const char[] s = "int y;";
+    string s = "int y;";
     mixin(s);  // ok
     y = 4;     // ok, mixin declared y
 
-    char[] t = "y = 3;";
+    string t = "y = 3;";
     mixin(t);  // error, t is not evaluatable at compile time
 
     mixin("y =") 4; // error, string must be complete statement

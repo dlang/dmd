@@ -401,13 +401,20 @@ $(H2 $(LNAME2 gc_config, Configuring the Garbage Collector))
         $(UL
         $(LI disable:0|1    - start disabled)
         $(LI profile:0|1    - enable profiling with summary when terminating program)
-        $(LI gc:conservative|manual - select gc implementation (default = conservative))
+        $(LI gc:conservative|precise|manual - select gc implementation (default = conservative))
         $(LI initReserve:N  - initial memory to reserve in MB)
         $(LI minPoolSize:N  - initial and minimum pool size in MB)
         $(LI maxPoolSize:N  - maximum pool size in MB)
         $(LI incPoolSize:N  - pool size increment MB)
         $(LI heapSizeFactor:N - targeted heap size to used memory ratio)
-        )
+        $(LI cleanup:none|collect|finalize - how to treat live objects when terminating
+          $(UL
+            $(LI collect: run a collection (the default for backward compatibility))
+            $(LI none: do nothing)
+            $(LI finalize: all live objects are finalized unconditionally)
+          )
+        ))
+
 
     $(P In addition, --DRT-gcopt=help will show the list of options and their current settings.
     )
@@ -435,6 +442,35 @@ $(H2 $(LNAME2 gc_config, Configuring the Garbage Collector))
     $(P Evaluation order of options is `rt_options`, then environment variables, then command
         line arguments, i.e. if command line arguments are not disabled, they can override
         options specified through the environment or embedded in the executable.
+    )
+
+$(H2 $(LNAME2 precise_gc, Precise Heap Scanning))
+
+    $(P If you select `precise` as the garbage collector via the options above, type
+        information will be used to identify actual or possible pointers or
+        references within heap allocated data objects. Non-pointer data will not
+        be interpreted as a reference to other memory as a "false pointer". The collector
+        has to make pessimistic assumptions if a memory slot can contain both a pointer or
+        an integer value, it will still be scanned (e.g. in a `union`).
+    )
+
+    $(P If you use the GC memory functions from `core.memory`, and plan to use it
+        for data with a mixture of pointers and non-pointer data you should pass the
+        TypeInfo of your allocated struct, class or type as the optional parameter:
+        ---------
+            struct S { size_t hash; Data* data; }
+            S* s = cast(S*)GC.malloc(S.sizeof, 0, typeid(S));
+        ---------
+        The default `null` is interpreted as memory that might contain pointers everywhere.
+    )
+
+    $(P $(RED Attention:) Enabling precise scanning needs slightly more caution with
+        type declarations. For example, if you reserve a buffer as part of a struct and later
+        emplace an object instance with references to other allocations into this memory,
+        you must not use basic integer types to reserve the space. Doing so will cause the
+        garbage collector not to detect the references. Instead, use an array type that
+        will scan this area conservatively. Using `void*` is usually the best option as it also
+        ensures proper alignment for pointers being scanned by the GC.
     )
 
 $(H2 $(LNAME2 precise_dataseg, Precise Scanning of the DATA and TLS segment))

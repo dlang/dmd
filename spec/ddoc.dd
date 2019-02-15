@@ -335,7 +335,7 @@ $(DD Explains the return value of the function.
  * Returns: The contents of the file.
  */
 
-void[] readFile(char[] filename) { ... }
+void[] readFile(const(char)[] filename) { ... }
 ------------------------------------
 
 $(DT  $(B See$(UNDERSCORE)Also:))
@@ -364,7 +364,7 @@ $(DD Lists exceptions thrown and under what circumstances they are thrown.)
  * Throws: WriteException on failure.
  */
 
-void writeFile(char[] filename) { ... }
+void writeFile(string filename) { ... }
 ------------------------------------
 
 $(DT  $(B Version:))

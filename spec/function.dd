@@ -198,11 +198,6 @@ $(H2 $(LNAME2 pure-functions, Pure Functions))
             Weakly `pure` functions are useful as reusable building blocks for strongly pure functions.
         )
 
-        $(P To control mutations, D has the `immutable` type qualifier. If all of
-            a $(D pure) function's parameters are `immutable` or copied values
-            without any indirections, it can guarantee that the pure function has
-            no side effects.
-        )
         $(P To prevent mutation, D offers the `immutable` type qualifier.
             If all of a `pure` function's parameters are `immutable` or
             copied values without any indirections (e.g. `int`),
@@ -600,7 +595,7 @@ $(H2 $(LNAME2 optional-parenthesis, Optional Parentheses))
     ---
     struct S {
         int function() callfp() { return &numfp; }
-        int delegate() calldg() { return &numdg; }
+        int delegate() calldg() return { return &numdg; }
         int numdg() { return 6; }
     }
 
@@ -722,7 +717,8 @@ $(H2 $(LNAME2 virtual-functions, Virtual Functions))
         are not templatized are virtual unless the compiler can determine that
         they will never be overridden (e.g. they are marked with $(D final) and
         do not override any functions in a base class), in which case, it will
-        make them non-virtual. This results in fewer bugs caused by not
+        make them non-virtual. Static or `final` functions with `Objective-C`
+        linkage are virtual as well. This results in fewer bugs caused by not
         declaring a function virtual and then overriding it anyway.
         )
 
@@ -802,6 +798,11 @@ class Bar : Foo
         $(P Virtual functions all have a hidden parameter called the
         $(I this) reference, which refers to the class object for which
         the function is called.
+        )
+
+        $(P
+            Functions with `Objective-C` linkage has an additional hidden,
+            unnamed, parameter which is the selector it was called with.
         )
 
         $(P To avoid dynamic binding on member function call, insert
@@ -1048,6 +1049,8 @@ void main()
 ------
 )
 
+    $(P Static functions with `Objective-C` linkage are overridable.)
+
 $(H2 $(LNAME2 inline-functions, Inline Functions))
 
         $(P The compiler makes the decision whether to inline a function or not.
@@ -1241,8 +1244,13 @@ int foo(in int x, out int y, ref int z, int q);
     $(TROW $(D scope), references in the parameter
     cannot be escaped (e.g. assigned to a global variable).
     Ignored for parameters with no references)
+    $(TROW $(D return), $(ARGS Parameter may be returned or copied to the first parameter,
+    but otherwise does not escape from the function.
+    Such copies are required not to outlive the argument(s) they were derived from.
+    Ignored for parameters with no references.
+    See $(DDSUBLINK spec/memory-safe-d, scope-return-params, Scope Parameters).))
     $(TROW $(D lazy), argument is evaluated by the called function and not by the caller)
-        $(TROW $(D const), argument is implicitly converted to a const type)
+    $(TROW $(D const), argument is implicitly converted to a const type)
     $(TROW $(D immutable), argument is implicitly converted to an immutable type)
     $(TROW $(D shared), argument is implicitly converted to a shared type)
     $(TROW $(D inout), argument is implicitly converted to an inout type)
@@ -1293,16 +1301,20 @@ $(H3 $(LNAME2 lazy-params, Lazy Parameters))
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
-void dotimes(int n, lazy void exp)
+import std.stdio : writeln;
+
+void main()
+{
+    int x;
+    3.times(writeln(x++));
+    writeln("-");
+    writeln(x);
+}
+
+void times(int n, lazy void exp)
 {
     while (n--)
         exp();
-}
-
-void test()
-{
-    int x;
-    dotimes(3, writeln(x++));
 }
 ---
 )
@@ -1313,6 +1325,8 @@ $(CONSOLE
 0
 1
 2
+$(MINUS)
+3
 )
 
         $(P A $(D lazy) parameter cannot be an lvalue.)
@@ -1367,8 +1381,8 @@ ref int gun(return ref int x) {
 }
 ---
 
-        $(P Ref methods marked with the `return` attribute ensure the returned
-        reference will not outlive the respective aggregate instance.
+        $(P Struct non-static methods marked with the `return` attribute ensure the returned
+        reference will not outlive the struct instance.
         )
 
 ---
@@ -1385,9 +1399,148 @@ ref int escape()
 }
 ---
 
-$(P Template functions and lambdas can deduce the `return` attribute.)
+        $(P Returning the address of a `ref` variable is also checked.)
+
+---
+int* pluto(ref int i)
+{
+    return &i; // error: returning &i escapes a reference to parameter i
+}
+
+int* mars(return ref int i)
+{
+    return &i;  // ok
+}
+---
+
+$(P If the function returns `void`, and the first parameter is `ref` or `out`, then
+all subsequent `return ref` parameters are considered as being assigned to
+the first parameter for lifetime checking.
+The `this` reference parameter to a struct non-static member function is
+considered the first parameter.)
+
+$(P If there are multiple `return ref` parameters, the lifetime of the return
+value is the smallest lifetime of the corresponding arguments.)
+
+$(P Neither the type of the `return ref` parameter(s) nor the type of the return
+value is considered when determining the lifetime of the return value.)
+
+$(P It is not an error if the return type does not contain any indirections.)
+
+---
+int mercury(return ref int i)
+{
+    return i; // ok
+}
+---
+
+$(P Template functions, auto functions, nested functions and lambdas can deduce the `return` attribute.)
+
+---
+ref int templateFunction()(ref int i)
+{
+    return i; // ok
+}
+
+ref auto autoFunction(ref int i)
+{
+    return i; // ok
+}
+
+void uranus()
+{
+    ref int nestedFunction(ref int i)
+    {
+        return i; // ok
+    }
+}
+
+void venus()
+{
+    auto lambdaFunction =
+        (ref int i)
+        {
+            return &i; // ok
+        };
+}
+---
 
 $(P `inout ref` parameters imply the `return` attribute.)
+
+---
+inout(int)* neptune(inout ref int i)
+{
+    return &i;  // ok
+}
+---
+
+$(H3 $(LNAME2 return-scope-parameters, Return Scope Parameters))
+
+        $(P Parameters marked as `return scope` that contain indirections
+        can only escape those indirections via the function's return value.)
+
+---
+int* gp;
+void thorin(scope int*);
+void gloin(int*);
+int* balin(return scope int* p, scope int* q, int* r)
+{
+     gp = p; // error, p escapes to global gp
+     gp = q; // error, q escapes to global gp
+     gp = r; // ok
+
+     thorin(p); // ok, p does not escape thorin()
+     thorin(q); // ok
+     thorin(r); // ok
+
+     gloin(p); // error, gloin() escapes p
+     gloin(q); // error, gloin() escapes q
+     gloin(r); // ok that gloin() escapes r
+
+     return p; // ok
+     return q; // error, cannot return 'scope' q
+     return r; // ok
+}
+---
+
+        $(P Class references are considered pointers that are subject to `scope`.)
+
+---
+class C { }
+C gp;
+void thorin(scope C);
+void gloin(C);
+C balin(return scope C p, scope C q, C r)
+{
+     gp = p; // error, p escapes to global gp
+     gp = q; // error, q escapes to global gp
+     gp = r; // ok
+
+     thorin(p); // ok, p does not escape thorin()
+     thorin(q); // ok
+     thorin(r); // ok
+
+     gloin(p); // error, gloin() escapes p
+     gloin(q); // error, gloin() escapes q
+     gloin(r); // ok that gloin() escapes r
+
+     return p; // ok
+     return q; // error, cannot return 'scope' q
+     return r; // ok
+}
+---
+
+        $(P `return scope` can be applied to the `this` of class and interface member functions.)
+
+---
+class C
+{
+    C bofur() return scope { return this; }
+}
+---
+
+        $(P Template functions, auto functions, nested functions and lambdas can deduce
+        the `return scope` attribute.)
 
 
 $(H3 $(LNAME2 udas-parameters, User-Defined Attributes for Parameters))
@@ -2448,7 +2601,7 @@ $(H3 $(LNAME2 string-mixins, String Mixins and Compile Time Function Execution))
         depend on compile time values of the function. For example:)
 
 ---
-int foo(char[] s)
+int foo(string s)
 {
     return mixin(s);
 }
@@ -2566,13 +2719,15 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
         with other types.)
         $(LI Calling any system functions.)
         $(LI No catching of exceptions that are not derived from $(CODE class Exception).)
-        $(LI No inline assembler.)
+        $(LI Disallow $(CODE @system) asm statements.)
         $(LI No explicit casting of mutable objects to immutable.)
         $(LI No explicit casting of immutable objects to mutable.)
         $(LI No explicit casting of thread local objects to shared.)
         $(LI No explicit casting of shared objects to thread local.)
         $(LI No taking the address of a local variable or function parameter.)
         $(LI Cannot access $(D __gshared) variables.)
+        $(LI Cannot use $(D void) initializers for pointers.)
+        $(LI Cannot use $(D void) initializers for class or interface references.)
         )
 
         $(P When indexing and slicing an array, an out of bounds access

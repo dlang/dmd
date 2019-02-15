@@ -52,6 +52,7 @@ $(P Classes consist of:)
 $(UL
         $(LI a super class)
         $(LI interfaces)
+        $(LI a nested anonymous metaclass for classes declared with `extern (Objective-C)`)
         $(LI dynamic fields)
         $(LI static fields)
         $(LI types)
@@ -142,6 +143,11 @@ void foo(B b)
         types, not classes.
         )
 
+        $(P Fields of `extern(Objective-C)` classes have a dynamic offset. That
+        means that the base class can change (add or remove instance variables)
+        without the subclasses needing to recompile or relink.
+        )
+
 $(H2 $(LNAME2 field_properties, Field Properties))
 
         $(P The $(D .offsetof) property gives the offset in bytes of the field
@@ -205,15 +211,24 @@ $(H2 $(LNAME2 super_class, Super Class))
 
 $(H2 $(LNAME2 member-functions, Member Functions))
 
-        $(P Non-static member functions have an extra hidden parameter
-        called $(I this) through which the class object's other members
-        can be accessed.
+        $(P Non-static member functions or static member functions with
+        `Objective-C` linkage have an extra hidden parameter called $(I this)
+        through which the class object's other members can be accessed.
+        )
+
+        $(P Member functions with the Objective-C linkage has an additional
+        hidden, anonymous, parameter which is the selector the function was
+        called with.
         )
 
         $(P Non-static member functions can have, in addition to the usual
         $(GLINK2 function, FunctionAttribute)s, the attributes
         $(D const), $(D immutable), $(D shared), or $(D inout).
         These attributes apply to the hidden $(I this) parameter.
+        )
+
+        $(P Static member functions with the Objective-C linkage are placed in
+        the hidden nested metaclass as non-static member functions.
         )
 ---
 class C
@@ -1014,7 +1029,7 @@ new Foo;
 ------
 class Foo
 {
-    this(char[] a) { ... }
+    this(string a) { ... }
 
     new(uint size, int x, int y)
     {
