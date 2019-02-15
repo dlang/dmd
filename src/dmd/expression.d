@@ -3711,6 +3711,9 @@ extern (C++) final class FuncExp : Expression
         TypeFunction tfx = cast(TypeFunction)fd.type;
         bool convertMatch = (type.ty != to.ty);
 
+        if (tfx.ty == Terror)
+            return MATCH.nomatch;
+
         if (fd.inferRetType && tfx.next.implicitConvTo(tof.next) == MATCH.convert)
         {
             /* If return type is inferred and covariant return,
