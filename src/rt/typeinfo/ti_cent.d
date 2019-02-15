@@ -28,7 +28,7 @@ class TypeInfo_zi : TypeInfo
 
     override size_t getHash(scope const void* p)
     {
-        // Hash as if unsigned.
+        // cent & ucent hash the same if ucent.sizeof >= size_t.sizeof.
         return hashOf(*cast(const ucent*) p);
     }
 
@@ -69,4 +69,6 @@ class TypeInfo_zi : TypeInfo
     {
         return cent.alignof;
     }
+
+    override @property immutable(void)* rtInfo() nothrow pure const @safe { return rtinfoNoPointers; }
 }

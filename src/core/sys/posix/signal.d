@@ -1418,8 +1418,8 @@ else version (Solaris)
                 caddr_t __faddr;
                 timestruc_t __tstamp;
                 short __syscall;
-                char __nsysarg;
-                char __fault;
+                char __nsysarg = 0;
+                char __fault = 0;
                 c_long[8] __sysarg;
                 int[10] __mstate;
             }
@@ -1600,7 +1600,7 @@ else version (CRuntime_Musl)
     struct siginfo_t {
         int si_signo, si_errno, si_code;
         union __si_fields_t {
-            char[128 - 2*int.sizeof - long.sizeof] __pad;
+            char[128 - 2*int.sizeof - long.sizeof] __pad = 0;
             struct __si_common_t {
                 union __first_t {
                     struct __piduid_t {
@@ -3483,7 +3483,7 @@ else version (CRuntime_Musl)
         int sigev_notify;
         void function(sigval) sigev_notify_function;
         pthread_attr_t *sigev_notify_attributes;
-        char[56 - 3 * long.sizeof] __pad;
+        char[56 - 3 * long.sizeof] __pad = void;
     }
 }
 else version (CRuntime_UClibc)

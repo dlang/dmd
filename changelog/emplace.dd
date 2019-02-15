@@ -1,0 +1,4 @@
+Moved `std.conv.emplace`, `std.algorithm.mutation.move`, `std.algorithm.mutation.moveEmplace`, and `std.functional.forward` to core/lifetime.d
+
+`emplace` is the counterpart to `destroy`, so it has been moved to also live in druntime (core/lifetime.d) where it is accessible by projects that use a shallow runtime library stack.
+`move`, `moveEmplace`, and `forward` are related low-level construction machinery which also belong in `core.lifetime`.

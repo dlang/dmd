@@ -1161,7 +1161,7 @@ else version (Solaris)
             }
             blksize_t st_blksize;
             blkcnt_t st_blocks;
-            char[_ST_FSTYPSZ] st_fstype;
+            char[_ST_FSTYPSZ] st_fstype = 0;
         }
 
         static if (__USE_LARGEFILE64) alias stat_t stat64_t;
@@ -1198,7 +1198,7 @@ else version (Solaris)
             }
             blksize_t st_blksize;
             blkcnt_t st_blocks;
-            char[_ST_FSTYPSZ] st_fstype;
+            char[_ST_FSTYPSZ] st_fstype = 0;
             c_long[8] st_pad4;
         }
 
@@ -1232,7 +1232,7 @@ else version (Solaris)
             }
             blksize_t st_blksize;
             blkcnt64_t st_blocks;
-            char[_ST_FSTYPSZ] st_fstype;
+            char[_ST_FSTYPSZ] st_fstype = 0;
             c_long[8] st_pad4;
         }
 
@@ -1470,11 +1470,11 @@ else version (CRuntime_Musl)
         timespec st_atim;
         timespec st_mtim;
         timespec st_ctim;
-        extern(D) @safe @property
+        extern(D) @safe @property inout pure nothrow
         {
-            ref time_t st_atime() return { return st_atim.tv_sec; }
-            ref time_t st_mtime() return { return st_mtim.tv_sec; }
-            ref time_t st_ctime() return { return st_ctim.tv_sec; }
+            ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+            ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+            ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
         }
         long[3] __unused;
     }

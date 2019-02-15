@@ -585,16 +585,28 @@ const(ubyte)[] toUbyte(T)(const T[] arr) if (T.sizeof == 1)
 }
 
 @trusted pure nothrow @nogc
-const(ubyte)[] toUbyte(T)(const T[] arr) if ((is(typeof(toUbyte(arr[0])) == const(ubyte)[])) && (T.sizeof > 1))
+const(ubyte)[] toUbyte(T)(const T[] arr) if (T.sizeof > 1)
 {
     if (__ctfe)
     {
         ubyte[] ret = ctfe_alloc(T.sizeof * arr.length);
-        size_t offset = 0;
-        foreach (cur; arr)
+        static if (is(T EType == enum)) // Odd style is to avoid template instantiation in most cases.
+            alias E = OriginalType!EType;
+        else
+            alias E = T;
+        static if (is(E == struct) || is(E == union) || __traits(isStaticArray, E) || !is(typeof(arr[0] is null)))
         {
-            ret[offset .. offset + T.sizeof] = toUbyte(cur)[0 .. T.sizeof];
-            offset += T.sizeof;
+            size_t offset = 0;
+            foreach (ref cur; arr)
+            {
+                ret[offset .. offset + T.sizeof] = toUbyte(cur)[0 .. T.sizeof];
+                offset += T.sizeof;
+            }
+        }
+        else
+        {
+            foreach (cur; arr)
+                assert(cur is null, "Unable to compute byte representation of non-null pointer at compile time");
         }
         return ret;
     }
@@ -683,7 +695,7 @@ const(ubyte)[] toUbyte(T)(const ref T val) if (is(Unqual!T == cfloat) || is(Unqu
 }
 
 @trusted pure nothrow @nogc
-const(ubyte)[] toUbyte(T)(const ref T val) if (is(T V == enum) && is(typeof(toUbyte(cast(const V)val)) == const(ubyte)[]))
+const(ubyte)[] toUbyte(T)(const ref T val) if (is(T == enum))
 {
     if (__ctfe)
     {
@@ -705,49 +717,18 @@ nothrow pure @safe unittest
     enum ctfe_works = (() => { Month x = Month.jan; return toUbyte(x).length > 0; })();
 }
 
-package(core.internal) bool isNonReference(T)()
+@trusted pure nothrow @nogc
+const(ubyte)[] toUbyte(T)(const ref T val) if (is(T == delegate) || is(T : V*, V) && __traits(getAliasThis, T).length == 0)
 {
-    static if (is(T == struct) || is(T == union))
+    if (__ctfe)
     {
-        return isNonReferenceStruct!T();
-    }
-    else static if (__traits(isStaticArray, T))
-    {
-        static if (T.length > 0)
-            return isNonReference!(typeof(T.init[0]))();
-        else
-            return true;
-    }
-    else static if (is(T E == enum))
-    {
-      return isNonReference!(E)();
-    }
-    else static if (!__traits(isScalar, T))
-    {
-        return false;
-    }
-    else static if (is(T V : V*))
-    {
-        return false;
-    }
-    else static if (is(T == function))
-    {
-        return false;
+        if (val !is null) assert(0, "Unable to compute byte representation of non-null pointer at compile time");
+        return ctfe_alloc(T.sizeof);
     }
     else
     {
-        return true;
+        return (cast(const(ubyte)*)&val)[0 .. T.sizeof];
     }
-}
-
-private bool isNonReferenceStruct(T)() if (is(T == struct) || is(T == union))
-{
-    static foreach (cur; T.tupleof)
-    {
-        if (!isNonReference!(typeof(cur))()) return false;
-    }
-
-    return true;
 }
 
 @trusted pure nothrow @nogc
@@ -756,22 +737,20 @@ const(ubyte)[] toUbyte(T)(const ref T val) if (is(T == struct) || is(T == union)
     if (__ctfe)
     {
         ubyte[] bytes = ctfe_alloc(T.sizeof);
-        foreach (key, cur; val.tupleof)
+        foreach (key, ref cur; val.tupleof)
         {
-            alias CUR_TYPE = typeof(cur);
-            static if (isNonReference!(CUR_TYPE)())
+            static if (is(typeof(cur) EType == enum)) // Odd style is to avoid template instantiation in most cases.
+                alias CurType = OriginalType!EType;
+            else
+                alias CurType = typeof(cur);
+            static if (is(CurType == struct) || is(CurType == union) || __traits(isStaticArray, CurType) || !is(typeof(cur is null)))
             {
-                bytes[val.tupleof[key].offsetof .. val.tupleof[key].offsetof + cur.sizeof] = toUbyte(cur)[];
-            }
-            else static if (is(typeof(val.tupleof[key] is null)))
-            {
-                assert(val.tupleof[key] is null, "Unable to compute byte representation of non-null reference field at compile time");
-                //skip, because val bytes are zeros
+                bytes[val.tupleof[key].offsetof .. val.tupleof[key].offsetof + CurType.sizeof] = toUbyte(cur)[];
             }
             else
             {
-                //pragma(msg, "is null: ", typeof(CUR_TYPE).stringof);
-                assert(0, "Unable to compute byte representation of "~typeof(CUR_TYPE).stringof~" field at compile time");
+                assert(cur is null, "Unable to compute byte representation of non-null reference field at compile time");
+                //skip, because val bytes are zeros
             }
         }
         return bytes;
@@ -780,4 +759,14 @@ const(ubyte)[] toUbyte(T)(const ref T val) if (is(T == struct) || is(T == union)
     {
         return (cast(const(ubyte)*)&val)[0 .. T.sizeof];
     }
+}
+
+// Strips off all `enum`s from type `T`.
+// Perhaps move to core.internal.types.
+private template OriginalType(T)
+{
+    static if (is(T EType == enum))
+        alias OriginalType = .OriginalType!EType;
+    else
+        alias OriginalType = T;
 }

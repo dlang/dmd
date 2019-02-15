@@ -62,4 +62,6 @@ class TypeInfo_P : TypeInfo
     }
 
     override @property uint flags() nothrow pure const { return 1; }
+
+    override @property immutable(void)* rtInfo() nothrow pure const @safe { return rtinfoHasPointers; }
 }

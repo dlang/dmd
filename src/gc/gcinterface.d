@@ -33,16 +33,11 @@ struct Range
     void* ptop;
     TypeInfo ti; // should be tail const, but doesn't exist for references
     alias pbot this; // only consider pbot for relative ordering (opCmp)
+    bool opEquals(in Range rhs) nothrow const { return pbot == rhs.pbot; }
 }
 
 interface GC
 {
-
-    /*
-     *
-     */
-    void Dtor();
-
     /**
      *
      */
@@ -147,6 +142,12 @@ interface GC
      * Useful for debugging and tuning.
      */
     core.memory.GC.Stats stats() nothrow;
+
+    /**
+     * Retrieve profile statistics about garbage collection.
+     * Useful for debugging and tuning.
+     */
+    core.memory.GC.ProfileStats profileStats() nothrow;
 
     /**
      * add p to list of roots

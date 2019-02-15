@@ -1,0 +1,4 @@
+Added `core.stdcpp.allocator`
+
+Added `core.stdcpp.allocator`, which exposes the C++ `std::allocator<T>` class.
+This is a required foundation for any of the allocating STL container types.

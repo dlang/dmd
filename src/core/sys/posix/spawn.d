@@ -174,7 +174,7 @@ version (linux)
             sigset_t __def, __mask;
             int __prio, __pol;
             void* __fn;
-            char[64 - (void*).sizeof] __pad;
+            char[64 - (void*).sizeof] __pad = void;
         }
         struct posix_spawn_file_actions_t
         {
@@ -213,6 +213,7 @@ version (linux)
             int __policy;
             int[16] __pad;
         }
+        struct __spawn_action;
         struct posix_spawn_file_actions_t
         {
             int __allocated;

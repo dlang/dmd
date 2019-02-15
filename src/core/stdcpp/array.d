@@ -58,41 +58,36 @@ pragma(inline, true):
     alias as_array this;
 
     /// Variadic constructor
-    this(T[N] args ...)                                             { this[] = args[]; }
+    this(T[N] args ...)                                 { this[] = args[]; }
 
     ///
-    size_type size() const nothrow @safe @nogc                      { return N; }
+    void fill()(auto ref const(T) value)                { this[] = value; }
+
+pure nothrow @nogc:
+    ///
+    size_type size() const @safe                        { return N; }
     ///
     alias length = size;
     ///
     alias opDollar = length;
     ///
-    size_type max_size() const nothrow @safe @nogc                  { return N; }
+    size_type max_size() const @safe                    { return N; }
     ///
-    bool empty() const nothrow @safe @nogc                          { return N == 0; }
+    bool empty() const @safe                            { return N == 0; }
 
     ///
-    ref inout(T) front() inout nothrow @safe @nogc                  { static if (N > 0) { return this[0]; } else { return as_array()[][0]; /* HACK: force OOB */ } }
+    ref inout(T) front() inout @safe                    { static if (N > 0) { return this[0]; } else { return as_array()[][0]; /* HACK: force OOB */ } }
     ///
-    ref inout(T) back() inout nothrow @safe @nogc                   { static if (N > 0) { return this[N-1]; } else { return as_array()[][0]; /* HACK: force OOB */ } }
-
-    ///
-    void fill()(auto ref const(T) value)                            { this[] = value; }
+    ref inout(T) back() inout @safe                     { static if (N > 0) { return this[N-1]; } else { return as_array()[][0]; /* HACK: force OOB */ } }
 
     version (CppRuntime_Windows)
     {
         ///
-        inout(T)* data() inout nothrow @safe @nogc                  { return &_Elems[0]; }
+        inout(T)* data() inout @safe                    { return &_Elems[0]; }
         ///
-        ref inout(T)[N] as_array() const inout @safe @nogc          { return _Elems[0 .. N]; }
+        ref inout(T)[N] as_array() inout @safe          { return _Elems[0 .. N]; }
         ///
-        ref inout(T) at(size_type i) inout nothrow @safe @nogc      { return _Elems[0 .. N][i]; }
-
-        version (CppRuntime_Microsoft)
-        {
-            import core.stdcpp.xutility : MSVCLinkDirectives;
-            mixin MSVCLinkDirectives!false;
-        }
+        ref inout(T) at(size_type i) inout @safe        { return _Elems[0 .. N][i]; }
 
     private:
         T[N ? N : 1] _Elems;
@@ -100,11 +95,11 @@ pragma(inline, true):
     else version (CppRuntime_Gcc)
     {
         ///
-        inout(T)* data() inout nothrow @safe @nogc                  { static if (N > 0) { return &_M_elems[0]; } else { return null; } }
+        inout(T)* data() inout @safe                    { static if (N > 0) { return &_M_elems[0]; } else { return null; } }
         ///
-        ref inout(T)[N] as_array() inout nothrow @trusted @nogc     { return data()[0 .. N]; }
+        ref inout(T)[N] as_array() inout @trusted       { return data()[0 .. N]; }
         ///
-        ref inout(T) at(size_type i) inout nothrow @trusted @nogc   { return data()[0 .. N][i]; }
+        ref inout(T) at(size_type i) inout @trusted     { return data()[0 .. N][i]; }
 
     private:
         static if (N > 0)
@@ -120,11 +115,11 @@ pragma(inline, true):
     else version (CppRuntime_Clang)
     {
         ///
-        inout(T)* data() inout nothrow @trusted @nogc               { static if (N > 0) { return &__elems_[0]; } else { return cast(inout(T)*)__elems_.ptr; } }
+        inout(T)* data() inout @trusted                 { static if (N > 0) { return &__elems_[0]; } else { return cast(inout(T)*)__elems_.ptr; } }
         ///
-        ref inout(T)[N] as_array() inout nothrow @trusted @nogc     { return data()[0 .. N]; }
+        ref inout(T)[N] as_array() inout @trusted       { return data()[0 .. N]; }
         ///
-        ref inout(T) at(size_type i) inout nothrow @trusted @nogc   { return data()[0 .. N][i]; }
+        ref inout(T) at(size_type i) inout @trusted     { return data()[0 .. N][i]; }
 
     private:
         static if (N > 0)

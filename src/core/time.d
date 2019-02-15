@@ -85,7 +85,7 @@ import core.internal.string;
 
 version (Windows)
 {
-import core.sys.windows.windows;
+import core.sys.windows.winbase /+: QueryPerformanceCounter, QueryPerformanceFrequency+/;
 }
 else version (Posix)
 {

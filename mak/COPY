@@ -8,6 +8,7 @@ COPY=\
 	$(IMPDIR)\core\cpuid.d \
 	$(IMPDIR)\core\demangle.d \
 	$(IMPDIR)\core\exception.d \
+	$(IMPDIR)\core\lifetime.d \
 	$(IMPDIR)\core\math.d \
 	$(IMPDIR)\core\memory.d \
 	$(IMPDIR)\core\runtime.d \
@@ -19,6 +20,7 @@ COPY=\
 	$(IMPDIR)\core\internal\abort.d \
 	$(IMPDIR)\core\internal\arrayop.d \
 	$(IMPDIR)\core\internal\convert.d \
+	$(IMPDIR)\core\internal\dassert.d \
 	$(IMPDIR)\core\internal\hash.d \
 	$(IMPDIR)\core\internal\parseoptions.d \
 	$(IMPDIR)\core\internal\spinlock.d \
@@ -49,10 +51,13 @@ COPY=\
 	$(IMPDIR)\core\stdc\wchar_.d \
 	$(IMPDIR)\core\stdc\wctype.d \
 	\
+	$(IMPDIR)\core\stdcpp\allocator.d \
 	$(IMPDIR)\core\stdcpp\array.d \
 	$(IMPDIR)\core\stdcpp\exception.d \
+	$(IMPDIR)\core\stdcpp\new_.d \
 	$(IMPDIR)\core\stdcpp\string_view.d \
 	$(IMPDIR)\core\stdcpp\typeinfo.d \
+	$(IMPDIR)\core\stdcpp\type_traits.d \
 	$(IMPDIR)\core\stdcpp\xutility.d \
 	\
 	$(IMPDIR)\core\sys\darwin\crt_externs.d \
@@ -79,18 +84,18 @@ COPY=\
 	\
 	$(IMPDIR)\core\sys\freebsd\netinet\in_.d \
 	\
-	$(IMPDIR)\core\sys\freebsd\sys\cdefs.d \
 	$(IMPDIR)\core\sys\freebsd\pthread_np.d \
 	$(IMPDIR)\core\sys\freebsd\sys\_bitset.d \
 	$(IMPDIR)\core\sys\freebsd\sys\_cpuset.d \
+	$(IMPDIR)\core\sys\freebsd\sys\cdefs.d \
+	$(IMPDIR)\core\sys\freebsd\sys\elf_common.d \
 	$(IMPDIR)\core\sys\freebsd\sys\elf.d \
 	$(IMPDIR)\core\sys\freebsd\sys\elf32.d \
 	$(IMPDIR)\core\sys\freebsd\sys\elf64.d \
-	$(IMPDIR)\core\sys\freebsd\sys\elf_common.d \
 	$(IMPDIR)\core\sys\freebsd\sys\event.d \
 	$(IMPDIR)\core\sys\freebsd\sys\link_elf.d \
-	$(IMPDIR)\core\sys\freebsd\sys\mount.d \
 	$(IMPDIR)\core\sys\freebsd\sys\mman.d \
+	$(IMPDIR)\core\sys\freebsd\sys\mount.d \
 	$(IMPDIR)\core\sys\freebsd\time.d \
 	$(IMPDIR)\core\sys\freebsd\unistd.d \
 	\
@@ -99,14 +104,14 @@ COPY=\
 	\
 	$(IMPDIR)\core\sys\dragonflybsd\netinet\in_.d \
 	\
-	$(IMPDIR)\core\sys\dragonflybsd\sys\cdefs.d \
 	$(IMPDIR)\core\sys\dragonflybsd\pthread_np.d \
 	$(IMPDIR)\core\sys\dragonflybsd\sys\_bitset.d \
 	$(IMPDIR)\core\sys\dragonflybsd\sys\_cpuset.d \
+	$(IMPDIR)\core\sys\dragonflybsd\sys\cdefs.d \
+	$(IMPDIR)\core\sys\dragonflybsd\sys\elf_common.d \
 	$(IMPDIR)\core\sys\dragonflybsd\sys\elf.d \
 	$(IMPDIR)\core\sys\dragonflybsd\sys\elf32.d \
 	$(IMPDIR)\core\sys\dragonflybsd\sys\elf64.d \
-	$(IMPDIR)\core\sys\dragonflybsd\sys\elf_common.d \
 	$(IMPDIR)\core\sys\dragonflybsd\sys\event.d \
 	$(IMPDIR)\core\sys\dragonflybsd\sys\link_elf.d \
 	$(IMPDIR)\core\sys\dragonflybsd\sys\mman.d \
@@ -195,8 +200,8 @@ COPY=\
 	$(IMPDIR)\core\sys\posix\sys\types.d \
 	$(IMPDIR)\core\sys\posix\sys\uio.d \
 	$(IMPDIR)\core\sys\posix\sys\un.d \
-	$(IMPDIR)\core\sys\posix\sys\wait.d \
 	$(IMPDIR)\core\sys\posix\sys\utsname.d \
+	$(IMPDIR)\core\sys\posix\sys\wait.d \
 	\
 	$(IMPDIR)\core\sys\solaris\dlfcn.d \
 	$(IMPDIR)\core\sys\solaris\elf.d \
@@ -211,9 +216,9 @@ COPY=\
 	$(IMPDIR)\core\sys\solaris\sys\elf_SPARC.d \
 	$(IMPDIR)\core\sys\solaris\sys\elftypes.d \
 	$(IMPDIR)\core\sys\solaris\sys\link.d \
+	$(IMPDIR)\core\sys\solaris\sys\priocntl.d \
 	$(IMPDIR)\core\sys\solaris\sys\procset.d \
 	$(IMPDIR)\core\sys\solaris\sys\types.d \
-	$(IMPDIR)\core\sys\solaris\sys\priocntl.d \
 	\
 	$(IMPDIR)\core\sys\windows\accctrl.d \
 	$(IMPDIR)\core\sys\windows\aclapi.d \

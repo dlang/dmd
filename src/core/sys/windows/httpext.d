@@ -19,7 +19,9 @@ version (Windows):
        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 */
 
-private import core.sys.windows.windows;
+private import core.sys.windows.basetsd /+: DECLARE_HANDLE, HANDLE+/;
+private import core.sys.windows.windef /+: BOOL, CHAR, DWORD, LPBYTE, LPDWORD+/;
+private import core.sys.windows.winnt /+: LPCSTR, LPSTR, LPVOID, PVOID, VOID+/;
 
 enum {
     HSE_VERSION_MAJOR               = 2,
@@ -49,7 +51,7 @@ mixin DECLARE_HANDLE!("HCONN");
 
 struct HSE_VERSION_INFO {
     DWORD dwExtensionVersion;
-    CHAR[HSE_MAX_EXT_DLL_NAME_LEN] lpszExtensionDesc;
+    CHAR[HSE_MAX_EXT_DLL_NAME_LEN] lpszExtensionDesc = 0;
 }
 alias HSE_VERSION_INFO* LPHSE_VERSION_INFO;
 
@@ -58,7 +60,7 @@ struct EXTENSION_CONTROL_BLOCK {
     DWORD  dwVersion;
     HCONN  ConnID;
     DWORD  dwHttpStatusCode;
-    CHAR[HSE_LOG_BUFFER_LEN] lpszLogData;
+    CHAR[HSE_LOG_BUFFER_LEN] lpszLogData = 0;
     LPSTR  lpszMethod;
     LPSTR  lpszQueryString;
     LPSTR  lpszPathInfo;

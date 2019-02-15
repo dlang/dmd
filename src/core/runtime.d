@@ -229,7 +229,8 @@ struct Runtime
         import core.stdc.stdlib : free, malloc;
         version (Windows)
         {
-            import core.sys.windows.windows;
+            import core.sys.windows.winnls : CP_UTF8, MultiByteToWideChar;
+            import core.sys.windows.winnt : WCHAR;
 
             if (name.length == 0) return null;
             // Load a DLL at runtime
@@ -824,7 +825,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                     int ret = 0;
                     for ( int i = FIRSTFRAME; i < numframes; ++i )
                     {
-                        char[4096] fixbuf;
+                        char[4096] fixbuf = void;
                         auto buf = framelist[i][0 .. strlen(framelist[i])];
                         auto pos = cast(size_t)(i - FIRSTFRAME);
                         buf = fixline( buf, fixbuf );
@@ -992,7 +993,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
         {
             static enum FIRSTFRAME = 0;
         }
-        import core.sys.windows.windows : CONTEXT;
+        import core.sys.windows.winnt : CONTEXT;
         auto s = new StackTrace(FIRSTFRAME, cast(CONTEXT*)ptr);
         return s;
     }

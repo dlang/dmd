@@ -35,46 +35,43 @@ static import core.memory;
 
 extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure nothrow @nogc; /* dmd @@@BUG11461@@@ */
 
+// register GC in C constructor (_STI_)
+extern(C) pragma(crt_constructor) void _d_register_manual_gc()
+{
+    import gc.registry;
+    registerGCFactory("manual", &initialize);
+}
+
+private GC initialize()
+{
+    import core.stdc.string: memcpy;
+
+    auto p = cstdlib.malloc(__traits(classInstanceSize, ManualGC));
+    if (!p)
+        onOutOfMemoryError();
+
+    auto init = typeid(ManualGC).initializer();
+    assert(init.length == __traits(classInstanceSize, ManualGC));
+    auto instance = cast(ManualGC) memcpy(p, init.ptr, init.length);
+    instance.__ctor();
+
+    return instance;
+}
+
 class ManualGC : GC
 {
-    __gshared Array!Root roots;
-    __gshared Array!Range ranges;
-
-    static void initialize(ref GC gc)
-    {
-        import core.stdc.string;
-
-        if (config.gc != "manual")
-            return;
-
-        auto p = cstdlib.malloc(__traits(classInstanceSize, ManualGC));
-        if (!p)
-            onOutOfMemoryError();
-
-        auto init = typeid(ManualGC).initializer();
-        assert(init.length == __traits(classInstanceSize, ManualGC));
-        auto instance = cast(ManualGC) memcpy(p, init.ptr, init.length);
-        instance.__ctor();
-
-        gc = instance;
-    }
-
-    static void finalize(ref GC gc)
-    {
-        if (config.gc != "manual")
-            return;
-
-        auto instance = cast(ManualGC) gc;
-        instance.Dtor();
-        cstdlib.free(cast(void*) instance);
-    }
+    Array!Root roots;
+    Array!Range ranges;
 
     this()
     {
     }
 
-    void Dtor()
+    ~this()
     {
+        // TODO: cannot free as memory is overwritten and
+        //  the monitor is still read in rt_finalize (called by destroy)
+        // cstdlib.free(cast(void*) this);
     }
 
     void enable()
@@ -191,6 +188,11 @@ class ManualGC : GC
     }
 
     core.memory.GC.Stats stats() nothrow
+    {
+        return typeof(return).init;
+    }
+
+    core.memory.GC.ProfileStats profileStats() nothrow
     {
         return typeof(return).init;
     }

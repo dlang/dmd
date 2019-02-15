@@ -64,4 +64,6 @@ class TypeInfo_e : TypeInfo
     {
         return F.alignof;
     }
+
+    override @property immutable(void)* rtInfo() nothrow pure const @safe { return rtinfoNoPointers; }
 }

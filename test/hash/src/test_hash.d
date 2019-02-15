@@ -1,6 +1,6 @@
 void main()
 {
-    hashOfVoidPtrArray();
+    issue19562();
     issue15111();
     issues16654And16764();
     issue18918();
@@ -10,16 +10,22 @@ void main()
     issue19262();
     issue19282();
     issue19332(); // Support might be removed in the future!
+    issue19568();
+    issue19582();
     testTypeInfoArrayGetHash1();
     testTypeInfoArrayGetHash2();
     pr2243();
 }
 
-/// Check that `hashOf` can be called on an array of void pointers.
-void hashOfVoidPtrArray() @nogc nothrow pure @system
+/// Check hashOf an array of void pointers or delegates is @safe.
+void issue19562() @nogc nothrow pure @safe
 {
-    void*[] val;
-    const _ = hashOf(val); // Check a PR doesn't break this.
+    void*[10] val;
+    size_t h = hashOf(val[]);
+
+    alias D = void delegate();
+    D[10] ds;
+    h = hashOf(ds[]);
 }
 
 /// hashOf was failing for structs that had an `alias this` to a dynamic array.
@@ -148,6 +154,70 @@ void issue19332()
     const HasNonConstToHash val;
     size_t h = hashOf(val);
     h = hashOf!(const HasNonConstToHash)(val); // Ensure doesn't match more than one overload.
+}
+
+/// hashOf should not unnecessarily call a struct's fields' postblits & dtors in CTFE
+void issue19568()
+{
+    static struct S1
+    {
+        @disable this(this);
+
+        ~this() @nogc nothrow
+        {
+            import core.stdc.stdio;
+            if (mptr) puts("impure");
+        }
+
+        size_t[2] pad;
+        void* mptr;
+    }
+
+    static struct S2
+    {
+        @disable this(this);
+
+        ~this() @nogc nothrow
+        {
+            import core.stdc.stdio;
+            if (fd != -1) puts("impure");
+        }
+
+        int fd = -1;
+        S1 s1;
+    }
+
+    static struct S3
+    {
+        private S2 s2;
+    }
+
+    S3 s3;
+    size_t h = ((ref S3 s3) pure => hashOf(s3))(s3);
+}
+
+/// Check core.internal.convert.toUbyte in CTFE for arrays works with
+/// reference type elements and doesn't call postblits/dtors.
+void issue19582()
+{
+    import core.internal.convert : toUbyte;
+    final static class C : Object {}
+    enum b1 = (() @nogc nothrow pure @safe { C[10] o; return toUbyte(o[])[0]; })();
+
+    static struct S
+    {
+        int x;
+        @disable this(this);
+        ~this() @nogc nothrow
+        {
+            import core.stdc.stdio : puts;
+            if (x) puts("impure");
+        }
+    }
+    enum b2 = () {
+            S[10] a;
+            return ((const S[] a) @nogc nothrow pure @safe => toUbyte(a))(a);
+        }();
 }
 
 /// Tests ensure TypeInfo_Array.getHash uses element hash functions instead

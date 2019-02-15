@@ -26,10 +26,10 @@ class TypeInfo_l : TypeInfo
 
     override size_t getHash(scope const void* p)
     {
-        // Hash as if unsigned.
         static if (ulong.sizeof <= size_t.sizeof)
-            return *cast(const ulong*)p;
+            return *cast(const long*)p;
         else
+            // long & ulong hash the same if ulong.sizeof > size_t.sizeof.
             return hashOf(*cast(const ulong*)p);
     }
 
@@ -70,4 +70,6 @@ class TypeInfo_l : TypeInfo
     {
         return long.alignof;
     }
+
+    override @property immutable(void)* rtInfo() nothrow pure const @safe { return rtinfoNoPointers; }
 }

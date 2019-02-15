@@ -180,7 +180,8 @@ version (Windows)
     {
         pragma(lib, "snn.lib");
     }
-    import core.sys.windows.windows;
+    import core.sys.windows.winbase /+: CRITICAL_SECTION, DeleteCriticalSection,
+        EnterCriticalSection, InitializeCriticalSection, LeaveCriticalSection+/;
 
     alias Mutex = CRITICAL_SECTION;
 

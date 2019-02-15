@@ -447,7 +447,7 @@ void encode(ref char[] s, dchar c)
         }
         else
         {
-            char[4] buf;
+            char[4] buf = void;
             uint L;
 
             if (c <= 0x7FF)
@@ -516,7 +516,7 @@ void encode(ref wchar[] s, dchar c)
         }
         else
         {
-            wchar[2] buf;
+            wchar[2] buf = void;
 
             buf[0] = cast(wchar) ((((c - 0x10000) >> 10) & 0x3FF) + 0xD800);
             buf[1] = cast(wchar) (((c - 0x10000) & 0x3FF) + 0xDC00);

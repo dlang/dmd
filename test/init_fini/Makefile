@@ -1,6 +1,6 @@
 include ../common.mak
 
-TESTS:=thread_join runtime_args test18996
+TESTS:=thread_join runtime_args test18996 custom_gc
 
 .PHONY: all clean
 all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))

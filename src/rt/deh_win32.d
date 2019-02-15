@@ -13,7 +13,9 @@ module rt.deh_win32;
 
 version (Win32):
 
-import core.sys.windows.windows;
+import core.sys.windows.basetsd /+: ULONG_PTR+/;
+import core.sys.windows.windef /+: BOOL, BYTE, DWORD+/;
+import core.sys.windows.winnt /+: PVOID+/;
 import rt.monitor_;
 //import core.stdc.stdio;
 

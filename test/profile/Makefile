@@ -15,7 +15,7 @@ $(ROOT)/profile.done: $(ROOT)/%.done: $(ROOT)/%
 	$(QUIET)$(TIMELIMIT)$(ROOT)/$* $(ROOT)/mytrace.log $(ROOT)/mytrace.def
 	$(QUIET)$(GREP) -q '1 .*_Dmain' $(ROOT)/mytrace.log
 	$(QUIET)$(GREP) -q '1000 .*uint profile.foo(uint)' $(ROOT)/mytrace.log
-	$(QUIET)$(DIFF) mytrace.def.exp $(ROOT)/mytrace.def
+	$(QUIET)$(DIFF) mytrace.def.exp $(ROOT)/mytrace.def || $(DIFF) mytrace.releaseopt.def.exp $(ROOT)/mytrace.def
 	@touch $@
 
 $(ROOT)/profilegc.done: DFLAGS+=-profile=gc

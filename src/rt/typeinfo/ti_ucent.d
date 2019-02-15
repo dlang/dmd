@@ -68,4 +68,6 @@ class TypeInfo_zk : TypeInfo
     {
         return ucent.alignof;
     }
+
+    override @property immutable(void)* rtInfo() nothrow pure const @safe { return rtinfoNoPointers; }
 }

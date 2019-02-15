@@ -36,7 +36,8 @@ extern (C) Throwable _d_newThrowable(const TypeInfo_Class ci)
     assert(!(ci.m_flags & TypeInfo_Class.ClassFlags.isCPPclass));
 
     import core.stdc.stdlib : malloc;
-    void* p = malloc(ci.initializer.length);
+    auto init = ci.initializer;
+    void* p = malloc(init.length);
     if (!p)
     {
         import core.exception : onOutOfMemoryError;
@@ -46,14 +47,14 @@ extern (C) Throwable _d_newThrowable(const TypeInfo_Class ci)
     debug(PRINTF) printf(" p = %p\n", p);
 
     // initialize it
-    p[0 .. ci.initializer.length] = ci.initializer[];
+    p[0 .. init.length] = init[];
 
     if (!(ci.m_flags & TypeInfo_Class.ClassFlags.noPointers))
     {
         // Inform the GC about the pointers in the object instance
         import core.memory : GC;
 
-        GC.addRange(p, ci.initializer.length, ci);
+        GC.addRange(p, init.length, ci);
     }
 
     debug(PRINTF) printf("initialization done\n");

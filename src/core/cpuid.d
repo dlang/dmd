@@ -320,8 +320,8 @@ struct CpuFeatures
     bool probablyIntel; // true = _probably_ an Intel processor, might be faking
     bool probablyAMD; // true = _probably_ an AMD processor
     string processorName;
-    char [12] vendorID;
-    char [48] processorNameBuffer;
+    char [12] vendorID = 0;
+    char [48] processorNameBuffer = 0;
     uint features = 0;     // mmx, sse, sse2, hyperthreading, etc
     uint miscfeatures = 0; // sse3, etc.
     uint extfeatures = 0;  // HLE, AVX2, RTM, etc.

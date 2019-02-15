@@ -11,6 +11,22 @@
 
 module core.stdcpp.xutility;
 
+
+enum CppStdRevision : uint
+{
+    cpp98 = 199711,
+    cpp11 = 201103,
+    cpp14 = 201402,
+    cpp17 = 201703
+}
+
+enum __cplusplus = __traits(getTargetInfo, "cppStd");
+
+// wrangle C++ features
+enum __cpp_sized_deallocation = __cplusplus >= CppStdRevision.cpp14 ? 201309 : 0;
+enum __cpp_aligned_new = __cplusplus >= CppStdRevision.cpp17 ? 201606 : 0;
+
+
 extern(C++, "std"):
 
 version (CppRuntime_Microsoft)
