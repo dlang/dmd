@@ -834,6 +834,10 @@ $(P
     $(TROW $(ARGS $(D DDOC_KEYWORD)), $(ARGS Highlighting of D keywords.))
     $(TROW $(ARGS $(D DDOC_PARAM)), $(ARGS Highlighting of function parameters.))
     $(TROW $(ARGS $(D DDOC_BACKQUOTED)), $(ARGS Inserts inline code.))
+    $(TROW $(ARGS $(D DDOC_AUTO_PSYMBOL_SUPPRESS)), $(ARGS Highlighting of auto-detected symbol that starts with underscore))
+    $(TROW $(ARGS $(D DDOC_AUTO_PSYMBOL)), $(ARGS Highlighting of auto-detected symbol))
+    $(TROW $(ARGS $(D DDOC_AUTO_KEYWORD)), $(ARGS Highlighting of auto-detected keywords))
+    $(TROW $(ARGS $(D DDOC_AUTO_PARAM)), $(ARGS Highlighting of auto-detected parameters))
     )
 
 $(P
