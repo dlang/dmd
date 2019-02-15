@@ -4647,6 +4647,35 @@ void test16652()
 
 
 /**********************************/
+// https://issues.dlang.org/show_bug.cgi?id=19676
+
+void test19676()
+{
+    static struct S
+    {
+        __gshared int count;
+        ~this() { ++count; }
+    }
+
+    static S foo() { return S(); }
+
+    static void test1()
+    {
+        cast(void)foo();
+    }
+
+    static void test2()
+    {
+        foo();
+    }
+
+    test1();
+    assert(S.count == 1);
+    test2();
+    assert(S.count == 2);
+}
+
+/**********************************/
 
 int main()
 {
@@ -4781,6 +4810,7 @@ int main()
     test15661();
     test18045();
     test16652();
+    test19676();
 
     printf("Success\n");
     return 0;
