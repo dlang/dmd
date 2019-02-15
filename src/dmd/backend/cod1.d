@@ -2909,7 +2909,7 @@ private int type_jparam2(type* t, tym_t ty)
 
 int FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, reg_t* preg1, reg_t* preg2)
 {
-    //printf("FuncParamRegs::alloc(ty = TY%s)\n", tystring[tybasic(ty)]);
+    //printf("FuncParamRegs::alloc(ty: TY%sm t: %p)\n", tystring[tybasic(ty)], t);
     //if (t) type_print(t);
 
     *preg1 = NOREG;
@@ -2918,7 +2918,16 @@ int FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, reg_t* preg1, 
     type* t2 = null;
     tym_t ty2 = TYMAX;
 
-    const tym_t tyb = tybasic(ty);
+    tym_t tyb = tybasic(ty);
+
+    // Treat array of 1 the same as its element type
+    // (Don't put volatile parameters in registers)
+    if (tyb == TYarray && tybasic(t.Tty) == TYarray && t.Tdim == 1 && !(t.Tty & mTYvolatile))
+    {
+        t = t.Tnext;
+        tyb = tybasic(t.Tty);
+    }
+
     if (tyb == TYstruct && type_zeroSize(t, fpr.tyf))
         return 0;               // don't allocate into registers
 
