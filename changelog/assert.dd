@@ -41,7 +41,7 @@ assert(dlang != dlang); // ERROR: "d2" == "d2"
 struct S { int s; }
 assert(S(0) == S(1)); // ERROR: "S(0) !is S(1)"
 
-int a = 1, b = 2);
+int a = 1, b = 2;
 assert(a > b); // ERROR: 1 <= 2
 ---
 
