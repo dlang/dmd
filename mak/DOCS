@@ -16,9 +16,9 @@ DOCS=\
 	$(DOCDIR)\core_time.html \
 	$(DOCDIR)\core_vararg.html \
 	\
-	$(DOCDIR)\core\gc\config.d \
-	$(DOCDIR)\core\gc\gcinterface.d \
-	$(DOCDIR)\core\gc\registry.d \
+	$(DOCDIR)\core_gc_config.html \
+	$(DOCDIR)\core_gc_gcinterface.html \
+	$(DOCDIR)\core_gc_registry.html \
 	\
 	$(DOCDIR)\core_stdc_assert_.html \
 	$(DOCDIR)\core_stdc_config.html \
