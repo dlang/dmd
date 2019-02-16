@@ -183,7 +183,7 @@ version (Shared)
      */
     Array!(ThreadDSO)* initTLSRanges() @nogc nothrow
     {
-        return &_loadedDSOs;
+        return &_loadedDSOs();
     }
 
     void finiTLSRanges(Array!(ThreadDSO)* tdsos) @nogc nothrow
@@ -274,7 +274,7 @@ else
      */
     Array!(void[])* initTLSRanges() nothrow @nogc
     {
-        return &_tlsRanges;
+        return &_tlsRanges();
     }
 
     void finiTLSRanges(Array!(void[])* rngs) nothrow @nogc
@@ -325,7 +325,8 @@ version (Shared)
             _tlsRange = _pdso.tlsRange();
         }
     }
-    Array!(ThreadDSO) _loadedDSOs;
+    @property ref Array!(ThreadDSO) _loadedDSOs() @nogc nothrow { static Array!(ThreadDSO) x; return x; }
+    //Array!(ThreadDSO) _loadedDSOs;
 
     /*
      * Set to true during rt_loadLibrary/rt_unloadLibrary calls.
@@ -337,7 +338,8 @@ version (Shared)
      * The hash table is protected by a Mutex.
      */
     __gshared pthread_mutex_t _handleToDSOMutex;
-    __gshared HashTab!(void*, DSO*) _handleToDSO;
+    @property ref HashTab!(void*, DSO*) _handleToDSO() @nogc nothrow { __gshared HashTab!(void*, DSO*) x; return x; }
+    //__gshared HashTab!(void*, DSO*) _handleToDSO;
 
     /*
      * Section in executable that contains copy relocations.
@@ -351,13 +353,15 @@ else
      * Static DSOs loaded by the runtime linker. This includes the
      * executable. These can't be unloaded.
      */
-    __gshared Array!(DSO*) _loadedDSOs;
+    @property ref Array!(DSO*) _loadedDSOs() @nogc nothrow { __gshared Array!(DSO*) x; return x; }
+    //__gshared Array!(DSO*) _loadedDSOs;
 
     /*
      * Thread local array that contains TLS memory ranges for each
      * library initialized in this thread.
      */
-    Array!(void[]) _tlsRanges;
+    @property ref Array!(void[]) _tlsRanges() @nogc nothrow { static Array!(void[]) x; return x; }
+    //Array!(void[]) _tlsRanges;
 
     enum _rtLoading = false;
 }
