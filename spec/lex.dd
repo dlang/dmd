@@ -1010,7 +1010,6 @@ $(MULTICOLS 4,
     $(LINK2 statement.html#ThrowStatement, $(D throw))
     $(LINK2 type.html, $(D true))
     $(LINK2 statement.html#TryStatement, $(D try))
-    $(LINK2 $(ROOT_DIR)deprecate.html#typedef, $(D typedef)) (deprecated)
     $(LINK2 expression.html#TypeidExpression, $(D typeid))
     $(LINK2 declaration.html#Typeof, $(D typeof))
 
