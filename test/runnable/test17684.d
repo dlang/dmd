@@ -78,6 +78,13 @@ bool boolTest(T)()
     auto inferredValue = t;
     assert(inferredValue == true);
 
+    t = true;                     // tests function argument
+    bool functionCall(bool test)
+    {
+        return test;
+    }
+    assert(t == functionCall(t));
+
     t = true;
     return t;                     // tests ReturnStatement
 }
