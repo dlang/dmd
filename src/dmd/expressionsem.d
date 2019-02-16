@@ -3680,6 +3680,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
         }
 
+        auto vd = e.var.isVarDeclaration();
+
+        // by error the declaration can use itself in its type
+        if (vd)
+            vd.inuse++;
+
         if (!e.type)
             e.type = e.var.type;
         if (e.type && !e.type.deco)
@@ -3691,8 +3697,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          */
         //checkAccess(loc, sc, NULL, var);
 
-        if (auto vd = e.var.isVarDeclaration())
+        if (vd)
         {
+            vd.inuse--;
             if (vd.checkNestedReference(sc, e.loc))
                 return setError();
 
