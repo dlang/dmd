@@ -1449,6 +1449,12 @@ public:
                 return setError();
         }
 
+        VarDeclaration *vd = e->var->isVarDeclaration();
+
+        // by error the declaration can use itself in its type
+        if (vd)
+            vd->inuse++;
+
         if (!e->type)
             e->type = e->var->type;
 
@@ -1461,8 +1467,9 @@ public:
          */
         //checkAccess(e->loc, sc, NULL, e->var);
 
-        if (VarDeclaration *vd = e->var->isVarDeclaration())
+        if (vd)
         {
+            vd->inuse--;
             if (vd->checkNestedReference(sc, e->loc))
                 return setError();
             // Bugzilla 12025: If the variable is not actually used in runtime code,
