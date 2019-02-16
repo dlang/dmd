@@ -1,0 +1,7 @@
+`shared` associate arrays are deprecated
+
+Starting from this release shared associative arrays are deprecated.
+Associative array don't support the `shared` API and generate violation access errors.
+
+As a workaround it's possible to declare them `__ghsared` and, in a multi threaded context,
+protect the accesses with a synchronization barrier.

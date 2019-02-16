@@ -694,6 +694,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 dsym.error("no definition of struct `%s`", ts.toChars());
             }
         }
+        if (dsym.type.isTypeAArray && (dsym.type.isShared || dsym.storage_class & STC.shared_))
+        {
+            dsym.deprecation("associative arrays are not thread safe and cant be declared `shared`." ~
+                "Use `__gshared` and barriers instead");
+        }
         if ((dsym.storage_class & STC.auto_) && !inferred)
             dsym.error("storage class `auto` has no effect if type is not inferred, did you mean `scope`?");
 
