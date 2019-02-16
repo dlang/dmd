@@ -405,6 +405,16 @@ struct OutBuffer
         return (cast(const char*)data)[0 .. offset];
     }
 
+    /***********************************
+     * Extract the data as a slice and take ownership of it.
+     */
+    extern (D) char[] extractSlice() nothrow
+    {
+        auto length = offset;
+        auto p = extractData();
+        return p[0 .. length];
+    }
+
     // Append terminating null if necessary and get view of internal buffer
     extern (C++) char* peekString() nothrow
     {
