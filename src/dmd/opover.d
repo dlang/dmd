@@ -1269,7 +1269,11 @@ Expression op_overload(Expression e, Scope* sc)
                 if (!e.att2) e.att2 = t2;
                 e.e1 = new DotIdExp(e.loc, e.e1, Id._tupleof);
                 e.e2 = new DotIdExp(e.loc, e.e2, Id._tupleof);
-                result = e.expressionSemantic(sc);
+
+                auto sc2 = sc.push();
+                sc2.flags = (sc2.flags & ~SCOPE.onlysafeaccess) | SCOPE.noaccesscheck;
+                result = e.expressionSemantic(sc2);
+                sc2.pop();
 
                 /* https://issues.dlang.org/show_bug.cgi?id=15292
                  * if the rewrite result is same with the original,
