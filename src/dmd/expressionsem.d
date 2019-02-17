@@ -1596,9 +1596,15 @@ private bool preFunctionParameters(Scope* sc, Expressions* exps)
             arg = resolveProperties(sc, arg);
             if (arg.op == TOK.type)
             {
-                arg.error("cannot pass type `%s` as a function argument", arg.toChars());
-                arg = new ErrorExp();
-                err = true;
+                // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
+                arg = resolveAliasThis(sc, arg);
+
+                if (arg.op == TOK.type)
+                {
+                    arg.error("cannot pass type `%s` as a function argument", arg.toChars());
+                    arg = new ErrorExp();
+                    err = true;
+                }
             }
             else if (arg.type.toBasetype().ty == Tfunction)
             {
