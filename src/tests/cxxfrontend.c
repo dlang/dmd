@@ -77,6 +77,7 @@ static void frontend_init()
     Expression::_init();
     Objc::_init();
     target._init(global.params);
+    CTFloat::initialize();
 }
 
 /**********************************/
@@ -248,6 +249,29 @@ void test_target()
 
 /**********************************/
 
+void test_emplace()
+{
+  Loc loc;
+  UnionExp ue;
+
+  IntegerExp::emplacei(&ue, loc, 1065353216, Type::tint32);
+  Expression *e = ue.exp();
+  assert(e->op == TOKint64);
+  assert(e->toInteger() == 1065353216);
+
+  UnionExp ure;
+  Expression *re = Compiler::paintAsType(&ure, e, Type::tfloat32);
+  assert(re->op == TOKfloat64);
+  assert(re->toReal() == CTFloat::one);
+
+  UnionExp uie;
+  Expression *ie = Compiler::paintAsType(&uie, re, Type::tint32);
+  assert(ie->op == TOKint64);
+  assert(ie->toInteger() == e->toInteger());
+}
+
+/**********************************/
+
 int main(int argc, char **argv)
 {
     frontend_init();
@@ -256,6 +280,7 @@ int main(int argc, char **argv)
     test_semantic();
     test_expression();
     test_target();
+    test_emplace();
 
     frontend_term();
 

@@ -1727,6 +1727,17 @@ extern (C++) final class IntegerExp : Expression
         return new IntegerExp(loc, value, type);
     }
 
+    // Same as create, but doesn't allocate memory.
+    static void emplace(UnionExp* pue, Loc loc, dinteger_t value, Type type)
+    {
+        emplaceExp!(IntegerExp)(pue, loc, value, type);
+    }
+
+    static void emplacei(UnionExp* pue, Loc loc, int value, Type type)
+    {
+        emplaceExp!(IntegerExp)(pue, loc, value, type);
+    }
+
     override bool equals(RootObject o)
     {
         if (this == o)
@@ -1934,6 +1945,12 @@ extern (C++) final class RealExp : Expression
         return new RealExp(loc, value, type);
     }
 
+    // Same as create, but doesn't allocate memory.
+    static void emplace(UnionExp* pue, Loc loc, real_t value, Type type)
+    {
+        emplaceExp!(RealExp)(pue, loc, value, type);
+    }
+
     override bool equals(RootObject o)
     {
         if (this == o)
@@ -2001,6 +2018,12 @@ extern (C++) final class ComplexExp : Expression
     static ComplexExp create(Loc loc, complex_t value, Type type)
     {
         return new ComplexExp(loc, value, type);
+    }
+
+    // Same as create, but doesn't allocate memory.
+    static void emplace(UnionExp* pue, Loc loc, complex_t value, Type type)
+    {
+        emplaceExp!(ComplexExp)(pue, loc, value, type);
     }
 
     override bool equals(RootObject o)
@@ -2290,6 +2313,17 @@ extern (C++) final class StringExp : Expression
     static StringExp create(Loc loc, void* string, size_t len)
     {
         return new StringExp(loc, string, len);
+    }
+
+    // Same as create, but doesn't allocate memory.
+    static void emplace(UnionExp* pue, Loc loc, char* s)
+    {
+        emplaceExp!(StringExp)(pue, loc, s);
+    }
+
+    static void emplace(UnionExp* pue, Loc loc, void* string, size_t len)
+    {
+        emplaceExp!(StringExp)(pue, loc, string, len);
     }
 
     override bool equals(RootObject o)
@@ -2751,6 +2785,12 @@ extern (C++) final class ArrayLiteralExp : Expression
     static ArrayLiteralExp create(Loc loc, Expressions* elements)
     {
         return new ArrayLiteralExp(loc, null, elements);
+    }
+
+    // Same as create, but doesn't allocate memory.
+    static void emplace(UnionExp* pue, Loc loc, Expressions* elements)
+    {
+        emplaceExp!(ArrayLiteralExp)(pue, loc, null, elements);
     }
 
     override Expression syntaxCopy()
@@ -5110,6 +5150,12 @@ extern (C++) final class VectorExp : UnaExp
     static VectorExp create(Loc loc, Expression e, Type t)
     {
         return new VectorExp(loc, e, t);
+    }
+
+    // Same as create, but doesn't allocate memory.
+    static void emplace(UnionExp* pue, Loc loc, Expression e, Type type)
+    {
+        emplaceExp!(VectorExp)(pue, loc, e, type);
     }
 
     override Expression syntaxCopy()
