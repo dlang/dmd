@@ -2367,6 +2367,11 @@ void main()
 ---
 )
 
+        $(P Function pointers can be passed to functions taking a delegate argument by passing
+        them through the $(REF toDelegate, std,functional) template, which converts any callable
+        to a delegate without context.
+        )
+
         $(P $(B Future directions:) Function pointers and delegates may merge
         into a common syntax and be interchangeable with each other.
         )
