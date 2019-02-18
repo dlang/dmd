@@ -1084,11 +1084,26 @@ Language changes listed by -transition=id:\n\
     }
 #if TARGET_WINDOS
     if (global.params.mscoff)
+    {
         VersionCondition::addPredefinedGlobalIdent("CRuntime_Microsoft");
+        VersionCondition::addPredefinedGlobalIdent("CppRuntime_Microsoft");
+    }
     else
+    {
         VersionCondition::addPredefinedGlobalIdent("CRuntime_DigitalMars");
+        VersionCondition::addPredefinedGlobalIdent("CppRuntime_DigitalMars");
+    }
 #elif TARGET_LINUX
     VersionCondition::addPredefinedGlobalIdent("CRuntime_Glibc");
+    VersionCondition::addPredefinedGlobalIdent("CppRuntime_Gcc");
+#elif TARGET_OSX
+    VersionCondition::addPredefinedGlobalIdent("CppRuntime_Clang");
+#elif TARGET_FREEBSD
+    VersionCondition::addPredefinedGlobalIdent("CppRuntime_Clang");
+#elif TARGET_OPENBSD
+    VersionCondition::addPredefinedGlobalIdent("CppRuntime_Gcc");
+#elif TARGET_SOLARIS
+    VersionCondition::addPredefinedGlobalIdent("CppRuntime_Sun");
 #endif
     if (global.params.isLP64)
         VersionCondition::addPredefinedGlobalIdent("D_LP64");
