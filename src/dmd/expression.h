@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "ast_node.h"
 #include "complex_t.h"
 #include "globals.h"
 #include "arraytypes.h"
@@ -63,7 +64,7 @@ enum
     OWNEDcache      // constant value cached for CTFE
 };
 
-class Expression : public RootObject
+class Expression : public ASTNode
 {
 public:
     TOK op;                     // to minimize use of dynamic_cast
@@ -223,7 +224,7 @@ public:
     FuncInitExp* isFuncInitExp();
     PrettyFuncInitExp* isPrettyFuncInitExp();
 
-    virtual void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class IntegerExp : public Expression

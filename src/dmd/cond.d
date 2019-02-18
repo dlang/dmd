@@ -14,6 +14,7 @@ module dmd.cond;
 
 import core.stdc.string;
 import dmd.arraytypes;
+import dmd.ast_node;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
@@ -44,7 +45,7 @@ enum Include
     no,                 /// do not include the conditional code
 }
 
-extern (C++) abstract class Condition : RootObject
+extern (C++) abstract class Condition : ASTNode
 {
     Loc loc;
 
@@ -69,7 +70,7 @@ extern (C++) abstract class Condition : RootObject
         return null;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }

@@ -16,6 +16,7 @@ import core.stdc.stdio;
 import core.checkedint;
 
 import dmd.arraytypes;
+import dmd.ast_node;
 import dmd.dsymbol;
 import dmd.expression;
 import dmd.globals;
@@ -50,7 +51,7 @@ enum InitKind : ubyte
 
 /***********************************************************
  */
-extern (C++) class Initializer : RootObject
+extern (C++) class Initializer : ASTNode
 {
     Loc loc;
     InitKind kind;
@@ -96,7 +97,7 @@ extern (C++) class Initializer : RootObject
         return kind == InitKind.exp ? cast(inout ExpInitializer)cast(void*)this : null;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }

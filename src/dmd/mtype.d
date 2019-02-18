@@ -21,6 +21,7 @@ import core.stdc.string;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.attrib;
+import dmd.ast_node;
 import dmd.gluelayer;
 import dmd.dclass;
 import dmd.declaration;
@@ -374,7 +375,7 @@ enum VarArg
 
 /***********************************************************
  */
-extern (C++) abstract class Type : RootObject
+extern (C++) abstract class Type : ASTNode
 {
     TY ty;
     MOD mod; // modifiers MODxxxx
@@ -2671,7 +2672,7 @@ extern (C++) abstract class Type : RootObject
         inout(TypeNull)       isTypeNull()       { return ty == Tnull      ? cast(typeof(return))this : null; }
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -6242,7 +6243,7 @@ extern (C++) struct ParameterList
 
 /***********************************************************
  */
-extern (C++) final class Parameter : RootObject
+extern (C++) final class Parameter : ASTNode
 {
     import dmd.attrib : UserAttributeDeclaration;
 
@@ -6304,7 +6305,7 @@ extern (C++) final class Parameter : RootObject
         return DYNCAST.parameter;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }

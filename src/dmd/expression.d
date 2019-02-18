@@ -21,6 +21,7 @@ import dmd.aliasthis;
 import dmd.apply;
 import dmd.arrayop;
 import dmd.arraytypes;
+import dmd.ast_node;
 import dmd.gluelayer;
 import dmd.canthrow;
 import dmd.complex;
@@ -615,7 +616,7 @@ enum WANTexpand = 1;    // expand const/immutable variables if possible
 /***********************************************************
  * http://dlang.org/spec/expression.html#expression
  */
-extern (C++) abstract class Expression : RootObject
+extern (C++) abstract class Expression : ASTNode
 {
     TOK op;         // to minimize use of dynamic_cast
     ubyte size;     // # of bytes in Expression so we can copy() it
@@ -1682,7 +1683,7 @@ extern (C++) abstract class Expression : RootObject
         inout(PrettyFuncInitExp) isPrettyFuncInitExp() { return op == TOK.prettyFunction ? cast(typeof(return))this : null; }
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }

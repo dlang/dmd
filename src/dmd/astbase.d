@@ -298,7 +298,12 @@ struct ASTBase
 
     alias Visitor = ParseTimeVisitor!ASTBase;
 
-    extern (C++) class Dsymbol : RootObject
+    extern (C++) abstract class ASTNode : RootObject
+    {
+        abstract void accept(Visitor v);
+    }
+
+    extern (C++) class Dsymbol : ASTNode
     {
         Loc loc;
         Identifier ident;
@@ -458,7 +463,7 @@ struct ASTBase
             return DYNCAST.dsymbol;
         }
 
-        void accept(Visitor v)
+        override void accept(Visitor v)
         {
             v.visit(this);
         }
@@ -1754,7 +1759,7 @@ struct ASTBase
         VarArg varargs = VarArg.none;
     }
 
-    extern (C++) final class Parameter : RootObject
+    extern (C++) final class Parameter : ASTNode
     {
         StorageClass storageClass;
         Type type;
@@ -1840,7 +1845,7 @@ struct ASTBase
             return new Parameter(storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null, userAttribDecl ? cast(UserAttributeDeclaration) userAttribDecl.syntaxCopy(null) : null);
         }
 
-        void accept(Visitor v)
+        override void accept(Visitor v)
         {
             v.visit(this);
         }
@@ -1860,7 +1865,7 @@ struct ASTBase
 
     }
 
-    extern (C++) abstract class Statement : RootObject
+    extern (C++) abstract class Statement : ASTNode
     {
         Loc loc;
 
@@ -1884,7 +1889,7 @@ struct ASTBase
             return null;
         }
 
-        void accept(Visitor v)
+        override void accept(Visitor v)
         {
             v.visit(this);
         }
@@ -2595,7 +2600,7 @@ struct ASTBase
     extern (C++) __gshared int Tsize_t = Tuns32;
     extern (C++) __gshared int Tptrdiff_t = Tint32;
 
-    extern (C++) abstract class Type : RootObject
+    extern (C++) abstract class Type : ASTNode
     {
         TY ty;
         MOD mod;
@@ -3418,7 +3423,7 @@ struct ASTBase
             return null;
         }
 
-        void accept(Visitor v)
+        override void accept(Visitor v)
         {
             v.visit(this);
         }
@@ -4280,7 +4285,7 @@ struct ASTBase
         }
     }
 
-    extern (C++) abstract class Expression : RootObject
+    extern (C++) abstract class Expression : ASTNode
     {
         TOK op;
         ubyte size;
@@ -4327,7 +4332,7 @@ struct ASTBase
             return DYNCAST.expression;
         }
 
-        void accept(Visitor v)
+        override void accept(Visitor v)
         {
             v.visit(this);
         }
@@ -5990,7 +5995,7 @@ struct ASTBase
         }
     }
 
-    extern (C++) abstract class Condition : RootObject
+    extern (C++) abstract class Condition : ASTNode
     {
         Loc loc;
 
@@ -5999,7 +6004,7 @@ struct ASTBase
             this.loc = loc;
         }
 
-        void accept(Visitor v)
+        override void accept(Visitor v)
         {
             v.visit(this);
         }
@@ -6095,7 +6100,7 @@ struct ASTBase
         exp,
     }
 
-    extern (C++) class Initializer : RootObject
+    extern (C++) class Initializer : ASTNode
     {
         Loc loc;
         InitKind kind;
@@ -6117,7 +6122,7 @@ struct ASTBase
             return kind == InitKind.exp ? cast(ExpInitializer)cast(void*)this : null;
         }
 
-        void accept(Visitor v)
+        override void accept(Visitor v)
         {
             v.visit(this);
         }
