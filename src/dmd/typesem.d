@@ -1318,8 +1318,16 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
 
                 if (fparam.storageClass & STC.scope_ && !fparam.type.hasPointers() && fparam.type.ty != Ttuple)
                 {
+                    /*     X foo(ref return scope X) => Ref-ReturnScope
+                     * ref X foo(ref return scope X) => ReturnRef-Scope
+                     * But X has no pointers, we don't need the scope part, so:
+                     *     X foo(ref return scope X) => Ref
+                     * ref X foo(ref return scope X) => ReturnRef
+                     * Constructors are treated as if they are being returned through the hidden parameter,
+                     * which is by ref, and the ref there is ignored.
+                     */
                     fparam.storageClass &= ~STC.scope_;
-                    if (!(fparam.storageClass & STC.ref_))
+                    if (!tf.isref || (sc.flags & SCOPE.ctor))
                         fparam.storageClass &= ~STC.return_;
                 }
 
