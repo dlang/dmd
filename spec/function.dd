@@ -1542,6 +1542,82 @@ class C
         $(P Template functions, auto functions, nested functions and lambdas can deduce
         the `return scope` attribute.)
 
+$(H3 $(LNAME2 ref-return-scope-parameters, Ref Return Scope Parameters))
+
+        $(P Parameters marked as `ref return scope` come in two forms:)
+
+---
+U xerxes(ref return scope V v);      // (1) ref and return scope
+ref U xerxes(ref return scope V v);  // (2) return ref and scope
+---
+
+        $(P The first form attaches the `return` to the `scope`, and has
+        $(LINK2 #return-scope-parameters, return scope parameter) semantics
+        for the value of the `ref` parameter.)
+
+        $(P The second form attaches the `return` to the `ref`, and has
+        $(LINK2 #return-ref-parameters, return ref parameter) semantics
+        with additional
+        $(LINK2 https://dlang.org/spec/memory-safe-d.html#scope-return-params, scope parameter)
+        semantics.)
+
+        $(P Although a struct constructor returns a reference to the instance
+        being constructed, it is treated as form (1).)
+
+        $(P The lexical order of the attributes `ref`, `return`, and `scope` is not significant.)
+
+        $(P It is not possible to have both `return ref` and `return scope` semantics
+        for the same parameter.)
+
+---
+@safe:
+
+struct S
+{
+    this(return scope   ref int* p) { ptr = p; }
+
+    int  val;
+    int* ptr;
+}
+
+int* foo1(return scope   ref S s);
+int  foo2(return scope   ref S s);
+
+ref int* foo3(return ref   scope S s);
+ref int  foo4(return ref   scope S s);
+
+int* test1(scope S s)
+{
+    return foo1(s);  // Error: scope variable `s` may not be returned
+    return foo3(s);  // Error: scope variable `s` may not be returned
+}
+
+int test2(S s)
+{
+    return foo2(s);
+    return foo4(s);
+}
+
+ref int* test3(S s)
+{
+    return foo3(s);  // Error: returning `foo3(s)` escapes a reference to parameter `s`
+}
+
+ref int test4(S s)
+{
+    return foo4(s);  // Error: returning `foo4(s)` escapes a reference to parameter `s`
+}
+
+S test5(ref scope int* p)
+{
+    return S(p); // Error: scope variable `p` may not be returned
+}
+
+S test6(ref return scope int* p)
+{
+    return S(p);
+}
+---
 
 $(H3 $(LNAME2 udas-parameters, User-Defined Attributes for Parameters))
 
