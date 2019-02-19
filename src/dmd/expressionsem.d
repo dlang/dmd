@@ -11362,9 +11362,14 @@ private bool checkAddressVar(Scope* sc, UnaExp exp, VarDeclaration v)
                 // Taking the address of v means it cannot be set to 'scope' later
                 v.storage_class &= ~STC.maybescope;
                 v.doNotInferScope = true;
-                if (v.storage_class & STC.scope_ && sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
+                if (v.storage_class & (STC.ref_ | STC.scope_ | STC.out_) &&
+                   sc.func.setUnsafe() &&
+                   !(sc.flags & SCOPE.debug_))
                 {
-                    exp.error("cannot take address of `scope` %s `%s` in `@safe` function `%s`", p, v.toChars(), sc.func.toChars());
+                    const s = (v.storage_class & STC.ref_) ? "ref" :
+                              (v.storage_class & STC.out_) ? "out" : "scope";
+                    exp.error("cannot take address of `%s` %s `%s` in `@safe` function `%s`",
+                        s.ptr, p, v.toChars(), sc.func.toChars());
                     return false;
                 }
             }
