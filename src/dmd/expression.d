@@ -6023,6 +6023,13 @@ extern (C++) final class CatExp : BinExp
         super(loc, TOK.concatenate, __traits(classInstanceSize, CatExp), e1, e2);
     }
 
+    override Expression resolveLoc(const ref Loc loc, Scope* sc)
+    {
+        e1 = e1.resolveLoc(loc, sc);
+        e2 = e2.resolveLoc(loc, sc);
+        return this;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
