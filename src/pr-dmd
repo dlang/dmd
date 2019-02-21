@@ -1,0 +1,55 @@
+#!/bin/bash
+set -eo pipefail
+DMD=$(dirname "$0")/dmd
+function process {
+  declare -a MODULES
+  declare -A SEMANTIC1
+  declare -A SEMANTIC2
+  declare -A SEMANTIC3
+  declare -A CODE
+  ESCAPE="\033["
+  CLEAR="${ESCAPE}0m"
+  RED="${ESCAPE}0;31m"
+  YELLOW="${ESCAPE}1;33m"
+  GREEN="${ESCAPE}0;32m"
+  LGREEN="${ESCAPE}1;32m"
+  grep -v ^function | sed -e 's/\t/ /g' -e 's/  */ /g' |while read CMD ARG REST
+  do
+    INFO=${ARG%%!*}
+    INFO=${INFO##*.}
+    case "$CMD" in
+      parse ) MODULES+=( "$ARG" );;
+      semantic ) SEMANTIC1[$ARG]=1;;
+      semantic2 ) SEMANTIC2[$ARG]=1;;
+      semantic3 ) SEMANTIC3[$ARG]=1;;
+      code ) CODE[$ARG]=1;;
+    esac
+
+    STATUS=""
+    for MOD in "${MODULES[@]}"
+    do
+      INDICATOR=" "
+      if [[ -v "CODE[$MOD]" ]]
+      then
+        INDICATOR="$LGREEN~"
+      elif [[ -v "SEMANTIC3[$MOD]" ]]
+      then
+        INDICATOR="$GREEN-"
+      elif [[ -v "SEMANTIC2[$MOD]" ]]
+      then
+        INDICATOR="$YELLOW-"
+      elif [[ -v "SEMANTIC1[$MOD]" ]]
+      then
+        INDICATOR="$RED."
+      fi
+      STATUS="${STATUS}${INDICATOR}"
+    done
+    if [ "$STATUS" != "" ]
+    then
+      STATUS="[${STATUS}${CLEAR}] $INFO"
+    fi
+    echo -en "\033[2K\r$STATUS\r"
+  done
+}
+$DMD $@ -v |process
+echo

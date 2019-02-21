@@ -590,6 +590,7 @@ install: all $(DMD_MAN_PAGE)
 	$(eval bin_dir=$(if $(filter $(OS),osx), bin, bin$(MODEL)))
 	mkdir -p $(INSTALL_DIR)/$(OS)/$(bin_dir)
 	cp $G/dmd $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd
+	cp ./pr-dmd $(INSTALL_DIR)/$(OS)/$(bin_dir)/pr-dmd
 	cp ../ini/$(OS)/$(bin_dir)/dmd.conf $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd.conf
 	cp $D/boostlicense.txt $(INSTALL_DIR)/dmd-boostlicense.txt
 
