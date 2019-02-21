@@ -7786,6 +7786,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 Expression e = die.semanticY(sc, 1);
                 if (e && isDotOpDispatch(e))
                 {
+                    /* https://issues.dlang.org/show_bug.cgi?id=19687
+                     *
+                     * On this branch, e2 is semantically analyzed in resolvePropertiesX,
+                     * but that call is done with gagged errors. That is the only time when
+                     * semantic gets ran on e2, that is why the error never gets to be printed.
+                     * In order to make sure that UFCS is tried with correct parameters, e2
+                     * needs to have semantic ran on it.
+                     */
+                    exp.e2 = exp.e2.expressionSemantic(sc);
                     uint errors = global.startGagging();
                     e = resolvePropertiesX(sc, e, exp.e2);
                     if (global.endGagging(errors))
