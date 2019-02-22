@@ -3703,7 +3703,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
     loc.linnum += incrementLoc;
     loc.charnum = 0;
     //printf("highlightText()\n");
-    int leadingBlank = 1;
+    bool leadingBlank = true;
     size_t iParagraphStart = offset;
     size_t iPrecedingBlankLine = 0;
     int headingLevel = 0;
@@ -3768,7 +3768,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                     iParagraphStart = i + 1;
                 }
             }
-            leadingBlank = 1;
+            leadingBlank = true;
             iLineStart = i + 1;
             loc.linnum += incrementLoc;
 
@@ -3776,7 +3776,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
 
         case '<':
             {
-                leadingBlank = 0;
+                leadingBlank = false;
                 if (inCode)
                     break;
                 const slice = buf.peekSlice();
@@ -3837,7 +3837,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
 
         case '>':
             {
-                leadingBlank = 0;
+                leadingBlank = false;
                 if (inCode)
                     break;
                 // Replace '>' with '&gt;' character entity
@@ -3853,7 +3853,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
 
         case '&':
             {
-                leadingBlank = 0;
+                leadingBlank = false;
                 if (inCode)
                     break;
                 char* p = cast(char*)&buf.data[i];
@@ -3951,7 +3951,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
 
                 size_t istart = i;
                 size_t eollen = 0;
-                leadingBlank = 0;
+                leadingBlank = false;
                 while (1)
                 {
                     ++i;
@@ -4214,7 +4214,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
         {
             /* Look for the start of a macro, '$(Identifier'
              */
-            leadingBlank = 0;
+            leadingBlank = false;
             if (inCode || inBacktick)
                 break;
             const slice = buf.peekSlice();
@@ -4234,7 +4234,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
         case ')':
         {   /* End of macro
              */
-            leadingBlank = 0;
+            leadingBlank = false;
             if (inCode || inBacktick)
                 break;
             if (parenLevel > 0)
@@ -4262,7 +4262,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
         }
 
         default:
-            leadingBlank = 0;
+            leadingBlank = false;
             if (sc._module.isDocFile || inCode)
                 break;
             const start = cast(char*)buf.data + i;
