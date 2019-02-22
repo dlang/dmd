@@ -6193,6 +6193,14 @@ extern (C++) final class TypeNull : Type
         return MATCH.nomatch;
     }
 
+    override bool hasPointers()
+    {
+        /* Although null isn't dereferencable, treat it as a pointer type for
+         * attribute inference, generic code, etc.
+         */
+        return true;
+    }
+
     override bool isBoolean() const
     {
         return true;
