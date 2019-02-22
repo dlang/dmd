@@ -1205,7 +1205,8 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
             Scope* argsc = sc.push();
             argsc.stc = 0; // don't inherit storage class
             argsc.protection = Prot(Prot.Kind.public_);
-            argsc.func = null;
+            Loc tloc = Loc();
+            argsc.func = new FuncDeclaration(tloc, tloc, new Identifier("__tfunc"), sc.stc, new TypeFunction(ParameterList(), Type.tvoid, LINK.d, sc.stc));
 
             size_t dim = tf.parameterList.length;
             for (size_t i = 0; i < dim; i++)
