@@ -474,7 +474,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                  // va is class reference
                  ae.e1.op == TOK.dotVariable && va.type.toBasetype().ty == Tclass && (va.enclosesLifetimeOf(v) || !va.isScope()) ||
                  vaIsRef ||
-                 va.storage_class & (STC.ref_ | STC.out_) && !(v.storage_class & STC.temp)) &&
+                 va.storage_class & (STC.ref_ | STC.out_) && !(v.storage_class & (STC.parameter | STC.temp))) &&
                 sc.func.setUnsafe())
             {
                 if (!gag)
