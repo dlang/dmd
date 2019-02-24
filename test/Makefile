@@ -182,6 +182,12 @@ start_fail_compilation_tests: $(RESULTS_DIR)/.created $(test_tools)
 	@echo "Running fail compilation tests"
 	$(QUIET)$(MAKE) --no-print-directory run_fail_compilation_tests
 
+run_all_tests: unit_tests run_runnable_tests run_compilable_tests run_fail_compilation_tests
+
+start_all_tests: $(RESULTS_DIR)/.created $(test_tools)
+	@echo "Running all tests"
+	$(QUIET)$(MAKE) --no-print-directory run_all_tests
+
 $(RESULTS_DIR)/d_do_test$(EXE): tools/d_do_test.d $(RESULTS_DIR)/.created
 	@echo "Building d_do_test tool"
 	@echo "OS: '$(OS)'"
