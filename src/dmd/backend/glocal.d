@@ -114,7 +114,7 @@ private void local_exp(ref Barray!loc_t lt, elem *e, int goal)
 {
     Symbol *s;
     elem *e1;
-    int op1;
+    OPER op1;
 
 Loop:
     elem_debug(e);
