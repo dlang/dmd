@@ -168,25 +168,25 @@ run_runnable_tests: $(runnable_test_results)
 
 start_runnable_tests: $(RESULTS_DIR)/.created $(test_tools)
 	@echo "Running runnable tests"
-	$(QUIET)$(MAKE) --no-print-directory run_runnable_tests
+	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory run_runnable_tests
 
 run_compilable_tests: $(compilable_test_results)
 
 start_compilable_tests: $(RESULTS_DIR)/.created $(test_tools)
 	@echo "Running compilable tests"
-	$(QUIET)$(MAKE) --no-print-directory run_compilable_tests
+	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory run_compilable_tests
 
 run_fail_compilation_tests: $(fail_compilation_test_results)
 
 start_fail_compilation_tests: $(RESULTS_DIR)/.created $(test_tools)
 	@echo "Running fail compilation tests"
-	$(QUIET)$(MAKE) --no-print-directory run_fail_compilation_tests
+	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory run_fail_compilation_tests
 
 run_all_tests: unit_tests run_runnable_tests run_compilable_tests run_fail_compilation_tests
 
 start_all_tests: $(RESULTS_DIR)/.created $(test_tools)
 	@echo "Running all tests"
-	$(QUIET)$(MAKE) --no-print-directory run_all_tests
+	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory run_all_tests
 
 $(RESULTS_DIR)/d_do_test$(EXE): tools/d_do_test.d $(RESULTS_DIR)/.created
 	@echo "Building d_do_test tool"
