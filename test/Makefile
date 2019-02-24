@@ -133,7 +133,7 @@ runnable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(runnable_te
 compilable_tests=$(wildcard compilable/*.d) $(wildcard compilable/*.sh)
 compilable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(compilable_tests)))
 
-fail_compilation_tests=$(wildcard fail_compilation/*.d) $(wildcard fail_compilation/*.html)
+fail_compilation_tests=$(wildcard fail_compilation/*.d) $(wildcard fail_compilation/*.sh) $(wildcard fail_compilation/*.html)
 fail_compilation_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(fail_compilation_tests)))
 
 all: run_tests
