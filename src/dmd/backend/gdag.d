@@ -666,7 +666,7 @@ private void abewalk(elem *n,vec_t ae,vec_t aeval)
     elem_debug(n);
     /*printf("visiting: ("); WReqn(*pn); printf("), Eexp = %d\n",n.Eexp);*/
     /*chkvecdim(go.exptop);*/
-    const uint op = n.Eoper;
+    const op = n.Eoper;
     switch (op)
     {
         case OPcond:
