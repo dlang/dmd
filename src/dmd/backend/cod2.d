@@ -233,7 +233,8 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         return;
     }
 
-    uint op1,op2,mode;
+    opcode_t op1, op2;
+    uint mode;
     static int nest;
 
     tym_t ty2 = tybasic(e2.Ety);
@@ -915,7 +916,8 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     reg_t rreg;
-    uint op,lib;
+    opcode_t op;
+    uint lib;
     regm_t resreg,retregs,rretregs;
     tym_t tyml;
     targ_size_t e2factor;
@@ -940,7 +942,7 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     const int sz = _tysize[tyml];
     uint isbyte = tybyte(e.Ety) != 0;
     tym_t uns = tyuns(tyml) || tyuns(e2.Ety);  // 1 if uint operation, 0 if not
-    uint oper = e.Eoper;
+    const oper = e.Eoper;
     const uint rex = (I64 && sz == 8) ? REX_W : 0;
     const uint grex = rex << 16;
 
@@ -970,7 +972,7 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         return;
     }
 
-    int opunslng = I16 ? OPu16_32 : OPu32_64;
+    OPER opunslng = I16 ? OPu16_32 : OPu32_64;
     switch (oper)
     {
         case OPmul:
@@ -1746,7 +1748,7 @@ void cdnot(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         return;
     }
 
-    int op = e.Eoper;
+    OPER op = e.Eoper;
     uint sz = tysize(e1.Ety);
     uint rex = (I64 && sz == 8) ? REX_W : 0;
     uint grex = rex << 16;
@@ -1939,7 +1941,7 @@ void cdcom(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     else
     {
         const reg = (sz <= REGSIZE) ? findreg(retregs) : findregmsw(retregs);
-        uint op = (sz == 1) ? 0xF6 : 0xF7;
+        const op = (sz == 1) ? 0xF6 : 0xF7;
         genregs(cdb,op,2,reg);     // NOT reg
         code_orrex(cdb.last(), rex);
         if (I64 && sz == 1 && reg >= 4)
@@ -2001,7 +2003,7 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     elem *e21 = e2.EV.E1;
     elem *e22 = e2.EV.E2;
     regm_t psw = *pretregs & mPSW;               /* save PSW bit                 */
-    uint op1 = e1.Eoper;
+    const op1 = e1.Eoper;
     uint sz1 = tysize(e1.Ety);
     uint rex = (I64 && sz1 == 8) ? REX_W : 0;
     uint grex = rex << 16;
@@ -2053,7 +2055,6 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     {
         regm_t retregs;
         targ_size_t v1,v2;
-        int opcode;
 
         if (sz2 != 1 || I64)
         {
@@ -2076,7 +2077,7 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             v2 = cast(targ_size_t)e21.EV.Vllong;
         }
 
-        opcode = 0x81;
+        opcode_t opcode = 0x81;
         switch (sz2)
         {   case 1:     opcode--;
                         v1 = cast(byte) v1;
@@ -2427,7 +2428,7 @@ void cdshift(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     tym_t tyml = tybasic(e1.Ety);
     int sz = _tysize[tyml];
     assert(!tyfloating(tyml));
-    uint oper = e.Eoper;
+    OPER oper = e.Eoper;
     uint grex = ((I64 && sz == 8) ? REX_W : 0) << 16;
 
 version (SCPP)
@@ -3768,7 +3769,6 @@ void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     int segreg;
     uint remainder;
     targ_uns numbytes,numwords;
-    int op;
     targ_size_t value;
     uint m;
 
@@ -3875,6 +3875,7 @@ fixres:
         }
     }
 
+    opcode_t op;
     // Get nbytes into CX
     retregs2 = mCX;
     if (!I16 && e2.EV.E1.Eoper == OPconst && e2E2isConst)
@@ -4707,7 +4708,7 @@ void cdpost(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     //printf("cdpost(pretregs = %s)\n", regm_str(*pretregs));
     code cs;
     regm_t retregs = *pretregs;
-    uint op = e.Eoper;                       // OPxxxx
+    const op = e.Eoper;                      // OPxxxx
     if (retregs == 0)                        // if nothing to return
     {
         cdaddass(cdb,e,pretregs);
