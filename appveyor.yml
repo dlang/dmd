@@ -79,6 +79,7 @@ build_script:
   - make -f win64.mak MODEL=32mscoff DMD=..\dmd\generated\Windows\Release\Win32\dmd.exe VCDIR="%VCINSTALLDIR%." "CC=\"%VCINSTALLDIR%/bin/cl.exe\"" SDKDIR=unused
   - cd c:\projects\dmd\test
   - set CC=c:/"Program Files (x86)"/"Microsoft Visual Studio 14.0"/VC/bin/cl.exe
-  - ..\..\gnumake\make -j3 all MODEL=32mscoff ARGS="-O -inline -g" "OS=win32" DMD=..\generated\Windows\Release\Win32\dmd.exe LIB="../../phobos;%LIB%" RESULTS_DIR=test_m32mscoff
+  - set DMD_TESTSUITE_MAKE_ARGS=-j3
+  - ..\..\gnumake\make -j1 all MODEL=32mscoff ARGS="-O -inline -g" "OS=win32" DMD=..\generated\Windows\Release\Win32\dmd.exe LIB="../../phobos;%LIB%" RESULTS_DIR=test_m32mscoff
 
 test_script: true
