@@ -869,6 +869,26 @@ nothrow:
             import core.stdc.limits;      // PATH_MAX
             import core.sys.posix.unistd; // _PC_PATH_MAX
 
+            // Older versions of druntime don't have PATH_MAX defined.
+            // i.e: dmd __VERSION__ < 2085, gdc __VERSION__ < 2076.
+            static if (!__traits(compiles, PATH_MAX))
+            {
+                version (DragonFlyBSD)
+                    enum PATH_MAX = 1024;
+                else version (FreeBSD)
+                    enum PATH_MAX = 1024;
+                else version (linux)
+                    enum PATH_MAX = 4096;
+                else version (NetBSD)
+                    enum PATH_MAX = 1024;
+                else version (OpenBSD)
+                    enum PATH_MAX = 1024;
+                else version (OSX)
+                    enum PATH_MAX = 1024;
+                else version (Solaris)
+                    enum PATH_MAX = 1024;
+            }
+
             // Have realpath(), passing a NULL destination pointer may return an
             // internally malloc'd buffer, however it is implementation defined
             // as to what happens, so cannot rely on it.

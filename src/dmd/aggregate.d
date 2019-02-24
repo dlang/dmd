@@ -327,24 +327,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         }
         bool errors = false;
 
-        // Using a dedicated flag in VarDecl we avoid the O(n^2) check in many cases.
-        // (note : anon unions are impl. as attribs so isAnonDecl. cant work here)
-        bool containsAnonUnionMembers;
-        foreach (const i; 0 .. nfields)
-        {
-            VarDeclaration vd = fields[i];
-            if (vd.errors)
-            {
-                errors = true;
-                break;
-            }
-            if ((containsAnonUnionMembers = vd.isAnonUnionMember) == true)
-                break;
-        }
-        if (!errors && !isUnionDeclaration() && !containsAnonUnionMembers)
-            return false;
-
-        // Set the members flags related to overlapping
+        // Fill in missing any elements with default initializers
         foreach (i; 0 .. nfields)
         {
             auto vd = fields[i];

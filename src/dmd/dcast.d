@@ -1624,15 +1624,15 @@ Expression castTo(Expression e, Scope* sc, Type t)
             // Bugzlla 3133: A cast between fat values is possible only when the sizes match.
             if (tob_isFV && t1b_isFV)
             {
-                if (t1b.size(e.loc) == tob.size(e.loc))
-                    goto Lok;
-
                 if (hasAliasThis)
                 {
                     result = tryAliasThisCast(e, sc, tob, t1b, t);
                     if (result)
                         return;
                 }
+
+                if (t1b.size(e.loc) == tob.size(e.loc))
+                    goto Lok;
 
                 auto ts = toAutoQualChars(e.type, t);
                 e.error("cannot cast expression `%s` of type `%s` to `%s` because of different sizes",
