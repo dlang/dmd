@@ -154,7 +154,7 @@ private __gshared const Ssindex[21] ssindex_array =
     { 64, 3, 3, SSFLnobase1 | SSFLnobase },
 ];
 
-int ssindex(int op,targ_uns product)
+int ssindex(OPER op,targ_uns product)
 {
     if (op == OPshl)
         product = 1 << product;
@@ -566,7 +566,7 @@ void logexp(ref CodeBuilder cdb, elem *e, int jcond, uint fltarg, code *targ)
     }
 
     regm_t retregs = mPSW;                // return result in flags
-    uint op = jmpopcode(e);           // get jump opcode
+    opcode_t op = jmpopcode(e);           // get jump opcode
     if (!(jcond & 1))
         op ^= 0x101;                      // toggle jump condition(s)
     codelem(cdb, e, &retregs, true);         // evaluate elem
@@ -1653,7 +1653,7 @@ void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, uint saveflag)
         reg_t xreg;
         regm_t xregs = XMMREGS & ~regm;
         allocreg(cdb,&xregs, &xreg, TYdouble);
-        uint op = 0;
+        opcode_t op = 0;
         if (tym == TYdouble || tym == TYidouble || tym == TYcdouble)
             op = 0x660000;
         cdb.gen2(op | 0x0F57, modregrm(3, xreg-XMM0, xreg-XMM0));      // XORPS xreg,xreg
@@ -3373,7 +3373,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
                         {
                             if (mask(preg) & XMMREGS)
                             {
-                                uint op = xmmload(ty1);            // MOVSS/D preg,lreg
+                                const op = xmmload(ty1);            // MOVSS/D preg,lreg
                                 cdb.gen2(op, modregxrmx(3, preg-XMM0, lreg-XMM0));
                                 checkSetVex(cdb.last(),ty1);
                             }
@@ -3387,7 +3387,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
                         {
                             if (mask(preg2) & XMMREGS)
                             {
-                                uint op = xmmload(ty2);            // MOVSS/D preg2,mreg
+                                const op = xmmload(ty2);            // MOVSS/D preg2,mreg
                                 cdb.gen2(op, modregxrmx(3, preg2-XMM0, mreg-XMM0));
                                 checkSetVex(cdb.last(),ty2);
                             }
@@ -3997,8 +3997,8 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
     {
         retregs = XMMREGS;
         codelem(cdb, e, &retregs, false);
-        uint op = xmmstore(tym);
-        uint r = findreg(retregs);
+        const op = xmmstore(tym);
+        const r = findreg(retregs);
         cdb.genc1(op, modregxrm(2, r - XMM0, BPRM), FLfuncarg, funcargtos - 16);   // MOV funcarg[EBP],r
         checkSetVex(cdb.last(),tym);
         return;
@@ -4010,7 +4010,7 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
             retregs = tycomplex(tym) ? mST01 : mST0;
             codelem(cdb, e, &retregs, false);
 
-            uint op;
+            opcode_t op;
             uint r;
             switch (tym)
             {
@@ -4687,7 +4687,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
 
         default:
             break;
-   }
+    }
 
     regm_t retregs = tybyte(tym) ? BYTEREGS : allregs;
     if (tyvector(tym) || (tyxmmreg(tym) && config.fpxmmregs))
@@ -4697,8 +4697,8 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
         stackpush += sz;
         cdb.genadjesp(cast(int)sz);
         cod3_stackadj(cdb, cast(int)sz);
-        uint op = xmmstore(tym);
-        uint r = findreg(retxmm);
+        const op = xmmstore(tym);
+        const r = findreg(retxmm);
         cdb.gen2sib(op, modregxrm(0, r - XMM0,4 ), modregrm(0, 4, SP));   // MOV [ESP],r
         checkSetVex(cdb.last(),tym);
         return;
@@ -4712,7 +4712,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
             stackpush += sz;
             cdb.genadjesp(cast(int)sz);
             cod3_stackadj(cdb, cast(int)sz);
-            uint op;
+            opcode_t op;
             uint r;
             switch (tym)
             {
@@ -4830,7 +4830,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
     reg_t reg;
     reg_t nreg;
     reg_t sreg;
-    uint op;
+    opcode_t op;
     tym_t tym;
     code cs;
     regm_t flags, forregs, regm;
@@ -5014,7 +5014,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
                 if (sz == 8)
                     code_orrex(cdb.last(), REX_W);
                 assert(sz == 4 || sz == 8);         // float or double
-                uint opmv = xmmload(tym);
+                const opmv = xmmload(tym);
                 cdb.genxmmreg(opmv, reg, 0, tym);        // MOVSS/MOVSD XMMreg,floatreg
             }
             else
@@ -5066,7 +5066,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
                     movregconst(cdb, r, p[1], 0);
                     cdb.genfltreg(0x89, r, 4);               // MOV floatreg+4,r
 
-                    uint opmv = xmmload(tym);
+                    const opmv = xmmload(tym);
                     cdb.genxmmreg(opmv, reg, 0, tym);           // MOVSS/MOVSD XMMreg,floatreg
                 }
                 else
@@ -5132,7 +5132,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
                     printf("forregs = %s\n", regm_str(forregs));
             }
 
-            uint opmv = 0x8A;                                  // byte MOV
+            opcode_t opmv = 0x8A;                               // byte MOV
             static if (TARGET_OSX)
             {
                 if (movOnly(e))
@@ -5171,7 +5171,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             // Can't load from registers directly to XMM regs
             //e.EV.Vsym.Sflags &= ~GTregcand;
 
-            uint opmv = xmmload(tym, xmmIsAligned(e));
+            opcode_t opmv = xmmload(tym, xmmIsAligned(e));
             if (e.Eoper == OPvar)
             {
                 Symbol *s = e.EV.Vsym;
@@ -5185,7 +5185,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         }
         else if (sz <= REGSIZE)
         {
-            uint opmv = 0x8B;                     // MOV reg,data
+            opcode_t opmv = 0x8B;                     // MOV reg,data
             if (sz == 2 && !I16 && config.target_cpu >= TARGET_PentiumPro &&
                 // Workaround for OSX linker bug:
                 //   ld: GOT load reloc does not point to a movq instruction in test42 for x86_64

@@ -1877,7 +1877,7 @@ private void resetEcomsub(elem *e)
     {
         elem_debug(e);
         e.Ecomsub = e.Ecount;
-        uint op = e.Eoper;
+        const op = e.Eoper;
         if (!OTleaf(op))
         {
             if (OTbinary(op))
@@ -2768,7 +2768,7 @@ private void loadcse(ref CodeBuilder cdb,elem *e,reg_t reg,regm_t regm)
 
 mixin(import("cdxxx.d"));                      /* jump table                   */
 
-void callcdxxx(ref CodeBuilder cdb, elem *e, regm_t *pretregs, uint op)
+void callcdxxx(ref CodeBuilder cdb, elem *e, regm_t *pretregs, OPER op)
 {
     (*cdxxx[op])(cdb,e,pretregs);
 }
