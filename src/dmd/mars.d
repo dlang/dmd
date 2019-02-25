@@ -1740,6 +1740,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 continue;
             }
         }
+        else if (arg.length > 6 && arg[0..6] == "--DRT-")
+        {
+            continue; // skip druntime options, e.g. used to configure the GC
+        }
         else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
         {
             static if (TARGET.DragonFlyBSD) {
