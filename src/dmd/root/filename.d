@@ -710,16 +710,16 @@ nothrow:
                     // exists and name is *really* a "child" of path
                     if (exists(cname) && strncmp(cpath, cname, strlen(cpath)) == 0)
                     {
-                        .free(cast(void*)cpath);
+                        mem.xfree(cast(void*)cpath);
                         const(char)* p = mem.xstrdup(cname);
-                        .free(cast(void*)cname);
+                        mem.xfree(cast(void*)cname);
                         return p;
                     }
                 cont:
                     if (cpath)
-                        .free(cast(void*)cpath);
+                        mem.xfree(cast(void*)cpath);
                     if (cname)
-                        .free(cast(void*)cname);
+                        mem.xfree(cast(void*)cname);
                 }
             }
             return null;
