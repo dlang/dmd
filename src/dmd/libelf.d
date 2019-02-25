@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/libelf.d, _libelf.d)
@@ -268,9 +268,9 @@ final class LibElf : Library
             /* Mock things up for the object module file that never was
              * actually written out.
              */
-            static __gshared uid_t uid;
-            static __gshared gid_t gid;
-            static __gshared int _init;
+            __gshared uid_t uid;
+            __gshared gid_t gid;
+            __gshared int _init;
             if (!_init)
             {
                 _init = 1;

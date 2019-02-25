@@ -264,6 +264,29 @@ enum
     N_SECT  = 14,
 }
 
+enum
+{
+    // n_desc
+    N_ARM_THUMB_DEF   =     8,
+    N_NO_DEAD_STRIP   =  0x20,
+    N_DESC_DISCARDED  =  0x20,
+    N_WEAK_REF        =  0x40,
+    N_WEAK_DEF        =  0x80,
+    N_REF_TO_WEAK     =  0x80,
+    N_SYMBOL_RESOLVER = 0x100,
+}
+
+enum
+{
+    // n_desc
+    REFERENCE_FLAG_UNDEFINED_NON_LAZY         = 0,
+    REFERENCE_FLAG_UNDEFINED_LAZY             = 1,
+    REFERENCE_FLAG_DEFINED                    = 2,
+    REFERENCE_FLAG_PRIVATE_DEFINED            = 3,
+    REFERENCE_FLAG_PRIVATE_UNDEFINED_NON_LAZY = 4,
+    REFERENCE_FLAG_PRIVATE_UNDEFINED_LAZY     = 5,
+}
+
 struct nlist
 {
     union
@@ -341,51 +364,41 @@ enum
 struct relocation_info
 {
     int r_address;
-    version (all)
-    {
-        uint xxx;
-    }
-    else
-    {
-        /*
-        uint r_symbolnum:24,
-            r_pcrel:1,
-            r_length:2,
-            r_extern:1,
-            r_type:4;
-        */
-    }
+
+    /* LITTLE_ENDIAN for x86
+     * uint r_symbolnum:24,
+     *      r_pcrel    :1,
+     *      r_length   :2,
+     *      r_extern   :1,
+     *      r_type     :4;
+     */
+    uint xxx;
+    void r_symbolnum(uint r) { assert(!(r & ~0x00FF_FFFF)); xxx = (xxx & ~0x00FF_FFFF) | r; }
+    void r_pcrel    (uint r) { assert(!(r & ~1));           xxx = (xxx & ~0x0100_0000) | (r << 24); }
+    void r_length   (uint r) { assert(!(r & ~3));           xxx = (xxx & ~0x0600_0000) | (r << (24 + 1)); }
+    void r_extern   (uint r) { assert(!(r & ~1));           xxx = (xxx & ~0x0800_0000) | (r << (24 + 1 + 2)); }
+    void r_type     (uint r) { assert(!(r & ~0xF));         xxx = (xxx & ~0xF000_0000) | (r << (24 + 1 + 2 + 1)); }
+
+    uint r_pcrel() { return (xxx >> 24) & 1; }
 }
 
 struct scattered_relocation_info
 {
-    version (all)
-    {
-        uint xxx;
-        uint r_value;
-    }
-    else
-    {
-        /*
-        version (LittleEndien) // LITTLE_ENDIAN for x86
-        {
-            uint r_address:24,
-            r_type:4,
-            r_length:2,
-            r_pcrel:1,
-            r_scattered:1;
-            int32_t r_value;
-        }
-        else // BIG_ENDIAN
-        {
-            uint r_scattered:1,
-            r_pcrel:1,
-            r_length:2,
-            r_type:4,
-            r_address:24;
-            int32_t r_value;
-        }
-        */
-    }
-}
+    /* LITTLE_ENDIAN for x86
+     * uint r_address  :24,
+     *      r_type     :4,
+     *      r_length   :2,
+     *      r_pcrel    :1,
+     *      r_scattered:1;
+     */
+    uint xxx;
+    void r_address  (uint r) { assert(!(r & ~0x00FF_FFFF)); xxx = (xxx & ~0x00FF_FFFF) | r; }
+    void r_type     (uint r) { assert(!(r & ~0xF));         xxx = (xxx & ~0x0F00_0000) | (r << 24); }
+    void r_length   (uint r) { assert(!(r & ~3));           xxx = (xxx & ~0x3000_0000) | (r << (24 + 4)); }
+    void r_pcrel    (uint r) { assert(!(r & ~1));           xxx = (xxx & ~0x4000_0000) | (r << (24 + 4 + 2)); }
+    void r_scattered(uint r) { assert(!(r & ~1));           xxx = (xxx & ~0x8000_0000) | (r << (24 + 4 + 2 + 1)); }
 
+    uint r_pcrel() { return (xxx >> (24 + 4 + 2)) & 1; }
+
+    int r_value;
+}

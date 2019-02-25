@@ -974,7 +974,7 @@ void test41()
 }
 
 /*******************************************/
-// 2245
+// https://issues.dlang.org/show_bug.cgi?id=2245
 
 template TCALL2245a(ARGS...)
 {
@@ -1044,7 +1044,7 @@ void test2245()
 }
 
 /*******************************************/
-// 2481
+// https://issues.dlang.org/show_bug.cgi?id=2481
 
 template M2481() { int i; }
 class Z2481a { struct { mixin M2481!(); } }
@@ -1058,7 +1058,7 @@ void test2481()
 }
 
 /*******************************************/
-// 2740
+// https://issues.dlang.org/show_bug.cgi?id=2740
 
 interface IFooable2740
 {
@@ -1144,7 +1144,7 @@ void test42()
 }
 
 /*******************************************/
-// 7744
+// https://issues.dlang.org/show_bug.cgi?id=7744
 
 class ZeroOrMore7744(Expr)
 {
@@ -1165,7 +1165,7 @@ mixin(q{
 });
 
 /*******************************************/
-// 8032
+// https://issues.dlang.org/show_bug.cgi?id=8032
 
 mixin template T8032()
 {
@@ -1193,7 +1193,7 @@ class B8032b : A8032b
 }
 
 /*********************************************/
-// 9417
+// https://issues.dlang.org/show_bug.cgi?id=9417
 
 mixin template Foo9417()
 {
@@ -1209,7 +1209,7 @@ void test9417()
 }
 
 /*******************************************/
-// 11487
+// https://issues.dlang.org/show_bug.cgi?id=11487
 
 template X11487()
 {
@@ -1236,7 +1236,7 @@ class C11487
 }
 
 /*******************************************/
-// 11767
+// https://issues.dlang.org/show_bug.cgi?id=11767
 
 mixin template M11767()
 {
@@ -1262,7 +1262,7 @@ void test11767()
 }
 
 /*******************************************/
-// 12023
+// https://issues.dlang.org/show_bug.cgi?id=12023
 
 void Delete12023(Object obj) {}
 
@@ -1303,7 +1303,7 @@ void test12023()
 }
 
 /*******************************************/
-// 14243
+// https://issues.dlang.org/show_bug.cgi?id=14243
 
 mixin template Mix14243a(int n)
 {
@@ -1397,7 +1397,7 @@ int test14243()
 static assert(test14243()); // changed to be workable
 
 /*******************************************/
-// 10492
+// https://issues.dlang.org/show_bug.cgi?id=10492
 
 class TestClass10492 {}
 

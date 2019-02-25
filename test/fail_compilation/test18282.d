@@ -1,4 +1,4 @@
-/* REQUIRED_ARGS: -dip1000
+/* REQUIRED_ARGS: -preview=dip1000
    TEST_OUTPUT:
 ---
 fail_compilation/test18282.d(25): Error: scope variable `aa` may not be returned

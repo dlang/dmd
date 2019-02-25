@@ -288,6 +288,14 @@ struct ASTBase
         tracingDT    = 0x8,  // mark in progress of deduceType
     }
 
+    enum VarArg
+    {
+        none     = 0,  /// fixed number of arguments
+        variadic = 1,  /// T t, ...)  can be C-style (core.stdc.stdarg) or D-style (core.vararg)
+        typesafe = 2,  /// T t ...) typesafe https://dlang.org/spec/function.html#typesafe_variadic_functions
+                       ///   or https://dlang.org/spec/function.html#typesafe_variadic_functions
+    }
+
     alias Visitor = ParseTimeVisitor!ASTBase;
 
     extern (C++) class Dsymbol : RootObject
@@ -325,7 +333,7 @@ struct ASTBase
             return true;
         }
 
-        static bool oneMembers(Dsymbols* members, Dsymbol* ps, Identifier ident)
+        extern (D) static bool oneMembers(Dsymbols* members, Dsymbol* ps, Identifier ident)
         {
             Dsymbol s = null;
             if (members)
@@ -877,9 +885,9 @@ struct ASTBase
     extern (C++) final class NewDeclaration : FuncDeclaration
     {
         Parameters* parameters;
-        int varargs;
+        VarArg varargs;
 
-        extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Parameters* fparams, int varargs)
+        extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Parameters* fparams, VarArg varargs)
         {
             super(loc, endloc, Id.classNew, STC.static_ | stc, null);
             this.parameters = fparams;
@@ -1159,11 +1167,23 @@ struct ASTBase
 
     extern (C++) final class Nspace : ScopeDsymbol
     {
-        extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* members)
+        /**
+         * Determines whether the symbol for this namespace should be included in the symbol table.
+         */
+        bool mangleOnly;
+
+        /**
+         * Namespace identifier resolved during semantic.
+         */
+        Expression identExp;
+
+        extern (D) this(const ref Loc loc, Identifier ident, Expression identExp, Dsymbols* members, bool mangleOnly)
         {
             super(ident);
             this.loc = loc;
             this.members = members;
+            this.identExp = identExp;
+            this.mangleOnly = mangleOnly;
         }
 
         override void accept(Visitor v)
@@ -1174,13 +1194,13 @@ struct ASTBase
 
     extern (C++) final class CompileDeclaration : AttribDeclaration
     {
-        Expression exp;
+        Expressions* exps;
 
-        extern (D) this(const ref Loc loc, Expression exp)
+        extern (D) this(const ref Loc loc, Expressions* exps)
         {
             super(null);
             this.loc = loc;
-            this.exp = exp;
+            this.exps = exps;
         }
 
         override void accept(Visitor v)
@@ -1199,7 +1219,7 @@ struct ASTBase
             this.atts = atts;
         }
 
-        static Expressions* concat(Expressions* udas1, Expressions* udas2)
+        extern (D) static Expressions* concat(Expressions* udas1, Expressions* udas2)
         {
             Expressions* udas;
             if (!udas1 || udas1.dim == 0)
@@ -1441,7 +1461,7 @@ struct ASTBase
 
     extern (C++) final class Module : Package
     {
-        extern (C++) static __gshared AggregateDeclaration moduleinfo;
+        extern (C++) __gshared AggregateDeclaration moduleinfo;
 
         File* srcfile;
         const(char)* arg;
@@ -1520,7 +1540,7 @@ struct ASTBase
 
             super(loc, id);
 
-            static __gshared const(char)* msg = "only object.d can define this reserved class name";
+            __gshared const(char)* msg = "only object.d can define this reserved class name";
 
             if (baseclasses)
             {
@@ -1726,6 +1746,12 @@ struct ASTBase
         {
             v.visit(this);
         }
+    }
+
+    extern (C++) struct ParameterList
+    {
+        Parameters* parameters;
+        VarArg varargs = VarArg.none;
     }
 
     extern (C++) final class Parameter : RootObject
@@ -1955,12 +1981,12 @@ struct ASTBase
 
     extern (C++) final class CompileStatement : Statement
     {
-        Expression exp;
+        Expressions* exps;
 
-        final extern (D) this(const ref Loc loc, Expression exp)
+        final extern (D) this(const ref Loc loc, Expressions* exps)
         {
             super(loc);
-            this.exp = exp;
+            this.exps = exps;
         }
 
         override void accept(Visitor v)
@@ -2109,7 +2135,7 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class OnScopeStatement : Statement
+    extern (C++) final class ScopeGuardStatement : Statement
     {
         TOK tok;
         Statement statement;
@@ -2424,7 +2450,7 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class AsmStatement : Statement
+    extern (C++) class AsmStatement : Statement
     {
         Token* tokens;
 
@@ -2432,6 +2458,32 @@ struct ASTBase
         {
             super(loc);
             this.tokens = tokens;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class InlineAsmStatement : AsmStatement
+    {
+        extern (D) this(const ref Loc loc, Token* tokens)
+        {
+            super(loc, tokens);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class GccAsmStatement : AsmStatement
+    {
+        extern (D) this(const ref Loc loc, Token* tokens)
+        {
+            super(loc, tokens);
         }
 
         override void accept(Visitor v)
@@ -2549,67 +2601,67 @@ struct ASTBase
         MOD mod;
         char* deco;
 
-        extern (C++) static __gshared Type tvoid;
-        extern (C++) static __gshared Type tint8;
-        extern (C++) static __gshared Type tuns8;
-        extern (C++) static __gshared Type tint16;
-        extern (C++) static __gshared Type tuns16;
-        extern (C++) static __gshared Type tint32;
-        extern (C++) static __gshared Type tuns32;
-        extern (C++) static __gshared Type tint64;
-        extern (C++) static __gshared Type tuns64;
-        extern (C++) static __gshared Type tint128;
-        extern (C++) static __gshared Type tuns128;
-        extern (C++) static __gshared Type tfloat32;
-        extern (C++) static __gshared Type tfloat64;
-        extern (C++) static __gshared Type tfloat80;
-        extern (C++) static __gshared Type timaginary32;
-        extern (C++) static __gshared Type timaginary64;
-        extern (C++) static __gshared Type timaginary80;
-        extern (C++) static __gshared Type tcomplex32;
-        extern (C++) static __gshared Type tcomplex64;
-        extern (C++) static __gshared Type tcomplex80;
-        extern (C++) static __gshared Type tbool;
-        extern (C++) static __gshared Type tchar;
-        extern (C++) static __gshared Type twchar;
-        extern (C++) static __gshared Type tdchar;
+        extern (C++) __gshared Type tvoid;
+        extern (C++) __gshared Type tint8;
+        extern (C++) __gshared Type tuns8;
+        extern (C++) __gshared Type tint16;
+        extern (C++) __gshared Type tuns16;
+        extern (C++) __gshared Type tint32;
+        extern (C++) __gshared Type tuns32;
+        extern (C++) __gshared Type tint64;
+        extern (C++) __gshared Type tuns64;
+        extern (C++) __gshared Type tint128;
+        extern (C++) __gshared Type tuns128;
+        extern (C++) __gshared Type tfloat32;
+        extern (C++) __gshared Type tfloat64;
+        extern (C++) __gshared Type tfloat80;
+        extern (C++) __gshared Type timaginary32;
+        extern (C++) __gshared Type timaginary64;
+        extern (C++) __gshared Type timaginary80;
+        extern (C++) __gshared Type tcomplex32;
+        extern (C++) __gshared Type tcomplex64;
+        extern (C++) __gshared Type tcomplex80;
+        extern (C++) __gshared Type tbool;
+        extern (C++) __gshared Type tchar;
+        extern (C++) __gshared Type twchar;
+        extern (C++) __gshared Type tdchar;
 
-        extern (C++) static __gshared Type[TMAX] basic;
+        extern (C++) __gshared Type[TMAX] basic;
 
-        extern (C++) static __gshared Type tshiftcnt;
-        extern (C++) static __gshared Type tvoidptr;    // void*
-        extern (C++) static __gshared Type tstring;     // immutable(char)[]
-        extern (C++) static __gshared Type twstring;    // immutable(wchar)[]
-        extern (C++) static __gshared Type tdstring;    // immutable(dchar)[]
-        extern (C++) static __gshared Type tvalist;     // va_list alias
-        extern (C++) static __gshared Type terror;      // for error recovery
-        extern (C++) static __gshared Type tnull;       // for null type
+        extern (C++) __gshared Type tshiftcnt;
+        extern (C++) __gshared Type tvoidptr;    // void*
+        extern (C++) __gshared Type tstring;     // immutable(char)[]
+        extern (C++) __gshared Type twstring;    // immutable(wchar)[]
+        extern (C++) __gshared Type tdstring;    // immutable(dchar)[]
+        extern (C++) __gshared Type tvalist;     // va_list alias
+        extern (C++) __gshared Type terror;      // for error recovery
+        extern (C++) __gshared Type tnull;       // for null type
 
-        extern (C++) static __gshared Type tsize_t;     // matches size_t alias
-        extern (C++) static __gshared Type tptrdiff_t;  // matches ptrdiff_t alias
-        extern (C++) static __gshared Type thash_t;     // matches hash_t alias
+        extern (C++) __gshared Type tsize_t;     // matches size_t alias
+        extern (C++) __gshared Type tptrdiff_t;  // matches ptrdiff_t alias
+        extern (C++) __gshared Type thash_t;     // matches hash_t alias
 
 
 
-        extern (C++) static __gshared ClassDeclaration dtypeinfo;
-        extern (C++) static __gshared ClassDeclaration typeinfoclass;
-        extern (C++) static __gshared ClassDeclaration typeinfointerface;
-        extern (C++) static __gshared ClassDeclaration typeinfostruct;
-        extern (C++) static __gshared ClassDeclaration typeinfopointer;
-        extern (C++) static __gshared ClassDeclaration typeinfoarray;
-        extern (C++) static __gshared ClassDeclaration typeinfostaticarray;
-        extern (C++) static __gshared ClassDeclaration typeinfoassociativearray;
-        extern (C++) static __gshared ClassDeclaration typeinfovector;
-        extern (C++) static __gshared ClassDeclaration typeinfoenum;
-        extern (C++) static __gshared ClassDeclaration typeinfofunction;
-        extern (C++) static __gshared ClassDeclaration typeinfodelegate;
-        extern (C++) static __gshared ClassDeclaration typeinfotypelist;
-        extern (C++) static __gshared ClassDeclaration typeinfoconst;
-        extern (C++) static __gshared ClassDeclaration typeinfoinvariant;
-        extern (C++) static __gshared ClassDeclaration typeinfoshared;
-        extern (C++) static __gshared ClassDeclaration typeinfowild;
-        extern (C++) static __gshared StringTable stringtable;
-        extern (C++) static __gshared ubyte[TMAX] sizeTy = ()
+        extern (C++) __gshared ClassDeclaration dtypeinfo;
+        extern (C++) __gshared ClassDeclaration typeinfoclass;
+        extern (C++) __gshared ClassDeclaration typeinfointerface;
+        extern (C++) __gshared ClassDeclaration typeinfostruct;
+        extern (C++) __gshared ClassDeclaration typeinfopointer;
+        extern (C++) __gshared ClassDeclaration typeinfoarray;
+        extern (C++) __gshared ClassDeclaration typeinfostaticarray;
+        extern (C++) __gshared ClassDeclaration typeinfoassociativearray;
+        extern (C++) __gshared ClassDeclaration typeinfovector;
+        extern (C++) __gshared ClassDeclaration typeinfoenum;
+        extern (C++) __gshared ClassDeclaration typeinfofunction;
+        extern (C++) __gshared ClassDeclaration typeinfodelegate;
+        extern (C++) __gshared ClassDeclaration typeinfotypelist;
+        extern (C++) __gshared ClassDeclaration typeinfoconst;
+        extern (C++) __gshared ClassDeclaration typeinfoinvariant;
+        extern (C++) __gshared ClassDeclaration typeinfoshared;
+        extern (C++) __gshared ClassDeclaration typeinfowild;
+        extern (C++) __gshared StringTable stringtable;
+        extern (C++) __gshared ubyte[TMAX] sizeTy = ()
             {
                 ubyte[TMAX] sizeTy = __traits(classInstanceSize, TypeBasic);
                 sizeTy[Tsarray] = __traits(classInstanceSize, TypeSArray);
@@ -2666,7 +2718,7 @@ struct ASTBase
             stringtable._init(14000);
 
             // Set basic types
-            static __gshared TY* basetab =
+            __gshared TY* basetab =
             [
                 Tvoid,
                 Tint8,
@@ -3818,9 +3870,8 @@ struct ASTBase
 
     extern (C++) class TypeFunction : TypeNext
     {
-        Parameters* parameters;     // function parameters
-        int varargs;                // 1: T t, ...) style for variable number of arguments
-                                    // 2: T t ...) style for variable number of arguments
+        ParameterList parameterList;  // function parameters
+
         bool isnothrow;             // true: nothrow
         bool isnogc;                // true: is @nogc
         bool isproperty;            // can be called without parentheses
@@ -3834,12 +3885,11 @@ struct ASTBase
         ubyte iswild;
         Expressions* fargs;
 
-        extern (D) this(Parameters* parameters, Type treturn, int varargs, LINK linkage, StorageClass stc = 0)
+        extern (D) this(ParameterList pl, Type treturn, LINK linkage, StorageClass stc = 0)
         {
             super(Tfunction, treturn);
-            assert(0 <= varargs && varargs <= 2);
-            this.parameters = parameters;
-            this.varargs = varargs;
+            assert(VarArg.none <= pl.varargs && pl.varargs <= VarArg.typesafe);
+            this.parameterList = pl;
             this.linkage = linkage;
 
             if (stc & STC.pure_)
@@ -3870,8 +3920,8 @@ struct ASTBase
         override Type syntaxCopy()
         {
             Type treturn = next ? next.syntaxCopy() : null;
-            Parameters* params = Parameter.arraySyntaxCopy(parameters);
-            auto t = new TypeFunction(params, treturn, varargs, linkage);
+            Parameters* params = Parameter.arraySyntaxCopy(parameterList.parameters);
+            auto t = new TypeFunction(ParameterList(params, parameterList.varargs), treturn, linkage);
             t.mod = mod;
             t.isnothrow = isnothrow;
             t.isnogc = isnogc;
@@ -4100,6 +4150,33 @@ struct ASTBase
         }
     }
 
+    extern (C++) class TypeTraits : Type
+    {
+        TraitsExp exp;
+        Loc loc;
+        bool inAliasDeclaration;
+
+        extern (D) this(const ref Loc loc, TraitsExp exp)
+        {
+            super(Tident);
+            this.loc = loc;
+            this.exp = exp;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+
+        override Type syntaxCopy()
+        {
+            TraitsExp te = cast(TraitsExp) exp.syntaxCopy();
+            TypeTraits tt = new TypeTraits(loc, te);
+            tt.mod = mod;
+            return tt;
+        }
+    }
+
     extern (C++) final class TypeIdentifier : TypeQualified
     {
         Identifier ident;
@@ -4206,10 +4283,10 @@ struct ASTBase
     extern (C++) abstract class Expression : RootObject
     {
         TOK op;
-        Loc loc;
-        Type type;
-        ubyte parens;
         ubyte size;
+        ubyte parens;
+        Type type;
+        Loc loc;
 
         final extern (D) this(const ref Loc loc, TOK op, int size)
         {
@@ -4387,10 +4464,10 @@ struct ASTBase
     {
         Type targ;
         Identifier id;      // can be null
-        TOK tok;            // ':' or '=='
         Type tspec;         // can be null
-        TOK tok2;           // 'struct', 'union', etc.
         TemplateParameters* parameters;
+        TOK tok;            // ':' or '=='
+        TOK tok2;           // 'struct', 'union', etc.
 
         extern (D) this(const ref Loc loc, Type targ, Identifier id, TOK tok, Type tspec, TOK tok2, TemplateParameters* parameters)
         {
@@ -4511,13 +4588,51 @@ struct ASTBase
             this.sz = 1;                    // work around LDC bug #1286
         }
 
+        /**********************************************
+        * Write the contents of the string to dest.
+        * Use numberOfCodeUnits() to determine size of result.
+        * Params:
+        *  dest = destination
+        *  tyto = encoding type of the result
+        *  zero = add terminating 0
+        */
+        void writeTo(void* dest, bool zero, int tyto = 0) const
+        {
+            int encSize;
+            switch (tyto)
+            {
+                case 0:      encSize = sz; break;
+                case Tchar:  encSize = 1; break;
+                case Twchar: encSize = 2; break;
+                case Tdchar: encSize = 4; break;
+                default:
+                    assert(0);
+            }
+            if (sz == encSize)
+            {
+                memcpy(dest, string, len * sz);
+                if (zero)
+                    memset(dest + len * sz, 0, sz);
+            }
+            else
+                assert(0);
+        }
+
+        extern (D) const(char)[] toStringz() const
+        {
+            auto nbytes = len * sz;
+            char* s = cast(char*)mem.xmalloc(nbytes + sz);
+            writeTo(s, true);
+            return s[0 .. nbytes];
+        }
+
         override void accept(Visitor v)
         {
             v.visit(this);
         }
     }
 
-    extern (C++) final class NewExp : Expression
+    extern (C++) class NewExp : Expression
     {
         Expression thisexp;         // if !=null, 'this' for class being allocated
         Expressions* newargs;       // Array of Expression's to call new operator
@@ -5152,11 +5267,14 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class CompileExp : UnaExp
+    extern (C++) final class CompileExp : Expression
     {
-        extern (D) this(const ref Loc loc, Expression e)
+        Expressions* exps;
+
+        extern (D) this(const ref Loc loc, Expressions* exps)
         {
-            super(loc, TOK.mixin_, __traits(classInstanceSize, CompileExp), e);
+            super(loc, TOK.mixin_, __traits(classInstanceSize, CompileExp));
+            this.exps = exps;
         }
 
         override void accept(Visitor v)
@@ -5968,13 +6086,24 @@ struct ASTBase
         }
     }
 
+    enum InitKind : ubyte
+    {
+        void_,
+        error,
+        struct_,
+        array,
+        exp,
+    }
+
     extern (C++) class Initializer : RootObject
     {
         Loc loc;
+        InitKind kind;
 
-        final extern (D) this(const ref Loc loc)
+        final extern (D) this(const ref Loc loc, InitKind kind)
         {
             this.loc = loc;
+            this.kind = kind;
         }
 
         // this should be abstract and implemented in child classes
@@ -5983,9 +6112,9 @@ struct ASTBase
             return null;
         }
 
-        ExpInitializer isExpInitializer()
+        final ExpInitializer isExpInitializer()
         {
-            return null;
+            return kind == InitKind.exp ? cast(ExpInitializer)cast(void*)this : null;
         }
 
         void accept(Visitor v)
@@ -6000,13 +6129,8 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Expression exp)
         {
-            super(loc);
+            super(loc, InitKind.exp);
             this.exp = exp;
-        }
-
-        override ExpInitializer isExpInitializer()
-        {
-            return this;
         }
 
         override void accept(Visitor v)
@@ -6022,7 +6146,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc)
         {
-            super(loc);
+            super(loc, InitKind.struct_);
         }
 
         void addInit(Identifier field, Initializer value)
@@ -6046,7 +6170,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc)
         {
-            super(loc);
+            super(loc, InitKind.array);
         }
 
         void addInit(Expression index, Initializer value)
@@ -6067,7 +6191,7 @@ struct ASTBase
     {
         extern (D) this(const ref Loc loc)
         {
-            super(loc);
+            super(loc, InitKind.void_);
         }
 
         override void accept(Visitor v)
@@ -6174,6 +6298,12 @@ struct ASTBase
         return cast(Expression)o;
     }
 
+    static extern (C++) TemplateParameter isTemplateParameter(RootObject o)
+    {
+        if (!o || o.dyncast() != DYNCAST.templateparameter)
+            return null;
+        return cast(TemplateParameter)o;
+    }
 
 
     extern (C++) static const(char)* protectionToChars(Prot.Kind kind)
@@ -6216,11 +6346,6 @@ struct ASTBase
         return result;
     }
 
-    static extern (C++) Expression initializerToExpression(Initializer i)
-    {
-        return i.toExpression;
-    }
-
     static extern (C++) Expression typeToExpression(Type t)
     {
         return t.toExpression;
@@ -6235,7 +6360,7 @@ struct ASTBase
             const(char)* id;
         }
 
-        static __gshared SCstring* table =
+        __gshared SCstring* table =
         [
             SCstring(STC.auto_, TOK.auto_),
             SCstring(STC.scope_, TOK.scope_),
@@ -6313,7 +6438,7 @@ struct ASTBase
 
     struct Target
     {
-        extern (C++) static __gshared int ptrsize;
+        extern (C++) __gshared int ptrsize;
 
         extern (C++) static Type va_listType()
         {

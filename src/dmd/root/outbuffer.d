@@ -2,7 +2,7 @@
  * Compiler implementation of the D programming language
  * http://dlang.org
  *
- * Copyright: Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/outbuffer.d, root/_outbuffer.d)
@@ -83,11 +83,6 @@ struct OutBuffer
         reserve(nbytes);
         memcpy(this.data + offset, data, nbytes);
         offset += nbytes;
-    }
-
-    extern (C++) void writebstring(char* string) nothrow
-    {
-        write(string, *string + 1);
     }
 
     extern (C++) void writestring(const(char)* string) nothrow
@@ -288,7 +283,7 @@ struct OutBuffer
         offset += nbytes;
     }
 
-    extern (C++) void vprintf(const(char)* format, va_list args) /*nothrow*/
+    extern (C++) void vprintf(const(char)* format, va_list args) nothrow
     {
         int count;
         if (doindent)
@@ -334,7 +329,7 @@ struct OutBuffer
         offset += count;
     }
 
-    extern (C++) void printf(const(char)* format, ...) /*nothrow*/
+    extern (C++) void printf(const(char)* format, ...) nothrow
     {
         va_list ap;
         va_start(ap, format);
@@ -410,6 +405,16 @@ struct OutBuffer
         return (cast(const char*)data)[0 .. offset];
     }
 
+    /***********************************
+     * Extract the data as a slice and take ownership of it.
+     */
+    extern (D) char[] extractSlice() nothrow
+    {
+        auto length = offset;
+        auto p = extractData();
+        return p[0 .. length];
+    }
+
     // Append terminating null if necessary and get view of internal buffer
     extern (C++) char* peekString() nothrow
     {
@@ -459,4 +464,3 @@ char[] unsignedToTempString(ulong value, char[] buf, uint radix = 10) @safe
     } while (value);
     return buf[i .. $];
 }
-

@@ -9,7 +9,7 @@ struct TT(T)
 {
     void insertabcdefg(T) // @nogc  <-- deduction problem
     {
-        pragma(msg, insertabcdefg.mangleof);
+        static assert(insertabcdefg.mangleof == "_D5three__T2TTTiZQg13insertabcdefgMFiZv");
         aaa();
     }
 }

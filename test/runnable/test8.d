@@ -668,7 +668,7 @@ void test37()
 void test38()
 {
     int n = atoi("1");
-    static char flags[8192 + 1];
+    static char[8192 + 1] flags;
     long i, k;
     int count = 0;
 

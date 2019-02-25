@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/tokens.d, _tokens.d)
@@ -22,7 +22,7 @@ import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.utf;
 
-enum TOK : int
+enum TOK : ubyte
 {
     reserved,
 
@@ -283,8 +283,10 @@ enum TOK : int
     interval = 231,
     voidExpression,
     cantExpression,
+    showCtfeContext,
 
     objcClassReference,
+    vectorArray,
 
     max_,
 }
@@ -693,8 +695,10 @@ extern (C++) struct Token
         TOK.interval: "interval",
         TOK.voidExpression: "voidexp",
         TOK.cantExpression: "cantexp",
+        TOK.showCtfeContext : "showCtfeContext",
 
         TOK.objcClassReference: "class",
+        TOK.vectorArray: "vectorarray",
     ];
 
     static assert(() {
@@ -713,26 +717,6 @@ extern (C++) struct Token
         }
     }
 
-    __gshared Token* freelist = null;
-
-    static Token* alloc()
-    {
-        if (Token.freelist)
-        {
-            Token* t = freelist;
-            freelist = t.next;
-            t.next = null;
-            return t;
-        }
-        return new Token();
-    }
-
-    void free()
-    {
-        next = freelist;
-        freelist = &this;
-    }
-
     int isKeyword() const
     {
         foreach (kw; keywords)
@@ -743,21 +727,13 @@ extern (C++) struct Token
         return 0;
     }
 
-    debug
-    {
-        void print()
-        {
-            fprintf(stderr, "%s\n", toChars());
-        }
-    }
-
     /****
      * Set to contents of ptr[0..length]
      * Params:
      *  ptr = pointer to string
      *  length = length of string
      */
-    final void setString(const(char)* ptr, size_t length)
+    void setString(const(char)* ptr, size_t length)
     {
         auto s = cast(char*)mem.xmalloc(length + 1);
         memcpy(s, ptr, length);
@@ -772,7 +748,7 @@ extern (C++) struct Token
      * Params:
      *  buf = string (not zero terminated)
      */
-    final void setString(const ref OutBuffer buf)
+    void setString(const ref OutBuffer buf)
     {
         setString(cast(const(char)*)buf.data, buf.offset);
     }
@@ -780,7 +756,7 @@ extern (C++) struct Token
     /****
      * Set to empty string
      */
-    final void setString()
+    void setString()
     {
         ustring = "";
         len = 0;
@@ -924,7 +900,7 @@ extern (C++) struct Token
         return p;
     }
 
-    static const(char)* toChars(TOK value)
+    extern (D) static const(char)* toChars(TOK value)
     {
         return toString(value).ptr;
     }

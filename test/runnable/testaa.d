@@ -10,7 +10,7 @@ import std.random;   // for uniform random numbers
 
 /************************************************/
 
-int nametable[char[]];
+int[char[]] nametable;
 
 void insert(string name, int value)
 {
@@ -315,7 +315,7 @@ void test13()
     string[] key = array.keys;
     assert(key.length==3);
 
-    bool have[3];
+    bool[3] have;
 
     assert(!have[0]);
     assert(!have[1]);
@@ -493,7 +493,7 @@ void dummy17()
 {
 }
 
-int bb17[string];
+int[string] bb17;
 
 int foo17()
 {
@@ -782,7 +782,7 @@ void test4826c()
 }
 
 /************************************************/
-// 5131
+// https://issues.dlang.org/show_bug.cgi?id=5131
 
 struct ICE5131
 {
@@ -798,7 +798,7 @@ void test5131()
 }
 
 /************************************************/
-// 6178
+// https://issues.dlang.org/show_bug.cgi?id=6178
 
 bool test6178a()
 {
@@ -1035,7 +1035,7 @@ void test6178x()
 }
 
 /************************************************/
-// 10595
+// https://issues.dlang.org/show_bug.cgi?id=10595
 
 struct S10595
 {
@@ -1079,7 +1079,7 @@ void test10595()
 }
 
 /************************************************/
-// 10970
+// https://issues.dlang.org/show_bug.cgi?id=10970
 
 struct RefCounted10970(T) //if (!is(T == class))
 {
@@ -1118,7 +1118,7 @@ void test10970()
 }
 
 /************************************************/
-// 6433
+// https://issues.dlang.org/show_bug.cgi?id=6433
 
 void test6433()
 {
@@ -1137,7 +1137,7 @@ void test6433()
 }
 
 /************************************************/
-// 6612
+// https://issues.dlang.org/show_bug.cgi?id=6612
 
 void test6612()
 {
@@ -1149,7 +1149,7 @@ void test6612()
 }
 
 /************************************************/
-// 7365
+// https://issues.dlang.org/show_bug.cgi?id=7365
 
 struct TickDuration
 {
@@ -1196,7 +1196,7 @@ void test6799()
 }
 
 /************************************************/
-// 11359
+// https://issues.dlang.org/show_bug.cgi?id=11359
 
 void test11359()
 {
@@ -1212,7 +1212,7 @@ void test11359()
 }
 
 /************************************************/
-// 11730
+// https://issues.dlang.org/show_bug.cgi?id=11730
 
 struct SysTime11730
 {
@@ -1245,7 +1245,7 @@ void test11730()
 }
 
 /************************************************/
-// 14089
+// https://issues.dlang.org/show_bug.cgi?id=14089
 
 struct S14089
 {
@@ -1262,7 +1262,7 @@ void test14089()
 }
 
 /************************************************/
-// 14144
+// https://issues.dlang.org/show_bug.cgi?id=14144
 
 struct JSON14144
 {
@@ -1290,7 +1290,7 @@ void test14144()
 }
 
 /************************************************/
-// 14321
+// https://issues.dlang.org/show_bug.cgi?id=14321
 
 void test14321()
 {
@@ -1326,6 +1326,20 @@ void test14321()
     assert(Bar.op == "");
     bars["test"] = Bar(42);     // assignment
     assert(Bar.op == "d");
+}
+
+/************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=19112
+
+void test19112()
+{
+    int[int[1]] aa;
+    aa[[2]] = 1;
+    assert([2] in aa);
+
+    int[int[]] aa2 = [[1, 2, 3]: 4];
+    int[3] k = [1, 2, 3];
+    assert(*(k in aa2) == 4);
 }
 
 /************************************************/
@@ -1379,6 +1393,7 @@ int main()
     test11730();
     test14089();
     test14321();
+    test19112();
 
     printf("Success\n");
     return 0;

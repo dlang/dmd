@@ -113,9 +113,14 @@ coverage()
     if [ -f ~/dlang/install.sh ] ; then
         source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
     fi
+    RDMD="$(type -p rdmd)"
 
     # build dmd, druntime, and phobos
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD BUILD=$BUILD ENABLE_WARNINGS=1 PIC="$PIC" all
+    if [ "$MODEL" == "64" ] ; then
+        "$RDMD" ./src/build.d MODEL=$MODEL HOST_DMD=$DMD BUILD=$BUILD ENABLE_WARNINGS=1 PIC="$PIC" all
+    else
+        make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD BUILD=$BUILD ENABLE_WARNINGS=1 PIC="$PIC" all
+    fi
     make -j$N -C ../druntime -f posix.mak MODEL=$MODEL PIC="$PIC"
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL PIC="$PIC"
 
@@ -158,7 +163,7 @@ check_clean_git()
     # Remove temporary directory + install script
     rm -rf _generated
     rm -f install.sh
-    # auto-removal of this file doesn't work on CirleCi
+    # auto-removal of these files doesn't work on CirleCi
     rm -f test/compilable/vcg-ast.d.cg
     # Ensure that there are no untracked changes
     make -f posix.mak check-clean-git
@@ -168,7 +173,7 @@ check_clean_git()
 check_run_individual()
 {
     local build_path=generated/linux/release/$MODEL
-	"${build_path}/dmd"  -i -run ./test/run.d test/runnable/template2962.d ./test/compilable/test14275.d
+    "${build_path}/dmd" -I./test -i -run ./test/run.d test/runnable/template2962.d ./test/compilable/test14275.d
 }
 
 # Checks the D build.d script

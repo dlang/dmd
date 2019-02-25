@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/optimize.d, _optimize.d)
@@ -38,7 +38,7 @@ import dmd.visitor;
  *      null if not,
  *      ErrorExp if error
  */
-extern (C++) Expression expandVar(int result, VarDeclaration v)
+Expression expandVar(int result, VarDeclaration v)
 {
     //printf("expandVar(result = %d, v = %p, %s)\n", result, v, v ? v.toChars() : "null");
 
@@ -262,7 +262,7 @@ package void setLengthVarIfKnown(VarDeclaration lengthVar, Type type)
  * Returns:
  *      Constant folded version of `e`
  */
-extern (C++) Expression Expression_optimize(Expression e, int result, bool keepLvalue)
+Expression Expression_optimize(Expression e, int result, bool keepLvalue)
 {
     extern (C++) final class OptimizeVisitor : Visitor
     {
@@ -608,7 +608,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 TypeFunction tf = cast(TypeFunction)t1;
                 for (size_t i = 0; i < e.arguments.dim; i++)
                 {
-                    Parameter p = Parameter.getNth(tf.parameters, i);
+                    Parameter p = tf.parameterList[i];
                     bool keep = p && (p.storageClass & (STC.ref_ | STC.out_)) != 0;
                     expOptimize((*e.arguments)[i], WANTvalue, keep);
                 }
@@ -812,7 +812,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        void shift_optimize(BinExp e, UnionExp function(const ref Loc, Type, Expression, Expression) shift)
+        extern (D) void shift_optimize(BinExp e, UnionExp function(const ref Loc, Type, Expression, Expression) shift)
         {
             if (binOptimize(e, result))
                 return;
@@ -927,22 +927,8 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             // If e2 *could* have been an integer, make it one.
             if (e.e2.op == TOK.float64)
             {
-                version (all)
-                {
-                    // Work around redundant REX.W prefix breaking Valgrind
-                    // when built with affected versions of DMD.
-                    // https://issues.dlang.org/show_bug.cgi?id=14952
-                    // This can be removed once compiling with DMD 2.068 or
-                    // older is no longer supported.
-                    const r = e.e2.toReal();
-                    if (r == real_t(cast(sinteger_t)r))
-                        e.e2 = new IntegerExp(e.loc, e.e2.toInteger(), Type.tint64);
-                }
-                else
-                {
-                    if (e.e2.toReal() == cast(sinteger_t)e.e2.toReal())
-                        e.e2 = new IntegerExp(e.loc, e.e2.toInteger(), Type.tint64);
-                }
+                if (e.e2.toReal() == real_t(cast(sinteger_t)e.e2.toReal()))
+                    e.e2 = new IntegerExp(e.loc, e.e2.toInteger(), Type.tint64);
             }
             if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
             {

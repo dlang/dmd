@@ -7,7 +7,7 @@
  * However, this file will be used to generate the
  * $(LINK2 https://dlang.org/dmd-linux.html, online documentation) and MAN pages.
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cli.d, _cli.d)
@@ -70,6 +70,29 @@ Returns: true iff `os` contains the current targetOS.
 bool isCurrentTargetOS(TargetOS os)
 {
     return (os & targetOS) > 0;
+}
+
+/**
+Capitalize a the first character of a ASCII string.
+Params:
+    w = ASCII i string to capitalize
+Returns: capitalized string
+*/
+static string capitalize(string w)
+{
+    char[] result = cast(char[]) w;
+    char c1 = w.length ? w[0] : '\0';
+
+    if (c1 >= 'a' && c1 <= 'z')
+    {
+        enum adjustment = 'A' - 'a';
+
+        result = new char[] (w.length);
+        result[0] = cast(char) (c1 + adjustment);
+        result[1 .. $] = w[1 .. $];
+    }
+
+    return cast(string) result;
 }
 
 /**
@@ -169,14 +192,42 @@ struct Usage
         Option("c",
             "compile only, do not link"
         ),
+        Option("check=[assert|bounds|in|invariant|out|switch|h|help|?][=[on|off]]",
+            "Enable or disable specific checks",
+            `Overrides default, -boundscheck, -release and -unittest options to enable or disable specific checks.
+                $(UL
+                    $(LI $(B assert): assertion checking)
+                    $(LI $(B bounds): array bounds)
+                    $(LI $(B in): in contracts)
+                    $(LI $(B invariant): class/struct invariants)
+                    $(LI $(B out): out contracts)
+                    $(LI $(B switch): finalswitch failure checking)
+                )
+                $(UL
+                    $(LI $(B on) or not specified: specified check is enabled.)
+                    $(LI $(B off): specified check is disabled.)
+                )`
+        ),
+        Option("checkaction=[D|C|halt|context|h|help|?]",
+            "behavior on assert/boundscheck/finalswitch failure",
+            `Sets behavior when an assert fails, and array boundscheck fails,
+             or a final switch errors.
+                $(UL
+                    $(LI $(B D): Default behavior, which throws an unrecoverable $(D AssertError).)
+                    $(LI $(B C): Calls the C runtime library assert failure function.)
+                    $(LI $(B halt): Executes a halt instruction, terminating the program.)
+                    $(LI $(B context): Prints the error context as part of the unrecoverable $(D AssertError).)
+                )`
+        ),
         Option("color",
             "turn colored console output on"
         ),
-        Option("color=[on|off]",
-            "force colored console output on or off",
+        Option("color=[on|off|auto]",
+            "force colored console output on or off, or only when not redirected (default)",
             `Show colored console output. The default depends on terminal capabilities.
             $(UL
-                $(LI $(B on): always use colored output. Same as $(B -color))
+                $(LI $(B auto): use colored output if a tty is detected (default))
+                $(LI $(B on): always use colored output.)
                 $(LI $(B off): never use colored output.)
             )`
         ),
@@ -211,15 +262,15 @@ dmd -cov -unittest myprog.d
             "write documentation file to filename"
         ),
         Option("d",
-            "silently allow deprecated features",
+            "silently allow deprecated features and symbols",
             `Silently allow $(DDLINK deprecate,deprecate,deprecated features) and use of symbols with
             $(DDSUBLINK $(ROOT_DIR)spec/attribute, deprecated, deprecated attributes).`,
         ),
         Option("dw",
-            "show use of deprecated features as warnings (default)"
+            "issue a message when deprecated features or symbols are used (default)"
         ),
         Option("de",
-            "show use of deprecated features as errors (halt compilation)"
+            "issue an error when deprecated features or symbols are used (halt compilation)"
         ),
         Option("debug",
             "compile in debug code",
@@ -255,14 +306,19 @@ dmd -cov -unittest myprog.d
             With $(I filename), write module dependencies as text to $(I filename)
             (only imports).`,
         ),
-        Option("dip25",
-            "implement http://wiki.dlang.org/DIP25"
-        ),
-        Option("dip1000",
-            "implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1000.md"
-        ),
-        Option("dip1008",
-            "implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1008.md"
+        Option("extern-std=[<standard>|h|help|?]",
+            "set C++ name mangling compatiblity with <standard>",
+            "Standards supported are:
+            $(UL
+                $(LI $(I c++98) (default): Use C++98 name mangling,
+                    Sets `__traits(getTargetInfo, \"cppStd\")` to `199711`)
+                $(LI $(I c++11): Use C++11 name mangling,
+                    Sets `__traits(getTargetInfo, \"cppStd\")` to `201103`)
+                $(LI $(I c++14): Use C++14 name mangling,
+                    Sets `__traits(getTargetInfo, \"cppStd\")` to `201402`)
+                $(LI $(I c++17): Use C++17 name mangling,
+                    Sets `__traits(getTargetInfo, \"cppStd\")` to `201703`)
+            )",
         ),
         Option("fPIC",
             "generate position independent code",
@@ -429,7 +485,7 @@ dmd -cov -unittest myprog.d
             `Set the target architecture for code generation,
             where:
             $(DL
-            $(DT ?)$(DD list alternatives)
+            $(DT help)$(DD list alternatives)
             $(DT baseline)$(DD the minimum architecture for the target platform (default))
             $(DT avx)$(DD
             generate $(LINK2 https://en.wikipedia.org/wiki/Advanced_Vector_Extensions, AVX)
@@ -440,8 +496,11 @@ dmd -cov -unittest myprog.d
             $(DT native)$(DD use the architecture the compiler is running on)
             )`,
         ),
-        Option("mcpu=?",
+        Option("mcpu=[h|help|?]",
             "list all architecture options"
+        ),
+        Option("mixin=<filename>",
+            "expand and save mixins to file specified by <filename>"
         ),
         Option("mscrtlib=<name>",
             "MS C runtime library to reference from main/WinMain/DllMain",
@@ -497,6 +556,13 @@ dmd -cov -unittest myprog.d
             off when generating an object, interface, or Ddoc file
             name. $(SWLINK -op) will leave it on.`,
         ),
+        Option("preview=<id>",
+            "enable an upcoming language change identified by 'id'",
+            `Preview an upcoming language change identified by $(I id)`,
+        ),
+        Option("preview=?",
+            "list all upcoming language changes"
+        ),
         Option("profile",
             "profile runtime performance of generated code"
         ),
@@ -516,6 +582,13 @@ dmd -cov -unittest myprog.d
             done for system and trusted functions, and assertion failures
             are undefined behaviour.`
         ),
+        Option("revert=<id>",
+            "revert language change identified by 'id'",
+            `Revert language change identified by $(I id)`,
+        ),
+        Option("revert=?",
+            "list all revertable language changes"
+        ),
         Option("run <srcfile>",
             "compile, link, and run the program srcfile",
             `Compile, link, and run the program $(I srcfile) with the
@@ -532,7 +605,7 @@ dmd -cov -unittest myprog.d
             "help with language change identified by 'id'",
             `Show additional info about language change identified by $(I id)`,
         ),
-        Option("transition=?",
+        Option("transition=[h|help|?]",
             "list all language changes"
         ),
         Option("unittest",
@@ -552,6 +625,9 @@ dmd -cov -unittest myprog.d
         ),
         Option("verrors=spec",
             "show errors from speculative compiles such as __traits(compiles,...)"
+        ),
+        Option("verrors=context",
+            "show error messages with the context of the erroring source line"
         ),
         Option("-version",
             "print compiler version and exit"
@@ -587,29 +663,51 @@ dmd -cov -unittest myprog.d
         ),
     ];
 
-    /// Representation of a CLI transition
-    struct Transition
+    /// Representation of a CLI feature
+    struct Feature
     {
-        string bugzillaNumber; /// bugzilla issue number (if existent)
-        string name; /// name of the transition
+        string name; /// name of the feature
         string paramName; // internal transition parameter name
-        string helpText; // detailed description of the transition
+        string helpText; // detailed description of the feature
+        bool documented = true; // whether this option should be shown in the documentation
     }
 
     /// Returns all available transitions
     static immutable transitions = [
-        Transition("3449", "field", "vfield",
+        Feature("field", "vfield",
             "list all non-mutable fields which occupy an object instance"),
-        Transition("10378", "import", "bug10378",
-            "revert to single phase name lookup"),
-        Transition(null, "checkimports", "check10378",
+        Feature("checkimports", "check10378",
             "give deprecation messages about 10378 anomalies"),
-        Transition("14488", "complex", "vcomplex",
+        Feature("complex", "vcomplex",
             "give deprecation messages about all usages of complex or imaginary types"),
-        Transition("16997", "intpromote", "fix16997",
-            "fix integral promotions for unary + - ~ operators"),
-        Transition(null, "tls", "vtls",
+        Feature("tls", "vtls",
             "list all variables going into thread local storage"),
+        Feature("vmarkdown", "vmarkdown",
+            "list instances of Markdown replacements in Ddoc"),
+    ];
+
+    /// Returns all available reverts
+    static immutable reverts = [
+        Feature("dip25", "noDIP25", "revert DIP25 changes https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md"),
+        Feature("import", "bug10378", "revert to single phase name lookup"),
+    ];
+
+    /// Returns all available previews
+    static immutable previews = [
+        Feature("dip25", "useDIP25",
+            "implement https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md (Sealed references)"),
+        Feature("dip1000", "vsafe",
+            "implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1000.md (Scoped Pointers)"),
+        Feature("dip1008", "ehnogc",
+            "implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1008.md (@nogc Throwable)"),
+        Feature("fieldwise", "fieldwise", "use fieldwise comparisons for struct equality"),
+        Feature("markdown", "markdown", "enable Markdown replacements in Ddoc"),
+        Feature("fixAliasThis", "fixAliasThis",
+            "when a symbol is resolved, check alias this scope before going to upper scopes"),
+        Feature("intpromote", "fix16997",
+            "fix integral promotions for unary + - ~ operators"),
+        Feature("dtorfields", "dtorFields",
+            "destruct fields of partially constructed objects"),
     ];
 }
 
@@ -626,22 +724,22 @@ struct CLIUsage
     {
         enum maxFlagLength = 18;
         enum s = () {
-            string buf;
+            char[] buf;
             foreach (option; Usage.options)
             {
                 if (option.os.isCurrentTargetOS)
                 {
-                    buf ~= "  -";
-                    buf ~= option.flag;
-                    // emulate current behavior of DMD
-                    if (option.flag == "defaultlib=<name>")
+                    buf ~= "  -" ~ option.flag;
+                    // create new lines if the flag name is too long
+                    if (option.flag.length >= 17)
                     {
                             buf ~= "\n                    ";
                     }
                     else if (option.flag.length <= maxFlagLength)
                     {
-                        foreach (i; 0 .. maxFlagLength - option.flag.length - 1)
-                            buf ~= " ";
+                        const spaces = maxFlagLength - option.flag.length - 1;
+                        buf.length += spaces;
+                        buf[$ - spaces .. $] = ' ';
                     }
                     else
                     {
@@ -651,50 +749,80 @@ struct CLIUsage
                     buf ~= "\n";
                 }
             }
-            return buf;
+            return cast(string) buf;
         }();
         return s;
     }
 
     /// CPU architectures supported -mcpu=id
-    static string mcpu()
-    {
-        return "
-CPU architectures supported by -mcpu=id:
-  =?             list information on all architecture choices
+    enum mcpuUsage = "CPU architectures supported by -mcpu=id:
+  =[h|help|?]    list information on all available choices
   =baseline      use default architecture as determined by target
   =avx           use AVX 1 instructions
   =avx2          use AVX 2 instructions
   =native        use CPU architecture that this compiler is running on
 ";
+
+    static string generateFeatureUsage(const Usage.Feature[] features, string flagName, string description)
+    {
+        enum maxFlagLength = 20;
+        auto buf = description.capitalize ~ " listed by -"~flagName~"=name:
+";
+        auto allTransitions = [Usage.Feature("all", null,
+            "list information on all " ~ description)] ~ features;
+        foreach (t; allTransitions)
+        {
+            if (!t.documented)
+                continue;
+            buf ~= "  =";
+            buf ~= t.name;
+            auto lineLength = 3 + t.name.length;
+            foreach (i; lineLength .. maxFlagLength)
+                buf ~= " ";
+            buf ~= t.helpText;
+            buf ~= "\n";
+        }
+        return buf;
     }
 
     /// Language changes listed by -transition=id
-    static string transitionUsage()
-    {
-        enum maxFlagLength = 20;
-        enum s = () {
-            auto buf = "Language changes listed by -transition=id:
+    enum transitionUsage = generateFeatureUsage(Usage.transitions, "transition", "language transitions");
+
+    /// Language changes listed by -revert
+    enum revertUsage = generateFeatureUsage(Usage.reverts, "revert", "revertable language changes");
+
+    /// Language previews listed by -preview
+    enum previewUsage = generateFeatureUsage(Usage.previews, "preview", "upcoming language changes");
+
+    /// Options supported by -checkaction=
+    enum checkActionUsage = "Behavior on assert/boundscheck/finalswitch failure:
+  =[h|help|?]    List information on all available choices
+  =D             Usual D behavior of throwing an AssertError
+  =C             Call the C runtime library assert failure function
+  =halt          Halt the program execution (very lightweight)
+  =context       Use D assert with context information (when available)
 ";
-            auto allTransitions = [Usage.Transition(null, "all", null,
-                "list information on all language changes")] ~ Usage.transitions;
-            foreach (t; allTransitions)
-            {
-                buf ~= "  =";
-                buf ~= t.name;
-                auto lineLength = 3 + t.name.length;
-                if (t.bugzillaNumber !is null)
-                {
-                    buf ~= "," ~ t.bugzillaNumber;
-                    lineLength += t.bugzillaNumber.length + 1;
-                }
-                foreach (i; 0 .. maxFlagLength - lineLength)
-                    buf ~= " ";
-                buf ~= t.helpText;
-                buf ~= "\n";
-            }
-            return buf;
-        }();
-        return s;
-    }
+
+    /// Options supported by -check
+    enum checkUsage = "Enable or disable specific checks:
+  =[h|help|?]           List information on all available choices
+  =assert[=[on|off]]    Assertion checking
+  =bounds[=[on|off]]    Array bounds checking
+  =in[=[on|off]]        Generate In contracts
+  =invariant[=[on|off]] Class/struct invariants
+  =out[=[on|off]]       Out contracts
+  =switch[=[on|off]]    Final switch failure checking
+  =on                   Enable all assertion checking
+                        (default for non-release builds)
+  =off                  Disable all assertion checking
+";
+
+    /// Options supported by -extern-std
+    enum externStdUsage = "Available C++ standards:
+  =[h|help|?]           List information on all available choices
+  =c++98                Sets `__traits(getTargetInfo, \"cppStd\")` to `199711`
+  =c++11                Sets `__traits(getTargetInfo, \"cppStd\")` to `201103`
+  =c++14                Sets `__traits(getTargetInfo, \"cppStd\")` to `201402`
+  =c++17                Sets `__traits(getTargetInfo, \"cppStd\")` to `201703`
+";
 }

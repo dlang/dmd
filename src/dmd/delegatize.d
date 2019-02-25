@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/delegatize.d, _delegatize.d)
@@ -44,7 +44,7 @@ extern (C++) Expression toDelegate(Expression e, Type t, Scope* sc)
 {
     //printf("Expression::toDelegate(t = %s) %s\n", t.toChars(), e.toChars());
     Loc loc = e.loc;
-    auto tf = new TypeFunction(null, t, 0, LINK.d);
+    auto tf = new TypeFunction(ParameterList(), t, LINK.d);
     if (t.hasWild())
         tf.mod = MODFlags.wild;
     auto fld = new FuncLiteralDeclaration(loc, loc, tf, TOK.delegate_, null);
@@ -133,7 +133,7 @@ private void lambdaSetParent(Expression e, FuncDeclaration fd)
  * Returns:
  *      true if error occurs.
  */
-extern (C++) bool lambdaCheckForNestedRef(Expression e, Scope* sc)
+bool lambdaCheckForNestedRef(Expression e, Scope* sc)
 {
     extern (C++) final class LambdaCheckForNestedRef : StoppableVisitor
     {

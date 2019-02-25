@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmacro.d, _dmacro.d)
@@ -37,7 +37,7 @@ private:
     Macro* search(const(char)[] name)
     {
         Macro* table;
-        //printf("Macro::search(%.*s)\n", name.length, name.ptr);
+        //printf("Macro::search(%.*s)\n", cast(int)name.length, name.ptr);
         for (table = &this; table; table = table.next)
         {
             if (table.name == name)
@@ -52,7 +52,7 @@ private:
 public:
     static Macro* define(Macro** ptable, const(char)[] name, const(char)[] text)
     {
-        //printf("Macro::define('%.*s' = '%.*s')\n", name.length, name.ptr, text.length, text.ptr);
+        //printf("Macro::define('%.*s' = '%.*s')\n", cast(int)name.length, name.ptr, text.length, text.ptr);
         Macro* table;
         //assert(ptable);
         for (table = *ptable; table; table = table.next)
@@ -78,11 +78,11 @@ public:
         version (none)
         {
             printf("Macro::expand(buf[%d..%d], arg = '%.*s')\n", start, *pend, cast(int)arg.length, arg.ptr);
-            printf("Buf is: '%.*s'\n", *pend - start, buf.data + start);
+            printf("Buf is: '%.*s'\n", cast(int)(*pend - start), buf.data + start);
         }
         // limit recursive expansion
-        static __gshared int nest;
-        static __gshared const(int) nestLimit = 1000;
+        __gshared int nest;
+        __gshared const(int) nestLimit = 1000;
         if (nest > nestLimit)
         {
             error(Loc.initial, "DDoc macro expansion limit exceeded; more than %d expansions.", nestLimit);
@@ -155,7 +155,7 @@ public:
                     u = mend;
                 }
                 //printf("u = %d, end = %d\n", u, end);
-                //printf("#%.*s#\n", end, &buf.data[0]);
+                //printf("#%.*s#\n", cast(int)end, &buf.data[0]);
                 continue;
             }
             u++;
@@ -264,7 +264,7 @@ public:
                             u += mend - (v + 1);
                             mem.xfree(cast(char*)marg.ptr);
                             //printf("u = %d, end = %d\n", u, end);
-                            //printf("#%.*s#\n", end - u, &buf.data[u]);
+                            //printf("#%.*s#\n", cast(int)(end - u), &buf.data[u]);
                             continue;
                         }
                     }

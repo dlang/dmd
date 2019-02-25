@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/type.d, backend/_type.d)
@@ -65,7 +65,7 @@ void type_setIdent(type* t, char* ident);
 void symbol_struct_addField(Symbol* s, const(char)* name, type* t, uint offset);
 
 // Return true if type is a struct, class or union
-bool type_struct(type* t) { return tybasic(t.Tty) == TYstruct; }
+bool type_struct(const type* t) { return tybasic(t.Tty) == TYstruct; }
 
 struct TYPE
 {
@@ -78,6 +78,7 @@ struct TYPE
     mangle_t Tmangle; // name mangling
 
     uint Tcount; // # pointing to this type
+    char* Tident; // TYident: identifier; TYdarray, TYaarray: pretty name for debug info
     TYPE* Tnext; // next in list
                                 // TYenum: gives base type
     union
@@ -87,7 +88,6 @@ struct TYPE
         param_t* Tparamtypes; // TYfunc, TYtemplate: types of function parameters
         Classsym* Ttag;     // TYstruct,TYmemptr: tag symbol
                             // TYenum,TYvtshape: tag symbol
-        char* Tident;       // TYident: identifier
         type* Talternate;   // C++: typtr: type of parameter before converting
         type* Tkey;         // typtr: key type for associative arrays
     }
@@ -95,10 +95,6 @@ struct TYPE
     list_t Texcspec;        // tyfunc(): list of types of exception specification
     Symbol *Ttypedef;       // if this type came from a typedef, this is
                             // the typedef symbol
-
-
-    static uint sizeCheck();
-    unittest { assert(sizeCheck() == TYPE.sizeof); }
 }
 
 struct typetemp_t
@@ -111,20 +107,16 @@ struct typetemp_t
     Symbol *Tsym;               // primary class template symbol
 }
 
-void type_debug(type* t)
+void type_debug(const type* t)
 {
     debug assert(t.id == t.IDtype);
 }
 
-// Workaround 2.066.x bug by resolving the TYMAX value before using it as dimension.
-static if (__VERSION__ <= 2066)
-    private enum computeEnumValue = TYMAX;
-
 // Return name mangling of type
-mangle_t type_mangle(type *t) { return t.Tmangle; }
+mangle_t type_mangle(const type *t) { return t.Tmangle; }
 
 // Return true if function type has a variable number of arguments
-bool variadic(type *t) { return (t.Tflags & (TFprototype | TFfixed)) == TFprototype; }
+bool variadic(const type *t) { return (t.Tflags & (TFprototype | TFfixed)) == TFprototype; }
 
 extern __gshared type*[TYMAX] tstypes;
 extern __gshared type*[TYMAX] tsptr2types;
@@ -143,7 +135,7 @@ extern __gshared
 }
 
 /* Functions    */
-void type_print(type *t);
+void type_print(const type* t);
 void type_free(type *);
 void type_init();
 void type_term();
@@ -155,8 +147,14 @@ int type_isdependent(type *t);
 void type_hydrate(type **);
 void type_dehydrate(type **);
 
-targ_size_t type_size(type *);
+version (SCPP)
+    targ_size_t type_size(type *);
+version (HTOD)
+    targ_size_t type_size(type *);
+
+targ_size_t type_size(const type *);
 uint type_alignsize(type *);
+bool type_zeroSize(type *t, tym_t tyf);
 uint type_parameterSize(type *t, tym_t tyf);
 uint type_paramsize(type *t);
 type *type_alloc(tym_t);

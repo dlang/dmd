@@ -821,7 +821,7 @@ void test14()
 
 /**************************************/
 
-// 3983
+// https://issues.dlang.org/show_bug.cgi?id=3983
 
 struct Fug
 {
@@ -849,7 +849,7 @@ void test15()
 }
 
 /**************************************/
-// 4953
+// https://issues.dlang.org/show_bug.cgi?id=4953
 
 struct S4953a
 {
@@ -907,7 +907,7 @@ void test4953d()
 }
 
 /**************************************/
-// 4993
+// https://issues.dlang.org/show_bug.cgi?id=4993
 
 // reduced from the bug report
 struct Bar4993
@@ -924,7 +924,7 @@ void test4993()
 }
 
 /**************************************/
-// 8133
+// https://issues.dlang.org/show_bug.cgi?id=8133
 
 void test8133()
 {
@@ -942,7 +942,7 @@ void test8133()
 }
 
 /**************************************/
-// 8522
+// https://issues.dlang.org/show_bug.cgi?id=8522
 
 struct Point8522
 {
@@ -961,7 +961,7 @@ void test8522()
 }
 
 /**************************************/
-// 12778
+// https://issues.dlang.org/show_bug.cgi?id=12778
 
 struct Vec12778X
 {
@@ -1009,7 +1009,7 @@ void test12778()
 }
 
 /**************************************/
-// 14343
+// https://issues.dlang.org/show_bug.cgi?id=14343
 
 struct S14343a
 {
@@ -1049,7 +1049,7 @@ void test14343()
 }
 
 /**************************************/
-// 14344
+// https://issues.dlang.org/show_bug.cgi?id=14344
 
 struct S14344
 {

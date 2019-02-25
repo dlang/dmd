@@ -1,6 +1,6 @@
 /*
 PERMUTE_ARGS:
-REQUIRED_ARGS: -dip25
+REQUIRED_ARGS: -preview=dip25
 TEST_OUTPUT:
 ---
 fail_compilation/fail_scope.d(45): Error: returning `cast(char[])string` escapes a reference to local variable `string`

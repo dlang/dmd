@@ -5,7 +5,7 @@ environment:
   matrix:
     - ARCH:                x64
       D_COMPILER:          dmd
-      D_VERSION:           2.077.1
+      D_VERSION:           2.079.1
       C_COMPILER:          MSVC
       VISUALD_VER:         v0.45.1-rc2
       LDC_VERSION:         1.8.0
@@ -22,7 +22,7 @@ skip_commits:
 artifacts:
   - path: src/dmd.exe
     name: dmd 64-bit
-  - path: generated/Windows/Release/Win32/dmd.exe 
+  - path: generated/Windows/Release/Win32/dmd.exe
     name: dmd 32-bit built with LDC
 
 init:
@@ -43,7 +43,7 @@ build_script:
         If (-not (Test-Path $Env:LDC_DIR/bin/ldmd2.exe)) {
             echo "Unexpected LDC installation, $Env:LDC_INSTALLER/bin/ldmd2.exe missing"
         }
-        
+
   # Download & install Visual D (needs admin rights?)
   - set VISUALD_INSTALLER=VisualD-%VISUALD_VER%.exe
   - set VISUALD_URL=https://github.com/dlang/visuald/releases/download/%VISUALD_VER%/%VISUALD_INSTALLER%
@@ -53,7 +53,7 @@ build_script:
         }
   - .\%VISUALD_INSTALLER% /S
   # configure DMD path
-  - reg add "HKLM\SOFTWARE\Microsoft\VisualStudio\14.0\ToolsOptionsPages\Projects\Visual D Settings" /v DMDInstallDir /t REG_SZ /d c:\projects\dmd2 /reg:32 /f
+  - reg add "HKCU\SOFTWARE\Microsoft\VisualStudio\14.0\ToolsOptionsPages\Projects\Visual D Settings" /v DMDInstallDir /t REG_SZ /d c:\projects\dmd2 /reg:32 /f
   # configure LDC path
   - reg add "HKCU\SOFTWARE\Microsoft\VisualStudio\14.0\ToolsOptionsPages\Projects\Visual D Settings" /v LDCInstallDir /t REG_SZ /d c:\projects\%LDC_DIR%\ /reg:32 /f
   # disable link dependencies monitoring, fails on AppVeyor server

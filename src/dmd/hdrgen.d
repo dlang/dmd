@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/hdrgen.d, _hdrgen.d)
@@ -81,6 +81,19 @@ extern (C++) void genhdrfile(Module m)
     writeFile(m.loc, m.hdrfile);
 }
 
+/**
+ * Dumps the full contents of module `m` to `buf`.
+ * Params:
+ *   buf = buffer to write to.
+ *   m = module to visit all members of.
+ */
+extern (C++) void moduleToBuffer(OutBuffer* buf, Module m)
+{
+    HdrGenState hgs;
+    hgs.fullDump = true;
+    toCBuffer(m, buf, &hgs);
+}
+
 extern (C++) final class PrettyPrintVisitor : Visitor
 {
     alias visit = Visitor.visit;
@@ -111,7 +124,8 @@ public:
 
     override void visit(ExpStatement s)
     {
-        if (s.exp && s.exp.op == TOK.declaration)
+        if (s.exp && s.exp.op == TOK.declaration &&
+            (cast(DeclarationExp)s.exp).declaration)
         {
             // bypass visit(DeclarationExp)
             (cast(DeclarationExp)s.exp).declaration.accept(this);
@@ -127,7 +141,7 @@ public:
     override void visit(CompileStatement s)
     {
         buf.writestring("mixin(");
-        s.exp.accept(this);
+        argsToBuffer(s.exps, null);
         buf.writestring(");");
         if (!hgs.forStmtInit)
             buf.writenl();
@@ -619,11 +633,12 @@ public:
         }
     }
 
-    override void visit(OnScopeStatement s)
+    override void visit(ScopeGuardStatement s)
     {
         buf.writestring(Token.toString(s.tok));
         buf.writeByte(' ');
-        s.statement.accept(this);
+        if (s.statement)
+            s.statement.accept(this);
     }
 
     override void visit(ThrowStatement s)
@@ -784,6 +799,12 @@ public:
         buf.writestring(t.dstring);
     }
 
+    override void visit(TypeTraits t)
+    {
+        //printf("TypeBasic::toCBuffer2(t.mod = %d)\n", t.mod);
+        visit(t.exp);
+    }
+
     override void visit(TypeVector t)
     {
         //printf("TypeVector::toCBuffer2(t.mod = %d)\n", t.mod);
@@ -858,11 +879,11 @@ public:
         bool isPostfixStyle;
         bool isCtor;
 
-        extern (C++) static int fp(void* param, const(char)* str)
+        extern (D) static int fp(void* param, string str)
         {
             PrePostAppendStrings* p = cast(PrePostAppendStrings*)param;
             // don't write 'ref' for ctors
-            if (p.isCtor && strcmp(str, "ref") == 0)
+            if (p.isCtor && str == "ref")
                 return 0;
             if (p.isPostfixStyle)
                 p.buf.writeByte(' ');
@@ -900,7 +921,7 @@ public:
             buf.writestring("auto ");
         if (ident)
             buf.writestring(ident);
-        parametersToBuffer(t.parameters, t.varargs);
+        parametersToBuffer(t.parameterList);
         /* Use postfix style for attributes
          */
         if (t.mod)
@@ -921,9 +942,9 @@ public:
         }
         t.inuse++;
         PrePostAppendStrings pas;
-        extern(C++) int ignoreReturn(void* param, const(char)* name)
+        extern (D) static int ignoreReturn(void* param, string name)
         {
-            if (strcmp(name, "return") != 0)
+            if (name != "return")
                 PrePostAppendStrings.fp(param, name);
             return 0;
         }
@@ -968,7 +989,7 @@ public:
             }
             buf.writeByte(')');
         }
-        parametersToBuffer(t.parameters, t.varargs);
+        parametersToBuffer(t.parameterList);
         if (t.isreturn)
         {
             PrePostAppendStrings.fp(&pas, " return");
@@ -1069,7 +1090,7 @@ public:
 
     override void visit(TypeTuple t)
     {
-        parametersToBuffer(t.arguments, 0);
+        parametersToBuffer(ParameterList(t.arguments, VarArg.none));
     }
 
     override void visit(TypeSlice t)
@@ -1398,7 +1419,7 @@ public:
     override void visit(CompileDeclaration d)
     {
         buf.writestring("mixin(");
-        d.exp.accept(this);
+        argsToBuffer(d.exps, null);
         buf.writestring(");");
         buf.writenl();
     }
@@ -1828,7 +1849,7 @@ public:
                 buf.writeByte(' ');
             typeToBuffer(d.type, d.ident);
         }
-        else
+        else if (d.ident)
         {
             declstring = (d.ident == Id.string || d.ident == Id.wstring || d.ident == Id.dstring);
             buf.writestring(d.ident.toString());
@@ -2010,7 +2031,7 @@ public:
         // Don't print tf.mod, tf.trust, and tf.linkage
         if (!f.inferRetType && tf.next)
             typeToBuffer(tf.next, null);
-        parametersToBuffer(tf.parameters, tf.varargs);
+        parametersToBuffer(tf.parameterList);
         CompoundStatement cs = f.fbody.isCompoundStatement();
         Statement s1;
         if (f.semanticRun >= PASS.semantic3done && cs)
@@ -2124,7 +2145,7 @@ public:
         if (stcToBuffer(buf, d.storage_class & ~STC.static_))
             buf.writeByte(' ');
         buf.writestring("new");
-        parametersToBuffer(d.parameters, d.varargs);
+        parametersToBuffer(ParameterList(d.parameters, d.varargs));
         bodyToBuffer(d);
     }
 
@@ -2133,7 +2154,7 @@ public:
         if (stcToBuffer(buf, d.storage_class & ~STC.static_))
             buf.writeByte(' ');
         buf.writestring("delete");
-        parametersToBuffer(d.parameters, 0);
+        parametersToBuffer(ParameterList(d.parameters, VarArg.none));
         bodyToBuffer(d);
     }
 
@@ -2249,9 +2270,9 @@ public:
             if (cast(sinteger_t)uval >= 0)
             {
                 dinteger_t sizemax;
-                if (Target.ptrsize == 4)
+                if (target.ptrsize == 4)
                     sizemax = 0xFFFFFFFFU;
-                else if (Target.ptrsize == 8)
+                else if (target.ptrsize == 8)
                     sizemax = 0xFFFFFFFFFFFFFFFFUL;
                 else
                     assert(0);
@@ -2278,7 +2299,6 @@ public:
         }
         assert(precedence[e.op] != PREC.zero);
         assert(pr != PREC.zero);
-        //if (precedence[e.op] == 0) e.print();
         /* Despite precedence, we don't allow a<b<c expressions.
          * They must be parenthesized.
          */
@@ -2386,9 +2406,9 @@ public:
                 buf.writestring("cast(");
                 buf.writestring(t.toChars());
                 buf.writeByte(')');
-                if (Target.ptrsize == 4)
+                if (target.ptrsize == 4)
                     goto L3;
-                else if (Target.ptrsize == 8)
+                else if (target.ptrsize == 8)
                     goto L4;
                 else
                     assert(0);
@@ -2398,10 +2418,6 @@ public:
                  */
                 if (!global.errors)
                 {
-                    debug
-                    {
-                        t.print();
-                    }
                     assert(0);
                 }
                 break;
@@ -2416,6 +2432,11 @@ public:
     override void visit(ErrorExp e)
     {
         buf.writestring("__error");
+    }
+
+    override void visit(VoidInitExp e)
+    {
+        buf.writestring("__void");
     }
 
     void floatToBuffer(Type type, real_t value)
@@ -2711,19 +2732,21 @@ public:
          * are handled in visit(ExpStatement), so here would be used only when
          * we'll directly call Expression.toChars() for debugging.
          */
-        if (auto v = e.declaration.isVarDeclaration())
+        if (e.declaration)
         {
+            if (auto v = e.declaration.isVarDeclaration())
+            {
             // For debugging use:
             // - Avoid printing newline.
             // - Intentionally use the format (Type var;)
             //   which isn't correct as regular D code.
-            buf.writeByte('(');
-            visitVarDecl(v, false);
-            buf.writeByte(';');
-            buf.writeByte(')');
+                buf.writeByte('(');
+                visitVarDecl(v, false);
+                buf.writeByte(';');
+                buf.writeByte(')');
+            }
+            else e.declaration.accept(this);
         }
-        else
-            e.declaration.accept(this);
     }
 
     override void visit(TypeidExp e)
@@ -2736,7 +2759,8 @@ public:
     override void visit(TraitsExp e)
     {
         buf.writestring("__traits(");
-        buf.writestring(e.ident.toString());
+        if (e.ident)
+            buf.writestring(e.ident.toString());
         if (e.args)
         {
             foreach (arg; *e.args)
@@ -2795,7 +2819,7 @@ public:
     override void visit(CompileExp e)
     {
         buf.writestring("mixin(");
-        expToBuffer(e.e1, PREC.assign);
+        argsToBuffer(e.exps, null);
         buf.writeByte(')');
     }
 
@@ -2913,6 +2937,12 @@ public:
         typeToBuffer(e.to, null);
         buf.writeByte(')');
         expToBuffer(e.e1, precedence[e.op]);
+    }
+
+    override void visit(VectorArrayExp e)
+    {
+        expToBuffer(e.e1, PREC.primary);
+        buf.writestring(".array");
     }
 
     override void visit(SliceExp e)
@@ -3166,25 +3196,29 @@ public:
         }
     }
 
-    void parametersToBuffer(Parameters* parameters, int varargs)
+    void parametersToBuffer(ParameterList pl)
     {
         buf.writeByte('(');
-        if (parameters)
+        foreach (i; 0 .. pl.length)
         {
-            size_t dim = Parameter.dim(parameters);
-            foreach (i; 0 .. dim)
-            {
-                if (i)
-                    buf.writestring(", ");
-                Parameter fparam = Parameter.getNth(parameters, i);
-                fparam.accept(this);
-            }
-            if (varargs)
-            {
-                if (parameters.dim && varargs == 1)
-                    buf.writestring(", ");
+            if (i)
+                buf.writestring(", ");
+            pl[i].accept(this);
+        }
+        final switch (pl.varargs)
+        {
+            case VarArg.none:
+                break;
+
+            case VarArg.variadic:
+                if (pl.length == 0)
+                    goto case VarArg.typesafe;
+                buf.writestring(", ...");
+                break;
+
+            case VarArg.typesafe:
                 buf.writestring("...");
-            }
+                break;
         }
         buf.writeByte(')');
     }
@@ -3223,26 +3257,26 @@ public:
     }
 }
 
-extern (C++) void toCBuffer(Statement s, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(Statement s, OutBuffer* buf, HdrGenState* hgs)
 {
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
     s.accept(v);
 }
 
-extern (C++) void toCBuffer(Type t, OutBuffer* buf, Identifier ident, HdrGenState* hgs)
+void toCBuffer(Type t, OutBuffer* buf, Identifier ident, HdrGenState* hgs)
 {
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
     v.typeToBuffer(t, ident);
 }
 
-extern (C++) void toCBuffer(Dsymbol s, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(Dsymbol s, OutBuffer* buf, HdrGenState* hgs)
 {
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
     s.accept(v);
 }
 
 // used from TemplateInstance::toChars() and TemplateMixin::toChars()
-extern (C++) void toCBufferInstance(TemplateInstance ti, OutBuffer* buf, bool qualifyTypes = false)
+void toCBufferInstance(TemplateInstance ti, OutBuffer* buf, bool qualifyTypes = false)
 {
     HdrGenState hgs;
     hgs.fullQual = qualifyTypes;
@@ -3250,13 +3284,13 @@ extern (C++) void toCBufferInstance(TemplateInstance ti, OutBuffer* buf, bool qu
     v.visit(ti);
 }
 
-extern (C++) void toCBuffer(Initializer iz, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(Initializer iz, OutBuffer* buf, HdrGenState* hgs)
 {
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
     iz.accept(v);
 }
 
-extern (C++) bool stcToBuffer(OutBuffer* buf, StorageClass stc)
+bool stcToBuffer(OutBuffer* buf, StorageClass stc)
 {
     bool result = false;
     if ((stc & (STC.return_ | STC.scope_)) == (STC.return_ | STC.scope_))
@@ -3291,7 +3325,7 @@ extern (C++) const(char)* stcToChars(ref StorageClass stc)
         const(char)* id;
     }
 
-    static __gshared SCstring* table =
+    __gshared SCstring* table =
     [
         SCstring(STC.auto_, TOK.auto_),
         SCstring(STC.scope_, TOK.scope_),
@@ -3347,6 +3381,16 @@ extern (C++) const(char)* stcToChars(ref StorageClass stc)
     return null;
 }
 
+
+/**
+ * Returns:
+ *   a human readable representation of `stc`
+ */
+extern (D) const(char)[] stcToString(ref StorageClass stc)
+{
+    return stcToChars(stc).toDString;
+}
+
 extern (C++) void trustToBuffer(OutBuffer* buf, TRUST trust)
 {
     const(char)* p = trustToChars(trust);
@@ -3354,7 +3398,19 @@ extern (C++) void trustToBuffer(OutBuffer* buf, TRUST trust)
         buf.writestring(p);
 }
 
+/**
+ * Returns:
+ *   a human readable representation of `trust`,
+ *   which is the token `trust` corresponds to
+ */
 extern (C++) const(char)* trustToChars(TRUST trust)
+{
+    /// Works because we return a literal
+    return trustToString(trust).ptr;
+}
+
+/// Ditto
+extern (D) string trustToString(TRUST trust)
 {
     final switch (trust)
     {
@@ -3416,7 +3472,18 @@ extern (C++) void protectionToBuffer(OutBuffer* buf, Prot prot)
     }
 }
 
+/**
+ * Returns:
+ *   a human readable representation of `kind`
+ */
 extern (C++) const(char)* protectionToChars(Prot.Kind kind)
+{
+    // Null terminated because we return a literal
+    return protectionToString(kind).ptr;
+}
+
+/// Ditto
+extern (D) string protectionToString(Prot.Kind kind)
 {
     final switch (kind)
     {
@@ -3438,7 +3505,7 @@ extern (C++) const(char)* protectionToChars(Prot.Kind kind)
 }
 
 // Print the full function signature with correct ident, attributes and template args
-extern (C++) void functionToBufferFull(TypeFunction tf, OutBuffer* buf, Identifier ident, HdrGenState* hgs, TemplateDeclaration td)
+void functionToBufferFull(TypeFunction tf, OutBuffer* buf, Identifier ident, HdrGenState* hgs, TemplateDeclaration td)
 {
     //printf("TypeFunction::toCBuffer() this = %p\n", this);
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
@@ -3446,14 +3513,14 @@ extern (C++) void functionToBufferFull(TypeFunction tf, OutBuffer* buf, Identifi
 }
 
 // ident is inserted before the argument list and will be "function" or "delegate" for a type
-extern (C++) void functionToBufferWithIdent(TypeFunction tf, OutBuffer* buf, const(char)* ident)
+void functionToBufferWithIdent(TypeFunction tf, OutBuffer* buf, const(char)* ident)
 {
     HdrGenState hgs;
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, &hgs);
     v.visitFuncIdentWithPostfix(tf, ident);
 }
 
-extern (C++) void toCBuffer(Expression e, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(Expression e, OutBuffer* buf, HdrGenState* hgs)
 {
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
     e.accept(v);
@@ -3462,7 +3529,7 @@ extern (C++) void toCBuffer(Expression e, OutBuffer* buf, HdrGenState* hgs)
 /**************************************************
  * Write out argument types to buf.
  */
-extern (C++) void argExpTypesToCBuffer(OutBuffer* buf, Expressions* arguments)
+void argExpTypesToCBuffer(OutBuffer* buf, Expressions* arguments)
 {
     if (!arguments || !arguments.dim)
         return;
@@ -3476,13 +3543,13 @@ extern (C++) void argExpTypesToCBuffer(OutBuffer* buf, Expressions* arguments)
     }
 }
 
-extern (C++) void toCBuffer(TemplateParameter tp, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(TemplateParameter tp, OutBuffer* buf, HdrGenState* hgs)
 {
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
     tp.accept(v);
 }
 
-extern (C++) void arrayObjectsToBuffer(OutBuffer* buf, Objects* objects)
+void arrayObjectsToBuffer(OutBuffer* buf, Objects* objects)
 {
     if (!objects || !objects.dim)
         return;
@@ -3499,16 +3566,15 @@ extern (C++) void arrayObjectsToBuffer(OutBuffer* buf, Objects* objects)
 /*************************************************************
  * Pretty print function parameters.
  * Params:
- *  parameters = parameters to print, such as TypeFunction.parameters.
- *  varargs = kind of varargs, see TypeFunction.varargs.
+ *  pl = parameter list to print
  * Returns: Null-terminated string representing parameters.
  */
-extern (C++) const(char)* parametersTypeToChars(Parameters* parameters, int varargs)
+extern (C++) const(char)* parametersTypeToChars(ParameterList pl)
 {
     OutBuffer buf;
     HdrGenState hgs;
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(&buf, &hgs);
-    v.parametersToBuffer(parameters, varargs);
+    v.parametersToBuffer(pl);
     return buf.extractString();
 }
 
@@ -3520,7 +3586,7 @@ extern (C++) const(char)* parametersTypeToChars(Parameters* parameters, int vara
  *  fullQual = whether to fully qualify types.
  * Returns: Null-terminated string representing parameters.
  */
-extern (C++) const(char)* parameterToChars(Parameter parameter, TypeFunction tf, bool fullQual)
+const(char)* parameterToChars(Parameter parameter, TypeFunction tf, bool fullQual)
 {
     OutBuffer buf;
     HdrGenState hgs;
@@ -3528,7 +3594,7 @@ extern (C++) const(char)* parameterToChars(Parameter parameter, TypeFunction tf,
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(&buf, &hgs);
 
     parameter.accept(v);
-    if (tf.varargs == 2 && parameter == Parameter.getNth(tf.parameters, tf.parameters.dim - 1))
+    if (tf.parameterList.varargs == VarArg.typesafe && parameter == tf.parameterList[tf.parameterList.parameters.dim - 1])
     {
         buf.writestring("...");
     }

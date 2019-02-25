@@ -1,10 +1,8 @@
 static if (__traits(allMembers, __traits(parent,{}))[0]=="object") {
-	pragma(msg, "compiled in!");
 	enum test = 0;
 }
 
 static foreach (m; __traits(allMembers, __traits(parent,{}))) {
-	pragma(msg, m.stringof);
 	mixin("enum new"~m~"=`"~m~"`;");
 }
 

@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/opover.d, _opover.d)
@@ -39,7 +39,7 @@ import dmd.visitor;
  * Determine if operands of binary op can be reversed
  * to fit operator overload.
  */
-extern (C++) bool isCommutative(TOK op)
+bool isCommutative(TOK op)
 {
     switch (op)
     {
@@ -367,7 +367,7 @@ private Identifier opId_r(Expression e)
  * If type is a class or struct, return the symbol for it,
  * else NULL
  */
-extern (C++) AggregateDeclaration isAggregate(Type t)
+AggregateDeclaration isAggregate(Type t)
 {
     t = t.toBasetype();
     if (t.ty == Tclass)
@@ -384,7 +384,7 @@ extern (C++) AggregateDeclaration isAggregate(Type t)
 /*******************************************
  * Helper function to turn operator into template argument list
  */
-extern (C++) Objects* opToArg(Scope* sc, TOK op)
+Objects* opToArg(Scope* sc, TOK op)
 {
     /* Remove the = from op=
      */
@@ -439,13 +439,66 @@ extern (C++) Objects* opToArg(Scope* sc, TOK op)
     return tiargs;
 }
 
+// Try alias this on first operand
+private Expression checkAliasThisForLhs(AggregateDeclaration ad, Scope* sc, BinExp e)
+{
+    if (!ad || !ad.aliasthis)
+        return null;
+
+    /* Rewrite (e1 op e2) as:
+     *      (e1.aliasthis op e2)
+     */
+    if (e.att1 && e.e1.type == e.att1)
+        return null;
+    //printf("att %s e1 = %s\n", Token::toChars(e.op), e.e1.type.toChars());
+    Expression e1 = new DotIdExp(e.loc, e.e1, ad.aliasthis.ident);
+    BinExp be = cast(BinExp)e.copy();
+    if (!be.att1 && e.e1.type.checkAliasThisRec())
+        be.att1 = e.e1.type;
+    be.e1 = e1;
+
+    Expression result;
+    if (be.op == TOK.concatenateAssign)
+        result = be.op_overload(sc);
+    else
+        result = be.trySemantic(sc);
+
+    return result;
+}
+
+// Try alias this on second operand
+private Expression checkAliasThisForRhs(AggregateDeclaration ad, Scope* sc, BinExp e)
+{
+    if (!ad || !ad.aliasthis)
+        return null;
+    /* Rewrite (e1 op e2) as:
+     *      (e1 op e2.aliasthis)
+     */
+    if (e.att2 && e.e2.type == e.att2)
+        return null;
+    //printf("att %s e2 = %s\n", Token::toChars(e.op), e.e2.type.toChars());
+    Expression e2 = new DotIdExp(e.loc, e.e2, ad.aliasthis.ident);
+    BinExp be = cast(BinExp)e.copy();
+    if (!be.att2 && e.e2.type.checkAliasThisRec())
+        be.att2 = e.e2.type;
+    be.e2 = e2;
+
+    Expression result;
+    if (be.op == TOK.concatenateAssign)
+        result = be.op_overload(sc);
+    else
+        result = be.trySemantic(sc);
+
+    return result;
+}
+
 /************************************
  * Operator overload.
  * Check for operator overload, if so, replace
  * with function call.
  * Return NULL if not an operator overload.
  */
-extern (C++) Expression op_overload(Expression e, Scope* sc)
+Expression op_overload(Expression e, Scope* sc)
 {
     extern (C++) final class OpOverload : Visitor
     {
@@ -775,10 +828,10 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     /* Rewrite op(e1) as:
                      *      op(e1.aliasthis)
                      */
-                    Expression e1 = new DotIdExp(e.loc, e.e1, ad.aliasthis.ident);
+                    Expression e1 = resolveAliasThis(sc, e.e1);
                     result = e.copy();
                     (cast(UnaExp)result).e1 = e1;
-                    result = result.trySemantic(sc);
+                    result = result.op_overload(sc);
                     return;
                 }
             }
@@ -1026,45 +1079,18 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     }
                 }
             }
-            // Try alias this on first operand
-            if (ad1 && ad1.aliasthis && !(e.op == TOK.assign && ad2 && ad1 == ad2)) // https://issues.dlang.org/show_bug.cgi?id=2943
+
+            if (!(e.op == TOK.assign && ad2 && ad1 == ad2)) // https://issues.dlang.org/show_bug.cgi?id=2943
             {
-                /* Rewrite (e1 op e2) as:
-                 *      (e1.aliasthis op e2)
-                 */
-                if (e.att1 && e.e1.type == e.att1)
+                result = checkAliasThisForLhs(ad1, sc, e);
+                if (result)
                     return;
-                //printf("att bin e1 = %s\n", this.e1.type.toChars());
-                Expression e1 = new DotIdExp(e.loc, e.e1, ad1.aliasthis.ident);
-                BinExp be = cast(BinExp)e.copy();
-                if (!be.att1 && e.e1.type.checkAliasThisRec())
-                    be.att1 = e.e1.type;
-                be.e1 = e1;
-                result = be.trySemantic(sc);
+            }
+            if (!(e.op == TOK.assign && ad1 && ad1 == ad2)) // https://issues.dlang.org/show_bug.cgi?id=2943
+            {
+                result = checkAliasThisForRhs(ad2, sc, e);
                 return;
             }
-            // Try alias this on second operand
-            /* https://issues.dlang.org/show_bug.cgi?id=2943
-             * make sure that when we're copying the struct, we don't
-             * just copy the alias this member
-             */
-            if (ad2 && ad2.aliasthis && !(e.op == TOK.assign && ad1 && ad1 == ad2))
-            {
-                /* Rewrite (e1 op e2) as:
-                 *      (e1 op e2.aliasthis)
-                 */
-                if (e.att2 && e.e2.type == e.att2)
-                    return;
-                //printf("att bin e2 = %s\n", e.e2.type.toChars());
-                Expression e2 = new DotIdExp(e.loc, e.e2, ad2.aliasthis.ident);
-                BinExp be = cast(BinExp)e.copy();
-                if (!be.att2 && e.e2.type.checkAliasThisRec())
-                    be.att2 = e.e2.type;
-                be.e2 = e2;
-                result = be.trySemantic(sc);
-                return;
-            }
-            return;
         }
 
         override void visit(EqualExp e)
@@ -1097,7 +1123,9 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     if (t.ty != Tstruct)
                         return false;
 
-                    semanticTypeInfo(sc, t);
+                    if (global.params.useTypeInfo && Type.dtypeinfo)
+                        semanticTypeInfo(sc, t);
+
                     return (cast(TypeStruct)t).sym.hasIdentityEquals;
                 }
 
@@ -1213,7 +1241,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     return;
 
                 import dmd.clone : needOpEquals;
-                if (!needOpEquals(sd))
+                if (!global.params.fieldwise && !needOpEquals(sd))
                 {
                     // Use bitwise equality.
                     auto op2 = e.op == TOK.equal ? TOK.identity : TOK.notIdentity;
@@ -1223,6 +1251,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 }
 
                 /* Do memberwise equality.
+                 * https://dlang.org/spec/expression.html#equality_expressions
                  * Rewrite:
                  *      e1 == e2
                  * as:
@@ -1240,7 +1269,11 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 if (!e.att2) e.att2 = t2;
                 e.e1 = new DotIdExp(e.loc, e.e1, Id._tupleof);
                 e.e2 = new DotIdExp(e.loc, e.e2, Id._tupleof);
-                result = e.expressionSemantic(sc);
+
+                auto sc2 = sc.push();
+                sc2.flags = (sc2.flags & ~SCOPE.onlysafeaccess) | SCOPE.noaccesscheck;
+                result = e.expressionSemantic(sc2);
+                sc2.pop();
 
                 /* https://issues.dlang.org/show_bug.cgi?id=15292
                  * if the rewrite result is same with the original,
@@ -1295,7 +1328,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     }
                     assert(result);
                 }
-                result = Expression.combine(Expression.combine(tup1.e0, tup2.e0), result);
+                result = Expression.combine(tup1.e0, tup2.e0, result);
                 result = result.expressionSemantic(sc);
 
                 return;
@@ -1494,41 +1527,11 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 return;
             }
         L1:
-            // Try alias this on first operand
-            if (ad1 && ad1.aliasthis)
-            {
-                /* Rewrite (e1 op e2) as:
-                 *      (e1.aliasthis op e2)
-                 */
-                if (e.att1 && e.e1.type == e.att1)
-                    return;
-                //printf("att %s e1 = %s\n", Token::toChars(e.op), e.e1.type.toChars());
-                Expression e1 = new DotIdExp(e.loc, e.e1, ad1.aliasthis.ident);
-                BinExp be = cast(BinExp)e.copy();
-                if (!be.att1 && e.e1.type.checkAliasThisRec())
-                    be.att1 = e.e1.type;
-                be.e1 = e1;
-                result = be.trySemantic(sc);
+            result = checkAliasThisForLhs(ad1, sc, e);
+            if (result)
                 return;
-            }
-            // Try alias this on second operand
-            AggregateDeclaration ad2 = isAggregate(e.e2.type);
-            if (ad2 && ad2.aliasthis)
-            {
-                /* Rewrite (e1 op e2) as:
-                 *      (e1 op e2.aliasthis)
-                 */
-                if (e.att2 && e.e2.type == e.att2)
-                    return;
-                //printf("att %s e2 = %s\n", Token::toChars(e.op), e.e2.type.toChars());
-                Expression e2 = new DotIdExp(e.loc, e.e2, ad2.aliasthis.ident);
-                BinExp be = cast(BinExp)e.copy();
-                if (!be.att2 && e.e2.type.checkAliasThisRec())
-                    be.att2 = e.e2.type;
-                be.e2 = e2;
-                result = be.trySemantic(sc);
-                return;
-            }
+
+            result = checkAliasThisForRhs(isAggregate(e.e2.type), sc, e);
         }
     }
 
@@ -1565,12 +1568,10 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id)
          *      b.opEquals(a)
          * and see which is better.
          */
-        Expressions args1;
-        Expressions args2;
-        args1.setDim(1);
+        Expressions args1 = Expressions(1);
         args1[0] = e.e1;
         expandTuples(&args1);
-        args2.setDim(1);
+        Expressions args2 = Expressions(1);
         args2[0] = e.e2;
         expandTuples(&args2);
         Match m;
@@ -1649,51 +1650,17 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id)
         }
         return result;
     }
-    // Try alias this on first operand
-    if (ad1 && ad1.aliasthis)
-    {
-        /* Rewrite (e1 op e2) as:
-         *      (e1.aliasthis op e2)
-         */
-        if (e.att1 && e.e1.type == e.att1)
-            return null;
-        //printf("att cmp_bin e1 = %s\n", e.e1.type.toChars());
-        Expression e1 = new DotIdExp(e.loc, e.e1, ad1.aliasthis.ident);
-        BinExp be = cast(BinExp)e.copy();
-        if (!be.att1 && e.e1.type.checkAliasThisRec())
-            be.att1 = e.e1.type;
-        be.e1 = e1;
-        return be.trySemantic(sc);
-    }
-    // Try alias this on second operand
-    if (ad2 && ad2.aliasthis)
-    {
-        /* Rewrite (e1 op e2) as:
-         *      (e1 op e2.aliasthis)
-         */
-        if (e.att2 && e.e2.type == e.att2)
-            return null;
-        //printf("att cmp_bin e2 = %s\n", e.e2.type.toChars());
-        Expression e2 = new DotIdExp(e.loc, e.e2, ad2.aliasthis.ident);
-        BinExp be = cast(BinExp)e.copy();
-        if (!be.att2 && e.e2.type.checkAliasThisRec())
-            be.att2 = e.e2.type;
-        be.e2 = e2;
-        return be.trySemantic(sc);
-    }
-    return null;
+    Expression result = checkAliasThisForLhs(ad1, sc, e);
+    return result ? result : checkAliasThisForRhs(isAggregate(e.e2.type), sc, e);
 }
 
 /***********************************
  * Utility to build a function call out of this reference and argument.
  */
-extern (C++) Expression build_overload(const ref Loc loc, Scope* sc, Expression ethis, Expression earg, Dsymbol d)
+Expression build_overload(const ref Loc loc, Scope* sc, Expression ethis, Expression earg, Dsymbol d)
 {
     assert(d);
     Expression e;
-    //printf("build_overload(id = '%s')\n", id.toChars());
-    //earg.print();
-    //earg.type.print();
     Declaration decl = d.isDeclaration();
     if (decl)
         e = new DotVarExp(loc, ethis, decl, false);
@@ -1707,7 +1674,7 @@ extern (C++) Expression build_overload(const ref Loc loc, Scope* sc, Expression 
 /***************************************
  * Search for function funcid in aggregate ad.
  */
-extern (C++) Dsymbol search_function(ScopeDsymbol ad, Identifier funcid)
+Dsymbol search_function(ScopeDsymbol ad, Identifier funcid)
 {
     Dsymbol s = ad.search(Loc.initial, funcid);
     if (s)
@@ -2058,12 +2025,12 @@ private bool matchParamsToOpApply(TypeFunction tf, Parameters* parameters, bool 
      * is a delegate that looks like:
      *     int opApply(int delegate(ref Type [, ...]) dg);
      */
-    if (Parameter.dim(tf.parameters) != 1)
+    if (tf.parameterList.length != 1)
         return nomatch;
 
     /* Get the type of opApply's dg parameter
      */
-    Parameter p0 = Parameter.getNth(tf.parameters, 0);
+    Parameter p0 = tf.parameterList[0];
     if (p0.type.ty != Tdelegate)
         return nomatch;
     TypeFunction tdg = cast(TypeFunction)p0.type.nextOf();
@@ -2073,13 +2040,13 @@ private bool matchParamsToOpApply(TypeFunction tf, Parameters* parameters, bool 
      * tdg's parameters must match that of the foreach arglist (i.e. parameters).
      * Fill in missing types in parameters.
      */
-    const nparams = Parameter.dim(tdg.parameters);
-    if (nparams == 0 || nparams != parameters.dim || tdg.varargs)
+    const nparams = tdg.parameterList.length;
+    if (nparams == 0 || nparams != parameters.dim || tdg.parameterList.varargs != VarArg.none)
         return nomatch; // parameter mismatch
 
     foreach (u, p; *parameters)
     {
-        Parameter param = Parameter.getNth(tdg.parameters, u);
+        Parameter param = tdg.parameterList[u];
         if (p.type)
         {
             if (!p.type.equals(param.type))

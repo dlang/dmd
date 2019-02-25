@@ -2,7 +2,7 @@
  * Compiler implementation of the D programming language
  * http://dlang.org
  *
- * Copyright: Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/filename.d, root/_filename.d)
@@ -15,24 +15,37 @@ module dmd.root.filename;
 import core.stdc.ctype;
 import core.stdc.errno;
 import core.stdc.string;
-import core.sys.posix.stdlib;
-import core.sys.posix.sys.stat;
-import core.sys.windows.windows;
 import dmd.root.array;
 import dmd.root.file;
 import dmd.root.outbuffer;
+import dmd.root.port;
 import dmd.root.rmem;
 import dmd.root.rootobject;
+import dmd.utils;
 
-nothrow
+version (Posix)
 {
-version (Windows) extern (C) int stricmp(const char*, const char*) pure;
-version (Windows) extern (Windows) DWORD GetFullPathNameW(LPCWSTR, DWORD, LPWSTR, LPWSTR*) @nogc;
-version (Windows) extern (Windows) void SetLastError(DWORD) @nogc;
-version (Windows) extern (C) char* getcwd(char* buffer, size_t maxlen);
-version (Posix) extern (C) char* canonicalize_file_name(const char*);
-version (Posix) import core.sys.posix.unistd : getcwd;
+    import core.sys.posix.stdlib;
+    import core.sys.posix.sys.stat;
+    import core.sys.posix.unistd : getcwd;
 }
+
+version (Windows)
+{
+    import core.sys.windows.winbase;
+    import core.sys.windows.windef;
+    import core.sys.windows.winnls;
+
+    extern (Windows) DWORD GetFullPathNameW(LPCWSTR, DWORD, LPWSTR, LPWSTR*) nothrow @nogc;
+    extern (Windows) void SetLastError(DWORD) nothrow @nogc;
+    extern (C) char* getcwd(char* buffer, size_t maxlen) nothrow;
+}
+
+version (CRuntime_Glibc)
+{
+    extern (C) char* canonicalize_file_name(const char*) nothrow;
+}
+
 alias Strings = Array!(const(char)*);
 alias Files = Array!(File*);
 
@@ -42,37 +55,33 @@ alias Files = Array!(File*);
 struct FileName
 {
 nothrow:
-    const(char)* str;
+    private const(char)[] str;
 
-    extern (D) this(const(char)* str)
+    ///
+    extern (D) this(const(char)[] str)
     {
-        this.str = mem.xstrdup(str);
+        this.str = str.xarraydup;
     }
 
-    extern (C++) bool equals(const RootObject obj) const pure
-    {
-        return compare(obj) == 0;
-    }
-
+    /// Compare two name according to the platform's rules (case sensitive or not)
     extern (C++) static bool equals(const(char)* name1, const(char)* name2) pure
     {
-        return compare(name1, name2) == 0;
+        return equals(name1.toDString, name2.toDString);
     }
 
-    extern (C++) int compare(const RootObject obj) const pure
+    /// Ditto
+    extern (D) static bool equals(const(char)[] name1, const(char)[] name2) pure
     {
-        return compare(str, (cast(FileName*)obj).str);
-    }
+        if (name1.length != name2.length)
+            return false;
 
-    extern (C++) static int compare(const(char)* name1, const(char)* name2) pure
-    {
         version (Windows)
         {
-            return stricmp(name1, name2);
+            return Port.memicmp(name1.ptr, name2.ptr, name1.length) == 0;
         }
         else
         {
-            return strcmp(name1, name2);
+            return name1 == name2;
         }
     }
 
@@ -85,18 +94,34 @@ nothrow:
      */
     extern (C++) static bool absolute(const(char)* name) pure
     {
+        return absolute(name.toDString);
+    }
+
+    /// Ditto
+    extern (D) static bool absolute(const(char)[] name) pure
+    {
+        if (!name.length)
+            return false;
+
         version (Windows)
         {
-            return (*name == '\\') || (*name == '/') || (*name && name[1] == ':');
+            return (name[0] == '\\') || (name[0] == '/')
+                || (name.length >= 2 && name[1] == ':');
         }
         else version (Posix)
         {
-            return (*name == '/');
+            return (name[0] == '/');
         }
         else
         {
             assert(0);
         }
+    }
+
+    unittest
+    {
+        assert(absolute("/"[]) == true);
+        assert(absolute(""[]) == false);
     }
 
     /**
@@ -110,7 +135,9 @@ nothrow:
     */
     extern (C++) static const(char)* toAbsolute(const(char)* name, const(char)* base = null)
     {
-        return absolute(name) ? name : combine(base ? base : getcwd(null, 0), name);
+        const name_ = name.toDString();
+        const base_ = base ? base.toDString() : getcwd(null, 0).toDString();
+        return absolute(name_) ? name : combine(base_, name_).ptr;
     }
 
     /********************************
@@ -124,60 +151,88 @@ nothrow:
      */
     extern (C++) static const(char)* ext(const(char)* str) pure
     {
-        size_t len = strlen(str);
-        const(char)* e = str + len;
-        for (;;)
+        return ext(str.toDString).ptr;
+    }
+
+    /// Ditto
+    extern (D) static const(char)[] ext(const(char)[] str) nothrow pure @safe @nogc
+    {
+        foreach_reverse (idx, char e; str)
         {
-            switch (*e)
+            switch (e)
             {
             case '.':
-                return e + 1;
-                version (Posix)
-                {
-                case '/':
-                    break;
-                }
-                version (Windows)
-                {
-                case '\\':
-                case ':':
-                case '/':
-                    break;
-                }
+                return str[idx + 1 .. $];
+            version (Posix)
+            {
+            case '/':
+                return null;
+            }
+            version (Windows)
+            {
+            case '\\':
+            case ':':
+            case '/':
+                return null;
+            }
             default:
-                if (e == str)
-                    break;
-                e--;
                 continue;
             }
-            return null;
         }
+        return null;
+    }
+
+    unittest
+    {
+        assert(ext("/foo/bar/dmd.conf"[]) == "conf");
+        assert(ext("object.o"[]) == "o");
+        assert(ext("/foo/bar/dmd"[]) == null);
+        assert(ext(".objdir.o/object"[]) == null);
+        assert(ext([]) == null);
     }
 
     extern (C++) const(char)* ext() const pure
     {
-        return ext(str);
+        return ext(str).ptr;
     }
 
     /********************************
      * Return file name without extension.
+     *
+     * TODO:
+     * Once slice are used everywhere and `\0` is not assumed,
+     * this can be turned into a simple slicing.
+     *
      * Params:
      *  str = file name
+     *
      * Returns:
      *  mem.xmalloc'd filename with extension removed.
      */
     extern (C++) static const(char)* removeExt(const(char)* str)
     {
-        const(char)* e = ext(str);
-        if (e)
+        return removeExt(str.toDString).ptr;
+    }
+
+    /// Ditto
+    extern (D) static const(char)[] removeExt(const(char)[] str)
+    {
+        auto e = ext(str);
+        if (e.length)
         {
-            size_t len = (e - str) - 1;
+            const len = (str.length - e.length) - 1; // -1 for the dot
             char* n = cast(char*)mem.xmalloc(len + 1);
-            memcpy(n, str, len);
+            memcpy(n, str.ptr, len);
             n[len] = 0;
-            return n;
+            return n[0 .. len];
         }
-        return mem.xstrdup(str);
+        return mem.xstrdup(str.ptr)[0 .. str.length];
+    }
+
+    unittest
+    {
+        assert(removeExt("/foo/bar/object.d"[]) == "/foo/bar/object");
+        assert(removeExt("/foo/bar/frontend.di"[]) == "/foo/bar/frontend");
     }
 
     /********************************
@@ -185,46 +240,52 @@ nothrow:
      */
     extern (C++) static const(char)* name(const(char)* str) pure
     {
-        size_t len = strlen(str);
-        const(char)* e = str + len;
-        for (;;)
+        return name(str.toDString).ptr;
+    }
+
+    /// Ditto
+    extern (D) static const(char)[] name(const(char)[] str) pure
+    {
+        foreach_reverse (idx, char e; str)
         {
-            switch (*e)
+            switch (e)
             {
                 version (Posix)
                 {
                 case '/':
-                    return e + 1;
+                    return str[idx + 1 .. $];
                 }
                 version (Windows)
                 {
                 case '/':
                 case '\\':
-                    return e + 1;
+                    return str[idx + 1 .. $];
                 case ':':
                     /* The ':' is a drive letter only if it is the second
                      * character or the last character,
                      * otherwise it is an ADS (Alternate Data Stream) separator.
                      * Consider ADS separators as part of the file name.
                      */
-                    if (e == str + 1 || e == str + len - 1)
-                        return e + 1;
-                    goto default;
+                    if (idx == 1 || idx == str.length - 1)
+                        return str[idx + 1 .. $];
+                    break;
                 }
             default:
-                if (e == str)
-                    break;
-                e--;
-                continue;
+                break;
             }
-            return e;
         }
-        assert(0);
+        return str;
     }
 
     extern (C++) const(char)* name() const pure
     {
-        return name(str);
+        return name(str).ptr;
+    }
+
+    unittest
+    {
+        assert(name("/foo/bar/object.d"[]) == "object.d");
+        assert(name("/foo/bar/frontend.di"[]) == "frontend.di");
     }
 
     /**************************************
@@ -233,105 +294,120 @@ nothrow:
      */
     extern (C++) static const(char)* path(const(char)* str)
     {
-        const(char)* n = name(str);
-        size_t pathlen;
-        if (n > str)
+        return path(str.toDString).ptr;
+    }
+
+    /// Ditto
+    extern (D) static const(char)[] path(const(char)[] str)
+    {
+        const n = name(str);
+        bool hasTrailingSlash;
+        if (n.length < str.length)
         {
             version (Posix)
             {
-                if (n[-1] == '/')
-                    n--;
+                if (str[$ - n.length - 1] == '/')
+                    hasTrailingSlash = true;
             }
             else version (Windows)
             {
-                if (n[-1] == '\\' || n[-1] == '/')
-                    n--;
+                if (str[$ - n.length - 1] == '\\' || str[$ - n.length - 1] == '/')
+                    hasTrailingSlash = true;
             }
             else
             {
                 assert(0);
             }
         }
-        pathlen = n - str;
+        const pathlen = str.length - n.length - (hasTrailingSlash ? 1 : 0);
         char* path = cast(char*)mem.xmalloc(pathlen + 1);
-        memcpy(path, str, pathlen);
+        memcpy(path, str.ptr, pathlen);
         path[pathlen] = 0;
-        return path;
+        return path[0 .. pathlen];
+    }
+
+    unittest
+    {
+        assert(path("/foo/bar"[]) == "/foo");
+        assert(path("foo"[]) == "");
     }
 
     /**************************************
      * Replace filename portion of path.
      */
-    extern (C++) static const(char)* replaceName(const(char)* path, const(char)* name)
+    extern (D) static const(char)[] replaceName(const(char)[] path, const(char)[] name)
     {
-        size_t pathlen;
-        size_t namelen;
         if (absolute(name))
             return name;
-        const(char)* n = FileName.name(path);
+        auto n = FileName.name(path);
         if (n == path)
             return name;
-        pathlen = n - path;
-        namelen = strlen(name);
-        char* f = cast(char*)mem.xmalloc(pathlen + 1 + namelen + 1);
-        memcpy(f, path, pathlen);
-        version (Posix)
-        {
-            if (path[pathlen - 1] != '/')
-            {
-                f[pathlen] = '/';
-                pathlen++;
-            }
-        }
-        else version (Windows)
-        {
-            if (path[pathlen - 1] != '\\' && path[pathlen - 1] != '/' && path[pathlen - 1] != ':')
-            {
-                f[pathlen] = '\\';
-                pathlen++;
-            }
-        }
-        else
-        {
-            assert(0);
-        }
-        memcpy(f + pathlen, name, namelen + 1);
-        return f;
+        return combine(path[0 .. $ - n.length], name);
     }
 
+    /**
+       Combine a `path` and a file `name`
+
+       Params:
+         path = Path to append to
+         name = Name to append to path
+
+       Returns:
+         The `\0` terminated string which is the combination of `path` and `name`
+         and a valid path.
+    */
     extern (C++) static const(char)* combine(const(char)* path, const(char)* name)
     {
-        char* f;
-        size_t pathlen;
-        size_t namelen;
-        if (!path || !*path)
-            return cast(char*)name;
-        pathlen = strlen(path);
-        namelen = strlen(name);
-        f = cast(char*)mem.xmalloc(pathlen + 1 + namelen + 1);
-        memcpy(f, path, pathlen);
+        if (!path)
+            return name;
+        return combine(path.toDString, name.toDString).ptr;
+    }
+
+    /// Ditto
+    extern(D) static const(char)[] combine(const(char)[] path, const(char)[] name)
+    {
+        if (!path.length)
+            return name;
+
+        char* f = cast(char*)mem.xmalloc(path.length + 1 + name.length + 1);
+        memcpy(f, path.ptr, path.length);
+        bool trailingSlash = false;
         version (Posix)
         {
-            if (path[pathlen - 1] != '/')
+            if (path[$ - 1] != '/')
             {
-                f[pathlen] = '/';
-                pathlen++;
+                f[path.length] = '/';
+                trailingSlash = true;
             }
         }
         else version (Windows)
         {
-            if (path[pathlen - 1] != '\\' && path[pathlen - 1] != '/' && path[pathlen - 1] != ':')
+            if (path[$ - 1] != '\\' && path[$ - 1] != '/' && path[$ - 1] != ':')
             {
-                f[pathlen] = '\\';
-                pathlen++;
+                f[path.length] = '\\';
+                trailingSlash = true;
             }
         }
         else
         {
             assert(0);
         }
-        memcpy(f + pathlen, name, namelen + 1);
-        return f;
+        const len = path.length + trailingSlash;
+        memcpy(f + len, name.ptr, name.length);
+        // Note: At the moment `const(char)*` are being transitioned to
+        // `const(char)[]`. To avoid bugs crippling in, we `\0` terminate
+        // slices, but don't include it in the slice so `.ptr` can be used.
+        f[len + name.length] = '\0';
+        return f[0 .. len + name.length];
+    }
+
+    unittest
+    {
+        version (Windows)
+            assert(combine("foo"[], "bar"[]) == "foo\\bar");
+        else
+            assert(combine("foo"[], "bar"[]) == "foo/bar");
+        assert(combine("foo/"[], "bar"[]) == "foo/bar");
     }
 
     static const(char)* buildPath(const(char)* path, const(char)*[] names...)
@@ -426,21 +502,50 @@ nothrow:
         return array;
     }
 
+    /**
+     * Add the extension `ext` to `name`, regardless of the content of `name`
+     *
+     * Params:
+     *   name = Path to append the extension to
+     *   ext  = Extension to add (should not include '.')
+     *
+     * Returns:
+     *   A newly allocated string (free with `FileName.free`)
+     */
+    extern(D) static char[] addExt(const(char)[] name, const(char)[] ext)
+    {
+        const len = name.length + ext.length + 2;
+        auto s = cast(char*)mem.xmalloc(len);
+        s[0 .. name.length] = name[];
+        s[name.length] = '.';
+        s[name.length + 1 .. len - 1] = ext[];
+        s[len - 1] = '\0';
+        return s[0 .. len - 1];
+    }
+
+
     /***************************
      * Free returned value with FileName::free()
      */
     extern (C++) static const(char)* defaultExt(const(char)* name, const(char)* ext)
     {
-        const(char)* e = FileName.ext(name);
-        if (e) // if already has an extension
-            return mem.xstrdup(name);
-        size_t len = strlen(name);
-        size_t extlen = strlen(ext);
-        char* s = cast(char*)mem.xmalloc(len + 1 + extlen + 1);
-        memcpy(s, name, len);
-        s[len] = '.';
-        memcpy(s + len + 1, ext, extlen + 1);
-        return s;
+        return defaultExt(name.toDString, ext.toDString).ptr;
+    }
+
+    /// Ditto
+    extern (D) static const(char)[] defaultExt(const(char)[] name, const(char)[] ext)
+    {
+        auto e = FileName.ext(name);
+        if (e.length) // it already has an extension
+            return name.xarraydup;
+        return addExt(name, ext);
+    }
+
+    unittest
+    {
+        assert(defaultExt("/foo/object.d"[], "d") == "/foo/object.d");
+        assert(defaultExt("/foo/object"[], "d") == "/foo/object.d");
+        assert(defaultExt("/foo/bar.d"[], "o") == "/foo/bar.d");
     }
 
     /***************************
@@ -448,28 +553,48 @@ nothrow:
      */
     extern (C++) static const(char)* forceExt(const(char)* name, const(char)* ext)
     {
-        const(char)* e = FileName.ext(name);
-        if (e) // if already has an extension
-        {
-            size_t len = e - name;
-            size_t extlen = strlen(ext);
-            char* s = cast(char*)mem.xmalloc(len + extlen + 1);
-            memcpy(s, name, len);
-            memcpy(s + len, ext, extlen + 1);
-            return s;
-        }
-        else
-            return defaultExt(name, ext); // doesn't have one
+        return forceExt(name.toDString, ext.toDString).ptr;
     }
 
+    /// Ditto
+    extern (D) static const(char)[] forceExt(const(char)[] name, const(char)[] ext)
+    {
+        if (auto e = FileName.ext(name))
+            return addExt(name[0 .. $ - e.length - 1], ext);
+        return defaultExt(name, ext); // doesn't have one
+    }
+
+    unittest
+    {
+        assert(forceExt("/foo/object.d"[], "d") == "/foo/object.d");
+        assert(forceExt("/foo/object"[], "d") == "/foo/object.d");
+        assert(forceExt("/foo/bar.d"[], "o") == "/foo/bar.o");
+    }
+
+    /// Returns:
+    ///   `true` if `name`'s extension is `ext`
     extern (C++) static bool equalsExt(const(char)* name, const(char)* ext) pure
     {
-        const(char)* e = FileName.ext(name);
-        if (!e && !ext)
+        return equalsExt(name.toDString, ext.toDString);
+    }
+
+    /// Ditto
+    extern (D) static bool equalsExt(const(char)[] name, const(char)[] ext) pure
+    {
+        auto e = FileName.ext(name);
+        if (!e.length && !ext.length)
             return true;
-        if (!e || !ext)
+        if (!e.length || !ext.length)
             return false;
-        return FileName.compare(e, ext) == 0;
+        return FileName.equals(e, ext);
+    }
+
+    unittest
+    {
+        assert(!equalsExt("foo.bar"[], "d"));
+        assert(equalsExt("foo.bar"[], "bar"));
+        assert(equalsExt("object.d"[], "d"));
+        assert(!equalsExt("object"[], "d"));
     }
 
     /******************************
@@ -477,7 +602,7 @@ nothrow:
      */
     extern (C++) bool equalsExt(const(char)* ext) const pure
     {
-        return equalsExt(str, ext);
+        return equalsExt(str, ext.toDString());
     }
 
     /*************************************
@@ -486,6 +611,11 @@ nothrow:
      *      cwd     if true, search current directory before searching path
      */
     extern (C++) static const(char)* searchPath(Strings* path, const(char)* name, bool cwd)
+    {
+        return searchPath(path, name.toDString, cwd).ptr;
+    }
+
+    extern (D) static const(char)[] searchPath(Strings* path, const(char)[] name, bool cwd)
     {
         if (absolute(name))
         {
@@ -498,10 +628,9 @@ nothrow:
         }
         if (path)
         {
-            for (size_t i = 0; i < path.dim; i++)
+            foreach (p; *path)
             {
-                const(char)* p = (*path)[i];
-                const(char)* n = combine(p, name);
+                auto n = combine(p.toDString, name);
                 if (exists(n))
                     return n;
             }
@@ -601,12 +730,28 @@ nothrow:
         }
     }
 
+    /**
+       Check if the file the `path` points to exists
+
+       Returns:
+         0 if it does not exists
+         1 if it exists and is not a directory
+         2 if it exists and is a directory
+     */
     extern (C++) static int exists(const(char)* name)
     {
+        return exists(name.toDString);
+    }
+
+    /// Ditto
+    extern (D) static int exists(const(char)[] name)
+    {
+        if (!name.length)
+            return 0;
         version (Posix)
         {
             stat_t st;
-            if (stat(name, &st) < 0)
+            if (name.toCStringThen!((v) => stat(v.ptr, &st)) < 0)
                 return 0;
             if (S_ISDIR(st.st_mode))
                 return 2;
@@ -614,7 +759,7 @@ nothrow:
         }
         else version (Windows)
         {
-            return name.toWStringzThen!((wname)
+            return name.toCStringThen!((cstr) => cstr.toWStringzThen!((wname)
             {
                 const dw = GetFileAttributesW(&wname[0]);
                 if (dw == -1)
@@ -623,7 +768,7 @@ nothrow:
                     return 2;
                 else
                     return 1;
-            });
+            }));
         }
         else
         {
@@ -631,71 +776,77 @@ nothrow:
         }
     }
 
+    /**
+       Ensure that the provided path exists
+
+       Accepts a path to either a file or a directory.
+       In the former case, the basepath (path to the containing directory)
+       will be checked for existence, and created if it does not exists.
+       In the later case, the directory pointed to will be checked for existence
+       and created if needed.
+
+       Params:
+         path = a path to a file or a directory
+
+       Returns:
+         `true` if the directory exists or was successfully created
+     */
     extern (C++) static bool ensurePathExists(const(char)* path)
     {
         //printf("FileName::ensurePathExists(%s)\n", path ? path : "");
-        if (path && *path)
+        if (!path || !(*path))
+            return true;
+        if (exists(path))
+            return true;
+
+        // We were provided with a file name
+        // We need to call ourselves recursively to ensure parent dir exist
+        const(char)* p = FileName.path(path);
+        if (*p)
         {
-            if (!exists(path))
+            version (Windows)
             {
-                const(char)* p = FileName.path(path);
-                if (*p)
+                const len = strlen(path);
+                const plen = strlen(p);
+                // Note: Windows filename comparison should be case-insensitive,
+                // however p is a subslice of path so we don't need it
+                if (len == plen ||
+                    (len > 2 && path[1] == ':' && path[2 .. len] == p[0 .. plen]))
                 {
-                    version (Windows)
-                    {
-                        size_t len = strlen(path);
-                        if ((len > 2 && p[-1] == ':' && strcmp(path + 2, p) == 0) || len == strlen(p))
-                        {
-                            mem.xfree(cast(void*)p);
-                            return 0;
-                        }
-                    }
-                    bool r = ensurePathExists(p);
                     mem.xfree(cast(void*)p);
-
-                    if (r)
-                        return r;
-                }
-                version (Windows)
-                {
-                    char sep = '\\';
-                }
-                else version (Posix)
-                {
-                    char sep = '/';
-                }
-                if (path[strlen(path) - 1] != sep)
-                {
-                    version (Windows)
-                    {
-                        int r = _mkdir(path);
-                    }
-                    version (Posix)
-                    {
-                        int r = mkdir(path, (7 << 6) | (7 << 3) | 7);
-                    }
-                    if (r)
-                    {
-                        /* Don't error out if another instance of dmd just created
-                         * this directory
-                         */
-                        version (Windows)
-                        {
-                            // see core.sys.windows.winerror - the reason it's not imported here is because
-                            // the autotester's dmd is too old and doesn't have that module
-                            enum ERROR_ALREADY_EXISTS = 183;
-
-                            if (GetLastError() != ERROR_ALREADY_EXISTS)
-                                return true;
-                        }
-                        version (Posix)
-                        {
-                            if (errno != EEXIST)
-                                return true;
-                        }
-                    }
+                    return true;
                 }
             }
+            const r = ensurePathExists(p);
+            mem.xfree(cast(void*)p);
+
+            if (!r)
+                return r;
+        }
+
+        version (Windows)
+            const r = _mkdir(path.toDString);
+        version (Posix)
+        {
+            errno = 0;
+            const r = mkdir(path, (7 << 6) | (7 << 3) | 7);
+        }
+
+        if (r == 0)
+            return true;
+
+        // Don't error out if another instance of dmd just created
+        // this directory
+        version (Windows)
+        {
+            import core.sys.windows.winerror : ERROR_ALREADY_EXISTS;
+            if (GetLastError() == ERROR_ALREADY_EXISTS)
+                return true;
+        }
+        version (Posix)
+        {
+            if (errno == EEXIST)
+                return true;
         }
 
         return false;
@@ -707,10 +858,73 @@ nothrow:
      */
     extern (C++) static const(char)* canonicalName(const(char)* name)
     {
+        return canonicalName(name.toDString).ptr;
+    }
+
+    /// Ditto
+    extern (D) static const(char)[] canonicalName(const(char)[] name)
+    {
         version (Posix)
         {
-            // NULL destination buffer is allowed and preferred
-            return realpath(name, null);
+            import core.stdc.limits;      // PATH_MAX
+            import core.sys.posix.unistd; // _PC_PATH_MAX
+
+            // Older versions of druntime don't have PATH_MAX defined.
+            // i.e: dmd __VERSION__ < 2085, gdc __VERSION__ < 2076.
+            static if (!__traits(compiles, PATH_MAX))
+            {
+                version (DragonFlyBSD)
+                    enum PATH_MAX = 1024;
+                else version (FreeBSD)
+                    enum PATH_MAX = 1024;
+                else version (linux)
+                    enum PATH_MAX = 4096;
+                else version (NetBSD)
+                    enum PATH_MAX = 1024;
+                else version (OpenBSD)
+                    enum PATH_MAX = 1024;
+                else version (OSX)
+                    enum PATH_MAX = 1024;
+                else version (Solaris)
+                    enum PATH_MAX = 1024;
+            }
+
+            // Have realpath(), passing a NULL destination pointer may return an
+            // internally malloc'd buffer, however it is implementation defined
+            // as to what happens, so cannot rely on it.
+            static if (__traits(compiles, PATH_MAX))
+            {
+                // Have compile time limit on filesystem path, use it with realpath.
+                char[PATH_MAX] buf = void;
+                auto path = name.toCStringThen!((n) => realpath(n.ptr, buf.ptr));
+                if (path !is null)
+                    return mem.xstrdup(path).toDString;
+            }
+            else static if (__traits(compiles, canonicalize_file_name))
+            {
+                // Have canonicalize_file_name, which malloc's memory.
+                auto path = name.toCStringThen!((n) => canonicalize_file_name(n.ptr));
+                if (path !is null)
+                    return path.toDString;
+            }
+            else static if (__traits(compiles, _PC_PATH_MAX))
+            {
+                // Panic! Query the OS for the buffer limit.
+                auto path_max = pathconf("/", _PC_PATH_MAX);
+                if (path_max > 0)
+                {
+                    char *buf = cast(char*)mem.xmalloc(path_max);
+                    scope(exit) mem.xfree(buf);
+                    auto path = name.toCStringThen!((n) => realpath(n.ptr, buf));
+                    if (path !is null)
+                        return mem.xstrdup(path).toDString;
+                }
+            }
+            // Give up trying to support this platform, just duplicate the filename
+            // unless there is nothing to copy from.
+            if (!name.length)
+                return null;
+            return mem.xstrdup(name.ptr)[0 .. name.length];
         }
         else version (Windows)
         {
@@ -726,20 +940,23 @@ nothrow:
                 auto fullPath = new wchar[fullPathLength];
 
                 // Actually get the full path name
-                const fullPathLengthNoTerminator = GetFullPathNameW(&wname[0], cast(uint)fullPath.length, &fullPath[0], null /*filePart*/);
+                const fullPathLengthNoTerminator = GetFullPathNameW(
+                    &wname[0], cast(uint)fullPath.length, &fullPath[0], null /*filePart*/);
                 // Unfortunately, when the buffer is large enough the return value is the number of characters
                 // _not_ counting the null terminator, so fullPathLengthNoTerminator should be smaller
                 assert(fullPathLength > fullPathLengthNoTerminator);
 
                 // Find out size of the converted string
-                const retLength = WideCharToMultiByte(0 /*codepage*/, 0 /*flags*/, &fullPath[0], fullPathLength, null, 0, null, null);
+                const retLength = WideCharToMultiByte(
+                    0 /*codepage*/, 0 /*flags*/, &fullPath[0], fullPathLength, null, 0, null, null);
                 auto ret = new char[retLength];
 
                 // Actually convert to char
-                const retLength2 = WideCharToMultiByte(0 /*codepage*/, 0 /*flags*/, &fullPath[0], fullPathLength, &ret[0], cast(int)ret.length, null, null);
+                const retLength2 = WideCharToMultiByte(
+                    0 /*codepage*/, 0 /*flags*/, &fullPath[0], cast(int)fullPath.length, &ret[0], cast(int)ret.length, null, null);
                 assert(retLength == retLength2);
 
-                return &ret[0];
+                return ret;
             });
         }
         else
@@ -761,7 +978,14 @@ nothrow:
         mem.xfree(cast(void*)str);
     }
 
-    extern (C++) const(char)* toChars() const pure
+    extern (C++) const(char)* toChars() const pure nothrow @trusted
+    {
+        // Since we can return an empty slice (but '\0' terminated),
+        // we don't do bounds check (as `&str[0]` does)
+        return str.ptr;
+    }
+
+    const(char)[] toString() const pure nothrow @trusted
     {
         return str;
     }
@@ -785,16 +1009,17 @@ version(Windows)
      *
      * Params:
      *  path = The path to create.
+     *
      * Returns:
      *  0 on success, 1 on failure.
      *
      * References:
      *  https://msdn.microsoft.com/en-us/library/windows/desktop/aa363855(v=vs.85).aspx
      */
-    private int _mkdir(const(char)* path) nothrow
+    private int _mkdir(const(char)[] path) nothrow
     {
-        const createRet = path.extendedPathThen!(p => CreateDirectoryW(p,
-                                                                       null /*securityAttributes*/));
+        const createRet = path.extendedPathThen!(
+            p => CreateDirectoryW(&p[0], null /*securityAttributes*/));
         // different conventions for CreateDirectory and mkdir
         return createRet == 0 ? 1 : 0;
     }
@@ -803,27 +1028,32 @@ version(Windows)
      * Converts a path to one suitable to be passed to Win32 API
      * functions that can deal with paths longer than 248
      * characters then calls the supplied function on it.
+     *
      * Params:
      *  path = The Path to call F on.
+     *
      * Returns:
      *  The result of calling F on path.
+     *
      * References:
      *  https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx
      */
-    package auto extendedPathThen(alias F)(const(char*) path)
+    package auto extendedPathThen(alias F)(const(char)[] path)
     {
+        if (!path.length)
+            return F((wchar[]).init);
         return path.toWStringzThen!((wpath)
         {
             // GetFullPathNameW expects a sized buffer to store the result in. Since we don't
             // know how large it has to be, we pass in null and get the needed buffer length
             // as the return code.
-            const pathLength = GetFullPathNameW(wpath,
+            const pathLength = GetFullPathNameW(&wpath[0],
                                                 0 /*length8*/,
                                                 null /*output buffer*/,
                                                 null /*filePartBuffer*/);
             if (pathLength == 0)
             {
-                return F(""w.ptr);
+                return F((wchar[]).init);
             }
 
             // wpath is the UTF16 version of path, but to be able to use
@@ -831,62 +1061,149 @@ version(Windows)
             // path.
             static immutable prefix = `\\?\`w;
 
+            // prefix only needed for long names and non-UNC names
+            const needsPrefix = pathLength >= MAX_PATH && (wpath[0] != '\\' || wpath[1] != '\\');
+            const prefixLength = needsPrefix ? prefix.length : 0;
+
             // +1 for the null terminator
-            const bufferLength = pathLength + prefix.length + 1;
+            const bufferLength = pathLength + prefixLength + 1;
 
-            wchar[1024] absBuf;
-            auto absPath = bufferLength > absBuf.length ? new wchar[bufferLength] : absBuf[];
+            wchar[1024] absBuf = void;
+            wchar[] absPath = bufferLength > absBuf.length
+                ? new wchar[bufferLength] : absBuf[0 .. bufferLength];
 
-            absPath[0 .. prefix.length] = prefix[];
+            absPath[0 .. prefixLength] = prefix[0 .. prefixLength];
 
-            const absPathRet = GetFullPathNameW(wpath,
-                                                cast(uint)(absPath.length - prefix.length),
-                                                &absPath[prefix.length],
-                                                null /*filePartBuffer*/);
+            const absPathRet = GetFullPathNameW(&wpath[0],
+                cast(uint)(absPath.length - prefixLength - 1),
+                &absPath[prefixLength],
+                null /*filePartBuffer*/);
 
-            if (absPathRet == 0 || absPathRet > absPath.length - prefix.length)
+            if (absPathRet == 0 || absPathRet > absPath.length - prefixLength)
             {
-                return F(""w.ptr);
+                return F((wchar[]).init);
             }
 
-            return F(absPath.ptr);
-
+            absPath[$ - 1] = '\0';
+            // Strip null terminator from the slice
+            return F(absPath[0 .. $ - 1]);
         });
     }
 
     /**********************************
-     * Converts a null-terminated string to an array of wchar that's null
+     * Converts a slice of UTF-8 characters to an array of wchar that's null
      * terminated so it can be passed to Win32 APIs then calls the supplied
      * function on it.
+     *
      * Params:
      *  str = The string to convert.
+     *
      * Returns:
      *  The result of calling F on the UTF16 version of str.
      */
-    private auto toWStringzThen(alias F)(const(char*) str) nothrow
+    private auto toWStringzThen(alias F)(const(char)[] str) nothrow
     {
+        if (!str.length) return F(""w.ptr);
+
         import core.stdc.string: strlen;
         import core.stdc.stdlib: malloc, free;
-
+        import core.sys.windows.winnls: MultiByteToWideChar;
         wchar[1024] buf;
-        // cache this for efficiency
-        const int strLength = cast(int)(strlen(str) + 1);
         // first find out how long the buffer must be to store the result
-        const length = MultiByteToWideChar(0 /*codepage*/, 0 /*flags*/, str, strLength, null, 0);
-        if (!length) return F(""w.ptr);
 
-        auto ret = length > buf.length
-            ? (cast(wchar*)malloc(length * wchar.sizeof))
-            : &buf[0];
+        const length = MultiByteToWideChar(0 /*codepage*/, 0 /*flags*/, &str[0], cast(int)str.length, null, 0);
+        if (!length) return F(""w);
+
+        wchar[] ret = length >= buf.length
+            ? (cast(wchar*)malloc(length * wchar.sizeof))[0 .. length + 1]
+            : buf[0 .. length + 1];
         scope (exit)
         {
-            if (ret != &buf[0])
-                free(ret);
+            if (&ret[0] != &buf[0])
+                free(&ret[0]);
         }
         // actually do the conversion
-        const length2 = MultiByteToWideChar(0 /*codepage*/, 0 /*flags*/, str, strLength, ret, cast(int)length);
-        assert(length == length2); // should always be true according to the API
+        const length2 = MultiByteToWideChar(
+            0 /*codepage*/, 0 /*flags*/, &str[0], cast(int)str.length, &ret[0], cast(int)length);
+        assert(str.length == length2); // should always be true according to the API
+        // Add terminating `\0`
+        ret[$ - 1] = '\0';
 
-        return F(ret);
+        return F(ret[0 .. $ - 1]);
+    }
+}
+
+version (Posix)
+{
+    /**
+    Takes a callable F and applies it to the result of converting
+    `fileName` to an absolute file path (char*)
+
+    Params:
+        fileName = The file name to be converted to an absolute path
+    Returns: Whatever `F` returns.
+    */
+    auto absPathThen(alias F)(const(char)[] fileName)
+    {
+        auto absPath = FileName.canonicalName(fileName);
+        scope(exit) mem.xfree(cast(void*)absPath.ptr);
+        return F(cast(char[])absPath);
+    }
+}
+else
+{
+    /**
+    Takes a callable F and applies it to the result of converting
+    `fileName` to an absolute file path (char*)
+
+    Params:
+        fileName = The file name to be converted to an absolute path
+    Returns: Whatever `F` returns.
+     */
+    auto absPathThen(alias F)(const(char)[] fileName)
+    {
+        import core.sys.windows.winnls: WideCharToMultiByte;
+        import core.stdc.stdlib: malloc, free;
+
+        return fileName.extendedPathThen!((wpath) {
+                // first find out how long the buffer must be to store the result
+                const length = WideCharToMultiByte(0,    // code page
+                                                   0,    // flags
+                                                   &wpath[0],
+                                                   -1,   // wpath len, -1 is null terminated
+                                                   null, // multibyte output ptr
+                                                   0,    // multibyte output length
+                                                   null, // default char
+                                                   null, // if used default char
+                );
+
+                if (!length) return F((char[]).init);
+
+                char[1024] buf = void;
+
+                scope multibyteBuf = length > buf.length
+                    ? (cast(char*)malloc(length * char.sizeof))[0 .. length]
+                    : buf[0 .. length];
+                scope (exit)
+                {
+                    if (multibyteBuf.ptr != buf.ptr)
+                        free(multibyteBuf.ptr);
+                }
+
+                // now store the result
+                const length2 = WideCharToMultiByte(0,    // code page
+                                                    0,    // flags
+                                                    &wpath[0],
+                                                    -1,   // wpath len, -1 is null terminated
+                                                    multibyteBuf.ptr,
+                                                    length,
+                                                    null, // default char
+                                                    null, // if used default char
+                );
+
+                assert(length == length2);
+
+                return F(multibyteBuf[0 .. length - 1]);
+        });
     }
 }

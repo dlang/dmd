@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cdef.d, backend/_cdef.d)
@@ -13,15 +13,15 @@ module dmd.backend.cdef;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_cdef.html
 
-import dmd.backend.cc: Classsym, Symbol;
+import dmd.backend.cc: Classsym, Symbol, param_t, config;
 import dmd.backend.el;
+import dmd.backend.ty : I32;
+
 import dmd.backend.dlist;
 
 extern (C++):
 @nogc:
 nothrow:
-
-struct param_t;
 
 enum VERSION = "9.00.0";        // for banner and imbedding in .OBJ file
 enum VERSIONHEX = "0x900";      // for __DMC__ macro
@@ -32,6 +32,8 @@ version (SCPP)
 version (SPP)
     version = XVERSION;
 version (HTOD)
+    version = XVERSION;
+version (MARS)
     version = XVERSION;
 
 version (XVERSION)
@@ -47,7 +49,7 @@ version (XVERSION)
     enum TARGET_OPENBSD = xversion!`OpenBSD`;
     enum TARGET_SOLARIS = xversion!`Solaris`;
     enum TARGET_WINDOS  = xversion!`Windows`;
-    enum TARGET_DRAGONFLYBSD  = xversion!`DragonFly`;
+    enum TARGET_DRAGONFLYBSD  = xversion!`DragonFlyBSD`;
 }
 
 
@@ -101,16 +103,22 @@ enum IMPLIED_PRAGMA_ONCE = 1;       // include guards count as #pragma once
 enum bool HEADER_LIST = true;
 
 // Support generating code for 16 bit memory models
-//#define SIXTEENBIT              (SCPP && TARGET_WINDOS)
+version (SCPP)
+    enum SIXTEENBIT = TARGET_WINDOS != 0;
+else
+    enum SIXTEENBIT = false;
 
 /* Set for supporting the FLAT memory model.
  * This is not quite the same as !SIXTEENBIT, as one could
  * have near/far with 32 bit code.
  */
-//#define TARGET_SEGMENTED     (!MARS && TARGET_WINDOS)
+version (MARS)
+    enum TARGET_SEGMENTED = false;
+else
+    enum TARGET_SEGMENTED = TARGET_WINDOS;
 
 
-//bool LDOUBLE() { return config.exe == EX_WIN32; }   // support true long doubles
+bool LDOUBLE() { return config.exe == EX_WIN32; }   // support true long doubles
 
 
 // NT structured exception handling
@@ -233,6 +241,8 @@ enum EXIT_BREAK = 255;     // aborted compile with ^C
  * Target machine data types as they appear on the host.
  */
 
+import core.stdc.stdint : int64_t, uint64_t;
+
 alias targ_char = byte;
 alias targ_uchar = ubyte;
 alias targ_schar = byte;
@@ -240,14 +250,15 @@ alias targ_short = short;
 alias targ_ushort= ushort;
 alias targ_long = int;
 alias targ_ulong = uint;
-alias targ_llong = long;
-alias targ_ullong = ulong;
+alias targ_llong = int64_t;
+alias targ_ullong = uint64_t;
 alias targ_float = float;
 alias targ_double = double;
 public import dmd.root.longdouble : targ_ldouble = longdouble;
 
 // Extract most significant register from constant
-//#define MSREG(p)        ((REGSIZE == 2) ? (p) >> 16 : ((sizeof(targ_llong) == 8) ? (p) >> 32 : 0))
+int REGSIZE();
+ulong MSREG(ulong p) { return (REGSIZE == 2) ? p >> 16 : ((targ_llong.sizeof == 8) ? p >> 32 : 0); }
 
 alias targ_int = int;
 alias targ_uns = uint;
@@ -270,7 +281,7 @@ enum
 //#define REGSIZE         _tysize[TYnptr]
 //@property @nogc nothrow auto NPTRSIZE() { return _tysize[TYnptr]; }
 //#define FPTRSIZE        _tysize[TYfptr]
-//#define REGMASK         0xFFFF
+enum REGMASK = 0xFFFF;
 
 // targ_llong is also used to store host pointers, so it should have at least their size
 version (SCPP)
@@ -292,8 +303,8 @@ else version (HTOD)
 else
 {
     // Support 64 bit targets
-    alias targ_ptrdiff_t = targ_llong;  // ptrdiff_t for target machine
-    alias targ_size_t = targ_ullong;    // size_t for the target machine
+    alias targ_ptrdiff_t = int64_t;  // ptrdiff_t for target machine
+    alias targ_size_t = uint64_t;    // size_t for the target machine
 }
 
 /* Enable/disable various features
@@ -302,7 +313,7 @@ else
  */
 //#define NEWTEMPMANGLE   (!(config.flags4 & CFG4oldtmangle))     // do new template mangling
 //#define USEDLLSHELL     _WINDLL
-//bool MFUNC() { return I32 != 0; } // && config.exe == EX_WIN32)       // member functions are TYmfunc
+bool MFUNC() { return I32 != 0; } // && config.exe == EX_WIN32)       // member functions are TYmfunc
 enum CV3 = 0;          // 1 means support CV3 debug format
 
 /* Object module format
@@ -310,17 +321,13 @@ enum CV3 = 0;          // 1 means support CV3 debug format
 //#ifndef OMFOBJ
 //#define OMFOBJ          TARGET_WINDOS
 //#endif
-//#ifndef ELFOBJ
-//#define ELFOBJ          (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-//#endif
-//#ifndef MACHOBJ
-//#define MACHOBJ         TARGET_OSX
-//#endif
+enum ELFOBJ = TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS;
+enum MACHOBJ = TARGET_OSX;
 
 version (XVERSION)
 {
     enum SYMDEB_CODEVIEW = TARGET_WINDOS;
-    enum SYMDEB_DWARF = TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX;
+    enum SYMDEB_DWARF = TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS || TARGET_OSX;
 }
 
 //#define TOOLKIT_H
@@ -376,7 +383,7 @@ else
 {
     debug
     {
-        enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2017.  All Rights Reserved.
+        enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2019.  All Rights Reserved.
 Written by Walter Bright
 *****BETA TEST VERSION*****";
     }
@@ -384,12 +391,12 @@ Written by Walter Bright
     {
         version (linux)
         {
-            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2017.  All Rights Reserved.
+            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2019.  All Rights Reserved.
 Written by Walter Bright, Linux version by Pat Nelson";
         }
         else
         {
-            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2017.  All Rights Reserved.
+            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2019.  All Rights Reserved.
 Written by Walter Bright";
         }
     }
@@ -716,9 +723,6 @@ struct Config
     bool useModuleInfo;         // implement ModuleInfo
     bool useTypeInfo;           // implement TypeInfo
     bool useExceptions;         // implement exception handling
-
-    static uint sizeCheck();
-    unittest { assert(sizeCheck() == Config.sizeof); }
 }
 
 enum THRESHMAX = 0xFFFF;
@@ -743,9 +747,6 @@ struct Configv
     char* deflibname;           // default library name
     LANG language;              // message language
     int errmax;                 // max error count
-
-    static uint sizeCheck();
-    unittest { assert(sizeCheck() == Configv.sizeof); }
 }
 
 alias reg_t = ubyte;            // register number
@@ -880,9 +881,6 @@ union eve
             elem* Eleft2;       // left child for OPddtor
             void* Edecl;        // VarDeclaration being constructed
         }                       // OPdctor,OPddtor
-
-    static uint sizeCheck();
-    unittest { assert(sizeCheck() == eve.sizeof); }
 }                               // variants for each type of elem
 
 // Symbols

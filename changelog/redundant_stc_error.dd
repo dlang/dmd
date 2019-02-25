@@ -1,8 +1,0 @@
-Specifying redundant storage classes will now result in a compiler error
-
-Specifying redundant storage classes was deprecated long ago and was originally scheduled to emit a compiler error beginning with the 2.068 release.
-That promise has been fulfilled with this release.
-
----
-@safe void f() @safe {}   // Error: redundant attribute `@safe`
----

@@ -1,4 +1,4 @@
-/* REQUIRED_ARGS: -dip1000
+/* REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
 fail_compilation/fix17635.d(22): Error: cannot implicitly convert expression `f(& p)` of type `immutable(int)**` to `immutable(int**)`

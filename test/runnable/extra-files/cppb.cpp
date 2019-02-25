@@ -271,13 +271,13 @@ void foo8(const char *p)
 }
 
 /**************************************/
-// 4059
+// https://issues.dlang.org/show_bug.cgi?id=4059
 
 struct elem9 { };
 void foobar9(elem9*, elem9*) { }
 
 /**************************************/
-// 5148
+// https://issues.dlang.org/show_bug.cgi?id=5148
 
 void foo10(const char*, const char*) { }
 void foo10(const int, const int) { }
@@ -415,8 +415,12 @@ wchar_t f13289_d_wchar(wchar_t ch);
 unsigned int f13289_d_dchar(unsigned int ch);
 #endif
 
+wchar_t f13289_d_wchar_t(wchar_t ch);
+
 bool f13289_cpp_test()
 {
+    if (!(f13289_d_wchar_t(L'e') == L'E')) return false;
+    if (!(f13289_d_wchar_t(L'F') == L'F')) return false;
 #if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun || __NetBSD__ || __DragonFly__
     if (!(f13289_d_wchar((unsigned short)'c') == (unsigned short)'C')) return false;
     if (!(f13289_d_wchar((unsigned short)'D') == (unsigned short)'D')) return false;
@@ -440,6 +444,12 @@ long double testld(long double ld)
 {
     assert(ld == 5);
     return ld + 1;
+}
+
+long double testldld(long double ld1, long double ld2)
+{
+    assert(ld1 == 5);
+    return ld2 + 1;
 }
 
 long testl(long lng)
@@ -492,7 +502,7 @@ namespace N13337 {
 }
 
 /****************************************/
-// 14195
+// https://issues.dlang.org/show_bug.cgi?id=14195
 
 template <typename T>
 struct Delegate1 {};
@@ -511,13 +521,13 @@ void test14195a(Delegate1<void()> func) {}
 void test14195b(Delegate2<int(float, double), int(float, double)> func) {}
 
 /******************************************/
-// 14200
+// https://issues.dlang.org/show_bug.cgi?id=14200
 
 void test14200a(int a) {};
 void test14200b(float a, int b, double c) {};
 
 /******************************************/
-// 14956
+// https://issues.dlang.org/show_bug.cgi?id=14956
 
 namespace std {
     namespace N14956 {
@@ -620,10 +630,10 @@ void throwle()
 #endif
 
 /******************************************/
-// 15579
+// https://issues.dlang.org/show_bug.cgi?id=15579
 
 /******************************************/
-// 15579
+// https://issues.dlang.org/show_bug.cgi?id=15579
 
 class Base
 {
@@ -698,7 +708,7 @@ Interface *cppfooi(Interface *i)
 }
 
 /******************************************/
-// 15610
+// https://issues.dlang.org/show_bug.cgi?id=15610
 
 class Base2
 {
@@ -726,7 +736,7 @@ void Derived2::f()
 }
 
 /******************************************/
-// 15455
+// https://issues.dlang.org/show_bug.cgi?id=15455
 
 struct X6
 {
@@ -754,7 +764,7 @@ void test15455b(X8 s)
 }
 
 /******************************************/
-// 15372
+// https://issues.dlang.org/show_bug.cgi?id=15372
 
 template <typename T>
 int foo15372(int value)
@@ -768,7 +778,7 @@ void test15372b()
 }
 
 /****************************************/
-// 15576
+// https://issues.dlang.org/show_bug.cgi?id=15576
 
 namespace ns15576
 {
@@ -781,7 +791,7 @@ namespace ns15576
 }
 
 /****************************************/
-// 15802
+// https://issues.dlang.org/show_bug.cgi?id=15802
 
 template <typename T>
 class Foo15802
@@ -800,7 +810,8 @@ void test15802b()
 
 
 /****************************************/
-// 16536 - mangling mismatch on OSX
+// https://issues.dlang.org/show_bug.cgi?id=16536
+// mangling mismatch on OSX
 
 #if defined(__APPLE__)
 uint64_t pass16536(uint64_t a)
@@ -810,7 +821,8 @@ uint64_t pass16536(uint64_t a)
 #endif
 
 /****************************************/
-// 15589 - extern(C++) virtual destructors are not put in vtbl[]
+// https://issues.dlang.org/show_bug.cgi?id=15589
+// extern(C++) virtual destructors are not put in vtbl[]
 
 class A15589
 {
@@ -926,4 +938,41 @@ Base18966::~Base18966() {}
 void Base18966::vf()
 {
     x = 100;
+}
+
+A18966::A18966() : calledOverloads(/*zero-init*/), i(0) { foo(); }
+void A18966::foo() { calledOverloads[i++] = 'A'; }
+
+B18966::B18966() { foo(); }
+void B18966::foo() { calledOverloads[i++] = 'B'; }
+
+#if _WIN32 // otherwise defined in C header files!
+// https://issues.dlang.org/show_bug.cgi?id=18955
+namespace std
+{
+    template<typename Char>
+    struct char_traits
+    {
+    };
+    template<typename Char>
+    class allocator
+    {
+    };
+    template<typename Char, typename Traits, typename Alloc>
+    class basic_string
+    {
+    };
+    typedef basic_string<char, char_traits<char>, allocator<char> > string;
+}
+#endif // _WIN32
+
+void callback18955(const std::string& s);
+
+void test18955()
+{
+    std::string s;
+// TODO: on OSX and FreeBSD, std is mangled as std::__1
+#if !__APPLE__ && !__FreeBSD__
+    callback18955(s);
+#endif
 }

@@ -2,7 +2,7 @@
  * Compiler implementation of the D programming language
  * http://dlang.org
  *
- * Copyright: Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/aav.d, root/_aav.d)
@@ -15,7 +15,7 @@ module dmd.root.aav;
 import core.stdc.string;
 import dmd.root.rmem;
 
-extern (C++) size_t hash(size_t a)
+private size_t hash(size_t a)
 {
     a ^= (a >> 20) ^ (a >> 12);
     return a ^ (a >> 7) ^ (a >> 4);
@@ -51,7 +51,7 @@ struct AA
 /****************************************************
  * Determine number of entries in associative array.
  */
-extern (C++) size_t dmd_aaLen(const AA* aa) pure
+private size_t dmd_aaLen(const AA* aa) pure
 {
     return aa ? aa.nodes : 0;
 }
@@ -61,7 +61,7 @@ extern (C++) size_t dmd_aaLen(const AA* aa) pure
  * Add entry for key if it is not already there, returning a pointer to a null Value.
  * Create the associative array if it does not already exist.
  */
-extern (C++) Value* dmd_aaGet(AA** paa, Key key)
+private Value* dmd_aaGet(AA** paa, Key key)
 {
     //printf("paa = %p\n", paa);
     if (!*paa)
@@ -110,7 +110,7 @@ extern (C++) Value* dmd_aaGet(AA** paa, Key key)
  * Get value in associative array indexed by key.
  * Returns NULL if it is not already there.
  */
-extern (C++) Value dmd_aaGetRvalue(AA* aa, Key key)
+private Value dmd_aaGetRvalue(AA* aa, Key key)
 {
     //printf("_aaGetRvalue(key = %p)\n", key);
     if (aa)
@@ -218,7 +218,7 @@ debug
 /********************************************
  * Rehash an array.
  */
-extern (C++) void dmd_aaRehash(AA** paa)
+private void dmd_aaRehash(AA** paa)
 {
     //printf("Rehash\n");
     if (*paa)

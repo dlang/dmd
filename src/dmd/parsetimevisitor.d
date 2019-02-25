@@ -100,7 +100,7 @@ public:
     void visit(AST.ForeachRangeStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.ForeachStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.IfStatement s) { visit(cast(AST.Statement)s); }
-    void visit(AST.OnScopeStatement s) { visit(cast(AST.Statement)s); }
+    void visit(AST.ScopeGuardStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.ConditionalStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.StaticForeachStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.PragmaStatement s) { visit(cast(AST.Statement)s); }
@@ -126,6 +126,10 @@ public:
     void visit(AST.CompoundDeclarationStatement s) { visit(cast(AST.CompoundStatement)s); }
     void visit(AST.CompoundAsmStatement s) { visit(cast(AST.CompoundStatement)s); }
 
+    // AsmStatements
+    void visit(AST.InlineAsmStatement s) { visit(cast(AST.AsmStatement)s); }
+    void visit(AST.GccAsmStatement s) { visit(cast(AST.AsmStatement)s); }
+
     //=========================================================================================
     // Types
     void visit(AST.TypeBasic t) { visit(cast(AST.Type)t); }
@@ -138,6 +142,7 @@ public:
     void visit(AST.TypeStruct t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeNext t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeQualified t) { visit(cast(AST.Type)t); }
+    void visit(AST.TypeTraits t) { visit(cast(AST.Type)t); }
 
     // TypeNext
     void visit(AST.TypeReference t) { visit(cast(AST.TypeNext)t); }
@@ -172,6 +177,7 @@ public:
     void visit(AST.NewExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.AssocArrayLiteralExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.ArrayLiteralExp e) { visit(cast(AST.Expression)e); }
+    void visit(AST.CompileExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.FuncExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.IntervalExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.TypeExp e) { visit(cast(AST.Expression)e); }
@@ -204,7 +210,6 @@ public:
     void visit(AST.CallExp e) { visit(cast(AST.UnaExp)e); }
     void visit(AST.DotIdExp e) { visit(cast(AST.UnaExp)e); }
     void visit(AST.AssertExp e) { visit(cast(AST.UnaExp)e); }
-    void visit(AST.CompileExp e) { visit(cast(AST.UnaExp)e); }
     void visit(AST.ImportExp e) { visit(cast(AST.UnaExp)e); }
     void visit(AST.DotTemplateInstanceExp e) { visit(cast(AST.UnaExp)e); }
     void visit(AST.ArrayExp e) { visit(cast(AST.UnaExp)e); }

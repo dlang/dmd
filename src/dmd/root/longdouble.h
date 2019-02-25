@@ -1,15 +1,15 @@
-/* Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+
+/* Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * All Rights Reserved, written by Rainer Schuetze
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
- * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
- * https://github.com/dlang/dmd/blob/master/src/root/longdouble.h
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/dlang/dmd/blob/master/src/dmd/root/longdouble.h
  */
 
 // 80 bit floating point value implementation for Microsoft compiler
 
-#ifndef __LONG_DOUBLE_H__
-#define __LONG_DOUBLE_H__
+#pragma once
 
 #if !_MSC_VER // has native 10 byte doubles
 #include <stdio.h>
@@ -117,21 +117,21 @@ struct longdouble_soft
     void set(unsigned long long d) { ld_setull(this, d); }
     void set(bool               d) { ld_set(this, d); }
 
-    operator float             () { return ld_read(this); }
-    operator double            () { return ld_read(this); }
+    operator float             () const { return ld_read(this); }
+    operator double            () const { return ld_read(this); }
 
-    operator signed char       () { return ld_read(this); }
-    operator short             () { return ld_read(this); }
-    operator int               () { return ld_read(this); }
-    operator long              () { return ld_read(this); }
-    operator long long         () { return ld_readll(this); }
+    operator signed char       () const { return ld_read(this); }
+    operator short             () const { return ld_read(this); }
+    operator int               () const { return ld_read(this); }
+    operator long              () const { return ld_read(this); }
+    operator long long         () const { return ld_readll(this); }
 
-    operator unsigned char     () { return ld_read(this); }
-    operator unsigned short    () { return ld_read(this); }
-    operator unsigned int      () { return ld_read(this); }
-    operator unsigned long     () { return ld_read(this); }
-    operator unsigned long long() { return ld_readull(this); }
-    operator bool              () { return mantissa != 0 || exponent != 0; } // correct?
+    operator unsigned char     () const { return ld_read(this); }
+    operator unsigned short    () const { return ld_read(this); }
+    operator unsigned int      () const { return ld_read(this); }
+    operator unsigned long     () const { return ld_read(this); }
+    operator unsigned long long() const { return ld_readull(this); }
+    operator bool              () const { return mantissa != 0 || exponent != 0; } // correct?
 };
 
 #pragma pack(pop)
@@ -236,17 +236,21 @@ inline longdouble_soft sqrt (longdouble_soft ld) { return sqrtl(ld); }
 #define LDBL_MAX_10_EXP 4932
 #define LDBL_MIN_10_EXP (-4932)
 
-extern longdouble_soft ld_zero;
-extern longdouble_soft ld_one;
-extern longdouble_soft ld_pi;
-extern longdouble_soft ld_log2t;
-extern longdouble_soft ld_log2e;
-extern longdouble_soft ld_log2;
-extern longdouble_soft ld_ln2;
+extern const longdouble_soft ld_qnan;
+extern const longdouble_soft ld_snan;
+extern const longdouble_soft ld_inf;
 
-extern longdouble_soft ld_inf;
-extern longdouble_soft ld_qnan;
-extern longdouble_soft ld_snan;
+extern const longdouble_soft ld_zero;
+extern const longdouble_soft ld_one;
+extern const longdouble_soft ld_pi;
+extern const longdouble_soft ld_log2t;
+extern const longdouble_soft ld_log2e;
+extern const longdouble_soft ld_log2;
+extern const longdouble_soft ld_ln2;
+
+extern const longdouble_soft ld_pi2;
+extern const longdouble_soft ld_piOver2;
+extern const longdouble_soft ld_piOver4;
 
 size_t ld_sprint(char* str, int fmt, longdouble_soft x);
 
@@ -260,5 +264,3 @@ typedef longdouble_soft longdouble;
 typedef longdouble_soft volatile_longdouble;
 
 #endif // !_MSC_VER
-
-#endif // __LONG_DOUBLE_H__

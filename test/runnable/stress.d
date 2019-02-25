@@ -88,8 +88,8 @@ void MDCHAR()
     if(str[ITERS-1][0].sizeof != (typ).sizeof) printf("Size Error: %d\n",str[ITERS-1][0].sizeof);
 
     foreach(s; str) {
-        int lstart;
-        foreach(int idx, char c; s) {
+        size_t lstart;
+        foreach(size_t idx, char c; s) {
             if(c == '\n') {
                 typ[] t = s[lstart..idx];
                 if(t != "TEST LINE") {
@@ -107,8 +107,8 @@ void MDCHAR()
     }
 
     foreach(s; splitLines(cast(string)tmp)) {
-        int lstart;
-        foreach(int idx, char c; s) {
+        size_t lstart;
+        foreach(size_t idx, char c; s) {
             if(c == '\n') {
                 if(s[lstart..idx] != "TEST LINE") {
                     printf("Error testing character array\n");
@@ -133,8 +133,8 @@ void CHAR()
     if(str.length != (ITERS * 10)) printf("Length Error: %d\n",str.length);
     if(str.sizeof != (typ[]).sizeof) printf("Size Error: %d\n",str.sizeof);
 
-    int lstart;
-    foreach(int idx, char c; str) {
+    size_t lstart;
+    foreach(size_t idx, char c; str) {
         if(c == '\n') {
             if(str[lstart..idx] != "TEST LINE") {
                 printf("Error testing character array\n");
@@ -158,8 +158,8 @@ void WCHAR()
     if(str.length != (ITERS * 10)) printf("Length Error: %d\n",str.length);
     if(str.sizeof != (typ[]).sizeof) printf("Size Error: %d\n",str.sizeof);
 
-    int lstart;
-    foreach(int idx, char c; str) {
+    size_t lstart;
+    foreach(size_t idx, char c; str) {
         if(c == '\n') {
             if(str[lstart..idx] != toUTF16(cast(char[])"TEST LINE")) {
                 printf("Error testing character array\n");
@@ -183,8 +183,8 @@ void DCHAR()
     if(str.length != (ITERS * 10)) printf("Length Error: %d\n",str.length);
     if(str.sizeof != (typ[]).sizeof) printf("Size Error: %d\n",str.sizeof);
 
-    int lstart;
-    foreach(int idx, char c; str) {
+    size_t lstart;
+    foreach(size_t idx, char c; str) {
         if(c == '\n') {
             if(str[lstart..idx] != toUTF32(cast(char[])"TEST LINE")) {
                 printf("Error testing character array\n");

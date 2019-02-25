@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/globals.d, _globals.d)
@@ -16,7 +16,6 @@ import core.stdc.stdint;
 import dmd.root.array;
 import dmd.root.filename;
 import dmd.root.outbuffer;
-import dmd.compiler;
 import dmd.identifier;
 
 template xversion(string s)
@@ -35,6 +34,13 @@ enum TARGET : bool
     DragonFlyBSD = xversion!`DragonFlyBSD`,
 }
 
+enum Diagnostic : ubyte
+{
+    error,        // generate an error
+    inform,       // generate a warning
+    off,          // disable diagnostic
+}
+
 enum CHECKENABLE : ubyte
 {
     _default,     // initial value
@@ -47,6 +53,8 @@ enum CHECKACTION : ubyte
 {
     D,            // call D assert on failure
     C,            // call C assert on failure
+    halt,         // cause program halt on failure
+    context,      // call D assert with the error context on failure
 }
 
 enum CPU
@@ -80,6 +88,14 @@ enum JsonFieldFlags : uint
     buildInfo    = (1 << 1),
     modules      = (1 << 2),
     semantics    = (1 << 3),
+}
+
+enum CppStdRevision : uint
+{
+    cpp98 = 199711,
+    cpp11 = 201103,
+    cpp14 = 201402,
+    cpp17 = 201703
 }
 
 // Put command line switches in here
@@ -116,25 +132,17 @@ struct Param
     bool isSolaris;         // generate code for Solaris
     bool hasObjectiveC;     // target supports Objective-C
     bool mscoff = false;    // for Win32: write MsCoff object files instead of OMF
-    // 0: don't allow use of deprecated features
-    // 1: silently allow use of deprecated features
-    // 2: warn about the use of deprecated features
-    byte useDeprecated = 2;
-    bool useInvariants = true;  // generate class invariant checks
-    bool useIn = true;          // generate precondition checks
-    bool useOut = true;         // generate postcondition checks
+    Diagnostic useDeprecated = Diagnostic.inform;  // how use of deprecated features are handled
     bool stackstomp;            // add stack stomping code
     bool useUnitTests;          // generate unittest code
     bool useInline = false;     // inline expand functions
     bool useDIP25;          // implement http://wiki.dlang.org/DIP25
+    bool noDIP25;           // revert to pre-DIP25 behavior
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
-    // 0: disable warnings
-    // 1: warnings as errors
-    // 2: informational warnings (no errors)
-    byte warnings;
+    Diagnostic warnings = Diagnostic.off;  // how compiler warnings are handled
     bool pic;               // generate position-independent-code for shared libs
-    bool color = true;      // use ANSI colors in console output
+    bool color;             // use ANSI colors in console output
     bool cov;               // generate code coverage data
     ubyte covPercent;       // 0..100 code coverage percentage required
     bool nofloat;           // code should not pull in floating point support
@@ -149,31 +157,51 @@ struct Param
     bool bug10378;          // use pre- https://issues.dlang.org/show_bug.cgi?id=10378 search strategy
     bool fix16997;          // fix integral promotions for unary + - ~ operators
                             // https://issues.dlang.org/show_bug.cgi?id=16997
-    bool vsafe;             // use enhanced @safe checking
-    bool ehnogc;            // use @nogc exception handling
+    bool fixAliasThis;      // if the current scope has an alias this, check it before searching upper scopes
     /** The --transition=safe switch should only be used to show code with
      * silent semantics changes related to @safe improvements.  It should not be
      * used to hide a feature that will have to go through deprecate-then-error
      * before becoming default.
      */
+    bool vsafe;             // use enhanced @safe checking
+    bool ehnogc;            // use @nogc exception handling
+    bool dtorFields;        // destruct fields of partially constructed objects
+                            // https://issues.dlang.org/show_bug.cgi?id=14246
+    bool fieldwise;         // do struct equality testing field-wise rather than by memcmp()
+
+    CppStdRevision cplusplus = CppStdRevision.cpp98;    // version of C++ standard to support
+
+    bool markdown;          // enable Markdown replacements in Ddoc
+    bool vmarkdown;         // list instances of Markdown replacements in Ddoc
 
     bool showGaggedErrors;  // print gagged errors anyway
+    bool printErrorContext;  // print errors with the error context (the error line in the source file)
     bool manual;            // open browser on compiler manual
     bool usage;             // print usage and exit
     bool mcpuUsage;         // print help on -mcpu switch
     bool transitionUsage;   // print help on -transition switch
+    bool checkUsage;        // print help on -check switch
+    bool checkActionUsage;  // print help on -checkaction switch
+    bool revertUsage;       // print help on -revert switch
+    bool previewUsage;      // print help on -preview switch
+    bool externStdUsage;    // print help on -extern-std switch
     bool logo;              // print compiler logo
 
     CPU cpu = CPU.baseline; // CPU instruction set to target
 
+    CHECKENABLE useInvariants  = CHECKENABLE._default;  // generate class invariant checks
+    CHECKENABLE useIn          = CHECKENABLE._default;  // generate precondition checks
+    CHECKENABLE useOut         = CHECKENABLE._default;  // generate postcondition checks
     CHECKENABLE useArrayBounds = CHECKENABLE._default;  // when to generate code for array bounds checks
     CHECKENABLE useAssert      = CHECKENABLE._default;  // when to generate code for assert()'s
     CHECKENABLE useSwitchError = CHECKENABLE._default;  // check for switches without a default
-    CHECKACTION checkAction;       // action to take when bounds, asserts or switch defaults are violated
+    CHECKENABLE boundscheck    = CHECKENABLE._default;  // state of -boundscheck switch
+
+    CHECKACTION checkAction = CHECKACTION.D; // action to take when bounds, asserts or switch defaults are violated
 
     uint errorLimit = 20;
 
-    const(char)* argv0;                 // program name
+    const(char)[] argv0;                // program name
     Array!(const(char)*)* modFileAliasStrings; // array of char*'s of -I module filename alias strings
     Array!(const(char)*)* imppath;      // array of char*'s of where to look for import modules
     Array!(const(char)*)* fileImppath;  // array of char*'s of where to look for file import modules
@@ -194,6 +222,10 @@ struct Param
     bool doJsonGeneration;              // write JSON file
     const(char)* jsonfilename;          // write JSON file to jsonfilename
     JsonFieldFlags jsonFieldFlags;      // JSON field flags to include
+
+    OutBuffer* mixinOut;                // write expanded mixins for debugging
+    const(char)* mixinFile;             // .mixin file output name
+    int mixinLines;                     // Number of lines in writeMixins
 
     uint debuglevel;                    // debug level
     Array!(const(char)*)* debugids;     // debug identifiers
@@ -250,20 +282,21 @@ struct Global
     const(char)* map_ext = "map";       // for .map files
     bool run_noext;                     // allow -run sources without extensions.
 
-    const(char)* copyright = "Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved";
+    const(char)* copyright = "Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved";
     const(char)* written = "written by Walter Bright";
     const(char)* main_d = "__main.d";   // dummy filename for dummy main()
     Array!(const(char)*)* path;         // Array of char*'s which form the import lookup path
     Array!(const(char)*)* filePath;     // Array of char*'s which form the file import lookup path
 
     const(char)* _version;
+    const(char)* vendor;    // Compiler backend name
 
-    Compiler compiler;
     Param params;
     uint errors;            // number of errors reported so far
     uint warnings;          // number of warnings reported so far
     uint gag;               // !=0 means gag reporting of errors & warnings
     uint gaggedErrors;      // number of errors reported while gagged
+    uint gaggedWarnings;    // number of warnings reported while gagged
 
     void* console;         // opaque pointer to console for controlling text attributes
 
@@ -275,6 +308,7 @@ struct Global
     extern (C++) uint startGagging()
     {
         ++gag;
+        gaggedWarnings = 0;
         return gaggedErrors;
     }
 
@@ -358,8 +392,27 @@ struct Global
         {
             static assert(0, "fix this");
         }
+        static if (TARGET.Windows)
+        {
+            params.mscoff = params.is64bit;
+        }
         _version = (import("VERSION") ~ '\0').ptr;
-        compiler.vendor = "Digital Mars D";
+        vendor = "Digital Mars D";
+
+        // -color=auto is the default value
+        import dmd.console : Console;
+        params.color = Console.detectTerminal();
+    }
+
+    /**
+     * Deinitializes the global state of the compiler.
+     *
+     * This can be used to restore the state set by `_init` to its original
+     * state.
+     */
+    void deinitialize()
+    {
+        this = this.init;
     }
 
     /**
@@ -368,7 +421,7 @@ struct Global
     extern(C++) uint versionNumber()
     {
         import core.stdc.ctype;
-        __gshared static uint cached = 0;
+        __gshared uint cached = 0;
         if (cached == 0)
         {
             //

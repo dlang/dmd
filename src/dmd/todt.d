@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/todt.d, _todt.d)
@@ -61,169 +61,163 @@ alias Dts = Array!(dt_t*);
 
 /* ================================================================ */
 
-extern (C++) void Initializer_toDt(Initializer init, DtBuilder dtb)
+extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
 {
-    extern (C++) class InitToDt : Visitor
+    void visitError(ErrorInitializer)
     {
-        DtBuilder dtb;
-
-        this(DtBuilder dtb)
-        {
-            this.dtb = dtb;
-        }
-
-        alias visit = Visitor.visit;
-
-        override void visit(Initializer)
-        {
-            assert(0);
-        }
-
-        override void visit(VoidInitializer vi)
-        {
-            /* Void initializers are set to 0, just because we need something
-             * to set them to in the static data segment.
-             */
-            dtb.nzeros(cast(uint)vi.type.size());
-        }
-
-        override void visit(StructInitializer si)
-        {
-            //printf("StructInitializer.toDt('%s')\n", si.toChars());
-            assert(0);
-        }
-
-        override void visit(ArrayInitializer ai)
-        {
-            //printf("ArrayInitializer.toDt('%s')\n", ai.toChars());
-            Type tb = ai.type.toBasetype();
-            if (tb.ty == Tvector)
-                tb = (cast(TypeVector)tb).basetype;
-
-            Type tn = tb.nextOf().toBasetype();
-
-            //printf("\tdim = %d\n", ai.dim);
-            Dts dts;
-            dts.setDim(ai.dim);
-            dts.zero();
-
-            uint size = cast(uint)tn.size();
-
-            uint length = 0;
-            for (size_t i = 0; i < ai.index.dim; i++)
-            {
-                Expression idx = ai.index[i];
-                if (idx)
-                    length = cast(uint)idx.toInteger();
-                //printf("\tindex[%d] = %p, length = %u, dim = %u\n", i, idx, length, ai.dim);
-
-                assert(length < ai.dim);
-                scope dtb = new DtBuilder();
-                Initializer_toDt(ai.value[i], dtb);
-                if (dts[length])
-                    error(ai.loc, "duplicate initializations for index `%d`", length);
-                dts[length] = dtb.finish();
-                length++;
-            }
-
-            Expression edefault = tb.nextOf().defaultInit(Loc.initial);
-
-            const n = tn.numberOfElems(ai.loc);
-
-            dt_t* dtdefault = null;
-
-            scope dtbarray = new DtBuilder();
-            for (size_t i = 0; i < ai.dim; i++)
-            {
-                if (dts[i])
-                    dtbarray.cat(dts[i]);
-                else
-                {
-                    if (!dtdefault)
-                    {
-                        scope dtb = new DtBuilder();
-                        Expression_toDt(edefault, dtb);
-                        dtdefault = dtb.finish();
-                    }
-                    dtbarray.repeat(dtdefault, n);
-                }
-            }
-            switch (tb.ty)
-            {
-                case Tsarray:
-                {
-                    TypeSArray ta = cast(TypeSArray)tb;
-                    size_t tadim = cast(size_t)ta.dim.toInteger();
-                    if (ai.dim < tadim)
-                    {
-                        if (edefault.isBool(false))
-                        {
-                            // pad out end of array
-                            dtbarray.nzeros(cast(uint)(size * (tadim - ai.dim)));
-                        }
-                        else
-                        {
-                            if (!dtdefault)
-                            {
-                                scope dtb = new DtBuilder();
-                                Expression_toDt(edefault, dtb);
-                                dtdefault = dtb.finish();
-                            }
-
-                            const m = n * (tadim - ai.dim);
-                            assert(m <= uint.max);
-                            dtbarray.repeat(dtdefault, cast(uint)m);
-                        }
-                    }
-                    else if (ai.dim > tadim)
-                    {
-                        error(ai.loc, "too many initializers, %d, for array[%d]", ai.dim, tadim);
-                    }
-                    dtb.cat(dtbarray);
-                    break;
-                }
-
-                case Tpointer:
-                case Tarray:
-                {
-                    if (tb.ty == Tarray)
-                        dtb.size(ai.dim);
-                    Symbol* s = dtb.dtoff(dtbarray.finish(), 0);
-                    if (tn.isMutable())
-                        for (int i = 0; i < ai.dim; i++)
-                            write_pointers(tn, s, size * i);
-                    break;
-                }
-
-                default:
-                    assert(0);
-            }
-            dt_free(dtdefault);
-        }
-
-        override void visit(ExpInitializer ei)
-        {
-            //printf("ExpInitializer.toDt() %s\n", ei.exp.toChars());
-            ei.exp = ei.exp.optimize(WANTvalue);
-            Expression_toDt(ei.exp, dtb);
-        }
+        assert(0);
     }
 
-    scope v = new InitToDt(dtb);
-    init.accept(v);
+    void visitVoid(VoidInitializer vi)
+    {
+        /* Void initializers are set to 0, just because we need something
+         * to set them to in the static data segment.
+         */
+        dtb.nzeros(cast(uint)vi.type.size());
+    }
+
+    void visitStruct(StructInitializer si)
+    {
+        //printf("StructInitializer.toDt('%s')\n", si.toChars());
+        assert(0);
+    }
+
+    void visitArray(ArrayInitializer ai)
+    {
+        //printf("ArrayInitializer.toDt('%s')\n", ai.toChars());
+        Type tb = ai.type.toBasetype();
+        if (tb.ty == Tvector)
+            tb = (cast(TypeVector)tb).basetype;
+
+        Type tn = tb.nextOf().toBasetype();
+
+        //printf("\tdim = %d\n", ai.dim);
+        Dts dts;
+        dts.setDim(ai.dim);
+        dts.zero();
+
+        uint size = cast(uint)tn.size();
+
+        uint length = 0;
+        for (size_t i = 0; i < ai.index.dim; i++)
+        {
+            Expression idx = ai.index[i];
+            if (idx)
+                length = cast(uint)idx.toInteger();
+            //printf("\tindex[%d] = %p, length = %u, dim = %u\n", i, idx, length, ai.dim);
+
+            assert(length < ai.dim);
+            auto dtb = DtBuilder(0);
+            Initializer_toDt(ai.value[i], dtb);
+            if (dts[length])
+                error(ai.loc, "duplicate initializations for index `%d`", length);
+            dts[length] = dtb.finish();
+            length++;
+        }
+
+        Expression edefault = tb.nextOf().defaultInit(Loc.initial);
+
+        const n = tn.numberOfElems(ai.loc);
+
+        dt_t* dtdefault = null;
+
+        auto dtbarray = DtBuilder(0);
+        for (size_t i = 0; i < ai.dim; i++)
+        {
+            if (dts[i])
+                dtbarray.cat(dts[i]);
+            else
+            {
+                if (!dtdefault)
+                {
+                    auto dtb = DtBuilder(0);
+                    Expression_toDt(edefault, dtb);
+                    dtdefault = dtb.finish();
+                }
+                dtbarray.repeat(dtdefault, n);
+            }
+        }
+        switch (tb.ty)
+        {
+            case Tsarray:
+            {
+                TypeSArray ta = cast(TypeSArray)tb;
+                size_t tadim = cast(size_t)ta.dim.toInteger();
+                if (ai.dim < tadim)
+                {
+                    if (edefault.isBool(false))
+                    {
+                        // pad out end of array
+                        dtbarray.nzeros(cast(uint)(size * (tadim - ai.dim)));
+                    }
+                    else
+                    {
+                        if (!dtdefault)
+                        {
+                            auto dtb = DtBuilder(0);
+                            Expression_toDt(edefault, dtb);
+                            dtdefault = dtb.finish();
+                        }
+
+                        const m = n * (tadim - ai.dim);
+                        assert(m <= uint.max);
+                        dtbarray.repeat(dtdefault, cast(uint)m);
+                    }
+                }
+                else if (ai.dim > tadim)
+                {
+                    error(ai.loc, "too many initializers, %d, for array[%d]", ai.dim, tadim);
+                }
+                dtb.cat(dtbarray);
+                break;
+            }
+
+            case Tpointer:
+            case Tarray:
+            {
+                if (tb.ty == Tarray)
+                    dtb.size(ai.dim);
+                Symbol* s = dtb.dtoff(dtbarray.finish(), 0);
+                if (tn.isMutable())
+                    for (int i = 0; i < ai.dim; i++)
+                        write_pointers(tn, s, size * i);
+                break;
+            }
+
+            default:
+                assert(0);
+        }
+        dt_free(dtdefault);
+    }
+
+    void visitExp(ExpInitializer ei)
+    {
+        //printf("ExpInitializer.toDt() %s\n", ei.exp.toChars());
+        ei.exp = ei.exp.optimize(WANTvalue);
+        Expression_toDt(ei.exp, dtb);
+    }
+
+    final switch (init.kind)
+    {
+        case InitKind.void_:   return visitVoid  (cast(  VoidInitializer)init);
+        case InitKind.error:   return visitError (cast( ErrorInitializer)init);
+        case InitKind.struct_: return visitStruct(cast(StructInitializer)init);
+        case InitKind.array:   return visitArray (cast( ArrayInitializer)init);
+        case InitKind.exp:     return visitExp   (cast(   ExpInitializer)init);
+    }
 }
 
 /* ================================================================ */
 
-extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
+extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
 {
     extern (C++) class ExpToDt : Visitor
     {
-        DtBuilder dtb;
+        DtBuilder* dtb;
 
-        this(DtBuilder dtb)
+        this(ref DtBuilder dtb)
         {
-            this.dtb = dtb;
+            this.dtb = &dtb;
         }
 
         alias visit = Visitor.visit;
@@ -233,7 +227,6 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
             version (none)
             {
                 printf("Expression.toDt() %d\n", e.op);
-                print();
             }
             e.error("non-constant expression `%s`", e.toChars());
             dtb.nzeros(1);
@@ -255,11 +248,11 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
                     int off = 0;
                     int isbase = to.isBaseOf(from, &off);
                     assert(isbase);
-                    ClassReferenceExp_toDt(cast(ClassReferenceExp)e.e1, dtb, off);
+                    ClassReferenceExp_toDt(cast(ClassReferenceExp)e.e1, *dtb, off);
                 }
                 else //casting from class to class
                 {
-                    Expression_toDt(e.e1, dtb);
+                    Expression_toDt(e.e1, *dtb);
                 }
                 return;
             }
@@ -320,14 +313,13 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
                 case Timaginary80:
                 {
                     auto evalue = e.value;
-                    dtb.nbytes(Target.realsize - Target.realpad, cast(char*)&evalue);
-                    dtb.nzeros(Target.realpad);
+                    dtb.nbytes(target.realsize - target.realpad, cast(char*)&evalue);
+                    dtb.nzeros(target.realpad);
                     break;
                 }
 
                 default:
-                    printf("%s\n", e.toChars());
-                    e.type.print();
+                    printf("%s, e.type=%s\n", e.toChars(), e.type.toChars());
                     assert(0);
             }
         }
@@ -358,11 +350,11 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
                 case Tcomplex80:
                 {
                     auto evalue = creall(e.value);
-                    dtb.nbytes(Target.realsize - Target.realpad, cast(char*)&evalue);
-                    dtb.nzeros(Target.realpad);
+                    dtb.nbytes(target.realsize - target.realpad, cast(char*)&evalue);
+                    dtb.nzeros(target.realpad);
                     evalue = cimagl(e.value);
-                    dtb.nbytes(Target.realsize - Target.realpad, cast(char*)&evalue);
-                    dtb.nzeros(Target.realpad);
+                    dtb.nbytes(target.realsize - target.realpad, cast(char*)&evalue);
+                    dtb.nzeros(target.realpad);
                     break;
                 }
 
@@ -438,7 +430,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
         {
             //printf("ArrayLiteralExp.toDt() '%s', type = %s\n", e.toChars(), e.type.toChars());
 
-            scope dtbarray = new DtBuilder();
+            auto dtbarray = DtBuilder(0);
             for (size_t i = 0; i < e.elements.dim; i++)
             {
                 Expression_toDt(e.getElement(i), dtbarray);
@@ -474,7 +466,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
         {
             //printf("StructLiteralExp.toDt() %s, ctfe = %d\n", sle.toChars(), sle.ownedByCtfe);
             assert(sle.sd.fields.dim - sle.sd.isNested() <= sle.elements.dim);
-            membersToDt(sle.sd, dtb, sle.elements, 0, null);
+            membersToDt(sle.sd, *dtb, sle.elements, 0, null);
         }
 
         override void visit(SymOffExp e)
@@ -509,14 +501,14 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
                     return;
                 }
                 v.inuse++;
-                Initializer_toDt(v._init, dtb);
+                Initializer_toDt(v._init, *dtb);
                 v.inuse--;
                 return;
             }
             SymbolDeclaration sd = e.var.isSymbolDeclaration();
             if (sd && sd.dsym)
             {
-                StructDeclaration_toDt(sd.dsym, dtb);
+                StructDeclaration_toDt(sd.dsym, *dtb);
                 return;
             }
             version (none)
@@ -556,7 +548,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
                 }
                 else
                     elem = e.e1;
-                Expression_toDt(elem, dtb);
+                Expression_toDt(elem, *dtb);
             }
         }
 
@@ -570,10 +562,10 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
                 int off = 0;
                 int isbase = to.isBaseOf(from, &off);
                 assert(isbase);
-                ClassReferenceExp_toDt(e, dtb, off);
+                ClassReferenceExp_toDt(e, *dtb, off);
             }
             else
-                ClassReferenceExp_toDt(e, dtb, 0);
+                ClassReferenceExp_toDt(e, *dtb, 0);
         }
 
         override void visit(TypeidExp e)
@@ -597,7 +589,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
 
 // Generate the data for the static initializer.
 
-extern (C++) void ClassDeclaration_toDt(ClassDeclaration cd, DtBuilder dtb)
+extern (C++) void ClassDeclaration_toDt(ClassDeclaration cd, ref DtBuilder dtb)
 {
     //printf("ClassDeclaration.toDt(this = '%s')\n", cd.toChars());
 
@@ -606,7 +598,7 @@ extern (C++) void ClassDeclaration_toDt(ClassDeclaration cd, DtBuilder dtb)
     //printf("-ClassDeclaration.toDt(this = '%s')\n", cd.toChars());
 }
 
-extern (C++) void StructDeclaration_toDt(StructDeclaration sd, DtBuilder dtb)
+extern (C++) void StructDeclaration_toDt(StructDeclaration sd, ref DtBuilder dtb)
 {
     //printf("+StructDeclaration.toDt(), this='%s'\n", sd.toChars());
     membersToDt(sd, dtb, null, 0, null);
@@ -621,7 +613,7 @@ extern (C++) void StructDeclaration_toDt(StructDeclaration sd, DtBuilder dtb)
  *      cd = C++ class
  *      dtb = data table builder
  */
-extern (C++) void cpp_type_info_ptr_toDt(ClassDeclaration cd, DtBuilder dtb)
+extern (C++) void cpp_type_info_ptr_toDt(ClassDeclaration cd, ref DtBuilder dtb)
 {
     //printf("cpp_type_info_ptr_toDt(this = '%s')\n", cd.toChars());
     assert(cd.isCPPclass());
@@ -654,7 +646,7 @@ extern (C++) void cpp_type_info_ptr_toDt(ClassDeclaration cd, DtBuilder dtb)
  *      updated tail of dt_t list
  */
 
-private void membersToDt(AggregateDeclaration ad, DtBuilder dtb,
+private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
         Expressions* elements, size_t firstFieldIndex,
         ClassDeclaration concreteType,
         BaseClass*** ppb = null)
@@ -704,7 +696,7 @@ private void membersToDt(AggregateDeclaration ad, DtBuilder dtb,
                     if (csymoffset != ~0)
                     {
                         dtb.xoff(toSymbol(cd2), csymoffset);
-                        offset += Target.ptrsize;
+                        offset += target.ptrsize;
                         break;
                     }
                 }
@@ -713,11 +705,11 @@ private void membersToDt(AggregateDeclaration ad, DtBuilder dtb,
         else
         {
             dtb.xoff(toVtblSymbol(concreteType), 0);  // __vptr
-            offset = Target.ptrsize;
+            offset = target.ptrsize;
             if (cd.classKind != ClassKind.cpp)
             {
                 dtb.size(0);              // __monitor
-                offset += Target.ptrsize;
+                offset += target.ptrsize;
             }
         }
 
@@ -791,7 +783,7 @@ private void membersToDt(AggregateDeclaration ad, DtBuilder dtb,
         if (offset < vd.offset)
             dtb.nzeros(vd.offset - offset);
 
-        scope dtbx = new DtBuilder();
+        auto dtbx = DtBuilder(0);
         if (elements)
         {
             Expression e = (*elements)[firstFieldIndex + k];
@@ -838,49 +830,29 @@ private void membersToDt(AggregateDeclaration ad, DtBuilder dtb,
 
 /* ================================================================= */
 
-extern (C++) void Type_toDt(Type t, DtBuilder dtb)
+extern (C++) void Type_toDt(Type t, ref DtBuilder dtb)
 {
-    extern (C++) class TypeToDt : Visitor
+    switch (t.ty)
     {
-    public:
-        DtBuilder dtb;
+        case Tvector:
+            toDtElem(t.isTypeVector().basetype.isTypeSArray(), dtb, null);
+            break;
 
-        this(DtBuilder dtb)
-        {
-            this.dtb = dtb;
-        }
+        case Tsarray:
+            toDtElem(t.isTypeSArray(), dtb, null);
+            break;
 
-        alias visit = Visitor.visit;
+        case Tstruct:
+            StructDeclaration_toDt(t.isTypeStruct().sym, dtb);
+            break;
 
-        override void visit(Type t)
-        {
-            //printf("Type.toDt()\n");
-            Expression e = t.defaultInit(Loc.initial);
-            Expression_toDt(e, dtb);
-        }
-
-        override void visit(TypeVector t)
-        {
-            assert(t.basetype.ty == Tsarray);
-            toDtElem(cast(TypeSArray)t.basetype, dtb, null);
-        }
-
-        override void visit(TypeSArray t)
-        {
-            toDtElem(t, dtb, null);
-        }
-
-        override void visit(TypeStruct t)
-        {
-            StructDeclaration_toDt(t.sym, dtb);
-        }
+        default:
+            Expression_toDt(t.defaultInit(Loc.initial), dtb);
+            break;
     }
-
-    scope v = new TypeToDt(dtb);
-    t.accept(v);
 }
 
-private void toDtElem(TypeSArray tsa, DtBuilder dtb, Expression e)
+private void toDtElem(TypeSArray tsa, ref DtBuilder dtb, Expression e)
 {
     //printf("TypeSArray.toDtElem() tsa = %s\n", tsa.toChars());
     if (tsa.size(Loc.initial) == 0)
@@ -912,7 +884,7 @@ private void toDtElem(TypeSArray tsa, DtBuilder dtb, Expression e)
                 len /= (cast(ArrayLiteralExp)e).elements.dim;
         }
 
-        scope dtb2 = new DtBuilder();
+        auto dtb2 = DtBuilder(0);
         Expression_toDt(e, dtb2);
         dt_t* dt2 = dtb2.finish();
         assert(len <= uint.max);
@@ -924,7 +896,7 @@ private void toDtElem(TypeSArray tsa, DtBuilder dtb, Expression e)
 /*                   CTFE stuff                      */
 /*****************************************************/
 
-private void ClassReferenceExp_toDt(ClassReferenceExp e, DtBuilder dtb, int off)
+private void ClassReferenceExp_toDt(ClassReferenceExp e, ref DtBuilder dtb, int off)
 {
     //printf("ClassReferenceExp.toDt() %d\n", e.op);
     Symbol* s = toSymbol(e);
@@ -933,7 +905,7 @@ private void ClassReferenceExp_toDt(ClassReferenceExp e, DtBuilder dtb, int off)
         write_instance_pointers(e.type, s, 0);
 }
 
-extern (C++) void ClassReferenceExp_toInstanceDt(ClassReferenceExp ce, DtBuilder dtb)
+extern (C++) void ClassReferenceExp_toInstanceDt(ClassReferenceExp ce, ref DtBuilder dtb)
 {
     //printf("ClassReferenceExp.toInstanceDt() %d\n", ce.op);
     ClassDeclaration cd = ce.originalClass();
@@ -949,7 +921,7 @@ extern (C++) void ClassReferenceExp_toInstanceDt(ClassReferenceExp ce, DtBuilder
  */
 private extern (C++) class TypeInfoDtVisitor : Visitor
 {
-    DtBuilder dtb;
+    DtBuilder* dtb;
 
     /*
      * Used in TypeInfo*.toDt to verify the runtime TypeInfo sizes
@@ -969,9 +941,9 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         }
     }
 
-    this(DtBuilder dtb)
+    this(ref DtBuilder dtb)
     {
-        this.dtb = dtb;
+        this.dtb = &dtb;
     }
 
     alias visit = Visitor.visit;
@@ -979,7 +951,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoDeclaration d)
     {
         //printf("TypeInfoDeclaration.toDt() %s\n", toChars());
-        verifyStructSize(Type.dtypeinfo, 2 * Target.ptrsize);
+        verifyStructSize(Type.dtypeinfo, 2 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.dtypeinfo), 0);        // vtbl for TypeInfo
         dtb.size(0);                                     // monitor
@@ -988,7 +960,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoConstDeclaration d)
     {
         //printf("TypeInfoConstDeclaration.toDt() %s\n", toChars());
-        verifyStructSize(Type.typeinfoconst, 3 * Target.ptrsize);
+        verifyStructSize(Type.typeinfoconst, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfoconst), 0);    // vtbl for TypeInfo_Const
         dtb.size(0);                                     // monitor
@@ -1001,7 +973,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoInvariantDeclaration d)
     {
         //printf("TypeInfoInvariantDeclaration.toDt() %s\n", toChars());
-        verifyStructSize(Type.typeinfoinvariant, 3 * Target.ptrsize);
+        verifyStructSize(Type.typeinfoinvariant, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfoinvariant), 0);    // vtbl for TypeInfo_Invariant
         dtb.size(0);                                         // monitor
@@ -1014,7 +986,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoSharedDeclaration d)
     {
         //printf("TypeInfoSharedDeclaration.toDt() %s\n", toChars());
-        verifyStructSize(Type.typeinfoshared, 3 * Target.ptrsize);
+        verifyStructSize(Type.typeinfoshared, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfoshared), 0);   // vtbl for TypeInfo_Shared
         dtb.size(0);                                     // monitor
@@ -1027,7 +999,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoWildDeclaration d)
     {
         //printf("TypeInfoWildDeclaration.toDt() %s\n", toChars());
-        verifyStructSize(Type.typeinfowild, 3 * Target.ptrsize);
+        verifyStructSize(Type.typeinfowild, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfowild), 0); // vtbl for TypeInfo_Wild
         dtb.size(0);                                 // monitor
@@ -1040,7 +1012,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoEnumDeclaration d)
     {
         //printf("TypeInfoEnumDeclaration.toDt()\n");
-        verifyStructSize(Type.typeinfoenum, 7 * Target.ptrsize);
+        verifyStructSize(Type.typeinfoenum, 7 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfoenum), 0); // vtbl for TypeInfo_Enum
         dtb.size(0);                        // monitor
@@ -1091,7 +1063,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoPointerDeclaration d)
     {
         //printf("TypeInfoPointerDeclaration.toDt()\n");
-        verifyStructSize(Type.typeinfopointer, 3 * Target.ptrsize);
+        verifyStructSize(Type.typeinfopointer, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfopointer), 0);  // vtbl for TypeInfo_Pointer
         dtb.size(0);                                     // monitor
@@ -1107,7 +1079,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoArrayDeclaration d)
     {
         //printf("TypeInfoArrayDeclaration.toDt()\n");
-        verifyStructSize(Type.typeinfoarray, 3 * Target.ptrsize);
+        verifyStructSize(Type.typeinfoarray, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfoarray), 0);    // vtbl for TypeInfo_Array
         dtb.size(0);                                     // monitor
@@ -1123,7 +1095,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoStaticArrayDeclaration d)
     {
         //printf("TypeInfoStaticArrayDeclaration.toDt()\n");
-        verifyStructSize(Type.typeinfostaticarray, 4 * Target.ptrsize);
+        verifyStructSize(Type.typeinfostaticarray, 4 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfostaticarray), 0);  // vtbl for TypeInfo_StaticArray
         dtb.size(0);                                         // monitor
@@ -1141,7 +1113,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoVectorDeclaration d)
     {
         //printf("TypeInfoVectorDeclaration.toDt()\n");
-        verifyStructSize(Type.typeinfovector, 3 * Target.ptrsize);
+        verifyStructSize(Type.typeinfovector, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfovector), 0);   // vtbl for TypeInfo_Vector
         dtb.size(0);                                     // monitor
@@ -1157,7 +1129,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoAssociativeArrayDeclaration d)
     {
         //printf("TypeInfoAssociativeArrayDeclaration.toDt()\n");
-        verifyStructSize(Type.typeinfoassociativearray, 4 * Target.ptrsize);
+        verifyStructSize(Type.typeinfoassociativearray, 4 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfoassociativearray), 0); // vtbl for TypeInfo_AssociativeArray
         dtb.size(0);                        // monitor
@@ -1176,7 +1148,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoFunctionDeclaration d)
     {
         //printf("TypeInfoFunctionDeclaration.toDt()\n");
-        verifyStructSize(Type.typeinfofunction, 5 * Target.ptrsize);
+        verifyStructSize(Type.typeinfofunction, 5 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfofunction), 0); // vtbl for TypeInfo_Function
         dtb.size(0);                                     // monitor
@@ -1201,7 +1173,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoDelegateDeclaration d)
     {
         //printf("TypeInfoDelegateDeclaration.toDt()\n");
-        verifyStructSize(Type.typeinfodelegate, 5 * Target.ptrsize);
+        verifyStructSize(Type.typeinfodelegate, 5 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfodelegate), 0); // vtbl for TypeInfo_Delegate
         dtb.size(0);                                     // monitor
@@ -1227,9 +1199,9 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     {
         //printf("TypeInfoStructDeclaration.toDt() '%s'\n", d.toChars());
         if (global.params.is64bit)
-            verifyStructSize(Type.typeinfostruct, 17 * Target.ptrsize);
+            verifyStructSize(Type.typeinfostruct, 17 * target.ptrsize);
         else
-            verifyStructSize(Type.typeinfostruct, 15 * Target.ptrsize);
+            verifyStructSize(Type.typeinfostruct, 15 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfostruct), 0); // vtbl for TypeInfo_Struct
         dtb.size(0);                        // monitor
@@ -1382,7 +1354,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         // xgetRTInfo
         if (sd.getRTInfo)
         {
-            Expression_toDt(sd.getRTInfo, dtb);
+            Expression_toDt(sd.getRTInfo, *dtb);
         }
         else if (m_flags & StructFlags.hasPointers)
             dtb.size(1);
@@ -1402,7 +1374,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoInterfaceDeclaration d)
     {
         //printf("TypeInfoInterfaceDeclaration.toDt() %s\n", tinfo.toChars());
-        verifyStructSize(Type.typeinfointerface, 3 * Target.ptrsize);
+        verifyStructSize(Type.typeinfointerface, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfointerface), 0);    // vtbl for TypeInfoInterface
         dtb.size(0);                                           // monitor
@@ -1421,7 +1393,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoTupleDeclaration d)
     {
         //printf("TypeInfoTupleDeclaration.toDt() %s\n", tinfo.toChars());
-        verifyStructSize(Type.typeinfotypelist, 4 * Target.ptrsize);
+        verifyStructSize(Type.typeinfotypelist, 4 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfotypelist), 0); // vtbl for TypeInfoInterface
         dtb.size(0);                                       // monitor
@@ -1433,7 +1405,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         size_t dim = tu.arguments.dim;
         dtb.size(dim);                       // elements.length
 
-        scope dtbargs = new DtBuilder();
+        auto dtbargs = DtBuilder(0);
         for (size_t i = 0; i < dim; i++)
         {
             Parameter arg = (*tu.arguments)[i];
@@ -1447,7 +1419,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     }
 }
 
-extern (C++) void TypeInfo_toDt(DtBuilder dtb, TypeInfoDeclaration d)
+extern (C++) void TypeInfo_toDt(ref DtBuilder dtb, TypeInfoDeclaration d)
 {
     scope v = new TypeInfoDtVisitor(dtb);
     d.accept(v);

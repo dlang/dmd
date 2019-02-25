@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/global.d, backend/global.d)
@@ -27,8 +27,11 @@ import dmd.backend.code;
 import dmd.backend.dlist;
 import dmd.backend.el;
 import dmd.backend.el : elem;
+import dmd.backend.memh;
 import dmd.backend.type;
 //import dmd.backend.obj;
+
+import dmd.backend.barray;
 
 extern __gshared
 {
@@ -56,7 +59,6 @@ enum LF = '\n';             // \n into \r and \r into \n.  The translator versio
 enum CR_STR = "\r";
 enum LF_STR = "\n";
 
-enum SCMAX_ = SCMAX; // workaround gdc build failure (can be removed if gdc > 2.068)
 extern __gshared
 {
     uint[32] mask;                  // bit masks
@@ -69,18 +71,15 @@ extern __gshared
     symtab_t globsym;
 
 //    Config config;                  // precompiled part of configuration
-    char[SCMAX_] sytab;
+    char[SCMAX] sytab;
 
     extern (C) /*volatile*/ int controlc_saw;    // a control C was seen
     uint maxblks;                   // array max for all block stuff
     uint numblks;                   // number of basic blocks (if optimized)
     block* startblock;              // beginning block of function
 
-    block** dfo;                    // array of depth first order
-    uint dfotop;                    // # of items in dfo[]
-    block** labelarr;               // dynamically allocated array, index is label #
-    uint labelmax;                  // size of labelarr[]
-    uint labeltop;                  // # of used entries in labelarr[]
+    Barray!(block*) dfo;            // array of depth first order
+
     block* curblock;                // current block being read in
     block* block_last;
 
@@ -94,18 +93,21 @@ extern __gshared
     Symbol* tls_get_addr_sym;
 }
 
-__gshared Configv configv;                // non-ph part of configuration
+version (MARS)
+    __gshared Configv configv;                // non-ph part of configuration
+else
+    extern __gshared Configv configv;                // non-ph part of configuration
 
 // iasm.c
 Symbol *asm_define_label(const(char)* id);
 
 // cpp.c
 version (SCPP)
-    char* cpp_mangle(Symbol* s);
+    const(char)* cpp_mangle(Symbol* s);
 else version (MARS)
-    char* cpp_mangle(Symbol* s);
+    const(char)* cpp_mangle(Symbol* s);
 else
-    char* cpp_mangle(Symbol* s) { return &s.Sident[0]; }
+    const(char)* cpp_mangle(Symbol* s) { return &s.Sident[0]; }
 
 // ee.c
 void eecontext_convs(uint marksi);
@@ -142,10 +144,10 @@ int ispow2(uint64_t);
 
 version (Posix)
 {
-//#define util_malloc(n,size) mem_malloc((n)*(size))
-//#define util_calloc(n,size) mem_calloc((n)*(size))
-//#define util_free       mem_free
-//#define util_realloc(oldp,n,size) mem_realloc(oldp,(n)*(size))
+void* util_malloc(uint n,uint size) { return mem_malloc(n * size); }
+void* util_calloc(uint n,uint size) { return mem_calloc(n * size); }
+void util_free(void *p) { mem_free(p); }
+void *util_realloc(void *oldp,uint n,uint size) { return mem_realloc(oldp, n * size); }
 //#define parc_malloc     mem_malloc
 //#define parc_calloc     mem_calloc
 //#define parc_realloc    mem_realloc
@@ -257,7 +259,7 @@ type *newref(type *);
 type *topointer(type *);
 type *type_ptr(elem *, type *);
 int type_chksize(uint);
-tym_t tym_conv(type *);
+tym_t tym_conv(const type *);
 type * type_arrayroot(type *);
 void chklvalue(elem *);
 int tolvalue(elem **);
@@ -318,7 +320,7 @@ extern __gshared
 }
 
 /* Symbol.c */
-Symbol **symtab_realloc(Symbol **tab, size_t symmax);
+extern (C) Symbol **symtab_realloc(Symbol **tab, size_t symmax);
 Symbol **symtab_malloc(size_t symmax);
 Symbol **symtab_calloc(size_t symmax);
 void symtab_free(Symbol **tab);
@@ -328,9 +330,9 @@ void symtab_free(Symbol **tab);
 //#define symbol_keep(s) (()(s))
 //#endif
 void symbol_keep(Symbol *s) { }
-void symbol_print(Symbol *s);
+void symbol_print(const Symbol* s);
 void symbol_term();
-char *symbol_ident(Symbol *s);
+const(char)* symbol_ident(const Symbol *s);
 Symbol *symbol_calloc(const(char)* id);
 Symbol *symbol_calloc(const(char)* id, uint len);
 Symbol *symbol_name(const(char)* name, int sclass, type *t);
@@ -355,6 +357,8 @@ baseclass_t *baseclass_find_nest(baseclass_t *bm,Classsym *sbase);
 int baseclass_nitems(baseclass_t *b);
 void symbol_free(Symbol *s);
 SYMIDX symbol_add(Symbol *s);
+SYMIDX symbol_add(symtab_t*, Symbol *s);
+SYMIDX symbol_insert(symtab_t*, Symbol *s, SYMIDX n);
 void freesymtab(Symbol **stab, SYMIDX n1, SYMIDX n2);
 Symbol *symbol_copy(Symbol *s);
 Symbol *symbol_searchlist(symlist_t sl, const(char)* vident);
@@ -395,9 +399,6 @@ Symbol *out_readonly_sym(tym_t ty, void *p, int len);
 Symbol *out_string_literal(const(char)* str, uint len, uint sz);
 
 /* blockopt.c */
-// Workaround 2.066.x bug by resolving the TYMAX value before using it as dimension.
-static if (__VERSION__ <= 2066)
-    private enum computeEnumValue = BCMAX;
 extern __gshared uint[BCMAX] bc_goal;
 
 block* block_calloc();
@@ -432,7 +433,7 @@ void compdfo();
 /* debug.c */
 extern __gshared const(char)*[32] regstring;
 
-void WRclass(SC c);
+void WRclass(int c);
 void WRTYxx(tym_t t);
 void WROP(uint oper);
 void WRBC(uint bc);
@@ -521,10 +522,10 @@ void rtlsym_reset();
 void rtlsym_term();
 
 // compress.c
-char *id_compress(char *id, int idlen, size_t *plen);
+extern(C) char *id_compress(const char *id, int idlen, size_t *plen);
 
 // Dwarf
-void dwarf_CFA_set_loc(size_t location);
+void dwarf_CFA_set_loc(uint location);
 void dwarf_CFA_set_reg_offset(int reg, int offset);
 void dwarf_CFA_offset(int reg, int offset);
 void dwarf_CFA_args_size(size_t sz);

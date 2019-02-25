@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/arrayop.d, _arrayop.d)
@@ -32,7 +32,7 @@ import dmd.visitor;
 /**********************************************
  * Check that there are no uses of arrays without [].
  */
-extern (C++) bool isArrayOpValid(Expression e)
+bool isArrayOpValid(Expression e)
 {
     if (e.op == TOK.slice)
         return true;
@@ -60,19 +60,16 @@ extern (C++) bool isArrayOpValid(Expression e)
             BinExp be = cast(BinExp)e;
             return be.e1.op == TOK.slice && isArrayOpValid(be.e2);
         }
-        if (e.op == TOK.call)
-        {
-            return false; // TODO: Decide if [] is required after arrayop calls.
-        }
-        else
-        {
-            return false;
-        }
+        // if (e.op == TOK.call)
+        // {
+        // TODO: Decide if [] is required after arrayop calls.
+        // }
+        return false;
     }
     return true;
 }
 
-extern (C++) bool isNonAssignmentArrayOp(Expression e)
+bool isNonAssignmentArrayOp(Expression e)
 {
     if (e.op == TOK.slice)
         return isNonAssignmentArrayOp((cast(SliceExp)e).e1);
@@ -85,7 +82,7 @@ extern (C++) bool isNonAssignmentArrayOp(Expression e)
     return false;
 }
 
-extern (C++) bool checkNonAssignmentArrayOp(Expression e, bool suggestion = false)
+bool checkNonAssignmentArrayOp(Expression e, bool suggestion = false)
 {
     if (isNonAssignmentArrayOp(e))
     {
@@ -109,7 +106,7 @@ extern (C++) bool checkNonAssignmentArrayOp(Expression e, bool suggestion = fals
  * evaluation order as the actual array operations have no
  * side-effect.
  */
-extern (C++) Expression arrayOp(BinExp e, Scope* sc)
+Expression arrayOp(BinExp e, Scope* sc)
 {
     //printf("BinExp.arrayOp() %s\n", toChars());
     Type tb = e.type.toBasetype();
@@ -140,14 +137,14 @@ extern (C++) Expression arrayOp(BinExp e, Scope* sc)
         arrayOp = (cast(TemplateExp)id).td;
     }
 
-    auto fd = resolveFuncCall(e.loc, sc, arrayOp, tiargs, null, args);
+    auto fd = resolveFuncCall(e.loc, sc, arrayOp, tiargs, null, args, FuncResolveFlag.stdandard);
     if (!fd || fd.errors)
         return new ErrorExp();
     return new CallExp(e.loc, new VarExp(e.loc, fd, false), args).expressionSemantic(sc);
 }
 
 /// ditto
-extern (C++) Expression arrayOp(BinAssignExp e, Scope* sc)
+Expression arrayOp(BinAssignExp e, Scope* sc)
 {
     //printf("BinAssignExp.arrayOp() %s\n", toChars());
 
@@ -248,7 +245,7 @@ private void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Expressions*
 /***********************************************
  * Test if expression is a unary array op.
  */
-extern (C++) bool isUnaArrayOp(TOK op)
+bool isUnaArrayOp(TOK op)
 {
     switch (op)
     {
@@ -264,7 +261,7 @@ extern (C++) bool isUnaArrayOp(TOK op)
 /***********************************************
  * Test if expression is a binary array op.
  */
-extern (C++) bool isBinArrayOp(TOK op)
+bool isBinArrayOp(TOK op)
 {
     switch (op)
     {
@@ -287,7 +284,7 @@ extern (C++) bool isBinArrayOp(TOK op)
 /***********************************************
  * Test if expression is a binary assignment array op.
  */
-extern (C++) bool isBinAssignArrayOp(TOK op)
+bool isBinAssignArrayOp(TOK op)
 {
     switch (op)
     {
@@ -310,7 +307,7 @@ extern (C++) bool isBinAssignArrayOp(TOK op)
 /***********************************************
  * Test if operand is a valid array op operand.
  */
-extern (C++) bool isArrayOpOperand(Expression e)
+bool isArrayOpOperand(Expression e)
 {
     //printf("Expression.isArrayOpOperand() %s\n", e.toChars());
     if (e.op == TOK.slice)

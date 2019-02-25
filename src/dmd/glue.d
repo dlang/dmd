@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/glue.d, _glue.d)
@@ -85,7 +85,7 @@ __gshared
     SharedStaticDtorDeclarations esharedctorgates;
     symbols sshareddtors;
 
-    char *lastmname;
+    const(char)* lastmname;
 }
 
 
@@ -108,10 +108,10 @@ void obj_write_deferred(Library library)
         Dsymbol s = obj_symbols_towrite[i];
         Module m = s.getModule();
 
-        char *mname;
+        const(char)* mname;
         if (m)
         {
-            mname = cast(char*)m.srcfile.toChars();
+            mname = m.srcfile.toChars();
             lastmname = mname;
         }
         else
@@ -246,7 +246,7 @@ private Symbol *callFuncsAndGates(Module m, symbols *sctors, StaticDtorDeclarati
 
 __gshared Outbuffer objbuf;
 
-void obj_start(char *srcfile)
+void obj_start(const(char)* srcfile)
 {
     //printf("obj_start()\n");
 
@@ -257,8 +257,8 @@ void obj_start(char *srcfile)
     {
         // Produce Ms COFF files for 64 bit code, OMF for 32 bit code
         assert(objbuf.size() == 0);
-        objmod = global.params.mscoff ? MsCoffObj.init(&objbuf, srcfile, null)
-                                      :       Obj.init(&objbuf, srcfile, null);
+        objmod = global.params.mscoff ? MsCoffObj_init(&objbuf, srcfile, null)
+                                      :    OmfObj_init(&objbuf, srcfile, null);
     }
     else
     {
@@ -309,6 +309,11 @@ void obj_startaddress(Symbol *s)
     return objmod.startaddress(s);
 }
 
+bool obj_linkerdirective(const(char)* directive)
+{
+    return objmod.linkerdirective(directive);
+}
+
 
 /**************************************
  * Generate .obj file for Module.
@@ -335,7 +340,7 @@ void genObjFile(Module m, bool multiobj)
         return;
     }
 
-    lastmname = cast(char*)m.srcfile.toChars();
+    lastmname = m.srcfile.toChars();
 
     objmod.initfile(lastmname, null, m.toPrettyChars());
 
@@ -369,7 +374,7 @@ void genObjFile(Module m, bool multiobj)
 //#else
                 Symbol *sref = symbol_generate(SCstatic, type_fake(TYnptr));
                 sref.Sfl = FLdata;
-                scope dtb = new DtBuilder();
+                auto dtb = DtBuilder(0);
                 dtb.xoff(s, 0, TYnptr);
                 sref.Sdt = dtb.finish();
                 outdata(sref);
@@ -388,7 +393,7 @@ void genObjFile(Module m, bool multiobj)
         m.cov.Stype.Tmangle = mTYman_d;
         m.cov.Sfl = FLdata;
 
-        scope dtb = new DtBuilder();
+        auto dtb = DtBuilder(0);
         dtb.nzeros(4 * m.numlines);
         m.cov.Sdt = dtb.finish();
 
@@ -397,8 +402,9 @@ void genObjFile(Module m, bool multiobj)
         m.covb = cast(uint *)calloc((m.numlines + 32) / 32, (*m.covb).sizeof);
     }
 
-    foreach (member; *m.members)
+    for (int i = 0; i < m.members.dim; i++)
     {
+        auto member = (*m.members)[i];
         //printf("toObjFile %s %s\n", member.kind(), member.toChars());
         toObjFile(member, multiobj);
     }
@@ -414,7 +420,7 @@ void genObjFile(Module m, bool multiobj)
         bcov.Sclass = SCstatic;
         bcov.Sfl = FLdata;
 
-        scope dtb = new DtBuilder();
+        auto dtb = DtBuilder(0);
         dtb.nbytes((m.numlines + 32) / 32 * (*m.covb).sizeof, cast(char *)m.covb);
         bcov.Sdt = dtb.finish();
 
@@ -491,7 +497,7 @@ void genObjFile(Module m, bool multiobj)
 
     if (m.doppelganger)
     {
-        objc.generateModuleInfo();
+        objc.generateModuleInfo(m);
         objmod.termfile();
         return;
     }
@@ -756,7 +762,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (ud && !global.params.useUnitTests)
         return;
 
-    if (multiobj && !fd.isStaticDtorDeclaration() && !fd.isStaticCtorDeclaration())
+    if (multiobj && !fd.isStaticDtorDeclaration() && !fd.isStaticCtorDeclaration() && !fd.isCrtCtorDtor)
     {
         obj_append(fd);
         return;
@@ -944,6 +950,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     {
         assert(!fd.vthis.csym);
         sthis = toSymbol(fd.vthis);
+        sthis.Stype = getParentClosureType(sthis, fd);
         irs.sthis = sthis;
         if (!(f.Fflags3 & Fnested))
             f.Fflags3 |= Fmember;
@@ -953,7 +960,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     size_t pi = (fd.v_arguments !is null);
     if (fd.parameters)
         pi += fd.parameters.dim;
-
+    if (fd.selector)
+        pi++; // Extra argument for Objective-C selector
     // Create a temporary buffer, params[], to hold function parameters
     Symbol*[10] paramsbuf = void;
     Symbol **params = paramsbuf.ptr;    // allocate on stack if possible
@@ -1003,6 +1011,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         pi++;
     }
 
+    pi = objc.addSelectorParameterSymbol(fd, params, pi);
 
     if (sthis)
     {
@@ -1228,11 +1237,19 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     }
 
     writefunc(s);
+
+    buildCapture(fd);
+
     // Restore symbol table
     cstate.CSpsymtab = symtabsave;
 
     if (fd.isExport())
         objmod.export_symbol(s, cast(uint)Para.offset);
+
+    if (fd.isCrtCtorDtor & 1)
+        objmod.setModuleCtorDtor(s, true);
+    if (fd.isCrtCtorDtor & 2)
+        objmod.setModuleCtorDtor(s, false);
 
     foreach (sd; *irs.deferToObj)
     {
@@ -1436,8 +1453,6 @@ uint totym(Type tx)
 
         case Tstruct:
             t = TYstruct;
-            if (tx.toDsymbol(null).ident == Id.__c_long_double)
-                t = TYdouble;
             break;
 
         case Tenum:
@@ -1499,11 +1514,11 @@ uint totym(Type tx)
                 case LINK.windows:
                     if (global.params.is64bit)
                         goto Lc;
-                    t = (tf.varargs == 1) ? TYnfunc : TYnsfunc;
+                    t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYnsfunc;
                     break;
 
                 case LINK.pascal:
-                    t = (tf.varargs == 1) ? TYnfunc : TYnpfunc;
+                    t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYnpfunc;
                     break;
 
                 case LINK.c:
@@ -1519,7 +1534,7 @@ uint totym(Type tx)
                     break;
 
                 case LINK.d:
-                    t = (tf.varargs == 1) ? TYnfunc : TYjfunc;
+                    t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYjfunc;
                     break;
 
                 case LINK.default_:

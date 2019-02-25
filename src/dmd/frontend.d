@@ -5,7 +5,7 @@
  * This module contains high-level interfaces for interacting
   with DMD as a library.
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/id.d, _id.d)
@@ -15,11 +15,36 @@
 module dmd.frontend;
 
 import dmd.dmodule : Module;
+import dmd.lexer : DiagnosticReporter;
+
 import std.range.primitives : isInputRange, ElementType;
 import std.traits : isNarrowString;
+import std.typecons : Tuple;
 
 version (Windows) private enum sep = ";", exe = ".exe";
 version (Posix) private enum sep = ":", exe = "";
+
+/// Contains aggregated diagnostics information.
+immutable struct Diagnostics
+{
+    /// Number of errors diagnosed
+    uint errors;
+
+    /// Number of warnings diagnosed
+    uint warnings;
+
+    /// Returns: `true` if errors have been diagnosed
+    bool hasErrors()
+    {
+        return errors > 0;
+    }
+
+    /// Returns: `true` if warnings have been diagnosed
+    bool hasWarnings()
+    {
+        return warnings > 0;
+    }
+}
 
 /*
 Initializes the global variables of the DMD compiler.
@@ -30,23 +55,56 @@ void initDMD()
     import dmd.builtin : builtin_init;
     import dmd.dmodule : Module;
     import dmd.expression : Expression;
+    import dmd.filecache : FileCache;
     import dmd.globals : global;
     import dmd.id : Id;
-    import dmd.mars : addDefaultVersionIdentifiers;
+    import dmd.identifier : Identifier;
+    import dmd.mars : setTarget, addDefaultVersionIdentifiers;
     import dmd.mtype : Type;
     import dmd.objc : Objc;
-    import dmd.target : Target;
+    import dmd.target : target;
 
     global._init();
-    addDefaultVersionIdentifiers();
+    setTarget(global.params);
+    addDefaultVersionIdentifiers(global.params);
 
     Type._init();
     Id.initialize();
     Module._init();
-    Target._init();
+    target._init(global.params);
     Expression._init();
     Objc._init();
     builtin_init();
+    FileCache._init();
+}
+
+/**
+Deinitializes the global variables of the DMD compiler.
+
+This can be used to restore the state set by `initDMD` to its original state.
+Useful if there's a need for multiple sessions of the DMD compiler in the same
+application.
+*/
+void deinitializeDMD()
+{
+    import dmd.builtin : builtinDeinitialize;
+    import dmd.dmodule : Module;
+    import dmd.expression : Expression;
+    import dmd.globals : global;
+    import dmd.id : Id;
+    import dmd.mtype : Type;
+    import dmd.objc : Objc;
+    import dmd.target : target;
+
+    global.deinitialize();
+
+    Type.deinitialize();
+    Id.deinitialize();
+    Module.deinitialize();
+    target.deinitialize();
+    Expression.deinitialize();
+    Objc.deinitialize();
+    builtinDeinitialize();
 }
 
 /**
@@ -54,7 +112,7 @@ Add import path to the `global.path`.
 Params:
     path = import to add
 */
-void addImport(string path)
+void addImport(const(char)[] path)
 {
     import dmd.globals : global;
     import dmd.arraytypes : Strings;
@@ -74,16 +132,16 @@ Params:
 
 Returns: full path to the found `dmd.conf`, `null` otherwise.
 */
-string findDMDConfig(string dmdFilePath)
+string findDMDConfig(const(char)[] dmdFilePath)
 {
     import dmd.dinifile : findConfFile;
-    import std.string : fromStringz, toStringz;
 
-    auto f = findConfFile(dmdFilePath.toStringz, "dmd.conf");
-    if (f is null)
-        return null;
+    version (Windows)
+        enum configFile = "sc.ini";
+    else
+        enum configFile = "dmd.conf";
 
-    return f.fromStringz.idup;
+    return findConfFile(dmdFilePath, configFile).idup;
 }
 
 /**
@@ -94,7 +152,7 @@ Params:
 
 Returns: full path to the found `ldc2.conf`, `null` otherwise.
 */
-string findLDCConfig(string ldcFilePath)
+string findLDCConfig(const(char)[] ldcFilePath)
 {
     import std.file : getcwd;
     import std.path : buildPath, dirName;
@@ -153,7 +211,7 @@ Params:
 
 Returns: forward range of import paths found in `iniFile`
 */
-auto parseImportPathsFromConfig(string iniFile, string execDir)
+auto parseImportPathsFromConfig(const(char)[] iniFile, const(char)[] execDir)
 {
     import std.algorithm, std.range, std.regex;
     import std.stdio : File;
@@ -215,39 +273,56 @@ Parse a module from a string.
 Params:
     fileName = file to parse
     code = text to use instead of opening the file
+    diagnosticReporter = the diagnostic reporter to use. By default a
+        diagnostic reporter which prints to stderr will be used
 
 Returns: the parsed module object
 */
-Module parseModule(string fileName, string code = null)
+Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(
+    const(char)[] fileName,
+    const(char)[] code = null,
+    DiagnosticReporter diagnosticReporter = defaultDiagnosticReporter
+)
+in
+{
+    assert(diagnosticReporter !is null);
+}
+body
 {
     import dmd.astcodegen : ASTCodegen;
-    import dmd.globals : Loc;
+    import dmd.globals : Loc, global;
     import dmd.parse : Parser;
     import dmd.identifier : Identifier;
     import dmd.tokens : TOK;
     import std.string : toStringz;
+    import std.typecons : tuple;
 
-    auto parse(Module m, string code)
+    static auto parse(Module m, const(char)[] code, DiagnosticReporter diagnosticReporter)
     {
-        scope p = new Parser!ASTCodegen(m, code, false);
+        scope p = new Parser!ASTCodegen(m, code, false, diagnosticReporter);
         p.nextToken; // skip the initial token
         auto members = p.parseModule;
-        assert(!p.errors, "Parsing error occurred.");
-        assert(p.token.value == TOK.endOfFile, "Didn't reach the end token. Did an error occur?");
+        if (p.errors)
+            ++global.errors;
         return members;
     }
 
     Identifier id = Identifier.idPool(fileName);
     auto m = new Module(fileName.toStringz, id, 0, 0);
     if (code !is null)
-        m.members = parse(m, code);
+        m.members = parse(m, code, diagnosticReporter);
     else
     {
         m.read(Loc.initial);
         m.parse();
     }
 
-    return m;
+    Diagnostics diagnostics = {
+        errors: global.errors,
+        warnings: global.warnings
+    };
+
+    return typeof(return)(m, diagnostics);
 }
 
 /**
@@ -287,4 +362,12 @@ string prettyPrint(Module m)
 
     auto generated = buf.extractData.fromStringz.replace("\t", "    ");
     return generated.assumeUnique;
+}
+
+private DiagnosticReporter defaultDiagnosticReporter()
+{
+    import dmd.globals : global;
+    import dmd.lexer : StderrDiagnosticReporter;
+
+    return new StderrDiagnosticReporter(global.params.useDeprecated);
 }

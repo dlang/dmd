@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/libomf.d, _libomf.d)
@@ -78,7 +78,7 @@ final class LibOMF : Library
         if (!buf)
         {
             assert(module_name);
-            File* file = File.create(cast(char*)module_name);
+            File* file = File.create(module_name);
             readFile(Loc.initial, file);
             buf = file.buffer;
             buflen = file.len;
@@ -117,7 +117,7 @@ final class LibOMF : Library
                 return corrupt(__LINE__);
             buflen = lh.lSymSeek - g_page_size;
         }
-        else if (lh.recTyp == '!' && memcmp(lh, cast(char*)"!<arch>\n", 8) == 0)
+        else if (lh.recTyp == '!' && memcmp(lh, "!<arch>\n".ptr, 8) == 0)
         {
             error("COFF libraries not supported");
             return;
@@ -133,7 +133,7 @@ final class LibOMF : Library
         {
             auto om = new OmfObjModule();
             om.base = cast(ubyte*)base;
-            om.page = om.page = cast(ushort)((om.base - pstart) / g_page_size);
+            om.page = cast(ushort)((om.base - pstart) / g_page_size);
             om.length = cast(uint)length;
             /* Determine the name of the module
              */
@@ -243,7 +243,7 @@ private:
         ndicpages = (bucksForHash > bucksForSize) ? bucksForHash : bucksForSize;
         //printf("ndicpages = %u\n",ndicpages);
         // Find prime number greater than ndicpages
-        static __gshared uint* primes =
+        __gshared uint* primes =
         [
             1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43,
             47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103,

@@ -41,13 +41,34 @@ struct ASTCodegen
 
     alias MODFlags                  = dmd.mtype.MODFlags;
     alias Type                      = dmd.mtype.Type;
-    alias Tident                    = dmd.mtype.Tident;
-    alias Tfunction                 = dmd.mtype.Tfunction;
     alias Parameter                 = dmd.mtype.Parameter;
     alias Taarray                   = dmd.mtype.Taarray;
-    alias Tsarray                   = dmd.mtype.Tsarray;
+    alias Tbool                     = dmd.mtype.Tbool;
+    alias Tchar                     = dmd.mtype.Tchar;
+    alias Tdchar                    = dmd.mtype.Tdchar;
+    alias Tdelegate                 = dmd.mtype.Tdelegate;
+    alias Tenum                     = dmd.mtype.Tenum;
     alias Terror                    = dmd.mtype.Terror;
+    alias Tfloat32                  = dmd.mtype.Tfloat32;
+    alias Tfloat64                  = dmd.mtype.Tfloat64;
+    alias Tfloat80                  = dmd.mtype.Tfloat80;
+    alias Tfunction                 = dmd.mtype.Tfunction;
+    alias Tident                    = dmd.mtype.Tident;
+    alias Tint8                     = dmd.mtype.Tint8;
+    alias Tint16                    = dmd.mtype.Tint16;
+    alias Tint32                    = dmd.mtype.Tint32;
+    alias Tint64                    = dmd.mtype.Tint64;
+    alias Tsarray                   = dmd.mtype.Tsarray;
+    alias Tstruct                   = dmd.mtype.Tstruct;
+    alias Tuns8                     = dmd.mtype.Tuns8;
+    alias Tuns16                    = dmd.mtype.Tuns16;
+    alias Tuns32                    = dmd.mtype.Tuns32;
+    alias Tuns64                    = dmd.mtype.Tuns64;
+    alias Tvoid                     = dmd.mtype.Tvoid;
+    alias Twchar                    = dmd.mtype.Twchar;
 
+    alias ParameterList             = dmd.mtype.ParameterList;
+    alias VarArg                    = dmd.mtype.VarArg;
     alias STC                       = dmd.declaration.STC;
     alias Dsymbol                   = dmd.dsymbol.Dsymbol;
     alias Dsymbols                  = dmd.dsymbol.Dsymbols;

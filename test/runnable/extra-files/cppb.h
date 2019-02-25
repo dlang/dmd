@@ -21,7 +21,7 @@ class Cpp15589BaseVirtual
 {
 public:
     virtual void beforeDtor() {}
-    
+
     Cpp15589BaseVirtual();
     virtual ~Cpp15589BaseVirtual();
 
@@ -36,7 +36,7 @@ public:
     virtual ~Cpp15589DerivedVirtual();
 
     virtual void afterDtor() {}
-    
+
     int d;
 };
 
@@ -47,7 +47,7 @@ public:
     virtual void beforeIntroducedVirtual() {}
     virtual ~Cpp15589IntroducingVirtual();
     virtual void afterIntroducedVirtual(int) {}
-    
+
     int e;
 };
 
@@ -64,4 +64,20 @@ public:
     virtual ~Base18966();
     virtual void vf();
     int x;
+};
+
+class A18966
+{
+public:
+    char calledOverloads[8];
+    int i;
+    A18966();
+    virtual void foo();
+};
+
+class B18966 : public A18966
+{
+public:
+    B18966();
+    void foo() /*override*/;
 };

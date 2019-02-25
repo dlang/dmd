@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/code_x86.c, backend/code_x86.c)
@@ -16,6 +16,12 @@ module dmd.backend.code_x86;
 import dmd.backend.cdef;
 import dmd.backend.cc : config;
 import dmd.backend.code;
+import dmd.backend.codebuilder : CodeBuilder;
+import dmd.backend.el : elem;
+import dmd.backend.ty : I64;
+
+alias opcode_t = uint;          // CPU opcode
+enum opcode_t NoOpcode = 0xFFFF;              // not a valid opcode_t
 
 /* Register definitions */
 
@@ -68,7 +74,7 @@ enum STACK   = 26;      // top of stack
 enum ST0     = 27;      // 8087 top of stack register
 enum ST01    = 28;      // top two 8087 registers; for complex types
 
-enum NOREG   = 29;     // no register
+enum reg_t NOREG   = 29;     // no register
 
 enum
 {
@@ -128,6 +134,137 @@ enum RMstore = (1 << 31);
 extern (C++) extern __gshared regm_t ALLREGS;
 extern (C++) extern __gshared regm_t BYTEREGS;
 
+static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+{
+    // To support positional independent code,
+    // must be able to remove BX from available registers
+    enum ALLREGS_INIT          = (mAX|mBX|mCX|mDX|mSI|mDI);
+    enum ALLREGS_INIT_PIC      = (mAX|mCX|mDX|mSI|mDI);
+    enum BYTEREGS_INIT         = (mAX|mBX|mCX|mDX);
+    enum BYTEREGS_INIT_PIC     = (mAX|mCX|mDX);
+}
+else
+{
+    enum ALLREGS_INIT          = (mAX|mBX|mCX|mDX|mSI|mDI);
+    enum BYTEREGS_INIT         = (mAX|mBX|mCX|mDX);
+}
+
+
+/* We use the same IDXREGS for the 386 as the 8088, because if
+   we used ALLREGS, it would interfere with mMSW
+ */
+enum IDXREGS         = (mBX|mSI|mDI);
+
+enum FLOATREGS_64    = mAX;
+enum FLOATREGS2_64   = mDX;
+enum DOUBLEREGS_64   = mAX;
+enum DOUBLEREGS2_64  = mDX;
+
+enum FLOATREGS_32    = mAX;
+enum FLOATREGS2_32   = mDX;
+enum DOUBLEREGS_32   = (mAX|mDX);
+enum DOUBLEREGS2_32  = (mCX|mBX);
+
+enum FLOATREGS_16    = (mDX|mAX);
+enum FLOATREGS2_16   = (mCX|mBX);
+enum DOUBLEREGS_16   = (mAX|mBX|mCX|mDX);
+
+/*#define _8087REGS (mST0|mST1|mST2|mST3|mST4|mST5|mST6|mST7)*/
+
+/* Segment registers    */
+enum
+{
+    SEG_ES  = 0,
+    SEG_CS  = 1,
+    SEG_SS  = 2,
+    SEG_DS  = 3,
+}
+
+/*********************
+ * Masks for register pairs.
+ * Note that index registers are always LSWs. This is for the convenience
+ * of implementing far pointers.
+ */
+
+static if (0)
+{
+// Give us an extra one so we can enregister a long
+enum mMSW = mCX|mDX|mDI|mES;       // most significant regs
+enum mLSW = mAX|mBX|mSI;           // least significant regs
+}
+else
+{
+enum mMSW = mCX|mDX|mES;           // most significant regs
+enum mLSW = mAX|mBX|mSI|mDI;       // least significant regs
+}
+
+/* Return !=0 if there is a SIB byte   */
+uint issib(uint rm) { return (rm & 7) == 4 && (rm & 0xC0) != 0xC0; }
+
+static if (0)
+{
+// relocation field size is always 32bits
+//enum is32bitaddr(x,Iflags) (1)
+}
+else
+{
+//
+// is32bitaddr works correctly only when x is 0 or 1.  This is
+// true today for the current definition of I32, but if the definition
+// of I32 changes, this macro will need to change as well
+//
+// Note: even for linux targets, CFaddrsize can be set by the inline
+// assembler.
+bool is32bitaddr(bool x,code_flags_t Iflags) { return I64 || (x ^ ((Iflags & CFaddrsize) !=0)); }
+}
+
+
+/**********************
+ * C library routines.
+ * See callclib().
+ */
+
+enum CLIB
+{
+    lcmp,
+    lmul,
+    ldiv,
+    lmod,
+    uldiv,
+    ulmod,
+
+    dmul,ddiv,dtst0,dtst0exc,dcmp,dcmpexc,dneg,dadd,dsub,
+    fmul,fdiv,ftst0,ftst0exc,fcmp,fcmpexc,fneg,fadd,fsub,
+
+    dbllng,lngdbl,dblint,intdbl,
+    dbluns,unsdbl,
+    dblulng,
+    ulngdbl,
+    dblflt,fltdbl,
+    dblllng,
+    llngdbl,
+    dblullng,
+    ullngdbl,
+    dtst,
+    vptrfptr,cvptrfptr,
+
+    _87topsw,fltto87,dblto87,dblint87,dbllng87,
+    ftst,
+    fcompp,
+    ftest,
+    ftest0,
+    fdiv87,
+
+    // Complex numbers
+    cmul,
+    cdiv,
+    ccmp,
+
+    u64_ldbl,
+    ld_u64,
+    MAX
+}
+
 alias code_flags_t = uint;
 enum
 {
@@ -179,7 +316,7 @@ struct code
 
     union
     {
-        uint Iop;
+        opcode_t Iop;
         struct Svex
         {
           align(1):
@@ -241,10 +378,28 @@ struct code
     evc IEV1;             // 1st operand, if any
     evc IEV2;             // 2nd operand, if any
 
+    void orReg(uint reg)
+    {   if (reg & 8)
+            Irex |= REX_R;
+        Irm |= modregrm(0, reg & 7, 0);
+    }
+
+    void setReg(uint reg)
+    {
+        Irex &= ~REX_R;
+        Irm &= cast(ubyte)~cast(uint)modregrm(0, 7, 0);
+        orReg(reg);
+    }
+
     bool isJumpOP() { return Iop == JMP || Iop == JMPS; }
 
-    extern (C++) void print();               // pretty-printer
+    extern (C++) void print()               // pretty-printer
+    {
+        code_print(&this);
+    }
 }
+
+extern (C) void code_print(code*);
 
 /*******************
  * Some instructions.
@@ -259,6 +414,7 @@ enum
     SEGFS   = 0x64,
     SEGGS   = 0x65,
 
+    CMP     = 0x3B,
     CALL    = 0xE8,
     JMP     = 0xE9,    // Intra-Segment Direct
     JMPS    = 0xEB,    // JMP SHORT
@@ -267,6 +423,8 @@ enum
     LES     = 0xC4,
     LEA     = 0x8D,
     LOCK    = 0xF0,
+    INT3    = 0xCC,
+    HLT     = 0xF4,
 
     STO     = 0x89,
     LOD     = 0x8B,
@@ -289,6 +447,8 @@ enum
     JGE     = 0x7D,
     JLE     = 0x7E,
     JG      = 0x7F,
+
+    UD2     = 0x0F0B,
 
     // NOP is used as a placeholder in the linked list of instructions, no
     // actual code will be generated for it.
@@ -332,18 +492,16 @@ enum
  * genorreg:    OR  t,f
  */
 
-/+
-#define modregrm(m,r,rm)        (((m)<<6)|((r)<<3)|(rm))
-#define modregxrm(m,r,rm)       ((((r)&8)<<15)|modregrm((m),(r)&7,rm))
-#define modregrmx(m,r,rm)       ((((rm)&8)<<13)|modregrm((m),r,(rm)&7))
-#define modregxrmx(m,r,rm)      ((((r)&8)<<15)|(((rm)&8)<<13)|modregrm((m),(r)&7,(rm)&7))
+ubyte modregrm (uint m, uint r, uint rm) { return cast(ubyte)((m << 6) | (r << 3) | rm); }
+uint modregxrm (uint m, uint r, uint rm) { return ((r&8)<<15)|modregrm(m,r&7,rm); }
+uint modregrmx (uint m, uint r, uint rm) { return ((rm&8)<<13)|modregrm(m,r,rm&7); }
+uint modregxrmx(uint m, uint r, uint rm) { return ((r&8)<<15)|((rm&8)<<13)|modregrm(m,r&7,rm&7); }
 
-#define NEWREXR(x,r)            ((x)=((x)&~REX_R)|(((r)&8)>>1))
-#define NEWREG(x,r)             ((x)=((x)&~(7<<3))|((r)<<3))
-#define code_newreg(c,r)        (NEWREG((c)->Irm,(r)&7),NEWREXR((c)->Irex,(r)))
+void NEWREXR(ref ubyte x, uint r)  { x = (x&~REX_R)|((r&8)>>1); }
+void NEWREG (ref ubyte x, uint r)  { x = cast(ubyte)((x & ~(7 << 3)) | (r << 3)); }
+void code_newreg(code* c, uint r)  { NEWREG(c.Irm,r&7); NEWREXR(c.Irex,r); }
 
-#define genorreg(c,t,f)         genregs((c),0x09,(f),(t))
-+/
+//#define genorreg(c,t,f)         genregs((c),0x09,(f),(t))
 
 enum
 {
@@ -382,4 +540,26 @@ uint VEX3_B2(code.Svex ivex)
 }
 
 bool ADDFWAIT() { return config.target_cpu <= TARGET_80286; }
+
+/************************************
+ */
+
+extern (C++):
+
+struct NDP
+{
+    elem *e;                    // which elem is stored here (NULL if none)
+    uint offset;            // offset from e (used for complex numbers)
+
+    __gshared NDP *save;
+    __gshared int savemax;         // # of entries in save[]
+    __gshared int savetop;         // # of entries used in save[]
+}
+
+extern __gshared NDP[8] _8087elems;
+
+void getlvalue_msw(code *);
+void getlvalue_lsw(code *);
+void getlvalue(ref CodeBuilder cdb, code *pcs, elem *e, regm_t keepmsk);
+void loadea(ref CodeBuilder cdb, elem *e, code *cs, uint op, uint reg, targ_size_t offset, regm_t keepmsk, regm_t desmsk);
 

@@ -75,7 +75,7 @@ template isComponentStorage(CS, C)
     {
         CS cs = CS.init;
         ulong eid;
-        cs.add(eid, c);
+        cs.add(eid, C.init);
     }));
 }
 

@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/scanomf.d, _scanomf.d)
@@ -254,7 +254,7 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
         case COMENT:
             // Recognize Phar Lap EASY-OMF format
             {
-                static __gshared ubyte* omfstr1 = [0x80, 0xAA, '8', '0', '3', '8', '6'];
+                __gshared ubyte* omfstr1 = [0x80, 0xAA, '8', '0', '3', '8', '6'];
                 if (recLen == (omfstr1).sizeof)
                 {
                     for (uint i = 0; i < (omfstr1).sizeof; i++)
@@ -267,7 +267,7 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
             }
             // Recognize .IMPDEF Import Definition Records
             {
-                static __gshared ubyte* omfstr2 = [0, 0xA0, 1];
+                __gshared ubyte* omfstr2 = [0, 0xA0, 1];
                 if (recLen >= 7)
                 {
                     p++;

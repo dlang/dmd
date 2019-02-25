@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmsc.d, _dmsc.d)
@@ -98,7 +98,7 @@ void backend_init()
             exe = true;         // EXE file only optimizations
         else if (params.exefile)           // if writing out EXE file
         {   size_t len = strlen(params.exefile);
-            if (len >= 4 && FileName.compare(params.exefile + len - 3, "exe") == 0)
+            if (len >= 4 && FileName.equals(params.exefile + len - 3, "exe"))
                 exe = true;
         }
     }
@@ -156,6 +156,9 @@ extern (C) targ_size_t _align(targ_size_t size, targ_size_t offset)
         case 2:
         case 4:
         case 8:
+        case 16:
+        case 32:
+        case 64:
             offset = (offset + size - 1) & ~(size - 1);
             break;
         default:

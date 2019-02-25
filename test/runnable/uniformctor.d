@@ -4,7 +4,7 @@ template TypeTuple(TL...) { alias TypeTuple = TL; }
 import core.stdc.math : isnan;
 
 /********************************************/
-// 9112
+// https://issues.dlang.org/show_bug.cgi?id=9112
 
 void test9112a()    //  T() and T(v)
 {

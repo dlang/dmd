@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/fp.c, backend/fp.c)
@@ -35,8 +35,11 @@
 #include        <fp.h>
 #endif
 
-#include        "cc.h"
-
+#if _MSC_VER
+#include        "longdouble.h"
+#else
+typedef long double longdouble;
+#endif
 
 #if __DMC__
     #define HAVE_FLOAT_EXCEPT 1
@@ -66,7 +69,7 @@
     {
         feclearexcept(FE_ALL_EXCEPT);
     }
-#elif defined _MSC_VER && TX86
+#elif defined _MSC_VER /*&& TX86*/
     #define HAVE_FLOAT_EXCEPT 1
 
     int statusFE() { return 0; }
@@ -94,7 +97,7 @@ bool have_float_except() { return HAVE_FLOAT_EXCEPT; }
  * Helper to do % for long doubles.
  */
 
-targ_ldouble _modulo(targ_ldouble x, targ_ldouble y)
+longdouble _modulo(longdouble x, longdouble y)
 {
 #if __DMC__
     short sw;

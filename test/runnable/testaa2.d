@@ -4,12 +4,12 @@ extern(C) int printf(const char*, ...);
 
 /************************************************/
 
-int a[string];
+int[string] a;
 
 size_t foo(immutable char [3] s)
 {
     printf("foo()\n");
-    int b[string];
+    int[string] b;
     string[] key;
     int[] value;
     printf("foo() 2\n");
@@ -22,7 +22,7 @@ size_t foo(immutable char [3] s)
 
 void foo2()
 {
-    int c[string];
+    int[string] c;
     string[] key;
     int[] value;
     int i;
@@ -106,7 +106,7 @@ void test4523()
 }
 
 /************************************************/
-// 3825
+// https://issues.dlang.org/show_bug.cgi?id=3825
 
 import std.math;    // necessary for ^^=
 void test3825()
@@ -256,7 +256,7 @@ void test3825x()
 }
 
 /************************************************/
-// 10106
+// https://issues.dlang.org/show_bug.cgi?id=10106
 
 struct GcPolicy10106 {}
 

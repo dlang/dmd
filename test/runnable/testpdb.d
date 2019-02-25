@@ -41,6 +41,10 @@ void main(string[] args)
 
         S18984 s = test18984(session, globals);
 
+        test19307(session, globals);
+      
+        test19318(session, globals);
+
         source.Release();
         session.Release();
         globals.Release();
@@ -130,10 +134,161 @@ S18984 test18984(IDiaSession session, IDiaSymbol globals)
 }
 
 ///////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=19307
+// variables moved to closure
+struct Struct
+{
+    int member = 1;
+    auto foo()
+    {
+        int localOfMethod = 2;
+        auto nested()
+        {
+            int localOfNested = 3;
+            return localOfNested + localOfMethod + member;
+        }
+        return &nested;
+    }
+}
+
+int foo19307()
+{
+    Struct s;
+    s.foo()();
+
+    int x = 7;
+    auto nested()
+    {
+        int y = 8;
+        auto nested2()
+        {
+            int z = 9;
+            return x + y + z;
+        }
+        return &nested2;
+    }
+    return nested()();
+}
+
+string toUTF8(wstring ws)
+{
+    string s;
+    foreach(dchar c; ws)
+        s ~= c;
+    return s;
+}
+
+IDiaSymbol testClosureVar(IDiaSymbol globals, wstring funcName, wstring[] varNames...)
+{
+    IDiaSymbol funcSym = searchSymbol(globals, funcName.ptr);
+    funcSym || assert(false, toUTF8(funcName ~ " not found"));
+
+    wstring varName = funcName;
+    IDiaSymbol parentSym = funcSym;
+    foreach(v, var; varNames)
+    {
+        varName ~= "." ~ var;
+        IDiaSymbol varSym = searchSymbol(parentSym, var.ptr);
+        varSym || assert(false, toUTF8(varName ~ " not found"));
+
+        if (v + 1 == varNames.length)
+            return varSym;
+            
+        IDiaSymbol varType;
+        varSym.get_type(&varType) == S_OK || assert(false, toUTF8(varName ~ ": no type"));
+        varType.get_type(&varType) == S_OK || assert(false, toUTF8(varName ~ ": no ptrtype"));
+        parentSym = varType;
+    }    
+    return parentSym;
+}
+
+void test19307(IDiaSession session, IDiaSymbol globals)
+{
+    foo19307();
+
+    testClosureVar(globals, "testpdb.foo19307", "__closptr", "x");
+    testClosureVar(globals, "testpdb.foo19307.nested", "__capture", "x");
+    testClosureVar(globals, "testpdb.foo19307.nested", "__closptr", "y");
+    testClosureVar(globals, "testpdb.foo19307.nested.nested2", "__capture", "__chain", "x");
+
+    testClosureVar(globals, "testpdb.Struct.foo", "__closptr", "this", "member");
+    testClosureVar(globals, "testpdb.Struct.foo.nested", "__capture", "localOfMethod");
+    testClosureVar(globals, "testpdb.Struct.foo.nested", "__capture", "__chain", "member");
+}
+
+///////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=19318
+// variables captured from outer functions not visible in debugger
+int foo19318(int z) @nogc
+{
+    int x = 7;
+    auto nested() scope
+    {
+        int nested2()
+        {
+            return x + z;
+        }
+        return nested2();
+    }
+    return nested();
+}
+
+__gshared void* C19318_capture;
+__gshared void* C19318_px;
+
+class C19318
+{
+    void foo()
+    {
+        int x = 0;
+        auto bar()
+        {
+            int y = 0;
+            x++;
+            C19318_px = &x;
+            y++;
+            version(D_InlineAsm_X86_64)
+                asm
+                {
+                    mov RAX,__capture;
+                    mov C19318_capture, RAX;
+                }
+            else version(D_InlineAsm_X86)
+                asm
+                {
+                    mov EAX,__capture;
+                    mov C19318_capture, EAX;
+                }
+        }
+        bar();
+    }
+}
+
+void test19318(IDiaSession session, IDiaSymbol globals)
+{
+    foo19318(5);
+
+    testClosureVar(globals, "testpdb.foo19318", "x");
+    testClosureVar(globals, "testpdb.foo19318.nested", "__capture", "x");
+    testClosureVar(globals, "testpdb.foo19318.nested", "__capture", "z");
+    testClosureVar(globals, "testpdb.foo19318.nested.nested2", "__capture", "x");
+    testClosureVar(globals, "testpdb.foo19318.nested.nested2", "__capture", "z");
+
+    (new C19318).foo();
+    auto sym = testClosureVar(globals, "testpdb.C19318.foo.bar", "__capture", "x");
+    int off;
+    sym.get_offset(&off);
+    assert(off == C19318_px - C19318_capture);
+}
+
+///////////////////////////////////////////////
 import core.stdc.stdio;
 import core.stdc.wchar_;
 
-import core.sys.windows.windows;
+import core.sys.windows.basetyps;
+import core.sys.windows.ole2;
+import core.sys.windows.winbase;
+import core.sys.windows.winnt;
 import core.sys.windows.wtypes;
 import core.sys.windows.objbase;
 import core.sys.windows.unknwn;

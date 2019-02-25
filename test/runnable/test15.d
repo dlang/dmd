@@ -204,8 +204,8 @@ class A15
         List2.rehash;
     }
   private:
-    int delegate(in int arg1) List1[char[]];
-    int  List2[char []];
+    int delegate(in int arg1)[char[]] List1;
+    int[char []]  List2;
 }
 
 void test15()
@@ -899,12 +899,12 @@ void test49()
 
 void foo50(int[] f, ...)
 {
-    foreach(int i, TypeInfo ti; _arguments) { }
+    foreach(size_t i, TypeInfo ti; _arguments) { }
 }
 
 void bar50(out int[] f, ...)
 {
-    foreach(int i, TypeInfo ti; _arguments) { }
+    foreach(size_t i, TypeInfo ti; _arguments) { }
 }
 
 void test50()
@@ -1042,9 +1042,9 @@ void test56()
 
 /************************************/
 
-void det(float mat[][])
+void det(float[][] mat)
 {
-    float newmat[][];
+    float[][] newmat;
 
     size_t i = newmat[0 .. (mat.length - 1)].length;
 }

@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/canthrow.d, _canthrow.d)
@@ -67,9 +67,9 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
              * then this expression cannot throw.
              * Note that pure functions can throw.
              */
-            Type t = ce.e1.type.toBasetype();
             if (ce.f && ce.f == func)
                 return;
+            Type t = ce.e1.type.toBasetype();
             if (t.ty == Tfunction && (cast(TypeFunction)t).isnothrow)
                 return;
             if (t.ty == Tdelegate && (cast(TypeFunction)(cast(TypeDelegate)t).next).isnothrow)
@@ -236,26 +236,13 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
  */
 private bool Dsymbol_canThrow(Dsymbol s, FuncDeclaration func, bool mustNotThrow)
 {
-    AttribDeclaration ad;
-    VarDeclaration vd;
-    TemplateMixin tm;
-    TupleDeclaration td;
-    //printf("Dsymbol_toElem() %s\n", s.toChars());
-    ad = s.isAttribDeclaration();
-    if (ad)
+    int symbolDg(Dsymbol s)
     {
-        Dsymbols* decl = ad.include(null);
-        if (decl && decl.dim)
-        {
-            for (size_t i = 0; i < decl.dim; i++)
-            {
-                s = (*decl)[i];
-                if (Dsymbol_canThrow(s, func, mustNotThrow))
-                    return true;
-            }
-        }
+        return Dsymbol_canThrow(s, func, mustNotThrow);
     }
-    else if ((vd = s.isVarDeclaration()) !is null)
+
+    //printf("Dsymbol_toElem() %s\n", s.toChars());
+    if (auto vd = s.isVarDeclaration())
     {
         s = s.toAlias();
         if (s != vd)
@@ -270,28 +257,23 @@ private bool Dsymbol_canThrow(Dsymbol s, FuncDeclaration func, bool mustNotThrow
         {
             if (vd._init)
             {
-                ExpInitializer ie = vd._init.isExpInitializer();
-                if (ie && canThrow(ie.exp, func, mustNotThrow))
-                    return true;
+                if (auto ie = vd._init.isExpInitializer())
+                    if (canThrow(ie.exp, func, mustNotThrow))
+                        return true;
             }
             if (vd.needsScopeDtor())
                 return canThrow(vd.edtor, func, mustNotThrow);
         }
     }
-    else if ((tm = s.isTemplateMixin()) !is null)
+    else if (auto ad = s.isAttribDeclaration())
     {
-        //printf("%s\n", tm.toChars());
-        if (tm.members)
-        {
-            for (size_t i = 0; i < tm.members.dim; i++)
-            {
-                Dsymbol sm = (*tm.members)[i];
-                if (Dsymbol_canThrow(sm, func, mustNotThrow))
-                    return true;
-            }
-        }
+        return ad.include(null).foreachDsymbol(&symbolDg) != 0;
     }
-    else if ((td = s.isTupleDeclaration()) !is null)
+    else if (auto tm = s.isTemplateMixin())
+    {
+        return tm.members.foreachDsymbol(&symbolDg) != 0;
+    }
+    else if (auto td = s.isTupleDeclaration())
     {
         for (size_t i = 0; i < td.objects.dim; i++)
         {

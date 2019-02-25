@@ -91,7 +91,7 @@ template templateVariableBar(T) if (is(T == int))
 
 auto flit = 3 / 2.0;
 
-// 11217
+// https://issues.dlang.org/show_bug.cgi?id=11217
 void foo11217()(    const int[] arr) {}
 void foo11217()(immutable int[] arr) {}
 void foo11217()(      ref int[] arr) {}
@@ -101,7 +101,7 @@ void foo11217()(    scope int[] arr) {}
 void foo11217()(       in int[] arr) {}
 void foo11217()(    inout int[] arr) {}
 
-// 13275
+// https://issues.dlang.org/show_bug.cgi?id=13275
 void test13275()
 {
     if (        auto n = 1) {}
@@ -141,7 +141,7 @@ void test13275()
     foreach (shared const(int) e; [1,2]) {}
 }
 
-// 9766
+// https://issues.dlang.org/show_bug.cgi?id=9766
 align (1) struct S9766
 {
 align (true ? 2 : 3):
@@ -151,7 +151,7 @@ align:
     int var2;
 }
 
-// 16649
+// https://issues.dlang.org/show_bug.cgi?id=16649
 void leFoo()()
 {
     sign = a == 2 ? false : (y < 0) ^ sign;
@@ -159,7 +159,7 @@ void leFoo()()
     sign = 2 + 3 | 7 + 5;
 }
 
-// 17371
+// https://issues.dlang.org/show_bug.cgi?id=17371
 interface LeInterface
 {}
 class LeClass
@@ -171,6 +171,6 @@ class LeClass
 }
 const levar = new class LeClass, LeInterface {};
 
-// 17663
+// https://issues.dlang.org/show_bug.cgi?id=17663
 private:
 public struct Export {}

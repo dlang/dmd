@@ -116,7 +116,18 @@ DEBUG_FLAGS=$(PIC_FLAG) -g
 
 export DMD_TEST_COVERAGE=
 
-runnable_tests=$(wildcard runnable/*.d) $(wildcard runnable/*.sh)
+# List the tests that take longest to run first, so that parallel make
+# will test them sooner, because they are large, have many test
+# permutations, or typically are the last tests to finish.
+runnable_tests_long=runnable/test42.d \
+		    runnable/xtest46.d \
+		    runnable/test34.d \
+		    runnable/test23.d \
+		    runnable/hospital.d \
+		    runnable/testsignals.d \
+		    runnable/interpret.d
+
+runnable_tests=$(runnable_tests_long) $(wildcard runnable/*.d) $(wildcard runnable/*.sh)
 runnable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(runnable_tests)))
 
 compilable_tests=$(wildcard compilable/*.d) $(wildcard compilable/*.sh)
@@ -147,7 +158,11 @@ $(RESULTS_DIR)/.created:
 	$(QUIET)if [ ! -d $(RESULTS_DIR)/fail_compilation ]; then mkdir $(RESULTS_DIR)/fail_compilation; fi
 	$(QUIET)touch $(RESULTS_DIR)/.created
 
-run_tests: start_runnable_tests start_compilable_tests start_fail_compilation_tests
+run_tests: unit_tests start_runnable_tests start_compilable_tests start_fail_compilation_tests
+
+unit_tests: $(RESULTS_DIR)/unit_test_runner$(EXE)
+	@echo "Running unit tests"
+	$<
 
 run_runnable_tests: $(runnable_test_results)
 
@@ -182,3 +197,9 @@ $(RESULTS_DIR)/sanitize_json$(EXE): tools/sanitize_json.d $(RESULTS_DIR)/.create
 	@echo "PIC: '$(PIC_FLAG)'"
 	$(DMD) -conf= $(MODEL_FLAG) $(DEBUG_FLAGS) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)sanitize_json$(EXE) -i $<
 
+$(RESULTS_DIR)/unit_test_runner$(EXE): tools/unit_test_runner.d $(RESULTS_DIR)/.created | $(DMD)
+	@echo "Building unit_test_runner tool"
+	@echo "OS: '$(OS)'"
+	@echo "MODEL: '$(MODEL)'"
+	@echo "PIC: '$(PIC_FLAG)'"
+	$(DMD) -conf= $(MODEL_FLAG) $(DEBUG_FLAGS) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)unit_test_runner$(EXE) -i $<

@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcv.c, backend/cgcv.c)
@@ -23,9 +23,9 @@ extern (C++):
 @nogc:
 nothrow:
 
-alias LIST* symlist_t;
+alias symlist_t = LIST*;
 
-extern char* ftdbname;
+extern __gshared char* ftdbname;
 
 void cv_init();
 uint cv_typidx(type* t);
@@ -37,7 +37,7 @@ uint cv4_struct(Classsym*, int);
 
 /* =================== Added for MARS compiler ========================= */
 
-alias uint idx_t;        // type of type index
+alias idx_t = uint;        // type of type index
 
 /* Data structure for a type record     */
 
@@ -66,6 +66,8 @@ debtyp_t* debtyp_alloc(uint length);
 int cv_stringbytes(const(char)* name);
 uint cv4_numericbytes(uint value);
 void cv4_storenumeric(ubyte* p, uint value);
+uint cv4_signednumericbytes(int value);
+void cv4_storesignednumeric(ubyte* p, int value);
 idx_t cv_debtyp(debtyp_t* d);
 int cv_namestring(ubyte* p, const(char)* name, int length = -1);
 uint cv4_typidx(type* t);

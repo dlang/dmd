@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/declaration.d, _declaration.d)
@@ -45,7 +45,7 @@ import dmd.visitor;
  * accessible from the current scope.
  * Returns true if error occurs.
  */
-extern (C++) bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, size_t iStart = 0)
+bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, size_t iStart = 0)
 {
     Dsymbol sparent = ad.toParent2();
     Dsymbol s = sc.func;
@@ -199,7 +199,7 @@ bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
  */
 extern (C++) void ObjectNotFound(Identifier id)
 {
-    Type.error(Loc.initial, "`%s` not found. object.d may be incorrectly installed or corrupt.", id.toChars());
+    error(Loc.initial, "`%s` not found. object.d may be incorrectly installed or corrupt.", id.toChars());
     fatal();
 }
 
@@ -263,7 +263,7 @@ enum STC : long
     FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property | STC.safe | STC.trusted | STC.system),
 }
 
-extern (C++) __gshared const(StorageClass) STCStorageClass =
+enum STCStorageClass =
     (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.const_ | STC.final_ | STC.abstract_ | STC.synchronized_ |
      STC.deprecated_ | STC.future | STC.override_ | STC.lazy_ | STC.alias_ | STC.out_ | STC.in_ | STC.manifest |
      STC.immutable_ | STC.shared_ | STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls | STC.gshared |
@@ -290,7 +290,7 @@ extern (C++) abstract class Declaration : Dsymbol
     int inuse;          // used to detect cycles
 
     // overridden symbol with pragma(mangle, "...")
-    const(char)* mangleOverride;
+    const(char)[] mangleOverride;
 
     final extern (D) this(Identifier id)
     {
@@ -325,7 +325,7 @@ extern (C++) abstract class Declaration : Dsymbol
      * Returns:
      *   `true` if this `Declaration` is `@disable`d, `false` otherwise.
      */
-    final bool checkDisabled(Loc loc, Scope* sc, bool isAliasedDeclaration = false)
+    extern (D) final bool checkDisabled(Loc loc, Scope* sc, bool isAliasedDeclaration = false)
     {
         if (storage_class & STC.disable)
         {
@@ -361,7 +361,7 @@ extern (C++) abstract class Declaration : Dsymbol
      * Check to see if declaration can be modified in this context (sc).
      * Issue error if not.
      */
-    final int checkModify(Loc loc, Scope* sc, Expression e1, int flag)
+    extern (D) final int checkModify(Loc loc, Scope* sc, Expression e1, int flag)
     {
         VarDeclaration v = isVarDeclaration();
         if (v && v.canassign)
@@ -437,7 +437,7 @@ extern (C++) abstract class Declaration : Dsymbol
         return false;
     }
 
-    bool isCodeseg()
+    bool isCodeseg() const pure nothrow @nogc @safe
     {
         return false;
     }
@@ -603,8 +603,7 @@ extern (C++) final class TupleDeclaration : Declaration
             /* We know it's a type tuple, so build the TypeTuple
              */
             Types* types = cast(Types*)objects;
-            auto args = new Parameters();
-            args.setDim(objects.dim);
+            auto args = new Parameters(objects.dim);
             OutBuffer buf;
             int hasdeco = 1;
             for (size_t i = 0; i < types.dim; i++)
@@ -1098,11 +1097,18 @@ extern (C++) class VarDeclaration : Declaration
 
     VarDeclarations* maybes;        // STC.maybescope variables that are assigned to this STC.maybescope variable
 
+    private bool _isAnonymous;
+
     final extern (D) this(const ref Loc loc, Type type, Identifier id, Initializer _init, StorageClass storage_class = STC.undefined_)
     {
-        super(id);
+        if (id is Identifier.anonymous)
+        {
+            id = Identifier.generateId("__anonvar");
+            _isAnonymous = true;
+        }
         //printf("VarDeclaration('%s')\n", id.toChars());
         assert(id);
+        super(id);
         debug
         {
             if (!type && !_init)
@@ -1205,7 +1211,7 @@ extern (C++) class VarDeclaration : Declaration
         const sz = t.size(loc);
         assert(sz != SIZE_INVALID && sz < uint.max);
         uint memsize = cast(uint)sz;                // size of member
-        uint memalignsize = Target.fieldalign(t);   // size of member for alignment purposes
+        uint memalignsize = target.fieldalign(t);   // size of member for alignment purposes
         offset = AggregateDeclaration.placeField(
             poffset,
             memsize, memalignsize, alignment,
@@ -1245,12 +1251,17 @@ extern (C++) class VarDeclaration : Declaration
         return isField();
     }
 
-    override final bool isExport()
+    override final bool isAnonymous()
+    {
+        return _isAnonymous;
+    }
+
+    override final bool isExport() const
     {
         return protection.kind == Prot.Kind.export_;
     }
 
-    override final bool isImportedSymbol()
+    override final bool isImportedSymbol() const
     {
         if (protection.kind == Prot.Kind.export_ && !_init && (storage_class & STC.static_ || parent.isModule()))
             return true;
@@ -1516,7 +1527,7 @@ extern (C++) class VarDeclaration : Declaration
      * rather than the current one.
      * Returns true if error occurs.
      */
-    final bool checkNestedReference(Scope* sc, Loc loc)
+    extern (D) final bool checkNestedReference(Scope* sc, Loc loc)
     {
         //printf("VarDeclaration::checkNestedReference() %s\n", toChars());
         if (sc.intypeof == 1 || (sc.flags & SCOPE.ctfe))
@@ -1701,7 +1712,7 @@ extern (C++) class TypeInfoDeclaration : VarDeclaration
         storage_class = STC.static_ | STC.gshared;
         protection = Prot(Prot.Kind.public_);
         linkage = LINK.c;
-        alignment = Target.ptrsize;
+        alignment = target.ptrsize;
     }
 
     static TypeInfoDeclaration create(Type tinfo)

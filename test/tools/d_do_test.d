@@ -64,6 +64,7 @@ struct TestArgs
     bool     link;
     string   executeArgs;
     string   dflags;
+    string   cxxflags;
     string[] sources;
     string[] compiledImports;
     string[] cppSources;
@@ -141,6 +142,9 @@ bool findTestParameter(const ref EnvData envData, string file, string token, ref
         if(result2.length > 0)
             result ~= multiLineDelimiter ~ result2;
     }
+
+    // fix-up separators
+    result = result.unifyDirSep(envData.sep);
 
     return true;
 }
@@ -269,6 +273,7 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
             testArgs.compiledImports ~= input_dir ~ "/" ~ s;
     }
 
+    findTestParameter(envData, file, "CXXFLAGS", testArgs.cxxflags);
     string extraCppSourcesStr;
     findTestParameter(envData, file, "EXTRA_CPP_SOURCES", extraCppSourcesStr);
     testArgs.cppSources = [];
@@ -414,12 +419,17 @@ string execute(ref File f, string command, bool expectpass, string result_path)
 
 string unifyNewLine(string str)
 {
-    return std.regex.replace(str, regex(`\r\n|\r|\n`, "g"), "\n");
+    // On Windows, Outbuffer.writenl() puts `\r\n` into the buffer,
+    // then fprintf() adds another `\r` when formatting the message.
+    // This is why there's a match for `\r\r\n` in this regex.
+    static re = regex(`\r\r\n|\r\n|\r|\n`, "g");
+    return std.regex.replace(str, re, "\n");
 }
 
 string unifyDirSep(string str, string sep)
 {
-    return std.regex.replace(str, regex(`(?<=[-\w][-\w]*)/(?=[-\w][-\w/]*\.di?\b)`, "g"), sep);
+    static re = regex(`(?<=[-\w{}][-\w{}]*)/(?=[-\w][-\w/]*\.(di?|mixin)\b)`, "g");
+    return std.regex.replace(str, re, sep);
 }
 unittest
 {
@@ -432,9 +442,14 @@ unittest
         == `fail_compilation\test.d(1) Error: at fail_compilation\imports\test.d(2)`);
     assert(`fail_compilation/diag.d(2): Error: fail_compilation/imports/fail.d must be imported`.unifyDirSep(`\`)
         == `fail_compilation\diag.d(2): Error: fail_compilation\imports\fail.d must be imported`);
+
+    assert(`{{RESULTS_DIR}}/fail_compilation/mixin_test.mixin(7): Error:`.unifyDirSep(`\`)
+        == `{{RESULTS_DIR}}\fail_compilation\mixin_test.mixin(7): Error:`);
 }
 
-bool collectExtraSources (in string input_dir, in string output_dir, in string[] extraSources, ref string[] sources, in EnvData envData, in string compiler)
+bool collectExtraSources (in string input_dir, in string output_dir, in string[] extraSources,
+                          ref string[] sources, in EnvData envData, in string compiler,
+                          const(char)[] cxxflags)
 {
     foreach (cur; extraSources)
     {
@@ -460,6 +475,8 @@ bool collectExtraSources (in string input_dir, in string output_dir, in string[]
         {
             command ~= " -m"~envData.model~" -c "~curSrc~" -o "~curObj;
         }
+        if (compiler == "c++" && cxxflags)
+            command ~= " " ~ cxxflags;
 
         auto rc = system(command);
         if(rc)
@@ -581,6 +598,10 @@ int tryMain(string[] args)
     string output_file    = result_path ~ input_file ~ ".out";
     string test_app_dmd_base = output_dir ~ envData.sep ~ test_name ~ "_";
 
+    // envData.sep is required as the results_dir path can be `generated`
+    const absoluteResultDirPath = envData.results_dir.absolutePath ~ envData.sep;
+    const resultsDirReplacement = "{{RESULTS_DIR}}" ~ envData.sep;
+
     // running & linking costs time - for coverage builds we can save this
     if (envData.coverage_build && testArgs.mode == TestMode.RUN)
         testArgs.mode = TestMode.COMPILE;
@@ -618,30 +639,33 @@ int tryMain(string[] args)
         }
     }
 
+    if (testArgs.disabledPlatforms.any!(a => envData.os.chain(envData.model).canFind(a)))
+        testArgs.disabled = true;
+
     //prepare cpp extra sources
-    if (testArgs.cppSources.length)
+    if (!testArgs.disabled && testArgs.cppSources.length)
     {
         switch (envData.compiler)
         {
             case "dmd":
                 if(envData.os != "win32" && envData.os != "win64")
-                   testArgs.requiredArgs ~= " -L-lstdc++";
+                   testArgs.requiredArgs ~= " -L-lstdc++ -L--no-demangle";
                 break;
             case "ldc":
-                testArgs.requiredArgs ~= " -L-lstdc++";
+                testArgs.requiredArgs ~= " -L-lstdc++ -L--no-demangle";
                 break;
             case "gdc":
-                testArgs.requiredArgs ~= "-Xlinker -lstdc++";
+                testArgs.requiredArgs ~= "-Xlinker -lstdc++ -Xlinker --no-demangle";
                 break;
             default:
                 writeln("unknown compiler: "~envData.compiler);
                 return 1;
         }
-        if (!collectExtraSources(input_dir, output_dir, testArgs.cppSources, testArgs.sources, envData, envData.ccompiler))
+        if (!collectExtraSources(input_dir, output_dir, testArgs.cppSources, testArgs.sources, envData, envData.ccompiler, testArgs.cxxflags))
             return 1;
     }
     //prepare objc extra sources
-    if (!collectExtraSources(input_dir, output_dir, testArgs.objcSources, testArgs.sources, envData, "clang"))
+    if (!testArgs.disabled && !collectExtraSources(input_dir, output_dir, testArgs.objcSources, testArgs.sources, envData, "clang", null))
         return 1;
 
     writef(" ... %-30s %s%s(%s)",
@@ -661,11 +685,8 @@ int tryMain(string[] args)
     }
 
     // allows partial matching, e.g. win for both win32 and win64
-    if (testArgs.disabledPlatforms.any!(a => envData.os.chain(envData.model).canFind(a)))
-    {
-        testArgs.disabled = true;
+    if (testArgs.disabled)
         writefln("!!! [DISABLED on %s]", envData.os);
-    }
     else
         write("\n");
 
@@ -749,6 +770,9 @@ int tryMain(string[] args)
             compile_output = compile_output.unifyNewLine();
             compile_output = std.regex.replace(compile_output, regex(`^DMD v2\.[0-9]+.*\n? DEBUG$`, "m"), "");
             compile_output = std.string.strip(compile_output);
+            // replace test_result path with fixed ones
+            compile_output = compile_output.replace(result_path, resultsDirReplacement);
+            compile_output = compile_output.replace(absoluteResultDirPath, resultsDirReplacement);
 
             auto m = std.regex.match(compile_output, `Internal error: .*$`);
             enforce(!m, m.hit);

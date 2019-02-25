@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/access.d, _access.d)
@@ -49,9 +49,8 @@ private Prot getAccess(AggregateDeclaration ad, Dsymbol smember)
     }
     if (ClassDeclaration cd = ad.isClassDeclaration())
     {
-        for (size_t i = 0; i < cd.baseclasses.dim; i++)
+        foreach (b; *cd.baseclasses)
         {
-            BaseClass* b = (*cd.baseclasses)[i];
             Prot access = getAccess(b.sym, smember);
             final switch (access.kind)
             {
@@ -101,10 +100,9 @@ private bool isAccessible(Dsymbol smember, Dsymbol sfunc, AggregateDeclaration d
             return true;
         if (ClassDeclaration cdthis = dthis.isClassDeclaration())
         {
-            for (size_t i = 0; i < cdthis.baseclasses.dim; i++)
+            foreach (b; *cdthis.baseclasses)
             {
-                BaseClass* b = (*cdthis.baseclasses)[i];
-                Prot access = getAccess(b.sym, smember);
+                const Prot access = getAccess(b.sym, smember);
                 if (access.kind >= Prot.Kind.protected_ || isAccessible(smember, sfunc, b.sym, cdscope))
                 {
                     return true;
@@ -118,12 +116,9 @@ private bool isAccessible(Dsymbol smember, Dsymbol sfunc, AggregateDeclaration d
         {
             if (ClassDeclaration cdthis = dthis.isClassDeclaration())
             {
-                for (size_t i = 0; i < cdthis.baseclasses.dim; i++)
-                {
-                    BaseClass* b = (*cdthis.baseclasses)[i];
+                foreach (b; *cdthis.baseclasses)
                     if (isAccessible(smember, sfunc, b.sym, cdscope))
                         return true;
-                }
             }
         }
     }
@@ -135,7 +130,7 @@ private bool isAccessible(Dsymbol smember, Dsymbol sfunc, AggregateDeclaration d
  * type of the 'this' pointer used to access smember.
  * Returns true if the member is not accessible.
  */
-extern (C++) bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymbol smember)
+bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymbol smember)
 {
     FuncDeclaration f = sc.func;
     AggregateDeclaration cdscope = sc.getStructClassScope();
@@ -388,7 +383,7 @@ private bool hasPrivateAccess(AggregateDeclaration ad, Dsymbol smember)
  * Check access to d for expression e.d
  * Returns true if the declaration is not accessible.
  */
-extern (C++) bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
+bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
 {
     if (sc.flags & SCOPE.noaccesscheck)
         return false;
@@ -423,8 +418,7 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
         ClassDeclaration cd = (cast(TypeClass)e.type).sym;
         if (e.op == TOK.super_)
         {
-            ClassDeclaration cd2 = sc.func.toParent().isClassDeclaration();
-            if (cd2)
+            if (ClassDeclaration cd2 = sc.func.toParent().isClassDeclaration())
                 cd = cd2;
         }
         return checkAccess(cd, loc, sc, d);
@@ -452,7 +446,7 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
  * (see https://issues.dlang.org/show_bug.cgi?id=313).
  *
  */
-extern (C++) bool checkAccess(Loc loc, Scope* sc, Package p)
+bool checkAccess(Loc loc, Scope* sc, Package p)
 {
     if (sc._module == p)
         return false;
@@ -463,9 +457,9 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Package p)
     }
     auto name = p.toPrettyChars();
     if (p.isPkgMod == PKG.module_ || p.isModule())
-        deprecation(loc, "%s `%s` is not accessible here, perhaps add `static import %s;`", p.kind(), name, name);
+        error(loc, "%s `%s` is not accessible here, perhaps add `static import %s;`", p.kind(), name, name);
     else
-        deprecation(loc, "%s `%s` is not accessible here", p.kind(), name);
+        error(loc, "%s `%s` is not accessible here", p.kind(), name);
     return true;
 }
 
@@ -477,7 +471,7 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Package p)
  *  s = symbol to check for visibility
  * Returns: true if s is visible in mod
  */
-extern (C++) bool symbolIsVisible(Module mod, Dsymbol s)
+bool symbolIsVisible(Module mod, Dsymbol s)
 {
     // should sort overloads by ascending protection instead of iterating here
     s = mostVisibleOverload(s);
@@ -495,7 +489,7 @@ extern (C++) bool symbolIsVisible(Module mod, Dsymbol s)
 /**
  * Same as above, but determines the lookup module from symbols `origin`.
  */
-extern (C++) bool symbolIsVisible(Dsymbol origin, Dsymbol s)
+bool symbolIsVisible(Dsymbol origin, Dsymbol s)
 {
     return symbolIsVisible(origin.getAccessModule(), s);
 }
@@ -509,7 +503,7 @@ extern (C++) bool symbolIsVisible(Dsymbol origin, Dsymbol s)
  *  s = symbol to check for visibility
  * Returns: true if s is visible by origin
  */
-extern (C++) bool symbolIsVisible(Scope *sc, Dsymbol s)
+bool symbolIsVisible(Scope *sc, Dsymbol s)
 {
     s = mostVisibleOverload(s);
     return checkSymbolAccess(sc, s);
@@ -524,7 +518,7 @@ extern (C++) bool symbolIsVisible(Scope *sc, Dsymbol s)
  *  s = symbol to check for visibility
  * Returns: true if s is visible by origin
  */
-extern (C++) bool checkSymbolAccess(Scope *sc, Dsymbol s)
+bool checkSymbolAccess(Scope *sc, Dsymbol s)
 {
     final switch (s.prot().kind)
     {

@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/toctype.d, _toctype.d)
@@ -75,6 +75,7 @@ public:
     override void visit(TypeAArray t)
     {
         t.ctype = type_assoc_array(Type_toCtype(t.index), Type_toCtype(t.next));
+        t.ctype.Tident = t.toPrettyChars(true);
     }
 
     override void visit(TypePointer t)
@@ -85,7 +86,7 @@ public:
 
     override void visit(TypeFunction t)
     {
-        const nparams = Parameter.dim(t.parameters);
+        const nparams = t.parameterList.length;
         type*[10] tmp = void;
         type** ptypes = (nparams <= tmp.length)
                         ? tmp.ptr
@@ -93,7 +94,7 @@ public:
 
         foreach (i; 0 .. nparams)
         {
-            Parameter p = Parameter.getNth(t.parameters, i);
+            Parameter p = t.parameterList[i];
             type* tp = Type_toCtype(p.type);
             if (p.storageClass & (STC.out_ | STC.ref_))
                 tp = type_allocn(TYnref, tp);
@@ -105,7 +106,7 @@ public:
             }
             ptypes[i] = tp;
         }
-        t.ctype = type_function(totym(t), ptypes, nparams, t.varargs == 1, Type_toCtype(t.next));
+        t.ctype = type_function(totym(t), ptypes, nparams, t.parameterList.varargs == VarArg.variadic, Type_toCtype(t.next));
         if (nparams > tmp.length)
             free(ptypes);
     }
@@ -154,12 +155,6 @@ public:
         {
             // Create a new backend type
             StructDeclaration sym = t.sym;
-            if (sym.ident == Id.__c_long_double)
-            {
-                t.ctype = type_fake(TYdouble);
-                t.ctype.Tcount++;
-                return;
-            }
             t.ctype = type_struct_class(sym.toPrettyChars(true), sym.alignsize, sym.structsize, sym.arg1type ? Type_toCtype(sym.arg1type) : null, sym.arg2type ? Type_toCtype(sym.arg2type) : null, sym.isUnionDeclaration() !is null, false, sym.isPOD() != 0, sym.hasNoFields);
             /* Add in fields of the struct
              * (after setting ctype to avoid infinite recursion)
@@ -265,7 +260,7 @@ public:
 
         // Copy mutable version of backend type and add modifiers
         type* mctype = Type_toCtype(t.castMod(0));
-        t.ctype = type_alloc(tybasic(mctype.Tty)); // pointer to class instance
+        t.ctype = type_allocn(tybasic(mctype.Tty), mctype.Tnext); // pointer to class instance
         t.ctype.Tcount++;
         addMod(t);
     }

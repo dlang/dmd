@@ -2,7 +2,7 @@
  * Compiler implementation of the D programming language
  * http://dlang.org
  *
- * Copyright: Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/stringtable.d, root/_stringtable.d)
@@ -43,19 +43,25 @@ struct StringValue
 
 nothrow:
 pure:
-    extern (C++) char* lstring()
+    char* lstring() return
     {
         return cast(char*)(&this + 1);
     }
 
-    extern (C++) size_t len() const
+    size_t len() const
     {
         return length;
     }
 
-    extern (C++) const(char)* toDchars() const
+    const(char)* toDchars() const return
     {
         return cast(const(char)*)(&this + 1);
+    }
+
+    /// Returns: The content of this entry as a D slice
+    inout(char)[] toString() inout
+    {
+        return (cast(inout(char)*)(&this + 1))[0 .. length];
     }
 }
 
@@ -70,7 +76,7 @@ private:
     size_t count;
 
 public:
-    extern (C++) void _init(size_t size = 0) nothrow
+    void _init(size_t size = 0) nothrow
     {
         size = nextpow2(cast(size_t)(size / loadFactor));
         if (size < 32)
@@ -82,7 +88,7 @@ public:
         count = 0;
     }
 
-    extern (C++) void reset(size_t size = 0) nothrow
+    void reset(size_t size = 0) nothrow
     {
         for (size_t i = 0; i < npools; ++i)
             mem.xfree(pools[i]);
@@ -93,7 +99,7 @@ public:
         _init(size);
     }
 
-    extern (C++) ~this() nothrow
+    ~this() nothrow
     {
         for (size_t i = 0; i < npools; ++i)
             mem.xfree(pools[i]);
@@ -103,47 +109,90 @@ public:
         pools = null;
     }
 
-    extern (C++) inout(StringValue)* lookup(const(char)* s, size_t length) inout nothrow pure
+    /**
+    Looks up the given string in the string table and returns its associated
+    value.
+
+    Params:
+     s = the string to look up
+     length = the length of $(D_PARAM s)
+     str = the string to look up
+
+    Returns: the string's associated value, or `null` if the string doesn't
+     exist in the string table
+    */
+    inout(StringValue)* lookup(const(char)[] str) inout nothrow pure
     {
-        const(hash_t) hash = calcHash(s, length);
-        const(size_t) i = findSlot(hash, s, length);
-        // printf("lookup %.*s %p\n", (int)length, s, table[i].value ?: NULL);
+        const(hash_t) hash = calcHash(str.ptr, str.length);
+        const(size_t) i = findSlot(hash, str);
+        // printf("lookup %.*s %p\n", cast(int)str.length, str.ptr, table[i].value ?: null);
         return getValue(table[i].vptr);
     }
 
-    extern (C++) StringValue* insert(const(char)* s, size_t length, void* ptrvalue) nothrow
+    /// ditto
+    inout(StringValue)* lookup(const(char)* s, size_t length) inout nothrow pure
     {
-        const(hash_t) hash = calcHash(s, length);
-        size_t i = findSlot(hash, s, length);
+        return lookup(s[0 .. length]);
+    }
+
+    /**
+    Inserts the given string and the given associated value into the string
+    table.
+
+    Params:
+     s = the string to insert
+     length = the length of $(D_PARAM s)
+     ptrvalue = the value to associate with the inserted string
+     str = the string to insert
+     value = the value to associate with the inserted string
+
+    Returns: the newly inserted value, or `null` if the string table already
+     contains the string
+    */
+    StringValue* insert(const(char)[] str, void* ptrvalue) nothrow
+    {
+        const(hash_t) hash = calcHash(str.ptr, str.length);
+        size_t i = findSlot(hash, str);
         if (table[i].vptr)
             return null; // already in table
         if (++count > tabledim * loadFactor)
         {
             grow();
-            i = findSlot(hash, s, length);
+            i = findSlot(hash, str);
         }
         table[i].hash = hash;
-        table[i].vptr = allocValue(s, length, ptrvalue);
-        // printf("insert %.*s %p\n", (int)length, s, table[i].value ?: NULL);
+        table[i].vptr = allocValue(str, ptrvalue);
+        // printf("insert %.*s %p\n", cast(int)str.length, str.ptr, table[i].value ?: NULL);
         return getValue(table[i].vptr);
     }
 
-    extern (C++) StringValue* update(const(char)* s, size_t length) nothrow
+    /// ditto
+    StringValue* insert(const(char)* s, size_t length, void* value) nothrow
     {
-        const(hash_t) hash = calcHash(s, length);
-        size_t i = findSlot(hash, s, length);
+        return insert(s[0 .. length], value);
+    }
+
+    StringValue* update(const(char)[] str) nothrow
+    {
+        const(hash_t) hash = calcHash(str.ptr, str.length);
+        size_t i = findSlot(hash, str);
         if (!table[i].vptr)
         {
             if (++count > tabledim * loadFactor)
             {
                 grow();
-                i = findSlot(hash, s, length);
+                i = findSlot(hash, str);
             }
             table[i].hash = hash;
-            table[i].vptr = allocValue(s, length, null);
+            table[i].vptr = allocValue(str, null);
         }
-        // printf("update %.*s %p\n", (int)length, s, table[i].value ?: NULL);
+        // printf("update %.*s %p\n", cast(int)str.length, str.ptr, table[i].value ?: NULL);
         return getValue(table[i].vptr);
+    }
+
+    StringValue* update(const(char)* s, size_t length) nothrow
+    {
+        return update(s[0 .. length]);
     }
 
     /********************************
@@ -154,7 +203,7 @@ public:
      * Returns:
      *      last return value of fp call
      */
-    extern (C++) int apply(int function(const(StringValue)*) fp)
+    int apply(int function(const(StringValue)*) fp)
     {
         foreach (const se; table[0 .. tabledim])
         {
@@ -168,16 +217,25 @@ public:
         return 0;
     }
 
-    StringValue* update(const(char)[] name) nothrow
+    extern(D) int opApply(scope int delegate(const(StringValue)*) dg)
     {
-        return update(name.ptr, name.length);
+        foreach (const se; table[0 .. tabledim])
+        {
+            if (!se.vptr)
+                continue;
+            const sv = getValue(se.vptr);
+            int result = dg(sv);
+            if (result)
+                return result;
+        }
+        return 0;
     }
 
 private:
 nothrow:
-    uint allocValue(const(char)* s, size_t length, void* ptrvalue)
+    uint allocValue(const(char)[] str, void* ptrvalue)
     {
-        const(size_t) nbytes = StringValue.sizeof + length + 1;
+        const(size_t) nbytes = StringValue.sizeof + str.length + 1;
         if (!npools || nfill + nbytes > POOL_SIZE)
         {
             pools = cast(ubyte**)mem.xrealloc(pools, ++npools * (pools[0]).sizeof);
@@ -186,9 +244,9 @@ nothrow:
         }
         StringValue* sv = cast(StringValue*)&pools[npools - 1][nfill];
         sv.ptrvalue = ptrvalue;
-        sv.length = length;
-        .memcpy(sv.lstring(), s, length);
-        sv.lstring()[length] = 0;
+        sv.length = str.length;
+        .memcpy(sv.lstring(), str.ptr, str.length);
+        sv.lstring()[str.length] = 0;
         const(uint) vptr = cast(uint)(npools << POOL_BITS | nfill);
         nfill += nbytes + (-nbytes & 7); // align to 8 bytes
         return vptr;
@@ -203,7 +261,7 @@ nothrow:
         return cast(inout(StringValue)*)&pools[idx][off];
     }
 
-    size_t findSlot(hash_t hash, const(char)* s, size_t length) const pure
+    size_t findSlot(hash_t hash, const(char)[] str) const pure
     {
         // quadratic probing using triangular numbers
         // http://stackoverflow.com/questions/2348187/moving-from-linear-probing-to-quadratic-probing-hash-collisons/2349774#2349774
@@ -211,7 +269,7 @@ nothrow:
         {
             const(StringValue)* sv;
             auto vptr = table[i].vptr;
-            if (!vptr || table[i].hash == hash && (sv = getValue(vptr)).length == length && .memcmp(s, sv.toDchars(), length) == 0)
+            if (!vptr || table[i].hash == hash && (sv = getValue(vptr)).length == str.length && .memcmp(str.ptr, sv.toDchars(), str.length) == 0)
                 return i;
             i = (i + j) & (tabledim - 1);
         }
@@ -228,7 +286,7 @@ nothrow:
             if (!se.vptr)
                 continue;
             const sv = getValue(se.vptr);
-            table[findSlot(se.hash, sv.toDchars(), sv.length)] = se;
+            table[findSlot(se.hash, sv.toString())] = se;
         }
         mem.xfree(otab);
     }

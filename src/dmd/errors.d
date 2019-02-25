@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/errors.d, _errors.d)
@@ -73,10 +73,7 @@ extern (D) void error(Loc loc, const(char)* format, ...)
  */
 extern (C++) void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...)
 {
-    Loc loc;
-    loc.filename = filename;
-    loc.linnum = linnum;
-    loc.charnum = charnum;
+    const loc = Loc(filename, linnum, charnum);
     va_list ap;
     va_start(ap, format);
     verror(loc, format, ap);
@@ -236,6 +233,32 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
     else
         fputs(tmp.peekString(), stderr);
     fputc('\n', stderr);
+
+    if (global.params.printErrorContext &&
+        // ignore invalid files
+        loc != Loc.initial &&
+        // ignore mixins for now
+        !loc.filename.strstr(".d-mixin-") &&
+        !global.params.mixinOut)
+    {
+        import dmd.filecache : FileCache;
+        auto fllines = FileCache.fileCache.addOrGetFile(loc.filename[0 .. strlen(loc.filename)]);
+
+        if (loc.linnum - 1 < fllines.lines.length)
+        {
+            auto line = fllines.lines[loc.linnum - 1];
+            if (loc.charnum < line.length)
+            {
+                fprintf(stderr, "%.*s\n", cast(int)line.length, line.ptr);
+                foreach (_; 1 .. loc.charnum)
+                    fputc(' ', stderr);
+
+                fputc('^', stderr);
+                fputc('\n', stderr);
+            }
+        }
+    }
+end:
     fflush(stderr);     // ensure it gets written out in case of compiler aborts
 }
 
@@ -299,12 +322,18 @@ extern (C++) void verrorSupplemental(const ref Loc loc, const(char)* format, va_
  */
 extern (C++) void vwarning(const ref Loc loc, const(char)* format, va_list ap)
 {
-    if (global.params.warnings && !global.gag)
+    if (global.params.warnings != Diagnostic.off)
     {
-        verrorPrint(loc, Classification.warning, "Warning: ", format, ap);
-        //halt();
-        if (global.params.warnings == 1)
-            global.warnings++; // warnings don't count if gagged
+        if (!global.gag)
+        {
+            verrorPrint(loc, Classification.warning, "Warning: ", format, ap);
+            if (global.params.warnings == Diagnostic.error)
+                global.warnings++;
+        }
+        else
+        {
+            global.gaggedWarnings++;
+        }
     }
 }
 
@@ -317,7 +346,7 @@ extern (C++) void vwarning(const ref Loc loc, const(char)* format, va_list ap)
  */
 extern (C++) void vwarningSupplemental(const ref Loc loc, const(char)* format, va_list ap)
 {
-    if (global.params.warnings && !global.gag)
+    if (global.params.warnings != Diagnostic.off && !global.gag)
         verrorPrint(loc, Classification.warning, "       ", format, ap);
 }
 
@@ -332,11 +361,20 @@ extern (C++) void vwarningSupplemental(const ref Loc loc, const(char)* format, v
  */
 extern (C++) void vdeprecation(const ref Loc loc, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
 {
-    static __gshared const(char)* header = "Deprecation: ";
-    if (global.params.useDeprecated == 0)
+    __gshared const(char)* header = "Deprecation: ";
+    if (global.params.useDeprecated == Diagnostic.error)
         verror(loc, format, ap, p1, p2, header);
-    else if (global.params.useDeprecated == 2 && !global.gag)
-        verrorPrint(loc, Classification.deprecation, header, format, ap, p1, p2);
+    else if (global.params.useDeprecated == Diagnostic.inform)
+    {
+        if (!global.gag)
+        {
+            verrorPrint(loc, Classification.deprecation, header, format, ap, p1, p2);
+        }
+        else
+        {
+            global.gaggedWarnings++;
+        }
+    }
 }
 
 /**
@@ -370,9 +408,9 @@ extern (C++) void vmessage(const ref Loc loc, const(char)* format, va_list ap)
  */
 extern (C++) void vdeprecationSupplemental(const ref Loc loc, const(char)* format, va_list ap)
 {
-    if (global.params.useDeprecated == 0)
+    if (global.params.useDeprecated == Diagnostic.error)
         verrorSupplemental(loc, format, ap);
-    else if (global.params.useDeprecated == 2 && !global.gag)
+    else if (global.params.useDeprecated == Diagnostic.inform && !global.gag)
         verrorPrint(loc, Classification.deprecation, "       ", format, ap);
 }
 
@@ -408,7 +446,7 @@ extern (C++) void halt()
  */
 private void colorSyntaxHighlight(OutBuffer* buf)
 {
-    //printf("colorSyntaxHighlight('%.*s')\n", buf.offset, buf.data);
+    //printf("colorSyntaxHighlight('%.*s')\n", cast(int)buf.offset, buf.data);
     bool inBacktick = false;
     size_t iCodeStart = 0;
     size_t offset = 0;
@@ -480,10 +518,11 @@ private void colorHighlightCode(OutBuffer* buf)
     ++nested;
 
     auto gaggedErrorsSave = global.startGagging();
-    scope Lexer lex = new Lexer(null, cast(char*)buf.data, 0, buf.offset - 1, 0, 1);
+    scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
+    scope Lexer lex = new Lexer(null, cast(char*)buf.data, 0, buf.offset - 1, 0, 1, diagnosticReporter);
     OutBuffer res;
     const(char)* lastp = cast(char*)buf.data;
-    //printf("colorHighlightCode('%.*s')\n", buf.offset - 1, buf.data);
+    //printf("colorHighlightCode('%.*s')\n", cast(int)(buf.offset - 1), buf.data);
     res.reserve(buf.offset);
     res.writeByte(HIGHLIGHT.Escape);
     res.writeByte(HIGHLIGHT.Other);
@@ -528,7 +567,7 @@ private void colorHighlightCode(OutBuffer* buf)
     }
     res.writeByte(HIGHLIGHT.Escape);
     res.writeByte(HIGHLIGHT.Default);
-    //printf("res = '%.*s'\n", buf.offset, buf.data);
+    //printf("res = '%.*s'\n", cast(int)buf.offset, buf.data);
     buf.setsize(0);
     buf.write(&res);
     global.endGagging(gaggedErrorsSave);

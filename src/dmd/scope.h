@@ -1,22 +1,15 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/scope.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/scope.h
  */
 
-#ifndef DMD_SCOPE_H
-#define DMD_SCOPE_H
-
-#ifdef __DMC__
 #pragma once
-#endif
 
-class Dsymbol;
-class ScopeDsymbol;
 class Identifier;
 class Module;
 class Statement;
@@ -33,14 +26,6 @@ struct AA;
 class TemplateInstance;
 
 #include "dsymbol.h"
-
-#if __GNUC__
-// Requires a full definition for LINK
-#include "mars.h"
-#else
-enum LINK;
-enum PINLINE;
-#endif
 
 #define CSXthis_ctor    1       // called this()
 #define CSXsuper_ctor   2       // called super()
@@ -81,7 +66,7 @@ struct Scope
     LabelStatement *slabel;     // enclosing labelled statement
     SwitchStatement *sw;        // enclosing switch statement
     TryFinallyStatement *tf;    // enclosing try finally statement
-    OnScopeStatement *os;       // enclosing scope(xxx) statement
+    ScopeGuardStatement *os;       // enclosing scope(xxx) statement
     Statement *sbreak;          // enclosing statement that supports "break"
     Statement *scontinue;       // enclosing statement that supports "continue"
     ForeachStatement *fes;      // if nested function for ForeachStatement, this is it
@@ -125,10 +110,6 @@ struct Scope
     AA *anchorCounts;           // lookup duplicate anchor name count
     Identifier *prevAnchor;     // qualified symbol name of last doc anchor
 
-    static Scope *freelist;
-    static Scope *alloc();
-    static Scope *createGlobal(Module *module);
-
     Scope();
 
     Scope *copy();
@@ -148,9 +129,7 @@ struct Scope
     Module *instantiatingModule();
 
     Dsymbol *search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flags = IgnoreNone);
-    static void deprecation10378(Loc loc, Dsymbol *sold, Dsymbol *snew);
     Dsymbol *search_correct(Identifier *ident);
-    static const char *search_correct_C(Identifier *ident);
     Dsymbol *insert(Dsymbol *s);
 
     ClassDeclaration *getClassScope();
@@ -161,5 +140,3 @@ struct Scope
 
     bool isDeprecated();
 };
-
-#endif /* DMD_SCOPE_H */

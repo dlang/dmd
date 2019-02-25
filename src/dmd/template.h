@@ -1,26 +1,18 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/template.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/template.h
  */
 
-#ifndef DMD_TEMPLATE_H
-#define DMD_TEMPLATE_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
-#include "root.h"
 #include "arraytypes.h"
 #include "dsymbol.h"
 
-
-struct OutBuffer;
 class Identifier;
 class TemplateInstance;
 class TemplateParameter;
@@ -31,14 +23,10 @@ class TemplateAliasParameter;
 class TemplateTupleParameter;
 class Type;
 class TypeQualified;
-class TypeTypeof;
 struct Scope;
 class Expression;
-class AliasDeclaration;
 class FuncDeclaration;
 class Parameter;
-enum MATCH;
-enum PASS;
 
 class Tuple : public RootObject
 {
@@ -46,7 +34,7 @@ public:
     Objects objects;
 
     // kludge for template.isType()
-    int dyncast() const { return DYNCAST_TUPLE; }
+    DYNCAST dyncast() const { return DYNCAST_TUPLE; }
 
     const char *toChars() { return objects.toChars(); }
 };
@@ -91,17 +79,8 @@ public:
 
     Prot prot();
 
-    bool evaluateConstraint(TemplateInstance *ti, Scope *sc, Scope *paramscope, Objects *dedtypes, FuncDeclaration *fd);
-
-    MATCH matchWithInstance(Scope *sc, TemplateInstance *ti, Objects *atypes, Expressions *fargs, int flag);
     MATCH leastAsSpecialized(Scope *sc, TemplateDeclaration *td2, Expressions *fargs);
-
-    MATCH deduceFunctionTemplateMatch(TemplateInstance *ti, Scope *sc, FuncDeclaration *&fd, Type *tthis, Expressions *fargs);
     RootObject *declareParameter(Scope *sc, TemplateParameter *tp, RootObject *o);
-    FuncDeclaration *doHeaderInstantiation(TemplateInstance *ti, Scope *sc, FuncDeclaration *fd, Type *tthis, Expressions *fargs);
-    TemplateInstance *findExistingInstance(TemplateInstance *tithis, Expressions *fargs);
-    TemplateInstance *addInstance(TemplateInstance *ti);
-    void removeInstance(TemplateInstance *handle);
 
     TemplateDeclaration *isTemplateDeclaration() { return this; }
 
@@ -122,7 +101,7 @@ public:
  * For this-parameter:
  *  template Foo(this ident)
  */
-class TemplateParameter
+class TemplateParameter : public RootObject
 {
 public:
     Loc loc;
@@ -167,11 +146,10 @@ public:
  */
 class TemplateTypeParameter : public TemplateParameter
 {
+    using TemplateParameter::matchArg;
 public:
     Type *specType;     // type parameter: if !=NULL, this is the type specialization
     Type *defaultType;
-
-    static Type *tdummy;
 
     TemplateTypeParameter *isTemplateTypeParameter();
     TemplateParameter *syntaxCopy();
@@ -201,6 +179,7 @@ public:
  */
 class TemplateValueParameter : public TemplateParameter
 {
+    using TemplateParameter::matchArg;
 public:
     Type *valType;
     Expression *specValue;
@@ -223,12 +202,11 @@ public:
  */
 class TemplateAliasParameter : public TemplateParameter
 {
+    using TemplateParameter::matchArg;
 public:
     Type *specType;
     RootObject *specAlias;
     RootObject *defaultAlias;
-
-    static Dsymbol *sdummy;
 
     TemplateAliasParameter *isTemplateAliasParameter();
     TemplateParameter *syntaxCopy();
@@ -280,6 +258,9 @@ public:
     // [int, char, 100]
     Objects tdtypes;
 
+    // Modules imported by this template instance
+    Modules importedModules;
+
     Dsymbol *tempdecl;                  // referenced by foo.bar.abc
     Dsymbol *enclosing;                 // if referencing local symbols, this is the context
     Dsymbol *aliasdecl;                 // !=NULL if instance is an alias for its sole member
@@ -303,7 +284,6 @@ public:
     TemplateInstance *tnext;            // non-first instantiated instances
     Module *minst;                      // the top module that instantiated this instance
 
-    static Objects *arraySyntaxCopy(Objects *objs);
     Dsymbol *syntaxCopy(Dsymbol *);
     Dsymbol *toAlias();                 // resolve real symbol
     const char *kind() const;
@@ -316,21 +296,6 @@ public:
     hash_t toHash();
 
     bool needsCodegen();
-
-    // Internal
-    bool findTempDecl(Scope *sc, WithScopeSymbol **pwithsym);
-    bool updateTempDecl(Scope *sc, Dsymbol *s);
-    static bool semanticTiargs(const Loc &loc, Scope *sc, Objects *tiargs, int flags);
-    bool semanticTiargs(Scope *sc);
-    bool findBestMatch(Scope *sc, Expressions *fargs);
-    bool needsTypeInference(Scope *sc, int flag = 0);
-    bool hasNestedArgs(Objects *tiargs, bool isstatic);
-    Dsymbols *appendToModuleMember();
-    void declareParameters(Scope *sc);
-    Identifier *genIdent(Objects *args);
-    void expandMembers(Scope *sc);
-    void tryExpandMembers(Scope *sc);
-    void trySemantic3(Scope *sc2);
 
     TemplateInstance *isTemplateInstance() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -349,8 +314,6 @@ public:
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     const char *toChars();
 
-    bool findTempDecl(Scope *sc);
-
     TemplateMixin *isTemplateMixin() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -360,11 +323,10 @@ Dsymbol *isDsymbol(RootObject *o);
 Type *isType(RootObject *o);
 Tuple *isTuple(RootObject *o);
 Parameter *isParameter(RootObject *o);
+TemplateParameter *isTemplateParameter(RootObject *o);
 bool arrayObjectIsError(const Objects *args);
-bool isError(const RootObject *o);
+bool isError(const RootObject *const o);
 Type *getType(RootObject *o);
 Dsymbol *getDsymbol(RootObject *o);
 
 RootObject *objectSyntaxCopy(RootObject *o);
-
-#endif /* DMD_TEMPLATE_H */

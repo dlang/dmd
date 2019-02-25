@@ -7,7 +7,7 @@
  * The serialization is a string which contains the type of the parameters and the
  * string represantation of the lambda expression.
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/lamdbacomp.d, _lambdacomp.d)
@@ -134,7 +134,7 @@ public:
             printf("FuncLiteralDeclaration: %s\n", fld.toChars());
 
         TypeFunction tf = cast(TypeFunction)fld.type;
-        uint dim = cast(uint)Parameter.dim(tf.parameters);
+        uint dim = cast(uint)Parameter.dim(tf.parameterList.parameters);
         // Start the serialization by printing the number of
         // arguments the lambda has.
         buf.printf("%d:", dim);
@@ -143,7 +143,7 @@ public:
         // For each argument
         foreach (i; 0 .. dim)
         {
-            auto fparam = Parameter.getNth(tf.parameters, i);
+            auto fparam = tf.parameterList[i];
             if (fparam.ident !is null)
             {
                 // the variable name is introduced into a hashtable

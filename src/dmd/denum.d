@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/denum.d, _denum.d)
@@ -30,6 +30,16 @@ import dmd.mtype;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
+
+bool isSpecialEnumIdent(const Identifier ident) @nogc nothrow
+{
+    return  ident == Id.__c_long ||
+            ident == Id.__c_ulong ||
+            ident == Id.__c_longlong ||
+            ident == Id.__c_ulonglong ||
+            ident == Id.__c_long_double ||
+            ident == Id.__c_wchar_t;
+}
 
 /***********************************************************
  */
@@ -264,13 +274,9 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
      * Returns:
      *  true if special
      */
-    final bool isSpecial() const nothrow @nogc
+    bool isSpecial() const nothrow @nogc
     {
-        return (ident == Id.__c_long ||
-                ident == Id.__c_ulong ||
-                ident == Id.__c_longlong ||
-                ident == Id.__c_ulonglong ||
-                ident == Id.__c_long_double) && memtype;
+        return isSpecialEnumIdent(ident) && memtype;
     }
 
     Expression getDefaultValue(const ref Loc loc)
@@ -395,7 +401,13 @@ extern (C++) final class EnumMember : VarDeclaration
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new EnumMember(loc, ident, value ? value.syntaxCopy() : null, origType ? origType.syntaxCopy() : null);
+        return new EnumMember(
+            loc, ident,
+            value ? value.syntaxCopy() : null,
+            origType ? origType.syntaxCopy() : null,
+            storage_class,
+            userAttribDecl ? cast(UserAttributeDeclaration)userAttribDecl.syntaxCopy(s) : null,
+            depdecl ? cast(DeprecatedDeclaration)depdecl.syntaxCopy(s) : null);
     }
 
     override const(char)* kind() const
@@ -409,6 +421,11 @@ extern (C++) final class EnumMember : VarDeclaration
         if (errors)
             return new ErrorExp();
         checkDisabled(loc, sc);
+
+        if (depdecl && !depdecl._scope)
+            depdecl._scope = sc;
+        checkDeprecated(loc, sc);
+
         if (errors)
             return new ErrorExp();
         Expression e = new VarExp(loc, this);

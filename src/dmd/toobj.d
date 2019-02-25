@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _toobj.d)
@@ -97,7 +97,7 @@ void genModuleInfo(Module m)
     m.csym.Sclass = SCglobal;
     m.csym.Sfl = FLdata;
 
-    scope dtb = new DtBuilder();
+    auto dtb = DtBuilder(0);
     ClassDeclarations aclasses;
 
     //printf("members.dim = %d\n", members.dim);
@@ -215,7 +215,7 @@ void genModuleInfo(Module m)
         //printf("nameoffset = x%x\n", nameoffset);
     }
 
-    objc.generateModuleInfo();
+    objc.generateModuleInfo(m);
     m.csym.Sdt = dtb.finish();
     out_readonly(m.csym);
     outdata(m.csym);
@@ -341,13 +341,15 @@ void toObjFile(Dsymbol ds, bool multiobj)
             enum_SC scclass = SCcomdat;
 
             // Put out the members
-            for (size_t i = 0; i < cd.members.dim; i++)
+            /* There might be static ctors in the members, and they cannot
+             * be put in separate obj files.
+             */
+            cd.members.foreachDsymbol( (s) { s.accept(this); } );
+
+            if (cd.classKind == ClassKind.objc)
             {
-                Dsymbol member = (*cd.members)[i];
-                /* There might be static ctors in the members, and they cannot
-                 * be put in separate obj files.
-                 */
-                member.accept(this);
+                objc.toObjFile(cd);
+                return;
             }
 
             // If something goes wrong during this pass don't bother with the
@@ -373,7 +375,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             {
                 sinit.Sclass = scclass;
                 sinit.Sfl = FLdata;
-                scope dtb = new DtBuilder();
+                auto dtb = DtBuilder(0);
                 ClassDeclaration_toDt(cd, dtb);
                 sinit.Sdt = dtb.finish();
                 out_readonly(sinit);
@@ -396,7 +398,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             // Put out the vtbl[]
             //printf("putting out %s.vtbl[]\n", toChars());
-            scope dtbv = new DtBuilder();
+            auto dtbv = DtBuilder(0);
             if (cd.vtblOffset())
                 dtbv.xoff(cd.csym, 0, TYnptr);           // first entry is ClassInfo reference
             foreach (i; cd.vtblOffset() .. cd.vtbl.dim)
@@ -447,11 +449,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 toDebug(id);
 
             // Put out the members
-            for (size_t i = 0; i < id.members.dim; i++)
-            {
-                Dsymbol member = (*id.members)[i];
-                visitNoMultiObj(member);
-            }
+            id.members.foreachDsymbol( (s) { visitNoMultiObj(s); } );
 
             // Generate C symbols
             toSymbol(id);
@@ -510,21 +508,17 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 }
 
                 sd.sinit.Sfl = FLdata;
-                scope dtb = new DtBuilder();
+                auto dtb = DtBuilder(0);
                 StructDeclaration_toDt(sd, dtb);
                 sd.sinit.Sdt = dtb.finish();
                 out_readonly(sd.sinit);    // put in read-only segment
                 outdata(sd.sinit);
 
                 // Put out the members
-                for (size_t i = 0; i < sd.members.dim; i++)
-                {
-                    Dsymbol member = (*sd.members)[i];
-                    /* There might be static ctors in the members, and they cannot
-                     * be put in separate obj files.
-                     */
-                    member.accept(this);
-                }
+                /* There might be static ctors in the members, and they cannot
+                 * be put in separate obj files.
+                 */
+                sd.members.foreachDsymbol( (s) { s.accept(this); } );
 
                 if (sd.xeq && sd.xeq != StructDeclaration.xerreq)
                     sd.xeq.accept(this);
@@ -569,9 +563,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 vd.error("size overflow");
                 return;
             }
-            if (sz64 >= Target.maxStaticDataSize)
+            if (sz64 >= target.maxStaticDataSize)
             {
-                vd.error("size of 0x%llx exceeds max allowed size 0x%llx", sz64, Target.maxStaticDataSize);
+                vd.error("size of 0x%llx exceeds max allowed size 0x%llx", sz64, target.maxStaticDataSize);
             }
             uint sz = cast(uint)sz64;
 
@@ -596,7 +590,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             if (!sz && vd.type.toBasetype().ty != Tsarray)
                 assert(0); // this shouldn't be possible
 
-            scope dtb = new DtBuilder();
+            auto dtb = DtBuilder(0);
             if (config.objfmt == OBJ_MACH && global.params.is64bit && (s.Stype.Tty & mTYLINK) == mTYthread)
             {
                 tlsToDt(vd, s, sz, dtb);
@@ -674,7 +668,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 toInitializer(ed);
                 ed.sinit.Sclass = scclass;
                 ed.sinit.Sfl = FLdata;
-                scope dtb = new DtBuilder();
+                auto dtb = DtBuilder(0);
                 Expression_toDt(tc.sym.defaultval, dtb);
                 ed.sinit.Sdt = dtb.finish();
                 outdata(ed.sinit);
@@ -701,7 +695,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             s.Sclass = SCcomdat;
             s.Sfl = FLdata;
 
-            scope dtb = new DtBuilder();
+            auto dtb = DtBuilder(0);
             TypeInfo_toDt(dtb, tid);
             s.Sdt = dtb.finish();
 
@@ -770,10 +764,21 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 Symbol *s = toSymbol(f);
                 obj_startaddress(s);
             }
+            else if (pd.ident == Id.linkerDirective)
+            {
+                assert(pd.args && pd.args.dim == 1);
 
-            visit(cast(AttribDeclaration)pd);
+                Expression e = (*pd.args)[0];
 
-            if (pd.ident == Id.crt_constructor || pd.ident == Id.crt_destructor)
+                assert(e.op == TOK.string_);
+
+                StringExp se = cast(StringExp)e;
+                char *directive = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
+                se.writeTo(directive, true);
+
+                obj_linkerdirective(directive);
+            }
+            else if (pd.ident == Id.crt_constructor || pd.ident == Id.crt_destructor)
             {
                 immutable isCtor = pd.ident == Id.crt_constructor;
 
@@ -792,7 +797,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     }
                     else if (auto f = s.isFuncDeclaration())
                     {
-                        objmod.setModuleCtorDtor(s.csym, isCtor);
+                        f.isCrtCtorDtor |= isCtor ? 1 : 2;
                         if (f.linkage != LINK.c)
                             f.error("must be `extern(C)` for `pragma(%s)`", isCtor ? "crt_constructor".ptr : "crt_destructor".ptr);
                         return 1;
@@ -805,6 +810,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 if (recurse(pd, isCtor) > 1)
                     pd.error("can only apply to a single declaration");
             }
+
+            visit(cast(AttribDeclaration)pd);
         }
 
         override void visit(TemplateInstance ti)
@@ -826,11 +833,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 }
                 else
                 {
-                    for (size_t i = 0; i < ti.members.dim; i++)
-                    {
-                        Dsymbol s = (*ti.members)[i];
-                        s.accept(this);
-                    }
+                    ti.members.foreachDsymbol( (s) { s.accept(this); } );
                 }
             }
         }
@@ -838,13 +841,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
         override void visit(TemplateMixin tm)
         {
             //printf("TemplateMixin.toObjFile('%s')\n", tm.toChars());
-            if (!isError(tm) && tm.members)
+            if (!isError(tm))
             {
-                for (size_t i = 0; i < tm.members.dim; i++)
-                {
-                    Dsymbol s = (*tm.members)[i];
-                    s.accept(this);
-                }
+                tm.members.foreachDsymbol( (s) { s.accept(this); } );
             }
         }
 
@@ -864,17 +863,13 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 }
                 else
                 {
-                    for (size_t i = 0; i < ns.members.dim; i++)
-                    {
-                        Dsymbol s = (*ns.members)[i];
-                        s.accept(this);
-                    }
+                    ns.members.foreachDsymbol( (s) { s.accept(this); } );
                 }
             }
         }
 
     private:
-        static void initializerToDt(VarDeclaration vd, DtBuilder dtb)
+        static void initializerToDt(VarDeclaration vd, ref DtBuilder dtb)
         {
             Initializer_toDt(vd._init, dtb);
 
@@ -925,12 +920,12 @@ void toObjFile(Dsymbol ds, bool multiobj)
          *      sz = data size of s
          *      dtb = where to put the data
          */
-        static void tlsToDt(VarDeclaration vd, Symbol *s, uint sz, DtBuilder dtb)
+        static void tlsToDt(VarDeclaration vd, Symbol *s, uint sz, ref DtBuilder dtb)
         {
             assert(config.objfmt == OBJ_MACH && global.params.is64bit && (s.Stype.Tty & mTYLINK) == mTYthread);
 
             Symbol *tlvInit = createTLVDataSymbol(vd, s);
-            scope tlvInitDtb = new DtBuilder();
+            auto tlvInitDtb = DtBuilder(0);
 
             if (sz == 0)
                 tlvInitDtb.nzeros(1);
@@ -1081,7 +1076,7 @@ private bool finishVtbl(ClassDeclaration cd)
             {
                 cd.error("use of `%s%s` is hidden by `%s`; use `alias %s = %s.%s;` to introduce base class overload set",
                     fd.toPrettyChars(),
-                    parametersTypeToChars(tf.parameters, tf.varargs),
+                    parametersTypeToChars(tf.parameterList),
                     cd.toChars(),
                     fd.toChars(),
                     fd.parent.toChars(),
@@ -1108,8 +1103,8 @@ private bool finishVtbl(ClassDeclaration cd)
 uint baseVtblOffset(ClassDeclaration cd, BaseClass *bc)
 {
     //printf("ClassDeclaration.baseVtblOffset('%s', bc = %p)\n", cd.toChars(), bc);
-    uint csymoffset = Target.classinfosize;    // must be ClassInfo.size
-    csymoffset += cd.vtblInterfaces.dim * (4 * Target.ptrsize);
+    uint csymoffset = target.classinfosize;    // must be ClassInfo.size
+    csymoffset += cd.vtblInterfaces.dim * (4 * target.ptrsize);
 
     for (size_t i = 0; i < cd.vtblInterfaces.dim; i++)
     {
@@ -1117,7 +1112,7 @@ uint baseVtblOffset(ClassDeclaration cd, BaseClass *bc)
 
         if (b == bc)
             return csymoffset;
-        csymoffset += b.sym.vtbl.dim * Target.ptrsize;
+        csymoffset += b.sym.vtbl.dim * target.ptrsize;
     }
 
     // Put out the overriding interface vtbl[]s.
@@ -1137,7 +1132,7 @@ uint baseVtblOffset(ClassDeclaration cd, BaseClass *bc)
                     //printf("\tcsymoffset = x%x\n", csymoffset);
                     return csymoffset;
                 }
-                csymoffset += bs.sym.vtbl.dim * Target.ptrsize;
+                csymoffset += bs.sym.vtbl.dim * target.ptrsize;
             }
         }
     }
@@ -1168,7 +1163,7 @@ private size_t emitVtbl(ref DtBuilder dtb, BaseClass *b, ref FuncDeclarations bv
     if (id.vtblOffset())
     {
         // First entry is struct Interface reference
-        dtb.xoff(toSymbol(pc), cast(uint)(Target.classinfosize + k * (4 * Target.ptrsize)), TYnptr);
+        dtb.xoff(toSymbol(pc), cast(uint)(target.classinfosize + k * (4 * target.ptrsize)), TYnptr);
         jstart = 1;
     }
 
@@ -1187,7 +1182,7 @@ private size_t emitVtbl(ref DtBuilder dtb, BaseClass *b, ref FuncDeclarations bv
         else
             dtb.size(0);
     }
-    return id_vtbl_dim * Target.ptrsize;
+    return id_vtbl_dim * target.ptrsize;
 }
 
 
@@ -1226,18 +1221,18 @@ private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
             //TypeInfo typeinfo;
        }
      */
-    uint offset = Target.classinfosize;    // must be ClassInfo.size
+    uint offset = target.classinfosize;    // must be ClassInfo.size
     if (Type.typeinfoclass)
     {
-        if (Type.typeinfoclass.structsize != Target.classinfosize)
+        if (Type.typeinfoclass.structsize != target.classinfosize)
         {
-            debug printf("Target.classinfosize = x%x, Type.typeinfoclass.structsize = x%x\n", offset, Type.typeinfoclass.structsize);
+            debug printf("target.classinfosize = x%x, Type.typeinfoclass.structsize = x%x\n", offset, Type.typeinfoclass.structsize);
             cd.error("mismatch between dmd and object.d or object.di found. Check installation and import paths with -v compiler switch.");
             fatal();
         }
     }
 
-    scope dtb = new DtBuilder();
+    auto dtb = DtBuilder(0);
 
     if (Type.typeinfoclass)            // vtbl for TypeInfo_Class : ClassInfo
         dtb.xoff(toVtblSymbol(Type.typeinfoclass), 0, TYnptr);
@@ -1363,7 +1358,7 @@ Louter:
     // Put out (*vtblInterfaces)[]. Must immediately follow csym, because
     // of the fixup (*)
 
-    offset += cd.vtblInterfaces.dim * (4 * Target.ptrsize);
+    offset += cd.vtblInterfaces.dim * (4 * target.ptrsize);
     for (size_t i = 0; i < cd.vtblInterfaces.dim; i++)
     {
         BaseClass *b = (*cd.vtblInterfaces)[i];
@@ -1422,7 +1417,7 @@ Louter:
     dtpatchoffset(pdtname, offset);
 
     dtb.nbytes(cast(uint)(namelen + 1), name);
-    const size_t namepad = -(namelen + 1) & (Target.ptrsize - 1); // align
+    const size_t namepad = -(namelen + 1) & (target.ptrsize - 1); // align
     dtb.nzeros(cast(uint)namepad);
 
     cd.csym.Sdt = dtb.finish();
@@ -1466,7 +1461,7 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
             //TypeInfo typeinfo;
        }
      */
-    scope dtb = new DtBuilder();
+    auto dtb = DtBuilder(0);
 
     if (Type.typeinfoclass)
         dtb.xoff(toVtblSymbol(Type.typeinfoclass), 0, TYnptr); // vtbl for ClassInfo
@@ -1489,7 +1484,7 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
     dtb.size(0);
 
     // interfaces[]
-    uint offset = Target.classinfosize;
+    uint offset = target.classinfosize;
     dtb.size(id.vtblInterfaces.dim);
     if (id.vtblInterfaces.dim)
     {
@@ -1549,7 +1544,7 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
     // Put out (*vtblInterfaces)[]. Must immediately follow csym, because
     // of the fixup (*)
 
-    offset += id.vtblInterfaces.dim * (4 * Target.ptrsize);
+    offset += id.vtblInterfaces.dim * (4 * target.ptrsize);
     for (size_t i = 0; i < id.vtblInterfaces.dim; i++)
     {
         BaseClass *b = (*id.vtblInterfaces)[i];
@@ -1571,7 +1566,7 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
     dtpatchoffset(pdtname, offset);
 
     dtb.nbytes(cast(uint)(namelen + 1), name);
-    const size_t namepad =  -(namelen + 1) & (Target.ptrsize - 1); // align
+    const size_t namepad =  -(namelen + 1) & (target.ptrsize - 1); // align
     dtb.nzeros(cast(uint)namepad);
 
     id.csym.Sdt = dtb.finish();

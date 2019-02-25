@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/traits.d, _traits.d)
@@ -54,10 +54,10 @@ struct PushAttributes
 {
     Expressions* mods;
 
-    extern (C++) static int fp(void* param, const(char)* str)
+    extern (D) static int fp(void* param, string str)
     {
         PushAttributes* p = cast(PushAttributes*)param;
-        p.mods.push(new StringExp(Loc.initial, cast(char*)str));
+        p.mods.push(new StringExp(Loc.initial, cast(char*)str.ptr, str.length));
         return 0;
     }
 }
@@ -82,7 +82,7 @@ struct PushAttributes
  * Returns:
  *      Dsymbol  the corresponding symbol for oarg
  */
-private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
+Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
 {
     if (auto e = isExpression(oarg))
     {
@@ -90,11 +90,13 @@ private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
             return (cast(DotVarExp)e).var;
         if (e.op == TOK.dotTemplateDeclaration)
             return (cast(DotTemplateExp)e).td;
+        if (e.op == TOK.scope_)
+            return (cast(ScopeExp)e).sds;
     }
     return getDsymbol(oarg);
 }
 
-extern (C++) __gshared StringTable traitsStringTable;
+private __gshared StringTable traitsStringTable;
 
 shared static this()
 {
@@ -147,9 +149,11 @@ shared static this()
         "getUnitTests",
         "getVirtualIndex",
         "getPointerBitmap",
+        "isZeroInit",
+        "getTargetInfo"
     ];
 
-    traitsStringTable._init(40);
+    traitsStringTable._init(48);
 
     foreach (s; names)
     {
@@ -163,7 +167,7 @@ shared static this()
  *  if interpreted as the type given as argument
  * Returns: the size of the type in bytes, d_uns64.max on error
  */
-extern (C++) d_uns64 getTypePointerBitmap(Loc loc, Type t, Array!(d_uns64)* data)
+d_uns64 getTypePointerBitmap(Loc loc, Type t, Array!(d_uns64)* data)
 {
     d_uns64 sz;
     if (t.ty == Tclass && !(cast(TypeClass)t).sym.isInterfaceDeclaration())
@@ -386,7 +390,7 @@ extern (C++) d_uns64 getTypePointerBitmap(Loc loc, Type t, Array!(d_uns64)* data
  *
  *  Returns: [T.sizeof, pointerbit0-31/63, pointerbit32/64-63/128, ...]
  */
-extern (C++) Expression pointerBitmap(TraitsExp e)
+private Expression pointerBitmap(TraitsExp e)
 {
     if (!e.args || e.args.dim != 1)
     {
@@ -411,12 +415,11 @@ extern (C++) Expression pointerBitmap(TraitsExp e)
     foreach (d_uns64 i; 0 .. data.dim)
         exps.push(new IntegerExp(e.loc, data[cast(size_t)i], Type.tsize_t));
 
-    auto ale = new ArrayLiteralExp(e.loc, exps);
-    ale.type = Type.tsize_t.sarrayOf(data.dim + 1);
+    auto ale = new ArrayLiteralExp(e.loc, Type.tsize_t.sarrayOf(data.dim + 1), exps);
     return ale;
 }
 
-extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
+Expression semanticTraits(TraitsExp e, Scope* sc)
 {
     static if (LOGSEMANTIC)
     {
@@ -826,7 +829,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 return ex.expressionSemantic(sc);
             }
         }
-        return resolve(e.loc, sc, s, false);
+        return symbolToExp(s, e.loc, sc, false);
     }
     if (e.ident == Id.hasMember ||
         e.ident == Id.getMember ||
@@ -926,7 +929,6 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             ex = ex.expressionSemantic(scx);
             if (errors < global.errors)
                 e.error("`%s` cannot be resolved", eorig.toChars());
-            //ex.print();
 
             /* Create tuple of functions of ex
              */
@@ -1007,7 +1009,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 // if the parent is an interface declaration
                 // we must check for functions with the same signature
                 // in different inherited interfaces
-                if (sym.isInterfaceDeclaration())
+                if (sym && sym.isInterfaceDeclaration())
                     insertInterfaceInheritedFunction(fd, e);
                 else
                     exps.push(e);
@@ -1019,7 +1021,8 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 ifd = sym.isInterfaceDeclaration();
             // If the symbol passed as a parameter is an
             // interface that inherits other interfaces
-            if (ifd && ifd.interfaces)
+            overloadApply(f, &dg);
+            if (ifd && ifd.interfaces && f)
             {
                 // check the overloads of each inherited interface individually
                 foreach (bc; ifd.interfaces)
@@ -1028,8 +1031,6 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                         overloadApply(fd, &dg);
                 }
             }
-            else
-                overloadApply(f, &dg);
 
             auto tup = new TupleExp(e.loc, exps);
             return tup.expressionSemantic(scx);
@@ -1070,14 +1071,9 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         auto o = (*e.args)[0];
         auto s = getDsymbol(o);
         auto ad = s ? s.isAggregateDeclaration() : null;
-        if (!ad)
-        {
-            e.error("argument is not an aggregate type");
-            return new ErrorExp();
-        }
 
         auto exps = new Expressions();
-        if (ad.aliasthis)
+        if (ad && ad.aliasthis)
             exps.push(new StringExp(e.loc, cast(char*)ad.aliasthis.ident.toChars()));
         Expression ex = new TupleExp(e.loc, exps);
         ex = ex.expressionSemantic(sc);
@@ -1175,7 +1171,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             return new ErrorExp();
         }
 
-        bool value = Target.isReturnOnStack(tf, fd && fd.needThis());
+        bool value = target.isReturnOnStack(tf, fd && fd.needThis());
         return new IntegerExp(e.loc, value, Type.tbool);
     }
     if (e.ident == Id.getFunctionVariadicStyle)
@@ -1191,7 +1187,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             return dimError(1);
 
         LINK link;
-        int varargs;
+        VarArg varargs;
         auto o = (*e.args)[0];
 
         FuncDeclaration fd;
@@ -1200,7 +1196,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (tf)
         {
             link = tf.linkage;
-            varargs = tf.varargs;
+            varargs = tf.parameterList.varargs;
         }
         else
         {
@@ -1210,17 +1206,16 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 return new ErrorExp();
             }
             link = fd.linkage;
-            fd.getParameters(&varargs);
+            varargs = fd.getParameterList().varargs;
         }
         string style;
-        switch (varargs)
+        final switch (varargs)
         {
-            case 0: style = "none";                       break;
-            case 1: style = (link == LINK.d) ? "argptr"
-                                             : "stdarg";  break;
-            case 2:     style = "typesafe";               break;
-            default:
-                assert(0);
+            case VarArg.none:     style = "none";           break;
+            case VarArg.variadic: style = (link == LINK.d)
+                                             ? "argptr"
+                                             : "stdarg";    break;
+            case VarArg.typesafe: style = "typesafe";       break;
         }
         auto se = new StringExp(e.loc, cast(char*)style);
         return se.expressionSemantic(sc);
@@ -1240,20 +1235,16 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         FuncDeclaration fd;
         TypeFunction tf = toTypeFunction(o, fd);
 
-        Parameters* fparams;
+        ParameterList fparams;
         if (tf)
-        {
-            fparams = tf.parameters;
-        }
+            fparams = tf.parameterList;
+        else if (fd)
+            fparams = fd.getParameterList();
         else
         {
-            if (!fd)
-            {
-                e.error("first argument to `__traits(getParameterStorageClasses, %s, %s)` is not a function",
-                    o.toChars(), o1.toChars());
-                return new ErrorExp();
-            }
-            fparams = fd.getParameters(null);
+            e.error("first argument to `__traits(getParameterStorageClasses, %s, %s)` is not a function",
+                o.toChars(), o1.toChars());
+            return new ErrorExp();
         }
 
         StorageClass stc;
@@ -1268,14 +1259,14 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         ex = ex.ctfeInterpret();
         auto ii = ex.toUInteger();
-        if (ii >= Parameter.dim(fparams))
+        if (ii >= fparams.length)
         {
-            e.error("parameter index must be in range 0..%u not %s", cast(uint)Parameter.dim(fparams), ex.toChars());
+            e.error("parameter index must be in range 0..%u not %s", cast(uint)fparams.length, ex.toChars());
             return new ErrorExp();
         }
 
         uint n = cast(uint)ii;
-        Parameter p = Parameter.getNth(fparams, n);
+        Parameter p = fparams[n];
         stc = p.storageClass;
 
         // This mirrors hdrgen.visit(Parameter p)
@@ -1597,6 +1588,12 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 return True();
         }
 
+        // issue 12001, allow isSame, <BasicType>, <BasicType>
+        Type t1 = isType(o1);
+        Type t2 = isType(o2);
+        if (t1 && t2 && t1.equals(t2))
+            return True();
+
         auto s1 = getDsymbol(o1);
         auto s2 = getDsymbol(o2);
         //printf("isSame: %s, %s\n", o1.toChars(), o2.toChars());
@@ -1647,7 +1644,36 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (cmp(s1,s2) || cmp(s2,s1))
             return True();
 
-        return (s1 == s2) ? True() : False();
+        if (s1 == s2)
+            return True();
+
+        // https://issues.dlang.org/show_bug.cgi?id=18771
+        // OverloadSets are equal if they contain the same functions
+        auto overSet1 = s1.isOverloadSet();
+        if (!overSet1)
+            return False();
+
+        auto overSet2 = s2.isOverloadSet();
+        if (!overSet2)
+            return False();
+
+        if (overSet1.a.dim != overSet2.a.dim)
+            return False();
+
+        // OverloadSets contain array of Dsymbols => O(n*n)
+        // to compare for equality as the order of overloads
+        // might not be the same
+Lnext:
+        foreach(overload1; overSet1.a)
+        {
+            foreach(overload2; overSet2.a)
+            {
+                if (overload1 == overload2)
+                    continue Lnext;
+            }
+            return False();
+        }
+        return True();
     }
     if (e.ident == Id.getUnitTests)
     {
@@ -1678,34 +1704,28 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             bool[void*] uniqueUnitTests;
 
-            void collectUnitTests(Dsymbols* a)
+            void symbolDg(Dsymbol s)
             {
-                if (!a)
-                    return;
-                foreach (s; *a)
+                if (auto ad = s.isAttribDeclaration())
                 {
-                    if (auto atd = s.isAttribDeclaration())
-                    {
-                        collectUnitTests(atd.include(null));
-                        continue;
-                    }
-                    if (auto ud = s.isUnitTestDeclaration())
-                    {
-                        if (cast(void*)ud in uniqueUnitTests)
-                            continue;
+                    ad.include(null).foreachDsymbol(&symbolDg);
+                }
+                else if (auto ud = s.isUnitTestDeclaration())
+                {
+                    if (cast(void*)ud in uniqueUnitTests)
+                        return;
 
-                        auto ad = new FuncAliasDeclaration(ud.ident, ud, false);
-                        ad.protection = ud.protection;
+                    uniqueUnitTests[cast(void*)ud] = true;
 
-                        auto e = new DsymbolExp(Loc.initial, ad, false);
-                        exps.push(e);
+                    auto ad = new FuncAliasDeclaration(ud.ident, ud, false);
+                    ad.protection = ud.protection;
 
-                        uniqueUnitTests[cast(void*)ud] = true;
-                    }
+                    auto e = new DsymbolExp(Loc.initial, ad, false);
+                    exps.push(e);
                 }
             }
 
-            collectUnitTests(sds.members);
+            sds.members.foreachDsymbol(&symbolDg);
         }
         auto te = new TupleExp(e.loc, exps);
         return te.expressionSemantic(sc);
@@ -1731,6 +1751,45 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident == Id.getPointerBitmap)
     {
         return pointerBitmap(e);
+    }
+    if (e.ident == Id.isZeroInit)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        auto o = (*e.args)[0];
+        Type t = isType(o);
+        if (!t)
+        {
+            e.error("type expected as second argument of __traits `%s` instead of `%s`",
+                e.ident.toChars(), o.toChars());
+            return new ErrorExp();
+        }
+
+        Type tb = t.baseElemOf();
+        return tb.isZeroInit(e.loc) ? True() : False();
+    }
+    if (e.ident == Id.getTargetInfo)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        auto ex = isExpression((*e.args)[0]);
+        StringExp se = ex ? ex.ctfeInterpret().toStringExp() : null;
+        if (!ex || !se || se.len == 0)
+        {
+            e.error("string expected as argument of __traits `%s` instead of `%s`", e.ident.toChars(), ex.toChars());
+            return new ErrorExp();
+        }
+        se = se.toUTF8(sc);
+
+        Expression r = target.getTargetInfo(se.toPtr(), e.loc);
+        if (!r)
+        {
+            e.error("`getTargetInfo` key `\"%s\"` not supported by this implementation", se.toPtr());
+            return new ErrorExp();
+        }
+        return r.expressionSemantic(sc);
     }
 
     extern (D) void* trait_search_fp(const(char)* seed, ref int cost)

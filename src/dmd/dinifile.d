@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dinifile.d, _dinifile.d)
@@ -16,7 +16,8 @@ module dmd.dinifile;
 import core.stdc.ctype;
 import core.stdc.string;
 import core.sys.posix.stdlib;
-import core.sys.windows.windows;
+import core.sys.windows.winbase;
+import core.sys.windows.windef;
 
 import dmd.errors;
 import dmd.globals;
@@ -24,6 +25,7 @@ import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.port;
 import dmd.root.stringtable;
+import dmd.utils;
 
 version (Windows) extern (C) int putenv(const char*);
 private enum LOG = false;
@@ -37,11 +39,12 @@ private enum LOG = false;
  *      file path of the config file or NULL
  *      Note: this is a memory leak
  */
-const(char)* findConfFile(const(char)* argv0, const(char)* inifile)
+const(char)[] findConfFile(const(char)[] argv0, const(char)[] inifile)
 {
     static if (LOG)
     {
-        printf("findinifile(argv0 = '%s', inifile = '%s')\n", argv0, inifile);
+        printf("findinifile(argv0 = '%.*s', inifile = '%.*s')\n",
+               cast(int)argv0.length, argv0.ptr, cast(int)inifile.length, inifile.ptr);
     }
     if (FileName.absolute(inifile))
         return inifile;
@@ -54,16 +57,17 @@ const(char)* findConfFile(const(char)* argv0, const(char)* inifile)
      *      o directory off of argv0
      *      o SYSCONFDIR=/etc (non-windows)
      */
-    auto filename = FileName.combine(getenv("HOME"), inifile);
+    auto filename = FileName.combine(getenv("HOME").toDString, inifile);
     if (FileName.exists(filename))
         return filename;
     version (Windows)
     {
         // This fix by Tim Matthews
         char[MAX_PATH + 1] resolved_name;
-        if (GetModuleFileNameA(null, resolved_name.ptr, MAX_PATH + 1) && FileName.exists(resolved_name.ptr))
+        const len = GetModuleFileNameA(null, resolved_name.ptr, MAX_PATH + 1);
+        if (len && FileName.exists(resolved_name[0 .. len]))
         {
-            filename = FileName.replaceName(resolved_name.ptr, inifile);
+            filename = FileName.replaceName(resolved_name[0 .. len], inifile);
             if (FileName.exists(filename))
                 return filename;
         }
@@ -74,7 +78,7 @@ const(char)* findConfFile(const(char)* argv0, const(char)* inifile)
     version (Posix)
     {
         // Search PATH for argv0
-        auto p = getenv("PATH");
+        const p = getenv("PATH");
         static if (LOG)
         {
             printf("\tPATH='%s'\n", p);
@@ -138,7 +142,7 @@ private bool writeToEnv(StringTable* environment, char* nameEqValue)
  */
 void updateRealEnvironment(StringTable* environment)
 {
-    extern (C++) static int envput(const(StringValue)* sv)
+    static int envput(const(StringValue)* sv)
     {
         const name = sv.toDchars();
         const namelen = strlen(name);

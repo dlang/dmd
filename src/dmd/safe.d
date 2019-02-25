@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/safe.d, _safe.d)
@@ -74,8 +74,8 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
 
         if (hasPointers && v.type.toBasetype().ty != Tstruct)
         {
-            if ((ad.type.alignment() < Target.ptrsize ||
-                 (v.offset & (Target.ptrsize - 1))) &&
+            if ((ad.type.alignment() < target.ptrsize ||
+                 (v.offset & (target.ptrsize - 1))) &&
                 sc.func.setUnsafe())
             {
                 if (printmsg)

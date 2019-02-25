@@ -12,6 +12,8 @@ auto-tester-build: toolchain-info
 
 auto-tester-test: test
 
+buildkite-test: test
+
 toolchain-info:
 	$(QUIET)$(MAKE) -C src -f posix.mak toolchain-info
 
@@ -50,6 +52,6 @@ check-clean-git:
 	fi
 
 style:
-	@echo "To be done"
+	$(QUIET)$(MAKE) -C src -f posix.mak style
 
 .DELETE_ON_ERROR: # GNU Make directive (delete output files on error)

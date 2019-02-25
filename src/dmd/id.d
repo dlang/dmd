@@ -5,7 +5,7 @@
  * This module contains the `Id` struct with a list of predefined symbols the
  * compiler knows about.
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/id.d, _id.d)
@@ -38,6 +38,17 @@ struct Id
     extern(C++) void initialize()
     {
         mixin(msgtable.generate(&initializer));
+    }
+
+    /**
+     * Deinitializes the global state of the compiler.
+     *
+     * This can be used to restore the state set by `initialize` to its original
+     * state.
+     */
+    void deinitialize()
+    {
+        mixin(msgtable.generate(&deinitializer));
     }
 }
 
@@ -76,6 +87,7 @@ immutable Msgtable[] msgtable =
     { "unitTest", "__unitTest" },
     { "require", "__require" },
     { "ensure", "__ensure" },
+    { "capture", "__capture" },
     { "_init", "init" },
     { "__sizeof", "sizeof" },
     { "__xalignof", "alignof" },
@@ -115,6 +127,7 @@ immutable Msgtable[] msgtable =
     { "__c_longlong" },
     { "__c_ulonglong" },
     { "__c_long_double" },
+    { "__c_wchar_t" },
     { "cpp_type_info_ptr", "__cpp_type_info_ptr" },
     { "_assert", "assert" },
     { "_unittest", "unittest" },
@@ -145,8 +158,6 @@ immutable Msgtable[] msgtable =
     { "xopEquals", "__xopEquals" },
     { "xopCmp", "__xopCmp" },
     { "xtoHash", "__xtoHash" },
-
-    { "Class" },
 
     { "LINE", "__LINE__" },
     { "FILE", "__FILE__" },
@@ -299,11 +310,15 @@ immutable Msgtable[] msgtable =
     { "__ArrayPostblit" },
     { "__ArrayDtor" },
     { "_d_delThrowable" },
+    { "_d_assert_fail" },
     { "dup" },
+    { "_aaApply" },
+    { "_aaApply2" },
 
     // For pragma's
     { "Pinline", "inline" },
     { "lib" },
+    { "linkerDirective" },
     { "mangle" },
     { "msg" },
     { "startaddress" },
@@ -403,6 +418,8 @@ immutable Msgtable[] msgtable =
     { "getVirtualIndex" },
     { "getPointerBitmap" },
     { "isReturnOnStack" },
+    { "isZeroInit" },
+    { "getTargetInfo" },
 
     // For C++ mangling
     { "allocator" },
@@ -480,4 +497,10 @@ string identifier(Msgtable m)
 string initializer(Msgtable m)
 {
     return m.ident ~ ` = Identifier.idPool("` ~ m.name ~ `");`;
+}
+
+// Used to generate the code for each deinitializer.
+string deinitializer(Msgtable m)
+{
+    return m.ident ~ " = Identifier.init;";
 }

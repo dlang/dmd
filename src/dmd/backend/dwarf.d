@@ -1,16 +1,16 @@
-/** Dwarf debug
+/* Dwarf debug
  *
- * Source: $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dwarf.d, backend/_dwarf.d)
+ * Source: $(DMDSRC backend/_dwarf.d)
  */
 
 module dmd.backend.dwarf;
-
-// Online documentation: https://dlang.org/phobos/dmd_backend_dwarf.html
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.outbuf;
 import dmd.backend.type;
+
+extern (C++):
 
 enum DWARF_VERSION = 3;
 

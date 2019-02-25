@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dsymbol.d, _dsymbol.d)
@@ -50,6 +50,55 @@ import dmd.root.speller;
 import dmd.statement;
 import dmd.tokens;
 import dmd.visitor;
+
+/***************************************
+ * Calls dg(Dsymbol *sym) for each Dsymbol.
+ * If dg returns !=0, stops and returns that value else returns 0.
+ * Params:
+ *    symbols = Dsymbols
+ *    dg = delegate to call for each Dsymbol
+ * Returns:
+ *    last value returned by dg()
+ */
+int foreachDsymbol(Dsymbols* symbols, scope int delegate(Dsymbol) dg)
+{
+    assert(dg);
+    if (symbols)
+    {
+        /* Do not use foreach, as the size of the array may expand during iteration
+         */
+        for (size_t i = 0; i < symbols.dim; ++i)
+        {
+            Dsymbol s = (*symbols)[i];
+            const result = dg(s);
+            if (result)
+                return result;
+        }
+    }
+    return 0;
+}
+
+/***************************************
+ * Calls dg(Dsymbol *sym) for each Dsymbol.
+ * Params:
+ *    symbols = Dsymbols
+ *    dg = delegate to call for each Dsymbol
+ */
+void foreachDsymbol(Dsymbols* symbols, scope void delegate(Dsymbol) dg)
+{
+    assert(dg);
+    if (symbols)
+    {
+        /* Do not use foreach, as the size of the array may expand during iteration
+         */
+        for (size_t i = 0; i < symbols.dim; ++i)
+        {
+            Dsymbol s = (*symbols)[i];
+            dg(s);
+        }
+    }
+}
+
 
 struct Ungag
 {
@@ -299,7 +348,7 @@ extern (C++) class Dsymbol : RootObject
 
     final bool checkDeprecated(const ref Loc loc, Scope* sc)
     {
-        if (global.params.useDeprecated != 1 && isDeprecated())
+        if (global.params.useDeprecated != Diagnostic.off && isDeprecated())
         {
             // Don't complain if we're inside a deprecated symbol's scope
             if (sc.isDeprecated())
@@ -372,6 +421,14 @@ extern (C++) class Dsymbol : RootObject
         return null;
     }
 
+    /**
+     * `pastMixin` returns the enclosing symbol if this is a template mixin.
+     *
+     * `pastMixinAndNspace` does likewise, additionally skipping over Nspaces that
+     * are mangleOnly.
+     *
+     * See also `parent`, `toParent`, `toParent2` and `toParent3`.
+     */
     final inout(Dsymbol) pastMixin() inout
     {
         //printf("Dsymbol::pastMixin() %s\n", toChars());
@@ -382,15 +439,30 @@ extern (C++) class Dsymbol : RootObject
         return parent.pastMixin();
     }
 
+    /// ditto
+    final inout(Dsymbol) pastMixinAndNspace() inout
+    {
+        //printf("Dsymbol::pastMixin() %s\n", toChars());
+        auto nspace = isNspace();
+        if (!(nspace && nspace.mangleOnly) && !isTemplateMixin() && !isForwardingAttribDeclaration())
+            return this;
+        if (!parent)
+            return null;
+        return parent.pastMixinAndNspace();
+    }
+
     /**********************************
      * `parent` field returns a lexically enclosing scope symbol this is a member of.
      *
      * `toParent()` returns a logically enclosing scope symbol this is a member of.
-     * It skips over TemplateMixin's.
+     * It skips over TemplateMixin's and Nspaces that are mangleOnly.
      *
      * `toParent2()` returns an enclosing scope symbol this is living at runtime.
      * It skips over both TemplateInstance's and TemplateMixin's.
      * It's used when looking for the 'this' pointer of the enclosing function/class.
+     *
+     * `toParent3()` returns a logically enclosing scope symbol this is a member of.
+     * It skips over TemplateMixin's.
      *
      * Examples:
      *  module mod;
@@ -414,7 +486,7 @@ extern (C++) class Dsymbol : RootObject
      */
     final inout(Dsymbol) toParent() inout
     {
-        return parent ? parent.pastMixin() : null;
+        return parent ? parent.pastMixinAndNspace() : null;
     }
 
     /// ditto
@@ -423,6 +495,12 @@ extern (C++) class Dsymbol : RootObject
         if (!parent || !parent.isTemplateInstance && !parent.isForwardingAttribDeclaration())
             return parent;
         return parent.toParent2;
+    }
+
+    /// ditto
+    final inout(Dsymbol) toParent3() inout
+    {
+        return parent ? parent.pastMixin() : null;
     }
 
     final inout(TemplateInstance) isInstantiated() inout
@@ -468,7 +546,7 @@ extern (C++) class Dsymbol : RootObject
     /*************************************
      * Do syntax copy of an array of Dsymbol's.
      */
-    static Dsymbols* arraySyntaxCopy(Dsymbols* a)
+    extern (D) static Dsymbols* arraySyntaxCopy(Dsymbols* a)
     {
         Dsymbols* b = null;
         if (a)
@@ -769,13 +847,13 @@ extern (C++) class Dsymbol : RootObject
     }
 
     // is Dsymbol exported?
-    bool isExport()
+    bool isExport() const
     {
         return false;
     }
 
     // is Dsymbol imported?
-    bool isImportedSymbol()
+    bool isImportedSymbol() const
     {
         return false;
     }
@@ -848,7 +926,6 @@ extern (C++) class Dsymbol : RootObject
      */
     Dsymbol syntaxCopy(Dsymbol s)
     {
-        print();
         printf("%s %s\n", kind(), toChars());
         assert(0);
     }
@@ -870,7 +947,7 @@ extern (C++) class Dsymbol : RootObject
     /*****************************************
      * Same as Dsymbol::oneMember(), but look at an array of Dsymbols.
      */
-    static bool oneMembers(Dsymbols* members, Dsymbol* ps, Identifier ident)
+    extern (D) static bool oneMembers(Dsymbols* members, Dsymbol* ps, Identifier ident)
     {
         //printf("Dsymbol::oneMembers() %d\n", members ? members.dim : 0);
         Dsymbol s = null;
@@ -947,6 +1024,10 @@ extern (C++) class Dsymbol : RootObject
     }
 
     void addLocalClass(ClassDeclarations*)
+    {
+    }
+
+    void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)
     {
     }
 
@@ -1040,6 +1121,11 @@ extern (C++) class Dsymbol : RootObject
     }
 
     inout(StorageClassDeclaration) isStorageClassDeclaration() inout
+    {
+        return null;
+    }
+
+    inout(ExpressionDsymbol) isExpressionDsymbol() inout
     {
         return null;
     }
@@ -1318,7 +1404,10 @@ public:
                     // compatibility with -transition=import
                     // https://issues.dlang.org/show_bug.cgi?id=15925
                     // SearchLocalsOnly should always get set for new lookup rules
-                    sflags |= (flags & SearchLocalsOnly);
+                    if (global.params.check10378)
+                        sflags |= (flags & SearchLocalsOnly);
+                    else
+                        sflags |= SearchLocalsOnly;
                 }
 
                 /* Don't find private members if ss is a module
@@ -1554,7 +1643,7 @@ public:
         version (none)
         {
             // Finish
-            static __gshared TypeFunction tfgetmembers;
+            __gshared TypeFunction tfgetmembers;
             if (!tfgetmembers)
             {
                 Scope sc;
@@ -1562,7 +1651,7 @@ public:
                 Parameters* p = new Parameter(STC.in_, Type.tchar.constOf().arrayOf(), null, null);
                 parameters.push(p);
                 Type tret = null;
-                tfgetmembers = new TypeFunction(parameters, tret, 0, LINK.d);
+                tfgetmembers = new TypeFunction(parameters, tret, VarArg.none, LINK.d);
                 tfgetmembers = cast(TypeFunction)tfgetmembers.dsymbolSemantic(Loc.initial, &sc);
             }
             if (fdx)
@@ -1603,47 +1692,6 @@ public:
             }
         }
         return false;
-    }
-
-    /***************************************
-     * Determine number of Dsymbols, folding in AttribDeclaration members.
-     */
-    static size_t dim(Dsymbols* members)
-    {
-        size_t n = 0;
-        int dimDg(size_t idx, Dsymbol s)
-        {
-            ++n;
-            return 0;
-        }
-
-        _foreach(null, members, &dimDg, &n);
-        return n;
-    }
-
-    /***************************************
-     * Get nth Dsymbol, folding in AttribDeclaration members.
-     * Returns:
-     *      Dsymbol*        nth Dsymbol
-     *      NULL            not found, *pn gets incremented by the number
-     *                      of Dsymbols
-     */
-    static Dsymbol getNth(Dsymbols* members, size_t nth, size_t* pn = null)
-    {
-        Dsymbol sym = null;
-
-        int getNthSymbolDg(size_t n, Dsymbol s)
-        {
-            if (n == nth)
-            {
-                sym = s;
-                return 1;
-            }
-            return 0;
-        }
-
-        int res = _foreach(null, members, &getNthSymbolDg);
-        return res ? sym : null;
     }
 
     extern (D) alias ForeachDg = int delegate(size_t idx, Dsymbol s);
@@ -1980,8 +2028,7 @@ extern (C++) final class OverloadSet : Dsymbol
         super(ident);
         if (os)
         {
-            for (size_t i = 0; i < os.a.dim; i++)
-                a.push(os.a[i]);
+            a.pushSlice(os.a[]);
         }
     }
 
@@ -2093,6 +2140,26 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
 
 }
 
+/**
+ * Class that holds an expression in a Dsymbol wraper.
+ * This is not an AST node, but a class used to pass
+ * an expression as a function parameter of type Dsymbol.
+ */
+extern (C++) final class ExpressionDsymbol : Dsymbol
+{
+    Expression exp;
+    this(Expression exp)
+    {
+        super();
+        this.exp = exp;
+    }
+
+    override inout(ExpressionDsymbol) isExpressionDsymbol() inout
+    {
+        return this;
+    }
+}
+
 
 /***********************************************************
  * Table of Dsymbol's
@@ -2118,21 +2185,6 @@ extern (C++) final class DsymbolTable : RootObject
             return null; // already in table
         *ps = s;
         return s;
-    }
-
-    debug
-    {
-        /**
-        print the symbol table contents
-        */
-        override void print()
-        {
-            printf("SYMBOL TABLE (%d entries)\n------------------------------\n", tab.length);
-            foreach (keyValue; tab.asRange)
-            {
-                printf("%s\n", keyValue.key.toChars());
-            }
-        }
     }
 
     // Look for Dsymbol in table. If there, return it. If not, insert s and return that.

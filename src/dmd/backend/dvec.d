@@ -4,7 +4,7 @@
  *
  * Simple bit vector implementation.
  *
- * Copyright:   Copyright (c) 2013-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2013-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dvec.d, backend/dvec.d)
@@ -23,8 +23,8 @@ extern (C):
 nothrow:
 @nogc:
 
-alias size_t vec_base_t;                     // base type of vector
-alias vec_base_t* vec_t;
+alias vec_base_t = size_t;                     // base type of vector
+alias vec_t = vec_base_t*;
 
 enum VECBITS = vec_base_t.sizeof * 8;        // # of bits per entry
 enum VECMASK = VECBITS - 1;                  // mask for bit position

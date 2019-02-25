@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -dip1000
+REQUIRED_ARGS: -preview=dip1000
 PERMUTE_ARGS:
 */
 
@@ -138,3 +138,36 @@ void testarchie()
 }
 
 }
+
+/* TEST_OUTPUT:
+---
+fail_compilation/retscope6.d(9022): Error: returning `fred(& i)` escapes a reference to local variable `i`
+---
+*/
+
+#line 9000
+
+@safe:
+
+alias T9 = S9!(); struct S9()
+{
+     this(return int* q)
+     {
+        this.p = q;
+     }
+
+     int* p;
+}
+
+auto fred(int* r)
+{
+    return T9(r);
+}
+
+T9 testfred()
+{
+    int i;
+    auto j = fred(&i); // ok
+    return fred(&i);   // error
+}
+

@@ -1,0 +1,9 @@
+OSX 32-bit is no longer supported
+
+With this release, the DMD compiler will no longer officially support
+building 32-bit applications for OSX. For legacy purposes, older releases
+can be used.
+
+$(B Motivation:) The latest macOS release $(I Mojave) is the last version of OSX
+with support for running 32-bit applications. The D development team wants to
+focus its efforts and build/test infrastructure on active and important platforms.

@@ -1,17 +1,12 @@
-/* Copyright (C) 2011-2018 by The D Language Foundation, All Rights Reserved
+/* Copyright (C) 2011-2019 by The D Language Foundation, All Rights Reserved
  * All Rights Reserved, written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
- * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
- * https://github.com/dlang/dmd/blob/master/src/root/array.h
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/dlang/dmd/blob/master/src/dmd/root/array.h
  */
 
-#ifndef ARRAY_H
-#define ARRAY_H
-
-#if __DMC__
 #pragma once
-#endif
 
 #include <assert.h>
 #include <stdio.h>
@@ -239,5 +234,3 @@ struct BitArray
 private:
     BitArray(const BitArray&);
 };
-
-#endif

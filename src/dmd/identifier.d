@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/identifier.d, _identifier.d)
@@ -22,6 +22,8 @@ import dmd.root.rootobject;
 import dmd.root.stringtable;
 import dmd.tokens;
 import dmd.utf;
+import dmd.utils;
+
 
 /***********************************************************
  */
@@ -29,23 +31,50 @@ extern (C++) final class Identifier : RootObject
 {
 private:
     const int value;
-    const char* name;
-    const size_t len;
+    const char[] name;
 
 public:
+    /**
+       Construct an identifier from a D slice
 
+       Note: Since `name` needs to be `\0` terminated for `toChars`,
+       no slice overload is provided yet.
+
+       Params:
+         name = the identifier name
+                There must be `'\0'` at `name[length]`.
+         length = the length of `name`, excluding the terminating `'\0'`
+         value = Identifier value (e.g. `Id.unitTest`) or `TOK.identifier`
+     */
     extern (D) this(const(char)* name, size_t length, int value) nothrow
     {
         //printf("Identifier('%s', %d)\n", name, value);
+        this.name = name[0 .. length];
+        this.value = value;
+    }
+
+    extern (D) this(const(char)[] name, int value) nothrow
+    {
+        //printf("Identifier('%.*s', %d)\n", cast(int)name.length, name.ptr, value);
         this.name = name;
         this.value = value;
-        this.len = length;
     }
 
     extern (D) this(const(char)* name) nothrow
     {
         //printf("Identifier('%s', %d)\n", name, value);
-        this(name, strlen(name), TOK.identifier);
+        this(name[0 .. strlen(name)], TOK.identifier);
+    }
+
+    /// Sentinel for an anonymous identifier.
+    static Identifier anonymous() nothrow
+    {
+        __gshared Identifier anonymous;
+
+        if (anonymous)
+            return anonymous;
+
+        return anonymous = new Identifier("__anonymous", TOK.identifier);
     }
 
     static Identifier create(const(char)* name) nothrow
@@ -55,31 +84,26 @@ public:
 
     override bool equals(RootObject o) const
     {
-        return this == o || strncmp(name, o.toChars(), len + 1) == 0;
+        return this == o || name == o.toString();
     }
 
     override int compare(RootObject o) const
     {
-        return strncmp(name, o.toChars(), len + 1);
+        return strncmp(name.ptr, o.toChars(), name.length + 1);
     }
 
 nothrow:
-    override void print() const
+    override const(char)* toChars() const pure
     {
-        fprintf(stderr, "%s", name);
+        return name.ptr;
     }
 
-    override const(char)* toChars() const pure
+    extern (D) override const(char)[] toString() const pure
     {
         return name;
     }
 
-    extern (D) final const(char)[] toString() const pure
-    {
-        return name[0 .. len];
-    }
-
-    final int getValue() const pure
+    int getValue() const pure
     {
         return value;
     }
@@ -122,11 +146,23 @@ nothrow:
         return DYNCAST.identifier;
     }
 
-    extern (C++) static __gshared StringTable stringtable;
+    private extern (D) __gshared StringTable stringtable;
+
+    /**
+       A secondary string table is used to guarantee that we generate unique
+       identifiers per module. See generateIdWithLoc and issues
+       https://issues.dlang.org/show_bug.cgi?id=16995
+       https://issues.dlang.org/show_bug.cgi?id=18097
+       https://issues.dlang.org/show_bug.cgi?id=18111
+       https://issues.dlang.org/show_bug.cgi?id=18880
+       https://issues.dlang.org/show_bug.cgi?id=18868
+       https://issues.dlang.org/show_bug.cgi?id=19058.
+     */
+    private extern (D) __gshared StringTable fullPathStringTable;
 
     static Identifier generateId(const(char)* prefix)
     {
-        static __gshared size_t i;
+        __gshared size_t i;
         return generateId(prefix, ++i);
     }
 
@@ -153,40 +189,91 @@ nothrow:
      */
     extern (D) static Identifier generateIdWithLoc(string prefix, const ref Loc loc)
     {
-        OutBuffer buf;
-        buf.writestring(prefix);
-        buf.writestring("_L");
-        buf.print(loc.linnum);
-        buf.writestring("_C");
-        buf.print(loc.charnum);
-        auto basesize = buf.peekSlice().length;
-        uint counter = 1;
-        while (stringtable.lookup(buf.peekSlice().ptr, buf.peekSlice().length) !is null)
+        import dmd.root.filename: absPathThen;
+
+        // see below for why we use absPathThen
+        return loc.filename.toDString().absPathThen!((absPath)
         {
-            // Strip the extra suffix
-            buf.setsize(basesize);
-            // Add new suffix with increased counter
-            buf.writestring("_");
-            buf.print(counter++);
-        }
-        return idPool(buf.peekSlice());
+            // this block generates the "regular" identifier, i.e. if there are no collisions
+            OutBuffer idBuf;
+            idBuf.writestring(prefix);
+            idBuf.writestring("_L");
+            idBuf.print(loc.linnum);
+            idBuf.writestring("_C");
+            idBuf.print(loc.charnum);
+
+            // This block generates an identifier that is prefixed by the absolute path of the file
+            // being compiled. The reason this is necessary is that we want unique identifiers per
+            // module, but the identifiers are generated before the module information is available.
+            // To guarantee that each generated identifier is unique without modules, we make them
+            // unique to each absolute file path. This also makes it consistent even if the files
+            // are compiled separately. See issues:
+            // https://issues.dlang.org/show_bug.cgi?id=16995
+            // https://issues.dlang.org/show_bug.cgi?id=18097
+            // https://issues.dlang.org/show_bug.cgi?id=18111
+            // https://issues.dlang.org/show_bug.cgi?id=18880
+            // https://issues.dlang.org/show_bug.cgi?id=18868
+            // https://issues.dlang.org/show_bug.cgi?id=19058.
+            OutBuffer fullPathIdBuf;
+
+            if (absPath)
+            {
+                // replace characters that demangle can't handle
+                foreach (ref c; absPath)
+                {
+                    // see dmd.dmangle.isValidMangling
+                    // Unfortunately importing it leads to either build failures or cyclic dependencies
+                    // between modules.
+                    if (c == '/' || c == '\\' || c == '.' || c == '?' || c == ':')
+                        c = '_';
+                }
+
+                fullPathIdBuf.writestring(absPath);
+                fullPathIdBuf.writestring("_");
+            }
+
+            fullPathIdBuf.writestring(idBuf.peekSlice());
+            const fullPathIdLength = fullPathIdBuf.peekSlice().length;
+            uint counter = 1;
+
+            // loop until we can't find the absolute path ~ identifier, adding a counter suffix each time
+            while (fullPathStringTable.lookup(fullPathIdBuf.peekSlice()) !is null)
+            {
+                // Strip the counter suffix if any
+                fullPathIdBuf.setsize(fullPathIdLength);
+                // Add new counter suffix
+                fullPathIdBuf.writestring("_");
+                fullPathIdBuf.print(counter++);
+            }
+
+            // `idStartIndex` is the start of the "true" identifier. We don't actually use the absolute
+            // file path in the generated identifier since the module system makes sure that the fully
+            // qualified name is unique.
+            const idStartIndex = fullPathIdLength - idBuf.peekSlice().length;
+
+            // Remember the full path identifier to avoid possible future collisions
+            fullPathStringTable.insert(fullPathIdBuf.peekSlice(),
+                                       null);
+
+            return idPool(fullPathIdBuf.peekSlice()[idStartIndex .. $]);
+        });
     }
 
     /********************************************
      * Create an identifier in the string table.
      */
-    extern (D) static Identifier idPool(const(char)[] s)
-    {
-        return idPool(s.ptr, cast(uint)s.length);
-    }
-
     static Identifier idPool(const(char)* s, uint len)
     {
-        StringValue* sv = stringtable.update(s, len);
+        return idPool(s[0 .. len]);
+    }
+
+    extern (D) static Identifier idPool(const(char)[] s)
+    {
+        StringValue* sv = stringtable.update(s);
         Identifier id = cast(Identifier)sv.ptrvalue;
         if (!id)
         {
-            id = new Identifier(sv.toDchars(), len, TOK.identifier);
+            id = new Identifier(sv.toString(), TOK.identifier);
             sv.ptrvalue = cast(char*)id;
         }
         return id;
@@ -194,52 +281,72 @@ nothrow:
 
     extern (D) static Identifier idPool(const(char)* s, size_t len, int value)
     {
-        auto sv = stringtable.insert(s, len, null);
+        return idPool(s[0 .. len], value);
+    }
+
+    extern (D) static Identifier idPool(const(char)[] s, int value)
+    {
+        auto sv = stringtable.insert(s, null);
         assert(sv);
-        auto id = new Identifier(sv.toDchars(), len, value);
+        auto id = new Identifier(sv.toString(), value);
         sv.ptrvalue = cast(char*)id;
         return id;
     }
 
     /**********************************
      * Determine if string is a valid Identifier.
+     * Params:
+     *      str = string to check
      * Returns:
-     *      0       invalid
+     *      false for invalid
      */
-    static bool isValidIdentifier(const(char)* p)
+    static bool isValidIdentifier(const(char)* str)
     {
-        size_t len;
-        size_t idx;
-        if (!p || !*p)
-            goto Linvalid;
-        if (*p >= '0' && *p <= '9') // beware of isdigit() on signed chars
-            goto Linvalid;
-        len = strlen(p);
-        idx = 0;
-        while (p[idx])
-        {
-            dchar dc;
-            const q = utf_decodeChar(p, len, idx, dc);
-            if (q)
-                goto Linvalid;
-            if (!((dc >= 0x80 && isUniAlpha(dc)) || isalnum(dc) || dc == '_'))
-                goto Linvalid;
-        }
-        return true;
-    Linvalid:
-        return false;
+        return str && isValidIdentifier(str.toDString);
     }
 
-    static Identifier lookup(const(char)* s, size_t len)
+    /**********************************
+     * ditto
+     */
+    extern (D) static bool isValidIdentifier(const(char)[] str)
     {
-        auto sv = stringtable.lookup(s, len);
+        if (str.length == 0 ||
+            (str[0] >= '0' && str[0] <= '9')) // beware of isdigit() on signed chars
+        {
+            return false;
+        }
+
+        size_t idx = 0;
+        while (idx < str.length)
+        {
+            dchar dc;
+            const q = utf_decodeChar(str.ptr, str.length, idx, dc);
+            if (q ||
+                !((dc >= 0x80 && isUniAlpha(dc)) || isalnum(dc) || dc == '_'))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    extern (D) static Identifier lookup(const(char)* s, size_t len)
+    {
+        return lookup(s[0 .. len]);
+    }
+
+    extern (D) static Identifier lookup(const(char)[] s)
+    {
+        auto sv = stringtable.lookup(s);
         if (!sv)
             return null;
         return cast(Identifier)sv.ptrvalue;
     }
 
-    static void initTable()
+    extern (D) static void initTable()
     {
-        stringtable._init(28000);
+        enum size = 28_000;
+        stringtable._init(size);
+        fullPathStringTable._init(size);
     }
 }

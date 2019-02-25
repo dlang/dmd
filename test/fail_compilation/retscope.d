@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -dip1000
+REQUIRED_ARGS: -preview=dip1000
 PERMUTE_ARGS:
 TEST_OUTPUT:
 ---
@@ -455,7 +455,7 @@ fail_compilation/retscope.d(1311): Error: scope variable `u2` assigned to `ek` w
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(1405): Error: reference to local variable `buf` assigned to non-scope parameter `unnamed` calling retscope.myprintf
+fail_compilation/retscope.d(1405): Error: reference to local variable `buf` assigned to non-scope parameter `__anonymous_param` calling retscope.myprintf
 ---
 */
 
@@ -473,7 +473,7 @@ fail_compilation/retscope.d(1405): Error: reference to local variable `buf` assi
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(1509): Error: reference to stack allocated value returned by `(*fp15)()` assigned to non-scope parameter `unnamed`
+fail_compilation/retscope.d(1509): Error: reference to stack allocated value returned by `(*fp15)()` assigned to non-scope parameter `__anonymous_param`
 ---
 */
 
