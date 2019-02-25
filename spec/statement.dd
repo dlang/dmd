@@ -1579,7 +1579,7 @@ $(GNAME Catch):
     $(D catch $(LPAREN)) $(GLINK CatchParameter) $(D $(RPAREN)) $(PS0)
 
 $(GNAME CatchParameter):
-    $(GLINK2 declaration, BasicType) $(GLINK_LEX Identifier)
+    $(GLINK2 declaration, BasicType) $(GLINK_LEX Identifier)$(OPT)
 
 $(GNAME FinallyStatement):
     $(D finally) $(PS0)
