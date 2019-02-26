@@ -509,7 +509,7 @@ class.
 Pointer to the base class. This is stored as a reference to the
 `_OBJC_CLASS_$_<class_name>` symbol, where `<class_name>` is the name of the
 base class. Or a reference to the `_OBJC_METACLASS_$_<class_name>`, if this is a
-metaclass.
+metaclass. If this class is a root class this will be `null`.
 
 #### `cache`
 
