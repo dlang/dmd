@@ -10,7 +10,12 @@ all:
 auto-tester-build: toolchain-info
 	$(QUIET)$(MAKE) -C src -f posix.mak auto-tester-build ENABLE_RELEASE=1
 
+ifneq (,$(findstring Darwin_64_32, $(PWD)))
+auto-tester-test:
+	echo "Darwin_64_32_disabled"
+else
 auto-tester-test: test
+endif
 
 buildkite-test: test
 
