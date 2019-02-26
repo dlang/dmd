@@ -259,6 +259,7 @@ extern(C++) final class Supported : ObjcGlue
     override void toObjFile(ClassDeclaration classDeclaration) const
     in
     {
+        assert(classDeclaration !is null);
         assert(classDeclaration.classKind == ClassKind.objc);
     }
     body
@@ -614,6 +615,11 @@ static:
 
     /// ditto
     Symbol* getClassName(ClassDeclaration classDeclaration, bool isMeta = false)
+    in
+    {
+        assert(classDeclaration !is null);
+    }
+    body
     {
         return getClassName(ObjcClassDeclaration(classDeclaration, isMeta));
     }
@@ -946,11 +952,11 @@ private:
      */
     void toDt(ref DtBuilder dtb)
     {
-        auto baseClassSymbol = Symbols.getClassName(classDeclaration.baseClass,
-            isMeta);
+        auto baseClassSymbol = classDeclaration.baseClass ?
+            Symbols.getClassName(classDeclaration.baseClass, isMeta) : null;
 
         dtb.xoff(getMetaclass(), 0); // pointer to metaclass
-        dtb.xoff(baseClassSymbol, 0); // pointer to base class
+        dtb.xoffOrNull(baseClassSymbol); // pointer to base class
         dtb.xoff(Symbols.getEmptyCache(), 0);
         dtb.xoff(Symbols.getEmptyVTable(), 0);
         dtb.xoff(getClassRo(), 0);
