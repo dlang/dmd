@@ -2751,7 +2751,7 @@ $(H3 $(LNAME2 trusted-functions, Trusted Functions))
 
         $(P Trusted functions are guaranteed to not exhibit any undefined
         behavior if called by a safe function. Furthermore, calls to trusted
-        functions cannot lead to undefined behavior in @safe code that is
+        functions cannot lead to undefined behavior in `@safe` code that is
         executed afterwards. It is the responsibility of the programmer to
         ensure that these guarantees are upheld.
         )
