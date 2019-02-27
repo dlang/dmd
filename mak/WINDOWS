@@ -126,6 +126,9 @@ $(IMPDIR)\core\internal\traits.d : src\core\internal\traits.d
 $(IMPDIR)\core\internal\utf.d : src\core\internal\utf.d
 	copy $** $@
 
+$(IMPDIR)\core\internal\lifetime.d : src\core\internal\lifetime.d
+	copy $** $@
+
 $(IMPDIR)\core\stdc\assert_.d : src\core\stdc\assert_.d
 	copy $** $@
 

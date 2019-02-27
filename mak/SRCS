@@ -27,6 +27,7 @@ SRCS=\
 	src\core\internal\string.d \
 	src\core\internal\traits.d \
 	src\core\internal\utf.d \
+	src\core\internal\lifetime.d \
 	\
 	src\core\stdc\assert_.d \
 	src\core\stdc\complex.d \
