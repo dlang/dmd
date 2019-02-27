@@ -390,7 +390,12 @@ style_lint:
 auto-tester-build: target checkwhitespace
 
 .PHONY : auto-tester-test
+ifneq (,$(findstring Darwin_64_32, $(PWD)))
+auto-tester-test:
+	echo "Darwin_64_32_disabled"
+else
 auto-tester-test: unittest benchmark-compile-only
+endif
 
 .PHONY : buildkite-test
 buildkite-test: unittest benchmark-compile-only
