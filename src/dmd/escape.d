@@ -25,6 +25,7 @@ import dmd.globals;
 import dmd.identifier;
 import dmd.init;
 import dmd.mtype;
+import dmd.printast;
 import dmd.root.rootobject;
 import dmd.tokens;
 import dmd.visitor;
@@ -439,6 +440,17 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
              */
             va.addMaybe(v);
             continue;
+        }
+
+        if (vaIsFirstRef &&
+            (v.isScope() || (v.storage_class & STC.maybescope)) &&
+            !(v.storage_class & STC.return_) &&
+            v.isParameter() &&
+            sc.func.flags & FUNCFLAG.returnInprocess &&
+            p == sc.func)
+        {
+            if (log) printf("inferring 'return' for parameter %s in function %s\n", v.toChars(), sc.func.toChars());
+            inferReturn(sc.func, v);        // infer addition of 'return'
         }
 
         if (!(va && va.isScope()) || vaIsRef)
@@ -897,7 +909,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
  */
 bool checkReturnEscape(Scope* sc, Expression e, bool gag)
 {
-    //printf("[%s] checkReturnEscape, e = %s\n", e.loc.toChars(), e.toChars());
+    //printf("[%s] checkReturnEscape, e: %s\n", e.loc.toChars(), e.toChars());
     return checkReturnEscapeImpl(sc, e, false, gag);
 }
 
@@ -929,6 +941,7 @@ bool checkReturnEscapeRef(Scope* sc, Expression e, bool gag)
  * Params:
  *      sc = used to determine current function and module
  *      e = expression to check
+ *      refs = true: escape by value, false: escape by ref
  *      gag = do not print error messages
  * Returns:
  *      true if references to the stack can escape
@@ -981,7 +994,14 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                  *        return s;     // s is inferred as 'scope' but incorrectly tested in foo()
                  *    return null; }
                  */
-                !(!refs && p.parent == sc.func))
+                !(!refs && p.parent == sc.func && p.isFuncDeclaration() && p.isFuncDeclaration().fes) &&
+                /*
+                 *  auto p(scope string s) {
+                 *      string scfunc() { return s; }
+                 *  }
+                 */
+                !(!refs && p.isFuncDeclaration() && sc.func.isFuncDeclaration().getLevel(v.loc, sc, p.isFuncDeclaration()) > 0)
+               )
             {
                 // Only look for errors if in module listed on command line
                 if (global.params.vsafe) // https://issues.dlang.org/show_bug.cgi?id=17029
@@ -1786,6 +1806,8 @@ void eliminateMaybeScopes(VarDeclaration[] array)
                         {
                             // v cannot be scope since it is assigned to a non-scope va
                             notMaybeScope(v);
+                            if (!(v.storage_class & (STC.ref_ | STC.out_)))
+                                v.storage_class &= ~STC.return_;
                             changes = true;
                         }
                     }
