@@ -274,6 +274,13 @@ immutable(char)[] p = cast(immutable)s; // ok, if data is not mutated
                                         // through s anymore
 s[0] = 'c'; // undefined behavior
 immutable(char)[] q = cast(immutable)s.dup; // always ok, unique reference
+
+char[][] s2 = [['a', 'b'], ['c', 'd']];
+immutable(char[][]) p2 = cast(immutable)s2.dup; // dangerous, only the first
+                                                // level of elements is unique
+s2[0] = ['x', 'y']; // ok, doesn't affect p2
+s2[1][0] = 'z'; // undefined behavior
+immutable(char[][]) q2 = [s2[0].dup, s2[1].dup]; // always ok, unique references
 ---
 
         $(P
