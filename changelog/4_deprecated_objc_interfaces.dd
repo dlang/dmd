@@ -14,5 +14,5 @@ extern (Objective-C) interface NSObject {} // deprecated
 
 Replace with:
 ---
-extern (Objective-C) class NSObject {}
+extern (Objective-C) extern class NSObject {}
 ---

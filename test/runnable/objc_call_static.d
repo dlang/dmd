@@ -2,7 +2,7 @@
 // REQUIRED_ARGS: -L-framework -LFoundation
 
 extern (Objective-C)
-class NSObject
+extern class NSObject
 {
     static NSObject alloc() @selector("alloc");
     static NSObject allocWithZone(void* zone) @selector("allocWithZone:");

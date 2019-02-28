@@ -20,7 +20,7 @@ Example:
 
 ---
 extern (Objective-C)
-class NSObject
+extern class NSObject // externally defined class
 {
     static NSObject alloc() @selector("alloc");
     NSObject init() @selector("init");
@@ -28,7 +28,7 @@ class NSObject
 }
 
 extern (Objective-C)
-class Foo : NSObject
+class Foo : NSObject // internally defined class
 {
     override static Foo alloc() @selector("alloc");
     override Foo init() @selector("init");
