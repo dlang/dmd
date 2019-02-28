@@ -2170,7 +2170,9 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             if (tiargs && tiargs->dim > 0)
                 return 0;
 
-            if (fd->semanticRun < PASSsemanticdone)
+            // constructors need a valid scope in order to detect semantic errors
+            if (!fd->isCtorDeclaration() &&
+                fd->semanticRun < PASSsemanticdone)
             {
                 Ungag ungag = fd->ungagSpeculative();
                 fd->semantic(NULL);
