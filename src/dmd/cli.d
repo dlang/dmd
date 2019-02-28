@@ -307,7 +307,7 @@ dmd -cov -unittest myprog.d
             (only imports).`,
         ),
         Option("extern-std=[<standard>|h|help|?]",
-            "set C++ name mangling compatiblity with <standard>",
+            "set C++ name mangling compatibility with <standard>",
             "Standards supported are:
             $(UL
                 $(LI $(I c++98) (default): Use C++98 name mangling,
