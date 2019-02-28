@@ -60,6 +60,15 @@ const(char)[] findConfFile(const(char)[] argv0, const(char)[] inifile)
     auto filename = FileName.combine(getenv("HOME").toDString, inifile);
     if (FileName.exists(filename))
         return filename;
+
+    // Retry lookup in HOME with dot preceding inifile
+    version (Posix)
+    {
+        filename = FileName.combine(getenv("HOME"), '.' ~ inifile);
+        if (FileName.exists(filename))
+            return filename;
+    }
+
     version (Windows)
     {
         // This fix by Tim Matthews
