@@ -1037,39 +1037,36 @@ extern (C++) class FuncDeclaration : Declaration
     }
 
     /*****************************************
-     * Determine lexical level difference from 'this' to nested function 'fd'.
-     * Error if this cannot call fd.
+     * Determine lexical level difference from `this` to nested function `fd`.
+     * Params:
+     *      fd = target of call
+     *      intypeof = !=0 if inside typeof
      * Returns:
      *      0       same level
      *      >0      decrease nesting by number
-     *      -1      increase nesting by 1 (fd is nested within 'this')
-     *      -2      error
+     *      -1      increase nesting by 1 (`fd` is nested within `this`)
+     *      LevelError  error, `this` cannot call `fd`
      */
-    final int getLevel(const ref Loc loc, Scope* sc, FuncDeclaration fd)
+    final int getLevel(FuncDeclaration fd, int intypeof)
     {
-        int level;
-        Dsymbol s;
-        Dsymbol fdparent;
-
         //printf("FuncDeclaration::getLevel(fd = '%s')\n", fd.toChars());
-        fdparent = fd.toParent2();
+        Dsymbol fdparent = fd.toParent2();
         if (fdparent == this)
             return -1;
-        s = this;
-        level = 0;
+
+        Dsymbol s = this;
+        int level = 0;
         while (fd != s && fdparent != s.toParent2())
         {
             //printf("\ts = %s, '%s'\n", s.kind(), s.toChars());
-            FuncDeclaration thisfd = s.isFuncDeclaration();
-            if (thisfd)
+            if (auto thisfd = s.isFuncDeclaration())
             {
-                if (!thisfd.isNested() && !thisfd.vthis && !sc.intypeof)
-                    goto Lerr;
+                if (!thisfd.isNested() && !thisfd.vthis && !intypeof)
+                    return LevelError;
             }
             else
             {
-                AggregateDeclaration thiscd = s.isAggregateDeclaration();
-                if (thiscd)
+                if (auto thiscd = s.isAggregateDeclaration())
                 {
                     /* AggregateDeclaration::isNested returns true only when
                      * it has a hidden pointer.
@@ -1081,11 +1078,11 @@ extern (C++) class FuncDeclaration : Declaration
                      *   // No member function makes Map struct 'not nested'.
                      * }
                      */
-                    if (!thiscd.isNested() && !sc.intypeof)
-                        goto Lerr;
+                    if (!thiscd.isNested() && !intypeof)
+                        return LevelError;
                 }
                 else
-                    goto Lerr;
+                    return LevelError;
             }
 
             s = s.toParent2();
@@ -1093,18 +1090,40 @@ extern (C++) class FuncDeclaration : Declaration
             level++;
         }
         return level;
+    }
 
-    Lerr:
+    /***********************************
+     * Determine lexical level difference from `this` to nested function `fd`.
+     * Issue error if `this` cannot call `fd`.
+     * Params:
+     *      loc = location for error messages
+     *      sc = context
+     *      fd = target of call
+     * Returns:
+     *      0       same level
+     *      >0      decrease nesting by number
+     *      -1      increase nesting by 1 (`fd` is nested within 'this')
+     *      LevelError  error
+     */
+    final int getLevelAndCheck(const ref Loc loc, Scope* sc, FuncDeclaration fd)
+    {
+        int level = getLevel(fd, sc.intypeof);
+        if (level != LevelError)
+            return level;
+
         // Don't give error if in template constraint
         if (!(sc.flags & SCOPE.constraint))
         {
             const(char)* xstatic = isStatic() ? "static " : "";
             // better diagnostics for static functions
-            .error(loc, "%s%s %s cannot access frame of function %s", xstatic, kind(), toPrettyChars(), fd.toPrettyChars());
-            return -2;
+            .error(loc, "%s%s %s cannot access frame of function %s",
+                xstatic, kind(), toPrettyChars(), fd.toPrettyChars());
+            return LevelError;
         }
         return 1;
     }
+
+    enum LevelError = -2;
 
     override const(char)* toPrettyChars(bool QualifyTypes = false)
     {
@@ -1772,8 +1791,8 @@ extern (C++) class FuncDeclaration : Declaration
                 }
             }
 
-            int lv = fdthis.getLevel(loc, sc, fdv);
-            if (lv == -2)
+            const lv = fdthis.getLevelAndCheck(loc, sc, fdv);
+            if (lv == LevelError)
                 return true; // error
             if (lv == -1)
                 return false; // downlevel call

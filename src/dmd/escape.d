@@ -1000,7 +1000,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                  *      string scfunc() { return s; }
                  *  }
                  */
-                !(!refs && p.isFuncDeclaration() && sc.func.isFuncDeclaration().getLevel(v.loc, sc, p.isFuncDeclaration()) > 0)
+                !(!refs && p.isFuncDeclaration() && sc.func.isFuncDeclaration().getLevel(p.isFuncDeclaration(), sc.intypeof) > 0)
                )
             {
                 // Only look for errors if in module listed on command line
