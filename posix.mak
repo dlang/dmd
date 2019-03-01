@@ -387,7 +387,12 @@ style_lint:
 	$(GREP) -nrE "\<(version) \( " $$(find src -name '*.d') ; test $$? -eq 1
 
 .PHONY : auto-tester-build
+ifneq (,$(findstring Darwin_64_32, $(PWD)))
+auto-tester-build:
+	echo "Darwin_64_32_disabled"
+else
 auto-tester-build: target checkwhitespace
+endif
 
 .PHONY : auto-tester-test
 ifneq (,$(findstring Darwin_64_32, $(PWD)))
