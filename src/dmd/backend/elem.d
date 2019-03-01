@@ -1939,6 +1939,7 @@ static if (TARGET_OSX)
          */
         Symbol *sd = symboldata(Offset(DATA), TYnptr);
         sd.Sseg = DATA;
+        Obj.data_start(sd, _tysize[TYnptr], DATA);
         Offset(DATA) += Obj.reftoident(DATA, Offset(DATA), s, 0, CFoff);
         e = el_picvar(sd);
         return e;
