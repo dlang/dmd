@@ -27,6 +27,7 @@ COPY=\
 	$(IMPDIR)\core\internal\string.d \
 	$(IMPDIR)\core\internal\traits.d \
 	$(IMPDIR)\core\internal\utf.d \
+	$(IMPDIR)\core\internal\lifetime.d \
 	\
 	$(IMPDIR)\core\stdc\assert_.d \
 	$(IMPDIR)\core\stdc\complex.d \
