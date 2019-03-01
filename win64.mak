@@ -8,7 +8,7 @@ SDKDIR=\Program Files (x86)\Microsoft SDKs\Windows\v7.0A
 DMD_DIR=..\dmd
 BUILD=release
 OS=windows
-DMD="$(DMD_DIR)\generated\$(OS)\$(BUILD)\$(MODEL)\dmd"
+DMD=$(DMD_DIR)\generated\$(OS)\$(BUILD)\$(MODEL)\dmd
 
 CC="$(VCDIR)\bin\amd64\cl"
 LD="$(VCDIR)\bin\amd64\link"
@@ -51,68 +51,68 @@ OBJS_TO_DELETE= errno_c_$(MODEL).obj msvc_$(MODEL).obj msvc_math_$(MODEL).obj
 ######################## Header file generation ##############################
 
 import:
-	"$(MAKE)" -f mak/WINDOWS import DMD="$(DMD)" IMPDIR="$(IMPDIR)"
+	$(MAKE) -f mak/WINDOWS import DMD="$(DMD)" IMPDIR="$(IMPDIR)"
 
 copydir:
-	"$(MAKE)" -f mak/WINDOWS copydir IMPDIR="$(IMPDIR)"
+	$(MAKE) -f mak/WINDOWS copydir IMPDIR="$(IMPDIR)"
 
 copy:
-	"$(MAKE)" -f mak/WINDOWS copy DMD="$(DMD)" IMPDIR="$(IMPDIR)"
+	$(MAKE) -f mak/WINDOWS copy DMD="$(DMD)" IMPDIR="$(IMPDIR)"
 
 ################### C\ASM Targets ############################
 
 errno_c_$(MODEL).obj : src\core\stdc\errno.c
-	"$(CC)" -c -Fo$@ $(CFLAGS) src\core\stdc\errno.c
+	$(CC) -c -Fo$@ $(CFLAGS) src\core\stdc\errno.c
 
 msvc_$(MODEL).obj : src\rt\msvc.c win64.mak
-	"$(CC)" -c -Fo$@ $(CFLAGS) src\rt\msvc.c
+	$(CC) -c -Fo$@ $(CFLAGS) src\rt\msvc.c
 
 msvc_math_$(MODEL).obj : src\rt\msvc_math.c win64.mak
-	"$(CC)" -c -Fo$@ $(CFLAGS) src\rt\msvc_math.c
+	$(CC) -c -Fo$@ $(CFLAGS) src\rt\msvc_math.c
 
 ################### Library generation #########################
 
 $(DRUNTIME): $(OBJS) $(SRCS) win64.mak
-	*"$(DMD)" -lib "-of$(DRUNTIME)" -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
+	*$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
 # due to -conf= on the command line, LINKCMD and LIB need to be set in the environment
 unittest : $(SRCS) $(DRUNTIME)
-	*"$(DMD)" $(UDFLAGS) -version=druntime_unittest -unittest -ofunittest.exe -main $(SRCS) "$(DRUNTIME)" "-debuglib=$(DRUNTIME)" "-defaultlib=$(DRUNTIME)" user32.lib
+	*$(DMD) $(UDFLAGS) -version=druntime_unittest -unittest -ofunittest.exe -main $(SRCS) $(DRUNTIME) -debuglib=$(DRUNTIME) -defaultlib=$(DRUNTIME) user32.lib
 	unittest
 
 ################### Win32 COFF support #########################
 
 # default to 32-bit compiler relative to 64-bit compiler, link and lib are architecture agnostic
-CC32="$(CC)\..\..\cl"
+CC32=$(CC)\..\..\cl
 
 druntime32mscoff:
-	"$(MAKE)" -f win64.mak DMD="$(DMD)" MODEL=32mscoff "CC=\$(CC32)"\"" "AR=\$(AR)"\"" VCDIR="$(VCDIR)" SDKDIR="$(SDKDIR)"
+	$(MAKE) -f win64.mak "DMD=$(DMD)" MODEL=32mscoff "CC=\$(CC32)"\"" "AR=\$(AR)"\"" "VCDIR=$(VCDIR)" "SDKDIR=$(SDKDIR)"
 
 unittest32mscoff:
-	"$(MAKE)" -f win64.mak DMD="$(DMD)" MODEL=32mscoff "CC=\$(CC32)"\"" "AR=\$(AR)"\"" VCDIR="$(VCDIR)" SDKDIR="$(SDKDIR)" unittest
+	$(MAKE) -f win64.mak "DMD=$(DMD)" MODEL=32mscoff "CC=\$(CC32)"\"" "AR=\$(AR)"\"" "VCDIR=$(VCDIR)" "SDKDIR=$(SDKDIR)" unittest
 
 ################### tests ######################################
 
 test_uuid:
-	"$(MAKE)" -f test\uuid\win64.mak DMD="$(DMD)" MODEL="$(MODEL)" VCDIR="$(VCDIR)" DRUNTIMELIB="$(DRUNTIME)" test
+	$(MAKE) -f test\uuid\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) test
 
 test_aa:
-	"$(DMD)" -m$(MODEL) -conf= -Isrc "-defaultlib=$(DRUNTIME)" -run test\aa\src\test_aa.d
+	$(DMD) -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIME) -run test\aa\src\test_aa.d
 
 test_hash:
-	"$(DMD)" -m$(MODEL) -conf= -Isrc "-defaultlib=$(DRUNTIME)" -run test\hash\src\test_hash.d
+	$(DMD) -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIME) -run test\hash\src\test_hash.d
 
 test_stdcpp:
-	"$(MAKE)" -f test\stdcpp\win64.mak DMD="$(DMD)" MODEL=$(MODEL) VCDIR="$(VCDIR)" DRUNTIMELIB="$(DRUNTIME)" CC="$(CC)" test
+	$(MAKE) -f test\stdcpp\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
 
 test_gc:
-	"$(MAKE)" -f test\gc\win64.mak DMD="$(DMD)" MODEL=$(MODEL) VCDIR="$(VCDIR)" DRUNTIMELIB="$(DRUNTIME)" CC="$(CC)" test
+	$(MAKE) -f test\gc\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
 
 custom_gc:
-	"$(MAKE)" -f test\init_fini\win64.mak DMD="$(DMD)" MODEL=$(MODEL) VCDIR="$(VCDIR)" DRUNTIMELIB="$(DRUNTIME)" CC="$(CC)" test
+	$(MAKE) -f test\init_fini\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
 
 test_loadlib:
-	"$(DMD)" -m$(MODEL) -conf= -Isrc "-defaultlib=$(DRUNTIME)" -run test\shared\src\loadlibwin.d
+	$(DMD) -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIME) -run test\shared\src\loadlibwin.d
 
 test_all:  test_uuid test_aa test_hash test_stdcpp test_gc custom_gc test_loadlib
 
@@ -130,8 +130,8 @@ install: druntime.zip
 	unzip -o druntime.zip -d \dmd2\src\druntime
 
 clean:
-	del "$(DRUNTIME)" $(OBJS_TO_DELETE)
-	rmdir /S /Q "$(DOCDIR)" "$(IMPDIR)"
+	del $(DRUNTIME) $(OBJS_TO_DELETE)
+	rmdir /S /Q $(DOCDIR) $(IMPDIR)
 
 auto-tester-build: target
 
