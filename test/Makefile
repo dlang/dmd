@@ -125,7 +125,12 @@ runnable_tests_long=runnable/test42.d \
 		    runnable/test23.d \
 		    runnable/hospital.d \
 		    runnable/testsignals.d \
-		    runnable/interpret.d
+		    runnable/interpret.d \
+		    runnable/sdtor.d \
+		    runnable/test9259.d \
+		    runnable/test12.d \
+		    runnable/test17338.d \
+		    runnable/link2644.d
 
 runnable_tests=$(runnable_tests_long) $(wildcard runnable/*.d) $(wildcard runnable/*.sh)
 runnable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(runnable_tests)))
@@ -133,7 +138,11 @@ runnable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(runnable_te
 compilable_tests=$(wildcard compilable/*.d) $(wildcard compilable/*.sh)
 compilable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(compilable_tests)))
 
-fail_compilation_tests=$(wildcard fail_compilation/*.d) $(wildcard fail_compilation/*.html)
+fail_compilation_tests_long=fail_compilation/fail12485.sh
+fail_compilation_tests=$(fail_compilation_tests_long) \
+		    $(wildcard fail_compilation/*.d) \
+		    $(wildcard fail_compilation/*.sh) \
+		    $(wildcard fail_compilation/*.html)
 fail_compilation_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(fail_compilation_tests)))
 
 all: run_tests
@@ -168,19 +177,25 @@ run_runnable_tests: $(runnable_test_results)
 
 start_runnable_tests: $(RESULTS_DIR)/.created $(test_tools)
 	@echo "Running runnable tests"
-	$(QUIET)$(MAKE) --no-print-directory run_runnable_tests
+	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory run_runnable_tests
 
 run_compilable_tests: $(compilable_test_results)
 
 start_compilable_tests: $(RESULTS_DIR)/.created $(test_tools)
 	@echo "Running compilable tests"
-	$(QUIET)$(MAKE) --no-print-directory run_compilable_tests
+	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory run_compilable_tests
 
 run_fail_compilation_tests: $(fail_compilation_test_results)
 
 start_fail_compilation_tests: $(RESULTS_DIR)/.created $(test_tools)
 	@echo "Running fail compilation tests"
-	$(QUIET)$(MAKE) --no-print-directory run_fail_compilation_tests
+	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory run_fail_compilation_tests
+
+run_all_tests: unit_tests run_runnable_tests run_compilable_tests run_fail_compilation_tests
+
+start_all_tests: $(RESULTS_DIR)/.created $(test_tools)
+	@echo "Running all tests"
+	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory run_all_tests
 
 $(RESULTS_DIR)/d_do_test$(EXE): tools/d_do_test.d $(RESULTS_DIR)/.created
 	@echo "Building d_do_test tool"
