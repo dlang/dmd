@@ -1494,12 +1494,53 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 e = new VarExp(loc, r);
                 Expression einit = new DotIdExp(loc, e, idfront);
                 Statement makeargs, forbody;
+                bool ignoreRef = false; // If a range returns a non-ref front we ignore ref on foreach
+
+                Type tfront;
+                if (auto fd = sfront.isFuncDeclaration())
+                {
+                    if (!fd.functionSemantic())
+                        goto Lrangeerr;
+                    tfront = fd.type;
+                }
+                else if (auto td = sfront.isTemplateDeclaration())
+                {
+                    Expressions a;
+                    if (auto f = resolveFuncCall(loc, sc, td, null, tab, &a, FuncResolveFlag.quiet))
+                        tfront = f.type;
+                }
+                else if (auto d = sfront.isDeclaration())
+                {
+                    tfront = d.type;
+                }
+                if (!tfront || tfront.ty == Terror)
+                    goto Lrangeerr;
+                if (tfront.toBasetype().ty == Tfunction)
+                {
+                    auto ftt = cast(TypeFunction)tfront.toBasetype();
+                    tfront = tfront.toBasetype().nextOf();
+                    if (!ftt.isref)
+                    {
+                        // .front() does not return a ref. We ignore ref on foreach arg.
+                        // see https://issues.dlang.org/show_bug.cgi?id=11934
+                        if (tfront.needsDestruction()) ignoreRef = true;
+                    }
+                }
+                if (tfront.ty == Tvoid)
+                {
+                    fs.error("`%s.front` is `void` and has no value", oaggr.toChars());
+                    goto case Terror;
+                }
+
                 if (dim == 1)
                 {
                     auto p = (*fs.parameters)[0];
                     auto ve = new VarDeclaration(loc, p.type, p.ident, new ExpInitializer(loc, einit));
                     ve.storage_class |= STC.foreach_;
                     ve.storage_class |= p.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.TYPECTOR);
+
+                    if (ignoreRef)
+                        ve.storage_class &= ~STC.ref_;
 
                     makeargs = new ExpStatement(loc, ve);
                 }
@@ -1508,33 +1549,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     auto vd = copyToTemp(STC.ref_, "__front", einit);
                     vd.dsymbolSemantic(sc);
                     makeargs = new ExpStatement(loc, vd);
-
-                    Type tfront;
-                    if (auto fd = sfront.isFuncDeclaration())
-                    {
-                        if (!fd.functionSemantic())
-                            goto Lrangeerr;
-                        tfront = fd.type;
-                    }
-                    else if (auto td = sfront.isTemplateDeclaration())
-                    {
-                        Expressions a;
-                        if (auto f = resolveFuncCall(loc, sc, td, null, tab, &a, FuncResolveFlag.quiet))
-                            tfront = f.type;
-                    }
-                    else if (auto d = sfront.isDeclaration())
-                    {
-                        tfront = d.type;
-                    }
-                    if (!tfront || tfront.ty == Terror)
-                        goto Lrangeerr;
-                    if (tfront.toBasetype().ty == Tfunction)
-                        tfront = tfront.toBasetype().nextOf();
-                    if (tfront.ty == Tvoid)
-                    {
-                        fs.error("`%s.front` is `void` and has no value", oaggr.toChars());
-                        goto case Terror;
-                    }
 
                     // Resolve inout qualifier of front type
                     tfront = tfront.substWildTo(tab.mod);
@@ -1571,7 +1585,10 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         }
                         if (!p.type)
                             p.type = exp.type;
-                        p.type = p.type.addStorageClass(p.storageClass).typeSemantic(loc, sc2);
+
+                        auto sc = p.storageClass;
+                        if (ignoreRef) sc &= ~STC.ref_;
+                        p.type = p.type.addStorageClass(sc).typeSemantic(loc, sc2);
                         if (!exp.implicitConvTo(p.type))
                             goto Lrangeerr;
 
