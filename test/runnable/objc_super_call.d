@@ -2,14 +2,14 @@
 // REQUIRED_ARGS: -L-framework -LFoundation
 
 extern (Objective-C)
-class NSObject
+extern class NSObject
 {
     void release() @selector("release");
 }
 
 // Defined in `runnable/extra-files/objc_super_call.m`
 extern (Objective-C)
-class Foo : NSObject
+extern class Foo : NSObject
 {
     // returns 3
     int foo() @selector("foo");

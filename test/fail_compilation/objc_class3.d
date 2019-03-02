@@ -8,7 +8,7 @@ fail_compilation/objc_class3.d(19): Error: template instance `objc_class3.A.test
 */
 
 extern (Objective-C)
-class A
+extern class A
 {
     void test(T)(T a) @selector("test:"); // selector defined for template
 }

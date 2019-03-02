@@ -476,27 +476,8 @@ extern(C++) private final class Supported : Objc
 
     override void setObjc(ClassDeclaration cd)
     {
-        static bool isExtern(Dsymbols* members)
-        {
-            return members.foreachDsymbol((member) {
-                if (auto attrib = member.isAttribDeclaration)
-                {
-                    if (!isExtern(attrib.decl))
-                        return 1; // return !=0 to stop iteration
-                }
-
-                else if (auto func = member.isFuncDeclaration)
-                {
-                    if (func.fbody)
-                        return 1; // return !=0 to stop iteration
-                }
-
-                return 0;
-            }) == 0;
-        }
-
         cd.classKind = ClassKind.objc;
-        cd.objc.isExtern = isExtern(cd.members);
+        cd.objc.isExtern = (cd.storage_class & STC.extern_) > 0;
     }
 
     override void setObjc(InterfaceDeclaration id)
@@ -519,8 +500,8 @@ extern(C++) private final class Supported : Objc
 
         id.deprecation("Objective-C interfaces have been deprecated");
         deprecationSupplemental(id.loc, "Representing an Objective-C class " ~
-            "as a D interface has been deprecated. Please use the `class` "~
-            "keyword instead");
+            "as a D interface has been deprecated. Please use "~
+            "`extern (Objective-C) extern class` instead");
     }
 
     override void setSelector(FuncDeclaration fd, Scope* sc)

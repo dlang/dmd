@@ -2,13 +2,13 @@
 // REQUIRED_ARGS: -L-framework -LFoundation
 
 extern (Objective-C)
-class Class
+extern class Class
 {
     NSObject alloc() @selector("alloc");
 }
 
 extern (Objective-C)
-class NSObject
+extern class NSObject
 {
     NSObject initWithUTF8String(in char* str) @selector("initWithUTF8String:");
     void release() @selector("release");
