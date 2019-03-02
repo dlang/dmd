@@ -1442,24 +1442,28 @@ public:
 
     void visit(VarExp *e)
     {
-        if (FuncDeclaration *fd = e->var->isFuncDeclaration())
+        VarDeclaration *vd = e->var->isVarDeclaration();
+        FuncDeclaration *fd = e->var->isFuncDeclaration();
+
+        if (fd)
         {
             //printf("L%d fd = %s\n", __LINE__, f->toChars());
             if (!fd->functionSemantic())
                 return setError();
         }
 
-        VarDeclaration *vd = e->var->isVarDeclaration();
-
-        // by error the declaration can use itself in its type
-        if (vd)
-            vd->inuse++;
-
         if (!e->type)
             e->type = e->var->type;
 
         if (e->type && !e->type->deco)
+        {
+            Declaration *decl = e->var->isDeclaration();
+            if (decl)
+                decl->inuse++;
             e->type = e->type->semantic(e->loc, sc);
+            if (decl)
+                decl->inuse--;
+        }
 
         /* Fix for 1161 doesn't work because it causes protection
          * problems when instantiating imported templates passing private
@@ -1469,14 +1473,13 @@ public:
 
         if (vd)
         {
-            vd->inuse--;
             if (vd->checkNestedReference(sc, e->loc))
                 return setError();
             // Bugzilla 12025: If the variable is not actually used in runtime code,
             // the purity violation error is redundant.
             //checkPurity(sc, vd);
         }
-        else if (FuncDeclaration *fd = e->var->isFuncDeclaration())
+        else if (fd)
         {
             // TODO: If fd isn't yet resolved its overload, the checkNestedReference
             // call would cause incorrect validation.
