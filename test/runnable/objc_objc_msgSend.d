@@ -9,7 +9,7 @@ struct Struct
 }
 
 extern (Objective-C)
-class Class
+extern class Class
 {
     stret alloc_stret() @selector("alloc");
     fp2ret alloc_fp2ret() @selector("alloc");
@@ -19,7 +19,7 @@ class Class
 }
 
 extern (Objective-C)
-class stret
+extern class stret
 {
     stret init() @selector("init");
     Struct getValue() @selector("getValue");
@@ -27,7 +27,7 @@ class stret
 }
 
 extern (Objective-C)
-class fp2ret
+extern class fp2ret
 {
     fp2ret init() @selector("init");
     creal getValue() @selector("getValue");
@@ -35,7 +35,7 @@ class fp2ret
 }
 
 extern (Objective-C)
-class fpret
+extern class fpret
 {
     fpret init() @selector("init");
     real getValue() @selector("getValue");
@@ -43,7 +43,7 @@ class fpret
 }
 
 extern (Objective-C)
-class float32
+extern class float32
 {
     float32 init() @selector("init");
     float getValue() @selector("getValue");
@@ -51,7 +51,7 @@ class float32
 }
 
 extern (Objective-C)
-class double64
+extern class double64
 {
     double64 init() @selector("init");
     double getValue() @selector("getValue");

@@ -1,11 +1,11 @@
 // EXTRA_OBJC_SOURCES: objc_instance_variable.m
 // REQUIRED_ARGS: -L-framework -LFoundation
 
-extern (Objective-C) class NSObject {}
+extern (Objective-C) extern class NSObject {}
 
 // Defined in `runnable/extra-files/objc_instance_variable.m`
 extern (Objective-C)
-class Foo : NSObject
+extern class Foo : NSObject
 {
     // int a = 1;
     // int b = 2;
