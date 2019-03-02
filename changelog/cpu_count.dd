@@ -1,3 +1,0 @@
-Added `core.sys.linux.sched.CPU_COUNT`.
-
-Added `core.sys.linux.sched.CPU_COUNT`, which returns the number of CPUs in set.
