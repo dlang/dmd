@@ -1,8 +1,0 @@
-A garbage collector with precise heap scanning can now be selected
-
-Precise heap scanning can now be enabled by a DRT option to the
-$(LINK2 $(ROOT_DIR)spec/garbage.html, GC configuration),
-e.g. by passing `--DRT-gcopt=gc:precise` on the command
-line or by redefining `rt_options`. See the
-$(LINK2 $(ROOT_DIR)spec/garbage.html#precise_gc, documentation)
-for details.

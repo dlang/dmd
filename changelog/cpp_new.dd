@@ -1,4 +1,0 @@
-Added `core.stdcpp.new_`
-
-Added `core.stdcpp.new_`, which exposes interfaces for C++ global new/delete operators.
-This allows D programs to conveniently allocate from the C++ heap, which is useful when sharing memory between languages.
