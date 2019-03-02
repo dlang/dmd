@@ -1,4 +1,0 @@
-Added `GC.profileStats()` to `core.memory`
-
-Allows access to current GC profiling information.
-See $(REF GC.ProfileStats, core,memory) for a list of profile stats.

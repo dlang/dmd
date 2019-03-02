@@ -1,3 +1,0 @@
-`char`/`wchar` fields in most D runtime (`core.*` and `rt.*`) structs are now zero-initialized
-
-Fields that are single `char`/wchar` or fixed-length arrays of such are now initialized to all zero bits instead of all one bits for most structs in the D runtime (`core.*` and `rt.*` modules). This simplifies initialization and removes the need to store init data when it makes the entire struct zero-initialized. Most affected structs are used for interoperability with C APIs.
