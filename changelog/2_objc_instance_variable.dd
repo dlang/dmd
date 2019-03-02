@@ -11,7 +11,7 @@ Example:
 
 ---
 extern (Objective-C)
-class NSObject {}
+extern class NSObject {}
 
 extern (Objective-C)
 class Foo : NSObject

@@ -12,7 +12,7 @@ extern (C) int callFooInstanceMethod(int);
 extern (C) int callFooClassMethod(int);
 
 extern (Objective-C)
-class NSObject
+extern class NSObject
 {
     static NSObject alloc() @selector("alloc");
     NSObject init() @selector("init");

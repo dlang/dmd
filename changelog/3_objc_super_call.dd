@@ -7,7 +7,7 @@ Example:
 
 ---
 extern (Objective-C)
-class NSObject
+extern class NSObject
 {
     void release() @selector("release");
 }
