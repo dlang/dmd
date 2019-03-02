@@ -3675,23 +3675,28 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             printf("VarExp::semantic(%s)\n", e.toChars());
         }
-        if (auto fd = e.var.isFuncDeclaration())
+
+        auto vd = e.var.isVarDeclaration();
+        auto fd = e.var.isFuncDeclaration();
+
+        if (fd)
         {
             //printf("L%d fd = %s\n", __LINE__, f.toChars());
             if (!fd.functionSemantic())
                 return setError();
         }
 
-        auto vd = e.var.isVarDeclaration();
-
-        // by error the declaration can use itself in its type
-        if (vd)
-            vd.inuse++;
-
         if (!e.type)
             e.type = e.var.type;
         if (e.type && !e.type.deco)
+        {
+            auto decl = e.var.isDeclaration();
+            if (decl)
+                decl.inuse++;
             e.type = e.type.typeSemantic(e.loc, sc);
+            if (decl)
+                decl.inuse--;
+        }
 
         /* Fix for 1161 doesn't work because it causes protection
          * problems when instantiating imported templates passing private
@@ -3701,7 +3706,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (vd)
         {
-            vd.inuse--;
             if (vd.checkNestedReference(sc, e.loc))
                 return setError();
 
@@ -3710,7 +3714,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // the purity violation error is redundant.
             //checkPurity(sc, vd);
         }
-        else if (auto fd = e.var.isFuncDeclaration())
+        else if (fd)
         {
             // TODO: If fd isn't yet resolved its overload, the checkNestedReference
             // call would cause incorrect validation.
