@@ -703,7 +703,7 @@ int ld_type(longdouble_soft x)
 // consider sprintf pure
 private extern(C) int sprintf(scope char* s, scope const char* format, ...) pure @nogc nothrow;
 
-size_t ld_sprint(char* str, int fmt, longdouble_soft x) @system
+size_t ld_sprint(char* str, int fmt, longdouble_soft x) @system nothrow
 {
     // ensure dmc compatible strings for nan and inf
     switch(ld_type(x))
