@@ -2505,8 +2505,20 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
             if (!m.lastf.type.equals(fd.type))
             {
                 //printf("cov: %d %d\n", m.lastf.type.covariant(fd.type), fd.type.covariant(m.lastf.type));
-                if (m.lastf.type.covariant(fd.type) == 1) goto LlastIsBetter;
-                if (fd.type.covariant(m.lastf.type) == 1) goto LfIsBetter;
+                const int lastCovariant = m.lastf.type.covariant(fd.type);
+                const int firstCovariant = fd.type.covariant(m.lastf.type);
+
+                if (lastCovariant == 1 || lastCovariant == 2)
+                {
+                    if (firstCovariant != 1 && firstCovariant != 2)
+                    {
+                        goto LlastIsBetter;
+                    }
+                }
+                else if (firstCovariant == 1 || firstCovariant == 2)
+                {
+                    goto LfIsBetter;
+                }
             }
 
             /* If the two functions are the same function, like:
