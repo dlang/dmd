@@ -400,7 +400,7 @@ extern (C++) final class Module : Package
     Identifiers* versionidsNot; // forward referenced version identifiers
 
     Macro* macrotable;          // document comment macros
-    Escape* escapetable;        // document comment escapes
+    Escape escapetable;        // document comment escapes
 
     size_t nameoffset;          // offset of module name from start of ModuleInfo
     size_t namelen;             // length of module name in characters
