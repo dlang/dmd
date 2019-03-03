@@ -974,7 +974,7 @@ $(H2 $(LNAME2 links_to_d_documentation_generators, Links to D documentation gene
 
 $(P
     A list of current D documentation generators which use Ddoc
-    can be found on our $(LINK2 https://wiki.dlang.org/Community:Open_Source_Projects, wiki page).
+    can be found on our $(LINK2 https://wiki.dlang.org/Open_Source_Projects#Documentation_Generators, wiki page).
 )
 
 $(SPEC_SUBNAV_PREV_NEXT iasm, D x86 Inline Assembler, interfaceToC, Interfacing to C)
