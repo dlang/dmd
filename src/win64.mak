@@ -32,7 +32,7 @@ release : $(DEPENDENCIES)
 trace : $(DEPENDENCIES)
 	$(MAKE_WIN32) $@
 clean :
-	del $(DEPENDENCIES) dmd.pdb
+	del /s /q $(DEPENDENCIES) dmd.pdb
 	$(MAKE_WIN32) $@
 install : $(DEPENDENCIES)
 	$(MAKE_WIN32) $@
