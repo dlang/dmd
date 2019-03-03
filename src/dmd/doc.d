@@ -316,7 +316,7 @@ private final class MacroSection : Section
     override void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
         //printf("MacroSection::write()\n");
-        DocComment.parseMacros(dc.pescapetable, dc.pmacrotable, _body, bodylen);
+        DocComment.parseMacros(dc.escapetable, dc.pmacrotable, _body, bodylen);
     }
 }
 
@@ -394,7 +394,7 @@ extern(C++) void gendocfile(Module m)
     Scope* sc = Scope.createGlobal(m); // create root scope
     DocComment* dc = DocComment.parse(m, m.comment);
     dc.pmacrotable = &m.macrotable;
-    dc.pescapetable = &m.escapetable;
+    dc.escapetable = &m.escapetable;
     sc.lastdc = dc;
     // Generate predefined macros
     // Set the title to be the name of the module
@@ -1447,7 +1447,7 @@ struct DocComment
     Section copyright;
     Section macros;
     Macro** pmacrotable;
-    Escape** pescapetable;
+    Escape* escapetable;
     Dsymbols a;
 
     static DocComment* parse(Dsymbol s, const(char)* comment)
@@ -1480,7 +1480,7 @@ struct DocComment
      *
      *      name2 = value2
      */
-    static void parseMacros(Escape** pescapetable, Macro** pmacrotable, const(char)* m, size_t mlen)
+    static void parseMacros(Escape* escapetable, Macro** pmacrotable, const(char)* m, size_t mlen)
     {
         const(char)* p = m;
         size_t len = mlen;
@@ -1550,7 +1550,7 @@ struct DocComment
             L1:
                 //printf("macro '%.*s' = '%.*s'\n", cast(int)namelen, namestart, cast(int)textlen, textstart);
                 if (iequals("ESCAPES", namestart[0 .. namelen]))
-                    parseEscapes(pescapetable, textstart, textlen);
+                    parseEscapes(escapetable, textstart, textlen);
                 else
                     Macro.define(pmacrotable, namestart[0 ..namelen], textstart[0 .. textlen]);
                 namelen = 0;
@@ -1587,14 +1587,12 @@ struct DocComment
      * Multiple escapes can be separated
      * by whitespace and/or commas.
      */
-    static void parseEscapes(Escape** pescapetable, const(char)* textstart, size_t textlen)
+    static void parseEscapes(Escape* escapetable, const(char)* textstart, size_t textlen)
     {
-        Escape* escapetable = *pescapetable;
         if (!escapetable)
         {
             escapetable = new Escape();
             memset(escapetable, 0, Escape.sizeof);
-            *pescapetable = escapetable;
         }
         //printf("parseEscapes('%.*s') pescapetable = %p\n", cast(int)textlen, textstart, pescapetable);
         const(char)* p = textstart;
