@@ -2895,6 +2895,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             printf("type: %p, %s\n", funcdecl.type, funcdecl.type.toChars());
         }
 
+        if (funcdecl.fbody && (funcdecl.storage_class & STC.disable))
+            funcdecl.deprecation("cannot be annotated with `@disable` because it has a body");
+
         if (funcdecl.semanticRun != PASS.init && funcdecl.isFuncLiteralDeclaration())
         {
             /* Member functions that have return types that are
