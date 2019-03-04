@@ -42,36 +42,41 @@ extern (C++) TypeTuple toArgTypes_sysv_x64(Type t)
 
     const classification = classify(t, size);
     const classes = classification.slice();
+    const N = classes.length;
     const c0 = classes[0];
 
-    if (c0 == Class.Memory)
-         return new TypeTuple();
-    if (c0 == Class.X87)
-        return new TypeTuple(Type.tfloat80);
-    if (c0 == Class.ComplexX87)
-        return new TypeTuple(Type.tfloat80, Type.tfloat80);
-
-    if (classes.length > 2 ||
-        (classes.length == 2 && classes[1] == Class.SSEUp))
+    switch (c0)
     {
-        assert(c0 == Class.SSE);
-        foreach (c; classes[1 .. $])
-            assert(c == Class.SSEUp);
-
-        assert(size % 8 == 0);
-        return new TypeTuple(new TypeVector(Type.tfloat64.sarrayOf(classes.length)));
+    case Class.memory:
+         return new TypeTuple();
+    case Class.x87:
+        return new TypeTuple(Type.tfloat80);
+    case Class.complexX87:
+        return new TypeTuple(Type.tfloat80, Type.tfloat80);
+    default:
+        break;
     }
 
-    assert(classes.length >= 1 && classes.length <= 2);
+    if (N > 2 || (N == 2 && classes[1] == Class.sseUp))
+    {
+        assert(c0 == Class.sse);
+        foreach (c; classes[1 .. $])
+            assert(c == Class.sseUp);
+
+        assert(size % 8 == 0);
+        return new TypeTuple(new TypeVector(Type.tfloat64.sarrayOf(N)));
+    }
+
+    assert(N >= 1 && N <= 2);
     Type[2] argtypes;
     foreach (i, c; classes)
     {
         // the last eightbyte may be filled partially only
-        auto sizeInEightbyte = (i < classes.length - 1) ? 8 : size % 8;
+        auto sizeInEightbyte = (i < N - 1) ? 8 : size % 8;
         if (sizeInEightbyte == 0)
             sizeInEightbyte = 8;
 
-        if (c == Class.Integer)
+        if (c == Class.integer)
         {
             argtypes[i] =
                 sizeInEightbyte > 4 ? Type.tint64 :
@@ -79,7 +84,7 @@ extern (C++) TypeTuple toArgTypes_sysv_x64(Type t)
                 sizeInEightbyte > 1 ? Type.tint16 :
                                       Type.tint8;
         }
-        else if (c == Class.SSE)
+        else if (c == Class.sse)
         {
             argtypes[i] =
                 sizeInEightbyte > 4 ? Type.tfloat64 :
@@ -89,7 +94,7 @@ extern (C++) TypeTuple toArgTypes_sysv_x64(Type t)
             assert(0, "Unexpected class");
     }
 
-    return classes.length == 1
+    return N == 1
         ? new TypeTuple(argtypes[0])
         : new TypeTuple(argtypes[0], argtypes[1]);
 }
@@ -100,33 +105,33 @@ private:
 // classification per eightbyte (64-bit chunk)
 enum Class : ubyte
 {
-    Integer,
-    SSE,
-    SSEUp,
-    X87,
-    X87Up,
-    ComplexX87,
-    NoClass,
-    Memory
+    integer,
+    sse,
+    sseUp,
+    x87,
+    x87Up,
+    complexX87,
+    noClass,
+    memory
 }
 
 Class merge(Class a, Class b)
 {
+    bool any(Class value) { return a == value || b == value; }
+
     if (a == b)
         return a;
-    if (a == Class.NoClass)
+    if (a == Class.noClass)
         return b;
-    if (b == Class.NoClass)
+    if (b == Class.noClass)
         return a;
-    if (a == Class.Memory || b == Class.Memory)
-        return Class.Memory;
-    if (a == Class.Integer || b == Class.Integer)
-        return Class.Integer;
-    if (a == Class.X87 || b == Class.X87 ||
-        a == Class.X87Up || b == Class.X87Up ||
-        a == Class.ComplexX87 || b == Class.ComplexX87)
-        return Class.Memory;
-    return Class.SSE;
+    if (any(Class.memory))
+        return Class.memory;
+    if (any(Class.integer))
+        return Class.integer;
+    if (any(Class.x87) || any(Class.x87Up) || any(Class.complexX87))
+        return Class.memory;
+    return Class.sse;
 }
 
 struct Classification
@@ -134,7 +139,7 @@ struct Classification
     Class[4] classes;
     int numEightbytes;
 
-    const(Class[]) slice() const { return classes[0 .. numEightbytes]; }
+    const(Class[]) slice() const return { return classes[0 .. numEightbytes]; }
 }
 
 Classification classify(Type t, size_t size)
@@ -148,7 +153,7 @@ extern (C++) final class ToClassesVisitor : Visitor
 {
     const size_t size;
     int numEightbytes;
-    Class[4] result = Class.NoClass;
+    Class[4] result = Class.noClass;
 
     this(size_t size)
     {
@@ -159,7 +164,7 @@ extern (C++) final class ToClassesVisitor : Visitor
 
     void memory()
     {
-        result[0 .. numEightbytes] = Class.Memory;
+        result[0 .. numEightbytes] = Class.memory;
     }
 
     void one(Class a)
@@ -202,28 +207,28 @@ extern (C++) final class ToClassesVisitor : Visitor
         case Tchar:
         case Twchar:
         case Tdchar:
-            return one(Class.Integer);
+            return one(Class.integer);
 
         case Tint128:
         case Tuns128:
-            return two(Class.Integer, Class.Integer);
+            return two(Class.integer, Class.integer);
 
         case Tfloat80:
         case Timaginary80:
-            return two(Class.X87, Class.X87Up);
+            return two(Class.x87, Class.x87Up);
 
         case Tfloat32:
         case Tfloat64:
         case Timaginary32:
         case Timaginary64:
         case Tcomplex32: // struct { float a, b; }
-            return one(Class.SSE);
+            return one(Class.sse);
 
         case Tcomplex64: // struct { double a, b; }
-            return two(Class.SSE, Class.SSE);
+            return two(Class.sse, Class.sse);
 
         case Tcomplex80: // struct { real a, b; }
-            result[0 .. 4] = Class.ComplexX87;
+            result[0 .. 4] = Class.complexX87;
             return;
 
         default:
@@ -233,42 +238,42 @@ extern (C++) final class ToClassesVisitor : Visitor
 
     override void visit(TypeVector t)
     {
-        result[0] = Class.SSE;
-        result[1 .. numEightbytes] = Class.SSEUp;
+        result[0] = Class.sse;
+        result[1 .. numEightbytes] = Class.sseUp;
     }
 
     override void visit(TypeAArray)
     {
-        return one(Class.Integer);
+        return one(Class.integer);
     }
 
     override void visit(TypePointer)
     {
-        return one(Class.Integer);
+        return one(Class.integer);
     }
 
     override void visit(TypeNull)
     {
-        return one(Class.Integer);
+        return one(Class.integer);
     }
 
     override void visit(TypeClass)
     {
-        return one(Class.Integer);
+        return one(Class.integer);
     }
 
     override void visit(TypeDArray)
     {
         if (!global.params.isLP64)
-            return one(Class.Integer);
-        return two(Class.Integer, Class.Integer);
+            return one(Class.integer);
+        return two(Class.integer, Class.integer);
     }
 
     override void visit(TypeDelegate)
     {
         if (!global.params.isLP64)
-            return one(Class.Integer);
-        return two(Class.Integer, Class.Integer);
+            return one(Class.integer);
+        return two(Class.integer, Class.integer);
     }
 
     override void visit(TypeSArray t)
@@ -350,7 +355,7 @@ extern (C++) final class ToClassesVisitor : Visitor
                 {
                     assert(foffset % 4 == 0);
                     foreach (ref existingClass; result[fEightbyteStart .. fEightbyteEnd])
-                        existingClass = merge(existingClass, Class.SSE);
+                        existingClass = merge(existingClass, Class.sse);
                 }
                 else
                 {
@@ -372,22 +377,22 @@ extern (C++) final class ToClassesVisitor : Visitor
     {
         foreach (i, ref c; result)
         {
-            if (c == Class.Memory ||
-                (c == Class.X87Up && !(i > 0 && result[i - 1] == Class.X87)))
+            if (c == Class.memory ||
+                (c == Class.x87Up && !(i > 0 && result[i - 1] == Class.x87)))
                 return memory();
 
-            if (c == Class.SSEUp && !(i > 0 &&
-                (result[i - 1] == Class.SSE || result[i - 1] == Class.SSEUp)))
-                c = Class.SSE;
+            if (c == Class.sseUp && !(i > 0 &&
+                (result[i - 1] == Class.sse || result[i - 1] == Class.sseUp)))
+                c = Class.sse;
         }
 
         if (numEightbytes > 2)
         {
-            if (result[0] != Class.SSE)
+            if (result[0] != Class.sse)
                 return memory();
 
             foreach (c; result[1 .. numEightbytes])
-                if (c != Class.SSEUp)
+                if (c != Class.sseUp)
                     return memory();
         }
 
@@ -395,7 +400,7 @@ extern (C++) final class ToClassesVisitor : Visitor
         // consisting of padding only (`struct S { align(16) int a; }`).
         // clang only passes the first eightbyte in that case, so let's do the
         // same.
-        if (numEightbytes == 2 && result[1] == Class.NoClass)
+        if (numEightbytes == 2 && result[1] == Class.noClass)
             numEightbytes = 1;
     }
 }
