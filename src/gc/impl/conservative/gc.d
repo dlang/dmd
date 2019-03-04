@@ -89,8 +89,8 @@ private
 
         // Declared as an extern instead of importing core.exception
         // to avoid inlining - see issue 13725.
-        void onInvalidMemoryOperationError() @nogc nothrow;
-        void onOutOfMemoryErrorNoGC() @nogc nothrow;
+        void onInvalidMemoryOperationError(void* pretend_sideffect = null) @trusted pure nothrow @nogc;
+        void onOutOfMemoryErrorNoGC() @trusted nothrow @nogc;
     }
 
     enum
