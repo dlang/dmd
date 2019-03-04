@@ -2412,7 +2412,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
             Ungag ungag = fd.ungagSpeculative();
             fd.dsymbolSemantic(null);
         }
-        if (fd.semanticRun == PASS.init)
+        if (fd.semanticRun < PASS.semanticdone)
         {
             .error(loc, "forward reference to template `%s`", fd.toChars());
             return 1;
