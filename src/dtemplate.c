@@ -2177,7 +2177,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
                 Ungag ungag = fd->ungagSpeculative();
                 fd->semantic(NULL);
             }
-            if (fd->semanticRun == PASSinit)
+            if (fd->semanticRun < PASSsemanticdone)
             {
                 ::error(loc, "forward reference to template %s", fd->toChars());
                 return 1;
