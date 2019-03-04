@@ -25,8 +25,7 @@
  */
 module gc.impl.manual.gc;
 
-import gc.config;
-import gc.gcinterface;
+import core.gc.gcinterface;
 
 import rt.util.container.array;
 
@@ -38,7 +37,7 @@ extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure
 // register GC in C constructor (_STI_)
 extern(C) pragma(crt_constructor) void _d_register_manual_gc()
 {
-    import gc.registry;
+    import core.gc.registry;
     registerGCFactory("manual", &initialize);
 }
 

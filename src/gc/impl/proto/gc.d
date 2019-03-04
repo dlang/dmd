@@ -1,8 +1,7 @@
 
 module gc.impl.proto.gc;
 
-import gc.config;
-import gc.gcinterface;
+import core.gc.gcinterface;
 
 import rt.util.container.array;
 

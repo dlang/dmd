@@ -35,8 +35,8 @@ module gc.impl.conservative.gc;
 
 import gc.bits;
 import gc.os;
-import gc.config;
-import gc.gcinterface;
+import core.gc.config;
+import core.gc.gcinterface;
 
 import rt.util.container.treap;
 
@@ -106,13 +106,13 @@ alias GC gc_t;
 // register GC in C constructor (_STI_)
 extern(C) pragma(crt_constructor) void _d_register_conservative_gc()
 {
-    import gc.registry;
+    import core.gc.registry;
     registerGCFactory("conservative", &initialize);
 }
 
 extern(C) pragma(crt_constructor) void _d_register_precise_gc()
 {
-    import gc.registry;
+    import core.gc.registry;
     registerGCFactory("precise", &initialize_precise);
 }
 

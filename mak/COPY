@@ -1,6 +1,10 @@
 COPY=\
 	$(IMPDIR)\object.d \
 	\
+	$(IMPDIR)\core\gc\config.d \
+	$(IMPDIR)\core\gc\gcinterface.d \
+	$(IMPDIR)\core\gc\registry.d \
+	\
 	$(IMPDIR)\core\atomic.d \
 	$(IMPDIR)\core\attribute.d \
 	$(IMPDIR)\core\bitop.d \

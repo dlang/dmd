@@ -17,6 +17,10 @@ SRCS=\
 	src\core\time.d \
 	src\core\vararg.d \
 	\
+	src\core\gc\config.d \
+	src\core\gc\gcinterface.d \
+	src\core\gc\registry.d \
+	\
 	src\core\internal\abort.d \
 	src\core\internal\arrayop.d \
 	src\core\internal\convert.d \
@@ -389,13 +393,10 @@ SRCS=\
 	src\core\sys\windows\wtypes.d \
 	\
 	src\gc\bits.d \
-	src\gc\config.d \
-	src\gc\gcinterface.d \
 	src\gc\impl\conservative\gc.d \
 	src\gc\os.d \
 	src\gc\pooltable.d \
 	src\gc\proxy.d \
-	src\gc\registry.d \
 	src\gc\impl\manual\gc.d \
 	src\gc\impl\proto\gc.d \
 	\

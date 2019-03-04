@@ -5,7 +5,7 @@
 * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
 */
 
-module gc.config;
+module core.gc.config;
 
 import core.stdc.stdio;
 import core.internal.parseoptions;
@@ -34,7 +34,7 @@ struct Config
 
     void help() @nogc nothrow
     {
-        import gc.registry : registeredGCFactories;
+        import core.gc.registry : registeredGCFactories;
 
         printf("GC options are specified as white space separated assignments:
     disable:0|1    - start disabled (%d)
