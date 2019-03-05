@@ -59,6 +59,9 @@
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
     <OutDir>..\..\generated\Windows\$(Configuration)\$(PlatformName)\</OutDir>
     <IntDir>$(OutDir)\backend\</IntDir>
+    <_DCompilerExe Condition="'$(DCompiler)' == 'LDC' and '$(Platform)'=='x64'">$(LDCBinDir)ldmd2.exe -m64</_DCompilerExe>
+    <_DCompilerExe Condition="'$(DCompiler)' == 'LDC' and '$(Platform)'=='Win32'">$(LDCBinDir)ldmd2.exe -m32</_DCompilerExe>
+    <_DCompilerExe Condition="'$(_DCompilerExe)' == ''">$(DMDBinDir)dmd.exe</_DCompilerExe>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
   <ItemDefinitionGroup>
@@ -99,7 +102,7 @@
     </ClCompile>
     <CustomBuild Include="..\dmd\backend\optabgen.d">
       <Message>Building and running $(IntDir)%(Filename).exe</Message>
-      <Command>$(DMDBinDir)\dmd.exe -I.. -version=MARS -of"$(IntDir)generated\%(Filename).exe" "%(FullPath)"
+      <Command>$(_DCompilerExe) -I.. -version=MARS -of"$(IntDir)generated\%(Filename).exe" "%(FullPath)"
 if errorlevel 1 exit /B %ERRORLEVEL%
 pushd $(IntDir)generated
 "%(Filename).exe"

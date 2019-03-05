@@ -60,7 +60,8 @@ string dmdModel()
         return dmdModel;
 
     const prefix = generatedDir.buildPath(os, build);
-    return dmdModel = prefix.buildPath("64", dmdFilename).exists ? "64" : "32";
+    return dmdModel = environment.get("DMD_MODEL",
+        prefix.buildPath("64", dmdFilename).exists ? "64" : "32");
 }
 
 string model()

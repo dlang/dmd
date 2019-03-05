@@ -1,0 +1,84 @@
+steps:
+  - script: |
+      :: Use Windows CRLF line endings for checked-out text files
+      git config --global core.autocrlf true
+      set
+    displayName: Print environment variables
+  - checkout: self
+    fetchDepth: 1
+  - script: |
+      bash --version
+      sh --login .azure-pipelines/windows-visual-studio.sh
+    displayName: Download requires binaries
+  - script: |
+      @echo on
+      call "%VSINSTALLDIR%\VC\Auxiliary\Build\vcvarsall.bat" %ARCH%
+      set LDC_DIR=ldc2-%LDC_VERSION%-windows-multilib
+      set VISUALD_INSTALLER=VisualD-%VISUALD_VER%.exe
+      set DMD_DIR=%cd%
+      set DMD=%DMD_DIR%\generated\Windows\Release\Win32\dmd.exe
+      set DMD_TESTSUITE_MAKE_ARGS=-j3
+      set DM_MAKE=%DMD_DIR%\dm\path\make.exe
+
+      FOR /F "tokens=* USEBACKQ" %%F IN (`where cl.exe`) DO (SET MSVC_CC=%%~fsF)
+      FOR /F "tokens=* USEBACKQ" %%F IN (`where lib.exe`) DO (SET MSVC_AR=%%~fsF)
+      REM this returns two lines (GNU's link.exe is on the second line)
+      REM Just take the first one
+      FOR /F "tokens=* USEBACKQ" %%F IN (`where link.exe`) DO (SET MSVC_LD=%%~fsF
+        GOTO :Next)
+      :Next
+      FOR /F "tokens=* USEBACKQ" %%F IN (`where make.exe`) DO (SET GNU_MAKE=%%~fsF)
+
+      REM WORKAROUND: move files to a directory without spaces
+      copy "%MSVC_AR%" "%DMD_DIR%\dm\path\lib.exe"
+      copy "%MSVC_LD%" "%DMD_DIR%\dm\path\link.exe"
+      copy "%MSVC_CC%" "%DMD_DIR%\dm\path\cl.exe"
+      set MSVC_AR=%DMD_DIR%\dm\path\lib.exe
+      set MSVC_CC=%DMD_DIR%\dm\path\cl.exe
+      set MSVC_LD=%DMD_DIR%\dm\path\link.exe
+
+      REM expose dm_make as default make
+      set PATH=%DMD_DIR%\dm\path;%DMD_DIR%\tools;%PATH%
+      dir "%DMD_DIR%\tools"
+      "%DMD_DIR%\tools\grep.exe --version
+      echo %PATH%
+      grep --version
+      exit 1
+
+      .\%VISUALD_INSTALLER% /S
+      REM configure DMD path
+      REM reg add "HKLM\SOFTWARE\DMD" /v InstallationFolder /t REG_SZ /d "%DMD_DIR%\dmd2" /reg:32 /f
+      REM configure LDC path
+      reg add "HKLM\SOFTWARE\LDC" /v InstallationFolder /t REG_SZ /d "%DMD_DIR%\%LDC_DIR%" /reg:32 /f
+
+      REM build via VS projects with LDC
+      cd src
+      REM unfortunately, multilib version of LDC and Visual D don't work together seamlessly (anymore?)
+      set LDC_ARGS="/p:ExternalLinkerOptions=phobos2-ldc.lib druntime-ldc.lib"
+      set LDC_ARGS=%LDC_ARGS% /p:DCompiler=LDC
+      msbuild /target:dmd /p:Configuration=Release /p:Platform=Win32 %LDC_ARGS% vcbuild\dmd.sln
+
+      %DMD% --version
+      grep --version
+
+      REM Check: run druntime unittests
+      cd "%DMD_DIR%\..\druntime"
+      "%DM_MAKE%" -f win64.mak MODEL=32mscoff DMD="%DMD%" VCDIR="%VCINSTALLDIR%." CC="%MSVC_CC%" SDKDIR=unused MAKE="%DM_MAKE%" target
+      echo "[DRUNTIME] running tests..."
+      "%DM_MAKE%" -f win64.mak MODEL=32mscoff DMD="%DMD%" VCDIR="%VCINSTALLDIR%." CC="%MSVC_CC%" SDKDIR=unused MAKE="%DM_MAKE%" unittest32mscoff
+
+      REM build zlib first (to workaround DigitalMars's whitespace limitations)
+      cd "%DMD_DIR%\..\phobos\etc\c\zlib"
+      "%DM_MAKE%" -f win64.mak "zlib32mscoff.lib" MODEL=32mscoff DMD="%DMD%" VCDIR="%VCINSTALLDIR%." CC="%MSVC_CC%" LIB="%MSVC_AR%" LD="%MSVC_LD%"
+
+      REM Check: build phobos unittests
+      cd "%DMD_DIR%\..\phobos"
+      "%DM_MAKE%" -f win64.mak MODEL=32mscoff DMD="%DMD%" VCDIR="%VCINSTALLDIR%." CC="%MSVC_CC%" "MAKE=%DM_MAKE%" CFLAGS="/C7" SDKDIR=unused
+
+      REM Build DMD VERSION + string imports (not built by VisualD)
+      copy "%DMD_DIR%\VERSION" "%DMD_DIR%\generated\Windows\Release\Win32\VERSION"
+
+      REM Run DMD testsuite
+      cd "%DMD_DIR%\test"
+      cp %DMD_DIR%\..\phobos\phobos32mscoff.lib .
+      "%GNU_MAKE%" -j1 all MODEL=32mscoff ARGS="-O -inline -g" OS=win32 DMD="%DMD%" DMD_MODEL=win32
