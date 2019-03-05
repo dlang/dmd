@@ -439,7 +439,7 @@ int nthSlice(const(elem)* e)
     const upr = lwr + sz;
     if (0 <= lwr && upr <= sliceSize)
         return 0;
-    if (sliceSize <= lwr && upr <= sliceSize * 2)
+    if (sliceSize < lwr && upr <= sliceSize * 2)
         return 1;
 
     return NOTSLICE;
