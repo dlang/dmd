@@ -30,12 +30,26 @@ download() {
 }
 
 install_host_dmd() {
-    download "http://downloads.dlang.org/releases/2.x/${HOST_DMD_VERSION}/dmd.${HOST_DMD_VERSION}.windows.7z" dmd2.7z
-    7z x dmd2.7z > /dev/null
+    download "http://downloads.dlang.org/releases/2.x/${HOST_DMD_VERSION}/dmd.${HOST_DMD_VERSION}.windows.7z" dmd.7z
+    7z x dmd.7z > /dev/null
     export PATH="$PWD/dmd2/windows/bin/:$PATH"
     export HOST_DC="$PWD/dmd2/windows/bin/dmd.exe"
     export DM_MAKE="$PWD/dmd2/windows/bin/make.exe"
-    dmd --version
+}
+
+install_host_ldc() {
+    local LDC_INSTALLER="ldc2-${HOST_LDC_VERSION}-windows-${ARCH}"
+    download "https://github.com/ldc-developers/ldc/releases/download/v${HOST_LDC_VERSION}/${LDC_INSTALLER}.7z" ldc.7z
+    7z x ldc.7z > /dev/null
+    export PATH="$PWD/${LDC_INSTALLER}/bin/:$PATH"
+    export HOST_DC="$PWD/${LDC_INSTALLER}/bin/ldmd2.exe"
+}
+
+install_dm_make() {
+    download "http://downloads.dlang.org/other/dm857c.zip" dmc.zip
+    unzip dmc.zip > /dev/null
+    export DMC="$PWD/dm/bin/dmc.exe"
+    export DM_MAKE="$PWD/dm/bin/make.exe"
 }
 
 install_grep() {
@@ -66,10 +80,17 @@ echo "GREP_VERSION: $(grep --version)"
 
 if [ "$D_COMPILER" == "dmd" ]; then
     install_host_dmd
+elif [ "$D_COMPILER" == "ldc" ]; then
+    install_host_ldc
+    # we still need DigitalMars make :/
+    install_dm_make
 else
     echo 'Invalid $D_COMPILER provided'.
     exit 1
 fi
+
+echo "HOST_DC: $("${HOST_DC}" --version)"
+echo "DM_MAKE: $(! "${DM_MAKE}" --version)" # DM_MAKE doesn't have a --version flag, but this prints its version
 
 ################################################################################
 # Checkout other repositories
@@ -105,15 +126,6 @@ else
 fi
 
 ################################################################################
-# Build DMD
-################################################################################
-
-DMD_BIN_PATH="$DMD_DIR/generated/windows/release/${MODEL}/dmd"
-
-cd "${DMD_DIR}/src"
-"${DM_MAKE}" -f "${MAKE_FILE}" reldmd DMD="$DMD_BIN_PATH"
-
-################################################################################
 # WORKAROUND: Make the paths to CC and AR whitespace free
 # REASON: Druntime & Phobos Makefiles as the variables don't use quotation
 ################################################################################
@@ -121,6 +133,15 @@ cd "${DMD_DIR}/src"
 ln -s "$(dirname "$CC")" "${DMD_DIR}/../ccdir"
 export CC="$DMD_DIR/../ccdir/cl.exe"
 export AR="$DMD_DIR/../ccdir/lib.exe"
+
+################################################################################
+# Build DMD
+################################################################################
+
+DMD_BIN_PATH="$DMD_DIR/generated/windows/release/${MODEL}/dmd"
+
+cd "${DMD_DIR}/src"
+"${DM_MAKE}" -f "${MAKE_FILE}" reldmd DMD="$DMD_BIN_PATH" HOST_DC="${HOST_DC}" CC="${CC}"
 
 ################################################################################
 # WORKAROUND: Build zlib separately with DigitalMars make

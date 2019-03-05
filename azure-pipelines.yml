@@ -1,6 +1,7 @@
 # Learn more: https://aka.ms/yaml
 variables:
   HOST_DMD_VERSION: 2.084.1
+  HOST_LDC_VERSION: 1.14.0
 
 jobs:
   - job: Windows
@@ -16,10 +17,10 @@ jobs:
           MODEL: 64
           ARCH: x64
           D_COMPILER: dmd
-        #x86:
-          #OS: Win_32
-          #MODEL: 32
-          #ARCH: x86
-          #D_COMPILER: dmd
+        x64-ldc:
+          OS: Win_64
+          MODEL: 64
+          ARCH: x64
+          D_COMPILER: ldc
     steps:
       - template: .azure-pipelines/windows.yml
