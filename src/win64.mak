@@ -13,7 +13,7 @@ OS=windows
 ################################### Rules ####################################
 
 .d.exe:
-	$(HOST_DC) -of$@ $<
+	$(HOST_DC) -g -of$@ $<
 
 D=dmd
 GEN = ..\generated
