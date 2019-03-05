@@ -128,16 +128,35 @@ export AR="$DMD_DIR/../ccdir/lib.exe"
 ################################################################################
 
 cd "${DMD_DIR}/../phobos/etc/c/zlib"
-${DM_MAKE} -f win64.mak "MODEL=${MODEL}" "zlib${MODEL}.lib" CC="${CC}" LIB="${AR}" VCDIR="${VCINSTALLDIR}"
+"${DM_MAKE}" -f "${MAKE_FILE}" "MODEL=${MODEL}" "zlib${MODEL}.lib" CC="${CC}" LIB="${AR}" VCDIR="${VCINSTALLDIR}"
 
 ################################################################################
 # Build Druntime and Phobos
 ################################################################################
 
-for proj in druntime phobos; do
-    cd "${DMD_DIR}/../${proj}"
-    "${DM_MAKE}" -f "${MAKE_FILE}" DMD="$DMD_BIN_PATH" CC="$CC" AR="$MSVC_AR" VCDIR="${VCINSTALLDIR}" CFLAGS="/C7"
-done
+cd "${DMD_DIR}/../druntime"
+"${DM_MAKE}" -f "${MAKE_FILE}" DMD="$DMD_BIN_PATH" CC="$CC" AR="$MSVC_AR" VCDIR="${VCINSTALLDIR}" CFLAGS="/C7" auto-tester-build
+
+################################################################################
+# Build Phobos
+################################################################################
+
+cd "${DMD_DIR}/../phobos"
+"${DM_MAKE}" -f "${MAKE_FILE}" DMD="$DMD_BIN_PATH" CC="$CC" AR="$MSVC_AR" VCDIR="${VCINSTALLDIR}" CFLAGS="/C7"
+
+################################################################################
+# Run DRuntime testsuite
+################################################################################
+
+cd "${DMD_DIR}/../druntime"
+"${DM_MAKE}" -f "${MAKE_FILE}" DMD="$DMD_BIN_PATH" CC="$CC" AR="$MSVC_AR" VCDIR="${VCINSTALLDIR}" CFLAGS="/C7" unittest
+
+################################################################################
+# Run Phobos testsuite
+################################################################################
+
+cd "${DMD_DIR}/../phobos"
+"${DM_MAKE}" -f "${MAKE_FILE}" DMD="$DMD_BIN_PATH" CC="$CC" AR="$MSVC_AR" VCDIR="${VCINSTALLDIR}" CFLAGS="/C7" auto-tester-test
 
 ################################################################################
 # Run DMD testsuite
