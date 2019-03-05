@@ -272,18 +272,9 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
                     sm = t.toDsymbol(sc);
                     if (sm && id.dyncast() == DYNCAST.identifier)
                     {
-                        sm = sm.search(loc, cast(Identifier)id /*, IgnorePrivateImports*/);
-                        // Deprecated in 2018-01.
-                        // Change to error by deleting the deprecation line and uncommenting
-                        // the above parameter. The error will be issued in Type.getProperty.
-                        // The deprecation is highlighted here to avoid a redundant call to
-                        // ScopeDsymbol.search.
-                        // @@@DEPRECATED_2019-01@@@.
+                        sm = sm.search(loc, cast(Identifier)id, IgnorePrivateImports);
                         if (sm)
-                        {
-                            .deprecation(loc, "`%s` is not visible from module `%s`", sm.toPrettyChars(), sc._module.toChars());
                             goto L2;
-                        }
                     }
                 L3:
                     Expression e;

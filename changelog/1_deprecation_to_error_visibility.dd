@@ -1,0 +1,35 @@
+Turn deprecation into error for privately imported symbols inside aggregate declarations
+
+With this release DMD will issue an error when a symbol that is privately imported in the scope of an aggregate declaration is used as a member of the aggregate outside of the module where the aggregate is defined. Example:
+
+---
+// a.d
+class Foobar
+{
+    int a;
+    this(int a)
+    {
+        this.a = a;
+    }
+    static int smeth()
+    {
+        return 1;
+    }
+}
+void fun() {}
+
+// b.d
+struct AST
+{
+    import a;
+}
+
+// c.d
+void main()
+{
+    import b;
+    AST.Foobar t;        // triggered a deprecation, but will now trigger an error
+    AST.Foobar.smeth();  // error
+    AST.fun();           // error
+}
+---
