@@ -400,7 +400,7 @@ extern (C++) final class Module : Package
     Identifiers* versionidsNot; // forward referenced version identifiers
 
     Macro* macrotable;          // document comment macros
-    Escape escapetable;        // document comment escapes
+    Escape* escapetable;        // document comment escapes
 
     size_t nameoffset;          // offset of module name from start of ModuleInfo
     size_t namelen;             // length of module name in characters
@@ -429,6 +429,7 @@ extern (C++) final class Module : Package
         if (doHdrGen)
             hdrfile = setOutfile(global.params.hdrname, global.params.hdrdir, arg, global.hdr_ext);
         //objfile = new File(objfilename);
+        escapetable = new Escape();
     }
 
     static Module create(const(char)* filename, Identifier ident, int doDocComment, int doHdrGen)

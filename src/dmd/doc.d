@@ -390,11 +390,11 @@ extern(C++) void gendocfile(Module m)
             mbuf.write(file.buffer, file.len);
         }
     }
-    DocComment.parseMacros(&m.escapetable, &m.macrotable, mbuf.peekSlice().ptr, mbuf.peekSlice().length);
+    DocComment.parseMacros(m.escapetable, &m.macrotable, mbuf.peekSlice().ptr, mbuf.peekSlice().length);
     Scope* sc = Scope.createGlobal(m); // create root scope
     DocComment* dc = DocComment.parse(m, m.comment);
     dc.pmacrotable = &m.macrotable;
-    dc.escapetable = &m.escapetable;
+    dc.escapetable = m.escapetable;
     sc.lastdc = dc;
     // Generate predefined macros
     // Set the title to be the name of the module
