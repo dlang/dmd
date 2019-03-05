@@ -2718,7 +2718,8 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
 
     Match m;
     m.last = MATCH.nomatch;
-    functionResolve(&m, s, loc, sc, tiargs, tthis, fargs, null);
+    const(char)* supplementalInformation;
+    functionResolve(&m, s, loc, sc, tiargs, tthis, fargs, &supplementalInformation);
     auto orig_s = s;
 
     if (m.last > MATCH.nomatch && m.lastf)
@@ -2777,6 +2778,22 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                 tiargsBuf.peekString(), fargsBuf.peekString());
 
             printCandidates(loc, td);
+
+            if (supplementalInformation)
+            {
+                const(char)* t = supplementalInformation;
+                while (*t) {
+                    // I just want each line returned by the other object
+                    // to be printed with the supplemental info indentation
+                    const(char)* c = t;
+                    while (*c && *c != '\n')
+                        ++c;
+                    .errorSupplemental(loc, "constraint %.*s", cast(int) (c - t), t);
+                    if (*c)
+                        c++;
+                    t = c;
+                }
+            }
         }
         else if (od)
         {

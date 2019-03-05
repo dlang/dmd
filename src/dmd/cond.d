@@ -855,7 +855,7 @@ extern (C++) final class StaticIfCondition : Condition
 
             import dmd.staticcond;
             bool errors;
-            bool result = evalStaticCondition(sc, exp, exp, errors);
+            bool result = evalStaticCondition(sc, exp, exp, errors).result;
 
             // Prevent repeated condition evaluation.
             // See: fail_compilation/fail7815.d

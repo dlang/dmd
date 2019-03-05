@@ -684,10 +684,11 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         return protection;
     }
 
+    import dmd.staticcond;
     /****************************
      * Check to see if constraint is satisfied.
      */
-    extern (D) bool evaluateConstraint(TemplateInstance ti, Scope* sc, Scope* paramscope, Objects* dedargs, FuncDeclaration fd)
+    extern (D) StaticConditionResult evaluateConstraint(TemplateInstance ti, Scope* sc, Scope* paramscope, Objects* dedargs, FuncDeclaration fd)
     {
         /* Detect recursive attempts to instantiate this template declaration,
          * https://issues.dlang.org/show_bug.cgi?id=4072
@@ -713,7 +714,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 for (Scope* scx = sc; scx; scx = scx.enclosing)
                 {
                     if (scx == p.sc)
-                        return false;
+                        return new StaticConditionResult(null, false, false);
                 }
             }
             /* BUG: should also check for ref param differences
@@ -788,13 +789,13 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         ti.inst = ti; // temporary instantiation to enable genIdent()
         scx.flags |= SCOPE.constraint;
         bool errors;
-        bool result = evalStaticCondition(scx, constraint, e, errors);
+        auto result = evalStaticCondition(scx, constraint, e, errors);
         ti.inst = null;
         ti.symtab = null;
         scx = scx.pop();
         previous = pr.prev; // unlink from threaded list
         if (errors)
-            return false;
+            return new StaticConditionResult(null, false, false);
         return result;
     }
 
@@ -833,7 +834,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
      *      dedtypes        deduced arguments
      * Return match level.
      */
-    extern (D) MATCH matchWithInstance(Scope* sc, TemplateInstance ti, Objects* dedtypes, Expressions* fargs, int flag)
+    extern (D) MatchWithSupplementalInformation matchWithInstance(Scope* sc, TemplateInstance ti, Objects* dedtypes, Expressions* fargs, int flag)
     {
         enum LOGM = 0;
         static if (LOGM)
@@ -848,11 +849,12 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         }
         MATCH m;
         size_t dedtypes_dim = dedtypes.dim;
+        StaticConditionResult supplementalInformation;
 
         dedtypes.zero();
 
         if (errors)
-            return MATCH.nomatch;
+            return MatchWithSupplementalInformation(MATCH.nomatch);
 
         size_t parameters_dim = parameters.dim;
         int variadic = isVariadic() !is null;
@@ -864,7 +866,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             {
                 printf(" no match: more arguments than parameters\n");
             }
-            return MATCH.nomatch;
+            return MatchWithSupplementalInformation(MATCH.nomatch);
         }
 
         assert(dedtypes_dim == parameters_dim);
@@ -970,7 +972,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             }
 
             // TODO: dedtypes => ti.tiargs ?
-            if (!evaluateConstraint(ti, sc, paramscope, dedtypes, fd))
+            supplementalInformation = evaluateConstraint(ti, sc, paramscope, dedtypes, fd);
+            if (!supplementalInformation.result)
                 goto Lnomatch;
         }
 
@@ -1016,7 +1019,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         {
             printf("-TemplateDeclaration.matchWithInstance(this = %p, ti = %p) = %d\n", this, ti, m);
         }
-        return m;
+        return MatchWithSupplementalInformation(m);
     }
 
     /********************************************
@@ -1025,7 +1028,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
      *      match   this is at least as specialized as td2
      *      0       td2 is more specialized than this
      */
-    MATCH leastAsSpecialized(Scope* sc, TemplateDeclaration td2, Expressions* fargs)
+    MatchWithSupplementalInformation leastAsSpecialized(Scope* sc, TemplateDeclaration td2, Expressions* fargs)
     {
         enum LOG_LEASTAS = 0;
         static if (LOG_LEASTAS)
@@ -1061,8 +1064,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         Objects dedtypes = Objects(td2.parameters.dim);
 
         // Attempt a type deduction
-        MATCH m = td2.matchWithInstance(sc, ti, &dedtypes, fargs, 1);
-        if (m > MATCH.nomatch)
+        auto m = td2.matchWithInstance(sc, ti, &dedtypes, fargs, 1);
+        if (m.match > MATCH.nomatch)
         {
             /* A non-variadic template is more specialized than a
              * variadic one.
@@ -1082,7 +1085,12 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         {
             printf("  doesn't match, so is not as specialized\n");
         }
-        return MATCH.nomatch;
+        return MatchWithSupplementalInformation(MATCH.nomatch);
+    }
+
+    struct MatchWithSupplementalInformation {
+        MATCH match;
+        StaticConditionResult supplementalInformation;
     }
 
     /*************************************************
@@ -1101,13 +1109,14 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
      *          bit 0-3     Match template parameters by inferred template arguments
      *          bit 4-7     Match template parameters by initial template arguments
      */
-    extern (D) MATCH deduceFunctionTemplateMatch(TemplateInstance ti, Scope* sc, ref FuncDeclaration fd, Type tthis, Expressions* fargs)
+    extern (D) MatchWithSupplementalInformation deduceFunctionTemplateMatch(TemplateInstance ti, Scope* sc, ref FuncDeclaration fd, Type tthis, Expressions* fargs)
     {
         size_t nfparams;
         size_t nfargs;
         size_t ntargs; // array size of tiargs
         size_t fptupindex = IDX_NOTFOUND;
         MATCH match = MATCH.exact;
+        StaticConditionResult supplementalInformation;
         MATCH matchTiargs = MATCH.exact;
         ParameterList fparameters; // function parameter list
         VarArg fvarargs; // function varargs
@@ -1142,7 +1151,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         dedtypes.zero();
 
         if (errors || fd.errors)
-            return MATCH.nomatch;
+            return MatchWithSupplementalInformation(MATCH.nomatch);
 
         // Set up scope for parameters
         Scope* paramscope = scopeForTemplateParameters(ti,sc);
@@ -2003,8 +2012,11 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         if (constraint)
         {
-            if (!evaluateConstraint(ti, sc, paramscope, dedargs, fd))
+            supplementalInformation = evaluateConstraint(ti, sc, paramscope, dedargs, fd);
+            if (!supplementalInformation.result)
+            {
                 goto Lnomatch;
+            }
         }
 
         version (none)
@@ -2018,18 +2030,18 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         paramscope.pop();
         //printf("\tmatch %d\n", match);
-        return cast(MATCH)(match | (matchTiargs << 4));
+        return MatchWithSupplementalInformation(cast(MATCH)(match | (matchTiargs << 4)));
 
     Lnomatch:
         paramscope.pop();
         //printf("\tnomatch\n");
-        return MATCH.nomatch;
+        return MatchWithSupplementalInformation(MATCH.nomatch, supplementalInformation);
 
     Lerror:
         // todo: for the future improvement
         paramscope.pop();
         //printf("\terror\n");
-        return MATCH.nomatch;
+        return MatchWithSupplementalInformation(MATCH.nomatch);
     }
 
     /**************************************************
@@ -2592,10 +2604,14 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
             auto ti = new TemplateInstance(loc, td, tiargs);
             Objects dedtypes = Objects(td.parameters.dim);
             assert(td.semanticRun != PASS.init);
-            MATCH mta = td.matchWithInstance(sc, ti, &dedtypes, fargs, 0);
+            auto mta = td.matchWithInstance(sc, ti, &dedtypes, fargs, 0);
             //printf("matchWithInstance = %d\n", mta);
-            if (mta <= MATCH.nomatch || mta < ta_last)   // no match or less match
+            if (mta.match <= MATCH.nomatch || mta.match < ta_last)   // no match or less match
+            {
+                if (pMessage && mta.supplementalInformation)
+                    *pMessage = mta.supplementalInformation.toChars();
                 return 0;
+            }
 
             ti.templateInstanceSemantic(sc, fargs);
             if (!ti.inst)               // if template failed to expand
@@ -2665,8 +2681,8 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
             if (mfa < m.last)
                 return 0;
 
-            if (mta < ta_last) goto Ltd_best2;
-            if (mta > ta_last) goto Ltd2;
+            if (mta.match < ta_last) goto Ltd_best2;
+            if (mta.match > ta_last) goto Ltd2;
 
             if (mfa < m.last) goto Ltd_best2;
             if (mfa > m.last) goto Ltd2;
@@ -2686,7 +2702,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
             td_best = td;
             ti_best = null;
             property = 0;   // (backward compatibility)
-            ta_last = mta;
+            ta_last = mta.match;
             m.last = mfa;
             m.lastf = fd;
             tthis_best = tthis_fd;
@@ -2708,12 +2724,17 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
             ti.parent = td.parent;  // Maybe calculating valid 'enclosing' is unnecessary.
 
             auto fd = f;
-            int x = td.deduceFunctionTemplateMatch(ti, sc, fd, tthis, fargs);
+            auto information = td.deduceFunctionTemplateMatch(ti, sc, fd, tthis, fargs);
+            int x = information.match;
             MATCH mta = cast(MATCH)(x >> 4);
             MATCH mfa = cast(MATCH)(x & 0xF);
             //printf("match:t/f = %d/%d\n", mta, mfa);
             if (!fd || mfa == MATCH.nomatch)
+            {
+                if (pMessage && information.supplementalInformation)
+                    *pMessage = information.supplementalInformation.toChars();
                 continue;
+            }
 
             Type tthis_fd = fd.needThis() ? tthis : null;
 
@@ -2743,8 +2764,8 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
             if (td_best)
             {
                 // Disambiguate by picking the most specialized TemplateDeclaration
-                MATCH c1 = td.leastAsSpecialized(sc, td_best, fargs);
-                MATCH c2 = td_best.leastAsSpecialized(sc, td, fargs);
+                MATCH c1 = td.leastAsSpecialized(sc, td_best, fargs).match;
+                MATCH c2 = td_best.leastAsSpecialized(sc, td, fargs).match;
                 //printf("1: c1 = %d, c2 = %d\n", c1, c2);
                 if (c1 > c2) goto Ltd;
                 if (c1 < c2) goto Ltd_best;
@@ -6897,7 +6918,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             assert(tempdecl._scope);
             // Deduce tdtypes
             tdtypes.setDim(tempdecl.parameters.dim);
-            if (!tempdecl.matchWithInstance(sc, this, &tdtypes, fargs, 2))
+            if (!tempdecl.matchWithInstance(sc, this, &tdtypes, fargs, 2).match)
             {
                 error("incompatible arguments for template instantiation");
                 return false;
@@ -6952,7 +6973,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 dedtypes.zero();
                 assert(td.semanticRun != PASS.init);
 
-                MATCH m = td.matchWithInstance(sc, this, &dedtypes, fargs, 0);
+                MATCH m = td.matchWithInstance(sc, this, &dedtypes, fargs, 0).match;
                 //printf("matchWithInstance = %d\n", m);
                 if (m <= MATCH.nomatch) // no match at all
                     return 0;
@@ -6961,8 +6982,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
                 // Disambiguate by picking the most specialized TemplateDeclaration
                 {
-                MATCH c1 = td.leastAsSpecialized(sc, td_best, fargs);
-                MATCH c2 = td_best.leastAsSpecialized(sc, td, fargs);
+                MATCH c1 = td.leastAsSpecialized(sc, td_best, fargs).match;
+                MATCH c2 = td_best.leastAsSpecialized(sc, td, fargs).match;
                 //printf("c1 = %d, c2 = %d\n", c1, c2);
                 if (c1 > c2) goto Ltd;
                 if (c1 < c2) goto Ltd_best;
@@ -7182,7 +7203,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                             return 1;
                         }
                     }
-                    MATCH m = td.matchWithInstance(sc, this, &dedtypes, null, 0);
+                    MATCH m = td.matchWithInstance(sc, this, &dedtypes, null, 0).match;
                     if (m <= MATCH.nomatch)
                         return 0;
                 }
