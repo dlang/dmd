@@ -71,6 +71,17 @@ D_CODE =
   </div>
 </section>
 
+OTHER_CODE =
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code language-$1">$+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
 D_INLINECODE = <code class="code">$0</code>
 DDOC_BACKQUOTED = $(D_INLINECODE $0)
 D_COMMENT = <span class="comment">$0</span>
