@@ -10677,7 +10677,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     {
         //printf("FuncInitExp::semantic()\n");
         e.type = Type.tstring;
-        if (sc.func)
+        if (sc.func && sc.func.ident != Id.__tmpFunc)
         {
             result = e.resolveLoc(Loc.initial, sc);
             return;
@@ -10689,7 +10689,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     {
         //printf("PrettyFuncInitExp::semantic()\n");
         e.type = Type.tstring;
-        if (sc.func)
+        if (sc.func && sc.func.ident != Id.__tmpFunc)
         {
             result = e.resolveLoc(Loc.initial, sc);
             return;

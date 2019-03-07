@@ -1136,6 +1136,12 @@ extern (C++) abstract class Expression : RootObject
             FuncDeclaration ff = outerfunc;
             if (sc.flags & SCOPE.compile ? ff.isPureBypassingInference() >= PURE.weak : ff.setImpure())
             {
+                if (sc.func.ident == Id.__tmpFunc)
+                {
+                    error("Cannot call `impure` %s `%s` from `pure` context",
+                        f.kind(), f.toPrettyChars());
+                    return true;
+                }
                 error("`pure` %s `%s` cannot call impure %s `%s`",
                     ff.kind(), ff.toPrettyChars(), f.kind(), f.toPrettyChars());
                 return true;
@@ -1207,6 +1213,13 @@ extern (C++) abstract class Expression : RootObject
                     break;
                 if (sc.flags & SCOPE.compile ? ff.isPureBypassingInference() >= PURE.weak : ff.setImpure())
                 {
+                    if (sc.func.ident == Id.__tmpFunc)
+                    {
+                        error("Cannot access mutable static data `%s` from a `pure` context", v.toChars());
+                        err = true;
+                        break;
+                    }
+
                     error("`pure` %s `%s` cannot access mutable static data `%s`",
                         ff.kind(), ff.toPrettyChars(), v.toChars());
                     err = true;
@@ -1309,10 +1322,18 @@ extern (C++) abstract class Expression : RootObject
         {
             if (sc.flags & SCOPE.compile ? sc.func.isSafeBypassingInference() : sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
             {
+
+                const prettyChars = f.toPrettyChars();
+                if (sc.func.ident == Id.__tmpFunc)
+                {
+                    error("Cannot call `@system` %s `%s` from `@safe` context",
+                        f.kind(), prettyChars);
+                    return true;
+                }
+
                 if (!loc.isValid()) // e.g. implicitly generated dtor
                     loc = sc.func.loc;
 
-                const prettyChars = f.toPrettyChars();
                 error("`@safe` %s `%s` cannot call `@system` %s `%s`",
                     sc.func.kind(), sc.func.toPrettyChars(), f.kind(),
                     prettyChars);
@@ -1344,6 +1365,12 @@ extern (C++) abstract class Expression : RootObject
         {
             if (sc.flags & SCOPE.compile ? sc.func.isNogcBypassingInference() : sc.func.setGC() && !(sc.flags & SCOPE.debug_))
             {
+                if (sc.func.ident == Id.__tmpFunc)
+                {
+                    error("Cannot call non-@nogc %s `%s` from `@nogc` context",
+                        f.kind(), f.toPrettyChars());
+                    return true;
+                }
                 if (loc.linnum == 0) // e.g. implicitly generated dtor
                     loc = sc.func.loc;
                 error("`@nogc` %s `%s` cannot call non-@nogc %s `%s`",

@@ -314,6 +314,7 @@ immutable Msgtable[] msgtable =
     { "dup" },
     { "_aaApply" },
     { "_aaApply2" },
+    { "__tmpFunc"},
 
     // For pragma's
     { "Pinline", "inline" },
