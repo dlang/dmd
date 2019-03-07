@@ -1206,7 +1206,9 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
             argsc.stc = 0; // don't inherit storage class
             argsc.protection = Prot(Prot.Kind.public_);
             Loc tloc = Loc();
-            argsc.func = new FuncDeclaration(tloc, tloc, new Identifier("__tfunc"), sc.stc, new TypeFunction(ParameterList(), Type.tvoid, LINK.d, sc.stc));
+            auto mockFunc = new FuncDeclaration(tloc, tloc, new Identifier("__tfunc"), sc.stc, new TypeFunction(ParameterList(), Type.tvoid, LINK.d, sc.stc));
+            mockFunc.parent = sc.parent;
+            argsc.func = mockFunc;
 
             size_t dim = tf.parameterList.length;
             for (size_t i = 0; i < dim; i++)
@@ -1340,10 +1342,19 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                     }
                     else
                     {
+                        if (fparam.defaultArg.op == TOK.default_)
+                        {
+                            auto defaultExp = cast(DefaultInitExp)fparam.defaultArg;
+                            if (defaultExp.subop == TOK.functionString || defaultExp.subop == TOK.prettyFunction)
+                                argsc.func = null;
+                        }
                         e = inferType(e, fparam.type);
                         Initializer iz = new ExpInitializer(e.loc, e);
                         iz = iz.initializerSemantic(argsc, fparam.type, INITnointerpret);
                         e = iz.initializerToExpression();
+                        if (!argsc.func)
+                            argsc.func = mockFunc;
+
                     }
                     if (e.op == TOK.function_) // https://issues.dlang.org/show_bug.cgi?id=4820
                     {
