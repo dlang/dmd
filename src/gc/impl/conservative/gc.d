@@ -2386,11 +2386,7 @@ struct Gcx
             return 0;
 
         MonoTime start, stop, begin;
-
-        if (config.profile)
-        {
-            begin = start = currTime;
-        }
+        begin = start = currTime;
 
         debug(COLLECT_PRINTF) printf("Gcx.fullcollect()\n");
         //printf("\tpool address range = %p .. %p\n", minAddr, maxAddr);
@@ -3945,4 +3941,21 @@ unittest
 
     void* small = GC.malloc(100, BlkAttr.NO_SCAN);
     test(small);
+}
+
+unittest
+{
+    import core.memory;
+
+    auto now = currTime;
+    GC.ProfileStats stats1 = GC.profileStats();
+    GC.collect();
+    GC.ProfileStats stats2 = GC.profileStats();
+    auto diff = currTime - now;
+
+    assert(stats2.totalCollectionTime - stats1.totalCollectionTime <= diff);
+    assert(stats2.totalPauseTime - stats1.totalPauseTime <= stats2.totalCollectionTime - stats1.totalCollectionTime);
+
+    assert(stats2.maxPauseTime >= stats1.maxPauseTime);
+    assert(stats2.maxCollectionTime >= stats1.maxCollectionTime);
 }
