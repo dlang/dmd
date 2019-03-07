@@ -21,6 +21,32 @@ import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.console;
 
+/// Diagnostic severity.
+enum Severity
+{
+    /// An error occurred.
+    error,
+
+    /// A warning occurred.
+    warning,
+
+    /// A deprecation occurred.
+    deprecation
+}
+
+/// A single diagnostic message.
+immutable struct Diagnostic
+{
+    /// The location of where the diagnostic occurred.
+    Loc loc;
+
+    /// The severity of the diagnostic.
+    Severity severity;
+
+    /// The message.
+    string message;
+}
+
 /**
  * Color highlighting to classify messages
  */
