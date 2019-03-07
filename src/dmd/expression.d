@@ -1880,6 +1880,15 @@ extern (C++) final class ErrorExp : Expression
 {
     extern (D) this()
     {
+        if (global.errors == 0 && global.gaggedErrors == 0)
+        {
+             /* Unfortunately, errors can still leak out of gagged errors,
+              * and we need to set the error count to prevent bogus code
+              * generation. At least give a message.
+              */
+             error("unknown, please file report on issues.dlang.org");
+        }
+
         super(Loc.initial, TOK.error, __traits(classInstanceSize, ErrorExp));
         type = Type.terror;
     }
