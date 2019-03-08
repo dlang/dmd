@@ -122,11 +122,18 @@ extern (C++) struct Mem
 
     version (GC)
     {
-        __gshared bool isGCEnabled = true;
+        __gshared bool _isGCEnabled = true;
+
+        static bool isGCEnabled() pure nothrow
+        {
+            // fake purity by making global variable immutable (_isGCEnabled only modified before startup)
+            enum _pIsGCEnabled = cast(immutable bool*) &_isGCEnabled;
+            return *_pIsGCEnabled;
+        }
 
         static void disableGC()
         {
-            isGCEnabled = false;
+            _isGCEnabled = false;
         }
 
         static void addRange(const(void)* p, size_t size) nothrow
