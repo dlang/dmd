@@ -41,7 +41,7 @@ if  [ "$DMD" == "gdc" ] && [ "${GDC_VERSION:-0}" == "7" ] ; then
     # -lowmem is an optional switch and GDC-7 will be removed from the required
     # bootstrap compilers in May 2019.
     # See also : https://github.com/dlang/dmd/pull/9048/files
-    rm test/runnable/{testptrref,xtest46}_gc.d || true
+    rm test/runnable/{testptrref,xtest46}_gc.d test/fail_compilation/mixin_gc.d || true
 fi
 
 install_d "$DMD"
