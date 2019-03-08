@@ -342,6 +342,8 @@ immutable Msgtable[] msgtable =
     { "__equals"},
     { "__switch"},
     { "__switch_error"},
+    { "___d_newitemT" },
+    { "___d_newitemiT" },
 
     // varargs implementation
     { "va_start" },

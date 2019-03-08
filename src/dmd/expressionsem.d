@@ -3587,6 +3587,25 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else if (tb.isscalar())
         {
+            Identifier id;
+            if (tb.isZeroInit(exp.loc) == true)
+            {
+                id = Identifier.idPool("___d_newitemT");
+            }
+            else
+            {
+                id = Identifier.idPool("___d_newitemiT");
+            }
+            auto tiargs = new Objects();
+            tiargs.push(exp.newtype);
+            auto ti = new TemplateInstance(exp.loc, id, tiargs);
+
+            Expression newExpLowering = new ScopeExp(exp.loc, ti);
+            auto arguments = new Expressions();
+
+            newExpLowering = new CallExp(exp.loc, newExpLowering, arguments);
+            newExpLowering = newExpLowering.expressionSemantic(sc);
+
             if (!nargs)
             {
             }
@@ -3594,15 +3613,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 Expression e = (*exp.arguments)[0];
                 e = e.implicitCastTo(sc, tb);
-                (*exp.arguments)[0] = e;
+                newExpLowering = new ConstructExp(newExpLowering.loc, newExpLowering, e.addressOf());
+                newExpLowering.expressionSemantic(sc);
             }
             else
             {
                 exp.error("more than one argument for construction of `%s`", exp.type.toChars());
                 return setError();
             }
-
-            exp.type = exp.type.pointerTo();
+            result = newExpLowering;
+            return;
         }
         else
         {
@@ -3610,13 +3630,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
-        //printf("NewExp: '%s'\n", toChars());
-        //printf("NewExp:type '%s'\n", type.toChars());
+        //printf("NewExp: '%s'\n", exp.toChars());
+        //printf("NewExp:type '%s'\n", exp.type.toChars());
         semanticTypeInfo(sc, exp.type);
 
         if (newprefix)
         {
             result = Expression.combine(newprefix, exp);
+            // Do we need to combine the lowering?
+            //result = Expression.combine(newprefix, arrayLowering ? arrayLowering : exp);
             return;
         }
         result = exp;
