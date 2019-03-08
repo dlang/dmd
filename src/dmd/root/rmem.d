@@ -299,12 +299,13 @@ static if (OVERRIDE_MEMALLOC)
     {
         return t.init;
     }
+}
 
 // Copied from druntime. Remove these when GDC and LDC LTS is at a version
 // corresponding to 2.074.0 or later.
+static if (!is(typeof(pureMalloc)))
+{
 private:
-static if (!is(typeof(pureMalloc))):
-
     static import core.stdc.errno;
 
     /**
@@ -389,6 +390,7 @@ static if (!is(typeof(pureMalloc))):
         }
     }
 }
+
 /**
 Makes a null-terminated copy of the given string on newly allocated memory.
 The null-terminator won't be part of the returned string slice. It will be
