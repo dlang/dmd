@@ -406,6 +406,12 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         return result;
     }
 
+    if (params.mixinFile)
+    {
+        params.mixinOut = cast(OutBuffer*)calloc(1, OutBuffer.sizeof);
+        atexit(&flushMixins); // see comment for flushMixins
+    }
+    scope(exit) flushMixins();
     global.path = buildPath(params.imppath);
     global.filePath = buildPath(params.fileImppath);
 
@@ -1348,8 +1354,8 @@ private void setTargetCPU(ref Param params)
 /**************************************
  * we want to write the mixin expansion file also on error, but there
  * are too many ways to terminate dmd (e.g. fatal() which calls exit(EXIT_FAILURE)),
- * so we cant use scope(exit) ...
- * so we do it with atexit(&flushMixins);
+ * so we can't rely on scope(exit) ... in tryMain() actually being executed
+ * so we add atexit(&flushMixins); for those fatal exits (with the GC still valid)
  */
 extern(C) void flushMixins()
 {
@@ -1361,6 +1367,8 @@ extern(C) void flushMixins()
     OutBuffer* ob = global.params.mixinOut;
     f.setbuffer(cast(void*)ob.data, ob.offset);
     f.write();
+
+    global.params.mixinOut = null;
 }
 
 /****************************************************
@@ -1710,11 +1718,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             auto tmp = p + 6 + 1;
             if (!tmp[0])
                 goto Lnoarg;
-            // The following are usedin atexit, so we can't rely on main's argv...
             params.mixinFile = mem.xstrdup(tmp);
-            // ... or the GC's memory being valid.
-            params.mixinOut = cast(OutBuffer*)calloc(1, OutBuffer.sizeof);
-            atexit(&flushMixins);
         }
         else if (arg == "-g") // https://dlang.org/dmd.html#switch-g
             params.symdebug = 1;
