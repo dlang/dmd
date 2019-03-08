@@ -15,7 +15,7 @@ module dmd.root.aav;
 import core.stdc.string;
 import dmd.root.rmem;
 
-private size_t hash(size_t a)
+private size_t hash(size_t a) pure nothrow @nogc @safe
 {
     a ^= (a >> 20) ^ (a >> 12);
     return a ^ (a >> 7) ^ (a >> 4);
@@ -51,7 +51,7 @@ struct AA
 /****************************************************
  * Determine number of entries in associative array.
  */
-private size_t dmd_aaLen(const AA* aa) pure
+private size_t dmd_aaLen(const AA* aa) pure nothrow @nogc @safe
 {
     return aa ? aa.nodes : 0;
 }
@@ -61,7 +61,7 @@ private size_t dmd_aaLen(const AA* aa) pure
  * Add entry for key if it is not already there, returning a pointer to a null Value.
  * Create the associative array if it does not already exist.
  */
-private Value* dmd_aaGet(AA** paa, Key key)
+private Value* dmd_aaGet(AA** paa, Key key) pure nothrow
 {
     //printf("paa = %p\n", paa);
     if (!*paa)
@@ -110,7 +110,7 @@ private Value* dmd_aaGet(AA** paa, Key key)
  * Get value in associative array indexed by key.
  * Returns NULL if it is not already there.
  */
-private Value dmd_aaGetRvalue(AA* aa, Key key)
+private Value dmd_aaGetRvalue(AA* aa, Key key) pure nothrow @nogc
 {
     //printf("_aaGetRvalue(key = %p)\n", key);
     if (aa)
@@ -136,7 +136,7 @@ debug
 
     Returns: a range of key/values for `aa`.
     */
-    @property auto asRange(AA* aa)
+    @property auto asRange(AA* aa) pure nothrow @nogc
     {
         return AARange!(Key, Value)(aa);
     }
@@ -148,7 +148,7 @@ debug
         size_t bIndex;
         aaA* current;
 
-        this(AA* aa)
+        this(AA* aa) pure nothrow @nogc
         {
             if (aa)
             {
@@ -157,11 +157,17 @@ debug
             }
         }
 
-        @property bool empty() const { return current is null; }
+        @property bool empty() const pure nothrow @nogc @safe
+        {
+            return current is null;
+        }
 
-        @property auto front() { return cast(KeyValueTemplate!(K,V))current.keyValue; }
+        @property auto front() const pure nothrow @nogc
+        {
+            return cast(KeyValueTemplate!(K,V))current.keyValue;
+        }
 
-        void popFront()
+        void popFront() pure nothrow @nogc
         {
             if (current.next)
                 current = current.next;
@@ -172,7 +178,7 @@ debug
             }
         }
 
-        private void toNext()
+        private void toNext() pure nothrow @nogc
         {
             for (; bIndex < aa.b_length; bIndex++)
             {
@@ -218,7 +224,7 @@ debug
 /********************************************
  * Rehash an array.
  */
-private void dmd_aaRehash(AA** paa)
+private void dmd_aaRehash(AA** paa) pure nothrow
 {
     //printf("Rehash\n");
     if (*paa)
@@ -272,7 +278,10 @@ struct AssocArray(K,V)
     /**
     Returns: The number of key/value pairs.
     */
-    @property size_t length() const { return dmd_aaLen(aa); }
+    @property size_t length() const pure nothrow @nogc @safe
+    {
+        return dmd_aaLen(aa);
+    }
 
     /**
     Lookup value associated with `key` and return the address to it. If the `key`
@@ -284,7 +293,7 @@ struct AssocArray(K,V)
     Returns: the address to the value associated with `key`. If `key` does not exist, it
              is added and the address to the new value is returned.
     */
-    V* getLvalue(const(K) key)
+    V* getLvalue(const(K) key) pure nothrow
     {
         return cast(V*)dmd_aaGet(&aa, cast(void*)key);
     }
@@ -298,7 +307,7 @@ struct AssocArray(K,V)
 
     Returns: the value associated with `key` if present, otherwise, null.
     */
-    V opIndex(const(K) key)
+    V opIndex(const(K) key) pure nothrow @nogc
     {
         return cast(V)dmd_aaGetRvalue(aa, cast(void*)key);
     }
@@ -310,7 +319,10 @@ struct AssocArray(K,V)
 
         Returns: a range of key/values for `aa`.
         */
-        @property auto asRange() { return AARange!(K,V)(aa); }
+        @property auto asRange() pure nothrow @nogc
+        {
+            return AARange!(K,V)(aa);
+        }
     }
 }
 
