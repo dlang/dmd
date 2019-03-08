@@ -75,8 +75,8 @@ build_script:
   - make -f win64.mak MODEL=32mscoff DMD=..\dmd\generated\Windows\Release\Win32\dmd.exe VCDIR="%VCINSTALLDIR%." "CC=%VCINSTALLDIR%/bin/cl.exe" SDKDIR=unused clean
   - make -f win64.mak MODEL=32mscoff DMD=..\dmd\generated\Windows\Release\Win32\dmd.exe VCDIR="%VCINSTALLDIR%." "CC=%VCINSTALLDIR%/bin/cl.exe" SDKDIR=unused target unittest32mscoff
   - cd c:\projects\phobos
-  - make -f win64.mak MODEL=32mscoff DMD=..\dmd\generated\Windows\Release\Win32\dmd.exe VCDIR="%VCINSTALLDIR%." "CC=\"%VCINSTALLDIR%/bin/cl.exe\"" SDKDIR=unused clean
-  - make -f win64.mak MODEL=32mscoff DMD=..\dmd\generated\Windows\Release\Win32\dmd.exe VCDIR="%VCINSTALLDIR%." "CC=\"%VCINSTALLDIR%/bin/cl.exe\"" SDKDIR=unused
+  - make -f win64.mak MODEL=32mscoff DMD=..\dmd\generated\Windows\Release\Win32\dmd.exe VCDIR="%VCINSTALLDIR%." "CC=%VCINSTALLDIR%/bin/cl.exe" SDKDIR=unused clean
+  - make -f win64.mak MODEL=32mscoff DMD=..\dmd\generated\Windows\Release\Win32\dmd.exe VCDIR="%VCINSTALLDIR%." "CC=%VCINSTALLDIR%/bin/cl.exe" SDKDIR=unused
   - cd c:\projects\dmd\test
   - set CC=c:/"Program Files (x86)"/"Microsoft Visual Studio 14.0"/VC/bin/cl.exe
   - set DMD_TESTSUITE_MAKE_ARGS=-j3
