@@ -456,13 +456,12 @@ $(H2 $(LNAME2 precise_gc, Precise Heap Scanning))
 
     $(P If you use the GC memory functions from `core.memory`, and plan to use it
         for data with a mixture of pointers and non-pointer data you should pass the
-        TypeInfo of your allocated struct, class or type as the optional parameter:
+        TypeInfo of your allocated struct, class or type as the optional parameter.
+        The default `null` is interpreted as memory that might contain pointers everywhere.)
         ---------
-            struct S { size_t hash; Data* data; }
-            S* s = cast(S*)GC.malloc(S.sizeof, 0, typeid(S));
+        struct S { size_t hash; Data* data; }
+        S* s = cast(S*)GC.malloc(S.sizeof, 0, typeid(S));
         ---------
-        The default `null` is interpreted as memory that might contain pointers everywhere.
-    )
 
     $(P $(RED Attention:) Enabling precise scanning needs slightly more caution with
         type declarations. For example, if you reserve a buffer as part of a struct and later
