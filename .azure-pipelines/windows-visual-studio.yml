@@ -14,12 +14,12 @@ steps:
       @echo on
       call "%VSINSTALLDIR%\VC\Auxiliary\Build\vcvarsall.bat" %ARCH%
       @echo on
-      set LDC_DIR=ldc2-%LDC_VERSION%-windows-multilib
       set VISUALD_INSTALLER=VisualD-%VISUALD_VER%.exe
       set DMD_DIR=%cd%
       set DMD=%DMD_DIR%\generated\Windows\Release\Win32\dmd.exe
       set DMD_TESTSUITE_MAKE_ARGS=-j3
       set DM_MAKE=%DMD_DIR%\dm\path\make.exe
+      set LDC_DIR=%DMD_DIR%\ldc2-%LDC_VERSION%-windows-multilib
 
       FOR /F "tokens=* USEBACKQ" %%F IN (`where cl.exe`) DO (SET MSVC_CC=%%~fsF)
       FOR /F "tokens=* USEBACKQ" %%F IN (`where lib.exe`) DO (SET MSVC_AR=%%~fsF)
@@ -49,7 +49,7 @@ steps:
       REM configure DMD path
       REM reg add "HKLM\SOFTWARE\DMD" /v InstallationFolder /t REG_SZ /d "%DMD_DIR%\dmd2" /reg:32 /f
       REM configure LDC path
-      reg add "HKLM\SOFTWARE\LDC" /v InstallationFolder /t REG_SZ /d "%DMD_DIR%\%LDC_DIR%" /reg:32 /f
+      reg add "HKLM\SOFTWARE\LDC" /v InstallationFolder /t REG_SZ /d "%LDC_DIR%" /reg:32 /f
 
       REM build via VS projects with LDC
       cd src
@@ -80,4 +80,5 @@ steps:
 
       cd "%DMD_DIR%\..\phobos"
       REM Check: build phobos unittests
+      cp %LDC_DIR%\lib32\libcurl.dll .
       "%DM_MAKE%" -f win64.mak unittest MODEL=32mscoff "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "MAKE=%DM_MAKE%"
