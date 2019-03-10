@@ -40,10 +40,9 @@ steps:
       REM expose dm_make as default make
       set PATH=%DMD_DIR%\dm\path;%DMD_DIR%\tools;%PATH%
       dir "%DMD_DIR%\tools"
-      "%DMD_DIR%\tools\grep.exe --version
+      "%DMD_DIR%\tools\grep.exe" --version
       echo %PATH%
       grep --version
-      exit 1
 
       .\%VISUALD_INSTALLER% /S
       REM configure DMD path
@@ -53,8 +52,6 @@ steps:
 
       REM build via VS projects with LDC
       cd src
-      REM unfortunately, multilib version of LDC and Visual D don't work together seamlessly (anymore?)
-      set LDC_ARGS="/p:ExternalLinkerOptions=phobos2-ldc.lib druntime-ldc.lib"
       set LDC_ARGS=%LDC_ARGS% /p:DCompiler=LDC
       msbuild /target:dmd /p:Configuration=Release /p:Platform=Win32 %LDC_ARGS% vcbuild\dmd.sln
 
