@@ -13,6 +13,7 @@ steps:
   - script: |
       @echo on
       call "%VSINSTALLDIR%\VC\Auxiliary\Build\vcvarsall.bat" %ARCH%
+      @echo on
       set LDC_DIR=ldc2-%LDC_VERSION%-windows-multilib
       set VISUALD_INSTALLER=VisualD-%VISUALD_VER%.exe
       set DMD_DIR=%cd%
@@ -60,17 +61,14 @@ steps:
 
       REM Check: run druntime unittests
       cd "%DMD_DIR%\..\druntime"
-      "%DM_MAKE%" -f win64.mak MODEL=32mscoff DMD="%DMD%" VCDIR="%VCINSTALLDIR%." CC="%MSVC_CC%" SDKDIR=unused MAKE="%DM_MAKE%" target
+      "%DM_MAKE%" -f win64.mak MODEL=32mscoff "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "MAKE=%DM_MAKE%" target
       echo "[DRUNTIME] running tests..."
-      "%DM_MAKE%" -f win64.mak MODEL=32mscoff DMD="%DMD%" VCDIR="%VCINSTALLDIR%." CC="%MSVC_CC%" SDKDIR=unused MAKE="%DM_MAKE%" unittest32mscoff
+      "%DM_MAKE%" -f win64.mak MODEL=32mscoff "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "MAKE=%DM_MAKE%" unittest32mscoff
+      "%DM_MAKE%" -f win64.mak MODEL=32mscoff "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "MAKE=%DM_MAKE%" test_all
 
-      REM build zlib first (to workaround DigitalMars's whitespace limitations)
-      cd "%DMD_DIR%\..\phobos\etc\c\zlib"
-      "%DM_MAKE%" -f win64.mak "zlib32mscoff.lib" MODEL=32mscoff DMD="%DMD%" VCDIR="%VCINSTALLDIR%." CC="%MSVC_CC%" LIB="%MSVC_AR%" LD="%MSVC_LD%"
-
-      REM Check: build phobos unittests
+      REM Check: build phobos
       cd "%DMD_DIR%\..\phobos"
-      "%DM_MAKE%" -f win64.mak MODEL=32mscoff DMD="%DMD%" VCDIR="%VCINSTALLDIR%." CC="%MSVC_CC%" "MAKE=%DM_MAKE%" CFLAGS="/C7" SDKDIR=unused
+      "%DM_MAKE%" -f win64.mak MODEL=32mscoff "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "AR=%MSVC_AR%" "MAKE=%DM_MAKE%"
 
       REM Build DMD VERSION + string imports (not built by VisualD)
       copy "%DMD_DIR%\VERSION" "%DMD_DIR%\generated\Windows\Release\Win32\VERSION"
@@ -78,4 +76,8 @@ steps:
       REM Run DMD testsuite
       cd "%DMD_DIR%\test"
       cp %DMD_DIR%\..\phobos\phobos32mscoff.lib .
-      "%GNU_MAKE%" -j1 all MODEL=32mscoff ARGS="-O -inline -g" OS=win32 DMD="%DMD%" DMD_MODEL=win32
+      "%GNU_MAKE%" -j%NUMBER_OF_PROCESSORS% all MODEL=32mscoff ARGS="-O -inline -g" OS=win32 DMD="%DMD%" "CC=%MSVC_CC%" DMD_MODEL=win32
+
+      cd "%DMD_DIR%\..\phobos"
+      REM Check: build phobos unittests
+      "%DM_MAKE%" -f win64.mak unittest MODEL=32mscoff "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "MAKE=%DM_MAKE%"
