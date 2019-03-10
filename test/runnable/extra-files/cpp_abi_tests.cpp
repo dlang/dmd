@@ -1,3 +1,5 @@
+#include <assert.h>
+
 struct S{
     float a;
 };
@@ -72,6 +74,24 @@ namespace ns1
     // D: `const(char*), const(char***)`
     int constFunction4(const char* const, const char* const* const* const) { return 42; }
 };
+
+struct SmallStruct
+{
+    SmallStruct()
+        : i(0) {}
+    SmallStruct(const SmallStruct& x)
+        : i(x.i + 10) {}
+    int i;
+};
+void smallStructCallBack(SmallStruct p);
+void smallStructTest(SmallStruct p)
+{
+    assert(p.i == 10);
+
+    SmallStruct x;
+    smallStructCallBack(x);
+    assert(x.i == 0);
+}
 
 // Uncomment when mangling is fixed
 // typedef void(*fn0)();
