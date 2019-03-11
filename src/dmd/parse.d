@@ -24,6 +24,7 @@ import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.tokens;
+import dmd.utf;
 
 // How multiple declarations are parsed.
 // If 1, treat as C.
@@ -7745,6 +7746,13 @@ final class Parser(AST) : Lexer
             break;
 
         case TOK.string_:
+            if (global.params.interpolateStrings && token.ptr[0] == 'i')
+            {
+                e = parseInterpolatedString(token);
+                nextToken();
+                break;
+            }
+            goto case TOK.hexadecimalString;
         case TOK.hexadecimalString:
             {
                 // cat adjacent strings
@@ -7762,6 +7770,10 @@ final class Parser(AST) : Lexer
                             if (token.postfix != postfix)
                                 error("mismatched string literal postfixes `'%c'` and `'%c'`", postfix, token.postfix);
                             postfix = token.postfix;
+                        }
+                        if (token.ptr[0] == 'i')
+                        {
+                            error("cannot implicitly concatenate interpolated strings with non-interpolated strings");
                         }
 
                         error("Implicit string concatenation is deprecated, use %s ~ %s instead",
@@ -8995,6 +9007,294 @@ final class Parser(AST) : Lexer
             s.addComment(combineComments(blockComment, token.lineComment, true));
             token.lineComment = null;
         }
+    }
+
+    /**
+    Parse the given interpolated string into a tuple of expressions.
+
+    Params:
+        token = the interpolated string token
+
+    Returns:
+        A tuple of expressions from the interpolated string.
+    */
+    AST.TupleExp parseInterpolatedString(Token token)
+    in { assert(token.value == TOK.string_ && token.ptr[0] == 'i'); } body
+    {
+        //fprintf(stderr, "parseInterpolatedString `%.*s`\n", token.len, token.ustring);
+
+        auto parts = new AST.Expressions();
+
+        // Used to map string contents back to original source location
+        auto sourcePos = StringSourcePos(token.ptr);
+
+        auto str = token.ustring;
+        auto len = token.len;
+        size_t mark = 0;
+        auto markSourcePos = sourcePos;
+        size_t next = 0;
+        size_t doubleDollar = size_t.max;
+
+    KmainLoop:
+        while(true)
+        {
+            auto endOfRawCharacters = next;
+            if (next < len)
+            {
+                auto nextChar = sourcePos.scan(str, next);
+                if (nextChar != '$')
+                    continue;
+
+                if (next >= len)
+                {
+                    error(sourcePos.loc.from(token.loc), "unfinished interpolated string expression '$'");
+                    break;
+                }
+                if (str[next] == '$') // handle $$
+                {
+                    if (doubleDollar == size_t.max)
+                        doubleDollar = next - 1;
+                    sourcePos.scan(str, next);
+                    continue;
+                }
+            }
+
+            // Add next string expression
+            if (endOfRawCharacters > mark)
+            {
+                auto markLoc = markSourcePos.loc.from(token.loc);
+                if (doubleDollar == size_t.max)
+                {
+                    parts.push(new AST.StringExp(markLoc, cast(char*)str + mark, endOfRawCharacters - mark, token.postfix));
+                }
+                else
+                {
+                    auto buffer = cast(char*)mem.xmalloc(endOfRawCharacters - 1 - mark);
+                    size_t offset;
+                    {
+                        auto length = doubleDollar + 1 - mark;
+                        buffer[0 .. length] = str[mark .. doubleDollar + 1];
+                        offset = length;
+                    }
+                    for (size_t i = doubleDollar + 2; i < endOfRawCharacters; i++)
+                    {
+                        auto c = str[i];
+                        if (c == '$')
+                        {
+                            i++;
+                            assert(i < endOfRawCharacters && str[i] == '$');
+                        }
+                        buffer[offset++] = c;
+                    }
+                    parts.push(new AST.StringExp(markLoc, buffer, offset, token.postfix));
+                    doubleDollar = size_t.max;
+                }
+            }
+
+            if (next >= len)
+                break;
+
+            // Process the '$' expression
+            if (str[next] == '(')
+            {
+                sourcePos.scan(str, next);
+                mark = next;
+                for(uint depth = 1;;)
+                {
+                    if (next >= len)
+                    {
+                        error(sourcePos.loc.from(token.loc), "unfinished interpolated string expression '$(...)'");
+                        break KmainLoop;
+                    }
+                    auto nextChar = sourcePos.scan(str, next);
+                    if (nextChar == ')')
+                    {
+                        depth--;
+                        if (depth == 0)
+                            break;
+                    }
+                    else if (nextChar == '(')
+                    {
+                        depth++;
+                    }
+                }
+                {
+                    auto writeableStr = cast(char*)str;
+                    // Need to null-terminate so the parser does not scan past the end of
+                    // the expression.  A case has been found where the parser will scan
+                    // past the expression without this, namely, i"$(var)'"
+                    writeableStr[next - 1] = '\0';
+                    scope(exit) writeableStr[next - 1] = ')';
+
+                    auto expr = str[mark .. next - 1];
+                    //printf("parsing the expression '%s'\n", expr.ptr);
+                    scope tempParser = new Parser!AST(mod, expr, false);
+                    tempParser.scanloc = sourcePos.loc.from(token.loc);
+                    tempParser.nextToken();
+                    if (tempParser.token.value != TOK.endOfFile)
+                    {
+                        auto result = tempParser.parseExpression();
+                        if (tempParser.token.value != TOK.endOfFile)
+                        {
+                            error(sourcePos.loc.from(token.loc), "invalid expression '%s' inside interpolated string", expr.ptr);
+                            break;
+                        }
+                        parts.push(result);
+                    }
+                }
+                mark = next;
+                markSourcePos = sourcePos;
+            }
+            else
+            {
+                // TODO: if we want to support `$` expressions without parentheses, this is
+                //       where we would add support for it. Maybe a good grammar node for this
+                //       would be DotIdentifier.
+                error(sourcePos.loc.from(token.loc), "missing parentheses in interpolated string expression '$(...)'");
+                break;
+            }
+        }
+
+        return new AST.TupleExp(token.loc, parts);
+    }
+
+    /**
+    Represents a location offset from a `Loc`.
+    */
+    static struct LocOffset
+    {
+        uint offset;         /// byte offset from base loc
+        uint line;           /// line offset from base loc
+        uint lastLineOffset; /// byte offset of the start of the last line
+
+        /**
+        Indicates 'offset' has been moved to the next line.
+        */
+        void atNextLine()
+        {
+            line++;
+            lastLineOffset = offset;
+        }
+
+        /**
+        Get location relative to `baseLoc`.
+        Params:
+            baseLoc = relative base location
+        Returns:
+            location relative to `baseLoc`
+        */
+        Loc from(ref const Loc baseLoc) const
+        {
+            return Loc(baseLoc.filename,
+                       baseLoc.linnum + line,
+                       (line == 0) ? baseLoc.charnum + offset : offset - lastLineOffset);
+        }
+    }
+
+    /**
+    Used to map offsets in a processed string back to the source location
+    */
+    private static struct StringSourcePos
+    {
+        private const(char)* sourcePtr;
+        private bool wysiwyg;
+        LocOffset loc;
+
+        this(const char* sourcePtr)
+        {
+            this.sourcePtr = sourcePtr;
+            loc.offset = 2;
+            if (sourcePtr[1] == '"')
+                wysiwyg = false;
+            else
+            {
+                wysiwyg = true;
+                if (sourcePtr[1] == 'r') // ir"
+                    loc.offset++;
+                else if (sourcePtr[1] == '`') // i`
+                { }
+                else
+                {
+                    assert(sourcePtr[1] == 'q', "code bug");
+                    loc.offset = 3;
+                    if (sourcePtr[2] != '{')
+                    {
+                        assert(sourcePtr[2] == '"', "code bug");
+                        char c = sourcePtr[3];
+                        bool isheredoc;
+                        if (c >= 0x80)
+                        {
+                            import dmd.utf : utf_decodeChar, isUniAlpha;
+                            size_t tempOffset = 3;
+                            dchar fullChar;
+                            assert(!utf_decodeChar(sourcePtr, size_t.max, tempOffset, fullChar), "code bug");
+                            isheredoc = isUniAlpha(fullChar);
+                        }
+                        else
+                        {
+                            import core.stdc.ctype : isalpha;
+                            isheredoc = (isalpha(c) || c == '_');
+                        }
+                        if (isheredoc)
+                            loc.offset = 3 + cast(uint)(strchr(sourcePtr + 3, '\n') - (sourcePtr + 3)) + 1;
+                        else
+                            loc.offset = 4;
+                    }
+                }
+            }
+        }
+
+        /**
+        Read and move past the next character both in the source string and
+        in the processed string.
+        Params:
+            str = the processed string
+            ridx = in/out index into the processed string
+        Returns:
+            the next character
+        */
+        dchar scan(const(char)* str, ref size_t ridx)
+        {
+            dchar sourceChar = sourcePtr[loc.offset++];
+            dchar strChar;
+            if (sourceChar == '\r')
+            {
+                if (sourcePtr[loc.offset] == '\n')
+                {
+                    loc.offset++;
+                    loc.atNextLine();
+                    sourceChar = '\n';
+                }
+                strChar = str[ridx++];
+            }
+            else if (wysiwyg || sourceChar != '\\')
+            {
+                strChar = str[ridx++];
+                if (sourceChar == '\n')
+                    loc.atNextLine();
+            }
+            else
+            {
+                scope ignore = new IgnoreErrorHandler();
+                auto escapeStart = sourcePtr + loc.offset;
+                if (escapeStart[0] == 'u' || escapeStart[0] == 'U' || escapeStart[0] == '&')
+                    assert(!utf_decodeChar(str, size_t.max, ridx, strChar), "code bug");
+                else
+                    strChar = str[ridx++];
+
+                auto escapeEnd = escapeStart;
+                sourceChar = Lexer.escapeSequence(ignore, escapeEnd);
+                loc.offset += (escapeEnd - escapeStart);
+            }
+            assert(strChar == sourceChar/*, "strChar `" ~ strChar ~ "' != sourceChar '" ~ sourceChar ~ "'"*/);
+            return strChar;
+        }
+    }
+    private static class IgnoreErrorHandler : ErrorHandler
+    {
+        import core.stdc.stdarg;
+        override void error(const(char)* format, ...) { }
+        override void error(Loc loc, const(char)* format, ...) { }
     }
 }
 

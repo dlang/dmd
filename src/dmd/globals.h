@@ -141,6 +141,7 @@ struct Param
     CppStdRevision cplusplus;  // version of C++ name mangling to support
     bool markdown;          // enable Markdown replacements in Ddoc
     bool vmarkdown;         // list instances of Markdown replacements in Ddoc
+    bool interpolateStrings;// Enable interpolated string support via the 'i' prefix on string literals
     bool showGaggedErrors;  // print gagged errors anyway
     bool printErrorContext;  // print errors with the error context (the error line in the source file)
     bool manual;            // open browser on compiler manual

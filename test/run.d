@@ -88,6 +88,7 @@ Options:
 
     // bootstrap all needed environment variables
     auto env = getEnvironment;
+    hostDMD = buildPath("..", "generated", env["OS"], env["BUILD"], env["MODEL"], "dmd" ~ env["EXE"]);
 
     if (runUnitTests)
     {
@@ -162,6 +163,7 @@ void ensureToolsExists(const TestTool[] tools ...)
             const command = [
                 hostDMD,
                 "-of"~targetBin,
+				"-transition=interpolate",
                 sourceFile
             ] ~ tool.extraArgs;
 

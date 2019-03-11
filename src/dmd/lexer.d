@@ -646,6 +646,44 @@ class Lexer
             case '"':
                 escapeStringConstant(t);
                 return;
+            case 'i':
+                if (global.params.interpolateStrings)
+                {
+                    if (p[1] == 'r')
+                    {
+                        if (p[2] == '"')
+                        {
+                            p += 2;
+                            goto case '`';
+                        }
+                    }
+                    else if (p[1] == '`')
+                    {
+                        p++;
+                        goto case '`';
+                    }
+                    else if (p[1] == '"')
+                    {
+                        p++;
+                        goto case '"';
+                    }
+                    else if (p[1] == 'q')
+                    {
+                        if (p[2] == '"')
+                        {
+                            p += 2;
+                            delimitedStringConstant(t);
+                            return;
+                        }
+                        else if (p[2] == '{')
+                        {
+                            p += 2;
+                            tokenStringConstant(t);
+                            return;
+                        }
+                    }
+                }
+                goto case_ident;
             case 'a':
             case 'b':
             case 'c':
@@ -654,7 +692,6 @@ class Lexer
             case 'f':
             case 'g':
             case 'h':
-            case 'i':
             case 'j':
             case 'k':
             case 'l':

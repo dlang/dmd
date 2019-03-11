@@ -684,6 +684,8 @@ dmd -cov -unittest myprog.d
             "list all variables going into thread local storage"),
         Feature("vmarkdown", "vmarkdown",
             "list instances of Markdown replacements in Ddoc"),
+        Transition(null, "interpolate", "interpolateStrings",
+            "enable interpolated string support via the 'i' prefix on string literals"),
     ];
 
     /// Returns all available reverts
