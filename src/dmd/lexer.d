@@ -420,7 +420,7 @@ class Lexer
     bool commentToken;      // comments are TOK.comment's
     int lastDocLine;        // last line of previous doc comment
 
-    private DiagnosticReporter diagnosticReporter;
+    protected DiagnosticReporter diagnosticReporter;
 
     private Token* tokenFreelist;
 
@@ -646,6 +646,44 @@ class Lexer
             case '"':
                 escapeStringConstant(t);
                 return;
+            case 'i':
+                if (global.params.interpolateStrings)
+                {
+                    if (p[1] == 'r')
+                    {
+                        if (p[2] == '"')
+                        {
+                            p += 2;
+                            goto case '`';
+                        }
+                    }
+                    else if (p[1] == '`')
+                    {
+                        p++;
+                        goto case '`';
+                    }
+                    else if (p[1] == '"')
+                    {
+                        p++;
+                        goto case '"';
+                    }
+                    else if (p[1] == 'q')
+                    {
+                        if (p[2] == '"')
+                        {
+                            p += 2;
+                            delimitedStringConstant(t);
+                            return;
+                        }
+                        else if (p[2] == '{')
+                        {
+                            p += 2;
+                            tokenStringConstant(t);
+                            return;
+                        }
+                    }
+                }
+                goto case_ident;
             case 'a':
             case 'b':
             case 'c':
@@ -654,7 +692,6 @@ class Lexer
             case 'f':
             case 'g':
             case 'h':
-            case 'i':
             case 'j':
             case 'k':
             case 'l':
@@ -2491,6 +2528,13 @@ class Lexer
         diagnosticReporter.error(loc, format, args);
         va_end(args);
     }
+    // temporary hack to handle r-value references to Loc structures
+    pragma(inline)
+    final void error(T...)(const Loc loc, const(char)* format, T args)
+    {
+        error(loc, format, args);
+    }
+
 
     final void errorSupplemental(const ref Loc loc, const(char)* format, ...)
     {
