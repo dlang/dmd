@@ -3587,15 +3587,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else if (tb.isscalar())
         {
-            Identifier id;
-            if (tb.isZeroInit(exp.loc) == true)
-            {
-                id = Identifier.idPool("___d_newitemT");
-            }
-            else
-            {
-                id = Identifier.idPool("___d_newitemiT");
-            }
+            // call ___d_newitemT!(exp.newtype)()
+            auto id = Identifier.idPool("___d_newitemT");
             auto tiargs = new Objects();
             tiargs.push(exp.newtype);
             auto ti = new TemplateInstance(exp.loc, id, tiargs);
@@ -3604,17 +3597,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             auto arguments = new Expressions();
 
             newExpLowering = new CallExp(exp.loc, newExpLowering, arguments);
-            newExpLowering = newExpLowering.expressionSemantic(sc);
-
             if (!nargs)
             {
+                newExpLowering = newExpLowering.expressionSemantic(sc);
             }
             else if (nargs == 1)
             {
+                // ts = ___d_newitemT!(exp.newtype)(), *ts = arguments[0], ts
                 Expression e = (*exp.arguments)[0];
                 e = e.implicitCastTo(sc, tb);
                 newExpLowering = new ConstructExp(newExpLowering.loc, newExpLowering, e.addressOf());
-                newExpLowering.expressionSemantic(sc);
+                newExpLowering = newExpLowering.expressionSemantic(sc);
             }
             else
             {
