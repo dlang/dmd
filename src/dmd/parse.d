@@ -5824,7 +5824,13 @@ final class Parser(AST) : Lexer
                 default:
                     break;
                 }
-                if (storageClass != 0 && token.value == TOK.identifier && peek(&token).value == TOK.assign)
+                auto n = peek(&token);
+                if (storageClass != 0 && token.value == TOK.identifier &&
+                    n.value != TOK.assign && n.value != TOK.identifier)
+                {
+                    error("found `%s` while expecting `=` or identifier", n.toChars());
+                }
+                else if (storageClass != 0 && token.value == TOK.identifier && n.value == TOK.assign)
                 {
                     Identifier ai = token.ident;
                     AST.Type at = null; // infer parameter type
