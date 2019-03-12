@@ -271,6 +271,7 @@ extern (C++) class FuncDeclaration : Declaration
     Type tintro;
 
     bool inferRetType;                  /// true if return type is to be inferred
+    bool inferRetTypePlaceholder;       /// true if function is a throwaway placeholder for return type inference
     StorageClass storage_class2;        /// storage class for template onemember's
 
     // Things that should really go into Scope
@@ -326,7 +327,7 @@ extern (C++) class FuncDeclaration : Declaration
         /* The type given for "infer the return type" is a TypeFunction with
          * NULL for the return type.
          */
-        inferRetType = (type && type.nextOf() is null);
+        this.inferRetType = (type && type.nextOf() is null);
     }
 
     static FuncDeclaration create(const ref Loc loc, const ref Loc endloc, Identifier id, StorageClass storage_class, Type type)
@@ -375,7 +376,27 @@ extern (C++) class FuncDeclaration : Declaration
         //   the inferred return type is valid.
         //   So, the body errors should become the function signature error.
         if (inferRetType && type && !type.nextOf())
-            return functionSemantic3();
+        {
+            if (inferRetTypePlaceholder)
+            {
+                return functionSemantic3();
+            }
+            else
+            {
+                // Create a sacrificial copy of the function to run semantic3 on
+                // to determine the correct return type.
+                // This is to avoid semantic3 prematurely assigning invariants that
+                // may not exist yet.
+                FuncDeclaration fcopy = cast(FuncDeclaration) syntaxCopy(null);
+                fcopy._scope = _scope;
+                fcopy.inferRetTypePlaceholder = true;
+                bool success = fcopy.functionSemantic();
+                type = fcopy.type;
+                inferRetType = (type && type.nextOf() is null);
+                if (!success)
+                    return false;
+            }
+        }
 
         TemplateInstance ti;
         if (isInstantiated() && !isVirtualMethod() &&
