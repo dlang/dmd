@@ -151,7 +151,7 @@ coverage()
 
     cp $build_path/dmd _${build_path}/host_dmd_cov
     make -j1 -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd_cov ENABLE_COVERAGE=1 PIC="$PIC" unittest
-    DMD_TESTSUITE_MAKE_ARGS=-j3 make -j1 -C test MODEL=$MODEL ARGS="-O -inline -release" DMD_TEST_COVERAGE=1 PIC="$PIC"
+    DMD_TESTSUITE_MAKE_ARGS=-j3 make -j1 -C test start_all_tests MODEL=$MODEL ARGS="-O -inline -release" DMD_TEST_COVERAGE=1 PIC="$PIC"
 }
 
 # Checks that all files have been committed and no temporary, untracked files exist.

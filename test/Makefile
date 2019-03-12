@@ -193,7 +193,8 @@ start_fail_compilation_tests: $(RESULTS_DIR)/.created $(test_tools)
 
 run_all_tests: unit_tests run_runnable_tests run_compilable_tests run_fail_compilation_tests
 
-start_all_tests: $(RESULTS_DIR)/.created $(test_tools)
+start_all_tests: $(RESULTS_DIR)/.created
+	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory $(test_tools)
 	@echo "Running all tests"
 	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory run_all_tests
 
@@ -202,8 +203,10 @@ $(RESULTS_DIR)/d_do_test$(EXE): tools/d_do_test.d $(RESULTS_DIR)/.created
 	@echo "OS: '$(OS)'"
 	@echo "MODEL: '$(MODEL)'"
 	@echo "PIC: '$(PIC_FLAG)'"
-	$(DMD) -conf= $(MODEL_FLAG) $(DEBUG_FLAGS) -unittest -run $<
+	$(DMD) -conf= $(MODEL_FLAG) $(DEBUG_FLAGS) -unittest -run $< &
+	@pid=$!
 	$(DMD) -conf= $(MODEL_FLAG) $(DEBUG_FLAGS) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test$(EXE) $<
+	@wait $(pid)
 
 $(RESULTS_DIR)/sanitize_json$(EXE): tools/sanitize_json.d $(RESULTS_DIR)/.created
 	@echo "Building sanitize_json tool"
