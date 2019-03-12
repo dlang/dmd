@@ -2751,7 +2751,14 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
 
     if (!m.lastf && !(flags & FuncResolveFlag.quiet)) // no match
     {
-        if (td && !fd) // all of overloads are templates
+        if (!fd && !td && !od)
+        {
+            /* This case happens when several ctors are mixed in an agregate.
+               A (bad) error message is already generated in overloadApply().
+               see https://issues.dlang.org/show_bug.cgi?id=19729
+            */
+        }
+        else if (td && !fd) // all of overloads are templates
         {
             .error(loc, "%s `%s.%s` cannot deduce function from argument types `!(%s)%s`, candidates are:",
                 td.kind(), td.parent.toPrettyChars(), td.ident.toChars(),
