@@ -4819,11 +4819,29 @@ TTo[] __ArrayCast(TFrom, TTo)(TFrom[] from) @nogc pure @trusted
 }
 
 // Allows customized assert error messages
-string _d_assert_fail(string comp, A, B)(A a, B b)
+string _d_assert_fail(string comp, A, B)(A a, B b) @nogc @safe nothrow pure
 {
-    import core.internal.dassert : invertCompToken, miniFormat;
-    auto valA = miniFormat(a);
-    auto valB = miniFormat(b);
+    import core.internal.dassert : invertCompToken, miniFormatFakeAttributes, pureAlloc;
+    /*
+    The program will be terminated after the assertion error message has
+    been printed and its not considered part of the "main" program.
+    Also, catching an AssertError is Undefined Behavior
+    Hence, we can fake purity and @nogc-ness here.
+    */
+
+    auto valA = miniFormatFakeAttributes(a);
+    auto valB = miniFormatFakeAttributes(b);
     enum token = invertCompToken(comp);
-    return valA ~ " " ~ token ~ " " ~ valB;
+
+    const totalLen = valA.length + token.length + valB.length + 2;
+    char[] buffer = cast(char[]) pureAlloc(totalLen)[0 .. totalLen];
+    // @nogc-concat of "<valA> <comp> <valB>"
+    auto n = valA.length;
+    buffer[0 .. n] = valA;
+    buffer[n++] = ' ';
+    buffer[n .. n + token.length] = token;
+    n += token.length;
+    buffer[n++] = ' ';
+    buffer[n .. n + valB.length] = valB;
+    return buffer;
 }
