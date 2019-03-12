@@ -29,6 +29,7 @@ import dmd.dmodule;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
+import dmd.e2ir;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
@@ -183,7 +184,7 @@ Symbol *toSymbol(Dsymbol s)
             }
             else if (vd.isParameter())
             {
-                if (config.exe == EX_WIN64 && vd.type.size(Loc.initial) > _tysize[TYnptr])
+                if (ISX64REF(vd))
                 {
                     t = type_allocn(TYnref, Type_toCtype(vd.type));
                     t.Tcount++;

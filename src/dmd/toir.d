@@ -1058,20 +1058,20 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
             if (!v.isParameter())
                 continue;
             tym_t tym = totym(v.type);
-            bool win64ref = ISWIN64REF(v);
-            if (win64ref)
+            const x64ref = ISX64REF(v);
+            if (x64ref && config.exe == EX_WIN64)
             {
                 if (v.storage_class & STC.lazy_)
                     tym = TYdelegate;
             }
-            else if (ISREF(v))
+            else if (ISREF(v) && !x64ref)
                 tym = TYnptr;   // reference parameters are just pointers
             else if (v.storage_class & STC.lazy_)
                 tym = TYdelegate;
             ex = el_bin(OPadd, TYnptr, el_var(sclosure), el_long(TYsize_t, v.offset));
             ex = el_una(OPind, tym, ex);
             elem *ev = el_var(toSymbol(v));
-            if (win64ref)
+            if (x64ref)
             {
                 ev.Ety = TYnref;
                 ev = el_una(OPind, tym, ev);
