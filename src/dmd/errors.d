@@ -35,16 +35,32 @@ enum Severity
 }
 
 /// A single diagnostic message.
-immutable struct Diagnostic
+abstract class Diagnostic
 {
     /// The location of where the diagnostic occurred.
-    Loc loc;
+    const Loc loc;
 
     /// The severity of the diagnostic.
-    Severity severity;
+    const Severity severity;
 
     /// The message.
-    string message;
+    abstract string message();
+
+    this(const ref Loc loc, const Severity severity)
+    {
+        this.loc = loc;
+        this.severity = severity;
+    }
+}
+
+class FormattedDiagnostic(Args...) : Diagnostic
+{
+    private Args args;
+
+    override string message()
+    {
+
+    }
 }
 
 /**
