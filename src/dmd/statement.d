@@ -19,6 +19,7 @@ import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.attrib;
 import dmd.astcodegen;
+import dmd.ast_node;
 import dmd.gluelayer;
 import dmd.canthrow;
 import dmd.cond;
@@ -78,7 +79,7 @@ TypeIdentifier getException()
 /***********************************************************
  * Specification: http://dlang.org/spec/statement.html
  */
-extern (C++) abstract class Statement : RootObject
+extern (C++) abstract class Statement : ASTNode
 {
     Loc loc;
 
@@ -431,7 +432,7 @@ extern (C++) abstract class Statement : RootObject
      * Params:
      *  v = visitor
      */
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }

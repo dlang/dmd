@@ -21,6 +21,7 @@ import dmd.aggregate;
 import dmd.aliasthis;
 import dmd.arraytypes;
 import dmd.attrib;
+import dmd.ast_node;
 import dmd.gluelayer;
 import dmd.dclass;
 import dmd.declaration;
@@ -223,7 +224,7 @@ extern (C++) alias Dsymbol_apply_ft_t = int function(Dsymbol, void*);
 
 /***********************************************************
  */
-extern (C++) class Dsymbol : RootObject
+extern (C++) class Dsymbol : ASTNode
 {
     Identifier ident;
     Dsymbol parent;
@@ -1312,7 +1313,7 @@ extern (C++) class Dsymbol : RootObject
 
     /************
      */
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }

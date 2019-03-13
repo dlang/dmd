@@ -19,6 +19,7 @@ import core.stdc.string;
 import dmd.aggregate;
 import dmd.aliasthis;
 import dmd.arraytypes;
+import dmd.ast_node;
 import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
@@ -5016,7 +5017,7 @@ private bool reliesOnTemplateParameters(Expression e, TemplateParameter[] tparam
 /***********************************************************
  * https://dlang.org/spec/template.html#TemplateParameter
  */
-extern (C++) class TemplateParameter : RootObject
+extern (C++) class TemplateParameter : ASTNode
 {
     Loc loc;
     Identifier ident;
@@ -5124,7 +5125,7 @@ extern (C++) class TemplateParameter : RootObject
      */
     abstract void* dummyArg();
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }

@@ -132,7 +132,7 @@ enum VarArg
                          ///   or https://dlang.org/spec/function.html#typesafe_variadic_functions
 };
 
-class Type : public RootObject
+class Type : public ASTNode
 {
 public:
     TY ty;
@@ -345,7 +345,7 @@ public:
     TypeSlice *isTypeSlice();
     TypeNull *isTypeNull();
 
-    virtual void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeError : public Type

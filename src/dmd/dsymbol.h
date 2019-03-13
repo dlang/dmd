@@ -11,6 +11,7 @@
 #pragma once
 
 #include "root/port.h"
+#include "ast_node.h"
 #include "globals.h"
 #include "arraytypes.h"
 #include "visitor.h"
@@ -141,7 +142,7 @@ enum
 
 typedef int (*Dsymbol_apply_ft_t)(Dsymbol *, void *);
 
-class Dsymbol : public RootObject
+class Dsymbol : public ASTNode
 {
 public:
     Identifier *ident;
@@ -272,7 +273,7 @@ public:
     virtual AnonDeclaration *isAnonDeclaration() { return NULL; }
     virtual ProtDeclaration *isProtDeclaration() { return NULL; }
     virtual OverloadSet *isOverloadSet() { return NULL; }
-    virtual void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 // Dsymbol that generates a scope
