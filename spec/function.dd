@@ -1480,6 +1480,8 @@ $(H3 $(LNAME2 return-scope-parameters, Return Scope Parameters))
         can only escape those indirections via the function's return value.)
 
 ---
+@safe:
+
 int* gp;
 void thorin(scope int*);
 void gloin(int*);
@@ -1506,6 +1508,8 @@ int* balin(return scope int* p, scope int* q, int* r)
         $(P Class references are considered pointers that are subject to `scope`.)
 
 ---
+@safe:
+
 class C { }
 C gp;
 void thorin(scope C);
@@ -1541,6 +1545,9 @@ class C
 
         $(P Template functions, auto functions, nested functions and lambdas can deduce
         the `return scope` attribute.)
+        
+        $(P $(B Note:) Checks for `scope` parameters are currently enabled
+        only for $(D @safe) functions when compiled with the $(D -dip1000) flag.)
 
 $(H3 $(LNAME2 ref-return-scope-parameters, Ref Return Scope Parameters))
 
