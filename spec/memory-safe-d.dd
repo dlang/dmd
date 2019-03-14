@@ -70,7 +70,7 @@ $(H2 $(LNAME2 usage, Usage))
          `return` or `scope` is ignored when applied to a type that is not a low-level pointer.)
  
          $(P $(B Note:) Checks for `scope` parameters are currently enabled
-         only for $(D @safe) functions when compiled with the $(D -dip1000) flag.)
+         only for `@safe` code compiled with the `-dip1000` command-line flag.)
 
 
 $(H2 $(LNAME2 limitations, Limitations))
