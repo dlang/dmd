@@ -1300,6 +1300,7 @@ extern (C++) class VarDeclaration : Declaration
             else if (storage_class & (STC.static_ | STC.extern_ | STC.tls | STC.gshared) ||
                 parent.isModule() || parent.isTemplateInstance() || parent.isNspace())
             {
+                assert(!isParameter() && !isResult());
                 isdataseg = 1; // It is in the DataSegment
             }
         }
