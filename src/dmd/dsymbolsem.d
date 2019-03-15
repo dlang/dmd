@@ -2894,6 +2894,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             printf("sc.parent = %s, parent = %s\n", sc.parent.toChars(), funcdecl.parent ? funcdecl.parent.toChars() : "");
             printf("type: %p, %s\n", funcdecl.type, funcdecl.type.toChars());
         }
+        if (funcdecl.fbody && (funcdecl.storage_class & STC.disable))
+            funcdecl.deprecation("cannot be annotated with `@disable` because it has a body");
+
+        if (funcdecl.fbody && (funcdecl.storage_class & STC.disable))
+            funcdecl.deprecation("cannot be annotated with `@disable` because it has a body");
 
         if (funcdecl.semanticRun != PASS.init && funcdecl.isFuncLiteralDeclaration())
         {
