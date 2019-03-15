@@ -477,9 +477,9 @@ $(GNAME TemplateValueParameterDefault):
         is specialized for 10:)
 
         ------
-        template foo(U : int, int T : 10)
+        template foo(U : int, int v : 10)
         {
-            U x = T;
+            U x = v;
         }
 
         void main()
@@ -519,18 +519,18 @@ $(GNAME TemplateAliasParameterDefault):
         ------
         class Foo
         {
-            static int p;
+            static int x;
         }
 
-        template Bar(alias T)
+        template Bar(alias a)
         {
-            alias q = T.p;
+            alias sym = a.x;
         }
 
         void main()
         {
             alias bar = Bar!(Foo);
-            bar.q = 3;  // sets Foo.p to 3
+            bar.sym = 3;  // sets Foo.x to 3
         }
         ------
         )
@@ -540,36 +540,54 @@ $(GNAME TemplateAliasParameterDefault):
         ------
         shared int x;
 
-        template Foo(alias X)
+        template Foo(alias var)
         {
-            auto p = &X;
+            auto ptr = &var;
         }
 
         void main()
         {
             alias bar = Foo!(x);
-            *bar.p = 3;       // set x to 3
+            *bar.ptr = 3;       // set x to 3
             static shared int y;
             alias abc = Foo!(y);
-            *abc.p = 3;       // set y to 3
+            *abc.ptr = 3;       // set y to 3
         }
         ------
+        )
+
+        $(LI Local names
+        ---
+        template Foo(alias var)
+        {
+            void inc() { var++; }
+        }
+
+        void main()
+        {
+            int v = 4;
+            alias foo = Foo!v;
+            foo.inc();
+            assert(v == 5);
+        }
+        ---
+        See also $(RELATIVE_LINK2 implicit-nesting, Implicit Template Nesting).
         )
 
         $(LI Module names
 
         ------
-        import std.string;
+        import std.conv;
 
-        template Foo(alias X)
+        template Foo(alias a)
         {
-            alias y = X.toString;
+            alias sym = a.text;
         }
 
         void main()
         {
-            alias bar = Foo!(std.string);
-            bar.y(3);   // calls std.string.toString(3)
+            alias bar = Foo!(std.conv);
+            bar.sym(3);   // calls std.conv.text(3)
         }
         ------
         )
@@ -579,20 +597,20 @@ $(GNAME TemplateAliasParameterDefault):
         ------
         shared int x;
 
-        template Foo(alias X)
+        template Foo(alias var)
         {
-            auto p = &X;
+            auto ptr = &var;
         }
 
-        template Bar(alias T)
+        template Bar(alias Tem)
         {
-            alias abc = T!(x);
+            alias instance = Tem!(x);
         }
 
         void main()
         {
             alias bar = Bar!(Foo);
-            *bar.abc.p = 3;  // sets x to 3
+            *bar.instance.ptr = 3;  // sets x to 3
         }
         ------
         )
@@ -602,21 +620,21 @@ $(GNAME TemplateAliasParameterDefault):
         ------
         shared int x;
 
-        template Foo(alias X)
+        template Foo(alias var)
         {
-            auto p = &X;
+            auto ptr = &var;
         }
 
-        template Bar(alias T)
+        template Bar(alias sym)
         {
-            alias q = T.p;
+            alias p = sym.ptr;
         }
 
         void main()
         {
             alias foo = Foo!(x);
             alias bar = Bar!(foo);
-            *bar.q = 3;  // sets x to 3
+            *bar.p = 3;  // sets x to 3
         }
         ------
         )
@@ -1286,6 +1304,8 @@ $(H2 $(LNAME2 nested-templates, Nested Templates))
         of class $(D C), and $(D Bar!().bar) will work just the same as a nested
         function within function $(D main$(LPAREN)$(RPAREN)).)
 
+$(H3 $(LNAME2 implicit-nesting, Implicit Nesting))
+
     $(P If a template has a $(RELATIVE_LINK2 aliasparameters, template alias parameter),
         and is instantiated with a local symbol, the instantiated function will
         implicitly become nested in order to access runtime data of the given
@@ -1392,7 +1412,7 @@ $(H2 $(LNAME2 nested-templates, Nested Templates))
         }
         ---
 
-    $(H3 $(LNAME2 nested_template_limitation, Limitation:))
+    $(H3 $(LNAME2 nested_template_limitation, Context Limitation))
 
     $(P Currently nested templates can capture at most one context. As a typical
         example, non-static template member functions cannot take local symbol
