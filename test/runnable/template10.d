@@ -28,7 +28,33 @@ void test1()
 
 /********************************************/
 
+class C2
+{
+    int m = 10;
+
+    class K(alias a)
+    {
+        int n;
+        this(int i) { n = i; }
+        auto sum()
+        {
+            return a + m + n;
+        }
+    }
+}
+
+void test2()
+{
+    int a = 20;
+    auto o = new C2;
+    auto k = o.new C2.K!a(30);
+    assert(k.sum() == 10+20+30);
+}
+
+/********************************************/
+
 void main()
 {
     test1();
+    test2();
 }

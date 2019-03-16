@@ -1091,7 +1091,7 @@ extern (C++) class FuncDeclaration : Declaration
                     return LevelError;
             }
 
-            s = s.toParent2();
+            s = toParentP(s, fd);
             assert(s);
             level++;
         }
@@ -3153,6 +3153,52 @@ private bool checkEscapingSiblings(FuncDeclaration f, FuncDeclaration outerFunc,
     }
     //printf("\t%d\n", bAnyClosures);
     return bAnyClosures;
+}
+
+/***
+ * Returns true if `p` resides in the enclosing instantiation scope of `s`.
+ */
+bool followInstantiationContext(Dsymbol s, Dsymbol p)
+{
+    static bool has2This(Dsymbol s)
+    {
+        if (auto ad = s.isAggregateDeclaration())
+            return ad.vthis2 !is null;
+        return false;
+    }
+
+    assert(s);
+    if (has2This(s))
+    {
+        assert(p);
+        auto parent = s.toParent();
+        while (parent)
+        {
+            auto ti = parent.isTemplateInstance();
+            if (!ti) break;
+            foreach (oarg; *ti.tiargs)
+            {
+                auto sa = getDsymbol(oarg);
+                if (!sa)
+                    continue;
+                if (sa.toAlias().toParent2() == p)
+                    return true;
+            }
+            parent = ti.tempdecl.toParent();
+        }
+        return false;
+    }
+    return false;
+}
+
+/*
+ * Returns the declaration scope scope of `s`
+ * unless `p` resides in its enclosing instantiation scope
+ * then the latter is returned.
+ */
+Dsymbol toParentP(Dsymbol s, Dsymbol p)
+{
+    return followInstantiationContext(s, p) ? s.toParent2() : s.toParentLocal();
 }
 
 /***********************************************************

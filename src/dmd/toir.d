@@ -108,14 +108,16 @@ extern (D) elem *incUsageElem(IRState *irs, const ref Loc loc)
  * Return elem that evaluates to the static frame pointer for function fd.
  * If fd is a member function, the returned expression will compute the value
  * of fd's 'this' variable.
+ * 'fdp' is the parent of 'fd' if the frame pointer is being used to call 'fd'.
  * This routine is critical for implementing nested functions.
  */
-elem *getEthis(const ref Loc loc, IRState *irs, Dsymbol fd)
+elem *getEthis(const ref Loc loc, IRState *irs, Dsymbol fd, Dsymbol fdp = null)
 {
     elem *ethis;
     FuncDeclaration thisfd = irs.getFunc();
-    Dsymbol fdparent = fd.toParent2();
-    Dsymbol fdp = fdparent;
+    Dsymbol symp = fdp ? fdp : fd;
+    if (!fdp) fdp = fd.toParent2();
+    Dsymbol fdparent = fdp;
 
     /* These two are compiler generated functions for the in and out contracts,
      * and are called from an overriding function, not just the one they're
@@ -251,10 +253,9 @@ elem *getEthis(const ref Loc loc, IRState *irs, Dsymbol fd)
         Dsymbol s = thisfd;
         while (fd != s)
         {
-            FuncDeclaration fdp2 = s.toParent2().isFuncDeclaration();
-
             //printf("\ts = '%s'\n", s.toChars());
             thisfd = s.isFuncDeclaration();
+
             if (thisfd)
             {
                 /* Enclosing function is a function.
@@ -284,21 +285,23 @@ elem *getEthis(const ref Loc loc, IRState *irs, Dsymbol fd)
                 if (!ad.isNested() || !(ad.vthis || ad.vthis2))
                     goto Lnoframe;
 
-                const voffset = ad.vthis2 ? ad.vthis2.offset : ad.vthis.offset;
+                bool i = followInstantiationContext(ad, symp);
+                const voffset = i ? ad.vthis2.offset : ad.vthis.offset;
                 ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYsize_t, voffset));
                 ethis = el_una(OPind, TYnptr, ethis);
             }
-            if (fdparent == s.toParent2())
+            if (fdparent == toParentP(s, symp))
                 break;
 
             /* Remember that frames for functions that have no
              * nested references are skipped in the linked list
              * of frames.
              */
+            FuncDeclaration fdp2 = toParentP(s, symp).isFuncDeclaration();
             if (fdp2 && fdp2.hasNestedFrameRefs())
                 ethis = el_una(OPind, TYnptr, ethis);
 
-            s = s.toParent2();
+            s = toParentP(s, symp);
             assert(s);
         }
     }
