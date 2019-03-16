@@ -1,0 +1,3 @@
+New command-line option `-lowmem` to reduce compiler memory requirements
+
+It enables the garbage collector for the compiler, trading compile times for (in some cases, significantly) less memory requirements.
