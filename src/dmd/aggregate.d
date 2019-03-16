@@ -95,6 +95,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     Dsymbol enclosing;
 
     VarDeclaration vthis;   // 'this' parameter if this aggregate is nested
+    VarDeclaration vthis2;  // 'this' parameter if this aggregate is a template and is nested
 
     // Special member functions
     FuncDeclarations invs;          // Array of invariants
@@ -639,7 +640,9 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             return;
 
         // If nested struct, add in hidden 'this' pointer to outer scope
-        auto s = toParent2();
+        auto s = toParentLocal();
+        if (!s)
+            s = toParent2();
         if (!s)
             return;
         Type t = null;
@@ -691,7 +694,50 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
             if (sizeok == Sizeok.fwd)
                 fields.push(vthis);
+
+            makeNested2();
         }
+    }
+
+    /* Append vthis2 field (this.tupleof[$-1]) to add a second context pointer.
+     */
+    final void makeNested2()
+    {
+        if (vthis2)
+            return;
+        if (!vthis)
+            makeNested();   // can't add second before first
+        if (!vthis)
+            return;
+        if (sizeok == Sizeok.done)
+            return;
+        if (isUnionDeclaration() || isInterfaceDeclaration())
+            return;
+        if (storage_class & STC.static_)
+            return;
+
+        auto s0 = toParentLocal();
+        auto s = toParent2();
+        if (!s || !s0 || s == s0)
+            return;
+        auto cd = s.isClassDeclaration();
+        Type t = cd ? cd.type : Type.tvoidptr;
+
+        vthis2 = new ThisDeclaration(loc, t);
+        //vthis2.storage_class |= STC.ref_;
+
+        // Emulate vthis2.addMember()
+        members.push(vthis2);
+
+        // Emulate vthis2.dsymbolSemantic()
+        vthis2.storage_class |= STC.field;
+        vthis2.parent = this;
+        vthis2.protection = Prot(Prot.Kind.public_);
+        vthis2.alignment = t.alignment();
+        vthis2.semanticRun = PASS.semanticdone;
+
+        if (sizeok == Sizeok.fwd)
+            fields.push(vthis2);
     }
 
     override final bool isExport() const

@@ -1603,11 +1603,13 @@ elem *toElem(Expression e, IRState *irs)
                 /* Things to do:
                  * 1) ex: call allocator
                  * 2) ey: set vthis for nested classes
+                 * 2) ew: set vthis2 for nested classes
                  * 3) ez: call constructor
                  */
 
                 elem *ex = null;
                 elem *ey = null;
+                elem *ew = null;
                 elem *ezprefix = null;
                 elem *ez = null;
 
@@ -1641,6 +1643,8 @@ elem *toElem(Expression e, IRState *irs)
                     {
                         ey = el_same(&ex);
                         ez = el_copytree(ey);
+                        if (cd.vthis2)
+                            ew = el_copytree(ey);
                     }
                     else if (ne.member)
                         ez = el_same(&ex);
@@ -1662,6 +1666,8 @@ elem *toElem(Expression e, IRState *irs)
                     {
                         ey = el_same(&ex);
                         ez = el_copytree(ey);
+                        if (cd.vthis2)
+                            ew = el_copytree(ey);
                     }
                     else if (ne.member)
                         ez = el_same(&ex);
@@ -1714,6 +1720,15 @@ elem *toElem(Expression e, IRState *irs)
                     ey = setEthis(ne.loc, irs, ey, cd);
                 }
 
+                if (cd.vthis2)
+                {
+                    /* Initialize cd.vthis2:
+                     *  *(ew + cd.vthis2.offset) = this;
+                     */
+                    assert(ew);
+                    ew = setEthis(ne.loc, irs, ew, cd, true);
+                }
+
                 if (ne.member)
                 {
                     if (ne.argprefix)
@@ -1723,6 +1738,7 @@ elem *toElem(Expression e, IRState *irs)
                 }
 
                 e = el_combine(ex, ey);
+                e = el_combine(e, ew);
                 e = el_combine(e, ezprefix);
                 e = el_combine(e, ez);
             }

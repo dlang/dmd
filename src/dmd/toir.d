@@ -281,10 +281,11 @@ elem *getEthis(const ref Loc loc, IRState *irs, Dsymbol fd)
                 StructDeclaration sd = ad.isStructDeclaration();
                 if (fd == sd)
                     break;
-                if (!ad.isNested() || !ad.vthis)
+                if (!ad.isNested() || !(ad.vthis || ad.vthis2))
                     goto Lnoframe;
 
-                ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYsize_t, ad.vthis.offset));
+                const voffset = ad.vthis2 ? ad.vthis2.offset : ad.vthis.offset;
+                ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYsize_t, voffset));
                 ethis = el_una(OPind, TYnptr, ethis);
             }
             if (fdparent == s.toParent2())
@@ -314,14 +315,14 @@ elem *getEthis(const ref Loc loc, IRState *irs, Dsymbol fd)
  * Initialize the hidden aggregate member, vthis, with
  * the context pointer.
  * Returns:
- *      *(ey + ad.vthis.offset) = this;
+ *      *(ey + (ethis2 ? ad.vthis2 : ad.vthis).offset) = this;
  */
-elem *setEthis(const ref Loc loc, IRState *irs, elem *ey, AggregateDeclaration ad)
+elem *setEthis(const ref Loc loc, IRState *irs, elem *ey, AggregateDeclaration ad, bool setthis2 = false)
 {
     elem *ethis;
     FuncDeclaration thisfd = irs.getFunc();
     int offset = 0;
-    Dsymbol adp = ad.toParent2();     // class/func we're nested in
+    Dsymbol adp = setthis2 ? ad.toParent2(): ad.toParentLocal();     // class/func we're nested in
 
     //printf("[%s] setEthis(ad = %s, adp = %s, thisfd = %s)\n", loc.toChars(), ad.toChars(), adp.toChars(), thisfd.toChars());
 
@@ -350,7 +351,9 @@ elem *setEthis(const ref Loc loc, IRState *irs, elem *ey, AggregateDeclaration a
             ethis = el_una(OPaddr, TYnptr, ethis);
     }
 
-    ey = el_bin(OPadd, TYnptr, ey, el_long(TYsize_t, ad.vthis.offset));
+    assert(!setthis2 || ad.vthis2);
+    const voffset = setthis2 ? ad.vthis2.offset : ad.vthis.offset;
+    ey = el_bin(OPadd, TYnptr, ey, el_long(TYsize_t, voffset));
     ey = el_una(OPind, TYnptr, ey);
     ey = el_bin(OPeq, TYnptr, ey, ethis);
     return ey;
