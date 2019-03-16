@@ -25,12 +25,19 @@ struct Mem
     Mem() { }
 
     static char *xstrdup(const char *s);
+    static void xfree(void *p);
     static void *xmalloc(d_size_t size);
     static void *xcalloc(d_size_t size, d_size_t n);
     static void *xrealloc(void *p, d_size_t size);
-    static void xfree(void *p);
-    static void *xmallocdup(void *o, d_size_t size);
     static void error();
+
+#if GC
+    static bool isGCEnabled;
+
+    static void disableGC();
+    static void addRange(const void *p, d_size_t size);
+    static void removeRange(const void *p);
+#endif
 };
 
 extern Mem mem;

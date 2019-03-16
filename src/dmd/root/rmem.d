@@ -13,237 +13,299 @@
 module dmd.root.rmem;
 
 import core.exception : onOutOfMemoryError;
+import core.stdc.stdio;
+import core.stdc.stdlib;
 import core.stdc.string;
+
+version = GC;
 
 version (GC)
 {
     import core.memory : GC;
 
-    extern (C++) struct Mem
-    {
-        static char* xstrdup(const(char)* p) nothrow
-        {
-            return p[0 .. strlen(p) + 1].dup.ptr;
-        }
-
-        static void xfree(void* p) pure nothrow
-        {
-            return GC.free(p);
-        }
-
-        static void* xmalloc(size_t n) pure nothrow
-        {
-            return GC.malloc(n);
-        }
-
-        static void* xcalloc(size_t size, size_t n) pure nothrow
-        {
-            return GC.calloc(size * n);
-        }
-
-        static void* xrealloc(void* p, size_t size) pure nothrow
-        {
-            return GC.realloc(p, size);
-        }
-
-        static void error() pure nothrow
-        {
-            onOutOfMemoryError();
-        }
-    }
-
-    extern (C) void* allocmemory(size_t m_size) nothrow
-    {
-        return GC.malloc(m_size);
-    }
-
-    extern (C++) const __gshared Mem mem;
+    enum isGCAvailable = true;
 }
 else
+    enum isGCAvailable = false;
+
+extern (C++) struct Mem
 {
-    import core.memory;
-    import core.stdc.stdlib;
-    import core.stdc.stdio;
-
-    extern (C++) struct Mem
+    static char* xstrdup(const(char)* s) nothrow
     {
-        static char* xstrdup(const(char)* s) nothrow
-        {
-            if (s)
-            {
-                auto p = .strdup(s);
-                if (p)
-                    return p;
-                error();
-            }
+        if (!s)
             return null;
-        }
 
-        static void xfree(void* p) pure nothrow
+        version (GC)
+            if (isGCEnabled)
+                return s[0 .. strlen(s) + 1].dup.ptr;
+
+        auto p = .strdup(s);
+        if (!p)
+            error();
+        return p;
+    }
+
+    static void xfree(void* p) pure nothrow
+    {
+        if (!p)
+            return;
+
+        version (GC)
+            if (isGCEnabled)
+                return GC.free(p);
+
+        pureFree(p);
+    }
+
+    static void* xmalloc(size_t size) pure nothrow
+    {
+        if (!size)
+            return null;
+
+        version (GC)
+            if (isGCEnabled)
+                return GC.malloc(size);
+
+        auto p = pureMalloc(size);
+        if (!p)
+            error();
+        return p;
+    }
+
+    static void* xcalloc(size_t size, size_t n) pure nothrow
+    {
+        const totalSize = size * n;
+        if (!totalSize)
+            return null;
+
+        version (GC)
+            if (isGCEnabled)
+                return GC.calloc(totalSize);
+
+        auto p = pureCalloc(size, n);
+        if (!p)
+            error();
+        return p;
+    }
+
+    static void* xrealloc(void* p, size_t size) pure nothrow
+    {
+        version (GC)
+            if (isGCEnabled)
+                return GC.realloc(p, size);
+
+        if (!size)
         {
             if (p)
                 pureFree(p);
+            return null;
         }
 
-        static void* xmalloc(size_t size) pure nothrow
+        if (!p)
         {
-            if (!size)
-                return null;
-
-            auto p = pureMalloc(size);
+            p = pureMalloc(size);
             if (!p)
                 error();
             return p;
         }
 
-        static void* xcalloc(size_t size, size_t n) pure nothrow
-        {
-            if (!size || !n)
-                return null;
+        p = pureRealloc(p, size);
+        if (!p)
+            error();
+        return p;
+    }
 
-            auto p = pureCalloc(size, n);
-            if (!p)
-                error();
+    static void error() pure nothrow
+    {
+        onOutOfMemoryError();
+    }
+
+    version (GC)
+    {
+        __gshared bool _isGCEnabled = true;
+
+        static bool isGCEnabled() pure nothrow
+        {
+            // fake purity by making global variable immutable (_isGCEnabled only modified before startup)
+            enum _pIsGCEnabled = cast(immutable bool*) &_isGCEnabled;
+            return *_pIsGCEnabled;
+        }
+
+        static void disableGC()
+        {
+            _isGCEnabled = false;
+        }
+
+        static void addRange(const(void)* p, size_t size) nothrow
+        {
+            if (isGCEnabled)
+                GC.addRange(p, size);
+        }
+
+        static void removeRange(const(void)* p) nothrow
+        {
+            if (isGCEnabled)
+                GC.removeRange(p);
+        }
+    }
+}
+
+extern (C++) const __gshared Mem mem;
+
+enum CHUNK_SIZE = (256 * 4096 - 64);
+
+__gshared size_t heapleft = 0;
+__gshared void* heapp;
+
+extern (C) void* allocmemory(size_t m_size) nothrow
+{
+    // 16 byte alignment is better (and sometimes needed) for doubles
+    m_size = (m_size + 15) & ~15;
+
+    // The layout of the code is selected so the most common case is straight through
+    if (m_size <= heapleft)
+    {
+    L1:
+        heapleft -= m_size;
+        auto p = heapp;
+        heapp = cast(void*)(cast(char*)heapp + m_size);
+        return p;
+    }
+
+    if (m_size > CHUNK_SIZE)
+    {
+        auto p = malloc(m_size);
+        if (p)
+        {
             return p;
         }
+        printf("Error: out of memory\n");
+        exit(EXIT_FAILURE);
+    }
 
-        static void* xrealloc(void* p, size_t size) pure nothrow
+    heapleft = CHUNK_SIZE;
+    heapp = malloc(CHUNK_SIZE);
+    if (!heapp)
+    {
+        printf("Error: out of memory\n");
+        exit(EXIT_FAILURE);
+    }
+    goto L1;
+}
+
+version (DigitalMars)
+{
+    enum OVERRIDE_MEMALLOC = true;
+}
+else version (LDC)
+{
+    // Memory allocation functions gained weak linkage when the @weak attribute was introduced.
+    import ldc.attributes;
+    enum OVERRIDE_MEMALLOC = is(typeof(ldc.attributes.weak));
+}
+else
+{
+    enum OVERRIDE_MEMALLOC = false;
+}
+
+static if (OVERRIDE_MEMALLOC)
+{
+    // Override the host druntime allocation functions in order to use the bump-
+    // pointer allocation scheme (`allocmemory()` above) if the GC is disabled.
+    // That scheme is faster and comes with less memory overhead than using a
+    // disabled GC alone.
+
+    extern (C) void* _d_allocmemory(size_t m_size) nothrow
+    {
+        version (GC)
+            if (mem.isGCEnabled)
+                return GC.malloc(m_size);
+
+        return allocmemory(m_size);
+    }
+
+    version (GC)
+    {
+        private void* allocClass(const ClassInfo ci) nothrow
         {
-            if (!size)
-            {
-                if (p)
-                    pureFree(p);
-                return null;
-            }
+            alias BlkAttr = GC.BlkAttr;
 
-            if (!p)
-            {
-                p = pureMalloc(size);
-                if (!p)
-                    error();
-                return p;
-            }
+            assert(!(ci.m_flags & TypeInfo_Class.ClassFlags.isCOMclass));
 
-            p = pureRealloc(p, size);
-            if (!p)
-                error();
-            return p;
+            BlkAttr attr = BlkAttr.NONE;
+            if (ci.m_flags & TypeInfo_Class.ClassFlags.hasDtor
+                && !(ci.m_flags & TypeInfo_Class.ClassFlags.isCPPclass))
+                attr |= BlkAttr.FINALIZE;
+            if (ci.m_flags & TypeInfo_Class.ClassFlags.noPointers)
+                attr |= BlkAttr.NO_SCAN;
+            return GC.malloc(ci.initializer.length, attr, ci);
         }
 
-        static void error() pure nothrow
+        extern (C) void* _d_newitemU(const TypeInfo ti) nothrow;
+    }
+
+    extern (C) Object _d_newclass(const ClassInfo ci) nothrow
+    {
+        const initializer = ci.initializer;
+
+        version (GC)
+            auto p = mem.isGCEnabled ? allocClass(ci) : allocmemory(initializer.length);
+        else
+            auto p = allocmemory(initializer.length);
+
+        memcpy(p, initializer.ptr, initializer.length);
+        return cast(Object) p;
+    }
+
+    version (LDC)
+    {
+        extern (C) Object _d_allocclass(const ClassInfo ci) nothrow
         {
-            onOutOfMemoryError();
+            version (GC)
+                if (mem.isGCEnabled)
+                    return cast(Object) allocClass(ci);
+
+            return cast(Object) allocmemory(ci.initializer.length);
         }
     }
 
-    extern (C++) const __gshared Mem mem;
-
-    enum CHUNK_SIZE = (256 * 4096 - 64);
-
-    __gshared size_t heapleft = 0;
-    __gshared void* heapp;
-
-    extern (C) void* allocmemory(size_t m_size) nothrow
+    extern (C) void* _d_newitemT(TypeInfo ti) nothrow
     {
-        // 16 byte alignment is better (and sometimes needed) for doubles
-        m_size = (m_size + 15) & ~15;
-
-        // The layout of the code is selected so the most common case is straight through
-        if (m_size <= heapleft)
-        {
-        L1:
-            heapleft -= m_size;
-            auto p = heapp;
-            heapp = cast(void*)(cast(char*)heapp + m_size);
-            return p;
-        }
-
-        if (m_size > CHUNK_SIZE)
-        {
-            auto p = malloc(m_size);
-            if (p)
-            {
-                return p;
-            }
-            printf("Error: out of memory\n");
-            exit(EXIT_FAILURE);
-        }
-
-        heapleft = CHUNK_SIZE;
-        heapp = malloc(CHUNK_SIZE);
-        if (!heapp)
-        {
-            printf("Error: out of memory\n");
-            exit(EXIT_FAILURE);
-        }
-        goto L1;
-    }
-
-    version (DigitalMars)
-    {
-        enum OVERRIDE_MEMALLOC = true;
-    }
-    else version (LDC)
-    {
-        // Memory allocation functions gained weak linkage when the @weak attribute was introduced.
-        import ldc.attributes;
-        enum OVERRIDE_MEMALLOC = is(typeof(ldc.attributes.weak));
-    }
-    else
-    {
-        enum OVERRIDE_MEMALLOC = false;
-    }
-
-    static if (OVERRIDE_MEMALLOC)
-    {
-        extern (C) void* _d_allocmemory(size_t m_size) nothrow
-        {
-            return allocmemory(m_size);
-        }
-
-        extern (C) Object _d_newclass(const ClassInfo ci) nothrow
-        {
-            auto p = allocmemory(ci.initializer.length);
-            p[0 .. ci.initializer.length] = cast(void[])ci.initializer[];
-            return cast(Object)p;
-        }
-
-        version (LDC)
-        {
-            extern (C) Object _d_allocclass(const ClassInfo ci) nothrow
-            {
-                return cast(Object)allocmemory(ci.initializer.length);
-            }
-        }
-
-        extern (C) void* _d_newitemT(TypeInfo ti) nothrow
-        {
+        version (GC)
+            auto p = mem.isGCEnabled ? _d_newitemU(ti) : allocmemory(ti.tsize);
+        else
             auto p = allocmemory(ti.tsize);
-            (cast(ubyte*)p)[0 .. ti.initializer.length] = 0;
-            return p;
-        }
 
-        extern (C) void* _d_newitemiT(TypeInfo ti) nothrow
-        {
-            auto p = allocmemory(ti.tsize);
-            p[0 .. ti.initializer.length] = ti.initializer[];
-            return p;
-        }
-
-        // TypeInfo.initializer for compilers older than 2.070
-        static if(!__traits(hasMember, TypeInfo, "initializer"))
-        private const(void[]) initializer(T : TypeInfo)(const T t)
-        nothrow pure @safe @nogc
-        {
-            return t.init;
-        }
+        memset(p, 0, ti.tsize);
+        return p;
     }
+
+    extern (C) void* _d_newitemiT(TypeInfo ti) nothrow
+    {
+        version (GC)
+            auto p = mem.isGCEnabled ? _d_newitemU(ti) : allocmemory(ti.tsize);
+        else
+            auto p = allocmemory(ti.tsize);
+
+        const initializer = ti.initializer;
+        memcpy(p, initializer.ptr, initializer.length);
+        return p;
+    }
+
+    // TypeInfo.initializer for compilers older than 2.070
+    static if(!__traits(hasMember, TypeInfo, "initializer"))
+    private const(void[]) initializer(T : TypeInfo)(const T t)
+    nothrow pure @safe @nogc
+    {
+        return t.init;
+    }
+}
 
 // Copied from druntime. Remove these when GDC and LDC LTS is at a version
 // corresponding to 2.074.0 or later.
+static if (!is(typeof(pureMalloc)))
+{
 private:
-static if (!is(typeof(pureMalloc))):
-
     static import core.stdc.errno;
 
     /**
@@ -328,6 +390,7 @@ static if (!is(typeof(pureMalloc))):
         }
     }
 }
+
 /**
 Makes a null-terminated copy of the given string on newly allocated memory.
 The null-terminator won't be part of the returned string slice. It will be
