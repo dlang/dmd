@@ -1,3 +1,5 @@
 New command-line option `-lowmem` to reduce compiler memory requirements
 
 It enables the garbage collector for the compiler, trading compile times for (in some cases, significantly) less memory requirements.
+
+E.g., compiling DMD's test tool d_do_test (`dmd -c [-lowmem] test/tools/d_do_test.d`) requires about 75% less memory (~1,630 MB -> 410) at the cost of a runtime increase by ~30% (~4.8 secs -> 6.3).
