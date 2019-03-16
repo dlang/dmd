@@ -203,9 +203,9 @@ $(RESULTS_DIR)/d_do_test$(EXE): tools/d_do_test.d $(RESULTS_DIR)/.created
 	@echo "OS: '$(OS)'"
 	@echo "MODEL: '$(MODEL)'"
 	@echo "PIC: '$(PIC_FLAG)'"
-	$(DMD) -conf= $(MODEL_FLAG) $(DEBUG_FLAGS) -unittest -run $< &
+	$(DMD) -conf= $(MODEL_FLAG) $(DEBUG_FLAGS) -lowmem -unittest -run $< &
 	@pid=$!
-	$(DMD) -conf= $(MODEL_FLAG) $(DEBUG_FLAGS) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test$(EXE) $<
+	$(DMD) -conf= $(MODEL_FLAG) $(DEBUG_FLAGS) -lowmem -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test$(EXE) $<
 	@wait $(pid)
 
 $(RESULTS_DIR)/sanitize_json$(EXE): tools/sanitize_json.d $(RESULTS_DIR)/.created
