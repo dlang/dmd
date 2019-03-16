@@ -781,7 +781,12 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                     if (auto p = s.toParent())         // `C`'s parent is `C!2`, believe it or not
                     {
                         if (p.isTemplateInstance())    // `C!2` is a template instance
+                        {
                             s = p;                     // `C!2`'s parent is `T1`
+                            auto td = (cast(TemplateInstance)p).tempdecl;
+                            if (td)
+                                s = td;                // get the declaration context just in case there's two contexts
+                        }
                     }
                 }
             }
