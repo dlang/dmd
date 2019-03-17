@@ -323,6 +323,8 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             auto cd = isClassDeclaration();
             if (!cd || !cd.baseClass || !cd.baseClass.isNested())
                 nfields--;
+            if (vthis2 && !(cd && cd.baseClass && cd.baseClass.vthis2))
+                nfields--;
         }
         bool errors = false;
 
@@ -393,7 +395,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         //printf("AggregateDeclaration::fill() %s\n", toChars());
         assert(sizeok == Sizeok.done);
         assert(elements);
-        size_t nfields = fields.dim - isNested();
+        size_t nfields = fields.dim - isNested() - (vthis2 !is null);
         bool errors = false;
 
         size_t dim = elements.dim;
