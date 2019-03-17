@@ -2795,7 +2795,7 @@ $(H3 $(LNAME2 trusted-functions, Trusted Functions))
 
         $(P Trusted functions are covariant with safe or system functions.)
 
-        $(BEST_PRACTICE Generally, trusted functions should be kept small so
+        $(BEST_PRACTICE Trusted functions should be kept small so
         that they are easier to manually verify.
         )
 
