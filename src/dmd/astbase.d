@@ -1000,6 +1000,7 @@ struct ASTBase
         Type type;
         Type memtype;
         Prot protection;
+        bool opaque;
 
         extern (D) this(const ref Loc loc, Identifier id, Type memtype)
         {

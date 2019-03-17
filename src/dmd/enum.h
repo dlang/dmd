@@ -38,6 +38,7 @@ public:
 
     bool isdeprecated;
     bool added;
+    bool opaque;
     int inuse;
 
     Dsymbol *syntaxCopy(Dsymbol *s);

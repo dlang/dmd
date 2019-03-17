@@ -3106,7 +3106,11 @@ final class Parser(AST) : Lexer
 
         e = new AST.EnumDeclaration(loc, id, memtype);
         if (token.value == TOK.semicolon && id)
+        {
             nextToken();
+            e.memtype = memtype ? memtype : AST.Type.tint32;
+            e.opaque = true;
+        }
         else if (token.value == TOK.leftCurly)
         {
             bool isAnonymousEnum = !id;

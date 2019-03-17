@@ -5797,7 +5797,7 @@ extern (C++) final class TypeEnum : Type
 
     override Type toBasetype()
     {
-        if (!sym.members && !sym.memtype)
+        if (!sym.members && (!sym.memtype || sym.opaque))
             return this;
         auto tb = sym.getMemtype(Loc.initial).toBasetype();
         return tb.castMod(mod);         // retain modifier bits from 'this'

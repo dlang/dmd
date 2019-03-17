@@ -1240,7 +1240,8 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                 {
                     Type tb2 = t.baseElemOf();
                     if (tb2.ty == Tstruct && !(cast(TypeStruct)tb2).sym.members ||
-                        tb2.ty == Tenum && !(cast(TypeEnum)tb2).sym.memtype)
+                        tb2.ty == Tenum && !(cast(TypeEnum)tb2).sym.memtype ||
+                        tb2.ty == Tenum && (cast(TypeEnum)tb2).sym.opaque)
                     {
                         .error(loc, "cannot have parameter of opaque type `%s` by value", fparam.type.toChars());
                         errors = true;
@@ -3718,6 +3719,11 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
         if (ident == Id._mangleof)
         {
             return mt.getProperty(e.loc, ident, flag & 1);
+        }
+        // https://issues.dlang.org/show_bug.cgi?id=19605
+        if (ident == Id.__sizeof && mt.sym.opaque && mt.sym.memtype)
+        {
+            return new IntegerExp(mt.sym.memtype.size());
         }
 
         if (mt.sym.semanticRun < PASS.semanticdone)

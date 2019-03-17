@@ -61,6 +61,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
     Expression defaultval;  // default initializer
     bool isdeprecated;
     bool added;
+    bool opaque;            // enum X;
     int inuse;
 
     extern (D) this(const ref Loc loc, Identifier id, Type memtype)
@@ -77,6 +78,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
     {
         assert(!s);
         auto ed = new EnumDeclaration(loc, ident, memtype ? memtype.syntaxCopy() : null);
+        ed.opaque = opaque;
         return ScopeDsymbol.syntaxCopy(ed);
     }
 

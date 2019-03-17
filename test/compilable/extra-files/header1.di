@@ -517,7 +517,7 @@ struct SafeS
 	}
 }
 void test13x(@(10) int a, @(20) int, @(tuple(30), tuple(40)) int[] arr...);
-enum Test14UDA1 ;
+enum Test14UDA1 : int;
 struct Test14UDA2
 {
 	string str;
