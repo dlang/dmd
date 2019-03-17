@@ -586,10 +586,10 @@ bool FileName::ensurePathExists(const char *path)
             if (path[strlen(path) - 1] != sep)
             {
                 //printf("mkdir(%s)\n", path);
-#if _WIN32 && !IN_GCC
+#if _WIN32
                 int r = _mkdir(path);
 #endif
-#if POSIX || (_WIN32 && IN_GCC)
+#if POSIX
                 int r = mkdir(path, (7 << 6) | (7 << 3) | 7);
 #endif
                 if (r)
