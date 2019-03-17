@@ -37,7 +37,8 @@ void main(string[] args)
         testSymbolHasChildren(ctsym, "core.time.ClockType");
         ctsym.Release();
 
-        testLineNumbers(session, globals);
+        testLineNumbers15432(session, globals);
+        testLineNumbers19747(session, globals);
 
         S18984 s = test18984(session, globals);
 
@@ -62,6 +63,15 @@ int test15432() // line 8
 }
 enum lineAfterTest15432 = __LINE__;
 
+// https://issues.dlang.org/show_bug.cgi?id=19747
+enum lineScopeExitTest19747 = __LINE__ + 3;
+int test19747()
+{
+    scope(exit) call15432(null);
+    int x = 0;
+    return x;
+}
+
 version(CRuntime_Microsoft):
 
 void testSymbolHasChildren(IDiaSymbol sym, string name)
@@ -78,7 +88,7 @@ void testSymbolHasChildren(IDiaSymbol sym, string name)
     enumSymbols.Release();
 }
 
-void testLineNumbers(IDiaSession session, IDiaSymbol globals)
+void testLineNumbers15432(IDiaSession session, IDiaSymbol globals)
 {
     IDiaSymbol funcsym = searchSymbol(globals, cPrefix ~ test15432.mangleof);
     assert(funcsym, "symbol test15432 not found");
@@ -91,6 +101,21 @@ void testLineNumbers(IDiaSession session, IDiaSymbol globals)
     assert (lines[$-1].line == lineAfterTest15432 - 1);
     ubyte codeByte = lines[$-1].addr[0];
     assert(codeByte == 0x48 || codeByte == 0x5d || codeByte == 0xc3); // should be one of "mov rsp,rbp", "pop rbp" or "ret"
+}
+
+void testLineNumbers19747(IDiaSession session, IDiaSymbol globals)
+{
+    IDiaSymbol funcsym = searchSymbol(globals, cPrefix ~ test19747.mangleof);
+    assert(funcsym, "symbol test19747 not found");
+    ubyte[] funcRange;
+    Line[] lines = findSymbolLineNumbers(session, funcsym, &funcRange);
+    assert(lines, "no line number info for test19747");
+
+    //dumpLineNumbers(lines, funcRange);
+    bool found = false;
+    foreach(ln; lines)
+        found = found || ln.line == lineScopeExitTest19747;
+    assert(found);
 }
 
 ///////////////////////////////////////////////
@@ -297,8 +322,8 @@ pragma(lib, "ole32.lib");
 pragma(lib, "oleaut32.lib");
 
 // defintions translated from the DIA SDK header dia2.h
-GUID uuid_DiaSource_V120 = { 0xe6756135, 0x1e65, 0x4d17, [0x85, 0x76, 0x61, 0x07, 0x61, 0x39, 0x8c, 0x3c] };
-GUID uuid_DiaSource_V140 = { 0x3bfcea48, 0x620f, 0x4b6b, [0x81, 0xf7, 0xb9, 0xaf, 0x75, 0x45, 0x4c, 0x7d] };
+GUID uuid_DiaSource_V120 = { 0x3bfcea48, 0x620f, 0x4b6b, [0x81, 0xf7, 0xb9, 0xaf, 0x75, 0x45, 0x4c, 0x7d] };
+GUID uuid_DiaSource_V140 = { 0xe6756135, 0x1e65, 0x4d17, [0x85, 0x76, 0x61, 0x07, 0x61, 0x39, 0x8c, 0x3c] };
 
 interface IDiaDataSource : IUnknown
 {
@@ -888,6 +913,9 @@ bool openDebugInfo(IDiaDataSource* source, IDiaSession* session, IDiaSymbol* glo
         hr = CoCreateInstance(&uuid_DiaSource_V140, null, CLSCTX.CLSCTX_INPROC_SERVER,
                               &IDiaDataSource.iid, cast(void**)source);
     if (hr != S_OK)
+        hr = CreateRegFreeCOMInstance("msdia140.dll", &uuid_DiaSource_V140,
+                                      &IDiaDataSource.iid, cast(void**)source);
+    if (hr != S_OK)
         return false;
 
     hr = source.loadDataForExe(exepath.ptr, null, null);
@@ -902,6 +930,24 @@ bool openDebugInfo(IDiaDataSource* source, IDiaSession* session, IDiaSymbol* glo
     hr == S_OK || assert(false, "get_globalScope failed");
 
     return true;
+}
+
+HRESULT CreateRegFreeCOMInstance(const(char*)dll, REFCLSID classID, REFIID iid, PVOID* pObj)
+{
+    HANDLE hmod = LoadLibraryA(dll);
+    if (!hmod)
+        return E_FAIL;
+    auto fnDllGetClassObject = cast(typeof(&DllGetClassObject))GetProcAddress(hmod, "DllGetClassObject");
+    if (!fnDllGetClassObject)
+        return E_FAIL;
+
+    static const GUID IClassFactory_iid = { 0x00000001,0x0000,0x0000,[ 0xC0,0x00,0x00,0x00,0x00,0x00,0x00,0x46 ] };
+    IClassFactory factory;
+    HRESULT hr = fnDllGetClassObject(classID, &IClassFactory_iid, cast(void**)&factory);
+    if (hr != S_OK)
+        return hr;
+
+    return factory.CreateInstance(null, iid, pObj);
 }
 
 void printSymbol(IDiaSymbol sym, int indent)

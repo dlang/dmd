@@ -534,7 +534,7 @@ void cv8_linnum(Srcpos srcpos, uint offset)
     __gshared uint lastlinnum;
     if (currentfuncdata.linepairnum)
     {
-        if (offset <= lastoffset || srcpos.Slinnum <= lastlinnum)
+        if (offset <= lastoffset)
             return;
     }
     lastoffset = offset;
