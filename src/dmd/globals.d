@@ -492,7 +492,7 @@ nothrow:
         this.filename = filename;
     }
 
-    extern (C++) void toChars(ref OutBuffer buffer) const
+    extern (C++) void toChars(ref OutBuffer buf) const
     {
         if (filename)
         {
@@ -514,7 +514,7 @@ nothrow:
     extern (C++) const(char)* toChars() const
     {
         OutBuffer buf;
-        toChars(buffer);
+        toChars(buf);
         return buf.extractString();
     }
 
