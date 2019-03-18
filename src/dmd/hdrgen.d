@@ -2319,7 +2319,7 @@ public:
     override void visit(DelegateExp e)
     {
         buf.writeByte('&');
-        if (!e.func.isNested())
+        if (!e.func.isNested() || e.func.needThis())
         {
             expToBuffer(e.e1, PREC.primary, buf, hgs);
             buf.writeByte('.');

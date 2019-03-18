@@ -3885,9 +3885,9 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                     auto fd = p.isFuncDeclaration();
                     if (!fd)
                         break;
-                    if (fd.isNested())
-                        continue;
                     auto ad = fd.isThis();
+                    if (!ad && fd.isNested())
+                        continue;
                     if (!ad)
                         break;
                     if (auto cdp = ad.isClassDeclaration())
@@ -3898,7 +3898,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                         const nestedError = fd.vthis.checkNestedReference(sc, e.loc);
                         assert(!nestedError);
 
-                        ve.type = fd.vthis.type.addMod(e.type.mod);
+                        ve.type = cdp.type.addMod(fd.vthis.type.mod).addMod(e.type.mod);
                         return ve;
                     }
                     break;
@@ -4053,13 +4053,36 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                 /* Rewrite as:
                  *  this.d
                  */
-                if (hasThis(sc))
+                AggregateDeclaration ad = d.isMemberLocal();
+                if (auto f = hasThis(sc))
                 {
-                    // This is almost same as getRightThis() in expression.c
-                    Expression e1 = new ThisExp(e.loc);
+                    // This is almost same as getRightThis() in expressionsem.d
+                    Expression e1;
+                    Type t;
+                    /* returns: true to continue, false to return */
+                    if (f.isThis2)
+                    {
+                        if (followInstantiationContext(f, ad))
+                        {
+                            e1 = new VarExp(e.loc, f.vthis);
+                            e1 = new PtrExp(e1.loc, e1);
+                            e1 = new IndexExp(e1.loc, e1, IntegerExp.literal!1);
+                            auto pd = f.toParent2().isDeclaration();
+                            assert(pd);
+                            t = pd.type.toBasetype();
+                            e1 = getThisSkipNestedFuncs(e1.loc, sc, f.toParent2(), ad, e1, t, d, true);
+                            if (!e1)
+                            {
+                                e = new VarExp(e.loc, d);
+                                return e;
+                            }
+                            goto L2;
+                        }
+                    }
+                    e1 = new ThisExp(e.loc);
                     e1 = e1.expressionSemantic(sc);
                 L2:
-                    Type t = e1.type.toBasetype();
+                    t = e1.type.toBasetype();
                     ClassDeclaration cd = e.type.isClassHandle();
                     ClassDeclaration tcd = t.isClassHandle();
                     if (cd && tcd && (tcd == cd || cd.isBaseOf(tcd, null)))
@@ -4074,15 +4097,16 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                         /* e1 is the 'this' pointer for an inner class: tcd.
                          * Rewrite it as the 'this' pointer for the outer class.
                          */
-                        e1 = new DotVarExp(e.loc, e1, tcd.vthis);
-                        e1.type = tcd.vthis.type;
+                        auto vthis = followInstantiationContext(tcd, ad) ? tcd.vthis2 : tcd.vthis;
+                        e1 = new DotVarExp(e.loc, e1, vthis);
+                        e1.type = vthis.type;
                         e1.type = e1.type.addMod(t.mod);
                         // Do not call ensureStaticLinkTo()
                         //e1 = e1.expressionSemantic(sc);
 
                         // Skip up over nested functions, and get the enclosing
                         // class type.
-                        e1 = getThisSkipNestedFuncs(e1.loc, sc, tcd.toParent2(), d.isMember2(), e1, t, d, true);
+                        e1 = getThisSkipNestedFuncs(e1.loc, sc, toParentP(tcd, ad), ad, e1, t, d, true);
                         if (!e1)
                         {
                             e = new VarExp(e.loc, d);

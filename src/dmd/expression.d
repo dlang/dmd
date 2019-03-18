@@ -139,7 +139,7 @@ FuncDeclaration hasThis(Scope* sc)
         {
             goto Lno;
         }
-        if (!fd.isNested())
+        if (!fd.isNested() || fd.isThis() || (fd.isThis2 && fd.isMember2()))
             break;
 
         Dsymbol parent = fd.parent;
@@ -156,7 +156,7 @@ FuncDeclaration hasThis(Scope* sc)
         fd = parent.isFuncDeclaration();
     }
 
-    if (!fd.isThis())
+    if (!fd.isThis() && !(fd.isThis2 && fd.isMember2()))
     {
         goto Lno;
     }
@@ -4765,12 +4765,14 @@ extern (C++) final class DelegateExp : UnaExp
 {
     FuncDeclaration func;
     bool hasOverloads;
+    VarDeclaration vthis2;  // container for multi-context
 
-    extern (D) this(const ref Loc loc, Expression e, FuncDeclaration f, bool hasOverloads = true)
+    extern (D) this(const ref Loc loc, Expression e, FuncDeclaration f, bool hasOverloads = true, VarDeclaration vthis2 = null)
     {
         super(loc, TOK.delegate_, __traits(classInstanceSize, DelegateExp), e);
         this.func = f;
         this.hasOverloads = hasOverloads;
+        this.vthis2 = vthis2;
     }
 
     override void accept(Visitor v)
@@ -4804,6 +4806,7 @@ extern (C++) final class CallExp : UnaExp
     Expressions* arguments; // function arguments
     FuncDeclaration f;      // symbol to call
     bool directcall;        // true if a virtual call is devirtualized
+    VarDeclaration vthis2;  // container for multi-context
 
     extern (D) this(const ref Loc loc, Expression e, Expressions* exps)
     {

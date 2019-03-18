@@ -2360,16 +2360,16 @@ Expression castTo(Expression e, Scope* sc, Type t)
                             result = new DelegateExp(e.loc, new ThisExp(e.loc), f, false);
                             result = result.expressionSemantic(sc);
                         }
-                        else if (f.isNested())
-                        {
-                            result = new DelegateExp(e.loc, IntegerExp.literal!0, f, false);
-                            result = result.expressionSemantic(sc);
-                        }
                         else if (f.needThis())
                         {
                             e.error("no `this` to create delegate for `%s`", f.toChars());
                             result = new ErrorExp();
                             return;
+                        }
+                        else if (f.isNested())
+                        {
+                            result = new DelegateExp(e.loc, IntegerExp.literal!0, f, false);
+                            result = result.expressionSemantic(sc);
                         }
                         else
                         {
@@ -2435,7 +2435,7 @@ Expression castTo(Expression e, Scope* sc, Type t)
                             e.error("%s", msg);
                         if (f != e.func)    // if address not already marked as taken
                             f.tookAddressOf++;
-                        result = new DelegateExp(e.loc, e.e1, f, false);
+                        result = new DelegateExp(e.loc, e.e1, f, false, e.vthis2);
                         result.type = t;
                         return;
                     }
