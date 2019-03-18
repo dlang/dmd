@@ -214,7 +214,6 @@ extern (C++) class FuncDeclaration : Declaration
         VarDeclaration selectorParameter;
     }
 
-    Types* fthrows;                     /// Array of Type's of exceptions (not used)
     Statements* frequires;              /// in contracts
     Ensures* fensures;                  /// out contracts
     Statement frequire;                 /// lowered in contract
@@ -341,7 +340,6 @@ extern (C++) class FuncDeclaration : Declaration
         f.frequires = frequires ? Statement.arraySyntaxCopy(frequires) : null;
         f.fensures = fensures ? Ensure.arraySyntaxCopy(fensures) : null;
         f.fbody = fbody ? fbody.syntaxCopy() : null;
-        assert(!fthrows); // deprecated
         return f;
     }
 
