@@ -2,7 +2,7 @@
 
 /********************************************/
 
-void test1()
+void test1a()
 {
     int a = 1;
 
@@ -27,6 +27,24 @@ void test1()
     assert(v == 3);
 }
 
+auto test1b()
+{
+    auto f(alias a)() { return a; }
+
+    auto f0()
+    {
+        int a = 10;
+        return f!a();
+    }
+    assert(f0() == 10);
+}
+
+void test1()
+{
+    test1a();
+    test1b();
+}
+
 /********************************************/
 
 class C2
@@ -46,6 +64,9 @@ class C2
 
 void test2()
 {
+    if (__ctfe)
+        return; // nested classes not yet ctfeable
+
     int a = 20;
     auto o = new C2;
     auto k = o.new C2.K!a(30);
@@ -109,6 +130,9 @@ struct S4
 
 void test4i(T)(T i)
 {
+    if (__ctfe)
+        return; // nested classes not yet ctfeable
+
     int b = 2;
 
     assert(i.add(7) == 5+1+6+7);
@@ -174,6 +198,9 @@ void test5()
 
 void test6a()
 {
+    if (__ctfe)
+        return; // nested classes not yet ctfeable
+
     int i = 10;
     int j, k;
 
@@ -281,7 +308,7 @@ void test6()
 
 /********************************************/
 
-void main()
+int runTests()
 {
     test1();
     test2();
@@ -289,4 +316,11 @@ void main()
     test4();
     test5();
     test6();
+    return 0;
+}
+
+void main()
+{
+    runTests();          // runtime
+    enum _ = runTests(); // ctfe
 }

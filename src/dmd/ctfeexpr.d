@@ -1857,7 +1857,14 @@ bool isCtfeValueValid(Expression newval)
     {
         // e1 should be a CTFE reference
         Expression e1 = (cast(AddrExp)newval).e1;
-        return tb.ty == Tpointer && (e1.op == TOK.structLiteral && isCtfeValueValid(e1) || e1.op == TOK.variable || e1.op == TOK.dotVariable && isCtfeReferenceValid(e1) || e1.op == TOK.index && isCtfeReferenceValid(e1) || e1.op == TOK.slice && e1.type.toBasetype().ty == Tsarray);
+        return tb.ty == Tpointer &&
+        (
+            (e1.op == TOK.structLiteral || e1.op == TOK.arrayLiteral) && isCtfeValueValid(e1) ||
+             e1.op == TOK.variable ||
+             e1.op == TOK.dotVariable && isCtfeReferenceValid(e1) ||
+             e1.op == TOK.index && isCtfeReferenceValid(e1) ||
+             e1.op == TOK.slice && e1.type.toBasetype().ty == Tsarray
+        );
     }
     if (newval.op == TOK.slice)
     {
