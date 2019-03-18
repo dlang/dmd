@@ -44,7 +44,7 @@ abstract class Diagnostic
     const Severity severity;
 
     /// The message.
-    abstract string message();
+    abstract string message() const nothrow;
 
     this(const ref Loc loc, const Severity severity)
     {
@@ -55,11 +55,26 @@ abstract class Diagnostic
 
 class FormattedDiagnostic(Args...) : Diagnostic
 {
-    private Args args;
+    private const string formatString;
+    private const Args args;
 
-    override string message()
+    this(const ref Loc loc, const Severity severity, const string formatString,
+        const Args args)
     {
+        super(loc, severity);
+        this.formatString = formatString;
+        this.args = args;
+    }
 
+    override string message() const nothrow
+    {
+        OutBuffer buffer;
+
+        loc.toChars(buffer);
+        buffer.writestring(": ");
+        buffer.printf(formatString, args);
+
+        return cast(string) buffer.extractSlice();
     }
 }
 

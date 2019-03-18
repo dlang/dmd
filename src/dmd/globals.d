@@ -492,9 +492,8 @@ nothrow:
         this.filename = filename;
     }
 
-    extern (C++) const(char)* toChars() const
+    extern (C++) void toChars(ref OutBuffer buffer) const
     {
-        OutBuffer buf;
         if (filename)
         {
             buf.writestring(filename);
@@ -510,6 +509,12 @@ nothrow:
             }
             buf.writeByte(')');
         }
+    }
+
+    extern (C++) const(char)* toChars() const
+    {
+        OutBuffer buf;
+        toChars(buffer);
         return buf.extractString();
     }
 
