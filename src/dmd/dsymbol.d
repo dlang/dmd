@@ -349,7 +349,7 @@ extern (C++) class Dsymbol : ASTNode
 
     final bool checkDeprecated(const ref Loc loc, Scope* sc)
     {
-        if (global.params.useDeprecated != Diagnostic.off && isDeprecated())
+        if (global.params.useDeprecated != DiagnosticReporting.off && isDeprecated())
         {
             // Don't complain if we're inside a deprecated symbol's scope
             if (sc.isDeprecated())

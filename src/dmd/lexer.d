@@ -392,7 +392,7 @@ final class StderrDiagnosticReporter : DiagnosticReporter
     {
         vdeprecation(loc, format, args);
 
-        if (useDeprecated == Diagnostic.error)
+        if (useDeprecated == DiagnosticReporting.error)
             errorCount_++;
         else
             deprecationCount_++;
