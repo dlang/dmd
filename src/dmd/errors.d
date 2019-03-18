@@ -379,12 +379,12 @@ extern (C++) void verrorSupplemental(const ref Loc loc, const(char)* format, va_
  */
 extern (C++) void vwarning(const ref Loc loc, const(char)* format, va_list ap)
 {
-    if (global.params.warnings != Diagnostic.off)
+    if (global.params.warnings != DiagnosticReporting.off)
     {
         if (!global.gag)
         {
             verrorPrint(loc, Classification.warning, "Warning: ", format, ap);
-            if (global.params.warnings == Diagnostic.error)
+            if (global.params.warnings == DiagnosticReporting.error)
                 global.warnings++;
         }
         else
@@ -403,7 +403,7 @@ extern (C++) void vwarning(const ref Loc loc, const(char)* format, va_list ap)
  */
 extern (C++) void vwarningSupplemental(const ref Loc loc, const(char)* format, va_list ap)
 {
-    if (global.params.warnings != Diagnostic.off && !global.gag)
+    if (global.params.warnings != DiagnosticReporting.off && !global.gag)
         verrorPrint(loc, Classification.warning, "       ", format, ap);
 }
 
@@ -419,9 +419,9 @@ extern (C++) void vwarningSupplemental(const ref Loc loc, const(char)* format, v
 extern (C++) void vdeprecation(const ref Loc loc, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
 {
     __gshared const(char)* header = "Deprecation: ";
-    if (global.params.useDeprecated == Diagnostic.error)
+    if (global.params.useDeprecated == DiagnosticReporting.error)
         verror(loc, format, ap, p1, p2, header);
-    else if (global.params.useDeprecated == Diagnostic.inform)
+    else if (global.params.useDeprecated == DiagnosticReporting.inform)
     {
         if (!global.gag)
         {
@@ -465,9 +465,9 @@ extern (C++) void vmessage(const ref Loc loc, const(char)* format, va_list ap)
  */
 extern (C++) void vdeprecationSupplemental(const ref Loc loc, const(char)* format, va_list ap)
 {
-    if (global.params.useDeprecated == Diagnostic.error)
+    if (global.params.useDeprecated == DiagnosticReporting.error)
         verrorSupplemental(loc, format, ap);
-    else if (global.params.useDeprecated == Diagnostic.inform && !global.gag)
+    else if (global.params.useDeprecated == DiagnosticReporting.inform && !global.gag)
         verrorPrint(loc, Classification.deprecation, "       ", format, ap);
 }
 
