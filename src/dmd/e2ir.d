@@ -1159,7 +1159,7 @@ elem *toElem(Expression e, IRState *irs)
                 if (fd && fd != irs.getFunc())
                 {
                     // 'var' is a variable in an enclosing function.
-                    elem *ethis = getEthis(se.loc, irs, fd);
+                    elem *ethis = getEthis(se.loc, irs, fd, null, se.originalScope);
                     ethis = el_una(OPaddr, TYnptr, ethis);
 
                     /* https://issues.dlang.org/show_bug.cgi?id=9383

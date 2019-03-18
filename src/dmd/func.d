@@ -3191,9 +3191,9 @@ private bool checkEscapingSiblings(FuncDeclaration f, FuncDeclaration outerFunc,
 }
 
 /***
- * Returns true if `p` resides in the enclosing instantiation scope of `s`.
+ * Returns true if any of the symbols `p` resides in the enclosing instantiation scope of `s`.
  */
-bool followInstantiationContext(Dsymbol s, Dsymbol p)
+bool followInstantiationContext(D...)(Dsymbol s, D p)
 {
     static bool has2This(Dsymbol s)
     {
@@ -3207,7 +3207,7 @@ bool followInstantiationContext(Dsymbol s, Dsymbol p)
     assert(s);
     if (has2This(s))
     {
-        assert(p);
+        assert(p.length);
         auto parent = s.toParent();
         while (parent)
         {
@@ -3218,8 +3218,14 @@ bool followInstantiationContext(Dsymbol s, Dsymbol p)
                 auto sa = getDsymbol(oarg);
                 if (!sa)
                     continue;
-                if (sa.toAlias().toParent2() == p)
-                    return true;
+                sa = sa.toAlias().toParent2();
+                if (!sa)
+                    continue;
+                foreach (ps; p)
+                {
+                    if (sa == ps)
+                        return true;
+                }
             }
             parent = ti.tempdecl.toParent();
         }
@@ -3230,10 +3236,10 @@ bool followInstantiationContext(Dsymbol s, Dsymbol p)
 
 /*
  * Returns the declaration scope scope of `s`
- * unless `p` resides in its enclosing instantiation scope
+ * unless any of the symbols `p` resides in its enclosing instantiation scope
  * then the latter is returned.
  */
-Dsymbol toParentP(Dsymbol s, Dsymbol p)
+Dsymbol toParentP(D...)(Dsymbol s, D p)
 {
     return followInstantiationContext(s, p) ? s.toParent2() : s.toParentLocal();
 }

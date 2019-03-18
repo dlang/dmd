@@ -1,3 +1,4 @@
+// PERMUTE_ARGS: -inline
 
 /********************************************/
 
@@ -169,6 +170,116 @@ void test5()
 }
 
 /********************************************/
+// inline tests
+
+void test6a()
+{
+    int i = 10;
+    int j, k;
+
+    class A
+    {
+        auto makeR(alias a)()
+        {
+            int m = 1;
+            class O
+            {
+                class R
+                {
+                    pragma(inline, true)
+                    final auto inc(alias v)()
+                    {
+                        ++v;
+                        ++m;
+                        ++i;
+                    }
+                    auto getM() { return m; }
+                }
+            }
+            return new O().new R();
+        }
+    }
+
+    auto a = new A;
+    auto r = a.makeR!j();
+    r.inc!k();          // inlined
+    assert(i == 11);
+    assert(k == 1);
+    assert(r.getM == 2);
+}
+
+
+auto get6b()
+{
+    struct S
+    {
+        auto f0(alias a)()
+        {
+            auto seta(int m) {
+                pragma(inline, true);
+                a = m;
+            }
+
+            struct T(alias f)
+            {
+                int m = 10;
+                void exec()
+                {
+                    f(m); // inlined
+                }
+            }
+            return T!seta();
+        }
+    }
+    return S();
+}
+
+void test6b()
+{
+    int a = 1;
+    auto s = get6b();
+    auto t = s.f0!a();
+    t.exec();
+    assert(a == 10);
+}
+
+struct S6c
+{
+    int m;
+    auto exec(alias f)()
+    {
+        return f(); // inlined
+    }
+}
+
+void test6c()
+{
+    int a;
+
+    auto f0()
+    {
+        auto f()
+        {
+            pragma(inline, true);
+            return ++a;
+        }
+
+        auto s = S6c();
+        s.exec!f();
+        assert(a == 1);
+    }
+
+    f0();
+}
+
+void test6()
+{
+    test6a();
+    test6b();
+    test6c();
+}
+
+/********************************************/
 
 void main()
 {
@@ -177,4 +288,5 @@ void main()
     test3();
     test4();
     test5();
+    test6();
 }
