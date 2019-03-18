@@ -1879,10 +1879,19 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
              *
              * void foo(ref inout(int) x) {
              *   ref inout(int) bar(inout(int)) { return x; }
-             *   struct S { ref inout(int) bar() inout { return x; } }
+             *   struct S {
+             *      ref inout(int) bar() inout { return x; }
+             *      ref inout(int) baz(alias a)() inout { return x; }
+             *   }
              *   bar(int.init) = 1;  // bad!
              *   S().bar() = 1;      // bad!
              * }
+             * void test() {
+             *   int a;
+             *   auto s = foo(a);
+             *   s.baz!a() = 1;      // bad!
+             * }
+             *
              */
             bool checkEnclosingWild(Dsymbol s)
             {
@@ -1905,10 +1914,17 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     }
                     return false;
                 }
-                return checkWild(s.toParent2());
-           }
-           if ((fd.isThis() || fd.isNested()) && checkEnclosingWild(fd))
-               return true;
+
+                Dsymbol ctx0 = s.toParent2();
+                Dsymbol ctx1 = s.toParentLocal();
+                if (checkWild(ctx0))
+                    return true;
+                if (ctx0 != ctx1)
+                    return checkWild(ctx1);
+                return false;
+            }
+            if ((fd.isThis() || fd.isNested()) && checkEnclosingWild(fd))
+                return true;
         }
         else if (tf.isWild())
             return errorInout(wildmatch);
