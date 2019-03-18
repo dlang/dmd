@@ -977,7 +977,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
         else if (tbase.ty == Tclass && !(cast(TypeClass)tbase).sym.isInterfaceDeclaration())
         {
             ClassDeclaration cd = (cast(TypeClass)tbase).sym;
-	    if (cd._scope && cd.semanticRun < PASS.semanticdone)
+            if (cd._scope && cd.semanticRun < PASS.semanticdone)
                 cd.dsymbolSemantic(null);
 
             if (!ClassDeclaration.object)
