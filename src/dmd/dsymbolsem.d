@@ -3139,7 +3139,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             /* Non-static nested functions have a hidden 'this' pointer to which
              * the 'return' applies
              */
-            funcdecl.error("`static` member has no `this` to which `return` can apply");
+            if (sc.scopesym && sc.scopesym.isAggregateDeclaration())
+                funcdecl.error("`static` member has no `this` to which `return` can apply");
+            else
+                error(funcdecl.loc, "Top-level function `%s` has no `this` to which `return` can apply", funcdecl.toChars());
         }
 
         if (funcdecl.isAbstract() && !funcdecl.isVirtual())
