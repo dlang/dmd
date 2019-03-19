@@ -4980,29 +4980,6 @@ final class Parser(AST) : Lexer
                 continue;
             }
 
-            version (none)
-            {
-                // Dumped feature
-            case TOK.throw_:
-                if (!f.fthrows)
-                    f.fthrows = new Types();
-                nextToken();
-                check(TOK.leftParentheses);
-                while (1)
-                {
-                    Type tb = parseBasicType();
-                    f.fthrows.push(tb);
-                    if (token.value == TOK.comma)
-                    {
-                        nextToken();
-                        continue;
-                    }
-                    break;
-                }
-                check(TOK.rightParentheses);
-                goto L1;
-            }
-
         case TOK.in_:
             // in { statements... }
             // in (expression)

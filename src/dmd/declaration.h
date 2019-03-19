@@ -462,7 +462,6 @@ public:
         VarDeclaration *selector;
     };
 
-    Types *fthrows;                     // Array of Type's of exceptions (not used)
     Statements *frequires;              // in contracts
     Ensures *fensures;                  // out contracts
     Statement *frequire;                // lowered in contract
