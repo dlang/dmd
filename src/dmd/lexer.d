@@ -31,13 +31,13 @@ import dmd.root.rmem;
 import dmd.tokens;
 import dmd.utf;
 
-enum LS = 0x2028;       // UTF line separator
-enum PS = 0x2029;       // UTF paragraph separator
+private enum LS = 0x2028;       // UTF line separator
+private enum PS = 0x2029;       // UTF paragraph separator
 
 /********************************************
  * Do our own char maps
  */
-static immutable cmtable = () {
+private static immutable cmtable = () {
     ubyte[256] table;
     foreach (const c; 0 .. table.length)
     {
@@ -89,39 +89,42 @@ static immutable cmtable = () {
     return table;
 }();
 
-enum CMoctal  = 0x1;
-enum CMhex    = 0x2;
-enum CMidchar = 0x4;
-enum CMzerosecond = 0x8;
-enum CMdigitsecond = 0x10;
-enum CMsinglechar = 0x20;
+private
+{
+    enum CMoctal  = 0x1;
+    enum CMhex    = 0x2;
+    enum CMidchar = 0x4;
+    enum CMzerosecond = 0x8;
+    enum CMdigitsecond = 0x10;
+    enum CMsinglechar = 0x20;
+}
 
-bool isoctal(const char c)
+private bool isoctal(const char c)
 {
     return (cmtable[c] & CMoctal) != 0;
 }
 
-bool ishex(const char c)
+private bool ishex(const char c)
 {
     return (cmtable[c] & CMhex) != 0;
 }
 
-bool isidchar(const char c)
+private bool isidchar(const char c)
 {
     return (cmtable[c] & CMidchar) != 0;
 }
 
-bool isZeroSecond(const char c)
+private bool isZeroSecond(const char c)
 {
     return (cmtable[c] & CMzerosecond) != 0;
 }
 
-bool isDigitSecond(const char c)
+private bool isDigitSecond(const char c)
 {
     return (cmtable[c] & CMdigitsecond) != 0;
 }
 
-bool issinglechar(const char c)
+private bool issinglechar(const char c)
 {
     return (cmtable[c] & CMsinglechar) != 0;
 }
@@ -405,24 +408,29 @@ final class StderrDiagnosticReporter : DiagnosticReporter
  */
 class Lexer
 {
-    __gshared OutBuffer stringbuffer;
+    private __gshared OutBuffer stringbuffer;
 
     Loc scanloc;            // for error messages
     Loc prevloc;            // location of token before current
 
-    const(char)* base;      // pointer to start of buffer
-    const(char)* end;       // pointer to last element of buffer
     const(char)* p;         // current character
-    const(char)* line;      // start of current line
+
     Token token;
-    bool doDocComment;      // collect doc comment information
-    bool anyToken;          // seen at least one token
-    bool commentToken;      // comments are TOK.comment's
-    int lastDocLine;        // last line of previous doc comment
 
-    private DiagnosticReporter diagnosticReporter;
+    private
+    {
+        const(char)* base;      // pointer to start of buffer
+        const(char)* end;       // pointer to last element of buffer
+        const(char)* line;      // start of current line
 
-    private Token* tokenFreelist;
+        bool doDocComment;      // collect doc comment information
+        bool anyToken;          // seen at least one token
+        bool commentToken;      // comments are TOK.comment's
+        int lastDocLine;        // last line of previous doc comment
+
+        DiagnosticReporter diagnosticReporter;
+        Token* tokenFreelist;
+    }
 
     /*********************
      * Creates a Lexer for the source code base[begoffset..endoffset+1].
@@ -504,7 +512,7 @@ class Lexer
     }
 
     /// Frees the given token by returning it to the freelist.
-    void releaseToken(Token* token) pure nothrow @nogc @safe
+    private void releaseToken(Token* token) pure nothrow @nogc @safe
     {
         token.next = tokenFreelist;
         tokenFreelist = token;
@@ -1350,7 +1358,7 @@ class Lexer
     /*******************************************
      * Parse escape sequence.
      */
-    final uint escapeSequence()
+    private uint escapeSequence()
     {
         return Lexer.escapeSequence(token.loc, diagnosticReporter, p);
     }
@@ -1365,7 +1373,7 @@ class Lexer
     Returns:
         the escaped sequence as a single character
     */
-    static dchar escapeSequence(const ref Loc loc, DiagnosticReporter handler, ref const(char)* sequence)
+    private static dchar escapeSequence(const ref Loc loc, DiagnosticReporter handler, ref const(char)* sequence)
     in
     {
         assert(handler !is null);
@@ -1515,7 +1523,7 @@ class Lexer
     Params:
         result = pointer to the token that accepts the result
     */
-    final void wysiwygStringConstant(Token* result)
+    private void wysiwygStringConstant(Token* result)
     {
         result.value = TOK.string_;
         Loc start = loc();
@@ -1571,7 +1579,7 @@ class Lexer
      * Lex hex strings:
      *      x"0A ae 34FE BD"
      */
-    final TOK hexStringConstant(Token* t)
+    private TOK hexStringConstant(Token* t)
     {
         Loc start = loc();
         uint n = 0;
@@ -1659,7 +1667,7 @@ class Lexer
     Params:
         result = pointer to the token that accepts the result
     */
-    final void delimitedStringConstant(Token* result)
+    private void delimitedStringConstant(Token* result)
     {
         result.value = TOK.string_;
         Loc start = loc();
@@ -1818,7 +1826,7 @@ class Lexer
     Params:
         result = pointer to the token that accepts the result
     */
-    final void tokenStringConstant(Token* result)
+    private void tokenStringConstant(Token* result)
     {
         result.value = TOK.string_;
 
@@ -1860,7 +1868,7 @@ class Lexer
     Params:
         t = the token to set the resulting string to
     */
-    final void escapeStringConstant(Token* t)
+    private void escapeStringConstant(Token* t)
     {
         t.value = TOK.string_;
 
@@ -1928,7 +1936,7 @@ class Lexer
 
     /**************************************
      */
-    final TOK charConstant(Token* t)
+    private TOK charConstant(Token* t)
     {
         TOK tk = TOK.charLiteral;
         //printf("Lexer::charConstant\n");
@@ -1997,7 +2005,7 @@ class Lexer
     /***************************************
      * Get postfix of string literal.
      */
-    final void stringPostfix(Token* t)
+    private void stringPostfix(Token* t)
     {
         switch (*p)
         {
@@ -2023,7 +2031,7 @@ class Lexer
      *      TKnum
      *      TKdouble,...
      */
-    final TOK number(Token* t)
+    private TOK number(Token* t)
     {
         int base = 10;
         const start = p;
@@ -2311,7 +2319,7 @@ class Lexer
      *      Exponent overflow not detected.
      *      Too much requested precision is not detected.
      */
-    final TOK inreal(Token* t)
+    private TOK inreal(Token* t)
     {
         //printf("Lexer::inreal()\n");
         debug
@@ -2545,7 +2553,7 @@ class Lexer
      *      #line linnum [filespec]
      * also allow __LINE__ for linnum, and __FILE__ for filespec
      */
-    final void poundLine()
+    private void poundLine()
     {
         auto linnum = this.scanloc.linnum;
         const(char)* filespec = null;
@@ -2653,7 +2661,7 @@ class Lexer
      * Issue error messages for invalid sequences.
      * Return decoded character, advance p to last character in UTF sequence.
      */
-    final uint decodeUTF()
+    private uint decodeUTF()
     {
         const s = p;
         assert(*s & 0x80);
@@ -2684,7 +2692,7 @@ class Lexer
      * If newParagraph is true, an extra newline will be
      * added between adjoining doc comments.
      */
-    final void getDocComment(Token* t, uint lineComment, bool newParagraph)
+    private void getDocComment(Token* t, uint lineComment, bool newParagraph)
     {
         /* ct tells us which kind of comment it is: '/', '*', or '+'
          */
