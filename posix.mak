@@ -7,8 +7,13 @@ ECTAGS_FILES = src/*.[chd] src/backend/*.[chd] src/root/*.[chd] src/tk/*.[chd]
 all:
 	$(QUIET)$(MAKE) -C src -f posix.mak all
 
+ifneq (,$(findstring Darwin_64_32, $(PWD)))
+auto-tester-build:
+	echo "Darwin_64_32_disabled"
+else
 auto-tester-build: toolchain-info
 	$(QUIET)$(MAKE) -C src -f posix.mak auto-tester-build ENABLE_RELEASE=1
+endif
 
 ifneq (,$(findstring Darwin_64_32, $(PWD)))
 auto-tester-test:
