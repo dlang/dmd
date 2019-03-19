@@ -278,6 +278,7 @@ final class Parser(AST) : Lexer
         Loc endloc; // set to location of last right curly
         int inBrackets; // inside [] of array index or slice
         Loc lookingForElse; // location of lonely if looking for an else
+        DiagnosticSet diagnosticSet;
     }
 
     /*********************
@@ -316,6 +317,17 @@ final class Parser(AST) : Lexer
         mod = _module;
         linkage = LINK.d;
         //nextToken();              // start up the scanner
+    }
+
+    alias nextToken = typeof(super).nextToken;
+
+    TOK nextToken()
+    {
+        DiagnosticSet set;
+        auto result = nextToken(set);
+        diagnosticSet.add(set);
+
+        return result;
     }
 
     AST.Dsymbols* parseModule()

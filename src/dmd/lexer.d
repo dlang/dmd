@@ -430,6 +430,7 @@ class Lexer
 
         DiagnosticReporter diagnosticReporter;
         Token* tokenFreelist;
+        DiagnosticSet diagnosticSet;
     }
 
     /*********************
@@ -495,7 +496,11 @@ class Lexer
     /// Returns: `true` if any errors occurred during lexing or parsing.
     final bool errors()
     {
-        return diagnosticReporter.errorCount > 0;
+        foreach (diagnostic; diagnosticSet)
+            if (diagnostic.severity == Severity.error)
+                return true;
+
+        return false;
     }
 
     /// Returns: a newly allocated `Token`.
@@ -518,7 +523,7 @@ class Lexer
         tokenFreelist = token;
     }
 
-    final TOK nextToken()
+    final TOK nextToken(out DiagnosticSet set)
     {
         prevloc = token.loc;
         if (token.next)
@@ -532,6 +537,7 @@ class Lexer
             scan(&token);
         }
         //printf(token.toChars());
+        set = diagnosticSet;
         return token.value;
     }
 
@@ -554,9 +560,14 @@ class Lexer
 
     /****************************
      * Turn next token in buffer into a token.
+     *
+     * Returns: a set of diagnostic that occurred when scanning the token
      */
-    final void scan(Token* t)
+    final DiagnosticSet scan(Token* t)
     {
+        scope (exit)
+             diagnosticSet = DiagnosticSet();
+
         const lastLine = scanloc.linnum;
         Loc startLoc;
         t.blockComment = null;
@@ -573,7 +584,7 @@ class Lexer
             case 0x1A:
                 t.value = TOK.endOfFile; // end of file
                 // Intentionally not advancing `p`, such that subsequent calls keep returning TOK.endOfFile.
-                return;
+                return diagnosticSet;
             case ' ':
             case '\t':
             case '\v':
@@ -595,7 +606,7 @@ class Lexer
                     ++p;
                     t.unsvalue = 0;
                     t.value = TOK.int32Literal;
-                    return;
+                    return diagnosticSet;
                 }
                 goto Lnumber;
 
@@ -605,11 +616,11 @@ class Lexer
                     t.unsvalue = *p - '0';
                     ++p;
                     t.value = TOK.int32Literal;
-                    return;
+                    return diagnosticSet;
                 }
             Lnumber:
                 t.value = number(t);
-                return;
+                return diagnosticSet;
 
             case '\'':
                 if (issinglechar(p[1]) && p[2] == '\'')
@@ -620,7 +631,7 @@ class Lexer
                 }
                 else
                     t.value = charConstant(t);
-                return;
+                return diagnosticSet;
             case 'r':
                 if (p[1] != '"')
                     goto case_ident;
@@ -628,32 +639,32 @@ class Lexer
                 goto case '`';
             case '`':
                 wysiwygStringConstant(t);
-                return;
+                return diagnosticSet;
             case 'x':
                 if (p[1] != '"')
                     goto case_ident;
                 p++;
                 t.value = hexStringConstant(t);
                 deprecation("Built-in hex string literals are deprecated, use `std.conv.hexString` instead.");
-                return;
+                return diagnosticSet;
             case 'q':
                 if (p[1] == '"')
                 {
                     p++;
                     delimitedStringConstant(t);
-                    return;
+                    return diagnosticSet;
                 }
                 else if (p[1] == '{')
                 {
                     p++;
                     tokenStringConstant(t);
-                    return;
+                    return diagnosticSet;
                 }
                 else
                     goto case_ident;
             case '"':
                 escapeStringConstant(t);
-                return;
+                return diagnosticSet;
             case 'a':
             case 'b':
             case 'c':
@@ -782,7 +793,7 @@ class Lexer
                         }
                     }
                     //printf("t.value = %d\n",t.value);
-                    return;
+                    return diagnosticSet;
                 }
             case '/':
                 p++;
@@ -791,7 +802,7 @@ class Lexer
                 case '=':
                     p++;
                     t.value = TOK.divAssign;
-                    return;
+                    return diagnosticSet;
                 case '*':
                     p++;
                     startLoc = loc();
@@ -819,7 +830,7 @@ class Lexer
                                 p = end;
                                 t.loc = loc();
                                 t.value = TOK.endOfFile;
-                                return;
+                                return diagnosticSet;
                             default:
                                 if (c & 0x80)
                                 {
@@ -840,7 +851,7 @@ class Lexer
                     {
                         t.loc = startLoc;
                         t.value = TOK.comment;
-                        return;
+                        return diagnosticSet;
                     }
                     else if (doDocComment && t.ptr[2] == '*' && p - 4 != t.ptr)
                     {
@@ -869,7 +880,7 @@ class Lexer
                                 p = end;
                                 t.loc = startLoc;
                                 t.value = TOK.comment;
-                                return;
+                                return diagnosticSet;
                             }
                             if (doDocComment && t.ptr[2] == '/')
                             {
@@ -879,7 +890,7 @@ class Lexer
                             p = end;
                             t.loc = loc();
                             t.value = TOK.endOfFile;
-                            return;
+                            return diagnosticSet;
                         default:
                             if (c & 0x80)
                             {
@@ -897,7 +908,7 @@ class Lexer
                         endOfLine();
                         t.loc = startLoc;
                         t.value = TOK.comment;
-                        return;
+                        return diagnosticSet;
                     }
                     if (doDocComment && t.ptr[2] == '/')
                     {
@@ -950,7 +961,7 @@ class Lexer
                                 p = end;
                                 t.loc = loc();
                                 t.value = TOK.endOfFile;
-                                return;
+                                return diagnosticSet;
                             default:
                                 if (c & 0x80)
                                 {
@@ -967,7 +978,7 @@ class Lexer
                         {
                             t.loc = startLoc;
                             t.value = TOK.comment;
-                            return;
+                            return diagnosticSet;
                         }
                         if (doDocComment && t.ptr[2] == '+' && p - 4 != t.ptr)
                         {
@@ -981,7 +992,7 @@ class Lexer
                     break;
                 }
                 t.value = TOK.div;
-                return;
+                return diagnosticSet;
             case '.':
                 p++;
                 if (isdigit(*p))
@@ -1007,7 +1018,7 @@ class Lexer
                 }
                 else
                     t.value = TOK.dot;
-                return;
+                return diagnosticSet;
             case '&':
                 p++;
                 if (*p == '=')
@@ -1022,7 +1033,7 @@ class Lexer
                 }
                 else
                     t.value = TOK.and;
-                return;
+                return diagnosticSet;
             case '|':
                 p++;
                 if (*p == '=')
@@ -1037,7 +1048,7 @@ class Lexer
                 }
                 else
                     t.value = TOK.or;
-                return;
+                return diagnosticSet;
             case '-':
                 p++;
                 if (*p == '=')
@@ -1052,7 +1063,7 @@ class Lexer
                 }
                 else
                     t.value = TOK.min;
-                return;
+                return diagnosticSet;
             case '+':
                 p++;
                 if (*p == '=')
@@ -1067,7 +1078,7 @@ class Lexer
                 }
                 else
                     t.value = TOK.add;
-                return;
+                return diagnosticSet;
             case '<':
                 p++;
                 if (*p == '=')
@@ -1088,7 +1099,7 @@ class Lexer
                 }
                 else
                     t.value = TOK.lessThan; // <
-                return;
+                return diagnosticSet;
             case '>':
                 p++;
                 if (*p == '=')
@@ -1120,7 +1131,7 @@ class Lexer
                 }
                 else
                     t.value = TOK.greaterThan; // >
-                return;
+                return diagnosticSet;
             case '!':
                 p++;
                 if (*p == '=')
@@ -1130,7 +1141,7 @@ class Lexer
                 }
                 else
                     t.value = TOK.not; // !
-                return;
+                return diagnosticSet;
             case '=':
                 p++;
                 if (*p == '=')
@@ -1145,7 +1156,7 @@ class Lexer
                 }
                 else
                     t.value = TOK.assign; // =
-                return;
+                return diagnosticSet;
             case '~':
                 p++;
                 if (*p == '=')
@@ -1155,7 +1166,7 @@ class Lexer
                 }
                 else
                     t.value = TOK.tilde; // ~
-                return;
+                return diagnosticSet;
             case '^':
                 p++;
                 if (*p == '^')
@@ -1176,55 +1187,55 @@ class Lexer
                 }
                 else
                     t.value = TOK.xor; // ^
-                return;
+                return diagnosticSet;
             case '(':
                 p++;
                 t.value = TOK.leftParentheses;
-                return;
+                return diagnosticSet;
             case ')':
                 p++;
                 t.value = TOK.rightParentheses;
-                return;
+                return diagnosticSet;
             case '[':
                 p++;
                 t.value = TOK.leftBracket;
-                return;
+                return diagnosticSet;
             case ']':
                 p++;
                 t.value = TOK.rightBracket;
-                return;
+                return diagnosticSet;
             case '{':
                 p++;
                 t.value = TOK.leftCurly;
-                return;
+                return diagnosticSet;
             case '}':
                 p++;
                 t.value = TOK.rightCurly;
-                return;
+                return diagnosticSet;
             case '?':
                 p++;
                 t.value = TOK.question;
-                return;
+                return diagnosticSet;
             case ',':
                 p++;
                 t.value = TOK.comma;
-                return;
+                return diagnosticSet;
             case ';':
                 p++;
                 t.value = TOK.semicolon;
-                return;
+                return diagnosticSet;
             case ':':
                 p++;
                 t.value = TOK.colon;
-                return;
+                return diagnosticSet;
             case '$':
                 p++;
                 t.value = TOK.dollar;
-                return;
+                return diagnosticSet;
             case '@':
                 p++;
                 t.value = TOK.at;
-                return;
+                return diagnosticSet;
             case '*':
                 p++;
                 if (*p == '=')
@@ -1234,7 +1245,7 @@ class Lexer
                 }
                 else
                     t.value = TOK.mul;
-                return;
+                return diagnosticSet;
             case '%':
                 p++;
                 if (*p == '=')
@@ -1244,7 +1255,7 @@ class Lexer
                 }
                 else
                     t.value = TOK.mod;
-                return;
+                return diagnosticSet;
             case '#':
                 {
                     p++;
@@ -1268,7 +1279,7 @@ class Lexer
                         error("C preprocessor directive `#if` is not supported, use `version` or `static if`");
                     }
                     t.value = TOK.pound;
-                    return;
+                    return diagnosticSet;
                 }
             default:
                 {
@@ -1295,6 +1306,8 @@ class Lexer
                 }
             }
         }
+
+        return diagnosticSet;
     }
 
     final Token* peek(Token* ct)
@@ -2484,68 +2497,56 @@ class Lexer
         return scanloc;
     }
 
-    final void error(const(char)* format, ...)
+    void error(Args...)(string format, Args args) pure nothrow @safe
     {
-        va_list args;
-        va_start(args, format);
-        diagnosticReporter.error(token.loc, format, args);
-        va_end(args);
+        error(token.loc, format, args);
     }
 
-    final void error(const ref Loc loc, const(char)* format, ...)
+    void error(Args...)(const ref Loc loc, string format, Args args) pure nothrow @safe
     {
-        va_list args;
-        va_start(args, format);
-        diagnosticReporter.error(loc, format, args);
-        va_end(args);
+        diagnosticSet.add(
+            new FormattedDiagnostic!(Args)(loc, Severity.error, format, args)
+        );
     }
 
-    final void errorSupplemental(const ref Loc loc, const(char)* format, ...)
+    void errorSupplemental(Args...)(const ref Loc loc, string format, Args args) pure nothrow @safe
     {
-        va_list args;
-        va_start(args, format);
-        diagnosticReporter.errorSupplemental(loc, format, args);
-        va_end(args);
+        diagnosticSet.addSupplemental(
+            new FormattedDiagnostic!(Args)(loc, Severity.error, format, args)
+        );
     }
 
-    final void warning(const ref Loc loc, const(char)* format, ...)
+    void warning(Args...)(const ref Loc loc, string format, Args args) pure nothrow @safe
     {
-        va_list args;
-        va_start(args, format);
-        diagnosticReporter.warning(loc, format, args);
-        va_end(args);
+        diagnosticSet.add(
+            new FormattedDiagnostic!(Args)(loc, Severity.warning, format, args)
+        );
     }
 
-    final void warningSupplemental(const ref Loc loc, const(char)* format, ...)
+    void warningSupplemental(Args...)(const ref Loc loc, string format, Args args) pure nothrow @safe
     {
-        va_list args;
-        va_start(args, format);
-        diagnosticReporter.warningSupplemental(loc, format, args);
-        va_end(args);
+        diagnosticSet.addSupplemental(
+            new FormattedDiagnostic!(Args)(loc, Severity.warning, format, args)
+        );
     }
 
-    final void deprecation(const(char)* format, ...)
+    void deprecation(Args...)(string format, Args args) pure nothrow @safe
     {
-        va_list args;
-        va_start(args, format);
-        diagnosticReporter.deprecation(token.loc, format, args);
-        va_end(args);
+        deprecation(token.loc, format, args);
     }
 
-    final void deprecation(const ref Loc loc, const(char)* format, ...)
+    void deprecation(Args...)(const ref Loc loc, string format, Args args) pure nothrow @safe
     {
-        va_list args;
-        va_start(args, format);
-        diagnosticReporter.deprecation(loc, format, args);
-        va_end(args);
+        diagnosticSet.add(
+            new FormattedDiagnostic!(Args)(loc, Severity.deprecation, format, args)
+        );
     }
 
-    final void deprecationSupplemental(const ref Loc loc, const(char)* format, ...)
+    void deprecationSupplemental(Args...)(const ref Loc loc, string format, Args args) pure nothrow @safe
     {
-        va_list args;
-        va_start(args, format);
-        diagnosticReporter.deprecationSupplemental(loc, format, args);
-        va_end(args);
+        diagnosticSet.addSupplemental(
+            new FormattedDiagnostic!(Args)(loc, Severity.deprecation, format, args)
+        );
     }
 
     /*********************************************

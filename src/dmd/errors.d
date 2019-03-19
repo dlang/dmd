@@ -21,6 +21,34 @@ import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.console;
 
+auto toStringzThen(alias func)(const(char)[] str)
+{
+    import core.stdc.stdlib: malloc, free;
+
+    if (str.length == 0)
+        return func("".ptr);
+
+    char[1024] staticBuffer;
+    const newLength = str.length + 1;
+    char[] buffer;
+
+    if (str.length >= buffer.length)
+        buffer = (cast(char*) malloc(newLength * char.sizeof))[0 .. newLength];
+    else
+        buffer = staticBuffer[0 .. newLength];
+
+    scope (exit)
+    {
+        if (&buffer[0] != &staticBuffer[0])
+            free(&buffer[0]);
+    }
+
+    buffer[0 .. $ - 1] = str;
+    buffer[$ - 1] = '\0';
+
+    return func(&buffer[0]);
+}
+
 /// Diagnostic severity.
 enum Severity
 {
@@ -31,7 +59,52 @@ enum Severity
     warning,
 
     /// A deprecation occurred.
-    deprecation
+    deprecation,
+}
+
+struct DiagnosticSet
+{
+    private Diagnostic[] _diagnostics;
+
+    void add(Diagnostic diagnostic) pure nothrow @safe
+    {
+        _diagnostics ~= diagnostic;
+    }
+
+    void add(DiagnosticSet set) pure nothrow @safe
+    {
+        _diagnostics ~= set._diagnostics;
+    }
+
+    void addSupplemental(const Diagnostic diagnostic) pure nothrow @safe
+    {
+        _diagnostics[$ - 1].addSupplementalDiagnostic(diagnostic);
+    }
+
+    const(Diagnostic) front() const pure nothrow @nogc @safe
+    {
+        return _diagnostics[0];
+    }
+
+    void popFront() pure nothrow @nogc @safe
+    {
+        _diagnostics = _diagnostics[1 .. $];
+    }
+
+    bool empty() const pure nothrow @nogc @safe
+    {
+        return _diagnostics.length == 0;
+    }
+
+    size_t length() const pure nothrow @nogc @safe
+    {
+        return _diagnostics.length;
+    }
+
+    const(Diagnostic) opIndex(size_t index) const pure nothrow @nogc @safe
+    {
+        return _diagnostics[index];
+    }
 }
 
 /// A single diagnostic message.
@@ -46,10 +119,27 @@ abstract class Diagnostic
     /// The message.
     abstract string message() const nothrow;
 
-    this(const ref Loc loc, const Severity severity)
+    private const(Diagnostic)[] _supplementalDiagnostics;
+
+    this(const ref Loc loc, const Severity severity) pure nothrow @nogc @safe
     {
         this.loc = loc;
         this.severity = severity;
+    }
+
+    final const(Diagnostic[]) supplementalDiagnostics() const pure nothrow @nogc @safe
+    {
+        return _supplementalDiagnostics;
+    }
+
+    private final void addSupplementalDiagnostic(const Diagnostic diagnostic) pure nothrow @safe
+    in
+    {
+        assert(diagnostic.severity == severity);
+    }
+    body
+    {
+        _supplementalDiagnostics ~= diagnostic;
     }
 }
 
@@ -59,7 +149,7 @@ class FormattedDiagnostic(Args...) : Diagnostic
     private const Args args;
 
     this(const ref Loc loc, const Severity severity, const string formatString,
-        const Args args)
+        const Args args) pure nothrow @nogc @safe
     {
         super(loc, severity);
         this.formatString = formatString;
@@ -72,7 +162,7 @@ class FormattedDiagnostic(Args...) : Diagnostic
 
         loc.toChars(buffer);
         buffer.writestring(": ");
-        buffer.printf(formatString, args);
+        formatString.toStringzThen!(str => buffer.printf(str, args));
 
         return cast(string) buffer.extractSlice();
     }
