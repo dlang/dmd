@@ -32,15 +32,15 @@ import dmd.tokens;
 // as:
 //      int* p;
 //      int* i;
-enum CDECLSYNTAX = 0;
+private enum CDECLSYNTAX = 0;
 
 // Support C cast syntax:
 //      (type)(expression)
-enum CCASTSYNTAX = 1;
+private enum CCASTSYNTAX = 1;
 
 // Support postfix C array declarations, such as
 //      int a[3][4];
-enum CARRAYDECL = 1;
+private enum CARRAYDECL = 1;
 
 /**********************************
  * Set operator precedence for each operator.
@@ -194,7 +194,7 @@ enum ParseStatementFlags : int
     semiOk        = 0x10,     // empty ';' are really ok
 }
 
-struct PrefixAttributes(AST)
+private struct PrefixAttributes(AST)
 {
     StorageClass storageClass;
     AST.Expression depmsg;
@@ -223,7 +223,7 @@ private StorageClass getStorageClass(AST)(PrefixAttributes!(AST)* pAttrs)
 /**************************************
  * dump mixin expansion to file for better debugging
  */
-bool writeMixin(const(char)[] s, ref Loc loc)
+private bool writeMixin(const(char)[] s, ref Loc loc)
 {
     if (!global.params.mixinOut)
         return false;
@@ -268,13 +268,17 @@ bool writeMixin(const(char)[] s, ref Loc loc)
  */
 final class Parser(AST) : Lexer
 {
-    AST.Module mod;
     AST.ModuleDeclaration* md;
-    LINK linkage;
-    CPPMANGLE cppmangle;
-    Loc endloc; // set to location of last right curly
-    int inBrackets; // inside [] of array index or slice
-    Loc lookingForElse; // location of lonely if looking for an else
+
+    private
+    {
+        AST.Module mod;
+        LINK linkage;
+        CPPMANGLE cppmangle;
+        Loc endloc; // set to location of last right curly
+        int inBrackets; // inside [] of array index or slice
+        Loc lookingForElse; // location of lonely if looking for an else
+    }
 
     /*********************
      * Use this constructor for string mixins.
@@ -1227,7 +1231,7 @@ final class Parser(AST) : Lexer
      * Starts with token on the first ident.
      * Ends with scanner past closing ';'
      */
-    AST.Dsymbols* parseAutoDeclarations(StorageClass storageClass, const(char)* comment)
+    private AST.Dsymbols* parseAutoDeclarations(StorageClass storageClass, const(char)* comment)
     {
         //printf("parseAutoDeclarations\n");
         Token* tk;
@@ -1285,7 +1289,7 @@ final class Parser(AST) : Lexer
     /********************************************
      * Parse declarations after an align, protection, or extern decl.
      */
-    AST.Dsymbols* parseBlock(AST.Dsymbol* pLastDecl, PrefixAttributes!AST* pAttrs = null)
+    private AST.Dsymbols* parseBlock(AST.Dsymbol* pLastDecl, PrefixAttributes!AST* pAttrs = null)
     {
         AST.Dsymbols* a = null;
 
@@ -1333,7 +1337,7 @@ final class Parser(AST) : Lexer
     /*********************************************
      * Give error on redundant/conflicting storage class.
      */
-    StorageClass appendStorageClass(StorageClass storageClass, StorageClass stc)
+    private StorageClass appendStorageClass(StorageClass storageClass, StorageClass stc)
     {
         if ((storageClass & stc) || (storageClass & AST.STC.in_ && stc & (AST.STC.const_ | AST.STC.scope_)) || (stc & AST.STC.in_ && storageClass & (AST.STC.const_ | AST.STC.scope_)))
         {
@@ -1377,7 +1381,7 @@ final class Parser(AST) : Lexer
      *      *pudas          set if user defined attribute, scanner is past UDA
      *      *pudas          NULL if not a user defined attribute
      */
-    StorageClass parseAttribute(AST.Expressions** pudas)
+    private StorageClass parseAttribute(AST.Expressions** pudas)
     {
         nextToken();
         AST.Expressions* udas = null;
@@ -1440,7 +1444,7 @@ final class Parser(AST) : Lexer
     /***********************************************
      * Parse const/immutable/shared/inout/nothrow/pure postfix
      */
-    StorageClass parsePostfix(StorageClass storageClass, AST.Expressions** pudas)
+    private StorageClass parsePostfix(StorageClass storageClass, AST.Expressions** pudas)
     {
         while (1)
         {
@@ -1506,7 +1510,7 @@ final class Parser(AST) : Lexer
         }
     }
 
-    StorageClass parseTypeCtor()
+    private StorageClass parseTypeCtor()
     {
         StorageClass storageClass = AST.STC.undefined_;
 
@@ -1547,7 +1551,7 @@ final class Parser(AST) : Lexer
      * Constraint is of the form:
      *      if ( ConstraintExpression )
      */
-    AST.Expression parseConstraint()
+    private AST.Expression parseConstraint()
     {
         AST.Expression e = null;
         if (token.value == TOK.if_)
@@ -1563,7 +1567,7 @@ final class Parser(AST) : Lexer
     /**************************************
      * Parse a TemplateDeclaration.
      */
-    AST.TemplateDeclaration parseTemplateDeclaration(bool ismixin = false)
+    private AST.TemplateDeclaration parseTemplateDeclaration(bool ismixin = false)
     {
         AST.TemplateDeclaration tempdecl;
         Identifier id;
@@ -1607,7 +1611,7 @@ final class Parser(AST) : Lexer
      *      flag    0: parsing "( list )"
      *              1: parsing non-empty "list $(RPAREN)"
      */
-    AST.TemplateParameters* parseTemplateParameterList(int flag = 0)
+    private AST.TemplateParameters* parseTemplateParameterList(int flag = 0)
     {
         auto tpl = new AST.TemplateParameters();
 
@@ -1779,7 +1783,7 @@ final class Parser(AST) : Lexer
      *      mixin Foo!(args) identifier;
      *      mixin typeof(expr).identifier!(args);
      */
-    AST.Dsymbol parseMixin()
+    private AST.Dsymbol parseMixin()
     {
         AST.TemplateMixin tm;
         Identifier id;
@@ -1874,7 +1878,7 @@ final class Parser(AST) : Lexer
      * Output:
      *      current token is one after closing '$(RPAREN)'
      */
-    AST.Objects* parseTemplateArguments()
+    private AST.Objects* parseTemplateArguments()
     {
         AST.Objects* tiargs;
 
@@ -1916,7 +1920,7 @@ final class Parser(AST) : Lexer
      * Output:
      *      current token is one after closing '$(RPAREN)'
      */
-    AST.Objects* parseTemplateArgumentList()
+    private AST.Objects* parseTemplateArgumentList()
     {
         //printf("Parser::parseTemplateArgumentList()\n");
         auto tiargs = new AST.Objects();
@@ -1954,7 +1958,7 @@ final class Parser(AST) : Lexer
      * Input:
      *      current token is the arg
      */
-    AST.Objects* parseTemplateSingleArgument()
+    private AST.Objects* parseTemplateSingleArgument()
     {
         //printf("parseTemplateSingleArgument()\n");
         auto tiargs = new AST.Objects();
@@ -2113,7 +2117,7 @@ final class Parser(AST) : Lexer
      * Parse a static assertion.
      * Current token is 'static'.
      */
-    AST.StaticAssert parseStaticAssert()
+    private AST.StaticAssert parseStaticAssert()
     {
         const loc = token.loc;
         AST.Expression exp;
@@ -2143,7 +2147,7 @@ final class Parser(AST) : Lexer
      * Parse typeof(expression).
      * Current token is on the 'typeof'.
      */
-    AST.TypeQualified parseTypeof()
+    private AST.TypeQualified parseTypeof()
     {
         AST.TypeQualified t;
         const loc = token.loc;
@@ -2168,7 +2172,7 @@ final class Parser(AST) : Lexer
      * Parse __vector(type).
      * Current token is on the '__vector'.
      */
-    AST.Type parseVector()
+    private AST.Type parseVector()
     {
         nextToken();
         check(TOK.leftParentheses);
@@ -2185,7 +2189,7 @@ final class Parser(AST) : Lexer
      *      extern (C++, (StringExp))
      * The parser is on the 'extern' token.
      */
-    LINK parseLinkage(AST.Identifiers** pidents, AST.Expressions** pIdentExps, out CPPMANGLE cppmangle, out bool cppMangleOnly)
+    private LINK parseLinkage(AST.Identifiers** pidents, AST.Expressions** pIdentExps, out CPPMANGLE cppmangle, out bool cppMangleOnly)
     {
         AST.Identifiers* idents = null;
         AST.Expressions* identExps = null;
@@ -2303,7 +2307,7 @@ final class Parser(AST) : Lexer
      * Returns:
      *     array of identifiers with actual qualified one stored last
      */
-    AST.Identifiers* parseQualifiedIdentifier(const(char)* entity)
+    private AST.Identifiers* parseQualifiedIdentifier(const(char)* entity)
     {
         AST.Identifiers* qualified = null;
 
@@ -2331,7 +2335,7 @@ final class Parser(AST) : Lexer
     /**************************************
      * Parse a debug conditional
      */
-    AST.Condition parseDebugCondition()
+    private AST.Condition parseDebugCondition()
     {
         uint level = 1;
         Identifier id = null;
@@ -2355,7 +2359,7 @@ final class Parser(AST) : Lexer
     /**************************************
      * Parse a version conditional
      */
-    AST.Condition parseVersionCondition()
+    private AST.Condition parseVersionCondition()
     {
         uint level = 1;
         Identifier id = null;
@@ -2393,7 +2397,7 @@ final class Parser(AST) : Lexer
      *          body
      * Current token is 'static'.
      */
-    AST.Condition parseStaticIfCondition()
+    private AST.Condition parseStaticIfCondition()
     {
         AST.Expression exp;
         AST.Condition condition;
@@ -2425,7 +2429,7 @@ final class Parser(AST) : Lexer
      *      this(templateparameters)(parameters) { body }
      * Current token is 'this'.
      */
-    AST.Dsymbol parseCtor(PrefixAttributes!AST* pAttrs)
+    private AST.Dsymbol parseCtor(PrefixAttributes!AST* pAttrs)
     {
         AST.Expressions* udas = null;
         const loc = token.loc;
@@ -2518,7 +2522,7 @@ final class Parser(AST) : Lexer
      *      ~this() { body }
      * Current token is '~'.
      */
-    AST.Dsymbol parseDtor(PrefixAttributes!AST* pAttrs)
+    private AST.Dsymbol parseDtor(PrefixAttributes!AST* pAttrs)
     {
         AST.Expressions* udas = null;
         const loc = token.loc;
@@ -2554,7 +2558,7 @@ final class Parser(AST) : Lexer
      *      static this() { body }
      * Current token is 'static'.
      */
-    AST.Dsymbol parseStaticCtor(PrefixAttributes!AST* pAttrs)
+    private AST.Dsymbol parseStaticCtor(PrefixAttributes!AST* pAttrs)
     {
         //Expressions *udas = NULL;
         const loc = token.loc;
@@ -2588,7 +2592,7 @@ final class Parser(AST) : Lexer
      *      static ~this() { body }
      * Current token is 'static'.
      */
-    AST.Dsymbol parseStaticDtor(PrefixAttributes!AST* pAttrs)
+    private AST.Dsymbol parseStaticDtor(PrefixAttributes!AST* pAttrs)
     {
         AST.Expressions* udas = null;
         const loc = token.loc;
@@ -2629,7 +2633,7 @@ final class Parser(AST) : Lexer
      *      shared static this() { body }
      * Current token is 'shared'.
      */
-    AST.Dsymbol parseSharedStaticCtor(PrefixAttributes!AST* pAttrs)
+    private AST.Dsymbol parseSharedStaticCtor(PrefixAttributes!AST* pAttrs)
     {
         //Expressions *udas = NULL;
         const loc = token.loc;
@@ -2662,7 +2666,7 @@ final class Parser(AST) : Lexer
      *      shared static ~this() { body }
      * Current token is 'shared'.
      */
-    AST.Dsymbol parseSharedStaticDtor(PrefixAttributes!AST* pAttrs)
+    private AST.Dsymbol parseSharedStaticDtor(PrefixAttributes!AST* pAttrs)
     {
         AST.Expressions* udas = null;
         const loc = token.loc;
@@ -2704,7 +2708,7 @@ final class Parser(AST) : Lexer
      *      invariant (expression);
      * Current token is 'invariant'.
      */
-    AST.Dsymbol parseInvariant(PrefixAttributes!AST* pAttrs)
+    private AST.Dsymbol parseInvariant(PrefixAttributes!AST* pAttrs)
     {
         const loc = token.loc;
         StorageClass stc = getStorageClass!AST(pAttrs);
@@ -2749,7 +2753,7 @@ final class Parser(AST) : Lexer
      *      unittest { body }
      * Current token is 'unittest'.
      */
-    AST.Dsymbol parseUnitTest(PrefixAttributes!AST* pAttrs)
+    private AST.Dsymbol parseUnitTest(PrefixAttributes!AST* pAttrs)
     {
         const loc = token.loc;
         StorageClass stc = getStorageClass!AST(pAttrs);
@@ -2791,7 +2795,7 @@ final class Parser(AST) : Lexer
      *      new(parameters) { body }
      * Current token is 'new'.
      */
-    AST.Dsymbol parseNew(PrefixAttributes!AST* pAttrs)
+    private AST.Dsymbol parseNew(PrefixAttributes!AST* pAttrs)
     {
         const loc = token.loc;
         StorageClass stc = getStorageClass!AST(pAttrs);
@@ -2810,7 +2814,7 @@ final class Parser(AST) : Lexer
      *      delete(parameters) { body }
      * Current token is 'delete'.
      */
-    AST.Dsymbol parseDelete(PrefixAttributes!AST* pAttrs)
+    private AST.Dsymbol parseDelete(PrefixAttributes!AST* pAttrs)
     {
         const loc = token.loc;
         StorageClass stc = getStorageClass!AST(pAttrs);
@@ -2829,7 +2833,7 @@ final class Parser(AST) : Lexer
     /**********************************************
      * Parse parameter list.
      */
-    AST.Parameters* parseParameters(AST.VarArg* pvarargs, AST.TemplateParameters** tpl = null)
+    private AST.Parameters* parseParameters(AST.VarArg* pvarargs, AST.TemplateParameters** tpl = null)
     {
         auto parameters = new AST.Parameters();
         AST.VarArg varargs = AST.VarArg.none;
@@ -3075,7 +3079,7 @@ final class Parser(AST) : Lexer
 
     /*************************************
      */
-    AST.EnumDeclaration parseEnum()
+    private AST.EnumDeclaration parseEnum()
     {
         AST.EnumDeclaration e;
         Identifier id;
@@ -3256,7 +3260,7 @@ final class Parser(AST) : Lexer
     /********************************
      * Parse struct, union, interface, class.
      */
-    AST.Dsymbol parseAggregate()
+    private AST.Dsymbol parseAggregate()
     {
         AST.TemplateParameters* tpl = null;
         AST.Expression constraint;
@@ -3400,7 +3404,7 @@ final class Parser(AST) : Lexer
 
     /*******************************************
      */
-    AST.BaseClasses* parseBaseClasses()
+    private AST.BaseClasses* parseBaseClasses()
     {
         auto baseclasses = new AST.BaseClasses();
 
@@ -3414,7 +3418,7 @@ final class Parser(AST) : Lexer
         return baseclasses;
     }
 
-    AST.Dsymbols* parseImport()
+    private AST.Dsymbols* parseImport()
     {
         auto decldefs = new AST.Dsymbols();
         Identifier aliasid = null;
@@ -3514,7 +3518,7 @@ final class Parser(AST) : Lexer
         return decldefs;
     }
 
-    AST.Type parseType(Identifier* pident = null, AST.TemplateParameters** ptpl = null)
+    private AST.Type parseType(Identifier* pident = null, AST.TemplateParameters** ptpl = null)
     {
         /* Take care of the storage class prefixes that
          * serve as type attributes:
@@ -3579,7 +3583,7 @@ final class Parser(AST) : Lexer
         return t;
     }
 
-    AST.Type parseBasicType(bool dontLookDotIdents = false)
+    private AST.Type parseBasicType(bool dontLookDotIdents = false)
     {
         AST.Type t;
         Loc loc;
@@ -3782,7 +3786,7 @@ final class Parser(AST) : Lexer
         return t;
     }
 
-    AST.Type parseBasicTypeStartingAt(AST.TypeQualified tid, bool dontLookDotIdents)
+    private AST.Type parseBasicTypeStartingAt(AST.TypeQualified tid, bool dontLookDotIdents)
     {
         AST.Type maybeArray = null;
         // See https://issues.dlang.org/show_bug.cgi?id=1215
@@ -3926,7 +3930,7 @@ final class Parser(AST) : Lexer
      *      t function
      *      t delegate
      */
-    AST.Type parseBasicType2(AST.Type t)
+    private AST.Type parseBasicType2(AST.Type t)
     {
         //printf("parseBasicType2()\n");
         while (1)
@@ -4012,7 +4016,7 @@ final class Parser(AST) : Lexer
         assert(0);
     }
 
-    AST.Type parseDeclarator(AST.Type t, int* palt, Identifier* pident, AST.TemplateParameters** tpl = null, StorageClass storageClass = 0, int* pdisable = null, AST.Expressions** pudas = null)
+    private AST.Type parseDeclarator(AST.Type t, int* palt, Identifier* pident, AST.TemplateParameters** tpl = null, StorageClass storageClass = 0, int* pdisable = null, AST.Expressions** pudas = null)
     {
         //printf("parseDeclarator(tpl = %p)\n", tpl);
         t = parseBasicType2(t);
@@ -4180,7 +4184,7 @@ final class Parser(AST) : Lexer
         return ts;
     }
 
-    void parseStorageClasses(ref StorageClass storage_class, ref LINK link,
+    private void parseStorageClasses(ref StorageClass storage_class, ref LINK link,
         ref bool setAlignment, ref AST.Expression ealign, ref AST.Expressions* udas)
     {
         StorageClass stc;
@@ -4341,7 +4345,7 @@ final class Parser(AST) : Lexer
      *      2. declarations at statement level
      * Return array of Declaration *'s.
      */
-    AST.Dsymbols* parseDeclarations(bool autodecl, PrefixAttributes!AST* pAttrs, const(char)* comment)
+    private AST.Dsymbols* parseDeclarations(bool autodecl, PrefixAttributes!AST* pAttrs, const(char)* comment)
     {
         StorageClass storage_class = AST.STC.undefined_;
         AST.Type ts;
@@ -4830,7 +4834,7 @@ final class Parser(AST) : Lexer
         return a;
     }
 
-    AST.Dsymbol parseFunctionLiteral()
+    private AST.Dsymbol parseFunctionLiteral()
     {
         const loc = token.loc;
         AST.TemplateParameters* tpl = null;
@@ -4940,7 +4944,7 @@ final class Parser(AST) : Lexer
     /*****************************************
      * Parse contracts following function declaration.
      */
-    AST.FuncDeclaration parseContracts(AST.FuncDeclaration f)
+    private AST.FuncDeclaration parseContracts(AST.FuncDeclaration f)
     {
         LINK linksave = linkage;
 
@@ -5109,7 +5113,7 @@ final class Parser(AST) : Lexer
 
     /*****************************************
      */
-    void checkDanglingElse(Loc elseloc)
+    private void checkDanglingElse(Loc elseloc)
     {
         if (token.value != TOK.else_ && token.value != TOK.catch_ && token.value != TOK.finally_ && lookingForElse.linnum != 0)
         {
@@ -5117,7 +5121,7 @@ final class Parser(AST) : Lexer
         }
     }
 
-    void checkCstyleTypeSyntax(Loc loc, AST.Type t, int alt, Identifier ident)
+    private void checkCstyleTypeSyntax(Loc loc, AST.Type t, int alt, Identifier ident)
     {
         if (!alt)
             return;
@@ -5167,7 +5171,7 @@ final class Parser(AST) : Lexer
      * If `isStatic` is true, `isDecl` can be true to indicate that a
      * `static foreach` declaration should be parsed.
      */
-    ParseForeachRet!(isStatic, isDecl) parseForeach(bool isStatic, bool isDecl)(Loc loc, ParseForeachArgs!(isStatic, isDecl) args)
+    private ParseForeachRet!(isStatic, isDecl) parseForeach(bool isStatic, bool isDecl)(Loc loc, ParseForeachArgs!(isStatic, isDecl) args)
     {
         static if(isDecl)
         {
@@ -6367,7 +6371,7 @@ final class Parser(AST) : Lexer
     /*****************************************
      * Parse initializer for variable declaration.
      */
-    AST.Initializer parseInitializer()
+    private AST.Initializer parseInitializer()
     {
         AST.StructInitializer _is;
         AST.ArrayInitializer ia;
@@ -6634,7 +6638,7 @@ final class Parser(AST) : Lexer
      * Parses default argument initializer expression that is an assign expression,
      * with special handling for __FILE__, __FILE_DIR__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__.
      */
-    AST.Expression parseDefaultInitExp()
+    private AST.Expression parseDefaultInitExp()
     {
         if (token.value == TOK.file || token.value == TOK.fileFullPath || token.value == TOK.line
             || token.value == TOK.moduleString || token.value == TOK.functionString || token.value == TOK.prettyFunction)
@@ -6665,7 +6669,7 @@ final class Parser(AST) : Lexer
         return e;
     }
 
-    void check(Loc loc, TOK value)
+    private void check(Loc loc, TOK value)
     {
         if (token.value != value)
             error(loc, "found `%s` when expecting `%s`", token.toChars(), Token.toChars(value));
@@ -6677,21 +6681,21 @@ final class Parser(AST) : Lexer
         check(token.loc, value);
     }
 
-    void check(TOK value, const(char)* string)
+    private void check(TOK value, const(char)* string)
     {
         if (token.value != value)
             error("found `%s` when expecting `%s` following %s", token.toChars(), Token.toChars(value), string);
         nextToken();
     }
 
-    void checkParens(TOK value, AST.Expression e)
+    private void checkParens(TOK value, AST.Expression e)
     {
         if (precedence[e.op] == PREC.rel && !e.parens)
             error(e.loc, "`%s` must be surrounded by parentheses when next to operator `%s`", e.toChars(), Token.toChars(value));
     }
 
     ///
-    enum NeedDeclaratorId
+    private enum NeedDeclaratorId
     {
         no,             // Declarator part must have no identifier
         opt,            // Declarator part identifier is optional
@@ -6709,7 +6713,7 @@ final class Parser(AST) : Lexer
      * Output:
      *      true if the token `t` is a declaration, false otherwise
      */
-    bool isDeclaration(Token* t, NeedDeclaratorId needId, TOK endtok, Token** pt)
+    private bool isDeclaration(Token* t, NeedDeclaratorId needId, TOK endtok, Token** pt)
     {
         //printf("isDeclaration(needId = %d)\n", needId);
         int haveId = 0;
@@ -6757,7 +6761,7 @@ final class Parser(AST) : Lexer
         return false;
     }
 
-    bool isBasicType(Token** pt)
+    private bool isBasicType(Token** pt)
     {
         // This code parallels parseBasicType()
         Token* t = *pt;
@@ -6948,7 +6952,7 @@ final class Parser(AST) : Lexer
         return false;
     }
 
-    bool isDeclarator(Token** pt, int* haveId, int* haveTpl, TOK endtok, bool allowAltSyntax = true)
+    private bool isDeclarator(Token** pt, int* haveId, int* haveTpl, TOK endtok, bool allowAltSyntax = true)
     {
         // This code parallels parseDeclarator()
         Token* t = *pt;
@@ -7177,7 +7181,7 @@ final class Parser(AST) : Lexer
         assert(0);
     }
 
-    bool isParameters(Token** pt)
+    private bool isParameters(Token** pt)
     {
         // This code parallels parseParameters()
         Token* t = *pt;
@@ -7277,7 +7281,7 @@ final class Parser(AST) : Lexer
         return true;
     }
 
-    bool isExpression(Token** pt)
+    private bool isExpression(Token** pt)
     {
         // This is supposed to determine if something is an expression.
         // What it actually does is scan until a closing right bracket
@@ -7357,7 +7361,7 @@ final class Parser(AST) : Lexer
      *      true    successful
      *      false   some parsing error
      */
-    bool skipParens(Token* t, Token** pt)
+    private bool skipParens(Token* t, Token** pt)
     {
         if (t.value != TOK.leftParentheses)
             return false;
@@ -7397,7 +7401,7 @@ final class Parser(AST) : Lexer
         return false;
     }
 
-    bool skipParensIf(Token* t, Token** pt)
+    private bool skipParensIf(Token* t, Token** pt)
     {
         if (t.value != TOK.leftParentheses)
         {
@@ -7418,7 +7422,7 @@ final class Parser(AST) : Lexer
      *      true    successful
      *      false   some parsing error
      */
-    bool skipAttributes(Token* t, Token** pt)
+    private bool skipAttributes(Token* t, Token** pt)
     {
         while (1)
         {
@@ -8104,7 +8108,7 @@ final class Parser(AST) : Lexer
         return e;
     }
 
-    AST.Expression parseUnaryExp()
+    private AST.Expression parseUnaryExp()
     {
         AST.Expression e;
         const loc = token.loc;
@@ -8403,7 +8407,7 @@ final class Parser(AST) : Lexer
         return e;
     }
 
-    AST.Expression parsePostExp(AST.Expression e)
+    private AST.Expression parsePostExp(AST.Expression e)
     {
         while (1)
         {
@@ -8487,7 +8491,7 @@ final class Parser(AST) : Lexer
         }
     }
 
-    AST.Expression parseMulExp()
+    private AST.Expression parseMulExp()
     {
         const loc = token.loc;
         auto e = parseUnaryExp();
@@ -8522,7 +8526,7 @@ final class Parser(AST) : Lexer
         return e;
     }
 
-    AST.Expression parseAddExp()
+    private AST.Expression parseAddExp()
     {
         const loc = token.loc;
         auto e = parseMulExp();
@@ -8557,7 +8561,7 @@ final class Parser(AST) : Lexer
         return e;
     }
 
-    AST.Expression parseShiftExp()
+    private AST.Expression parseShiftExp()
     {
         const loc = token.loc;
         auto e = parseAddExp();
@@ -8592,7 +8596,7 @@ final class Parser(AST) : Lexer
         return e;
     }
 
-    AST.Expression parseCmpExp()
+    private AST.Expression parseCmpExp()
     {
         const loc = token.loc;
 
@@ -8658,7 +8662,7 @@ final class Parser(AST) : Lexer
         return e;
     }
 
-    AST.Expression parseAndExp()
+    private AST.Expression parseAndExp()
     {
         Loc loc = token.loc;
         auto e = parseCmpExp();
@@ -8674,7 +8678,7 @@ final class Parser(AST) : Lexer
         return e;
     }
 
-    AST.Expression parseXorExp()
+    private AST.Expression parseXorExp()
     {
         const loc = token.loc;
 
@@ -8690,7 +8694,7 @@ final class Parser(AST) : Lexer
         return e;
     }
 
-    AST.Expression parseOrExp()
+    private AST.Expression parseOrExp()
     {
         const loc = token.loc;
 
@@ -8706,7 +8710,7 @@ final class Parser(AST) : Lexer
         return e;
     }
 
-    AST.Expression parseAndAndExp()
+    private AST.Expression parseAndAndExp()
     {
         const loc = token.loc;
 
@@ -8720,7 +8724,7 @@ final class Parser(AST) : Lexer
         return e;
     }
 
-    AST.Expression parseOrOrExp()
+    private AST.Expression parseOrOrExp()
     {
         const loc = token.loc;
 
@@ -8734,7 +8738,7 @@ final class Parser(AST) : Lexer
         return e;
     }
 
-    AST.Expression parseCondExp()
+    private AST.Expression parseCondExp()
     {
         const loc = token.loc;
 
@@ -8862,7 +8866,7 @@ final class Parser(AST) : Lexer
      * Collect argument list.
      * Assume current token is ',', '$(LPAREN)' or '['.
      */
-    AST.Expressions* parseArguments()
+    private AST.Expressions* parseArguments()
     {
         // function call
         AST.Expressions* arguments;
@@ -8891,7 +8895,7 @@ final class Parser(AST) : Lexer
 
     /*******************************************
      */
-    AST.Expression parseNewExp(AST.Expression thisexp)
+    private AST.Expression parseNewExp(AST.Expression thisexp)
     {
         const loc = token.loc;
 
@@ -8965,7 +8969,7 @@ final class Parser(AST) : Lexer
 
     /**********************************************
      */
-    void addComment(AST.Dsymbol s, const(char)* blockComment)
+    private void addComment(AST.Dsymbol s, const(char)* blockComment)
     {
         if (s !is null)
         {
