@@ -308,6 +308,286 @@ void test6()
 
 /********************************************/
 
+class C7
+{
+    int m = 10;
+    template A(alias a)
+    {
+        template B(alias b)
+        {
+            template C(alias c)
+            {
+                auto sum()
+                {
+                    return a + b + c + m;
+                }
+                class K
+                {
+                    int n;
+                    this(int i) { n = i; }
+                    auto sum()
+                    {
+                        return a + b + c + m + n;
+                    }
+                }
+            }
+        }
+    }
+}
+
+void test7()
+{
+    if (__ctfe)
+        return; // nested classes not yet ctfeable
+
+    auto a = 1;
+    auto b = 2;
+    auto c = 3;
+
+    assert(new C7().A!a.B!b.C!c.sum() == 1+2+3+10);
+    assert(new C7().new C7.A!a.B!b.C!c.K(20).sum() == 1+2+3+10+20);
+}
+
+/********************************************/
+
+interface I8
+{
+    int get();
+    int sub(alias v)()
+    {
+        return get() - v;
+    }
+}
+
+class A8
+{
+    int m;
+    this(int m)
+    {
+        this.m = m;
+    }
+    this() {}
+}
+
+class B8 : A8, I8
+{
+    this(alias i)()
+    {
+        super(i);
+    }
+    auto add(alias v)()
+    {
+        return super.m + v;
+    }
+    int get()
+    {
+        return m;
+    }
+    this() {}
+}
+
+void test8()
+{
+    int a = 4;
+    int b = 2;
+    auto o = new B8;
+    o.__ctor!a;
+    assert(o.m == 4);
+    assert(o.add!b == 4+2);
+    assert(o.sub!b == 4-2);
+}
+
+/********************************************/
+
+struct A9
+{
+    int m;
+    auto add(alias a)()
+    {
+        m += a;
+    }
+}
+
+struct B9
+{
+    int i;
+    A9 a;
+    alias a this;
+}
+
+struct S9
+{
+    int j;
+    B9 b;
+    alias b this;
+}
+
+void test9()
+{
+    int a = 9;
+    auto o = S9(1, B9(1, A9(10)));
+    o.add!9();
+    assert(o.b.a.m == 10+9);
+}
+
+/********************************************/
+
+struct S10
+{
+    int m;
+    auto add(alias f)(int a)
+    {
+        auto add(int b) { return a + b; }
+        return exec2!(f, add)();
+    }
+    auto exec2(alias f, alias g)()
+    {
+        return g(f(m));
+    }
+}
+
+void test10()
+{
+    int a = 10;
+    auto o = S10(1);
+    auto fun(int m) { return m + a; }
+    assert(o.add!fun(20) == 1+10+20);
+}
+
+/********************************************/
+
+struct S11
+{
+    int m;
+    S11 getVal(alias a)()
+    {
+        return this;
+    }
+    ref getRef(alias a)()
+    {
+        return this;
+    }
+}
+
+void test11()
+{
+    int a;
+    auto s = S11(1);
+
+    if (__ctfe)
+    {
+        // 'this' is currently only
+        // returned by ref in __ctfe
+    }
+    else
+    {
+        ++s.getVal!a().m;
+        assert(s.m == 1);
+    }
+
+    ++s.getRef!a().m;
+    assert(s.m == 2);
+}
+
+/********************************************/
+
+class B12
+{
+    int m;
+
+    auto sum(alias a)()
+    {
+        return a + m;
+    }
+
+    auto inner(alias a)()
+    {
+        class I
+        {
+            int i = 20;
+            auto sum()
+            {
+                return i + a;
+            }
+        }
+        return new I();
+    }
+
+    class R(alias a)
+    {
+        int i = 30;
+        auto sum()
+        {
+            return i + a;
+        }
+    }
+}
+
+class N12
+{
+    int n;
+
+    auto sum()
+    {
+        auto o = new B12();
+        o.m = 10;
+        return o.sum!n();
+    }
+
+    auto sumi()
+    {
+        auto o = new B12();
+        return o.inner!n().sum();
+    }
+
+    auto sumr()
+    {
+        auto o = new B12().new B12.R!n;
+        return o.sum();
+    }
+}
+
+void test12a()
+{
+    int i = 10;
+    class A(alias a)
+    {
+        int sum()
+        {
+            return a + i;
+        }
+    }
+
+    class B
+    {
+        int n;
+        int sum()
+        {
+            return new A!n().sum();
+        }
+    }
+
+    auto b = new B();
+    b.n = 1;
+    assert(b.sum() == 11);
+}
+
+void test12()
+{
+    auto o = new N12();
+    o.n = 1;
+    assert(o.sum() == 11);
+
+    if (!__ctfe) // nested classes not yet ctfeable
+    {
+        assert(o.sumi() == 21);
+        assert(o.sumr() == 31);
+        test12a();
+    }
+}
+
+/********************************************/
+
 int runTests()
 {
     test1();
@@ -316,6 +596,12 @@ int runTests()
     test4();
     test5();
     test6();
+    test7();
+    test8();
+    test9();
+    test10();
+    test11();
+    test12();
     return 0;
 }
 
