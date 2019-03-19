@@ -4,10 +4,30 @@ $(SPEC_S Expressions,
 
 $(HEADERNAV_TOC)
 
+$(P An expression is a sequence of operators and operands that specifies an evaluation.
+The syntax, order of evaluation, and semantics of expressions are as follows.)
+
     $(P Expressions are used to compute values with a resulting type.
         These values can then be assigned,
         tested, or ignored. Expressions can also have side effects.
     )
+
+$(H2 $(LNAME2 definitions-and-terms, Definitions and Terms))
+
+$(DDOC_ANCHOR define-full-expression)$(P $(B Definition) ($(DOUBLEQUOTE Full expression)): For any expression
+$(I expr), the full expression of $(I expr) is defined as follows. If $(I expr) parses as a
+subexpression of another expression $(I expr$(SUBSCRIPT 1)), then the full expression of $(I expr) is the
+full expression of $(I expr$(SUBSCRIPT 1)). Otherwise, $(I expr) is its own full expression.)
+
+$(P Each expression has a unique full expression.)
+
+Example: in the statement `return f() + g() * 2;`, the full expression of `g() * 2` is `f() + g() * 2`, but not the
+full expression of `f() + g()` because the latter is not parsed as a subexpression.
+
+Note: Although the definition is straightforward, a few subtleties exist related to function literals. In the
+statement `return (() => x + f())() * g();`, the full expression of `f()` is `x + f()`, not the expression passed
+to `return`. This is because the parent of `x + f()` has function literal type, not expression type.
+
 
 $(H2 $(LNAME2 order-of-evaluation, Order Of Evaluation))
 
