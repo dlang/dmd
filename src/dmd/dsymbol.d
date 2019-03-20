@@ -2180,12 +2180,7 @@ extern (C++) final class DsymbolTable : RootObject
     Dsymbol insert(Dsymbol s)
     {
         //printf("DsymbolTable::insert(this = %p, '%s')\n", this, s.ident.toChars());
-        const ident = s.ident;
-        Dsymbol* ps = tab.getLvalue(ident);
-        if (*ps)
-            return null; // already in table
-        *ps = s;
-        return s;
+        return insert(s.ident, s);
     }
 
     // Look for Dsymbol in table. If there, return it. If not, insert s and return that.
