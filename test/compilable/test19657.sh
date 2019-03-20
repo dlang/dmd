@@ -48,7 +48,7 @@ import test19657d;
 class Seq: Trump {}
 EOF
 
-${DMD} -c -I${TEST_DIR} -od${TEST_DIR} \
+${DMD} -m${MODEL} -c -I${TEST_DIR} -od${TEST_DIR} \
        ${TEST_DIR}${SEP}test19657a.d ${TEST_DIR}${SEP}test19657b.d \
        ${TEST_DIR}${SEP}test19657c.d ${TEST_DIR}${SEP}test19657d.d \
        ${TEST_DIR}${SEP}test19657e.d ${TEST_DIR}${SEP}test19657f.d \

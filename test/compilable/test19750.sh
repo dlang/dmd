@@ -38,5 +38,5 @@ class Thud: Foo {
 }
 EOF
 
-${DMD} -c -I${TEST_DIR} -od${TEST_DIR} ${TEST_DIR}${SEP}${TEST_NAME}.d
+${DMD} -m${MODEL} -c -I${TEST_DIR} -od${TEST_DIR} ${TEST_DIR}${SEP}${TEST_NAME}.d
 rm -f ${TEST_DIR}${SEP}${TEST_NAME}${OBJ} ${TEST_DIR}${SEP}${TEST_NAME}*.d

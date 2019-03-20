@@ -65,15 +65,15 @@ class Bar: Foo
 { }
 EOF
 
-${DMD} -c -I${TEST_DIR} -od${TEST_DIR} ${TEST_DIR}${SEP}test19655a.d
-${DMD} -c -I${TEST_DIR} -od${TEST_DIR} ${TEST_DIR}${SEP}test19655b.d
-${DMD} -c -I${TEST_DIR} -od${TEST_DIR} ${TEST_DIR}${SEP}test19655c.d
-${DMD} -c -I${TEST_DIR} -od${TEST_DIR} ${TEST_DIR}${SEP}test19655d.d
-${DMD} -c -I${TEST_DIR} -od${TEST_DIR} ${TEST_DIR}${SEP}test19655e.d
-${DMD} -c -I${TEST_DIR} -od${TEST_DIR} ${TEST_DIR}${SEP}test19655f.d
-${DMD} -c -I${TEST_DIR} -od${TEST_DIR} ${TEST_DIR}${SEP}test19655g.d
+${DMD} -m${MODEL} -c -I${TEST_DIR} -od${TEST_DIR} ${TEST_DIR}${SEP}test19655a.d
+${DMD} -m${MODEL} -c -I${TEST_DIR} -od${TEST_DIR} ${TEST_DIR}${SEP}test19655b.d
+${DMD} -m${MODEL} -c -I${TEST_DIR} -od${TEST_DIR} ${TEST_DIR}${SEP}test19655c.d
+${DMD} -m${MODEL} -c -I${TEST_DIR} -od${TEST_DIR} ${TEST_DIR}${SEP}test19655d.d
+${DMD} -m${MODEL} -c -I${TEST_DIR} -od${TEST_DIR} ${TEST_DIR}${SEP}test19655e.d
+${DMD} -m${MODEL} -c -I${TEST_DIR} -od${TEST_DIR} ${TEST_DIR}${SEP}test19655f.d
+${DMD} -m${MODEL} -c -I${TEST_DIR} -od${TEST_DIR} ${TEST_DIR}${SEP}test19655g.d
 
-${DMD} -of${TEST_DIR}${SEP}test19655${EXE} ${TEST_DIR}${SEP}test19655a${OBJ} \
+${DMD} -m${MODEL} -of${TEST_DIR}${SEP}test19655${EXE} ${TEST_DIR}${SEP}test19655a${OBJ} \
        ${TEST_DIR}${SEP}test19655b${OBJ} ${TEST_DIR}${SEP}test19655c${OBJ} \
        ${TEST_DIR}${SEP}test19655d${OBJ} ${TEST_DIR}${SEP}test19655e${OBJ} \
        ${TEST_DIR}${SEP}test19655f${OBJ} ${TEST_DIR}${SEP}test19655g${OBJ}
