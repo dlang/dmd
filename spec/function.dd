@@ -1349,9 +1349,39 @@ void foo(int x, int y = 3)
 foo(4);   // same as foo(4, 3);
 ---
 
-        $(P Default parameters are evaluated in the context of the
-        function declaration.
-        If the default value for a parameter is given, all following
+        $(P Default parameters are resolved and semantically checked in the context of the
+        function declaration.)
+---
+module m;
+private immutable int b;
+pure void g(int a=b){}
+---
+---
+import m;
+int b;
+pure void f()
+{
+  g();  // ok, uses m.b
+}
+---
+
+        $(P The attributes of the $(ASSIGNEXPRESSION) are applied where the default expression
+        is used.)
+---
+module m;
+int b;
+pure void g(int a=b){}
+---
+---
+import m;
+enum int b = 3;
+pure void f()
+{
+  g();  // error, cannot access mutable global `m.b` in pure function
+}
+---
+
+        $(P If the default value for a parameter is given, all following
         parameters must also have default values.
         )
 
