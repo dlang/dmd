@@ -1844,7 +1844,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             break;
     }
     if ((wildmatch == MODFlags.mutable || wildmatch == MODFlags.immutable_) &&
-        tf.next.hasWild() &&
+        tf.next && tf.next.hasWild() &&
         (tf.isref || !tf.next.implicitConvTo(tf.next.immutableOf())))
     {
         bool errorInout(MOD wildmatch)
