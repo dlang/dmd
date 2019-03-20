@@ -4,7 +4,7 @@ TEST_DIR=${OUTPUT_BASE}
 
 mkdir -p ${TEST_DIR}
 
-cat >${TEST_DIR}/test19746.d <<EOF
+cat >${TEST_DIR}${SEP}test19746.d <<EOF
 import test19746c;
 import test19746b: Frop;
 template Base(T)
@@ -19,22 +19,22 @@ class Foo
 }
 EOF
 
-cat >${TEST_DIR}/test19746a.d <<EOF
+cat >${TEST_DIR}${SEP}test19746a.d <<EOF
 import test19746;
 class Bar: Foo { }
 EOF
 
-cat >${TEST_DIR}/test19746b.d <<EOF
+cat >${TEST_DIR}${SEP}test19746b.d <<EOF
 import test19746d;
 class Frop { }
 EOF
 
-cat >${TEST_DIR}/test19746c.d <<EOF
+cat >${TEST_DIR}${SEP}test19746c.d <<EOF
 import test19746a;
 class Qux: Bar { } 
 EOF
 
-cat >${TEST_DIR}/test19746d.d <<EOF
+cat >${TEST_DIR}${SEP}test19746d.d <<EOF
 import test19746;
 class Baz(T): Foo { }
 class Dap(T): Baz!T
@@ -47,5 +47,5 @@ class Zoo
 }
 EOF
 
-${DMD} -c -I${TEST_DIR} -od${TEST_DIR} ${TEST_DIR}/${TEST_NAME}.d
-rm -f ${TEST_DIR}/${TEST_NAME}.o ${TEST_DIR}/${TEST_NAME}*.d
+${DMD} -c -I${TEST_DIR} -od${TEST_DIR} ${TEST_DIR}${SEP}${TEST_NAME}.d
+rm -f ${TEST_DIR}${SEP}${TEST_NAME}${OBJ} ${TEST_DIR}${SEP}${TEST_NAME}*.d

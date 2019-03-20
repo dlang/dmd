@@ -4,7 +4,7 @@ TEST_DIR=${OUTPUT_BASE}
 
 mkdir -p ${TEST_DIR}
 
-cat >${TEST_DIR}/test19750.d <<EOF
+cat >${TEST_DIR}${SEP}test19750.d <<EOF
 import test19750b;
 class Foo {
   import test19750a;
@@ -12,24 +12,24 @@ class Foo {
 }
 EOF
 
-cat >${TEST_DIR}/test19750a.d <<EOF
+cat >${TEST_DIR}${SEP}test19750a.d <<EOF
 import test19750c;
 class Bar {} 
 EOF
 
-cat >${TEST_DIR}/test19750b.d <<EOF
+cat >${TEST_DIR}${SEP}test19750b.d <<EOF
 import test19750d;
 class Frop {}
 EOF
 
-cat >${TEST_DIR}/test19750c.d <<EOF
+cat >${TEST_DIR}${SEP}test19750c.d <<EOF
 import test19750d;
 class Qux: Thud {
   override void thunk() {}
 }
 EOF
 
-cat >${TEST_DIR}/test19750d.d <<EOF
+cat >${TEST_DIR}${SEP}test19750d.d <<EOF
 import test19750;
 class Dap(T) {}
 class Thud: Foo {
@@ -38,5 +38,5 @@ class Thud: Foo {
 }
 EOF
 
-${DMD} -c -I${TEST_DIR} -od${TEST_DIR} ${TEST_DIR}/${TEST_NAME}.d
-rm -f ${TEST_DIR}/${TEST_NAME}.o ${TEST_DIR}/${TEST_NAME}*.d
+${DMD} -c -I${TEST_DIR} -od${TEST_DIR} ${TEST_DIR}${SEP}${TEST_NAME}.d
+rm -f ${TEST_DIR}${SEP}${TEST_NAME}${OBJ} ${TEST_DIR}${SEP}${TEST_NAME}*.d
