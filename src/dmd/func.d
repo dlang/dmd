@@ -2666,7 +2666,7 @@ private const(char)* prependSpace(const(char)* str)
 /// Flag used by $(LREF resolveFuncCall).
 enum FuncResolveFlag : ubyte
 {
-    stdandard = 0,      /// issue error messages, solve the call.
+    standard = 0,       /// issue error messages, solve the call.
     quiet = 1,          /// do not issue error message on no match, just return `null`.
     overloadOnly = 2,   /// only resolve overloads.
 }
