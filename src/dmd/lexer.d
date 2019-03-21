@@ -523,8 +523,9 @@ class Lexer
         tokenFreelist = token;
     }
 
-    final TOK nextToken(out DiagnosticSet set)
+    final Diagnosed!TOK nextToken()
     {
+        DiagnosticSet set;
         prevloc = token.loc;
         if (token.next)
         {
@@ -534,28 +535,28 @@ class Lexer
         }
         else
         {
-            scan(&token);
+            set = scan(&token);
         }
         //printf(token.toChars());
-        set = diagnosticSet;
-        return token.value;
+        return diagnosed(token.value, set);
     }
 
     /***********************
      * Look ahead at next token's value.
      */
-    final TOK peekNext()
+    final Diagnosed!TOK peekNext()
     {
-        return peek(&token).value;
+        return peek(&token).map!(v => v.value);
     }
 
     /***********************
      * Look 2 tokens ahead at value.
      */
-    final TOK peekNext2()
+    final Diagnosed!TOK peekNext2()
     {
-        Token* t = peek(&token);
-        return peek(t).value;
+        return peek(&token)
+            .chainedMap!(t => peek(t))
+            .map!(t => t.value);
     }
 
     /****************************
@@ -1310,32 +1311,35 @@ class Lexer
         return diagnosticSet;
     }
 
-    final Token* peek(Token* ct)
+    final Diagnosed!(Token*) peek(Token* ct)
     {
         Token* t;
+        DiagnosticSet set;
         if (ct.next)
             t = ct.next;
         else
         {
             t = allocateToken();
-            scan(t);
+            set = scan(t);
             ct.next = t;
         }
-        return t;
+        return diagnosed(t, set);
     }
 
     /*********************************
      * tk is on the opening (.
      * Look ahead and return token that is past the closing ).
      */
-    final Token* peekPastParen(Token* tk)
+    final Diagnosed!(Token*) peekPastParen(Token* tk)
     {
         //printf("peekPastParen()\n");
         int parens = 1;
         int curlynest = 0;
+        DiagnosticSet set;
+
         while (1)
         {
-            tk = peek(tk);
+            tk = peek(tk).unwrap(set);
             //tk.print();
             switch (tk.value)
             {
@@ -1346,7 +1350,7 @@ class Lexer
                 --parens;
                 if (parens)
                     continue;
-                tk = peek(tk);
+                tk = peek(tk).unwrap(set);
                 break;
             case TOK.leftCurly:
                 curlynest++;
@@ -1364,7 +1368,7 @@ class Lexer
             default:
                 continue;
             }
-            return tk;
+            return diagnosed(tk, set);
         }
     }
 

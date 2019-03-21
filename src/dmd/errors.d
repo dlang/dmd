@@ -49,6 +49,37 @@ auto toStringzThen(alias func)(const(char)[] str)
     return func(&buffer[0]);
 }
 
+struct Diagnosed(T)
+{
+    T value;
+    DiagnosticSet diagnosticSet;
+
+    T unwrap(ref DiagnosticSet diagnosticSet)
+    {
+        diagnosticSet.add(this.diagnosticSet);
+        return value;
+    }
+}
+
+Diagnosed!T diagnosed(T)(T value, DiagnosticSet diagnosticSet)
+{
+    return Diagnosed!(T)(value, diagnosticSet);
+}
+
+auto map(alias func, T)(Diagnosed!T diagnosed)
+{
+    return .diagnosed(func(diagnosed.value), diagnosed.diagnosticSet);
+}
+
+auto chainedMap(alias func, T)(Diagnosed!T diagnosed)
+{
+    auto diagnosedResult = func(diagnosed.value);
+    auto originalSet = diagnosed.diagnosticSet;
+    auto resultSet = diagnosedResult.diagnosticSet;
+
+    return .diagnosed(diagnosedResult.value, originalSet ~ resultSet);
+}
+
 /// Diagnostic severity.
 enum Severity
 {
@@ -74,6 +105,16 @@ struct DiagnosticSet
     void add(DiagnosticSet set) pure nothrow @safe
     {
         _diagnostics ~= set._diagnostics;
+    }
+
+    DiagnosticSet opBinary(string op)(DiagnosticSet set)
+    if (op == "~")
+    {
+        DiagnosticSet newSet;
+        newSet.add(this);
+        newSet.add(set);
+
+        return newSet;
     }
 
     void addSupplemental(const Diagnostic diagnostic) pure nothrow @safe

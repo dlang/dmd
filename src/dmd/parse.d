@@ -319,17 +319,6 @@ final class Parser(AST) : Lexer
         //nextToken();              // start up the scanner
     }
 
-    alias nextToken = typeof(super).nextToken;
-
-    TOK nextToken()
-    {
-        DiagnosticSet set;
-        auto result = nextToken(set);
-        diagnosticSet.add(set);
-
-        return result;
-    }
-
     AST.Dsymbols* parseModule()
     {
         const comment = token.blockComment;
