@@ -5136,6 +5136,18 @@ extern (C++) final class CastExp : UnaExp
         return this;
     }
 
+    override bool isLvalue()
+    {
+        return e1.isLvalue();
+    }
+
+    override Expression toLvalue(Scope* sc, Expression e)
+    {
+        if (e1.toLvalue(sc, null))
+            return this;
+        return Expression.toLvalue(sc, this);
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);

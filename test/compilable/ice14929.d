@@ -1,14 +1,7 @@
-/*
-TEST_OUTPUT:
+/* TEST_OUTPUT:
 ---
-fail_compilation/ice14929.d(45): Error: `cast(Node)(*this.current).items[this.index]` is not an lvalue and cannot be modified
-fail_compilation/ice14929.d(88): Error: template instance `ice14929.HashMap!(ulong, int).HashMap.opBinaryRight!"in"` error instantiating
-fail_compilation/ice14929.d(92):        instantiated from here: `HashmapComponentStorage!int`
-fail_compilation/ice14929.d(92): Error: template instance `ice14929.isComponentStorage!(HashmapComponentStorage!int, int)` error instantiating
-fail_compilation/ice14929.d(92):        while evaluating: `static assert(isComponentStorage!(HashmapComponentStorage!int, int))`
 ---
 */
-
 struct HashMap(K, V)
 {
     V* opBinaryRight(string op)(K key) const if (op == "in")

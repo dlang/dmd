@@ -6997,8 +6997,8 @@ bool test11627()
     char[ubyte] toCharTmp;
     dchar letter = 'A';
 
-    //char c = cast(char)letter;    // OK
-    toCharTmp[0] = cast(char)letter;    // NG
+    char c = cast(char)letter;    // OK
+    //toCharTmp[0] = cast(char)letter;    // NG
 
     return true;
 }

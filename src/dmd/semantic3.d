@@ -826,7 +826,12 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             else if (exp.type.wildOf().implicitConvTo(tret))
                                 exp = exp.castTo(sc2, exp.type.wildOf());
                         }
-                        exp = exp.implicitCastTo(sc2, tret);
+
+                        if (f.isref && !MODimplicitConv(exp.type.mod, tret.mod))
+                            error(exp.loc, "expression `%s` of type `%s` is not implicitly convertible to return type `ref %s`",
+                                  exp.toChars(), exp.type.toChars(), tret.toChars());
+                        else
+                            exp = exp.implicitCastTo(sc2, tret);
 
                         if (f.isref)
                         {
