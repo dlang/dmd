@@ -105,27 +105,27 @@ $(GNAME TemplateSingleArgument):
         of the $(I TemplateInstance):)
 
         ------
-        template TFoo(T) { alias t = T*; }
+        template TFoo(T) { alias Ptr = T*; }
         ...
-        TFoo!(int).t x; // declare x to be of type int*
+        TFoo!(int).Ptr x; // declare x to be of type int*
         ------
 
     $(P If the $(GLINK TemplateArgument) is one token long, the parentheses can be omitted:)
 
         ---
-        TFoo!int.t x;   // same as TFoo!(int).t x;
+        TFoo!int.Ptr x;   // same as TFoo!(int).Ptr x;
         ---
 
     $(P A template instantiation can be aliased:)
 
         ------
-        template TFoo(T) { alias t = T*; }
-        alias abc = TFoo!(int);
-        abc.t x;        // declare x to be of type int*
+        template TFoo(T) { alias Ptr = T*; }
+        alias foo = TFoo!(int);
+        foo.Ptr x;        // declare x to be of type int*
         ------
 
     $(P Multiple instantiations of a $(I TemplateDeclaration) with the same
-        $(I TemplateArgumentList) all will refer to the same instantiation.
+        $(I TemplateArgumentList) will all refer to the same instantiation.
         For example:)
 
         ------
@@ -142,12 +142,16 @@ $(GNAME TemplateSingleArgument):
     )
 
     $(P Even if template arguments are implicitly converted to the same
-        template parameter type, they still refer to the same instance:)
+        template parameter type, they still refer to the same instance.
+        This example uses a
+        $(RELATIVE_LINK2 aggregate_templates, `struct` template):)
 
         -----
         struct TFoo(int x) { }
 
-        // 3 and 2+1 are both 3 of type int
+        // Different template parameters create different struct types
+        static assert(!is(TFoo!(3) == TFoo!(2)));
+        // 3 and 2+1 are both 3 of type int - same TFoo instance
         static assert(is(TFoo!(3) == TFoo!(2 + 1)));
 
         // 3u is implicitly converted to 3 to match int parameter,
@@ -160,7 +164,9 @@ $(GNAME TemplateSingleArgument):
         arguments or are differently specialized.
     )
 
-    $(P For example, a simple generic copy template would be:)
+    $(H3 $(LNAME2 copy_example, Practical Example))
+
+    $(P A simple generic copy template would be:)
 
         ------
         template TCopy(T)
@@ -172,13 +178,14 @@ $(GNAME TemplateSingleArgument):
         }
         ------
 
-    $(P To use the template, it must first be instantiated with a specific
+    $(P To use this template, it must first be instantiated with a specific
         type:)
 
         ------
         int i;
         TCopy!(int).copy(i, 3);
         ------
+    $(P See also $(RELATIVE_LINK2 function-templates, function templates).)
 
 $(H2 $(LNAME2 instantiation_scope, Instantiation Scope))
 
@@ -257,18 +264,18 @@ $(H2 $(LNAME2 argument_deduction, Argument Deduction))
 
         ------
         template TFoo(T) { }
-        alias Foo1 = TFoo!(int);     // (1) T is deduced to be int
-        alias Foo2 = TFoo!(char*);   // (1) T is deduced to be char*
+        alias foo1 = TFoo!(int);     // (1) T is deduced to be int
+        alias foo2 = TFoo!(char*);   // (1) T is deduced to be char*
 
         template TBar(T : T*) { }
-        alias Foo3 = TBar!(char*);   // (2) T is deduced to be char
+        alias bar = TBar!(char*);    // (2) T is deduced to be char
 
         template TAbc(D, U : D[]) { }
-        alias Bar1 = TAbc!(int, int[]);  // (2) D is deduced to be int, U is int[]
-        alias Bar2 = TAbc!(char, int[]); // (4) error, D is both char and int
+        alias abc1 = TAbc!(int, int[]);  // (2) D is deduced to be int, U is int[]
+        alias abc2 = TAbc!(char, int[]); // (4) error, D is both char and int
 
         template TDef(D : E*, E) { }
-        alias Bar3 = TDef!(int*, int); // (1) E is int
+        alias def = TDef!(int*, int);  // (1) E is int
                                        // (3) D is int*
         ------
 
@@ -292,10 +299,10 @@ $(H2 $(LNAME2 argument_deduction, Argument Deduction))
         class B : A { }
 
         template TFoo(T : A) { }
-        alias Foo4 = TFoo!(B);     // (3) T is B
+        alias foo = TFoo!(B);      // (3) T is B
 
         template TBar(T : U*, U : A) { }
-        alias Foo5 = TBar!(B*, B); // (2) T is B*
+        alias bar = TBar!(B*, B);  // (2) T is B*
                                    // (3) U is B
         ------
 
