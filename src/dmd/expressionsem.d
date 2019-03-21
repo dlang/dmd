@@ -3409,7 +3409,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     exp.newargs = new Expressions();
                 exp.newargs.shift(e);
 
-                FuncDeclaration f = resolveFuncCall(exp.loc, sc, cd.aggNew, null, tb, exp.newargs, FuncResolveFlag.stdandard);
+                FuncDeclaration f = resolveFuncCall(exp.loc, sc, cd.aggNew, null, tb, exp.newargs, FuncResolveFlag.standard);
                 if (!f || f.errors)
                     return setError();
 
@@ -3435,7 +3435,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             if (cd.ctor)
             {
-                FuncDeclaration f = resolveFuncCall(exp.loc, sc, cd.ctor, null, tb, exp.arguments, FuncResolveFlag.stdandard);
+                FuncDeclaration f = resolveFuncCall(exp.loc, sc, cd.ctor, null, tb, exp.arguments, FuncResolveFlag.standard);
                 if (!f || f.errors)
                     return setError();
 
@@ -3483,7 +3483,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     exp.newargs = new Expressions();
                 exp.newargs.shift(e);
 
-                FuncDeclaration f = resolveFuncCall(exp.loc, sc, sd.aggNew, null, tb, exp.newargs, FuncResolveFlag.stdandard);
+                FuncDeclaration f = resolveFuncCall(exp.loc, sc, sd.aggNew, null, tb, exp.newargs, FuncResolveFlag.standard);
                 if (!f || f.errors)
                     return setError();
 
@@ -3509,7 +3509,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             if (sd.ctor && nargs)
             {
-                FuncDeclaration f = resolveFuncCall(exp.loc, sc, sd.ctor, null, tb, exp.arguments, FuncResolveFlag.stdandard);
+                FuncDeclaration f = resolveFuncCall(exp.loc, sc, sd.ctor, null, tb, exp.arguments, FuncResolveFlag.standard);
                 if (!f || f.errors)
                     return setError();
 
@@ -4330,7 +4330,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
 
             // Do overload resolution
-            exp.f = resolveFuncCall(exp.loc, sc, s, tiargs, ue1 ? ue1.type : null, exp.arguments, FuncResolveFlag.stdandard);
+            exp.f = resolveFuncCall(exp.loc, sc, s, tiargs, ue1 ? ue1.type : null, exp.arguments, FuncResolveFlag.standard);
             if (!exp.f || exp.f.errors || exp.f.type.ty == Terror)
                 return setError();
 
@@ -4495,7 +4495,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (auto os = ctor.isOverloadSet())
                 exp.f = resolveOverloadSet(exp.loc, sc, os, null, tthis, exp.arguments);
             else
-                exp.f = resolveFuncCall(exp.loc, sc, ctor, null, tthis, exp.arguments, FuncResolveFlag.stdandard);
+                exp.f = resolveFuncCall(exp.loc, sc, ctor, null, tthis, exp.arguments, FuncResolveFlag.standard);
 
             if (!exp.f || exp.f.errors)
                 return setError();
@@ -4589,7 +4589,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 s = (cast(TemplateExp)exp.e1).td;
             L2:
-                exp.f = resolveFuncCall(exp.loc, sc, s, tiargs, null, exp.arguments, FuncResolveFlag.stdandard);
+                exp.f = resolveFuncCall(exp.loc, sc, s, tiargs, null, exp.arguments, FuncResolveFlag.standard);
                 if (!exp.f || exp.f.errors)
                     return setError();
                 if (exp.f.needThis())
