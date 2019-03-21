@@ -1,0 +1,19 @@
+GC now marks the heap with multiple threads
+
+The garbage collector now uses available CPU cores to mark the heap
+faster. This reduces pause times for a collection considerably.
+
+By default, the GC uses all available logical cores of your CPU. This
+might affect your application if it has threads that are not suspended
+during the mark phase of the collection. You can configure the number of
+additional threads used for marking by DRT option `parallel` to the
+$(LINK2 $(ROOT_DIR)spec/garbage.html, GC configuration),
+e.g. by passing `--DRT-gcopt=parallel:2` on the command
+line. A value of `0` disables parallel marking completely.
+
+As usual, you can also embed the configuration into the application by
+redefining `rt_options`, e.g.
+
+-------
+extern(C) __gshared string[] rt_options = [ "gcopt=parallel:0" ];
+-------

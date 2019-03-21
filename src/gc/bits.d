@@ -85,6 +85,63 @@ struct GCBits
         return core.bitop.btr(data, i);
     }
 
+    // return non-zero if bit already set
+    size_t setLocked(size_t i) nothrow
+    {
+        version (D_InlineAsm_X86)
+        {
+            asm @nogc nothrow {
+                naked; // assume RAX=this, [esp+4]=i
+                mov ECX, data[EAX];
+                mov EDX,[ESP+4];
+                lock;
+                bts dword ptr[ECX], EDX;
+                sbb EAX,EAX;
+                ret 4;
+            }
+        }
+        else version (D_InlineAsm_X86_64)
+        {
+            asm @nogc nothrow {
+                naked; // assume RCX=this, RDX=i
+                mov RAX, data[RCX];
+                lock;
+                bts qword ptr[RAX], RDX;
+                sbb RAX,RAX;
+                ret;
+            }
+        }
+        else
+        {
+            auto pos = i >> BITS_SHIFT;
+            auto pdata = cast(shared)(data + pos);
+            auto mask = BITS_1 << (i & BITS_MASK);
+            auto state = *pdata;
+            if (state & mask)
+                return state;
+
+            import core.atomic;
+            auto newstate = state | mask;
+            while (!cas(pdata, state, newstate))
+            {
+                state = *pdata;
+                if (state & mask)
+                    return state;
+                newstate = state | mask;
+            }
+            return 0;
+        }
+    }
+
+    template testAndSet(bool locked)
+    {
+        static if (locked)
+            alias testAndSet = setLocked;
+        else
+            alias testAndSet = set;
+    }
+
+
     mixin template RangeVars()
     {
         size_t firstWord = (target >> BITS_SHIFT);
