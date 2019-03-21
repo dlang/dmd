@@ -12,8 +12,10 @@
 
 module dmd.parse;
 
+import core.stdc.stdarg;
 import core.stdc.stdio;
 import core.stdc.string;
+
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
@@ -266,7 +268,7 @@ private bool writeMixin(const(char)[] s, ref Loc loc)
 
 /***********************************************************
  */
-final class Parser(AST) : Lexer
+final class Parser(AST)
 {
     AST.ModuleDeclaration* md;
 
@@ -278,6 +280,7 @@ final class Parser(AST) : Lexer
         Loc endloc; // set to location of last right curly
         int inBrackets; // inside [] of array index or slice
         Loc lookingForElse; // location of lonely if looking for an else
+        Lexer lexer;
     }
 
     /*********************
@@ -288,7 +291,7 @@ final class Parser(AST) : Lexer
     extern (D) this(const ref Loc loc, AST.Module _module, const(char)[] input,
         bool doDocComment, DiagnosticReporter diagnosticReporter)
     {
-        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false, diagnosticReporter);
+        lexer = new Lexer(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false, diagnosticReporter);
 
         //printf("Parser::Parser()\n");
         scanloc = loc;
@@ -310,7 +313,7 @@ final class Parser(AST) : Lexer
 
     extern (D) this(AST.Module _module, const(char)[] input, bool doDocComment, DiagnosticReporter diagnosticReporter)
     {
-        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false, diagnosticReporter);
+        lexer = new Lexer(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false, diagnosticReporter);
 
         //printf("Parser::Parser()\n");
         mod = _module;
@@ -328,7 +331,7 @@ final class Parser(AST) : Lexer
         AST.Dsymbol lastDecl = mod; // for attaching ddoc unittests to module decl
 
         Token* tk;
-        if (skipAttributes(&token, &tk) && tk.value == TOK.module_)
+        if (skipAttributes(&lexer.token, &tk) && tk.value == TOK.module_)
         {
             while (token.value != TOK.module_)
             {
@@ -445,7 +448,7 @@ final class Parser(AST) : Lexer
 
     private StorageClass parseDeprecatedAttribute(ref AST.Expression msg)
     {
-        if (peek(&token).value != TOK.leftParentheses)
+        if (peek(&lexer.token).value != TOK.leftParentheses)
             return AST.STC.deprecated_;
 
         nextToken();
@@ -495,7 +498,7 @@ final class Parser(AST) : Lexer
                     /* Determine if this is a manifest constant declaration,
                      * or a conventional enum.
                      */
-                    Token* t = peek(&token);
+                    Token* t = peek(&lexer.token);
                     if (t.value == TOK.leftCurly || t.value == TOK.colon)
                         s = parseEnum();
                     else if (t.value != TOK.identifier)
@@ -599,7 +602,7 @@ final class Parser(AST) : Lexer
 
             case TOK.invariant_:
                 {
-                    Token* t = peek(&token);
+                    Token* t = peek(&lexer.token);
                     if (t.value == TOK.leftParentheses || t.value == TOK.leftCurly)
                     {
                         // invariant { statements... }
@@ -827,7 +830,7 @@ final class Parser(AST) : Lexer
                  *      storage_class identifier = initializer;
                  *      storage_class identifier(...) = initializer;
                  */
-                if (token.value == TOK.identifier && skipParensIf(peek(&token), &tk) && tk.value == TOK.assign)
+                if (token.value == TOK.identifier && skipParensIf(peek(&lexer.token), &tk) && tk.value == TOK.assign)
                 {
                     a = parseAutoDeclarations(getStorageClass!AST(pAttrs), pAttrs.comment);
                     if (a && a.dim)
@@ -842,7 +845,7 @@ final class Parser(AST) : Lexer
 
                 /* Look for return type inference for template functions.
                  */
-                if (token.value == TOK.identifier && skipParens(peek(&token), &tk) && skipAttributes(tk, &tk) &&
+                if (token.value == TOK.identifier && skipParens(peek(&lexer.token), &tk) && skipAttributes(tk, &tk) &&
                     (tk.value == TOK.leftParentheses || tk.value == TOK.leftCurly || tk.value == TOK.in_ ||
                      tk.value == TOK.out_ || tk.value == TOK.do_ ||
                      tk.value == TOK.identifier && tk.ident == Id._body))
@@ -911,7 +914,7 @@ final class Parser(AST) : Lexer
                 }
             case TOK.extern_:
                 {
-                    if (peek(&token).value != TOK.leftParentheses)
+                    if (peek(&lexer.token).value != TOK.leftParentheses)
                     {
                         stc = AST.STC.extern_;
                         goto Lstc;
@@ -1269,7 +1272,7 @@ final class Parser(AST) : Lexer
 
             case TOK.comma:
                 nextToken();
-                if (!(token.value == TOK.identifier && skipParensIf(peek(&token), &tk) && tk.value == TOK.assign))
+                if (!(token.value == TOK.identifier && skipParensIf(peek(&lexer.token), &tk) && tk.value == TOK.assign))
                 {
                     error("identifier expected following comma");
                     break;
@@ -1516,7 +1519,7 @@ final class Parser(AST) : Lexer
 
         while (1)
         {
-            if (peek(&token).value == TOK.leftParentheses)
+            if (peek(&lexer.token).value == TOK.leftParentheses)
                 return storageClass;
 
             StorageClass stc;
@@ -1641,14 +1644,14 @@ final class Parser(AST) : Lexer
                 // Get TemplateParameter
 
                 // First, look ahead to see if it is a TypeParameter or a ValueParameter
-                t = peek(&token);
+                t = peek(&lexer.token);
                 if (token.value == TOK.alias_)
                 {
                     // AliasParameter
                     nextToken();
                     loc = token.loc; // todo
                     AST.Type spectype = null;
-                    if (isDeclaration(&token, NeedDeclaratorId.must, TOK.reserved, null))
+                    if (isDeclaration(&lexer.token, NeedDeclaratorId.must, TOK.reserved, null))
                     {
                         spectype = parseType(&tp_ident);
                     }
@@ -1666,7 +1669,7 @@ final class Parser(AST) : Lexer
                     if (token.value == TOK.colon) // : Type
                     {
                         nextToken();
-                        if (isDeclaration(&token, NeedDeclaratorId.no, TOK.reserved, null))
+                        if (isDeclaration(&lexer.token, NeedDeclaratorId.no, TOK.reserved, null))
                             spec = parseType();
                         else
                             spec = parseCondExp();
@@ -1675,7 +1678,7 @@ final class Parser(AST) : Lexer
                     if (token.value == TOK.assign) // = Type
                     {
                         nextToken();
-                        if (isDeclaration(&token, NeedDeclaratorId.no, TOK.reserved, null))
+                        if (isDeclaration(&lexer.token, NeedDeclaratorId.no, TOK.reserved, null))
                             def = parseType();
                         else
                             def = parseCondExp();
@@ -1932,7 +1935,7 @@ final class Parser(AST) : Lexer
         while (token.value != endtok)
         {
             // See if it is an Expression or a Type
-            if (isDeclaration(&token, NeedDeclaratorId.no, TOK.reserved, null))
+            if (isDeclaration(&lexer.token, NeedDeclaratorId.no, TOK.reserved, null))
             {
                 // Template argument is a type
                 AST.Type ta = parseType();
@@ -2469,7 +2472,7 @@ final class Parser(AST) : Lexer
          * which is a constructor template
          */
         AST.TemplateParameters* tpl = null;
-        if (token.value == TOK.leftParentheses && peekPastParen(&token).value == TOK.leftParentheses)
+        if (token.value == TOK.leftParentheses && peekPastParen(&lexer.token).value == TOK.leftParentheses)
         {
             tpl = parseTemplateParameterList();
         }
@@ -2862,25 +2865,25 @@ final class Parser(AST) : Lexer
                     break;
 
                 case TOK.const_:
-                    if (peek(&token).value == TOK.leftParentheses)
+                    if (peek(&lexer.token).value == TOK.leftParentheses)
                         goto default;
                     stc = AST.STC.const_;
                     goto L2;
 
                 case TOK.immutable_:
-                    if (peek(&token).value == TOK.leftParentheses)
+                    if (peek(&lexer.token).value == TOK.leftParentheses)
                         goto default;
                     stc = AST.STC.immutable_;
                     goto L2;
 
                 case TOK.shared_:
-                    if (peek(&token).value == TOK.leftParentheses)
+                    if (peek(&lexer.token).value == TOK.leftParentheses)
                         goto default;
                     stc = AST.STC.shared_;
                     goto L2;
 
                 case TOK.inout_:
-                    if (peek(&token).value == TOK.leftParentheses)
+                    if (peek(&lexer.token).value == TOK.leftParentheses)
                         goto default;
                     stc = AST.STC.wild;
                     goto L2;
@@ -2988,7 +2991,7 @@ final class Parser(AST) : Lexer
 
                         if (tpl && token.value == TOK.identifier)
                         {
-                            Token* t = peek(&token);
+                            Token* t = peek(&lexer.token);
                             if (t.value == TOK.comma || t.value == TOK.rightParentheses || t.value == TOK.dotDotDot)
                             {
                                 Identifier id = Identifier.generateId("__T");
@@ -3164,7 +3167,7 @@ final class Parser(AST) : Lexer
                             }
                             break;
                         case TOK.identifier:
-                            Token* tp = peek(&token);
+                            Token* tp = peek(&lexer.token);
                             if (tp.value == TOK.assign || tp.value == TOK.comma || tp.value == TOK.rightCurly)
                             {
                                 ident = token.ident;
@@ -3872,7 +3875,7 @@ final class Parser(AST) : Lexer
                         nextToken();
                         return t;
                     }
-                    else if (isDeclaration(&token, NeedDeclaratorId.no, TOK.rightBracket, null))
+                    else if (isDeclaration(&lexer.token, NeedDeclaratorId.no, TOK.rightBracket, null))
                     {
                         // This can be one of two things:
                         //  1 - an associative array declaration, T[type]
@@ -3952,7 +3955,7 @@ final class Parser(AST) : Lexer
                     t = new AST.TypeDArray(t); // []
                     nextToken();
                 }
-                else if (isDeclaration(&token, NeedDeclaratorId.no, TOK.rightBracket, null))
+                else if (isDeclaration(&lexer.token, NeedDeclaratorId.no, TOK.rightBracket, null))
                 {
                     // It's an associative array declaration
                     //printf("it's an associative array\n");
@@ -4051,7 +4054,7 @@ final class Parser(AST) : Lexer
                 }
                 ts = t;
 
-                Token* peekt = &token;
+                Token* peekt = &lexer.token;
                 /* Completely disallow C-style things like:
                  *   T (a);
                  * Improve error messages for the common bug of a missing return type
@@ -4094,7 +4097,7 @@ final class Parser(AST) : Lexer
                             nextToken();
                             *palt |= 2;
                         }
-                        else if (isDeclaration(&token, NeedDeclaratorId.no, TOK.rightBracket, null))
+                        else if (isDeclaration(&lexer.token, NeedDeclaratorId.no, TOK.rightBracket, null))
                         {
                             // It's an associative array
                             //printf("it's an associative array\n");
@@ -4129,7 +4132,7 @@ final class Parser(AST) : Lexer
                 {
                     if (tpl)
                     {
-                        Token* tk = peekPastParen(&token);
+                        Token* tk = peekPastParen(&lexer.token);
                         if (tk.value == TOK.leftParentheses)
                         {
                             /* Look ahead to see if this is (...)(...),
@@ -4195,25 +4198,25 @@ final class Parser(AST) : Lexer
             switch (token.value)
             {
             case TOK.const_:
-                if (peek(&token).value == TOK.leftParentheses)
+                if (peek(&lexer.token).value == TOK.leftParentheses)
                     break; // const as type constructor
                 stc = AST.STC.const_; // const as storage class
                 goto L1;
 
             case TOK.immutable_:
-                if (peek(&token).value == TOK.leftParentheses)
+                if (peek(&lexer.token).value == TOK.leftParentheses)
                     break;
                 stc = AST.STC.immutable_;
                 goto L1;
 
             case TOK.shared_:
-                if (peek(&token).value == TOK.leftParentheses)
+                if (peek(&lexer.token).value == TOK.leftParentheses)
                     break;
                 stc = AST.STC.shared_;
                 goto L1;
 
             case TOK.inout_:
-                if (peek(&token).value == TOK.leftParentheses)
+                if (peek(&lexer.token).value == TOK.leftParentheses)
                     break;
                 stc = AST.STC.wild;
                 goto L1;
@@ -4268,7 +4271,7 @@ final class Parser(AST) : Lexer
 
             case TOK.enum_:
                 {
-                    Token* t = peek(&token);
+                    Token* t = peek(&lexer.token);
                     if (t.value == TOK.leftCurly || t.value == TOK.colon)
                         break;
                     else if (t.value == TOK.identifier)
@@ -4295,7 +4298,7 @@ final class Parser(AST) : Lexer
 
             case TOK.extern_:
                 {
-                    if (peek(&token).value != TOK.leftParentheses)
+                    if (peek(&lexer.token).value != TOK.leftParentheses)
                     {
                         stc = AST.STC.extern_;
                         goto L1;
@@ -4411,7 +4414,7 @@ final class Parser(AST) : Lexer
              *  alias identifier = type;
              *  alias identifier(...) = type;
              */
-            if (token.value == TOK.identifier && skipParensIf(peek(&token), &tk) && tk.value == TOK.assign)
+            if (token.value == TOK.identifier && skipParensIf(peek(&lexer.token), &tk) && tk.value == TOK.assign)
             {
                 auto a = new AST.Dsymbols();
                 while (1)
@@ -4444,7 +4447,7 @@ final class Parser(AST) : Lexer
                     if (token.value == TOK.function_ ||
                         token.value == TOK.delegate_ ||
                         token.value == TOK.leftParentheses &&
-                            skipAttributes(peekPastParen(&token), &tk) &&
+                            skipAttributes(peekPastParen(&lexer.token), &tk) &&
                             (tk.value == TOK.goesTo || tk.value == TOK.leftCurly) ||
                         token.value == TOK.leftCurly ||
                         token.value == TOK.identifier && peekNext() == TOK.goesTo
@@ -4599,7 +4602,7 @@ final class Parser(AST) : Lexer
          *  storage_class identifier = initializer;
          *  storage_class identifier(...) = initializer;
          */
-        if ((storage_class || udas) && token.value == TOK.identifier && skipParensIf(peek(&token), &tk) && tk.value == TOK.assign)
+        if ((storage_class || udas) && token.value == TOK.identifier && skipParensIf(peek(&lexer.token), &tk) && tk.value == TOK.assign)
         {
             AST.Dsymbols* a = parseAutoDeclarations(storage_class, comment);
             if (udas)
@@ -4613,7 +4616,7 @@ final class Parser(AST) : Lexer
 
         /* Look for return type inference for template functions.
          */
-        if ((storage_class || udas) && token.value == TOK.identifier && skipParens(peek(&token), &tk) &&
+        if ((storage_class || udas) && token.value == TOK.identifier && skipParens(peek(&lexer.token), &tk) &&
             skipAttributes(tk, &tk) &&
             (tk.value == TOK.leftParentheses || tk.value == TOK.leftCurly || tk.value == TOK.in_ || tk.value == TOK.out_ ||
              tk.value == TOK.do_ || tk.value == TOK.identifier && tk.ident == Id._body))
@@ -5254,7 +5257,7 @@ final class Parser(AST) : Lexer
             }
             if (token.value == TOK.identifier)
             {
-                Token* t = peek(&token);
+                Token* t = peek(&lexer.token);
                 if (t.value == TOK.comma || t.value == TOK.semicolon)
                 {
                     ai = token.ident;
@@ -5363,7 +5366,7 @@ final class Parser(AST) : Lexer
                 /* A leading identifier can be a declaration, label, or expression.
                  * The easiest case to check first is label:
                  */
-                Token* t = peek(&token);
+                Token* t = peek(&lexer.token);
                 if (t.value == TOK.colon)
                 {
                     Token* nt = peek(t);
@@ -5399,7 +5402,7 @@ final class Parser(AST) : Lexer
              * If tokens can be handled as
              * old C-style declaration or D expression, prefer the latter.
              */
-            if (isDeclaration(&token, NeedDeclaratorId.mustIfDstyle, TOK.reserved, null))
+            if (isDeclaration(&lexer.token, NeedDeclaratorId.mustIfDstyle, TOK.reserved, null))
                 goto Ldeclaration;
             else
                 goto Lexp;
@@ -5459,7 +5462,7 @@ final class Parser(AST) : Lexer
         case TOK.static_:
             {
                 // Look ahead to see if it's static assert() or static if()
-                Token* t = peek(&token);
+                Token* t = peek(&lexer.token);
                 if (t.value == TOK.assert_)
                 {
                     s = new AST.StaticAssertStatement(parseStaticAssert());
@@ -5578,7 +5581,7 @@ final class Parser(AST) : Lexer
                  * or a conventional enum.
                  */
                 AST.Dsymbol d;
-                Token* t = peek(&token);
+                Token* t = peek(&lexer.token);
                 if (t.value == TOK.leftCurly || t.value == TOK.colon)
                     d = parseEnum();
                 else if (t.value != TOK.identifier)
@@ -5598,7 +5601,7 @@ final class Parser(AST) : Lexer
             }
         case TOK.mixin_:
             {
-                Token* t = peek(&token);
+                Token* t = peek(&lexer.token);
                 if (t.value == TOK.leftParentheses)
                 {
                     // mixin(string)
@@ -5805,7 +5808,7 @@ final class Parser(AST) : Lexer
                 default:
                     break;
                 }
-                if (storageClass != 0 && token.value == TOK.identifier && peek(&token).value == TOK.assign)
+                if (storageClass != 0 && token.value == TOK.identifier && peek(&lexer.token).value == TOK.assign)
                 {
                     Identifier ai = token.ident;
                     AST.Type at = null; // infer parameter type
@@ -5813,7 +5816,7 @@ final class Parser(AST) : Lexer
                     check(TOK.assign);
                     param = new AST.Parameter(storageClass, at, ai, null, null);
                 }
-                else if (isDeclaration(&token, NeedDeclaratorId.must, TOK.assign, null))
+                else if (isDeclaration(&lexer.token, NeedDeclaratorId.must, TOK.assign, null))
                 {
                     Identifier ai;
                     AST.Type at = parseType(&ai);
@@ -5850,7 +5853,7 @@ final class Parser(AST) : Lexer
             goto Lerror;
 
         case TOK.scope_:
-            if (peek(&token).value != TOK.leftParentheses)
+            if (peek(&lexer.token).value != TOK.leftParentheses)
                 goto Ldeclaration; // scope used as storage class
             nextToken();
             check(TOK.leftParentheses);
@@ -6124,7 +6127,7 @@ final class Parser(AST) : Lexer
                 AST.Expression exp;
                 AST.Statement _body;
 
-                Token* t = peek(&token);
+                Token* t = peek(&lexer.token);
                 if (skipAttributes(t, &t) && t.value == TOK.class_)
                     goto Ldeclaration;
 
@@ -6250,7 +6253,7 @@ final class Parser(AST) : Lexer
                         if (!toklist)
                         {
                             // Look ahead to see if it is a label
-                            Token* t = peek(&token);
+                            Token* t = peek(&lexer.token);
                             if (t.value == TOK.colon)
                             {
                                 // It's a label
@@ -6306,8 +6309,8 @@ final class Parser(AST) : Lexer
                         goto Lerror;
 
                     default:
-                        *ptoklist = allocateToken();
-                        memcpy(*ptoklist, &token, Token.sizeof);
+                        *ptoklist = lexer.allocateToken();
+                        memcpy(*ptoklist, &lexer.token, Token.sizeof);
                         ptoklist = &(*ptoklist).next;
                         *ptoklist = null;
                         nextToken();
@@ -6364,7 +6367,7 @@ final class Parser(AST) : Lexer
             break;
         }
         if (pEndloc)
-            *pEndloc = prevloc;
+            *pEndloc = lexer.prevloc;
         return s;
     }
 
@@ -6412,7 +6415,7 @@ final class Parser(AST) : Lexer
              * (e.g. prefix with "()" for empty parameter list).
              */
             braces = 1;
-            for (t = peek(&token); 1; t = peek(t))
+            for (t = peek(&lexer.token); 1; t = peek(t))
             {
                 switch (t.value)
                 {
@@ -6470,7 +6473,7 @@ final class Parser(AST) : Lexer
                 case TOK.identifier:
                     if (comma == 1)
                         error("comma expected separating field initializers");
-                    t = peek(&token);
+                    t = peek(&lexer.token);
                     if (t.value == TOK.colon)
                     {
                         id = token.ident;
@@ -6521,7 +6524,7 @@ final class Parser(AST) : Lexer
              * If it ends with a ';' ',' or '}', it is an array initializer.
              */
             brackets = 1;
-            for (t = peek(&token); 1; t = peek(t))
+            for (t = peek(&lexer.token); 1; t = peek(t))
             {
                 switch (t.value)
                 {
@@ -6618,7 +6621,7 @@ final class Parser(AST) : Lexer
             return ia;
 
         case TOK.void_:
-            t = peek(&token);
+            t = peek(&lexer.token);
             if (t.value == TOK.semicolon || t.value == TOK.comma)
             {
                 nextToken();
@@ -6643,7 +6646,7 @@ final class Parser(AST) : Lexer
         if (token.value == TOK.file || token.value == TOK.fileFullPath || token.value == TOK.line
             || token.value == TOK.moduleString || token.value == TOK.functionString || token.value == TOK.prettyFunction)
         {
-            Token* t = peek(&token);
+            Token* t = peek(&lexer.token);
             if (t.value == TOK.comma || t.value == TOK.rightParentheses)
             {
                 AST.Expression e = null;
@@ -7560,7 +7563,7 @@ final class Parser(AST) : Lexer
         {
         case TOK.identifier:
             {
-                Token* t1 = peek(&token);
+                Token* t1 = peek(&lexer.token);
                 Token* t2 = peek(t1);
                 if (t1.value == TOK.min && t2.value == TOK.greaterThan)
                 {
@@ -7892,7 +7895,7 @@ final class Parser(AST) : Lexer
                 nextToken();
                 check(TOK.leftParentheses, "`typeid`");
                 RootObject o;
-                if (isDeclaration(&token, NeedDeclaratorId.no, TOK.reserved, null))
+                if (isDeclaration(&lexer.token, NeedDeclaratorId.no, TOK.reserved, null))
                 {
                     // argument is a type
                     o = parseType();
@@ -7951,12 +7954,12 @@ final class Parser(AST) : Lexer
                         if (tok == TOK.equal && (token.value == TOK.struct_ || token.value == TOK.union_
                             || token.value == TOK.class_ || token.value == TOK.super_ || token.value == TOK.enum_
                             || token.value == TOK.interface_ || token.value == TOK.argumentTypes
-                            || token.value == TOK.parameters || token.value == TOK.const_ && peek(&token).value == TOK.rightParentheses
-                            || token.value == TOK.immutable_ && peek(&token).value == TOK.rightParentheses
-                            || token.value == TOK.shared_ && peek(&token).value == TOK.rightParentheses
-                            || token.value == TOK.inout_ && peek(&token).value == TOK.rightParentheses || token.value == TOK.function_
+                            || token.value == TOK.parameters || token.value == TOK.const_ && peek(&lexer.token).value == TOK.rightParentheses
+                            || token.value == TOK.immutable_ && peek(&lexer.token).value == TOK.rightParentheses
+                            || token.value == TOK.shared_ && peek(&lexer.token).value == TOK.rightParentheses
+                            || token.value == TOK.inout_ && peek(&lexer.token).value == TOK.rightParentheses || token.value == TOK.function_
                             || token.value == TOK.delegate_ || token.value == TOK.return_
-                            || (token.value == TOK.vector && peek(&token).value == TOK.rightParentheses)))
+                            || (token.value == TOK.vector && peek(&lexer.token).value == TOK.rightParentheses)))
                         {
                             tok2 = token.value;
                             nextToken();
@@ -8034,7 +8037,7 @@ final class Parser(AST) : Lexer
 
         case TOK.leftParentheses:
             {
-                Token* tk = peekPastParen(&token);
+                Token* tk = peekPastParen(&lexer.token);
                 if (skipAttributes(tk, &tk) && (tk.value == TOK.goesTo || tk.value == TOK.leftCurly))
                 {
                     // (arguments) => expression
@@ -8268,7 +8271,7 @@ final class Parser(AST) : Lexer
             }
         case TOK.leftParentheses:
             {
-                auto tk = peek(&token);
+                auto tk = peek(&lexer.token);
                 static if (CCASTSYNTAX)
                 {
                     // If cast
@@ -8619,7 +8622,7 @@ final class Parser(AST) : Lexer
         case TOK.not:
         {
             // Attempt to identify '!is'
-            auto t = peek(&token);
+            auto t = peek(&lexer.token);
             if (t.value == TOK.in_)
             {
                 nextToken();
@@ -8973,9 +8976,128 @@ final class Parser(AST) : Lexer
     {
         if (s !is null)
         {
-            s.addComment(combineComments(blockComment, token.lineComment, true));
+            s.addComment(lexer.combineComments(blockComment, token.lineComment, true));
             token.lineComment = null;
         }
+    }
+
+    private Loc loc()
+    {
+        return lexer.loc;
+    }
+
+    package ref Loc scanloc() pure nothrow @nogc @safe
+    {
+        return lexer.scanloc;
+    }
+
+    package void scanloc(const ref Loc loc) pure nothrow @nogc @safe
+    {
+        lexer.scanloc = loc;
+    }
+
+    private Token* peek(Token* currentToken)
+    {
+        return lexer.peek(currentToken);
+    }
+
+    package ref Token token() pure nothrow @nogc @safe
+    {
+        return lexer.token;
+    }
+
+    TOK nextToken()
+    {
+        return lexer.nextToken();
+    }
+
+    package TOK peekNext()
+    {
+        return lexer.peekNext();
+    }
+
+    private TOK peekNext2()
+    {
+        return lexer.peekNext2();
+    }
+
+    private Token* peekPastParen(Token* token)
+    {
+        return lexer.peekPastParen(token);
+    }
+
+    package bool errors()
+    {
+        return lexer.errors();
+    }
+
+    package Token* allocateToken() pure nothrow @safe
+    {
+        return lexer.allocateToken();
+    }
+
+    package void error(const(char)* format, ...)
+    {
+        va_list args;
+        va_start(args, format);
+        lexer.diagnosticReporter.error(lexer.token.loc, format, args);
+        va_end(args);
+    }
+
+    package void error(const ref Loc loc, const(char)* format, ...)
+    {
+        va_list args;
+        va_start(args, format);
+        lexer.diagnosticReporter.error(loc, format, args);
+        va_end(args);
+    }
+
+    private void errorSupplemental(const ref Loc loc, const(char)* format, ...)
+    {
+        va_list args;
+        va_start(args, format);
+        lexer.diagnosticReporter.errorSupplemental(loc, format, args);
+        va_end(args);
+    }
+
+    private void warning(const ref Loc loc, const(char)* format, ...)
+    {
+        va_list args;
+        va_start(args, format);
+        lexer.diagnosticReporter.warning(loc, format, args);
+        va_end(args);
+    }
+
+    private void warningSupplemental(const ref Loc loc, const(char)* format, ...)
+    {
+        va_list args;
+        va_start(args, format);
+        lexer.diagnosticReporter.warningSupplemental(loc, format, args);
+        va_end(args);
+    }
+
+    private void deprecation(const(char)* format, ...)
+    {
+        va_list args;
+        va_start(args, format);
+        lexer.diagnosticReporter.deprecation(lexer.token.loc, format, args);
+        va_end(args);
+    }
+
+    private void deprecation(const ref Loc loc, const(char)* format, ...)
+    {
+        va_list args;
+        va_start(args, format);
+        lexer.diagnosticReporter.deprecation(loc, format, args);
+        va_end(args);
+    }
+
+    private void deprecationSupplemental(const ref Loc loc, const(char)* format, ...)
+    {
+        va_list args;
+        va_start(args, format);
+        lexer.diagnosticReporter.deprecationSupplemental(loc, format, args);
+        va_end(args);
     }
 }
 

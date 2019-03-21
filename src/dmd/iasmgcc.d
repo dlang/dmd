@@ -395,7 +395,7 @@ unittest
             if (p.token.value == TOK.rightCurly || p.token.value == TOK.endOfFile)
                 break;
             *ptoklist = p.allocateToken();
-            memcpy(*ptoklist, &p.token, Token.sizeof);
+            memcpy(*ptoklist, &p.token(), Token.sizeof);
             ptoklist = &(*ptoklist).next;
             *ptoklist = null;
             p.nextToken();

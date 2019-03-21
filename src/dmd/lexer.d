@@ -417,6 +417,8 @@ class Lexer
 
     Token token;
 
+    package DiagnosticReporter diagnosticReporter;
+
     private
     {
         const(char)* base;      // pointer to start of buffer
@@ -428,7 +430,6 @@ class Lexer
         bool commentToken;      // comments are TOK.comment's
         int lastDocLine;        // last line of previous doc comment
 
-        DiagnosticReporter diagnosticReporter;
         Token* tokenFreelist;
     }
 
