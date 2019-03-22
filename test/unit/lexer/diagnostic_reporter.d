@@ -72,11 +72,12 @@ unittest
 
 private void lexUntilEndOfFile(string code, DiagnosticReporter reporter)
 {
+    import dmd.errors : printDiagnostics;
     import dmd.lexer : Lexer;
     import dmd.tokens : TOK;
 
     scope lexer = new Lexer("test", code.ptr, 0, code.length, 0, 0, reporter);
-    lexer.nextToken;
+    lexer.nextToken.unwrap!printDiagnostics;
 
-    while (lexer.nextToken != TOK.endOfFile) {}
+    while (lexer.nextToken.unwrap!printDiagnostics != TOK.endOfFile) {}
 }

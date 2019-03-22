@@ -59,6 +59,12 @@ struct Diagnosed(T)
         diagnosticSet.add(this.diagnosticSet);
         return value;
     }
+
+    T unwrap(alias func)()
+    {
+        func(diagnosticSet);
+        return value;
+    }
 }
 
 Diagnosed!T diagnosed(T)(T value, DiagnosticSet diagnosticSet)
@@ -203,6 +209,50 @@ class FormattedDiagnostic(Args...) : Diagnostic
         formatString.toStringzThen!(str => buffer.printf(str, args));
 
         return cast(string) buffer.extractSlice();
+    }
+}
+
+void printDiagnostics(DiagnosticSet set)
+{
+    static void printMessage(alias diagnosticFunc)(const Diagnostic diagnostic)
+    {
+        const message = diagnostic.message;
+
+        diagnosticFunc(diagnostic.loc, "%.*s",
+            cast(int) message.length, message.ptr);
+    }
+
+    static void printSupplementalMessages(alias diagnosticFunc)
+        (const Diagnostic[] diagnostics)
+    {
+        foreach (diagnostic; diagnostics)
+            printMessage!diagnosticFunc(diagnostic);
+    }
+
+    foreach (diagnostic; set)
+    {
+        const message = diagnostic.message;
+
+        final switch (diagnostic.severity)
+        {
+            case Severity.deprecation:
+                printMessage!deprecation(diagnostic);
+                printSupplementalMessages!deprecationSupplemental
+                    (diagnostic.supplementalDiagnostics);
+            break;
+
+            case Severity.error:
+                printMessage!error(diagnostic);
+                printSupplementalMessages!errorSupplemental
+                    (diagnostic.supplementalDiagnostics);
+            break;
+
+            case Severity.warning:
+                printMessage!warning(diagnostic);
+                printSupplementalMessages!warningSupplemental
+                    (diagnostic.supplementalDiagnostics);
+            break;
+        }
     }
 }
 

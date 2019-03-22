@@ -323,46 +323,7 @@ final class Parser(AST) : Lexer
         scope (exit)
             set = DiagnosticSet();
 
-        static void printMessage(alias diagnosticFunc)(const Diagnostic diagnostic)
-        {
-            const message = diagnostic.message;
-
-            diagnosticFunc(diagnostic.loc, "%.*s",
-                cast(int) message.length, message.ptr);
-        }
-
-        static void printSupplementalMessages(alias diagnosticFunc)
-            (const Diagnostic[] diagnostics)
-        {
-            foreach (diagnostic; diagnostics)
-                printMessage!diagnosticFunc(diagnostic);
-        }
-
-        foreach (diagnostic; set)
-        {
-            const message = diagnostic.message;
-
-            with (Severity) final switch (diagnostic.severity)
-            {
-                case deprecation:
-                    printMessage!(.deprecation)(diagnostic);
-                    printSupplementalMessages!(.deprecationSupplemental)
-                        (diagnostic.supplementalDiagnostics);
-                break;
-
-                case error:
-                    printMessage!(.error)(diagnostic);
-                    printSupplementalMessages!(.errorSupplemental)
-                        (diagnostic.supplementalDiagnostics);
-                break;
-
-                case warning:
-                    printMessage!(.warning)(diagnostic);
-                    printSupplementalMessages!(.warningSupplemental)
-                        (diagnostic.supplementalDiagnostics);
-                break;
-            }
-        }
+        .printDiagnostics(set);
     }
 
     private auto forwardDiagnosedFunction(T)(lazy T value)
