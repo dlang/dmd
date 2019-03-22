@@ -500,7 +500,8 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                 if (!va.isScope() && inferScope)
                 {   //printf("inferring scope for %s\n", va.toChars());
                     va.storage_class |= STC.scope_ | STC.scopeinferred;
-                    va.storage_class |= v.storage_class & STC.return_;
+                    if (v.storage_class & STC.return_)
+                    va.storage_class |= STC.return_ | STC.returninferred;
                 }
                 continue;
             }
@@ -1071,7 +1072,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                  * Because dg.ptr points to x, this is returning dt.ptr+offset
                  */
                 if (global.params.vsafe)
-                    sc.func.storage_class |= STC.return_;
+                    sc.func.storage_class |= STC.return_ | STC.returninferred;
             }
 
         }
@@ -1141,14 +1142,14 @@ private void inferReturn(FuncDeclaration fd, VarDeclaration v)
     // v is a local in the current function
 
     //printf("for function '%s' inferring 'return' for variable '%s'\n", fd.toChars(), v.toChars());
-    v.storage_class |= STC.return_;
+    v.storage_class |= STC.return_ | STC.returninferred;
 
     TypeFunction tf = cast(TypeFunction)fd.type;
     if (v == fd.vthis)
     {
         /* v is the 'this' reference, so mark the function
          */
-        fd.storage_class |= STC.return_;
+        fd.storage_class |= STC.return_ | STC.returninferred;
         if (tf.ty == Tfunction)
         {
             //printf("'this' too %p %s\n", tf, sc.func.toChars());
@@ -1166,7 +1167,7 @@ private void inferReturn(FuncDeclaration fd, VarDeclaration v)
                 Parameter p = tf.parameterList[i];
                 if (p.ident == v.ident)
                 {
-                    p.storageClass |= STC.return_;
+                    p.storageClass |= STC.return_ | STC.returninferred;
                     break;              // there can be only one
                 }
             }
@@ -1807,7 +1808,7 @@ void eliminateMaybeScopes(VarDeclaration[] array)
                             // v cannot be scope since it is assigned to a non-scope va
                             notMaybeScope(v);
                             if (!(v.storage_class & (STC.ref_ | STC.out_)))
-                                v.storage_class &= ~STC.return_;
+                                v.storage_class &= ~(STC.return_ | STC.returninferred);
                             changes = true;
                         }
                     }
