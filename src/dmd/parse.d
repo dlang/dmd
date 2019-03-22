@@ -319,6 +319,82 @@ final class Parser(AST) : Lexer
         //nextToken();              // start up the scanner
     }
 
+    private void printDiagnostics(DiagnosticSet set)
+    {
+        static void printMessage(alias diagnosticFunc)(const Diagnostic diagnostic)
+        {
+            const message = diagnostic.message;
+
+            diagnosticFunc(diagnostic.loc, "%.*s",
+                cast(int) message.length, message.ptr);
+        }
+
+        static void printSupplementalMessages(alias diagnosticFunc)
+            (const Diagnostic[] diagnostics)
+        {
+            foreach (diagnostic; diagnostics)
+                printMessage!diagnosticFunc(diagnostic);
+        }
+
+        foreach (diagnostic; set)
+        {
+            const message = diagnostic.message;
+
+            with (Severity) final switch (diagnostic.severity)
+            {
+                case deprecation:
+                    printMessage!(.deprecation)(diagnostic);
+                    printSupplementalMessages!(.deprecationSupplemental)
+                        (diagnostic.supplementalDiagnostics);
+                break;
+
+                case error:
+                    printMessage!(.error)(diagnostic);
+                    printSupplementalMessages!(.errorSupplemental)
+                        (diagnostic.supplementalDiagnostics);
+                break;
+
+                case warning:
+                    printMessage!(.warning)(diagnostic);
+                    printSupplementalMessages!(.warningSupplemental)
+                        (diagnostic.supplementalDiagnostics);
+                break;
+            }
+        }
+    }
+
+    private auto forwardDiagnosedFunction(T)(lazy T value)
+    {
+        auto diagnosed = value;
+        printDiagnostics(diagnosed.diagnosticSet);
+        return diagnosed.value;
+    }
+
+    TOK nextToken()
+    {
+        return forwardDiagnosedFunction(super.nextToken);
+    }
+
+    TOK peekNext()
+    {
+        return forwardDiagnosedFunction(super.peekNext);
+    }
+
+    TOK peekNext2()
+    {
+        return forwardDiagnosedFunction(super.peekNext2);
+    }
+
+    Token* peek(Token* ct)
+    {
+        return forwardDiagnosedFunction(super.peek(ct));
+    }
+
+    Token* peekPastParen(Token* tk)
+    {
+        return forwardDiagnosedFunction(super.peekPastParen(tk));
+    }
+
     AST.Dsymbols* parseModule()
     {
         const comment = token.blockComment;
