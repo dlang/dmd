@@ -416,6 +416,8 @@ class Lexer
     const(char)* p;         // current character
 
     Token token;
+    // should be made private when the parser has its own DiagnosticSet
+    protected DiagnosticSet diagnosticSet;
 
     private
     {
@@ -430,7 +432,6 @@ class Lexer
 
         DiagnosticReporter diagnosticReporter;
         Token* tokenFreelist;
-        DiagnosticSet diagnosticSet;
     }
 
     /*********************

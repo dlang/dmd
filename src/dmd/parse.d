@@ -278,7 +278,6 @@ final class Parser(AST) : Lexer
         Loc endloc; // set to location of last right curly
         int inBrackets; // inside [] of array index or slice
         Loc lookingForElse; // location of lonely if looking for an else
-        DiagnosticSet diagnosticSet;
     }
 
     /*********************
@@ -319,8 +318,11 @@ final class Parser(AST) : Lexer
         //nextToken();              // start up the scanner
     }
 
-    private void printDiagnostics(DiagnosticSet set)
+    private void printDiagnostics(ref DiagnosticSet set)
     {
+        scope (exit)
+            set = DiagnosticSet();
+
         static void printMessage(alias diagnosticFunc)(const Diagnostic diagnostic)
         {
             const message = diagnostic.message;
@@ -397,6 +399,9 @@ final class Parser(AST) : Lexer
 
     AST.Dsymbols* parseModule()
     {
+        scope (exit)
+            printDiagnostics(diagnosticSet);
+
         const comment = token.blockComment;
         bool isdeprecated = false;
         AST.Expression msg = null;
@@ -539,6 +544,9 @@ final class Parser(AST) : Lexer
 
     AST.Dsymbols* parseDeclDefs(int once, AST.Dsymbol* pLastDecl = null, PrefixAttributes!AST* pAttrs = null)
     {
+        scope (exit)
+            printDiagnostics(diagnosticSet);
+
         AST.Dsymbol lastDecl = null; // used to link unittest to its previous declaration
         if (!pLastDecl)
             pLastDecl = &lastDecl;
@@ -5422,6 +5430,9 @@ final class Parser(AST) : Lexer
      */
     AST.Statement parseStatement(int flags, const(char)** endPtr = null, Loc* pEndloc = null)
     {
+        scope (exit)
+            printDiagnostics(diagnosticSet);
+
         AST.Statement s;
         AST.Condition cond;
         AST.Statement ifbody;
@@ -6755,6 +6766,9 @@ final class Parser(AST) : Lexer
 
     void check(TOK value)
     {
+        scope (exit)
+            printDiagnostics(diagnosticSet);
+
         check(token.loc, value);
     }
 
@@ -7609,6 +7623,9 @@ final class Parser(AST) : Lexer
 
     AST.Expression parseExpression()
     {
+        scope (exit)
+            printDiagnostics(diagnosticSet);
+
         auto loc = token.loc;
 
         //printf("Parser::parseExpression() loc = %d\n", loc.linnum);
@@ -7627,6 +7644,9 @@ final class Parser(AST) : Lexer
 
     AST.Expression parsePrimaryExp()
     {
+        scope (exit)
+            printDiagnostics(diagnosticSet);
+
         AST.Expression e;
         AST.Type t;
         Identifier id;
@@ -8833,6 +8853,9 @@ final class Parser(AST) : Lexer
 
     AST.Expression parseAssignExp()
     {
+        scope (exit)
+            printDiagnostics(diagnosticSet);
+
         AST.Expression e;
         e = parseCondExp();
         if (e is null)

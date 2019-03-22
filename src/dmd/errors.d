@@ -200,9 +200,6 @@ class FormattedDiagnostic(Args...) : Diagnostic
     override string message() const nothrow
     {
         OutBuffer buffer;
-
-        loc.toChars(buffer);
-        buffer.writestring(": ");
         formatString.toStringzThen!(str => buffer.printf(str, args));
 
         return cast(string) buffer.extractSlice();
