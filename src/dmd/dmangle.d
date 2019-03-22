@@ -1066,7 +1066,8 @@ public:
         if (p.storageClass & STC.scope_ && !(p.storageClass & STC.scopeinferred))
             buf.writeByte('M');
         // 'return inout ref' is the same as 'inout ref'
-        if ((p.storageClass & (STC.return_ | STC.wild)) == STC.return_)
+        if ((p.storageClass & (STC.return_ | STC.wild)) == STC.return_ &&
+            !(p.storageClass & STC.returninferred))
             buf.writestring("Nk");
         switch (p.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.lazy_))
         {
