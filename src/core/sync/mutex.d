@@ -146,7 +146,7 @@ class Mutex :
         {
             import core.internal.abort : abort;
             !pthread_mutex_destroy(&m_hndl) ||
-                abort("Error: pthread_mutex_init failed.");
+                abort("Error: pthread_mutex_destroy failed.");
         }
         this.__monitor = null;
     }
