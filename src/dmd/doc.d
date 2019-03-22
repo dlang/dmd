@@ -612,10 +612,11 @@ private void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start, bool 
             break;
         case '-':
         case '`':
+        case '~':
             // Issue 15465: don't try to escape unbalanced parens inside code
             // blocks.
             int numdash = 1;
-            for (++u; u < buf.offset && buf.data[u] == '-'; ++u)
+            for (++u; u < buf.offset && buf.data[u] == c; ++u)
                 ++numdash;
             --u;
             if (c == '`' || (atLineStart && numdash >= 3))
@@ -1675,23 +1676,26 @@ struct DocComment
             while (1)
             {
                 // Check for start/end of a code section
-                if (*p == '-')
+                if (*p == '-' || *p == '`' || *p == '~')
                 {
-                    if (!inCode)
-                    {
-                        // restore leading indentation
-                        while (pstart0 < pstart && isIndentWS(pstart - 1))
-                            --pstart;
-                    }
+                    char c = *p;
                     int numdash = 0;
-                    while (*p == '-')
+                    while (*p == c)
                     {
                         ++numdash;
                         p++;
                     }
                     // BUG: handle UTF PS and LS too
-                    if ((!*p || *p == '\r' || *p == '\n') && numdash >= 3)
-                        inCode ^= 1;
+                    if ((!*p || *p == '\r' || *p == '\n' || (!inCode && c != '-')) && numdash >= 3)
+                    {
+                        inCode = inCode == c ? false : c;
+                        if (inCode)
+                        {
+                            // restore leading indentation
+                            while (pstart0 < pstart && isIndentWS(pstart - 1))
+                                --pstart;
+                        }
+                    }
                     pend = p;
                 }
                 if (!inCode && isIdStart(p))
@@ -3562,10 +3566,9 @@ private struct MarkdownLinkReferences
                         leadingBlank = false;
                 }
                 break;
-            case '-':
-                if (leadingBlank && !inCode && isFollowedBySpace(buf, i))
-                    goto case '+';
-                else if (leadingBlank && i+2 < buf.offset && buf.data[i+1] == c && buf.data[i+2] == c)
+            case '`':
+            case '~':
+                if (leadingBlank && i+2 < buf.offset && buf.data[i+1] == c && buf.data[i+2] == c)
                 {
                     inCode = inCode == c ? false : c;
                     i = skipChars(buf, i, [c]) - 1;
@@ -3573,6 +3576,11 @@ private struct MarkdownLinkReferences
                 }
                 leadingBlank = false;
                 break;
+            case '-':
+                if (leadingBlank && !inCode && isFollowedBySpace(buf, i))
+                    goto case '+';
+                else
+                    goto case '`';
             case '[':
                 if (leadingBlank && !inCode && newParagraph)
                     delimiters ~= MarkdownDelimiter(i, 1, 0, false, false, true, c);
@@ -3714,7 +3722,9 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
     int macroLevel = 0;
     int parenLevel = 0;
     size_t iCodeStart = 0; // start of code section
+    size_t codeFenceLength = 0;
     size_t codeIndent = 0;
+    string codeLanguage;
     size_t iLineStart = offset;
     linkReferences._scope = sc;
     for (size_t i = offset; i < buf.offset; i++)
@@ -3871,16 +3881,19 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
 
         case '`':
             {
-                if (inBacktick)
+                const iAfterDelimiter = skipChars(buf, i, "`");
+                const count = iAfterDelimiter - i;
+
+                if (inBacktick == count)
                 {
                     inBacktick = 0;
                     inCode = 0;
                     OutBuffer codebuf;
-                    codebuf.write(buf.peekSlice().ptr + iCodeStart + 1, i - (iCodeStart + 1));
+                    codebuf.write(buf.peekSlice().ptr + iCodeStart + count, i - (iCodeStart + count));
                     // escape the contents, but do not perform highlighting except for DDOC_PSYMBOL
                     highlightCode(sc, a, &codebuf, 0);
                     escapeStrayParenthesis(loc, &codebuf, 0, false);
-                    buf.remove(iCodeStart, i - iCodeStart + 1); // also trimming off the current `
+                    buf.remove(iCodeStart, i - iCodeStart + count); // also trimming off the current `
                     immutable pre = "$(DDOC_BACKQUOTED ";
                     i = buf.insert(iCodeStart, pre);
                     i = buf.insert(i, codebuf.peekSlice());
@@ -3888,16 +3901,35 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                     i--; // point to the ending ) so when the for loop does i++, it will see the next character
                     break;
                 }
+
+                // Perhaps we're starting or ending a Markdown code block
+                if (leadingBlank && global.params.markdown && count >= 3)
+                {
+                    bool moreBackticks = false;
+                    for (size_t j = iAfterDelimiter; !moreBackticks && j < buf.offset; ++j)
+                        if (buf.data[j] == '`')
+                            moreBackticks = true;
+                        else if (buf.data[j] == '\r' || buf.data[j] == '\n')
+                            break;
+                    if (!moreBackticks)
+                        goto case '-';
+                }
+
                 if (inCode)
+                {
+                    if (inBacktick)
+                        i = iAfterDelimiter - 1;
                     break;
-                inCode = 1;
-                inBacktick = 1;
+                }
+                inCode = c;
+                inBacktick = cast(int) count;
                 codeIndent = 0; // inline code is not indented
                 // All we do here is set the code flags and record
                 // the location. The macro will be inserted lazily
                 // so we can easily cancel the inBacktick if we come
                 // across a newline character.
                 iCodeStart = i;
+                i = iAfterDelimiter - 1;
                 break;
             }
 
@@ -3925,13 +3957,26 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
             break;
         }
 
+        case '~':
+            {
+                if (leadingBlank && global.params.markdown)
+                {
+                    // Perhaps we're starting or ending a Markdown code block
+                    const iAfterDelimiter = skipChars(buf, i, "~");
+                    if (iAfterDelimiter - i >= 3)
+                        goto case '-';
+                }
+                leadingBlank = false;
+                break;
+            }
+
         case '-':
             /* A line beginning with --- delimits a code section.
              * inCode tells us if it is start or end of a code section.
              */
             if (leadingBlank)
             {
-                if (!inCode)
+                if (!inCode && c == '-')
                 {
                     const list = MarkdownList.parseItem(buf, iLineStart, i);
                     if (list.isValid)
@@ -3947,9 +3992,13 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                     }
                 }
 
-                size_t istart = i;
+                const istart = i;
                 size_t eollen = 0;
                 leadingBlank = false;
+                const c0 = c; // if we jumped here from case '`' or case '~'
+                size_t iInfoString = 0;
+                if (!inCode)
+                    codeLanguage.length = 0;
                 while (1)
                 {
                     ++i;
@@ -3973,15 +4022,42 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                         }
                     }
                     // BUG: handle UTF PS and LS too
-                    if (c != '-')
-                        goto Lcont;
+                    if (c != c0 || iInfoString)
+                    {
+                        if (global.params.markdown && !iInfoString && !inCode && i - istart >= 3)
+                        {
+                            // Start a Markdown info string, like ```ruby
+                            codeFenceLength = i - istart;
+                            i = iInfoString = skipChars(buf, i, " \t");
+                        }
+                        else if (iInfoString && c != '`')
+                        {
+                            if (!codeLanguage.length && (c == ' ' || c == '\t'))
+                                codeLanguage = cast(string) buf.data[iInfoString..i].idup;
+                        }
+                        else
+                        {
+                            iInfoString = 0;
+                            goto Lcont;
+                        }
+                    }
                 }
-                if (i - istart < 3)
+                if (i - istart < 3 || (inCode && (inCode != c0 || (inCode != '-' && i - istart < codeFenceLength))))
                     goto Lcont;
+                if (iInfoString)
+                {
+                    if (!codeLanguage.length)
+                        codeLanguage = cast(string) buf.data[iInfoString..i].idup;
+                }
+                else
+                    codeFenceLength = i - istart;
+
                 // We have the start/end of a code section
                 // Remove the entire --- line, including blanks and \n
                 buf.remove(iLineStart, i - iLineStart + eollen);
                 i = iLineStart;
+                if (eollen)
+                    leadingBlank = true;
                 if (inCode && (i <= iCodeStart))
                 {
                     // Empty code section, just remove it completely.
@@ -4017,7 +4093,10 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                             lineStart = true;
                         ++p;
                     }
-                    highlightCode2(sc, a, &codebuf, 0);
+                    if (!codeLanguage.length || codeLanguage == "dlang" || codeLanguage == "d")
+                        highlightCode2(sc, a, &codebuf, 0);
+                    else
+                        codebuf.remove(codebuf.offset-1, 1);    // remove the trailing 0 byte
                     escapeStrayParenthesis(loc, &codebuf, 0, false);
                     buf.remove(iCodeStart, i - iCodeStart);
                     i = buf.insert(iCodeStart, codebuf.peekSlice());
@@ -4026,10 +4105,24 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                 }
                 else
                 {
-                    __gshared const(char)* d_code = "$(D_CODE ";
-                    inCode = 1;
+                    inCode = c0;
                     codeIndent = istart - iLineStart; // save indent count
-                    i = buf.insert(i, d_code, strlen(d_code));
+                    if (codeLanguage.length && codeLanguage != "dlang" && codeLanguage != "d")
+                    {
+                        // backslash-escape
+                        for (size_t j; j < codeLanguage.length - 1; ++j)
+                            if (codeLanguage[j] == '\\' && ispunct(codeLanguage[j + 1]))
+                                codeLanguage = codeLanguage[0..j] ~ codeLanguage[j + 1..$];
+
+                        if (global.params.vmarkdown)
+                            message(loc, "Ddoc: adding code block for language '%.*s'", cast(int)codeLanguage.length, codeLanguage.ptr);
+
+                        i = buf.insert(i, "$(OTHER_CODE ");
+                        i = buf.insert(i, codeLanguage);
+                        i = buf.insert(i, ",");
+                    }
+                    else
+                        i = buf.insert(i, "$(D_CODE ");
                     iCodeStart = i;
                     i--; // place i on >
                     leadingBlank = true;
@@ -4318,8 +4411,11 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
             break;
         }
     }
-    if (inCode)
+
+    if (inCode == '-')
         error(loc, "unmatched `---` in DDoc comment");
+    else if (inCode)
+        buf.insert(buf.offset, ")");
 
     size_t i = buf.offset;
     i += replaceMarkdownEmphasis(buf, loc, inlineDelimiters);
