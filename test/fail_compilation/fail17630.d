@@ -3,7 +3,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail17630.d(12): Deprecation: Symbol `b17630.Erase` is not visible from module `fail17630` because it is privately imported in module `a17630`
+fail_compilation/fail17630.d(12): Error: module `a17630` import `Erase` not found, did you mean variable `b17630.Erase`?
 ---
 */
 
