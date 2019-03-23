@@ -1573,11 +1573,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         if (arg == "-allinst")               // https://dlang.org/dmd.html#switch-allinst
             params.allInst = true;
         else if (arg == "-de")               // https://dlang.org/dmd.html#switch-de
-            params.useDeprecated = Diagnostic.error;
+            params.useDeprecated = DiagnosticReporting.error;
         else if (arg == "-d")                // https://dlang.org/dmd.html#switch-d
-            params.useDeprecated = Diagnostic.off;
+            params.useDeprecated = DiagnosticReporting.off;
         else if (arg == "-dw")               // https://dlang.org/dmd.html#switch-dw
-            params.useDeprecated = Diagnostic.inform;
+            params.useDeprecated = DiagnosticReporting.inform;
         else if (arg == "-c")                // https://dlang.org/dmd.html#switch-c
             params.link = false;
         else if (startsWith(p + 1, "checkaction")) // https://dlang.org/dmd.html#switch-checkaction
@@ -2009,9 +2009,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 params.useDIP25 = false;
         }
         else if (arg == "-w")   // https://dlang.org/dmd.html#switch-w
-            params.warnings = Diagnostic.error;
+            params.warnings = DiagnosticReporting.error;
         else if (arg == "-wi")  // https://dlang.org/dmd.html#switch-wi
-            params.warnings = Diagnostic.inform;
+            params.warnings = DiagnosticReporting.inform;
         else if (arg == "-O")   // https://dlang.org/dmd.html#switch-O
             params.optimize = true;
         else if (p[1] == 'o')

@@ -21,6 +21,453 @@ import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.console;
 
+auto toStringzThen(alias func)(const(char)[] str)
+{
+    import core.stdc.stdlib: malloc, free;
+
+    if (str.length == 0)
+        return func("".ptr);
+
+    char[1024] staticBuffer;
+    const newLength = str.length + 1;
+    char[] buffer;
+
+    if (str.length >= buffer.length)
+        buffer = (cast(char*) malloc(newLength * char.sizeof))[0 .. newLength];
+    else
+        buffer = staticBuffer[0 .. newLength];
+
+    scope (exit)
+    {
+        if (&buffer[0] != &staticBuffer[0])
+            free(&buffer[0]);
+    }
+
+    buffer[0 .. $ - 1] = str;
+    buffer[$ - 1] = '\0';
+
+    return func(&buffer[0]);
+}
+
+struct Diagnosed(T)
+{
+    T value;
+    DiagnosticSet diagnosticSet;
+}
+
+T unwrap(alias func, T)(Diagnosed!T diagnosed)
+{
+    func(diagnosed.diagnosticSet);
+    return diagnosed.value;
+}
+
+Diagnosed!T diagnosed(T)(T value, DiagnosticSet diagnosticSet)
+{
+    return Diagnosed!(T)(value, diagnosticSet);
+}
+
+auto map(alias func, T)(Diagnosed!T diagnosed)
+{
+    return .diagnosed(func(diagnosed.value), diagnosed.diagnosticSet);
+}
+
+auto chainedMap(alias func, T)(Diagnosed!T diagnosed)
+{
+    auto diagnosedResult = func(diagnosed.value);
+    auto originalSet = diagnosed.diagnosticSet;
+    auto resultSet = diagnosedResult.diagnosticSet;
+
+    return .diagnosed(diagnosedResult.value, originalSet ~ resultSet);
+}
+
+/// Diagnostic severity.
+enum Severity
+{
+    /// An error occurred.
+    error,
+
+    /// A warning occurred.
+    warning,
+
+    /// A deprecation occurred.
+    deprecation,
+}
+
+struct DiagnosticSet
+{
+    private Diagnostic[] _diagnostics;
+
+    void add(Diagnostic diagnostic) pure nothrow @safe
+    {
+        _diagnostics ~= diagnostic;
+    }
+
+    DiagnosticSet opBinary(string op)(DiagnosticSet set) pure nothrow @safe
+    if (op == "~")
+    {
+        DiagnosticSet newSet;
+        newSet ~= this;
+        newSet ~= set;
+
+        return newSet;
+    }
+
+    DiagnosticSet opOpAssign(string op)(Diagnostic diagnostic) pure nothrow @safe
+    if (op == "~")
+    {
+        _diagnostics ~= diagnostic;
+        return this;
+    }
+
+    DiagnosticSet opOpAssign(string op)(DiagnosticSet set) pure nothrow @safe
+    if (op == "~")
+    {
+        _diagnostics ~= set._diagnostics;
+        return this;
+    }
+
+    void addSupplemental(const Diagnostic diagnostic) pure nothrow @safe
+    {
+        _diagnostics[$ - 1].addSupplementalDiagnostic(diagnostic);
+    }
+
+    const(Diagnostic) front() const pure nothrow @nogc @safe
+    {
+        return _diagnostics[0];
+    }
+
+    void popFront() pure nothrow @nogc @safe
+    {
+        _diagnostics = _diagnostics[1 .. $];
+    }
+
+    bool empty() const pure nothrow @nogc @safe
+    {
+        return _diagnostics.length == 0;
+    }
+
+    size_t length() const pure nothrow @nogc @safe
+    {
+        return _diagnostics.length;
+    }
+
+    const(Diagnostic) opIndex(size_t index) const pure nothrow @nogc @safe
+    {
+        return _diagnostics[index];
+    }
+}
+
+/// A single diagnostic message.
+abstract class Diagnostic
+{
+    /// The location of where the diagnostic occurred.
+    const Loc loc;
+
+    /// The severity of the diagnostic.
+    const Severity severity;
+
+    /// The message.
+    abstract string message() const nothrow;
+
+    private const(Diagnostic)[] _supplementalDiagnostics;
+
+    this(const ref Loc loc, const Severity severity) pure nothrow @nogc @safe
+    {
+        this.loc = loc;
+        this.severity = severity;
+    }
+
+    final const(Diagnostic[]) supplementalDiagnostics() const pure nothrow @nogc @safe
+    {
+        return _supplementalDiagnostics;
+    }
+
+    private final void addSupplementalDiagnostic(const Diagnostic diagnostic) pure nothrow @safe
+    in
+    {
+        assert(diagnostic.severity == severity);
+    }
+    body
+    {
+        _supplementalDiagnostics ~= diagnostic;
+    }
+}
+
+class FormattedDiagnostic(Args...) : Diagnostic
+{
+    private const string formatString;
+    private const Args args;
+
+    this(const ref Loc loc, const Severity severity, const string formatString,
+        const Args args) pure nothrow @nogc @safe
+    {
+        super(loc, severity);
+        this.formatString = formatString;
+        this.args = args;
+    }
+
+    override string message() const nothrow
+    {
+        OutBuffer buffer;
+        formatString.toStringzThen!(str => buffer.printf(str, args));
+
+        return cast(string) buffer.extractSlice();
+    }
+}
+
+void printDiagnostics(DiagnosticSet set, DiagnosticReporter reporter)
+{
+    alias DiagnosticFunction = void delegate(
+        ref const(Loc) loc, const(char)* format, ...);
+
+    static void printMessage(const Diagnostic diagnostic,
+        DiagnosticFunction diagnosticFunc)
+    {
+        const message = diagnostic.message;
+
+        diagnosticFunc(diagnostic.loc, "%.*s",
+            cast(int) message.length, message.ptr);
+    }
+
+    static void printSupplementalMessages(const Diagnostic[] diagnostics,
+        DiagnosticFunction diagnosticFunc)
+    {
+        foreach (diagnostic; diagnostics)
+            printMessage(diagnostic, diagnosticFunc);
+    }
+
+    foreach (diagnostic; set)
+    {
+        const message = diagnostic.message;
+
+        final switch (diagnostic.severity)
+        {
+            case Severity.deprecation:
+                printMessage(diagnostic, &reporter.deprecation);
+                printSupplementalMessages(diagnostic.supplementalDiagnostics,
+                    &reporter.deprecationSupplemental);
+            break;
+
+            case Severity.error:
+                printMessage(diagnostic, &reporter.error);
+                printSupplementalMessages(diagnostic.supplementalDiagnostics,
+                    &reporter.errorSupplemental);
+            break;
+
+            case Severity.warning:
+                printMessage(diagnostic, &reporter.warning);
+                printSupplementalMessages(diagnostic.supplementalDiagnostics,
+                    &reporter.warningSupplemental);
+            break;
+        }
+    }
+}
+
+/// Interface for diagnostic reporting.
+abstract class DiagnosticReporter
+{
+    /// Returns: the number of errors that occurred during lexing or parsing.
+    abstract int errorCount();
+
+    /// Returns: the number of warnings that occurred during lexing or parsing.
+    abstract int warningCount();
+
+    /// Returns: the number of deprecations that occurred during lexing or parsing.
+    abstract int deprecationCount();
+
+    /**
+    Reports an error message.
+
+    Params:
+        loc = Location of error
+        format = format string for error
+        ... = format string arguments
+    */
+    final void error(const ref Loc loc, const(char)* format, ...)
+    {
+        va_list args;
+        va_start(args, format);
+        error(loc, format, args);
+        va_end(args);
+    }
+
+    /// ditto
+    abstract void error(const ref Loc loc, const(char)* format, va_list args);
+
+    /**
+    Reports additional details about an error message.
+
+    Params:
+        loc = Location of error
+        format = format string for supplemental message
+        ... = format string arguments
+    */
+    final void errorSupplemental(const ref Loc loc, const(char)* format, ...)
+    {
+        va_list args;
+        va_start(args, format);
+        errorSupplemental(loc, format, args);
+        va_end(args);
+    }
+
+    /// ditto
+    abstract void errorSupplemental(const ref Loc loc, const(char)* format, va_list);
+
+    /**
+    Reports a warning message.
+
+    Params:
+        loc = Location of warning
+        format = format string for warning
+        ... = format string arguments
+    */
+    final void warning(const ref Loc loc, const(char)* format, ...)
+    {
+        va_list args;
+        va_start(args, format);
+        warning(loc, format, args);
+        va_end(args);
+    }
+
+    /// ditto
+    abstract void warning(const ref Loc loc, const(char)* format, va_list args);
+
+    /**
+    Reports additional details about a warning message.
+
+    Params:
+        loc = Location of warning
+        format = format string for supplemental message
+        ... = format string arguments
+    */
+    final void warningSupplemental(const ref Loc loc, const(char)* format, ...)
+    {
+        va_list args;
+        va_start(args, format);
+        warningSupplemental(loc, format, args);
+        va_end(args);
+    }
+
+    /// ditto
+    abstract void warningSupplemental(const ref Loc loc, const(char)* format, va_list);
+
+    /**
+    Reports a deprecation message.
+
+    Params:
+        loc = Location of the deprecation
+        format = format string for the deprecation
+        ... = format string arguments
+    */
+    final void deprecation(const ref Loc loc, const(char)* format, ...)
+    {
+        va_list args;
+        va_start(args, format);
+        deprecation(loc, format, args);
+        va_end(args);
+    }
+
+    /// ditto
+    abstract void deprecation(const ref Loc loc, const(char)* format, va_list args);
+
+    /**
+    Reports additional details about a deprecation message.
+
+    Params:
+        loc = Location of deprecation
+        format = format string for supplemental message
+        ... = format string arguments
+    */
+    final void deprecationSupplemental(const ref Loc loc, const(char)* format, ...)
+    {
+        va_list args;
+        va_start(args, format);
+        deprecationSupplemental(loc, format, args);
+        va_end(args);
+    }
+
+    /// ditto
+    abstract void deprecationSupplemental(const ref Loc loc, const(char)* format, va_list);
+}
+
+/**
+Diagnostic reporter which prints the diagnostic messages to stderr.
+
+This is usually the default diagnostic reporter.
+*/
+final class StderrDiagnosticReporter : DiagnosticReporter
+{
+    private const DiagnosticReporting useDeprecated;
+
+    private int errorCount_;
+    private int warningCount_;
+    private int deprecationCount_;
+
+    /**
+    Initializes this object.
+
+    Params:
+        useDeprecated = indicates how deprecation diagnostics should be
+            handled
+    */
+    this(DiagnosticReporting useDeprecated)
+    {
+        this.useDeprecated = useDeprecated;
+    }
+
+    override int errorCount()
+    {
+        return errorCount_;
+    }
+
+    override int warningCount()
+    {
+        return warningCount_;
+    }
+
+    override int deprecationCount()
+    {
+        return deprecationCount_;
+    }
+
+    override void error(const ref Loc loc, const(char)* format, va_list args)
+    {
+        verror(loc, format, args);
+        errorCount_++;
+    }
+
+    override void errorSupplemental(const ref Loc loc, const(char)* format, va_list args)
+    {
+        verrorSupplemental(loc, format, args);
+    }
+
+    override void warning(const ref Loc loc, const(char)* format, va_list args)
+    {
+        vwarning(loc, format, args);
+        warningCount_++;
+    }
+
+    override void warningSupplemental(const ref Loc loc, const(char)* format, va_list args)
+    {
+        vwarningSupplemental(loc, format, args);
+    }
+
+    override void deprecation(const ref Loc loc, const(char)* format, va_list args)
+    {
+        vdeprecation(loc, format, args);
+
+        if (useDeprecated == DiagnosticReporting.error)
+            errorCount_++;
+        else
+            deprecationCount_++;
+    }
+
+    override void deprecationSupplemental(const ref Loc loc, const(char)* format, va_list args)
+    {
+        vdeprecationSupplemental(loc, format, args);
+    }
+}
+
 /**
  * Color highlighting to classify messages
  */
@@ -322,12 +769,12 @@ extern (C++) void verrorSupplemental(const ref Loc loc, const(char)* format, va_
  */
 extern (C++) void vwarning(const ref Loc loc, const(char)* format, va_list ap)
 {
-    if (global.params.warnings != Diagnostic.off)
+    if (global.params.warnings != DiagnosticReporting.off)
     {
         if (!global.gag)
         {
             verrorPrint(loc, Classification.warning, "Warning: ", format, ap);
-            if (global.params.warnings == Diagnostic.error)
+            if (global.params.warnings == DiagnosticReporting.error)
                 global.warnings++;
         }
         else
@@ -346,7 +793,7 @@ extern (C++) void vwarning(const ref Loc loc, const(char)* format, va_list ap)
  */
 extern (C++) void vwarningSupplemental(const ref Loc loc, const(char)* format, va_list ap)
 {
-    if (global.params.warnings != Diagnostic.off && !global.gag)
+    if (global.params.warnings != DiagnosticReporting.off && !global.gag)
         verrorPrint(loc, Classification.warning, "       ", format, ap);
 }
 
@@ -362,9 +809,9 @@ extern (C++) void vwarningSupplemental(const ref Loc loc, const(char)* format, v
 extern (C++) void vdeprecation(const ref Loc loc, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
 {
     __gshared const(char)* header = "Deprecation: ";
-    if (global.params.useDeprecated == Diagnostic.error)
+    if (global.params.useDeprecated == DiagnosticReporting.error)
         verror(loc, format, ap, p1, p2, header);
-    else if (global.params.useDeprecated == Diagnostic.inform)
+    else if (global.params.useDeprecated == DiagnosticReporting.inform)
     {
         if (!global.gag)
         {
@@ -408,9 +855,9 @@ extern (C++) void vmessage(const ref Loc loc, const(char)* format, va_list ap)
  */
 extern (C++) void vdeprecationSupplemental(const ref Loc loc, const(char)* format, va_list ap)
 {
-    if (global.params.useDeprecated == Diagnostic.error)
+    if (global.params.useDeprecated == DiagnosticReporting.error)
         verrorSupplemental(loc, format, ap);
-    else if (global.params.useDeprecated == Diagnostic.inform && !global.gag)
+    else if (global.params.useDeprecated == DiagnosticReporting.inform && !global.gag)
         verrorPrint(loc, Classification.deprecation, "       ", format, ap);
 }
 
@@ -519,7 +966,7 @@ private void colorHighlightCode(OutBuffer* buf)
 
     auto gaggedErrorsSave = global.startGagging();
     scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-    scope Lexer lex = new Lexer(null, cast(char*)buf.data, 0, buf.offset - 1, 0, 1, diagnosticReporter);
+    scope Lexer lex = new Lexer(null, cast(char*)buf.data, 0, buf.offset - 1, 0, 1);
     OutBuffer res;
     const(char)* lastp = cast(char*)buf.data;
     //printf("colorHighlightCode('%.*s')\n", cast(int)(buf.offset - 1), buf.data);
@@ -529,7 +976,8 @@ private void colorHighlightCode(OutBuffer* buf)
     while (1)
     {
         Token tok;
-        lex.scan(&tok);
+        lex.scan(&tok)
+            .printDiagnostics(diagnosticReporter);
         res.writestring(lastp[0 .. tok.ptr - lastp]);
         HIGHLIGHT highlight;
         switch (tok.value)

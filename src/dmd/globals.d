@@ -34,7 +34,7 @@ enum TARGET : bool
     DragonFlyBSD = xversion!`DragonFlyBSD`,
 }
 
-enum Diagnostic : ubyte
+enum DiagnosticReporting : ubyte
 {
     error,        // generate an error
     inform,       // generate a warning
@@ -132,7 +132,7 @@ struct Param
     bool isSolaris;         // generate code for Solaris
     bool hasObjectiveC;     // target supports Objective-C
     bool mscoff = false;    // for Win32: write MsCoff object files instead of OMF
-    Diagnostic useDeprecated = Diagnostic.inform;  // how use of deprecated features are handled
+    DiagnosticReporting useDeprecated = DiagnosticReporting.inform;  // how use of deprecated features are handled
     bool stackstomp;            // add stack stomping code
     bool useUnitTests;          // generate unittest code
     bool useInline = false;     // inline expand functions
@@ -140,7 +140,7 @@ struct Param
     bool noDIP25;           // revert to pre-DIP25 behavior
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
-    Diagnostic warnings = Diagnostic.off;  // how compiler warnings are handled
+    DiagnosticReporting warnings = DiagnosticReporting.off;  // how compiler warnings are handled
     bool pic;               // generate position-independent-code for shared libs
     bool color;             // use ANSI colors in console output
     bool cov;               // generate code coverage data
@@ -492,9 +492,8 @@ nothrow:
         this.filename = filename;
     }
 
-    extern (C++) const(char)* toChars() const
+    extern (C++) void toChars(ref OutBuffer buf) const
     {
-        OutBuffer buf;
         if (filename)
         {
             buf.writestring(filename);
@@ -510,6 +509,12 @@ nothrow:
             }
             buf.writeByte(')');
         }
+    }
+
+    extern (C++) const(char)* toChars() const
+    {
+        OutBuffer buf;
+        toChars(buf);
         return buf.extractString();
     }
 
