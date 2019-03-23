@@ -325,9 +325,8 @@ class Lexer
             releaseToken(t);
         }
         else
-        {
             set = scan(&token);
-        }
+
         //printf(token.toChars());
         return diagnosed(token.value, set);
     }
@@ -358,7 +357,7 @@ class Lexer
     final DiagnosticSet scan(Token* t)
     {
         scope (exit)
-             diagnosticSet = DiagnosticSet();
+            diagnosticSet = DiagnosticSet();
 
         const lastLine = scanloc.linnum;
         Loc startLoc;
@@ -1052,7 +1051,7 @@ class Lexer
                 {
                     p++;
                     Token n;
-                    scan(&n);
+                    diagnosticSet ~= scan(&n);
                     if (n.value == TOK.identifier)
                     {
                         if (n.ident == Id.line)
@@ -1555,7 +1554,7 @@ class Lexer
                     // Start of identifier; must be a heredoc
                     Token tok;
                     p--;
-                    scan(&tok); // read in heredoc identifier
+                    diagnosticSet ~= scan(&tok); // read in heredoc identifier
                     if (tok.value != TOK.identifier)
                     {
                         error("identifier expected for heredoc, not %s", tok.toChars());
@@ -1603,7 +1602,7 @@ class Lexer
                     Token tok;
                     auto psave = p;
                     p--;
-                    scan(&tok); // read in possible heredoc identifier
+                    diagnosticSet ~= scan(&tok); // read in possible heredoc identifier
                     //printf("endid = '%s'\n", tok.ident.toChars());
                     if (tok.value == TOK.identifier && tok.ident.equals(hereid))
                     {
@@ -1649,7 +1648,7 @@ class Lexer
         while (1)
         {
             Token tok;
-            scan(&tok);
+            diagnosticSet ~= scan(&tok);
             switch (tok.value)
             {
             case TOK.leftCurly:
@@ -2360,7 +2359,7 @@ class Lexer
         const(char)* filespec = null;
         const loc = this.loc();
         Token tok;
-        scan(&tok);
+        diagnosticSet ~= scan(&tok);
         if (tok.value == TOK.int32Literal || tok.value == TOK.int64Literal)
         {
             const lin = cast(int)(tok.unsvalue - 1);

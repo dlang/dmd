@@ -113,14 +113,28 @@ struct DiagnosticSet
         _diagnostics ~= set._diagnostics;
     }
 
-    DiagnosticSet opBinary(string op)(DiagnosticSet set)
+    DiagnosticSet opBinary(string op)(DiagnosticSet set) pure nothrow @safe
     if (op == "~")
     {
         DiagnosticSet newSet;
-        newSet.add(this);
-        newSet.add(set);
+        newSet ~= this;
+        newSet ~= set;
 
         return newSet;
+    }
+
+    DiagnosticSet opOpAssign(string op)(Diagnostic diagnostic) pure nothrow @safe
+    if (op == "~")
+    {
+        _diagnostics ~= diagnostic;
+        return this;
+    }
+
+    DiagnosticSet opOpAssign(string op)(DiagnosticSet set) pure nothrow @safe
+    if (op == "~")
+    {
+        _diagnostics ~= set._diagnostics;
+        return this;
     }
 
     void addSupplemental(const Diagnostic diagnostic) pure nothrow @safe
