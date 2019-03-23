@@ -4482,7 +4482,7 @@ private void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offse
 {
     uint errorsave = global.startGagging();
     scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-    scope Lexer lex = new Lexer(null, cast(char*)buf.data, 0, buf.offset - 1, 0, 1, diagnosticReporter);
+    scope Lexer lex = new Lexer(null, cast(char*)buf.data, 0, buf.offset - 1, 0, 1);
     OutBuffer res;
     const(char)* lastp = cast(char*)buf.data;
     //printf("highlightCode2('%.*s')\n", cast(int)(buf.offset - 1), buf.data);
@@ -4490,7 +4490,7 @@ private void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offse
     while (1)
     {
         Token tok;
-        lex.scan(&tok);
+        lex.scan(&tok).printDiagnostics(diagnosticReporter);
         highlightCode3(sc, &res, lastp, tok.ptr);
         const(char)* highlight = null;
         switch (tok.value)

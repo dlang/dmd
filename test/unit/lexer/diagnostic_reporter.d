@@ -2,8 +2,8 @@ module lexer.diagnostic_reporter;
 
 import core.stdc.stdarg;
 
+import dmd.errors : DiagnosticReporter;
 import dmd.globals : Loc;
-import dmd.lexer : DiagnosticReporter;
 
 import support : afterEach, NoopDiagnosticReporter;
 
@@ -72,12 +72,13 @@ unittest
 
 private void lexUntilEndOfFile(string code, DiagnosticReporter reporter)
 {
-    import dmd.errors : printDiagnostics;
+    import dmd.errors : printDiagnostics, unwrap;
     import dmd.lexer : Lexer;
     import dmd.tokens : TOK;
 
-    scope lexer = new Lexer("test", code.ptr, 0, code.length, 0, 0, reporter);
-    lexer.nextToken.unwrap!printDiagnostics;
+    alias printDiags = set => set.printDiagnostics(reporter);
+    scope lexer = new Lexer("test", code.ptr, 0, code.length, 0, 0);
+    lexer.nextToken.unwrap!printDiags;
 
-    while (lexer.nextToken.unwrap!printDiagnostics != TOK.endOfFile) {}
+    while (lexer.nextToken.unwrap!printDiags != TOK.endOfFile) {}
 }

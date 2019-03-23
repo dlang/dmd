@@ -150,7 +150,9 @@ unittest
      */
     string text = "int"; // We rely on the implicit null-terminator
     scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-    scope Lexer lex1 = new Lexer(null, text.ptr, 0, text.length, 0, 0, diagnosticReporter);
+    scope Lexer lex1 = new Lexer(null, text.ptr, 0, text.length, 0, 0);
+
+    alias printDiagnostics = set => set.printDiagnostics(diagnosticReporter);
     TOK tok;
     tok = lex1.nextToken().unwrap!printDiagnostics;
     //printf("tok == %s, %d, %d\n", Token::toChars(tok), tok, TOK.int32);
@@ -186,7 +188,9 @@ unittest
     foreach (testcase; testcases)
     {
         scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-        scope Lexer lex2 = new Lexer(null, testcase.ptr, 0, testcase.length-1, 0, 0, diagnosticReporter);
+        scope Lexer lex2 = new Lexer(null, testcase.ptr, 0, testcase.length-1, 0, 0);
+
+        alias printDiagnostics = set => set.printDiagnostics(diagnosticReporter);
         TOK tok = lex2.nextToken().unwrap!printDiagnostics;
         size_t iterations = 1;
         while ((tok != TOK.endOfFile) && (iterations++ < testcase.length))
@@ -196,211 +200,6 @@ unittest
         assert(tok == TOK.endOfFile);
         tok = lex2.nextToken().unwrap!printDiagnostics;
         assert(tok == TOK.endOfFile);
-    }
-}
-
-/// Interface for diagnostic reporting.
-abstract class DiagnosticReporter
-{
-    /// Returns: the number of errors that occurred during lexing or parsing.
-    abstract int errorCount();
-
-    /// Returns: the number of warnings that occurred during lexing or parsing.
-    abstract int warningCount();
-
-    /// Returns: the number of deprecations that occurred during lexing or parsing.
-    abstract int deprecationCount();
-
-    /**
-    Reports an error message.
-
-    Params:
-        loc = Location of error
-        format = format string for error
-        ... = format string arguments
-    */
-    final void error(const ref Loc loc, const(char)* format, ...)
-    {
-        va_list args;
-        va_start(args, format);
-        error(loc, format, args);
-        va_end(args);
-    }
-
-    /// ditto
-    abstract void error(const ref Loc loc, const(char)* format, va_list args);
-
-    /**
-    Reports additional details about an error message.
-
-    Params:
-        loc = Location of error
-        format = format string for supplemental message
-        ... = format string arguments
-    */
-    final void errorSupplemental(const ref Loc loc, const(char)* format, ...)
-    {
-        va_list args;
-        va_start(args, format);
-        errorSupplemental(loc, format, args);
-        va_end(args);
-    }
-
-    /// ditto
-    abstract void errorSupplemental(const ref Loc loc, const(char)* format, va_list);
-
-    /**
-    Reports a warning message.
-
-    Params:
-        loc = Location of warning
-        format = format string for warning
-        ... = format string arguments
-    */
-    final void warning(const ref Loc loc, const(char)* format, ...)
-    {
-        va_list args;
-        va_start(args, format);
-        warning(loc, format, args);
-        va_end(args);
-    }
-
-    /// ditto
-    abstract void warning(const ref Loc loc, const(char)* format, va_list args);
-
-    /**
-    Reports additional details about a warning message.
-
-    Params:
-        loc = Location of warning
-        format = format string for supplemental message
-        ... = format string arguments
-    */
-    final void warningSupplemental(const ref Loc loc, const(char)* format, ...)
-    {
-        va_list args;
-        va_start(args, format);
-        warningSupplemental(loc, format, args);
-        va_end(args);
-    }
-
-    /// ditto
-    abstract void warningSupplemental(const ref Loc loc, const(char)* format, va_list);
-
-    /**
-    Reports a deprecation message.
-
-    Params:
-        loc = Location of the deprecation
-        format = format string for the deprecation
-        ... = format string arguments
-    */
-    final void deprecation(const ref Loc loc, const(char)* format, ...)
-    {
-        va_list args;
-        va_start(args, format);
-        deprecation(loc, format, args);
-        va_end(args);
-    }
-
-    /// ditto
-    abstract void deprecation(const ref Loc loc, const(char)* format, va_list args);
-
-    /**
-    Reports additional details about a deprecation message.
-
-    Params:
-        loc = Location of deprecation
-        format = format string for supplemental message
-        ... = format string arguments
-    */
-    final void deprecationSupplemental(const ref Loc loc, const(char)* format, ...)
-    {
-        va_list args;
-        va_start(args, format);
-        deprecationSupplemental(loc, format, args);
-        va_end(args);
-    }
-
-    /// ditto
-    abstract void deprecationSupplemental(const ref Loc loc, const(char)* format, va_list);
-}
-
-/**
-Diagnostic reporter which prints the diagnostic messages to stderr.
-
-This is usually the default diagnostic reporter.
-*/
-final class StderrDiagnosticReporter : DiagnosticReporter
-{
-    private const DiagnosticReporting useDeprecated;
-
-    private int errorCount_;
-    private int warningCount_;
-    private int deprecationCount_;
-
-    /**
-    Initializes this object.
-
-    Params:
-        useDeprecated = indicates how deprecation diagnostics should be
-            handled
-    */
-    this(DiagnosticReporting useDeprecated)
-    {
-        this.useDeprecated = useDeprecated;
-    }
-
-    override int errorCount()
-    {
-        return errorCount_;
-    }
-
-    override int warningCount()
-    {
-        return warningCount_;
-    }
-
-    override int deprecationCount()
-    {
-        return deprecationCount_;
-    }
-
-    override void error(const ref Loc loc, const(char)* format, va_list args)
-    {
-        verror(loc, format, args);
-        errorCount_++;
-    }
-
-    override void errorSupplemental(const ref Loc loc, const(char)* format, va_list args)
-    {
-        verrorSupplemental(loc, format, args);
-    }
-
-    override void warning(const ref Loc loc, const(char)* format, va_list args)
-    {
-        vwarning(loc, format, args);
-        warningCount_++;
-    }
-
-    override void warningSupplemental(const ref Loc loc, const(char)* format, va_list args)
-    {
-        vwarningSupplemental(loc, format, args);
-    }
-
-    override void deprecation(const ref Loc loc, const(char)* format, va_list args)
-    {
-        vdeprecation(loc, format, args);
-
-        if (useDeprecated == DiagnosticReporting.error)
-            errorCount_++;
-        else
-            deprecationCount_++;
-    }
-
-    override void deprecationSupplemental(const ref Loc loc, const(char)* format, va_list args)
-    {
-        vdeprecationSupplemental(loc, format, args);
     }
 }
 
@@ -430,7 +229,6 @@ class Lexer
         bool commentToken;      // comments are TOK.comment's
         int lastDocLine;        // last line of previous doc comment
 
-        DiagnosticReporter diagnosticReporter;
         Token* tokenFreelist;
     }
 
@@ -445,18 +243,10 @@ class Lexer
      *  endoffset = the last offset to read into base[]
      *  doDocComment = handle documentation comments
      *  commentToken = comments become TOK.comment's
-     *  diagnosticReporter = the diagnostic reporter to use
      */
     this(const(char)* filename, const(char)* base, size_t begoffset,
-        size_t endoffset, bool doDocComment, bool commentToken,
-        DiagnosticReporter diagnosticReporter)
-    in
+        size_t endoffset, bool doDocComment, bool commentToken)
     {
-        assert(diagnosticReporter !is null);
-    }
-    body
-    {
-        this.diagnosticReporter = diagnosticReporter;
         scanloc = Loc(filename, 1, 1);
         //printf("Lexer::Lexer(%p,%d)\n",base,length);
         //printf("lexer.filename = %s\n", filename);
@@ -1378,7 +1168,8 @@ class Lexer
      */
     private uint escapeSequence()
     {
-        return Lexer.escapeSequence(token.loc, diagnosticReporter, p);
+        return Lexer.escapeSequence(token.loc, p)
+            .unwrap!(set => diagnosticSet.add(set));
     }
 
     /**
@@ -1391,13 +1182,17 @@ class Lexer
     Returns:
         the escaped sequence as a single character
     */
-    private static dchar escapeSequence(const ref Loc loc, DiagnosticReporter handler, ref const(char)* sequence)
-    in
+    private static Diagnosed!dchar escapeSequence(const ref Loc loc, ref const(char)* sequence)
     {
-        assert(handler !is null);
-    }
-    body
-    {
+        DiagnosticSet diagnosticSet;
+
+        void error(Args...)(const ref Loc loc, string format, Args args)
+        {
+            diagnosticSet.add(
+                new FormattedDiagnostic!(Args)(loc, Severity.error, format, args)
+            );
+        }
+
         const(char)* p = sequence; // cache sequence reference on stack
         scope(exit) sequence = p;
 
@@ -1462,20 +1257,20 @@ class Lexer
                         break;
                     if (!ishex(cast(char)c))
                     {
-                        handler.error(loc, "escape hex sequence has %d hex digits instead of %d", n, ndigits);
+                        error(loc, "escape hex sequence has %d hex digits instead of %d", n, ndigits);
                         break;
                     }
                 }
                 if (ndigits != 2 && !utf_isValidDchar(v))
                 {
-                    handler.error(loc, "invalid UTF character \\U%08x", v);
+                    error(loc, "invalid UTF character \\U%08x", v);
                     v = '?'; // recover with valid UTF character
                 }
                 c = v;
             }
             else
             {
-                handler.error(loc, "undefined escape hex sequence \\%c%c", sequence[0], c);
+                error(loc, "undefined escape hex sequence \\%c%c", sequence[0], c);
                 p++;
             }
             break;
@@ -1489,7 +1284,7 @@ class Lexer
                     c = HtmlNamedEntity(idstart, p - idstart);
                     if (c == ~0)
                     {
-                        handler.error(loc, "unnamed character entity &%.*s;", cast(int)(p - idstart), idstart);
+                        error(loc, "unnamed character entity &%.*s;", cast(int)(p - idstart), idstart);
                         c = '?';
                     }
                     p++;
@@ -1497,7 +1292,7 @@ class Lexer
                 default:
                     if (isalpha(*p) || (p != idstart && isdigit(*p)))
                         continue;
-                    handler.error(loc, "unterminated named entity &%.*s;", cast(int)(p - idstart + 1), idstart);
+                    error(loc, "unterminated named entity &%.*s;", cast(int)(p - idstart + 1), idstart);
                     c = '?';
                     break;
                 }
@@ -1522,16 +1317,16 @@ class Lexer
                 while (++n < 3 && isoctal(cast(char)c));
                 c = v;
                 if (c > 0xFF)
-                    handler.error(loc, "escape octal sequence \\%03o is larger than \\377", c);
+                    error(loc, "escape octal sequence \\%03o is larger than \\377", c);
             }
             else
             {
-                handler.error(loc, "undefined escape sequence \\%c", c);
+                error(loc, "undefined escape sequence \\%c", c);
                 p++;
             }
             break;
         }
-        return c;
+        return diagnosed(cast(dchar) c, diagnosticSet);
     }
 
     /**
@@ -2875,23 +2670,12 @@ private:
 
 unittest
 {
-    static final class AssertDiagnosticReporter : DiagnosticReporter
-    {
-        override int errorCount() { assert(0); }
-        override int warningCount() { assert(0); }
-        override int deprecationCount() { assert(0); }
-        override void error(const ref Loc, const(char)*, va_list) { assert(0); }
-        override void errorSupplemental(const ref Loc, const(char)*, va_list) { assert(0); }
-        override void warning(const ref Loc, const(char)*, va_list) { assert(0); }
-        override void warningSupplemental(const ref Loc, const(char)*, va_list) { assert(0); }
-        override void deprecation(const ref Loc, const(char)*, va_list) { assert(0); }
-        override void deprecationSupplemental(const ref Loc, const(char)*, va_list) { assert(0); }
-    }
     static void test(T)(string sequence, T expected)
     {
-        scope assertOnError = new AssertDiagnosticReporter();
         auto p = cast(const(char)*)sequence.ptr;
-        assert(expected == Lexer.escapeSequence(Loc.initial, assertOnError, p));
+        auto diagnosed = Lexer.escapeSequence(Loc.initial, p);
+        assert(expected == diagnosed.value);
+        assert(diagnosed.diagnosticSet.empty);
         assert(p == sequence.ptr + sequence.length);
     }
 
@@ -2930,36 +2714,13 @@ unittest
 }
 unittest
 {
-    static final class ExpectDiagnosticReporter : DiagnosticReporter
-    {
-        string expected;
-        bool gotError;
-        this(string expected) { this.expected = expected; }
-
-        override int errorCount() { assert(0); }
-        override int warningCount() { assert(0); }
-        override int deprecationCount() { assert(0); }
-
-        override void error(const ref Loc loc, const(char)* format, va_list args)
-        {
-            gotError = true;
-            char[100] buffer;
-            auto actual = buffer[0 .. vsprintf(buffer.ptr, format, args)];
-            assert(expected == actual);
-        }
-
-        override void errorSupplemental(const ref Loc, const(char)*, va_list) { assert(0); }
-        override void warning(const ref Loc, const(char)*, va_list) { assert(0); }
-        override void warningSupplemental(const ref Loc, const(char)*, va_list) { assert(0); }
-        override void deprecation(const ref Loc, const(char)*, va_list) { assert(0); }
-        override void deprecationSupplemental(const ref Loc, const(char)*, va_list) { assert(0); }
-    }
     static void test(string sequence, string expectedError, dchar expectedReturnValue, uint expectedScanLength)
     {
-        scope handler = new ExpectDiagnosticReporter(expectedError);
         auto p = cast(const(char)*)sequence.ptr;
-        auto actualReturnValue = Lexer.escapeSequence(Loc.initial, handler, p);
-        assert(handler.gotError);
+        auto diagnosed = Lexer.escapeSequence(Loc.initial, p);
+        auto actualReturnValue = diagnosed.value;
+        assert(diagnosed.diagnosticSet.length);
+        assert(diagnosed.diagnosticSet.front.message == expectedError);
         assert(expectedReturnValue == actualReturnValue);
 
         auto actualScanLength = p - sequence.ptr;

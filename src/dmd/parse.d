@@ -278,6 +278,7 @@ final class Parser(AST) : Lexer
         Loc endloc; // set to location of last right curly
         int inBrackets; // inside [] of array index or slice
         Loc lookingForElse; // location of lonely if looking for an else
+        DiagnosticReporter diagnosticReporter;
     }
 
     /*********************
@@ -288,9 +289,10 @@ final class Parser(AST) : Lexer
     extern (D) this(const ref Loc loc, AST.Module _module, const(char)[] input,
         bool doDocComment, DiagnosticReporter diagnosticReporter)
     {
-        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false, diagnosticReporter);
+        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false);
 
         //printf("Parser::Parser()\n");
+        this.diagnosticReporter = diagnosticReporter;
         scanloc = loc;
 
         if (!writeMixin(input, scanloc) && loc.filename)
@@ -310,9 +312,10 @@ final class Parser(AST) : Lexer
 
     extern (D) this(AST.Module _module, const(char)[] input, bool doDocComment, DiagnosticReporter diagnosticReporter)
     {
-        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false, diagnosticReporter);
+        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false);
 
         //printf("Parser::Parser()\n");
+        this.diagnosticReporter = diagnosticReporter;
         mod = _module;
         linkage = LINK.d;
         //nextToken();              // start up the scanner
@@ -323,7 +326,7 @@ final class Parser(AST) : Lexer
         scope (exit)
             set = DiagnosticSet();
 
-        .printDiagnostics(set);
+        .printDiagnostics(set, diagnosticReporter);
     }
 
     private auto forwardDiagnosedFunction(T)(lazy T value)
