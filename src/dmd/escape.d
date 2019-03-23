@@ -500,8 +500,11 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                 if (!va.isScope() && inferScope)
                 {   //printf("inferring scope for %s\n", va.toChars());
                     va.storage_class |= STC.scope_ | STC.scopeinferred;
-                    if (v.storage_class & STC.return_)
-                    va.storage_class |= STC.return_ | STC.returninferred;
+                    if (v.storage_class & STC.return_ &&
+                        !(va.storage_class & STC.return_))
+                    {
+                        va.storage_class |= STC.return_ | STC.returninferred;
+                    }
                 }
                 continue;
             }
