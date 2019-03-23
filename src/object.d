@@ -4158,13 +4158,12 @@ void __ctfeWrite(scope const(char)[] s) @nogc @safe pure nothrow {}
 
 template RTInfoImpl(size_t[] pointers)
 {
-    immutable size_t[pointers.length] data = pointers[];
-    immutable RTInfoImpl = data.ptr;
+    immutable size_t[pointers.length] RTInfoImpl = pointers[];
 }
 
 template RTInfo(T)
 {
-    enum RTInfo = RTInfoImpl!(__traits(getPointerBitmap, T));
+    enum RTInfo = RTInfoImpl!(__traits(getPointerBitmap, T)).ptr;
 }
 
 /**
