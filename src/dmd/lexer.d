@@ -1129,7 +1129,7 @@ class Lexer
 
         while (1)
         {
-            tk = peek(tk).unwrap(set);
+            tk = peek(tk).unwrap!(s => set ~= s);
             //tk.print();
             switch (tk.value)
             {
@@ -1140,7 +1140,7 @@ class Lexer
                 --parens;
                 if (parens)
                     continue;
-                tk = peek(tk).unwrap(set);
+                tk = peek(tk).unwrap!(s => set ~= s);
                 break;
             case TOK.leftCurly:
                 curlynest++;

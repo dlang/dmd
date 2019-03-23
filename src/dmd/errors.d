@@ -55,12 +55,6 @@ struct Diagnosed(T)
     DiagnosticSet diagnosticSet;
 }
 
-T unwrap(T)(Diagnosed!T diagnosed, ref DiagnosticSet diagnosticSet)
-{
-    diagnosticSet ~= diagnosed.diagnosticSet;
-    return diagnosed.value;
-}
-
 T unwrap(alias func, T)(Diagnosed!T diagnosed)
 {
     func(diagnosed.diagnosticSet);
