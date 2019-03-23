@@ -252,7 +252,8 @@ auto predefinedTargets(string[] targets)
         switch (t)
         {
             case "clean":
-                resultsDir.rmdirRecurse;
+                if (resultsDir.exists)
+                    resultsDir.rmdirRecurse;
                 exit(0);
                 break;
 
