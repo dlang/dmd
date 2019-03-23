@@ -1168,7 +1168,7 @@ class Lexer
     private uint escapeSequence()
     {
         return Lexer.escapeSequence(token.loc, p)
-            .unwrap!(set => diagnosticSet.add(set));
+            .unwrap!(set => diagnosticSet ~= set);
     }
 
     /**
@@ -1187,9 +1187,7 @@ class Lexer
 
         void error(Args...)(const ref Loc loc, string format, Args args)
         {
-            diagnosticSet.add(
-                new FormattedDiagnostic!(Args)(loc, Severity.error, format, args)
-            );
+            diagnosticSet ~= new FormattedDiagnostic!(Args)(loc, Severity.error, format, args);
         }
 
         const(char)* p = sequence; // cache sequence reference on stack
@@ -2303,9 +2301,7 @@ class Lexer
 
     void error(Args...)(const ref Loc loc, string format, Args args) pure nothrow @safe
     {
-        diagnosticSet.add(
-            new FormattedDiagnostic!(Args)(loc, Severity.error, format, args)
-        );
+        diagnosticSet ~= new FormattedDiagnostic!(Args)(loc, Severity.error, format, args);
     }
 
     void errorSupplemental(Args...)(const ref Loc loc, string format, Args args) pure nothrow @safe
@@ -2317,9 +2313,7 @@ class Lexer
 
     void warning(Args...)(const ref Loc loc, string format, Args args) pure nothrow @safe
     {
-        diagnosticSet.add(
-            new FormattedDiagnostic!(Args)(loc, Severity.warning, format, args)
-        );
+        diagnosticSet ~= new FormattedDiagnostic!(Args)(loc, Severity.warning, format, args);
     }
 
     void warningSupplemental(Args...)(const ref Loc loc, string format, Args args) pure nothrow @safe
@@ -2336,9 +2330,7 @@ class Lexer
 
     void deprecation(Args...)(const ref Loc loc, string format, Args args) pure nothrow @safe
     {
-        diagnosticSet.add(
-            new FormattedDiagnostic!(Args)(loc, Severity.deprecation, format, args)
-        );
+        diagnosticSet ~= new FormattedDiagnostic!(Args)(loc, Severity.deprecation, format, args);
     }
 
     void deprecationSupplemental(Args...)(const ref Loc loc, string format, Args args) pure nothrow @safe

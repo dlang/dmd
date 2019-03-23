@@ -57,7 +57,7 @@ struct Diagnosed(T)
 
 T unwrap(T)(Diagnosed!T diagnosed, ref DiagnosticSet diagnosticSet)
 {
-    diagnosticSet.add(diagnosed.diagnosticSet);
+    diagnosticSet ~= diagnosed.diagnosticSet;
     return diagnosed.value;
 }
 
@@ -106,11 +106,6 @@ struct DiagnosticSet
     void add(Diagnostic diagnostic) pure nothrow @safe
     {
         _diagnostics ~= diagnostic;
-    }
-
-    void add(DiagnosticSet set) pure nothrow @safe
-    {
-        _diagnostics ~= set._diagnostics;
     }
 
     DiagnosticSet opBinary(string op)(DiagnosticSet set) pure nothrow @safe
