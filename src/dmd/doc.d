@@ -2301,6 +2301,45 @@ private void endMarkdownHeading(OutBuffer* buf, size_t iStart, ref size_t iEnd, 
 }
 
 /****************************************************
+ * End all nested Markdown quotes, if inside any.
+ * Params:
+ *  buf         = an OutBuffer containing the DDoc
+ *  i           = the index within `buf` of the character after the quote text.
+ *                Is incremented by `quoteLevel` when this function ends to
+ *                account for inserted macro closures.
+ *  quoteLevel  = the current quote level. Is set to `0` when this function ends.
+ * Returns: the amount that `i` was moved
+ */
+private size_t endAllMarkdownQuotes(OutBuffer* buf, ref size_t i, ref int quoteLevel)
+{
+    const length = quoteLevel;
+    for (; quoteLevel > 0; --quoteLevel)
+        i = buf.insert(i, ")");
+    return length;
+}
+
+/****************************************************
+ * Convenience function to end all Markdown lists and quotes, if inside any, and
+ * set `quoteMacroLevel` to `0`.
+ * Params:
+ *  buf         = an OutBuffer containing the DDoc
+ *  i           = the index within `buf` of the character after the quote text.
+ *                Is incremented by `quoteLevel` when this function ends to
+ *                account for inserted macro closures.
+ *  nestedLists = a set of nested lists. Upon return it will be empty.
+ *  quoteLevel  = the current quote level. Is set to `0` when this function ends.
+ *  quoteMacroLevel   = the macro level that the quote was started at. Is set to
+ *                      `0` when this function ends.
+ * Returns: the amount that `i` was moved
+ */
+private size_t endAllListsAndQuotes(OutBuffer* buf, ref size_t i, ref MarkdownList[] nestedLists, ref int quoteLevel, out int quoteMacroLevel)
+{
+    quoteMacroLevel = 0;
+    return MarkdownList.endAllNestedLists(buf, i, nestedLists)
+        + endAllMarkdownQuotes(buf, i, quoteLevel);
+}
+
+/****************************************************
  * Replace Markdown emphasis with the appropriate macro,
  * e.g. `*very* **nice**` becomes `$(EM very) $(STRONG nice)`.
  * Params:
@@ -3538,6 +3577,10 @@ private struct MarkdownLinkReferences
                     newParagraph = true;
                 leadingBlank = false;
                 break;
+            case '>':
+                if (leadingBlank && !inCode)
+                    newParagraph = true;
+                break;
             case '+':
                 if (leadingBlank && !inCode && isFollowedBySpace(buf, i))
                     newParagraph = true;
@@ -3714,6 +3757,9 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
     size_t iPrecedingBlankLine = 0;
     int headingLevel = 0;
     int headingMacroLevel = 0;
+    int quoteLevel = 0;
+    bool lineQuoted = false;
+    int quoteMacroLevel = 0;
     MarkdownList[] nestedLists;
     MarkdownDelimiter[] inlineDelimiters;
     MarkdownLinkReferences linkReferences;
@@ -3758,7 +3804,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                 ++i;
                 iParagraphStart = skipChars(buf, i, " \t\r\n");
             }
-            if (!inCode && nestedLists.length)
+            if (!inCode && nestedLists.length && !quoteLevel)
             {
                 MarkdownList.handleSiblingOrEndingList(buf, i, iParagraphStart, nestedLists);
             }
@@ -3766,6 +3812,9 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
             if (!inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
             {
                 i += replaceMarkdownEmphasis(buf, loc, inlineDelimiters);
+
+                if (!lineQuoted && quoteLevel)
+                    endAllListsAndQuotes(buf, i, nestedLists, quoteLevel, quoteMacroLevel);
 
                 // if we don't already know about this paragraph break then
                 // insert a blank line and record the paragraph break
@@ -3776,7 +3825,19 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                     iParagraphStart = i + 1;
                 }
             }
+            else if (inCode &&
+                i == iLineStart &&
+                i + 1 < buf.offset &&
+                !lineQuoted &&
+                quoteLevel) // if "\n\n" in quoted code
+            {
+                inCode = false;
+                i = buf.insert(i, ")");
+                endAllMarkdownQuotes(buf, i, quoteLevel);
+                quoteMacroLevel = 0;
+            }
             leadingBlank = true;
+            lineQuoted = false;
             iLineStart = i + 1;
             loc.linnum += incrementLoc;
 
@@ -3845,6 +3906,57 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
 
         case '>':
             {
+                if (leadingBlank && (!inCode || quoteLevel) && global.params.markdown)
+                {
+                    if (!quoteLevel && global.params.vmarkdown)
+                    {
+                        size_t iEnd = i + 1;
+                        while (iEnd < buf.offset && buf.data[iEnd] != '\n')
+                            ++iEnd;
+                        const s = buf.peekSlice()[i .. iEnd];
+                        message(loc, "Ddoc: starting quote block with '%.*s'", cast(int)s.length, s.ptr);
+                    }
+
+                    lineQuoted = true;
+                    int lineQuoteLevel = 1;
+                    size_t iAfterDelimiters = i + 1;
+                    for (; iAfterDelimiters < buf.offset; ++iAfterDelimiters)
+                    {
+                        const c0 = buf.data[iAfterDelimiters];
+                        if (c0 == '>')
+                            ++lineQuoteLevel;
+                        else if (c0 != ' ' && c0 != '\t')
+                            break;
+                    }
+                    if (!quoteMacroLevel)
+                        quoteMacroLevel = macroLevel;
+                    buf.remove(i, iAfterDelimiters - i);
+
+                    if (quoteLevel < lineQuoteLevel)
+                    {
+                        if (nestedLists.length)
+                        {
+                            const indent = getMarkdownIndent(buf, iLineStart, i);
+                            if (indent < nestedLists[$-1].contentIndent)
+                                MarkdownList.endAllNestedLists(buf, i, nestedLists);
+                        }
+
+                        for (; quoteLevel < lineQuoteLevel; ++quoteLevel)
+                        {
+                            i = buf.insert(i, "$(BLOCKQUOTE\n");
+                            iLineStart = iParagraphStart = i;
+                        }
+                        --i;
+                    }
+                    else
+                    {
+                        --i;
+                        if (nestedLists.length)
+                            MarkdownList.handleSiblingOrEndingList(buf, i, iParagraphStart, nestedLists);
+                    }
+                    break;
+                }
+
                 leadingBlank = false;
                 if (inCode)
                     break;
@@ -3944,6 +4056,9 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                 if (!headingLevel)
                     break;
 
+                if (!lineQuoted && quoteLevel)
+                    i += endAllListsAndQuotes(buf, iLineStart, nestedLists, quoteLevel, quoteMacroLevel);
+
                 // remove the ### prefix, including whitespace
                 i = skipChars(buf, i + headingLevel, " \t");
                 buf.remove(iLineStart, i - iLineStart);
@@ -3992,7 +4107,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                     }
                 }
 
-                const istart = i;
+                size_t istart = i;
                 size_t eollen = 0;
                 leadingBlank = false;
                 const c0 = c; // if we jumped here from case '`' or case '~'
@@ -4105,6 +4220,13 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                 }
                 else
                 {
+                    if (!lineQuoted && quoteLevel)
+                    {
+                        const delta = endAllListsAndQuotes(buf, iLineStart, nestedLists, quoteLevel, quoteMacroLevel);
+                        i += delta;
+                        istart += delta;
+                    }
+
                     inCode = c0;
                     codeIndent = istart - iLineStart; // save indent count
                     if (codeLanguage.length && codeLanguage != "dlang" && codeLanguage != "d")
@@ -4134,6 +4256,8 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
         {
             if (leadingBlank && !inCode && replaceMarkdownThematicBreak(buf, i, iLineStart, loc))
             {
+                if (!lineQuoted && quoteLevel)
+                    i += endAllListsAndQuotes(buf, iLineStart, nestedLists, quoteLevel, quoteMacroLevel);
                 removeBlankLineMacro(buf, iPrecedingBlankLine, i);
                 iParagraphStart = skipChars(buf, i+1, " \t\r\n");
                 break;
@@ -4159,6 +4283,14 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                         break;
                     }
 
+                    if (!lineQuoted && quoteLevel)
+                    {
+                        const delta = endAllListsAndQuotes(buf, iLineStart, nestedLists, quoteLevel, quoteMacroLevel);
+                        i += delta;
+                        list.iStart += delta;
+                        list.iContentStart += delta;
+                    }
+
                     list.macroLevel = macroLevel;
                     list.startItem(buf, iLineStart, i, iPrecedingBlankLine, nestedLists, loc);
                     break;
@@ -4178,6 +4310,8 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                 // Check for a thematic break
                 if (replaceMarkdownThematicBreak(buf, i, iLineStart, loc))
                 {
+                    if (!lineQuoted && quoteLevel)
+                        i += endAllListsAndQuotes(buf, iLineStart, nestedLists, quoteLevel, quoteMacroLevel);
                     removeBlankLineMacro(buf, iPrecedingBlankLine, i);
                     iParagraphStart = skipChars(buf, i+1, " \t\r\n");
                     break;
@@ -4341,6 +4475,8 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                     endMarkdownHeading(buf, iParagraphStart, i, loc, headingLevel);
                     removeBlankLineMacro(buf, iPrecedingBlankLine, i);
                 }
+                if (quoteLevel && quoteMacroLevel >= macroLevel)
+                    endAllMarkdownQuotes(buf, i, quoteLevel);
                 while (nestedLists.length && nestedLists[$-1].macroLevel >= macroLevel)
                 {
                     i = buf.insert(i, ")\n)");
@@ -4348,6 +4484,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                 }
 
                 --macroLevel;
+                quoteMacroLevel = 0;
             }
             break;
         }
@@ -4424,7 +4561,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
         endMarkdownHeading(buf, iParagraphStart, i, loc, headingLevel);
         removeBlankLineMacro(buf, iPrecedingBlankLine, i);
     }
-    MarkdownList.endAllNestedLists(buf, i, nestedLists);
+    endAllListsAndQuotes(buf, i, nestedLists, quoteLevel, quoteMacroLevel);
 }
 
 /**************************************************
