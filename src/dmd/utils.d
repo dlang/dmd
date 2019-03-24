@@ -189,24 +189,24 @@ dg  = Delegate to call afterwards
 Returns:
 The return value of `T`
 */
-auto toCStringThen(alias dg)(const(char)[] src) nothrow
+auto toCStringThen(alias dg)(const(char)[] src)
 {
     const len = src.length + 1;
     char[512] small = void;
     scope ptr = (src.length < (small.length - 1))
                     ? small[0 .. len]
-                    : (cast(char*)mem.xmalloc(len))[0 .. len];
+                    : (cast(char*)pureMalloc(len))[0 .. len];
     scope (exit)
     {
         if (&ptr[0] != &small[0])
-            mem.xfree(&ptr[0]);
+            pureFree(&ptr[0]);
     }
     ptr[0 .. src.length] = src[];
     ptr[src.length] = '\0';
     return dg(ptr);
 }
 
-unittest
+pure nothrow @nogc unittest
 {
     assert("Hello world".toCStringThen!((v) => v == "Hello world\0"));
     assert("Hello world\0".toCStringThen!((v) => v == "Hello world\0\0"));
