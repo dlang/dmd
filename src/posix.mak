@@ -328,7 +328,7 @@ LEXER_ROOT=$(addsuffix .d, $(addprefix $(ROOT)/, array ctfloat file filename out
 
 ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array ctfloat file \
 	filename man outbuffer port response rmem rootobject speller \
-	longdouble stringtable hash))
+	longdouble stringtable hash string))
 
 GLUE_SRCS=$(addsuffix .d, $(addprefix $D/,irstate toctype glue gluelayer todt tocsym toir dmsc \
 	tocvdebug s2ir toobj e2ir eh iasm iasmdmd iasmgcc objc_glue))

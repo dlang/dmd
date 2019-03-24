@@ -305,7 +305,7 @@ static if (OVERRIDE_MEMALLOC)
 // corresponding to 2.074.0 or later.
 static if (!is(typeof(pureMalloc)))
 {
-private:
+package:
     static import core.stdc.errno;
 
     /**
