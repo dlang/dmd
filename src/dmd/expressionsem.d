@@ -48,7 +48,6 @@ import dmd.identifier;
 import dmd.imphint;
 import dmd.inline;
 import dmd.intrange;
-import dmd.lexer;
 import dmd.mtype;
 import dmd.nspace;
 import dmd.opover;

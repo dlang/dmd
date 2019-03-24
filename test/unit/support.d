@@ -1,6 +1,6 @@
 module support;
 
-import dmd.lexer : DiagnosticReporter;
+import dmd.errors : DiagnosticReporter;
 
 /// UDA used to indicate a function should be run before each test.
 enum beforeEach;

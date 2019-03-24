@@ -40,7 +40,6 @@ import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.dinterpret;
-import dmd.lexer;
 import dmd.mtype;
 import dmd.parse;
 import dmd.root.outbuffer;

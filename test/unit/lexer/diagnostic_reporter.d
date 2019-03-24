@@ -2,8 +2,8 @@ module lexer.diagnostic_reporter;
 
 import core.stdc.stdarg;
 
+import dmd.errors : DiagnosticReporter;
 import dmd.globals : Loc;
-import dmd.lexer : DiagnosticReporter;
 
 import support : afterEach, NoopDiagnosticReporter;
 
