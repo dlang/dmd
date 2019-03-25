@@ -572,6 +572,20 @@ public int runLINK()
             argv.push("-Xlinker");
             argv.push("--gc-sections");
         }
+        // return true if flagp should be ordered in with the library flags
+        static bool flagIsLibraryRelated(const char* flagp)
+        {
+            const flag = flagp[0 .. strlen(flagp)];
+            bool startsWith(string needle)
+            {
+                return flag.length >= needle.length && flag[0 .. needle.length] == needle;
+            }
+
+            return startsWith("-l") || startsWith("-L")
+                || flag == "-(" || flag == "-)"
+                || flag == "--start-group" || flag == "--end-group"
+            ;
+        }
         /* Add libraries. The order of libraries passed is:
          *  1. link switches others than with -L command line switch,
                e.g. --whole-archive "lib.a" --no-whole-archive     (global.params.linkswitches)
@@ -584,7 +598,7 @@ public int runLINK()
          */
         foreach (p; global.params.linkswitches)
         {
-            if (p && p[0] && !(p[0] == '-' && (p[1] == 'l' || p[1] == 'L')))
+            if (p && p[0] && !flagIsLibraryRelated(p))
             {
                 argv.push("-Xlinker");
                 argv.push(p);
@@ -597,16 +611,18 @@ public int runLINK()
         }
         foreach (p; global.params.linkswitches)
         {
-            if (!p || !p[0])
+            if (!p || !p[0] || flagIsLibraryRelated(p))
             {
-                // Don't need -Xlinker if switch starts with -l or -L.
-                // Eliding -Xlinker is significant for -L since it allows our paths
-                // to take precedence over gcc defaults.
-                // All other link switches were already added in step 1.
-                argv.push("-Xlinker");
-            }
-            if (!p || !p[0] || p[0] == '-' && (p[1] == 'l' || p[1] == 'L'))
+                if (!(p && p[0] == '-' && (p[1] == 'l' || p[1] == 'L')))
+                {
+                    // Don't need -Xlinker if switch starts with -l or -L.
+                    // Eliding -Xlinker is significant for -L since it allows our paths
+                    // to take precedence over gcc defaults.
+                    // All other link switches were already added in step 1.
+                    argv.push("-Xlinker");
+                }
                 argv.push(p);
+            }
         }
         foreach (p; global.params.libfiles)
         {

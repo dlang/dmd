@@ -4516,7 +4516,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
         else if (cldec.symtab && !scx)
         {
-            cldec.semanticRun = PASS.semanticdone;
             return;
         }
         cldec.semanticRun = PASS.semantic;

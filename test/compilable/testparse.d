@@ -166,3 +166,11 @@ void test11957()
 enum mangle13049(T) = T.mangleof;
 alias FP13049 = void function(scope int);                                       // OK
 static assert(mangle13049!FP13049 == mangle13049!(void function(scope int)));   // OK <- NG
+
+/***************************************************/
+// was not covered until the **12th of March 2019**
+void testIfConditionWithSTCandType()
+{
+    auto call(){return 0;}
+    if (const size_t i = call()) {}
+}
