@@ -1420,12 +1420,12 @@ extern (C) void rt_finalize2(void* p, bool det = true, bool resetMemory = true) 
     }
 }
 
-extern (C) void rt_finalize(void* p, bool det = true)
+extern (C) void rt_finalize(void* p, bool det = true) nothrow
 {
     rt_finalize2(p, det, true);
 }
 
-extern (C) void rt_finalizeFromGC(void* p, size_t size, uint attr)
+extern (C) void rt_finalizeFromGC(void* p, size_t size, uint attr) nothrow
 {
     // to verify: reset memory necessary?
     if (!(attr & BlkAttr.STRUCTFINAL))

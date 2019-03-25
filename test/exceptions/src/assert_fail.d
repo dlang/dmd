@@ -112,6 +112,13 @@ void testAA()()
     test!"in"("foo", ["bar": true], `"foo" !in ["bar": true]`);
 }
 
+
+void testAttributes() @safe pure @nogc nothrow
+{
+    int a;
+    assert(a == 0);
+}
+
 void main()
 {
     testIntegers();
@@ -122,5 +129,6 @@ void main()
     testArray();
     testStruct();
     testAA();
+    testAttributes();
     fprintf(stderr, "success.\n");
 }
