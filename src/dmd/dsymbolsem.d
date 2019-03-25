@@ -3679,12 +3679,24 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         assert(funcdecl.type.ty != Terror || funcdecl.errors);
 
-        // semantic for parameters' UDAs
         foreach (i; 0 .. f.parameterList.length)
         {
             Parameter param = f.parameterList[i];
-            if (param && param.userAttribDecl)
+            if (!param)
+                continue;
+            // semantic for parameters' UDAs
+            if (param.userAttribDecl)
                 param.userAttribDecl.dsymbolSemantic(sc);
+            // check if parameters can be mangled for CPP linkage
+            if (param.type && funcdecl.linkage == LINK.cpp && !param.type.isExternCppCompatible())
+            {
+                if (param.ident)
+                    error(funcdecl.loc, "parameter `%s` of the `extern(C++) %s` function cannot be of type `%s`",
+                        param.ident.toChars(), funcdecl.toPrettyChars(), param.type.toChars());
+                else
+                    error(funcdecl.loc, "parameter of the `extern(C++) %s` function cannot be of type `%s`",
+                        funcdecl.toPrettyChars(), param.type.toChars());
+            }
         }
     }
 

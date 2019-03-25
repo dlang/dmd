@@ -267,6 +267,7 @@ public:
     bool isWildConst() const   { return (mod & MODwildconst) == MODwildconst; }
     bool isSharedWild() const  { return (mod & (MODshared | MODwild)) == (MODshared | MODwild); }
     bool isNaked() const       { return mod == 0; }
+    bool isExternCppCompatible();
     Type *nullAttributes();
     Type *constOf();
     Type *immutableOf();

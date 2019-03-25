@@ -1126,6 +1126,14 @@ extern (C++) abstract class Type : RootObject
         return mod == 0;
     }
 
+    /**
+     * Indicates wether the type is usable with `extern(C++)`.
+     */
+    final bool isExternCppCompatible() const nothrow pure @nogc @safe
+    {
+        return ty != Tarray && ty != Taarray && ty != Tsarray && ty != Tdelegate;
+    }
+
     /********************************
      * Return a copy of this type with all attributes null-initialized.
      * Useful for creating a type with different modifiers.
