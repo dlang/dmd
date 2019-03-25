@@ -55,6 +55,7 @@ DOCS=\
 	$(DOCDIR)\core_sync_condition.html \
 	$(DOCDIR)\core_sync_config.html \
 	$(DOCDIR)\core_sync_exception.html \
+	$(DOCDIR)\core_sync_event.html \
 	$(DOCDIR)\core_sync_mutex.html \
 	$(DOCDIR)\core_sync_rwmutex.html \
 	$(DOCDIR)\core_sync_semaphore.html \

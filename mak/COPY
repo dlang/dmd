@@ -65,6 +65,8 @@ COPY=\
 	$(IMPDIR)\core\stdcpp\type_traits.d \
 	$(IMPDIR)\core\stdcpp\xutility.d \
 	\
+	$(IMPDIR)\core\sync\event.d \
+	\
 	$(IMPDIR)\core\sys\darwin\crt_externs.d \
 	$(IMPDIR)\core\sys\darwin\dlfcn.d \
 	$(IMPDIR)\core\sys\darwin\execinfo.d \

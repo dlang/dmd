@@ -204,6 +204,9 @@ $(IMPDIR)\core\stdc\wchar_.d : src\core\stdc\wchar_.d
 $(IMPDIR)\core\stdc\wctype.d : src\core\stdc\wctype.d
 	copy $** $@
 
+$(IMPDIR)\core\sync\event.d : src\core\sync\event.d
+	copy $** $@
+
 $(IMPDIR)\core\stdcpp\allocator.d : src\core\stdcpp\allocator.d
 	copy $** $@
 
