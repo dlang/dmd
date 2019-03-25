@@ -5265,20 +5265,16 @@ void cdddtor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         cdbx.gen1(0xC3);                      // RET
         code *c = cdbx.finish();
 
-        if (config.flags3 & CFG3pic)
+        int nalign = 0;
+        if (STACKALIGN >= 16)
         {
-            int nalign = 0;
-            if (STACKALIGN >= 16)
-            {   nalign = STACKALIGN - REGSIZE;
-                cod3_stackadj(cdb, nalign);
-            }
-            calledafunc = 1;
-            genjmp(cdb,0xE8,FLcode,cast(block *)c);   // CALL Ldtor
-            if (nalign)
-                cod3_stackadj(cdb, -nalign);
+            nalign = STACKALIGN - REGSIZE;
+            cod3_stackadj(cdb, nalign);
         }
-        else
-            genjmp(cdb,0xE8,FLcode,cast(block *)c);   // CALL Ldtor
+        calledafunc = 1;
+        genjmp(cdb,0xE8,FLcode,cast(block *)c);   // CALL Ldtor
+        if (nalign)
+            cod3_stackadj(cdb, -nalign);
 
         code *cnop = gennop(null);
 
