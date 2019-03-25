@@ -10,7 +10,7 @@ dependency "dmd" path="../.."
 module examples.avg;
 
 import dmd.astbase;
-import dmd.lexer;
+import dmd.errors;
 import dmd.parse;
 import dmd.transitivevisitor;
 
