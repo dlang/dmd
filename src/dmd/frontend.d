@@ -336,9 +336,16 @@ void fullSemantic(Module m)
 
     m.importedFrom = m;
     m.importAll(null);
+
     m.dsymbolSemantic(null);
+    Module.dprogress = 1;
+    Module.runDeferredSemantic();
+
     m.semantic2(null);
+    Module.runDeferredSemantic2();
+
     m.semantic3(null);
+    Module.runDeferredSemantic3();
 }
 
 /**
