@@ -333,7 +333,7 @@ This is usually the default diagnostic reporter.
 */
 final class StderrDiagnosticReporter : DiagnosticReporter
 {
-    private const Diagnostic useDeprecated;
+    private const DiagnosticReporting useDeprecated;
 
     private int errorCount_;
     private int warningCount_;
@@ -346,7 +346,7 @@ final class StderrDiagnosticReporter : DiagnosticReporter
         useDeprecated = indicates how deprecation diagnostics should be
             handled
     */
-    this(Diagnostic useDeprecated)
+    this(DiagnosticReporting useDeprecated)
     {
         this.useDeprecated = useDeprecated;
     }
@@ -392,7 +392,7 @@ final class StderrDiagnosticReporter : DiagnosticReporter
     {
         vdeprecation(loc, format, args);
 
-        if (useDeprecated == Diagnostic.error)
+        if (useDeprecated == DiagnosticReporting.error)
             errorCount_++;
         else
             deprecationCount_++;
