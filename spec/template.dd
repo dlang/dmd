@@ -947,17 +947,21 @@ $(H2 $(LNAME2 aggregate_templates, Aggregate Templates))
 
 $(GRAMMAR
 $(GNAME ClassTemplateDeclaration):
+    $(D class) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(D ;)
     $(D class) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(GLINK Constraint)$(OPT) $(GLINK2 class, BaseClassList)$(OPT) $(GLINK2 struct, AggregateBody)
     $(D class) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(GLINK2 class, BaseClassList)$(OPT) $(GLINK Constraint)$(OPT) $(GLINK2 struct, AggregateBody)
 
 $(GNAME InterfaceTemplateDeclaration):
+    $(D interface) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(D ;)
     $(D interface) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(GLINK Constraint)$(OPT) $(GLINK2 interface, BaseInterfaceList)$(OPT) $(GLINK2 struct, AggregateBody)
     $(D interface) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(GLINK2 interface, BaseInterfaceList) $(GLINK Constraint) $(GLINK2 struct, AggregateBody)
 
 $(GNAME StructTemplateDeclaration):
+    $(D struct) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(D ;)
     $(D struct) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(GLINK Constraint)$(OPT) $(GLINK2 struct, AggregateBody)
 
 $(GNAME UnionTemplateDeclaration):
+    $(D union) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(D ;)
     $(D union) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(GLINK Constraint)$(OPT) $(GLINK2 struct, AggregateBody)
 )
 

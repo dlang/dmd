@@ -119,6 +119,8 @@ $(H2 $(LNAME2 opaque_struct_unions, Opaque Structs and Unions))
 ---
 struct S;
 union U;
+struct V(T);
+union W(T);
 ---
 
         $(P The members are completely hidden to the user, and so the only operations
