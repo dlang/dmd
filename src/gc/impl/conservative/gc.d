@@ -1300,10 +1300,8 @@ struct Gcx
             for (size_t p = 0; p < pooltable.length; p++)
                 if (pooltable.pools[p].isLargeObject)
                     (cast(LargeObjectPool*)(pooltable.pools[p])).Invariant();
-
-            for (size_t p = 0; p < pooltable.length; p++)
-                if (pooltable.pools[p].isLargeObject)
-                    (cast(LargeObjectPool*)(pooltable.pools[p])).Invariant();
+                else
+                    (cast(SmallObjectPool*)(pooltable.pools[p])).Invariant();
 
             if (!inCollection)
                 (cast()rangesLock).lock();
@@ -2341,7 +2339,9 @@ struct Gcx
                             goto Lnotfree;
                     }
                     pool.pagetable[pn] = B_FREE;
-                    if (pn < pool.searchStart) pool.searchStart = pn;
+                    // add to free chain
+                    pool.binPageChain[pn] = cast(uint) pool.searchStart;
+                    pool.searchStart = pn;
                     pool.freepages++;
                     freedSmallPages++;
                     continue;
@@ -2534,6 +2534,10 @@ struct Pool
     //  only for the first and the last page.
     uint* bPageOffsets;
 
+    // The small object pool uses the same array to keep a chain of pages with the same
+    // bin size and free pages (searchStart is first free page)
+    alias binPageChain = bPageOffsets;
+
     // precise GC: TypeInfo.rtInfo for allocation (LargeObjectPool only)
     immutable(size_t)** rtinfo;
 
@@ -2602,14 +2606,23 @@ struct Pool
         if (!pagetable)
             onOutOfMemoryErrorNoGC();
 
-        if (isLargeObject && npages > 0)
+        if (npages > 0)
         {
             bPageOffsets = cast(uint*)cstdlib.malloc(npages * uint.sizeof);
             if (!bPageOffsets)
                 onOutOfMemoryErrorNoGC();
 
-            bPageOffsets[0] = cast(uint)npages;
-            bPageOffsets[npages-1] = cast(uint)npages;
+            if (isLargeObject)
+            {
+                bPageOffsets[0] = cast(uint)npages;
+                bPageOffsets[npages-1] = cast(uint)npages;
+            }
+            else
+            {
+                // all pages free
+                foreach (n; 0..npages)
+                    binPageChain[n] = cast(uint)(n + 1);
+            }
         }
 
         memset(pagetable, B_FREE, npages);
@@ -3238,6 +3251,19 @@ struct SmallObjectPool
     Pool base;
     alias base this;
 
+    debug(INVARIANT)
+    void Invariant()
+    {
+        //base.Invariant();
+        uint cntFree = 0;
+        for (auto pn = searchStart; pn < npages; pn = binPageChain[pn])
+        {
+            assert(pagetable[pn] == B_FREE);
+            cntFree++;
+        }
+        assert(cntFree == freepages);
+    }
+
     /**
     * Get size of pointer p in pool.
     */
@@ -3336,15 +3362,14 @@ struct SmallObjectPool
     */
     List* allocPage(Bins bin) nothrow
     {
-        size_t pn;
-        for (pn = searchStart; pn < npages; pn++)
-            if (pagetable[pn] == B_FREE)
-                goto L1;
+        if (searchStart >= npages)
+            return null;
 
-        return null;
+        assert(pagetable[searchStart] == B_FREE);
 
     L1:
-        searchStart = pn + 1;
+        size_t pn = searchStart;
+        searchStart = binPageChain[searchStart];
         pagetable[pn] = cast(ubyte)bin;
         freepages--;
 
