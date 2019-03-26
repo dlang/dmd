@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-// REQUIRED_ARGS: -c -Icompilable/extra-files
+// REQUIRED_ARGS: -Icompilable/extra-files
 // EXTRA_FILES: extra-files/pkgDIP37/datetime/package.d
 // EXTRA_FILES: extra-files/pkgDIP37/datetime/common.d
 // EXTRA_FILES: extra-files/pkgDIP37/test17629/package.di
