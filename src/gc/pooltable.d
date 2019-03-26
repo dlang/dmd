@@ -42,6 +42,9 @@ nothrow:
 
         ++npools;
 
+        foreach (idx; i .. npools)
+            pools[idx].ptIndex = idx;
+
         _minAddr = pools[0].baseAddr;
         _maxAddr = pools[npools - 1].topAddr;
 
@@ -123,7 +126,11 @@ nothrow:
         for (; j < npools; ++j)
         {
             if (!pools[j].isFree) // keep
-                swap(pools[i++], pools[j]);
+            {
+                swap(pools[i], pools[j]);
+                pools[i].ptIndex = i;
+                ++i;
+            }
         }
         // npooltable[0 .. i]      => used pools
         // npooltable[i .. npools] => free pools
@@ -147,6 +154,9 @@ nothrow:
     void Invariant() const
     {
         if (!npools) return;
+
+        foreach (i; 0 .. npools)
+            assert(pools[i].ptIndex == i);
 
         foreach (i, pool; pools[0 .. npools - 1])
             assert(pool.baseAddr < pools[i + 1].baseAddr);
@@ -173,7 +183,7 @@ unittest
     static struct MockPool
     {
         byte* baseAddr, topAddr;
-        size_t freepages, npages;
+        size_t freepages, npages, ptIndex;
         @property bool isFree() const pure nothrow { return freepages == npages; }
     }
     PoolTable!MockPool pooltable;
