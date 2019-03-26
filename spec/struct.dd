@@ -810,10 +810,10 @@ $(H2 $(LNAME2 field-init, Field initialization inside constructor))
 
 $(H2 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy Constructors))
 
-    $(P Struct copy constructors are used to initialize a `struct` instance from
+    $(P Copy constructors are used to initialize a `struct` instance from
     another `struct` of the same type.)
 
-    $(P A declaration is a copy constructor declaration if it is a constructor
+    $(P A constructor declaration is a copy constructor declaration if and only if it is a constructor
     declaration that takes only one non-default parameter by reference that is
     of the same type as `typeof(this)`, followed by any number of default parameters:)
 
@@ -861,7 +861,8 @@ $(H2 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
     }
     ---
 
-    $(LI When a parameter is returned by value from a function and $(D NRVO) cannot be performed:)
+    $(LI When a parameter is returned by value from a function and Named Returned Value Optiomization (NRVO)
+    cannot be performed:)
     ---
     struct A
     {
@@ -932,7 +933,7 @@ $(H2 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
     }
     ---
 
-    $(P The inout qualifier may be applied to the copy constructor parameter in
+    $(P The `inout` qualifier may be applied to the copy constructor parameter in
     order to specify that mutable, `const`, or `immutable` types are treated the same:
     )
     ---
@@ -967,19 +968,19 @@ $(H2 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
     ---
     this(ref return scope inout(S) src) inout
     {
-    foreach (i, ref inout field; src.tupleof)
-        this.tupleof[i] = field;
+        foreach (i, ref inout field; src.tupleof)
+            this.tupleof[i] = field;
     }
     ---
 
-    $(P If the generated copy constructor fails to type check, it will be marked `@disable`.)
+    $(P If the generated copy constructor fails to type check, it will receive the `@disable` attribute.)
 
     $(P f an `union S` has fields that define a copy constructor, whenever an object of type `S`
     is initialized by copy, an error will be issued. The same rule applies to overlapped fields
     (anonymous unions).)
 
     $(P A `struct` that defines a copy constructor is not a POD.)
-
+    
 $(H2 $(LEGACY_LNAME2 StructPostblit, struct-postblit, Struct Postblits))
 
 $(GRAMMAR
@@ -987,6 +988,10 @@ $(GNAME Postblit):
     $(D this $(LPAREN) this $(RPAREN)) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(D ;)
     $(D this $(LPAREN) this $(RPAREN)) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
 )
+
+    $(P WARNING: The postblit is considered legacy and is not recommended for new code. Code should use copy
+    constructors defined in the previous section. For backward compatibility reasons, a `struct` that defines
+    both a copy constructor and a postblit will only use the postblit for implicit copying.)
 
         $(P $(I Copy construction) is defined as initializing
          a struct instance from another struct of the same type.
