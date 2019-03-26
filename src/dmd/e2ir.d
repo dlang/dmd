@@ -1653,7 +1653,8 @@ elem *toElem(Expression e, IRState *irs)
                 else
                 {
                     Symbol *csym = toSymbol(cd);
-                    ex = el_bin(OPcall,TYnptr,el_var(getRtlsym(RTLSYM_NEWCLASS)),el_ptr(csym));
+                    const rtl = ne.thrownew ? RTLSYM_NEWTHROW : RTLSYM_NEWCLASS;
+                    ex = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),el_ptr(csym));
                     toTraceGC(irs, ex, ne.loc);
                     ectype = null;
 
