@@ -2171,12 +2171,13 @@ struct Gcx
         //log--;
     }
 
-    // collection step 3: free all unreferenced objects
+    // collection step 3: finalize unreferenced objects, recover full pages with no live objects
     size_t sweep() nothrow
     {
         // Free up everything not marked
         debug(COLLECT_PRINTF) printf("\tfree'ing\n");
         size_t freedLargePages;
+        size_t freedSmallPages;
         size_t freed;
         for (size_t n = 0; n < npools; n++)
         {
@@ -2244,50 +2245,96 @@ struct Gcx
             }
             else
             {
-
                 for (pn = 0; pn < pool.npages; pn++)
                 {
                     Bins bin = cast(Bins)pool.pagetable[pn];
 
                     if (bin < B_PAGE)
                     {
-                        immutable size = binsize[bin];
-                        void *p = pool.baseAddr + pn * PAGESIZE;
-                        immutable base = pn * (PAGESIZE/16);
-                        immutable bitstride = size / 16;
+                        auto freebitsdata = pool.freebits.data + pn * PageBits.length;
+                        auto markdata = pool.mark.data + pn * PageBits.length;
 
-                        bool freeBits;
+                        // the entries to free are allocated objects (freebits == false)
+                        // that are not marked (mark == false)
                         PageBits toFree;
+                        static foreach (w; 0 .. PageBits.length)
+                            toFree[w] = (~freebitsdata[w] & ~markdata[w]);
 
-                        // ensure that there are at least <size> bytes for every address
-                        //  below ptop even if unaligned
-                        void *ptop = p + PAGESIZE - size + 1;
-                        for (size_t i; p < ptop; p += size, i += bitstride)
+                        // the page is unchanged if there is nothing to free
+                        bool unchanged = true;
+                        static foreach (w; 0 .. PageBits.length)
+                            unchanged = unchanged && (toFree[w] == 0);
+                        if (unchanged)
+                            continue;
+
+                        // the page can be recovered if all of the allocated objects (freebits == false)
+                        // are freed
+                        bool recoverPage = true;
+                        static foreach (w; 0 .. PageBits.length)
+                            recoverPage = recoverPage && (~freebitsdata[w] == toFree[w]);
+
+                        bool hasFinalizer = false;
+                        debug(COLLECT_PRINTF) // need output for each onject
+                            hasFinalizer = true;
+                        else debug(LOGGING)
+                            hasFinalizer = true;
+                        else debug(MEMSTOMP)
+                            hasFinalizer = true;
+                        if (pool.finals.data)
                         {
-                            immutable biti = base + i;
+                            // finalizers must be called on objects that are about to be freed
+                            auto finalsdata = pool.finals.data + pn * PageBits.length;
+                            static foreach (w; 0 .. PageBits.length)
+                                hasFinalizer = hasFinalizer || (toFree[w] & finalsdata[w]) != 0;
+                        }
 
-                            if (!pool.mark.test(biti))
+                        if (hasFinalizer)
+                        {
+                            immutable size = binsize[bin];
+                            void *p = pool.baseAddr + pn * PAGESIZE;
+                            immutable base = pn * (PAGESIZE/16);
+                            immutable bitstride = size / 16;
+
+                            // ensure that there are at least <size> bytes for every address
+                            //  below ptop even if unaligned
+                            void *ptop = p + PAGESIZE - size + 1;
+                            for (size_t i; p < ptop; p += size, i += bitstride)
                             {
-                                void* q = sentinel_add(p);
-                                sentinel_Invariant(q);
+                                immutable biti = base + i;
 
-                                if (pool.finals.nbits && pool.finals.test(biti))
-                                    rt_finalizeFromGC(q, sentinel_size(q, size), pool.getBits(biti));
+                                if (!pool.mark.test(biti))
+                                {
+                                    void* q = sentinel_add(p);
+                                    sentinel_Invariant(q);
 
-                                freeBits = true;
-                                toFree.set(i);
+                                    if (pool.finals.nbits && pool.finals.test(biti))
+                                        rt_finalizeFromGC(q, sentinel_size(q, size), pool.getBits(biti));
 
-                                debug(COLLECT_PRINTF) printf("\tcollecting %p\n", p);
-                                leakDetector.log_free(sentinel_add(p));
+                                    assert(core.bitop.bt(toFree.ptr, i));
 
-                                debug (MEMSTOMP) memset(p, 0xF3, size);
+                                    debug(COLLECT_PRINTF) printf("\tcollecting %p\n", p);
+                                    leakDetector.log_free(sentinel_add(p));
 
-                                freed += size;
+                                    debug (MEMSTOMP) memset(p, 0xF3, size);
+                                }
                             }
                         }
 
-                        if (freeBits)
+                        if (recoverPage)
+                        {
+                            pool.freeAllPageBits(pn);
+
+                            pool.pagetable[pn] = B_FREE;
+                            // add to free chain
+                            pool.binPageChain[pn] = cast(uint) pool.searchStart;
+                            pool.searchStart = pn;
+                            pool.freepages++;
+                            freedSmallPages++;
+                        }
+                        else
+                        {
                             pool.freePageBits(pn, toFree);
+                        }
                     }
                 }
             }
@@ -2296,11 +2343,16 @@ struct Gcx
         assert(freedLargePages <= usedLargePages);
         usedLargePages -= freedLargePages;
         debug(COLLECT_PRINTF) printf("\tfree'd %u bytes, %u pages from %u pools\n", freed, freedLargePages, npools);
-        return freedLargePages;
+
+        assert(freedSmallPages <= usedSmallPages);
+        usedSmallPages -= freedSmallPages;
+        debug(COLLECT_PRINTF) printf("\trecovered small pages = %d\n", freedSmallPages);
+
+        return freedLargePages + freedSmallPages;
     }
 
-    // collection step 4: recover pages with no live objects, rebuild free lists
-    size_t recover() nothrow
+    // collection step 4: rebuild free lists
+    void recover() nothrow
     {
         // init tail list
         List**[B_NUMSMALL] tail = void;
@@ -2327,27 +2379,9 @@ struct Gcx
                 if (bin < B_PAGE)
                 {
                     size_t size = binsize[bin];
-                    size_t bitstride = size / 16;
                     size_t bitbase = pn * (PAGESIZE / 16);
-                    size_t bittop = bitbase + (PAGESIZE / 16) - bitstride + 1;
-                    void*  p;
 
-                    biti = bitbase;
-                    for (biti = bitbase; biti < bittop; biti += bitstride)
-                    {
-                        if (!pool.freebits.test(biti))
-                            goto Lnotfree;
-                    }
-                    pool.pagetable[pn] = B_FREE;
-                    // add to free chain
-                    pool.binPageChain[pn] = cast(uint) pool.searchStart;
-                    pool.searchStart = pn;
-                    pool.freepages++;
-                    freedSmallPages++;
-                    continue;
-
-                Lnotfree:
-                    p = pool.baseAddr + pn * PAGESIZE;
+                    void* p = pool.baseAddr + pn * PAGESIZE;
                     const top = PAGESIZE - size + 1; // ensure <size> bytes available even if unaligned
                     for (u = 0; u < top; u += size)
                     {
@@ -2365,11 +2399,6 @@ struct Gcx
         // terminate tail list
         foreach (ref next; tail)
             *next = null;
-
-        assert(freedSmallPages <= usedSmallPages);
-        usedSmallPages -= freedSmallPages;
-        debug(COLLECT_PRINTF) printf("\trecovered pages = %d\n", freedSmallPages);
-        return freedSmallPages;
     }
 
     /**
@@ -2428,10 +2457,10 @@ struct Gcx
         start = stop;
 
         ConservativeGC._inFinalizer = true;
-        size_t freedLargePages=void;
+        size_t freedPages = void;
         {
             scope (failure) ConservativeGC._inFinalizer = false;
-            freedLargePages = sweep();
+            freedPages = sweep();
             ConservativeGC._inFinalizer = false;
         }
 
@@ -2439,7 +2468,7 @@ struct Gcx
         sweepTime += (stop - start);
         start = stop;
 
-        immutable freedSmallPages = recover();
+        recover();
 
         stop = currTime;
         recoverTime += (stop - start);
@@ -2451,7 +2480,7 @@ struct Gcx
 
         updateCollectThresholds();
 
-        return freedLargePages + freedSmallPages;
+        return freedPages;
     }
 
     /**
@@ -2806,6 +2835,25 @@ struct Pool
                 if (toFree[i])
                     structFinals.data[beg + i] &= ~toFree[i];
         }
+    }
+
+    void freeAllPageBits(size_t pagenum) nothrow
+    {
+        assert(!isLargeObject);
+        assert(!nointerior.nbits); // only for large objects
+
+        immutable beg = pagenum * PageBits.length;
+        static foreach (i; 0 .. PageBits.length)
+        {{
+            immutable w = beg + i;
+            freebits.data[w] = ~0;
+            noscan.data[w] = 0;
+            appendable.data[w] = 0;
+            if (finals.data)
+                finals.data[w] = 0;
+            if (structFinals.data)
+                structFinals.data[w] = 0;
+        }}
     }
 
     /**
