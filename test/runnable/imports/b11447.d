@@ -1,3 +1,4 @@
+module imports.b11447;
 class A {}
 
 void map(alias dg)(int b) { }
