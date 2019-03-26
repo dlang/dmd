@@ -196,6 +196,11 @@ The following is a list of all available settings:
                          default: (none). Test files with this variable will be ignored unless
                          the D_OBJC environment variable is set to "1"
 
+    EXTRA_FILES:         list of extra files and sources used by the test, either during
+                         compilation or execution of the test. It is currently ignored by the test
+                         runner, but serves as documentation of the test itself.
+                         default: (none)
+
     PERMUTE_ARGS:        the set of arguments to permute in multiple $(DMD) invocations.
                          An empty set means only one permutation with no arguments.
                          default: the make variable ARGS (see below)
