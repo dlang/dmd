@@ -820,8 +820,8 @@ $(H2 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
     ---
     struct A
     {
-        this(ref A rhs) {}                        // copy constructor
-        this(ref const A rhs, int b = 7) {}       // copy constructor with default parameter
+        this(ref return scope A rhs) {}                        // copy constructor
+        this(ref return scope const A rhs, int b = 7) {}       // copy constructor with default parameter
     }
     ---
 
@@ -835,7 +835,7 @@ $(H2 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
     ---
     struct A
     {
-        this(ref A rhs) {}
+        this(ref return scope A rhs) {}
     }
 
     void main()
@@ -849,7 +849,7 @@ $(H2 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
     ---
     struct A
     {
-        this(ref A another) {}
+        this(ref return scope A another) {}
     }
 
     void fun(A a) {}
@@ -865,7 +865,7 @@ $(H2 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
     ---
     struct A
     {
-        this(ref A another) {}
+        this(ref return scope A another) {}
     }
 
     A fun()
@@ -895,7 +895,7 @@ $(H2 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
     struct A
     {
         int[] a;
-        this(ref A rhs) {}
+        this(ref return scope A rhs) {}
     }
 
     void fun(immutable A) {}
@@ -914,10 +914,10 @@ $(H2 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
     ---
     struct A
     {
-        this(ref A another) {}                        // 1 - mutable source, mutable destination
-        this(ref immutable A another) {}              // 2 - immutable source, mutable destination
-        this(ref A another) immutable {}              // 3 - mutable source, immutable destination
-        this(ref immutable A another) immutable {}    // 4 - immutable source, immutable destination
+        this(ref return scope A another) {}                        // 1 - mutable source, mutable destination
+        this(ref return scope immutable A another) {}              // 2 - immutable source, mutable destination
+        this(ref return scope A another) immutable {}              // 3 - mutable source, immutable destination
+        this(ref return scope immutable A another) immutable {}    // 4 - immutable source, immutable destination
     }
 
     void main()
@@ -938,7 +938,7 @@ $(H2 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
     ---
     struct A
     {
-        this(ref inout A rhs) immutable {}
+        this(ref return scope inout A rhs) immutable {}
     }
 
     void main()
@@ -965,7 +965,7 @@ $(H2 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
 
     $(P If the restrictions above are met, the following copy constructor is generated:)
     ---
-    this(ref inout(S) src) inout
+    this(ref return scope inout(S) src) inout
     {
     foreach (i, ref inout field; src.tupleof)
         this.tupleof[i] = field;
