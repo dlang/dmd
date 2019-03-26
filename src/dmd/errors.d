@@ -21,6 +21,121 @@ import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.console;
 
+/// Diagnostic severity.
+enum Severity
+{
+    /// An error occurred.
+    error,
+
+    /// A warning occurred.
+    warning,
+
+    /// A deprecation occurred.
+    deprecation,
+}
+
+/// Represents a single diagnostic message.
+abstract class Diagnostic
+{
+    /// The location of where the diagnostic occurred.
+    const Loc loc;
+
+    /// The severity of the diagnostic.
+    const Severity severity;
+
+    /// Stores the supplemental diagnostics.
+    private const(Diagnostic)[] _supplementalDiagnostics;
+
+    /// Returns: the diagnostic message.
+    abstract string message() const nothrow;
+
+    /**
+     * Initializes the receiver with the given arguments.
+     *
+     * Params:
+     *  loc = the location of where the diagnostic occurred
+     *  severity = the severity of the diagnostic
+     */
+    this(const ref Loc loc, const Severity severity) pure nothrow @nogc @safe
+    {
+        this.loc = loc;
+        this.severity = severity;
+    }
+
+    /// Returns: all supplemental diagnostics attached to this diagnostic.
+    final const(Diagnostic[]) supplementalDiagnostics() const pure nothrow @nogc @safe
+    {
+        return _supplementalDiagnostics;
+    }
+
+    /**
+     * Attaches a supplemental diagnostic message to this diagnostic.
+     *
+     * Params:
+     *  diagnostic = the supplemental diagnostic to attach
+     */
+    private void addSupplementalDiagnostic(const Diagnostic diagnostic) pure nothrow @safe
+    in
+    {
+        assert(diagnostic.severity == severity);
+    }
+    body
+    {
+        _supplementalDiagnostics ~= diagnostic;
+    }
+}
+
+/// Formats a diagnostic message based on a format string and arguments.
+class FormattedDiagnostic(Args...) : Diagnostic
+{
+    /// The format string.
+    private const string formatString;
+
+    /// The arguments to format.
+    private const Args args;
+
+    /**
+     * Initializes the receiver with the given arguments.
+     *
+     * Params:
+     *  loc = the location of where the diagnostic occurred
+     *  severity = the severity of the diagnostic
+     *  formatString = the format string
+     *  args = the arguments to format
+     */
+    this(const ref Loc loc, const Severity severity, const string formatString,
+        const Args args) pure nothrow @nogc @safe
+    {
+        super(loc, severity);
+        this.formatString = formatString;
+        this.args = args;
+    }
+
+    /// Returns: the diagnostic message.
+    override string message() const nothrow
+    {
+        import dmd.utils : toCStringThen;
+
+        OutBuffer buffer;
+        formatString.toCStringThen!(str => buffer.printf(str.ptr, args));
+
+        return cast(string) buffer.extractSlice();
+    }
+}
+
+unittest
+{
+    const loc = Loc(null, 3, 0);
+    enum severity = Severity.deprecation;
+
+    Diagnostic diagnostic = new FormattedDiagnostic!(int, const(char)*)(
+        loc, severity, "diagnostic message %d %s", 3, "foo");
+
+    assert(diagnostic.loc == loc);
+    assert(diagnostic.severity == severity);
+    assert(diagnostic.message == "diagnostic message 3 foo");
+}
+
 /// Interface for diagnostic reporting.
 abstract class DiagnosticReporter
 {
