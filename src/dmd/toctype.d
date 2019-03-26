@@ -139,7 +139,7 @@ public:
             /* Add in fields of the struct
              * (after setting ctype to avoid infinite recursion)
              */
-            if (global.params.symdebug)
+            if (global.params.symdebug && !global.errors)
             {
                 for (size_t i = 0; i < sym.fields.dim; i++)
                 {
