@@ -293,10 +293,12 @@ void cv8_termfile(const(char)* objfilename)
     }
 
     // Write out "F3" section
-    cv8_writesection(seg, 0xF3, F3_buf);
+    if (F3_buf.size() > 1)
+        cv8_writesection(seg, 0xF3, F3_buf);
 
     // Write out "F4" section
-    cv8_writesection(seg, 0xF4, F4_buf);
+    if (F4_buf.size() > 0)
+        cv8_writesection(seg, 0xF4, F4_buf);
 
     if (F1_buf.size())
     {
@@ -510,6 +512,7 @@ void cv8_linnum(Srcpos srcpos, uint offset)
     varStats_recordLineOffset(srcpos, offset);
 
     __gshared uint lastoffset;
+    __gshared uint lastlinnum;
 
     if (!currentfuncdata.srcfilename ||
         (currentfuncdata.srcfilename != srcpos.Sfilename && strcmp(currentfuncdata.srcfilename, srcpos.Sfilename)))
@@ -525,10 +528,11 @@ void cv8_linnum(Srcpos srcpos, uint offset)
         linepair.write32(12);
         currentfuncdata.linepairbytes += 12;
     }
-    else if (offset <= lastoffset)
+    else if (offset <= lastoffset || srcpos.Slinnum == lastlinnum)
         return; // avoid multiple entries for the same offset
 
     lastoffset = offset;
+    lastlinnum = srcpos.Slinnum;
     linepair.write32(offset);
     linepair.write32(srcpos.Slinnum | 0x80000000); // mark as statement, not expression
 
