@@ -159,6 +159,11 @@ extern (C++) class Package : ScopeDsymbol
         this.tag = packageTag++;
     }
 
+    static Package create(Identifier ident)
+    {
+        return new Package(ident);
+    }
+
     override const(char)* kind() const
     {
         return "package";

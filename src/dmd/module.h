@@ -30,6 +30,7 @@ public:
     unsigned tag;       // auto incremented tag, used to mask package tree in scopes
     Module *mod;        // != NULL if isPkgMod == PKGmodule
 
+    static Package *create(Identifier *ident);
     const char *kind() const;
 
     Package *isPackage() { return this; }

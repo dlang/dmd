@@ -251,23 +251,46 @@ void test_target()
 
 void test_emplace()
 {
-  Loc loc;
-  UnionExp ue;
+    Loc loc;
+    UnionExp ue;
 
-  IntegerExp::emplacei(&ue, loc, 1065353216, Type::tint32);
-  Expression *e = ue.exp();
-  assert(e->op == TOKint64);
-  assert(e->toInteger() == 1065353216);
+    IntegerExp::emplacei(&ue, loc, 1065353216, Type::tint32);
+    Expression *e = ue.exp();
+    assert(e->op == TOKint64);
+    assert(e->toInteger() == 1065353216);
 
-  UnionExp ure;
-  Expression *re = Compiler::paintAsType(&ure, e, Type::tfloat32);
-  assert(re->op == TOKfloat64);
-  assert(re->toReal() == CTFloat::one);
+    UnionExp ure;
+    Expression *re = Compiler::paintAsType(&ure, e, Type::tfloat32);
+    assert(re->op == TOKfloat64);
+    assert(re->toReal() == CTFloat::one);
 
-  UnionExp uie;
-  Expression *ie = Compiler::paintAsType(&uie, re, Type::tint32);
-  assert(ie->op == TOKint64);
-  assert(ie->toInteger() == e->toInteger());
+    UnionExp uie;
+    Expression *ie = Compiler::paintAsType(&uie, re, Type::tint32);
+    assert(ie->op == TOKint64);
+    assert(ie->toInteger() == e->toInteger());
+}
+
+/**********************************/
+
+void test_package()
+{
+    const char *name = "core.stdc.stdio";
+    const char *pkgname = strchr(name, '.');
+    Dsymbol *parent = NULL;
+
+    while (pkgname != NULL)
+    {
+        Package *p = Package::create(Identifier::idPool(name, pkgname - name));
+        p->parent = parent;
+
+        parent = p;
+        name = pkgname + 1;
+        pkgname = strchr(name, '.');
+    }
+
+    Module *m = Module::create(name, Identifier::idPool(name), 0, 0);
+    m->parent = parent;
+    assert(strcmp(m->toPrettyChars(), "core.stdc.stdio") == 0);
 }
 
 /**********************************/
@@ -281,6 +304,7 @@ int main(int argc, char **argv)
     test_expression();
     test_target();
     test_emplace();
+    test_package();
 
     frontend_term();
 
