@@ -127,10 +127,33 @@ void test4()
     assert(fun() == 6);
 }
 
+// generated copy constructor
+struct X
+{
+    this(ref inout(X) rhs) inout
+    {
+        result ~= "A";
+    }
+}
+
+struct Y
+{
+    X a;
+}
+
+void test5()
+{
+    result = "";
+    Y b1;
+    Y b2 = b1;
+    assert(result == "A");
+}
+
 void main()
 {
     test1();
     test2();
     test3();
     test4();
+    test5();
 }

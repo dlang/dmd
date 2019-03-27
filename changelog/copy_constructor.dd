@@ -3,6 +3,177 @@ Copy Constructor
 With this release, the D language compiler implements the full functionality of the
 copy constructor described extensively in this DIP [1].
 
+$(P Copy constructors are used to initialize a `struct` instance from
+another `struct` of the same type.)
+
+$(P A constructor declaration is a copy constructor declaration if and only if it is a constructor
+declaration that takes only one non-default parameter by reference that is
+of the same type as `typeof(this)`, followed by any number of default parameters:)
+
+---
+struct A
+{
+    this(ref return scope A rhs) {}                        // copy constructor
+    this(ref return scope const A rhs, int b = 7) {}       // copy constructor with default parameter
+}
+---
+
+$(P The copy constructor is type checked as a normal constructor.)
+
+$(P If a copy constructor is defined, implicit calls to it will be inserted
+in the following situations:)
+
+$(OL
+$(LI When a variable is explicitly initialized:)
+---
+struct A
+{
+    this(ref return scope A rhs) {}
+}
+
+void main()
+{
+    A a;
+    A b = a; // copy constructor gets called
+}
+---
+
+$(LI When a parameter is passed by value to a function:)
+---
+struct A
+{
+    this(ref return scope A another) {}
+}
+
+void fun(A a) {}
+
+void main()
+{
+    A a;
+    fun(a);    // copy constructor gets called
+}
+---
+
+$(LI When a parameter is returned by value from a function and Named Returned Value Optiomization (NRVO)
+cannot be performed:)
+---
+struct A
+{
+    this(ref return scope A another) {}
+}
+
+A fun()
+{
+    A a;
+    return a;       // NRVO, no copy constructor call
+}
+
+A a;
+A gun()
+{
+    return a;       // cannot perform NRVO, rewrite to: return (A __tmp; __tmp.copyCtor(a));
+}
+
+void main()
+{
+    A a = fun();
+    A b = gun();
+}
+---
+)
+
+$(P When a copy constructor is defined for a `struct`, all
+implicit blitting is disabled for that `struct`:
+)
+---
+struct A
+{
+    int[] a;
+    this(ref return scope A rhs) {}
+}
+
+void fun(immutable A) {}
+
+void main()
+{
+    immutable A a;
+    fun(a);          // error: copy constructor cannot be called with types (immutable) immutable
+}
+---
+
+$(P The copy constructor can be overloaded with different qualifiers applied
+to the parameter (copying from a qualified source) or to the copy constructor
+itself (copying to a qualified destination):
+)
+---
+struct A
+{
+    this(ref return scope A another) {}                        // 1 - mutable source, mutable destination
+    this(ref return scope immutable A another) {}              // 2 - immutable source, mutable destination
+    this(ref return scope A another) immutable {}              // 3 - mutable source, immutable destination
+    this(ref return scope immutable A another) immutable {}    // 4 - immutable source, immutable destination
+}
+
+void main()
+{
+    A a;
+    immutable A ia;
+
+    A a2 = a;      // calls 1
+    A a3 = ia;     // calls 2
+    immutable A a4 = a;     // calls 3
+    immutable A a5 = ia;    // calls 4
+}
+---
+
+$(P The `inout` qualifier may be applied to the copy constructor parameter in
+order to specify that mutable, `const`, or `immutable` types are treated the same:
+)
+---
+struct A
+{
+    this(ref return scope inout A rhs) immutable {}
+}
+
+void main()
+{
+    A r1;
+    const(A) r2;
+    immutable(A) r3;
+
+    // All call the same copy constructor because `inout` acts like a wildcard
+    immutable(A) a = r1;
+    immutable(A) b = r2;
+    immutable(A) c = r3;
+}
+---
+
+$(P A copy constructor is generated implicitly by the compiler for a `struct S`
+if all of the following conditions are met:)
+
+$(OL
+$(LI `S` does not explicitly declare any copy constructors;)
+$(LI `S` defines at least one direct member that has a copy constructor, and that
+member is not overlapped (by means of `union`) with any other member.)
+)
+
+$(P If the restrictions above are met, the following copy constructor is generated:)
+---
+this(ref return scope inout(S) src) inout
+{
+    foreach (i, ref inout field; src.tupleof)
+        this.tupleof[i] = field;
+}
+---
+
+$(P If the generated copy constructor fails to type check, it will receive the `@disable` attribute.)
+
+$(P f an `union S` has fields that define a copy constructor, whenever an object of type `S`
+is initialized by copy, an error will be issued. The same rule applies to overlapped fields
+(anonymous unions).)
+
+$(P A `struct` that defines a copy constructor is not a POD.)
+
 [1] https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1018.md
 
 

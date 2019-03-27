@@ -428,8 +428,14 @@ private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
     auto ctor = sd.search(sd.loc, Id.ctor);
     CtorDeclaration cpCtor;
     CtorDeclaration rvalueCtor;
-    if (ctor && !ctor.isCtorDeclaration() && !ctor.isTemplateDeclaration())
-        return false;
+    if (ctor)
+    {
+        if (ctor.isOverloadSet())
+            return false;
+        if (auto td = ctor.isTemplateDeclaration())
+            ctor = td.funcroot;
+    }
+
     if (!ctor)
         goto LcheckFields;
 
@@ -490,8 +496,9 @@ LcheckFields:
 
     if (fieldWithCpCtor && rvalueCtor)
     {
-        .error(sd.loc, "`struct %s` may not define both a rvalue constructor (at line `%d`) and a field with a copy constructor (at line `%d`)",
-                sd.toChars, rvalueCtor.loc.linnum, fieldWithCpCtor.loc.linnum);
+        .error(sd.loc, "`struct %s` may not define a rvalue constructor and have fields with copy constructors", sd.toChars());
+        errorSupplemental(rvalueCtor.loc,"rvalue constructor defined here");
+        errorSupplemental(fieldWithCpCtor.loc, "field with copy constructor defined here");
         return false;
     }
     else if (!fieldWithCpCtor)
