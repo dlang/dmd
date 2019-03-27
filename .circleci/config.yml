@@ -1,10 +1,10 @@
 version: 2
 jobs:
-  no_pic:
+  build:
     working_directory: ~/dmd
     docker:
-      - image: circleci/node:4.8.2
-    parallelism: 2
+      - image: circleci/buildpack-deps:18.04
+    parallelism: 1
     steps:
       - checkout
       - run:
@@ -17,27 +17,8 @@ jobs:
       - run:
           command: ./.circleci/run.sh all
           name: Run all
-  pic:
-    working_directory: ~/dmd
-    docker:
-      # See: https://github.com/wilzbach/dlang-docker/blob/master/circleci/dlang.docker
-      - image: dlang2/dmd-circleci:2.078.0
-    steps:
-      - checkout
-      - run:
-          # this is needed to "fix" the Docker permission errors - see https://github.com/dlang/dmd/pull/7579
-          command: sudo ls -l /dlang/dmd-2.078.0/linux && sudo ls -l /dlang/dmd-2.078.0/src
-          name: Test Docker image
-      - run:
-          # needs to be a separate step, s.t. `run.sh` gets updated too
-          command: ./.circleci/run.sh setup-repos
-          name: Merge with upstream + clone DRuntime & Phobos
-      - run:
-          command: ./.circleci/run.sh all
-          name: Run all
 workflows:
   version: 2
   all:
     jobs:
-      - pic
-      - no_pic
+      - build
