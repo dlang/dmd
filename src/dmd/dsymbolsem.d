@@ -343,7 +343,7 @@ private CtorDeclaration generateCopyCtorDeclaration(StructDeclaration sd, const 
 {
     auto fparams = new Parameters();
     auto structType = sd.type;
-    fparams.push(new Parameter(paramStc | STC.ref_, structType, Id.p, null, null));
+    fparams.push(new Parameter(paramStc | STC.ref_ | STC.return_ | STC.scope_, structType, Id.p, null, null));
     ParameterList pList = ParameterList(fparams);
     auto tf = new TypeFunction(pList, structType, LINK.d, STC.ref_);
     auto ccd = new CtorDeclaration(sd.loc, Loc.initial, STC.ref_, tf, true);
@@ -387,13 +387,13 @@ private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
         return false;
 
     auto ctor = sd.search(sd.loc, Id.ctor);
-    if (!ctor)
-        return false;
-    else if (!ctor.isCtorDeclaration() && !ctor.isTemplateDeclaration())
-        return false;
-
     CtorDeclaration cpCtor;
     CtorDeclaration rvalueCtor;
+    if (ctor && !ctor.isCtorDeclaration() && !ctor.isTemplateDeclaration())
+        return false;
+    if (!ctor)
+        goto LcheckFields;
+
     overloadApply(ctor, (Dsymbol s)
     {
         if (s.isTemplateDeclaration())
@@ -428,6 +428,7 @@ private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
     else if (cpCtor)
         return true;
 
+LcheckFields:
     VarDeclaration fieldWithCpCtor;
     // see if any struct members define a copy constructor
     foreach (v; sd.fields)
@@ -456,8 +457,7 @@ private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
     else if (!fieldWithCpCtor)
         return false;
 
-
-    //printf("generating copy constructor for %s\n", ccd.type.toChars());
+    //printf("generating copy constructor for %s\n", sd.toChars());
     const MOD paramMod = MODFlags.wild;
     const MOD funcMod = MODFlags.wild;
     auto ccd = generateCopyCtorDeclaration(sd, ModToStc(paramMod), ModToStc(funcMod));
@@ -479,7 +479,6 @@ private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
         ccd.storage_class |= STC.disable;
         ccd.fbody = null;
     }
-
     return true;
 }
 
