@@ -1,3 +1,4 @@
+module imports.c11447;
 template map(fun...)
 {
     auto map(Range)(Range r)
