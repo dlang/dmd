@@ -3914,8 +3914,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sa.push(s);
 
             Expression e = new IdentifierExp(Loc.initial, v.ident);
-            e = new AddAssignExp(Loc.initial, e, new IntegerExp(1));
-            e = new EqualExp(TOK.notEqual, Loc.initial, e, new IntegerExp(1));
+            e = new AddAssignExp(Loc.initial, e, IntegerExp.literal!1);
+            e = new EqualExp(TOK.notEqual, Loc.initial, e, IntegerExp.literal!1);
             s = new IfStatement(Loc.initial, null, e, new ReturnStatement(Loc.initial, null), null, Loc.initial);
 
             sa.push(s);
@@ -3982,8 +3982,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sa.push(s);
 
             Expression e = new IdentifierExp(Loc.initial, v.ident);
-            e = new AddAssignExp(Loc.initial, e, new IntegerExp(-1));
-            e = new EqualExp(TOK.notEqual, Loc.initial, e, new IntegerExp(0));
+            e = new AddAssignExp(Loc.initial, e, IntegerExp.literal!(-1));
+            e = new EqualExp(TOK.notEqual, Loc.initial, e, IntegerExp.literal!0);
             s = new IfStatement(Loc.initial, null, e, new ReturnStatement(Loc.initial, null), null, Loc.initial);
 
             sa.push(s);

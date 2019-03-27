@@ -1388,7 +1388,7 @@ private bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type* pt)
      */
 
     //printf("arrayExpressionToCommonType()\n");
-    scope IntegerExp integerexp = new IntegerExp(0);
+    scope IntegerExp integerexp = IntegerExp.literal!0;
     scope CondExp condexp = new CondExp(Loc.initial, integerexp, null, null);
 
     Type t0 = null;
@@ -10188,7 +10188,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 arguments.push(exp.e2);
 
                 al = new CallExp(exp.loc, al, arguments);
-                al = new CmpExp(exp.op, exp.loc, al, new IntegerExp(0));
+                al = new CmpExp(exp.op, exp.loc, al, IntegerExp.literal!0);
 
                 arrayLowering = al;
             }

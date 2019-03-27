@@ -762,7 +762,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     // For foreach(){} body, append a return 0;
                     if (blockexit & BE.fallthru)
                     {
-                        Expression e = new IntegerExp(0);
+                        Expression e = IntegerExp.literal!0;
                         Statement s = new ReturnStatement(Loc.initial, e);
                         funcdecl.fbody = new CompoundStatement(Loc.initial, funcdecl.fbody, s);
                         funcdecl.hasReturnExp |= (funcdecl.hasReturnExp & 1 ? 16 : 1);
@@ -784,7 +784,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             /* Add an assert(0, msg); where the missing return
                              * should be.
                              */
-                            e = new AssertExp(funcdecl.endloc, new IntegerExp(0), new StringExp(funcdecl.loc, cast(char*)"missing return expression"));
+                            e = new AssertExp(funcdecl.endloc, IntegerExp.literal!0, new StringExp(funcdecl.loc, cast(char*)"missing return expression"));
                         }
                         else
                             e = new HaltExp(funcdecl.endloc);
@@ -1029,7 +1029,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 if (addReturn0())
                 {
                     // Add a return 0; statement
-                    Statement s = new ReturnStatement(Loc.initial, new IntegerExp(0));
+                    Statement s = new ReturnStatement(Loc.initial, IntegerExp.literal!0);
                     a.push(s);
                 }
 

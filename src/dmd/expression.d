@@ -1871,6 +1871,28 @@ extern (C++) final class IntegerExp : Expression
         }
         return result;
     }
+
+    override Expression syntaxCopy()
+    {
+        return this;
+    }
+
+    /**
+     * Use this instead of creating new instances for commonly used literals
+     * such as 0 or 1.
+     *
+     * Parameters:
+     *      v = The value of the expression
+     * Returns:
+     *      A static instance of the expression, typed as `Tint32`.
+     */
+    static IntegerExp literal(int v)()
+    {
+        __gshared IntegerExp theConstant;
+        if (!theConstant)
+            theConstant = new IntegerExp(v);
+        return theConstant;
+    }
 }
 
 /***********************************************************

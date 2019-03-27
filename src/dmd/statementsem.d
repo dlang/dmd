@@ -2025,7 +2025,7 @@ else
             else
             {
                 // See if upr-1 fits in prm.type
-                Expression limit = new MinExp(loc, fs.upr, new IntegerExp(1));
+                Expression limit = new MinExp(loc, fs.upr, IntegerExp.literal!1);
                 limit = limit.expressionSemantic(sc);
                 limit = limit.optimize(WANTvalue);
                 if (!limit.implicitConvTo(fs.prm.type))
@@ -2136,7 +2136,7 @@ else
         if (fs.op == TOK.foreach_)
         {
             // key += 1
-            //increment = new AddAssignExp(loc, new VarExp(loc, fs.key), new IntegerExp(1));
+            //increment = new AddAssignExp(loc, new VarExp(loc, fs.key), IntegerExp.literal!1);
             increment = new PreExp(TOK.prePlusPlus, loc, new VarExp(loc, fs.key));
         }
         if ((fs.prm.storageClass & STC.ref_) && fs.prm.type.equals(fs.key.type))
@@ -3297,7 +3297,7 @@ else
             else if (fd.isMain())
             {
                 // main() returns 0, even if it returns void
-                rs.exp = new IntegerExp(0);
+                rs.exp = IntegerExp.literal!0;
             }
         }
 
@@ -3443,7 +3443,7 @@ else
             else if (sc.fes)
             {
                 // Replace break; with return 1;
-                result = new ReturnStatement(Loc.initial, new IntegerExp(1));
+                result = new ReturnStatement(Loc.initial, IntegerExp.literal!1);
                 return;
             }
             else
@@ -3483,7 +3483,7 @@ else
                             if (ls && ls.ident == cs.ident && ls.statement == sc.fes)
                             {
                                 // Replace continue ident; with return 0;
-                                result = new ReturnStatement(Loc.initial, new IntegerExp(0));
+                                result = new ReturnStatement(Loc.initial, IntegerExp.literal!0);
                                 return;
                             }
                         }
@@ -3530,7 +3530,7 @@ else
             else if (sc.fes)
             {
                 // Replace continue; with return 0;
-                result = new ReturnStatement(Loc.initial, new IntegerExp(0));
+                result = new ReturnStatement(Loc.initial, IntegerExp.literal!0);
                 return;
             }
             else
