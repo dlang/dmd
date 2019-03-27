@@ -4691,7 +4691,7 @@ extern (C++) final class TypeFunction : TypeNext
                     }
                     else
                     {
-                        bool isRef = (p.storageClass & (STC.ref_ | STC.out_)) != 0;
+                        const isRef = (p.storageClass & (STC.ref_ | STC.out_)) != 0;
 
                         StructDeclaration argStruct, prmStruct;
 

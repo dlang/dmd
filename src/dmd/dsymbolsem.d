@@ -336,9 +336,18 @@ private FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
     return xpostblit;
 }
 
-/* Generates a copy constructor declaration with the specified storage
-   class for the parameter and the function : this(ref paramSTC S p) funcStc;
-*/
+/**
+ * Generates a copy constructor declaration with the specified storage
+ * class for the parameter and the function.
+ *
+ * Params:
+ *  sd = the `struct` that contains the copy constructor
+ *  paramStc = the storage class of the copy constructor parameter
+ *  funcStc = the storage class for the copy constructor declaration
+ *
+ * Returns:
+ *  The copy constructor declaration for struct `sd`.
+ */
 private CtorDeclaration generateCopyCtorDeclaration(StructDeclaration sd, const StorageClass paramStc, const StorageClass funcStc)
 {
     auto fparams = new Parameters();
@@ -353,12 +362,19 @@ private CtorDeclaration generateCopyCtorDeclaration(StructDeclaration sd, const 
     return ccd;
 }
 
-/* Generates a trivial copy constructor body that simply does memberwise
+/**
+ * Generates a trivial copy constructor body that simply does memberwise
  * initialization:
  *
  *    this.field1 = rhs.field1;
  *    this.field2 = rhs.field2;
  *    ...
+ *
+ * Params:
+ *  sd = the `struct` declaration that contains the copy constructor
+ *
+ * Returns:
+ *  A `CompoundStatement` containing the body of the copy constructor.
  */
 private Statement generateCopyCtorBody(StructDeclaration sd)
 {
@@ -376,7 +392,30 @@ private Statement generateCopyCtorBody(StructDeclaration sd)
     return new CompoundStatement(loc, s1);
 }
 
-/* Generates copy constructor for the fields that define copy constructors.
+/**
+ * Generates a copy constructor for a specified `struct` sd if
+ * the following conditions are met:
+ *
+ * 1. sd does not define a copy constructor
+ * 2. at least one field of sd defines a copy constructor
+ *
+ * If the above conditions are met, the following copy constructor
+ * is generated:
+ *
+ * this(ref return scope inout(S) rhs) inout
+ * {
+ *    this.field1 = rhs.field1;
+ *    this.field2 = rhs.field2;
+ *    ...
+ * }
+ *
+ * Params:
+ *  sd = the `struct` for which the copy constructor is generated
+ *  sc = the scope where the copy constructor is generated
+ *
+ * Returns:
+ *  `true` if `struct` sd defines a copy constructor (explicitly or generated),
+ *  `false` otherwise.
  */
 private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
 {
@@ -421,8 +460,9 @@ private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
 
     if (cpCtor && rvalueCtor)
     {
-        .error(sd.loc, "`struct %s` may not define both a rvalue constructor (at line `%d`) and a copy constructor (at line `%d`)",
-                sd.toChars(), rvalueCtor.loc.linnum, cpCtor.loc.linnum);
+        .error(sd.loc, "`struct %s` may not define both a rvalue constructor and a copy constructor", sd.toChars());
+        errorSupplemental(rvalueCtor.loc,"rvalue constructor defined here");
+        errorSupplemental(cpCtor.loc, "copy constructor defined here");
         return true;
     }
     else if (cpCtor)
