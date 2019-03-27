@@ -13,19 +13,10 @@ DMD=dmd
 PIC=1
 
 case "${CIRCLE_STAGE}" in
-    # Defined by old, existing PRs
-    # Added to avoid needing to rebase them
     build)
-        ;&
-    pic)
-        MODEL=64
-        PIC=1
-        ;;
-    no_pic)
-        PIC=0
         case $CIRCLE_NODE_INDEX in
             0) MODEL=64 ;;
-            1) MODEL=32 ;;
+            1) MODEL=32 ;; # broken - https://issues.dlang.org/show_bug.cgi?id=19116
         esac
 esac
 
