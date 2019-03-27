@@ -43,6 +43,8 @@ import dmd.backend.outbuf;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.globals;
+
 extern (C++):
 
 static if (ELFOBJ)
@@ -249,9 +251,6 @@ private IDXSEC secidx_note;      // Final table index for note data
 
 // Comment data for compiler version
 private Outbuffer *comment_data;
-private const(char)* compiler = "\0Digital Mars C/C++" ~
-        " 2.083" //VERSION
-        ;       // compiled by ...
 
 // Each compiler segment is an elf section
 // Predefined compiler segments CODE,DATA,CDATA,UDATA map to indexes
@@ -1635,8 +1634,15 @@ void Obj_compiler()
     comment_data = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
     assert(comment_data);
 
-
-    comment_data.write(.compiler,(.compiler).sizeof);
+    enum MAX_VERSION_LENGTH = 40;  // hope enough to store `git describe --dirty`
+    char[20 + MAX_VERSION_LENGTH] compiler = void;
+    enum compileHeader = "\0Digital Mars C/C++ ";
+    enum n = compileHeader.length;
+    compiler[0 .. n] = compileHeader;
+    const versionArr = global._version[0 .. strlen(global._version)];
+    assert(versionArr.length < MAX_VERSION_LENGTH);
+    compiler[n .. n + versionArr.length] = versionArr;
+    comment_data.write(compiler.ptr, (compiler).sizeof);
     //dbg_printf("Comment data size %d\n",comment_data.size());
 }
 

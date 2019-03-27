@@ -65,6 +65,8 @@ import dmd.backend.outbuf;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+version(MARS) import dmd.globals;
+
 static if (ELFOBJ || MACHOBJ)
 {
 
@@ -1132,8 +1134,7 @@ static if (ELFOBJ)
 version (MARS)
 {
     debug_info.buf.write("Digital Mars D ");
-    //debug_info.buf.writeString(global._version);     // DW_AT_producer
-    debug_info.buf.writeString("v2.083");              // DW_AT_producer
+    debug_info.buf.writeString(global._version);     // DW_AT_producer
     // DW_AT_language
     debug_info.buf.writeByte((config.fulltypes == CVDWARF_D) ? DW_LANG_D : DW_LANG_C89);
 }
