@@ -4842,5 +4842,5 @@ string _d_assert_fail(string comp, A, B)(A a, B b) @nogc @safe nothrow pure
     n += token.length;
     buffer[n++] = ' ';
     buffer[n .. n + valB.length] = valB;
-    return buffer;
+    return (() @trusted => cast(string) buffer)();
 }
