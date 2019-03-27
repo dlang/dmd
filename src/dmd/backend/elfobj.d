@@ -43,8 +43,6 @@ import dmd.backend.outbuf;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-import dmd.globals;
-
 extern (C++):
 
 static if (ELFOBJ)
@@ -1639,7 +1637,7 @@ void Obj_compiler()
     enum compileHeader = "\0Digital Mars C/C++ ";
     enum n = compileHeader.length;
     compiler[0 .. n] = compileHeader;
-    const versionArr = global._version[0 .. strlen(global._version)];
+    const versionArr = config._version[0 .. strlen(config._version)];
     assert(versionArr.length < MAX_VERSION_LENGTH);
     compiler[n .. n + versionArr.length] = versionArr;
     comment_data.write(compiler.ptr, (compiler).sizeof);
