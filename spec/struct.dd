@@ -980,7 +980,7 @@ $(H2 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
     (anonymous unions).)
 
     $(P A `struct` that defines a copy constructor is not a POD.)
-    
+
 $(H2 $(LEGACY_LNAME2 StructPostblit, struct-postblit, Struct Postblits))
 
 $(GRAMMAR
