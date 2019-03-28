@@ -456,17 +456,29 @@ double[][] matrix;
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
-double[3][3] matrix;
+double[6][3] matrix;
 ---------
 )
 
-        $(P declares a rectangular matrix with 3 rows and 3 columns, all contiguously in memory. In
+        $(P declares a rectangular matrix with 3 rows and 6 columns, all contiguously in memory. In
         other languages, this would be called a multidimensional array and be declared as:
         )
 
 ---------
-double matrix[3,3];
+double matrix[3,6];
 ---------
+
+        $(P Note that dimensions and indices appear in opposite orders. Dimensions in the
+        $(RELATIVE_LINK2 declarations, declaration) are read right to left whereas indices are read
+        left to right:
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---------
+double[6][3] matrix;
+matrix[2][5] = 3.14; // Assignment to bottom right element.
+---------
+)
 
 $(H2 $(LNAME2 array-length, Array Length))
 
