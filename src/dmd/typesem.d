@@ -3947,7 +3947,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                  * *(cast(void**)e + 1)
                  */
                 e = e.castTo(sc, mt.tvoidptr.pointerTo());
-                e = new AddExp(e.loc, e, new IntegerExp(1));
+                e = new AddExp(e.loc, e, IntegerExp.literal!1);
                 e = new PtrExp(e.loc, e);
                 e = e.expressionSemantic(sc);
                 return e;

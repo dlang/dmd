@@ -247,6 +247,8 @@ public:
     dinteger_t getInteger() { return value; }
     void setInteger(dinteger_t value);
     void normalize();
+    template<int v>
+    static IntegerExp literal();
 };
 
 class ErrorExp : public Expression
