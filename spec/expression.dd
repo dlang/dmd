@@ -32,7 +32,7 @@ $(DDOC_ANCHOR define-lvalue)$(P $(B Definition) ($(DOUBLEQUOTE Lvalue)): The fol
 others, are called lvalue expressions or lvalues:)
 $(OL
 $(LI `this` inside `struct` and `union` member functions;)
-$(LI a simple symbol or the result of the $(I DotIdentifier) grammatical construct `.` (left side may be
+$(LI a variable or the result of the $(I DotIdentifier) grammatical construct `.` (left side may be
 missing) when the rightmost side of the dot is a variable,
 field (direct or `static`), function name, or invocation of a function that returns by reference;)
 $(LI the result of the following expressions:
@@ -59,7 +59,7 @@ $(DDOC_ANCHOR define-rvalue)$(P $(B Definition) ($(DOUBLEQUOTE Rvalue)): Express
 lvalues are rvalues.)
 
 $(P Note: Rvalues include all literals, special value keywords such as `__FILE__` and `__LINE__`,
-`enum` values, and the result of expressions not mentioned in the definition of lvalues above.)
+`enum` values, and the result of expressions not defined as lvalues above.)
 
 $(P The built-in address-of operator (unary `&`) may only be applied to lvalues.)
 
