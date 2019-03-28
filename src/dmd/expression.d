@@ -1720,7 +1720,8 @@ extern (C++) final class IntegerExp : Expression
             type = Type.terror;
         }
         this.type = type;
-        this.value = normalize(type.toBasetype().ty, value);
+        this.value = value;
+        normalize();
     }
 
     extern (D) this(dinteger_t value)
@@ -1768,18 +1769,18 @@ extern (C++) final class IntegerExp : Expression
     override dinteger_t toInteger()
     {
         // normalize() is necessary until we fix all the paints of 'type'
-        return value = normalize(type.toBasetype().ty, value);
+        normalize();
+        return value;
     }
 
     override real_t toReal()
     {
         // normalize() is necessary until we fix all the paints of 'type'
         const ty = type.toBasetype().ty;
-        const val = normalize(ty, value);
-        value = val;
+        normalize();
         return (ty == Tuns64)
-            ? real_t(cast(d_uns64)val)
-            : real_t(cast(d_int64)val);
+            ? real_t(cast(d_uns64)value)
+            : real_t(cast(d_int64)value);
     }
 
     override real_t toImaginary()
@@ -1818,62 +1819,62 @@ extern (C++) final class IntegerExp : Expression
         return value;
     }
 
-    void setInteger(dinteger_t value)
+    private void setInteger(dinteger_t value)
     {
-        this.value = normalize(type.toBasetype().ty, value);
+        this.value = value;
+        normalize();
     }
 
-    static dinteger_t normalize(TY ty, dinteger_t value)
+    void normalize()
     {
         /* 'Normalize' the value of the integer to be in range of the type
          */
-        dinteger_t result;
-        switch (ty)
+        switch (type.toBasetype().ty)
         {
         case Tbool:
-            result = (value != 0);
+            value = (value != 0);
             break;
 
         case Tint8:
-            result = cast(d_int8)value;
+            value = cast(d_int8)value;
             break;
 
         case Tchar:
         case Tuns8:
-            result = cast(d_uns8)value;
+            value = cast(d_uns8)value;
             break;
 
         case Tint16:
-            result = cast(d_int16)value;
+            value = cast(d_int16)value;
             break;
 
         case Twchar:
         case Tuns16:
-            result = cast(d_uns16)value;
+            value = cast(d_uns16)value;
             break;
 
         case Tint32:
-            result = cast(d_int32)value;
+            value = cast(d_int32)value;
             break;
 
         case Tdchar:
         case Tuns32:
-            result = cast(d_uns32)value;
+            value = cast(d_uns32)value;
             break;
 
         case Tint64:
-            result = cast(d_int64)value;
+            value = cast(d_int64)value;
             break;
 
         case Tuns64:
-            result = cast(d_uns64)value;
+            value = cast(d_uns64)value;
             break;
 
         case Tpointer:
             if (target.ptrsize == 4)
-                result = cast(d_uns32)value;
+                value = cast(d_uns32)value;
             else if (target.ptrsize == 8)
-                result = cast(d_uns64)value;
+                value = cast(d_uns64)value;
             else
                 assert(0);
             break;
@@ -1881,7 +1882,6 @@ extern (C++) final class IntegerExp : Expression
         default:
             break;
         }
-        return result;
     }
 
     override Expression syntaxCopy()

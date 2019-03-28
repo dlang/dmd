@@ -2373,7 +2373,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
 
         assert(e.type.deco);
-        e.setInteger(e.getInteger());
+        e.normalize();
         result = e;
     }
 
