@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail351.d(14): Error: `cast(uint)this.num[index]` is not an lvalue and cannot be modified
+fail_compilation/fail351.d(14): Error: expression `this.num[index]` of type `immutable(uint)` is not implicitly convertible to return type `ref uint`
 ---
 */
 
