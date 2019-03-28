@@ -15,7 +15,7 @@
 module dmd.frontend;
 
 import dmd.dmodule : Module;
-import dmd.errors : DiagnosticReporter;
+import dmd.lexer : DiagnosticReporter;
 
 import std.range.primitives : isInputRange, ElementType;
 import std.traits : isNarrowString;
@@ -374,7 +374,7 @@ string prettyPrint(Module m)
 private DiagnosticReporter defaultDiagnosticReporter()
 {
     import dmd.globals : global;
-    import dmd.errors : StderrDiagnosticReporter;
+    import dmd.lexer : StderrDiagnosticReporter;
 
     return new StderrDiagnosticReporter(global.params.useDeprecated);
 }

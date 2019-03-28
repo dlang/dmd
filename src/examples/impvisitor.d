@@ -77,7 +77,7 @@ void main()
     import std.file;
     import std.path : buildPath, dirName;
 
-    import dmd.errors;
+    import dmd.lexer;
     import dmd.parse;
     import dmd.astbase;
 

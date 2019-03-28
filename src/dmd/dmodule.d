@@ -32,6 +32,7 @@ import dmd.expressionsem;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
+import dmd.lexer;
 import dmd.parse;
 import dmd.root.file;
 import dmd.root.filename;
