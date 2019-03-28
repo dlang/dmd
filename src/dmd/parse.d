@@ -2479,6 +2479,7 @@ final class Parser(AST) : Lexer
         AST.VarArg varargs;
         AST.Parameters* parameters = parseParameters(&varargs);
         stc = parsePostfix(stc, &udas);
+
         if (varargs != AST.VarArg.none || AST.Parameter.dim(parameters) != 0)
         {
             if (stc & AST.STC.static_)

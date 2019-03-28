@@ -164,6 +164,8 @@ public:
     FuncDeclarations postblits; // Array of postblit functions
     FuncDeclaration *postblit;  // aggregate postblit
 
+    bool hasCopyCtor;           // copy constructor
+
     FuncDeclaration *xeq;       // TypeInfo_Struct.xopEquals
     FuncDeclaration *xcmp;      // TypeInfo_Struct.xopCmp
     FuncDeclaration *xhash;     // TypeInfo_Struct.xtoHash
