@@ -231,11 +231,11 @@ extern (C++) class Dsymbol : ASTNode
     Symbol* csym;           // symbol for code generator
     Symbol* isym;           // import version of csym
     const(char)* comment;   // documentation comment for this Dsymbol
-    Loc loc;                // where defined
+    const Loc loc;          // where defined
     Scope* _scope;          // !=null means context to use for semantic()
     const(char)* prettystring;  // cached value of toPrettyChars()
     bool errors;            // this symbol failed to pass semantic()
-    PASS semanticRun;
+    PASS semanticRun = PASS.init;
 
     DeprecatedDeclaration depdecl;           // customized deprecation message
     UserAttributeDeclaration userAttribDecl;    // user defined attributes
@@ -247,14 +247,21 @@ extern (C++) class Dsymbol : ASTNode
     final extern (D) this()
     {
         //printf("Dsymbol::Dsymbol(%p)\n", this);
-        this.semanticRun = PASS.init;
+        loc = Loc(null, 0, 0);
     }
 
     final extern (D) this(Identifier ident)
     {
         //printf("Dsymbol::Dsymbol(%p, ident)\n", this);
+        this.loc = Loc(null, 0, 0);
         this.ident = ident;
-        this.semanticRun = PASS.init;
+    }
+
+    final extern (D) this(const ref Loc loc, Identifier ident)
+    {
+        //printf("Dsymbol::Dsymbol(%p, ident)\n", this);
+        this.loc = loc;
+        this.ident = ident;
     }
 
     static Dsymbol create(Identifier ident)
@@ -273,13 +280,15 @@ extern (C++) class Dsymbol : ASTNode
         return toChars();
     }
 
-    final ref const(Loc) getLoc()
+    final const(Loc) getLoc()
     {
         if (!loc.isValid()) // avoid bug 5861.
         {
             auto m = getModule();
             if (m && m.srcfile)
-                loc.filename = m.srcfile.toChars();
+            {
+                return Loc(m.srcfile.toChars(), 0, 0);
+            }
         }
         return loc;
     }
@@ -323,7 +332,8 @@ extern (C++) class Dsymbol : ASTNode
         va_start(ap, format);
         const cstr = toPrettyChars();
         const pretty = '`' ~ cstr[0 .. strlen(cstr)] ~ "`\0";
-        .verror(getLoc(), format, ap, kind(), pretty.ptr);
+        const loc = getLoc();
+        .verror(loc, format, ap, kind(), pretty.ptr);
         va_end(ap);
     }
 
@@ -343,7 +353,8 @@ extern (C++) class Dsymbol : ASTNode
         va_start(ap, format);
         const cstr = toPrettyChars();
         const pretty = '`' ~ cstr[0 .. strlen(cstr)] ~ "`\0";
-        .vdeprecation(getLoc(), format, ap, kind(), pretty.ptr);
+        const loc = getLoc();
+        .vdeprecation(loc, format, ap, kind(), pretty.ptr);
         va_end(ap);
     }
 
@@ -1341,9 +1352,14 @@ public:
     {
     }
 
-    final extern (D) this(Identifier id)
+    final extern (D) this(Identifier ident)
     {
-        super(id);
+        super(ident);
+    }
+
+    final extern (D) this(const ref Loc loc, Identifier ident)
+    {
+        super(loc, ident);
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
@@ -1815,22 +1831,23 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
     TupleDeclaration td;    // for tuples of objects
     Scope* sc;
 
-    extern (D) this(Scope* sc, Expression e)
+    extern (D) this(Scope* sc, Expression exp)
     {
-        assert(e.op == TOK.index || e.op == TOK.slice || e.op == TOK.array);
-        exp = e;
+        super(exp.loc, null);
+        assert(exp.op == TOK.index || exp.op == TOK.slice || exp.op == TOK.array);
+        this.exp = exp;
         this.sc = sc;
     }
 
-    extern (D) this(Scope* sc, TypeTuple t)
+    extern (D) this(Scope* sc, TypeTuple type)
     {
-        type = t;
+        this.type = type;
         this.sc = sc;
     }
 
-    extern (D) this(Scope* sc, TupleDeclaration s)
+    extern (D) this(Scope* sc, TupleDeclaration td)
     {
-        td = s;
+        this.td = td;
         this.sc = sc;
     }
 

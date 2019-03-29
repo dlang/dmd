@@ -537,9 +537,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     // threaded list of previous instantiation attempts on stack
     TemplatePrevious* previous;
 
-    extern (D) this(const ref Loc loc, Identifier id, TemplateParameters* parameters, Expression constraint, Dsymbols* decldefs, bool ismixin = false, bool literal = false)
+    extern (D) this(const ref Loc loc, Identifier ident, TemplateParameters* parameters, Expression constraint, Dsymbols* decldefs, bool ismixin = false, bool literal = false)
     {
-        super(id);
+        super(loc, ident);
         static if (LOG)
         {
             printf("TemplateDeclaration(this = %p, id = '%s')\n", this, id.toChars());
@@ -558,7 +558,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     }
                 }
         }
-        this.loc = loc;
         this.parameters = parameters;
         this.origParameters = parameters;
         this.constraint = constraint;
@@ -5158,7 +5157,6 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
     extern (D) this(const ref Loc loc, Identifier ident, Type specType, Type defaultType)
     {
         super(loc, ident);
-        this.ident = ident;
         this.specType = specType;
         this.defaultType = defaultType;
     }
@@ -5357,7 +5355,6 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
         Expression specValue, Expression defaultValue)
     {
         super(loc, ident);
-        this.ident = ident;
         this.valType = valType;
         this.specValue = specValue;
         this.defaultValue = defaultValue;
@@ -5586,7 +5583,6 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
     extern (D) this(const ref Loc loc, Identifier ident, Type specType, RootObject specAlias, RootObject defaultAlias)
     {
         super(loc, ident);
-        this.ident = ident;
         this.specType = specType;
         this.specAlias = specAlias;
         this.defaultAlias = defaultAlias;
@@ -5799,7 +5795,6 @@ extern (C++) final class TemplateTupleParameter : TemplateParameter
     extern (D) this(const ref Loc loc, Identifier ident)
     {
         super(loc, ident);
-        this.ident = ident;
     }
 
     override TemplateTupleParameter isTemplateTupleParameter()
@@ -5972,12 +5967,11 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
     extern (D) this(const ref Loc loc, Identifier ident, Objects* tiargs)
     {
-        super(null);
+        super(loc, null);
         static if (LOG)
         {
             printf("TemplateInstance(this = %p, ident = '%s')\n", this, ident ? ident.toChars() : "null");
         }
-        this.loc = loc;
         this.name = ident;
         this.tiargs = tiargs;
     }
@@ -5988,12 +5982,11 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      */
     extern (D) this(const ref Loc loc, TemplateDeclaration td, Objects* tiargs)
     {
-        super(null);
+        super(loc, null);
         static if (LOG)
         {
             printf("TemplateInstance(this = %p, tempdecl = '%s')\n", this, td.toChars());
         }
-        this.loc = loc;
         this.name = td.ident;
         this.tiargs = tiargs;
         this.tempdecl = td;

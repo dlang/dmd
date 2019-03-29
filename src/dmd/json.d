@@ -372,9 +372,9 @@ public:
         }
     }
 
-    extern(D) void property(const(char)[] linename, const(char)[] charname, Loc* loc)
+    extern(D) void property(const(char)[] linename, const(char)[] charname, const ref Loc loc)
     {
-        if (loc)
+        if (loc.isValid())
         {
             if (auto filename = loc.filename.toDString)
             {
@@ -454,7 +454,7 @@ public:
                 property("value", em.origValue.toString());
         }
         property("comment", s.comment.toDString);
-        property("line", "char", &s.loc);
+        property("line", "char", s.loc);
     }
 
     void jsonProperties(Declaration d)
@@ -537,7 +537,7 @@ public:
         comma();
         property("kind", s.kind.toDString);
         property("comment", s.comment.toDString);
-        property("line", "char", &s.loc);
+        property("line", "char", s.loc);
         if (s.prot().kind != Prot.Kind.public_)
             property("protection", protectionToString(s.prot().kind));
         if (s.aliasId)
@@ -669,7 +669,7 @@ public:
         TypeFunction tf = cast(TypeFunction)d.type;
         if (tf && tf.ty == Tfunction)
             property("parameters", tf.parameterList.parameters);
-        property("endline", "endchar", &d.endloc);
+        property("endline", "endchar", d.endloc);
         if (d.foverrides.dim)
         {
             propertyStart("overrides");

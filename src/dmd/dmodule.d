@@ -147,14 +147,13 @@ enum PKG : int
  */
 extern (C++) class Package : ScopeDsymbol
 {
-    PKG isPkgMod;
+    PKG isPkgMod = PKG.unknown;
     uint tag;        // auto incremented tag, used to mask package tree in scopes
     Module mod;     // !=null if isPkgMod == PKG.module_
 
-    final extern (D) this(Identifier ident)
+    final extern (D) this(const ref Loc loc, Identifier ident)
     {
-        super(ident);
-        this.isPkgMod = PKG.unknown;
+        super(loc, ident);
         __gshared uint packageTag;
         this.tag = packageTag++;
     }
@@ -189,7 +188,7 @@ extern (C++) class Package : ScopeDsymbol
                 Dsymbol p = dst.lookup(pid);
                 if (!p)
                 {
-                    pkg = new Package(pid);
+                    pkg = new Package(Loc.initial, pid);
                     dst.insert(pkg);
                     pkg.parent = parent;
                     pkg.symtab = new DsymbolTable();
@@ -404,9 +403,9 @@ extern (C++) final class Module : Package
     size_t nameoffset;          // offset of module name from start of ModuleInfo
     size_t namelen;             // length of module name in characters
 
-    extern (D) this(const(char)* filename, Identifier ident, int doDocComment, int doHdrGen)
+    extern (D) this(const ref Loc loc, const(char)* filename, Identifier ident, int doDocComment, int doHdrGen)
     {
-        super(ident);
+        super(loc, ident);
         const(char)* srcfilename;
         //printf("Module::Module(filename = '%s', ident = '%s')\n", filename, ident.toChars());
         this.arg = filename;
@@ -431,9 +430,14 @@ extern (C++) final class Module : Package
         escapetable = new Escape();
     }
 
+    extern (D) this(const(char)* filename, Identifier ident, int doDocComment, int doHdrGen)
+    {
+        this(Loc.initial, filename, ident, doDocComment, doHdrGen);
+    }
+
     static Module create(const(char)* filename, Identifier ident, int doDocComment, int doHdrGen)
     {
-        return new Module(filename, ident, doDocComment, doHdrGen);
+        return new Module(Loc.initial, filename, ident, doDocComment, doHdrGen);
     }
 
     static Module load(Loc loc, Identifiers* packages, Identifier ident)
@@ -497,8 +501,8 @@ extern (C++) final class Module : Package
             buf.writeByte(0);
             filename = buf.extractData().toDString();
         }
-        auto m = new Module(filename.ptr, ident, 0, 0);
-        m.loc = loc;
+        auto m = new Module(loc, filename.ptr, ident, 0, 0);
+
         /* Look for the source file
          */
         if (const result = lookForSourceFile(filename))
@@ -916,7 +920,7 @@ extern (C++) final class Module : Package
              *    later package.d loading will change Package::isPkgMod to PKG.module_ and set Package::mod.
              * 2. Otherwise, 'package.d' wrapped by 'Package' is inserted to the internal tree in here.
              */
-            auto p = new Package(ident);
+            auto p = new Package(Loc.initial, ident);
             p.parent = this.parent;
             p.isPkgMod = PKG.module_;
             p.mod = this;

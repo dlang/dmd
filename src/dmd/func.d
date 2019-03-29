@@ -307,9 +307,9 @@ extern (C++) class FuncDeclaration : Declaration
 
     uint flags;                        /// FUNCFLAG.xxxxx
 
-    extern (D) this(const ref Loc loc, const ref Loc endloc, Identifier id, StorageClass storage_class, Type type)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, Identifier ident, StorageClass storage_class, Type type)
     {
-        super(id);
+        super(loc, ident);
         //printf("FuncDeclaration(id = '%s', type = %p)\n", id.toChars(), type);
         //printf("storage_class = x%x\n", storage_class);
         this.storage_class = storage_class;
@@ -320,7 +320,6 @@ extern (C++) class FuncDeclaration : Declaration
             // are already set in the 'type' in parsing phase.
             this.storage_class &= ~(STC.TYPECTOR | STC.FUNCATTR);
         }
-        this.loc = loc;
         this.endloc = endloc;
         /* The type given for "infer the return type" is a TypeFunction with
          * NULL for the return type.
