@@ -50,13 +50,15 @@ void out_config_init(
         ubyte avx,              // use AVX instruction set (0, 1, 2)
         bool useModuleInfo,     // implement ModuleInfo
         bool useTypeInfo,       // implement TypeInfo
-        bool useExceptions      // implement exception handling
+        bool useExceptions,     // implement exception handling
+        const(char)* _version   // Compiler version
         )
 {
 version (MARS)
 {
     //printf("out_config_init()\n");
 
+    config._version = _version;
     if (!config.target_cpu)
     {   config.target_cpu = TARGET_PentiumPro;
         config.target_scheduler = config.target_cpu;
