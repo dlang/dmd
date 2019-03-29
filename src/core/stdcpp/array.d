@@ -97,7 +97,7 @@ pure nothrow @nogc:
         ///
         inout(T)* data() inout @safe                    { static if (N > 0) { return &_M_elems[0]; } else { return null; } }
         ///
-        ref inout(T)[N] as_array() inout @trusted       { return data()[0 .. N]; }
+        ref inout(T[N]) as_array() inout @trusted       { return data()[0 .. N]; }
         ///
         ref inout(T) at(size_type i) inout @trusted     { return data()[0 .. N][i]; }
 
