@@ -6607,6 +6607,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = e;
             return;
         }
+
+        // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
+        if (exp.e1.op == TOK.type)
+            exp.e1 = resolveAliasThis(sc, exp.e1);
+
         auto e1x = resolveProperties(sc, exp.e1);
         if (e1x.op == TOK.error)
         {
