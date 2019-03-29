@@ -30,8 +30,7 @@ extern (C++) final class StaticAssert : Dsymbol
 
     extern (D) this(const ref Loc loc, Expression exp, Expression msg)
     {
-        super(Id.empty);
-        this.loc = loc;
+        super(loc, Id.empty);
         this.exp = exp;
         this.msg = msg;
     }

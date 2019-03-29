@@ -203,7 +203,6 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
 
         // Create scope for '$' variable for this dimension
         auto sym = new ArrayScopeSymbol(sc, ae);
-        sym.loc = ae.loc;
         sym.parent = sc.scopesym;
         sc = sc.push(sym);
         ae.lengthVar = null; // Create it only if required
@@ -274,7 +273,6 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, Expression* p
 
     // create scope for '$'
     auto sym = new ArrayScopeSymbol(sc, ae);
-    sym.loc = ae.loc;
     sym.parent = sc.scopesym;
     sc = sc.push(sym);
 
@@ -6939,7 +6937,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             // Create scope for 'length' variable
             ScopeDsymbol sym = new ArrayScopeSymbol(sc, exp);
-            sym.loc = exp.loc;
             sym.parent = sc.scopesym;
             sc = sc.push(sym);
         }
@@ -7325,7 +7322,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             // Create scope for 'length' variable
             ScopeDsymbol sym = new ArrayScopeSymbol(sc, exp);
-            sym.loc = exp.loc;
             sym.parent = sc.scopesym;
             sc = sc.push(sym);
         }

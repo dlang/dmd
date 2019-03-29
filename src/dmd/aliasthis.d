@@ -34,8 +34,7 @@ extern (C++) final class AliasThis : Dsymbol
 
     extern (D) this(const ref Loc loc, Identifier ident)
     {
-        super(null);    // it's anonymous (no identifier)
-        this.loc = loc;
+        super(loc, null);    // it's anonymous (no identifier)
         this.ident = ident;
     }
 

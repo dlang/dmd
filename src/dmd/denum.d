@@ -63,11 +63,10 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
     bool added;
     int inuse;
 
-    extern (D) this(const ref Loc loc, Identifier id, Type memtype)
+    extern (D) this(const ref Loc loc, Identifier ident, Type memtype)
     {
-        super(id);
+        super(loc, ident);
         //printf("EnumDeclaration() %s\n", toChars());
-        this.loc = loc;
         type = new TypeEnum(this);
         this.memtype = memtype;
         protection = Prot(Prot.Kind.undefined);

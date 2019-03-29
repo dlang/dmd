@@ -294,7 +294,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             funcdecl.localsymtab = new DsymbolTable();
 
             // Establish function scope
-            auto ss = new ScopeDsymbol();
+            auto ss = new ScopeDsymbol(funcdecl.loc, null);
             // find enclosing scope symbol, might skip symbol-less CTFE and/or FuncExp scopes
             for (auto scx = sc; ; scx = scx.enclosing)
             {
@@ -304,7 +304,6 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     break;
                 }
             }
-            ss.loc = funcdecl.loc;
             ss.endlinnum = funcdecl.endloc.linnum;
             Scope* sc2 = sc.push(ss);
             sc2.func = funcdecl;
@@ -539,18 +538,16 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 }
 
                 // scope of out contract (need for vresult.semantic)
-                auto sym = new ScopeDsymbol();
+                auto sym = new ScopeDsymbol(funcdecl.loc, null);
                 sym.parent = sc2.scopesym;
-                sym.loc = funcdecl.loc;
                 sym.endlinnum = fensure_endlin;
                 scout = sc2.push(sym);
             }
 
             if (funcdecl.fbody)
             {
-                auto sym = new ScopeDsymbol();
+                auto sym = new ScopeDsymbol(funcdecl.loc, null);
                 sym.parent = sc2.scopesym;
-                sym.loc = funcdecl.loc;
                 sym.endlinnum = funcdecl.endloc.linnum;
                 sc2 = sc2.push(sym);
 
@@ -894,9 +891,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
             {
                 /* frequire is composed of the [in] contracts
                  */
-                auto sym = new ScopeDsymbol();
+                auto sym = new ScopeDsymbol(funcdecl.loc, null);
                 sym.parent = sc2.scopesym;
-                sym.loc = funcdecl.loc;
                 sym.endlinnum = funcdecl.endloc.linnum;
                 sc2 = sc2.push(sym);
                 sc2.flags = (sc2.flags & ~SCOPE.contract) | SCOPE.require;
