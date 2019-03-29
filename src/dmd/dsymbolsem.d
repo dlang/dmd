@@ -3290,6 +3290,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             TypeFunction tfx = funcdecl.type.toTypeFunction();
             tfo.mod = tfx.mod;
             tfo.isscope = tfx.isscope;
+            tfo.isreturninferred = tfx.isreturninferred;
             tfo.isscopeinferred = tfx.isscopeinferred;
             tfo.isref = tfx.isref;
             tfo.isnothrow = tfx.isnothrow;

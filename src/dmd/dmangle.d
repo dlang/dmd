@@ -389,7 +389,7 @@ public:
         if (ta.isnogc)
             buf.writestring("Ni");
 
-        if (ta.isreturn)
+        if (ta.isreturn && !ta.isreturninferred)
             buf.writestring("Nj");
         else if (ta.isscope && !ta.isscopeinferred)
             buf.writestring("Nl");
@@ -1065,6 +1065,7 @@ public:
     {
         if (p.storageClass & STC.scope_ && !(p.storageClass & STC.scopeinferred))
             buf.writeByte('M');
+
         // 'return inout ref' is the same as 'inout ref'
         if ((p.storageClass & (STC.return_ | STC.wild)) == STC.return_ &&
             !(p.storageClass & STC.returninferred))

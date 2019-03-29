@@ -4137,6 +4137,7 @@ extern (C++) final class TypeFunction : TypeNext
     bool isref;                 // true: returns a reference
     bool isreturn;              // true: 'this' is returned by ref
     bool isscope;               // true: 'this' is scope
+    bool isreturninferred;      // true: 'this' is return from inference
     bool isscopeinferred;       // true: 'this' is scope from inference
     LINK linkage;               // calling convention
     TRUST trust;                // level of trust
@@ -4167,6 +4168,8 @@ extern (C++) final class TypeFunction : TypeNext
             this.isref = true;
         if (stc & STC.return_)
             this.isreturn = true;
+        if (stc & STC.returninferred)
+            this.isreturninferred = true;
         if (stc & STC.scope_)
             this.isscope = true;
         if (stc & STC.scopeinferred)
@@ -4204,6 +4207,7 @@ extern (C++) final class TypeFunction : TypeNext
         t.isref = isref;
         t.isreturn = isreturn;
         t.isscope = isscope;
+        t.isreturninferred = isreturninferred;
         t.isscopeinferred = isscopeinferred;
         t.iswild = iswild;
         t.trust = trust;
@@ -4468,6 +4472,7 @@ extern (C++) final class TypeFunction : TypeNext
             tf.isref = t.isref;
             tf.isreturn = t.isreturn;
             tf.isscope = t.isscope;
+            tf.isreturninferred = t.isreturninferred;
             tf.isscopeinferred = t.isscopeinferred;
             tf.trust = t.trust;
             tf.iswild = t.iswild;
@@ -4531,6 +4536,7 @@ extern (C++) final class TypeFunction : TypeNext
         t.isref = isref;
         t.isreturn = isreturn;
         t.isscope = isscope;
+        t.isreturninferred = isreturninferred;
         t.isscopeinferred = isscopeinferred;
         t.iswild = 0;
         t.trust = trust;
@@ -6634,7 +6640,7 @@ int attributesApply(TypeFunction tf, void* param, int function(void*, string) fp
     if (res)
         return res;
 
-    if (tf.isreturn)
+    if (tf.isreturn && !tf.isreturninferred)
         res = fp(param, "return");
     if (res)
         return res;
