@@ -1133,6 +1133,8 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
             tf.isref = true;
         if (sc.stc & STC.return_)
             tf.isreturn = true;
+        if (sc.stc & STC.returninferred)
+            tf.isreturninferred = true;
         if (sc.stc & STC.scope_)
             tf.isscope = true;
         if (sc.stc & STC.scopeinferred)
@@ -1275,7 +1277,8 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                     }
                     else
                     {
-                        fparam.storageClass |= STC.scope_;        // 'return' implies 'scope'
+                        if (!(fparam.storageClass & STC.scope_))
+                            fparam.storageClass |= STC.scope_ | STC.scopeinferred; // 'return' implies 'scope'
                         if (tf.isref)
                         {
                         }

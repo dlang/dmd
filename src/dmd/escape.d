@@ -1075,7 +1075,9 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                  * Because dg.ptr points to x, this is returning dt.ptr+offset
                  */
                 if (global.params.vsafe)
+                {
                     sc.func.storage_class |= STC.return_ | STC.returninferred;
+                }
             }
 
         }
@@ -1157,6 +1159,7 @@ private void inferReturn(FuncDeclaration fd, VarDeclaration v)
         {
             //printf("'this' too %p %s\n", tf, sc.func.toChars());
             tf.isreturn = true;
+            tf.isreturninferred = true;
         }
     }
     else
