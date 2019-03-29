@@ -288,7 +288,7 @@ struct Global
     Array!(const(char)*)* path;         // Array of char*'s which form the import lookup path
     Array!(const(char)*)* filePath;     // Array of char*'s which form the file import lookup path
 
-    const(char)* _version;
+    string _version;
     const(char)* vendor;    // Compiler backend name
 
     Param params;
@@ -396,7 +396,7 @@ struct Global
         {
             params.mscoff = params.is64bit;
         }
-        _version = (import("VERSION") ~ '\0').ptr;
+        _version = import("VERSION") ~ '\0';
         vendor = "Digital Mars D";
 
         // -color=auto is the default value
@@ -430,7 +430,7 @@ struct Global
             uint major = 0;
             uint minor = 0;
             bool point = false;
-            for (const(char)* p = _version + 1;; p++)
+            for (const(char)* p = _version.ptr + 1;; p++)
             {
                 const c = *p;
                 if (isdigit(cast(char)c))
