@@ -1692,7 +1692,9 @@ extern (C++) abstract class Expression : RootObject
  */
 extern (C++) final class IntegerExp : Expression
 {
-    private dinteger_t value;
+    private const dinteger_t value;
+
+    private Type debug_initial_type;
 
     extern (D) this(const ref Loc loc, dinteger_t value, Type type)
     {
@@ -1706,6 +1708,7 @@ extern (C++) final class IntegerExp : Expression
                 error("integral constant must be scalar type, not `%s`", type.toChars());
             type = Type.terror;
         }
+        this.debug_initial_type = type;
         this.type = type;
         this.value = normalize(type.toBasetype().ty, value);
     }
@@ -1754,19 +1757,16 @@ extern (C++) final class IntegerExp : Expression
 
     override dinteger_t toInteger()
     {
-        // normalize() is necessary until we fix all the paints of 'type'
-        return value = normalize(type.toBasetype().ty, value);
+        checkSanity;
+        return value;
     }
 
     override real_t toReal()
     {
-        // normalize() is necessary until we fix all the paints of 'type'
-        const ty = type.toBasetype().ty;
-        const val = normalize(ty, value);
-        value = val;
-        return (ty == Tuns64)
-            ? real_t(cast(d_uns64)val)
-            : real_t(cast(d_int64)val);
+        checkSanity;
+        return (type.toBasetype().ty == Tuns64)
+            ? real_t(cast(d_uns64)value)
+            : real_t(cast(d_int64)value);
     }
 
     override real_t toImaginary()
@@ -1805,9 +1805,18 @@ extern (C++) final class IntegerExp : Expression
         return value;
     }
 
-    void setInteger(dinteger_t value)
+    // The integer value of an IntegerExp should not change after initialization. Check this.
+    void checkSanity()
     {
-        this.value = normalize(type.toBasetype().ty, value);
+        const dinteger_t comparison = normalize(type.toBasetype().ty, value);
+
+        if (value != comparison)
+        {
+            error("assumption violated: stored value of IntegerExp is %lld, but " ~
+                "normalizes to %lld from type %s, originally %s",
+                value, comparison, type.toChars(), debug_initial_type.toChars());
+            fatal();
+        }
     }
 
     static dinteger_t normalize(TY ty, dinteger_t value)
