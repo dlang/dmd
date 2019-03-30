@@ -3646,6 +3646,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
              * functions, set the tintro.
              */
         Linterfaces:
+            bool foundVtblMatch = false;
+
             foreach (b; cd.interfaces)
             {
                 vi = funcdecl.findVtblIndex(&b.sym.vtbl, cast(int)b.sym.vtbl.dim);
@@ -3663,6 +3665,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     {
                         auto fdv = cast(FuncDeclaration)b.sym.vtbl[vi];
                         Type ti = null;
+
+                        foundVtblMatch = true;
 
                         /* Remember which functions this overrides
                          */
@@ -3696,11 +3700,17 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                                     funcdecl.error("incompatible covariant types `%s` and `%s`", funcdecl.tintro.toChars(), ti.toChars());
                                 }
                             }
-                            funcdecl.tintro = ti;
+                            else
+                            {
+                                funcdecl.tintro = ti;
+                            }
                         }
-                        goto L2;
                     }
                 }
+            }
+            if (foundVtblMatch)
+            {
+                goto L2;
             }
 
             if (!doesoverride && funcdecl.isOverride() && (funcdecl.type.nextOf() || !may_override))
