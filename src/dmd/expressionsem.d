@@ -102,6 +102,13 @@ bool expressionsToString(ref OutBuffer buf, Scope* sc, Expressions* exps)
         if (!e4 || e4.op == TOK.error)
             return true;
 
+        // expand tuple
+        if (auto te = e4.isTupleExp())
+        {
+            if (expressionsToString(buf, sc, te.exps))
+                return true;
+            continue;
+        }
         // char literals exp `.toStringExp` return `null` but we cant override it
         // because in most contexts we don't want the conversion to succeed.
         IntegerExp ie = e4.isIntegerExp();
