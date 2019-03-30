@@ -6715,6 +6715,45 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
+        // `object.__ArrayCast` is a rewrite of an old runtime hook `_d_arraycast`. `_d_arraycast` was not built
+        // to handle certain casts.  Those casts which `object.__ArrayCast` does not support are filtered out.
+        // See `e2ir.toElemCast` for other types of casts.  If `object.__ArrayCast` is improved to support more
+        // casts these conditions and potentially some logic in `e2ir.toElemCast` can be removed.
+        if (tob.ty == Tarray && t1b.ty == Tarray && exp.e1.op != TOK.string_ && exp.e1.op != TOK.arrayLiteral)
+        {
+            auto tFrom = t1b.nextOf();
+            auto tTo = tob.nextOf();
+
+            const uint fromSize = cast(uint)tFrom.size();
+            const uint toSize = cast(uint)tTo.size();
+
+            // If array element sizes do not match, we must adjust the dimensions
+            if (fromSize != toSize)
+            {
+                // A runtime check is needed in case arrays don't line up.  That check should
+                // be done in the implementation of `object.__ArrayCast`
+                if ((fromSize % toSize) != 0)
+                {
+                    // lower to `object.__ArrayCast!(TFrom, TTo)(from)`
+
+                    auto id = Id.__ArrayCast;
+
+                    auto tiargs = new Objects();
+                    tiargs.push(tFrom);
+                    tiargs.push(tTo);
+                    auto ti = new TemplateInstance(exp.loc, id, tiargs);
+                    Expression __ArrayCast = new ScopeExp(exp.loc, ti);
+
+                    auto arguments = new Expressions();
+                    arguments.push(exp.e1);
+                    __ArrayCast = new CallExp(exp.loc, __ArrayCast, arguments);
+
+                    result = expressionSemantic(__ArrayCast, sc);
+                    return;
+                }
+            }
+        }
+
         result = ex;
     }
 
