@@ -99,11 +99,20 @@ bool expressionsToString(ref OutBuffer buf, Scope* sc, Expressions* exps)
 
         // allowed to contain types as well as expressions
         auto e4 = ctfeInterpretForPragmaMsg(e3);
-        if (e4.op == TOK.error)
+        if (!e4 || e4.op == TOK.error)
             return true;
 
-        StringExp se = e4.toStringExp();
-        if (se)
+        // char literals exp `.toStringExp` return `null` but we cant override it
+        // because in most contexts we don't want the conversion to succeed.
+        IntegerExp ie = e4.isIntegerExp();
+        const ty = (ie && ie.type) ? ie.type.ty : Terror;
+        if (ty == Tchar || ty == Twchar || ty == Tdchar)
+        {
+            auto tsa = new TypeSArray(ie.type, new IntegerExp(1));
+            e4 = new ArrayLiteralExp(ex.loc, tsa, ie);
+        }
+
+        if (StringExp se = e4.toStringExp())
             buf.writestring(se.toUTF8(sc).peekSlice());
         else
             buf.writestring(e4.toString());
