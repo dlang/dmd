@@ -196,7 +196,7 @@ version (Windows)
         import core.sys.windows.winnt /+: CONTEXT, CONTEXT_CONTROL, CONTEXT_INTEGER+/;
 
         extern (Windows) alias btex_fptr = uint function(void*);
-        extern (C) uintptr_t _beginthreadex(void*, uint, btex_fptr, void*, uint, uint*) nothrow;
+        extern (C) uintptr_t _beginthreadex(void*, uint, btex_fptr, void*, uint, uint*) nothrow @nogc;
 
         //
         // Entry point for Windows threads
@@ -2020,7 +2020,9 @@ extern (C) void thread_init() @nogc
     //       exist to be scanned at this point, it is sufficient for these
     //       functions to detect the condition and return immediately.
 
+    initLowlevelThreads();
     Thread.initLocks();
+
     // The Android VM runtime intercepts SIGUSR1 and apparently doesn't allow
     // its signal handler to run, so swap the two signals on Android, since
     // thread_resumeHandler does nothing.
@@ -2116,6 +2118,7 @@ extern (C) void thread_term() @nogc
         Thread.pAboutToStart = null;
     }
     Thread.termLocks();
+    termLowlevelThreads();
 }
 
 
@@ -3070,7 +3073,7 @@ do
 * Throws:
 *  ThreadError.
 */
-private void onThreadError(string msg) nothrow
+private void onThreadError(string msg) nothrow @nogc
 {
     __gshared ThreadError error = new ThreadError(null);
     error.msg = msg;
@@ -5628,3 +5631,187 @@ version (Windows)
 else
 version (Posix)
     alias ThreadID = pthread_t;
+
+///////////////////////////////////////////////////////////////////////////////
+// lowlovel threading support
+private
+{
+    __gshared size_t ll_nThreads;
+    __gshared ThreadID* ll_pThreads;
+
+    __gshared align(Mutex.alignof) void[__traits(classInstanceSize, Mutex)] ll_lock;
+
+    @property Mutex lowlevelLock() nothrow @nogc
+    {
+        return cast(Mutex)ll_lock.ptr;
+    }
+
+    void initLowlevelThreads() @nogc
+    {
+        ll_lock[] = typeid(Mutex).initializer[];
+        lowlevelLock.__ctor();
+    }
+
+    void termLowlevelThreads() @nogc
+    {
+        lowlevelLock.__dtor();
+    }
+
+    void ll_removeThread(ThreadID tid) nothrow @nogc
+    {
+        lowlevelLock.lock_nothrow();
+        scope(exit) lowlevelLock.unlock_nothrow();
+
+        foreach (i; 0 .. ll_nThreads)
+        {
+            if (tid is ll_pThreads[i])
+            {
+                import core.stdc.string : memmove;
+                memmove(ll_pThreads + i, ll_pThreads + i + 1, ThreadID.sizeof * (ll_nThreads - i - 1));
+                --ll_nThreads;
+                // no need to minimize, next add will do
+                break;
+            }
+        }
+    }
+}
+
+/**
+ * Create a thread not under control of the runtime, i.e. TLS module constructors are
+ * not run and the GC does not suspend it during a collection
+ *
+ * Params:
+ *  dg        = delegate to execute in the created thread
+ *  stacksize = size of the stack of the created thread. The default of 0 will select the
+ *              platform-specific default size
+ *
+ * Returns: the platform specific thread ID of the new thread. If an error occurs, a preallocated
+ *  ThreadError is thrown.
+ */
+ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0) nothrow @nogc
+{
+    void delegate() nothrow* context = cast(void delegate() nothrow*)malloc(dg.sizeof);
+    *context = dg;
+
+    ThreadID tid;
+    version (Windows)
+    {
+        static extern (Windows) uint thread_lowlevelEntry(void* ctx) nothrow
+        {
+            auto dg = *cast(void delegate() nothrow*)ctx;
+            free(ctx);
+
+            dg();
+            ll_removeThread(GetCurrentThreadId());
+            return 0;
+        }
+
+        // see Thread.start() for why thread is created in suspended state
+        HANDLE hThread = cast(HANDLE) _beginthreadex(null, stacksize, &thread_lowlevelEntry,
+                                                     context, CREATE_SUSPENDED, &tid);
+        if (!hThread)
+            onThreadError("Error creating thread");
+    }
+
+    lowlevelLock.lock_nothrow();
+    scope(exit) lowlevelLock.unlock_nothrow();
+
+    ll_nThreads++;
+    ll_pThreads = cast(ThreadID*)realloc(ll_pThreads, Thread.sizeof * ll_nThreads);
+
+    version (Windows)
+    {
+        ll_pThreads[ll_nThreads - 1] = tid;
+        if (ResumeThread(hThread) == -1)
+            onThreadError("Error resuming thread");
+        CloseHandle(hThread);
+    }
+    else version (Posix)
+    {
+        static extern (C) void* thread_lowlevelEntry(void* ctx) nothrow
+        {
+            auto dg = *cast(void delegate() nothrow*)ctx;
+            free(ctx);
+
+            dg();
+            ll_removeThread(pthread_self());
+            return null;
+        }
+
+        pthread_attr_t  attr;
+
+        if (pthread_attr_init(&attr))
+            onThreadError("Error initializing thread attributes");
+        if (stacksize && pthread_attr_setstacksize(&attr, stacksize))
+            onThreadError("Error initializing thread stack size");
+        if (pthread_create(&tid, &attr, &thread_lowlevelEntry, context) != 0)
+            onThreadError("Error creating thread");
+
+        ll_pThreads[ll_nThreads - 1] = tid;
+    }
+    return tid;
+}
+
+/**
+ * Wait for a thread created with `createLowLevelThread` to terminate
+ *
+ * Params:
+ *  tid = the thread ID returned by `createLowLevelThread`
+ */
+void joinLowLevelThread(ThreadID tid) nothrow @nogc
+{
+    version (Windows)
+    {
+        HANDLE handle = OpenThreadHandle(tid);
+        if (!handle)
+            return;
+        WaitForSingleObject(handle, INFINITE);
+        CloseHandle(handle);
+    }
+    else version (Posix)
+    {
+        if (pthread_join(tid, null) != 0)
+            onThreadError("Unable to join thread");
+    }
+}
+
+/**
+ * Check whether a thread was created by `createLowLevelThread`
+ *
+ * Params:
+ *  tid = the platform specific thread ID
+ *
+ * Returns: `true` if the thread was created by `createLowLevelThread` and is still running
+ */
+bool findLowLevelThread(ThreadID tid) nothrow @nogc
+{
+    lowlevelLock.lock_nothrow();
+    scope(exit) lowlevelLock.unlock_nothrow();
+
+    foreach (i; 0 .. ll_nThreads)
+        if (tid is ll_pThreads[i])
+            return true;
+    return false;
+}
+
+nothrow @nogc unittest
+{
+    struct TaskWithContect
+    {
+        shared int n = 0;
+        void run() nothrow
+        {
+            n.atomicOp!"+="(1);
+        }
+    }
+    TaskWithContect task;
+
+    ThreadID[8] tids;
+    for (int i = 0; i < tids.length; i++)
+        tids[i] = createLowLevelThread(&task.run);
+
+    for (int i = 0; i < tids.length; i++)
+        joinLowLevelThread(tids[i]);
+
+    assert(task.n == tids.length);
+}
