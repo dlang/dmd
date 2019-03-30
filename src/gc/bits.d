@@ -88,28 +88,33 @@ struct GCBits
     // return non-zero if bit already set
     size_t setLocked(size_t i) nothrow
     {
-        version (D_InlineAsm_X86)
+        version(Windows)
         {
-            asm @nogc nothrow {
-                naked; // assume RAX=this, [esp+4]=i
-                mov ECX, data[EAX];
-                mov EDX,[ESP+4];
-                lock;
-                bts dword ptr[ECX], EDX;
-                sbb EAX,EAX;
-                ret 4;
+            version (D_InlineAsm_X86)
+            {
+                asm @nogc nothrow {
+                    naked; // assume RAX=this, [esp+4]=i
+                    mov ECX, data[EAX];
+                    mov EDX,[ESP+4];
+                    lock;
+                    bts dword ptr[ECX], EDX;
+                    sbb EAX,EAX;
+                    ret 4;
+                }
             }
-        }
-        else version (D_InlineAsm_X86_64)
-        {
-            asm @nogc nothrow {
-                naked; // assume RCX=this, RDX=i
-                mov RAX, data[RCX];
-                lock;
-                bts qword ptr[RAX], RDX;
-                sbb RAX,RAX;
-                ret;
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @nogc nothrow {
+                    naked; // assume RCX=this, RDX=i
+                    mov RAX, data[RCX];
+                    lock;
+                    bts qword ptr[RAX], RDX;
+                    sbb RAX,RAX;
+                    ret;
+                }
             }
+            else
+                static assert(false, "unexpected Windows architecture");
         }
         else
         {
