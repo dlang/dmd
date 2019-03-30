@@ -3929,7 +3929,10 @@ private
  */
 size_t reserve(T)(ref T[] arr, size_t newcapacity) pure nothrow @trusted
 {
-    return _d_arraysetcapacity(typeid(T[]), newcapacity, cast(void[]*)&arr);
+    if (__ctfe)
+        return newcapacity;
+    else
+        return _d_arraysetcapacity(typeid(T[]), newcapacity, cast(void[]*)&arr);
 }
 
 ///
@@ -3951,6 +3954,18 @@ size_t reserve(T)(ref T[] arr, size_t newcapacity) pure nothrow @trusted
     a ~= [5, 6, 7, 8];
     assert(p == &a[0]);      //a should not have been reallocated
     assert(u == a.capacity); //a should not have been extended
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=12330, reserve() at CTFE time
+@safe unittest
+{
+    int[] foo() {
+        int[] result;
+        auto a = result.reserve = 5;
+        assert(a == 5);
+        return result;
+    }
+    enum r = foo();
 }
 
 // Issue 6646: should be possible to use array.reserve from SafeD.
