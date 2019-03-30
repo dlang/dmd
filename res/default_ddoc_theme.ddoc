@@ -51,6 +51,7 @@ DOC_ROOT_object = $(PHOBOS_PATH)
 DOC_EXTENSION = .html
 IMAGE = <img src="$1" alt="$+" />
 IMAGE_TITLE = <img src="$1" alt="$3" title="$2" />
+BLOCKQUOTE = <blockquote>$0</blockquote>
 DEPRECATED = $0
 
 RED = <span class="color_red">$0</span>
@@ -143,6 +144,13 @@ DDOC =
       }
       ol ol ol ol {
         list-style: decimal;
+      }
+
+      blockquote {
+        margin: 0.1em;
+        margin-left: 1em;
+        border-left: 2px solid #cccccc;
+        padding-left: 0.7em;
       }
 
       .color_red { color: #dc322f; }
