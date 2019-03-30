@@ -492,7 +492,7 @@ nothrow:
         this.filename = filename;
     }
 
-    extern (C++) const(char)* toChars() const
+    extern (C++) const(char)* toChars(bool showColumns = global.params.showColumns) const pure nothrow
     {
         OutBuffer buf;
         if (filename)
@@ -503,7 +503,7 @@ nothrow:
         {
             buf.writeByte('(');
             buf.print(linnum);
-            if (global.params.showColumns && charnum)
+            if (showColumns && charnum)
             {
                 buf.writeByte(',');
                 buf.print(charnum);
