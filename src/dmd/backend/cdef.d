@@ -679,7 +679,7 @@ enum
 struct Config
 {
     char language;              // 'C' = C, 'D' = C++
-    const(char)* _version;      /// Compiler version
+    string _version;            /// Compiler version
     char[3] exetype;            // distinguish exe types so PH
                                 // files are distinct (= SUFFIX)
 
