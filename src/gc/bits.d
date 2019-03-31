@@ -88,33 +88,44 @@ struct GCBits
     // return non-zero if bit already set
     size_t setLocked(size_t i) nothrow
     {
-        version(Windows)
+        version (GNU)
         {
-            version (D_InlineAsm_X86)
-            {
-                asm @nogc nothrow {
-                    naked; // assume RAX=this, [esp+4]=i
-                    mov ECX, data[EAX];
-                    mov EDX,[ESP+4];
-                    lock;
-                    bts dword ptr[ECX], EDX;
-                    sbb EAX,EAX;
-                    ret 4;
-                }
+            import gcc.builtins;
+            const pos = i >> BITS_SHIFT;
+            const mask = BITS_1 << (i & BITS_MASK);
+            mixin("auto val = __atomic_fetch_or_" ~ size_t.sizeof.stringof[0]
+                ~ "(cast(shared)(data + pos), mask, 3);");
+            return (val & mask) != 0;
+        }
+        else version (LDC)
+        {
+            import ldc.intrinsics;
+            const pos = i >> BITS_SHIFT;
+            const mask = BITS_1 << (i & BITS_MASK);
+            auto val = llvm_atomic_rmw_or(cast(shared)(data + pos), mask);
+            return (val & mask) != 0;
+        }
+        else version (D_InlineAsm_X86)
+        {
+            asm @nogc nothrow {
+                mov EAX, this;
+                mov ECX, data[EAX];
+                mov EDX, i;
+                lock;
+                bts dword ptr[ECX], EDX;
+                sbb EAX,EAX;
             }
-            else version (D_InlineAsm_X86_64)
-            {
-                asm @nogc nothrow {
-                    naked; // assume RCX=this, RDX=i
-                    mov RAX, data[RCX];
-                    lock;
-                    bts qword ptr[RAX], RDX;
-                    sbb RAX,RAX;
-                    ret;
-                }
+        }
+        else version (D_InlineAsm_X86_64)
+        {
+            asm @nogc nothrow {
+                mov RAX, this;
+                mov RAX, data[RAX];
+                mov RDX, i;
+                lock;
+                bts qword ptr[RAX], RDX;
+                sbb RAX,RAX;
             }
-            else
-                static assert(false, "unexpected Windows architecture");
         }
         else
         {
