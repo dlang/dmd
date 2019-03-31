@@ -126,9 +126,6 @@ Symbol *getRtlsym(int i)
         case RTLSYM_MONITOREXIT:            symbolz(ps,FLfunc,FREGSAVED,"_d_monitorexit",0, t); break;
         case RTLSYM_CRITICALENTER:          symbolz(ps,FLfunc,FREGSAVED,"_d_criticalenter",0, t); break;
         case RTLSYM_CRITICALEXIT:           symbolz(ps,FLfunc,FREGSAVED,"_d_criticalexit",0, t); break;
-        case RTLSYM_SWITCH_STRING:          symbolz(ps,FLfunc,FREGSAVED,"_d_switch_string", 0, t); break;
-        case RTLSYM_SWITCH_USTRING:         symbolz(ps,FLfunc,FREGSAVED,"_d_switch_ustring", 0, t); break;
-        case RTLSYM_SWITCH_DSTRING:         symbolz(ps,FLfunc,FREGSAVED,"_d_switch_dstring", 0, t); break;
         case RTLSYM_DSWITCHERR:             symbolz(ps,FLfunc,FREGSAVED,"_d_switch_error", SFLexit, t); break;
         case RTLSYM_DHIDDENFUNC:            symbolz(ps,FLfunc,FREGSAVED,"_d_hidden_func", 0, t); break;
         case RTLSYM_NEWCLASS:               symbolz(ps,FLfunc,FREGSAVED,"_d_newclass", 0, t); break;
@@ -175,14 +172,8 @@ Symbol *getRtlsym(int i)
         case RTLSYM_ARRAYCTOR:              symbolz(ps,FLfunc,FREGSAVED,"_d_arrayctor", 0, t); break;
         case RTLSYM_ARRAYSETASSIGN:         symbolz(ps,FLfunc,FREGSAVED,"_d_arraysetassign", 0, t); break;
         case RTLSYM_ARRAYSETCTOR:           symbolz(ps,FLfunc,FREGSAVED,"_d_arraysetctor", 0, t); break;
-        case RTLSYM_ARRAYCAST:              symbolz(ps,FLfunc,FREGSAVED,"_d_arraycast", 0, t); break;
-        case RTLSYM_ARRAYEQ:                symbolz(ps,FLfunc,FREGSAVED,"_adEq", 0, t); break;
         case RTLSYM_ARRAYEQ2:               symbolz(ps,FLfunc,FREGSAVED,"_adEq2", 0, t); break;
-        case RTLSYM_ARRAYCMP:               symbolz(ps,FLfunc,FREGSAVED,"_adCmp", 0, t); break;
-        case RTLSYM_ARRAYCMP2:              symbolz(ps,FLfunc,FREGSAVED,"_adCmp2", 0, t); break;
         case RTLSYM_ARRAYCMPCHAR:           symbolz(ps,FLfunc,FREGSAVED,"_adCmpChar", 0, t); break;
-        case RTLSYM_OBJ_EQ:                 symbolz(ps,FLfunc,FREGSAVED,"_d_obj_eq", 0, t); break;
-        case RTLSYM_OBJ_CMP:                symbolz(ps,FLfunc,FREGSAVED,"_d_obj_cmp", 0, t); break;
 
         case RTLSYM_EXCEPT_HANDLER2:        symbolz(ps,FLfunc,fregsaved,"_except_handler2", 0, tsclib); break;
         case RTLSYM_EXCEPT_HANDLER3:        symbolz(ps,FLfunc,fregsaved,"_except_handler3", 0, tsclib); break;
