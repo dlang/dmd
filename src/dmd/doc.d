@@ -422,9 +422,11 @@ extern(C++) void gendocfile(Module m)
     }
     if (m.isDocFile)
     {
-        Loc loc = m.md ? m.md.loc : m.loc;
-        if (!loc.filename)
-            loc.filename = srcfilename.ptr;
+        const ploc = m.md ? &m.md.loc : &m.loc;
+        const loc = Loc(ploc.filename ? ploc.filename : srcfilename.ptr,
+                        ploc.linnum,
+                        ploc.charnum);
+
         size_t commentlen = strlen(cast(char*)m.comment);
         Dsymbols a;
         // https://issues.dlang.org/show_bug.cgi?id=9764

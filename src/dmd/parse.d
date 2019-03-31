@@ -236,8 +236,7 @@ private bool writeMixin(const(char)[] s, ref Loc loc)
 
     global.params.mixinLines++;
 
-    loc.filename = global.params.mixinFile;
-    loc.linnum = global.params.mixinLines + 1;
+    loc = Loc(global.params.mixinFile, global.params.mixinLines + 1, loc.charnum);
 
     // write by line to create consistent line endings
     size_t lastpos = 0;
