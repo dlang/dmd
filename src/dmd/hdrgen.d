@@ -732,11 +732,11 @@ public:
     /**************************************************
      * An entry point to pretty-print type.
      */
-    void typeToBuffer(Type t, Identifier ident)
+    void typeToBuffer(Type t, const Identifier ident)
     {
-        if (t.ty == Tfunction)
+        if (auto tf = t.isTypeFunction())
         {
-            visitFuncIdentWithPrefix(cast(TypeFunction)t, ident, null);
+            visitFuncIdentWithPrefix(tf, ident, null);
             return;
         }
         visitWithMask(t, 0);
@@ -894,7 +894,7 @@ public:
         }
     }
 
-    void visitFuncIdentWithPostfix(TypeFunction t, const(char)* ident)
+    void visitFuncIdentWithPostfix(TypeFunction t, const char* ident)
     {
         if (t.inuse)
         {
@@ -933,7 +933,7 @@ public:
         t.inuse--;
     }
 
-    void visitFuncIdentWithPrefix(TypeFunction t, Identifier ident, TemplateDeclaration td)
+    void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, TemplateDeclaration td)
     {
         if (t.inuse)
         {
@@ -1936,8 +1936,8 @@ public:
             buf.writenl();
             return;
         }
-        int savetlpt = hgs.tpltMember;
-        int saveauto = hgs.autoMember;
+        const savetlpt = hgs.tpltMember;
+        const saveauto = hgs.autoMember;
         hgs.tpltMember = 0;
         hgs.autoMember = 0;
         buf.writenl();
@@ -2266,7 +2266,7 @@ public:
         {
             Expression ex = (e.op == TOK.cast_ ? (cast(CastExp)e).e1 : e);
             ex = ex.optimize(WANTvalue);
-            dinteger_t uval = ex.op == TOK.int64 ? ex.toInteger() : cast(dinteger_t)-1;
+            const dinteger_t uval = ex.op == TOK.int64 ? ex.toInteger() : cast(dinteger_t)-1;
             if (cast(sinteger_t)uval >= 0)
             {
                 dinteger_t sizemax;
@@ -2320,7 +2320,7 @@ public:
 
     override void visit(IntegerExp e)
     {
-        dinteger_t v = e.toInteger();
+        const dinteger_t v = e.toInteger();
         if (e.type)
         {
             Type t = e.type;
@@ -2527,10 +2527,10 @@ public:
     override void visit(StringExp e)
     {
         buf.writeByte('"');
-        size_t o = buf.offset;
+        const o = buf.offset;
         for (size_t i = 0; i < e.len; i++)
         {
-            uint c = e.charAt(i);
+            const c = e.charAt(i);
             switch (c)
             {
             case '"':
@@ -2593,7 +2593,7 @@ public:
             buf.writestring("<recursion>");
         else
         {
-            int old = e.stageflags;
+            const old = e.stageflags;
             e.stageflags |= stageToCBuffer;
             argsToBuffer(e.elements);
             e.stageflags = old;
@@ -2615,8 +2615,7 @@ public:
         else if (hgs !is null && hgs.ddoc)
         {
             // fixes bug 6491
-            Module m = e.sds.isModule();
-            if (m)
+            if (auto m = e.sds.isModule())
                 buf.writestring(m.md.toChars());
             else
                 buf.writestring(e.sds.toChars());
@@ -3263,7 +3262,7 @@ void toCBuffer(Statement s, OutBuffer* buf, HdrGenState* hgs)
     s.accept(v);
 }
 
-void toCBuffer(Type t, OutBuffer* buf, Identifier ident, HdrGenState* hgs)
+void toCBuffer(Type t, OutBuffer* buf, const Identifier ident, HdrGenState* hgs)
 {
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
     v.typeToBuffer(t, ident);
@@ -3505,7 +3504,7 @@ extern (D) string protectionToString(Prot.Kind kind)
 }
 
 // Print the full function signature with correct ident, attributes and template args
-void functionToBufferFull(TypeFunction tf, OutBuffer* buf, Identifier ident, HdrGenState* hgs, TemplateDeclaration td)
+void functionToBufferFull(TypeFunction tf, OutBuffer* buf, const Identifier ident, HdrGenState* hgs, TemplateDeclaration td)
 {
     //printf("TypeFunction::toCBuffer() this = %p\n", this);
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
