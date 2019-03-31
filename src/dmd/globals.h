@@ -336,7 +336,7 @@ struct Loc
 
     Loc(const char *filename, unsigned linnum, unsigned charnum);
 
-    const char *toChars() const;
+    const char *toChars(bool showColumns = global.params.showColumns) const;
     bool equals(const Loc& loc) const;
 };
 
