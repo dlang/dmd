@@ -32,7 +32,7 @@ version (MARS)
  * Initialize configuration variables.
  */
 
-void out_config_init(
+extern (C) void out_config_init(
         int model,      // 32: 32 bit code
                         // 64: 64 bit code
                         // Windows: set bit 0 to generate MS-COFF instead of OMF
@@ -51,7 +51,7 @@ void out_config_init(
         bool useModuleInfo,     // implement ModuleInfo
         bool useTypeInfo,       // implement TypeInfo
         bool useExceptions,     // implement exception handling
-        const(char)* _version   // Compiler version
+        string _version         // Compiler version
         )
 {
 version (MARS)

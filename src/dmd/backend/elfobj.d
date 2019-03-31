@@ -1632,15 +1632,15 @@ void Obj_compiler()
     comment_data = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
     assert(comment_data);
 
-    enum MAX_VERSION_LENGTH = 40;  // hope enough to store `git describe --dirty`
-    char[20 + MAX_VERSION_LENGTH] compiler = void;
-    enum compileHeader = "\0Digital Mars C/C++ ";
-    enum n = compileHeader.length;
-    compiler[0 .. n] = compileHeader;
-    const versionArr = config._version[0 .. strlen(config._version)];
-    assert(versionArr.length < MAX_VERSION_LENGTH);
-    compiler[n .. n + versionArr.length] = versionArr;
-    comment_data.write(compiler.ptr, (compiler).sizeof);
+    enum maxVersionLength = 40;  // hope enough to store `git describe --dirty`
+    enum compilerHeader = "\0Digital Mars C/C++ ";
+    enum n = compilerHeader.length;
+    char[n + maxVersionLength] compiler = compilerHeader;
+
+    assert(config._version.length < maxVersionLength);
+    const newLength = n + config._version.length;
+    compiler[n .. newLength] = config._version;
+    comment_data.write(compiler[0 .. newLength]);
     //dbg_printf("Comment data size %d\n",comment_data.size());
 }
 
