@@ -80,7 +80,7 @@ TypeIdentifier getException()
  */
 extern (C++) abstract class Statement : ASTNode
 {
-    Loc loc;
+    const Loc loc;
 
     override final DYNCAST dyncast() const
     {
@@ -746,10 +746,10 @@ extern (C++) final class DtorExpStatement : ExpStatement
     // Wraps an expression that is the destruction of 'var'
     VarDeclaration var;
 
-    extern (D) this(const ref Loc loc, Expression exp, VarDeclaration v)
+    extern (D) this(const ref Loc loc, Expression exp, VarDeclaration var)
     {
         super(loc, exp);
-        this.var = v;
+        this.var = var;
     }
 
     override Statement syntaxCopy()
@@ -854,12 +854,12 @@ extern (C++) class CompoundStatement : Statement
      *
      * Params:
      *   loc = Instantiation information
-     *   s   = An array of `Statement`s, that will referenced by this class
+     *   statements   = An array of `Statement`s, that will referenced by this class
      */
-    final extern (D) this(const ref Loc loc, Statements* s)
+    final extern (D) this(const ref Loc loc, Statements* statements)
     {
         super(loc);
-        statements = s;
+        this.statements = statements;
     }
 
     /**
@@ -940,10 +940,9 @@ extern (C++) class CompoundStatement : Statement
  */
 extern (C++) final class CompoundDeclarationStatement : CompoundStatement
 {
-    extern (D) this(const ref Loc loc, Statements* s)
+    extern (D) this(const ref Loc loc, Statements* statements)
     {
-        super(loc, s);
-        statements = s;
+        super(loc, statements);
     }
 
     override Statement syntaxCopy()
@@ -970,10 +969,10 @@ extern (C++) final class UnrolledLoopStatement : Statement
 {
     Statements* statements;
 
-    extern (D) this(const ref Loc loc, Statements* s)
+    extern (D) this(const ref Loc loc, Statements* statements)
     {
         super(loc);
-        statements = s;
+        this.statements = statements;
     }
 
     override Statement syntaxCopy()
@@ -1009,10 +1008,10 @@ extern (C++) class ScopeStatement : Statement
     Statement statement;
     Loc endloc;                 // location of closing curly bracket
 
-    extern (D) this(const ref Loc loc, Statement s, Loc endloc)
+    extern (D) this(const ref Loc loc, Statement statement, Loc endloc)
     {
         super(loc);
-        this.statement = s;
+        this.statement = statement;
         this.endloc = endloc;
     }
     override Statement syntaxCopy()
@@ -1063,19 +1062,19 @@ extern (C++) final class ForwardingStatement : Statement
     /// The wrapped statement.
     Statement statement;
 
-    extern (D) this(const ref Loc loc, ForwardingScopeDsymbol sym, Statement s)
+    extern (D) this(const ref Loc loc, ForwardingScopeDsymbol sym, Statement statement)
     {
         super(loc);
         this.sym = sym;
-        assert(s);
-        statement = s;
+        assert(statement);
+        this.statement = statement;
     }
 
-    extern (D) this(const ref Loc loc, Statement s)
+    extern (D) this(const ref Loc loc, Statement statement)
     {
         auto sym = new ForwardingScopeDsymbol(null);
         sym.symtab = new DsymbolTable();
-        this(loc, sym, s);
+        this(loc, sym, statement);
     }
 
     override Statement syntaxCopy()
@@ -1137,11 +1136,11 @@ extern (C++) final class WhileStatement : Statement
     Statement _body;
     Loc endloc;             // location of closing curly bracket
 
-    extern (D) this(const ref Loc loc, Expression c, Statement b, Loc endloc)
+    extern (D) this(const ref Loc loc, Expression condition, Statement _body, Loc endloc)
     {
         super(loc);
-        condition = c;
-        _body = b;
+        this.condition = condition;
+        this._body = _body;
         this.endloc = endloc;
     }
 
@@ -1178,11 +1177,11 @@ extern (C++) final class DoStatement : Statement
     Expression condition;
     Loc endloc;                 // location of ';' after while
 
-    extern (D) this(const ref Loc loc, Statement b, Expression c, Loc endloc)
+    extern (D) this(const ref Loc loc, Statement _body, Expression condition, Loc endloc)
     {
         super(loc);
-        _body = b;
-        condition = c;
+        this._body = _body;
+        this.condition = condition;
         this.endloc = endloc;
     }
 
@@ -1528,11 +1527,11 @@ extern (C++) final class StaticForeachStatement : Statement
  */
 extern (C++) final class PragmaStatement : Statement
 {
-    Identifier ident;
+    const Identifier ident;
     Expressions* args;      // array of Expression's
     Statement _body;
 
-    extern (D) this(const ref Loc loc, Identifier ident, Expressions* args, Statement _body)
+    extern (D) this(const ref Loc loc, const Identifier ident, Expressions* args, Statement _body)
     {
         super(loc);
         this.ident = ident;
@@ -1592,11 +1591,11 @@ extern (C++) final class SwitchStatement : Statement
     int hasVars;                    /// !=0 if has variable case values
     VarDeclaration lastVar;         /// last observed variable declaration in this statement
 
-    extern (D) this(const ref Loc loc, Expression c, Statement b, bool isFinal)
+    extern (D) this(const ref Loc loc, Expression condition, Statement _body, bool isFinal)
     {
         super(loc);
-        this.condition = c;
-        this._body = b;
+        this.condition = condition;
+        this._body = _body;
         this.isFinal = isFinal;
     }
 
@@ -1663,14 +1662,15 @@ extern (C++) final class CaseStatement : Statement
 {
     Expression exp;
     Statement statement;
+
     int index;              // which case it is (since we sort this)
     VarDeclaration lastVar;
 
-    extern (D) this(const ref Loc loc, Expression exp, Statement s)
+    extern (D) this(const ref Loc loc, Expression exp, Statement statement)
     {
         super(loc);
         this.exp = exp;
-        this.statement = s;
+        this.statement = statement;
     }
 
     override Statement syntaxCopy()
@@ -1705,12 +1705,12 @@ extern (C++) final class CaseRangeStatement : Statement
     Expression last;
     Statement statement;
 
-    extern (D) this(const ref Loc loc, Expression first, Expression last, Statement s)
+    extern (D) this(const ref Loc loc, Expression first, Expression last, Statement statement)
     {
         super(loc);
         this.first = first;
         this.last = last;
-        this.statement = s;
+        this.statement = statement;
     }
 
     override Statement syntaxCopy()
@@ -1730,12 +1730,13 @@ extern (C++) final class CaseRangeStatement : Statement
 extern (C++) final class DefaultStatement : Statement
 {
     Statement statement;
+
     VarDeclaration lastVar;
 
-    extern (D) this(const ref Loc loc, Statement s)
+    extern (D) this(const ref Loc loc, Statement statement)
     {
         super(loc);
-        this.statement = s;
+        this.statement = statement;
     }
 
     override Statement syntaxCopy()
@@ -1788,6 +1789,7 @@ extern (C++) final class GotoDefaultStatement : Statement
 extern (C++) final class GotoCaseStatement : Statement
 {
     Expression exp;     // null, or which case to goto
+
     CaseStatement cs;   // case statement it resolves to
 
     extern (D) this(const ref Loc loc, Expression exp)
@@ -1841,6 +1843,7 @@ extern (C++) final class SwitchErrorStatement : Statement
 extern (C++) final class ReturnStatement : Statement
 {
     Expression exp;
+
     size_t caseDim;
 
     extern (D) this(const ref Loc loc, Expression exp)
@@ -2024,23 +2027,23 @@ extern (C++) final class TryCatchStatement : Statement
  */
 extern (C++) final class Catch : RootObject
 {
-    Loc loc;
+    const Loc loc;
     Type type;
     Identifier ident;
-    VarDeclaration var;
     Statement handler;
 
+    VarDeclaration var;
     bool errors;                // set if semantic processing errors
 
     // was generated by the compiler, wasn't present in source code
     bool internalCatch;
 
-    extern (D) this(const ref Loc loc, Type t, Identifier id, Statement handler)
+    extern (D) this(const ref Loc loc, Type type, Identifier ident, Statement handler)
     {
         //printf("Catch(%s, loc = %s)\n", id.toChars(), loc.toChars());
         this.loc = loc;
-        this.type = t;
-        this.ident = id;
+        this.type = type;
+        this.ident = ident;
         this.handler = handler;
     }
 
@@ -2327,6 +2330,7 @@ extern (C++) final class LabelStatement : Statement
 {
     Identifier ident;
     Statement statement;
+
     TryFinallyStatement tf;
     ScopeGuardStatement os;
     VarDeclaration lastVar;
@@ -2509,9 +2513,9 @@ extern (C++) final class CompoundAsmStatement : CompoundStatement
 {
     StorageClass stc; // postfix attributes like nothrow/pure/@trusted
 
-    extern (D) this(const ref Loc loc, Statements* s, StorageClass stc)
+    extern (D) this(const ref Loc loc, Statements* statements, StorageClass stc)
     {
-        super(loc, s);
+        super(loc, statements);
         this.stc = stc;
     }
 
