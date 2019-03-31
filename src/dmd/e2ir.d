@@ -4187,11 +4187,8 @@ elem *toElem(Expression e, IRState *irs)
                         e = el_pair(totym(ce.type), elen2, eptr);
                     }
                     else
-                    {   // Runtime check needed in case arrays don't line up
-                        if (config.exe == EX_WIN64)
-                            e = addressElem(e, t, true);
-                        elem *ep = el_params(e, el_long(TYsize_t, fsize), el_long(TYsize_t, tsize), null);
-                        e = el_bin(OPcall, totym(ce.type), el_var(getRtlsym(RTLSYM_ARRAYCAST)), ep);
+                    {
+                        assert(false, "This case should have been rewritten to `__ArrayCast` in the semantic phase");
                     }
                 }
                 goto Lret;
