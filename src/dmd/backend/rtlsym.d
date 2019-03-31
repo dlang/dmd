@@ -100,7 +100,7 @@ enum
     RTLSYM_ARRAYCTOR,
     RTLSYM_ARRAYSETASSIGN,
     RTLSYM_ARRAYSETCTOR,
-    RTLSYM_ARRAYCAST,
+    RTLSYM_ARRAYCAST,           // unused
     RTLSYM_ARRAYEQ,             // unused
     RTLSYM_ARRAYEQ2,
     RTLSYM_ARRAYCMP,            // unused
