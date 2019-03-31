@@ -4750,31 +4750,38 @@ Params:
 private void onArrayCastError()(string fromType, size_t fromSize, string toType, size_t toSize) @trusted
 {
     import core.internal.string : unsignedToTempString;
-    import core.stdc.stdlib : alloca;
 
-    const(char)[][8] msgComponents =
+    const(char)[][9] msgComponents =
     [
-        "Cannot cast `"
-        , fromType
-        , "` to `"
-        , toType
-        , "`; an array of size "
+        "An array of size "
         , unsignedToTempString(fromSize)
         , " does not align on an array of size "
         , unsignedToTempString(toSize)
+        , ", so `"
+        , fromType
+        , "` cannot be cast to `"
+        , toType
+        , "`"
     ];
 
     // convert discontiguous `msgComponents` to contiguous string on the stack
-    size_t length = 0;
-    foreach (m ; msgComponents)
-        length += m.length;
-
-    auto msg = (cast(char*)alloca(length))[0 .. length];
+    enum msgLength = 2048;
+    char[msgLength] msg;
 
     size_t index = 0;
-    foreach (m ; msgComponents)
+    foreach (m; msgComponents)
+    {
         foreach (c; m)
+        {
             msg[index++] = c;
+            if (index >= (msgLength - 1))
+                break;
+        }
+
+        if (index >= (msgLength - 1))
+            break;
+    }
+    msg[index] = '\0'; // null-termination
 
     // first argument must evaluate to `false` at compile-time to maintain memory safety in release builds
     assert(false, msg);
