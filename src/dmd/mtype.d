@@ -169,14 +169,14 @@ void MODtoBuffer(OutBuffer* buf, MOD mod) nothrow
  *   a human readable representation of `mod`,
  *   which is the token `mod` corresponds to
  */
-const(char)* MODtoChars(MOD mod) nothrow
+const(char)* MODtoChars(MOD mod) nothrow pure
 {
     /// Works because we return a literal
     return MODtoString(mod).ptr;
 }
 
 /// Ditto
-string MODtoString(MOD mod) nothrow
+string MODtoString(MOD mod) nothrow pure
 {
     final switch (mod)
     {
@@ -503,7 +503,7 @@ extern (C++) abstract class Type : ASTNode
         assert(false); // should be overridden
     }
 
-    final Type copy() nothrow
+    final Type copy() nothrow const
     {
         Type t = cast(Type)mem.xmalloc(sizeTy[ty]);
         memcpy(cast(void*)t, cast(void*)this, sizeTy[ty]);
@@ -572,17 +572,14 @@ extern (C++) abstract class Type : ASTNode
 
         bool notcovariant = false;
 
-        TypeFunction t1;
-        TypeFunction t2;
-
         if (equals(t))
             return 1; // covariant
 
-        if (ty != Tfunction || t.ty != Tfunction)
-            goto Ldistinct;
+        TypeFunction t1 = this.isTypeFunction();
+        TypeFunction t2 = t.isTypeFunction();
 
-        t1 = cast(TypeFunction)this;
-        t2 = cast(TypeFunction)t;
+        if (!t1 || !t2)
+            goto Ldistinct;
 
         if (t1.parameterList.varargs != t2.parameterList.varargs)
             goto Ldistinct;
@@ -606,14 +603,14 @@ extern (C++) abstract class Type : ASTNode
                     Type tp2 = fparam2.type;
                     if (tp1.ty == tp2.ty)
                     {
-                        if (tp1.ty == Tclass)
+                        if (auto tc1 = tp1.isTypeClass())
                         {
-                            if ((cast(TypeClass)tp1).sym == (cast(TypeClass)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
+                            if (tc1.sym == (cast(TypeClass)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
                                 goto Lcov;
                         }
-                        else if (tp1.ty == Tstruct)
+                        else if (auto ts1 = tp1.isTypeStruct())
                         {
-                            if ((cast(TypeStruct)tp1).sym == (cast(TypeStruct)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
+                            if (ts1.sym == (cast(TypeStruct)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
                                 goto Lcov;
                         }
                         else if (tp1.ty == Tpointer)
@@ -941,7 +938,7 @@ extern (C++) abstract class Type : ASTNode
         // Needed to display any deprecations that were gagged
         auto tcopy = this.syntaxCopy();
 
-        uint errors = global.startGagging();
+        const errors = global.startGagging();
         Type t = typeSemantic(this, loc, sc);
         if (global.endGagging(errors) || t.ty == Terror) // if any errors happened
         {
@@ -985,7 +982,7 @@ extern (C++) abstract class Type : ASTNode
     /*********************************
      * Store this type's modifier name into buf.
      */
-    final void modToBuffer(OutBuffer* buf) nothrow
+    final void modToBuffer(OutBuffer* buf) nothrow const
     {
         if (mod)
         {
@@ -997,7 +994,7 @@ extern (C++) abstract class Type : ASTNode
     /*********************************
      * Return this type's modifier name.
      */
-    final char* modToChars() nothrow
+    final char* modToChars() nothrow const
     {
         OutBuffer buf;
         buf.reserve(16);
@@ -1132,7 +1129,7 @@ extern (C++) abstract class Type : ASTNode
      * Return a copy of this type with all attributes null-initialized.
      * Useful for creating a type with different modifiers.
      */
-    final Type nullAttributes() nothrow
+    final Type nullAttributes() nothrow const
     {
         uint sz = sizeTy[ty];
         Type t = cast(Type)mem.xmalloc(sz);
@@ -2498,8 +2495,9 @@ extern (C++) abstract class Type : ASTNode
     final Type baseElemOf()
     {
         Type t = toBasetype();
-        while (t.ty == Tsarray)
-            t = (cast(TypeSArray)t).next.toBasetype();
+        TypeSArray tsa;
+        while ((tsa = t.isTypeSArray()) !is null)
+            t = tsa.next.toBasetype();
         return t;
     }
 
@@ -3848,7 +3846,7 @@ extern (C++) final class TypeAArray : TypeArray
         return t;
     }
 
-    override d_uns64 size(const ref Loc loc)
+    override d_uns64 size(const ref Loc loc) const
     {
         return target.ptrsize;
     }
@@ -5828,7 +5826,7 @@ extern (C++) final class TypeEnum : Type
     override MATCH implicitConvTo(Type to)
     {
         MATCH m;
-        //printf("TypeEnum::implicitConvTo()\n");
+        //printf("TypeEnum::implicitConvTo() %s to %s\n", toChars(), to.toChars());
         if (ty == to.ty && sym == (cast(TypeEnum)to).sym)
             m = (mod == to.mod) ? MATCH.exact : MATCH.constant;
         else if (sym.getMemtype(Loc.initial).implicitConvTo(to))
