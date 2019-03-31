@@ -79,7 +79,6 @@ DOCS=\
     $(DOCDIR)\rt_adi.html \
     $(DOCDIR)\rt_alloca.html \
     $(DOCDIR)\rt_arrayassign.html \
-    $(DOCDIR)\rt_arraycast.html \
     $(DOCDIR)\rt_arraycat.html \
     \
     $(DOCDIR)\rt_backtrace_dwarf.html \
