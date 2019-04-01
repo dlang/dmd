@@ -142,7 +142,7 @@ public:
     override void visit(CompileStatement s)
     {
         buf.writestring("mixin(");
-        argsToBuffer(s.exps, null);
+        argsToBuffer(s.exps, buf, hgs, null);
         buf.writestring(");");
         if (!hgs.forStmtInit)
             buf.writenl();
@@ -425,7 +425,7 @@ public:
         if (s.args && s.args.dim)
         {
             buf.writestring(", ");
-            argsToBuffer(s.args);
+            argsToBuffer(s.args, buf, hgs);
         }
         buf.writeByte(')');
         if (s._body)
@@ -818,7 +818,7 @@ public:
     {
         visitWithMask(t.next, t.mod);
         buf.writeByte('[');
-        sizeToBuffer(t.dim);
+        sizeToBuffer(t.dim, buf, hgs);
         buf.writeByte(']');
     }
 
@@ -1098,9 +1098,9 @@ public:
     {
         visitWithMask(t.next, t.mod);
         buf.writeByte('[');
-        sizeToBuffer(t.lwr);
+        sizeToBuffer(t.lwr, buf, hgs);
         buf.writestring(" .. ");
-        sizeToBuffer(t.upr);
+        sizeToBuffer(t.upr, buf, hgs);
         buf.writeByte(']');
     }
 
@@ -1354,7 +1354,7 @@ public:
         if (d.args && d.args.dim)
         {
             buf.writestring(", ");
-            argsToBuffer(d.args);
+            argsToBuffer(d.args, buf, hgs);
         }
         buf.writeByte(')');
         visit(cast(AttribDeclaration)d);
@@ -1420,7 +1420,7 @@ public:
     override void visit(CompileDeclaration d)
     {
         buf.writestring("mixin(");
-        argsToBuffer(d.exps, null);
+        argsToBuffer(d.exps, buf, hgs, null);
         buf.writestring(");");
         buf.writenl();
     }
@@ -1428,7 +1428,7 @@ public:
     override void visit(UserAttributeDeclaration d)
     {
         buf.writestring("@(");
-        argsToBuffer(d.atts);
+        argsToBuffer(d.atts, buf, hgs);
         buf.writeByte(')');
         visit(cast(AttribDeclaration)d);
     }
@@ -2213,107 +2213,6 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    /**************************************************
-     * Write out argument list to buf.
-     */
-    void argsToBuffer(Expressions* expressions, Expression basis = null)
-    {
-        if (!expressions || !expressions.dim)
-            return;
-        version (all)
-        {
-            foreach (i, el; *expressions)
-            {
-                if (i)
-                    buf.writestring(", ");
-                if (!el)
-                    el = basis;
-                if (el)
-                    expToBuffer(el, PREC.assign);
-            }
-        }
-        else
-        {
-            // Sparse style formatting, for debug use only
-            //      [0..dim: basis, 1: e1, 5: e5]
-            if (basis)
-            {
-                buf.writestring("0..");
-                buf.print(expressions.dim);
-                buf.writestring(": ");
-                expToBuffer(basis, PREC.assign);
-            }
-            foreach (i, el; *expressions)
-            {
-                if (el)
-                {
-                    if (basis)
-                    {
-                        buf.writestring(", ");
-                        buf.print(i);
-                        buf.writestring(": ");
-                    }
-                    else if (i)
-                        buf.writestring(", ");
-                    expToBuffer(el, PREC.assign);
-                }
-            }
-        }
-    }
-
-    void sizeToBuffer(Expression e)
-    {
-        if (e.type == Type.tsize_t)
-        {
-            Expression ex = (e.op == TOK.cast_ ? (cast(CastExp)e).e1 : e);
-            ex = ex.optimize(WANTvalue);
-            const dinteger_t uval = ex.op == TOK.int64 ? ex.toInteger() : cast(dinteger_t)-1;
-            if (cast(sinteger_t)uval >= 0)
-            {
-                dinteger_t sizemax;
-                if (target.ptrsize == 4)
-                    sizemax = 0xFFFFFFFFU;
-                else if (target.ptrsize == 8)
-                    sizemax = 0xFFFFFFFFFFFFFFFFUL;
-                else
-                    assert(0);
-                if (uval <= sizemax && uval <= 0x7FFFFFFFFFFFFFFFUL)
-                {
-                    buf.print(uval);
-                    return;
-                }
-            }
-        }
-        expToBuffer(e, PREC.assign);
-    }
-
-    /**************************************************
-     * Write expression out to buf, but wrap it
-     * in ( ) if its precedence is less than pr.
-     */
-    void expToBuffer(Expression e, PREC pr)
-    {
-        debug
-        {
-            if (precedence[e.op] == PREC.zero)
-                printf("precedence not defined for token '%s'\n", Token.toChars(e.op));
-        }
-        assert(precedence[e.op] != PREC.zero);
-        assert(pr != PREC.zero);
-        /* Despite precedence, we don't allow a<b<c expressions.
-         * They must be parenthesized.
-         */
-        if (precedence[e.op] < pr || (pr == PREC.rel && precedence[e.op] == pr)
-            || (pr >= PREC.or && pr <= PREC.and && precedence[e.op] == PREC.rel))
-        {
-            buf.writeByte('(');
-            e.accept(this);
-            buf.writeByte(')');
-        }
-        else
-            e.accept(this);
-    }
-
     override void visit(Expression e)
     {
         buf.writestring(Token.toString(e.op));
@@ -2563,7 +2462,7 @@ public:
     override void visit(ArrayLiteralExp e)
     {
         buf.writeByte('[');
-        argsToBuffer(e.elements, e.basis);
+        argsToBuffer(e.elements, buf, hgs, e.basis);
         buf.writeByte(']');
     }
 
@@ -2574,10 +2473,10 @@ public:
         {
             if (i)
                 buf.writestring(", ");
-            expToBuffer(key, PREC.assign);
+            expToBuffer(key, PREC.assign, buf, hgs);
             buf.writeByte(':');
             auto value = (*e.values)[i];
-            expToBuffer(value, PREC.assign);
+            expToBuffer(value, PREC.assign, buf, hgs);
         }
         buf.writeByte(']');
     }
@@ -2596,7 +2495,7 @@ public:
         {
             const old = e.stageflags;
             e.stageflags |= stageToCBuffer;
-            argsToBuffer(e.elements);
+            argsToBuffer(e.elements, buf, hgs);
             e.stageflags = old;
         }
         buf.writeByte(')');
@@ -2638,21 +2537,21 @@ public:
     {
         if (e.thisexp)
         {
-            expToBuffer(e.thisexp, PREC.primary);
+            expToBuffer(e.thisexp, PREC.primary, buf, hgs);
             buf.writeByte('.');
         }
         buf.writestring("new ");
         if (e.newargs && e.newargs.dim)
         {
             buf.writeByte('(');
-            argsToBuffer(e.newargs);
+            argsToBuffer(e.newargs, buf, hgs);
             buf.writeByte(')');
         }
         typeToBuffer(e.newtype, null);
         if (e.arguments && e.arguments.dim)
         {
             buf.writeByte('(');
-            argsToBuffer(e.arguments);
+            argsToBuffer(e.arguments, buf, hgs);
             buf.writeByte(')');
         }
     }
@@ -2661,21 +2560,21 @@ public:
     {
         if (e.thisexp)
         {
-            expToBuffer(e.thisexp, PREC.primary);
+            expToBuffer(e.thisexp, PREC.primary, buf, hgs);
             buf.writeByte('.');
         }
         buf.writestring("new");
         if (e.newargs && e.newargs.dim)
         {
             buf.writeByte('(');
-            argsToBuffer(e.newargs);
+            argsToBuffer(e.newargs, buf, hgs);
             buf.writeByte(')');
         }
         buf.writestring(" class ");
         if (e.arguments && e.arguments.dim)
         {
             buf.writeByte('(');
-            argsToBuffer(e.arguments);
+            argsToBuffer(e.arguments, buf, hgs);
             buf.writeByte(')');
         }
         if (e.cd)
@@ -2709,13 +2608,13 @@ public:
             buf.writeByte('(');
             e.e0.accept(this);
             buf.writestring(", tuple(");
-            argsToBuffer(e.exps);
+            argsToBuffer(e.exps, buf, hgs);
             buf.writestring("))");
         }
         else
         {
             buf.writestring("tuple(");
-            argsToBuffer(e.exps);
+            argsToBuffer(e.exps, buf, hgs);
             buf.writeByte(')');
         }
     }
@@ -2804,68 +2703,68 @@ public:
     override void visit(UnaExp e)
     {
         buf.writestring(Token.toString(e.op));
-        expToBuffer(e.e1, precedence[e.op]);
+        expToBuffer(e.e1, precedence[e.op], buf, hgs);
     }
 
     override void visit(BinExp e)
     {
-        expToBuffer(e.e1, precedence[e.op]);
+        expToBuffer(e.e1, precedence[e.op], buf, hgs);
         buf.writeByte(' ');
         buf.writestring(Token.toString(e.op));
         buf.writeByte(' ');
-        expToBuffer(e.e2, cast(PREC)(precedence[e.op] + 1));
+        expToBuffer(e.e2, cast(PREC)(precedence[e.op] + 1), buf, hgs);
     }
 
     override void visit(CompileExp e)
     {
         buf.writestring("mixin(");
-        argsToBuffer(e.exps, null);
+        argsToBuffer(e.exps, buf, hgs, null);
         buf.writeByte(')');
     }
 
     override void visit(ImportExp e)
     {
         buf.writestring("import(");
-        expToBuffer(e.e1, PREC.assign);
+        expToBuffer(e.e1, PREC.assign, buf, hgs);
         buf.writeByte(')');
     }
 
     override void visit(AssertExp e)
     {
         buf.writestring("assert(");
-        expToBuffer(e.e1, PREC.assign);
+        expToBuffer(e.e1, PREC.assign, buf, hgs);
         if (e.msg)
         {
             buf.writestring(", ");
-            expToBuffer(e.msg, PREC.assign);
+            expToBuffer(e.msg, PREC.assign, buf, hgs);
         }
         buf.writeByte(')');
     }
 
     override void visit(DotIdExp e)
     {
-        expToBuffer(e.e1, PREC.primary);
+        expToBuffer(e.e1, PREC.primary, buf, hgs);
         buf.writeByte('.');
         buf.writestring(e.ident.toString());
     }
 
     override void visit(DotTemplateExp e)
     {
-        expToBuffer(e.e1, PREC.primary);
+        expToBuffer(e.e1, PREC.primary, buf, hgs);
         buf.writeByte('.');
         buf.writestring(e.td.toChars());
     }
 
     override void visit(DotVarExp e)
     {
-        expToBuffer(e.e1, PREC.primary);
+        expToBuffer(e.e1, PREC.primary, buf, hgs);
         buf.writeByte('.');
         buf.writestring(e.var.toChars());
     }
 
     override void visit(DotTemplateInstanceExp e)
     {
-        expToBuffer(e.e1, PREC.primary);
+        expToBuffer(e.e1, PREC.primary, buf, hgs);
         buf.writeByte('.');
         e.ti.accept(this);
     }
@@ -2875,7 +2774,7 @@ public:
         buf.writeByte('&');
         if (!e.func.isNested())
         {
-            expToBuffer(e.e1, PREC.primary);
+            expToBuffer(e.e1, PREC.primary, buf, hgs);
             buf.writeByte('.');
         }
         buf.writestring(e.func.toChars());
@@ -2883,7 +2782,7 @@ public:
 
     override void visit(DotTypeExp e)
     {
-        expToBuffer(e.e1, PREC.primary);
+        expToBuffer(e.e1, PREC.primary, buf, hgs);
         buf.writeByte('.');
         buf.writestring(e.sym.toChars());
     }
@@ -2900,22 +2799,22 @@ public:
             e.e1.accept(this);
         }
         else
-            expToBuffer(e.e1, precedence[e.op]);
+            expToBuffer(e.e1, precedence[e.op], buf, hgs);
         buf.writeByte('(');
-        argsToBuffer(e.arguments);
+        argsToBuffer(e.arguments, buf, hgs);
         buf.writeByte(')');
     }
 
     override void visit(PtrExp e)
     {
         buf.writeByte('*');
-        expToBuffer(e.e1, precedence[e.op]);
+        expToBuffer(e.e1, precedence[e.op], buf, hgs);
     }
 
     override void visit(DeleteExp e)
     {
         buf.writestring("delete ");
-        expToBuffer(e.e1, precedence[e.op]);
+        expToBuffer(e.e1, precedence[e.op], buf, hgs);
     }
 
     override void visit(CastExp e)
@@ -2928,7 +2827,7 @@ public:
             MODtoBuffer(buf, e.mod);
         }
         buf.writeByte(')');
-        expToBuffer(e.e1, precedence[e.op]);
+        expToBuffer(e.e1, precedence[e.op], buf, hgs);
     }
 
     override void visit(VectorExp e)
@@ -2936,28 +2835,28 @@ public:
         buf.writestring("cast(");
         typeToBuffer(e.to, null);
         buf.writeByte(')');
-        expToBuffer(e.e1, precedence[e.op]);
+        expToBuffer(e.e1, precedence[e.op], buf, hgs);
     }
 
     override void visit(VectorArrayExp e)
     {
-        expToBuffer(e.e1, PREC.primary);
+        expToBuffer(e.e1, PREC.primary, buf, hgs);
         buf.writestring(".array");
     }
 
     override void visit(SliceExp e)
     {
-        expToBuffer(e.e1, precedence[e.op]);
+        expToBuffer(e.e1, precedence[e.op], buf, hgs);
         buf.writeByte('[');
         if (e.upr || e.lwr)
         {
             if (e.lwr)
-                sizeToBuffer(e.lwr);
+                sizeToBuffer(e.lwr, buf, hgs);
             else
                 buf.writeByte('0');
             buf.writestring("..");
             if (e.upr)
-                sizeToBuffer(e.upr);
+                sizeToBuffer(e.upr, buf, hgs);
             else
                 buf.writeByte('$');
         }
@@ -2966,79 +2865,79 @@ public:
 
     override void visit(ArrayLengthExp e)
     {
-        expToBuffer(e.e1, PREC.primary);
+        expToBuffer(e.e1, PREC.primary, buf, hgs);
         buf.writestring(".length");
     }
 
     override void visit(IntervalExp e)
     {
-        expToBuffer(e.lwr, PREC.assign);
+        expToBuffer(e.lwr, PREC.assign, buf, hgs);
         buf.writestring("..");
-        expToBuffer(e.upr, PREC.assign);
+        expToBuffer(e.upr, PREC.assign, buf, hgs);
     }
 
     override void visit(DelegatePtrExp e)
     {
-        expToBuffer(e.e1, PREC.primary);
+        expToBuffer(e.e1, PREC.primary, buf, hgs);
         buf.writestring(".ptr");
     }
 
     override void visit(DelegateFuncptrExp e)
     {
-        expToBuffer(e.e1, PREC.primary);
+        expToBuffer(e.e1, PREC.primary, buf, hgs);
         buf.writestring(".funcptr");
     }
 
     override void visit(ArrayExp e)
     {
-        expToBuffer(e.e1, PREC.primary);
+        expToBuffer(e.e1, PREC.primary, buf, hgs);
         buf.writeByte('[');
-        argsToBuffer(e.arguments);
+        argsToBuffer(e.arguments, buf, hgs);
         buf.writeByte(']');
     }
 
     override void visit(DotExp e)
     {
-        expToBuffer(e.e1, PREC.primary);
+        expToBuffer(e.e1, PREC.primary, buf, hgs);
         buf.writeByte('.');
-        expToBuffer(e.e2, PREC.primary);
+        expToBuffer(e.e2, PREC.primary, buf, hgs);
     }
 
     override void visit(IndexExp e)
     {
-        expToBuffer(e.e1, PREC.primary);
+        expToBuffer(e.e1, PREC.primary, buf, hgs);
         buf.writeByte('[');
-        sizeToBuffer(e.e2);
+        sizeToBuffer(e.e2, buf, hgs);
         buf.writeByte(']');
     }
 
     override void visit(PostExp e)
     {
-        expToBuffer(e.e1, precedence[e.op]);
+        expToBuffer(e.e1, precedence[e.op], buf, hgs);
         buf.writestring(Token.toString(e.op));
     }
 
     override void visit(PreExp e)
     {
         buf.writestring(Token.toString(e.op));
-        expToBuffer(e.e1, precedence[e.op]);
+        expToBuffer(e.e1, precedence[e.op], buf, hgs);
     }
 
     override void visit(RemoveExp e)
     {
-        expToBuffer(e.e1, PREC.primary);
+        expToBuffer(e.e1, PREC.primary, buf, hgs);
         buf.writestring(".remove(");
-        expToBuffer(e.e2, PREC.assign);
+        expToBuffer(e.e2, PREC.assign, buf, hgs);
         buf.writeByte(')');
     }
 
     override void visit(CondExp e)
     {
-        expToBuffer(e.econd, PREC.oror);
+        expToBuffer(e.econd, PREC.oror, buf, hgs);
         buf.writestring(" ? ");
-        expToBuffer(e.e1, PREC.expr);
+        expToBuffer(e.e1, PREC.expr, buf, hgs);
         buf.writestring(" : ");
-        expToBuffer(e.e2, PREC.cond);
+        expToBuffer(e.e2, PREC.cond, buf, hgs);
     }
 
     override void visit(DefaultInitExp e)
@@ -3148,7 +3047,7 @@ public:
             if (m.userAttribDecl)
             {
                 buf.writestring("@(");
-                argsToBuffer(m.userAttribDecl.atts);
+                argsToBuffer(m.userAttribDecl.atts, buf, hgs);
                 buf.writeByte(')');
                 buf.writenl();
             }
@@ -3572,8 +3471,7 @@ private void parameterToBuffer(Parameter p, OutBuffer* buf, HdrGenState* hgs)
         if (isAnonymous)
             buf.writeByte('(');
 
-        scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
-        v.argsToBuffer(p.userAttribDecl.atts);
+        argsToBuffer(p.userAttribDecl.atts, buf, hgs);
 
         if (isAnonymous)
             buf.writeByte(')');
@@ -3625,6 +3523,112 @@ private void parameterToBuffer(Parameter p, OutBuffer* buf, HdrGenState* hgs)
         buf.writestring(" = ");
         scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
         p.defaultArg.accept(v);
+    }
+}
+
+
+/**************************************************
+ * Write out argument list to buf.
+ */
+private void argsToBuffer(Expressions* expressions, OutBuffer* buf, HdrGenState* hgs, Expression basis = null)
+{
+    if (!expressions || !expressions.dim)
+        return;
+    version (all)
+    {
+        foreach (i, el; *expressions)
+        {
+            if (i)
+                buf.writestring(", ");
+            if (!el)
+                el = basis;
+            if (el)
+                expToBuffer(el, PREC.assign, buf, hgs);
+        }
+    }
+    else
+    {
+        // Sparse style formatting, for debug use only
+        //      [0..dim: basis, 1: e1, 5: e5]
+        if (basis)
+        {
+            buf.writestring("0..");
+            buf.print(expressions.dim);
+            buf.writestring(": ");
+            expToBuffer(basis, PREC.assign, buf, hgs);
+        }
+        foreach (i, el; *expressions)
+        {
+            if (el)
+            {
+                if (basis)
+                {
+                    buf.writestring(", ");
+                    buf.print(i);
+                    buf.writestring(": ");
+                }
+                else if (i)
+                    buf.writestring(", ");
+                expToBuffer(el, PREC.assign, buf, hgs);
+            }
+        }
+    }
+}
+
+private void sizeToBuffer(Expression e, OutBuffer* buf, HdrGenState* hgs)
+{
+    if (e.type == Type.tsize_t)
+    {
+        Expression ex = (e.op == TOK.cast_ ? (cast(CastExp)e).e1 : e);
+        ex = ex.optimize(WANTvalue);
+        const dinteger_t uval = ex.op == TOK.int64 ? ex.toInteger() : cast(dinteger_t)-1;
+        if (cast(sinteger_t)uval >= 0)
+        {
+            dinteger_t sizemax;
+            if (target.ptrsize == 4)
+                sizemax = 0xFFFFFFFFU;
+            else if (target.ptrsize == 8)
+                sizemax = 0xFFFFFFFFFFFFFFFFUL;
+            else
+                assert(0);
+            if (uval <= sizemax && uval <= 0x7FFFFFFFFFFFFFFFUL)
+            {
+                buf.print(uval);
+                return;
+            }
+        }
+    }
+    expToBuffer(e, PREC.assign, buf, hgs);
+}
+
+/**************************************************
+ * Write expression out to buf, but wrap it
+ * in ( ) if its precedence is less than pr.
+ */
+private void expToBuffer(Expression e, PREC pr, OutBuffer* buf, HdrGenState* hgs)
+{
+    debug
+    {
+        if (precedence[e.op] == PREC.zero)
+            printf("precedence not defined for token '%s'\n", Token.toChars(e.op));
+    }
+    assert(precedence[e.op] != PREC.zero);
+    assert(pr != PREC.zero);
+    /* Despite precedence, we don't allow a<b<c expressions.
+     * They must be parenthesized.
+     */
+    if (precedence[e.op] < pr || (pr == PREC.rel && precedence[e.op] == pr)
+        || (pr >= PREC.or && pr <= PREC.and && precedence[e.op] == PREC.rel))
+    {
+        buf.writeByte('(');
+        scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
+        e.accept(v);
+        buf.writeByte(')');
+    }
+    else
+    {
+        scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
+        e.accept(v);
     }
 }
 
