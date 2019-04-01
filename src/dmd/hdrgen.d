@@ -3141,61 +3141,6 @@ public:
         buf.writeByte(')');
     }
 
-    ////////////////////////////////////////////////////////////////////////////
-    override void visit(Parameter p)
-    {
-        if (p.userAttribDecl)
-        {
-            buf.writestring("@");
-            scope(exit) buf.writestring(" ");
-
-            bool isAnonymous = p.userAttribDecl.atts.dim > 0 && (*p.userAttribDecl.atts)[0].op != TOK.call;
-            if (isAnonymous)
-                buf.writestring("(");
-            argsToBuffer(p.userAttribDecl.atts);
-            if (isAnonymous)
-                buf.writestring(")");
-        }
-        if (p.storageClass & STC.auto_)
-            buf.writestring("auto ");
-        if (p.storageClass & STC.return_)
-            buf.writestring("return ");
-        if (p.storageClass & STC.out_)
-            buf.writestring("out ");
-        else if (p.storageClass & STC.ref_)
-            buf.writestring("ref ");
-        else if (p.storageClass & STC.in_)
-            buf.writestring("in ");
-        else if (p.storageClass & STC.lazy_)
-            buf.writestring("lazy ");
-        else if (p.storageClass & STC.alias_)
-            buf.writestring("alias ");
-        StorageClass stc = p.storageClass;
-        if (p.type && p.type.mod & MODFlags.shared_)
-            stc &= ~STC.shared_;
-        if (stcToBuffer(buf, stc & (STC.const_ | STC.immutable_ | STC.wild | STC.shared_ | STC.scope_ | STC.scopeinferred)))
-            buf.writeByte(' ');
-        if (p.storageClass & STC.alias_)
-        {
-            if (p.ident)
-                buf.writestring(p.ident.toString());
-        }
-        else if (p.type.ty == Tident &&
-                 (cast(TypeIdentifier)p.type).ident.toString().length > 3 &&
-                 strncmp((cast(TypeIdentifier)p.type).ident.toChars(), "__T", 3) == 0)
-        {
-            // print parameter name, instead of undetermined type parameter
-            buf.writestring(p.ident.toString());
-        }
-        else
-            typeToBuffer(p.type, p.ident);
-        if (p.defaultArg)
-        {
-            buf.writestring(" = ");
-            p.defaultArg.accept(this);
-        }
-    }
-
     void parametersToBuffer(ParameterList pl)
     {
         buf.writeByte('(');
@@ -3203,7 +3148,7 @@ public:
         {
             if (i)
                 buf.writestring(", ");
-            pl[i].accept(this);
+            pl[i].parameterToBuffer(buf, hgs);
         }
         final switch (pl.varargs)
         {
@@ -3591,12 +3536,88 @@ const(char)* parameterToChars(Parameter parameter, TypeFunction tf, bool fullQua
     OutBuffer buf;
     HdrGenState hgs;
     hgs.fullQual = fullQual;
-    scope PrettyPrintVisitor v = new PrettyPrintVisitor(&buf, &hgs);
 
-    parameter.accept(v);
+    parameterToBuffer(parameter, &buf, &hgs);
+
     if (tf.parameterList.varargs == VarArg.typesafe && parameter == tf.parameterList[tf.parameterList.parameters.dim - 1])
     {
         buf.writestring("...");
     }
     return buf.extractString();
 }
+
+
+/***********************************************************
+ * Write parameter `p` to buffer `buf`.
+ * Params:
+ *      p = parameter to serialize
+ *      buf = buffer to write it to
+ *      hgs = context
+ */
+private void parameterToBuffer(Parameter p, OutBuffer* buf, HdrGenState* hgs)
+{
+    if (p.userAttribDecl)
+    {
+        buf.writeByte('@');
+
+        bool isAnonymous = p.userAttribDecl.atts.dim > 0 && (*p.userAttribDecl.atts)[0].op != TOK.call;
+        if (isAnonymous)
+            buf.writeByte('(');
+
+        scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
+        v.argsToBuffer(p.userAttribDecl.atts);
+
+        if (isAnonymous)
+            buf.writeByte(')');
+        buf.writeByte(' ');
+    }
+    if (p.storageClass & STC.auto_)
+        buf.writestring("auto ");
+    if (p.storageClass & STC.return_)
+        buf.writestring("return ");
+
+    if (p.storageClass & STC.out_)
+        buf.writestring("out ");
+    else if (p.storageClass & STC.ref_)
+        buf.writestring("ref ");
+    else if (p.storageClass & STC.in_)
+        buf.writestring("in ");
+    else if (p.storageClass & STC.lazy_)
+        buf.writestring("lazy ");
+    else if (p.storageClass & STC.alias_)
+        buf.writestring("alias ");
+
+    StorageClass stc = p.storageClass;
+    if (p.type && p.type.mod & MODFlags.shared_)
+        stc &= ~STC.shared_;
+
+    if (stcToBuffer(buf, stc & (STC.const_ | STC.immutable_ | STC.wild | STC.shared_ | STC.scope_ | STC.scopeinferred)))
+        buf.writeByte(' ');
+
+    if (p.storageClass & STC.alias_)
+    {
+        if (p.ident)
+            buf.writestring(p.ident.toString());
+    }
+    else if (p.type.ty == Tident &&
+             (cast(TypeIdentifier)p.type).ident.toString().length > 3 &&
+             strncmp((cast(TypeIdentifier)p.type).ident.toChars(), "__T", 3) == 0)
+    {
+        // print parameter name, instead of undetermined type parameter
+        buf.writestring(p.ident.toString());
+    }
+    else
+    {
+        scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
+        v.typeToBuffer(p.type, p.ident);
+    }
+
+    if (p.defaultArg)
+    {
+        buf.writestring(" = ");
+        scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
+        p.defaultArg.accept(v);
+    }
+}
+
+
