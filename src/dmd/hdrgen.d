@@ -922,7 +922,7 @@ public:
             buf.writestring("auto ");
         if (ident)
             buf.writestring(ident);
-        parametersToBuffer(t.parameterList);
+        parametersToBuffer(t.parameterList, buf, hgs);
         /* Use postfix style for attributes
          */
         if (t.mod)
@@ -990,7 +990,7 @@ public:
             }
             buf.writeByte(')');
         }
-        parametersToBuffer(t.parameterList);
+        parametersToBuffer(t.parameterList, buf, hgs);
         if (t.isreturn)
         {
             PrePostAppendStrings.fp(&pas, " return");
@@ -1091,7 +1091,7 @@ public:
 
     override void visit(TypeTuple t)
     {
-        parametersToBuffer(ParameterList(t.arguments, VarArg.none));
+        parametersToBuffer(ParameterList(t.arguments, VarArg.none), buf, hgs);
     }
 
     override void visit(TypeSlice t)
@@ -2032,7 +2032,7 @@ public:
         // Don't print tf.mod, tf.trust, and tf.linkage
         if (!f.inferRetType && tf.next)
             typeToBuffer(tf.next, null);
-        parametersToBuffer(tf.parameterList);
+        parametersToBuffer(tf.parameterList, buf, hgs);
         CompoundStatement cs = f.fbody.isCompoundStatement();
         Statement s1;
         if (f.semanticRun >= PASS.semantic3done && cs)
@@ -2146,7 +2146,7 @@ public:
         if (stcToBuffer(buf, d.storage_class & ~STC.static_))
             buf.writeByte(' ');
         buf.writestring("new");
-        parametersToBuffer(ParameterList(d.parameters, d.varargs));
+        parametersToBuffer(ParameterList(d.parameters, d.varargs), buf, hgs);
         bodyToBuffer(d);
     }
 
@@ -2155,7 +2155,7 @@ public:
         if (stcToBuffer(buf, d.storage_class & ~STC.static_))
             buf.writeByte(' ');
         buf.writestring("delete");
-        parametersToBuffer(ParameterList(d.parameters, VarArg.none));
+        parametersToBuffer(ParameterList(d.parameters, VarArg.none), buf, hgs);
         bodyToBuffer(d);
     }
 
@@ -3141,33 +3141,6 @@ public:
         buf.writeByte(')');
     }
 
-    void parametersToBuffer(ParameterList pl)
-    {
-        buf.writeByte('(');
-        foreach (i; 0 .. pl.length)
-        {
-            if (i)
-                buf.writestring(", ");
-            pl[i].parameterToBuffer(buf, hgs);
-        }
-        final switch (pl.varargs)
-        {
-            case VarArg.none:
-                break;
-
-            case VarArg.variadic:
-                if (pl.length == 0)
-                    goto case VarArg.typesafe;
-                buf.writestring(", ...");
-                break;
-
-            case VarArg.typesafe:
-                buf.writestring("...");
-                break;
-        }
-        buf.writeByte(')');
-    }
-
     override void visit(Module m)
     {
         if (m.md)
@@ -3518,8 +3491,7 @@ extern (C++) const(char)* parametersTypeToChars(ParameterList pl)
 {
     OutBuffer buf;
     HdrGenState hgs;
-    scope PrettyPrintVisitor v = new PrettyPrintVisitor(&buf, &hgs);
-    v.parametersToBuffer(pl);
+    parametersToBuffer(pl, &buf, &hgs);
     return buf.extractString();
 }
 
@@ -3544,6 +3516,42 @@ const(char)* parameterToChars(Parameter parameter, TypeFunction tf, bool fullQua
         buf.writestring("...");
     }
     return buf.extractString();
+}
+
+
+/*************************************************
+ * Write ParameterList to buffer.
+ * Params:
+ *      pl = parameter list to serialize
+ *      buf = buffer to write it to
+ *      hgs = context
+ */
+
+private void parametersToBuffer(ParameterList pl, OutBuffer* buf, HdrGenState* hgs)
+{
+    buf.writeByte('(');
+    foreach (i; 0 .. pl.length)
+    {
+        if (i)
+            buf.writestring(", ");
+        pl[i].parameterToBuffer(buf, hgs);
+    }
+    final switch (pl.varargs)
+    {
+        case VarArg.none:
+            break;
+
+        case VarArg.variadic:
+            if (pl.length == 0)
+                goto case VarArg.typesafe;
+            buf.writestring(", ...");
+            break;
+
+        case VarArg.typesafe:
+            buf.writestring("...");
+            break;
+    }
+    buf.writeByte(')');
 }
 
 
