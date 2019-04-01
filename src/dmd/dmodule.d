@@ -509,8 +509,8 @@ extern (C++) final class Module : Package
          */
         if (const result = lookForSourceFile(filename))
         {
-            scope(exit) FileName.free(result.ptr);
             m.srcfile = new File(result);
+            FileName.free(result.ptr);
         }
 
         if (!m.read(loc))
