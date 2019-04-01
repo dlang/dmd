@@ -66,9 +66,11 @@ private const(char)[] lookForSourceFile(const(char)[] filename)
     const sdi = FileName.forceExt(filename, global.hdr_ext.toDString());
     if (FileName.exists(sdi) == 1)
         return sdi;
+    scope(exit) FileName.free(sdi.ptr);
     const sd = FileName.forceExt(filename, global.mars_ext.toDString());
     if (FileName.exists(sd) == 1)
         return sd;
+    scope(exit) FileName.free(sd.ptr);
     if (FileName.exists(filename) == 2)
     {
         /* The filename exists and it's a directory.
@@ -506,7 +508,10 @@ extern (C++) final class Module : Package
         /* Look for the source file
          */
         if (const result = lookForSourceFile(filename))
+        {
             m.srcfile = new File(result);
+            FileName.free(result.ptr);
+        }
 
         if (!m.read(loc))
             return null;
