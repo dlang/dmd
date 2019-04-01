@@ -1517,12 +1517,12 @@ public:
     override void visit(TemplateInstance ti)
     {
         buf.writestring(ti.name.toChars());
-        tiargsToBuffer(ti);
+        tiargsToBuffer(ti, buf, hgs);
 
         if (hgs.fullDump)
         {
             buf.writenl();
-            dumpTemplateInstance(ti);
+            dumpTemplateInstance(ti, buf, hgs);
         }
     }
 
@@ -1530,7 +1530,7 @@ public:
     {
         buf.writestring("mixin ");
         typeToBuffer(tm.tqual, null, buf, hgs);
-        tiargsToBuffer(tm);
+        tiargsToBuffer(tm, buf, hgs);
         if (tm.ident && memcmp(tm.ident.toChars(), cast(const(char)*)"__mixin", 7) != 0)
         {
             buf.writeByte(' ');
@@ -1539,127 +1539,7 @@ public:
         buf.writeByte(';');
         buf.writenl();
         if (hgs.fullDump)
-            dumpTemplateInstance(tm);
-    }
-
-    void dumpTemplateInstance(TemplateInstance ti)
-    {
-        buf.writeByte('{');
-        buf.writenl();
-        buf.level++;
-
-        if (ti.aliasdecl)
-        {
-            ti.aliasdecl.accept(this);
-            buf.writenl();
-        }
-        else if (ti.members)
-        {
-            foreach(m;*ti.members)
-                m.accept(this);
-        }
-
-        buf.level--;
-        buf.writeByte('}');
-        buf.writenl();
-
-    }
-
-    void tiargsToBuffer(TemplateInstance ti)
-    {
-        buf.writeByte('!');
-        if (ti.nest)
-        {
-            buf.writestring("(...)");
-            return;
-        }
-        if (!ti.tiargs)
-        {
-            buf.writestring("()");
-            return;
-        }
-        if (ti.tiargs.dim == 1)
-        {
-            RootObject oarg = (*ti.tiargs)[0];
-            if (Type t = isType(oarg))
-            {
-                if (t.equals(Type.tstring) || t.equals(Type.twstring) || t.equals(Type.tdstring) || t.mod == 0 && (t.isTypeBasic() || t.ty == Tident && (cast(TypeIdentifier)t).idents.dim == 0))
-                {
-                    buf.writestring(t.toChars());
-                    return;
-                }
-            }
-            else if (Expression e = isExpression(oarg))
-            {
-                if (e.op == TOK.int64 || e.op == TOK.float64 || e.op == TOK.null_ || e.op == TOK.string_ || e.op == TOK.this_)
-                {
-                    buf.writestring(e.toChars());
-                    return;
-                }
-            }
-        }
-        buf.writeByte('(');
-        ti.nest++;
-        foreach (i, arg; *ti.tiargs)
-        {
-            if (i)
-                buf.writestring(", ");
-            objectToBuffer(arg);
-        }
-        ti.nest--;
-        buf.writeByte(')');
-    }
-
-    /****************************************
-     * This makes a 'pretty' version of the template arguments.
-     * It's analogous to genIdent() which makes a mangled version.
-     */
-    void objectToBuffer(RootObject oarg)
-    {
-        //printf("objectToBuffer()\n");
-        /* The logic of this should match what genIdent() does. The _dynamic_cast()
-         * function relies on all the pretty strings to be unique for different classes
-         * See https://issues.dlang.org/show_bug.cgi?id=7375
-         * Perhaps it would be better to demangle what genIdent() does.
-         */
-        if (auto t = isType(oarg))
-        {
-            //printf("\tt: %s ty = %d\n", t.toChars(), t.ty);
-            typeToBuffer(t, null, buf, hgs);
-        }
-        else if (auto e = isExpression(oarg))
-        {
-            if (e.op == TOK.variable)
-                e = e.optimize(WANTvalue); // added to fix https://issues.dlang.org/show_bug.cgi?id=7375
-            e.accept(this);
-        }
-        else if (Dsymbol s = isDsymbol(oarg))
-        {
-            const p = s.ident ? s.ident.toChars() : s.toChars();
-            buf.writestring(p);
-        }
-        else if (auto v = isTuple(oarg))
-        {
-            auto args = &v.objects;
-            foreach (i, arg; *args)
-            {
-                if (i)
-                    buf.writestring(", ");
-                objectToBuffer(arg);
-            }
-        }
-        else if (!oarg)
-        {
-            buf.writestring("NULL");
-        }
-        else
-        {
-            debug
-            {
-                printf("bad Object = %p\n", oarg);
-            }
-            assert(0);
-        }
+            dumpTemplateInstance(tm, buf, hgs);
     }
 
     override void visit(EnumDeclaration d)
@@ -2599,7 +2479,7 @@ public:
     override void visit(TypeidExp e)
     {
         buf.writestring("typeid(");
-        objectToBuffer(e.obj);
+        objectToBuffer(e.obj, buf, hgs);
         buf.writeByte(')');
     }
 
@@ -2613,7 +2493,7 @@ public:
             foreach (arg; *e.args)
             {
                 buf.writestring(", ");
-                objectToBuffer(arg);
+                objectToBuffer(arg, buf, hgs);
             }
         }
         buf.writeByte(')');
@@ -2930,12 +2810,12 @@ public:
         if (tp.specAlias)
         {
             buf.writestring(" : ");
-            objectToBuffer(tp.specAlias);
+            objectToBuffer(tp.specAlias, buf, hgs);
         }
         if (tp.defaultAlias)
         {
             buf.writestring(" = ");
-            objectToBuffer(tp.defaultAlias);
+            objectToBuffer(tp.defaultAlias, buf, hgs);
         }
     }
 
@@ -3317,12 +3197,11 @@ void arrayObjectsToBuffer(OutBuffer* buf, Objects* objects)
     if (!objects || !objects.dim)
         return;
     HdrGenState hgs;
-    scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, &hgs);
     foreach (i, o; *objects)
     {
         if (i)
             buf.writestring(", ");
-        v.objectToBuffer(o);
+        objectToBuffer(o, buf, &hgs);
     }
 }
 
@@ -3630,6 +3509,129 @@ private void visitWithMask(Type t, ubyte modMask, OutBuffer* buf, HdrGenState* h
             buf.writeByte(')');
         if (m & MODFlags.shared_)
             buf.writeByte(')');
+    }
+}
+
+
+private void dumpTemplateInstance(TemplateInstance ti, OutBuffer* buf, HdrGenState* hgs)
+{
+    scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
+
+    buf.writeByte('{');
+    buf.writenl();
+    buf.level++;
+
+    if (ti.aliasdecl)
+    {
+        ti.aliasdecl.accept(v);
+        buf.writenl();
+    }
+    else if (ti.members)
+    {
+        foreach(m;*ti.members)
+            m.accept(v);
+    }
+
+    buf.level--;
+    buf.writeByte('}');
+    buf.writenl();
+
+}
+
+private void tiargsToBuffer(TemplateInstance ti, OutBuffer* buf, HdrGenState* hgs)
+{
+    buf.writeByte('!');
+    if (ti.nest)
+    {
+        buf.writestring("(...)");
+        return;
+    }
+    if (!ti.tiargs)
+    {
+        buf.writestring("()");
+        return;
+    }
+    if (ti.tiargs.dim == 1)
+    {
+        RootObject oarg = (*ti.tiargs)[0];
+        if (Type t = isType(oarg))
+        {
+            if (t.equals(Type.tstring) || t.equals(Type.twstring) || t.equals(Type.tdstring) || t.mod == 0 && (t.isTypeBasic() || t.ty == Tident && (cast(TypeIdentifier)t).idents.dim == 0))
+            {
+                buf.writestring(t.toChars());
+                return;
+            }
+        }
+        else if (Expression e = isExpression(oarg))
+        {
+            if (e.op == TOK.int64 || e.op == TOK.float64 || e.op == TOK.null_ || e.op == TOK.string_ || e.op == TOK.this_)
+            {
+                buf.writestring(e.toChars());
+                return;
+            }
+        }
+    }
+    buf.writeByte('(');
+    ti.nest++;
+    foreach (i, arg; *ti.tiargs)
+    {
+        if (i)
+            buf.writestring(", ");
+        objectToBuffer(arg, buf, hgs);
+    }
+    ti.nest--;
+    buf.writeByte(')');
+}
+
+/****************************************
+ * This makes a 'pretty' version of the template arguments.
+ * It's analogous to genIdent() which makes a mangled version.
+ */
+private void objectToBuffer(RootObject oarg, OutBuffer* buf, HdrGenState* hgs)
+{
+    //printf("objectToBuffer()\n");
+    /* The logic of this should match what genIdent() does. The _dynamic_cast()
+     * function relies on all the pretty strings to be unique for different classes
+     * See https://issues.dlang.org/show_bug.cgi?id=7375
+     * Perhaps it would be better to demangle what genIdent() does.
+     */
+    if (auto t = isType(oarg))
+    {
+        //printf("\tt: %s ty = %d\n", t.toChars(), t.ty);
+        typeToBuffer(t, null, buf, hgs);
+    }
+    else if (auto e = isExpression(oarg))
+    {
+        if (e.op == TOK.variable)
+            e = e.optimize(WANTvalue); // added to fix https://issues.dlang.org/show_bug.cgi?id=7375
+        expToBuffer(e, PREC.assign, buf, hgs);
+    }
+    else if (Dsymbol s = isDsymbol(oarg))
+    {
+        const p = s.ident ? s.ident.toChars() : s.toChars();
+        buf.writestring(p);
+    }
+    else if (auto v = isTuple(oarg))
+    {
+        auto args = &v.objects;
+        foreach (i, arg; *args)
+        {
+            if (i)
+                buf.writestring(", ");
+            objectToBuffer(arg, buf, hgs);
+        }
+    }
+    else if (!oarg)
+    {
+        buf.writestring("NULL");
+    }
+    else
+    {
+        debug
+        {
+            printf("bad Object = %p\n", oarg);
+        }
+        assert(0);
     }
 }
 
