@@ -103,7 +103,6 @@ DOCS=\
     $(DOCDIR)\rt_memset.html \
     $(DOCDIR)\rt_minfo.html \
     $(DOCDIR)\rt_monitor_.html \
-    $(DOCDIR)\rt_obj.html \
     $(DOCDIR)\rt_profilegc.html \
     $(DOCDIR)\rt_qsort.html \
     $(DOCDIR)\rt_sections_android.html \
