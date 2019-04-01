@@ -801,7 +801,7 @@ public:
     {
         //printf("TypePointer::toCBuffer2() next = %d\n", t.next.ty);
         if (t.next.ty == Tfunction)
-            visitFuncIdentWithPostfix(cast(TypeFunction)t.next, "function");
+            visitFuncIdentWithPostfix(cast(TypeFunction)t.next, "function", buf, hgs);
         else
         {
             visitWithMask(t.next, t.mod, buf, hgs);
@@ -818,138 +818,12 @@ public:
     override void visit(TypeFunction t)
     {
         //printf("TypeFunction::toCBuffer2() t = %p, ref = %d\n", t, t.isref);
-        visitFuncIdentWithPostfix(t, null);
-    }
-
-    // callback for TypeFunction::attributesApply
-    struct PrePostAppendStrings
-    {
-        OutBuffer* buf;
-        bool isPostfixStyle;
-        bool isCtor;
-
-        extern (D) static int fp(void* param, string str)
-        {
-            PrePostAppendStrings* p = cast(PrePostAppendStrings*)param;
-            // don't write 'ref' for ctors
-            if (p.isCtor && str == "ref")
-                return 0;
-            if (p.isPostfixStyle)
-                p.buf.writeByte(' ');
-            p.buf.writestring(str);
-            if (!p.isPostfixStyle)
-                p.buf.writeByte(' ');
-            return 0;
-        }
-    }
-
-    void visitFuncIdentWithPostfix(TypeFunction t, const char* ident)
-    {
-        if (t.inuse)
-        {
-            t.inuse = 2; // flag error to caller
-            return;
-        }
-        t.inuse++;
-        PrePostAppendStrings pas;
-        pas.buf = buf;
-        pas.isCtor = false;
-        pas.isPostfixStyle = true;
-        if (t.linkage > LINK.d && hgs.ddoc != 1 && !hgs.hdrgen)
-        {
-            linkageToBuffer(buf, t.linkage);
-            buf.writeByte(' ');
-        }
-        if (t.next)
-        {
-            typeToBuffer(t.next, null, buf, hgs);
-            if (ident)
-                buf.writeByte(' ');
-        }
-        else if (hgs.ddoc)
-            buf.writestring("auto ");
-        if (ident)
-            buf.writestring(ident);
-        parametersToBuffer(t.parameterList, buf, hgs);
-        /* Use postfix style for attributes
-         */
-        if (t.mod)
-        {
-            buf.writeByte(' ');
-            MODtoBuffer(buf, t.mod);
-        }
-        t.attributesApply(&pas, &PrePostAppendStrings.fp);
-        t.inuse--;
-    }
-
-    void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, TemplateDeclaration td)
-    {
-        if (t.inuse)
-        {
-            t.inuse = 2; // flag error to caller
-            return;
-        }
-        t.inuse++;
-        PrePostAppendStrings pas;
-        extern (D) static int ignoreReturn(void* param, string name)
-        {
-            if (name != "return")
-                PrePostAppendStrings.fp(param, name);
-            return 0;
-        }
-        pas.buf = buf;
-        pas.isCtor = (ident == Id.ctor);
-        pas.isPostfixStyle = false;
-        /* Use 'storage class' (prefix) style for attributes
-         */
-        if (t.mod)
-        {
-            MODtoBuffer(buf, t.mod);
-            buf.writeByte(' ');
-        }
-        t.attributesApply(&pas, &ignoreReturn);
-        if (t.linkage > LINK.d && hgs.ddoc != 1 && !hgs.hdrgen)
-        {
-            linkageToBuffer(buf, t.linkage);
-            buf.writeByte(' ');
-        }
-        if (ident && ident.toHChars2() != ident.toChars())
-        {
-            // Don't print return type for ctor, dtor, unittest, etc
-        }
-        else if (t.next)
-        {
-            typeToBuffer(t.next, null, buf, hgs);
-            if (ident)
-                buf.writeByte(' ');
-        }
-        else if (hgs.ddoc)
-            buf.writestring("auto ");
-        if (ident)
-            buf.writestring(ident.toHChars2());
-        if (td)
-        {
-            buf.writeByte('(');
-            foreach (i, p; *td.origParameters)
-            {
-                if (i)
-                    buf.writestring(", ");
-                p.accept(this);
-            }
-            buf.writeByte(')');
-        }
-        parametersToBuffer(t.parameterList, buf, hgs);
-        if (t.isreturn)
-        {
-            PrePostAppendStrings.fp(&pas, " return");
-            pas.buf.offset -= 1; // remove final whitespace
-        }
-        t.inuse--;
+        visitFuncIdentWithPostfix(t, null, buf, hgs);
     }
 
     override void visit(TypeDelegate t)
     {
-        visitFuncIdentWithPostfix(cast(TypeFunction)t.next, "delegate");
+        visitFuncIdentWithPostfix(cast(TypeFunction)t.next, "delegate", buf, hgs);
     }
 
     void visitTypeQualifiedHelper(TypeQualified t)
@@ -3152,16 +3026,14 @@ extern (D) string protectionToString(Prot.Kind kind)
 void functionToBufferFull(TypeFunction tf, OutBuffer* buf, const Identifier ident, HdrGenState* hgs, TemplateDeclaration td)
 {
     //printf("TypeFunction::toCBuffer() this = %p\n", this);
-    scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
-    v.visitFuncIdentWithPrefix(tf, ident, td);
+    visitFuncIdentWithPrefix(tf, ident, td, buf, hgs);
 }
 
 // ident is inserted before the argument list and will be "function" or "delegate" for a type
 void functionToBufferWithIdent(TypeFunction tf, OutBuffer* buf, const(char)* ident)
 {
     HdrGenState hgs;
-    scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, &hgs);
-    v.visitFuncIdentWithPostfix(tf, ident);
+    visitFuncIdentWithPostfix(tf, ident, buf, &hgs);
 }
 
 void toCBuffer(Expression e, OutBuffer* buf, HdrGenState* hgs)
@@ -3463,8 +3335,7 @@ private void typeToBuffer(Type t, const Identifier ident, OutBuffer* buf, HdrGen
 {
     if (auto tf = t.isTypeFunction())
     {
-        scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
-        v.visitFuncIdentWithPrefix(tf, ident, null);
+        visitFuncIdentWithPrefix(tf, ident, null, buf, hgs);
         return;
     }
     visitWithMask(t, 0, buf, hgs);
@@ -3633,6 +3504,135 @@ private void objectToBuffer(RootObject oarg, OutBuffer* buf, HdrGenState* hgs)
         }
         assert(0);
     }
+}
+
+
+// callback for TypeFunction::attributesApply
+private struct PrePostAppendStrings
+{
+    OutBuffer* buf;
+    bool isPostfixStyle;
+    bool isCtor;
+
+    extern (D) static int fp(void* param, string str)
+    {
+        PrePostAppendStrings* p = cast(PrePostAppendStrings*)param;
+        // don't write 'ref' for ctors
+        if (p.isCtor && str == "ref")
+            return 0;
+        if (p.isPostfixStyle)
+            p.buf.writeByte(' ');
+        p.buf.writestring(str);
+        if (!p.isPostfixStyle)
+            p.buf.writeByte(' ');
+        return 0;
+    }
+}
+
+private void visitFuncIdentWithPostfix(TypeFunction t, const char* ident, OutBuffer* buf, HdrGenState* hgs)
+{
+    if (t.inuse)
+    {
+        t.inuse = 2; // flag error to caller
+        return;
+    }
+    t.inuse++;
+    PrePostAppendStrings pas;
+    pas.buf = buf;
+    pas.isCtor = false;
+    pas.isPostfixStyle = true;
+    if (t.linkage > LINK.d && hgs.ddoc != 1 && !hgs.hdrgen)
+    {
+        linkageToBuffer(buf, t.linkage);
+        buf.writeByte(' ');
+    }
+    if (t.next)
+    {
+        typeToBuffer(t.next, null, buf, hgs);
+        if (ident)
+            buf.writeByte(' ');
+    }
+    else if (hgs.ddoc)
+        buf.writestring("auto ");
+    if (ident)
+        buf.writestring(ident);
+    parametersToBuffer(t.parameterList, buf, hgs);
+    /* Use postfix style for attributes
+     */
+    if (t.mod)
+    {
+        buf.writeByte(' ');
+        MODtoBuffer(buf, t.mod);
+    }
+    t.attributesApply(&pas, &PrePostAppendStrings.fp);
+    t.inuse--;
+}
+
+private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, TemplateDeclaration td,
+    OutBuffer* buf, HdrGenState* hgs)
+{
+    if (t.inuse)
+    {
+        t.inuse = 2; // flag error to caller
+        return;
+    }
+    t.inuse++;
+    PrePostAppendStrings pas;
+    extern (D) static int ignoreReturn(void* param, string name)
+    {
+        if (name != "return")
+            PrePostAppendStrings.fp(param, name);
+        return 0;
+    }
+    pas.buf = buf;
+    pas.isCtor = (ident == Id.ctor);
+    pas.isPostfixStyle = false;
+    /* Use 'storage class' (prefix) style for attributes
+     */
+    if (t.mod)
+    {
+        MODtoBuffer(buf, t.mod);
+        buf.writeByte(' ');
+    }
+    t.attributesApply(&pas, &ignoreReturn);
+    if (t.linkage > LINK.d && hgs.ddoc != 1 && !hgs.hdrgen)
+    {
+        linkageToBuffer(buf, t.linkage);
+        buf.writeByte(' ');
+    }
+    if (ident && ident.toHChars2() != ident.toChars())
+    {
+        // Don't print return type for ctor, dtor, unittest, etc
+    }
+    else if (t.next)
+    {
+        typeToBuffer(t.next, null, buf, hgs);
+        if (ident)
+            buf.writeByte(' ');
+    }
+    else if (hgs.ddoc)
+        buf.writestring("auto ");
+    if (ident)
+        buf.writestring(ident.toHChars2());
+    if (td)
+    {
+        buf.writeByte('(');
+        scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
+        foreach (i, p; *td.origParameters)
+        {
+            if (i)
+                buf.writestring(", ");
+            p.accept(v);
+        }
+        buf.writeByte(')');
+    }
+    parametersToBuffer(t.parameterList, buf, hgs);
+    if (t.isreturn)
+    {
+        PrePostAppendStrings.fp(&pas, " return");
+        pas.buf.offset -= 1; // remove final whitespace
+    }
+    t.inuse--;
 }
 
 
