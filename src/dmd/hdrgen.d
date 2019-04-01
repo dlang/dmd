@@ -61,6 +61,9 @@ struct HdrGenState
     int tpltMember;
     int autoMember;
     int forStmtInit;
+
+    bool declstring; // set while declaring alias for string,wstring or dstring
+    EnumDeclaration inEnumDecl;
 }
 
 enum TEST_EMIT_ALL = 0;
@@ -100,8 +103,6 @@ extern (C++) final class PrettyPrintVisitor : Visitor
 public:
     OutBuffer* buf;
     HdrGenState* hgs;
-    bool declstring; // set while declaring alias for string,wstring or dstring
-    EnumDeclaration inEnumDecl;
 
     extern (D) this(OutBuffer* buf, HdrGenState* hgs)
     {
@@ -824,7 +825,7 @@ public:
     override void visit(TypeDArray t)
     {
         Type ut = t.castMod(0);
-        if (declstring)
+        if (hgs.declstring)
             goto L1;
         if (ut.equals(Type.tstring))
             buf.writestring("string");
@@ -1715,9 +1716,9 @@ public:
 
     override void visit(EnumDeclaration d)
     {
-        auto oldInEnumDecl = inEnumDecl;
-        scope(exit) inEnumDecl = oldInEnumDecl;
-        inEnumDecl = d;
+        auto oldInEnumDecl = hgs.inEnumDecl;
+        scope(exit) hgs.inEnumDecl = oldInEnumDecl;
+        hgs.inEnumDecl = d;
         buf.writestring("enum ");
         if (d.ident)
         {
@@ -1851,13 +1852,13 @@ public:
         }
         else if (d.ident)
         {
-            declstring = (d.ident == Id.string || d.ident == Id.wstring || d.ident == Id.dstring);
+            hgs.declstring = (d.ident == Id.string || d.ident == Id.wstring || d.ident == Id.dstring);
             buf.writestring(d.ident.toString());
             buf.writestring(" = ");
             if (stcToBuffer(buf, d.storage_class))
                 buf.writeByte(' ');
             typeToBuffer(d.type, null);
-            declstring = false;
+            hgs.declstring = false;
         }
         buf.writeByte(';');
         buf.writenl();
@@ -2333,7 +2334,7 @@ public:
                     if (hgs.fullDump)
                     {
                         auto sym = te.sym;
-                        if (inEnumDecl != sym)  foreach(i;0 .. sym.members.dim)
+                        if (hgs.inEnumDecl != sym)  foreach(i;0 .. sym.members.dim)
                         {
                             EnumMember em = cast(EnumMember) (*sym.members)[i];
                             if (em.value.toInteger == v)
