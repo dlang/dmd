@@ -95,9 +95,7 @@ class Library
         if (!FileName.absolute(arg))
             arg = FileName.combine(dir, arg);
 
-        loc.filename = FileName.defaultExt(arg, global.lib_ext);
-        loc.linnum = 0;
-        loc.charnum = 0;
+        loc = Loc(FileName.defaultExt(arg, global.lib_ext), 0, 0);
     }
 
     final void write()
