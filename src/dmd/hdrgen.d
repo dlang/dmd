@@ -273,7 +273,7 @@ public:
             if (stcToBuffer(buf, p.storageClass))
                 buf.writeByte(' ');
             if (p.type)
-                typeToBuffer(p.type, p.ident);
+                typeToBuffer(p.type, p.ident, buf, hgs);
             else
                 buf.writestring(p.ident.toString());
         }
@@ -301,7 +301,7 @@ public:
         buf.writestring(Token.toString(s.op));
         buf.writestring(" (");
         if (s.prm.type)
-            typeToBuffer(s.prm.type, s.prm.ident);
+            typeToBuffer(s.prm.type, s.prm.ident, buf, hgs);
         else
             buf.writestring(s.prm.ident.toString());
         buf.writestring("; ");
@@ -350,7 +350,7 @@ public:
             if (stcToBuffer(buf, stc))
                 buf.writeByte(' ');
             if (p.type)
-                typeToBuffer(p.type, p.ident);
+                typeToBuffer(p.type, p.ident, buf, hgs);
             else
                 buf.writestring(p.ident.toString());
             buf.writestring(" = ");
@@ -715,7 +715,7 @@ public:
         if (c.type)
         {
             buf.writeByte('(');
-            typeToBuffer(c.type, c.ident);
+            typeToBuffer(c.type, c.ident, buf, hgs);
             buf.writeByte(')');
         }
         buf.writenl();
@@ -730,58 +730,6 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    /**************************************************
-     * An entry point to pretty-print type.
-     */
-    void typeToBuffer(Type t, const Identifier ident)
-    {
-        if (auto tf = t.isTypeFunction())
-        {
-            visitFuncIdentWithPrefix(tf, ident, null);
-            return;
-        }
-        visitWithMask(t, 0);
-        if (ident)
-        {
-            buf.writeByte(' ');
-            buf.writestring(ident.toString());
-        }
-    }
-
-    void visitWithMask(Type t, ubyte modMask)
-    {
-        // Tuples and functions don't use the type constructor syntax
-        if (modMask == t.mod || t.ty == Tfunction || t.ty == Ttuple)
-        {
-            t.accept(this);
-        }
-        else
-        {
-            ubyte m = t.mod & ~(t.mod & modMask);
-            if (m & MODFlags.shared_)
-            {
-                MODtoBuffer(buf, MODFlags.shared_);
-                buf.writeByte('(');
-            }
-            if (m & MODFlags.wild)
-            {
-                MODtoBuffer(buf, MODFlags.wild);
-                buf.writeByte('(');
-            }
-            if (m & (MODFlags.const_ | MODFlags.immutable_))
-            {
-                MODtoBuffer(buf, m & (MODFlags.const_ | MODFlags.immutable_));
-                buf.writeByte('(');
-            }
-            t.accept(this);
-            if (m & (MODFlags.const_ | MODFlags.immutable_))
-                buf.writeByte(')');
-            if (m & MODFlags.wild)
-                buf.writeByte(')');
-            if (m & MODFlags.shared_)
-                buf.writeByte(')');
-        }
-    }
 
     override void visit(Type t)
     {
@@ -810,13 +758,13 @@ public:
     {
         //printf("TypeVector::toCBuffer2(t.mod = %d)\n", t.mod);
         buf.writestring("__vector(");
-        visitWithMask(t.basetype, t.mod);
+        visitWithMask(t.basetype, t.mod, buf, hgs);
         buf.writestring(")");
     }
 
     override void visit(TypeSArray t)
     {
-        visitWithMask(t.next, t.mod);
+        visitWithMask(t.next, t.mod, buf, hgs);
         buf.writeByte('[');
         sizeToBuffer(t.dim, buf, hgs);
         buf.writeByte(']');
@@ -836,16 +784,16 @@ public:
         else
         {
         L1:
-            visitWithMask(t.next, t.mod);
+            visitWithMask(t.next, t.mod, buf, hgs);
             buf.writestring("[]");
         }
     }
 
     override void visit(TypeAArray t)
     {
-        visitWithMask(t.next, t.mod);
+        visitWithMask(t.next, t.mod, buf, hgs);
         buf.writeByte('[');
-        visitWithMask(t.index, 0);
+        visitWithMask(t.index, 0, buf, hgs);
         buf.writeByte(']');
     }
 
@@ -856,14 +804,14 @@ public:
             visitFuncIdentWithPostfix(cast(TypeFunction)t.next, "function");
         else
         {
-            visitWithMask(t.next, t.mod);
+            visitWithMask(t.next, t.mod, buf, hgs);
             buf.writeByte('*');
         }
     }
 
     override void visit(TypeReference t)
     {
-        visitWithMask(t.next, t.mod);
+        visitWithMask(t.next, t.mod, buf, hgs);
         buf.writeByte('&');
     }
 
@@ -914,7 +862,7 @@ public:
         }
         if (t.next)
         {
-            typeToBuffer(t.next, null);
+            typeToBuffer(t.next, null, buf, hgs);
             if (ident)
                 buf.writeByte(' ');
         }
@@ -971,7 +919,7 @@ public:
         }
         else if (t.next)
         {
-            typeToBuffer(t.next, null);
+            typeToBuffer(t.next, null, buf, hgs);
             if (ident)
                 buf.writeByte(' ');
         }
@@ -1096,7 +1044,7 @@ public:
 
     override void visit(TypeSlice t)
     {
-        visitWithMask(t.next, t.mod);
+        visitWithMask(t.next, t.mod, buf, hgs);
         buf.writeByte('[');
         sizeToBuffer(t.lwr, buf, hgs);
         buf.writestring(" .. ");
@@ -1154,7 +1102,7 @@ public:
     override void visit(EnumMember em)
     {
         if (em.type)
-            typeToBuffer(em.type, em.ident);
+            typeToBuffer(em.type, em.ident, buf, hgs);
         else
             buf.writestring(em.ident.toString());
         if (em.value)
@@ -1523,7 +1471,7 @@ public:
             if (stcToBuffer(buf, vd.storage_class))
                 buf.writeByte(' ');
             if (vd.type)
-                typeToBuffer(vd.type, vd.ident);
+                typeToBuffer(vd.type, vd.ident, buf, hgs);
             else
                 buf.writestring(vd.ident.toString());
             buf.writeByte('(');
@@ -1581,7 +1529,7 @@ public:
     override void visit(TemplateMixin tm)
     {
         buf.writestring("mixin ");
-        typeToBuffer(tm.tqual, null);
+        typeToBuffer(tm.tqual, null, buf, hgs);
         tiargsToBuffer(tm);
         if (tm.ident && memcmp(tm.ident.toChars(), cast(const(char)*)"__mixin", 7) != 0)
         {
@@ -1677,7 +1625,7 @@ public:
         if (auto t = isType(oarg))
         {
             //printf("\tt: %s ty = %d\n", t.toChars(), t.ty);
-            typeToBuffer(t, null);
+            typeToBuffer(t, null, buf, hgs);
         }
         else if (auto e = isExpression(oarg))
         {
@@ -1728,7 +1676,7 @@ public:
         if (d.memtype)
         {
             buf.writestring(": ");
-            typeToBuffer(d.memtype, null);
+            typeToBuffer(d.memtype, null, buf, hgs);
         }
         if (!d.members)
         {
@@ -1827,7 +1775,7 @@ public:
         {
             if (i)
                 buf.writestring(", ");
-            typeToBuffer(b.type, null);
+            typeToBuffer(b.type, null, buf, hgs);
         }
     }
 
@@ -1848,7 +1796,7 @@ public:
         {
             if (stcToBuffer(buf, d.storage_class))
                 buf.writeByte(' ');
-            typeToBuffer(d.type, d.ident);
+            typeToBuffer(d.type, d.ident, buf, hgs);
         }
         else if (d.ident)
         {
@@ -1857,7 +1805,7 @@ public:
             buf.writestring(" = ");
             if (stcToBuffer(buf, d.storage_class))
                 buf.writeByte(' ');
-            typeToBuffer(d.type, null);
+            typeToBuffer(d.type, null, buf, hgs);
             hgs.declstring = false;
         }
         buf.writeByte(';');
@@ -1885,7 +1833,7 @@ public:
             if (stcToBuffer(buf, v.storage_class))
                 buf.writeByte(' ');
             if (v.type)
-                typeToBuffer(v.type, v.ident);
+                typeToBuffer(v.type, v.ident, buf, hgs);
             else
                 buf.writestring(v.ident.toString());
         }
@@ -1906,7 +1854,7 @@ public:
         if (stcToBuffer(buf, f.storage_class))
             buf.writeByte(' ');
         auto tf = cast(TypeFunction)f.type;
-        typeToBuffer(tf, f.ident);
+        typeToBuffer(tf, f.ident, buf, hgs);
 
         if (hgs.hdrgen)
         {
@@ -2031,7 +1979,7 @@ public:
         TypeFunction tf = cast(TypeFunction)f.type;
         // Don't print tf.mod, tf.trust, and tf.linkage
         if (!f.inferRetType && tf.next)
-            typeToBuffer(tf.next, null);
+            typeToBuffer(tf.next, null, buf, hgs);
         parametersToBuffer(tf.parameterList, buf, hgs);
         CompoundStatement cs = f.fbody.isCompoundStatement();
         Statement s1;
@@ -2503,7 +2451,7 @@ public:
 
     override void visit(TypeExp e)
     {
-        typeToBuffer(e.type, null);
+        typeToBuffer(e.type, null, buf, hgs);
     }
 
     override void visit(ScopeExp e)
@@ -2547,7 +2495,7 @@ public:
             argsToBuffer(e.newargs, buf, hgs);
             buf.writeByte(')');
         }
-        typeToBuffer(e.newtype, null);
+        typeToBuffer(e.newtype, null, buf, hgs);
         if (e.arguments && e.arguments.dim)
         {
             buf.writeByte('(');
@@ -2679,7 +2627,7 @@ public:
     override void visit(IsExp e)
     {
         buf.writestring("is(");
-        typeToBuffer(e.targ, e.id);
+        typeToBuffer(e.targ, e.id, buf, hgs);
         if (e.tok2 != TOK.reserved)
         {
             buf.printf(" %s %s", Token.toChars(e.tok), Token.toChars(e.tok2));
@@ -2690,7 +2638,7 @@ public:
                 buf.writestring(" : ");
             else
                 buf.writestring(" == ");
-            typeToBuffer(e.tspec, null);
+            typeToBuffer(e.tspec, null, buf, hgs);
         }
         if (e.parameters && e.parameters.dim)
         {
@@ -2821,7 +2769,7 @@ public:
     {
         buf.writestring("cast(");
         if (e.to)
-            typeToBuffer(e.to, null);
+            typeToBuffer(e.to, null, buf, hgs);
         else
         {
             MODtoBuffer(buf, e.mod);
@@ -2833,7 +2781,7 @@ public:
     override void visit(VectorExp e)
     {
         buf.writestring("cast(");
-        typeToBuffer(e.to, null);
+        typeToBuffer(e.to, null, buf, hgs);
         buf.writeByte(')');
         expToBuffer(e.e1, precedence[e.op], buf, hgs);
     }
@@ -2957,12 +2905,12 @@ public:
         if (tp.specType)
         {
             buf.writestring(" : ");
-            typeToBuffer(tp.specType, null);
+            typeToBuffer(tp.specType, null, buf, hgs);
         }
         if (tp.defaultType)
         {
             buf.writestring(" = ");
-            typeToBuffer(tp.defaultType, null);
+            typeToBuffer(tp.defaultType, null, buf, hgs);
         }
     }
 
@@ -2976,7 +2924,7 @@ public:
     {
         buf.writestring("alias ");
         if (tp.specType)
-            typeToBuffer(tp.specType, tp.ident);
+            typeToBuffer(tp.specType, tp.ident, buf, hgs);
         else
             buf.writestring(tp.ident.toString());
         if (tp.specAlias)
@@ -2993,7 +2941,7 @@ public:
 
     override void visit(TemplateValueParameter tp)
     {
-        typeToBuffer(tp.valType, tp.ident);
+        typeToBuffer(tp.valType, tp.ident, buf, hgs);
         if (tp.specValue)
         {
             buf.writestring(" : ");
@@ -3082,8 +3030,7 @@ void toCBuffer(Statement s, OutBuffer* buf, HdrGenState* hgs)
 
 void toCBuffer(Type t, OutBuffer* buf, const Identifier ident, HdrGenState* hgs)
 {
-    scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
-    v.typeToBuffer(t, ident);
+    typeToBuffer(t, ident, buf, hgs);
 }
 
 void toCBuffer(Dsymbol s, OutBuffer* buf, HdrGenState* hgs)
@@ -3351,12 +3298,11 @@ void argExpTypesToCBuffer(OutBuffer* buf, Expressions* arguments)
     if (!arguments || !arguments.dim)
         return;
     HdrGenState hgs;
-    scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, &hgs);
     foreach (i, arg; *arguments)
     {
         if (i)
             buf.writestring(", ");
-        v.typeToBuffer(arg.type, null);
+        typeToBuffer(arg.type, null, buf, &hgs);
     }
 }
 
@@ -3514,15 +3460,13 @@ private void parameterToBuffer(Parameter p, OutBuffer* buf, HdrGenState* hgs)
     }
     else
     {
-        scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
-        v.typeToBuffer(p.type, p.ident);
+        typeToBuffer(p.type, p.ident, buf, hgs);
     }
 
     if (p.defaultArg)
     {
         buf.writestring(" = ");
-        scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
-        p.defaultArg.accept(v);
+        p.defaultArg.expToBuffer(PREC.assign, buf, hgs);
     }
 }
 
@@ -3629,6 +3573,63 @@ private void expToBuffer(Expression e, PREC pr, OutBuffer* buf, HdrGenState* hgs
     {
         scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
         e.accept(v);
+    }
+}
+
+
+/**************************************************
+ * An entry point to pretty-print type.
+ */
+private void typeToBuffer(Type t, const Identifier ident, OutBuffer* buf, HdrGenState* hgs)
+{
+    if (auto tf = t.isTypeFunction())
+    {
+        scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
+        v.visitFuncIdentWithPrefix(tf, ident, null);
+        return;
+    }
+    visitWithMask(t, 0, buf, hgs);
+    if (ident)
+    {
+        buf.writeByte(' ');
+        buf.writestring(ident.toString());
+    }
+}
+
+private void visitWithMask(Type t, ubyte modMask, OutBuffer* buf, HdrGenState* hgs)
+{
+    scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
+
+    // Tuples and functions don't use the type constructor syntax
+    if (modMask == t.mod || t.ty == Tfunction || t.ty == Ttuple)
+    {
+        t.accept(v);
+    }
+    else
+    {
+        ubyte m = t.mod & ~(t.mod & modMask);
+        if (m & MODFlags.shared_)
+        {
+            MODtoBuffer(buf, MODFlags.shared_);
+            buf.writeByte('(');
+        }
+        if (m & MODFlags.wild)
+        {
+            MODtoBuffer(buf, MODFlags.wild);
+            buf.writeByte('(');
+        }
+        if (m & (MODFlags.const_ | MODFlags.immutable_))
+        {
+            MODtoBuffer(buf, m & (MODFlags.const_ | MODFlags.immutable_));
+            buf.writeByte('(');
+        }
+        t.accept(v);
+        if (m & (MODFlags.const_ | MODFlags.immutable_))
+            buf.writeByte(')');
+        if (m & MODFlags.wild)
+            buf.writeByte(')');
+        if (m & MODFlags.shared_)
+            buf.writeByte(')');
     }
 }
 
