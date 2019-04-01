@@ -407,7 +407,6 @@ SRCS=\
 	src\rt\adi.d \
 	src\rt\alloca.d \
 	src\rt\arrayassign.d \
-	src\rt\arraycast.d \
 	src\rt\arraycat.d \
 	src\rt\cast_.d \
 	src\rt\cmath2.d \
