@@ -35,36 +35,22 @@ extern (C) int _adEq2(void[] a1, void[] a2, TypeInfo ti)
     return 1;
 }
 
-unittest
+@safe unittest
 {
     debug(adi) printf("array.Eq unittest\n");
 
-    auto a = "hello"c;
+    struct S(T) { T val; }
+    alias String = S!string;
+    alias Float = S!float;
 
-    assert(a != "hel");
-    assert(a != "helloo");
-    assert(a != "betty");
-    assert(a == "hello");
-    assert(a != "hxxxx");
+    String[1] a = [String("hello"c)];
 
-    float[] fa = [float.nan];
+    assert(a != [String("hel")]);
+    assert(a != [String("helloo")]);
+    assert(a != [String("betty")]);
+    assert(a == [String("hello")]);
+    assert(a != [String("hxxxx")]);
+
+    Float[1] fa = [Float(float.nan)];
     assert(fa != fa);
-}
-
-unittest
-{
-    debug(adi) printf("array.Cmp unittest\n");
-
-    auto a = "hello"c;
-
-    assert(a >  "hel");
-    assert(a >= "hel");
-    assert(a <  "helloo");
-    assert(a <= "helloo");
-    assert(a >  "betty");
-    assert(a >= "betty");
-    assert(a == "hello");
-    assert(a <= "hello");
-    assert(a >= "hello");
-    assert(a <  "я");
 }
