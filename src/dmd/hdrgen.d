@@ -731,207 +731,6 @@ public:
 
     ////////////////////////////////////////////////////////////////////////////
 
-    override void visit(Type t)
-    {
-        printf("t = %p, ty = %d\n", t, t.ty);
-        assert(0);
-    }
-
-    override void visit(TypeError t)
-    {
-        buf.writestring("_error_");
-    }
-
-    override void visit(TypeBasic t)
-    {
-        //printf("TypeBasic::toCBuffer2(t.mod = %d)\n", t.mod);
-        buf.writestring(t.dstring);
-    }
-
-    override void visit(TypeTraits t)
-    {
-        //printf("TypeBasic::toCBuffer2(t.mod = %d)\n", t.mod);
-        visit(t.exp);
-    }
-
-    override void visit(TypeVector t)
-    {
-        //printf("TypeVector::toCBuffer2(t.mod = %d)\n", t.mod);
-        buf.writestring("__vector(");
-        visitWithMask(t.basetype, t.mod, buf, hgs);
-        buf.writestring(")");
-    }
-
-    override void visit(TypeSArray t)
-    {
-        visitWithMask(t.next, t.mod, buf, hgs);
-        buf.writeByte('[');
-        sizeToBuffer(t.dim, buf, hgs);
-        buf.writeByte(']');
-    }
-
-    override void visit(TypeDArray t)
-    {
-        Type ut = t.castMod(0);
-        if (hgs.declstring)
-            goto L1;
-        if (ut.equals(Type.tstring))
-            buf.writestring("string");
-        else if (ut.equals(Type.twstring))
-            buf.writestring("wstring");
-        else if (ut.equals(Type.tdstring))
-            buf.writestring("dstring");
-        else
-        {
-        L1:
-            visitWithMask(t.next, t.mod, buf, hgs);
-            buf.writestring("[]");
-        }
-    }
-
-    override void visit(TypeAArray t)
-    {
-        visitWithMask(t.next, t.mod, buf, hgs);
-        buf.writeByte('[');
-        visitWithMask(t.index, 0, buf, hgs);
-        buf.writeByte(']');
-    }
-
-    override void visit(TypePointer t)
-    {
-        //printf("TypePointer::toCBuffer2() next = %d\n", t.next.ty);
-        if (t.next.ty == Tfunction)
-            visitFuncIdentWithPostfix(cast(TypeFunction)t.next, "function", buf, hgs);
-        else
-        {
-            visitWithMask(t.next, t.mod, buf, hgs);
-            buf.writeByte('*');
-        }
-    }
-
-    override void visit(TypeReference t)
-    {
-        visitWithMask(t.next, t.mod, buf, hgs);
-        buf.writeByte('&');
-    }
-
-    override void visit(TypeFunction t)
-    {
-        //printf("TypeFunction::toCBuffer2() t = %p, ref = %d\n", t, t.isref);
-        visitFuncIdentWithPostfix(t, null, buf, hgs);
-    }
-
-    override void visit(TypeDelegate t)
-    {
-        visitFuncIdentWithPostfix(cast(TypeFunction)t.next, "delegate", buf, hgs);
-    }
-
-    void visitTypeQualifiedHelper(TypeQualified t)
-    {
-        foreach (id; t.idents)
-        {
-            if (id.dyncast() == DYNCAST.dsymbol)
-            {
-                buf.writeByte('.');
-                TemplateInstance ti = cast(TemplateInstance)id;
-                ti.accept(this);
-            }
-            else if (id.dyncast() == DYNCAST.expression)
-            {
-                buf.writeByte('[');
-                (cast(Expression)id).accept(this);
-                buf.writeByte(']');
-            }
-            else if (id.dyncast() == DYNCAST.type)
-            {
-                buf.writeByte('[');
-                (cast(Type)id).accept(this);
-                buf.writeByte(']');
-            }
-            else
-            {
-                buf.writeByte('.');
-                buf.writestring(id.toChars());
-            }
-        }
-    }
-
-    override void visit(TypeIdentifier t)
-    {
-        buf.writestring(t.ident.toString());
-        visitTypeQualifiedHelper(t);
-    }
-
-    override void visit(TypeInstance t)
-    {
-        t.tempinst.accept(this);
-        visitTypeQualifiedHelper(t);
-    }
-
-    override void visit(TypeTypeof t)
-    {
-        buf.writestring("typeof(");
-        t.exp.accept(this);
-        buf.writeByte(')');
-        visitTypeQualifiedHelper(t);
-    }
-
-    override void visit(TypeReturn t)
-    {
-        buf.writestring("typeof(return)");
-        visitTypeQualifiedHelper(t);
-    }
-
-    override void visit(TypeEnum t)
-    {
-        buf.writestring(hgs.fullQual ? t.sym.toPrettyChars() : t.sym.toChars());
-    }
-
-    override void visit(TypeStruct t)
-    {
-        // https://issues.dlang.org/show_bug.cgi?id=13776
-        // Don't use ti.toAlias() to avoid forward reference error
-        // while printing messages.
-        TemplateInstance ti = t.sym.parent ? t.sym.parent.isTemplateInstance() : null;
-        if (ti && ti.aliasdecl == t.sym)
-            buf.writestring(hgs.fullQual ? ti.toPrettyChars() : ti.toChars());
-        else
-            buf.writestring(hgs.fullQual ? t.sym.toPrettyChars() : t.sym.toChars());
-    }
-
-    override void visit(TypeClass t)
-    {
-        // https://issues.dlang.org/show_bug.cgi?id=13776
-        // Don't use ti.toAlias() to avoid forward reference error
-        // while printing messages.
-        TemplateInstance ti = t.sym.parent.isTemplateInstance();
-        if (ti && ti.aliasdecl == t.sym)
-            buf.writestring(hgs.fullQual ? ti.toPrettyChars() : ti.toChars());
-        else
-            buf.writestring(hgs.fullQual ? t.sym.toPrettyChars() : t.sym.toChars());
-    }
-
-    override void visit(TypeTuple t)
-    {
-        parametersToBuffer(ParameterList(t.arguments, VarArg.none), buf, hgs);
-    }
-
-    override void visit(TypeSlice t)
-    {
-        visitWithMask(t.next, t.mod, buf, hgs);
-        buf.writeByte('[');
-        sizeToBuffer(t.lwr, buf, hgs);
-        buf.writestring(" .. ");
-        sizeToBuffer(t.upr, buf, hgs);
-        buf.writeByte(']');
-    }
-
-    override void visit(TypeNull t)
-    {
-        buf.writestring("typeof(null)");
-    }
-
-    ////////////////////////////////////////////////////////////////////////////
     override void visit(Dsymbol s)
     {
         buf.writestring(s.toChars());
@@ -3294,12 +3093,10 @@ private void typeToBuffer(Type t, const Identifier ident, OutBuffer* buf, HdrGen
 
 private void visitWithMask(Type t, ubyte modMask, OutBuffer* buf, HdrGenState* hgs)
 {
-    scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
-
     // Tuples and functions don't use the type constructor syntax
     if (modMask == t.mod || t.ty == Tfunction || t.ty == Ttuple)
     {
-        t.accept(v);
+        typeToBufferx(t, buf, hgs);
     }
     else
     {
@@ -3319,7 +3116,7 @@ private void visitWithMask(Type t, ubyte modMask, OutBuffer* buf, HdrGenState* h
             MODtoBuffer(buf, m & (MODFlags.const_ | MODFlags.immutable_));
             buf.writeByte('(');
         }
-        t.accept(v);
+        typeToBufferx(t, buf, hgs);
         if (m & (MODFlags.const_ | MODFlags.immutable_))
             buf.writeByte(')');
         if (m & MODFlags.wild)
@@ -3645,5 +3442,239 @@ private void initializerToBuffer(Initializer inx, OutBuffer* buf, HdrGenState* h
         case InitKind.struct_: return visitStruct(inx.isStructInitializer());
         case InitKind.array:   return visitArray (inx.isArrayInitializer ());
         case InitKind.exp:     return visitExp   (inx.isExpInitializer   ());
+    }
+}
+
+
+private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
+{
+    scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
+
+    void visitType(Type t)
+    {
+        printf("t = %p, ty = %d\n", t, t.ty);
+        assert(0);
+    }
+
+    void visitError(TypeError t)
+    {
+        buf.writestring("_error_");
+    }
+
+    void visitBasic(TypeBasic t)
+    {
+        //printf("TypeBasic::toCBuffer2(t.mod = %d)\n", t.mod);
+        buf.writestring(t.dstring);
+    }
+
+    void visitTraits(TypeTraits t)
+    {
+        //printf("TypeBasic::toCBuffer2(t.mod = %d)\n", t.mod);
+        t.exp.accept(v);
+    }
+
+    void visitVector(TypeVector t)
+    {
+        //printf("TypeVector::toCBuffer2(t.mod = %d)\n", t.mod);
+        buf.writestring("__vector(");
+        visitWithMask(t.basetype, t.mod, buf, hgs);
+        buf.writestring(")");
+    }
+
+    void visitSArray(TypeSArray t)
+    {
+        visitWithMask(t.next, t.mod, buf, hgs);
+        buf.writeByte('[');
+        sizeToBuffer(t.dim, buf, hgs);
+        buf.writeByte(']');
+    }
+
+    void visitDArray(TypeDArray t)
+    {
+        Type ut = t.castMod(0);
+        if (hgs.declstring)
+            goto L1;
+        if (ut.equals(Type.tstring))
+            buf.writestring("string");
+        else if (ut.equals(Type.twstring))
+            buf.writestring("wstring");
+        else if (ut.equals(Type.tdstring))
+            buf.writestring("dstring");
+        else
+        {
+        L1:
+            visitWithMask(t.next, t.mod, buf, hgs);
+            buf.writestring("[]");
+        }
+    }
+
+    void visitAArray(TypeAArray t)
+    {
+        visitWithMask(t.next, t.mod, buf, hgs);
+        buf.writeByte('[');
+        visitWithMask(t.index, 0, buf, hgs);
+        buf.writeByte(']');
+    }
+
+    void visitPointer(TypePointer t)
+    {
+        //printf("TypePointer::toCBuffer2() next = %d\n", t.next.ty);
+        if (t.next.ty == Tfunction)
+            visitFuncIdentWithPostfix(cast(TypeFunction)t.next, "function", buf, hgs);
+        else
+        {
+            visitWithMask(t.next, t.mod, buf, hgs);
+            buf.writeByte('*');
+        }
+    }
+
+    void visitReference(TypeReference t)
+    {
+        visitWithMask(t.next, t.mod, buf, hgs);
+        buf.writeByte('&');
+    }
+
+    void visitFunction(TypeFunction t)
+    {
+        //printf("TypeFunction::toCBuffer2() t = %p, ref = %d\n", t, t.isref);
+        visitFuncIdentWithPostfix(t, null, buf, hgs);
+    }
+
+    void visitDelegate(TypeDelegate t)
+    {
+        visitFuncIdentWithPostfix(cast(TypeFunction)t.next, "delegate", buf, hgs);
+    }
+
+    void visitTypeQualifiedHelper(TypeQualified t)
+    {
+        foreach (id; t.idents)
+        {
+            if (id.dyncast() == DYNCAST.dsymbol)
+            {
+                buf.writeByte('.');
+                TemplateInstance ti = cast(TemplateInstance)id;
+                ti.accept(v);
+            }
+            else if (id.dyncast() == DYNCAST.expression)
+            {
+                buf.writeByte('[');
+                (cast(Expression)id).accept(v);
+                buf.writeByte(']');
+            }
+            else if (id.dyncast() == DYNCAST.type)
+            {
+                buf.writeByte('[');
+                typeToBufferx(cast(Type)id, buf, hgs);
+                buf.writeByte(']');
+            }
+            else
+            {
+                buf.writeByte('.');
+                buf.writestring(id.toChars());
+            }
+        }
+    }
+
+    void visitIdentifier(TypeIdentifier t)
+    {
+        buf.writestring(t.ident.toString());
+        visitTypeQualifiedHelper(t);
+    }
+
+    void visitInstance(TypeInstance t)
+    {
+        t.tempinst.accept(v);
+        visitTypeQualifiedHelper(t);
+    }
+
+    void visitTypeof(TypeTypeof t)
+    {
+        buf.writestring("typeof(");
+        t.exp.accept(v);
+        buf.writeByte(')');
+        visitTypeQualifiedHelper(t);
+    }
+
+    void visitReturn(TypeReturn t)
+    {
+        buf.writestring("typeof(return)");
+        visitTypeQualifiedHelper(t);
+    }
+
+    void visitEnum(TypeEnum t)
+    {
+        buf.writestring(hgs.fullQual ? t.sym.toPrettyChars() : t.sym.toChars());
+    }
+
+    void visitStruct(TypeStruct t)
+    {
+        // https://issues.dlang.org/show_bug.cgi?id=13776
+        // Don't use ti.toAlias() to avoid forward reference error
+        // while printing messages.
+        TemplateInstance ti = t.sym.parent ? t.sym.parent.isTemplateInstance() : null;
+        if (ti && ti.aliasdecl == t.sym)
+            buf.writestring(hgs.fullQual ? ti.toPrettyChars() : ti.toChars());
+        else
+            buf.writestring(hgs.fullQual ? t.sym.toPrettyChars() : t.sym.toChars());
+    }
+
+    void visitClass(TypeClass t)
+    {
+        // https://issues.dlang.org/show_bug.cgi?id=13776
+        // Don't use ti.toAlias() to avoid forward reference error
+        // while printing messages.
+        TemplateInstance ti = t.sym.parent.isTemplateInstance();
+        if (ti && ti.aliasdecl == t.sym)
+            buf.writestring(hgs.fullQual ? ti.toPrettyChars() : ti.toChars());
+        else
+            buf.writestring(hgs.fullQual ? t.sym.toPrettyChars() : t.sym.toChars());
+    }
+
+    void visitTuple(TypeTuple t)
+    {
+        parametersToBuffer(ParameterList(t.arguments, VarArg.none), buf, hgs);
+    }
+
+    void visitSlice(TypeSlice t)
+    {
+        visitWithMask(t.next, t.mod, buf, hgs);
+        buf.writeByte('[');
+        sizeToBuffer(t.lwr, buf, hgs);
+        buf.writestring(" .. ");
+        sizeToBuffer(t.upr, buf, hgs);
+        buf.writeByte(']');
+    }
+
+    void visitNull(TypeNull t)
+    {
+        buf.writestring("typeof(null)");
+    }
+
+    switch (t.ty)
+    {
+        default:        return t.isTypeBasic() ?
+                                visitBasic(cast(TypeBasic)t) :
+                                visitType(t);
+
+        case Terror:     return visitError(cast(TypeError)t);
+        case Ttraits:    return visitTraits(cast(TypeTraits)t);
+        case Tvector:    return visitVector(cast(TypeVector)t);
+        case Tsarray:    return visitSArray(cast(TypeSArray)t);
+        case Tarray:     return visitDArray(cast(TypeDArray)t);
+        case Taarray:    return visitAArray(cast(TypeAArray)t);
+        case Tpointer:   return visitPointer(cast(TypePointer)t);
+        case Treference: return visitReference(cast(TypeReference)t);
+        case Tfunction:  return visitFunction(cast(TypeFunction)t);
+        case Tdelegate:  return visitDelegate(cast(TypeDelegate)t);
+        case Tident:     return visitIdentifier(cast(TypeIdentifier)t);
+        case Tinstance:  return visitInstance(cast(TypeInstance)t);
+        case Ttypeof:    return visitTypeof(cast(TypeTypeof)t);
+        case Treturn:    return visitReturn(cast(TypeReturn)t);
+        case Tenum:      return visitEnum(cast(TypeEnum)t);
+        case Tstruct:    return visitStruct(cast(TypeStruct)t);
+        case Tclass:     return visitClass(cast(TypeClass)t);
+        case Ttuple:     return visitTuple (cast(TypeTuple)t);
+        case Tslice:     return visitSlice(cast(TypeSlice)t);
+        case Tnull:      return visitNull(cast(TypeNull)t);
     }
 }
