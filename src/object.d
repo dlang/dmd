@@ -332,6 +332,22 @@ if (!__traits(isScalar, T1) && !__traits(isScalar, T2))
     assert(__cmp([c2, c2], [c2, c1]) > 0);
 }
 
+@safe unittest
+{
+    auto a = "hello"c;
+
+    assert(a >  "hel");
+    assert(a >= "hel");
+    assert(a <  "helloo");
+    assert(a <= "helloo");
+    assert(a >  "betty");
+    assert(a >= "betty");
+    assert(a == "hello");
+    assert(a <= "hello");
+    assert(a >= "hello");
+    assert(a <  "я");
+}
+
 // `lhs == rhs` lowers to `__equals(lhs, rhs)` for dynamic arrays
 bool __equals(T1, T2)(T1[] lhs, T2[] rhs)
 {
@@ -446,6 +462,20 @@ bool __equals(T1, T2)(T1[] lhs, T2[] rhs)
 {
     assert(__equals([], []));
     assert(!__equals([1, 2], [1, 2, 3]));
+}
+
+@safe unittest
+{
+    auto a = "hello"c;
+
+    assert(a != "hel");
+    assert(a != "helloo");
+    assert(a != "betty");
+    assert(a == "hello");
+    assert(a != "hxxxx");
+
+    float[] fa = [float.nan];
+    assert(fa != fa);
 }
 
 @safe unittest
