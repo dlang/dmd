@@ -1358,7 +1358,7 @@ public:
                 if (ie && (ie.exp.op == TOK.construct || ie.exp.op == TOK.blit))
                     (cast(AssignExp)ie.exp).e2.accept(this);
                 else
-                    vd._init.accept(this);
+                    vd._init.initializerToBuffer(buf, hgs);
             }
             buf.writeByte(';');
             buf.writenl();
@@ -1598,7 +1598,7 @@ public:
             if (ie && (ie.exp.op == TOK.construct || ie.exp.op == TOK.blit))
                 (cast(AssignExp)ie.exp).e2.accept(this);
             else
-                v._init.accept(this);
+                v._init.initializerToBuffer(buf, hgs);
         }
     }
 
@@ -1859,59 +1859,6 @@ public:
         buf.writestring("delete");
         parametersToBuffer(ParameterList(d.parameters, VarArg.none), buf, hgs);
         bodyToBuffer(d);
-    }
-
-    ////////////////////////////////////////////////////////////////////////////
-    override void visit(ErrorInitializer iz)
-    {
-        buf.writestring("__error__");
-    }
-
-    override void visit(VoidInitializer iz)
-    {
-        buf.writestring("void");
-    }
-
-    override void visit(StructInitializer si)
-    {
-        //printf("StructInitializer::toCBuffer()\n");
-        buf.writeByte('{');
-        foreach (i, const id; si.field)
-        {
-            if (i)
-                buf.writestring(", ");
-            if (id)
-            {
-                buf.writestring(id.toChars());
-                buf.writeByte(':');
-            }
-            if (auto iz = si.value[i])
-                iz.accept(this);
-        }
-        buf.writeByte('}');
-    }
-
-    override void visit(ArrayInitializer ai)
-    {
-        buf.writeByte('[');
-        foreach (i, ex; ai.index)
-        {
-            if (i)
-                buf.writestring(", ");
-            if (ex)
-            {
-                ex.accept(this);
-                buf.writeByte(':');
-            }
-            if (auto iz = ai.value[i])
-                iz.accept(this);
-        }
-        buf.writeByte(']');
-    }
-
-    override void visit(ExpInitializer ei)
-    {
-        ei.exp.accept(this);
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -2804,8 +2751,7 @@ void toCBufferInstance(TemplateInstance ti, OutBuffer* buf, bool qualifyTypes = 
 
 void toCBuffer(Initializer iz, OutBuffer* buf, HdrGenState* hgs)
 {
-    scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
-    iz.accept(v);
+    initializerToBuffer(iz, buf, hgs);
 }
 
 bool stcToBuffer(OutBuffer* buf, StorageClass stc)
@@ -3636,3 +3582,68 @@ private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, Te
 }
 
 
+private void initializerToBuffer(Initializer inx, OutBuffer* buf, HdrGenState* hgs)
+{
+    scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
+
+    void visitError(ErrorInitializer iz)
+    {
+        buf.writestring("__error__");
+    }
+
+    void visitVoid(VoidInitializer iz)
+    {
+        buf.writestring("void");
+    }
+
+    void visitStruct(StructInitializer si)
+    {
+        //printf("StructInitializer::toCBuffer()\n");
+        buf.writeByte('{');
+        foreach (i, const id; si.field)
+        {
+            if (i)
+                buf.writestring(", ");
+            if (id)
+            {
+                buf.writestring(id.toChars());
+                buf.writeByte(':');
+            }
+            if (auto iz = si.value[i])
+                initializerToBuffer(iz, buf, hgs);
+        }
+        buf.writeByte('}');
+    }
+
+    void visitArray(ArrayInitializer ai)
+    {
+        buf.writeByte('[');
+        foreach (i, ex; ai.index)
+        {
+            if (i)
+                buf.writestring(", ");
+            if (ex)
+            {
+                ex.accept(v);
+                buf.writeByte(':');
+            }
+            if (auto iz = ai.value[i])
+                initializerToBuffer(iz, buf, hgs);
+        }
+        buf.writeByte(']');
+    }
+
+    void visitExp(ExpInitializer ei)
+    {
+        ei.exp.accept(v);
+    }
+
+    final switch (inx.kind)
+    {
+        case InitKind.error:   return visitError (inx.isErrorInitializer ());
+        case InitKind.void_:   return visitVoid  (inx.isVoidInitializer  ());
+        case InitKind.struct_: return visitStruct(inx.isStructInitializer());
+        case InitKind.array:   return visitArray (inx.isArrayInitializer ());
+        case InitKind.exp:     return visitExp   (inx.isExpInitializer   ());
+    }
+}
