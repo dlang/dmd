@@ -357,12 +357,11 @@ Returns:
 string prettyPrint(Module m)
 {
     import dmd.root.outbuffer: OutBuffer;
-    import dmd.hdrgen : HdrGenState, PrettyPrintVisitor;
+    import dmd.hdrgen : HdrGenState, moduleToBuffer2;
 
     OutBuffer buf = { doindent: 1 };
     HdrGenState hgs = { fullDump: 1 };
-    scope PrettyPrintVisitor ppv = new PrettyPrintVisitor(&buf, &hgs);
-    m.accept(ppv);
+    moduleToBuffer2(m, &buf, &hgs);
 
     import std.string : replace, fromStringz;
     import std.exception : assumeUnique;
