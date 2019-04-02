@@ -1650,8 +1650,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
         {
             if (!global.errors)
                 .error(mtype.loc, "`%s` does not give a valid type", mtype.toChars);
-            mtype.ty = Terror;
-            return mtype;
+            return error();
         }
 
         return result;
