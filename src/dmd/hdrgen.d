@@ -97,7 +97,43 @@ extern (C++) void moduleToBuffer(OutBuffer* buf, Module m)
     toCBuffer(m, buf, &hgs);
 }
 
-extern (C++) final class PrettyPrintVisitor : Visitor
+void moduleToBuffer2(Module m, OutBuffer* buf, HdrGenState* hgs)
+{
+    scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
+
+    if (m.md)
+    {
+        if (m.userAttribDecl)
+        {
+            buf.writestring("@(");
+            argsToBuffer(m.userAttribDecl.atts, buf, hgs);
+            buf.writeByte(')');
+            buf.writenl();
+        }
+        if (m.md.isdeprecated)
+        {
+            if (m.md.msg)
+            {
+                buf.writestring("deprecated(");
+                m.md.msg.accept(v);
+                buf.writestring(") ");
+            }
+            else
+                buf.writestring("deprecated ");
+        }
+        buf.writestring("module ");
+        buf.writestring(m.md.toChars());
+        buf.writeByte(';');
+        buf.writenl();
+    }
+
+    foreach (s; *m.members)
+    {
+        s.accept(v);
+    }
+}
+
+private extern (C++) final class PrettyPrintVisitor : Visitor
 {
     alias visit = Visitor.visit;
 public:
@@ -2490,35 +2526,7 @@ public:
 
     override void visit(Module m)
     {
-        if (m.md)
-        {
-            if (m.userAttribDecl)
-            {
-                buf.writestring("@(");
-                argsToBuffer(m.userAttribDecl.atts, buf, hgs);
-                buf.writeByte(')');
-                buf.writenl();
-            }
-            if (m.md.isdeprecated)
-            {
-                if (m.md.msg)
-                {
-                    buf.writestring("deprecated(");
-                    m.md.msg.accept(this);
-                    buf.writestring(") ");
-                }
-                else
-                    buf.writestring("deprecated ");
-            }
-            buf.writestring("module ");
-            buf.writestring(m.md.toChars());
-            buf.writeByte(';');
-            buf.writenl();
-        }
-        foreach (s; *m.members)
-        {
-            s.accept(this);
-        }
+        moduleToBuffer2(m, buf, hgs);
     }
 }
 
