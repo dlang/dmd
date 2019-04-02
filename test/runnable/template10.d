@@ -39,10 +39,40 @@ auto test1b()
     assert(f0() == 10);
 }
 
+template t1c(alias a)
+{
+    template u(alias b)
+    {
+        template v(alias c)
+        {
+            auto sum()
+            {
+                return a + b + c;
+            }
+        }
+    }
+}
+
+void test1c()
+{
+    int c = 3;
+    auto f0()
+    {
+        int a = 1;
+        auto f1()
+        {
+            int b = 2;
+            auto r = t1c!a.u!b.v!c.sum();
+            assert(r == 6);
+        }
+    }
+}
+
 void test1()
 {
     test1a();
     test1b();
+    test1c();
 }
 
 /********************************************/

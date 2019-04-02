@@ -7227,13 +7227,11 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         int nested = 0;
         //printf("TemplateInstance.hasNestedArgs('%s')\n", tempdecl.ident.toChars());
 
-        version (none)
+        // arguments from parent instances are also accessible
+        if (!enclosing)
         {
-            if (!enclosing)
-            {
-                if (TemplateInstance ti = tempdecl.isInstantiated())
-                    enclosing = ti.enclosing;
-            }
+            if (TemplateInstance ti = tempdecl.toParent().isTemplateInstance())
+                enclosing = ti.enclosing;
         }
 
         /* A nested instance happens when an argument references a local
