@@ -51,7 +51,7 @@ unittest
     assert(reporter.warningCount == 1);
 }
 
-@("deprecations: hex string literal")
+@("deprecations: Invalid integer")
 unittest
 {
     static final class DeprecationsCountingDiagnosticReporter : NoopDiagnosticReporter
@@ -65,7 +65,7 @@ unittest
     }
 
     scope reporter = new DeprecationsCountingDiagnosticReporter;
-    lexUntilEndOfFile(`enum a = x"60";`, reporter);
+    lexUntilEndOfFile(`auto a = 0b;`, reporter);
 
     assert(reporter.deprecationCount == 1);
 }
