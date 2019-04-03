@@ -6546,7 +6546,7 @@ private Expression scrubReturnValue(const ref Loc loc, Expression e)
     /* Returns: true if e is void,
      * or is an array literal or struct literal of void elements.
      */
-    static bool isVoid(const Expression e) pure
+    static bool isVoid(const Expression e, bool checkArrayType = false) pure
     {
         if (e.op == TOK.void_)
             return true;
@@ -6562,6 +6562,9 @@ private Expression scrubReturnValue(const ref Loc loc, Expression e)
             }
             return true;
         }
+
+        if (checkArrayType && e.type.ty != Tsarray)
+            return false;
 
         if (auto ale = e.isArrayLiteralExp())
             return isEntirelyVoid(ale.elements);
@@ -6587,7 +6590,7 @@ private Expression scrubReturnValue(const ref Loc loc, Expression e)
 
             // A struct .init may contain void members.
             // Static array members are a weird special case https://issues.dlang.org/show_bug.cgi?id=10994
-            if (structlit && isVoid(e))
+            if (structlit && isVoid(e, true))
             {
                 e = null;
             }
