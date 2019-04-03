@@ -1273,7 +1273,7 @@ public:
         {
             if (i)
                 buf.writestring(", ");
-            p.accept(this);
+            p.templateParameterToBuffer(buf, hgs);
         }
     }
 
@@ -2497,7 +2497,33 @@ public:
         buf.writestring(e.value.toChars());
     }
 
-    ////////////////////////////////////////////////////////////////////////////
+
+    override void visit(Module m)
+    {
+        moduleToBuffer2(m, buf, hgs);
+    }
+}
+
+
+private void templateParameterToBuffer(TemplateParameter tp, OutBuffer* buf, HdrGenState* hgs)
+{
+    scope v = new TemplateParameterPrettyPrintVisitor(buf, hgs);
+    tp.accept(v);
+}
+
+private extern (C++) final class TemplateParameterPrettyPrintVisitor : Visitor
+{
+    alias visit = Visitor.visit;
+public:
+    OutBuffer* buf;
+    HdrGenState* hgs;
+
+    extern (D) this(OutBuffer* buf, HdrGenState* hgs)
+    {
+        this.buf = buf;
+        this.hgs = hgs;
+    }
+
     override void visit(TemplateTypeParameter tp)
     {
         buf.writestring(tp.ident.toString());
@@ -2544,12 +2570,14 @@ public:
         if (tp.specValue)
         {
             buf.writestring(" : ");
-            tp.specValue.accept(this);
+            scope v = new PrettyPrintVisitor(buf, hgs);
+            tp.specValue.accept(v);
         }
         if (tp.defaultValue)
         {
             buf.writestring(" = ");
-            tp.defaultValue.accept(this);
+            scope v = new PrettyPrintVisitor(buf, hgs);
+            tp.defaultValue.accept(v);
         }
     }
 
@@ -2557,11 +2585,6 @@ public:
     {
         buf.writestring(tp.ident.toString());
         buf.writestring("...");
-    }
-
-    override void visit(Module m)
-    {
-        moduleToBuffer2(m, buf, hgs);
     }
 }
 
@@ -2896,7 +2919,7 @@ void argExpTypesToCBuffer(OutBuffer* buf, Expressions* arguments)
 
 void toCBuffer(TemplateParameter tp, OutBuffer* buf, HdrGenState* hgs)
 {
-    scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
+    scope v = new TemplateParameterPrettyPrintVisitor(buf, hgs);
     tp.accept(v);
 }
 
@@ -3451,12 +3474,11 @@ private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, Te
     if (td)
     {
         buf.writeByte('(');
-        scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
         foreach (i, p; *td.origParameters)
         {
             if (i)
                 buf.writestring(", ");
-            p.accept(v);
+            p.templateParameterToBuffer(buf, hgs);
         }
         buf.writeByte(')');
     }
