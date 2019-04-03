@@ -8914,6 +8914,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else if ((tb1.ty == Tarray) && exp.e2.implicitConvTo(tb1next))
         {
+            /* https://issues.dlang.org/show_bug.cgi?id=19782
+             *
+             * If e2 is implicitly convertible to tb1next, the conversion
+             * might be done through alias this, in which case, e2 needs to
+             * be modified accordingly (e2 => e2.aliasthis).
+             */
+            if (tb2.ty == Tstruct && (cast(TypeStruct)tb2).implicitConvToThroughAliasThis(tb1next))
+                goto Laliasthis;
+            if (tb2.ty == Tclass && (cast(TypeClass)tb2).implicitConvToThroughAliasThis(tb1next))
+                goto Laliasthis;
             // Append element
             if (exp.e2.checkPostblit(sc, tb2))
                 return setError();
@@ -8981,6 +8991,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return be.trySemantic(sc);
             }
 
+    Laliasthis:
             result = tryAliasThisForLhs(exp, sc);
             if (result)
                 return;
