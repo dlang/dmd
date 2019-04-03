@@ -99,8 +99,6 @@ extern (C++) void moduleToBuffer(OutBuffer* buf, Module m)
 
 void moduleToBuffer2(Module m, OutBuffer* buf, HdrGenState* hgs)
 {
-    scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
-
     if (m.md)
     {
         if (m.userAttribDecl)
@@ -129,7 +127,7 @@ void moduleToBuffer2(Module m, OutBuffer* buf, HdrGenState* hgs)
 
     foreach (s; *m.members)
     {
-        s.accept(v);
+        s.dsymbolToBuffer(buf, hgs);
     }
 }
 
@@ -2185,14 +2183,17 @@ public:
          */
         if (e.declaration)
         {
-            if (auto v = e.declaration.isVarDeclaration())
+            if (auto var = e.declaration.isVarDeclaration())
             {
             // For debugging use:
             // - Avoid printing newline.
             // - Intentionally use the format (Type var;)
             //   which isn't correct as regular D code.
                 buf.writeByte('(');
-                visitVarDecl(v, false);
+
+                scope v = new PrettyPrintVisitor(buf, hgs);
+                v.visitVarDecl(var, false);
+
                 buf.writeByte(';');
                 buf.writeByte(')');
             }
@@ -2247,7 +2248,8 @@ public:
         if (e.parameters && e.parameters.dim)
         {
             buf.writestring(", ");
-            visitTemplateParameters(e.parameters);
+            scope v = new PrettyPrintVisitor(buf, hgs);
+            v.visitTemplateParameters(e.parameters);
         }
         buf.writeByte(')');
     }
@@ -2580,7 +2582,6 @@ public:
         if (tp.defaultValue)
         {
             buf.writestring(" = ");
-            scope v = new PrettyPrintVisitor(buf, hgs);
             tp.defaultValue.expressionToBuffer(buf, hgs);
         }
     }
@@ -2641,7 +2642,7 @@ public:
 
 void toCBuffer(Statement s, OutBuffer* buf, HdrGenState* hgs)
 {
-    scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
+    scope v = new StatementPrettyPrintVisitor(buf, hgs);
     s.accept(v);
 }
 
@@ -2652,7 +2653,7 @@ void toCBuffer(Type t, OutBuffer* buf, const Identifier ident, HdrGenState* hgs)
 
 void toCBuffer(Dsymbol s, OutBuffer* buf, HdrGenState* hgs)
 {
-    scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
+    scope v = new PrettyPrintVisitor(buf, hgs);
     s.accept(v);
 }
 
@@ -2661,7 +2662,7 @@ void toCBufferInstance(TemplateInstance ti, OutBuffer* buf, bool qualifyTypes = 
 {
     HdrGenState hgs;
     hgs.fullQual = qualifyTypes;
-    scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, &hgs);
+    scope v = new PrettyPrintVisitor(buf, &hgs);
     v.visit(ti);
 }
 
@@ -3250,8 +3251,6 @@ private void visitWithMask(Type t, ubyte modMask, OutBuffer* buf, HdrGenState* h
 
 private void dumpTemplateInstance(TemplateInstance ti, OutBuffer* buf, HdrGenState* hgs)
 {
-    scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
-
     buf.writeByte('{');
     buf.writenl();
     buf.level++;
