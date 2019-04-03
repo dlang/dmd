@@ -115,7 +115,7 @@ void moduleToBuffer2(Module m, OutBuffer* buf, HdrGenState* hgs)
             if (m.md.msg)
             {
                 buf.writestring("deprecated(");
-                m.md.msg.accept(v);
+                m.md.msg.expressionToBuffer(buf, hgs);
                 buf.writestring(") ");
             }
             else
@@ -135,22 +135,19 @@ void moduleToBuffer2(Module m, OutBuffer* buf, HdrGenState* hgs)
 
 private void statementToBuffer(Statement s, OutBuffer* buf, HdrGenState* hgs)
 {
-    scope v = new PrettyPrintVisitor(buf, hgs);
-    scope vs = new StatementPrettyPrintVisitor(v, buf, hgs);
-    s.accept(vs);
+    scope v = new StatementPrettyPrintVisitor(buf, hgs);
+    s.accept(v);
 }
 
 private extern (C++) final class StatementPrettyPrintVisitor : Visitor
 {
     alias visit = Visitor.visit;
 public:
-    PrettyPrintVisitor ppv;
     OutBuffer* buf;
     HdrGenState* hgs;
 
-    extern (D) this(PrettyPrintVisitor ppv, OutBuffer* buf, HdrGenState* hgs)
+    extern (D) this(OutBuffer* buf, HdrGenState* hgs)
     {
-        this.ppv = ppv;
         this.buf = buf;
         this.hgs = hgs;
     }
@@ -174,11 +171,11 @@ public:
             (cast(DeclarationExp)s.exp).declaration)
         {
             // bypass visit(DeclarationExp)
-            (cast(DeclarationExp)s.exp).declaration.accept(ppv);
+            (cast(DeclarationExp)s.exp).declaration.dsymbolToBuffer(buf, hgs);
             return;
         }
         if (s.exp)
-            s.exp.accept(ppv);
+            s.exp.expressionToBuffer(buf, hgs);
         buf.writeByte(';');
         if (!hgs.forStmtInit)
             buf.writenl();
@@ -213,9 +210,12 @@ public:
                 auto d = (cast(DeclarationExp)ds.exp).declaration;
                 assert(d.isDeclaration());
                 if (auto v = d.isVarDeclaration())
+                {
+                    scope ppv = new PrettyPrintVisitor(buf, hgs);
                     ppv.visitVarDecl(v, anywritten);
+                }
                 else
-                    d.accept(ppv);
+                    d.dsymbolToBuffer(buf, hgs);
                 anywritten = true;
             }
         }
@@ -254,7 +254,7 @@ public:
     override void visit(WhileStatement s)
     {
         buf.writestring("while (");
-        s.condition.accept(ppv);
+        s.condition.expressionToBuffer(buf, hgs);
         buf.writeByte(')');
         buf.writenl();
         if (s._body)
@@ -268,7 +268,7 @@ public:
         if (s._body)
             s._body.accept(this);
         buf.writestring("while (");
-        s.condition.accept(ppv);
+        s.condition.expressionToBuffer(buf, hgs);
         buf.writestring(");");
         buf.writenl();
     }
@@ -287,13 +287,13 @@ public:
         if (s.condition)
         {
             buf.writeByte(' ');
-            s.condition.accept(ppv);
+            s.condition.expressionToBuffer(buf, hgs);
         }
         buf.writeByte(';');
         if (s.increment)
         {
             buf.writeByte(' ');
-            s.increment.accept(ppv);
+            s.increment.expressionToBuffer(buf, hgs);
         }
         buf.writeByte(')');
         buf.writenl();
@@ -323,7 +323,7 @@ public:
                 buf.writestring(p.ident.toString());
         }
         buf.writestring("; ");
-        s.aggr.accept(ppv);
+        s.aggr.expressionToBuffer(buf, hgs);
         buf.writeByte(')');
         buf.writenl();
     }
@@ -350,9 +350,9 @@ public:
         else
             buf.writestring(s.prm.ident.toString());
         buf.writestring("; ");
-        s.lwr.accept(ppv);
+        s.lwr.expressionToBuffer(buf, hgs);
         buf.writestring(" .. ");
-        s.upr.accept(ppv);
+        s.upr.expressionToBuffer(buf, hgs);
         buf.writeByte(')');
         buf.writenl();
     }
@@ -400,7 +400,7 @@ public:
                 buf.writestring(p.ident.toString());
             buf.writestring(" = ");
         }
-        s.condition.accept(ppv);
+        s.condition.expressionToBuffer(buf, hgs);
         buf.writeByte(')');
         buf.writenl();
         if (s.ifbody.isScopeStatement())
@@ -493,13 +493,13 @@ public:
 
     override void visit(StaticAssertStatement s)
     {
-        s.sa.accept(ppv);
+        s.sa.dsymbolToBuffer(buf, hgs);
     }
 
     override void visit(SwitchStatement s)
     {
         buf.writestring(s.isFinal ? "final switch (" : "switch (");
-        s.condition.accept(ppv);
+        s.condition.expressionToBuffer(buf, hgs);
         buf.writeByte(')');
         buf.writenl();
         if (s._body)
@@ -524,7 +524,7 @@ public:
     override void visit(CaseStatement s)
     {
         buf.writestring("case ");
-        s.exp.accept(ppv);
+        s.exp.expressionToBuffer(buf, hgs);
         buf.writeByte(':');
         buf.writenl();
         s.statement.accept(this);
@@ -533,9 +533,9 @@ public:
     override void visit(CaseRangeStatement s)
     {
         buf.writestring("case ");
-        s.first.accept(ppv);
+        s.first.expressionToBuffer(buf, hgs);
         buf.writestring(": .. case ");
-        s.last.accept(ppv);
+        s.last.expressionToBuffer(buf, hgs);
         buf.writeByte(':');
         buf.writenl();
         s.statement.accept(this);
@@ -560,7 +560,7 @@ public:
         if (s.exp)
         {
             buf.writeByte(' ');
-            s.exp.accept(ppv);
+            s.exp.expressionToBuffer(buf, hgs);
         }
         buf.writeByte(';');
         buf.writenl();
@@ -576,7 +576,7 @@ public:
     {
         buf.writestring("return ");
         if (s.exp)
-            s.exp.accept(ppv);
+            s.exp.expressionToBuffer(buf, hgs);
         buf.writeByte(';');
         buf.writenl();
     }
@@ -611,7 +611,7 @@ public:
         if (s.exp)
         {
             buf.writeByte('(');
-            s.exp.accept(ppv);
+            s.exp.expressionToBuffer(buf, hgs);
             buf.writeByte(')');
         }
         if (s._body)
@@ -624,7 +624,7 @@ public:
     override void visit(WithStatement s)
     {
         buf.writestring("with (");
-        s.exp.accept(ppv);
+        s.exp.expressionToBuffer(buf, hgs);
         buf.writestring(")");
         buf.writenl();
         if (s._body)
@@ -690,7 +690,7 @@ public:
     override void visit(ThrowStatement s)
     {
         buf.writestring("throw ");
-        s.exp.accept(ppv);
+        s.exp.expressionToBuffer(buf, hgs);
         buf.writeByte(';');
         buf.writenl();
     }
@@ -750,7 +750,7 @@ public:
     {
         foreach (imp; *s.imports)
         {
-            imp.accept(ppv);
+            imp.dsymbolToBuffer(buf, hgs);
         }
     }
 
@@ -775,6 +775,11 @@ public:
     }
 }
 
+private void dsymbolToBuffer(Dsymbol s, OutBuffer* buf, HdrGenState* hgs)
+{
+    scope v = new PrettyPrintVisitor(buf, hgs);
+    s.accept(v);
+}
 
 private extern (C++) final class PrettyPrintVisitor : Visitor
 {
@@ -800,11 +805,11 @@ public:
     {
         buf.writestring(s.kind());
         buf.writeByte('(');
-        s.exp.accept(this);
+        s.exp.expressionToBuffer(buf, hgs);
         if (s.msg)
         {
             buf.writestring(", ");
-            s.msg.accept(this);
+            s.msg.expressionToBuffer(buf, hgs);
         }
         buf.writestring(");");
         buf.writenl();
@@ -841,7 +846,7 @@ public:
         if (em.value)
         {
             buf.writestring(" = ");
-            em.value.accept(this);
+            em.value.expressionToBuffer(buf, hgs);
         }
     }
 
@@ -933,7 +938,7 @@ public:
     override void visit(DeprecatedDeclaration d)
     {
         buf.writestring("deprecated(");
-        d.msg.accept(this);
+        d.msg.expressionToBuffer(buf, hgs);
         buf.writestring(") ");
         visit(cast(AttribDeclaration)d);
     }
@@ -1094,7 +1099,7 @@ public:
                     buf.writestring(p.ident.toString());
             }
             buf.writestring("; ");
-            s.aggr.accept(this);
+            s.aggr.expressionToBuffer(buf, hgs);
             buf.writeByte(')');
             buf.writenl();
         }
@@ -1110,9 +1115,9 @@ public:
             else
                 buf.writestring(s.prm.ident.toString());
             buf.writestring("; ");
-            s.lwr.accept(this);
+            s.lwr.expressionToBuffer(buf, hgs);
             buf.writestring(" .. ");
-            s.upr.accept(this);
+            s.upr.expressionToBuffer(buf, hgs);
             buf.writeByte(')');
             buf.writenl();
         }
@@ -1254,7 +1259,7 @@ public:
                 buf.writestring(" = ");
                 ExpInitializer ie = vd._init.isExpInitializer();
                 if (ie && (ie.exp.op == TOK.construct || ie.exp.op == TOK.blit))
-                    (cast(AssignExp)ie.exp).e2.accept(this);
+                    (cast(AssignExp)ie.exp).e2.expressionToBuffer(buf, hgs);
                 else
                     vd._init.initializerToBuffer(buf, hgs);
             }
@@ -1282,7 +1287,7 @@ public:
         if (!constraint)
             return;
         buf.writestring(" if (");
-        constraint.accept(this);
+        constraint.expressionToBuffer(buf, hgs);
         buf.writeByte(')');
     }
 
@@ -1494,7 +1499,7 @@ public:
             buf.writestring(" = ");
             auto ie = v._init.isExpInitializer();
             if (ie && (ie.exp.op == TOK.construct || ie.exp.op == TOK.blit))
-                (cast(AssignExp)ie.exp).e2.accept(this);
+                (cast(AssignExp)ie.exp).e2.expressionToBuffer(buf, hgs);
             else
                 v._init.initializerToBuffer(buf, hgs);
         }
@@ -1553,7 +1558,7 @@ public:
                 {
                     assert(es.exp && es.exp.op == TOK.assert_);
                     buf.writestring(" (");
-                    (cast(AssertExp)es.exp).e1.accept(this);
+                    (cast(AssertExp)es.exp).e1.expressionToBuffer(buf, hgs);
                     buf.writeByte(')');
                     buf.writenl();
                     requireDo = false;
@@ -1581,7 +1586,7 @@ public:
                         buf.writestring(fensure.id.toChars());
                     }
                     buf.writestring("; ");
-                    (cast(AssertExp)es.exp).e1.accept(this);
+                    (cast(AssertExp)es.exp).e1.expressionToBuffer(buf, hgs);
                     buf.writeByte(')');
                     buf.writenl();
                     requireDo = false;
@@ -1645,7 +1650,7 @@ public:
         if (rs && rs.exp)
         {
             buf.writestring(" => ");
-            rs.exp.accept(this);
+            rs.exp.expressionToBuffer(buf, hgs);
         }
         else
         {
@@ -1721,7 +1726,7 @@ public:
         {
             assert(es.exp && es.exp.op == TOK.assert_);
             buf.writestring(" (");
-            (cast(AssertExp)es.exp).e1.accept(this);
+            (cast(AssertExp)es.exp).e1.expressionToBuffer(buf, hgs);
             buf.writestring(");");
             buf.writenl();
         }
@@ -2057,7 +2062,7 @@ public:
     {
         if (e.sds.isTemplateInstance())
         {
-            e.sds.accept(this);
+            e.sds.dsymbolToBuffer(buf, hgs);
         }
         else if (hgs !is null && hgs.ddoc)
         {
@@ -2125,7 +2130,7 @@ public:
             buf.writeByte(')');
         }
         if (e.cd)
-            e.cd.accept(this);
+            e.cd.dsymbolToBuffer(buf, hgs);
     }
 
     override void visit(SymOffExp e)
@@ -2168,7 +2173,7 @@ public:
 
     override void visit(FuncExp e)
     {
-        e.fd.accept(this);
+        e.fd.dsymbolToBuffer(buf, hgs);
         //buf.writestring(e.fd.toChars());
     }
 
@@ -2191,7 +2196,7 @@ public:
                 buf.writeByte(';');
                 buf.writeByte(')');
             }
-            else e.declaration.accept(this);
+            else e.declaration.dsymbolToBuffer(buf, hgs);
         }
     }
 
@@ -2313,7 +2318,7 @@ public:
     {
         expToBuffer(e.e1, PREC.primary, buf, hgs);
         buf.writeByte('.');
-        e.ti.accept(this);
+        e.ti.dsymbolToBuffer(buf, hgs);
     }
 
     override void visit(DelegateExp e)
@@ -2570,14 +2575,13 @@ public:
         if (tp.specValue)
         {
             buf.writestring(" : ");
-            scope v = new PrettyPrintVisitor(buf, hgs);
-            tp.specValue.accept(v);
+            tp.specValue.expressionToBuffer(buf, hgs);
         }
         if (tp.defaultValue)
         {
             buf.writestring(" = ");
             scope v = new PrettyPrintVisitor(buf, hgs);
-            tp.defaultValue.accept(v);
+            tp.defaultValue.expressionToBuffer(buf, hgs);
         }
     }
 
@@ -2630,8 +2634,7 @@ public:
     override void visit(StaticIfCondition c)
     {
         buf.writestring("static if (");
-        scope v = new PrettyPrintVisitor(buf, hgs);
-        c.exp.accept(v);
+        c.exp.expressionToBuffer(buf, hgs);
         buf.writeByte(')');
     }
 }
@@ -3155,6 +3158,12 @@ private void sizeToBuffer(Expression e, OutBuffer* buf, HdrGenState* hgs)
     expToBuffer(e, PREC.assign, buf, hgs);
 }
 
+private void expressionToBuffer(Expression e, OutBuffer* buf, HdrGenState* hgs)
+{
+    scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
+    e.accept(v);
+}
+
 /**************************************************
  * Write expression out to buf, but wrap it
  * in ( ) if its precedence is less than pr.
@@ -3175,14 +3184,12 @@ private void expToBuffer(Expression e, PREC pr, OutBuffer* buf, HdrGenState* hgs
         || (pr >= PREC.or && pr <= PREC.and && precedence[e.op] == PREC.rel))
     {
         buf.writeByte('(');
-        scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
-        e.accept(v);
+        e.expressionToBuffer(buf, hgs);
         buf.writeByte(')');
     }
     else
     {
-        scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
-        e.accept(v);
+        e.expressionToBuffer(buf, hgs);
     }
 }
 
@@ -3251,13 +3258,13 @@ private void dumpTemplateInstance(TemplateInstance ti, OutBuffer* buf, HdrGenSta
 
     if (ti.aliasdecl)
     {
-        ti.aliasdecl.accept(v);
+        ti.aliasdecl.dsymbolToBuffer(buf, hgs);
         buf.writenl();
     }
     else if (ti.members)
     {
         foreach(m;*ti.members)
-            m.accept(v);
+            m.dsymbolToBuffer(buf, hgs);
     }
 
     buf.level--;
@@ -3534,7 +3541,7 @@ private void initializerToBuffer(Initializer inx, OutBuffer* buf, HdrGenState* h
                 buf.writestring(", ");
             if (ex)
             {
-                ex.accept(v);
+                ex.expressionToBuffer(buf, hgs);
                 buf.writeByte(':');
             }
             if (auto iz = ai.value[i])
@@ -3545,7 +3552,7 @@ private void initializerToBuffer(Initializer inx, OutBuffer* buf, HdrGenState* h
 
     void visitExp(ExpInitializer ei)
     {
-        ei.exp.accept(v);
+        ei.exp.expressionToBuffer(buf, hgs);
     }
 
     final switch (inx.kind)
@@ -3583,7 +3590,7 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
     void visitTraits(TypeTraits t)
     {
         //printf("TypeBasic::toCBuffer2(t.mod = %d)\n", t.mod);
-        t.exp.accept(v);
+        t.exp.expressionToBuffer(buf, hgs);
     }
 
     void visitVector(TypeVector t)
@@ -3666,12 +3673,12 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
             {
                 buf.writeByte('.');
                 TemplateInstance ti = cast(TemplateInstance)id;
-                ti.accept(v);
+                ti.dsymbolToBuffer(buf, hgs);
             }
             else if (id.dyncast() == DYNCAST.expression)
             {
                 buf.writeByte('[');
-                (cast(Expression)id).accept(v);
+                (cast(Expression)id).expressionToBuffer(buf, hgs);
                 buf.writeByte(']');
             }
             else if (id.dyncast() == DYNCAST.type)
@@ -3696,14 +3703,14 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
 
     void visitInstance(TypeInstance t)
     {
-        t.tempinst.accept(v);
+        t.tempinst.dsymbolToBuffer(buf, hgs);
         visitTypeQualifiedHelper(t);
     }
 
     void visitTypeof(TypeTypeof t)
     {
         buf.writestring("typeof(");
-        t.exp.accept(v);
+        t.exp.expressionToBuffer(buf, hgs);
         buf.writeByte(')');
         visitTypeQualifiedHelper(t);
     }
