@@ -133,15 +133,24 @@ void moduleToBuffer2(Module m, OutBuffer* buf, HdrGenState* hgs)
     }
 }
 
-private extern (C++) final class PrettyPrintVisitor : Visitor
+private void statementToBuffer(Statement s, OutBuffer* buf, HdrGenState* hgs)
+{
+    scope v = new PrettyPrintVisitor(buf, hgs);
+    scope vs = new StatementPrettyPrintVisitor(v, buf, hgs);
+    s.accept(vs);
+}
+
+private extern (C++) final class StatementPrettyPrintVisitor : Visitor
 {
     alias visit = Visitor.visit;
 public:
+    PrettyPrintVisitor ppv;
     OutBuffer* buf;
     HdrGenState* hgs;
 
-    extern (D) this(OutBuffer* buf, HdrGenState* hgs)
+    extern (D) this(PrettyPrintVisitor ppv, OutBuffer* buf, HdrGenState* hgs)
     {
+        this.ppv = ppv;
         this.buf = buf;
         this.hgs = hgs;
     }
@@ -165,11 +174,11 @@ public:
             (cast(DeclarationExp)s.exp).declaration)
         {
             // bypass visit(DeclarationExp)
-            (cast(DeclarationExp)s.exp).declaration.accept(this);
+            (cast(DeclarationExp)s.exp).declaration.accept(ppv);
             return;
         }
         if (s.exp)
-            s.exp.accept(this);
+            s.exp.accept(ppv);
         buf.writeByte(';');
         if (!hgs.forStmtInit)
             buf.writenl();
@@ -204,9 +213,9 @@ public:
                 auto d = (cast(DeclarationExp)ds.exp).declaration;
                 assert(d.isDeclaration());
                 if (auto v = d.isVarDeclaration())
-                    visitVarDecl(v, anywritten);
+                    ppv.visitVarDecl(v, anywritten);
                 else
-                    d.accept(this);
+                    d.accept(ppv);
                 anywritten = true;
             }
         }
@@ -245,7 +254,7 @@ public:
     override void visit(WhileStatement s)
     {
         buf.writestring("while (");
-        s.condition.accept(this);
+        s.condition.accept(ppv);
         buf.writeByte(')');
         buf.writenl();
         if (s._body)
@@ -259,7 +268,7 @@ public:
         if (s._body)
             s._body.accept(this);
         buf.writestring("while (");
-        s.condition.accept(this);
+        s.condition.accept(ppv);
         buf.writestring(");");
         buf.writenl();
     }
@@ -278,13 +287,13 @@ public:
         if (s.condition)
         {
             buf.writeByte(' ');
-            s.condition.accept(this);
+            s.condition.accept(ppv);
         }
         buf.writeByte(';');
         if (s.increment)
         {
             buf.writeByte(' ');
-            s.increment.accept(this);
+            s.increment.accept(ppv);
         }
         buf.writeByte(')');
         buf.writenl();
@@ -298,7 +307,7 @@ public:
         buf.writenl();
     }
 
-    private void visitWithoutBody(ForeachStatement s)
+    private void foreachWithoutBody(ForeachStatement s)
     {
         buf.writestring(Token.toString(s.op));
         buf.writestring(" (");
@@ -314,14 +323,14 @@ public:
                 buf.writestring(p.ident.toString());
         }
         buf.writestring("; ");
-        s.aggr.accept(this);
+        s.aggr.accept(ppv);
         buf.writeByte(')');
         buf.writenl();
     }
 
     override void visit(ForeachStatement s)
     {
-        visitWithoutBody(s);
+        foreachWithoutBody(s);
         buf.writeByte('{');
         buf.writenl();
         buf.level++;
@@ -332,7 +341,7 @@ public:
         buf.writenl();
     }
 
-    private void visitWithoutBody(ForeachRangeStatement s)
+    private void foreachRangeWithoutBody(ForeachRangeStatement s)
     {
         buf.writestring(Token.toString(s.op));
         buf.writestring(" (");
@@ -341,9 +350,9 @@ public:
         else
             buf.writestring(s.prm.ident.toString());
         buf.writestring("; ");
-        s.lwr.accept(this);
+        s.lwr.accept(ppv);
         buf.writestring(" .. ");
-        s.upr.accept(this);
+        s.upr.accept(ppv);
         buf.writeByte(')');
         buf.writenl();
         buf.writeByte('{');
@@ -352,7 +361,7 @@ public:
 
     override void visit(ForeachRangeStatement s)
     {
-        visitWithoutBody(s);
+        foreachRangeWithoutBody(s);
         buf.level++;
         if (s._body)
             s._body.accept(this);
@@ -391,7 +400,7 @@ public:
                 buf.writestring(p.ident.toString());
             buf.writestring(" = ");
         }
-        s.condition.accept(this);
+        s.condition.accept(ppv);
         buf.writeByte(')');
         buf.writenl();
         if (s.ifbody.isScopeStatement())
@@ -430,7 +439,7 @@ public:
 
     override void visit(ConditionalStatement s)
     {
-        s.condition.accept(this);
+        s.condition.accept(ppv);
         buf.writenl();
         buf.writeByte('{');
         buf.writenl();
@@ -484,13 +493,13 @@ public:
 
     override void visit(StaticAssertStatement s)
     {
-        s.sa.accept(this);
+        s.sa.accept(ppv);
     }
 
     override void visit(SwitchStatement s)
     {
         buf.writestring(s.isFinal ? "final switch (" : "switch (");
-        s.condition.accept(this);
+        s.condition.accept(ppv);
         buf.writeByte(')');
         buf.writenl();
         if (s._body)
@@ -515,7 +524,7 @@ public:
     override void visit(CaseStatement s)
     {
         buf.writestring("case ");
-        s.exp.accept(this);
+        s.exp.accept(ppv);
         buf.writeByte(':');
         buf.writenl();
         s.statement.accept(this);
@@ -524,9 +533,9 @@ public:
     override void visit(CaseRangeStatement s)
     {
         buf.writestring("case ");
-        s.first.accept(this);
+        s.first.accept(ppv);
         buf.writestring(": .. case ");
-        s.last.accept(this);
+        s.last.accept(ppv);
         buf.writeByte(':');
         buf.writenl();
         s.statement.accept(this);
@@ -551,7 +560,7 @@ public:
         if (s.exp)
         {
             buf.writeByte(' ');
-            s.exp.accept(this);
+            s.exp.accept(ppv);
         }
         buf.writeByte(';');
         buf.writenl();
@@ -567,7 +576,7 @@ public:
     {
         buf.writestring("return ");
         if (s.exp)
-            s.exp.accept(this);
+            s.exp.accept(ppv);
         buf.writeByte(';');
         buf.writenl();
     }
@@ -602,7 +611,7 @@ public:
         if (s.exp)
         {
             buf.writeByte('(');
-            s.exp.accept(this);
+            s.exp.accept(ppv);
             buf.writeByte(')');
         }
         if (s._body)
@@ -615,7 +624,7 @@ public:
     override void visit(WithStatement s)
     {
         buf.writestring("with (");
-        s.exp.accept(this);
+        s.exp.accept(ppv);
         buf.writestring(")");
         buf.writenl();
         if (s._body)
@@ -681,7 +690,7 @@ public:
     override void visit(ThrowStatement s)
     {
         buf.writestring("throw ");
-        s.exp.accept(this);
+        s.exp.accept(ppv);
         buf.writeByte(';');
         buf.writenl();
     }
@@ -741,7 +750,7 @@ public:
     {
         foreach (imp; *s.imports)
         {
-            imp.accept(this);
+            imp.accept(ppv);
         }
     }
 
@@ -763,6 +772,21 @@ public:
         buf.level--;
         buf.writeByte('}');
         buf.writenl();
+    }
+}
+
+
+private extern (C++) final class PrettyPrintVisitor : Visitor
+{
+    alias visit = Visitor.visit;
+public:
+    OutBuffer* buf;
+    HdrGenState* hgs;
+
+    extern (D) this(OutBuffer* buf, HdrGenState* hgs)
+    {
+        this.buf = buf;
+        this.hgs = hgs;
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -1054,15 +1078,54 @@ public:
 
     override void visit(StaticForeachDeclaration s)
     {
+        void foreachWithoutBody(ForeachStatement s)
+        {
+            buf.writestring(Token.toString(s.op));
+            buf.writestring(" (");
+            foreach (i, p; *s.parameters)
+            {
+                if (i)
+                    buf.writestring(", ");
+                if (stcToBuffer(buf, p.storageClass))
+                    buf.writeByte(' ');
+                if (p.type)
+                    typeToBuffer(p.type, p.ident, buf, hgs);
+                else
+                    buf.writestring(p.ident.toString());
+            }
+            buf.writestring("; ");
+            s.aggr.accept(this);
+            buf.writeByte(')');
+            buf.writenl();
+        }
+
+        void foreachRangeWithoutBody(ForeachRangeStatement s)
+        {
+            buf.writestring(Token.toString(s.op));
+            buf.writestring(" (");
+            if (s.prm.type)
+                typeToBuffer(s.prm.type, s.prm.ident, buf, hgs);
+            else
+                buf.writestring(s.prm.ident.toString());
+            buf.writestring("; ");
+            s.lwr.accept(this);
+            buf.writestring(" .. ");
+            s.upr.accept(this);
+            buf.writeByte(')');
+            buf.writenl();
+            buf.writeByte('{');
+            buf.writenl();
+        }
+
         buf.writestring("static ");
         if (s.sfe.aggrfe)
         {
-            visitWithoutBody(s.sfe.aggrfe);
+            foreachWithoutBody(s.sfe.aggrfe);
         }
         else
         {
             assert(s.sfe.rangefe);
-            visitWithoutBody(s.sfe.rangefe);
+            foreachRangeWithoutBody(s.sfe.rangefe);
         }
         buf.writeByte('{');
         buf.writenl();
@@ -1498,7 +1561,7 @@ public:
                 else
                 {
                     buf.writenl();
-                    frequire.accept(this);
+                    frequire.statementToBuffer(buf, hgs);
                     requireDo = true;
                 }
             }
@@ -1532,7 +1595,7 @@ public:
                         buf.writeByte(')');
                     }
                     buf.writenl();
-                    fensure.ensure.accept(this);
+                    fensure.ensure.statementToBuffer(buf, hgs);
                     requireDo = true;
                 }
             }
@@ -1545,7 +1608,7 @@ public:
         buf.writeByte('{');
         buf.writenl();
         buf.level++;
-        f.fbody.accept(this);
+        f.fbody.statementToBuffer(buf, hgs);
         buf.level--;
         buf.writeByte('}');
         buf.writenl();
