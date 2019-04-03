@@ -14,6 +14,7 @@
  */
 module dmd.frontend;
 
+import dmd.astcodegen : ASTCodegen;
 import dmd.dmodule : Module;
 import dmd.errors : DiagnosticReporter;
 
@@ -278,7 +279,7 @@ Params:
 
 Returns: the parsed module object
 */
-Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(
+Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodegen)(
     const(char)[] fileName,
     const(char)[] code = null,
     DiagnosticReporter diagnosticReporter = defaultDiagnosticReporter
@@ -289,7 +290,6 @@ in
 }
 body
 {
-    import dmd.astcodegen : ASTCodegen;
     import dmd.globals : Loc, global;
     import dmd.parse : Parser;
     import dmd.identifier : Identifier;
@@ -299,7 +299,7 @@ body
 
     static auto parse(Module m, const(char)[] code, DiagnosticReporter diagnosticReporter)
     {
-        scope p = new Parser!ASTCodegen(m, code, false, diagnosticReporter);
+        scope p = new Parser!AST(m, code, false, diagnosticReporter);
         p.nextToken; // skip the initial token
         auto members = p.parseModule;
         if (p.errors)
