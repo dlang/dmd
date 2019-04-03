@@ -355,13 +355,13 @@ public:
         s.upr.accept(ppv);
         buf.writeByte(')');
         buf.writenl();
-        buf.writeByte('{');
-        buf.writenl();
     }
 
     override void visit(ForeachRangeStatement s)
     {
         foreachRangeWithoutBody(s);
+        buf.writeByte('{');
+        buf.writenl();
         buf.level++;
         if (s._body)
             s._body.accept(this);
@@ -1101,6 +1101,8 @@ public:
 
         void foreachRangeWithoutBody(ForeachRangeStatement s)
         {
+            /* s.op ( prm ; lwr .. upr ) {
+             */
             buf.writestring(Token.toString(s.op));
             buf.writestring(" (");
             if (s.prm.type)
@@ -1112,8 +1114,6 @@ public:
             buf.writestring(" .. ");
             s.upr.accept(this);
             buf.writeByte(')');
-            buf.writenl();
-            buf.writeByte('{');
             buf.writenl();
         }
 
