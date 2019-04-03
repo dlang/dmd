@@ -439,7 +439,7 @@ public:
 
     override void visit(ConditionalStatement s)
     {
-        s.condition.accept(ppv);
+        s.condition.conditionToBuffer(buf, hgs);
         buf.writenl();
         buf.writeByte('{');
         buf.writenl();
@@ -1043,7 +1043,7 @@ public:
 
     override void visit(ConditionalDeclaration d)
     {
-        d.condition.accept(this);
+        d.condition.conditionToBuffer(buf, hgs);
         if (d.decl || d.elsedecl)
         {
             buf.writenl();
@@ -1101,7 +1101,7 @@ public:
 
         void foreachRangeWithoutBody(ForeachRangeStatement s)
         {
-            /* s.op ( prm ; lwr .. upr ) {
+            /* s.op ( prm ; lwr .. upr )
              */
             buf.writestring(Token.toString(s.op));
             buf.writestring(" (");
@@ -2559,7 +2559,31 @@ public:
         buf.writestring("...");
     }
 
-    ////////////////////////////////////////////////////////////////////////////
+    override void visit(Module m)
+    {
+        moduleToBuffer2(m, buf, hgs);
+    }
+}
+
+private void conditionToBuffer(Condition c, OutBuffer* buf, HdrGenState* hgs)
+{
+    scope v = new ConditionPrettyPrintVisitor(buf, hgs);
+    c.accept(v);
+}
+
+private extern (C++) final class ConditionPrettyPrintVisitor : Visitor
+{
+    alias visit = Visitor.visit;
+public:
+    OutBuffer* buf;
+    HdrGenState* hgs;
+
+    extern (D) this(OutBuffer* buf, HdrGenState* hgs)
+    {
+        this.buf = buf;
+        this.hgs = hgs;
+    }
+
     override void visit(DebugCondition c)
     {
         buf.writestring("debug (");
@@ -2583,13 +2607,9 @@ public:
     override void visit(StaticIfCondition c)
     {
         buf.writestring("static if (");
-        c.exp.accept(this);
+        scope v = new PrettyPrintVisitor(buf, hgs);
+        c.exp.accept(v);
         buf.writeByte(')');
-    }
-
-    override void visit(Module m)
-    {
-        moduleToBuffer2(m, buf, hgs);
     }
 }
 
