@@ -1490,9 +1490,9 @@ $(H3 $(LNAME2 function_literals, Function Literals))
 
 $(GRAMMAR
 $(GNAME FunctionLiteral):
-    $(D function) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterWithAttributes) $(OPT) $(GLINK FunctionLiteralBody)
-    $(D delegate) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterWithMemberAttributes) $(OPT) $(GLINK FunctionLiteralBody)
-    $(GLINK ParameterMemberAttributes) $(GLINK FunctionLiteralBody)
+    $(D function) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterWithAttributes) $(OPT) $(GLINK FunctionLiteralBody)
+    $(D delegate) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterWithMemberAttributes) $(OPT) $(GLINK FunctionLiteralBody)
+    $(D ref)$(OPT) $(GLINK ParameterMemberAttributes) $(GLINK FunctionLiteralBody)
     $(GLINK FunctionLiteralBody)
     $(GLINK Lambda)
 
@@ -1644,9 +1644,9 @@ $(H3 $(LNAME2 lambdas, Lambdas))
 
 $(GRAMMAR
 $(GNAME Lambda):
-    $(D function) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterAttributes) $(D =>) $(GLINK AssignExpression)
-    $(D delegate) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterMemberAttributes) $(D =>) $(GLINK AssignExpression)
-    $(GLINK ParameterMemberAttributes) $(D =>) $(GLINK AssignExpression)
+    $(D function) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterAttributes) $(D =>) $(GLINK AssignExpression)
+    $(D delegate) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterMemberAttributes) $(D =>) $(GLINK AssignExpression)
+    $(D ref)$(OPT) $(GLINK ParameterMemberAttributes) $(D =>) $(GLINK AssignExpression)
     $(IDENTIFIER) $(D =>) $(GLINK AssignExpression)
 )
 
