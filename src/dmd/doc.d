@@ -2307,12 +2307,10 @@ private void endMarkdownHeading(OutBuffer* buf, size_t iStart, ref size_t iEnd, 
  * Params:
  *  buf         = an OutBuffer containing the DDoc
  *  i           = the index within `buf` of the character after the quote text.
- *                Is incremented by `quoteLevel` when this function ends to
- *                account for inserted macro closures.
  *  quoteLevel  = the current quote level. Is set to `0` when this function ends.
  * Returns: the amount that `i` was moved
  */
-private size_t endAllMarkdownQuotes(OutBuffer* buf, ref size_t i, ref int quoteLevel)
+private size_t endAllMarkdownQuotes(OutBuffer* buf, size_t i, ref int quoteLevel)
 {
     const length = quoteLevel;
     for (; quoteLevel > 0; --quoteLevel)
@@ -2325,9 +2323,9 @@ private size_t endAllMarkdownQuotes(OutBuffer* buf, ref size_t i, ref int quoteL
  * set `quoteMacroLevel` to `0`.
  * Params:
  *  buf         = an OutBuffer containing the DDoc
- *  i           = the index within `buf` of the character after the quote text.
- *                Is incremented by `quoteLevel` when this function ends to
- *                account for inserted macro closures.
+ *  i           = the index within `buf` of the character after the list and/or
+ *                quote text. Is adjusted when this function ends if any lists
+ *                and/or quotes were ended.
  *  nestedLists = a set of nested lists. Upon return it will be empty.
  *  quoteLevel  = the current quote level. Is set to `0` when this function ends.
  *  quoteMacroLevel   = the macro level that the quote was started at. Is set to
@@ -2337,8 +2335,10 @@ private size_t endAllMarkdownQuotes(OutBuffer* buf, ref size_t i, ref int quoteL
 private size_t endAllListsAndQuotes(OutBuffer* buf, ref size_t i, ref MarkdownList[] nestedLists, ref int quoteLevel, out int quoteMacroLevel)
 {
     quoteMacroLevel = 0;
-    return MarkdownList.endAllNestedLists(buf, i, nestedLists)
-        + endAllMarkdownQuotes(buf, i, quoteLevel);
+    const i0 = i;
+    i += MarkdownList.endAllNestedLists(buf, i, nestedLists);
+    i += endAllMarkdownQuotes(buf, i, quoteLevel);
+    return i - i0;
 }
 
 /****************************************************
@@ -2768,11 +2768,11 @@ private struct MarkdownList
      * End all nested Markdown lists.
      * Params:
      *  buf           = an OutBuffer containing the DDoc
-     *  i             = the index within `buf` to end lists at. If there were lists `i` will be adjusted to fit the macro endings.
+     *  i             = the index within `buf` to end lists at.
      *  nestedLists   = a set of nested lists. Upon return it will be empty.
      * Returns: the amount that `i` changed
      */
-    static size_t endAllNestedLists(OutBuffer* buf, ref size_t i, ref MarkdownList[] nestedLists)
+    static size_t endAllNestedLists(OutBuffer* buf, size_t i, ref MarkdownList[] nestedLists)
     {
         const iStart = i;
         for (; nestedLists.length; --nestedLists.length)
@@ -3768,6 +3768,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
     int inCode = 0;
     int inBacktick = 0;
     int macroLevel = 0;
+    int previousMacroLevel = 0;
     int parenLevel = 0;
     size_t iCodeStart = 0; // start of code section
     size_t codeFenceLength = 0;
@@ -3835,7 +3836,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
             {
                 inCode = false;
                 i = buf.insert(i, ")");
-                endAllMarkdownQuotes(buf, i, quoteLevel);
+                i += endAllMarkdownQuotes(buf, i, quoteLevel);
                 quoteMacroLevel = 0;
             }
             leadingBlank = true;
@@ -3843,6 +3844,10 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
             iLineStart = i + 1;
             loc.linnum += incrementLoc;
 
+            // update the paragraph start if we just entered a macro
+            if (previousMacroLevel < macroLevel && iParagraphStart < iLineStart)
+                iParagraphStart = iLineStart;
+            previousMacroLevel = macroLevel;
             break;
 
         case '<':
@@ -3940,7 +3945,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                         {
                             const indent = getMarkdownIndent(buf, iLineStart, i);
                             if (indent < nestedLists[$-1].contentIndent)
-                                MarkdownList.endAllNestedLists(buf, i, nestedLists);
+                                i += MarkdownList.endAllNestedLists(buf, i, nestedLists);
                         }
 
                         for (; quoteLevel < lineQuoteLevel; ++quoteLevel)
@@ -4392,6 +4397,10 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                     if (delimiter.isValid &&
                         MarkdownLink.replaceLink(buf, i, loc, inlineDelimiters, d, linkReferences))
                     {
+                        // if we removed a reference link then we're at line start
+                        if (i <= delimiter.iStart)
+                            leadingBlank = true;
+
                         // don't nest links
                         if (delimiter.type == '[')
                             for (--d; d >= 0; --d)
@@ -4478,7 +4487,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                     removeBlankLineMacro(buf, iPrecedingBlankLine, i);
                 }
                 if (quoteLevel && quoteMacroLevel >= macroLevel)
-                    endAllMarkdownQuotes(buf, i, quoteLevel);
+                    i += endAllMarkdownQuotes(buf, i, quoteLevel);
                 while (nestedLists.length && nestedLists[$-1].macroLevel >= macroLevel)
                 {
                     i = buf.insert(i, ")\n)");
