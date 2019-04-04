@@ -209,7 +209,7 @@ public:
                 assert(d.isDeclaration());
                 if (auto v = d.isVarDeclaration())
                 {
-                    scope ppv = new PrettyPrintVisitor(buf, hgs);
+                    scope ppv = new DsymbolPrettyPrintVisitor(buf, hgs);
                     ppv.visitVarDecl(v, anywritten);
                 }
                 else
@@ -775,11 +775,11 @@ public:
 
 private void dsymbolToBuffer(Dsymbol s, OutBuffer* buf, HdrGenState* hgs)
 {
-    scope v = new PrettyPrintVisitor(buf, hgs);
+    scope v = new DsymbolPrettyPrintVisitor(buf, hgs);
     s.accept(v);
 }
 
-private extern (C++) final class PrettyPrintVisitor : Visitor
+private extern (C++) final class DsymbolPrettyPrintVisitor : Visitor
 {
     alias visit = Visitor.visit;
 public:
@@ -2210,7 +2210,7 @@ public:
             //   which isn't correct as regular D code.
                 buf.writeByte('(');
 
-                scope v = new PrettyPrintVisitor(buf, hgs);
+                scope v = new DsymbolPrettyPrintVisitor(buf, hgs);
                 v.visitVarDecl(var, false);
 
                 buf.writeByte(';');
@@ -2267,7 +2267,7 @@ public:
         if (e.parameters && e.parameters.dim)
         {
             buf.writestring(", ");
-            scope v = new PrettyPrintVisitor(buf, hgs);
+            scope v = new DsymbolPrettyPrintVisitor(buf, hgs);
             v.visitTemplateParameters(e.parameters);
         }
         buf.writeByte(')');
@@ -2666,7 +2666,7 @@ void toCBuffer(Type t, OutBuffer* buf, const Identifier ident, HdrGenState* hgs)
 
 void toCBuffer(Dsymbol s, OutBuffer* buf, HdrGenState* hgs)
 {
-    scope v = new PrettyPrintVisitor(buf, hgs);
+    scope v = new DsymbolPrettyPrintVisitor(buf, hgs);
     s.accept(v);
 }
 
@@ -2675,7 +2675,7 @@ void toCBufferInstance(TemplateInstance ti, OutBuffer* buf, bool qualifyTypes = 
 {
     HdrGenState hgs;
     hgs.fullQual = qualifyTypes;
-    scope v = new PrettyPrintVisitor(buf, &hgs);
+    scope v = new DsymbolPrettyPrintVisitor(buf, &hgs);
     v.visit(ti);
 }
 
@@ -3513,8 +3513,6 @@ private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, Te
 
 private void initializerToBuffer(Initializer inx, OutBuffer* buf, HdrGenState* hgs)
 {
-    scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
-
     void visitError(ErrorInitializer iz)
     {
         buf.writestring("__error__");
@@ -3580,8 +3578,6 @@ private void initializerToBuffer(Initializer inx, OutBuffer* buf, HdrGenState* h
 
 private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
 {
-    scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
-
     void visitType(Type t)
     {
         printf("t = %p, ty = %d\n", t, t.ty);
