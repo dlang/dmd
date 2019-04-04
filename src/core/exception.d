@@ -594,25 +594,6 @@ extern (C) void onInvalidMemoryOperationError(void* pretend_sideffect = null) @t
     throw staticError!InvalidMemoryOperationError();
 }
 
-
-/**
- * A callback for switch errors in D.  A $(LREF SwitchError) will be thrown.
- *
- * Params:
- *  file = The name of the file that signaled this error.
- *  line = The line number on which this error occurred.
- *
- * Throws:
- *  $(LREF SwitchError).
- */
-extern (C) void onSwitchError( string file = __FILE__, size_t line = __LINE__ ) @safe pure nothrow
-{
-    version (D_Exceptions)
-        throw new SwitchError( file, line, null );
-    else
-        assert(0, "No appropriate switch clause found");
-}
-
 /**
  * A callback for unicode errors in D.  A $(LREF UnicodeException) will be thrown.
  *
@@ -640,7 +621,6 @@ extern (C) void onAssertErrorMsg(string file, size_t line, string msg);
 extern (C) void onUnittestErrorMsg(string file, size_t line, string msg);
 extern (C) void onRangeError(string file, size_t line);
 extern (C) void onHiddenFuncError(Object o);
-extern (C) void onSwitchError(string file, size_t line);
 +/
 
 /***********************************
@@ -699,13 +679,6 @@ extern (C)
     void _d_arraybounds(string file, uint line)
     {
         onRangeError(file, line);
-    }
-
-    /* Called when a switch statement has no DefaultStatement, yet none of the cases match
-     */
-    void _d_switch_error(immutable(ModuleInfo)* m, uint line)
-    {
-        onSwitchError(m.name, line);
     }
 }
 
