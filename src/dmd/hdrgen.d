@@ -1762,6 +1762,25 @@ public:
         bodyToBuffer(d);
     }
 
+    override void visit(Module m)
+    {
+        moduleToBuffer2(m, buf, hgs);
+    }
+}
+
+private extern (C++) final class ExpressionPrettyPrintVisitor : Visitor
+{
+    alias visit = Visitor.visit;
+public:
+    OutBuffer* buf;
+    HdrGenState* hgs;
+
+    extern (D) this(OutBuffer* buf, HdrGenState* hgs)
+    {
+        this.buf = buf;
+        this.hgs = hgs;
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     override void visit(Expression e)
     {
@@ -2503,12 +2522,6 @@ public:
     {
         buf.writestring(e.value.toChars());
     }
-
-
-    override void visit(Module m)
-    {
-        moduleToBuffer2(m, buf, hgs);
-    }
 }
 
 
@@ -2901,7 +2914,7 @@ void functionToBufferWithIdent(TypeFunction tf, OutBuffer* buf, const(char)* ide
 
 void toCBuffer(Expression e, OutBuffer* buf, HdrGenState* hgs)
 {
-    scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
+    scope v = new ExpressionPrettyPrintVisitor(buf, hgs);
     e.accept(v);
 }
 
@@ -3161,7 +3174,7 @@ private void sizeToBuffer(Expression e, OutBuffer* buf, HdrGenState* hgs)
 
 private void expressionToBuffer(Expression e, OutBuffer* buf, HdrGenState* hgs)
 {
-    scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
+    scope v = new ExpressionPrettyPrintVisitor(buf, hgs);
     e.accept(v);
 }
 
