@@ -1,0 +1,44 @@
+Function Parameter Name Mangling Changes
+
+If the parameter type can be implicitly converted to a type
+that at the top level does not have `const` or `shared` or `inout` or `immutable`
+then the converted type is mangled instead. This means
+these functions mangle to the same string:
+
+---
+void foo(immutable int i);
+void foo(const int i);
+void foo(int i);
+
+void foo(const int* p);
+void foo(const(int)* p);
+---
+
+Note that C++ compilers typically do this as well.
+
+This will break binary compatibility with existing code,
+it will need to be recompiled.
+
+It will also break code that relies on them being distinct
+functions, and the following will now fail:
+
+---
+int foo60(int i) { return 1; }
+int foo60(const int i) { return 2; }
+int foo60(immutable int i) { return 3; }
+
+void test60()
+{
+    int i;
+    const int j;
+    immutable int k;
+
+    assert(foo60(i) == 1);
+    assert(foo60(j) == 2);
+    assert(foo60(k) == 3);
+}
+---
+Although arguably such code never made sense anyway.
+
+
+https://issues.dlang.org/show_bug.cgi?id=19785

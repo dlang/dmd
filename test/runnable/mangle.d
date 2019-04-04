@@ -240,10 +240,9 @@ void test8847d()
 void test8847e()
 {
     enum resultHere = "6mangle"~"9test8847eFZ"~tl!"8"~"__T3fooZ"~id!("3foo","Qf");
-    enum resultBar =  "S"~resultHere~"MFNaNfNgiZ3Bar";
+    enum resultBar =  "S"~resultHere~"MFNaNfiZ3Bar";
     static if(BackRefs) {} else
       enum resultFoo = "_D"~resultHere~"MFNaNbNiNfNgiZNg"~resultBar;   // added 'Nb'
-
     // Make template function to infer 'nothrow' attributes
     auto foo()(inout int) pure @safe
     {
@@ -256,12 +255,18 @@ void test8847e()
     auto bar = foo(0);
     static assert(typeof(bar).stringof == "Bar");
     static assert(typeof(bar).mangleof == resultBar);
-    enum fooDemangled = "pure nothrow @nogc @safe inout(mangle.test8847e().foo!().foo(inout(int)).Bar) mangle.test8847e().foo!().foo(inout(int))";
+    enum fooDemangled = "pure nothrow @nogc @safe inout(mangle.test8847e().foo!().foo(int).Bar) mangle.test8847e().foo!().foo(int)";
 
     static if (BackRefs)
+    {
+      //pragma(msg, demangle(foo!().mangleof));
       static assert(demangle(foo!().mangleof) == fooDemangled);
+    }
     else
+    {
+      //pragma(msg, foo!().mangleof);
       static assert(foo!().mangleof == resultFoo);
+    }
 }
 
 // --------

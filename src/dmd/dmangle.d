@@ -1091,7 +1091,15 @@ public:
             }
             assert(0);
         }
-        visitWithMask(p.type, 0);
+        Type t = p.type;
+        if (t.mod == 0)    // the easy case, no modifiers
+            return mangleType(t);
+
+        /* If t can be implicitly converted to the same type sans modifiers,
+         * then don't mangle in those modifiers.
+         */
+        Type tm = t.mutableOf().unSharedOf();
+        visitWithMask(t.implicitConvTo(tm) >= MATCH.constant ? tm : t, 0);
     }
 }
 

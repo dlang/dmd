@@ -456,7 +456,7 @@ int intrinsic_op(FuncDeclaration fd)
         "4math6yl2xp1FNaNbNiNfeeZe",
         "4math6yl2xp1FNaNbNiNfffZf",
 
-        "4simd10__prefetchFNaNbNiNfxPvhZv",
+        "4simd10__prefetchFNaNbNiNfPxvhZv",
         "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMNhG16vQgZQj",
         "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMdNhG16vZQh",
         "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMfNhG16vZQh",
@@ -546,7 +546,7 @@ int intrinsic_op(FuncDeclaration fd)
         "4math6yl2xp1FNaNbNiNfeeZe",
         "4math6yl2xp1FNaNbNiNfffZf",
 
-        "4simd10__prefetchFNaNbNiNfxPvhZv",
+        "4simd10__prefetchFNaNbNiNfPxvhZv",
         "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMNhG16vQgZQj",
         "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMdNhG16vZQh",
         "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMfNhG16vZQh",

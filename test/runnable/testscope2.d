@@ -38,8 +38,8 @@ void test3()
         // Test scope mangling
         assert(SS.foo1.mangleof == "_D10testscope22SS4foo1MFNcNjNkKDFNjZPiZm");
         assert(SS.foo2.mangleof == "_D10testscope22SS4foo2MFNcNkKDFZiZi");
-        assert(SS.foo3.mangleof == "_D10testscope22SS4foo3MFNcNkKNgPiZi");
-        assert(SS.foo4.mangleof == "_D10testscope22SS4foo4MFNcNkKNgPiZi");
+        assert(SS.foo3.mangleof == "_D10testscope22SS4foo3MFNcNkKPNgiZi");
+        assert(SS.foo4.mangleof == "_D10testscope22SS4foo4MFNcNkKPNgiZi");
 
         // Test scope pretty-printing
         assert(typeof(SS.foo1).stringof == "ref ulong(return ref int* delegate() return p) return");

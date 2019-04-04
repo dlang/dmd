@@ -1000,23 +1000,6 @@ void test59()
 
 /************************************/
 
-int foo60(int i) { return 1; }
-int foo60(const int i) { return 2; }
-int foo60(immutable int i) { return 3; }
-
-void test60()
-{
-    int i;
-    const int j;
-    immutable int k;
-
-    assert(foo60(i) == 1);
-    assert(foo60(j) == 2);
-    assert(foo60(k) == 3);
-}
-
-/************************************/
-
 void foo61(T)(T arg)
 {
     alias const(T) CT;
@@ -3811,7 +3794,6 @@ int main()
     test57();
     test58();
     test59();
-    test60();
     test61();
     test62();
     test63();
