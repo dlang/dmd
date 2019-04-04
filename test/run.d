@@ -397,7 +397,7 @@ string[string] getEnvironment()
         env["PIC_FLAGS"]  = pic ? "-fPIC" : "";
         env["DFLAGS"] = "-I%s/import -I%s".format(druntimePath, phobosPath)
             ~ " -L-L%s/%s".format(phobosPath, generatedSuffix);
-        bool isShared = os.among("linux", "freebsd") >= 0;
+        bool isShared = os.among("linux", "freebsd") > 0;
         if (isShared)
             env["DFLAGS"] = env["DFLAGS"] ~ " -defaultlib=libphobos2.so -L-rpath=%s/%s".format(phobosPath, generatedSuffix);
 
