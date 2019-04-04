@@ -5,9 +5,10 @@
 /++
 # Links
 
+[D Site]: https://dlang.org 'D lives here'
 [unused reference]: https://nowhere.com
 
-A link to [Object].
+A link to [partition].
 
 A link to [the base object][Object].
 
@@ -26,8 +27,15 @@ A slightly less simple link to [dub][].
 An image: ![D-Man](https://dlang.org/images/d3.png)
 Another image: ![D-Man again][dman-error]
 
-[D Site]: https://dlang.org 'D lives here'
 [dub]: <https://code.dlang.org>
 [dman-error]: https://dlang.org/images/dman-error.jpg
+
+$(P
+    [tour]: https://tour.dlang.org
+
+    Here's a [reference to the tour][tour] inside a macro.
+)
 +/
 module test.compilable.ddoc_markdown_links;
+
+import std.algorithm.sorting;
