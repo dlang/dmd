@@ -661,14 +661,8 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
 
         case 3:
             // invalid size
-            if (sz == 32)
-                deprecation(loc, "%d byte vector types are only supported with -mcpu=avx", sz, mtype.toChars());
-            else
-            {
-                .error(loc, "%d byte vector type `%s` is not supported on this platform", sz, mtype.toChars());
-                return error();
-            }
-            break;
+            .error(loc, "%d byte vector type `%s` is not supported on this platform", sz, mtype.toChars());
+            return error();
         }
         return merge(mtype);
     }
