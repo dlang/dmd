@@ -65,7 +65,12 @@ extern (C++) abstract class Condition : ASTNode
 
     abstract int include(Scope* sc);
 
-    DebugCondition isDebugCondition()
+    inout(DebugCondition) isDebugCondition() inout
+    {
+        return null;
+    }
+
+    inout(VersionCondition) isVersionCondition() inout
     {
         return null;
     }
@@ -531,7 +536,7 @@ extern (C++) final class DebugCondition : DVCondition
         return (inc == Include.yes);
     }
 
-    override DebugCondition isDebugCondition()
+    override inout(DebugCondition) isDebugCondition() inout
     {
         return this;
     }
@@ -804,6 +809,11 @@ extern (C++) final class VersionCondition : DVCondition
             }
         }
         return (inc == Include.yes);
+    }
+
+    override inout(VersionCondition) isVersionCondition() inout
+    {
+        return this;
     }
 
     override void accept(Visitor v)

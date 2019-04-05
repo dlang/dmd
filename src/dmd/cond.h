@@ -40,6 +40,7 @@ public:
     virtual Condition *syntaxCopy() = 0;
     virtual int include(Scope *sc) = 0;
     virtual DebugCondition *isDebugCondition() { return NULL; }
+    virtual VersionCondition *isVersionCondition() { return NULL; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -84,6 +85,7 @@ public:
     static void addPredefinedGlobalIdent(const char *ident);
 
     int include(Scope *sc);
+    VersionCondition *isVersionCondition() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
