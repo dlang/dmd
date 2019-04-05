@@ -2,6 +2,8 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
+ * Simple hash table
+ *
  * Copyright:   Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright), Dave Fladebo
  * License:     Distributed under the Boost Software License, Version 1.0.

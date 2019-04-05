@@ -1,19 +1,6 @@
 Files in the Back End
 =====================
 
-aa.c            simple hash table
-aa.h            header for simple hash table
-bcomplex.c      our own complex number implementation because we can't rely on host C compiler
-bcomplex.h      header for our own complex numbers
-blockopt.c      manage and simple optimizations on graphs of basic blocks
-cc.h            main header file for back end
-cdef.h          configuration
-cg.c            global variables for code generator
-cg87.c          x87 FPU code generation
-cgcod.c         main loop for code generator
-cgcs.c          compute common subexpressions for non-optimized code generation
-cgcv.c          CodeView symbol debug info generation
-cgcv.h          header for cgcv.c
 cgelem.c        local optimizations of elem trees
 cgen.c          generate/manage linked list of code instructions
 cgobj.c         generate OMF object files

@@ -2,6 +2,8 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
+ * Global variables for code generator
+ *
  * Copyright:   Copyright (C) 1984-1995 by Symantec
  *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)

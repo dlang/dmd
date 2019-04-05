@@ -2,6 +2,8 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
+ * Our own complex number implementation because we can't rely on host C compiler
+ *
  * Copyright:   public domain
  * License:     public domain
  * Source:      $(DMDSRC backend/_bcomplex.d)
