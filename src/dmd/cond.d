@@ -70,6 +70,11 @@ extern (C++) abstract class Condition : ASTNode
         return null;
     }
 
+    inout(VersionCondition) isVersionCondition() inout
+    {
+        return null;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -804,6 +809,11 @@ extern (C++) final class VersionCondition : DVCondition
             }
         }
         return (inc == Include.yes);
+    }
+
+    override inout(VersionCondition) isVersionCondition() inout
+    {
+        return this;
     }
 
     override void accept(Visitor v)
