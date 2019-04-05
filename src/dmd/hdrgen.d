@@ -3383,28 +3383,6 @@ private void objectToBuffer(RootObject oarg, OutBuffer* buf, HdrGenState* hgs)
 }
 
 
-// callback for TypeFunction::attributesApply
-private struct PrePostAppendStrings
-{
-    OutBuffer* buf;
-    bool isPostfixStyle;
-    bool isCtor;
-
-    extern (D) static int fp(void* param, string str)
-    {
-        PrePostAppendStrings* p = cast(PrePostAppendStrings*)param;
-        // don't write 'ref' for ctors
-        if (p.isCtor && str == "ref")
-            return 0;
-        if (p.isPostfixStyle)
-            p.buf.writeByte(' ');
-        p.buf.writestring(str);
-        if (!p.isPostfixStyle)
-            p.buf.writeByte(' ');
-        return 0;
-    }
-}
-
 private void visitFuncIdentWithPostfix(TypeFunction t, const char* ident, OutBuffer* buf, HdrGenState* hgs)
 {
     if (t.inuse)
@@ -3413,10 +3391,6 @@ private void visitFuncIdentWithPostfix(TypeFunction t, const char* ident, OutBuf
         return;
     }
     t.inuse++;
-    PrePostAppendStrings pas;
-    pas.buf = buf;
-    pas.isCtor = false;
-    pas.isPostfixStyle = true;
     if (t.linkage > LINK.d && hgs.ddoc != 1 && !hgs.hdrgen)
     {
         linkageToBuffer(buf, t.linkage);
@@ -3440,7 +3414,14 @@ private void visitFuncIdentWithPostfix(TypeFunction t, const char* ident, OutBuf
         buf.writeByte(' ');
         MODtoBuffer(buf, t.mod);
     }
-    t.attributesApply(&pas, &PrePostAppendStrings.fp);
+
+    void dg(string str)
+    {
+        buf.writeByte(' ');
+        buf.writestring(str);
+    }
+    t.attributesApply(&dg);
+
     t.inuse--;
 }
 
@@ -3453,16 +3434,7 @@ private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, Te
         return;
     }
     t.inuse++;
-    PrePostAppendStrings pas;
-    extern (D) static int ignoreReturn(void* param, string name)
-    {
-        if (name != "return")
-            PrePostAppendStrings.fp(param, name);
-        return 0;
-    }
-    pas.buf = buf;
-    pas.isCtor = (ident == Id.ctor);
-    pas.isPostfixStyle = false;
+
     /* Use 'storage class' (prefix) style for attributes
      */
     if (t.mod)
@@ -3470,7 +3442,20 @@ private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, Te
         MODtoBuffer(buf, t.mod);
         buf.writeByte(' ');
     }
-    t.attributesApply(&pas, &ignoreReturn);
+
+    void ignoreReturn(string str)
+    {
+        if (str != "return")
+        {
+            // don't write 'ref' for ctors
+            if ((ident == Id.ctor) && str == "ref")
+                return;
+            buf.writestring(str);
+            buf.writeByte(' ');
+        }
+    }
+    t.attributesApply(&ignoreReturn);
+
     if (t.linkage > LINK.d && hgs.ddoc != 1 && !hgs.hdrgen)
     {
         linkageToBuffer(buf, t.linkage);
@@ -3504,8 +3489,7 @@ private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, Te
     parametersToBuffer(t.parameterList, buf, hgs);
     if (t.isreturn)
     {
-        PrePostAppendStrings.fp(&pas, " return");
-        pas.buf.offset -= 1; // remove final whitespace
+        buf.writestring(" return");
     }
     t.inuse--;
 }
