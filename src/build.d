@@ -1237,6 +1237,7 @@ Params:
 */
 auto run(T)(T args)
 {
+    args = remove!(`a == ""`)(args);
     log("Run: %s", args.join(" "));
     return execute(args, null, Config.none, size_t.max, srcDir);
 }
