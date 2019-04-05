@@ -428,8 +428,11 @@ class Lexer
                 if (p[1] != '"')
                     goto case_ident;
                 p++;
+                auto start = p;
+                auto hexString = new OutBuffer();
                 t.value = hexStringConstant(t);
-                deprecation("Built-in hex string literals are deprecated, use `std.conv.hexString` instead.");
+                hexString.write(start, p - start);
+                error("Built-in hex string literals are obsolete, use `std.conv.hexString!%s` instead.", hexString.extractString());
                 return;
             case 'q':
                 if (p[1] == '"')

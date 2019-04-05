@@ -47,7 +47,7 @@ void test7()
     string s = `hello"there'you`;
     printf("s = '%.*s'\n", s.length, s.ptr);
     assert(s == "hello\"there'you");
-    ubyte[] b = cast(ubyte[])x"8B 7D f4 0d";
+    ubyte[] b = cast(ubyte[])"\x8B\x7D\xf4\x0d";
     for (int i = 0; i < b.length; i++)
         printf("b[%d] = x%02x\n", i, b[i]);
     assert(b.length == 4);

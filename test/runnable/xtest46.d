@@ -1315,7 +1315,7 @@ void test67()
 
 void test68()
 {
-    digestToString(cast(ubyte[16])x"c3fcd3d76192e4007dfb496cca67e13b");
+    digestToString(cast(ubyte[16])"\xc3\xfc\xd3\xd7\x61\x92\xe4\x00\x7d\xfb\x49\x6c\xca\x67\xe1\x3b");
 }
 
 void digestToString(const ubyte[16] digest)
@@ -1328,7 +1328,7 @@ void digestToString(const ubyte[16] digest)
 
 void test69()
 {
-    digestToString69(cast(ubyte[16])x"c3fcd3d76192e4007dfb496cca67e13b");
+    digestToString69(cast(ubyte[16])"\xc3\xfc\xd3\xd7\x61\x92\xe4\x00\x7d\xfb\x49\x6c\xca\x67\xe1\x3b");
 }
 
 void digestToString69(ref const ubyte[16] digest)
@@ -4093,7 +4093,7 @@ void test4539()
 
     // same as test68, 69, 70
     foo4("hello");
-    foo5(cast(ubyte[5])x"c3fcd3d761");
+    foo5(cast(ubyte[5])"\xc3\xfc\xd3\xd7\x61");
 
     //import std.conv;
     //static assert(!__traits(compiles, parse!int("10") == 10));

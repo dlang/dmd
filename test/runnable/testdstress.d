@@ -671,7 +671,7 @@ void test30()
 
 void test31()
 {
-        string str = x"F0 9D 83 93"; // utf-8 for U+1D0D3
+        string str = "\xF0\x9D\x83\x93"; // utf-8 for U+1D0D3
 
         int count=0;
         dchar tmp;
