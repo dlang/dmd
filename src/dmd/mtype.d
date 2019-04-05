@@ -6590,7 +6590,7 @@ const(char*)[2] toAutoQualChars(Type t1, Type t2)
  * For each active modifier (MODFlags.const_, MODFlags.immutable_, etc) call `fp` with a
  * void* for the work param and a string representation of the attribute.
  */
-int modifiersApply(TypeFunction tf, void* param, int function(void*, string) fp)
+void modifiersApply(const TypeFunction tf, void delegate(string) dg)
 {
     immutable ubyte[4] modsArr = [MODFlags.const_, MODFlags.immutable_, MODFlags.wild, MODFlags.shared_];
 
@@ -6598,66 +6598,42 @@ int modifiersApply(TypeFunction tf, void* param, int function(void*, string) fp)
     {
         if (tf.mod & modsarr)
         {
-            if (int res = fp(param, MODtoString(modsarr)))
-                return res;
+            dg(MODtoString(modsarr));
         }
     }
-
-    return 0;
 }
 
 /**
  * For each active attribute (ref/const/nogc/etc) call `fp` with a void* for the
  * work param and a string representation of the attribute.
  */
-int attributesApply(TypeFunction tf, void* param, int function(void*, string) fp, TRUSTformat trustFormat = TRUSTformatDefault)
+void attributesApply(const TypeFunction tf, void delegate(string) dg, TRUSTformat trustFormat = TRUSTformatDefault)
 {
-    int res = 0;
     if (tf.purity)
-        res = fp(param, "pure");
-    if (res)
-        return res;
-
+        dg("pure");
     if (tf.isnothrow)
-        res = fp(param, "nothrow");
-    if (res)
-        return res;
-
+        dg("nothrow");
     if (tf.isnogc)
-        res = fp(param, "@nogc");
-    if (res)
-        return res;
-
+        dg("@nogc");
     if (tf.isproperty)
-        res = fp(param, "@property");
-    if (res)
-        return res;
-
+        dg("@property");
     if (tf.isref)
-        res = fp(param, "ref");
-    if (res)
-        return res;
-
+        dg("ref");
     if (tf.isreturn && !tf.isreturninferred)
-        res = fp(param, "return");
-    if (res)
-        return res;
-
+        dg("return");
     if (tf.isscope && !tf.isscopeinferred)
-        res = fp(param, "scope");
-    if (res)
-        return res;
+        dg("scope");
 
     TRUST trustAttrib = tf.trust;
 
     if (trustAttrib == TRUST.default_)
     {
-        // Print out "@system" when trust equals TRUST.default_ (if desired).
         if (trustFormat == TRUSTformatSystem)
             trustAttrib = TRUST.system;
         else
-            return res; // avoid calling with an empty string
+            return; // avoid calling with an empty string
     }
 
-    return fp(param, trustToString(trustAttrib));
+    dg(trustToString(trustAttrib));
 }
+
