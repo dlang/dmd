@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -gf
+// REQUIRED_ARGS: -gf -mixin=${RESULTS_DIR}/runnable/testpdb.mixin
 // PERMUTE_ARGS:
 
 import core.time;
@@ -39,6 +39,7 @@ void main(string[] args)
 
         testLineNumbers15432(session, globals);
         testLineNumbers19747(session, globals);
+        testLineNumbers19719(session, globals);
 
         S18984 s = test18984(session, globals);
 
@@ -117,6 +118,32 @@ void testLineNumbers19747(IDiaSession session, IDiaSymbol globals)
         found = found || ln.line == lineScopeExitTest19747;
     assert(found);
 }
+
+int test19719()
+{
+    enum code = "int a = 5;";
+    mixin(code);
+    return a;
+}
+
+void testLineNumbers19719(IDiaSession session, IDiaSymbol globals)
+{
+    IDiaSymbol funcsym = searchSymbol(globals, cPrefix ~ test19719.mangleof);
+    assert(funcsym, "symbol test19719 not found");
+    ubyte[] funcRange;
+    Line[] lines = findSymbolLineNumbers(session, funcsym, &funcRange);
+    assert(lines, "no line number info for test19747");
+
+    test19719();
+
+    //dumpLineNumbers(lines, funcRange);
+    wstring mixinfile = "testpdb.mixin";
+    bool found = false;
+    foreach(ln; lines)
+        found = found || (ln.srcfile.length >= mixinfile.length && ln.srcfile[$-mixinfile.length .. $] == mixinfile);
+    assert(found);
+}
+
 
 ///////////////////////////////////////////////
 // https://issues.dlang.org/show_bug.cgi?id=18984
@@ -735,6 +762,11 @@ interface IDiaEnumLineNumbers : IUnknown
 
 interface IDiaSourceFile : IUnknown
 {
+    HRESULT get_uniqueId(DWORD *pRetVal);
+    HRESULT get_fileName(BSTR *pRetVal);
+    HRESULT get_checksumType(DWORD *pRetVal);
+    HRESULT get_compilands(IDiaEnumSymbols **pRetVal);
+    HRESULT get_checksum(DWORD cbData, DWORD *pcbData, BYTE *pbData) = 0;
 }
 
 interface IDiaLineNumber : IUnknown
@@ -1013,6 +1045,7 @@ struct Line
 {
     DWORD line;
     ubyte* addr;
+    wstring srcfile;
 }
 
 // linker generated symbol
@@ -1046,7 +1079,21 @@ Line[] findSymbolLineNumbers(IDiaSession session, IDiaSymbol sym, ubyte[]* funcR
     {
         DWORD lno, lrva;
         if (line.get_lineNumber(&lno) == S_OK && line.get_relativeVirtualAddress(&lrva) == S_OK)
-            lines ~= Line(lno, rvabase + lrva);
+        {
+            wstring srcfile;
+            IDiaSourceFile diaSource;
+            if (line.get_sourceFile(&diaSource) == S_OK)
+            {
+                BSTR bsrcfile;
+                if (diaSource.get_fileName(&bsrcfile) == S_OK)
+                {
+                    srcfile = bsrcfile[0..wcslen(bsrcfile)].dup;
+                    SysFreeString(bsrcfile);
+                }
+                diaSource.Release();
+            }
+            lines ~= Line(lno, rvabase + lrva, srcfile);
+        }
         line.Release();
     }
     return lines;

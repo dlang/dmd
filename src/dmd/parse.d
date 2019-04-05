@@ -257,9 +257,15 @@ private bool writeMixin(const(char)[] s, ref Loc loc)
 
     if(lastpos < s.length)
         ob.writestring(s[lastpos .. $]);
-    ob.writenl();
 
+    if (s.length == 0 || s[$-1] != '\n')
+    {
+        ob.writenl(); // ensure empty line after expansion
+        global.params.mixinLines++;
+    }
+    ob.writenl();
     global.params.mixinLines++;
+
     return true;
 }
 
