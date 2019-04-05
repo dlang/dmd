@@ -2693,30 +2693,29 @@ bool stcToBuffer(OutBuffer* buf, StorageClass stc)
         stc &= ~(STC.scope_ | STC.scopeinferred);
     while (stc)
     {
-        const(char)* p = stcToChars(stc);
-        if (!p) // there's no visible storage classes
+        const s = stcToString(stc);
+        if (!s.length)
             break;
-        if (!result)
-            result = true;
-        else
+        if (result)
             buf.writeByte(' ');
-        buf.writestring(p);
+        result = true;
+        buf.writestring(s);
     }
     return result;
 }
 
 /*************************************************
  * Pick off one of the storage classes from stc,
- * and return a pointer to a string representation of it.
+ * and return a string representation of it.
  * stc is reduced by the one picked.
  */
-extern (C++) const(char)* stcToChars(ref StorageClass stc)
+string stcToString(ref StorageClass stc)
 {
     struct SCstring
     {
         StorageClass stc;
         TOK tok;
-        const(char)* id;
+        string id;
     }
 
     __gshared SCstring* table =
@@ -2765,31 +2764,25 @@ extern (C++) const(char)* stcToChars(ref StorageClass stc)
             if (tbl == STC.tls) // TOKtls was removed
                 return "__thread";
             TOK tok = table[i].tok;
-            if (tok == TOK.at)
-                return table[i].id;
-            else
-                return Token.toChars(tok);
+            if (tok != TOK.at && !table[i].id.length)
+                table[i].id = Token.toString(tok); // lazilly initialize table
+            return table[i].id;
         }
     }
     //printf("stc = %llx\n", stc);
     return null;
 }
 
-
-/**
- * Returns:
- *   a human readable representation of `stc`
- */
-extern (D) const(char)[] stcToString(ref StorageClass stc)
+extern (C++) const(char)* stcToChars(ref StorageClass stc)
 {
-    return stcToChars(stc).toDString;
+    const s = stcToString(stc);
+    return &s[0];  // assume 0 terminated
 }
+
 
 extern (C++) void trustToBuffer(OutBuffer* buf, TRUST trust)
 {
-    const(char)* p = trustToChars(trust);
-    if (p)
-        buf.writestring(p);
+    buf.writestring(trustToString(trust));
 }
 
 /**
@@ -2804,7 +2797,7 @@ extern (C++) const(char)* trustToChars(TRUST trust)
 }
 
 /// Ditto
-extern (D) string trustToString(TRUST trust)
+extern (D) string trustToString(TRUST trust) pure nothrow
 {
     final switch (trust)
     {
@@ -2821,16 +2814,22 @@ extern (D) string trustToString(TRUST trust)
 
 private void linkageToBuffer(OutBuffer* buf, LINK linkage)
 {
-    const(char)* p = linkageToChars(linkage);
-    if (p)
+    const s = linkageToString(linkage);
+    if (s.length)
     {
         buf.writestring("extern (");
-        buf.writestring(p);
+        buf.writestring(s);
         buf.writeByte(')');
     }
 }
 
 extern (C++) const(char)* linkageToChars(LINK linkage)
+{
+    /// Works because we return a literal
+    return linkageToString(linkage).ptr;
+}
+
+string linkageToString(LINK linkage) pure nothrow
 {
     final switch (linkage)
     {
@@ -2855,9 +2854,7 @@ extern (C++) const(char)* linkageToChars(LINK linkage)
 
 extern (C++) void protectionToBuffer(OutBuffer* buf, Prot prot)
 {
-    const(char)* p = protectionToChars(prot.kind);
-    if (p)
-        buf.writestring(p);
+    buf.writestring(protectionToString(prot.kind));
     if (prot.kind == Prot.Kind.package_ && prot.pkg)
     {
         buf.writeByte('(');
@@ -2877,7 +2874,7 @@ extern (C++) const(char)* protectionToChars(Prot.Kind kind)
 }
 
 /// Ditto
-extern (D) string protectionToString(Prot.Kind kind)
+extern (D) string protectionToString(Prot.Kind kind) nothrow pure
 {
     final switch (kind)
     {
