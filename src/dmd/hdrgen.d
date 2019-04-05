@@ -866,7 +866,7 @@ public:
                 buf.printf("%s.", pid.toChars());
             }
         }
-        buf.writestring(imp.id.toChars());
+        buf.writestring(imp.id.toString());
         if (imp.names.dim)
         {
             buf.writestring(" : ");
@@ -943,53 +943,28 @@ public:
 
     override void visit(LinkDeclaration d)
     {
-        const(char)* p;
-        final switch (d.linkage)
-        {
-        case LINK.d:
-            p = "D";
-            break;
-        case LINK.c:
-            p = "C";
-            break;
-        case LINK.cpp:
-            p = "C++";
-            break;
-        case LINK.windows:
-            p = "Windows";
-            break;
-        case LINK.pascal:
-            p = "Pascal";
-            break;
-        case LINK.objc:
-            p = "Objective-C";
-            break;
-        case LINK.default_:
-        case LINK.system:
-            assert(0);
-        }
         buf.writestring("extern (");
-        buf.writestring(p);
+        buf.writestring(linkageToString(d.linkage));
         buf.writestring(") ");
         visit(cast(AttribDeclaration)d);
     }
 
     override void visit(CPPMangleDeclaration d)
     {
-        const(char)* p;
+        string s;
         final switch (d.cppmangle)
         {
         case CPPMANGLE.asClass:
-            p = "class";
+            s = "class";
             break;
         case CPPMANGLE.asStruct:
-            p = "struct";
+            s = "struct";
             break;
         case CPPMANGLE.def:
             break;
         }
         buf.writestring("extern (C++, ");
-        buf.writestring(p);
+        buf.writestring(s);
         buf.writestring(") ");
         visit(cast(AttribDeclaration)d);
     }
@@ -1007,10 +982,9 @@ public:
 
     override void visit(AlignDeclaration d)
     {
-        if (!d.ealign)
-            buf.writestring("align ");
-        else
-            buf.printf("align (%s) ", d.ealign.toChars());
+        buf.writestring("align ");
+        if (d.ealign)
+            buf.printf("(%s) ", d.ealign.toChars());
         visit(cast(AttribDeclaration)d);
     }
 
@@ -1581,7 +1555,7 @@ public:
                     buf.writestring(" (");
                     if (fensure.id)
                     {
-                        buf.writestring(fensure.id.toChars());
+                        buf.writestring(fensure.id.toString());
                     }
                     buf.writestring("; ");
                     (cast(AssertExp)es.exp).e1.expressionToBuffer(buf, hgs);
@@ -1594,7 +1568,7 @@ public:
                     if (fensure.id)
                     {
                         buf.writeByte('(');
-                        buf.writestring(fensure.id.toChars());
+                        buf.writestring(fensure.id.toString());
                         buf.writeByte(')');
                     }
                     buf.writenl();
@@ -2906,7 +2880,7 @@ void functionToBufferFull(TypeFunction tf, OutBuffer* buf, const Identifier iden
 void functionToBufferWithIdent(TypeFunction tf, OutBuffer* buf, const(char)* ident)
 {
     HdrGenState hgs;
-    visitFuncIdentWithPostfix(tf, ident, buf, &hgs);
+    visitFuncIdentWithPostfix(tf, ident.toDString(), buf, &hgs);
 }
 
 void toCBuffer(Expression e, OutBuffer* buf, HdrGenState* hgs)
@@ -3380,7 +3354,7 @@ private void objectToBuffer(RootObject oarg, OutBuffer* buf, HdrGenState* hgs)
 }
 
 
-private void visitFuncIdentWithPostfix(TypeFunction t, const char* ident, OutBuffer* buf, HdrGenState* hgs)
+private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, OutBuffer* buf, HdrGenState* hgs)
 {
     if (t.inuse)
     {
@@ -3514,7 +3488,7 @@ private void initializerToBuffer(Initializer inx, OutBuffer* buf, HdrGenState* h
                 buf.writestring(", ");
             if (id)
             {
-                buf.writestring(id.toChars());
+                buf.writestring(id.toString());
                 buf.writeByte(':');
             }
             if (auto iz = si.value[i])
@@ -3679,7 +3653,7 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
             else
             {
                 buf.writeByte('.');
-                buf.writestring(id.toChars());
+                buf.writestring(id.toString());
             }
         }
     }
