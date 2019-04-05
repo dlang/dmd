@@ -4447,7 +4447,10 @@ final class Parser(AST) : Lexer
                             skipAttributes(peekPastParen(&token), &tk) &&
                             (tk.value == TOK.goesTo || tk.value == TOK.leftCurly) ||
                         token.value == TOK.leftCurly ||
-                        token.value == TOK.identifier && peekNext() == TOK.goesTo
+                        token.value == TOK.identifier && peekNext() == TOK.goesTo ||
+                        token.value == TOK.ref_ && peekNext() == TOK.leftParentheses &&
+                            skipAttributes(peekPastParen(peek(&token)), &tk) &&
+                            (tk.value == TOK.goesTo || tk.value == TOK.leftCurly)
                        )
                     {
                         // function (parameters) { statements... }
@@ -4456,6 +4459,8 @@ final class Parser(AST) : Lexer
                         // (parameters) => expression
                         // { statements... }
                         // identifier => expression
+                        // ref (parameters) { statements... }
+                        // ref (parameters) => expression
 
                         AST.Dsymbol s = parseFunctionLiteral();
 
@@ -4850,6 +4855,13 @@ final class Parser(AST) : Lexer
         case TOK.delegate_:
             save = token.value;
             nextToken();
+            if (token.value == TOK.ref_)
+            {
+                // function ref (parameters) { statements... }
+                // delegate ref (parameters) { statements... }
+                stc = AST.STC.ref_;
+                nextToken();
+            }
             if (token.value != TOK.leftParentheses && token.value != TOK.leftCurly)
             {
                 // function type (parameters) { statements... }
@@ -4871,12 +4883,20 @@ final class Parser(AST) : Lexer
             }
             goto case TOK.leftParentheses;
 
+        case TOK.ref_:
+            {
+                // ref (parameters) => expression
+                // ref (parameters) { statements... }
+                stc = AST.STC.ref_;
+                nextToken();
+                goto case TOK.leftParentheses;
+            }
         case TOK.leftParentheses:
             {
                 // (parameters) => expression
                 // (parameters) { statements... }
                 parameters = parseParameters(&varargs, &tpl);
-                stc = parsePostfix(AST.STC.undefined_, null);
+                stc = parsePostfix(stc, null);
                 if (StorageClass modStc = stc & AST.STC.TYPECTOR)
                 {
                     if (save == TOK.function_)
@@ -8038,6 +8058,22 @@ final class Parser(AST) : Lexer
             e = parseNewExp(null);
             break;
 
+        case TOK.ref_:
+            {
+                if (peekNext() == TOK.leftParentheses)
+                {
+                    Token* tk = peekPastParen(peek(&token));
+                    if (skipAttributes(tk, &tk) && (tk.value == TOK.goesTo || tk.value == TOK.leftCurly))
+                    {
+                        // ref (arguments) => expression
+                        // ref (arguments) { statements... }
+                        goto case_delegate;
+                    }
+                }
+                nextToken();
+                error("found `%s` when expecting function literal following %s", token.toChars(), "`ref`".ptr);
+                goto Lerr;
+            }
         case TOK.leftParentheses:
             {
                 Token* tk = peekPastParen(&token);
