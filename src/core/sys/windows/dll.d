@@ -409,6 +409,9 @@ bool dll_process_attach( HINSTANCE hInstance, bool attach_threads = true )
 // to be called from DllMain with reason DLL_PROCESS_DETACH
 void dll_process_detach( HINSTANCE hInstance, bool detach_threads = true )
 {
+    // notify core.thread.joinLowLevelThread that the DLL is about to be unloaded
+    thread_DLLProcessDetaching = true;
+
     // detach from all other threads
     if ( detach_threads )
         enumProcessThreads(

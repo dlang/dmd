@@ -5676,6 +5676,9 @@ private
     }
 }
 
+version (Windows)
+    package(core) bool thread_DLLProcessDetaching;
+
 /**
  * Create a thread not under control of the runtime, i.e. TLS module constructors are
  * not run and the GC does not suspend it during a collection
@@ -5685,8 +5688,8 @@ private
  *  stacksize = size of the stack of the created thread. The default of 0 will select the
  *              platform-specific default size
  *
- * Returns: the platform specific thread ID of the new thread. If an error occurs, a preallocated
- *  ThreadError is thrown.
+ * Returns: the platform specific thread ID of the new thread. If an error occurs, `ThreadID.init`
+ *  is returned.
  */
 ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0) nothrow @nogc
 {
@@ -5710,7 +5713,7 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0) no
         HANDLE hThread = cast(HANDLE) _beginthreadex(null, stacksize, &thread_lowlevelEntry,
                                                      context, CREATE_SUSPENDED, &tid);
         if (!hThread)
-            onThreadError("Error creating thread");
+            return ThreadID.init;
     }
 
     lowlevelLock.lock_nothrow();
@@ -5740,12 +5743,13 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0) no
 
         pthread_attr_t  attr;
 
-        if (pthread_attr_init(&attr))
-            onThreadError("Error initializing thread attributes");
-        if (stacksize && pthread_attr_setstacksize(&attr, stacksize))
-            onThreadError("Error initializing thread stack size");
-        if (pthread_create(&tid, &attr, &thread_lowlevelEntry, context) != 0)
-            onThreadError("Error creating thread");
+        int rc;
+        if ((rc = pthread_attr_init(&attr)) != 0)
+            return ThreadID.init;
+        if (stacksize && (rc = pthread_attr_setstacksize(&attr, stacksize)) != 0)
+            return ThreadID.init;
+        if ((rc = pthread_create(&tid, &attr, &thread_lowlevelEntry, context)) != 0)
+            return ThreadID.init;
 
         ll_pThreads[ll_nThreads - 1] = tid;
     }
@@ -5754,6 +5758,10 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0) no
 
 /**
  * Wait for a thread created with `createLowLevelThread` to terminate
+ *
+ * Note: In a Windows DLL, if this function is called via DllMain with
+ *       argument DLL_PROCESS_DETACH, the thread is terminated forcefully
+ *       without prooper cleanup as a deadlock would be happen otherwise.
  *
  * Params:
  *  tid = the thread ID returned by `createLowLevelThread`
@@ -5765,7 +5773,18 @@ void joinLowLevelThread(ThreadID tid) nothrow @nogc
         HANDLE handle = OpenThreadHandle(tid);
         if (!handle)
             return;
-        WaitForSingleObject(handle, INFINITE);
+
+        if (thread_DLLProcessDetaching)
+        {
+            // When being called from DllMain/DLL_DETACH_PROCESS, threads cannot stop
+            //  due to the loader lock being held by the current thread.
+            // On the other hand, the thread must not continue to run as it will crash
+            //  if the DLL is unloaded. The best guess is to terminate it immediately.
+            TerminateThread(handle, 1);
+            WaitForSingleObject(handle, 10); // give it some time to terminate, but don't wait indefinitely
+        }
+        else
+            WaitForSingleObject(handle, INFINITE);
         CloseHandle(handle);
     }
     else version (Posix)
