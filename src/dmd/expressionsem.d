@@ -3592,6 +3592,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 Expression arg = (*exp.arguments)[i];
                 arg = resolveProperties(sc, arg);
                 arg = arg.implicitCastTo(sc, Type.tsize_t);
+                if (arg.op == TOK.error)
+                    return setError();
                 arg = arg.optimize(WANTvalue);
                 if (arg.op == TOK.int64 && cast(sinteger_t)arg.toInteger() < 0)
                 {

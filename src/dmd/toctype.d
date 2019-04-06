@@ -159,7 +159,7 @@ public:
             /* Add in fields of the struct
              * (after setting ctype to avoid infinite recursion)
              */
-            if (global.params.symdebug)
+            if (global.params.symdebug && !global.errors)
             {
                 foreach (v; sym.fields)
                 {
