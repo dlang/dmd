@@ -1267,6 +1267,15 @@ void test16271()
     assert((funa16271!(delegate ref int(ref a) => a)(x) += 1) == 11);
     assert(x == 11);
 
+    alias aldc  = ref () @trusted @nogc { return x; };
+    auto  audc  = ref () @safe nothrow  { return x; };
+    alias alfuc = function ref (ref x) @trusted { return x; };
+    alias aldec = delegate ref () @trusted { return x; };
+    aldc()   = 12;    assert(x == 12);
+    audc()   = 13;    assert(x == 13);
+    alfuc(x) = 14;    assert(x == 14);
+    aldec()  = 15;    assert(x == 15);
+
     template T()
     {
         int x;
