@@ -8,8 +8,8 @@ import std.exception : enforce;
 import std.file : dirEntries, exists, SpanMode, mkdirRecurse, write;
 import std.format : format;
 import std.getopt : getopt;
-import std.path : absolutePath, buildPath, dirSeparator, stripExtension,
-    setExtension;
+import std.path : absolutePath, buildPath, dirSeparator, relativePath,
+    setExtension, stripExtension;
 import std.process : environment, spawnProcess, spawnShell, wait;
 import std.range : empty;
 import std.stdio;
@@ -19,6 +19,7 @@ import tools.paths;
 
 enum unitTestDir = testPath("unit");
 enum strtoldObjPath = resultsDir.buildPath("strtold.obj");
+enum dmdSrcDir = projectRootDir.buildPath("src");
 
 string[] testFiles(Range)(Range givenFiles)
 {
@@ -34,10 +35,9 @@ string[] testFiles(Range)(Range givenFiles)
 auto moduleNames(const string[] testFiles)
 {
     return testFiles
-        .map!(e => e[unitTestDir.length + 1 .. $])
-        .map!stripExtension
-        .array
-        .map!(e => e.substitute(dirSeparator, "."));
+        .map!(e => e.relativePath(unitTestDir)
+                    .stripExtension
+                    .substitute(dirSeparator, "."));
 }
 
 void writeRunnerFile(Range)(Range moduleNames, string path, string filter)
@@ -236,7 +236,7 @@ void writeCmdfile(string path, string runnerPath, string outputPath,
         "-unittest",
         "-J" ~ buildOutputPath,
         "-J" ~ projectRootDir.buildPath("res"),
-        "-I" ~ projectRootDir.buildPath("src"),
+        "-I" ~ dmdSrcDir,
         "-I" ~ unitTestDir,
         "-i",
         "-main",
@@ -293,10 +293,10 @@ void buildStrtold()
         "/EHsc",
         "/TP",
         "/c",
-        projectRootDir.buildPath("src", "dmd", "backend", "strtold.c"),
+        dmdSrcDir.buildPath("dmd", "backend", "strtold.c"),
         "/Fo" ~ strtoldObjPath,
         "/I",
-        projectRootDir.buildPath("src", "dmd", "root")
+        dmdSrcDir.buildPath("dmd", "root")
     ].join(" ");
 
     enforce(spawnShell(cmd).wait() == 0, "Failed to execute command: " ~ cmd);
@@ -334,6 +334,9 @@ int main(string[] args)
     if (missingTestFiles(givenFiles))
         return 1;
 
+    const nrOfFiles = givenFiles.length ? givenFiles.length.to!string : "all";
+    stderr.writefln("[unit] Starting to build %s test files", nrOfFiles);
+
     enum runnerPath = resultsDir.buildPath("runner.d");
     const testFiles = givenFiles.testFiles;
 
@@ -349,5 +352,6 @@ int main(string[] args)
     buildStrtold();
     execute(dmdPath, "@" ~ cmdfilePath);
 
+    stderr.writefln("[unit] Starting to run %s test files", nrOfFiles);
     return spawnProcess(outputPath).wait();
 }

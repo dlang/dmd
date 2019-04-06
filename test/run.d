@@ -67,6 +67,7 @@ Examples:
     ./run.d runnable/template2962.d                              # runs a specific tests
     ./run.d runnable/template2962.d fail_compilation/fail282.d   # runs multiple specific tests
     ./run.d fail_compilation                                     # runs all tests in fail_compilation
+    ./run.d unit_tests                                           # runs all unit tests
     ./run.d all                                                  # runs all tests
     ./run.d clean                                                # remove all test results
     ./run.d -u -- unit/deinitialization.d -f Module              # runs the unit tests in the file "unit/deinitialization.d" with a UDA containing "Module"
@@ -123,7 +124,7 @@ Options:
         ensureToolsExists(EnumMembers!TestTools);
         foreach (target; taskPool.parallel(targets, 1))
         {
-            log("run: %-(%s %)", target.args);
+            log("%-(%s %)", target.args);
             ret |= spawnProcess(target.args, env, Config.none, scriptDir).wait;
         }
         if (ret)
@@ -156,7 +157,7 @@ void ensureToolsExists(const TestTool[] tools ...)
         const targetBin = resultsDir.buildPath(tool).exeName;
         const sourceFile = toolsDir.buildPath(tool ~ ".d");
         if (targetBin.timeLastModified.ifThrown(SysTime.init) >= sourceFile.timeLastModified)
-            writefln("%s is already up-to-date", tool);
+            log("%s is already up-to-date", tool);
         else
         {
             const command = [
@@ -165,8 +166,9 @@ void ensureToolsExists(const TestTool[] tools ...)
                 sourceFile
             ] ~ tool.extraArgs;
 
-            writefln("Executing: %-(%s %)", command);
-            spawnProcess(command).wait;
+            stderr.writefln("[run.d] %-(%s %)", command);
+            if (spawnProcess(command).wait != 0)
+                exit(1);
         }
     }
 
@@ -274,6 +276,8 @@ auto predefinedTargets(string[] targets)
                 foreach (testDir; testDirs)
                     newTargets.put(findFiles(testDir).map!createTestTarget);
                 break;
+            case "unittest":
+            case "unittests":
             case "unit_tests":
                 newTargets ~= createUnitTestTarget();
                 break;
@@ -292,7 +296,7 @@ auto filterTargets(Target[] targets, string[string] env)
     {
         if (!target.exists)
         {
-            writefln("Warning: %s can't be found", target.normalizedTestName);
+            stderr.writefln("[run.d] Warning: %s can't be found", target.normalizedTestName);
             error = true;
         }
     }
@@ -306,7 +310,7 @@ auto filterTargets(Target[] targets, string[string] env)
         auto resultRunTime = resultsDir.buildPath(testName ~ ".out").timeLastModified.ifThrown(SysTime.init);
         if (!force && resultRunTime > testPath(testName).timeLastModified &&
                 resultRunTime > env["DMD"].timeLastModified.ifThrown(SysTime.init))
-            writefln("%s is already up-to-date", testName);
+            writefln("[run.d] %s is already up-to-date", testName);
         else
             targetsThatNeedUpdating ~= t;
     }
@@ -414,7 +418,10 @@ string[string] getEnvironment()
 auto log(T...)(T args)
 {
     if (verbose)
-        writefln(args);
+    {
+        args[0] = "[run.d]: " ~ args[0];
+        stderr.writefln(args);
+    }
 }
 
 // Add the executable filename extension to the given `name` for the current OS.
