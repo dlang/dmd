@@ -1882,7 +1882,7 @@ public:
         buf.writestring("__void");
     }
 
-    void floatToBuffer(Type type, real_t value)
+    void floatToBuffer(const TypeBasic type, real_t value)
     {
         /** sizeof(value)*3 is because each byte of mantissa is max
          of 256 (3 characters). The string will be "-M.MMMMe-4932".
@@ -1901,8 +1901,7 @@ public:
         buf.writestring(buffer.ptr);
         if (type)
         {
-            Type t = type.toBasetype();
-            switch (t.ty)
+            switch (type.ty)
             {
             case Tfloat32:
             case Timaginary32:
@@ -1917,25 +1916,25 @@ public:
             default:
                 break;
             }
-            if (t.isimaginary())
+            if (type.isimaginary())
                 buf.writeByte('i');
         }
     }
 
-    override void visit(RealExp e)
+    override void visit(const RealExp e)
     {
-        floatToBuffer(e.type, e.value);
+        floatToBuffer(cast(const TypeBasic)e.type, e.value);
     }
 
-    override void visit(ComplexExp e)
+    override void visit(const ComplexExp e)
     {
         /* Print as:
          *  (re+imi)
          */
         buf.writeByte('(');
-        floatToBuffer(e.type, creall(e.value));
+        floatToBuffer(cast(const TypeBasic)e.type, creall(e.value));
         buf.writeByte('+');
-        floatToBuffer(e.type, cimagl(e.value));
+        floatToBuffer(cast(const TypeBasic)e.type, cimagl(e.value));
         buf.writestring("i)");
     }
 
