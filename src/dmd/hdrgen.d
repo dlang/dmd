@@ -546,7 +546,7 @@ public:
         s.statement.accept(this);
     }
 
-    override void visit(GotoDefaultStatement s)
+    override void visit(const GotoDefaultStatement s)
     {
         buf.writestring("goto default;");
         buf.writenl();
@@ -564,7 +564,7 @@ public:
         buf.writenl();
     }
 
-    override void visit(SwitchErrorStatement s)
+    override void visit(const SwitchErrorStatement s)
     {
         buf.writestring("SwitchErrorStatement::toCBuffer()");
         buf.writenl();
@@ -579,7 +579,7 @@ public:
         buf.writenl();
     }
 
-    override void visit(BreakStatement s)
+    override void visit(const BreakStatement s)
     {
         buf.writestring("break");
         if (s.ident)
@@ -591,7 +591,7 @@ public:
         buf.writenl();
     }
 
-    override void visit(ContinueStatement s)
+    override void visit(const ContinueStatement s)
     {
         buf.writestring("continue");
         if (s.ident)
@@ -701,7 +701,7 @@ public:
         }
     }
 
-    override void visit(GotoStatement s)
+    override void visit(const GotoStatement s)
     {
         buf.writestring("goto ");
         buf.writestring(s.ident.toString());
@@ -718,10 +718,10 @@ public:
             s.statement.accept(this);
     }
 
-    override void visit(AsmStatement s)
+    override void visit(const AsmStatement s)
     {
         buf.writestring("asm { ");
-        Token* t = s.tokens;
+        const(Token)* t = s.tokens;
         buf.level++;
         while (t)
         {
@@ -813,7 +813,7 @@ public:
         buf.writenl();
     }
 
-    override void visit(DebugSymbol s)
+    override void visit(const DebugSymbol s)
     {
         buf.writestring("debug = ");
         if (s.ident)
@@ -824,7 +824,7 @@ public:
         buf.writenl();
     }
 
-    override void visit(VersionSymbol s)
+    override void visit(const VersionSymbol s)
     {
         buf.writestring("version = ");
         if (s.ident)
@@ -848,7 +848,7 @@ public:
         }
     }
 
-    override void visit(Import imp)
+    override void visit(const Import imp)
     {
         if (hgs.hdrgen && imp.id == Id.object)
             return; // object is imported by default
@@ -885,7 +885,7 @@ public:
         buf.writenl();
     }
 
-    override void visit(AliasThis d)
+    override void visit(const AliasThis d)
     {
         buf.writestring("alias ");
         buf.writestring(d.ident.toString());
@@ -1756,7 +1756,7 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    override void visit(Expression e)
+    override void visit(const Expression e)
     {
         buf.writestring(Token.toString(e.op));
     }
@@ -1872,12 +1872,12 @@ public:
             buf.print(v);
     }
 
-    override void visit(ErrorExp e)
+    override void visit(const ErrorExp e)
     {
         buf.writestring("__error");
     }
 
-    override void visit(VoidInitExp e)
+    override void visit(const VoidInitExp e)
     {
         buf.writestring("__void");
     }
@@ -1939,7 +1939,7 @@ public:
         buf.writestring("i)");
     }
 
-    override void visit(IdentifierExp e)
+    override void visit(const IdentifierExp e)
     {
         if (hgs.hdrgen || hgs.ddoc)
             buf.writestring(e.ident.toHChars2());
@@ -1952,22 +1952,22 @@ public:
         buf.writestring(e.s.toChars());
     }
 
-    override void visit(ThisExp e)
+    override void visit(const ThisExp e)
     {
         buf.writestring("this");
     }
 
-    override void visit(SuperExp e)
+    override void visit(const SuperExp e)
     {
         buf.writestring("super");
     }
 
-    override void visit(NullExp e)
+    override void visit(const NullExp e)
     {
         buf.writestring("null");
     }
 
-    override void visit(StringExp e)
+    override void visit(const StringExp e)
     {
         buf.writeByte('"');
         const o = buf.offset;
@@ -2217,7 +2217,7 @@ public:
         buf.writeByte(')');
     }
 
-    override void visit(HaltExp e)
+    override void visit(const HaltExp e)
     {
         buf.writestring("halt");
     }
@@ -2487,7 +2487,7 @@ public:
         expToBuffer(e.e2, PREC.cond, buf, hgs);
     }
 
-    override void visit(DefaultInitExp e)
+    override void visit(const DefaultInitExp e)
     {
         buf.writestring(Token.toString(e.subop));
     }
@@ -2573,7 +2573,7 @@ public:
         }
     }
 
-    override void visit(TemplateTupleParameter tp)
+    override void visit(const TemplateTupleParameter tp)
     {
         buf.writestring(tp.ident.toString());
         buf.writestring("...");
@@ -2599,7 +2599,7 @@ public:
         this.hgs = hgs;
     }
 
-    override void visit(DebugCondition c)
+    override void visit(const DebugCondition c)
     {
         buf.writestring("debug (");
         if (c.ident)
@@ -2609,7 +2609,7 @@ public:
         buf.writeByte(')');
     }
 
-    override void visit(VersionCondition c)
+    override void visit(const VersionCondition c)
     {
         buf.writestring("version (");
         if (c.ident)
@@ -3468,12 +3468,12 @@ private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, Te
 
 private void initializerToBuffer(Initializer inx, OutBuffer* buf, HdrGenState* hgs)
 {
-    void visitError(ErrorInitializer iz)
+    void visitError(const ErrorInitializer iz)
     {
         buf.writestring("__error__");
     }
 
-    void visitVoid(VoidInitializer iz)
+    void visitVoid(const VoidInitializer iz)
     {
         buf.writestring("void");
     }
@@ -3533,18 +3533,18 @@ private void initializerToBuffer(Initializer inx, OutBuffer* buf, HdrGenState* h
 
 private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
 {
-    void visitType(Type t)
+    void visitType(const Type t)
     {
         printf("t = %p, ty = %d\n", t, t.ty);
         assert(0);
     }
 
-    void visitError(TypeError t)
+    void visitError(const TypeError t)
     {
         buf.writestring("_error_");
     }
 
-    void visitBasic(TypeBasic t)
+    void visitBasic(const TypeBasic t)
     {
         //printf("TypeBasic::toCBuffer2(t.mod = %d)\n", t.mod);
         buf.writestring(t.dstring);
@@ -3728,7 +3728,7 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
         buf.writeByte(']');
     }
 
-    void visitNull(TypeNull t)
+    void visitNull(const TypeNull t)
     {
         buf.writestring("typeof(null)");
     }
