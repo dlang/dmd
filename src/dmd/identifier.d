@@ -84,7 +84,7 @@ public:
 
     override bool equals(RootObject o) const
     {
-        return this == o || name == o.toString();
+        return this == o;
     }
 
     override int compare(RootObject o) const
