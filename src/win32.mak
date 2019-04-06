@@ -231,7 +231,7 @@ BACKSRC= $C\optabgen.d \
 	$C\compress.d $C\cgreg.d $C\var.d \
 	$C\cgsched.d $C\cod1.d $C\cod2.d $C\cod3.d $C\cod4.d $C\cod5.d \
 	$C\dcode.d $C\symbol.d $C\debugprint.d $C\ee.d $C\elem.d \
-	$C\evalu8.d $C\fp.c $C\go.d $C\gflow.d $C\gdag.d \
+	$C\evalu8.d $C\fp.d $C\go.d $C\gflow.d $C\gdag.d \
 	$C\gother.d $C\glocal.d $C\gloop.d $C\gsroa.d $C\newman.d \
 	$C\nteh.d $C\os.d $C\out.d $C\ptrntab.d $C\drtlsym.d \
 	$C\dtype.d \
@@ -549,8 +549,8 @@ $G/evalu8.obj : $C\evalu8.d
 $G/filespec.obj : $C\filespec.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\filespec
 
-$G/fp.obj : $C\fp.c
-	$(CC) -c -o$@ $(MFLAGS) $C\fp
+$G/fp.obj : $C\fp.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\fp
 
 $G/go.obj : $C\go.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\go

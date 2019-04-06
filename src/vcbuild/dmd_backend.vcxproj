@@ -94,7 +94,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\dmd\backend\tk.c" />
-    <ClCompile Include="..\dmd\backend\fp.c" />
     <ClCompile Include="..\dmd\tk\mem.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>

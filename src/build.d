@@ -796,10 +796,10 @@ auto sourceFiles()
         ].map!(e => env["C"].buildPath(e ~ ".d")).array,
         backendC:
             // all backend files in C
-            ["fp", "tk"]
+            ["tk"]
                 .map!(a => env["G"].buildPath(a).objName)
                 .array,
-        backendObjects: ["fp", "tk"]
+        backendObjects: ["tk"]
                 .map!(a => env["G"].buildPath(a).objName)
                 .array,
     };
