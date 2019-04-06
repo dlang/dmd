@@ -3248,7 +3248,7 @@ extern (C++) final class TypeBasic : Type
         return target.alignsize(this);
     }
 
-    override bool isintegral()
+    override bool isintegral() const
     {
         //printf("TypeBasic::isintegral('%s') x%x\n", toChars(), flags);
         return (flags & TFlags.integral) != 0;
