@@ -531,13 +531,16 @@ if (!is(T == enum) && (is(T == struct) || is(T == union))
     mixin(_hashOfStruct);
 }
 
-//delegate hash. CTFE unsupported
+//delegate hash. CTFE only if null.
 @trusted @nogc nothrow pure
 size_t hashOf(T)(scope const T val, size_t seed = 0) if (!is(T == enum) && is(T == delegate))
 {
-    assert(!__ctfe, "unable to compute hash of "~T.stringof~" at compile time");
-    const(ubyte)[] bytes = (cast(const(ubyte)*)&val)[0 .. T.sizeof];
-    return bytesHashWithExactSizeAndAlignment!T(bytes, seed);
+    if (__ctfe)
+    {
+        if (val is null) return hashOf(size_t(0), hashOf(size_t(0), seed));
+        assert(0, "unable to compute hash of "~T.stringof~" at compile time");
+    }
+    return hashOf(val.ptr, hashOf(cast(void*) val.funcptr, seed));
 }
 
 //address-based class hash. CTFE only if null.
