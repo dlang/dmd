@@ -5146,6 +5146,21 @@ void test8199()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=13285
+void test13285()
+{
+    static struct S
+    {
+        ~this()
+        {
+            checkAlign();
+        }
+    }
+    S s; // correct alignment of RSP when calling ~this()
+    S(); // incorrect alignment
+}
+
+/***************************************************/
 
 void test246()
 {
@@ -6463,6 +6478,7 @@ int main()
     test7997();
     test5332();
     test11472();
+    test13285();
 
     writefln("Success");
     return 0;
