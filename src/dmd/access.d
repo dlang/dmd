@@ -244,7 +244,7 @@ private bool hasPackageAccess(Module mod, Dsymbol s)
         // no explicit package for protection, inferring most qualified one
         for (; s; s = s.parent)
         {
-            if (Module m = s.isModule())
+            if (auto m = s.isModule())
             {
                 DsymbolTable dst = Package.resolve(m.md ? m.md.packages : null, null, null);
                 assert(dst);

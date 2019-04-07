@@ -526,29 +526,38 @@ extern (C++) class FuncDeclaration : Declaration
         if (this == o)
             return true;
 
-        Dsymbol s = isDsymbol(o);
-        if (s)
+        if (auto s = isDsymbol(o))
         {
-            alias fd1 = this;
-            auto  fd2 = s.isFuncDeclaration();
+            auto fd1 = this;
+            auto fd2 = s.isFuncDeclaration();
             if (!fd2)
                 return false;
 
             auto fa1 = fd1.isFuncAliasDeclaration();
+            auto faf1 = fa1 ? fa1.toAliasFunc() : fd1;
+
             auto fa2 = fd2.isFuncAliasDeclaration();
+            auto faf2 = fa2 ? fa2.toAliasFunc() : fd2;
+
             if (fa1 && fa2)
             {
-                return fa1.toAliasFunc().equals(fa2.toAliasFunc()) && fa1.hasOverloads == fa2.hasOverloads;
+                return faf1.equals(faf2) && fa1.hasOverloads == fa2.hasOverloads;
             }
 
-            if (fa1 && (fd1 = fa1.toAliasFunc()).isUnique() && !fa1.hasOverloads)
-                fa1 = null;
-            if (fa2 && (fd2 = fa2.toAliasFunc()).isUnique() && !fa2.hasOverloads)
-                fa2 = null;
-            if ((fa1 !is null) != (fa2 !is null))
+            bool b1 = fa1 !is null;
+            if (b1 && faf1.isUnique() && !fa1.hasOverloads)
+                b1 = false;
+
+            bool b2 = fa2 !is null;
+            if (b2 && faf2.isUnique() && !fa2.hasOverloads)
+                b2 = false;
+
+            if (b1 != b2)
                 return false;
 
-            return fd1.toParent().equals(fd2.toParent()) && fd1.ident.equals(fd2.ident) && fd1.type.equals(fd2.type);
+            return faf1.toParent().equals(faf2.toParent()) &&
+                   faf1.ident.equals(faf2.ident) &&
+                   faf1.type.equals(faf2.type);
         }
         return false;
     }
@@ -1694,12 +1703,12 @@ extern (C++) class FuncDeclaration : Declaration
     }
 
     /********************************************
-     * If there are no overloads of function f, return that function,
-     * otherwise return NULL.
+     * Returns:
+     *  true if there are no overloads of this function
      */
-    final FuncDeclaration isUnique()
+    final bool isUnique()
     {
-        FuncDeclaration result = null;
+        bool result = false;
         overloadApply(this, (Dsymbol s)
         {
             auto f = s.isFuncDeclaration();
@@ -1707,12 +1716,12 @@ extern (C++) class FuncDeclaration : Declaration
                 return 0;
             if (result)
             {
-                result = null;
+                result = false;
                 return 1; // ambiguous, done
             }
             else
             {
-                result = f;
+                result = true;
                 return 0;
             }
         });
@@ -2488,7 +2497,7 @@ Expression addInvariant(const ref Loc loc, Scope* sc, AggregateDeclaration ad, V
 extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg, Scope* sc = null)
 {
     Dsymbol next;
-    for (Dsymbol d = fstart; d; d = next)
+    for (auto d = fstart; d; d = next)
     {
         import dmd.access : checkSymbolAccess;
         if (auto od = d.isOverDeclaration())

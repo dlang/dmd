@@ -304,7 +304,7 @@ extern (C++) class Dsymbol : ASTNode
             return true;
         if (o.dyncast() != DYNCAST.dsymbol)
             return false;
-        Dsymbol s = cast(Dsymbol)o;
+        auto s = cast(Dsymbol)o;
         // Overload sets don't have an ident
         if (s && ident && s.ident && ident.equals(s.ident))
             return true;
