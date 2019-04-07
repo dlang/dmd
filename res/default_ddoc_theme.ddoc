@@ -28,9 +28,13 @@ DL = <dl>$0</dl>
 DT = <dt>$0</dt>
 DD = <dd>$0</dd>
 TABLE = <table>$0</table>
+THEAD = <thead>$0</thead>
+TBODY = <tbody>$0</tbody>
 TR = <tr>$0</tr>
 TH = <th>$0</th>
 TD = <td>$0</td>
+TH_ALIGN = <th align="$1">$+</th>
+TD_ALIGN = <td align="$1">$+</td>
 OL = <ol>$0</ol>
 OL_START = <ol start="$1">$2</ol>
 UL = <ul>$0</ul>
@@ -545,11 +549,18 @@ DDOC =
         min-width: 50px;
       }
 
+      .ddoc th {
+        margin: 0;
+        max-width: 260px;
+        padding: 5px 10px 5px 10px;
+        vertical-align: bottom;
+      }
+
       .ddoc td {
         border: 1px solid rgba(233, 233, 233, 1);
         margin: 0;
         max-width: 260px;
-        padding: 5px 25px 5px 10px;
+        padding: 5px 10px 5px 10px;
         vertical-align: middle;
       }
 

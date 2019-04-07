@@ -3,7 +3,7 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>ddoc4</title>
+    <title>test.compilable.ddoc_markdown_tables</title>
     <style type="text/css" media="screen">
       html, body, div, span, object, iframe, h1, h2, h3, h4, h5, h6, p,
       blockquote, pre, a, abbr, address, cite, code, del, dfn, em, figure,
@@ -508,8 +508,43 @@
   <body id="ddoc_main" class="ddoc dlang">
     <div class="content_wrapper">
       <article class="module">
-        <h1 class="module_name">ddoc4</h1>
-        <section id="module_content">
+        <h1 class="module_name">test.compilable.ddoc_markdown_tables</h1>
+        <section id="module_content"><section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    <h1>Tables</h1>
+
+  </p>
+</div>
+<div class="ddoc_description">
+  <h4>Discussion</h4>
+  <p class="para">
+    <table><thead><tr><th>Rounding mode</th><th align="right">rndint(4.5)</th><th align="right">rndint(5.5)</th><th align="right">rndint(-4.5)</th><th>Notes</th></tr></thead><tbody><tr><td>Round to nearest</td><td align="right">4</td><td align="right">6</td><td align="right">-4</td><td>Ties round to an even number</td></tr>
+<tr><td>Round down</td><td align="right">4</td><td align="right">5</td><td align="right">-5</td><td>&nbsp;</td></tr>
+<tr><td>Round up</td><td align="right">5</td><td align="right">6</td><td align="right">-4</td><td>&nbsp;</td></tr>
+<tr><td>Round to zero</td><td align="right">4</td><td align="right">5</td><td align="right">-4</td><td>&nbsp;</td></tr>
+</tbody></table>
+<table>    <thead><tr><th>this</th><th>that</th></tr></thead><tbody>    <tr><td>cell</td><td>cell<br>sell</td></tr>
+</tbody></table>
+<table><thead><tr><th>abc</th><th>def</th></tr></thead><tbody><tr><td>bar</td></tr>
+<tr><td><em>bar</em></td><td>baz</td></tr>
+</tbody></table>
+<blockquote><table><thead><tr><th>quote</th></tr></thead><tbody><tr><td>table</td></tr>
+</tbody></table>
+</blockquote><ul><li><table><thead><tr>
+<th>list</th></tr></thead><tbody>  <tr><td>table</td></tr>
+</tbody></table></li>
+</ul>
+<table><thead><tr><th>default</th><th align="left">left</th><th align="center">center</th><th align="right">right</th></tr></thead><tbody></tbody></table>
+Look Ma, a table without a body!
+<br><br>
+| not | a | table |
+| -- |
+| wrong number of header columns |
+  </p>
+</div>
+
+</section>
 </section>
       </article>
     </div>

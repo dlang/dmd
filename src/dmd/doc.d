@@ -3738,6 +3738,276 @@ private struct MarkdownLinkReferences
     }
 }
 
+private enum TableColumnAlignment
+{
+    none,
+    left,
+    center,
+    right
+}
+
+/****************************************************
+ * Parse a Markdown table delimiter row in the form of `| -- | :-- | :--: | --: |`
+ * where the example text has four columns with the following alignments:
+ * default, left, center, and right. The first and last pipes are optional. If a
+ * delimiter row is found it will be removed from `buf`.
+ *
+ * Params:
+ *  buf     = an OutBuffer containing the DDoc
+ *  iStart  = the index within `buf` that the delimiter row starts at
+ *  inQuote   = whether the table is inside a quote
+ *  columnAlignments = alignments to populate for each column
+ * Returns: the index of the end of the parsed delimiter, or `0` if not found
+ */
+private size_t parseTableDelimiterRow(OutBuffer* buf, const size_t iStart, bool inQuote, ref TableColumnAlignment[] columnAlignments)
+{
+    size_t i = skipChars(buf, iStart, inQuote ? ">| \t" : "| \t");
+    while (i < buf.offset && buf.data[i] != '\r' && buf.data[i] != '\n')
+    {
+        const leftColon = buf.data[i] == ':';
+        if (leftColon)
+            ++i;
+
+        if (i >= buf.offset || buf.data[i] != '-')
+            break;
+        i = skipChars(buf, i, "-");
+
+        const rightColon = i < buf.offset && buf.data[i] == ':';
+        i = skipChars(buf, i, ": \t");
+
+        if (i >= buf.offset || (buf.data[i] != '|' && buf.data[i] != '\r' && buf.data[i] != '\n'))
+            break;
+        i = skipChars(buf, i, "| \t");
+
+        columnAlignments ~= (leftColon && rightColon) ? TableColumnAlignment.center :
+                leftColon ? TableColumnAlignment.left :
+                rightColon ? TableColumnAlignment.right :
+                TableColumnAlignment.none;
+    }
+
+    if (i < buf.offset && buf.data[i] != '\r' && buf.data[i] != '\n' && buf.data[i] != ')')
+    {
+        columnAlignments.length = 0;
+        return 0;
+    }
+
+    if (i < buf.offset && buf.data[i] == '\r') ++i;
+    if (i < buf.offset && buf.data[i] == '\n') ++i;
+    return i;
+}
+
+/****************************************************
+ * Look for a table delimiter row, and if found parse the previous row as a
+ * table header row. If both exist with a matching number of columns, start a
+ * table.
+ *
+ * Params:
+ *  buf       = an OutBuffer containing the DDoc
+ *  iStart    = the index within `buf` that the table header row starts at, inclusive
+ *  iEnd      = the index within `buf` that the table header row ends at, exclusive
+ *  loc       = the current location in the file
+ *  inQuote   = whether the table is inside a quote
+ *  inlineDelimiters = delimiters containing columns separators and any inline emphasis
+ *  columnAlignments = the parsed alignments for each column
+ * Returns: the number of characters added by starting the table, or `0` if unchanged
+ */
+private size_t startTable(OutBuffer* buf, size_t iStart, size_t iEnd, const ref Loc loc, bool inQuote, ref MarkdownDelimiter[] inlineDelimiters, out TableColumnAlignment[] columnAlignments)
+{
+    const iDelimiterRowEnd = parseTableDelimiterRow(buf, iEnd + 1, inQuote, columnAlignments);
+    if (iDelimiterRowEnd)
+    {
+        const delta = replaceTableRow(buf, iStart, iEnd, loc, inlineDelimiters, columnAlignments, true);
+        if (delta)
+        {
+            buf.remove(iEnd + delta, iDelimiterRowEnd - iEnd);
+            buf.insert(iEnd + delta, "$(TBODY ");
+            buf.insert(iStart, "$(TABLE ");
+            return delta + 15;
+        }
+    }
+
+    columnAlignments.length = 0;
+    return 0;
+}
+
+/****************************************************
+ * Replace a Markdown table row in the form of table cells delimited by pipes:
+ * `| cell | cell | cell`. The first and last pipes are optional.
+ *
+ * Params:
+ *  buf       = an OutBuffer containing the DDoc
+ *  iStart    = the index within `buf` that the table row starts at, inclusive
+ *  iEnd      = the index within `buf` that the table row ends at, exclusive
+ *  loc       = the current location in the file
+ *  inlineDelimiters = delimiters containing columns separators and any inline emphasis
+ *  columnAlignments = alignments for each column
+ *  headerRow = if `true` then the number of columns will be enforced to match
+ *              `columnAlignments.length` and the row will be surrounded by a
+ *              `THEAD` macro
+ * Returns: the number of characters added by replacing the row, or `0` if unchanged
+ */
+private size_t replaceTableRow(OutBuffer* buf, size_t iStart, size_t iEnd, const ref Loc loc, ref MarkdownDelimiter[] inlineDelimiters, TableColumnAlignment[] columnAlignments, bool headerRow)
+{
+    if (!columnAlignments.length || iStart == iEnd)
+        return 0;
+
+    iStart = skipChars(buf, iStart, " \t");
+    int cellCount = 0;
+    foreach (delimiter; inlineDelimiters)
+        if (delimiter.type == '|' && !delimiter.leftFlanking)
+            ++cellCount;
+    bool ignoreLast = inlineDelimiters.length > 0 && inlineDelimiters[$-1].type == '|';
+    if (ignoreLast)
+    {
+        const iLast = skipChars(buf, inlineDelimiters[$-1].iStart + inlineDelimiters[$-1].count, " \t");
+        ignoreLast = iLast >= iEnd;
+    }
+    if (!ignoreLast)
+        ++cellCount;
+
+    if (headerRow && cellCount != columnAlignments.length)
+        return 0;
+
+    if (headerRow && global.params.vmarkdown)
+    {
+        const s = buf.peekSlice()[iStart..iEnd];
+        message(loc, "Ddoc: formatting table '%.*s'", cast(int)s.length, s.ptr);
+    }
+
+    size_t delta = 0;
+
+    void replaceTableCell(size_t iCellStart, size_t iCellEnd, int cellIndex, int di)
+    {
+        const eDelta = replaceMarkdownEmphasis(buf, loc, inlineDelimiters, di);
+        delta += eDelta;
+        iCellEnd += eDelta;
+
+        // strip trailing whitespace and delimiter
+        size_t i = iCellEnd - 1;
+        while (i > iCellStart && (buf.data[i] == '|' || buf.data[i] == ' ' || buf.data[i] == '\t'))
+            --i;
+        ++i;
+        buf.remove(i, iCellEnd - i);
+        delta -= iCellEnd - i;
+        iCellEnd = i;
+
+        buf.insert(iCellEnd, ")");
+        ++delta;
+
+        // strip initial whitespace and delimiter
+        i = skipChars(buf, iCellStart, "| \t");
+        buf.remove(iCellStart, i - iCellStart);
+        delta -= i - iCellStart;
+
+        switch (columnAlignments[cellIndex])
+        {
+        case TableColumnAlignment.none:
+            buf.insert(iCellStart, headerRow ? "$(TH " : "$(TD ");
+            delta += 5;
+            break;
+        case TableColumnAlignment.left:
+            buf.insert(iCellStart, "left, ");
+            delta += 6;
+            goto default;
+        case TableColumnAlignment.center:
+            buf.insert(iCellStart, "center, ");
+            delta += 8;
+            goto default;
+        case TableColumnAlignment.right:
+            buf.insert(iCellStart, "right, ");
+            delta += 7;
+            goto default;
+        default:
+            buf.insert(iCellStart, headerRow ? "$(TH_ALIGN " : "$(TD_ALIGN ");
+            delta += 11;
+            break;
+        }
+    }
+
+    int cellIndex = cellCount - 1;
+    size_t iCellEnd = iEnd;
+    foreach_reverse (di, delimiter; inlineDelimiters)
+    {
+        if (delimiter.type == '|')
+        {
+            if (ignoreLast && di == inlineDelimiters.length-1)
+            {
+                ignoreLast = false;
+                continue;
+            }
+
+            if (cellIndex >= columnAlignments.length)
+            {
+                // kill any extra cells
+                buf.remove(delimiter.iStart, iEnd + delta - delimiter.iStart);
+                delta -= iEnd + delta - delimiter.iStart;
+                iCellEnd = iEnd + delta;
+                --cellIndex;
+                continue;
+            }
+
+            replaceTableCell(delimiter.iStart, iCellEnd, cellIndex, cast(int) di);
+            iCellEnd = delimiter.iStart;
+            --cellIndex;
+        }
+    }
+
+    // if no starting pipe, replace from the start
+    if (cellIndex >= 0)
+        replaceTableCell(iStart, iCellEnd, cellIndex, 0);
+
+    buf.insert(iEnd + delta, ")");
+    buf.insert(iStart, "$(TR ");
+    delta += 6;
+
+    if (headerRow)
+    {
+        buf.insert(iEnd + delta, ")");
+        buf.insert(iStart, "$(THEAD ");
+        delta += 9;
+    }
+
+    return delta;
+}
+
+/****************************************************
+ * End a table, if in one.
+ *
+ * Params:
+ *  buf = an OutBuffer containing the DDoc
+ *  i   = the index within `buf` to end the table at
+ *  columnAlignments = alignments for each column; upon return is set to length `0`
+ * Returns: the number of characters added by ending the table, or `0` if unchanged
+ */
+private size_t endTable(OutBuffer* buf, size_t i, ref TableColumnAlignment[] columnAlignments)
+{
+    if (!columnAlignments.length)
+        return 0;
+
+    buf.insert(i, "))");
+    columnAlignments.length = 0;
+    return 2;
+}
+
+/****************************************************
+ * End a table row and then the table itself.
+ *
+ * Params:
+ *  buf       = an OutBuffer containing the DDoc
+ *  iStart    = the index within `buf` that the table row starts at, inclusive
+ *  iEnd      = the index within `buf` that the table row ends at, exclusive
+ *  loc       = the current location in the file
+ *  inlineDelimiters = delimiters containing columns separators and any inline emphasis
+ *  columnAlignments = alignments for each column; upon return is set to length `0`
+ * Returns: the number of characters added by replacing the row, or `0` if unchanged
+ */
+private size_t endRowAndTable(OutBuffer* buf, size_t iStart, size_t iEnd, const ref Loc loc, ref MarkdownDelimiter[] inlineDelimiters, ref TableColumnAlignment[] columnAlignments)
+{
+    size_t delta = replaceTableRow(buf, iStart, iEnd, loc, inlineDelimiters, columnAlignments, false);
+    delta += endTable(buf, iEnd + delta, columnAlignments);
+    return delta;
+}
+
 /**************************************************
  * Highlight text section.
  *
@@ -3765,6 +4035,8 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
     MarkdownList[] nestedLists;
     MarkdownDelimiter[] inlineDelimiters;
     MarkdownLinkReferences linkReferences;
+    TableColumnAlignment[] columnAlignments;
+    bool tableRowDetected = false;
     int inCode = 0;
     int inBacktick = 0;
     int macroLevel = 0;
@@ -3807,17 +4079,28 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                 ++i;
                 iParagraphStart = skipChars(buf, i, " \t\r\n");
             }
-            if (!inCode && nestedLists.length && !quoteLevel)
+
+            if (tableRowDetected && !columnAlignments.length)
+                i += startTable(buf, iLineStart, i, loc, lineQuoted, inlineDelimiters, columnAlignments);
+            else if (columnAlignments.length)
             {
-                MarkdownList.handleSiblingOrEndingList(buf, i, iParagraphStart, nestedLists);
+                const delta = replaceTableRow(buf, iLineStart, i, loc, inlineDelimiters, columnAlignments, false);
+                if (delta)
+                    i += delta;
+                else
+                    i += endTable(buf, i, columnAlignments);
             }
+
+            if (!inCode && nestedLists.length && !quoteLevel)
+                MarkdownList.handleSiblingOrEndingList(buf, i, iParagraphStart, nestedLists);
+
             iPrecedingBlankLine = 0;
             if (!inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
             {
-                i += replaceMarkdownEmphasis(buf, loc, inlineDelimiters);
-
+                i += endTable(buf, i, columnAlignments);
                 if (!lineQuoted && quoteLevel)
                     endAllListsAndQuotes(buf, i, nestedLists, quoteLevel, quoteMacroLevel);
+                i += replaceMarkdownEmphasis(buf, loc, inlineDelimiters);
 
                 // if we don't already know about this paragraph break then
                 // insert a blank line and record the paragraph break
@@ -3841,6 +4124,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
             }
             leadingBlank = true;
             lineQuoted = false;
+            tableRowDetected = false;
             iLineStart = i + 1;
             loc.linnum += incrementLoc;
 
@@ -3941,6 +4225,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
 
                     if (quoteLevel < lineQuoteLevel)
                     {
+                        i += endRowAndTable(buf, iLineStart, i, loc, inlineDelimiters, columnAlignments);
                         if (nestedLists.length)
                         {
                             const indent = getMarkdownIndent(buf, iLineStart, i);
@@ -4063,6 +4348,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                 if (!headingLevel)
                     break;
 
+                i += endRowAndTable(buf, iLineStart, i, loc, inlineDelimiters, columnAlignments);
                 if (!lineQuoted && quoteLevel)
                     i += endAllListsAndQuotes(buf, iLineStart, nestedLists, quoteLevel, quoteMacroLevel);
 
@@ -4227,6 +4513,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                 }
                 else
                 {
+                    i += endRowAndTable(buf, iLineStart, i, loc, inlineDelimiters, columnAlignments);
                     if (!lineQuoted && quoteLevel)
                     {
                         const delta = endAllListsAndQuotes(buf, iLineStart, nestedLists, quoteLevel, quoteMacroLevel);
@@ -4263,6 +4550,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
         {
             if (leadingBlank && !inCode && replaceMarkdownThematicBreak(buf, i, iLineStart, loc))
             {
+                i += endRowAndTable(buf, iLineStart, i, loc, inlineDelimiters, columnAlignments);
                 if (!lineQuoted && quoteLevel)
                     i += endAllListsAndQuotes(buf, iLineStart, nestedLists, quoteLevel, quoteMacroLevel);
                 removeBlankLineMacro(buf, iPrecedingBlankLine, i);
@@ -4290,6 +4578,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                         break;
                     }
 
+                    i += endRowAndTable(buf, iLineStart, i, loc, inlineDelimiters, columnAlignments);
                     if (!lineQuoted && quoteLevel)
                     {
                         const delta = endAllListsAndQuotes(buf, iLineStart, nestedLists, quoteLevel, quoteMacroLevel);
@@ -4317,6 +4606,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                 // Check for a thematic break
                 if (replaceMarkdownThematicBreak(buf, i, iLineStart, loc))
                 {
+                    i += endRowAndTable(buf, iLineStart, i, loc, inlineDelimiters, columnAlignments);
                     if (!lineQuoted && quoteLevel)
                         i += endAllListsAndQuotes(buf, iLineStart, nestedLists, quoteLevel, quoteMacroLevel);
                     removeBlankLineMacro(buf, iPrecedingBlankLine, i);
@@ -4418,6 +4708,20 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
             break;
         }
 
+        case '|':
+        {
+            if (inCode || !global.params.markdown)
+            {
+                leadingBlank = false;
+                break;
+            }
+
+            tableRowDetected = true;
+            inlineDelimiters ~= MarkdownDelimiter(i, 1, macroLevel, leadingBlank, false, false, c);
+            leadingBlank = false;
+            break;
+        }
+
         case '\\':
         {
             leadingBlank = false;
@@ -4480,19 +4784,20 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
                 int downToLevel = cast(int) inlineDelimiters.length;
                 while (downToLevel > 0 && inlineDelimiters[downToLevel - 1].macroLevel >= macroLevel)
                     --downToLevel;
-                i += replaceMarkdownEmphasis(buf, loc, inlineDelimiters, downToLevel);
                 if (headingLevel && headingMacroLevel >= macroLevel)
                 {
                     endMarkdownHeading(buf, iParagraphStart, i, loc, headingLevel);
                     removeBlankLineMacro(buf, iPrecedingBlankLine, i);
                 }
-                if (quoteLevel && quoteMacroLevel >= macroLevel)
-                    i += endAllMarkdownQuotes(buf, i, quoteLevel);
+                i += endRowAndTable(buf, iLineStart, i, loc, inlineDelimiters, columnAlignments);
                 while (nestedLists.length && nestedLists[$-1].macroLevel >= macroLevel)
                 {
                     i = buf.insert(i, ")\n)");
                     --nestedLists.length;
                 }
+                if (quoteLevel && quoteMacroLevel >= macroLevel)
+                    i += endAllMarkdownQuotes(buf, i, quoteLevel);
+                i += replaceMarkdownEmphasis(buf, loc, inlineDelimiters, downToLevel);
 
                 --macroLevel;
                 quoteMacroLevel = 0;
@@ -4566,12 +4871,13 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
         buf.insert(buf.offset, ")");
 
     size_t i = buf.offset;
-    i += replaceMarkdownEmphasis(buf, loc, inlineDelimiters);
     if (headingLevel)
     {
         endMarkdownHeading(buf, iParagraphStart, i, loc, headingLevel);
         removeBlankLineMacro(buf, iPrecedingBlankLine, i);
     }
+    i += endRowAndTable(buf, iLineStart, i, loc, inlineDelimiters, columnAlignments);
+    i += replaceMarkdownEmphasis(buf, loc, inlineDelimiters);
     endAllListsAndQuotes(buf, i, nestedLists, quoteLevel, quoteMacroLevel);
 }
 
