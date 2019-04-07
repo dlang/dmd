@@ -18,7 +18,6 @@ import std.string : join, outdent;
 import tools.paths;
 
 enum unitTestDir = testPath("unit");
-enum strtoldObjPath = resultsDir.buildPath("strtold.obj");
 
 string[] testFiles(Range)(Range givenFiles)
 {
@@ -244,9 +243,6 @@ void writeCmdfile(string path, string runnerPath, string outputPath,
         "-m" ~ model
     ] ~ testFiles ~ runnerPath;
 
-    if (needsStrtold)
-        flags ~= ("-L" ~ strtoldObjPath);
-
     // older versions of Optlink causes: "Error 45: Too Much DEBUG Data for Old CodeView format"
     if (!usesOptlink)
         flags ~= "-g";
@@ -282,26 +278,6 @@ void execute(const string[] args ...)
         "Failed to execute command: " ~ args.join(" "));
 }
 
-void buildStrtold()
-{
-    if (!needsStrtold)
-        return;
-
-    const cmd = [
-        environment.get("CC", "cl"),
-        "/nologo",
-        "/EHsc",
-        "/TP",
-        "/c",
-        projectRootDir.buildPath("src", "dmd", "backend", "strtold.c"),
-        "/Fo" ~ strtoldObjPath,
-        "/I",
-        projectRootDir.buildPath("src", "dmd", "root")
-    ].join(" ");
-
-    enforce(spawnShell(cmd).wait() == 0, "Failed to execute command: " ~ cmd);
-}
-
 bool usesOptlink()
 {
     version (DigitalMars)
@@ -309,19 +285,6 @@ bool usesOptlink()
 
     else
         return false;
-}
-
-bool needsStrtold()
-{
-    version (Windows)
-    {
-        version (DigitalMars)
-            return model == "32mscoff" || model == "64";
-
-        return true;
-    }
-
-    return false;
 }
 
 int main(string[] args)
@@ -346,7 +309,6 @@ int main(string[] args)
     enum outputPath = resultsDir.buildPath("runner").setExtension(exeExtension);
     writeCmdfile(cmdfilePath, runnerPath, outputPath, testFiles);
 
-    buildStrtold();
     execute(dmdPath, "@" ~ cmdfilePath);
 
     return spawnProcess(outputPath).wait();

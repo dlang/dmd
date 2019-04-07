@@ -30,7 +30,7 @@ private
     version(CRuntime_Microsoft) extern (C++)
     {
         public import dmd.root.longdouble : longdouble_soft, ld_sprint;
-        @nogc longdouble_soft strtold_dm(const(char)* p, char** endp);
+        import dmd.root.strtold;
     }
 }
 
