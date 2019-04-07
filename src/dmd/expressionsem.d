@@ -6754,19 +6754,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     // lower to `object.__ArrayCast!(TFrom, TTo)(from)`
 
-                    auto id = Id.__ArrayCast;
+                    // fully qualify as `object.__ArrayCast`
+                    Expression id = new IdentifierExp(exp.loc, Id.empty);
+                    auto dotid = new DotIdExp(exp.loc, id, Id.object);
 
                     auto tiargs = new Objects();
                     tiargs.push(tFrom);
                     tiargs.push(tTo);
-                    auto ti = new TemplateInstance(exp.loc, id, tiargs);
-                    Expression __ArrayCast = new ScopeExp(exp.loc, ti);
+                    auto dt = new DotTemplateInstanceExp(exp.loc, dotid, Id.__ArrayCast, tiargs);
 
                     auto arguments = new Expressions();
                     arguments.push(exp.e1);
-                    __ArrayCast = new CallExp(exp.loc, __ArrayCast, arguments);
+                    Expression ce = new CallExp(exp.loc, dt, arguments);
 
-                    result = expressionSemantic(__ArrayCast, sc);
+                    result = expressionSemantic(ce, sc);
                     return;
                 }
             }
