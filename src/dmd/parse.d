@@ -8071,7 +8071,7 @@ final class Parser(AST) : Lexer
                     }
                 }
                 nextToken();
-                error("found `%s` when expecting function literal following %s", token.toChars(), "`ref`".ptr);
+                error("found `%s` when expecting function literal following `ref`", token.toChars());
                 goto Lerr;
             }
         case TOK.leftParentheses:
