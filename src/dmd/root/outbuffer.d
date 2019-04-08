@@ -15,6 +15,9 @@ module dmd.root.outbuffer;
 import core.stdc.stdarg;
 import core.stdc.stdio;
 import core.stdc.string;
+
+import dmd.root.ctfloat;
+import dmd.root.longdouble;
 import dmd.root.rmem;
 import dmd.root.rootobject;
 
@@ -274,6 +277,12 @@ struct OutBuffer
         {
             writestring(obj.toChars());
         }
+    }
+
+    extern (C++) void write(real value) nothrow
+    {
+        reserve(longdouble.sizeof * 3 + 8 + 1 + 1);
+        offset += CTFloat.sprint(cast(char*) data + offset, 'g', longdouble(value));
     }
 
     extern (C++) void fill0(size_t nbytes) pure nothrow

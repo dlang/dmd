@@ -189,7 +189,7 @@ extern (C++) struct CTFloat
     }
 
     @system
-    static int sprint(char* str, char fmt, real_t x)
+    static int sprint(char* str, char fmt, real_t x) nothrow
     {
         version(CRuntime_Microsoft)
         {
