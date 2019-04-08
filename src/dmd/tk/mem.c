@@ -13,14 +13,6 @@
 #include        <stdarg.h>
 #include        <stddef.h>
 
-#if __cplusplus
-#if __DMC__
-#include        <new.h>
-#else
-#include        <new>
-#endif
-#endif
-
 #ifndef malloc
 #if __SC__ || __DMC__ ||  _MSC_VER
 #include        <malloc.h>
@@ -167,8 +159,6 @@ char *mem_strdup(const char *s)
 
 #endif /* MEM_DEBUG */
 
-/************* C++ Implementation ***************/
-
 #if __cplusplus && !MEM_NONE
 extern "C++"
 {
@@ -182,99 +172,7 @@ static struct cMemDebug
 } dummy;
 #endif
 
-int __mem_line;
-char *__mem_file;
-
-/********************
- */
-
-#if __GNUC__
-int (*_new_handler)(void);
-#else
-void (*_new_handler)(void);
-#endif
-
-/*****************************
- * Replacement for the standard C++ library operator new().
- */
-
-#if !MEM_NONEW
-
-#if __GNUC__
-void * operator new(size_t size)
-#else
-#undef new
-void * __cdecl operator new(size_t size)
-#endif
-{   void *p;
-
-    while (1)
-    {
-        if (size == 0)
-            size++;
-#if MEM_DEBUG
-        assert(mem_inited);
-        p = mem_malloc_debug(size,__mem_file,__mem_line);
-#else
-        p = mem_malloc((unsigned)size);
-#endif
-        if (p != NULL || _new_handler == NULL)
-            break;
-        (*_new_handler)();
-    }
-    return p;
-}
-
-#if __GNUC__
-void * operator new[](size_t size)
-#else
-void * __cdecl operator new[](size_t size)
-#endif
-{   void *p;
-
-    while (1)
-    {
-        if (size == 0)
-            size++;
-#if MEM_DEBUG
-        assert(mem_inited);
-        p = mem_malloc_debug(size,__mem_file,__mem_line);
-#else
-        p = mem_malloc((unsigned)size);
-#endif
-        if (p != NULL || _new_handler == NULL)
-            break;
-        (*_new_handler)();
-    }
-    return p;
-}
-
-/***********************
- * Replacement for the standard C++ library operator delete().
- */
-
-#undef delete
-void __cdecl operator delete(void *p)
-{
-#if MEM_DEBUG
-        assert(mem_inited);
-        mem_free_debug(p,__mem_file,__mem_line);
-#else
-        mem_free(p);
-#endif
-}
-
-void __cdecl operator delete[](void *p)
-{
-#if MEM_DEBUG
-        assert(mem_inited);
-        mem_free_debug(p,__mem_file,__mem_line);
-#else
-        mem_free(p);
-#endif
-}
-#endif
-}
+} // extern "C++"
 #endif
 
 #if MEM_DEBUG
