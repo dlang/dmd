@@ -237,7 +237,6 @@ BACKSRC= $C\optabgen.d \
 	$C\dtype.d \
 	$C\elfobj.d \
 	$C\dwarfdbginf.d $C\machobj.d $C\aarray.d $C\barray.d \
-	$C\strtold.c \
 	$C\md5.d $C\ph2.d $C\util2.d \
 	$C\mscoffobj.d $C\pdata.d $C\cv8.d $C\backconfig.d \
 	$C\divcoeff.d $C\dwarfeh.d $C\dvarstats.d \
@@ -253,7 +252,7 @@ ROOTSRCC=
 ROOTSRCD=$(ROOT)\rmem.d $(ROOT)\stringtable.d $(ROOT)\hash.d $(ROOT)\man.d $(ROOT)\port.d \
 	$(ROOT)\response.d $(ROOT)\rootobject.d $(ROOT)\speller.d $(ROOT)\aav.d \
 	$(ROOT)\ctfloat.d $(ROOT)\longdouble.d $(ROOT)\outbuffer.d $(ROOT)\filename.d \
-	$(ROOT)\file.d $(ROOT)\array.d
+	$(ROOT)\file.d $(ROOT)\array.d $(ROOT)\strtold.d
 ROOTSRC= $(ROOT)\root.h \
 	$(ROOT)\longdouble.h $(ROOT)\outbuffer.h $(ROOT)\object.h $(ROOT)\ctfloat.h \
 	$(ROOT)\filename.h $(ROOT)\file.h $(ROOT)\array.h $(ROOT)\rmem.h $(ROOTSRCC) \
@@ -607,9 +606,6 @@ $G/ptrntab.obj : $C\iasm.d $C\ptrntab.d
 $G/drtlsym.obj : $C\rtlsym.d $C\drtlsym.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\drtlsym
 
-$G/strtold.obj : $C\strtold.c
-	$(CC) -c -o$@ -cpp $C\strtold
-
 $G/dtype.obj : $C\dtype.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\dtype
 
@@ -630,6 +626,9 @@ $G/tk.obj : $C\tk.c
 # Root
 $G/longdouble.obj : $(ROOT)\longdouble.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) $(ROOT)\longdouble.d
+
+$G/strtold.obj : $(ROOT)\strtold.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) $(ROOT)\strtold
 
 ############################## Generated Rules ###############################
 
