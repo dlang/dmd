@@ -302,7 +302,7 @@ unittest
 {
     import core.thread, core.atomic;
 
-    auto event      = new Event(true, false);
+    scope event      = new Event(true, false);
     int  numThreads = 10;
     shared int numRunning = 0;
 
@@ -326,6 +326,4 @@ unittest
     assert(numRunning == numThreads);
 
     assert(MonoTime.currTime - start < 5.dur!"seconds");
-
-    delete event;
 }

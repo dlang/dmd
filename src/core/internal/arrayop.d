@@ -141,7 +141,7 @@ template typeCheck(bool fail, T, Args...)
     {
         alias UT = Args[idx - 1];
         enum op = Args[idx][1 .. $];
-        static if (is(typeof((UT a) => mixin(op ~ " a")) RT == return))
+        static if (is(typeof((UT a) => mixin(op ~ "cast(int) a")) RT == return))
             alias typeCheck = typeCheck!(fail, T, Args[0 .. idx - 1], RT, Args[idx + 1 .. $]);
         else static if (fail)
             static assert(0, "Unary `" ~ op ~ "` not supported for type `" ~ UT.stringof ~ "`.");
@@ -271,7 +271,7 @@ string scalarExp(Args...)()
         else static if (isUnaryOp(arg))
         {
             auto op = arg[0] == 'u' ? arg[1 .. $] : arg;
-            stack[$ - 1] = op ~ stack[$ - 1];
+            stack[$ - 1] = op ~ "cast(int)"~ stack[$ - 1];
         }
         else static if (arg == "=")
         {

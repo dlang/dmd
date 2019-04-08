@@ -3615,11 +3615,24 @@ public:
         return FracSec(hnsecs);
     }
 
-    unittest
+    deprecated unittest
     {
         assert(FracSec.from!"msecs"(0) == FracSec(0));
         assert(FracSec.from!"usecs"(0) == FracSec(0));
         assert(FracSec.from!"hnsecs"(0) == FracSec(0));
+
+        // workaround for https://issues.dlang.org/show_bug.cgi?id=19789
+        void _assertThrown(T : Throwable = Exception, E)
+                                            (lazy E expression,
+                                             string msg = null)
+        {
+            bool thrown = false;
+            try
+                expression();
+            catch (T t)
+                thrown = true;
+            assert(thrown, "No exception was thrown.");
+        }
 
         foreach (sign; [1, -1])
         {
