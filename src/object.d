@@ -4201,14 +4201,23 @@ void __ctfeWrite(scope const(char)[] s) @nogc @safe pure nothrow {}
  * Create RTInfo for type T
  */
 
-template RTInfoImpl(size_t[] pointers)
+template RTInfoImpl(size_t[] pointerBitmap)
 {
-    immutable size_t[pointers.length] RTInfoImpl = pointers[];
+    immutable size_t[pointerBitmap.length] RTInfoImpl = pointerBitmap[];
+}
+
+template NoPointersBitmapPayload(size_t N)
+{
+    enum size_t[N] NoPointersBitmapPayload = 0;
 }
 
 template RTInfo(T)
 {
-    enum RTInfo = RTInfoImpl!(__traits(getPointerBitmap, T)).ptr;
+    enum pointerBitmap = __traits(getPointerBitmap, T);
+    static if (pointerBitmap[1 .. $] == NoPointersBitmapPayload!(pointerBitmap.length - 1))
+        enum RTInfo = rtinfoNoPointers;
+    else
+        enum RTInfo = RTInfoImpl!(pointerBitmap).ptr;
 }
 
 /**

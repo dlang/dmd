@@ -244,6 +244,13 @@ private bool hasDtor(const TypeInfo ti)
     return false;
 }
 
+private immutable(void)* getRTInfo(const TypeInfo ti)
+{
+    // classes are references
+    const isNoClass = ti && typeid(ti) !is typeid(TypeInfo_Class);
+    return isNoClass ? ti.rtInfo() : rtinfoHasPointers;
+}
+
 // build type info for Entry with additional key and value fields
 TypeInfo_Struct fakeEntryTI(ref Impl aa, const TypeInfo keyti, const TypeInfo valti)
 {
@@ -261,10 +268,8 @@ TypeInfo_Struct fakeEntryTI(ref Impl aa, const TypeInfo keyti, const TypeInfo va
     if (aa.flags & Impl.Flags.hasPointers)
     {
         // classes are references
-        static bool isNoClass(const TypeInfo ti) { return ti && typeid(ti) !is typeid(TypeInfo_Class); }
-
-        keyinfo = cast(immutable(size_t)*) (isNoClass(keyti) ? keyti.rtInfo : rtinfoHasPointers);
-        valinfo = cast(immutable(size_t)*) (isNoClass(valti) ? valti.rtInfo : rtinfoHasPointers);
+        keyinfo = cast(immutable(size_t)*) getRTInfo(keyti);
+        valinfo = cast(immutable(size_t)*) getRTInfo(valti);
 
         if (keyinfo is rtinfoHasPointers && valinfo is rtinfoHasPointers)
             rtinfo = rtinfoHasPointers;
@@ -382,8 +387,8 @@ unittest
         }
         auto keyti = typeid(K);
         auto valti = typeid(V);
-        auto valrti = valti.rtInfo();
-        auto keyrti = keyti.rtInfo();
+        auto valrti = getRTInfo(valti);
+        auto keyrti = getRTInfo(keyti);
 
         auto impl = new Impl(typeid(V[K]));
         if (valrti is rtinfoNoPointers && keyrti is rtinfoNoPointers)
