@@ -409,7 +409,7 @@ BACK_SRC = \
 	$(TARGET_CH)
 
 TK_SRC = \
-	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
+	$(TK)/mem.h \
 	$(TK)/mem.c
 
 ######## CXX header files (only needed for cxx-unittest)
