@@ -793,15 +793,7 @@ auto sourceFiles()
             // can't be built with -betterC
             "dt",
             "obj",
-        ].map!(e => env["C"].buildPath(e ~ ".d")).array,
-        backendC:
-            // all backend files in C
-            ["tk"]
-                .map!(a => env["G"].buildPath(a).objName)
-                .array,
-        backendObjects: ["tk"]
-                .map!(a => env["G"].buildPath(a).objName)
-                .array,
+        ].map!(e => env["C"].buildPath(e ~ ".d")).array
     };
     sources.backendC.writeln;
     sources.dmd = sources.frontend ~ sources.backendHeaders;

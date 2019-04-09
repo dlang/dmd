@@ -348,9 +348,7 @@ else
     endif
 endif
 
-BACK_OBJS = \
-	tk.o \
-	$(TARGET_OBJS)
+BACK_OBJS = $(TARGET_OBJS)
 
 BACK_DOBJS = bcomplex.o evalu8.o divcoeff.o dvec.o go.o gsroa.o glocal.o gdag.o gother.o gflow.o \
 	out.o \
