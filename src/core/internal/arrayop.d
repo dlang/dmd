@@ -262,6 +262,12 @@ string scalarExp(Args...)()
 {
     string[] stack;
     size_t argsIdx;
+
+    static if (is(Args[0] == U[], U))
+        alias Type = U;
+    else
+        alias Type = Args[0];
+
     foreach (i, arg; Args)
     {
         static if (is(arg == T[], T))
@@ -271,7 +277,12 @@ string scalarExp(Args...)()
         else static if (isUnaryOp(arg))
         {
             auto op = arg[0] == 'u' ? arg[1 .. $] : arg;
-            stack[$ - 1] = op ~ "cast(int)"~ stack[$ - 1];
+            // Explicitly use the old integral promotion rules
+            // See also: https://dlang.org/changelog/2.078.0.html#fix16997
+            static if (is(Type : int))
+                stack[$ - 1] = "cast(typeof(" ~ stack[$ -1] ~ "))" ~ op ~ "cast(int)("~ stack[$ - 1] ~ ")";
+            else
+                stack[$ - 1] = op ~ stack[$ - 1];
         }
         else static if (arg == "=")
         {
@@ -585,4 +596,14 @@ unittest
         return a[1];
     }
     enum x = bug();
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=19796
+unittest
+{
+    double[] data = [0.5];
+    double[] result;
+    result.length = data.length;
+    result[] = -data[];
+    assert(result[0] == -0.5);
 }
