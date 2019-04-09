@@ -1690,6 +1690,13 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id)
         }
         return result;
     }
+    /*
+     * https://issues.dlang.org/show_bug.cgi?id=16657
+     * at this point, no matching opEquals was found for structs,
+     * so we should not follow the alias this comparison code.
+     */
+    if ((e.op == TOK.equal || e.op == TOK.notEqual) && ad1 == ad2)
+        return null;
     Expression result = checkAliasThisForLhs(ad1, sc, e);
     return result ? result : checkAliasThisForRhs(isAggregate(e.e2.type), sc, e);
 }

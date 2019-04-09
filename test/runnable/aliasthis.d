@@ -1917,12 +1917,12 @@ struct Foo14806(T)
 void test14806()
 {
     Foo14806!int a, b;
-    assert(a != b);
+    assert(a == b);
     // ==> a.tupleof != b.tupleof
     // ==> a.bar != b.bar || a.baz.get() != b.baz.get()
 
     Foo14806!string c, d;
-    assert(c != d);
+    assert(c == d);
     // ==> c.tupleof != d.tupleof
     // ==> c.bar != d.bar || c.baz.get() != d.baz.get()
 }
