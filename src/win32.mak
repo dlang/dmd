@@ -244,8 +244,7 @@ BACKSRC= $C\optabgen.d \
 
 # Toolkit
 TKSRCC=	$(TK)\mem.c
-TKSRC= $(TK)\mem.h \
-	$(TKSRCC)
+TKSRC= $(TKSRCC)
 
 # Root package
 ROOTSRCC=

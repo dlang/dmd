@@ -140,7 +140,6 @@ popd</Command>
     <ClInclude Include="..\dmd\template.h" />
     <ClInclude Include="..\dmd\tokens.h" />
     <ClInclude Include="..\dmd\version.h" />
-    <ClInclude Include="..\dmd\tk\mem.h" />
     <ClInclude Include="..\dmd\root\ctfloat.h" />
     <ClInclude Include="..\dmd\root\longdouble.h" />
     <ClInclude Include="..\dmd\root\port.h" />
