@@ -36,7 +36,7 @@ import dmd.backend.cc;
 import dmd.backend.dlist;
 import dmd.backend.el;
 import dmd.backend.global;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;

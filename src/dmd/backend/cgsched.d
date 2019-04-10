@@ -29,7 +29,7 @@ import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.dlist;
 import dmd.backend.global;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dmd.backend.ty;
 import dmd.backend.barray;
 
