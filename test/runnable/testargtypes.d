@@ -30,52 +30,93 @@ void chkPair(T,U,V)()
     chkArgTypes!(S, V)();
 }
 
-version (X86_64)
+version (Posix) version (X86_64) version = Posix_X86_64;
+
+version (Posix_X86_64)
 {
     int main()
     {
         chkIdentity!byte();
-        chkIdentity!ubyte();
         chkIdentity!short();
-        chkIdentity!ushort();
         chkIdentity!int();
-        chkIdentity!uint();
         chkIdentity!long();
-        chkIdentity!ulong();
-        chkSingle!(char,ubyte)();
-        chkSingle!(wchar,ushort)();
-        chkSingle!(dchar,uint)();
+
+        version (DigitalMars)
+        {
+            chkIdentity!ubyte();
+            chkIdentity!ushort();
+            chkIdentity!uint();
+            chkIdentity!ulong();
+
+            chkSingle!(char,  ubyte)();
+            chkSingle!(wchar, ushort)();
+            chkSingle!(dchar, uint)();
+        }
+        else
+        {
+            chkSingle!(ubyte,  byte)();
+            chkSingle!(ushort, short)();
+            chkSingle!(uint,   int)();
+            chkSingle!(ulong,  long)();
+
+            chkSingle!(char,  byte)();
+            chkSingle!(wchar, short)();
+            chkSingle!(dchar, int)();
+        }
 
         chkIdentity!float();
         chkIdentity!double();
         chkIdentity!real();
 
-        chkIdentity!(void*)();
+        version (DigitalMars)
+            chkIdentity!(void*)();
+        else
+            chkSingle!(void*, ptrdiff_t)();
 
-        chkIdentity!(__vector(byte[16]))();
-        chkIdentity!(__vector(ubyte[16]))();
-        chkIdentity!(__vector(short[8]))();
-        chkIdentity!(__vector(ushort[8]))();
-        chkIdentity!(__vector(int[4]))();
-        chkIdentity!(__vector(uint[4]))();
-        chkIdentity!(__vector(long[2]))();
-        chkIdentity!(__vector(ulong[2]))();
+        version (DigitalMars)
+        {
+            chkIdentity!(__vector(byte[16]))();
+            chkIdentity!(__vector(ubyte[16]))();
+            chkIdentity!(__vector(short[8]))();
+            chkIdentity!(__vector(ushort[8]))();
+            chkIdentity!(__vector(int[4]))();
+            chkIdentity!(__vector(uint[4]))();
+            chkIdentity!(__vector(long[2]))();
+            chkIdentity!(__vector(ulong[2]))();
 
-        chkIdentity!(__vector(float[4]))();
-        chkIdentity!(__vector(double[2]))();
+            chkIdentity!(__vector(float[4]))();
+            chkIdentity!(__vector(double[2]))();
+        }
+        else
+        {
+            chkSingle!(__vector(byte[16]),  __vector(double[2]))();
+            chkSingle!(__vector(ubyte[16]), __vector(double[2]))();
+            chkSingle!(__vector(short[8]),  __vector(double[2]))();
+            chkSingle!(__vector(ushort[8]), __vector(double[2]))();
+            chkSingle!(__vector(int[4]),    __vector(double[2]))();
+            chkSingle!(__vector(uint[4]),   __vector(double[2]))();
+            chkSingle!(__vector(long[2]),   __vector(double[2]))();
+            chkSingle!(__vector(ulong[2]),  __vector(double[2]))();
 
-        chkPair!(byte,byte,short);
-        chkPair!(ubyte,ubyte,short);
-        chkPair!(short,short,int);
-        chkPair!(int,int,long);
+            chkSingle!(__vector(float[4]),  __vector(double[2]))();
+            chkSingle!(__vector(double[2]), __vector(double[2]))();
 
-        chkPair!(byte,short,int);
-        chkPair!(short,byte,int);
+            version (D_AVX)
+                chkSingle!(__vector(int[8]), __vector(double[4]))();
+        }
 
-        chkPair!(int,float,long);
-        chkPair!(float,int,long);
-        chkPair!(byte,float,long);
-        chkPair!(float,short,long);
+        chkPair!(byte,  byte,  short);
+        chkPair!(ubyte, ubyte, short);
+        chkPair!(short, short, int);
+        chkPair!(int,   int,   long);
+
+        chkPair!(byte,  short, int);
+        chkPair!(short, byte,  int);
+
+        chkPair!(int,   float, long);
+        chkPair!(float, int,   long);
+        chkPair!(byte,  float, long);
+        chkPair!(float, short, long);
 
         struct S1 { long a; long b; }
         chkArgTypes!(S1, long, long)();
@@ -108,7 +149,31 @@ version (X86_64)
         struct S10 { int[3] a; }
         chkArgTypes!(S10, long, int)();
 
+        struct S11 { float a; struct { float b; float c; } }
+        chkArgTypes!(S11, double, float)();
+
+        struct RGB { ubyte r, g, b; }
+        chkArgTypes!(RGB, int)();
+
         chkArgTypes!(int[3], long, int)();
+
+        struct S12 { align(16) int a; }
+        version (DigitalMars)
+            chkArgTypes!(S12, int)();
+        else
+            chkArgTypes!(S12, long)();
+
+        version (DigitalMars)
+        {
+        }
+        else
+        {
+            struct S13 { short a; cfloat b; }
+            chkArgTypes!(S13, long, float)();
+
+            struct S13957 { double a; ulong b; }
+            chkArgTypes!(S13957, double, long)();
+        }
 
         return 0;
     }
