@@ -584,6 +584,7 @@ public int runLINK()
             return startsWith("-l") || startsWith("-L")
                 || flag == "-(" || flag == "-)"
                 || flag == "--start-group" || flag == "--end-group"
+                || FileName.equalsExt(flagp, "a")
             ;
         }
         /* Add libraries. The order of libraries passed is:
