@@ -279,8 +279,7 @@ extern (C++) TupleDeclaration isAliasThisTuple(Expression e)
 Lagain:
     if (Dsymbol s = t.toDsymbol(null))
     {
-        AggregateDeclaration ad = s.isAggregateDeclaration();
-        if (ad)
+        if (auto ad = s.isAggregateDeclaration())
         {
             s = ad.aliasthis;
             if (s && s.isVarDeclaration())
@@ -307,19 +306,13 @@ extern (C++) int expandAliasThisTuples(Expressions* exps, size_t starti = 0)
     for (size_t u = starti; u < exps.dim; u++)
     {
         Expression exp = (*exps)[u];
-        TupleDeclaration td = isAliasThisTuple(exp);
-        if (td)
+        if (TupleDeclaration td = exp.isAliasThisTuple)
         {
             exps.remove(u);
             foreach (i, o; *td.objects)
             {
-                Expression e = isExpression(o);
-                assert(e);
-                assert(e.op == TOK.dSymbol);
-                DsymbolExp se = cast(DsymbolExp)e;
-                Declaration d = se.s.isDeclaration();
-                assert(d);
-                e = new DotVarExp(exp.loc, exp, d);
+                auto d = o.isExpression().isDsymbolExp().s.isDeclaration();
+                auto e = new DotVarExp(exp.loc, exp, d);
                 assert(d.type);
                 e.type = d.type;
                 exps.insert(u + i, e);
@@ -351,10 +344,16 @@ extern (C++) TemplateDeclaration getFuncTemplateDecl(Dsymbol s)
     FuncDeclaration f = s.isFuncDeclaration();
     if (f && f.parent)
     {
-        TemplateInstance ti = f.parent.isTemplateInstance();
-        if (ti && !ti.isTemplateMixin() && ti.tempdecl && (cast(TemplateDeclaration)ti.tempdecl).onemember && ti.tempdecl.ident == f.ident)
+        if (auto ti = f.parent.isTemplateInstance())
         {
-            return cast(TemplateDeclaration)ti.tempdecl;
+            if (!ti.isTemplateMixin() && ti.tempdecl)
+            {
+                auto td = ti.tempdecl.isTemplateDeclaration();
+                if (td.onemember && td.ident == f.ident)
+                {
+                    return td;
+                }
+            }
         }
     }
     return null;
@@ -439,7 +438,7 @@ private Expression callCpCtor(Scope* sc, Expression e, Type destinationType)
             Expression ve = new VarExp(e.loc, tmp);
             de.type = Type.tvoid;
             ve.type = e.type;
-            e = Expression.combine(de, ve);
+            return Expression.combine(de, ve);
         }
     }
     return e;
@@ -497,17 +496,15 @@ struct UnionExp
         Expression e = exp();
         //if (e.size > sizeof(u)) printf("%s\n", Token::toChars(e.op));
         assert(e.size <= u.sizeof);
-        if (e.op == TOK.cantExpression)
-            return CTFEExp.cantexp;
-        if (e.op == TOK.voidExpression)
-            return CTFEExp.voidexp;
-        if (e.op == TOK.break_)
-            return CTFEExp.breakexp;
-        if (e.op == TOK.continue_)
-            return CTFEExp.continueexp;
-        if (e.op == TOK.goto_)
-            return CTFEExp.gotoexp;
-        return e.copy();
+        switch (e.op)
+        {
+            case TOK.cantExpression:    return CTFEExp.cantexp;
+            case TOK.voidExpression:    return CTFEExp.voidexp;
+            case TOK.break_:            return CTFEExp.breakexp;
+            case TOK.continue_:         return CTFEExp.continueexp;
+            case TOK.goto_:             return CTFEExp.gotoexp;
+            default:                    return e.copy();
+        }
     }
 
 private:
@@ -1471,32 +1468,35 @@ extern (C++) abstract class Expression : ASTNode
         Type t = type;
         Type tb = type.toBasetype();
         Type att = null;
-    Lagain:
-        // Structs can be converted to bool using opCast(bool)()
-        if (auto ts = tb.isTypeStruct())
-        {
-            AggregateDeclaration ad = ts.sym;
-            /* Don't really need to check for opCast first, but by doing so we
-             * get better error messages if it isn't there.
-             */
-            Dsymbol fd = search_function(ad, Id._cast);
-            if (fd)
-            {
-                e = new CastExp(loc, e, Type.tbool);
-                e = e.expressionSemantic(sc);
-                return e;
-            }
 
-            // Forward to aliasthis.
-            if (ad.aliasthis && tb != att)
+        while (1)
+        {
+            // Structs can be converted to bool using opCast(bool)()
+            if (auto ts = tb.isTypeStruct())
             {
-                if (!att && tb.checkAliasThisRec())
-                    att = tb;
-                e = resolveAliasThis(sc, e);
-                t = e.type;
-                tb = e.type.toBasetype();
-                goto Lagain;
+                AggregateDeclaration ad = ts.sym;
+                /* Don't really need to check for opCast first, but by doing so we
+                 * get better error messages if it isn't there.
+                 */
+                if (Dsymbol fd = search_function(ad, Id._cast))
+                {
+                    e = new CastExp(loc, e, Type.tbool);
+                    e = e.expressionSemantic(sc);
+                    return e;
+                }
+
+                // Forward to aliasthis.
+                if (ad.aliasthis && tb != att)
+                {
+                    if (!att && tb.checkAliasThisRec())
+                        att = tb;
+                    e = resolveAliasThis(sc, e);
+                    t = e.type;
+                    tb = e.type.toBasetype();
+                    continue;
+                }
             }
+            break;
         }
 
         if (!t.isBoolean())
@@ -1528,8 +1528,7 @@ extern (C++) abstract class Expression : ASTNode
         {
             assert(op == TOK.error || isLvalue());
         }
-        Expression e = new AddrExp(loc, this);
-        e.type = type.pointerTo();
+        Expression e = new AddrExp(loc, this, type.pointerTo());
         return e;
     }
 
@@ -1540,12 +1539,12 @@ extern (C++) abstract class Expression : ASTNode
     {
         //printf("Expression::deref()\n");
         // type could be null if forward referencing an 'auto' variable
-        if (type && type.ty == Treference)
-        {
-            Expression e = new PtrExp(loc, this);
-            e.type = (cast(TypeReference)type).next;
-            return e;
-        }
+        if (type)
+            if (auto tr = type.isTypeReference())
+            {
+                Expression e = new PtrExp(loc, this, tr.next);
+                return e;
+            }
         return this;
     }
 
@@ -2217,7 +2216,7 @@ extern (C++) class ThisExp : Expression
 
     override final bool isBool(bool result)
     {
-        return result ? true : false;
+        return result;
     }
 
     override final bool isLvalue()
@@ -2274,9 +2273,8 @@ extern (C++) final class NullExp : Expression
 
     override bool equals(RootObject o)
     {
-        if (o && o.dyncast() == DYNCAST.expression)
+        if (auto e = o.isExpression())
         {
-            Expression e = cast(Expression)o;
             if (e.op == TOK.null_ && type.equals(e.type))
             {
                 return true;
@@ -2373,9 +2371,8 @@ extern (C++) final class StringExp : Expression
     override bool equals(RootObject o)
     {
         //printf("StringExp::equals('%s') %s\n", o.toChars(), toChars());
-        if (o && o.dyncast() == DYNCAST.expression)
+        if (auto e = o.isExpression())
         {
-            Expression e = cast(Expression)o;
             if (e.op == TOK.string_)
             {
                 return compare(o) == 0;
@@ -2551,8 +2548,7 @@ extern (C++) final class StringExp : Expression
             committed = 0;
             Expression e = castTo(sc, Type.tchar.arrayOf());
             e = e.optimize(WANTvalue);
-            assert(e.op == TOK.string_);
-            StringExp se = cast(StringExp)e;
+            auto se = e.isStringExp();
             assert(se.sz == 1);
             return se;
         }
@@ -2572,8 +2568,8 @@ extern (C++) final class StringExp : Expression
 
         assert(se2.op == TOK.string_);
 
-        size_t len1 = len;
-        size_t len2 = se2.len;
+        const len1 = len;
+        const len2 = se2.len;
 
         //printf("sz = %d, len1 = %d, len2 = %d\n", sz, (int)len1, (int)len2);
         if (len1 == len2)
@@ -2614,7 +2610,7 @@ extern (C++) final class StringExp : Expression
 
     override bool isBool(bool result)
     {
-        return result ? true : false;
+        return result;
     }
 
     override bool isLvalue()
@@ -2730,15 +2726,14 @@ extern (C++) final class TupleExp : Expression
                 Expression e = new DsymbolExp(loc, s);
                 this.exps.push(e);
             }
-            else if (o.dyncast() == DYNCAST.expression)
+            else if (auto eo = o.isExpression())
             {
-                auto e = (cast(Expression)o).copy();
+                auto e = eo.copy();
                 e.loc = loc;    // https://issues.dlang.org/show_bug.cgi?id=15669
                 this.exps.push(e);
             }
-            else if (o.dyncast() == DYNCAST.type)
+            else if (auto t = o.isType())
             {
-                Type t = cast(Type)o;
                 Expression e = new TypeExp(loc, t);
                 this.exps.push(e);
             }
@@ -2763,20 +2758,21 @@ extern (C++) final class TupleExp : Expression
     {
         if (this == o)
             return true;
-        if (auto te = (cast(Expression)o).isTupleExp())
-        {
-            if (exps.dim != te.exps.dim)
-                return false;
-            if (e0 && !e0.equals(te.e0) || !e0 && te.e0)
-                return false;
-            foreach (i, e1; *exps)
+        if (auto e = o.isExpression())
+            if (auto te = e.isTupleExp())
             {
-                Expression e2 = (*te.exps)[i];
-                if (!e1.equals(e2))
+                if (exps.dim != te.exps.dim)
                     return false;
+                if (e0 && !e0.equals(te.e0) || !e0 && te.e0)
+                    return false;
+                foreach (i, e1; *exps)
+                {
+                    Expression e2 = (*te.exps)[i];
+                    if (!e1.equals(e2))
+                        return false;
+                }
+                return true;
             }
-            return true;
-        }
         return false;
     }
 
@@ -2849,9 +2845,11 @@ extern (C++) final class ArrayLiteralExp : Expression
     {
         if (this == o)
             return true;
-        if (o && o.dyncast() == DYNCAST.expression && (cast(Expression)o).op == TOK.arrayLiteral)
+        Expression e = o.isExpression();
+        if (!e)
+            return false;
+        if (auto ae = e.isArrayLiteralExp())
         {
-            ArrayLiteralExp ae = cast(ArrayLiteralExp)o;
             if (elements.dim != ae.elements.dim)
                 return false;
             if (elements.dim == 0 && !type.equals(ae.type))
@@ -2876,9 +2874,7 @@ extern (C++) final class ArrayLiteralExp : Expression
     Expression getElement(size_t i)
     {
         auto el = (*elements)[i];
-        if (!el)
-            el = basis;
-        return el;
+        return el ? el : basis;
     }
 
     override bool isBool(bool result)
@@ -2890,7 +2886,8 @@ extern (C++) final class ArrayLiteralExp : Expression
     override StringExp toStringExp()
     {
         TY telem = type.nextOf().toBasetype().ty;
-        if (telem == Tchar || telem == Twchar || telem == Tdchar || (telem == Tvoid && (!elements || elements.dim == 0)))
+        if (telem == Tchar || telem == Twchar || telem == Tdchar ||
+            (telem == Tvoid && (!elements || elements.dim == 0)))
         {
             ubyte sz = 1;
             if (telem == Twchar)
@@ -2931,7 +2928,7 @@ extern (C++) final class ArrayLiteralExp : Expression
                 buf.write4(0);
             }
 
-            const(size_t) len = buf.offset / sz - 1;
+            const size_t len = buf.offset / sz - 1;
             auto se = new StringExp(loc, buf.extractData(), len, prefix);
             se.sz = sz;
             se.type = type;
@@ -2970,9 +2967,11 @@ extern (C++) final class AssocArrayLiteralExp : Expression
     {
         if (this == o)
             return true;
-        if (o && o.dyncast() == DYNCAST.expression && (cast(Expression)o).op == TOK.assocArrayLiteral)
+        auto e = o.isExpression();
+        if (!e)
+            return false;
+        if (auto ae = e.isAssocArrayLiteralExp())
         {
-            AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)o;
             if (keys.dim != ae.keys.dim)
                 return false;
             size_t count = 0;
