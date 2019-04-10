@@ -45,3 +45,6 @@ ${DMD} -m${MODEL} -lib -of${D_LIB2} -I${TEST_DIR} ${D_LIBFILE2}
 # -lsecond -lfirst is wrong but for --start-group/--end-group,
 # so --start-group and --end-group must not be reordered relative to the libraries
 ${DMD} -m${MODEL} -of${APP} ${D_FILE} -I${TEST_DIR} -L-L${TEST_DIR} -L=--start-group -L-lsecond -L-lfirst -L=--end-group
+
+# analogously for libsecond.a libfirst.a
+${DMD} -m${MODEL} -of${APP} ${D_FILE} -I${TEST_DIR} -L-L${TEST_DIR} -L=--start-group -L=${TEST_DIR}/libsecond.a -L=${TEST_DIR}/libfirst.a -L=--end-group
