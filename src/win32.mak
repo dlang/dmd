@@ -244,7 +244,7 @@ BACKSRC= $C\optabgen.d \
 
 # Toolkit
 TKSRCC=	$(TK)\mem.c
-TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h \
+TKSRC= $(TK)\mem.h \
 	$(TKSRCC)
 
 # Root package
