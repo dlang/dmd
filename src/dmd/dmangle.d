@@ -518,8 +518,8 @@ public:
         }
         else if (inParent)
         {
-            TypeFunction tf = cast(TypeFunction)fd.type;
-            TypeFunction tfo = cast(TypeFunction)fd.originalType;
+            TypeFunction tf = fd.type.isTypeFunction();
+            TypeFunction tfo = fd.originalType.isTypeFunction();
             mangleFuncType(tf, tfo, 0, null);
         }
         else
@@ -771,24 +771,24 @@ public:
                 // Only constfold manifest constants, not const/immutable lvalues, see https://issues.dlang.org/show_bug.cgi?id=17339.
                 enum keepLvalue = true;
                 ea = ea.optimize(WANTvalue, keepLvalue);
-                if (ea.op == TOK.variable)
+                if (auto ev = ea.isVarExp())
                 {
-                    sa = (cast(VarExp)ea).var;
+                    sa = ev.var;
                     ea = null;
                     goto Lsa;
                 }
-                if (ea.op == TOK.this_)
+                if (auto et = ea.isThisExp())
                 {
-                    sa = (cast(ThisExp)ea).var;
+                    sa = et.var;
                     ea = null;
                     goto Lsa;
                 }
-                if (ea.op == TOK.function_)
+                if (auto ef = ea.isFuncExp())
                 {
-                    if ((cast(FuncExp)ea).td)
-                        sa = (cast(FuncExp)ea).td;
+                    if (ef.td)
+                        sa = ef.td;
                     else
-                        sa = (cast(FuncExp)ea).fd;
+                        sa = ef.fd;
                     ea = null;
                     goto Lsa;
                 }
@@ -1180,8 +1180,7 @@ extern (C++) void mangleToBuffer(TemplateInstance ti, OutBuffer* buf)
  */
 void mangleToFuncSignature(ref OutBuffer buf, FuncDeclaration fd)
 {
-    assert(fd.type.ty == Tfunction);
-    auto tf = cast(TypeFunction)fd.type;
+    auto tf = fd.type.isTypeFunction();
 
     scope Mangler v = new Mangler(&buf);
 
