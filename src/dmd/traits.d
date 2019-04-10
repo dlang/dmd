@@ -887,9 +887,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return new ErrorExp();
         }
 
-        // ignore symbol visibility for these traits, should disable access checks as well
+        // ignore symbol visibility and disable access checks for these traits
         Scope* scx = sc.push();
-        scx.flags |= SCOPE.ignoresymbolvisibility;
+        scx.flags |= SCOPE.ignoresymbolvisibility | SCOPE.noaccesscheck;
         scope (exit) scx.pop();
 
         if (e.ident == Id.hasMember)
