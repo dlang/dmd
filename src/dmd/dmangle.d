@@ -907,35 +907,42 @@ public:
          * 0X1.9P+2                 => 19P2
          */
         if (CTFloat.isNaN(value))
-            buf.writestring("NAN"); // no -NAN bugs
-        else if (CTFloat.isInfinity(value))
-            buf.writestring(value < CTFloat.zero ? "NINF" : "INF");
-        else
         {
-            enum BUFFER_LEN = 36;
-            char[BUFFER_LEN] buffer;
-            const n = CTFloat.sprint(buffer.ptr, 'A', value);
-            assert(n < BUFFER_LEN);
-            for (int i = 0; i < n; i++)
+            buf.writestring("NAN"); // no -NAN bugs
+            return;
+        }
+
+        if (value < CTFloat.zero)
+        {
+            buf.writeByte('N');
+            value = -value;
+        }
+
+        if (CTFloat.isInfinity(value))
+        {
+            buf.writestring("INF");
+            return;
+        }
+
+        char[36] buffer = void;
+        // 'A' format yields [-]0xh.hhhhp+-d
+        const n = CTFloat.sprint(buffer.ptr, 'A', value);
+        assert(n < buffer.length);
+        foreach (const c; buffer[2 .. n])
+        {
+            switch (c)
             {
-                char c = buffer[i];
-                switch (c)
-                {
                 case '-':
                     buf.writeByte('N');
                     break;
+
                 case '+':
-                case 'X':
                 case '.':
                     break;
-                case '0':
-                    if (i < 2)
-                        break; // skip leading 0X
-                    goto default;
+
                 default:
                     buf.writeByte(c);
                     break;
-                }
             }
         }
     }
