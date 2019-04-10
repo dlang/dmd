@@ -6,12 +6,12 @@
  *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/memh.d, backend/memh.d)
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/memh.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/mem.d, backend/mem.d)
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/mem.d
  */
 
 
-module dmd.backend.memh;
+module dmd.backend.mem;
 
 
 extern (C):

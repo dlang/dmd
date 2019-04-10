@@ -19,7 +19,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.code_x86;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dmd.backend.outbuf;
 import dmd.backend.ty;
 import dmd.backend.type;

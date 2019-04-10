@@ -29,7 +29,7 @@ import dmd.backend.dlist;
 import dmd.backend.dvec;
 import dmd.backend.el;
 import dmd.backend.md5;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.outbuf;
