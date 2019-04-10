@@ -1899,7 +1899,7 @@ extern (C++) class FuncDeclaration : Declaration
                  * so does f.
                  * Mark all affected functions as requiring closures.
                  */
-                for (Dsymbol s = f; s && s != this; s = s.parent)
+                for (Dsymbol s = f; s && s != this; s = toParentP(s, this))
                 {
                     FuncDeclaration fx = s.isFuncDeclaration();
                     if (!fx)
@@ -1910,7 +1910,7 @@ extern (C++) class FuncDeclaration : Declaration
 
                         /* Mark as needing closure any functions between this and f
                          */
-                        markAsNeedingClosure((fx == f) ? fx.parent : fx, this);
+                        markAsNeedingClosure((fx == f) ? toParentP(fx, this) : fx, this);
 
                         requiresClosure = true;
                     }
@@ -1972,7 +1972,7 @@ extern (C++) class FuncDeclaration : Declaration
                 assert(f !is this);
 
             LcheckAncestorsOfANestedRef:
-                for (Dsymbol s = f; s && s !is this; s = s.parent)
+                for (Dsymbol s = f; s && s !is this; s = toParentP(s, this))
                 {
                     auto fx = s.isFuncDeclaration();
                     if (!fx)
@@ -3110,7 +3110,7 @@ private bool traverseIndirections(Type ta, Type tb)
  */
 private void markAsNeedingClosure(Dsymbol f, FuncDeclaration outerFunc)
 {
-    for (Dsymbol sx = f; sx && sx != outerFunc; sx = sx.parent)
+    for (Dsymbol sx = f; sx && sx != outerFunc; sx = toParentP(sx, outerFunc))
     {
         FuncDeclaration fy = sx.isFuncDeclaration();
         if (fy && fy.closureVars.dim)
@@ -3160,7 +3160,7 @@ private bool checkEscapingSiblings(FuncDeclaration f, FuncDeclaration outerFunc,
             bAnyClosures = true;
         }
 
-        for (auto parent = g.parent; parent && parent !is outerFunc; parent = parent.parent)
+        for (auto parent = toParentP(g, outerFunc); parent && parent !is outerFunc; parent = toParentP(parent, outerFunc))
         {
             // A parent of the sibling had its address taken.
             // Assume escaping of parent affects its children, so needs propagating.
