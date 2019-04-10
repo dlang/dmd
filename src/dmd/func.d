@@ -1797,10 +1797,13 @@ extern (C++) class FuncDeclaration : Declaration
         if (!fdthis)
             return false; // out of function scope
 
-        Dsymbol p = toParent2();
+        Dsymbol p = toParentLocal();
+        Dsymbol p2 = toParent2();
 
         // Function literals from fdthis to p must be delegates
         ensureStaticLinkTo(fdthis, p);
+        if (p != p2)
+            ensureStaticLinkTo(fdthis, p2);
 
         if (isNested())
         {
@@ -1845,6 +1848,8 @@ extern (C++) class FuncDeclaration : Declaration
             }
 
             if (checkEnclosing(p.isFuncDeclaration()))
+                return true;
+            if (checkEnclosing(p == p2 ? null : p2.isFuncDeclaration()))
                 return true;
         }
         return false;

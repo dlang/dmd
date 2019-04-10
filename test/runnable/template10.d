@@ -618,7 +618,7 @@ void test12()
 
 /********************************************/
 
-auto getC13()
+auto getC13a()
 {
     int i = 10;
 
@@ -640,13 +640,13 @@ auto getC13()
     return makeC();
 }
 
-auto test13()
+auto test13a()
 {
     if (__ctfe)
         return; // nested classes not yet ctfeable
 
     int a;
-    auto c = getC13();
+    auto c = getC13a();
 
     function()
     {
@@ -657,6 +657,41 @@ auto test13()
 
     assert(*cast(size_t*)c.outer != 0); // error: frame of getC.makeC wasn't made a closure
     auto i = c.getI!a(); // segfault
+}
+
+void test13b()
+{
+    if (__ctfe)
+        return; // nested classes not yet ctfeable
+
+    auto getC()
+    {
+        int i = 10; // error: value lost, no closure made
+
+        auto fun(alias a)()
+        {
+            return i;
+        }
+
+        class C
+        {
+            int n;
+            auto getI()
+            {
+                return fun!n();
+            }
+        }
+        return new C();
+    }
+
+    auto c = getC();
+    assert(c.getI() == 10);
+}
+
+void test13()
+{
+    test13a();
+    test13b();
 }
 
 /********************************************/
