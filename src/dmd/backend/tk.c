@@ -12,8 +12,6 @@
 #include        <stdlib.h>
 #include        <string.h>
 
-#include        "mem.h"
-
 #if 0
 #define malloc          ph_malloc
 #define calloc(x,y)     ph_calloc((x) * (y))
