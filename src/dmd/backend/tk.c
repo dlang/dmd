@@ -461,10 +461,6 @@ static size_t mem_numalloc;       /* current # of bytes allocated         */
 #define BEFOREVAL       0x4F464542      /* value to detect underrun     */
 #define AFTERVAL        0x45544641      /* value to detect overrun      */
 
-#if SUN || SUN386
-static long afterval = AFTERVAL;        /* so we can do &afterval       */
-#endif
-
 /* The following should be selected to give maximum probability that    */
 /* pointers loaded with these values will cause an obvious crash. On    */
 /* Unix machines, a large value will cause a segment fault.             */
@@ -613,11 +609,8 @@ void *mem_calloc_debug(size_t n, const char *fil, int lin)
     dl->Mline = lin;
     dl->Mnbytes = n;
     dl->Mbeforeval = BEFOREVAL;
-#if SUN || SUN386 /* bus error if we store a long at an odd address */
-    memcpy(&(dl->data[n]),&afterval,sizeof(AFTERVAL));
-#else
+
     *(long *) &(dl->data[n]) = AFTERVAL;
-#endif
 
     /* Add dl to start of allocation list       */
     dl->Mnext = mem_alloclist.Mnext;
@@ -651,11 +644,9 @@ void mem_free_debug(void *ptr, const char *fil, int lin)
                 PRINT "'%s'(%d)\n",fil,lin);
                 goto err2;
         }
-#if SUN || SUN386 /* Bus error if we read a long from an odd address    */
-        error = (memcmp(&dl->data[dl->Mnbytes],&afterval,sizeof(AFTERVAL)) != 0);
-#else
+
         error = (*(long *) &dl->data[dl->Mnbytes] != AFTERVAL);
-#endif
+
         if (error)
         {
                 PRINT "Pointer x%lx overrun\n",(long)ptr);
@@ -740,11 +731,9 @@ static void mem_checkdl(struct mem_debug *dl)
             PRINT "Pointer x%lx underrun\n",(long)p);
             goto err2;
     }
-#if SUN || SUN386 /* Bus error if we read a long from an odd address    */
-    error = memcmp(&dl->data[dl->Mnbytes],&afterval,sizeof(AFTERVAL)) != 0;
-#else
+
     error = *(long *) &dl->data[dl->Mnbytes] != AFTERVAL;
-#endif
+
     if (error)
     {
             PRINT "Pointer x%lx overrun\n",(long)p);
