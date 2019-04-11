@@ -88,7 +88,6 @@ PGO_DIR=$(abspath pgo)
 D = dmd
 
 C=$D/backend
-TK=$D/tk
 ROOT=$D/root
 EX=examples
 RES=../res
@@ -291,7 +290,7 @@ endif
 
 # Unique extra flags if necessary
 DMD_FLAGS  := -I$D -Wuninitialized
-BACK_FLAGS := -I$(ROOT) -I$(TK) -I$C -I$G -I$D -DDMDV2=1
+BACK_FLAGS := -I$(ROOT) -I$C -I$G -I$D -DDMDV2=1
 BACK_DFLAGS := -version=DMDV2
 ROOT_FLAGS := -I$(ROOT)
 
@@ -333,7 +332,7 @@ ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array ctfloat file \
 GLUE_SRCS=$(addsuffix .d, $(addprefix $D/,irstate toctype glue gluelayer todt tocsym toir dmsc \
 	tocvdebug s2ir toobj e2ir eh iasm iasmdmd iasmgcc objc_glue))
 
-DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
+DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS)
 
 ######## DMD backend source files
 
@@ -382,8 +381,6 @@ BACK_HDRS=$C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/glob
 	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d \
 	$C/dlist.d $C/melf.d $C/varstats.di $C/dt.d
 
-TK_HDRS=
-
 BACK_SRC = \
 	$C/optabgen.d \
 	$C/bcomplex.d $C/blockopt.d $C/cg.d $C/cg87.d $C/cgxmm.d \
@@ -405,9 +402,6 @@ BACK_SRC = \
 	$C/md5.d $C/barray.d \
 	$C/ph2.d $C/util2.d $C/dwarfeh.d $C/goh.d $C/mem.d $C/filespec.d \
 	$(TARGET_CH)
-
-TK_SRC = \
-	$(TK)/mem.c
 
 ######## CXX header files (only needed for cxx-unittest)
 
@@ -635,7 +629,7 @@ cxx-unittest: $G/cxx-unittest
 
 zip:
 	-rm -f dmdsrc.zip
-	zip dmdsrc $(SRC) $(ROOT_SRCS) $(GLUE_SRC) $(BACK_SRC) $(TK_SRC)
+	zip dmdsrc $(SRC) $(ROOT_SRCS) $(GLUE_SRC) $(BACK_SRC)
 
 ######################################################
 
