@@ -1,7 +1,10 @@
-general:
-  branches:
-    ignore:
-      - dmd-cxx
-test:
-  override:
-    - echo pass
+jobs:
+  build:
+    docker:
+      - image: circleci/buildpack-deps:18.04
+    parallelism: 1
+    filters:
+      branches:
+        ignore: dmd-cxx
+    steps:
+      - run: echo pass
