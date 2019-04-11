@@ -1993,111 +1993,72 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
 
     Expression visitBasic(TypeBasic mt)
     {
-        Expression e;
-        dinteger_t ivalue;
-        real_t fvalue;
+        Expression integerValue(dinteger_t i)
+        {
+            return new IntegerExp(loc, i, mt);
+        }
+
+        Expression intValue(dinteger_t i)
+        {
+            return new IntegerExp(loc, i, Type.tint32);
+        }
+
+        Expression floatValue(real_t r)
+        {
+            if (mt.isreal() || mt.isimaginary())
+                return new RealExp(loc, r, mt);
+            else
+            {
+                return new ComplexExp(loc, complex_t(r, r), mt);
+            }
+        }
+
         //printf("TypeBasic::getProperty('%s')\n", ident.toChars());
         if (ident == Id.max)
         {
             switch (mt.ty)
             {
-            case Tint8:
-                ivalue = 0x7F;
-                goto Livalue;
-            case Tuns8:
-                ivalue = 0xFF;
-                goto Livalue;
-            case Tint16:
-                ivalue = 0x7FFFU;
-                goto Livalue;
-            case Tuns16:
-                ivalue = 0xFFFFU;
-                goto Livalue;
-            case Tint32:
-                ivalue = 0x7FFFFFFFU;
-                goto Livalue;
-            case Tuns32:
-                ivalue = 0xFFFFFFFFU;
-                goto Livalue;
-            case Tint64:
-                ivalue = 0x7FFFFFFFFFFFFFFFL;
-                goto Livalue;
-            case Tuns64:
-                ivalue = 0xFFFFFFFFFFFFFFFFUL;
-                goto Livalue;
-            case Tbool:
-                ivalue = 1;
-                goto Livalue;
-            case Tchar:
-                ivalue = 0xFF;
-                goto Livalue;
-            case Twchar:
-                ivalue = 0xFFFFU;
-                goto Livalue;
-            case Tdchar:
-                ivalue = 0x10FFFFU;
-                goto Livalue;
+            case Tint8:        return integerValue(byte.max);
+            case Tuns8:        return integerValue(ubyte.max);
+            case Tint16:       return integerValue(short.max);
+            case Tuns16:       return integerValue(ushort.max);
+            case Tint32:       return integerValue(int.max);
+            case Tuns32:       return integerValue(uint.max);
+            case Tint64:       return integerValue(long.max);
+            case Tuns64:       return integerValue(ulong.max);
+            case Tbool:        return integerValue(bool.max);
+            case Tchar:        return integerValue(char.max);
+            case Twchar:       return integerValue(wchar.max);
+            case Tdchar:       return integerValue(dchar.max);
             case Tcomplex32:
             case Timaginary32:
-            case Tfloat32:
-                fvalue = target.FloatProperties.max;
-                goto Lfvalue;
+            case Tfloat32:     return floatValue(target.FloatProperties.max);
             case Tcomplex64:
             case Timaginary64:
-            case Tfloat64:
-                fvalue = target.DoubleProperties.max;
-                goto Lfvalue;
+            case Tfloat64:     return floatValue(target.DoubleProperties.max);
             case Tcomplex80:
             case Timaginary80:
-            case Tfloat80:
-                fvalue = target.RealProperties.max;
-                goto Lfvalue;
-            default:
-                break;
+            case Tfloat80:     return floatValue(target.RealProperties.max);
+            default:           break;
             }
         }
         else if (ident == Id.min)
         {
             switch (mt.ty)
             {
-            case Tint8:
-                ivalue = -128;
-                goto Livalue;
+            case Tint8:        return integerValue(byte.min);
             case Tuns8:
-                ivalue = 0;
-                goto Livalue;
-            case Tint16:
-                ivalue = -32768;
-                goto Livalue;
             case Tuns16:
-                ivalue = 0;
-                goto Livalue;
-            case Tint32:
-                ivalue = -2147483647 - 1;
-                goto Livalue;
             case Tuns32:
-                ivalue = 0;
-                goto Livalue;
-            case Tint64:
-                ivalue = (-9223372036854775807L - 1L);
-                goto Livalue;
             case Tuns64:
-                ivalue = 0;
-                goto Livalue;
             case Tbool:
-                ivalue = 0;
-                goto Livalue;
             case Tchar:
-                ivalue = 0;
-                goto Livalue;
             case Twchar:
-                ivalue = 0;
-                goto Livalue;
-            case Tdchar:
-                ivalue = 0;
-                goto Livalue;
-            default:
-                break;
+            case Tdchar:       return integerValue(0);
+            case Tint16:       return integerValue(short.min);
+            case Tint32:       return integerValue(int.min);
+            case Tint64:       return integerValue(long.min);
+            default:           break;
             }
         }
         else if (ident == Id.min_normal)
@@ -2107,21 +2068,14 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             {
             case Tcomplex32:
             case Timaginary32:
-            case Tfloat32:
-                fvalue = target.FloatProperties.min_normal;
-                goto Lfvalue;
+            case Tfloat32:     return floatValue(target.FloatProperties.min_normal);
             case Tcomplex64:
             case Timaginary64:
-            case Tfloat64:
-                fvalue = target.DoubleProperties.min_normal;
-                goto Lfvalue;
+            case Tfloat64:     return floatValue(target.DoubleProperties.min_normal);
             case Tcomplex80:
             case Timaginary80:
-            case Tfloat80:
-                fvalue = target.RealProperties.min_normal;
-                goto Lfvalue;
-            default:
-                break;
+            case Tfloat80:     return floatValue(target.RealProperties.min_normal);
+            default:           break;
             }
         }
         else if (ident == Id.nan)
@@ -2136,11 +2090,8 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             case Timaginary80:
             case Tfloat32:
             case Tfloat64:
-            case Tfloat80:
-                fvalue = target.RealProperties.nan;
-                goto Lfvalue;
-            default:
-                break;
+            case Tfloat80:     return floatValue(target.RealProperties.nan);
+            default:           break;
             }
         }
         else if (ident == Id.infinity)
@@ -2155,11 +2106,8 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             case Timaginary80:
             case Tfloat32:
             case Tfloat64:
-            case Tfloat80:
-                fvalue = target.RealProperties.infinity;
-                goto Lfvalue;
-            default:
-                break;
+            case Tfloat80:     return floatValue(target.RealProperties.infinity);
+            default:           break;
             }
         }
         else if (ident == Id.dig)
@@ -2168,21 +2116,14 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             {
             case Tcomplex32:
             case Timaginary32:
-            case Tfloat32:
-                ivalue = target.FloatProperties.dig;
-                goto Lint;
+            case Tfloat32:     return intValue(target.FloatProperties.dig);
             case Tcomplex64:
             case Timaginary64:
-            case Tfloat64:
-                ivalue = target.DoubleProperties.dig;
-                goto Lint;
+            case Tfloat64:     return intValue(target.DoubleProperties.dig);
             case Tcomplex80:
             case Timaginary80:
-            case Tfloat80:
-                ivalue = target.RealProperties.dig;
-                goto Lint;
-            default:
-                break;
+            case Tfloat80:     return intValue(target.RealProperties.dig);
+            default:           break;
             }
         }
         else if (ident == Id.epsilon)
@@ -2191,21 +2132,14 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             {
             case Tcomplex32:
             case Timaginary32:
-            case Tfloat32:
-                fvalue = target.FloatProperties.epsilon;
-                goto Lfvalue;
+            case Tfloat32:     return floatValue(target.FloatProperties.epsilon);
             case Tcomplex64:
             case Timaginary64:
-            case Tfloat64:
-                fvalue = target.DoubleProperties.epsilon;
-                goto Lfvalue;
+            case Tfloat64:     return floatValue(target.DoubleProperties.epsilon);
             case Tcomplex80:
             case Timaginary80:
-            case Tfloat80:
-                fvalue = target.RealProperties.epsilon;
-                goto Lfvalue;
-            default:
-                break;
+            case Tfloat80:     return floatValue(target.RealProperties.epsilon);
+            default:           break;
             }
         }
         else if (ident == Id.mant_dig)
@@ -2214,21 +2148,14 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             {
             case Tcomplex32:
             case Timaginary32:
-            case Tfloat32:
-                ivalue = target.FloatProperties.mant_dig;
-                goto Lint;
+            case Tfloat32:     return intValue(target.FloatProperties.mant_dig);
             case Tcomplex64:
             case Timaginary64:
-            case Tfloat64:
-                ivalue = target.DoubleProperties.mant_dig;
-                goto Lint;
+            case Tfloat64:     return intValue(target.DoubleProperties.mant_dig);
             case Tcomplex80:
             case Timaginary80:
-            case Tfloat80:
-                ivalue = target.RealProperties.mant_dig;
-                goto Lint;
-            default:
-                break;
+            case Tfloat80:     return intValue(target.RealProperties.mant_dig);
+            default:           break;
             }
         }
         else if (ident == Id.max_10_exp)
@@ -2237,21 +2164,14 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             {
             case Tcomplex32:
             case Timaginary32:
-            case Tfloat32:
-                ivalue = target.FloatProperties.max_10_exp;
-                goto Lint;
+            case Tfloat32:     return intValue(target.FloatProperties.max_10_exp);
             case Tcomplex64:
             case Timaginary64:
-            case Tfloat64:
-                ivalue = target.DoubleProperties.max_10_exp;
-                goto Lint;
+            case Tfloat64:     return intValue(target.DoubleProperties.max_10_exp);
             case Tcomplex80:
             case Timaginary80:
-            case Tfloat80:
-                ivalue = target.RealProperties.max_10_exp;
-                goto Lint;
-            default:
-                break;
+            case Tfloat80:     return intValue(target.RealProperties.max_10_exp);
+            default:           break;
             }
         }
         else if (ident == Id.max_exp)
@@ -2260,21 +2180,14 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             {
             case Tcomplex32:
             case Timaginary32:
-            case Tfloat32:
-                ivalue = target.FloatProperties.max_exp;
-                goto Lint;
+            case Tfloat32:     return intValue(target.FloatProperties.max_exp);
             case Tcomplex64:
             case Timaginary64:
-            case Tfloat64:
-                ivalue = target.DoubleProperties.max_exp;
-                goto Lint;
+            case Tfloat64:     return intValue(target.DoubleProperties.max_exp);
             case Tcomplex80:
             case Timaginary80:
-            case Tfloat80:
-                ivalue = target.RealProperties.max_exp;
-                goto Lint;
-            default:
-                break;
+            case Tfloat80:     return intValue(target.RealProperties.max_exp);
+            default:           break;
             }
         }
         else if (ident == Id.min_10_exp)
@@ -2283,21 +2196,14 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             {
             case Tcomplex32:
             case Timaginary32:
-            case Tfloat32:
-                ivalue = target.FloatProperties.min_10_exp;
-                goto Lint;
+            case Tfloat32:     return intValue(target.FloatProperties.min_10_exp);
             case Tcomplex64:
             case Timaginary64:
-            case Tfloat64:
-                ivalue = target.DoubleProperties.min_10_exp;
-                goto Lint;
+            case Tfloat64:     return intValue(target.DoubleProperties.min_10_exp);
             case Tcomplex80:
             case Timaginary80:
-            case Tfloat80:
-                ivalue = target.RealProperties.min_10_exp;
-                goto Lint;
-            default:
-                break;
+            case Tfloat80:     return intValue(target.RealProperties.min_10_exp);
+            default:           break;
             }
         }
         else if (ident == Id.min_exp)
@@ -2306,43 +2212,17 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             {
             case Tcomplex32:
             case Timaginary32:
-            case Tfloat32:
-                ivalue = target.FloatProperties.min_exp;
-                goto Lint;
+            case Tfloat32:     return intValue(target.FloatProperties.min_exp);
             case Tcomplex64:
             case Timaginary64:
-            case Tfloat64:
-                ivalue = target.DoubleProperties.min_exp;
-                goto Lint;
+            case Tfloat64:     return intValue(target.DoubleProperties.min_exp);
             case Tcomplex80:
             case Timaginary80:
-            case Tfloat80:
-                ivalue = target.RealProperties.min_exp;
-                goto Lint;
-            default:
-                break;
+            case Tfloat80:     return intValue(target.RealProperties.min_exp);
+            default:           break;
             }
         }
         return visitType(mt);
-
-    Livalue:
-        return new IntegerExp(loc, ivalue, mt);
-
-    Lfvalue:
-        if (mt.isreal() || mt.isimaginary())
-            e = new RealExp(loc, fvalue, mt);
-        else
-        {
-            const cvalue = complex_t(fvalue, fvalue);
-            //for (int i = 0; i < 20; i++)
-            //    printf("%02x ", ((unsigned char *)&cvalue)[i]);
-            //printf("\n");
-            e = new ComplexExp(loc, cvalue, mt);
-        }
-        return e;
-
-    Lint:
-        return new IntegerExp(loc, ivalue, Type.tint32);
     }
 
     Expression visitVector(TypeVector mt)
