@@ -268,7 +268,7 @@ auto buildCXX(string obj, string fileName)
     Dependency dependency = {
         target: obj,
         sources: [fileName],
-        rebuildSources: sources.backendC ~ configFiles,
+        rebuildSources: configFiles,
         name: "(CC) BACK_OBJS %s".format(fileName),
         command: [env["HOST_CXX"], "-c", "-o$@"].chain(flags["CXXFLAGS"], flags["BACK_FLAGS"], "$<".only).array
     };
@@ -292,29 +292,19 @@ auto dBackend()
     return dependency;
 }
 
-/// Returns: the dependencies that build the C++ backend
-auto cxxBackend()
-{
-    Dependency[] dependencies;
-    foreach (obj; sources.backendObjects)
-        dependencies ~= buildCXX(obj, env["C"].buildPath(obj.baseName.stripExtension ~ ".c"));
-
-    return dependencies;
-}
-
 /// Execute the sub-dependencies of the backend and pack everything into one object file
 auto buildBackend()
 {
     opTabGen.run;
 
-    Dependency[] dependencies = cxxBackend();
+    Dependency[] dependencies;
     dependencies ~= dBackend;
     foreach (dependency; dependencies.parallel(1))
         dependency.run;
 
     // Pack the backend
     Dependency dependency = {
-        sources: sources.backendObjects.chain(env["G"].buildPath("dbackend").objName.only).array,
+        sources: [ env["G"].buildPath("dbackend").objName ],
         target: env["G"].buildPath("backend").libName,
         command: [env["AR"], "rcs", "$@", "$<"],
     };
@@ -525,7 +515,6 @@ void parseEnvironment()
     env.getDefault("PGO_DIR", srcDir.buildPath("pgo"));
     auto d = env.getDefault("D", srcDir.buildPath("dmd"));
     env.getDefault("C", d.buildPath("backend"));
-    env.getDefault("TK", d.buildPath("tk"));
     env.getDefault("ROOT", d.buildPath("root"));
     env.getDefault("EX", d.buildPath("examples"));
     auto generated = env.getDefault("GENERATED", srcDir.dirName.buildPath("generated"));
@@ -663,7 +652,7 @@ void processEnvironment()
     // TODO: allow adding new flags from the environment
     string[] dflags = ["-version=MARS", "-w", "-de", "-dip25", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"]];
 
-    flags["BACK_FLAGS"] = ["-I"~env["ROOT"], "-I"~env["TK"], "-I"~env["C"], "-I"~env["G"], "-I"~env["D"], "-DDMDV2=1"];
+    flags["BACK_FLAGS"] = ["-I"~env["ROOT"], "-I"~env["C"], "-I"~env["G"], "-I"~env["D"], "-DDMDV2=1"];
 
     // TODO: add support for dObjc
     auto dObjc = false;
@@ -794,14 +783,6 @@ auto sourceFiles()
             "dt",
             "obj",
         ].map!(e => env["C"].buildPath(e ~ ".d")).array,
-        backendC:
-            // all backend files in C
-            ["tk"]
-                .map!(a => env["G"].buildPath(a).objName)
-                .array,
-        backendObjects: ["tk"]
-                .map!(a => env["G"].buildPath(a).objName)
-                .array,
     };
     sources.backendC.writeln;
     sources.dmd = sources.frontend ~ sources.backendHeaders;

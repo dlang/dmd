@@ -94,6 +94,21 @@
     <OutDir>..\..\generated\Windows\$(Configuration)\$(PlatformName)\</OutDir>
     <IntDir>$(OutDir)\dmd\</IntDir>
   </PropertyGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\dmd\backend\optabgen.d">
+      <Message>Building and running $(IntDir)%(Filename).exe</Message>
+      <Command>
+        $(DMDBinDir)\dmd.exe -I.. -version=MARS -of"$(IntDir)generated\%(Filename).exe" "%(FullPath)"
+        if errorlevel 1 exit /B %ERRORLEVEL%
+        pushd $(IntDir)generated
+        "%(Filename).exe"
+        if errorlevel 1 exit /B %ERRORLEVEL%
+        popd
+      </Command>
+      <Outputs>$(IntDir)generated\optab.d;$(IntDir)generated\debtab.d;$(IntDir)generated\cdxxx.d;$(IntDir)generated\elxxx.d;$(IntDir)generated\tytab.d;$(IntDir)generated\\fltables.d;%(Outputs)</Outputs>
+      <AdditionalInputs>..\dmd\backend\cc.d;..\dmd\backend\cdef.d;..\dmd\backend\oper.d;..\dmd\backend\ty.d;%(AdditionalInputs)</AdditionalInputs>
+    </CustomBuild>
+  </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -111,7 +126,7 @@
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
-      <StringImportPaths>..\..;..\..\res;$(OutDir)\backend\generated</StringImportPaths>
+      <StringImportPaths>..\..;..\..\res;$(OutDir)\dmd\generated</StringImportPaths>
       <CRuntimeLibrary>MultiThreadedDebug</CRuntimeLibrary>
       <CompilationModel>Package</CompilationModel>
       <ImportPaths>..</ImportPaths>
@@ -135,7 +150,7 @@
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
-      <StringImportPaths>..\..;..\..\res;$(OutDir)\backend\generated</StringImportPaths>
+      <StringImportPaths>..\..;..\..\res;$(OutDir)\dmd\generated</StringImportPaths>
       <CRuntimeLibrary>MultiThreadedDebug</CRuntimeLibrary>
       <CompilationModel>Package</CompilationModel>
       <ImportPaths>..</ImportPaths>
@@ -163,7 +178,7 @@
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
-      <StringImportPaths>..\..;..\..\res;$(OutDir)\backend\generated</StringImportPaths>
+      <StringImportPaths>..\..;..\..\res;$(OutDir)\dmd\generated</StringImportPaths>
       <CompilationModel>Package</CompilationModel>
       <ImportPaths>..</ImportPaths>
       <Optimizer>true</Optimizer>
@@ -192,7 +207,7 @@
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
-      <StringImportPaths>..\..;..\..\res;$(OutDir)\backend\generated</StringImportPaths>
+      <StringImportPaths>..\..;..\..\res;$(OutDir)\dmd\generated</StringImportPaths>
       <CompilationModel>Package</CompilationModel>
       <ImportPaths>..</ImportPaths>
       <Optimizer>true</Optimizer>
@@ -203,11 +218,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <DCompile Include="../dmd/**/*.d" Exclude="../dmd/backend/optabgen.d;../dmd/frontend.d;../dmd/asttypename.d"/>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="dmd_backend.vcxproj">
-      <Project>{2387389d-7d3f-4d5e-ae0e-c871776e8432}</Project>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

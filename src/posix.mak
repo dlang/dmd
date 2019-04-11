@@ -334,26 +334,8 @@ GLUE_SRCS=$(addsuffix .d, $(addprefix $D/,irstate toctype glue gluelayer todt to
 
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS)
 
-######## DMD backend source files
-
-ifeq (X86,$(TARGET_CPU))
-    TARGET_CH =
-    TARGET_OBJS =
-else
-    ifeq (stub,$(TARGET_CPU))
-        TARGET_CH = $C/code_stub.h
-        TARGET_OBJS = platform_stub.o
-    else
-        $(error unknown TARGET_CPU: '$(TARGET_CPU)')
-    endif
-endif
-
-BACK_OBJS = \
-	tk.o \
-	$(TARGET_OBJS)
-
 BACK_DOBJS = bcomplex.o evalu8.o divcoeff.o dvec.o go.o gsroa.o glocal.o gdag.o gother.o gflow.o \
-	out.o \
+	out.o tk.o \
 	gloop.o compress.o cgelem.o cgcs.o ee.o cod4.o cod5.o nteh.o blockopt.o mem.o cg.o cgreg.o \
 	dtype.o debugprint.o fp.o symbol.o elem.o dcode.o cgsched.o cg87.o cgxmm.o cgcod.o cod1.o cod2.o \
 	cod3.o cv8.o dcgcv.o pdata.o util2.o var.o md5.o backconfig.o ph2.o drtlsym.o dwarfeh.o ptrntab.o \
@@ -391,11 +373,11 @@ BACK_SRC = \
 	$C/evalu8.d $C/fp.d $C/go.d $C/gflow.d $C/gdag.d \
 	$C/gother.d $C/glocal.d $C/gloop.d $C/gsroa.d $C/newman.d \
 	$C/nteh.d $C/os.d $C/out.d $C/ptrntab.d $C/drtlsym.d \
+	$C/tk.d \
 	$C/dtype.d \
 	$C/token.h \
 	$C/elfobj.d \
 	$C/dwarfdbginf.d $C/aarray.d \
-	$C/platform_stub.c $C/code_stub.h \
 	$C/machobj.d $C/mscoffobj.d \
 	$C/pdata.d $C/cv8.d $C/backconfig.d $C/divcoeff.d \
 	$C/dvarstats.d $C/dvec.d \
@@ -555,10 +537,6 @@ FORCE: ;
 #vpath %.c $C
 
 -include $(DEPS)
-
-$(G_OBJS): $G/%.o: $C/%.c $(optabgen_files) $(SRC_MAKE)
-	@echo "  (CC)  BACK_OBJS  $<"
-	$(CXX) -c -o$@ $(CXXFLAGS) $(BACK_FLAGS) $(MMD) $<
 
 $(G_DOBJS): $G/%.o: $C/%.d $(optabgen_files) posix.mak $(HOST_DMD_PATH)
 	@echo "  (HOST_DMD_RUN)  BACK_DOBJS  $<"

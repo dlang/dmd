@@ -607,8 +607,8 @@ $G/dvarstats.obj : $C\dvarstats.d
 #	$(CC) -c -o$@ $(MFLAGS) -I$D -I$G $C\varstats
 
 
-$G/tk.obj : $C\tk.c
-	$(CC) -c -o$@ $(MFLAGS) $C\tk.c
+$G/tk.obj : $C\tk.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\tk
 
 # Root
 $G/longdouble.obj : $(ROOT)\longdouble.d
