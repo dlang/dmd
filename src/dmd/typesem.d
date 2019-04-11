@@ -165,10 +165,17 @@ private void resolveTupleIndex(const ref Loc loc, Scope* sc, Dsymbol s, Expressi
 
 /*************************************
  * Takes an array of Identifiers and figures out if
- * it represents a Type or an Expression.
- * Output:
- *      if expression, *pe is set
- *      if type, *pt is set
+ * it represents a Type, Expression, or Dsymbol.
+ * Params:
+ *      mt = array of identifiers
+ *      loc = location for error messages
+ *      sc = context
+ *      s = symbol to start search at
+ *      scopesym = unused
+ *      pe = set if expression
+ *      pt = set if type
+ *      ps = set if symbol
+ *      typeid = set if in TypeidExpression https://dlang.org/spec/expression.html#TypeidExpression
  */
 private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymbol s, Dsymbol scopesym,
     Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
@@ -237,9 +244,26 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
                 *pt = Type.terror;
                 return;
             }
+
+            void helper3()
+            {
+                Expression e;
+                VarDeclaration v = s.isVarDeclaration();
+                FuncDeclaration f = s.isFuncDeclaration();
+                if (intypeid || !v && !f)
+                    e = symbolToExp(s, loc, sc, true);
+                else
+                    e = new VarExp(loc, s.isDeclaration(), true);
+
+                e = typeToExpressionHelper(mt, e, i);
+                e = e.expressionSemantic(sc);
+                resolveExp(e, pt, pe, ps);
+            }
+
             //printf("\t3: s = %p %s %s, sm = %p\n", s, s.kind(), s.toChars(), sm);
             if (intypeid && !t && sm && sm.needThis())
-                goto L3;
+                return helper3();
+
             if (VarDeclaration v = s.isVarDeclaration())
             {
                 if (v.storage_class & (STC.const_ | STC.immutable_ | STC.manifest) ||
@@ -248,7 +272,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
                     // https://issues.dlang.org/show_bug.cgi?id=13087
                     // this.field is not constant always
                     if (!v.isThisDeclaration())
-                        goto L3;
+                        return helper3();
                 }
             }
             if (!sm)
@@ -259,12 +283,12 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
                     {
                         t = s.isDeclaration().type;
                         if (!t && s.isTupleDeclaration()) // expression tuple?
-                            goto L3;
+                            return helper3();
                     }
                     else if (s.isTemplateInstance() ||
                              s.isImport() || s.isPackage() || s.isModule())
                     {
-                        goto L3;
+                        return helper3();
                     }
                 }
                 if (t)
@@ -273,22 +297,11 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
                     if (sm && id.dyncast() == DYNCAST.identifier)
                     {
                         sm = sm.search(loc, cast(Identifier)id, IgnorePrivateImports);
-                        if (sm)
-                            goto L2;
+                        if (!sm)
+                            return helper3();
                     }
-                L3:
-                    Expression e;
-                    VarDeclaration v = s.isVarDeclaration();
-                    FuncDeclaration f = s.isFuncDeclaration();
-                    if (intypeid || !v && !f)
-                        e = symbolToExp(s, loc, sc, true);
                     else
-                        e = new VarExp(loc, s.isDeclaration(), true);
-
-                    e = typeToExpressionHelper(mt, e, i);
-                    e = e.expressionSemantic(sc);
-                    resolveExp(e, pt, pe, ps);
-                    return;
+                        return helper3();
                 }
                 else
                 {
@@ -307,10 +320,9 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
                             error(loc, "identifier `%s` of `%s` is not defined", id.toChars(), mt.toChars());
                     }
                     *pe = new ErrorExp();
+                    return;
                 }
-                return;
             }
-        L2:
             s = sm.toAlias();
         }
 
@@ -364,16 +376,18 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
             }
         }
 
-    L1:
-        Type t = s.getType();
-        if (!t)
+        Type t;
+        while (1)
         {
+            t = s.getType();
+            if (t)
+                break;
             // If the symbol is an import, try looking inside the import
             if (Import si = s.isImport())
             {
                 s = si.search(loc, s.ident);
                 if (s && s != si)
-                    goto L1;
+                    continue;
                 s = si;
             }
             *ps = s;
