@@ -63,7 +63,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(IntDir)generated\dmd;$(IntDir)generated;..\dmd\root;..\dmd\tk;..\dmd\backend;.;.;..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(IntDir)generated\dmd;$(IntDir)generated;..\dmd\root;..\dmd\backend;.;.;..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">DEBUG;_DEBUG;TARGET_WINDOS%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)'=='Release'">TARGET_WINDOS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary Condition="'$(Configuration)'=='Debug'">MultiThreadedDebug</RuntimeLibrary>
@@ -94,9 +94,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\dmd\backend\tk.c" />
-    <ClCompile Include="..\dmd\tk\mem.c">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
     <CustomBuild Include="..\dmd\backend\optabgen.d">
       <Message>Building and running $(IntDir)%(Filename).exe</Message>
       <Command>$(DMDBinDir)\dmd.exe -I.. -version=MARS -of"$(IntDir)generated\%(Filename).exe" "%(FullPath)"

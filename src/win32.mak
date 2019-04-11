@@ -65,7 +65,6 @@ DMCROOT=$(DM_HOME)\dm
 # DMD source directories
 D=dmd
 C=$D\backend
-TK=$D\tk
 ROOT=$D\root
 
 # Include directories
@@ -140,12 +139,12 @@ DDEBUG=-debug -g -unittest
 # Compile flags
 CFLAGS=-I$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1
 # Compile flags for modules with backend/toolkit dependencies
-MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1
+MFLAGS=-I$C $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1
 # D compile flags
 DFLAGS=$(DOPT) $(DMODEL) $(DDEBUG) -wi -version=MARS -dip25
 
 # Recursive make
-DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) MAKE="$(MAKE)" HOST_DC="$(HOST_DC)" MODEL=$(MODEL) CC="$(CC)" LIB="$(LIB)" OBJ_MSVC="$(OBJ_MSVC)"
+DMDMAKE=$(MAKE) -fwin32.mak C=$C ROOT=$(ROOT) MAKE="$(MAKE)" HOST_DC="$(HOST_DC)" MODEL=$(MODEL) CC="$(CC)" LIB="$(LIB)" OBJ_MSVC="$(OBJ_MSVC)"
 
 ############################### Rule Variables ###############################
 
@@ -182,11 +181,9 @@ BACK_HDRS=$C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/glob
 	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d \
 	$C/dlist.d $C/goh.d $C/mem.d $C/melf.d $C/varstats.di $C/barray.d
 
-TK_HDRS=
-
 STRING_IMPORT_FILES= $G\VERSION ../res/default_ddoc_theme.ddoc
 
-DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
+DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS)
 
 # Glue layer
 GLUEOBJ=
@@ -241,10 +238,6 @@ BACKSRC= $C\optabgen.d \
 	$C\mscoffobj.d $C\pdata.d $C\cv8.d $C\backconfig.d \
 	$C\divcoeff.d $C\dwarfeh.d $C\dvarstats.d \
 	$C\dvec.d $C\filespec.d $C\backend.txt
-
-# Toolkit
-TKSRCC=	$(TK)\mem.c
-TKSRC= $(TKSRCC)
 
 # Root package
 ROOTSRCC=
@@ -352,13 +345,11 @@ install-copy:
 	$(MD) $(INSTALL)\windows\bin
 	$(MD) $(INSTALL)\windows\lib
 	$(MD) $(INSTALL)\src\dmd\root
-	$(MD) $(INSTALL)\src\dmd\tk
 	$(MD) $(INSTALL)\src\dmd\backend
 	$(CP) $(TARGETEXE)          $(INSTALL)\windows\bin\$(TARGETEXE)
 	$(CP) $(SRCS)               $(INSTALL)\src\dmd
 	$(CP) $(GLUESRC)            $(INSTALL)\src\dmd
 	$(CP) $(ROOTSRC)            $(INSTALL)\src\dmd\root
-	$(CP) $(TKSRC)              $(INSTALL)\src\dmd\tk
 	$(CP) $(BACKSRC)            $(INSTALL)\src\dmd\backend
 	$(CP) $(MAKEFILES)          $(INSTALL)\src\dmd
 	$(CP) $D\readme.txt            $(INSTALL)\src\dmd\readme.txt
@@ -369,10 +360,10 @@ install-clean:
 	$(RD) /s/q $(INSTALL)
 
 detab:
-	$(DETAB) $(SRCS) $(GLUESRC) $(ROOTSRC) $(TKSRC) $(BACKSRC)
+	$(DETAB) $(SRCS) $(GLUESRC) $(ROOTSRC) $(BACKSRC)
 
 tolf:
-	$(TOLF) $(SRCS) $(GLUESRC) $(ROOTSRC) $(TKSRC) $(BACKSRC) $(MAKEFILES)
+	$(TOLF) $(SRCS) $(GLUESRC) $(ROOTSRC) $(BACKSRC) $(MAKEFILES)
 
 zip: detab tolf $(MAKEFILES)
 	$(DEL) dmdsrc.zip
@@ -380,7 +371,6 @@ zip: detab tolf $(MAKEFILES)
 	$(ZIP) dmdsrc $(SRCS)
 	$(ZIP) dmdsrc $(GLUESRC)
 	$(ZIP) dmdsrc $(BACKSRC)
-	$(ZIP) dmdsrc $(TKSRC)
 	$(ZIP) dmdsrc $(ROOTSRC)
 
 scp: detab tolf $(MAKEFILES)
@@ -388,21 +378,19 @@ scp: detab tolf $(MAKEFILES)
 	$(SCP) $(SRCS) $(SCPDIR)/src
 	$(SCP) $(GLUESRC) $(SCPDIR)/src
 	$(SCP) $(BACKSRC) $(SCPDIR)/src/backend
-	$(SCP) $(TKSRC) $(SCPDIR)/src/tk
 	$(SCP) $(ROOTSRC) $(SCPDIR)/src/root
 
 pvs:
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp canthrow.c --source-file canthrow.c
-#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /I$C /I$(TK) /Tp scanmscoff.c --source-file scanmscoff.c
-	$(PVS) --cfg PVS-Studio.cfg --cl-params /DMARS /DDM_TARGET_CPU_X86 /I$C /I$(TK) /I$(ROOT) /Tp $C\cod3.c --source-file $C\cod3.c
+#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /I$C /Tp scanmscoff.c --source-file scanmscoff.c
+	$(PVS) --cfg PVS-Studio.cfg --cl-params /DMARS /DDM_TARGET_CPU_X86 /I$C /I$(ROOT) /Tp $C\cod3.c --source-file $C\cod3.c
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp $(SRCS) --source-file $(SRCS)
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp $(GLUESRC) --source-file $(GLUESRC)
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp $(ROOTSRCC) --source-file $(ROOTSRCC)
-#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$C;$(TK) /Tp $(BACKSRC) --source-file $(BACKSRC)
-#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(TK) /Tp $(TKSRCC) --source-file $(TKSRCC)
+#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$C /Tp $(BACKSRC) --source-file $(BACKSRC)
 
 checkwhitespace: $(TOOLS_DIR)\checkwhitespace.d
-	$(HOST_DC) -run $(TOOLS_DIR)\checkwhitespace $(SRCS) $(GLUESRC) $(ROOTSRC) $(TKSRC) $(BACKSRC)
+	$(HOST_DC) -run $(TOOLS_DIR)\checkwhitespace $(SRCS) $(GLUESRC) $(ROOTSRC) $(BACKSRC)
 
 # Extra test here, wine attempts to execute git even if file already exists
 $(TOOLS_DIR)\checkwhitespace.d:
