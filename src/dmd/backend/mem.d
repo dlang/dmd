@@ -13,28 +13,26 @@
 
 module dmd.backend.mem;
 
+import core.stdc.stdlib : malloc, calloc, realloc, free;
+import core.stdc.string : strdup;
 
 extern (C):
 
 nothrow:
 @nogc:
 
-char *mem_strdup(const(char) *);
-void *mem_malloc(size_t);
-void *mem_calloc(size_t);
-void *mem_realloc(void *,size_t);
-void mem_free(void *);
-void mem_init();
-void mem_term();
+char* mem_strdup(const char* p) { return strdup(p); }
+void* mem_malloc(size_t u) { return malloc(u); }
+void* mem_fmalloc(size_t u) { return malloc(u); }
+void* mem_calloc(size_t u) { return calloc(u, 1); }
+void* mem_realloc(void* p, size_t u) { return realloc(p, u); }
+void mem_free(void* p) { free(p); }
 
 extern (C++)
 {
     void mem_free_cpp(void *);
     alias mem_freefp = mem_free_cpp;
 }
-
-enum MEM_E { MEM_ABORTMSG, MEM_ABORT, MEM_RETNULL, MEM_CALLFP, MEM_RETRY }
-void mem_setexception(MEM_E,...);
 
 version (MEM_DEBUG)
 {
@@ -50,3 +48,4 @@ else
     void *mem_fmalloc(size_t);
     void mem_ffree(void *) { }
 }
+
