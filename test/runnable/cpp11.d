@@ -5,8 +5,6 @@
 
 // Disabled on win32 because the compiler is too old
 
-import core.stdc.stdint;
-
 /****************************************/
 alias nullptr_t = typeof(null);
 
@@ -33,14 +31,14 @@ else
 /****************************************/
 // https://issues.dlang.org/show_bug.cgi?id=19658
 
-enum i8_19658 : int8_t { a }
-enum u8_19658 : uint8_t { a }
-enum i16_19658 : int16_t { a }
-enum u16_19658 : uint16_t { a }
-enum i32_19658 : int32_t { a }
-enum u32_19658 : uint32_t { a }
-enum i64_19658 : int64_t { a }
-enum u64_19658 : uint64_t { a }
+enum i8_19658 : byte { a }
+enum u8_19658 : ubyte { a }
+enum i16_19658 : short { a }
+enum u16_19658 : ushort { a }
+enum i32_19658 : int { a }
+enum u32_19658 : uint { a }
+enum i64_19658 : long { a }
+enum u64_19658 : ulong { a }
 
 extern(C++) void test19658_i8(i8_19658);
 extern(C++) void test19658_u8(u8_19658);
