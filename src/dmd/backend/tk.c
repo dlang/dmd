@@ -21,7 +21,6 @@
 
 #if !MEM_DEBUG
 #define MEM_NOMEMCOUNT  1
-#define MEM_NONEW       1
 #endif
 
 #include        <stdio.h>
