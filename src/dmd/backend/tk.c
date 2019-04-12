@@ -311,17 +311,6 @@ void mem_setnewfileline (void *,const char *,int);
 #include        <assert.h>
 #endif
 
-#ifndef VAX11C
-#ifdef BSDUNIX
-#include <strings.h>
-#else
-#include <string.h>
-#endif
-#else
-extern char *strcpy(),*memcpy();
-extern int strlen();
-#endif  /* VAX11C */
-
 int mem_inited = 0;             /* != 0 if initialized                  */
 
 static int mem_behavior = MEM_ABORTMSG;
