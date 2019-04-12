@@ -7,12 +7,12 @@ environment:
       D_COMPILER:          dmd
       D_VERSION:           2.079.1
       C_COMPILER:          MSVC
-      VISUALD_VER:         v0.45.1-rc2
+      VISUALD_VER:         v0.49.0
       LDC_VERSION:         1.8.0
 
 cache:
   - C:\projects\gnumake\make.exe
-  - C:\projects\VisualD-v0.45.1-rc2.exe
+  - C:\projects\VisualD-v0.49.0.exe
   - C:\projects\ldc2-1.8.0-windows-multilib.7z
 
 skip_commits:
