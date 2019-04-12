@@ -11,6 +11,9 @@
 #include        <stdio.h>
 #include        <stdlib.h>
 #include        <string.h>
+#include        <assert.h>
+#include        <stdarg.h>
+#include        <stddef.h>
 
 #if 0
 #define malloc          ph_malloc
@@ -23,19 +26,8 @@
 #define MEM_NOMEMCOUNT  1
 #endif
 
-#include        <stdio.h>
-#include        <stdarg.h>
-#include        <stddef.h>
-
-#ifndef malloc
-#include        <stdlib.h>
-#endif
-
 extern "C"
 {
-
-#include <stdio.h> // for size_t
-
 
 #if __APPLE__ && __i386__
     /* size_t is 'unsigned long', which makes it mangle differently
@@ -264,8 +256,6 @@ char *mem_fstrdup(const char *);
 #define mem_init()      ((void)0)
 #define mem_term()      ((void)0)
 
-#include <stdlib.h>
-
 #else
 
 #if MEM_DEBUG           /* if creating debug version    */
@@ -299,10 +289,6 @@ void mem_setnewfileline (void *,const char *,int);
 #endif
 
 #if !MEM_NONE
-
-#ifndef assert
-#include        <assert.h>
-#endif
 
 int mem_inited = 0;             /* != 0 if initialized                  */
 
