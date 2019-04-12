@@ -21,7 +21,6 @@
 
 #if !MEM_DEBUG
 #define MEM_NOMEMCOUNT  1
-#define MEM_NONEW       1
 #endif
 
 #include        <stdio.h>
@@ -365,15 +364,7 @@ int mem_exception()
         switch (behavior)
         {
             case MEM_ABORTMSG:
-#if MSDOS || __OS2__ || __NT__ || _WIN32
-                /* Avoid linking in buffered I/O */
-            {   static char msg[] = "Fatal error: out of memory\r\n";
-
-                write(1,msg,sizeof(msg) - 1);
-            }
-#else
                 fprintf(stderr, "Fatal error: out of memory\n");
-#endif
                 /* FALL-THROUGH */
             case MEM_ABORT:
                 exit(EXIT_FAILURE);
