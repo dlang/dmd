@@ -14,6 +14,7 @@
 #include        <assert.h>
 #include        <stdarg.h>
 #include        <stddef.h>
+#include        <stdint.h>
 
 #if 0
 #define malloc          ph_malloc
@@ -38,76 +39,15 @@ extern "C"
     typedef size_t d_size_t;
 #endif
 
-/*
- * Memory management routines.
- *
- * Compiling:
- *
- *      #define MEM_DEBUG 1 when compiling to enable extended debugging
- *      features.
- *
- *      #define MEM_NONE 1 to compile out mem, i.e. have it all drop
- *      directly to calls to malloc, free, etc.
- *
- *      #define MEM_NOMEMCOUNT 1 to remove checks on the number of free's
- *      matching the number of alloc's.
- *
- * Features always enabled:
- *
- *      o mem_init() is called at startup, and mem_term() at
- *        close, which checks to see that the number of alloc's is
- *        the same as the number of free's.
- *      o Behavior on out-of-memory conditions can be controlled
- *        via mem_setexception().
- *
- * Extended debugging features:
- *
- *      o Enabled by #define MEM_DEBUG 1 when compiling.
- *      o Check values are inserted before and after the alloc'ed data
- *        to detect pointer underruns and overruns.
- *      o Free'd pointers are checked against alloc'ed pointers.
- *      o Free'd storage is cleared to smoke out references to free'd data.
- *      o Realloc'd pointers are always changed, and the previous storage
- *        is cleared, to detect erroneous dependencies on the previous
- *        pointer.
- *      o The routine mem_checkptr() is provided to check an alloc'ed
- *        pointer.
- */
-
 /********************* GLOBAL VARIABLES *************************/
 
-extern int mem_inited;          /* != 0 if mem package is initialized.  */
-                                /* Test this if you have other packages */
-                                /* that depend on mem being initialized */
+extern int32_t mem_inited;
 
 /********************* PUBLIC FUNCTIONS *************************/
-
-/***********************************
- * Set behavior when mem runs out of memory.
- * Input:
- *      flag =  MEM_ABORTMSG:   Abort the program with the message
- *                              'Fatal error: out of memory' sent
- *                              to stdout. This is the default behavior.
- *              MEM_ABORT:      Abort the program with no message.
- *              MEM_RETNULL:    Return NULL back to caller.
- *              MEM_CALLFP:     Call application-specified function.
- *                              fp must be supplied.
- *      fp                      Optional function pointer. Supplied if
- *                              (flag == MEM_CALLFP). This function returns
- *                              MEM_XXXXX, indicating what mem should do next.
- *                              The function could do things like swap
- *                              data out to disk to free up more memory.
- *      fp could also return:
- *              MEM_RETRY:      Try again to allocate the space. Be
- *                              careful not to go into an infinite loop.
- *      The type of fp is:
- *              int (*handler)(void)
- */
 
 #if !MEM_NONE
 typedef int MEM_E;
 enum { MEM_ABORTMSG, MEM_ABORT, MEM_RETNULL, MEM_CALLFP, MEM_RETRY };
-void mem_setexception(MEM_E,...);
 #endif
 
 /****************************
@@ -235,7 +175,6 @@ char *mem_fstrdup(const char *);
 
 #if MEM_NONE
 
-#define mem_inited      1
 #define mem_strdup(p)   strdup(p)
 #define mem_malloc(u)   malloc(u)
 #define mem_calloc(u)   calloc((u),1)
@@ -281,62 +220,17 @@ void mem_setnewfileline (void *,const char *,int);
 
 #if !MEM_NONE
 
-int mem_inited = 0;             /* != 0 if initialized                  */
+extern int32_t mem_inited;
 
-static int mem_behavior = MEM_ABORTMSG;
-static int (*oom_fp)(void) = NULL;  /* out-of-memory handler                */
-static int mem_count;           /* # of allocs that haven't been free'd */
-static int mem_scount;          /* # of sallocs that haven't been free'd */
+extern int32_t mem_behavior;
+extern int32_t (*oom_fp)(void);
+extern int32_t mem_count;
+extern int32_t mem_scount;
 
-/*******************************/
+typedef int (*fp_t)(void);
+extern void mem_setexception(MEM_E flag, fp_t oom);
 
-void mem_setexception(MEM_E flag,...)
-{   va_list ap;
-    typedef int (*fp_t)(void);
-
-    mem_behavior = flag;
-    va_start(ap,flag);
-    oom_fp = (mem_behavior == MEM_CALLFP) ? va_arg(ap,fp_t) : 0;
-    va_end(ap);
-#if MEM_DEBUG
-    assert(0 <= flag && flag <= MEM_RETRY);
-#endif
-}
-
-/*************************
- * This is called when we're out of memory.
- * Returns:
- *      1:      try again to allocate the memory
- *      0:      give up and return NULL
- */
-
-int mem_exception()
-{   int behavior;
-
-    behavior = mem_behavior;
-    while (1)
-    {
-        switch (behavior)
-        {
-            case MEM_ABORTMSG:
-                fprintf(stderr, "Fatal error: out of memory\n");
-                /* FALL-THROUGH */
-            case MEM_ABORT:
-                exit(EXIT_FAILURE);
-                /* NOTREACHED */
-            case MEM_CALLFP:
-                assert(oom_fp);
-                behavior = (*oom_fp)();
-                break;
-            case MEM_RETNULL:
-                return 0;
-            case MEM_RETRY:
-                return 1;
-            default:
-                assert(0);
-        }
-    }
-}
+extern int32_t mem_exception();
 
 /****************************/
 
