@@ -11,6 +11,9 @@
 #include        <stdio.h>
 #include        <stdlib.h>
 #include        <string.h>
+#include        <assert.h>
+#include        <stdarg.h>
+#include        <stddef.h>
 
 #if 0
 #define malloc          ph_malloc
@@ -23,26 +26,8 @@
 #define MEM_NOMEMCOUNT  1
 #endif
 
-#include        <stdio.h>
-#if MSDOS || __OS2__ || __NT__ || _WIN32
-#include        <io.h>
-#else
-#include        <sys/time.h>
-#include        <sys/resource.h>
-#include        <unistd.h>
-#endif
-#include        <stdarg.h>
-#include        <stddef.h>
-
-#ifndef malloc
-#include        <stdlib.h>
-#endif
-
 extern "C"
 {
-
-#include <stdio.h> // for size_t
-
 
 #if __APPLE__ && __i386__
     /* size_t is 'unsigned long', which makes it mangle differently
@@ -120,18 +105,9 @@ extern int mem_inited;          /* != 0 if mem package is initialized.  */
  */
 
 #if !MEM_NONE
-#if __SC__ || __DMC__ || __GNUC__ || _MSC_VER
 typedef int MEM_E;
 enum { MEM_ABORTMSG, MEM_ABORT, MEM_RETNULL, MEM_CALLFP, MEM_RETRY };
 void mem_setexception(MEM_E,...);
-#else
-#define MEM_ABORTMSG    0
-#define MEM_ABORT       1
-#define MEM_RETNULL     2
-#define MEM_CALLFP      3
-#define MEM_RETRY       4
-void mem_setexception(int,...);
-#endif
 #endif
 
 /****************************
@@ -271,8 +247,6 @@ char *mem_fstrdup(const char *);
 #define mem_init()      ((void)0)
 #define mem_term()      ((void)0)
 
-#include <stdlib.h>
-
 #else
 
 #if MEM_DEBUG           /* if creating debug version    */
@@ -306,21 +280,6 @@ void mem_setnewfileline (void *,const char *,int);
 #endif
 
 #if !MEM_NONE
-
-#ifndef assert
-#include        <assert.h>
-#endif
-
-#ifndef VAX11C
-#ifdef BSDUNIX
-#include <strings.h>
-#else
-#include <string.h>
-#endif
-#else
-extern char *strcpy(),*memcpy();
-extern int strlen();
-#endif  /* VAX11C */
 
 int mem_inited = 0;             /* != 0 if initialized                  */
 
