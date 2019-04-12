@@ -334,17 +334,6 @@ static int (*oom_fp)(void) = NULL;  /* out-of-memory handler                */
 static int mem_count;           /* # of allocs that haven't been free'd */
 static int mem_scount;          /* # of sallocs that haven't been free'd */
 
-/* Determine where to send error messages       */
-#if _WINDLL
-void err_message(const char *,...);
-#define PRINT   err_message(
-#elif MSDOS
-#define PRINT   printf( /* stderr can't be redirected with MS-DOS       */
-#else
-#define ferr    stderr
-#define PRINT   fprintf(ferr,
-#endif
-
 /*******************************/
 
 void mem_setexception(MEM_E flag,...)
@@ -383,7 +372,7 @@ int mem_exception()
                 write(1,msg,sizeof(msg) - 1);
             }
 #else
-                PRINT "Fatal error: out of memory\n");
+                fprintf(stderr, "Fatal error: out of memory\n");
 #endif
                 /* FALL-THROUGH */
             case MEM_ABORT:
@@ -534,7 +523,7 @@ void mem_setnewfileline( void *ptr, const char *fil, int lin)
 
 static void mem_printdl(struct mem_debug *dl)
 {
-        PRINT "alloc'd from file '%s' line %d nbytes %d ptr %p\n",
+        fprintf(stderr, "alloc'd from file '%s' line %d nbytes %d ptr %p\n",
                 dl->Mfile,dl->Mline,dl->Mnbytes,(long)mem_dltoptr(dl));
 }
 
@@ -544,7 +533,7 @@ static void mem_printdl(struct mem_debug *dl)
 
 static void mem_fillin(const char *fil, int lin)
 {
-        PRINT "File '%s' line %d\n",fil,lin);
+        fprintf(stderr, "File '%s' line %d\n",fil,lin);
 #ifdef ferr
         fflush(ferr);
 #endif
@@ -634,14 +623,14 @@ void mem_free_debug(void *ptr, const char *fil, int lin)
         if (ptr == NULL)
                 return;
         if (mem_count <= 0)
-        {       PRINT "More frees than allocs at ");
+        {       fprintf(stderr, "More frees than allocs at ");
                 goto err;
         }
         dl = mem_ptrtodl(ptr);
         if (dl->Mbeforeval != BEFOREVAL)
         {
-                PRINT "Pointer x%lx underrun\n",(long)ptr);
-                PRINT "'%s'(%d)\n",fil,lin);
+                fprintf(stderr, "Pointer x%lx underrun\n",(long)ptr);
+                fprintf(stderr, "'%s'(%d)\n",fil,lin);
                 goto err2;
         }
 
@@ -649,12 +638,12 @@ void mem_free_debug(void *ptr, const char *fil, int lin)
 
         if (error)
         {
-                PRINT "Pointer x%lx overrun\n",(long)ptr);
+                fprintf(stderr, "Pointer x%lx overrun\n",(long)ptr);
                 goto err2;
         }
         mem_numalloc -= dl->Mnbytes;
         if (mem_numalloc < 0)
-        {       PRINT "error: mem_numalloc = %ld, dl->Mnbytes = %d\n",
+        {       fprintf(stderr, "error: mem_numalloc = %ld, dl->Mnbytes = %d\n",
                         mem_numalloc,dl->Mnbytes);
                 goto err2;
         }
@@ -676,7 +665,7 @@ void mem_free_debug(void *ptr, const char *fil, int lin)
 err2:
         mem_printdl(dl);
 err:
-        PRINT "free'd from ");
+        fprintf(stderr, "free'd from ");
         mem_fillin(fil,lin);
         assert(0);
         /* NOTREACHED */
@@ -728,7 +717,7 @@ static void mem_checkdl(struct mem_debug *dl)
     p = mem_dltoptr(dl);
     if (dl->Mbeforeval != BEFOREVAL)
     {
-            PRINT "Pointer x%lx underrun\n",(long)p);
+            fprintf(stderr, "Pointer x%lx underrun\n",(long)p);
             goto err2;
     }
 
@@ -736,7 +725,7 @@ static void mem_checkdl(struct mem_debug *dl)
 
     if (error)
     {
-            PRINT "Pointer x%lx overrun\n",(long)p);
+            fprintf(stderr, "Pointer x%lx overrun\n",(long)p);
             goto err2;
     }
     return;
@@ -1038,11 +1027,11 @@ void mem_term()
                 struct mem_debug *dl;
 
                 for (dl = mem_alloclist.Mnext; dl; dl = dl->Mnext)
-                {       PRINT "Unfreed pointer: ");
+                {       fprintf(stderr, "Unfreed pointer: ");
                         mem_printdl(dl);
                 }
 #if 0
-                PRINT "Max amount ever allocated == %ld bytes\n",
+                fprintf(stderr, "Max amount ever allocated == %ld bytes\n",
                         mem_maxalloc);
 #endif
 #if (__SC__ || _MSC_VER) && !defined(malloc)
@@ -1054,9 +1043,9 @@ void mem_term()
 #endif
 #else
                 if (mem_count)
-                        PRINT "%d unfreed items\n",mem_count);
+                        fprintf(stderr, "%d unfreed items\n",mem_count);
                 if (mem_scount)
-                        PRINT "%d unfreed s items\n",mem_scount);
+                        fprintf(stderr, "%d unfreed s items\n",mem_scount);
 #endif /* MEM_DEBUG */
                 assert(mem_count == 0 && mem_scount == 0);
         }
