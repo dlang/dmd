@@ -23,3 +23,20 @@ jobs:
           #D_COMPILER: dmd
     steps:
       - template: .azure-pipelines/windows.yml
+  - job: Windows_VisualD
+    timeoutInMinutes: 120
+    pool:
+      vmImage: 'vs2017-win2016'
+    variables:
+      VSINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\
+    strategy:
+      matrix:
+        visuald-ldc:
+          OS: Win_32
+          MODEL: 32
+          ARCH: x86
+          D_COMPILER: ldc
+          VISUALD_VER: v0.48.1
+          LDC_VERSION: 1.14.0
+    steps:
+      - template: .azure-pipelines/windows-visual-studio.yml
