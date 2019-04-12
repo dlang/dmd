@@ -1,18 +1,23 @@
 INSTALL_DIR=$(PWD)/../install
 ECTAGS_LANGS = Make,C,C++,D,Sh
 ECTAGS_FILES = src/*.[chd] src/backend/*.[chd] src/root/*.[chd] src/tk/*.[chd]
+HOST_DMD?=dmd
 
 .PHONY: all clean test install auto-tester-build auto-tester-test toolchain-info
 
 all:
+ifneq (,$(AUTO_BOOTSTRAP))
 	$(QUIET)$(MAKE) -C src -f posix.mak all
+else
+	$(HOST_DMD) -run ./src/build.d -v all
+endif
 
 ifneq (,$(findstring Darwin_64_32, $(PWD)))
 auto-tester-build:
 	echo "Darwin_64_32_disabled"
 else
 auto-tester-build: toolchain-info
-	$(QUIET)$(MAKE) -C src -f posix.mak auto-tester-build ENABLE_RELEASE=1
+	HOST_DMD=$(HOST_DMD) $(HOST_DMD) -run ./src/build.d -v all ENABLE_RELEASE=1
 endif
 
 ifneq (,$(findstring Darwin_64_32, $(PWD)))
