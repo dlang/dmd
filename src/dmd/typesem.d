@@ -1638,22 +1638,44 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
             return mtype;
         }
 
-        import dmd.traits : semanticTraits, getDsymbolWithoutExpCtx;
+        import dmd.traits : semanticTraits;
         Type result;
 
         if (Expression e = semanticTraits(mtype.exp, sc))
         {
-            if (TupleExp te = e.toTupleExp)
-                mtype.sym = new TupleDeclaration(mtype.loc,
-                    Identifier.generateId("__aliastup"), cast(Objects*) te.exps);
-            else if (Dsymbol ds = getDsymbol(e))
-                mtype.sym = ds;
-            else if (Dsymbol ds = getDsymbolWithoutExpCtx(e))
-                mtype.sym = ds;
-            else if (Type t = getType(e))
-                result = t.addMod(mtype.mod);
+            switch (e.op)
+            {
+            case TOK.dotVariable:
+                mtype.sym = (cast(DotVarExp)e).var;
+                break;
+            case TOK.variable:
+                mtype.sym = (cast(VarExp)e).var;
+                break;
+            case TOK.dotTemplateDeclaration:
+                mtype.sym = (cast(DotTemplateExp)e).td;
+                break;
+            case TOK.dSymbol:
+                mtype.sym = (cast(DsymbolExp)e).s;
+                break;
+            case TOK.scope_:
+                mtype.sym = (cast(ScopeExp)e).sds;
+                break;
+            case TOK.tuple:
+                mtype.sym = new TupleDeclaration(e.loc,
+                    Identifier.generateId("__aliastup"), cast(Objects*) e.toTupleExp.exps);
+                break;
+            case TOK.dotType:
+                result = (cast(DotTypeExp)e).sym.isType();
+                break;
+            case TOK.type:
+                result = (cast(TypeExp)e).type;
+                break;
+            default:
+            }
         }
 
+        if (result)
+            result = result.addMod(mtype.mod);
         if (!mtype.inAliasDeclaration && !result)
         {
             if (!global.errors)
