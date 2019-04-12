@@ -4,6 +4,26 @@ ECTAGS_FILES = src/*.[chd] src/backend/*.[chd] src/root/*.[chd] src/tk/*.[chd]
 
 .PHONY: all clean test install auto-tester-build auto-tester-test toolchain-info
 
+include ./src/osmodel.mak
+
+ifeq ($(findstring win,$(OS)),win)
+    ifeq (,$(wildcard ../generated/windows/$(BUILD)/64/dmd$(EXE)))
+        DMD_MODEL=32
+    else
+        DMD_MODEL=64
+    endif
+    export DMD=../generated/windows/$(BUILD)/$(DMD_MODEL)/dmd$(EXE)
+else
+    # auto-tester might run the testsuite with a different $(MODEL) than DMD
+    # has been compiled with. Hence we manually check which binary exists.
+    ifeq (,$(wildcard ../generated/$(OS)/$(BUILD)/64/dmd))
+        DMD_MODEL=32
+    else
+        DMD_MODEL=64
+    endif
+    export DMD=../generated/$(OS)/$(BUILD)/$(DMD_MODEL)/dmd
+endif
+
 all:
 	$(QUIET)$(MAKE) -C src -f posix.mak all
 
@@ -35,7 +55,7 @@ clean:
 test:
 	$(QUIET)$(MAKE) -C src -f posix.mak build-examples
 	$(QUIET)$(MAKE) -C src -f posix.mak unittest
-	$(QUIET)$(MAKE) -C test -f Makefile
+	HOST_DMD="$(DMD)" $(DMD) -v -Itest -i -run test/run.d -v
 
 html:
 	$(QUIET)$(MAKE) -C src -f posix.mak html
