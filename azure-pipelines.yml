@@ -36,7 +36,7 @@ jobs:
           MODEL: 32
           ARCH: x86
           D_COMPILER: ldc
-          VISUALD_VER: v0.48.1
+          VISUALD_VER: v0.49.0
           LDC_VERSION: 1.14.0
     steps:
       - template: .azure-pipelines/windows-visual-studio.yml
