@@ -35,11 +35,7 @@
 #include        <stddef.h>
 
 #ifndef malloc
-#if __SC__ || __DMC__ ||  _MSC_VER
-#include        <malloc.h>
-#else
 #include        <stdlib.h>
-#endif
 #endif
 
 extern "C"
@@ -695,16 +691,6 @@ void *mem_realloc_debug(void *oldp, size_t n, const char *fil, int lin)
 
 static void mem_checkdl(struct mem_debug *dl)
 {   void *p;
-#if (__SC__ || __DMC__) && !_WIN32
-    unsigned u;
-    int error;
-
-    /* Take advantage of fact that SC's allocator stores the size of the
-     * alloc in the unsigned immediately preceding the allocation.
-     */
-    u = ((unsigned *)dl)[-1] - sizeof(unsigned);
-    assert((u & (sizeof(unsigned) - 1)) == 0 && u >= mem_debug_size(dl->Mnbytes));
-#endif
     p = mem_dltoptr(dl);
     if (dl->Mbeforeval != BEFOREVAL)
     {
@@ -994,16 +980,6 @@ void mem_init()
                 *(long *) &(mem_alloclist.data[0]) = AFTERVAL;
 #endif
 #endif
-#if (__ZTC__ || __SC__ || __DMC__) && !defined(malloc)
-                free(malloc(1));        /* initialize storage allocator */
-#endif
-#if MEM_DEBUG && (__SC__ || _MSC_VER) && !defined(malloc)
-                {   int i;
-
-                    i = _heapset(0xF4);
-                    assert(i == _HEAPOK);
-                }
-#endif
         }
         mem_inited++;
 }
@@ -1025,13 +1001,7 @@ void mem_term()
                 fprintf(stderr, "Max amount ever allocated == %ld bytes\n",
                         mem_maxalloc);
 #endif
-#if (__SC__ || _MSC_VER) && !defined(malloc)
-                {   int i;
 
-                    i = _heapset(0xF4);
-                    assert(i == _HEAPOK);
-                }
-#endif
 #else
                 if (mem_count)
                         fprintf(stderr, "%d unfreed items\n",mem_count);
