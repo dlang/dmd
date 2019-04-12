@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project InitialTargets="optabgen_target" DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -73,7 +73,11 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Label="UserMacros">
+    <_DCompilerExe Condition="'$(DCompiler)' == 'LDC' and '$(Platform)'=='x64'">$(LDCBinDir)ldmd2.exe -m64</_DCompilerExe>
+    <_DCompilerExe Condition="'$(DCompiler)' == 'LDC' and '$(Platform)'=='Win32'">$(LDCBinDir)ldmd2.exe -m32</_DCompilerExe>
+    <_DCompilerExe Condition="'$(_DCompilerExe)' == ''">$(DMDBinDir)dmd.exe</_DCompilerExe>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>..\..\generated\Windows\$(Configuration)\$(PlatformName)\</OutDir>
@@ -94,21 +98,19 @@
     <OutDir>..\..\generated\Windows\$(Configuration)\$(PlatformName)\</OutDir>
     <IntDir>$(OutDir)\dmd\</IntDir>
   </PropertyGroup>
-  <ItemGroup>
-    <CustomBuild Include="..\dmd\backend\optabgen.d">
-      <Message>Building and running $(IntDir)%(Filename).exe</Message>
-      <Command>
-        $(DMDBinDir)\dmd.exe -I.. -version=MARS -of"$(IntDir)generated\%(Filename).exe" "%(FullPath)"
-        if errorlevel 1 exit /B %ERRORLEVEL%
-        pushd $(IntDir)generated
-        "%(Filename).exe"
-        if errorlevel 1 exit /B %ERRORLEVEL%
-        popd
-      </Command>
-      <Outputs>$(IntDir)generated\optab.d;$(IntDir)generated\debtab.d;$(IntDir)generated\cdxxx.d;$(IntDir)generated\elxxx.d;$(IntDir)generated\tytab.d;$(IntDir)generated\\fltables.d;%(Outputs)</Outputs>
-      <AdditionalInputs>..\dmd\backend\cc.d;..\dmd\backend\cdef.d;..\dmd\backend\oper.d;..\dmd\backend\ty.d;%(AdditionalInputs)</AdditionalInputs>
-    </CustomBuild>
-  </ItemGroup>
+
+  <Target Name="optabgen_target"
+          Inputs="..\dmd\backend\optabgen.d;..\dmd\backend\cc.d;..\dmd\backend\cdef.d;..\dmd\backend\oper.d;..\dmd\backend\ty.d"
+          Outputs="$(IntDir)generated\optab.d;$(IntDir)generated\debtab.d;$(IntDir)generated\cdxxx.d;$(IntDir)generated\elxxx.d;$(IntDir)generated\tytab.d;$(IntDir)generated\fltables.d">
+    <Exec Command="$(_DCompilerExe) -I.. -version=MARS -of&quot;$(IntDir)generated\optabgen.exe&quot; ..\dmd\backend\optabgen.d
+if %errorlevel% neq 0 exit /b %errorlevel%
+pushd $(IntDir)generated
+.\optabgen.exe
+if %errorlevel% neq 0 exit /b %errorlevel%
+popd
+" />
+  </Target>
+
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
