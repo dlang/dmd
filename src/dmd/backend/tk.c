@@ -24,13 +24,6 @@
 #endif
 
 #include        <stdio.h>
-#if MSDOS || __OS2__ || __NT__ || _WIN32
-#include        <io.h>
-#else
-#include        <sys/time.h>
-#include        <sys/resource.h>
-#include        <unistd.h>
-#endif
 #include        <stdarg.h>
 #include        <stddef.h>
 
