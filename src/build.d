@@ -153,7 +153,7 @@ auto lexer()
         target: env["G"].buildPath("lexer").libName,
         sources: sources.lexer,
         rebuildSources: configFiles,
-        name: "(DC) D_LEXER_OBJ",
+        name: "(DC) D_LEXER_OBJ %-(%s, %)".format(sources.lexer.map!(e => e.baseName).array),
         command: [
             env["HOST_DMD_RUN"],
             "-of$@",
@@ -205,7 +205,7 @@ auto opTabGen()
         auto args = [env["HOST_DMD_RUN"], opTabSourceFile, "-of" ~ opTabBin];
         args ~= flags["DFLAGS"];
 
-        writefln("(DC) BUILD_OPTABGEN");
+        writefln("(DC) OPTABGEN %s", opTabSourceFile.baseName);
         args.runCanThrow;
 
         writefln("(RUN) OPTABBIN %-(%s, %)", opTabFiles);
@@ -224,20 +224,6 @@ auto opTabGen()
 
 version(Windows)
 {
-    /// Returns: the dependency that builds msvc-dmd.exe
-    auto buildMsvcDmc()
-    {
-        enum targetName = "msvc-dmc";
-
-        Dependency dependency = {
-            target: env["G"].buildPath(targetName).exeName,
-            sources: [`vcbuild\` ~ targetName],
-            name: "(DC) MSCV-CC " ~ targetName,
-            command: [env["HOST_DMD_RUN"], "-of$@", "$<"]
-        };
-        return dependency;
-    }
-
     /// Returns: the dependency that builds msvc-lib.exe
     auto buildMsvcLib()
     {
@@ -246,7 +232,7 @@ version(Windows)
         Dependency dependency = {
             target: env["G"].buildPath(targetName).exeName,
             sources: [`vcbuild\` ~ targetName],
-            name: "(DC) MSCV-LIB " ~ targetName,
+            name: "(DC) MSVC-LIB " ~ targetName.exeName,
             command: [env["HOST_DMD_RUN"], "-of$@", "$<"]
         };
         return dependency;
@@ -259,7 +245,7 @@ auto dBackend()
     Dependency dependency = {
         target: env["G"].buildPath("dbackend").objName,
         sources: sources.backend,
-        name: "(DC) D_BACK_OBJS %-(%s %)".format(sources.backend),
+        name: "(DC) D_BACK_OBJS %-(%s, %)".format(sources.backend.map!(e => e.baseName).array),
         command: [
             env["HOST_DMD_RUN"],
             "-c",
@@ -279,11 +265,21 @@ auto buildBackend()
     foreach (dependency; dependencies.parallel(1))
         dependency.run;
 
+    version (Posix)
+    {
+        auto command = [env["AR"], "rcs", "$@", "$<"];
+    }
+    else version (Windows)
+    {
+        auto command = [env["G"].buildPath("msvc-lib").exeName, "-p512", "-c", "-n", "$@", "$<"];
+    }
+
     // Pack the backend
     Dependency dependency = {
+        name: "(LIB) %s".format("BACKEND".libName),
         sources: [ env["G"].buildPath("dbackend").objName ],
         target: env["G"].buildPath("backend").libName,
-        command: [env["AR"], "rcs", "$@", "$<"],
+        command: command
     };
     dependency.run;
     return dependency;
@@ -332,11 +328,9 @@ auto buildDMD(string[] extraFlags...)
 {
     version(Windows)
     {
-        immutable model = detectModel;
-        if (model == "64")
+        if (detectModel == "64")
         {
-            foreach (dependency; [buildMsvcDmc, buildMsvcLib].parallel(1))
-                dependency.run;
+            buildMsvcLib.run;
         }
     }
 
@@ -356,7 +350,7 @@ auto buildDMD(string[] extraFlags...)
         // newdelete.o + lexer.a + backend.a
         sources: sources.dmd.chain(sources.root, dependencies[0].targets, backend.targets).array,
         target: env["DMD_PATH"],
-        name: "(DC) MAIN_DMD_BUILD",
+        name: "(DC) MAIN_DMD_BUILD %-(%s, %)".format(sources.dmd.map!(e => e.baseName).array),
         command: [
             env["HOST_DMD_RUN"],
             "-of$@",
@@ -537,11 +531,8 @@ void parseEnvironment()
         const vswhere = getHostVSWhere(env["G"]);
         const vcBinDir = getHostMSVCBinDir(model, vswhere);
 
-        // environment variable `MSVC_CC` will be read by `msvc-dmd.exe`
-        env.getDefault("MSVC_CC", vcBinDir.buildPath("cl.exe"));
-
         // environment variable `MSVC_AR` will be read by `msvc-lib.exe`
-        env.getDefault("MSVC_AR", vcBinDir.buildPath("lib.exe"));
+        environment["MSVC_AR"] = env.getDefault("MSVC_AR", vcBinDir.buildPath("lib.exe"));
     }
 
     env.getDefault("AR", "ar");
@@ -676,8 +667,8 @@ auto sourceFiles()
         backend:
             dirEntries(env["C"], "*.d", SpanMode.shallow)
                 .map!(e => e.name)
-                .filter!(e => !e.canFind("dt.d", "obj.d"))
-                .array ~ buildPath(env["C"], "elfobj.d"),
+                .filter!(e => !e.baseName.among("dt.d", "obj.d", "optabgen.d"))
+                .array,
         backendHeaders: [
             // can't be built with -betterC
             "dt",
@@ -896,7 +887,7 @@ Params:
 auto libName(T)(T name)
 {
     version(Windows)
-        return name ~ ".dll";
+        return name ~ ".lib";
     return name ~ ".a";
 }
 
