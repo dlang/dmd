@@ -1521,11 +1521,11 @@ private void blcodgen(block *bl)
             Symbol *s = globsym.tab[i];
 
             sflsave[i] = s.Sfl;
-            if ((s.Sclass == SCfastpar || s.Sclass == SCshadowreg) &&
+            if (regParamInPreg(s) &&
                 regcon.params & s.Spregm() &&
                 vec_testbit(dfoidx,s.Srange))
             {
-                regcon.used |= s.Spregm();
+//                regcon.used |= s.Spregm();
             }
 
             if (s.Sfl == FLreg)
@@ -1861,7 +1861,7 @@ reg_t findreg(regm_t regm, int line, const(char)* file)
     printf("findreg(%s, line=%d, file='%s', function = '%s')\n",regm_str(regmsave),line,file,funcsym_p.Sident.ptr);
     fflush(stdout);
 
-    //*(char*)0=0;
+//    *(char*)0=0;
     assert(0);
 }
 
