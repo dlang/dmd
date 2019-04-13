@@ -170,6 +170,8 @@ struct dl_phdr_info
     ElfW!"Half"        dlpi_phnum;
     uint64_t           dlpi_adds;
     uint64_t           dlpi_subs;
+    size_t             dlpi_tls_modid;  // since Solaris 11.5
+    void*              dlpi_tls_data;   // since Solaris 11.5
 };
 
 private alias extern(C) int function(dl_phdr_info*, size_t, void *) dl_iterate_phdr_cb;
