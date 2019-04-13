@@ -164,7 +164,7 @@ GLUE_SRCS=$D/irstate.d $D/toctype.d $D/glue.d $D/gluelayer.d $D/todt.d $D/tocsym
 BACK_HDRS=$C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
 	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d $C/iasm.d $C/codebuilder.d \
 	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d \
-	$C/dlist.d $C/goh.d $C/mem.d $C/melf.d $C/varstats.di $C/barray.d
+	$C/dlist.d $C/goh.d $C/melf.d $C/varstats.di $C/barray.d
 
 STRING_IMPORT_FILES= $G\VERSION ../res/default_ddoc_theme.ddoc
 
@@ -183,7 +183,7 @@ GBACKOBJ= $G/go.obj $G/gdag.obj $G/gother.obj $G/gflow.obj $G/gloop.obj $G/var.o
 	$G/bcomplex.obj $G/ptrntab.obj $G/md5.obj $G/barray.obj $G/goh.obj \
 	$G/mscoffobj.obj $G/pdata.obj $G/cv8.obj $G/backconfig.obj \
 	$G/divcoeff.obj $G/dwarfdbginf.obj $G/compress.obj $G/dvarstats.obj \
-	$G/ph2.obj $G/util2.obj $G/tk.obj $G/gsroa.obj $G/dvec.obj $G/filespec.obj \
+	$G/ph2.obj $G/util2.obj $G/gsroa.obj $G/dvec.obj $G/filespec.obj $G/mem.obj \
 
 # Root package
 ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/ctfloat.d $(ROOT)/file.d \
@@ -222,7 +222,7 @@ BACKSRC= $C\optabgen.d \
 	$C\md5.d $C\ph2.d $C\util2.d \
 	$C\mscoffobj.d $C\pdata.d $C\cv8.d $C\backconfig.d \
 	$C\divcoeff.d $C\dwarfeh.d $C\dvarstats.d \
-	$C\dvec.d $C\filespec.d $C\backend.txt
+	$C\dvec.d $C\filespec.d $C\mem.d $C\backend.txt
 
 # Root package
 ROOTSRCC=
@@ -544,6 +544,9 @@ $G/gsroa.obj : $C\gsroa.d
 $G/md5.obj : $C\md5.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\md5
 
+$G/mem.obj : $C\mem.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\mem
+
 $G/mscoffobj.obj : $C\mscoffobj.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\mscoffobj
 
@@ -582,9 +585,6 @@ $G/var.obj : $C\var.d $G\optab.d $G\tytab.d
 
 $G/dvarstats.obj : $C\dvarstats.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\dvarstats
-
-$G/tk.obj : $C\tk.d
-	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\tk
 
 # Root
 $G/longdouble.obj : $(ROOT)\longdouble.d
