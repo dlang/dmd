@@ -166,7 +166,7 @@ public:
     const char *locToChars();
     bool equals(RootObject *o);
     virtual bool isAnonymous();
-    void error(Loc loc, const char *format, ...);
+    void error(const Loc &loc, const char *format, ...);
     void error(const char *format, ...);
     void deprecation(const Loc &loc, const char *format, ...);
     void deprecation(const char *format, ...);

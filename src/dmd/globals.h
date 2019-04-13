@@ -65,6 +65,15 @@ enum CPU
     native              // the machine the compiler is being run on
 };
 
+enum JsonFieldFlags
+{
+    none         = 0,
+    compilerInfo = (1 << 0),
+    buildInfo    = (1 << 1),
+    modules      = (1 << 2),
+    semantics    = (1 << 3)
+};
+
 enum CppStdRevision
 {
     CppStdRevisionCpp98 = 199711,
@@ -91,7 +100,7 @@ struct Param
     bool vgc;           // identify gc usage
     bool vfield;        // identify non-mutable field variables
     bool vcomplex;      // identify complex/imaginary type usage
-    char symdebug;      // insert debug symbolic information
+    unsigned char symdebug;  // insert debug symbolic information
     bool symdebugref;   // insert debug information for all referenced types, too
     bool alwaysframe;   // always emit standard stack frame
     bool optimize;      // run optimizer

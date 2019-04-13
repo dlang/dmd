@@ -367,7 +367,7 @@ private Identifier opId_r(Expression e)
  * If type is a class or struct, return the symbol for it,
  * else NULL
  */
-AggregateDeclaration isAggregate(Type t)
+extern (C++) AggregateDeclaration isAggregate(Type t)
 {
     t = t.toBasetype();
     if (t.ty == Tclass)

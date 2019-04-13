@@ -1072,7 +1072,7 @@ Params:
 Returns: JsonFieldFlags.none on error, otherwise the JsonFieldFlags value
          corresponding to the given fieldName.
 */
-JsonFieldFlags tryParseJsonField(const(char)* fieldName)
+extern (C++) JsonFieldFlags tryParseJsonField(const(char)* fieldName)
 {
     auto fieldNameString = fieldName[0 .. strlen(fieldName)];
     foreach (idx, enumName; __traits(allMembers, JsonFieldFlags))

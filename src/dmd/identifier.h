@@ -35,7 +35,7 @@ public:
 
     static inline Identifier *idPool(const char *s)
     {
-        return idPool(s, strlen(s));
+        return idPool(s, static_cast<unsigned>(strlen(s)));
     }
 
     static bool isValidIdentifier(const char *p);
