@@ -1482,7 +1482,20 @@ int  swapcontext(ucontext_t*, in ucontext_t*);
 static if ( is( ucontext_t ) )
 {
     int  getcontext(ucontext_t*);
-    void makecontext(ucontext_t*, void function(), int, ...);
+
+    version (Solaris)
+    {
+        version (SPARC_Any)
+        {
+            void __makecontext_v2(ucontext_t*, void function(), int, ...);
+            alias makecontext = __makecontext_v2;
+        }
+        else
+            void makecontext(ucontext_t*, void function(), int, ...);
+    }
+    else
+        void makecontext(ucontext_t*, void function(), int, ...);
+
     int  setcontext(in ucontext_t*);
     int  swapcontext(ucontext_t*, in ucontext_t*);
 }
