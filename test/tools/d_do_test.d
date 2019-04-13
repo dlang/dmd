@@ -141,8 +141,13 @@ bool findTestParameter(const ref EnvData envData, string file, string token, ref
     string result2;
     if (findTestParameter(envData, file[tokenStart+lineEnd..$], token, result2, multiLineDelimiter))
     {
-        if(result2.length > 0)
-            result ~= multiLineDelimiter ~ result2;
+        if (result2.length > 0)
+        {
+            if (result.length == 0)
+                result = result2;
+            else
+                result ~= multiLineDelimiter ~ result2;
+        }
     }
 
     // fix-up separators
@@ -477,7 +482,7 @@ bool collectExtraSources (in string input_dir, in string output_dir, in string[]
         {
             command ~= " -m"~envData.model~" -c "~curSrc~" -o "~curObj;
         }
-        if (compiler == "c++" && cxxflags)
+        if (cxxflags)
             command ~= " " ~ cxxflags;
 
         auto rc = system(command);
