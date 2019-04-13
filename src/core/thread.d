@@ -3625,6 +3625,15 @@ private
             version = AsmExternal;
         }
     }
+    else version (SPARC)
+    {
+        // NOTE: The SPARC ABI specifies only doubleword alignment.
+        version = AlignFiberStackTo16Byte;
+    }
+    else version (SPARC64)
+    {
+        version = AlignFiberStackTo16Byte;
+    }
 
     version (Posix)
     {
