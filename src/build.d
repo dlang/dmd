@@ -51,7 +51,6 @@ Examples
 Important variables:
 --------------------
 
-HOST_CXX:             Host C++ compiler to use (g++,clang++)
 HOST_DMD:             Host D compiler to use for bootstrapping
 AUTO_BOOTSTRAP:       Enable auto-boostrapping by downloading a stable DMD binary
 MODEL:                Target architecture to build for (32,64) - defaults to the host architecture
@@ -254,27 +253,6 @@ version(Windows)
     }
 }
 
-/**
-Gets the dependency that generates the given object file from the given source file
-
-Params:
-    obj      = the object file that the dependency should generate
-    fileName = the source file to build, generating the object file
-Returns:
-    the dependency that generates the given object file from the given source file
-*/
-auto buildCXX(string obj, string fileName)
-{
-    Dependency dependency = {
-        target: obj,
-        sources: [fileName],
-        rebuildSources: configFiles,
-        name: "(CC) BACK_OBJS %s".format(fileName),
-        command: [env["HOST_CXX"], "-c", "-o$@"].chain(flags["CXXFLAGS"], flags["BACK_FLAGS"], "$<".only).array
-    };
-    return dependency;
-}
-
 /// Returns: the dependencies that build the D backend
 auto dBackend()
 {
@@ -297,8 +275,7 @@ auto buildBackend()
 {
     opTabGen.run;
 
-    Dependency[] dependencies;
-    dependencies ~= dBackend;
+    Dependency[] dependencies = [dBackend];
     foreach (dependency; dependencies.parallel(1))
         dependency.run;
 
@@ -567,9 +544,6 @@ void parseEnvironment()
         env.getDefault("MSVC_AR", vcBinDir.buildPath("lib.exe"));
     }
 
-    env.getDefault("HOST_CXX", getHostCXX);
-    env.getDefault("CXX_KIND", getHostCXXKind);
-
     env.getDefault("AR", "ar");
 }
 
@@ -592,64 +566,8 @@ void processEnvironment()
 
     env.getDefault("ENABLE_WARNINGS", "0");
     string[] warnings;
-    if (env["ENABLE_WARNINGS"] != "0")
-    {
-        warnings = ["-Wall", "-Wextra", "-Werror",
-            "-Wno-attributes",
-            "-Wno-char-subscripts",
-            "-Wno-deprecated",
-            "-Wno-empty-body",
-            "-Wno-format",
-            "-Wno-missing-braces",
-            "-Wno-missing-field-initializers",
-            "-Wno-overloaded-virtual",
-            "-Wno-parentheses",
-            "-Wno-reorder",
-            "-Wno-return-type",
-            "-Wno-sign-compare",
-            "-Wno-strict-aliasing",
-            "-Wno-switch",
-            "-Wno-type-limits",
-            "-Wno-unknown-pragmas",
-            "-Wno-unused-function",
-            "-Wno-unused-label",
-            "-Wno-unused-parameter",
-            "-Wno-unused-value",
-            "-Wno-unused-variable",
-        ];
-        if (env["CXX_KIND"] == "g++")
-            warnings ~= [
-                "-Wno-logical-op",
-                "-Wno-narrowing",
-                "-Wno-unused-but-set-variable",
-                "-Wno-uninitialized",
-                "-Wno-class-memaccess",
-                "-Wno-implicit-fallthrough",
-            ];
-    }
-    else
-    {
-        // default warnings
-        warnings = ["-Wno-deprecated", "-Wstrict-aliasing", "-Werror"];
-        if (env["CXX_KIND"] == "clang++")
-            warnings ~= "-Wno-logical-op-parentheses";
-    }
 
-    auto targetCPU = "X86";
-    auto cxxFlags = warnings;
-    cxxFlags ~= [
-        "-fno-exceptions", "-fno-rtti",
-        "-D__pascal=", "-DMARS=1", "-DTARGET_"~os.toUpper~"=1",
-        "-DDM_TARGET_CPU_"~targetCPU~"=1",
-        env["MODEL_FLAG"],
-        env["PIC_FLAG"],
-    ];
-    if (env["CXX_KIND"] == "g++")
-        cxxFlags ~= ["-std=gnu++98"];
-    if (env["CXX_KIND"] == "clang++")
-        cxxFlags ~= ["-xc++"];
-
-    // TODO: allow adding new flags from the environment
+      // TODO: allow adding new flags from the environment
     string[] dflags = ["-version=MARS", "-w", "-de", "-dip25", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"]];
 
     flags["BACK_FLAGS"] = ["-I"~env["ROOT"], "-I"~env["C"], "-I"~env["G"], "-I"~env["D"], "-DDMDV2=1"];
@@ -661,12 +579,10 @@ void processEnvironment()
 
     if (env.getDefault("ENABLE_DEBUG", "0") != "0")
     {
-        cxxFlags ~= ["-g", "-g3", "-DDEBUG=1", "-DUNITTEST"];
         dflags ~= ["-g", "-debug"];
     }
     if (env.getDefault("ENABLE_RELEASE", "0") != "0")
     {
-        cxxFlags ~= ["-O2"];
         dflags ~= ["-O", "-release", "-inline"];
     }
     else
@@ -675,23 +591,9 @@ void processEnvironment()
         if (!dflags.canFind("-g"))
             dflags ~= ["-g"];
     }
-    if (env.getDefault("ENABLE_PROFILING", "0") != "0")
-    {
-        cxxFlags ~= ["-pg", "-fprofile-arcs", "-ftest-coverage"];
-    }
-    if (env.getDefault("ENABLE_PGO_GENERATE", "0") != "0")
-    {
-        enforce("PGO_DIR" in env, "No PGO_DIR variable set.");
-        cxxFlags ~= ["-fprofile-generate="~env["PGO_DIR"]];
-    }
-    if (env.getDefault("ENABLE_PGO_USE", "0") != "0")
-    {
-        enforce("PGO_DIR" in env, "No PGO_DIR variable set.");
-        cxxFlags ~= ["-fprofile-use="~env["PGO_DIR"], "-freorder-blocks-and-partition"];
-    }
     if (env.getDefault("ENABLE_LTO", "0") != "0")
     {
-        cxxFlags ~= ["-flto"];
+        dflags ~= ["-flto=full"];
     }
     if (env.getDefault("ENABLE_UNITTEST", "0") != "0")
     {
@@ -703,15 +605,13 @@ void processEnvironment()
     }
     if (env.getDefault("ENABLE_COVERAGE", "0") != "0")
     {
-        cxxFlags ~= ["--coverage"];
         dflags ~= ["-cov", "-L-lgcov"];
     }
     if (env.getDefault("ENABLE_SANITIZERS", "0") != "0")
     {
-        cxxFlags ~= ["-fsanitize="~env["ENABLE_SANITIZERS"]];
+        dflags ~= ["-fsanitize="~env["ENABLE_SANITIZERS"]];
     }
     flags["DFLAGS"] ~= dflags;
-    flags["CXXFLAGS"] ~= cxxFlags;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -724,7 +624,7 @@ auto sourceFiles()
     struct Sources
     {
         string[] frontend, lexer, root, glue, dmd, backend;
-        string[] backendHeaders, backendC, backendObjects;
+        string[] backendHeaders, backendObjects;
     }
     string targetCH;
     string[] targetObjs;
@@ -784,7 +684,6 @@ auto sourceFiles()
             "obj",
         ].map!(e => env["C"].buildPath(e ~ ".d")).array,
     };
-    sources.backendC.writeln;
     sources.dmd = sources.frontend ~ sources.backendHeaders;
 
     return sources;
@@ -873,39 +772,6 @@ auto detectModel()
         return "32";
 
     throw new Exception(`Cannot figure 32/64 model from "` ~ uname ~ `"`);
-}
-
-/// Returns: the command for querying or invoking the host C++ compiler
-auto getHostCXX()
-{
-    version(Posix)
-        return "c++";
-    else version(Windows)
-    {
-        immutable model = detectModel;
-        if (model == "32")
-            return "dmc";
-        else if (model == "64")
-            return buildMsvcDmc.target;
-        else
-            assert(false, `Unknown model "` ~ model ~ `"`);
-    }
-    else
-        static assert(false, "Unrecognized or unsupported OS.");
-}
-
-/// Returns: a string describing the type of host C++ compiler
-auto getHostCXXKind()
-{
-    version(Posix)
-    {
-        auto cxxVersion = execute([getHostCXX, "--version"]).output;
-        return !cxxVersion.find("gcc", "Free Software")[0].empty ? "g++" : "clang++";
-    }
-    else version(Windows)
-        return "dmc";
-    else
-        static assert(false, "Unrecognized or unsupported OS.");
 }
 
 /**
