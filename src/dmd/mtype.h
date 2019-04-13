@@ -17,6 +17,7 @@
 #include "visitor.h"
 
 struct Scope;
+class AggregateDeclaration;
 class Identifier;
 class Expression;
 class StructDeclaration;
@@ -867,3 +868,6 @@ public:
 
 bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
 bool arrayTypeCompatibleWithoutCasting(Type *t1, Type *t2);
+
+// If the type is a class or struct, returns the symbol for it, else null.
+AggregateDeclaration *isAggregate(Type *t);
