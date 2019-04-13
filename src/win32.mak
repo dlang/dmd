@@ -15,9 +15,6 @@
 # win32.mak (this file) - requires Digital Mars Make ($DM_HOME\dm\bin\make.exe)
 #   http://www.digitalmars.com/ctg/make.html
 #
-# $(CC) - requires Digital Mars C++ Compiler ($DM_HOME\dm\bin\dmc.exe)
-#   http://www.digitalmars.com/ctg/sc.html
-#
 # detab, tolf, install targets - require the D Language Tools (detab.exe, tolf.exe)
 #   https://github.com/dlang/tools.
 #
@@ -27,12 +24,10 @@
 # Configuration:
 #
 # The easiest and recommended way to configure this makefile is to add
-# $DM_HOME\dm\bin to your PATH environment to automatically find make and dmc.
+# $DM_HOME\dm\bin to your PATH environment to automatically find make.
 # Set HOST_DC to point to your installed D compiler.
 #
-# Custom CFLAGS may be set in the User configuration section, along with custom
-# LFLAGS.  The difference between CFLAGS and OPT is that CFLAGS primarily
-# applies to front-end files, while OPT applies to essentially all C++ sources.
+# Custom LFLAGS may be set in the User configuration section.
 #
 # Targets:
 #
@@ -83,8 +78,6 @@ G = $(GEN)\$(OS)\$(BUILD)\$(MODEL)
 GIT_HOME=https://github.com/dlang
 TOOLS_DIR=..\..\tools
 
-# C++ compiler
-CC=dmc
 # D compiler (set with env variable)
 #HOST_DC=dmd
 # Make program
@@ -117,10 +110,6 @@ ML=ml64
 # Target name
 TARGET=$G\dmd
 TARGETEXE=$(TARGET).exe
-# Custom compile flags
-CFLAGS=
-# Custom compile flags for all modules
-OPT=
 # Debug flags
 DEBUG=-gl -D -DUNITTEST
 # Linker flags (prefix with -L)
@@ -136,10 +125,6 @@ DDEBUG=-debug -g -unittest
 
 ##### Implementation variables (do not modify)
 
-# Compile flags
-CFLAGS=-I$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1
-# Compile flags for modules with backend/toolkit dependencies
-MFLAGS=-I$C $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1
 # D compile flags
 DFLAGS=$(DOPT) $(DMODEL) $(DDEBUG) -wi -version=MARS -dip25
 
@@ -428,13 +413,6 @@ $G\VERSION : ..\VERSION $G
 
 ############################# Intermediate Rules ############################
 
-# Default rules
-.c.obj:
-	$(CC) -c $(CFLAGS) $*
-
-.asm.obj:
-	$(CC) -c $(CFLAGS) $*
-
 # D front/back end
 
 $G/backconfig.obj : $C\backconfig.d
@@ -604,8 +582,6 @@ $G/var.obj : $C\var.d $G\optab.d $G\tytab.d
 
 $G/dvarstats.obj : $C\dvarstats.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\dvarstats
-#	$(CC) -c -o$@ $(MFLAGS) -I$D -I$G $C\varstats
-
 
 $G/tk.obj : $C\tk.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\tk
