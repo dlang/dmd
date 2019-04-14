@@ -3,7 +3,7 @@
 # `vcvarsall.bat amd64` from the command-line beforehand.
 
 MAKE=make
+HOST_DMD?=dmd
 
 all:
-	cd src
-	$(MAKE) -f win64.mak
+	$(HOST_DMD) -run ./src/build.d -v all MODEL=64

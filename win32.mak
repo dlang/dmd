@@ -1,13 +1,14 @@
 MAKE=make
+HOST_DMD?=dmd
 
 defaulttarget:
 	cd src
-	$(MAKE) -f win32.mak
+	$(HOST_DMD) -run ./src/build.d -v all MODEL=64
 	cd ..
 
 auto-tester-build:
 	cd src
-	$(MAKE) -f win32.mak auto-tester-build
+	$(HOST_DMD) -run ./src/build.d -v all MODEL=64
 	cd ..
 
 auto-tester-test:
