@@ -222,23 +222,6 @@ auto opTabGen()
     return dependency;
 }
 
-version(Windows)
-{
-    /// Returns: the dependency that builds msvc-lib.exe
-    auto buildMsvcLib()
-    {
-        enum targetName = "msvc-lib";
-
-        Dependency dependency = {
-            target: env["G"].buildPath(targetName).exeName,
-            sources: [`vcbuild\` ~ targetName],
-            name: "(DC) MSVC-LIB " ~ targetName.exeName,
-            command: [env["HOST_DMD_RUN"], "-of$@", "$<"]
-        };
-        return dependency;
-    }
-}
-
 /// Returns: the dependencies that build the D backend
 auto dBackend()
 {
@@ -265,21 +248,12 @@ auto buildBackend()
     foreach (dependency; dependencies.parallel(1))
         dependency.run;
 
-    version (Posix)
-    {
-        auto command = [env["AR"], "rcs", "$@", "$<"];
-    }
-    else version (Windows)
-    {
-        auto command = [env["G"].buildPath("msvc-lib").exeName, "-p512", "-c", "-n", "$@", "$<"];
-    }
-
     // Pack the backend
     Dependency dependency = {
         name: "(LIB) %s".format("BACKEND".libName),
         sources: [ env["G"].buildPath("dbackend").objName ],
         target: env["G"].buildPath("backend").libName,
-        command: command
+        command: [env["HOST_DMD_RUN"], "-m"~detectModel, "-lib", "-of$@", "$<"]
     };
     dependency.run;
     return dependency;
@@ -326,14 +300,6 @@ Params:
 */
 auto buildDMD(string[] extraFlags...)
 {
-    version(Windows)
-    {
-        if (detectModel == "64")
-        {
-            buildMsvcLib.run;
-        }
-    }
-
     // The string files are required by most targets
     Dependency[] dependencies = buildStringFiles();
     foreach (dependency; dependencies.parallel(1))
@@ -525,17 +491,6 @@ void parseEnvironment()
         stderr.writefln("No DMD compiler is installed. Try AUTO_BOOTSTRAP=1 or manually set the D host compiler with HOST_DMD");
         exit(1);
     }
-
-    version(Windows)
-    {
-        const vswhere = getHostVSWhere(env["G"]);
-        const vcBinDir = getHostMSVCBinDir(model, vswhere);
-
-        // environment variable `MSVC_AR` will be read by `msvc-lib.exe`
-        environment["MSVC_AR"] = env.getDefault("MSVC_AR", vcBinDir.buildPath("lib.exe"));
-    }
-
-    env.getDefault("AR", "ar");
 }
 
 /// Checks the environment variables and flags
@@ -780,76 +735,6 @@ auto getHostDMDPath(string hostDmd)
         return ["where", hostDmd].execute.output;
     else
         static assert(false, "Unrecognized or unsupported OS.");
-}
-
-version(Windows)
-{
-    /**
-    Gets the absolute path to the host's vshwere executable
-
-    Params:
-        outputFolder = this build's output folder
-    Returns: a string that is the absolute path of the host's vswhere executable
-    */
-    auto getHostVSWhere(string outputFolder)
-    {
-        // Check if vswhere.exe can be found in the host's PATH
-        const where = ["where", "vswhere"].execute;
-        if (where.status == 0)
-            return where.output;
-
-        // Check if vswhere.exe is in the standard location
-        const standardPath = ["cmd", "/C", "echo", `%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe`]
-            .execute.output       // Execute command and return standard output
-            .replace(`"`, "")     // Remove quotes surrounding the path
-            .replace("\r\n", ""); // Remove trailing newline characters
-        if (standardPath.exists)
-            return standardPath;
-
-        // Check if it has already been dowloaded to this build's output folder
-        const outputPath = outputFolder.buildPath("vswhere").exeName;
-        if (outputPath.exists)
-            return outputPath;
-
-        // try to download it
-        if (download(outputPath, "https://github.com/Microsoft/vswhere/releases/download/2.5.2/vswhere.exe"))
-            return outputPath;
-
-        // Could not find or obtain vswhere.exe
-        throw new Exception("Could not obtain vswhere.exe. Consider downloading it from https://github.com/Microsoft/vswhere and placing it in your PATH");
-    }
-
-    /**
-    Gets the absolute path to the host's MSVC bin directory
-
-    Params:
-        model   = a string describing the host's model, "64" or "32"
-        vswhere = a string that is the path to the vswhere executable
-    Returns: a string that is the absolute path to the host's MSVC bin directory
-    */
-    auto getHostMSVCBinDir(string model, string vswhere)
-    {
-        // See https://github.com/Microsoft/vswhere/wiki/Find-VC
-
-        const vsInstallPath = [vswhere, "-latest", "-products", "*", "-requires",
-            "Microsoft.VisualStudio.Component.VC.Tools.x86.x64", "-property", "installationPath"].execute.output
-            .replace("\r\n", "");
-
-        if (!vsInstallPath.exists)
-            throw new Exception("Could not locate the Visual Studio installation directory");
-
-        const vcVersionFile = vsInstallPath.buildPath("VC", "Auxiliary", "Build", "Microsoft.VCToolsVersion.default.txt");
-        if (!vcVersionFile.exists)
-            throw new Exception(`Could not locate the Visual C++ version file "%s"`.format(vcVersionFile));
-
-        const vcVersion = vcVersionFile.readText().replace("\r\n", "");
-        const vcArch = model == "64" ? "x64" : "x86";
-        const vcPath = vsInstallPath.buildPath("VC", "Tools", "MSVC", vcVersion, "bin", "Host" ~ vcArch, vcArch);
-        if (!vcPath.exists)
-            throw new Exception("Could not locate the Visual C++ installation directory");
-
-        return vcPath;
-    }
 }
 
 /**
