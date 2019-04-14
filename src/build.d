@@ -253,7 +253,7 @@ auto buildBackend()
         name: "(LIB) %s".format("BACKEND".libName),
         sources: [ env["G"].buildPath("dbackend").objName ],
         target: env["G"].buildPath("backend").libName,
-        command: [env["HOST_DMD_RUN"], "-m"~detectModel, "-lib", "-of$@", "$<"]
+        command: [env["HOST_DMD_RUN"], env["MODEL_FLAG"], "-lib", "-of$@", "$<"]
     };
     dependency.run;
     return dependency;
