@@ -778,7 +778,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     return status;
 }
 
-private void generateJson(Modules* modules)
+extern (C++) void generateJson(Modules* modules)
 {
     OutBuffer buf;
     json_generate(&buf, modules);

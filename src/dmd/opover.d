@@ -363,24 +363,6 @@ private Identifier opId_r(Expression e)
     return v.id;
 }
 
-/************************************
- * If type is a class or struct, return the symbol for it,
- * else NULL
- */
-AggregateDeclaration isAggregate(Type t)
-{
-    t = t.toBasetype();
-    if (t.ty == Tclass)
-    {
-        return (cast(TypeClass)t).sym;
-    }
-    else if (t.ty == Tstruct)
-    {
-        return (cast(TypeStruct)t).sym;
-    }
-    return null;
-}
-
 /*******************************************
  * Helper function to turn operator into template argument list
  */

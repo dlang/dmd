@@ -60,6 +60,8 @@ struct Target
         d_int64 min_exp;
         d_int64 max_10_exp;
         d_int64 min_10_exp;
+
+        void _init();
     };
 
     FPTypeProperties<float> FloatProperties;

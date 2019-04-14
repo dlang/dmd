@@ -900,7 +900,7 @@ extern (C++) struct Token
         return p;
     }
 
-    extern (D) static const(char)* toChars(TOK value)
+    static const(char)* toChars(TOK value)
     {
         return toString(value).ptr;
     }
