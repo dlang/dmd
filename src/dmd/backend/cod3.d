@@ -3529,7 +3529,14 @@ void prolog_trace(ref CodeBuilder cdb, bool farfunc, uint* regsaved)
 }
 }
 
-void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t* namedargs)
+/******************************
+ * Generate special varargs prolog for Posix 64 bit systems.
+ * Params:
+ *      cdb = sink for generated code
+ *      sv = symbol for __va_argsave
+ *      namedargs = registers that named parameters (not ... arguments) were passed in.
+ */
+void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t namedargs)
 {
     /* Generate code to move any arguments passed in registers into
      * the stack variable __va_argsave,
@@ -3571,8 +3578,11 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t* namedargs)
         MOV     9[RAX],R11                  // set __va_argsave.stack_args
         SUB     RAX,6*8+0x7F                // point to start of __va_argsave
         MOV     6*8+8*16+4+4+8[RAX],RAX     // set __va_argsave.reg_args
-        MOV     RDX,R11
+    * RAX and R11 are destroyed.
     */
+
+    /* Save registers into the voff area on the stack
+     */
     targ_size_t voff = Auto.size + BPoff + sv.Soffset;  // EBP offset of start of sv
     const int vregnum = 6;
     const uint vsize = vregnum * 8 + 8 * 16;
@@ -3581,10 +3591,11 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t* namedargs)
 
     if (!hasframe || enforcealign)
         voff += EBPtoESP;
+
     for (int i = 0; i < vregnum; i++)
     {
         uint r = regs[i];
-        if (!(mask(r) & *namedargs))         // named args are already dealt with
+        if (!(mask(r) & namedargs))  // unnamed arguments would be the ... ones
         {
             uint ea = (REX_W << 16) | modregxrm(2,r,BPRM);
             if (!hasframe || enforcealign)
@@ -3623,14 +3634,14 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t* namedargs)
     for (int i = AX; i <= XMM7; i++)
     {
         regm_t m = mask(i);
-        if (m & *namedargs)
+        if (m & namedargs)
         {
             if (m & (mDI|mSI|mDX|mCX|mR8|mR9))
                 offset_regs += 8;
             else if (m & XMMREGS)
                 offset_fpregs += 16;
-            *namedargs &= ~m;
-            if (!*namedargs)
+            namedargs &= ~m;
+            if (!namedargs)
                 break;
         }
     }
@@ -3673,7 +3684,14 @@ void prolog_gen_win64_varargs(ref CodeBuilder cdb)
      */
 }
 
-void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, regm_t* namedargs)
+/************************************
+ * Params:
+ *      cdb = generated code sink
+ *      tf = what's the type of the function
+ *      pushalloc = use PUSH to allocate on the stack rather than subtracting from SP
+ *      namedargs = set to the registers that named parameters were passed in
+ */
+void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_t namedargs)
 {
     //printf("prolog_loadparams()\n");
     debug
@@ -3829,7 +3847,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, regm_t* n
         uint sz = cast(uint)type_size(s.Stype);
 
         if (s.Sclass == SCfastpar || s.Sclass == SCshadowreg)
-            *namedargs |= s.Spregm();
+            namedargs |= s.Spregm();
 
         if ((s.Sclass == SCfastpar || s.Sclass == SCshadowreg) && s.Sfl == FLreg)
         {   // Argument is passed in a register

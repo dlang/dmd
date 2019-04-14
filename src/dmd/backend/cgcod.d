@@ -764,7 +764,6 @@ targ_size_t alignsection(targ_size_t base, uint alignment, int bias)
 void prolog(ref CodeBuilder cdb)
 {
     bool enter;
-    regm_t namedargs = 0;
 
     //printf("cod3.prolog() %s, needframe = %d, Auto.alignment = %d\n", funcsym_p.Sident, needframe, Auto.alignment);
     debug debugw && printf("funcstart()\n");
@@ -1144,7 +1143,8 @@ Lcont:
     {
         if (variadic(funcsym_p.Stype))
             prolog_gen_win64_varargs(cdb);
-        prolog_loadparams(cdb, tyf, pushalloc, &namedargs);
+        regm_t namedargs;
+        prolog_loadparams(cdb, tyf, pushalloc, namedargs);
         return;
     }
 
@@ -1159,10 +1159,11 @@ Lcont:
     // Load register parameters off of the stack. Do not use
     // assignaddr(), as it will replace the stack reference with
     // the register!
-    prolog_loadparams(cdb, tyf, pushalloc, &namedargs);
+    regm_t namedargs;
+    prolog_loadparams(cdb, tyf, pushalloc, namedargs);
 
     if (sv64)
-        prolog_genvarargs(cdb, sv64, &namedargs);
+        prolog_genvarargs(cdb, sv64, namedargs);
 
     /* Alignment checks
      */

@@ -574,8 +574,8 @@ void prolog_saveregs(ref CodeBuilder cdb, regm_t topush, int cfa_offset);
 void prolog_stackalign(ref CodeBuilder cdb);
 void prolog_trace(ref CodeBuilder cdb, bool farfunc, uint* regsaved);
 void prolog_gen_win64_varargs(ref CodeBuilder cdb);
-void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t* namedargs);
-void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, regm_t* namedargs);
+void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t namedargs);
+void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_t namedargs);
 
 /* cod4.c */
 extern __gshared
