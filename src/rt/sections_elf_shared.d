@@ -263,7 +263,13 @@ else
      */
     Array!(void[])* initTLSRanges() nothrow @nogc
     {
-        return &_tlsRanges();
+        auto rngs = &_tlsRanges();
+        if (rngs.empty)
+        {
+            foreach (ref pdso; _loadedDSOs)
+                rngs.insertBack(pdso.tlsRange());
+        }
+        return rngs;
     }
 
     void finiTLSRanges(Array!(void[])* rngs) nothrow @nogc
