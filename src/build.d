@@ -63,10 +63,6 @@ Opt-in build features:
 
 ENABLE_RELEASE:       Optimized release built
 ENABLE_DEBUG:         Add debug instructions and symbols (set if ENABLE_RELEASE isn't set)
-ENABLE_WARNINGS:      Enable C++ build warnings
-ENABLE_PROFILING:     Build dmd with a profiling recorder (C++)
-ENABLE_PGO_USE:       Build dmd with existing profiling information (C++)
-  PGO_DIR:            Directory for profile-guided optimization (PGO) logs
 ENABLE_LTO:           Enable link-time optimizations
 ENABLE_UNITTEST:      Build dmd with unittests (sets ENABLE_COVERAGE=1)
 ENABLE_PROFILE:       Build dmd with a profiling recorder (D)
