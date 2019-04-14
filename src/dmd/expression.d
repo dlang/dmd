@@ -3068,9 +3068,11 @@ extern (C++) final class StructLiteralExp : Expression
     {
         if (this == o)
             return true;
-        if (o && o.dyncast() == DYNCAST.expression && (cast(Expression)o).op == TOK.structLiteral)
+        Expression e = o.isExpression();
+        if (!e)
+            return false;
+        if (auto se = e.isStructLiteralExp())
         {
-            StructLiteralExp se = cast(StructLiteralExp)o;
             if (!type.equals(se.type))
                 return false;
             if (elements.dim != se.elements.dim)
@@ -3119,10 +3121,10 @@ extern (C++) final class StructLiteralExp : Expression
                 /* If type is a static array, and e is an initializer for that array,
                  * then the field initializer should be an array literal of e.
                  */
-                if (e.type.castMod(0) != type.castMod(0) && type.ty == Tsarray)
+                auto tsa = type.isTypeSArray();
+                if (tsa && e.type.castMod(0) != type.castMod(0))
                 {
-                    TypeSArray tsa = cast(TypeSArray)type;
-                    size_t length = cast(size_t)tsa.dim.toInteger();
+                    const length = cast(size_t)tsa.dim.toInteger();
                     auto z = new Expressions(length);
                     foreach (ref q; *z)
                         q = e.copy();
@@ -3133,11 +3135,11 @@ extern (C++) final class StructLiteralExp : Expression
                     e = e.copy();
                     e.type = type;
                 }
-                if (useStaticInit && e.op == TOK.structLiteral && e.type.needsNested())
-                {
-                    StructLiteralExp se = cast(StructLiteralExp)e;
-                    se.useStaticInit = true;
-                }
+                if (useStaticInit && e.type.needsNested())
+                    if (auto se = e.isStructLiteralExp())
+                    {
+                        se.useStaticInit = true;
+                    }
             }
         }
         return e;
@@ -3160,8 +3162,7 @@ extern (C++) final class StructLiteralExp : Expression
                     /* context field might not be filled. */
                     if (i == sd.fields.dim - 1 && sd.isNested())
                         return cast(int)i;
-                    Expression e = (*elements)[i];
-                    if (e)
+                    if (auto e = (*elements)[i])
                     {
                         return cast(int)i;
                     }
@@ -3183,8 +3184,8 @@ extern (C++) final class StructLiteralExp : Expression
             /* Make an identifier for the temporary of the form:
              *   __sl%s%d, where %s is the struct name
              */
-            const(size_t) len = 10;
-            char[len + 1] buf;
+            const size_t len = 10;
+            char[len + 1] buf = void;
             buf[len] = 0;
             strcpy(buf.ptr, "__sl");
             strncat(buf.ptr, sd.ident.toChars(), len - 4 - 1);
@@ -3500,7 +3501,7 @@ extern (C++) final class VarExp : SymbolExp
     {
         if (this == o)
             return true;
-        if (auto ne = (cast(Expression)o).isVarExp())
+        if (auto ne = o.isExpression().isVarExp())
         {
             if (type.toHeadMutable().equals(ne.type.toHeadMutable()) && var == ne.var)
             {
@@ -3633,11 +3634,11 @@ extern (C++) final class FuncExp : Expression
     {
         if (this == o)
             return true;
-        if (o.dyncast() != DYNCAST.expression)
+        auto e = o.isExpression();
+        if (!e)
             return false;
-        if ((cast(Expression)o).op == TOK.function_)
+        if (auto fe = e.isFuncExp())
         {
-            FuncExp fe = cast(FuncExp)o;
             return fd == fe.fd;
         }
         return false;
@@ -3717,7 +3718,7 @@ extern (C++) final class FuncExp : Expression
             }
             tof = cast(TypeFunction)to.nextOf();
         }
-        else if (to.ty == Tpointer && to.nextOf().ty == Tfunction)
+        else if (to.ty == Tpointer && (tof = to.nextOf().isTypeFunction()) !is null)
         {
             if (tok == TOK.delegate_)
             {
@@ -3725,7 +3726,6 @@ extern (C++) final class FuncExp : Expression
                     error("cannot match delegate literal to function pointer type `%s`", to.toChars());
                 return MATCH.nomatch;
             }
-            tof = cast(TypeFunction)to.nextOf();
         }
 
         if (td)
@@ -3740,7 +3740,7 @@ extern (C++) final class FuncExp : Expression
 
             // Parameter types inference from 'tof'
             assert(td._scope);
-            TypeFunction tf = cast(TypeFunction)fd.type;
+            TypeFunction tf = fd.type.isTypeFunction();
             //printf("\ttof = %s\n", tof.toChars());
             //printf("\ttf  = %s\n", tf.toChars());
             size_t dim = tf.parameterList.length;
@@ -3757,10 +3757,11 @@ extern (C++) final class FuncExp : Expression
                 for (; u < dim; u++)
                 {
                     Parameter p = tf.parameterList[u];
-                    if (p.type.ty == Tident && (cast(TypeIdentifier)p.type).ident == tp.ident)
-                    {
-                        break;
-                    }
+                    if (auto ti = p.type.isTypeIdentifier())
+                        if (ti && ti.ident == tp.ident)
+                        {
+                            break;
+                        }
                 }
                 assert(u < dim);
                 Parameter pto = tof.parameterList[u];
@@ -3782,20 +3783,20 @@ extern (C++) final class FuncExp : Expression
 
             if (ex.op == TOK.error)
                 return MATCH.nomatch;
-            if (ex.op != TOK.function_)
+            if (auto ef = ex.isFuncExp())
+                return ef.matchType(to, sc, presult, flag);
+            else
                 goto L1;
-            return (cast(FuncExp)ex).matchType(to, sc, presult, flag);
         }
 
         if (!tof || !tof.next)
             return MATCH.nomatch;
 
         assert(type && type != Type.tvoid);
-        TypeFunction tfx = cast(TypeFunction)fd.type;
-        bool convertMatch = (type.ty != to.ty);
-
-        if (tfx.ty == Terror)
+        if (fd.type.ty == Terror)
             return MATCH.nomatch;
+        auto tfx = fd.type.isTypeFunction();
+        bool convertMatch = (type.ty != to.ty);
 
         if (fd.inferRetType && tfx.next.implicitConvTo(tof.next) == MATCH.convert)
         {
@@ -3823,7 +3824,8 @@ extern (C++) final class FuncExp : Expression
             tfx = tfy;
         }
         Type tx;
-        if (tok == TOK.delegate_ || tok == TOK.reserved && (type.ty == Tdelegate || type.ty == Tpointer && to.ty == Tdelegate))
+        if (tok == TOK.delegate_ ||
+            tok == TOK.reserved && (type.ty == Tdelegate || type.ty == Tpointer && to.ty == Tdelegate))
         {
             // Allow conversion from implicit function pointer to delegate
             tx = new TypeDelegate(tfx);
@@ -4089,8 +4091,8 @@ extern (C++) abstract class UnaExp : Expression
      */
     final void setNoderefOperand()
     {
-        if (e1.op == TOK.dotIdentifier)
-            (cast(DotIdExp)e1).noderef = true;
+        if (auto edi = e1.isDotIdExp())
+            edi.noderef = true;
 
     }
 
@@ -4336,10 +4338,10 @@ extern (C++) abstract class BinExp : Expression
      */
     final void setNoderefOperands()
     {
-        if (e1.op == TOK.dotIdentifier)
-            (cast(DotIdExp)e1).noderef = true;
-        if (e2.op == TOK.dotIdentifier)
-            (cast(DotIdExp)e2).noderef = true;
+        if (auto edi = e1.isDotIdExp())
+            edi.noderef = true;
+        if (auto edi = e2.isDotIdExp())
+            edi.noderef = true;
 
     }
 
@@ -4347,9 +4349,9 @@ extern (C++) abstract class BinExp : Expression
     {
         BinExp be = this;
 
-        if (be.e1.op != TOK.index)
+        auto ie = be.e1.isIndexExp();
+        if (!ie)
             return be;
-        auto ie = cast(IndexExp)be.e1;
         if (ie.e1.type.toBasetype().ty != Taarray)
             return be;
 
@@ -4371,13 +4373,13 @@ extern (C++) abstract class BinExp : Expression
             ie.e2 = extractSideEffect(sc, "__aakey", de, ie.e2);
             e0 = Expression.combine(de, e0);
 
-            Expression ie1 = ie.e1;
-            if (ie1.op != TOK.index ||
-                (cast(IndexExp)ie1).e1.type.toBasetype().ty != Taarray)
+            auto ie1 = ie.e1.isIndexExp();
+            if (!ie1 ||
+                ie1.e1.type.toBasetype().ty != Taarray)
             {
                 break;
             }
-            ie = cast(IndexExp)ie1;
+            ie = ie1;
         }
         assert(ie.e1.type.toBasetype().ty == Taarray);
 
@@ -4451,9 +4453,11 @@ extern (C++) final class CompileExp : Expression
     {
         if (this == o)
             return true;
-        if (o && o.dyncast() == DYNCAST.expression && (cast(Expression)o).op == TOK.mixin_)
+        auto e = o.isExpression();
+        if (!e)
+            return false;
+        if (auto ce = e.isCompileExp())
         {
-            CompileExp ce = cast(CompileExp)o;
             if (exps.dim != ce.exps.dim)
                 return false;
             foreach (i, e1; *exps)
@@ -4589,35 +4593,34 @@ extern (C++) final class DotVarExp : UnaExp
          * default construction disabled, we must make sure that
          * assigning to `var` does not imply that `field` was initialized
          */
-        if (sc.func)
+        if (sc.func && sc.func.isCtorDeclaration())
         {
-            auto ctd = sc.func.isCtorDeclaration();
-
             // if inside a constructor scope and e1 of this DotVarExp
             // is a DotVarExp, then check if e1.e1 is a `this` identifier
-            if (ctd && e1.op == TOK.dotVariable)
+            if (auto dve = e1.isDotVarExp())
             {
-                scope dve = cast(DotVarExp)e1;
                 if (dve.e1.op == TOK.this_)
                 {
                     scope v = dve.var.isVarDeclaration();
                     /* if v is a struct member field with no initializer, no default construction
                      * and v wasn't intialized before
                      */
-                    if (v && v.isField() && v.type.ty == Tstruct && !v._init && !v.ctorinit)
+                    if (v && v.isField() && !v._init && !v.ctorinit)
                     {
-                        const sd = (cast(TypeStruct)v.type).sym;
-                        if (sd.noDefaultCtor)
+                        if (auto ts = v.type.isTypeStruct())
                         {
-                            /* checkModify will consider that this is an initialization
-                             * of v while it is actually an assignment of a field of v
-                             */
-                            scope modifyLevel = v.checkModify(loc, sc, dve.e1, flag);
-                            // reflect that assigning a field of v is not initialization of v
-                            v.ctorinit = false;
-                            if (modifyLevel == 2)
-                                return 1;
-                            return modifyLevel;
+                            if (ts.sym.noDefaultCtor)
+                            {
+                                /* checkModify will consider that this is an initialization
+                                 * of v while it is actually an assignment of a field of v
+                                 */
+                                scope modifyLevel = v.checkModify(loc, sc, dve.e1, flag);
+                                // reflect that assigning a field of v is not initialization of v
+                                v.ctorinit = false;
+                                if (modifyLevel == 2)
+                                    return 1;
+                                return modifyLevel;
+                            }
                         }
                     }
                 }
@@ -4879,10 +4882,11 @@ extern (C++) final class CallExp : UnaExp
         Type tb = e1.type.toBasetype();
         if (tb.ty == Tdelegate || tb.ty == Tpointer)
             tb = tb.nextOf();
-        if (tb.ty == Tfunction && (cast(TypeFunction)tb).isref)
+        auto tf = tb.isTypeFunction();
+        if (tf && tf.isref)
         {
-            if (e1.op == TOK.dotVariable)
-                if ((cast(DotVarExp)e1).var.isCtorDeclaration())
+            if (auto dve = e1.isDotVarExp())
+                if (dve.var.isCtorDeclaration())
                     return false;
             return true; // function returns a reference
         }
@@ -4902,17 +4906,15 @@ extern (C++) final class CallExp : UnaExp
          * Use same logic as VarDeclaration::callScopeDtor()
          */
 
-        if (e1.type && e1.type.ty == Tfunction)
+        if (auto tf = e1.type.isTypeFunction())
         {
-            TypeFunction tf = cast(TypeFunction)e1.type;
             if (tf.isref)
                 return this;
         }
 
         Type tv = type.baseElemOf();
-        if (tv.ty == Tstruct)
+        if (auto ts = tv.isTypeStruct())
         {
-            TypeStruct ts = cast(TypeStruct)tv;
             StructDeclaration sd = ts.sym;
             if (sd.dtor)
             {
@@ -4938,19 +4940,17 @@ extern (C++) final class CallExp : UnaExp
 
 FuncDeclaration isFuncAddress(Expression e, bool* hasOverloads = null)
 {
-    if (e.op == TOK.address)
+    if (auto ae = e.isAddrExp())
     {
-        auto ae1 = (cast(AddrExp)e).e1;
-        if (ae1.op == TOK.variable)
+        auto ae1 = ae.e1;
+        if (auto ve = ae1.isVarExp())
         {
-            auto ve = cast(VarExp)ae1;
             if (hasOverloads)
                 *hasOverloads = ve.hasOverloads;
             return ve.var.isFuncDeclaration();
         }
-        if (ae1.op == TOK.dotVariable)
+        if (auto dve = ae1.isDotVarExp())
         {
-            auto dve = cast(DotVarExp)ae1;
             if (hasOverloads)
                 *hasOverloads = dve.hasOverloads;
             return dve.var.isFuncDeclaration();
@@ -4958,16 +4958,14 @@ FuncDeclaration isFuncAddress(Expression e, bool* hasOverloads = null)
     }
     else
     {
-        if (e.op == TOK.symbolOffset)
+        if (auto soe = e.isSymOffExp())
         {
-            auto soe = cast(SymOffExp)e;
             if (hasOverloads)
                 *hasOverloads = soe.hasOverloads;
             return soe.var.isFuncDeclaration();
         }
-        if (e.op == TOK.delegate_)
+        if (auto dge = e.isDelegateExp())
         {
-            auto dge = cast(DelegateExp)e;
             if (hasOverloads)
                 *hasOverloads = dge.hasOverloads;
             return dge.func.isFuncDeclaration();
@@ -5016,14 +5014,12 @@ extern (C++) final class PtrExp : UnaExp
 
     override int checkModifiable(Scope* sc, int flag)
     {
-        if (e1.op == TOK.symbolOffset)
+        if (auto se = e1.isSymOffExp())
         {
-            SymOffExp se = cast(SymOffExp)e1;
             return se.var.checkModify(loc, sc, null, flag);
         }
-        else if (e1.op == TOK.address)
+        else if (auto ae = e1.isAddrExp())
         {
-            AddrExp ae = cast(AddrExp)e1;
             return ae.e1.checkModifiable(sc, flag);
         }
         return 1;
@@ -5487,8 +5483,9 @@ extern (C++) final class CommaExp : BinExp
      */
     static void allow(Expression exp)
     {
-        if (exp && exp.op == TOK.comma)
-            (cast(CommaExp)exp).allowCommaExp = true;
+        if (exp)
+            if (auto ce = exp.isCommaExp())
+                ce.allowCommaExp = true;
     }
 }
 
@@ -5612,7 +5609,10 @@ extern (C++) final class IndexExp : BinExp
 
     override int checkModifiable(Scope* sc, int flag)
     {
-        if (e1.type.ty == Tsarray || e1.type.ty == Taarray || (e1.op == TOK.index && e1.type.ty != Tarray) || e1.op == TOK.slice)
+        if (e1.type.ty == Tsarray ||
+            e1.type.ty == Taarray ||
+            (e1.op == TOK.index && e1.type.ty != Tarray) ||
+            e1.op == TOK.slice)
         {
             return e1.checkModifiable(sc, flag);
         }
@@ -5651,9 +5651,9 @@ extern (C++) final class IndexExp : BinExp
             }
             modifiable = true;
 
-            if (e1.op == TOK.index)
+            if (auto ie = e1.isIndexExp())
             {
-                Expression ex = (cast(IndexExp)e1).markSettingAAElem();
+                Expression ex = ie.markSettingAAElem();
                 if (ex.op == TOK.error)
                     return ex;
                 assert(ex == e1);
@@ -6571,11 +6571,7 @@ extern (C++) final class ModuleInitExp : DefaultInitExp
 
     override Expression resolveLoc(const ref Loc loc, Scope* sc)
     {
-        const(char)* s;
-        if (sc.callsc)
-            s = sc.callsc._module.toPrettyChars();
-        else
-            s = sc._module.toPrettyChars();
+        const char* s = (sc.callsc ? sc.callsc : sc)._module.toPrettyChars();
         Expression e = new StringExp(loc, cast(char*)s);
         e = e.expressionSemantic(sc);
         e = e.castTo(sc, type);
@@ -6629,18 +6625,16 @@ extern (C++) final class PrettyFuncInitExp : DefaultInitExp
 
     override Expression resolveLoc(const ref Loc loc, Scope* sc)
     {
-        FuncDeclaration fd;
-        if (sc.callsc && sc.callsc.func)
-            fd = sc.callsc.func;
-        else
-            fd = sc.func;
+        FuncDeclaration fd = (sc.callsc && sc.callsc.func)
+                        ? sc.callsc.func
+                        : sc.func;
 
         const(char)* s;
         if (fd)
         {
-            const(char)* funcStr = fd.Dsymbol.toPrettyChars();
+            const funcStr = fd.Dsymbol.toPrettyChars();
             OutBuffer buf;
-            functionToBufferWithIdent(cast(TypeFunction)fd.type, &buf, funcStr);
+            functionToBufferWithIdent(fd.type.isTypeFunction(), &buf, funcStr);
             s = buf.extractString();
         }
         else
