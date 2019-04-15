@@ -113,12 +113,12 @@ const(char)[] findConfFile(const(char)[] argv0, const(char)[] inifile)
  * Returns:
  *      environment value corresponding to name
  */
-const(char)* readFromEnv(StringTable* environment, const(char)* name)
+const(char)* readFromEnv(const(StringTable)* environment, const(char)* name)
 {
     const len = strlen(name);
-    auto sv = environment.lookup(name, len);
+    const sv = environment.lookup(name, len);
     if (sv && sv.ptrvalue)
-        return cast(const(char)*)sv.ptrvalue; // get cached value
+        return cast(char*)sv.ptrvalue; // get cached value
     return getenv(name);
 }
 
