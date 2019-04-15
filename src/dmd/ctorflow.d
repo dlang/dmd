@@ -97,7 +97,7 @@ struct CtorFlow
             {
                 auto fi = &fieldinit[i];
                 fi.csx |= u.csx;
-                if (fi.loc == Loc.init)
+                if (fi.loc is Loc.init)
                     fi.loc = u.loc;
             }
         }

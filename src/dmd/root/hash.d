@@ -12,15 +12,19 @@
 
 module dmd.root.hash;
 
+pure:
+nothrow:
+@nogc:
+
 // MurmurHash2 was written by Austin Appleby, and is placed in the public
 // domain. The author hereby disclaims copyright to this source code.
 // https://sites.google.com/site/murmurhash/
-uint calcHash(const(char)* data, size_t len) pure nothrow @nogc
+uint calcHash(const(char)* data, size_t len)
 {
     return calcHash(cast(const(ubyte)*)data, len);
 }
 
-uint calcHash(const(ubyte)* data, size_t len) pure nothrow @nogc
+uint calcHash(const(ubyte)* data, size_t len)
 {
     // 'm' and 'r' are mixing constants generated offline.
     // They're not really 'magic', they just happen to work well.
