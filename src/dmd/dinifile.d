@@ -113,7 +113,7 @@ const(char)[] findConfFile(const(char)[] argv0, const(char)[] inifile)
  * Returns:
  *      environment value corresponding to name
  */
-const(char)* readFromEnv(const(StringTable)* environment, const(char)* name)
+const(char)* readFromEnv(const ref StringTable environment, const(char)* name)
 {
     const len = strlen(name);
     const sv = environment.lookup(name, len);
@@ -125,7 +125,7 @@ const(char)* readFromEnv(const(StringTable)* environment, const(char)* name)
 /*********************************
  * Write to our copy of the environment, not the real environment
  */
-private bool writeToEnv(StringTable* environment, char* nameEqValue)
+private bool writeToEnv(ref StringTable environment, char* nameEqValue)
 {
     auto p = strchr(nameEqValue, '=');
     if (!p)
@@ -140,7 +140,7 @@ private bool writeToEnv(StringTable* environment, char* nameEqValue)
  * Params:
  *      environment = our copy of the environment
  */
-void updateRealEnvironment(StringTable* environment)
+void updateRealEnvironment(ref StringTable environment)
 {
     static int envput(const(StringValue)* sv)
     {
@@ -177,7 +177,7 @@ void updateRealEnvironment(StringTable* environment)
  *      buffer = contents of configuration file
  *      sections = section names
  */
-void parseConfFile(StringTable* environment, const(char)* filename, const(char)* path, size_t length, const(ubyte)* buffer, const(Strings)* sections)
+void parseConfFile(ref StringTable environment, const(char)* filename, const(char)* path, size_t length, const(ubyte)* buffer, const(Strings)* sections)
 {
     /********************
      * Skip spaces.
