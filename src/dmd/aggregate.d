@@ -741,7 +741,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         return s;
     }
 
-    override final Prot prot()
+    override final Prot prot() pure nothrow @nogc @safe
     {
         return protection;
     }

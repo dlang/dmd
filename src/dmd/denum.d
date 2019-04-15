@@ -165,7 +165,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         return isdeprecated;
     }
 
-    override Prot prot()
+    override Prot prot() pure nothrow @nogc @safe
     {
         return protection;
     }
