@@ -177,7 +177,7 @@ void updateRealEnvironment(StringTable* environment)
  *      buffer = contents of configuration file
  *      sections = section names
  */
-void parseConfFile(StringTable* environment, const(char)* filename, const(char)* path, size_t length, ubyte* buffer, Strings* sections)
+void parseConfFile(StringTable* environment, const(char)* filename, const(char)* path, size_t length, const(ubyte)* buffer, const(Strings)* sections)
 {
     /********************
      * Skip spaces.
@@ -197,7 +197,7 @@ void parseConfFile(StringTable* environment, const(char)* filename, const(char)*
     for (size_t i = 0; i < length && !eof; i++)
     {
     Lstart:
-        size_t linestart = i;
+        const linestart = i;
         for (; i < length; i++)
         {
             switch (buffer[i])
@@ -229,7 +229,7 @@ void parseConfFile(StringTable* environment, const(char)* filename, const(char)*
         for (size_t k = 0; k < i - linestart; ++k)
         {
             // The line is buffer[linestart..i]
-            char* line = cast(char*)&buffer[linestart];
+            const line = cast(const char*)&buffer[linestart];
             if (line[k] == '%')
             {
                 foreach (size_t j; k + 1 .. i - linestart)
