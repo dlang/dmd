@@ -133,7 +133,7 @@ struct Prot
     Kind kind;
     Package pkg;
 
-    extern (D) this(Prot.Kind kind)
+    extern (D) this(Prot.Kind kind) pure nothrow @nogc @safe
     {
         this.kind = kind;
     }
@@ -926,7 +926,7 @@ extern (C++) class Dsymbol : ASTNode
 
     /*************************************
      */
-    Prot prot()
+    Prot prot() pure nothrow @nogc @safe
     {
         return Prot(Prot.Kind.public_);
     }

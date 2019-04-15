@@ -679,7 +679,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         return buf.extractString();
     }
 
-    override Prot prot()
+    override Prot prot() pure nothrow @nogc @safe
     {
         return protection;
     }

@@ -107,7 +107,7 @@ extern (C++) final class Import : Dsymbol
         return isstatic ? "static import" : "import";
     }
 
-    override Prot prot()
+    override Prot prot() pure nothrow @nogc @safe
     {
         return protection;
     }
