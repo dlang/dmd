@@ -142,18 +142,15 @@ private bool writeToEnv(ref StringTable environment, char* nameEqValue)
  */
 void updateRealEnvironment(ref StringTable environment)
 {
-    static int envput(const(StringValue)* sv) nothrow
+    foreach (sv; environment)
     {
         const name = sv.toDchars();
         const value = cast(const(char)*)sv.ptrvalue;
         if (!value) // deleted?
-            return 0;
+            continue;
         if (putenvRestorable(name.toDString, value.toDString))
             assert(0);
-        return 0; // do all of them
     }
-
-    environment.apply(&envput);
 }
 
 /*****************************
