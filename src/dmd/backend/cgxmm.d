@@ -747,7 +747,7 @@ opcode_t xmmstore(tym_t tym, bool aligned)
         case TYullong4: op = aligned ? STODQA : STODQU; break;      // MOVDQA / MOVDQU
 
         default:
-            printf("tym = x%x\n", tym);
+            printf("tym = 0x%x\n", tym);
             assert(0);
     }
     return op;
