@@ -203,7 +203,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
      * pick up any DFLAGS settings.
      */
     sections.push("Environment");
-    parseConfFile(&environment, global.inifilename, inifilepath, inifile.len, inifile.buffer, &sections);
+    parseConfFile(environment, global.inifilename, inifilepath, inifile.len, inifile.buffer, &sections);
 
     const(char)* arch = params.is64bit ? "64" : "32"; // use default
     arch = parse_arch_arg(&arguments, arch);
@@ -211,7 +211,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // parse architecture from DFLAGS read from [Environment] section
     {
         Strings dflags;
-        getenv_setargv(readFromEnv(&environment, "DFLAGS"), &dflags);
+        getenv_setargv(readFromEnv(environment, "DFLAGS"), &dflags);
         environment.reset(7); // erase cached environment updates
         arch = parse_arch_arg(&dflags, arch);
     }
@@ -226,9 +226,9 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     char[80] envsection = void;
     sprintf(envsection.ptr, "Environment%s", arch);
     sections.push(envsection.ptr);
-    parseConfFile(&environment, global.inifilename, inifilepath, inifile.len, inifile.buffer, &sections);
-    getenv_setargv(readFromEnv(&environment, "DFLAGS"), &arguments);
-    updateRealEnvironment(&environment);
+    parseConfFile(environment, global.inifilename, inifilepath, inifile.len, inifile.buffer, &sections);
+    getenv_setargv(readFromEnv(environment, "DFLAGS"), &arguments);
+    updateRealEnvironment(environment);
     environment.reset(1); // don't need environment cache any more
 
     if (parseCommandLine(arguments, argc, params, files))
@@ -1295,7 +1295,7 @@ extern(C) void printGlobalConfigs(FILE* stream)
         StringTable environment;
         environment._init(0);
         Strings dflags;
-        getenv_setargv(readFromEnv(&environment, "DFLAGS"), &dflags);
+        getenv_setargv(readFromEnv(environment, "DFLAGS"), &dflags);
         environment.reset(1);
         OutBuffer buf;
         foreach (flag; dflags[])
