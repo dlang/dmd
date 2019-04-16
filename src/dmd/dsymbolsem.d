@@ -3337,7 +3337,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             funcdecl.error("`%s` functions cannot be `abstract`", sfunc);
         }
 
-        if (funcdecl.isOverride() && !funcdecl.isVirtual())
+        if (funcdecl.isOverride() && !funcdecl.isVirtual() && !funcdecl.isFuncLiteralDeclaration())
         {
             Prot.Kind kind = funcdecl.prot().kind;
             if ((kind == Prot.Kind.private_ || kind == Prot.Kind.package_) && funcdecl.isMember())
