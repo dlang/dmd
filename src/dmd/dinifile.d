@@ -176,7 +176,7 @@ void updateRealEnvironment(ref StringTable environment)
  *      buffer = contents of configuration file
  *      sections = section names
  */
-void parseConfFile(ref StringTable environment, const(char)* filename, const(char)* path, const(ubyte)[] buffer, const(Strings)* sections)
+void parseConfFile(ref StringTable environment, const(char)* filename, const(char)[] path, const(ubyte)[] buffer, const(Strings)* sections)
 {
     /********************
      * Skip spaces.
@@ -239,7 +239,7 @@ void parseConfFile(ref StringTable environment, const(char)* filename, const(cha
                     {
                         // %@P% is special meaning the path to the .ini file
                         auto p = path;
-                        if (!*p)
+                        if (!p.length)
                             p = ".";
                         buf.writestring(p);
                     }
