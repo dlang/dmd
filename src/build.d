@@ -445,7 +445,6 @@ void parseEnvironment()
     env.getDefault("GIT_HOME", "https://github.com/dlang");
     env.getDefault("SYSCONFDIR", "/etc");
     env.getDefault("TMP", tempDir);
-    env.getDefault("PGO_DIR", srcDir.buildPath("pgo"));
     auto d = env.getDefault("D", srcDir.buildPath("dmd"));
     env.getDefault("C", d.buildPath("backend"));
     env.getDefault("ROOT", d.buildPath("root"));
