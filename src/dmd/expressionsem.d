@@ -1086,33 +1086,9 @@ L1:
 
                 // Skip up over nested functions, and get the enclosing
                 // class type.
-                int n = 0;
-                Dsymbol s;
-                for (s = tcd.toParent(); s && s.isFuncDeclaration(); s = s.toParent())
-                {
-                    FuncDeclaration f = s.isFuncDeclaration();
-                    if (f.vthis)
-                    {
-                        //printf("rewriting e1 to %s's this\n", f.toChars());
-                        n++;
-                        e1 = new VarExp(loc, f.vthis);
-                    }
-                    else
-                    {
-                        e1.error("need `this` of type `%s` to access member `%s` from static function `%s`", ad.toChars(), var.toChars(), f.toChars());
-                        e1 = new ErrorExp();
-                        return e1;
-                    }
-                }
-                if (s && s.isClassDeclaration())
-                {
-                    e1.type = s.isClassDeclaration().type;
-                    e1.type = e1.type.addMod(t.mod);
-                    if (n > 1)
-                        e1 = e1.expressionSemantic(sc);
-                }
-                else
-                    e1 = e1.expressionSemantic(sc);
+                e1 = getThisSkipNestedFuncs(loc, sc, tcd.toParent2(), ad, e1, t, var);
+                if (e1.op == TOK.error)
+                    return e1;
                 goto L1;
             }
 
@@ -11507,4 +11483,56 @@ private bool checkFunctionAttributes(Expression exp, Scope* sc, FuncDeclaration 
         error |= checkNogc(sc, f);
         return error;
     }
+}
+
+/*******************************
+ * Helper function for `getRightThis()`.
+ * Gets `this` of the next outer aggregate.
+ * Params:
+ *      loc = location to use for error messages
+ *      sc = context
+ *      s = the parent symbol of the existing `this`
+ *      ad = struct or class we need the correct `this` for
+ *      e1 = existing `this`
+ *      t = type of the existing `this`
+ *      var = the specific member of ad we're accessing
+ *      flag = if true, return `null` instead of throwing an error
+ * Returns:
+ *      Expression representing the `this` for the var
+ */
+Expression getThisSkipNestedFuncs(const ref Loc loc, Scope* sc, Dsymbol s, AggregateDeclaration ad, Expression e1, Type t, Dsymbol var, bool flag = false)
+{
+    int n = 0;
+    while (s && s.isFuncDeclaration())
+    {
+        FuncDeclaration f = s.isFuncDeclaration();
+        if (f.vthis)
+        {
+            n++;
+            e1 = new VarExp(loc, f.vthis);
+        }
+        else
+        {
+            if (flag)
+                return null;
+            e1.error("need `this` of type `%s` to access member `%s` from static function `%s`", ad.toChars(), var.toChars(), f.toChars());
+            e1 = new ErrorExp();
+            return e1;
+        }
+        s = s.toParent2();
+    }
+    if (n > 1)
+        e1 = e1.expressionSemantic(sc);
+    if (s && e1.type.equivalent(Type.tvoidptr))
+    {
+        if (auto sad = s.isAggregateDeclaration())
+        {
+            Type ta = sad.handleType();
+            if (ta.ty == Tstruct)
+                ta = ta.pointerTo();
+            e1.type = ta;
+        }
+    }
+    e1.type = e1.type.addMod(t.mod);
+    return e1;
 }
