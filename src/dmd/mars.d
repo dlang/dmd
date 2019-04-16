@@ -203,7 +203,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
      * pick up any DFLAGS settings.
      */
     sections.push("Environment");
-    parseConfFile(environment, global.inifilename, inifilepath, inifile.len, inifile.buffer, &sections);
+    parseConfFile(environment, global.inifilename, inifilepath, inifile.buffer[0..inifile.len], &sections);
 
     const(char)* arch = params.is64bit ? "64" : "32"; // use default
     arch = parse_arch_arg(&arguments, arch);
@@ -226,7 +226,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     char[80] envsection = void;
     sprintf(envsection.ptr, "Environment%s", arch);
     sections.push(envsection.ptr);
-    parseConfFile(environment, global.inifilename, inifilepath, inifile.len, inifile.buffer, &sections);
+    parseConfFile(environment, global.inifilename, inifilepath, inifile.buffer[0..inifile.len], &sections);
     getenv_setargv(readFromEnv(environment, "DFLAGS"), &arguments);
     updateRealEnvironment(environment);
     environment.reset(1); // don't need environment cache any more

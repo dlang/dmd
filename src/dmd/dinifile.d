@@ -173,11 +173,10 @@ void updateRealEnvironment(ref StringTable environment)
  *      environment = our own cache of the program environment
  *      filename = name of the file being parsed
  *      path = what @P will expand to
- *      length = length of the configuration file buffer
  *      buffer = contents of configuration file
  *      sections = section names
  */
-void parseConfFile(ref StringTable environment, const(char)* filename, const(char)* path, size_t length, const(ubyte)* buffer, const(Strings)* sections)
+void parseConfFile(ref StringTable environment, const(char)* filename, const(char)* path, const(ubyte)[] buffer, const(Strings)* sections)
 {
     /********************
      * Skip spaces.
@@ -194,11 +193,11 @@ void parseConfFile(ref StringTable environment, const(char)* filename, const(cha
     OutBuffer buf;
     bool eof = false;
     int lineNum = 0;
-    for (size_t i = 0; i < length && !eof; i++)
+    for (size_t i = 0; i < buffer.length && !eof; i++)
     {
     Lstart:
         const linestart = i;
-        for (; i < length; i++)
+        for (; i < buffer.length; i++)
         {
             switch (buffer[i])
             {
