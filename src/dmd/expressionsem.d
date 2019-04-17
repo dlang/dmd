@@ -1885,27 +1885,31 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
              *   S().bar() = 1;      // bad!
              * }
              */
-            Dsymbol s = null;
-            if (fd.isThis() || fd.isNested())
-                s = fd.toParent2();
-            for (; s; s = s.toParent2())
+            bool checkEnclosingWild(Dsymbol s)
             {
-                if (auto ad = s.isAggregateDeclaration())
+                bool checkWild(Dsymbol s)
                 {
-                    if (ad.isNested())
-                        continue;
-                    break;
-                }
-                if (auto ff = s.isFuncDeclaration())
-                {
-                    if ((cast(TypeFunction)ff.type).iswild)
-                        return errorInout(wildmatch);
+                    if (!s)
+                        return false;
+                    if (auto ad = s.isAggregateDeclaration())
+                    {
+                        if (ad.isNested())
+                            return checkEnclosingWild(s);
+                    }
+                    else if (auto ff = s.isFuncDeclaration())
+                    {
+                        if ((cast(TypeFunction)ff.type).iswild)
+                            return errorInout(wildmatch);
 
-                    if (ff.isNested() || ff.isThis())
-                        continue;
+                        if (ff.isNested() || ff.isThis())
+                            return checkEnclosingWild(s);
+                    }
+                    return false;
                 }
-                break;
-            }
+                return checkWild(s.toParent2());
+           }
+           if ((fd.isThis() || fd.isNested()) && checkEnclosingWild(fd))
+               return true;
         }
         else if (tf.isWild())
             return errorInout(wildmatch);
