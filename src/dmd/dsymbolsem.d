@@ -1167,7 +1167,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (func.fes)
                     func = func.fes.func;
                 bool isWild = false;
-                for (FuncDeclaration fd = func; fd; fd = fd.toParent2().isFuncDeclaration())
+                for (FuncDeclaration fd = func; fd; fd = fd.toParent4().isFuncDeclaration())
                 {
                     if ((cast(TypeFunction)fd.type).iswild)
                     {

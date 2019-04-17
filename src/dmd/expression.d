@@ -910,7 +910,7 @@ extern (C++) abstract class Expression : ASTNode
                 if (auto dve = this.isDotVarExp())
                 {
                     if (isNeedThisScope(sc, dve.var))
-                        for (Dsymbol s = sc.func; s; s = s.toParent2())
+                        for (Dsymbol s = sc.func; s; s = s.toParent4())
                     {
                         FuncDeclaration ff = s.isFuncDeclaration();
                         if (!ff)
