@@ -178,6 +178,7 @@ public:
     Dsymbol *toParent();
     Dsymbol *toParent2();
     Dsymbol *toParent3();
+    Dsymbol *toParent4();
     TemplateInstance *isInstantiated();
     TemplateInstance *isSpeculative();
     Ungag ungagSpeculative();
@@ -208,6 +209,7 @@ public:
     virtual LabelDsymbol *isLabel();            // is this a LabelDsymbol?
     AggregateDeclaration *isMember();           // is this a member of an AggregateDeclaration?
     AggregateDeclaration *isMember2();          // is this a member of an AggregateDeclaration?
+    AggregateDeclaration *isMember4();          // is this a member of an AggregateDeclaration?
     ClassDeclaration *isClassMember();          // is this a member of a ClassDeclaration?
     virtual Type *getType();                    // is this a type?
     virtual bool needThis();                    // need a 'this' pointer?
