@@ -1770,42 +1770,47 @@ extern (C++) class FuncDeclaration : Declaration
         if (isNested())
         {
             // The function that this function is in
-            FuncDeclaration fdv = p.isFuncDeclaration();
-            if (!fdv)
-                return false;
-            if (fdv == fdthis)
-                return false;
-
-            //printf("this = %s in [%s]\n", this.toChars(), this.loc.toChars());
-            //printf("fdv  = %s in [%s]\n", fdv .toChars(), fdv .loc.toChars());
-            //printf("fdthis = %s in [%s]\n", fdthis.toChars(), fdthis.loc.toChars());
-
-            // Add this function to the list of those which called us
-            if (fdthis != this)
+            bool checkEnclosing(FuncDeclaration fdv)
             {
-                bool found = false;
-                for (size_t i = 0; i < siblingCallers.dim; ++i)
+                if (!fdv)
+                    return false;
+                if (fdv == fdthis)
+                    return false;
+
+                //printf("this = %s in [%s]\n", this.toChars(), this.loc.toChars());
+                //printf("fdv  = %s in [%s]\n", fdv .toChars(), fdv .loc.toChars());
+                //printf("fdthis = %s in [%s]\n", fdthis.toChars(), fdthis.loc.toChars());
+
+                // Add this function to the list of those which called us
+                if (fdthis != this)
                 {
-                    if (siblingCallers[i] == fdthis)
-                        found = true;
+                    bool found = false;
+                    for (size_t i = 0; i < siblingCallers.dim; ++i)
+                    {
+                        if (siblingCallers[i] == fdthis)
+                            found = true;
+                    }
+                    if (!found)
+                    {
+                        //printf("\tadding sibling %s\n", fdthis.toPrettyChars());
+                        if (!sc.intypeof && !(sc.flags & SCOPE.compile))
+                            siblingCallers.push(fdthis);
+                    }
                 }
-                if (!found)
-                {
-                    //printf("\tadding sibling %s\n", fdthis.toPrettyChars());
-                    if (!sc.intypeof && !(sc.flags & SCOPE.compile))
-                        siblingCallers.push(fdthis);
-                }
+
+                const lv = fdthis.getLevelAndCheck(loc, sc, fdv);
+                if (lv == LevelError)
+                    return true; // error
+                if (lv == -1)
+                    return false; // downlevel call
+                if (lv == 0)
+                    return false; // same level call
+
+                return false; // Uplevel call
             }
 
-            const lv = fdthis.getLevelAndCheck(loc, sc, fdv);
-            if (lv == LevelError)
-                return true; // error
-            if (lv == -1)
-                return false; // downlevel call
-            if (lv == 0)
-                return false; // same level call
-
-            // Uplevel call
+            if (checkEnclosing(p.isFuncDeclaration()))
+                return true;
         }
         return false;
     }
