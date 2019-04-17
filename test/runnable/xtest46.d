@@ -3718,15 +3718,11 @@ void bar7295() pure
 
 void test149()
 {
-    import std.traits;
-
     char a;
     immutable(char) b;
 
     static assert(is(typeof(true ? a : b) == const(char)));
     static assert(is(typeof([a, b][0]) == const(char)));
-
-    static assert(is(CommonType!(typeof(a), typeof(b)) == const(char)));
 }
 
 
