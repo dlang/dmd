@@ -195,7 +195,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     inifile.read();
     /* Need path of configuration file, for use in expanding @P macro
      */
-    const(char)* inifilepath = FileName.path(global.inifilename);
+    const(char)[] inifilepath = FileName.path(global.inifilename.toDString());
     Strings sections;
     StringTable environment;
     environment._init(7);
