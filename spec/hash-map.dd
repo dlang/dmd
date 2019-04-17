@@ -337,6 +337,8 @@ $(H2 $(LNAME2 advanced_updating, Advanced updating))
 
 $(H2 $(LNAME2 static_initialization, Static Initialization of AAs))
 
+        NOTE: Not yet implemented.
+
         ---------
         immutable long[string] aa = [
           "foo": 5,

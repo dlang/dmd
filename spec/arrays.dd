@@ -451,22 +451,31 @@ double[][] matrix;
         pointers to the array data.) Since the arrays can have varying sizes (being dynamically
         sized), this is sometimes called "jagged" arrays. Even worse for optimizing the code, the
         array rows can sometimes point to each other! Fortunately, D static arrays, while using
-        the same syntax, are implemented as a fixed rectangular layout:
+        the same syntax, are implemented as a fixed rectangular layout in a contiguous block of
+        memory:
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
-double[3][3] matrix;
+double[6][3] matrix = 0; // Sets all elements to 0.
+writeln(matrix); // [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]]
 ---------
 )
 
-        $(P declares a rectangular matrix with 3 rows and 3 columns, all contiguously in memory. In
-        other languages, this would be called a multidimensional array and be declared as:
+        $(P Note that dimensions and indices appear in opposite orders. Dimensions in the
+        $(RELATIVE_LINK2 declarations, declaration) are read right to left whereas indices are read
+        left to right:
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
-double matrix[3,3];
+double[6][3] matrix = 0;
+matrix[2][5] = 3.14; // Assignment to bottom right element.
+writeln(matrix); // [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 3.14]]
+
+static assert(!__traits(compiles, matrix[5][2])); // Array index out of bounds.
 ---------
+)
 
 $(H2 $(LNAME2 array-length, Array Length))
 

@@ -1194,6 +1194,66 @@ void test()
     int i = s; // i == 4
 }
 ---
+        $(P If an aggregate declaration defines an $(D opCmp) or $(D opEquals)
+        method, it will take precedence to that of the aliased this member. Note
+        that, unlike an $(D opCmp) method, an $(D opEquals) method is implicitly
+        defined for a $(D struct) declaration if a user defined one isn't provided;
+        this means that if the aliased this member $(D opEquals) is preferred it
+        should be explicitly defined:
+        )
+---
+struct S
+{
+    int a;
+    bool opEquals(S rhs) const
+    {
+        return this.a == rhs.a;
+    }
+}
+
+struct T
+{
+    int b;
+    S s;
+    alias s this;
+}
+
+struct U
+{
+    int a;
+    bool opCmp(U rhs) const
+    {
+        return this.a < rhs.a;
+    }
+}
+
+struct V
+{
+    int b;
+    U u;
+    alias u this;
+}
+
+void main()
+{
+    S s1, s2;
+    T t1, t2;
+    U u1, u2;
+    V v1, v2;
+
+    assert(s1 == s2);      // calls S.opEquals
+    assert(t1 == t2);      // calls compiler generated T.opEquals that implements member-wise equality
+    assert(!(u1 < u2));    // calls U.opCmp
+    assert(!(v1 < v2));    // calls U.opCmp because V does not define an opCmp method
+                           // so the alias this of v1 is employed; U.opCmp expects a
+                           // paramter of type U, so alias this of v2 is used
+
+    assert(s1 == t1);      // calls s1.opEquals(t1.s);
+    assert(t1 == s1);      // calls t1.s.opEquals(s1);
+    assert(!(u1 < v1));    // calls u1.opCmp(v1.u);
+    assert(!(v1 < u1));    // calls v1.u.opCmp(v1);
+}
+---
         $(P $(GLINK2 attribute, Attribute)s are ignored for $(D AliasThis).
         )
 

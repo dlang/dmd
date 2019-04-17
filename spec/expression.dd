@@ -4,24 +4,130 @@ $(SPEC_S Expressions,
 
 $(HEADERNAV_TOC)
 
+$(P An expression is a sequence of operators and operands that specifies an evaluation.
+The syntax, order of evaluation, and semantics of expressions are as follows.)
+
     $(P Expressions are used to compute values with a resulting type.
         These values can then be assigned,
         tested, or ignored. Expressions can also have side effects.
     )
 
+$(H2 $(LNAME2 definitions-and-terms, Definitions and Terms))
+
+$(DDOC_ANCHOR define-full-expression)$(P $(B Definition) ($(DOUBLEQUOTE Full expression)): For any expression
+$(I expr), the full expression of $(I expr) is defined as follows. If $(I expr) parses as a
+subexpression of another expression $(I expr$(SUBSCRIPT 1)), then the full expression of $(I expr) is the
+full expression of $(I expr$(SUBSCRIPT 1)). Otherwise, $(I expr) is its own full expression.)
+
+$(P Each expression has a unique full expression.)
+
+$(P Example: in the statement `return f() + g() * 2;`, the full expression of `g() * 2` is `f() + g() * 2`, but not the
+full expression of `f() + g()` because the latter is not parsed as a subexpression.)
+
+$(P Note: Although the definition is straightforward, a few subtleties exist related to function literals. In the
+statement `return (() => x + f())() * g();`, the full expression of `f()` is `x + f()`, not the expression passed
+to `return`. This is because the parent of `x + f()` has function literal type, not expression type.)
+
+$(DDOC_ANCHOR define-lvalue)$(P $(B Definition) ($(DOUBLEQUOTE Lvalue)): The following expressions, and no
+others, are called lvalue expressions or lvalues:)
+$(OL
+$(LI `this` inside `struct` and `union` member functions;)
+$(LI a variable or the result of the $(I DotIdentifier) grammatical construct `.` (left side may be
+missing) when the rightmost side of the dot is a variable,
+field (direct or `static`), function name, or invocation of a function that returns by reference;)
+$(LI the result of the following expressions:
+$(UL
+$(LI built-in unary operators `+` (when applied to an lvalue), `*`, `++` (prefix only), `--` (prefix only);)
+$(LI built-in indexing operator `[]` (but not the slicing operator);)
+$(LI built-in assignment binary operators, i.e. `=`, `+=`, `*=`, `/=`, `%=`, `&=`, `|=`, `^=`, `~=`,
+`<<=`, `>>=`, `>>>=`, and `^^=`;)
+$(LI the ternary operator $(I e) `?` $(I e$(SUBSCRIPT 1)) `:` $(I e$(SUBSCRIPT 2)) under the following
+circumstances:)
+$(OL
+    $(LI $(I e$(SUBSCRIPT 1)) and $(I e$(SUBSCRIPT 2)) are lvalues of the same type; OR)
+    $(LI One of $(I e$(SUBSCRIPT 1)) and $(I e$(SUBSCRIPT 2)) is an lvalue of type `T` and the other has
+    and `alias this` converting it to `ref T`;))
+$(LI user-defined operators if and only if the function called as a result of lowering returns
+by reference;)
+$(LI `mixin` expressions if and only if the compilation of the expression resulting from compiling
+the argument(s) to `mixin` is an lvalue;)
+$(LI `cast(U)` expressions applied to lvalues of type `T` when `T*` is implicitly convertible to `U*`;)
+$(LI `cast()` and `cast(`$(I qualifier list)`)` when applied to an lvalue.)
+)))
+
+$(DDOC_ANCHOR define-rvalue)$(P $(B Definition) ($(DOUBLEQUOTE Rvalue)): Expressions that are not
+lvalues are rvalues.)
+
+$(P Note: Rvalues include all literals, special value keywords such as `__FILE__` and `__LINE__`,
+`enum` values, and the result of expressions not defined as lvalues above.)
+
+$(P The built-in address-of operator (unary `&`) may only be applied to lvalues.)
+
+$(DDOC_ANCHOR define-smallest-short-circuit)$(P $(B Definition) ($(DOUBLEQUOTE Smallest
+short-circuit expression)): Given an expression $(I expr) that is a subexpression of a full
+expression $(I fullexpr), the smallest short-circuit expression, if any, is the shortest
+subexpression $(I scexpr) of $(I fullexpr) that is an $(GLINK AndAndExpression) (`&&`) or an
+$(GLINK OrOrExpression) (`||`), such that $(I expr) is a subexpression of $(I scexpr).)
+
+Example: in the expression `((f() * 2 && g()) + 1) || h()`, the smallest short-circuit expression
+of the subexpression `f() * 2` is `f() * 2 && g()`. In the expression `(f() && g()) + h()`, the
+subexpression `h()` has no smallest short-circuit expression.
+
 $(H2 $(LNAME2 order-of-evaluation, Order Of Evaluation))
 
-$(P Binary expressions are evaluated in strictly left-to-right order.
-Function arguments are evaluated in strictly left-to-right order for
-functions with `extern (D)` $(DDSUBLINK spec/attribute, linkage, linkage).)
+$(P Built-in prefix unary expressions `++` and `--` are evaluated as if lowered (rewritten) to
+assignments as follows: `++expr` becomes `((expr) += 1)`, and `--expr` becomes `((expr) -= 1)`.
+Therefore, the result of prefix `++` and `--` is the lvalue after the side effect has been
+effected.)
 
-        -------------
-        import std.conv;
-        int i = 0;
-        (i = 2) = ++i * i++ + i;
-        assert(i == 13); // left to right evaluation of side effects
-        assert(text(++i, ++i) == "1415"); // left to right evaluation of arguments
-        -------------
+$(P Built-in postfix unary expressions `++` and `--` are evaluated as if lowered (rewritten) to lambda
+invocations as follows: `expr++` becomes `(ref T x){auto t = x; ++x; return t;}(expr)`, and
+`expr--` becomes `(ref T x){auto t = x; --x; return t;}(expr)`. Therefore, the result of postfix
+`++` and `--` is an rvalue just before the side effect has been effected.)
+
+$(P Binary expressions except for $(GLINK AssignExpression), $(GLINK OrOrExpression), and
+$(GLINK AndAndExpression) are evaluated in lexical order (left-to-right). Example:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+-------------
+int i = 2;
+i = ++i * i++ + i;
+assert(i == 3 * 3 + 4);
+-------------
+)
+
+$(P $(GLINK OrOrExpression) and $(GLINK AndAndExpression) evaluate their left-hand side argument
+first. Then, $(GLINK OrOrExpression) evaluates its right-hand side if and only if its left-hand
+side does not evaluate to nonzero. $(GLINK AndAndExpression) evaluates its right-hand side if and
+only if its left-hand side evaluates to nonzero.)
+
+$(P $(GLINK ConditionalExpression) evaluates its left-hand side argument
+first. Then, if the result is nonzero, the second operand is evaluated. Otherwise, the third operand
+is evaluated.)
+
+$(P Calls to functions  with `extern(D)` $(DDSUBLINK spec/attribute, linkage, linkage) (which is
+the default linkage) are evaluated in the following order: first, if necessary, the address of the
+function to call is evaluated (e.g. in the case of a computed function pointer or delegate). Then,
+arguments are evaluated left to right. Finally, transfer is passed to the function. Example:)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import std.stdio;
+void function(int a, int b, int c) fun()
+{
+    writeln("fun() called");
+    static void r(int a, int b, int c) { writeln("callee called"); }
+    return &r;
+}
+int f1() { writeln("f1() called"); return 1; }
+int f2() { writeln("f2() called"); return 2; }
+int f3(int x) { writeln("f3() called"); return x + 3; }
+int f4() { writeln("f4() called"); return 4; }
+// evaluates fun() then f1() then f2() then f3() then f4()
+// after which control is transferred to the callee
+fun()(f1(), f3(f2()), f4());
+---
+)
 
     $(IMPLEMENTATION_DEFINED
     $(OL
@@ -31,6 +137,85 @@ functions with `extern (D)` $(DDSUBLINK spec/attribute, linkage, linkage).)
 
     $(BEST_PRACTICE Even though the order of evaluation is well-defined, writing code that
     depends on it is rarely recommended.)
+
+$(H2 $(LNAME2 temporary-lifetime, Lifetime of Temporaries))
+
+$(P Expressions and statements may create and/or consume rvalues. Such values are called
+$(I temporaries) and do not have a name or a visible scope. Their lifetime is managed automatically
+as defined in this section.)
+
+$(P For each evaluation that yields a temporary value, the lifetime of that temporary begins at the
+evaluation point, similarly to creation of a usual named value initialized with an expression.)
+
+$(P Termination of lifetime of temporaries does not obey the customary scoping rules and is defined
+as follows:)
+
+$(UL
+$(LI If:
+$(OL $(LI the full expression has a smallest short-circuit expression $(I expr); and)
+$(LI the temporary is created on the right-hand side of the `&&` or `||` operator; and)
+$(LI the right-hand side is evaluated,))
+then temporary destructors are evaluated right after the right-hand side
+expression has been evaluated and converted to `bool`. Evaluation of destructors proceeds in
+reverse order of construction.)
+
+$(LI For all other cases, the temporaries generated for the purpose of invoking functions are
+deferred to the end of the full expression. The order of destruction is inverse to the order of
+construction.))
+
+$(P If a subexpression of an expression throws an exception, all temporaries created up to the
+evaluation of that subexpression will be destroyed per the rules above. No destructor calls will
+be issued for temporaries not yet constructed.)
+
+$(P Note: An intuition behind these rules is that destructors of temporaries are deferred to the end of full
+expression and in reverse order of construction, with the exception that the right-hand side of
+`&&` and `||` are considered their own full expressions even when part of larger expressions.)
+
+$(P Note: The ternary expression $(I e$(SUBSCRIPT 1) ? e$(SUBSCRIPT 2) : e$(SUBSCRIPT 3)) is not
+a special case although it evaluates expressions conditionally: $(I e$(SUBSCRIPT 1)) and one of
+$(I e$(SUBSCRIPT 2)) and $(I e$(SUBSCRIPT 3)) may create temporaries. Their destructors are inserted
+to the end of the full expression in the reverse order of creation.)
+
+$(P Example:)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import std.stdio;
+struct S
+{
+    int x;
+    this(int n) { x = n; writefln("S(%s)", x); }
+    ~this() { writefln("~S(%s)", x); }
+}
+bool b = (S(1) == S(2) || S(3) != S(4)) && S(5) == S(6);
+---
+)
+
+The output of the code above is:
+
+$(CONSOLE
+S(1)
+S(2)
+S(3)
+S(4)
+~S(4)
+~S(3)
+S(5)
+S(6)
+~S(6)
+~S(5)
+~S(2)
+~S(1)
+)
+
+First, `S(1)` and `S(2)` are evaluated in lexical order. Per the rules, they will be destroyed at
+the end of the full expression and in reverse order. The comparison $(D S(1) == S(2)) yields
+`false`, so the right-hand side of the `||` is evaluated causing `S(3)` and `S(4)` to be evaluated,
+also in lexical order. However, their destruction is not deferred to the end of the full
+expression. Instead, `S(4)` and then `S(3)` are destroyed at the end of the `||` expression.
+Following their destruction, `S(5)` and `S(6)` are constructed in lexical order. Again they are not
+destroyed at the end of the full expression, but right at the end of the `&&` expression.
+Consequently, the destruction of `S(6)` and `S(5)` is carried before that of `S(2)` and `S(1)`.
 
 $(H2 $(LEGACY_LNAME2 Expression, expression, Expressions))
 
@@ -1436,9 +1621,9 @@ $(H3 $(LNAME2 function_literals, Function Literals))
 
 $(GRAMMAR
 $(GNAME FunctionLiteral):
-    $(D function) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterWithAttributes) $(OPT) $(GLINK FunctionLiteralBody)
-    $(D delegate) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterWithMemberAttributes) $(OPT) $(GLINK FunctionLiteralBody)
-    $(GLINK ParameterMemberAttributes) $(GLINK FunctionLiteralBody)
+    $(D function) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterWithAttributes) $(OPT) $(GLINK FunctionLiteralBody)
+    $(D delegate) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterWithMemberAttributes) $(OPT) $(GLINK FunctionLiteralBody)
+    $(D ref)$(OPT) $(GLINK ParameterMemberAttributes) $(GLINK FunctionLiteralBody)
     $(GLINK FunctionLiteralBody)
     $(GLINK Lambda)
 
@@ -1590,9 +1775,9 @@ $(H3 $(LNAME2 lambdas, Lambdas))
 
 $(GRAMMAR
 $(GNAME Lambda):
-    $(D function) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterAttributes) $(D =>) $(GLINK AssignExpression)
-    $(D delegate) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterMemberAttributes) $(D =>) $(GLINK AssignExpression)
-    $(GLINK ParameterMemberAttributes) $(D =>) $(GLINK AssignExpression)
+    $(D function) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterAttributes) $(D =>) $(GLINK AssignExpression)
+    $(D delegate) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterMemberAttributes) $(D =>) $(GLINK AssignExpression)
+    $(D ref)$(OPT) $(GLINK ParameterMemberAttributes) $(D =>) $(GLINK AssignExpression)
     $(IDENTIFIER) $(D =>) $(GLINK AssignExpression)
 )
 

@@ -1349,9 +1349,39 @@ void foo(int x, int y = 3)
 foo(4);   // same as foo(4, 3);
 ---
 
-        $(P Default parameters are evaluated in the context of the
-        function declaration.
-        If the default value for a parameter is given, all following
+        $(P Default parameters are resolved and semantically checked in the context of the
+        function declaration.)
+---
+module m;
+private immutable int b;
+pure void g(int a=b){}
+---
+---
+import m;
+int b;
+pure void f()
+{
+  g();  // ok, uses m.b
+}
+---
+
+        $(P The attributes of the $(ASSIGNEXPRESSION) are applied where the default expression
+        is used.)
+---
+module m;
+int b;
+pure void g(int a=b){}
+---
+---
+import m;
+enum int b = 3;
+pure void f()
+{
+  g();  // error, cannot access mutable global `m.b` in pure function
+}
+---
+
+        $(P If the default value for a parameter is given, all following
         parameters must also have default values.
         )
 
@@ -1480,6 +1510,8 @@ $(H3 $(LNAME2 return-scope-parameters, Return Scope Parameters))
         can only escape those indirections via the function's return value.)
 
 ---
+@safe:
+
 int* gp;
 void thorin(scope int*);
 void gloin(int*);
@@ -1506,6 +1538,8 @@ int* balin(return scope int* p, scope int* q, int* r)
         $(P Class references are considered pointers that are subject to `scope`.)
 
 ---
+@safe:
+
 class C { }
 C gp;
 void thorin(scope C);
@@ -1542,6 +1576,85 @@ class C
         $(P Template functions, auto functions, nested functions and lambdas can deduce
         the `return scope` attribute.)
 
+        $(P $(B Note:) Checks for `scope` parameters are currently enabled
+        only for $(D @safe) functions when compiled with the $(D -dip1000) flag.)
+
+$(H3 $(LNAME2 ref-return-scope-parameters, Ref Return Scope Parameters))
+
+        $(P Parameters marked as `ref return scope` come in two forms:)
+
+---
+U xerxes(ref return scope V v);      // (1) ref and return scope
+ref U xerxes(ref return scope V v);  // (2) return ref and scope
+---
+
+        $(P The first form attaches the `return` to the `scope`, and has
+        $(LINK2 #return-scope-parameters, return scope parameter) semantics
+        for the value of the `ref` parameter.)
+
+        $(P The second form attaches the `return` to the `ref`, and has
+        $(LINK2 #return-ref-parameters, return ref parameter) semantics
+        with additional
+        $(LINK2 https://dlang.org/spec/memory-safe-d.html#scope-return-params, scope parameter)
+        semantics.)
+
+        $(P Although a struct constructor returns a reference to the instance
+        being constructed, it is treated as form (1).)
+
+        $(P The lexical order of the attributes `ref`, `return`, and `scope` is not significant.)
+
+        $(P It is not possible to have both `return ref` and `return scope` semantics
+        for the same parameter.)
+
+---
+@safe:
+
+struct S
+{
+    this(return scope   ref int* p) { ptr = p; }
+
+    int  val;
+    int* ptr;
+}
+
+int* foo1(return scope   ref S s);
+int  foo2(return scope   ref S s);
+
+ref int* foo3(return ref   scope S s);
+ref int  foo4(return ref   scope S s);
+
+int* test1(scope S s)
+{
+    return foo1(s);  // Error: scope variable `s` may not be returned
+    return foo3(s);  // Error: scope variable `s` may not be returned
+}
+
+int test2(S s)
+{
+    return foo2(s);
+    return foo4(s);
+}
+
+ref int* test3(S s)
+{
+    return foo3(s);  // Error: returning `foo3(s)` escapes a reference to parameter `s`
+}
+
+ref int test4(S s)
+{
+    return foo4(s);  // Error: returning `foo4(s)` escapes a reference to parameter `s`
+}
+
+S test5(ref scope int* p)
+{
+    return S(p); // Error: scope variable `p` may not be returned
+}
+
+S test6(ref return scope int* p)
+{
+    return S(p);
+}
+---
 
 $(H3 $(LNAME2 udas-parameters, User-Defined Attributes for Parameters))
 
@@ -2367,6 +2480,11 @@ void main()
 ---
 )
 
+        $(P Function pointers can be passed to functions taking a delegate argument by passing
+        them through the $(REF toDelegate, std,functional) template, which converts any callable
+        to a delegate without context.
+        )
+
         $(P $(B Future directions:) Function pointers and delegates may merge
         into a common syntax and be interchangeable with each other.
         )
@@ -2749,16 +2867,55 @@ $(H3 $(LNAME2 trusted-functions, Trusted Functions))
 
         $(P Trusted functions are marked with the $(CODE @trusted) attribute.)
 
-        $(P Trusted functions are guaranteed by the programmer to not exhibit
-        any undefined behavior if called by a safe function.
-        Generally, trusted functions should be kept small so that they are
-        easier to manually verify.
+        $(P Trusted functions are guaranteed to not exhibit any undefined
+        behavior if called by a safe function. Furthermore, calls to trusted
+        functions cannot lead to undefined behavior in `@safe` code that is
+        executed afterwards. It is the responsibility of the programmer to
+        ensure that these guarantees are upheld.
         )
+
+        $(P Example:)
+
+        ---
+        immutable(int)* f(int* p) @trusted
+        {
+            version (none) p[2] = 13;
+            // Invalid. p[2] is out of bounds. This line would exhibit undefined
+            // behavior.
+
+            version (none) p[1] = 13;
+            // Invalid. In this program, p[1] happens to be in-bounds, so the
+            // line would not exhibit undefined behavior, but a trusted function
+            // is not allowed to rely on this.
+
+            version (none) return cast(immutable) p;
+            // Invalid. @safe code still has mutable access and could trigger
+            // undefined behavior by overwriting the value later on.
+
+            int* p2 = new int;
+            *p2 = 42;
+            return cast(immutable) p2;
+            // Valid. After f returns, no mutable aliases of p2 can exist.
+        }
+
+        void main() @safe
+        {
+            int[2] a = [10, 20];
+            int* mp = &a[0];
+            immutable(int)* ip = f(mp);
+            assert(a[1] == 20); // Guaranteed. f cannot access a[1].
+            assert(ip !is mp); // Guaranteed. f cannot introduce unsafe aliasing.
+        }
+        ---
 
         $(P Trusted functions may call safe, trusted, or system functions.
         )
 
         $(P Trusted functions are covariant with safe or system functions.)
+
+        $(BEST_PRACTICE Trusted functions should be kept small so
+        that they are easier to manually verify.
+        )
 
 $(H3 $(LNAME2 system-functions, System Functions))
 

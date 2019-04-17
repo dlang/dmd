@@ -834,6 +834,10 @@ $(P
     $(TROW $(ARGS $(D DDOC_KEYWORD)), $(ARGS Highlighting of D keywords.))
     $(TROW $(ARGS $(D DDOC_PARAM)), $(ARGS Highlighting of function parameters.))
     $(TROW $(ARGS $(D DDOC_BACKQUOTED)), $(ARGS Inserts inline code.))
+    $(TROW $(ARGS $(D DDOC_AUTO_PSYMBOL_SUPPRESS)), $(ARGS Highlighting of auto-detected symbol that starts with underscore))
+    $(TROW $(ARGS $(D DDOC_AUTO_PSYMBOL)), $(ARGS Highlighting of auto-detected symbol))
+    $(TROW $(ARGS $(D DDOC_AUTO_KEYWORD)), $(ARGS Highlighting of auto-detected keywords))
+    $(TROW $(ARGS $(D DDOC_AUTO_PARAM)), $(ARGS Highlighting of auto-detected parameters))
     )
 
 $(P
@@ -970,7 +974,7 @@ $(H2 $(LNAME2 links_to_d_documentation_generators, Links to D documentation gene
 
 $(P
     A list of current D documentation generators which use Ddoc
-    can be found on our $(LINK2 https://wiki.dlang.org/Community:Open_Source_Projects, wiki page).
+    can be found on our $(LINK2 https://wiki.dlang.org/Open_Source_Projects#Documentation_Generators, wiki page).
 )
 
 $(SPEC_SUBNAV_PREV_NEXT iasm, D x86 Inline Assembler, interfaceToC, Interfacing to C)

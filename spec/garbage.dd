@@ -456,13 +456,12 @@ $(H2 $(LNAME2 precise_gc, Precise Heap Scanning))
 
     $(P If you use the GC memory functions from `core.memory`, and plan to use it
         for data with a mixture of pointers and non-pointer data you should pass the
-        TypeInfo of your allocated struct, class or type as the optional parameter:
+        TypeInfo of your allocated struct, class or type as the optional parameter.
+        The default `null` is interpreted as memory that might contain pointers everywhere.)
         ---------
-            struct S { size_t hash; Data* data; }
-            S* s = cast(S*)GC.malloc(S.sizeof, 0, typeid(S));
+        struct S { size_t hash; Data* data; }
+        S* s = cast(S*)GC.malloc(S.sizeof, 0, typeid(S));
         ---------
-        The default `null` is interpreted as memory that might contain pointers everywhere.
-    )
 
     $(P $(RED Attention:) Enabling precise scanning needs slightly more caution with
         type declarations. For example, if you reserve a buffer as part of a struct and later
@@ -518,6 +517,47 @@ $(H2 $(LNAME2 precise_dataseg, Precise Scanning of the DATA and TLS segment))
         shared static this() { singleton.mem = allocateSharedMem(); }
         ---------
         This doesn't work for TLS memory, though.
+
+$(H2 $(LNAME2 gc_registry, Adding your own Garbage Collector))
+
+    $(P GC implementations are added to a registry that allows to supply
+        more implementations by just linking them into
+        the binary. To do so add a function that is executed before the
+        D runtime initialization using `pragma(crt_constructor)`:)
+        ---
+        import gc.interface, gc.registry;
+        extern (C) pragma(crt_constructor) void registerMyGC()
+        {
+            registerGCFactory("mygc", &createMyGC);
+        }
+
+        GC createMyGC()
+        {
+            __gshared instance = new MyGC;
+            instance.initialize();
+            return instance;
+        }
+
+        class MyGC : GC { /*...*/ }
+        ---
+
+    $(P [The GC modules defining the interface (gc.interface) and registration
+        (gc.registry) are currently not public and are subject to
+        change from version to version. Add an import search path to the
+        druntime/src path to compile the example.])
+
+    $(P The new GC is added to the list of available garbage collectors that
+        can be selected via the usual configuration options, e.g. by embedding
+        `rt_options` into the binary:)
+        ---
+        extern (C) __gshared string[] rt_options = ["gcopt=gc:mygc"];
+        ---
+
+    $(P You can also remove the standard GC implementation from a statically
+        linked binary by redefining the function `extern(C) void* register_default_gcs()`.
+        If no custom garbage collector has been registered
+        all attempts to allocate GC managed memory will terminate
+        the application with an appropriate message.)
 
 $(H2 $(LNAME2 references, References))
 

@@ -21,7 +21,7 @@ $(HEADERNAV_TOC)
 
     ---
     extern (Objective-C)
-    class NSString
+    extern class NSString
     {
         const(char)* UTF8String() @selector("UTF8String");
     }
@@ -29,9 +29,9 @@ $(HEADERNAV_TOC)
 
     $(P
         All Objective-C classes that should be accessible from within D need to
-        be declared with the $(LINK2 #objc-linkage, Objective-C linkage). If all
-        methods inside an Objective-C class are without a body the class is
-        expected to be defined externally.
+        be declared with the $(LINK2 #objc-linkage, Objective-C linkage). If the
+        class is declared as `extern` (in addition to `extern (Objective-C)`) it
+        is expected to be defined externally.
     )
 
     $(P
@@ -46,7 +46,7 @@ $(HEADERNAV_TOC)
     ---
     // externally defined
     extern (Objective-C)
-    class NSObject
+    extern class NSObject
     {
         static NSObject alloc() @selector("alloc");
         NSObject init() @selector("init");
@@ -72,7 +72,7 @@ $(HEADERNAV_TOC)
 
     $(P
         Defining an Objective-C class is exactly the same as declaring an
-        external class but it needs to have at least one method with a body.
+        external class but it should not be declared as `extern`.
     )
 
     $(P
@@ -85,7 +85,7 @@ $(HEADERNAV_TOC)
     ---
     // externally defined
     extern (Objective-C)
-    class NSObject
+    extern class NSObject
     {
         static NSObject alloc() @selector("alloc");
         NSObject init() @selector("init");
@@ -162,7 +162,7 @@ $(HEADERNAV_TOC)
 
     ---
     extern (Objective-C)
-    class NSString
+    extern class NSString
     {
         NSString initWith(in char*) @selector("initWithUTF8String:");
         NSString initWith(NSString) @selector("initWithString:");
@@ -227,7 +227,7 @@ $(HEADERNAV_TOC)
 
     ---
     extern (Objective-C)
-    class NSObject
+    extern class NSObject
     {
         NSObject init() @selector("init");
     }
@@ -318,7 +318,7 @@ $(HEADERNAV_TOC)
 
     ---
     extern (Objective-C)
-    class NSString
+    extern class NSString
     {
         static NSString alloc() @selector("alloc");
         NSString initWithUTF8String(in char* str) @selector("initWithUTF8String:");
@@ -384,7 +384,7 @@ $(HEADERNAV_TOC)
     module main;
 
     extern (Objective-C)
-    class NSString
+    extern class NSString
     {
         static NSString alloc() @selector("alloc");
         NSString initWithUTF8String(in char* str) @selector("initWithUTF8String:");

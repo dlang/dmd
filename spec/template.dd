@@ -105,27 +105,27 @@ $(GNAME TemplateSingleArgument):
         of the $(I TemplateInstance):)
 
         ------
-        template TFoo(T) { alias t = T*; }
+        template TFoo(T) { alias Ptr = T*; }
         ...
-        TFoo!(int).t x; // declare x to be of type int*
+        TFoo!(int).Ptr x; // declare x to be of type int*
         ------
 
     $(P If the $(GLINK TemplateArgument) is one token long, the parentheses can be omitted:)
 
         ---
-        TFoo!int.t x;   // same as TFoo!(int).t x;
+        TFoo!int.Ptr x;   // same as TFoo!(int).Ptr x;
         ---
 
     $(P A template instantiation can be aliased:)
 
         ------
-        template TFoo(T) { alias t = T*; }
-        alias abc = TFoo!(int);
-        abc.t x;        // declare x to be of type int*
+        template TFoo(T) { alias Ptr = T*; }
+        alias foo = TFoo!(int);
+        foo.Ptr x;        // declare x to be of type int*
         ------
 
     $(P Multiple instantiations of a $(I TemplateDeclaration) with the same
-        $(I TemplateArgumentList) all will refer to the same instantiation.
+        $(I TemplateArgumentList) will all refer to the same instantiation.
         For example:)
 
         ------
@@ -142,12 +142,16 @@ $(GNAME TemplateSingleArgument):
     )
 
     $(P Even if template arguments are implicitly converted to the same
-        template parameter type, they still refer to the same instance:)
+        template parameter type, they still refer to the same instance.
+        This example uses a
+        $(RELATIVE_LINK2 aggregate_templates, `struct` template):)
 
         -----
         struct TFoo(int x) { }
 
-        // 3 and 2+1 are both 3 of type int
+        // Different template parameters create different struct types
+        static assert(!is(TFoo!(3) == TFoo!(2)));
+        // 3 and 2+1 are both 3 of type int - same TFoo instance
         static assert(is(TFoo!(3) == TFoo!(2 + 1)));
 
         // 3u is implicitly converted to 3 to match int parameter,
@@ -160,7 +164,9 @@ $(GNAME TemplateSingleArgument):
         arguments or are differently specialized.
     )
 
-    $(P For example, a simple generic copy template would be:)
+    $(H3 $(LNAME2 copy_example, Practical Example))
+
+    $(P A simple generic copy template would be:)
 
         ------
         template TCopy(T)
@@ -172,13 +178,14 @@ $(GNAME TemplateSingleArgument):
         }
         ------
 
-    $(P To use the template, it must first be instantiated with a specific
+    $(P To use this template, it must first be instantiated with a specific
         type:)
 
         ------
         int i;
         TCopy!(int).copy(i, 3);
         ------
+    $(P See also $(RELATIVE_LINK2 function-templates, function templates).)
 
 $(H2 $(LNAME2 instantiation_scope, Instantiation Scope))
 
@@ -257,18 +264,18 @@ $(H2 $(LNAME2 argument_deduction, Argument Deduction))
 
         ------
         template TFoo(T) { }
-        alias Foo1 = TFoo!(int);     // (1) T is deduced to be int
-        alias Foo2 = TFoo!(char*);   // (1) T is deduced to be char*
+        alias foo1 = TFoo!(int);     // (1) T is deduced to be int
+        alias foo2 = TFoo!(char*);   // (1) T is deduced to be char*
 
         template TBar(T : T*) { }
-        alias Foo3 = TBar!(char*);   // (2) T is deduced to be char
+        alias bar = TBar!(char*);    // (2) T is deduced to be char
 
         template TAbc(D, U : D[]) { }
-        alias Bar1 = TAbc!(int, int[]);  // (2) D is deduced to be int, U is int[]
-        alias Bar2 = TAbc!(char, int[]); // (4) error, D is both char and int
+        alias abc1 = TAbc!(int, int[]);  // (2) D is deduced to be int, U is int[]
+        alias abc2 = TAbc!(char, int[]); // (4) error, D is both char and int
 
         template TDef(D : E*, E) { }
-        alias Bar3 = TDef!(int*, int); // (1) E is int
+        alias def = TDef!(int*, int);  // (1) E is int
                                        // (3) D is int*
         ------
 
@@ -292,10 +299,10 @@ $(H2 $(LNAME2 argument_deduction, Argument Deduction))
         class B : A { }
 
         template TFoo(T : A) { }
-        alias Foo4 = TFoo!(B);     // (3) T is B
+        alias foo = TFoo!(B);      // (3) T is B
 
         template TBar(T : U*, U : A) { }
-        alias Foo5 = TBar!(B*, B); // (2) T is B*
+        alias bar = TBar!(B*, B);  // (2) T is B*
                                    // (3) U is B
         ------
 
@@ -477,9 +484,9 @@ $(GNAME TemplateValueParameterDefault):
         is specialized for 10:)
 
         ------
-        template foo(U : int, int T : 10)
+        template foo(U : int, int v : 10)
         {
-            U x = T;
+            U x = v;
         }
 
         void main()
@@ -519,18 +526,18 @@ $(GNAME TemplateAliasParameterDefault):
         ------
         class Foo
         {
-            static int p;
+            static int x;
         }
 
-        template Bar(alias T)
+        template Bar(alias a)
         {
-            alias q = T.p;
+            alias sym = a.x;
         }
 
         void main()
         {
             alias bar = Bar!(Foo);
-            bar.q = 3;  // sets Foo.p to 3
+            bar.sym = 3;  // sets Foo.x to 3
         }
         ------
         )
@@ -540,36 +547,54 @@ $(GNAME TemplateAliasParameterDefault):
         ------
         shared int x;
 
-        template Foo(alias X)
+        template Foo(alias var)
         {
-            auto p = &X;
+            auto ptr = &var;
         }
 
         void main()
         {
             alias bar = Foo!(x);
-            *bar.p = 3;       // set x to 3
+            *bar.ptr = 3;       // set x to 3
             static shared int y;
             alias abc = Foo!(y);
-            *abc.p = 3;       // set y to 3
+            *abc.ptr = 3;       // set y to 3
         }
         ------
+        )
+
+        $(LI Local names
+        ---
+        template Foo(alias var)
+        {
+            void inc() { var++; }
+        }
+
+        void main()
+        {
+            int v = 4;
+            alias foo = Foo!v;
+            foo.inc();
+            assert(v == 5);
+        }
+        ---
+        See also $(RELATIVE_LINK2 implicit-nesting, Implicit Template Nesting).
         )
 
         $(LI Module names
 
         ------
-        import std.string;
+        import std.conv;
 
-        template Foo(alias X)
+        template Foo(alias a)
         {
-            alias y = X.toString;
+            alias sym = a.text;
         }
 
         void main()
         {
-            alias bar = Foo!(std.string);
-            bar.y(3);   // calls std.string.toString(3)
+            alias bar = Foo!(std.conv);
+            bar.sym(3);   // calls std.conv.text(3)
         }
         ------
         )
@@ -579,20 +604,20 @@ $(GNAME TemplateAliasParameterDefault):
         ------
         shared int x;
 
-        template Foo(alias X)
+        template Foo(alias var)
         {
-            auto p = &X;
+            auto ptr = &var;
         }
 
-        template Bar(alias T)
+        template Bar(alias Tem)
         {
-            alias abc = T!(x);
+            alias instance = Tem!(x);
         }
 
         void main()
         {
             alias bar = Bar!(Foo);
-            *bar.abc.p = 3;  // sets x to 3
+            *bar.instance.ptr = 3;  // sets x to 3
         }
         ------
         )
@@ -602,21 +627,21 @@ $(GNAME TemplateAliasParameterDefault):
         ------
         shared int x;
 
-        template Foo(alias X)
+        template Foo(alias var)
         {
-            auto p = &X;
+            auto ptr = &var;
         }
 
-        template Bar(alias T)
+        template Bar(alias sym)
         {
-            alias q = T.p;
+            alias p = sym.ptr;
         }
 
         void main()
         {
             alias foo = Foo!(x);
             alias bar = Bar!(foo);
-            *bar.q = 3;  // sets x to 3
+            *bar.p = 3;  // sets x to 3
         }
         ------
         )
@@ -947,17 +972,21 @@ $(H2 $(LNAME2 aggregate_templates, Aggregate Templates))
 
 $(GRAMMAR
 $(GNAME ClassTemplateDeclaration):
+    $(D class) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(D ;)
     $(D class) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(GLINK Constraint)$(OPT) $(GLINK2 class, BaseClassList)$(OPT) $(GLINK2 struct, AggregateBody)
     $(D class) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(GLINK2 class, BaseClassList)$(OPT) $(GLINK Constraint)$(OPT) $(GLINK2 struct, AggregateBody)
 
 $(GNAME InterfaceTemplateDeclaration):
+    $(D interface) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(D ;)
     $(D interface) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(GLINK Constraint)$(OPT) $(GLINK2 interface, BaseInterfaceList)$(OPT) $(GLINK2 struct, AggregateBody)
     $(D interface) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(GLINK2 interface, BaseInterfaceList) $(GLINK Constraint) $(GLINK2 struct, AggregateBody)
 
 $(GNAME StructTemplateDeclaration):
+    $(D struct) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(D ;)
     $(D struct) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(GLINK Constraint)$(OPT) $(GLINK2 struct, AggregateBody)
 
 $(GNAME UnionTemplateDeclaration):
+    $(D union) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(D ;)
     $(D union) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(GLINK Constraint)$(OPT) $(GLINK2 struct, AggregateBody)
 )
 
@@ -1286,6 +1315,8 @@ $(H2 $(LNAME2 nested-templates, Nested Templates))
         of class $(D C), and $(D Bar!().bar) will work just the same as a nested
         function within function $(D main$(LPAREN)$(RPAREN)).)
 
+$(H3 $(LNAME2 implicit-nesting, Implicit Nesting))
+
     $(P If a template has a $(RELATIVE_LINK2 aliasparameters, template alias parameter),
         and is instantiated with a local symbol, the instantiated function will
         implicitly become nested in order to access runtime data of the given
@@ -1392,7 +1423,7 @@ $(H2 $(LNAME2 nested-templates, Nested Templates))
         }
         ---
 
-    $(H3 $(LNAME2 nested_template_limitation, Limitation:))
+    $(H3 $(LNAME2 nested_template_limitation, Context Limitation))
 
     $(P Currently nested templates can capture at most one context. As a typical
         example, non-static template member functions cannot take local symbol
