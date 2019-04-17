@@ -309,3 +309,32 @@ A few operations are done on the output of a test before the comparison with `TE
 - paths to `test_results` will be replaced with `{{RESULTS_DIR}}`
 
 Both stderr and stdout of the DMD are captured for output comparison.
+
+## Test Coding Practices
+
+The purpose of the test suite is to test the compiler only. This means:
+
+* do not import modules from Phobos
+* keep imports from druntime to the interface to the C standard library
+* use `core.stdc.stdio.printf`, not `std.stdio.writef`
+
+In order to make the test suite run faster, multiple unrelated tests can
+be aggregated into a single file, for example `test/runnable/test42.d`
+
+Each test should be in the following form:
+
+```
+/*******************************/
+// https://issues/dlang.org/show_bug.cgi?id=NNNN
+
+void testNNNN()
+{
+}
+```
+
+The NNNN is the bugzilla issue number this test ensures is fixed.
+The test code should be self-contained. The test code should be
+minimized to focus on the test.
+
+As usual, test source code should be LF terminated lines, and not
+contain any tab characters.
